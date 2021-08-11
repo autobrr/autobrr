@@ -1,0 +1,10 @@
+node_modules/
+.run
+.gitignore
+config.toml
+docker-compose.yml
+README.md
+bin
+config
+web/node_modules
+web/build

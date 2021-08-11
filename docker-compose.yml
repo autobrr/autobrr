@@ -1,0 +1,11 @@
+---
+version: "2.1"
+services:
+  autobrr:
+    image: autobrr:dev
+    container_name: autobrr
+    volumes:
+      - ./config:/config
+    ports:
+      - 8989:8989
+    restart: unless-stopped
