@@ -1,0 +1,64 @@
+{
+  "name": "web",
+  "version": "0.1.0",
+  "private": true,
+  "proxy": "http://localhost:8989",
+  "homepage": ".",
+  "dependencies": {
+    "@craco/craco": "^6.1.2",
+    "@headlessui/react": "^1.2.0",
+    "@heroicons/react": "^1.0.1",
+    "@testing-library/jest-dom": "^5.11.4",
+    "@testing-library/react": "^11.1.0",
+    "@testing-library/user-event": "^12.1.10",
+    "@types/jest": "^26.0.15",
+    "@types/node": "^12.0.0",
+    "@types/react": "^17.0.0",
+    "@types/react-dom": "^17.0.0",
+    "final-form": "^4.20.2",
+    "final-form-arrays": "^3.0.2",
+    "react": "^17.0.2",
+    "react-dom": "^17.0.2",
+    "react-final-form": "^6.5.3",
+    "react-final-form-arrays": "^3.1.3",
+    "react-multi-select-component": "^4.0.2",
+    "react-query": "^3.18.1",
+    "react-router-dom": "^5.2.0",
+    "react-scripts": "4.0.3",
+    "react-select": "5.0.0-beta.0",
+    "recoil": "^0.4.0",
+    "typescript": "^4.1.2",
+    "web-vitals": "^1.0.1"
+  },
+  "scripts": {
+    "start": "craco start",
+    "build": "craco build",
+    "test": "craco test",
+    "eject": "react-scripts eject"
+  },
+  "eslintConfig": {
+    "extends": [
+      "react-app",
+      "react-app/jest"
+    ]
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  },
+  "devDependencies": {
+    "@tailwindcss/forms": "^0.3.2",
+    "@types/react-router-dom": "^5.1.7",
+    "autoprefixer": "^9",
+    "postcss": "^7",
+    "tailwindcss": "npm:@tailwindcss/postcss7-compat"
+  }
+}
