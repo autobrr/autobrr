@@ -1,0 +1,53 @@
+---
+#id: tracker01
+name: TorrentLeech
+identifier: torrentleech
+description: TorrentLeech (TL) is a private torrent tracker for 0DAY / GENERAL.
+language: en-us
+urls:
+  - https://www.torrentleech.org
+privacy: private
+protocol: torrent
+supports:
+  - irc
+  - rss
+source: custom
+settings:
+  - name: rsskey
+    type: text
+    label: RSS key
+    tooltip: The rsskey in your TorrentLeech RSS feed link.
+    description: "Go to your profile and copy and paste your RSS link to extract the rsskey."
+    regex: /([\da-fA-F]{20})
+
+irc:
+  network: TorrentLeech.org
+  server: irc.torrentleech.org:7021
+  port: 7021
+  channels:
+    - "#tlannounces"
+  announcers:
+    - _AnnounceBot_
+
+parse:
+  type: single
+  lines:
+    -
+      test:
+        - "New Torrent Announcement: <PC :: Iso>  Name:'debian live 10 6 0 amd64 standard iso' uploaded by 'Anonymous' -  http://www.tracker01.test/torrent/263302"
+        - "New Torrent Announcement: <PC :: Iso>  Name:'debian live 10 6 0 amd64 standard iso' uploaded by 'Anonymous' freeleech -  http://www.tracker01.test/torrent/263302"
+      pattern: New Torrent Announcement:\s*<([^>]*)>\s*Name:'(.*)' uploaded by '([^']*)'\s*(freeleech)*\s*-\s*https?\:\/\/([^\/]+\/)torrent\/(\d+)
+      vars:
+        - category
+        - torrentName
+        - uploader
+        - freeleech
+        - baseUrl
+        - torrentId
+
+  match:
+    torrenturl: "https://{{ .baseUrl }}rss/download/{{ .torrentId }}/{{ .rsskey }}/{{ .torrentName }}.torrent"
+    encode:
+      - torrentName
+
+

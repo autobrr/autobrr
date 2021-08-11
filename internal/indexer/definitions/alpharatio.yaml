@@ -1,0 +1,60 @@
+---
+#id: alpharatio
+name: AlphaRatio
+identifier: alpharatio
+description: AlphaRatio (AR) is a private torrent tracker for 0DAY / GENERAL
+language: en-us
+urls:
+  - https://alpharatio.cc/
+privacy: private
+protocol: torrent
+supports:
+  - irc
+  - rss
+source: gazelle
+settings:
+  - name: authkey
+    type: text
+    label: Auth key
+    tooltip: Right click DL on a torrent and get the authkey.
+    description: Right click DL on a torrent and get the authkey.
+  - name: torrent_pass
+    type: text
+    label: Torrent pass
+    tooltip: Right click DL on a torrent and get the torrent_pass.
+    description: Right click DL on a torrent and get the torrent_pass.
+
+irc:
+  network: AlphaRatio
+  server: irc.alpharatio.cc:6697
+  port: 6697
+  channels:
+    - "#Announce"
+  announcers:
+    - Voyager
+
+parse:
+  type: multi
+  lines:
+    -
+      test:
+        - "[New Release]-[MovieHD]-[War.For.The.Planet.Of.The.Apes.2017.INTERNAL.1080p.BluRay.CRF.x264-SAPHiRE]-[URL]-[ https://alpharatio.cc/torrents.php?id=699463 ]-[ 699434 ]-[ Uploaded 2 Mins, 59 Secs after pre. ]"
+      pattern: \[New Release\]-\[(.*)\]-\[(.*)\]-\[URL\]-\[ (https?://.*)id=\d+ \]-\[ (\d+) \](?:-\[ Uploaded (.*) after pre. ])?
+      vars:
+        - category
+        - torrentName
+        - baseUrl
+        - torrentId
+        - preTime
+    -
+      test:
+        - "[AutoDL]-[MovieHD]-[699434]-[ 1 | 10659 | 1 | 1 ]-[War.For.The.Planet.Of.The.Apes.2017.INTERNAL.1080p.BluRay.CRF.x264-SAPHiRE]"
+      pattern: \[AutoDL\]-\[.*\]-\[.*\]-\[ ([01]) \| (\d+) \| ([01]) \| ([01]) \]-\[.+\]
+      vars:
+        - scene
+        - torrentSize
+        - freeleech
+        - auto
+
+  match:
+    torrenturl: "{{ .baseUrl }}action=download&id={{ .torrentId }}&authkey={{ .authkey }}&torrent_pass={{ .torrent_pass }}"

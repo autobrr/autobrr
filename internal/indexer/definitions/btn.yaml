@@ -1,0 +1,68 @@
+---
+#id: btn
+name: BroadcasTheNet
+identifier: btn
+description: BroadcasTheNet (BTN) is a private torrent tracker focused on TV shows
+language: en-us
+urls:
+  - https://broadcasthe.net/
+privacy: private
+protocol: torrent
+supports:
+  - irc
+  - rss
+source: gazelle
+settings:
+    - name: authkey
+      type: text
+      label: Auth key
+      description: Right click DL on a torrent and get the authkey.
+    - name: torrent_pass
+      type: text
+      label: Torrent pass
+      description: Right click DL on a torrent and get the torrent_pass.
+
+irc:
+  network: BroadcasTheNet
+  server: irc.broadcasthenet.net:6697
+  port: 6697
+  channels:
+    - "#BTN-Announce"
+  announcers:
+    - Barney
+
+parse:
+  type: multi
+  lines:
+    -
+      test:
+        - "NOW BROADCASTING! [ Lost S06E07 720p WEB-DL DD 5.1 H.264 - LP ]"
+      pattern: ^NOW BROADCASTING! \[(.*)\]
+      vars:
+        - torrentName
+    -
+      test:
+        - "[ Title: S06E07 ] [ Series: Lost ]"
+      pattern: '^\[ Title: (.*) \] \[ Series: (.*) \]'
+      vars:
+        - title
+        - name1
+    -
+      test:
+        - "[ 2010 ] [ Episode ] [ MKV | x264 | WEB ] [ Uploader: Uploader1 ]"
+      pattern: '^(?:\[ (\d+) \] )?\[ (.*) \] \[ (.*) \] \[ Uploader: (.*?) \](?: \[ Pretime: (.*) \])?'
+      vars:
+        - year
+        - category
+        - tags
+        - uploader
+        - preTime
+    -
+      test:
+        - "[ https://XXXXXXXXX/torrents.php?id=7338 / https://XXXXXXXXX/torrents.php?action=download&id=9116 ]"
+      pattern: ^\[ .* / (https?://.*id=\d+) \]
+      vars:
+        - baseUrl
+
+  match:
+    torrenturl: "{{ .baseUrl }}&authkey={{ .authkey }}&torrent_pass={{ .torrent_pass }}"

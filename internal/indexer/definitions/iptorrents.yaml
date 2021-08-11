@@ -1,0 +1,53 @@
+---
+#id: iptorrents
+name: IPTorrents
+identifier: ipt
+description: IPTorrents (IPT) is a private torrent tracker for 0DAY / GENERAL.
+language: en-us
+urls:
+  - https://iptorrents.com/
+  - https://iptorrents.me/
+privacy: private
+protocol: torrent
+supports:
+  - irc
+  - rss
+source: unknown
+settings:
+  - name: passkey
+    type: text
+    label: Passkey
+    tooltip: Copy the passkey from your details page
+    description: "Copy the passkey from your details page."
+
+irc:
+  network: IPTorrents
+  server: irc.iptorrents.com:6697
+  port: 6697
+  channels:
+    - "#ipt.announce"
+    - "#ipt.announce2"
+  announcers:
+    - IPT
+    - FunTimes
+
+parse:
+  type: single
+  lines:
+    -
+      test:
+        - "[Movie/XXX] Audrey Bitoni HD Pack FREELEECH - http://www.iptorrents.com/details.php?id=789421 - 14.112 GB"
+        - "[Movies/XviD] The First Men In The Moon 2010 DVDRip XviD-VoMiT - http://www.iptorrents.com/details.php?id=396589 - 716.219 MB"
+      pattern: '^\[([^\]]*)](.*?)\s*(FREELEECH)*\s*-\s+https?\:\/\/([^\/]+).*[&\?]id=(\d+)\s*-(.*)'
+      vars:
+        - category
+        - torrentName
+        - freeleech
+        - baseUrl
+        - torrentId
+        - torrentSize
+
+  match:
+    torrenturl: "{{ .baseUrl }}download.php?id={{ .torrentId }}&file={{ .torrentName }}.torrent&passkey={{ .passkey }}"
+    encode:
+      - torrentName

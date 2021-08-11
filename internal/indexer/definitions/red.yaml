@@ -1,0 +1,51 @@
+---
+#id: red
+name: Redacted
+identifier: redacted
+description: Redacted (RED) is a private torrent tracker for MUSIC
+language: en-us
+urls:
+  - https://redacted.ch/
+privacy: private
+protocol: torrent
+supports:
+  - irc
+  - rss
+source: gazelle
+settings:
+    - name: authkey
+      type: text
+      label: Auth key
+      tooltip: Right click DL on a torrent and get the authkey.
+      description: Right click DL on a torrent and get the authkey.
+    - name: torrent_pass
+      type: text
+      label: Torrent pass
+      tooltip: Right click DL on a torrent and get the torrent_pass.
+      description: Right click DL on a torrent and get the torrent_pass.
+
+irc:
+  network: Scratch-Network
+  server: irc.scratch-network.net:6697
+  port: 6697
+  channels:
+    - "#red-announce"
+  announcers:
+    - Drone
+
+parse:
+  type: single
+  lines:
+    -
+      test:
+        - "JR Get Money - Nobody But You [2008] [Single] - FLAC / Lossless / Log / 100% / Cue / CD - https://redacted.ch/torrents.php?id=1592366 / https://redacted.ch/torrents.php?action=download&id=3372962 - hip.hop,rhythm.and.blues,2000s"
+        - "Johann Sebastian Bach performed by Festival Strings Lucerne under Rudolf Baumgartner - Brandenburg Concertos 5 and 6, Suite No 2 [1991] [Album] - FLAC / Lossless / Log / 100% / Cue / CD - https://redacted.ch/torrents.php?id=1592367 / https://redacted.ch/torrents.php?action=download&id=3372963 - classical"
+      pattern: '^(.*)\s+-\s+https?:.*[&\?]id=.*https?\:\/\/([^\/]+\/).*[&\?]id=(\d+)\s*-\s*(.*)'
+      vars:
+        - torrentName
+        - baseUrl
+        - torrentId
+        - tags
+
+  match:
+    torrenturl: "https://{{ .baseUrl }}torrents.php?action=download&id={{ .torrentId }}&authkey={{ .authkey }}&torrent_pass={{ .torrent_pass }}"

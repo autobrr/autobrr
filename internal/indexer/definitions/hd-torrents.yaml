@@ -1,0 +1,49 @@
+---
+#id: hdt
+name: HD-Torrents
+identifier: hdt
+description: HD-Torrents (HD-T) is a private torrent tracker for HD MOVIES / TV
+language: en-us
+urls:
+  - https://hd-torrents.org/
+  - https://hdts.ru
+privacy: private
+protocol: torrent
+supports:
+  - irc
+  - rss
+source: xbtit
+settings:
+    - name: cookie
+      type: text
+      label: Cookie
+      description: "FireFox -> Preferences -> Privacy -> Show Cookies and find the uid and pass cookies. Example: uid=1234; pass=asdf12347asdf13"
+
+irc:
+  network: P2P-NET
+  server: irc.p2p-network.net:6697
+  port: 6697
+  channels:
+    - "#HD-Torrents.Announce"
+  announcers:
+    - HoboLarry
+
+parse:
+  type: single
+  lines:
+    -
+      test:
+        - "New Torrent in category [XXX/Blu-ray] Erotische Fantasien 3D (2008) Blu-ray 1080p AVC DTS-HD MA 7 1 (14.60 GB) uploaded! Download: https://hd-torrents.org/download.php?id=806bc36530d146969d300c5352483a5e6e0639e9"
+      pattern: 'New Torrent in category \[([^\]]*)\] (.*) \(([^\)]*)\) uploaded! Download\: https?\:\/\/([^\/]+\/).*[&\?]id=([a-f0-9]+)'
+      vars:
+        - category
+        - torrentName
+        - torrentSize
+        - baseUrl
+        - torrentId
+
+  match:
+    torrenturl: "https://{{ .baseUrl }}download.php?id={{ .torrentId }}&f={{ .torrentName }}.torrent"
+    cookie: true
+    encode:
+      - torrentName

@@ -1,0 +1,48 @@
+---
+#id: emp
+name: Empornium
+identifier: emp
+description: Empornium (EMP) is a private torrent tracker for XXX
+language: en-us
+urls:
+  - https://www.empornium.is
+privacy: private
+protocol: torrent
+supports:
+  - irc
+  - rss
+source: gazelle
+settings:
+  - name: authkey
+    type: text
+    label: Auth key
+    description: Right click DL on a torrent and get the authkey.
+  - name: torrent_pass
+    type: text
+    label: Torrent pass
+    description: Right click DL on a torrent and get the torrent_pass.
+
+irc:
+  network: DigitalIRC
+  server: irc.empornium.is:6697
+  port: 6697
+  channels:
+    - "#empornium-announce"
+  announcers:
+    - "^Wizard^"
+
+parse:
+  type: single
+  lines:
+    -
+      pattern: '^(.*?) - Size: ([0-9]+?.*?) - Uploader: (.*?) - Tags: (.*?) - (https://.*torrents.php\?)id=(.*)$'
+      vars:
+        - torrentName
+        - torrentSize
+        - uploader
+        - tags
+        - baseUrl
+        - torrentId
+
+  match:
+    torrenturl: "{{ .baseUrl }}action=download&id={{ .torrentId }}&authkey={{ .authkey }}&torrent_pass={{ .torrent_pass }}"

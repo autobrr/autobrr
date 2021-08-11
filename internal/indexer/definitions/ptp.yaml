@@ -1,0 +1,51 @@
+---
+#id: ptp
+name: PassThePopcorn
+identifier: ptp
+description: PassThePopcorn (PTP) is a private torrent tracker for MOVIES
+language: en-us
+urls:
+  - https://passthepopcorn.me
+privacy: private
+protocol: torrent
+supports:
+  - irc
+  - rss
+source: gazelle
+settings:
+    - name: authkey
+      type: text
+      label: Auth key
+      tooltip: Right click DL on a torrent and get the authkey.
+      description: Right click DL on a torrent and get the authkey.
+    - name: torrent_pass
+      type: text
+      label: Torrent pass
+      tooltip: Right click DL on a torrent and get the torrent_pass.
+      description: Right click DL on a torrent and get the torrent_pass.
+
+irc:
+  network: PassThePopcorn
+  server: irc.passthepopcorn.me:7000
+  port: 7000
+  channels:
+    - "#ptp-announce"
+  announcers:
+    - Hummingbird
+
+parse:
+  type: single
+  lines:
+    -
+      test:
+        - "Irene Huss - Nattrond AKA The Night Round [2008] by Anders Engström - XviD / DVD / AVI / 640x352 - http://passthepopcorn.me/torrents.php?id=51627 / http://passthepopcorn.me/torrents.php?action=download&id=97333 - crime, drama, mystery"
+        - "Dirty Rotten Scoundrels [1988] by Frank Oz - x264 / Blu-ray / MKV / 720p - http://passthepopcorn.me/torrents.php?id=10735 / http://passthepopcorn.me/torrents.php?action=download&id=97367 - comedy, crime"
+      pattern: '^(.*)-\s*https?:.*[&\?]id=.*https?\:\/\/([^\/]+\/).*[&\?]id=(\d+)\s*-\s*(.*)'
+      vars:
+        - torrentName
+        - baseUrl
+        - torrentId
+        - tags
+
+  match:
+    torrenturl: "https://{{ .baseUrl }}torrents.php?action=download&id={{ .torrentId }}&authkey={{ .authkey }}&torrent_pass={{ .torrent_pass }}"

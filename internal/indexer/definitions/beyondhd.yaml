@@ -1,0 +1,48 @@
+---
+#id: beyondhd
+name: BeyondHD
+identifier: beyondhd
+description: BeyondHD (BHD) is a private torrent tracker for HD MOVIES / TV
+language: en-us
+urls:
+  - https://beyond-hd.me/
+privacy: private
+protocol: torrent
+supports:
+  - irc
+  - rss
+source: UNIT3D (F3NIX)
+settings:
+    - name: passkey
+      type: text
+      label: Passkey
+      tooltip: The passkey in your BeyondHD RSS feed.
+      description: "Go to your profile and copy and paste your RSS link to extract the rsskey."
+
+irc:
+  network: BeyondHD-IRC
+  server: irc.beyond-hd.me:6697
+  port: 6697
+  channels:
+    - "#bhd_announce"
+  announcers:
+    - Willie
+    - Millie
+
+parse:
+  type: single
+  lines:
+    -
+      test:
+        - "New Torrent: Orange.Is.the.New.Black.S01.1080p.Blu-ray.AVC.DTS-HD.MA.5.1-Test Category: TV By: Uploader Size: 137.73 GB Link: https://beyond-hd.me/details.php?id=25918"
+      pattern: 'New Torrent:(.*)Category:(.*)By:(.*)Size:(.*)Link: https?\:\/\/([^\/]+\/).*[&\?]id=(\d+)'
+      vars:
+        - torrentName
+        - category
+        - uploader
+        - torrentSize
+        - baseUrl
+        - torrentId
+
+  match:
+    torrenturl: "https://{{ .baseUrl }}torrent/download/auto.{{ .torrentId }}.{{ .passkey }}"

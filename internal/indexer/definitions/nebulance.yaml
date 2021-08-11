@@ -1,0 +1,55 @@
+---
+#id: nebulance
+name: Nebulance
+identifier: nbl
+description: Nebulance (NBL) is a ratioless private torrent tracker for TV
+language: en-us
+urls:
+  - https://nebulance.io/
+privacy: private
+protocol: torrent
+supports:
+  - irc
+  - rss
+source: gazelle
+settings:
+    - name: authkey
+      type: text
+      label: Auth key
+      tooltip: Right click DL on a torrent and get the authkey.
+      description: Right click DL on a torrent and get the authkey.
+    - name: torrent_pass
+      type: text
+      label: Torrent pass
+      tooltip: Right click DL on a torrent and get the torrent_pass.
+      description: Right click DL on a torrent and get the torrent_pass.
+
+irc:
+  network: Nebulance
+  server: irc.nebulance.cc:6697
+  port: 6697
+  channels:
+    - "#nbl-announce"
+  announcers:
+    - DRADIS
+
+parse:
+  type: single
+  lines:
+    -
+      test:
+        - "[Episodes] The Vet Life - S02E08 [WebRip / x264 / MKV / 720p / HD / VLAD / The.Vet.Life.S02E08.Tuskegee.Reunion.720p.ANPL.WEBRip.AAC2.0.x264-VLAD.mkv] [702.00 MB - Uploader: UPLOADER] - http://nebulance.io/torrents.php?id=147 [Tags: comedy,subtitles,cbs]"
+        - "[Seasons] Police Interceptors - S10 [HDTV / x264 / MKV / MP4 / 480p / SD / BTN / Police.Interceptors.S10.HDTV.x264-BTN] [5.27 GB - Uploader: UPLOADER] - http://nebulance.io/torrents.php?id=1472 [Tags: comedy,subtitles,cbs]"
+      pattern: '\[(.*?)\] (.*?) \[(.*?)\] \[(.*?) - Uploader: (.*?)\] - (https?://.*)id=(\d+) \[Tags: (.*)\]'
+      vars:
+        - category
+        - torrentName
+        - releaseTags
+        - torrentSize
+        - uploader
+        - baseUrl
+        - torrentId
+        - tags
+
+  match:
+    torrenturl: "{{ .baseUrl }}action=download&id={{ .torrentId }}&authkey={{ .authkey }}&torrent_pass={{ .torrent_pass }}"

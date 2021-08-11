@@ -1,0 +1,50 @@
+---
+#id: orpheus
+name: Orpheus
+identifier: ops
+description: Orpheus (OPS) is a Private Torrent Tracker for MUSIC
+language: en-us
+urls:
+  - https://orpheus.network/
+privacy: private
+protocol: torrent
+supports:
+  - irc
+  - rss
+source: gazelle
+settings:
+    - name: authkey
+      type: text
+      label: Auth key
+      tooltip: Right click DL on a torrent and get the authkey.
+      description: Right click DL on a torrent and get the authkey.
+    - name: torrent_pass
+      type: text
+      label: Torrent pass
+      tooltip: Right click DL on a torrent and get the torrent_pass.
+      description: Right click DL on a torrent and get the torrent_pass.
+
+irc:
+  network: Orpheus
+  server: irc.orpheus.network:7000
+  port: 7000
+  channels:
+    - "#announce"
+  announcers:
+    - hermes
+
+parse:
+  type: single
+  lines:
+    -
+      test:
+        - "TORRENT: Todd Edwards - You Came To Me [2002] [Single] - FLAC / Lossless / WEB - 2000s,house,uk.garage,garage.house - https://orpheus.network/torrents.php?id=756102 / https://orpheus.network/torrents.php?action=download&id=1647868"
+        - "TORRENT: THE BOOK [2021] [Album] - FLAC / Lossless / CD -  - https://orpheus.network/torrents.php?id=693523 / https://orpheus.network/torrents.php?action=download&id=1647867"
+      pattern: 'TORRENT: (.*) - (.*) - https?://.* / (https?://.*id=\d+)'
+      vars:
+        - torrentName
+        - tags
+        - torrentId
+
+  match:
+    torrenturl: "{{ .baseUrl }}&authkey={{ .authkey }}&torrent_pass={{ .torrent_pass }}"
