@@ -33,3 +33,15 @@ func (r *UserRepo) FindByUsername(username string) (*domain.User, error) {
 
 	return &user, nil
 }
+
+func (r *UserRepo) Store(user domain.User) error {
+	query := `INSERT INTO users (username, password) VALUES (?, ?)`
+
+	_, err := r.db.Exec(query, user.Username, user.Password)
+	if err != nil {
+		log.Error().Stack().Err(err).Msg("error executing query")
+		return err
+	}
+
+	return nil
+}

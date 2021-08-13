@@ -23,6 +23,9 @@ build: deps build/web build/app
 build/app:
 	go build -o bin/$(SERVICE) cmd/$(SERVICE)/main.go
 
+build/ctl:
+	go build -o bin/autobrrctl cmd/autobrrctl/main.go
+
 build/web:
 	cd web && yarn build
 

@@ -3,8 +3,6 @@ package database
 import (
 	"database/sql"
 	"fmt"
-
-	"github.com/rs/zerolog/log"
 )
 
 const schema = `
@@ -144,8 +142,6 @@ var migrations = []string{
 }
 
 func Migrate(db *sql.DB) error {
-	log.Info().Msg("Migrating database...")
-
 	var version int
 	if err := db.QueryRow("PRAGMA user_version").Scan(&version); err != nil {
 		return fmt.Errorf("failed to query schema version: %v", err)
