@@ -1,18 +1,8 @@
 import {Action, DownloadClient, Filter, Indexer, Network} from "../domain/interfaces";
+import {baseUrl} from "../utils/utils";
 
 function baseClient(endpoint: string, method: string, { body, ...customConfig}: any = {}) {
-    let baseUrl = ""
-    if (window.APP.baseUrl) {
-        if (window.APP.baseUrl === '/') {
-            baseUrl = "/"
-        } else if (window.APP.baseUrl === `{{.BaseUrl}}`) {
-            baseUrl = ""
-        } else if (window.APP.baseUrl === "/autobrr/") {
-            baseUrl = "/autobrr/"
-        } else {
-            baseUrl = window.APP.baseUrl
-        }
-    }
+    let baseURL = baseUrl()
 
     const headers = {'content-type': 'application/json'}
     const config = {
@@ -28,7 +18,7 @@ function baseClient(endpoint: string, method: string, { body, ...customConfig}: 
         config.body = JSON.stringify(body)
     }
 
-    return window.fetch(`${baseUrl}${endpoint}`, config)
+    return window.fetch(`${baseURL}${endpoint}`, config)
         .then(async response => {
             if (response.status === 401) {
                 // unauthorized

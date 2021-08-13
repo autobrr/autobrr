@@ -6,6 +6,7 @@ import Logout from "./screens/auth/logout";
 import Base from "./screens/Base";
 import {ReactQueryDevtools} from "react-query/devtools";
 import Layout from "./components/Layout";
+import {baseUrl} from "./utils/utils";
 
 function Protected() {
     return (
@@ -20,7 +21,7 @@ export const queryClient = new QueryClient()
 function App() {
     return (
         <QueryClientProvider client={queryClient}>
-            <Router>
+            <Router basename={baseUrl()}>
                 <Switch>
                     <Route exact={true} path="/login" component={Login}/>
                     <Route exact={true} path="/logout" component={Logout}/>
