@@ -37,6 +37,12 @@ function baseClient(endpoint: string, method: string, { body, ...customConfig}: 
                 return
             }
 
+            if (response.status === 403) {
+                // window.location.assign("/login")
+                return Promise.reject(new Error(response.statusText))
+                // return
+            }
+
             if (response.status === 404) {
                 return Promise.reject(new Error(response.statusText))
             }
@@ -68,6 +74,11 @@ const appClient = {
 }
 
 const APIClient = {
+    auth: {
+        login: (username: string, password: string) => appClient.Post("api/auth/login", {username: username, password: password}),
+        logout: () => appClient.Post(`api/auth/logout`, null),
+        test: () => appClient.Get(`api/auth/test`),
+    },
     actions: {
         create: (action: Action) => appClient.Post("api/actions", action),
         update: (action: Action) => appClient.Put(`api/actions/${action.id}`, action),

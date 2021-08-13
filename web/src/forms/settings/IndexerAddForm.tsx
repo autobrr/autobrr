@@ -1,4 +1,4 @@
-import React, {Fragment, useEffect} from "react";
+import React, {Fragment} from "react";
 import {useMutation, useQuery} from "react-query";
 import {Indexer} from "../../domain/interfaces";
 import {sleep} from "../../utils/utils";
@@ -7,7 +7,7 @@ import {Dialog, Transition} from "@headlessui/react";
 import {Field, Form} from "react-final-form";
 import DEBUG from "../../components/debug";
 import Select from "react-select";
-import {queryClient} from "../../index";
+import {queryClient} from "../../App";
 import { SwitchGroup } from "../../components/inputs";
 import APIClient from "../../api/APIClient";
 

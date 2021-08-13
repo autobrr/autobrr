@@ -7,9 +7,9 @@ import {Dialog, Transition} from "@headlessui/react";
 import {Field, Form} from "react-final-form";
 import DEBUG from "../../components/debug";
 import { SwitchGroup } from "../../components/inputs";
-import {queryClient} from "../../index";
 import {useToggle} from "../../hooks/hooks";
 import APIClient from "../../api/APIClient";
+import {queryClient} from "../../App";
 
 interface props {
     isOpen: boolean;

@@ -14,7 +14,7 @@ interface Props {
     autoComplete?: string;
 }
 
-const TextField: React.FC<Props> = ({ name, label, placeholder, columns , className, autoComplete}) => (
+const PasswordField: React.FC<Props> = ({ name, label, placeholder, columns , className, autoComplete}) => (
     <div
         className={classNames(
             columns ? `col-span-${columns}` : "col-span-12"
@@ -31,7 +31,7 @@ const TextField: React.FC<Props> = ({ name, label, placeholder, columns , classN
                 <input
                     {...input}
                     id={name}
-                    type="text"
+                    type="password"
                     autoComplete={autoComplete}
                     className="mt-2 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-light-blue-500 focus:border-light-blue-500 sm:text-sm"
                     placeholder={placeholder}
@@ -44,4 +44,4 @@ const TextField: React.FC<Props> = ({ name, label, placeholder, columns , classN
     </div>
 )
 
-export default TextField;
+export default PasswordField;

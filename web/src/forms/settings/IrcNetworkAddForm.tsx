@@ -6,7 +6,7 @@ import {XIcon} from "@heroicons/react/solid";
 import {Field, Form} from "react-final-form";
 import DEBUG from "../../components/debug";
 import {SwitchGroup, TextAreaWide, TextFieldWide} from "../../components/inputs";
-import {queryClient} from "../../index";
+import {queryClient} from "../../App";
 
 import arrayMutators from "final-form-arrays";
 import { FieldArray } from "react-final-form-arrays";

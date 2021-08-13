@@ -5,11 +5,11 @@ import {classNames} from "../styles/utils";
 import {CheckIcon, ChevronRightIcon, ExclamationIcon, SelectorIcon,} from "@heroicons/react/solid";
 import {useToggle} from "../hooks/hooks";
 import {useMutation} from "react-query";
-import {queryClient} from "..";
 import {Field, Form} from "react-final-form";
 import {TextField} from "./inputs";
 import DEBUG from "./debug";
 import APIClient from "../api/APIClient";
+import {queryClient} from "../App";
 
 interface radioFieldsetOption {
     label: string;

@@ -1,7 +1,7 @@
 import React, {Fragment, useEffect } from "react";
 import {useMutation} from "react-query";
 import {Action, DownloadClient, Filter} from "../../domain/interfaces";
-import {queryClient} from "../../index";
+import {queryClient} from "../../App";
 import {sleep} from "../../utils/utils";
 import {CheckIcon, ExclamationIcon, SelectorIcon, XIcon} from "@heroicons/react/solid";
 import {Dialog, Listbox, RadioGroup, Transition} from "@headlessui/react";
