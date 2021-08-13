@@ -15,17 +15,19 @@ type Server struct {
 	address               string
 	baseUrl               string
 	actionService         actionService
+	authService           authService
 	downloadClientService downloadClientService
 	filterService         filterService
 	indexerService        indexerService
 	ircService            ircService
 }
 
-func NewServer(address string, baseUrl string, actionService actionService, downloadClientSvc downloadClientService, filterSvc filterService, indexerSvc indexerService, ircSvc ircService) Server {
+func NewServer(address string, baseUrl string, actionService actionService, authService authService, downloadClientSvc downloadClientService, filterSvc filterService, indexerSvc indexerService, ircSvc ircService) Server {
 	return Server{
 		address:               address,
 		baseUrl:               baseUrl,
 		actionService:         actionService,
+		authService:           authService,
 		downloadClientService: downloadClientSvc,
 		filterService:         filterSvc,
 		indexerService:        indexerSvc,
@@ -62,7 +64,15 @@ func (s Server) Handler() http.Handler {
 		fileSystem.ServeHTTP(w, r)
 	})
 
+	authHandler := authHandler{
+		encoder:     encoder,
+		authService: s.authService,
+	}
+
+	r.Route("/api/auth", authHandler.Routes)
+
 	r.Group(func(r chi.Router) {
+		r.Use(IsAuthenticated)
 
 		actionHandler := actionHandler{
 			encoder:       encoder,

@@ -8,6 +8,15 @@ import (
 )
 
 const schema = `
+CREATE TABLE users
+(
+    id         INTEGER PRIMARY KEY,
+    username   TEXT NOT NULL,
+    password   TEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 CREATE TABLE indexer
 (
     id         INTEGER PRIMARY KEY,

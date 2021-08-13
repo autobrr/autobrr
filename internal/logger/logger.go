@@ -5,14 +5,14 @@ import (
 	"os"
 	"time"
 
-	"github.com/autobrr/autobrr/internal/config"
+	"github.com/autobrr/autobrr/internal/domain"
 
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"gopkg.in/natefinch/lumberjack.v2"
 )
 
-func Setup(cfg config.Cfg) {
+func Setup(cfg domain.Config) {
 	zerolog.TimeFieldFormat = time.RFC3339
 
 	switch cfg.LogLevel {
