@@ -24,11 +24,33 @@ builds:
     binary: autobrr
     ldflags:
       - -s -w
+  - id: autobrrctl
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - windows
+    goarch:
+      - amd64
+      - arm
+      - arm64
+    goarm:
+      - 6
+    ignore:
+      - goos: windows
+        goarch: arm
+      - goos: windows
+        goarch: arm64
+    main: ./cmd/autobrrctl/main.go
+    binary: autobrrctl
+    ldflags:
+      - -s -w
 
 archives:
   - id: autobrr
     builds:
       - autobrr
+      - autobrrctl
     files:
       - none*
     replacements:
