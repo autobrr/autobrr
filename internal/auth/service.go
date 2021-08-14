@@ -28,17 +28,17 @@ func (s *service) Login(username, password string) (*domain.User, error) {
 	}
 
 	// find user
-	user, err := s.userSvc.FindByUsername(username)
+	u, err := s.userSvc.FindByUsername(username)
 	if err != nil {
 		return nil, err
 	}
 
-	if user == nil {
+	if u == nil {
 		return nil, errors.New("bad credentials")
 	}
 
-	// compare password from reqest and the saved password
-	match, err := argon2id.ComparePasswordAndHash(password, user.Password)
+	// compare password from request and the saved password
+	match, err := argon2id.ComparePasswordAndHash(password, u.Password)
 	if err != nil {
 		return nil, errors.New("error checking credentials")
 	}
@@ -47,5 +47,5 @@ func (s *service) Login(username, password string) (*domain.User, error) {
 		return nil, errors.New("bad credentials")
 	}
 
-	return user, nil
+	return u, nil
 }
