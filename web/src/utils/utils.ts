@@ -20,3 +20,21 @@ export function baseUrl() {
 
     return baseUrl
 }
+
+export function buildPath(...args: string[]): string {
+    const [first] = args;
+    const firstTrimmed = first.trim();
+    const result = args
+        .map((part) => part.trim())
+        .map((part, i) => {
+            if (i === 0) {
+                return part.replace(/[/]*$/g, '');
+            } else {
+                return part.replace(/(^[/]*|[/]*$)/g, '');
+            }
+        })
+        .filter((x) => x.length)
+        .join('/');
+
+    return firstTrimmed === '/' ? `/${result}` : result;
+}
