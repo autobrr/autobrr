@@ -29,11 +29,12 @@ function Login() {
     const mutation = useMutation((data: loginData) => APIClient.auth.login(data.username, data.password), {
         onSuccess: () => {
             setLoggedIn(true);
-        }
+        },
     })
 
-    const onSubmit = (data: any) => {
+    const onSubmit = (data: any, form: any) => {
         mutation.mutate(data)
+        form.reset()
     }
 
     return (

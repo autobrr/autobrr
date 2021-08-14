@@ -24,7 +24,7 @@ function baseClient(endpoint: string, method: string, { body, ...customConfig}: 
                 // unauthorized
                 // window.location.assign(window.location)
 
-                return
+                return Promise.reject(new Error(response.statusText))
             }
 
             if (response.status === 403) {

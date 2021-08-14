@@ -1,12 +1,25 @@
 import React, {useState} from "react";
 import {Switch} from "@headlessui/react";
 import { classNames } from "../../styles/utils";
-import {useRecoilState} from "recoil";
-import {configState} from "../../state/state";
+// import {useRecoilState} from "recoil";
+// import {configState} from "../../state/state";
+import {useQuery} from "react-query";
+import {Config} from "../../domain/interfaces";
+import APIClient from "../../api/APIClient";
 
 function ApplicationSettings() {
     const [isDebug, setIsDebug] = useState(true)
-    const [config] = useRecoilState(configState)
+    // const [config] = useRecoilState(configState)
+
+    const {isLoading, data} = useQuery<Config, Error>(['config'], () => APIClient.config.get(),
+        {
+            retry: false,
+            refetchOnWindowFocus: false,
+            onError: err => {
+                console.log(err)
+            }
+        },
+    )
 
     return (
         <form className="divide-y divide-gray-200 lg:col-span-9" action="#" method="POST">
@@ -18,6 +31,8 @@ function ApplicationSettings() {
                     </p>
                 </div>
 
+                {!isLoading && data && (
+
                 <div className="mt-6 grid grid-cols-12 gap-6">
                     <div className="col-span-6 sm:col-span-4">
                         <label htmlFor="host" className="block text-sm font-medium text-gray-700">
@@ -27,7 +42,7 @@ function ApplicationSettings() {
                             type="text"
                             name="host"
                             id="host"
-                            value={config.host}
+                            value={data.host}
                             disabled={true}
                             className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-light-blue-500 focus:border-light-blue-500 sm:text-sm"
                         />
@@ -41,7 +56,7 @@ function ApplicationSettings() {
                             type="text"
                             name="port"
                             id="port"
-                            value={config.port}
+                            value={data.port}
                             disabled={true}
                             className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-light-blue-500 focus:border-light-blue-500 sm:text-sm"
                         />
@@ -55,12 +70,13 @@ function ApplicationSettings() {
                             type="text"
                             name="base_url"
                             id="base_url"
-                            value={config.base_url}
+                            value={data.base_url}
                             disabled={true}
                             className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-light-blue-500 focus:border-light-blue-500 sm:text-sm"
                         />
                     </div>
                 </div>
+                )}
             </div>
 
             <div className="pt-6 pb-6 divide-y divide-gray-200">

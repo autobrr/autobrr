@@ -14,8 +14,6 @@ import ApplicationSettings from "./settings/Application";
 import DownloadClientSettings from "./settings/DownloadClient";
 import {classNames} from "../styles/utils";
 import ActionSettings from "./settings/Action";
-import {useRecoilValue} from "recoil";
-import {configState} from "../state/state";
 
 const subNavigation = [
     {name: 'Application', href: '', icon: CogIcon, current: true},
@@ -93,10 +91,7 @@ export function buildPath(...args: string[]): string {
 }
 
 export default function Settings() {
-    const config = useRecoilValue(configState)
-
     let { url } = useRouteMatch();
-    let p = config.base_url ? buildPath(config.base_url, url) : url
 
     return (
         <Router>
@@ -110,26 +105,26 @@ export default function Settings() {
                 <div className="max-w-screen-xl mx-auto pb-6 px-4 sm:px-6 lg:pb-16 lg:px-8">
                     <div className="bg-white rounded-lg shadow overflow-hidden">
                         <div className="divide-y divide-gray-200 lg:grid lg:grid-cols-12 lg:divide-y-0 lg:divide-x">
-                            <SidebarNav url={p} subNavigation={subNavigation}/>
+                            <SidebarNav url={url} subNavigation={subNavigation}/>
 
                             <RouteSwitch>
-                                <Route exact path={p}>
+                                <Route exact path={url}>
                                     <ApplicationSettings />
                                 </Route>
 
-                                <Route path={`${p}/indexers`}>
+                                <Route path={`${url}/indexers`}>
                                     <IndexerSettings />
                                 </Route>
 
-                                <Route path={`${p}/irc`}>
+                                <Route path={`${url}/irc`}>
                                     <IrcSettings />
                                 </Route>
 
-                                <Route path={`${p}/clients`}>
+                                <Route path={`${url}/clients`}>
                                     <DownloadClientSettings />
                                 </Route>
 
-                                <Route path={`${p}/actions`}>
+                                <Route path={`${url}/actions`}>
                                     <ActionSettings />
                                 </Route>
 

@@ -345,7 +345,7 @@ export function FilterDetails() {
     }
 
     if (!data) {
-        return (<p>Something went wrong</p>)
+        return null
     }
 
     return (

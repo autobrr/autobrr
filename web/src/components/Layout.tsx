@@ -20,7 +20,7 @@ export default function Layout({auth=false, authFallback="/login", children}: an
                 setLoading(false);
             })
 
-    }, [setLoggedIn, loggedIn])
+    }, [setLoggedIn])
 
     return (
         <Fragment>
