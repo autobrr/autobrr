@@ -15,17 +15,13 @@ import (
 var Config domain.Config
 
 func Defaults() domain.Config {
-	hostname, err := os.Hostname()
-	if err != nil {
-		hostname = "localhost"
-	}
 	return domain.Config{
-		Host:          hostname,
+		Host:          "localhost",
 		Port:          8989,
 		LogLevel:      "DEBUG",
 		LogPath:       "",
 		BaseURL:       "/",
-		SessionSecret: "",
+		SessionSecret: "secret-session-key",
 	}
 }
 
