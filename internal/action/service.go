@@ -6,6 +6,7 @@ import (
 	"os/exec"
 	"path"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
@@ -132,10 +133,13 @@ func (s *service) execCmd(announce domain.Announce, action domain.Action, torren
 		return
 	}
 
+	// we need to split on space into a string slice, so we can spread the args into exec
+	args := strings.Split(parsedArgs, " ")
+
 	start := time.Now()
 
 	// execute command
-	err = exec.Command(cmd, parsedArgs).Run()
+	err = exec.Command(cmd, args...).Run()
 	if err != nil {
 		log.Error().Err(err).Msgf("command: %v args: %v failed, torrent: %v", cmd, parsedArgs, torrentFile)
 		return
