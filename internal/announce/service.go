@@ -68,7 +68,7 @@ func (s *service) Parse(announceID string, msg string) error {
 
 	// no filter found, lets return
 	if foundFilter == nil {
-		log.Debug().Msg("no matching filter found")
+		log.Trace().Msg("no matching filter found")
 		return nil
 	}
 	announce.Filter = foundFilter
