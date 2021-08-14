@@ -1,11 +1,11 @@
 package action
 
 import (
-	"fmt"
 	"io"
 	"os"
+	"os/exec"
+	"path"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
@@ -19,7 +19,7 @@ const REANNOUNCE_MAX_ATTEMPTS = 30
 const REANNOUNCE_INTERVAL = 7000
 
 type Service interface {
-	RunActions(torrentFile string, hash string, filter domain.Filter) error
+	RunActions(torrentFile string, hash string, filter domain.Filter, announce domain.Announce) error
 	Store(action domain.Action) (*domain.Action, error)
 	Fetch() ([]domain.Action, error)
 	Delete(actionID int) error
@@ -35,7 +35,7 @@ func NewService(repo domain.ActionRepo, clientSvc download_client.Service) Servi
 	return &service{repo: repo, clientSvc: clientSvc}
 }
 
-func (s *service) RunActions(torrentFile string, hash string, filter domain.Filter) error {
+func (s *service) RunActions(torrentFile string, hash string, filter domain.Filter, announce domain.Announce) error {
 	for _, action := range filter.Actions {
 		if !action.Enabled {
 			// only run active actions
@@ -59,11 +59,13 @@ func (s *service) RunActions(torrentFile string, hash string, filter domain.Filt
 				}
 			}()
 
+		case domain.ActionTypeExec:
+			go s.execCmd(announce, action, torrentFile)
+
 		// deluge
 		// pvr *arr
-		// exec
 		default:
-			panic("implement me")
+			log.Debug().Msgf("unsupported action: %v type: %v", action.Name, action.Type)
 		}
 	}
 
@@ -106,6 +108,44 @@ func (s *service) ToggleEnabled(actionID int) error {
 	return nil
 }
 
+func (s *service) execCmd(announce domain.Announce, action domain.Action, torrentFile string) {
+	log.Debug().Msgf("action EXEC: release: %v", announce.TorrentName)
+
+	// check if program exists
+	cmd, err := exec.LookPath(action.ExecCmd)
+	if err != nil {
+		log.Error().Err(err).Msgf("exec failed, could not find program: %v", action.ExecCmd)
+		return
+	}
+
+	// handle args and replace vars
+	m := Macro{
+		TorrentName:     announce.TorrentName,
+		TorrentPathName: torrentFile,
+		TorrentUrl:      announce.TorrentUrl,
+	}
+
+	// parse and replace values in argument string before continuing
+	parsedArgs, err := m.Parse(action.ExecArgs)
+	if err != nil {
+		log.Error().Err(err).Msgf("exec failed, could not parse arguments: %v", action.ExecCmd)
+		return
+	}
+
+	start := time.Now()
+
+	// execute command
+	err = exec.Command(cmd, parsedArgs).Run()
+	if err != nil {
+		log.Error().Err(err).Msgf("command: %v args: %v failed, torrent: %v", cmd, parsedArgs, torrentFile)
+		return
+	}
+
+	duration := time.Since(start)
+
+	log.Info().Msgf("executed command: '%v', args: '%v' %v,%v, total time %v", cmd, parsedArgs, announce.TorrentName, announce.Site, duration)
+}
+
 func (s *service) test(torrentFile string) {
 	log.Info().Msgf("action TEST: %v", torrentFile)
 }
@@ -120,8 +160,9 @@ func (s *service) watchFolder(dir string, torrentFile string) {
 	}
 	defer original.Close()
 
-	tmpFileName := strings.Split(torrentFile, "/")
-	fullFileName := fmt.Sprintf("%v/%v", dir, tmpFileName[1])
+	//tmpFileName := strings.Split(torrentFile, "/")
+	_, tmpFileName := path.Split(torrentFile)
+	fullFileName := path.Join(dir, tmpFileName)
 
 	// Create new file
 	newFile, err := os.Create(fullFileName)
