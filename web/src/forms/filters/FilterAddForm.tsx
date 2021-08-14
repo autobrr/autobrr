@@ -1,7 +1,7 @@
 import React, {Fragment, useEffect} from "react";
 import {useMutation} from "react-query";
 import {Filter} from "../../domain/interfaces";
-import {queryClient} from "../../index";
+import {queryClient} from "../../App";
 import {XIcon} from "@heroicons/react/solid";
 import {Dialog, Transition} from "@headlessui/react";
 import {Field, Form} from "react-final-form";

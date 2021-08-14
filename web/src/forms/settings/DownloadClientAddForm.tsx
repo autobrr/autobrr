@@ -7,7 +7,7 @@ import {classNames} from "../../styles/utils";
 import {Field, Form} from "react-final-form";
 import DEBUG from "../../components/debug";
 import {SwitchGroup} from "../../components/inputs";
-import {queryClient} from "../../index";
+import {queryClient} from "../../App";
 import APIClient from "../../api/APIClient";
 import {sleep} from "../../utils/utils";
 

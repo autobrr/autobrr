@@ -10,3 +10,8 @@ export const configState = atom({
         log_level: "DEBUG",
     }
 });
+
+export const isLoggedIn = atom({
+    key: 'isLoggedIn',
+    default: false,
+})

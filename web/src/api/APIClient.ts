@@ -1,18 +1,8 @@
 import {Action, DownloadClient, Filter, Indexer, Network} from "../domain/interfaces";
+import {baseUrl} from "../utils/utils";
 
 function baseClient(endpoint: string, method: string, { body, ...customConfig}: any = {}) {
-    let baseUrl = ""
-    if (window.APP.baseUrl) {
-        if (window.APP.baseUrl === '/') {
-            baseUrl = "/"
-        } else if (window.APP.baseUrl === `{{.BaseUrl}}`) {
-            baseUrl = ""
-        } else if (window.APP.baseUrl === "/autobrr/") {
-            baseUrl = "/autobrr/"
-        } else {
-            baseUrl = window.APP.baseUrl
-        }
-    }
+    let baseURL = baseUrl()
 
     const headers = {'content-type': 'application/json'}
     const config = {
@@ -28,13 +18,19 @@ function baseClient(endpoint: string, method: string, { body, ...customConfig}: 
         config.body = JSON.stringify(body)
     }
 
-    return window.fetch(`${baseUrl}${endpoint}`, config)
+    return window.fetch(`${baseURL}${endpoint}`, config)
         .then(async response => {
             if (response.status === 401) {
                 // unauthorized
                 // window.location.assign(window.location)
 
-                return
+                return Promise.reject(new Error(response.statusText))
+            }
+
+            if (response.status === 403) {
+                // window.location.assign("/login")
+                return Promise.reject(new Error(response.statusText))
+                // return
             }
 
             if (response.status === 404) {
@@ -68,6 +64,11 @@ const appClient = {
 }
 
 const APIClient = {
+    auth: {
+        login: (username: string, password: string) => appClient.Post("api/auth/login", {username: username, password: password}),
+        logout: () => appClient.Post(`api/auth/logout`, null),
+        test: () => appClient.Get(`api/auth/test`),
+    },
     actions: {
         create: (action: Action) => appClient.Post("api/actions", action),
         update: (action: Action) => appClient.Put(`api/actions/${action.id}`, action),

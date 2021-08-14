@@ -17,7 +17,7 @@ import {FilterActionList} from "../components/FilterActionList";
 import {DownloadClient, Filter, Indexer} from "../domain/interfaces";
 import {useToggle} from "../hooks/hooks";
 import {useMutation, useQuery} from "react-query";
-import {queryClient} from "../index";
+import {queryClient} from "../App";
 import {CONTAINER_OPTIONS, CODECS_OPTIONS, RESOLUTION_OPTIONS, SOURCES_OPTIONS} from "../domain/constants";
 import {Field, Form} from "react-final-form";
 import {MultiSelectField, TextField} from "../components/inputs";
@@ -345,7 +345,7 @@ export function FilterDetails() {
     }
 
     if (!data) {
-        return (<p>Something went wrong</p>)
+        return null
     }
 
     return (

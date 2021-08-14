@@ -7,30 +7,21 @@ import (
 	"path"
 	"path/filepath"
 
+	"github.com/autobrr/autobrr/internal/domain"
+
 	"github.com/spf13/viper"
 )
 
-type Cfg struct {
-	Host     string `toml:"host"`
-	Port     int    `toml:"port"`
-	LogLevel string `toml:"logLevel"`
-	LogPath  string `toml:"logPath"`
-	BaseURL  string `toml:"baseUrl"`
-}
+var Config domain.Config
 
-var Config Cfg
-
-func Defaults() Cfg {
-	hostname, err := os.Hostname()
-	if err != nil {
-		hostname = "localhost"
-	}
-	return Cfg{
-		Host:     hostname,
-		Port:     8989,
-		LogLevel: "DEBUG",
-		LogPath:  "",
-		BaseURL:  "/",
+func Defaults() domain.Config {
+	return domain.Config{
+		Host:          "localhost",
+		Port:          8989,
+		LogLevel:      "DEBUG",
+		LogPath:       "",
+		BaseURL:       "/",
+		SessionSecret: "secret-session-key",
 	}
 }
 
@@ -92,7 +83,12 @@ port = 8989
 #
 # Options: "ERROR", "DEBUG", "INFO", "WARN"
 #
-logLevel = "DEBUG"`)
+logLevel = "DEBUG"
+
+# Session secret
+#
+sessionSecret = "secret-session-key"`)
+
 		if err != nil {
 			log.Printf("error writing contents to file: %v %q", configPath, err)
 			return err
@@ -105,7 +101,7 @@ logLevel = "DEBUG"`)
 	return nil
 }
 
-func Read(configPath string) Cfg {
+func Read(configPath string) domain.Config {
 	config := Defaults()
 
 	// or use viper.SetDefault(val, def)

@@ -3,11 +3,18 @@ package database
 import (
 	"database/sql"
 	"fmt"
-
-	"github.com/rs/zerolog/log"
 )
 
 const schema = `
+CREATE TABLE users
+(
+    id         INTEGER PRIMARY KEY,
+    username   TEXT NOT NULL,
+    password   TEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 CREATE TABLE indexer
 (
     id         INTEGER PRIMARY KEY,
@@ -135,8 +142,6 @@ var migrations = []string{
 }
 
 func Migrate(db *sql.DB) error {
-	log.Info().Msg("Migrating database...")
-
 	var version int
 	if err := db.QueryRow("PRAGMA user_version").Scan(&version); err != nil {
 		return fmt.Errorf("failed to query schema version: %v", err)

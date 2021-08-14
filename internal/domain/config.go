@@ -1,11 +1,10 @@
 package domain
 
-type Settings struct {
-	Host  string `toml:"host"`
-	Debug bool
+type Config struct {
+	Host          string `toml:"host"`
+	Port          int    `toml:"port"`
+	LogLevel      string `toml:"logLevel"`
+	LogPath       string `toml:"logPath"`
+	BaseURL       string `toml:"baseUrl"`
+	SessionSecret string `toml:"sessionSecret"`
 }
-
-//type AppConfig struct {
-//	Settings `toml:"settings"`
-//	Trackers []Tracker `mapstructure:"tracker"`
-//}

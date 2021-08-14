@@ -2,7 +2,7 @@ import {Fragment, useRef, useState} from "react";
 import {useToggle} from "../../hooks/hooks";
 import {useMutation} from "react-query";
 import {DownloadClient} from "../../domain/interfaces";
-import {queryClient} from "../../index";
+import {queryClient} from "../../App";
 import {Dialog, RadioGroup, Transition} from "@headlessui/react";
 import {ExclamationIcon, XIcon} from "@heroicons/react/solid";
 import {classNames} from "../../styles/utils";

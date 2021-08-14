@@ -1,21 +1,12 @@
 import React from 'react'
 import {CogIcon, DownloadIcon, KeyIcon} from '@heroicons/react/outline'
-import {
-    BrowserRouter as Router,
-    NavLink,
-    Route,
-    Switch as RouteSwitch,
-    useLocation,
-    useRouteMatch
-} from "react-router-dom";
+import {NavLink, Route, Switch as RouteSwitch, useLocation, useRouteMatch} from "react-router-dom";
 import IndexerSettings from "./settings/Indexer";
 import IrcSettings from "./settings/Irc";
 import ApplicationSettings from "./settings/Application";
 import DownloadClientSettings from "./settings/DownloadClient";
 import {classNames} from "../styles/utils";
 import ActionSettings from "./settings/Action";
-import {useRecoilValue} from "recoil";
-import {configState} from "../state/state";
 
 const subNavigation = [
     {name: 'Application', href: '', icon: CogIcon, current: true},
@@ -74,71 +65,48 @@ function SidebarNav({subNavigation, url}: any) {
     )
 }
 
-export function buildPath(...args: string[]): string {
-    const [first] = args;
-    const firstTrimmed = first.trim();
-    const result = args
-        .map((part) => part.trim())
-        .map((part, i) => {
-            if (i === 0) {
-                return part.replace(/[/]*$/g, '');
-            } else {
-                return part.replace(/(^[/]*|[/]*$)/g, '');
-            }
-        })
-        .filter((x) => x.length)
-        .join('/');
-
-    return firstTrimmed === '/' ? `/${result}` : result;
-}
-
 export default function Settings() {
-    const config = useRecoilValue(configState)
-
-    let { url } = useRouteMatch();
-    let p = config.base_url ? buildPath(config.base_url, url) : url
+    let {url} = useRouteMatch();
 
     return (
-        <Router>
-            <main className="relative -mt-48">
-                <header className="py-10">
-                    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                        <h1 className="text-3xl font-bold text-white capitalize">Settings</h1>
-                    </div>
-                </header>
+        <main className="relative -mt-48">
+            <header className="py-10">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                    <h1 className="text-3xl font-bold text-white capitalize">Settings</h1>
+                </div>
+            </header>
 
-                <div className="max-w-screen-xl mx-auto pb-6 px-4 sm:px-6 lg:pb-16 lg:px-8">
-                    <div className="bg-white rounded-lg shadow overflow-hidden">
-                        <div className="divide-y divide-gray-200 lg:grid lg:grid-cols-12 lg:divide-y-0 lg:divide-x">
-                            <SidebarNav url={p} subNavigation={subNavigation}/>
+            <div className="max-w-screen-xl mx-auto pb-6 px-4 sm:px-6 lg:pb-16 lg:px-8">
+                <div className="bg-white rounded-lg shadow overflow-hidden">
+                    <div className="divide-y divide-gray-200 lg:grid lg:grid-cols-12 lg:divide-y-0 lg:divide-x">
+                        <SidebarNav url={url} subNavigation={subNavigation}/>
 
-                            <RouteSwitch>
-                                <Route exact path={p}>
-                                    <ApplicationSettings />
-                                </Route>
+                        <RouteSwitch>
+                            <Route exact path={url}>
+                                <ApplicationSettings/>
+                            </Route>
 
-                                <Route path={`${p}/indexers`}>
-                                    <IndexerSettings />
-                                </Route>
+                            <Route path={`${url}/indexers`}>
+                                <IndexerSettings/>
+                            </Route>
 
-                                <Route path={`${p}/irc`}>
-                                    <IrcSettings />
-                                </Route>
+                            <Route path={`${url}/irc`}>
+                                <IrcSettings/>
+                            </Route>
 
-                                <Route path={`${p}/clients`}>
-                                    <DownloadClientSettings />
-                                </Route>
+                            <Route path={`${url}/clients`}>
+                                <DownloadClientSettings/>
+                            </Route>
 
-                                <Route path={`${p}/actions`}>
-                                    <ActionSettings />
-                                </Route>
+                            <Route path={`${url}/actions`}>
+                                <ActionSettings/>
+                            </Route>
 
-                            </RouteSwitch>
-                        </div>
+                        </RouteSwitch>
                     </div>
                 </div>
-            </main>
-        </Router>
+            </div>
+        </main>
     )
 }
 

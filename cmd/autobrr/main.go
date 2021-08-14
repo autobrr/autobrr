@@ -13,8 +13,10 @@ import (
 
 	"github.com/autobrr/autobrr/internal/action"
 	"github.com/autobrr/autobrr/internal/announce"
+	"github.com/autobrr/autobrr/internal/auth"
 	"github.com/autobrr/autobrr/internal/config"
 	"github.com/autobrr/autobrr/internal/database"
+	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/internal/download_client"
 	"github.com/autobrr/autobrr/internal/filter"
 	"github.com/autobrr/autobrr/internal/http"
@@ -23,10 +25,11 @@ import (
 	"github.com/autobrr/autobrr/internal/logger"
 	"github.com/autobrr/autobrr/internal/release"
 	"github.com/autobrr/autobrr/internal/server"
+	"github.com/autobrr/autobrr/internal/user"
 )
 
 var (
-	cfg config.Cfg
+	cfg domain.Config
 )
 
 func main() {
@@ -62,6 +65,7 @@ func main() {
 		filterRepo         = database.NewFilterRepo(db)
 		indexerRepo        = database.NewIndexerRepo(db)
 		ircRepo            = database.NewIrcRepo(db)
+		userRepo           = database.NewUserRepo(db)
 	)
 
 	var (
@@ -72,6 +76,8 @@ func main() {
 		releaseService        = release.NewService(actionService)
 		announceService       = announce.NewService(filterService, indexerService, releaseService)
 		ircService            = irc.NewService(ircRepo, announceService)
+		userService           = user.NewService(userRepo)
+		authService           = auth.NewService(userService)
 	)
 
 	addr := fmt.Sprintf("%v:%v", cfg.Host, cfg.Port)
@@ -79,7 +85,7 @@ func main() {
 	errorChannel := make(chan error)
 
 	go func() {
-		httpServer := http.NewServer(addr, cfg.BaseURL, actionService, downloadClientService, filterService, indexerService, ircService)
+		httpServer := http.NewServer(addr, cfg.BaseURL, actionService, authService, downloadClientService, filterService, indexerService, ircService)
 		errorChannel <- httpServer.Open()
 	}()
 
