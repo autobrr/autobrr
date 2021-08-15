@@ -3,16 +3,10 @@ package action
 import (
 	"io"
 	"os"
-	"os/exec"
 	"path"
-	"strconv"
-	"strings"
-	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/internal/download_client"
-	"github.com/autobrr/autobrr/pkg/qbittorrent"
-
 	"github.com/rs/zerolog/log"
 )
 
@@ -43,7 +37,7 @@ func (s *service) RunActions(torrentFile string, hash string, filter domain.Filt
 			continue
 		}
 
-		log.Debug().Msgf("process action: %v", action.Name)
+		log.Trace().Msgf("process action: %v", action.Name)
 
 		switch action.Type {
 		case domain.ActionTypeTest:
@@ -109,53 +103,12 @@ func (s *service) ToggleEnabled(actionID int) error {
 	return nil
 }
 
-func (s *service) execCmd(announce domain.Announce, action domain.Action, torrentFile string) {
-	log.Debug().Msgf("action EXEC: release: %v", announce.TorrentName)
-
-	// check if program exists
-	cmd, err := exec.LookPath(action.ExecCmd)
-	if err != nil {
-		log.Error().Err(err).Msgf("exec failed, could not find program: %v", action.ExecCmd)
-		return
-	}
-
-	// handle args and replace vars
-	m := Macro{
-		TorrentName:     announce.TorrentName,
-		TorrentPathName: torrentFile,
-		TorrentUrl:      announce.TorrentUrl,
-	}
-
-	// parse and replace values in argument string before continuing
-	parsedArgs, err := m.Parse(action.ExecArgs)
-	if err != nil {
-		log.Error().Err(err).Msgf("exec failed, could not parse arguments: %v", action.ExecCmd)
-		return
-	}
-
-	// we need to split on space into a string slice, so we can spread the args into exec
-	args := strings.Split(parsedArgs, " ")
-
-	start := time.Now()
-
-	// execute command
-	err = exec.Command(cmd, args...).Run()
-	if err != nil {
-		log.Error().Err(err).Msgf("command: %v args: %v failed, torrent: %v", cmd, parsedArgs, torrentFile)
-		return
-	}
-
-	duration := time.Since(start)
-
-	log.Info().Msgf("executed command: '%v', args: '%v' %v,%v, total time %v", cmd, parsedArgs, announce.TorrentName, announce.Site, duration)
-}
-
 func (s *service) test(torrentFile string) {
 	log.Info().Msgf("action TEST: %v", torrentFile)
 }
 
 func (s *service) watchFolder(dir string, torrentFile string) {
-	log.Debug().Msgf("action WATCH_FOLDER: %v file: %v", dir, torrentFile)
+	log.Trace().Msgf("action WATCH_FOLDER: %v file: %v", dir, torrentFile)
 
 	// Open original file
 	original, err := os.Open(torrentFile)
@@ -164,7 +117,6 @@ func (s *service) watchFolder(dir string, torrentFile string) {
 	}
 	defer original.Close()
 
-	//tmpFileName := strings.Split(torrentFile, "/")
 	_, tmpFileName := path.Split(torrentFile)
 	fullFileName := path.Join(dir, tmpFileName)
 
@@ -181,143 +133,5 @@ func (s *service) watchFolder(dir string, torrentFile string) {
 		log.Fatal().Err(err)
 	}
 
-	log.Info().Msgf("action WATCH_FOLDER: wrote file: %v", fullFileName)
-}
-
-func (s *service) qbittorrent(action domain.Action, hash string, torrentFile string) error {
-	log.Debug().Msgf("action QBITTORRENT: %v", torrentFile)
-
-	// get client for action
-	client, err := s.clientSvc.FindByID(action.ClientID)
-	if err != nil {
-		log.Error().Err(err).Msgf("error finding client: %v", action.ClientID)
-		return err
-	}
-
-	if client == nil {
-		return err
-	}
-
-	qbtSettings := qbittorrent.Settings{
-		Hostname: client.Host,
-		Port:     uint(client.Port),
-		Username: client.Username,
-		Password: client.Password,
-		SSL:      client.SSL,
-	}
-
-	qbt := qbittorrent.NewClient(qbtSettings)
-	// save cookies?
-	err = qbt.Login()
-	if err != nil {
-		log.Error().Err(err).Msgf("error logging into client: %v", action.ClientID)
-		return err
-	}
-
-	// TODO check for active downloads and other rules
-
-	options := map[string]string{}
-
-	if action.Paused {
-		options["paused"] = "true"
-	}
-	if action.SavePath != "" {
-		options["savepath"] = action.SavePath
-		options["autoTMM"] = "false"
-	}
-	if action.Category != "" {
-		options["category"] = action.Category
-	}
-	if action.Tags != "" {
-		options["tags"] = action.Tags
-	}
-	if action.LimitUploadSpeed > 0 {
-		options["upLimit"] = strconv.FormatInt(action.LimitUploadSpeed, 10)
-	}
-	if action.LimitDownloadSpeed > 0 {
-		options["dlLimit"] = strconv.FormatInt(action.LimitDownloadSpeed, 10)
-	}
-
-	err = qbt.AddTorrentFromFile(torrentFile, options)
-	if err != nil {
-		log.Error().Err(err).Msgf("error sending to client: %v", action.ClientID)
-		return err
-	}
-
-	if !action.Paused && hash != "" {
-		err = checkTrackerStatus(*qbt, hash)
-		if err != nil {
-			log.Error().Err(err).Msgf("could not get tracker status for torrent: %v", hash)
-			return err
-		}
-	}
-
-	log.Debug().Msgf("torrent %v successfully added to: %v", hash, client.Name)
-
-	return nil
-}
-
-func checkTrackerStatus(qb qbittorrent.Client, hash string) error {
-	announceOK := false
-	attempts := 0
-
-	for attempts < REANNOUNCE_MAX_ATTEMPTS {
-		log.Debug().Msgf("RE-ANNOUNCE %v attempt: %v", hash, attempts)
-
-		// initial sleep to give tracker a head start
-		time.Sleep(REANNOUNCE_INTERVAL * time.Millisecond)
-
-		trackers, err := qb.GetTorrentTrackers(hash)
-		if err != nil {
-			log.Error().Err(err).Msgf("could not get trackers of torrent: %v", hash)
-			return err
-		}
-
-		// check if status not working or something else
-		_, working := findTrackerStatus(trackers, qbittorrent.TrackerStatusOK)
-
-		if !working {
-			err = qb.ReAnnounceTorrents([]string{hash})
-			if err != nil {
-				log.Error().Err(err).Msgf("could not get re-announce torrent: %v", hash)
-				return err
-			}
-
-			attempts++
-			continue
-		} else {
-			log.Debug().Msgf("RE-ANNOUNCE %v OK", hash)
-
-			announceOK = true
-			break
-		}
-	}
-
-	if !announceOK {
-		log.Debug().Msgf("RE-ANNOUNCE %v took too long, deleting torrent", hash)
-
-		err := qb.DeleteTorrents([]string{hash}, false)
-		if err != nil {
-			log.Error().Err(err).Msgf("could not delete torrent: %v", hash)
-			return err
-		}
-	}
-
-	return nil
-}
-
-// Check if status not working or something else
-// https://github.com/qbittorrent/qBittorrent/wiki/WebUI-API-(qBittorrent-4.1)#get-torrent-trackers
-//  0 Tracker is disabled (used for DHT, PeX, and LSD)
-//  1 Tracker has not been contacted yet
-//  2 Tracker has been contacted and is working
-//  3 Tracker is updating
-//  4 Tracker has been contacted, but it is not working (or doesn't send proper replies)
-func findTrackerStatus(slice []qbittorrent.TorrentTracker, status qbittorrent.TrackerStatus) (int, bool) {
-	for i, item := range slice {
-		if item.Status == status {
-			return i, true
-		}
-	}
-	return -1, false
+	log.Info().Msgf("saved file to watch folder: %v", fullFileName)
 }
