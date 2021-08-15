@@ -267,7 +267,7 @@ func (s *service) extractReleaseInfo(varMap map[string]string, releaseName strin
 		return err
 	}
 
-	log.Debug().Msgf("release: %+v", release)
+	log.Trace().Msgf("release: %+v", release)
 
 	// https://github.com/autodl-community/autodl-irssi/pull/194/files
 	// year

@@ -66,8 +66,7 @@ func (s *service) Process(announce domain.Announce) error {
 	hash := meta.HashInfoBytes().String()
 
 	// take action (watchFolder, test, runProgram, qBittorrent, Deluge etc)
-	// actionService
-	err = s.actionSvc.RunActions(res.FileName, hash, *announce.Filter)
+	err = s.actionSvc.RunActions(res.FileName, hash, *announce.Filter, announce)
 	if err != nil {
 		log.Error().Err(err).Msgf("error running actions for filter: %v", announce.Filter.Name)
 		return err
