@@ -1,6 +1,6 @@
 import React, {Fragment, useRef, useState} from "react";
 import {Dialog, Switch, Transition} from "@headlessui/react";
-import {ChevronRightIcon, ExclamationIcon, } from '@heroicons/react/solid'
+import {ChevronDownIcon, ChevronRightIcon, ExclamationIcon,} from '@heroicons/react/solid'
 import {EmptyListState} from "../components/EmptyListState";
 
 import {
@@ -492,6 +492,8 @@ function FilterTabGeneral({filter}: FilterTabGeneralProps) {
                     except_tags: filter.except_tags,
                     match_uploaders: filter.match_uploaders,
                     except_uploaders: filter.except_uploaders,
+                    freeleech: filter.freeleech,
+                    freeleech_percent: filter.freeleech_percent,
                     indexers: filter.indexers || [],
                 }}
                 // validate={validate}
@@ -542,7 +544,7 @@ function FilterTabGeneral({filter}: FilterTabGeneralProps) {
                                     </div>
                                 </div>
 
-                                <div className="">
+                                <div className="border-t">
                                     <SwitchGroup name="enabled" label="Enabled" description="Enabled or disable filter."/>
                                 </div>
 
@@ -615,6 +617,8 @@ function FilterTabMoviesTvNew2({filter}: FilterTabGeneralProps) {
                     except_tags: filter.except_tags,
                     match_uploaders: filter.match_uploaders,
                     except_uploaders: filter.except_uploaders,
+                    freeleech: filter.freeleech,
+                    freeleech_percent: filter.freeleech_percent,
                     indexers: filter.indexers || [],
                 }}
                 // validate={validate}
@@ -664,6 +668,11 @@ function FilterTabMoviesTvNew2({filter}: FilterTabGeneralProps) {
 
 function FilterTabAdvanced({filter}: FilterTabGeneralProps) {
     const history = useHistory();
+    const [releasesIsOpen, toggleReleases] = useToggle(false)
+    const [groupsIsOpen, toggleGroups] = useToggle(false)
+    const [categoriesIsOpen, toggleCategories] = useToggle(false)
+    const [uploadersIsOpen, toggleUploaders] = useToggle(false)
+    const [freeleechIsOpen, toggleFreeleech] = useToggle(false)
 
     const updateMutation = useMutation((filter: Filter) => APIClient.filters.update(filter), {
         onSuccess: () => {
@@ -717,6 +726,8 @@ function FilterTabAdvanced({filter}: FilterTabGeneralProps) {
                     except_tags: filter.except_tags,
                     match_uploaders: filter.match_uploaders,
                     except_uploaders: filter.except_uploaders,
+                    freeleech: filter.freeleech,
+                    freeleech_percent: filter.freeleech_percent,
                     indexers: filter.indexers || [],
                 }}
                 // validate={validate}
@@ -725,58 +736,131 @@ function FilterTabAdvanced({filter}: FilterTabGeneralProps) {
                 {({handleSubmit, submitting, values, valid}) => {
                     return (
                         <form onSubmit={handleSubmit}>
-                            <div className="mt-6 lg:pb-8">
-                                <TitleSubtitle title="Releases" subtitle="Releases"/>
-
-                                <div className="mt-6 grid grid-cols-12 gap-6">
-                                    <TextField name="match_releases" label="Match releases" columns={6} placeholder=""/>
-                                    <TextField name="except_releases" label="Except releases" columns={6}
-                                               placeholder=""/>
+                            <div className="mt-6 lg:pb-8 border-b border-gray-200">
+                                <div className="flex justify-between items-center cursor-pointer" onClick={toggleReleases}>
+                                    <div className="-ml-2 -mt-2 flex flex-wrap items-baseline">
+                                        <h3 className="ml-2 mt-2 text-lg leading-6 font-medium text-gray-900">Releases</h3>
+                                        <p className="ml-2 mt-1 text-sm text-gray-500 truncate">Match or ignore</p>
+                                    </div>
+                                    <div className="mt-3 sm:mt-0 sm:ml-4">
+                                        <button
+                                            type="button"
+                                            className="inline-flex items-center px-4 py-2 border-transparent text-sm font-medium text-white"
+                                        >
+                                            {releasesIsOpen ? <ChevronDownIcon className="h-6 w-6 text-gray-500" aria-hidden="true"/> :  <ChevronRightIcon className="h-6 w-6 text-gray-500" aria-hidden="true"/>}
+                                        </button>
+                                    </div>
                                 </div>
+                                {releasesIsOpen && (
+                                    <div className="mt-6 grid grid-cols-12 gap-6">
+                                        <TextField name="match_releases" label="Match releases" columns={6} placeholder=""/>
+                                        <TextField name="except_releases" label="Except releases" columns={6}
+                                                   placeholder=""/>
+                                    </div>
+                                )}
                             </div>
 
-                            <div className="mt-6 lg:pb-8">
-                                <TitleSubtitle title="Release groups"
-                                               subtitle="Match or ignore certain release groups"/>
-
-                                <div className="mt-6 grid grid-cols-12 gap-6">
-                                    <TextField name="match_release_groups" label="Match groups" columns={6}
-                                               placeholder=""/>
-                                    <TextField name="except_release_groups" label="Except groups" columns={6}
-                                               placeholder=""/>
+                            <div className="mt-6 lg:pb-8 border-b border-gray-200">
+                                <div className="flex justify-between items-center cursor-pointer" onClick={toggleGroups}>
+                                    <div className="-ml-2 -mt-2 flex flex-wrap items-baseline">
+                                        <h3 className="ml-2 mt-2 text-lg leading-6 font-medium text-gray-900">Groups</h3>
+                                        <p className="ml-2 mt-1 text-sm text-gray-500 truncate">Match or ignore</p>
+                                    </div>
+                                    <div className="mt-3 sm:mt-0 sm:ml-4">
+                                        <button
+                                            type="button"
+                                            className="inline-flex items-center px-4 py-2 border-transparent text-sm font-medium text-white"
+                                        >
+                                            {groupsIsOpen ? <ChevronDownIcon className="h-6 w-6 text-gray-500" aria-hidden="true"/> :  <ChevronRightIcon className="h-6 w-6 text-gray-500" aria-hidden="true"/>}
+                                        </button>
+                                    </div>
                                 </div>
+                                {groupsIsOpen && (
+                                    <div className="mt-6 grid grid-cols-12 gap-6">
+                                        <TextField name="match_releases" label="Match releases" columns={6} placeholder=""/>
+                                        <TextField name="except_releases" label="Except releases" columns={6}
+                                                   placeholder=""/>
+                                    </div>
+                                )}
                             </div>
 
-
-                            <div className="mt-6 lg:pb-8">
-                                <TitleSubtitle title="Categories" subtitle="Match or ignore certain categories"/>
-
-                                <div className="mt-6 grid grid-cols-12 gap-6">
-                                    <TextField name="match_categories" label="Match categories" columns={6}
-                                               placeholder=""/>
-                                    <TextField name="except_categories" label="Except categories" columns={6}
-                                               placeholder=""/>
+                            <div className="mt-6 lg:pb-8 border-b border-gray-200">
+                                <div className="flex justify-between items-center cursor-pointer" onClick={toggleCategories}>
+                                    <div className="-ml-2 -mt-2 flex flex-wrap items-baseline">
+                                        <h3 className="ml-2 mt-2 text-lg leading-6 font-medium text-gray-900">Categories and tags</h3>
+                                        <p className="ml-2 mt-1 text-sm text-gray-500 truncate">Match or ignore categories or tags</p>
+                                    </div>
+                                    <div className="mt-3 sm:mt-0 sm:ml-4">
+                                        <button
+                                            type="button"
+                                            className="inline-flex items-center px-4 py-2 border-transparent text-sm font-medium text-white"
+                                        >
+                                            {categoriesIsOpen ? <ChevronDownIcon className="h-6 w-6 text-gray-500" aria-hidden="true"/> :  <ChevronRightIcon className="h-6 w-6 text-gray-500" aria-hidden="true"/>}
+                                        </button>
+                                    </div>
                                 </div>
+                                {categoriesIsOpen && (
+                                    <div className="mt-6 grid grid-cols-12 gap-6">
+                                        <TextField name="match_categories" label="Match categories" columns={6}
+                                                   placeholder=""/>
+                                        <TextField name="except_categories" label="Except categories" columns={6}
+                                                   placeholder=""/>
+
+                                        <TextField name="match_tags" label="Match tags" columns={6} placeholder=""/>
+                                        <TextField name="except_tags" label="Except tags" columns={6} placeholder=""/>
+                                    </div>
+                                )}
                             </div>
 
-                            <div className="mt-6 lg:pb-8">
-                                <TitleSubtitle title="Tags" subtitle="Match or ignore certain tags"/>
-
-                                <div className="mt-6 grid grid-cols-12 gap-6">
-                                    <TextField name="match_tags" label="Match tags" columns={6} placeholder=""/>
-                                    <TextField name="except_tags" label="Except tags" columns={6} placeholder=""/>
+                            <div className="mt-6 lg:pb-8 border-b border-gray-200">
+                                <div className="flex justify-between items-center cursor-pointer" onClick={toggleUploaders}>
+                                    <div className="-ml-2 -mt-2 flex flex-wrap items-baseline">
+                                        <h3 className="ml-2 mt-2 text-lg leading-6 font-medium text-gray-900">Uploaders</h3>
+                                        <p className="ml-2 mt-1 text-sm text-gray-500 truncate">Match or ignore uploaders</p>
+                                    </div>
+                                    <div className="mt-3 sm:mt-0 sm:ml-4">
+                                        <button
+                                            type="button"
+                                            className="inline-flex items-center px-4 py-2 border-transparent text-sm font-medium text-white"
+                                        >
+                                            {uploadersIsOpen ? <ChevronDownIcon className="h-6 w-6 text-gray-500" aria-hidden="true"/> :  <ChevronRightIcon className="h-6 w-6 text-gray-500" aria-hidden="true"/>}
+                                        </button>
+                                    </div>
                                 </div>
+                                {uploadersIsOpen && (
+                                    <div className="mt-6 grid grid-cols-12 gap-6">
+                                        <TextField name="match_uploaders" label="Match uploaders" columns={6}
+                                                   placeholder=""/>
+                                        <TextField name="except_uploaders" label="Except uploaders" columns={6}
+                                                   placeholder=""/>
+                                    </div>
+                                )}
                             </div>
 
-                            <div className="mt-6 lg:pb-8">
-                                <TitleSubtitle title="Uploaders" subtitle="Match or ignore certain uploaders"/>
-
-                                <div className="mt-6 grid grid-cols-12 gap-6">
-                                    <TextField name="match_uploaders" label="Match uploaders" columns={6}
-                                               placeholder=""/>
-                                    <TextField name="except_uploaders" label="Except uploaders" columns={6}
-                                               placeholder=""/>
+                            <div className="mt-6 lg:pb-8 border-b border-gray-200">
+                                <div className="flex justify-between items-center cursor-pointer" onClick={toggleFreeleech}>
+                                    <div className="-ml-2 -mt-2 flex flex-wrap items-baseline">
+                                        <h3 className="ml-2 mt-2 text-lg leading-6 font-medium text-gray-900">Freeleech</h3>
+                                        <p className="ml-2 mt-1 text-sm text-gray-500 truncate">Match only freeleech and freeleech percent</p>
+                                    </div>
+                                    <div className="mt-3 sm:mt-0 sm:ml-4">
+                                        <button
+                                            type="button"
+                                            className="inline-flex items-center px-4 py-2 border-transparent text-sm font-medium text-white"
+                                        >
+                                            {freeleechIsOpen ? <ChevronDownIcon className="h-6 w-6 text-gray-500" aria-hidden="true"/> :  <ChevronRightIcon className="h-6 w-6 text-gray-500" aria-hidden="true"/>}
+                                        </button>
+                                    </div>
                                 </div>
+                                {freeleechIsOpen && (
+                                    <div className="mt-6 grid grid-cols-12 gap-6">
+                                        <div className="col-span-6">
+                                            <SwitchGroup name="freeleech" label="Freeleech" />
+                                        </div>
+
+                                        <TextField name="freeleech_percent" label="Freeleech percent" columns={6} />
+                                    </div>
+                                )}
                             </div>
 
                             <FormButtonsGroup deleteAction={deleteAction}/>

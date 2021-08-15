@@ -58,6 +58,8 @@ export interface Filter {
     except_tags: string;
     match_uploaders: string;
     except_uploaders: string;
+    freeleech: boolean;
+    freeleech_percent: string;
     actions: Action[];
     indexers: Indexer[];
 }
