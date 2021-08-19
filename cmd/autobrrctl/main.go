@@ -18,8 +18,9 @@ import (
 
 const usage = `usage: autobrrctl --config path <action>
 
-  create-user <username>	Create user
-  help										Show this help message
+  create-user		 <username>		Create user
+  change-password	 <username>		Change password for user
+  help						Show this help message
 `
 
 func init() {
@@ -127,7 +128,7 @@ func readPassword() ([]byte, error) {
 		}
 		fmt.Printf("\n")
 	} else {
-		fmt.Fprintf(os.Stderr, "warning: Reading password from stdin.\n")
+		//fmt.Fprintf(os.Stderr, "warning: Reading password from stdin.\n")
 		scanner := bufio.NewScanner(os.Stdin)
 		if !scanner.Scan() {
 			if err := scanner.Err(); err != nil {

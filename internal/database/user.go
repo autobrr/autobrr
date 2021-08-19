@@ -17,7 +17,7 @@ func NewUserRepo(db *sql.DB) domain.UserRepo {
 }
 
 func (r *UserRepo) FindByUsername(username string) (*domain.User, error) {
-	query := `SELECT username, password FROM users WHERE username = ?`
+	query := `SELECT id, username, password FROM users WHERE username = ?`
 
 	row := r.db.QueryRow(query, username)
 	if err := row.Err(); err != nil {
@@ -26,7 +26,7 @@ func (r *UserRepo) FindByUsername(username string) (*domain.User, error) {
 
 	var user domain.User
 
-	if err := row.Scan(&user.Username, &user.Password); err != nil {
+	if err := row.Scan(&user.ID, &user.Username, &user.Password); err != nil {
 		log.Error().Err(err).Msg("could not scan user to struct")
 		return nil, err
 	}
