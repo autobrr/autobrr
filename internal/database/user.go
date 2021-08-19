@@ -35,13 +35,24 @@ func (r *UserRepo) FindByUsername(username string) (*domain.User, error) {
 }
 
 func (r *UserRepo) Store(user domain.User) error {
-	query := `INSERT INTO users (username, password) VALUES (?, ?)`
 
-	_, err := r.db.Exec(query, user.Username, user.Password)
-	if err != nil {
-		log.Error().Stack().Err(err).Msg("error executing query")
-		return err
+	var err error
+	if user.ID != 0 {
+		update := `UPDATE users SET password = ? WHERE username = ?`
+		_, err = r.db.Exec(update, user.Password, user.Username)
+		if err != nil {
+			log.Error().Stack().Err(err).Msg("error executing query")
+			return err
+		}
+
+	} else {
+		query := `INSERT INTO users (username, password) VALUES (?, ?)`
+		_, err = r.db.Exec(query, user.Username, user.Password)
+		if err != nil {
+			log.Error().Stack().Err(err).Msg("error executing query")
+			return err
+		}
 	}
 
-	return nil
+	return err
 }
