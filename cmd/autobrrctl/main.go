@@ -77,6 +77,35 @@ func main() {
 		if err := userRepo.Store(user); err != nil {
 			log.Fatalf("failed to create user: %v", err)
 		}
+	case "change-password":
+		username := flag.Arg(1)
+		if username == "" {
+			flag.Usage()
+			os.Exit(1)
+		}
+
+		user, err := userRepo.FindByUsername(username)
+		if err != nil {
+			log.Fatalf("failed to get user: %v", err)
+		}
+
+		if user == nil {
+			log.Fatalf("failed to get user: %v", err)
+		}
+
+		password, err := readPassword()
+		if err != nil {
+			log.Fatalf("failed to read password: %v", err)
+		}
+		hashed, err := argon2id.CreateHash(string(password), argon2id.DefaultParams)
+		if err != nil {
+			log.Fatalf("failed to hash password: %v", err)
+		}
+
+		user.Password = hashed
+		if err := userRepo.Store(*user); err != nil {
+			log.Fatalf("failed to create user: %v", err)
+		}
 	default:
 		flag.Usage()
 		if cmd != "help" {
