@@ -12,7 +12,8 @@ CREATE TABLE users
     username   TEXT NOT NULL,
     password   TEXT NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE (username)
 );
 
 CREATE TABLE indexer
