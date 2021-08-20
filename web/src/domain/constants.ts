@@ -69,10 +69,30 @@ export interface radioFieldsetOption {
 }
 
 export const DownloadClientTypeOptions: radioFieldsetOption[] = [
-    {
-        label: "qBittorrent",
-        description: "Add torrents directly to qBittorrent",
-        value: DOWNLOAD_CLIENT_TYPES.qBittorrent
-    },
-    {label: "Deluge", description: "Add torrents directly to Deluge", value: DOWNLOAD_CLIENT_TYPES.Deluge},
+    {label: "qBittorrent", description: "Add torrents directly to qBittorrent", value: DOWNLOAD_CLIENT_TYPES.qBittorrent},
+    {label: "Deluge", description: "Add torrents directly to Deluge", value: DOWNLOAD_CLIENT_TYPES.DelugeV1},
+    {label: "Deluge 2", description: "Add torrents directly to Deluge 2", value: DOWNLOAD_CLIENT_TYPES.DelugeV2},
 ];
+export const DownloadClientTypeNameMap = {
+    "DELUGE_V1": "Deluge v1",
+    "DELUGE_V2": "Deluge v2",
+    "QBITTORRENT": "qBittorrent"
+};
+
+export const ActionTypeOptions: radioFieldsetOption[] = [
+    {label: "Test", description: "A simple action to test a filter.", value: "TEST"},
+    {label: "Watch dir", description: "Add filtered torrents to a watch directory", value: "WATCH_FOLDER"},
+    {label: "Exec", description: "Run a custom command after a filter match", value: "EXEC"},
+    {label: "qBittorrent", description: "Add torrents directly to qBittorrent", value: "QBITTORRENT"},
+    {label: "Deluge", description: "Add torrents directly to Deluge", value: "DELUGE_V1"},
+    {label: "Deluge v2", description: "Add torrents directly to Deluge 2", value: "DELUGE_V2"},
+];
+
+export const ActionTypeNameMap = {
+    "TEST": "Test",
+    "WATCH_FOLDER": "Watch folder",
+    "EXEC": "Exec",
+    "DELUGE_V1": "Deluge v1",
+    "DELUGE_V2": "Deluge v2",
+    "QBITTORRENT": "qBittorrent"
+};

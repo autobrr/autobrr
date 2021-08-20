@@ -9,20 +9,7 @@ import {classNames} from "../../styles/utils";
 import {Field, Form} from "react-final-form";
 import DEBUG from "../../components/debug";
 import APIClient from "../../api/APIClient";
-
-interface radioFieldsetOption {
-    label: string;
-    description: string;
-    value: string;
-}
-
-const actionTypeOptions: radioFieldsetOption[] = [
-    {label: "Test", description: "A simple action to test a filter.", value: "TEST"},
-    {label: "Watch dir", description: "Add filtered torrents to a watch directory", value: "WATCH_FOLDER"},
-    {label: "Exec", description: "Run a custom command after a filter match", value: "EXEC"},
-    {label: "qBittorrent", description: "Add torrents directly to qBittorrent", value: "QBITTORRENT"},
-    {label: "Deluge", description: "Add torrents directly to Deluge", value: "DELUGE"},
-];
+import {ActionTypeOptions} from "../../domain/constants";
 
 interface props {
     filter: Filter;
@@ -35,7 +22,7 @@ interface props {
 function FilterActionUpdateForm({filter, isOpen, toggle, clients, action}: props) {
     const mutation = useMutation((action: Action) => APIClient.actions.update(action), {
         onSuccess: () => {
-            console.log("add action");
+            // console.log("add action");
             queryClient.invalidateQueries(['filter', filter.id]);
             sleep(1500)
 
@@ -44,7 +31,7 @@ function FilterActionUpdateForm({filter, isOpen, toggle, clients, action}: props
     })
 
     useEffect(() => {
-        console.log("render add action form", clients)
+        // console.log("render add action form", clients)
     }, [clients]);
 
     const onSubmit = (data: any) => {
@@ -399,7 +386,8 @@ function FilterActionUpdateForm({filter, isOpen, toggle, clients, action}: props
                         </div>
                     </div>
                 )
-            case "DELUGE":
+            case "DELUGE_V1":
+            case "DELUGE_V2":
                 return (
                     <div>
                         {/*TODO choose client*/}
@@ -734,14 +722,14 @@ function FilterActionUpdateForm({filter, isOpen, toggle, clients, action}: props
                                                                                 <RadioGroup value={values.type} onChange={input.onChange}>
                                                                                     <RadioGroup.Label className="sr-only">Privacy setting</RadioGroup.Label>
                                                                                     <div className="bg-white rounded-md -space-y-px">
-                                                                                        {actionTypeOptions.map((setting, settingIdx) => (
+                                                                                        {ActionTypeOptions.map((setting, settingIdx) => (
                                                                                             <RadioGroup.Option
                                                                                                 key={setting.value}
                                                                                                 value={setting.value}
                                                                                                 className={({checked}) =>
                                                                                                     classNames(
                                                                                                         settingIdx === 0 ? 'rounded-tl-md rounded-tr-md' : '',
-                                                                                                        settingIdx === actionTypeOptions.length - 1 ? 'rounded-bl-md rounded-br-md' : '',
+                                                                                                        settingIdx === ActionTypeOptions.length - 1 ? 'rounded-bl-md rounded-br-md' : '',
                                                                                                         checked ? 'bg-indigo-50 border-indigo-200 z-10' : 'border-gray-200',
                                                                                                         'relative border p-4 flex cursor-pointer focus:outline-none'
                                                                                                     )

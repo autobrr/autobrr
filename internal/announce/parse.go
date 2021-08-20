@@ -11,8 +11,6 @@ import (
 	"text/template"
 
 	"github.com/autobrr/autobrr/internal/domain"
-	"github.com/autobrr/autobrr/pkg/releaseinfo"
-
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
 )
@@ -262,12 +260,12 @@ func (s *service) extractReleaseInfo(varMap map[string]string, releaseName strin
 	canonReleaseName := cleanReleaseName(releaseName)
 	log.Trace().Msgf("canonicalize release name: %v", canonReleaseName)
 
-	release, err := releaseinfo.Parse(releaseName)
-	if err != nil {
-		return err
-	}
-
-	log.Trace().Msgf("release: %+v", release)
+	//release, err := releaseinfo.Parse(releaseName)
+	//if err != nil {
+	//	return err
+	//}
+	//
+	//log.Trace().Msgf("release: %+v", release)
 
 	// https://github.com/autodl-community/autodl-irssi/pull/194/files
 	// year

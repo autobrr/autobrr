@@ -7,6 +7,7 @@ import {classNames} from "../../styles/utils";
 import { DownloadClientAddForm, DownloadClientUpdateForm } from "../../forms";
 import EmptySimple from "../../components/empty/EmptySimple";
 import APIClient from "../../api/APIClient";
+import {DownloadClientTypeNameMap} from "../../domain/constants";
 
 interface DownloadLClientSettingsListItemProps {
     client: DownloadClient;
@@ -48,7 +49,7 @@ function DownloadClientSettingsListItem({ client, idx }: DownloadLClientSettings
                 </Switch>
             </td>
             <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{client.name}</td>
-            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{client.type}</td>
+            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{DownloadClientTypeNameMap[client.type]}</td>
             <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                 <span className="text-indigo-600 hover:text-indigo-900 cursor-pointer"  onClick={toggleUpdateClient}>
                     Edit

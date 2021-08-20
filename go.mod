@@ -5,6 +5,7 @@ go 1.16
 require (
 	github.com/anacrolix/torrent v1.29.1
 	github.com/fluffle/goirc v1.0.3
+	github.com/gdm85/go-libdeluge v0.5.4
 	github.com/go-chi/chi v1.5.4
 	github.com/gorilla/sessions v1.2.1
 	github.com/lib/pq v1.10.2

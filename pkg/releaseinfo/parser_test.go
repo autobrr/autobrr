@@ -191,6 +191,7 @@ var tvTests = []string{
 	"Power Book III: Raising Kanan S01E02 2160p WEB-DL DD+ 5.1 H265-GGWP",
 	"Thea Walking Dead: Origins S01E01 1080p WEB-DL DD+ 2.0 H.264-GOSSIP",
 	"Mean Mums S01 1080p AMZN WEB-DL DD+ 2.0 H.264-FLUX",
+	"[BBT-RMX] Servant x Service",
 }
 
 func TestParse_TV(t *testing.T) {
@@ -247,6 +248,27 @@ func TestParse_TV(t *testing.T) {
 				Codec:      "x264",
 				Audio:      "DD5.1",
 				Group:      "NTb",
+			},
+			wantErr: false,
+		},
+		{
+			filename: "[BBT-RMX] Servant x Service",
+			want: &ReleaseInfo{
+				Title: "",
+			},
+			wantErr: false,
+		},
+		{
+			filename: "[Dekinai] Dungeon Ni Deai O Motomeru No Wa Machigatte Iru Darouka ~Familia Myth~ (2015) [BD 1080p x264 10bit - FLAC 2 0]",
+			want: &ReleaseInfo{
+				Title: "",
+			},
+			wantErr: false,
+		},
+		{
+			filename: "[SubsPlease] Higurashi no Naku Koro ni Sotsu - 09 (1080p) [C00D6C68]",
+			want: &ReleaseInfo{
+				Title: "",
 			},
 			wantErr: false,
 		},

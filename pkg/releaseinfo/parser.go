@@ -82,6 +82,15 @@ func Parse(filename string) (*ReleaseInfo, error) {
 		setField(tor, pattern.name, matches[matchIdx][1], matches[matchIdx][2])
 	}
 
+	if startIndex > endIndex {
+		// FIXME temp solution to not panic if the are the reverse
+		tmpStart := startIndex
+		tmpEnd := endIndex
+
+		startIndex = tmpEnd
+		endIndex = tmpStart
+	}
+
 	// Start process for title
 	//fmt.Println("  title: <internal>")
 	raw := strings.Split(filename[startIndex:endIndex], "(")[0]

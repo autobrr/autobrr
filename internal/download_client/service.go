@@ -1,10 +1,13 @@
 package download_client
 
 import (
-	"github.com/rs/zerolog/log"
+	"errors"
+	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/pkg/qbittorrent"
+	delugeClient "github.com/gdm85/go-libdeluge"
+	"github.com/rs/zerolog/log"
 )
 
 type Service interface {
@@ -43,6 +46,13 @@ func (s *service) FindByID(id int32) (*domain.DownloadClient, error) {
 
 func (s *service) Store(client domain.DownloadClient) (*domain.DownloadClient, error) {
 	// validate data
+	if client.Host == "" {
+		return nil, errors.New("validation error: no host")
+	} else if client.Port == 0 {
+		return nil, errors.New("validation error: no port")
+	} else if client.Type == "" {
+		return nil, errors.New("validation error: no type")
+	}
 
 	// store
 	c, err := s.repo.Store(client)
@@ -64,6 +74,15 @@ func (s *service) Delete(clientID int) error {
 }
 
 func (s *service) Test(client domain.DownloadClient) error {
+	// basic validation of client
+	if client.Host == "" {
+		return errors.New("validation error: no host")
+	} else if client.Port == 0 {
+		return errors.New("validation error: no port")
+	} else if client.Type == "" {
+		return errors.New("validation error: no type")
+	}
+
 	// test
 	err := s.testConnection(client)
 	if err != nil {
@@ -74,22 +93,75 @@ func (s *service) Test(client domain.DownloadClient) error {
 }
 
 func (s *service) testConnection(client domain.DownloadClient) error {
-	if client.Type == "QBITTORRENT" {
-		qbtSettings := qbittorrent.Settings{
-			Hostname: client.Host,
-			Port:     uint(client.Port),
-			Username: client.Username,
-			Password: client.Password,
-			SSL:      client.SSL,
-		}
-
-		qbt := qbittorrent.NewClient(qbtSettings)
-		err := qbt.Login()
-		if err != nil {
-			log.Error().Err(err).Msgf("error logging into client: %v", client.Host)
-			return err
-		}
+	switch client.Type {
+	case domain.DownloadClientTypeQbittorrent:
+		return s.testQbittorrentConnection(client)
+	case domain.DownloadClientTypeDelugeV1, domain.DownloadClientTypeDelugeV2:
+		return s.testDelugeConnection(client)
 	}
+
+	return nil
+}
+
+func (s *service) testQbittorrentConnection(client domain.DownloadClient) error {
+	qbtSettings := qbittorrent.Settings{
+		Hostname: client.Host,
+		Port:     uint(client.Port),
+		Username: client.Username,
+		Password: client.Password,
+		SSL:      client.SSL,
+	}
+
+	qbt := qbittorrent.NewClient(qbtSettings)
+	err := qbt.Login()
+	if err != nil {
+		log.Error().Err(err).Msgf("error logging into client: %v", client.Host)
+		return err
+	}
+
+	return nil
+}
+
+func (s *service) testDelugeConnection(client domain.DownloadClient) error {
+	var deluge delugeClient.DelugeClient
+
+	settings := delugeClient.Settings{
+		Hostname:             client.Host,
+		Port:                 uint(client.Port),
+		Login:                client.Username,
+		Password:             client.Password,
+		DebugServerResponses: true,
+		ReadWriteTimeout:     time.Second * 10,
+	}
+
+	switch client.Type {
+	case "DELUGE_V1":
+		deluge = delugeClient.NewV1(settings)
+
+	case "DELUGE_V2":
+		deluge = delugeClient.NewV2(settings)
+
+	default:
+		deluge = delugeClient.NewV2(settings)
+	}
+
+	// perform connection to Deluge server
+	err := deluge.Connect()
+	if err != nil {
+		log.Error().Err(err).Msgf("error logging into client: %v", client.Host)
+		return err
+	}
+
+	defer deluge.Close()
+
+	// print daemon version
+	ver, err := deluge.DaemonVersion()
+	if err != nil {
+		log.Error().Err(err).Msgf("could not get daemon version: %v", client.Host)
+		return err
+	}
+
+	log.Debug().Msgf("daemon version: %v", ver)
 
 	return nil
 }
