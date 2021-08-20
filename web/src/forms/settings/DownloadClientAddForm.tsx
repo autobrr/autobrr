@@ -1,4 +1,4 @@
-import {Fragment, useState} from "react";
+import React, {Fragment, useState} from "react";
 import {useMutation} from "react-query";
 import {DOWNLOAD_CLIENT_TYPES, DownloadClient} from "../../domain/interfaces";
 import {Dialog, RadioGroup, Transition} from "@headlessui/react";
@@ -10,21 +10,7 @@ import {SwitchGroup} from "../../components/inputs";
 import {queryClient} from "../../App";
 import APIClient from "../../api/APIClient";
 import {sleep} from "../../utils/utils";
-
-interface radioFieldsetOption {
-    label: string;
-    description: string;
-    value: string;
-}
-
-const downloadClientTypeOptions: radioFieldsetOption[] = [
-    {
-        label: "qBittorrent",
-        description: "Add torrents directly to qBittorrent",
-        value: DOWNLOAD_CLIENT_TYPES.qBittorrent
-    },
-    {label: "Deluge", description: "Add torrents directly to Deluge", value: DOWNLOAD_CLIENT_TYPES.Deluge},
-];
+import {DownloadClientTypeOptions} from "../../domain/constants";
 
 function DownloadClientAddForm({isOpen, toggle}: any) {
     const [isTesting, setIsTesting] = useState(false)
@@ -181,18 +167,18 @@ function DownloadClientAddForm({isOpen, toggle}: any) {
                                                                                 <RadioGroup value={values.type}
                                                                                             onChange={input.onChange}>
                                                                                     <RadioGroup.Label
-                                                                                        className="sr-only">Privacy
-                                                                                        setting</RadioGroup.Label>
+                                                                                        className="sr-only">Client
+                                                                                        type</RadioGroup.Label>
                                                                                     <div
                                                                                         className="bg-white rounded-md -space-y-px">
-                                                                                        {downloadClientTypeOptions.map((setting, settingIdx) => (
+                                                                                        {DownloadClientTypeOptions.map((setting, settingIdx) => (
                                                                                             <RadioGroup.Option
                                                                                                 key={setting.value}
                                                                                                 value={setting.value}
                                                                                                 className={({checked}) =>
                                                                                                     classNames(
                                                                                                         settingIdx === 0 ? 'rounded-tl-md rounded-tr-md' : '',
-                                                                                                        settingIdx === downloadClientTypeOptions.length - 1 ? 'rounded-bl-md rounded-br-md' : '',
+                                                                                                        settingIdx === DownloadClientTypeOptions.length - 1 ? 'rounded-bl-md rounded-br-md' : '',
                                                                                                         checked ? 'bg-indigo-50 border-indigo-200 z-10' : 'border-gray-200',
                                                                                                         'relative border p-4 flex cursor-pointer focus:outline-none'
                                                                                                     )
@@ -245,7 +231,6 @@ function DownloadClientAddForm({isOpen, toggle}: any) {
                                                         </fieldset>
 
                                                         <div>
-
                                                             <div
                                                                 className="space-y-1 px-4 sm:space-y-0 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6 sm:py-5">
                                                                 <div>

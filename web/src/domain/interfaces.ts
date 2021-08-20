@@ -64,25 +64,17 @@ export interface Filter {
     indexers: Indexer[];
 }
 
-export interface Tracker {
-    id: number;
-    name: string;
-    type: string;
-    enabled: boolean;
-}
-
-export type ActionType = 'TEST' | 'EXEC' | 'WATCH_FOLDER' | 'QBITTORRENT' | 'DELUGE';
-export const ACTIONTYPES: ActionType[] = ['TEST', 'EXEC' , 'WATCH_FOLDER' , 'QBITTORRENT' , 'DELUGE'];
+export type ActionType = 'TEST' | 'EXEC' | 'WATCH_FOLDER' | 'QBITTORRENT' | 'DELUGE_V1' | 'DELUGE_V2';
+export const ACTIONTYPES: ActionType[] = ['TEST', 'EXEC' , 'WATCH_FOLDER' , 'QBITTORRENT' , 'DELUGE_V1', 'DELUGE_V2'];
 
 
-export type DownloadClientType = 'QBITTORRENT' | 'DELUGE';
+export type DownloadClientType = 'QBITTORRENT' | 'DELUGE_V1' | 'DELUGE_V2';
 
-// export const DOWNLOAD_CLIENT_TYPES: DownloadClientType[] = ['QBITTORRENT' , 'DELUGE'];
 export enum DOWNLOAD_CLIENT_TYPES {
     qBittorrent = 'QBITTORRENT',
-    Deluge = 'DELUGE'
+    DelugeV1 = 'DELUGE_V1',
+    DelugeV2 = 'DELUGE_V2'
 }
-
 
 export interface DownloadClient {
     id: number;

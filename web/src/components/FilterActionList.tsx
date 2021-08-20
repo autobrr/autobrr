@@ -10,19 +10,7 @@ import {TextField} from "./inputs";
 import DEBUG from "./debug";
 import APIClient from "../api/APIClient";
 import {queryClient} from "../App";
-
-interface radioFieldsetOption {
-    label: string;
-    value: string;
-}
-
-const actionTypeOptions: radioFieldsetOption[] = [
-    {label: "Test", value: "TEST"},
-    {label: "Watch dir", value: "WATCH_FOLDER"},
-    {label: "Exec", value: "EXEC"},
-    {label: "qBittorrent", value: "QBITTORRENT"},
-    {label: "Deluge", value: "DELUGE"},
-];
+import {ActionTypeNameMap, ActionTypeOptions, DownloadClientTypeNameMap} from "../domain/constants";
 
 interface FilterListProps {
     actions: Action[];
@@ -262,7 +250,8 @@ function ListItem({action, clients, filterID, idx}: ListItemProps) {
                         </div>
                     </div>
                 )
-            case "DELUGE":
+            case "DELUGE_V1":
+            case "DELUGE_V2":
                 return (
                     <div>
                         <div className="mt-6 grid grid-cols-12 gap-6">
@@ -426,7 +415,7 @@ function ListItem({action, clients, filterID, idx}: ListItemProps) {
                         </div>
                         <div className="mt-4 flex-shrink-0 sm:mt-0 sm:ml-5">
                             <div className="flex overflow-hidden -space-x-1">
-                                <span className="text-sm font-normal text-gray-500">{action.type}</span>
+                                <span className="text-sm font-normal text-gray-500">{ActionTypeNameMap[action.type]}</span>
                             </div>
                         </div>
                     </div>
@@ -561,7 +550,7 @@ function ListItem({action, clients, filterID, idx}: ListItemProps) {
                                                                 <Listbox.Button
                                                                     className="bg-white relative w-full border border-gray-300 rounded-md shadow-sm pl-3 pr-10 py-2 text-left cursor-default focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
                                                                     <span
-                                                                        className="block truncate">{input.value ? actionTypeOptions.find(c => c.value === input.value)!.label : "Choose a type"}</span>
+                                                                        className="block truncate">{input.value ? ActionTypeOptions.find(c => c.value === input.value)!.label : "Choose a type"}</span>
                                                                     <span
                                                                         className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
                 <SelectorIcon className="h-5 w-5 text-gray-400" aria-hidden="true"/>
@@ -579,7 +568,7 @@ function ListItem({action, clients, filterID, idx}: ListItemProps) {
                                                                         static
                                                                         className="absolute z-10 mt-1 w-full bg-white shadow-lg max-h-60 rounded-md py-1 text-base ring-1 ring-black ring-opacity-5 overflow-auto focus:outline-none sm:text-sm"
                                                                     >
-                                                                        {actionTypeOptions.map((opt) => (
+                                                                        {ActionTypeOptions.map((opt) => (
                                                                             <Listbox.Option
                                                                                 key={opt.value}
                                                                                 className={({active}) =>
