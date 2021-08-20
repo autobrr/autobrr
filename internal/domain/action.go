@@ -34,6 +34,7 @@ const (
 	ActionTypeTest        ActionType = "TEST"
 	ActionTypeExec        ActionType = "EXEC"
 	ActionTypeQbittorrent ActionType = "QBITTORRENT"
-	ActionTypeDeluge      ActionType = "DELUGE"
+	ActionTypeDelugeV1    ActionType = "DELUGE_V1"
+	ActionTypeDelugeV2    ActionType = "DELUGE_V2"
 	ActionTypeWatchFolder ActionType = "WATCH_FOLDER"
 )

@@ -24,5 +24,6 @@ type DownloadClientType string
 
 const (
 	DownloadClientTypeQbittorrent DownloadClientType = "QBITTORRENT"
-	DownloadClientTypeDeluge      DownloadClientType = "DELUGE"
+	DownloadClientTypeDelugeV1    DownloadClientType = "DELUGE_V1"
+	DownloadClientTypeDelugeV2    DownloadClientType = "DELUGE_V2"
 )

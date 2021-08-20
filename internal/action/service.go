@@ -57,10 +57,17 @@ func (s *service) RunActions(torrentFile string, hash string, filter domain.Filt
 		case domain.ActionTypeExec:
 			go s.execCmd(announce, action, torrentFile)
 
-		// deluge
+		case domain.ActionTypeDelugeV1, domain.ActionTypeDelugeV2:
+			go func() {
+				err := s.deluge(action, torrentFile)
+				if err != nil {
+					log.Error().Err(err).Msg("error sending torrent to client")
+				}
+			}()
+
 		// pvr *arr
 		default:
-			log.Debug().Msgf("unsupported action: %v type: %v", action.Name, action.Type)
+			log.Warn().Msgf("unsupported action: %v type: %v", action.Name, action.Type)
 		}
 	}
 
