@@ -1,0 +1,60 @@
+[
+  {
+    "guid": "PUSH-https://www.test.org/rss/download/0000001/00000000000000000000/That Show S01 2160p ATVP WEB-DL DDP 5.1 Atmos DV HEVC-NOGROUP.torrent",
+    "quality": {
+      "quality": {
+        "id": 18,
+        "name": "WEBDL-2160p",
+        "source": "web",
+        "resolution": 2160
+      },
+      "revision": {
+        "version": 1,
+        "real": 0,
+        "isRepack": false
+      }
+    },
+    "qualityWeight": 1401,
+    "age": 1301,
+    "ageHours": 31239.6100518075,
+    "ageMinutes": 1874376.60310845,
+    "size": 0,
+    "indexerId": 0,
+    "indexer": "test",
+    "releaseGroup": "NOGROUP",
+    "releaseHash": "",
+    "title": "That Show S01 2160p ATVP WEB-DL DDP 5.1 Atmos DV HEVC-NOGROUP",
+    "fullSeason": true,
+    "sceneSource": false,
+    "seasonNumber": 1,
+    "language": {
+      "id": 1,
+      "name": "English"
+    },
+    "languageWeight": 2200,
+    "seriesTitle": "That Show",
+    "episodeNumbers": [],
+    "absoluteEpisodeNumbers": [],
+    "mappedEpisodeNumbers": [],
+    "mappedAbsoluteEpisodeNumbers": [],
+    "approved": false,
+    "temporarilyRejected": false,
+    "rejected": true,
+    "tvdbId": 0,
+    "tvRageId": 0,
+    "rejections": [
+      "Unknown Series"
+    ],
+    "publishDate": "2018-01-28T07:00:00Z",
+    "downloadUrl": "https://www.test.org/rss/download/0000001/00000000000000000000/That Show S01 2160p ATVP WEB-DL DDP 5.1 Atmos DV HEVC-NOGROUP.torrent",
+    "episodeRequested": false,
+    "downloadAllowed": false,
+    "releaseWeight": 0,
+    "preferredWordScore": 0,
+    "protocol": "torrent",
+    "isDaily": false,
+    "isAbsoluteNumbering": false,
+    "isPossibleSpecialEpisode": false,
+    "special": false
+  }
+]
