@@ -98,7 +98,7 @@ func (s *service) testRadarrConnection(client domain.DownloadClient) error {
 		Password:  client.Settings.Basic.Password,
 	})
 
-	err := r.Test()
+	_, err := r.Test()
 	if err != nil {
 		log.Error().Err(err).Msgf("radarr: connection test failed: %v", client.Host)
 		return err

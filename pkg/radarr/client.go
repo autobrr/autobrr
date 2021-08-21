@@ -5,13 +5,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"net/http"
 
 	"github.com/rs/zerolog/log"
 )
 
-func (c *Client) get(endpoint string) (*http.Response, error) {
+func (c *client) get(endpoint string) (*http.Response, error) {
 	reqUrl := fmt.Sprintf("%v/api/v3/%v", c.config.Hostname, endpoint)
 
 	req, err := http.NewRequest(http.MethodGet, reqUrl, http.NoBody)
@@ -25,6 +24,7 @@ func (c *Client) get(endpoint string) (*http.Response, error) {
 	}
 
 	req.Header.Add("X-Api-Key", c.config.APIKey)
+	req.Header.Set("User-Agent", "autobrr")
 
 	res, err := c.http.Do(req)
 	if err != nil {
@@ -32,36 +32,26 @@ func (c *Client) get(endpoint string) (*http.Response, error) {
 		return nil, err
 	}
 
-	defer res.Body.Close()
-
 	if res.StatusCode == http.StatusUnauthorized {
 		return nil, errors.New("unauthorized: bad credentials")
 	}
 
-	resBody, err := io.ReadAll(res.Body)
-	if err != nil {
-		log.Error().Err(err).Msgf("radarr client error reading body: %v", reqUrl)
-		return nil, err
-	}
-
-	log.Debug().Msgf("body: %s", string(resBody))
-
 	return res, nil
 }
 
-func (c *Client) post(endpoint string, data interface{}) error {
+func (c *client) post(endpoint string, data interface{}) (*http.Response, error) {
 	reqUrl := fmt.Sprintf("%v/api/v3/%v", c.config.Hostname, endpoint)
 
 	jsonData, err := json.Marshal(data)
 	if err != nil {
 		log.Error().Err(err).Msgf("radarr client could not marshal data: %v", reqUrl)
-		return err
+		return nil, err
 	}
 
 	req, err := http.NewRequest(http.MethodPost, reqUrl, bytes.NewBuffer(jsonData))
 	if err != nil {
 		log.Error().Err(err).Msgf("radarr client request error: %v", reqUrl)
-		return err
+		return nil, err
 	}
 
 	if c.config.BasicAuth {
@@ -70,28 +60,23 @@ func (c *Client) post(endpoint string, data interface{}) error {
 
 	req.Header.Add("X-Api-Key", c.config.APIKey)
 	req.Header.Set("Content-Type", "application/json; charset=UTF-8")
+	req.Header.Set("User-Agent", "autobrr")
 
 	res, err := c.http.Do(req)
 	if err != nil {
 		log.Error().Err(err).Msgf("radarr client request error: %v", reqUrl)
-		return err
+		return nil, err
 	}
 
-	defer res.Body.Close()
-
+	// validate response
 	if res.StatusCode == http.StatusUnauthorized {
-		return errors.New("unauthorized: bad credentials")
+		log.Error().Err(err).Msgf("radarr client bad request: %v", reqUrl)
+		return nil, errors.New("unauthorized: bad credentials")
+	} else if res.StatusCode != http.StatusOK {
+		log.Error().Err(err).Msgf("radarr client request error: %v", reqUrl)
+		return nil, nil
 	}
 
-	resBody, err := io.ReadAll(res.Body)
-	if err != nil {
-		log.Error().Err(err).Msgf("radarr client error reading body: %v", reqUrl)
-		return err
-	}
-
-	log.Debug().Msgf("body: %s", string(resBody))
-
-	// TODO unmarshal response
-
-	return nil
+	// return raw response and let the caller handle json unmarshal of body
+	return res, nil
 }
