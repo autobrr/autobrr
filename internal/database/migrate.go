@@ -111,7 +111,7 @@ CREATE TABLE client
     ssl      BOOLEAN,
     username TEXT,
     password TEXT,
-    settings TEXT
+    settings JSON
 );
 
 CREATE TABLE action

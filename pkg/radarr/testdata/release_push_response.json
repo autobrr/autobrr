@@ -1,0 +1,54 @@
+[
+  {
+    "guid": "PUSH-https://www.test.org/rss/download/0000001/00000000000000000000/Some.Old.Movie.1996.Remastered.1080p.BluRay.REMUX.AVC.MULTI.TrueHD.Atmos.7.1-NOGROUP.torrent",
+    "quality": {
+      "quality": {
+        "id": 30,
+        "name": "Remux-1080p",
+        "source": "bluray",
+        "resolution": 1080,
+        "modifier": "remux"
+      },
+      "revision": {
+        "version": 1,
+        "real": 0,
+        "isRepack": false
+      }
+    },
+    "customFormats": [],
+    "customFormatScore": 0,
+    "qualityWeight": 1901,
+    "age": 0,
+    "ageHours": 0.028290299305555554,
+    "ageMinutes": 1.69741874,
+    "size": 0,
+    "indexerId": 0,
+    "indexer": "test",
+    "releaseGroup": "NOGROUP",
+    "releaseHash": "",
+    "title": "Some.Old.Movie.1996.Remastered.1080p.BluRay.REMUX.AVC.MULTI.TrueHD.Atmos.7.1-NOGROUP",
+    "sceneSource": false,
+    "movieTitle": "Twister",
+    "languages": [
+      {
+        "id": 1,
+        "name": "English"
+      }
+    ],
+    "approved": false,
+    "temporarilyRejected": false,
+    "rejected": true,
+    "tmdbId": 0,
+    "imdbId": 0,
+    "rejections": [
+      "Could not find Some Old Movie"
+    ],
+    "publishDate": "2021-08-21T15:36:00Z",
+    "downloadUrl": "https://www.test.org/rss/download/0000001/00000000000000000000/Some.Old.Movie.1996.Remastered.1080p.BluRay.REMUX.AVC.MULTI.TrueHD.Atmos.7.1-NOGROUP.torrent",
+    "downloadAllowed": false,
+    "releaseWeight": 0,
+    "indexerFlags": [],
+    "edition": "Remastered",
+    "protocol": "torrent"
+  }
+]

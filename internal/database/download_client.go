@@ -2,6 +2,7 @@ package database
 
 import (
 	"database/sql"
+	"encoding/json"
 
 	"github.com/autobrr/autobrr/internal/domain"
 
@@ -18,7 +19,7 @@ func NewDownloadClientRepo(db *sql.DB) domain.DownloadClientRepo {
 
 func (r *DownloadClientRepo) List() ([]domain.DownloadClient, error) {
 
-	rows, err := r.db.Query("SELECT id, name, type, enabled, host, port, ssl, username, password FROM client")
+	rows, err := r.db.Query("SELECT id, name, type, enabled, host, port, ssl, username, password, settings FROM client")
 	if err != nil {
 		log.Fatal().Err(err)
 	}
@@ -29,12 +30,19 @@ func (r *DownloadClientRepo) List() ([]domain.DownloadClient, error) {
 
 	for rows.Next() {
 		var f domain.DownloadClient
+		var settingsJsonStr string
 
-		if err := rows.Scan(&f.ID, &f.Name, &f.Type, &f.Enabled, &f.Host, &f.Port, &f.SSL, &f.Username, &f.Password); err != nil {
+		if err := rows.Scan(&f.ID, &f.Name, &f.Type, &f.Enabled, &f.Host, &f.Port, &f.SSL, &f.Username, &f.Password, &settingsJsonStr); err != nil {
 			log.Error().Err(err)
 		}
 		if err != nil {
 			return nil, err
+		}
+
+		if settingsJsonStr != "" {
+			if err := json.Unmarshal([]byte(settingsJsonStr), &f.Settings); err != nil {
+				return nil, err
+			}
 		}
 
 		clients = append(clients, f)
@@ -49,7 +57,7 @@ func (r *DownloadClientRepo) List() ([]domain.DownloadClient, error) {
 func (r *DownloadClientRepo) FindByID(id int32) (*domain.DownloadClient, error) {
 
 	query := `
-		SELECT id, name, type, enabled, host, port, ssl, username, password FROM client WHERE id = ?
+		SELECT id, name, type, enabled, host, port, ssl, username, password, settings FROM client WHERE id = ?
 	`
 
 	row := r.db.QueryRow(query, id)
@@ -58,10 +66,17 @@ func (r *DownloadClientRepo) FindByID(id int32) (*domain.DownloadClient, error) 
 	}
 
 	var client domain.DownloadClient
+	var settingsJsonStr string
 
-	if err := row.Scan(&client.ID, &client.Name, &client.Type, &client.Enabled, &client.Host, &client.Port, &client.SSL, &client.Username, &client.Password); err != nil {
+	if err := row.Scan(&client.ID, &client.Name, &client.Type, &client.Enabled, &client.Host, &client.Port, &client.SSL, &client.Username, &client.Password, &settingsJsonStr); err != nil {
 		log.Error().Err(err).Msg("could not scan download client to struct")
 		return nil, err
+	}
+
+	if settingsJsonStr != "" {
+		if err := json.Unmarshal([]byte(settingsJsonStr), &client.Settings); err != nil {
+			return nil, err
+		}
 	}
 
 	return &client, nil
@@ -69,7 +84,7 @@ func (r *DownloadClientRepo) FindByID(id int32) (*domain.DownloadClient, error) 
 
 func (r *DownloadClientRepo) FindByActionID(actionID int) ([]domain.DownloadClient, error) {
 
-	rows, err := r.db.Query("SELECT id, name, type, enabled, host, port, ssl, username, password FROM client, action_client WHERE client.id = action_client.client_id AND action_client.action_id = ?", actionID)
+	rows, err := r.db.Query("SELECT id, name, type, enabled, host, port, ssl, username, password, settings FROM client, action_client WHERE client.id = action_client.client_id AND action_client.action_id = ?", actionID)
 	if err != nil {
 		log.Fatal().Err(err)
 	}
@@ -79,12 +94,19 @@ func (r *DownloadClientRepo) FindByActionID(actionID int) ([]domain.DownloadClie
 	var clients []domain.DownloadClient
 	for rows.Next() {
 		var f domain.DownloadClient
+		var settingsJsonStr string
 
-		if err := rows.Scan(&f.ID, &f.Name, &f.Type, &f.Enabled, &f.Host, &f.Port, &f.SSL, &f.Username, &f.Password); err != nil {
+		if err := rows.Scan(&f.ID, &f.Name, &f.Type, &f.Enabled, &f.Host, &f.Port, &f.SSL, &f.Username, &f.Password, &settingsJsonStr); err != nil {
 			log.Error().Err(err)
 		}
 		if err != nil {
 			return nil, err
+		}
+
+		if settingsJsonStr != "" {
+			if err := json.Unmarshal([]byte(settingsJsonStr), &f.Settings); err != nil {
+				return nil, err
+			}
 		}
 
 		clients = append(clients, f)
@@ -97,16 +119,27 @@ func (r *DownloadClientRepo) FindByActionID(actionID int) ([]domain.DownloadClie
 }
 
 func (r *DownloadClientRepo) Store(client domain.DownloadClient) (*domain.DownloadClient, error) {
-
 	var err error
+
+	settings := domain.DownloadClientSettings{
+		APIKey: client.Settings.APIKey,
+		Basic:  client.Settings.Basic,
+	}
+
+	settingsJson, err := json.Marshal(&settings)
+	if err != nil {
+		log.Error().Err(err).Msgf("could not marshal download client settings %v", settings)
+		return nil, err
+	}
+
 	if client.ID != 0 {
 		log.Info().Msg("UPDATE existing record")
-		_, err = r.db.Exec(`UPDATE client SET name = ?, type = ?, enabled = ?, host = ?, port = ?, ssl = ?, username = ?, password = ? WHERE id = ?`, client.Name, client.Type, client.Enabled, client.Host, client.Port, client.SSL, client.Username, client.Password, client.ID)
+		_, err = r.db.Exec(`UPDATE client SET name = ?, type = ?, enabled = ?, host = ?, port = ?, ssl = ?, username = ?, password = ?, settings = json_set(?) WHERE id = ?`, client.Name, client.Type, client.Enabled, client.Host, client.Port, client.SSL, client.Username, client.Password, client.ID, settingsJson)
 	} else {
 		var res sql.Result
 
-		res, err = r.db.Exec(`INSERT INTO client(name, type, enabled, host, port, ssl, username, password)
-			VALUES (?, ?, ?, ?, ?, ? , ?, ?) ON CONFLICT DO NOTHING`, client.Name, client.Type, client.Enabled, client.Host, client.Port, client.SSL, client.Username, client.Password)
+		res, err = r.db.Exec(`INSERT INTO client(name, type, enabled, host, port, ssl, username, password, settings)
+			VALUES (?, ?, ?, ?, ?, ? , ?, ?, json_set(?)) ON CONFLICT DO NOTHING`, client.Name, client.Type, client.Enabled, client.Host, client.Port, client.SSL, client.Username, client.Password, settingsJson)
 		if err != nil {
 			log.Error().Err(err)
 			return nil, err

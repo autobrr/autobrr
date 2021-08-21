@@ -65,7 +65,14 @@ func (s *service) RunActions(torrentFile string, hash string, filter domain.Filt
 				}
 			}()
 
-		// pvr *arr
+		case domain.ActionTypeRadarr:
+			go func() {
+				err := s.radarr(announce, action)
+				if err != nil {
+					log.Error().Err(err).Msg("error sending torrent to radarr")
+				}
+			}()
+
 		default:
 			log.Warn().Msgf("unsupported action: %v type: %v", action.Name, action.Type)
 		}
