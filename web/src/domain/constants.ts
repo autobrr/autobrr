@@ -73,12 +73,14 @@ export const DownloadClientTypeOptions: radioFieldsetOption[] = [
     {label: "Deluge", description: "Add torrents directly to Deluge", value: DOWNLOAD_CLIENT_TYPES.DelugeV1},
     {label: "Deluge 2", description: "Add torrents directly to Deluge 2", value: DOWNLOAD_CLIENT_TYPES.DelugeV2},
     {label: "Radarr", description: "Send to Radarr and let it decide", value: DOWNLOAD_CLIENT_TYPES.Radarr},
+    {label: "Sonarr", description: "Send to Sonarr and let it decide", value: DOWNLOAD_CLIENT_TYPES.Sonarr},
 ];
 export const DownloadClientTypeNameMap = {
     "DELUGE_V1": "Deluge v1",
     "DELUGE_V2": "Deluge v2",
     "QBITTORRENT": "qBittorrent",
     "RADARR": "Radarr",
+    "SONARR": "Sonarr"
 };
 
 export const ActionTypeOptions: radioFieldsetOption[] = [
@@ -89,6 +91,7 @@ export const ActionTypeOptions: radioFieldsetOption[] = [
     {label: "Deluge", description: "Add torrents directly to Deluge", value: "DELUGE_V1"},
     {label: "Deluge v2", description: "Add torrents directly to Deluge 2", value: "DELUGE_V2"},
     {label: "Radarr", description: "Send to Radarr and let it decide", value: DOWNLOAD_CLIENT_TYPES.Radarr},
+    {label: "Sonarr", description: "Send to Sonarr and let it decide", value: DOWNLOAD_CLIENT_TYPES.Sonarr},
 ];
 
 export const ActionTypeNameMap = {
@@ -98,5 +101,6 @@ export const ActionTypeNameMap = {
     "DELUGE_V1": "Deluge v1",
     "DELUGE_V2": "Deluge v2",
     "QBITTORRENT": "qBittorrent",
-    "RADARR": "Radarr"
+    "RADARR": "Radarr",
+    "SONARR": "Sonarr"
 };

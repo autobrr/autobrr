@@ -48,4 +48,5 @@ export const componentMap: any = {
   DELUGE_V2: <FormDefaultClientFields />,
   QBITTORRENT: <FormDefaultClientFields />,
   RADARR: <FormRadarrFields />,
+  SONARR: <FormRadarrFields />,
 };
