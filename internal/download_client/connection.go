@@ -6,6 +6,7 @@ import (
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/pkg/qbittorrent"
 	"github.com/autobrr/autobrr/pkg/radarr"
+	"github.com/autobrr/autobrr/pkg/sonarr"
 
 	delugeClient "github.com/gdm85/go-libdeluge"
 	"github.com/rs/zerolog/log"
@@ -21,6 +22,9 @@ func (s *service) testConnection(client domain.DownloadClient) error {
 
 	case domain.DownloadClientTypeRadarr:
 		return s.testRadarrConnection(client)
+
+	case domain.DownloadClientTypeSonarr:
+		return s.testSonarrConnection(client)
 	}
 
 	return nil
@@ -101,6 +105,24 @@ func (s *service) testRadarrConnection(client domain.DownloadClient) error {
 	_, err := r.Test()
 	if err != nil {
 		log.Error().Err(err).Msgf("radarr: connection test failed: %v", client.Host)
+		return err
+	}
+
+	return nil
+}
+
+func (s *service) testSonarrConnection(client domain.DownloadClient) error {
+	r := sonarr.New(sonarr.Config{
+		Hostname:  client.Host,
+		APIKey:    client.Settings.APIKey,
+		BasicAuth: client.Settings.Basic.Auth,
+		Username:  client.Settings.Basic.Username,
+		Password:  client.Settings.Basic.Password,
+	})
+
+	_, err := r.Test()
+	if err != nil {
+		log.Error().Err(err).Msgf("sonarr: connection test failed: %v", client.Host)
 		return err
 	}
 

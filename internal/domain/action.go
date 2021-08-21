@@ -38,4 +38,5 @@ const (
 	ActionTypeDelugeV2    ActionType = "DELUGE_V2"
 	ActionTypeWatchFolder ActionType = "WATCH_FOLDER"
 	ActionTypeRadarr      ActionType = "RADARR"
+	ActionTypeSonarr      ActionType = "SONARR"
 )
