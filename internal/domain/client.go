@@ -40,4 +40,5 @@ const (
 	DownloadClientTypeDelugeV2    DownloadClientType = "DELUGE_V2"
 	DownloadClientTypeRadarr      DownloadClientType = "RADARR"
 	DownloadClientTypeSonarr      DownloadClientType = "SONARR"
+	DownloadClientTypeLidarr      DownloadClientType = "LIDARR"
 )

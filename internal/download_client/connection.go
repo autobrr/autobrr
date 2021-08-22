@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
+	"github.com/autobrr/autobrr/pkg/lidarr"
 	"github.com/autobrr/autobrr/pkg/qbittorrent"
 	"github.com/autobrr/autobrr/pkg/radarr"
 	"github.com/autobrr/autobrr/pkg/sonarr"
@@ -25,6 +26,9 @@ func (s *service) testConnection(client domain.DownloadClient) error {
 
 	case domain.DownloadClientTypeSonarr:
 		return s.testSonarrConnection(client)
+
+	case domain.DownloadClientTypeLidarr:
+		return s.testLidarrConnection(client)
 	}
 
 	return nil
@@ -123,6 +127,24 @@ func (s *service) testSonarrConnection(client domain.DownloadClient) error {
 	_, err := r.Test()
 	if err != nil {
 		log.Error().Err(err).Msgf("sonarr: connection test failed: %v", client.Host)
+		return err
+	}
+
+	return nil
+}
+
+func (s *service) testLidarrConnection(client domain.DownloadClient) error {
+	r := lidarr.New(lidarr.Config{
+		Hostname:  client.Host,
+		APIKey:    client.Settings.APIKey,
+		BasicAuth: client.Settings.Basic.Auth,
+		Username:  client.Settings.Basic.Username,
+		Password:  client.Settings.Basic.Password,
+	})
+
+	_, err := r.Test()
+	if err != nil {
+		log.Error().Err(err).Msgf("lidarr: connection test failed: %v", client.Host)
 		return err
 	}
 

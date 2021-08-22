@@ -317,6 +317,7 @@ function ListItem({ action, clients, filterID, idx }: ListItemProps) {
         );
       case "RADARR":
       case "SONARR":
+      case "LIDARR":
         return (
           <div className="mt-6 grid grid-cols-12 gap-6">
             <DownloadClientSelect
