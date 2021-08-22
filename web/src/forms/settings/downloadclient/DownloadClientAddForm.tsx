@@ -1,4 +1,4 @@
-import React, { Fragment, useState } from "react";
+import { Fragment, useState } from "react";
 import { useMutation } from "react-query";
 import {
   DOWNLOAD_CLIENT_TYPES,
@@ -15,7 +15,7 @@ import APIClient from "../../../api/APIClient";
 import { sleep } from "../../../utils/utils";
 import { DownloadClientTypeOptions } from "../../../domain/constants";
 import { RadioFieldsetWide } from "../../../components/inputs/wide";
-import { componentMap } from "./shared";
+import { componentMap, rulesComponentMap } from "./shared";
 
 function DownloadClientAddForm({ isOpen, toggle }: any) {
   const [isTesting, setIsTesting] = useState(false);
@@ -155,6 +155,8 @@ function DownloadClientAddForm({ isOpen, toggle }: any) {
                             <div>{componentMap[values.type]}</div>
                           </div>
                         </div>
+                        
+                        {rulesComponentMap[values.type]}
 
                         <div className="flex-shrink-0 px-4 border-t border-gray-200 py-5 sm:px-6">
                           <div className="space-x-3 flex justify-end">
