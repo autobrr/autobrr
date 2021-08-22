@@ -164,6 +164,8 @@ function FilterActionUpdateForm({
           </div>
         );
       case "RADARR":
+      case "SONARR":
+      case "LIDARR":
         return (
           <div>
             <DownloadClientSelect

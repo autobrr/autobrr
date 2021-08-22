@@ -258,6 +258,7 @@ function FilterActionAddForm({ filter, isOpen, toggle, clients }: props) {
         );
       case "RADARR":
       case "SONARR":
+      case "LIDARR":
         return (
           <div>
             <DownloadClientSelect

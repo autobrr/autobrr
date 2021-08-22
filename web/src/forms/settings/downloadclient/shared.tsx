@@ -1,9 +1,9 @@
-import React, { Fragment } from "react";
+import { Fragment } from "react";
 import { SwitchGroup, TextFieldWide } from "../../../components/inputs";
 import { NumberFieldWide } from "../../../components/inputs/wide";
 import { useField } from "react-final-form";
 
-function FormDefaultClientFields() {
+function FormFieldsDefault() {
   return (
     <Fragment>
       <TextFieldWide name="host" label="Host" />
@@ -20,7 +20,7 @@ function FormDefaultClientFields() {
   );
 }
 
-function FormRadarrFields() {
+function FormFieldsArr() {
   const { input } = useField("settings.basic.auth");
   return (
     <Fragment>
@@ -42,11 +42,11 @@ function FormRadarrFields() {
   );
 }
 
-// @ts-ignore
 export const componentMap: any = {
-  DELUGE_V1: <FormDefaultClientFields />,
-  DELUGE_V2: <FormDefaultClientFields />,
-  QBITTORRENT: <FormDefaultClientFields />,
-  RADARR: <FormRadarrFields />,
-  SONARR: <FormRadarrFields />,
+  DELUGE_V1: <FormFieldsDefault />,
+  DELUGE_V2: <FormFieldsDefault />,
+  QBITTORRENT: <FormFieldsDefault />,
+  RADARR: <FormFieldsArr />,
+  SONARR: <FormFieldsArr />,
+  LIDARR: <FormFieldsArr />,
 };
