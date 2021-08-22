@@ -80,6 +80,13 @@ func (s *service) RunActions(torrentFile string, hash string, filter domain.Filt
 					log.Error().Err(err).Msg("error sending torrent to sonarr")
 				}
 			}()
+		case domain.ActionTypeLidarr:
+			go func() {
+				err := s.lidarr(announce, action)
+				if err != nil {
+					log.Error().Err(err).Msg("error sending torrent to lidarr")
+				}
+			}()
 
 		default:
 			log.Warn().Msgf("unsupported action: %v type: %v", action.Name, action.Type)

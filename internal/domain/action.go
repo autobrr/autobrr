@@ -39,4 +39,5 @@ const (
 	ActionTypeWatchFolder ActionType = "WATCH_FOLDER"
 	ActionTypeRadarr      ActionType = "RADARR"
 	ActionTypeSonarr      ActionType = "SONARR"
+	ActionTypeLidarr      ActionType = "LIDARR"
 )

@@ -1,0 +1,39 @@
+{
+  "guid": "PUSH-https://localhost/test/download.torrent",
+  "quality": {
+    "quality": {
+      "id": 6,
+      "name": "FLAC"
+    },
+    "revision": {
+      "version": 1,
+      "real": 0,
+      "isRepack": false
+    }
+  },
+  "qualityWeight": 1,
+  "age": 1301,
+  "ageHours": 31240.51104018011,
+  "ageMinutes": 1874430.6624115533,
+  "size": 0,
+  "indexerId": 0,
+  "indexer": "test",
+  "releaseHash": "",
+  "title": "JR Get Money - Nobody But You [2008] [Single] - FLAC / Lossless / Log / 100% / Cue / CD",
+  "discography": false,
+  "sceneSource": false,
+  "artistName": "JR Get Money",
+  "albumTitle": "Nobody But You",
+  "approved": false,
+  "temporarilyRejected": false,
+  "rejected": true,
+  "rejections": [
+    "Unknown Artist"
+  ],
+  "publishDate": "2018-01-28T07:00:00Z",
+  "downloadUrl": "https://localhost/test/download.torrent",
+  "downloadAllowed": false,
+  "releaseWeight": 0,
+  "preferredWordScore": 0,
+  "protocol": "torrent"
+}
