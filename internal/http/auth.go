@@ -44,6 +44,9 @@ func (h authHandler) login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	store.Options.Secure = true
+	store.Options.HttpOnly = true
+	store.Options.SameSite = http.SameSiteStrictMode
 	session, _ := store.Get(r, "user_session")
 
 	_, err := h.authService.Login(data.Username, data.Password)
