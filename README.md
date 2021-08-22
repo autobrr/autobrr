@@ -8,8 +8,15 @@ autobrr monitors IRC announce channels to get releases as soon as they are avail
 
 * Single binary + config for easy setup
 * Support for 15 trackers
-* Integration with qBittorrent
 * Easy to use UI
+* Available torrent actions:
+  * qBittorrent
+  * Deluge
+  * Radarr
+  * Sonarr
+  * Lidarr
+  * Save to watch folder
+  * Run custom commands
 
 ### Tracker support
 
