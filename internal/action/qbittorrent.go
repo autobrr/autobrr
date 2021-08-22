@@ -9,6 +9,9 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
+const REANNOUNCE_MAX_ATTEMPTS = 30
+const REANNOUNCE_INTERVAL = 7000
+
 func (s *service) qbittorrent(action domain.Action, hash string, torrentFile string) error {
 	log.Trace().Msgf("action QBITTORRENT: %v", torrentFile)
 
@@ -39,7 +42,39 @@ func (s *service) qbittorrent(action domain.Action, hash string, torrentFile str
 		return err
 	}
 
-	// TODO check for active downloads and other rules
+	// check for active downloads and other rules
+	if client.Settings.Rules.Enabled && !action.IgnoreRules {
+		activeDownloads, err := qbt.GetTorrentsFilter(qbittorrent.TorrentFilterDownloading)
+		if err != nil {
+			log.Error().Err(err).Msg("could not fetch downloading torrents")
+			return err
+		}
+
+		// make sure it's not set to 0 by default
+		if client.Settings.Rules.MaxActiveDownloads > 0 {
+
+			// if max active downloads reached, check speed and if lower than threshold add anyways
+			if len(activeDownloads) >= client.Settings.Rules.MaxActiveDownloads {
+				if client.Settings.Rules.IgnoreSlowTorrents {
+					// check speeds of downloads
+					info, err := qbt.GetTransferInfo()
+					if err != nil {
+						log.Error().Err(err).Msg("could not get transfer info")
+						return err
+					}
+
+					// if current transfer speed is more than threshold return out and skip
+					// DlInfoSpeed is in bytes so lets convert to KB to match DownloadSpeedThreshold
+					if info.DlInfoSpeed*1024 >= client.Settings.Rules.DownloadSpeedThreshold {
+						log.Trace().Msg("max active downloads reached, skip adding")
+						return nil
+					}
+
+					log.Trace().Msg("active downloads are slower than set limit, lets add it")
+				}
+			}
+		}
+	}
 
 	options := map[string]string{}
 
@@ -99,7 +134,7 @@ func checkTrackerStatus(qb qbittorrent.Client, hash string) error {
 		}
 
 		// check if status not working or something else
-		_, working := findTrackerStatus(trackers, qbittorrent.TrackerStatusOK)
+		working := findTrackerStatus(trackers, qbittorrent.TrackerStatusOK)
 
 		if !working {
 			err = qb.ReAnnounceTorrents([]string{hash})
@@ -138,11 +173,14 @@ func checkTrackerStatus(qb qbittorrent.Client, hash string) error {
 //  2 Tracker has been contacted and is working
 //  3 Tracker is updating
 //  4 Tracker has been contacted, but it is not working (or doesn't send proper replies)
-func findTrackerStatus(slice []qbittorrent.TorrentTracker, status qbittorrent.TrackerStatus) (int, bool) {
-	for i, item := range slice {
-		if item.Status == status {
-			return i, true
+func findTrackerStatus(slice []qbittorrent.TorrentTracker, status qbittorrent.TrackerStatus) bool {
+	for _, item := range slice {
+		// if updating skip and give some more time
+		if item.Status == qbittorrent.TrackerStatusUpdating {
+			return false
+		} else if item.Status == status {
+			return true
 		}
 	}
-	return -1, false
+	return false
 }

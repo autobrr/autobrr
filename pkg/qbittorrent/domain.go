@@ -177,3 +177,42 @@ const (
 	// 4 Tracker has been contacted, but it is not working (or doesn't send proper replies)
 	TrackerStatusNotWorking TrackerStatus = 4
 )
+
+type ConnectionStatus string
+
+const (
+	ConnectionStatusConnected    = "connected"
+	ConnectionStatusFirewalled   = "firewalled"
+	ConnectionStatusDisconnected = "disconnected"
+)
+
+// TransferInfo
+//
+// https://github.com/qbittorrent/qBittorrent/wiki/WebUI-API-(qBittorrent-4.1)#get-global-transfer-info
+//
+// dl_info_speed 		integer 	Global download rate (bytes/s)
+//
+// dl_info_data 		integer 	Data downloaded this session (bytes)
+//
+// up_info_speed 		integer 	Global upload rate (bytes/s)
+//
+// up_info_data 		integer 	Data uploaded this session (bytes)
+//
+// dl_rate_limit 		integer 	Download rate limit (bytes/s)
+//
+// up_rate_limit 		integer 	Upload rate limit (bytes/s)
+//
+// dht_nodes 			integer 	DHT nodes connected to
+//
+// connection_status 	string 		Connection status. See possible values here below
+//
+type TransferInfo struct {
+	ConnectionStatus ConnectionStatus `json:"connection_status"`
+	DHTNodes         int64            `json:"dht_nodes"`
+	DlInfoData       int64            `json:"dl_info_data"`
+	DlInfoSpeed      int64            `json:"dl_info_speed"`
+	DlRateLimit      int64            `json:"dl_rate_limit"`
+	UpInfoData       int64            `json:"up_info_data"`
+	UpInfoSpeed      int64            `json:"up_info_speed"`
+	UpRateLimit      int64            `json:"up_rate_limit"`
+}

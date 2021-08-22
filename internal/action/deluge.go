@@ -39,16 +39,16 @@ func (s *service) deluge(action domain.Action, torrentFile string) error {
 
 	switch client.Type {
 	case "DELUGE_V1":
-		err = delugeV1(settings, action, torrentFile)
+		err = delugeV1(client, settings, action, torrentFile)
 
 	case "DELUGE_V2":
-		err = delugeV2(settings, action, torrentFile)
+		err = delugeV2(client, settings, action, torrentFile)
 	}
 
 	return err
 }
 
-func delugeV1(settings delugeClient.Settings, action domain.Action, torrentFile string) error {
+func delugeV1(client *domain.DownloadClient, settings delugeClient.Settings, action domain.Action, torrentFile string) error {
 
 	deluge := delugeClient.NewV1(settings)
 
@@ -60,6 +60,34 @@ func delugeV1(settings delugeClient.Settings, action domain.Action, torrentFile 
 	}
 
 	defer deluge.Close()
+
+	if client.Settings.Rules.Enabled && !action.IgnoreRules {
+		activeDownloads, err := deluge.TorrentsStatus(delugeClient.StateDownloading, nil)
+		if err != nil {
+			log.Error().Err(err).Msg("could not fetch downloading torrents")
+			return err
+		}
+
+		if client.Settings.Rules.MaxActiveDownloads > 0 {
+			if len(activeDownloads) >= client.Settings.Rules.MaxActiveDownloads {
+				log.Trace().Msg("max active downloads reached, skip adding")
+				return nil
+
+				// TODO get session state
+				//state, err := deluge.SessionState()
+				//if err != nil {
+				//	log.Error().Err(err).Msg("could not get session state")
+				//	return err
+				//}
+				//
+				//if client.Settings.Rules.IgnoreSlowTorrents {
+				//	if  {
+				//
+				//	}
+				//}
+			}
+		}
+	}
 
 	t, err := ioutil.ReadFile(torrentFile)
 	if err != nil {
@@ -121,7 +149,7 @@ func delugeV1(settings delugeClient.Settings, action domain.Action, torrentFile 
 	return nil
 }
 
-func delugeV2(settings delugeClient.Settings, action domain.Action, torrentFile string) error {
+func delugeV2(client *domain.DownloadClient, settings delugeClient.Settings, action domain.Action, torrentFile string) error {
 
 	deluge := delugeClient.NewV2(settings)
 
@@ -133,6 +161,34 @@ func delugeV2(settings delugeClient.Settings, action domain.Action, torrentFile 
 	}
 
 	defer deluge.Close()
+
+	if client.Settings.Rules.Enabled && !action.IgnoreRules {
+		activeDownloads, err := deluge.TorrentsStatus(delugeClient.StateDownloading, nil)
+		if err != nil {
+			log.Error().Err(err).Msg("could not fetch downloading torrents")
+			return err
+		}
+
+		if client.Settings.Rules.MaxActiveDownloads > 0 {
+			if len(activeDownloads) >= client.Settings.Rules.MaxActiveDownloads {
+				log.Trace().Msg("max active downloads reached, skip adding")
+				return nil
+
+				// TODO get session state
+				//state, err := deluge.SessionState()
+				//if err != nil {
+				//	log.Error().Err(err).Msg("could not get session state")
+				//	return err
+				//}
+				//
+				//if client.Settings.Rules.IgnoreSlowTorrents {
+				//	if  {
+				//
+				//	}
+				//}
+			}
+		}
+	}
 
 	t, err := ioutil.ReadFile(torrentFile)
 	if err != nil {

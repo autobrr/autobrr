@@ -220,3 +220,29 @@ func (c *Client) ReAnnounceTorrents(hashes []string) error {
 
 	return nil
 }
+
+func (c *Client) GetTransferInfo() (*TransferInfo, error) {
+	var info TransferInfo
+
+	resp, err := c.get("transfer/info", nil)
+	if err != nil {
+		log.Error().Err(err).Msg("get torrents error")
+		return nil, err
+	}
+
+	defer resp.Body.Close()
+
+	body, readErr := ioutil.ReadAll(resp.Body)
+	if readErr != nil {
+		log.Error().Err(err).Msg("get torrents read error")
+		return nil, readErr
+	}
+
+	err = json.Unmarshal(body, &info)
+	if err != nil {
+		log.Error().Err(err).Msg("get torrents unmarshal error")
+		return nil, err
+	}
+
+	return &info, nil
+}

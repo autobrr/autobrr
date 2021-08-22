@@ -10,9 +10,6 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-const REANNOUNCE_MAX_ATTEMPTS = 30
-const REANNOUNCE_INTERVAL = 7000
-
 type Service interface {
 	RunActions(torrentFile string, hash string, filter domain.Filter, announce domain.Announce) error
 	Store(action domain.Action) (*domain.Action, error)
