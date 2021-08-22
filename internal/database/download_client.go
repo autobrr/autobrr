@@ -124,6 +124,7 @@ func (r *DownloadClientRepo) Store(client domain.DownloadClient) (*domain.Downlo
 	settings := domain.DownloadClientSettings{
 		APIKey: client.Settings.APIKey,
 		Basic:  client.Settings.Basic,
+		Rules:  client.Settings.Rules,
 	}
 
 	settingsJson, err := json.Marshal(&settings)
@@ -133,21 +134,26 @@ func (r *DownloadClientRepo) Store(client domain.DownloadClient) (*domain.Downlo
 	}
 
 	if client.ID != 0 {
-		log.Info().Msg("UPDATE existing record")
-		_, err = r.db.Exec(`UPDATE client SET name = ?, type = ?, enabled = ?, host = ?, port = ?, ssl = ?, username = ?, password = ?, settings = json_set(?) WHERE id = ?`, client.Name, client.Type, client.Enabled, client.Host, client.Port, client.SSL, client.Username, client.Password, client.ID, settingsJson)
+		_, err = r.db.Exec(`UPDATE client SET name = ?, type = ?, enabled = ?, host = ?, port = ?, ssl = ?, username = ?, password = ?, settings = json_set(?) WHERE id = ?`, client.Name, client.Type, client.Enabled, client.Host, client.Port, client.SSL, client.Username, client.Password, settingsJson, client.ID)
+		if err != nil {
+			log.Error().Err(err).Msgf("could not update download client: %v", client)
+			return nil, err
+		}
+		log.Trace().Msgf("download_client: update existing record %d", client.ID)
 	} else {
 		var res sql.Result
 
 		res, err = r.db.Exec(`INSERT INTO client(name, type, enabled, host, port, ssl, username, password, settings)
 			VALUES (?, ?, ?, ?, ?, ? , ?, ?, json_set(?)) ON CONFLICT DO NOTHING`, client.Name, client.Type, client.Enabled, client.Host, client.Port, client.SSL, client.Username, client.Password, settingsJson)
 		if err != nil {
-			log.Error().Err(err)
+			log.Error().Err(err).Msgf("could store client: %v", client)
 			return nil, err
 		}
 
 		resId, _ := res.LastInsertId()
-		log.Info().Msgf("LAST INSERT ID %v", resId)
 		client.ID = int(resId)
+
+		log.Trace().Msgf("download_client: store new record %d", client.ID)
 	}
 
 	return &client, nil

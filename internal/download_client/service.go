@@ -46,8 +46,6 @@ func (s *service) Store(client domain.DownloadClient) (*domain.DownloadClient, e
 	// validate data
 	if client.Host == "" {
 		return nil, errors.New("validation error: no host")
-	} else if client.Port == 0 {
-		return nil, errors.New("validation error: no port")
 	} else if client.Type == "" {
 		return nil, errors.New("validation error: no type")
 	}
@@ -75,8 +73,6 @@ func (s *service) Test(client domain.DownloadClient) error {
 	// basic validation of client
 	if client.Host == "" {
 		return errors.New("validation error: no host")
-	} else if client.Port == 0 {
-		return errors.New("validation error: no port")
 	} else if client.Type == "" {
 		return errors.New("validation error: no type")
 	}
