@@ -777,9 +777,8 @@ function FilterTabAdvanced({filter}: FilterTabGeneralProps) {
                                 </div>
                                 {groupsIsOpen && (
                                     <div className="mt-6 grid grid-cols-12 gap-6">
-                                        <TextField name="match_releases" label="Match releases" columns={6} placeholder=""/>
-                                        <TextField name="except_releases" label="Except releases" columns={6}
-                                                   placeholder=""/>
+                                        <TextField name="match_release_groups" label="Match release groups" columns={6} placeholder=""/>
+                                        <TextField name="except_release_groups" label="Except release groups" columns={6} placeholder=""/>
                                     </div>
                                 )}
                             </div>
