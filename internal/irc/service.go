@@ -56,7 +56,7 @@ func (s *service) StartHandlers() {
 		s.lock.Lock()
 		channels, err := s.repo.ListChannels(network.ID)
 		if err != nil {
-			log.Error().Err(err).Msgf("failed to list channels for network %q", network.Addr)
+			log.Error().Err(err).Msgf("failed to list channels for network %q", network.Server)
 		}
 		network.Channels = channels
 
@@ -134,7 +134,7 @@ func (s *service) GetNetworkByID(id int64) (*domain.IrcNetwork, error) {
 
 	channels, err := s.repo.ListChannels(network.ID)
 	if err != nil {
-		log.Error().Err(err).Msgf("failed to list channels for network %q", network.Addr)
+		log.Error().Err(err).Msgf("failed to list channels for network %q", network.Server)
 		return nil, err
 	}
 	network.Channels = append(network.Channels, channels...)
@@ -154,7 +154,7 @@ func (s *service) ListNetworks(ctx context.Context) ([]domain.IrcNetwork, error)
 	for _, n := range networks {
 		channels, err := s.repo.ListChannels(n.ID)
 		if err != nil {
-			log.Error().Msgf("failed to list channels for network %q: %v", n.Addr, err)
+			log.Error().Msgf("failed to list channels for network %q: %v", n.Server, err)
 			return nil, err
 		}
 		n.Channels = append(n.Channels, channels...)

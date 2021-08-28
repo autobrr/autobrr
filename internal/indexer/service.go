@@ -6,7 +6,6 @@ import (
 	"strings"
 
 	"gopkg.in/yaml.v2"
-
 	"github.com/rs/zerolog/log"
 
 	"github.com/autobrr/autobrr/internal/domain"
@@ -101,7 +100,7 @@ func (s *service) GetAll() ([]*domain.IndexerDefinition, error) {
 		}
 
 		temp := domain.IndexerDefinition{
-			ID:          indexer.ID,
+			ID:          int(indexer.ID),
 			Name:        in.Name,
 			Identifier:  in.Identifier,
 			Enabled:     indexer.Enabled,
@@ -171,6 +170,7 @@ func (s *service) Start() error {
 			for _, channel := range indexer.IRC.Channels {
 				for _, announcer := range indexer.IRC.Announcers {
 					val := fmt.Sprintf("%v:%v:%v", server, channel, announcer)
+					val = strings.ToLower(val)
 					s.mapIndexerIRCToName[val] = indexer.Identifier
 				}
 			}
@@ -221,6 +221,7 @@ func (s *service) LoadIndexerDefinitions() error {
 }
 
 func (s *service) GetIndexerByAnnounce(name string) *domain.IndexerDefinition {
+	name = strings.ToLower(name)
 
 	if identifier, idOk := s.mapIndexerIRCToName[name]; idOk {
 		if indexer, ok := s.indexerInstances[identifier]; ok {
