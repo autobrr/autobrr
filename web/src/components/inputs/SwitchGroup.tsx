@@ -7,10 +7,11 @@ interface Props {
     name: string;
     label: string;
     description?: string;
+    defaultValue?: boolean;
     className?: string;
 }
 
-const SwitchGroup: React.FC<Props> = ({name, label, description}) => (
+const SwitchGroup: React.FC<Props> = ({name, label, description, defaultValue}) => (
     <ul className="mt-2 divide-y divide-gray-200">
         <Switch.Group as="li" className="py-4 flex items-center justify-between">
             <div className="flex flex-col">
@@ -27,6 +28,7 @@ const SwitchGroup: React.FC<Props> = ({name, label, description}) => (
 
             <Field
                 name={name}
+                defaultValue={defaultValue as any}
                 render={({input: {onChange, checked, value}}) => (
                     <Switch
                         value={value}
