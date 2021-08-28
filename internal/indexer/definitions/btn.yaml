@@ -13,42 +13,57 @@ supports:
   - rss
 source: gazelle
 settings:
-    - name: authkey
-      type: text
-      label: Auth key
-      description: Right click DL on a torrent and get the authkey.
-    - name: torrent_pass
-      type: text
-      label: Torrent pass
-      description: Right click DL on a torrent and get the torrent_pass.
+  - name: authkey
+    type: secret
+    label: Auth key
+    help: Right click DL on a torrent and get the authkey.
+  - name: torrent_pass
+    type: secret
+    label: Torrent pass
+    help: Right click DL on a torrent and get the torrent_pass.
 
 irc:
   network: BroadcasTheNet
-  server: irc.broadcasthenet.net:6697
+  server: irc.broadcasthenet.net
   port: 6697
+  tls: true
   channels:
     - "#BTN-Announce"
   announcers:
     - Barney
+  settings:
+    - name: nickserv.account
+      type: text
+      required: true
+      label: NickServ Account
+      help: NickServ account. Make sure to group your user and bot. Eg. user|autodl
+    - name: nickserv.password
+      type: secret
+      required: true
+      label: NickServ Password
+      help: NickServ password
+    - name: invite_command
+      type: secret
+      default: "CableGuy IDENTIFY USERNAME IRCKey"
+      required: true
+      label: Invite command
+      help: Invite auth with CableGuy.
 
 parse:
   type: multi
   lines:
-    -
-      test:
-        - "NOW BROADCASTING! [ Lost S06E07 720p WEB-DL DD 5.1 H.264 - LP ]"
+    - test:
+        - "NOW BROADCASTING! [ The Show S06E07 720p WEB-DL DD 5.1 H.264 - LP ]"
       pattern: ^NOW BROADCASTING! \[(.*)\]
       vars:
         - torrentName
-    -
-      test:
-        - "[ Title: S06E07 ] [ Series: Lost ]"
+    - test:
+        - "[ Title: S06E07 ] [ Series: The Show ]"
       pattern: '^\[ Title: (.*) \] \[ Series: (.*) \]'
       vars:
         - title
         - name1
-    -
-      test:
+    - test:
         - "[ 2010 ] [ Episode ] [ MKV | x264 | WEB ] [ Uploader: Uploader1 ]"
       pattern: '^(?:\[ (\d+) \] )?\[ (.*) \] \[ (.*) \] \[ Uploader: (.*?) \](?: \[ Pretime: (.*) \])?'
       vars:
@@ -57,10 +72,9 @@ parse:
         - tags
         - uploader
         - preTime
-    -
-      test:
+    - test:
         - "[ https://XXXXXXXXX/torrents.php?id=7338 / https://XXXXXXXXX/torrents.php?action=download&id=9116 ]"
-      pattern: ^\[ .* / (https?://.*id=\d+) \]
+      pattern: ^\[ .* \/ (https?:\/\/.*id=\d+) \]
       vars:
         - baseUrl
 
