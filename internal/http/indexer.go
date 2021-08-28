@@ -20,8 +20,17 @@ type indexerService interface {
 }
 
 type indexerHandler struct {
-	encoder        encoder
-	indexerService indexerService
+	encoder encoder
+	service indexerService
+	ircSvc  ircService
+}
+
+func newIndexerHandler(encoder encoder, service indexerService, ircSvc ircService) *indexerHandler {
+	return &indexerHandler{
+		encoder: encoder,
+		service: service,
+		ircSvc:  ircSvc,
+	}
 }
 
 func (h indexerHandler) Routes(r chi.Router) {
@@ -36,7 +45,7 @@ func (h indexerHandler) Routes(r chi.Router) {
 func (h indexerHandler) getSchema(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
-	indexers, err := h.indexerService.GetTemplates()
+	indexers, err := h.service.GetTemplates()
 	if err != nil {
 		//
 	}
@@ -45,21 +54,20 @@ func (h indexerHandler) getSchema(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h indexerHandler) store(w http.ResponseWriter, r *http.Request) {
-	var (
-		ctx  = r.Context()
-		data domain.Indexer
-	)
+	var data domain.Indexer
 
 	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
 		return
 	}
 
-	indexer, err := h.indexerService.Store(data)
+	indexer, err := h.service.Store(data)
 	if err != nil {
 		//
+		h.encoder.StatusResponse(r.Context(), w, nil, http.StatusBadRequest)
+		return
 	}
 
-	h.encoder.StatusResponse(ctx, w, indexer, http.StatusCreated)
+	h.encoder.StatusResponse(r.Context(), w, indexer, http.StatusCreated)
 }
 
 func (h indexerHandler) update(w http.ResponseWriter, r *http.Request) {
@@ -72,7 +80,7 @@ func (h indexerHandler) update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	indexer, err := h.indexerService.Update(data)
+	indexer, err := h.service.Update(data)
 	if err != nil {
 		//
 	}
@@ -88,7 +96,7 @@ func (h indexerHandler) delete(w http.ResponseWriter, r *http.Request) {
 
 	id, _ := strconv.Atoi(idParam)
 
-	if err := h.indexerService.Delete(id); err != nil {
+	if err := h.service.Delete(id); err != nil {
 		// return err
 	}
 
@@ -98,7 +106,7 @@ func (h indexerHandler) delete(w http.ResponseWriter, r *http.Request) {
 func (h indexerHandler) getAll(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
-	indexers, err := h.indexerService.GetAll()
+	indexers, err := h.service.GetAll()
 	if err != nil {
 		//
 	}
@@ -109,7 +117,7 @@ func (h indexerHandler) getAll(w http.ResponseWriter, r *http.Request) {
 func (h indexerHandler) list(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
-	indexers, err := h.indexerService.List()
+	indexers, err := h.service.List()
 	if err != nil {
 		//
 	}
