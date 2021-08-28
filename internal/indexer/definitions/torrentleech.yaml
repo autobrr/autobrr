@@ -34,7 +34,7 @@ irc:
       required: false
       label: NickServ Account
       help: NickServ account. Make sure to group your user and bot. Eg. user_bot
-    - name: nickserv.pass
+    - name: nickserv.password
       type: secret
       required: false
       label: NickServ Password
