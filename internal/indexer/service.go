@@ -5,9 +5,8 @@ import (
 	"io/fs"
 	"strings"
 
-	"gopkg.in/yaml.v2"
-
 	"github.com/rs/zerolog/log"
+	"gopkg.in/yaml.v2"
 
 	"github.com/autobrr/autobrr/internal/domain"
 )
@@ -26,9 +25,15 @@ type Service interface {
 }
 
 type service struct {
-	repo                domain.IndexerRepo
-	indexerDefinitions  map[string]domain.IndexerDefinition
-	indexerInstances    map[string]domain.IndexerDefinition
+	repo domain.IndexerRepo
+
+	// contains all raw indexer definitions
+	indexerDefinitions map[string]domain.IndexerDefinition
+
+	// contains indexers with data set
+	indexerInstances map[string]domain.IndexerDefinition
+
+	// map server:channel:announce to indexer.Identifier
 	mapIndexerIRCToName map[string]string
 }
 
@@ -44,6 +49,14 @@ func NewService(repo domain.IndexerRepo) Service {
 func (s *service) Store(indexer domain.Indexer) (*domain.Indexer, error) {
 	i, err := s.repo.Store(indexer)
 	if err != nil {
+		log.Error().Stack().Err(err).Msgf("failed to store indexer: %v", indexer.Name)
+		return nil, err
+	}
+
+	// add to indexerInstances
+	err = s.addIndexer(*i)
+	if err != nil {
+		log.Error().Stack().Err(err).Msgf("failed to add indexer: %v", indexer.Name)
 		return nil, err
 	}
 
@@ -53,6 +66,13 @@ func (s *service) Store(indexer domain.Indexer) (*domain.Indexer, error) {
 func (s *service) Update(indexer domain.Indexer) (*domain.Indexer, error) {
 	i, err := s.repo.Update(indexer)
 	if err != nil {
+		return nil, err
+	}
+
+	// add to indexerInstances
+	err = s.addIndexer(*i)
+	if err != nil {
+		log.Error().Stack().Err(err).Msgf("failed to add indexer: %v", indexer.Name)
 		return nil, err
 	}
 
@@ -94,44 +114,58 @@ func (s *service) GetAll() ([]*domain.IndexerDefinition, error) {
 	var res = make([]*domain.IndexerDefinition, 0)
 
 	for _, indexer := range indexers {
-		in := s.getDefinitionByName(indexer.Identifier)
-		if in == nil {
-			// if no indexerDefinition found, continue
+		indexerDefinition, err := s.mapIndexer(indexer)
+		if err != nil {
 			continue
 		}
 
-		temp := domain.IndexerDefinition{
-			ID:          indexer.ID,
-			Name:        in.Name,
-			Identifier:  in.Identifier,
-			Enabled:     indexer.Enabled,
-			Description: in.Description,
-			Language:    in.Language,
-			Privacy:     in.Privacy,
-			Protocol:    in.Protocol,
-			URLS:        in.URLS,
-			Settings:    nil,
-			SettingsMap: make(map[string]string),
-			IRC:         in.IRC,
-			Parse:       in.Parse,
+		if indexerDefinition == nil {
+			continue
 		}
 
-		// map settings
-		// add value to settings objects
-		for _, setting := range in.Settings {
-			if v, ok := indexer.Settings[setting.Name]; ok {
-				setting.Value = v
-
-				temp.SettingsMap[setting.Name] = v
-			}
-
-			temp.Settings = append(temp.Settings, setting)
-		}
-
-		res = append(res, &temp)
+		res = append(res, indexerDefinition)
 	}
 
 	return res, nil
+}
+
+func (s *service) mapIndexer(indexer domain.Indexer) (*domain.IndexerDefinition, error) {
+
+	in := s.getDefinitionByName(indexer.Identifier)
+	if in == nil {
+		// if no indexerDefinition found, continue
+		return nil, nil
+	}
+
+	indexerDefinition := domain.IndexerDefinition{
+		ID:          int(indexer.ID),
+		Name:        in.Name,
+		Identifier:  in.Identifier,
+		Enabled:     indexer.Enabled,
+		Description: in.Description,
+		Language:    in.Language,
+		Privacy:     in.Privacy,
+		Protocol:    in.Protocol,
+		URLS:        in.URLS,
+		Settings:    nil,
+		SettingsMap: make(map[string]string),
+		IRC:         in.IRC,
+		Parse:       in.Parse,
+	}
+
+	// map settings
+	// add value to settings objects
+	for _, setting := range in.Settings {
+		if v, ok := indexer.Settings[setting.Name]; ok {
+			setting.Value = v
+
+			indexerDefinition.SettingsMap[setting.Name] = v
+		}
+
+		indexerDefinition.Settings = append(indexerDefinition.Settings, setting)
+	}
+
+	return &indexerDefinition, nil
 }
 
 func (s *service) GetTemplates() ([]domain.IndexerDefinition, error) {
@@ -152,32 +186,69 @@ func (s *service) Start() error {
 		return err
 	}
 
-	indexers, err := s.GetAll()
+	indexerDefinitions, err := s.GetAll()
 	if err != nil {
 		return err
 	}
 
-	for _, indexer := range indexers {
-		if !indexer.Enabled {
-			continue
-		}
+	for _, indexerDefinition := range indexerDefinitions {
+		s.indexerInstances[indexerDefinition.Identifier] = *indexerDefinition
 
-		s.indexerInstances[indexer.Identifier] = *indexer
-
-		// map irc stuff to indexer.name
-		if indexer.IRC != nil {
-			server := indexer.IRC.Server
-
-			for _, channel := range indexer.IRC.Channels {
-				for _, announcer := range indexer.IRC.Announcers {
-					val := fmt.Sprintf("%v:%v:%v", server, channel, announcer)
-					s.mapIndexerIRCToName[val] = indexer.Identifier
-				}
-			}
-		}
+		s.mapIRCIndexerLookup(indexerDefinition.Identifier, *indexerDefinition)
 	}
 
 	return nil
+}
+
+func (s *service) removeIndexer(indexer domain.Indexer) error {
+
+	delete(s.indexerDefinitions, indexer.Identifier)
+
+	// TODO delete from mapIndexerIRCToName
+
+	return nil
+}
+
+func (s *service) addIndexer(indexer domain.Indexer) error {
+
+	// TODO only add if not already there?? Overwrite?
+
+	indexerDefinition, err := s.mapIndexer(indexer)
+	if err != nil {
+		return err
+	}
+
+	// TODO only add enabled?
+	//if !indexer.Enabled {
+	//	continue
+	//}
+
+	s.indexerInstances[indexerDefinition.Identifier] = *indexerDefinition
+
+	s.mapIRCIndexerLookup(indexer.Identifier, *indexerDefinition)
+
+	return nil
+}
+
+func (s *service) mapIRCIndexerLookup(indexerIdentifier string, indexerDefinition domain.IndexerDefinition) {
+	// map irc stuff to indexer.name
+	// map[irc.network.test:channel:announcer1] = indexer1
+	// map[irc.network.test:channel:announcer2] = indexer2
+	if indexerDefinition.IRC != nil {
+		server := indexerDefinition.IRC.Server
+		channels := indexerDefinition.IRC.Channels
+		announcers := indexerDefinition.IRC.Announcers
+
+		for _, channel := range channels {
+			for _, announcer := range announcers {
+				// format to server:channel:announcer
+				val := fmt.Sprintf("%v:%v:%v", server, channel, announcer)
+				val = strings.ToLower(val)
+
+				s.mapIndexerIRCToName[val] = indexerIdentifier
+			}
+		}
+	}
 }
 
 // LoadIndexerDefinitions load definitions from golang embed fs
@@ -185,11 +256,11 @@ func (s *service) LoadIndexerDefinitions() error {
 
 	entries, err := fs.ReadDir(Definitions, "definitions")
 	if err != nil {
-		log.Fatal().Msgf("failed reading directory: %s", err)
+		log.Fatal().Stack().Msgf("failed reading directory: %s", err)
 	}
 
 	if len(entries) == 0 {
-		log.Fatal().Msgf("failed reading directory: %s", err)
+		log.Fatal().Stack().Msgf("failed reading directory: %s", err)
 		return err
 	}
 
@@ -197,19 +268,19 @@ func (s *service) LoadIndexerDefinitions() error {
 		filePath := "definitions/" + f.Name()
 
 		if strings.Contains(f.Name(), ".yaml") {
-			log.Debug().Msgf("parsing: %v", filePath)
+			log.Trace().Msgf("parsing: %v", filePath)
 
 			var d domain.IndexerDefinition
 
 			data, err := fs.ReadFile(Definitions, filePath)
 			if err != nil {
-				log.Debug().Err(err).Msgf("failed reading file: %v", filePath)
+				log.Error().Stack().Err(err).Msgf("failed reading file: %v", filePath)
 				return err
 			}
 
 			err = yaml.Unmarshal(data, &d)
 			if err != nil {
-				log.Error().Err(err).Msgf("failed unmarshal file: %v", filePath)
+				log.Error().Stack().Err(err).Msgf("failed unmarshal file: %v", filePath)
 				return err
 			}
 
@@ -217,10 +288,13 @@ func (s *service) LoadIndexerDefinitions() error {
 		}
 	}
 
+	log.Info().Msgf("Loaded %d indexer definitions", len(s.indexerDefinitions))
+
 	return nil
 }
 
 func (s *service) GetIndexerByAnnounce(name string) *domain.IndexerDefinition {
+	name = strings.ToLower(name)
 
 	if identifier, idOk := s.mapIndexerIRCToName[name]; idOk {
 		if indexer, ok := s.indexerInstances[identifier]; ok {

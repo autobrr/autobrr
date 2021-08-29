@@ -82,7 +82,7 @@ function IrcSettings() {
                                                 scope="col"
                                                 className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
                                             >
-                                                Addr
+                                                Server
                                             </th>
                                             <th
                                                 scope="col"
@@ -138,8 +138,8 @@ const ListItem = ({ idx, network }: any) => {
                 </Switch>
             </td>
             <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{network.name}</td>
-            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{network.addr} {network.tls && <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">TLS</span>}</td>
-            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{network.nick}</td>
+            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{network.server}:{network.port} {network.tls && <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">TLS</span>}</td>
+            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{network.nickserv?.account}</td>
             <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                 <span className="text-indigo-600 hover:text-indigo-900 cursor-pointer" onClick={toggleUpdate}>
                     Edit

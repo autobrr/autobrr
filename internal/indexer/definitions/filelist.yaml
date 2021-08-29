@@ -14,28 +14,38 @@ supports:
 source: custom
 settings:
   - name: passkey
-    type: text
+    type: secret
     label: Passkey
-    tooltip: The passkey in your profile.
-    description: "The passkey in your profile."
+    help: "The passkey in your profile."
 
 irc:
   network: FileList
-  server: irc.filelist.io:6697
+  server: irc.filelist.io
   port: 6697
+  tls: true
   channels:
     - "#announce"
   announcers:
     - Announce
+  settings:
+    - name: nickserv.account
+      type: text
+      required: true
+      label: NickServ Account
+      help: NickServ account. Make sure to group your user and bot. Eg. user_dl
+    - name: nickserv.password
+      type: secret
+      required: false
+      label: NickServ Password
+      help: NickServ password
 
 parse:
   type: single
   lines:
-    -
-      test:
-        - 'New Torrent: This.Really.Old.Movie.1965.DVDRip.DD1.0.x264 -- [Filme SD] [1.91 GB] -- https://filelist.io/details.php?id=746781 -- by uploader1'
-        - 'New Torrent: This.New.Movie.2021.1080p.Blu-ray.AVC.DTS-HD.MA.5.1-BEATRIX -- [FreeLeech!] -- [Filme Blu-Ray] [26.78 GB] -- https://filelist.io/details.php?id=746782 -- by uploader1'
-        - 'New Torrent: This.New.Movie.2021.1080p.Remux.AVC.DTS-HD.MA.5.1-playBD -- [FreeLeech!] -- [Internal!] -- [Filme Blu-Ray] [17.69 GB] -- https://filelist.io/details.php?id=746789 -- by uploader1'
+    - test:
+        - 'New Torrent: This.Really.Old.Movie.1965.DVDRip.DD1.0.x264 -- [Filme SD] [1.91 GB] -- https://filelist.io/details.php?id=000000 -- by uploader1'
+        - 'New Torrent: This.New.Movie.2021.1080p.Blu-ray.AVC.DTS-HD.MA.5.1-BEATRIX -- [FreeLeech!] -- [Filme Blu-Ray] [26.78 GB] -- https://filelist.io/details.php?id=000000 -- by uploader1'
+        - 'New Torrent: This.New.Movie.2021.1080p.Remux.AVC.DTS-HD.MA.5.1-playBD -- [FreeLeech!] -- [Internal!] -- [Filme Blu-Ray] [17.69 GB] -- https://filelist.io/details.php?id=000000 -- by uploader1'
       pattern: 'New Torrent: (.*?) (?:-- \[(FreeLeech!)] )?(?:-- \[(Internal!)] )?-- \[(.*)] \[(.*)] -- (https?:\/\/filelist.io\/).*id=(.*) -- by (.*)'
       vars:
         - torrentName

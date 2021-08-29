@@ -13,28 +13,44 @@ supports:
   - rss
 source: UNIT3D (F3NIX)
 settings:
-    - name: passkey
-      type: text
-      label: Passkey
-      tooltip: The passkey in your BeyondHD RSS feed.
-      description: "Go to your profile and copy and paste your RSS link to extract the rsskey."
+  - name: rsskey
+    type: secret
+    label: RSS key
+    help: "Go to your profile, My Security, RSS Key and copy RSS key."
 
 irc:
   network: BeyondHD-IRC
-  server: irc.beyond-hd.me:6697
+  server: irc.beyond-hd.me
   port: 6697
+  tls: true
   channels:
     - "#bhd_announce"
   announcers:
     - Willie
     - Millie
+  settings:
+    - name: nickserv.account
+      type: text
+      required: true
+      label: NickServ Account
+      help: NickServ account. Make sure to group your user and bot. Eg. user|autodl
+    - name: nickserv.password
+      type: secret
+      required: true
+      label: NickServ Password
+      help: NickServ password
+    - name: invite_command
+      type: secret
+      default: "Millie announce ircKey"
+      required: true
+      label: Invite command
+      help: Invite auth with Millie.
 
 parse:
   type: single
   lines:
-    -
-      test:
-        - "New Torrent: Orange.Is.the.New.Black.S01.1080p.Blu-ray.AVC.DTS-HD.MA.5.1-Test Category: TV By: Uploader Size: 137.73 GB Link: https://beyond-hd.me/details.php?id=25918"
+    - test:
+        - "New Torrent: That.Show.S01.1080p.Blu-ray.AVC.DTS-HD.MA.5.1-Test Category: TV By: Uploader Size: 137.73 GB Link: https://beyond-hd.me/details.php?id=00000"
       pattern: 'New Torrent:(.*)Category:(.*)By:(.*)Size:(.*)Link: https?\:\/\/([^\/]+\/).*[&\?]id=(\d+)'
       vars:
         - torrentName

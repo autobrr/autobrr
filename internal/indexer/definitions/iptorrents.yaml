@@ -15,29 +15,38 @@ supports:
 source: unknown
 settings:
   - name: passkey
-    type: text
+    type: secret
     label: Passkey
-    tooltip: Copy the passkey from your details page
-    description: "Copy the passkey from your details page."
+    help: "Copy the passkey from your details page."
 
 irc:
   network: IPTorrents
-  server: irc.iptorrents.com:6697
+  server: irc.iptorrents.com
   port: 6697
+  tls: true
   channels:
     - "#ipt.announce"
-    - "#ipt.announce2"
   announcers:
     - IPT
     - FunTimes
+  settings:
+    - name: nickserv.account
+      type: text
+      required: true
+      label: NickServ Account
+      help: NickServ account. Make sure to group your user and bot. Eg. user_autodl
+    - name: nickserv.password
+      type: secret
+      required: false
+      label: NickServ Password
+      help: NickServ password
 
 parse:
   type: single
   lines:
-    -
-      test:
-        - "[Movie/XXX] Audrey Bitoni HD Pack FREELEECH - http://www.iptorrents.com/details.php?id=789421 - 14.112 GB"
-        - "[Movies/XviD] The First Men In The Moon 2010 DVDRip XviD-VoMiT - http://www.iptorrents.com/details.php?id=396589 - 716.219 MB"
+    - test:
+        - "[Movies/XviD] The Movie 2010 DVDRip XviD-GROUP FREELEECH - http://www.iptorrents.com/details.php?id=000000 - 716.219 MB"
+        - "[Movies/XviD] The Movie 2010 DVDRip XviD-GROUP - http://www.iptorrents.com/details.php?id=000000 - 716.219 MB"
       pattern: '^\[([^\]]*)](.*?)\s*(FREELEECH)*\s*-\s+https?\:\/\/([^\/]+).*[&\?]id=(\d+)\s*-(.*)'
       vars:
         - category

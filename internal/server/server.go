@@ -41,3 +41,10 @@ func (s *Server) Start() error {
 
 	return nil
 }
+
+func (s *Server) Shutdown() {
+	log.Info().Msg("Shutting down server")
+
+	// stop all irc handlers
+	s.ircService.StopHandlers()
+}

@@ -26,11 +26,14 @@ func (r *IndexerRepo) Store(indexer domain.Indexer) (*domain.Indexer, error) {
 		return nil, err
 	}
 
-	_, err = r.db.Exec(`INSERT INTO indexer (enabled, name, identifier, settings) VALUES (?, ?, ?, ?)`, indexer.Enabled, indexer.Name, indexer.Identifier, settings)
+	res, err := r.db.Exec(`INSERT INTO indexer (enabled, name, identifier, settings) VALUES (?, ?, ?, ?)`, indexer.Enabled, indexer.Name, indexer.Identifier, settings)
 	if err != nil {
 		log.Error().Stack().Err(err).Msg("error executing query")
 		return nil, err
 	}
+
+	id, _ := res.LastInsertId()
+	indexer.ID = id
 
 	return &indexer, nil
 }

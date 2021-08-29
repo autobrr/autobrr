@@ -14,32 +14,47 @@ supports:
 source: gazelle
 settings:
   - name: authkey
-    type: text
+    type: secret
     label: Auth key
-    tooltip: Right click DL on a torrent and get the authkey.
-    description: Right click DL on a torrent and get the authkey.
+    help: Right click DL on a torrent and get the authkey.
   - name: torrent_pass
-    type: text
+    type: secret
     label: Torrent pass
-    tooltip: Right click DL on a torrent and get the torrent_pass.
-    description: Right click DL on a torrent and get the torrent_pass.
+    help: Right click DL on a torrent and get the torrent_pass.
 
 irc:
   network: GGn
-  server: irc.gazellegames.net:7000
+  server: irc.gazellegames.net
   port: 7000
+  tls: true
   channels:
     - "#GGn-Announce"
   announcers:
     - Vertigo
+  settings:
+    - name: nickserv.account
+      type: text
+      required: true
+      label: NickServ Account
+      help: NickServ account. Make sure to group your user and bot. Eg. user|bot
+    - name: nickserv.password
+      type: secret
+      required: true
+      label: NickServ Password
+      help: NickServ password
+    - name: invite_command
+      type: secret
+      default: "Vertigo ENTER #GGn-Announce USERNAME IRCKey"
+      required: true
+      label: Invite command
+      help: Invite auth with Vertigo.
 
 parse:
   type: single
   lines:
-    -
-      test:
-        - "Uploader :-: Nintendo 3DS :-: Yo-Kai.Watch.KOR.3DS-BigBlueBox in Yo-kai Watch [2013] ::Korean, Multi-Region, Scene:: https://gazellegames.net/torrents.php?torrentid=78851 - adventure, role_playing_game, nintendo;"
-        - "Uploader :-: Windows :-: Warriors.Wrath.Evil.Challenge-HI2U in Warriors' Wrath [2016] ::English, Scene:: FREELEECH! :: https://gazellegames.net/torrents.php?torrentid=78902 - action, adventure, casual, indie, role.playing.game;"
+    - test:
+        - "Uploader :-: Nintendo 3DS :-: Cool.Game.KOR.3DS-BigBlueBox in Cool Game [2013] ::Korean, Multi-Region, Scene:: https://gazellegames.net/torrents.php?torrentid=00000 - adventure, role_playing_game, nintendo;"
+        - "Uploader :-: Windows :-: Other.Game-HI2U in Other Game [2016] ::English, Scene:: FREELEECH! :: https://gazellegames.net/torrents.php?torrentid=00000 - action, adventure, casual, indie, role.playing.game;"
       pattern: '^(.+) :-: (.+) :-: (.+) \[(\d+)\] ::(.+?):: ?(.+? ::)? https?:\/\/([^\/]+\/)torrents.php\?torrentid=(\d+) ?-? ?(.*?)?;?$'
       vars:
         - uploader

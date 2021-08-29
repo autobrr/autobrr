@@ -183,7 +183,7 @@ func (s *service) Update(filter domain.Filter) (*domain.Filter, error) {
 	}
 
 	for _, i := range filter.Indexers {
-		if err = s.repo.StoreIndexerConnection(f.ID, i.ID); err != nil {
+		if err = s.repo.StoreIndexerConnection(f.ID, int(i.ID)); err != nil {
 			log.Error().Err(err).Msgf("could not store filter indexer connections: %v", filter.Name)
 			return nil, err
 		}

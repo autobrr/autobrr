@@ -33,7 +33,7 @@ port = 8989
 #
 # Options: "ERROR", "DEBUG", "INFO", "WARN"
 #
-logLevel = "DEBUG"
+logLevel = "TRACE"
 
 # Session secret
 #

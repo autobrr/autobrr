@@ -24,6 +24,8 @@ func Setup(cfg domain.Config) {
 		zerolog.SetGlobalLevel(zerolog.ErrorLevel)
 	case "WARN":
 		zerolog.SetGlobalLevel(zerolog.WarnLevel)
+	case "TRACE":
+		zerolog.SetGlobalLevel(zerolog.TraceLevel)
 	default:
 		zerolog.SetGlobalLevel(zerolog.ErrorLevel)
 	}

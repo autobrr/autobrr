@@ -64,56 +64,19 @@ func (s Server) Handler() http.Handler {
 		fileSystem.ServeHTTP(w, r)
 	})
 
-	authHandler := authHandler{
-		encoder:     encoder,
-		authService: s.authService,
-	}
-
-	r.Route("/api/auth", authHandler.Routes)
+	r.Route("/api/auth", newAuthHandler(encoder, s.authService).Routes)
 
 	r.Group(func(r chi.Router) {
 		r.Use(IsAuthenticated)
 
-		actionHandler := actionHandler{
-			encoder:       encoder,
-			actionService: s.actionService,
-		}
-
-		r.Route("/api/actions", actionHandler.Routes)
-
-		downloadClientHandler := downloadClientHandler{
-			encoder:               encoder,
-			downloadClientService: s.downloadClientService,
-		}
-
-		r.Route("/api/download_clients", downloadClientHandler.Routes)
-
-		filterHandler := filterHandler{
-			encoder:       encoder,
-			filterService: s.filterService,
-		}
-
-		r.Route("/api/filters", filterHandler.Routes)
-
-		ircHandler := ircHandler{
-			encoder:    encoder,
-			ircService: s.ircService,
-		}
-
-		r.Route("/api/irc", ircHandler.Routes)
-
-		indexerHandler := indexerHandler{
-			encoder:        encoder,
-			indexerService: s.indexerService,
-		}
-
-		r.Route("/api/indexer", indexerHandler.Routes)
-
-		configHandler := configHandler{
-			encoder: encoder,
-		}
-
-		r.Route("/api/config", configHandler.Routes)
+		r.Route("/api", func(r chi.Router) {
+			r.Route("/actions", newActionHandler(encoder, s.actionService).Routes)
+			r.Route("/config", newConfigHandler(encoder).Routes)
+			r.Route("/download_clients", newDownloadClientHandler(encoder, s.downloadClientService).Routes)
+			r.Route("/filters", newFilterHandler(encoder, s.filterService).Routes)
+			r.Route("/irc", newIrcHandler(encoder, s.ircService).Routes)
+			r.Route("/indexer", newIndexerHandler(encoder, s.indexerService, s.ircService).Routes)
+		})
 	})
 
 	//r.HandleFunc("/*", handler.ServeHTTP)

@@ -94,22 +94,25 @@ func main() {
 	srv.Port = cfg.Port
 
 	sigCh := make(chan os.Signal, 1)
-	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP)
+	signal.Notify(sigCh, syscall.SIGHUP, syscall.SIGINT, syscall.SIGQUIT, syscall.SIGKILL, syscall.SIGTERM)
 
 	if err := srv.Start(); err != nil {
-		log.Fatal().Err(err).Msg("could not start server")
+		log.Fatal().Stack().Err(err).Msg("could not start server")
+		return
 	}
 
 	for sig := range sigCh {
 		switch sig {
 		case syscall.SIGHUP:
-			log.Print("shutting down server")
+			log.Print("shutting down server sighup")
+			srv.Shutdown()
 			os.Exit(1)
-		case syscall.SIGINT, syscall.SIGTERM:
-			log.Print("shutting down server")
-			//srv.Shutdown()
+		case syscall.SIGINT, syscall.SIGQUIT:
+			srv.Shutdown()
 			os.Exit(1)
-			return
+		case syscall.SIGKILL, syscall.SIGTERM:
+			srv.Shutdown()
+			os.Exit(1)
 		}
 	}
 }

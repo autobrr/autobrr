@@ -24,7 +24,8 @@ CREATE TABLE indexer
     name       TEXT NOT NULL,
     settings   TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE (identifier)
 );
 
 CREATE TABLE irc_network
@@ -32,29 +33,30 @@ CREATE TABLE irc_network
     id                  INTEGER PRIMARY KEY,
     enabled             BOOLEAN,
     name                TEXT NOT NULL,
-    addr                TEXT NOT NULL,
-    nick                TEXT NOT NULL,
+    server              TEXT NOT NULL,
+    port                INTEGER NOT NULL,
     tls                 BOOLEAN,
     pass                TEXT,
-    connect_commands    TEXT,
-    sasl_mechanism      TEXT,
-    sasl_plain_username TEXT,
-    sasl_plain_password TEXT,
+    invite_command      TEXT,
+    nickserv_account    TEXT,
+    nickserv_password   TEXT,
+    connected           BOOLEAN,
+    connected_since     TIMESTAMP,
     created_at          TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at          TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    unique (addr, nick)
+    UNIQUE (server, port, nickserv_account)
 );
 
 CREATE TABLE irc_channel
 (
-    id       INTEGER PRIMARY KEY,
-    enabled  BOOLEAN,
-    name     TEXT NOT NULL,
-    password TEXT,
-    detached BOOLEAN,
+    id          INTEGER PRIMARY KEY,
+    enabled     BOOLEAN,
+    name        TEXT NOT NULL,
+    password    TEXT,
+    detached    BOOLEAN,
     network_id  INTEGER NOT NULL,
     FOREIGN KEY (network_id) REFERENCES irc_network(id),
-    unique (network_id, name)
+    UNIQUE (network_id, name)
 );
 
 CREATE TABLE filter

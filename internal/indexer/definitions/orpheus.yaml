@@ -13,33 +13,48 @@ supports:
   - rss
 source: gazelle
 settings:
-    - name: authkey
-      type: text
-      label: Auth key
-      tooltip: Right click DL on a torrent and get the authkey.
-      description: Right click DL on a torrent and get the authkey.
-    - name: torrent_pass
-      type: text
-      label: Torrent pass
-      tooltip: Right click DL on a torrent and get the torrent_pass.
-      description: Right click DL on a torrent and get the torrent_pass.
+  - name: authkey
+    type: text
+    label: Auth key
+    help: Right click DL on a torrent and get the authkey.
+  - name: torrent_pass
+    type: text
+    label: Torrent pass
+    help: Right click DL on a torrent and get the torrent_pass.
 
 irc:
   network: Orpheus
-  server: irc.orpheus.network:7000
+  server: irc.orpheus.network
   port: 7000
+  tls: true
   channels:
     - "#announce"
   announcers:
     - hermes
+  settings:
+    - name: nickserv.account
+      type: text
+      required: true
+      label: NickServ Account
+      help: NickServ account. Make sure to group your user and bot. Eg. user|bot
+    - name: nickserv.password
+      type: secret
+      required: true
+      label: NickServ Password
+      help: NickServ password
+    - name: invite_command
+      type: secret
+      default: "hermes enter #announce USERNAME IRCKey"
+      required: true
+      label: Invite command
+      help: Invite auth with Hermes.
 
 parse:
   type: single
   lines:
-    -
-      test:
-        - "TORRENT: Todd Edwards - You Came To Me [2002] [Single] - FLAC / Lossless / WEB - 2000s,house,uk.garage,garage.house - https://orpheus.network/torrents.php?id=756102 / https://orpheus.network/torrents.php?action=download&id=1647868"
-        - "TORRENT: THE BOOK [2021] [Album] - FLAC / Lossless / CD -  - https://orpheus.network/torrents.php?id=693523 / https://orpheus.network/torrents.php?action=download&id=1647867"
+    - test:
+        - "TORRENT: That Artist - Albuum [2002] [Single] - FLAC / Lossless / WEB - 2000s,house,uk.garage,garage.house - https://orpheus.network/torrents.php?id=000000 / https://orpheus.network/torrents.php?action=download&id=0000000"
+        - "TORRENT: Something [2021] [Album] - FLAC / Lossless / CD -  - https://orpheus.network/torrents.php?id=000000 / https://orpheus.network/torrents.php?action=download&id=0000000"
       pattern: 'TORRENT: (.*) - (.*) - https?://.* / (https?://.*id=\d+)'
       vars:
         - torrentName

@@ -7,15 +7,19 @@ interface Props {
   name: string;
   label?: string;
   placeholder?: string;
+  defaultValue?: number;
   className?: string;
   required?: boolean;
+  hidden?: boolean;
 }
 
 const NumberFieldWide: React.FC<Props> = ({
   name,
   label,
   placeholder,
+  defaultValue,
   required,
+  hidden,
   className,
 }) => (
   <div className="space-y-1 px-4 sm:space-y-0 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6 sm:py-5">
@@ -30,6 +34,7 @@ const NumberFieldWide: React.FC<Props> = ({
     <div className="sm:col-span-2">
       <Field
         name={name}
+        defaultValue={defaultValue}
         parse={(v) => v & parseInt(v, 10)}
         render={({ input, meta }) => (
           <input

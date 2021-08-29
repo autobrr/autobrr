@@ -14,31 +14,46 @@ supports:
 source: gazelle
 settings:
   - name: authkey
-    type: text
+    type: secret
     label: Auth key
-    tooltip: Right click DL on a torrent and get the authkey.
-    description: Right click DL on a torrent and get the authkey.
+    help: Right click DL on a torrent and get the authkey.
   - name: torrent_pass
-    type: text
+    type: secret
     label: Torrent pass
-    tooltip: Right click DL on a torrent and get the torrent_pass.
-    description: Right click DL on a torrent and get the torrent_pass.
+    help: Right click DL on a torrent and get the torrent_pass.
 
 irc:
   network: AlphaRatio
-  server: irc.alpharatio.cc:6697
+  server: irc.alpharatio.cc
   port: 6697
+  tls: true
   channels:
     - "#Announce"
   announcers:
     - Voyager
+  settings:
+    - name: nickserv.account
+      type: text
+      required: true
+      label: NickServ Account
+      help: NickServ account. Make sure to group your user and bot. Eg. user-bot
+    - name: nickserv.password
+      type: secret
+      required: true
+      label: NickServ Password
+      help: NickServ password
+    - name: invite_command
+      type: secret
+      default: "Voyager autobot USERNAME IRCKey"
+      required: false
+      label: Invite command
+      help: Invite auth with Voyager.
 
 parse:
   type: multi
   lines:
-    -
-      test:
-        - "[New Release]-[MovieHD]-[War.For.The.Planet.Of.The.Apes.2017.INTERNAL.1080p.BluRay.CRF.x264-SAPHiRE]-[URL]-[ https://alpharatio.cc/torrents.php?id=699463 ]-[ 699434 ]-[ Uploaded 2 Mins, 59 Secs after pre. ]"
+    - test:
+        - "[New Release]-[MovieHD]-[That.Movie.2017.INTERNAL.1080p.BluRay.CRF.x264-GROUP]-[URL]-[ https://alpharatio.cc/torrents.php?id=000000 ]-[ 000000 ]-[ Uploaded 2 Mins, 59 Secs after pre. ]"
       pattern: \[New Release\]-\[(.*)\]-\[(.*)\]-\[URL\]-\[ (https?://.*)id=\d+ \]-\[ (\d+) \](?:-\[ Uploaded (.*) after pre. ])?
       vars:
         - category
@@ -46,9 +61,8 @@ parse:
         - baseUrl
         - torrentId
         - preTime
-    -
-      test:
-        - "[AutoDL]-[MovieHD]-[699434]-[ 1 | 10659 | 1 | 1 ]-[War.For.The.Planet.Of.The.Apes.2017.INTERNAL.1080p.BluRay.CRF.x264-SAPHiRE]"
+    - test:
+        - "[AutoDL]-[MovieHD]-[000000]-[ 1 | 10659 | 1 | 1 ]-[That.Movie.2017.INTERNAL.1080p.BluRay.CRF.x264-GROUP]"
       pattern: \[AutoDL\]-\[.*\]-\[.*\]-\[ ([01]) \| (\d+) \| ([01]) \| ([01]) \]-\[.+\]
       vars:
         - scene

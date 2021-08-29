@@ -9,7 +9,7 @@ type IndexerRepo interface {
 }
 
 type Indexer struct {
-	ID         int               `json:"id"`
+	ID         int64             `json:"id"`
 	Name       string            `json:"name"`
 	Identifier string            `json:"identifier"`
 	Enabled    bool              `json:"enabled"`
@@ -39,15 +39,21 @@ type IndexerSetting struct {
 	Type        string `json:"type"`
 	Value       string `json:"value,omitempty"`
 	Label       string `json:"label"`
-	Description string `json:"description"`
+	Default     string `json:"default,omitempty"`
+	Description string `json:"description,omitempty"`
+	Help        string `json:"help,omitempty"`
 	Regex       string `json:"regex,omitempty"`
 }
 
 type IndexerIRC struct {
-	Network    string
-	Server     string
-	Channels   []string
-	Announcers []string
+	Network     string            `json:"network"`
+	Server      string            `json:"server"`
+	Port        int               `json:"port"`
+	TLS         bool              `json:"tls"`
+	Channels    []string          `json:"channels"`
+	Announcers  []string          `json:"announcers"`
+	SettingsMap map[string]string `json:"-"`
+	Settings    []IndexerSetting  `json:"settings"`
 }
 
 type IndexerParse struct {
