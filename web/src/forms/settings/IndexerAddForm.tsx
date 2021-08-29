@@ -93,14 +93,17 @@ function IndexerAddForm({ isOpen, toggle }: props) {
                         switch (f.type) {
                             case "text":
                                 return (
-                                    <TextFieldWide name={`settings.${f.name}`} label={f.label} key={idx} help={f.help} />
+                                    <TextFieldWide name={`settings.${f.name}`} label={f.label} key={idx} help={f.help} defaultValue=""/>
                                 )
                             case "secret":
                                 return (
-                                    <PasswordFieldWide name={`settings.${f.name}`} label={f.label} key={idx} help={f.help} />
+                                    <PasswordFieldWide name={`settings.${f.name}`} label={f.label} key={idx} help={f.help} defaultValue="" />
                                 )
                         }
                     })}
+                    <div hidden={true}>
+                        <TextFieldWide name={`name`} label="Name" defaultValue={ind?.name} />
+                    </div>
                 </div>
             )
         }
