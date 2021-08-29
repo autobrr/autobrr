@@ -57,6 +57,6 @@ parse:
         - torrentSize
 
   match:
-    torrenturl: "{{ .baseUrl }}download.php?id={{ .torrentId }}&file={{ .torrentName }}.torrent&passkey={{ .passkey }}"
+    torrenturl: "{{ .baseUrl }}/download.php?id={{ .torrentId }}&file={{ .torrentName }}.torrent&passkey={{ .passkey }}"
     encode:
       - torrentName
