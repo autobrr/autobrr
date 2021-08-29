@@ -30,6 +30,9 @@ type Handler struct {
 	ctx     context.Context
 	stopped chan struct{}
 	cancel  context.CancelFunc
+
+	lastPing     time.Time
+	lastAnnounce time.Time
 }
 
 func NewHandler(network domain.IrcNetwork, announceService announce.Service) *Handler {
@@ -189,9 +192,9 @@ func (s *Handler) GetNetwork() *domain.IrcNetwork {
 func (s *Handler) Stop() {
 	s.cancel()
 
-	//if !s.isStopped() {
-	//	close(s.stopped)
-	//}
+	if !s.isStopped() {
+		close(s.stopped)
+	}
 
 	if s.conn != nil {
 		s.conn.Close()
@@ -268,10 +271,13 @@ func (s *Handler) onMessage(msg *irc.Message) error {
 	// add correlationID and tracing
 
 	announceID := fmt.Sprintf("%v:%v:%v", s.network.Server, *channel, *announcer)
+	announceID = strings.ToLower(announceID)
 
 	// clean message
 	cleanedMsg := cleanMessage(message)
 	log.Debug().Msgf("%v: %v %v: %v", s.network.Server, *channel, *announcer, cleanedMsg)
+
+	s.lastAnnounce = time.Now()
 
 	go func() {
 		err := s.announceService.Parse(announceID, cleanedMsg)
@@ -402,7 +408,7 @@ func (s *Handler) handleMode(msg *irc.Message) error {
 }
 
 func (s *Handler) handlePing(msg *irc.Message) error {
-	log.Trace().Msgf("%v: %v", s.network.Server, msg)
+	//log.Trace().Msgf("%v: %v", s.network.Server, msg)
 
 	pong := irc.Message{
 		Command: "PONG",
@@ -416,6 +422,8 @@ func (s *Handler) handlePing(msg *irc.Message) error {
 		log.Error().Err(err).Msgf("error PING PONG response: %v", pong.String())
 		return err
 	}
+
+	s.lastPing = time.Now()
 
 	return nil
 }

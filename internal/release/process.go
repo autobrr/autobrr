@@ -24,7 +24,7 @@ func NewService(actionService action.Service) Service {
 }
 
 func (s *service) Process(announce domain.Announce) error {
-	log.Debug().Msgf("start to process release: %+v", announce)
+	log.Trace().Msgf("start to process release: %+v", announce)
 
 	if announce.Filter.Actions == nil {
 		return fmt.Errorf("no actions for filter: %v", announce.Filter.Name)
