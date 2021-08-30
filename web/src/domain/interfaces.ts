@@ -117,9 +117,14 @@ export enum DOWNLOAD_CLIENT_TYPES {
 }
 
 export interface DownloadClient {
-    id: number;
+    id?: number;
     name: string;
     enabled: boolean;
+    host: string;
+    port: number;
+    ssl: boolean;
+    username: string;
+    password: string;
     type: DownloadClientType;
     settings: object;
 }

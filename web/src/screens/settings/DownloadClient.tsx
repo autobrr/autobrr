@@ -15,14 +15,7 @@ interface DownloadLClientSettingsListItemProps {
 }
 
 function DownloadClientSettingsListItem({ client, idx }: DownloadLClientSettingsListItemProps) {
-    const [enabled, setEnabled] = useState(client.enabled)
     const [updateClientIsOpen, toggleUpdateClient] = useToggle(false)
-
-    const toggleActive = (status: boolean) => {
-        console.log(status)
-        setEnabled(status)
-        // call api
-    }
 
     return (
         <tr key={client.name} className={idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
@@ -32,7 +25,7 @@ function DownloadClientSettingsListItem({ client, idx }: DownloadLClientSettings
             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                 <Switch
                     checked={client.enabled}
-                    onChange={toggleActive}
+                    onChange={toggleUpdateClient}
                     className={classNames(
                         client.enabled ? 'bg-teal-500' : 'bg-gray-200',
                         'relative inline-flex flex-shrink-0 h-6 w-11 border-2 border-transparent rounded-full cursor-pointer transition-colors ease-in-out duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-light-blue-500'
@@ -49,6 +42,7 @@ function DownloadClientSettingsListItem({ client, idx }: DownloadLClientSettings
                 </Switch>
             </td>
             <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{client.name}</td>
+            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{client.host}</td>
             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{DownloadClientTypeNameMap[client.type]}</td>
             <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                 <span className="text-indigo-600 hover:text-indigo-900 cursor-pointer"  onClick={toggleUpdateClient}>
@@ -114,6 +108,12 @@ function DownloadClientSettings() {
                                                 className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
                                             >
                                                 Name
+                                            </th>
+                                            <th
+                                                scope="col"
+                                                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                                            >
+                                                Host
                                             </th>
                                             <th
                                                 scope="col"
