@@ -46,7 +46,7 @@ parse:
     - test:
         - "New Torrent Announcement: <PC :: Iso>  Name:'debian live 10 6 0 amd64 standard iso' uploaded by 'Anonymous' -  http://www.tracker01.test/torrent/000000"
         - "New Torrent Announcement: <PC :: Iso>  Name:'debian live 10 6 0 amd64 standard iso' uploaded by 'Anonymous' freeleech -  http://www.tracker01.test/torrent/000000"
-      pattern: New Torrent Announcement:\s*<([^>]*)>\s*Name:'(.*)' uploaded by '([^']*)'\s*(freeleech)*\s*-\s*https?\:\/\/([^\/]+\/)torrent\/(\d+)
+      pattern: New Torrent Announcement:\s*<([^>]*)>\s*Name:'(.*)' uploaded by '([^']*)'\s*(freeleech)*\s*-\s*(https?\:\/\/[^\/]+\/)torrent\/(\d+)
       vars:
         - category
         - torrentName
@@ -56,7 +56,7 @@ parse:
         - torrentId
 
   match:
-    torrenturl: "https://{{ .baseUrl }}rss/download/{{ .torrentId }}/{{ .rsskey }}/{{ .torrentName }}.torrent"
+    torrenturl: "{{ .baseUrl }}rss/download/{{ .torrentId }}/{{ .rsskey }}/{{ .torrentName }}.torrent"
     encode:
       - torrentName
 

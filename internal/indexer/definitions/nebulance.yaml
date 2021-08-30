@@ -48,7 +48,7 @@ parse:
     - test:
         - "[Episodes] The Show - S02E08 [WebRip / x264 / MKV / 720p / HD / VLAD / The.Show.S02E08.Episode.Name.720p.ANPL.WEBRip.AAC2.0.x264-GROUP.mkv] [702.00 MB - Uploader: UPLOADER] - http://nebulance.io/torrents.php?id=000 [Tags: comedy,subtitles,cbs]"
         - "[Seasons] Other Show - S10 [HDTV / x264 / MKV / MP4 / 480p / SD / BTN / Other.Show.S10.HDTV.x264-GROUP] [5.27 GB - Uploader: UPLOADER] - http://nebulance.io/torrents.php?id=0000 [Tags: comedy,subtitles,cbs]"
-      pattern: '\[(.*?)\] (.*?) \[(.*?)\] \[(.*?) - Uploader: (.*?)\] - (https?://.*)id=(\d+) \[Tags: (.*)\]'
+      pattern: '\[(.*?)\] (.*?) \[(.*?)\] \[(.*?) - Uploader: (.*?)\] - (https?:\/\/.*)id=(\d+) \[Tags: (.*)\]'
       vars:
         - category
         - torrentName

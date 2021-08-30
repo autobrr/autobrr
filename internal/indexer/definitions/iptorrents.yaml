@@ -47,7 +47,7 @@ parse:
     - test:
         - "[Movies/XviD] The Movie 2010 DVDRip XviD-GROUP FREELEECH - http://www.iptorrents.com/details.php?id=000000 - 716.219 MB"
         - "[Movies/XviD] The Movie 2010 DVDRip XviD-GROUP - http://www.iptorrents.com/details.php?id=000000 - 716.219 MB"
-      pattern: '^\[([^\]]*)](.*?)\s*(FREELEECH)*\s*-\s+https?\:\/\/([^\/]+).*[&\?]id=(\d+)\s*-(.*)'
+      pattern: '^\[([^\]]*)] (.*?)\s*(FREELEECH)*\s*-\s+(https?\:\/\/[^\/]+).*[&\?]id=(\d+)\s*- (.*)'
       vars:
         - category
         - torrentName
