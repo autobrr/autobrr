@@ -114,7 +114,7 @@ func (s *Handler) Run() error {
 				s.handleJoined(m)
 
 			case "JOIN":
-				log.Debug().Msgf("%v: JOIN %v", s.network.Server, m)
+				log.Trace().Msgf("%v: JOIN %v", s.network.Server, m)
 
 			case "433":
 				// TODO: handle nick in use
@@ -122,7 +122,7 @@ func (s *Handler) Run() error {
 
 			case "448", "473", "475", "477":
 				// TODO: handle join failed
-				log.Debug().Msgf("%v: JOIN FAILED %v: %v", s.network.Server, m.Params[1], m.Trailing())
+				log.Debug().Msgf("%v: JOIN FAILED %v: %v", s.network.Server, m.Params[1], m)
 
 			case "900": // Invite bot logged in
 				log.Debug().Msgf("%v: %v", s.network.Server, m.Trailing())
@@ -154,7 +154,7 @@ func (s *Handler) Run() error {
 				log.Debug().Msgf("%v: CAP: %v", s.network.Server, m)
 
 			case "NOTICE":
-				log.Trace().Msgf("%v: %v", s.network.Server, m.Trailing())
+				log.Trace().Msgf("%v: %v", s.network.Server, m)
 
 			case "PING":
 				err := s.handlePing(m)
@@ -165,7 +165,7 @@ func (s *Handler) Run() error {
 			//case "372":
 			//	log.Debug().Msgf("372: %v", m)
 			default:
-				log.Trace().Msgf("%v: %v", s.network.Server, m.Trailing())
+				log.Trace().Msgf("%v: %v", s.network.Server, m)
 			}
 		}),
 	}
@@ -408,7 +408,7 @@ func (s *Handler) handleMode(msg *irc.Message) error {
 }
 
 func (s *Handler) handlePing(msg *irc.Message) error {
-	//log.Trace().Msgf("%v: %v", s.network.Server, msg)
+	log.Trace().Msgf("%v: PING %v", s.network.Server, msg)
 
 	pong := irc.Message{
 		Command: "PONG",

@@ -119,7 +119,7 @@ func (c *client) Push(release Release) (bool, error) {
 		return false, err
 	}
 
-	log.Trace().Msgf("lidarr release/push response body: %+v", body)
+	log.Trace().Msgf("lidarr release/push response body: %+v", string(body))
 
 	// log and return if rejected
 	if pushResponse.Rejected {
