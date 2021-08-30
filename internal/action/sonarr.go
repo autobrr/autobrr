@@ -48,18 +48,19 @@ func (s *service) sonarr(announce domain.Announce, action domain.Action) error {
 		Indexer:          announce.Site,
 		DownloadProtocol: "torrent",
 		Protocol:         "torrent",
-		PublishDate:      time.Now().String(),
+		PublishDate:      time.Now().Format(time.RFC3339),
 	}
 
-	err = r.Push(release)
+	success, err := r.Push(release)
 	if err != nil {
-		log.Error().Err(err).Msgf("sonarr: failed to push release: %v", release)
+		log.Error().Stack().Err(err).Msgf("sonarr: failed to push release: %v", release)
 		return err
 	}
 
-	// TODO save pushed release
-
-	log.Debug().Msgf("sonarr: successfully pushed release: %v, indexer %v to %v", release.Title, release.Indexer, client.Host)
+	if success {
+		// TODO save pushed release
+		log.Debug().Msgf("sonarr: successfully pushed release: %v, indexer %v to %v", release.Title, release.Indexer, client.Host)
+	}
 
 	return nil
 }
