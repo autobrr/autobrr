@@ -51,7 +51,7 @@ parse:
   lines:
     - test:
         - "New Torrent: That.Show.S01.1080p.Blu-ray.AVC.DTS-HD.MA.5.1-Test Category: TV By: Uploader Size: 137.73 GB Link: https://beyond-hd.me/details.php?id=00000"
-      pattern: 'New Torrent:(.*)Category:(.*)By:(.*)Size:(.*)Link: https?\:\/\/([^\/]+\/).*[&\?]id=(\d+)'
+      pattern: 'New Torrent: (.*) Category: (.*) By: (.*) Size: (.*) Link: (https?\:\/\/[^\/]+\/).*[&\?]id=(\d+)'
       vars:
         - torrentName
         - category
@@ -61,4 +61,4 @@ parse:
         - torrentId
 
   match:
-    torrenturl: "https://{{ .baseUrl }}torrent/download/auto.{{ .torrentId }}.{{ .passkey }}"
+    torrenturl: "{{ .baseUrl }}torrent/download/auto.{{ .torrentId }}.{{ .rsskey }}"

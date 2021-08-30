@@ -28,7 +28,7 @@ irc:
   port: 7000
   tls: true
   channels:
-    - "#ptp-announce"
+    - "#ptp-announce-dev"
   announcers:
     - Hummingbird
   settings:
@@ -44,7 +44,7 @@ irc:
       help: NickServ password
     - name: invite_command
       type: secret
-      default: "Hummingbird ENTER USERNAME IRCKey #ptp-announce"
+      default: "Hummingbird ENTER USERNAME IRCKey #ptp-announce-dev"
       required: true
       label: Invite command
       help: Invite auth with Hummingbird.
@@ -53,14 +53,14 @@ parse:
   type: single
   lines:
     - test:
-        - "That Movie [2008] by Director - XviD / DVD / AVI / 640x352 - http://passthepopcorn.me/torrents.php?id=00000 / http://passthepopcorn.me/torrents.php?action=download&id=00000 - crime, drama, mystery"
-        - "Some Old Movie [1988] by Director - x264 / Blu-ray / MKV / 720p - http://passthepopcorn.me/torrents.php?id=00000 / http://passthepopcorn.me/torrents.php?action=download&id=00000 - comedy, crime"
-      pattern: '^(.*)-\s*https?:.*[&\?]id=.*https?\:\/\/([^\/]+\/).*[&\?]id=(\d+)\s*-\s*(.*)'
+        - "That Movie [1972] by Some Director | x264 / Blu-ray / MKV / 1080p | 204371 | 964303 | That.Movie.1972.1080p.BluRay.FLAC.x264-GROUP | comedy, drama, romance"
+      pattern: '.* \[(.*)\] by .* \| (.*) \| .* \| (.*) \| (.*) \| (.*)'
       vars:
-        - torrentName
-        - baseUrl
+        - year
+        - releaseTags
         - torrentId
+        - torrentName
         - tags
 
   match:
-    torrenturl: "https://{{ .baseUrl }}torrents.php?action=download&id={{ .torrentId }}&authkey={{ .authkey }}&torrent_pass={{ .torrent_pass }}"
+    torrenturl: "https://passthepopcorn.me/torrents.php?action=download&id={{ .torrentId }}&authkey={{ .authkey }}&torrent_pass={{ .torrent_pass }}"

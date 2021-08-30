@@ -54,7 +54,7 @@ parse:
   lines:
     - test:
         - "NOW BROADCASTING! [ The Show S06E07 720p WEB-DL DD 5.1 H.264 - LP ]"
-      pattern: ^NOW BROADCASTING! \[(.*)\]
+      pattern: ^NOW BROADCASTING! \[ (.*) \]
       vars:
         - torrentName
     - test:
@@ -69,7 +69,7 @@ parse:
       vars:
         - year
         - category
-        - tags
+        - releaseTags
         - uploader
         - preTime
     - test:
