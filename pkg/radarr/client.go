@@ -74,7 +74,7 @@ func (c *client) post(endpoint string, data interface{}) (*http.Response, error)
 		return nil, errors.New("unauthorized: bad credentials")
 	} else if res.StatusCode != http.StatusOK {
 		log.Error().Err(err).Msgf("radarr client request error: %v", reqUrl)
-		return nil, nil
+		return nil, errors.New("radarr: bad request")
 	}
 
 	// return raw response and let the caller handle json unmarshal of body

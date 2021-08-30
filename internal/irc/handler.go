@@ -114,7 +114,7 @@ func (s *Handler) Run() error {
 				s.handleJoined(m)
 
 			case "JOIN":
-				log.Debug().Msgf("%v: JOIN %v", s.network.Server, m.Trailing())
+				log.Debug().Msgf("%v: JOIN %v", s.network.Server, m)
 
 			case "433":
 				// TODO: handle nick in use
