@@ -17,6 +17,9 @@ import { DownloadClientTypeOptions } from "../../../domain/constants";
 import { RadioFieldsetWide } from "../../../components/inputs/wide";
 import { componentMap } from "./shared";
 
+import { toast } from 'react-hot-toast'
+import Toast from '../../../components/notifications/Toast';
+
 function DownloadClientAddForm({ isOpen, toggle }: any) {
   const [isTesting, setIsTesting] = useState(false);
   const [isSuccessfulTest, setIsSuccessfulTest] = useState(false);
@@ -27,8 +30,13 @@ function DownloadClientAddForm({ isOpen, toggle }: any) {
     {
       onSuccess: () => {
         queryClient.invalidateQueries(["downloadClients"]);
+        toast.custom((t) => <Toast type="success" body="Client was added" t={t} />)
+
         toggle();
       },
+      onError: () => {
+        toast.custom((t) => <Toast type="error" body="Client could not be added" t={t} />)
+      }
     }
   );
 
@@ -53,6 +61,7 @@ function DownloadClientAddForm({ isOpen, toggle }: any) {
           });
       },
       onError: (error) => {
+        console.log('not added')
         setIsTesting(false);
         setIsErrorTest(true);
         sleep(2500).then(() => {

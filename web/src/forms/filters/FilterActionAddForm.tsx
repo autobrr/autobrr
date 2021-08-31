@@ -17,6 +17,9 @@ import {
   RadioFieldsetWide,
 } from "../../components/inputs/wide";
 
+import { toast } from 'react-hot-toast'
+import Toast from '../../components/notifications/Toast';
+
 interface DownloadClientSelectProps {
   name: string;
   clients: DownloadClient[];
@@ -135,6 +138,8 @@ function FilterActionAddForm({ filter, isOpen, toggle, clients }: props) {
     {
       onSuccess: () => {
         queryClient.invalidateQueries(["filter", filter.id]);
+        toast.custom((t) => <Toast type="success" body="Action was added" t={t} />)
+
         sleep(500).then(() => toggle());
       },
     }

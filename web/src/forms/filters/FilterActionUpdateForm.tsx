@@ -17,6 +17,10 @@ import {
 } from "../../components/inputs/wide";
 import { DownloadClientSelect } from "./FilterActionAddForm";
 
+import { toast } from 'react-hot-toast'
+import Toast from '../../components/notifications/Toast';
+
+
 interface props {
   filter: Filter;
   isOpen: boolean;
@@ -38,6 +42,8 @@ function FilterActionUpdateForm({
       onSuccess: () => {
         // console.log("add action");
         queryClient.invalidateQueries(["filter", filter.id]);
+        toast.custom((t) => <Toast type="success" body={`${filter.name} was updated successfully`} t={t} />)
+
         sleep(1500);
 
         toggle();
