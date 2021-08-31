@@ -11,7 +11,8 @@ import { queryClient } from "../../App";
 import { SwitchGroup, TextFieldWide } from "../../components/inputs";
 import APIClient from "../../api/APIClient";
 import { NumberFieldWide, PasswordFieldWide } from "../../components/inputs/wide";
-
+import { toast } from 'react-hot-toast'
+import Toast from '../../components/notifications/Toast';
 interface props {
     isOpen: boolean;
     toggle: any;
@@ -28,9 +29,12 @@ function IndexerAddForm({ isOpen, toggle }: props) {
     const mutation = useMutation((indexer: Indexer) => APIClient.indexers.create(indexer), {
         onSuccess: () => {
             queryClient.invalidateQueries(['indexer']);
+            toast.custom((t) => <Toast type="success" body="Indexer was added" t={t} />)
             sleep(1500)
-
             toggle()
+        },
+        onError: () => {
+            toast.custom((t) => <Toast type="error" body="Indexer could not be added" t={t} />)
         }
     })
 

@@ -4,6 +4,7 @@ import {useEffect, useState} from "react";
 import { Fragment } from "react";
 import {Redirect} from "react-router-dom";
 import APIClient from "../api/APIClient";
+import { Toaster } from "react-hot-toast";
 
 export default function Layout({auth=false, authFallback="/login", children}: any) {
     const [loggedIn, setLoggedIn] = useRecoilState(isLoggedIn);
@@ -28,6 +29,7 @@ export default function Layout({auth=false, authFallback="/login", children}: an
                 <Fragment>
                     {auth && !loggedIn ? <Redirect to={authFallback} /> : (
                         <Fragment>
+                            <Toaster position="top-right" />
                             {children}
                         </Fragment>
                     )}

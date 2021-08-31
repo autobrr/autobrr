@@ -14,17 +14,31 @@ import {classNames} from "../../styles/utils";
 import APIClient from "../../api/APIClient";
 import { NumberFieldWide, PasswordFieldWide } from "../../components/inputs/wide";
 
+import { toast } from 'react-hot-toast';
+import Toast from '../../components/notifications/Toast';
+
+type FormValues = {
+    name: string
+    server: string
+    nickserv: {
+        account: string
+    }
+    port: number
+}
+
 function IrcNetworkAddForm({isOpen, toggle}: any) {
     const mutation = useMutation((network: Network) => APIClient.irc.createNetwork(network), {
-        onSuccess: data => {
+        onSuccess: (data) => {
             queryClient.invalidateQueries(['networks']);
+            toast.custom((t) => <Toast type="success" body="IRC Network added" t={t} />)
             toggle()
-        }
+        },
+        onError: () => {
+            toast.custom((t) => <Toast type="error" body="IRC Network could not be added" t={t}/>)
+        },
     })
 
     const onSubmit = (data: any) => {
-        console.log(data)
-
         // easy way to split textarea lines into array of strings for each newline.
         // parse on the field didn't really work.
         let cmds = data.connect_commands && data.connect_commands.length > 0 ? data.connect_commands.replace(/\r\n/g,"\n").split("\n") : [];
@@ -35,14 +49,26 @@ function IrcNetworkAddForm({isOpen, toggle}: any) {
     };
 
     const validate = (values: any) => {
-        const errors = {} as any;
+        const errors = {
+            nickserv: {
+                account: null,
+            } 
+        } as any;
 
         if (!values.name) {
             errors.name = "Required";
         }
 
+        if (!values.port) {
+            errors.port = "Required";
+        }
+
         if (!values.server) {
             errors.server = "Required";
+        }
+
+        if(!values.nickserv?.account) {
+            errors.nickserv.account = "Required";
         }
 
         return errors;
@@ -50,7 +76,7 @@ function IrcNetworkAddForm({isOpen, toggle}: any) {
 
     return (
         <Transition.Root show={isOpen} as={Fragment}>
-            <Dialog as="div" static className="fixed inset-0 overflow-hidden" open={isOpen} onClose={toggle}>
+            <Dialog as="div" static className="fixed inset-0 overflow-hidden transition-all" open={isOpen} onClose={toggle}>
                 <div className="absolute inset-0 overflow-hidden">
                     <Dialog.Overlay className="absolute inset-0"/>
 
@@ -73,6 +99,9 @@ function IrcNetworkAddForm({isOpen, toggle}: any) {
                                         server: "",
                                         tls: false,
                                         pass: "",
+                                        nickserv: {
+                                            account: ""
+                                        }
                                     }}
                                     mutators={{
                                         ...arrayMutators
@@ -119,7 +148,7 @@ function IrcNetworkAddForm({isOpen, toggle}: any) {
 
                                                         <div>
                                                             <TextFieldWide name="server" label="Server" placeholder="Address: Eg irc.server.net" required={true} />
-                                                            <NumberFieldWide name="port" label="Port" required={true} />
+                                                            <NumberFieldWide name="port" label="Port" placeholder="Eg 6667" required={true} />
 
                                                             <div className="py-6 px-6 space-y-6 sm:py-0 sm:space-y-0 sm:divide-y sm:divide-gray-200">
                                                                 <SwitchGroup name="tls" label="TLS"/>
@@ -127,7 +156,7 @@ function IrcNetworkAddForm({isOpen, toggle}: any) {
 
                                                             <PasswordFieldWide name="pass" label="Password" help="Network password" />
 
-                                                            <TextFieldWide name="nickserv.account" label="NickServ Account" required={true} />
+                                                            <TextFieldWide name="nickserv.account" label="NickServ Account" placeholder="NickServ Account" required={true} />
                                                             <PasswordFieldWide name="nickserv.password" label="NickServ Password" />
 
                                                             <PasswordFieldWide name="invite_command" label="Invite command" />

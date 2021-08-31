@@ -12,6 +12,9 @@ import APIClient from "../../api/APIClient";
 import { queryClient } from "../../App";
 import { PasswordFieldWide } from "../../components/inputs/wide";
 
+import { toast } from 'react-hot-toast'
+import Toast from '../../components/notifications/Toast';
+
 interface props {
     isOpen: boolean;
     toggle: any;
@@ -24,6 +27,7 @@ function IndexerUpdateForm({ isOpen, toggle, indexer }: props) {
     const mutation = useMutation((indexer: Indexer) => APIClient.indexers.update(indexer), {
         onSuccess: () => {
             queryClient.invalidateQueries(['indexer']);
+            toast.custom((t) => <Toast type="success" body={`${indexer.name} was updated successfully`} t={t}/>)
             sleep(1500)
 
             toggle()
@@ -33,6 +37,7 @@ function IndexerUpdateForm({ isOpen, toggle, indexer }: props) {
     const deleteMutation = useMutation((id: number) => APIClient.indexers.delete(id), {
         onSuccess: () => {
             queryClient.invalidateQueries(['indexer']);
+            toast.custom((t) => <Toast type="success" body={`${indexer.name} was deleted.`} t={t}/>)
         }
     })
 

@@ -29,6 +29,10 @@ import { FilterAddForm, FilterActionAddForm} from "../forms";
 import Select from "react-select";
 import APIClient from "../api/APIClient";
 
+import { toast } from 'react-hot-toast'
+import Toast from '../components/notifications/Toast';
+
+
 const tabs = [
     {name: 'General', href: '', current: true},
     // { name: 'TV', href: 'tv', current: false },
@@ -443,6 +447,8 @@ function FilterTabGeneral({filter}: FilterTabGeneralProps) {
     const updateMutation = useMutation((filter: Filter) => APIClient.filters.update(filter), {
         onSuccess: () => {
             // queryClient.setQueryData(['filter', filter.id], data)
+            toast.custom((t) => <Toast type="success" body={`${filter.name} was updated successfully`} t={t} />)
+
             queryClient.invalidateQueries(["filter",filter.id]);
         }
     })
@@ -451,6 +457,8 @@ function FilterTabGeneral({filter}: FilterTabGeneralProps) {
         onSuccess: () => {
             // invalidate filters
             queryClient.invalidateQueries("filter");
+            toast.custom((t) => <Toast type="success" body={`${filter.name} was deleted`} t={t} />)
+
             // redirect
             history.push("/filters")
         }
@@ -568,6 +576,7 @@ function FilterTabMoviesTvNew2({filter}: FilterTabGeneralProps) {
     const updateMutation = useMutation((filter: Filter) => APIClient.filters.update(filter), {
         onSuccess: () => {
             // queryClient.setQueryData(['filter', filter.id], data)
+            toast.custom((t) => <Toast type="success" body={`${filter.name} was updated successfully`} t={t} />)
             queryClient.invalidateQueries(["filter",filter.id]);
         }
     })
@@ -575,6 +584,7 @@ function FilterTabMoviesTvNew2({filter}: FilterTabGeneralProps) {
     const deleteMutation = useMutation((id: number) => APIClient.filters.delete(id), {
         onSuccess: () => {
             // invalidate filters
+            toast.custom((t) => <Toast type="success" body={`${filter.name} was deleted`} t={t} />)
             queryClient.invalidateQueries("filter");
             // redirect
             history.push("/filters")
@@ -677,6 +687,8 @@ function FilterTabAdvanced({filter}: FilterTabGeneralProps) {
     const updateMutation = useMutation((filter: Filter) => APIClient.filters.update(filter), {
         onSuccess: () => {
             // queryClient.setQueryData(['filter', filter.id], data)
+            toast.custom((t) => <Toast type="success" body={`${filter.name} was updated successfully`} t={t} />)
+
             queryClient.invalidateQueries(["filter",filter.id]);
         }
     })
@@ -685,6 +697,8 @@ function FilterTabAdvanced({filter}: FilterTabGeneralProps) {
         onSuccess: () => {
             // invalidate filters
             queryClient.invalidateQueries("filter");
+            toast.custom((t) => <Toast type="success" body={`${filter.name} was deleted`} t={t} />)
+
             // redirect
             history.push("/filters")
         }

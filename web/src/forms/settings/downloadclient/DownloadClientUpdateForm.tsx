@@ -16,6 +16,10 @@ import { componentMap } from "./shared";
 import { RadioFieldsetWide } from "../../../components/inputs/wide";
 import { DeleteModal } from "../../../components/modals";
 
+import { toast } from 'react-hot-toast'
+import Toast from '../../../components/notifications/Toast';
+
+
 function DownloadClientUpdateForm({ client, isOpen, toggle }: any) {
   const [isTesting, setIsTesting] = useState(false);
   const [isSuccessfulTest, setIsSuccessfulTest] = useState(false);
@@ -27,7 +31,7 @@ function DownloadClientUpdateForm({ client, isOpen, toggle }: any) {
     {
       onSuccess: () => {
         queryClient.invalidateQueries(["downloadClients"]);
-
+        toast.custom((t) => <Toast type="success" body={`${client.name} was updated successfully`} t={t} />)
         toggle();
       },
     }
@@ -38,6 +42,7 @@ function DownloadClientUpdateForm({ client, isOpen, toggle }: any) {
     {
       onSuccess: () => {
         queryClient.invalidateQueries();
+        toast.custom((t) => <Toast type="success" body={`${client.name} was deleted.`} t={t}/>)
         toggleDeleteModal();
       },
     }

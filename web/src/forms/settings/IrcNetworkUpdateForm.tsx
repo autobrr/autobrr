@@ -16,12 +16,16 @@ import { DeleteModal } from "../../components/modals";
 import APIClient from "../../api/APIClient";
 import { NumberFieldWide, PasswordFieldWide } from "../../components/inputs/wide";
 
+import { toast } from 'react-hot-toast';
+import Toast from '../../components/notifications/Toast';
+
+
 function IrcNetworkUpdateForm({ isOpen, toggle, network }: any) {
     const [deleteModalIsOpen, toggleDeleteModal] = useToggle(false)
-
     const mutation = useMutation((network: Network) => APIClient.irc.updateNetwork(network), {
         onSuccess: () => {
             queryClient.invalidateQueries(['networks']);
+            toast.custom((t) => <Toast type="success" body={`${network.name} was updated successfully`} t={t} />)
             toggle()
         }
     })
@@ -29,6 +33,8 @@ function IrcNetworkUpdateForm({ isOpen, toggle, network }: any) {
     const deleteMutation = useMutation((id: number) => APIClient.irc.deleteNetwork(id), {
         onSuccess: () => {
             queryClient.invalidateQueries(['networks']);
+            toast.custom((t) => <Toast type="success" body={`${network.name} was deleted.`} t={t} />)
+
             toggle()
         }
     })
@@ -52,7 +58,11 @@ function IrcNetworkUpdateForm({ isOpen, toggle, network }: any) {
     };
 
     const validate = (values: any) => {
-        const errors = {} as any;
+        const errors = {
+            nickserv: {
+                account: null,
+            } 
+        } as any;
 
         if (!values.name) {
             errors.name = "Required";
@@ -66,7 +76,7 @@ function IrcNetworkUpdateForm({ isOpen, toggle, network }: any) {
             errors.port = "Required";
         }
 
-        if (!values.nickserv.account) {
+        if(!values.nickserv?.account) {
             errors.nickserv.account = "Required";
         }
 

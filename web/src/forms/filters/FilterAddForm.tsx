@@ -8,12 +8,18 @@ import {Field, Form} from "react-final-form";
 import DEBUG from "../../components/debug";
 import APIClient from "../../api/APIClient";
 
+import { toast } from 'react-hot-toast'
+import Toast from '../../components/notifications/Toast';
+
+
 const required = (value: any) => (value ? undefined : 'Required')
 
 function FilterAddForm({isOpen, toggle}: any) {
     const mutation = useMutation((filter: Filter) => APIClient.filters.create(filter), {
         onSuccess: () => {
             queryClient.invalidateQueries('filter');
+            toast.custom((t) => <Toast type="success" body="Filter was added" t={t} />)
+
             toggle()
         }
     })
