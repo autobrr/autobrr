@@ -58,7 +58,11 @@ function IrcNetworkUpdateForm({ isOpen, toggle, network }: any) {
     };
 
     const validate = (values: any) => {
-        const errors = {} as any;
+        const errors = {
+            nickserv: {
+                account: null,
+            } 
+        } as any;
 
         if (!values.name) {
             errors.name = "Required";
@@ -72,7 +76,7 @@ function IrcNetworkUpdateForm({ isOpen, toggle, network }: any) {
             errors.port = "Required";
         }
 
-        if (!values.nickserv.account) {
+        if(!values.nickserv?.account) {
             errors.nickserv.account = "Required";
         }
 

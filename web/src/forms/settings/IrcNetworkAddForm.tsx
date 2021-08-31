@@ -49,7 +49,11 @@ function IrcNetworkAddForm({isOpen, toggle}: any) {
     };
 
     const validate = (values: any) => {
-        const errors = {} as any;
+        const errors = {
+            nickserv: {
+                account: null,
+            } 
+        } as any;
 
         if (!values.name) {
             errors.name = "Required";
@@ -63,8 +67,8 @@ function IrcNetworkAddForm({isOpen, toggle}: any) {
             errors.server = "Required";
         }
 
-        if(!values.nickserv.account) {
-            errors.nickserv = "Required";
+        if(!values.nickserv?.account) {
+            errors.nickserv.account = "Required";
         }
 
         return errors;
