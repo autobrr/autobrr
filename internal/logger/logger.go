@@ -7,12 +7,13 @@ import (
 
 	"github.com/autobrr/autobrr/internal/domain"
 
+	"github.com/r3labs/sse/v2"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"gopkg.in/natefinch/lumberjack.v2"
 )
 
-func Setup(cfg domain.Config) {
+func Setup(cfg domain.Config, sse *sse.Server) {
 	zerolog.TimeFieldFormat = time.RFC3339
 
 	switch cfg.LogLevel {
@@ -47,6 +48,7 @@ func Setup(cfg domain.Config) {
 		writers = io.MultiWriter(consoleWriter, fileWriter)
 	}
 
+	log.Logger = log.Hook(&ServerSentEventHook{sse: sse})
 	log.Logger = log.Output(writers)
 
 	log.Print("Starting autobrr")
