@@ -58,11 +58,7 @@ function IrcNetworkUpdateForm({ isOpen, toggle, network }: any) {
     };
 
     const validate = (values: any) => {
-        const errors = {
-            nickserv: {
-                account: null,
-            } 
-        } as any;
+        const errors = {} as any;
 
         if (!values.name) {
             errors.name = "Required";
@@ -125,7 +121,7 @@ function IrcNetworkUpdateForm({ isOpen, toggle, network }: any) {
                                         nickserv: network.nickserv,
                                         pass: network.pass,
                                         invite_command: network.invite_command,
-                                        connect_commands: network.connect_commands,
+                                        // connect_commands: network.connect_commands,
                                         channels: network.channels
                                     }}
                                     mutators={{
@@ -274,7 +270,7 @@ function IrcNetworkUpdateForm({ isOpen, toggle, network }: any) {
                                                             </button>
                                                             <button
                                                                 type="submit"
-                                                                disabled={pristine || invalid}
+                                                                // disabled={pristine || invalid}
                                                                 className={classNames(pristine || invalid ? "bg-indigo-300" : "bg-indigo-600 hover:bg-indigo-700", "inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500")}
                                                             >
                                                                 Save
