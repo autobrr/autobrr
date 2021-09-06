@@ -1,5 +1,5 @@
 import {Action, DownloadClient, Filter, Indexer, Network} from "../domain/interfaces";
-import {baseUrl} from "../utils/utils";
+import {baseUrl, sseBaseUrl} from "../utils/utils";
 
 function baseClient(endpoint: string, method: string, { body, ...customConfig}: any = {}) {
     let baseURL = baseUrl()
@@ -106,6 +106,9 @@ const APIClient = {
         updateNetwork: (network: Network) => appClient.Put(`api/irc/network/${network.id}`, network),
         deleteNetwork: (id: number) => appClient.Delete(`api/irc/network/${id}`),
     },
+    events: {
+        logs: () => new EventSource(`${sseBaseUrl()}api/events?stream=logs`, { withCredentials: true })
+    }
 }
 
 export default APIClient;
