@@ -222,8 +222,12 @@ github.com/fsnotify/fsnotify v1.4.9 h1:hsms1Qyu0jgnwNXIxa+/V/PDsU6CfLf6CNO8H7IWo
 github.com/fsnotify/fsnotify v1.4.9/go.mod h1:znqG4EE+3YCdAaPaxE2ZRY/06pZUdp0tY4IgpuI1SZQ=
 github.com/gdm85/go-libdeluge v0.5.4 h1:Y2vV6wGwvR5skrFrlntTYAXxaWRzg2HDqrcWyVzuUgo=
 github.com/gdm85/go-libdeluge v0.5.4/go.mod h1:Fxm576GtD2fTcSUCSPqJINBZRkY8WrtGf9JfYVRtmD0=
+github.com/gdm85/go-libdeluge v0.5.5 h1:vQ2wuphJVU8UaVS46gFH6VgpRZjyg9qSsXhxSkWoGcQ=
+github.com/gdm85/go-libdeluge v0.5.5/go.mod h1:RYJ0orON2gNxGfh3VOpLDv7HFz3a0/14Rh1fCYNowT0=
 github.com/gdm85/go-rencode v0.1.6 h1:JbSv//2Og8aeSMUBMDTRNA6JW55iZbLMJU8bp9GqULY=
 github.com/gdm85/go-rencode v0.1.6/go.mod h1:0dr3BuaKzeseY1of6o1KRTGB/Oo7eio+YEyz8KDp5+s=
+github.com/gdm85/go-rencode v0.1.8 h1:7+qxwoQWU1b1nMGcESOyoUR5dzPtRA6yLQpKn7uXmnI=
+github.com/gdm85/go-rencode v0.1.8/go.mod h1:0dr3BuaKzeseY1of6o1KRTGB/Oo7eio+YEyz8KDp5+s=
 github.com/ghodss/yaml v1.0.0/go.mod h1:4dBDuWmgqj2HViK6kFavaiC9ZROes6MMH2rRYeMEF04=
 github.com/gin-contrib/sse v0.1.0/go.mod h1:RHrZQHXnP2xjPF+u1gW/2HnVO7nvIa9PG3Gm+fLHvGI=
 github.com/gin-gonic/gin v1.5.0/go.mod h1:Nd6IXA8m5kNZdNEHMBd93KT+mdY3+bewLgRvmCsR2Do=
