@@ -408,7 +408,7 @@ func (s *Handler) handleMode(msg *irc.Message) error {
 }
 
 func (s *Handler) handlePing(msg *irc.Message) error {
-	log.Trace().Msgf("%v: PING %v", s.network.Server, msg)
+	log.Trace().Msgf("%v: %v", s.network.Server, msg)
 
 	pong := irc.Message{
 		Command: "PONG",

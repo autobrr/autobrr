@@ -9,11 +9,16 @@ import (
 	"github.com/autobrr/autobrr/web"
 
 	"github.com/go-chi/chi"
+	"github.com/r3labs/sse/v2"
+	"github.com/rs/cors"
 )
 
 type Server struct {
-	address               string
-	baseUrl               string
+	sse *sse.Server
+
+	address string
+	baseUrl string
+
 	actionService         actionService
 	authService           authService
 	downloadClientService downloadClientService
@@ -22,10 +27,12 @@ type Server struct {
 	ircService            ircService
 }
 
-func NewServer(address string, baseUrl string, actionService actionService, authService authService, downloadClientSvc downloadClientService, filterSvc filterService, indexerSvc indexerService, ircSvc ircService) Server {
+func NewServer(sse *sse.Server, address string, baseUrl string, actionService actionService, authService authService, downloadClientSvc downloadClientService, filterSvc filterService, indexerSvc indexerService, ircSvc ircService) Server {
 	return Server{
-		address:               address,
-		baseUrl:               baseUrl,
+		sse:     sse,
+		address: address,
+		baseUrl: baseUrl,
+
 		actionService:         actionService,
 		authService:           authService,
 		downloadClientService: downloadClientSvc,
@@ -50,6 +57,17 @@ func (s Server) Open() error {
 
 func (s Server) Handler() http.Handler {
 	r := chi.NewRouter()
+
+	c := cors.New(cors.Options{
+		AllowCredentials:   true,
+		AllowedMethods:     []string{"HEAD", "OPTIONS", "GET", "POST", "PUT", "PATCH", "DELETE"},
+		AllowOriginFunc:    func(origin string) bool { return true },
+		OptionsPassthrough: true,
+		// Enable Debugging for testing, consider disabling in production
+		Debug: false,
+	})
+
+	r.Use(c.Handler)
 
 	//r.Get("/", index)
 	//r.Get("/dashboard", dashboard)
@@ -76,6 +94,19 @@ func (s Server) Handler() http.Handler {
 			r.Route("/filters", newFilterHandler(encoder, s.filterService).Routes)
 			r.Route("/irc", newIrcHandler(encoder, s.ircService).Routes)
 			r.Route("/indexer", newIndexerHandler(encoder, s.indexerService, s.ircService).Routes)
+
+			r.HandleFunc("/events", func(w http.ResponseWriter, r *http.Request) {
+
+				// inject CORS headers to bypass checks
+				s.sse.Headers = map[string]string{
+					"Content-Type":      "text/event-stream",
+					"Cache-Control":     "no-cache",
+					"Connection":        "keep-alive",
+					"X-Accel-Buffering": "no",
+				}
+
+				s.sse.HTTPHandler(w, r)
+			})
 		})
 	})
 

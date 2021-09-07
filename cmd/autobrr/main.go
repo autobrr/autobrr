@@ -7,6 +7,7 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/r3labs/sse/v2"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/pflag"
 	_ "modernc.org/sqlite"
@@ -40,8 +41,14 @@ func main() {
 	// read config
 	cfg = config.Read(configPath)
 
+	// setup server-sent-events
+	serverEvents := sse.New()
+	serverEvents.AutoReplay = false
+
+	serverEvents.CreateStream("logs")
+
 	// setup logger
-	logger.Setup(cfg)
+	logger.Setup(cfg, serverEvents)
 
 	// if configPath is set then put database inside that path, otherwise create wherever it's run
 	var dataSource = database.DataSourceName(configPath, "autobrr.db")
@@ -85,7 +92,7 @@ func main() {
 	errorChannel := make(chan error)
 
 	go func() {
-		httpServer := http.NewServer(addr, cfg.BaseURL, actionService, authService, downloadClientService, filterService, indexerService, ircService)
+		httpServer := http.NewServer(serverEvents, addr, cfg.BaseURL, actionService, authService, downloadClientService, filterService, indexerService, ircService)
 		errorChannel <- httpServer.Open()
 	}()
 
