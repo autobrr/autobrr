@@ -2,8 +2,6 @@ package lidarr
 
 import (
 	"encoding/json"
-	"errors"
-	"fmt"
 	"io"
 	"net/http"
 	"strings"
@@ -24,7 +22,7 @@ type Config struct {
 
 type Client interface {
 	Test() (*SystemStatusResponse, error)
-	Push(release Release) error
+	Push(release Release) (bool, error)
 }
 
 type client struct {
@@ -71,7 +69,7 @@ type SystemStatusResponse struct {
 func (c *client) Test() (*SystemStatusResponse, error) {
 	res, err := c.get("system/status")
 	if err != nil {
-		log.Error().Err(err).Msg("lidarr client get error")
+		log.Error().Stack().Err(err).Msg("lidarr client get error")
 		return nil, err
 	}
 
@@ -79,14 +77,14 @@ func (c *client) Test() (*SystemStatusResponse, error) {
 
 	body, err := io.ReadAll(res.Body)
 	if err != nil {
-		log.Error().Err(err).Msg("lidarr client error reading body")
+		log.Error().Stack().Err(err).Msg("lidarr client error reading body")
 		return nil, err
 	}
 
 	response := SystemStatusResponse{}
 	err = json.Unmarshal(body, &response)
 	if err != nil {
-		log.Error().Err(err).Msg("lidarr client error json unmarshal")
+		log.Error().Stack().Err(err).Msg("lidarr client error json unmarshal")
 		return nil, err
 	}
 
@@ -95,26 +93,30 @@ func (c *client) Test() (*SystemStatusResponse, error) {
 	return &response, nil
 }
 
-func (c *client) Push(release Release) error {
+func (c *client) Push(release Release) (bool, error) {
 	res, err := c.post("release/push", release)
 	if err != nil {
-		log.Error().Err(err).Msg("lidarr client post error")
-		return err
+		log.Error().Stack().Err(err).Msg("lidarr client post error")
+		return false, err
+	}
+
+	if res == nil {
+		return false, nil
 	}
 
 	defer res.Body.Close()
 
 	body, err := io.ReadAll(res.Body)
 	if err != nil {
-		log.Error().Err(err).Msg("lidarr client error reading body")
-		return err
+		log.Error().Stack().Err(err).Msg("lidarr client error reading body")
+		return false, err
 	}
 
 	pushResponse := PushResponse{}
 	err = json.Unmarshal(body, &pushResponse)
 	if err != nil {
-		log.Error().Err(err).Msg("lidarr client error json unmarshal")
-		return err
+		log.Error().Stack().Err(err).Msg("lidarr client error json unmarshal")
+		return false, err
 	}
 
 	log.Trace().Msgf("lidarr release/push response body: %+v", string(body))
@@ -124,8 +126,8 @@ func (c *client) Push(release Release) error {
 		rejections := strings.Join(pushResponse.Rejections, ", ")
 
 		log.Trace().Msgf("lidarr push rejected: %s - reasons: %q", release.Title, rejections)
-		return errors.New(fmt.Errorf("lidarr push rejected %v", rejections).Error())
+		return false, nil
 	}
 
-	return nil
+	return true, nil
 }

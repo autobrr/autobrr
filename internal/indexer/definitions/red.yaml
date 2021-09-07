@@ -13,39 +13,56 @@ supports:
   - rss
 source: gazelle
 settings:
-    - name: authkey
-      type: text
-      label: Auth key
-      tooltip: Right click DL on a torrent and get the authkey.
-      description: Right click DL on a torrent and get the authkey.
-    - name: torrent_pass
-      type: text
-      label: Torrent pass
-      tooltip: Right click DL on a torrent and get the torrent_pass.
-      description: Right click DL on a torrent and get the torrent_pass.
+  - name: authkey
+    type: secret
+    label: Auth key
+    help: Right click DL on a torrent and get the authkey.
+  - name: torrent_pass
+    type: secret
+    label: Torrent pass
+    help: Right click DL on a torrent and get the torrent_pass.
 
 irc:
   network: Scratch-Network
-  server: irc.scratch-network.net:6697
+  server: irc.scratch-network.net
   port: 6697
+  tls: true
   channels:
     - "#red-announce"
   announcers:
     - Drone
+  settings:
+    - name: nickserv.account
+      type: text
+      required: true
+      label: NickServ Account
+      help: NickServ account. Make sure to group your user and bot. Eg. user-autodl
+    - name: nickserv.password
+      type: secret
+      required: true
+      label: NickServ Password
+      help: NickServ password
+    - name: invite_command
+      type: secret
+      default: "Drone enter #red-announce USERNAME IRCKey"
+      required: true
+      label: Invite command
+      help: Invite auth with Drone.
 
 parse:
   type: single
   lines:
-    -
-      test:
-        - "JR Get Money - Nobody But You [2008] [Single] - FLAC / Lossless / Log / 100% / Cue / CD - https://redacted.ch/torrents.php?id=1592366 / https://redacted.ch/torrents.php?action=download&id=3372962 - hip.hop,rhythm.and.blues,2000s"
-        - "Johann Sebastian Bach performed by Festival Strings Lucerne under Rudolf Baumgartner - Brandenburg Concertos 5 and 6, Suite No 2 [1991] [Album] - FLAC / Lossless / Log / 100% / Cue / CD - https://redacted.ch/torrents.php?id=1592367 / https://redacted.ch/torrents.php?action=download&id=3372963 - classical"
-      pattern: '^(.*)\s+-\s+https?:.*[&\?]id=.*https?\:\/\/([^\/]+\/).*[&\?]id=(\d+)\s*-\s*(.*)'
+    - test:
+        - "Artist - Albumname [2008] [Single] - FLAC / Lossless / Log / 100% / Cue / CD - https://redacted.ch/torrents.php?id=0000000 / https://redacted.ch/torrents.php?action=download&id=0000000 - hip.hop,rhythm.and.blues,2000s"
+        - "A really long name here - Concertos 5 and 6, Suite No 2 [1991] [Album] - FLAC / Lossless / Log / 100% / Cue / CD - https://redacted.ch/torrents.php?id=0000000 / https://redacted.ch/torrents.php?action=download&id=0000000 - classical"
+      pattern: '^(.*)\s+\[(.*)\] \[(.*)\] - (.*) -\s+https?:.*[&\?]id=.*(https?\:\/\/.*)\s* -\s*(.*)'
       vars:
         - torrentName
+        - year
+        - category
+        - releaseTags
         - baseUrl
-        - torrentId
         - tags
 
   match:
-    torrenturl: "https://{{ .baseUrl }}torrents.php?action=download&id={{ .torrentId }}&authkey={{ .authkey }}&torrent_pass={{ .torrent_pass }}"
+    torrenturl: "{{ .baseUrl }}&authkey={{ .authkey }}&torrent_pass={{ .torrent_pass }}"

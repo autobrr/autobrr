@@ -21,8 +21,15 @@ type ircService interface {
 }
 
 type ircHandler struct {
-	encoder    encoder
-	ircService ircService
+	encoder encoder
+	service ircService
+}
+
+func newIrcHandler(encoder encoder, service ircService) *ircHandler {
+	return &ircHandler{
+		encoder: encoder,
+		service: service,
+	}
 }
 
 func (h ircHandler) Routes(r chi.Router) {
@@ -38,7 +45,7 @@ func (h ircHandler) Routes(r chi.Router) {
 func (h ircHandler) listNetworks(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
-	networks, err := h.ircService.ListNetworks(ctx)
+	networks, err := h.service.ListNetworks(ctx)
 	if err != nil {
 		//
 	}
@@ -54,7 +61,7 @@ func (h ircHandler) getNetworkByID(w http.ResponseWriter, r *http.Request) {
 
 	id, _ := strconv.Atoi(networkID)
 
-	network, err := h.ircService.GetNetworkByID(int64(id))
+	network, err := h.service.GetNetworkByID(int64(id))
 	if err != nil {
 		//
 	}
@@ -72,9 +79,11 @@ func (h ircHandler) storeNetwork(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err := h.ircService.StoreNetwork(&data)
+	err := h.service.StoreNetwork(&data)
 	if err != nil {
 		//
+		h.encoder.StatusResponse(ctx, w, nil, http.StatusBadRequest)
+		return
 	}
 
 	h.encoder.StatusResponse(ctx, w, nil, http.StatusCreated)
@@ -93,7 +102,7 @@ func (h ircHandler) storeChannel(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err := h.ircService.StoreChannel(int64(id), &data)
+	err := h.service.StoreChannel(int64(id), &data)
 	if err != nil {
 		//
 	}
@@ -107,7 +116,7 @@ func (h ircHandler) stopNetwork(w http.ResponseWriter, r *http.Request) {
 		networkID = chi.URLParam(r, "networkID")
 	)
 
-	err := h.ircService.StopNetwork(networkID)
+	err := h.service.StopNetwork(networkID)
 	if err != nil {
 		//
 	}
@@ -123,7 +132,7 @@ func (h ircHandler) deleteNetwork(w http.ResponseWriter, r *http.Request) {
 
 	id, _ := strconv.Atoi(networkID)
 
-	err := h.ircService.DeleteNetwork(ctx, int64(id))
+	err := h.service.DeleteNetwork(ctx, int64(id))
 	if err != nil {
 		//
 	}

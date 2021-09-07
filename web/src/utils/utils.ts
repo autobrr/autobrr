@@ -21,6 +21,18 @@ export function baseUrl() {
     return baseUrl
 }
 
+// get sseBaseUrl for SSE
+export function sseBaseUrl() {
+    let {origin} = window.location
+
+    let env = process.env.NODE_ENV
+    if (env === "development") {
+        return `http://localhost:8989/`
+    }
+
+    return `${origin}${baseUrl()}`
+}
+
 export function buildPath(...args: string[]): string {
     const [first] = args;
     const firstTrimmed = first.trim();

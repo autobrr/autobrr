@@ -45,6 +45,7 @@ func (c *HttpClient) DownloadFile(url string, opts map[string]string) (*Download
 	// Create the file
 	out, err := os.Create(tmpFileName)
 	if err != nil {
+		log.Error().Stack().Err(err).Msgf("error creating temp file: %v", tmpFileName)
 		return nil, err
 	}
 
@@ -53,20 +54,24 @@ func (c *HttpClient) DownloadFile(url string, opts map[string]string) (*Download
 	// Get the data
 	resp, err := http.Get(url)
 	if err != nil {
-		// TODO better error message
+		log.Error().Stack().Err(err).Msgf("error downloading file %v from %v", tmpFileName, url)
 		return nil, err
 	}
 	defer resp.Body.Close()
 
 	// retry logic
 
+	log.Trace().Msgf("downloaded file response: %v - status: %v", resp.Status, resp.StatusCode)
+
 	if resp.StatusCode != 200 {
+		log.Error().Stack().Err(err).Msgf("error downloading file: %v - bad status: %d", tmpFileName, resp.StatusCode)
 		return nil, err
 	}
 
 	// Write the body to file
 	_, err = io.Copy(out, resp.Body)
 	if err != nil {
+		log.Error().Stack().Err(err).Msgf("error writing downloaded file: %v", tmpFileName)
 		return nil, err
 	}
 
@@ -76,6 +81,8 @@ func (c *HttpClient) DownloadFile(url string, opts map[string]string) (*Download
 		Body:     &resp.Body,
 		FileName: tmpFileName,
 	}
+
+	log.Trace().Msgf("successfully downloaded file: %v", tmpFileName)
 
 	return &res, nil
 }

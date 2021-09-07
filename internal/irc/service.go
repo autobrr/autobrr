@@ -13,6 +13,7 @@ import (
 
 type Service interface {
 	StartHandlers()
+	StopHandlers()
 	StopNetwork(name string) error
 	ListNetworks(ctx context.Context) ([]domain.IrcNetwork, error)
 	GetNetworkByID(id int64) (*domain.IrcNetwork, error)
@@ -56,7 +57,7 @@ func (s *service) StartHandlers() {
 		s.lock.Lock()
 		channels, err := s.repo.ListChannels(network.ID)
 		if err != nil {
-			log.Error().Err(err).Msgf("failed to list channels for network %q", network.Addr)
+			log.Error().Err(err).Msgf("failed to list channels for network %q", network.Server)
 		}
 		network.Channels = channels
 
@@ -77,6 +78,15 @@ func (s *service) StartHandlers() {
 
 		s.stopWG.Done()
 	}
+}
+
+func (s *service) StopHandlers() {
+	for _, handler := range s.handlers {
+		log.Info().Msgf("stopping network: %+v", handler.network.Name)
+		handler.Stop()
+	}
+
+	log.Info().Msg("stopped all irc handlers")
 }
 
 func (s *service) startNetwork(network domain.IrcNetwork) error {
@@ -134,7 +144,7 @@ func (s *service) GetNetworkByID(id int64) (*domain.IrcNetwork, error) {
 
 	channels, err := s.repo.ListChannels(network.ID)
 	if err != nil {
-		log.Error().Err(err).Msgf("failed to list channels for network %q", network.Addr)
+		log.Error().Err(err).Msgf("failed to list channels for network %q", network.Server)
 		return nil, err
 	}
 	network.Channels = append(network.Channels, channels...)
@@ -154,7 +164,7 @@ func (s *service) ListNetworks(ctx context.Context) ([]domain.IrcNetwork, error)
 	for _, n := range networks {
 		channels, err := s.repo.ListChannels(n.ID)
 		if err != nil {
-			log.Error().Msgf("failed to list channels for network %q: %v", n.Addr, err)
+			log.Error().Msgf("failed to list channels for network %q: %v", n.Server, err)
 			return nil, err
 		}
 		n.Channels = append(n.Channels, channels...)
@@ -166,11 +176,21 @@ func (s *service) ListNetworks(ctx context.Context) ([]domain.IrcNetwork, error)
 }
 
 func (s *service) DeleteNetwork(ctx context.Context, id int64) error {
-	if err := s.repo.DeleteNetwork(ctx, id); err != nil {
+	network, err := s.GetNetworkByID(id)
+	if err != nil {
 		return err
 	}
 
-	log.Debug().Msgf("delete network: %+v", id)
+	log.Debug().Msgf("delete network: %v", id)
+
+	// Remove network and handler
+	if err = s.StopNetwork(network.Name); err != nil {
+		return err
+	}
+
+	if err = s.repo.DeleteNetwork(ctx, id); err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -191,23 +211,39 @@ func (s *service) StoreNetwork(network *domain.IrcNetwork) error {
 	}
 
 	// stop or start network
-	if !network.Enabled {
-		log.Debug().Msgf("stopping network: %+v", network.Name)
-
-		err := s.StopNetwork(network.Name)
-		if err != nil {
-			log.Error().Err(err).Msgf("could not stop network: %+v", network.Name)
-			return fmt.Errorf("could not stop network: %v", network.Name)
-		}
-	} else {
-		log.Debug().Msgf("starting network: %+v", network.Name)
-
+	if network.Enabled {
 		err := s.startNetwork(*network)
 		if err != nil {
 			log.Error().Err(err).Msgf("could not start network: %+v", network.Name)
 			return fmt.Errorf("could not start network: %v", network.Name)
 		}
+
+	} else {
+		err := s.StopNetwork(network.Name)
+		if err != nil {
+			log.Error().Err(err).Msgf("could not stop network: %+v", network.Name)
+			return fmt.Errorf("could not stop network: %v", network.Name)
+		}
 	}
+
+	// stop or start network
+	//if !network.Enabled {
+	//	log.Debug().Msgf("stopping network: %+v", network.Name)
+	//
+	//	err := s.StopNetwork(network.Name)
+	//	if err != nil {
+	//		log.Error().Err(err).Msgf("could not stop network: %+v", network.Name)
+	//		return fmt.Errorf("could not stop network: %v", network.Name)
+	//	}
+	//} else {
+	//	log.Debug().Msgf("starting network: %+v", network.Name)
+	//
+	//	err := s.startNetwork(*network)
+	//	if err != nil {
+	//		log.Error().Err(err).Msgf("could not start network: %+v", network.Name)
+	//		return fmt.Errorf("could not start network: %v", network.Name)
+	//	}
+	//}
 
 	return nil
 }

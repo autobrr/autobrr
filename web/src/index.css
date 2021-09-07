@@ -15,3 +15,35 @@ code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
     monospace;
 }
+
+@keyframes enter {
+  0% {
+      transform: scale(.9);
+      opacity: 0
+  }
+
+  to {
+      transform: scale(1);
+      opacity: 1
+  }
+}
+
+.animate-enter {
+  animation: enter .2s ease-out
+}
+
+@keyframes leave {
+  0% {
+      transform: scale(1);
+      opacity: 1
+  }
+
+  to {
+      transform: scale(.9);
+      opacity: 0
+  }
+}
+
+.animate-leave {
+  animation: leave .15s ease-in forwards
+}

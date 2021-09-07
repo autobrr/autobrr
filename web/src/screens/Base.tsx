@@ -5,6 +5,7 @@ import {NavLink,Link, Route, Switch} from "react-router-dom";
 import Settings from "./Settings";
 import { Dashboard } from "./Dashboard";
 import { FilterDetails, Filters} from "./Filters";
+import Logs from './Logs';
 
 const profile = ['Settings', 'Sign out']
 
@@ -13,7 +14,7 @@ function classNames(...classes: string[]) {
 }
 
 export default function Base() {
-    const nav = [{name: 'Dashboard', path: "/"}, {name: 'Filters', path: "/filters"}, {name: "Settings", path: "/settings"}]
+    const nav = [{name: 'Dashboard', path: "/"}, {name: 'Filters', path: "/filters"}, {name: "Settings", path: "/settings"},{name: "Logs", path: "/logs"}]
 
     return (
         <div>
@@ -180,6 +181,10 @@ export default function Base() {
                 </Disclosure>
 
                 <Switch>
+                    <Route path="/logs">
+                        <Logs />
+                    </Route>
+
                     <Route path="/settings">
                         <Settings/>
                     </Route>

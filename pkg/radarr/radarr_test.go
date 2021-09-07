@@ -104,7 +104,7 @@ func Test_client_Push(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			c := New(tt.fields.config)
 
-			err := c.Push(tt.args.release)
+			_, err := c.Push(tt.args.release)
 			if tt.wantErr && assert.Error(t, err) {
 				assert.Equal(t, tt.err, err)
 			}

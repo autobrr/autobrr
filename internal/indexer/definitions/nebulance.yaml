@@ -13,34 +13,42 @@ supports:
   - rss
 source: gazelle
 settings:
-    - name: authkey
-      type: text
-      label: Auth key
-      tooltip: Right click DL on a torrent and get the authkey.
-      description: Right click DL on a torrent and get the authkey.
-    - name: torrent_pass
-      type: text
-      label: Torrent pass
-      tooltip: Right click DL on a torrent and get the torrent_pass.
-      description: Right click DL on a torrent and get the torrent_pass.
+  - name: authkey
+    type: secret
+    label: Auth key
+    help: Right click DL on a torrent and get the authkey.
+  - name: torrent_pass
+    type: secret
+    label: Torrent pass
+    help: Right click DL on a torrent and get the torrent_pass.
 
 irc:
   network: Nebulance
-  server: irc.nebulance.cc:6697
+  server: irc.nebulance.cc
   port: 6697
   channels:
     - "#nbl-announce"
   announcers:
     - DRADIS
+  settings:
+    - name: nickserv.account
+      type: text
+      required: true
+      label: NickServ Account
+      help: NickServ account. Make sure to group your user and bot. Eg. user|bot
+    - name: nickserv.password
+      type: secret
+      required: true
+      label: NickServ Password
+      help: NickServ password
 
 parse:
   type: single
   lines:
-    -
-      test:
-        - "[Episodes] The Vet Life - S02E08 [WebRip / x264 / MKV / 720p / HD / VLAD / The.Vet.Life.S02E08.Tuskegee.Reunion.720p.ANPL.WEBRip.AAC2.0.x264-VLAD.mkv] [702.00 MB - Uploader: UPLOADER] - http://nebulance.io/torrents.php?id=147 [Tags: comedy,subtitles,cbs]"
-        - "[Seasons] Police Interceptors - S10 [HDTV / x264 / MKV / MP4 / 480p / SD / BTN / Police.Interceptors.S10.HDTV.x264-BTN] [5.27 GB - Uploader: UPLOADER] - http://nebulance.io/torrents.php?id=1472 [Tags: comedy,subtitles,cbs]"
-      pattern: '\[(.*?)\] (.*?) \[(.*?)\] \[(.*?) - Uploader: (.*?)\] - (https?://.*)id=(\d+) \[Tags: (.*)\]'
+    - test:
+        - "[Episodes] The Show - S02E08 [WebRip / x264 / MKV / 720p / HD / VLAD / The.Show.S02E08.Episode.Name.720p.ANPL.WEBRip.AAC2.0.x264-GROUP.mkv] [702.00 MB - Uploader: UPLOADER] - http://nebulance.io/torrents.php?id=000 [Tags: comedy,subtitles,cbs]"
+        - "[Seasons] Other Show - S10 [HDTV / x264 / MKV / MP4 / 480p / SD / BTN / Other.Show.S10.HDTV.x264-GROUP] [5.27 GB - Uploader: UPLOADER] - http://nebulance.io/torrents.php?id=0000 [Tags: comedy,subtitles,cbs]"
+      pattern: '\[(.*?)\] (.*?) \[(.*?)\] \[(.*?) - Uploader: (.*?)\] - (https?:\/\/.*)id=(\d+) \[Tags: (.*)\]'
       vars:
         - category
         - torrentName

@@ -13,36 +13,52 @@ supports:
   - rss
 source: gazelle
 settings:
-    - name: authkey
-      type: text
-      label: Auth key
-      tooltip: Right click DL on a torrent and get the authkey.
-      description: Right click DL on a torrent and get the authkey.
-    - name: torrent_pass
-      type: text
-      label: Torrent pass
-      tooltip: Right click DL on a torrent and get the torrent_pass.
-      description: Right click DL on a torrent and get the torrent_pass.
+  - name: authkey
+    type: secret
+    label: Auth key
+    help: Right click DL on a torrent and get the authkey.
+  - name: torrent_pass
+    type: secret
+    label: Torrent pass
+    help: Right click DL on a torrent and get the torrent_pass.
 
 irc:
   network: P2P-Network
-  server: irc.p2p-network.net:6697
+  server: irc.p2p-network.net
   port: 6697
+  tls: true
   channels:
     - "#UHD.Announce"
   announcers:
     - UHDBot
     - cr0nusbot
+  settings:
+    - name: nickserv.account
+      type: text
+      required: true
+      label: NickServ Account
+      help: NickServ account. Make sure to group your user and bot. Eg. user|autodl
+    - name: nickserv.password
+      type: secret
+      required: true
+      label: NickServ Password
+      help: NickServ password
+    - name: invite_command
+      type: secret
+      default: "UHDBot invite IRCKey"
+      required: true
+      label: Invite command
+      help: Invite auth with UHDBot.
 
 parse:
   type: single
   lines:
-    -
-      test:
-        - "New Torrent: D'Ardennen [2015] - TayTO Type: Movie / 1080p / Encode / Freeleech: 100 Size: 7.00GB - https://uhdbits.org/torrents.php?id=13882 / https://uhdbits.org/torrents.php?action=download&id=20488"
-      pattern: 'New Torrent: (.*) Type: (.*?) Freeleech: (.*) Size: (.*) - https?:\/\/.* \/ (https?:\/\/.*id=\d+)'
+    - test:
+        - "New Torrent: A Movie [2015] - GROUP Type: Movie / 1080p / Encode / Freeleech: 100 Size: 7.00GB - https://uhdbits.org/torrents.php?id=00000 / https://uhdbits.org/torrents.php?action=download&id=00000"
+      pattern: 'New Torrent: (.*) Type: (.*?) \/ (.*?) Freeleech: (.*) Size: (.*) - https?:\/\/.* \/ (https?:\/\/.*id=\d+)'
       vars:
         - torrentName
+        - category
         - releaseTags
         - freeleechPercent
         - torrentSize

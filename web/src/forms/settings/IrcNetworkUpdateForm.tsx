@@ -1,39 +1,31 @@
-import {Fragment, useEffect, useRef} from "react";
-import {useMutation} from "react-query";
-import {Network} from "../../domain/interfaces";
-import {Dialog, Transition} from "@headlessui/react";
-import {XIcon} from "@heroicons/react/solid";
-import {Field, Form} from "react-final-form";
+import { Fragment, useEffect, useRef } from "react";
+import { useMutation } from "react-query";
+import { Network } from "../../domain/interfaces";
+import { Dialog, Transition } from "@headlessui/react";
+import { XIcon } from "@heroicons/react/solid";
+import { Field, Form } from "react-final-form";
 import DEBUG from "../../components/debug";
-import {SwitchGroup, TextAreaWide, TextFieldWide} from "../../components/inputs";
-import {queryClient} from "../../App";
+import { SwitchGroup, TextFieldWide } from "../../components/inputs";
+import { queryClient } from "../../App";
 
 import arrayMutators from "final-form-arrays";
 import { FieldArray } from "react-final-form-arrays";
-import {classNames} from "../../styles/utils";
-import {useToggle} from "../../hooks/hooks";
-import {DeleteModal} from "../../components/modals";
+import { classNames } from "../../styles/utils";
+import { useToggle } from "../../hooks/hooks";
+import { DeleteModal } from "../../components/modals";
 import APIClient from "../../api/APIClient";
+import { NumberFieldWide, PasswordFieldWide } from "../../components/inputs/wide";
+
+import { toast } from 'react-hot-toast';
+import Toast from '../../components/notifications/Toast';
 
 
-// interface radioFieldsetOption {
-//     label: string;
-//     description: string;
-//     value: string;
-// }
-//
-// const saslTypeOptions: radioFieldsetOption[] = [
-//     {label: "None", description: "None", value: ""},
-//     {label: "Plain", description: "SASL plain", value: "PLAIN"},
-//     {label: "NickServ", description: "/NS identify", value: "NICKSERV"},
-// ];
-
-function IrcNetworkUpdateForm({isOpen, toggle, network}: any) {
+function IrcNetworkUpdateForm({ isOpen, toggle, network }: any) {
     const [deleteModalIsOpen, toggleDeleteModal] = useToggle(false)
-
     const mutation = useMutation((network: Network) => APIClient.irc.updateNetwork(network), {
         onSuccess: () => {
             queryClient.invalidateQueries(['networks']);
+            toast.custom((t) => <Toast type="success" body={`${network.name} was updated successfully`} t={t} />)
             toggle()
         }
     })
@@ -41,6 +33,8 @@ function IrcNetworkUpdateForm({isOpen, toggle, network}: any) {
     const deleteMutation = useMutation((id: number) => APIClient.irc.deleteNetwork(id), {
         onSuccess: () => {
             queryClient.invalidateQueries(['networks']);
+            toast.custom((t) => <Toast type="success" body={`${network.name} was deleted.`} t={t} />)
+
             toggle()
         }
     })
@@ -59,7 +53,7 @@ function IrcNetworkUpdateForm({isOpen, toggle, network}: any) {
         // let cmds = data.connect_commands && data.connect_commands.length > 0 ? data.connect_commands.replace(/\r\n/g,"\n").split("\n") : [];
         // data.connect_commands = cmds
         // console.log("formatted", data)
-        
+
         mutation.mutate(data)
     };
 
@@ -70,12 +64,16 @@ function IrcNetworkUpdateForm({isOpen, toggle, network}: any) {
             errors.name = "Required";
         }
 
-        if (!values.addr) {
-            errors.addr = "Required";
+        if (!values.server) {
+            errors.server = "Required";
         }
 
-        if (!values.nick) {
-            errors.nick = "Required";
+        if (!values.port) {
+            errors.port = "Required";
+        }
+
+        if(!values.nickserv?.account) {
+            errors.nickserv.account = "Required";
         }
 
         return errors;
@@ -98,7 +96,7 @@ function IrcNetworkUpdateForm({isOpen, toggle, network}: any) {
                     text="Are you sure you want to remove this network and channels? This action cannot be undone."
                 />
                 <div className="absolute inset-0 overflow-hidden">
-                    <Dialog.Overlay className="absolute inset-0"/>
+                    <Dialog.Overlay className="absolute inset-0" />
 
                     <div className="fixed inset-y-0 right-0 pl-10 max-w-full flex sm:pl-16">
                         <Transition.Child
@@ -117,19 +115,13 @@ function IrcNetworkUpdateForm({isOpen, toggle, network}: any) {
                                         id: network.id,
                                         name: network.name,
                                         enabled: network.enabled,
-                                        addr: network.addr,
+                                        server: network.server,
+                                        port: network.port,
                                         tls: network.tls,
-                                        nick: network.nick,
+                                        nickserv: network.nickserv,
                                         pass: network.pass,
-                                        connect_commands: network.connect_commands,
-                                        sasl: network.sasl,
-                                        // sasl: {
-                                        //     mechanism: network.sasl.mechanism,
-                                        //     plain: {
-                                        //         username: network.sasl.plain.username,
-                                        //         password: network.sasl.plain.password,
-                                        //     }
-                                        // },
+                                        invite_command: network.invite_command,
+                                        // connect_commands: network.connect_commands,
                                         channels: network.channels
                                     }}
                                     mutators={{
@@ -138,10 +130,10 @@ function IrcNetworkUpdateForm({isOpen, toggle, network}: any) {
                                     validate={validate}
                                     onSubmit={onSubmit}
                                 >
-                                    {({handleSubmit, values, pristine, invalid}) => {
+                                    {({ handleSubmit, values, pristine, invalid }) => {
                                         return (
                                             <form className="h-full flex flex-col bg-white shadow-xl overflow-y-scroll"
-                                                  onSubmit={handleSubmit}>
+                                                onSubmit={handleSubmit}>
                                                 <div className="flex-1">
                                                     {/* Header */}
                                                     <div className="px-4 py-6 bg-gray-50 sm:px-6">
@@ -160,106 +152,48 @@ function IrcNetworkUpdateForm({isOpen, toggle, network}: any) {
                                                                     onClick={toggle}
                                                                 >
                                                                     <span className="sr-only">Close panel</span>
-                                                                    <XIcon className="h-6 w-6" aria-hidden="true"/>
+                                                                    <XIcon className="h-6 w-6" aria-hidden="true" />
                                                                 </button>
                                                             </div>
                                                         </div>
                                                     </div>
-                                                    
+
                                                     <TextFieldWide name="name" label="Name" placeholder="Name" required={true} />
 
                                                     <div className="py-6 space-y-6 sm:py-0 sm:space-y-0 sm:divide-y sm:divide-gray-200">
 
                                                         <div
                                                             className="py-6 px-6 space-y-6 sm:py-0 sm:space-y-0 sm:divide-y sm:divide-gray-200">
-                                                            <SwitchGroup name="enabled" label="Enabled"/>
+                                                            <SwitchGroup name="enabled" label="Enabled" />
                                                         </div>
 
                                                         <div>
-
-                                                            <TextFieldWide name="addr" label="Address" placeholder="Address:port eg irc.server.net:6697" required={true} />
+                                                            <div className="px-6 space-y-1 mt-6">
+                                                                <Dialog.Title className="text-lg font-medium text-gray-900">Connection</Dialog.Title>
+                                                                {/* <p className="text-sm text-gray-500">
+                                                                    Networks, channels and invite commands are configured automatically.
+                                                                </p> */}
+                                                            </div>
+                                                            <TextFieldWide name="server" label="Server" placeholder="Address: Eg irc.server.net" required={true} />
+                                                            <NumberFieldWide name="port" label="Port" />
 
                                                             <div className="py-6 px-6 space-y-6 sm:py-0 sm:space-y-0 sm:divide-y sm:divide-gray-200">
-                                                                <SwitchGroup name="tls" label="TLS"/>
+                                                                <SwitchGroup name="tls" label="TLS" />
                                                             </div>
 
-                                                            <TextFieldWide name="nick" label="Nick" placeholder="Nick" required={true} />
+                                                            <PasswordFieldWide name="pass" label="Password" help="Network password" />
 
-                                                            <TextFieldWide name="password" label="Password" placeholder="Network password" />
+                                                            <div className="px-6 space-y-1 border-t pt-6">
+                                                                <Dialog.Title className="text-lg font-medium text-gray-900">Account</Dialog.Title>
+                                                                {/* <p className="text-sm text-gray-500">
+                                                                    Networks, channels and invite commands are configured automatically.
+                                                                </p> */}
+                                                            </div>
 
-                                                            <TextAreaWide name="connect_commands" label="Connect commands" placeholder="/msg test this" />
+                                                            <TextFieldWide name="nickserv.account" label="NickServ Account" required={true} />
+                                                            <PasswordFieldWide name="nickserv.password" label="NickServ Password" />
 
-
-              {/*                                              <Field*/}
-              {/*                                                  name="sasl.mechanism"*/}
-              {/*                                                  type="select"*/}
-              {/*                                                  render={({input}) => (*/}
-              {/*                                                      <Listbox value={input.value} onChange={input.onChange}>*/}
-              {/*                                                          {({open}) => (*/}
-              {/*                                                              <div className="space-y-1 px-4 sm:space-y-0 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6 sm:py-5">*/}
-              {/*                                                                  <div>*/}
-              {/*                                                                      <Listbox.Label className="block text-sm font-medium text-gray-900 sm:mt-px sm:pt-2">SASL / auth</Listbox.Label>*/}
-              {/*                                                                  </div>*/}
-              {/*                                                                  <div className="sm:col-span-2 relative">*/}
-              {/*                                                                      <Listbox.Button*/}
-              {/*                                                                          className="bg-white relative w-full border border-gray-300 rounded-md shadow-sm pl-3 pr-10 py-2 text-left cursor-default focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">*/}
-              {/*                                                                          <span className="block truncate">{input.value ? saslTypeOptions.find(c => c.value === input.value)!.label : "Choose a auth type"}</span>*/}
-              {/*                                                                          /!*<span className="block truncate">Choose a auth type</span>*!/*/}
-              {/*                                                                          <span*/}
-              {/*                                                                              className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">*/}
-              {/*  <SelectorIcon className="h-5 w-5 text-gray-400" aria-hidden="true"/>*/}
-              {/*</span>*/}
-              {/*                                                                      </Listbox.Button>*/}
-
-              {/*                                                                      <Transition*/}
-              {/*                                                                          show={open}*/}
-              {/*                                                                          as={Fragment}*/}
-              {/*                                                                          leave="transition ease-in duration-100"*/}
-              {/*                                                                          leaveFrom="opacity-100"*/}
-              {/*                                                                          leaveTo="opacity-0"*/}
-              {/*                                                                      >*/}
-              {/*                                                                          <Listbox.Options*/}
-              {/*                                                                              static*/}
-              {/*                                                                              className="absolute z-10 mt-1 w-full bg-white shadow-lg max-h-60 rounded-md py-1 text-base ring-1 ring-black ring-opacity-5 overflow-auto focus:outline-none sm:text-sm"*/}
-              {/*                                                                          >*/}
-              {/*                                                                              {saslTypeOptions.map((opt: any) => (*/}
-              {/*                                                                                  <Listbox.Option*/}
-              {/*                                                                                      key={opt.value}*/}
-              {/*                                                                                      className={({active}) =>*/}
-              {/*                                                                                          classNames(*/}
-              {/*                                                                                              active ? 'text-white bg-indigo-600' : 'text-gray-900',*/}
-              {/*                                                                                              'cursor-default select-none relative py-2 pl-3 pr-9'*/}
-              {/*                                                                                          )*/}
-              {/*                                                                                      }*/}
-              {/*                                                                                      value={opt.value}*/}
-              {/*                                                                                  >*/}
-              {/*                                                                                      {({selected, active}) => (*/}
-              {/*                                                                                          <>*/}
-              {/*          <span className={classNames(selected ? 'font-semibold' : 'font-normal', 'block truncate')}>*/}
-              {/*            {opt.label}*/}
-              {/*          </span>*/}
-
-              {/*                                                                                              {selected ? (*/}
-              {/*                                                                                                  <span*/}
-              {/*                                                                                                      className={classNames(*/}
-              {/*                                                                                                          active ? 'text-white' : 'text-indigo-600',*/}
-              {/*                                                                                                          'absolute inset-y-0 right-0 flex items-center pr-4'*/}
-              {/*                                                                                                      )}*/}
-              {/*                                                                                                  >*/}
-              {/*              <CheckIcon className="h-5 w-5" aria-hidden="true"/>*/}
-              {/*            </span>*/}
-              {/*                                                                                              ) : null}*/}
-              {/*                                                                                          </>*/}
-              {/*                                                                                      )}*/}
-              {/*                                                                                  </Listbox.Option>*/}
-              {/*                                                                              ))}*/}
-              {/*                                                                          </Listbox.Options>*/}
-              {/*                                                                      </Transition>*/}
-              {/*                                                                  </div>*/}
-              {/*                                                              </div>*/}
-              {/*                                                          )}*/}
-              {/*                                                      </Listbox>*/}
-              {/*                                                  )} />*/}
+                                                            <PasswordFieldWide name="invite_command" label="Invite command" />
                                                         </div>
                                                     </div>
 
@@ -294,7 +228,7 @@ function IrcNetworkUpdateForm({isOpen, toggle, network}: any) {
                                                                                     onClick={() => fields.remove(index)}
                                                                                 >
                                                                                     <span className="sr-only">Remove</span>
-                                                                                    <XIcon className="h-6 w-6" aria-hidden="true"/>
+                                                                                    <XIcon className="h-6 w-6" aria-hidden="true" />
                                                                                 </button>
                                                                             </div>
                                                                         ))
@@ -336,8 +270,8 @@ function IrcNetworkUpdateForm({isOpen, toggle, network}: any) {
                                                             </button>
                                                             <button
                                                                 type="submit"
-                                                                disabled={pristine || invalid}
-                                                                className={classNames(pristine || invalid ? "bg-indigo-300" : "bg-indigo-600 hover:bg-indigo-700","inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500")}
+                                                                // disabled={pristine || invalid}
+                                                                className={classNames(pristine || invalid ? "bg-indigo-300" : "bg-indigo-600 hover:bg-indigo-700", "inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500")}
                                                             >
                                                                 Save
                                                             </button>
@@ -345,27 +279,7 @@ function IrcNetworkUpdateForm({isOpen, toggle, network}: any) {
                                                     </div>
                                                 </div>
 
-                                                {/*<div*/}
-                                                {/*    className="flex-shrink-0 px-4 border-t border-gray-200 py-5 sm:px-6">*/}
-                                                {/*    <div className="space-x-3 flex justify-end">*/}
-                                                {/*        <button*/}
-                                                {/*            type="button"*/}
-                                                {/*            className="bg-white py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"*/}
-                                                {/*            onClick={toggle}*/}
-                                                {/*        >*/}
-                                                {/*            Cancel*/}
-                                                {/*        </button>*/}
-                                                {/*        <button*/}
-                                                {/*            type="submit"*/}
-                                                {/*            disabled={pristine || invalid}*/}
-                                                {/*            className={classNames(pristine || invalid ? "bg-indigo-300" : "bg-indigo-600 hover:bg-indigo-700","inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500")}*/}
-                                                {/*        >*/}
-                                                {/*            Save*/}
-                                                {/*        </button>*/}
-                                                {/*    </div>*/}
-                                                {/*</div>*/}
-
-                                                <DEBUG values={values}/>
+                                                <DEBUG values={values} />
                                             </form>
                                         )
                                     }}

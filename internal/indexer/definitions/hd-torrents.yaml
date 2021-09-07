@@ -14,36 +14,46 @@ supports:
   - rss
 source: xbtit
 settings:
-    - name: cookie
-      type: text
-      label: Cookie
-      description: "FireFox -> Preferences -> Privacy -> Show Cookies and find the uid and pass cookies. Example: uid=1234; pass=asdf12347asdf13"
+  - name: cookie
+    type: secret
+    label: Cookie
+    help: "Check how to get cookies in your browser and find the uid and pass cookies. Example: uid=1234; pass=asdf12347asdf13"
 
 irc:
   network: P2P-NET
-  server: irc.p2p-network.net:6697
+  server: irc.p2p-network.net
   port: 6697
+  tls: true
   channels:
     - "#HD-Torrents.Announce"
   announcers:
     - HoboLarry
+  settings:
+    - name: nickserv.account
+      type: text
+      required: true
+      label: NickServ Account
+      help: NickServ account. Make sure to group your user and bot. Eg. user-bot
+    - name: nickserv.password
+      type: secret
+      required: true
+      label: NickServ Password
+      help: NickServ password
 
 parse:
   type: single
   lines:
-    -
-      test:
-        - "New Torrent in category [XXX/Blu-ray] Erotische Fantasien 3D (2008) Blu-ray 1080p AVC DTS-HD MA 7 1 (14.60 GB) uploaded! Download: https://hd-torrents.org/download.php?id=806bc36530d146969d300c5352483a5e6e0639e9"
-      pattern: 'New Torrent in category \[([^\]]*)\] (.*) \(([^\)]*)\) uploaded! Download\: https?\:\/\/([^\/]+\/).*[&\?]id=([a-f0-9]+)'
+    - test:
+        - "New Torrent in category [Movies/Remux] That Movie (2008) Blu-ray 1080p REMUX AVC DTS-HD MA 7 1 (14.60 GB) uploaded! Download: https://hd-torrents.org/download.php?id=AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+      pattern: 'New Torrent in category \[([^\]]*)\] (.*) \(([^\)]*)\) uploaded! Download\: (https?\:\/\/.*[&\?]id=.+)'
       vars:
         - category
         - torrentName
         - torrentSize
         - baseUrl
-        - torrentId
 
   match:
-    torrenturl: "https://{{ .baseUrl }}download.php?id={{ .torrentId }}&f={{ .torrentName }}.torrent"
+    torrenturl: "{{ .baseUrl }}&f={{ .torrentName }}.torrent"
     cookie: true
     encode:
       - torrentName

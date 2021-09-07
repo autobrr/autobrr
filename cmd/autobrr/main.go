@@ -7,6 +7,7 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/r3labs/sse/v2"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/pflag"
 	_ "modernc.org/sqlite"
@@ -40,8 +41,14 @@ func main() {
 	// read config
 	cfg = config.Read(configPath)
 
+	// setup server-sent-events
+	serverEvents := sse.New()
+	serverEvents.AutoReplay = false
+
+	serverEvents.CreateStream("logs")
+
 	// setup logger
-	logger.Setup(cfg)
+	logger.Setup(cfg, serverEvents)
 
 	// if configPath is set then put database inside that path, otherwise create wherever it's run
 	var dataSource = database.DataSourceName(configPath, "autobrr.db")
@@ -85,7 +92,7 @@ func main() {
 	errorChannel := make(chan error)
 
 	go func() {
-		httpServer := http.NewServer(addr, cfg.BaseURL, actionService, authService, downloadClientService, filterService, indexerService, ircService)
+		httpServer := http.NewServer(serverEvents, addr, cfg.BaseURL, actionService, authService, downloadClientService, filterService, indexerService, ircService)
 		errorChannel <- httpServer.Open()
 	}()
 
@@ -94,22 +101,25 @@ func main() {
 	srv.Port = cfg.Port
 
 	sigCh := make(chan os.Signal, 1)
-	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP)
+	signal.Notify(sigCh, syscall.SIGHUP, syscall.SIGINT, syscall.SIGQUIT, syscall.SIGKILL, syscall.SIGTERM)
 
 	if err := srv.Start(); err != nil {
-		log.Fatal().Err(err).Msg("could not start server")
+		log.Fatal().Stack().Err(err).Msg("could not start server")
+		return
 	}
 
 	for sig := range sigCh {
 		switch sig {
 		case syscall.SIGHUP:
-			log.Print("shutting down server")
+			log.Print("shutting down server sighup")
+			srv.Shutdown()
 			os.Exit(1)
-		case syscall.SIGINT, syscall.SIGTERM:
-			log.Print("shutting down server")
-			//srv.Shutdown()
+		case syscall.SIGINT, syscall.SIGQUIT:
+			srv.Shutdown()
 			os.Exit(1)
-			return
+		case syscall.SIGKILL, syscall.SIGTERM:
+			srv.Shutdown()
+			os.Exit(1)
 		}
 	}
 }

@@ -20,8 +20,15 @@ type filterService interface {
 }
 
 type filterHandler struct {
-	encoder       encoder
-	filterService filterService
+	encoder encoder
+	service filterService
+}
+
+func newFilterHandler(encoder encoder, service filterService) *filterHandler {
+	return &filterHandler{
+		encoder: encoder,
+		service: service,
+	}
 }
 
 func (h filterHandler) Routes(r chi.Router) {
@@ -35,7 +42,7 @@ func (h filterHandler) Routes(r chi.Router) {
 func (h filterHandler) getFilters(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
-	trackers, err := h.filterService.ListFilters()
+	trackers, err := h.service.ListFilters()
 	if err != nil {
 		//
 	}
@@ -51,7 +58,7 @@ func (h filterHandler) getByID(w http.ResponseWriter, r *http.Request) {
 
 	id, _ := strconv.Atoi(filterID)
 
-	filter, err := h.filterService.FindByID(id)
+	filter, err := h.service.FindByID(id)
 	if err != nil {
 		h.encoder.StatusNotFound(ctx, w)
 		return
@@ -68,7 +75,7 @@ func (h filterHandler) storeFilterAction(w http.ResponseWriter, r *http.Request)
 
 	id, _ := strconv.Atoi(filterID)
 
-	filter, err := h.filterService.FindByID(id)
+	filter, err := h.service.FindByID(id)
 	if err != nil {
 		//
 	}
@@ -87,7 +94,7 @@ func (h filterHandler) store(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	filter, err := h.filterService.Store(data)
+	filter, err := h.service.Store(data)
 	if err != nil {
 		// encode error
 		return
@@ -107,7 +114,7 @@ func (h filterHandler) update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	filter, err := h.filterService.Update(data)
+	filter, err := h.service.Update(data)
 	if err != nil {
 		// encode error
 		return
@@ -124,7 +131,7 @@ func (h filterHandler) delete(w http.ResponseWriter, r *http.Request) {
 
 	id, _ := strconv.Atoi(filterID)
 
-	if err := h.filterService.Delete(id); err != nil {
+	if err := h.service.Delete(id); err != nil {
 		// return err
 	}
 

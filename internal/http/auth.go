@@ -16,8 +16,15 @@ type authService interface {
 }
 
 type authHandler struct {
-	encoder     encoder
-	authService authService
+	encoder encoder
+	service authService
+}
+
+func newAuthHandler(encoder encoder, service authService) *authHandler {
+	return &authHandler{
+		encoder: encoder,
+		service: service,
+	}
 }
 
 var (
@@ -49,7 +56,7 @@ func (h authHandler) login(w http.ResponseWriter, r *http.Request) {
 	store.Options.SameSite = http.SameSiteStrictMode
 	session, _ := store.Get(r, "user_session")
 
-	_, err := h.authService.Login(data.Username, data.Password)
+	_, err := h.service.Login(data.Username, data.Password)
 	if err != nil {
 		h.encoder.StatusResponse(ctx, w, nil, http.StatusUnauthorized)
 		return

@@ -20,6 +20,10 @@ type configHandler struct {
 	encoder encoder
 }
 
+func newConfigHandler(encoder encoder) *configHandler {
+	return &configHandler{encoder: encoder}
+}
+
 func (h configHandler) Routes(r chi.Router) {
 	r.Get("/", h.getConfig)
 }

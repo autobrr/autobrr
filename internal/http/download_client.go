@@ -18,8 +18,15 @@ type downloadClientService interface {
 }
 
 type downloadClientHandler struct {
-	encoder               encoder
-	downloadClientService downloadClientService
+	encoder encoder
+	service downloadClientService
+}
+
+func newDownloadClientHandler(encoder encoder, service downloadClientService) *downloadClientHandler {
+	return &downloadClientHandler{
+		encoder: encoder,
+		service: service,
+	}
 }
 
 func (h downloadClientHandler) Routes(r chi.Router) {
@@ -33,7 +40,7 @@ func (h downloadClientHandler) Routes(r chi.Router) {
 func (h downloadClientHandler) listDownloadClients(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
-	clients, err := h.downloadClientService.List()
+	clients, err := h.service.List()
 	if err != nil {
 		//
 	}
@@ -52,7 +59,7 @@ func (h downloadClientHandler) store(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	client, err := h.downloadClientService.Store(data)
+	client, err := h.service.Store(data)
 	if err != nil {
 		// encode error
 	}
@@ -72,7 +79,7 @@ func (h downloadClientHandler) test(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err := h.downloadClientService.Test(data)
+	err := h.service.Test(data)
 	if err != nil {
 		// encode error
 		h.encoder.StatusResponse(ctx, w, nil, http.StatusBadRequest)
@@ -93,7 +100,7 @@ func (h downloadClientHandler) update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	client, err := h.downloadClientService.Store(data)
+	client, err := h.service.Store(data)
 	if err != nil {
 		// encode error
 	}
@@ -111,7 +118,7 @@ func (h downloadClientHandler) delete(w http.ResponseWriter, r *http.Request) {
 
 	id, _ := strconv.Atoi(clientID)
 
-	if err := h.downloadClientService.Delete(id); err != nil {
+	if err := h.service.Delete(id); err != nil {
 		// encode error
 	}
 

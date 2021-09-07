@@ -3,7 +3,6 @@ package database
 import (
 	"context"
 	"database/sql"
-	"strings"
 
 	"github.com/autobrr/autobrr/internal/domain"
 
@@ -24,7 +23,7 @@ func (ir *IrcRepo) Store(announce domain.Announce) error {
 
 func (ir *IrcRepo) GetNetworkByID(id int64) (*domain.IrcNetwork, error) {
 
-	row := ir.db.QueryRow("SELECT id, enabled, name, addr, tls, nick, pass, connect_commands, sasl_mechanism, sasl_plain_username, sasl_plain_password FROM irc_network WHERE id = ?", id)
+	row := ir.db.QueryRow("SELECT id, enabled, name, server, port, tls, pass, invite_command, nickserv_account, nickserv_password FROM irc_network WHERE id = ?", id)
 	if err := row.Err(); err != nil {
 		log.Fatal().Err(err)
 		return nil, err
@@ -32,22 +31,19 @@ func (ir *IrcRepo) GetNetworkByID(id int64) (*domain.IrcNetwork, error) {
 
 	var n domain.IrcNetwork
 
-	var pass, connectCommands sql.NullString
-	var saslMechanism, saslPlainUsername, saslPlainPassword sql.NullString
+	var pass, inviteCmd sql.NullString
+	var nsAccount, nsPassword sql.NullString
 	var tls sql.NullBool
 
-	if err := row.Scan(&n.ID, &n.Enabled, &n.Name, &n.Addr, &tls, &n.Nick, &pass, &connectCommands, &saslMechanism, &saslPlainUsername, &saslPlainPassword); err != nil {
+	if err := row.Scan(&n.ID, &n.Enabled, &n.Name, &n.Server, &n.Port, &tls, &pass, &inviteCmd, &nsAccount, &nsPassword); err != nil {
 		log.Fatal().Err(err)
 	}
 
 	n.TLS = tls.Bool
 	n.Pass = pass.String
-	if connectCommands.Valid {
-		n.ConnectCommands = strings.Split(connectCommands.String, "\r\n")
-	}
-	n.SASL.Mechanism = saslMechanism.String
-	n.SASL.Plain.Username = saslPlainUsername.String
-	n.SASL.Plain.Password = saslPlainPassword.String
+	n.InviteCommand = inviteCmd.String
+	n.NickServ.Account = nsAccount.String
+	n.NickServ.Password = nsPassword.String
 
 	return &n, nil
 }
@@ -84,7 +80,7 @@ func (ir *IrcRepo) DeleteNetwork(ctx context.Context, id int64) error {
 
 func (ir *IrcRepo) ListNetworks(ctx context.Context) ([]domain.IrcNetwork, error) {
 
-	rows, err := ir.db.QueryContext(ctx, "SELECT id, enabled, name, addr, tls, nick, pass, connect_commands FROM irc_network")
+	rows, err := ir.db.QueryContext(ctx, "SELECT id, enabled, name, server, port, tls, pass, invite_command, nickserv_account, nickserv_password FROM irc_network")
 	if err != nil {
 		log.Fatal().Err(err)
 	}
@@ -95,20 +91,16 @@ func (ir *IrcRepo) ListNetworks(ctx context.Context) ([]domain.IrcNetwork, error
 	for rows.Next() {
 		var net domain.IrcNetwork
 
-		//var username, realname, pass, connectCommands sql.NullString
-		var pass, connectCommands sql.NullString
+		var pass, inviteCmd sql.NullString
 		var tls sql.NullBool
 
-		if err := rows.Scan(&net.ID, &net.Enabled, &net.Name, &net.Addr, &tls, &net.Nick, &pass, &connectCommands); err != nil {
+		if err := rows.Scan(&net.ID, &net.Enabled, &net.Name, &net.Server, &net.Port, &tls, &pass, &inviteCmd, &net.NickServ.Account, &net.NickServ.Password); err != nil {
 			log.Fatal().Err(err)
 		}
 
 		net.TLS = tls.Bool
 		net.Pass = pass.String
-
-		if connectCommands.Valid {
-			net.ConnectCommands = strings.Split(connectCommands.String, "\r\n")
-		}
+		net.InviteCommand = inviteCmd.String
 
 		networks = append(networks, net)
 	}
@@ -131,7 +123,6 @@ func (ir *IrcRepo) ListChannels(networkID int64) ([]domain.IrcChannel, error) {
 	for rows.Next() {
 		var ch domain.IrcChannel
 
-		//if err := rows.Scan(&ch.ID, &ch.Name, &ch.Enabled, &ch.Pass, &ch.InviteCommand, &ch.InviteHTTPURL, &ch.InviteHTTPHeader, &ch.InviteHTTPData); err != nil {
 		if err := rows.Scan(&ch.ID, &ch.Name, &ch.Enabled); err != nil {
 			log.Fatal().Err(err)
 		}
@@ -149,20 +140,10 @@ func (ir *IrcRepo) StoreNetwork(network *domain.IrcNetwork) error {
 
 	netName := toNullString(network.Name)
 	pass := toNullString(network.Pass)
-	connectCommands := toNullString(strings.Join(network.ConnectCommands, "\r\n"))
+	inviteCmd := toNullString(network.InviteCommand)
 
-	var saslMechanism, saslPlainUsername, saslPlainPassword sql.NullString
-	if network.SASL.Mechanism != "" {
-		saslMechanism = toNullString(network.SASL.Mechanism)
-		switch network.SASL.Mechanism {
-		case "PLAIN":
-			saslPlainUsername = toNullString(network.SASL.Plain.Username)
-			saslPlainPassword = toNullString(network.SASL.Plain.Password)
-		default:
-			log.Warn().Msgf("unsupported SASL mechanism: %q", network.SASL.Mechanism)
-			//return fmt.Errorf("cannot store network: unsupported SASL mechanism %q", network.SASL.Mechanism)
-		}
-	}
+	nsAccount := toNullString(network.NickServ.Account)
+	nsPassword := toNullString(network.NickServ.Password)
 
 	var err error
 	if network.ID != 0 {
@@ -170,26 +151,24 @@ func (ir *IrcRepo) StoreNetwork(network *domain.IrcNetwork) error {
 		_, err = ir.db.Exec(`UPDATE irc_network
 			SET enabled = ?,
 			    name = ?,
-			    addr = ?,
+			    server = ?,
+			    port = ?,
 			    tls = ?,
-			    nick = ?,
 			    pass = ?,
-			    connect_commands = ?,
-			    sasl_mechanism = ?,
-			    sasl_plain_username = ?,
-			    sasl_plain_password = ?,
+			    invite_command = ?,
+			    nickserv_account = ?,
+			    nickserv_password = ?,
 			    updated_at = CURRENT_TIMESTAMP
 			WHERE id = ?`,
 			network.Enabled,
 			netName,
-			network.Addr,
+			network.Server,
+			network.Port,
 			network.TLS,
-			network.Nick,
 			pass,
-			connectCommands,
-			saslMechanism,
-			saslPlainUsername,
-			saslPlainPassword,
+			inviteCmd,
+			nsAccount,
+			nsPassword,
 			network.ID,
 		)
 	} else {
@@ -198,25 +177,23 @@ func (ir *IrcRepo) StoreNetwork(network *domain.IrcNetwork) error {
 		res, err = ir.db.Exec(`INSERT INTO irc_network (
                          enabled,
                          name,
-                         addr,
+                         server,
+                         port,
                          tls,
-                         nick,
                          pass,
-                         connect_commands,
-                         sasl_mechanism,
-                         sasl_plain_username,
-                         sasl_plain_password
-                         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                         invite_command,
+			    		 nickserv_account,
+			             nickserv_password
+                         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 			network.Enabled,
 			netName,
-			network.Addr,
+			network.Server,
+			network.Port,
 			network.TLS,
-			network.Nick,
 			pass,
-			connectCommands,
-			saslMechanism,
-			saslPlainUsername,
-			saslPlainPassword,
+			inviteCmd,
+			nsAccount,
+			nsPassword,
 		)
 		if err != nil {
 			log.Error().Stack().Err(err).Msg("error executing query")

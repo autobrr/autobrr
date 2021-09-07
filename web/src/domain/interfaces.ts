@@ -31,6 +31,43 @@ export interface Indexer {
     settings: object | any;
 }
 
+export interface IndexerSchema {
+    // id: number;
+    name: string;
+    identifier: string;
+    description: string;
+    language: string;
+    privacy: string;
+    protocol: string;
+    urls: string[];
+    settings: IndexerSchemaSettings[];
+    irc: IndexerSchemaIRC;
+}
+
+
+export interface IndexerSchemaSettings {
+    name: string;
+    type: string;
+    required: boolean;
+    label: string;
+    help: string;
+    description: string;
+    default: string;
+}
+
+export interface IndexerSchemaIRC {
+    network: string;
+    server: string;
+    port: number;
+    tls: boolean;
+    nickserv: boolean;
+    announcers: string[];
+    channels: string[];
+    invite: string[];
+    invite_command: string;
+    settings: IndexerSchemaSettings[];
+}
+
 export interface Filter {
     id: number;
     name: string;
@@ -80,23 +117,41 @@ export enum DOWNLOAD_CLIENT_TYPES {
 }
 
 export interface DownloadClient {
-    id: number;
+    id?: number;
     name: string;
     enabled: boolean;
+    host: string;
+    port: number;
+    ssl: boolean;
+    username: string;
+    password: string;
     type: DownloadClientType;
     settings: object;
 }
 
+export interface NickServ {
+    account: string;
+    password: string;
+}
+
 export interface Network {
-    id: number;
+    id?: number;
     name: string;
     enabled: boolean;
-    addr: string;
-    nick: string;
-    username: string;
-    realname: string;
-    pass: string;
-    sasl: SASL;
+    server: string;
+    port: number;
+    tls: boolean;
+    invite_command: string;
+    nickserv: {
+        account: string;
+        password: string;
+    }
+    channels: Channel[];
+    settings: object;
+}
+
+export interface Channel {
+    name: string;
 }
 
 export interface SASL {

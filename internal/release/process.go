@@ -1,6 +1,7 @@
 package release
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/anacrolix/torrent/metainfo"
@@ -24,7 +25,7 @@ func NewService(actionService action.Service) Service {
 }
 
 func (s *service) Process(announce domain.Announce) error {
-	log.Debug().Msgf("start to process release: %+v", announce)
+	log.Trace().Msgf("start to process release: %+v", announce)
 
 	if announce.Filter.Actions == nil {
 		return fmt.Errorf("no actions for filter: %v", announce.Filter.Name)
@@ -47,12 +48,17 @@ func (s *service) Process(announce domain.Announce) error {
 	// TODO check extra headers, cookie
 		res, err = c.DownloadFile(announce.TorrentUrl, nil)
 	if err != nil {
-		log.Error().Err(err).Msgf("could not download file: %v", announce.TorrentName)
+		log.Error().Stack().Err(err).Msgf("could not download file: %v", announce.TorrentName)
 		return err
 	}
 
 	if res.FileName == "" {
-		return err
+		return errors.New("error downloading file, no tmp file")
+	}
+
+	if res.Body == nil {
+		log.Error().Stack().Err(err).Msgf("tmp file error - empty body: %v", announce.TorrentName)
+		return errors.New("empty body")
 	}
 
 	// onTorrentDownloaded
@@ -74,7 +80,7 @@ func (s *service) Process(announce domain.Announce) error {
 	// take action (watchFolder, test, runProgram, qBittorrent, Deluge etc)
 	err = s.actionSvc.RunActions(res.FileName, hash, *announce.Filter, announce)
 	if err != nil {
-		log.Error().Err(err).Msgf("error running actions for filter: %v", announce.Filter.Name)
+		log.Error().Stack().Err(err).Msgf("error running actions for filter: %v", announce.Filter.Name)
 		return err
 	}
 

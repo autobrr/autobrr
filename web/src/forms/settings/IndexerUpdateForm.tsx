@@ -1,15 +1,19 @@
-import {Fragment, useRef} from "react";
-import {useMutation } from "react-query";
-import {Indexer} from "../../domain/interfaces";
-import {sleep} from "../../utils/utils";
-import {ExclamationIcon, XIcon} from "@heroicons/react/solid";
-import {Dialog, Transition} from "@headlessui/react";
-import {Field, Form} from "react-final-form";
+import { Fragment, useRef } from "react";
+import { useMutation } from "react-query";
+import { Indexer } from "../../domain/interfaces";
+import { sleep } from "../../utils/utils";
+import { ExclamationIcon, XIcon } from "@heroicons/react/solid";
+import { Dialog, Transition } from "@headlessui/react";
+import { Field, Form } from "react-final-form";
 import DEBUG from "../../components/debug";
-import { SwitchGroup } from "../../components/inputs";
-import {useToggle} from "../../hooks/hooks";
+import { SwitchGroup, TextFieldWide } from "../../components/inputs";
+import { useToggle } from "../../hooks/hooks";
 import APIClient from "../../api/APIClient";
-import {queryClient} from "../../App";
+import { queryClient } from "../../App";
+import { PasswordFieldWide } from "../../components/inputs/wide";
+
+import { toast } from 'react-hot-toast'
+import Toast from '../../components/notifications/Toast';
 
 interface props {
     isOpen: boolean;
@@ -17,12 +21,13 @@ interface props {
     indexer: Indexer;
 }
 
-function IndexerUpdateForm({isOpen, toggle, indexer}: props) {
+function IndexerUpdateForm({ isOpen, toggle, indexer }: props) {
     const [deleteModalIsOpen, toggleDeleteModal] = useToggle(false)
 
     const mutation = useMutation((indexer: Indexer) => APIClient.indexers.update(indexer), {
         onSuccess: () => {
             queryClient.invalidateQueries(['indexer']);
+            toast.custom((t) => <Toast type="success" body={`${indexer.name} was updated successfully`} t={t}/>)
             sleep(1500)
 
             toggle()
@@ -32,6 +37,7 @@ function IndexerUpdateForm({isOpen, toggle, indexer}: props) {
     const deleteMutation = useMutation((id: number) => APIClient.indexers.delete(id), {
         onSuccess: () => {
             queryClient.invalidateQueries(['indexer']);
+            toast.custom((t) => <Toast type="success" body={`${indexer.name} was deleted.`} t={t}/>)
         }
     })
 
@@ -55,31 +61,11 @@ function IndexerUpdateForm({isOpen, toggle, indexer}: props) {
                         switch (f.type) {
                             case "text":
                                 return (
-                                    <div className="space-y-1 px-4 sm:space-y-0 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6 sm:py-5" key={idx}>
-                                        <div>
-                                            <label
-                                                htmlFor={f.name}
-                                                className="block text-sm font-medium text-gray-900 sm:mt-px sm:pt-2"
-                                            >
-                                                {f.label}
-                                            </label>
-                                        </div>
-                                        <div className="sm:col-span-2">
-                                            <Field name={"settings."+f.name}>
-                                                {({input, meta}) => (
-                                                    <div className="sm:col-span-2">
-                                                        <input
-                                                            type="text"
-                                                            {...input}
-                                                            className="block w-full shadow-sm sm:text-sm focus:ring-indigo-500 focus:border-indigo-500 border-gray-300 rounded-md"
-                                                        />
-                                                        {meta.touched && meta.error &&
-                                                        <span>{meta.error}</span>}
-                                                    </div>
-                                                )}
-                                            </Field>
-                                        </div>
-                                    </div>
+                                    <TextFieldWide name={`settings.${f.name}`} label={f.label} key={idx} help={f.help} />
+                                )
+                            case "secret":
+                                return (
+                                    <PasswordFieldWide name={`settings.${f.name}`} label={f.label} key={idx} help={f.help} />
                                 )
                         }
                     })}
@@ -87,9 +73,6 @@ function IndexerUpdateForm({isOpen, toggle, indexer}: props) {
             )
         }
     }
-
-    // const setss = indexer.settings.reduce((o: any, obj: any) => ({ ...o, [obj.name]: obj.value }), {})
-    // console.log("setts", setss)
 
     return (
         <Transition.Root show={isOpen} as={Fragment}>
@@ -119,8 +102,8 @@ function IndexerUpdateForm({isOpen, toggle, indexer}: props) {
 
                             {/* This element is to trick the browser into centering the modal contents. */}
                             <span className="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">
-            &#8203;
-          </span>
+                                &#8203;
+                            </span>
                             <Transition.Child
                                 as={Fragment}
                                 enter="ease-out duration-300"
@@ -172,7 +155,7 @@ function IndexerUpdateForm({isOpen, toggle, indexer}: props) {
                     </Dialog>
                 </Transition.Root>
                 <div className="absolute inset-0 overflow-hidden">
-                    <Dialog.Overlay className="absolute inset-0"/>
+                    <Dialog.Overlay className="absolute inset-0" />
 
                     <div className="fixed inset-y-0 right-0 pl-10 max-w-full flex sm:pl-16">
                         <Transition.Child
@@ -195,12 +178,11 @@ function IndexerUpdateForm({isOpen, toggle, indexer}: props) {
                                     }}
                                     onSubmit={onSubmit}
                                 >
-                                    {({handleSubmit, values}) => {
+                                    {({ handleSubmit, values }) => {
                                         return (
                                             <form className="h-full flex flex-col bg-white shadow-xl overflow-y-scroll"
-                                                  onSubmit={handleSubmit}>
+                                                onSubmit={handleSubmit}>
                                                 <div className="flex-1">
-                                                    {/* Header */}
                                                     <div className="px-4 py-6 bg-gray-50 sm:px-6">
                                                         <div className="flex items-start justify-between space-x-3">
                                                             <div className="space-y-1">
@@ -218,13 +200,12 @@ function IndexerUpdateForm({isOpen, toggle, indexer}: props) {
                                                                     onClick={toggle}
                                                                 >
                                                                     <span className="sr-only">Close panel</span>
-                                                                    <XIcon className="h-6 w-6" aria-hidden="true"/>
+                                                                    <XIcon className="h-6 w-6" aria-hidden="true" />
                                                                 </button>
                                                             </div>
                                                         </div>
                                                     </div>
 
-                                                    {/* Divider container */}
                                                     <div
                                                         className="py-6 space-y-6 sm:py-0 sm:space-y-0 sm:divide-y sm:divide-gray-200">
                                                         <div
@@ -238,7 +219,7 @@ function IndexerUpdateForm({isOpen, toggle, indexer}: props) {
                                                                 </label>
                                                             </div>
                                                             <Field name="name">
-                                                                {({input, meta}) => (
+                                                                {({ input, meta }) => (
                                                                     <div className="sm:col-span-2">
                                                                         <input
                                                                             type="text"
@@ -246,7 +227,7 @@ function IndexerUpdateForm({isOpen, toggle, indexer}: props) {
                                                                             className="block w-full shadow-sm sm:text-sm focus:ring-indigo-500 focus:border-indigo-500 border-gray-300 rounded-md"
                                                                         />
                                                                         {meta.touched && meta.error &&
-                                                                        <span>{meta.error}</span>}
+                                                                            <span>{meta.error}</span>}
                                                                     </div>
                                                                 )}
                                                             </Field>
@@ -289,7 +270,7 @@ function IndexerUpdateForm({isOpen, toggle, indexer}: props) {
                                                     </div>
                                                 </div>
 
-                                                <DEBUG values={values}/>
+                                                <DEBUG values={values} />
                                             </form>
                                         )
                                     }}

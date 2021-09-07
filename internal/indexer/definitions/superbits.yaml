@@ -14,27 +14,37 @@ supports:
 source: rartracker
 settings:
   - name: passkey
-    type: text
+    type: secret
     label: Passkey
-    tooltip: Copy the passkey from the /rss page
-    description: "Copy the passkey from the /rss page."
+    help: "Copy the passkey from the /rss page."
 
 irc:
   network: SuperBits
-  server: irc.superbits.org:6697
+  server: irc.superbits.org
   port: 6697
+  tls: true
   channels:
     - "#autodl"
   announcers:
     - SuperBits
+  settings:
+    - name: nickserv.account
+      type: text
+      required: true
+      label: NickServ Account
+      help: NickServ account. Make sure to group your user and bot. Eg. user-bot
+    - name: nickserv.password
+      type: secret
+      required: false
+      label: NickServ Password
+      help: NickServ password
 
 parse:
   type: single
   lines:
-    -
-      test:
-        - "-[archive Film 1080]2[Asterix.Et.La.Surprise.De.Cesar.1985.FRENCH.1080p.BluRay.x264-TSuNaMi]3[844551]4[Size: 4.41 GB]5[FL: no]6[Scene: yes]"
-        - "-[new TV]2[Party.Down.South.S05E05.720p.WEB.h264-DiRT]3[844557]4[Size: 964.04 MB]5[FL: no]6[Scene: yes]7[Pred 1m 30s ago]"
+    - test:
+        - "-[archive Film 1080]2[A.Movie.1985.FRENCH.1080p.BluRay.x264-GROUP]3[000000]4[Size: 4.41 GB]5[FL: no]6[Scene: yes]"
+        - "-[new TV]2[Some.Show.S05E05.720p.WEB.h264-GROUP]3[000000]4[Size: 964.04 MB]5[FL: no]6[Scene: yes]7[Pred 1m 30s ago]"
       pattern: '\-\[(.*)\]2\[(.*)\]3\[(\d+)\]4\[Size\:\s(.*)\]5\[FL\:\s(no|yes)\]6\[Scene\:\s(no|yes)\](?:7\[Pred\s(.*)\sago\])?'
       vars:
         - category
