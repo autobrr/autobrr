@@ -42,7 +42,7 @@ function DownloadClientSettingsListItem({ client, idx }: DownloadLClientSettings
                 </Switch>
             </td>
             <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{client.name}</td>
-            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{client.host}</td>
+            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{client.host}</td>
             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{DownloadClientTypeNameMap[client.type]}</td>
             <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                 <span className="text-indigo-600 hover:text-indigo-900 cursor-pointer"  onClick={toggleUpdateClient}>
