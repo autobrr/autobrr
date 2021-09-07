@@ -5,12 +5,12 @@ import (
 	"net"
 	"net/http"
 
+	"github.com/autobrr/autobrr/internal/config"
+	"github.com/autobrr/autobrr/web"
+
 	"github.com/go-chi/chi"
 	"github.com/r3labs/sse/v2"
 	"github.com/rs/cors"
-
-	"github.com/autobrr/autobrr/internal/config"
-	"github.com/autobrr/autobrr/web"
 )
 
 type Server struct {
@@ -59,10 +59,12 @@ func (s Server) Handler() http.Handler {
 	r := chi.NewRouter()
 
 	c := cors.New(cors.Options{
-		AllowCredentials: true,
-		AllowOriginFunc:  func(origin string) bool { return true },
+		AllowCredentials:   true,
+		AllowedMethods:     []string{"HEAD", "OPTIONS", "GET", "POST", "PUT", "PATCH", "DELETE"},
+		AllowOriginFunc:    func(origin string) bool { return true },
+		OptionsPassthrough: true,
 		// Enable Debugging for testing, consider disabling in production
-		//Debug: true,
+		Debug: false,
 	})
 
 	r.Use(c.Handler)
@@ -94,12 +96,15 @@ func (s Server) Handler() http.Handler {
 			r.Route("/indexer", newIndexerHandler(encoder, s.indexerService, s.ircService).Routes)
 
 			r.HandleFunc("/events", func(w http.ResponseWriter, r *http.Request) {
+
 				// inject CORS headers to bypass checks
 				s.sse.Headers = map[string]string{
-					"Access-Control-Allow-Credentials": "true",
-					"Access-Control-Allow-Origin":      r.Header.Get("Origin"),
-					"Vary":                             "Origin",
+					"Content-Type":      "text/event-stream",
+					"Cache-Control":     "no-cache",
+					"Connection":        "keep-alive",
+					"X-Accel-Buffering": "no",
 				}
+
 				s.sse.HTTPHandler(w, r)
 			})
 		})
