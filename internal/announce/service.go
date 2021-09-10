@@ -75,7 +75,7 @@ func (s *service) Parse(announceID string, msg string) error {
 
 	log.Trace().Msgf("announce: %+v", announce)
 
-	log.Info().Msgf("Matched %v (%v) for %v", announce.TorrentName, announce.Filter.Name, announce.Site)
+	log.Info().Msgf("Matched '%v' (%v) for %v", announce.TorrentName, announce.Filter.Name, announce.Site)
 
 	// match release
 

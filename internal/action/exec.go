@@ -11,12 +11,12 @@ import (
 )
 
 func (s *service) execCmd(announce domain.Announce, action domain.Action, torrentFile string) {
-	log.Trace().Msgf("action EXEC: release: %v", announce.TorrentName)
+	log.Debug().Msgf("action exec: %v release: %v", action.Name, announce.TorrentName)
 
 	// check if program exists
 	cmd, err := exec.LookPath(action.ExecCmd)
 	if err != nil {
-		log.Error().Err(err).Msgf("exec failed, could not find program: %v", action.ExecCmd)
+		log.Error().Stack().Err(err).Msgf("exec failed, could not find program: %v", action.ExecCmd)
 		return
 	}
 
@@ -30,7 +30,7 @@ func (s *service) execCmd(announce domain.Announce, action domain.Action, torren
 	// parse and replace values in argument string before continuing
 	parsedArgs, err := m.Parse(action.ExecArgs)
 	if err != nil {
-		log.Error().Err(err).Msgf("exec failed, could not parse arguments: %v", action.ExecCmd)
+		log.Error().Stack().Err(err).Msgf("exec failed, could not parse arguments: %v", action.ExecCmd)
 		return
 	}
 
@@ -46,7 +46,7 @@ func (s *service) execCmd(announce domain.Announce, action domain.Action, torren
 	output, err := command.CombinedOutput()
 	if err != nil {
 		// everything other than exit 0 is considered an error
-		log.Error().Err(err).Msgf("command: %v args: %v failed, torrent: %v", cmd, parsedArgs, torrentFile)
+		log.Error().Stack().Err(err).Msgf("command: %v args: %v failed, torrent: %v", cmd, parsedArgs, torrentFile)
 	}
 
 	log.Trace().Msgf("executed command: '%v'", string(output))
