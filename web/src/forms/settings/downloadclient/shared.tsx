@@ -106,7 +106,7 @@ function FormFieldsRules() {
 
           {input.value === true && (
             <Fragment>
-              <NumberFieldWide name="settings.rules.download_speed_threshold" label="Download speed threshold" placeholder="in KB/s"/>
+              <NumberFieldWide name="settings.rules.download_speed_threshold" label="Download speed threshold" placeholder="in KB/s" help="If download speed is below this when max active downloads is hit, download anyways. KB/s" />
             </Fragment>
           )}
         </Fragment>

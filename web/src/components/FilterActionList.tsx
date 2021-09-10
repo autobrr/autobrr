@@ -10,7 +10,7 @@ import {
 import { useToggle } from "../hooks/hooks";
 import { useMutation } from "react-query";
 import { Field, Form } from "react-final-form";
-import { TextField } from "./inputs";
+import { SwitchGroup, TextField } from "./inputs";
 import { NumberField, SelectField } from "./inputs/compact";
 import DEBUG from "./debug";
 import APIClient from "../api/APIClient";
@@ -281,6 +281,12 @@ function ListItem({ action, clients, filterID, idx }: ListItemProps) {
                 label="Limit upload speed (KB/s)"
               />
             </div>
+
+            <div className="mt-6 grid grid-cols-12 gap-6">
+              <div className="col-span-6">
+                <SwitchGroup name="paused" label="Add paused" />
+              </div>
+            </div>
           </div>
         );
       case "DELUGE_V1":
@@ -312,6 +318,12 @@ function ListItem({ action, clients, filterID, idx }: ListItemProps) {
                 name="limit_upload_speed"
                 label="Limit upload speed (KB/s)"
               />
+            </div>
+
+            <div className="mt-6 grid grid-cols-12 gap-6">
+              <div className="col-span-6">
+                <SwitchGroup name="paused" label="Add paused" />
+              </div>
             </div>
           </div>
         );
