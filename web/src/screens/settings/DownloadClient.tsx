@@ -1,18 +1,23 @@
-import {useState} from "react";
+import {Fragment, useRef } from "react";
 import {DownloadClient} from "../../domain/interfaces";
 import {useToggle} from "../../hooks/hooks";
-import {Switch} from "@headlessui/react";
-import {useQuery} from "react-query";
+import {Menu, Switch, Transition} from "@headlessui/react";
+import {useMutation, useQuery} from "react-query";
 import {classNames} from "../../styles/utils";
 import { DownloadClientAddForm, DownloadClientUpdateForm } from "../../forms";
 import EmptySimple from "../../components/empty/EmptySimple";
 import APIClient from "../../api/APIClient";
 import {DownloadClientTypeNameMap} from "../../domain/constants";
-
+import { DotsHorizontalIcon, PencilIcon, TrashIcon } from '@heroicons/react/solid'
+import Toast from "../../components/notifications/Toast";
+import toast from "react-hot-toast";
+import { queryClient } from "../../App";
+import { DeleteModal } from "../../components/modals";
 interface DownloadLClientSettingsListItemProps {
     client: DownloadClient;
     idx: number;
 }
+
 
 function DownloadClientSettingsListItem({ client, idx }: DownloadLClientSettingsListItemProps) {
     const [updateClientIsOpen, toggleUpdateClient] = useToggle(false)
@@ -44,14 +49,120 @@ function DownloadClientSettingsListItem({ client, idx }: DownloadLClientSettings
             <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{client.name}</td>
             <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{client.host}</td>
             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{DownloadClientTypeNameMap[client.type]}</td>
-            <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                <span className="text-indigo-600 hover:text-indigo-900 cursor-pointer"  onClick={toggleUpdateClient}>
-                    Edit
-                </span>
+            <td className="px-6 pb-4 whitespace-nowrap text-right text-sm font-medium">
+            <DropdownMenu toggleClient={toggleUpdateClient} client={client}/>
             </td>
         </tr>
     )
 }
+
+type DropDownProps = {
+    toggleClient: () => void;
+    client: any;
+}
+
+const DropdownMenu = ({ toggleClient, client }: DropDownProps ) => {
+    const [deleteModalIsOpen, toggleDeleteModal] = useToggle(false);
+
+    const cancelModalButtonRef = useRef(null);
+
+    const deleteMutation = useMutation(
+        (clientID: number) => APIClient.download_clients.delete(clientID),
+        {
+          onSuccess: () => {
+            queryClient.invalidateQueries();
+            toast.custom((t) => <Toast type="success" body={`${client.name} was deleted.`} t={t}/>)
+            toggleDeleteModal();
+          },
+        }
+      );
+
+      const deleteAction = () => {
+        deleteMutation.mutate(client.id);
+      };
+
+    return (
+      <div className="text-right fixed" >
+        <DeleteModal
+          isOpen={deleteModalIsOpen}
+          toggle={toggleDeleteModal}
+          buttonRef={cancelModalButtonRef}
+          deleteAction={deleteAction}
+          title="Remove download client"
+          text="Are you sure you want to remove this download client? This action cannot be undone."
+        />
+
+        <Menu as="div" className="relative inline-block text-left">
+          <div>
+            <Menu.Button className="inline-flex justify-center w-full text-sm font-medium rounded-md">
+            <DotsHorizontalIcon className="text-indigo-600 h-5 w-5" />
+
+            </Menu.Button>
+          </div>
+          <Transition
+            as={Fragment}
+            enter="transition ease-out duration-100"
+            enterFrom="transform opacity-0 scale-95"
+            enterTo="transform opacity-100 scale-100"
+            leave="transition ease-in duration-75"
+            leaveFrom="transform opacity-100 scale-100"
+            leaveTo="transform opacity-0 scale-95"
+          >
+            <Menu.Items className="absolute right-0 w-28 mt-2 origin-top-right bg-white divide-y divide-gray-100 rounded-md shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none z-20">
+              <div className="px-1 py-1 ">
+                <Menu.Item>
+                  {({ active }) => (
+                    <button
+                      className={`${
+                        active ? 'bg-violet-500 text-indigo-600' : 'text-gray-900'
+                      } group flex rounded-md items-center w-full px-2 py-2 text-sm`}
+                      onClick={toggleClient}
+                    >
+                      {active ? (
+                        <PencilIcon
+                          className="w-5 h-5 mr-2 text-indigo-600"
+                          aria-hidden="true"
+                        />
+                      ) : (
+                        <PencilIcon
+                          className="w-5 h-5 mr-2 text-black"
+                          aria-hidden="true"
+                        />
+                      )}
+                      Edit
+                    </button>
+                  )}
+                </Menu.Item>
+                <Menu.Item>
+                  {({ active }) => (
+                    <button
+                      className={`${
+                        active ? 'bg-violet-500 text-red-500' : 'text-gray-900'
+                      } group flex rounded-md items-center w-full px-2 py-2 text-sm`}
+                      onClick={toggleDeleteModal}
+                    >
+                      {active ? (
+                        <TrashIcon
+                          className="w-5 h-5 mr-2 text-red-500"
+                          aria-hidden="true"
+                        />
+                      ) : (
+                        <TrashIcon
+                          className="w-5 h-5 mr-2 text-gray-900"
+                          aria-hidden="true"
+                        />
+                      )}
+                      Remove
+                    </button>
+                  )}
+                </Menu.Item>
+                </div>
+            </Menu.Items>
+          </Transition>
+        </Menu>
+      </div>
+    )
+  }
 
 function DownloadClientSettings() {
     const [addClientIsOpen, toggleAddClient] = useToggle(false)
@@ -121,9 +232,15 @@ function DownloadClientSettings() {
                                             >
                                                 Type
                                             </th>
-                                            <th scope="col" className="relative px-6 py-3">
-                                                <span className="sr-only">Edit</span>
+                                            <th
+                                                scope="col"
+                                                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                                            >
+                                                Edit
                                             </th>
+                                            {/* <th scope="col" className="relative px-6 py-3">
+                                                <span className="sr-only">Edit</span>
+                                            </th> */}
                                         </tr>
                                         </thead>
                                         <tbody>
