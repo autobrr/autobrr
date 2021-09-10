@@ -27,8 +27,8 @@ func (c *Client) Login() error {
 		return err
 
 	} else if resp.StatusCode != http.StatusOK { // check for correct status code
-		log.Error().Err(err).Msg("login bad status error")
-		return err
+		log.Error().Err(err).Msgf("login bad status %v error", resp.StatusCode)
+		return errors.New("qbittorrent login bad status")
 	}
 
 	defer resp.Body.Close()
