@@ -22,8 +22,16 @@ type DownloadClient struct {
 }
 
 type DownloadClientSettings struct {
-	APIKey string    `json:"apikey,omitempty"`
-	Basic  BasicAuth `json:"basic,omitempty"`
+	APIKey string              `json:"apikey,omitempty"`
+	Basic  BasicAuth           `json:"basic,omitempty"`
+	Rules  DownloadClientRules `json:"rules,omitempty"`
+}
+
+type DownloadClientRules struct {
+	Enabled                bool  `json:"enabled"`
+	MaxActiveDownloads     int   `json:"max_active_downloads"`
+	IgnoreSlowTorrents     bool  `json:"ignore_slow_torrents"`
+	DownloadSpeedThreshold int64 `json:"download_speed_threshold"`
 }
 
 type BasicAuth struct {

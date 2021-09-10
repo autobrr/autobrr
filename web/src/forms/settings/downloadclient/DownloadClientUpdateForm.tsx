@@ -12,7 +12,7 @@ import { SwitchGroup, TextFieldWide } from "../../../components/inputs";
 import { DownloadClientTypeOptions } from "../../../domain/constants";
 import APIClient from "../../../api/APIClient";
 import { sleep } from "../../../utils/utils";
-import { componentMap } from "./shared";
+import { componentMap, rulesComponentMap } from "./shared";
 import { RadioFieldsetWide } from "../../../components/inputs/wide";
 import { DeleteModal } from "../../../components/modals";
 
@@ -189,6 +189,8 @@ function DownloadClientUpdateForm({ client, isOpen, toggle }: any) {
                             <div>{componentMap[values.type]}</div>
                           </div>
                         </div>
+
+                        {rulesComponentMap[values.type]}
 
                         <div className="flex-shrink-0 px-4 border-t border-gray-200 py-5 sm:px-6">
                           <div className="space-x-3 flex justify-between">

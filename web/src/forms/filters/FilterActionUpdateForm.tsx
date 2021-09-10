@@ -10,7 +10,7 @@ import DEBUG from "../../components/debug";
 import APIClient from "../../api/APIClient";
 import { ActionTypeOptions } from "../../domain/constants";
 import { AlertWarning } from "../../components/alerts";
-import { TextFieldWide } from "../../components/inputs";
+import { SwitchGroup, TextFieldWide } from "../../components/inputs";
 import {
   NumberFieldWide,
   RadioFieldsetWide,
@@ -132,6 +132,9 @@ function FilterActionUpdateForm({
                 name="limit_upload_speed"
                 label="Limit upload speed"
               />
+            </div>
+            <div className="col-span-6">
+              <SwitchGroup name="paused" label="Add paused" />
             </div>
           </div>
         );

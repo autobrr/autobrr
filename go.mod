@@ -4,7 +4,7 @@ go 1.16
 
 require (
 	github.com/anacrolix/torrent v1.29.1
-	github.com/gdm85/go-libdeluge v0.5.4
+	github.com/gdm85/go-libdeluge v0.5.5
 	github.com/go-chi/chi v1.5.4
 	github.com/gorilla/sessions v1.2.1
 	github.com/gorilla/websocket v1.4.2

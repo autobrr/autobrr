@@ -91,6 +91,7 @@ func (r *DownloadClientRepo) Store(client domain.DownloadClient) (*domain.Downlo
 	settings := domain.DownloadClientSettings{
 		APIKey: client.Settings.APIKey,
 		Basic:  client.Settings.Basic,
+		Rules:  client.Settings.Rules,
 	}
 
 	settingsJson, err := json.Marshal(&settings)
@@ -162,6 +163,8 @@ func (r *DownloadClientRepo) Store(client domain.DownloadClient) (*domain.Downlo
 
 		resId, _ := res.LastInsertId()
 		client.ID = int(resId)
+
+		log.Trace().Msgf("download_client: store new record %d", client.ID)
 	}
 
 	log.Info().Msgf("store download client: %v", client.Name)

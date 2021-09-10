@@ -3,6 +3,7 @@ package client
 import (
 	"crypto/md5"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -40,8 +41,6 @@ func (c *HttpClient) DownloadFile(url string, opts map[string]string) (*Download
 	hashString := hex.EncodeToString(hash[:])
 	tmpFileName := fmt.Sprintf("/tmp/%v", hashString)
 
-	log.Debug().Msgf("tmpFileName: %v", tmpFileName)
-
 	// Create the file
 	out, err := os.Create(tmpFileName)
 	if err != nil {
@@ -60,8 +59,6 @@ func (c *HttpClient) DownloadFile(url string, opts map[string]string) (*Download
 	defer resp.Body.Close()
 
 	// retry logic
-
-	log.Trace().Msgf("downloaded file response: %v - status: %v", resp.Status, resp.StatusCode)
 
 	if resp.StatusCode != 200 {
 		log.Error().Stack().Err(err).Msgf("error downloading file: %v - bad status: %d", tmpFileName, resp.StatusCode)
@@ -82,7 +79,12 @@ func (c *HttpClient) DownloadFile(url string, opts map[string]string) (*Download
 		FileName: tmpFileName,
 	}
 
-	log.Trace().Msgf("successfully downloaded file: %v", tmpFileName)
+	if res.FileName == "" || res.Body == nil {
+		log.Error().Stack().Err(err).Msgf("tmp file error - empty body: %v", url)
+		return nil, errors.New("error downloading file, no tmp file")
+	}
+
+	log.Debug().Msgf("successfully downloaded file: %v", tmpFileName)
 
 	return &res, nil
 }

@@ -98,8 +98,8 @@ func (s *service) FindByIndexerIdentifier(announce domain.Announce) (*domain.Fil
 		// if match, return the filter
 		matchedFilter := s.checkFilter(filter, announce)
 		if matchedFilter {
-			log.Trace().Msgf("found filter: %+v", &filter)
-			log.Debug().Msgf("found filter: %+v", &filter.Name)
+			log.Trace().Msgf("found matching filter: %+v", &filter)
+			log.Debug().Msgf("found matching filter: %v", &filter.Name)
 
 			// find actions and attach
 			actions, err := s.actionRepo.FindByFilterID(filter.ID)

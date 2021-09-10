@@ -6,6 +6,7 @@ import { classNames } from "../../../styles/utils";
 interface Props {
   name: string;
   label?: string;
+  help?: string;
   placeholder?: string;
   defaultValue?: number;
   className?: string;
@@ -17,6 +18,7 @@ const NumberFieldWide: React.FC<Props> = ({
   name,
   label,
   placeholder,
+  help,
   defaultValue,
   required,
   hidden,
@@ -51,6 +53,9 @@ const NumberFieldWide: React.FC<Props> = ({
           />
         )}
       />
+      {help && (
+        <p className="mt-2 text-sm text-gray-500" id={`${name}-description`}>{help}</p>
+      )}
       <Error name={name} classNames="block text-red-500 mt-2" />
     </div>
   </div>

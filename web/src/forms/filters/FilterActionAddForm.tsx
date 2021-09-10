@@ -10,7 +10,7 @@ import { Field, Form } from "react-final-form";
 import DEBUG from "../../components/debug";
 import APIClient from "../../api/APIClient";
 import { ActionTypeOptions } from "../../domain/constants";
-import { TextFieldWide } from "../../components/inputs";
+import { SwitchGroup, TextFieldWide } from "../../components/inputs";
 import { AlertWarning } from "../../components/alerts";
 import {
   NumberFieldWide,
@@ -206,6 +206,10 @@ function FilterActionAddForm({ filter, isOpen, toggle, clients }: props) {
             />
             <TextFieldWide name="save_path" label="Save path" />
 
+            <div className="py-6 px-6 space-y-6 sm:py-0 sm:space-y-0 sm:divide-y sm:divide-gray-200">
+                <SwitchGroup name="paused" label="Add paused" />
+            </div>
+
             <div className="divide-y divide-gray-200 pt-8 space-y-6 sm:pt-10 sm:space-y-5">
               <div className="px-4">
                 <h3 className="text-lg leading-6 font-medium text-gray-900">
@@ -239,6 +243,10 @@ function FilterActionAddForm({ filter, isOpen, toggle, clients }: props) {
 
             <TextFieldWide name="label" label="Label" />
             <TextFieldWide name="save_path" label="Save path" />
+
+            <div className="py-6 px-6 space-y-6 sm:py-0 sm:space-y-0 sm:divide-y sm:divide-gray-200">
+                <SwitchGroup name="paused" label="Add paused" />
+            </div>
 
             <div className="divide-y divide-gray-200 pt-8 space-y-6 sm:pt-10 sm:space-y-5">
               <div className="px-4">
