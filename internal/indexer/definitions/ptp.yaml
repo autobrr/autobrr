@@ -54,7 +54,8 @@ parse:
   lines:
     - test:
         - "That Movie [1972] by Some Director | x264 / Blu-ray / MKV / 1080p | 204371 | 964303 | That.Movie.1972.1080p.BluRay.FLAC.x264-GROUP | comedy, drama, romance"
-      pattern: '.* \[(.*)\] by .* \| (.*) \| .* \| (.*) \| (.*) \| (.*)'
+        - "That Other Movie [1972] | x264 / Blu-ray / MKV / 1080p | 204371 | 964303 | That.Other.Movie.1972.1080p.BluRay.FLAC.x264-GROUP | comedy, drama, romance"
+      pattern: '.* \[(.*)\] (?:by .*)?\| (.*) \| .* \| (.*) \| (.*) \| (.*)'
       vars:
         - year
         - releaseTags
