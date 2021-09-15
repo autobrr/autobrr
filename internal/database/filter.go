@@ -90,7 +90,7 @@ func (r *FilterRepo) FindByID(filterID int) (*domain.Filter, error) {
 	f.FreeleechPercent = freeleechPercent.String
 	f.Shows = shows.String
 	f.Seasons = seasons.String
-	f.Episodes = minSize.String
+	f.Episodes = episodes.String
 	f.Years = years.String
 	f.MatchCategories = matchCategories.String
 	f.ExceptCategories = exceptCategories.String
@@ -211,7 +211,7 @@ func (r *FilterRepo) FindByIndexerIdentifier(indexer string) ([]domain.Filter, e
 		f.FreeleechPercent = freeleechPercent.String
 		f.Shows = shows.String
 		f.Seasons = seasons.String
-		f.Episodes = minSize.String
+		f.Episodes = episodes.String
 		f.Years = years.String
 		f.MatchCategories = matchCategories.String
 		f.ExceptCategories = exceptCategories.String
