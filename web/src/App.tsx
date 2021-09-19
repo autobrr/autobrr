@@ -22,11 +22,9 @@ function App() {
     return (
         <QueryClientProvider client={queryClient}>
             <Router basename={baseUrl()}>
-                <Switch>
                     <Route exact={true} path="/login" component={Login}/>
                     <Route exact={true} path="/logout" component={Logout}/>
                     <Route exact={true} path="/*" component={Protected}/>
-                </Switch>
             </Router>
             <ReactQueryDevtools initialIsOpen={false}/>
         </QueryClientProvider>

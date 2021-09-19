@@ -189,6 +189,16 @@ func (s *service) Update(filter domain.Filter) (*domain.Filter, error) {
 		}
 	}
 
+	// store actions
+	if filter.Actions != nil {
+		for _, action := range filter.Actions {
+			if _, err := s.actionRepo.Store(action); err != nil {
+				log.Error().Err(err).Msgf("could not store filter actions: %v", filter.Name)
+				return nil, err
+			}
+		}
+	}
+
 	return f, nil
 }
 
