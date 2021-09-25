@@ -1,5 +1,5 @@
-import { Field } from "react-final-form";
 import React from "react";
+import { Field } from "react-final-form";
 import Error from "../Error";
 import { classNames } from "../../../styles/utils";
 
@@ -28,7 +28,7 @@ const NumberFieldWide: React.FC<Props> = ({
     <div>
       <label
         htmlFor={name}
-        className="block text-sm font-medium text-gray-900 sm:mt-px sm:pt-2"
+        className="block text-sm font-medium text-gray-900 dark:text-white sm:mt-px sm:pt-2"
       >
         {label} {required && <span className="text-gray-500">*</span>}
       </label>
@@ -46,15 +46,15 @@ const NumberFieldWide: React.FC<Props> = ({
             className={classNames(
               meta.touched && meta.error
                 ? "focus:ring-red-500 focus:border-red-500 border-red-500"
-                : "focus:ring-indigo-500 focus:border-indigo-500 border-gray-300",
-              "block w-full shadow-sm sm:text-sm rounded-md"
+                : "focus:ring-indigo-500 dark:focus:ring-blue-500 focus:border-indigo-500 dark:focus:border-blue-500 border-gray-300 dark:border-gray-700",
+              "block w-full shadow-sm dark:bg-gray-800 sm:text-sm dark:text-white rounded-md"
             )}
             placeholder={placeholder}
           />
         )}
       />
       {help && (
-        <p className="mt-2 text-sm text-gray-500" id={`${name}-description`}>{help}</p>
+        <p className="mt-2 text-sm text-gray-500 dark:text-gray-200" id={`${name}-description`}>{help}</p>
       )}
       <Error name={name} classNames="block text-red-500 mt-2" />
     </div>

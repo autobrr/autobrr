@@ -9,18 +9,18 @@ function Logout() {
     const [loggedIn, setLoggedIn] = useRecoilState(isLoggedIn);
     let history = useHistory();
 
-    const [_, removeCookie] = useCookies(['user_session']);
+    const [,, removeCookie] = useCookies(['user_session']);
 
     useEffect(() => {
         APIClient.auth.logout().then(r => {
-            removeCookie("user_session", "")
+            removeCookie("user_session")
             setLoggedIn(false);
             history.push('/login');
         })
     }, [loggedIn, history, removeCookie, setLoggedIn])
 
     return (
-        <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+        <div className="min-h-screen bg-gray-50 dark:bg-gray-800 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
             <p>Logged out</p>
         </div>
     )

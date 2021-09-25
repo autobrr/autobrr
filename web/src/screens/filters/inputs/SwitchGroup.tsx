@@ -15,12 +15,12 @@ const SwitchGroup: React.FC<Props> = ({ name, label, description, defaultValue }
     <ul className="mt-2 divide-y divide-gray-200">
         <Switch.Group as="li" className="py-4 flex items-center justify-between">
             {label && <div className="flex flex-col">
-                <Switch.Label as="p" className="text-sm font-medium text-gray-900"
+                <Switch.Label as="p" className="text-sm font-medium text-gray-900 dark:text-gray-100"
                     passive>
                     {label}
                 </Switch.Label>
                 {description && (
-                    <Switch.Description className="text-sm text-gray-500">
+                    <Switch.Description className="text-sm text-gray-500 dark:text-gray-400">
                         {description}
                     </Switch.Description>
                 )}
@@ -41,8 +41,8 @@ const SwitchGroup: React.FC<Props> = ({ name, label, description, defaultValue }
                             setFieldValue(field?.name ?? '', value)
                         }}
                         className={classNames(
-                            field.value ? 'bg-teal-500' : 'bg-gray-200',
-                            'ml-4 relative inline-flex flex-shrink-0 h-6 w-11 border-2 border-transparent rounded-full cursor-pointer transition-colors ease-in-out duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-light-blue-500'
+                            field.value ? 'bg-teal-500 dark:bg-blue-500' : 'bg-gray-200',
+                            'ml-4 relative inline-flex flex-shrink-0 h-6 w-11 border-2 border-transparent rounded-full cursor-pointer transition-colors ease-in-out duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500'
                         )}
                     >
                         {/* <span className="sr-only">{label}</span> */}
@@ -68,7 +68,7 @@ const SwitchGroup: React.FC<Props> = ({ name, label, description, defaultValue }
                         onChange={onChange}
                         className={classNames(
                             value ? 'bg-teal-500' : 'bg-gray-200',
-                            'ml-4 relative inline-flex flex-shrink-0 h-6 w-11 border-2 border-transparent rounded-full cursor-pointer transition-colors ease-in-out duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-light-blue-500'
+                            'ml-4 relative inline-flex flex-shrink-0 h-6 w-11 border-2 border-transparent rounded-full cursor-pointer transition-colors ease-in-out duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500'
                         )}
                     >
                         <span className="sr-only">Use setting</span>

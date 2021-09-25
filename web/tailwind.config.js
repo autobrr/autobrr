@@ -21,7 +21,7 @@ module.exports = {
             'col-span-12',
         ],
     },
-    darkMode: false, // or 'media' or 'class'
+    darkMode: 'media', // or 'media' or 'class'
     theme: {
         extend: {
             colors: {

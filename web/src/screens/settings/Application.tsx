@@ -22,11 +22,11 @@ function ApplicationSettings() {
     )
 
     return (
-        <form className="divide-y divide-gray-200 lg:col-span-9" action="#" method="POST">
+        <form className="divide-y divide-gray-200 dark:divide-gray-700 lg:col-span-9" action="#" method="POST">
             <div className="py-6 px-4 sm:p-6 lg:pb-8">
                 <div>
-                    <h2 className="text-lg leading-6 font-medium text-gray-900">Application</h2>
-                    <p className="mt-1 text-sm text-gray-500">
+                    <h2 className="text-lg leading-6 font-medium text-gray-900 dark:text-white">Application</h2>
+                    <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
                         Application settings. Change in config.toml and restart to take effect.
                     </p>
                 </div>
@@ -35,7 +35,7 @@ function ApplicationSettings() {
 
                 <div className="mt-6 grid grid-cols-12 gap-6">
                     <div className="col-span-6 sm:col-span-4">
-                        <label htmlFor="host" className="block text-sm font-medium text-gray-700">
+                        <label htmlFor="host" className="block text-xs font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wide">
                             Host
                         </label>
                         <input
@@ -44,12 +44,12 @@ function ApplicationSettings() {
                             id="host"
                             value={data.host}
                             disabled={true}
-                            className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-light-blue-500 focus:border-light-blue-500 sm:text-sm"
+                            className="mt-2 block w-full dark:bg-gray-800 border border-gray-300 dark:border-gray-700 border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:text-gray-100 sm:text-sm"
                         />
                     </div>
 
                     <div className="col-span-6 sm:col-span-4">
-                        <label htmlFor="port" className="block text-sm font-medium text-gray-700">
+                        <label htmlFor="port" className="block text-xs font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wide">
                             Port
                         </label>
                         <input
@@ -58,12 +58,12 @@ function ApplicationSettings() {
                             id="port"
                             value={data.port}
                             disabled={true}
-                            className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-light-blue-500 focus:border-light-blue-500 sm:text-sm"
+                            className="mt-2 block w-full dark:bg-gray-800 border border-gray-300 dark:border-gray-700 border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:text-gray-100 sm:text-sm"
                         />
                     </div>
 
                     <div className="col-span-6 sm:col-span-4">
-                        <label htmlFor="base_url" className="block text-sm font-medium text-gray-700">
+                        <label htmlFor="base_url" className="block text-xs font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wide">
                             Base url
                         </label>
                         <input
@@ -72,23 +72,23 @@ function ApplicationSettings() {
                             id="base_url"
                             value={data.base_url}
                             disabled={true}
-                            className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-light-blue-500 focus:border-light-blue-500 sm:text-sm"
+                            className="mt-2 block w-full dark:bg-gray-800 border border-gray-300 dark:border-gray-700 border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:text-gray-100 sm:text-sm"
                         />
                     </div>
                 </div>
                 )}
             </div>
 
-            <div className="pt-6 pb-6 divide-y divide-gray-200">
+            <div className="pt-6 pb-6 divide-y divide-gray-200 dark:divide-gray-700">
                 <div className="px-4 sm:px-6">
                     <ul className="mt-2 divide-y divide-gray-200">
                         <Switch.Group as="li" className="py-4 flex items-center justify-between">
                             <div className="flex flex-col">
-                                <Switch.Label as="p" className="text-sm font-medium text-gray-900"
+                                <Switch.Label as="p" className="text-sm font-medium text-gray-900 dark:text-white"
                                               passive>
                                     Debug
                                 </Switch.Label>
-                                <Switch.Description className="text-sm text-gray-500">
+                                <Switch.Description className="text-sm text-gray-500 dark:text-gray-400">
                                     Enable debug mode to get more logs.
                                 </Switch.Description>
                             </div>
@@ -96,8 +96,8 @@ function ApplicationSettings() {
                                 checked={isDebug}
                                 onChange={setIsDebug}
                                 className={classNames(
-                                    isDebug ? 'bg-teal-500' : 'bg-gray-200',
-                                    'ml-4 relative inline-flex flex-shrink-0 h-6 w-11 border-2 border-transparent rounded-full cursor-pointer transition-colors ease-in-out duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-light-blue-500'
+                                    isDebug ? 'bg-teal-500 dark:bg-blue-500' : 'bg-gray-200 dark:bg-gray-700',
+                                    'ml-4 relative inline-flex flex-shrink-0 h-6 w-11 border-2 border-transparent rounded-full cursor-pointer transition-colors ease-in-out duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500'
                                 )}
                             >
                                 <span className="sr-only">Use setting</span>
