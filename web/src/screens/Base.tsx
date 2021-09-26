@@ -17,7 +17,7 @@ export default function Base() {
 
     return (
         <div className="">
-            <Disclosure as="nav" className="bg-gray-800 pb-48">
+            <Disclosure as="nav" className="bg-gray-900 pb-48">
                 {({ open }) => (
                     <>
                         <div className="max-w-7xl mx-auto sm:px-6 lg:px-8">
@@ -40,11 +40,34 @@ export default function Base() {
                                             <div className="flex items-baseline space-x-4">
                                                 {nav.map((item, itemIdx) =>
                                                     <NavLink
-                                                        key={itemIdx}
+                                                        key={item.name + itemIdx}
                                                         to={item.path}
-                                                        exact={true}
-                                                        activeClassName="bg-gray-900 text-white "
-                                                        className="text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium"
+                                                        strict={true}
+                                                        isActive={(match, location) => {
+                                                            if (match?.url === "/" && item.path === "/" && location.pathname === "/") {
+                                                                return true
+                                                            }
+
+                                                            // if (item.path ==="/" && location.pathname ==="/") {
+                                                            //     console.log("match base");
+
+                                                            //     return true
+                                                            // }
+
+                                                            if (!match) {
+                                                                return false;
+                                                            }
+
+                                                            if (match.url === "/") {
+                                                                return false;
+                                                            }
+
+                                                            return true;
+                                                        }}
+                                                        activeClassName="bg-gray-900 dark:bg-gray-700 text-white "
+                                                        className={classNames(
+                                                            "text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium"
+                                                        )}
                                                     >
                                                         {item.name}
                                                     </NavLink>
@@ -59,7 +82,7 @@ export default function Base() {
                                                     <>
                                                         <div>
                                                             <Menu.Button
-                                                                className="max-w-xs bg-gray-800 rounded-full flex items-center text-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 focus:ring-white">
+                                                                className="max-w-xs rounded-full flex items-center text-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 focus:ring-white">
                                                                 <span
                                                                     className="hidden text-gray-300 text-sm font-medium sm:block">
                                                                     <span className="sr-only">Open user menu for </span>User
@@ -82,15 +105,15 @@ export default function Base() {
                                                         >
                                                             <Menu.Items
                                                                 static
-                                                                className="origin-top-right absolute right-0 mt-2 w-48 z-10 rounded-md shadow-lg py-1 bg-white ring-1 ring-black ring-opacity-5 focus:outline-none"
+                                                                className="origin-top-right absolute right-0 mt-2 w-48 z-10 rounded-md shadow-lg py-1 bg-white dark:bg-gray-800 ring-1 ring-black ring-opacity-5 focus:outline-none"
                                                             >
                                                                 <Menu.Item>
                                                                     {({ active }) => (
                                                                         <Link
                                                                             to="settings"
                                                                             className={classNames(
-                                                                                active ? 'bg-gray-100' : '',
-                                                                                'block px-4 py-2 text-sm text-gray-700'
+                                                                                active ? 'bg-gray-100 dark:bg-gray-600' : '',
+                                                                                'block px-4 py-2 text-sm text-gray-700 dark:text-gray-200'
                                                                             )}
                                                                         >
                                                                             Settings
@@ -102,8 +125,8 @@ export default function Base() {
                                                                         <Link
                                                                             to="/logout"
                                                                             className={classNames(
-                                                                                active ? 'bg-gray-100' : '',
-                                                                                'block px-4 py-2 text-sm text-gray-700'
+                                                                                active ? 'bg-gray-100 dark:bg-gray-600' : '',
+                                                                                'block px-4 py-2 text-sm text-gray-700 dark:text-gray-200'
                                                                             )}
                                                                         >
                                                                             Logout
@@ -138,7 +161,6 @@ export default function Base() {
                                 {nav.map((item, itemIdx) =>
                                     itemIdx === 0 ? (
                                         <Fragment key={item.path}>
-                                            {/* Current: "bg-gray-900 text-white", Default: "text-gray-300 hover:bg-gray-700 hover:text-white" */}
                                             <Link to={item.path}
                                                 className="bg-gray-900 text-white block px-3 py-2 rounded-md text-base font-medium">
                                                 {item.name}

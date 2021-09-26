@@ -24,7 +24,7 @@ const MultiSelect: React.FC<Props> = ({
         )}
     >
         <label
-            className="block uppercase tracking-wide text-gray-700 text-xs font-bold mb-2"
+            className="block uppercase tracking-wide text-gray-700 dark:text-gray-200 text-xs font-bold mb-2"
             htmlFor={label}
         >
             {label}
@@ -34,22 +34,21 @@ const MultiSelect: React.FC<Props> = ({
             {({
                 field,
                 form: { setFieldValue },
-            }: any) => {
-                return (
-                    <RMSC
-                        {...field}
-                        type="select"
-                        options={options}
-                        labelledBy={name}
-                        value={field.value && field.value.map((item: any) => options.find((o: any) => o.value === item))}
-                        onChange={(values: any) => {
-                            let am = values && values.map((i: any) => i.value)
+            }: any) => (
+                <RMSC
+                    {...field}
+                    type="select"
+                    options={options}
+                    labelledBy={name}
+                    value={field.value && field.value.map((item: any) => options.find((o: any) => o.value === item))}
+                    onChange={(values: any) => {
+                        let am = values && values.map((i: any) => i.value)
 
-                            setFieldValue(field.name, am)
-                        }}
-                    />
-                )
-            }}
+                        setFieldValue(field.name, am)
+                    }}
+                    className="dark:bg-gray-700"
+                />
+            )}
         </Field>
     </div>
 );

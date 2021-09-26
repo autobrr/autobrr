@@ -1,5 +1,5 @@
-import { Field } from "formik";
 import React from "react";
+import { Field } from "formik";
 import { classNames } from "../../../styles/utils";
 
 type COL_WIDTHS = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12;
@@ -20,7 +20,7 @@ const TextField: React.FC<Props> = ({ name, label, placeholder, columns, classNa
         )}
     >
         {label && (
-            <label htmlFor={name} className="block text-xs font-bold text-gray-700 uppercase tracking-wide">
+            <label htmlFor={name} className="block text-xs font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wide">
                 {label}
             </label>
         )}
@@ -35,7 +35,7 @@ const TextField: React.FC<Props> = ({ name, label, placeholder, columns, classNa
                         id={name}
                         type="text"
                         autoComplete={autoComplete}
-                        className="mt-2 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-light-blue-500 focus:border-light-blue-500 sm:text-sm"
+                        className="mt-2 block w-full dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:text-gray-100 sm:text-sm"
                         placeholder={placeholder}
                     />
 

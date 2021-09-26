@@ -21,7 +21,7 @@ function PasswordField({ name, label, placeholder, defaultValue, help, required 
             className="space-y-1 px-4 sm:space-y-0 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6 sm:py-5">
             <div>
 
-                <label htmlFor={name} className="block text-sm font-medium text-gray-900 sm:mt-px sm:pt-2">
+                <label htmlFor={name} className="block text-sm font-medium text-gray-900 dark:text-white sm:mt-px sm:pt-2">
                     {label} {required && <span className="text-gray-500">*</span>}
                 </label>
             </div>
@@ -35,7 +35,7 @@ function PasswordField({ name, label, placeholder, defaultValue, help, required 
                                 {...input}
                                 id={name}
                                 type={isVisible ? "text" : "password"}
-                                className={classNames(meta.touched && meta.error ? "focus:ring-red-500 focus:border-red-500 border-red-500" : "focus:ring-indigo-500 focus:border-indigo-500 border-gray-300", "block w-full shadow-sm sm:text-sm rounded-md")}
+                                className={classNames(meta.touched && meta.error ? "focus:ring-red-500 focus:border-red-500 border-red-500" : "focus:ring-indigo-500 dark:focus:ring-blue-500 focus:border-indigo-500 dark:focus:border-blue-500 border-gray-300 dark:border-gray-700", "block w-full dark:bg-gray-800 shadow-sm dark:text-gray-100 sm:text-sm rounded-md")}
                                 placeholder={placeholder}
                             />
                             <div className="absolute inset-y-0 right-0 px-3 flex items-center" onClick={toggleVisibility}>

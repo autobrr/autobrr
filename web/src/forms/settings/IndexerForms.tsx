@@ -13,12 +13,14 @@ import APIClient from "../../api/APIClient";
 import { NumberFieldWide, PasswordFieldWide } from "../../components/inputs/wide";
 import { toast } from 'react-hot-toast'
 import Toast from '../../components/notifications/Toast';
-interface props {
+import { SlideOver } from "../../components/panels";
+
+interface AddProps {
     isOpen: boolean;
     toggle: any;
 }
 
-function IndexerAddForm({ isOpen, toggle }: props) {
+export function IndexerAddForm({ isOpen, toggle }: AddProps) {
     const { data } = useQuery<IndexerSchema[], Error>('indexerSchema', APIClient.indexers.getSchema,
         {
             enabled: isOpen,
@@ -40,7 +42,7 @@ function IndexerAddForm({ isOpen, toggle }: props) {
 
     const ircMutation = useMutation((network: Network) => APIClient.irc.createNetwork(network), {
         onSuccess: (data) => {
-            console.log("irc mutation: ", data);
+            // console.log("irc mutation: ", data);
 
             // queryClient.invalidateQueries(['indexer']);
             // sleep(1500)
@@ -97,13 +99,14 @@ function IndexerAddForm({ isOpen, toggle }: props) {
                         switch (f.type) {
                             case "text":
                                 return (
-                                    <TextFieldWide name={`settings.${f.name}`} label={f.label} key={idx} help={f.help} defaultValue=""/>
+                                    <TextFieldWide name={`settings.${f.name}`} label={f.label} key={idx} help={f.help} defaultValue="" />
                                 )
                             case "secret":
                                 return (
                                     <PasswordFieldWide name={`settings.${f.name}`} label={f.label} key={idx} help={f.help} defaultValue="" />
                                 )
                         }
+                        return null
                     })}
                     <div hidden={true}>
                         <TextFieldWide name={`name`} label="Name" defaultValue={ind?.name} />
@@ -121,10 +124,10 @@ function IndexerAddForm({ isOpen, toggle }: props) {
             return (
                 <Fragment>
                     {ind && ind.irc && ind.irc.settings && (
-                        <div className="border-t border-gray-200 py-5">
+                        <div className="border-t border-gray-200 dark:border-gray-700 py-5">
                             <div className="px-6 space-y-1">
-                                <Dialog.Title className="text-lg font-medium text-gray-900">IRC</Dialog.Title>
-                                <p className="text-sm text-gray-500">
+                                <Dialog.Title className="text-lg font-medium text-gray-900 dark:text-white">IRC</Dialog.Title>
+                                <p className="text-sm text-gray-500 dark:text-gray-200">
                                     Networks, channels and invite commands are configured automatically.
                                 </p>
                             </div>
@@ -135,6 +138,7 @@ function IndexerAddForm({ isOpen, toggle }: props) {
                                     case "secret":
                                         return <PasswordFieldWide name={`irc.${f.name}`} label={f.label} required={f.required} key={idx} help={f.help} defaultValue={f.default} />
                                 }
+                                return null
                             })}
 
                             <div hidden={true}>
@@ -165,7 +169,7 @@ function IndexerAddForm({ isOpen, toggle }: props) {
                             leaveFrom="translate-x-0"
                             leaveTo="translate-x-full"
                         >
-                            <div className="w-screen max-w-2xl">
+                            <div className="w-screen max-w-2xl dark:border-gray-700 border-l">
                                 <Form
                                     initialValues={{
                                         enabled: true,
@@ -176,23 +180,23 @@ function IndexerAddForm({ isOpen, toggle }: props) {
                                 >
                                     {({ handleSubmit, values }) => {
                                         return (
-                                            <form className="h-full flex flex-col bg-white shadow-xl overflow-y-scroll"
+                                            <form className="h-full flex flex-col bg-white dark:bg-gray-800 shadow-xl overflow-y-scroll"
                                                 onSubmit={handleSubmit}>
                                                 <div className="flex-1">
-                                                    <div className="px-4 py-6 bg-gray-50 sm:px-6">
+                                                    <div className="px-4 py-6 bg-gray-50 dark:bg-gray-900 sm:px-6">
                                                         <div className="flex items-start justify-between space-x-3">
                                                             <div className="space-y-1">
                                                                 <Dialog.Title
-                                                                    className="text-lg font-medium text-gray-900">Add
+                                                                    className="text-lg font-medium text-gray-900 dark:text-white">Add
                                                                     indexer</Dialog.Title>
-                                                                <p className="text-sm text-gray-500">
+                                                                <p className="text-sm text-gray-500 dark:text-gray-200">
                                                                     Add indexer.
                                                                 </p>
                                                             </div>
                                                             <div className="h-7 flex items-center">
                                                                 <button
                                                                     type="button"
-                                                                    className="bg-white rounded-md text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                                                    className="bg-white dark:bg-gray-700 rounded-md text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                                                                     onClick={toggle}
                                                                 >
                                                                     <span className="sr-only">Close panel</span>
@@ -203,14 +207,14 @@ function IndexerAddForm({ isOpen, toggle }: props) {
                                                     </div>
 
                                                     <div
-                                                        className="py-6 space-y-6 sm:py-0 sm:space-y-0 sm:divide-y sm:divide-gray-200">
+                                                        className="py-6 space-y-6 py-0 space-y-0 divide-y divide-gray-200 dark:divide-gray-700">
 
                                                         <div
                                                             className="space-y-1 px-4 sm:space-y-0 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6 sm:py-5">
                                                             <div>
                                                                 <label
                                                                     htmlFor="identifier"
-                                                                    className="block text-sm font-medium text-gray-900 sm:mt-px sm:pt-2"
+                                                                    className="block text-sm font-medium text-gray-900 dark:text-white sm:mt-px sm:pt-2"
                                                                 >
                                                                     Indexer
                                                                 </label>
@@ -249,18 +253,18 @@ function IndexerAddForm({ isOpen, toggle }: props) {
                                                 </div>
 
                                                 <div
-                                                    className="flex-shrink-0 px-4 border-t border-gray-200 py-5 sm:px-6">
+                                                    className="flex-shrink-0 px-4 border-t border-gray-200 dark:border-gray-700 py-5 sm:px-6">
                                                     <div className="space-x-3 flex justify-end">
                                                         <button
                                                             type="button"
-                                                            className="bg-white py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                                                            className="bg-white dark:bg-gray-700 py-2 px-4 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 dark:focus:ring-blue-500"
                                                             onClick={toggle}
                                                         >
                                                             Cancel
                                                         </button>
                                                         <button
                                                             type="submit"
-                                                            className="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                                                            className="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 dark:bg-blue-600 hover:bg-indigo-700 dark:hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 dark:focus:ring-blue-500"
                                                         >
                                                             Save
                                                         </button>
@@ -282,4 +286,120 @@ function IndexerAddForm({ isOpen, toggle }: props) {
     )
 }
 
-export default IndexerAddForm;
+interface UpdateProps {
+    isOpen: boolean;
+    toggle: any;
+    indexer: Indexer;
+}
+
+export function IndexerUpdateForm({ isOpen, toggle, indexer }: UpdateProps) {
+    const mutation = useMutation((indexer: Indexer) => APIClient.indexers.update(indexer), {
+        onSuccess: () => {
+            queryClient.invalidateQueries(['indexer']);
+            toast.custom((t) => <Toast type="success" body={`${indexer.name} was updated successfully`} t={t} />)
+            sleep(1500)
+
+            toggle()
+        }
+    })
+
+    const deleteMutation = useMutation((id: number) => APIClient.indexers.delete(id), {
+        onSuccess: () => {
+            queryClient.invalidateQueries(['indexer']);
+            toast.custom((t) => <Toast type="success" body={`${indexer.name} was deleted.`} t={t} />)
+        }
+    })
+
+    const onSubmit = (data: any) => {
+        // TODO clear data depending on type
+        mutation.mutate(data)
+    };
+
+    const deleteAction = () => {
+        deleteMutation.mutate(indexer.id)
+    }
+
+    const renderSettingFields = (settings: any[]) => {
+        if (settings !== []) {
+
+            return (
+                <div key="opt">
+                    {settings && settings.map((f: any, idx: number) => {
+                        switch (f.type) {
+                            case "text":
+                                return (
+                                    <TextFieldWide name={`settings.${f.name}`} label={f.label} key={idx} help={f.help} />
+                                )
+                            case "secret":
+                                return (
+                                    <PasswordFieldWide name={`settings.${f.name}`} label={f.label} key={idx} help={f.help} />
+                                )
+                        }
+                        return null
+                    })}
+                </div>
+            )
+        }
+    }
+
+    let initialValues = {
+        id: indexer.id,
+        name: indexer.name,
+        enabled: indexer.enabled,
+        identifier: indexer.identifier,
+        settings: indexer.settings.reduce((o: any, obj: any) => ({ ...o, [obj.name]: obj.value }), {}),
+    }
+
+    return (
+        <SlideOver
+            type="UPDATE"
+            title="Indexer"
+            isOpen={isOpen}
+            toggle={toggle}
+            deleteAction={deleteAction}
+            onSubmit={onSubmit}
+            initialValues={initialValues}
+        >
+            {({ values }: any) => (
+                <>
+                    <div
+                        className="py-6 space-y-6 sm:py-0 sm:space-y-0 divide-y divide-gray-200 dark:divide-gray-700">
+                        <div
+                            className="space-y-1 px-4 sm:space-y-0 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6 sm:py-5">
+                            <div>
+                                <label
+                                    htmlFor="name"
+                                    className="block text-sm font-medium text-gray-900 dark:text-white sm:mt-px sm:pt-2"
+                                >
+                                    Name
+                                </label>
+                            </div>
+                            <Field name="name">
+                                {({ input, meta }) => (
+                                    <div className="sm:col-span-2">
+                                        <input
+                                            type="text"
+                                            {...input}
+                                            className="block w-full shadow-sm dark:bg-gray-800 sm:text-sm dark:text-white focus:ring-indigo-500 focus:border-indigo-500 border-gray-300 dark:border-gray-700 rounded-md"
+                                        />
+                                        {meta.touched && meta.error &&
+                                            <span>{meta.error}</span>}
+                                    </div>
+                                )}
+                            </Field>
+                        </div>
+
+                        <div className="py-6 px-6 space-y-6 sm:py-0 sm:space-y-0 sm:divide-y sm:divide-gray-200 dark:sm:divide-gray-700">
+                            <SwitchGroup name="enabled" label="Enabled" />
+                        </div>
+
+                        {renderSettingFields(indexer.settings)}
+
+                    </div>
+
+                </>
+            )}
+
+        </SlideOver>
+    )
+}

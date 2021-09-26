@@ -199,7 +199,7 @@ function ListItem({ action, clients, filterID, idx }: ListItemProps) {
     enabledMutation.mutate(action.id);
   };
 
-  useEffect(() => {}, [action]);
+  useEffect(() => { }, [action]);
 
   const cancelButtonRef = useRef(null);
 
@@ -358,7 +358,7 @@ function ListItem({ action, clients, filterID, idx }: ListItemProps) {
           onChange={toggleActive}
           className={classNames(
             action.enabled ? "bg-teal-500" : "bg-gray-200",
-            "z-10 relative inline-flex flex-shrink-0 h-6 w-11 border-2 border-transparent rounded-full cursor-pointer transition-colors ease-in-out duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-light-blue-500"
+            "z-10 relative inline-flex flex-shrink-0 h-6 w-11 border-2 border-transparent rounded-full cursor-pointer transition-colors ease-in-out duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
           )}
         >
           <span className="sr-only">Use setting</span>
@@ -469,7 +469,7 @@ function ListItem({ action, clients, filterID, idx }: ListItemProps) {
                       <div>
                         <button
                           type="button"
-                          className="bg-white border border-gray-300 rounded-md shadow-sm py-2 px-4 inline-flex justify-center text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-light-blue-500"
+                          className="bg-white border border-gray-300 rounded-md shadow-sm py-2 px-4 inline-flex justify-center text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                         >
                           Cancel
                         </button>

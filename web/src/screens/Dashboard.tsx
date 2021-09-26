@@ -7,12 +7,10 @@ export function Dashboard() {
                 </div>
             </header>
             <div className="max-w-7xl mx-auto pb-12 px-4 sm:px-6 lg:px-8">
-                <div className="bg-white rounded-lg shadow px-5 py-6 sm:px-6">
-                    <div className="border-4 border-dashed border-gray-200 rounded-lg h-96" />
+                <div className="bg-white dark:bg-gray-800 rounded-lg shadow px-5 py-6 sm:px-6">
+                    <div className="border-4 border-dashed border-gray-200 dark:border-gray-700 rounded-lg h-96" />
                 </div>
             </div>
         </main>
     )
 }
-
-

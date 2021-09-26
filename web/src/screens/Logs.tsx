@@ -38,7 +38,7 @@ export default function Logs() {
                 </div>
             </header>
             <div className="max-w-7xl mx-auto pb-12 px-2 sm:px-4 lg:px-8">
-                <div className="bg-white rounded-lg shadow px-2 sm:px-4 py-3 sm:py-4">
+                <div className="bg-white dark:bg-gray-800 rounded-lg shadow px-2 sm:px-4 py-3 sm:py-4">
                     <div className=" overflow-y-auto p-2 rounded-lg h-96 bg-gray-900">
                         {logs.map((a, idx) => (
                             <p key={idx}>

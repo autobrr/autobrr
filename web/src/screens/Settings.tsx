@@ -1,4 +1,3 @@
-import React from 'react'
 import {CogIcon, DownloadIcon, KeyIcon} from '@heroicons/react/outline'
 import {NavLink, Route, Switch as RouteSwitch, useLocation, useRouteMatch} from "react-router-dom";
 import IndexerSettings from "./settings/Indexer";
@@ -33,17 +32,17 @@ function SubNavLink({item, url}: any) {
             key={item.name}
             to={too}
             exact={true}
-            activeClassName="bg-teal-50 border-teal-500 text-teal-700 hover:bg-teal-50 hover:text-teal-700"
+            activeClassName="bg-teal-50 dark:bg-gray-700 border-teal-500 dark:border-blue-500 text-teal-700 dark:text-white hover:bg-teal-50 dark:hover:bg-gray-500 hover:text-teal-700 dark:hover:text-gray-200"
             className={classNames(
-                'border-transparent text-gray-900 hover:bg-gray-50 hover:text-gray-900 group border-l-4 px-3 py-2 flex items-center text-sm font-medium'
+                'border-transparent text-gray-900 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-gray-300 group border-l-4 px-3 py-2 flex items-center text-sm font-medium'
             )}
             aria-current={splitLocation[2] === item.href ? 'page' : undefined}
         >
             <item.icon
                 className={classNames(
                     splitLocation[2] === item.href
-                        ? 'text-teal-500 group-hover:text-teal-500'
-                        : 'text-gray-400 group-hover:text-gray-500',
+                        ? 'text-teal-500 dark:text-blue-600 group-hover:text-teal-500 dark:group-hover:text-blue-600'
+                        : 'text-gray-400 group-hover:text-gray-500 dark:group-hover:text-gray-300',
                     'flex-shrink-0 -ml-1 mr-3 h-6 w-6'
                 )}
                 aria-hidden="true"
@@ -77,8 +76,8 @@ export default function Settings() {
             </header>
 
             <div className="max-w-screen-xl mx-auto pb-6 px-4 sm:px-6 lg:pb-16 lg:px-8">
-                <div className="bg-white rounded-lg shadow overflow-hidden">
-                    <div className="divide-y divide-gray-200 lg:grid lg:grid-cols-12 lg:divide-y-0 lg:divide-x">
+                <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
+                    <div className="divide-y divide-gray-200 dark:divide-gray-700 lg:grid lg:grid-cols-12 lg:divide-y-0 lg:divide-x">
                         <SidebarNav url={url} subNavigation={subNavigation}/>
 
                         <RouteSwitch>

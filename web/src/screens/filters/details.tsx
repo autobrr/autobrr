@@ -1,4 +1,4 @@
-import React, { Fragment, useRef } from "react";
+import { Fragment, useRef } from "react";
 import { Dialog, Transition, Switch as SwitchBasic } from "@headlessui/react";
 import { ChevronDownIcon, ChevronRightIcon, ExclamationIcon, } from '@heroicons/react/solid'
 import { EmptyListState } from "../../components/EmptyListState";
@@ -55,9 +55,9 @@ function TabNavLink({ item, url }: any) {
             key={item.name}
             to={too}
             exact={true}
-            activeClassName="border-purple-600 text-purple-600"
+            activeClassName="border-purple-600 dark:border-blue-500 text-purple-600 dark:text-white"
             className={classNames(
-                'border-transparent text-gray-500 hover:text-purple-600 hover:border-purple-600 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm'
+                'border-transparent text-gray-500 hover:text-purple-600 dark:hover:text-white hover:border-purple-600 dark:hover:border-blue-500 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm'
             )}
             aria-current={splitLocation[2] === item.href ? 'page' : undefined}
         >
@@ -72,7 +72,7 @@ const FormButtonsGroup = ({ deleteAction, reset, dirty }: any) => {
     const cancelButtonRef = useRef(null)
 
     return (
-        <div className="pt-6 divide-y divide-gray-200">
+        <div className="pt-6 divide-y divide-gray-200 dark:divide-gray-700">
 
             <Transition.Root show={deleteModalIsOpen} as={Fragment}>
                 <Dialog
@@ -97,7 +97,6 @@ const FormButtonsGroup = ({ deleteAction, reset, dirty }: any) => {
                             <Dialog.Overlay className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" />
                         </Transition.Child>
 
-                        {/* This element is to trick the browser into centering the modal contents. */}
                         <span className="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">
                             &#8203;
                         </span>
@@ -142,7 +141,7 @@ const FormButtonsGroup = ({ deleteAction, reset, dirty }: any) => {
                                     </button>
                                     <button
                                         type="button"
-                                        className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
+                                        className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 light:bg-white text-base font-medium text-gray-700 dark:text-red-500 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
                                         onClick={toggleDeleteModal}
                                         ref={cancelButtonRef}
                                     >
@@ -158,7 +157,7 @@ const FormButtonsGroup = ({ deleteAction, reset, dirty }: any) => {
             <div className="mt-4 pt-4 flex justify-between">
                 <button
                     type="button"
-                    className="inline-flex items-center justify-center px-4 py-2 border border-transparent font-medium rounded-md text-red-700 bg-red-100 hover:bg-red-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:text-sm"
+                    className="inline-flex items-center justify-center px-4 py-2 border border-transparent font-medium rounded-md text-red-700 dark:text-red-500 light:bg-red-100 light:hover:bg-red-200 dark:hover:text-red-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:text-sm"
                     onClick={toggleDeleteModal}
                 >
                     Remove
@@ -168,14 +167,14 @@ const FormButtonsGroup = ({ deleteAction, reset, dirty }: any) => {
                     {/* {dirty && <span className="mr-4 text-sm text-gray-500">Unsaved changes..</span>} */}
                     <button
                         type="button"
-                        className="bg-white border border-gray-300 rounded-md shadow-sm py-2 px-4 inline-flex justify-center text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-light-blue-500"
+                        className="light:bg-white light:border light:border-gray-300 rounded-md shadow-sm py-2 px-4 inline-flex justify-center text-sm font-medium text-gray-700 dark:text-gray-500 light:hover:bg-gray-50 dark:hover:text-gray-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                         onClick={reset}
                     >
                         Cancel
                     </button>
                     <button
                         type="submit"
-                        className="ml-4 relative inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                        className="ml-4 relative inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 dark:bg-blue-600 hover:bg-indigo-700 dark:hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
                     >
                         Save
                     </button>
@@ -266,7 +265,7 @@ export default function FilterDetails() {
                 </div>
             </header>
             <div className="max-w-7xl mx-auto pb-12 px-4 sm:px-6 lg:px-8">
-                <div className="bg-white rounded-lg shadow">
+                <div className="bg-white dark:bg-gray-800 rounded-lg shadow">
                     <div className="relative mx-auto md:px-6 xl:px-4">
                         <div className="px-4 sm:px-6 md:px-0">
                             <div className="pt-2 pb-6">
@@ -278,7 +277,7 @@ export default function FilterDetails() {
                                     <select
                                         id="selected-tab"
                                         name="selected-tab"
-                                        className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-purple-500 focus:border-purple-500 sm:text-sm rounded-md"
+                                        className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 dark:border-gray-700 focus:outline-none focus:ring-purple-500 focus:border-purple-500 sm:text-sm rounded-md"
                                     >
                                         {tabs.map((tab) => (
                                             <option key={tab.name} onClick={(e) => handleMobileNav(e, tab.href)}>
@@ -288,7 +287,7 @@ export default function FilterDetails() {
                                     </select>
                                 </div>
                                 <div className="hidden sm:block">
-                                    <div className="border-b border-gray-200">
+                                    <div className="border-b border-gray-200 dark:border-gray-700">
                                         <nav className="-mb-px flex space-x-8">
                                             {tabs.map((tab) => (
                                                 <TabNavLink item={tab} url={url} key={tab.href} />
@@ -385,7 +384,7 @@ function General({ indexers }: GeneralProps) {
                     <TextField name="name" label="Filter name" columns={6} placeholder="eg. Filter 1" />
 
                     <div className="col-span-6">
-                        <label htmlFor="indexers" className="block text-xs font-bold text-gray-700 uppercase tracking-wide">
+                        <label htmlFor="indexers" className="block text-xs font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wide">
                             Indexers
                         </label>
 
@@ -409,7 +408,7 @@ function General({ indexers }: GeneralProps) {
                                         isClearable={true}
                                         isMulti={true}
                                         placeholder="Choose indexers"
-                                        className="mt-2 block w-full focus:outline-none focus:ring-light-blue-500 focus:border-light-blue-500 sm:text-sm"
+                                        className="mt-2 block w-full focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                                         options={opts}
                                     />
                                 )
@@ -429,7 +428,7 @@ function General({ indexers }: GeneralProps) {
                 </div>
             </div>
 
-            <div className="border-t">
+            <div className="border-t dark:border-gray-700">
                 <SwitchGroup name="enabled" label="Enabled" description="Enabled or disable filter." />
             </div>
 
@@ -485,11 +484,11 @@ function Advanced() {
 
     return (
         <div>
-            <div className="mt-6 lg:pb-8 border-b border-gray-200">
+            <div className="mt-6 lg:pb-8 border-b border-gray-200 dark:border-gray-700">
                 <div className="flex justify-between items-center cursor-pointer" onClick={toggleReleases}>
                     <div className="-ml-2 -mt-2 flex flex-wrap items-baseline">
-                        <h3 className="ml-2 mt-2 text-lg leading-6 font-medium text-gray-900">Releases</h3>
-                        <p className="ml-2 mt-1 text-sm text-gray-500 truncate">Match or ignore</p>
+                        <h3 className="ml-2 mt-2 text-lg leading-6 font-medium text-gray-900 dark:text-gray-200">Releases</h3>
+                        <p className="ml-2 mt-1 text-sm text-gray-500 dark:text-gray-400 truncate">Match or ignore</p>
                     </div>
                     <div className="mt-3 sm:mt-0 sm:ml-4">
                         <button
@@ -508,11 +507,11 @@ function Advanced() {
                 )}
             </div>
 
-            <div className="mt-6 lg:pb-8 border-b border-gray-200">
+            <div className="mt-6 lg:pb-8 border-b border-gray-200 dark:border-gray-700">
                 <div className="flex justify-between items-center cursor-pointer" onClick={toggleGroups}>
                     <div className="-ml-2 -mt-2 flex flex-wrap items-baseline">
-                        <h3 className="ml-2 mt-2 text-lg leading-6 font-medium text-gray-900">Groups</h3>
-                        <p className="ml-2 mt-1 text-sm text-gray-500 truncate">Match or ignore</p>
+                        <h3 className="ml-2 mt-2 text-lg leading-6 font-medium text-gray-900 dark:text-gray-200">Groups</h3>
+                        <p className="ml-2 mt-1 text-sm text-gray-500 dark:text-gray-400 truncate">Match or ignore</p>
                     </div>
                     <div className="mt-3 sm:mt-0 sm:ml-4">
                         <button
@@ -531,11 +530,11 @@ function Advanced() {
                 )}
             </div>
 
-            <div className="mt-6 lg:pb-8 border-b border-gray-200">
+            <div className="mt-6 lg:pb-8 border-b border-gray-200 dark:border-gray-700">
                 <div className="flex justify-between items-center cursor-pointer" onClick={toggleCategories}>
                     <div className="-ml-2 -mt-2 flex flex-wrap items-baseline">
-                        <h3 className="ml-2 mt-2 text-lg leading-6 font-medium text-gray-900">Categories and tags</h3>
-                        <p className="ml-2 mt-1 text-sm text-gray-500 truncate">Match or ignore categories or tags</p>
+                        <h3 className="ml-2 mt-2 text-lg leading-6 font-medium text-gray-900 dark:text-gray-200">Categories and tags</h3>
+                        <p className="ml-2 mt-1 text-sm text-gray-500 dark:text-gray-400 truncate">Match or ignore categories or tags</p>
                     </div>
                     <div className="mt-3 sm:mt-0 sm:ml-4">
                         <button
@@ -557,11 +556,11 @@ function Advanced() {
                 )}
             </div>
 
-            <div className="mt-6 lg:pb-8 border-b border-gray-200">
+            <div className="mt-6 lg:pb-8 border-b border-gray-200 dark:border-gray-700">
                 <div className="flex justify-between items-center cursor-pointer" onClick={toggleUploaders}>
                     <div className="-ml-2 -mt-2 flex flex-wrap items-baseline">
-                        <h3 className="ml-2 mt-2 text-lg leading-6 font-medium text-gray-900">Uploaders</h3>
-                        <p className="ml-2 mt-1 text-sm text-gray-500 truncate">Match or ignore uploaders</p>
+                        <h3 className="ml-2 mt-2 text-lg leading-6 font-medium text-gray-900 dark:text-gray-200">Uploaders</h3>
+                        <p className="ml-2 mt-1 text-sm text-gray-500 dark:text-gray-400 truncate">Match or ignore uploaders</p>
                     </div>
                     <div className="mt-3 sm:mt-0 sm:ml-4">
                         <button
@@ -580,11 +579,11 @@ function Advanced() {
                 )}
             </div>
 
-            <div className="mt-6 lg:pb-8 border-b border-gray-200">
+            <div className="mt-6 lg:pb-8 border-b border-gray-200 dark:border-gray-700">
                 <div className="flex justify-between items-center cursor-pointer" onClick={toggleFreeleech}>
                     <div className="-ml-2 -mt-2 flex flex-wrap items-baseline">
-                        <h3 className="ml-2 mt-2 text-lg leading-6 font-medium text-gray-900">Freeleech</h3>
-                        <p className="ml-2 mt-1 text-sm text-gray-500 truncate">Match only freeleech and freeleech percent</p>
+                        <h3 className="ml-2 mt-2 text-lg leading-6 font-medium text-gray-900 dark:text-gray-200">Freeleech</h3>
+                        <p className="ml-2 mt-1 text-sm text-gray-500 dark:text-gray-400 truncate">Match only freeleech and freeleech percent</p>
                     </div>
                     <div className="mt-3 sm:mt-0 sm:ml-4">
                         <button
@@ -615,8 +614,6 @@ interface FilterActionsProps {
 }
 
 function FilterActions({ filter, values }: FilterActionsProps) {
-    // const [addActionIsOpen, toggleAddAction] = useToggle(false)
-
     const { data } = useQuery<DownloadClient[], Error>('downloadClients', APIClient.download_clients.getAll,
         {
             refetchOnWindowFocus: false
@@ -644,36 +641,35 @@ function FilterActions({ filter, values }: FilterActionsProps) {
 
     return (
         <div className="mt-10">
-            {/* {addActionIsOpen &&
-                <FilterActionAddForm filter={filter} clients={data || []} isOpen={addActionIsOpen} toggle={toggleAddAction} />
-            } */}
             <FieldArray name="actions">
                 {({ remove, push }) => (
                     <Fragment>
                         <div className="-ml-4 -mt-4 mb-6 flex justify-between items-center flex-wrap sm:flex-nowrap">
                             <div className="ml-4 mt-4">
-                                <h3 className="text-lg leading-6 font-medium text-gray-900">Actions</h3>
-                                <p className="mt-1 text-sm text-gray-500">
+                                <h3 className="text-lg leading-6 font-medium text-gray-900 dark:text-gray-200">Actions</h3>
+                                <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
                                     Add to download clients or run custom commands.
                                 </p>
                             </div>
                             <div className="ml-4 mt-4 flex-shrink-0">
                                 <button
                                     type="button"
-                                    className="relative inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                                    className="relative inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 dark:bg-blue-600 hover:bg-indigo-700 dark:hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 dark:focus:ring-blue-500"
                                     onClick={() => push(newAction)}
                                 >
                                     Add new
                                 </button>
                             </div>
                         </div>
-                        <div className="bg-white shadow sm:rounded-md">
+
+                        <div className="light:bg-white dark:bg-gray-800 light:shadow sm:rounded-md">
                             {values.actions.length > 0 ?
-                                values.actions.map((action: any, index: any) => (
-                                    <ul className="divide-y divide-gray-200" key={index}>
+                                <ul className="divide-y divide-gray-200 dark:divide-gray-700">
+                                    {values.actions.map((action: any, index: any) => (
                                         <FilterActionsItem action={action} clients={data!} idx={index} remove={remove} />
-                                    </ul>
-                                )) : <EmptyListState text="No actions yet!" />
+                                    ))}
+                                </ul>
+                                : <EmptyListState text="No actions yet!" />
                             }
                         </div>
                     </Fragment>
@@ -867,8 +863,8 @@ function FilterActionsItem({ action, clients, idx, remove }: FilterActionsItemPr
         <li>
             <div
                 className={classNames(
-                    idx % 2 === 0 ? "bg-white" : "bg-gray-50",
-                    "flex items-center sm:px-6 hover:bg-gray-50"
+                    idx % 2 === 0 ? "bg-white dark:bg-gray-800" : "bg-gray-50 dark:bg-gray-700",
+                    "flex items-center sm:px-6 hover:bg-gray-50 dark:hover:bg-gray-600"
                 )}
             >
                 <Field name={`actions.${idx}.enabled`} type="checkbox">
@@ -885,8 +881,8 @@ function FilterActionsItem({ action, clients, idx, remove }: FilterActionsItemPr
                                 setFieldValue(field?.name ?? '', value)
                             }}
                             className={classNames(
-                                field.value ? 'bg-teal-500' : 'bg-gray-200',
-                                'relative inline-flex flex-shrink-0 h-6 w-11 border-2 border-transparent rounded-full cursor-pointer transition-colors ease-in-out duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-light-blue-500'
+                                field.value ? 'bg-teal-500 dark:bg-blue-500' : 'bg-gray-200 dark:bg-gray-600',
+                                'relative inline-flex flex-shrink-0 h-6 w-11 border-2 border-transparent rounded-full cursor-pointer transition-colors ease-in-out duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500'
                             )}
                         >
                             <span className="sr-only">toggle enabled</span>
@@ -905,14 +901,14 @@ function FilterActionsItem({ action, clients, idx, remove }: FilterActionsItemPr
                     <div className="min-w-0 flex-1 sm:flex sm:items-center sm:justify-between">
                         <div className="truncate">
                             <div className="flex text-sm">
-                                <p className="ml-4 font-medium text-indigo-600 truncate">
+                                <p className="ml-4 font-medium text-indigo-600 dark:text-gray-100 truncate">
                                     {action.name}
                                 </p>
                             </div>
                         </div>
                         <div className="mt-4 flex-shrink-0 sm:mt-0 sm:ml-5">
                             <div className="flex overflow-hidden -space-x-1">
-                                <span className="text-sm font-normal text-gray-500">
+                                <span className="text-sm font-normal text-gray-500 dark:text-gray-400">
                                     {ActionTypeNameMap[action.type]}
                                 </span>
                             </div>
@@ -928,7 +924,7 @@ function FilterActionsItem({ action, clients, idx, remove }: FilterActionsItemPr
 
             </div>
             {edit && (
-                <div className="px-4 py-4 flex items-center sm:px-6">
+                <div className="px-4 py-4 flex items-center sm:px-6 border dark:border-gray-600">
                     <Transition.Root show={deleteModalIsOpen} as={Fragment}>
                         <Dialog
                             as="div"
@@ -968,7 +964,7 @@ function FilterActionsItem({ action, clients, idx, remove }: FilterActionsItemPr
                             <div className="mt-4 pt-4 flex justify-between">
                                 <button
                                     type="button"
-                                    className="inline-flex items-center justify-center py-2 border border-transparent font-medium rounded-md text-red-700 hover:text-red-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:text-sm"
+                                    className="inline-flex items-center justify-center py-2 border border-transparent font-medium rounded-md text-red-700 dark:text-red-500 hover:text-red-500 dark:hover:text-red-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:text-sm"
                                     onClick={toggleDeleteModal}
                                 >
                                     Remove
@@ -977,7 +973,7 @@ function FilterActionsItem({ action, clients, idx, remove }: FilterActionsItemPr
                                 <div>
                                     <button
                                         type="button"
-                                        className="bg-white border border-gray-300 rounded-md shadow-sm py-2 px-4 inline-flex justify-center text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-light-blue-500"
+                                        className="light:bg-white light:border light:border-gray-300 rounded-md shadow-sm py-2 px-4 inline-flex justify-center text-sm font-medium text-gray-700 dark:text-gray-500 light:hover:bg-gray-50 dark:hover:text-gray-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                                         onClick={toggleEdit}
                                     >
                                         Close
