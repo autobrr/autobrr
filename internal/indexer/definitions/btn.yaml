@@ -24,7 +24,7 @@ settings:
 
 irc:
   network: BroadcasTheNet
-  server: irc.broadcasthenet.net
+  server: irc.broadcasthe.net
   port: 6697
   tls: true
   channels:
