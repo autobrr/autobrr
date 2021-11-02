@@ -1,6 +1,7 @@
 package release
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/rs/zerolog/log"
@@ -10,15 +11,38 @@ import (
 )
 
 type Service interface {
+	Find(ctx context.Context, query domain.QueryParams) (res []domain.Release, nextCursor int64, err error)
+	Store(release domain.Release) error
 	Process(announce domain.Announce) error
 }
 
 type service struct {
+	repo      domain.ReleaseRepo
 	actionSvc action.Service
 }
 
-func NewService(actionService action.Service) Service {
-	return &service{actionSvc: actionService}
+func NewService(repo domain.ReleaseRepo, actionService action.Service) Service {
+	return &service{
+		repo:      repo,
+		actionSvc: actionService,
+	}
+}
+
+func (s *service) Find(ctx context.Context, query domain.QueryParams) (res []domain.Release, nextCursor int64, err error) {
+	//releases, err := s.repo.Find(ctx, query)
+	res, nextCursor, err = s.repo.Find(ctx, query)
+	if err != nil {
+		//return nil, err
+		return
+	}
+	return
+
+	//return releases, nil
+}
+
+func (s *service) Store(release domain.Release) error {
+
+	return nil
 }
 
 func (s *service) Process(announce domain.Announce) error {

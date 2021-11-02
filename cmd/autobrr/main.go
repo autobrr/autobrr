@@ -72,6 +72,7 @@ func main() {
 		filterRepo         = database.NewFilterRepo(db)
 		indexerRepo        = database.NewIndexerRepo(db)
 		ircRepo            = database.NewIrcRepo(db)
+		releaseRepo        = database.NewReleaseRepo(db)
 		userRepo           = database.NewUserRepo(db)
 	)
 
@@ -80,7 +81,7 @@ func main() {
 		actionService         = action.NewService(actionRepo, downloadClientService)
 		indexerService        = indexer.NewService(indexerRepo)
 		filterService         = filter.NewService(filterRepo, actionRepo, indexerService)
-		releaseService        = release.NewService(actionService)
+		releaseService        = release.NewService(releaseRepo, actionService)
 		announceService       = announce.NewService(filterService, indexerService, releaseService)
 		ircService            = irc.NewService(ircRepo, announceService)
 		userService           = user.NewService(userRepo)
@@ -92,7 +93,7 @@ func main() {
 	errorChannel := make(chan error)
 
 	go func() {
-		httpServer := http.NewServer(serverEvents, addr, cfg.BaseURL, actionService, authService, downloadClientService, filterService, indexerService, ircService)
+		httpServer := http.NewServer(serverEvents, addr, cfg.BaseURL, actionService, authService, downloadClientService, filterService, indexerService, ircService, releaseService)
 		errorChannel <- httpServer.Open()
 	}()
 

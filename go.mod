@@ -3,6 +3,7 @@ module github.com/autobrr/autobrr
 go 1.16
 
 require (
+	github.com/Masterminds/squirrel v1.5.1
 	github.com/anacrolix/torrent v1.29.1
 	github.com/gdm85/go-libdeluge v0.5.5
 	github.com/go-chi/chi v1.5.4

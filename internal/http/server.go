@@ -25,9 +25,10 @@ type Server struct {
 	filterService         filterService
 	indexerService        indexerService
 	ircService            ircService
+	releaseService        releaseService
 }
 
-func NewServer(sse *sse.Server, address string, baseUrl string, actionService actionService, authService authService, downloadClientSvc downloadClientService, filterSvc filterService, indexerSvc indexerService, ircSvc ircService) Server {
+func NewServer(sse *sse.Server, address string, baseUrl string, actionService actionService, authService authService, downloadClientSvc downloadClientService, filterSvc filterService, indexerSvc indexerService, ircSvc ircService, releaseSvc releaseService) Server {
 	return Server{
 		sse:     sse,
 		address: address,
@@ -39,6 +40,7 @@ func NewServer(sse *sse.Server, address string, baseUrl string, actionService ac
 		filterService:         filterSvc,
 		indexerService:        indexerSvc,
 		ircService:            ircSvc,
+		releaseService:        releaseSvc,
 	}
 }
 
@@ -94,6 +96,7 @@ func (s Server) Handler() http.Handler {
 			r.Route("/filters", newFilterHandler(encoder, s.filterService).Routes)
 			r.Route("/irc", newIrcHandler(encoder, s.ircService).Routes)
 			r.Route("/indexer", newIndexerHandler(encoder, s.indexerService, s.ircService).Routes)
+			r.Route("/release", newReleaseHandler(encoder, s.releaseService).Routes)
 
 			r.HandleFunc("/events", func(w http.ResponseWriter, r *http.Request) {
 

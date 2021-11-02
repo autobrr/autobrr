@@ -138,10 +138,36 @@ CREATE TABLE action
     FOREIGN KEY (client_id) REFERENCES client(id),
     FOREIGN KEY (filter_id) REFERENCES filter(id)
 );
+
+CREATE TABLE "release"
+(
+	id			INTEGER PRIMARY KEY,
+	status		TEXT,
+	rejections	TEXT []   DEFAULT '{}' NOT NULL,
+	indexer		TEXT,
+	client		TEXT,
+	protocol	TEXT,
+	title		TEXT,
+	size		TEXT,
+	created_at	TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
 `
 
 var migrations = []string{
 	"",
+	`
+		CREATE TABLE "release" (
+			id			INTEGER PRIMARY KEY,
+			status		TEXT,
+    		rejections	TEXT []   DEFAULT '{}' NOT NULL,
+			indexer		TEXT,
+			client		TEXT,
+			protocol	TEXT,
+			title		TEXT,
+			size		TEXT,
+			created_at	TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+		);
+	`,
 }
 
 func Migrate(db *sql.DB) error {
