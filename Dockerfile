@@ -26,6 +26,7 @@ ENV GOOS=linux
 
 #RUN make -f Makefile build/app
 RUN go build -o bin/${SERVICE} ./cmd/${SERVICE}/main.go
+RUN go build -o bin/autobrrctl ./cmd/autobrrctl/main.go
 
 # build runner
 FROM alpine:latest
@@ -41,6 +42,7 @@ WORKDIR /app
 VOLUME /config
 
 COPY --from=app-builder /src/bin/autobrr /usr/local/bin/
+COPY --from=app-builder /src/bin/autobrrctl /usr/local/bin/
 
 ENTRYPOINT ["autobrr", "--config", "/config"]
 #CMD ["--config", "/config"]
