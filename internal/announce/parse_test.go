@@ -1,9 +1,5 @@
 package announce
 
-import (
-	"testing"
-)
-
 //func Test_service_OnNewLine(t *testing.T) {
 //	tfiles := tracker.NewService()
 //	tfiles.ReadFiles()
@@ -287,7 +283,7 @@ var (
 //			want: &domain.Announce{
 //				Freeleech:   false,
 //				Category:    "PC :: Iso",
-//				TorrentName: "debian live 10 6 0 amd64 standard iso",
+//				Name: "debian live 10 6 0 amd64 standard iso",
 //				Uploader:    "Anonymous",
 //				TorrentUrl:  "https://www.tracker01.test/rss/download/263302/000aaa111bbb222ccc333ddd/debian+live+10+6+0+amd64+standard+iso.torrent",
 //				Site:        "T01",
@@ -307,7 +303,7 @@ var (
 //			want: &domain.Announce{
 //				Freeleech:   true,
 //				Category:    "PC :: Iso",
-//				TorrentName: "debian live 10 6 0 amd64 standard iso",
+//				Name: "debian live 10 6 0 amd64 standard iso",
 //				Uploader:    "Anonymous",
 //				TorrentUrl:  "https://www.tracker01.test/rss/download/263302/000aaa111bbb222ccc333ddd/debian+live+10+6+0+amd64+standard+iso.torrent",
 //				Site:        "T01",
@@ -328,7 +324,7 @@ var (
 //				Name1:       "Roy Buchanan - Loading Zone [1977] - FLAC / Lossless / Log / 100% / Cue / CD",
 //				Name2:       "Loading Zone [1977] - FLAC / Lossless / Log / 100% / Cue / CD",
 //				Freeleech:   false,
-//				TorrentName: "Roy Buchanan - Loading Zone [1977] - FLAC / Lossless / Log / 100% / Cue / CD",
+//				Name: "Roy Buchanan - Loading Zone [1977] - FLAC / Lossless / Log / 100% / Cue / CD",
 //				TorrentUrl:  "https://tracker05.test/torrents.php?action=download&id=1382972&authkey=000aaa111bbb222ccc333ddd&torrent_pass=eee444fff555ggg666hhh777",
 //				Site:        "T05",
 //				Tags:        "blues, rock, classic rock,jazz,blues rock,electric blues",
@@ -357,7 +353,7 @@ var (
 //				Name1:       "Heirloom - Road to the Isles [1998] [Album] - FLAC / Lossless / Log / 100% / Cue / CD",
 //				Name2:       "Road to the Isles [1998] [Album] - FLAC / Lossless / Log / 100% / Cue / CD",
 //				Freeleech:   false,
-//				TorrentName: "Heirloom - Road to the Isles [1998] [Album] - FLAC / Lossless / Log / 100% / Cue / CD",
+//				Name: "Heirloom - Road to the Isles [1998] [Album] - FLAC / Lossless / Log / 100% / Cue / CD",
 //				TorrentUrl:  "https://tracker05.test/torrents.php?action=download&id=29910415&authkey=000aaa111bbb222ccc333ddd&torrent_pass=eee444fff555ggg666hhh777",
 //				Site:        "T05",
 //				Tags:        "1990s, folk, world music, celtic",
@@ -421,7 +417,7 @@ var (
 //			want: &domain.Announce{
 //				Freeleech:   false,
 //				Category:    "PC :: Iso",
-//				TorrentName: "debian live 10 6 0 amd64 standard iso",
+//				Name: "debian live 10 6 0 amd64 standard iso",
 //				Uploader:    "Anonymous",
 //				TorrentUrl:  "https://www.tracker01.test/rss/download/263302/000aaa111bbb222ccc333ddd/debian+live+10+6+0+amd64+standard+iso.torrent",
 //				Site:        "T01",
@@ -441,7 +437,7 @@ var (
 //			want: &domain.Announce{
 //				Freeleech:   true,
 //				Category:    "PC :: Iso",
-//				TorrentName: "debian live 10 6 0 amd64 standard iso",
+//				Name: "debian live 10 6 0 amd64 standard iso",
 //				Uploader:    "Anonymous",
 //				TorrentUrl:  "https://www.tracker01.test/rss/download/263302/000aaa111bbb222ccc333ddd/debian+live+10+6+0+amd64+standard+iso.torrent",
 //				Site:        "T01",
@@ -462,7 +458,7 @@ var (
 //				Name1:       "Roy Buchanan - Loading Zone [1977] - FLAC / Lossless / Log / 100% / Cue / CD",
 //				Name2:       "Loading Zone [1977] - FLAC / Lossless / Log / 100% / Cue / CD",
 //				Freeleech:   false,
-//				TorrentName: "Roy Buchanan - Loading Zone [1977] - FLAC / Lossless / Log / 100% / Cue / CD",
+//				Name: "Roy Buchanan - Loading Zone [1977] - FLAC / Lossless / Log / 100% / Cue / CD",
 //				TorrentUrl:  "https://tracker05.test/torrents.php?action=download&id=1382972&authkey=000aaa111bbb222ccc333ddd&torrent_pass=eee444fff555ggg666hhh777",
 //				Site:        "T05",
 //				Tags:        "blues, rock, classic rock,jazz,blues rock,electric blues",
@@ -496,7 +492,7 @@ var (
 //				Name1:       "Heirloom - Road to the Isles [1998] [Album] - FLAC / Lossless / Log / 100% / Cue / CD",
 //				Name2:       "Road to the Isles [1998] [Album] - FLAC / Lossless / Log / 100% / Cue / CD",
 //				Freeleech:   false,
-//				TorrentName: "Heirloom - Road to the Isles [1998] [Album] - FLAC / Lossless / Log / 100% / Cue / CD",
+//				Name: "Heirloom - Road to the Isles [1998] [Album] - FLAC / Lossless / Log / 100% / Cue / CD",
 //				TorrentUrl:  "https://tracker05.test/torrents.php?action=download&id=29910415&authkey=000aaa111bbb222ccc333ddd&torrent_pass=eee444fff555ggg666hhh777",
 //				Site:        "T05",
 //				Tags:        "1990s, folk, world music, celtic",
@@ -534,52 +530,52 @@ var (
 //	}
 //}
 
-func Test_service_extractReleaseInfo(t *testing.T) {
-	type fields struct {
-		name   string
-		queues map[string]chan string
-	}
-	type args struct {
-		varMap      map[string]string
-		releaseName string
-	}
-	tests := []struct {
-		name    string
-		fields  fields
-		args    args
-		wantErr bool
-	}{
-		{
-			name: "test_01",
-			fields: fields{
-				name: "", queues: nil,
-			},
-			args: args{
-				varMap:      map[string]string{},
-				releaseName: "Heirloom - Road to the Isles [1998] [Album] - FLAC / Lossless / Log / 100% / Cue / CD",
-			},
-			wantErr: false,
-		},
-		{
-			name: "test_02",
-			fields: fields{
-				name: "", queues: nil,
-			},
-			args: args{
-				varMap:      map[string]string{},
-				releaseName: "Lost S06E07 720p WEB-DL DD 5.1 H.264 - LP",
-			},
-			wantErr: false,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			s := &service{
-				queues: tt.fields.queues,
-			}
-			if err := s.extractReleaseInfo(tt.args.varMap, tt.args.releaseName); (err != nil) != tt.wantErr {
-				t.Errorf("extractReleaseInfo() error = %v, wantErr %v", err, tt.wantErr)
-			}
-		})
-	}
-}
+//func Test_service_extractReleaseInfo(t *testing.T) {
+//	type fields struct {
+//		name   string
+//		queues map[string]chan string
+//	}
+//	type args struct {
+//		varMap      map[string]string
+//		releaseName string
+//	}
+//	tests := []struct {
+//		name    string
+//		fields  fields
+//		args    args
+//		wantErr bool
+//	}{
+//		{
+//			name: "test_01",
+//			fields: fields{
+//				name: "", queues: nil,
+//			},
+//			args: args{
+//				varMap:      map[string]string{},
+//				releaseName: "Heirloom - Road to the Isles [1998] [Album] - FLAC / Lossless / Log / 100% / Cue / CD",
+//			},
+//			wantErr: false,
+//		},
+//		{
+//			name: "test_02",
+//			fields: fields{
+//				name: "", queues: nil,
+//			},
+//			args: args{
+//				varMap:      map[string]string{},
+//				releaseName: "Lost S06E07 720p WEB-DL DD 5.1 H.264 - LP",
+//			},
+//			wantErr: false,
+//		},
+//	}
+//	for _, tt := range tests {
+//		t.Run(tt.name, func(t *testing.T) {
+//			s := &service{
+//				queues: tt.fields.queues,
+//			}
+//			if err := s.extractReleaseInfo(tt.args.varMap, tt.args.releaseName); (err != nil) != tt.wantErr {
+//				t.Errorf("extractReleaseInfo() error = %v, wantErr %v", err, tt.wantErr)
+//			}
+//		})
+//	}
+//}
