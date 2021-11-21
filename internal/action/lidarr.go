@@ -9,7 +9,7 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-func (s *service) lidarr(announce domain.Announce, action domain.Action) error {
+func (s *service) lidarr(release domain.Release, action domain.Action) error {
 	log.Trace().Msg("action LIDARR")
 
 	// TODO validate data
@@ -39,27 +39,27 @@ func (s *service) lidarr(announce domain.Announce, action domain.Action) error {
 		cfg.Password = client.Settings.Basic.Password
 	}
 
-	r := lidarr.New(cfg)
+	arr := lidarr.New(cfg)
 
-	release := lidarr.Release{
-		Title:            announce.TorrentName,
-		DownloadUrl:      announce.TorrentUrl,
-		Size:             0,
-		Indexer:          announce.Site,
+	r := lidarr.Release{
+		Title:            release.Name,
+		DownloadUrl:      release.TorrentURL,
+		Size:             int64(release.Size),
+		Indexer:          release.Indexer,
 		DownloadProtocol: "torrent",
 		Protocol:         "torrent",
 		PublishDate:      time.Now().Format(time.RFC3339),
 	}
 
-	success, err := r.Push(release)
+	success, err := arr.Push(r)
 	if err != nil {
-		log.Error().Stack().Err(err).Msgf("lidarr: failed to push release: %v", release)
+		log.Error().Stack().Err(err).Msgf("lidarr: failed to push release: %v", r)
 		return err
 	}
 
 	if success {
 		// TODO save pushed release
-		log.Debug().Msgf("lidarr: successfully pushed release: %v, indexer %v to %v", release.Title, release.Indexer, client.Host)
+		log.Debug().Msgf("lidarr: successfully pushed release: %v, indexer %v to %v", r.Title, r.Indexer, client.Host)
 	}
 
 	return nil

@@ -11,7 +11,7 @@ type Service interface {
 	Delete(actionID int) error
 	ToggleEnabled(actionID int) error
 
-	RunActions(actions []domain.Action, announce domain.Announce) error
+	RunActions(actions []domain.Action, release domain.Release) error
 }
 
 type service struct {

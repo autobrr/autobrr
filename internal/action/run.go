@@ -12,7 +12,7 @@ import (
 	"github.com/autobrr/autobrr/internal/domain"
 )
 
-func (s *service) RunActions(actions []domain.Action, announce domain.Announce) error {
+func (s *service) RunActions(actions []domain.Action, release domain.Release) error {
 
 	var err error
 	var tmpFile string
@@ -32,19 +32,19 @@ func (s *service) RunActions(actions []domain.Action, announce domain.Announce) 
 
 		case domain.ActionTypeExec:
 			if tmpFile == "" {
-				tmpFile, hash, err = downloadFile(announce.TorrentUrl)
+				tmpFile, hash, err = downloadFile(release.TorrentURL)
 				if err != nil {
 					log.Error().Stack().Err(err)
 					return err
 				}
 			}
-			go func(announce domain.Announce, action domain.Action, tmpFile string) {
-				s.execCmd(announce, action, tmpFile)
-			}(announce, action, tmpFile)
+			go func(release domain.Release, action domain.Action, tmpFile string) {
+				s.execCmd(release, action, tmpFile)
+			}(release, action, tmpFile)
 
 		case domain.ActionTypeWatchFolder:
 			if tmpFile == "" {
-				tmpFile, hash, err = downloadFile(announce.TorrentUrl)
+				tmpFile, hash, err = downloadFile(release.TorrentURL)
 				if err != nil {
 					log.Error().Stack().Err(err)
 					return err
@@ -60,7 +60,7 @@ func (s *service) RunActions(actions []domain.Action, announce domain.Announce) 
 			}
 			if canDownload {
 				if tmpFile == "" {
-					tmpFile, hash, err = downloadFile(announce.TorrentUrl)
+					tmpFile, hash, err = downloadFile(release.TorrentURL)
 					if err != nil {
 						log.Error().Stack().Err(err)
 						return err
@@ -83,7 +83,7 @@ func (s *service) RunActions(actions []domain.Action, announce domain.Announce) 
 			}
 			if canDownload {
 				if tmpFile == "" {
-					tmpFile, hash, err = downloadFile(announce.TorrentUrl)
+					tmpFile, hash, err = downloadFile(release.TorrentURL)
 					if err != nil {
 						log.Error().Stack().Err(err)
 						return err
@@ -99,31 +99,31 @@ func (s *service) RunActions(actions []domain.Action, announce domain.Announce) 
 			}
 
 		case domain.ActionTypeRadarr:
-			go func(announce domain.Announce, action domain.Action) {
-				err = s.radarr(announce, action)
+			go func(release domain.Release, action domain.Action) {
+				err = s.radarr(release, action)
 				if err != nil {
 					log.Error().Stack().Err(err).Msg("error sending torrent to radarr")
 					//continue
 				}
-			}(announce, action)
+			}(release, action)
 
 		case domain.ActionTypeSonarr:
-			go func(announce domain.Announce, action domain.Action) {
-				err = s.sonarr(announce, action)
+			go func(release domain.Release, action domain.Action) {
+				err = s.sonarr(release, action)
 				if err != nil {
 					log.Error().Stack().Err(err).Msg("error sending torrent to sonarr")
 					//continue
 				}
-			}(announce, action)
+			}(release, action)
 
 		case domain.ActionTypeLidarr:
-			go func(announce domain.Announce, action domain.Action) {
-				err = s.lidarr(announce, action)
+			go func(release domain.Release, action domain.Action) {
+				err = s.lidarr(release, action)
 				if err != nil {
 					log.Error().Stack().Err(err).Msg("error sending torrent to lidarr")
 					//continue
 				}
-			}(announce, action)
+			}(release, action)
 
 		default:
 			log.Warn().Msgf("unsupported action: %v type: %v", action.Name, action.Type)

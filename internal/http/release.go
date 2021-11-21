@@ -3,10 +3,7 @@ package http
 import (
 	"context"
 	"net/http"
-	"net/url"
 	"strconv"
-
-	"github.com/rs/zerolog/log"
 
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/go-chi/chi"
@@ -14,6 +11,7 @@ import (
 
 type releaseService interface {
 	Find(ctx context.Context, query domain.QueryParams) (res []domain.Release, nextCursor int64, err error)
+	Stats(ctx context.Context) (*domain.ReleaseStats, error)
 	Store(release domain.Release) error
 }
 
@@ -31,13 +29,12 @@ func newReleaseHandler(encoder encoder, service releaseService) *releaseHandler 
 
 func (h releaseHandler) Routes(r chi.Router) {
 	r.Get("/", h.findReleases)
+	r.Get("/stats", h.getStats)
 }
 
 func (h releaseHandler) findReleases(w http.ResponseWriter, r *http.Request) {
 
 	limitP := r.URL.Query().Get("limit")
-
-	//limitP := chi.URLParam(r, "limit")
 	limit, err := strconv.Atoi(limitP)
 	if err != nil && limitP != "" {
 		h.encoder.StatusResponse(r.Context(), w, map[string]interface{}{
@@ -49,8 +46,7 @@ func (h releaseHandler) findReleases(w http.ResponseWriter, r *http.Request) {
 		limit = 20
 	}
 
-	cursorP := r.URL.Query().Get("limit")
-	//cursorP := chi.URLParam(r, "cursor")
+	cursorP := r.URL.Query().Get("cursor")
 	cursor, err := strconv.Atoi(cursorP)
 	if err != nil && cursorP != "" {
 		h.encoder.StatusResponse(r.Context(), w, map[string]interface{}{
@@ -60,8 +56,8 @@ func (h releaseHandler) findReleases(w http.ResponseWriter, r *http.Request) {
 	}
 
 	//r.URL.Query().
-	f, _ := url.ParseQuery(r.URL.RawQuery)
-	log.Info().Msgf("url", f)
+	//f, _ := url.ParseQuery(r.URL.RawQuery)
+	//log.Info().Msgf("url", f)
 
 	query := domain.QueryParams{
 		Limit:  uint64(limit),
@@ -84,6 +80,25 @@ func (h releaseHandler) findReleases(w http.ResponseWriter, r *http.Request) {
 		NextCursor: nextCursor,
 	}
 
-	//h.encoder.StatusResponse(ctx, w, releases, http.StatusOK)
 	h.encoder.StatusResponse(r.Context(), w, ret, http.StatusOK)
+}
+
+func (h releaseHandler) getStats(w http.ResponseWriter, r *http.Request) {
+
+	stats, err := h.service.Stats(r.Context())
+	if err != nil {
+		h.encoder.StatusNotFound(r.Context(), w)
+		return
+	}
+
+	//ret := struct {
+	//	Data       []domain.Release `json:"data"`
+	//	NextCursor int64            `json:"next_cursor"`
+	//}{
+	//	Data:       releases,
+	//	NextCursor: nextCursor,
+	//}
+
+	//h.encoder.StatusResponse(ctx, w, releases, http.StatusOK)
+	h.encoder.StatusResponse(r.Context(), w, stats, http.StatusOK)
 }

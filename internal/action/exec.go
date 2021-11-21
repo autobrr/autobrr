@@ -10,8 +10,8 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-func (s *service) execCmd(announce domain.Announce, action domain.Action, torrentFile string) {
-	log.Debug().Msgf("action exec: %v release: %v", action.Name, announce.TorrentName)
+func (s *service) execCmd(release domain.Release, action domain.Action, torrentFile string) {
+	log.Debug().Msgf("action exec: %v release: %v", action.Name, release.Name)
 
 	// check if program exists
 	cmd, err := exec.LookPath(action.ExecCmd)
@@ -22,9 +22,9 @@ func (s *service) execCmd(announce domain.Announce, action domain.Action, torren
 
 	// handle args and replace vars
 	m := Macro{
-		TorrentName:     announce.TorrentName,
+		TorrentName:     release.Name,
 		TorrentPathName: torrentFile,
-		TorrentUrl:      announce.TorrentUrl,
+		TorrentUrl:      release.TorrentURL,
 	}
 
 	// parse and replace values in argument string before continuing
@@ -53,5 +53,5 @@ func (s *service) execCmd(announce domain.Announce, action domain.Action, torren
 
 	duration := time.Since(start)
 
-	log.Info().Msgf("executed command: '%v', args: '%v' %v,%v, total time %v", cmd, parsedArgs, announce.TorrentName, announce.Site, duration)
+	log.Info().Msgf("executed command: '%v', args: '%v' %v,%v, total time %v", cmd, parsedArgs, release.Name, release.Indexer, duration)
 }

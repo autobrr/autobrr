@@ -12,8 +12,9 @@ import (
 
 type Service interface {
 	Find(ctx context.Context, query domain.QueryParams) (res []domain.Release, nextCursor int64, err error)
+	Stats(ctx context.Context) (*domain.ReleaseStats, error)
 	Store(release domain.Release) error
-	Process(announce domain.Announce) error
+	Process(release domain.Release) error
 }
 
 type service struct {
@@ -40,24 +41,37 @@ func (s *service) Find(ctx context.Context, query domain.QueryParams) (res []dom
 	//return releases, nil
 }
 
+func (s *service) Stats(ctx context.Context) (*domain.ReleaseStats, error) {
+	stats, err := s.repo.Stats(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	return stats, nil
+}
+
 func (s *service) Store(release domain.Release) error {
+	_, err := s.repo.Store(release)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
 
-func (s *service) Process(announce domain.Announce) error {
-	log.Trace().Msgf("start to process release: %+v", announce)
+func (s *service) Process(release domain.Release) error {
+	log.Trace().Msgf("start to process release: %+v", release)
 
-	if announce.Filter.Actions == nil {
-		return fmt.Errorf("no actions for filter: %v", announce.Filter.Name)
+	if release.Filter.Actions == nil {
+		return fmt.Errorf("no actions for filter: %v", release.Filter.Name)
 	}
 
 	// smart episode?
 
 	// run actions (watchFolder, test, exec, qBittorrent, Deluge etc.)
-	err := s.actionSvc.RunActions(announce.Filter.Actions, announce)
+	err := s.actionSvc.RunActions(release.Filter.Actions, release)
 	if err != nil {
-		log.Error().Stack().Err(err).Msgf("error running actions for filter: %v", announce.Filter.Name)
+		log.Error().Stack().Err(err).Msgf("error running actions for filter: %v", release.Filter.Name)
 		return err
 	}
 

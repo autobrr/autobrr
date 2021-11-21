@@ -146,6 +146,7 @@ CREATE TABLE "release"
 	rejections	TEXT []   DEFAULT '{}' NOT NULL,
 	indexer		TEXT,
 	client		TEXT,
+	filter		TEXT,
 	protocol	TEXT,
 	title		TEXT,
 	size		TEXT,

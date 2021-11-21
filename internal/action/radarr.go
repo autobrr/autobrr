@@ -9,7 +9,7 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-func (s *service) radarr(announce domain.Announce, action domain.Action) error {
+func (s *service) radarr(release domain.Release, action domain.Action) error {
 	log.Trace().Msg("action RADARR")
 
 	// TODO validate data
@@ -39,27 +39,27 @@ func (s *service) radarr(announce domain.Announce, action domain.Action) error {
 		cfg.Password = client.Settings.Basic.Password
 	}
 
-	r := radarr.New(cfg)
+	arr := radarr.New(cfg)
 
-	release := radarr.Release{
-		Title:            announce.TorrentName,
-		DownloadUrl:      announce.TorrentUrl,
-		Size:             0,
-		Indexer:          announce.Site,
+	r := radarr.Release{
+		Title:            release.Name,
+		DownloadUrl:      release.TorrentURL,
+		Size:             int64(release.Size),
+		Indexer:          release.Indexer,
 		DownloadProtocol: "torrent",
 		Protocol:         "torrent",
 		PublishDate:      time.Now().Format(time.RFC3339),
 	}
 
-	success, err := r.Push(release)
+	success, err := arr.Push(r)
 	if err != nil {
-		log.Error().Stack().Err(err).Msgf("radarr: failed to push release: %v", release)
+		log.Error().Stack().Err(err).Msgf("radarr: failed to push release: %v", r)
 		return err
 	}
 
 	if success {
 		// TODO save pushed release
-		log.Debug().Msgf("radarr: successfully pushed release: %v, indexer %v to %v", release.Title, release.Indexer, client.Host)
+		log.Debug().Msgf("radarr: successfully pushed release: %v, indexer %v to %v", r.Title, r.Indexer, client.Host)
 	}
 
 	return nil
