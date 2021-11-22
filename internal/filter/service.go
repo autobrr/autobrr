@@ -160,19 +160,28 @@ func (s *service) FindAndCheckFilters(release *domain.Release) (bool, *domain.Fi
 		return false, nil, err
 	}
 
-	// match against releaseInfo
+	// loop and check release to filter until match
 	for _, f := range filters {
 		log.Trace().Msgf("checking filter: %+v", &f.Name)
 
 		matchedFilter := release.CheckFilter(f)
 		// if matched, attach actions and return the f
 		if matchedFilter {
+			//release.Filter = &f
+			//release.FilterID = f.ID
+			//release.FilterName = f.Name
 
 			log.Debug().Msgf("found and matched filter: %+v", &f.Name)
 
 			// TODO do additional size check against indexer api or torrent for size
 			if release.AdditionalSizeCheckRequired {
-				// check if indexer = btn,ptp,ggn
+				log.Debug().Msgf("additional size check required for: %+v", &f.Name)
+				// check if indexer = btn,ptp,ggn,red
+				// fetch api for data
+				// else download torrent and add to tmpPath
+				// if size != response.size
+				// r.RecheckSizeFilter(f)
+				//continue
 			}
 
 			// find actions and attach
@@ -185,13 +194,6 @@ func (s *service) FindAndCheckFilters(release *domain.Release) (bool, *domain.Fi
 			return true, &f, nil
 		}
 	}
-
-	//// no f found, lets return
-	//if foundFilter == nil {
-	//	log.Trace().Msg("no matching f found")
-	//	return nil
-	//}
-	//release.Filter = foundFilter
 
 	// if no match, return nil
 	return false, nil, nil

@@ -12,7 +12,7 @@ import (
 type releaseService interface {
 	Find(ctx context.Context, query domain.QueryParams) (res []domain.Release, nextCursor int64, err error)
 	Stats(ctx context.Context) (*domain.ReleaseStats, error)
-	Store(release domain.Release) error
+	Store(release *domain.Release) error
 }
 
 type releaseHandler struct {

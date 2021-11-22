@@ -58,6 +58,7 @@ func (s *service) Parse(announceID string, msg string) error {
 			return err
 		}
 	}
+
 	// TODO implement multiline parsing
 
 	filterOK, foundFilter, err := s.filterSvc.FindAndCheckFilters(newRelease)
@@ -69,28 +70,29 @@ func (s *service) Parse(announceID string, msg string) error {
 	// no foundFilter found, lets return
 	if !filterOK || foundFilter == nil {
 		log.Trace().Msg("no matching filter found")
+
+		// TODO check in config for "Save all releases"
+		// Save as rejected
+		newRelease.FilterStatus = domain.ReleaseStatusFilterRejected
+		err = s.releaseSvc.Store(newRelease)
+		if err != nil {
+			log.Error().Err(err).Msgf("error writing release to database: %+v", newRelease)
+			return nil
+		}
 		return nil
 	}
+
+	// save release
 	newRelease.Filter = foundFilter
+	newRelease.FilterName = foundFilter.Name
+	newRelease.FilterID = foundFilter.ID
 
-	// TODO save release
-
-	// store newRelease filtered
-	//rls := domain.Release{
-	//	Status:     domain.ReleaseStatusFiltered,
-	//	Rejections: nil,
-	//	Indexer:    announce.Site,
-	//	Client:     "",
-	//	Filter:     announce.Filter.Name,
-	//	Protocol:   "torrent",
-	//	Title:      announce.Name,
-	//	Size:       announce.TorrentSize,
-	//	Raw:        announce.Line,
-	//}
-	//err = s.releaseSvc.Store(rls)
-	//if err != nil {
-	//	log.Trace().Msgf("error storing newRelease: %+v", rls)
-	//}
+	newRelease.FilterStatus = domain.ReleaseStatusFilterApproved
+	err = s.releaseSvc.Store(newRelease)
+	if err != nil {
+		log.Error().Err(err).Msgf("error writing release to database: %+v", newRelease)
+		return nil
+	}
 
 	log.Trace().Msgf("release: %+v", newRelease)
 
