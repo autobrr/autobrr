@@ -20,8 +20,8 @@ func NewReleaseRepo(db *sql.DB) domain.ReleaseRepo {
 	return &ReleaseRepo{db: db}
 }
 
-func (r *ReleaseRepo) Store(release domain.Release) (*domain.Release, error) {
-	res, err := r.db.Exec(`INSERT INTO "release"(status, rejections, indexer, protocol, title, size) VALUES (?, ?, ?, ? ,? ,?) ON CONFLICT DO NOTHING`, release.Status, pq.Array(release.Rejections), release.Indexer, release.Protocol, release.Title, release.Size)
+func (r *ReleaseRepo) Store(release *domain.Release) (*domain.Release, error) {
+	res, err := r.db.Exec(`INSERT INTO "release"(filter_status, rejections, indexer, protocol, title, size) VALUES (?, ?, ?, ? ,? ,?) ON CONFLICT DO NOTHING`, release.FilterStatus, pq.Array(release.Rejections), release.Indexer, release.Protocol, release.Title, release.Size)
 	if err != nil {
 		log.Error().Stack().Err(err).Msg("error storing release")
 		return nil, err
@@ -32,12 +32,12 @@ func (r *ReleaseRepo) Store(release domain.Release) (*domain.Release, error) {
 	resId, _ := res.LastInsertId()
 	release.ID = resId
 
-	return &release, nil
+	return release, nil
 }
 
 func (r *ReleaseRepo) Find(ctx context.Context, params domain.QueryParams) ([]domain.Release, int64, error) {
 
-	queryBuilder := sq.Select("id", "status", "rejections", "indexer", "client", "filter", "protocol", "title", "size", "created_at").From("release").OrderBy("created_at DESC")
+	queryBuilder := sq.Select("id", "filter_status", "push_status", "rejections", "indexer", "client", "filter", "protocol", "title", "size", "created_at").From("release").OrderBy("created_at DESC")
 
 	if params.Limit > 0 {
 		queryBuilder = queryBuilder.Limit(params.Limit)
@@ -92,7 +92,7 @@ func (r *ReleaseRepo) Find(ctx context.Context, params domain.QueryParams) ([]do
 		var indexer, client, filter sql.NullString
 		var createdAt string
 
-		if err := rows.Scan(&rls.ID, &rls.Status, pq.Array(&rls.Rejections), &indexer, &client, &filter, &rls.Protocol, &rls.Title, &rls.Size, &createdAt); err != nil {
+		if err := rows.Scan(&rls.ID, &rls.FilterStatus, &rls.PushStatus, pq.Array(&rls.Rejections), &indexer, &client, &filter, &rls.Protocol, &rls.Title, &rls.Size, &createdAt); err != nil {
 			log.Error().Stack().Err(err).Msg("release.find: error scanning data to struct")
 			return nil, 0, err
 		}
