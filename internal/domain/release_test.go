@@ -8,7 +8,6 @@ import (
 func TestReleaseInfo_Parse(t *testing.T) {
 	type fields struct {
 		ID               int64
-		Status           ReleaseStatus
 		Rejections       []string
 		Indexer          string
 		FilterName       string
@@ -67,7 +66,6 @@ func TestReleaseInfo_Parse(t *testing.T) {
 		// TODO: Add test cases.
 		{name: "parse_1", fields: fields{
 			ID:               0,
-			Status:           "",
 			Rejections:       nil,
 			Indexer:          "",
 			FilterName:       "",
@@ -122,8 +120,8 @@ func TestReleaseInfo_Parse(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			r := &Release{
-				ID:               tt.fields.ID,
-				Status:           tt.fields.Status,
+				ID: tt.fields.ID,
+				//Status:           tt.fields.Status,
 				Rejections:       tt.fields.Rejections,
 				Indexer:          tt.fields.Indexer,
 				FilterName:       tt.fields.FilterName,
@@ -132,7 +130,7 @@ func TestReleaseInfo_Parse(t *testing.T) {
 				Timestamp:        tt.fields.Timestamp,
 				TorrentID:        tt.fields.TorrentID,
 				GroupID:          tt.fields.GroupID,
-				Name:             tt.fields.TorrentName,
+				TorrentName:      tt.fields.TorrentName,
 				Raw:              tt.fields.Raw,
 				Title:            tt.fields.Title,
 				Category:         tt.fields.Category,
@@ -148,7 +146,6 @@ func TestReleaseInfo_Parse(t *testing.T) {
 				Group:            tt.fields.Group,
 				Region:           tt.fields.Region,
 				Edition:          tt.fields.Edition,
-				Hardcoded:        tt.fields.Hardcoded,
 				Proper:           tt.fields.Proper,
 				Repack:           tt.fields.Repack,
 				Website:          tt.fields.Website,
@@ -228,8 +225,8 @@ func TestReleaseInfo_CheckFilter(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			r := &Release{
-				ID:                          tt.fields.ID,
-				Status:                      tt.fields.Status,
+				ID: tt.fields.ID,
+				//Status:                      tt.fields.Status,
 				Rejections:                  tt.fields.Rejections,
 				Indexer:                     tt.fields.Indexer,
 				FilterName:                  tt.fields.FilterName,
@@ -238,7 +235,7 @@ func TestReleaseInfo_CheckFilter(t *testing.T) {
 				Timestamp:                   tt.fields.Timestamp,
 				TorrentID:                   tt.fields.TorrentID,
 				GroupID:                     tt.fields.GroupID,
-				Name:                        tt.fields.Name,
+				TorrentName:                 tt.fields.TorrentName,
 				Raw:                         tt.fields.Raw,
 				Title:                       tt.fields.Title,
 				Category:                    tt.fields.Category,
@@ -254,7 +251,6 @@ func TestReleaseInfo_CheckFilter(t *testing.T) {
 				Group:                       tt.fields.Group,
 				Region:                      tt.fields.Region,
 				Edition:                     tt.fields.Edition,
-				Hardcoded:                   tt.fields.Hardcoded,
 				Proper:                      tt.fields.Proper,
 				Repack:                      tt.fields.Repack,
 				Website:                     tt.fields.Website,

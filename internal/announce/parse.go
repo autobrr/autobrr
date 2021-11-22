@@ -71,7 +71,7 @@ func (s *service) onLinesMatched(def *domain.IndexerDefinition, vars map[string]
 
 	// TODO is this even needed anymore
 	// canonicalize name
-	canonReleaseName := cleanReleaseName(release.Name)
+	canonReleaseName := cleanReleaseName(release.TorrentName)
 	log.Trace().Msgf("canonicalize release name: %v", canonReleaseName)
 
 	err = release.Parse()

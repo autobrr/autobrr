@@ -11,7 +11,7 @@ import (
 )
 
 func (s *service) execCmd(release domain.Release, action domain.Action, torrentFile string) {
-	log.Debug().Msgf("action exec: %v release: %v", action.Name, release.Name)
+	log.Debug().Msgf("action exec: %v release: %v", action.Name, release.TorrentName)
 
 	// check if program exists
 	cmd, err := exec.LookPath(action.ExecCmd)
@@ -22,7 +22,7 @@ func (s *service) execCmd(release domain.Release, action domain.Action, torrentF
 
 	// handle args and replace vars
 	m := Macro{
-		TorrentName:     release.Name,
+		TorrentName:     release.TorrentName,
 		TorrentPathName: torrentFile,
 		TorrentUrl:      release.TorrentURL,
 	}
@@ -53,5 +53,5 @@ func (s *service) execCmd(release domain.Release, action domain.Action, torrentF
 
 	duration := time.Since(start)
 
-	log.Info().Msgf("executed command: '%v', args: '%v' %v,%v, total time %v", cmd, parsedArgs, release.Name, release.Indexer, duration)
+	log.Info().Msgf("executed command: '%v', args: '%v' %v,%v, total time %v", cmd, parsedArgs, release.TorrentName, release.Indexer, duration)
 }

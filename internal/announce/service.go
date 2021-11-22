@@ -92,9 +92,9 @@ func (s *service) Parse(announceID string, msg string) error {
 	//	log.Trace().Msgf("error storing newRelease: %+v", rls)
 	//}
 
-	log.Trace().Msgf("announce: %+v", newRelease)
+	log.Trace().Msgf("release: %+v", newRelease)
 
-	log.Info().Msgf("Matched '%v' (%v) for %v", newRelease.Name, newRelease.Filter.Name, newRelease.Indexer)
+	log.Info().Msgf("Matched '%v' (%v) for %v", newRelease.TorrentName, newRelease.Filter.Name, newRelease.Indexer)
 
 	// process release
 	go func() {

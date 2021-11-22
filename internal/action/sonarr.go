@@ -42,7 +42,7 @@ func (s *service) sonarr(release domain.Release, action domain.Action) error {
 	arr := sonarr.New(cfg)
 
 	r := sonarr.Release{
-		Title:            release.Name,
+		Title:            release.TorrentName,
 		DownloadUrl:      release.TorrentURL,
 		Size:             int64(release.Size),
 		Indexer:          release.Indexer,

@@ -42,7 +42,7 @@ func (s *service) radarr(release domain.Release, action domain.Action) error {
 	arr := radarr.New(cfg)
 
 	r := radarr.Release{
-		Title:            release.Name,
+		Title:            release.TorrentName,
 		DownloadUrl:      release.TorrentURL,
 		Size:             int64(release.Size),
 		Indexer:          release.Indexer,

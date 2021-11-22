@@ -1,12 +1,6 @@
 package domain
 
 import (
-	"github.com/autobrr/autobrr/pkg/wildcard"
-
-	"github.com/dustin/go-humanize"
-	"github.com/pkg/errors"
-	"github.com/rs/zerolog/log"
-
 	"context"
 	"fmt"
 	"html"
@@ -14,28 +8,37 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/autobrr/autobrr/pkg/wildcard"
+
+	"github.com/dustin/go-humanize"
+	"github.com/pkg/errors"
+	"github.com/rs/zerolog/log"
 )
 
 type ReleaseRepo interface {
-	Store(release Release) (*Release, error)
+	Store(release *Release) (*Release, error)
 	Find(ctx context.Context, params QueryParams) (res []Release, nextCursor int64, err error)
 	Stats(ctx context.Context) (*ReleaseStats, error)
 }
 
 type Release struct {
 	ID                          int64                 `json:"id"`
-	Status                      ReleaseStatus         `json:"status"`
+	FilterStatus                ReleaseFilterStatus   `json:"filter_status"`
+	PushStatus                  ReleasePushStatus     `json:"push_status"`
 	Rejections                  []string              `json:"rejections"`
 	Indexer                     string                `json:"indexer"`
 	FilterName                  string                `json:"filter"`
 	Protocol                    ReleaseProtocol       `json:"protocol"`
 	Implementation              ReleaseImplementation `json:"implementation"` // irc, rss, api
 	Timestamp                   time.Time             `json:"timestamp"`
-	TorrentID                   string                `json:"torrent_id"`
 	GroupID                     string                `json:"group_id"`
-	Name                        string                `json:"torrent_name"` // raw
-	Raw                         string                `json:"raw"`          // Raw title
-	Title                       string                `json:"title"`        // Parsed title
+	TorrentID                   string                `json:"torrent_id"`
+	TorrentURL                  string                `json:"-"`
+	TorrentName                 string                `json:"torrent_name"` // full release name
+	Size                        uint64                `json:"size"`
+	Raw                         string                `json:"raw"`   // Raw release
+	Title                       string                `json:"title"` // Parsed title
 	Category                    string                `json:"category"`
 	Season                      int                   `json:"season"`
 	Episode                     int                   `json:"episode"`
@@ -48,15 +51,13 @@ type Release struct {
 	Audio                       string                `json:"audio"`
 	Group                       string                `json:"group"`
 	Region                      string                `json:"region"`
+	Language                    string                `json:"language"`
 	Edition                     string                `json:"edition"` // Extended, directors cut
-	Hardcoded                   bool                  `json:"hardcoded"`
+	Unrated                     bool                  `json:"unrated"`
+	Hybrid                      bool                  `json:"hybrid"`
 	Proper                      bool                  `json:"proper"`
 	Repack                      bool                  `json:"repack"`
 	Website                     string                `json:"website"`
-	Language                    string                `json:"language"`
-	Unrated                     bool                  `json:"unrated"`
-	Hybrid                      bool                  `json:"hybrid"`
-	Size                        uint64                `json:"size"`
 	ThreeD                      bool                  `json:"-"`
 	Artists                     []string              `json:"artists"`
 	Type                        string                `json:"type"`    // Album,Single,EP
@@ -72,7 +73,6 @@ type Release struct {
 	FreeleechPercent            int                   `json:"freeleech_percent"`
 	Uploader                    string                `json:"uploader"`
 	PreTime                     string                `json:"pre_time"`
-	TorrentURL                  string                `json:"-"`
 	AdditionalSizeCheckRequired bool                  `json:"-"`
 	FilterID                    int                   `json:"-"`
 	Filter                      *Filter               `json:"-"`
@@ -106,7 +106,7 @@ func (r *Release) Parse() error {
 	err = r.extractGroup()
 
 	if err != nil {
-		log.Trace().Msgf("could not parse release: %v", r.Name)
+		log.Trace().Msgf("could not parse release: %v", r.TorrentName)
 		return err
 	}
 
@@ -114,7 +114,7 @@ func (r *Release) Parse() error {
 }
 
 func (r *Release) extractYear() error {
-	y, err := findLastInt(r.Name, `(?:^|\\D)(19[3-9]\\d|20[012]\\d)(?:\\D|$)`)
+	y, err := findLastInt(r.TorrentName, `(?:^|\\D)(19[3-9]\\d|20[012]\\d)(?:\\D|$)`)
 	if err != nil {
 		return err
 	}
@@ -124,7 +124,7 @@ func (r *Release) extractYear() error {
 }
 
 func (r *Release) extractSeason() error {
-	s, err := findLastInt(r.Name, `(?:S|Season\s*)(\d{1,3})`)
+	s, err := findLastInt(r.TorrentName, `(?:S|Season\s*)(\d{1,3})`)
 	if err != nil {
 		return err
 	}
@@ -134,7 +134,7 @@ func (r *Release) extractSeason() error {
 }
 
 func (r *Release) extractEpisode() error {
-	e, err := findLastInt(r.Name, `(?i)[ex]([0-9]{2})(?:[^0-9]|$)`)
+	e, err := findLastInt(r.TorrentName, `(?i)[ex]([0-9]{2})(?:[^0-9]|$)`)
 	if err != nil {
 		return err
 	}
@@ -144,7 +144,7 @@ func (r *Release) extractEpisode() error {
 }
 
 func (r *Release) extractResolution() error {
-	v, err := findLast(r.Name, `\b(([0-9]{3,4}p|i))\b`)
+	v, err := findLast(r.TorrentName, `\b(([0-9]{3,4}p|i))\b`)
 	if err != nil {
 		return err
 	}
@@ -154,7 +154,7 @@ func (r *Release) extractResolution() error {
 }
 
 func (r *Release) extractSource() error {
-	v, err := findLast(r.Name, `(?i)\b(((?:PPV\.)?[HP]DTV|(?:HD)?CAM|B[DR]Rip|(?:HD-?)?TS|(?:PPV )?WEB-?DL(?: DVDRip)?|HDRip|DVDRip|DVDRIP|CamRip|WEB|W[EB]BRip|Blu-?Ray|DvDScr|telesync|CD|DVD|Vinyl|DAT|Cassette))\b`)
+	v, err := findLast(r.TorrentName, `(?i)\b(((?:PPV\.)?[HP]DTV|(?:HD)?CAM|B[DR]Rip|(?:HD-?)?TS|(?:PPV )?WEB-?DL(?: DVDRip)?|HDRip|DVDRip|DVDRIP|CamRip|WEB|W[EB]BRip|Blu-?Ray|DvDScr|telesync|CD|DVD|Vinyl|DAT|Cassette))\b`)
 	if err != nil {
 		return err
 	}
@@ -164,7 +164,7 @@ func (r *Release) extractSource() error {
 }
 
 func (r *Release) extractCodec() error {
-	v, err := findLast(r.Name, `(?i)\b(HEVC|[hx]\.?26[45]|xvid|divx|AVC|MPEG-?2|AV1|VC-?1|VP9|WebP)\b`)
+	v, err := findLast(r.TorrentName, `(?i)\b(HEVC|[hx]\.?26[45]|xvid|divx|AVC|MPEG-?2|AV1|VC-?1|VP9|WebP)\b`)
 	if err != nil {
 		return err
 	}
@@ -174,7 +174,7 @@ func (r *Release) extractCodec() error {
 }
 
 func (r *Release) extractContainer() error {
-	v, err := findLast(r.Name, `(?i)\b(AVI|MPG|MKV|MP4|VOB|m2ts|ISO|IMG)\b`)
+	v, err := findLast(r.TorrentName, `(?i)\b(AVI|MPG|MKV|MP4|VOB|m2ts|ISO|IMG)\b`)
 	if err != nil {
 		return err
 	}
@@ -184,7 +184,7 @@ func (r *Release) extractContainer() error {
 }
 
 func (r *Release) extractHDR() error {
-	v, err := findLast(r.Name, `(?i)(HDR10\+|HDR10|DoVi HDR|DV HDR|HDR|DV|DoVi|Dolby Vision \+ HDR10|Dolby Vision)`)
+	v, err := findLast(r.TorrentName, `(?i)(HDR10\+|HDR10|DoVi HDR|DV HDR|HDR|DV|DoVi|Dolby Vision \+ HDR10|Dolby Vision)`)
 	if err != nil {
 		return err
 	}
@@ -194,7 +194,7 @@ func (r *Release) extractHDR() error {
 }
 
 func (r *Release) extractAudio() error {
-	v, err := findLast(r.Name, `(?i)(MP3|FLAC[\. ][1-7][\. ][0-2]|FLAC|Opus|DD-EX|DDP[\. ]?[124567][\. ][012] Atmos|DDP[\. ]?[124567][\. ][012]|DDP|DD[1-7][\. ][0-2]|Dual[\- ]Audio|LiNE|PCM|Dolby TrueHD [0-9][\. ][0-4]|TrueHD [0-9][\. ][0-4] Atmos|TrueHD [0-9][\. ][0-4]|DTS X|DTS-HD MA [0-9][\. ][0-4]|DTS-HD MA|DTS-ES|DTS [1-7][\. ][0-2]|DTS|DD|DD[12][\. ]0|Dolby Atmos|TrueHD ATMOS|TrueHD|Atmos|Dolby Digital Plus|Dolby Digital Audio|Dolby Digital|AAC[.-]LC|AAC (?:\.?[1-7]\.[0-2])?|AAC|eac3|AC3(?:\.5\.1)?)`)
+	v, err := findLast(r.TorrentName, `(?i)(MP3|FLAC[\. ][1-7][\. ][0-2]|FLAC|Opus|DD-EX|DDP[\. ]?[124567][\. ][012] Atmos|DDP[\. ]?[124567][\. ][012]|DDP|DD[1-7][\. ][0-2]|Dual[\- ]Audio|LiNE|PCM|Dolby TrueHD [0-9][\. ][0-4]|TrueHD [0-9][\. ][0-4] Atmos|TrueHD [0-9][\. ][0-4]|DTS X|DTS-HD MA [0-9][\. ][0-4]|DTS-HD MA|DTS-ES|DTS [1-7][\. ][0-2]|DTS|DD|DD[12][\. ]0|Dolby Atmos|TrueHD ATMOS|TrueHD|Atmos|Dolby Digital Plus|Dolby Digital Audio|Dolby Digital|AAC[.-]LC|AAC (?:\.?[1-7]\.[0-2])?|AAC|eac3|AC3(?:\.5\.1)?)`)
 	if err != nil {
 		return err
 	}
@@ -207,14 +207,14 @@ func (r *Release) extractGroup() error {
 	// try first for wierd anime group names [group] show name, or in brackets at the end
 	group := ""
 
-	g, err := findLast(r.Name, `\[(.*?)\]`)
+	g, err := findLast(r.TorrentName, `\[(.*?)\]`)
 	if err != nil {
 		return err
 	}
 	group = g
 
 	if group == "" {
-		g2, err := findLast(r.Name, `(- ?([^-]+(?:-={[^-]+-?$)?))$`)
+		g2, err := findLast(r.TorrentName, `(- ?([^-]+(?:-={[^-]+-?$)?))$`)
 		if err != nil {
 			return err
 		}
@@ -230,13 +230,20 @@ func (r *Release) addRejection(reason string) {
 	r.Rejections = append(r.Rejections, reason)
 }
 
+// ResetRejections reset rejections between filter checks
+func (r *Release) resetRejections() {
+	r.Rejections = nil
+}
+
 func (r *Release) CheckFilter(filter Filter) bool {
+	// reset rejections first to clean previous checks
+	r.resetRejections()
 
 	if !filter.Enabled {
 		return false
 	}
 
-	// FIXME what if someone explicitly doesnt want scene, or toggles in filter
+	// FIXME what if someone explicitly doesnt want scene, or toggles in filter. Make enum? 0,1,2? Yes, No, Dont care
 	if filter.Scene && r.IsScene != filter.Scene {
 		r.addRejection("wanted: scene")
 		return false
@@ -253,7 +260,7 @@ func (r *Release) CheckFilter(filter Filter) bool {
 	}
 
 	// check against title when parsed correctly
-	if filter.Shows != "" && !checkFilterStrings(r.Name, filter.Shows) {
+	if filter.Shows != "" && !checkFilterStrings(r.TorrentName, filter.Shows) {
 		r.addRejection("shows not matching")
 		return false
 	}
@@ -270,12 +277,12 @@ func (r *Release) CheckFilter(filter Filter) bool {
 
 	// matchRelease
 	// TODO allow to match against regex
-	if filter.MatchReleases != "" && !checkFilterStrings(r.Name, filter.MatchReleases) {
+	if filter.MatchReleases != "" && !checkFilterStrings(r.TorrentName, filter.MatchReleases) {
 		r.addRejection("match release not matching")
 		return false
 	}
 
-	if filter.ExceptReleases != "" && checkFilterStrings(r.Name, filter.ExceptReleases) {
+	if filter.ExceptReleases != "" && checkFilterStrings(r.TorrentName, filter.ExceptReleases) {
 		r.addRejection("except_releases: unwanted release")
 		return false
 	}
@@ -362,8 +369,9 @@ func (r *Release) CheckSizeFilter(minSize string, maxSize string) bool {
 	if r.Size == 0 {
 		r.AdditionalSizeCheckRequired = true
 
-		// TODO better solution?
 		return true
+	} else {
+		r.AdditionalSizeCheckRequired = false
 	}
 
 	// if r.Size parse filter to bytes and compare
@@ -404,7 +412,7 @@ func (r *Release) MapVars(varMap map[string]string) error {
 	if torrentName, err := getFirstStringMapValue(varMap, []string{"torrentName"}); err != nil {
 		return errors.Wrap(err, "failed parsing required field")
 	} else {
-		r.Name = html.UnescapeString(torrentName)
+		r.TorrentName = html.UnescapeString(torrentName)
 	}
 
 	if category, err := getFirstStringMapValue(varMap, []string{"category"}); err == nil {
@@ -491,6 +499,7 @@ func checkFilterSlice(name string, filterList []string) bool {
 
 	for _, filter := range filterList {
 		filter = strings.ToLower(filter)
+		filter = strings.Trim(filter, " ")
 		// check if line contains * or ?, if so try wildcard match, otherwise try substring match
 		a := strings.ContainsAny(filter, "?|*")
 		if a {
@@ -515,6 +524,7 @@ func checkFilterStrings(name string, filterList string) bool {
 
 	for _, s := range filterSplit {
 		s = strings.ToLower(s)
+		s = strings.Trim(s, " ")
 		// check if line contains * or ?, if so try wildcard match, otherwise try substring match
 		a := strings.ContainsAny(s, "?|*")
 		if a {
@@ -748,13 +758,19 @@ type ReleaseStats struct {
 	PushRejectedCount   int64 `json:"push_rejected_count"`
 }
 
-type ReleaseStatus string
+type ReleasePushStatus string
 
 const (
-	ReleaseStatusFiltered       ReleaseStatus = "FILTERED"
-	ReleaseStatusFilterRejected ReleaseStatus = "FILTER_REJECTED"
-	ReleaseStatusPushApproved   ReleaseStatus = "PUSH_APPROVED"
-	ReleaseStatusPushRejected   ReleaseStatus = "PUSH_REJECTED"
+	ReleasePushStatusApproved ReleasePushStatus = "PUSH_APPROVED"
+	ReleasePushStatusRejected ReleasePushStatus = "PUSH_REJECTED"
+	ReleasePushStatusMixed    ReleasePushStatus = "MIXED" // For multiple actions, one might go and the other not
+)
+
+type ReleaseFilterStatus string
+
+const (
+	ReleaseStatusFilterApproved ReleaseFilterStatus = "FILTER_APPROVED"
+	ReleaseStatusFilterRejected ReleaseFilterStatus = "FILTER_REJECTED"
 )
 
 type ReleaseProtocol string

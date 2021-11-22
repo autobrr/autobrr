@@ -42,7 +42,7 @@ func (s *service) lidarr(release domain.Release, action domain.Action) error {
 	arr := lidarr.New(cfg)
 
 	r := lidarr.Release{
-		Title:            release.Name,
+		Title:            release.TorrentName,
 		DownloadUrl:      release.TorrentURL,
 		Size:             int64(release.Size),
 		Indexer:          release.Indexer,
