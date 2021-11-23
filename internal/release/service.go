@@ -13,7 +13,7 @@ import (
 type Service interface {
 	Find(ctx context.Context, query domain.QueryParams) (res []domain.Release, nextCursor int64, err error)
 	Stats(ctx context.Context) (*domain.ReleaseStats, error)
-	Store(release *domain.Release) error
+	Store(ctx context.Context, release *domain.Release) error
 	Process(release domain.Release) error
 }
 
@@ -50,8 +50,8 @@ func (s *service) Stats(ctx context.Context) (*domain.ReleaseStats, error) {
 	return stats, nil
 }
 
-func (s *service) Store(release *domain.Release) error {
-	_, err := s.repo.Store(release)
+func (s *service) Store(ctx context.Context, release *domain.Release) error {
+	_, err := s.repo.Store(ctx, release)
 	if err != nil {
 		return err
 	}

@@ -2,6 +2,7 @@ package announce
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"net/url"
 	"regexp"
@@ -17,10 +18,15 @@ func (s *service) parseLineSingle(def *domain.IndexerDefinition, release *domain
 		tmpVars := map[string]string{}
 
 		var err error
-		err = s.parseExtract(extract.Pattern, extract.Vars, tmpVars, line)
+		match, err := s.parseExtract(extract.Pattern, extract.Vars, tmpVars, line)
 		if err != nil {
 			log.Debug().Msgf("error parsing extract: %v", line)
 			return err
+		}
+
+		if !match {
+			log.Debug().Msgf("line not matching expected regex pattern: %v", line)
+			return errors.New("line not matching expected regex pattern")
 		}
 
 		// on lines matched
@@ -38,7 +44,7 @@ func (s *service) parseMultiLine() error {
 	return nil
 }
 
-func (s *service) parseExtract(pattern string, vars []string, tmpVars map[string]string, line string) error {
+func (s *service) parseExtract(pattern string, vars []string, tmpVars map[string]string, line string) (bool, error) {
 
 	rxp, err := regExMatch(pattern, line)
 	if err != nil {
@@ -47,7 +53,7 @@ func (s *service) parseExtract(pattern string, vars []string, tmpVars map[string
 
 	if rxp == nil {
 		//return nil, nil
-		return nil
+		return false, nil
 	}
 
 	// extract matched
@@ -61,7 +67,7 @@ func (s *service) parseExtract(pattern string, vars []string, tmpVars map[string
 
 		tmpVars[v] = value
 	}
-	return nil
+	return true, nil
 }
 
 func (s *service) onLinesMatched(def *domain.IndexerDefinition, vars map[string]string, release *domain.Release) error {

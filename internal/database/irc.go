@@ -17,10 +17,6 @@ func NewIrcRepo(db *sql.DB) domain.IrcRepo {
 	return &IrcRepo{db: db}
 }
 
-func (ir *IrcRepo) Store(announce domain.Announce) error {
-	return nil
-}
-
 func (ir *IrcRepo) GetNetworkByID(id int64) (*domain.IrcNetwork, error) {
 
 	row := ir.db.QueryRow("SELECT id, enabled, name, server, port, tls, pass, invite_command, nickserv_account, nickserv_password FROM irc_network WHERE id = ?", id)

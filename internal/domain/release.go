@@ -17,7 +17,7 @@ import (
 )
 
 type ReleaseRepo interface {
-	Store(release *Release) (*Release, error)
+	Store(ctx context.Context, release *Release) (*Release, error)
 	Find(ctx context.Context, params QueryParams) (res []Release, nextCursor int64, err error)
 	Stats(ctx context.Context) (*ReleaseStats, error)
 }
@@ -82,10 +82,14 @@ func NewRelease(indexer string, line string) (*Release, error) {
 	r := &Release{
 		Indexer:        indexer,
 		Raw:            line,
+		FilterStatus:   ReleaseStatusFilterPending,
+		PushStatus:     ReleasePushStatusPending,
 		Rejections:     []string{},
 		Protocol:       ReleaseProtocolTorrent,
 		Implementation: ReleaseImplementationIRC,
 		Timestamp:      time.Now(),
+		Artists:        []string{},
+		Tags:           []string{},
 	}
 
 	return r, nil
@@ -104,6 +108,14 @@ func (r *Release) Parse() error {
 	err = r.extractHDR()
 	err = r.extractAudio()
 	err = r.extractGroup()
+	err = r.extractRegion()
+	err = r.extractLanguage()
+	err = r.extractEdition()
+	err = r.extractUnrated()
+	err = r.extractHybrid()
+	err = r.extractProper()
+	err = r.extractRepack()
+	err = r.extractWebsite()
 
 	if err != nil {
 		log.Trace().Msgf("could not parse release: %v", r.TorrentName)
@@ -114,7 +126,7 @@ func (r *Release) Parse() error {
 }
 
 func (r *Release) extractYear() error {
-	y, err := findLastInt(r.TorrentName, `(?:^|\\D)(19[3-9]\\d|20[012]\\d)(?:\\D|$)`)
+	y, err := findLastInt(r.TorrentName, `\b(((?:19[0-9]|20[0-9])[0-9]))\b`)
 	if err != nil {
 		return err
 	}
@@ -158,7 +170,7 @@ func (r *Release) extractSource() error {
 	if err != nil {
 		return err
 	}
-	r.Resolution = v
+	r.Source = v
 
 	return nil
 }
@@ -226,13 +238,94 @@ func (r *Release) extractGroup() error {
 	return nil
 }
 
+func (r *Release) extractRegion() error {
+	v, err := findLast(r.TorrentName, `(?i)\b(R([0-9]))\b`)
+	if err != nil {
+		return err
+	}
+	r.Region = v
+
+	return nil
+}
+
+func (r *Release) extractLanguage() error {
+	v, err := findLast(r.TorrentName, `(?i)\b((DK|DKSUBS|DANiSH|DUTCH|NL|NLSUBBED|ENG|FI|FLEMiSH|FiNNiSH|DE|FRENCH|GERMAN|HE|HEBREW|HebSub|HiNDi|iCELANDiC|KOR|MULTi|MULTiSUBS|NORWEGiAN|NO|NORDiC|PL|PO|POLiSH|PLDUB|RO|ROMANiAN|RUS|SPANiSH|SE|SWEDiSH|SWESUB||))\b`)
+	if err != nil {
+		return err
+	}
+	r.Language = v
+
+	return nil
+}
+
+func (r *Release) extractEdition() error {
+	v, err := findLast(r.TorrentName, `(?i)\b((?:DIRECTOR'?S|EXTENDED|INTERNATIONAL|THEATRICAL|ORIGINAL|FINAL|BOOTLEG)(?:.CUT)?)\b`)
+	if err != nil {
+		return err
+	}
+	r.Edition = v
+
+	return nil
+}
+
+func (r *Release) extractUnrated() error {
+	v, err := findLastBool(r.TorrentName, `(?i)\b((UNRATED))\b`)
+	if err != nil {
+		return err
+	}
+	r.Unrated = v
+
+	return nil
+}
+
+func (r *Release) extractHybrid() error {
+	v, err := findLastBool(r.TorrentName, `(?i)\b((HYBRID))\b`)
+	if err != nil {
+		return err
+	}
+	r.Hybrid = v
+
+	return nil
+}
+
+func (r *Release) extractProper() error {
+	v, err := findLastBool(r.TorrentName, `(?i)\b((PROPER))\b`)
+	if err != nil {
+		return err
+	}
+	r.Proper = v
+
+	return nil
+}
+
+func (r *Release) extractRepack() error {
+	v, err := findLastBool(r.TorrentName, `(?i)\b((REPACK))\b`)
+	if err != nil {
+		return err
+	}
+	r.Repack = v
+
+	return nil
+}
+
+func (r *Release) extractWebsite() error {
+	// Start with the basic most common ones
+	v, err := findLast(r.TorrentName, `(?i)\b((AMBC|AS|AMZN|AMC|ANPL|ATVP|iP|CORE|BCORE|CMOR|CN|CBC|CBS|CMAX|CNBC|CC|CRIT|CR|CSPN|CW|DAZN|DCU|DISC|DSCP|DSNY|DSNP|DPLY|ESPN|FOX|FUNI|PLAY|HBO|HMAX|HIST|HS|HOTSTAR|HULU|iT|MNBC|MTV|NATG|NBC|NF|NICK|NRK|PMNT|PMNP|PCOK|PBS|PBSK|PSN|QIBI|SBS|SHO|STAN|STZ|SVT|SYFY|TLC|TRVL|TUBI|TV3|TV4|TVL|VH1|VICE|VMEO|UFC|USAN|VIAP|VIAPLAY|VL|WWEN|XBOX|YHOO|YT|RED))\b`)
+	if err != nil {
+		return err
+	}
+	r.Website = v
+
+	return nil
+}
+
 func (r *Release) addRejection(reason string) {
 	r.Rejections = append(r.Rejections, reason)
 }
 
 // ResetRejections reset rejections between filter checks
 func (r *Release) resetRejections() {
-	r.Rejections = nil
+	r.Rejections = []string{}
 }
 
 func (r *Release) CheckFilter(filter Filter) bool {
@@ -689,7 +782,6 @@ func findLast(input string, pattern string) (string, error) {
 
 	matches := rxp.FindStringSubmatch(input)
 	if matches != nil {
-		log.Trace().Msgf("matches: %v", matches)
 		// first value is the match, second value is the text
 		if len(matches) >= 1 {
 			last := matches[len(matches)-1]
@@ -711,6 +803,37 @@ func findLast(input string, pattern string) (string, error) {
 	return "", nil
 }
 
+func findLastBool(input string, pattern string) (bool, error) {
+	matched := make([]string, 0)
+
+	rxp, err := regexp.Compile(pattern)
+	if err != nil {
+		return false, err
+	}
+
+	matches := rxp.FindStringSubmatch(input)
+	if matches != nil {
+		// first value is the match, second value is the text
+		if len(matches) >= 1 {
+			last := matches[len(matches)-1]
+
+			// add to temp slice
+			matched = append(matched, last)
+		}
+	}
+
+	//}
+
+	// check if multiple values in temp slice, if so get the last one
+	if len(matched) >= 1 {
+		//last := matched[len(matched)-1]
+
+		return true, nil
+	}
+
+	return false, nil
+}
+
 func findLastInt(input string, pattern string) (int, error) {
 	matched := make([]string, 0)
 	//for _, s := range arr {
@@ -723,7 +846,6 @@ func findLastInt(input string, pattern string) (int, error) {
 
 	matches := rxp.FindStringSubmatch(input)
 	if matches != nil {
-		log.Trace().Msgf("matches: %v", matches)
 		// first value is the match, second value is the text
 		if len(matches) >= 1 {
 			last := matches[len(matches)-1]
@@ -763,7 +885,8 @@ type ReleasePushStatus string
 const (
 	ReleasePushStatusApproved ReleasePushStatus = "PUSH_APPROVED"
 	ReleasePushStatusRejected ReleasePushStatus = "PUSH_REJECTED"
-	ReleasePushStatusMixed    ReleasePushStatus = "MIXED" // For multiple actions, one might go and the other not
+	ReleasePushStatusMixed    ReleasePushStatus = "MIXED"   // For multiple actions, one might go and the other not
+	ReleasePushStatusPending  ReleasePushStatus = "PENDING" // Initial status
 )
 
 type ReleaseFilterStatus string
@@ -771,6 +894,7 @@ type ReleaseFilterStatus string
 const (
 	ReleaseStatusFilterApproved ReleaseFilterStatus = "FILTER_APPROVED"
 	ReleaseStatusFilterRejected ReleaseFilterStatus = "FILTER_REJECTED"
+	ReleaseStatusFilterPending  ReleaseFilterStatus = "PENDING"
 )
 
 type ReleaseProtocol string

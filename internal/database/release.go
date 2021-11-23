@@ -20,24 +20,30 @@ func NewReleaseRepo(db *sql.DB) domain.ReleaseRepo {
 	return &ReleaseRepo{db: db}
 }
 
-func (r *ReleaseRepo) Store(release *domain.Release) (*domain.Release, error) {
-	res, err := r.db.Exec(`INSERT INTO "release"(filter_status, rejections, indexer, protocol, title, size) VALUES (?, ?, ?, ? ,? ,?) ON CONFLICT DO NOTHING`, release.FilterStatus, pq.Array(release.Rejections), release.Indexer, release.Protocol, release.Title, release.Size)
+func (repo *ReleaseRepo) Store(ctx context.Context, r *domain.Release) (*domain.Release, error) {
+	query, args, err := sq.
+		Insert("release").
+		Columns("filter_status", "push_status", "rejections", "indexer", "filter", "protocol", "implementation", "timestamp", "group_id", "torrent_id", "torrent_name", "size", "raw", "title", "category", "season", "episode", "year", "resolution", "source", "codec", "container", "hdr", "audio", "release_group", "region", "language", "edition", "unrated", "hybrid", "proper", "repack", "website", "artists", "type", "format", "bitrate", "log_score", "has_log", "has_cue", "is_scene", "origin", "tags", "freeleech", "freeleech_percent", "uploader", "pre_time").
+		Values(r.FilterStatus, r.PushStatus, pq.Array(r.Rejections), r.Indexer, r.FilterName, r.Protocol, r.Implementation, r.Timestamp, r.GroupID, r.TorrentID, r.TorrentName, r.Size, r.Raw, r.Title, r.Category, r.Season, r.Episode, r.Year, r.Resolution, r.Source, r.Codec, r.Container, r.HDR, r.Audio, r.Group, r.Region, r.Language, r.Edition, r.Unrated, r.Hybrid, r.Proper, r.Repack, r.Website, pq.Array(r.Artists), r.Type, r.Format, r.Bitrate, r.LogScore, r.HasLog, r.HasCue, r.IsScene, r.Origin, pq.Array(r.Tags), r.Freeleech, r.FreeleechPercent, r.Uploader, r.PreTime).
+		ToSql()
+
+	res, err := repo.db.ExecContext(ctx, query, args...)
 	if err != nil {
-		log.Error().Stack().Err(err).Msg("error storing release")
+		log.Error().Stack().Err(err).Msg("error inserting release")
 		return nil, err
 	}
 
-	log.Debug().Msgf("store release: %+v", release)
-
 	resId, _ := res.LastInsertId()
-	release.ID = resId
+	r.ID = resId
 
-	return release, nil
+	log.Trace().Msgf("release.store: %+v", r)
+
+	return r, nil
 }
 
-func (r *ReleaseRepo) Find(ctx context.Context, params domain.QueryParams) ([]domain.Release, int64, error) {
+func (repo *ReleaseRepo) Find(ctx context.Context, params domain.QueryParams) ([]domain.Release, int64, error) {
 
-	queryBuilder := sq.Select("id", "filter_status", "push_status", "rejections", "indexer", "client", "filter", "protocol", "title", "size", "created_at").From("release").OrderBy("created_at DESC")
+	queryBuilder := sq.Select("id", "filter_status", "push_status", "rejections", "indexer", "filter", "protocol", "title", "torrent_name", "size", "timestamp").From("release").OrderBy("timestamp DESC")
 
 	if params.Limit > 0 {
 		queryBuilder = queryBuilder.Limit(params.Limit)
@@ -62,46 +68,37 @@ func (r *ReleaseRepo) Find(ctx context.Context, params domain.QueryParams) ([]do
 	query, args, err := queryBuilder.ToSql()
 	log.Trace().Msgf("release.find: query: '%v', args: '%v'", query, args)
 
-	//rows, err := r.db.QueryContext(ctx, `
-	//	SELECT
-	//	       id, status, rejections, indexer, client, protocol, title, size, created_at
-	//	FROM "release"
-	//	ORDER BY
-	//		 created_at DESC
-	//	LIMIT ?`, limit)
+	res := make([]domain.Release, 0)
 
-	rows, err := r.db.QueryContext(ctx, query, args...)
+	rows, err := repo.db.QueryContext(ctx, query, args...)
 	if err != nil {
 		log.Error().Stack().Err(err).Msg("error fetching releases")
 		//return
-		return nil, 0, nil
+		return res, 0, nil
 	}
 
 	defer rows.Close()
 
 	if err := rows.Err(); err != nil {
 		log.Error().Stack().Err(err)
-		return nil, 0, err
+		return res, 0, err
 	}
-
-	res := make([]domain.Release, 0)
 
 	for rows.Next() {
 		var rls domain.Release
 
-		var indexer, client, filter sql.NullString
-		var createdAt string
+		var indexer, filter sql.NullString
+		var timestamp string
 
-		if err := rows.Scan(&rls.ID, &rls.FilterStatus, &rls.PushStatus, pq.Array(&rls.Rejections), &indexer, &client, &filter, &rls.Protocol, &rls.Title, &rls.Size, &createdAt); err != nil {
+		if err := rows.Scan(&rls.ID, &rls.FilterStatus, &rls.PushStatus, pq.Array(&rls.Rejections), &indexer, &filter, &rls.Protocol, &rls.Title, &rls.TorrentName, &rls.Size, &timestamp); err != nil {
 			log.Error().Stack().Err(err).Msg("release.find: error scanning data to struct")
-			return nil, 0, err
+			return res, 0, err
 		}
 
 		rls.Indexer = indexer.String
-		//rls.Client = client.String
-		//rls.Filter = filter.String
+		rls.FilterName = filter.String
 
-		ca, _ := time.Parse(time.RFC3339, createdAt)
+		ca, _ := time.Parse(time.RFC3339, timestamp)
 		rls.Timestamp = ca
 
 		res = append(res, rls)
@@ -117,25 +114,25 @@ func (r *ReleaseRepo) Find(ctx context.Context, params domain.QueryParams) ([]do
 	return res, nextCursor, nil
 }
 
-func (r *ReleaseRepo) Stats(ctx context.Context) (*domain.ReleaseStats, error) {
+func (repo *ReleaseRepo) Stats(ctx context.Context) (*domain.ReleaseStats, error) {
 	query := `SELECT
     COUNT(*) total,
-    sum(case when status = 'PUSH_APPROVED' then 1 else 0 end) push_approved_count,
-    sum(case when status = 'PUSH_REJECTED' then 1 else 0 end) push_rejected_count,
-    sum(case when status = 'FILTERED' then 1 else 0 end) filtered_count,
-    sum(case when status = 'FILTER_REJECTED' then 1 else 0 end) filter_rejected_count
+    IFNULL(SUM(CASE WHEN push_status = 'PUSH_APPROVED' THEN 1 ELSE 0 END), 0) push_approved_count,
+    IFNULL(SUM(CASE WHEN push_status = 'PUSH_REJECTED' THEN 1 ELSE 0 END), 0) push_rejected_count,
+    IFNULL(SUM(CASE WHEN filter_status = 'FILTER_APPROVED' THEN 1 ELSE 0 END), 0) filtered_count,
+    IFNULL(SUM(CASE WHEN filter_status = 'FILTER_REJECTED' THEN 1 ELSE 0 END), 0) filter_rejected_count
 FROM "release";`
 
-	row := r.db.QueryRowContext(ctx, query)
+	row := repo.db.QueryRowContext(ctx, query)
 	if err := row.Err(); err != nil {
-		log.Error().Stack().Err(err).Msg("release: %v : error query row")
+		log.Error().Stack().Err(err).Msg("release.stats: error querying stats")
 		return nil, err
 	}
 
 	var rls domain.ReleaseStats
 
 	if err := row.Scan(&rls.TotalCount, &rls.PushApprovedCount, &rls.PushRejectedCount, &rls.FilteredCount, &rls.FilterRejectedCount); err != nil {
-		log.Error().Stack().Err(err).Msg("release: %v : error scanning data to struct")
+		log.Error().Stack().Err(err).Msg("release.stats: error scanning stats data to struct")
 		return nil, err
 	}
 

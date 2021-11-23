@@ -1,6 +1,7 @@
 package announce
 
 import (
+	"context"
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/internal/filter"
 	"github.com/autobrr/autobrr/internal/indexer"
@@ -35,6 +36,7 @@ func NewService(filterService filter.Service, indexerSvc indexer.Service, releas
 
 // Parse announce line
 func (s *service) Parse(announceID string, msg string) error {
+	ctx := context.Background()
 	// make simpler by injecting indexer, or indexerdefinitions
 
 	// announceID (server:channel:announcer)
@@ -73,12 +75,12 @@ func (s *service) Parse(announceID string, msg string) error {
 
 		// TODO check in config for "Save all releases"
 		// Save as rejected
-		newRelease.FilterStatus = domain.ReleaseStatusFilterRejected
-		err = s.releaseSvc.Store(newRelease)
-		if err != nil {
-			log.Error().Err(err).Msgf("error writing release to database: %+v", newRelease)
-			return nil
-		}
+		//newRelease.FilterStatus = domain.ReleaseStatusFilterRejected
+		//err = s.releaseSvc.Store(ctx, newRelease)
+		//if err != nil {
+		//	log.Error().Err(err).Msgf("error writing release to database: %+v", newRelease)
+		//	return nil
+		//}
 		return nil
 	}
 
@@ -88,7 +90,7 @@ func (s *service) Parse(announceID string, msg string) error {
 	newRelease.FilterID = foundFilter.ID
 
 	newRelease.FilterStatus = domain.ReleaseStatusFilterApproved
-	err = s.releaseSvc.Store(newRelease)
+	err = s.releaseSvc.Store(ctx, newRelease)
 	if err != nil {
 		log.Error().Err(err).Msgf("error writing release to database: %+v", newRelease)
 		return nil
@@ -100,7 +102,6 @@ func (s *service) Parse(announceID string, msg string) error {
 
 	// process release
 	go func() {
-		// TODO Pointer??
 		err = s.releaseSvc.Process(*newRelease)
 		if err != nil {
 			log.Error().Err(err).Msgf("could not process release: %+v", newRelease)
