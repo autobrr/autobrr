@@ -24,7 +24,7 @@ const NumberFieldWide: React.FC<Props> = ({
   hidden,
   className,
 }) => (
-  <div className="space-y-1 px-4 sm:space-y-0 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6 sm:py-5">
+  <div className="px-4 space-y-1 sm:space-y-0 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6 sm:py-5">
     <div>
       <label
         htmlFor={name}
@@ -37,7 +37,7 @@ const NumberFieldWide: React.FC<Props> = ({
       <Field
         name={name}
         defaultValue={defaultValue}
-        parse={(v) => v & parseInt(v, 10)}
+        parse={(v: any) => v & parseInt(v, 10)}
         render={({ input, meta }) => (
           <input
             {...input}
