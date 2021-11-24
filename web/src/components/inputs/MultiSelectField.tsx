@@ -1,6 +1,6 @@
 import React from "react";
 import {Field} from "react-final-form";
-import MultiSelect from "react-multi-select-component";
+import { MultiSelect } from "react-multi-select-component";
 import {classNames, COL_WIDTHS} from "../../styles/utils";
 
 interface Props {
@@ -24,7 +24,7 @@ const MultiSelectField: React.FC<Props> = ({
             )}
         >
             <label
-                className="block uppercase tracking-wide text-gray-700 text-xs font-bold mb-2"
+                className="block mb-2 text-xs font-bold tracking-wide text-gray-700 uppercase"
                 htmlFor={label}
             >
                 {label}

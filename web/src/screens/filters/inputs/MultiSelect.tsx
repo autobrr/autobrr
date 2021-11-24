@@ -1,5 +1,5 @@
 import React from "react";
-import RMSC from "react-multi-select-component";
+import { MultiSelect as RMSC}  from "react-multi-select-component";
 import { Field } from "formik";
 import { classNames, COL_WIDTHS } from "../../../styles/utils";
 
@@ -24,7 +24,7 @@ const MultiSelect: React.FC<Props> = ({
         )}
     >
         <label
-            className="block uppercase tracking-wide text-gray-700 dark:text-gray-200 text-xs font-bold mb-2"
+            className="block mb-2 text-xs font-bold tracking-wide text-gray-700 uppercase dark:text-gray-200"
             htmlFor={label}
         >
             {label}
