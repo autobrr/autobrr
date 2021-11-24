@@ -7,6 +7,7 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/asaskevich/EventBus"
 	"github.com/r3labs/sse/v2"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/pflag"
@@ -19,6 +20,7 @@ import (
 	"github.com/autobrr/autobrr/internal/database"
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/internal/download_client"
+	"github.com/autobrr/autobrr/internal/events"
 	"github.com/autobrr/autobrr/internal/filter"
 	"github.com/autobrr/autobrr/internal/http"
 	"github.com/autobrr/autobrr/internal/indexer"
@@ -47,6 +49,9 @@ func main() {
 
 	serverEvents.CreateStream("logs")
 
+	// setup internal eventbus
+	bus := EventBus.New()
+
 	// setup logger
 	logger.Setup(cfg, serverEvents)
 
@@ -65,34 +70,37 @@ func main() {
 	}
 
 	// setup repos
-	// var announceRepo = database.NewAnnounceRepo(db)
 	var (
 		actionRepo         = database.NewActionRepo(db)
 		downloadClientRepo = database.NewDownloadClientRepo(db)
 		filterRepo         = database.NewFilterRepo(db)
 		indexerRepo        = database.NewIndexerRepo(db)
 		ircRepo            = database.NewIrcRepo(db)
+		releaseRepo        = database.NewReleaseRepo(db)
 		userRepo           = database.NewUserRepo(db)
 	)
 
 	var (
 		downloadClientService = download_client.NewService(downloadClientRepo)
-		actionService         = action.NewService(actionRepo, downloadClientService)
+		actionService         = action.NewService(actionRepo, downloadClientService, bus)
 		indexerService        = indexer.NewService(indexerRepo)
 		filterService         = filter.NewService(filterRepo, actionRepo, indexerService)
-		releaseService        = release.NewService(actionService)
+		releaseService        = release.NewService(releaseRepo, actionService)
 		announceService       = announce.NewService(filterService, indexerService, releaseService)
 		ircService            = irc.NewService(ircRepo, announceService)
 		userService           = user.NewService(userRepo)
 		authService           = auth.NewService(userService)
 	)
 
+	// register event subscribers
+	events.NewSubscribers(bus, releaseService)
+
 	addr := fmt.Sprintf("%v:%v", cfg.Host, cfg.Port)
 
 	errorChannel := make(chan error)
 
 	go func() {
-		httpServer := http.NewServer(serverEvents, addr, cfg.BaseURL, actionService, authService, downloadClientService, filterService, indexerService, ircService)
+		httpServer := http.NewServer(serverEvents, addr, cfg.BaseURL, actionService, authService, downloadClientService, filterService, indexerService, ircService, releaseService)
 		errorChannel <- httpServer.Open()
 	}()
 

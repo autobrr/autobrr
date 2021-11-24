@@ -12,7 +12,7 @@ import (
 	"github.com/autobrr/autobrr/internal/domain"
 )
 
-func (s *service) RunActions(actions []domain.Action, announce domain.Announce) error {
+func (s *service) RunActions(actions []domain.Action, release domain.Release) error {
 
 	var err error
 	var tmpFile string
@@ -24,33 +24,36 @@ func (s *service) RunActions(actions []domain.Action, announce domain.Announce) 
 			continue
 		}
 
-		log.Debug().Msgf("process action: %v", action.Name)
+		log.Debug().Msgf("process action: %v for '%v'", action.Name, release.TorrentName)
 
 		switch action.Type {
 		case domain.ActionTypeTest:
 			s.test(action.Name)
+			s.bus.Publish("release:update-push-status", release.ID, domain.ReleasePushStatusApproved)
 
 		case domain.ActionTypeExec:
 			if tmpFile == "" {
-				tmpFile, hash, err = downloadFile(announce.TorrentUrl)
+				tmpFile, hash, err = downloadFile(release.TorrentURL)
 				if err != nil {
 					log.Error().Stack().Err(err)
 					return err
 				}
 			}
-			go func(announce domain.Announce, action domain.Action, tmpFile string) {
-				s.execCmd(announce, action, tmpFile)
-			}(announce, action, tmpFile)
+			go func(release domain.Release, action domain.Action, tmpFile string) {
+				s.execCmd(release, action, tmpFile)
+				s.bus.Publish("release:update-push-status", release.ID, domain.ReleasePushStatusApproved)
+			}(release, action, tmpFile)
 
 		case domain.ActionTypeWatchFolder:
 			if tmpFile == "" {
-				tmpFile, hash, err = downloadFile(announce.TorrentUrl)
+				tmpFile, hash, err = downloadFile(release.TorrentURL)
 				if err != nil {
 					log.Error().Stack().Err(err)
 					return err
 				}
 			}
 			s.watchFolder(action.WatchFolder, tmpFile)
+			s.bus.Publish("release:update-push-status", release.ID, domain.ReleasePushStatusApproved)
 
 		case domain.ActionTypeDelugeV1, domain.ActionTypeDelugeV2:
 			canDownload, err := s.delugeCheckRulesCanDownload(action)
@@ -58,22 +61,25 @@ func (s *service) RunActions(actions []domain.Action, announce domain.Announce) 
 				log.Error().Stack().Err(err).Msgf("error checking client rules: %v", action.Name)
 				continue
 			}
-			if canDownload {
-				if tmpFile == "" {
-					tmpFile, hash, err = downloadFile(announce.TorrentUrl)
-					if err != nil {
-						log.Error().Stack().Err(err)
-						return err
-					}
-				}
-
-				go func(action domain.Action, tmpFile string) {
-					err = s.deluge(action, tmpFile)
-					if err != nil {
-						log.Error().Stack().Err(err).Msg("error sending torrent to Deluge")
-					}
-				}(action, tmpFile)
+			if !canDownload {
+				s.bus.Publish("release:update-push-status-rejected", release.ID, "deluge busy")
+				continue
 			}
+			if tmpFile == "" {
+				tmpFile, hash, err = downloadFile(release.TorrentURL)
+				if err != nil {
+					log.Error().Stack().Err(err)
+					return err
+				}
+			}
+
+			go func(action domain.Action, tmpFile string) {
+				err = s.deluge(action, tmpFile)
+				if err != nil {
+					log.Error().Stack().Err(err).Msg("error sending torrent to Deluge")
+				}
+				s.bus.Publish("release:update-push-status", release.ID, domain.ReleasePushStatusApproved)
+			}(action, tmpFile)
 
 		case domain.ActionTypeQbittorrent:
 			canDownload, err := s.qbittorrentCheckRulesCanDownload(action)
@@ -81,49 +87,53 @@ func (s *service) RunActions(actions []domain.Action, announce domain.Announce) 
 				log.Error().Stack().Err(err).Msgf("error checking client rules: %v", action.Name)
 				continue
 			}
-			if canDownload {
-				if tmpFile == "" {
-					tmpFile, hash, err = downloadFile(announce.TorrentUrl)
-					if err != nil {
-						log.Error().Stack().Err(err)
-						return err
-					}
-				}
-
-				go func(action domain.Action, hash string, tmpFile string) {
-					err = s.qbittorrent(action, hash, tmpFile)
-					if err != nil {
-						log.Error().Stack().Err(err).Msg("error sending torrent to qBittorrent")
-					}
-				}(action, hash, tmpFile)
+			if !canDownload {
+				s.bus.Publish("release:update-push-status-rejected", release.ID, "qbittorrent busy")
+				continue
 			}
 
+			if tmpFile == "" {
+				tmpFile, hash, err = downloadFile(release.TorrentURL)
+				if err != nil {
+					log.Error().Stack().Err(err)
+					return err
+				}
+			}
+
+			go func(action domain.Action, hash string, tmpFile string) {
+				err = s.qbittorrent(action, hash, tmpFile)
+				if err != nil {
+					log.Error().Stack().Err(err).Msg("error sending torrent to qBittorrent")
+				}
+				s.bus.Publish("release:update-push-status", release.ID, domain.ReleasePushStatusApproved)
+			}(action, hash, tmpFile)
+
 		case domain.ActionTypeRadarr:
-			go func(announce domain.Announce, action domain.Action) {
-				err = s.radarr(announce, action)
+			go func(release domain.Release, action domain.Action) {
+				err = s.radarr(release, action)
 				if err != nil {
 					log.Error().Stack().Err(err).Msg("error sending torrent to radarr")
 					//continue
 				}
-			}(announce, action)
+			}(release, action)
 
 		case domain.ActionTypeSonarr:
-			go func(announce domain.Announce, action domain.Action) {
-				err = s.sonarr(announce, action)
+			go func(release domain.Release, action domain.Action) {
+				err = s.sonarr(release, action)
 				if err != nil {
 					log.Error().Stack().Err(err).Msg("error sending torrent to sonarr")
 					//continue
 				}
-			}(announce, action)
+			}(release, action)
 
 		case domain.ActionTypeLidarr:
-			go func(announce domain.Announce, action domain.Action) {
-				err = s.lidarr(announce, action)
+			go func(release domain.Release, action domain.Action) {
+				err = s.lidarr(release, action)
 				if err != nil {
 					log.Error().Stack().Err(err).Msg("error sending torrent to lidarr")
 					//continue
 				}
-			}(announce, action)
+			}(release, action)
 
 		default:
 			log.Warn().Msgf("unsupported action: %v type: %v", action.Name, action.Type)

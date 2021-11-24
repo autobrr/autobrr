@@ -35,7 +35,6 @@ type IrcNetwork struct {
 }
 
 type IrcRepo interface {
-	Store(announce Announce) error
 	StoreNetwork(network *IrcNetwork) error
 	StoreChannel(networkID int64, channel *IrcChannel) error
 	ListNetworks(ctx context.Context) ([]IrcNetwork, error)

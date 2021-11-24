@@ -1,11 +1,11 @@
 package announce
 
 import (
+	"context"
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/internal/filter"
 	"github.com/autobrr/autobrr/internal/indexer"
 	"github.com/autobrr/autobrr/internal/release"
-
 	"github.com/rs/zerolog/log"
 )
 
@@ -36,54 +36,73 @@ func NewService(filterService filter.Service, indexerSvc indexer.Service, releas
 
 // Parse announce line
 func (s *service) Parse(announceID string, msg string) error {
+	ctx := context.Background()
+	// make simpler by injecting indexer, or indexerdefinitions
+
 	// announceID (server:channel:announcer)
-	def := s.indexerSvc.GetIndexerByAnnounce(announceID)
-	if def == nil {
+	definition := s.indexerSvc.GetIndexerByAnnounce(announceID)
+	if definition == nil {
 		log.Debug().Msgf("could not find indexer definition: %v", announceID)
 		return nil
 	}
 
-	announce := domain.Announce{
-		Site: def.Identifier,
-		Line: msg,
+	newRelease, err := domain.NewRelease(definition.Identifier, msg)
+	if err != nil {
+		log.Error().Err(err).Msg("could not create new release")
+		return err
 	}
 
 	// parse lines
-	if def.Parse.Type == "single" {
-		err := s.parseLineSingle(def, &announce, msg)
+	if definition.Parse.Type == "single" {
+		err = s.parseLineSingle(definition, newRelease, msg)
 		if err != nil {
-			log.Debug().Msgf("could not parse single line: %v", msg)
 			log.Error().Err(err).Msgf("could not parse single line: %v", msg)
 			return err
 		}
 	}
-	// implement multiline parsing
 
-	// find filter
-	foundFilter, err := s.filterSvc.FindByIndexerIdentifier(announce)
+	// TODO implement multiline parsing
+
+	filterOK, foundFilter, err := s.filterSvc.FindAndCheckFilters(newRelease)
 	if err != nil {
 		log.Error().Err(err).Msg("could not find filter")
 		return err
 	}
 
-	// no filter found, lets return
-	if foundFilter == nil {
+	// no foundFilter found, lets return
+	if !filterOK || foundFilter == nil {
 		log.Trace().Msg("no matching filter found")
+
+		// TODO check in config for "Save all releases"
+		// Save as rejected
+		//newRelease.FilterStatus = domain.ReleaseStatusFilterRejected
+		//err = s.releaseSvc.Store(ctx, newRelease)
+		//if err != nil {
+		//	log.Error().Err(err).Msgf("error writing release to database: %+v", newRelease)
+		//	return nil
+		//}
 		return nil
 	}
-	announce.Filter = foundFilter
 
-	log.Trace().Msgf("announce: %+v", announce)
+	// save release
+	newRelease.Filter = foundFilter
+	newRelease.FilterName = foundFilter.Name
+	newRelease.FilterID = foundFilter.ID
 
-	log.Info().Msgf("Matched '%v' (%v) for %v", announce.TorrentName, announce.Filter.Name, announce.Site)
+	newRelease.FilterStatus = domain.ReleaseStatusFilterApproved
+	err = s.releaseSvc.Store(ctx, newRelease)
+	if err != nil {
+		log.Error().Err(err).Msgf("error writing release to database: %+v", newRelease)
+		return nil
+	}
 
-	// match release
+	log.Info().Msgf("Matched '%v' (%v) for %v", newRelease.TorrentName, newRelease.Filter.Name, newRelease.Indexer)
 
 	// process release
 	go func() {
-		err = s.releaseSvc.Process(announce)
+		err = s.releaseSvc.Process(*newRelease)
 		if err != nil {
-			log.Error().Err(err).Msgf("could not process release: %+v", announce)
+			log.Error().Err(err).Msgf("could not process release: %+v", newRelease)
 		}
 	}()
 

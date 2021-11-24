@@ -2,32 +2,35 @@ package announce
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
-	"html"
 	"net/url"
 	"regexp"
-	"strconv"
 	"strings"
 	"text/template"
 
 	"github.com/autobrr/autobrr/internal/domain"
-	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
 )
 
-func (s *service) parseLineSingle(def *domain.IndexerDefinition, announce *domain.Announce, line string) error {
+func (s *service) parseLineSingle(def *domain.IndexerDefinition, release *domain.Release, line string) error {
 	for _, extract := range def.Parse.Lines {
 		tmpVars := map[string]string{}
 
 		var err error
-		err = s.parseExtract(extract.Pattern, extract.Vars, tmpVars, line)
+		match, err := s.parseExtract(extract.Pattern, extract.Vars, tmpVars, line)
 		if err != nil {
 			log.Debug().Msgf("error parsing extract: %v", line)
 			return err
 		}
 
+		if !match {
+			log.Debug().Msgf("line not matching expected regex pattern: %v", line)
+			return errors.New("line not matching expected regex pattern")
+		}
+
 		// on lines matched
-		err = s.onLinesMatched(def, tmpVars, announce)
+		err = s.onLinesMatched(def, tmpVars, release)
 		if err != nil {
 			log.Debug().Msgf("error match line: %v", line)
 			return err
@@ -41,7 +44,7 @@ func (s *service) parseMultiLine() error {
 	return nil
 }
 
-func (s *service) parseExtract(pattern string, vars []string, tmpVars map[string]string, line string) error {
+func (s *service) parseExtract(pattern string, vars []string, tmpVars map[string]string, line string) (bool, error) {
 
 	rxp, err := regExMatch(pattern, line)
 	if err != nil {
@@ -50,7 +53,7 @@ func (s *service) parseExtract(pattern string, vars []string, tmpVars map[string
 
 	if rxp == nil {
 		//return nil, nil
-		return nil
+		return false, nil
 	}
 
 	// extract matched
@@ -64,44 +67,34 @@ func (s *service) parseExtract(pattern string, vars []string, tmpVars map[string
 
 		tmpVars[v] = value
 	}
-	return nil
+	return true, nil
 }
 
-func (s *service) onLinesMatched(def *domain.IndexerDefinition, vars map[string]string, announce *domain.Announce) error {
-	// TODO implement set tracker.lastAnnounce = now
+func (s *service) onLinesMatched(def *domain.IndexerDefinition, vars map[string]string, release *domain.Release) error {
+	var err error
 
-	announce.TorrentName = vars["torrentName"]
+	err = release.MapVars(vars)
 
-	//err := s.postProcess(ti, vars, *announce)
-	//if err != nil {
-	//	return err
-	//}
-
-	// TODO extractReleaseInfo
-	err := s.extractReleaseInfo(vars, announce.TorrentName)
-	if err != nil {
-		return err
-	}
-
-	// resolution
-	// source
-	// encoder
+	// TODO is this even needed anymore
 	// canonicalize name
+	//canonReleaseName := cleanReleaseName(release.TorrentName)
+	//log.Trace().Msgf("canonicalize release name: %v", canonReleaseName)
 
-	err = s.mapToAnnounce(vars, announce)
+	err = release.Parse()
 	if err != nil {
+		log.Error().Err(err).Msg("announce: could not parse release")
 		return err
 	}
 
 	// torrent url
 	torrentUrl, err := s.processTorrentUrl(def.Parse.Match.TorrentURL, vars, def.SettingsMap, def.Parse.Match.Encode)
 	if err != nil {
-		log.Debug().Msgf("error torrent url: %v", err)
+		log.Error().Err(err).Msg("announce: could not process torrent url")
 		return err
 	}
 
 	if torrentUrl != "" {
-		announce.TorrentUrl = torrentUrl
+		release.TorrentURL = torrentUrl
 	}
 
 	return nil
@@ -183,367 +176,6 @@ func cleanReleaseName(input string) string {
 	processedString := reg.ReplaceAllString(input, " ")
 
 	return processedString
-}
-
-func findLast(input string, pattern string) (string, error) {
-	matched := make([]string, 0)
-	//for _, s := range arr {
-
-	rxp, err := regexp.Compile(pattern)
-	if err != nil {
-		return "", err
-		//return errors.Wrapf(err, "invalid regex: %s", value)
-	}
-
-	matches := rxp.FindStringSubmatch(input)
-	if matches != nil {
-		log.Trace().Msgf("matches: %v", matches)
-		// first value is the match, second value is the text
-		if len(matches) >= 1 {
-			last := matches[len(matches)-1]
-
-			// add to temp slice
-			matched = append(matched, last)
-		}
-	}
-
-	//}
-
-	// check if multiple values in temp slice, if so get the last one
-	if len(matched) >= 1 {
-		last := matched[len(matched)-1]
-
-		return last, nil
-	}
-
-	return "", nil
-}
-
-func extractYear(releaseName string) (string, bool) {
-	yearMatch, err := findLast(releaseName, "(?:^|\\D)(19[3-9]\\d|20[012]\\d)(?:\\D|$)")
-	if err != nil {
-		return "", false
-	}
-	log.Trace().Msgf("year matches: %v", yearMatch)
-	return yearMatch, true
-}
-
-func extractSeason(releaseName string) (string, bool) {
-	seasonMatch, err := findLast(releaseName, "\\sS(\\d+)\\s?[ED]\\d+/i")
-	sm2, err := findLast(releaseName, "\\s(?:S|Season\\s*)(\\d+)/i")
-	//sm3, err := findLast(releaseName, "\\s((?<!\\d)\\d{1,2})x\\d+/i")
-	if err != nil {
-		return "", false
-	}
-
-	log.Trace().Msgf("season matches: %v", seasonMatch)
-	log.Trace().Msgf("season matches: %v", sm2)
-	return seasonMatch, false
-}
-
-func extractEpisode(releaseName string) (string, bool) {
-	epMatch, err := findLast(releaseName, "\\sS\\d+\\s?E(\\d+)/i")
-	ep2, err := findLast(releaseName, "\\s(?:E|Episode\\s*)(\\d+)/i")
-	//ep3, err := findLast(releaseName, "\\s(?<!\\d)\\d{1,2}x(\\d+)/i")
-	if err != nil {
-		return "", false
-	}
-
-	log.Trace().Msgf("ep matches: %v", epMatch)
-	log.Trace().Msgf("ep matches: %v", ep2)
-	return epMatch, false
-}
-
-func (s *service) extractReleaseInfo(varMap map[string]string, releaseName string) error {
-	// https://github.com/middelink/go-parse-torrent-name
-
-	canonReleaseName := cleanReleaseName(releaseName)
-	log.Trace().Msgf("canonicalize release name: %v", canonReleaseName)
-
-	//release, err := releaseinfo.Parse(releaseName)
-	//if err != nil {
-	//	return err
-	//}
-	//
-	//log.Trace().Msgf("release: %+v", release)
-
-	// https://github.com/autodl-community/autodl-irssi/pull/194/files
-	// year
-	//year, yearMatch := extractYear(canonReleaseName)
-	//if yearMatch {
-	//	setVariable("year", year, varMap, nil)
-	//}
-	//log.Trace().Msgf("year matches: %v", year)
-
-	// season
-	//season, seasonMatch := extractSeason(canonReleaseName)
-	//if seasonMatch {
-	//	// set var
-	//	log.Trace().Msgf("season matches: %v", season)
-	//}
-
-	// episode
-	//episode, episodeMatch := extractEpisode(canonReleaseName)
-	//if episodeMatch {
-	//	// set var
-	//	log.Trace().Msgf("episode matches: %v", episode)
-	//}
-
-	// resolution
-
-	// source
-
-	// encoder
-
-	// ignore
-
-	// tv or movie
-
-	// music stuff
-
-	// game stuff
-
-	return nil
-}
-
-func (s *service) mapToAnnounce(varMap map[string]string, ann *domain.Announce) error {
-
-	if torrentName, err := getFirstStringMapValue(varMap, []string{"torrentName"}); err != nil {
-		return errors.Wrap(err, "failed parsing required field")
-	} else {
-		ann.TorrentName = html.UnescapeString(torrentName)
-	}
-
-	if category, err := getFirstStringMapValue(varMap, []string{"category"}); err == nil {
-		ann.Category = category
-	}
-
-	if freeleech, err := getFirstStringMapValue(varMap, []string{"freeleech"}); err == nil {
-		ann.Freeleech = strings.EqualFold(freeleech, "freeleech") || strings.EqualFold(freeleech, "yes")
-	}
-
-	if freeleechPercent, err := getFirstStringMapValue(varMap, []string{"freeleechPercent"}); err == nil {
-		ann.FreeleechPercent = freeleechPercent
-	}
-
-	if uploader, err := getFirstStringMapValue(varMap, []string{"uploader"}); err == nil {
-		ann.Uploader = uploader
-	}
-
-	if scene, err := getFirstStringMapValue(varMap, []string{"scene"}); err == nil {
-		ann.Scene = strings.EqualFold(scene, "true") || strings.EqualFold(scene, "yes")
-	}
-
-	if year, err := getFirstStringMapValue(varMap, []string{"year"}); err == nil {
-		yearI, err := strconv.Atoi(year)
-		if err != nil {
-			//log.Debug().Msgf("bad year var: %v", year)
-		}
-		ann.Year = yearI
-	}
-
-	if tags, err := getFirstStringMapValue(varMap, []string{"releaseTags", "tags"}); err == nil {
-		ann.Tags = tags
-	}
-
-	return nil
-}
-
-func (s *service) mapToAnnounceObj(varMap map[string]string, ann *domain.Announce) error {
-
-	if torrentName, err := getFirstStringMapValue(varMap, []string{"torrentName", "$torrentName"}); err != nil {
-		return errors.Wrap(err, "failed parsing required field")
-	} else {
-		ann.TorrentName = html.UnescapeString(torrentName)
-	}
-
-	if torrentUrl, err := getFirstStringMapValue(varMap, []string{"torrentUrl", "$torrentUrl"}); err != nil {
-		return errors.Wrap(err, "failed parsing required field")
-	} else {
-		ann.TorrentUrl = torrentUrl
-	}
-
-	if releaseType, err := getFirstStringMapValue(varMap, []string{"releaseType", "$releaseType"}); err == nil {
-		ann.ReleaseType = releaseType
-	}
-
-	if name1, err := getFirstStringMapValue(varMap, []string{"name1", "$name1"}); err == nil {
-		ann.Name1 = name1
-	}
-
-	if name2, err := getFirstStringMapValue(varMap, []string{"name2", "$name2"}); err == nil {
-		ann.Name2 = name2
-	}
-
-	if category, err := getFirstStringMapValue(varMap, []string{"category", "$category"}); err == nil {
-		ann.Category = category
-	}
-	if freeleech, err := getFirstStringMapValue(varMap, []string{"freeleech", "$freeleech"}); err == nil {
-		ann.Freeleech = strings.EqualFold(freeleech, "true")
-	}
-
-	if uploader, err := getFirstStringMapValue(varMap, []string{"uploader", "$uploader"}); err == nil {
-		ann.Uploader = uploader
-	}
-
-	if tags, err := getFirstStringMapValue(varMap, []string{"$releaseTags", "$tags", "releaseTags", "tags"}); err == nil {
-		ann.Tags = tags
-	}
-
-	if cue, err := getFirstStringMapValue(varMap, []string{"cue", "$cue"}); err == nil {
-		ann.Cue = strings.EqualFold(cue, "true")
-	}
-
-	if logVar, err := getFirstStringMapValue(varMap, []string{"log", "$log"}); err == nil {
-		ann.Log = logVar
-	}
-
-	if media, err := getFirstStringMapValue(varMap, []string{"media", "$media"}); err == nil {
-		ann.Media = media
-	}
-
-	if format, err := getFirstStringMapValue(varMap, []string{"format", "$format"}); err == nil {
-		ann.Format = format
-	}
-
-	if bitRate, err := getFirstStringMapValue(varMap, []string{"bitrate", "$bitrate"}); err == nil {
-		ann.Bitrate = bitRate
-	}
-
-	if resolution, err := getFirstStringMapValue(varMap, []string{"resolution"}); err == nil {
-		ann.Resolution = resolution
-	}
-
-	if source, err := getFirstStringMapValue(varMap, []string{"source"}); err == nil {
-		ann.Source = source
-	}
-
-	if encoder, err := getFirstStringMapValue(varMap, []string{"encoder"}); err == nil {
-		ann.Encoder = encoder
-	}
-
-	if container, err := getFirstStringMapValue(varMap, []string{"container"}); err == nil {
-		ann.Container = container
-	}
-
-	if scene, err := getFirstStringMapValue(varMap, []string{"scene", "$scene"}); err == nil {
-		ann.Scene = strings.EqualFold(scene, "true")
-	}
-
-	if year, err := getFirstStringMapValue(varMap, []string{"year", "$year"}); err == nil {
-		yearI, err := strconv.Atoi(year)
-		if err != nil {
-			//log.Debug().Msgf("bad year var: %v", year)
-		}
-		ann.Year = yearI
-	}
-
-	//return &ann, nil
-	return nil
-}
-
-func setVariable(varName string, value string, varMap map[string]string, settings map[string]string) bool {
-
-	// check in instance options (auth)
-	//optVal, ok := settings[name]
-	//if !ok {
-	//	//return ""
-	//}
-	////ret = optVal
-	//if optVal != "" {
-	//	return false
-	//}
-
-	// else in varMap
-	val, ok := varMap[varName]
-	if !ok {
-		//return ""
-		varMap[varName] = value
-	} else {
-		// do something else?
-	}
-	log.Trace().Msgf("setVariable: %v", val)
-
-	return true
-}
-
-func getVariable(name string, varMap map[string]string, obj domain.Announce, settings map[string]string) string {
-	var ret string
-
-	// check in announce obj
-	// TODO reflect struct
-
-	// check in instance options (auth)
-	optVal, ok := settings[name]
-	if !ok {
-		//return ""
-	}
-	//ret = optVal
-	if optVal != "" {
-		return optVal
-	}
-
-	// else in varMap
-	val, ok := varMap[name]
-	if !ok {
-		//return ""
-	}
-	ret = val
-
-	return ret
-}
-
-//func contains(s []string, str string) bool {
-//	for _, v := range s {
-//		if v == str {
-//			return true
-//		}
-//	}
-//
-//	return false
-//}
-
-func listContains(list []string, key string) bool {
-	for _, lKey := range list {
-		if strings.EqualFold(lKey, key) {
-			return true
-		}
-	}
-
-	return false
-}
-
-func getStringMapValue(stringMap map[string]string, key string) (string, error) {
-	lowerKey := strings.ToLower(key)
-
-	// case sensitive match
-	//if caseSensitive {
-	//	v, ok := stringMap[key]
-	//	if !ok {
-	//		return "", fmt.Errorf("key was not found in map: %q", key)
-	//	}
-	//
-	//	return v, nil
-	//}
-
-	// case insensitive match
-	for k, v := range stringMap {
-		if strings.ToLower(k) == lowerKey {
-			return v, nil
-		}
-	}
-
-	return "", fmt.Errorf("key was not found in map: %q", lowerKey)
-}
-
-func getFirstStringMapValue(stringMap map[string]string, keys []string) (string, error) {
-	for _, k := range keys {
-		if val, err := getStringMapValue(stringMap, k); err == nil {
-			return val, nil
-		}
-	}
-
-	return "", fmt.Errorf("key were not found in map: %q", strings.Join(keys, ", "))
 }
 
 func removeElement(s []string, i int) ([]string, error) {

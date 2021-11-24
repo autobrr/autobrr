@@ -9,7 +9,7 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-func (s *service) sonarr(announce domain.Announce, action domain.Action) error {
+func (s *service) sonarr(release domain.Release, action domain.Action) error {
 	log.Trace().Msg("action SONARR")
 
 	// TODO validate data
@@ -39,28 +39,35 @@ func (s *service) sonarr(announce domain.Announce, action domain.Action) error {
 		cfg.Password = client.Settings.Basic.Password
 	}
 
-	r := sonarr.New(cfg)
+	arr := sonarr.New(cfg)
 
-	release := sonarr.Release{
-		Title:            announce.TorrentName,
-		DownloadUrl:      announce.TorrentUrl,
-		Size:             0,
-		Indexer:          announce.Site,
+	r := sonarr.Release{
+		Title:            release.TorrentName,
+		DownloadUrl:      release.TorrentURL,
+		Size:             int64(release.Size),
+		Indexer:          release.Indexer,
 		DownloadProtocol: "torrent",
 		Protocol:         "torrent",
 		PublishDate:      time.Now().Format(time.RFC3339),
 	}
 
-	success, err := r.Push(release)
+	success, rejections, err := arr.Push(r)
 	if err != nil {
-		log.Error().Stack().Err(err).Msgf("sonarr: failed to push release: %v", release)
+		log.Error().Stack().Err(err).Msgf("sonarr: failed to push release: %v", r)
 		return err
 	}
 
-	if success {
-		// TODO save pushed release
-		log.Debug().Msgf("sonarr: successfully pushed release: %v, indexer %v to %v", release.Title, release.Indexer, client.Host)
+	if !success {
+		log.Debug().Msgf("sonarr: release push rejected: %v, indexer %v to %v reasons: '%v'", r.Title, r.Indexer, client.Host, rejections)
+
+		// save pushed release
+		s.bus.Publish("release:update-push-status-rejected", release.ID, rejections)
+		return nil
 	}
+
+	log.Debug().Msgf("sonarr: successfully pushed release: %v, indexer %v to %v", r.Title, r.Indexer, client.Host)
+
+	s.bus.Publish("release:update-push-status", release.ID, domain.ReleasePushStatusApproved)
 
 	return nil
 }

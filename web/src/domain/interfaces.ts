@@ -169,3 +169,30 @@ export interface Config {
     log_path: string;
     base_url: string;
 }
+
+export interface Release {
+    id: number;
+    filter_status: string;
+    push_status: string;
+    rejections: string[];
+    indexer: string;
+    filter: string;
+    protocol: string;
+    title: string;
+    size: number;
+    raw: string;
+    timestamp: Date
+}
+
+export interface ReleaseFindResponse {
+    data: Release[];
+    next_cursor: number;
+}
+
+export interface ReleaseStats {
+    total_count: number;
+    filtered_count: number;
+    filter_rejected_count: number;
+    push_approved_count: number;
+    push_rejected_count: number;
+}
