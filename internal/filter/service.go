@@ -162,7 +162,7 @@ func (s *service) FindAndCheckFilters(release *domain.Release) (bool, *domain.Fi
 
 	// loop and check release to filter until match
 	for _, f := range filters {
-		log.Trace().Msgf("checking filter: %+v", &f.Name)
+		log.Trace().Msgf("checking filter: %+v", f.Name)
 
 		matchedFilter := release.CheckFilter(f)
 		// if matched, attach actions and return the f
@@ -171,11 +171,11 @@ func (s *service) FindAndCheckFilters(release *domain.Release) (bool, *domain.Fi
 			//release.FilterID = f.ID
 			//release.FilterName = f.Name
 
-			log.Debug().Msgf("found and matched filter: %+v", &f.Name)
+			log.Debug().Msgf("found and matched filter: %+v", f.Name)
 
 			// TODO do additional size check against indexer api or torrent for size
 			if release.AdditionalSizeCheckRequired {
-				log.Debug().Msgf("additional size check required for: %+v", &f.Name)
+				log.Debug().Msgf("additional size check required for: %+v", f.Name)
 				// check if indexer = btn,ptp,ggn,red
 				// fetch api for data
 				// else download torrent and add to tmpPath
@@ -187,7 +187,7 @@ func (s *service) FindAndCheckFilters(release *domain.Release) (bool, *domain.Fi
 			// find actions and attach
 			actions, err := s.actionRepo.FindByFilterID(f.ID)
 			if err != nil {
-				log.Error().Err(err).Msgf("could not find actions for filter: %+v", &f.Name)
+				log.Error().Err(err).Msgf("could not find actions for filter: %+v", f.Name)
 			}
 			f.Actions = actions
 
