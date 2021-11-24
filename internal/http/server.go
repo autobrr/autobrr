@@ -108,7 +108,7 @@ func (s Server) Handler() http.Handler {
 					"X-Accel-Buffering": "no",
 				}
 
-				s.sse.HTTPHandler(w, r)
+				s.sse.ServeHTTP(w, r)
 			})
 		})
 	})
