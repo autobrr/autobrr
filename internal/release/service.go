@@ -14,6 +14,8 @@ type Service interface {
 	Find(ctx context.Context, query domain.QueryParams) (res []domain.Release, nextCursor int64, err error)
 	Stats(ctx context.Context) (*domain.ReleaseStats, error)
 	Store(ctx context.Context, release *domain.Release) error
+	UpdatePushStatus(ctx context.Context, id int64, status domain.ReleasePushStatus) error
+	UpdatePushStatusRejected(ctx context.Context, id int64, rejections string) error
 	Process(release domain.Release) error
 }
 
@@ -52,6 +54,24 @@ func (s *service) Stats(ctx context.Context) (*domain.ReleaseStats, error) {
 
 func (s *service) Store(ctx context.Context, release *domain.Release) error {
 	_, err := s.repo.Store(ctx, release)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s *service) UpdatePushStatus(ctx context.Context, id int64, status domain.ReleasePushStatus) error {
+	err := s.repo.UpdatePushStatus(ctx, id, status)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s *service) UpdatePushStatusRejected(ctx context.Context, id int64, rejections string) error {
+	err := s.repo.UpdatePushStatusRejected(ctx, id, rejections)
 	if err != nil {
 		return err
 	}

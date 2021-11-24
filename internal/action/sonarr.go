@@ -51,16 +51,23 @@ func (s *service) sonarr(release domain.Release, action domain.Action) error {
 		PublishDate:      time.Now().Format(time.RFC3339),
 	}
 
-	success, err := arr.Push(r)
+	success, rejections, err := arr.Push(r)
 	if err != nil {
 		log.Error().Stack().Err(err).Msgf("sonarr: failed to push release: %v", r)
 		return err
 	}
 
-	if success {
-		// TODO save pushed release
-		log.Debug().Msgf("sonarr: successfully pushed release: %v, indexer %v to %v", r.Title, r.Indexer, client.Host)
+	if !success {
+		log.Debug().Msgf("sonarr: release push rejected: %v, indexer %v to %v reasons: '%v'", r.Title, r.Indexer, client.Host, rejections)
+
+		// save pushed release
+		s.bus.Publish("release:update-push-status-rejected", release.ID, rejections)
+		return nil
 	}
+
+	log.Debug().Msgf("sonarr: successfully pushed release: %v, indexer %v to %v", r.Title, r.Indexer, client.Host)
+
+	s.bus.Publish("release:update-push-status", release.ID, domain.ReleasePushStatusApproved)
 
 	return nil
 }

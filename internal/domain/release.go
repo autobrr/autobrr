@@ -20,6 +20,8 @@ type ReleaseRepo interface {
 	Store(ctx context.Context, release *Release) (*Release, error)
 	Find(ctx context.Context, params QueryParams) (res []Release, nextCursor int64, err error)
 	Stats(ctx context.Context) (*ReleaseStats, error)
+	UpdatePushStatus(ctx context.Context, id int64, status ReleasePushStatus) error
+	UpdatePushStatusRejected(ctx context.Context, id int64, rejections string) error
 }
 
 type Release struct {

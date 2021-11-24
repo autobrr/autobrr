@@ -24,11 +24,12 @@ func (s *service) RunActions(actions []domain.Action, release domain.Release) er
 			continue
 		}
 
-		log.Debug().Msgf("process action: %v", action.Name)
+		log.Debug().Msgf("process action: %v for '%v'", action.Name, release.TorrentName)
 
 		switch action.Type {
 		case domain.ActionTypeTest:
 			s.test(action.Name)
+			s.bus.Publish("release:update-push-status", release.ID, domain.ReleasePushStatusApproved)
 
 		case domain.ActionTypeExec:
 			if tmpFile == "" {
@@ -40,6 +41,7 @@ func (s *service) RunActions(actions []domain.Action, release domain.Release) er
 			}
 			go func(release domain.Release, action domain.Action, tmpFile string) {
 				s.execCmd(release, action, tmpFile)
+				s.bus.Publish("release:update-push-status", release.ID, domain.ReleasePushStatusApproved)
 			}(release, action, tmpFile)
 
 		case domain.ActionTypeWatchFolder:
@@ -51,6 +53,7 @@ func (s *service) RunActions(actions []domain.Action, release domain.Release) er
 				}
 			}
 			s.watchFolder(action.WatchFolder, tmpFile)
+			s.bus.Publish("release:update-push-status", release.ID, domain.ReleasePushStatusApproved)
 
 		case domain.ActionTypeDelugeV1, domain.ActionTypeDelugeV2:
 			canDownload, err := s.delugeCheckRulesCanDownload(action)
@@ -58,22 +61,25 @@ func (s *service) RunActions(actions []domain.Action, release domain.Release) er
 				log.Error().Stack().Err(err).Msgf("error checking client rules: %v", action.Name)
 				continue
 			}
-			if canDownload {
-				if tmpFile == "" {
-					tmpFile, hash, err = downloadFile(release.TorrentURL)
-					if err != nil {
-						log.Error().Stack().Err(err)
-						return err
-					}
-				}
-
-				go func(action domain.Action, tmpFile string) {
-					err = s.deluge(action, tmpFile)
-					if err != nil {
-						log.Error().Stack().Err(err).Msg("error sending torrent to Deluge")
-					}
-				}(action, tmpFile)
+			if !canDownload {
+				s.bus.Publish("release:update-push-status-rejected", release.ID, "deluge busy")
+				continue
 			}
+			if tmpFile == "" {
+				tmpFile, hash, err = downloadFile(release.TorrentURL)
+				if err != nil {
+					log.Error().Stack().Err(err)
+					return err
+				}
+			}
+
+			go func(action domain.Action, tmpFile string) {
+				err = s.deluge(action, tmpFile)
+				if err != nil {
+					log.Error().Stack().Err(err).Msg("error sending torrent to Deluge")
+				}
+				s.bus.Publish("release:update-push-status", release.ID, domain.ReleasePushStatusApproved)
+			}(action, tmpFile)
 
 		case domain.ActionTypeQbittorrent:
 			canDownload, err := s.qbittorrentCheckRulesCanDownload(action)
@@ -81,22 +87,26 @@ func (s *service) RunActions(actions []domain.Action, release domain.Release) er
 				log.Error().Stack().Err(err).Msgf("error checking client rules: %v", action.Name)
 				continue
 			}
-			if canDownload {
-				if tmpFile == "" {
-					tmpFile, hash, err = downloadFile(release.TorrentURL)
-					if err != nil {
-						log.Error().Stack().Err(err)
-						return err
-					}
-				}
-
-				go func(action domain.Action, hash string, tmpFile string) {
-					err = s.qbittorrent(action, hash, tmpFile)
-					if err != nil {
-						log.Error().Stack().Err(err).Msg("error sending torrent to qBittorrent")
-					}
-				}(action, hash, tmpFile)
+			if !canDownload {
+				s.bus.Publish("release:update-push-status-rejected", release.ID, "qbittorrent busy")
+				continue
 			}
+
+			if tmpFile == "" {
+				tmpFile, hash, err = downloadFile(release.TorrentURL)
+				if err != nil {
+					log.Error().Stack().Err(err)
+					return err
+				}
+			}
+
+			go func(action domain.Action, hash string, tmpFile string) {
+				err = s.qbittorrent(action, hash, tmpFile)
+				if err != nil {
+					log.Error().Stack().Err(err).Msg("error sending torrent to qBittorrent")
+				}
+				s.bus.Publish("release:update-push-status", release.ID, domain.ReleasePushStatusApproved)
+			}(action, hash, tmpFile)
 
 		case domain.ActionTypeRadarr:
 			go func(release domain.Release, action domain.Action) {

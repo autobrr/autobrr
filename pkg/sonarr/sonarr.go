@@ -22,7 +22,7 @@ type Config struct {
 
 type Client interface {
 	Test() (*SystemStatusResponse, error)
-	Push(release Release) (bool, error)
+	Push(release Release) (bool, string, error)
 }
 
 type client struct {
@@ -93,15 +93,15 @@ func (c *client) Test() (*SystemStatusResponse, error) {
 	return &response, nil
 }
 
-func (c *client) Push(release Release) (bool, error) {
+func (c *client) Push(release Release) (bool, string, error) {
 	res, err := c.post("release/push", release)
 	if err != nil {
 		log.Error().Stack().Err(err).Msg("sonarr client post error")
-		return false, err
+		return false, "", err
 	}
 
 	if res == nil {
-		return false, nil
+		return false, "", nil
 	}
 
 	defer res.Body.Close()
@@ -109,14 +109,14 @@ func (c *client) Push(release Release) (bool, error) {
 	body, err := io.ReadAll(res.Body)
 	if err != nil {
 		log.Error().Stack().Err(err).Msg("sonarr client error reading body")
-		return false, err
+		return false, "", err
 	}
 
 	pushResponse := make([]PushResponse, 0)
 	err = json.Unmarshal(body, &pushResponse)
 	if err != nil {
 		log.Error().Stack().Err(err).Msg("sonarr client error json unmarshal")
-		return false, err
+		return false, "", err
 	}
 
 	log.Trace().Msgf("sonarr release/push response body: %+v", string(body))
@@ -126,9 +126,9 @@ func (c *client) Push(release Release) (bool, error) {
 		rejections := strings.Join(pushResponse[0].Rejections, ", ")
 
 		log.Trace().Msgf("sonarr push rejected: %s - reasons: %q", release.Title, rejections)
-		return false, nil
+		return false, rejections, nil
 	}
 
 	// successful push
-	return true, nil
+	return true, "", nil
 }

@@ -7,6 +7,7 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/asaskevich/EventBus"
 	"github.com/r3labs/sse/v2"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/pflag"
@@ -19,6 +20,7 @@ import (
 	"github.com/autobrr/autobrr/internal/database"
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/internal/download_client"
+	"github.com/autobrr/autobrr/internal/events"
 	"github.com/autobrr/autobrr/internal/filter"
 	"github.com/autobrr/autobrr/internal/http"
 	"github.com/autobrr/autobrr/internal/indexer"
@@ -47,6 +49,9 @@ func main() {
 
 	serverEvents.CreateStream("logs")
 
+	// setup internal eventbus
+	bus := EventBus.New()
+
 	// setup logger
 	logger.Setup(cfg, serverEvents)
 
@@ -65,7 +70,6 @@ func main() {
 	}
 
 	// setup repos
-	// var announceRepo = database.NewAnnounceRepo(db)
 	var (
 		actionRepo         = database.NewActionRepo(db)
 		downloadClientRepo = database.NewDownloadClientRepo(db)
@@ -78,7 +82,7 @@ func main() {
 
 	var (
 		downloadClientService = download_client.NewService(downloadClientRepo)
-		actionService         = action.NewService(actionRepo, downloadClientService)
+		actionService         = action.NewService(actionRepo, downloadClientService, bus)
 		indexerService        = indexer.NewService(indexerRepo)
 		filterService         = filter.NewService(filterRepo, actionRepo, indexerService)
 		releaseService        = release.NewService(releaseRepo, actionService)
@@ -87,6 +91,9 @@ func main() {
 		userService           = user.NewService(userRepo)
 		authService           = auth.NewService(userService)
 	)
+
+	// register event subscribers
+	events.NewSubscribers(bus, releaseService)
 
 	addr := fmt.Sprintf("%v:%v", cfg.Host, cfg.Port)
 

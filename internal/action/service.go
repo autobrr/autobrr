@@ -1,6 +1,7 @@
 package action
 
 import (
+	"github.com/asaskevich/EventBus"
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/internal/download_client"
 )
@@ -17,10 +18,11 @@ type Service interface {
 type service struct {
 	repo      domain.ActionRepo
 	clientSvc download_client.Service
+	bus       EventBus.Bus
 }
 
-func NewService(repo domain.ActionRepo, clientSvc download_client.Service) Service {
-	return &service{repo: repo, clientSvc: clientSvc}
+func NewService(repo domain.ActionRepo, clientSvc download_client.Service, bus EventBus.Bus) Service {
+	return &service{repo: repo, clientSvc: clientSvc, bus: bus}
 }
 
 func (s *service) Store(action domain.Action) (*domain.Action, error) {

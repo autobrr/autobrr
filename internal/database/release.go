@@ -41,6 +41,41 @@ func (repo *ReleaseRepo) Store(ctx context.Context, r *domain.Release) (*domain.
 	return r, nil
 }
 
+func (repo *ReleaseRepo) UpdatePushStatus(ctx context.Context, id int64, status domain.ReleasePushStatus) error {
+	query, args, err := sq.Update("release").Set("push_status", status).Where("id = ?", id).ToSql()
+
+	_, err = repo.db.ExecContext(ctx, query, args...)
+	if err != nil {
+		log.Error().Stack().Err(err).Msg("error updating status of release")
+		return err
+	}
+
+	log.Trace().Msgf("release.update_push_status: id %+v", id)
+
+	return nil
+}
+
+func (repo *ReleaseRepo) UpdatePushStatusRejected(ctx context.Context, id int64, rejections string) error {
+	r := []string{rejections}
+
+	query, args, err := sq.
+		Update("release").
+		Set("push_status", domain.ReleasePushStatusRejected).
+		Set("rejections", pq.Array(r)).
+		Where("id = ?", id).
+		ToSql()
+
+	_, err = repo.db.ExecContext(ctx, query, args...)
+	if err != nil {
+		log.Error().Stack().Err(err).Msg("error updating status of release")
+		return err
+	}
+
+	log.Trace().Msgf("release.update_push_status_rejected: id %+v", id)
+
+	return nil
+}
+
 func (repo *ReleaseRepo) Find(ctx context.Context, params domain.QueryParams) ([]domain.Release, int64, error) {
 
 	queryBuilder := sq.Select("id", "filter_status", "push_status", "rejections", "indexer", "filter", "protocol", "title", "torrent_name", "size", "timestamp").From("release").OrderBy("timestamp DESC")
@@ -66,7 +101,7 @@ func (repo *ReleaseRepo) Find(ctx context.Context, params domain.QueryParams) ([
 	}
 
 	query, args, err := queryBuilder.ToSql()
-	log.Trace().Msgf("release.find: query: '%v', args: '%v'", query, args)
+	log.Trace().Str("database", "release.find").Msgf("query: '%v', args: '%v'", query, args)
 
 	res := make([]domain.Release, 0)
 
