@@ -5,6 +5,7 @@ go 1.16
 require (
 	github.com/Masterminds/squirrel v1.5.1
 	github.com/anacrolix/torrent v1.29.1
+	github.com/asaskevich/EventBus v0.0.0-20200907212545-49d423059eef
 	github.com/dustin/go-humanize v1.0.0
 	github.com/gdm85/go-libdeluge v0.5.5
 	github.com/go-chi/chi v1.5.4
