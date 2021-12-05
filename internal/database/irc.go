@@ -74,6 +74,39 @@ func (ir *IrcRepo) DeleteNetwork(ctx context.Context, id int64) error {
 	return nil
 }
 
+func (ir *IrcRepo) FindActiveNetworks(ctx context.Context) ([]domain.IrcNetwork, error) {
+
+	rows, err := ir.db.QueryContext(ctx, "SELECT id, enabled, name, server, port, tls, pass, invite_command, nickserv_account, nickserv_password FROM irc_network WHERE enabled = true")
+	if err != nil {
+		log.Fatal().Err(err)
+	}
+
+	defer rows.Close()
+
+	var networks []domain.IrcNetwork
+	for rows.Next() {
+		var net domain.IrcNetwork
+
+		var pass, inviteCmd sql.NullString
+		var tls sql.NullBool
+
+		if err := rows.Scan(&net.ID, &net.Enabled, &net.Name, &net.Server, &net.Port, &tls, &pass, &inviteCmd, &net.NickServ.Account, &net.NickServ.Password); err != nil {
+			log.Fatal().Err(err)
+		}
+
+		net.TLS = tls.Bool
+		net.Pass = pass.String
+		net.InviteCommand = inviteCmd.String
+
+		networks = append(networks, net)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return networks, nil
+}
+
 func (ir *IrcRepo) ListNetworks(ctx context.Context) ([]domain.IrcNetwork, error) {
 
 	rows, err := ir.db.QueryContext(ctx, "SELECT id, enabled, name, server, port, tls, pass, invite_command, nickserv_account, nickserv_password FROM irc_network")

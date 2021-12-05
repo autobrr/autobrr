@@ -21,6 +21,7 @@ type Service interface {
 	GetTemplates() ([]domain.IndexerDefinition, error)
 	LoadIndexerDefinitions() error
 	GetIndexerByAnnounce(name string) *domain.IndexerDefinition
+	GetIndexersByIRCNetwork(server string) []*domain.IndexerDefinition
 	Start() error
 }
 
@@ -35,14 +36,17 @@ type service struct {
 
 	// map server:channel:announce to indexer.Identifier
 	mapIndexerIRCToName map[string]string
+
+	lookupIRCServerDefinition map[string]map[string]domain.IndexerDefinition
 }
 
 func NewService(repo domain.IndexerRepo) Service {
 	return &service{
-		repo:                repo,
-		indexerDefinitions:  make(map[string]domain.IndexerDefinition),
-		indexerInstances:    make(map[string]domain.IndexerDefinition),
-		mapIndexerIRCToName: make(map[string]string),
+		repo:                      repo,
+		indexerDefinitions:        make(map[string]domain.IndexerDefinition),
+		indexerInstances:          make(map[string]domain.IndexerDefinition),
+		mapIndexerIRCToName:       make(map[string]string),
+		lookupIRCServerDefinition: make(map[string]map[string]domain.IndexerDefinition),
 	}
 }
 
@@ -195,6 +199,9 @@ func (s *service) Start() error {
 		s.indexerInstances[indexerDefinition.Identifier] = *indexerDefinition
 
 		s.mapIRCIndexerLookup(indexerDefinition.Identifier, *indexerDefinition)
+
+		// add to irc server lookup table
+		s.mapIRCServerDefinitionLookup(indexerDefinition.IRC.Server, *indexerDefinition)
 	}
 
 	return nil
@@ -251,6 +258,17 @@ func (s *service) mapIRCIndexerLookup(indexerIdentifier string, indexerDefinitio
 	}
 }
 
+// mapIRCServerDefinitionLookup map irc stuff to indexer.name
+// map[irc.network.test][indexer1] = indexer1
+// map[irc.network.test][indexer2] = indexer2
+func (s *service) mapIRCServerDefinitionLookup(ircServer string, indexerDefinition domain.IndexerDefinition) {
+	if indexerDefinition.IRC != nil {
+		s.lookupIRCServerDefinition[ircServer] = map[string]domain.IndexerDefinition{}
+
+		s.lookupIRCServerDefinition[ircServer][indexerDefinition.Identifier] = indexerDefinition
+	}
+}
+
 // LoadIndexerDefinitions load definitions from golang embed fs
 func (s *service) LoadIndexerDefinitions() error {
 
@@ -303,6 +321,21 @@ func (s *service) GetIndexerByAnnounce(name string) *domain.IndexerDefinition {
 	}
 
 	return nil
+}
+
+func (s *service) GetIndexersByIRCNetwork(server string) []*domain.IndexerDefinition {
+	server = strings.ToLower(server)
+
+	var indexers []*domain.IndexerDefinition
+
+	// get indexer definitions matching irc network from lookup table
+	if srv, idOk := s.lookupIRCServerDefinition[server]; idOk {
+		for _, definition := range srv {
+			indexers = append(indexers, &definition)
+		}
+	}
+
+	return indexers
 }
 
 func (s *service) getDefinitionByName(name string) *domain.IndexerDefinition {

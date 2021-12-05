@@ -14,7 +14,6 @@ import (
 	_ "modernc.org/sqlite"
 
 	"github.com/autobrr/autobrr/internal/action"
-	"github.com/autobrr/autobrr/internal/announce"
 	"github.com/autobrr/autobrr/internal/auth"
 	"github.com/autobrr/autobrr/internal/config"
 	"github.com/autobrr/autobrr/internal/database"
@@ -80,16 +79,17 @@ func main() {
 		userRepo           = database.NewUserRepo(db)
 	)
 
+	// setup services
 	var (
 		downloadClientService = download_client.NewService(downloadClientRepo)
 		actionService         = action.NewService(actionRepo, downloadClientService, bus)
 		indexerService        = indexer.NewService(indexerRepo)
 		filterService         = filter.NewService(filterRepo, actionRepo, indexerService)
 		releaseService        = release.NewService(releaseRepo, actionService)
-		announceService       = announce.NewService(filterService, indexerService, releaseService)
-		ircService            = irc.NewService(ircRepo, announceService)
+		ircService            = irc.NewService(ircRepo, filterService, indexerService, releaseService)
 		userService           = user.NewService(userRepo)
 		authService           = auth.NewService(userService)
+		//announceService       = announce.NewService(filterService, indexerService, releaseService)
 	)
 
 	// register event subscribers

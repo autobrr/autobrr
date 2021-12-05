@@ -5,8 +5,10 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/autobrr/autobrr/internal/announce"
 	"github.com/autobrr/autobrr/internal/domain"
+	"github.com/autobrr/autobrr/internal/filter"
+	"github.com/autobrr/autobrr/internal/indexer"
+	"github.com/autobrr/autobrr/internal/release"
 
 	"github.com/rs/zerolog/log"
 )
@@ -23,25 +25,29 @@ type Service interface {
 }
 
 type service struct {
-	repo            domain.IrcRepo
-	announceService announce.Service
-	indexerMap      map[string]string
-	handlers        map[string]*Handler
+	repo           domain.IrcRepo
+	filterService  filter.Service
+	indexerService indexer.Service
+	releaseService release.Service
+	indexerMap     map[string]string
+	handlers       map[string]*Handler
 
 	stopWG sync.WaitGroup
 	lock   sync.Mutex
 }
 
-func NewService(repo domain.IrcRepo, announceService announce.Service) Service {
+func NewService(repo domain.IrcRepo, filterService filter.Service, indexerSvc indexer.Service, releaseSvc release.Service) Service {
 	return &service{
-		repo:            repo,
-		announceService: announceService,
-		handlers:        make(map[string]*Handler),
+		repo:           repo,
+		filterService:  filterService,
+		indexerService: indexerSvc,
+		releaseService: releaseSvc,
+		handlers:       make(map[string]*Handler),
 	}
 }
 
 func (s *service) StartHandlers() {
-	networks, err := s.repo.ListNetworks(context.Background())
+	networks, err := s.repo.FindActiveNetworks(context.Background())
 	if err != nil {
 		log.Error().Msgf("failed to list networks: %v", err)
 	}
@@ -61,8 +67,13 @@ func (s *service) StartHandlers() {
 		}
 		network.Channels = channels
 
-		handler := NewHandler(network, s.announceService)
+		// find indexer definitions for network and add
+		definitions := s.indexerService.GetIndexersByIRCNetwork(network.Server)
 
+		// init new irc handler
+		handler := NewHandler(network, s.filterService, s.releaseService, definitions)
+
+		// TODO use network.Server? Need a way to use multiple indexers for one network if same nick
 		s.handlers[network.Name] = handler
 		s.lock.Unlock()
 
@@ -91,20 +102,24 @@ func (s *service) StopHandlers() {
 
 func (s *service) startNetwork(network domain.IrcNetwork) error {
 	// look if we have the network in handlers already, if so start it
-	if handler, found := s.handlers[network.Name]; found {
+	if existingHandler, found := s.handlers[network.Name]; found {
 		log.Debug().Msgf("starting network: %+v", network.Name)
 
-		if handler.conn != nil {
+		if existingHandler.conn != nil {
 			go func() {
-				if err := handler.Run(); err != nil {
-					log.Error().Err(err).Msgf("failed to start handler for network %q", handler.network.Name)
+				if err := existingHandler.Run(); err != nil {
+					log.Error().Err(err).Msgf("failed to start existingHandler for network %q", existingHandler.network.Name)
 				}
 			}()
 		}
 	} else {
 		// if not found in handlers, lets add it and run it
 
-		handler := NewHandler(network, s.announceService)
+		// find indexer definitions for network and add
+		definitions := s.indexerService.GetIndexersByIRCNetwork(network.Server)
+
+		// init new irc handler
+		handler := NewHandler(network, s.filterService, s.releaseService, definitions)
 
 		s.lock.Lock()
 		s.handlers[network.Name] = handler
