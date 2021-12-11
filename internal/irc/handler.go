@@ -10,8 +10,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/autobrr/autobrr/internal/announce"
 	"github.com/autobrr/autobrr/internal/domain"
+	"github.com/autobrr/autobrr/internal/filter"
+	"github.com/autobrr/autobrr/internal/release"
 
 	"github.com/rs/zerolog/log"
 	"gopkg.in/irc.v3"
@@ -21,9 +22,20 @@ var (
 	connectTimeout = 15 * time.Second
 )
 
+type channelHealth struct {
+	name            string
+	monitoring      bool
+	monitoringSince time.Time
+	lastPing        time.Time
+	lastAnnounce    time.Time
+}
+
 type Handler struct {
-	network         *domain.IrcNetwork
-	announceService announce.Service
+	network            *domain.IrcNetwork
+	filterService      filter.Service
+	releaseService     release.Service
+	announceProcessors map[string]Processor
+	definitions        []domain.IndexerDefinition
 
 	client  *irc.Client
 	conn    net.Conn
@@ -33,17 +45,42 @@ type Handler struct {
 
 	lastPing     time.Time
 	lastAnnounce time.Time
+
+	validAnnouncers map[string]struct{}
+	channels        map[string]channelHealth
 }
 
-func NewHandler(network domain.IrcNetwork, announceService announce.Service) *Handler {
-	return &Handler{
-		client:          nil,
-		conn:            nil,
-		ctx:             nil,
-		stopped:         make(chan struct{}),
-		network:         &network,
-		announceService: announceService,
+func NewHandler(network domain.IrcNetwork, filterService filter.Service, releaseService release.Service, definitions []domain.IndexerDefinition) *Handler {
+	h := &Handler{
+		client:             nil,
+		conn:               nil,
+		ctx:                nil,
+		stopped:            make(chan struct{}),
+		network:            &network,
+		filterService:      filterService,
+		releaseService:     releaseService,
+		definitions:        definitions,
+		announceProcessors: map[string]Processor{},
+		validAnnouncers:    map[string]struct{}{},
 	}
+
+	// Networks can be shared by multiple indexers but channels are unique
+	// so let's add a new AnnounceProcessor per channel
+	for _, definition := range definitions {
+		// indexers can use multiple channels, but it's not common, but let's handle that anyway.
+		for _, channel := range definition.IRC.Channels {
+			channel = strings.ToLower(channel)
+
+			h.announceProcessors[channel] = NewAnnounceProcessor(definition, filterService, releaseService)
+		}
+
+		// create map of valid announcers
+		for _, announcer := range definition.IRC.Announcers {
+			h.validAnnouncers[announcer] = struct{}{}
+		}
+	}
+
+	return h
 }
 
 func (s *Handler) Run() error {
@@ -255,36 +292,47 @@ func (s *Handler) OnJoin(msg string) (interface{}, error) {
 }
 
 func (s *Handler) onMessage(msg *irc.Message) error {
-	//log.Debug().Msgf("raw msg: %v", msg)
-
-	// check if message is from announce bot and correct channel, if not return
-	//if msg.Name != s.network. {
-	//
-	//}
-
 	// parse announce
 	channel := &msg.Params[0]
 	announcer := &msg.Name
 	message := msg.Trailing()
 	// TODO add network
 
-	// add correlationID and tracing
-
-	announceID := fmt.Sprintf("%v:%v:%v", s.network.Server, *channel, *announcer)
-	announceID = strings.ToLower(announceID)
+	// check if message is from announce bot, if not return
+	validAnnouncer := s.isValidAnnouncer(*announcer)
+	if !validAnnouncer {
+		return nil
+	}
 
 	// clean message
 	cleanedMsg := cleanMessage(message)
 	log.Debug().Msgf("%v: %v %v: %v", s.network.Server, *channel, *announcer, cleanedMsg)
 
-	s.lastAnnounce = time.Now()
+	s.setLastAnnounce()
 
-	go func() {
-		err := s.announceService.Parse(announceID, cleanedMsg)
-		if err != nil {
-			log.Error().Err(err).Msgf("could not parse line: %v", cleanedMsg)
-		}
-	}()
+	if err := s.sendToAnnounceProcessor(*channel, cleanedMsg); err != nil {
+		log.Error().Stack().Err(err).Msgf("could not queue line: %v", cleanedMsg)
+		return err
+	}
+
+	return nil
+}
+
+func (s *Handler) sendToAnnounceProcessor(channel string, msg string) error {
+	channel = strings.ToLower(channel)
+
+	// check if queue exists
+	queue, ok := s.announceProcessors[channel]
+	if !ok {
+		return fmt.Errorf("queue '%v' not found", channel)
+	}
+
+	// if it exists, add msg
+	err := queue.AddLineToQueue(channel, msg)
+	if err != nil {
+		log.Error().Stack().Err(err).Msgf("could not queue line: %v", msg)
+		return err
+	}
 
 	return nil
 }
@@ -423,9 +471,34 @@ func (s *Handler) handlePing(msg *irc.Message) error {
 		return err
 	}
 
-	s.lastPing = time.Now()
+	s.setLastPing()
 
 	return nil
+}
+
+func (s *Handler) isValidAnnouncer(nick string) bool {
+	_, ok := s.validAnnouncers[nick]
+	if !ok {
+		return false
+	}
+
+	return true
+}
+
+func (s *Handler) setLastAnnounce() {
+	s.lastAnnounce = time.Now()
+}
+
+func (s *Handler) GetLastAnnounce() time.Time {
+	return s.lastAnnounce
+}
+
+func (s *Handler) setLastPing() {
+	s.lastPing = time.Now()
+}
+
+func (s *Handler) GetLastPing() time.Time {
+	return s.lastPing
 }
 
 // irc line can contain lots of extra stuff like color so lets clean that

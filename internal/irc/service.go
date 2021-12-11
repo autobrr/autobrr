@@ -74,7 +74,7 @@ func (s *service) StartHandlers() {
 		handler := NewHandler(network, s.filterService, s.releaseService, definitions)
 
 		// TODO use network.Server? Need a way to use multiple indexers for one network if same nick
-		s.handlers[network.Name] = handler
+		s.handlers[network.Server] = handler
 		s.lock.Unlock()
 
 		log.Debug().Msgf("starting network: %+v", network.Name)
@@ -102,7 +102,7 @@ func (s *service) StopHandlers() {
 
 func (s *service) startNetwork(network domain.IrcNetwork) error {
 	// look if we have the network in handlers already, if so start it
-	if existingHandler, found := s.handlers[network.Name]; found {
+	if existingHandler, found := s.handlers[network.Server]; found {
 		log.Debug().Msgf("starting network: %+v", network.Name)
 
 		if existingHandler.conn != nil {
@@ -122,7 +122,7 @@ func (s *service) startNetwork(network domain.IrcNetwork) error {
 		handler := NewHandler(network, s.filterService, s.releaseService, definitions)
 
 		s.lock.Lock()
-		s.handlers[network.Name] = handler
+		s.handlers[network.Server] = handler
 		s.lock.Unlock()
 
 		log.Debug().Msgf("starting network: %+v", network.Name)
@@ -199,7 +199,7 @@ func (s *service) DeleteNetwork(ctx context.Context, id int64) error {
 	log.Debug().Msgf("delete network: %v", id)
 
 	// Remove network and handler
-	if err = s.StopNetwork(network.Name); err != nil {
+	if err = s.StopNetwork(network.Server); err != nil {
 		return err
 	}
 
@@ -234,7 +234,7 @@ func (s *service) StoreNetwork(network *domain.IrcNetwork) error {
 		}
 
 	} else {
-		err := s.StopNetwork(network.Name)
+		err := s.StopNetwork(network.Server)
 		if err != nil {
 			log.Error().Err(err).Msgf("could not stop network: %+v", network.Name)
 			return fmt.Errorf("could not stop network: %v", network.Name)
