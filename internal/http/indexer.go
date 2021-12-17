@@ -1,6 +1,7 @@
 package http
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"strconv"
@@ -16,7 +17,7 @@ type indexerService interface {
 	List() ([]domain.Indexer, error)
 	GetAll() ([]*domain.IndexerDefinition, error)
 	GetTemplates() ([]domain.IndexerDefinition, error)
-	Delete(id int) error
+	Delete(ctx context.Context, id int) error
 }
 
 type indexerHandler struct {
@@ -96,7 +97,7 @@ func (h indexerHandler) delete(w http.ResponseWriter, r *http.Request) {
 
 	id, _ := strconv.Atoi(idParam)
 
-	if err := h.service.Delete(id); err != nil {
+	if err := h.service.Delete(ctx, id); err != nil {
 		// return err
 	}
 

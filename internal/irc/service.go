@@ -20,7 +20,7 @@ type Service interface {
 	ListNetworks(ctx context.Context) ([]domain.IrcNetwork, error)
 	GetNetworkByID(id int64) (*domain.IrcNetwork, error)
 	DeleteNetwork(ctx context.Context, id int64) error
-	StoreNetwork(network *domain.IrcNetwork) error
+	StoreNetwork(ctx context.Context, network *domain.IrcNetwork) error
 	StoreChannel(networkID int64, channel *domain.IrcChannel) error
 }
 
@@ -141,7 +141,58 @@ func (s *service) startNetwork(network domain.IrcNetwork) error {
 	return nil
 }
 
+func (s *service) restartNetwork(network domain.IrcNetwork) error {
+	// look if we have the network in handlers, if so restart it
+	if existingHandler, found := s.handlers[network.Server]; found {
+		log.Info().Msgf("restarting network: %+v", network.Name)
+
+		if existingHandler.conn != nil {
+			go func() {
+				if err := existingHandler.Restart(); err != nil {
+					log.Error().Err(err).Msgf("failed to restart network %q", existingHandler.network.Name)
+				}
+			}()
+		}
+	}
+	//else {
+	//	// if not found in handlers, lets add it and run it
+	//
+	//	// find indexer definitions for network and add
+	//	definitions := s.indexerService.GetIndexersByIRCNetwork(network.Server)
+	//
+	//	// init new irc handler
+	//	handler := NewHandler(network, s.filterService, s.releaseService, definitions)
+	//
+	//	s.lock.Lock()
+	//	s.handlers[network.Server] = handler
+	//	s.lock.Unlock()
+	//
+	//	log.Debug().Msgf("starting network: %+v", network.Name)
+	//
+	//	s.stopWG.Add(1)
+	//
+	//	go func() {
+	//		if err := handler.Run(); err != nil {
+	//			log.Error().Err(err).Msgf("failed to start handler for network %q", network.Name)
+	//		}
+	//	}()
+	//
+	//	s.stopWG.Done()
+	//}
+
+	return nil
+}
+
 func (s *service) StopNetwork(name string) error {
+	if handler, found := s.handlers[name]; found {
+		handler.Stop()
+		log.Debug().Msgf("stopped network: %+v", name)
+	}
+
+	return nil
+}
+
+func (s *service) StopNetworkIfRunning(name string) error {
 	if handler, found := s.handlers[name]; found {
 		handler.Stop()
 		log.Debug().Msgf("stopped network: %+v", name)
@@ -210,30 +261,91 @@ func (s *service) DeleteNetwork(ctx context.Context, id int64) error {
 	return nil
 }
 
-func (s *service) StoreNetwork(network *domain.IrcNetwork) error {
-	if err := s.repo.StoreNetwork(network); err != nil {
+// StoreNetwork TODO make multiple methods. update and store
+func (s *service) StoreNetwork(ctx context.Context, network *domain.IrcNetwork) error {
+	existingNetwork, err := s.repo.CheckExistingNetwork(ctx, network)
+	if err != nil {
+		log.Error().Err(err).Msg("could not check for existing network")
 		return err
+
 	}
-
-	log.Debug().Msgf("store network: %+v", network)
-
-	if network.Channels != nil {
-		for _, channel := range network.Channels {
-			if err := s.repo.StoreChannel(network.ID, &channel); err != nil {
+	if existingNetwork != nil {
+		// TODO remove channels before
+		if network.Channels != nil {
+			if err := s.repo.StoreNetworkChannels(ctx, network.ID, network.Channels); err != nil {
 				return err
 			}
-		}
-	}
 
-	// stop or start network
-	if network.Enabled {
-		err := s.startNetwork(*network)
-		if err != nil {
-			log.Error().Err(err).Msgf("could not start network: %+v", network.Name)
-			return fmt.Errorf("could not start network: %v", network.Name)
+			//for _, channel := range network.Channels {
+			//	if err := s.repo.StoreChannel(existingNetwork.ID, &channel); err != nil {
+			//		return err
+			//	}
+			//}
 		}
 
 	} else {
+		if err := s.repo.StoreNetwork(network); err != nil {
+			return err
+		}
+		log.Debug().Msgf("store network: %+v", network)
+
+		if network.Channels != nil {
+			//if err := s.repo.StoreNetworkChannels(ctx, network.ID, network.Channels); err != nil {
+			//	return err
+			//}
+
+			for _, channel := range network.Channels {
+				if err := s.repo.StoreChannel(network.ID, &channel); err != nil {
+					return err
+				}
+			}
+		}
+
+	}
+
+	//if existingNetwork == nil {
+	//	if err := s.repo.StoreNetwork(network); err != nil {
+	//		return err
+	//	}
+	//	log.Debug().Msgf("store network: %+v", network)
+	//
+	//	if network.Channels != nil {
+	//		//if err := s.repo.StoreNetworkChannels(ctx, network.ID, network.Channels); err != nil {
+	//		//	return err
+	//		//}
+	//
+	//		for _, channel := range network.Channels {
+	//			if err := s.repo.StoreChannel(network.ID, &channel); err != nil {
+	//				return err
+	//			}
+	//		}
+	//	}
+	//}
+
+	//// TODO remove channels before
+	//if network.Channels != nil {
+	//	if err := s.repo.StoreNetworkChannels(ctx, network.ID, network.Channels); err != nil {
+	//		return err
+	//	}
+	//
+	//	//for _, channel := range network.Channels {
+	//	//	if err := s.repo.StoreChannel(existingNetwork.ID, &channel); err != nil {
+	//	//		return err
+	//	//	}
+	//	//}
+	//}
+
+	// stop or start network
+	if network.Enabled {
+		//err := s.startNetwork(*network)
+		err := s.restartNetwork(*network)
+		if err != nil {
+			log.Error().Err(err).Msgf("could not restart network: %+v", network.Name)
+			return fmt.Errorf("could not restart network: %v", network.Name)
+		}
+
+	} else {
+		// TODO take into account multiple channels per network
 		err := s.StopNetwork(network.Server)
 		if err != nil {
 			log.Error().Err(err).Msgf("could not stop network: %+v", network.Name)

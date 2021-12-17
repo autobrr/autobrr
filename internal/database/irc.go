@@ -3,6 +3,7 @@ package database
 import (
 	"context"
 	"database/sql"
+	sq "github.com/Masterminds/squirrel"
 
 	"github.com/autobrr/autobrr/internal/domain"
 
@@ -165,6 +166,53 @@ func (ir *IrcRepo) ListChannels(networkID int64) ([]domain.IrcChannel, error) {
 	return channels, nil
 }
 
+func (ir *IrcRepo) CheckExistingNetwork(ctx context.Context, network *domain.IrcNetwork) (*domain.IrcNetwork, error) {
+
+	queryBuilder := sq.
+		Select("id", "enabled", "name", "server", "port", "tls", "pass", "invite_command", "nickserv_account", "nickserv_password").
+		From("irc_network").
+		Where("server = ?", network.Server).
+		Where("nickserv_account = ?", network.NickServ.Account)
+
+	query, args, err := queryBuilder.ToSql()
+	if err != nil {
+		log.Error().Stack().Err(err).Msg("irc.check_existing_network: error fetching data")
+		return nil, err
+	}
+	log.Trace().Str("database", "irc.check_existing_network").Msgf("query: '%v', args: '%v'", query, args)
+
+	row := ir.db.QueryRowContext(ctx, query, args...)
+	//if err != nil {
+	//	log.Error().Stack().Err(err).Msg("irc.check_existing_network: error fetching data")
+	//	return nil, err
+	//}
+
+	//if err := row.Scan(&net.ID, &net.Enabled, &net.Name, &net.Server, &net.Port, &tls, &pass, &inviteCmd, &net.NickServ.Account, &nickPass); err != nil {
+	//	log.Error().Stack().Err(err).Msg("irc.check_existing_network: error scanning data to struct")
+	//	return nil, err
+	//}
+	var net domain.IrcNetwork
+
+	var pass, inviteCmd, nickPass sql.NullString
+	var tls sql.NullBool
+
+	err = row.Scan(&net.ID, &net.Enabled, &net.Name, &net.Server, &net.Port, &tls, &pass, &inviteCmd, &net.NickServ.Account, &nickPass)
+	if err == sql.ErrNoRows {
+		// no result is not an error in our case
+		return nil, nil
+	} else if err != nil {
+		log.Error().Stack().Err(err).Msg("irc.check_existing_network: error scanning data to struct")
+		return nil, err
+	}
+
+	net.TLS = tls.Bool
+	net.Pass = pass.String
+	net.InviteCommand = inviteCmd.String
+	net.NickServ.Password = nickPass.String
+
+	return &net, nil
+}
+
 func (ir *IrcRepo) StoreNetwork(network *domain.IrcNetwork) error {
 
 	netName := toNullString(network.Name)
@@ -200,6 +248,10 @@ func (ir *IrcRepo) StoreNetwork(network *domain.IrcNetwork) error {
 			nsPassword,
 			network.ID,
 		)
+		if err != nil {
+			log.Error().Stack().Err(err).Msg("irc.store_network: error executing query")
+			return err
+		}
 	} else {
 		var res sql.Result
 
@@ -213,7 +265,7 @@ func (ir *IrcRepo) StoreNetwork(network *domain.IrcNetwork) error {
                          invite_command,
 			    		 nickserv_account,
 			             nickserv_password
-                         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT DO NOTHING`,
 			network.Enabled,
 			netName,
 			network.Server,
@@ -225,7 +277,7 @@ func (ir *IrcRepo) StoreNetwork(network *domain.IrcNetwork) error {
 			nsPassword,
 		)
 		if err != nil {
-			log.Error().Stack().Err(err).Msg("error executing query")
+			log.Error().Stack().Err(err).Msg("irc.store_network: error executing query")
 			return err
 		}
 
@@ -233,6 +285,56 @@ func (ir *IrcRepo) StoreNetwork(network *domain.IrcNetwork) error {
 	}
 
 	return err
+}
+
+func (ir *IrcRepo) StoreNetworkChannels(ctx context.Context, networkID int64, channels []domain.IrcChannel) error {
+
+	tx, err := ir.db.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+
+	defer tx.Rollback()
+
+	_, err = tx.ExecContext(ctx, `DELETE FROM irc_channel WHERE network_id = ?`, networkID)
+	if err != nil {
+		log.Error().Stack().Err(err).Msgf("error deleting channels for network: %v", networkID)
+		return err
+	}
+
+	for _, channel := range channels {
+		var res sql.Result
+		pass := toNullString(channel.Password)
+
+		res, err = tx.ExecContext(ctx, `INSERT INTO irc_channel (
+                         enabled,
+                         detached,
+                         name,
+                         password,
+                         network_id
+                         ) VALUES (?, ?, ?, ?, ?)`,
+			channel.Enabled,
+			true,
+			channel.Name,
+			pass,
+			networkID,
+		)
+		if err != nil {
+			log.Error().Stack().Err(err).Msg("error executing query")
+			return err
+		}
+
+		channel.ID, err = res.LastInsertId()
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		log.Error().Stack().Err(err).Msgf("error deleting network: %v", networkID)
+		return err
+
+	}
+
+	return nil
 }
 
 func (ir *IrcRepo) StoreChannel(networkID int64, channel *domain.IrcChannel) error {

@@ -15,7 +15,7 @@ type ircService interface {
 	ListNetworks(ctx context.Context) ([]domain.IrcNetwork, error)
 	DeleteNetwork(ctx context.Context, id int64) error
 	GetNetworkByID(id int64) (*domain.IrcNetwork, error)
-	StoreNetwork(network *domain.IrcNetwork) error
+	StoreNetwork(ctx context.Context, network *domain.IrcNetwork) error
 	StoreChannel(networkID int64, channel *domain.IrcChannel) error
 	StopNetwork(name string) error
 }
@@ -79,7 +79,7 @@ func (h ircHandler) storeNetwork(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err := h.service.StoreNetwork(&data)
+	err := h.service.StoreNetwork(ctx, &data)
 	if err != nil {
 		//
 		h.encoder.StatusResponse(ctx, w, nil, http.StatusBadRequest)

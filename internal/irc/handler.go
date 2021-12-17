@@ -247,6 +247,22 @@ func (s *Handler) isStopped() bool {
 	}
 }
 
+func (s *Handler) Restart() error {
+	s.cancel()
+
+	if !s.isStopped() {
+		close(s.stopped)
+	}
+
+	if s.conn != nil {
+		s.conn.Close()
+	}
+
+	time.Sleep(2 * time.Second)
+
+	return s.Run()
+}
+
 func (s *Handler) onConnect(client *irc.Client, channels []domain.IrcChannel) error {
 	identified := false
 
