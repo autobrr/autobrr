@@ -36,6 +36,7 @@ type IrcNetwork struct {
 
 type IrcRepo interface {
 	StoreNetwork(network *IrcNetwork) error
+	UpdateNetwork(ctx context.Context, network *IrcNetwork) error
 	StoreChannel(networkID int64, channel *IrcChannel) error
 	StoreNetworkChannels(ctx context.Context, networkID int64, channels []IrcChannel) error
 	CheckExistingNetwork(ctx context.Context, network *IrcNetwork) (*IrcNetwork, error)

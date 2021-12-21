@@ -3,6 +3,7 @@ package database
 import (
 	"context"
 	"database/sql"
+
 	sq "github.com/Masterminds/squirrel"
 
 	"github.com/autobrr/autobrr/internal/domain"
@@ -287,6 +288,50 @@ func (ir *IrcRepo) StoreNetwork(network *domain.IrcNetwork) error {
 	return err
 }
 
+func (ir *IrcRepo) UpdateNetwork(ctx context.Context, network *domain.IrcNetwork) error {
+
+	netName := toNullString(network.Name)
+	pass := toNullString(network.Pass)
+	inviteCmd := toNullString(network.InviteCommand)
+
+	nsAccount := toNullString(network.NickServ.Account)
+	nsPassword := toNullString(network.NickServ.Password)
+
+	var err error
+	// update record
+	_, err = ir.db.ExecContext(ctx, `UPDATE irc_network
+			SET enabled = ?,
+			    name = ?,
+			    server = ?,
+			    port = ?,
+			    tls = ?,
+			    pass = ?,
+			    invite_command = ?,
+			    nickserv_account = ?,
+			    nickserv_password = ?,
+			    updated_at = CURRENT_TIMESTAMP
+			WHERE id = ?`,
+		network.Enabled,
+		netName,
+		network.Server,
+		network.Port,
+		network.TLS,
+		pass,
+		inviteCmd,
+		nsAccount,
+		nsPassword,
+		network.ID,
+	)
+	if err != nil {
+		log.Error().Stack().Err(err).Msg("irc.store_network: error executing query")
+		return err
+	}
+
+	return err
+}
+
+// TODO create new channel handler to only add, not delete
+
 func (ir *IrcRepo) StoreNetworkChannels(ctx context.Context, networkID int64, channels []domain.IrcChannel) error {
 
 	tx, err := ir.db.BeginTx(ctx, nil)
@@ -366,7 +411,7 @@ func (ir *IrcRepo) StoreChannel(networkID int64, channel *domain.IrcChannel) err
                          name,
                          password,
                          network_id
-                         ) VALUES (?, ?, ?, ?, ?)`,
+                         ) VALUES (?, ?, ?, ?, ?) ON CONFLICT DO NOTHING`,
 			channel.Enabled,
 			true,
 			channel.Name,

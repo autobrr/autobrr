@@ -16,6 +16,7 @@ type ircService interface {
 	DeleteNetwork(ctx context.Context, id int64) error
 	GetNetworkByID(id int64) (*domain.IrcNetwork, error)
 	StoreNetwork(ctx context.Context, network *domain.IrcNetwork) error
+	UpdateNetwork(ctx context.Context, network *domain.IrcNetwork) error
 	StoreChannel(networkID int64, channel *domain.IrcChannel) error
 	StopNetwork(name string) error
 }
@@ -35,7 +36,7 @@ func newIrcHandler(encoder encoder, service ircService) *ircHandler {
 func (h ircHandler) Routes(r chi.Router) {
 	r.Get("/", h.listNetworks)
 	r.Post("/", h.storeNetwork)
-	r.Put("/network/{networkID}", h.storeNetwork)
+	r.Put("/network/{networkID}", h.updateNetwork)
 	r.Post("/network/{networkID}/channel", h.storeChannel)
 	r.Get("/network/{networkID}/stop", h.stopNetwork)
 	r.Get("/network/{networkID}", h.getNetworkByID)
@@ -80,6 +81,26 @@ func (h ircHandler) storeNetwork(w http.ResponseWriter, r *http.Request) {
 	}
 
 	err := h.service.StoreNetwork(ctx, &data)
+	if err != nil {
+		//
+		h.encoder.StatusResponse(ctx, w, nil, http.StatusBadRequest)
+		return
+	}
+
+	h.encoder.StatusResponse(ctx, w, nil, http.StatusCreated)
+}
+
+func (h ircHandler) updateNetwork(w http.ResponseWriter, r *http.Request) {
+	var (
+		ctx  = r.Context()
+		data domain.IrcNetwork
+	)
+
+	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
+		return
+	}
+
+	err := h.service.UpdateNetwork(ctx, &data)
 	if err != nil {
 		//
 		h.encoder.StatusResponse(ctx, w, nil, http.StatusBadRequest)

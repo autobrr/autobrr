@@ -138,10 +138,13 @@ func (s *Handler) Run() error {
 			switch m.Command {
 			case "001":
 				// 001 is a welcome event, so we join channels there
-				err := s.onConnect(c, s.network.Channels)
+				err := s.onConnect(s.network.Channels)
 				if err != nil {
 					log.Error().Msgf("error joining channels %v", err)
 				}
+
+			case "372", "375", "376":
+				// Handle MOTD
 
 			// 322 TOPIC
 			// 333 UP
@@ -226,6 +229,10 @@ func (s *Handler) GetNetwork() *domain.IrcNetwork {
 	return s.network
 }
 
+func (s *Handler) UpdateNetwork(network *domain.IrcNetwork) {
+	s.network = network
+}
+
 func (s *Handler) Stop() {
 	s.cancel()
 
@@ -263,7 +270,7 @@ func (s *Handler) Restart() error {
 	return s.Run()
 }
 
-func (s *Handler) onConnect(client *irc.Client, channels []domain.IrcChannel) error {
+func (s *Handler) onConnect(channels []domain.IrcChannel) error {
 	identified := false
 
 	time.Sleep(2 * time.Second)
@@ -292,7 +299,7 @@ func (s *Handler) onConnect(client *irc.Client, channels []domain.IrcChannel) er
 
 	if !identified {
 		for _, channel := range channels {
-			err := s.handleJoinChannel(channel.Name)
+			err := s.HandleJoinChannel(channel.Name, channel.Password)
 			if err != nil {
 				log.Error().Err(err)
 				return err
@@ -366,13 +373,19 @@ func (s *Handler) sendPrivMessage(msg string) error {
 	return nil
 }
 
-func (s *Handler) handleJoinChannel(channel string) error {
-	m := irc.Message{
-		Command: "JOIN",
-		Params:  []string{channel},
+func (s *Handler) HandleJoinChannel(channel string, password string) error {
+	// support channel password
+	params := []string{channel}
+	if password != "" {
+		params = append(params, password)
 	}
 
-	log.Debug().Msgf("%v: %v", s.network.Server, m.String())
+	m := irc.Message{
+		Command: "JOIN",
+		Params:  params,
+	}
+
+	log.Trace().Msgf("%v: sending %v", s.network.Server, m.String())
 
 	time.Sleep(1 * time.Second)
 
@@ -383,6 +396,27 @@ func (s *Handler) handleJoinChannel(channel string) error {
 	}
 
 	//log.Info().Msgf("Monitoring channel %v %s", s.network.Name, channel)
+
+	return nil
+}
+
+func (s *Handler) HandlePartChannel(channel string) error {
+	m := irc.Message{
+		Command: "PART",
+		Params:  []string{channel},
+	}
+
+	log.Debug().Msgf("%v: %v", s.network.Server, m.String())
+
+	time.Sleep(1 * time.Second)
+
+	err := s.client.Write(m.String())
+	if err != nil {
+		log.Error().Err(err).Msgf("error handling part: %v", m.String())
+		return err
+	}
+
+	log.Info().Msgf("Left channel '%v' on network '%s'", channel, s.network.Server)
 
 	return nil
 }
@@ -448,6 +482,40 @@ func (s *Handler) handleNickServPRIVMSG(nick, password string) error {
 	return nil
 }
 
+func (s *Handler) HandleNickServIdentify(nick, password string) error {
+	m := irc.Message{
+		Command: "PRIVMSG",
+		Params:  []string{"NickServ", "IDENTIFY", nick, password},
+	}
+
+	log.Debug().Msgf("%v: NickServ: %v", s.network.Server, m.String())
+
+	err := s.client.Write(m.String())
+	if err != nil {
+		log.Error().Stack().Err(err).Msgf("error identifying with nickserv: %v", m.String())
+		return err
+	}
+
+	return nil
+}
+
+func (s *Handler) HandleNickChange(nick string) error {
+	m := irc.Message{
+		Command: "NICK",
+		Params:  []string{nick},
+	}
+
+	log.Debug().Msgf("%v: Nick change: %v", s.network.Server, m.String())
+
+	err := s.client.Write(m.String())
+	if err != nil {
+		log.Error().Stack().Err(err).Msgf("error changing nick: %v", m.String())
+		return err
+	}
+
+	return nil
+}
+
 func (s *Handler) handleMode(msg *irc.Message) error {
 	log.Debug().Msgf("%v: MODE: %v %v", s.network.Server, msg.User, msg.Trailing())
 
@@ -459,7 +527,7 @@ func (s *Handler) handleMode(msg *irc.Message) error {
 	}
 
 	for _, ch := range s.network.Channels {
-		err := s.handleJoinChannel(ch.Name)
+		err := s.HandleJoinChannel(ch.Name, ch.Password)
 		if err != nil {
 			log.Error().Err(err).Msgf("error joining channel: %v", ch.Name)
 			continue

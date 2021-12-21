@@ -75,7 +75,7 @@ func (a *announceProcessor) processQueue(queue chan string) {
 				log.Error().Stack().Err(err).Msg("could not get line from queue")
 				return
 			}
-			log.Debug().Msgf("line: %v", line)
+			log.Trace().Msgf("announce: process line: %v", line)
 
 			// check should ignore
 
@@ -178,9 +178,8 @@ func (a *announceProcessor) AddLineToQueue(channel string, line string) error {
 		return fmt.Errorf("no queue for channel (%v) found", channel)
 	}
 
-	log.Trace().Msgf("Sending line to queue: %v", line)
 	queue <- line
-	log.Trace().Msgf("Queued line for announce processor: %v", line)
+	log.Trace().Msgf("announce: queued line: %v", line)
 
 	return nil
 }
