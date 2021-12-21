@@ -13,10 +13,10 @@ supports:
   - rss
 source: custom
 settings:
-  - name: cookie
+  - name: passkey
     type: secret
-    label: Cookie
-    help: "Check how to get cookies in your browser and find the uid and pass cookies. Example: uid=1234; pass=asdf12347asdf13"
+    label: Passkey
+    help: "Go to General / Get RSS / Check a category and click create your passkey is after torrent_pass="
 
 irc:
   network: Torrentseeds.org
@@ -50,7 +50,7 @@ parse:
   lines:
     - test:
         - "New: This.Is.A.New.show.S00E00.720p.WEB.H264-Test .:. Category: TV/HD .:. Size: 364.82 MB .:. URL: https://www.torrentseeds.org/details.php?id=000000 .:. Uploaded by: George."
-      pattern: 'New:\s(.+?)(?=\s\.:\.)\s\.:\.\sCategory:\s(.+?)(?=\s\.:\.)\s\.:\.\sSize:\s(.+?)(?=\s\.:\.)\s\.:\.\sURL:\s(https?:\/\/[^\/]+)\/details.php\?id=([^\s]+)\s\.:\.\sUploaded\sby:\s(.*)\.'
+      pattern: '^New: (.*) .:. Category: (.*) .:. Size: (.*) .:. URL: (https?\:\/\/[^\/]+)\/.*id=(\d+) .:. Uploaded by: (.*).'
       vars:
         - torrentName
         - category
@@ -60,6 +60,6 @@ parse:
         - uploader
 
   match:
-    torrenturl: "{{ .baseUrl }}/download.php?torrent={{ .torrentId }}"
+    torrenturl: "{{ .baseUrl }}/download.php?torrent={{ .torrentId }}&torrent_pass={{ .passkey }}"
     encode:
       - torrentName

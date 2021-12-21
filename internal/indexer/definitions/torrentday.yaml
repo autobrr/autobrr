@@ -13,10 +13,10 @@ supports:
   - rss
 source: custom
 settings:
-  - name: cookie
+  - name: passkey
     type: secret
-    label: Cookie
-    help: "Check how to get cookies in your browser and find the uid and pass cookies. Example: uid=1234; pass=asdf12347asdf13"
+    label: Passkey
+    help: "Check the tracker tab in your torrent client to find your passkey"
 
 irc:
   network: TorrentDay
@@ -44,7 +44,7 @@ parse:
   lines:
     - test:
         - "[Movie/4K] This is a Movie 2160p UHD BluRay x265-TEST - https://www.torrentday.com/details.php?id=0000000 - 5.83 GB"
-      pattern: '\[([^\]]+)\]\s(.*)\s-\s(https?:\/\/[^\/]+)\/details.php\?id=(\d+)\s-\s(.*)'
+      pattern: '\[(.*?)\] (.*?) - (https?://.*/).*id=(\d+) - (.*)'
       vars:
         - category
         - torrentName
@@ -53,6 +53,6 @@ parse:
         - size
 
   match:
-    torrenturl: "{{ .baseUrl }}/download.php/{{ .torrentId }}/{{ .torrentName }}.torrent"
+    torrenturl: "{{ .baseUrl }}/download.php/{{ .torrentId }}/{{ .torrentName }}.torrent?torrent_pass={{ .passkey }}"
     encode:
       - torrentName
