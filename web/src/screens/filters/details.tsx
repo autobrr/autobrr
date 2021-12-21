@@ -17,7 +17,6 @@ import { useToggle } from "../../hooks/hooks";
 import { useMutation, useQuery } from "react-query";
 import { queryClient } from "../../App";
 import { CONTAINER_OPTIONS, CODECS_OPTIONS, RESOLUTION_OPTIONS, SOURCES_OPTIONS, ActionTypeNameMap, ActionTypeOptions } from "../../domain/constants";
-import { TextField, SwitchGroup, Select, MultiSelect, NumberField, DownloadClientSelect } from "./inputs";
 
 import DEBUG from "../../components/debug";
 import TitleSubtitle from "../../components/headings/TitleSubtitle";
@@ -32,6 +31,9 @@ import Toast from '../../components/notifications/Toast';
 import { Field, FieldArray, Form, Formik } from "formik";
 import { AlertWarning } from "../../components/alerts";
 import { DeleteModal } from "../../components/modals";
+import { SwitchGroup } from "../../components/inputs/switch";
+import { NumberField, TextField } from "../../components/inputs/fields";
+import { Select, MultiSelect, DownloadClientSelect } from "../../components/inputs/select";
 
 const tabs = [
     { name: 'General', href: '', current: true },
