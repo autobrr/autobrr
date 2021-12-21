@@ -45,7 +45,7 @@ parse:
     - test:
         - "[Movies/Bluray] The New Road 1980 1080P BLURAY X264-Test FREELEECH - https://www.torrentday.com/details.php?id=000000 - 10.00 GB"
         - "[Music/Audio] VA - We Dance all The Time-WEB-2021-Test - https://www.torrentday.com/details.php?id=0000000 - 44.25 MB"
-      pattern: '^\[([^\]]*)]\s(.*)\s*(FREELEECH)*\s*-\s*(https?\:\/\/[^\/]+).*[&\?]id=(.*)\s-\s(.*)'
+      pattern: '\[([^\]]*)]\s(.*)\s*(FREELEECH)*\s*-\s*(https?\:\/\/[^\/]+).*[&\?]id=(.*)\s-\s(.*)'
       vars:
         - category
         - torrentName
