@@ -1,11 +1,11 @@
 ---
 #id: torrentday
 name: TorrentDay
-identifier: torrentday
-description: TorrentDay is a private torrent tracker for GENERAL.
+identifier: td
+description: TorrentDay (TD) is a private torrent tracker for GENERAL.
 language: en-us
 urls:
-  - https://www.torrentday.com/
+  - https://www.torrentday.com
 privacy: private
 protocol: torrent
 supports:
@@ -19,7 +19,7 @@ settings:
     help: "Check how to get cookies in your browser and find the uid and pass cookies. Example: uid=1234; pass=asdf12347asdf13"
 
 irc:
-  network: torrentday.com
+  network: TorrentDay
   server: irc.torrentday.com
   port: 6697
   tls: true
@@ -44,7 +44,7 @@ parse:
   lines:
     - test:
         - "[Movie/4K] This is a Movie 2160p UHD BluRay x265-TEST - https://www.torrentday.com/details.php?id=0000000 - 5.83 GB"
-      pattern: '\[[^\]]+\]\s(.*)\s-\s(https?:\/\/[^\/]+)\/details.php\?id=(\d+)\s-\s(.*)'
+      pattern: '\[([^\]]+)\]\s(.*)\s-\s(https?:\/\/[^\/]+)\/details.php\?id=(\d+)\s-\s(.*)'
       vars:
         - category
         - torrentName
