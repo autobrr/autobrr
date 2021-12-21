@@ -234,11 +234,9 @@ func (s *service) checkIfNetworkRestartNeeded(network *domain.IrcNetwork) error 
 					continue
 				}
 
-				// 	if expected channel not in handler channels, add to join
+				// if expected channel not in handler channels, add to join
 				// use channel struct for extra info
 				channelsToJoin = append(channelsToJoin, channel)
-
-				// TODO if not in network.Channels, or not enabled, leave channel
 			}
 
 			// leave channels
@@ -384,12 +382,6 @@ func (s *service) UpdateNetwork(ctx context.Context, network *domain.IrcNetwork)
 		if err := s.repo.StoreNetworkChannels(ctx, network.ID, network.Channels); err != nil {
 			return err
 		}
-
-		//for _, channel := range network.Channels {
-		//	if err := s.repo.StoreChannel(existingNetwork.ID, &channel); err != nil {
-		//		return err
-		//	}
-		//}
 	}
 
 	if err := s.repo.UpdateNetwork(ctx, network); err != nil {
@@ -400,12 +392,9 @@ func (s *service) UpdateNetwork(ctx context.Context, network *domain.IrcNetwork)
 	// stop or start network
 	// TODO get current state to see if enabled or not?
 	if network.Enabled {
-		// if it's only channels affected, simply leave or join channels instead of restart
 		// if server, tls, invite command, port : changed - restart
 		// if nickserv account, nickserv password : changed - stay connected, and change those
 		// if channels len : changes - join or leave
-		//err := s.restartNetwork(*network)
-
 		err := s.checkIfNetworkRestartNeeded(network)
 		if err != nil {
 			log.Error().Stack().Err(err).Msgf("could not restart network: %+v", network.Name)
@@ -462,13 +451,10 @@ func (s *service) StoreNetwork(ctx context.Context, network *domain.IrcNetwork) 
 	}
 
 	if existingNetwork.Enabled {
-		// TODO if it's only channels affected, simply leave or join channels instead of restart
-		// decideToRestartJoinOrLeaveChannel()
 		// if server, tls, invite command, port : changed - restart
 		// if nickserv account, nickserv password : changed - stay connected, and change those
 		// if channels len : changes - join or leave
 
-		//err := s.restartNetwork(*network)
 		err := s.checkIfNetworkRestartNeeded(network)
 		if err != nil {
 			log.Error().Err(err).Msgf("could not restart network: %+v", network.Name)

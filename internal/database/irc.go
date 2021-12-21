@@ -183,15 +183,7 @@ func (ir *IrcRepo) CheckExistingNetwork(ctx context.Context, network *domain.Irc
 	log.Trace().Str("database", "irc.check_existing_network").Msgf("query: '%v', args: '%v'", query, args)
 
 	row := ir.db.QueryRowContext(ctx, query, args...)
-	//if err != nil {
-	//	log.Error().Stack().Err(err).Msg("irc.check_existing_network: error fetching data")
-	//	return nil, err
-	//}
 
-	//if err := row.Scan(&net.ID, &net.Enabled, &net.Name, &net.Server, &net.Port, &tls, &pass, &inviteCmd, &net.NickServ.Account, &nickPass); err != nil {
-	//	log.Error().Stack().Err(err).Msg("irc.check_existing_network: error scanning data to struct")
-	//	return nil, err
-	//}
 	var net domain.IrcNetwork
 
 	var pass, inviteCmd, nickPass sql.NullString

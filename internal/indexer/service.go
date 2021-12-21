@@ -21,7 +21,6 @@ type Service interface {
 	GetAll() ([]*domain.IndexerDefinition, error)
 	GetTemplates() ([]domain.IndexerDefinition, error)
 	LoadIndexerDefinitions() error
-	//GetIndexerByAnnounce(name string) *domain.IndexerDefinition
 	GetIndexersByIRCNetwork(server string) []domain.IndexerDefinition
 	Start() error
 }
@@ -32,9 +31,6 @@ type service struct {
 	// contains all raw indexer definitions
 	indexerDefinitions map[string]domain.IndexerDefinition
 
-	// contains indexers with data set
-	//indexerInstances map[string]domain.IndexerDefinition
-
 	// map server:channel:announce to indexer.Identifier
 	mapIndexerIRCToName map[string]string
 
@@ -43,9 +39,8 @@ type service struct {
 
 func NewService(repo domain.IndexerRepo) Service {
 	return &service{
-		repo:               repo,
-		indexerDefinitions: make(map[string]domain.IndexerDefinition),
-		//indexerInstances:          make(map[string]domain.IndexerDefinition),
+		repo:                      repo,
+		indexerDefinitions:        make(map[string]domain.IndexerDefinition),
 		mapIndexerIRCToName:       make(map[string]string),
 		lookupIRCServerDefinition: make(map[string]map[string]domain.IndexerDefinition),
 	}
@@ -200,8 +195,6 @@ func (s *service) Start() error {
 	}
 
 	for _, indexerDefinition := range indexerDefinitions {
-		//s.indexerInstances[indexerDefinition.Identifier] = *indexerDefinition
-
 		s.mapIRCIndexerLookup(indexerDefinition.Identifier, *indexerDefinition)
 
 		// add to irc server lookup table
@@ -233,8 +226,6 @@ func (s *service) addIndexer(indexer domain.Indexer) error {
 	//if !indexer.Enabled {
 	//	continue
 	//}
-
-	//s.indexerInstances[indexerDefinition.Identifier] = *indexerDefinition
 
 	s.mapIRCIndexerLookup(indexer.Identifier, *indexerDefinition)
 
@@ -318,18 +309,6 @@ func (s *service) LoadIndexerDefinitions() error {
 
 	return nil
 }
-
-//func (s *service) GetIndexerByAnnounce(name string) *domain.IndexerDefinition {
-//	name = strings.ToLower(name)
-//
-//	if identifier, idOk := s.mapIndexerIRCToName[name]; idOk {
-//		if indexer, ok := s.indexerInstances[identifier]; ok {
-//			return &indexer
-//		}
-//	}
-//
-//	return nil
-//}
 
 func (s *service) GetIndexersByIRCNetwork(server string) []domain.IndexerDefinition {
 	server = strings.ToLower(server)
