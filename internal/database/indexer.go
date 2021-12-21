@@ -1,9 +1,9 @@
 package database
 
 import (
+	"context"
 	"database/sql"
 	"encoding/json"
-
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/rs/zerolog/log"
 )
@@ -139,17 +139,16 @@ func (r *IndexerRepo) FindByFilterID(id int) ([]domain.Indexer, error) {
 
 }
 
-func (r *IndexerRepo) Delete(id int) error {
+func (r *IndexerRepo) Delete(ctx context.Context, id int) error {
+	query := `DELETE FROM indexer WHERE id = ?`
 
-	res, err := r.db.Exec(`DELETE FROM indexer WHERE id = ?`, id)
+	_, err := r.db.ExecContext(ctx, query, id)
 	if err != nil {
-		log.Error().Stack().Err(err).Msg("error executing query")
+		log.Error().Stack().Err(err).Msgf("indexer.delete: error executing query: '%v'", query)
 		return err
 	}
 
-	rows, _ := res.RowsAffected()
-
-	log.Info().Msgf("rows affected %v", rows)
+	log.Debug().Msgf("indexer.delete: id %v", id)
 
 	return nil
 }

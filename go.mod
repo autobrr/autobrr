@@ -10,6 +10,7 @@ require (
 	github.com/gdm85/go-libdeluge v0.5.5
 	github.com/go-chi/chi v1.5.4
 	github.com/gorilla/sessions v1.2.1
+	github.com/gorilla/websocket v1.4.2
 	github.com/lib/pq v1.10.4
 	github.com/mattn/go-isatty v0.0.14 // indirect
 	github.com/pkg/errors v0.9.1
