@@ -1,8 +1,8 @@
 ---
-#id: TorrentDay
+#id: torrentday
 name: TorrentDay
 identifier: torrentday
-description: TorrentDay (TD) is a general tracker with very good pretimes, nice variety of contents and great speed.
+description: TorrentDay is a private torrent tracker for GENERAL.
 language: en-us
 urls:
   - https://www.torrentday.com/
@@ -11,7 +11,7 @@ protocol: torrent
 supports:
   - irc
   - rss
-source: xbtit
+source: custom
 settings:
   - name: cookie
     type: secret
@@ -19,7 +19,7 @@ settings:
     help: "Check how to get cookies in your browser and find the uid and pass cookies. Example: uid=1234; pass=asdf12347asdf13"
 
 irc:
-  network: Torrentday.com
+  network: torrentday.com
   server: irc.torrentday.com
   port: 6697
   tls: true
@@ -32,7 +32,7 @@ irc:
       type: text
       required: false
       label: NickServ Account
-      help: NickServ account. Make sure to group your user and bot. Eg. user_bot
+      help: NickServ account. Make sure to group your user and bot. Eg. username_autodl
     - name: nickserv.password
       type: secret
       required: false
@@ -43,13 +43,11 @@ parse:
   type: single
   lines:
     - test:
-        - "[Movies/Bluray] The New Road 1980 1080P BLURAY X264-Test FREELEECH - https://www.torrentday.com/details.php?id=000000 - 10.00 GB"
-        - "[Music/Audio] VA - We Dance all The Time-WEB-2021-Test - https://www.torrentday.com/details.php?id=0000000 - 44.25 MB"
-      pattern: '\[([^\]]*)]\s(.*)\s*(FREELEECH)*\s*-\s*(https?\:\/\/[^\/]+).*[&\?]id=(.*)\s-\s(.*)'
+        - "[Movie/4K] This is a Movie 2160p UHD BluRay x265-TEST - https://www.torrentday.com/details.php?id=0000000 - 5.83 GB"
+      pattern: '\[[^\]]+\]\s(.*)\s-\s(https?:\/\/[^\/]+)\/details.php\?id=(\d+)\s-\s(.*)'
       vars:
         - category
         - torrentName
-        - freeleech
         - baseUrl
         - torrentId
         - size
