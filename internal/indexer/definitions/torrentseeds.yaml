@@ -1,7 +1,7 @@
 ---
 #id: TorrentSeeds
 name: TorrentSeeds
-identifier: torrentday
+identifier: torrentseeds
 description: TorrentSeeds (TS) is a GENERAL/0-DAY tracker with great pretimes.
 language: en-us
 urls:
