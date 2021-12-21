@@ -58,6 +58,7 @@ parse:
         - size
         - baseUrl
         - torrentId
+        - uploader
 
   match:
     torrenturl: "{{ .baseUrl }}/download.php?torrent={{ .torrentId }}"
