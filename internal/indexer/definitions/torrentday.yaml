@@ -1,0 +1,60 @@
+---
+#id: TorrentDay
+name: TorrentDay
+identifier: torrentday
+description: TorrentDay (TD) is a general tracker with very good pretimes, nice variety of contents and great speed.
+language: en-us
+urls:
+  - https://www.torrentday.com/
+privacy: private
+protocol: torrent
+supports:
+  - irc
+  - rss
+source: xbtit
+settings:
+  - name: cookie
+    type: secret
+    label: Cookie
+    help: "Check how to get cookies in your browser and find the uid and pass cookies. Example: uid=1234; pass=asdf12347asdf13"
+
+irc:
+  network: Torrentday.com
+  server: irc.torrentday.com
+  port: 6697
+  tls: true
+  channels:
+    - "#td.announce"
+  announcers:
+    - TD_Announce
+  settings:
+    - name: nickserv.account
+      type: text
+      required: false
+      label: NickServ Account
+      help: NickServ account. Make sure to group your user and bot. Eg. user_bot
+    - name: nickserv.password
+      type: secret
+      required: false
+      label: NickServ Password
+      help: NickServ password
+
+parse:
+  type: single
+  lines:
+    - test:
+        - "[Movies/Bluray] The New Road 1980 1080P BLURAY X264-Test FREELEECH - https://www.torrentday.com/details.php?id=000000 - 10.00 GB"
+        - "[Music/Audio] VA - We Dance all The Time-WEB-2021-Test - https://www.torrentday.com/details.php?id=0000000 - 44.25 MB"
+      pattern: '^\[([^\]]*)]\s(.*)\s*(FREELEECH)*\s*-\s*(https?\:\/\/[^\/]+).*[&\?]id=(.*)\s-\s(.*)'
+      vars:
+        - category
+        - torrentName
+        - freeleech
+        - baseUrl
+        - torrentId
+        - size
+
+  match:
+    torrenturl: "{{ .baseUrl }}/download.php/{{ .torrentId }}/{{ .torrentName }}.torrent"
+    encode:
+      - torrentName
