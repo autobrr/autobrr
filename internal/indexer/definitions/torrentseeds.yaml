@@ -1,0 +1,65 @@
+---
+#id: TorrentSeeds
+name: TorrentSeeds
+identifier: torrentday
+description: TorrentSeeds (TS) is a GENERAL/0-DAY tracker with great pretimes.
+language: en-us
+urls:
+  - https://torrentseeds.org
+privacy: private
+protocol: torrent
+supports:
+  - irc
+  - rss
+source: custom
+settings:
+  - name: cookie
+    type: secret
+    label: Cookie
+    help: "Check how to get cookies in your browser and find the uid and pass cookies. Example: uid=1234; pass=asdf12347asdf13"
+
+irc:
+  network: Torrentseeds.org
+  server: irc.torrentseeds.org
+  port: 6697
+  tls: true
+  channels:
+    - "#announce"
+    - "#announce-music"
+  announcers:
+    - torrentseeds
+  settings:
+    - name: nickserv.account
+      type: text
+      required: false
+      label: NickServ Account
+      help: NickServ account. Make sure to group your user and bot. Eg. user_bot
+    - name: nickserv.password
+      type: secret
+      required: false
+      label: NickServ Password
+      help: NickServ password
+    - name: invite_command
+      type: secret
+      default: "Cerberus identify username irckey"
+      required: true
+      label: Invite command
+      help: Invite auth with Cerberus.
+
+parse:
+  type: single
+  lines:
+    - test:
+        - "New: Awkwafina.Is.Nora.from.Queens.S02E06.720p.WEB.H264-PLZPROPER .:. Category: TV/HD .:. Size: 364.82 MB .:. URL: https://www.torrentseeds.org/details.php?id=2176502 .:. Uploaded by: leaker."
+      pattern: New Torrent Announcement:^New:\s(.+?)(?=\s\.:\.)\s\.:\.\sCategory:\s(.+?)(?=\s\.:\.)\s\.:\.\sSize:\s(.+?)(?=\s\.:\.)\s\.:\.\sURL:\s(https?:\/\/[^\/]+)/details.php\?id=(.+?)(?=\s\.:\.)\s\.:\.\sUploaded\sby:\s(.*)(?=\.)\.$
+      vars:
+        - torrentName
+        - category
+        - size
+        - baseUrl
+        - torrentId
+
+  match:
+    torrenturl: "{{ .baseUrl }}/download.php?torrent={{ .torrentId }}"
+    encode:
+      - torrentName
