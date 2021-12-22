@@ -44,10 +44,11 @@ parse:
   lines:
     - test:
         - "[Movie/4K] This is a Movie 2160p UHD BluRay x265-TEST - https://www.torrentday.com/details.php?id=0000000 - 5.83 GB"
-      pattern: '\[(.*?)\] (.*?) - (https?://.*/).*id=(\d+) - (.*)'
+      pattern: '\[(.*?)\] (.*?)( FREELEECH)? - (https?://.*/).*id=(\d+) - (.*)'
       vars:
         - category
         - torrentName
+        - freeleech
         - baseUrl
         - torrentId
         - size

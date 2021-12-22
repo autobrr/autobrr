@@ -40,7 +40,7 @@ irc:
       help: NickServ password
     - name: invite_command
       type: secret
-      default: "Cerberus identify username irckey"
+      default: "Cerberus identify USERNAME IRCKEY"
       required: true
       label: Invite command
       help: Invite auth with Cerberus. Replace USERNAME and IRCKEY
