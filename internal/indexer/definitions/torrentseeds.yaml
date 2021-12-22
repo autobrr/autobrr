@@ -43,7 +43,7 @@ irc:
       default: "Cerberus identify username irckey"
       required: true
       label: Invite command
-      help: Invite auth with Cerberus.
+      help: Invite auth with Cerberus. Replace USERNAME and IRCKEY
 
 parse:
   type: single
