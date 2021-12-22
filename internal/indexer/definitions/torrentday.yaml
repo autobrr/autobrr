@@ -16,7 +16,7 @@ settings:
   - name: passkey
     type: secret
     label: Passkey
-    help: "Check the tracker tab in your torrent client to find your passkey"
+    help: "Create a RSS Link to find out your PASSKEY"
 
 irc:
   network: TorrentDay
