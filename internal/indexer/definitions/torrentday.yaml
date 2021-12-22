@@ -1,7 +1,7 @@
 ---
 #id: torrentday
 name: TorrentDay
-identifier: td
+identifier: torrentday
 description: TorrentDay (TD) is a private torrent tracker for GENERAL.
 language: en-us
 urls:
