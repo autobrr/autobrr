@@ -16,7 +16,7 @@ settings:
   - name: apikey
     type: secret
     label: Api key
-    help: "Go to your profile and copy your Api key, make sure to replace <+> by <%2B>"
+    help: "Go to your profile and copy your Api key from settings"
     regex: /([a-zA-Z0-9\+])
 
 irc:
