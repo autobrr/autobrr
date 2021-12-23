@@ -30,7 +30,7 @@ irc:
   settings:
     - name: nickserv.account
       type: text
-      required: false
+      required: true
       label: NickServ Account
       help: NickServ account. Make sure to group your user and bot. Eg. username_autodl
     - name: nickserv.password
@@ -44,7 +44,8 @@ parse:
   lines:
     - test:
         - "[Movie/4K] This is a Movie 2160p UHD BluRay x265-TEST - https://www.torrentday.com/details.php?id=0000000 - 5.83 GB"
-      pattern: '\[(.*?)\] (.*?)( FREELEECH)? - (https?://.*/).*id=(\d+) - (.*)'
+        - "[Movie/4K] This is a Movie 2160p UHD BluRay x265-TEST FREELEECH - https://www.torrentday.com/details.php?id=0000000 - 5.83 GB"
+      pattern: '\[([^\]]*)] (.*?)\s*(FREELEECH)*\s*-\s+(https?\:\/\/[^\/]+).*[&\?]id=(\d+)\s*- (.*)'
       vars:
         - category
         - torrentName

@@ -34,7 +34,7 @@ irc:
   settings:
     - name: nickserv.account
       type: text
-      required: false
+      required: true
       label: NickServ Account
       help: NickServ account. Make sure to group your user and bot. Eg. user_bot
     - name: nickserv.password
@@ -53,11 +53,9 @@ parse:
         - torrentName
         - size
         - uploader
-        - tag
+        - tags
         - baseUrl
         - torrentId
 
   match:
     torrenturl: "{{ .baseUrl }}action=download&id={{ .torrentId }}&authkey={{ .authkey }}&torrent_pass={{ .torrent_pass }}"
-    encode:
-      - torrentName

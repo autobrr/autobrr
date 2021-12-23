@@ -31,7 +31,7 @@ irc:
   settings:
     - name: nickserv.account
       type: text
-      required: false
+      required: true
       label: NickServ Account
       help: NickServ account. Make sure to group your user and bot. Eg. user_bot
     - name: nickserv.password
@@ -45,14 +45,13 @@ parse:
   lines:
     - test:
         - "{tv} :: The.Great.Xmas.Show.S00E00.1080p.WEB.H264-TEST :: [1080p, web] :: https://milkie.cc/browse/xxxxxxxxxxxx"
-      pattern: '{(.*)}\s::\s(.*)\s::\s.*\s::\s(https?\:\/\/[^\/]+\/)browse\/(.*)'
+      pattern: '{(.*)}\s::\s(.*)\s::\s\[(.*)\]\s::\s(https?\:\/\/[^\/]+\/)browse\/(.*)'
       vars:
         - category
         - torrentName
+        - tags
         - baseUrl
         - torrentId
 
   match:
     torrenturl: "{{ .baseUrl }}api/v1/torrents/{{ .torrentId }}/torrent?key={{ .apikey }}"
-    encode:
-      - torrentName

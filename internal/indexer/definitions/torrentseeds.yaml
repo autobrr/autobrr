@@ -30,7 +30,7 @@ irc:
   settings:
     - name: nickserv.account
       type: text
-      required: false
+      required: true
       label: NickServ Account
       help: NickServ account. Make sure to group your user and bot. Eg. user_bot
     - name: nickserv.password
@@ -49,7 +49,7 @@ parse:
   type: single
   lines:
     - test:
-        - "New: This.Is.A.New.show.S00E00.720p.WEB.H264-Test .:. Category: TV/HD .:. Size: 364.82 MB .:. URL: https://www.torrentseeds.org/details.php?id=000000 .:. Uploaded by: George."
+        - "New: This.Is.A.New.show.S00E00.720p.WEB.H264-Test .:. Category: TV/HD .:. Size: 364.82 MB .:. URL:  https://www.torrentseeds.org/details.php?id=000000 .:. Uploaded by: George."
       pattern: 'New: (.*) .:. Category: (.*) .:. Size: (.*) .:. URL:  (https?\:\/\/[^\/]+)\/.*id=(\d+) .:. Uploaded by: (.*).'
       vars:
         - torrentName
@@ -61,5 +61,3 @@ parse:
 
   match:
     torrenturl: "{{ .baseUrl }}/download.php?torrent={{ .torrentId }}&torrent_pass={{ .passkey }}"
-    encode:
-      - torrentName
