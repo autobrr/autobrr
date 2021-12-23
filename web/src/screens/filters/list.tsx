@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Switch } from "@headlessui/react";
-import { EmptyListState } from "../../components/EmptyListState";
+import { EmptyListState } from "../../components/emptystates";
 
 import {
     Link,
@@ -8,7 +8,7 @@ import {
 import { Filter } from "../../domain/interfaces";
 import { useToggle } from "../../hooks/hooks";
 import { useQuery } from "react-query";
-import { classNames } from "../../styles/utils";
+import { classNames } from "../../utils";
 import { FilterAddForm } from "../../forms";
 import APIClient from "../../api/APIClient";
 

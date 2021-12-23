@@ -4,8 +4,8 @@ import { useQuery } from "react-query";
 import { IndexerAddForm, IndexerUpdateForm } from "../../forms";
 import { Indexer } from "../../domain/interfaces";
 import { Switch } from "@headlessui/react";
-import { classNames } from "../../styles/utils";
-import EmptySimple from "../../components/empty/EmptySimple";
+import { classNames } from "../../utils";
+import { EmptySimple } from "../../components/emptystates";
 import APIClient from "../../api/APIClient";
 
 const ListItem = ({ indexer }: any) => {

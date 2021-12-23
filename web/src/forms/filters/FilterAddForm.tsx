@@ -4,12 +4,12 @@ import { Filter } from "../../domain/interfaces";
 import { queryClient } from "../../App";
 import { XIcon } from "@heroicons/react/solid";
 import { Dialog, Transition } from "@headlessui/react";
-import { Field, Form } from "react-final-form";
 import DEBUG from "../../components/debug";
 import APIClient from "../../api/APIClient";
 
 import { toast } from 'react-hot-toast'
 import Toast from '../../components/notifications/Toast';
+import { Field, FieldProps, Form, Formik } from "formik";
 
 function FilterAddForm({ isOpen, toggle }: any) {
     const mutation = useMutation((filter: Filter) => APIClient.filters.create(filter), {
@@ -25,7 +25,7 @@ function FilterAddForm({ isOpen, toggle }: any) {
         // console.log("render add action form")
     }, []);
 
-    const onSubmit = (data: any) => {
+    const handleSubmit = (data: any) => {
         mutation.mutate(data)
     }
 
@@ -57,7 +57,7 @@ function FilterAddForm({ isOpen, toggle }: any) {
                         >
                             <div className="w-screen max-w-2xl border-l dark:border-gray-700">
 
-                                <Form
+                                <Formik
                                     initialValues={{
                                         name: "",
                                         enabled: false,
@@ -66,12 +66,11 @@ function FilterAddForm({ isOpen, toggle }: any) {
                                         sources: [],
                                         containers: []
                                     }}
+                                    onSubmit={handleSubmit}
                                     validate={validate}
-                                    onSubmit={onSubmit}
                                 >
-                                    {({ handleSubmit, values }) => {
-                                        return (
-                                            <form className="h-full flex flex-col bg-white dark:bg-gray-800 shadow-xl overflow-y-scroll" onSubmit={handleSubmit}>
+                                    {({ values }) => (
+                                        <Form className="h-full flex flex-col bg-white dark:bg-gray-800 shadow-xl overflow-y-scroll">
                                                 <div className="flex-1">
                                                     <div className="px-4 py-6 bg-gray-50 dark:bg-gray-900 sm:px-6">
                                                         <div className="flex items-start justify-between space-x-3">
@@ -107,20 +106,25 @@ function FilterAddForm({ isOpen, toggle }: any) {
                                                                 </label>
                                                             </div>
                                                             <Field name="name">
-                                                                {({ input, meta }) => (
+                                                                {({
+                                                                    field,
+                                                                    meta,
+                                                                }: FieldProps ) => (
                                                                     <div className="sm:col-span-2">
                                                                         <input
+                                                                            {...field}
+                                                                            id="name"
                                                                             type="text"
-                                                                            {...input}
                                                                             className="block w-full shadow-sm dark:bg-gray-800 border-gray-300 dark:border-gray-700 sm:text-sm dark:text-white focus:ring-indigo-500 dark:focus:ring-blue-500 focus:border-indigo-500 dark:focus:border-blue-500 rounded-md"
                                                                         />
+
                                                                         {meta.touched && meta.error &&
                                                                             <span className="block mt-2 text-red-500">{meta.error}</span>}
+
                                                                     </div>
                                                                 )}
                                                             </Field>
                                                         </div>
-
                                                     </div>
                                                 </div>
 
@@ -143,12 +147,10 @@ function FilterAddForm({ isOpen, toggle }: any) {
                                                     </div>
                                                 </div>
                                                 <DEBUG values={values} />
-                                            </form>
-                                        )
-                                    }}
-                                </Form>
+                                        </Form>
+                                    )}
+                                </Formik>
                             </div>
-
                         </Transition.Child>
                     </div>
                 </div>

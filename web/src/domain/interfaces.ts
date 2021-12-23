@@ -152,6 +152,7 @@ export interface Network {
 
 export interface Channel {
     name: string;
+    password: string;
 }
 
 export interface SASL {
