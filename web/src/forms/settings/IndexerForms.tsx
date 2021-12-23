@@ -79,9 +79,6 @@ export function IndexerAddForm({ isOpen, toggle }: AddProps) {
             channels: channels,
         }
 
-        // console.log("network: ", network);
-        // console.log("formData: ", formData);
-
         mutation.mutate(formData, {
             onSuccess: (data) => {
                 // create irc 
@@ -176,6 +173,7 @@ export function IndexerAddForm({ isOpen, toggle }: AddProps) {
                                     initialValues={{
                                         enabled: true,
                                         identifier: "",
+                                        name: "",
                                         irc: {},
                                         settings: {},
                                     }}
@@ -229,6 +227,7 @@ export function IndexerAddForm({ isOpen, toggle }: AddProps) {
                                                                             placeholder="Choose an indexer"
                                                                             value={field?.value && field.value.value}
                                                                             onChange={(option: any) => {
+                                                                                setFieldValue("name", option?.label ?? "")
                                                                                 setFieldValue(field.name, option?.value ?? "")
                                                                             }}
                                                                             options={data && data.sort((a, b): any => a.name.localeCompare(b.name)).map(v => ({
