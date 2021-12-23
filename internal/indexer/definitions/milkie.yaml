@@ -1,0 +1,57 @@
+---
+#id: Milkie
+name: Milkie
+identifier: milkie
+description: Milkie is a private torrent tracker for GENERAL.
+language: en-us
+urls:
+  - https://www.milkie.cc
+privacy: private
+protocol: torrent
+supports:
+  - irc
+  - rss
+source: custom
+settings:
+  - name: apikey
+    type: secret
+    label: Api key
+    help: "Go to your profile and copy your Api key from settings"
+    regex: /([a-zA-Z0-9\+])
+
+irc:
+  network: p2p-network.net
+  server: irc.p2p-network.net
+  port: 6697
+  tls: true
+  channels:
+    - "#milkie-announce"
+  announcers:
+    - the_cow
+  settings:
+    - name: nickserv.account
+      type: text
+      required: true
+      label: NickServ Account
+      help: NickServ account. Make sure to group your user and bot. Eg. user_bot
+    - name: nickserv.password
+      type: secret
+      required: false
+      label: NickServ Password
+      help: NickServ password
+
+parse:
+  type: single
+  lines:
+    - test:
+        - "{tv} :: The.Great.Xmas.Show.S00E00.1080p.WEB.H264-TEST :: [1080p, web] :: https://milkie.cc/browse/xxxxxxxxxxxx"
+      pattern: '{(.*)}\s::\s(.*)\s::\s\[(.*)\]\s::\s(https?\:\/\/[^\/]+\/)browse\/(.*)'
+      vars:
+        - category
+        - torrentName
+        - tags
+        - baseUrl
+        - torrentId
+
+  match:
+    torrenturl: "{{ .baseUrl }}api/v1/torrents/{{ .torrentId }}/torrent?key={{ .apikey }}"

@@ -1,0 +1,61 @@
+---
+#id: MoreThanTv
+name: MoreThanTv
+identifier: morethantv
+description: MoreThanTv (MTV) is a torrent tracker for Series and Movies.
+language: en-us
+urls:
+  - https://www.morethantv.me
+privacy: private
+protocol: torrent
+supports:
+  - irc
+  - rss
+source: gazelle
+settings:
+  - name: authkey
+    type: secret
+    label: Auth key
+    help: Right click DL on a torrent and get the authkey.
+  - name: torrent_pass
+    type: secret
+    label: Torrent pass
+    help: Right click DL on a torrent and get the torrent_pass.
+
+irc:
+  network: digitalirc.org
+  server: irc.digitalirc.org
+  port: 6697
+  tls: true
+  channels:
+    - "#mtv-announce"
+  announcers:
+    - Jarvis
+  settings:
+    - name: nickserv.account
+      type: text
+      required: true
+      label: NickServ Account
+      help: NickServ account. Make sure to group your user and bot. Eg. user_bot
+    - name: nickserv.password
+      type: secret
+      required: false
+      label: NickServ Password
+      help: NickServ password
+
+parse:
+  type: single
+  lines:
+    - test:
+        - "TV.Show.2008.720p.BluRay.DTS.x264-TEST - Size: 6.56 GiB - Uploader: Test - Tags: autoup,h264,hd,dts.audio,bluray,720p,p2p.group.release,Test.release,hd.movie - https://www.morethantv.me/torrents.php?torrentid=000000"
+      pattern: '^(.*?) - Size: ([0-9]+?.*?) - Uploader: (.*?) - Tags: (.*) - (https?:\/\/.*torrents.php\?)torrentid=(.*)$'
+      vars:
+        - torrentName
+        - size
+        - uploader
+        - tags
+        - baseUrl
+        - torrentId
+
+  match:
+    torrenturl: "{{ .baseUrl }}action=download&id={{ .torrentId }}&authkey={{ .authkey }}&torrent_pass={{ .torrent_pass }}"
