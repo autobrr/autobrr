@@ -1,10 +1,12 @@
 package domain
 
+import "context"
+
 type IndexerRepo interface {
 	Store(indexer Indexer) (*Indexer, error)
 	Update(indexer Indexer) (*Indexer, error)
 	List() ([]Indexer, error)
-	Delete(id int) error
+	Delete(ctx context.Context, id int) error
 	FindByFilterID(id int) ([]Indexer, error)
 }
 
