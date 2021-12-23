@@ -1,5 +1,5 @@
 import {Action, DownloadClient, Filter, Indexer, Network} from "../domain/interfaces";
-import {baseUrl, sseBaseUrl} from "../utils/utils";
+import {baseUrl, sseBaseUrl} from "../utils";
 
 function baseClient(endpoint: string, method: string, { body, ...customConfig}: any = {}) {
     let baseURL = baseUrl()

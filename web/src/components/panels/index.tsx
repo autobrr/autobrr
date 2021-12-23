@@ -1,16 +1,15 @@
 import { Fragment, useRef } from "react";
 import { XIcon } from "@heroicons/react/solid";
 import { Dialog, Transition } from "@headlessui/react";
-import { Form } from "react-final-form";
-import DEBUG from "../../components/debug";
+import { Form, Formik } from "formik";
+import DEBUG from "../debug";
 import { useToggle } from "../../hooks/hooks";
-import { DeleteModal } from "../../components/modals";
-import { classNames } from "../../styles/utils";
+import { DeleteModal } from "../modals";
+import { classNames } from "../../utils";
 
-interface props {
+interface SlideOverProps {
     title: string;
     initialValues: any;
-    mutators?: any;
     validate?: any;
     onSubmit: any;
     isOpen: boolean;
@@ -20,7 +19,7 @@ interface props {
     type: "CREATE" | "UPDATE";
 }
 
-function SlideOver({ title, initialValues, mutators, validate, onSubmit, deleteAction, isOpen, toggle, type, children }: props) {
+function SlideOver({ title, initialValues, validate, onSubmit, deleteAction, isOpen, toggle, type, children }: SlideOverProps) {
     const [deleteModalIsOpen, toggleDeleteModal] = useToggle(false)
 
     const cancelModalButtonRef = useRef(null)
@@ -54,15 +53,13 @@ function SlideOver({ title, initialValues, mutators, validate, onSubmit, deleteA
                         >
                             <div className="w-screen max-w-2xl dark:border-gray-700 border-l">
 
-                                <Form
+                                <Formik
                                     initialValues={initialValues}
-                                    mutators={mutators}
                                     onSubmit={onSubmit}
                                     validate={validate}
                                 >
-                                    {({ handleSubmit, values }) => {
-                                        return (
-                                            <form className="h-full flex flex-col bg-white dark:bg-gray-800 shadow-xl overflow-y-scroll"
+                                    {({ handleSubmit, values }) => ( 
+                                            <Form className="h-full flex flex-col bg-white dark:bg-gray-800 shadow-xl overflow-y-scroll"
                                                 onSubmit={handleSubmit}>
 
                                                 <div className="flex-1">
@@ -89,7 +86,6 @@ function SlideOver({ title, initialValues, mutators, validate, onSubmit, deleteA
 
                                                     {children !== undefined && children(values)}
                                                 </div>
-
 
                                                 <div className="flex-shrink-0 px-4 border-t border-gray-200 dark:border-gray-700 py-5 sm:px-6">
                                                     <div className={classNames(type === "CREATE" ? "justify-end" : "justify-between", "space-x-3 flex")}>
@@ -122,10 +118,9 @@ function SlideOver({ title, initialValues, mutators, validate, onSubmit, deleteA
                                                 </div>
 
                                                 <DEBUG values={values} />
-                                            </form>
-                                        )
-                                    }}
-                                </Form>
+                                            </Form>
+                                     )}
+                                </Formik>
 
                             </div>
 
@@ -137,4 +132,4 @@ function SlideOver({ title, initialValues, mutators, validate, onSubmit, deleteA
     )
 }
 
-export default SlideOver;
+export { SlideOver };

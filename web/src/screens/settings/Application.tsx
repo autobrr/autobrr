@@ -1,17 +1,17 @@
-import React, {useState} from "react";
-import {Switch} from "@headlessui/react";
-import { classNames } from "../../styles/utils";
+import React, { useState } from "react";
+import { Switch } from "@headlessui/react";
+import { classNames } from "../../utils";
 // import {useRecoilState} from "recoil";
 // import {configState} from "../../state/state";
-import {useQuery} from "react-query";
-import {Config} from "../../domain/interfaces";
+import { useQuery } from "react-query";
+import { Config } from "../../domain/interfaces";
 import APIClient from "../../api/APIClient";
 
 function ApplicationSettings() {
     const [isDebug, setIsDebug] = useState(true)
     // const [config] = useRecoilState(configState)
 
-    const {isLoading, data} = useQuery<Config, Error>(['config'], () => APIClient.config.get(),
+    const { isLoading, data } = useQuery<Config, Error>(['config'], () => APIClient.config.get(),
         {
             retry: false,
             refetchOnWindowFocus: false,
@@ -33,49 +33,49 @@ function ApplicationSettings() {
 
                 {!isLoading && data && (
 
-                <div className="mt-6 grid grid-cols-12 gap-6">
-                    <div className="col-span-6 sm:col-span-4">
-                        <label htmlFor="host" className="block text-xs font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wide">
-                            Host
-                        </label>
-                        <input
-                            type="text"
-                            name="host"
-                            id="host"
-                            value={data.host}
-                            disabled={true}
-                            className="mt-2 block w-full dark:bg-gray-800 border border-gray-300 dark:border-gray-700 border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:text-gray-100 sm:text-sm"
-                        />
-                    </div>
+                    <div className="mt-6 grid grid-cols-12 gap-6">
+                        <div className="col-span-6 sm:col-span-4">
+                            <label htmlFor="host" className="block text-xs font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wide">
+                                Host
+                            </label>
+                            <input
+                                type="text"
+                                name="host"
+                                id="host"
+                                value={data.host}
+                                disabled={true}
+                                className="mt-2 block w-full dark:bg-gray-800 border border-gray-300 dark:border-gray-700 border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:text-gray-100 sm:text-sm"
+                            />
+                        </div>
 
-                    <div className="col-span-6 sm:col-span-4">
-                        <label htmlFor="port" className="block text-xs font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wide">
-                            Port
-                        </label>
-                        <input
-                            type="text"
-                            name="port"
-                            id="port"
-                            value={data.port}
-                            disabled={true}
-                            className="mt-2 block w-full dark:bg-gray-800 border border-gray-300 dark:border-gray-700 border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:text-gray-100 sm:text-sm"
-                        />
-                    </div>
+                        <div className="col-span-6 sm:col-span-4">
+                            <label htmlFor="port" className="block text-xs font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wide">
+                                Port
+                            </label>
+                            <input
+                                type="text"
+                                name="port"
+                                id="port"
+                                value={data.port}
+                                disabled={true}
+                                className="mt-2 block w-full dark:bg-gray-800 border border-gray-300 dark:border-gray-700 border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:text-gray-100 sm:text-sm"
+                            />
+                        </div>
 
-                    <div className="col-span-6 sm:col-span-4">
-                        <label htmlFor="base_url" className="block text-xs font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wide">
-                            Base url
-                        </label>
-                        <input
-                            type="text"
-                            name="base_url"
-                            id="base_url"
-                            value={data.base_url}
-                            disabled={true}
-                            className="mt-2 block w-full dark:bg-gray-800 border border-gray-300 dark:border-gray-700 border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:text-gray-100 sm:text-sm"
-                        />
+                        <div className="col-span-6 sm:col-span-4">
+                            <label htmlFor="base_url" className="block text-xs font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wide">
+                                Base url
+                            </label>
+                            <input
+                                type="text"
+                                name="base_url"
+                                id="base_url"
+                                value={data.base_url}
+                                disabled={true}
+                                className="mt-2 block w-full dark:bg-gray-800 border border-gray-300 dark:border-gray-700 border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:text-gray-100 sm:text-sm"
+                            />
+                        </div>
                     </div>
-                </div>
                 )}
             </div>
 
@@ -84,8 +84,7 @@ function ApplicationSettings() {
                     <ul className="mt-2 divide-y divide-gray-200">
                         <Switch.Group as="li" className="py-4 flex items-center justify-between">
                             <div className="flex flex-col">
-                                <Switch.Label as="p" className="text-sm font-medium text-gray-900 dark:text-white"
-                                              passive>
+                                <Switch.Label as="p" className="text-sm font-medium text-gray-900 dark:text-white" passive>
                                     Debug
                                 </Switch.Label>
                                 <Switch.Description className="text-sm text-gray-500 dark:text-gray-400">
@@ -94,6 +93,7 @@ function ApplicationSettings() {
                             </div>
                             <Switch
                                 checked={isDebug}
+                                disabled={true}
                                 onChange={setIsDebug}
                                 className={classNames(
                                     isDebug ? 'bg-teal-500 dark:bg-blue-500' : 'bg-gray-200 dark:bg-gray-700',

@@ -2,25 +2,24 @@ import { DownloadClient } from "../../domain/interfaces";
 import { useToggle } from "../../hooks/hooks";
 import { Switch } from "@headlessui/react";
 import { useQuery } from "react-query";
-import { classNames } from "../../styles/utils";
+import { classNames } from "../../utils";
 import { DownloadClientAddForm, DownloadClientUpdateForm } from "../../forms";
-import EmptySimple from "../../components/empty/EmptySimple";
+import { EmptySimple } from "../../components/emptystates";
 import APIClient from "../../api/APIClient";
 import { DownloadClientTypeNameMap } from "../../domain/constants";
 
-interface DownloadLClientSettingsListItemProps {
+interface DLSettingsItemProps {
     client: DownloadClient;
     idx: number;
 }
 
-function DownloadClientSettingsListItem({ client, idx }: DownloadLClientSettingsListItemProps) {
+function DownloadClientSettingsListItem({ client, idx }: DLSettingsItemProps) {
     const [updateClientIsOpen, toggleUpdateClient] = useToggle(false)
 
     return (
         <tr key={client.name} className={idx % 2 === 0 ? 'light:bg-white' : 'light:bg-gray-50'}>
-            {updateClientIsOpen &&
-                <DownloadClientUpdateForm client={client} isOpen={updateClientIsOpen} toggle={toggleUpdateClient} />
-            }
+            <DownloadClientUpdateForm client={client} isOpen={updateClientIsOpen} toggle={toggleUpdateClient} />
+            
             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                 <Switch
                     checked={client.enabled}
@@ -65,9 +64,7 @@ function DownloadClientSettings() {
     return (
         <div className="divide-y divide-gray-200 lg:col-span-9">
 
-            {addClientIsOpen &&
-                <DownloadClientAddForm isOpen={addClientIsOpen} toggle={toggleAddClient} />
-            }
+            <DownloadClientAddForm isOpen={addClientIsOpen} toggle={toggleAddClient} />
 
             <div className="py-6 px-4 sm:p-6 lg:pb-8">
                 <div className="-ml-4 -mt-4 flex justify-between items-center flex-wrap sm:flex-nowrap">
@@ -137,8 +134,6 @@ function DownloadClientSettings() {
                         : <EmptySimple title="No download clients" subtitle="Add a new client" buttonText="New client" buttonAction={toggleAddClient} />
                     }
                 </div>
-
-
             </div>
         </div>
 

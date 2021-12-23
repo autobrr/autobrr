@@ -1,7 +1,7 @@
 import React, { InputHTMLAttributes } from 'react'
 import { Switch as HeadlessSwitch } from '@headlessui/react'
 import { FieldInputProps, FieldMetaProps, FieldProps, FormikProps, FormikValues, Field } from 'formik'
-import { classNames } from "../../styles/utils";
+import { classNames } from "../../utils";
 
 type SwitchProps<V = any> = {
     label: string

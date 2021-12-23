@@ -5,7 +5,7 @@ import Logout from "./screens/auth/logout";
 import Base from "./screens/Base";
 import { ReactQueryDevtools } from "react-query/devtools";
 import Layout from "./components/Layout";
-import { baseUrl } from "./utils/utils";
+import { baseUrl } from "./utils";
 
 function Protected() {
     return (

@@ -1,19 +1,21 @@
-import React, { Fragment } from "react";
+import { Fragment } from "react";
 import { useMutation, useQuery } from "react-query";
 import { Channel, Indexer, IndexerSchema, IndexerSchemaSettings, Network } from "../../domain/interfaces";
-import { sleep } from "../../utils/utils";
+import { sleep } from "../../utils";
 import { XIcon } from "@heroicons/react/solid";
 import { Dialog, Transition } from "@headlessui/react";
-import { Field, Form } from "react-final-form";
+import { Field, FieldProps, Form, Formik } from "formik";
 import DEBUG from "../../components/debug";
-import Select from "react-select";
+import Select, { components, InputProps } from "react-select";
 import { queryClient } from "../../App";
-import { SwitchGroup, TextFieldWide } from "../../components/inputs";
 import APIClient from "../../api/APIClient";
-import { NumberFieldWide, PasswordFieldWide } from "../../components/inputs/wide";
+import { TextFieldWide, PasswordFieldWide, SwitchGroupWide } from "../../components/inputs/input_wide";
+
 import { toast } from 'react-hot-toast'
 import Toast from '../../components/notifications/Toast';
 import { SlideOver } from "../../components/panels";
+
+const Input = ({ type, ...rest }: InputProps) => <components.Input {...rest} />;
 
 interface AddProps {
     isOpen: boolean;
@@ -44,7 +46,7 @@ export function IndexerAddForm({ isOpen, toggle }: AddProps) {
         onSuccess: (data) => {
             // console.log("irc mutation: ", data);
 
-            // queryClient.invalidateQueries(['indexer']);
+            // queryClient.invalidateQueries(['networks']);
             // sleep(1500)
 
             // toggle()
@@ -61,24 +63,24 @@ export function IndexerAddForm({ isOpen, toggle }: AddProps) {
         let channels: Channel[] = []
         if (ind.irc.channels.length) {
             ind.irc.channels.forEach(element => {
-                channels.push({ name: element })
+                channels.push({ name: element, password: "" })
             });
         }
 
         const network: Network = {
             name: ind.name,
             enabled: false,
-            server: formData.irc.server,
-            port: formData.irc.port,
-            tls: formData.irc.tls,
+            server: ind.irc.server,
+            port: ind.irc.port,
+            tls: ind.irc.tls,
             nickserv: formData.irc.nickserv,
             invite_command: formData.irc.invite_command,
             settings: formData.irc.settings,
             channels: channels,
         }
 
-        console.log("network: ", network);
-
+        // console.log("network: ", network);
+        // console.log("formData: ", formData);
 
         mutation.mutate(formData, {
             onSuccess: (data) => {
@@ -86,7 +88,6 @@ export function IndexerAddForm({ isOpen, toggle }: AddProps) {
                 ircMutation.mutate(network)
             }
         })
-
     };
 
     const renderSettingFields = (indexer: string) => {
@@ -109,7 +110,7 @@ export function IndexerAddForm({ isOpen, toggle }: AddProps) {
                         return null
                     })}
                     <div hidden={true}>
-                        <TextFieldWide name={`name`} label="Name" defaultValue={ind?.name} />
+                        <TextFieldWide name="name" label="Name" defaultValue={ind?.name} />
                     </div>
                 </div>
             )
@@ -141,11 +142,11 @@ export function IndexerAddForm({ isOpen, toggle }: AddProps) {
                                 return null
                             })}
 
-                            <div hidden={true}>
-                                <TextFieldWide name={`irc.server`} label="Server" defaultValue={ind.irc.server} />
-                                <NumberFieldWide name={`irc.port`} label="Port" defaultValue={ind.irc.port} />
-                                <SwitchGroup name="irc.tls" label="TLS" defaultValue={ind.irc.tls} />
-                            </div>
+                            {/* <div hidden={false}>
+                                <TextFieldWide name="irc.server" label="Server" defaultValue={ind.irc.server} />
+                                <NumberFieldWide name="irc.port" label="Port" defaultValue={ind.irc.port} />
+                                <SwitchGroupWide name="irc.tls" label="TLS" defaultValue={ind.irc.tls} />
+                            </div> */}
                         </div>
                     )}
                 </Fragment>
@@ -170,18 +171,20 @@ export function IndexerAddForm({ isOpen, toggle }: AddProps) {
                             leaveTo="translate-x-full"
                         >
                             <div className="w-screen max-w-2xl dark:border-gray-700 border-l">
-                                <Form
+                                <Formik
+                                    enableReinitialize={true}
                                     initialValues={{
                                         enabled: true,
                                         identifier: "",
-                                        irc: {}
+                                        irc: {},
+                                        settings: {},
                                     }}
+
                                     onSubmit={onSubmit}
                                 >
-                                    {({ handleSubmit, values }) => {
+                                    {({ values }) => {
                                         return (
-                                            <form className="h-full flex flex-col bg-white dark:bg-gray-800 shadow-xl overflow-y-scroll"
-                                                onSubmit={handleSubmit}>
+                                            <Form className="h-full flex flex-col bg-white dark:bg-gray-800 shadow-xl overflow-y-scroll">
                                                 <div className="flex-1">
                                                     <div className="px-4 py-6 bg-gray-50 dark:bg-gray-900 sm:px-6">
                                                         <div className="flex items-start justify-between space-x-3">
@@ -206,11 +209,8 @@ export function IndexerAddForm({ isOpen, toggle }: AddProps) {
                                                         </div>
                                                     </div>
 
-                                                    <div
-                                                        className="py-6 space-y-6 py-0 space-y-0 divide-y divide-gray-200 dark:divide-gray-700">
-
-                                                        <div
-                                                            className="space-y-1 px-4 sm:space-y-0 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6 sm:py-5">
+                                                    <div className="py-6 space-y-6 py-0 space-y-0 divide-y divide-gray-200 dark:divide-gray-700">
+                                                        <div className="space-y-1 px-4 sm:space-y-0 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6 sm:py-5">
                                                             <div>
                                                                 <label
                                                                     htmlFor="identifier"
@@ -220,28 +220,29 @@ export function IndexerAddForm({ isOpen, toggle }: AddProps) {
                                                                 </label>
                                                             </div>
                                                             <div className="sm:col-span-2">
-                                                                <Field
-                                                                    name="identifier"
-                                                                    parse={val => val && val.value}
-                                                                    format={val => data && data.find((o: any) => o.value === val)}
-                                                                    render={({ input, meta }) => (
-                                                                        <React.Fragment>
-                                                                            <Select {...input}
-                                                                                isClearable={true}
-                                                                                placeholder="Choose an indexer"
-
-                                                                                options={data && data.sort((a, b): any => a.name.localeCompare(b.name)).map(v => ({
-                                                                                    label: v.name,
-                                                                                    value: v.identifier
-                                                                                }))} />
-                                                                        </React.Fragment>
+                                                                <Field name="identifier" type="select">
+                                                                    {({ field, form: { setFieldValue } }: FieldProps) => (
+                                                                        <Select {...field}
+                                                                            isClearable={true}
+                                                                            isSearchable={true}
+                                                                            components={{ Input }}
+                                                                            placeholder="Choose an indexer"
+                                                                            value={field?.value && field.value.value}
+                                                                            onChange={(option: any) => {
+                                                                                setFieldValue(field.name, option?.value ?? "")
+                                                                            }}
+                                                                            options={data && data.sort((a, b): any => a.name.localeCompare(b.name)).map(v => ({
+                                                                                label: v.name,
+                                                                                value: v.identifier
+                                                                            }))} />
                                                                     )}
-                                                                />
+                                                                </Field>
+
                                                             </div>
                                                         </div>
 
                                                         <div className="py-6 px-6 space-y-6 sm:py-0 sm:space-y-0 sm:divide-y sm:divide-gray-200">
-                                                            <SwitchGroup name="enabled" label="Enabled" />
+                                                            <SwitchGroupWide name="enabled" label="Enabled" />
                                                         </div>
 
 
@@ -272,10 +273,10 @@ export function IndexerAddForm({ isOpen, toggle }: AddProps) {
                                                 </div>
 
                                                 <DEBUG values={values} />
-                                            </form>
+                                            </Form>
                                         )
                                     }}
-                                </Form>
+                                </Formik>
                             </div>
 
                         </Transition.Child>
@@ -361,45 +362,38 @@ export function IndexerUpdateForm({ isOpen, toggle, indexer }: UpdateProps) {
             initialValues={initialValues}
         >
             {({ values }: any) => (
-                <>
-                    <div
-                        className="py-6 space-y-6 sm:py-0 sm:space-y-0 divide-y divide-gray-200 dark:divide-gray-700">
-                        <div
-                            className="space-y-1 px-4 sm:space-y-0 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6 sm:py-5">
-                            <div>
-                                <label
-                                    htmlFor="name"
-                                    className="block text-sm font-medium text-gray-900 dark:text-white sm:mt-px sm:pt-2"
-                                >
-                                    Name
-                                </label>
-                            </div>
-                            <Field name="name">
-                                {({ input, meta }) => (
-                                    <div className="sm:col-span-2">
-                                        <input
-                                            type="text"
-                                            {...input}
-                                            className="block w-full shadow-sm dark:bg-gray-800 sm:text-sm dark:text-white focus:ring-indigo-500 focus:border-indigo-500 border-gray-300 dark:border-gray-700 rounded-md"
-                                        />
-                                        {meta.touched && meta.error &&
-                                            <span>{meta.error}</span>}
-                                    </div>
-                                )}
-                            </Field>
+                <div className="py-6 space-y-6 sm:py-0 sm:space-y-0 divide-y divide-gray-200 dark:divide-gray-700">
+                    <div className="space-y-1 px-4 sm:space-y-0 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6 sm:py-5">
+                        <div>
+                            <label
+                                htmlFor="name"
+                                className="block text-sm font-medium text-gray-900 dark:text-white sm:mt-px sm:pt-2"
+                            >
+                                Name
+                            </label>
                         </div>
-
-                        <div className="py-6 px-6 space-y-6 sm:py-0 sm:space-y-0 sm:divide-y sm:divide-gray-200 dark:sm:divide-gray-700">
-                            <SwitchGroup name="enabled" label="Enabled" />
-                        </div>
-
-                        {renderSettingFields(indexer.settings)}
-
+                        <Field name="name">
+                            {({ field, meta }: FieldProps) => (
+                                <div className="sm:col-span-2">
+                                    <input
+                                        type="text"
+                                        {...field}
+                                        className="block w-full shadow-sm dark:bg-gray-800 sm:text-sm dark:text-white focus:ring-indigo-500 focus:border-indigo-500 border-gray-300 dark:border-gray-700 rounded-md"
+                                    />
+                                    {meta.touched && meta.error &&
+                                        <span>{meta.error}</span>}
+                                </div>
+                            )}
+                        </Field>
                     </div>
 
-                </>
-            )}
+                    <div className="py-6 px-6 space-y-6 sm:py-0 sm:space-y-0 sm:divide-y sm:divide-gray-200 dark:sm:divide-gray-700">
+                        <SwitchGroupWide name="enabled" label="Enabled" />
+                    </div>
 
+                    {renderSettingFields(indexer.settings)}
+                </div>
+            )}
         </SlideOver>
     )
 }

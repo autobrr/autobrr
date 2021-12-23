@@ -5,7 +5,7 @@ import { useTable, useFilters, useGlobalFilter, useSortBy, usePagination } from 
 import APIClient from '../api/APIClient'
 import { useQuery } from 'react-query'
 import { ReleaseFindResponse, ReleaseStats } from '../domain/interfaces'
-import { EmptyListState } from '../components/EmptyListState'
+import { EmptyListState } from '../components/emptystates'
 
 export function Dashboard() {
   return (

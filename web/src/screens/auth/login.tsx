@@ -6,7 +6,7 @@ import { isLoggedIn } from "../../state/state";
 import { useHistory } from "react-router-dom";
 import { useEffect } from "react";
 import logo from "../../logo.png"
-import { TextField, PasswordField } from "../../components/inputs/fields";
+import { TextField, PasswordField } from "../../components/inputs";
 
 interface loginData {
     username: string;

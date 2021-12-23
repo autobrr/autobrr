@@ -3,7 +3,7 @@ import { MultiSelect as RMSC}  from "react-multi-select-component";
 import { Transition, Listbox } from "@headlessui/react";
 import { CheckIcon, SelectorIcon } from '@heroicons/react/solid';
 import { Action, DownloadClient } from "../../domain/interfaces";
-import { classNames, COL_WIDTHS } from "../../styles/utils";
+import { classNames, COL_WIDTHS } from "../../utils";
 import { Field } from "formik";
 
 interface MultiSelectProps {
