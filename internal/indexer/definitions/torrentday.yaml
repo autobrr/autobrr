@@ -1,7 +1,7 @@
 ---
 #id: torrentday
 name: TorrentDay
-identifier: td
+identifier: torrentday
 description: TorrentDay (TD) is a private torrent tracker for GENERAL.
 language: en-us
 urls:
@@ -16,7 +16,7 @@ settings:
   - name: passkey
     type: secret
     label: Passkey
-    help: "Check the tracker tab in your torrent client to find your passkey"
+    help: "Get your passkey in a RSS link"
 
 irc:
   network: TorrentDay
@@ -44,10 +44,12 @@ parse:
   lines:
     - test:
         - "[Movie/4K] This is a Movie 2160p UHD BluRay x265-TEST - https://www.torrentday.com/details.php?id=0000000 - 5.83 GB"
-      pattern: '\[(.*?)\] (.*?) - (https?://.*/).*id=(\d+) - (.*)'
+        - "[Movie/4K] This is a Movie 2160p UHD BluRay x265-TEST FREELEECH - https://www.torrentday.com/details.php?id=0000000 - 5.83 GB"
+      pattern: '\[([^\]]*)] (.*?)\s*(FREELEECH)*\s*-\s+(https?\:\/\/[^\/]+).*[&\?]id=(\d+)\s*- (.*)'
       vars:
         - category
         - torrentName
+        - freeleech
         - baseUrl
         - torrentId
         - size

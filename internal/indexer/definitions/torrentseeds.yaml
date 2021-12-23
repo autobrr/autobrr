@@ -40,17 +40,17 @@ irc:
       help: NickServ password
     - name: invite_command
       type: secret
-      default: "Cerberus identify username irckey"
+      default: "Cerberus identify USERNAME IRCKEY"
       required: true
       label: Invite command
-      help: Invite auth with Cerberus.
+      help: Invite auth with Cerberus. Replace USERNAME and IRCKEY.
 
 parse:
   type: single
   lines:
     - test:
         - "New: This.Is.A.New.show.S00E00.720p.WEB.H264-Test .:. Category: TV/HD .:. Size: 364.82 MB .:. URL: https://www.torrentseeds.org/details.php?id=000000 .:. Uploaded by: George."
-      pattern: 'New: (.*) .:. Category: (.*) .:. Size: (.*) .:. URL: (https?\:\/\/[^\/]+)\/.*id=(\d+) .:. Uploaded by: (.*).'
+      pattern: 'New: (.*) .:. Category: (.*) .:. Size: (.*) .:. URL:  (https?\:\/\/[^\/]+)\/.*id=(\d+) .:. Uploaded by: (.*).'
       vars:
         - torrentName
         - category
@@ -61,5 +61,3 @@ parse:
 
   match:
     torrenturl: "{{ .baseUrl }}/download.php?torrent={{ .torrentId }}&torrent_pass={{ .passkey }}"
-    encode:
-      - torrentName
