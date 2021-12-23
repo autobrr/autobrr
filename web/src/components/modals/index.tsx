@@ -1,8 +1,8 @@
-import { Fragment } from "react";
+import { Fragment, FC } from "react";
 import { Dialog, Transition } from "@headlessui/react";
 import { ExclamationIcon } from "@heroicons/react/solid";
 
-interface props {
+interface DeleteModalProps {
     isOpen: boolean;
     buttonRef: any;
     toggle: any;
@@ -11,7 +11,7 @@ interface props {
     text: string;
 }
 
-const DeleteModal = ({ isOpen, buttonRef, toggle, deleteAction, title, text }: props) => (
+export const DeleteModal: FC<DeleteModalProps> = ({ isOpen, buttonRef, toggle, deleteAction, title, text }) => (
     <Transition.Root show={isOpen} as={Fragment}>
         <Dialog
             as="div"
@@ -87,5 +87,3 @@ const DeleteModal = ({ isOpen, buttonRef, toggle, deleteAction, title, text }: p
         </Dialog>
     </Transition.Root>
 )
-
-export default DeleteModal;

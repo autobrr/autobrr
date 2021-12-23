@@ -4,7 +4,7 @@ import IndexerSettings from "./settings/Indexer";
 import IrcSettings from "./settings/Irc";
 import ApplicationSettings from "./settings/Application";
 import DownloadClientSettings from "./settings/DownloadClient";
-import {classNames} from "../styles/utils";
+import {classNames} from "../utils";
 import ActionSettings from "./settings/Action";
 
 const subNavigation = [

@@ -1,4 +1,10 @@
-const DEBUG = ({ values }: any) => {
+import { FC } from "react"
+
+interface DebugProps {
+    values: unknown;
+}
+
+const DEBUG: FC<DebugProps> = ({ values }) => {
     if (process.env.NODE_ENV !== "development") {
         return null;
     }

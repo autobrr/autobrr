@@ -1,12 +1,12 @@
+
 import { ExclamationIcon } from "@heroicons/react/solid";
-import React from "react";
 
 interface props {
   title: string;
   text: string;
 }
 
-function AlertWarning({ title, text }: props) {
+export function AlertWarning({ title, text }: props) {
   return (
     <div className="p-4">
       <div className="rounded-md bg-yellow-50 p-4">
@@ -28,5 +28,3 @@ function AlertWarning({ title, text }: props) {
     </div>
   );
 }
-
-export default AlertWarning;

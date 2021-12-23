@@ -3,8 +3,8 @@ import { IrcNetworkAddForm, IrcNetworkUpdateForm } from "../../forms";
 import { useToggle } from "../../hooks/hooks";
 import { useQuery } from "react-query";
 import { Switch } from "@headlessui/react";
-import { classNames } from "../../styles/utils";
-import EmptySimple from "../../components/empty/EmptySimple";
+import { classNames } from "../../utils";
+import { EmptySimple } from "../../components/emptystates";
 import APIClient from "../../api/APIClient";
 
 interface IrcNetwork {

@@ -1,12 +1,12 @@
 import { useMutation } from "react-query";
 import APIClient from "../../api/APIClient";
-import { Form } from "react-final-form";
-import { PasswordField, TextField } from "../../components/inputs";
+import { Form, Formik } from "formik";
 import { useRecoilState } from "recoil";
 import { isLoggedIn } from "../../state/state";
 import { useHistory } from "react-router-dom";
 import { useEffect } from "react";
 import logo from "../../logo.png"
+import { TextField, PasswordField } from "../../components/inputs";
 
 interface loginData {
     username: string;
@@ -32,9 +32,8 @@ function Login() {
         },
     })
 
-    const onSubmit = (data: any, form: any) => {
+    const handleSubmit = (data: any) => {
         mutation.mutate(data)
-        form.reset()
     }
 
     return (
@@ -50,51 +49,34 @@ function Login() {
             <div className="sm:mx-auto sm:w-full sm:max-w-md">
                 <div className="bg-white dark:bg-gray-800 py-8 px-4 shadow sm:rounded-lg sm:px-10">
 
-                    <Form
+                    <Formik
                         initialValues={{
                             username: "",
                             password: "",
                         }}
-                        onSubmit={onSubmit}
+                        onSubmit={handleSubmit}
                     >
-                        {({ handleSubmit, values }) => {
-                            return (
-                                <form className="space-y-6" onSubmit={handleSubmit}>
-                                    <TextField name="username" label="Username" autoComplete="username" />
-                                    <PasswordField name="password" label="password" autoComplete="current-password" />
+                        {() => (
+                            <Form>
 
-                                    {/*<div className="flex items-center justify-between">*/}
-                                    {/*    <div className="flex items-center">*/}
-                                    {/*        <input*/}
-                                    {/*            id="remember-me"*/}
-                                    {/*            name="remember-me"*/}
-                                    {/*            type="checkbox"*/}
-                                    {/*            className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"*/}
-                                    {/*        />*/}
-                                    {/*        <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-900">*/}
-                                    {/*            Remember me*/}
-                                    {/*        </label>*/}
-                                    {/*    </div>*/}
+                                <div className="space-y-6">
 
-                                    {/*    <div className="text-sm">*/}
-                                    {/*        <a href="#" className="font-medium text-indigo-600 hover:text-indigo-500">*/}
-                                    {/*            Forgot your password?*/}
-                                    {/*        </a>*/}
-                                    {/*    </div>*/}
-                                    {/*</div>*/}
+                                    <TextField name="username" label="Username" columns={6} autoComplete="username" />
+                                    <PasswordField name="password" label="Password" columns={6} autoComplete="current-password" />
+                                </div>
 
-                                    <div>
-                                        <button
-                                            type="submit"
-                                            className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 dark:bg-blue-600 hover:bg-indigo-700 dark:hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 dark:focus:ring-blue-500"
-                                        >
-                                            Sign in
-                                        </button>
-                                    </div>
-                                </form>
-                            )
-                        }}
-                    </Form>
+
+                                <div className="mt-6">
+                                    <button
+                                        type="submit"
+                                        className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 dark:bg-blue-600 hover:bg-indigo-700 dark:hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 dark:focus:ring-blue-500"
+                                    >
+                                        Sign in
+                                    </button>
+                                </div>
+                            </Form>
+                        )}
+                    </Formik>
                 </div>
             </div>
         </div>
