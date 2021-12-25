@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/autobrr/autobrr/internal/announce"
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/internal/filter"
 	"github.com/autobrr/autobrr/internal/release"
@@ -34,7 +35,7 @@ type Handler struct {
 	network            *domain.IrcNetwork
 	filterService      filter.Service
 	releaseService     release.Service
-	announceProcessors map[string]Processor
+	announceProcessors map[string]announce.Processor
 	definitions        []domain.IndexerDefinition
 
 	client  *irc.Client
@@ -60,7 +61,7 @@ func NewHandler(network domain.IrcNetwork, filterService filter.Service, release
 		filterService:      filterService,
 		releaseService:     releaseService,
 		definitions:        definitions,
-		announceProcessors: map[string]Processor{},
+		announceProcessors: map[string]announce.Processor{},
 		validAnnouncers:    map[string]struct{}{},
 	}
 
@@ -71,7 +72,7 @@ func NewHandler(network domain.IrcNetwork, filterService filter.Service, release
 		for _, channel := range definition.IRC.Channels {
 			channel = strings.ToLower(channel)
 
-			h.announceProcessors[channel] = NewAnnounceProcessor(definition, filterService, releaseService)
+			h.announceProcessors[channel] = announce.NewAnnounceProcessor(definition, filterService, releaseService)
 		}
 
 		// create map of valid announcers

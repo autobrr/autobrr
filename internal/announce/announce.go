@@ -1,4 +1,4 @@
-package irc
+package announce
 
 import (
 	"bytes"
@@ -50,6 +50,7 @@ func (a *announceProcessor) setupQueues() {
 		channel = strings.ToLower(channel)
 
 		queues[channel] = make(chan string, 128)
+		log.Trace().Msgf("announce: setup queue: %v", channel)
 	}
 
 	a.queues = queues
@@ -58,7 +59,9 @@ func (a *announceProcessor) setupQueues() {
 func (a *announceProcessor) setupQueueConsumers() {
 	for queueName, queue := range a.queues {
 		go func(name string, q chan string) {
+			log.Trace().Msgf("announce: setup queue consumer: %v", name)
 			a.processQueue(q)
+			log.Trace().Msgf("announce: queue consumer stopped: %v", name)
 		}(queueName, queue)
 	}
 }
@@ -95,6 +98,7 @@ func (a *announceProcessor) processQueue(queue chan string) {
 		}
 
 		if parseFailed {
+			log.Trace().Msg("announce: parse failed")
 			continue
 		}
 
@@ -151,12 +155,12 @@ func (a *announceProcessor) processQueue(queue chan string) {
 		log.Info().Msgf("Matched '%v' (%v) for %v", newRelease.TorrentName, newRelease.Filter.Name, newRelease.Indexer)
 
 		// process release
-		go func() {
-			err = a.releaseSvc.Process(*newRelease)
+		go func(rel *domain.Release) {
+			err = a.releaseSvc.Process(*rel)
 			if err != nil {
 				log.Error().Err(err).Msgf("could not process release: %+v", newRelease)
 			}
-		}()
+		}(newRelease)
 	}
 }
 
