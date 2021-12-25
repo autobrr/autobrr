@@ -188,6 +188,7 @@ export interface Release {
 export interface ReleaseFindResponse {
     data: Release[];
     next_cursor: number;
+    count: number;
 }
 
 export interface ReleaseStats {

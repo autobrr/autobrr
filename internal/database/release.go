@@ -76,9 +76,12 @@ func (repo *ReleaseRepo) UpdatePushStatusRejected(ctx context.Context, id int64,
 	return nil
 }
 
-func (repo *ReleaseRepo) Find(ctx context.Context, params domain.QueryParams) ([]domain.Release, int64, error) {
+func (repo *ReleaseRepo) Find(ctx context.Context, params domain.QueryParams) ([]domain.Release, int64, int64, error) {
 
-	queryBuilder := sq.Select("id", "filter_status", "push_status", "rejections", "indexer", "filter", "protocol", "title", "torrent_name", "size", "timestamp").From("release").OrderBy("timestamp DESC")
+	queryBuilder := sq.
+		Select("id", "filter_status", "push_status", "rejections", "indexer", "filter", "protocol", "title", "torrent_name", "size", "timestamp", "COUNT() OVER() AS total_count").
+		From("release").
+		OrderBy("timestamp DESC")
 
 	if params.Limit > 0 {
 		queryBuilder = queryBuilder.Limit(params.Limit)
@@ -86,8 +89,11 @@ func (repo *ReleaseRepo) Find(ctx context.Context, params domain.QueryParams) ([
 		queryBuilder = queryBuilder.Limit(20)
 	}
 
+	if params.Offset > 0 {
+		queryBuilder = queryBuilder.Offset(params.Offset)
+	}
+
 	if params.Cursor > 0 {
-		//queryBuilder = queryBuilder.Where(sq.Gt{"id": params.Cursor})
 		queryBuilder = queryBuilder.Where(sq.Lt{"id": params.Cursor})
 	}
 
@@ -108,16 +114,17 @@ func (repo *ReleaseRepo) Find(ctx context.Context, params domain.QueryParams) ([
 	rows, err := repo.db.QueryContext(ctx, query, args...)
 	if err != nil {
 		log.Error().Stack().Err(err).Msg("error fetching releases")
-		//return
-		return res, 0, nil
+		return res, 0, 0, nil
 	}
 
 	defer rows.Close()
 
 	if err := rows.Err(); err != nil {
 		log.Error().Stack().Err(err)
-		return res, 0, err
+		return res, 0, 0, err
 	}
+
+	var countItems int64 = 0
 
 	for rows.Next() {
 		var rls domain.Release
@@ -125,9 +132,9 @@ func (repo *ReleaseRepo) Find(ctx context.Context, params domain.QueryParams) ([
 		var indexer, filter sql.NullString
 		var timestamp string
 
-		if err := rows.Scan(&rls.ID, &rls.FilterStatus, &rls.PushStatus, pq.Array(&rls.Rejections), &indexer, &filter, &rls.Protocol, &rls.Title, &rls.TorrentName, &rls.Size, &timestamp); err != nil {
+		if err := rows.Scan(&rls.ID, &rls.FilterStatus, &rls.PushStatus, pq.Array(&rls.Rejections), &indexer, &filter, &rls.Protocol, &rls.Title, &rls.TorrentName, &rls.Size, &timestamp, &countItems); err != nil {
 			log.Error().Stack().Err(err).Msg("release.find: error scanning data to struct")
-			return res, 0, err
+			return res, 0, 0, err
 		}
 
 		rls.Indexer = indexer.String
@@ -146,7 +153,7 @@ func (repo *ReleaseRepo) Find(ctx context.Context, params domain.QueryParams) ([
 		//nextCursor, _ = strconv.ParseInt(lastID, 10, 64)
 	}
 
-	return res, nextCursor, nil
+	return res, nextCursor, countItems, nil
 }
 
 func (repo *ReleaseRepo) Stats(ctx context.Context) (*domain.ReleaseStats, error) {

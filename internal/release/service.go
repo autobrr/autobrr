@@ -11,7 +11,7 @@ import (
 )
 
 type Service interface {
-	Find(ctx context.Context, query domain.QueryParams) (res []domain.Release, nextCursor int64, err error)
+	Find(ctx context.Context, query domain.QueryParams) (res []domain.Release, nextCursor int64, count int64, err error)
 	Stats(ctx context.Context) (*domain.ReleaseStats, error)
 	Store(ctx context.Context, release *domain.Release) error
 	UpdatePushStatus(ctx context.Context, id int64, status domain.ReleasePushStatus) error
@@ -31,16 +31,12 @@ func NewService(repo domain.ReleaseRepo, actionService action.Service) Service {
 	}
 }
 
-func (s *service) Find(ctx context.Context, query domain.QueryParams) (res []domain.Release, nextCursor int64, err error) {
-	//releases, err := s.repo.Find(ctx, query)
-	res, nextCursor, err = s.repo.Find(ctx, query)
+func (s *service) Find(ctx context.Context, query domain.QueryParams) (res []domain.Release, nextCursor int64, count int64, err error) {
+	res, nextCursor, count, err = s.repo.Find(ctx, query)
 	if err != nil {
-		//return nil, err
 		return
 	}
 	return
-
-	//return releases, nil
 }
 
 func (s *service) Stats(ctx context.Context) (*domain.ReleaseStats, error) {
