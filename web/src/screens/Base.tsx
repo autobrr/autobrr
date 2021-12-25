@@ -6,6 +6,7 @@ import Settings from "./Settings";
 import { Dashboard } from "./Dashboard";
 import { FilterDetails, Filters } from "./filters";
 import Logs from './Logs';
+import { Releases } from "./Releases";
 import logo from '../logo.png';
 
 function classNames(...classes: string[]) {
@@ -13,7 +14,7 @@ function classNames(...classes: string[]) {
 }
 
 export default function Base() {
-    const nav = [{ name: 'Dashboard', path: "/" }, { name: 'Filters', path: "/filters" }, { name: "Settings", path: "/settings" }, { name: "Logs", path: "/logs" }]
+    const nav = [{ name: 'Dashboard', path: "/" }, { name: 'Filters', path: "/filters" }, { name: 'Releases', path: "/releases" }, { name: "Settings", path: "/settings" }, { name: "Logs", path: "/logs" }]
 
     return (
         <div className="">
@@ -210,6 +211,10 @@ export default function Base() {
 
                 <Route path="/settings">
                     <Settings />
+                </Route>
+
+                <Route path="/releases">
+                    <Releases />
                 </Route>
 
                 <Route exact={true} path="/filters">
