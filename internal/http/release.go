@@ -10,7 +10,7 @@ import (
 )
 
 type releaseService interface {
-	Find(ctx context.Context, query domain.QueryParams) (res []domain.Release, nextCursor int64, err error)
+	Find(ctx context.Context, query domain.QueryParams) (res []domain.Release, nextCursor int64, count int64, err error)
 	Stats(ctx context.Context) (*domain.ReleaseStats, error)
 }
 
@@ -45,6 +45,15 @@ func (h releaseHandler) findReleases(w http.ResponseWriter, r *http.Request) {
 		limit = 20
 	}
 
+	offsetP := r.URL.Query().Get("offset")
+	offset, err := strconv.Atoi(offsetP)
+	if err != nil && offsetP != "" {
+		h.encoder.StatusResponse(r.Context(), w, map[string]interface{}{
+			"code":    "BAD_REQUEST_PARAMS",
+			"message": "offset parameter is invalid",
+		}, http.StatusBadRequest)
+	}
+
 	cursorP := r.URL.Query().Get("cursor")
 	cursor, err := strconv.Atoi(cursorP)
 	if err != nil && cursorP != "" {
@@ -56,12 +65,13 @@ func (h releaseHandler) findReleases(w http.ResponseWriter, r *http.Request) {
 
 	query := domain.QueryParams{
 		Limit:  uint64(limit),
+		Offset: uint64(offset),
 		Cursor: uint64(cursor),
 		Sort:   nil,
 		//Filter: "",
 	}
 
-	releases, nextCursor, err := h.service.Find(r.Context(), query)
+	releases, nextCursor, count, err := h.service.Find(r.Context(), query)
 	if err != nil {
 		h.encoder.StatusNotFound(r.Context(), w)
 		return
@@ -70,9 +80,11 @@ func (h releaseHandler) findReleases(w http.ResponseWriter, r *http.Request) {
 	ret := struct {
 		Data       []domain.Release `json:"data"`
 		NextCursor int64            `json:"next_cursor"`
+		Count      int64            `json:"count"`
 	}{
 		Data:       releases,
 		NextCursor: nextCursor,
+		Count:      count,
 	}
 
 	h.encoder.StatusResponse(r.Context(), w, ret, http.StatusOK)

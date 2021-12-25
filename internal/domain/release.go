@@ -18,7 +18,7 @@ import (
 
 type ReleaseRepo interface {
 	Store(ctx context.Context, release *Release) (*Release, error)
-	Find(ctx context.Context, params QueryParams) (res []Release, nextCursor int64, err error)
+	Find(ctx context.Context, params QueryParams) (res []Release, nextCursor int64, count int64, err error)
 	Stats(ctx context.Context) (*ReleaseStats, error)
 	UpdatePushStatus(ctx context.Context, id int64, status ReleasePushStatus) error
 	UpdatePushStatusRejected(ctx context.Context, id int64, rejections string) error
@@ -913,6 +913,7 @@ const (
 
 type QueryParams struct {
 	Limit  uint64
+	Offset uint64
 	Cursor uint64
 	Sort   map[string]string
 	Filter map[string]string
