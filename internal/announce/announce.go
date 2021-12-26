@@ -105,14 +105,14 @@ func (a *announceProcessor) processQueue(queue chan string) {
 		newRelease, err := domain.NewRelease(a.indexer.Identifier, "")
 		if err != nil {
 			log.Error().Err(err).Msg("could not create new release")
-			break
+			continue
 		}
 
 		// on lines matched
 		err = a.onLinesMatched(a.indexer, tmpVars, newRelease)
 		if err != nil {
 			log.Debug().Msgf("error match line: %v", "")
-			break
+			continue
 		}
 
 		// send to filter service to take care of the rest
@@ -121,13 +121,13 @@ func (a *announceProcessor) processQueue(queue chan string) {
 		filterOK, foundFilter, err := a.filterSvc.FindAndCheckFilters(newRelease)
 		if err != nil {
 			log.Error().Err(err).Msg("could not find filter")
-			break
+			continue
 		}
 
 		// no foundFilter found, lets return
 		if !filterOK || foundFilter == nil {
 			log.Trace().Msg("no matching filter found")
-			break
+			continue
 
 			// TODO check in config for "Save all releases"
 			// Save as rejected
@@ -149,7 +149,7 @@ func (a *announceProcessor) processQueue(queue chan string) {
 		err = a.releaseSvc.Store(context.Background(), newRelease)
 		if err != nil {
 			log.Error().Err(err).Msgf("error writing release to database: %+v", newRelease)
-			break
+			continue
 		}
 
 		log.Info().Msgf("Matched '%v' (%v) for %v", newRelease.TorrentName, newRelease.Filter.Name, newRelease.Indexer)
