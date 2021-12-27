@@ -40,6 +40,7 @@ type Release struct {
 	TorrentName                 string                `json:"torrent_name"` // full release name
 	Size                        uint64                `json:"size"`
 	Raw                         string                `json:"raw"`   // Raw release
+	Clean                       string                `json:"clean"` // cleaned release name
 	Title                       string                `json:"title"` // Parsed title
 	Category                    string                `json:"category"`
 	Season                      int                   `json:"season"`
@@ -118,6 +119,8 @@ func (r *Release) Parse() error {
 	err = r.extractProper()
 	err = r.extractRepack()
 	err = r.extractWebsite()
+
+	r.Clean = cleanReleaseName(r.TorrentName)
 
 	if err != nil {
 		log.Trace().Msgf("could not parse release: %v", r.TorrentName)
@@ -354,8 +357,8 @@ func (r *Release) CheckFilter(filter Filter) bool {
 		return false
 	}
 
-	// check against title when parsed correctly
-	if filter.Shows != "" && !checkFilterStrings(r.TorrentName, filter.Shows) {
+	// check against TorrentName and Clean which is a cleaned name without (. _ -)
+	if filter.Shows != "" && !checkMultipleFilterStrings(filter.Shows, r.TorrentName, r.Clean) {
 		r.addRejection("shows not matching")
 		return false
 	}
@@ -639,6 +642,35 @@ func checkFilterStrings(name string, filterList string) bool {
 	return false
 }
 
+// checkMultipleFilterStrings check against multiple vars of unknown length
+func checkMultipleFilterStrings(filterList string, vars ...string) bool {
+	filterSplit := strings.Split(filterList, ",")
+
+	for _, name := range vars {
+		name = strings.ToLower(name)
+
+		for _, s := range filterSplit {
+			s = strings.ToLower(s)
+			s = strings.Trim(s, " ")
+			// check if line contains * or ?, if so try wildcard match, otherwise try substring match
+			a := strings.ContainsAny(s, "?|*")
+			if a {
+				match := wildcard.Match(s, name)
+				if match {
+					return true
+				}
+			} else {
+				b := strings.Contains(name, s)
+				if b {
+					return true
+				}
+			}
+		}
+	}
+
+	return false
+}
+
 // checkFilterIntStrings "1,2,3-20"
 func checkFilterIntStrings(value int, filterList string) bool {
 	filters := strings.Split(filterList, ",")
@@ -872,6 +904,37 @@ func findLastInt(input string, pattern string) (int, error) {
 	}
 
 	return 0, nil
+}
+
+//func Splitter(s string, splits string) []string {
+//	m := make(map[rune]int)
+//	for _, r := range splits {
+//		m[r] = 1
+//	}
+//
+//	splitter := func(r rune) bool {
+//		return m[r] == 1
+//	}
+//
+//	return strings.FieldsFunc(s, splitter)
+//}
+//
+//func canonicalizeString(s string) []string {
+//	//a := strings.FieldsFunc(s, split)
+//	a := Splitter(s, " .")
+//
+//	return a
+//}
+
+func cleanReleaseName(input string) string {
+	// Make a Regex to say we only want letters and numbers
+	reg, err := regexp.Compile(`[\x00-\x1F\x2D\x2E\x5F\x7F]`)
+	if err != nil {
+		return ""
+	}
+	processedString := reg.ReplaceAllString(input, " ")
+
+	return processedString
 }
 
 type ReleaseStats struct {

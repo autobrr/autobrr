@@ -1,9 +1,10 @@
 package domain
 
 import (
-	"github.com/stretchr/testify/assert"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestRelease_Parse(t *testing.T) {
@@ -169,9 +170,59 @@ func TestRelease_CheckFilter(t *testing.T) {
 			want: true,
 		},
 		{
+			name: "movie_parse_shows_1",
+			fields: &Release{
+				TorrentName: "That.Movie.2020.2160p.BluRay.DD5.1.x264-GROUP1",
+				Category:    "Movies",
+				Freeleech:   true,
+				Size:        uint64(30000000001),
+			},
+			args: args{
+				filter: Filter{
+					Enabled:            true,
+					MatchCategories:    "Movies",
+					Freeleech:          true,
+					MinSize:            "10 GB",
+					MaxSize:            "40GB",
+					Resolutions:        []string{"2160p"},
+					Sources:            []string{"BluRay"},
+					Codecs:             []string{"x264"},
+					Years:              "2020",
+					MatchReleaseGroups: "GROUP1",
+					Shows:              "That Movie",
+				},
+			},
+			want: true,
+		},
+		{
 			name: "movie_parse_multiple_shows",
 			fields: &Release{
 				TorrentName: "That Movie 2020 2160p BluRay DD5.1 x264-GROUP1",
+				Category:    "Movies",
+				Freeleech:   true,
+				Size:        uint64(30000000001),
+			},
+			args: args{
+				filter: Filter{
+					Enabled:            true,
+					MatchCategories:    "Movies",
+					Freeleech:          true,
+					MinSize:            "10 GB",
+					MaxSize:            "40GB",
+					Resolutions:        []string{"2160p"},
+					Sources:            []string{"BluRay"},
+					Codecs:             []string{"x264"},
+					Years:              "2020",
+					MatchReleaseGroups: "GROUP1",
+					Shows:              "That Movie, good story, bad movie",
+				},
+			},
+			want: true,
+		},
+		{
+			name: "movie_parse_multiple_shows_1",
+			fields: &Release{
+				TorrentName: "That.Movie.2020.2160p.BluRay.DD5.1.x264-GROUP1",
 				Category:    "Movies",
 				Freeleech:   true,
 				Size:        uint64(30000000001),
@@ -346,6 +397,7 @@ func TestRelease_CheckFilter(t *testing.T) {
 					MatchCategories: "*tv*",
 					MatchUploaders:  "Uploader1,Uploader2",
 					ExceptUploaders: "Anonymous",
+					Shows:           "Good show",
 				},
 			},
 			want: true,
