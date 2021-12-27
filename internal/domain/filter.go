@@ -17,6 +17,7 @@ type FilterRepo interface {
 	ListFilters() ([]Filter, error)
 	Store(filter Filter) (*Filter, error)
 	Update(ctx context.Context, filter Filter) (*Filter, error)
+	ToggleEnabled(ctx context.Context, filterID int, enabled bool) error
 	Delete(ctx context.Context, filterID int) error
 	StoreIndexerConnection(ctx context.Context, filterID int, indexerID int) error
 	StoreIndexerConnections(ctx context.Context, filterID int, indexers []Indexer) error
