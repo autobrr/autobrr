@@ -1,6 +1,6 @@
 import { Fragment, useRef } from "react";
 import { Dialog, Transition, Switch as SwitchBasic } from "@headlessui/react";
-import { ChevronDownIcon, ChevronRightIcon, ExclamationIcon, } from '@heroicons/react/solid'
+import { ChevronDownIcon, ChevronRightIcon, } from '@heroicons/react/solid'
 import { EmptyListState } from "../../components/emptystates";
 
 import {
@@ -126,7 +126,7 @@ export default function FilterDetails() {
         },
     )
 
-    const { data: indexers } = useQuery<Indexer[], Error>('indexerList', APIClient.indexers.getOptions,
+    const { data: indexers } = useQuery<Indexer[], Error>(["filter", "indexer_list"], APIClient.indexers.getOptions,
         {
             refetchOnWindowFocus: false
         }
@@ -142,10 +142,8 @@ export default function FilterDetails() {
     })
 
     const deleteMutation = useMutation((id: number) => APIClient.filters.delete(id), {
-        onSuccess: (filter) => {
-            // invalidate filters
-            queryClient.invalidateQueries("filter");
-            toast.custom((t) => <Toast type="success" body={`${filter.name} was deleted`} t={t} />)
+        onSuccess: () => {
+            toast.custom((t) => <Toast type="success" body={`${data?.name} was deleted`} t={t} />)
 
             // redirect
             history.push("/filters")
@@ -539,7 +537,7 @@ interface FilterActionsProps {
 }
 
 function FilterActions({ filter, values }: FilterActionsProps) {
-    const { data } = useQuery<DownloadClient[], Error>('downloadClients', APIClient.download_clients.getAll,
+    const { data } = useQuery<DownloadClient[], Error>(['filter', 'download_clients'], APIClient.download_clients.getAll,
         {
             refetchOnWindowFocus: false
         }

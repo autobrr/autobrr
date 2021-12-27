@@ -1,6 +1,7 @@
 package database
 
 import (
+	"context"
 	"database/sql"
 	"strings"
 	"time"
@@ -316,12 +317,12 @@ func (r *FilterRepo) Store(filter domain.Filter) (*domain.Filter, error) {
 	return &filter, nil
 }
 
-func (r *FilterRepo) Update(filter domain.Filter) (*domain.Filter, error) {
+func (r *FilterRepo) Update(ctx context.Context, filter domain.Filter) (*domain.Filter, error) {
 
 	//var res sql.Result
 
 	var err error
-	_, err = r.db.Exec(`
+	_, err = r.db.ExecContext(ctx, `
 			UPDATE filter SET 
                     name = ?,
                     enabled = ?,
@@ -389,9 +390,45 @@ func (r *FilterRepo) Update(filter domain.Filter) (*domain.Filter, error) {
 	return &filter, nil
 }
 
-func (r *FilterRepo) StoreIndexerConnection(filterID int, indexerID int) error {
+func (r *FilterRepo) StoreIndexerConnections(ctx context.Context, filterID int, indexers []domain.Indexer) error {
+
+	tx, err := r.db.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+
+	defer tx.Rollback()
+
+	deleteQuery := `DELETE FROM filter_indexer WHERE filter_id = ?`
+	_, err = tx.ExecContext(ctx, deleteQuery, filterID)
+	if err != nil {
+		log.Error().Stack().Err(err).Msgf("error deleting indexers for filter: %v", filterID)
+		return err
+	}
+
+	for _, indexer := range indexers {
+		query := `INSERT INTO filter_indexer (filter_id, indexer_id) VALUES ($1, $2)`
+		_, err := tx.ExecContext(ctx, query, filterID, indexer.ID)
+		if err != nil {
+			log.Error().Stack().Err(err).Msg("error executing query")
+			return err
+		}
+
+		log.Debug().Msgf("filter.indexers: store '%v' on filter: %v", indexer.Name, filterID)
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		log.Error().Stack().Err(err).Msgf("error deleting indexers for filter: %v", filterID)
+		return err
+	}
+
+	return nil
+}
+
+func (r *FilterRepo) StoreIndexerConnection(ctx context.Context, filterID int, indexerID int) error {
 	query := `INSERT INTO filter_indexer (filter_id, indexer_id) VALUES ($1, $2)`
-	_, err := r.db.Exec(query, filterID, indexerID)
+	_, err := r.db.ExecContext(ctx, query, filterID, indexerID)
 	if err != nil {
 		log.Error().Stack().Err(err).Msg("error executing query")
 		return err
@@ -400,10 +437,10 @@ func (r *FilterRepo) StoreIndexerConnection(filterID int, indexerID int) error {
 	return nil
 }
 
-func (r *FilterRepo) DeleteIndexerConnections(filterID int) error {
+func (r *FilterRepo) DeleteIndexerConnections(ctx context.Context, filterID int) error {
 
 	query := `DELETE FROM filter_indexer WHERE filter_id = ?`
-	_, err := r.db.Exec(query, filterID)
+	_, err := r.db.ExecContext(ctx, query, filterID)
 	if err != nil {
 		log.Error().Stack().Err(err).Msg("error executing query")
 		return err
@@ -412,17 +449,15 @@ func (r *FilterRepo) DeleteIndexerConnections(filterID int) error {
 	return nil
 }
 
-func (r *FilterRepo) Delete(filterID int) error {
+func (r *FilterRepo) Delete(ctx context.Context, filterID int) error {
 
-	res, err := r.db.Exec(`DELETE FROM filter WHERE id = ?`, filterID)
+	_, err := r.db.ExecContext(ctx, `DELETE FROM filter WHERE id = ?`, filterID)
 	if err != nil {
 		log.Error().Stack().Err(err).Msg("error executing query")
 		return err
 	}
 
-	rows, _ := res.RowsAffected()
-
-	log.Info().Msgf("rows affected %v", rows)
+	log.Info().Msgf("filter.delete: successfully deleted: %v", filterID)
 
 	return nil
 }
