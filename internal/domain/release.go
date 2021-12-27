@@ -560,7 +560,7 @@ func (r *Release) MapVars(varMap map[string]string) error {
 	}
 
 	if tags, err := getStringMapValue(varMap, "tags"); err == nil {
-		tagArr := strings.Split(tags, ",")
+		tagArr := splitAndTrimString(tags, ",")
 		r.Tags = tagArr
 	}
 
@@ -933,6 +933,15 @@ func findLastInt(input string, pattern string) (int, error) {
 	}
 
 	return 0, nil
+}
+
+func splitAndTrimString(str string, separator string) []string {
+	arr := strings.Split(str, separator)
+	for i := range arr {
+		arr[i] = strings.TrimSpace(arr[i])
+	}
+
+	return arr
 }
 
 //func Splitter(s string, splits string) []string {
