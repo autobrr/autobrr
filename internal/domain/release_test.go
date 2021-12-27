@@ -2,7 +2,6 @@ package domain
 
 import (
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -11,59 +10,49 @@ func TestRelease_Parse(t *testing.T) {
 	tests := []struct {
 		name    string
 		fields  Release
+		want    Release
 		wantErr bool
 	}{
-		{name: "parse_1", fields: Release{
-			ID:               0,
-			Rejections:       nil,
-			Indexer:          "",
-			FilterName:       "",
-			Protocol:         "",
-			Implementation:   "",
-			Timestamp:        time.Time{},
-			TorrentID:        "",
-			GroupID:          "",
-			TorrentName:      "Servant S01 2160p ATVP WEB-DL DDP 5.1 Atmos DV HEVC-FLUX",
-			Raw:              "",
-			Title:            "",
-			Category:         "",
-			Season:           0,
-			Episode:          0,
-			Year:             0,
-			Resolution:       "",
-			Source:           "",
-			Codec:            "",
-			Container:        "",
-			HDR:              "",
-			Audio:            "",
-			Group:            "",
-			Region:           "",
-			Edition:          "",
-			Proper:           false,
-			Repack:           false,
-			Website:          "",
-			Language:         "",
-			Unrated:          false,
-			Hybrid:           false,
-			Size:             0,
-			ThreeD:           false,
-			Artists:          nil,
-			Type:             "",
-			Format:           "",
-			Bitrate:          "",
-			LogScore:         0,
-			HasLog:           false,
-			HasCue:           false,
-			IsScene:          false,
-			Origin:           "",
-			Tags:             nil,
-			Freeleech:        false,
-			FreeleechPercent: 0,
-			Uploader:         "",
-			PreTime:          "",
-			TorrentURL:       "",
-			Filter:           nil,
-		}, wantErr: false},
+		{
+			name: "parse_1",
+			fields: Release{
+				TorrentName: "Servant S01 2160p ATVP WEB-DL DDP 5.1 Atmos DV HEVC-FLUX",
+			},
+			want: Release{
+				TorrentName: "Servant S01 2160p ATVP WEB-DL DDP 5.1 Atmos DV HEVC-FLUX",
+				Clean:       "Servant S01 2160p ATVP WEB DL DDP 5 1 Atmos DV HEVC FLUX",
+				Season:      1,
+				Episode:     0,
+				Resolution:  "2160p",
+				Source:      "WEB-DL",
+				Codec:       "HEVC",
+				HDR:         "DV",
+				Audio:       "DDP 5.1 Atmos",
+				Group:       "FLUX",
+				Website:     "ATVP",
+			},
+			wantErr: false,
+		},
+		{
+			name: "parse_2",
+			fields: Release{
+				TorrentName: "Servant.S01.2160p.ATVP.WEB-DL.DDP.5.1.Atmos.DV.HEVC-FLUX",
+			},
+			want: Release{
+				TorrentName: "Servant.S01.2160p.ATVP.WEB-DL.DDP.5.1.Atmos.DV.HEVC-FLUX",
+				Clean:       "Servant S01 2160p ATVP WEB DL DDP 5 1 Atmos DV HEVC FLUX",
+				Season:      1,
+				Episode:     0,
+				Resolution:  "2160p",
+				Source:      "WEB-DL",
+				Codec:       "HEVC",
+				HDR:         "DV",
+				Audio:       "DDP.5.1", // need to fix audio parsing
+				Group:       "FLUX",
+				Website:     "ATVP",
+			},
+			wantErr: false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -71,6 +60,8 @@ func TestRelease_Parse(t *testing.T) {
 			if err := r.Parse(); (err != nil) != tt.wantErr {
 				t.Errorf("Parse() error = %v, wantErr %v", err, tt.wantErr)
 			}
+
+			assert.Equal(t, tt.want, r)
 		})
 	}
 }
