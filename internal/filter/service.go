@@ -1,6 +1,9 @@
 package filter
 
 import (
+	"context"
+	"errors"
+
 	"github.com/rs/zerolog/log"
 
 	"github.com/autobrr/autobrr/internal/domain"
@@ -13,8 +16,8 @@ type Service interface {
 	FindAndCheckFilters(release *domain.Release) (bool, *domain.Filter, error)
 	ListFilters() ([]domain.Filter, error)
 	Store(filter domain.Filter) (*domain.Filter, error)
-	Update(filter domain.Filter) (*domain.Filter, error)
-	Delete(filterID int) error
+	Update(ctx context.Context, filter domain.Filter) (*domain.Filter, error)
+	Delete(ctx context.Context, filterID int) error
 }
 
 type service struct {
@@ -102,49 +105,56 @@ func (s *service) Store(filter domain.Filter) (*domain.Filter, error) {
 	return f, nil
 }
 
-func (s *service) Update(filter domain.Filter) (*domain.Filter, error) {
+func (s *service) Update(ctx context.Context, filter domain.Filter) (*domain.Filter, error) {
 	// validate data
+	if filter.Name == "" {
+		return nil, errors.New("validation: name can't be empty")
+	}
 
-	// store
-	f, err := s.repo.Update(filter)
+	// update
+	f, err := s.repo.Update(ctx, filter)
 	if err != nil {
 		log.Error().Err(err).Msgf("could not update filter: %v", filter.Name)
 		return nil, err
 	}
 
 	// take care of connected indexers
-	if err = s.repo.DeleteIndexerConnections(f.ID); err != nil {
-		log.Error().Err(err).Msgf("could not delete filter indexer connections: %v", filter.Name)
+	if err = s.repo.StoreIndexerConnections(ctx, f.ID, filter.Indexers); err != nil {
+		log.Error().Err(err).Msgf("could not store filter indexer connections: %v", filter.Name)
 		return nil, err
 	}
 
-	for _, i := range filter.Indexers {
-		if err = s.repo.StoreIndexerConnection(f.ID, int(i.ID)); err != nil {
-			log.Error().Err(err).Msgf("could not store filter indexer connections: %v", filter.Name)
-			return nil, err
-		}
+	// take care of filter actions
+	actions, err := s.actionRepo.StoreFilterActions(ctx, filter.Actions, int64(filter.ID))
+	if err != nil {
+		log.Error().Err(err).Msgf("could not store filter actions: %v", filter.Name)
+		return nil, err
 	}
 
-	// store actions
-	if filter.Actions != nil {
-		for _, action := range filter.Actions {
-			if _, err := s.actionRepo.Store(action); err != nil {
-				log.Error().Err(err).Msgf("could not store filter actions: %v", filter.Name)
-				return nil, err
-			}
-		}
-	}
+	f.Actions = actions
 
 	return f, nil
 }
 
-func (s *service) Delete(filterID int) error {
+func (s *service) Delete(ctx context.Context, filterID int) error {
 	if filterID == 0 {
 		return nil
 	}
 
-	// delete
-	if err := s.repo.Delete(filterID); err != nil {
+	// take care of filter actions
+	if err := s.actionRepo.DeleteByFilterID(ctx, filterID); err != nil {
+		log.Error().Err(err).Msg("could not delete filter actions")
+		return err
+	}
+
+	// take care of filter indexers
+	if err := s.repo.DeleteIndexerConnections(ctx, filterID); err != nil {
+		log.Error().Err(err).Msg("could not delete filter indexers")
+		return err
+	}
+
+	// delete filter
+	if err := s.repo.Delete(ctx, filterID); err != nil {
 		log.Error().Err(err).Msgf("could not delete filter: %v", filterID)
 		return err
 	}
