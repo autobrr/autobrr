@@ -393,6 +393,86 @@ func TestRelease_CheckFilter(t *testing.T) {
 			},
 			want: true,
 		},
+		{
+			name: "match_tags",
+			fields: &Release{
+				TorrentName: "Good show S02 2160p ATVP WEB-DL DDP 5.1 Atmos DV HEVC-GROUP2",
+				Category:    "TV",
+				Uploader:    "Uploader1",
+				Tags:        []string{"tv"},
+			},
+			args: args{
+				filter: Filter{
+					Enabled:         true,
+					MatchCategories: "*tv*",
+					MatchUploaders:  "Uploader1,Uploader2",
+					ExceptUploaders: "Anonymous",
+					Shows:           "Good show",
+					Tags:            "tv",
+				},
+			},
+			want: true,
+		},
+		{
+			name: "match_tags_bad",
+			fields: &Release{
+				TorrentName: "Good show S02 2160p ATVP WEB-DL DDP 5.1 Atmos DV HEVC-GROUP2",
+				Category:    "TV",
+				Uploader:    "Uploader1",
+				Tags:        []string{"foreign"},
+			},
+			args: args{
+				filter: Filter{
+					Enabled:         true,
+					MatchCategories: "*tv*",
+					MatchUploaders:  "Uploader1,Uploader2",
+					ExceptUploaders: "Anonymous",
+					Shows:           "Good show",
+					Tags:            "tv",
+				},
+			},
+			want: false,
+		},
+		{
+			name: "match_except_tags",
+			fields: &Release{
+				TorrentName: "Good show S02 2160p ATVP WEB-DL DDP 5.1 Atmos DV HEVC-GROUP2",
+				Category:    "TV",
+				Uploader:    "Uploader1",
+				Tags:        []string{"foreign"},
+			},
+			args: args{
+				filter: Filter{
+					Enabled:         true,
+					MatchCategories: "*tv*",
+					MatchUploaders:  "Uploader1,Uploader2",
+					ExceptUploaders: "Anonymous",
+					Shows:           "Good show",
+					ExceptTags:      "tv",
+				},
+			},
+			want: true,
+		},
+		{
+			name: "match_except_tags_2",
+			fields: &Release{
+				TorrentName: "Good show S02 2160p ATVP WEB-DL DDP 5.1 Atmos DV HEVC-GROUP2",
+				Category:    "TV",
+				Uploader:    "Uploader1",
+				Tags:        []string{"foreign"},
+			},
+			args: args{
+				filter: Filter{
+					Enabled:         true,
+					MatchCategories: "*tv*",
+					MatchUploaders:  "Uploader1,Uploader2",
+					ExceptUploaders: "Anonymous",
+					Shows:           "Good show",
+					ExceptTags:      "foreign",
+				},
+			},
+			want: false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -402,6 +482,133 @@ func TestRelease_CheckFilter(t *testing.T) {
 			got := r.CheckFilter(tt.args.filter)
 
 			assert.Equal(t, tt.want, got)
+		})
+	}
+}
+
+func TestRelease_MapVars(t *testing.T) {
+	type args struct {
+		varMap map[string]string
+	}
+	tests := []struct {
+		name   string
+		fields *Release
+		want   *Release
+		args   args
+	}{
+		{
+			name:   "1",
+			fields: &Release{},
+			want:   &Release{TorrentName: "Good show S02 2160p ATVP WEB-DL DDP 5.1 Atmos DV HEVC-GROUP2"},
+			args: args{varMap: map[string]string{
+				"torrentName": "Good show S02 2160p ATVP WEB-DL DDP 5.1 Atmos DV HEVC-GROUP2",
+			}},
+		},
+		{
+			name:   "2",
+			fields: &Release{},
+			want: &Release{
+				TorrentName: "Good show S02 2160p ATVP WEB-DL DDP 5.1 Atmos DV HEVC-GROUP2",
+				Category:    "tv",
+				Freeleech:   true,
+				Uploader:    "Anon",
+				Size:        uint64(10000000000),
+			},
+			args: args{varMap: map[string]string{
+				"torrentName": "Good show S02 2160p ATVP WEB-DL DDP 5.1 Atmos DV HEVC-GROUP2",
+				"category":    "tv",
+				"freeleech":   "freeleech",
+				"uploader":    "Anon",
+				"torrentSize": "10GB",
+			}},
+		},
+		{
+			name:   "3",
+			fields: &Release{},
+			want: &Release{
+				TorrentName:      "Good show S02 2160p ATVP WEB-DL DDP 5.1 Atmos DV HEVC-GROUP2",
+				Category:         "tv",
+				FreeleechPercent: 100,
+				Uploader:         "Anon",
+				Size:             uint64(10000000000),
+			},
+			args: args{varMap: map[string]string{
+				"torrentName":      "Good show S02 2160p ATVP WEB-DL DDP 5.1 Atmos DV HEVC-GROUP2",
+				"category":         "tv",
+				"freeleechPercent": "100%",
+				"uploader":         "Anon",
+				"torrentSize":      "10GB",
+			}},
+		},
+		{
+			name:   "4",
+			fields: &Release{},
+			want: &Release{
+				TorrentName:      "Good show S02 2160p ATVP WEB-DL DDP 5.1 Atmos DV HEVC-GROUP2",
+				Category:         "tv",
+				FreeleechPercent: 100,
+				Uploader:         "Anon",
+				Size:             uint64(10000000000),
+				Tags:             []string{"foreign", "tv"},
+			},
+			args: args{varMap: map[string]string{
+				"torrentName":      "Good show S02 2160p ATVP WEB-DL DDP 5.1 Atmos DV HEVC-GROUP2",
+				"category":         "tv",
+				"freeleechPercent": "100%",
+				"uploader":         "Anon",
+				"torrentSize":      "10GB",
+				"tags":             "foreign,tv",
+			}},
+		},
+		{
+			name:   "5",
+			fields: &Release{},
+			want: &Release{
+				TorrentName:      "Good show S02 2160p ATVP WEB-DL DDP 5.1 Atmos DV HEVC-GROUP2",
+				Category:         "tv",
+				FreeleechPercent: 100,
+				Uploader:         "Anon",
+				Size:             uint64(10000000000),
+				Tags:             []string{"foreign", "tv"},
+			},
+			args: args{varMap: map[string]string{
+				"torrentName":      "Good show S02 2160p ATVP WEB-DL DDP 5.1 Atmos DV HEVC-GROUP2",
+				"category":         "tv",
+				"freeleechPercent": "100%",
+				"uploader":         "Anon",
+				"torrentSize":      "10GB",
+				"tags":             "foreign,tv",
+			}},
+		},
+		{
+			name:   "6",
+			fields: &Release{},
+			want: &Release{
+				TorrentName:      "Good show S02 2160p ATVP WEB-DL DDP 5.1 Atmos DV HEVC-GROUP2",
+				Category:         "tv",
+				Year:             2020,
+				FreeleechPercent: 100,
+				Uploader:         "Anon",
+				Size:             uint64(10000000000),
+				Tags:             []string{"foreign", "tv"},
+			},
+			args: args{varMap: map[string]string{
+				"torrentName":      "Good show S02 2160p ATVP WEB-DL DDP 5.1 Atmos DV HEVC-GROUP2",
+				"category":         "tv",
+				"year":             "2020",
+				"freeleechPercent": "100%",
+				"uploader":         "Anon",
+				"torrentSize":      "10GB",
+				"tags":             "foreign,tv",
+			}},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			r := tt.fields
+			_ = r.MapVars(tt.args.varMap)
+
+			assert.Equal(t, tt.want, r)
 		})
 	}
 }

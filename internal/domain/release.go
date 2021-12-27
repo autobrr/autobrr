@@ -375,12 +375,12 @@ func (r *Release) CheckFilter(filter Filter) bool {
 
 	// matchRelease
 	// TODO allow to match against regex
-	if filter.MatchReleases != "" && !checkFilterStrings(r.TorrentName, filter.MatchReleases) {
+	if filter.MatchReleases != "" && !checkMultipleFilterStrings(filter.MatchReleases, r.TorrentName, r.Clean) {
 		r.addRejection("match release not matching")
 		return false
 	}
 
-	if filter.ExceptReleases != "" && checkFilterStrings(r.TorrentName, filter.ExceptReleases) {
+	if filter.ExceptReleases != "" && !checkMultipleFilterStrings(filter.ExceptReleases, r.TorrentName, r.Clean) {
 		r.addRejection("except_releases: unwanted release")
 		return false
 	}
@@ -444,15 +444,15 @@ func (r *Release) CheckFilter(filter Filter) bool {
 		return false
 	}
 
-	//if filter.Tags != "" && !checkFilterStrings(r.Tags, filter.Tags) {
-	//  r.addRejection("tags not matching")
-	//	return false
-	//}
-	//
-	//if filter.ExceptTags != "" && checkFilterStrings(r.Tags, filter.ExceptTags) {
-	//  r.addRejection("unwanted tags")
-	//	return false
-	//}
+	if filter.Tags != "" && !checkFilterTags(r.Tags, filter.Tags) {
+		r.addRejection("tags not matching")
+		return false
+	}
+
+	if filter.ExceptTags != "" && checkFilterTags(r.Tags, filter.ExceptTags) {
+		r.addRejection("unwanted tags")
+		return false
+	}
 
 	return true
 }
@@ -507,21 +507,21 @@ func (r *Release) CheckSizeFilter(minSize string, maxSize string) bool {
 // MapVars better name
 func (r *Release) MapVars(varMap map[string]string) error {
 
-	if torrentName, err := getFirstStringMapValue(varMap, []string{"torrentName"}); err != nil {
+	if torrentName, err := getStringMapValue(varMap, "torrentName"); err != nil {
 		return errors.Wrap(err, "failed parsing required field")
 	} else {
 		r.TorrentName = html.UnescapeString(torrentName)
 	}
 
-	if category, err := getFirstStringMapValue(varMap, []string{"category"}); err == nil {
+	if category, err := getStringMapValue(varMap, "category"); err == nil {
 		r.Category = category
 	}
 
-	if freeleech, err := getFirstStringMapValue(varMap, []string{"freeleech"}); err == nil {
+	if freeleech, err := getStringMapValue(varMap, "freeleech"); err == nil {
 		r.Freeleech = strings.EqualFold(freeleech, "freeleech") || strings.EqualFold(freeleech, "yes")
 	}
 
-	if freeleechPercent, err := getFirstStringMapValue(varMap, []string{"freeleechPercent"}); err == nil {
+	if freeleechPercent, err := getStringMapValue(varMap, "freeleechPercent"); err == nil {
 		// remove % and trim spaces
 		freeleechPercent = strings.Replace(freeleechPercent, "%", "", -1)
 		freeleechPercent = strings.Trim(freeleechPercent, " ")
@@ -534,11 +534,11 @@ func (r *Release) MapVars(varMap map[string]string) error {
 		r.FreeleechPercent = freeleechPercentInt
 	}
 
-	if uploader, err := getFirstStringMapValue(varMap, []string{"uploader"}); err == nil {
+	if uploader, err := getStringMapValue(varMap, "uploader"); err == nil {
 		r.Uploader = uploader
 	}
 
-	if torrentSize, err := getFirstStringMapValue(varMap, []string{"torrentSize"}); err == nil {
+	if torrentSize, err := getStringMapValue(varMap, "torrentSize"); err == nil {
 		size, err := humanize.ParseBytes(torrentSize)
 		if err != nil {
 			// log could not parse into bytes
@@ -547,26 +547,27 @@ func (r *Release) MapVars(varMap map[string]string) error {
 		// TODO implement other size checks in filter
 	}
 
-	if scene, err := getFirstStringMapValue(varMap, []string{"scene"}); err == nil {
+	if scene, err := getStringMapValue(varMap, "scene"); err == nil {
 		r.IsScene = strings.EqualFold(scene, "true") || strings.EqualFold(scene, "yes")
 	}
 
-	//if year, err := getFirstStringMapValue(varMap, []string{"year"}); err == nil {
-	//	yearI, err := strconv.Atoi(year)
-	//	if err != nil {
-	//		//log.Debug().Msgf("bad year var: %v", year)
-	//	}
-	//	r.Year = yearI
-	//}
-
-	// TODO split this into two
-	if tags, err := getFirstStringMapValue(varMap, []string{"releaseTags", "tags"}); err == nil {
-		r.Tags = []string{tags}
+	if yearVal, err := getStringMapValue(varMap, "year"); err == nil {
+		year, err := strconv.Atoi(yearVal)
+		if err != nil {
+			//log.Debug().Msgf("bad year var: %v", year)
+		}
+		r.Year = year
 	}
 
-	// TODO parse releaseType
-	//if releaseType, err := getFirstStringMapValue(varMap, []string{"releaseType", "$releaseType"}); err == nil {
-	//	r.Type = releaseType
+	if tags, err := getStringMapValue(varMap, "tags"); err == nil {
+		tagArr := strings.Split(tags, ",")
+		r.Tags = tagArr
+	}
+
+	// TODO handle releaseTags properly. Most of them are redundant but some are useful
+	//if releaseTags, err := getStringMapValue(varMap, "releaseTags"); err == nil {
+	//	//tagArr := strings.Split(tags, ",")
+	//	//r.Tags = tagArr
 	//}
 
 	//if cue, err := getFirstStringMapValue(varMap, []string{"cue", "$cue"}); err == nil {
@@ -711,6 +712,34 @@ func checkFilterIntStrings(value int, filterList string) bool {
 
 		if int(filterInt) == value {
 			return true
+		}
+	}
+
+	return false
+}
+
+func checkFilterTags(tags []string, filter string) bool {
+	filterTags := strings.Split(filter, ",")
+
+	for _, tag := range tags {
+		tag = strings.ToLower(tag)
+
+		for _, filter := range filterTags {
+			filter = strings.ToLower(filter)
+			filter = strings.Trim(filter, " ")
+			// check if line contains * or ?, if so try wildcard match, otherwise try substring match
+			a := strings.ContainsAny(filter, "?|*")
+			if a {
+				match := wildcard.Match(filter, tag)
+				if match {
+					return true
+				}
+			} else {
+				b := strings.Contains(tag, filter)
+				if b {
+					return true
+				}
+			}
 		}
 	}
 
