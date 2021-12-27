@@ -390,6 +390,25 @@ func (r *FilterRepo) Update(ctx context.Context, filter domain.Filter) (*domain.
 	return &filter, nil
 }
 
+func (r *FilterRepo) ToggleEnabled(ctx context.Context, filterID int, enabled bool) error {
+
+	var err error
+	_, err = r.db.ExecContext(ctx, `
+			UPDATE filter SET 
+                    enabled = ?,
+				    updated_at = CURRENT_TIMESTAMP
+            WHERE id = ?`,
+		enabled,
+		filterID,
+	)
+	if err != nil {
+		log.Error().Stack().Err(err).Msg("error executing query")
+		return err
+	}
+
+	return nil
+}
+
 func (r *FilterRepo) StoreIndexerConnections(ctx context.Context, filterID int, indexers []domain.Indexer) error {
 
 	tx, err := r.db.BeginTx(ctx, nil)

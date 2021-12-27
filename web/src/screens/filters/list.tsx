@@ -7,10 +7,13 @@ import {
 } from "react-router-dom";
 import { Filter } from "../../domain/interfaces";
 import { useToggle } from "../../hooks/hooks";
-import { useQuery } from "react-query";
+import { useMutation, useQuery } from "react-query";
 import { classNames } from "../../utils";
 import { FilterAddForm } from "../../forms";
 import APIClient from "../../api/APIClient";
+import Toast from "../../components/notifications/Toast";
+import toast from "react-hot-toast";
+import { queryClient } from "../../App";
 
 export default function Filters() {
     const [createFilterIsOpen, toggleCreateFilter] = useToggle(false)
@@ -116,10 +119,18 @@ interface FilterListItemProps {
 function FilterListItem({ filter, idx }: FilterListItemProps) {
     const [enabled, setEnabled] = useState(filter.enabled)
 
+    const updateMutation = useMutation((status: boolean) => APIClient.filters.toggleEnable(filter.id, status), {
+        onSuccess: () => {
+            toast.custom((t) => <Toast type="success" body={`${filter.name} was ${enabled ? "disabled" : "enabled"} successfully`} t={t} />)
+
+            queryClient.invalidateQueries("filter");
+        }
+    })
+
     const toggleActive = (status: boolean) => {
-        console.log(status)
         setEnabled(status)
         // call api
+        updateMutation.mutate(status)
     }
 
     return (

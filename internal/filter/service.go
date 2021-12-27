@@ -17,6 +17,7 @@ type Service interface {
 	ListFilters() ([]domain.Filter, error)
 	Store(filter domain.Filter) (*domain.Filter, error)
 	Update(ctx context.Context, filter domain.Filter) (*domain.Filter, error)
+	ToggleEnabled(ctx context.Context, filterID int, enabled bool) error
 	Delete(ctx context.Context, filterID int) error
 }
 
@@ -134,6 +135,17 @@ func (s *service) Update(ctx context.Context, filter domain.Filter) (*domain.Fil
 	f.Actions = actions
 
 	return f, nil
+}
+
+func (s *service) ToggleEnabled(ctx context.Context, filterID int, enabled bool) error {
+	if err := s.repo.ToggleEnabled(ctx, filterID, enabled); err != nil {
+		log.Error().Err(err).Msg("could not update filter enabled")
+		return err
+	}
+
+	log.Debug().Msgf("filter.toggle_enabled: update filter '%v' to '%v'", filterID, enabled)
+
+	return nil
 }
 
 func (s *service) Delete(ctx context.Context, filterID int) error {
