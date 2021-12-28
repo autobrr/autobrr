@@ -560,7 +560,7 @@ func (r *Release) MapVars(varMap map[string]string) error {
 	}
 
 	if tags, err := getStringMapValue(varMap, "tags"); err == nil {
-		tagArr := strings.Split(strings.TrimSpace(tags), ",")
+		tagArr := strings.Split(strings.ReplaceAll(tags, " ", ""), ",")
 		r.Tags = tagArr
 	}
 
