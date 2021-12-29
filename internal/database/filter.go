@@ -142,6 +142,7 @@ func (r *FilterRepo) FindFiltersForSite(site string) ([]domain.Filter, error) {
 	return filters, nil
 }
 
+// FindByIndexerIdentifier find active filters only
 func (r *FilterRepo) FindByIndexerIdentifier(indexer string) ([]domain.Filter, error) {
 
 	rows, err := r.db.Query(`
@@ -179,7 +180,8 @@ func (r *FilterRepo) FindByIndexerIdentifier(indexer string) ([]domain.Filter, e
 		FROM filter f
 				 JOIN filter_indexer fi on f.id = fi.filter_id
 				 JOIN indexer i on i.id = fi.indexer_id
-		WHERE i.identifier = ?`, indexer)
+		WHERE i.identifier = ?
+		AND f.enabled = true`, indexer)
 	if err != nil {
 		log.Fatal().Err(err)
 	}

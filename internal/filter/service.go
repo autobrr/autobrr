@@ -182,6 +182,8 @@ func (s *service) FindAndCheckFilters(release *domain.Release) (bool, *domain.Fi
 		return false, nil, err
 	}
 
+	log.Trace().Msgf("filter-service.find_and_check_filters: found (%d) active filters to check for indexer '%v'", len(filters), release.Indexer)
+
 	// loop and check release to filter until match
 	for _, f := range filters {
 		log.Trace().Msgf("checking filter: %+v", f.Name)

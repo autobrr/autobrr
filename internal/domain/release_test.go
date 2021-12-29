@@ -135,6 +135,55 @@ func TestRelease_CheckFilter(t *testing.T) {
 			},
 			want: true,
 		},
+
+		{
+			name: "movie_parse_2",
+			fields: &Release{
+				TorrentName: "That Movie 2020 2160p Blu-Ray DD5.1 x264-GROUP1",
+				Category:    "Movies",
+				Freeleech:   true,
+				Size:        uint64(30000000001),
+			},
+			args: args{
+				filter: Filter{
+					Enabled:            true,
+					MatchCategories:    "Movies",
+					Freeleech:          true,
+					MinSize:            "10 GB",
+					MaxSize:            "40GB",
+					Resolutions:        []string{"2160p"},
+					Sources:            []string{"BluRay"},
+					Codecs:             []string{"x264"},
+					Years:              "2020",
+					MatchReleaseGroups: "GROUP1",
+				},
+			},
+			want: true,
+		},
+		{
+			name: "movie_parse_3",
+			fields: &Release{
+				TorrentName: "That Movie 2020 2160p WEBDL DD5.1 x264-GROUP1",
+				Category:    "Movies",
+				Freeleech:   true,
+				Size:        uint64(30000000001),
+			},
+			args: args{
+				filter: Filter{
+					Enabled:            true,
+					MatchCategories:    "Movies",
+					Freeleech:          true,
+					MinSize:            "10 GB",
+					MaxSize:            "40GB",
+					Resolutions:        []string{"2160p"},
+					Sources:            []string{"WEB-DL"},
+					Codecs:             []string{"x264"},
+					Years:              "2020",
+					MatchReleaseGroups: "GROUP1",
+				},
+			},
+			want: true,
+		},
 		{
 			name: "movie_parse_shows",
 			fields: &Release{

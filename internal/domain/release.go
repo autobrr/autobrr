@@ -415,7 +415,7 @@ func (r *Release) CheckFilter(filter Filter) bool {
 		return false
 	}
 
-	if len(filter.Sources) > 0 && !checkFilterSlice(r.Source, filter.Sources) {
+	if len(filter.Sources) > 0 && !checkFilterSource(r.Source, filter.Sources) {
 		r.addRejection("source not matching")
 		return false
 	}
@@ -711,6 +711,23 @@ func checkFilterIntStrings(value int, filterList string) bool {
 		}
 
 		if int(filterInt) == value {
+			return true
+		}
+	}
+
+	return false
+}
+
+func checkFilterSource(name string, filterList []string) bool {
+	// remove dash (-) in blu-ray web-dl and make lowercase
+	name = strings.ToLower(strings.ReplaceAll(name, "-", ""))
+
+	for _, filter := range filterList {
+		// remove dash (-) in blu-ray web-dl, trim spaces and make lowercase
+		filter = strings.ToLower(strings.Trim(strings.ReplaceAll(filter, "-", ""), " "))
+
+		b := strings.Contains(name, filter)
+		if b {
 			return true
 		}
 	}
