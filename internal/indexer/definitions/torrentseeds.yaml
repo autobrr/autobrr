@@ -11,13 +11,12 @@ protocol: torrent
 supports:
   - irc
   - rss
-source: custom
+source: UNIT3D
 settings:
-  - name: passkey
+  - name: rsskey
     type: secret
-    label: Passkey
-    help: "Go to General / Get RSS / Check a category and click create your passkey is after torrent_pass="
-
+    label: Rss key
+    help: "Click on your nick / Go to Security / Copy the RID (RSS Key) and paste it here."
 irc:
   network: Torrentseeds.org
   server: irc.torrentseeds.org
@@ -60,4 +59,4 @@ parse:
         - uploader
 
   match:
-    torrenturl: "{{ .baseUrl }}/download.php?torrent={{ .torrentId }}&torrent_pass={{ .passkey }}"
+    torrenturl: "{{ .baseUrl }}/torrent/download/{{ .torrentId }}.{{ .rsskey }}"
