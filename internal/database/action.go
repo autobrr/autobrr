@@ -1,6 +1,7 @@
 package database
 
 import (
+	"context"
 	"database/sql"
 
 	"github.com/autobrr/autobrr/internal/domain"
@@ -121,7 +122,19 @@ func (r *ActionRepo) Delete(actionID int) error {
 	return nil
 }
 
-func (r *ActionRepo) Store(action domain.Action) (*domain.Action, error) {
+func (r *ActionRepo) DeleteByFilterID(ctx context.Context, filterID int) error {
+	_, err := r.db.ExecContext(ctx, `DELETE FROM action WHERE filter_id = ?`, filterID)
+	if err != nil {
+		log.Error().Stack().Err(err).Msg("actions: error deleting by filterid")
+		return err
+	}
+
+	log.Debug().Msgf("actions: delete by filterid %v", filterID)
+
+	return nil
+}
+
+func (r *ActionRepo) Store(ctx context.Context, action domain.Action) (*domain.Action, error) {
 
 	execCmd := toNullString(action.ExecCmd)
 	execArgs := toNullString(action.ExecArgs)
@@ -138,13 +151,13 @@ func (r *ActionRepo) Store(action domain.Action) (*domain.Action, error) {
 
 	var err error
 	if action.ID != 0 {
-		log.Info().Msg("UPDATE existing record")
-		_, err = r.db.Exec(`UPDATE action SET name = ?, type = ?, enabled = ?, exec_cmd = ?, exec_args = ?, watch_folder = ? , category =? , tags = ?, label = ?, save_path = ?, paused = ?, ignore_rules = ?, limit_upload_speed = ?, limit_download_speed = ?, client_id = ? 
+		log.Debug().Msg("actions: update existing record")
+		_, err = r.db.ExecContext(ctx, `UPDATE action SET name = ?, type = ?, enabled = ?, exec_cmd = ?, exec_args = ?, watch_folder = ? , category =? , tags = ?, label = ?, save_path = ?, paused = ?, ignore_rules = ?, limit_upload_speed = ?, limit_download_speed = ?, client_id = ? 
 			 WHERE id = ?`, action.Name, action.Type, action.Enabled, execCmd, execArgs, watchFolder, category, tags, label, savePath, action.Paused, action.IgnoreRules, limitUL, limitDL, clientID, action.ID)
 	} else {
 		var res sql.Result
 
-		res, err = r.db.Exec(`INSERT INTO action(name, type, enabled, exec_cmd, exec_args, watch_folder, category, tags, label, save_path, paused, ignore_rules, limit_upload_speed, limit_download_speed, client_id, filter_id)
+		res, err = r.db.ExecContext(ctx, `INSERT INTO action(name, type, enabled, exec_cmd, exec_args, watch_folder, category, tags, label, save_path, paused, ignore_rules, limit_upload_speed, limit_download_speed, client_id, filter_id)
 			VALUES (?, ?, ?, ?, ?,? ,?, ?,?,?,?,?,?,?,?,?) ON CONFLICT DO NOTHING`, action.Name, action.Type, action.Enabled, execCmd, execArgs, watchFolder, category, tags, label, savePath, action.Paused, action.IgnoreRules, limitUL, limitDL, clientID, filterID)
 		if err != nil {
 			log.Error().Err(err)
@@ -152,11 +165,65 @@ func (r *ActionRepo) Store(action domain.Action) (*domain.Action, error) {
 		}
 
 		resId, _ := res.LastInsertId()
-		log.Info().Msgf("LAST INSERT ID %v", resId)
+		log.Debug().Msgf("actions: added new %v", resId)
 		action.ID = int(resId)
 	}
 
 	return &action, nil
+}
+
+func (r *ActionRepo) StoreFilterActions(ctx context.Context, actions []domain.Action, filterID int64) ([]domain.Action, error) {
+
+	tx, err := r.db.BeginTx(ctx, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	defer tx.Rollback()
+
+	_, err = tx.ExecContext(ctx, `DELETE FROM action WHERE filter_id = ?`, filterID)
+	if err != nil {
+		log.Error().Stack().Err(err).Msgf("error deleting actions for filter: %v", filterID)
+		return nil, err
+	}
+
+	for _, action := range actions {
+		execCmd := toNullString(action.ExecCmd)
+		execArgs := toNullString(action.ExecArgs)
+		watchFolder := toNullString(action.WatchFolder)
+		category := toNullString(action.Category)
+		tags := toNullString(action.Tags)
+		label := toNullString(action.Label)
+		savePath := toNullString(action.SavePath)
+
+		limitDL := toNullInt64(action.LimitDownloadSpeed)
+		limitUL := toNullInt64(action.LimitUploadSpeed)
+		clientID := toNullInt32(action.ClientID)
+
+		var err error
+		var res sql.Result
+
+		res, err = tx.ExecContext(ctx, `INSERT INTO action(name, type, enabled, exec_cmd, exec_args, watch_folder, category, tags, label, save_path, paused, ignore_rules, limit_upload_speed, limit_download_speed, client_id, filter_id)
+			VALUES (?, ?, ?, ?, ?,? ,?, ?,?,?,?,?,?,?,?,?) ON CONFLICT DO NOTHING`, action.Name, action.Type, action.Enabled, execCmd, execArgs, watchFolder, category, tags, label, savePath, action.Paused, action.IgnoreRules, limitUL, limitDL, clientID, filterID)
+		if err != nil {
+			log.Error().Stack().Err(err).Msg("actions: error executing query")
+			return nil, err
+		}
+
+		resId, _ := res.LastInsertId()
+		action.ID = int(resId)
+
+		log.Debug().Msgf("actions: store '%v' type: '%v' on filter: %v", action.Name, action.Type, filterID)
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		log.Error().Stack().Err(err).Msg("error updating actions")
+		return nil, err
+
+	}
+
+	return actions, nil
 }
 
 func (r *ActionRepo) ToggleEnabled(actionID int) error {
