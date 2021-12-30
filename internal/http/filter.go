@@ -1,6 +1,7 @@
 package http
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"strconv"
@@ -14,9 +15,9 @@ type filterService interface {
 	ListFilters() ([]domain.Filter, error)
 	FindByID(filterID int) (*domain.Filter, error)
 	Store(filter domain.Filter) (*domain.Filter, error)
-	Delete(filterID int) error
-	Update(filter domain.Filter) (*domain.Filter, error)
-	//StoreFilterAction(action domain.Action) error
+	Delete(ctx context.Context, filterID int) error
+	Update(ctx context.Context, filter domain.Filter) (*domain.Filter, error)
+	ToggleEnabled(ctx context.Context, filterID int, enabled bool) error
 }
 
 type filterHandler struct {
@@ -36,6 +37,7 @@ func (h filterHandler) Routes(r chi.Router) {
 	r.Get("/{filterID}", h.getByID)
 	r.Post("/", h.store)
 	r.Put("/{filterID}", h.update)
+	r.Put("/{filterID}/enabled", h.toggleEnabled)
 	r.Delete("/{filterID}", h.delete)
 }
 
@@ -114,13 +116,38 @@ func (h filterHandler) update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	filter, err := h.service.Update(data)
+	filter, err := h.service.Update(ctx, data)
 	if err != nil {
 		// encode error
 		return
 	}
 
 	h.encoder.StatusResponse(ctx, w, filter, http.StatusOK)
+}
+
+func (h filterHandler) toggleEnabled(w http.ResponseWriter, r *http.Request) {
+	var (
+		ctx      = r.Context()
+		filterID = chi.URLParam(r, "filterID")
+		data     struct {
+			Enabled bool `json:"enabled"`
+		}
+	)
+
+	id, _ := strconv.Atoi(filterID)
+
+	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
+		// encode error
+		return
+	}
+
+	err := h.service.ToggleEnabled(ctx, id, data.Enabled)
+	if err != nil {
+		// encode error
+		return
+	}
+
+	h.encoder.StatusResponse(ctx, w, nil, http.StatusNoContent)
 }
 
 func (h filterHandler) delete(w http.ResponseWriter, r *http.Request) {
@@ -131,7 +158,7 @@ func (h filterHandler) delete(w http.ResponseWriter, r *http.Request) {
 
 	id, _ := strconv.Atoi(filterID)
 
-	if err := h.service.Delete(id); err != nil {
+	if err := h.service.Delete(ctx, id); err != nil {
 		// return err
 	}
 

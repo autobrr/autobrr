@@ -1,6 +1,9 @@
 package domain
 
-import "time"
+import (
+	"context"
+	"time"
+)
 
 /*
 Works the same way as for autodl-irssi
@@ -13,10 +16,12 @@ type FilterRepo interface {
 	FindByIndexerIdentifier(indexer string) ([]Filter, error)
 	ListFilters() ([]Filter, error)
 	Store(filter Filter) (*Filter, error)
-	Update(filter Filter) (*Filter, error)
-	Delete(filterID int) error
-	StoreIndexerConnection(filterID int, indexerID int) error
-	DeleteIndexerConnections(filterID int) error
+	Update(ctx context.Context, filter Filter) (*Filter, error)
+	ToggleEnabled(ctx context.Context, filterID int, enabled bool) error
+	Delete(ctx context.Context, filterID int) error
+	StoreIndexerConnection(ctx context.Context, filterID int, indexerID int) error
+	StoreIndexerConnections(ctx context.Context, filterID int, indexers []Indexer) error
+	DeleteIndexerConnections(ctx context.Context, filterID int) error
 }
 
 type Filter struct {

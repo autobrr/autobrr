@@ -368,7 +368,6 @@ func (ir *IrcRepo) StoreNetworkChannels(ctx context.Context, networkID int64, ch
 	if err != nil {
 		log.Error().Stack().Err(err).Msgf("error deleting network: %v", networkID)
 		return err
-
 	}
 
 	return nil
