@@ -11,12 +11,12 @@ protocol: torrent
 supports:
   - irc
   - rss
-source: UNIT3D
+source: custom
 settings:
-  - name: rsskey
+  - name: passkey
     type: secret
-    label: Rss key
-    help: "Click on your nick / Go to Security / Copy the RID (RSS Key) and paste it here."
+    label: Passkey
+    help: "Go to General / Get RSS / Check a category and click create your passkey is after torrent_pass="
 
 irc:
   network: Torrentseeds.org
@@ -50,7 +50,7 @@ parse:
   lines:
     - test:
         - "New: This.Is.A.New.show.S00E00.720p.WEB.H264-Test .:. Category: TV/HD .:. Size: 364.82 MB .:. URL:  https://www.torrentseeds.org/details.php?id=000000 .:. Uploaded by: George."
-      pattern: 'New: (.*) \.:\. Category: (.*) \.:\. Size: (.*) \.:\. URL:  (https?\:\/\/[^\/]+).*\/(\d{6,9}) \.:\. Uploaded by: (.*)\.'
+      pattern: 'New: (.*) .:. Category: (.*) .:. Size: (.*) .:. URL:  (https?\:\/\/[^\/]+)\/.*id=(\d+) .:. Uploaded by: (.*).'
       vars:
         - torrentName
         - category
@@ -60,4 +60,4 @@ parse:
         - uploader
 
   match:
-    torrenturl: "{{ .baseUrl }}/torrent/download/{{ .torrentId }}.{{ .rsskey }}"
+    torrenturl: "{{ .baseUrl }}/download.php?torrent={{ .torrentId }}&torrent_pass={{ .passkey }}"
