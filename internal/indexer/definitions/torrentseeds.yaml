@@ -11,11 +11,11 @@ protocol: torrent
 supports:
   - irc
   - rss
-source: custom
+source: UNIT3D
 settings:
-  - name: passkey
+  - name: rsskey
     type: secret
-    label: Passkey
+    label: Rss key
     help: "Click on your nick / Go to Security / Copy the RID (RSS Key) and paste it here."
 
 irc:
@@ -60,4 +60,4 @@ parse:
         - uploader
 
   match:
-    torrenturl: "{{ .baseUrl }}/torrent/download/{{ .torrentId }}.{{ .passkey }}"
+    torrenturl: "{{ .baseUrl }}/torrent/download/{{ .torrentId }}.{{ .rsskey }}"
