@@ -53,6 +53,172 @@ func TestRelease_Parse(t *testing.T) {
 			},
 			wantErr: false,
 		},
+		{
+			name: "parse_3",
+			fields: Release{
+				TorrentName: "Servant.S01.2160p.ATVP.WEB-DL.DDP.5.1.Atmos.DV.HEVC-FLUX",
+				ReleaseTags: "MKV / 2160p / WEB-DL",
+			},
+			want: Release{
+				TorrentName: "Servant.S01.2160p.ATVP.WEB-DL.DDP.5.1.Atmos.DV.HEVC-FLUX",
+				Clean:       "Servant S01 2160p ATVP WEB DL DDP 5 1 Atmos DV HEVC FLUX",
+				ReleaseTags: "MKV / 2160p / WEB-DL",
+				Container:   "MKV",
+				Season:      1,
+				Episode:     0,
+				Resolution:  "2160p",
+				Source:      "WEB-DL",
+				Codec:       "HEVC",
+				HDR:         "DV",
+				Audio:       "DDP.5.1", // need to fix audio parsing
+				Group:       "FLUX",
+				Website:     "ATVP",
+			},
+			wantErr: false,
+		},
+		{
+			name: "parse_4",
+			fields: Release{
+				TorrentName: "Servant.S01.2160p.ATVP.WEB-DL.DDP.5.1.Atmos.DV.HEVC-FLUX",
+				ReleaseTags: "MKV | 2160p | WEB-DL",
+			},
+			want: Release{
+				TorrentName: "Servant.S01.2160p.ATVP.WEB-DL.DDP.5.1.Atmos.DV.HEVC-FLUX",
+				Clean:       "Servant S01 2160p ATVP WEB DL DDP 5 1 Atmos DV HEVC FLUX",
+				ReleaseTags: "MKV | 2160p | WEB-DL",
+				Container:   "MKV",
+				Season:      1,
+				Episode:     0,
+				Resolution:  "2160p",
+				Source:      "WEB-DL",
+				Codec:       "HEVC",
+				HDR:         "DV",
+				Audio:       "DDP.5.1", // need to fix audio parsing
+				Group:       "FLUX",
+				Website:     "ATVP",
+			},
+			wantErr: false,
+		},
+		{
+			name: "parse_5",
+			fields: Release{
+				TorrentName: "Servant.S01.2160p.ATVP.WEB-DL.DDP.5.1.Atmos.DV.HEVC-FLUX",
+				ReleaseTags: "MP4 | 2160p | WEB-DL",
+			},
+			want: Release{
+				TorrentName: "Servant.S01.2160p.ATVP.WEB-DL.DDP.5.1.Atmos.DV.HEVC-FLUX",
+				Clean:       "Servant S01 2160p ATVP WEB DL DDP 5 1 Atmos DV HEVC FLUX",
+				ReleaseTags: "MP4 | 2160p | WEB-DL",
+				Container:   "MP4",
+				Season:      1,
+				Episode:     0,
+				Resolution:  "2160p",
+				Source:      "WEB-DL",
+				Codec:       "HEVC",
+				HDR:         "DV",
+				Audio:       "DDP.5.1", // need to fix audio parsing
+				Group:       "FLUX",
+				Website:     "ATVP",
+			},
+			wantErr: false,
+		},
+		{
+			name: "parse_6",
+			fields: Release{
+				TorrentName: "Servant.S01.2160p.ATVP.WEB-DL.DDP.5.1.Atmos.DV.HEVC-FLUX",
+				ReleaseTags: "MP4 | 2160p | WEB-DL | Freeleech!",
+			},
+			want: Release{
+				TorrentName: "Servant.S01.2160p.ATVP.WEB-DL.DDP.5.1.Atmos.DV.HEVC-FLUX",
+				Clean:       "Servant S01 2160p ATVP WEB DL DDP 5 1 Atmos DV HEVC FLUX",
+				ReleaseTags: "MP4 | 2160p | WEB-DL | Freeleech!",
+				Container:   "MP4",
+				Season:      1,
+				Episode:     0,
+				Resolution:  "2160p",
+				Source:      "WEB-DL",
+				Codec:       "HEVC",
+				HDR:         "DV",
+				Audio:       "DDP.5.1", // need to fix audio parsing
+				Group:       "FLUX",
+				Website:     "ATVP",
+				Freeleech:   true,
+			},
+			wantErr: false,
+		},
+		{
+			name: "parse_music_1",
+			fields: Release{
+				TorrentName: "Artist - Albumname",
+				ReleaseTags: "FLAC / Lossless / Log / 100% / Cue / CD",
+			},
+			want: Release{
+				TorrentName: "Artist - Albumname",
+				Clean:       "Artist   Albumname",
+				ReleaseTags: "FLAC / Lossless / Log / 100% / Cue / CD",
+				Group:       "",
+				Audio:       "FLAC",
+				Source:      "CD",
+				HasCue:      true,
+				HasLog:      true,
+				LogScore:    100,
+			},
+			wantErr: false,
+		},
+		{
+			name: "parse_music_2",
+			fields: Release{
+				TorrentName: "Various Artists - Music '21",
+				Tags:        []string{"house, techno, tech.house, electro.house, future.house, bass.house, melodic.house"},
+				ReleaseTags: "MP3 / 320 / Cassette",
+			},
+			want: Release{
+				TorrentName: "Various Artists - Music '21",
+				Clean:       "Various Artists   Music '21",
+				Tags:        []string{"house, techno, tech.house, electro.house, future.house, bass.house, melodic.house"},
+				ReleaseTags: "MP3 / 320 / Cassette",
+				Group:       "",
+				Audio:       "MP3",
+				Source:      "Cassette",
+				Bitrate:     "320",
+			},
+			wantErr: false,
+		},
+		{
+			name: "parse_music_3",
+			fields: Release{
+				TorrentName: "The artist (ザ・フリーダムユニティ) - Long album name",
+				ReleaseTags: "MP3 / V0 (VBR) / CD",
+			},
+			want: Release{
+				TorrentName: "The artist (ザ・フリーダムユニティ) - Long album name",
+				Clean:       "The artist (ザ・フリーダムユニティ)   Long album name",
+				ReleaseTags: "MP3 / V0 (VBR) / CD",
+				Group:       "",
+				Audio:       "MP3",
+				Source:      "CD",
+			},
+			wantErr: false,
+		},
+		{
+			name: "parse_music_4",
+			fields: Release{
+				TorrentName: "Artist - Albumname",
+				ReleaseTags: "FLAC / Lossless / Log / 100% / Cue / CD",
+			},
+			want: Release{
+				TorrentName: "Artist - Albumname",
+				Clean:       "Artist   Albumname",
+				ReleaseTags: "FLAC / Lossless / Log / 100% / Cue / CD",
+				Group:       "",
+				Audio:       "FLAC",
+				Source:      "CD",
+				HasCue:      true,
+				HasLog:      true,
+				LogScore:    100,
+			},
+			wantErr: false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -522,6 +688,101 @@ func TestRelease_CheckFilter(t *testing.T) {
 			},
 			want: false,
 		},
+		{
+			name: "match_group_1",
+			fields: &Release{
+				TorrentName: "Good show S02 2160p ATVP WEB-DL DDP 5.1 Atmos DV HEVC-GROUP",
+				Category:    "TV",
+				Uploader:    "Uploader1",
+			},
+			args: args{
+				filter: Filter{
+					Enabled:            true,
+					MatchCategories:    "*tv*",
+					MatchUploaders:     "Uploader1,Uploader2",
+					ExceptUploaders:    "Anonymous",
+					Shows:              "Good show",
+					MatchReleaseGroups: "GROUP",
+				},
+			},
+			want: true,
+		},
+		{
+			name: "match_group_potential_partial_1",
+			fields: &Release{
+				TorrentName: "Good show shift S02 2160p ATVP WEB-DL DDP 5.1 Atmos DV HEVC-ift",
+				Category:    "TV",
+				Uploader:    "Uploader1",
+			},
+			args: args{
+				filter: Filter{
+					Enabled:            true,
+					MatchCategories:    "*tv*",
+					MatchUploaders:     "Uploader1,Uploader2",
+					ExceptUploaders:    "Anonymous",
+					Shows:              "Good show shift",
+					MatchReleaseGroups: "ift",
+				},
+			},
+			want: true,
+		},
+		{
+			name: "match_group_potential_partial_2",
+			fields: &Release{
+				TorrentName: "Good show shift S02 2160p ATVP WEB-DL DDP 5.1 Atmos DV HEVC-GROUP",
+				Category:    "TV",
+				Uploader:    "Uploader1",
+			},
+			args: args{
+				filter: Filter{
+					Enabled:            true,
+					MatchCategories:    "*tv*",
+					MatchUploaders:     "Uploader1,Uploader2",
+					ExceptUploaders:    "Anonymous",
+					Shows:              "Good show shift",
+					MatchReleaseGroups: "ift",
+				},
+			},
+			want: false,
+		},
+		{
+			name: "match_group_potential_partial_3",
+			fields: &Release{
+				TorrentName: "Good show shift S02 2160p ATVP WEB-DL DDP 5.1 Atmos DV HEVC-de[42]",
+				Category:    "TV",
+				Uploader:    "Uploader1",
+			},
+			args: args{
+				filter: Filter{
+					Enabled:            true,
+					MatchCategories:    "*tv*",
+					MatchUploaders:     "Uploader1,Uploader2",
+					ExceptUploaders:    "Anonymous",
+					Shows:              "Good show shift",
+					MatchReleaseGroups: "de[42]",
+				},
+			},
+			want: true,
+		},
+		{
+			name: "match_group_potential_partial_3",
+			fields: &Release{
+				TorrentName: "[AnimeGroup] Good show shift S02 2160p ATVP WEB-DL DDP 5.1 Atmos DV HEVC",
+				Category:    "TV",
+				Uploader:    "Uploader1",
+			},
+			args: args{
+				filter: Filter{
+					Enabled:            true,
+					MatchCategories:    "*tv*",
+					MatchUploaders:     "Uploader1,Uploader2",
+					ExceptUploaders:    "Anonymous",
+					Shows:              "Good show shift",
+					MatchReleaseGroups: "[AnimeGroup]",
+				},
+			},
+			want: true,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -680,6 +941,48 @@ func TestRelease_MapVars(t *testing.T) {
 			_ = r.MapVars(tt.args.varMap)
 
 			assert.Equal(t, tt.want, r)
+		})
+	}
+}
+
+func TestSplitAny(t *testing.T) {
+	type args struct {
+		s    string
+		seps string
+	}
+	tests := []struct {
+		name string
+		args args
+		want []string
+	}{
+		{
+			name: "test_1",
+			args: args{
+				s:    "Tag1 / Tag2 / Tag3",
+				seps: "/ ",
+			},
+			want: []string{"Tag1", "Tag2", "Tag3"},
+		},
+		{
+			name: "test_2",
+			args: args{
+				s:    "Tag1 | Tag2 | Tag3",
+				seps: "| ",
+			},
+			want: []string{"Tag1", "Tag2", "Tag3"},
+		},
+		{
+			name: "test_3",
+			args: args{
+				s:    "Tag1 | Tag2 / Tag3",
+				seps: "| /",
+			},
+			want: []string{"Tag1", "Tag2", "Tag3"},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equalf(t, tt.want, SplitAny(tt.args.s, tt.args.seps), "SplitAny(%v, %v)", tt.args.s, tt.args.seps)
 		})
 	}
 }

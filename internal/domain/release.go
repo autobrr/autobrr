@@ -72,6 +72,7 @@ type Release struct {
 	IsScene                     bool                  `json:"is_scene"`
 	Origin                      string                `json:"origin"` // P2P, Internal
 	Tags                        []string              `json:"tags"`
+	ReleaseTags                 string                `json:"-"`
 	Freeleech                   bool                  `json:"freeleech"`
 	FreeleechPercent            int                   `json:"freeleech_percent"`
 	Uploader                    string                `json:"uploader"`
@@ -119,6 +120,7 @@ func (r *Release) Parse() error {
 	err = r.extractProper()
 	err = r.extractRepack()
 	err = r.extractWebsite()
+	err = r.extractReleaseTags()
 
 	r.Clean = cleanReleaseName(r.TorrentName)
 
@@ -180,6 +182,19 @@ func (r *Release) extractSource() error {
 	return nil
 }
 
+func (r *Release) extractSourceFromTags(tag string) error {
+	if r.Source != "" {
+		return nil
+	}
+	v, err := findLast(tag, `(?i)\b(((?:PPV\.)?[HP]DTV|(?:HD)?CAM|B[DR]Rip|(?:HD-?)?TS|(?:PPV )?WEB-?DL(?: DVDRip)?|HDRip|DVDRip|DVDRIP|CamRip|WEB|W[EB]BRip|Blu-?Ray|DvDScr|telesync|CD|DVD|Vinyl|DAT|Cassette))\b`)
+	if err != nil {
+		return err
+	}
+	r.Source = v
+
+	return nil
+}
+
 func (r *Release) extractCodec() error {
 	v, err := findLast(r.TorrentName, `(?i)\b(HEVC|[hx]\.?26[45]|xvid|divx|AVC|MPEG-?2|AV1|VC-?1|VP9|WebP)\b`)
 	if err != nil {
@@ -192,6 +207,20 @@ func (r *Release) extractCodec() error {
 
 func (r *Release) extractContainer() error {
 	v, err := findLast(r.TorrentName, `(?i)\b(AVI|MPG|MKV|MP4|VOB|m2ts|ISO|IMG)\b`)
+	if err != nil {
+		return err
+	}
+	r.Container = v
+
+	return nil
+}
+
+func (r *Release) extractContainerFromTags(tag string) error {
+	if r.Container != "" {
+		return nil
+	}
+
+	v, err := findLast(tag, `(?i)\b(AVI|MPG|MKV|MP4|VOB|m2ts|ISO|IMG)\b`)
 	if err != nil {
 		return err
 	}
@@ -220,22 +249,37 @@ func (r *Release) extractAudio() error {
 	return nil
 }
 
-func (r *Release) extractGroup() error {
-	// try first for wierd anime group names [group] show name, or in brackets at the end
-	group := ""
+func (r *Release) extractAudioFromTags(tag string) error {
+	if r.Audio != "" {
+		return nil
+	}
 
-	g, err := findLast(r.TorrentName, `\[(.*?)\]`)
+	v, err := findLast(tag, `(?i)(MP3|Ogg Vorbis|FLAC[\. ][1-7][\. ][0-2]|FLAC|Opus|DD-EX|DDP[\. ]?[124567][\. ][012] Atmos|DDP[\. ]?[124567][\. ][012]|DDP|DD[1-7][\. ][0-2]|Dual[\- ]Audio|LiNE|PCM|Dolby TrueHD [0-9][\. ][0-4]|TrueHD [0-9][\. ][0-4] Atmos|TrueHD [0-9][\. ][0-4]|DTS X|DTS-HD MA [0-9][\. ][0-4]|DTS-HD MA|DTS-ES|DTS [1-7][\. ][0-2]|DTS|DD|DD[12][\. ]0|Dolby Atmos|TrueHD ATMOS|TrueHD|Atmos|Dolby Digital Plus|Dolby Digital Audio|Dolby Digital|AAC[.-]LC|AAC (?:\.?[1-7]\.[0-2])?|AAC|eac3|AC3(?:\.5\.1)?)`)
 	if err != nil {
 		return err
 	}
-	group = g
+	r.Audio = v
 
-	if group == "" {
-		g2, err := findLast(r.TorrentName, `(- ?([^-]+(?:-={[^-]+-?$)?))$`)
-		if err != nil {
-			return err
-		}
-		group = g2
+	return nil
+}
+
+//func (r *Release) extractCueFromTags(tag string) error {
+//	v, err := findLast(tag, `Cue`)
+//	if err != nil {
+//		return err
+//	}
+//	r.HasCue = v
+//
+//	return nil
+//}
+
+func (r *Release) extractGroup() error {
+	// try first for wierd anime group names [group] show name, or in brackets at the end
+
+	//g, err := findLast(r.Clean, `\[(.*?)\]`)
+	group, err := findLast(r.TorrentName, `\-([a-zA-Z0-9_\.]+)$`)
+	if err != nil {
+		return err
 	}
 
 	r.Group = group
@@ -324,6 +368,116 @@ func (r *Release) extractWebsite() error {
 	return nil
 }
 
+func (r *Release) extractFreeleechFromTags(tag string) error {
+	if r.Freeleech == true {
+		return nil
+	}
+
+	// Start with the basic most common ones
+	v, err := findLast(tag, `Freeleech!`)
+	if err != nil {
+		return err
+	}
+	if v != "" {
+		r.Freeleech = true
+		return nil
+	}
+
+	r.Freeleech = false
+
+	return nil
+}
+
+func (r *Release) extractLogScoreFromTags(tag string) error {
+	if r.LogScore > 0 {
+		return nil
+	}
+
+	// Start with the basic most common ones
+
+	rxp, err := regexp.Compile(`([\d\.]+)%`)
+	if err != nil {
+		return err
+		//return errors.Wrapf(err, "invalid regex: %s", value)
+	}
+
+	matches := rxp.FindStringSubmatch(tag)
+	if matches != nil {
+		// first value is the match, second value is the text
+		if len(matches) >= 1 {
+			last := matches[len(matches)-1]
+			score, err := strconv.ParseInt(last, 10, 32)
+			if err != nil {
+				return err
+			}
+
+			r.LogScore = int(score)
+			return nil
+		}
+	}
+
+	return nil
+}
+
+func (r *Release) extractBitrateFromTags(tag string) error {
+	if r.Bitrate != "" {
+		return nil
+	}
+
+	// Start with the basic most common ones
+
+	rxp, err := regexp.Compile(`^(?:vbr|aps|apx|v\d|\d{2,4}|\d+\.\d+|q\d+\.[\dx]+|Other)?(?:\s*kbps|\s*kbits?|\s*k)?(?:\s*\(?(?:vbr|cbr)\)?)?$`)
+	if err != nil {
+		return err
+		//return errors.Wrapf(err, "invalid regex: %s", value)
+	}
+
+	matches := rxp.FindStringSubmatch(tag)
+	if matches != nil {
+		// first value is the match, second value is the text
+		if len(matches) >= 1 {
+			last := matches[len(matches)-1]
+
+			r.Bitrate = last
+			return nil
+		}
+	}
+
+	return nil
+}
+
+func (r *Release) extractReleaseTags() error {
+	if r.ReleaseTags == "" {
+		return nil
+	}
+
+	tags := SplitAny(r.ReleaseTags, ",|/ ")
+
+	for _, t := range tags {
+		var err error
+		err = r.extractAudioFromTags(t)
+		err = r.extractContainerFromTags(t)
+		err = r.extractSourceFromTags(t)
+		err = r.extractFreeleechFromTags(t)
+		err = r.extractLogScoreFromTags(t)
+		err = r.extractBitrateFromTags(t)
+
+		if err != nil {
+			continue
+		}
+
+		switch t {
+		case "Cue":
+			r.HasCue = true
+		case "Log":
+			r.HasLog = true
+			// check percent
+		}
+	}
+
+	return nil
+}
+
 func (r *Release) addRejection(reason string) {
 	r.Rejections = append(r.Rejections, reason)
 }
@@ -385,12 +539,12 @@ func (r *Release) CheckFilter(filter Filter) bool {
 		return false
 	}
 
-	if filter.MatchReleaseGroups != "" && !checkFilterStrings(r.Group, filter.MatchReleaseGroups) {
+	if filter.MatchReleaseGroups != "" && !checkMultipleFilterGroups(filter.MatchReleaseGroups, r.Group, r.Clean) {
 		r.addRejection("release groups not matching")
 		return false
 	}
 
-	if filter.ExceptReleaseGroups != "" && checkFilterStrings(r.Group, filter.ExceptReleaseGroups) {
+	if filter.ExceptReleaseGroups != "" && checkMultipleFilterGroups(filter.ExceptReleaseGroups, r.Group, r.Clean) {
 		r.addRejection("unwanted release group")
 		return false
 	}
@@ -564,31 +718,10 @@ func (r *Release) MapVars(varMap map[string]string) error {
 		r.Tags = tagArr
 	}
 
-	// TODO handle releaseTags properly. Most of them are redundant but some are useful
-	//if releaseTags, err := getStringMapValue(varMap, "releaseTags"); err == nil {
-	//	//tagArr := strings.Split(tags, ",")
-	//	//r.Tags = tagArr
-	//}
-
-	//if cue, err := getFirstStringMapValue(varMap, []string{"cue", "$cue"}); err == nil {
-	//	r.Cue = strings.EqualFold(cue, "true")
-	//}
-
-	//if logVar, err := getFirstStringMapValue(varMap, []string{"log", "$log"}); err == nil {
-	//	r.Log = logVar
-	//}
-
-	//if media, err := getFirstStringMapValue(varMap, []string{"media", "$media"}); err == nil {
-	//	r.Media = media
-	//}
-
-	//if format, err := getFirstStringMapValue(varMap, []string{"format", "$format"}); err == nil {
-	//	r.Format = format
-	//}
-
-	//if bitRate, err := getFirstStringMapValue(varMap, []string{"bitrate", "$bitrate"}); err == nil {
-	//	r.Bitrate = bitRate
-	//}
+	// handle releaseTags. Most of them are redundant but some are useful
+	if releaseTags, err := getStringMapValue(varMap, "releaseTags"); err == nil {
+		r.ReleaseTags = releaseTags
+	}
 
 	return nil
 }
@@ -712,6 +845,36 @@ func checkFilterIntStrings(value int, filterList string) bool {
 
 		if int(filterInt) == value {
 			return true
+		}
+	}
+
+	return false
+}
+
+func checkMultipleFilterGroups(filterList string, vars ...string) bool {
+	filterSplit := strings.Split(filterList, ",")
+
+	for _, name := range vars {
+		name = strings.ToLower(name)
+
+		for _, s := range filterSplit {
+			s = strings.ToLower(strings.Trim(s, " "))
+			// check if line contains * or ?, if so try wildcard match, otherwise try substring match
+			a := strings.ContainsAny(s, "?|*")
+			if a {
+				match := wildcard.Match(s, name)
+				if match {
+					return true
+				}
+			} else {
+				split := SplitAny(name, " .-")
+				for _, c := range split {
+					if c == s {
+						return true
+					}
+				}
+				continue
+			}
 		}
 	}
 
@@ -950,6 +1113,13 @@ func findLastInt(input string, pattern string) (int, error) {
 	}
 
 	return 0, nil
+}
+
+func SplitAny(s string, seps string) []string {
+	splitter := func(r rune) bool {
+		return strings.ContainsRune(seps, r)
+	}
+	return strings.FieldsFunc(s, splitter)
 }
 
 //func Splitter(s string, splits string) []string {
