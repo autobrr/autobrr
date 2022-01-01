@@ -218,23 +218,22 @@ func (a *announceProcessor) onLinesMatched(def domain.IndexerDefinition, vars ma
 	var err error
 
 	err = release.MapVars(vars)
-
-	// FIXME is this even needed anymore?
-	// canonicalize name
-	//canonReleaseName := cleanReleaseName(release.TorrentName)
-	//log.Trace().Msgf("canonicalize release name: %v", canonReleaseName)
+	if err != nil {
+		log.Error().Stack().Err(err).Msg("announce: could not map vars for release")
+		return err
+	}
 
 	// parse fields
 	err = release.Parse()
 	if err != nil {
-		log.Error().Err(err).Msg("announce: could not parse release")
+		log.Error().Stack().Err(err).Msg("announce: could not parse release")
 		return err
 	}
 
 	// generate torrent url
 	torrentUrl, err := a.processTorrentUrl(def.Parse.Match.TorrentURL, vars, def.SettingsMap, def.Parse.Match.Encode)
 	if err != nil {
-		log.Error().Err(err).Msg("announce: could not process torrent url")
+		log.Error().Stack().Err(err).Msg("announce: could not process torrent url")
 		return err
 	}
 

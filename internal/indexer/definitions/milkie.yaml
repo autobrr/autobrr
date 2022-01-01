@@ -49,7 +49,7 @@ parse:
       vars:
         - category
         - torrentName
-        - tags
+        - releaseTags
         - baseUrl
         - torrentId
 
