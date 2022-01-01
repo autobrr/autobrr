@@ -534,7 +534,7 @@ func (r *Release) CheckFilter(filter Filter) bool {
 		return false
 	}
 
-	if filter.ExceptReleases != "" && !checkMultipleFilterStrings(filter.ExceptReleases, r.TorrentName, r.Clean) {
+	if filter.ExceptReleases != "" && checkMultipleFilterStrings(filter.ExceptReleases, r.TorrentName, r.Clean) {
 		r.addRejection("except_releases: unwanted release")
 		return false
 	}

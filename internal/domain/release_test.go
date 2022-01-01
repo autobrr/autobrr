@@ -783,6 +783,86 @@ func TestRelease_CheckFilter(t *testing.T) {
 			},
 			want: true,
 		},
+		{
+			name: "except_release_1",
+			fields: &Release{
+				TorrentName: "Good show shift S02 NORDiC 2160p ATVP WEB-DL DDP 5.1 Atmos DV HEVC-GROUP",
+				Category:    "TV",
+				Uploader:    "Uploader1",
+			},
+			args: args{
+				filter: Filter{
+					Enabled:            true,
+					MatchCategories:    "*tv*",
+					MatchUploaders:     "Uploader1,Uploader2",
+					ExceptUploaders:    "Anonymous",
+					Shows:              "Good show shift",
+					MatchReleaseGroups: "GROUP",
+					ExceptReleases:     "Good show shift",
+				},
+			},
+			want: false,
+		},
+		{
+			name: "except_release_2",
+			fields: &Release{
+				TorrentName: "Good show shift S02 NORDiC 2160p ATVP WEB-DL DDP 5.1 Atmos DV HEVC-GROUP",
+				Category:    "TV",
+				Uploader:    "Uploader1",
+			},
+			args: args{
+				filter: Filter{
+					Enabled:            true,
+					MatchCategories:    "*tv*",
+					MatchUploaders:     "Uploader1,Uploader2",
+					ExceptUploaders:    "Anonymous",
+					Shows:              "Good show shift",
+					MatchReleaseGroups: "GROUP",
+					ExceptReleases:     "NORDiC",
+				},
+			},
+			want: false,
+		},
+		{
+			name: "except_release_3",
+			fields: &Release{
+				TorrentName: "Good show shift S02 2160p ATVP WEB-DL DDP 5.1 Atmos DV HEVC-GROUP",
+				Category:    "TV",
+				Uploader:    "Uploader1",
+			},
+			args: args{
+				filter: Filter{
+					Enabled:            true,
+					MatchCategories:    "*tv*",
+					MatchUploaders:     "Uploader1,Uploader2",
+					ExceptUploaders:    "Anonymous",
+					Shows:              "Good show shift",
+					MatchReleaseGroups: "GROUP",
+					ExceptReleases:     "NORDiC",
+				},
+			},
+			want: true,
+		},
+		{
+			name: "except_release_4",
+			fields: &Release{
+				TorrentName: "Good show shift S02 2160p ATVP WEB-DL DDP 5.1 Atmos DV HEVC-GROUP",
+				Category:    "TV",
+				Uploader:    "Uploader1",
+			},
+			args: args{
+				filter: Filter{
+					Enabled:            true,
+					MatchCategories:    "*tv*",
+					MatchUploaders:     "Uploader1,Uploader2",
+					ExceptUploaders:    "Anonymous",
+					Shows:              "Good show shift",
+					MatchReleaseGroups: "GROUP",
+					ExceptReleases:     "NORDiC,*shift*",
+				},
+			},
+			want: false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
