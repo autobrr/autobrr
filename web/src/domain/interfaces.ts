@@ -91,7 +91,7 @@ export interface Filter {
     except_release_groups: string;
     match_categories: string;
     except_categories: string;
-    match_tags: string;
+    tags: string;
     except_tags: string;
     match_uploaders: string;
     except_uploaders: string;
