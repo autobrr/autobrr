@@ -39,7 +39,7 @@ irc:
       help: NickServ account. Make sure to group your user and bot. Eg. user_bot
     - name: nickserv.password
       type: secret
-      required: false
+      required: true
       label: NickServ Password
       help: NickServ password
 
