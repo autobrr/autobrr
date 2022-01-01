@@ -241,7 +241,7 @@ export default function FilterDetails() {
                                         except_release_groups: data.except_release_groups,
                                         match_categories: data.match_categories,
                                         except_categories: data.except_categories,
-                                        match_tags: data.match_tags,
+                                        tags: data.tags,
                                         except_tags: data.except_tags,
                                         match_uploaders: data.match_uploaders,
                                         except_uploaders: data.except_uploaders,
@@ -473,7 +473,7 @@ function Advanced() {
                         <TextField name="match_categories" label="Match categories" columns={6} placeholder="eg. *category*,category1" />
                         <TextField name="except_categories" label="Except categories" columns={6} placeholder="eg. *category*" />
 
-                        <TextField name="match_tags" label="Match tags" columns={6} placeholder="eg. tag1,tag2" />
+                        <TextField name="tags" label="Match tags" columns={6} placeholder="eg. tag1,tag2" />
                         <TextField name="except_tags" label="Except tags" columns={6} placeholder="eg. tag1,tag2" />
                     </div>
                 )}
