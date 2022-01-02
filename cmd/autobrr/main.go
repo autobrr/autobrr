@@ -31,7 +31,10 @@ import (
 )
 
 var (
-	cfg domain.Config
+	cfg     domain.Config
+	version = "dev"
+	commit  = ""
+	date    = ""
 )
 
 func main() {
@@ -53,6 +56,10 @@ func main() {
 
 	// setup logger
 	logger.Setup(cfg, serverEvents)
+
+	log.Info().Msg("Starting autobrr")
+	log.Info().Msgf("Version: %v", version)
+	log.Info().Msgf("Log-level: %v", cfg.LogLevel)
 
 	// if configPath is set then put database inside that path, otherwise create wherever it's run
 	var dataSource = database.DataSourceName(configPath, "autobrr.db")
@@ -100,7 +107,7 @@ func main() {
 	errorChannel := make(chan error)
 
 	go func() {
-		httpServer := http.NewServer(serverEvents, addr, cfg.BaseURL, actionService, authService, downloadClientService, filterService, indexerService, ircService, releaseService)
+		httpServer := http.NewServer(serverEvents, addr, cfg.BaseURL, version, commit, date, actionService, authService, downloadClientService, filterService, indexerService, ircService, releaseService)
 		errorChannel <- httpServer.Open()
 	}()
 
