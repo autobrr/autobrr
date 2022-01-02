@@ -22,8 +22,6 @@ builds:
         goarch: arm64
     main: ./cmd/autobrr/main.go
     binary: autobrr
-    ldflags:
-      - -s -w
   - id: autobrrctl
     env:
       - CGO_ENABLED=0
@@ -43,8 +41,6 @@ builds:
         goarch: arm64
     main: ./cmd/autobrrctl/main.go
     binary: autobrrctl
-    ldflags:
-      - -s -w
 
 archives:
   - id: autobrr

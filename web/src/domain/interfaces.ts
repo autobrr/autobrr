@@ -169,6 +169,9 @@ export interface Config {
     log_level: string;
     log_path: string;
     base_url: string;
+    version: string;
+    commit: string;
+    date: string;
 }
 
 export interface Release {

@@ -19,6 +19,10 @@ type Server struct {
 	address string
 	baseUrl string
 
+	version string
+	commit  string
+	date    string
+
 	actionService         actionService
 	authService           authService
 	downloadClientService downloadClientService
@@ -28,11 +32,14 @@ type Server struct {
 	releaseService        releaseService
 }
 
-func NewServer(sse *sse.Server, address string, baseUrl string, actionService actionService, authService authService, downloadClientSvc downloadClientService, filterSvc filterService, indexerSvc indexerService, ircSvc ircService, releaseSvc releaseService) Server {
+func NewServer(sse *sse.Server, address string, baseUrl string, version string, commit string, date string, actionService actionService, authService authService, downloadClientSvc downloadClientService, filterSvc filterService, indexerSvc indexerService, ircSvc ircService, releaseSvc releaseService) Server {
 	return Server{
 		sse:     sse,
 		address: address,
 		baseUrl: baseUrl,
+		version: version,
+		commit:  commit,
+		date:    date,
 
 		actionService:         actionService,
 		authService:           authService,
@@ -91,7 +98,7 @@ func (s Server) Handler() http.Handler {
 
 		r.Route("/api", func(r chi.Router) {
 			r.Route("/actions", newActionHandler(encoder, s.actionService).Routes)
-			r.Route("/config", newConfigHandler(encoder).Routes)
+			r.Route("/config", newConfigHandler(encoder, s).Routes)
 			r.Route("/download_clients", newDownloadClientHandler(encoder, s.downloadClientService).Routes)
 			r.Route("/filters", newFilterHandler(encoder, s.filterService).Routes)
 			r.Route("/irc", newIrcHandler(encoder, s.ircService).Routes)

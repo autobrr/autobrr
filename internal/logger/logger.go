@@ -50,7 +50,4 @@ func Setup(cfg domain.Config, sse *sse.Server) {
 
 	log.Logger = log.Hook(&ServerSentEventHook{sse: sse})
 	log.Logger = log.Output(writers)
-
-	log.Print("Starting autobrr")
-	log.Printf("Log-level: %v", cfg.LogLevel)
 }

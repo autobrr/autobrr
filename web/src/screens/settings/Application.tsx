@@ -80,6 +80,22 @@ function ApplicationSettings() {
             </div>
 
             <div className="pt-6 pb-6 divide-y divide-gray-200 dark:divide-gray-700">
+                <div className="px-4 py-5 sm:p-0">
+                    <dl className="sm:divide-y divide-gray-200 dark:divide-gray-700">
+                        <div className="py-4 sm:py-5 sm:grid sm:grid-cols-4 sm:gap-4 sm:px-6">
+                            <dt className="font-medium text-gray-500 dark:text-white">Version:</dt>
+                            <dd className="mt-1 font-semibold text-gray-900 dark:text-white sm:mt-0 sm:col-span-2">{data?.version}</dd>
+                        </div>
+                        <div className="py-4 sm:py-5 sm:grid sm:grid-cols-4 sm:gap-4 sm:px-6 dark:bg-gray-700">
+                            <dt className="font-medium text-gray-500 dark:text-white">Commit:</dt>
+                            <dd className="mt-1 font-semibold text-gray-900 dark:text-white sm:mt-0 sm:col-span-2">{data?.commit}</dd>
+                        </div>
+                        <div className="py-4 sm:py-5 sm:grid sm:grid-cols-4 sm:gap-4 sm:px-6">
+                            <dt className="font-medium text-gray-500 dark:text-white">Date:</dt>
+                            <dd className="mt-1 font-semibold text-gray-900 dark:text-white sm:mt-0 sm:col-span-2">{data?.date}</dd>
+                        </div>
+                    </dl>
+                </div>
                 <div className="px-4 sm:px-6">
                     <ul className="mt-2 divide-y divide-gray-200">
                         <Switch.Group as="li" className="py-4 flex items-center justify-between">
