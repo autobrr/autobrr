@@ -1,0 +1,22 @@
+{
+  "id": 1,
+  "result": {
+    "UserID": "0000000",
+    "Username": "username",
+    "Email": "email@example.com",
+    "Upload": "90000000000004",
+    "Download": "10000000000002",
+    "Lumens": "10000",
+    "Bonus": "1000000000",
+    "JoinDate": "1578088136",
+    "Title": "",
+    "Enabled": "1",
+    "Paranoia": "1",
+    "Invites": "0",
+    "Class": "Elite",
+    "ClassLevel": "301",
+    "HnR": "0",
+    "UploadsSnatched": "100",
+    "Snatches": "100"
+  }
+}

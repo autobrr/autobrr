@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 
+	"github.com/dustin/go-humanize"
 	"github.com/rs/zerolog/log"
 
 	"github.com/autobrr/autobrr/internal/domain"
@@ -25,12 +26,14 @@ type service struct {
 	repo       domain.FilterRepo
 	actionRepo domain.ActionRepo
 	indexerSvc indexer.Service
+	apiService indexer.APIService
 }
 
-func NewService(repo domain.FilterRepo, actionRepo domain.ActionRepo, indexerSvc indexer.Service) Service {
+func NewService(repo domain.FilterRepo, actionRepo domain.ActionRepo, apiService indexer.APIService, indexerSvc indexer.Service) Service {
 	return &service{
 		repo:       repo,
 		actionRepo: actionRepo,
+		apiService: apiService,
 		indexerSvc: indexerSvc,
 	}
 }
@@ -178,7 +181,7 @@ func (s *service) FindAndCheckFilters(release *domain.Release) (bool, *domain.Fi
 
 	filters, err := s.repo.FindByIndexerIdentifier(release.Indexer)
 	if err != nil {
-		log.Error().Err(err).Msgf("could not find filters for indexer: %v", release.Indexer)
+		log.Error().Err(err).Msgf("filter-service.find_and_check_filters: could not find filters for indexer: %v", release.Indexer)
 		return false, nil, err
 	}
 
@@ -186,7 +189,7 @@ func (s *service) FindAndCheckFilters(release *domain.Release) (bool, *domain.Fi
 
 	// loop and check release to filter until match
 	for _, f := range filters {
-		log.Trace().Msgf("checking filter: %+v", f.Name)
+		log.Trace().Msgf("filter-service.find_and_check_filters: checking filter: %+v", f.Name)
 
 		matchedFilter := release.CheckFilter(f)
 		// if matched, attach actions and return the f
@@ -195,16 +198,36 @@ func (s *service) FindAndCheckFilters(release *domain.Release) (bool, *domain.Fi
 			//release.FilterID = f.ID
 			//release.FilterName = f.Name
 
-			log.Debug().Msgf("found and matched filter: %+v", f.Name)
+			log.Debug().Msgf("filter-service.find_and_check_filters: found and matched filter: %+v", f.Name)
 
-			// TODO do additional size check against indexer api or torrent for size
+			// do additional size check against indexer api or torrent for size
 			if release.AdditionalSizeCheckRequired {
-				log.Debug().Msgf("additional size check required for: %+v", f.Name)
+				log.Debug().Msgf("filter-service.find_and_check_filters: additional size check required for: %+v", f.Name)
 				// check if indexer = btn,ptp,ggn,red
-				// fetch api for data
+				if release.Indexer == "ptp" || release.Indexer == "btn" {
+					// fetch api for data
+					t, err := s.apiService.GetTorrentByID(release.Indexer, release.TorrentID)
+					if err != nil || t == nil {
+						log.Error().Stack().Err(err).Msgf("filter-service.find_and_check_filters: could not get torrent: '%v' from: %v", release.TorrentID, release.Indexer)
+						continue
+					}
+					match, err := checkSizeFilter(f.MinSize, f.MaxSize, t.ReleaseSizeBytes())
+					if err != nil {
+						log.Error().Stack().Err(err).Msgf("filter-service.find_and_check_filters: could not get torrent: '%v' from: %v", release.TorrentID, release.Indexer)
+						continue
+					}
+
+					if !match {
+						continue
+					}
+
+					release.Size = t.ReleaseSizeBytes()
+				}
 				// else download torrent and add to tmpPath
 				// if size != response.size
 				// r.RecheckSizeFilter(f)
+
+				// TODO keep cache of torrents
 				//continue
 			}
 
@@ -221,4 +244,36 @@ func (s *service) FindAndCheckFilters(release *domain.Release) (bool, *domain.Fi
 
 	// if no match, return nil
 	return false, nil, nil
+}
+
+func checkSizeFilter(minSize string, maxSize string, releaseSize uint64) (bool, error) {
+	// handle both min and max
+	if minSize != "" {
+		// string to bytes
+		minSizeBytes, err := humanize.ParseBytes(minSize)
+		if err != nil {
+			// log could not parse into bytes
+		}
+
+		if releaseSize <= minSizeBytes {
+			//r.addRejection("size: smaller than min size")
+			return false, nil
+		}
+
+	}
+
+	if maxSize != "" {
+		// string to bytes
+		maxSizeBytes, err := humanize.ParseBytes(maxSize)
+		if err != nil {
+			// log could not parse into bytes
+		}
+
+		if releaseSize >= maxSizeBytes {
+			//r.addRejection("size: larger than max size")
+			return false, nil
+		}
+	}
+
+	return true, nil
 }

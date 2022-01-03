@@ -612,9 +612,9 @@ func (r *Release) CheckFilter(filter Filter) bool {
 }
 
 // CheckSizeFilter additional size check
-// for indexers that doesn't announce size, like some cabals
+// for indexers that doesn't announce size, like some gazelle based
 // set flag r.AdditionalSizeCheckRequired if there's a size in the filter, otherwise go a head
-// implement API for ptp,btn,bhd,ggn to check for size if needed
+// implement API for ptp,btn,ggn to check for size if needed
 // for others pull down torrent and do check
 func (r *Release) CheckSizeFilter(minSize string, maxSize string) bool {
 
@@ -665,6 +665,10 @@ func (r *Release) MapVars(varMap map[string]string) error {
 		return errors.Wrap(err, "failed parsing required field")
 	} else {
 		r.TorrentName = html.UnescapeString(torrentName)
+	}
+
+	if torrentID, err := getStringMapValue(varMap, "torrentId"); err == nil {
+		r.TorrentID = torrentID
 	}
 
 	if category, err := getStringMapValue(varMap, "category"); err == nil {

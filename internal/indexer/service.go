@@ -26,7 +26,8 @@ type Service interface {
 }
 
 type service struct {
-	repo domain.IndexerRepo
+	repo       domain.IndexerRepo
+	apiService APIService
 
 	// contains all raw indexer definitions
 	indexerDefinitions map[string]domain.IndexerDefinition
@@ -37,9 +38,10 @@ type service struct {
 	lookupIRCServerDefinition map[string]map[string]domain.IndexerDefinition
 }
 
-func NewService(repo domain.IndexerRepo) Service {
+func NewService(repo domain.IndexerRepo, apiService APIService) Service {
 	return &service{
 		repo:                      repo,
+		apiService:                apiService,
 		indexerDefinitions:        make(map[string]domain.IndexerDefinition),
 		mapIndexerIRCToName:       make(map[string]string),
 		lookupIRCServerDefinition: make(map[string]map[string]domain.IndexerDefinition),
@@ -150,6 +152,7 @@ func (s *service) mapIndexer(indexer domain.Indexer) (*domain.IndexerDefinition,
 		Privacy:     in.Privacy,
 		Protocol:    in.Protocol,
 		URLS:        in.URLS,
+		Supports:    in.Supports,
 		Settings:    nil,
 		SettingsMap: make(map[string]string),
 		IRC:         in.IRC,
@@ -194,11 +197,18 @@ func (s *service) Start() error {
 		return err
 	}
 
-	for _, indexerDefinition := range indexerDefinitions {
-		s.mapIRCIndexerLookup(indexerDefinition.Identifier, *indexerDefinition)
+	for _, indexer := range indexerDefinitions {
+		s.mapIRCIndexerLookup(indexer.Identifier, *indexer)
 
 		// add to irc server lookup table
-		s.mapIRCServerDefinitionLookup(indexerDefinition.IRC.Server, *indexerDefinition)
+		s.mapIRCServerDefinitionLookup(indexer.IRC.Server, *indexer)
+
+		// check if it has api and add to api service
+		if indexer.HasApi() {
+			if err := s.apiService.AddClient(indexer.Identifier, indexer.SettingsMap); err != nil {
+				log.Error().Stack().Err(err).Msgf("indexer.start: could not init api client for: '%v'", indexer.Identifier)
+			}
+		}
 	}
 
 	return nil
