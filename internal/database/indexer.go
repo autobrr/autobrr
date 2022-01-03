@@ -57,7 +57,7 @@ func (r *IndexerRepo) Update(indexer domain.Indexer) (*domain.Indexer, error) {
 
 func (r *IndexerRepo) List() ([]domain.Indexer, error) {
 
-	rows, err := r.db.Query("SELECT id, enabled, name, identifier, settings FROM indexer")
+	rows, err := r.db.Query("SELECT id, enabled, name, identifier, settings FROM indexer ORDER BY name ASC")
 	if err != nil {
 		log.Fatal().Err(err)
 	}
