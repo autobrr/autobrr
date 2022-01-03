@@ -1,0 +1,64 @@
+---
+#id: tby
+name: TorrentBytes
+identifier: torrentbytes
+description: TorrentsBytes (TBy) is a private torrent tracker for GENERAL
+language: en-us
+urls:
+  - https://torrentbytes.net/
+privacy: private
+protocol: torrent
+supports:
+  - irc
+  - rss
+source: custom
+settings:
+  - name: cookie
+    type: secret
+    label: Cookie
+    help: "Check how to get cookies in your browser and find the uid and pass cookies. Example: uid=1234; pass=asdf12347asdf13"
+
+irc:
+  network: TorrentBytes
+  server: irc.torrentbytes.ninja
+  port: 7000
+  tls: true
+  channels:
+    - "#torrentbytes-announce"
+  announcers:
+    - ByteMe
+  settings:
+    - name: nickserv.account
+      type: text
+      required: true
+      label: NickServ Account
+      help: NickServ account. Make sure to group your user and bot. Eg. user-bot
+    - name: nickserv.password
+      type: secret
+      required: true
+      label: NickServ Password
+      help: NickServ password
+    - name: invite_command
+      type: secret
+      default: "erica letmeinannounce USERNAME IRCKEY"
+      required: true
+      label: Invite command
+      help: Invite auth with Erica, please replace USERNAME and IRCKEY.
+
+parse:
+  type: single
+  lines:
+    - test:
+        - "[TB-RLS] .:. [ The.New.Game-GROUP ] .:. [ https://www.torrentbytes.net/download.php?id=0000000 ] .:. [ https://www.torrentbytes.net/details.php?id=0000000 ] .:. [ Uploaded 2 minutes, 12 seconds after pre ]"
+      pattern: '^\[TB-RLS\] \.:\. \[ (.*) \] \.:\. \[ https?\:\/\/([^\/]+\/).*id=(\d+).*https?\:\/\/(?:.*\[ Uploaded (.*)\])?'
+      vars:
+        - torrentName
+        - baseUrl
+        - torrentId
+        - preTime
+
+  match:
+    torrenturl: "{{ .baseUrl }}download.php?id={{ .torrentId }}&SSL=1&name={{ .torrentName }}.torrent"
+    cookie: true
+    encode:
+      - torrentName
