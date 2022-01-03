@@ -111,7 +111,7 @@ func (ir *IrcRepo) FindActiveNetworks(ctx context.Context) ([]domain.IrcNetwork,
 
 func (ir *IrcRepo) ListNetworks(ctx context.Context) ([]domain.IrcNetwork, error) {
 
-	rows, err := ir.db.QueryContext(ctx, "SELECT id, enabled, name, server, port, tls, pass, invite_command, nickserv_account, nickserv_password FROM irc_network")
+	rows, err := ir.db.QueryContext(ctx, "SELECT id, enabled, name, server, port, tls, pass, invite_command, nickserv_account, nickserv_password FROM irc_network ORDER BY name ASC")
 	if err != nil {
 		log.Fatal().Err(err)
 	}
