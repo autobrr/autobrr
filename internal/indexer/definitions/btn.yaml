@@ -59,12 +59,6 @@ irc:
       required: true
       label: NickServ Password
       help: NickServ password
-    - name: invite_command
-      type: secret
-      default: "CableGuy IDENTIFY USERNAME IRCKey"
-      required: true
-      label: Invite command
-      help: Invite auth with CableGuy.
 
 parse:
   type: multi
