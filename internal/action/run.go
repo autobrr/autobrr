@@ -208,10 +208,10 @@ func (s *service) watchFolder(dir string, torrentFile string) {
 	defer original.Close()
 
 	_, tmpFileName := path.Split(torrentFile)
-	fullFileName := path.Join(dir, tmpFileName)
+	fullFileName := path.Join(dir, tmpFileName+".torrent")
 
 	// Create new file
-	newFile, err := os.Create(fullFileName + ".torrent")
+	newFile, err := os.Create(fullFileName)
 	if err != nil {
 		log.Error().Stack().Err(err).Msgf("could not create new temp file '%v'", fullFileName)
 		return

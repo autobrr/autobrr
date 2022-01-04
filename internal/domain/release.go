@@ -3,6 +3,7 @@ package domain
 import (
 	"bytes"
 	"context"
+	"crypto/tls"
 	"fmt"
 	"html"
 	"io"
@@ -541,18 +542,14 @@ func (r *Release) DownloadTorrentFile(opts map[string]string) (*DownloadTorrentF
 		return nil, nil
 	}
 
-	// Create tmp file
-	tmpFile, err := os.CreateTemp("", "autobrr-")
-	if err != nil {
-		log.Error().Stack().Err(err).Msg("error creating temp file")
-		return nil, err
-	}
-	defer tmpFile.Close()
+	customTransport := http.DefaultTransport.(*http.Transport).Clone()
+	customTransport.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+	client := &http.Client{Transport: customTransport}
 
 	// Get the data
-	resp, err := http.Get(r.TorrentURL)
+	resp, err := client.Get(r.TorrentURL)
 	if err != nil {
-		log.Error().Stack().Err(err).Msgf("error downloading file from %v", r.TorrentURL)
+		log.Error().Stack().Err(err).Msg("error downloading file")
 		return nil, err
 	}
 	defer resp.Body.Close()
@@ -564,6 +561,14 @@ func (r *Release) DownloadTorrentFile(opts map[string]string) (*DownloadTorrentF
 		return nil, err
 	}
 
+	// Create tmp file
+	tmpFile, err := os.CreateTemp("", "autobrr-")
+	if err != nil {
+		log.Error().Stack().Err(err).Msg("error creating temp file")
+		return nil, err
+	}
+	defer tmpFile.Close()
+
 	r.TorrentTmpFile = tmpFile.Name()
 
 	// Write the body to file
@@ -573,7 +578,7 @@ func (r *Release) DownloadTorrentFile(opts map[string]string) (*DownloadTorrentF
 		return nil, err
 	}
 
-	meta, err := metainfo.Load(resp.Body)
+	meta, err := metainfo.LoadFromFile(tmpFile.Name())
 	if err != nil {
 		log.Error().Stack().Err(err).Msgf("metainfo could not load file contents: %v", tmpFile.Name())
 		return nil, err
