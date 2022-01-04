@@ -5,10 +5,8 @@ import (
 	"os"
 	"path"
 
-	"github.com/anacrolix/torrent/metainfo"
 	"github.com/rs/zerolog/log"
 
-	"github.com/autobrr/autobrr/internal/client"
 	"github.com/autobrr/autobrr/internal/domain"
 )
 
@@ -32,25 +30,30 @@ func (s *service) RunActions(actions []domain.Action, release domain.Release) er
 			s.bus.Publish("release:update-push-status", release.ID, domain.ReleasePushStatusApproved)
 
 		case domain.ActionTypeExec:
-			if tmpFile == "" {
-				tmpFile, hash, err = downloadFile(release.TorrentURL)
+			if release.TorrentTmpFile == "" {
+				t, err := release.DownloadTorrentFile(nil)
 				if err != nil {
 					log.Error().Stack().Err(err)
 					return err
 				}
+
+				tmpFile = t.TmpFileName
 			}
+
 			go func(release domain.Release, action domain.Action, tmpFile string) {
 				s.execCmd(release, action, tmpFile)
 				s.bus.Publish("release:update-push-status", release.ID, domain.ReleasePushStatusApproved)
 			}(release, action, tmpFile)
 
 		case domain.ActionTypeWatchFolder:
-			if tmpFile == "" {
-				tmpFile, hash, err = downloadFile(release.TorrentURL)
+			if release.TorrentTmpFile == "" {
+				t, err := release.DownloadTorrentFile(nil)
 				if err != nil {
 					log.Error().Stack().Err(err)
 					return err
 				}
+
+				tmpFile = t.TmpFileName
 			}
 			s.watchFolder(action.WatchFolder, tmpFile)
 			s.bus.Publish("release:update-push-status", release.ID, domain.ReleasePushStatusApproved)
@@ -65,12 +68,14 @@ func (s *service) RunActions(actions []domain.Action, release domain.Release) er
 				s.bus.Publish("release:update-push-status-rejected", release.ID, "deluge busy")
 				continue
 			}
-			if tmpFile == "" {
-				tmpFile, hash, err = downloadFile(release.TorrentURL)
+			if release.TorrentTmpFile == "" {
+				t, err := release.DownloadTorrentFile(nil)
 				if err != nil {
 					log.Error().Stack().Err(err)
 					return err
 				}
+
+				tmpFile = t.TmpFileName
 			}
 
 			go func(action domain.Action, tmpFile string) {
@@ -92,12 +97,15 @@ func (s *service) RunActions(actions []domain.Action, release domain.Release) er
 				continue
 			}
 
-			if tmpFile == "" {
-				tmpFile, hash, err = downloadFile(release.TorrentURL)
+			if release.TorrentTmpFile == "" {
+				t, err := release.DownloadTorrentFile(nil)
 				if err != nil {
 					log.Error().Stack().Err(err)
 					return err
 				}
+
+				tmpFile = t.TmpFileName
+				hash = t.MetaInfo.HashInfoBytes().String()
 			}
 
 			go func(action domain.Action, hash string, tmpFile string) {
@@ -145,33 +153,43 @@ func (s *service) RunActions(actions []domain.Action, release domain.Release) er
 	return nil
 }
 
-// downloadFile returns tmpFile, hash, error
-func downloadFile(url string) (string, string, error) {
-	// create http client
-	c := client.NewHttpClient()
+func (s *service) CheckCanDownload(actions []domain.Action) bool {
+	for _, action := range actions {
+		if !action.Enabled {
+			// only run active actions
+			continue
+		}
 
-	// download torrent file
-	// TODO check extra headers, cookie
-	res, err := c.DownloadFile(url, nil)
-	if err != nil {
-		log.Error().Stack().Err(err).Msgf("could not download file: %v", url)
-		return "", "", err
+		log.Debug().Msgf("action-service: check can download action: %v", action.Name)
+
+		switch action.Type {
+		case domain.ActionTypeDelugeV1, domain.ActionTypeDelugeV2:
+			canDownload, err := s.delugeCheckRulesCanDownload(action)
+			if err != nil {
+				log.Error().Stack().Err(err).Msgf("error checking client rules: %v", action.Name)
+				continue
+			}
+			if !canDownload {
+				continue
+			}
+
+			return true
+
+		case domain.ActionTypeQbittorrent:
+			canDownload, err := s.qbittorrentCheckRulesCanDownload(action)
+			if err != nil {
+				log.Error().Stack().Err(err).Msgf("error checking client rules: %v", action.Name)
+				continue
+			}
+			if !canDownload {
+				continue
+			}
+
+			return true
+		}
 	}
 
-	// match more filters like torrent size
-
-	// Get meta info from file to find out the hash for later use
-	meta, err := metainfo.LoadFromFile(res.FileName)
-	//meta, err := metainfo.Load(res.Body)
-	if err != nil {
-		log.Error().Stack().Err(err).Msgf("metainfo could not open file: %v", res.FileName)
-		return "", "", err
-	}
-
-	// torrent info hash used for re-announce
-	hash := meta.HashInfoBytes().String()
-
-	return res.FileName, hash, nil
+	return false
 }
 
 func (s *service) test(name string) {
