@@ -1,16 +1,24 @@
 package domain
 
 import (
+	"bytes"
 	"context"
+	"crypto/tls"
 	"fmt"
 	"html"
+	"io"
+	"net/http"
+	"net/url"
+	"os"
 	"regexp"
 	"strconv"
 	"strings"
+	"text/template"
 	"time"
 
 	"github.com/autobrr/autobrr/pkg/wildcard"
 
+	"github.com/anacrolix/torrent/metainfo"
 	"github.com/dustin/go-humanize"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
@@ -37,6 +45,7 @@ type Release struct {
 	GroupID                     string                `json:"group_id"`
 	TorrentID                   string                `json:"torrent_id"`
 	TorrentURL                  string                `json:"-"`
+	TorrentTmpFile              string                `json:"-"`
 	TorrentName                 string                `json:"torrent_name"` // full release name
 	Size                        uint64                `json:"size"`
 	Raw                         string                `json:"raw"`   // Raw release
@@ -478,6 +487,120 @@ func (r *Release) extractReleaseTags() error {
 	return nil
 }
 
+func (r *Release) ParseTorrentUrl(match string, vars map[string]string, extraVars map[string]string, encode []string) error {
+	tmpVars := map[string]string{}
+
+	// copy vars to new tmp map
+	for k, v := range vars {
+		tmpVars[k] = v
+	}
+
+	// merge extra vars with vars
+	if extraVars != nil {
+		for k, v := range extraVars {
+			tmpVars[k] = v
+		}
+	}
+
+	// handle url encode of values
+	if encode != nil {
+		for _, e := range encode {
+			if v, ok := tmpVars[e]; ok {
+				// url encode  value
+				t := url.QueryEscape(v)
+				tmpVars[e] = t
+			}
+		}
+	}
+
+	// setup text template to inject variables into
+	tmpl, err := template.New("torrenturl").Parse(match)
+	if err != nil {
+		log.Error().Err(err).Msg("could not create torrent url template")
+		return err
+	}
+
+	var urlBytes bytes.Buffer
+	err = tmpl.Execute(&urlBytes, &tmpVars)
+	if err != nil {
+		log.Error().Err(err).Msg("could not write torrent url template output")
+		return err
+	}
+
+	r.TorrentURL = urlBytes.String()
+
+	// TODO handle cookies
+
+	return nil
+}
+
+func (r *Release) DownloadTorrentFile(opts map[string]string) (*DownloadTorrentFileResponse, error) {
+	if r.TorrentURL == "" {
+		return nil, errors.New("download_file: url can't be empty")
+	} else if r.TorrentTmpFile != "" {
+		// already downloaded
+		return nil, nil
+	}
+
+	customTransport := http.DefaultTransport.(*http.Transport).Clone()
+	customTransport.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+	client := &http.Client{Transport: customTransport}
+
+	// Get the data
+	resp, err := client.Get(r.TorrentURL)
+	if err != nil {
+		log.Error().Stack().Err(err).Msg("error downloading file")
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	// retry logic
+
+	if resp.StatusCode != http.StatusOK {
+		log.Error().Stack().Err(err).Msgf("error downloading file from: %v - bad status: %d", r.TorrentURL, resp.StatusCode)
+		return nil, err
+	}
+
+	// Create tmp file
+	tmpFile, err := os.CreateTemp("", "autobrr-")
+	if err != nil {
+		log.Error().Stack().Err(err).Msg("error creating temp file")
+		return nil, err
+	}
+	defer tmpFile.Close()
+
+	r.TorrentTmpFile = tmpFile.Name()
+
+	// Write the body to file
+	_, err = io.Copy(tmpFile, resp.Body)
+	if err != nil {
+		log.Error().Stack().Err(err).Msgf("error writing downloaded file: %v", tmpFile.Name())
+		return nil, err
+	}
+
+	meta, err := metainfo.LoadFromFile(tmpFile.Name())
+	if err != nil {
+		log.Error().Stack().Err(err).Msgf("metainfo could not load file contents: %v", tmpFile.Name())
+		return nil, err
+	}
+
+	// remove file if fail
+
+	res := DownloadTorrentFileResponse{
+		MetaInfo:    meta,
+		TmpFileName: tmpFile.Name(),
+	}
+
+	if res.TmpFileName == "" || res.MetaInfo == nil {
+		log.Error().Stack().Err(err).Msgf("tmp file error - empty body: %v", r.TorrentURL)
+		return nil, errors.New("error downloading file, no tmp file")
+	}
+
+	log.Debug().Msgf("successfully downloaded file: %v", tmpFile.Name())
+
+	return &res, nil
+}
+
 func (r *Release) addRejection(reason string) {
 	r.Rejections = append(r.Rejections, reason)
 }
@@ -612,9 +735,9 @@ func (r *Release) CheckFilter(filter Filter) bool {
 }
 
 // CheckSizeFilter additional size check
-// for indexers that doesn't announce size, like some cabals
+// for indexers that doesn't announce size, like some gazelle based
 // set flag r.AdditionalSizeCheckRequired if there's a size in the filter, otherwise go a head
-// implement API for ptp,btn,bhd,ggn to check for size if needed
+// implement API for ptp,btn,ggn to check for size if needed
 // for others pull down torrent and do check
 func (r *Release) CheckSizeFilter(minSize string, maxSize string) bool {
 
@@ -665,6 +788,10 @@ func (r *Release) MapVars(varMap map[string]string) error {
 		return errors.Wrap(err, "failed parsing required field")
 	} else {
 		r.TorrentName = html.UnescapeString(torrentName)
+	}
+
+	if torrentID, err := getStringMapValue(varMap, "torrentId"); err == nil {
+		r.TorrentID = torrentID
 	}
 
 	if category, err := getStringMapValue(varMap, "category"); err == nil {
@@ -1151,6 +1278,11 @@ func cleanReleaseName(input string) string {
 	processedString := reg.ReplaceAllString(input, " ")
 
 	return processedString
+}
+
+type DownloadTorrentFileResponse struct {
+	MetaInfo    *metainfo.MetaInfo
+	TmpFileName string
 }
 
 type ReleaseStats struct {

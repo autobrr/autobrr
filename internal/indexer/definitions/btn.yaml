@@ -11,6 +11,7 @@ protocol: torrent
 supports:
   - irc
   - rss
+  - api
 source: gazelle
 settings:
   - name: authkey
@@ -21,6 +22,22 @@ settings:
     type: secret
     label: Torrent pass
     help: Right click DL on a torrent and get the torrent_pass.
+  - name: api_key
+    type: secret
+    label: API Key
+    help: Username -> Edit Profile -> API
+
+api:
+  url: https://api.broadcasthe.net
+  type: jsonrpc
+  limits:
+    max: 150
+    per: hour
+  settings:
+    - name: api_key
+      type: secret
+      label: API Key
+      help: Username -> Edit Profile -> API
 
 irc:
   network: BroadcasTheNet
@@ -42,12 +59,6 @@ irc:
       required: true
       label: NickServ Password
       help: NickServ password
-    - name: invite_command
-      type: secret
-      default: "CableGuy IDENTIFY USERNAME IRCKey"
-      required: true
-      label: Invite command
-      help: Invite auth with CableGuy.
 
 parse:
   type: multi

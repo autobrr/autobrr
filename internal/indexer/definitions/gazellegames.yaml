@@ -11,6 +11,7 @@ protocol: torrent
 supports:
   - irc
   - rss
+  - api
 source: gazelle
 settings:
   - name: authkey
@@ -21,6 +22,22 @@ settings:
     type: secret
     label: Torrent pass
     help: Right click DL on a torrent and get the torrent_pass.
+  - name: api_key
+    type: secret
+    label: API Key
+    help: Username -> Edit / Settings -> API Keys
+
+api:
+  url: https://gazellegames.net/api.php
+  type: json
+  limits:
+    max: 5
+    per: 10 seconds
+  settings:
+    - name: api_key
+      type: secret
+      label: API Key
+      help: Username -> Edit / Settings -> API Keys
 
 irc:
   network: GGn

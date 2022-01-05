@@ -25,6 +25,7 @@ require (
 	golang.org/x/sys v0.0.0-20211124211545-fe61309f8881 // indirect
 	golang.org/x/term v0.0.0-20210927222741-03fcf44c2211 // indirect
 	golang.org/x/text v0.3.7 // indirect
+	golang.org/x/time v0.0.0-20210723032227-1f47c861a9ac
 	gopkg.in/ini.v1 v1.64.0 // indirect
 	gopkg.in/irc.v3 v3.1.4
 	gopkg.in/natefinch/lumberjack.v2 v2.0.0

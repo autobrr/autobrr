@@ -1,6 +1,10 @@
 package domain
 
-import "context"
+import (
+	"context"
+
+	"github.com/dustin/go-humanize"
+)
 
 type IndexerRepo interface {
 	Store(indexer Indexer) (*Indexer, error)
@@ -29,10 +33,20 @@ type IndexerDefinition struct {
 	Privacy     string            `json:"privacy"`
 	Protocol    string            `json:"protocol"`
 	URLS        []string          `json:"urls"`
+	Supports    []string          `json:"supports"`
 	Settings    []IndexerSetting  `json:"settings"`
 	SettingsMap map[string]string `json:"-"`
 	IRC         *IndexerIRC       `json:"irc"`
 	Parse       IndexerParse      `json:"parse"`
+}
+
+func (i IndexerDefinition) HasApi() bool {
+	for _, a := range i.Supports {
+		if a == "api" {
+			return true
+		}
+	}
+	return false
 }
 
 type IndexerSetting struct {
@@ -73,4 +87,23 @@ type IndexerParseExtract struct {
 type IndexerParseMatch struct {
 	TorrentURL string   `json:"torrenturl"`
 	Encode     []string `json:"encode"`
+}
+
+type TorrentBasic struct {
+	Id        string `json:"Id"`
+	TorrentId string `json:"TorrentId,omitempty"`
+	InfoHash  string `json:"InfoHash"`
+	Size      string `json:"Size"`
+}
+
+func (t TorrentBasic) ReleaseSizeBytes() uint64 {
+	if t.Size == "" {
+		return 0
+	}
+
+	releaseSizeBytes, err := humanize.ParseBytes(t.Size)
+	if err != nil {
+		// log could not parse into bytes
+	}
+	return releaseSizeBytes
 }

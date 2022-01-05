@@ -11,6 +11,7 @@ protocol: torrent
 supports:
   - irc
   - rss
+  - api
 source: gazelle
 settings:
   - name: authkey
@@ -21,6 +22,30 @@ settings:
     type: secret
     label: Torrent pass
     help: Right click DL on a torrent and get the torrent_pass.
+  - name: api_user
+    type: secret
+    label: API User
+    help: Edit profile -> Security -> Generate new api keys
+  - name: api_key
+    type: secret
+    label: API Key
+    help: Edit profile -> Security -> Generate new api keys
+
+api:
+  url: https://passthepopcorn.me/
+  type: json
+  limits:
+    max: 60
+    per: minute
+  settings:
+    - name: api_user
+      type: secret
+      label: API User
+      help: Edit profile -> Security -> Generate new api keys
+    - name: api_key
+      type: secret
+      label: API Key
+      help: Edit profile -> Security -> Generate new api keys
 
 irc:
   network: PassThePopcorn

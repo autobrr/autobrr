@@ -90,8 +90,9 @@ func main() {
 	var (
 		downloadClientService = download_client.NewService(downloadClientRepo)
 		actionService         = action.NewService(actionRepo, downloadClientService, bus)
-		indexerService        = indexer.NewService(indexerRepo)
-		filterService         = filter.NewService(filterRepo, actionRepo, indexerService)
+		apiService            = indexer.NewAPIService()
+		indexerService        = indexer.NewService(indexerRepo, apiService)
+		filterService         = filter.NewService(filterRepo, actionRepo, apiService, indexerService)
 		releaseService        = release.NewService(releaseRepo, actionService)
 		ircService            = irc.NewService(ircRepo, filterService, indexerService, releaseService)
 		userService           = user.NewService(userRepo)

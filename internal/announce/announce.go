@@ -230,15 +230,11 @@ func (a *announceProcessor) onLinesMatched(def domain.IndexerDefinition, vars ma
 		return err
 	}
 
-	// generate torrent url
-	torrentUrl, err := a.processTorrentUrl(def.Parse.Match.TorrentURL, vars, def.SettingsMap, def.Parse.Match.Encode)
+	// parse torrentUrl
+	err = release.ParseTorrentUrl(def.Parse.Match.TorrentURL, vars, def.SettingsMap, def.Parse.Match.Encode)
 	if err != nil {
-		log.Error().Stack().Err(err).Msg("announce: could not process torrent url")
+		log.Error().Stack().Err(err).Msg("announce: could not parse torrent url")
 		return err
-	}
-
-	if torrentUrl != "" {
-		release.TorrentURL = torrentUrl
 	}
 
 	return nil

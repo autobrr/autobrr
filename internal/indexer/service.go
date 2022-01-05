@@ -26,7 +26,8 @@ type Service interface {
 }
 
 type service struct {
-	repo domain.IndexerRepo
+	repo       domain.IndexerRepo
+	apiService APIService
 
 	// contains all raw indexer definitions
 	indexerDefinitions map[string]domain.IndexerDefinition
@@ -37,9 +38,10 @@ type service struct {
 	lookupIRCServerDefinition map[string]map[string]domain.IndexerDefinition
 }
 
-func NewService(repo domain.IndexerRepo) Service {
+func NewService(repo domain.IndexerRepo, apiService APIService) Service {
 	return &service{
 		repo:                      repo,
+		apiService:                apiService,
 		indexerDefinitions:        make(map[string]domain.IndexerDefinition),
 		mapIndexerIRCToName:       make(map[string]string),
 		lookupIRCServerDefinition: make(map[string]map[string]domain.IndexerDefinition),
@@ -150,6 +152,7 @@ func (s *service) mapIndexer(indexer domain.Indexer) (*domain.IndexerDefinition,
 		Privacy:     in.Privacy,
 		Protocol:    in.Protocol,
 		URLS:        in.URLS,
+		Supports:    in.Supports,
 		Settings:    nil,
 		SettingsMap: make(map[string]string),
 		IRC:         in.IRC,
@@ -184,22 +187,33 @@ func (s *service) GetTemplates() ([]domain.IndexerDefinition, error) {
 }
 
 func (s *service) Start() error {
+	// load all indexer definitions
 	err := s.LoadIndexerDefinitions()
 	if err != nil {
 		return err
 	}
 
+	// load the indexers' setup by the user
 	indexerDefinitions, err := s.GetAll()
 	if err != nil {
 		return err
 	}
 
-	for _, indexerDefinition := range indexerDefinitions {
-		s.mapIRCIndexerLookup(indexerDefinition.Identifier, *indexerDefinition)
+	for _, indexer := range indexerDefinitions {
+		s.mapIRCIndexerLookup(indexer.Identifier, *indexer)
 
 		// add to irc server lookup table
-		s.mapIRCServerDefinitionLookup(indexerDefinition.IRC.Server, *indexerDefinition)
+		s.mapIRCServerDefinitionLookup(indexer.IRC.Server, *indexer)
+
+		// check if it has api and add to api service
+		if indexer.Enabled && indexer.HasApi() {
+			if err := s.apiService.AddClient(indexer.Identifier, indexer.SettingsMap); err != nil {
+				log.Error().Stack().Err(err).Msgf("indexer.start: could not init api client for: '%v'", indexer.Identifier)
+			}
+		}
 	}
+
+	log.Info().Msgf("Loaded %d indexers", len(indexerDefinitions))
 
 	return nil
 }
@@ -305,7 +319,7 @@ func (s *service) LoadIndexerDefinitions() error {
 		}
 	}
 
-	log.Info().Msgf("Loaded %d indexer definitions", len(s.indexerDefinitions))
+	log.Debug().Msgf("Loaded %d indexer definitions", len(s.indexerDefinitions))
 
 	return nil
 }
