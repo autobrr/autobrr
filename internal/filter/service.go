@@ -209,7 +209,7 @@ func (s *service) FindAndCheckFilters(release *domain.Release) (bool, *domain.Fi
 
 			// do additional size check against indexer api or torrent for size
 			if release.AdditionalSizeCheckRequired {
-				log.Debug().Msgf("filter-service.find_and_check_filters: additional size check required for: %+v", f.Name)
+				log.Debug().Msgf("filter-service.find_and_check_filters: (%v) additional size check required", f.Name)
 
 				// check if indexer = btn,ptp (ggn,red later)
 				if release.Indexer == "ptp" || release.Indexer == "btn" || release.Indexer == "ggn" {
@@ -218,31 +218,35 @@ func (s *service) FindAndCheckFilters(release *domain.Release) (bool, *domain.Fi
 					if torrentInfo == nil {
 						torrentInfo, err = s.apiService.GetTorrentByID(release.Indexer, release.TorrentID)
 						if err != nil || torrentInfo == nil {
-							log.Error().Stack().Err(err).Msgf("filter-service.find_and_check_filters: could not get torrent: '%v' from: %v", release.TorrentID, release.Indexer)
+							log.Error().Stack().Err(err).Msgf("filter-service.find_and_check_filters: (%v) could not get torrent: '%v' from: %v", f.Name, release.TorrentID, release.Indexer)
 							continue
 						}
+
+						log.Debug().Msgf("filter-service.find_and_check_filters: (%v) got torrent info: %+v", f.Name, torrentInfo)
 					}
+
 					// compare size against filters
 					match, err := checkSizeFilter(f.MinSize, f.MaxSize, torrentInfo.ReleaseSizeBytes())
 					if err != nil {
-						log.Error().Stack().Err(err).Msgf("filter-service.find_and_check_filters: could not get torrent: '%v' from: %v", release.TorrentID, release.Indexer)
+						log.Error().Stack().Err(err).Msgf("filter-service.find_and_check_filters: (%v) could not check size filter", f.Name)
 						continue
 					}
 
 					// no match, lets continue to next filter
 					if !match {
+						log.Debug().Msgf("filter-service.find_and_check_filters: (%v) filter did not match after additional size check, trying next", f.Name)
 						continue
 					}
 
 					// store size on the release
 					release.Size = torrentInfo.ReleaseSizeBytes()
 				} else {
-					log.Trace().Msgf("filter-service.find_and_check_filters: additional size check required for: '%v'. preparing to downloading metafile", f.Name)
+					log.Trace().Msgf("filter-service.find_and_check_filters: (%v) additional size check required: preparing to download metafile", f.Name)
 
 					// if indexer doesn't have api, download torrent and add to tmpPath
 					torrentFileRes, err = release.DownloadTorrentFile(nil)
 					if err != nil {
-						log.Error().Stack().Err(err).Msgf("filter-service.find_and_check_filters: could not download torrent file: '%v' from: %v", release.TorrentID, release.Indexer)
+						log.Error().Stack().Err(err).Msgf("filter-service.find_and_check_filters: (%v) could not download torrent file with id: '%v' from: %v", f.Name, release.TorrentID, release.Indexer)
 						continue
 					}
 
@@ -256,12 +260,13 @@ func (s *service) FindAndCheckFilters(release *domain.Release) (bool, *domain.Fi
 					// compare size against filter
 					match, err := checkSizeFilter(f.MinSize, f.MaxSize, uint64(torrentMetaInfo.TotalLength()))
 					if err != nil {
-						log.Error().Stack().Err(err).Msgf("filter-service.find_and_check_filters: could not get torrent: '%v' from: %v", release.TorrentID, release.Indexer)
+						log.Error().Stack().Err(err).Msgf("filter-service.find_and_check_filters: (%v) could not check size filter", f.Name)
 						continue
 					}
 
 					// no match, lets continue to next filter
 					if !match {
+						log.Debug().Msgf("filter-service.find_and_check_filters: (%v) filter did not match after additional size check, trying next", f.Name)
 						continue
 					}
 

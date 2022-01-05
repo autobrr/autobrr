@@ -39,11 +39,15 @@ func (s *apiService) GetTorrentByID(indexer string, torrentID string) (*domain.T
 		return nil, nil
 	}
 
+	log.Trace().Str("service", "api").Str("method", "GetTorrentByID").Msgf("'%v' trying to fetch torrent from api", indexer)
+
 	t, err := v.GetTorrentByID(torrentID)
 	if err != nil {
 		log.Error().Stack().Err(err).Msgf("could not get torrent: '%v' from: %v", torrentID, indexer)
 		return nil, err
 	}
+
+	log.Trace().Str("service", "api").Str("method", "GetTorrentByID").Msgf("'%v' successfully fetched torrent from api: %+v", indexer, t)
 
 	return t, nil
 }
@@ -69,6 +73,8 @@ func (s *apiService) AddClient(indexer string, settings map[string]string) error
 	} else if len(settings) == 0 {
 		return fmt.Errorf("api_service.add_client: validation falied: settings can't be empty")
 	}
+
+	log.Trace().Msgf("api-service.add_client: init api client for %v", indexer)
 
 	// init client
 	switch indexer {
