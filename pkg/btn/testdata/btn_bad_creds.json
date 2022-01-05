@@ -1,0 +1,8 @@
+{
+  "id": 1,
+  "result": null,
+  "error": {
+    "code": -32001,
+    "message": "Invalid API Key"
+  }
+}

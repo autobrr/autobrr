@@ -17,6 +17,7 @@ type Service interface {
 	ToggleEnabled(actionID int) error
 
 	RunActions(actions []domain.Action, release domain.Release) error
+	CheckCanDownload(actions []domain.Action) bool
 }
 
 type service struct {
