@@ -1,0 +1,111 @@
+{
+  "status": "success",
+  "response": {
+    "group": {
+      "bbWikiBody": "Some Game",
+      "wikiBody": "Some Game",
+      "wikiImage": "https:\/\/ptpimg.me\/2y8t7a.jpg",
+      "id": 2279,
+      "name": "Some Game",
+      "aliases": [
+        ""
+      ],
+      "year": 2011,
+      "categoryId": 1,
+      "categoryName": "Games",
+      "masterGroup": 769,
+      "time": "2022-01-04 22:34:14",
+      "gameInfo": {
+        "screenshots": [
+          "https%3A%2F%2Fptpimg.me%2Fw176o2.jpg",
+          "https%3A%2F%2Fptpimg.me%2Fw44511.jpg",
+          "https%3A%2F%2Fptpimg.me%2F591yx9.jpg",
+          "https%3A%2F%2Fptpimg.me%2Fqm7bw1.jpg"
+        ],
+        "trailer": "http:\/\/www.youtube.com\/watch?v=xxxxxxxxxxxx",
+        "rating": "7+",
+        "metaRating": {
+          "score": "73",
+          "percent": "73%",
+          "link": "http%3A%2F%2Fwww.metacritic.com%2Fgame%2Fpc%2Fthat-game"
+        },
+        "ignRating": {
+          "score": "0",
+          "percent": "0%",
+          "link": ""
+        },
+        "gamespotRating": {
+          "score": "6.5",
+          "percent": "65%",
+          "link": "http%3A%2F%2Fwww.gamespot.com%2Freviews%2Fthat-game"
+        },
+        "weblinks": {
+          "GamesWebsite": "http:\/\/games.disney.com\/some-game",
+          "Wikipedia": "https:\/\/en.wikipedia.org\/wiki\/some-game",
+          "Giantbomb": "http:\/\/www.giantbomb.com\/some-game\/3030-33207\/",
+          "GameFAQs": "http:\/\/www.gamefaqs.com\/pc\/612250-some-game",
+          "PCGamingWiki": "http:\/\/pcgamingwiki.com\/wiki\/Some_Game",
+          "Steam": "http:\/\/store.steampowered.com\/app\/0000000\/",
+          "Amazon": "http:\/\/www.amazon.com\/Some-Game-PC\/dp\/B002I0JJMK",
+          "GOG": "https:\/\/www.gog.com\/game\/some_game",
+          "HowLongToBeat": "https:\/\/howlongtobeat.com\/game.php?id=0000"
+        }
+      },
+      "tags": [
+        "action",
+        "adventure"
+      ],
+      "platform": "Windows"
+    },
+    "torrent": {
+      "id": 422368,
+      "infoHash": "78DA2811E6732012B8224198D4DC2FD49A5E950F",
+      "type": "Torrent",
+      "link": "",
+      "format": "",
+      "encoding": "",
+      "region": "",
+      "language": "English",
+      "remastered": false,
+      "remasterYear": 0,
+      "remasterTitle": "",
+      "scene": true,
+      "hasCue": false,
+      "releaseTitle": "Some_Game_Patch_1_Plus_5_Trainer-RazorDOX",
+      "releaseType": "GameDOX",
+      "gameDOXType": "Trainer",
+      "gameDOXVersion": "",
+      "fileCount": 3,
+      "size": 134800,
+      "seeders": 10,
+      "leechers": 0,
+      "snatched": 20,
+      "freeTorrent": false,
+      "neutralTorrent": false,
+      "reported": false,
+      "time": "2022-01-04 22:34:14",
+      "bbDescription": "[align=center][img]https:\/\/gazellegames.net\/nfoimg\/422368.png[\/img][\/align]",
+      "description": "<div style=\"text-align:center;\"><img style=\"max-width: 600px;\" onclick=\"lightbox.init(this,600);\" alt=\"https:\/\/gazellegames.net\/nfoimg\/422368.png\" src=\"\/nfoimg\/422368.png\" \/><\/div>",
+      "fileList": [
+        {
+          "ext": ".nfo",
+          "size": "4982",
+          "name": "rzr-lpp1.nfo"
+        },
+        {
+          "ext": ".rar",
+          "size": "129795",
+          "name": "rzr-lpp1.rar"
+        },
+        {
+          "ext": ".sfv",
+          "size": "23",
+          "name": "rzr-lpp1.sfv"
+        }
+      ],
+      "filePath": "Some_Game_Patch_1_Plus_5_Trainer-RazorDOX",
+      "userId": 10000,
+      "username": "username"
+    }
+  }
+}

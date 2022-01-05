@@ -7,6 +7,7 @@ import (
 
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/pkg/btn"
+	"github.com/autobrr/autobrr/pkg/ggn"
 	"github.com/autobrr/autobrr/pkg/ptp"
 )
 
@@ -89,6 +90,13 @@ func (s *apiService) AddClient(indexer string, settings map[string]string) error
 			return fmt.Errorf("api_service: could not initialize ptp client: missing var 'api_key'")
 		}
 		s.apiClients[indexer] = ptp.NewClient("", user, key)
+
+	case "ggn":
+		key, ok := settings["api_key"]
+		if !ok || key == "" {
+			return fmt.Errorf("api_service: could not initialize ggn client: missing var 'api_key'")
+		}
+		s.apiClients[indexer] = ggn.NewClient("", key)
 
 	default:
 		return fmt.Errorf("api_service: could not initialize client: unsupported indexer '%v'", indexer)
