@@ -195,7 +195,9 @@ func (c *client) GetTorrentByID(torrentID string) (*domain.TorrentBasic, error) 
 	v.Add("id", torrentID)
 	params := v.Encode()
 
-	resp, err := c.get(c.Url + "?request=torrent" + params)
+	url := fmt.Sprintf("%v?%v&%v", c.Url, "request=torrent", params)
+
+	resp, err := c.get(url)
 	if err != nil {
 		return nil, err
 	}
