@@ -10,11 +10,13 @@ import (
 	"github.com/r3labs/sse/v2"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
+	"github.com/rs/zerolog/pkgerrors"
 	"gopkg.in/natefinch/lumberjack.v2"
 )
 
 func Setup(cfg domain.Config, sse *sse.Server) {
 	zerolog.TimeFieldFormat = time.RFC3339
+	zerolog.ErrorStackMarshaler = pkgerrors.MarshalStack
 
 	switch cfg.LogLevel {
 	case "INFO":

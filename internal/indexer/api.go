@@ -74,7 +74,7 @@ func (s *apiService) AddClient(indexer string, settings map[string]string) error
 		return fmt.Errorf("api_service.add_client: validation falied: settings can't be empty")
 	}
 
-	log.Trace().Msgf("api-service.add_client: init api client for %v", indexer)
+	log.Trace().Msgf("api-service.add_client: init api client for '%v'", indexer)
 
 	// init client
 	switch indexer {

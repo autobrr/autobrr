@@ -187,11 +187,13 @@ func (s *service) GetTemplates() ([]domain.IndexerDefinition, error) {
 }
 
 func (s *service) Start() error {
+	// load all indexer definitions
 	err := s.LoadIndexerDefinitions()
 	if err != nil {
 		return err
 	}
 
+	// load the indexers' setup by the user
 	indexerDefinitions, err := s.GetAll()
 	if err != nil {
 		return err
@@ -204,12 +206,14 @@ func (s *service) Start() error {
 		s.mapIRCServerDefinitionLookup(indexer.IRC.Server, *indexer)
 
 		// check if it has api and add to api service
-		if indexer.HasApi() {
+		if indexer.Enabled && indexer.HasApi() {
 			if err := s.apiService.AddClient(indexer.Identifier, indexer.SettingsMap); err != nil {
 				log.Error().Stack().Err(err).Msgf("indexer.start: could not init api client for: '%v'", indexer.Identifier)
 			}
 		}
 	}
+
+	log.Info().Msgf("Loaded %d indexers", len(indexerDefinitions))
 
 	return nil
 }
@@ -315,7 +319,7 @@ func (s *service) LoadIndexerDefinitions() error {
 		}
 	}
 
-	log.Info().Msgf("Loaded %d indexer definitions", len(s.indexerDefinitions))
+	log.Debug().Msgf("Loaded %d indexer definitions", len(s.indexerDefinitions))
 
 	return nil
 }
