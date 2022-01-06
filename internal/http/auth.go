@@ -7,7 +7,6 @@ import (
 	"github.com/go-chi/chi"
 	"github.com/gorilla/sessions"
 
-	"github.com/autobrr/autobrr/internal/config"
 	"github.com/autobrr/autobrr/internal/domain"
 )
 
@@ -17,21 +16,20 @@ type authService interface {
 
 type authHandler struct {
 	encoder encoder
+	config  domain.Config
 	service authService
+
+	cookieStore *sessions.CookieStore
 }
 
-func newAuthHandler(encoder encoder, service authService) *authHandler {
+func newAuthHandler(encoder encoder, config domain.Config, cookieStore *sessions.CookieStore, service authService) *authHandler {
 	return &authHandler{
-		encoder: encoder,
-		service: service,
+		encoder:     encoder,
+		config:      config,
+		service:     service,
+		cookieStore: cookieStore,
 	}
 }
-
-var (
-	// key will only be valid as long as it's running.
-	key   = []byte(config.Config.SessionSecret)
-	store = sessions.NewCookieStore(key)
-)
 
 func (h authHandler) Routes(r chi.Router) {
 	r.Post("/login", h.login)
@@ -51,10 +49,11 @@ func (h authHandler) login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	store.Options.Secure = true
-	store.Options.HttpOnly = true
-	store.Options.SameSite = http.SameSiteStrictMode
-	session, _ := store.Get(r, "user_session")
+	h.cookieStore.Options.Secure = true
+	h.cookieStore.Options.HttpOnly = true
+	h.cookieStore.Options.SameSite = http.SameSiteStrictMode
+	h.cookieStore.Options.Path = h.config.BaseURL
+	session, _ := h.cookieStore.Get(r, "user_session")
 
 	_, err := h.service.Login(data.Username, data.Password)
 	if err != nil {
@@ -72,7 +71,7 @@ func (h authHandler) login(w http.ResponseWriter, r *http.Request) {
 func (h authHandler) logout(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
-	session, _ := store.Get(r, "user_session")
+	session, _ := h.cookieStore.Get(r, "user_session")
 
 	// Revoke users authentication
 	session.Values["authenticated"] = false
@@ -83,7 +82,7 @@ func (h authHandler) logout(w http.ResponseWriter, r *http.Request) {
 
 func (h authHandler) test(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	session, _ := store.Get(r, "user_session")
+	session, _ := h.cookieStore.Get(r, "user_session")
 
 	// Check if user is authenticated
 	if auth, ok := session.Values["authenticated"].(bool); !ok || !auth {
