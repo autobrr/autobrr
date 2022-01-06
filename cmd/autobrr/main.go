@@ -2,7 +2,6 @@ package main
 
 import (
 	"database/sql"
-	"fmt"
 	"os"
 	"os/signal"
 	"syscall"
@@ -97,18 +96,15 @@ func main() {
 		ircService            = irc.NewService(ircRepo, filterService, indexerService, releaseService)
 		userService           = user.NewService(userRepo)
 		authService           = auth.NewService(userService)
-		//announceService       = announce.NewService(filterService, indexerService, releaseService)
 	)
 
 	// register event subscribers
 	events.NewSubscribers(bus, releaseService)
 
-	addr := fmt.Sprintf("%v:%v", cfg.Host, cfg.Port)
-
 	errorChannel := make(chan error)
 
 	go func() {
-		httpServer := http.NewServer(serverEvents, addr, cfg.BaseURL, version, commit, date, actionService, authService, downloadClientService, filterService, indexerService, ircService, releaseService)
+		httpServer := http.NewServer(cfg, serverEvents, version, commit, date, actionService, authService, downloadClientService, filterService, indexerService, ircService, releaseService)
 		errorChannel <- httpServer.Open()
 	}()
 
