@@ -27,15 +27,14 @@ import (
 type ReleaseRepo interface {
 	Store(ctx context.Context, release *Release) (*Release, error)
 	Find(ctx context.Context, params QueryParams) (res []Release, nextCursor int64, count int64, err error)
+	GetActionStatusByReleaseID(ctx context.Context, releaseID int64) ([]ReleaseActionStatus, error)
 	Stats(ctx context.Context) (*ReleaseStats, error)
-	UpdatePushStatus(ctx context.Context, id int64, status ReleasePushStatus) error
-	UpdatePushStatusRejected(ctx context.Context, id int64, rejections string) error
+	StoreReleaseActionStatus(ctx context.Context, actionStatus *ReleaseActionStatus) error
 }
 
 type Release struct {
 	ID                          int64                 `json:"id"`
 	FilterStatus                ReleaseFilterStatus   `json:"filter_status"`
-	PushStatus                  ReleasePushStatus     `json:"push_status"`
 	Rejections                  []string              `json:"rejections"`
 	Indexer                     string                `json:"indexer"`
 	FilterName                  string                `json:"filter"`
@@ -89,6 +88,17 @@ type Release struct {
 	AdditionalSizeCheckRequired bool                  `json:"-"`
 	FilterID                    int                   `json:"-"`
 	Filter                      *Filter               `json:"-"`
+	ActionStatus                []ReleaseActionStatus `json:"action_status"`
+}
+
+type ReleaseActionStatus struct {
+	ID         int64             `json:"id"`
+	Status     ReleasePushStatus `json:"status"`
+	Action     string            `json:"action"`
+	Type       ActionType        `json:"type"`
+	Rejections []string          `json:"rejections"`
+	Timestamp  time.Time         `json:"timestamp"`
+	ReleaseID  int64             `json:"-"`
 }
 
 func NewRelease(indexer string, line string) (*Release, error) {
@@ -96,7 +106,6 @@ func NewRelease(indexer string, line string) (*Release, error) {
 		Indexer:        indexer,
 		Raw:            line,
 		FilterStatus:   ReleaseStatusFilterPending,
-		PushStatus:     ReleasePushStatusPending,
 		Rejections:     []string{},
 		Protocol:       ReleaseProtocolTorrent,
 		Implementation: ReleaseImplementationIRC,

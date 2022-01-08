@@ -6,6 +6,7 @@ import APIClient from '../api/APIClient'
 import { useQuery } from 'react-query'
 import { ReleaseFindResponse, ReleaseStats } from '../domain/interfaces'
 import { EmptyListState } from '../components/emptystates'
+import { ReleaseStatusCell } from './Releases'
 
 export function Dashboard() {
   return (
@@ -660,9 +661,9 @@ function DataTablee() {
     //   Cell: StatusPill,
     // },
     {
-      Header: "Push Status",
-      accessor: 'push_status',
-      Cell: StatusPill,
+      Header: "Actions",
+      accessor: 'action_status',
+      Cell: ReleaseStatusCell,
     },
     {
       Header: "Indexer",
