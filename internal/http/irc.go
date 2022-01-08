@@ -13,6 +13,7 @@ import (
 
 type ircService interface {
 	ListNetworks(ctx context.Context) ([]domain.IrcNetwork, error)
+	GetNetworksWithHealth(ctx context.Context) ([]domain.IrcNetworkWithHealth, error)
 	DeleteNetwork(ctx context.Context, id int64) error
 	GetNetworkByID(id int64) (*domain.IrcNetwork, error)
 	StoreNetwork(ctx context.Context, network *domain.IrcNetwork) error
@@ -46,7 +47,7 @@ func (h ircHandler) Routes(r chi.Router) {
 func (h ircHandler) listNetworks(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
-	networks, err := h.service.ListNetworks(ctx)
+	networks, err := h.service.GetNetworksWithHealth(ctx)
 	if err != nil {
 		//
 	}

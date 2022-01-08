@@ -134,7 +134,17 @@ const ListItem = ({ idx, network }: any) => {
                     />
                 </Switch>
             </td>
-            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">{network.name}</td>
+            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white relative">
+                <span className="relative inline-flex items-center">
+                {network.connected ? (
+                        <span className="mr-3 flex h-3 w-3 relative">
+                            <span className="animate-ping inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                            <span className="inline-flex absolute rounded-full h-3 w-3 bg-green-500"></span>
+                        </span>
+                ) :  <span className="mr-3 flex h-3 w-3 rounded-full opacity-75 bg-red-400" />}
+                    {network.name}
+                </span>
+            </td>
             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400"><span>{network.server}:{network.port}</span> {network.tls && <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 dark:bg-green-300 text-green-800 dark:text-green-900">TLS</span>}</td>
             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{network.nickserv?.account}</td>
             <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">

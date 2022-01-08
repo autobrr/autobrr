@@ -72,6 +72,24 @@ type IndexerIRC struct {
 	Settings    []IndexerSetting  `json:"settings"`
 }
 
+func (i IndexerIRC) ValidAnnouncer(announcer string) bool {
+	for _, a := range i.Announcers {
+		if a == announcer {
+			return true
+		}
+	}
+	return false
+}
+
+func (i IndexerIRC) ValidChannel(channel string) bool {
+	for _, a := range i.Channels {
+		if a == channel {
+			return true
+		}
+	}
+	return false
+}
+
 type IndexerParse struct {
 	Type  string                `json:"type"`
 	Lines []IndexerParseExtract `json:"lines"`

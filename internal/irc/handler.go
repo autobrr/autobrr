@@ -27,8 +27,11 @@ type channelHealth struct {
 	name            string
 	monitoring      bool
 	monitoringSince time.Time
-	lastPing        time.Time
 	lastAnnounce    time.Time
+}
+
+func (h *channelHealth) SetLastAnnounce() {
+	h.lastAnnounce = time.Now()
 }
 
 type Handler struct {
@@ -44,11 +47,15 @@ type Handler struct {
 	stopped chan struct{}
 	cancel  context.CancelFunc
 
-	lastPing     time.Time
-	lastAnnounce time.Time
+	lastPing       time.Time
+	lastAnnounce   time.Time
+	connected      bool
+	connectedSince time.Time
+	// tODO disconnectedTime
 
 	validAnnouncers map[string]struct{}
-	channels        map[string]channelHealth
+	validChannels   map[string]struct{}
+	channelHealth   map[string]*channelHealth
 }
 
 func NewHandler(network domain.IrcNetwork, filterService filter.Service, releaseService release.Service, definitions []domain.IndexerDefinition) *Handler {
@@ -63,6 +70,8 @@ func NewHandler(network domain.IrcNetwork, filterService filter.Service, release
 		definitions:        definitions,
 		announceProcessors: map[string]announce.Processor{},
 		validAnnouncers:    map[string]struct{}{},
+		validChannels:      map[string]struct{}{},
+		channelHealth:      map[string]*channelHealth{},
 	}
 
 	// Networks can be shared by multiple indexers but channels are unique
@@ -73,11 +82,21 @@ func NewHandler(network domain.IrcNetwork, filterService filter.Service, release
 			channel = strings.ToLower(channel)
 
 			h.announceProcessors[channel] = announce.NewAnnounceProcessor(definition, filterService, releaseService)
+
+			h.channelHealth[channel] = &channelHealth{
+				name:       channel,
+				monitoring: false,
+			}
 		}
 
 		// create map of valid announcers
 		for _, announcer := range definition.IRC.Announcers {
 			h.validAnnouncers[announcer] = struct{}{}
+		}
+
+		// create map of valid channels
+		for _, ch := range definition.IRC.Channels {
+			h.validChannels[ch] = struct{}{}
 		}
 	}
 
@@ -216,10 +235,19 @@ func (s *Handler) Run() error {
 
 	s.client = client
 
+	// set connected since now
+	s.connectedSince = time.Now()
+	s.connected = true
+
 	// Connect
 	err = client.RunContext(ctx)
 	if err != nil {
 		log.Error().Err(err).Msgf("could not connect to %v", addr)
+
+		// set connected false if we loose connection or stop
+		s.connectedSince = time.Time{}
+		s.connected = false
+
 		return err
 	}
 
@@ -279,7 +307,7 @@ func (s *Handler) onConnect(channels []domain.IrcChannel) error {
 	if s.network.NickServ.Password != "" {
 		err := s.handleNickServPRIVMSG(s.network.NickServ.Account, s.network.NickServ.Password)
 		if err != nil {
-			log.Error().Err(err).Msgf("error nickserv: %v", s.network.Name)
+			log.Error().Stack().Err(err).Msgf("error nickserv: %v", s.network.Name)
 			return err
 		}
 		identified = true
@@ -291,7 +319,7 @@ func (s *Handler) onConnect(channels []domain.IrcChannel) error {
 
 		err := s.handleInvitePRIVMSG(s.network.InviteCommand)
 		if err != nil {
-			log.Error().Err(err).Msgf("error sending connect command %v to network: %v", s.network.InviteCommand, s.network.Name)
+			log.Error().Stack().Err(err).Msgf("error sending connect command %v to network: %v", s.network.InviteCommand, s.network.Name)
 			return err
 		}
 
@@ -302,7 +330,7 @@ func (s *Handler) onConnect(channels []domain.IrcChannel) error {
 		for _, channel := range channels {
 			err := s.HandleJoinChannel(channel.Name, channel.Password)
 			if err != nil {
-				log.Error().Err(err)
+				log.Error().Stack().Err(err)
 				return err
 			}
 		}
@@ -321,6 +349,12 @@ func (s *Handler) onMessage(msg *irc.Message) error {
 	announcer := &msg.Name
 	message := msg.Trailing()
 	// TODO add network
+
+	// check if message is from a valid channel, if not return
+	validChannel := s.isValidChannel(*channel)
+	if !validChannel {
+		return nil
+	}
 
 	// check if message is from announce bot, if not return
 	validAnnouncer := s.isValidAnnouncer(*announcer)
@@ -358,6 +392,13 @@ func (s *Handler) sendToAnnounceProcessor(channel string, msg string) error {
 		return err
 	}
 
+	v, ok := s.channelHealth[channel]
+	if !ok {
+		return nil
+	}
+
+	v.SetLastAnnounce()
+
 	return nil
 }
 
@@ -392,11 +433,16 @@ func (s *Handler) HandleJoinChannel(channel string, password string) error {
 
 	err := s.client.Write(m.String())
 	if err != nil {
-		log.Error().Err(err).Msgf("error handling join: %v", m.String())
+		log.Error().Stack().Err(err).Msgf("error handling join: %v", m.String())
 		return err
 	}
 
-	//log.Info().Msgf("Monitoring channel %v %s", s.network.Name, channel)
+	// only set values if channel is found in map
+	v, ok := s.channelHealth[channel]
+	if ok {
+		v.monitoring = true
+		v.monitoringSince = time.Now()
+	}
 
 	return nil
 }
@@ -570,6 +616,15 @@ func (s *Handler) isValidAnnouncer(nick string) bool {
 	return true
 }
 
+func (s *Handler) isValidChannel(channel string) bool {
+	_, ok := s.validChannels[channel]
+	if !ok {
+		return false
+	}
+
+	return true
+}
+
 func (s *Handler) setLastAnnounce() {
 	s.lastAnnounce = time.Now()
 }
@@ -578,12 +633,24 @@ func (s *Handler) GetLastAnnounce() time.Time {
 	return s.lastAnnounce
 }
 
+//func (s *Handler) setConnectedSince() {
+//	s.network.ConnectedSince = time.Now()
+//}
+//
+//func (s *Handler) GetConnectedSince() time.Time {
+//	return s.lastAnnounce
+//}
+
 func (s *Handler) setLastPing() {
 	s.lastPing = time.Now()
 }
 
 func (s *Handler) GetLastPing() time.Time {
 	return s.lastPing
+}
+
+func (s *Handler) GetChannelHealth() map[string]*channelHealth {
+	return s.channelHealth
 }
 
 // irc line can contain lots of extra stuff like color so lets clean that

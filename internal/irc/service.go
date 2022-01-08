@@ -3,6 +3,7 @@ package irc
 import (
 	"context"
 	"fmt"
+	"strings"
 	"sync"
 
 	"github.com/autobrr/autobrr/internal/domain"
@@ -18,6 +19,7 @@ type Service interface {
 	StopHandlers()
 	StopNetwork(name string) error
 	ListNetworks(ctx context.Context) ([]domain.IrcNetwork, error)
+	GetNetworksWithHealth(ctx context.Context) ([]domain.IrcNetworkWithHealth, error)
 	GetNetworkByID(id int64) (*domain.IrcNetwork, error)
 	DeleteNetwork(ctx context.Context, id int64) error
 	StoreNetwork(ctx context.Context, network *domain.IrcNetwork) error
@@ -349,7 +351,81 @@ func (s *service) ListNetworks(ctx context.Context) ([]domain.IrcNetwork, error)
 		}
 		n.Channels = append(n.Channels, channels...)
 
+		// TODO get handler channelHealth
+
 		ret = append(ret, n)
+	}
+
+	return ret, nil
+}
+
+func (s *service) GetNetworksWithHealth(ctx context.Context) ([]domain.IrcNetworkWithHealth, error) {
+	networks, err := s.repo.ListNetworks(ctx)
+	if err != nil {
+		log.Error().Err(err).Msgf("failed to list networks: %v", err)
+		return nil, err
+	}
+
+	var ret []domain.IrcNetworkWithHealth
+
+	for _, n := range networks {
+		netw := domain.IrcNetworkWithHealth{
+			ID:            n.ID,
+			Name:          n.Name,
+			Enabled:       n.Enabled,
+			Server:        n.Server,
+			Port:          n.Port,
+			TLS:           n.TLS,
+			Pass:          n.Pass,
+			InviteCommand: n.InviteCommand,
+			NickServ:      n.NickServ,
+			Connected:     false,
+		}
+
+		handler, ok := s.handlers[n.Server]
+		if ok {
+			// only set connected and connected since if we have an active handler and connection
+			if handler.conn != nil {
+				netw.Connected = handler.connected
+				netw.ConnectedSince = handler.connectedSince
+			}
+		}
+
+		channels, err := s.repo.ListChannels(n.ID)
+		if err != nil {
+			log.Error().Msgf("failed to list channels for network %q: %v", n.Server, err)
+			return nil, err
+		}
+
+		// combine from repo and handler
+		for _, channel := range channels {
+			ch := domain.ChannelWithHealth{
+				ID:       channel.ID,
+				Enabled:  channel.Enabled,
+				Name:     channel.Name,
+				Password: channel.Password,
+				Detached: channel.Detached,
+				//Monitoring:      false,
+				//MonitoringSince: time.Time{},
+				//LastAnnounce:    time.Time{},
+			}
+
+			// only check if we have a handler
+			if handler != nil {
+				name := strings.ToLower(channel.Name)
+
+				chan1, ok := handler.channelHealth[name]
+				if ok {
+					ch.Monitoring = chan1.monitoring
+					ch.MonitoringSince = chan1.monitoringSince
+					ch.LastAnnounce = chan1.lastAnnounce
+				}
+			}
+
+			netw.Channels = append(netw.Channels, ch)
+		}
+
+		ret = append(ret, netw)
 	}
 
 	return ret, nil
