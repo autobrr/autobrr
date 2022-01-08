@@ -183,7 +183,8 @@ func (r *FilterRepo) FindByIndexerIdentifier(indexer string) ([]domain.Filter, e
 		WHERE i.identifier = ?
 		AND f.enabled = true`, indexer)
 	if err != nil {
-		log.Fatal().Err(err)
+		log.Error().Stack().Err(err).Msg("error querying filter row")
+		return nil, err
 	}
 
 	defer rows.Close()
@@ -199,8 +200,6 @@ func (r *FilterRepo) FindByIndexerIdentifier(indexer string) ([]domain.Filter, e
 
 		if err := rows.Scan(&f.ID, &f.Enabled, &f.Name, &minSize, &maxSize, &delay, &matchReleases, &exceptReleases, &useRegex, &matchReleaseGroups, &exceptReleaseGroups, &scene, &freeleech, &freeleechPercent, &shows, &seasons, &episodes, pq.Array(&f.Resolutions), pq.Array(&f.Codecs), pq.Array(&f.Sources), pq.Array(&f.Containers), &years, &matchCategories, &exceptCategories, &matchUploaders, &exceptUploaders, &tags, &exceptTags, &createdAt, &updatedAt); err != nil {
 			log.Error().Stack().Err(err).Msg("error scanning data to struct")
-		}
-		if err != nil {
 			return nil, err
 		}
 
