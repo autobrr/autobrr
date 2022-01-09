@@ -50,10 +50,20 @@ func (h authHandler) login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.cookieStore.Options.Secure = true
 	h.cookieStore.Options.HttpOnly = true
-	h.cookieStore.Options.SameSite = http.SameSiteStrictMode
+	h.cookieStore.Options.SameSite = http.SameSiteLaxMode
 	h.cookieStore.Options.Path = h.config.BaseURL
+
+	// autobrr does not support serving on TLS / https, so this is only available behind reverse proxy
+	// if forwarded protocol is https then set cookie secure
+	// SameSite Strict can only be set with a secure cookie. So we overwrite it here if possible.
+	// https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Set-Cookie/SameSite
+	fwdProto := r.Header.Get("X-Forwarded-Proto")
+	if fwdProto == "https" {
+		h.cookieStore.Options.Secure = true
+		h.cookieStore.Options.SameSite = http.SameSiteStrictMode
+	}
+
 	session, _ := h.cookieStore.Get(r, "user_session")
 
 	_, err := h.service.Login(ctx, data.Username, data.Password)
