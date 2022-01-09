@@ -177,7 +177,6 @@ export interface Config {
 export interface Release {
     id: number;
     filter_status: string;
-    push_status: string;
     rejections: string[];
     indexer: string;
     filter: string;
@@ -186,6 +185,17 @@ export interface Release {
     size: number;
     raw: string;
     timestamp: Date
+    action_status: ReleaseActionStatus[]
+}
+
+export interface ReleaseActionStatus {
+    id: number;
+    status: string;
+    action: string;
+    type: string;
+    rejections: string[];
+    timestamp: Date
+    // raw: string;
 }
 
 export interface ReleaseFindResponse {

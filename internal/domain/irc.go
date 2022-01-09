@@ -34,6 +34,44 @@ type IrcNetwork struct {
 	ConnectedSince *time.Time   `json:"connected_since"`
 }
 
+type IrcNetworkWithHealth struct {
+	ID            int64    `json:"id"`
+	Name          string   `json:"name"`
+	Enabled       bool     `json:"enabled"`
+	Server        string   `json:"server"`
+	Port          int      `json:"port"`
+	TLS           bool     `json:"tls"`
+	Pass          string   `json:"pass"`
+	InviteCommand string   `json:"invite_command"`
+	NickServ      NickServ `json:"nickserv,omitempty"`
+	//Channels       []IrcChannel  `json:"channels"`
+	Channels []ChannelWithHealth `json:"channels"`
+	//Channels []struct {
+	//	IrcChannel
+	//	ChannelHealth
+	//} `json:"channels"`
+	Connected      bool      `json:"connected"`
+	ConnectedSince time.Time `json:"connected_since"`
+}
+
+type ChannelWithHealth struct {
+	ID              int64     `json:"id"`
+	Enabled         bool      `json:"enabled"`
+	Name            string    `json:"name"`
+	Password        string    `json:"password"`
+	Detached        bool      `json:"detached"`
+	Monitoring      bool      `json:"monitoring"`
+	MonitoringSince time.Time `json:"monitoring_since"`
+	LastAnnounce    time.Time `json:"last_announce"`
+}
+
+type ChannelHealth struct {
+	Name            string    `json:"name"`
+	Monitoring      bool      `json:"monitoring"`
+	MonitoringSince time.Time `json:"monitoring_since"`
+	LastAnnounce    time.Time `json:"last_announce"`
+}
+
 type IrcRepo interface {
 	StoreNetwork(network *IrcNetwork) error
 	UpdateNetwork(ctx context.Context, network *IrcNetwork) error

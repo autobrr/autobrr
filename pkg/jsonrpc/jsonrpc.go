@@ -98,6 +98,7 @@ func NewClientWithOpts(endpoint string, opts *ClientOpts) Client {
 
 func (c *rpcClient) Call(method string, params ...interface{}) (*RPCResponse, error) {
 	request := RPCRequest{
+		ID:      1,
 		JsonRPC: "2.0",
 		Method:  method,
 		Params:  Params(params...),

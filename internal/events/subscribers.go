@@ -24,23 +24,14 @@ func NewSubscribers(eventbus EventBus.Bus, releaseSvc release.Service) Subscribe
 }
 
 func (s Subscriber) Register() {
-	s.eventbus.Subscribe("release:update-push-status", s.releaseUpdatePushStatus)
-	s.eventbus.Subscribe("release:update-push-status-rejected", s.releaseUpdatePushStatusRejected)
+	s.eventbus.Subscribe("release:store-action-status", s.releaseActionStatus)
 }
 
-func (s Subscriber) releaseUpdatePushStatus(id int64, status domain.ReleasePushStatus) {
-	log.Trace().Msgf("event: 'release:update-push-status' release ID '%v' update push status: '%v'", id, status)
+func (s Subscriber) releaseActionStatus(actionStatus *domain.ReleaseActionStatus) {
+	log.Trace().Msgf("events: 'release:store-action-status' '%+v'", actionStatus)
 
-	err := s.releaseSvc.UpdatePushStatus(context.Background(), id, status)
+	err := s.releaseSvc.StoreReleaseActionStatus(context.Background(), actionStatus)
 	if err != nil {
-		log.Error().Err(err).Msgf("events: error")
-	}
-}
-func (s Subscriber) releaseUpdatePushStatusRejected(id int64, rejections string) {
-	log.Trace().Msgf("event: 'release:update-push-status-rejected' release ID '%v' update push status rejected rejections: '%v'", id, rejections)
-
-	err := s.releaseSvc.UpdatePushStatusRejected(context.Background(), id, rejections)
-	if err != nil {
-		log.Error().Err(err).Msgf("events: error")
+		log.Error().Err(err).Msgf("events: 'release:store-action-status' error")
 	}
 }

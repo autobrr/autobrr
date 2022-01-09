@@ -1,10 +1,13 @@
-import { ChevronDoubleLeftIcon, ChevronLeftIcon, ChevronRightIcon, ChevronDoubleRightIcon } from "@heroicons/react/solid"
+import { ExclamationCircleIcon } from "@heroicons/react/outline"
+import ClockIcon from "@heroicons/react/outline/ClockIcon"
+import { ChevronDoubleLeftIcon, ChevronLeftIcon, ChevronRightIcon, ChevronDoubleRightIcon, CheckIcon } from "@heroicons/react/solid"
 import { formatDistanceToNowStrict } from "date-fns"
 import React from "react"
 import { useQuery } from "react-query"
 import { useTable, useSortBy, usePagination } from "react-table"
 import APIClient from "../api/APIClient"
 import { EmptyListState } from "../components/emptystates"
+import { ReleaseActionStatus } from "../domain/interfaces"
 import { classNames } from "../utils"
 
 export function Releases() {
@@ -98,6 +101,7 @@ export function StatusPill({ value }: any) {
     );
 };
 
+
 export function AgeCell({ value, column, row }: any) {
 
     const formatDate = formatDistanceToNowStrict(
@@ -113,6 +117,31 @@ export function AgeCell({ value, column, row }: any) {
 export function ReleaseCell({ value, column, row }: any) {
     return (
         <div className="text-sm font-medium text-gray-900 dark:text-gray-300" title={value}>{value}</div>
+    )
+}
+
+interface ReleaseStatusCellProps {
+    value: ReleaseActionStatus[];
+    column: any;
+    row: any;
+}
+
+export function ReleaseStatusCell({ value, column, row }: ReleaseStatusCellProps) {
+    const statusMap: any = {
+        "PUSH_REJECTED": <span className="mr-1 inline-flex items-center rounded text-xs font-semibold uppercase bg-pink-100 text-pink-800 hover:bg-pink-300">
+             <ExclamationCircleIcon className="h-5 w-5" aria-hidden="true" />
+        </span>,
+        "PUSH_APPROVED": <span className="mr-1 inline-flex items-center rounded text-xs font-semibold uppercase bg-green-100 text-green-800 hover:bg-green-300">
+             <CheckIcon className="h-5 w-5" aria-hidden="true" />
+        </span>,
+        "PENDING": <span className="mr-1 inline-flex items-center rounded text-xs font-semibold uppercase bg-yellow-100 text-yellow-800 hover:bg-yellow-200">
+             <ClockIcon className="h-5 w-5" aria-hidden="true" />
+        </span>,
+    }
+    return (
+        <div className="flex text-sm font-medium text-gray-900 dark:text-gray-300">
+            {value.map((v, idx) => <div key={idx} title={`action: ${v.action}, type: ${v.type}, status: ${v.status}, ;time: ${v.timestamp}`}>{statusMap[v.status]}</div>)}
+        </div>
     )
 }
 
@@ -166,9 +195,9 @@ function Table() {
         //   Cell: StatusPill,
         // },
         {
-            Header: "Push Status",
-            accessor: 'push_status',
-            Cell: StatusPill,
+            Header: "Actions",
+            accessor: 'action_status',
+            Cell: ReleaseStatusCell,
         },
         {
             Header: "Indexer",
