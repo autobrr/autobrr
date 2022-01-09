@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"context"
 	"database/sql"
 	"flag"
 	"fmt"
@@ -75,7 +76,7 @@ func main() {
 			Username: username,
 			Password: hashed,
 		}
-		if err := userRepo.Store(user); err != nil {
+		if err := userRepo.Store(context.Background(), user); err != nil {
 			log.Fatalf("failed to create user: %v", err)
 		}
 	case "change-password":
@@ -85,7 +86,7 @@ func main() {
 			os.Exit(1)
 		}
 
-		user, err := userRepo.FindByUsername(username)
+		user, err := userRepo.FindByUsername(context.Background(), username)
 		if err != nil {
 			log.Fatalf("failed to get user: %v", err)
 		}
@@ -104,7 +105,7 @@ func main() {
 		}
 
 		user.Password = hashed
-		if err := userRepo.Store(*user); err != nil {
+		if err := userRepo.Store(context.Background(), *user); err != nil {
 			log.Fatalf("failed to create user: %v", err)
 		}
 	default:

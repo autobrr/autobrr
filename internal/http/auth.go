@@ -1,6 +1,7 @@
 package http
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 
@@ -11,7 +12,7 @@ import (
 )
 
 type authService interface {
-	Login(username, password string) (*domain.User, error)
+	Login(ctx context.Context, username, password string) (*domain.User, error)
 }
 
 type authHandler struct {
@@ -55,7 +56,7 @@ func (h authHandler) login(w http.ResponseWriter, r *http.Request) {
 	h.cookieStore.Options.Path = h.config.BaseURL
 	session, _ := h.cookieStore.Get(r, "user_session")
 
-	_, err := h.service.Login(data.Username, data.Password)
+	_, err := h.service.Login(ctx, data.Username, data.Password)
 	if err != nil {
 		h.encoder.StatusResponse(ctx, w, nil, http.StatusUnauthorized)
 		return
