@@ -30,8 +30,15 @@ type channelHealth struct {
 	lastAnnounce    time.Time
 }
 
+// SetLastAnnounce set last announce to now
 func (h *channelHealth) SetLastAnnounce() {
 	h.lastAnnounce = time.Now()
+}
+
+// SetMonitoring set monitoring and time
+func (h *channelHealth) SetMonitoring() {
+	h.monitoring = true
+	h.monitoringSince = time.Now()
 }
 
 type Handler struct {
@@ -48,7 +55,6 @@ type Handler struct {
 	cancel  context.CancelFunc
 
 	lastPing       time.Time
-	lastAnnounce   time.Time
 	connected      bool
 	connectedSince time.Time
 	// tODO disconnectedTime
@@ -366,8 +372,6 @@ func (s *Handler) onMessage(msg *irc.Message) error {
 	cleanedMsg := cleanMessage(message)
 	log.Debug().Msgf("%v: %v %v: %v", s.network.Server, *channel, *announcer, cleanedMsg)
 
-	s.setLastAnnounce()
-
 	if err := s.sendToAnnounceProcessor(*channel, cleanedMsg); err != nil {
 		log.Error().Stack().Err(err).Msgf("could not queue line: %v", cleanedMsg)
 		return err
@@ -440,8 +444,7 @@ func (s *Handler) HandleJoinChannel(channel string, password string) error {
 	// only set values if channel is found in map
 	v, ok := s.channelHealth[channel]
 	if ok {
-		v.monitoring = true
-		v.monitoringSince = time.Now()
+		v.SetMonitoring()
 	}
 
 	return nil
@@ -607,6 +610,7 @@ func (s *Handler) handlePing(msg *irc.Message) error {
 	return nil
 }
 
+// check if announcer is one from the list in the definition
 func (s *Handler) isValidAnnouncer(nick string) bool {
 	_, ok := s.validAnnouncers[nick]
 	if !ok {
@@ -616,6 +620,7 @@ func (s *Handler) isValidAnnouncer(nick string) bool {
 	return true
 }
 
+// check if channel is one from the list in the definition
 func (s *Handler) isValidChannel(channel string) bool {
 	_, ok := s.validChannels[channel]
 	if !ok {
@@ -625,32 +630,12 @@ func (s *Handler) isValidChannel(channel string) bool {
 	return true
 }
 
-func (s *Handler) setLastAnnounce() {
-	s.lastAnnounce = time.Now()
-}
-
-func (s *Handler) GetLastAnnounce() time.Time {
-	return s.lastAnnounce
-}
-
-//func (s *Handler) setConnectedSince() {
-//	s.network.ConnectedSince = time.Now()
-//}
-//
-//func (s *Handler) GetConnectedSince() time.Time {
-//	return s.lastAnnounce
-//}
-
 func (s *Handler) setLastPing() {
 	s.lastPing = time.Now()
 }
 
 func (s *Handler) GetLastPing() time.Time {
 	return s.lastPing
-}
-
-func (s *Handler) GetChannelHealth() map[string]*channelHealth {
-	return s.channelHealth
 }
 
 // irc line can contain lots of extra stuff like color so lets clean that

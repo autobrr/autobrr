@@ -140,7 +140,7 @@ export function ReleaseStatusCell({ value, column, row }: ReleaseStatusCellProps
     }
     return (
         <div className="flex text-sm font-medium text-gray-900 dark:text-gray-300">
-            {value.map(v => <div title={`action: ${v.action}, type: ${v.type}, status: ${v.status}, ;time: ${v.timestamp}`}>{statusMap[v.status]}</div>)}
+            {value.map((v, idx) => <div key={idx} title={`action: ${v.action}, type: ${v.type}, status: ${v.status}, ;time: ${v.timestamp}`}>{statusMap[v.status]}</div>)}
         </div>
     )
 }
