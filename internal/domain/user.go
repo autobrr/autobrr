@@ -1,8 +1,10 @@
 package domain
 
+import "context"
+
 type UserRepo interface {
-	FindByUsername(username string) (*User, error)
-	Store(user User) error
+	FindByUsername(ctx context.Context, username string) (*User, error)
+	Store(ctx context.Context, user User) error
 }
 
 type User struct {
