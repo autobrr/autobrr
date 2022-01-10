@@ -85,6 +85,7 @@ func NewHandler(network domain.IrcNetwork, filterService filter.Service, release
 	for _, definition := range definitions {
 		// indexers can use multiple channels, but it's not common, but let's handle that anyway.
 		for _, channel := range definition.IRC.Channels {
+			// some channels are defined in mixed case
 			channel = strings.ToLower(channel)
 
 			h.announceProcessors[channel] = announce.NewAnnounceProcessor(definition, filterService, releaseService)
@@ -93,16 +94,14 @@ func NewHandler(network domain.IrcNetwork, filterService filter.Service, release
 				name:       channel,
 				monitoring: false,
 			}
+
+			// create map of valid channels
+			h.validChannels[channel] = struct{}{}
 		}
 
 		// create map of valid announcers
 		for _, announcer := range definition.IRC.Announcers {
 			h.validAnnouncers[announcer] = struct{}{}
-		}
-
-		// create map of valid channels
-		for _, ch := range definition.IRC.Channels {
-			h.validChannels[ch] = struct{}{}
 		}
 	}
 
@@ -622,7 +621,7 @@ func (s *Handler) isValidAnnouncer(nick string) bool {
 
 // check if channel is one from the list in the definition
 func (s *Handler) isValidChannel(channel string) bool {
-	_, ok := s.validChannels[channel]
+	_, ok := s.validChannels[strings.ToLower(channel)]
 	if !ok {
 		return false
 	}
