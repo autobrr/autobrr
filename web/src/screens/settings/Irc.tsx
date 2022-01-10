@@ -146,12 +146,16 @@ const LiItem = ({ idx, network }: LiItemProps) => {
                 </div> */}
                 <div className="col-span-3 items-center sm:px-6 text-sm font-medium text-gray-900 dark:text-white cursor-pointer" onClick={toggleEdit}>
                     <span className="relative inline-flex items-center">
-                        {network.connected ? (
-                            <span className="mr-3 flex h-3 w-3 relative" title={`Connected since: ${simplifyDate(network.connected_since)}`}>
-                                <span className="animate-ping inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                                <span className="inline-flex absolute rounded-full h-3 w-3 bg-green-500"></span>
-                            </span>
-                        ) : <span className="mr-3 flex h-3 w-3 rounded-full opacity-75 bg-red-400" />}
+                        {
+                            network.enabled ? (
+                                network.connected ? (
+                                    <span className="mr-3 flex h-3 w-3 relative" title={`Connected since: ${simplifyDate(network.connected_since)}`}>
+                                        <span className="animate-ping inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                                        <span className="inline-flex absolute rounded-full h-3 w-3 bg-green-500"></span>
+                                    </span>
+                                ) : <span className="mr-3 flex h-3 w-3 rounded-full opacity-75 bg-red-400" />
+                            ) : <span className="mr-3 flex h-3 w-3 rounded-full opacity-75 bg-gray-500" />
+                        }
                         {network.name}
                     </span>
                 </div>
@@ -182,12 +186,16 @@ const LiItem = ({ idx, network }: LiItemProps) => {
 
                                         <div className="col-span-4 flex items-center sm:px-6 ">
                                             <span className="relative inline-flex items-center">
-                                                {c.monitoring ? (
-                                                    <span className="mr-3 flex h-3 w-3 relative" title="monitoring">
-                                                        <span className="animate-ping inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                                                        <span className="inline-flex absolute rounded-full h-3 w-3 bg-green-500"></span>
-                                                    </span>
-                                                ) : <span className="mr-3 flex h-3 w-3 rounded-full opacity-75 bg-red-400" />}
+                                                {
+                                                    network.enabled ? (
+                                                        c.monitoring ? (
+                                                            <span className="mr-3 flex h-3 w-3 relative" title="monitoring">
+                                                                <span className="animate-ping inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                                                                <span className="inline-flex absolute rounded-full h-3 w-3 bg-green-500"></span>
+                                                            </span>
+                                                        ) : <span className="mr-3 flex h-3 w-3 rounded-full opacity-75 bg-red-400" />
+                                                    ) : <span className="mr-3 flex h-3 w-3 rounded-full opacity-75 bg-gray-500" />
+                                                }
                                                 {c.name}
                                             </span>
                                         </div>
