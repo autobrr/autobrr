@@ -41,6 +41,12 @@ func (h *channelHealth) SetMonitoring() {
 	h.monitoringSince = time.Now()
 }
 
+// resetMonitoring remove monitoring and time
+func (h *channelHealth) resetMonitoring() {
+	h.monitoring = false
+	h.monitoringSince = time.Time{}
+}
+
 type Handler struct {
 	network            *domain.IrcNetwork
 	filterService      filter.Service
@@ -241,22 +247,39 @@ func (s *Handler) Run() error {
 	s.client = client
 
 	// set connected since now
-	s.connectedSince = time.Now()
-	s.connected = true
+	s.setConnectionStatus()
 
 	// Connect
 	err = client.RunContext(ctx)
 	if err != nil {
 		log.Error().Err(err).Msgf("could not connect to %v", addr)
 
-		// set connected false if we loose connection or stop
-		s.connectedSince = time.Time{}
-		s.connected = false
+		// reset connection status on handler and channels
+		s.resetConnectionStatus()
 
 		return err
 	}
 
 	return nil
+}
+
+func (s *Handler) setConnectionStatus() {
+	// set connected since now
+	s.connectedSince = time.Now()
+	s.connected = true
+}
+
+func (s *Handler) resetConnectionStatus() {
+	// set connected false if we loose connection or stop
+	s.connectedSince = time.Time{}
+	s.connected = false
+
+	// loop over channelHealth and reset each one
+	for _, h := range s.channelHealth {
+		if h != nil {
+			h.resetMonitoring()
+		}
+	}
 }
 
 func (s *Handler) GetNetwork() *domain.IrcNetwork {
