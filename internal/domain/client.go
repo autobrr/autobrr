@@ -1,9 +1,11 @@
 package domain
 
+import "context"
+
 type DownloadClientRepo interface {
 	//FindByActionID(actionID int) ([]DownloadClient, error)
 	List() ([]DownloadClient, error)
-	FindByID(id int32) (*DownloadClient, error)
+	FindByID(ctx context.Context, id int32) (*DownloadClient, error)
 	Store(client DownloadClient) (*DownloadClient, error)
 	Delete(clientID int) error
 }

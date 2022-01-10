@@ -13,16 +13,18 @@ import (
 )
 
 type FilterRepo struct {
-	db *sql.DB
+	db *SqliteDB
 }
 
-func NewFilterRepo(db *sql.DB) domain.FilterRepo {
+func NewFilterRepo(db *SqliteDB) domain.FilterRepo {
 	return &FilterRepo{db: db}
 }
 
 func (r *FilterRepo) ListFilters() ([]domain.Filter, error) {
+	//r.db.lock.RLock()
+	//defer r.db.lock.RUnlock()
 
-	rows, err := r.db.Query("SELECT id, enabled, name, match_releases, except_releases, created_at, updated_at FROM filter")
+	rows, err := r.db.handler.Query("SELECT id, enabled, name, match_releases, except_releases, created_at, updated_at FROM filter")
 	if err != nil {
 		log.Fatal().Err(err)
 	}
@@ -62,8 +64,10 @@ func (r *FilterRepo) ListFilters() ([]domain.Filter, error) {
 }
 
 func (r *FilterRepo) FindByID(filterID int) (*domain.Filter, error) {
+	//r.db.lock.RLock()
+	//defer r.db.lock.RUnlock()
 
-	row := r.db.QueryRow("SELECT id, enabled, name, min_size, max_size, delay, match_releases, except_releases, use_regex, match_release_groups, except_release_groups, scene, freeleech, freeleech_percent, shows, seasons, episodes, resolutions, codecs, sources, containers, years, match_categories, except_categories, match_uploaders, except_uploaders, tags, except_tags, created_at, updated_at FROM filter WHERE id = ?", filterID)
+	row := r.db.handler.QueryRow("SELECT id, enabled, name, min_size, max_size, delay, match_releases, except_releases, use_regex, match_release_groups, except_release_groups, scene, freeleech, freeleech_percent, shows, seasons, episodes, resolutions, codecs, sources, containers, years, match_categories, except_categories, match_uploaders, except_uploaders, tags, except_tags, created_at, updated_at FROM filter WHERE id = ?", filterID)
 
 	var f domain.Filter
 
@@ -114,8 +118,10 @@ func (r *FilterRepo) FindByID(filterID int) (*domain.Filter, error) {
 
 // TODO remove
 func (r *FilterRepo) FindFiltersForSite(site string) ([]domain.Filter, error) {
+	//r.db.lock.RLock()
+	//defer r.db.lock.RUnlock()
 
-	rows, err := r.db.Query("SELECT id, enabled, name, match_releases, except_releases, created_at, updated_at FROM filter WHERE match_sites LIKE ?", site)
+	rows, err := r.db.handler.Query("SELECT id, enabled, name, match_releases, except_releases, created_at, updated_at FROM filter WHERE match_sites LIKE ?", site)
 	if err != nil {
 		log.Fatal().Err(err)
 	}
@@ -144,8 +150,10 @@ func (r *FilterRepo) FindFiltersForSite(site string) ([]domain.Filter, error) {
 
 // FindByIndexerIdentifier find active filters only
 func (r *FilterRepo) FindByIndexerIdentifier(indexer string) ([]domain.Filter, error) {
+	//r.db.lock.RLock()
+	//defer r.db.lock.RUnlock()
 
-	rows, err := r.db.Query(`
+	rows, err := r.db.handler.Query(`
 		SELECT 
 		       f.id,
 		       f.enabled,
@@ -241,6 +249,8 @@ func (r *FilterRepo) FindByIndexerIdentifier(indexer string) ([]domain.Filter, e
 }
 
 func (r *FilterRepo) Store(filter domain.Filter) (*domain.Filter, error) {
+	//r.db.lock.RLock()
+	//defer r.db.lock.RUnlock()
 
 	var err error
 	if filter.ID != 0 {
@@ -248,7 +258,7 @@ func (r *FilterRepo) Store(filter domain.Filter) (*domain.Filter, error) {
 	} else {
 		var res sql.Result
 
-		res, err = r.db.Exec(`INSERT INTO filter (
+		res, err = r.db.handler.Exec(`INSERT INTO filter (
                     name,
                     enabled,
                     min_size,
@@ -319,11 +329,13 @@ func (r *FilterRepo) Store(filter domain.Filter) (*domain.Filter, error) {
 }
 
 func (r *FilterRepo) Update(ctx context.Context, filter domain.Filter) (*domain.Filter, error) {
+	//r.db.lock.RLock()
+	//defer r.db.lock.RUnlock()
 
 	//var res sql.Result
 
 	var err error
-	_, err = r.db.ExecContext(ctx, `
+	_, err = r.db.handler.ExecContext(ctx, `
 			UPDATE filter SET 
                     name = ?,
                     enabled = ?,
@@ -392,9 +404,11 @@ func (r *FilterRepo) Update(ctx context.Context, filter domain.Filter) (*domain.
 }
 
 func (r *FilterRepo) ToggleEnabled(ctx context.Context, filterID int, enabled bool) error {
+	//r.db.lock.RLock()
+	//defer r.db.lock.RUnlock()
 
 	var err error
-	_, err = r.db.ExecContext(ctx, `
+	_, err = r.db.handler.ExecContext(ctx, `
 			UPDATE filter SET 
                     enabled = ?,
 				    updated_at = CURRENT_TIMESTAMP
@@ -411,8 +425,10 @@ func (r *FilterRepo) ToggleEnabled(ctx context.Context, filterID int, enabled bo
 }
 
 func (r *FilterRepo) StoreIndexerConnections(ctx context.Context, filterID int, indexers []domain.Indexer) error {
+	//r.db.lock.RLock()
+	//defer r.db.lock.RUnlock()
 
-	tx, err := r.db.BeginTx(ctx, nil)
+	tx, err := r.db.handler.BeginTx(ctx, nil)
 	if err != nil {
 		return err
 	}
@@ -447,8 +463,11 @@ func (r *FilterRepo) StoreIndexerConnections(ctx context.Context, filterID int, 
 }
 
 func (r *FilterRepo) StoreIndexerConnection(ctx context.Context, filterID int, indexerID int) error {
+	//r.db.lock.RLock()
+	//defer r.db.lock.RUnlock()
+
 	query := `INSERT INTO filter_indexer (filter_id, indexer_id) VALUES ($1, $2)`
-	_, err := r.db.ExecContext(ctx, query, filterID, indexerID)
+	_, err := r.db.handler.ExecContext(ctx, query, filterID, indexerID)
 	if err != nil {
 		log.Error().Stack().Err(err).Msg("error executing query")
 		return err
@@ -458,9 +477,11 @@ func (r *FilterRepo) StoreIndexerConnection(ctx context.Context, filterID int, i
 }
 
 func (r *FilterRepo) DeleteIndexerConnections(ctx context.Context, filterID int) error {
+	//r.db.lock.RLock()
+	//defer r.db.lock.RUnlock()
 
 	query := `DELETE FROM filter_indexer WHERE filter_id = ?`
-	_, err := r.db.ExecContext(ctx, query, filterID)
+	_, err := r.db.handler.ExecContext(ctx, query, filterID)
 	if err != nil {
 		log.Error().Stack().Err(err).Msg("error executing query")
 		return err
@@ -470,8 +491,10 @@ func (r *FilterRepo) DeleteIndexerConnections(ctx context.Context, filterID int)
 }
 
 func (r *FilterRepo) Delete(ctx context.Context, filterID int) error {
+	//r.db.lock.RLock()
+	//defer r.db.lock.RUnlock()
 
-	_, err := r.db.ExecContext(ctx, `DELETE FROM filter WHERE id = ?`, filterID)
+	_, err := r.db.handler.ExecContext(ctx, `DELETE FROM filter WHERE id = ?`, filterID)
 	if err != nil {
 		log.Error().Stack().Err(err).Msg("error executing query")
 		return err

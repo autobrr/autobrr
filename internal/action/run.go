@@ -102,7 +102,7 @@ func (s *service) RunActions(actions []domain.Action, release domain.Release) er
 			}(action, tmpFile)
 
 		case domain.ActionTypeQbittorrent:
-			canDownload, err := s.qbittorrentCheckRulesCanDownload(action)
+			canDownload, client, err := s.qbittorrentCheckRulesCanDownload(action)
 			if err != nil {
 				log.Error().Stack().Err(err).Msgf("error checking client rules: %v", action.Name)
 				continue
@@ -131,7 +131,7 @@ func (s *service) RunActions(actions []domain.Action, release domain.Release) er
 			}
 
 			go func(action domain.Action, hash string, tmpFile string) {
-				err = s.qbittorrent(action, hash, tmpFile)
+				err = s.qbittorrent(client, action, hash, tmpFile)
 				if err != nil {
 					log.Error().Stack().Err(err).Msg("error sending torrent to qBittorrent")
 				}
@@ -206,7 +206,7 @@ func (s *service) CheckCanDownload(actions []domain.Action) bool {
 			return true
 
 		case domain.ActionTypeQbittorrent:
-			canDownload, err := s.qbittorrentCheckRulesCanDownload(action)
+			canDownload, _, err := s.qbittorrentCheckRulesCanDownload(action)
 			if err != nil {
 				log.Error().Stack().Err(err).Msgf("error checking client rules: %v", action.Name)
 				continue

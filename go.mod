@@ -4,16 +4,22 @@ go 1.16
 
 require (
 	github.com/Masterminds/squirrel v1.5.1
-	github.com/anacrolix/torrent v1.38.0
+	github.com/anacrolix/dht/v2 v2.5.1 // indirect
+	github.com/anacrolix/missinggo v1.3.0 // indirect
+	github.com/anacrolix/missinggo/v2 v2.5.2 // indirect
+	github.com/anacrolix/torrent v1.11.0
 	github.com/asaskevich/EventBus v0.0.0-20200907212545-49d423059eef
 	github.com/dustin/go-humanize v1.0.0
 	github.com/gdm85/go-libdeluge v0.5.5
 	github.com/go-chi/chi v1.5.4
 	github.com/gorilla/sessions v1.2.1
+	github.com/kr/pretty v0.3.0 // indirect
 	github.com/lib/pq v1.10.4
 	github.com/mattn/go-isatty v0.0.14 // indirect
+	github.com/mattn/go-sqlite3 v1.14.10
 	github.com/pkg/errors v0.9.1
 	github.com/r3labs/sse/v2 v2.7.2
+	github.com/rogpeppe/go-internal v1.8.0 // indirect
 	github.com/rs/cors v1.8.0
 	github.com/rs/zerolog v1.26.0
 	github.com/spf13/pflag v1.0.5

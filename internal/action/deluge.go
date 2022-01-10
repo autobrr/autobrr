@@ -1,6 +1,7 @@
 package action
 
 import (
+	"context"
 	"encoding/base64"
 	"errors"
 	"io/ioutil"
@@ -18,7 +19,7 @@ func (s *service) deluge(action domain.Action, torrentFile string) error {
 	var err error
 
 	// get client for action
-	client, err := s.clientSvc.FindByID(action.ClientID)
+	client, err := s.clientSvc.FindByID(context.TODO(), action.ClientID)
 	if err != nil {
 		log.Error().Stack().Err(err).Msgf("error finding client: %v", action.ClientID)
 		return err
@@ -56,7 +57,7 @@ func (s *service) delugeCheckRulesCanDownload(action domain.Action) (bool, error
 	log.Trace().Msgf("action Deluge: %v check rules", action.Name)
 
 	// get client for action
-	client, err := s.clientSvc.FindByID(action.ClientID)
+	client, err := s.clientSvc.FindByID(context.TODO(), action.ClientID)
 	if err != nil {
 		log.Error().Stack().Err(err).Msgf("error finding client: %v ID %v", action.Name, action.ClientID)
 		return false, err
