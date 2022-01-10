@@ -243,7 +243,7 @@ FROM "release";`
 
 	var rls domain.ReleaseStats
 
-	if err := row.Scan(&rls.TotalCount, &rls.PushApprovedCount, &rls.PushRejectedCount, &rls.FilteredCount, &rls.FilterRejectedCount); err != nil {
+	if err := row.Scan(&rls.TotalCount, &rls.FilteredCount, &rls.FilterRejectedCount, &rls.PushApprovedCount, &rls.PushRejectedCount); err != nil {
 		log.Error().Stack().Err(err).Msg("release.stats: error scanning stats data to struct")
 		return nil, err
 	}
