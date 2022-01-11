@@ -17,6 +17,7 @@ import (
 )
 
 type Client struct {
+	Name     string
 	settings Settings
 	http     *http.Client
 }

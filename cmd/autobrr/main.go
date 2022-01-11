@@ -1,7 +1,6 @@
 package main
 
 import (
-	"database/sql"
 	"os"
 	"os/signal"
 	"syscall"
@@ -10,7 +9,6 @@ import (
 	"github.com/r3labs/sse/v2"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/pflag"
-	_ "modernc.org/sqlite"
 
 	"github.com/autobrr/autobrr/internal/action"
 	"github.com/autobrr/autobrr/internal/auth"
@@ -60,18 +58,10 @@ func main() {
 	log.Info().Msgf("Version: %v", version)
 	log.Info().Msgf("Log-level: %v", cfg.LogLevel)
 
-	// if configPath is set then put database inside that path, otherwise create wherever it's run
-	var dataSource = database.DataSourceName(configPath, "autobrr.db")
-
 	// open database connection
-	db, err := sql.Open("sqlite", dataSource)
-	if err != nil {
+	db := database.NewSqliteDB(configPath)
+	if err := db.Open(); err != nil {
 		log.Fatal().Err(err).Msg("could not open db connection")
-	}
-	defer db.Close()
-
-	if err = database.Migrate(db); err != nil {
-		log.Fatal().Err(err).Msg("could not migrate db")
 	}
 
 	// setup repos
@@ -125,12 +115,15 @@ func main() {
 		case syscall.SIGHUP:
 			log.Print("shutting down server sighup")
 			srv.Shutdown()
+			db.Close()
 			os.Exit(1)
 		case syscall.SIGINT, syscall.SIGQUIT:
 			srv.Shutdown()
+			db.Close()
 			os.Exit(1)
 		case syscall.SIGKILL, syscall.SIGTERM:
 			srv.Shutdown()
+			db.Close()
 			os.Exit(1)
 		}
 	}

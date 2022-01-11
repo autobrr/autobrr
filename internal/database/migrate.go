@@ -1,7 +1,6 @@
 package database
 
 import (
-	"database/sql"
 	"fmt"
 )
 
@@ -283,9 +282,12 @@ var migrations = []string{
 	`,
 }
 
-func Migrate(db *sql.DB) error {
+func (db *SqliteDB) migrate() error {
+	db.lock.Lock()
+	defer db.lock.Unlock()
+
 	var version int
-	if err := db.QueryRow("PRAGMA user_version").Scan(&version); err != nil {
+	if err := db.handler.QueryRow("PRAGMA user_version").Scan(&version); err != nil {
 		return fmt.Errorf("failed to query schema version: %v", err)
 	}
 
@@ -295,7 +297,7 @@ func Migrate(db *sql.DB) error {
 		return fmt.Errorf("autobrr (version %d) older than schema (version: %d)", len(migrations), version)
 	}
 
-	tx, err := db.Begin()
+	tx, err := db.handler.Begin()
 	if err != nil {
 		return err
 	}

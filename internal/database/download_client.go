@@ -1,6 +1,7 @@
 package database
 
 import (
+	"context"
 	"database/sql"
 	"encoding/json"
 
@@ -10,16 +11,48 @@ import (
 )
 
 type DownloadClientRepo struct {
-	db *sql.DB
+	db    *SqliteDB
+	cache *clientCache
 }
 
-func NewDownloadClientRepo(db *sql.DB) domain.DownloadClientRepo {
-	return &DownloadClientRepo{db: db}
+type clientCache struct {
+	clients map[int]*domain.DownloadClient
+}
+
+func NewClientCache() *clientCache {
+	return &clientCache{
+		clients: make(map[int]*domain.DownloadClient, 0),
+	}
+}
+
+func (c *clientCache) Set(id int, client *domain.DownloadClient) {
+	c.clients[id] = client
+}
+
+func (c *clientCache) Get(id int) *domain.DownloadClient {
+	v, ok := c.clients[id]
+	if ok {
+		return v
+	}
+	return nil
+}
+
+func (c *clientCache) Pop(id int) {
+	delete(c.clients, id)
+}
+
+func NewDownloadClientRepo(db *SqliteDB) domain.DownloadClientRepo {
+	return &DownloadClientRepo{
+		db:    db,
+		cache: NewClientCache(),
+	}
 }
 
 func (r *DownloadClientRepo) List() ([]domain.DownloadClient, error) {
+	//r.db.lock.RLock()
+	//defer r.db.lock.RUnlock()
 
-	rows, err := r.db.Query("SELECT id, name, type, enabled, host, port, ssl, username, password, settings FROM client")
+	rows, err := r.db.handler.Query("SELECT id, name, type, enabled, host, port, ssl, username, password, settings FROM client")
 	if err != nil {
 		log.Error().Stack().Err(err).Msg("could not query download client rows")
 		return nil, err
@@ -55,13 +88,21 @@ func (r *DownloadClientRepo) List() ([]domain.DownloadClient, error) {
 	return clients, nil
 }
 
-func (r *DownloadClientRepo) FindByID(id int32) (*domain.DownloadClient, error) {
+func (r *DownloadClientRepo) FindByID(ctx context.Context, id int32) (*domain.DownloadClient, error) {
+	//r.db.lock.RLock()
+	//defer r.db.lock.RUnlock()
+
+	// get client from cache
+	c := r.cache.Get(int(id))
+	if c != nil {
+		return c, nil
+	}
 
 	query := `
 		SELECT id, name, type, enabled, host, port, ssl, username, password, settings FROM client WHERE id = ?
 	`
 
-	row := r.db.QueryRow(query, id)
+	row := r.db.handler.QueryRowContext(ctx, query, id)
 	if err := row.Err(); err != nil {
 		log.Error().Stack().Err(err).Msg("could not query download client rows")
 		return nil, err
@@ -86,6 +127,9 @@ func (r *DownloadClientRepo) FindByID(id int32) (*domain.DownloadClient, error) 
 }
 
 func (r *DownloadClientRepo) Store(client domain.DownloadClient) (*domain.DownloadClient, error) {
+	//r.db.lock.RLock()
+	//defer r.db.lock.RUnlock()
+
 	var err error
 
 	settings := domain.DownloadClientSettings{
@@ -101,7 +145,7 @@ func (r *DownloadClientRepo) Store(client domain.DownloadClient) (*domain.Downlo
 	}
 
 	if client.ID != 0 {
-		_, err = r.db.Exec(`
+		_, err = r.db.handler.Exec(`
 			UPDATE 
     			client 
 			SET 
@@ -134,7 +178,7 @@ func (r *DownloadClientRepo) Store(client domain.DownloadClient) (*domain.Downlo
 	} else {
 		var res sql.Result
 
-		res, err = r.db.Exec(`INSERT INTO 
+		res, err = r.db.handler.Exec(`INSERT INTO 
     		client(
     		       name,
     		       type, 
@@ -170,15 +214,24 @@ func (r *DownloadClientRepo) Store(client domain.DownloadClient) (*domain.Downlo
 	log.Info().Msgf("store download client: %v", client.Name)
 	log.Trace().Msgf("store download client: %+v", client)
 
+	// save to cache
+	r.cache.Set(client.ID, &client)
+
 	return &client, nil
 }
 
 func (r *DownloadClientRepo) Delete(clientID int) error {
-	res, err := r.db.Exec(`DELETE FROM client WHERE client.id = ?`, clientID)
+	//r.db.lock.RLock()
+	//defer r.db.lock.RUnlock()
+
+	res, err := r.db.handler.Exec(`DELETE FROM client WHERE client.id = ?`, clientID)
 	if err != nil {
 		log.Error().Stack().Err(err).Msgf("could not delete download client: %d", clientID)
 		return err
 	}
+
+	// remove from cache
+	r.cache.Pop(clientID)
 
 	rows, _ := res.RowsAffected()
 

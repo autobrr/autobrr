@@ -51,7 +51,7 @@ func TestDataSourceName(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := DataSourceName(tt.args.configPath, tt.args.name)
+			got := dataSourceName(tt.args.configPath, tt.args.name)
 			assert.Equal(t, tt.want, got)
 		})
 	}

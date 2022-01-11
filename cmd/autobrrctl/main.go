@@ -3,14 +3,13 @@ package main
 import (
 	"bufio"
 	"context"
-	"database/sql"
 	"flag"
 	"fmt"
 	"log"
 	"os"
 
+	_ "github.com/mattn/go-sqlite3"
 	"golang.org/x/crypto/ssh/terminal"
-	_ "modernc.org/sqlite"
 
 	"github.com/autobrr/autobrr/internal/database"
 	"github.com/autobrr/autobrr/internal/domain"
@@ -39,18 +38,10 @@ func main() {
 		log.Fatal("--config required")
 	}
 
-	// if configPath is set then put database inside that path, otherwise create wherever it's run
-	var dataSource = database.DataSourceName(configPath, "autobrr.db")
-
 	// open database connection
-	db, err := sql.Open("sqlite", dataSource)
-	if err != nil {
-		log.Fatalf("failed to open database: %v", err)
-	}
-	defer db.Close()
-
-	if err = database.Migrate(db); err != nil {
-		log.Fatalf("could not migrate db: %v", err)
+	db := database.NewSqliteDB(configPath)
+	if err := db.Open(); err != nil {
+		log.Fatal("could not open db connection")
 	}
 
 	userRepo := database.NewUserRepo(db)
