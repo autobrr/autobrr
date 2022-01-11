@@ -16,33 +16,6 @@ const REANNOUNCE_INTERVAL = 7000
 func (s *service) qbittorrent(qbt *qbittorrent.Client, action domain.Action, hash string, torrentFile string) error {
 	log.Debug().Msgf("action qBittorrent: %v", action.Name)
 
-	//// get client for action
-	//client, err := s.clientSvc.FindByID(context.TODO(), action.ClientID)
-	//if err != nil {
-	//	log.Error().Stack().Err(err).Msgf("error finding client: %v ID %v", action.Name, action.ClientID)
-	//	return err
-	//}
-	//
-	//if client == nil {
-	//	return err
-	//}
-	//
-	//qbtSettings := qbittorrent.Settings{
-	//	Hostname: client.Host,
-	//	Port:     uint(client.Port),
-	//	Username: client.Username,
-	//	Password: client.Password,
-	//	SSL:      client.SSL,
-	//}
-
-	//qbt := qbittorrent.NewClient(qbtSettings)
-	//// save cookies?
-	//err = qbt.Login()
-	//if err != nil {
-	//	log.Error().Stack().Err(err).Msgf("error logging into client: %v %v", client.Name, client.Host)
-	//	return err
-	//}
-
 	options := map[string]string{}
 
 	if action.Paused {
