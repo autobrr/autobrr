@@ -49,22 +49,22 @@ func (r *IrcRepo) GetNetworkByID(id int64) (*domain.IrcNetwork, error) {
 }
 
 func (r *IrcRepo) DeleteNetwork(ctx context.Context, id int64) error {
-	tx, err := r.db.handler.BeginTx(ctx, nil)
+	tx, err := r.db.BeginTx(ctx, nil)
 	if err != nil {
 		return err
 	}
 
 	defer tx.Rollback()
 
-	_, err = tx.ExecContext(ctx, `DELETE FROM irc_network WHERE id = ?`, id)
-	if err != nil {
-		log.Error().Stack().Err(err).Msgf("error deleting network: %v", id)
-		return err
-	}
-
 	_, err = tx.ExecContext(ctx, `DELETE FROM irc_channel WHERE network_id = ?`, id)
 	if err != nil {
 		log.Error().Stack().Err(err).Msgf("error deleting channels for network: %v", id)
+		return err
+	}
+
+	_, err = tx.ExecContext(ctx, `DELETE FROM irc_network WHERE id = ?`, id)
+	if err != nil {
+		log.Error().Stack().Err(err).Msgf("error deleting network: %v", id)
 		return err
 	}
 

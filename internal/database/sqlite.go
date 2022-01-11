@@ -79,3 +79,20 @@ func (db *SqliteDB) Close() error {
 	}
 	return nil
 }
+
+func (db *SqliteDB) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) {
+	tx, err := db.handler.BeginTx(ctx, opts)
+	if err != nil {
+		return nil, err
+	}
+
+	return &Tx{
+		Tx:      tx,
+		handler: db,
+	}, nil
+}
+
+type Tx struct {
+	*sql.Tx
+	handler *SqliteDB
+}
