@@ -59,8 +59,8 @@ func main() {
 	log.Info().Msgf("Log-level: %v", cfg.LogLevel)
 
 	// open database connection
-	db, err := database.OpenSqliteDB(configPath)
-	if err != nil {
+	db := database.NewSqliteDB(configPath)
+	if err := db.Open(); err != nil {
 		log.Fatal().Err(err).Msg("could not open db connection")
 	}
 
@@ -115,12 +115,15 @@ func main() {
 		case syscall.SIGHUP:
 			log.Print("shutting down server sighup")
 			srv.Shutdown()
+			db.Close()
 			os.Exit(1)
 		case syscall.SIGINT, syscall.SIGQUIT:
 			srv.Shutdown()
+			db.Close()
 			os.Exit(1)
 		case syscall.SIGKILL, syscall.SIGTERM:
 			srv.Shutdown()
+			db.Close()
 			os.Exit(1)
 		}
 	}

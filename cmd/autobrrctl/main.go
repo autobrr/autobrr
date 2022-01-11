@@ -39,8 +39,8 @@ func main() {
 	}
 
 	// open database connection
-	db, err := database.OpenSqliteDB(configPath)
-	if err != nil {
+	db := database.NewSqliteDB(configPath)
+	if err := db.Open(); err != nil {
 		log.Fatal("could not open db connection")
 	}
 

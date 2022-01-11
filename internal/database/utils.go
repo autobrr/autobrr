@@ -4,7 +4,7 @@ import (
 	"path"
 )
 
-func DataSourceName(configPath string, name string) string {
+func dataSourceName(configPath string, name string) string {
 	if configPath != "" {
 		return path.Join(configPath, name)
 	}
