@@ -376,7 +376,6 @@ func (s *Handler) onMessage(msg *irc.Message) error {
 	channel := &msg.Params[0]
 	announcer := &msg.Name
 	message := msg.Trailing()
-	// TODO add network
 
 	// check if message is from a valid channel, if not return
 	validChannel := s.isValidChannel(*channel)
@@ -463,12 +462,6 @@ func (s *Handler) HandleJoinChannel(channel string, password string) error {
 		return err
 	}
 
-	// only set values if channel is found in map
-	v, ok := s.channelHealth[channel]
-	if ok {
-		v.SetMonitoring()
-	}
-
 	return nil
 }
 
@@ -494,7 +487,16 @@ func (s *Handler) HandlePartChannel(channel string) error {
 }
 
 func (s *Handler) handleJoined(msg *irc.Message) {
-	log.Debug().Msgf("%v: JOINED: %v", s.network.Server, msg.Trailing())
+	log.Debug().Msgf("%v: JOINED: %v", s.network.Server, msg.String())
+
+	// get channel
+	channel := &msg.Params[1]
+
+	// only set values if channel is found in map
+	v, ok := s.channelHealth[strings.ToLower(*channel)]
+	if ok {
+		v.SetMonitoring()
+	}
 
 	log.Info().Msgf("%v: Monitoring channel %s", s.network.Server, msg.Params[1])
 }

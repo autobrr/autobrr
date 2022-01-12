@@ -247,7 +247,7 @@ func (s *service) checkIfNetworkRestartNeeded(network *domain.IrcNetwork) error 
 				channelsToJoin = append(channelsToJoin, channel)
 			}
 
-			// leave channels
+			// leave channels TODO this leaves prev one, not desired
 			for _, leaveChannel := range channelsToLeave {
 				err := existingHandler.HandlePartChannel(leaveChannel)
 				if err != nil {
@@ -308,7 +308,7 @@ func (s *service) StopAndRemoveNetwork(key handlerKey) error {
 
 		// remove from handlers
 		delete(s.handlers, key)
-		log.Debug().Msgf("stopped network: %+v", key.server)
+		log.Debug().Msgf("stopped network: %+v", key)
 	}
 
 	return nil
