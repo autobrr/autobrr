@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"strings"
-	"time"
 
 	"github.com/lib/pq"
 	"github.com/rs/zerolog/log"
@@ -36,9 +35,8 @@ func (r *FilterRepo) ListFilters() ([]domain.Filter, error) {
 		var f domain.Filter
 
 		var matchReleases, exceptReleases sql.NullString
-		var createdAt, updatedAt string
 
-		if err := rows.Scan(&f.ID, &f.Enabled, &f.Name, &matchReleases, &exceptReleases, &createdAt, &updatedAt); err != nil {
+		if err := rows.Scan(&f.ID, &f.Enabled, &f.Name, &matchReleases, &exceptReleases, &f.CreatedAt, &f.UpdatedAt); err != nil {
 			log.Error().Stack().Err(err).Msg("filters_list: error scanning data to struct")
 		}
 		if err != nil {
@@ -47,12 +45,6 @@ func (r *FilterRepo) ListFilters() ([]domain.Filter, error) {
 
 		f.MatchReleases = matchReleases.String
 		f.ExceptReleases = exceptReleases.String
-
-		ua, _ := time.Parse(time.RFC3339, updatedAt)
-		ca, _ := time.Parse(time.RFC3339, createdAt)
-
-		f.UpdatedAt = ua
-		f.CreatedAt = ca
 
 		filters = append(filters, f)
 	}
@@ -78,9 +70,8 @@ func (r *FilterRepo) FindByID(filterID int) (*domain.Filter, error) {
 	var minSize, maxSize, matchReleases, exceptReleases, matchReleaseGroups, exceptReleaseGroups, freeleechPercent, shows, seasons, episodes, years, matchCategories, exceptCategories, matchUploaders, exceptUploaders, tags, exceptTags sql.NullString
 	var useRegex, scene, freeleech sql.NullBool
 	var delay sql.NullInt32
-	var createdAt, updatedAt string
 
-	if err := row.Scan(&f.ID, &f.Enabled, &f.Name, &minSize, &maxSize, &delay, &matchReleases, &exceptReleases, &useRegex, &matchReleaseGroups, &exceptReleaseGroups, &scene, &freeleech, &freeleechPercent, &shows, &seasons, &episodes, pq.Array(&f.Resolutions), pq.Array(&f.Codecs), pq.Array(&f.Sources), pq.Array(&f.Containers), &years, &matchCategories, &exceptCategories, &matchUploaders, &exceptUploaders, &tags, &exceptTags, &createdAt, &updatedAt); err != nil {
+	if err := row.Scan(&f.ID, &f.Enabled, &f.Name, &minSize, &maxSize, &delay, &matchReleases, &exceptReleases, &useRegex, &matchReleaseGroups, &exceptReleaseGroups, &scene, &freeleech, &freeleechPercent, &shows, &seasons, &episodes, pq.Array(&f.Resolutions), pq.Array(&f.Codecs), pq.Array(&f.Sources), pq.Array(&f.Containers), &years, &matchCategories, &exceptCategories, &matchUploaders, &exceptUploaders, &tags, &exceptTags, &f.CreatedAt, &f.UpdatedAt); err != nil {
 		log.Error().Stack().Err(err).Msgf("filter: %v : error scanning data to struct", filterID)
 		return nil, err
 	}
@@ -107,45 +98,7 @@ func (r *FilterRepo) FindByID(filterID int) (*domain.Filter, error) {
 	f.Scene = scene.Bool
 	f.Freeleech = freeleech.Bool
 
-	updatedTime, _ := time.Parse(time.RFC3339, updatedAt)
-	createdTime, _ := time.Parse(time.RFC3339, createdAt)
-
-	f.UpdatedAt = updatedTime
-	f.CreatedAt = createdTime
-
 	return &f, nil
-}
-
-// TODO remove
-func (r *FilterRepo) FindFiltersForSite(site string) ([]domain.Filter, error) {
-	//r.db.lock.RLock()
-	//defer r.db.lock.RUnlock()
-
-	rows, err := r.db.handler.Query("SELECT id, enabled, name, match_releases, except_releases, created_at, updated_at FROM filter WHERE match_sites LIKE ?", site)
-	if err != nil {
-		log.Fatal().Err(err)
-	}
-
-	defer rows.Close()
-
-	var filters []domain.Filter
-	for rows.Next() {
-		var f domain.Filter
-
-		if err := rows.Scan(&f.ID, &f.Enabled, &f.Name, pq.Array(&f.MatchReleases), pq.Array(&f.ExceptReleases), &f.CreatedAt, &f.UpdatedAt); err != nil {
-			log.Error().Stack().Err(err).Msg("error scanning data to struct")
-		}
-		if err != nil {
-			return nil, err
-		}
-
-		filters = append(filters, f)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-
-	return filters, nil
 }
 
 // FindByIndexerIdentifier find active filters only
@@ -204,9 +157,8 @@ func (r *FilterRepo) FindByIndexerIdentifier(indexer string) ([]domain.Filter, e
 		var minSize, maxSize, matchReleases, exceptReleases, matchReleaseGroups, exceptReleaseGroups, freeleechPercent, shows, seasons, episodes, years, matchCategories, exceptCategories, matchUploaders, exceptUploaders, tags, exceptTags sql.NullString
 		var useRegex, scene, freeleech sql.NullBool
 		var delay sql.NullInt32
-		var createdAt, updatedAt string
 
-		if err := rows.Scan(&f.ID, &f.Enabled, &f.Name, &minSize, &maxSize, &delay, &matchReleases, &exceptReleases, &useRegex, &matchReleaseGroups, &exceptReleaseGroups, &scene, &freeleech, &freeleechPercent, &shows, &seasons, &episodes, pq.Array(&f.Resolutions), pq.Array(&f.Codecs), pq.Array(&f.Sources), pq.Array(&f.Containers), &years, &matchCategories, &exceptCategories, &matchUploaders, &exceptUploaders, &tags, &exceptTags, &createdAt, &updatedAt); err != nil {
+		if err := rows.Scan(&f.ID, &f.Enabled, &f.Name, &minSize, &maxSize, &delay, &matchReleases, &exceptReleases, &useRegex, &matchReleaseGroups, &exceptReleaseGroups, &scene, &freeleech, &freeleechPercent, &shows, &seasons, &episodes, pq.Array(&f.Resolutions), pq.Array(&f.Codecs), pq.Array(&f.Sources), pq.Array(&f.Containers), &years, &matchCategories, &exceptCategories, &matchUploaders, &exceptUploaders, &tags, &exceptTags, &f.CreatedAt, &f.UpdatedAt); err != nil {
 			log.Error().Stack().Err(err).Msg("error scanning data to struct")
 			return nil, err
 		}
@@ -232,12 +184,6 @@ func (r *FilterRepo) FindByIndexerIdentifier(indexer string) ([]domain.Filter, e
 		f.UseRegex = useRegex.Bool
 		f.Scene = scene.Bool
 		f.Freeleech = freeleech.Bool
-
-		updatedTime, _ := time.Parse(time.RFC3339, updatedAt)
-		createdTime, _ := time.Parse(time.RFC3339, createdAt)
-
-		f.UpdatedAt = updatedTime
-		f.CreatedAt = createdTime
 
 		filters = append(filters, f)
 	}

@@ -3,8 +3,6 @@ package database
 import (
 	"context"
 	"database/sql"
-	"time"
-
 	sq "github.com/Masterminds/squirrel"
 	"github.com/lib/pq"
 	"github.com/rs/zerolog/log"
@@ -53,7 +51,7 @@ func (repo *ReleaseRepo) StoreReleaseActionStatus(ctx context.Context, a *domain
 			Update("release_action_status").
 			Set("status", a.Status).
 			Set("rejections", pq.Array(a.Rejections)).
-			Set("timestamp", time.Now().Format(time.RFC3339)).
+			Set("timestamp", a.Timestamp).
 			Where("id = ?", a.ID).
 			Where("release_id = ?", a.ReleaseID).
 			ToSql()
@@ -142,18 +140,14 @@ func (repo *ReleaseRepo) Find(ctx context.Context, params domain.QueryParams) ([
 		var rls domain.Release
 
 		var indexer, filter sql.NullString
-		var timestamp string
 
-		if err := rows.Scan(&rls.ID, &rls.FilterStatus, pq.Array(&rls.Rejections), &indexer, &filter, &rls.Protocol, &rls.Title, &rls.TorrentName, &rls.Size, &timestamp, &countItems); err != nil {
+		if err := rows.Scan(&rls.ID, &rls.FilterStatus, pq.Array(&rls.Rejections), &indexer, &filter, &rls.Protocol, &rls.Title, &rls.TorrentName, &rls.Size, &rls.Timestamp, &countItems); err != nil {
 			log.Error().Stack().Err(err).Msg("release.find: error scanning data to struct")
 			return res, 0, 0, err
 		}
 
 		rls.Indexer = indexer.String
 		rls.FilterName = filter.String
-
-		ca, _ := time.Parse(time.RFC3339, timestamp)
-		rls.Timestamp = ca
 
 		// get action status
 		actionStatus, err := repo.GetActionStatusByReleaseID(ctx, rls.ID)
@@ -206,15 +200,10 @@ func (repo *ReleaseRepo) GetActionStatusByReleaseID(ctx context.Context, release
 	for rows.Next() {
 		var rls domain.ReleaseActionStatus
 
-		var timestamp string
-
-		if err := rows.Scan(&rls.ID, &rls.Status, &rls.Action, &rls.Type, pq.Array(&rls.Rejections), &timestamp); err != nil {
+		if err := rows.Scan(&rls.ID, &rls.Status, &rls.Action, &rls.Type, pq.Array(&rls.Rejections), &rls.Timestamp); err != nil {
 			log.Error().Stack().Err(err).Msg("release.find: error scanning data to struct")
 			return res, err
 		}
-
-		ca, _ := time.Parse(time.RFC3339, timestamp)
-		rls.Timestamp = ca
 
 		res = append(res, rls)
 	}

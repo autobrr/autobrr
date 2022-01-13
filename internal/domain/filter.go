@@ -12,7 +12,6 @@ https://autodl-community.github.io/autodl-irssi/configuration/filter/
 
 type FilterRepo interface {
 	FindByID(filterID int) (*Filter, error)
-	FindFiltersForSite(site string) ([]Filter, error)
 	FindByIndexerIdentifier(indexer string) ([]Filter, error)
 	ListFilters() ([]Filter, error)
 	Store(filter Filter) (*Filter, error)
