@@ -157,7 +157,7 @@ func (r *DownloadClientRepo) Store(client domain.DownloadClient) (*domain.Downlo
 			    ssl = ?, 
 			    username = ?, 
 			    password = ?, 
-			    settings = json_set(?) 
+			    settings = (?) 
 			WHERE
 			    id = ?`,
 			client.Name,
@@ -168,7 +168,7 @@ func (r *DownloadClientRepo) Store(client domain.DownloadClient) (*domain.Downlo
 			client.SSL,
 			client.Username,
 			client.Password,
-			settingsJson,
+			string(settingsJson),
 			client.ID,
 		)
 		if err != nil {
@@ -189,7 +189,7 @@ func (r *DownloadClientRepo) Store(client domain.DownloadClient) (*domain.Downlo
     		       username,
     		       password,
     		       settings)
-			VALUES (?, ?, ?, ?, ?, ? , ?, ?, json_set(?)) ON CONFLICT DO NOTHING`,
+			VALUES (?, ?, ?, ?, ?, ? , ?, ?, ?) ON CONFLICT DO NOTHING`,
 			client.Name,
 			client.Type,
 			client.Enabled,
@@ -198,7 +198,7 @@ func (r *DownloadClientRepo) Store(client domain.DownloadClient) (*domain.Downlo
 			client.SSL,
 			client.Username,
 			client.Password,
-			settingsJson,
+			string(settingsJson),
 		)
 		if err != nil {
 			log.Error().Stack().Err(err).Msgf("could not store new download client: %v", client)
