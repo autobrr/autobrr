@@ -158,9 +158,8 @@ func (s *service) startNetwork(network domain.IrcNetwork) error {
 
 func (s *service) checkIfNetworkRestartNeeded(network *domain.IrcNetwork) error {
 	// look if we have the network in handlers, if so restart it
-	// TODO check if we need to add indexerDefinitions etc
 	if existingHandler, found := s.handlers[handlerKey{network.Server, network.NickServ.Account}]; found {
-		log.Debug().Msgf("decide if irc network handler needs restart or updating: %+v", network.Name)
+		log.Debug().Msgf("irc: decide if irc network handler needs restart or updating: %+v", network.Server)
 
 		// if server, tls, invite command, port : changed - restart
 		// if nickserv account, nickserv password : changed - stay connected, and change those
@@ -179,10 +178,12 @@ func (s *service) checkIfNetworkRestartNeeded(network *domain.IrcNetwork) error 
 				restartNeeded = true
 			}
 			if restartNeeded {
-				log.Info().Msgf("irc: restarting network: %+v", network.Name)
+				log.Info().Msgf("irc: restarting network: %+v", network.Server)
 
 				// we need to reinitialize with new network config
 				existingHandler.UpdateNetwork(network)
+
+				// todo reset channelHealth?
 
 				go func() {
 					if err := existingHandler.Restart(); err != nil {
@@ -190,7 +191,7 @@ func (s *service) checkIfNetworkRestartNeeded(network *domain.IrcNetwork) error 
 					}
 				}()
 
-				// return now since the restart will read the network again OR FIXME
+				// return now since the restart will read the network again
 				return nil
 			}
 
@@ -236,6 +237,7 @@ func (s *service) checkIfNetworkRestartNeeded(network *domain.IrcNetwork) error 
 				channelsToLeave = append(channelsToLeave, handlerChan.Name)
 			}
 
+			// check new channels against handler to see which to join
 			for _, channel := range network.Channels {
 				_, ok := handlerChannels[channel.Name]
 				if ok {
@@ -247,8 +249,9 @@ func (s *service) checkIfNetworkRestartNeeded(network *domain.IrcNetwork) error 
 				channelsToJoin = append(channelsToJoin, channel)
 			}
 
-			// leave channels TODO this leaves prev one, not desired
+			// leave channels
 			for _, leaveChannel := range channelsToLeave {
+				log.Debug().Msgf("%v: part channel %v", network.Server, leaveChannel)
 				err := existingHandler.HandlePartChannel(leaveChannel)
 				if err != nil {
 					log.Error().Stack().Err(err).Msgf("failed to leave channel: %q", leaveChannel)
@@ -257,12 +260,21 @@ func (s *service) checkIfNetworkRestartNeeded(network *domain.IrcNetwork) error 
 
 			// join channels
 			for _, joinChannel := range channelsToJoin {
-				// TODO handle invite commands before?
+				log.Debug().Msgf("%v: join new channel %v", network.Server, joinChannel)
 				err := existingHandler.HandleJoinChannel(joinChannel.Name, joinChannel.Password)
 				if err != nil {
 					log.Error().Stack().Err(err).Msgf("failed to join channel: %q", joinChannel.Name)
 				}
 			}
+
+			// update network for handler
+			// TODO move all this restart logic inside handler to let it decide what to do
+			existingHandler.SetNetwork(network)
+
+			// find indexer definitions for network and add
+			definitions := s.indexerService.GetIndexersByIRCNetwork(network.Server)
+
+			existingHandler.InitIndexers(definitions)
 		}
 	} else {
 		err := s.startNetwork(*network)
@@ -517,16 +529,23 @@ func (s *service) StoreNetwork(ctx context.Context, network *domain.IrcNetwork) 
 		return nil
 	}
 
+	// get channels for existing network
+	existingChannels, err := s.repo.ListChannels(existingNetwork.ID)
+	if err != nil {
+		log.Error().Err(err).Msgf("failed to list channels for network %q", existingNetwork.Server)
+	}
+	existingNetwork.Channels = existingChannels
+
 	if network.Channels != nil {
 		for _, channel := range network.Channels {
-			// TODO store or add. Make sure it doesn't delete before
+			// add channels. Make sure it doesn't delete before
 			if err := s.repo.StoreChannel(existingNetwork.ID, &channel); err != nil {
 				return err
 			}
 		}
 
 		// append channels to existing network
-		network.Channels = append(network.Channels, existingNetwork.Channels...)
+		existingNetwork.Channels = append(existingNetwork.Channels, network.Channels...)
 	}
 
 	if existingNetwork.Enabled {
@@ -534,10 +553,10 @@ func (s *service) StoreNetwork(ctx context.Context, network *domain.IrcNetwork) 
 		// if nickserv account, nickserv password : changed - stay connected, and change those
 		// if channels len : changes - join or leave
 
-		err := s.checkIfNetworkRestartNeeded(network)
+		err := s.checkIfNetworkRestartNeeded(existingNetwork)
 		if err != nil {
-			log.Error().Err(err).Msgf("could not restart network: %+v", network.Name)
-			return fmt.Errorf("could not restart network: %v", network.Name)
+			log.Error().Err(err).Msgf("could not restart network: %+v", existingNetwork.Name)
+			return fmt.Errorf("could not restart network: %v", existingNetwork.Name)
 		}
 	}
 
