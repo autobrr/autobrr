@@ -145,6 +145,12 @@ export function ReleaseStatusCell({ value, column, row }: ReleaseStatusCellProps
     )
 }
 
+export function IndexerCell({ value, column, row }: any) {
+    return (
+        <div className="text-sm font-medium text-gray-900 dark:text-gray-500" title={value}>{value}</div>
+    )
+}
+
 const initialState = {
     queryPageIndex: 0,
     queryPageSize: 10,
@@ -202,6 +208,7 @@ function Table() {
         {
             Header: "Indexer",
             accessor: 'indexer',
+            Cell: IndexerCell,
             Filter: SelectColumnFilter,  // new
             filter: 'includes',
         },

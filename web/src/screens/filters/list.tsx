@@ -155,7 +155,11 @@ function FilterListItem({ filter, idx }: FilterListItemProps) {
                     />
                 </Switch>
             </td>
-            <td className="px-6 py-4 w-full whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-100">{filter.name}</td>
+            <td className="px-6 w-full whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-100">
+                <Link to={`filters/${filter.id.toString()}`} className="dark:hover:text-gray-400 w-full py-4 flex">
+                {filter.name}
+                </Link>
+                </td>
             <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{filter.indexers && filter.indexers.map(t =>
                 <span key={t.id} className="mr-2 inline-flex items-center px-2.5 py-0.5 rounded-md text-sm font-medium bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-400">{t.name}</span>)}</td>
             <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
