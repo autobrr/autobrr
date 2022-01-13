@@ -20,7 +20,7 @@ settings:
     help: "Check how to get cookies in your browser and find the uid and pass cookies. Example: uid=1234; pass=asdf12347asdf13"
 
 irc:
-  network: P2P-NET
+  network: P2P-Network
   server: irc.p2p-network.net
   port: 6697
   tls: true
