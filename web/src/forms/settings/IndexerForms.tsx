@@ -68,7 +68,7 @@ export function IndexerAddForm({ isOpen, toggle }: AddProps) {
         }
 
         const network: Network = {
-            name: ind.name,
+            name: ind.irc.network,
             enabled: false,
             server: ind.irc.server,
             port: ind.irc.port,
