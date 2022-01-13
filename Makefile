@@ -2,10 +2,13 @@
 .POSIX:
 .SUFFIXES:
 
+GIT_COMMIT := $(shell git rev-parse HEAD 2> /dev/null)
+GIT_TAG := $(shell git tag --points-at HEAD 2> /dev/null | head -n 1)
+
 SERVICE = autobrr
 GO = go
 RM = rm
-GOFLAGS =
+GOFLAGS = "-X main.commit=$(GIT_COMMIT) -X main.version=$(GIT_TAG)"
 PREFIX = /usr/local
 BINDIR = bin
 
@@ -21,10 +24,10 @@ test:
 build: deps build/web build/app
 
 build/app:
-	go build -o bin/$(SERVICE) cmd/$(SERVICE)/main.go
+	go build -ldflags $(GOFLAGS) -o bin/$(SERVICE) cmd/$(SERVICE)/main.go
 
 build/ctl:
-	go build -o bin/autobrrctl cmd/autobrrctl/main.go
+	go build -ldflags $(GOFLAGS) -o bin/autobrrctl cmd/autobrrctl/main.go
 
 build/web:
 	cd web && yarn build
