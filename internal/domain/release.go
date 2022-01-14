@@ -248,7 +248,7 @@ func (r *Release) extractContainerFromTags(tag string) error {
 }
 
 func (r *Release) extractHDR() error {
-	v, err := findLast(r.TorrentName, `(?i)(HDR10\+|HDR10|DoVi HDR|DV HDR|HDR|DV|DoVi|Dolby Vision \+ HDR10|Dolby Vision)`)
+	v, err := findLast(r.TorrentName, `(?i)[\. ](HDR10\+|HDR10|DoVi[\. ]HDR|DV[\. ]HDR|HDR|DV|DoVi|Dolby[\. ]Vision[\. ]\+[\. ]HDR10|Dolby[\. ]Vision)[\. ]`)
 	if err != nil {
 		return err
 	}
@@ -711,6 +711,16 @@ func (r *Release) CheckFilter(filter Filter) bool {
 		return false
 	}
 
+	if len(filter.MatchHDR) > 0 && !checkMultipleFilterHDR(filter.MatchHDR, r.HDR, r.TorrentName) {
+		r.addRejection("hdr not matching")
+		return false
+	}
+
+	if len(filter.ExceptHDR) > 0 && checkMultipleFilterHDR(filter.ExceptHDR, r.HDR, r.TorrentName) {
+		r.addRejection("unwanted hdr")
+		return false
+	}
+
 	if filter.Years != "" && !checkFilterIntStrings(r.Year, filter.Years) {
 		r.addRejection("year not matching")
 		return false
@@ -994,6 +1004,34 @@ func checkMultipleFilterGroups(filterList string, vars ...string) bool {
 		name = strings.ToLower(name)
 
 		for _, s := range filterSplit {
+			s = strings.ToLower(strings.Trim(s, " "))
+			// check if line contains * or ?, if so try wildcard match, otherwise try substring match
+			a := strings.ContainsAny(s, "?|*")
+			if a {
+				match := wildcard.Match(s, name)
+				if match {
+					return true
+				}
+			} else {
+				split := SplitAny(name, " .-")
+				for _, c := range split {
+					if c == s {
+						return true
+					}
+				}
+				continue
+			}
+		}
+	}
+
+	return false
+}
+
+func checkMultipleFilterHDR(filterList []string, vars ...string) bool {
+	for _, name := range vars {
+		name = strings.ToLower(name)
+
+		for _, s := range filterList {
 			s = strings.ToLower(strings.Trim(s, " "))
 			// check if line contains * or ?, if so try wildcard match, otherwise try substring match
 			a := strings.ContainsAny(s, "?|*")
