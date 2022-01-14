@@ -83,6 +83,8 @@ export interface Filter {
     sources: string[];
     codecs: string[];
     containers: string[];
+    match_hdr: string[];
+    except_hdr: string[];
     seasons: string;
     episodes: string;
     match_releases: string;

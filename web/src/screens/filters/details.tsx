@@ -16,7 +16,7 @@ import { Action, ActionType, DownloadClient, Filter, Indexer } from "../../domai
 import { useToggle } from "../../hooks/hooks";
 import { useMutation, useQuery } from "react-query";
 import { queryClient } from "../../App";
-import { CONTAINER_OPTIONS, CODECS_OPTIONS, RESOLUTION_OPTIONS, SOURCES_OPTIONS, ActionTypeNameMap, ActionTypeOptions } from "../../domain/constants";
+import { CONTAINER_OPTIONS, CODECS_OPTIONS, RESOLUTION_OPTIONS, SOURCES_OPTIONS, ActionTypeNameMap, ActionTypeOptions, HDR_OPTIONS } from "../../domain/constants";
 
 import DEBUG from "../../components/debug";
 import { TitleSubtitle } from "../../components/headings";
@@ -233,6 +233,8 @@ export default function FilterDetails() {
                                         sources: data.sources || [],
                                         codecs: data.codecs || [],
                                         containers: data.containers || [],
+                                        match_hdr: data.match_hdr || [],
+                                        except_hdr: data.except_hdr || [],
                                         seasons: data.seasons,
                                         episodes: data.episodes,
                                         match_releases: data.match_releases,
@@ -392,6 +394,11 @@ function MoviesTv() {
                 <div className="mt-6 grid grid-cols-12 gap-6">
                     <MultiSelect name="codecs" options={CODECS_OPTIONS} label="codecs" columns={6} />
                     <MultiSelect name="containers" options={CONTAINER_OPTIONS} label="containers" columns={6} />
+                </div>
+
+                <div className="mt-6 grid grid-cols-12 gap-6">
+                    <MultiSelect name="match_hdr" options={HDR_OPTIONS} label="Match HDR" columns={6} />
+                    <MultiSelect name="except_hdr" options={HDR_OPTIONS} label="Except HDR" columns={6} />
                 </div>
             </div>
         </div>

@@ -81,6 +81,8 @@ CREATE TABLE filter
     codecs                TEXT []   DEFAULT '{}' NOT NULL,
     sources               TEXT []   DEFAULT '{}' NOT NULL,
     containers            TEXT []   DEFAULT '{}' NOT NULL,
+    match_hdr             TEXT []   DEFAULT '{}',
+    except_hdr            TEXT []   DEFAULT '{}',
     years                 TEXT,
     match_categories      TEXT,
     except_categories     TEXT,
@@ -279,6 +281,13 @@ var migrations = []string{
 
 	ALTER TABLE "release"
 	DROP COLUMN push_status;
+	`,
+	`
+	ALTER TABLE "filter"
+		ADD COLUMN match_hdr TEXT []   DEFAULT '{}';
+
+	ALTER TABLE "filter"
+		ADD COLUMN except_hdr TEXT []   DEFAULT '{}';
 	`,
 }
 

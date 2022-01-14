@@ -48,6 +48,8 @@ type Filter struct {
 	Codecs              []string  `json:"codecs"`      // XviD, DivX, x264, h.264 (or h264), mpeg2 (or mpeg-2), VC-1 (or VC1), WMV, Remux, h.264 Remux (or h264 Remux), VC-1 Remux (or VC1 Remux).
 	Sources             []string  `json:"sources"`     // DSR, PDTV, HDTV, HR.PDTV, HR.HDTV, DVDRip, DVDScr, BDr, BD5, BD9, BDRip, BRRip, DVDR, MDVDR, HDDVD, HDDVDRip, BluRay, WEB-DL, TVRip, CAM, R5, TELESYNC, TS, TELECINE, TC. TELESYNC and TS are synonyms (you don't need both). Same for TELECINE and TC
 	Containers          []string  `json:"containers"`
+	MatchHDR            []string  `json:"match_hdr"`
+	ExceptHDR           []string  `json:"except_hdr"`
 	Years               string    `json:"years"`
 	Artists             string    `json:"artists"`
 	Albums              string    `json:"albums"`
