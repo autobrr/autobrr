@@ -67,8 +67,11 @@ export const hdr = [
     "HDR10",
     "HDR10+",
     "DV",
+    "DV HDR",
+    "DV HDR10",
+    "DV HDR10+",
     "DoVi",
-    "Dolby Vision"
+    "Dolby Vision",
 ];
 
 export const HDR_OPTIONS = hdr.map(v => ({ value: v, label: v, key: v}));
