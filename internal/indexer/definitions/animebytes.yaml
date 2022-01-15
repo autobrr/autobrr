@@ -49,9 +49,9 @@ parse:
   type: single
   lines:
     - test:
-        - "BanG Dream! 3rd Season - TV Series [2020] :: Blu-ray / MKV / h265 10-bit / 1080p / FLAC 5.0 / RAW (LoliHouse) / Freeleech || https://animebytes.tv/torrents.php?id=62837&torrentid=975926 || music || Uploaded by: Karenina"
+        - "BanG Dream! 3rd Season - TV Series [2020] :: Blu-ray / MKV / h265 10-bit / 1080p / FLAC 5.0 / RAW (LoliHouse) / Freeleech || https://animebytes.tv/torrents.php?id=622837&torrentid=97593126 || music || Uploaded by: Anonymous"
         - "Koi Kaze - TV Series [2004] :: DVD / MKV / h264 10-bit / 712x478 / FLAC 2.0 / Dual Audio / Softsubs (WSE) || https://animebytes.tv/torrents.php?id=1115&torrentid=975927 || coming.of.age, romance, seinen, slice.of.life, tragedy, incest || Uploaded by: Wyse"
-        - "Isshiki Yui and Kikuta Daisuke - Toraba! Original Sound Track [2011] :: MP3 / V0 (VBR) / CD || https://animebytes.tv/torrents2.php?id=74466&torrentid=975933 || soundtrack || Uploaded by: Julzer"
+        - "Isshiki Yui and Kikuta Daisuke - Toraba! Original Sound Track [2011] :: MP3 / V0 (VBR) / CD || https://animebytes.tv/torrents2.php?id=744166&torrentid=9752933 || soundtrack || Uploaded by: Test-Uploader"
       pattern: ^(.*)\[(\d+)\]\s?:*\s(.*)....(https.*)/torrents.*\?id=\d+&torrentid=(\d+).\|\|(.*)\|\|\sUploaded\sby:\s(.*)
       vars:
         - torrentName
