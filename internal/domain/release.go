@@ -190,6 +190,19 @@ func (r *Release) extractResolution() error {
 	return nil
 }
 
+func (r *Release) extractResolutionFromTags(tag string) error {
+	if r.Resolution != "" {
+		return nil
+	}
+	v, err := findLast(tag, `\b(([0-9]{3,4}p|i))\b`)
+	if err != nil {
+		return err
+	}
+	r.Resolution = v
+
+	return nil
+}
+
 func (r *Release) extractSource() error {
 	v, err := findLast(r.TorrentName, `(?i)\b(((?:PPV\.)?[HP]DTV|(?:HD)?CAM|B[DR]Rip|(?:HD-?)?TS|(?:PPV )?WEB-?DL(?: DVDRip)?|HDRip|DVDRip|DVDRIP|CamRip|WEB|W[EB]BRip|Blu-?Ray|DvDScr|telesync|CD|DVD|Vinyl|DAT|Cassette))\b`)
 	if err != nil {
@@ -214,7 +227,21 @@ func (r *Release) extractSourceFromTags(tag string) error {
 }
 
 func (r *Release) extractCodec() error {
-	v, err := findLast(r.TorrentName, `(?i)\b(HEVC|[hx]\.?26[45]|xvid|divx|AVC|MPEG-?2|AV1|VC-?1|VP9|WebP)\b`)
+	v, err := findLast(r.TorrentName, `(?i)\b(HEVC|[hx]\.?26[45] 10-bit|[hx]\.?26[45]|xvid|divx|AVC|MPEG-?2|AV1|VC-?1|VP9|WebP)\b`)
+	if err != nil {
+		return err
+	}
+	r.Codec = v
+
+	return nil
+}
+
+func (r *Release) extractCodecFromTags(tag string) error {
+	if r.Codec != "" {
+		return nil
+	}
+
+	v, err := findLast(tag, `(?i)\b(HEVC|[hx]\.?26[45] 10-bit|[hx]\.?26[45]|xvid|divx|AVC|MPEG-?2|AV1|VC-?1|VP9|WebP)\b`)
 	if err != nil {
 		return err
 	}
@@ -301,6 +328,19 @@ func (r *Release) extractGroup() error {
 	}
 
 	r.Group = group
+
+	return nil
+}
+
+func (r *Release) extractAnimeGroupFromTags(tag string) error {
+	if r.Group != "" {
+		return nil
+	}
+	v, err := findLast(tag, `(?:RAW|Softsubs|Hardsubs)\s\((.+)\)`)
+	if err != nil {
+		return err
+	}
+	r.Group = v
 
 	return nil
 }
@@ -392,7 +432,7 @@ func (r *Release) extractFreeleechFromTags(tag string) error {
 	}
 
 	// Start with the basic most common ones
-	v, err := findLast(tag, `Freeleech!`)
+	v, err := findLast(tag, `(Freeleech!|Freeleech)`)
 	if err != nil {
 		return err
 	}
@@ -469,16 +509,21 @@ func (r *Release) extractReleaseTags() error {
 		return nil
 	}
 
-	tags := SplitAny(r.ReleaseTags, ",|/ ")
+	tags := SplitAny(r.ReleaseTags, ",|/")
 
 	for _, t := range tags {
+		t = strings.Trim(t, " ")
+
 		var err error
 		err = r.extractAudioFromTags(t)
+		err = r.extractResolutionFromTags(t)
+		err = r.extractCodecFromTags(t)
 		err = r.extractContainerFromTags(t)
 		err = r.extractSourceFromTags(t)
 		err = r.extractFreeleechFromTags(t)
 		err = r.extractLogScoreFromTags(t)
 		err = r.extractBitrateFromTags(t)
+		err = r.extractAnimeGroupFromTags(t)
 
 		if err != nil {
 			continue
