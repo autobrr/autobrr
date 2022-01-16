@@ -863,6 +863,174 @@ func TestRelease_CheckFilter(t *testing.T) {
 			},
 			want: false,
 		},
+		{
+			name: "match_hdr_1",
+			fields: &Release{
+				TorrentName: "Good show shift S02 2160p ATVP WEB-DL DDP 5.1 Atmos DV HEVC-GROUP",
+				Category:    "TV",
+				Uploader:    "Uploader1",
+			},
+			args: args{
+				filter: Filter{
+					Enabled:            true,
+					MatchCategories:    "*tv*",
+					MatchUploaders:     "Uploader1,Uploader2",
+					ExceptUploaders:    "Anonymous",
+					Shows:              "Good show shift",
+					MatchReleaseGroups: "GROUP",
+					ExceptReleases:     "NORDiC",
+					MatchHDR:           []string{"DV", "HDR"},
+				},
+			},
+			want: true,
+		},
+		{
+			name: "match_hdr_2",
+			fields: &Release{
+				TorrentName: "Good show shift S02 2160p ATVP WEB-DL DDP 5.1 Atmos DoVi HEVC-GROUP",
+				Category:    "TV",
+				Uploader:    "Uploader1",
+			},
+			args: args{
+				filter: Filter{
+					Enabled:            true,
+					MatchCategories:    "*tv*",
+					MatchUploaders:     "Uploader1,Uploader2",
+					ExceptUploaders:    "Anonymous",
+					Shows:              "Good show shift",
+					MatchReleaseGroups: "GROUP",
+					ExceptReleases:     "NORDiC",
+					MatchHDR:           []string{"DV", "HDR"},
+				},
+			},
+			want: false,
+		},
+		{
+			name: "match_hdr_3",
+			fields: &Release{
+				TorrentName: "Good show shift S02 2160p ATVP WEB-DL DDP 5.1 Atmos DoVi HEVC-GROUP",
+				Category:    "TV",
+				Uploader:    "Uploader1",
+			},
+			args: args{
+				filter: Filter{
+					Enabled:            true,
+					MatchCategories:    "*tv*",
+					MatchUploaders:     "Uploader1,Uploader2",
+					ExceptUploaders:    "Anonymous",
+					Shows:              "Good show shift",
+					MatchReleaseGroups: "GROUP",
+					ExceptReleases:     "NORDiC",
+					ExceptHDR:          []string{"DV", "HDR", "DoVi"},
+				},
+			},
+			want: false,
+		},
+		{
+			name: "match_hdr_4",
+			fields: &Release{
+				TorrentName: "Good show shift S02 2160p ATVP WEB-DL DDP 5.1 Atmos HEVC-GROUP",
+				Category:    "TV",
+				Uploader:    "Uploader1",
+			},
+			args: args{
+				filter: Filter{
+					Enabled:            true,
+					MatchCategories:    "*tv*",
+					MatchUploaders:     "Uploader1,Uploader2",
+					ExceptUploaders:    "Anonymous",
+					Shows:              "Good show shift",
+					MatchReleaseGroups: "GROUP",
+					ExceptReleases:     "NORDiC",
+					MatchHDR:           []string{"DV", "HDR", "DoVi"},
+				},
+			},
+			want: false,
+		},
+		{
+			name: "match_hdr_5",
+			fields: &Release{
+				TorrentName: "Good show shift S02 2160p ATVP WEB-DL DDP 5.1 Atmos HEVC-GROUP",
+				Category:    "TV",
+				Uploader:    "Uploader1",
+			},
+			args: args{
+				filter: Filter{
+					Enabled:            true,
+					MatchCategories:    "*tv*",
+					MatchUploaders:     "Uploader1,Uploader2",
+					ExceptUploaders:    "Anonymous",
+					Shows:              "Good show shift",
+					MatchReleaseGroups: "GROUP",
+					ExceptReleases:     "NORDiC",
+					ExceptHDR:          []string{"DV", "HDR", "DoVi"},
+				},
+			},
+			want: true,
+		},
+		{
+			name: "match_hdr_6",
+			fields: &Release{
+				TorrentName: "Good show shift S02 2160p ATVP WEB-DL DDP 5.1 Atmos HDR HEVC-GROUP",
+				Category:    "TV",
+				Uploader:    "Uploader1",
+			},
+			args: args{
+				filter: Filter{
+					Enabled:            true,
+					MatchCategories:    "*tv*",
+					MatchUploaders:     "Uploader1,Uploader2",
+					ExceptUploaders:    "Anonymous",
+					Shows:              "Good show shift",
+					MatchReleaseGroups: "GROUP",
+					ExceptReleases:     "NORDiC",
+					ExceptHDR:          []string{"DV", "DoVi"},
+				},
+			},
+			want: true,
+		},
+		{
+			name: "match_hdr_7",
+			fields: &Release{
+				TorrentName: "Good show dvorak shift S02 2160p ATVP WEB-DL DDP 5.1 Atmos HDR HEVC-GROUP",
+				Category:    "TV",
+				Uploader:    "Uploader1",
+			},
+			args: args{
+				filter: Filter{
+					Enabled:            true,
+					MatchCategories:    "*tv*",
+					MatchUploaders:     "Uploader1,Uploader2",
+					ExceptUploaders:    "Anonymous",
+					Shows:              "Good show dvorak shift",
+					MatchReleaseGroups: "GROUP",
+					ExceptReleases:     "NORDiC",
+					ExceptHDR:          []string{"DV", "DoVi"},
+				},
+			},
+			want: true,
+		},
+		{
+			name: "match_hdr_8",
+			fields: &Release{
+				TorrentName: "Good show shift S02 2160p ATVP WEB-DL DDP 5.1 Atmos HDR10+ HEVC-GROUP",
+				Category:    "TV",
+				Uploader:    "Uploader1",
+			},
+			args: args{
+				filter: Filter{
+					Enabled:            true,
+					MatchCategories:    "*tv*",
+					MatchUploaders:     "Uploader1,Uploader2",
+					ExceptUploaders:    "Anonymous",
+					Shows:              "Good show shift",
+					MatchReleaseGroups: "GROUP",
+					ExceptReleases:     "NORDiC",
+					MatchHDR:           []string{"DV", "DoVi", "HDR10+"},
+				},
+			},
+			want: true,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

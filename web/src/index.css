@@ -4,46 +4,58 @@
 
 body {
   margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen",
+    "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue",
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
 code {
-  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
+  font-family: source-code-pro, Menlo, Monaco, Consolas, "Courier New",
     monospace;
 }
 
 @keyframes enter {
   0% {
-      transform: scale(.9);
-      opacity: 0
+    transform: scale(0.9);
+    opacity: 0;
   }
 
   to {
-      transform: scale(1);
-      opacity: 1
+    transform: scale(1);
+    opacity: 1;
   }
 }
 
 .animate-enter {
-  animation: enter .2s ease-out
+  animation: enter 0.2s ease-out;
 }
 
 @keyframes leave {
   0% {
-      transform: scale(1);
-      opacity: 1
+    transform: scale(1);
+    opacity: 1;
   }
 
   to {
-      transform: scale(.9);
-      opacity: 0
+    transform: scale(0.9);
+    opacity: 0;
   }
 }
 
 .animate-leave {
-  animation: leave .15s ease-in forwards
+  animation: leave 0.15s ease-in forwards;
+}
+
+@media (prefers-color-scheme: dark) {
+  .rmsc.dark {
+    --rmsc-main: #4285f4;
+    --rmsc-hover: #0e0c0a;
+    --rmsc-selected: #1d1915;
+    --rmsc-border: #35353a;
+    --rmsc-gray: #555555;
+    --rmsc-bg: #27272a;
+    color: #fff;
+  }
 }

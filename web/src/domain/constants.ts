@@ -62,6 +62,20 @@ export const containers = [
 
 export const CONTAINER_OPTIONS = containers.map(v => ({ value: v, label: v, key: v}));
 
+export const hdr = [
+    "HDR",
+    "HDR10",
+    "HDR10+",
+    "DV",
+    "DV HDR",
+    "DV HDR10",
+    "DV HDR10+",
+    "DoVi",
+    "Dolby Vision",
+];
+
+export const HDR_OPTIONS = hdr.map(v => ({ value: v, label: v, key: v}));
+
 export interface radioFieldsetOption {
     label: string;
     description: string;

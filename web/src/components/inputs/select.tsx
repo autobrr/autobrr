@@ -19,7 +19,7 @@ const MultiSelect: React.FC<MultiSelectProps> = ({
     label,
     options,
     className,
-    columns
+    columns,
 }) => (
     <div
         className={classNames(
@@ -49,7 +49,7 @@ const MultiSelect: React.FC<MultiSelectProps> = ({
 
                         setFieldValue(field.name, am)
                     }}
-                    className="dark:bg-gray-700"
+                    className="dark:bg-gray-700 dark"
                 />
             )}
         </Field>
