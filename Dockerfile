@@ -32,6 +32,8 @@ RUN make -f Makefile build/ctl
 # build runner
 FROM alpine:latest
 
+LABEL org.opencontainers.image.source = "https://github.com/autobrr/autobrr"
+
 ENV HOME="/config" \
 XDG_CONFIG_HOME="/config" \
 XDG_DATA_HOME="/config"
