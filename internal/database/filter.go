@@ -23,9 +23,10 @@ func (r *FilterRepo) ListFilters() ([]domain.Filter, error) {
 	//r.db.lock.RLock()
 	//defer r.db.lock.RUnlock()
 
-	rows, err := r.db.handler.Query("SELECT id, enabled, name, match_releases, except_releases, created_at, updated_at FROM filter")
+	rows, err := r.db.handler.Query("SELECT id, enabled, name, match_releases, except_releases, created_at, updated_at FROM filter ORDER BY name ASC")
 	if err != nil {
-		log.Fatal().Err(err)
+		log.Error().Stack().Err(err).Msg("filters_list: error query data")
+		return nil, err
 	}
 
 	defer rows.Close()
@@ -38,8 +39,6 @@ func (r *FilterRepo) ListFilters() ([]domain.Filter, error) {
 
 		if err := rows.Scan(&f.ID, &f.Enabled, &f.Name, &matchReleases, &exceptReleases, &f.CreatedAt, &f.UpdatedAt); err != nil {
 			log.Error().Stack().Err(err).Msg("filters_list: error scanning data to struct")
-		}
-		if err != nil {
 			return nil, err
 		}
 
