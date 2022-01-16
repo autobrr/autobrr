@@ -25,17 +25,22 @@ export const codecs = [
     "h265",
     "x264",
     "x265",
+    "h264 10-bit",
+    "h265 10-bit",
+    "x264 10-bit",
+    "x265 10-bit",
     "XviD"
 ];
 
 export const CODECS_OPTIONS = codecs.map(v => ({ value: v, label: v, key: v}));
 
 export const sources = [
+    "WEB-DL",
+    "BluRay",
     "BD5",
     "BD9",
     "BDr",
     "BDRip",
-    "BluRay",
     "BRRip",
     "CAM",
     "DVDR",
@@ -48,7 +53,6 @@ export const sources = [
     "HDTV",
     "Mixed",
     "SiteRip",
-    "WEB-DL",
     "Webrip"
 ];
 
