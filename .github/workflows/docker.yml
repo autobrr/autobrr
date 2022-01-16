@@ -6,7 +6,8 @@ on:
       - '*'
 
 permissions:
-  contents: write
+  packages: write
+  contents: read
 
 jobs:
   docker:
