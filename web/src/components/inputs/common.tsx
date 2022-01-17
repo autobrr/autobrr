@@ -14,4 +14,30 @@ const ErrorField: React.FC<ErrorFieldProps> = ({ name, classNames }) => (
         }
     </Field>
 );
-export { ErrorField }
+
+interface CheckboxFieldProps {
+    name: string;
+    label: string;
+    sublabel?: string;
+}
+
+const CheckboxField: React.FC<CheckboxFieldProps> = ({ name, label, sublabel }) => (
+    <div className="relative flex items-start">
+        <div className="flex items-center h-5">
+            <Field  
+                id={name}
+                name={name}
+                type="checkbox" 
+                className="focus:ring-bkue-500 h-4 w-4 text-blue-600 border-gray-300 rounded"
+            />
+        </div>
+        <div className="ml-3 text-sm">
+        <label htmlFor={name} className="font-medium text-gray-900 dark:text-gray-100">
+            {label}
+        </label>
+        <p className="text-gray-500">{sublabel}</p>
+        </div>
+    </div>
+)
+
+export { ErrorField, CheckboxField }

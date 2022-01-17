@@ -83,8 +83,17 @@ export interface Filter {
     sources: string[];
     codecs: string[];
     containers: string[];
+    match_release_types: string[];
+    quality: string[];
+    formats: string[];
     match_hdr: string[];
     except_hdr: string[];
+    log_score: number;
+    log: boolean;
+    cue: boolean;
+    perfect_flac: boolean;
+    artists: string;
+    albums: string;
     seasons: string;
     episodes: string;
     match_releases: string;

@@ -84,6 +84,16 @@ CREATE TABLE filter
     match_hdr             TEXT []   DEFAULT '{}',
     except_hdr            TEXT []   DEFAULT '{}',
     years                 TEXT,
+    artists               TEXT,
+    albums                TEXT,
+    release_types_match   TEXT []   DEFAULT '{}',
+    release_types_ignore  TEXT []   DEFAULT '{}',
+    formats               TEXT []   DEFAULT '{}',
+    quality               TEXT []   DEFAULT '{}',
+    log_score             INTEGER,
+    has_log               BOOLEAN,
+    has_cue               BOOLEAN,
+    perfect_flac          BOOLEAN,
     match_categories      TEXT,
     except_categories     TEXT,
     match_uploaders       TEXT,
@@ -178,7 +188,7 @@ CREATE TABLE "release"
     artists           TEXT []   DEFAULT '{}' NOT NULL,
     type              TEXT,
     format            TEXT,
-    bitrate           TEXT,
+    quality           TEXT,
     log_score         INTEGER,
     has_log           BOOLEAN,
     has_cue           BOOLEAN,
@@ -288,6 +298,40 @@ var migrations = []string{
 
 	ALTER TABLE "filter"
 		ADD COLUMN except_hdr TEXT []   DEFAULT '{}';
+	`,
+	`
+	ALTER TABLE "release"
+		RENAME COLUMN bitrate TO quality;
+
+	ALTER TABLE "filter"
+		ADD COLUMN artists TEXT;
+
+	ALTER TABLE "filter"
+		ADD COLUMN albums TEXT;
+
+	ALTER TABLE "filter"
+		ADD COLUMN release_types_match TEXT []   DEFAULT '{}';
+
+	ALTER TABLE "filter"
+		ADD COLUMN release_types_ignore TEXT []   DEFAULT '{}';
+
+	ALTER TABLE "filter"
+		ADD COLUMN formats TEXT []   DEFAULT '{}';
+
+	ALTER TABLE "filter"
+		ADD COLUMN quality TEXT []   DEFAULT '{}';
+
+	ALTER TABLE "filter"
+		ADD COLUMN log_score INTEGER;
+
+	ALTER TABLE "filter"
+		ADD COLUMN has_log BOOLEAN;
+
+	ALTER TABLE "filter"
+		ADD COLUMN has_cue BOOLEAN;
+
+	ALTER TABLE "filter"
+		ADD COLUMN perfect_flac BOOLEAN;
 	`,
 }
 

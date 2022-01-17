@@ -73,7 +73,7 @@ type Release struct {
 	Artists                     []string              `json:"artists"`
 	Type                        string                `json:"type"`    // Album,Single,EP
 	Format                      string                `json:"format"`  // music only
-	Bitrate                     string                `json:"bitrate"` // bitrate
+	Quality                     string                `json:"quality"` // quality
 	LogScore                    int                   `json:"log_score"`
 	HasLog                      bool                  `json:"has_log"`
 	HasCue                      bool                  `json:"has_cue"`
@@ -478,7 +478,7 @@ func (r *Release) extractLogScoreFromTags(tag string) error {
 }
 
 func (r *Release) extractBitrateFromTags(tag string) error {
-	if r.Bitrate != "" {
+	if r.Quality != "" {
 		return nil
 	}
 
@@ -496,7 +496,7 @@ func (r *Release) extractBitrateFromTags(tag string) error {
 		if len(matches) >= 1 {
 			last := matches[len(matches)-1]
 
-			r.Bitrate = last
+			r.Quality = last
 			return nil
 		}
 	}

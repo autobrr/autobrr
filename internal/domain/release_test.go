@@ -180,7 +180,7 @@ func TestRelease_Parse(t *testing.T) {
 				Group:       "",
 				Audio:       "MP3",
 				Source:      "Cassette",
-				Bitrate:     "320",
+				Quality:     "320",
 			},
 			wantErr: false,
 		},

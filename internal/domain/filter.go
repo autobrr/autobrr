@@ -53,22 +53,23 @@ type Filter struct {
 	Years               string    `json:"years"`
 	Artists             string    `json:"artists"`
 	Albums              string    `json:"albums"`
-	MatchReleaseTypes   string    `json:"match_release_types"` // Album,Single,EP
+	MatchReleaseTypes   []string  `json:"match_release_types"` // Album,Single,EP
 	ExceptReleaseTypes  string    `json:"except_release_types"`
-	Formats             []string  `json:"formats"`  // MP3, FLAC, Ogg, AAC, AC3, DTS
-	Bitrates            []string  `json:"bitrates"` // 192, 320, APS (VBR), V2 (VBR), V1 (VBR), APX (VBR), V0 (VBR), q8.x (VBR), Lossless, 24bit Lossless, Other
-	Media               []string  `json:"media"`    // CD, DVD, Vinyl, Soundboard, SACD, DAT, Cassette, WEB, Other
-	Cue                 bool      `json:"cue"`
-	Log                 bool      `json:"log"`
-	LogScores           string    `json:"log_scores"`
-	MatchCategories     string    `json:"match_categories"`
-	ExceptCategories    string    `json:"except_categories"`
-	MatchUploaders      string    `json:"match_uploaders"`
-	ExceptUploaders     string    `json:"except_uploaders"`
-	Tags                string    `json:"tags"`
-	ExceptTags          string    `json:"except_tags"`
-	TagsAny             string    `json:"tags_any"`
-	ExceptTagsAny       string    `json:"except_tags_any"`
-	Actions             []Action  `json:"actions"`
-	Indexers            []Indexer `json:"indexers"`
+	Formats             []string  `json:"formats"` // MP3, FLAC, Ogg, AAC, AC3, DTS
+	Quality             []string  `json:"quality"` // 192, 320, APS (VBR), V2 (VBR), V1 (VBR), APX (VBR), V0 (VBR), q8.x (VBR), Lossless, 24bit Lossless, Other
+	//Media               []string  `json:"media"`   // CD, DVD, Vinyl, Soundboard, SACD, DAT, Cassette, WEB, Other
+	PerfectFlac      bool      `json:"perfect_flac"`
+	Cue              bool      `json:"cue"`
+	Log              bool      `json:"log"`
+	LogScore         int       `json:"log_score"`
+	MatchCategories  string    `json:"match_categories"`
+	ExceptCategories string    `json:"except_categories"`
+	MatchUploaders   string    `json:"match_uploaders"`
+	ExceptUploaders  string    `json:"except_uploaders"`
+	Tags             string    `json:"tags"`
+	ExceptTags       string    `json:"except_tags"`
+	TagsAny          string    `json:"tags_any"`
+	ExceptTagsAny    string    `json:"except_tags_any"`
+	Actions          []Action  `json:"actions"`
+	Indexers         []Indexer `json:"indexers"`
 }
