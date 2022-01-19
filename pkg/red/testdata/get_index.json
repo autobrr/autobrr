@@ -1,0 +1,23 @@
+{
+  "status": "success",
+  "response": {
+    "username": "username",
+    "id": 469,
+    "authkey": "redacted",
+    "passkey": "redacted",
+    "api_version": "redacted-v2.0",
+    "notifications": {
+      "messages": 0,
+      "notifications": 9000,
+      "newAnnouncement": false,
+      "newBlog": false
+    },
+    "userstats": {
+      "uploaded": 585564424629,
+      "downloaded": 177461229738,
+      "ratio": 3.29,
+      "requiredratio": 0.6,
+      "class": "VIP"
+    }
+  }
+}

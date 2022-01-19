@@ -151,6 +151,10 @@ func (r *Release) Parse() error {
 }
 
 func (r *Release) extractYear() error {
+	if r.Year > 0 {
+		return nil
+	}
+
 	y, err := findLastInt(r.TorrentName, `\b(((?:19[0-9]|20[0-9])[0-9]))\b`)
 	if err != nil {
 		return err

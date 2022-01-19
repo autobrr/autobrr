@@ -9,6 +9,7 @@ import (
 	"github.com/autobrr/autobrr/pkg/btn"
 	"github.com/autobrr/autobrr/pkg/ggn"
 	"github.com/autobrr/autobrr/pkg/ptp"
+	"github.com/autobrr/autobrr/pkg/red"
 )
 
 type APIService interface {
@@ -103,6 +104,13 @@ func (s *apiService) AddClient(indexer string, settings map[string]string) error
 			return fmt.Errorf("api_service: could not initialize ggn client: missing var 'api_key'")
 		}
 		s.apiClients[indexer] = ggn.NewClient("", key)
+
+	case "redacted":
+		key, ok := settings["api_key"]
+		if !ok || key == "" {
+			return fmt.Errorf("api_service: could not initialize red client: missing var 'api_key'")
+		}
+		s.apiClients[indexer] = red.NewClient("", key)
 
 	default:
 		return fmt.Errorf("api_service: could not initialize client: unsupported indexer '%v'", indexer)

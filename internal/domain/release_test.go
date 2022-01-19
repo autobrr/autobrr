@@ -1152,6 +1152,7 @@ func TestRelease_CheckFilter(t *testing.T) {
 			name: "match_music_5",
 			fields: &Release{
 				TorrentName: "Artist - Albumname",
+				Year:        2022,
 				ReleaseTags: "FLAC / Lossless / Log / 100% / Cue / CD",
 				Category:    "Album",
 			},
@@ -1159,6 +1160,7 @@ func TestRelease_CheckFilter(t *testing.T) {
 				filter: Filter{
 					Enabled:           true,
 					MatchReleaseTypes: []string{"Album"},
+					Years:             "2020-2022",
 					Artists:           "Artist",
 					Sources:           []string{"CD"},
 					Formats:           []string{"FLAC"},
