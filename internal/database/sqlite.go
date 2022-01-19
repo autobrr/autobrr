@@ -44,7 +44,7 @@ func (db *SqliteDB) Open() error {
 
 	// Set busy timeout
 	if _, err = db.handler.Exec(`PRAGMA busy_timeout = 5000;`); err != nil {
-		return fmt.Errorf("busy timeout pragma")
+		return fmt.Errorf("busy timeout pragma: %w", err)
 	}
 
 	// Enable WAL. SQLite performs better with the WAL  because it allows

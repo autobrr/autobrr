@@ -73,7 +73,7 @@ type Release struct {
 	Artists                     []string              `json:"artists"`
 	Type                        string                `json:"type"`    // Album,Single,EP
 	Format                      string                `json:"format"`  // music only
-	Bitrate                     string                `json:"bitrate"` // bitrate
+	Quality                     string                `json:"quality"` // quality
 	LogScore                    int                   `json:"log_score"`
 	HasLog                      bool                  `json:"has_log"`
 	HasCue                      bool                  `json:"has_cue"`
@@ -151,6 +151,10 @@ func (r *Release) Parse() error {
 }
 
 func (r *Release) extractYear() error {
+	if r.Year > 0 {
+		return nil
+	}
+
 	y, err := findLastInt(r.TorrentName, `\b(((?:19[0-9]|20[0-9])[0-9]))\b`)
 	if err != nil {
 		return err
@@ -285,7 +289,7 @@ func (r *Release) extractHDR() error {
 }
 
 func (r *Release) extractAudio() error {
-	v, err := findLast(r.TorrentName, `(?i)(MP3|FLAC[\. ][1-7][\. ][0-2]|FLAC|Opus|DD-EX|DDP[\. ]?[124567][\. ][012] Atmos|DDP[\. ]?[124567][\. ][012]|DDP|DD[1-7][\. ][0-2]|Dual[\- ]Audio|LiNE|PCM|Dolby TrueHD [0-9][\. ][0-4]|TrueHD [0-9][\. ][0-4] Atmos|TrueHD [0-9][\. ][0-4]|DTS X|DTS-HD MA [0-9][\. ][0-4]|DTS-HD MA|DTS-ES|DTS [1-7][\. ][0-2]|DTS|DD|DD[12][\. ]0|Dolby Atmos|TrueHD ATMOS|TrueHD|Atmos|Dolby Digital Plus|Dolby Digital Audio|Dolby Digital|AAC[.-]LC|AAC (?:\.?[1-7]\.[0-2])?|AAC|eac3|AC3(?:\.5\.1)?)`)
+	v, err := findLast(r.TorrentName, `(?i)(FLAC[\. ][1-7][\. ][0-2]|FLAC|Opus|DD-EX|DDP[\. ]?[124567][\. ][012] Atmos|DDP[\. ]?[124567][\. ][012]|DDP|DD[1-7][\. ][0-2]|Dual[\- ]Audio|LiNE|PCM|Dolby TrueHD [0-9][\. ][0-4]|TrueHD [0-9][\. ][0-4] Atmos|TrueHD [0-9][\. ][0-4]|DTS X|DTS-HD MA [0-9][\. ][0-4]|DTS-HD MA|DTS-ES|DTS [1-7][\. ][0-2]|DTS|DD|DD[12][\. ]0|Dolby Atmos|TrueHD ATMOS|TrueHD|Atmos|Dolby Digital Plus|Dolby Digital Audio|Dolby Digital|AAC[.-]LC|AAC (?:\.?[1-7]\.[0-2])?|AAC|eac3|AC3(?:\.5\.1)?)`)
 	if err != nil {
 		return err
 	}
@@ -299,11 +303,25 @@ func (r *Release) extractAudioFromTags(tag string) error {
 		return nil
 	}
 
-	v, err := findLast(tag, `(?i)(MP3|Ogg Vorbis|FLAC[\. ][1-7][\. ][0-2]|FLAC|Opus|DD-EX|DDP[\. ]?[124567][\. ][012] Atmos|DDP[\. ]?[124567][\. ][012]|DDP|DD[1-7][\. ][0-2]|Dual[\- ]Audio|LiNE|PCM|Dolby TrueHD [0-9][\. ][0-4]|TrueHD [0-9][\. ][0-4] Atmos|TrueHD [0-9][\. ][0-4]|DTS X|DTS-HD MA [0-9][\. ][0-4]|DTS-HD MA|DTS-ES|DTS [1-7][\. ][0-2]|DTS|DD|DD[12][\. ]0|Dolby Atmos|TrueHD ATMOS|TrueHD|Atmos|Dolby Digital Plus|Dolby Digital Audio|Dolby Digital|AAC[.-]LC|AAC (?:\.?[1-7]\.[0-2])?|AAC|eac3|AC3(?:\.5\.1)?)`)
+	v, err := findLast(tag, `(?i)(FLAC[\. ][1-7][\. ][0-2]|FLAC|Opus|DD-EX|DDP[\. ]?[124567][\. ][012] Atmos|DDP[\. ]?[124567][\. ][012]|DDP|DD[1-7][\. ][0-2]|Dual[\- ]Audio|LiNE|PCM|Dolby TrueHD [0-9][\. ][0-4]|TrueHD [0-9][\. ][0-4] Atmos|TrueHD [0-9][\. ][0-4]|DTS X|DTS-HD MA [0-9][\. ][0-4]|DTS-HD MA|DTS-ES|DTS [1-7][\. ][0-2]|DTS|DD|DD[12][\. ]0|Dolby Atmos|TrueHD ATMOS|TrueHD|Atmos|Dolby Digital Plus|Dolby Digital Audio|Dolby Digital|AAC[.-]LC|AAC (?:\.?[1-7]\.[0-2])?|AAC|eac3|AC3(?:\.5\.1)?)`)
 	if err != nil {
 		return err
 	}
 	r.Audio = v
+
+	return nil
+}
+
+func (r *Release) extractFormatsFromTags(tag string) error {
+	if r.Format != "" {
+		return nil
+	}
+
+	v, err := findLast(tag, `(?:MP3|FLAC|Ogg Vorbis|AAC|AC3|DTS)`)
+	if err != nil {
+		return err
+	}
+	r.Format = v
 
 	return nil
 }
@@ -477,14 +495,14 @@ func (r *Release) extractLogScoreFromTags(tag string) error {
 	return nil
 }
 
-func (r *Release) extractBitrateFromTags(tag string) error {
-	if r.Bitrate != "" {
+func (r *Release) extractQualityFromTags(tag string) error {
+	if r.Quality != "" {
 		return nil
 	}
 
 	// Start with the basic most common ones
 
-	rxp, err := regexp.Compile(`^(?:vbr|aps|apx|v\d|\d{2,4}|\d+\.\d+|q\d+\.[\dx]+|Other)?(?:\s*kbps|\s*kbits?|\s*k)?(?:\s*\(?(?:vbr|cbr)\)?)?$`)
+	rxp, err := regexp.Compile(`(Lossless|24bit Lossless|V0 \(VBR\)|V1 \(VBR\)|V2 \(VBR\)|APS \(VBR\)|APX \(VBR\)|320|256|192)`)
 	if err != nil {
 		return err
 		//return errors.Wrapf(err, "invalid regex: %s", value)
@@ -496,7 +514,7 @@ func (r *Release) extractBitrateFromTags(tag string) error {
 		if len(matches) >= 1 {
 			last := matches[len(matches)-1]
 
-			r.Bitrate = last
+			r.Quality = last
 			return nil
 		}
 	}
@@ -516,13 +534,14 @@ func (r *Release) extractReleaseTags() error {
 
 		var err error
 		err = r.extractAudioFromTags(t)
+		err = r.extractFormatsFromTags(t)
 		err = r.extractResolutionFromTags(t)
 		err = r.extractCodecFromTags(t)
 		err = r.extractContainerFromTags(t)
 		err = r.extractSourceFromTags(t)
 		err = r.extractFreeleechFromTags(t)
 		err = r.extractLogScoreFromTags(t)
-		err = r.extractBitrateFromTags(t)
+		err = r.extractQualityFromTags(t)
 		err = r.extractAnimeGroupFromTags(t)
 
 		if err != nil {
@@ -781,6 +800,11 @@ func (r *Release) CheckFilter(filter Filter) bool {
 		return false
 	}
 
+	if len(filter.MatchReleaseTypes) > 0 && !checkFilterSlice(r.Category, filter.MatchReleaseTypes) {
+		r.addRejection("release type not matching")
+		return false
+	}
+
 	if (filter.MinSize != "" || filter.MaxSize != "") && !r.CheckSizeFilter(filter.MinSize, filter.MaxSize) {
 		return false
 	}
@@ -792,6 +816,49 @@ func (r *Release) CheckFilter(filter Filter) bool {
 
 	if filter.ExceptTags != "" && checkFilterTags(r.Tags, filter.ExceptTags) {
 		r.addRejection("unwanted tags")
+		return false
+	}
+
+	if len(filter.Artists) > 0 && !checkFilterStrings(r.TorrentName, filter.Artists) {
+		r.addRejection("artists not matching")
+		return false
+	}
+
+	if len(filter.Albums) > 0 && !checkFilterStrings(r.TorrentName, filter.Albums) {
+		r.addRejection("albums not matching")
+		return false
+	}
+
+	// Perfect flac requires Cue, Log, Log Score 100, FLAC and 24bit Lossless
+	if filter.PerfectFlac {
+		if !r.HasLog || !r.HasCue || r.LogScore != 100 || r.Format != "FLAC" && !checkFilterSlice(r.Quality, []string{"Lossless", "24bit Lossless"}) {
+			r.addRejection("wanted: log")
+			return false
+		}
+	}
+
+	if len(filter.Formats) > 0 && !checkFilterSlice(r.Format, filter.Formats) {
+		r.addRejection("formats not matching")
+		return false
+	}
+
+	if len(filter.Quality) > 0 && !checkFilterSlice(r.Quality, filter.Quality) {
+		r.addRejection("formats not matching")
+		return false
+	}
+
+	if filter.Log && r.HasLog != filter.Log {
+		r.addRejection("wanted: log")
+		return false
+	}
+
+	if filter.Log && filter.LogScore != 0 && r.LogScore != filter.LogScore {
+		r.addRejection("wanted: log score")
+		return false
+	}
+
+	if filter.Cue && r.HasCue != filter.Cue {
+		r.addRejection("wanted: cue")
 		return false
 	}
 

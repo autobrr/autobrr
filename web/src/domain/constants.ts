@@ -53,7 +53,16 @@ export const sources = [
     "HDTV",
     "Mixed",
     "SiteRip",
-    "Webrip"
+    "Webrip",
+    "CD",
+    "WEB",
+    "DVD",
+    "Vinyl",
+    "Soundboard",
+    "DAT",
+    "Cassette",
+    "Blu-Ray",
+    "SACD",
 ];
 
 export const SOURCES_OPTIONS = sources.map(v => ({ value: v, label: v, key: v}));
@@ -79,6 +88,68 @@ export const hdr = [
 ];
 
 export const HDR_OPTIONS = hdr.map(v => ({ value: v, label: v, key: v}));
+
+
+export const formatMusic = [
+    "MP3",
+    "FLAC",
+    "Ogg Vorbis",
+    "Ogg",
+    "AAC",
+    "AC3",
+    "DTS",
+];
+
+export const FORMATS_OPTIONS = formatMusic.map(r => ({ value: r, label: r, key: r}));
+
+export const sourcesMusic = [
+    "CD",
+    "WEB",
+    "DVD",
+    "Vinyl",
+    "Soundboard",
+    "DAT",
+    "Cassette",
+    "Blu-Ray",
+    "SACD",
+];
+
+export const SOURCES_MUSIC_OPTIONS = sourcesMusic.map(v => ({ value: v, label: v, key: v}));
+
+export const qualityMusic = [
+    "192",
+    "256",
+    "320",
+    "APS (VBR)",
+    "APX (VBR)",
+    "V2 (VBR)",
+    "V1 (VBR)",
+    "V0 (VBR)",
+    "Lossless",
+    "24bit Lossless",
+];
+
+export const QUALITY_MUSIC_OPTIONS = qualityMusic.map(v => ({ value: v, label: v, key: v}));
+
+export const releaseTypeMusic = [
+    "Album",
+    "Single",
+    "EP",
+    "Soundtrack",
+    "Anthology",
+    "Compilation",
+    "Live album",
+    "Remix",
+    "Bootleg",
+    "Interview",
+    "Mixtape",
+    "Demo",
+    "Concert Recording",
+    "DJ Mix",
+    "Unkown",
+];
+
+export const RELEASE_TYPE_MUSIC_OPTIONS = releaseTypeMusic.map(v => ({ value: v, label: v, key: v}));
 
 export interface radioFieldsetOption {
     label: string;
