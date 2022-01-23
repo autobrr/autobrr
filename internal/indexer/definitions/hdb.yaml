@@ -52,14 +52,15 @@ parse:
         - "New Torrent: Clockers 1995 1080p Blu-ray AVC DTS-HD MA 5.1-Anonymous - Type: Movie (H.264, Blu-ray/HD DVD) - Uploaded by: Anonymous - Size: 37.61 GiB - https://hdbits.org/details.php?id=12345&hit=1"
         - "New Torrent: PilotsEYE tv: QUITO 2014 1080p Blu-ray AVC DD 2.0 - Type: Documentary (H.264, Blu-ray/HD DVD) - Uploaded by: Anonymous - Size: 23.14 GiB - https://hdbits.org/details.php?id=12345&hit=1"
         - "New Torrent: Xiao Q 2019 720p BluRay DD-EX 5.1 x264-Anonymous - Type: Movie (H.264, Encode) Internal! - Uploaded by: Anonymous - Size: 4.54 GiB - https://hdbits.org/details.php?id=12345&hit=1"
-      pattern: '^New Torrent: (.+) - Type: (.*?) (?:\((.+)\))?\s?(Internal!)?\s?- Uploaded by: (.*) - Size: (.+) - (https://.+?/).+id=(\d+)'
+        - "New Torrent: The Gentlemen 2019 UHD Blu-ray English TrueHD 7.1 - Type: Audio Track - Uploaded by: Anonymous - Size: 3.19 GiB - https://hdbits.org/details.php?id=519896&hit=1"
+      pattern: '^New Torrent: (.+) - Type: (.+?) (?:\((.+)\))?\s?(Internal!)?\s?- Uploaded by: (.+) - Size: (.+) - (https://.+?/).+id=(\d+)'
       vars:
         - torrentName
         - category
         - releaseTags
         - internal
         - uploader
-        - TorrentSize
+        - torrentSize
         - baseUrl
         - torrentId
 
