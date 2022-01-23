@@ -54,7 +54,7 @@ parse:
       vars:
         - torrentName
         - category
-        - size
+        - torrentSize
         - baseUrl
         - torrentId
         - uploader
