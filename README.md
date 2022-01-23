@@ -42,6 +42,7 @@ Is your tracker missing? Add an issue to request it.
   * RED
   * Superbits
   * TorrentDay
+  * TorrentDB
   * TorrentLeech
   * TorrentSeeds
   * TranceTraffic
