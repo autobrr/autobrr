@@ -1,6 +1,6 @@
 ---
 #id: TorrentSeeds
-name: TorrentDb
+name: TorrentDB
 identifier: torrentdb
 description: TorrentDB (TDB) is a new Movies / General release tracker.
 language: en-us
