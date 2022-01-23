@@ -2,7 +2,7 @@
 #id: hdb
 name: HDBits
 identifier: hdb
-description: 
+description: Private HD tracker
 language: en-us
 urls:
   - https://hdbits.org/
@@ -19,7 +19,7 @@ settings:
     help: Copy the passkey from your profile page
 
 irc:
-  network: HDBits
+  network: P2P-Network
   server: irc.p2p-network.net
   port: 6697
   tls: true
@@ -40,7 +40,7 @@ irc:
       help: NickServ password
     - name: invite_command
       type: secret
-      default: "/msg midgards announce IRCKey"
+      default: "midgards announce IRCKey"
       required: true
       label: Invite command
       help: Invite auth with the key from https://hdbits.org/bot_invite.php
@@ -59,7 +59,7 @@ parse:
         - releaseTags
         - internal
         - uploader
-        - size
+        - TorrentSize
         - baseUrl
         - torrentId
 
