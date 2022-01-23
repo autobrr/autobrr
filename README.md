@@ -32,6 +32,7 @@ Is your tracker missing? Add an issue to request it.
   * EMP
   * FileList
   * GazelleGames
+  * HDB
   * HD-Torrents
   * IPTorrents
   * Milkie
