@@ -16,7 +16,7 @@ settings:
   - name: passkey
     type: secret
     label: Passkey
-    help: "Go to your profile and copy the passkey"
+    help: "Go to your profile and copy the PID (passkey)"
 
 irc:
   network: TorrentDB
@@ -30,7 +30,7 @@ irc:
   settings:
     - name: nickserv.account
       type: text
-      required: false
+      required: true
       label: NickServ Account
       help: NickServ account. Make sure to group your user and bot. Eg. user_bot
     - name: nickserv.password
@@ -43,12 +43,13 @@ parse:
   type: single
   lines:
     - test:
-        - "New Torrent Announcement: <TV : Pack> Name:'Community S01-S06 COMPLETE 1080p BluRay DD5 1 (With Commentary) x265-POIASD' Size:'42.92 GB' Freeleech Uploaded by:'Anonymous Uploader' - https://torrentdb.net/torrent/community-s01-s06-complete-1080p-bluray-dd5-1-with-commentary-x265-poiasd"
+        - "New Torrent Announcement: <TV : Pack> Name:'That Show S01-S06 COMPLETE 1080p BluRay DD5 1 (With Commentary) x265-GROUP' Size:'42.92 GB' Freeleech Uploaded by:'Anonymous Uploader' - https://torrentdb.net/torrent/that-show-s01-s06-complete-1080p-bluray-dd5-1-with-commentary-x265-group"
+        - "New Torrent Announcement: <Games : PC> Name:'Small Game + All DLCs-GROUP2' Size:'2.65 GB' Uploaded by:'uploader1' - https://torrentdb.net/torrent/small-game-all-dlcs-group2"
       pattern: "^New Torrent Announcement: <(.*)> Name:'(.*?)' Size:'(.*?)' ?(Freeleech)? Uploaded by:'(.*)' - (https.*)torrent.(.*)$"
       vars:
         - category
         - torrentName
-        - size
+        - torrentSize
         - freeleech
         - uploader
         - baseUrl
