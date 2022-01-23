@@ -16,7 +16,7 @@ import { Action, ActionType, DownloadClient, Filter, Indexer } from "../../domai
 import { useToggle } from "../../hooks/hooks";
 import { useMutation, useQuery } from "react-query";
 import { queryClient } from "../../App";
-import { CONTAINER_OPTIONS, CODECS_OPTIONS, RESOLUTION_OPTIONS, SOURCES_OPTIONS, ActionTypeNameMap, ActionTypeOptions } from "../../domain/constants";
+import { CONTAINER_OPTIONS, CODECS_OPTIONS, RESOLUTION_OPTIONS, SOURCES_OPTIONS, ActionTypeNameMap, ActionTypeOptions, HDR_OPTIONS, FORMATS_OPTIONS, SOURCES_MUSIC_OPTIONS, QUALITY_MUSIC_OPTIONS, RELEASE_TYPE_MUSIC_OPTIONS } from "../../domain/constants";
 
 import DEBUG from "../../components/debug";
 import { TitleSubtitle } from "../../components/headings";
@@ -30,11 +30,12 @@ import Toast from '../../components/notifications/Toast';
 import { Field, FieldArray, Form, Formik } from "formik";
 import { AlertWarning } from "../../components/alerts";
 import { DeleteModal } from "../../components/modals";
-import { NumberField, TextField, SwitchGroup, Select, MultiSelect, DownloadClientSelect } from "../../components/inputs";
+import { NumberField, TextField, SwitchGroup, Select, MultiSelect, DownloadClientSelect, CheckboxField } from "../../components/inputs";
 
 const tabs = [
     { name: 'General', href: '', current: true },
     { name: 'Movies and TV', href: 'movies-tv', current: false },
+    { name: 'Music', href: 'music', current: false },
     // { name: 'P2P', href: 'p2p', current: false },
     { name: 'Advanced', href: 'advanced', current: false },
     { name: 'Actions', href: 'actions', current: false },
@@ -233,6 +234,8 @@ export default function FilterDetails() {
                                         sources: data.sources || [],
                                         codecs: data.codecs || [],
                                         containers: data.containers || [],
+                                        match_hdr: data.match_hdr || [],
+                                        except_hdr: data.except_hdr || [],
                                         seasons: data.seasons,
                                         episodes: data.episodes,
                                         match_releases: data.match_releases,
@@ -249,7 +252,16 @@ export default function FilterDetails() {
                                         freeleech_percent: data.freeleech_percent,
                                         indexers: data.indexers || [],
                                         actions: data.actions || [],
-                                    }}
+                                        formats: data.formats || [],
+                                        quality: data.quality || [],
+                                        match_release_types: data.match_release_types || [],
+                                        log_score: data.log_score,
+                                        log: data.log,
+                                        cue: data.cue,
+                                        perfect_flac: data.perfect_flac,
+                                        artists: data.artists,
+                                        albums: data.albums,
+                                    } as Filter}
                                     onSubmit={handleSubmit}
                                 >
                                     {({ values, dirty, resetForm }) => (
@@ -261,6 +273,10 @@ export default function FilterDetails() {
 
                                                 <Route path={`${url}/movies-tv`}>
                                                     <MoviesTv />
+                                                </Route>
+
+                                                <Route path={`${url}/music`}>
+                                                    <Music />
                                                 </Route>
 
                                                 <Route path={`${url}/advanced`}>
@@ -393,6 +409,63 @@ function MoviesTv() {
                     <MultiSelect name="codecs" options={CODECS_OPTIONS} label="codecs" columns={6} />
                     <MultiSelect name="containers" options={CONTAINER_OPTIONS} label="containers" columns={6} />
                 </div>
+
+                <div className="mt-6 grid grid-cols-12 gap-6">
+                    <MultiSelect name="match_hdr" options={HDR_OPTIONS} label="Match HDR" columns={6} />
+                    <MultiSelect name="except_hdr" options={HDR_OPTIONS} label="Except HDR" columns={6} />
+                </div>
+            </div>
+        </div>
+    )
+}
+
+function Music() {
+    return (
+        <div>
+            <div className="mt-6 grid grid-cols-12 gap-6">
+                <TextField name="artists" label="Artists" columns={4} placeholder="eg. Aritst One" />
+                <TextField name="albums" label="Albums" columns={4} placeholder="eg. That Album" />
+                <TextField name="years" label="Years" columns={4} placeholder="eg. 2018,2019-2021" />
+            </div>
+
+            <div className="mt-6 lg:pb-8">
+                <TitleSubtitle title="Quality" subtitle="Format, source, log etc." />
+
+                <div className="mt-6 grid grid-cols-12 gap-6">
+                    <MultiSelect name="formats" options={FORMATS_OPTIONS} label="Format" columns={6} />
+                    <MultiSelect name="quality" options={QUALITY_MUSIC_OPTIONS} label="Quality" columns={6} />
+                </div>
+
+                <div className="mt-6 grid grid-cols-12 gap-6">
+                    <MultiSelect name="sources" options={SOURCES_MUSIC_OPTIONS} label="sources" columns={6} />
+                    <MultiSelect name="match_release_types" options={RELEASE_TYPE_MUSIC_OPTIONS} label="Type" columns={6} />
+                </div>
+
+                <div className="mt-6 grid grid-cols-12 gap-6">
+                    <NumberField name="log_score" label="Log score" placeholder="eg. 100" />
+                </div>
+
+            </div>
+
+            <div className="space-y-6 sm:space-y-5 divide-y divide-gray-200">
+            <div className="pt-6 sm:pt-5">
+              <div role="group" aria-labelledby="label-email">
+                <div className="sm:grid sm:grid-cols-3 sm:gap-4 sm:items-baseline">
+                  {/* <div>
+                    <div className="text-base font-medium text-gray-900 sm:text-sm sm:text-gray-700" id="label-email">
+                      Extra
+                    </div>
+                  </div> */}
+                  <div className="mt-4 sm:mt-0 sm:col-span-2">
+                    <div className="max-w-lg space-y-4">
+                        <CheckboxField name="log" label="Log" sublabel="Must include Log" />
+                        <CheckboxField name="cue" label="Cue" sublabel="Must include Cue"/>
+                        <CheckboxField name="perfect_flac" label="Perfect FLAC" sublabel="Override all options about quality, source, format, and cue/log/log score"/>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
             </div>
         </div>
     )

@@ -1,7 +1,6 @@
 package database
 
 import (
-	"database/sql"
 	"fmt"
 )
 
@@ -82,7 +81,19 @@ CREATE TABLE filter
     codecs                TEXT []   DEFAULT '{}' NOT NULL,
     sources               TEXT []   DEFAULT '{}' NOT NULL,
     containers            TEXT []   DEFAULT '{}' NOT NULL,
+    match_hdr             TEXT []   DEFAULT '{}',
+    except_hdr            TEXT []   DEFAULT '{}',
     years                 TEXT,
+    artists               TEXT,
+    albums                TEXT,
+    release_types_match   TEXT []   DEFAULT '{}',
+    release_types_ignore  TEXT []   DEFAULT '{}',
+    formats               TEXT []   DEFAULT '{}',
+    quality               TEXT []   DEFAULT '{}',
+    log_score             INTEGER,
+    has_log               BOOLEAN,
+    has_cue               BOOLEAN,
+    perfect_flac          BOOLEAN,
     match_categories      TEXT,
     except_categories     TEXT,
     match_uploaders       TEXT,
@@ -143,7 +154,6 @@ CREATE TABLE "release"
 (
     id                INTEGER PRIMARY KEY,
     filter_status     TEXT,
-    push_status       TEXT,
     rejections        TEXT []   DEFAULT '{}' NOT NULL,
     indexer           TEXT,
     filter            TEXT,
@@ -178,7 +188,7 @@ CREATE TABLE "release"
     artists           TEXT []   DEFAULT '{}' NOT NULL,
     type              TEXT,
     format            TEXT,
-    bitrate           TEXT,
+    quality           TEXT,
     log_score         INTEGER,
     has_log           BOOLEAN,
     has_cue           BOOLEAN,
@@ -189,6 +199,20 @@ CREATE TABLE "release"
     freeleech_percent INTEGER,
     uploader          TEXT,
     pre_time          TEXT
+);
+
+CREATE TABLE release_action_status
+(
+		id            INTEGER PRIMARY KEY,
+		status        TEXT,
+		action        TEXT NOT NULL,
+		type          TEXT NOT NULL,
+		rejections    TEXT []   DEFAULT '{}' NOT NULL,
+    	timestamp     TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+		raw           TEXT,
+		log           TEXT,
+		release_id    INTEGER NOT NULL,
+		FOREIGN KEY (release_id) REFERENCES "release"(id)
 );
 `
 
@@ -247,11 +271,76 @@ var migrations = []string{
 		pre_time          TEXT
 	);
 	`,
+	`
+	CREATE TABLE release_action_status
+	(
+		id            INTEGER PRIMARY KEY,
+		status        TEXT,
+		action        TEXT NOT NULL,
+		type          TEXT NOT NULL,
+		rejections    TEXT []   DEFAULT '{}' NOT NULL,
+    	timestamp     TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+		raw           TEXT,
+		log           TEXT,
+		release_id    INTEGER NOT NULL,
+		FOREIGN KEY (release_id) REFERENCES "release"(id)
+	);
+
+	INSERT INTO "release_action_status" (status, action, type, timestamp, release_id)
+	SELECT push_status, 'DEFAULT', 'QBITTORRENT', timestamp, id FROM "release";
+
+	ALTER TABLE "release"
+	DROP COLUMN push_status;
+	`,
+	`
+	ALTER TABLE "filter"
+		ADD COLUMN match_hdr TEXT []   DEFAULT '{}';
+
+	ALTER TABLE "filter"
+		ADD COLUMN except_hdr TEXT []   DEFAULT '{}';
+	`,
+	`
+	ALTER TABLE "release"
+		RENAME COLUMN bitrate TO quality;
+
+	ALTER TABLE "filter"
+		ADD COLUMN artists TEXT;
+
+	ALTER TABLE "filter"
+		ADD COLUMN albums TEXT;
+
+	ALTER TABLE "filter"
+		ADD COLUMN release_types_match TEXT []   DEFAULT '{}';
+
+	ALTER TABLE "filter"
+		ADD COLUMN release_types_ignore TEXT []   DEFAULT '{}';
+
+	ALTER TABLE "filter"
+		ADD COLUMN formats TEXT []   DEFAULT '{}';
+
+	ALTER TABLE "filter"
+		ADD COLUMN quality TEXT []   DEFAULT '{}';
+
+	ALTER TABLE "filter"
+		ADD COLUMN log_score INTEGER;
+
+	ALTER TABLE "filter"
+		ADD COLUMN has_log BOOLEAN;
+
+	ALTER TABLE "filter"
+		ADD COLUMN has_cue BOOLEAN;
+
+	ALTER TABLE "filter"
+		ADD COLUMN perfect_flac BOOLEAN;
+	`,
 }
 
-func Migrate(db *sql.DB) error {
+func (db *SqliteDB) migrate() error {
+	db.lock.Lock()
+	defer db.lock.Unlock()
+
 	var version int
-	if err := db.QueryRow("PRAGMA user_version").Scan(&version); err != nil {
+	if err := db.handler.QueryRow("PRAGMA user_version").Scan(&version); err != nil {
 		return fmt.Errorf("failed to query schema version: %v", err)
 	}
 
@@ -261,7 +350,7 @@ func Migrate(db *sql.DB) error {
 		return fmt.Errorf("autobrr (version %d) older than schema (version: %d)", len(migrations), version)
 	}
 
-	tx, err := db.Begin()
+	tx, err := db.handler.Begin()
 	if err != nil {
 		return err
 	}

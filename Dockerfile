@@ -7,7 +7,9 @@ COPY web .
 RUN yarn build
 
 # build app
-FROM golang:1.16 AS app-builder
+FROM golang:1.17.6-alpine AS app-builder
+
+RUN apk add --no-cache git make build-base
 
 ENV SERVICE=autobrr
 
@@ -21,15 +23,16 @@ COPY . ./
 COPY --from=web-builder /web/build ./web/build
 COPY --from=web-builder /web/build.go ./web
 
-ENV CGO_ENABLED=0
 ENV GOOS=linux
+ENV CGO_ENABLED=1
 
-#RUN make -f Makefile build/app
-RUN go build -o bin/${SERVICE} ./cmd/${SERVICE}/main.go
-RUN go build -o bin/autobrrctl ./cmd/autobrrctl/main.go
+RUN make -f Makefile build/app
+RUN make -f Makefile build/ctl
 
 # build runner
 FROM alpine:latest
+
+LABEL org.opencontainers.image.source = "https://github.com/autobrr/autobrr"
 
 ENV HOME="/config" \
 XDG_CONFIG_HOME="/config" \
@@ -44,5 +47,5 @@ VOLUME /config
 COPY --from=app-builder /src/bin/autobrr /usr/local/bin/
 COPY --from=app-builder /src/bin/autobrrctl /usr/local/bin/
 
-ENTRYPOINT ["autobrr", "--config", "/config"]
+ENTRYPOINT ["/usr/local/bin/autobrr", "--config", "/config"]
 #CMD ["--config", "/config"]

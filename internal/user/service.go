@@ -1,9 +1,12 @@
 package user
 
-import "github.com/autobrr/autobrr/internal/domain"
+import (
+	"context"
+	"github.com/autobrr/autobrr/internal/domain"
+)
 
 type Service interface {
-	FindByUsername(username string) (*domain.User, error)
+	FindByUsername(ctx context.Context, username string) (*domain.User, error)
 }
 
 type service struct {
@@ -16,8 +19,8 @@ func NewService(repo domain.UserRepo) Service {
 	}
 }
 
-func (s *service) FindByUsername(username string) (*domain.User, error) {
-	user, err := s.repo.FindByUsername(username)
+func (s *service) FindByUsername(ctx context.Context, username string) (*domain.User, error) {
+	user, err := s.repo.FindByUsername(ctx, username)
 	if err != nil {
 		return nil, err
 	}

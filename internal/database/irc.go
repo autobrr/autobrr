@@ -12,16 +12,18 @@ import (
 )
 
 type IrcRepo struct {
-	db *sql.DB
+	db *SqliteDB
 }
 
-func NewIrcRepo(db *sql.DB) domain.IrcRepo {
+func NewIrcRepo(db *SqliteDB) domain.IrcRepo {
 	return &IrcRepo{db: db}
 }
 
-func (ir *IrcRepo) GetNetworkByID(id int64) (*domain.IrcNetwork, error) {
+func (r *IrcRepo) GetNetworkByID(id int64) (*domain.IrcNetwork, error) {
+	//r.db.lock.RLock()
+	//defer r.db.lock.RUnlock()
 
-	row := ir.db.QueryRow("SELECT id, enabled, name, server, port, tls, pass, invite_command, nickserv_account, nickserv_password FROM irc_network WHERE id = ?", id)
+	row := r.db.handler.QueryRow("SELECT id, enabled, name, server, port, tls, pass, invite_command, nickserv_account, nickserv_password FROM irc_network WHERE id = ?", id)
 	if err := row.Err(); err != nil {
 		log.Fatal().Err(err)
 		return nil, err
@@ -46,23 +48,23 @@ func (ir *IrcRepo) GetNetworkByID(id int64) (*domain.IrcNetwork, error) {
 	return &n, nil
 }
 
-func (ir *IrcRepo) DeleteNetwork(ctx context.Context, id int64) error {
-	tx, err := ir.db.BeginTx(ctx, nil)
+func (r *IrcRepo) DeleteNetwork(ctx context.Context, id int64) error {
+	tx, err := r.db.BeginTx(ctx, nil)
 	if err != nil {
 		return err
 	}
 
 	defer tx.Rollback()
 
-	_, err = tx.ExecContext(ctx, `DELETE FROM irc_network WHERE id = ?`, id)
-	if err != nil {
-		log.Error().Stack().Err(err).Msgf("error deleting network: %v", id)
-		return err
-	}
-
 	_, err = tx.ExecContext(ctx, `DELETE FROM irc_channel WHERE network_id = ?`, id)
 	if err != nil {
 		log.Error().Stack().Err(err).Msgf("error deleting channels for network: %v", id)
+		return err
+	}
+
+	_, err = tx.ExecContext(ctx, `DELETE FROM irc_network WHERE id = ?`, id)
+	if err != nil {
+		log.Error().Stack().Err(err).Msgf("error deleting network: %v", id)
 		return err
 	}
 
@@ -76,9 +78,11 @@ func (ir *IrcRepo) DeleteNetwork(ctx context.Context, id int64) error {
 	return nil
 }
 
-func (ir *IrcRepo) FindActiveNetworks(ctx context.Context) ([]domain.IrcNetwork, error) {
+func (r *IrcRepo) FindActiveNetworks(ctx context.Context) ([]domain.IrcNetwork, error) {
+	//r.db.lock.RLock()
+	//defer r.db.lock.RUnlock()
 
-	rows, err := ir.db.QueryContext(ctx, "SELECT id, enabled, name, server, port, tls, pass, invite_command, nickserv_account, nickserv_password FROM irc_network WHERE enabled = true")
+	rows, err := r.db.handler.QueryContext(ctx, "SELECT id, enabled, name, server, port, tls, pass, invite_command, nickserv_account, nickserv_password FROM irc_network WHERE enabled = true")
 	if err != nil {
 		log.Fatal().Err(err)
 	}
@@ -109,9 +113,11 @@ func (ir *IrcRepo) FindActiveNetworks(ctx context.Context) ([]domain.IrcNetwork,
 	return networks, nil
 }
 
-func (ir *IrcRepo) ListNetworks(ctx context.Context) ([]domain.IrcNetwork, error) {
+func (r *IrcRepo) ListNetworks(ctx context.Context) ([]domain.IrcNetwork, error) {
+	//r.db.lock.RLock()
+	//defer r.db.lock.RUnlock()
 
-	rows, err := ir.db.QueryContext(ctx, "SELECT id, enabled, name, server, port, tls, pass, invite_command, nickserv_account, nickserv_password FROM irc_network ORDER BY name ASC")
+	rows, err := r.db.handler.QueryContext(ctx, "SELECT id, enabled, name, server, port, tls, pass, invite_command, nickserv_account, nickserv_password FROM irc_network ORDER BY name ASC")
 	if err != nil {
 		log.Fatal().Err(err)
 	}
@@ -142,9 +148,11 @@ func (ir *IrcRepo) ListNetworks(ctx context.Context) ([]domain.IrcNetwork, error
 	return networks, nil
 }
 
-func (ir *IrcRepo) ListChannels(networkID int64) ([]domain.IrcChannel, error) {
+func (r *IrcRepo) ListChannels(networkID int64) ([]domain.IrcChannel, error) {
+	//r.db.lock.RLock()
+	//defer r.db.lock.RUnlock()
 
-	rows, err := ir.db.Query("SELECT id, name, enabled FROM irc_channel WHERE network_id = ?", networkID)
+	rows, err := r.db.handler.Query("SELECT id, name, enabled FROM irc_channel WHERE network_id = ?", networkID)
 	if err != nil {
 		log.Fatal().Err(err)
 	}
@@ -167,7 +175,9 @@ func (ir *IrcRepo) ListChannels(networkID int64) ([]domain.IrcChannel, error) {
 	return channels, nil
 }
 
-func (ir *IrcRepo) CheckExistingNetwork(ctx context.Context, network *domain.IrcNetwork) (*domain.IrcNetwork, error) {
+func (r *IrcRepo) CheckExistingNetwork(ctx context.Context, network *domain.IrcNetwork) (*domain.IrcNetwork, error) {
+	//r.db.lock.RLock()
+	//defer r.db.lock.RUnlock()
 
 	queryBuilder := sq.
 		Select("id", "enabled", "name", "server", "port", "tls", "pass", "invite_command", "nickserv_account", "nickserv_password").
@@ -182,7 +192,7 @@ func (ir *IrcRepo) CheckExistingNetwork(ctx context.Context, network *domain.Irc
 	}
 	log.Trace().Str("database", "irc.check_existing_network").Msgf("query: '%v', args: '%v'", query, args)
 
-	row := ir.db.QueryRowContext(ctx, query, args...)
+	row := r.db.handler.QueryRowContext(ctx, query, args...)
 
 	var net domain.IrcNetwork
 
@@ -206,7 +216,9 @@ func (ir *IrcRepo) CheckExistingNetwork(ctx context.Context, network *domain.Irc
 	return &net, nil
 }
 
-func (ir *IrcRepo) StoreNetwork(network *domain.IrcNetwork) error {
+func (r *IrcRepo) StoreNetwork(network *domain.IrcNetwork) error {
+	//r.db.lock.RLock()
+	//defer r.db.lock.RUnlock()
 
 	netName := toNullString(network.Name)
 	pass := toNullString(network.Pass)
@@ -218,7 +230,7 @@ func (ir *IrcRepo) StoreNetwork(network *domain.IrcNetwork) error {
 	var err error
 	if network.ID != 0 {
 		// update record
-		_, err = ir.db.Exec(`UPDATE irc_network
+		_, err = r.db.handler.Exec(`UPDATE irc_network
 			SET enabled = ?,
 			    name = ?,
 			    server = ?,
@@ -248,7 +260,7 @@ func (ir *IrcRepo) StoreNetwork(network *domain.IrcNetwork) error {
 	} else {
 		var res sql.Result
 
-		res, err = ir.db.Exec(`INSERT INTO irc_network (
+		res, err = r.db.handler.Exec(`INSERT INTO irc_network (
                          enabled,
                          name,
                          server,
@@ -280,7 +292,9 @@ func (ir *IrcRepo) StoreNetwork(network *domain.IrcNetwork) error {
 	return err
 }
 
-func (ir *IrcRepo) UpdateNetwork(ctx context.Context, network *domain.IrcNetwork) error {
+func (r *IrcRepo) UpdateNetwork(ctx context.Context, network *domain.IrcNetwork) error {
+	//r.db.lock.RLock()
+	//defer r.db.lock.RUnlock()
 
 	netName := toNullString(network.Name)
 	pass := toNullString(network.Pass)
@@ -291,7 +305,7 @@ func (ir *IrcRepo) UpdateNetwork(ctx context.Context, network *domain.IrcNetwork
 
 	var err error
 	// update record
-	_, err = ir.db.ExecContext(ctx, `UPDATE irc_network
+	_, err = r.db.handler.ExecContext(ctx, `UPDATE irc_network
 			SET enabled = ?,
 			    name = ?,
 			    server = ?,
@@ -324,9 +338,11 @@ func (ir *IrcRepo) UpdateNetwork(ctx context.Context, network *domain.IrcNetwork
 
 // TODO create new channel handler to only add, not delete
 
-func (ir *IrcRepo) StoreNetworkChannels(ctx context.Context, networkID int64, channels []domain.IrcChannel) error {
+func (r *IrcRepo) StoreNetworkChannels(ctx context.Context, networkID int64, channels []domain.IrcChannel) error {
+	//r.db.lock.RLock()
+	//defer r.db.lock.RUnlock()
 
-	tx, err := ir.db.BeginTx(ctx, nil)
+	tx, err := r.db.handler.BeginTx(ctx, nil)
 	if err != nil {
 		return err
 	}
@@ -373,13 +389,16 @@ func (ir *IrcRepo) StoreNetworkChannels(ctx context.Context, networkID int64, ch
 	return nil
 }
 
-func (ir *IrcRepo) StoreChannel(networkID int64, channel *domain.IrcChannel) error {
+func (r *IrcRepo) StoreChannel(networkID int64, channel *domain.IrcChannel) error {
+	//r.db.lock.RLock()
+	//defer r.db.lock.RUnlock()
+
 	pass := toNullString(channel.Password)
 
 	var err error
 	if channel.ID != 0 {
 		// update record
-		_, err = ir.db.Exec(`UPDATE irc_channel
+		_, err = r.db.handler.Exec(`UPDATE irc_channel
 			SET 
 			    enabled = ?,
 				detached = ?,
@@ -396,7 +415,7 @@ func (ir *IrcRepo) StoreChannel(networkID int64, channel *domain.IrcChannel) err
 	} else {
 		var res sql.Result
 
-		res, err = ir.db.Exec(`INSERT INTO irc_channel (
+		res, err = r.db.handler.Exec(`INSERT INTO irc_channel (
                          enabled,
                          detached,
                          name,

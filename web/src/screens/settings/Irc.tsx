@@ -2,21 +2,56 @@ import { useEffect } from "react";
 import { IrcNetworkAddForm, IrcNetworkUpdateForm } from "../../forms";
 import { useToggle } from "../../hooks/hooks";
 import { useQuery } from "react-query";
-import { Switch } from "@headlessui/react";
-import { classNames } from "../../utils";
 import { EmptySimple } from "../../components/emptystates";
 import APIClient from "../../api/APIClient";
+import { formatDistanceToNowStrict, formatISO9075 } from "date-fns";
 
 interface IrcNetwork {
     id: number;
     name: string;
     enabled: boolean;
     addr: string;
+    server: string;
+    port: string;
     nick: string;
     username: string;
     realname: string;
     pass: string;
-    // connect_commands: string;
+    connected: boolean;
+    connected_since: string;
+    tls: boolean;
+    nickserv: {
+        account: string;
+    }
+    channels: Channel[]
+}
+
+interface Channel {
+    id: number;
+    enabled: boolean;
+    name: string;
+    password: string;
+    detached: boolean;
+    monitoring: boolean;
+    monitoring_since: string;
+    last_announce: string;
+}
+
+function IsEmptyDate(date: string) {
+    if (date !== "0001-01-01T00:00:00Z") {
+        return formatDistanceToNowStrict(
+            new Date(date),
+            { addSuffix: true }
+        )
+    }
+    return "n/a"
+}
+
+function simplifyDate(date: string) {
+    if (date !== "0001-01-01T00:00:00Z") {
+        return formatISO9075(new Date(date))
+    }
+    return "n/a"
 }
 
 function IrcSettings() {
@@ -25,7 +60,7 @@ function IrcSettings() {
     useEffect(() => {
     }, []);
 
-    const { data } = useQuery<any[], Error>('networks', APIClient.irc.getNetworks,
+    const { data } = useQuery<IrcNetwork[], Error>('networks', APIClient.irc.getNetworks,
         {
             refetchOnWindowFocus: false
         }
@@ -40,7 +75,7 @@ function IrcSettings() {
                     <div className="ml-4 mt-4">
                         <h3 className="text-lg leading-6 font-medium text-gray-900 dark:text-white">IRC</h3>
                         <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                            IRC networks and channels.
+                            IRC networks and channels. Click on a network to view channel status.
                         </p>
                     </div>
                     <div className="ml-4 mt-4 flex-shrink-0">
@@ -54,96 +89,130 @@ function IrcSettings() {
                     </div>
                 </div>
 
-                <div className="flex flex-col mt-6">
-                    {data && data.length > 0 ?
-                        <div className="-my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
-                            <div className="py-2 align-middle inline-block min-w-full sm:px-6 lg:px-8">
-                                <div className="light:shadow overflow-hidden light:border-b light:border-gray-200 sm:rounded-lg">
-                                    <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                                        <thead className="light:bg-gray-50">
-                                            <tr>
-                                                <th
-                                                    scope="col"
-                                                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
-                                                >
-                                                    Enabled
-                                                </th>
-                                                <th
-                                                    scope="col"
-                                                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
-                                                >
-                                                    Network
-                                                </th>
-                                                <th
-                                                    scope="col"
-                                                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
-                                                >
-                                                    Server
-                                                </th>
-                                                <th
-                                                    scope="col"
-                                                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
-                                                >
-                                                    Nick
-                                                </th>
-                                                <th scope="col" className="relative px-6 py-3">
-                                                    <span className="sr-only">Edit</span>
-                                                </th>
-                                            </tr>
-                                        </thead>
-                                        <tbody className="light:bg-white divide-y divide-gray-200 dark:divide-gray-700">
-                                            {data && data.map((network: IrcNetwork, idx) => (
-                                                <ListItem key={idx} idx={idx} network={network} />
-                                            ))}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-                        </div>
-                        : <EmptySimple title="No networks" subtitle="Add a new network" buttonText="New network" buttonAction={toggleAddNetwork} />
-                    }
-                </div>
+                {data && data.length > 0 ?
+                    <section className="mt-6 light:bg-white dark:bg-gray-800 light:shadow sm:rounded-md">
+                        <ol className="min-w-full">
+                            <li className="grid grid-cols-12 gap-4 border-b border-gray-200 dark:border-gray-700">
+                                {/* <div className="col-span-1 px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Enabled</div> */}
+                                <div className="col-span-3 px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Network</div>
+                                <div className="col-span-4 px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Server</div>
+                                <div className="col-span-4 px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Nick</div>
+                            </li>
+
+                            {data && data.map((network: IrcNetwork, idx) => (
+                                <LiItem key={idx} idx={idx} network={network} />
+                            ))}
+                        </ol>
+                    </section>
+                    : <EmptySimple title="No networks" subtitle="Add a new network" buttonText="New network" buttonAction={toggleAddNetwork} />}
             </div>
         </div>
     )
 }
 
-const ListItem = ({ idx, network }: any) => {
+interface LiItemProps {
+    idx: number;
+    network: IrcNetwork;
+}
+
+const LiItem = ({ idx, network }: LiItemProps) => {
     const [updateIsOpen, toggleUpdate] = useToggle(false)
+    const [edit, toggleEdit] = useToggle(false);
 
     return (
-        <tr key={network.name} className={idx % 2 === 0 ? 'light:bg-white' : 'light:bg-gray-50'}>
-            <IrcNetworkUpdateForm isOpen={updateIsOpen} toggle={toggleUpdate} network={network} />
 
-            <td className="px-6 py-4 whitespace-nowrap">
-                <Switch
-                    checked={network.enabled}
-                    onChange={toggleUpdate}
-                    className={classNames(
-                        network.enabled ? 'bg-teal-500 dark:bg-blue-500' : 'bg-gray-200 dark:bg-gray-600',
-                        'relative inline-flex flex-shrink-0 h-6 w-11 border-2 border-transparent rounded-full cursor-pointer transition-colors ease-in-out duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500'
-                    )}
-                >
-                    <span className="sr-only">Enable</span>
-                    <span
-                        aria-hidden="true"
+        <li key={idx} >
+            <div className="grid grid-cols-12 gap-4 items-center hover:bg-gray-50 dark:hover:bg-gray-700 py-4">
+
+                <IrcNetworkUpdateForm isOpen={updateIsOpen} toggle={toggleUpdate} network={network} />
+                {/* <div className="col-span-1 flex items-center sm:px-6">
+                    <Switch
+                        checked={network.enabled}
+                        onChange={toggleUpdate}
                         className={classNames(
-                            network.enabled ? 'translate-x-5' : 'translate-x-0',
-                            'inline-block h-5 w-5 rounded-full bg-white shadow transform ring-0 transition ease-in-out duration-200'
+                            network.enabled ? 'bg-teal-500 dark:bg-blue-500' : 'bg-gray-200 dark:bg-gray-600',
+                            'relative inline-flex flex-shrink-0 h-6 w-11 border-2 border-transparent rounded-full cursor-pointer transition-colors ease-in-out duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500'
                         )}
-                    />
-                </Switch>
-            </td>
-            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">{network.name}</td>
-            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400"><span>{network.server}:{network.port}</span> {network.tls && <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 dark:bg-green-300 text-green-800 dark:text-green-900">TLS</span>}</td>
-            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{network.nickserv?.account}</td>
-            <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                <span className="text-indigo-600 dark:text-gray-300 hover:text-indigo-900 cursor-pointer" onClick={toggleUpdate}>
-                    Edit
-                </span>
-            </td>
-        </tr>
+                    >
+                        <span className="sr-only">Enable</span>
+                        <span
+                            aria-hidden="true"
+                            className={classNames(
+                                network.enabled ? 'translate-x-5' : 'translate-x-0',
+                                'inline-block h-5 w-5 rounded-full bg-white shadow transform ring-0 transition ease-in-out duration-200'
+                            )}
+                        />
+                    </Switch>
+                </div> */}
+                <div className="col-span-3 items-center sm:px-6 text-sm font-medium text-gray-900 dark:text-white cursor-pointer" onClick={toggleEdit}>
+                    <span className="relative inline-flex items-center">
+                        {
+                            network.enabled ? (
+                                network.connected ? (
+                                    <span className="mr-3 flex h-3 w-3 relative" title={`Connected since: ${simplifyDate(network.connected_since)}`}>
+                                        <span className="animate-ping inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                                        <span className="inline-flex absolute rounded-full h-3 w-3 bg-green-500"></span>
+                                    </span>
+                                ) : <span className="mr-3 flex h-3 w-3 rounded-full opacity-75 bg-red-400" />
+                            ) : <span className="mr-3 flex h-3 w-3 rounded-full opacity-75 bg-gray-500" />
+                        }
+                        {network.name}
+                    </span>
+                </div>
 
+                <div className="col-span-4 flex justify-between items-center sm:px-6 text-sm text-gray-500 dark:text-gray-400 cursor-pointer" onClick={toggleEdit}>{network.server}:{network.port} {network.tls && <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 dark:bg-green-300 text-green-800 dark:text-green-900">TLS</span>}</div>
+                <div className="col-span-4 items-center sm:px-6 text-sm text-gray-500 dark:text-gray-400 cursor-pointer" onClick={toggleEdit}>{network.nickserv.account}</div>
+                <div className="col-span-1 text-sm text-gray-500 dark:text-gray-400">
+                    <span className="text-indigo-600 dark:text-gray-300 hover:text-indigo-900 cursor-pointer" onClick={toggleUpdate}>
+                        Edit
+                    </span>
+                </div>
+
+            </div>
+            {edit && (
+                <div className="px-4 py-4 flex border-b border-x-0 dark:border-gray-600 dark:bg-gray-700">
+                    <div className="min-w-full">
+                        <ol>
+
+                            <li className="grid grid-cols-12 gap-4 border-b border-gray-200 dark:border-gray-700">
+                                <div className="col-span-4 px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Channel</div>
+                                <div className="col-span-4 px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Monitoring since</div>
+                                <div className="col-span-4 px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Last announce</div>
+                            </li>
+                            {network.channels.map(c => (
+                                <li key={c.id} className="text-gray-500 dark:text-gray-400">
+
+                                    <div className="grid grid-cols-12 gap-4 items-center py-4">
+
+                                        <div className="col-span-4 flex items-center sm:px-6 ">
+                                            <span className="relative inline-flex items-center">
+                                                {
+                                                    network.enabled ? (
+                                                        c.monitoring ? (
+                                                            <span className="mr-3 flex h-3 w-3 relative" title="monitoring">
+                                                                <span className="animate-ping inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                                                                <span className="inline-flex absolute rounded-full h-3 w-3 bg-green-500"></span>
+                                                            </span>
+                                                        ) : <span className="mr-3 flex h-3 w-3 rounded-full opacity-75 bg-red-400" />
+                                                    ) : <span className="mr-3 flex h-3 w-3 rounded-full opacity-75 bg-gray-500" />
+                                                }
+                                                {c.name}
+                                            </span>
+                                        </div>
+                                        <div className="col-span-4 flex items-center sm:px-6 ">
+                                            <span className="" title={simplifyDate(c.monitoring_since)}>{IsEmptyDate(c.monitoring_since)}</span>
+                                        </div>
+                                        <div className="col-span-4 flex items-center sm:px-6 ">
+                                            <span className="" title={simplifyDate(c.last_announce)}>{IsEmptyDate(c.last_announce)}</span>
+                                        </div>
+                                    </div>
+                                </li>
+                            ))}
+                        </ol>
+                    </div>
+                </div>
+            )}
+        </li>
     )
 }
 

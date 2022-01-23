@@ -6,6 +6,7 @@ import APIClient from '../api/APIClient'
 import { useQuery } from 'react-query'
 import { ReleaseFindResponse, ReleaseStats } from '../domain/interfaces'
 import { EmptyListState } from '../components/emptystates'
+import { ReleaseStatusCell } from './Releases'
 
 export function Dashboard() {
   return (
@@ -400,6 +401,12 @@ export function ReleaseCell({ value, column, row }: any) {
   )
 }
 
+export function IndexerCell({ value, column, row }: any) {
+    return (
+        <div className="text-sm font-medium text-gray-900 dark:text-gray-500" title={value}>{value}</div>
+    )
+}
+
 function Table({ columns, data }: any) {
   // Use the state and functions returned from useTable to build your UI
   const {
@@ -660,13 +667,14 @@ function DataTablee() {
     //   Cell: StatusPill,
     // },
     {
-      Header: "Push Status",
-      accessor: 'push_status',
-      Cell: StatusPill,
+      Header: "Actions",
+      accessor: 'action_status',
+      Cell: ReleaseStatusCell,
     },
     {
       Header: "Indexer",
       accessor: 'indexer',
+      Cell: IndexerCell,
       Filter: SelectColumnFilter,  // new
       filter: 'includes',
     },

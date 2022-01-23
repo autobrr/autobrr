@@ -19,7 +19,7 @@ settings:
     help: "Go to https://www.trancetraffic.com/links.php, click on RSS Feed and copy your passkey from the url."
 
 irc:
-  network: P2P-NET
+  network: P2P-Network
   server: irc.p2p-network.net
   port: 6697
   tls: true
@@ -35,7 +35,7 @@ irc:
       help: NickServ account. Make sure to group your user and bot. Eg. user|autodl
     - name: nickserv.password
       type: secret
-      required: false
+      required: true
       label: NickServ Password
       help: NickServ password
 

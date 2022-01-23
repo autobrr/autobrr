@@ -9,6 +9,7 @@ urls:
 privacy: private
 protocol: torrent
 supports:
+  - api
   - irc
   - rss
 source: gazelle
@@ -21,6 +22,22 @@ settings:
     type: secret
     label: Torrent pass
     help: Right click DL on a torrent and get the torrent_pass.
+  - name: api_key
+    type: secret
+    label: API Key
+    help: Settings -> Account Settings -> API Keys - Generate new api keys. Scope (User, Torrents)
+
+api:
+  url: https://redacted.ch/ajax.php
+  type: json
+  limits:
+    max: 10
+    per: 10 seconds
+  settings:
+    - name: api_key
+      type: secret
+      label: API Key
+      help: Settings -> Account Settings -> API Keys - Generate new api keys. Scope (User, Torrents)
 
 irc:
   network: Scratch-Network
@@ -55,12 +72,13 @@ parse:
     - test:
         - "Artist - Albumname [2008] [Single] - FLAC / Lossless / Log / 100% / Cue / CD - https://redacted.ch/torrents.php?id=0000000 / https://redacted.ch/torrents.php?action=download&id=0000000 - hip.hop,rhythm.and.blues,2000s"
         - "A really long name here - Concertos 5 and 6, Suite No 2 [1991] [Album] - FLAC / Lossless / Log / 100% / Cue / CD - https://redacted.ch/torrents.php?id=0000000 / https://redacted.ch/torrents.php?action=download&id=0000000 - classical"
-      pattern: '^(.*)\s+\[(.*)\] \[(.*)\] - (.*) -\s+https?:.*[&\?]id=.*(https?\:\/\/.*)\s* -\s*(.*)'
+      pattern: '(.*) (?:\[(.*)\] \[(.*)\] - (.*))? -\s+https?:.*[&\?]id=(\d+) \/ (https?\:\/\/.*)\s* -\s*(.*)'
       vars:
         - torrentName
         - year
         - category
         - releaseTags
+        - torrentId
         - baseUrl
         - tags
 

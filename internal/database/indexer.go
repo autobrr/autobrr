@@ -2,23 +2,24 @@ package database
 
 import (
 	"context"
-	"database/sql"
 	"encoding/json"
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/rs/zerolog/log"
 )
 
 type IndexerRepo struct {
-	db *sql.DB
+	db *SqliteDB
 }
 
-func NewIndexerRepo(db *sql.DB) domain.IndexerRepo {
+func NewIndexerRepo(db *SqliteDB) domain.IndexerRepo {
 	return &IndexerRepo{
 		db: db,
 	}
 }
 
 func (r *IndexerRepo) Store(indexer domain.Indexer) (*domain.Indexer, error) {
+	//r.db.lock.RLock()
+	//defer r.db.lock.RUnlock()
 
 	settings, err := json.Marshal(indexer.Settings)
 	if err != nil {
@@ -26,7 +27,7 @@ func (r *IndexerRepo) Store(indexer domain.Indexer) (*domain.Indexer, error) {
 		return nil, err
 	}
 
-	res, err := r.db.Exec(`INSERT INTO indexer (enabled, name, identifier, settings) VALUES (?, ?, ?, ?)`, indexer.Enabled, indexer.Name, indexer.Identifier, settings)
+	res, err := r.db.handler.Exec(`INSERT INTO indexer (enabled, name, identifier, settings) VALUES (?, ?, ?, ?)`, indexer.Enabled, indexer.Name, indexer.Identifier, settings)
 	if err != nil {
 		log.Error().Stack().Err(err).Msg("error executing query")
 		return nil, err
@@ -39,6 +40,8 @@ func (r *IndexerRepo) Store(indexer domain.Indexer) (*domain.Indexer, error) {
 }
 
 func (r *IndexerRepo) Update(indexer domain.Indexer) (*domain.Indexer, error) {
+	//r.db.lock.RLock()
+	//defer r.db.lock.RUnlock()
 
 	sett, err := json.Marshal(indexer.Settings)
 	if err != nil {
@@ -46,7 +49,7 @@ func (r *IndexerRepo) Update(indexer domain.Indexer) (*domain.Indexer, error) {
 		return nil, err
 	}
 
-	_, err = r.db.Exec(`UPDATE indexer SET enabled = ?, name = ?, settings = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`, indexer.Enabled, indexer.Name, sett, indexer.ID)
+	_, err = r.db.handler.Exec(`UPDATE indexer SET enabled = ?, name = ?, settings = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`, indexer.Enabled, indexer.Name, sett, indexer.ID)
 	if err != nil {
 		log.Error().Stack().Err(err).Msg("error executing query")
 		return nil, err
@@ -56,8 +59,10 @@ func (r *IndexerRepo) Update(indexer domain.Indexer) (*domain.Indexer, error) {
 }
 
 func (r *IndexerRepo) List() ([]domain.Indexer, error) {
+	//r.db.lock.RLock()
+	//defer r.db.lock.RUnlock()
 
-	rows, err := r.db.Query("SELECT id, enabled, name, identifier, settings FROM indexer ORDER BY name ASC")
+	rows, err := r.db.handler.Query("SELECT id, enabled, name, identifier, settings FROM indexer ORDER BY name ASC")
 	if err != nil {
 		log.Fatal().Err(err)
 	}
@@ -96,7 +101,10 @@ func (r *IndexerRepo) List() ([]domain.Indexer, error) {
 }
 
 func (r *IndexerRepo) FindByFilterID(id int) ([]domain.Indexer, error) {
-	rows, err := r.db.Query(`
+	//r.db.lock.RLock()
+	//defer r.db.lock.RUnlock()
+
+	rows, err := r.db.handler.Query(`
 		SELECT i.id, i.enabled, i.name, i.identifier
 		FROM indexer i
 			JOIN filter_indexer fi on i.id = fi.indexer_id
@@ -140,9 +148,12 @@ func (r *IndexerRepo) FindByFilterID(id int) ([]domain.Indexer, error) {
 }
 
 func (r *IndexerRepo) Delete(ctx context.Context, id int) error {
+	//r.db.lock.RLock()
+	//defer r.db.lock.RUnlock()
+
 	query := `DELETE FROM indexer WHERE id = ?`
 
-	_, err := r.db.ExecContext(ctx, query, id)
+	_, err := r.db.handler.ExecContext(ctx, query, id)
 	if err != nil {
 		log.Error().Stack().Err(err).Msgf("indexer.delete: error executing query: '%v'", query)
 		return err

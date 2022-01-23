@@ -25,17 +25,22 @@ export const codecs = [
     "h265",
     "x264",
     "x265",
+    "h264 10-bit",
+    "h265 10-bit",
+    "x264 10-bit",
+    "x265 10-bit",
     "XviD"
 ];
 
 export const CODECS_OPTIONS = codecs.map(v => ({ value: v, label: v, key: v}));
 
 export const sources = [
+    "WEB-DL",
+    "BluRay",
     "BD5",
     "BD9",
     "BDr",
     "BDRip",
-    "BluRay",
     "BRRip",
     "CAM",
     "DVDR",
@@ -48,8 +53,16 @@ export const sources = [
     "HDTV",
     "Mixed",
     "SiteRip",
-    "WEB-DL",
-    "Webrip"
+    "Webrip",
+    "CD",
+    "WEB",
+    "DVD",
+    "Vinyl",
+    "Soundboard",
+    "DAT",
+    "Cassette",
+    "Blu-Ray",
+    "SACD",
 ];
 
 export const SOURCES_OPTIONS = sources.map(v => ({ value: v, label: v, key: v}));
@@ -61,6 +74,82 @@ export const containers = [
 ];
 
 export const CONTAINER_OPTIONS = containers.map(v => ({ value: v, label: v, key: v}));
+
+export const hdr = [
+    "HDR",
+    "HDR10",
+    "HDR10+",
+    "DV",
+    "DV HDR",
+    "DV HDR10",
+    "DV HDR10+",
+    "DoVi",
+    "Dolby Vision",
+];
+
+export const HDR_OPTIONS = hdr.map(v => ({ value: v, label: v, key: v}));
+
+
+export const formatMusic = [
+    "MP3",
+    "FLAC",
+    "Ogg Vorbis",
+    "Ogg",
+    "AAC",
+    "AC3",
+    "DTS",
+];
+
+export const FORMATS_OPTIONS = formatMusic.map(r => ({ value: r, label: r, key: r}));
+
+export const sourcesMusic = [
+    "CD",
+    "WEB",
+    "DVD",
+    "Vinyl",
+    "Soundboard",
+    "DAT",
+    "Cassette",
+    "Blu-Ray",
+    "SACD",
+];
+
+export const SOURCES_MUSIC_OPTIONS = sourcesMusic.map(v => ({ value: v, label: v, key: v}));
+
+export const qualityMusic = [
+    "192",
+    "256",
+    "320",
+    "APS (VBR)",
+    "APX (VBR)",
+    "V2 (VBR)",
+    "V1 (VBR)",
+    "V0 (VBR)",
+    "Lossless",
+    "24bit Lossless",
+];
+
+export const QUALITY_MUSIC_OPTIONS = qualityMusic.map(v => ({ value: v, label: v, key: v}));
+
+export const releaseTypeMusic = [
+    "Album",
+    "Single",
+    "EP",
+    "Soundtrack",
+    "Anthology",
+    "Compilation",
+    "Live album",
+    "Remix",
+    "Bootleg",
+    "Interview",
+    "Mixtape",
+    "Demo",
+    "Concert Recording",
+    "DJ Mix",
+    "Unkown",
+];
+
+export const RELEASE_TYPE_MUSIC_OPTIONS = releaseTypeMusic.map(v => ({ value: v, label: v, key: v}));
 
 export interface radioFieldsetOption {
     label: string;

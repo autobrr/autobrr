@@ -243,6 +243,16 @@ func (s *service) addIndexer(indexer domain.Indexer) error {
 
 	s.mapIRCIndexerLookup(indexer.Identifier, *indexerDefinition)
 
+	// add to irc server lookup table
+	s.mapIRCServerDefinitionLookup(indexerDefinition.IRC.Server, *indexerDefinition)
+
+	// check if it has api and add to api service
+	if indexerDefinition.Enabled && indexerDefinition.HasApi() {
+		if err := s.apiService.AddClient(indexerDefinition.Identifier, indexerDefinition.SettingsMap); err != nil {
+			log.Error().Stack().Err(err).Msgf("indexer.start: could not init api client for: '%v'", indexer.Identifier)
+		}
+	}
+
 	return nil
 }
 

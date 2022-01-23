@@ -1,6 +1,7 @@
 package action
 
 import (
+	"context"
 	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
@@ -15,7 +16,7 @@ func (s *service) radarr(release domain.Release, action domain.Action) error {
 	// TODO validate data
 
 	// get client for action
-	client, err := s.clientSvc.FindByID(action.ClientID)
+	client, err := s.clientSvc.FindByID(context.TODO(), action.ClientID)
 	if err != nil {
 		log.Error().Err(err).Msgf("error finding client: %v", action.ClientID)
 		return err

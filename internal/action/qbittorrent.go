@@ -1,6 +1,7 @@
 package action
 
 import (
+	"context"
 	"strconv"
 	"time"
 
@@ -12,35 +13,8 @@ import (
 const REANNOUNCE_MAX_ATTEMPTS = 30
 const REANNOUNCE_INTERVAL = 7000
 
-func (s *service) qbittorrent(action domain.Action, hash string, torrentFile string) error {
+func (s *service) qbittorrent(qbt *qbittorrent.Client, action domain.Action, hash string, torrentFile string) error {
 	log.Debug().Msgf("action qBittorrent: %v", action.Name)
-
-	// get client for action
-	client, err := s.clientSvc.FindByID(action.ClientID)
-	if err != nil {
-		log.Error().Stack().Err(err).Msgf("error finding client: %v ID %v", action.Name, action.ClientID)
-		return err
-	}
-
-	if client == nil {
-		return err
-	}
-
-	qbtSettings := qbittorrent.Settings{
-		Hostname: client.Host,
-		Port:     uint(client.Port),
-		Username: client.Username,
-		Password: client.Password,
-		SSL:      client.SSL,
-	}
-
-	qbt := qbittorrent.NewClient(qbtSettings)
-	// save cookies?
-	err = qbt.Login()
-	if err != nil {
-		log.Error().Stack().Err(err).Msgf("error logging into client: %v %v", client.Name, client.Host)
-		return err
-	}
 
 	options := map[string]string{}
 
@@ -66,9 +40,9 @@ func (s *service) qbittorrent(action domain.Action, hash string, torrentFile str
 
 	log.Trace().Msgf("action qBittorrent options: %+v", options)
 
-	err = qbt.AddTorrentFromFile(torrentFile, options)
+	err := qbt.AddTorrentFromFile(torrentFile, options)
 	if err != nil {
-		log.Error().Stack().Err(err).Msgf("could not add torrent %v to client: %v", torrentFile, client.Name)
+		log.Error().Stack().Err(err).Msgf("could not add torrent %v to client: %v", torrentFile, qbt.Name)
 		return err
 	}
 
@@ -80,23 +54,23 @@ func (s *service) qbittorrent(action domain.Action, hash string, torrentFile str
 		}
 	}
 
-	log.Info().Msgf("torrent with hash %v successfully added to client: '%v'", hash, client.Name)
+	log.Info().Msgf("torrent with hash %v successfully added to client: '%v'", hash, qbt.Name)
 
 	return nil
 }
 
-func (s *service) qbittorrentCheckRulesCanDownload(action domain.Action) (bool, error) {
+func (s *service) qbittorrentCheckRulesCanDownload(action domain.Action) (bool, *qbittorrent.Client, error) {
 	log.Trace().Msgf("action qBittorrent: %v check rules", action.Name)
 
 	// get client for action
-	client, err := s.clientSvc.FindByID(action.ClientID)
+	client, err := s.clientSvc.FindByID(context.TODO(), action.ClientID)
 	if err != nil {
 		log.Error().Stack().Err(err).Msgf("error finding client: %v", action.ClientID)
-		return false, err
+		return false, nil, err
 	}
 
 	if client == nil {
-		return false, err
+		return false, nil, err
 	}
 
 	qbtSettings := qbittorrent.Settings{
@@ -108,11 +82,12 @@ func (s *service) qbittorrentCheckRulesCanDownload(action domain.Action) (bool, 
 	}
 
 	qbt := qbittorrent.NewClient(qbtSettings)
+	qbt.Name = client.Name
 	// save cookies?
 	err = qbt.Login()
 	if err != nil {
 		log.Error().Stack().Err(err).Msgf("error logging into client: %v", client.Host)
-		return false, err
+		return false, nil, err
 	}
 
 	// check for active downloads and other rules
@@ -120,7 +95,7 @@ func (s *service) qbittorrentCheckRulesCanDownload(action domain.Action) (bool, 
 		activeDownloads, err := qbt.GetTorrentsFilter(qbittorrent.TorrentFilterDownloading)
 		if err != nil {
 			log.Error().Stack().Err(err).Msg("could not fetch downloading torrents")
-			return false, err
+			return false, nil, err
 		}
 
 		// make sure it's not set to 0 by default
@@ -133,14 +108,14 @@ func (s *service) qbittorrentCheckRulesCanDownload(action domain.Action) (bool, 
 					info, err := qbt.GetTransferInfo()
 					if err != nil {
 						log.Error().Err(err).Msg("could not get transfer info")
-						return false, err
+						return false, nil, err
 					}
 
 					// if current transfer speed is more than threshold return out and skip
 					// DlInfoSpeed is in bytes so lets convert to KB to match DownloadSpeedThreshold
 					if info.DlInfoSpeed/1024 >= client.Settings.Rules.DownloadSpeedThreshold {
 						log.Debug().Msg("max active downloads reached, skipping")
-						return false, nil
+						return false, nil, nil
 					}
 
 					log.Debug().Msg("active downloads are slower than set limit, lets add it")
@@ -149,7 +124,7 @@ func (s *service) qbittorrentCheckRulesCanDownload(action domain.Action) (bool, 
 		}
 	}
 
-	return true, nil
+	return true, qbt, nil
 }
 
 func checkTrackerStatus(qb qbittorrent.Client, hash string) error {

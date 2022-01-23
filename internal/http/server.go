@@ -1,14 +1,16 @@
 package http
 
 import (
+	"fmt"
 	"io/fs"
 	"net"
 	"net/http"
 
-	"github.com/autobrr/autobrr/internal/config"
+	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/web"
 
 	"github.com/go-chi/chi"
+	"github.com/gorilla/sessions"
 	"github.com/r3labs/sse/v2"
 	"github.com/rs/cors"
 )
@@ -16,8 +18,8 @@ import (
 type Server struct {
 	sse *sse.Server
 
-	address string
-	baseUrl string
+	config      domain.Config
+	cookieStore *sessions.CookieStore
 
 	version string
 	commit  string
@@ -32,14 +34,15 @@ type Server struct {
 	releaseService        releaseService
 }
 
-func NewServer(sse *sse.Server, address string, baseUrl string, version string, commit string, date string, actionService actionService, authService authService, downloadClientSvc downloadClientService, filterSvc filterService, indexerSvc indexerService, ircSvc ircService, releaseSvc releaseService) Server {
+func NewServer(config domain.Config, sse *sse.Server, version string, commit string, date string, actionService actionService, authService authService, downloadClientSvc downloadClientService, filterSvc filterService, indexerSvc indexerService, ircSvc ircService, releaseSvc releaseService) Server {
 	return Server{
+		config:  config,
 		sse:     sse,
-		address: address,
-		baseUrl: baseUrl,
 		version: version,
 		commit:  commit,
 		date:    date,
+
+		cookieStore: sessions.NewCookieStore([]byte(config.SessionSecret)),
 
 		actionService:         actionService,
 		authService:           authService,
@@ -52,7 +55,8 @@ func NewServer(sse *sse.Server, address string, baseUrl string, version string, 
 }
 
 func (s Server) Open() error {
-	listener, err := net.Listen("tcp", s.address)
+	addr := fmt.Sprintf("%v:%v", s.config.Host, s.config.Port)
+	listener, err := net.Listen("tcp", addr)
 	if err != nil {
 		return err
 	}
@@ -91,10 +95,10 @@ func (s Server) Handler() http.Handler {
 		fileSystem.ServeHTTP(w, r)
 	})
 
-	r.Route("/api/auth", newAuthHandler(encoder, s.authService).Routes)
+	r.Route("/api/auth", newAuthHandler(encoder, s.config, s.cookieStore, s.authService).Routes)
 
 	r.Group(func(r chi.Router) {
-		r.Use(IsAuthenticated)
+		r.Use(s.IsAuthenticated)
 
 		r.Route("/api", func(r chi.Router) {
 			r.Route("/actions", newActionHandler(encoder, s.actionService).Routes)
@@ -121,17 +125,17 @@ func (s Server) Handler() http.Handler {
 	})
 
 	//r.HandleFunc("/*", handler.ServeHTTP)
-	r.Get("/", index)
-	r.Get("/*", index)
+	r.Get("/", s.index)
+	r.Get("/*", s.index)
 
 	return r
 }
 
-func index(w http.ResponseWriter, r *http.Request) {
+func (s Server) index(w http.ResponseWriter, r *http.Request) {
 	p := web.IndexParams{
 		Title:   "Dashboard",
-		Version: "thisistheversion",
-		BaseUrl: config.Config.BaseURL,
+		Version: s.version,
+		BaseUrl: s.config.BaseURL,
 	}
 	web.Index(w, p)
 }

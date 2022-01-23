@@ -211,8 +211,8 @@ func (s *service) FindAndCheckFilters(release *domain.Release) (bool, *domain.Fi
 			if release.AdditionalSizeCheckRequired {
 				log.Debug().Msgf("filter-service.find_and_check_filters: (%v) additional size check required", f.Name)
 
-				// check if indexer = btn,ptp (ggn,red later)
-				if release.Indexer == "ptp" || release.Indexer == "btn" || release.Indexer == "ggn" {
+				// check if indexer = btn, ptp, ggn or red
+				if release.Indexer == "ptp" || release.Indexer == "btn" || release.Indexer == "ggn" || release.Indexer == "redacted" {
 					// fetch torrent info from api
 					// save outside of loop to check multiple filters with only one fetch
 					if torrentInfo == nil {

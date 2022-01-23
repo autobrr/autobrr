@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"context"
 	"errors"
 
 	"github.com/autobrr/autobrr/internal/domain"
@@ -9,7 +10,7 @@ import (
 )
 
 type Service interface {
-	Login(username, password string) (*domain.User, error)
+	Login(ctx context.Context, username, password string) (*domain.User, error)
 }
 
 type service struct {
@@ -22,13 +23,13 @@ func NewService(userSvc user.Service) Service {
 	}
 }
 
-func (s *service) Login(username, password string) (*domain.User, error) {
+func (s *service) Login(ctx context.Context, username, password string) (*domain.User, error) {
 	if username == "" || password == "" {
 		return nil, errors.New("bad credentials")
 	}
 
 	// find user
-	u, err := s.userSvc.FindByUsername(username)
+	u, err := s.userSvc.FindByUsername(ctx, username)
 	if err != nil {
 		return nil, err
 	}

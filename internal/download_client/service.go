@@ -1,6 +1,7 @@
 package download_client
 
 import (
+	"context"
 	"errors"
 
 	"github.com/autobrr/autobrr/internal/domain"
@@ -10,7 +11,7 @@ import (
 
 type Service interface {
 	List() ([]domain.DownloadClient, error)
-	FindByID(id int32) (*domain.DownloadClient, error)
+	FindByID(ctx context.Context, id int32) (*domain.DownloadClient, error)
 	Store(client domain.DownloadClient) (*domain.DownloadClient, error)
 	Delete(clientID int) error
 	Test(client domain.DownloadClient) error
@@ -33,8 +34,8 @@ func (s *service) List() ([]domain.DownloadClient, error) {
 	return clients, nil
 }
 
-func (s *service) FindByID(id int32) (*domain.DownloadClient, error) {
-	client, err := s.repo.FindByID(id)
+func (s *service) FindByID(ctx context.Context, id int32) (*domain.DownloadClient, error) {
+	client, err := s.repo.FindByID(ctx, id)
 	if err != nil {
 		return nil, err
 	}

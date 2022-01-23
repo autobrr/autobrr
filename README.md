@@ -7,7 +7,7 @@ autobrr monitors IRC announce channels to get releases as soon as they are avail
 ## Features:
 
 * Single binary + config for easy setup
-* Support for 15 trackers
+* Support for 21 trackers
 * Easy to use UI
 * Available torrent actions:
   * qBittorrent
@@ -26,6 +26,7 @@ Is your tracker missing? Add an issue to request it.
   <summary>Trackers</summary>
 
   * AlphaRatio
+  * AnimeBytes
   * BeyondHD
   * BTN
   * EMP
@@ -33,11 +34,16 @@ Is your tracker missing? Add an issue to request it.
   * GazelleGames
   * HD-Torrents
   * IPTorrents
+  * Milkie
+  * MoreThanTV
   * Nebulance
   * Orpheus
   * PTP
   * RED
   * Superbits
+  * TorrentDay
   * TorrentLeech
+  * TorrentSeeds
+  * TranceTraffic
   * UHDBits
 </details>

@@ -30,7 +30,7 @@ func (c *Client) GetTorrentByID(torrentID string) (*domain.TorrentBasic, error) 
 		return nil, fmt.Errorf("btn client: must have torrentID")
 	}
 
-	res, err := c.rpcClient.Call("getTorrentById", [2]string{torrentID, c.APIKey})
+	res, err := c.rpcClient.Call("getTorrentById", [2]string{c.APIKey, torrentID})
 	if err != nil {
 		return nil, err
 	}

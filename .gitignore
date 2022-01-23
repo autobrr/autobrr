@@ -4,6 +4,9 @@
 *.sql
 *.sqlite
 *.db
+*.db-shm
+*.db-wal
+*.db*
 
 # OS generated files #
 ######################

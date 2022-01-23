@@ -12,7 +12,6 @@ https://autodl-community.github.io/autodl-irssi/configuration/filter/
 
 type FilterRepo interface {
 	FindByID(filterID int) (*Filter, error)
-	FindFiltersForSite(site string) ([]Filter, error)
 	FindByIndexerIdentifier(indexer string) ([]Filter, error)
 	ListFilters() ([]Filter, error)
 	Store(filter Filter) (*Filter, error)
@@ -49,25 +48,28 @@ type Filter struct {
 	Codecs              []string  `json:"codecs"`      // XviD, DivX, x264, h.264 (or h264), mpeg2 (or mpeg-2), VC-1 (or VC1), WMV, Remux, h.264 Remux (or h264 Remux), VC-1 Remux (or VC1 Remux).
 	Sources             []string  `json:"sources"`     // DSR, PDTV, HDTV, HR.PDTV, HR.HDTV, DVDRip, DVDScr, BDr, BD5, BD9, BDRip, BRRip, DVDR, MDVDR, HDDVD, HDDVDRip, BluRay, WEB-DL, TVRip, CAM, R5, TELESYNC, TS, TELECINE, TC. TELESYNC and TS are synonyms (you don't need both). Same for TELECINE and TC
 	Containers          []string  `json:"containers"`
+	MatchHDR            []string  `json:"match_hdr"`
+	ExceptHDR           []string  `json:"except_hdr"`
 	Years               string    `json:"years"`
 	Artists             string    `json:"artists"`
 	Albums              string    `json:"albums"`
-	MatchReleaseTypes   string    `json:"match_release_types"` // Album,Single,EP
+	MatchReleaseTypes   []string  `json:"match_release_types"` // Album,Single,EP
 	ExceptReleaseTypes  string    `json:"except_release_types"`
-	Formats             []string  `json:"formats"`  // MP3, FLAC, Ogg, AAC, AC3, DTS
-	Bitrates            []string  `json:"bitrates"` // 192, 320, APS (VBR), V2 (VBR), V1 (VBR), APX (VBR), V0 (VBR), q8.x (VBR), Lossless, 24bit Lossless, Other
-	Media               []string  `json:"media"`    // CD, DVD, Vinyl, Soundboard, SACD, DAT, Cassette, WEB, Other
-	Cue                 bool      `json:"cue"`
-	Log                 bool      `json:"log"`
-	LogScores           string    `json:"log_scores"`
-	MatchCategories     string    `json:"match_categories"`
-	ExceptCategories    string    `json:"except_categories"`
-	MatchUploaders      string    `json:"match_uploaders"`
-	ExceptUploaders     string    `json:"except_uploaders"`
-	Tags                string    `json:"tags"`
-	ExceptTags          string    `json:"except_tags"`
-	TagsAny             string    `json:"tags_any"`
-	ExceptTagsAny       string    `json:"except_tags_any"`
-	Actions             []Action  `json:"actions"`
-	Indexers            []Indexer `json:"indexers"`
+	Formats             []string  `json:"formats"` // MP3, FLAC, Ogg, AAC, AC3, DTS
+	Quality             []string  `json:"quality"` // 192, 320, APS (VBR), V2 (VBR), V1 (VBR), APX (VBR), V0 (VBR), q8.x (VBR), Lossless, 24bit Lossless, Other
+	//Media               []string  `json:"media"`   // CD, DVD, Vinyl, Soundboard, SACD, DAT, Cassette, WEB, Other
+	PerfectFlac      bool      `json:"perfect_flac"`
+	Cue              bool      `json:"cue"`
+	Log              bool      `json:"log"`
+	LogScore         int       `json:"log_score"`
+	MatchCategories  string    `json:"match_categories"`
+	ExceptCategories string    `json:"except_categories"`
+	MatchUploaders   string    `json:"match_uploaders"`
+	ExceptUploaders  string    `json:"except_uploaders"`
+	Tags             string    `json:"tags"`
+	ExceptTags       string    `json:"except_tags"`
+	TagsAny          string    `json:"tags_any"`
+	ExceptTagsAny    string    `json:"except_tags_any"`
+	Actions          []Action  `json:"actions"`
+	Indexers         []Indexer `json:"indexers"`
 }

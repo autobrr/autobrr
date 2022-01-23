@@ -20,7 +20,7 @@ settings:
     regex: /([a-zA-Z0-9\+])
 
 irc:
-  network: p2p-network.net
+  network: P2P-Network
   server: irc.p2p-network.net
   port: 6697
   tls: true

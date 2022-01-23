@@ -1,4 +1,4 @@
-export { ErrorField } from "./common";
+export { ErrorField, CheckboxField } from "./common";
 export { TextField, NumberField, PasswordField } from "./input";
 export { NumberFieldWide, PasswordFieldWide, SwitchGroupWide, TextFieldWide } from "./input_wide";
 export { RadioFieldsetWide } from "./radio";
