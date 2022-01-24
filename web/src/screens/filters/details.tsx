@@ -12,7 +12,6 @@ import {
     useParams,
     useRouteMatch
 } from "react-router-dom";
-import { Action, ActionType, DownloadClient, Filter, Indexer } from "../../domain/interfaces";
 import { useToggle } from "../../hooks/hooks";
 import { useMutation, useQuery } from "react-query";
 import { queryClient } from "../../App";

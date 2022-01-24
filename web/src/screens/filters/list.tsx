@@ -5,7 +5,6 @@ import { EmptyListState } from "../../components/emptystates";
 import {
     Link,
 } from "react-router-dom";
-import { Filter } from "../../domain/interfaces";
 import { useToggle } from "../../hooks/hooks";
 import { useMutation, useQuery } from "react-query";
 import { classNames } from "../../utils";

@@ -1,7 +1,6 @@
 import { useQuery } from "react-query";
 
 import APIClient from "../../api/APIClient";
-import { Config } from "../../domain/interfaces";
 import { Checkbox } from "../../components/Checkbox";
 import { SettingsContext } from "../../utils/Context";
 

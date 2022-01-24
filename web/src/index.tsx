@@ -2,7 +2,6 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 import './index.css';
 
-import {APP} from "./domain/interfaces";
 import App from "./App";
 
 import { InitializeGlobalContext } from "./utils/Context";

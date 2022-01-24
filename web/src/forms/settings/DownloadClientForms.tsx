@@ -1,13 +1,8 @@
 import { Fragment, useRef, useState } from "react";
 import { useMutation } from "react-query";
-import {
-    DOWNLOAD_CLIENT_TYPES,
-    DownloadClient,
-} from "../../domain/interfaces";
 import { Dialog, Transition } from "@headlessui/react";
 import { XIcon } from "@heroicons/react/solid";
 import { sleep, classNames } from "../../utils";
-
 import { Form, Formik, useFormikContext } from "formik";
 import DEBUG from "../../components/debug";
 import { queryClient } from "../../App";
@@ -37,7 +32,7 @@ interface InitialValuesSettings {
 
 interface InitialValues {
     name: string;
-    type: DOWNLOAD_CLIENT_TYPES;
+    type: DownloadClientType;
     enabled: boolean;
     host: string;
     port: number;
@@ -326,7 +321,7 @@ export function DownloadClientAddForm({ isOpen, toggle }: any) {
 
     let initialValues: InitialValues = {
         name: "",
-        type: DOWNLOAD_CLIENT_TYPES.qBittorrent,
+        type: "QBITTORRENT",
         enabled: true,
         host: "",
         port: 10000,

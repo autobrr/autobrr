@@ -17,8 +17,10 @@ export const RegexPlayground = () => {
             let lastIndex = 0;
             // @ts-ignore
             for (const match of matches) {
+                if (match.index === undefined)
+                    continue;
+
                 const start = match.index;
-                console.log("match ", match);
                 results.push(
                     <span key={`match=${start}`}>
                         {line.substring(lastIndex, start)}

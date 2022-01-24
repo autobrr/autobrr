@@ -1,6 +1,5 @@
 import { Fragment } from "react";
 import { useMutation, useQuery } from "react-query";
-import { Channel, Indexer, IndexerSchema, IndexerSchemaSettings, Network } from "../../domain/interfaces";
 import { sleep } from "../../utils";
 import { XIcon } from "@heroicons/react/solid";
 import { Dialog, Transition } from "@headlessui/react";

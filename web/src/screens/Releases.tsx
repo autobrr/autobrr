@@ -7,7 +7,6 @@ import { useQuery } from "react-query"
 import { useTable, useSortBy, usePagination } from "react-table"
 import APIClient from "../api/APIClient"
 import { EmptyListState } from "../components/emptystates"
-import { ReleaseActionStatus } from "../domain/interfaces"
 import { classNames } from "../utils"
 
 export function Releases() {

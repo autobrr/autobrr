@@ -4,7 +4,6 @@ import App from '../App'
 import { useTable, useFilters, useGlobalFilter, useSortBy, usePagination } from 'react-table'
 import APIClient from '../api/APIClient'
 import { useQuery } from 'react-query'
-import { ReleaseFindResponse, ReleaseStats } from '../domain/interfaces'
 import { EmptyListState } from '../components/emptystates'
 import { ReleaseStatusCell } from './Releases'
 
