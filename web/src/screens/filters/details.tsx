@@ -340,8 +340,7 @@ function General({ indexers }: GeneralProps) {
                                             value: v
                                         }))}
                                         onChange={(values: any) => {
-                                            let am = values && values.map((i: any) => i.value)
-
+                                            const am = values && values.map((i: any) => i.value)
                                             setFieldValue(field.name, am)
                                         }}
                                         isClearable={true}
@@ -480,7 +479,7 @@ function Advanced() {
 
     return (
         <div>
-            <div className="mt-6 lg:pb-8 border-b border-gray-200 dark:border-gray-700">
+            <div className="mt-6 lg:pb-6 border-b border-gray-200 dark:border-gray-700">
                 <div className="flex justify-between items-center cursor-pointer" onClick={toggleReleases}>
                     <div className="-ml-2 -mt-2 flex flex-wrap items-baseline">
                         <h3 className="ml-2 mt-2 text-lg leading-6 font-medium text-gray-900 dark:text-gray-200">Releases</h3>
@@ -503,7 +502,7 @@ function Advanced() {
                 )}
             </div>
 
-            <div className="mt-6 lg:pb-8 border-b border-gray-200 dark:border-gray-700">
+            <div className="mt-6 lg:pb-6 border-b border-gray-200 dark:border-gray-700">
                 <div className="flex justify-between items-center cursor-pointer" onClick={toggleGroups}>
                     <div className="-ml-2 -mt-2 flex flex-wrap items-baseline">
                         <h3 className="ml-2 mt-2 text-lg leading-6 font-medium text-gray-900 dark:text-gray-200">Groups</h3>
@@ -526,7 +525,7 @@ function Advanced() {
                 )}
             </div>
 
-            <div className="mt-6 lg:pb-8 border-b border-gray-200 dark:border-gray-700">
+            <div className="mt-6 lg:pb-6 border-b border-gray-200 dark:border-gray-700">
                 <div className="flex justify-between items-center cursor-pointer" onClick={toggleCategories}>
                     <div className="-ml-2 -mt-2 flex flex-wrap items-baseline">
                         <h3 className="ml-2 mt-2 text-lg leading-6 font-medium text-gray-900 dark:text-gray-200">Categories and tags</h3>
@@ -552,7 +551,7 @@ function Advanced() {
                 )}
             </div>
 
-            <div className="mt-6 lg:pb-8 border-b border-gray-200 dark:border-gray-700">
+            <div className="mt-6 lg:pb-6 border-b border-gray-200 dark:border-gray-700">
                 <div className="flex justify-between items-center cursor-pointer" onClick={toggleUploaders}>
                     <div className="-ml-2 -mt-2 flex flex-wrap items-baseline">
                         <h3 className="ml-2 mt-2 text-lg leading-6 font-medium text-gray-900 dark:text-gray-200">Uploaders</h3>
@@ -575,7 +574,7 @@ function Advanced() {
                 )}
             </div>
 
-            <div className="mt-6 lg:pb-8 border-b border-gray-200 dark:border-gray-700">
+            <div className="mt-6 lg:pb-6 border-b border-gray-200 dark:border-gray-700">
                 <div className="flex justify-between items-center cursor-pointer" onClick={toggleFreeleech}>
                     <div className="-ml-2 -mt-2 flex flex-wrap items-baseline">
                         <h3 className="ml-2 mt-2 text-lg leading-6 font-medium text-gray-900 dark:text-gray-200">Freeleech</h3>
