@@ -15,7 +15,7 @@ export const Checkbox = ({ label, description, value, setValue }: CheckboxProps)
             </Switch.Label>
             {description === undefined ? null : (
                 <Switch.Description className="text-sm text-gray-500 dark:text-gray-400">
-                    Enable debug mode to get more logs.
+                    {description}
                 </Switch.Description>
             )}
         </div>
