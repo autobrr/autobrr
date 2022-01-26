@@ -295,6 +295,20 @@ function Table() {
         <>
             {isSuccess && data ? (
                 <div className="flex flex-col mt-4">
+                    {/* <GlobalFilter
+                        preGlobalFilteredRows={preGlobalFilteredRows}
+                        globalFilter={state.globalFilter}
+                        setGlobalFilter={setGlobalFilter}
+                    /> */}
+                    {/* {headerGroups.map((headerGroup: { headers: any[] }) =>
+                        headerGroup.headers.map((column) =>
+                        column.Filter ? (
+                        <div className="mt-2 sm:mt-0" key={column.id}>
+                            {column.render("Filter")}
+                        </div>
+                        ) : null
+                    )
+                    )} */}
                     <div className="-mx-4 -my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
                         <div className="inline-block min-w-full py-2 align-middle sm:px-6 lg:px-8">
                             <div className="overflow-hidden bg-white shadow dark:bg-gray-800 sm:rounded-lg">
