@@ -5,7 +5,7 @@ import { XIcon } from "@heroicons/react/solid";
 import { Dialog, Transition } from "@headlessui/react";
 import { Field, FieldProps, Form, Formik } from "formik";
 import DEBUG from "../../components/debug";
-import Select, { components, InputProps } from "react-select";
+import Select, { components } from "react-select";
 import { queryClient } from "../../App";
 import APIClient from "../../api/APIClient";
 import { TextFieldWide, PasswordFieldWide, SwitchGroupWide } from "../../components/inputs/input_wide";
@@ -14,7 +14,33 @@ import { toast } from 'react-hot-toast'
 import Toast from '../../components/notifications/Toast';
 import { SlideOver } from "../../components/panels";
 
-const Input = ({ type, ...rest }: InputProps) => <components.Input {...rest} />;
+const Input = (props: any) => {
+  return (
+    <components.Input 
+      {...props} 
+      inputClassName="outline-none border-none shadow-none focus:ring-transparent"
+      className="text-gray-400 dark:text-gray-100"
+    />
+  );
+}
+
+const Control = (props: any) => {
+  return (
+    <components.Control 
+      {...props} 
+      className="block w-full dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:text-gray-100 sm:text-sm"
+    />
+  );
+}
+
+const Menu = (props: any) => {
+  return (
+    <components.Menu 
+      {...props}
+      className="dark:bg-gray-800 border border-gray-300 dark:border-gray-700 dark:text-gray-400 hover:bg-red-800 rounded-md shadow-sm"
+    />
+  );
+}
 
 interface AddProps {
     isOpen: boolean;
@@ -176,11 +202,9 @@ export function IndexerAddForm({ isOpen, toggle }: AddProps) {
                                         irc: {},
                                         settings: {},
                                     }}
-
                                     onSubmit={onSubmit}
                                 >
-                                    {({ values }) => {
-                                        return (
+                                    {({ values }) => (
                                             <Form className="h-full flex flex-col bg-white dark:bg-gray-800 shadow-xl overflow-y-scroll">
                                                 <div className="flex-1">
                                                     <div className="px-4 py-6 bg-gray-50 dark:bg-gray-900 sm:px-6">
@@ -206,12 +230,12 @@ export function IndexerAddForm({ isOpen, toggle }: AddProps) {
                                                         </div>
                                                     </div>
 
-                                                    <div className="py-6 space-y-6 py-0 space-y-0 divide-y divide-gray-200 dark:divide-gray-700">
-                                                        <div className="space-y-1 px-4 sm:space-y-0 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6 sm:py-5">
+                                                    <div className="py-6 space-y-6 space-y-0 divide-y divide-gray-200 dark:divide-gray-700">
+                                                        <div className="py-4 flex items-center justify-between space-y-1 px-4 sm:space-y-0 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6 sm:py-5">
                                                             <div>
                                                                 <label
                                                                     htmlFor="identifier"
-                                                                    className="block text-sm font-medium text-gray-900 dark:text-white sm:mt-px sm:pt-2"
+                                                                    className="block text-sm font-medium text-gray-900 dark:text-white"
                                                                 >
                                                                     Indexer
                                                                 </label>
@@ -222,7 +246,7 @@ export function IndexerAddForm({ isOpen, toggle }: AddProps) {
                                                                         <Select {...field}
                                                                             isClearable={true}
                                                                             isSearchable={true}
-                                                                            components={{ Input }}
+                                                                            components={{ Input, Control, Menu }}
                                                                             placeholder="Choose an indexer"
                                                                             value={field?.value && field.value.value}
                                                                             onChange={(option: any) => {
@@ -232,7 +256,8 @@ export function IndexerAddForm({ isOpen, toggle }: AddProps) {
                                                                             options={data && data.sort((a, b): any => a.name.localeCompare(b.name)).map(v => ({
                                                                                 label: v.name,
                                                                                 value: v.identifier
-                                                                            }))} />
+                                                                            }))} 
+                                                                            />
                                                                     )}
                                                                 </Field>
 
@@ -272,8 +297,7 @@ export function IndexerAddForm({ isOpen, toggle }: AddProps) {
 
                                                 <DEBUG values={values} />
                                             </Form>
-                                        )
-                                    }}
+                                        )}
                                 </Formik>
                             </div>
 

@@ -20,7 +20,6 @@ import { CONTAINER_OPTIONS, CODECS_OPTIONS, RESOLUTION_OPTIONS, SOURCES_OPTIONS,
 import DEBUG from "../../components/debug";
 import { TitleSubtitle } from "../../components/headings";
 import { buildPath, classNames } from "../../utils";
-import SelectM from "react-select";
 import APIClient from "../../api/APIClient";
 
 import { toast } from 'react-hot-toast'
@@ -29,7 +28,7 @@ import Toast from '../../components/notifications/Toast';
 import { Field, FieldArray, Form, Formik } from "formik";
 import { AlertWarning } from "../../components/alerts";
 import { DeleteModal } from "../../components/modals";
-import { NumberField, TextField, SwitchGroup, Select, MultiSelect, DownloadClientSelect, CheckboxField } from "../../components/inputs";
+import { NumberField, TextField, SwitchGroup, Select, MultiSelect, DownloadClientSelect, IndexerMultiSelect, CheckboxField } from "../../components/inputs";
 
 const tabs = [
     { name: 'General', href: '', current: true },
@@ -311,7 +310,12 @@ function General({ indexers }: GeneralProps) {
 
     let opts = indexers ? indexers.map(v => ({
         label: v.name,
-        value: v
+        value: {
+            id: v.id,
+            name: v.name,
+            identifier: v.identifier,
+            enabled: v.enabled
+        }
     })) : [];
 
     return (
@@ -322,35 +326,7 @@ function General({ indexers }: GeneralProps) {
                     <TextField name="name" label="Filter name" columns={6} placeholder="eg. Filter 1" />
 
                     <div className="col-span-6">
-                        <label htmlFor="indexers" className="block text-xs font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wide">
-                            Indexers
-                        </label>
-
-                        <Field name="indexers" type="select" multiple={true}>
-                            {({
-                                field,
-                                form: { setFieldValue },
-                            }: any) => {
-                                return (
-                                    <SelectM
-                                        {...field}
-                                        value={field.value && field.value.map((v: any) => ({
-                                            label: v.name,
-                                            value: v
-                                        }))}
-                                        onChange={(values: any) => {
-                                            const am = values && values.map((i: any) => i.value)
-                                            setFieldValue(field.name, am)
-                                        }}
-                                        isClearable={true}
-                                        isMulti={true}
-                                        placeholder="Choose indexers"
-                                        className="mt-2 block w-full focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                                        options={opts}
-                                    />
-                                )
-                            }}
-                        </Field>
+                        <IndexerMultiSelect name="indexers" options={opts} label="Indexers" columns={6} />
                     </div>
                 </div>
             </div>
@@ -373,12 +349,7 @@ function General({ indexers }: GeneralProps) {
     );
 }
 
-// interface FilterTabGeneralProps {
-//     filter: Filter;
-// }
-
 function MoviesTv() {
-
     return (
         <div>
             <div className="mt-6 grid grid-cols-12 gap-6">
@@ -891,7 +862,7 @@ function FilterActionsItem({ action, clients, idx, remove }: FilterActionsItemPr
                     )}
                 </Field>
 
-                <button className="px-4 py-4 w-full flex block" type="button" onClick={toggleEdit}>
+                <button className="px-4 py-4 w-full flex" type="button" onClick={toggleEdit}>
                     <div className="min-w-0 flex-1 sm:flex sm:items-center sm:justify-between">
                         <div className="truncate">
                             <div className="flex text-sm">
