@@ -8,13 +8,6 @@
     "@craco/craco": "^6.1.2",
     "@headlessui/react": "^1.2.0",
     "@heroicons/react": "^1.0.1",
-    "@testing-library/jest-dom": "^5.11.4",
-    "@testing-library/react": "^11.1.0",
-    "@testing-library/user-event": "^12.1.10",
-    "@types/jest": "^26.0.15",
-    "@types/node": "^12.0.0",
-    "@types/react": "^17.0.0",
-    "@types/react-dom": "^17.0.0",
     "date-fns": "^2.25.0",
     "formik": "^2.2.9",
     "react": "^17.0.2",
@@ -23,12 +16,11 @@
     "react-hot-toast": "^2.1.1",
     "react-multi-select-component": "^4.0.2",
     "react-query": "^3.18.1",
+    "react-ridge-state": "^4.2.2",
     "react-router-dom": "^5.2.0",
     "react-scripts": "4.0.3",
     "react-select": "5.0.0-beta.0",
     "react-table": "^7.7.0",
-    "recoil": "^0.4.0",
-    "typescript": "^4.1.2",
     "web-vitals": "^1.0.1"
   },
   "scripts": {
@@ -56,11 +48,19 @@
     ]
   },
   "devDependencies": {
-    "@tailwindcss/forms": "^0.3.2",
-    "@types/react-router-dom": "^5.1.7",
-    "@types/react-table": "^7.7.7",
     "autoprefixer": "^9",
     "postcss": "^7",
-    "tailwindcss": "npm:@tailwindcss/postcss7-compat"
+    "typescript": "^4.1.2",
+    "tailwindcss": "npm:@tailwindcss/postcss7-compat",
+    "@tailwindcss/forms": "^0.3.2",
+    "@testing-library/jest-dom": "^5.11.4",
+    "@testing-library/react": "^11.1.0",
+    "@testing-library/user-event": "^12.1.10",
+    "@types/react-router-dom": "^5.1.7",
+    "@types/react-table": "^7.7.7",
+    "@types/jest": "^26.0.15",
+    "@types/node": "^12.0.0",
+    "@types/react": "^17.0.0",
+    "@types/react-dom": "^17.0.0"
   }
 }

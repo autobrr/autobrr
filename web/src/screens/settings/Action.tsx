@@ -70,32 +70,15 @@ function ActionSettings() {
                                     <tr>
                                         <td>empty</td>
                                     </tr>
-                                    {/*{downloadclients.map((client, personIdx) => (*/}
-                                    {/*    <tr key={client.name}*/}
-                                    {/*        className={personIdx % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>*/}
-                                    {/*        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{client.name}</td>*/}
-                                    {/*        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{client.type}</td>*/}
-                                    {/*        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{client.port}</td>*/}
-                                    {/*        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{client.enabled}</td>*/}
-                                    {/*        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">*/}
-                                    {/*            <Link to="edit" className="text-indigo-600 hover:text-indigo-900">*/}
-                                    {/*                Edit*/}
-                                    {/*            </Link>*/}
-                                    {/*        </td>*/}
-                                    {/*    </tr>*/}
-                                    {/*))}*/}
                                     </tbody>
                                 </table>
                             </div>
                         </div>
                     </div>
                 </div>
-
-
             </div>
         </div>
-
-    )
+    );
 }
 
 export default ActionSettings;

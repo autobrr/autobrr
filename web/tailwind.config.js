@@ -1,7 +1,6 @@
 const colors = require('tailwindcss/colors')
 
 module.exports = {
-    // mode: 'jit',
     purge: {
         content: [
             './src/**/*.{tsx,ts,html,css}',
@@ -21,7 +20,7 @@ module.exports = {
             'col-span-12',
         ],
     },
-    darkMode: 'media', // or 'media' or 'class'
+    darkMode: 'class', // or 'media' or 'class'
     theme: {
         extend: {
             colors: {

@@ -1,0 +1,3 @@
+interface APP {
+    baseUrl: string;
+}

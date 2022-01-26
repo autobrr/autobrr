@@ -10,8 +10,8 @@ const DEBUG: FC<DebugProps> = ({ values }) => {
     }
 
     return (
-        <div className="w-1/2 mx-auto mt-2 flex flex-col mt-12 mb-12">
-            <pre className="mt-2 dark:text-gray-500">{JSON.stringify(values, 0 as any, 2)}</pre>
+        <div className="w-full p-2 flex flex-col mt-12 mb-12 bg-gray-100 dark:bg-gray-900">
+            <pre className="dark:text-gray-400">{JSON.stringify(values, 0 as any, 2)}</pre>
         </div>
     );
 };

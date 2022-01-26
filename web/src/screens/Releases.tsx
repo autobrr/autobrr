@@ -7,7 +7,6 @@ import { useQuery } from "react-query"
 import { useTable, useSortBy, usePagination } from "react-table"
 import APIClient from "../api/APIClient"
 import { EmptyListState } from "../components/emptystates"
-import { ReleaseActionStatus } from "../domain/interfaces"
 import { classNames } from "../utils"
 
 export function Releases() {
@@ -294,24 +293,22 @@ function Table() {
     // Render the UI for your table
     return (
         <>
-            <div className="sm:flex sm:gap-x-2">
-                {/* <GlobalFilter
-          preGlobalFilteredRows={preGlobalFilteredRows}
-          globalFilter={state.globalFilter}
-          setGlobalFilter={setGlobalFilter}
-        /> */}
-                {/* {headerGroups.map((headerGroup: { headers: any[] }) =>
-          headerGroup.headers.map((column) =>
-            column.Filter ? (
-              <div className="mt-2 sm:mt-0" key={column.id}>
-                {column.render("Filter")}
-              </div>
-            ) : null
-          )
-        )} */}
-            </div>
-            {isSuccess ?
+            {isSuccess && data ? (
                 <div className="flex flex-col mt-4">
+                    {/* <GlobalFilter
+                        preGlobalFilteredRows={preGlobalFilteredRows}
+                        globalFilter={state.globalFilter}
+                        setGlobalFilter={setGlobalFilter}
+                    /> */}
+                    {/* {headerGroups.map((headerGroup: { headers: any[] }) =>
+                        headerGroup.headers.map((column) =>
+                        column.Filter ? (
+                        <div className="mt-2 sm:mt-0" key={column.id}>
+                            {column.render("Filter")}
+                        </div>
+                        ) : null
+                    )
+                    )} */}
                     <div className="-mx-4 -my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
                         <div className="inline-block min-w-full py-2 align-middle sm:px-6 lg:px-8">
                             <div className="overflow-hidden bg-white shadow dark:bg-gray-800 sm:rounded-lg">
@@ -373,7 +370,6 @@ function Table() {
                                     </tbody>
                                 </table>
 
-
                                 {/* Pagination */}
                                 <div className="flex items-center justify-between px-6 py-3 border-t border-gray-200 dark:border-gray-700">
                                     <div className="flex justify-between flex-1 sm:hidden">
@@ -421,8 +417,7 @@ function Table() {
                                                 </PageButton>
                                                 <PageButton
                                                     onClick={() => nextPage()}
-                                                    disabled={!canNextPage
-                                                    }>
+                                                    disabled={!canNextPage}>
                                                     <span className="sr-only">Next</span>
                                                     <ChevronRightIcon className="w-5 h-5 text-gray-400" aria-hidden="true" />
                                                 </PageButton>
@@ -438,13 +433,11 @@ function Table() {
                                         </div>
                                     </div>
                                 </div>
-
-
                             </div>
                         </div>
                     </div>
                 </div>
-                : <EmptyListState text="No recent activity" />}
+            ) : <EmptyListState text="No recent activity" />}
         </>
     )
 }

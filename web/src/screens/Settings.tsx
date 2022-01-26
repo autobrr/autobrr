@@ -1,17 +1,19 @@
 import {CogIcon, DownloadIcon, KeyIcon} from '@heroicons/react/outline'
 import {NavLink, Route, Switch as RouteSwitch, useLocation, useRouteMatch} from "react-router-dom";
+
 import IndexerSettings from "./settings/Indexer";
 import IrcSettings from "./settings/Irc";
 import ApplicationSettings from "./settings/Application";
 import DownloadClientSettings from "./settings/DownloadClient";
 import {classNames} from "../utils";
-import ActionSettings from "./settings/Action";
+import { RegexPlayground } from './settings/RegexPlayground';
 
 const subNavigation = [
     {name: 'Application', href: '', icon: CogIcon, current: true},
     {name: 'Indexers', href: 'indexers', icon: KeyIcon, current: false},
     {name: 'IRC', href: 'irc', icon: KeyIcon, current: false},
     {name: 'Clients', href: 'clients', icon: DownloadIcon, current: false},
+    // {name: 'Regex Playground', href: 'regex-playground', icon: CogIcon, current: false}
     // {name: 'Actions', href: 'actions', icon: PlayIcon, current: false},
     // {name: 'Rules', href: 'rules', icon: ClipboardCheckIcon, current: false},
     // {name: 'Notifications', href: 'notifications', icon: BellIcon, current: false},
@@ -97,10 +99,13 @@ export default function Settings() {
                                 <DownloadClientSettings/>
                             </Route>
 
-                            <Route path={`${url}/actions`}>
+                            {/*<Route path={`${url}/actions`}>
                                 <ActionSettings/>
-                            </Route>
+                            </Route>*/}
 
+                            <Route path={`${url}/regex-playground`}>
+                                <RegexPlayground />
+                            </Route>
                         </RouteSwitch>
                     </div>
                 </div>

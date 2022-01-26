@@ -5,7 +5,6 @@ import { EmptyListState } from "../../components/emptystates";
 import {
     Link,
 } from "react-router-dom";
-import { Filter } from "../../domain/interfaces";
 import { useToggle } from "../../hooks/hooks";
 import { useMutation, useQuery } from "react-query";
 import { classNames } from "../../utils";
@@ -51,7 +50,7 @@ export default function Filters() {
             </header>
 
             <div className="max-w-7xl mx-auto pb-12 px-4 sm:px-6 lg:px-8">
-                <div className="bg-white dark:bg-gray-900 light:rounded-lg light:shadow">
+                <div className="bg-white dark:bg-gray-800 light:rounded-lg light:shadow">
                     <div className="relative inset-0 light:py-3 light:px-3 light:sm:px-3 light:lg:px-3 h-full">
                         {data && data.length > 0 ? <FilterList filters={data} /> :
                             <EmptyListState text="No filters here.." buttonText="Add new" buttonOnClick={toggleCreateFilter} />}
@@ -72,8 +71,8 @@ function FilterList({ filters }: FilterListProps) {
             <div className="-my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
                 <div className="light:py-2 align-middle inline-block min-w-full sm:px-6 lg:px-8">
                     <div className="shadow overflow-hidden border-b border-gray-200 dark:border-gray-800 sm:rounded-lg">
-                        <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-800">
-                            <thead className="bg-gray-50 dark:bg-gray-900 text-gray-500 dark:text-gray-400">
+                        <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                            <thead className="bg-gray-50 dark:bg-gray-800 text-gray-500 dark:text-gray-400">
                                 <tr>
                                     <th
                                         scope="col"
@@ -98,7 +97,7 @@ function FilterList({ filters }: FilterListProps) {
                                     </th>
                                 </tr>
                             </thead>
-                            <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-800">
+                            <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-800">
                                 {filters.map((filter: Filter, idx) => (
                                     <FilterListItem filter={filter} key={idx} idx={idx} />
                                 ))}
@@ -135,7 +134,7 @@ function FilterListItem({ filter, idx }: FilterListItemProps) {
 
     return (
         <tr key={filter.name}
-            className={idx % 2 === 0 ? 'bg-white dark:bg-gray-900' : 'bg-gray-50 dark:bg-gray-900'}>
+            className={idx % 2 === 0 ? 'bg-white dark:bg-gray-800' : 'bg-gray-50 dark:bg-gray-800'}>
             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-100">
                 <Switch
                     checked={enabled}
@@ -161,7 +160,7 @@ function FilterListItem({ filter, idx }: FilterListItemProps) {
                 </Link>
                 </td>
             <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{filter.indexers && filter.indexers.map(t =>
-                <span key={t.id} className="mr-2 inline-flex items-center px-2.5 py-0.5 rounded-md text-sm font-medium bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-400">{t.name}</span>)}</td>
+                <span key={t.id} className="mr-2 inline-flex items-center px-2.5 py-0.5 rounded-md text-sm font-medium bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-400">{t.name}</span>)}</td>
             <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                 <Link to={`filters/${filter.id.toString()}`} className="text-indigo-600 dark:text-gray-200 hover:text-indigo-900 dark:hover:text-gray-400">
                     Edit

@@ -1,41 +1,11 @@
-import { useEffect } from "react";
-import { IrcNetworkAddForm, IrcNetworkUpdateForm } from "../../forms";
-import { useToggle } from "../../hooks/hooks";
 import { useQuery } from "react-query";
-import { EmptySimple } from "../../components/emptystates";
-import APIClient from "../../api/APIClient";
 import { formatDistanceToNowStrict, formatISO9075 } from "date-fns";
 
-interface IrcNetwork {
-    id: number;
-    name: string;
-    enabled: boolean;
-    addr: string;
-    server: string;
-    port: string;
-    nick: string;
-    username: string;
-    realname: string;
-    pass: string;
-    connected: boolean;
-    connected_since: string;
-    tls: boolean;
-    nickserv: {
-        account: string;
-    }
-    channels: Channel[]
-}
+import APIClient from "../../api/APIClient";
+import { useToggle } from "../../hooks/hooks";
+import { EmptySimple } from "../../components/emptystates";
+import { IrcNetworkAddForm, IrcNetworkUpdateForm } from "../../forms";
 
-interface Channel {
-    id: number;
-    enabled: boolean;
-    name: string;
-    password: string;
-    detached: boolean;
-    monitoring: boolean;
-    monitoring_since: string;
-    last_announce: string;
-}
 
 function IsEmptyDate(date: string) {
     if (date !== "0001-01-01T00:00:00Z") {
@@ -56,9 +26,6 @@ function simplifyDate(date: string) {
 
 function IrcSettings() {
     const [addNetworkIsOpen, toggleAddNetwork] = useToggle(false)
-
-    useEffect(() => {
-    }, []);
 
     const { data } = useQuery<IrcNetwork[], Error>('networks', APIClient.irc.getNetworks,
         {
@@ -167,13 +134,11 @@ const LiItem = ({ idx, network }: LiItemProps) => {
                         Edit
                     </span>
                 </div>
-
             </div>
             {edit && (
                 <div className="px-4 py-4 flex border-b border-x-0 dark:border-gray-600 dark:bg-gray-700">
                     <div className="min-w-full">
                         <ol>
-
                             <li className="grid grid-cols-12 gap-4 border-b border-gray-200 dark:border-gray-700">
                                 <div className="col-span-4 px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Channel</div>
                                 <div className="col-span-4 px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Monitoring since</div>
@@ -181,9 +146,7 @@ const LiItem = ({ idx, network }: LiItemProps) => {
                             </li>
                             {network.channels.map(c => (
                                 <li key={c.id} className="text-gray-500 dark:text-gray-400">
-
                                     <div className="grid grid-cols-12 gap-4 items-center py-4">
-
                                         <div className="col-span-4 flex items-center sm:px-6 ">
                                             <span className="relative inline-flex items-center">
                                                 {

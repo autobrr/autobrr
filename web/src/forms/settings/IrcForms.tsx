@@ -1,5 +1,4 @@
 import { useMutation } from "react-query";
-import { Channel, Network } from "../../domain/interfaces";
 import { XIcon } from "@heroicons/react/solid";
 import { queryClient } from "../../App";
 

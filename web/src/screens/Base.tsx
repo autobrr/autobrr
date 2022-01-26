@@ -1,12 +1,16 @@
-import { Fragment } from 'react'
-import { Disclosure, Menu, Transition } from '@headlessui/react'
-import { ChevronDownIcon, MenuIcon, XIcon } from '@heroicons/react/outline'
+import { Fragment } from "react";
 import { NavLink, Link, Route, Switch } from "react-router-dom";
+import { Disclosure, Menu, Transition } from "@headlessui/react";
+import { ChevronDownIcon, MenuIcon, XIcon } from "@heroicons/react/outline";
+
+import Logs from "./Logs";
 import Settings from "./Settings";
+
+import { Releases } from "./Releases";
 import { Dashboard } from "./Dashboard";
 import { FilterDetails, Filters } from "./filters";
-import Logs from './Logs';
-import { Releases } from "./Releases";
+import { AuthContext } from '../utils/Context';
+
 import logo from '../logo.png';
 
 function classNames(...classes: string[]) {
@@ -14,10 +18,17 @@ function classNames(...classes: string[]) {
 }
 
 export default function Base() {
-    const nav = [{ name: 'Dashboard', path: "/" }, { name: 'Filters', path: "/filters" }, { name: 'Releases', path: "/releases" }, { name: "Settings", path: "/settings" }, { name: "Logs", path: "/logs" }]
+    const authContext = AuthContext.useValue();
+    const nav = [
+        { name: 'Dashboard', path: "/" },
+        { name: 'Filters', path: "/filters" },
+        { name: 'Releases', path: "/releases" },
+        { name: "Settings", path: "/settings" },
+        { name: "Logs", path: "/logs" }
+    ];
 
     return (
-        <div className="">
+        <div>
             <Disclosure as="nav" className="bg-gray-900 pb-48">
                 {({ open }) => (
                     <>
@@ -48,12 +59,6 @@ export default function Base() {
                                                             if (match?.url === "/" && item.path === "/" && location.pathname === "/") {
                                                                 return true
                                                             }
-
-                                                            // if (item.path ==="/" && location.pathname ==="/") {
-                                                            //     console.log("match base");
-
-                                                            //     return true
-                                                            // }
 
                                                             if (!match) {
                                                                 return false;
@@ -86,7 +91,7 @@ export default function Base() {
                                                                 className="max-w-xs rounded-full flex items-center text-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 focus:ring-white">
                                                                 <span
                                                                     className="hidden text-gray-300 text-sm font-medium sm:block">
-                                                                    <span className="sr-only">Open user menu for </span>User
+                                                                    <span className="sr-only">Open user menu for </span>{authContext.username}
                                                                 </span>
                                                                 <ChevronDownIcon
                                                                     className="hidden flex-shrink-0 ml-1 h-5 w-5 text-gray-400 sm:block"
@@ -111,7 +116,7 @@ export default function Base() {
                                                                 <Menu.Item>
                                                                     {({ active }) => (
                                                                         <Link
-                                                                            to="settings"
+                                                                            to="/settings"
                                                                             className={classNames(
                                                                                 active ? 'bg-gray-100 dark:bg-gray-600' : '',
                                                                                 'block px-4 py-2 text-sm text-gray-700 dark:text-gray-200'
@@ -186,7 +191,7 @@ export default function Base() {
                                 </div>
                                 <div className="mt-3 px-2 space-y-1">
                                     <Link
-                                        to="settings"
+                                        to="/settings"
                                         className="block px-3 py-2 rounded-md text-base font-medium text-gray-400 hover:text-white hover:bg-gray-700"
                                     >
                                         Settings
