@@ -18,7 +18,7 @@ interface ReleaseActionStatus {
     action: string;
     type: string;
     rejections: string[];
-    timestamp: Date
+    timestamp: string
 }
 
 interface ReleaseFindResponse {
