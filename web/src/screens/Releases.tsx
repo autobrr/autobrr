@@ -1,4 +1,4 @@
-import { ExclamationCircleIcon } from "@heroicons/react/outline"
+import { BanIcon, ExclamationCircleIcon } from "@heroicons/react/outline"
 import ClockIcon from "@heroicons/react/outline/ClockIcon"
 import { ChevronDoubleLeftIcon, ChevronLeftIcon, ChevronRightIcon, ChevronDoubleRightIcon, CheckIcon } from "@heroicons/react/solid"
 import { formatDistanceToNowStrict } from "date-fns"
@@ -7,7 +7,7 @@ import { useQuery } from "react-query"
 import { useTable, useSortBy, usePagination } from "react-table"
 import APIClient from "../api/APIClient"
 import { EmptyListState } from "../components/emptystates"
-import { classNames } from "../utils"
+import { classNames, simplifyDate } from "../utils"
 
 export function Releases() {
     return (
@@ -127,19 +127,22 @@ interface ReleaseStatusCellProps {
 
 export function ReleaseStatusCell({ value, column, row }: ReleaseStatusCellProps) {
     const statusMap: any = {
-        "PUSH_REJECTED": <span className="mr-1 inline-flex items-center rounded text-xs font-semibold uppercase bg-pink-100 text-pink-800 hover:bg-pink-300">
+        "PUSH_ERROR": <span className="mr-1 inline-flex items-center rounded text-xs font-semibold uppercase bg-pink-100 text-pink-800 hover:bg-pink-300 cursor-pointer">
              <ExclamationCircleIcon className="h-5 w-5" aria-hidden="true" />
         </span>,
-        "PUSH_APPROVED": <span className="mr-1 inline-flex items-center rounded text-xs font-semibold uppercase bg-green-100 text-green-800 hover:bg-green-300">
+        "PUSH_REJECTED": <span className="mr-1 inline-flex items-center rounded text-xs font-semibold uppercase bg-blue-200 dark:bg-blue-100 text-blue-400 dark:text-blue-800 hover:bg-blue-300 dark:hover:bg-blue-400 cursor-pointer">
+             <BanIcon className="h-5 w-5" aria-hidden="true" />
+        </span>,
+        "PUSH_APPROVED": <span className="mr-1 inline-flex items-center rounded text-xs font-semibold uppercase bg-green-100 text-green-800 hover:bg-green-300 cursor-pointer">
              <CheckIcon className="h-5 w-5" aria-hidden="true" />
         </span>,
-        "PENDING": <span className="mr-1 inline-flex items-center rounded text-xs font-semibold uppercase bg-yellow-100 text-yellow-800 hover:bg-yellow-200">
+        "PENDING": <span className="mr-1 inline-flex items-center rounded text-xs font-semibold uppercase bg-yellow-100 text-yellow-800 hover:bg-yellow-200 cursor-pointer">
              <ClockIcon className="h-5 w-5" aria-hidden="true" />
         </span>,
     }
     return (
         <div className="flex text-sm font-medium text-gray-900 dark:text-gray-300">
-            {value.map((v, idx) => <div key={idx} title={`action: ${v.action}, type: ${v.type}, status: ${v.status}, ;time: ${v.timestamp}`}>{statusMap[v.status]}</div>)}
+            {value.map((v, idx) => <div key={idx} title={`action: ${v.action}, type: ${v.type}, status: ${v.status}, time: ${simplifyDate(v.timestamp)}, rejections: ${v?.rejections}`}>{statusMap[v.status]}</div>)}
         </div>
     )
 }

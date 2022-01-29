@@ -22,7 +22,7 @@ type Config struct {
 
 type Client interface {
 	Test() (*SystemStatusResponse, error)
-	Push(release Release) (bool, string, error)
+	Push(release Release) ([]string, error)
 }
 
 type client struct {
@@ -92,15 +92,15 @@ func (c *client) Test() (*SystemStatusResponse, error) {
 	return &response, nil
 }
 
-func (c *client) Push(release Release) (bool, string, error) {
+func (c *client) Push(release Release) ([]string, error) {
 	res, err := c.post("release/push", release)
 	if err != nil {
 		log.Error().Stack().Err(err).Msg("radarr client post error")
-		return false, "", err
+		return nil, err
 	}
 
 	if res == nil {
-		return false, "", nil
+		return nil, nil
 	}
 
 	defer res.Body.Close()
@@ -108,14 +108,14 @@ func (c *client) Push(release Release) (bool, string, error) {
 	body, err := io.ReadAll(res.Body)
 	if err != nil {
 		log.Error().Stack().Err(err).Msg("radarr client error reading body")
-		return false, "", err
+		return nil, err
 	}
 
 	pushResponse := make([]PushResponse, 0)
 	err = json.Unmarshal(body, &pushResponse)
 	if err != nil {
 		log.Error().Stack().Err(err).Msg("radarr client error json unmarshal")
-		return false, "", err
+		return nil, err
 	}
 
 	log.Trace().Msgf("radarr release/push response body: %+v", string(body))
@@ -125,9 +125,9 @@ func (c *client) Push(release Release) (bool, string, error) {
 		rejections := strings.Join(pushResponse[0].Rejections, ", ")
 
 		log.Trace().Msgf("radarr push rejected: %s - reasons: %q", release.Title, rejections)
-		return false, rejections, nil
+		return pushResponse[0].Rejections, nil
 	}
 
 	// success true
-	return true, "", nil
+	return nil, nil
 }

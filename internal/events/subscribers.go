@@ -25,6 +25,8 @@ func NewSubscribers(eventbus EventBus.Bus, releaseSvc release.Service) Subscribe
 
 func (s Subscriber) Register() {
 	s.eventbus.Subscribe("release:store-action-status", s.releaseActionStatus)
+	s.eventbus.Subscribe("release:push-rejected", s.releasePushRejected)
+	s.eventbus.Subscribe("release:push-approved", s.releasePushApproved)
 }
 
 func (s Subscriber) releaseActionStatus(actionStatus *domain.ReleaseActionStatus) {
@@ -33,5 +35,23 @@ func (s Subscriber) releaseActionStatus(actionStatus *domain.ReleaseActionStatus
 	err := s.releaseSvc.StoreReleaseActionStatus(context.Background(), actionStatus)
 	if err != nil {
 		log.Error().Err(err).Msgf("events: 'release:store-action-status' error")
+	}
+}
+
+func (s Subscriber) releasePushRejected(actionStatus *domain.ReleaseActionStatus) {
+	log.Trace().Msgf("events: 'release:push-rejected' '%+v'", actionStatus)
+
+	err := s.releaseSvc.StoreReleaseActionStatus(context.Background(), actionStatus)
+	if err != nil {
+		log.Error().Err(err).Msgf("events: 'release:push-rejected' error")
+	}
+}
+
+func (s Subscriber) releasePushApproved(actionStatus *domain.ReleaseActionStatus) {
+	log.Trace().Msgf("events: 'release:push-approved' '%+v'", actionStatus)
+
+	err := s.releaseSvc.StoreReleaseActionStatus(context.Background(), actionStatus)
+	if err != nil {
+		log.Error().Err(err).Msgf("events: 'release:push-approved' error")
 	}
 }

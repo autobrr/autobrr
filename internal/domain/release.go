@@ -1457,7 +1457,7 @@ type ReleasePushStatus string
 const (
 	ReleasePushStatusApproved ReleasePushStatus = "PUSH_APPROVED"
 	ReleasePushStatusRejected ReleasePushStatus = "PUSH_REJECTED"
-	ReleasePushStatusMixed    ReleasePushStatus = "MIXED"   // For multiple actions, one might go and the other not
+	ReleasePushStatusErr      ReleasePushStatus = "PUSH_ERROR"
 	ReleasePushStatusPending  ReleasePushStatus = "PENDING" // Initial status
 )
 
