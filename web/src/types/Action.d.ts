@@ -36,6 +36,7 @@ interface Filter {
     match_release_types: string[];
     quality: string[];
     formats: string[];
+    media: string[];
     match_hdr: string[];
     except_hdr: string[];
     log_score: number;

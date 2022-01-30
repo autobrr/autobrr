@@ -847,6 +847,11 @@ func (r *Release) CheckFilter(filter Filter) bool {
 		return false
 	}
 
+	if len(filter.Media) > 0 && !checkFilterSource(r.Source, filter.Media) {
+		r.addRejection("source not matching")
+		return false
+	}
+
 	if filter.Log && r.HasLog != filter.Log {
 		r.addRejection("wanted: log")
 		return false

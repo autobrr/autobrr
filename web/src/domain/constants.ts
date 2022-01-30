@@ -52,15 +52,6 @@ export const sources = [
     "Mixed",
     "SiteRip",
     "Webrip",
-    "CD",
-    "WEB",
-    "DVD",
-    "Vinyl",
-    "Soundboard",
-    "DAT",
-    "Cassette",
-    "Blu-Ray",
-    "SACD",
 ];
 
 export const SOURCES_OPTIONS = sources.map(v => ({ value: v, label: v, key: v}));
