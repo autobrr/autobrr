@@ -252,6 +252,7 @@ export default function FilterDetails() {
                                         actions: data.actions || [],
                                         formats: data.formats || [],
                                         quality: data.quality || [],
+                                        media: data.media || [],
                                         match_release_types: data.match_release_types || [],
                                         log_score: data.log_score,
                                         log: data.log,
@@ -406,7 +407,7 @@ function Music() {
                 </div>
 
                 <div className="mt-6 grid grid-cols-12 gap-6">
-                    <MultiSelect name="sources" options={SOURCES_MUSIC_OPTIONS} label="sources" columns={6} />
+                    <MultiSelect name="media" options={SOURCES_MUSIC_OPTIONS} label="Media" columns={6} />
                     <MultiSelect name="match_release_types" options={RELEASE_TYPE_MUSIC_OPTIONS} label="Type" columns={6} />
                 </div>
 

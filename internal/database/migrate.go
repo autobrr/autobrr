@@ -1,7 +1,9 @@
 package database
 
 import (
+	"database/sql"
 	"fmt"
+	"github.com/lib/pq"
 )
 
 const schema = `
@@ -90,6 +92,7 @@ CREATE TABLE filter
     release_types_ignore  TEXT []   DEFAULT '{}',
     formats               TEXT []   DEFAULT '{}',
     quality               TEXT []   DEFAULT '{}',
+	media 				  TEXT []   DEFAULT '{}',
     log_score             INTEGER,
     has_log               BOOLEAN,
     has_cue               BOOLEAN,
@@ -333,6 +336,10 @@ var migrations = []string{
 	ALTER TABLE "filter"
 		ADD COLUMN perfect_flac BOOLEAN;
 	`,
+	`
+	ALTER TABLE "filter"
+		ADD COLUMN media TEXT []   DEFAULT '{}';
+	`,
 }
 
 func (db *SqliteDB) migrate() error {
@@ -368,10 +375,110 @@ func (db *SqliteDB) migrate() error {
 		}
 	}
 
+	// temp custom data migration
+	// get data from filter.sources, check if specific types, move to new table and clear
+	// if migration 6
+	// TODO 2022-01-30 remove this in future version
+	if version == 5 && len(migrations) == 6 {
+		if err := customMigrateCopySourcesToMedia(tx); err != nil {
+			return fmt.Errorf("could not run custom data migration: %v", err)
+		}
+	}
+
 	_, err = tx.Exec(fmt.Sprintf("PRAGMA user_version = %d", len(migrations)))
 	if err != nil {
 		return fmt.Errorf("failed to bump schema version: %v", err)
 	}
 
 	return tx.Commit()
+}
+
+// customMigrateCopySourcesToMedia move music specific sources to media
+func customMigrateCopySourcesToMedia(tx *sql.Tx) error {
+	rows, err := tx.Query(`
+		SELECT id, sources
+		FROM filter
+		WHERE sources LIKE '%"CD"%'
+		   OR sources LIKE '%"WEB"%'
+		   OR sources LIKE '%"DVD"%'
+		   OR sources LIKE '%"Vinyl"%'
+		   OR sources LIKE '%"Soundboard"%'
+		   OR sources LIKE '%"DAT"%'
+		   OR sources LIKE '%"Cassette"%'
+		   OR sources LIKE '%"Blu-Ray"%'
+		   OR sources LIKE '%"SACD"%'
+		;`)
+	if err != nil {
+		return fmt.Errorf("could not run custom data migration: %v", err)
+	}
+
+	defer rows.Close()
+
+	type tmpDataStruct struct {
+		id      int
+		sources []string
+	}
+
+	var tmpData []tmpDataStruct
+
+	// scan data
+	for rows.Next() {
+		var t tmpDataStruct
+
+		if err := rows.Scan(&t.id, pq.Array(&t.sources)); err != nil {
+			return err
+		}
+
+		tmpData = append(tmpData, t)
+	}
+	if err := rows.Err(); err != nil {
+		return err
+	}
+
+	// manipulate data
+	for _, d := range tmpData {
+		// create new slice with only music source if they exist in d.sources
+		mediaSources := []string{}
+		for _, source := range d.sources {
+			switch source {
+			case "CD":
+				mediaSources = append(mediaSources, source)
+			case "DVD":
+				mediaSources = append(mediaSources, source)
+			case "Vinyl":
+				mediaSources = append(mediaSources, source)
+			case "Soundboard":
+				mediaSources = append(mediaSources, source)
+			case "DAT":
+				mediaSources = append(mediaSources, source)
+			case "Cassette":
+				mediaSources = append(mediaSources, source)
+			case "Blu-Ray":
+				mediaSources = append(mediaSources, source)
+			case "SACD":
+				mediaSources = append(mediaSources, source)
+			}
+		}
+		_, err = tx.Exec(`UPDATE filter SET media = ? WHERE id = ?`, pq.Array(mediaSources), d.id)
+		if err != nil {
+			return err
+		}
+
+		// remove all music specific sources
+		cleanSources := []string{}
+		for _, source := range d.sources {
+			switch source {
+			case "CD", "WEB", "DVD", "Vinyl", "Soundboard", "DAT", "Cassette", "Blu-Ray", "SACD":
+				continue
+			}
+			cleanSources = append(cleanSources, source)
+		}
+		_, err := tx.Exec(`UPDATE filter SET sources = ? WHERE id = ?`, pq.Array(cleanSources), d.id)
+		if err != nil {
+			return err
+		}
+
+	}
+
+	return nil
 }
