@@ -10,8 +10,8 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-const REANNOUNCE_MAX_ATTEMPTS = 30
-const REANNOUNCE_INTERVAL = 7000
+const ReannounceMaxAttempts = 30
+const ReannounceInterval = 7000
 
 func (s *service) qbittorrent(qbt *qbittorrent.Client, action domain.Action, hash string, torrentFile string) error {
 	log.Debug().Msgf("action qBittorrent: %v", action.Name)
@@ -134,7 +134,7 @@ func checkTrackerStatus(qb qbittorrent.Client, hash string) error {
 	// initial sleep to give tracker a head start
 	time.Sleep(2 * time.Second)
 
-	for attempts < REANNOUNCE_MAX_ATTEMPTS {
+	for attempts < ReannounceMaxAttempts {
 		log.Debug().Msgf("qBittorrent - run re-announce %v attempt: %v", hash, attempts)
 
 		trackers, err := qb.GetTorrentTrackers(hash)
@@ -157,7 +157,7 @@ func checkTrackerStatus(qb qbittorrent.Client, hash string) error {
 			attempts++
 
 			// add delay for next run
-			time.Sleep(REANNOUNCE_INTERVAL * time.Millisecond)
+			time.Sleep(ReannounceInterval * time.Millisecond)
 
 			continue
 		} else {

@@ -1,4 +1,3 @@
-import { DownloadClient } from "../../domain/interfaces";
 import { useToggle } from "../../hooks/hooks";
 import { Switch } from "@headlessui/react";
 import { useQuery } from "react-query";

@@ -1,5 +1,3 @@
-import {DOWNLOAD_CLIENT_TYPES} from "./interfaces";
-
 export const resolutions = [
     "2160p",
     "1080p",
@@ -151,21 +149,46 @@ export const releaseTypeMusic = [
 
 export const RELEASE_TYPE_MUSIC_OPTIONS = releaseTypeMusic.map(v => ({ value: v, label: v, key: v}));
 
-export interface radioFieldsetOption {
+export interface RadioFieldsetOption {
     label: string;
     description: string;
-    value: string;
+    value: ActionType;
 }
 
-export const DownloadClientTypeOptions: radioFieldsetOption[] = [
-    {label: "qBittorrent", description: "Add torrents directly to qBittorrent", value: DOWNLOAD_CLIENT_TYPES.qBittorrent},
-    {label: "Deluge", description: "Add torrents directly to Deluge", value: DOWNLOAD_CLIENT_TYPES.DelugeV1},
-    {label: "Deluge 2", description: "Add torrents directly to Deluge 2", value: DOWNLOAD_CLIENT_TYPES.DelugeV2},
-    {label: "Radarr", description: "Send to Radarr and let it decide", value: DOWNLOAD_CLIENT_TYPES.Radarr},
-    {label: "Sonarr", description: "Send to Sonarr and let it decide", value: DOWNLOAD_CLIENT_TYPES.Sonarr},
-    {label: "Lidarr", description: "Send to Lidarr and let it decide", value: DOWNLOAD_CLIENT_TYPES.Lidarr},
+export const DownloadClientTypeOptions: RadioFieldsetOption[] = [
+    {
+        label: "qBittorrent",
+        description: "Add torrents directly to qBittorrent",
+        value: "QBITTORRENT"
+    },
+    {
+        label: "Deluge",
+        description: "Add torrents directly to Deluge",
+        value: "DELUGE_V1"
+    },
+    {
+        label: "Deluge 2",
+        description: "Add torrents directly to Deluge 2",
+        value: "DELUGE_V2"
+    },
+    {
+        label: "Radarr",
+        description: "Send to Radarr and let it decide",
+        value: "RADARR"
+    },
+    {
+        label: "Sonarr",
+        description: "Send to Sonarr and let it decide",
+        value: "SONARR"
+    },
+    {
+        label: "Lidarr",
+        description: "Send to Lidarr and let it decide",
+        value: "LIDARR"
+    },
 ];
-export const DownloadClientTypeNameMap = {
+
+export const DownloadClientTypeNameMap: Record<DownloadClientType | string, string> = {
     "DELUGE_V1": "Deluge v1",
     "DELUGE_V2": "Deluge v2",
     "QBITTORRENT": "qBittorrent",
@@ -174,16 +197,16 @@ export const DownloadClientTypeNameMap = {
     "LIDARR": "Lidarr",
 };
 
-export const ActionTypeOptions: radioFieldsetOption[] = [
+export const ActionTypeOptions: RadioFieldsetOption[] = [
     {label: "Test", description: "A simple action to test a filter.", value: "TEST"},
     {label: "Watch dir", description: "Add filtered torrents to a watch directory", value: "WATCH_FOLDER"},
     {label: "Exec", description: "Run a custom command after a filter match", value: "EXEC"},
     {label: "qBittorrent", description: "Add torrents directly to qBittorrent", value: "QBITTORRENT"},
     {label: "Deluge", description: "Add torrents directly to Deluge", value: "DELUGE_V1"},
     {label: "Deluge v2", description: "Add torrents directly to Deluge 2", value: "DELUGE_V2"},
-    {label: "Radarr", description: "Send to Radarr and let it decide", value: DOWNLOAD_CLIENT_TYPES.Radarr},
-    {label: "Sonarr", description: "Send to Sonarr and let it decide", value: DOWNLOAD_CLIENT_TYPES.Sonarr},
-    {label: "Lidarr", description: "Send to Lidarr and let it decide", value: DOWNLOAD_CLIENT_TYPES.Lidarr},
+    {label: "Radarr", description: "Send to Radarr and let it decide", value: "RADARR"},
+    {label: "Sonarr", description: "Send to Sonarr and let it decide", value: "SONARR"},
+    {label: "Lidarr", description: "Send to Lidarr and let it decide", value: "LIDARR"},
 ];
 
 export const ActionTypeNameMap = {

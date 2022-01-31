@@ -1,3 +1,5 @@
+import { formatDistanceToNowStrict, formatISO9075 } from "date-fns";
+
 // sleep for x ms
 export function sleep(ms: number) {
     return new Promise(resolve => setTimeout(resolve, ms));
@@ -57,3 +59,22 @@ export function classNames(...classes: string[]) {
 
 // column widths for inputs etc
 export type COL_WIDTHS = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12;
+
+// simplify date
+export function simplifyDate(date: string) {
+    if (date !== "0001-01-01T00:00:00Z") {
+        return formatISO9075(new Date(date))
+    }
+    return "n/a"
+}
+
+// if empty date show as n/a
+export function IsEmptyDate(date: string) {
+    if (date !== "0001-01-01T00:00:00Z") {
+        return formatDistanceToNowStrict(
+            new Date(date),
+            { addSuffix: true }
+        )
+    }
+    return "n/a"
+}

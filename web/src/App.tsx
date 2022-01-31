@@ -1,31 +1,42 @@
 import { QueryClient, QueryClientProvider } from "react-query";
 import { BrowserRouter as Router, Route } from "react-router-dom";
+import { ReactQueryDevtools } from "react-query/devtools";
+import { Toaster } from "react-hot-toast";
+
+import Base from "./screens/Base";
 import Login from "./screens/auth/login";
 import Logout from "./screens/auth/logout";
-import Base from "./screens/Base";
-import { ReactQueryDevtools } from "react-query/devtools";
-import Layout from "./components/Layout";
 import { baseUrl } from "./utils";
+
+import { AuthContext, SettingsContext } from "./utils/Context";
 
 function Protected() {
     return (
-        <Layout auth={true}>
+        <>
+            <Toaster position="top-right" />
             <Base />
-        </Layout>
+        </>
     )
 }
 
-export const queryClient = new QueryClient()
+export const queryClient = new QueryClient();
 
 function App() {
+    const authContext = AuthContext.useValue();
+    const settings = SettingsContext.useValue();
     return (
         <QueryClientProvider client={queryClient}>
             <Router basename={baseUrl()}>
-                <Route exact={true} path="/login" component={Login} />
-                <Route exact={true} path="/logout" component={Logout} />
-                <Route exact={true} path="/*" component={Protected} />
+                {authContext.isLoggedIn ? (
+                    <Route exact path="/*" component={Protected} />
+                ) : (
+                    <Route exact path="/*" component={Login} />
+                )}
+                <Route exact path="/logout" component={Logout} />
             </Router>
-            <ReactQueryDevtools initialIsOpen={false} />
+            {settings.debug ? (
+                <ReactQueryDevtools initialIsOpen={false} />
+            ) : null}
         </QueryClientProvider>
     )
 };

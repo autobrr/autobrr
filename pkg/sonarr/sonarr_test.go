@@ -47,11 +47,12 @@ func Test_client_Push(t *testing.T) {
 		release Release
 	}
 	tests := []struct {
-		name    string
-		fields  fields
-		args    args
-		err     error
-		wantErr bool
+		name       string
+		fields     fields
+		args       args
+		rejections []string
+		err        error
+		wantErr    bool
 	}{
 		{
 			name: "push",
@@ -73,8 +74,9 @@ func Test_client_Push(t *testing.T) {
 				Protocol:         "torrent",
 				PublishDate:      "2021-08-21T15:36:00Z",
 			}},
-			err:     errors.New("sonarr push rejected Unknown Series"),
-			wantErr: true,
+			rejections: []string{"Unknown Series"},
+			//err:     errors.New("sonarr push rejected Unknown Series"),
+			//wantErr: true,
 		},
 		{
 			name: "push_error",
@@ -96,15 +98,17 @@ func Test_client_Push(t *testing.T) {
 				Protocol:         "torrent",
 				PublishDate:      "2021-08-21T15:36:00Z",
 			}},
-			err:     errors.New("sonarr push rejected Unknown Series"),
-			wantErr: true,
+			rejections: []string{"Unknown Series"},
+			//err:     errors.New("sonarr push rejected Unknown Series"),
+			//wantErr: true,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			c := New(tt.fields.config)
 
-			_, _, err := c.Push(tt.args.release)
+			rejections, err := c.Push(tt.args.release)
+			assert.Equal(t, tt.rejections, rejections)
 			if tt.wantErr && assert.Error(t, err) {
 				assert.Equal(t, tt.err, err)
 			}

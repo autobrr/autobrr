@@ -2,7 +2,6 @@ import { useEffect } from "react";
 import { useToggle } from "../../hooks/hooks";
 import { useQuery } from "react-query";
 import { IndexerAddForm, IndexerUpdateForm } from "../../forms";
-import { Indexer } from "../../domain/interfaces";
 import { Switch } from "@headlessui/react";
 import { classNames } from "../../utils";
 import { EmptySimple } from "../../components/emptystates";

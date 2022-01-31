@@ -51,7 +51,7 @@ parse:
       pattern: '^(.*?) - Size: ([0-9]+?.*?) - Uploader: (.*?) - Tags: (.*(hd.episode|hd.season|sd.episode|sd.eason|sd.movies|hd.movie)) - (https?:\/\/.*torrents.php\?)torrentid=(.*)$'
       vars:
         - torrentName
-        - size
+        - torrentSize
         - uploader
         - tags
         - category

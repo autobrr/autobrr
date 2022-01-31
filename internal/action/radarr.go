@@ -10,7 +10,7 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-func (s *service) radarr(release domain.Release, action domain.Action) error {
+func (s *service) radarr(release domain.Release, action domain.Action) ([]string, error) {
 	log.Trace().Msg("action RADARR")
 
 	// TODO validate data
@@ -18,13 +18,13 @@ func (s *service) radarr(release domain.Release, action domain.Action) error {
 	// get client for action
 	client, err := s.clientSvc.FindByID(context.TODO(), action.ClientID)
 	if err != nil {
-		log.Error().Err(err).Msgf("error finding client: %v", action.ClientID)
-		return err
+		log.Error().Err(err).Msgf("radarr: error finding client: %v", action.ClientID)
+		return nil, err
 	}
 
 	// return early if no client found
 	if client == nil {
-		return err
+		return nil, err
 	}
 
 	// initial config
@@ -52,23 +52,19 @@ func (s *service) radarr(release domain.Release, action domain.Action) error {
 		PublishDate:      time.Now().Format(time.RFC3339),
 	}
 
-	success, rejections, err := arr.Push(r)
+	rejections, err := arr.Push(r)
 	if err != nil {
 		log.Error().Stack().Err(err).Msgf("radarr: failed to push release: %v", r)
-		return err
+		return nil, err
 	}
 
-	if !success {
+	if rejections != nil {
 		log.Debug().Msgf("radarr: release push rejected: %v, indexer %v to %v reasons: '%v'", r.Title, r.Indexer, client.Host, rejections)
 
-		// save pushed release
-		s.bus.Publish("release:update-push-status-rejected", release.ID, rejections)
-		return nil
+		return rejections, nil
 	}
 
 	log.Debug().Msgf("radarr: successfully pushed release: %v, indexer %v to %v", r.Title, r.Indexer, client.Host)
 
-	s.bus.Publish("release:update-push-status", release.ID, domain.ReleasePushStatusApproved)
-
-	return nil
+	return nil, nil
 }

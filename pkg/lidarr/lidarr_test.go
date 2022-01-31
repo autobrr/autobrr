@@ -46,11 +46,12 @@ func Test_client_Push(t *testing.T) {
 		release Release
 	}
 	tests := []struct {
-		name    string
-		fields  fields
-		args    args
-		err     error
-		wantErr bool
+		name       string
+		fields     fields
+		args       args
+		err        error
+		rejections []string
+		wantErr    bool
 	}{
 		{
 			name: "push",
@@ -72,8 +73,7 @@ func Test_client_Push(t *testing.T) {
 				Protocol:         "torrent",
 				PublishDate:      "2021-08-21T15:36:00Z",
 			}},
-			err:     errors.New("lidarr push rejected Unknown Artist"),
-			wantErr: true,
+			rejections: []string{"Unknown Artist"},
 		},
 		{
 			name: "push_error",
@@ -95,15 +95,15 @@ func Test_client_Push(t *testing.T) {
 				Protocol:         "torrent",
 				PublishDate:      "2021-08-21T15:36:00Z",
 			}},
-			err:     errors.New("lidarr push rejected Unknown Artist"),
-			wantErr: true,
+			rejections: []string{"Unknown Artist"},
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			c := New(tt.fields.config)
 
-			_, _, err := c.Push(tt.args.release)
+			rejections, err := c.Push(tt.args.release)
+			assert.Equal(t, tt.rejections, rejections)
 			if tt.wantErr && assert.Error(t, err) {
 				assert.Equal(t, tt.err, err)
 			}

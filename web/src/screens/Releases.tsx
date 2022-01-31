@@ -1,4 +1,4 @@
-import { ExclamationCircleIcon } from "@heroicons/react/outline"
+import { BanIcon, ExclamationCircleIcon } from "@heroicons/react/outline"
 import ClockIcon from "@heroicons/react/outline/ClockIcon"
 import { ChevronDoubleLeftIcon, ChevronLeftIcon, ChevronRightIcon, ChevronDoubleRightIcon, CheckIcon } from "@heroicons/react/solid"
 import { formatDistanceToNowStrict } from "date-fns"
@@ -7,8 +7,7 @@ import { useQuery } from "react-query"
 import { useTable, useSortBy, usePagination } from "react-table"
 import APIClient from "../api/APIClient"
 import { EmptyListState } from "../components/emptystates"
-import { ReleaseActionStatus } from "../domain/interfaces"
-import { classNames } from "../utils"
+import { classNames, simplifyDate } from "../utils"
 
 export function Releases() {
     return (
@@ -128,19 +127,22 @@ interface ReleaseStatusCellProps {
 
 export function ReleaseStatusCell({ value, column, row }: ReleaseStatusCellProps) {
     const statusMap: any = {
-        "PUSH_REJECTED": <span className="mr-1 inline-flex items-center rounded text-xs font-semibold uppercase bg-pink-100 text-pink-800 hover:bg-pink-300">
+        "PUSH_ERROR": <span className="mr-1 inline-flex items-center rounded text-xs font-semibold uppercase bg-pink-100 text-pink-800 hover:bg-pink-300 cursor-pointer">
              <ExclamationCircleIcon className="h-5 w-5" aria-hidden="true" />
         </span>,
-        "PUSH_APPROVED": <span className="mr-1 inline-flex items-center rounded text-xs font-semibold uppercase bg-green-100 text-green-800 hover:bg-green-300">
+        "PUSH_REJECTED": <span className="mr-1 inline-flex items-center rounded text-xs font-semibold uppercase bg-blue-200 dark:bg-blue-100 text-blue-400 dark:text-blue-800 hover:bg-blue-300 dark:hover:bg-blue-400 cursor-pointer">
+             <BanIcon className="h-5 w-5" aria-hidden="true" />
+        </span>,
+        "PUSH_APPROVED": <span className="mr-1 inline-flex items-center rounded text-xs font-semibold uppercase bg-green-100 text-green-800 hover:bg-green-300 cursor-pointer">
              <CheckIcon className="h-5 w-5" aria-hidden="true" />
         </span>,
-        "PENDING": <span className="mr-1 inline-flex items-center rounded text-xs font-semibold uppercase bg-yellow-100 text-yellow-800 hover:bg-yellow-200">
+        "PENDING": <span className="mr-1 inline-flex items-center rounded text-xs font-semibold uppercase bg-yellow-100 text-yellow-800 hover:bg-yellow-200 cursor-pointer">
              <ClockIcon className="h-5 w-5" aria-hidden="true" />
         </span>,
     }
     return (
         <div className="flex text-sm font-medium text-gray-900 dark:text-gray-300">
-            {value.map((v, idx) => <div key={idx} title={`action: ${v.action}, type: ${v.type}, status: ${v.status}, ;time: ${v.timestamp}`}>{statusMap[v.status]}</div>)}
+            {value.map((v, idx) => <div key={idx} title={`action: ${v.action}, type: ${v.type}, status: ${v.status}, time: ${simplifyDate(v.timestamp)}, rejections: ${v?.rejections}`}>{statusMap[v.status]}</div>)}
         </div>
     )
 }
@@ -294,24 +296,22 @@ function Table() {
     // Render the UI for your table
     return (
         <>
-            <div className="sm:flex sm:gap-x-2">
-                {/* <GlobalFilter
-          preGlobalFilteredRows={preGlobalFilteredRows}
-          globalFilter={state.globalFilter}
-          setGlobalFilter={setGlobalFilter}
-        /> */}
-                {/* {headerGroups.map((headerGroup: { headers: any[] }) =>
-          headerGroup.headers.map((column) =>
-            column.Filter ? (
-              <div className="mt-2 sm:mt-0" key={column.id}>
-                {column.render("Filter")}
-              </div>
-            ) : null
-          )
-        )} */}
-            </div>
-            {isSuccess ?
+            {isSuccess && data ? (
                 <div className="flex flex-col mt-4">
+                    {/* <GlobalFilter
+                        preGlobalFilteredRows={preGlobalFilteredRows}
+                        globalFilter={state.globalFilter}
+                        setGlobalFilter={setGlobalFilter}
+                    /> */}
+                    {/* {headerGroups.map((headerGroup: { headers: any[] }) =>
+                        headerGroup.headers.map((column) =>
+                        column.Filter ? (
+                        <div className="mt-2 sm:mt-0" key={column.id}>
+                            {column.render("Filter")}
+                        </div>
+                        ) : null
+                    )
+                    )} */}
                     <div className="-mx-4 -my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
                         <div className="inline-block min-w-full py-2 align-middle sm:px-6 lg:px-8">
                             <div className="overflow-hidden bg-white shadow dark:bg-gray-800 sm:rounded-lg">
@@ -373,7 +373,6 @@ function Table() {
                                     </tbody>
                                 </table>
 
-
                                 {/* Pagination */}
                                 <div className="flex items-center justify-between px-6 py-3 border-t border-gray-200 dark:border-gray-700">
                                     <div className="flex justify-between flex-1 sm:hidden">
@@ -421,8 +420,7 @@ function Table() {
                                                 </PageButton>
                                                 <PageButton
                                                     onClick={() => nextPage()}
-                                                    disabled={!canNextPage
-                                                    }>
+                                                    disabled={!canNextPage}>
                                                     <span className="sr-only">Next</span>
                                                     <ChevronRightIcon className="w-5 h-5 text-gray-400" aria-hidden="true" />
                                                 </PageButton>
@@ -438,13 +436,11 @@ function Table() {
                                         </div>
                                     </div>
                                 </div>
-
-
                             </div>
                         </div>
                     </div>
                 </div>
-                : <EmptyListState text="No recent activity" />}
+            ) : <EmptyListState text="No recent activity" />}
         </>
     )
 }

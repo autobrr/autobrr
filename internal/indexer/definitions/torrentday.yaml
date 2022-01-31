@@ -52,7 +52,7 @@ parse:
         - freeleech
         - baseUrl
         - torrentId
-        - size
+        - torrentSize
 
   match:
     torrenturl: "{{ .baseUrl }}/download.php/{{ .torrentId }}/{{ .torrentName }}.torrent?torrent_pass={{ .passkey }}"

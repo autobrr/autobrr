@@ -1,6 +1,5 @@
 import { Fragment, useEffect } from "react";
 import { useMutation } from "react-query";
-import { Filter } from "../../domain/interfaces";
 import { queryClient } from "../../App";
 import { XIcon } from "@heroicons/react/solid";
 import { Dialog, Transition } from "@headlessui/react";

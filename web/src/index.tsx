@@ -2,9 +2,9 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 import './index.css';
 
-import {RecoilRoot} from 'recoil';
-import {APP} from "./domain/interfaces";
 import App from "./App";
+
+import { InitializeGlobalContext } from "./utils/Context";
 
 declare global {
     interface Window { APP: APP; }
@@ -12,11 +12,12 @@ declare global {
 
 window.APP = window.APP || {};
 
+// Initializes auth and theme contexts
+InitializeGlobalContext();
+
 ReactDOM.render(
     <React.StrictMode>
-        <RecoilRoot>
-            <App />
-        </RecoilRoot>
+        <App />
     </React.StrictMode>,
-    document.getElementById('root')
+    document.getElementById("root")
 );
