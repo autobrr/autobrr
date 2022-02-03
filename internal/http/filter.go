@@ -12,8 +12,8 @@ import (
 )
 
 type filterService interface {
-	ListFilters() ([]domain.Filter, error)
-	FindByID(filterID int) (*domain.Filter, error)
+	ListFilters(ctx context.Context) ([]domain.Filter, error)
+	FindByID(ctx context.Context, filterID int) (*domain.Filter, error)
 	Store(filter domain.Filter) (*domain.Filter, error)
 	Delete(ctx context.Context, filterID int) error
 	Update(ctx context.Context, filter domain.Filter) (*domain.Filter, error)
@@ -44,7 +44,7 @@ func (h filterHandler) Routes(r chi.Router) {
 func (h filterHandler) getFilters(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
-	trackers, err := h.service.ListFilters()
+	trackers, err := h.service.ListFilters(ctx)
 	if err != nil {
 		//
 	}
@@ -60,29 +60,13 @@ func (h filterHandler) getByID(w http.ResponseWriter, r *http.Request) {
 
 	id, _ := strconv.Atoi(filterID)
 
-	filter, err := h.service.FindByID(id)
+	filter, err := h.service.FindByID(ctx, id)
 	if err != nil {
 		h.encoder.StatusNotFound(ctx, w)
 		return
 	}
 
 	h.encoder.StatusResponse(ctx, w, filter, http.StatusOK)
-}
-
-func (h filterHandler) storeFilterAction(w http.ResponseWriter, r *http.Request) {
-	var (
-		ctx      = r.Context()
-		filterID = chi.URLParam(r, "filterID")
-	)
-
-	id, _ := strconv.Atoi(filterID)
-
-	filter, err := h.service.FindByID(id)
-	if err != nil {
-		//
-	}
-
-	h.encoder.StatusResponse(ctx, w, filter, http.StatusCreated)
 }
 
 func (h filterHandler) store(w http.ResponseWriter, r *http.Request) {

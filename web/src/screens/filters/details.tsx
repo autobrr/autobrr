@@ -115,7 +115,7 @@ export default function FilterDetails() {
     let history = useHistory();
     let { filterId }: any = useParams();
 
-    const { isLoading, data } = useQuery<Filter, Error>(['filter', parseInt(filterId)], () => APIClient.filters.getByID(parseInt(filterId)),
+    const { isLoading, data: filter } = useQuery<Filter, Error>(['filter', parseInt(filterId)], () => APIClient.filters.getByID(parseInt(filterId)),
         {
             retry: false,
             refetchOnWindowFocus: false,
@@ -123,12 +123,6 @@ export default function FilterDetails() {
                 history.push("./")
             }
         },
-    )
-
-    const { data: indexers } = useQuery<Indexer[], Error>(["filter", "indexer_list"], APIClient.indexers.getOptions,
-        {
-            refetchOnWindowFocus: false
-        }
     )
 
     const updateMutation = useMutation((filter: Filter) => APIClient.filters.update(filter), {
@@ -142,7 +136,7 @@ export default function FilterDetails() {
 
     const deleteMutation = useMutation((id: number) => APIClient.filters.delete(id), {
         onSuccess: () => {
-            toast.custom((t) => <Toast type="success" body={`${data?.name} was deleted`} t={t} />)
+            toast.custom((t) => <Toast type="success" body={`${filter?.name} was deleted`} t={t} />)
 
             // redirect
             history.push("/filters")
@@ -153,7 +147,7 @@ export default function FilterDetails() {
         return null
     }
 
-    if (!data) {
+    if (!filter) {
         return null
     }
 
@@ -162,7 +156,7 @@ export default function FilterDetails() {
     }
 
     const deleteAction = () => {
-        deleteMutation.mutate(data.id)
+        deleteMutation.mutate(filter.id)
     }
 
     const handleMobileNav = (e: any, href: string) => {
@@ -183,7 +177,7 @@ export default function FilterDetails() {
                         </NavLink>
                     </h1>
                     <ChevronRightIcon className="h-6 w-6 text-gray-500" aria-hidden="true" />
-                    <h1 className="text-3xl font-bold text-white capitalize">{data.name}</h1>
+                    <h1 className="text-3xl font-bold text-white capitalize">{filter.name}</h1>
                 </div>
             </header>
             <div className="max-w-7xl mx-auto pb-12 px-4 sm:px-6 lg:px-8">
@@ -220,46 +214,46 @@ export default function FilterDetails() {
 
                                 <Formik
                                     initialValues={{
-                                        id: data.id,
-                                        name: data.name,
-                                        enabled: data.enabled || false,
-                                        min_size: data.min_size,
-                                        max_size: data.max_size,
-                                        delay: data.delay,
-                                        shows: data.shows,
-                                        years: data.years,
-                                        resolutions: data.resolutions || [],
-                                        sources: data.sources || [],
-                                        codecs: data.codecs || [],
-                                        containers: data.containers || [],
-                                        match_hdr: data.match_hdr || [],
-                                        except_hdr: data.except_hdr || [],
-                                        seasons: data.seasons,
-                                        episodes: data.episodes,
-                                        match_releases: data.match_releases,
-                                        except_releases: data.except_releases,
-                                        match_release_groups: data.match_release_groups,
-                                        except_release_groups: data.except_release_groups,
-                                        match_categories: data.match_categories,
-                                        except_categories: data.except_categories,
-                                        tags: data.tags,
-                                        except_tags: data.except_tags,
-                                        match_uploaders: data.match_uploaders,
-                                        except_uploaders: data.except_uploaders,
-                                        freeleech: data.freeleech,
-                                        freeleech_percent: data.freeleech_percent,
-                                        indexers: data.indexers || [],
-                                        actions: data.actions || [],
-                                        formats: data.formats || [],
-                                        quality: data.quality || [],
-                                        media: data.media || [],
-                                        match_release_types: data.match_release_types || [],
-                                        log_score: data.log_score,
-                                        log: data.log,
-                                        cue: data.cue,
-                                        perfect_flac: data.perfect_flac,
-                                        artists: data.artists,
-                                        albums: data.albums,
+                                        id: filter.id,
+                                        name: filter.name,
+                                        enabled: filter.enabled || false,
+                                        min_size: filter.min_size,
+                                        max_size: filter.max_size,
+                                        delay: filter.delay,
+                                        shows: filter.shows,
+                                        years: filter.years,
+                                        resolutions: filter.resolutions || [],
+                                        sources: filter.sources || [],
+                                        codecs: filter.codecs || [],
+                                        containers: filter.containers || [],
+                                        match_hdr: filter.match_hdr || [],
+                                        except_hdr: filter.except_hdr || [],
+                                        seasons: filter.seasons,
+                                        episodes: filter.episodes,
+                                        match_releases: filter.match_releases,
+                                        except_releases: filter.except_releases,
+                                        match_release_groups: filter.match_release_groups,
+                                        except_release_groups: filter.except_release_groups,
+                                        match_categories: filter.match_categories,
+                                        except_categories: filter.except_categories,
+                                        tags: filter.tags,
+                                        except_tags: filter.except_tags,
+                                        match_uploaders: filter.match_uploaders,
+                                        except_uploaders: filter.except_uploaders,
+                                        freeleech: filter.freeleech,
+                                        freeleech_percent: filter.freeleech_percent,
+                                        indexers: filter.indexers || [],
+                                        actions: filter.actions || [],
+                                        formats: filter.formats || [],
+                                        quality: filter.quality || [],
+                                        media: filter.media || [],
+                                        match_release_types: filter.match_release_types || [],
+                                        log_score: filter.log_score,
+                                        log: filter.log,
+                                        cue: filter.cue,
+                                        perfect_flac: filter.perfect_flac,
+                                        artists: filter.artists,
+                                        albums: filter.albums,
                                     } as Filter}
                                     onSubmit={handleSubmit}
                                 >
@@ -267,7 +261,7 @@ export default function FilterDetails() {
                                         <Form>
                                             <RouteSwitch>
                                                 <Route exact path={url}>
-                                                    <General indexers={indexers as any} />
+                                                    <General />
                                                 </Route>
 
                                                 <Route path={`${url}/movies-tv`}>
@@ -283,7 +277,7 @@ export default function FilterDetails() {
                                                 </Route>
 
                                                 <Route path={`${url}/actions`}>
-                                                    <FilterActions filter={data} values={values} />
+                                                    <FilterActions filter={filter} values={values} />
                                                 </Route>
                                             </RouteSwitch>
 
@@ -303,13 +297,14 @@ export default function FilterDetails() {
     )
 }
 
-interface GeneralProps {
-    indexers: Indexer[];
-}
-
-function General({ indexers }: GeneralProps) {
-
-    let opts = indexers ? indexers.map(v => ({
+function General() {
+    const { isLoading, data: indexers } = useQuery<Indexer[], Error>(["filter", "indexer_list"], APIClient.indexers.getOptions,
+        {
+            refetchOnWindowFocus: false
+        }
+    )
+    
+    let opts = indexers && indexers.length > 0 ? indexers.map(v => ({
         label: v.name,
         value: {
             id: v.id,
@@ -327,7 +322,7 @@ function General({ indexers }: GeneralProps) {
                     <TextField name="name" label="Filter name" columns={6} placeholder="eg. Filter 1" />
 
                     <div className="col-span-6">
-                        <IndexerMultiSelect name="indexers" options={opts} label="Indexers" columns={6} />
+                        {!isLoading && <IndexerMultiSelect name="indexers" options={opts} label="Indexers" columns={6} />}
                     </div>
                 </div>
             </div>

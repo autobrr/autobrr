@@ -19,11 +19,11 @@ func NewFilterRepo(db *SqliteDB) domain.FilterRepo {
 	return &FilterRepo{db: db}
 }
 
-func (r *FilterRepo) ListFilters() ([]domain.Filter, error) {
+func (r *FilterRepo) ListFilters(ctx context.Context) ([]domain.Filter, error) {
 	//r.db.lock.RLock()
 	//defer r.db.lock.RUnlock()
 
-	rows, err := r.db.handler.Query("SELECT id, enabled, name, match_releases, except_releases, created_at, updated_at FROM filter ORDER BY name ASC")
+	rows, err := r.db.handler.QueryContext(ctx, "SELECT id, enabled, name, match_releases, except_releases, created_at, updated_at FROM filter ORDER BY name ASC")
 	if err != nil {
 		log.Error().Stack().Err(err).Msg("filters_list: error query data")
 		return nil, err
@@ -54,18 +54,16 @@ func (r *FilterRepo) ListFilters() ([]domain.Filter, error) {
 	return filters, nil
 }
 
-func (r *FilterRepo) FindByID(filterID int) (*domain.Filter, error) {
+func (r *FilterRepo) FindByID(ctx context.Context, filterID int) (*domain.Filter, error) {
 	//r.db.lock.RLock()
 	//defer r.db.lock.RUnlock()
 
-	row := r.db.handler.QueryRow("SELECT id, enabled, name, min_size, max_size, delay, match_releases, except_releases, use_regex, match_release_groups, except_release_groups, scene, freeleech, freeleech_percent, shows, seasons, episodes, resolutions, codecs, sources, containers, match_hdr, except_hdr, years, artists, albums, release_types_match, formats, quality, media,  log_score, has_log, has_cue, perfect_flac, match_categories, except_categories, match_uploaders, except_uploaders, tags, except_tags, created_at, updated_at FROM filter WHERE id = ?", filterID)
-
-	var f domain.Filter
-
+	row := r.db.handler.QueryRowContext(ctx, "SELECT id, enabled, name, min_size, max_size, delay, match_releases, except_releases, use_regex, match_release_groups, except_release_groups, scene, freeleech, freeleech_percent, shows, seasons, episodes, resolutions, codecs, sources, containers, match_hdr, except_hdr, years, artists, albums, release_types_match, formats, quality, media,  log_score, has_log, has_cue, perfect_flac, match_categories, except_categories, match_uploaders, except_uploaders, tags, except_tags, created_at, updated_at FROM filter WHERE id = ?", filterID)
 	if err := row.Err(); err != nil {
 		return nil, err
 	}
 
+	var f domain.Filter
 	var minSize, maxSize, matchReleases, exceptReleases, matchReleaseGroups, exceptReleaseGroups, freeleechPercent, shows, seasons, episodes, years, artists, albums, matchCategories, exceptCategories, matchUploaders, exceptUploaders, tags, exceptTags sql.NullString
 	var useRegex, scene, freeleech, hasLog, hasCue, perfectFlac sql.NullBool
 	var delay, logScore sql.NullInt32

@@ -6,7 +6,7 @@ type ActionRepo interface {
 	Store(ctx context.Context, action Action) (*Action, error)
 	StoreFilterActions(ctx context.Context, actions []Action, filterID int64) ([]Action, error)
 	DeleteByFilterID(ctx context.Context, filterID int) error
-	FindByFilterID(filterID int) ([]Action, error)
+	FindByFilterID(ctx context.Context, filterID int) ([]Action, error)
 	List() ([]Action, error)
 	Delete(actionID int) error
 	ToggleEnabled(actionID int) error

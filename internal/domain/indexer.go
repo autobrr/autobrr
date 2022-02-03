@@ -11,7 +11,7 @@ type IndexerRepo interface {
 	Update(indexer Indexer) (*Indexer, error)
 	List() ([]Indexer, error)
 	Delete(ctx context.Context, id int) error
-	FindByFilterID(id int) ([]Indexer, error)
+	FindByFilterID(ctx context.Context, id int) ([]Indexer, error)
 }
 
 type Indexer struct {

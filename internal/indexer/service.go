@@ -16,7 +16,7 @@ type Service interface {
 	Store(indexer domain.Indexer) (*domain.Indexer, error)
 	Update(indexer domain.Indexer) (*domain.Indexer, error)
 	Delete(ctx context.Context, id int) error
-	FindByFilterID(id int) ([]domain.Indexer, error)
+	FindByFilterID(ctx context.Context, id int) ([]domain.Indexer, error)
 	List() ([]domain.Indexer, error)
 	GetAll() ([]*domain.IndexerDefinition, error)
 	GetTemplates() ([]domain.IndexerDefinition, error)
@@ -92,8 +92,8 @@ func (s *service) Delete(ctx context.Context, id int) error {
 	return nil
 }
 
-func (s *service) FindByFilterID(id int) ([]domain.Indexer, error) {
-	filters, err := s.repo.FindByFilterID(id)
+func (s *service) FindByFilterID(ctx context.Context, id int) ([]domain.Indexer, error) {
+	filters, err := s.repo.FindByFilterID(ctx, id)
 	if err != nil {
 		return nil, err
 	}

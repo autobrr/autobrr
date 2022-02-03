@@ -11,9 +11,9 @@ https://autodl-community.github.io/autodl-irssi/configuration/filter/
 */
 
 type FilterRepo interface {
-	FindByID(filterID int) (*Filter, error)
+	FindByID(ctx context.Context, filterID int) (*Filter, error)
 	FindByIndexerIdentifier(indexer string) ([]Filter, error)
-	ListFilters() ([]Filter, error)
+	ListFilters(ctx context.Context) ([]Filter, error)
 	Store(filter Filter) (*Filter, error)
 	Update(ctx context.Context, filter Filter) (*Filter, error)
 	ToggleEnabled(ctx context.Context, filterID int, enabled bool) error

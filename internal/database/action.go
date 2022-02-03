@@ -16,7 +16,7 @@ func NewActionRepo(db *SqliteDB) domain.ActionRepo {
 	return &ActionRepo{db: db}
 }
 
-func (r *ActionRepo) FindByFilterID(filterID int) ([]domain.Action, error) {
+func (r *ActionRepo) FindByFilterID(ctx context.Context, filterID int) ([]domain.Action, error) {
 	//r.db.lock.RLock()
 	//defer r.db.lock.RUnlock()
 
