@@ -37,7 +37,7 @@ const Menu = (props: any) => {
   return (
     <components.Menu 
       {...props}
-      className="dark:bg-gray-800 border border-gray-300 dark:border-gray-700 dark:text-gray-400 hover:bg-red-800 rounded-md shadow-sm"
+      className="dark:bg-gray-800 border border-gray-300 dark:border-gray-700 dark:text-gray-400 rounded-md shadow-sm"
     />
   );
 }
