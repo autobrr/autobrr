@@ -13,10 +13,10 @@ import (
 )
 
 type Service interface {
-	FindByID(filterID int) (*domain.Filter, error)
+	FindByID(ctx context.Context, filterID int) (*domain.Filter, error)
 	FindByIndexerIdentifier(indexer string) ([]domain.Filter, error)
 	FindAndCheckFilters(release *domain.Release) (bool, *domain.Filter, error)
-	ListFilters() ([]domain.Filter, error)
+	ListFilters(ctx context.Context) ([]domain.Filter, error)
 	Store(filter domain.Filter) (*domain.Filter, error)
 	Update(ctx context.Context, filter domain.Filter) (*domain.Filter, error)
 	ToggleEnabled(ctx context.Context, filterID int, enabled bool) error
@@ -39,9 +39,9 @@ func NewService(repo domain.FilterRepo, actionRepo domain.ActionRepo, apiService
 	}
 }
 
-func (s *service) ListFilters() ([]domain.Filter, error) {
+func (s *service) ListFilters(ctx context.Context) ([]domain.Filter, error) {
 	// get filters
-	filters, err := s.repo.ListFilters()
+	filters, err := s.repo.ListFilters(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -49,7 +49,7 @@ func (s *service) ListFilters() ([]domain.Filter, error) {
 	var ret []domain.Filter
 
 	for _, filter := range filters {
-		indexers, err := s.indexerSvc.FindByFilterID(filter.ID)
+		indexers, err := s.indexerSvc.FindByFilterID(ctx, filter.ID)
 		if err != nil {
 			return nil, err
 		}
@@ -61,22 +61,22 @@ func (s *service) ListFilters() ([]domain.Filter, error) {
 	return ret, nil
 }
 
-func (s *service) FindByID(filterID int) (*domain.Filter, error) {
+func (s *service) FindByID(ctx context.Context, filterID int) (*domain.Filter, error) {
 	// find filter
-	filter, err := s.repo.FindByID(filterID)
+	filter, err := s.repo.FindByID(ctx, filterID)
 	if err != nil {
 		return nil, err
 	}
 
 	// find actions and attach
-	actions, err := s.actionRepo.FindByFilterID(filter.ID)
+	actions, err := s.actionRepo.FindByFilterID(ctx, filter.ID)
 	if err != nil {
 		log.Error().Msgf("could not find filter actions: %+v", &filter.ID)
 	}
 	filter.Actions = actions
 
 	// find indexers and attach
-	indexers, err := s.indexerSvc.FindByFilterID(filter.ID)
+	indexers, err := s.indexerSvc.FindByFilterID(ctx, filter.ID)
 	if err != nil {
 		log.Error().Err(err).Msgf("could not find indexers for filter: %+v", &filter.Name)
 		return nil, err
@@ -276,7 +276,7 @@ func (s *service) FindAndCheckFilters(release *domain.Release) (bool, *domain.Fi
 			}
 
 			// found matching filter, lets find the filter actions and attach
-			actions, err := s.actionRepo.FindByFilterID(f.ID)
+			actions, err := s.actionRepo.FindByFilterID(context.TODO(), f.ID)
 			if err != nil {
 				log.Error().Err(err).Msgf("could not find actions for filter: %+v", f.Name)
 			}

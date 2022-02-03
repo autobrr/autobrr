@@ -64,7 +64,8 @@ func (r *IndexerRepo) List() ([]domain.Indexer, error) {
 
 	rows, err := r.db.handler.Query("SELECT id, enabled, name, identifier, settings FROM indexer ORDER BY name ASC")
 	if err != nil {
-		log.Fatal().Err(err)
+		log.Error().Stack().Err(err).Msg("indexer.list: error query indexer")
+		return nil, err
 	}
 
 	defer rows.Close()
@@ -78,8 +79,6 @@ func (r *IndexerRepo) List() ([]domain.Indexer, error) {
 
 		if err := rows.Scan(&f.ID, &f.Enabled, &f.Name, &f.Identifier, &settings); err != nil {
 			log.Error().Stack().Err(err).Msg("indexer.list: error scanning data to struct")
-		}
-		if err != nil {
 			return nil, err
 		}
 
@@ -100,17 +99,18 @@ func (r *IndexerRepo) List() ([]domain.Indexer, error) {
 	return indexers, nil
 }
 
-func (r *IndexerRepo) FindByFilterID(id int) ([]domain.Indexer, error) {
+func (r *IndexerRepo) FindByFilterID(ctx context.Context, id int) ([]domain.Indexer, error) {
 	//r.db.lock.RLock()
 	//defer r.db.lock.RUnlock()
 
-	rows, err := r.db.handler.Query(`
+	rows, err := r.db.handler.QueryContext(ctx, `
 		SELECT i.id, i.enabled, i.name, i.identifier
 		FROM indexer i
 			JOIN filter_indexer fi on i.id = fi.indexer_id
 		WHERE fi.filter_id = ?`, id)
 	if err != nil {
-		log.Fatal().Err(err)
+		log.Error().Stack().Err(err).Msg("indexer.find_by_filter_id: error query indexer")
+		return nil, err
 	}
 
 	defer rows.Close()
@@ -123,9 +123,7 @@ func (r *IndexerRepo) FindByFilterID(id int) ([]domain.Indexer, error) {
 		//var settingsMap map[string]string
 
 		if err := rows.Scan(&f.ID, &f.Enabled, &f.Name, &f.Identifier); err != nil {
-			log.Error().Stack().Err(err).Msg("indexer.list: error scanning data to struct")
-		}
-		if err != nil {
+			log.Error().Stack().Err(err).Msg("indexer.find_by_filter_id: error scanning data to struct")
 			return nil, err
 		}
 
