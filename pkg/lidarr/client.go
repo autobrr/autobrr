@@ -4,14 +4,17 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"net/http"
+	"net/url"
+	"path"
 
 	"github.com/rs/zerolog/log"
 )
 
 func (c *client) get(endpoint string) (*http.Response, error) {
-	reqUrl := fmt.Sprintf("%v/api/v1/%v", c.config.Hostname, endpoint)
+	u, err := url.Parse(c.config.Hostname)
+	u.Path = path.Join(u.Path, "/api/v1/", endpoint)
+	reqUrl := u.String()
 
 	req, err := http.NewRequest(http.MethodGet, reqUrl, http.NoBody)
 	if err != nil {
@@ -40,7 +43,9 @@ func (c *client) get(endpoint string) (*http.Response, error) {
 }
 
 func (c *client) post(endpoint string, data interface{}) (*http.Response, error) {
-	reqUrl := fmt.Sprintf("%v/api/v1/%v", c.config.Hostname, endpoint)
+	u, err := url.Parse(c.config.Hostname)
+	u.Path = path.Join(u.Path, "/api/v1/", endpoint)
+	reqUrl := u.String()
 
 	jsonData, err := json.Marshal(data)
 	if err != nil {
