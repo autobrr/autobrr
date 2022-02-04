@@ -30,7 +30,7 @@ irc:
   settings:
     - name: nickserv.account
       type: text
-      required: false
+      required: true
       label: NickServ Account
       help: NickServ account. Make sure to group your user and bot. Eg. user|autodl
     - name: nickserv.password
