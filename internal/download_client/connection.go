@@ -50,6 +50,8 @@ func (s *service) testQbittorrentConnection(client domain.DownloadClient) error 
 		return err
 	}
 
+	log.Debug().Msgf("test client connection for qBittorrent: success")
+
 	return nil
 }
 
@@ -92,7 +94,7 @@ func (s *service) testDelugeConnection(client domain.DownloadClient) error {
 		return err
 	}
 
-	log.Debug().Msgf("daemon version: %v", ver)
+	log.Debug().Msgf("test client connection for Deluge: success - daemon version: %v", ver)
 
 	return nil
 }
@@ -112,6 +114,8 @@ func (s *service) testRadarrConnection(client domain.DownloadClient) error {
 		return err
 	}
 
+	log.Debug().Msgf("test client connection for Radarr: success")
+
 	return nil
 }
 
@@ -130,6 +134,8 @@ func (s *service) testSonarrConnection(client domain.DownloadClient) error {
 		return err
 	}
 
+	log.Debug().Msgf("test client connection for Sonarr: success")
+
 	return nil
 }
 
@@ -147,6 +153,8 @@ func (s *service) testLidarrConnection(client domain.DownloadClient) error {
 		log.Error().Err(err).Msgf("lidarr: connection test failed: %v", client.Host)
 		return err
 	}
+
+	log.Debug().Msgf("test client connection for Lidarr: success")
 
 	return nil
 }
