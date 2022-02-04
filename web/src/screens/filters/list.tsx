@@ -99,7 +99,7 @@ function FilterList({ filters }: FilterListProps) {
                             </thead>
                             <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-800">
                                 {filters.map((filter: Filter, idx) => (
-                                    <FilterListItem filter={filter} key={idx} idx={idx} />
+                                    <FilterListItem filter={filter} key={filter.id} idx={idx} />
                                 ))}
                             </tbody>
                         </table>
@@ -133,7 +133,7 @@ function FilterListItem({ filter, idx }: FilterListItemProps) {
     }
 
     return (
-        <tr key={filter.name}
+        <tr key={filter.id}
             className={idx % 2 === 0 ? 'bg-white dark:bg-gray-800' : 'bg-gray-50 dark:bg-gray-800'}>
             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-100">
                 <Switch
