@@ -46,9 +46,9 @@ interface InitialValues {
 function FormFieldsDefault() {
     return (
         <Fragment>
-            <TextFieldWide name="host" label="Host" help="Url domain.ltd/client" />
+            <TextFieldWide name="host" label="Host" help="Eg. client.domain.ltd, domain.ltd/client, domain.ltd:port" />
 
-            <NumberFieldWide name="port" label="Port" />
+            <NumberFieldWide name="port" label="Port" help="WebUI port for qBittorrent and daemon port for Deluge" />
 
             <div className="py-6 px-6 space-y-6 sm:py-0 sm:space-y-0 sm:divide-y sm:divide-gray-200">
                 <SwitchGroupWide name="ssl" label="SSL" />
@@ -67,7 +67,7 @@ function FormFieldsArr() {
 
     return (
         <Fragment>
-            <TextFieldWide name="host" label="Host" help="Full url like http(s)://domain.ltd/" />
+            <TextFieldWide name="host" label="Host" help="Full url http(s)://domain.ltd and/or subdomain/subfolder" />
 
             <PasswordFieldWide name="settings.apikey" label="API key" />
 

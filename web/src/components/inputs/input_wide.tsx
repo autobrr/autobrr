@@ -150,7 +150,7 @@ const NumberFieldWide: React.FC<NumberFieldWideProps> = ({
                 )}
             </Field>
             {help && (
-                <p className="mt-2 text-sm text-gray-500 dark:text-gray-200" id={`${name}-description`}>{help}</p>
+                <p className="mt-2 text-sm text-gray-500 dark:text-gray-500" id={`${name}-description`}>{help}</p>
             )}
             <ErrorField name={name} classNames="block text-red-500 mt-2" />
         </div>

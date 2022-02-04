@@ -171,6 +171,19 @@ func Test_client_Test(t *testing.T) {
 			wantErr: true,
 			err:     errors.New("unauthorized: bad credentials"),
 		},
+		{
+			name: "fetch_subfolder",
+			cfg: Config{
+				Hostname:  srv.URL + "/radarr",
+				APIKey:    key,
+				BasicAuth: false,
+				Username:  "",
+				Password:  "",
+			},
+			want:    &SystemStatusResponse{Version: "3.2.2.5080"},
+			err:     nil,
+			wantErr: false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
