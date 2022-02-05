@@ -41,7 +41,7 @@ function SubNavLink({item, url}: any) {
             aria-current={splitLocation[2] === item.href ? 'page' : undefined}
         >
             <item.icon
-                className={'text-gray-400 group-hover:text-gray-500 dark:group-hover:text-gray-300 flex-shrink-0 -ml-1 mr-3 h-6 w-6'}
+                className="text-gray-400 group-hover:text-gray-500 dark:group-hover:text-gray-300 flex-shrink-0 -ml-1 mr-3 h-6 w-6"
                 aria-hidden="true"
             />
             <span className="truncate">{item.name}</span>
