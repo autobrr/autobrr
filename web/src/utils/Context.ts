@@ -11,13 +11,13 @@ export const InitializeGlobalContext = () => {
         SettingsContext.set(JSON.parse(settings_ctx));
     } else {
         // Only check for light theme, otherwise dark theme is the default
-        const userMedia = window.matchMedia("(prefers-color-scheme: light)");
-        if (userMedia.matches) {
-            SettingsContext.set((state) => ({
-                ...state,
-                darkTheme: false
-            }));
-        }
+        SettingsContext.set((state) => ({
+          ...state,
+          darkTheme: !(
+            window.matchMedia !== undefined &&
+            window.matchMedia("(prefers-color-scheme: light)").matches
+          )
+        }));
     }
 }
 
