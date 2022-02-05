@@ -6,15 +6,35 @@ type DownloadClientType =
     'SONARR' |
     'LIDARR';
 
+interface DownloadClientRules {
+  enabled: boolean;
+  max_active_downloads: number;
+  ignore_slow_torrents: boolean;
+  download_speed_threshold: number;
+}
+
+interface DownloadClientBasicAuth {
+  auth: boolean;
+  username: string;
+  password: string;
+}
+
+interface DownloadClientSettings {
+  apikey?: string;
+  basic?: DownloadClientBasicAuth;
+  rules?: DownloadClientRules;
+}
+
 interface DownloadClient {
-    id?: number;
-    name: string;
-    enabled: boolean;
-    host: string;
-    port: number;
-    ssl: boolean;
-    username: string;
-    password: string;
-    type: DownloadClientType;
-    settings: object;
+  id?: number;
+  id: number;
+  name: string;
+  type: DownloadClientType;
+  enabled: boolean;
+  host: string;
+  port: number;
+  ssl: boolean;
+  username: string;
+  password: string;
+  settings?: DownloadClientSettings;
 }

@@ -48,7 +48,7 @@ interface AddProps {
 }
 
 export function IndexerAddForm({ isOpen, toggle }: AddProps) {
-    const { data } = useQuery<IndexerSchema[], Error>('indexerSchema', APIClient.indexers.getSchema,
+    const { data } = useQuery<IndexerDefinition[], Error>('indexerDefinition', APIClient.indexers.getSchema,
         {
             enabled: isOpen,
             refetchOnWindowFocus: false
@@ -154,7 +154,7 @@ export function IndexerAddForm({ isOpen, toggle }: AddProps) {
                                     Networks, channels and invite commands are configured automatically.
                                 </p>
                             </div>
-                            {ind.irc.settings.map((f: IndexerSchemaSettings, idx: number) => {
+                            {ind.irc.settings.map((f: IndexerSetting, idx: number) => {
                                 switch (f.type) {
                                     case "text":
                                         return <TextFieldWide name={`irc.${f.name}`} label={f.label} required={f.required} key={idx} help={f.help} />
@@ -230,7 +230,7 @@ export function IndexerAddForm({ isOpen, toggle }: AddProps) {
                                                         </div>
                                                     </div>
 
-                                                    <div className="py-6 space-y-6 space-y-0 divide-y divide-gray-200 dark:divide-gray-700">
+                                                    <div className="py-6 space-y-4 divide-y divide-gray-200 dark:divide-gray-700">
                                                         <div className="py-4 flex items-center justify-between space-y-1 px-4 sm:space-y-0 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6 sm:py-5">
                                                             <div>
                                                                 <label
@@ -342,27 +342,28 @@ export function IndexerUpdateForm({ isOpen, toggle, indexer }: UpdateProps) {
         deleteMutation.mutate(indexer.id)
     }
 
-    const renderSettingFields = (settings: any[]) => {
-        if (settings !== []) {
-
-            return (
-                <div key="opt">
-                    {settings && settings.map((f: any, idx: number) => {
-                        switch (f.type) {
-                            case "text":
-                                return (
-                                    <TextFieldWide name={`settings.${f.name}`} label={f.label} key={idx} help={f.help} />
-                                )
-                            case "secret":
-                                return (
-                                    <PasswordFieldWide name={`settings.${f.name}`} label={f.label} key={idx} help={f.help} />
-                                )
-                        }
-                        return null
-                    })}
-                </div>
-            )
+    const renderSettingFields = (settings: IndexerSetting[]) => {
+        if (settings === undefined) {
+            return null
         }
+
+        return (
+            <div key="opt">
+                {settings.map((f: IndexerSetting, idx: number) => {
+                    switch (f.type) {
+                        case "text":
+                            return (
+                                <TextFieldWide name={`settings.${f.name}`} label={f.label} key={idx} help={f.help} />
+                            )
+                        case "secret":
+                            return (
+                                <PasswordFieldWide name={`settings.${f.name}`} label={f.label} key={idx} help={f.help} />
+                            )
+                    }
+                    return null
+                })}
+            </div>
+        )
     }
 
     let initialValues = {
@@ -370,7 +371,13 @@ export function IndexerUpdateForm({ isOpen, toggle, indexer }: UpdateProps) {
         name: indexer.name,
         enabled: indexer.enabled,
         identifier: indexer.identifier,
-        settings: indexer.settings.reduce((o: any, obj: any) => ({ ...o, [obj.name]: obj.value }), {}),
+        settings: indexer.settings?.reduce(
+            (o: Record<string, string>, obj: IndexerSetting) => ({
+                ...o,
+                [obj.name]: obj.value
+            } as Record<string, string>),
+            {} as Record<string, string>
+        ),
     }
 
     return (
@@ -402,8 +409,7 @@ export function IndexerUpdateForm({ isOpen, toggle, indexer }: UpdateProps) {
                                         {...field}
                                         className="block w-full shadow-sm dark:bg-gray-800 sm:text-sm dark:text-white focus:ring-indigo-500 focus:border-indigo-500 border-gray-300 dark:border-gray-700 rounded-md"
                                     />
-                                    {meta.touched && meta.error &&
-                                        <span>{meta.error}</span>}
+                                    {meta.touched && meta.error && <span>{meta.error}</span>}
                                 </div>
                             )}
                         </Field>
