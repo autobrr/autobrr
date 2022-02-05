@@ -21,7 +21,7 @@ function Protected() {
 
 export const queryClient = new QueryClient();
 
-function App() {
+export function App() {
     const authContext = AuthContext.useValue();
     const settings = SettingsContext.useValue();
     return (
@@ -40,5 +40,3 @@ function App() {
         </QueryClientProvider>
     )
 };
-
-export default App;
