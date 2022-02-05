@@ -160,7 +160,7 @@ function FilterListItem({ filter, idx }: FilterListItemProps) {
                 </Link>
                 </td>
             <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{filter.indexers && filter.indexers.map(t =>
-                <span key={t.id} className="mr-2 inline-flex items-center px-2.5 py-0.5 rounded-md text-sm font-medium bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-400">{t.name}</span>)}</td>
+                <span key={t.id} className="mr-2 inline-flex items-center px-2.5 py-0.5 rounded-md text-sm font-medium bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-400">{t.name}</span>)}</td>
             <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                 <Link to={`filters/${filter.id.toString()}`} className="text-indigo-600 dark:text-gray-200 hover:text-indigo-900 dark:hover:text-gray-400">
                     Edit
