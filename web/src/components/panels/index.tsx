@@ -92,7 +92,7 @@ function SlideOver({ title, initialValues, validate, onSubmit, deleteAction, isO
                                                         {type === "UPDATE" && (
                                                             <button
                                                                 type="button"
-                                                                className="inline-flex items-center justify-center px-4 py-2 border border-transparent font-medium rounded-md text-red-700 dark:text-red-900 bg-red-100 dark:bg-red-500 hover:bg-red-200 dark:hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:text-sm"
+                                                                className="inline-flex items-center justify-center px-4 py-2 border border-transparent font-medium rounded-md text-red-700 dark:text-white bg-red-100 dark:bg-red-700 hover:bg-red-200 dark:hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:text-sm"
                                                                 onClick={toggleDeleteModal}
                                                             >
                                                                 Remove
