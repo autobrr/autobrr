@@ -63,7 +63,7 @@ export const Switch = ({
 
 export type SwitchFormikProps = SwitchProps & FieldProps & React.InputHTMLAttributes<HTMLInputElement>;
 
-export const SwitchFormik: React.FC<SwitchProps> = args => <Switch {...args} />
+export const SwitchFormik = (props: SwitchProps) => <Switch {...props} />
 
 interface SwitchGroupProps {
     name: string;

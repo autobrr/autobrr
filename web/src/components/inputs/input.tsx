@@ -13,13 +13,13 @@ interface TextFieldProps {
     autoComplete?: string;
 }
 
-export const TextField: React.FC<TextFieldProps> = ({
+export const TextField = ({
     name,
     label,
     placeholder,
     columns,
     autoComplete
-}) => (
+}: TextFieldProps) => (
     <div
         className={classNames(
             columns ? `col-span-${columns}` : "col-span-12"
