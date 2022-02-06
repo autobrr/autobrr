@@ -1,13 +1,23 @@
-import { BanIcon, ExclamationCircleIcon } from "@heroicons/react/outline"
-import ClockIcon from "@heroicons/react/outline/ClockIcon"
-import { ChevronDoubleLeftIcon, ChevronLeftIcon, ChevronRightIcon, ChevronDoubleRightIcon, CheckIcon } from "@heroicons/react/solid"
-import { formatDistanceToNowStrict } from "date-fns"
-import React from "react"
-import { useQuery } from "react-query"
-import { useTable, useSortBy, usePagination } from "react-table"
-import APIClient from "../api/APIClient"
-import { EmptyListState } from "../components/emptystates"
-import { classNames, simplifyDate } from "../utils"
+import * as React from "react";
+import { useQuery } from "react-query";
+import { formatDistanceToNowStrict } from "date-fns";
+import { useTable, useSortBy, usePagination } from "react-table";
+import {
+    ClockIcon,
+    BanIcon,
+    ExclamationCircleIcon
+} from "@heroicons/react/outline";
+import {
+    ChevronDoubleLeftIcon,
+    ChevronLeftIcon,
+    ChevronRightIcon,
+    ChevronDoubleRightIcon,
+    CheckIcon
+} from "@heroicons/react/solid";
+
+import APIClient from "../api/APIClient";
+import { EmptyListState } from "../components/emptystates";
+import { classNames, simplifyDate } from "../utils";
 
 export function Releases() {
     return (

@@ -1,4 +1,4 @@
-import React, { useRef, useState } from "react";
+import { useRef, useState } from "react";
 
 export const RegexPlayground = () => {
     const regexRef = useRef<HTMLInputElement>(null);

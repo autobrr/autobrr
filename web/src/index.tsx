@@ -1,9 +1,8 @@
-import React from 'react';
-import ReactDOM from 'react-dom';
-import './index.css';
+import { StrictMode } from "react";
+import ReactDOM from "react-dom";
+import "./index.css";
 
 import { App } from "./App";
-
 import { InitializeGlobalContext } from "./utils/Context";
 
 declare global {
@@ -16,8 +15,8 @@ window.APP = window.APP || {};
 InitializeGlobalContext();
 
 ReactDOM.render(
-    <React.StrictMode>
+    <StrictMode>
         <App />
-    </React.StrictMode>,
+    </StrictMode>,
     document.getElementById("root")
 );

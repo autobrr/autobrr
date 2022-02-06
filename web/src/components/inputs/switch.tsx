@@ -1,6 +1,12 @@
-import React, { InputHTMLAttributes } from 'react'
-import { Switch as HeadlessSwitch } from '@headlessui/react'
-import { FieldInputProps, FieldMetaProps, FieldProps, FormikProps, FormikValues, Field } from 'formik'
+import { Switch as HeadlessSwitch } from "@headlessui/react";
+import {
+    FieldInputProps,
+    FieldMetaProps,
+    FieldProps,
+    FormikProps,
+    FormikValues,
+    Field
+} from "formik";
 import { classNames } from "../../utils";
 
 type SwitchProps<V = any> = {
@@ -55,7 +61,7 @@ export const Switch: React.FC<SwitchProps> = ({
     )
 }
 
-export type SwitchFormikProps = SwitchProps & FieldProps & InputHTMLAttributes<HTMLInputElement>
+export type SwitchFormikProps = SwitchProps & FieldProps & React.InputHTMLAttributes<HTMLInputElement>;
 
 export const SwitchFormik: React.FC<SwitchProps> = args => <Switch {...args} />
 

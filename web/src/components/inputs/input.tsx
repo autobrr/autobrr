@@ -1,4 +1,3 @@
-import React from "react";
 import { Field } from "formik";
 import { classNames } from "../../utils";
 import { EyeIcon, EyeOffIcon } from "@heroicons/react/solid";

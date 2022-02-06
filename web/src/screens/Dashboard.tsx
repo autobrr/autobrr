@@ -1,10 +1,17 @@
-import formatDistanceToNowStrict from 'date-fns/formatDistanceToNowStrict'
-import React from 'react'
-import { useTable, useFilters, useGlobalFilter, useSortBy, usePagination } from 'react-table'
-import APIClient from '../api/APIClient'
-import { useQuery } from 'react-query'
-import { EmptyListState } from '../components/emptystates'
-import { ReleaseStatusCell } from './Releases'
+import * as React from "react";
+import { useQuery } from "react-query";
+import formatDistanceToNowStrict from "date-fns/formatDistanceToNowStrict";
+import {
+    useTable,
+    useFilters,
+    useGlobalFilter,
+    useSortBy,
+    usePagination
+} from "react-table";
+
+import APIClient from "../api/APIClient";
+import { EmptyListState } from "../components/emptystates";
+import { ReleaseStatusCell } from "./Releases";
 
 export function Dashboard() {
   return (
