@@ -20,7 +20,11 @@ interface CheckboxFieldProps {
     sublabel?: string;
 }
 
-const CheckboxField: React.FC<CheckboxFieldProps> = ({ name, label, sublabel }) => (
+const CheckboxField = ({
+    name,
+    label,
+    sublabel
+}: CheckboxFieldProps) => (
     <div className="relative flex items-start">
         <div className="flex items-center h-5">
             <Field  

@@ -1,14 +1,15 @@
-import { Fragment, useEffect } from "react";
+import { Fragment } from "react";
 import { useMutation } from "react-query";
-import { queryClient } from "../../App";
+import { toast } from "react-hot-toast";
 import { XIcon } from "@heroicons/react/solid";
 import { Dialog, Transition } from "@headlessui/react";
-import DEBUG from "../../components/debug";
-import APIClient from "../../api/APIClient";
+import { Field, Form, Formik } from "formik";
+import type { FieldProps } from "formik";
 
-import { toast } from 'react-hot-toast'
+import { queryClient } from "../../App";
+import APIClient from "../../api/APIClient";
+import DEBUG from "../../components/debug";
 import Toast from '../../components/notifications/Toast';
-import { Field, FieldProps, Form, Formik } from "formik";
 
 function FilterAddForm({ isOpen, toggle }: any) {
     const mutation = useMutation((filter: Filter) => APIClient.filters.create(filter), {
@@ -20,23 +21,8 @@ function FilterAddForm({ isOpen, toggle }: any) {
         }
     })
 
-    useEffect(() => {
-        // console.log("render add action form")
-    }, []);
-
-    const handleSubmit = (data: any) => {
-        mutation.mutate(data)
-    }
-
-    const validate = (values: any) => {
-        const errors = {} as any;
-
-        if (!values.name) {
-            errors.name = "Required";
-        }
-
-        return errors;
-    }
+    const handleSubmit = (data: any) => mutation.mutate(data);
+    const validate = (values: any) => values.name ? {} : { name: "Required" };
 
     return (
         <Transition.Root show={isOpen} as={Fragment}>

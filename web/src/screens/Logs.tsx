@@ -20,13 +20,12 @@ export default function Logs() {
         const es = APIClient.events.logs()
 
         es.onmessage = (event) => {
-            let d: LogEvent = JSON.parse(event.data)
-
-            setLogs(prevState => ([...prevState, d]))
-            scrollToBottom()
+            const d = JSON.parse(event.data) as LogEvent;
+            setLogs(prevState => ([...prevState, d]));
+            scrollToBottom();
         }
         return () => {
-            es.close()
+            es.close();
         }
     }, [setLogs]);
 

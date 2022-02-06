@@ -58,7 +58,8 @@ function DownloadClientSettings() {
             refetchOnWindowFocus: false
         })
 
-    if (error) return (<p>'An error has occurred: '</p>);
+    if (error)
+        return (<p>An error has occurred: </p>);
 
     return (
         <div className="divide-y divide-gray-200 lg:col-span-9">

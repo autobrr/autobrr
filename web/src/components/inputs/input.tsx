@@ -10,11 +10,16 @@ interface TextFieldProps {
     label?: string;
     placeholder?: string;
     columns?: COL_WIDTHS;
-    className?: string;
     autoComplete?: string;
 }
 
-const TextField: React.FC<TextFieldProps> = ({ name, label, placeholder, columns, className, autoComplete }) => (
+export const TextField: React.FC<TextFieldProps> = ({
+    name,
+    label,
+    placeholder,
+    columns,
+    autoComplete
+}) => (
     <div
         className={classNames(
             columns ? `col-span-${columns}` : "col-span-12"
@@ -54,14 +59,22 @@ interface PasswordFieldProps {
     label?: string;
     placeholder?: string;
     columns?: COL_WIDTHS;
-    className?: string;
     autoComplete?: string;
     defaultValue?: string;
     help?: string;
     required?: boolean;
 }
 
-const PasswordField: React.FC<PasswordFieldProps> = ({ name, label, placeholder, defaultValue, columns, className, autoComplete, help, required }) => {
+export const PasswordField = ({
+    name,
+    label,
+    placeholder,
+    defaultValue,
+    columns,
+    autoComplete,
+    help,
+    required
+}: PasswordFieldProps) => {
     const [isVisible, toggleVisibility] = useToggle(false)
 
     return (
@@ -112,17 +125,13 @@ interface NumberFieldProps {
     name: string;
     label?: string;
     placeholder?: string;
-    className?: string;
-    required?: boolean;
 }
 
-const NumberField: React.FC<NumberFieldProps> = ({
+export const NumberField = ({
     name,
     label,
-    placeholder,
-    required,
-    className,
-}) => (
+    placeholder
+}: NumberFieldProps) => (
     <div className="col-span-12 sm:col-span-6">
         <label htmlFor={name} className="block text-xs font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wide">
             {label}
@@ -154,5 +163,3 @@ const NumberField: React.FC<NumberFieldProps> = ({
         </Field>
     </div>
 );
-
-export { TextField, PasswordField, NumberField };

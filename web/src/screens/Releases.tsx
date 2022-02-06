@@ -105,13 +105,11 @@ export function StatusPill({ value }: any) {
         "MIXED": <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold uppercase bg-yellow-100 text-yellow-800">MIXED</span>,
     }
 
-    return (
-        statusMap[value]
-    );
-};
+    return statusMap[value];
+}
 
 
-export function AgeCell({ value, column, row }: any) {
+export function AgeCell({ value }: any) {
 
     const formatDate = formatDistanceToNowStrict(
         new Date(value),
@@ -123,7 +121,7 @@ export function AgeCell({ value, column, row }: any) {
     )
 }
 
-export function ReleaseCell({ value, column, row }: any) {
+export function ReleaseCell({ value }: any) {
     return (
         <div className="text-sm font-medium text-gray-900 dark:text-gray-300" title={value}>{value}</div>
     )
@@ -135,7 +133,7 @@ interface ReleaseStatusCellProps {
     row: any;
 }
 
-export function ReleaseStatusCell({ value, column, row }: ReleaseStatusCellProps) {
+export function ReleaseStatusCell({ value }: ReleaseStatusCellProps) {
     const statusMap: any = {
         "PUSH_ERROR": <span className="mr-1 inline-flex items-center rounded text-xs font-semibold uppercase bg-pink-100 text-pink-800 hover:bg-pink-300 cursor-pointer">
              <ExclamationCircleIcon className="h-5 w-5" aria-hidden="true" />
@@ -157,7 +155,7 @@ export function ReleaseStatusCell({ value, column, row }: ReleaseStatusCellProps
     )
 }
 
-export function IndexerCell({ value, column, row }: any) {
+export function IndexerCell({ value }: any) {
     return (
         <div className="text-sm font-medium text-gray-900 dark:text-gray-500" title={value}>{value}</div>
     )
@@ -327,58 +325,70 @@ function Table() {
                             <div className="overflow-hidden bg-white shadow dark:bg-gray-800 sm:rounded-lg">
                                 <table {...getTableProps()} className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
                                     <thead className="bg-gray-50 dark:bg-gray-800">
-                                        {headerGroups.map((headerGroup: { getHeaderGroupProps: () => JSX.IntrinsicAttributes & React.ClassAttributes<HTMLTableRowElement> & React.HTMLAttributes<HTMLTableRowElement>; headers: any[] }) => (
-                                            <tr {...headerGroup.getHeaderGroupProps()}>
-                                                {headerGroup.headers.map(column => (
-                                                    // Add the sorting props to control sorting. For this example
-                                                    // we can add them into the header props
-                                                    <th
-                                                        scope="col"
-                                                        className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase group"
-                                                        {...column.getHeaderProps(column.getSortByToggleProps())}
-                                                    >
-                                                        <div className="flex items-center justify-between">
-                                                            {column.render('Header')}
-                                                            {/* Add a sort direction indicator */}
-                                                            <span>
-                                                                {column.isSorted
-                                                                    ? column.isSortedDesc
-                                                                        ? <SortDownIcon className="w-4 h-4 text-gray-400" />
-                                                                        : <SortUpIcon className="w-4 h-4 text-gray-400" />
-                                                                    : (
-                                                                        <SortIcon className="w-4 h-4 text-gray-400 opacity-0 group-hover:opacity-100" />
-                                                                    )}
-                                                            </span>
-                                                        </div>
-                                                    </th>
-                                                ))}
-                                            </tr>
-                                        ))}
+                                        {headerGroups.map((headerGroup) => {
+                                            const { key: rowKey, ...rowRest } = headerGroup.getHeaderGroupProps();
+                                            return (
+                                                <tr key={rowKey} {...rowRest}>
+                                                    {headerGroup.headers.map((column) => {
+                                                        const { key: columnKey, ...columnRest } = column.getHeaderProps(column.getSortByToggleProps());
+                                                        return (
+                                                            // Add the sorting props to control sorting. For this example
+                                                            // we can add them into the header props
+                                                            <th
+                                                                key={`${rowKey}-${columnKey}`}
+                                                                scope="col"
+                                                                className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase group"
+                                                                {...columnRest}
+                                                            >
+                                                                <div className="flex items-center justify-between">
+                                                                    {column.render('Header')}
+                                                                    {/* Add a sort direction indicator */}
+                                                                    <span>
+                                                                        {column.isSorted ? (
+                                                                            column.isSortedDesc ? (
+                                                                                <SortDownIcon className="w-4 h-4 text-gray-400" />
+                                                                            ) : (
+                                                                                <SortUpIcon className="w-4 h-4 text-gray-400" />
+                                                                            )
+                                                                        ) : (
+                                                                            <SortIcon className="w-4 h-4 text-gray-400 opacity-0 group-hover:opacity-100" />
+                                                                        )}
+                                                                    </span>
+                                                                </div>
+                                                            </th>
+                                                        );
+                                                    })}
+                                                </tr>
+                                            );
+                                        })}
                                     </thead>
                                     <tbody
                                         {...getTableBodyProps()}
                                         className="divide-y divide-gray-200 dark:divide-gray-700"
                                     >
-                                        {page.map((row: any, i: any) => {  // new
+                                        {page.map((row: any) => {  // new
                                             prepareRow(row)
+                                            const { key: bodyRowKey, ...bodyRowRest } = row.getRowProps();
                                             return (
-                                                <tr {...row.getRowProps()}>
+                                                <tr key={bodyRowKey} {...bodyRowRest}>
                                                     {row.cells.map((cell: any) => {
+                                                        const { key: cellRowKey, ...cellRowRest } = cell.getCellProps();
                                                         return (
                                                             <td
-                                                                {...cell.getCellProps()}
+                                                                key={cellRowKey}
                                                                 className="px-6 py-4 whitespace-nowrap"
                                                                 role="cell"
+                                                                {...cellRowRest}
                                                             >
                                                                 {cell.column.Cell.name === "defaultRenderer"
                                                                     ? <div className="text-sm text-gray-500">{cell.render('Cell')}</div>
                                                                     : cell.render('Cell')
                                                                 }
                                                             </td>
-                                                        )
+                                                        );
                                                     })}
                                                 </tr>
-                                            )
+                                            );
                                         })}
                                     </tbody>
                                 </table>

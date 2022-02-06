@@ -1,12 +1,12 @@
-import { Switch as HeadlessSwitch } from "@headlessui/react";
-import {
+import { Field } from "formik";
+import type {
     FieldInputProps,
     FieldMetaProps,
     FieldProps,
     FormikProps,
-    FormikValues,
-    Field
+    FormikValues
 } from "formik";
+import { Switch as HeadlessSwitch } from "@headlessui/react";
 import { classNames } from "../../utils";
 
 type SwitchProps<V = any> = {
@@ -19,14 +19,14 @@ type SwitchProps<V = any> = {
     meta?: FieldMetaProps<V>
 }
 
-export const Switch: React.FC<SwitchProps> = ({
+export const Switch = ({
     label,
     checked: $checked,
     disabled = false,
     onChange: $onChange,
     field,
     form,
-}) => {
+}: SwitchProps) => {
     const checked = field?.checked ?? $checked
 
     return (
@@ -69,11 +69,14 @@ interface SwitchGroupProps {
     name: string;
     label?: string;
     description?: string;
-    defaultValue?: boolean;
     className?: string;
 }
 
-const SwitchGroup: React.FC<SwitchGroupProps> = ({ name, label, description, defaultValue }) => (
+const SwitchGroup = ({
+    name,
+    label,
+    description
+}: SwitchGroupProps) => (
     <ul className="mt-2 divide-y divide-gray-200">
         <HeadlessSwitch.Group as="li" className="py-4 flex items-center justify-between">
             {label && <div className="flex flex-col">
