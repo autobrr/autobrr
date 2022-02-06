@@ -135,7 +135,7 @@ export default function FilterDetails() {
     const { filterId } = useParams<{ filterId: string }>();
 
     const { isLoading, data: filter } = useQuery<Filter, Error>(
-        ['filter', filterId],
+        ['filter', +filterId],
         () => APIClient.filters.getByID(parseInt(filterId)),
         {
             retry: false,
