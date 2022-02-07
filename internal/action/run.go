@@ -64,6 +64,8 @@ func (s *service) runAction(action domain.Action, release domain.Release) error 
 			}
 
 			tmpFile = t.TmpFileName
+		} else {
+			tmpFile = release.TorrentTmpFile
 		}
 
 		s.execCmd(release, action, tmpFile)
@@ -77,7 +79,10 @@ func (s *service) runAction(action domain.Action, release domain.Release) error 
 			}
 
 			tmpFile = t.TmpFileName
+		} else {
+			tmpFile = release.TorrentTmpFile
 		}
+
 		s.watchFolder(action.WatchFolder, tmpFile)
 
 	case domain.ActionTypeDelugeV1, domain.ActionTypeDelugeV2:
@@ -98,7 +103,10 @@ func (s *service) runAction(action domain.Action, release domain.Release) error 
 			}
 
 			tmpFile = t.TmpFileName
+		} else {
+			tmpFile = release.TorrentTmpFile
 		}
+
 		err = s.deluge(action, tmpFile)
 		if err != nil {
 			log.Error().Stack().Err(err).Msg("error sending torrent to Deluge")
@@ -124,7 +132,10 @@ func (s *service) runAction(action domain.Action, release domain.Release) error 
 
 			tmpFile = t.TmpFileName
 			hash = t.MetaInfo.HashInfoBytes().String()
+		} else {
+			tmpFile = release.TorrentTmpFile
 		}
+
 		err = s.qbittorrent(client, action, hash, tmpFile)
 		if err != nil {
 			log.Error().Stack().Err(err).Msg("error sending torrent to qBittorrent")
