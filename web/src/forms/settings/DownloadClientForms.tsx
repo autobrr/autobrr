@@ -300,7 +300,7 @@ export function DownloadClientAddForm({ isOpen, toggle }: any) {
                         });
                     });
             },
-            onError: (error) => {
+            onError: () => {
                 console.log('not added')
                 setIsTesting(false);
                 setIsErrorTest(true);
@@ -319,7 +319,7 @@ export function DownloadClientAddForm({ isOpen, toggle }: any) {
         testClientMutation.mutate(data);
     };
 
-    let initialValues: InitialValues = {
+    const initialValues: InitialValues = {
         name: "",
         type: "QBITTORRENT",
         enabled: true,
@@ -480,7 +480,7 @@ export function DownloadClientUpdateForm({ client, isOpen, toggle }: any) {
                         });
                     });
             },
-            onError: (error) => {
+            onError: () => {
                 setIsTesting(false);
                 setIsErrorTest(true);
                 sleep(2500).then(() => {
@@ -505,7 +505,7 @@ export function DownloadClientUpdateForm({ client, isOpen, toggle }: any) {
         testClientMutation.mutate(data);
     };
 
-    let initialValues = {
+    const initialValues = {
         id: client.id,
         name: client.name,
         type: client.type,

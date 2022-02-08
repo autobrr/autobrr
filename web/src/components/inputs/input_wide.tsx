@@ -1,5 +1,5 @@
-import React from "react";
-import { Field, FieldProps } from "formik";
+import { Field } from "formik";
+import type { FieldProps } from "formik";
 import { classNames } from "../../utils";
 import { useToggle } from "../../hooks/hooks";
 import { EyeIcon, EyeOffIcon } from "@heroicons/react/solid";
@@ -12,12 +12,19 @@ interface TextFieldWideProps {
     help?: string;
     placeholder?: string;
     defaultValue?: string;
-    className?: string;
     required?: boolean;
     hidden?: boolean;
 }
 
-const TextFieldWide: React.FC<TextFieldWideProps> = ({ name, label, help, placeholder, defaultValue, required, hidden, className }) => (
+export const TextFieldWide = ({
+    name,
+    label,
+    help,
+    placeholder,
+    defaultValue,
+    required,
+    hidden
+}: TextFieldWideProps) => (
     <div hidden={hidden} className="space-y-1 px-4 sm:space-y-0 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6 sm:py-5">
         <div>
             <label htmlFor={name} className="block text-sm font-medium text-gray-900 dark:text-white sm:mt-px sm:pt-2">
@@ -56,7 +63,14 @@ interface PasswordFieldWideProps {
     required?: boolean;
 }
 
-function PasswordFieldWide({ name, label, placeholder, defaultValue, help, required }: PasswordFieldWideProps) {
+export const PasswordFieldWide = ({
+    name,
+    label,
+    placeholder,
+    defaultValue,
+    help,
+    required
+}: PasswordFieldWideProps) => {
     const [isVisible, toggleVisibility] = useToggle(false)
 
     return (
@@ -103,21 +117,17 @@ interface NumberFieldWideProps {
     help?: string;
     placeholder?: string;
     defaultValue?: number;
-    className?: string;
     required?: boolean;
-    hidden?: boolean;
 }
 
-const NumberFieldWide: React.FC<NumberFieldWideProps> = ({
+export const NumberFieldWide = ({
     name,
     label,
     placeholder,
     help,
     defaultValue,
-    required,
-    hidden,
-    className,
-}) => (
+    required
+}: NumberFieldWideProps) => (
     <div className="px-4 space-y-1 sm:space-y-0 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6 sm:py-5">
         <div>
             <label
@@ -165,7 +175,12 @@ interface SwitchGroupWideProps {
     className?: string;
 }
 
-const SwitchGroupWide: React.FC<SwitchGroupWideProps> = ({ name, label, description, defaultValue }) => (
+export const SwitchGroupWide = ({
+    name,
+    label,
+    description,
+    defaultValue
+}: SwitchGroupWideProps) => (
     <ul className="mt-2 divide-y divide-gray-200 dark:divide-gray-700">
         <Switch.Group as="li" className="py-4 flex items-center justify-between">
             <div className="flex flex-col">
@@ -214,4 +229,3 @@ const SwitchGroupWide: React.FC<SwitchGroupWideProps> = ({ name, label, descript
     </ul>
 )
 
-export { NumberFieldWide, TextFieldWide, PasswordFieldWide, SwitchGroupWide };

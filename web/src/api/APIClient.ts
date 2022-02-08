@@ -1,7 +1,7 @@
 import {baseUrl, sseBaseUrl} from "../utils";
 
 function baseClient(endpoint: string, method: string, { body, ...customConfig}: any = {}) {
-    let baseURL = baseUrl()
+    const baseURL = baseUrl()
 
     const headers = {'content-type': 'application/json'}
     const config = {

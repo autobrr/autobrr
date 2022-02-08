@@ -25,14 +25,10 @@ export function baseUrl() {
 
 // get sseBaseUrl for SSE
 export function sseBaseUrl() {
-    let {origin} = window.location
+    if (process.env.NODE_ENV === "development")
+        return `http://localhost:8989/`;
 
-    let env = process.env.NODE_ENV
-    if (env === "development") {
-        return `http://localhost:8989/`
-    }
-
-    return `${origin}${baseUrl()}`
+    return `${window.location.origin}${baseUrl()}`;
 }
 
 export function buildPath(...args: string[]): string {

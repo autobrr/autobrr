@@ -1,10 +1,17 @@
-import formatDistanceToNowStrict from 'date-fns/formatDistanceToNowStrict'
-import React from 'react'
-import { useTable, useFilters, useGlobalFilter, useSortBy, usePagination } from 'react-table'
-import APIClient from '../api/APIClient'
-import { useQuery } from 'react-query'
-import { EmptyListState } from '../components/emptystates'
-import { ReleaseStatusCell } from './Releases'
+import * as React from "react";
+import { useQuery } from "react-query";
+import formatDistanceToNowStrict from "date-fns/formatDistanceToNowStrict";
+import {
+    useTable,
+    useFilters,
+    useGlobalFilter,
+    useSortBy,
+    usePagination
+} from "react-table";
+
+import APIClient from "../api/APIClient";
+import { EmptyListState } from "../components/emptystates";
+import { ReleaseStatusCell } from "./Releases";
 
 export function Dashboard() {
   return (
@@ -366,7 +373,6 @@ export function SelectColumnFilter({
 // };
 
 export function StatusPill({ value }: any) {
-
   const statusMap: any = {
     "FILTER_APPROVED": <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold uppercase bg-blue-100 text-blue-800 ">Approved</span>,
     "FILTER_REJECTED": <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold uppercase bg-red-100 text-red-800">Rejected</span>,
@@ -376,13 +382,10 @@ export function StatusPill({ value }: any) {
     "MIXED": <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold uppercase bg-yellow-100 text-yellow-800">MIXED</span>,
   }
 
-  return (
-    statusMap[value]
-  );
-};
+  return statusMap[value];
+}
 
-export function AgeCell({ value, column, row }: any) {
-
+export function AgeCell({ value }: any) {
   const formatDate = formatDistanceToNowStrict(
     new Date(value),
     { addSuffix: true }
@@ -393,13 +396,13 @@ export function AgeCell({ value, column, row }: any) {
   )
 }
 
-export function ReleaseCell({ value, column, row }: any) {
+export function ReleaseCell({ value }: any) {
   return (
     <div className="text-sm font-medium text-gray-900 dark:text-gray-300">{value}</div>
   )
 }
 
-export function IndexerCell({ value, column, row }: any) {
+export function IndexerCell({ value }: any) {
     return (
         <div className="text-sm font-medium text-gray-900 dark:text-gray-500" title={value}>{value}</div>
     )
@@ -464,55 +467,67 @@ function Table({ columns, data }: any) {
             <div className="overflow-hidden bg-white shadow dark:bg-gray-800 sm:rounded-lg">
               <table {...getTableProps()} className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
                 <thead className="bg-gray-50 dark:bg-gray-800">
-                  {headerGroups.map((headerGroup: { getHeaderGroupProps: () => JSX.IntrinsicAttributes & React.ClassAttributes<HTMLTableRowElement> & React.HTMLAttributes<HTMLTableRowElement>; headers: any[] }) => (
-                    <tr {...headerGroup.getHeaderGroupProps()}>
-                      {headerGroup.headers.map(column => (
-                        // Add the sorting props to control sorting. For this example
-                        // we can add them into the header props
-                        <th
-                          scope="col"
-                          className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase group"
-                          {...column.getHeaderProps(column.getSortByToggleProps())}
-                        >
-                          <div className="flex items-center justify-between">
-                            {column.render('Header')}
-                            {/* Add a sort direction indicator */}
-                            <span>
-                              {column.isSorted
-                                ? column.isSortedDesc
-                                  ? <SortDownIcon className="w-4 h-4 text-gray-400" />
-                                  : <SortUpIcon className="w-4 h-4 text-gray-400" />
-                                : (
-                                  <SortIcon className="w-4 h-4 text-gray-400 opacity-0 group-hover:opacity-100" />
-                                )}
-                            </span>
-                          </div>
-                        </th>
-                      ))}
-                    </tr>
-                  ))}
+                  {headerGroups.map((headerGroup) => {
+                      const { key: rowKey, ...rowRest } = headerGroup.getHeaderGroupProps();
+                      return (
+                        <tr key={rowKey} {...rowRest}>
+                        {headerGroup.headers.map((column) => {
+                            const { key: columnKey, ...columnRest } = column.getHeaderProps(column.getSortByToggleProps());
+                            return (
+                                // Add the sorting props to control sorting. For this example
+                                // we can add them into the header props
+                                <th
+                                    key={`${rowKey}-${columnKey}`}
+                                    scope="col"
+                                    className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase group"
+                                    {...columnRest}
+                                >
+                                <div className="flex items-center justify-between">
+                                    {column.render('Header')}
+                                    {/* Add a sort direction indicator */}
+                                    <span>
+                                    {column.isSorted ? (
+                                        column.isSortedDesc ? (
+                                            <SortDownIcon className="w-4 h-4 text-gray-400" />
+                                        ) : (
+                                            <SortUpIcon className="w-4 h-4 text-gray-400" />
+                                        )
+                                    ) : (
+                                        <SortIcon className="w-4 h-4 text-gray-400 opacity-0 group-hover:opacity-100" />
+                                    )}
+                                    </span>
+                                </div>
+                                </th>
+                            );
+                        })}
+                        </tr>
+                    );
+                  })}
                 </thead>
                 <tbody
                   {...getTableBodyProps()}
                   className="divide-y divide-gray-200 dark:divide-gray-700"
                 >
-                  {page.map((row: any, i: any) => {  // new
-                    prepareRow(row)
+                  {page.map((row: any) => {
+                    prepareRow(row);
+                    const { key: bodyRowKey, ...bodyRowRest } = row.getRowProps();
                     return (
-                      <tr {...row.getRowProps()}>
+                      <tr key={bodyRowKey} {...bodyRowRest}>
                         {row.cells.map((cell: any) => {
-                          return (
-                            <td
-                              {...cell.getCellProps()}
-                              className="px-6 py-4 whitespace-nowrap"
-                              role="cell"
-                            >
-                              {cell.column.Cell.name === "defaultRenderer"
-                                ? <div className="text-sm text-gray-500">{cell.render('Cell')}</div>
-                                : cell.render('Cell')
-                              }
-                            </td>
-                          )
+                            const { key: cellRowKey, ...cellRowRest } = cell.getCellProps();
+                            return (
+                                <td
+                                    key={cellRowKey}
+                                    className="px-6 py-4 whitespace-nowrap"
+                                    role="cell"
+                                    {...cellRowRest}
+                                >
+                                    {cell.column.Cell.name === "defaultRenderer"
+                                        ? <div className="text-sm text-gray-500">{cell.render('Cell')}</div>
+                                        : cell.render('Cell')
+                                    }
+                                </td>
+                            )
                         })}
                       </tr>
                     )

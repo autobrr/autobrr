@@ -1,18 +1,24 @@
 import { Fragment } from "react";
+import { toast } from "react-hot-toast";
 import { useMutation, useQuery } from "react-query";
-import { sleep } from "../../utils";
+import Select, { components } from "react-select";
+import { Field, Form, Formik } from "formik";
+import type { FieldProps } from "formik";
+
 import { XIcon } from "@heroicons/react/solid";
 import { Dialog, Transition } from "@headlessui/react";
-import { Field, FieldProps, Form, Formik } from "formik";
-import DEBUG from "../../components/debug";
-import Select, { components } from "react-select";
-import { queryClient } from "../../App";
-import APIClient from "../../api/APIClient";
-import { TextFieldWide, PasswordFieldWide, SwitchGroupWide } from "../../components/inputs/input_wide";
 
-import { toast } from 'react-hot-toast'
-import Toast from '../../components/notifications/Toast';
+import { sleep } from "../../utils";
+import { queryClient } from "../../App";
+import DEBUG from "../../components/debug";
+import APIClient from "../../api/APIClient";
+import {
+    TextFieldWide,
+    PasswordFieldWide,
+    SwitchGroupWide
+} from "../../components/inputs/input_wide";
 import { SlideOver } from "../../components/panels";
+import Toast from '../../components/notifications/Toast';
 
 const Input = (props: any) => {
   return (
@@ -67,28 +73,19 @@ export function IndexerAddForm({ isOpen, toggle }: AddProps) {
         }
     })
 
-    const ircMutation = useMutation((network: Network) => APIClient.irc.createNetwork(network), {
-        onSuccess: (data) => {
-            // console.log("irc mutation: ", data);
-
-            // queryClient.invalidateQueries(['networks']);
-            // sleep(1500)
-
-            // toggle()
-        }
-    })
+    const ircMutation = useMutation(
+        (network: Network) => APIClient.irc.createNetwork(network)
+    );
 
     const onSubmit = (formData: any) => {
-        let ind = data && data.find(i => i.identifier === formData.identifier)
+        const ind = data && data.find(i => i.identifier === formData.identifier);
+        if (!ind)
+            return;
 
-        if (!ind) {
-            return
-        }
-
-        let channels: Channel[] = []
+        const channels: Channel[] = [];
         if (ind.irc.channels.length) {
             ind.irc.channels.forEach(element => {
-                channels.push({ name: element, password: "" })
+                channels.push({ name: element, password: "" });
             });
         }
 
@@ -105,17 +102,13 @@ export function IndexerAddForm({ isOpen, toggle }: AddProps) {
         }
 
         mutation.mutate(formData, {
-            onSuccess: (data) => {
-                // create irc 
-                ircMutation.mutate(network)
-            }
-        })
+            onSuccess: () => ircMutation.mutate(network)
+        });
     };
 
     const renderSettingFields = (indexer: string) => {
         if (indexer !== "") {
-            let ind = data && data.find(i => i.identifier === indexer)
-
+            const ind = data && data.find(i => i.identifier === indexer);
             return (
                 <div key="opt">
                     {ind && ind.settings && ind.settings.map((f: any, idx: number) => {
@@ -140,10 +133,8 @@ export function IndexerAddForm({ isOpen, toggle }: AddProps) {
     }
 
     const renderIrcSettingFields = (indexer: string) => {
-
         if (indexer !== "") {
-            let ind = data && data.find(i => i.identifier === indexer)
-
+            const ind = data && data.find(i => i.identifier === indexer);
             return (
                 <Fragment>
                     {ind && ind.irc && ind.irc.settings && (
@@ -366,7 +357,7 @@ export function IndexerUpdateForm({ isOpen, toggle, indexer }: UpdateProps) {
         )
     }
 
-    let initialValues = {
+    const initialValues = {
         id: indexer.id,
         name: indexer.name,
         enabled: indexer.enabled,
@@ -390,7 +381,7 @@ export function IndexerUpdateForm({ isOpen, toggle, indexer }: UpdateProps) {
             onSubmit={onSubmit}
             initialValues={initialValues}
         >
-            {({ values }: any) => (
+            {() => (
                 <div className="py-6 space-y-6 sm:py-0 sm:space-y-0 divide-y divide-gray-200 dark:divide-gray-700">
                     <div className="space-y-1 px-4 sm:space-y-0 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6 sm:py-5">
                         <div>

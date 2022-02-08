@@ -1,15 +1,20 @@
 import { useMutation } from "react-query";
+import { toast } from "react-hot-toast";
 import { XIcon } from "@heroicons/react/solid";
-import { queryClient } from "../../App";
+import { Field, FieldArray } from "formik";
+import type { FieldProps } from "formik";
 
-import { Field, FieldArray, FieldProps } from "formik";
+import { queryClient } from "../../App";
 import APIClient from "../../api/APIClient";
 
-import { TextFieldWide, PasswordFieldWide, SwitchGroupWide, NumberFieldWide } from "../../components/inputs/input_wide";
-
-import { toast } from 'react-hot-toast';
-import Toast from '../../components/notifications/Toast';
+import {
+    TextFieldWide,
+    PasswordFieldWide,
+    SwitchGroupWide,
+    NumberFieldWide
+} from "../../components/inputs/input_wide";
 import { SlideOver } from "../../components/panels";
+import Toast from '../../components/notifications/Toast';
 
 function ChannelsFieldArray({ values }: any) {
     return (
@@ -79,7 +84,7 @@ function ChannelsFieldArray({ values }: any) {
 
 export function IrcNetworkAddForm({ isOpen, toggle }: any) {
     const mutation = useMutation((network: Network) => APIClient.irc.createNetwork(network), {
-        onSuccess: (data) => {
+        onSuccess: () => {
             queryClient.invalidateQueries(['networks']);
             toast.custom((t) => <Toast type="success" body="IRC Network added" t={t} />)
             toggle()
@@ -92,11 +97,15 @@ export function IrcNetworkAddForm({ isOpen, toggle }: any) {
     const onSubmit = (data: any) => {
         // easy way to split textarea lines into array of strings for each newline.
         // parse on the field didn't really work.
-        let cmds = data.connect_commands && data.connect_commands.length > 0 ? data.connect_commands.replace(/\r\n/g, "\n").split("\n") : [];
-        data.connect_commands = cmds
-        console.log("formated", data)
+        const cmds = (
+            data.connect_commands && data.connect_commands.length > 0 ?
+            data.connect_commands.replace(/\r\n/g, "\n").split("\n") :
+            []
+        );
+        data.connect_commands = cmds;
+        console.log("formated", data);
 
-        mutation.mutate(data)
+        mutation.mutate(data);
     };
 
     const validate = (values: any) => {

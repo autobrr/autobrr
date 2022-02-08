@@ -1,6 +1,12 @@
-import React, { InputHTMLAttributes } from 'react'
-import { Switch as HeadlessSwitch } from '@headlessui/react'
-import { FieldInputProps, FieldMetaProps, FieldProps, FormikProps, FormikValues, Field } from 'formik'
+import { Field } from "formik";
+import type {
+    FieldInputProps,
+    FieldMetaProps,
+    FieldProps,
+    FormikProps,
+    FormikValues
+} from "formik";
+import { Switch as HeadlessSwitch } from "@headlessui/react";
 import { classNames } from "../../utils";
 
 type SwitchProps<V = any> = {
@@ -13,14 +19,14 @@ type SwitchProps<V = any> = {
     meta?: FieldMetaProps<V>
 }
 
-export const Switch: React.FC<SwitchProps> = ({
+export const Switch = ({
     label,
     checked: $checked,
     disabled = false,
     onChange: $onChange,
     field,
     form,
-}) => {
+}: SwitchProps) => {
     const checked = field?.checked ?? $checked
 
     return (
@@ -55,19 +61,22 @@ export const Switch: React.FC<SwitchProps> = ({
     )
 }
 
-export type SwitchFormikProps = SwitchProps & FieldProps & InputHTMLAttributes<HTMLInputElement>
+export type SwitchFormikProps = SwitchProps & FieldProps & React.InputHTMLAttributes<HTMLInputElement>;
 
-export const SwitchFormik: React.FC<SwitchProps> = args => <Switch {...args} />
+export const SwitchFormik = (props: SwitchProps) => <Switch {...props} />
 
 interface SwitchGroupProps {
     name: string;
     label?: string;
     description?: string;
-    defaultValue?: boolean;
     className?: string;
 }
 
-const SwitchGroup: React.FC<SwitchGroupProps> = ({ name, label, description, defaultValue }) => (
+const SwitchGroup = ({
+    name,
+    label,
+    description
+}: SwitchGroupProps) => (
     <ul className="mt-2 divide-y divide-gray-200">
         <HeadlessSwitch.Group as="li" className="py-4 flex items-center justify-between">
             {label && <div className="flex flex-col">

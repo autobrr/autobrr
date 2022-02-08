@@ -9,17 +9,15 @@ interface MultiSelectProps {
     label?: string;
     options?: [] | any;
     name: string;
-    className?: string;
     columns?: COL_WIDTHS;
 }
 
-const MultiSelect: React.FC<MultiSelectProps> = ({
+export const MultiSelect = ({
     name,
     label,
     options,
-    className,
     columns,
-}) => (
+}: MultiSelectProps) => (
     <div
         className={classNames(
             columns ? `col-span-${columns}` : "col-span-12"
@@ -44,9 +42,8 @@ const MultiSelect: React.FC<MultiSelectProps> = ({
                     labelledBy={name}
                     value={field.value && field.value.map((item: any) => options.find((o: any) => o.value === item))}
                     onChange={(values: any) => {
-                        let am = values && values.map((i: any) => i.value)
-
-                        setFieldValue(field.name, am)
+                        const am = values && values.map((i: any) => i.value);
+                        setFieldValue(field.name, am);
                     }}
                     className="dark:bg-gray-700 dark"
                 />
@@ -55,13 +52,12 @@ const MultiSelect: React.FC<MultiSelectProps> = ({
     </div>
 );
 
-const IndexerMultiSelect: React.FC<MultiSelectProps> = ({
+export const IndexerMultiSelect = ({
     name,
     label,
     options,
-    className,
     columns,
-}) => (
+}: MultiSelectProps) => (
     <div
         className={classNames(
             columns ? `col-span-${columns}` : "col-span-12"
@@ -86,9 +82,8 @@ const IndexerMultiSelect: React.FC<MultiSelectProps> = ({
                     labelledBy={name}
                     value={field.value && field.value.map((item: any) => options.find((o: any) => o.value?.id === item.id))}
                     onChange={(values: any) => {
-                        let am = values && values.map((i: any) => i.value)
-
-                        setFieldValue(field.name, am)
+                        const am = values && values.map((i: any) => i.value);
+                        setFieldValue(field.name, am);
                     }}
                     className="dark:bg-gray-700 dark"
                 />
@@ -103,8 +98,10 @@ interface DownloadClientSelectProps {
     clients: DownloadClient[];
 }
 
-export default function DownloadClientSelect({
-    name, action, clients,
+export function DownloadClientSelect({
+    name,
+    action,
+    clients
 }: DownloadClientSelectProps) {
     return (
         <div className="col-span-6 sm:col-span-6">
@@ -212,7 +209,12 @@ interface SelectFieldProps {
     options: SelectFieldOption[];
 }
 
-function Select({ name, label, optionDefaultText, options }: SelectFieldProps) {
+export const Select = ({
+    name,
+    label,
+    optionDefaultText,
+    options
+}: SelectFieldProps) => {
     return (
         <div className="col-span-6">
             <Field name={name} type="select">
@@ -309,7 +311,12 @@ function Select({ name, label, optionDefaultText, options }: SelectFieldProps) {
     );
 }
 
-function SelectWide({ name, label, optionDefaultText, options }: SelectFieldProps) {
+export const SelectWide = ({
+    name,
+    label,
+    optionDefaultText,
+    options
+}: SelectFieldProps) => {
     return (
         <div className="py-6 px-6 space-y-6 sm:py-0 sm:space-y-0 sm:divide-y sm:divide-gray-200">
 
@@ -409,5 +416,3 @@ function SelectWide({ name, label, optionDefaultText, options }: SelectFieldProp
         </div>
     );
 }
-
-export { MultiSelect, Select, SelectWide, DownloadClientSelect, IndexerMultiSelect }

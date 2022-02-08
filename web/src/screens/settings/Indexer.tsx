@@ -1,4 +1,3 @@
-import { useEffect } from "react";
 import { useToggle } from "../../hooks/hooks";
 import { useQuery } from "react-query";
 import { IndexerAddForm, IndexerUpdateForm } from "../../forms";
@@ -52,10 +51,8 @@ function IndexerSettings() {
         }
     )
 
-    useEffect(() => {
-    }, []);
-
-    if (error) return (<p>An error has occurred</p>)
+    if (error)
+        return (<p>An error has occurred</p>);
 
     return (
         <div className="divide-y divide-gray-200 lg:col-span-9">

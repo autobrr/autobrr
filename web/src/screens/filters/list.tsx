@@ -1,18 +1,16 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
+import { toast } from "react-hot-toast";
 import { Switch } from "@headlessui/react";
-import { EmptyListState } from "../../components/emptystates";
-
-import {
-    Link,
-} from "react-router-dom";
-import { useToggle } from "../../hooks/hooks";
 import { useMutation, useQuery } from "react-query";
+
+import { queryClient } from "../../App";
 import { classNames } from "../../utils";
 import { FilterAddForm } from "../../forms";
+import { useToggle } from "../../hooks/hooks";
 import APIClient from "../../api/APIClient";
 import Toast from "../../components/notifications/Toast";
-import toast from "react-hot-toast";
-import { queryClient } from "../../App";
+import { EmptyListState } from "../../components/emptystates";
 
 export default function Filters() {
     const [createFilterIsOpen, toggleCreateFilter] = useToggle(false)
@@ -27,7 +25,8 @@ export default function Filters() {
         return null
     }
 
-    if (error) return (<p>'An error has occurred: '</p>)
+    if (error)
+        return (<p>An error has occurred: </p>);
 
     return (
         <main className="-mt-48 ">

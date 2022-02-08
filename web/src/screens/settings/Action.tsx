@@ -1,9 +1,4 @@
-import React from "react";
-
-
 function ActionSettings() {
-    // const [addClientIsOpen, toggleAddClient] = useToggle(false)
-
     return (
         <div className="divide-y divide-gray-200 lg:col-span-9">
 

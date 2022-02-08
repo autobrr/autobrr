@@ -1,4 +1,3 @@
-import React from "react";
 import { Field } from "formik";
 
 interface ErrorFieldProps {
@@ -7,7 +6,7 @@ interface ErrorFieldProps {
     subscribe?: any;
 }
 
-const ErrorField: React.FC<ErrorFieldProps> = ({ name, classNames }) => (
+const ErrorField = ({ name, classNames }: ErrorFieldProps) => (
     <Field name={name} subscribe={{ touched: true, error: true }}>
         {({ meta: { touched, error } }: any) =>
             touched && error ? <span className={classNames}>{error}</span> : null
@@ -21,7 +20,11 @@ interface CheckboxFieldProps {
     sublabel?: string;
 }
 
-const CheckboxField: React.FC<CheckboxFieldProps> = ({ name, label, sublabel }) => (
+const CheckboxField = ({
+    name,
+    label,
+    sublabel
+}: CheckboxFieldProps) => (
     <div className="relative flex items-start">
         <div className="flex items-center h-5">
             <Field  

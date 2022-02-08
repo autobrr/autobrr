@@ -1,8 +1,5 @@
 import { Fragment, useRef } from "react";
-import { Dialog, Transition, Switch as SwitchBasic } from "@headlessui/react";
-import { ChevronDownIcon, ChevronRightIcon, } from '@heroicons/react/solid'
-import { EmptyListState } from "../../components/emptystates";
-
+import { useMutation, useQuery } from "react-query";
 import {
     NavLink,
     Route,
@@ -12,23 +9,46 @@ import {
     useParams,
     useRouteMatch
 } from "react-router-dom";
-import { useToggle } from "../../hooks/hooks";
-import { useMutation, useQuery } from "react-query";
-import { queryClient } from "../../App";
-import { CONTAINER_OPTIONS, CODECS_OPTIONS, RESOLUTION_OPTIONS, SOURCES_OPTIONS, ActionTypeNameMap, ActionTypeOptions, HDR_OPTIONS, FORMATS_OPTIONS, SOURCES_MUSIC_OPTIONS, QUALITY_MUSIC_OPTIONS, RELEASE_TYPE_MUSIC_OPTIONS } from "../../domain/constants";
-
-import DEBUG from "../../components/debug";
-import { TitleSubtitle } from "../../components/headings";
-import { buildPath, classNames } from "../../utils";
-import APIClient from "../../api/APIClient";
-
-import { toast } from 'react-hot-toast'
-import Toast from '../../components/notifications/Toast';
-
+import { toast } from "react-hot-toast";
 import { Field, FieldArray, Form, Formik } from "formik";
+import { Dialog, Transition, Switch as SwitchBasic } from "@headlessui/react";
+import { ChevronDownIcon, ChevronRightIcon, } from "@heroicons/react/solid";
+
+
+import {
+    CONTAINER_OPTIONS,
+    CODECS_OPTIONS,
+    RESOLUTION_OPTIONS,
+    SOURCES_OPTIONS,
+    ActionTypeNameMap,
+    ActionTypeOptions,
+    HDR_OPTIONS,
+    FORMATS_OPTIONS,
+    SOURCES_MUSIC_OPTIONS,
+    QUALITY_MUSIC_OPTIONS,
+    RELEASE_TYPE_MUSIC_OPTIONS
+} from "../../domain/constants";
+import { queryClient } from "../../App";
+import APIClient from "../../api/APIClient";
+import { useToggle } from "../../hooks/hooks";
+import { buildPath, classNames } from "../../utils";
+
+import {
+    NumberField,
+    TextField,
+    SwitchGroup,
+    Select,
+    MultiSelect,
+    DownloadClientSelect,
+    IndexerMultiSelect,
+    CheckboxField
+} from "../../components/inputs";
+import DEBUG from "../../components/debug";
+import Toast from "../../components/notifications/Toast";
 import { AlertWarning } from "../../components/alerts";
 import { DeleteModal } from "../../components/modals";
-import { NumberField, TextField, SwitchGroup, Select, MultiSelect, DownloadClientSelect, IndexerMultiSelect, CheckboxField } from "../../components/inputs";
+import { TitleSubtitle } from "../../components/headings";
+import { EmptyListState } from "../../components/emptystates";
 
 const tabs = [
     { name: 'General', href: '', current: true },
@@ -46,8 +66,7 @@ function TabNavLink({ item, url }: any) {
     const splitLocation = pathname.split("/");
 
     // we need to clean the / if it's a base root path
-    let too = item.href ? `${url}/${item.href}` : url
-
+    const too = item.href ? `${url}/${item.href}` : url
     return (
         <NavLink
             key={item.name}
@@ -64,7 +83,7 @@ function TabNavLink({ item, url }: any) {
     )
 }
 
-const FormButtonsGroup = ({ values, deleteAction, reset, dirty }: any) => {
+const FormButtonsGroup = ({ values, deleteAction, reset }: any) => {
     const [deleteModalIsOpen, toggleDeleteModal] = useToggle(false);
 
     const cancelModalButtonRef = useRef(null);
@@ -111,19 +130,19 @@ const FormButtonsGroup = ({ values, deleteAction, reset, dirty }: any) => {
 }
 
 export default function FilterDetails() {
-    let { url } = useRouteMatch();
-    let history = useHistory();
-    let { filterId }: any = useParams();
+    const history = useHistory();
+    const { url } = useRouteMatch();
+    const { filterId } = useParams<{ filterId: string }>();
 
-    const { isLoading, data: filter } = useQuery<Filter, Error>(['filter', parseInt(filterId)], () => APIClient.filters.getByID(parseInt(filterId)),
+    const { isLoading, data: filter } = useQuery<Filter, Error>(
+        ['filter', +filterId],
+        () => APIClient.filters.getByID(parseInt(filterId)),
         {
             retry: false,
             refetchOnWindowFocus: false,
-            onError: err => {
-                history.push("./")
-            }
-        },
-    )
+            onError: () => history.push("./")
+        }
+    );
 
     const updateMutation = useMutation((filter: Filter) => APIClient.filters.update(filter), {
         onSuccess: (filter) => {
@@ -160,11 +179,9 @@ export default function FilterDetails() {
     }
 
     const handleMobileNav = (e: any, href: string) => {
-        let s = history.location.pathname.split(/((?:\/.*?)?\/filters\/\d)/gi)
-
-        let p = buildPath(s[1], href)
-
-        history.push(p)
+        const s = history.location.pathname.split(/((?:\/.*?)?\/filters\/\d)/gi);
+        const p = buildPath(s[1], href);
+        history.push(p);
     }
 
     return (
@@ -304,7 +321,7 @@ function General() {
         }
     )
     
-    let opts = indexers && indexers.length > 0 ? indexers.map(v => ({
+    const opts = indexers && indexers.length > 0 ? indexers.map(v => ({
         label: v.name,
         value: {
             id: v.id,
@@ -581,7 +598,7 @@ function FilterActions({ filter, values }: FilterActionsProps) {
         }
     )
 
-    let newAction = {
+    const newAction = {
         name: "new action",
         enabled: true,
         type: "TEST",

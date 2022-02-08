@@ -21,14 +21,12 @@ const subNavigation = [
 
 function SubNavLink({item, url}: any) {
     const location = useLocation();
-
-    const {pathname} = location;
+    const { pathname } = location;
 
     const splitLocation = pathname.split("/");
 
     // we need to clean the / if it's a base root path
-    let too = item.href ? `${url}/${item.href}` : url
-
+    const too = item.href ? `${url}/${item.href}` : url
     return (
         <NavLink
             key={item.name}
@@ -62,8 +60,7 @@ function SidebarNav({subNavigation, url}: any) {
 }
 
 export default function Settings() {
-    let {url} = useRouteMatch();
-
+    const { url } = useRouteMatch();
     return (
         <main className="relative -mt-48">
             <header className="py-10">

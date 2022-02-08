@@ -13,7 +13,7 @@ function Logout() {
 
     useEffect(
         () => {
-            APIClient.auth.logout().then(r => {
+            APIClient.auth.logout().then(() => {
                 setAuthContext({ username: "", isLoggedIn: false });
                 removeCookie("user_session");
                 history.push('/login');

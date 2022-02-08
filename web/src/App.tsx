@@ -39,4 +39,4 @@ export function App() {
             ) : null}
         </QueryClientProvider>
     )
-};
+}
