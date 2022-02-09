@@ -631,7 +631,7 @@ func (r *Release) DownloadTorrentFile(opts map[string]string) (*DownloadTorrentF
 
 	if resp.StatusCode != http.StatusOK {
 		log.Error().Stack().Err(err).Msgf("error downloading file from: %v - bad status: %d", r.TorrentURL, resp.StatusCode)
-		return nil, err
+		return nil, fmt.Errorf("error downloading torrent (%v) file (%v) from '%v' - status code: %d", r.TorrentName, r.TorrentURL, r.Indexer, resp.StatusCode)
 	}
 
 	// Create tmp file
