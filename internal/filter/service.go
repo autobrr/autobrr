@@ -247,7 +247,7 @@ func (s *service) FindAndCheckFilters(release *domain.Release) (bool, *domain.Fi
 					torrentFileRes, err = release.DownloadTorrentFile(nil)
 					if err != nil {
 						log.Error().Stack().Err(err).Msgf("filter-service.find_and_check_filters: (%v) could not download torrent file with id: '%v' from: %v", f.Name, release.TorrentID, release.Indexer)
-						continue
+						return false, nil, err
 					}
 
 					// parse torrent metainfo
