@@ -2,6 +2,7 @@ package action
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
@@ -50,6 +51,12 @@ func (s *service) lidarr(release domain.Release, action domain.Action) ([]string
 		DownloadProtocol: "torrent",
 		Protocol:         "torrent",
 		PublishDate:      time.Now().Format(time.RFC3339),
+	}
+
+	// special handling for RED and OPS because their torrent names contain to little info
+	// "Artist - Album" is not enough for Lidarr to make a decision. It needs year like "Artist - Album 2022"
+	if release.Indexer == "redacted" || release.Indexer == "ops" {
+		r.Title = fmt.Sprintf("%v (%d)", release.TorrentName, release.Year)
 	}
 
 	rejections, err := arr.Push(r)
