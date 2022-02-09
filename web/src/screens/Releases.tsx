@@ -1,7 +1,7 @@
 import * as React from "react";
 import { useQuery } from "react-query";
 import { formatDistanceToNowStrict } from "date-fns";
-import { useTable, useSortBy, usePagination } from "react-table";
+import { useTable, useSortBy, usePagination, Column } from "react-table";
 import {
     ClockIcon,
     BanIcon,
@@ -15,7 +15,7 @@ import {
     CheckIcon
 } from "@heroicons/react/solid";
 
-import APIClient from "../api/APIClient";
+import { APIClient } from "../api/APIClient";
 import { EmptyListState } from "../components/emptystates";
 import { classNames, simplifyDate } from "../utils";
 
@@ -222,7 +222,7 @@ function Table() {
             Filter: SelectColumnFilter,  // new
             filter: 'includes',
         },
-    ], [])
+    ] as Column<Release>[], [])
 
     const [{ queryPageIndex, queryPageSize, totalCount }, dispatch] =
         React.useReducer(reducer, initialState);
@@ -260,7 +260,7 @@ function Table() {
         // setGlobalFilter,
     } = useTable({
         columns,
-        data: isSuccess ? data.data : [],
+        data: data && isSuccess ? data.data : [],
         initialState: {
             pageIndex: queryPageIndex,
             pageSize: queryPageSize,

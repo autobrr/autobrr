@@ -1,7 +1,7 @@
 import { useQuery } from "react-query";
 import { formatDistanceToNowStrict, formatISO9075 } from "date-fns";
 
-import APIClient from "../../api/APIClient";
+import { APIClient } from "../../api/APIClient";
 import { useToggle } from "../../hooks/hooks";
 import { EmptySimple } from "../../components/emptystates";
 import { IrcNetworkAddForm, IrcNetworkUpdateForm } from "../../forms";
@@ -27,11 +27,11 @@ function simplifyDate(date: string) {
 function IrcSettings() {
     const [addNetworkIsOpen, toggleAddNetwork] = useToggle(false)
 
-    const { data } = useQuery<IrcNetwork[], Error>('networks', APIClient.irc.getNetworks,
-        {
-            refetchOnWindowFocus: false
-        }
-    )
+    const { data } = useQuery(
+        'networks',
+        APIClient.irc.getNetworks,
+        { refetchOnWindowFocus: false }
+    );
 
     return (
         <div className="divide-y divide-gray-200 lg:col-span-9">
@@ -90,27 +90,8 @@ const LiItem = ({ idx, network }: LiItemProps) => {
 
         <li key={idx} >
             <div className="grid grid-cols-12 gap-4 items-center hover:bg-gray-50 dark:hover:bg-gray-700 py-4">
-
                 <IrcNetworkUpdateForm isOpen={updateIsOpen} toggle={toggleUpdate} network={network} />
-                {/* <div className="col-span-1 flex items-center sm:px-6">
-                    <Switch
-                        checked={network.enabled}
-                        onChange={toggleUpdate}
-                        className={classNames(
-                            network.enabled ? 'bg-teal-500 dark:bg-blue-500' : 'bg-gray-200 dark:bg-gray-600',
-                            'relative inline-flex flex-shrink-0 h-6 w-11 border-2 border-transparent rounded-full cursor-pointer transition-colors ease-in-out duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500'
-                        )}
-                    >
-                        <span className="sr-only">Enable</span>
-                        <span
-                            aria-hidden="true"
-                            className={classNames(
-                                network.enabled ? 'translate-x-5' : 'translate-x-0',
-                                'inline-block h-5 w-5 rounded-full bg-white shadow transform ring-0 transition ease-in-out duration-200'
-                            )}
-                        />
-                    </Switch>
-                </div> */}
+ 
                 <div className="col-span-3 items-center sm:px-6 text-sm font-medium text-gray-900 dark:text-white cursor-pointer" onClick={toggleEdit}>
                     <span className="relative inline-flex items-center">
                         {

@@ -8,17 +8,17 @@ import { queryClient } from "../../App";
 import { classNames } from "../../utils";
 import { FilterAddForm } from "../../forms";
 import { useToggle } from "../../hooks/hooks";
-import APIClient from "../../api/APIClient";
+import { APIClient } from "../../api/APIClient";
 import Toast from "../../components/notifications/Toast";
 import { EmptyListState } from "../../components/emptystates";
 
 export default function Filters() {
     const [createFilterIsOpen, toggleCreateFilter] = useToggle(false)
 
-    const { isLoading, error, data } = useQuery<Filter[], Error>('filter', APIClient.filters.getAll,
-        {
-            refetchOnWindowFocus: false
-        }
+    const { isLoading, error, data } = useQuery(
+        'filter',
+        APIClient.filters.getAll,
+        { refetchOnWindowFocus: false }
     );
 
     if (isLoading) {

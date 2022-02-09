@@ -29,7 +29,7 @@ import {
     RELEASE_TYPE_MUSIC_OPTIONS
 } from "../../domain/constants";
 import { queryClient } from "../../App";
-import APIClient from "../../api/APIClient";
+import { APIClient } from "../../api/APIClient";
 import { useToggle } from "../../hooks/hooks";
 import { buildPath, classNames } from "../../utils";
 
@@ -134,7 +134,7 @@ export default function FilterDetails() {
     const { url } = useRouteMatch();
     const { filterId } = useParams<{ filterId: string }>();
 
-    const { isLoading, data: filter } = useQuery<Filter, Error>(
+    const { isLoading, data: filter } = useQuery(
         ['filter', +filterId],
         () => APIClient.filters.getByID(parseInt(filterId)),
         {
@@ -144,14 +144,15 @@ export default function FilterDetails() {
         }
     );
 
-    const updateMutation = useMutation((filter: Filter) => APIClient.filters.update(filter), {
-        onSuccess: (filter) => {
-            // queryClient.setQueryData(['filter', filter.id], data)
-            toast.custom((t) => <Toast type="success" body={`${filter.name} was updated successfully`} t={t} />)
-
-            queryClient.invalidateQueries(["filter", filter.id]);
+    const updateMutation = useMutation(
+        (filter: Filter) => APIClient.filters.update(filter),
+        {
+            onSuccess: () => {
+                toast.custom((t) => <Toast type="success" body={`${filter?.name} was updated successfully`} t={t} />)
+                queryClient.invalidateQueries(["filter", filter?.id]);
+            }
         }
-    })
+    );
 
     const deleteMutation = useMutation((id: number) => APIClient.filters.delete(id), {
         onSuccess: () => {
@@ -315,11 +316,11 @@ export default function FilterDetails() {
 }
 
 function General() {
-    const { isLoading, data: indexers } = useQuery<Indexer[], Error>(["filter", "indexer_list"], APIClient.indexers.getOptions,
-        {
-            refetchOnWindowFocus: false
-        }
-    )
+    const { isLoading, data: indexers } = useQuery(
+        ["filter", "indexer_list"],
+        APIClient.indexers.getOptions,
+        { refetchOnWindowFocus: false }
+    );
     
     const opts = indexers && indexers.length > 0 ? indexers.map(v => ({
         label: v.name,
@@ -592,11 +593,11 @@ interface FilterActionsProps {
 }
 
 function FilterActions({ filter, values }: FilterActionsProps) {
-    const { data } = useQuery<DownloadClient[], Error>(['filter', 'download_clients'], APIClient.download_clients.getAll,
-        {
-            refetchOnWindowFocus: false
-        }
-    )
+    const { data } = useQuery(
+        ['filter', 'download_clients'],
+        APIClient.download_clients.getAll,
+        { refetchOnWindowFocus: false }
+    );
 
     const newAction = {
         name: "new action",

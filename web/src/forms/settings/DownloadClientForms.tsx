@@ -6,7 +6,7 @@ import { sleep, classNames } from "../../utils";
 import { Form, Formik, useFormikContext } from "formik";
 import DEBUG from "../../components/debug";
 import { queryClient } from "../../App";
-import APIClient from "../../api/APIClient";
+import { APIClient } from "../../api/APIClient";
 import { DownloadClientTypeOptions } from "../../domain/constants";
 
 import { toast } from 'react-hot-toast'
