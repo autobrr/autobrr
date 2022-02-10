@@ -5,7 +5,7 @@ import { Field, FieldArray } from "formik";
 import type { FieldProps } from "formik";
 
 import { queryClient } from "../../App";
-import APIClient from "../../api/APIClient";
+import { APIClient } from "../../api/APIClient";
 
 import {
     TextFieldWide,

@@ -4,7 +4,7 @@ import { IndexerAddForm, IndexerUpdateForm } from "../../forms";
 import { Switch } from "@headlessui/react";
 import { classNames } from "../../utils";
 import { EmptySimple } from "../../components/emptystates";
-import APIClient from "../../api/APIClient";
+import { APIClient } from "../../api/APIClient";
 
 const ListItem = ({ indexer }: any) => {
     const [updateIsOpen, toggleUpdate] = useToggle(false)
@@ -45,11 +45,11 @@ const ListItem = ({ indexer }: any) => {
 function IndexerSettings() {
     const [addIndexerIsOpen, toggleAddIndexer] = useToggle(false)
 
-    const { error, data } = useQuery<any[], Error>('indexer', APIClient.indexers.getAll,
-        {
-            refetchOnWindowFocus: false
-        }
-    )
+    const { error, data } = useQuery(
+        'indexer',
+        APIClient.indexers.getAll,
+        { refetchOnWindowFocus: false }
+    );
 
     if (error)
         return (<p>An error has occurred</p>);
@@ -104,7 +104,7 @@ function IndexerSettings() {
                                             </tr>
                                         </thead>
                                         <tbody className="light:bg-white divide-y divide-gray-200 dark:divide-gray-700">
-                                            {data && data.map((indexer: Indexer, idx: number) => (
+                                            {data && data.map((indexer: IndexerDefinition, idx: number) => (
                                                 <ListItem indexer={indexer} key={idx} />
                                             ))}
                                         </tbody>

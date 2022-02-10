@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import APIClient from "../api/APIClient";
+import { APIClient } from "../api/APIClient";
 
 type LogEvent = {
     time: string;

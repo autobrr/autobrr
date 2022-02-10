@@ -2,7 +2,7 @@ import { useHistory } from "react-router-dom";
 import { useMutation } from "react-query";
 import { Form, Formik } from "formik";
 
-import APIClient from "../../api/APIClient";
+import { APIClient } from "../../api/APIClient";
 import { TextField, PasswordField } from "../../components/inputs";
 
 import logo from "../../logo.png";

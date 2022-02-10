@@ -1,6 +1,6 @@
 import { useQuery } from "react-query";
 
-import APIClient from "../../api/APIClient";
+import { APIClient } from "../../api/APIClient";
 import { Checkbox } from "../../components/Checkbox";
 import { SettingsContext } from "../../utils/Context";
 
@@ -8,7 +8,7 @@ import { SettingsContext } from "../../utils/Context";
 function ApplicationSettings() {
     const [settings, setSettings] = SettingsContext.use();
 
-    const { isLoading, data } = useQuery<Config, Error>(
+    const { isLoading, data } = useQuery(
         ['config'],
         () => APIClient.config.get(),
         {

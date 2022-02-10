@@ -11,7 +11,7 @@ import { Dialog, Transition } from "@headlessui/react";
 import { sleep } from "../../utils";
 import { queryClient } from "../../App";
 import DEBUG from "../../components/debug";
-import APIClient from "../../api/APIClient";
+import { APIClient } from "../../api/APIClient";
 import {
     TextFieldWide,
     PasswordFieldWide,
@@ -48,13 +48,22 @@ const Menu = (props: any) => {
   );
 }
 
+const Option = (props: any) => {
+    return (
+      <components.Option 
+        {...props}
+        className="dark:text-gray-400 dark:bg-gray-800 dark:hover:bg-gray-900 dark:focus:bg-gray-900"
+      />
+    );
+}
+
 interface AddProps {
     isOpen: boolean;
     toggle: any;
 }
 
 export function IndexerAddForm({ isOpen, toggle }: AddProps) {
-    const { data } = useQuery<IndexerDefinition[], Error>('indexerDefinition', APIClient.indexers.getSchema,
+    const { data } = useQuery('indexerDefinition', APIClient.indexers.getSchema,
         {
             enabled: isOpen,
             refetchOnWindowFocus: false
@@ -237,8 +246,14 @@ export function IndexerAddForm({ isOpen, toggle }: AddProps) {
                                                                         <Select {...field}
                                                                             isClearable={true}
                                                                             isSearchable={true}
-                                                                            components={{ Input, Control, Menu }}
+                                                                            components={{ Input, Control, Menu, Option }}
                                                                             placeholder="Choose an indexer"
+                                                                            styles={{
+                                                                                singleValue: (base) => ({
+                                                                                    ...base,
+                                                                                    color: "unset"
+                                                                                })
+                                                                            }}
                                                                             value={field?.value && field.value.value}
                                                                             onChange={(option: any) => {
                                                                                 setFieldValue("name", option?.label ?? "")
@@ -248,7 +263,7 @@ export function IndexerAddForm({ isOpen, toggle }: AddProps) {
                                                                                 label: v.name,
                                                                                 value: v.identifier
                                                                             }))} 
-                                                                            />
+                                                                        />
                                                                     )}
                                                                 </Field>
 

@@ -4,7 +4,7 @@ import { useQuery } from "react-query";
 import { classNames } from "../../utils";
 import { DownloadClientAddForm, DownloadClientUpdateForm } from "../../forms";
 import { EmptySimple } from "../../components/emptystates";
-import APIClient from "../../api/APIClient";
+import { APIClient } from "../../api/APIClient";
 import { DownloadClientTypeNameMap } from "../../domain/constants";
 
 interface DLSettingsItemProps {
@@ -53,10 +53,11 @@ function DownloadClientSettingsListItem({ client, idx }: DLSettingsItemProps) {
 function DownloadClientSettings() {
     const [addClientIsOpen, toggleAddClient] = useToggle(false)
 
-    const { error, data } = useQuery<DownloadClient[], Error>('downloadClients', APIClient.download_clients.getAll,
-        {
-            refetchOnWindowFocus: false
-        })
+    const { error, data } = useQuery(
+        'downloadClients',
+        APIClient.download_clients.getAll,
+        { refetchOnWindowFocus: false }
+    );
 
     if (error)
         return (<p>An error has occurred: </p>);

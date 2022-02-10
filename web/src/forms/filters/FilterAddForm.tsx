@@ -7,7 +7,7 @@ import { Field, Form, Formik } from "formik";
 import type { FieldProps } from "formik";
 
 import { queryClient } from "../../App";
-import APIClient from "../../api/APIClient";
+import { APIClient } from "../../api/APIClient";
 import DEBUG from "../../components/debug";
 import Toast from '../../components/notifications/Toast';
 

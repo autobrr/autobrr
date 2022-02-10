@@ -2,7 +2,7 @@ import {useEffect} from "react";
 import {useCookies} from "react-cookie";
 import {useHistory} from "react-router-dom";
 
-import APIClient from "../../api/APIClient";
+import { APIClient } from "../../api/APIClient";
 import { AuthContext } from "../../utils/Context";
 
 function Logout() {
