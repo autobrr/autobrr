@@ -30,15 +30,15 @@ export default function Logs() {
     }, [setLogs]);
 
     return (
-        <main className="-mt-48">
+        <main>
             <header className="py-10">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <h1 className="text-3xl font-bold text-white capitalize">Logs</h1>
+                    <h1 className="text-3xl font-bold text-black dark:text-white capitalize">Logs</h1>
                 </div>
             </header>
             <div className="max-w-7xl mx-auto pb-12 px-2 sm:px-4 lg:px-8">
-                <div className="bg-white dark:bg-gray-800 rounded-lg shadow px-2 sm:px-4 py-3 sm:py-4">
-                    <div className=" overflow-y-auto p-2 rounded-lg h-96 bg-gray-900">
+                <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg px-2 sm:px-4 py-3 sm:py-4">
+                    <div className=" overflow-y-auto p-2 rounded-lg h-96 bg-gray-100 dark:bg-gray-900">
                         {logs.map((a, idx) => (
                             <p key={idx}>
                                 <span className="font-mono text-gray-600 mr-2">{a.time}</span>

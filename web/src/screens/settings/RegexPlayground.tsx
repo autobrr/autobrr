@@ -20,16 +20,23 @@ export const RegexPlayground = () => {
                 if (match.index === undefined)
                     continue;
 
+                if (!match.length)
+                    continue;
+
                 const start = match.index;
+
+                let length = 0;
+                match.forEach((group) => length += group.length);
+
                 results.push(
-                    <span key={`match=${start}`}>
+                    <span key={`match-${start}`}>
                         {line.substring(lastIndex, start)}
-                        <span className="bg-green-200 text-black font-bold">
-                        {line.substring(start, start + match.length)}
+                        <span className="bg-blue-300 text-black font-bold">
+                            {line.substring(start, start + length)}
                         </span>
                     </span>
                 );
-                lastIndex = start + match.length;
+                lastIndex = start + length;
             }
 
             if (lastIndex < line.length) {
@@ -60,7 +67,7 @@ export const RegexPlayground = () => {
             <div className="px-6 py-4">
                 <label
                     htmlFor="input-regex"
-                    className="block text-sm font-medium text-gray-300"
+                    className="block text-sm font-medium text-gray-600 dark:text-gray-300"
                 >
                     RegExp filter
                 </label>
@@ -73,7 +80,7 @@ export const RegexPlayground = () => {
                 />
                 <label
                     htmlFor="input-lines"
-                    className="block text-sm font-medium text-gray-300"
+                    className="block text-sm font-medium text-gray-600 dark:text-gray-300"
                 >
                     Lines to match
                 </label>

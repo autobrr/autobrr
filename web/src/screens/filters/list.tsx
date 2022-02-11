@@ -29,12 +29,12 @@ export default function Filters() {
         return (<p>An error has occurred: </p>);
 
     return (
-        <main className="-mt-48 ">
+        <main>
             <FilterAddForm isOpen={createFilterIsOpen} toggle={toggleCreateFilter} />
 
             <header className="py-10">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex justify-between">
-                    <h1 className="text-3xl font-bold text-white capitalize">Filters</h1>
+                    <h1 className="text-3xl font-bold text-black dark:text-white capitalize">Filters</h1>
 
                     <div className="flex-shrink-0">
                         <button
@@ -49,7 +49,7 @@ export default function Filters() {
             </header>
 
             <div className="max-w-7xl mx-auto pb-12 px-4 sm:px-6 lg:px-8">
-                <div className="bg-white dark:bg-gray-800 light:rounded-lg light:shadow">
+                <div className="bg-white dark:bg-gray-800 light:rounded-lg shadow-lg">
                     <div className="relative inset-0 light:py-3 light:px-3 light:sm:px-3 light:lg:px-3 h-full">
                         {data && data.length > 0 ? <FilterList filters={data} /> :
                             <EmptyListState text="No filters here.." buttonText="Add new" buttonOnClick={toggleCreateFilter} />}

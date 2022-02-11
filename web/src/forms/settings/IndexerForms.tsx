@@ -254,6 +254,14 @@ export function IndexerAddForm({ isOpen, toggle }: AddProps) {
                                                                                     color: "unset"
                                                                                 })
                                                                             }}
+                                                                            theme={(theme) => ({
+                                                                                ...theme,
+                                                                                spacing: {
+                                                                                  ...theme.spacing,
+                                                                                  controlHeight: 30,
+                                                                                  baseUnit: 2,
+                                                                                }
+                                                                            })}
                                                                             value={field?.value && field.value.value}
                                                                             onChange={(option: any) => {
                                                                                 setFieldValue("name", option?.label ?? "")

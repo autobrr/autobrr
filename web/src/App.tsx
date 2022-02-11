@@ -38,5 +38,5 @@ export function App() {
                 <ReactQueryDevtools initialIsOpen={false} />
             ) : null}
         </QueryClientProvider>
-    )
+    );
 }
