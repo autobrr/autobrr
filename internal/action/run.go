@@ -92,7 +92,8 @@ func (s *service) runAction(action domain.Action, release domain.Release) error 
 			return err
 		}
 		if !canDownload {
-			rejections = []string{"deluge busy"}
+			rejections = []string{"max active downloads reached, skipping"}
+			break
 		}
 
 		if release.TorrentTmpFile == "" {
@@ -120,7 +121,8 @@ func (s *service) runAction(action domain.Action, release domain.Release) error 
 			return err
 		}
 		if !canDownload {
-			rejections = []string{"qBittorrent busy"}
+			rejections = []string{"max active downloads reached, skipping"}
+			break
 		}
 
 		if release.TorrentTmpFile == "" {

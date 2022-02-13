@@ -92,7 +92,7 @@ func (s *service) qbittorrentCheckRulesCanDownload(action domain.Action) (bool, 
 
 	// check for active downloads and other rules
 	if client.Settings.Rules.Enabled && !action.IgnoreRules {
-		activeDownloads, err := qbt.GetTorrentsFilter(qbittorrent.TorrentFilterDownloading)
+		activeDownloads, err := qbt.GetTorrentsActiveDownloads()
 		if err != nil {
 			log.Error().Stack().Err(err).Msg("could not fetch downloading torrents")
 			return false, nil, err
@@ -119,6 +119,9 @@ func (s *service) qbittorrentCheckRulesCanDownload(action domain.Action) (bool, 
 					}
 
 					log.Debug().Msg("active downloads are slower than set limit, lets add it")
+				} else {
+					log.Debug().Msg("max active downloads reached, skipping")
+					return false, nil, nil
 				}
 			}
 		}

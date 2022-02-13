@@ -112,6 +112,46 @@ func (c *Client) GetTorrentsFilter(filter TorrentFilter) ([]Torrent, error) {
 	return torrents, nil
 }
 
+func (c *Client) GetTorrentsActiveDownloads() ([]Torrent, error) {
+	var filter = TorrentFilterDownloading
+
+	v := url.Values{}
+	v.Add("filter", string(filter))
+	params := v.Encode()
+
+	resp, err := c.get("torrents/info?"+params, nil)
+	if err != nil {
+		log.Error().Err(err).Msgf("get filtered torrents error: %v", filter)
+		return nil, err
+	}
+
+	defer resp.Body.Close()
+
+	body, readErr := ioutil.ReadAll(resp.Body)
+	if readErr != nil {
+		log.Error().Err(err).Msgf("get filtered torrents read error: %v", filter)
+		return nil, readErr
+	}
+
+	var torrents []Torrent
+	err = json.Unmarshal(body, &torrents)
+	if err != nil {
+		log.Error().Err(err).Msgf("get filtered torrents unmarshal error: %v", filter)
+		return nil, err
+	}
+
+	res := make([]Torrent, 0)
+	for _, torrent := range torrents {
+		// qbit counts paused torrents as downloading as well by default
+		// so only add torrents with state downloading, and not pausedDl, stalledDl etc
+		if torrent.State == TorrentStateDownloading {
+			res = append(res, torrent)
+		}
+	}
+
+	return res, nil
+}
+
 func (c *Client) GetTorrentsRaw() (string, error) {
 	resp, err := c.get("torrents/info", nil)
 	if err != nil {
