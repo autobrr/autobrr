@@ -10,7 +10,7 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-const ReannounceMaxAttempts = 30
+const ReannounceMaxAttempts = 50
 const ReannounceInterval = 7000
 
 func (s *service) qbittorrent(qbt *qbittorrent.Client, action domain.Action, hash string, torrentFile string) error {
@@ -92,7 +92,7 @@ func (s *service) qbittorrentCheckRulesCanDownload(action domain.Action) (bool, 
 
 	// check for active downloads and other rules
 	if client.Settings.Rules.Enabled && !action.IgnoreRules {
-		activeDownloads, err := qbt.GetTorrentsFilter(qbittorrent.TorrentFilterDownloading)
+		activeDownloads, err := qbt.GetTorrentsActiveDownloads()
 		if err != nil {
 			log.Error().Stack().Err(err).Msg("could not fetch downloading torrents")
 			return false, nil, err
@@ -119,6 +119,9 @@ func (s *service) qbittorrentCheckRulesCanDownload(action domain.Action) (bool, 
 					}
 
 					log.Debug().Msg("active downloads are slower than set limit, lets add it")
+				} else {
+					log.Debug().Msg("max active downloads reached, skipping")
+					return false, nil, nil
 				}
 			}
 		}
@@ -132,10 +135,12 @@ func checkTrackerStatus(qb qbittorrent.Client, hash string) error {
 	attempts := 0
 
 	// initial sleep to give tracker a head start
-	time.Sleep(2 * time.Second)
+	time.Sleep(4 * time.Second)
 
 	for attempts < ReannounceMaxAttempts {
-		log.Debug().Msgf("qBittorrent - run re-announce %v attempt: %v", hash, attempts)
+		if attempts > 0 {
+			log.Debug().Msgf("qBittorrent - run re-announce %v attempt: %v", hash, attempts)
+		}
 
 		trackers, err := qb.GetTorrentTrackers(hash)
 		if err != nil {
@@ -145,30 +150,34 @@ func checkTrackerStatus(qb qbittorrent.Client, hash string) error {
 
 		// check if status not working or something else
 		working := findTrackerStatus(trackers, qbittorrent.TrackerStatusOK)
-
-		if !working {
-			log.Trace().Msgf("qBittorrent - not working yet, lets re-announce %v attempt: %v", hash, attempts)
-			err = qb.ReAnnounceTorrents([]string{hash})
-			if err != nil {
-				log.Error().Err(err).Msgf("qBittorrent - could not get re-announce torrent: %v", hash)
-				return err
+		if working {
+			if attempts > 0 {
+				log.Debug().Msgf("qBittorrent - re-announce for %v OK", hash)
 			}
 
-			attempts++
-
-			// add delay for next run
-			time.Sleep(ReannounceInterval * time.Millisecond)
-
-			continue
-		} else {
-			log.Debug().Msgf("qBittorrent - re-announce for %v OK", hash)
-
 			announceOK = true
-			break
+
+			// if working lets return
+			return nil
 		}
+
+		log.Trace().Msgf("qBittorrent - not working yet, lets re-announce %v attempt: %v", hash, attempts)
+		err = qb.ReAnnounceTorrents([]string{hash})
+		if err != nil {
+			log.Error().Err(err).Msgf("qBittorrent - could not get re-announce torrent: %v", hash)
+			return err
+		}
+
+		attempts++
+
+		// add delay for next run
+		time.Sleep(ReannounceInterval * time.Millisecond)
+
+		continue
 	}
 
 	// add extra delay before delete
+	// TODO add setting: delete on failure to reannounce
 	time.Sleep(30 * time.Second)
 
 	if !announceOK {
