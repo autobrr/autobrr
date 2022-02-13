@@ -97,6 +97,35 @@ export const APIClient = {
     },
     release: {
         find: (query?: string) => appClient.Get<ReleaseFindResponse>(`api/release${query}`),
+        // findQuery: (offset?: number, limit?: number, indexer?: string, filters?: any[]) => {
+        findQuery: (offset?: number, limit?: number, filters?: any[]) => {
+            console.log("find query", filters);
+            
+            let queryString = "?"
+            if (offset != 0) {
+                queryString += `offset=${offset}`
+            }
+            if (limit != 0) {
+                queryString += `&limit=${limit}`
+            }
+            // if (indexer != "") {
+            //     // queryString += `&indexer=${indexer}`
+            //     queryString += indexer
+            // }
+            if (filters && filters?.length > 0) {
+                filters?.map((filter) => {
+            // filterStr = `${filter.id}=${filter.value}`
+
+                if (filter.id === "indexer" && filter.value != "") {
+                    console.log("fitler indexer: ", filter);
+                    queryString += `&indexer=${filter.value}`
+                }
+                 })
+            }
+
+
+            return appClient.Get<ReleaseFindResponse>(`api/release${queryString}`)
+        },
         stats: () => appClient.Get<ReleaseStats>("api/release/stats")
     }
 };

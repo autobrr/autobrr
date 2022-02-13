@@ -1487,10 +1487,11 @@ const (
 )
 
 type QueryParams struct {
-	Limit  uint64
-	Offset uint64
-	Cursor uint64
-	Sort   map[string]string
-	Filter map[string]string
-	Search string
+	Limit    uint64
+	Offset   uint64
+	Cursor   uint64
+	Sort     map[string]string
+	Filter   map[string]string
+	Indexers []string
+	Search   string
 }

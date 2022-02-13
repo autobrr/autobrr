@@ -1,7 +1,7 @@
 import * as React from "react";
 import { useQuery } from "react-query";
 import { formatDistanceToNowStrict } from "date-fns";
-import { useTable, useSortBy, usePagination, Column } from "react-table";
+import { useTable, useSortBy, usePagination, useAsyncDebounce, useFilters, useGlobalFilter, Column } from "react-table";
 import {
     ClockIcon,
     BanIcon,
@@ -33,6 +33,33 @@ export function Releases() {
             </div>
         </main>
     )
+}
+
+// Define a default UI for filtering
+function GlobalFilter({
+  preGlobalFilteredRows,
+  globalFilter,
+  setGlobalFilter,
+}: any) {
+  const count = preGlobalFilteredRows.length
+  const [value, setValue] = React.useState(globalFilter)
+  const onChange = useAsyncDebounce(value => {
+    setGlobalFilter(value || undefined)
+  }, 200)
+
+  return (
+    <span>
+      Search:{' '}
+      <input
+        value={value || ""}
+        onChange={e => {
+          setValue(e.target.value);
+          onChange(e.target.value);
+        }}
+        placeholder={`${count} records...`}
+      />
+    </span>
+  )
 }
 
 // This is a custom filter UI for selecting
@@ -165,11 +192,15 @@ const initialState = {
     queryPageIndex: 0,
     queryPageSize: 10,
     totalCount: null,
+    queryIndexer: "",
+    queryFilters: []
 };
 
 const PAGE_CHANGED = 'PAGE_CHANGED';
 const PAGE_SIZE_CHANGED = 'PAGE_SIZE_CHANGED';
 const TOTAL_COUNT_CHANGED = 'TOTAL_COUNT_CHANGED';
+const FILTER_CHANGED = 'FILTER_CHANGED';
+const FILTER_INDEXER_CHANGED = 'FILTER_INDEXER_CHANGED';
 
 const reducer = (state: any, { type, payload }: any) => {
     switch (type) {
@@ -187,6 +218,21 @@ const reducer = (state: any, { type, payload }: any) => {
             return {
                 ...state,
                 totalCount: payload,
+            };
+            
+        case FILTER_CHANGED:
+            // console.log("filters", payload);
+            
+            return {
+                ...state,
+                queryFilters: payload,
+            };
+        case FILTER_INDEXER_CHANGED:
+            console.log("filter indexer changed",payload);
+
+            return {
+                ...state,
+                queryIndexer: payload,
             };
         default:
             throw new Error(`Unhandled action type: ${type}`);
@@ -220,21 +266,30 @@ function Table() {
             accessor: 'indexer',
             Cell: IndexerCell,
             Filter: SelectColumnFilter,  // new
-            filter: 'includes',
+            filter: 'equal',
+            // filter: 'includes',
         },
     ] as Column<Release>[], [])
 
-    const [{ queryPageIndex, queryPageSize, totalCount }, dispatch] =
+    const [{ queryPageIndex, queryPageSize, totalCount, queryFilters }, dispatch] =
         React.useReducer(reducer, initialState);
 
     const { isLoading, error, data, isSuccess } = useQuery(
-        ['releases', queryPageIndex, queryPageSize],
-        () => APIClient.release.find(`?offset=${queryPageIndex * queryPageSize}&limit=${queryPageSize}`),
+        ['releases', queryPageIndex, queryPageSize, queryFilters],
+        // () => APIClient.release.find(`?offset=${queryPageIndex * queryPageSize}&limit=${queryPageSize}${filterIndexer && `&indexer=${filterIndexer}`}`),
+        () => APIClient.release.findQuery(queryPageIndex * queryPageSize, queryPageSize, queryFilters),
         {
             keepPreviousData: true,
             staleTime: Infinity,
         }
     );
+
+    const initialFilters = React.useMemo(() => [
+        {
+            id: "indexer",
+            value: "",
+        }
+    ], [])
 
     // Use the state and functions returned from useTable to build your UI
     const {
@@ -255,34 +310,32 @@ function Table() {
         previousPage,
         setPageSize,
 
-        state: { pageIndex, pageSize },
-        // preGlobalFilteredRows,
-        // setGlobalFilter,
+        state: { pageIndex, pageSize, globalFilter, filters },
+        preGlobalFilteredRows,
+        setGlobalFilter,
+        preFilteredRows,
     } = useTable({
         columns,
         data: data && isSuccess ? data.data : [],
         initialState: {
             pageIndex: queryPageIndex,
             pageSize: queryPageSize,
+            filters: []
+            // filters: initialFilters
         },
         manualPagination: true,
+        manualFilters: true,
         manualSortBy: true,
         pageCount: isSuccess ? Math.ceil(totalCount / queryPageSize) : 0,
+        autoResetSortBy: false,
+        autoResetExpanded: false,
+        autoResetPage: false
     },
-        // useFilters, // useFilters!
-        // useGlobalFilter,
+        useFilters, // useFilters!
+        useGlobalFilter,
         useSortBy,
         usePagination,  // new
     )
-
-    React.useEffect(() => {
-        dispatch({ type: PAGE_CHANGED, payload: pageIndex });
-    }, [pageIndex]);
-
-    React.useEffect(() => {
-        dispatch({ type: PAGE_SIZE_CHANGED, payload: pageSize });
-        gotoPage(0);
-    }, [pageSize, gotoPage]);
 
     React.useEffect(() => {
         if (data?.count) {
@@ -291,7 +344,35 @@ function Table() {
                 payload: data.count,
             });
         }
-    }, [data?.count]);
+        dispatch({ type: PAGE_CHANGED, payload: pageIndex });
+        dispatch({ type: PAGE_SIZE_CHANGED, payload: pageSize });
+        gotoPage(0);
+    }, [pageIndex, pageSize, gotoPage, data?.count]);
+
+    // React.useEffect(() => {
+    //     dispatch({ type: PAGE_CHANGED, payload: pageIndex });
+    // }, [pageIndex]);
+
+    // React.useEffect(() => {
+    //     dispatch({ type: PAGE_SIZE_CHANGED, payload: pageSize });
+    //     gotoPage(0);
+    // }, [pageSize, gotoPage]);
+
+    // React.useEffect(() => {
+    //     if (data?.count) {
+    //         dispatch({
+    //             type: TOTAL_COUNT_CHANGED,
+    //             payload: data.count,
+    //         });
+    //     }
+    // }, [data?.count]);
+
+    // React.useEffect(() => {
+    //     console.log("effect filters: ", filters);
+        
+    //     dispatch({ type: FILTER_CHANGED, payload: filters });
+    // }, [filters]);
+
 
     if (error) {
         return <p>Error</p>;
@@ -306,12 +387,13 @@ function Table() {
         <>
             {isSuccess && data ? (
                 <div className="flex flex-col mt-4">
-                    {/* <GlobalFilter
+                    <GlobalFilter
                         preGlobalFilteredRows={preGlobalFilteredRows}
-                        globalFilter={state.globalFilter}
+                        globalFilter={globalFilter}
                         setGlobalFilter={setGlobalFilter}
-                    /> */}
-                    {/* {headerGroups.map((headerGroup: { headers: any[] }) =>
+                        preFilteredRows={preFilteredRows}
+                    />
+                    {headerGroups.map((headerGroup: { headers: any[] }) =>
                         headerGroup.headers.map((column) =>
                         column.Filter ? (
                         <div className="mt-2 sm:mt-0" key={column.id}>
@@ -319,7 +401,19 @@ function Table() {
                         </div>
                         ) : null
                     )
-                    )} */}
+                    )}
+                    <div className="sm:p-7 p-4">
+          <div className="flex w-full items-center mb-7">
+    <button className="inline-flex items-center h-8 pl-2.5 pr-2 rounded-md shadow text-gray-700 dark:text-gray-400 dark:border-gray-800 border border-gray-200 leading-none py-0">
+              Filter by
+              <svg viewBox="0 0 24 24" className="w-4 ml-1.5 text-gray-400 dark:text-gray-600" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="6 9 12 15 18 9"></polyline>
+              </svg>
+            </button>
+
+          </div>
+          </div>
+
                     <div className="-mx-4 -my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
                         <div className="inline-block min-w-full py-2 align-middle sm:px-6 lg:px-8">
                             <div className="overflow-hidden bg-white shadow dark:bg-gray-800 sm:rounded-lg">

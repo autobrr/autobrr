@@ -110,7 +110,9 @@ func (repo *ReleaseRepo) Find(ctx context.Context, params domain.QueryParams) ([
 	if params.Filter != nil {
 		filter := sq.And{}
 		for k, v := range params.Filter {
-			filter = append(filter, sq.Eq{k: v})
+			if v != "" {
+				filter = append(filter, sq.Eq{k: v})
+			}
 		}
 
 		queryBuilder = queryBuilder.Where(filter)

@@ -3,6 +3,7 @@ package http
 import (
 	"context"
 	"net/http"
+	"net/url"
 	"strconv"
 
 	"github.com/autobrr/autobrr/internal/domain"
@@ -40,6 +41,7 @@ func (h releaseHandler) findReleases(w http.ResponseWriter, r *http.Request) {
 			"code":    "BAD_REQUEST_PARAMS",
 			"message": "limit parameter is invalid",
 		}, http.StatusBadRequest)
+		return
 	}
 	if limit == 0 {
 		limit = 20
@@ -52,22 +54,51 @@ func (h releaseHandler) findReleases(w http.ResponseWriter, r *http.Request) {
 			"code":    "BAD_REQUEST_PARAMS",
 			"message": "offset parameter is invalid",
 		}, http.StatusBadRequest)
+		return
 	}
 
 	cursorP := r.URL.Query().Get("cursor")
-	cursor, err := strconv.Atoi(cursorP)
-	if err != nil && cursorP != "" {
+	cursor := 0
+	if cursorP != "" {
+		cursor, err = strconv.Atoi(cursorP)
+		if err != nil && cursorP != "" {
+			h.encoder.StatusResponse(r.Context(), w, map[string]interface{}{
+				"code":    "BAD_REQUEST_PARAMS",
+				"message": "cursor parameter is invalid",
+			}, http.StatusBadRequest)
+		}
+		return
+	}
+
+	u, err := url.Parse(r.URL.String())
+	if err != nil {
 		h.encoder.StatusResponse(r.Context(), w, map[string]interface{}{
 			"code":    "BAD_REQUEST_PARAMS",
-			"message": "cursor parameter is invalid",
+			"message": "indexer parameter is invalid",
 		}, http.StatusBadRequest)
+		return
 	}
+	vals := u.Query()
+	indexer := vals["indexer"]
+	//indexer := r.URL.Query().Get("indexer")
+	//if err != nil && indexer != "" {
+	//	h.encoder.StatusResponse(r.Context(), w, map[string]interface{}{
+	//		"code":    "BAD_REQUEST_PARAMS",
+	//		"message": "indexer parameter is invalid",
+	//	}, http.StatusBadRequest)
+	//	return
+	//}
 
 	query := domain.QueryParams{
 		Limit:  uint64(limit),
 		Offset: uint64(offset),
 		Cursor: uint64(cursor),
 		Sort:   nil,
+		//Filter: map[string]string{
+		//	"indexer": indexer,
+		//},
+		Indexers: indexer,
+
 		//Filter: "",
 	}
 
