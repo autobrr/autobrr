@@ -62,15 +62,15 @@ function SidebarNav({subNavigation, url}: any) {
 export default function Settings() {
     const { url } = useRouteMatch();
     return (
-        <main className="relative -mt-48">
+        <main>
             <header className="py-10">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <h1 className="text-3xl font-bold text-white capitalize">Settings</h1>
+                    <h1 className="text-3xl font-bold text-black dark:text-white capitalize">Settings</h1>
                 </div>
             </header>
 
             <div className="max-w-screen-xl mx-auto pb-6 px-4 sm:px-6 lg:pb-16 lg:px-8">
-                <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
+                <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg overflow-hidden">
                     <div className="divide-y divide-gray-200 dark:divide-gray-700 lg:grid lg:grid-cols-12 lg:divide-y-0 lg:divide-x">
                         <SidebarNav url={url} subNavigation={subNavigation}/>
 

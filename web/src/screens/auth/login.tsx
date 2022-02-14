@@ -33,7 +33,7 @@ function Login() {
     const handleSubmit = (data: any) => mutation.mutate(data);
 
     return (
-        <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+        <div className="min-h-screen flex flex-col justify-center py-12 sm:px-6 lg:px-8">
             <div className="sm:mx-auto sm:w-full sm:max-w-md mb-6">
                 <img
                     className="mx-auto h-12 w-auto"
@@ -41,8 +41,8 @@ function Login() {
                     alt="logo"
                 />
             </div>
-            <div className="sm:mx-auto sm:w-full sm:max-w-md">
-                <div className="bg-white dark:bg-gray-800 py-8 px-4 shadow sm:rounded-lg sm:px-10">
+            <div className="sm:mx-auto sm:w-full sm:max-w-md shadow-lg">
+                <div className="bg-white dark:bg-gray-800 py-8 px-4 sm:rounded-lg sm:px-10">
 
                     <Formik
                         initialValues={{ username: "", password: "" }}

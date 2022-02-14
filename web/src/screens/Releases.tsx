@@ -21,11 +21,10 @@ import { classNames, simplifyDate } from "../utils";
 
 export function Releases() {
     return (
-        <main className="-mt-48">
-
+        <main>
             <header className="py-10">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex justify-between">
-                    <h1 className="text-3xl font-bold text-white capitalize">Releases</h1>
+                    <h1 className="text-3xl font-bold text-black dark:text-white capitalize">Releases</h1>
                 </div>
             </header>
             <div className="px-4 pb-8 mx-auto max-w-7xl sm:px-6 lg:px-8">
@@ -305,156 +304,138 @@ function Table() {
     return (
         <>
             {isSuccess && data ? (
-                <div className="flex flex-col mt-4">
-                    {/* <GlobalFilter
-                        preGlobalFilteredRows={preGlobalFilteredRows}
-                        globalFilter={state.globalFilter}
-                        setGlobalFilter={setGlobalFilter}
-                    /> */}
-                    {/* {headerGroups.map((headerGroup: { headers: any[] }) =>
-                        headerGroup.headers.map((column) =>
-                        column.Filter ? (
-                        <div className="mt-2 sm:mt-0" key={column.id}>
-                            {column.render("Filter")}
-                        </div>
-                        ) : null
-                    )
-                    )} */}
-                    <div className="-mx-4 -my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
-                        <div className="inline-block min-w-full py-2 align-middle sm:px-6 lg:px-8">
-                            <div className="overflow-hidden bg-white shadow dark:bg-gray-800 sm:rounded-lg">
-                                <table {...getTableProps()} className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                                    <thead className="bg-gray-50 dark:bg-gray-800">
-                                        {headerGroups.map((headerGroup) => {
-                                            const { key: rowKey, ...rowRest } = headerGroup.getHeaderGroupProps();
-                                            return (
-                                                <tr key={rowKey} {...rowRest}>
-                                                    {headerGroup.headers.map((column) => {
-                                                        const { key: columnKey, ...columnRest } = column.getHeaderProps(column.getSortByToggleProps());
-                                                        return (
-                                                            // Add the sorting props to control sorting. For this example
-                                                            // we can add them into the header props
-                                                            <th
-                                                                key={`${rowKey}-${columnKey}`}
-                                                                scope="col"
-                                                                className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase group"
-                                                                {...columnRest}
-                                                            >
-                                                                <div className="flex items-center justify-between">
-                                                                    {column.render('Header')}
-                                                                    {/* Add a sort direction indicator */}
-                                                                    <span>
-                                                                        {column.isSorted ? (
-                                                                            column.isSortedDesc ? (
-                                                                                <SortDownIcon className="w-4 h-4 text-gray-400" />
-                                                                            ) : (
-                                                                                <SortUpIcon className="w-4 h-4 text-gray-400" />
-                                                                            )
-                                                                        ) : (
-                                                                            <SortIcon className="w-4 h-4 text-gray-400 opacity-0 group-hover:opacity-100" />
-                                                                        )}
-                                                                    </span>
-                                                                </div>
-                                                            </th>
-                                                        );
-                                                    })}
-                                                </tr>
-                                            );
-                                        })}
-                                    </thead>
-                                    <tbody
-                                        {...getTableBodyProps()}
-                                        className="divide-y divide-gray-200 dark:divide-gray-700"
-                                    >
-                                        {page.map((row: any) => {  // new
-                                            prepareRow(row)
-                                            const { key: bodyRowKey, ...bodyRowRest } = row.getRowProps();
-                                            return (
-                                                <tr key={bodyRowKey} {...bodyRowRest}>
-                                                    {row.cells.map((cell: any) => {
-                                                        const { key: cellRowKey, ...cellRowRest } = cell.getCellProps();
-                                                        return (
-                                                            <td
-                                                                key={cellRowKey}
-                                                                className="px-6 py-4 whitespace-nowrap"
-                                                                role="cell"
-                                                                {...cellRowRest}
-                                                            >
-                                                                {cell.column.Cell.name === "defaultRenderer"
-                                                                    ? <div className="text-sm text-gray-500">{cell.render('Cell')}</div>
-                                                                    : cell.render('Cell')
-                                                                }
-                                                            </td>
-                                                        );
-                                                    })}
-                                                </tr>
-                                            );
-                                        })}
-                                    </tbody>
-                                </table>
+                <div className="flex flex-col">
+                    <div className="overflow-hidden bg-white shadow-lg dark:bg-gray-800 sm:rounded-lg">
+                        <table {...getTableProps()} className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                            <thead className="bg-gray-50 dark:bg-gray-800">
+                                {headerGroups.map((headerGroup) => {
+                                    const { key: rowKey, ...rowRest } = headerGroup.getHeaderGroupProps();
+                                    return (
+                                        <tr key={rowKey} {...rowRest}>
+                                            {headerGroup.headers.map((column) => {
+                                                const { key: columnKey, ...columnRest } = column.getHeaderProps(column.getSortByToggleProps());
+                                                return (
+                                                    // Add the sorting props to control sorting. For this example
+                                                    // we can add them into the header props
+                                                    <th
+                                                        key={`${rowKey}-${columnKey}`}
+                                                        scope="col"
+                                                        className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase group"
+                                                        {...columnRest}
+                                                    >
+                                                        <div className="flex items-center justify-between">
+                                                            {column.render('Header')}
+                                                            {/* Add a sort direction indicator */}
+                                                            <span>
+                                                                {column.isSorted ? (
+                                                                    column.isSortedDesc ? (
+                                                                        <SortDownIcon className="w-4 h-4 text-gray-400" />
+                                                                    ) : (
+                                                                        <SortUpIcon className="w-4 h-4 text-gray-400" />
+                                                                    )
+                                                                ) : (
+                                                                    <SortIcon className="w-4 h-4 text-gray-400 opacity-0 group-hover:opacity-100" />
+                                                                )}
+                                                            </span>
+                                                        </div>
+                                                    </th>
+                                                );
+                                            })}
+                                        </tr>
+                                    );
+                                })}
+                            </thead>
+                            <tbody
+                                {...getTableBodyProps()}
+                                className="divide-y divide-gray-200 dark:divide-gray-700"
+                            >
+                                {page.map((row: any) => {  // new
+                                    prepareRow(row)
+                                    const { key: bodyRowKey, ...bodyRowRest } = row.getRowProps();
+                                    return (
+                                        <tr key={bodyRowKey} {...bodyRowRest}>
+                                            {row.cells.map((cell: any) => {
+                                                const { key: cellRowKey, ...cellRowRest } = cell.getCellProps();
+                                                return (
+                                                    <td
+                                                        key={cellRowKey}
+                                                        className="px-6 py-4 whitespace-nowrap"
+                                                        role="cell"
+                                                        {...cellRowRest}
+                                                    >
+                                                        {cell.column.Cell.name === "defaultRenderer"
+                                                            ? <div className="text-sm text-gray-500">{cell.render('Cell')}</div>
+                                                            : cell.render('Cell')
+                                                        }
+                                                    </td>
+                                                );
+                                            })}
+                                        </tr>
+                                    );
+                                })}
+                            </tbody>
+                        </table>
 
-                                {/* Pagination */}
-                                <div className="flex items-center justify-between px-6 py-3 border-t border-gray-200 dark:border-gray-700">
-                                    <div className="flex justify-between flex-1 sm:hidden">
-                                        <Button onClick={() => previousPage()} disabled={!canPreviousPage}>Previous</Button>
-                                        <Button onClick={() => nextPage()} disabled={!canNextPage}>Next</Button>
-                                    </div>
-                                    <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
-                                        <div className="flex items-baseline gap-x-2">
-                                            <span className="text-sm text-gray-700">
-                                                Page <span className="font-medium">{pageIndex + 1}</span> of <span className="font-medium">{pageOptions.length}</span>
-                                            </span>
-                                            <label>
-                                                <span className="sr-only">Items Per Page</span>
-                                                <select
-                                                    className="block w-full border-gray-300 rounded-md shadow-sm cursor-pointer dark:bg-gray-800 dark:border-gray-800 dark:text-gray-600 dark:hover:text-gray-500 focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
-                                                    value={pageSize}
-                                                    onChange={e => {
-                                                        setPageSize(Number(e.target.value))
-                                                    }}
-                                                >
-                                                    {[5, 10, 20, 50].map(pageSize => (
-                                                        <option key={pageSize} value={pageSize}>
-                                                            Show {pageSize}
-                                                        </option>
-                                                    ))}
-                                                </select>
-                                            </label>
-                                        </div>
-                                        <div>
-                                            <nav className="relative z-0 inline-flex -space-x-px rounded-md shadow-sm" aria-label="Pagination">
-                                                <PageButton
-                                                    className="rounded-l-md"
-                                                    onClick={() => gotoPage(0)}
-                                                    disabled={!canPreviousPage}
-                                                >
-                                                    <span className="sr-only">First</span>
-                                                    <ChevronDoubleLeftIcon className="w-5 h-5 text-gray-400" aria-hidden="true" />
-                                                </PageButton>
-                                                <PageButton
-                                                    onClick={() => previousPage()}
-                                                    disabled={!canPreviousPage}
-                                                >
-                                                    <span className="sr-only">Previous</span>
-                                                    <ChevronLeftIcon className="w-5 h-5 text-gray-400" aria-hidden="true" />
-                                                </PageButton>
-                                                <PageButton
-                                                    onClick={() => nextPage()}
-                                                    disabled={!canNextPage}>
-                                                    <span className="sr-only">Next</span>
-                                                    <ChevronRightIcon className="w-5 h-5 text-gray-400" aria-hidden="true" />
-                                                </PageButton>
-                                                <PageButton
-                                                    className="rounded-r-md"
-                                                    onClick={() => gotoPage(pageCount - 1)}
-                                                    disabled={!canNextPage}
-                                                >
-                                                    <span className="sr-only">Last</span>
-                                                    <ChevronDoubleRightIcon className="w-5 h-5 text-gray-400" aria-hidden="true" />
-                                                </PageButton>
-                                            </nav>
-                                        </div>
-                                    </div>
+                        {/* Pagination */}
+                        <div className="flex items-center justify-between px-6 py-3 border-t border-gray-200 dark:border-gray-700">
+                            <div className="flex justify-between flex-1 sm:hidden">
+                                <Button onClick={() => previousPage()} disabled={!canPreviousPage}>Previous</Button>
+                                <Button onClick={() => nextPage()} disabled={!canNextPage}>Next</Button>
+                            </div>
+                            <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+                                <div className="flex items-baseline gap-x-2">
+                                    <span className="text-sm text-gray-700">
+                                        Page <span className="font-medium">{pageIndex + 1}</span> of <span className="font-medium">{pageOptions.length}</span>
+                                    </span>
+                                    <label>
+                                        <span className="sr-only">Items Per Page</span>
+                                        <select
+                                            className="block w-full border-gray-300 rounded-md shadow-sm cursor-pointer dark:bg-gray-800 dark:border-gray-800 dark:text-gray-600 dark:hover:text-gray-500 focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
+                                            value={pageSize}
+                                            onChange={e => {
+                                                setPageSize(Number(e.target.value))
+                                            }}
+                                        >
+                                            {[5, 10, 20, 50].map(pageSize => (
+                                                <option key={pageSize} value={pageSize}>
+                                                    Show {pageSize}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </label>
+                                </div>
+                                <div>
+                                    <nav className="relative z-0 inline-flex -space-x-px rounded-md shadow-sm" aria-label="Pagination">
+                                        <PageButton
+                                            className="rounded-l-md"
+                                            onClick={() => gotoPage(0)}
+                                            disabled={!canPreviousPage}
+                                        >
+                                            <span className="sr-only">First</span>
+                                            <ChevronDoubleLeftIcon className="w-5 h-5 text-gray-400" aria-hidden="true" />
+                                        </PageButton>
+                                        <PageButton
+                                            onClick={() => previousPage()}
+                                            disabled={!canPreviousPage}
+                                        >
+                                            <span className="sr-only">Previous</span>
+                                            <ChevronLeftIcon className="w-5 h-5 text-gray-400" aria-hidden="true" />
+                                        </PageButton>
+                                        <PageButton
+                                            onClick={() => nextPage()}
+                                            disabled={!canNextPage}>
+                                            <span className="sr-only">Next</span>
+                                            <ChevronRightIcon className="w-5 h-5 text-gray-400" aria-hidden="true" />
+                                        </PageButton>
+                                        <PageButton
+                                            className="rounded-r-md"
+                                            onClick={() => gotoPage(pageCount - 1)}
+                                            disabled={!canNextPage}
+                                        >
+                                            <span className="sr-only">Last</span>
+                                            <ChevronDoubleRightIcon className="w-5 h-5 text-gray-400" aria-hidden="true" />
+                                        </PageButton>
+                                    </nav>
                                 </div>
                             </div>
                         </div>

@@ -1,6 +1,8 @@
 import { Fragment } from "react";
 import { NavLink, Link, Route, Switch } from "react-router-dom";
+import type { match } from "react-router-dom";
 import { Disclosure, Menu, Transition } from "@headlessui/react";
+import { ExternalLinkIcon } from "@heroicons/react/solid";
 import { ChevronDownIcon, MenuIcon, XIcon } from "@heroicons/react/outline";
 
 import Logs from "./Logs";
@@ -13,13 +15,35 @@ import { AuthContext } from '../utils/Context';
 
 import logo from '../logo.png';
 
+interface NavItem {
+  name: string;
+  path: string;
+}
+
 function classNames(...classes: string[]) {
     return classes.filter(Boolean).join(' ')
 }
 
+const isActiveMatcher = (
+    match: match<any> | null,
+    location: { pathname: string },
+    item: NavItem
+) => {
+  if (!match)
+    return false;
+
+  if (match?.url === "/" && item.path === "/" && location.pathname === "/")
+      return true
+
+  if (match.url === "/")
+      return false;
+
+  return true;
+}
+
 export default function Base() {
     const authContext = AuthContext.useValue();
-    const nav = [
+    const nav: Array<NavItem> = [
         { name: 'Dashboard', path: "/" },
         { name: 'Filters', path: "/filters" },
         { name: 'Releases', path: "/releases" },
@@ -28,56 +52,58 @@ export default function Base() {
     ];
 
     return (
-        <div>
-            <Disclosure as="nav" className="bg-gray-900 pb-48">
+        <div className="min-h-screen">
+            <Disclosure
+              as="nav"
+              className="bg-gradient-to-b from-gray-100 dark:from-[#141414]"
+            >
                 {({ open }) => (
                     <>
                         <div className="max-w-7xl mx-auto sm:px-6 lg:px-8">
-                            <div className="border-b border-gray-700">
+                            <div className="border-b border-gray-300 dark:border-gray-700">
                                 <div className="flex items-center justify-between h-16 px-4 sm:px-0">
                                     <div className="flex items-center">
                                         <div className="flex-shrink-0 flex items-center">
                                             <img
-                                                className="block lg:hidden h-8 w-auto"
+                                                className="block lg:hidden h-10 w-auto"
                                                 src={logo}
                                                 alt="Logo"
                                             />
                                             <img
-                                                className="hidden lg:block h-8 w-auto"
+                                                className="hidden lg:block h-10 w-auto"
                                                 src={logo}
                                                 alt="Logo"
                                             />
                                         </div>
-                                        <div className="sm:ml-6 hidden sm:block">
+                                        <div className="sm:ml-3 hidden sm:block">
                                             <div className="flex items-baseline space-x-4">
                                                 {nav.map((item, itemIdx) =>
                                                     <NavLink
                                                         key={item.name + itemIdx}
                                                         to={item.path}
-                                                        strict={true}
-                                                        isActive={(match, location) => {
-                                                            if (match?.url === "/" && item.path === "/" && location.pathname === "/") {
-                                                                return true
-                                                            }
-
-                                                            if (!match) {
-                                                                return false;
-                                                            }
-
-                                                            if (match.url === "/") {
-                                                                return false;
-                                                            }
-
-                                                            return true;
-                                                        }}
-                                                        activeClassName="bg-gray-900 dark:bg-gray-700 text-white "
+                                                        strict
                                                         className={classNames(
-                                                            "text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium"
+                                                            "text-gray-600 dark:text-gray-500 hover:bg-gray-200 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white px-3 py-2 rounded-2xl text-sm font-medium",
+                                                            "transition-colors duration-200"
                                                         )}
+                                                        activeClassName="text-black dark:text-gray-50 font-bold"
+                                                        isActive={(match, location) => isActiveMatcher(match, location, item)}
                                                     >
                                                         {item.name}
                                                     </NavLink>
                                                 )}
+                                                <a
+                                                    rel="noopener noreferrer"
+                                                    target="_blank"
+                                                    href="https://autobrr.com/docs/configuration/indexers"
+                                                    className={classNames(
+                                                        "text-gray-600 dark:text-gray-500 hover:bg-gray-200 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white px-3 py-2 rounded-2xl text-sm font-medium",
+                                                        "transition-colors duration-200 flex items-center justify-center"
+                                                    )}
+                                                >
+                                                    Docs
+                                                    <ExternalLinkIcon className="inline ml-1 h-5 w-5" aria-hidden="true" />
+                                                </a>
                                             </div>
                                         </div>
                                     </div>
@@ -86,19 +112,21 @@ export default function Base() {
                                             <Menu as="div" className="ml-3 relative">
                                                 {({ open }) => (
                                                     <>
-                                                        <div>
-                                                            <Menu.Button
-                                                                className="max-w-xs rounded-full flex items-center text-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 focus:ring-white">
-                                                                <span
-                                                                    className="hidden text-gray-300 text-sm font-medium sm:block">
-                                                                    <span className="sr-only">Open user menu for </span>{authContext.username}
-                                                                </span>
-                                                                <ChevronDownIcon
-                                                                    className="hidden flex-shrink-0 ml-1 h-5 w-5 text-gray-400 sm:block"
-                                                                    aria-hidden="true"
-                                                                />
-                                                            </Menu.Button>
-                                                        </div>
+                                                        <Menu.Button
+                                                            className={classNames(
+                                                              open ? "bg-gray-200 dark:bg-gray-800" : "",
+                                                              "text-gray-800 dark:text-gray-300 max-w-xs rounded-full flex items-center text-sm px-3 py-2 hover:bg-gray-200 dark:hover:bg-gray-800"
+                                                            )}
+                                                        >
+                                                            <span className="hidden text-sm font-medium sm:block">
+                                                                <span className="sr-only">Open user menu for </span>
+                                                                {authContext.username}
+                                                            </span>
+                                                            <ChevronDownIcon
+                                                                className="hidden flex-shrink-0 ml-1 h-5 w-5 text-gray-800 dark:text-gray-300 sm:block"
+                                                                aria-hidden="true"
+                                                            />
+                                                        </Menu.Button>
                                                         <Transition
                                                             show={open}
                                                             as={Fragment}
@@ -149,7 +177,7 @@ export default function Base() {
                                     <div className="-mr-2 flex sm:hidden">
                                         {/* Mobile menu button */}
                                         <Disclosure.Button
-                                            className="bg-gray-800 inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-white hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 focus:ring-white">
+                                            className="bg-gray-200 dark:bg-gray-800 inline-flex items-center justify-center p-2 rounded-md text-gray-600 dark:text-gray-400 hover:text-white hover:bg-gray-700">
                                             <span className="sr-only">Open main menu</span>
                                             {open ? (
                                                 <XIcon className="block h-6 w-6" aria-hidden="true" />
@@ -162,48 +190,28 @@ export default function Base() {
                             </div>
                         </div>
 
-                        <Disclosure.Panel className="border-b border-gray-700 md:hidden">
+                        <Disclosure.Panel className="border-b border-gray-300 dark:border-gray-700 md:hidden">
                             <div className="px-2 py-3 space-y-1 sm:px-3">
-                                {nav.map((item, itemIdx) =>
-                                    itemIdx === 0 ? (
-                                        <Fragment key={item.path}>
-                                            <Link to={item.path}
-                                                className="bg-gray-900 text-white block px-3 py-2 rounded-md text-base font-medium">
-                                                {item.name}
-                                            </Link>
-                                        </Fragment>
-                                    ) : (
-                                        <Link
-                                            key={item.path}
-                                            to={item.path}
-                                            className="text-gray-300 hover:bg-gray-700 hover:text-white block px-3 py-2 rounded-md text-base font-medium"
-                                        >
-                                            {item.name}
-                                        </Link>
-                                    )
+                                {nav.map((item) =>
+                                    <NavLink
+                                        key={item.path}
+                                        to={item.path}
+                                        strict
+                                        className="dark:bg-gray-900 dark:text-white block px-3 py-2 rounded-md text-base font-medium"
+                                        activeClassName="font-bold bg-gray-300 text-black"
+                                        isActive={(match, location) => isActiveMatcher(match, location, item)}
+                                    >
+                                        {item.name}
+                                    </NavLink>
                                 )}
+                                <Link
+                                    to="/logout"
+                                    className="dark:bg-gray-900 dark:text-white block px-3 py-2 rounded-md text-base font-medium"
+                                >
+                                    Logout
+                                </Link>
                             </div>
-                            <div className="pt-4 pb-3 border-t border-gray-700">
-                                <div className="flex items-center px-5">
-                                    <div>
-                                        <div className="text-base font-medium leading-none text-white">User</div>
-                                    </div>
-                                </div>
-                                <div className="mt-3 px-2 space-y-1">
-                                    <Link
-                                        to="/settings"
-                                        className="block px-3 py-2 rounded-md text-base font-medium text-gray-400 hover:text-white hover:bg-gray-700"
-                                    >
-                                        Settings
-                                    </Link>
-                                    <Link
-                                        to="/logout"
-                                        className="block px-3 py-2 rounded-md text-base font-medium text-gray-400 hover:text-white hover:bg-gray-700"
-                                    >
-                                        Logout
-                                    </Link>
-                                </div>
-                            </div>
+
                         </Disclosure.Panel>
                     </>
                 )}

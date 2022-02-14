@@ -5,6 +5,7 @@
   "proxy": "http://127.0.0.1:8989",
   "homepage": ".",
   "dependencies": {
+    "@fontsource/inter": "^4.5.4",
     "@headlessui/react": "^1.2.0",
     "@heroicons/react": "^1.0.1",
     "date-fns": "^2.25.0",
