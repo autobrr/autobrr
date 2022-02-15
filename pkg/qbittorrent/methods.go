@@ -144,7 +144,7 @@ func (c *Client) GetTorrentsActiveDownloads() ([]Torrent, error) {
 	for _, torrent := range torrents {
 		// qbit counts paused torrents as downloading as well by default
 		// so only add torrents with state downloading, and not pausedDl, stalledDl etc
-		if torrent.State == TorrentStateDownloading {
+		if torrent.State == TorrentStateDownloading || torrent.State == TorrentStateStalledDl {
 			res = append(res, torrent)
 		}
 	}
