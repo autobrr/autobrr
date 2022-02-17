@@ -658,7 +658,7 @@ func (r *Release) DownloadTorrentFile(opts map[string]string) error {
 
 	torrentMetaInfo, err := meta.UnmarshalInfo()
 	if err != nil {
-		log.Error().Stack().Err(err).Msgf("metainfo could not unmarshal info from torrent: %v", r.TorrentID)
+		log.Error().Stack().Err(err).Msgf("metainfo could not unmarshal info from torrent: %v", tmpFile.Name())
 		return err
 	}
 
@@ -667,16 +667,6 @@ func (r *Release) DownloadTorrentFile(opts map[string]string) error {
 	r.Size = uint64(torrentMetaInfo.TotalLength())
 
 	// remove file if fail
-
-	res := DownloadTorrentFileResponse{
-		MetaInfo:    meta,
-		TmpFileName: tmpFile.Name(),
-	}
-
-	if res.TmpFileName == "" || res.MetaInfo == nil {
-		log.Error().Stack().Err(err).Msgf("tmp file error - empty body: %v", r.TorrentURL)
-		return errors.New("error downloading file, no tmp file")
-	}
 
 	log.Debug().Msgf("successfully downloaded file: %v", tmpFile.Name())
 
