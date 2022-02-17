@@ -32,7 +32,7 @@ export const Logs = () => {
         <main>
             <header className="py-10">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <h1 className="text-3xl font-bold text-black dark:text-white capitalize">Logs</h1>
+                    <h1 className="text-3xl font-bold text-black dark:text-white capitalize" title="This page won't show any new lines, only new lines appended to autobrr.log">Logs ⚠️</h1>
                 </div>
             </header>
             <div className="max-w-7xl mx-auto pb-12 px-2 sm:px-4 lg:px-8">
