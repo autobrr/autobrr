@@ -3,7 +3,6 @@ package release
 import (
 	"context"
 	"fmt"
-
 	"github.com/rs/zerolog/log"
 
 	"github.com/autobrr/autobrr/internal/action"
