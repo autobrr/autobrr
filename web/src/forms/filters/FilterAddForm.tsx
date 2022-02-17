@@ -12,14 +12,17 @@ import DEBUG from "../../components/debug";
 import Toast from '../../components/notifications/Toast';
 
 function FilterAddForm({ isOpen, toggle }: any) {
-    const mutation = useMutation((filter: Filter) => APIClient.filters.create(filter), {
-        onSuccess: () => {
-            queryClient.invalidateQueries('filter');
-            toast.custom((t) => <Toast type="success" body="Filter was added" t={t} />)
+    const mutation = useMutation(
+        (filter: Filter) => APIClient.filters.create(filter),
+        {
+            onSuccess: (_, filter) => {
+                queryClient.invalidateQueries("filters");
+                toast.custom((t) => <Toast type="success" body={`Filter ${filter.name} was added`} t={t} />);
 
-            toggle()
+                toggle();
+            }
         }
-    })
+    )
 
     const handleSubmit = (data: any) => mutation.mutate(data);
     const validate = (values: any) => values.name ? {} : { name: "Required" };

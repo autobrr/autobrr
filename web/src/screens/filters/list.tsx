@@ -1,8 +1,14 @@
-import { useState } from "react";
+import { Fragment, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { toast } from "react-hot-toast";
-import { Switch } from "@headlessui/react";
-import { useMutation, useQuery } from "react-query";
+import { Menu, Switch, Transition } from "@headlessui/react";
+import { useMutation, useQuery, useQueryClient } from "react-query";
+import {
+    TrashIcon,
+    PencilAltIcon,
+    SwitchHorizontalIcon,
+    DotsHorizontalIcon,
+} from "@heroicons/react/outline";
 
 import { queryClient } from "../../App";
 import { classNames } from "../../utils";
@@ -11,19 +17,19 @@ import { useToggle } from "../../hooks/hooks";
 import { APIClient } from "../../api/APIClient";
 import Toast from "../../components/notifications/Toast";
 import { EmptyListState } from "../../components/emptystates";
+import { DeleteModal } from "../../components/modals";
 
 export default function Filters() {
     const [createFilterIsOpen, toggleCreateFilter] = useToggle(false)
 
     const { isLoading, error, data } = useQuery(
-        'filter',
+        "filters",
         APIClient.filters.getAll,
         { refetchOnWindowFocus: false }
     );
 
-    if (isLoading) {
-        return null
-    }
+    if (isLoading)
+        return null;
 
     if (error)
         return (<p>An error has occurred: </p>);
@@ -48,13 +54,12 @@ export default function Filters() {
                 </div>
             </header>
 
-            <div className="max-w-7xl mx-auto pb-12 px-4 sm:px-6 lg:px-8">
-                <div className="bg-white dark:bg-gray-800 light:rounded-lg shadow-lg">
-                    <div className="relative inset-0 light:py-3 light:px-3 light:sm:px-3 light:lg:px-3 h-full">
-                        {data && data.length > 0 ? <FilterList filters={data} /> :
-                            <EmptyListState text="No filters here.." buttonText="Add new" buttonOnClick={toggleCreateFilter} />}
-                    </div>
-                </div>
+            <div className="max-w-7xl mx-auto pb-12 px-4 sm:px-6 lg:px-8 relative">
+                {data && data.length > 0 ? (
+                    <FilterList filters={data} />
+                ) : (
+                    <EmptyListState text="No filters here.." buttonText="Add new" buttonOnClick={toggleCreateFilter} />
+                )}
             </div>
         </main>
     )
@@ -66,47 +71,159 @@ interface FilterListProps {
 
 function FilterList({ filters }: FilterListProps) {
     return (
-        <div className="flex flex-col">
-            <div className="-my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
-                <div className="light:py-2 align-middle inline-block min-w-full sm:px-6 lg:px-8">
-                    <div className="shadow overflow-hidden border-b border-gray-200 dark:border-gray-800 sm:rounded-lg">
-                        <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                            <thead className="bg-gray-50 dark:bg-gray-800 text-gray-500 dark:text-gray-400">
-                                <tr>
-                                    <th
-                                        scope="col"
-                                        className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider"
-                                    >
-                                        Enabled
-                                    </th>
-                                    <th
-                                        scope="col"
-                                        className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider"
-                                    >
-                                        Name
-                                    </th>
-                                    <th
-                                        scope="col"
-                                        className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider"
-                                    >
-                                        Indexers
-                                    </th>
-                                    <th scope="col" className="relative px-6 py-3">
-                                        <span className="sr-only">Edit</span>
-                                    </th>
-                                </tr>
-                            </thead>
-                            <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-800">
-                                {filters.map((filter: Filter, idx) => (
-                                    <FilterListItem filter={filter} key={filter.id} idx={idx} />
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
+        <div className="overflow-x-auto align-middle min-w-full rounded-lg shadow-lg">
+            <table className="min-w-full">
+                <thead className="bg-gray-50 dark:bg-gray-800 text-gray-500 dark:text-gray-400 border-b border-gray-200 dark:border-gray-700">
+                    <tr>
+                        {["Enabled", "Name", "Indexers"].map((label) => (
+                            <th
+                                key={`th-${label}`}
+                                scope="col"
+                                className="px-6 py-2.5 text-left text-xs font-medium uppercase tracking-wider"
+                            >
+                                {label}
+                            </th>
+                        ))}
+                        <th scope="col" className="relative px-6 py-3">
+                            <span className="sr-only">Edit</span>
+                        </th>
+                    </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-200 dark:divide-gray-800">
+                    {filters.map((filter: Filter, idx) => (
+                        <FilterListItem filter={filter} key={filter.id} idx={idx} />
+                    ))}
+                </tbody>
+            </table>
         </div>
     )
+}
+
+interface FilterItemDropdownProps {
+    filter: Filter;
+    onToggle: (newState: boolean) => void;
+}
+
+const FilterItemDropdown = ({
+    filter,
+    onToggle
+}: FilterItemDropdownProps) => {
+    const cancelModalButtonRef = useRef(null);
+
+    const queryClient = useQueryClient();
+
+    const [deleteModalIsOpen, toggleDeleteModal] = useToggle(false);
+    const deleteMutation = useMutation(
+        (id: number) => APIClient.filters.delete(id),
+        {
+            onSuccess: () => {
+                queryClient.invalidateQueries("filters");
+                queryClient.invalidateQueries(["filter", filter.id]);
+
+                toast.custom((t) => <Toast type="success" body={`Filter ${filter?.name} was deleted`} t={t} />);
+            }
+        }
+    );
+
+    return (
+        <Menu as="div">
+            <DeleteModal
+                isOpen={deleteModalIsOpen}
+                toggle={toggleDeleteModal}
+                buttonRef={cancelModalButtonRef}
+                deleteAction={() => {
+                    deleteMutation.mutate(filter.id);
+                    toggleDeleteModal();
+                }}
+                title={`Remove filter: ${filter.name}`}
+                text="Are you sure you want to remove this filter? This action cannot be undone."
+            />
+            <Menu.Button className="px-4 py-2">
+                <DotsHorizontalIcon
+                    className="w-5 h-5 text-gray-700 hover:text-gray-900 dark:text-gray-100 dark:hover:text-gray-400"
+                    aria-hidden="true"
+                />
+            </Menu.Button>
+            <Transition
+                as={Fragment}
+                enter="transition ease-out duration-100"
+                enterFrom="transform opacity-0 scale-95"
+                enterTo="transform opacity-100 scale-100"
+                leave="transition ease-in duration-75"
+                leaveFrom="transform opacity-100 scale-100"
+                leaveTo="transform opacity-0 scale-95"
+            >
+                <Menu.Items
+                    className="absolute right-0 w-56 mt-2 origin-top-right bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700 rounded-md shadow-lg ring-1 ring-black ring-opacity-10 focus:outline-none"
+                >
+                    <div className="px-1 py-1">
+                        <Menu.Item>
+                            {({ active }) => (
+                                <Link
+                                    to={`filters/${filter.id.toString()}`}
+                                    className={classNames(
+                                        active ? "bg-blue-600 text-white" : "text-gray-900 dark:text-gray-300",
+                                        "font-medium group flex rounded-md items-center w-full px-2 py-2 text-sm"
+                                    )}
+                                >
+                                    <PencilAltIcon
+                                        className={classNames(
+                                            active ? "text-white" : "text-blue-500",
+                                            "w-5 h-5 mr-2"
+                                        )}
+                                        aria-hidden="true"
+                                    />
+                                    Edit
+                                </Link>
+                            )}
+                        </Menu.Item>
+                        <Menu.Item>
+                            {({ active }) => (
+                                <button
+                                    className={classNames(
+                                        active ? "bg-blue-600 text-white" : "text-gray-900 dark:text-gray-300",
+                                        "font-medium group flex rounded-md items-center w-full px-2 py-2 text-sm"
+                                    )}
+                                    onClick={() => onToggle(!filter.enabled)}
+                                >
+                                    <SwitchHorizontalIcon
+                                        className={classNames(
+                                            active ? "text-white" : "text-blue-500",
+                                            "w-5 h-5 mr-2"
+                                        )}
+                                        aria-hidden="true"
+                                    />
+                                    Toggle
+                                </button>
+                            )}
+                        </Menu.Item>
+                    </div>
+                    <div className="px-1 py-1">
+                        <Menu.Item>
+                            {({ active }) => (
+                                <button
+                                    className={classNames(
+                                        active ? "bg-blue-600 text-white" : "text-gray-900 dark:text-gray-300",
+                                        "font-medium group flex rounded-md items-center w-full px-2 py-2 text-sm"
+                                    )}
+                                    onClick={() => toggleDeleteModal()}
+                                >
+                                    <TrashIcon
+                                        className={classNames(
+                                            active ? "text-white" : "text-blue-500",
+                                            "w-5 h-5 mr-2"
+                                        )}
+                                        aria-hidden="true"
+                                    />
+                                    Delete
+                                </button>
+                            )}
+                        </Menu.Item>
+                    </div>
+                </Menu.Items>
+            </Transition>
+        </Menu>
+    );
 }
 
 interface FilterListItemProps {
@@ -117,24 +234,39 @@ interface FilterListItemProps {
 function FilterListItem({ filter, idx }: FilterListItemProps) {
     const [enabled, setEnabled] = useState(filter.enabled)
 
-    const updateMutation = useMutation((status: boolean) => APIClient.filters.toggleEnable(filter.id, status), {
-        onSuccess: () => {
-            toast.custom((t) => <Toast type="success" body={`${filter.name} was ${enabled ? "disabled" : "enabled"} successfully`} t={t} />)
+    const updateMutation = useMutation(
+        (status: boolean) => APIClient.filters.toggleEnable(filter.id, status),
+        {
+            onSuccess: () => {
+                toast.custom((t) => <Toast type="success" body={`${filter.name} was ${enabled ? "disabled" : "enabled"} successfully`} t={t} />)
 
-            queryClient.invalidateQueries("filter");
+                // We need to invalidate both keys here.
+                // The filters key is used on the /filters page,
+                // while the ["filter", filter.id] key is used on the details page.
+                queryClient.invalidateQueries("filters");
+                queryClient.invalidateQueries(["filter", filter?.id]);
+            }
         }
-    })
+    );
 
     const toggleActive = (status: boolean) => {
-        setEnabled(status)
-        // call api
-        updateMutation.mutate(status)
+        setEnabled(status);
+        updateMutation.mutate(status);
     }
 
     return (
-        <tr key={filter.id}
-            className={idx % 2 === 0 ? 'bg-white dark:bg-gray-800' : 'bg-gray-50 dark:bg-gray-800'}>
-            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-100">
+        <tr
+            key={filter.id}
+            className={classNames(
+                idx % 2 === 0 ?
+                "bg-white dark:bg-[#2e2e31]" :
+                "bg-gray-50 dark:bg-gray-800",
+                "hover:bg-gray-100 dark:hover:bg-[#222225]"
+            )}
+        >
+            <td
+                className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-100"
+            >
                 <Switch
                     checked={enabled}
                     onChange={toggleActive}
@@ -154,16 +286,28 @@ function FilterListItem({ filter, idx }: FilterListItemProps) {
                 </Switch>
             </td>
             <td className="px-6 w-full whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-100">
-                <Link to={`filters/${filter.id.toString()}`} className="dark:hover:text-gray-400 w-full py-4 flex">
-                {filter.name}
+                <Link
+                    to={`filters/${filter.id.toString()}`}
+                    className="hover:text-black dark:hover:text-gray-300 w-full py-4 flex"
+                >
+                    {filter.name}
                 </Link>
-                </td>
-            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{filter.indexers && filter.indexers.map(t =>
-                <span key={t.id} className="mr-2 inline-flex items-center px-2.5 py-0.5 rounded-md text-sm font-medium bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-400">{t.name}</span>)}</td>
+              </td>
+            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                {filter.indexers && filter.indexers.map((t) => (
+                    <span
+                        key={t.id}
+                        className="mr-2 inline-flex items-center px-2.5 py-0.5 rounded-md text-sm font-medium bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-400"
+                    >
+                        {t.name}
+                    </span>
+                ))}
+            </td>
             <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                <Link to={`filters/${filter.id.toString()}`} className="text-indigo-600 dark:text-gray-200 hover:text-indigo-900 dark:hover:text-gray-400">
-                    Edit
-                </Link>
+                <FilterItemDropdown
+                    filter={filter}
+                    onToggle={toggleActive}
+                />
             </td>
         </tr>
     )

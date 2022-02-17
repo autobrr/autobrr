@@ -5,9 +5,9 @@ import { Disclosure, Menu, Transition } from "@headlessui/react";
 import { ExternalLinkIcon } from "@heroicons/react/solid";
 import { ChevronDownIcon, MenuIcon, XIcon } from "@heroicons/react/outline";
 
-import Logs from "./Logs";
 import Settings from "./Settings";
 
+import { Logs } from "./Logs";
 import { Releases } from "./Releases";
 import { Dashboard } from "./Dashboard";
 import { FilterDetails, Filters } from "./filters";
