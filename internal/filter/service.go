@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 
-	"github.com/anacrolix/torrent/metainfo"
 	"github.com/dustin/go-humanize"
 	"github.com/rs/zerolog/log"
 
@@ -190,8 +189,6 @@ func (s *service) FindAndCheckFilters(release *domain.Release) (bool, *domain.Fi
 
 	// save outside of loop to check multiple filters with only one fetch
 	var torrentInfo *domain.TorrentBasic
-	var torrentFileRes *domain.DownloadTorrentFileResponse
-	var torrentMetaInfo metainfo.Info
 
 	// loop and check release to filter until match
 	for _, f := range filters {
@@ -244,21 +241,14 @@ func (s *service) FindAndCheckFilters(release *domain.Release) (bool, *domain.Fi
 					log.Trace().Msgf("filter-service.find_and_check_filters: (%v) additional size check required: preparing to download metafile", f.Name)
 
 					// if indexer doesn't have api, download torrent and add to tmpPath
-					torrentFileRes, err = release.DownloadTorrentFile(nil)
+					err = release.DownloadTorrentFile(nil)
 					if err != nil {
 						log.Error().Stack().Err(err).Msgf("filter-service.find_and_check_filters: (%v) could not download torrent file with id: '%v' from: %v", f.Name, release.TorrentID, release.Indexer)
 						return false, nil, err
 					}
 
-					// parse torrent metainfo
-					torrentMetaInfo, err = torrentFileRes.MetaInfo.UnmarshalInfo()
-					if err != nil {
-						log.Error().Stack().Err(err).Msgf("filter-service.find_and_check_filters: could not download torrent file: '%v' from: %v", release.TorrentID, release.Indexer)
-						continue
-					}
-
 					// compare size against filter
-					match, err := checkSizeFilter(f.MinSize, f.MaxSize, uint64(torrentMetaInfo.TotalLength()))
+					match, err := checkSizeFilter(f.MinSize, f.MaxSize, release.Size)
 					if err != nil {
 						log.Error().Stack().Err(err).Msgf("filter-service.find_and_check_filters: (%v) could not check size filter", f.Name)
 						continue
@@ -269,9 +259,6 @@ func (s *service) FindAndCheckFilters(release *domain.Release) (bool, *domain.Fi
 						log.Debug().Msgf("filter-service.find_and_check_filters: (%v) filter did not match after additional size check, trying next", f.Name)
 						continue
 					}
-
-					// store size on the release
-					release.Size = uint64(torrentMetaInfo.TotalLength())
 				}
 			}
 

@@ -13,7 +13,7 @@ import (
 const ReannounceMaxAttempts = 50
 const ReannounceInterval = 7000
 
-func (s *service) qbittorrent(qbt *qbittorrent.Client, action domain.Action, hash string, torrentFile string) error {
+func (s *service) qbittorrent(qbt *qbittorrent.Client, action domain.Action, torrentFile string, hash string) error {
 	log.Debug().Msgf("action qBittorrent: %v", action.Name)
 
 	options := map[string]string{}

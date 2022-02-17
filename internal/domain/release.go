@@ -45,6 +45,7 @@ type Release struct {
 	TorrentID                   string                `json:"torrent_id"`
 	TorrentURL                  string                `json:"-"`
 	TorrentTmpFile              string                `json:"-"`
+	TorrentHash                 string                `json:"-"`
 	TorrentName                 string                `json:"torrent_name"` // full release name
 	Size                        uint64                `json:"size"`
 	Raw                         string                `json:"raw"`   // Raw release
@@ -607,12 +608,12 @@ func (r *Release) ParseTorrentUrl(match string, vars map[string]string, extraVar
 	return nil
 }
 
-func (r *Release) DownloadTorrentFile(opts map[string]string) (*DownloadTorrentFileResponse, error) {
+func (r *Release) DownloadTorrentFile(opts map[string]string) error {
 	if r.TorrentURL == "" {
-		return nil, errors.New("download_file: url can't be empty")
+		return errors.New("download_file: url can't be empty")
 	} else if r.TorrentTmpFile != "" {
 		// already downloaded
-		return nil, nil
+		return nil
 	}
 
 	customTransport := http.DefaultTransport.(*http.Transport).Clone()
@@ -623,7 +624,7 @@ func (r *Release) DownloadTorrentFile(opts map[string]string) (*DownloadTorrentF
 	resp, err := client.Get(r.TorrentURL)
 	if err != nil {
 		log.Error().Stack().Err(err).Msg("error downloading file")
-		return nil, err
+		return err
 	}
 	defer resp.Body.Close()
 
@@ -631,31 +632,39 @@ func (r *Release) DownloadTorrentFile(opts map[string]string) (*DownloadTorrentF
 
 	if resp.StatusCode != http.StatusOK {
 		log.Error().Stack().Err(err).Msgf("error downloading file from: %v - bad status: %d", r.TorrentURL, resp.StatusCode)
-		return nil, fmt.Errorf("error downloading torrent (%v) file (%v) from '%v' - status code: %d", r.TorrentName, r.TorrentURL, r.Indexer, resp.StatusCode)
+		return fmt.Errorf("error downloading torrent (%v) file (%v) from '%v' - status code: %d", r.TorrentName, r.TorrentURL, r.Indexer, resp.StatusCode)
 	}
 
 	// Create tmp file
 	tmpFile, err := os.CreateTemp("", "autobrr-")
 	if err != nil {
 		log.Error().Stack().Err(err).Msg("error creating temp file")
-		return nil, err
+		return err
 	}
 	defer tmpFile.Close()
-
-	r.TorrentTmpFile = tmpFile.Name()
 
 	// Write the body to file
 	_, err = io.Copy(tmpFile, resp.Body)
 	if err != nil {
 		log.Error().Stack().Err(err).Msgf("error writing downloaded file: %v", tmpFile.Name())
-		return nil, err
+		return err
 	}
 
 	meta, err := metainfo.LoadFromFile(tmpFile.Name())
 	if err != nil {
 		log.Error().Stack().Err(err).Msgf("metainfo could not load file contents: %v", tmpFile.Name())
-		return nil, err
+		return err
 	}
+
+	torrentMetaInfo, err := meta.UnmarshalInfo()
+	if err != nil {
+		log.Error().Stack().Err(err).Msgf("metainfo could not unmarshal info from torrent: %v", r.TorrentID)
+		return err
+	}
+
+	r.TorrentTmpFile = tmpFile.Name()
+	r.TorrentHash = meta.HashInfoBytes().String()
+	r.Size = uint64(torrentMetaInfo.TotalLength())
 
 	// remove file if fail
 
@@ -666,12 +675,12 @@ func (r *Release) DownloadTorrentFile(opts map[string]string) (*DownloadTorrentF
 
 	if res.TmpFileName == "" || res.MetaInfo == nil {
 		log.Error().Stack().Err(err).Msgf("tmp file error - empty body: %v", r.TorrentURL)
-		return nil, errors.New("error downloading file, no tmp file")
+		return errors.New("error downloading file, no tmp file")
 	}
 
 	log.Debug().Msgf("successfully downloaded file: %v", tmpFile.Name())
 
-	return &res, nil
+	return nil
 }
 
 func (r *Release) addRejection(reason string) {

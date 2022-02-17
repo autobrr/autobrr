@@ -2,7 +2,13 @@ package release
 
 import (
 	"context"
+	"crypto/tls"
+	"errors"
 	"fmt"
+	"github.com/anacrolix/torrent/metainfo"
+	"io"
+	"net/http"
+	"os"
 
 	"github.com/rs/zerolog/log"
 
@@ -83,4 +89,71 @@ func (s *service) Process(release domain.Release) error {
 	}
 
 	return nil
+}
+
+func (s *service) DownloadTorrentFile(r *domain.Release) (*domain.DownloadTorrentFileResponse, error) {
+	if r.TorrentURL == "" {
+		return nil, errors.New("download_file: url can't be empty")
+	} else if r.TorrentTmpFile != "" {
+		// already downloaded
+		return nil, nil
+	}
+
+	customTransport := http.DefaultTransport.(*http.Transport).Clone()
+	customTransport.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+	client := &http.Client{Transport: customTransport}
+
+	// Get the data
+	resp, err := client.Get(r.TorrentURL)
+	if err != nil {
+		log.Error().Stack().Err(err).Msg("error downloading file")
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	// retry logic
+
+	if resp.StatusCode != http.StatusOK {
+		log.Error().Stack().Err(err).Msgf("error downloading file from: %v - bad status: %d", r.TorrentURL, resp.StatusCode)
+		return nil, fmt.Errorf("error downloading torrent (%v) file (%v) from '%v' - status code: %d", r.TorrentName, r.TorrentURL, r.Indexer, resp.StatusCode)
+	}
+
+	// Create tmp file
+	tmpFile, err := os.CreateTemp("", "autobrr-")
+	if err != nil {
+		log.Error().Stack().Err(err).Msg("error creating temp file")
+		return nil, err
+	}
+	defer tmpFile.Close()
+
+	r.TorrentTmpFile = tmpFile.Name()
+
+	// Write the body to file
+	_, err = io.Copy(tmpFile, resp.Body)
+	if err != nil {
+		log.Error().Stack().Err(err).Msgf("error writing downloaded file: %v", tmpFile.Name())
+		return nil, err
+	}
+
+	meta, err := metainfo.LoadFromFile(tmpFile.Name())
+	if err != nil {
+		log.Error().Stack().Err(err).Msgf("metainfo could not load file contents: %v", tmpFile.Name())
+		return nil, err
+	}
+
+	// remove file if fail
+
+	res := domain.DownloadTorrentFileResponse{
+		MetaInfo:    meta,
+		TmpFileName: tmpFile.Name(),
+	}
+
+	if res.TmpFileName == "" || res.MetaInfo == nil {
+		log.Error().Stack().Err(err).Msgf("tmp file error - empty body: %v", r.TorrentURL)
+		return nil, errors.New("error downloading file, no tmp file")
+	}
+
+	log.Debug().Msgf("successfully downloaded file: %v", tmpFile.Name())
+
+	return &res, nil
 }

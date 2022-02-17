@@ -47,8 +47,6 @@ func (s *service) RunActions(actions []domain.Action, release domain.Release) er
 func (s *service) runAction(action domain.Action, release domain.Release) error {
 
 	var err error
-	var tmpFile string
-	var hash string
 	var rejections []string
 
 	switch action.Type {
@@ -57,33 +55,23 @@ func (s *service) runAction(action domain.Action, release domain.Release) error 
 
 	case domain.ActionTypeExec:
 		if release.TorrentTmpFile == "" {
-			t, err := release.DownloadTorrentFile(nil)
-			if err != nil {
+			if err := release.DownloadTorrentFile(nil); err != nil {
 				log.Error().Stack().Err(err)
 				return err
 			}
-
-			tmpFile = t.TmpFileName
-		} else {
-			tmpFile = release.TorrentTmpFile
 		}
 
-		s.execCmd(release, action, tmpFile)
+		s.execCmd(release, action, release.TorrentTmpFile)
 
 	case domain.ActionTypeWatchFolder:
 		if release.TorrentTmpFile == "" {
-			t, err := release.DownloadTorrentFile(nil)
-			if err != nil {
+			if err := release.DownloadTorrentFile(nil); err != nil {
 				log.Error().Stack().Err(err)
 				return err
 			}
-
-			tmpFile = t.TmpFileName
-		} else {
-			tmpFile = release.TorrentTmpFile
 		}
 
-		s.watchFolder(action.WatchFolder, tmpFile)
+		s.watchFolder(action.WatchFolder, release.TorrentTmpFile)
 
 	case domain.ActionTypeDelugeV1, domain.ActionTypeDelugeV2:
 		canDownload, err := s.delugeCheckRulesCanDownload(action)
@@ -97,18 +85,13 @@ func (s *service) runAction(action domain.Action, release domain.Release) error 
 		}
 
 		if release.TorrentTmpFile == "" {
-			t, err := release.DownloadTorrentFile(nil)
-			if err != nil {
+			if err := release.DownloadTorrentFile(nil); err != nil {
 				log.Error().Stack().Err(err)
 				return err
 			}
-
-			tmpFile = t.TmpFileName
-		} else {
-			tmpFile = release.TorrentTmpFile
 		}
 
-		err = s.deluge(action, tmpFile)
+		err = s.deluge(action, release.TorrentTmpFile)
 		if err != nil {
 			log.Error().Stack().Err(err).Msg("error sending torrent to Deluge")
 			return err
@@ -126,19 +109,13 @@ func (s *service) runAction(action domain.Action, release domain.Release) error 
 		}
 
 		if release.TorrentTmpFile == "" {
-			t, err := release.DownloadTorrentFile(nil)
-			if err != nil {
+			if err := release.DownloadTorrentFile(nil); err != nil {
 				log.Error().Stack().Err(err)
 				return err
 			}
-
-			tmpFile = t.TmpFileName
-			hash = t.MetaInfo.HashInfoBytes().String()
-		} else {
-			tmpFile = release.TorrentTmpFile
 		}
 
-		err = s.qbittorrent(client, action, hash, tmpFile)
+		err = s.qbittorrent(client, action, release.TorrentTmpFile, release.TorrentHash)
 		if err != nil {
 			log.Error().Stack().Err(err).Msg("error sending torrent to qBittorrent")
 			return err
