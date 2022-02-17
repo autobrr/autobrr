@@ -89,7 +89,7 @@ function FilterList({ filters }: FilterListProps) {
                         </th>
                     </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+                <tbody className="divide-y divide-gray-200 dark:divide-gray-800">
                     {filters.map((filter: Filter, idx) => (
                         <FilterListItem filter={filter} key={filter.id} idx={idx} />
                     ))}
@@ -259,7 +259,7 @@ function FilterListItem({ filter, idx }: FilterListItemProps) {
             key={filter.id}
             className={classNames(
                 idx % 2 === 0 ?
-                "bg-white dark:bg-[#2d2d2f]" :
+                "bg-white dark:bg-[#2e2e31]" :
                 "bg-gray-50 dark:bg-gray-800",
                 "hover:bg-gray-100 dark:hover:bg-[#222225]"
             )}
