@@ -41,7 +41,7 @@ export const TextField = ({
                         id={name}
                         type="text"
                         autoComplete={autoComplete}
-                        className="mt-2 block w-full dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:text-gray-100 sm:text-sm"
+                        className="mt-2 block w-full dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-md py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:text-gray-100"
                         placeholder={placeholder}
                     />
 
@@ -99,7 +99,7 @@ export const PasswordField = ({
                             id={name}
                             type={isVisible ? "text" : "password"}
                             autoComplete={autoComplete}
-                            className={classNames(meta.touched && meta.error ? "focus:ring-red-500 focus:border-red-500 border-red-500" : "focus:ring-indigo-500 dark:focus:ring-blue-500 focus:border-indigo-500 dark:focus:border-blue-500 border-gray-300 dark:border-gray-700", "mt-2 block w-full dark:bg-gray-800 shadow-sm dark:text-gray-100 sm:text-sm rounded-md")}
+                            className={classNames(meta.touched && meta.error ? "focus:ring-red-500 focus:border-red-500 border-red-500" : "focus:ring-indigo-500 dark:focus:ring-blue-500 focus:border-indigo-500 dark:focus:border-blue-500 border-gray-300 dark:border-gray-700", "mt-2 block w-full dark:bg-gray-800 dark:text-gray-100 rounded-md")}
                             placeholder={placeholder}
                         />
 
@@ -150,7 +150,7 @@ export const NumberField = ({
                             meta.touched && meta.error
                                 ? "focus:ring-red-500 focus:border-red-500 border-red-500"
                                 : "focus:ring-indigo-500 dark:focus:ring-blue-500 focus:border-indigo-500 dark:focus:border-blue-500 border-gray-300",
-                            "mt-2 block w-full dark:bg-gray-800 border border-gray-300 dark:border-gray-700 shadow-sm dark:text-gray-100 sm:text-sm rounded-md"
+                            "mt-2 block w-full dark:bg-gray-800 border border-gray-300 dark:border-gray-700 dark:text-gray-100 rounded-md"
                         )}
                         placeholder={placeholder}
                     />

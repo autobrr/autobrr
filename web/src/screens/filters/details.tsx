@@ -102,7 +102,7 @@ const FormButtonsGroup = ({ values, deleteAction, reset }: any) => {
             <div className="mt-4 pt-4 flex justify-between">
                 <button
                     type="button"
-                    className="inline-flex items-center justify-center px-4 py-2 border border-transparent font-medium rounded-md text-red-700 dark:text-red-500 light:bg-red-100 light:hover:bg-red-200 dark:hover:text-red-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:text-sm"
+                    className="inline-flex items-center justify-center px-4 py-2 rounded-md text-red-700 dark:text-red-500 light:bg-red-100 light:hover:bg-red-200 dark:hover:text-red-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:text-sm"
                     onClick={toggleDeleteModal}
                 >
                     Remove
@@ -112,7 +112,7 @@ const FormButtonsGroup = ({ values, deleteAction, reset }: any) => {
                     {/* {dirty && <span className="mr-4 text-sm text-gray-500">Unsaved changes..</span>} */}
                     <button
                         type="button"
-                        className="light:bg-white light:border light:border-gray-300 rounded-md shadow-sm py-2 px-4 inline-flex justify-center text-sm font-medium text-gray-700 dark:text-gray-500 light:hover:bg-gray-50 dark:hover:text-gray-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                        className="light:bg-white light:border light:border-gray-300 rounded-md py-2 px-4 inline-flex justify-center text-sm font-medium text-gray-700 dark:text-gray-500 light:hover:bg-gray-50 dark:hover:text-gray-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                         onClick={reset}
                     >
                         Cancel
@@ -135,7 +135,7 @@ export default function FilterDetails() {
     const { filterId } = useParams<{ filterId: string }>();
 
     const { isLoading, data: filter } = useQuery(
-        ['filter', +filterId],
+        ["filter", +filterId],
         () => APIClient.filters.getByID(parseInt(filterId)),
         {
             retry: false,
@@ -147,16 +147,23 @@ export default function FilterDetails() {
     const updateMutation = useMutation(
         (filter: Filter) => APIClient.filters.update(filter),
         {
-            onSuccess: () => {
-                toast.custom((t) => <Toast type="success" body={`${filter?.name} was updated successfully`} t={t} />)
-                queryClient.invalidateQueries(["filter", filter?.id]);
+            onSuccess: (_, currentFilter) => {
+                toast.custom((t) => (
+                  <Toast type="success" body={`${currentFilter.name} was updated successfully`} t={t} />
+                ));
+                queryClient.invalidateQueries(["filter", currentFilter.id]);
             }
         }
     );
 
     const deleteMutation = useMutation((id: number) => APIClient.filters.delete(id), {
         onSuccess: () => {
-            toast.custom((t) => <Toast type="success" body={`${filter?.name} was deleted`} t={t} />)
+            toast.custom((t) => (
+              <Toast type="success" body={`${filter?.name} was deleted`} t={t} />
+            ));
+
+            // Invalidate filters just in case, most likely not necessary but can't hurt.
+            queryClient.invalidateQueries("filters");
 
             // redirect
             history.push("/filters")
@@ -346,7 +353,7 @@ function General() {
             </div>
 
             <div className="mt-6 lg:pb-8">
-                <TitleSubtitle title="Rules" subtitle="Set rules" />
+                <TitleSubtitle title="Rules" subtitle="Specify rules on how torrents should be handled/selected" />
 
                 <div className="mt-6 grid grid-cols-12 gap-6">
                     <TextField name="min_size" label="Min size" columns={6} placeholder="" />
@@ -356,7 +363,7 @@ function General() {
             </div>
 
             <div className="border-t dark:border-gray-700">
-                <SwitchGroup name="enabled" label="Enabled" description="Enabled or disable filter." />
+                <SwitchGroup name="enabled" label="Enabled" description="Enable or disable this filter" />
             </div>
 
         </div>
@@ -372,7 +379,7 @@ function MoviesTv() {
             </div>
 
             <div className="mt-6 lg:pb-8">
-                <TitleSubtitle title="Seasons and Episodes" subtitle="Set seaons and episodes" />
+                <TitleSubtitle title="Seasons and Episodes" subtitle="Set season and episode match constraints" />
 
                 <div className="mt-6 grid grid-cols-12 gap-6">
                     <TextField name="seasons" label="Seasons" columns={8} placeholder="eg. 1,3,2-6" />
@@ -381,7 +388,7 @@ function MoviesTv() {
             </div>
 
             <div className="mt-6 lg:pb-8">
-                <TitleSubtitle title="Quality" subtitle="Resolution, source etc." />
+                <TitleSubtitle title="Quality" subtitle="Set resolution, source, codec and related match constraints" />
 
                 <div className="mt-6 grid grid-cols-12 gap-6">
                     <MultiSelect name="resolutions" options={RESOLUTION_OPTIONS} label="resolutions" columns={6} />
@@ -467,7 +474,7 @@ function Advanced() {
                 <div className="flex justify-between items-center cursor-pointer" onClick={toggleReleases}>
                     <div className="-ml-2 -mt-2 flex flex-wrap items-baseline">
                         <h3 className="ml-2 mt-2 text-lg leading-6 font-medium text-gray-900 dark:text-gray-200">Releases</h3>
-                        <p className="ml-2 mt-1 text-sm text-gray-500 dark:text-gray-400 truncate">Match or ignore</p>
+                        <p className="ml-2 mt-1 text-sm text-gray-500 dark:text-gray-400 truncate">Match only certain release names and/or ignore other release names</p>
                     </div>
                     <div className="mt-3 sm:mt-0 sm:ml-4">
                         <button
@@ -490,7 +497,7 @@ function Advanced() {
                 <div className="flex justify-between items-center cursor-pointer" onClick={toggleGroups}>
                     <div className="-ml-2 -mt-2 flex flex-wrap items-baseline">
                         <h3 className="ml-2 mt-2 text-lg leading-6 font-medium text-gray-900 dark:text-gray-200">Groups</h3>
-                        <p className="ml-2 mt-1 text-sm text-gray-500 dark:text-gray-400 truncate">Match or ignore</p>
+                        <p className="ml-2 mt-1 text-sm text-gray-500 dark:text-gray-400 truncate">Match only certain groups and/or ignore other groups</p>
                     </div>
                     <div className="mt-3 sm:mt-0 sm:ml-4">
                         <button
@@ -594,7 +601,7 @@ interface FilterActionsProps {
 
 function FilterActions({ filter, values }: FilterActionsProps) {
     const { data } = useQuery(
-        ['filter', 'download_clients'],
+        ["filter", "download_clients"],
         APIClient.download_clients.getAll,
         { refetchOnWindowFocus: false }
     );
@@ -668,21 +675,6 @@ interface FilterActionsItemProps {
 function FilterActionsItem({ action, clients, idx, remove }: FilterActionsItemProps) {
     const [deleteModalIsOpen, toggleDeleteModal] = useToggle(false);
     const [edit, toggleEdit] = useToggle(false);
-
-    // const enabledMutation = useMutation(
-    //     (actionID: number) => APIClient.actions.toggleEnable(actionID),
-    //     {
-    //         onSuccess: () => {
-    //             // queryClient.invalidateQueries(["filter", filterID]);
-    //         },
-    //     }
-    // );
-
-    // const toggleActive = () => {
-    //     console.log("action: ", action);
-
-    //     enabledMutation.mutate(action.id);
-    // };
 
     const cancelButtonRef = useRef(null);
 
