@@ -115,7 +115,9 @@ export default function Base() {
                                                         <Menu.Button
                                                             className={classNames(
                                                               open ? "bg-gray-200 dark:bg-gray-800" : "",
-                                                              "text-gray-800 dark:text-gray-300 max-w-xs rounded-full flex items-center text-sm px-3 py-2 hover:bg-gray-200 dark:hover:bg-gray-800"
+                                                              "text-gray-800 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-800",
+                                                              "max-w-xs rounded-full flex items-center text-sm px-3 py-2",
+                                                              "transition-colors duration-200"
                                                             )}
                                                         >
                                                             <span className="hidden text-sm font-medium sm:block">
