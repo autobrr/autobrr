@@ -1,0 +1,66 @@
+---
+#id: danishbytes
+name: DanishBytes
+identifier: danishbytes
+description: DanishBytes is a private torrent tracker for HD MOVIES / TV
+language: en-us
+urls:
+  - https://danishbytes.club/
+privacy: private
+protocol: torrent
+supports:
+  - irc
+  - rss
+source: UNIT3D
+settings:
+  - name: passkey
+    type: secret
+    label: Passkey
+    help: "Go to your profile tab under safety, copy RSS Key (RID)"
+
+irc:
+  network: DanishBytes
+  server: irc.danishbytes.club
+  port: 6697
+  tls: false
+  channels:
+    - "#Announce"
+  announcers:
+    - DBBot
+  settings:
+    - name: nickserv.account
+      type: text
+      required: true
+      label: NickServ Account
+      help: NickServ account. Make sure to group your user and bot. Eg. user|autodl
+    - name: nickserv.password
+      type: secret
+      required: false
+      label: NickServ Password
+      help: NickServ password
+    - name: invite_command
+      type: secret
+      default: "DBBot announce ircKey"
+      required: true
+      label: Invite command
+      help: Invite auth with DBBot.
+
+parse:
+  type: single
+  lines:
+    - test:
+        - ":[N]-[Movies]-[Encode]-[720p]-[797 MiB]-[Some.Old.Movie.1972.720p.BluRay.x264.AAC-GROUP]-[Anonymous]-[https://danishbytes.club/torrents/0000]-[FL: 0]-[DU: 0];"
+      pattern: ':\[N\]-\[(.*)\]-\[(.*)\]-\[(.*)\]-\[(.*)\]-\[(.*)\]-\[(.*)\]-\[(.*\/)(?:.*\/)(.*)\]-\[FL: (.*)\]-\[DU: .*\];'
+      vars:
+        - category
+        - releaseTags
+        - resolution
+        - torrentSize
+        - torrentName
+        - uploader
+        - baseUrl
+        - torrentId
+        - freeleech
+
+  match:
+    torrenturl: "{{ .baseUrl }}torrent/download/{{ .torrentId }}.{{ .passkey }}"
