@@ -935,7 +935,7 @@ func (r *Release) MapVars(varMap map[string]string) error {
 	}
 
 	if freeleech, err := getStringMapValue(varMap, "freeleech"); err == nil {
-		r.Freeleech = strings.EqualFold(freeleech, "freeleech") || strings.EqualFold(freeleech, "yes")
+		r.Freeleech = strings.EqualFold(freeleech, "freeleech") || strings.EqualFold(freeleech, "yes") || strings.EqualFold(freeleech, "1")
 	}
 
 	if freeleechPercent, err := getStringMapValue(varMap, "freeleechPercent"); err == nil {
@@ -984,6 +984,10 @@ func (r *Release) MapVars(varMap map[string]string) error {
 	// handle releaseTags. Most of them are redundant but some are useful
 	if releaseTags, err := getStringMapValue(varMap, "releaseTags"); err == nil {
 		r.ReleaseTags = releaseTags
+	}
+
+	if resolution, err := getStringMapValue(varMap, "resolution"); err == nil {
+		r.Resolution = resolution
 	}
 
 	return nil
