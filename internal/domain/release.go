@@ -26,7 +26,8 @@ import (
 
 type ReleaseRepo interface {
 	Store(ctx context.Context, release *Release) (*Release, error)
-	Find(ctx context.Context, params QueryParams) (res []Release, nextCursor int64, count int64, err error)
+	Find(ctx context.Context, params ReleaseQueryParams) (res []Release, nextCursor int64, count int64, err error)
+	GetIndexerOptions(ctx context.Context) ([]string, error)
 	GetActionStatusByReleaseID(ctx context.Context, releaseID int64) ([]ReleaseActionStatus, error)
 	Stats(ctx context.Context) (*ReleaseStats, error)
 	StoreReleaseActionStatus(ctx context.Context, actionStatus *ReleaseActionStatus) error
@@ -1485,11 +1486,14 @@ const (
 	ReleaseImplementationIRC ReleaseImplementation = "IRC"
 )
 
-type QueryParams struct {
-	Limit  uint64
-	Offset uint64
-	Cursor uint64
-	Sort   map[string]string
-	Filter map[string]string
+type ReleaseQueryParams struct {
+	Limit   uint64
+	Offset  uint64
+	Cursor  uint64
+	Sort    map[string]string
+	Filters struct {
+		Indexers   []string
+		PushStatus string
+	}
 	Search string
 }

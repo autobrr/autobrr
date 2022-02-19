@@ -97,6 +97,30 @@ export const APIClient = {
     },
     release: {
         find: (query?: string) => appClient.Get<ReleaseFindResponse>(`api/release${query}`),
+        findQuery: (offset?: number, limit?: number, filters?: any[]) => {
+            let queryString = "?"
+
+            if (offset != 0) {
+                queryString += `offset=${offset}`
+            }
+            if (limit != 0) {
+                queryString += `&limit=${limit}`
+            }
+            if (filters && filters?.length > 0) {
+                filters?.map((filter) => {
+                    if (filter.id === "indexer" && filter.value != "") {
+                        queryString += `&indexer=${filter.value}`
+                    }
+                    // using action_status instead of push_status because thats the column accessor
+                    if (filter.id === "action_status" && filter.value != "") {
+                        queryString += `&push_status=${filter.value}`
+                    }
+                })
+            }
+
+            return appClient.Get<ReleaseFindResponse>(`api/release${queryString}`)
+        },
+        indexerOptions: () => appClient.Get<string[]>(`api/release/indexers`),
         stats: () => appClient.Get<ReleaseStats>("api/release/stats")
     }
 };
