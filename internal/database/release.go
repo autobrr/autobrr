@@ -84,14 +84,14 @@ func (repo *ReleaseRepo) StoreReleaseActionStatus(ctx context.Context, a *domain
 	return nil
 }
 
-func (repo *ReleaseRepo) Find(ctx context.Context, params domain.QueryParams) ([]domain.Release, int64, int64, error) {
+func (repo *ReleaseRepo) Find(ctx context.Context, params domain.ReleaseQueryParams) ([]domain.Release, int64, int64, error) {
 	//r.db.lock.RLock()
 	//defer r.db.lock.RUnlock()
 
 	queryBuilder := sq.
-		Select("id", "filter_status", "rejections", "indexer", "filter", "protocol", "title", "torrent_name", "size", "timestamp", "COUNT() OVER() AS total_count").
-		From("release").
-		OrderBy("timestamp DESC")
+		Select("r.id", "r.filter_status", "r.rejections", "r.indexer", "r.filter", "r.protocol", "r.title", "r.torrent_name", "r.size", "r.timestamp", "COUNT() OVER() AS total_count").
+		From("release r").
+		OrderBy("r.timestamp DESC")
 
 	if params.Limit > 0 {
 		queryBuilder = queryBuilder.Limit(params.Limit)
@@ -104,18 +104,20 @@ func (repo *ReleaseRepo) Find(ctx context.Context, params domain.QueryParams) ([
 	}
 
 	if params.Cursor > 0 {
-		queryBuilder = queryBuilder.Where(sq.Lt{"id": params.Cursor})
+		queryBuilder = queryBuilder.Where(sq.Lt{"r.id": params.Cursor})
 	}
 
-	if params.Filter != nil {
+	if params.Filters.Indexers != nil {
 		filter := sq.And{}
-		for k, v := range params.Filter {
-			if v != "" {
-				filter = append(filter, sq.Eq{k: v})
-			}
+		for _, v := range params.Filters.Indexers {
+			filter = append(filter, sq.Eq{"r.indexer": v})
 		}
 
 		queryBuilder = queryBuilder.Where(filter)
+	}
+
+	if params.Filters.PushStatus != "" {
+		queryBuilder = queryBuilder.InnerJoin("release_action_status ras ON r.id = ras.release_id").Where(sq.Eq{"ras.status": params.Filters.PushStatus})
 	}
 
 	query, args, err := queryBuilder.ToSql()
@@ -171,6 +173,46 @@ func (repo *ReleaseRepo) Find(ctx context.Context, params domain.QueryParams) ([
 	}
 
 	return res, nextCursor, countItems, nil
+}
+
+func (repo *ReleaseRepo) GetIndexerOptions(ctx context.Context) ([]string, error) {
+	//r.db.lock.RLock()
+	//defer r.db.lock.RUnlock()
+
+	query := `
+	SELECT DISTINCT indexer FROM "release"
+	UNION
+	SELECT DISTINCT identifier indexer FROM indexer;`
+
+	log.Trace().Str("database", "release.get_indexers").Msgf("query: '%v'", query)
+
+	res := make([]string, 0)
+
+	rows, err := repo.db.handler.QueryContext(ctx, query)
+	if err != nil {
+		log.Error().Stack().Err(err).Msg("error fetching indexer list")
+		return res, err
+	}
+
+	defer rows.Close()
+
+	if err := rows.Err(); err != nil {
+		log.Error().Stack().Err(err)
+		return res, err
+	}
+
+	for rows.Next() {
+		var indexer string
+
+		if err := rows.Scan(&indexer); err != nil {
+			log.Error().Stack().Err(err).Msg("release.find: error scanning data to struct")
+			return res, err
+		}
+
+		res = append(res, indexer)
+	}
+
+	return res, nil
 }
 
 func (repo *ReleaseRepo) GetActionStatusByReleaseID(ctx context.Context, releaseID int64) ([]domain.ReleaseActionStatus, error) {

@@ -211,3 +211,18 @@ export const ActionTypeNameMap = {
     "SONARR": "Sonarr",
     "LIDARR": "Lidarr",
 };
+
+export const PushStatusOptions: any[] = [
+    {
+        label: "Rejected",
+        value: "PUSH_REJECTED",
+    },
+    {
+        label: "Approved",
+        value: "PUSH_APPROVED"
+    },
+    {
+        label: "Error",
+        value: "PUSH_ERROR"
+    },
+];

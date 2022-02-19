@@ -1,9 +1,11 @@
 import { Fragment } from "react";
-import { MultiSelect as RMSC}  from "react-multi-select-component";
-import { Transition, Listbox } from "@headlessui/react";
-import { CheckIcon, SelectorIcon } from '@heroicons/react/solid';
-import { classNames, COL_WIDTHS } from "../../utils";
 import { Field } from "formik";
+import { Transition, Listbox } from "@headlessui/react";
+import { CheckIcon, SelectorIcon } from "@heroicons/react/solid";
+import { MultiSelect as RMSC }  from "react-multi-select-component";
+
+import { classNames, COL_WIDTHS } from "../../utils";
+import { SettingsContext } from "../../utils/Context";
 
 interface MultiSelectProps {
     label?: string;
@@ -17,80 +19,87 @@ export const MultiSelect = ({
     label,
     options,
     columns,
-}: MultiSelectProps) => (
-    <div
-        className={classNames(
-            columns ? `col-span-${columns}` : "col-span-12"
-        )}
-    >
-        <label
-            className="block mb-2 text-xs font-bold tracking-wide text-gray-700 uppercase dark:text-gray-200"
-            htmlFor={label}
-        >
-            {label}
-        </label>
-
-        <Field name={name} type="select" multiple={true}>
-            {({
-                field,
-                form: { setFieldValue },
-            }: any) => (
-                <RMSC
-                    {...field}
-                    type="select"
-                    options={options}
-                    labelledBy={name}
-                    value={field.value && field.value.map((item: any) => options.find((o: any) => o.value === item))}
-                    onChange={(values: any) => {
-                        const am = values && values.map((i: any) => i.value);
-                        setFieldValue(field.name, am);
-                    }}
-                    className="dark:bg-gray-700 dark"
-                />
+}: MultiSelectProps) => {
+    const settingsContext = SettingsContext.useValue();
+    return (
+        <div
+            className={classNames(
+                columns ? `col-span-${columns}` : "col-span-12"
             )}
-        </Field>
-    </div>
-);
+        >
+            <label
+                className="block mb-2 text-xs font-bold tracking-wide text-gray-700 uppercase dark:text-gray-200"
+                htmlFor={label}
+            >
+                {label}
+            </label>
+
+            <Field name={name} type="select" multiple={true}>
+                {({
+                    field,
+                    form: { setFieldValue },
+                }: any) => (
+                    <RMSC
+                        {...field}
+                        type="select"
+                        options={options}
+                        labelledBy={name}
+                        value={field.value && field.value.map((item: any) => options.find((o: any) => o.value === item))}
+                        onChange={(values: any) => {
+                            const am = values && values.map((i: any) => i.value);
+                            setFieldValue(field.name, am);
+                        }}
+                        className={settingsContext.darkTheme ? "dark" : ""}
+                    />
+                )}
+            </Field>
+        </div>
+    );
+}
 
 export const IndexerMultiSelect = ({
     name,
     label,
     options,
     columns,
-}: MultiSelectProps) => (
-    <div
-        className={classNames(
-            columns ? `col-span-${columns}` : "col-span-12"
-        )}
-    >
-        <label
-            className="block mb-2 text-xs font-bold tracking-wide text-gray-700 uppercase dark:text-gray-200"
-            htmlFor={label}
-        >
-            {label}
-        </label>
+}: MultiSelectProps) => {
+  const settingsContext = SettingsContext.useValue();
+  return (
+      <div
+          className={classNames(
+              columns ? `col-span-${columns}` : "col-span-12"
+          )}
+      >
+          <label
+              className="block mb-2 text-xs font-bold tracking-wide text-gray-700 uppercase dark:text-gray-200"
+              htmlFor={label}
+          >
+              {label}
+          </label>
 
-        <Field name={name} type="select" multiple={true}>
-            {({
-                field,
-                form: { setFieldValue },
-            }: any) => (
-                <RMSC
-                    {...field}
-                    type="select"
-                    options={options}
-                    labelledBy={name}
-                    value={field.value && field.value.map((item: any) => options.find((o: any) => o.value?.id === item.id))}
-                    onChange={(values: any) => {
-                        const am = values && values.map((i: any) => i.value);
-                        setFieldValue(field.name, am);
-                    }}
-                    className="dark:bg-gray-700 dark"
-                />
-            )}
-        </Field>
-    </div>
-);
+          <Field name={name} type="select" multiple={true}>
+              {({
+                  field,
+                  form: { setFieldValue },
+              }: any) => (
+                  <RMSC
+                      {...field}
+                      type="select"
+                      options={options}
+                      labelledBy={name}
+                      value={field.value && field.value.map((item: any) => options.find((o: any) => o.value?.id === item.id))}
+                      onChange={(values: any) => {
+                          const am = values && values.map((i: any) => i.value);
+                          setFieldValue(field.name, am);
+                      }}
+                      className={settingsContext.darkTheme ? "dark" : ""}
+                      itemHeight={50}
+                  />
+              )}
+          </Field>
+      </div>
+  );
+}
 
 interface DownloadClientSelectProps {
     name: string;

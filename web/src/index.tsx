@@ -1,5 +1,7 @@
 import { StrictMode } from "react";
 import ReactDOM from "react-dom";
+
+import "@fontsource/inter/variable.css";
 import "./index.css";
 
 import { App } from "./App";

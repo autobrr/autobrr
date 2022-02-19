@@ -11,7 +11,8 @@ import (
 )
 
 type releaseService interface {
-	Find(ctx context.Context, query domain.QueryParams) (res []domain.Release, nextCursor int64, count int64, err error)
+	Find(ctx context.Context, query domain.ReleaseQueryParams) (res []domain.Release, nextCursor int64, count int64, err error)
+	GetIndexerOptions(ctx context.Context) ([]string, error)
 	Stats(ctx context.Context) (*domain.ReleaseStats, error)
 }
 
@@ -30,6 +31,7 @@ func newReleaseHandler(encoder encoder, service releaseService) *releaseHandler 
 func (h releaseHandler) Routes(r chi.Router) {
 	r.Get("/", h.findReleases)
 	r.Get("/stats", h.getStats)
+	r.Get("/indexers", h.getIndexerOptions)
 }
 
 func (h releaseHandler) findReleases(w http.ResponseWriter, r *http.Request) {
@@ -80,26 +82,18 @@ func (h releaseHandler) findReleases(w http.ResponseWriter, r *http.Request) {
 	}
 	vals := u.Query()
 	indexer := vals["indexer"]
-	//indexer := r.URL.Query().Get("indexer")
-	//if err != nil && indexer != "" {
-	//	h.encoder.StatusResponse(r.Context(), w, map[string]interface{}{
-	//		"code":    "BAD_REQUEST_PARAMS",
-	//		"message": "indexer parameter is invalid",
-	//	}, http.StatusBadRequest)
-	//	return
-	//}
 
-	query := domain.QueryParams{
+	pushStatus := r.URL.Query().Get("push_status")
+
+	query := domain.ReleaseQueryParams{
 		Limit:  uint64(limit),
 		Offset: uint64(offset),
 		Cursor: uint64(cursor),
 		Sort:   nil,
-		//Filter: map[string]string{
-		//	"indexer": indexer,
-		//},
-		Indexers: indexer,
-
-		//Filter: "",
+		Filters: struct {
+			Indexers   []string
+			PushStatus string
+		}{Indexers: indexer, PushStatus: pushStatus},
 	}
 
 	releases, nextCursor, count, err := h.service.Find(r.Context(), query)
@@ -119,6 +113,16 @@ func (h releaseHandler) findReleases(w http.ResponseWriter, r *http.Request) {
 	}
 
 	h.encoder.StatusResponse(r.Context(), w, ret, http.StatusOK)
+}
+
+func (h releaseHandler) getIndexerOptions(w http.ResponseWriter, r *http.Request) {
+	stats, err := h.service.GetIndexerOptions(r.Context())
+	if err != nil {
+		h.encoder.StatusNotFound(r.Context(), w)
+		return
+	}
+
+	h.encoder.StatusResponse(r.Context(), w, stats, http.StatusOK)
 }
 
 func (h releaseHandler) getStats(w http.ResponseWriter, r *http.Request) {

@@ -5,6 +5,7 @@
   "proxy": "http://127.0.0.1:8989",
   "homepage": ".",
   "dependencies": {
+    "@fontsource/inter": "^4.5.4",
     "@headlessui/react": "^1.2.0",
     "@heroicons/react": "^1.0.1",
     "date-fns": "^2.25.0",
@@ -15,7 +16,7 @@
     "react-hot-toast": "^2.1.1",
     "react-multi-select-component": "^4.0.2",
     "react-query": "^3.18.1",
-    "react-ridge-state": "^4.2.2",
+    "react-ridge-state": "4.2.2",
     "react-router-dom": "^5.2.0",
     "react-scripts": "^5.0.0",
     "react-select": "5.0.0-beta.0",
