@@ -114,7 +114,7 @@ func (s *service) startNetwork(network domain.IrcNetwork) error {
 	if existingHandler, found := s.handlers[handlerKey{network.Server, network.NickServ.Account}]; found {
 		log.Debug().Msgf("starting network: %+v", network.Name)
 
-		if existingHandler.conn != nil {
+		if !existingHandler.client.Connected() {
 			go func() {
 				if err := existingHandler.Run(); err != nil {
 					log.Error().Err(err).Msgf("failed to start existingHandler for network %q", existingHandler.network.Name)
@@ -164,7 +164,7 @@ func (s *service) checkIfNetworkRestartNeeded(network *domain.IrcNetwork) error 
 		// if server, tls, invite command, port : changed - restart
 		// if nickserv account, nickserv password : changed - stay connected, and change those
 		// if channels len : changes - join or leave
-		if existingHandler.conn != nil {
+		if existingHandler.client.Connected() {
 			handler := existingHandler.GetNetwork()
 			restartNeeded := false
 
@@ -289,9 +289,9 @@ func (s *service) checkIfNetworkRestartNeeded(network *domain.IrcNetwork) error 
 func (s *service) restartNetwork(network domain.IrcNetwork) error {
 	// look if we have the network in handlers, if so restart it
 	if existingHandler, found := s.handlers[handlerKey{network.Server, network.NickServ.Account}]; found {
-		log.Info().Msgf("restarting network: %+v", network.Name)
+		log.Info().Msgf("restarting network: %v", network.Name)
 
-		if existingHandler.conn != nil {
+		if existingHandler.client.Connected() {
 			go func() {
 				if err := existingHandler.Restart(); err != nil {
 					log.Error().Err(err).Msgf("failed to restart network %q", existingHandler.network.Name)
@@ -401,9 +401,11 @@ func (s *service) GetNetworksWithHealth(ctx context.Context) ([]domain.IrcNetwor
 		handler, ok := s.handlers[handlerKey{n.Server, n.NickServ.Account}]
 		if ok {
 			// only set connected and connected since if we have an active handler and connection
-			if handler.conn != nil {
+			if handler.client.Connected() {
+				handler.m.RLock()
 				netw.Connected = handler.connected
 				netw.ConnectedSince = handler.connectedSince
+				handler.m.RUnlock()
 			}
 		}
 
@@ -432,9 +434,12 @@ func (s *service) GetNetworksWithHealth(ctx context.Context) ([]domain.IrcNetwor
 
 				chan1, ok := handler.channelHealth[name]
 				if ok {
+					chan1.m.RLock()
 					ch.Monitoring = chan1.monitoring
 					ch.MonitoringSince = chan1.monitoringSince
 					ch.LastAnnounce = chan1.lastAnnounce
+
+					chan1.m.RUnlock()
 				}
 			}
 

@@ -2,11 +2,13 @@ package logger
 
 import (
 	"io"
+	stdlog "log"
 	"os"
 	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
 
+	"github.com/dcarbone/zadapters/zstdlog"
 	"github.com/r3labs/sse/v2"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
@@ -14,7 +16,13 @@ import (
 	"gopkg.in/natefinch/lumberjack.v2"
 )
 
+var (
+	StdLogger        *stdlog.Logger
+	StdLeveledLogger *stdlog.Logger
+)
+
 func Setup(cfg domain.Config, sse *sse.Server) {
+
 	zerolog.TimeFieldFormat = time.RFC3339
 	zerolog.ErrorStackMarshaler = pkgerrors.MarshalStack
 
@@ -52,4 +60,13 @@ func Setup(cfg domain.Config, sse *sse.Server) {
 
 	log.Logger = log.Hook(&ServerSentEventHook{sse: sse})
 	log.Logger = log.Output(writers)
+
+	// init a logger to use
+	//log := zerolog.New(os.Stdout)
+
+	// creates a *log.Logger with no level prefix
+	StdLogger = zstdlog.NewStdLogger(log.Logger)
+
+	// creates a *log.Logger with a level prefix
+	StdLeveledLogger = zstdlog.NewStdLoggerWithLevel(log.Logger, zerolog.TraceLevel)
 }
