@@ -148,7 +148,6 @@ func (h *Handler) Run() error {
 		ReconnectFreq: 15 * time.Second,
 		Version:       "autobrr",
 		QuitMessage:   "bye from autobrr",
-		RequestCaps:   []string{"server-time", "message-tags"},
 		Debug:         true,
 		Log:           logger.StdLeveledLogger,
 	}
@@ -174,10 +173,10 @@ func (h *Handler) Run() error {
 		//return err
 	}
 
-	go h.client.Loop()
-
 	// set connected since now
 	h.setConnectionStatus()
+
+	h.client.Loop()
 
 	return nil
 }
