@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { APIClient } from "../api/APIClient";
+import {ExclamationIcon} from "@heroicons/react/solid";
 
 type LogEvent = {
     time: string;
@@ -32,12 +33,19 @@ export const Logs = () => {
         <main>
             <header className="py-10">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <h1 className="text-3xl font-bold text-black dark:text-white capitalize" title="This page won't show any new lines, only new lines appended to autobrr.log">Logs ⚠️</h1>
+                 <h1 className="text-3xl font-bold text-black dark:text-white capitalize">Logs</h1>
+                    <div className="flex mt-4 justify-center">
+                        <ExclamationIcon
+                            className="h-5 w-5 text-yellow-400"
+                            aria-hidden="true"
+                        />
+                        <p className="ml-2 text-sm text-gray-500 dark:text-gray-400">This only shows new logs, no history</p>
+                    </div>
                 </div>
             </header>
             <div className="max-w-7xl mx-auto pb-12 px-2 sm:px-4 lg:px-8">
                 <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg px-2 sm:px-4 py-3 sm:py-4">
-                    <div className=" overflow-y-auto p-2 rounded-lg h-96 bg-gray-100 dark:bg-gray-900">
+                    <div className="overflow-y-auto p-2 rounded-lg min-h-[32rem] lg:min-h-[48rem] min-w-full bg-gray-100 dark:bg-gray-900">
                         {logs.map((a, idx) => (
                             <p key={idx}>
                                 <span className="font-mono text-gray-500 dark:text-gray-600 mr-2">{a.time}</span>
