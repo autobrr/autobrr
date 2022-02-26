@@ -226,20 +226,16 @@ func (h *Handler) SetNetwork(network *domain.IrcNetwork) {
 }
 
 func (h *Handler) Stop() {
-	if h.client.Connected() {
-		log.Debug().Msgf("%v: Disconnecting...", h.network.Server)
-		h.client.Quit()
-	}
+	log.Debug().Msgf("%v: Disconnecting...", h.network.Server)
+	h.client.Quit()
 }
 
 func (h *Handler) Restart() error {
 	log.Debug().Msgf("%v: Restarting network...", h.network.Server)
 
-	if h.client.Connected() {
-		h.client.Quit()
-	}
+	h.client.Quit()
 
-	time.Sleep(2 * time.Second)
+	time.Sleep(4 * time.Second)
 
 	return h.Run()
 }
@@ -247,7 +243,7 @@ func (h *Handler) Restart() error {
 func (h *Handler) onConnect(m ircmsg.Message) {
 	identified := false
 
-	time.Sleep(1 * time.Second)
+	time.Sleep(4 * time.Second)
 
 	if h.network.NickServ.Password != "" {
 		err := h.HandleNickServIdentify(h.network.NickServ.Account, h.network.NickServ.Password)
@@ -258,7 +254,7 @@ func (h *Handler) onConnect(m ircmsg.Message) {
 		identified = true
 	}
 
-	time.Sleep(1 * time.Second)
+	time.Sleep(4 * time.Second)
 
 	if h.network.InviteCommand != "" {
 		err := h.handleConnectCommands(h.network.InviteCommand)
