@@ -7,7 +7,7 @@ autobrr monitors IRC announce channels to get releases as soon as they are avail
 ## Features:
 
 * Single binary + config for easy setup
-* Support for 26 trackers
+* Support for 27 trackers
 * Easy to use UI
 * Available torrent actions:
   * qBittorrent
@@ -40,6 +40,7 @@ Is your tracker missing? Add an issue to request it.
   * Milkie
   * MoreThanTV
   * Nebulance
+  * Norbits
   * Orpheus
   * PTP
   * RED
