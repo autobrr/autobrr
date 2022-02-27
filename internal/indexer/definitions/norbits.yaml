@@ -21,7 +21,7 @@ settings:
 irc:
   network: Norbits
   server: irc.norbits.net
-  port: 7000
+  port: 6697
   tls: true
   channels:
     - "#Norbits"
