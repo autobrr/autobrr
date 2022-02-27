@@ -45,7 +45,7 @@ parse:
     - test:
         - "Ny torrent: Movie.2010.1080p.BluRay.x264.DTS-HD MA 5.1-OMEGA :: Kategori: Filmer/H.264/HD-1080p/i/Encode :: Scene: Nei :: St�rrelse: 9.69 GB :: https://norbits.net/details.php?id=000000"
         - "Ny torrent: Some.TV.Show.s01e01.NORDIC.720p.DSNP.WEBRiP.DD.5.1.h264 :: Kategori: TV/H.264/HD-720p/Encode :: Scene: Nei :: St�rrelse: 891.04 MB :: https://norbits.net/details.php?id=000000"
-      pattern: "Ny torrent: (.*) :: Kategori: (.*) :: Scene: (.*) :: St.+rrelse: (.*) :: (https?\:\/\/[^\/]+\/).*[\?]id=(\d+)"
+      pattern: 'Ny torrent: (.*) :: Kategori: (.*) :: Scene: (.*) :: St.+rrelse: (.*) :: (https?\:\/\/[^\/]+\/).*[\?]id=(\d+)'
       vars:
         - torrentName
         - category
