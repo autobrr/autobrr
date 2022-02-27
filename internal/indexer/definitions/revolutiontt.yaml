@@ -1,0 +1,66 @@
+---
+#id: revolutiontt
+name: RevolutionTT
+identifier: revolutiontt
+description: RevolutionTT (RTT) is a private torrent tracker for 0DAY / GENERAL.
+language: en-us
+urls:
+  - https://www.revolutiontt.me
+privacy: private
+protocol: torrent
+supports:
+  - irc
+  - rss
+source: custom
+settings:
+  - name: passkey
+    type: secret
+    label: Passkey
+    help: "Copy the passkey from a download link"
+
+irc:
+  network: RevolutionTT
+  server: irc.revolutiontt.me
+  port: 7000
+  tls: true
+  channels:
+    - "#announce"
+  announcers:
+    - RevoTT
+  settings:
+    - name: nickserv.account
+      type: text
+      required: true
+      label: NickServ Account
+      help: NickServ account. Make sure to group your user and bot. Eg. user_autodl
+    - name: nickserv.password
+      type: secret
+      required: false
+      label: NickServ Password
+      help: NickServ password
+    - name: invite_command
+      type: secret
+      default: "RevoTT !invite USERNAME PASSKEY"
+      required: true
+      label: Invite command
+      help: Invite auth with RevoTT. Replace USERNAME and PASSKEY
+
+parse:
+  type: single
+  lines:
+    - test:
+        - "!new Some.TV.Show.S01E02.720p.WEB.h264-KOGi | TV/HDx264 | https://revolutiontt.me/details.php?id=z4WBMrhj&hit=1"
+        - "!new Some.Other.Show.S01E02.1080p.WEB.h264-KOGi | TV/HDx264 | https://revolutiontt.me/details.php?id=eAg24buk&hit=1"
+      pattern: !new (.*) \| (.*) \| (https?:\/\/.*\/).*id=([0-9a-zA-Z]+)
+      vars:
+        - torrentName
+        - category
+        - baseUrl
+        - torrentId
+
+  match:
+    torrenturl: "{{ .baseUrl }}download.php/{{ .torrentId }}/{{ .torrentName }}.torrent?passkey={{ .passkey }}"
+    encode:
+      - torrentName
+
+
