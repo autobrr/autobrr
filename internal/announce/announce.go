@@ -217,7 +217,7 @@ func (a *announceProcessor) parseExtract(pattern string, vars []string, tmpVars 
 func (a *announceProcessor) onLinesMatched(def domain.IndexerDefinition, vars map[string]string, release *domain.Release) error {
 	var err error
 
-	err = release.MapVars(vars)
+	err = release.MapVars(def, vars)
 	if err != nil {
 		log.Error().Stack().Err(err).Msg("announce: could not map vars for release")
 		return err
