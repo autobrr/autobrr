@@ -92,9 +92,9 @@ func (i IndexerIRC) ValidChannel(channel string) bool {
 
 type IndexerParse struct {
 	Type          string                `json:"type"`
+	ForceSizeUnit string                `json:"forcesizeunit"`
 	Lines         []IndexerParseExtract `json:"lines"`
 	Match         IndexerParseMatch     `json:"match"`
-	ForceSizeUnit string                `json:"forceSizeUnit"`
 }
 
 type IndexerParseExtract struct {

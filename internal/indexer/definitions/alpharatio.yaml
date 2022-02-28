@@ -51,7 +51,7 @@ irc:
 
 parse:
   type: multi
-  forceSizeUnit: MB
+  forcesizeunit: MB
   lines:
     - test:
         - "[New Release]-[MovieHD]-[That.Movie.2017.INTERNAL.1080p.BluRay.CRF.x264-GROUP]-[URL]-[ https://alpharatio.cc/torrents.php?id=000000 ]-[ 000000 ]-[ Uploaded 2 Mins, 59 Secs after pre. ]"
