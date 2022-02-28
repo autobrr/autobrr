@@ -16,6 +16,15 @@ import (
 	"golang.org/x/net/publicsuffix"
 )
 
+var (
+	backoffSchedule = []time.Duration{
+		5 * time.Second,
+		10 * time.Second,
+		20 * time.Second,
+	}
+	timeout = 20 * time.Second
+)
+
 type Client struct {
 	Name     string
 	settings Settings
@@ -39,7 +48,7 @@ func NewClient(s Settings) *Client {
 		log.Error().Err(err).Msg("new client cookie error")
 	}
 	httpClient := &http.Client{
-		Timeout: time.Second * 10,
+		Timeout: timeout,
 		Jar:     jar,
 	}
 
@@ -59,13 +68,29 @@ func NewClient(s Settings) *Client {
 func (c *Client) get(endpoint string, opts map[string]string) (*http.Response, error) {
 	reqUrl := fmt.Sprintf("%v://%v:%v/api/v2/%v", c.settings.protocol, c.settings.Hostname, c.settings.Port, endpoint)
 
+	var err error
+	var resp *http.Response
+
 	req, err := http.NewRequest("GET", reqUrl, nil)
 	if err != nil {
 		log.Error().Err(err).Msgf("GET: error %v", reqUrl)
 		return nil, err
 	}
 
-	resp, err := c.http.Do(req)
+	// try request and if fail run 3 retries
+	for i, backoff := range backoffSchedule {
+		resp, err = c.http.Do(req)
+
+		// request ok, lets break out of the loop
+		if err == nil {
+			break
+		}
+
+		log.Debug().Msgf("qbit GET failed: retrying attempt %d - %v", i, reqUrl)
+
+		time.Sleep(backoff)
+	}
+
 	if err != nil {
 		log.Error().Err(err).Msgf("GET: do %v", reqUrl)
 		return nil, err
@@ -83,6 +108,9 @@ func (c *Client) post(endpoint string, opts map[string]string) (*http.Response, 
 		}
 	}
 
+	var err error
+	var resp *http.Response
+
 	reqUrl := fmt.Sprintf("%v://%v:%v/api/v2/%v", c.settings.protocol, c.settings.Hostname, c.settings.Port, endpoint)
 	req, err := http.NewRequest("POST", reqUrl, strings.NewReader(form.Encode()))
 	if err != nil {
@@ -93,7 +121,20 @@ func (c *Client) post(endpoint string, opts map[string]string) (*http.Response, 
 	// add the content-type so qbittorrent knows what to expect
 	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 
-	resp, err := c.http.Do(req)
+	// try request and if fail run 3 retries
+	for i, backoff := range backoffSchedule {
+		resp, err = c.http.Do(req)
+
+		// request ok, lets break out of the loop
+		if err == nil {
+			break
+		}
+
+		log.Debug().Msgf("qbit POST failed: retrying attempt %d - %v", i, reqUrl)
+
+		time.Sleep(backoff)
+	}
+
 	if err != nil {
 		log.Error().Err(err).Msgf("POST: do %v", reqUrl)
 		return nil, err
@@ -103,6 +144,9 @@ func (c *Client) post(endpoint string, opts map[string]string) (*http.Response, 
 }
 
 func (c *Client) postFile(endpoint string, fileName string, opts map[string]string) (*http.Response, error) {
+	var err error
+	var resp *http.Response
+
 	file, err := os.Open(fileName)
 	if err != nil {
 		log.Error().Err(err).Msgf("POST file: opening file %v", fileName)
@@ -161,13 +205,26 @@ func (c *Client) postFile(endpoint string, fileName string, opts map[string]stri
 	// Set correct content type
 	req.Header.Set("Content-Type", multiPartWriter.FormDataContentType())
 
-	res, err := c.http.Do(req)
+	// try request and if fail run 3 retries
+	for i, backoff := range backoffSchedule {
+		resp, err = c.http.Do(req)
+
+		// request ok, lets break out of the loop
+		if err == nil {
+			break
+		}
+
+		log.Debug().Msgf("qbit POST file failed: retrying attempt %d - %v", i, reqUrl)
+
+		time.Sleep(backoff)
+	}
+
 	if err != nil {
 		log.Error().Err(err).Msgf("POST file: could not perform request %v", fileName)
 		return nil, err
 	}
 
-	return res, nil
+	return resp, nil
 }
 
 func (c *Client) setCookies(cookies []*http.Cookie) {
