@@ -1258,7 +1258,8 @@ func TestRelease_CheckFilter(t *testing.T) {
 
 func TestRelease_MapVars(t *testing.T) {
 	type args struct {
-		varMap map[string]string
+		varMap     map[string]string
+		definition IndexerDefinition
 	}
 	tests := []struct {
 		name   string
@@ -1394,11 +1395,36 @@ func TestRelease_MapVars(t *testing.T) {
 				"tags":             "hip.hop,rhythm.and.blues, 2000s",
 			}},
 		},
+		{
+			name:   "8",
+			fields: &Release{},
+			want: &Release{
+				TorrentName:      "Good show S02 2160p ATVP WEB-DL DDP 5.1 Atmos DV HEVC-GROUP2",
+				Category:         "tv",
+				Year:             2020,
+				FreeleechPercent: 100,
+				Uploader:         "Anon",
+				Size:             uint64(10000000000),
+				Tags:             []string{"hip.hop", "rhythm.and.blues", "2000s"},
+			},
+			args: args{
+				varMap: map[string]string{
+					"torrentName":      "Good show S02 2160p ATVP WEB-DL DDP 5.1 Atmos DV HEVC-GROUP2",
+					"category":         "tv",
+					"year":             "2020",
+					"freeleechPercent": "100%",
+					"uploader":         "Anon",
+					"torrentSize":      "10000",
+					"tags":             "hip.hop,rhythm.and.blues, 2000s",
+				},
+				definition: IndexerDefinition{Parse: IndexerParse{ForceSizeUnit: "MB"}},
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			r := tt.fields
-			_ = r.MapVars(tt.args.varMap)
+			_ = r.MapVars(tt.args.definition, tt.args.varMap)
 
 			assert.Equal(t, tt.want, r)
 		})

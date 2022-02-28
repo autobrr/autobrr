@@ -918,7 +918,7 @@ func (r *Release) CheckSizeFilter(minSize string, maxSize string) bool {
 }
 
 // MapVars better name
-func (r *Release) MapVars(varMap map[string]string) error {
+func (r *Release) MapVars(def IndexerDefinition, varMap map[string]string) error {
 
 	if torrentName, err := getStringMapValue(varMap, "torrentName"); err != nil {
 		return errors.Wrap(err, "failed parsing required field")
@@ -956,12 +956,16 @@ func (r *Release) MapVars(varMap map[string]string) error {
 	}
 
 	if torrentSize, err := getStringMapValue(varMap, "torrentSize"); err == nil {
+		// handling for indexer who doesn't explicitly set which size unit is used like (AR)
+		if def.Parse.ForceSizeUnit != "" {
+			torrentSize = fmt.Sprintf("%v %v", torrentSize, def.Parse.ForceSizeUnit)
+		}
+
 		size, err := humanize.ParseBytes(torrentSize)
 		if err != nil {
 			// log could not parse into bytes
 		}
 		r.Size = size
-		// TODO implement other size checks in filter
 	}
 
 	if scene, err := getStringMapValue(varMap, "scene"); err == nil {
