@@ -14,6 +14,11 @@ type Macro struct {
 	TorrentHash     string
 	TorrentUrl      string
 	Indexer         string
+	Resolution      string
+	Source          string
+	HDR             string
+	Season          int
+	Episode         int
 	Year            int
 	Month           int
 	Day             int
@@ -31,6 +36,11 @@ func NewMacro(release domain.Release) Macro {
 		TorrentPathName: release.TorrentTmpFile,
 		TorrentHash:     release.TorrentHash,
 		Indexer:         release.Indexer,
+		Resolution:      release.Resolution,
+		Source:          release.Source,
+		HDR:             release.HDR,
+		Season:          release.Season,
+		Episode:         release.Episode,
 		Year:            currentTime.Year(),
 		Month:           int(currentTime.Month()),
 		Day:             currentTime.Day(),
