@@ -33,7 +33,7 @@ interface EmptyListStateProps {
 export function EmptyListState({ text, buttonText, buttonOnClick }: EmptyListStateProps) {
     return (
         <div className="px-4 py-12 flex flex-col items-center">
-            <p className="text-center text-gray-500 dark:text-white">{text}</p>
+            <p className="text-center text-gray-800 dark:text-white">{text}</p>
             {buttonText && buttonOnClick && (
                 <button
                     type="button"

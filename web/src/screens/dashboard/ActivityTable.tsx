@@ -1,6 +1,5 @@
 import * as React from "react";
 import { useQuery } from "react-query";
-import formatDistanceToNowStrict from "date-fns/formatDistanceToNowStrict";
 import {
     useTable,
     useFilters,
@@ -9,65 +8,15 @@ import {
     usePagination
 } from "react-table";
 
-import { APIClient } from "../api/APIClient";
-import { EmptyListState } from "../components/emptystates";
-import { ReleaseStatusCell } from "./Releases";
+import { APIClient } from "../../api/APIClient";
+import { EmptyListState } from "../../components/emptystates";
 
-export function Dashboard() {
-    return (
-        <main className="py-10">
-            <div className="px-4 pb-8 mx-auto max-w-7xl sm:px-6 lg:px-8">
-                <Stats />
-                <DataTable />
-            </div>
-        </main>
-    )
-}
-
-const StatsItem = ({ name, stat }: any) => (
-    <div
-        className="relative px-4 pt-5 pb-2 overflow-hidden bg-white rounded-lg shadow-lg dark:bg-gray-800 sm:pt-6 sm:px-6"
-        title="All time"
-    >
-        <dt>
-            <p className="pb-1 text-sm font-medium text-gray-500 truncate">{name}</p>
-        </dt>
-
-        <dd className="flex items-baseline pb-6 sm:pb-7">
-            <p className="text-2xl font-semibold text-gray-900 dark:text-gray-200">{stat}</p>
-        </dd>
-    </div>
-)
-
-function Stats() {
-    const { isLoading, data } = useQuery(
-        'dash_release_stats',
-        () => APIClient.release.stats(),
-        { refetchOnWindowFocus: false }
-    );
-
-    if (isLoading)
-        return null;
-
-    return (
-        <div>
-            <h3 className="text-2xl font-medium leading-6 text-gray-900 dark:text-gray-200">
-              Stats
-            </h3>
-
-            <dl className="grid grid-cols-1 gap-5 mt-5 sm:grid-cols-2 lg:grid-cols-3">
-                <StatsItem name="Filtered Releases" stat={data?.filtered_count} />
-                {/* <StatsItem name="Filter Rejected Releases" stat={data?.filter_rejected_count} /> */}
-                <StatsItem name="Rejected Pushes" stat={data?.push_rejected_count} />
-                <StatsItem name="Approved Pushes" stat={data?.push_approved_count} />
-            </dl>
-        </div>
-    )
-}
+import * as Icons from "../../components/Icons";
+import * as DataTable from "../../components/data-table";
 
 // This is a custom filter UI for selecting
 // a unique option from a list
-export function SelectColumnFilter({
+function SelectColumnFilter({
     column: { filterValue, setFilter, preFilteredRows, id, render },
 }: any) {
     // Calculate the options for filtering
@@ -104,42 +53,6 @@ export function SelectColumnFilter({
     )
 }
 
-export function StatusPill({ value }: any) {
-    const statusMap: any = {
-        "FILTER_APPROVED": <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold uppercase bg-blue-100 text-blue-800 ">Approved</span>,
-        "FILTER_REJECTED": <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold uppercase bg-red-100 text-red-800">Rejected</span>,
-        "PUSH_REJECTED": <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold uppercase bg-pink-100 text-pink-800">Rejected</span>,
-        "PUSH_APPROVED": <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold uppercase bg-green-100 text-green-800">Approved</span>,
-        "PENDING": <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold uppercase bg-yellow-100 text-yellow-800">PENDING</span>,
-        "MIXED": <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold uppercase bg-yellow-100 text-yellow-800">MIXED</span>,
-    }
-
-    return statusMap[value];
-}
-
-export function AgeCell({ value }: any) {
-    const formatDate = formatDistanceToNowStrict(
-        new Date(value),
-        { addSuffix: true }
-    )
-
-    return (
-        <div className="text-sm text-gray-500" title={value}>{formatDate}</div>
-    )
-}
-
-export function ReleaseCell({ value }: any) {
-    return (
-        <div className="text-sm font-medium text-gray-900 dark:text-gray-300">{value}</div>
-    )
-}
-
-export function IndexerCell({ value }: any) {
-    return (
-        <div className="text-sm font-medium text-gray-900 dark:text-gray-500" title={value}>{value}</div>
-    )
-}
-
 function Table({ columns, data }: any) {
     // Use the state and functions returned from useTable to build your UI
     const {
@@ -148,29 +61,12 @@ function Table({ columns, data }: any) {
         headerGroups,
         prepareRow,
         page, // Instead of using 'rows', we'll use page,
-        // which has only the rows for the active page
-
-        // The rest of these things are super handy, too ;)
-        // canPreviousPage,
-        // canNextPage,
-        // pageOptions,
-        // pageCount,
-        // gotoPage,
-        // nextPage,
-        // previousPage,
-        // setPageSize,
-
-        // state,
-        // preGlobalFilteredRows,
-        // setGlobalFilter,
-    } = useTable({
-        columns,
-        data,
-    },
-        useFilters, // useFilters!
+    } = useTable(
+        { columns, data },
+        useFilters,
         useGlobalFilter,
         useSortBy,
-        usePagination,  // new
+        usePagination
     );
 
     if (!page.length)
@@ -205,12 +101,12 @@ function Table({ columns, data }: any) {
                                                             <span>
                                                                 {column.isSorted ? (
                                                                     column.isSortedDesc ? (
-                                                                        <SortDownIcon className="w-4 h-4 text-gray-400" />
+                                                                        <Icons.SortDownIcon className="w-4 h-4 text-gray-400" />
                                                                     ) : (
-                                                                        <SortUpIcon className="w-4 h-4 text-gray-400" />
+                                                                        <Icons.SortUpIcon className="w-4 h-4 text-gray-400" />
                                                                     )
                                                                 ) : (
-                                                                    <SortIcon className="w-4 h-4 text-gray-400 opacity-0 group-hover:opacity-100" />
+                                                                    <Icons.SortIcon className="w-4 h-4 text-gray-400 opacity-0 group-hover:opacity-100" />
                                                                 )}
                                                             </span>
                                                         </div>
@@ -258,46 +154,28 @@ function Table({ columns, data }: any) {
     );
 }
 
-function SortIcon({ className }: any) {
-    return (
-        <svg className={className} stroke="currentColor" fill="currentColor" strokeWidth="0" viewBox="0 0 320 512" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M41 288h238c21.4 0 32.1 25.9 17 41L177 448c-9.4 9.4-24.6 9.4-33.9 0L24 329c-15.1-15.1-4.4-41 17-41zm255-105L177 64c-9.4-9.4-24.6-9.4-33.9 0L24 183c-15.1 15.1-4.4 41 17 41h238c21.4 0 32.1-25.9 17-41z"></path></svg>
-    )
-}
-
-function SortUpIcon({ className }: any) {
-    return (
-        <svg className={className} stroke="currentColor" fill="currentColor" strokeWidth="0" viewBox="0 0 320 512" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M279 224H41c-21.4 0-32.1-25.9-17-41L143 64c9.4-9.4 24.6-9.4 33.9 0l119 119c15.2 15.1 4.5 41-16.9 41z"></path></svg>
-    )
-}
-
-function SortDownIcon({ className }: any) {
-    return (
-        <svg className={className} stroke="currentColor" fill="currentColor" strokeWidth="0" viewBox="0 0 320 512" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M41 288h238c21.4 0 32.1 25.9 17 41L177 448c-9.4 9.4-24.6 9.4-33.9 0L24 329c-15.1-15.1-4.4-41 17-41z"></path></svg>
-    )
-}
-
-function DataTable() {
+export const ActivityTable = () => {
     const columns = React.useMemo(() => [
         {
             Header: "Age",
             accessor: 'timestamp',
-            Cell: AgeCell,
+            Cell: DataTable.AgeCell,
         },
         {
             Header: "Release",
             accessor: 'torrent_name',
-            Cell: ReleaseCell,
+            Cell: DataTable.ReleaseCell,
         },
         {
             Header: "Actions",
             accessor: 'action_status',
-            Cell: ReleaseStatusCell,
+            Cell: DataTable.ReleaseStatusCell,
         },
         {
             Header: "Indexer",
             accessor: 'indexer',
-            Cell: IndexerCell,
-            Filter: SelectColumnFilter,  // new
+            Cell: DataTable.IndexerCell,
+            Filter: SelectColumnFilter,
             filter: 'includes',
         },
     ], [])

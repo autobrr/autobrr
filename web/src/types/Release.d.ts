@@ -34,3 +34,8 @@ interface ReleaseStats {
     push_approved_count: number;
     push_rejected_count: number;
 }
+
+interface ReleaseFilter {
+  id: string;
+  value: string;
+}

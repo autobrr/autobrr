@@ -16,125 +16,130 @@ import {
 import { SlideOver } from "../../components/panels";
 import Toast from '../../components/notifications/Toast';
 
-function ChannelsFieldArray({ values }: any) {
-    return (
-        <div className="p-6">
-            <FieldArray name="channels">
-                {({ remove, push }) => (
-                    <div className="flex flex-col border-2 border-dashed dark:border-gray-700 p-4">
-                        {values && values.channels.length > 0 ? (
-                            values.channels.map((_channel: Channel, index: number) => (
-                                <div key={index} className="flex justify-between">
-                                    <div className="flex">
-                                        <Field name={`channels.${index}.name`}>
-                                            {({ field }: FieldProps) => (
-                                                <input
-                                                    {...field}
-                                                    type="text"
-                                                    value={field.value ?? ""}
-                                                    onChange={field.onChange}
-                                                    placeholder="#Channel"
-                                                    className="mr-4 dark:bg-gray-700 focus:ring-indigo-500 dark:focus:ring-blue-500 focus:border-indigo-500 dark:focus:border-blue-500 border-gray-300 dark:border-gray-600 block w-full shadow-sm sm:text-sm dark:text-white rounded-md"
-                                                />
-                                            )}
-                                        </Field>
+interface ChannelsFieldArrayProps {
+  channels: IrcChannel[];
+}
 
-                                        <Field name={`channels.${index}.password`}>
-                                            {({ field }: FieldProps) => (
-                                                <input
-                                                    {...field}
-                                                    type="text"
-                                                    value={field.value ?? ""}
-                                                    onChange={field.onChange}
-                                                    placeholder="Password"
-                                                    className="mr-4 dark:bg-gray-700 focus:ring-indigo-500 dark:focus:ring-blue-500 focus:border-indigo-500 dark:focus:border-blue-500 border-gray-300 dark:border-gray-600 block w-full shadow-sm sm:text-sm dark:text-white rounded-md"
-                                                />
-                                            )}
-                                        </Field>
-                                    </div>
+const ChannelsFieldArray = ({ channels }: ChannelsFieldArrayProps) => (
+    <div className="p-6">
+        <FieldArray name="channels">
+            {({ remove, push }) => (
+                <div className="flex flex-col border-2 border-dashed dark:border-gray-700 p-4">
+                    {channels && channels.length > 0 ? (
+                        channels.map((_channel: IrcChannel, index: number) => (
+                            <div key={index} className="flex justify-between">
+                                <div className="flex">
+                                    <Field name={`channels.${index}.name`}>
+                                        {({ field }: FieldProps) => (
+                                            <input
+                                                {...field}
+                                                type="text"
+                                                value={field.value ?? ""}
+                                                onChange={field.onChange}
+                                                placeholder="#Channel"
+                                                className="mr-4 dark:bg-gray-700 focus:ring-indigo-500 dark:focus:ring-blue-500 focus:border-indigo-500 dark:focus:border-blue-500 border-gray-300 dark:border-gray-600 block w-full shadow-sm sm:text-sm dark:text-white rounded-md"
+                                            />
+                                        )}
+                                    </Field>
 
-                                    <button
-                                        type="button"
-                                        className="bg-white dark:bg-gray-700 rounded-md text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:focus:ring-blue-500"
-                                        onClick={() => remove(index)}
-                                    >
-                                        <span className="sr-only">Remove</span>
-                                        <XIcon className="h-6 w-6" aria-hidden="true" />
-                                    </button>
+                                    <Field name={`channels.${index}.password`}>
+                                        {({ field }: FieldProps) => (
+                                            <input
+                                                {...field}
+                                                type="text"
+                                                value={field.value ?? ""}
+                                                onChange={field.onChange}
+                                                placeholder="Password"
+                                                className="mr-4 dark:bg-gray-700 focus:ring-indigo-500 dark:focus:ring-blue-500 focus:border-indigo-500 dark:focus:border-blue-500 border-gray-300 dark:border-gray-600 block w-full shadow-sm sm:text-sm dark:text-white rounded-md"
+                                            />
+                                        )}
+                                    </Field>
                                 </div>
-                            ))
-                        ) : (
-                            <span className="text-center text-sm text-grey-darker dark:text-white">
-                                No channels!
-                            </span>
-                        )}
-                        <button
-                            type="button"
-                            className="border dark:border-gray-600 dark:bg-gray-700 my-4 px-4 py-2 text-sm text-gray-700 dark:text-white hover:bg-gray-50 dark:hover:bg-gray-600 rounded self-center text-center"
-                            onClick={() => push({ name: "", password: "" })}
-                        >
-                            Add Channel
-                        </button>
-                    </div>
-                )}
-            </FieldArray>
-        </div>
-    )
+
+                                <button
+                                    type="button"
+                                    className="bg-white dark:bg-gray-700 rounded-md text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:focus:ring-blue-500"
+                                    onClick={() => remove(index)}
+                                >
+                                    <span className="sr-only">Remove</span>
+                                    <XIcon className="h-6 w-6" aria-hidden="true" />
+                                </button>
+                            </div>
+                        ))
+                    ) : (
+                        <span className="text-center text-sm text-grey-darker dark:text-white">
+                            No channels!
+                        </span>
+                    )}
+                    <button
+                        type="button"
+                        className="border dark:border-gray-600 dark:bg-gray-700 my-4 px-4 py-2 text-sm text-gray-700 dark:text-white hover:bg-gray-50 dark:hover:bg-gray-600 rounded self-center text-center"
+                        onClick={() => push({ name: "", password: "" })}
+                    >
+                        Add Channel
+                    </button>
+                </div>
+            )}
+        </FieldArray>
+    </div>
+);
+
+interface IrcNetworkAddFormValues {
+    name: string;
+    enabled: boolean;
+    server : string;
+    port: number;
+    tls: boolean;
+    pass: string;
+    nickserv: NickServ;
+    channels: IrcChannel[];
 }
 
 export function IrcNetworkAddForm({ isOpen, toggle }: any) {
-    const mutation = useMutation((network: Network) => APIClient.irc.createNetwork(network), {
-        onSuccess: () => {
-            queryClient.invalidateQueries(['networks']);
-            toast.custom((t) => <Toast type="success" body="IRC Network added" t={t} />)
-            toggle()
-        },
-        onError: () => {
-            toast.custom((t) => <Toast type="error" body="IRC Network could not be added" t={t} />)
-        },
-    })
+    const mutation = useMutation(
+        (network: IrcNetwork) => APIClient.irc.createNetwork(network),
+        {
+            onSuccess: () => {
+                queryClient.invalidateQueries(['networks']);
+                toast.custom((t) => <Toast type="success" body="IRC Network added" t={t} />)
+                toggle()
+            },
+            onError: () => {
+                toast.custom((t) => <Toast type="error" body="IRC Network could not be added" t={t} />)
+            },
+        }
+    );
 
     const onSubmit = (data: any) => {
         // easy way to split textarea lines into array of strings for each newline.
         // parse on the field didn't really work.
-        const cmds = (
+        data.connect_commands = (
             data.connect_commands && data.connect_commands.length > 0 ?
             data.connect_commands.replace(/\r\n/g, "\n").split("\n") :
             []
         );
-        data.connect_commands = cmds;
-        console.log("formated", data);
 
         mutation.mutate(data);
     };
 
-    const validate = (values: any) => {
-        const errors = {
-            nickserv: {
-                account: null,
-            }
-        } as any;
-
-        if (!values.name) {
+    const validate = (values: IrcNetworkAddFormValues) => {
+        const errors = {} as any;
+        if (!values.name)
             errors.name = "Required";
-        }
 
-        if (!values.port) {
+        if (!values.port)
             errors.port = "Required";
-        }
 
-        if (!values.server) {
+        if (!values.server)
             errors.server = "Required";
-        }
 
-        if (!values.nickserv?.account) {
-            errors.nickserv.account = "Required";
-        }
+        if (!values.nickserv || !values.nickserv.account)
+            errors.nickserv = { account: "Required" };
 
         return errors;
     }
 
-    const initialValues = {
+    const initialValues: IrcNetworkAddFormValues = {
         name: "",
         enabled: true,
         server: "",
@@ -145,7 +150,7 @@ export function IrcNetworkAddForm({ isOpen, toggle }: any) {
             account: ""
         },
         channels: [],
-    }
+    };
 
     return (
         <SlideOver
@@ -184,15 +189,38 @@ export function IrcNetworkAddForm({ isOpen, toggle }: any) {
                         </div>
                     </div>
 
-                    <ChannelsFieldArray values={values} />
+                    <ChannelsFieldArray channels={values.channels} />
                 </>
             )}
         </SlideOver>
     )
 }
 
-export function IrcNetworkUpdateForm({ isOpen, toggle, network }: any) {
-    const mutation = useMutation((network: Network) => APIClient.irc.updateNetwork(network), {
+interface IrcNetworkUpdateFormValues {
+    id: number;
+    name: string;
+    enabled: boolean;
+    server: string;
+    port: number;
+    tls: boolean;
+    nickserv?: NickServ;
+    pass: string;
+    invite_command: string;
+    channels: Array<IrcChannel>;
+}
+
+interface IrcNetworkUpdateFormProps {
+    isOpen: boolean;
+    toggle: () => void;
+    network: IrcNetwork;
+}
+
+export function IrcNetworkUpdateForm({
+    isOpen,
+    toggle,
+    network
+}: IrcNetworkUpdateFormProps) {
+    const mutation = useMutation((network: IrcNetwork) => APIClient.irc.updateNetwork(network), {
         onSuccess: () => {
             queryClient.invalidateQueries(['networks']);
             toast.custom((t) => <Toast type="success" body={`${network.name} was updated successfully`} t={t} />)
@@ -246,7 +274,7 @@ export function IrcNetworkUpdateForm({ isOpen, toggle, network }: any) {
         deleteMutation.mutate(network.id)
     }
 
-    const initialValues = {
+    const initialValues: IrcNetworkUpdateFormValues = {
         id: network.id,
         name: network.name,
         enabled: network.enabled,
@@ -255,8 +283,8 @@ export function IrcNetworkUpdateForm({ isOpen, toggle, network }: any) {
         tls: network.tls,
         nickserv: network.nickserv,
         pass: network.pass,
-        invite_command: network.invite_command,
-        channels: network.channels
+        channels: network.channels,
+        invite_command: network.invite_command
     }
 
     return (
@@ -297,7 +325,7 @@ export function IrcNetworkUpdateForm({ isOpen, toggle, network }: any) {
                         </div>
                     </div>
 
-                    <ChannelsFieldArray values={values} />
+                    <ChannelsFieldArray channels={values.channels} />
                 </>
             )}
         </SlideOver>
