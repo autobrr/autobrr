@@ -2,65 +2,49 @@ interface IrcNetwork {
     id: number;
     name: string;
     enabled: boolean;
-    addr: string;
-    server: string;
-    port: string;
-    nick: string;
-    username: string;
-    realname: string;
-    pass: string;
-    connected: boolean;
-    connected_since: string;
-    tls: boolean;
-    nickserv: {
-        account: string;
-    }
-    channels: IrcNetworkChannel[];
-}
-
-interface IrcNetworkChannel {
-    id: number;
-    enabled: boolean;
-    name: string;
-    password: string;
-    detached: boolean;
-    monitoring: boolean;
-    monitoring_since: string;
-    last_announce: string;
-}
-
-interface NickServ {
-    account: string;
-    password: string;
-}
-
-interface Network {
-    id?: number;
-    name: string;
-    enabled: boolean;
     server: string;
     port: number;
     tls: boolean;
+    pass: string;
     invite_command: string;
-    nickserv: {
-        account: string;
-        password: string;
-    }
-    channels: Channel[];
-    settings: object;
+    nickserv?: NickServ; // optional
+    channels: IrcChannel[];
+    connected: boolean;
+    connected_since: Time;
 }
 
-interface Channel {
-    name: string;
-    password: string;
+interface IrcChannel {
+  id: number;
+  enabled: boolean;
+  name: string;
+  password: string;
+  detached: boolean;
+  monitoring: boolean;
 }
 
-interface SASL {
-    mechanism: string;
-    plain: {
-        username: string;
-        password: string;
-    }
+interface IrcChannelWithHealth extends IrcChannel {
+  monitoring_since: string;
+  last_announce: string;
+}
+
+interface IrcNetworkWithHealth {
+  id: number;
+  name: string;
+  enabled: boolean;
+  server: string;
+  port: number;
+  tls: boolean;
+  pass: string;
+  invite_command: string;
+  nickserv?: NickServ; // optional
+  channels: IrcChannelWithHealth[];
+  connected: boolean;
+  connected_since: string;
+}
+
+interface NickServ {
+  account?: string; // optional
+  password?: string; // optional
 }
 
 interface Config {

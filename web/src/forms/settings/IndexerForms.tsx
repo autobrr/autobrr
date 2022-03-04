@@ -70,7 +70,8 @@ export function IndexerAddForm({ isOpen, toggle }: AddProps) {
         }
     )
 
-    const mutation = useMutation((indexer: Indexer) => APIClient.indexers.create(indexer), {
+    const mutation = useMutation(
+      (indexer: Indexer) => APIClient.indexers.create(indexer), {
         onSuccess: () => {
             queryClient.invalidateQueries(['indexer']);
             toast.custom((t) => <Toast type="success" body="Indexer was added" t={t} />)
@@ -83,7 +84,7 @@ export function IndexerAddForm({ isOpen, toggle }: AddProps) {
     })
 
     const ircMutation = useMutation(
-        (network: Network) => APIClient.irc.createNetwork(network)
+        (network: IrcNetwork) => APIClient.irc.createNetwork(network)
     );
 
     const onSubmit = (formData: any) => {
@@ -91,22 +92,32 @@ export function IndexerAddForm({ isOpen, toggle }: AddProps) {
         if (!ind)
             return;
 
-        const channels: Channel[] = [];
+        const channels: IrcChannel[] = [];
         if (ind.irc.channels.length) {
             ind.irc.channels.forEach(element => {
-                channels.push({ name: element, password: "" });
+                channels.push({
+                    id: 0,
+                    enabled: true,
+                    name: element,
+                    password: "",
+                    detached: false,
+                    monitoring: false
+                });
             });
         }
 
-        const network: Network = {
+        const network: IrcNetwork = {
+            id: 0,
             name: ind.irc.network,
+            pass: "",
             enabled: false,
+            connected: false,
+            connected_since: 0,
             server: ind.irc.server,
             port: ind.irc.port,
             tls: ind.irc.tls,
             nickserv: formData.irc.nickserv,
             invite_command: formData.irc.invite_command,
-            settings: formData.irc.settings,
             channels: channels,
         }
 

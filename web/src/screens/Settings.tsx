@@ -1,11 +1,11 @@
 import {CogIcon, DownloadIcon, KeyIcon} from '@heroicons/react/outline'
 import {NavLink, Route, Switch as RouteSwitch, useLocation, useRouteMatch} from "react-router-dom";
 
+import { classNames } from "../utils";
 import IndexerSettings from "./settings/Indexer";
-import IrcSettings from "./settings/Irc";
+import { IrcSettings } from "./settings/Irc";
 import ApplicationSettings from "./settings/Application";
 import DownloadClientSettings from "./settings/DownloadClient";
-import {classNames} from "../utils";
 import { RegexPlayground } from './settings/RegexPlayground';
 
 const subNavigation = [

@@ -396,6 +396,7 @@ func (s *service) GetNetworksWithHealth(ctx context.Context) ([]domain.IrcNetwor
 			InviteCommand: n.InviteCommand,
 			NickServ:      n.NickServ,
 			Connected:     false,
+			Channels:      []domain.ChannelWithHealth{},
 		}
 
 		handler, ok := s.handlers[handlerKey{n.Server, n.NickServ.Account}]
