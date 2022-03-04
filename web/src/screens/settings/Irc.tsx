@@ -86,8 +86,8 @@ const ListItem = ({ idx, network }: ListItemProps) => {
                             network.enabled ? (
                                 network.connected ? (
                                     <span className="mr-3 flex h-3 w-3 relative" title={`Connected since: ${simplifyDate(network.connected_since)}`}>
-                                        <span className="animate-ping inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                                        <span className="inline-flex absolute rounded-full h-3 w-3 bg-green-500"></span>
+                                        <span className="animate-ping inline-flex h-full w-full rounded-full bg-green-400 opacity-75"/>
+                                        <span className="inline-flex absolute rounded-full h-3 w-3 bg-green-500"/>
                                     </span>
                                 ) : <span className="mr-3 flex h-3 w-3 rounded-full opacity-75 bg-red-400" />
                             ) : <span className="mr-3 flex h-3 w-3 rounded-full opacity-75 bg-gray-500" />
@@ -109,40 +109,42 @@ const ListItem = ({ idx, network }: ListItemProps) => {
             {edit && (
                 <div className="px-4 py-4 flex border-b border-x-0 dark:border-gray-600 dark:bg-gray-700">
                     <div className="min-w-full">
-                        <ol>
-                            <li className="grid grid-cols-12 gap-4 border-b border-gray-200 dark:border-gray-700">
-                                <div className="col-span-4 px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Channel</div>
-                                <div className="col-span-4 px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Monitoring since</div>
-                                <div className="col-span-4 px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Last announce</div>
-                            </li>
-                            {network.channels.map(c => (
-                                <li key={c.id} className="text-gray-500 dark:text-gray-400">
-                                    <div className="grid grid-cols-12 gap-4 items-center py-4">
-                                        <div className="col-span-4 flex items-center sm:px-6 ">
-                                            <span className="relative inline-flex items-center">
-                                                {
-                                                    network.enabled ? (
-                                                        c.monitoring ? (
-                                                            <span className="mr-3 flex h-3 w-3 relative" title="monitoring">
-                                                                <span className="animate-ping inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                                                                <span className="inline-flex absolute rounded-full h-3 w-3 bg-green-500"></span>
-                                                            </span>
-                                                        ) : <span className="mr-3 flex h-3 w-3 rounded-full opacity-75 bg-red-400" />
-                                                    ) : <span className="mr-3 flex h-3 w-3 rounded-full opacity-75 bg-gray-500" />
-                                                }
-                                                {c.name}
-                                            </span>
-                                        </div>
-                                        <div className="col-span-4 flex items-center sm:px-6 ">
-                                            <span className="" title={simplifyDate(c.monitoring_since)}>{IsEmptyDate(c.monitoring_since)}</span>
-                                        </div>
-                                        <div className="col-span-4 flex items-center sm:px-6 ">
-                                            <span className="" title={simplifyDate(c.last_announce)}>{IsEmptyDate(c.last_announce)}</span>
-                                        </div>
-                                    </div>
+                        {network.channels.length > 0 ? (
+                            <ol>
+                                <li className="grid grid-cols-12 gap-4 border-b border-gray-200 dark:border-gray-700">
+                                    <div className="col-span-4 px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Channel</div>
+                                    <div className="col-span-4 px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Monitoring since</div>
+                                    <div className="col-span-4 px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Last announce</div>
                                 </li>
-                            ))}
-                        </ol>
+                                {network.channels.map(c => (
+                                    <li key={c.id} className="text-gray-500 dark:text-gray-400">
+                                        <div className="grid grid-cols-12 gap-4 items-center py-4">
+                                            <div className="col-span-4 flex items-center sm:px-6 ">
+                                                <span className="relative inline-flex items-center">
+                                                    {
+                                                        network.enabled ? (
+                                                            c.monitoring ? (
+                                                                <span className="mr-3 flex h-3 w-3 relative" title="monitoring">
+                                                                    <span className="animate-ping inline-flex h-full w-full rounded-full bg-green-400 opacity-75"/>
+                                                                    <span className="inline-flex absolute rounded-full h-3 w-3 bg-green-500"/>
+                                                                </span>
+                                                            ) : <span className="mr-3 flex h-3 w-3 rounded-full opacity-75 bg-red-400" />
+                                                        ) : <span className="mr-3 flex h-3 w-3 rounded-full opacity-75 bg-gray-500" />
+                                                    }
+                                                    {c.name}
+                                                </span>
+                                            </div>
+                                            <div className="col-span-4 flex items-center sm:px-6 ">
+                                                <span className="" title={simplifyDate(c.monitoring_since)}>{IsEmptyDate(c.monitoring_since)}</span>
+                                            </div>
+                                            <div className="col-span-4 flex items-center sm:px-6 ">
+                                                <span className="" title={simplifyDate(c.last_announce)}>{IsEmptyDate(c.last_announce)}</span>
+                                            </div>
+                                        </div>
+                                    </li>
+                                ))}
+                            </ol>
+                        ) : <div className="flex text-center justify-center py-4 dark:text-gray-500"><p>No channels!</p></div>}
                     </div>
                 </div>
             )}
