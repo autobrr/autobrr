@@ -126,6 +126,32 @@ func TestMacros_Parse(t *testing.T) {
 			want:    fmt.Sprintf("mock1-%v-race", currentTime.Year()),
 			wantErr: false,
 		},
+		{
+			name: "test_args_category_year",
+			release: domain.Release{
+				TorrentName: "This movie 2021",
+				TorrentURL:  "https://some.site/download/fakeid",
+				Indexer:     "mock1",
+				Resolution:  "2160p",
+				HDR:         "DV",
+			},
+			args:    args{text: "movies-{{.Resolution}}{{ if .HDR }}-{{.HDR}}{{ end }}"},
+			want:    "movies-2160p-DV",
+			wantErr: false,
+		},
+		{
+			name: "test_args_category_and_if",
+			release: domain.Release{
+				TorrentName: "This movie 2021",
+				TorrentURL:  "https://some.site/download/fakeid",
+				Indexer:     "mock1",
+				Resolution:  "2160p",
+				HDR:         "HDR",
+			},
+			args:    args{text: "movies-{{.Resolution}}{{ if .HDR }}-{{.HDR}}{{ end }}"},
+			want:    "movies-2160p-HDR",
+			wantErr: false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -138,9 +164,7 @@ func TestMacros_Parse(t *testing.T) {
 				t.Errorf("Parse() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if got != tt.want {
-				t.Errorf("Parse() got = %v, want %v", got, tt.want)
-			}
+			assert.Equal(t, tt.want, got)
 		})
 	}
 }
