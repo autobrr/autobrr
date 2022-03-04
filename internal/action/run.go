@@ -61,7 +61,7 @@ func (s *service) runAction(action domain.Action, release domain.Release) error 
 			}
 		}
 
-		s.execCmd(release, action, release.TorrentTmpFile)
+		s.execCmd(release, action)
 
 	case domain.ActionTypeWatchFolder:
 		if release.TorrentTmpFile == "" {
@@ -71,7 +71,7 @@ func (s *service) runAction(action domain.Action, release domain.Release) error 
 			}
 		}
 
-		s.watchFolder(action.WatchFolder, release.TorrentTmpFile)
+		s.watchFolder(action, release)
 
 	case domain.ActionTypeDelugeV1, domain.ActionTypeDelugeV2:
 		canDownload, err := s.delugeCheckRulesCanDownload(action)
@@ -91,7 +91,7 @@ func (s *service) runAction(action domain.Action, release domain.Release) error 
 			}
 		}
 
-		err = s.deluge(action, release.TorrentTmpFile)
+		err = s.deluge(action, release)
 		if err != nil {
 			log.Error().Stack().Err(err).Msg("error sending torrent to Deluge")
 			return err
@@ -115,7 +115,7 @@ func (s *service) runAction(action domain.Action, release domain.Release) error 
 			}
 		}
 
-		err = s.qbittorrent(client, action, release.TorrentTmpFile, release.TorrentHash)
+		err = s.qbittorrent(client, action, release)
 		if err != nil {
 			log.Error().Stack().Err(err).Msg("error sending torrent to qBittorrent")
 			return err
@@ -215,19 +215,27 @@ func (s *service) test(name string) {
 	log.Info().Msgf("action TEST: %v", name)
 }
 
-func (s *service) watchFolder(dir string, torrentFile string) {
-	log.Trace().Msgf("action WATCH_FOLDER: %v file: %v", dir, torrentFile)
+func (s *service) watchFolder(action domain.Action, release domain.Release) {
+	m := NewMacro(release)
+
+	// parse and replace values in argument string before continuing
+	watchFolderArgs, err := m.Parse(action.WatchFolder)
+	if err != nil {
+		log.Error().Stack().Err(err).Msgf("could not parse macro: %v", action.WatchFolder)
+	}
+
+	log.Trace().Msgf("action WATCH_FOLDER: %v file: %v", watchFolderArgs, release.TorrentTmpFile)
 
 	// Open original file
-	original, err := os.Open(torrentFile)
+	original, err := os.Open(release.TorrentTmpFile)
 	if err != nil {
-		log.Error().Stack().Err(err).Msgf("could not open temp file '%v'", torrentFile)
+		log.Error().Stack().Err(err).Msgf("could not open temp file '%v'", release.TorrentTmpFile)
 		return
 	}
 	defer original.Close()
 
-	_, tmpFileName := path.Split(torrentFile)
-	fullFileName := path.Join(dir, tmpFileName+".torrent")
+	_, tmpFileName := path.Split(release.TorrentTmpFile)
+	fullFileName := path.Join(watchFolderArgs, tmpFileName+".torrent")
 
 	// Create new file
 	newFile, err := os.Create(fullFileName)
