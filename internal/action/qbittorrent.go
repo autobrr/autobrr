@@ -17,15 +17,15 @@ const ReannounceInterval = 7000
 func (s *service) qbittorrent(qbt *qbittorrent.Client, action domain.Action, release domain.Release) error {
 	log.Debug().Msgf("action qBittorrent: %v", action.Name)
 
+	// macros handle args and replace vars
+	m := NewMacro(release)
+
 	options := map[string]string{}
 
 	if action.Paused {
 		options["paused"] = "true"
 	}
 	if action.SavePath != "" {
-		// handle args and replace vars
-		m := NewMacro(release)
-
 		// parse and replace values in argument string before continuing
 		actionArgs, err := m.Parse(action.SavePath)
 		if err != nil {
@@ -37,9 +37,6 @@ func (s *service) qbittorrent(qbt *qbittorrent.Client, action domain.Action, rel
 		options["autoTMM"] = "false"
 	}
 	if action.Category != "" {
-		// handle args and replace vars
-		m := NewMacro(release)
-
 		// parse and replace values in argument string before continuing
 		categoryArgs, err := m.Parse(action.Category)
 		if err != nil {
@@ -50,9 +47,6 @@ func (s *service) qbittorrent(qbt *qbittorrent.Client, action domain.Action, rel
 		options["category"] = categoryArgs
 	}
 	if action.Tags != "" {
-		// handle args and replace vars
-		m := NewMacro(release)
-
 		// parse and replace values in argument string before continuing
 		tagsArgs, err := m.Parse(action.Tags)
 		if err != nil {

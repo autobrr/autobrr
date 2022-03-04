@@ -164,21 +164,21 @@ func delugeV1(client *domain.DownloadClient, settings delugeClient.Settings, act
 	// set options
 	options := delugeClient.Options{}
 
+	// macros handle args and replace vars
+	m := NewMacro(release)
+
 	if action.Paused {
 		options.AddPaused = &action.Paused
 	}
 	if action.SavePath != "" {
-		// handle args and replace vars
-		m := NewMacro(release)
-
 		// parse and replace values in argument string before continuing
-		savepathArgs, err := m.Parse(action.SavePath)
+		savePathArgs, err := m.Parse(action.SavePath)
 		if err != nil {
 			log.Error().Stack().Err(err).Msgf("could not parse macro: %v", action.SavePath)
 			return err
 		}
 
-		options.DownloadLocation = &savepathArgs
+		options.DownloadLocation = &savePathArgs
 	}
 	if action.LimitDownloadSpeed > 0 {
 		maxDL := int(action.LimitDownloadSpeed)
@@ -203,9 +203,6 @@ func delugeV1(client *domain.DownloadClient, settings delugeClient.Settings, act
 			log.Error().Stack().Err(err).Msgf("could not load label plugin: %v", client.Name)
 			return err
 		}
-
-		// handle args and replace vars
-		m := NewMacro(release)
 
 		// parse and replace values in argument string before continuing
 		labelArgs, err := m.Parse(action.Label)
@@ -258,13 +255,13 @@ func delugeV2(client *domain.DownloadClient, settings delugeClient.Settings, act
 	// set options
 	options := delugeClient.Options{}
 
+	// macros handle args and replace vars
+	m := NewMacro(release)
+
 	if action.Paused {
 		options.AddPaused = &action.Paused
 	}
 	if action.SavePath != "" {
-		// handle args and replace vars
-		m := NewMacro(release)
-
 		// parse and replace values in argument string before continuing
 		savePathArgs, err := m.Parse(action.SavePath)
 		if err != nil {
@@ -297,9 +294,6 @@ func delugeV2(client *domain.DownloadClient, settings delugeClient.Settings, act
 			log.Error().Stack().Err(err).Msgf("could not load label plugin: %v", client.Name)
 			return err
 		}
-
-		// handle args and replace vars
-		m := NewMacro(release)
 
 		// parse and replace values in argument string before continuing
 		labelArgs, err := m.Parse(action.Label)
