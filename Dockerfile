@@ -9,9 +9,9 @@ RUN yarn build
 # build app
 FROM golang:1.17.6-alpine AS app-builder
 
-ARG GIT_TAG=dev
-ARG GIT_COMMIT=dev
-ARG DATETIME
+ARG VERSION=dev
+ARG REVISION=dev
+ARG BUILDTIME
 
 RUN apk add --no-cache git make build-base
 
@@ -30,8 +30,8 @@ COPY --from=web-builder /web/build.go ./web
 ENV GOOS=linux
 ENV CGO_ENABLED=1
 
-RUN go build -ldflags "-s -w -X main.version=${GIT_TAG} -X main.commit=${GIT_COMMIT} -X main.date=${DATETIME}" -o bin/autobrr cmd/autobrr/main.go
-RUN go build -ldflags "-s -w -X main.version=${GIT_TAG} -X main.commit=${GIT_COMMIT} -X main.date=${DATETIME}" -o bin/autobrrctl cmd/autobrrctl/main.go
+RUN go build -ldflags "-s -w -X main.version=${VERSION} -X main.commit=${REVISION} -X main.date=${BUILDTIME}" -o bin/autobrr cmd/autobrr/main.go
+RUN go build -ldflags "-s -w -X main.version=${VERSION} -X main.commit=${REVISION} -X main.date=${BUILDTIME}" -o bin/autobrrctl cmd/autobrrctl/main.go
 
 # build runner
 FROM alpine:latest
