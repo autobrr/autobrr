@@ -245,6 +245,7 @@ export default function FilterDetails() {
                                         min_size: filter.min_size,
                                         max_size: filter.max_size,
                                         delay: filter.delay,
+                                        priority: filter.priority,
                                         shows: filter.shows,
                                         years: filter.years,
                                         resolutions: filter.resolutions || [],
@@ -359,6 +360,7 @@ function General() {
                     <TextField name="min_size" label="Min size" columns={6} placeholder="" />
                     <TextField name="max_size" label="Max size" columns={6} placeholder="" />
                     <NumberField name="delay" label="Delay" placeholder="" />
+                    <NumberField name="priority" label="Priority" placeholder="" />
                 </div>
             </div>
 

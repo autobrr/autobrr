@@ -32,6 +32,7 @@ type Filter struct {
 	MinSize             string    `json:"min_size"`
 	MaxSize             string    `json:"max_size"`
 	Delay               int       `json:"delay"`
+	Priority            int32     `json:"priority"`
 	MatchReleases       string    `json:"match_releases"`
 	ExceptReleases      string    `json:"except_releases"`
 	UseRegex            bool      `json:"use_regex"`

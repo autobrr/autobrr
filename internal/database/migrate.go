@@ -68,6 +68,7 @@ CREATE TABLE filter
     min_size              TEXT,
     max_size              TEXT,
     delay                 INTEGER,
+    priority              INTEGER DEFAULT 0 NOT NULL,
     match_releases        TEXT,
     except_releases       TEXT,
     use_regex             BOOLEAN,
@@ -339,6 +340,10 @@ var migrations = []string{
 	`
 	ALTER TABLE "filter"
 		ADD COLUMN media TEXT []   DEFAULT '{}';
+	`,
+	`
+	ALTER TABLE "filter"
+		ADD COLUMN priority INTEGER DEFAULT 0 NOT NULL;
 	`,
 }
 
