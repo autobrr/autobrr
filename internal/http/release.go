@@ -14,6 +14,7 @@ type releaseService interface {
 	Find(ctx context.Context, query domain.ReleaseQueryParams) (res []domain.Release, nextCursor int64, count int64, err error)
 	GetIndexerOptions(ctx context.Context) ([]string, error)
 	Stats(ctx context.Context) (*domain.ReleaseStats, error)
+	Delete(ctx context.Context) error
 }
 
 type releaseHandler struct {
@@ -32,6 +33,7 @@ func (h releaseHandler) Routes(r chi.Router) {
 	r.Get("/", h.findReleases)
 	r.Get("/stats", h.getStats)
 	r.Get("/indexers", h.getIndexerOptions)
+	r.Delete("/all", h.deleteReleases)
 }
 
 func (h releaseHandler) findReleases(w http.ResponseWriter, r *http.Request) {
@@ -134,4 +136,14 @@ func (h releaseHandler) getStats(w http.ResponseWriter, r *http.Request) {
 	}
 
 	h.encoder.StatusResponse(r.Context(), w, stats, http.StatusOK)
+}
+
+func (h releaseHandler) deleteReleases(w http.ResponseWriter, r *http.Request) {
+	err := h.service.Delete(r.Context())
+	if err != nil {
+		h.encoder.StatusInternalError(w)
+		return
+	}
+
+	h.encoder.StatusNoContent(w)
 }

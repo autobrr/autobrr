@@ -119,6 +119,7 @@ export const APIClient = {
             return appClient.Get<ReleaseFindResponse>(`api/release?${params.toString()}`)
         },
         indexerOptions: () => appClient.Get<string[]>(`api/release/indexers`),
-        stats: () => appClient.Get<ReleaseStats>("api/release/stats")
+        stats: () => appClient.Get<ReleaseStats>("api/release/stats"),
+        delete: () => appClient.Delete(`api/release/all`),
     }
 };
