@@ -1,4 +1,4 @@
-import { Fragment } from "react";
+import {Fragment, useState} from "react";
 import { toast } from "react-hot-toast";
 import { useMutation, useQuery } from "react-query";
 import Select, { components } from "react-select";
@@ -16,7 +16,7 @@ import {
     TextFieldWide,
     PasswordFieldWide,
     SwitchGroupWide
-} from "../../components/inputs/input_wide";
+} from "../../components/inputs";
 import { SlideOver } from "../../components/panels";
 import Toast from '../../components/notifications/Toast';
 
@@ -57,12 +57,76 @@ const Option = (props: any) => {
     );
 }
 
+const IrcSettingFields = (ind: IndexerDefinition, indexer: string) => {
+    if (indexer !== "") {
+        return (
+            <Fragment>
+                {ind && ind.irc && ind.irc.settings && (
+                    <div className="border-t border-gray-200 dark:border-gray-700 py-5">
+                        <div className="px-6 space-y-1">
+                            <Dialog.Title className="text-lg font-medium text-gray-900 dark:text-white">IRC</Dialog.Title>
+                            <p className="text-sm text-gray-500 dark:text-gray-200">
+                                Networks, channels and invite commands are configured automatically.
+                            </p>
+                        </div>
+                        {ind.irc.settings.map((f: IndexerSetting, idx: number) => {
+                            switch (f.type) {
+                                case "text":
+                                    return <TextFieldWide name={`irc.${f.name}`} label={f.label} required={f.required} key={idx} help={f.help} />
+                                case "secret":
+                                    if (f.name === "invite_command") {
+                                        return <PasswordFieldWide name={`irc.${f.name}`} label={f.label} required={f.required} key={idx} help={f.help} defaultVisible={true} defaultValue={f.default} />
+                                    }
+                                    return <PasswordFieldWide name={`irc.${f.name}`} label={f.label} required={f.required} key={idx} help={f.help} defaultValue={f.default} />
+                            }
+                            return null
+                        })}
+
+                        {/* <div hidden={false}>
+                                <TextFieldWide name="irc.server" label="Server" defaultValue={ind.irc.server} />
+                                <NumberFieldWide name="irc.port" label="Port" defaultValue={ind.irc.port} />
+                                <SwitchGroupWide name="irc.tls" label="TLS" defaultValue={ind.irc.tls} />
+                            </div> */}
+                    </div>
+                )}
+            </Fragment>
+        )
+    }
+}
+
+const SettingFields = (ind: IndexerDefinition, indexer: string) => {
+    if (indexer !== "") {
+        return (
+            <div key="opt">
+                {ind && ind.settings && ind.settings.map((f: any, idx: number) => {
+                    switch (f.type) {
+                        case "text":
+                            return (
+                                <TextFieldWide name={`settings.${f.name}`} label={f.label} key={idx} help={f.help} defaultValue="" />
+                            )
+                        case "secret":
+                            return (
+                                <PasswordFieldWide name={`settings.${f.name}`} label={f.label} key={idx} help={f.help} defaultValue="" />
+                            )
+                    }
+                    return null
+                })}
+                <div hidden={true}>
+                    <TextFieldWide name="name" label="Name" defaultValue={ind?.name} />
+                </div>
+            </div>
+        )
+    }
+}
+
 interface AddProps {
     isOpen: boolean;
     toggle: any;
 }
 
 export function IndexerAddForm({ isOpen, toggle }: AddProps) {
+    const [indexer, setIndexer] = useState<IndexerDefinition>({} as IndexerDefinition)
+
     const { data } = useQuery('indexerDefinition', APIClient.indexers.getSchema,
         {
             enabled: isOpen,
@@ -210,7 +274,9 @@ export function IndexerAddForm({ isOpen, toggle }: AddProps) {
                                         enabled: true,
                                         identifier: "",
                                         name: "",
-                                        irc: {},
+                                        irc: {
+                                            invite_command: "",
+                                        },
                                         settings: {},
                                     }}
                                     onSubmit={onSubmit}
@@ -253,7 +319,7 @@ export function IndexerAddForm({ isOpen, toggle }: AddProps) {
                                                             </div>
                                                             <div className="sm:col-span-2">
                                                                 <Field name="identifier" type="select">
-                                                                    {({ field, form: { setFieldValue } }: FieldProps) => (
+                                                                    {({ field, form: { setFieldValue, resetForm } }: FieldProps) => (
                                                                         <Select {...field}
                                                                             isClearable={true}
                                                                             isSearchable={true}
@@ -275,8 +341,17 @@ export function IndexerAddForm({ isOpen, toggle }: AddProps) {
                                                                             })}
                                                                             value={field?.value && field.value.value}
                                                                             onChange={(option: any) => {
+                                                                                resetForm()
                                                                                 setFieldValue("name", option?.label ?? "")
                                                                                 setFieldValue(field.name, option?.value ?? "")
+
+                                                                                const ind = data!.find(i => i.identifier === option.value);
+                                                                                setIndexer(ind!)
+                                                                                if (ind!.irc.settings) {
+                                                                                    ind!.irc.settings.forEach((s) => {
+                                                                                        setFieldValue(`irc.${s.name}`, s.default ?? "")
+                                                                                    })
+                                                                                }
                                                                             }}
                                                                             options={data && data.sort((a, b): any => a.name.localeCompare(b.name)).map(v => ({
                                                                                 label: v.name,
@@ -293,12 +368,11 @@ export function IndexerAddForm({ isOpen, toggle }: AddProps) {
                                                             <SwitchGroupWide name="enabled" label="Enabled" />
                                                         </div>
 
-
-                                                        {renderSettingFields(values.identifier)}
+                                                        {SettingFields(indexer, values.identifier)}
 
                                                     </div>
 
-                                                    {renderIrcSettingFields(values.identifier)}
+                                                    {IrcSettingFields(indexer, values.identifier)}
                                                 </div>
 
                                                 <div

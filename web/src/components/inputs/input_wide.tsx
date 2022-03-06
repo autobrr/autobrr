@@ -61,6 +61,7 @@ interface PasswordFieldWideProps {
     defaultValue?: string;
     help?: string;
     required?: boolean;
+    defaultVisible?: boolean;
 }
 
 export const PasswordFieldWide = ({
@@ -69,9 +70,10 @@ export const PasswordFieldWide = ({
     placeholder,
     defaultValue,
     help,
-    required
+    required,
+    defaultVisible
 }: PasswordFieldWideProps) => {
-    const [isVisible, toggleVisibility] = useToggle(false)
+    const [isVisible, toggleVisibility] = useToggle(defaultVisible)
 
     return (
         <div className="space-y-1 px-4 sm:space-y-0 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6 sm:py-5">
@@ -93,7 +95,7 @@ export const PasswordFieldWide = ({
                                 value={field.value ? field.value : defaultValue ?? ""}
                                 onChange={field.onChange}
                                 type={isVisible ? "text" : "password"}
-                                className={classNames(meta.touched && meta.error ? "focus:ring-red-500 focus:border-red-500 border-red-500" : "focus:ring-indigo-500 dark:focus:ring-blue-500 focus:border-indigo-500 dark:focus:border-blue-500 border-gray-300 dark:border-gray-700", "block w-full dark:bg-gray-800 shadow-sm dark:text-gray-100 sm:text-sm rounded-md")}
+                                className={classNames(meta.touched && meta.error ? "focus:ring-red-500 focus:border-red-500 border-red-500" : "focus:ring-indigo-500 dark:focus:ring-blue-500 focus:border-indigo-500 dark:focus:border-blue-500 border-gray-300 dark:border-gray-700", "block w-full pr-10 dark:bg-gray-800 shadow-sm dark:text-gray-100 sm:text-sm rounded-md")}
                                 placeholder={placeholder}
                             />
                             <div className="absolute inset-y-0 right-0 px-3 flex items-center" onClick={toggleVisibility}>
