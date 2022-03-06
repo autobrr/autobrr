@@ -217,7 +217,7 @@ func (r *FilterRepo) FindByIndexerIdentifier(indexer string) ([]domain.Filter, e
 	return filters, nil
 }
 
-func (r *FilterRepo) Store(filter domain.Filter) (*domain.Filter, error) {
+func (r *FilterRepo) Store(ctx context.Context, filter domain.Filter) (*domain.Filter, error) {
 	//r.db.lock.RLock()
 	//defer r.db.lock.RUnlock()
 
@@ -227,7 +227,7 @@ func (r *FilterRepo) Store(filter domain.Filter) (*domain.Filter, error) {
 	} else {
 		var res sql.Result
 
-		res, err = r.db.handler.Exec(`INSERT INTO filter (
+		res, err = r.db.handler.ExecContext(ctx, `INSERT INTO filter (
                     name,
                     enabled,
                     min_size,

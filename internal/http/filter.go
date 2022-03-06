@@ -14,9 +14,10 @@ import (
 type filterService interface {
 	ListFilters(ctx context.Context) ([]domain.Filter, error)
 	FindByID(ctx context.Context, filterID int) (*domain.Filter, error)
-	Store(filter domain.Filter) (*domain.Filter, error)
+	Store(ctx context.Context, filter domain.Filter) (*domain.Filter, error)
 	Delete(ctx context.Context, filterID int) error
 	Update(ctx context.Context, filter domain.Filter) (*domain.Filter, error)
+	Duplicate(ctx context.Context, filterID int) (*domain.Filter, error)
 	ToggleEnabled(ctx context.Context, filterID int, enabled bool) error
 }
 
@@ -35,6 +36,7 @@ func newFilterHandler(encoder encoder, service filterService) *filterHandler {
 func (h filterHandler) Routes(r chi.Router) {
 	r.Get("/", h.getFilters)
 	r.Get("/{filterID}", h.getByID)
+	r.Get("/{filterID}/duplicate", h.duplicate)
 	r.Post("/", h.store)
 	r.Put("/{filterID}", h.update)
 	r.Put("/{filterID}/enabled", h.toggleEnabled)
@@ -69,6 +71,23 @@ func (h filterHandler) getByID(w http.ResponseWriter, r *http.Request) {
 	h.encoder.StatusResponse(ctx, w, filter, http.StatusOK)
 }
 
+func (h filterHandler) duplicate(w http.ResponseWriter, r *http.Request) {
+	var (
+		ctx      = r.Context()
+		filterID = chi.URLParam(r, "filterID")
+	)
+
+	id, _ := strconv.Atoi(filterID)
+
+	filter, err := h.service.Duplicate(ctx, id)
+	if err != nil {
+		h.encoder.StatusNotFound(ctx, w)
+		return
+	}
+
+	h.encoder.StatusResponse(ctx, w, filter, http.StatusOK)
+}
+
 func (h filterHandler) store(w http.ResponseWriter, r *http.Request) {
 	var (
 		ctx  = r.Context()
@@ -80,7 +99,7 @@ func (h filterHandler) store(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	filter, err := h.service.Store(data)
+	filter, err := h.service.Store(ctx, data)
 	if err != nil {
 		// encode error
 		return

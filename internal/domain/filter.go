@@ -14,7 +14,7 @@ type FilterRepo interface {
 	FindByID(ctx context.Context, filterID int) (*Filter, error)
 	FindByIndexerIdentifier(indexer string) ([]Filter, error)
 	ListFilters(ctx context.Context) ([]Filter, error)
-	Store(filter Filter) (*Filter, error)
+	Store(ctx context.Context, filter Filter) (*Filter, error)
 	Update(ctx context.Context, filter Filter) (*Filter, error)
 	ToggleEnabled(ctx context.Context, filterID int, enabled bool) error
 	Delete(ctx context.Context, filterID int) error

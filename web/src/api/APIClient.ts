@@ -72,6 +72,7 @@ export const APIClient = {
         getByID: (id: number) => appClient.Get<Filter>(`api/filters/${id}`),
         create: (filter: Filter) => appClient.Post("api/filters", filter),
         update: (filter: Filter) => appClient.Put(`api/filters/${filter.id}`, filter),
+        duplicate: (id: number) => appClient.Get<Filter>(`api/filters/${id}/duplicate`),
         toggleEnable: (id: number, enabled: boolean) => appClient.Put(`api/filters/${id}/enabled`, { enabled }),
         delete: (id: number) => appClient.Delete(`api/filters/${id}`),
     },
