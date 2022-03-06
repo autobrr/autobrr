@@ -3,6 +3,7 @@ package filter
 import (
 	"context"
 	"errors"
+	"fmt"
 
 	"github.com/dustin/go-humanize"
 	"github.com/rs/zerolog/log"
@@ -16,8 +17,9 @@ type Service interface {
 	FindByIndexerIdentifier(indexer string) ([]domain.Filter, error)
 	FindAndCheckFilters(release *domain.Release) (bool, *domain.Filter, error)
 	ListFilters(ctx context.Context) ([]domain.Filter, error)
-	Store(filter domain.Filter) (*domain.Filter, error)
+	Store(ctx context.Context, filter domain.Filter) (*domain.Filter, error)
 	Update(ctx context.Context, filter domain.Filter) (*domain.Filter, error)
+	Duplicate(ctx context.Context, filterID int) (*domain.Filter, error)
 	ToggleEnabled(ctx context.Context, filterID int, enabled bool) error
 	Delete(ctx context.Context, filterID int) error
 }
@@ -96,11 +98,11 @@ func (s *service) FindByIndexerIdentifier(indexer string) ([]domain.Filter, erro
 	return filters, nil
 }
 
-func (s *service) Store(filter domain.Filter) (*domain.Filter, error) {
+func (s *service) Store(ctx context.Context, filter domain.Filter) (*domain.Filter, error) {
 	// validate data
 
 	// store
-	f, err := s.repo.Store(filter)
+	f, err := s.repo.Store(ctx, filter)
 	if err != nil {
 		log.Error().Err(err).Msgf("could not store filter: %v", filter)
 		return nil, err
@@ -138,6 +140,56 @@ func (s *service) Update(ctx context.Context, filter domain.Filter) (*domain.Fil
 	f.Actions = actions
 
 	return f, nil
+}
+
+func (s *service) Duplicate(ctx context.Context, filterID int) (*domain.Filter, error) {
+	// find filter
+	baseFilter, err := s.repo.FindByID(ctx, filterID)
+	if err != nil {
+		return nil, err
+	}
+	baseFilter.ID = 0
+	baseFilter.Name = fmt.Sprintf("%v Copy", baseFilter.Name)
+	baseFilter.Enabled = false
+
+	// find actions and attach
+	filterActions, err := s.actionRepo.FindByFilterID(ctx, filterID)
+	if err != nil {
+		log.Error().Msgf("could not find filter actions: %+v", &filterID)
+		return nil, err
+	}
+
+	// find indexers and attach
+	filterIndexers, err := s.indexerSvc.FindByFilterID(ctx, filterID)
+	if err != nil {
+		log.Error().Err(err).Msgf("could not find indexers for filter: %+v", &baseFilter.Name)
+		return nil, err
+	}
+
+	// update
+	filter, err := s.repo.Store(ctx, *baseFilter)
+	if err != nil {
+		log.Error().Err(err).Msgf("could not update filter: %v", baseFilter.Name)
+		return nil, err
+	}
+
+	// take care of connected indexers
+	if err = s.repo.StoreIndexerConnections(ctx, filter.ID, filterIndexers); err != nil {
+		log.Error().Err(err).Msgf("could not store filter indexer connections: %v", filter.Name)
+		return nil, err
+	}
+	filter.Indexers = filterIndexers
+
+	// take care of filter actions
+	actions, err := s.actionRepo.StoreFilterActions(ctx, filterActions, int64(filter.ID))
+	if err != nil {
+		log.Error().Err(err).Msgf("could not store filter actions: %v", filter.Name)
+		return nil, err
+	}
+
+	filter.Actions = actions
+
+	return filter, nil
 }
 
 func (s *service) ToggleEnabled(ctx context.Context, filterID int, enabled bool) error {
