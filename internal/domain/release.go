@@ -31,6 +31,7 @@ type ReleaseRepo interface {
 	GetActionStatusByReleaseID(ctx context.Context, releaseID int64) ([]ReleaseActionStatus, error)
 	Stats(ctx context.Context) (*ReleaseStats, error)
 	StoreReleaseActionStatus(ctx context.Context, actionStatus *ReleaseActionStatus) error
+	Delete(ctx context.Context) error
 }
 
 type Release struct {

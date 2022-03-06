@@ -16,6 +16,7 @@ type Service interface {
 	Store(ctx context.Context, release *domain.Release) error
 	StoreReleaseActionStatus(ctx context.Context, actionStatus *domain.ReleaseActionStatus) error
 	Process(release domain.Release) error
+	Delete(ctx context.Context) error
 }
 
 type service struct {
@@ -44,12 +45,7 @@ func (s *service) GetIndexerOptions(ctx context.Context) ([]string, error) {
 }
 
 func (s *service) Stats(ctx context.Context) (*domain.ReleaseStats, error) {
-	stats, err := s.repo.Stats(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	return stats, nil
+	return s.repo.Stats(ctx)
 }
 
 func (s *service) Store(ctx context.Context, release *domain.Release) error {
@@ -62,12 +58,7 @@ func (s *service) Store(ctx context.Context, release *domain.Release) error {
 }
 
 func (s *service) StoreReleaseActionStatus(ctx context.Context, actionStatus *domain.ReleaseActionStatus) error {
-	err := s.repo.StoreReleaseActionStatus(ctx, actionStatus)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return s.repo.StoreReleaseActionStatus(ctx, actionStatus)
 }
 
 func (s *service) Process(release domain.Release) error {
@@ -87,4 +78,8 @@ func (s *service) Process(release domain.Release) error {
 	}
 
 	return nil
+}
+
+func (s *service) Delete(ctx context.Context) error {
+	return s.repo.Delete(ctx)
 }

@@ -21,6 +21,14 @@ func (e encoder) StatusResponse(ctx context.Context, w http.ResponseWriter, resp
 	}
 }
 
+func (e encoder) StatusNoContent(w http.ResponseWriter) {
+	w.WriteHeader(http.StatusNoContent)
+}
+
 func (e encoder) StatusNotFound(ctx context.Context, w http.ResponseWriter) {
 	w.WriteHeader(http.StatusNotFound)
+}
+
+func (e encoder) StatusInternalError(w http.ResponseWriter) {
+	w.WriteHeader(http.StatusInternalServerError)
 }
