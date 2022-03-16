@@ -145,5 +145,5 @@ func (h releaseHandler) deleteReleases(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.encoder.StatusNoContent(w)
+	h.encoder.NoContent(w)
 }

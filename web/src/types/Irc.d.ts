@@ -13,6 +13,19 @@ interface IrcNetwork {
     connected_since: Time;
 }
 
+interface IrcNetworkCreate {
+    name: string;
+    enabled: boolean;
+    server: string;
+    port: number;
+    tls: boolean;
+    pass: string;
+    invite_command: string;
+    nickserv?: NickServ; // optional
+    channels: IrcChannel[];
+    connected: boolean;
+}
+
 interface IrcChannel {
   id: number;
   enabled: boolean;
