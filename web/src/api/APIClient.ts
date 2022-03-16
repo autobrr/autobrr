@@ -89,7 +89,7 @@ export const APIClient = {
     },
     irc: {
         getNetworks: () => appClient.Get<IrcNetworkWithHealth[]>("api/irc"),
-        createNetwork: (network: IrcNetwork) => appClient.Post("api/irc", network),
+        createNetwork: (network: IrcNetworkCreate) => appClient.Post("api/irc", network),
         updateNetwork: (network: IrcNetwork) => appClient.Put(`api/irc/network/${network.id}`, network),
         deleteNetwork: (id: number) => appClient.Delete(`api/irc/network/${id}`),
     },

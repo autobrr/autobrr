@@ -47,7 +47,7 @@ func (h ircHandler) listNetworks(w http.ResponseWriter, r *http.Request) {
 
 	networks, err := h.service.GetNetworksWithHealth(ctx)
 	if err != nil {
-		//
+		h.encoder.Error(w, err)
 	}
 
 	h.encoder.StatusResponse(ctx, w, networks, http.StatusOK)
@@ -63,30 +63,27 @@ func (h ircHandler) getNetworkByID(w http.ResponseWriter, r *http.Request) {
 
 	network, err := h.service.GetNetworkByID(int64(id))
 	if err != nil {
-		//
+		h.encoder.Error(w, err)
 	}
 
 	h.encoder.StatusResponse(ctx, w, network, http.StatusOK)
 }
 
 func (h ircHandler) storeNetwork(w http.ResponseWriter, r *http.Request) {
-	var (
-		ctx  = r.Context()
-		data domain.IrcNetwork
-	)
+	var data domain.IrcNetwork
 
 	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
+		h.encoder.Error(w, err)
 		return
 	}
 
-	err := h.service.StoreNetwork(ctx, &data)
+	err := h.service.StoreNetwork(r.Context(), &data)
 	if err != nil {
-		//
-		h.encoder.StatusResponse(ctx, w, nil, http.StatusBadRequest)
+		h.encoder.Error(w, err)
 		return
 	}
 
-	h.encoder.StatusResponse(ctx, w, nil, http.StatusCreated)
+	h.encoder.NoContent(w)
 }
 
 func (h ircHandler) updateNetwork(w http.ResponseWriter, r *http.Request) {
@@ -96,22 +93,21 @@ func (h ircHandler) updateNetwork(w http.ResponseWriter, r *http.Request) {
 	)
 
 	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
+		h.encoder.Error(w, err)
 		return
 	}
 
 	err := h.service.UpdateNetwork(ctx, &data)
 	if err != nil {
-		//
-		h.encoder.StatusResponse(ctx, w, nil, http.StatusBadRequest)
+		h.encoder.Error(w, err)
 		return
 	}
 
-	h.encoder.StatusResponse(ctx, w, nil, http.StatusCreated)
+	h.encoder.NoContent(w)
 }
 
 func (h ircHandler) storeChannel(w http.ResponseWriter, r *http.Request) {
 	var (
-		ctx       = r.Context()
 		data      domain.IrcChannel
 		networkID = chi.URLParam(r, "networkID")
 	)
@@ -119,15 +115,17 @@ func (h ircHandler) storeChannel(w http.ResponseWriter, r *http.Request) {
 	id, _ := strconv.Atoi(networkID)
 
 	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
+		h.encoder.Error(w, err)
 		return
 	}
 
 	err := h.service.StoreChannel(int64(id), &data)
 	if err != nil {
-		//
+		h.encoder.Error(w, err)
+		return
 	}
 
-	h.encoder.StatusResponse(ctx, w, nil, http.StatusCreated)
+	h.encoder.NoContent(w)
 }
 
 func (h ircHandler) deleteNetwork(w http.ResponseWriter, r *http.Request) {
@@ -140,8 +138,9 @@ func (h ircHandler) deleteNetwork(w http.ResponseWriter, r *http.Request) {
 
 	err := h.service.DeleteNetwork(ctx, int64(id))
 	if err != nil {
-		//
+		h.encoder.Error(w, err)
+		return
 	}
 
-	h.encoder.StatusResponse(ctx, w, nil, http.StatusNoContent)
+	h.encoder.NoContent(w)
 }
