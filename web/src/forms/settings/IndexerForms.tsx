@@ -148,7 +148,7 @@ export function IndexerAddForm({ isOpen, toggle }: AddProps) {
     })
 
     const ircMutation = useMutation(
-        (network: IrcNetwork) => APIClient.irc.createNetwork(network)
+        (network: IrcNetworkCreate) => APIClient.irc.createNetwork(network)
     );
 
     const onSubmit = (formData: any) => {
@@ -170,13 +170,11 @@ export function IndexerAddForm({ isOpen, toggle }: AddProps) {
             });
         }
 
-        const network: IrcNetwork = {
-            id: 0,
+        const network: IrcNetworkCreate = {
             name: ind.irc.network,
             pass: "",
             enabled: false,
             connected: false,
-            connected_since: 0,
             server: ind.irc.server,
             port: ind.irc.port,
             tls: ind.irc.tls,

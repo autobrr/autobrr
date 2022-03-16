@@ -6,7 +6,11 @@ import (
 	"net/http"
 )
 
-type encoder struct {
+type encoder struct{}
+
+type errorResponse struct {
+	Message string `json:"message"`
+	Status  int    `json:"status"`
 }
 
 func (e encoder) StatusResponse(ctx context.Context, w http.ResponseWriter, response interface{}, status int) {
@@ -14,14 +18,19 @@ func (e encoder) StatusResponse(ctx context.Context, w http.ResponseWriter, resp
 		w.Header().Set("Content-Type", "application/json; charset=utf=8")
 		w.WriteHeader(status)
 		if err := json.NewEncoder(w).Encode(response); err != nil {
-			// log err
+			w.WriteHeader(http.StatusInternalServerError)
+			return
 		}
 	} else {
 		w.WriteHeader(status)
 	}
 }
 
-func (e encoder) StatusNoContent(w http.ResponseWriter) {
+func (e encoder) StatusCreated(w http.ResponseWriter) {
+	w.WriteHeader(http.StatusCreated)
+}
+
+func (e encoder) NoContent(w http.ResponseWriter) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
@@ -31,4 +40,14 @@ func (e encoder) StatusNotFound(ctx context.Context, w http.ResponseWriter) {
 
 func (e encoder) StatusInternalError(w http.ResponseWriter) {
 	w.WriteHeader(http.StatusInternalServerError)
+}
+
+func (e encoder) Error(w http.ResponseWriter, err error) {
+	res := errorResponse{
+		Message: err.Error(),
+	}
+
+	w.Header().Set("Content-Type", "application/json; charset=utf=8")
+	w.WriteHeader(http.StatusInternalServerError)
+	json.NewEncoder(w).Encode(res)
 }
