@@ -3,6 +3,7 @@ package database
 import (
 	"database/sql"
 	"fmt"
+
 	"github.com/lib/pq"
 )
 
@@ -119,16 +120,17 @@ CREATE TABLE filter_indexer
 
 CREATE TABLE client
 (
-    id       INTEGER PRIMARY KEY,
-    name     TEXT NOT NULL,
-    enabled  BOOLEAN,
-    type     TEXT,
-    host     TEXT NOT NULL,
-    port     INTEGER,
-    ssl      BOOLEAN,
-    username TEXT,
-    password TEXT,
-    settings JSON
+    id       		INTEGER PRIMARY KEY,
+    name     		TEXT NOT NULL,
+    enabled  		BOOLEAN,
+    type     		TEXT,
+    host     		TEXT NOT NULL,
+    port     		INTEGER,
+    ssl      		BOOLEAN,
+    tls_skip_verify BOOLEAN,
+    username 		TEXT,
+    password 		TEXT,
+    settings 		JSON
 );
 
 CREATE TABLE action
@@ -344,6 +346,13 @@ var migrations = []string{
 	`
 	ALTER TABLE "filter"
 		ADD COLUMN priority INTEGER DEFAULT 0 NOT NULL;
+	`,
+	`
+	ALTER TABLE "client"
+		ADD COLUMN tls_skip_verify BOOLEAN DEFAULT FALSE;
+
+	ALTER TABLE "client"
+		RENAME COLUMN ssl TO tls;
 	`,
 }
 

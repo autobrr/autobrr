@@ -36,7 +36,8 @@ interface InitialValues {
     enabled: boolean;
     host: string;
     port: number;
-    ssl: boolean;
+    tls: boolean;
+    tls_skip_verify: boolean;
     username: string;
     password: string;
     settings: InitialValuesSettings;
@@ -44,14 +45,24 @@ interface InitialValues {
 
 
 function FormFieldsDefault() {
+    const {
+        values: { tls },
+    } = useFormikContext<InitialValues>();
+
     return (
         <Fragment>
             <TextFieldWide name="host" label="Host" help="Eg. client.domain.ltd, domain.ltd/client, domain.ltd:port" />
 
             <NumberFieldWide name="port" label="Port" help="WebUI port for qBittorrent and daemon port for Deluge" />
 
-            <div className="py-6 px-6 space-y-6 sm:py-0 sm:space-y-0 sm:divide-y sm:divide-gray-200">
-                <SwitchGroupWide name="ssl" label="SSL" />
+            <div className="py-6 px-6 space-y-6 sm:py-0 sm:space-y-0 sm:divide-y sm:divide-gray-200 dark:divide-gray-700">
+                <SwitchGroupWide name="tls" label="TLS" />
+
+                {tls && (
+                    <Fragment>
+                        <SwitchGroupWide name="tls_skip_verify" label="Skip TLS verification (insecure)" />
+                    </Fragment>
+                )}
             </div>
 
             <TextFieldWide name="username" label="Username" />
@@ -325,7 +336,8 @@ export function DownloadClientAddForm({ isOpen, toggle }: any) {
         enabled: true,
         host: "",
         port: 10000,
-        ssl: false,
+        tls: false,
+        tls_skip_verify: false,
         username: "",
         password: "",
         settings: {}
@@ -512,7 +524,8 @@ export function DownloadClientUpdateForm({ client, isOpen, toggle }: any) {
         enabled: client.enabled,
         host: client.host,
         port: client.port,
-        ssl: client.ssl,
+        tls: client.tls,
+        tls_skip_verify: client.tls_skip_verify,
         username: client.username,
         password: client.password,
         settings: client.settings,
