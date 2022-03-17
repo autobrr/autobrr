@@ -68,6 +68,11 @@ func NewClient(s Settings) *Client {
 func (c *Client) get(endpoint string, opts map[string]string) (*http.Response, error) {
 	reqUrl := fmt.Sprintf("%v://%v:%v/api/v2/%v", c.settings.protocol, c.settings.Hostname, c.settings.Port, endpoint)
 
+	//skip SSL verification
+	if c.settings.SSL {
+		http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+	}
+	
 	var err error
 	var resp *http.Response
 
@@ -108,6 +113,11 @@ func (c *Client) post(endpoint string, opts map[string]string) (*http.Response, 
 		}
 	}
 
+	//skip SSL verification
+	if c.settings.SSL {
+		http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+	}
+	
 	var err error
 	var resp *http.Response
 
@@ -195,6 +205,11 @@ func (c *Client) postFile(endpoint string, fileName string, opts map[string]stri
 	// Close multipart writer
 	multiPartWriter.Close()
 
+	//skip SSL verification
+	if c.settings.SSL {
+		http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+	}
+	
 	reqUrl := fmt.Sprintf("%v://%v:%v/api/v2/%v", c.settings.protocol, c.settings.Hostname, c.settings.Port, endpoint)
 	req, err := http.NewRequest("POST", reqUrl, &requestBody)
 	if err != nil {
@@ -228,6 +243,11 @@ func (c *Client) postFile(endpoint string, fileName string, opts map[string]stri
 }
 
 func (c *Client) setCookies(cookies []*http.Cookie) {
+	//skip SSL verification
+	if c.settings.SSL {
+		http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+	}
+	
 	cookieURL, _ := url.Parse(fmt.Sprintf("%v://%v:%v", c.settings.protocol, c.settings.Hostname, c.settings.Port))
 	c.http.Jar.SetCookies(cookieURL, cookies)
 }
