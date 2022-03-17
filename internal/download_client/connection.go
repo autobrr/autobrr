@@ -36,11 +36,12 @@ func (s *service) testConnection(client domain.DownloadClient) error {
 
 func (s *service) testQbittorrentConnection(client domain.DownloadClient) error {
 	qbtSettings := qbittorrent.Settings{
-		Hostname: client.Host,
-		Port:     uint(client.Port),
-		Username: client.Username,
-		Password: client.Password,
-		SSL:      client.SSL,
+		Hostname:      client.Host,
+		Port:          uint(client.Port),
+		Username:      client.Username,
+		Password:      client.Password,
+		TLS:           client.TLS,
+		TLSSkipVerify: client.TLSSkipVerify,
 	}
 
 	qbt := qbittorrent.NewClient(qbtSettings)

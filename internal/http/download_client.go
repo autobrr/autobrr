@@ -1,7 +1,9 @@
 package http
 
 import (
+	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"strconv"
 
@@ -11,9 +13,9 @@ import (
 )
 
 type downloadClientService interface {
-	List() ([]domain.DownloadClient, error)
-	Store(client domain.DownloadClient) (*domain.DownloadClient, error)
-	Delete(clientID int) error
+	List(ctx context.Context) ([]domain.DownloadClient, error)
+	Store(ctx context.Context, client domain.DownloadClient) (*domain.DownloadClient, error)
+	Delete(ctx context.Context, clientID int) error
 	Test(client domain.DownloadClient) error
 }
 
@@ -40,87 +42,84 @@ func (h downloadClientHandler) Routes(r chi.Router) {
 func (h downloadClientHandler) listDownloadClients(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
-	clients, err := h.service.List()
+	clients, err := h.service.List(ctx)
 	if err != nil {
-		//
+		h.encoder.Error(w, err)
+		return
 	}
 
 	h.encoder.StatusResponse(ctx, w, clients, http.StatusOK)
 }
 
 func (h downloadClientHandler) store(w http.ResponseWriter, r *http.Request) {
-	var (
-		ctx  = r.Context()
-		data domain.DownloadClient
-	)
+	var data domain.DownloadClient
 
 	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
-		// encode error
+		h.encoder.Error(w, err)
 		return
 	}
 
-	client, err := h.service.Store(data)
+	client, err := h.service.Store(r.Context(), data)
 	if err != nil {
-		// encode error
+		h.encoder.Error(w, err)
+		return
 	}
 
-	h.encoder.StatusResponse(ctx, w, client, http.StatusCreated)
+	h.encoder.StatusResponse(r.Context(), w, client, http.StatusCreated)
 }
 
 func (h downloadClientHandler) test(w http.ResponseWriter, r *http.Request) {
-	var (
-		ctx  = r.Context()
-		data domain.DownloadClient
-	)
+	var data domain.DownloadClient
 
 	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
-		// encode error
-		h.encoder.StatusResponse(ctx, w, nil, http.StatusBadRequest)
+		h.encoder.Error(w, err)
 		return
 	}
 
 	err := h.service.Test(data)
 	if err != nil {
-		// encode error
-		h.encoder.StatusResponse(ctx, w, nil, http.StatusBadRequest)
+		h.encoder.Error(w, err)
 		return
 	}
 
-	h.encoder.StatusResponse(ctx, w, nil, http.StatusNoContent)
+	h.encoder.NoContent(w)
 }
 
 func (h downloadClientHandler) update(w http.ResponseWriter, r *http.Request) {
-	var (
-		ctx  = r.Context()
-		data domain.DownloadClient
-	)
+	var data domain.DownloadClient
 
 	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
-		// encode error
+		h.encoder.Error(w, err)
 		return
 	}
 
-	client, err := h.service.Store(data)
+	client, err := h.service.Store(r.Context(), data)
 	if err != nil {
-		// encode error
+		h.encoder.Error(w, err)
+		return
 	}
 
-	h.encoder.StatusResponse(ctx, w, client, http.StatusCreated)
+	h.encoder.StatusResponse(r.Context(), w, client, http.StatusCreated)
 }
 
 func (h downloadClientHandler) delete(w http.ResponseWriter, r *http.Request) {
-	var (
-		ctx      = r.Context()
-		clientID = chi.URLParam(r, "clientID")
-	)
+	var clientID = chi.URLParam(r, "clientID")
 
-	// if !clientID return error
-
-	id, _ := strconv.Atoi(clientID)
-
-	if err := h.service.Delete(id); err != nil {
-		// encode error
+	if clientID == "" {
+		h.encoder.Error(w, errors.New("no clientID given"))
+		return
 	}
 
-	h.encoder.StatusResponse(ctx, w, nil, http.StatusNoContent)
+	id, err := strconv.Atoi(clientID)
+	if err != nil {
+		h.encoder.Error(w, err)
+		return
+	}
+
+	if err = h.service.Delete(r.Context(), id); err != nil {
+		h.encoder.Error(w, err)
+		return
+	}
+
+	h.encoder.NoContent(w)
 }

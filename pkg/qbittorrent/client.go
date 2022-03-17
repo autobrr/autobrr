@@ -2,6 +2,7 @@ package qbittorrent
 
 import (
 	"bytes"
+	"crypto/tls"
 	"fmt"
 	"io"
 	"mime/multipart"
@@ -32,12 +33,13 @@ type Client struct {
 }
 
 type Settings struct {
-	Hostname string
-	Port     uint
-	Username string
-	Password string
-	SSL      bool
-	protocol string
+	Hostname      string
+	Port          uint
+	Username      string
+	Password      string
+	TLS           bool
+	TLSSkipVerify bool
+	protocol      string
 }
 
 func NewClient(s Settings) *Client {
@@ -58,8 +60,17 @@ func NewClient(s Settings) *Client {
 	}
 
 	c.settings.protocol = "http"
-	if c.settings.SSL {
+	if c.settings.TLS {
 		c.settings.protocol = "https"
+	}
+
+	if c.settings.TLSSkipVerify {
+		//skip TLS verification
+		tr := &http.Transport{
+			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+		}
+
+		c.http.Transport = tr
 	}
 
 	return c

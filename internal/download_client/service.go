@@ -5,15 +5,13 @@ import (
 	"errors"
 
 	"github.com/autobrr/autobrr/internal/domain"
-
-	"github.com/rs/zerolog/log"
 )
 
 type Service interface {
-	List() ([]domain.DownloadClient, error)
+	List(ctx context.Context) ([]domain.DownloadClient, error)
 	FindByID(ctx context.Context, id int32) (*domain.DownloadClient, error)
-	Store(client domain.DownloadClient) (*domain.DownloadClient, error)
-	Delete(clientID int) error
+	Store(ctx context.Context, client domain.DownloadClient) (*domain.DownloadClient, error)
+	Delete(ctx context.Context, clientID int) error
 	Test(client domain.DownloadClient) error
 }
 
@@ -25,25 +23,15 @@ func NewService(repo domain.DownloadClientRepo) Service {
 	return &service{repo: repo}
 }
 
-func (s *service) List() ([]domain.DownloadClient, error) {
-	clients, err := s.repo.List()
-	if err != nil {
-		return nil, err
-	}
-
-	return clients, nil
+func (s *service) List(ctx context.Context) ([]domain.DownloadClient, error) {
+	return s.repo.List(ctx)
 }
 
 func (s *service) FindByID(ctx context.Context, id int32) (*domain.DownloadClient, error) {
-	client, err := s.repo.FindByID(ctx, id)
-	if err != nil {
-		return nil, err
-	}
-
-	return client, nil
+	return s.repo.FindByID(ctx, id)
 }
 
-func (s *service) Store(client domain.DownloadClient) (*domain.DownloadClient, error) {
+func (s *service) Store(ctx context.Context, client domain.DownloadClient) (*domain.DownloadClient, error) {
 	// validate data
 	if client.Host == "" {
 		return nil, errors.New("validation error: no host")
@@ -52,22 +40,11 @@ func (s *service) Store(client domain.DownloadClient) (*domain.DownloadClient, e
 	}
 
 	// store
-	c, err := s.repo.Store(client)
-	if err != nil {
-		return nil, err
-	}
-
-	return c, nil
+	return s.repo.Store(ctx, client)
 }
 
-func (s *service) Delete(clientID int) error {
-	if err := s.repo.Delete(clientID); err != nil {
-		return err
-	}
-
-	log.Debug().Msgf("delete client: %v", clientID)
-
-	return nil
+func (s *service) Delete(ctx context.Context, clientID int) error {
+	return s.repo.Delete(ctx, clientID)
 }
 
 func (s *service) Test(client domain.DownloadClient) error {
@@ -79,10 +56,5 @@ func (s *service) Test(client domain.DownloadClient) error {
 	}
 
 	// test
-	err := s.testConnection(client)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return s.testConnection(client)
 }
