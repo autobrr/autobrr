@@ -21,22 +21,19 @@ func (s *service) RunActions(actions []domain.Action, release domain.Release) er
 
 		log.Debug().Msgf("process action: %v for '%v'", action.Name, release.TorrentName)
 
-		go func(release domain.Release, action domain.Action) {
-			err := s.runAction(action, release)
-			if err != nil {
-				log.Err(err).Stack().Msgf("process action failed: %v for '%v'", action.Name, release.TorrentName)
+		err := s.runAction(action, release)
+		if err != nil {
+			log.Err(err).Stack().Msgf("process action failed: %v for '%v'", action.Name, release.TorrentName)
 
-				s.bus.Publish("release:store-action-status", &domain.ReleaseActionStatus{
-					ReleaseID:  release.ID,
-					Status:     domain.ReleasePushStatusErr,
-					Action:     action.Name,
-					Type:       action.Type,
-					Rejections: []string{err.Error()},
-					Timestamp:  time.Now(),
-				})
-				return
-			}
-		}(release, action)
+			s.bus.Publish("release:store-action-status", &domain.ReleaseActionStatus{
+				ReleaseID:  release.ID,
+				Status:     domain.ReleasePushStatusErr,
+				Action:     action.Name,
+				Type:       action.Type,
+				Rejections: []string{err.Error()},
+				Timestamp:  time.Now(),
+			})
+		}
 	}
 
 	// safe to delete tmp file
