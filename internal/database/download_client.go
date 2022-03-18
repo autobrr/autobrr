@@ -35,7 +35,7 @@ func (c *clientCache) Set(id int, client *domain.DownloadClient) {
 
 func (c *clientCache) Get(id int) *domain.DownloadClient {
 	c.mu.RLock()
-	defer c.mu.Unlock()
+	defer c.mu.RUnlock()
 	v, ok := c.clients[id]
 	if ok {
 		return v
