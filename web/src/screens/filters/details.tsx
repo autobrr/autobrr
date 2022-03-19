@@ -624,6 +624,9 @@ function FilterActions({ filter, values }: FilterActionsProps) {
         limit_upload_speed: 0,
         limit_download_speed: 0,
         filter_id: filter.id,
+        host: "",
+        data: "",
+        headers: [],
         //   client_id: 0,
     }
 
@@ -716,6 +719,23 @@ function FilterActionsItem({ action, clients, idx, remove }: FilterActionsItemPr
                             label="Watch folder"
                             columns={6}
                             placeholder="Watch directory eg. /home/user/rwatch"
+                        />
+                    </div>
+                );
+            case "WEBHOOK":
+                return (
+                    <div className="mt-6 grid grid-cols-12 gap-6">
+                        <TextField
+                            name={`actions.${idx}.host`}
+                            label="Host"
+                            columns={6}
+                            placeholder="Host eg. http://localhost/webhook"
+                        />
+                        <TextField
+                            name={`actions.${idx}.data`}
+                            label="Data (json)"
+                            columns={6}
+                            placeholder={`Request data: { "key": "value" }`}
                         />
                     </div>
                 );

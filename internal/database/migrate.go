@@ -354,6 +354,16 @@ var migrations = []string{
 	ALTER TABLE "client"
 		RENAME COLUMN ssl TO tls;
 	`,
+	`
+	ALTER TABLE "action"
+		ADD COLUMN host TEXT;
+
+	ALTER TABLE "action"
+		ADD COLUMN data TEXT;
+
+	ALTER TABLE "action"
+		ADD COLUMN headers TEXT []   DEFAULT '{}';
+	`,
 }
 
 func (db *SqliteDB) migrate() error {

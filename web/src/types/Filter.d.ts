@@ -66,8 +66,11 @@ interface Action {
   ignore_rules?: boolean;
   limit_upload_speed?: number;
   limit_download_speed?: number;
+  host: string;
+  data: string;
+  headers: string[];
   filter_id?: number;
   client_id?: number;
 }
 
-type ActionType = 'TEST' | 'EXEC' | 'WATCH_FOLDER' | DownloadClientType;
+type ActionType = 'TEST' | 'EXEC' | 'WATCH_FOLDER' | 'WEBHOOK' | DownloadClientType;
