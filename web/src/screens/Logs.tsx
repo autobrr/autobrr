@@ -39,7 +39,7 @@ export const Logs = () => {
                             className="h-5 w-5 text-yellow-400"
                             aria-hidden="true"
                         />
-                        <p className="ml-2 text-sm text-gray-500 dark:text-gray-400">This only shows new logs, no history</p>
+                        <p className="ml-2 text-sm text-gray-800 dark:text-gray-400">This only shows new logs, no history</p>
                     </div>
                 </div>
             </header>

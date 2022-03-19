@@ -72,6 +72,7 @@ export const APIClient = {
         getByID: (id: number) => appClient.Get<Filter>(`api/filters/${id}`),
         create: (filter: Filter) => appClient.Post("api/filters", filter),
         update: (filter: Filter) => appClient.Put(`api/filters/${filter.id}`, filter),
+        duplicate: (id: number) => appClient.Get<Filter>(`api/filters/${id}/duplicate`),
         toggleEnable: (id: number, enabled: boolean) => appClient.Put(`api/filters/${id}/enabled`, { enabled }),
         delete: (id: number) => appClient.Delete(`api/filters/${id}`),
     },
@@ -87,9 +88,9 @@ export const APIClient = {
         delete: (id: number) => appClient.Delete(`api/indexer/${id}`),
     },
     irc: {
-        getNetworks: () => appClient.Get<IrcNetwork[]>("api/irc"),
-        createNetwork: (network: Network) => appClient.Post("api/irc", network),
-        updateNetwork: (network: Network) => appClient.Put(`api/irc/network/${network.id}`, network),
+        getNetworks: () => appClient.Get<IrcNetworkWithHealth[]>("api/irc"),
+        createNetwork: (network: IrcNetworkCreate) => appClient.Post("api/irc", network),
+        updateNetwork: (network: IrcNetwork) => appClient.Put(`api/irc/network/${network.id}`, network),
         deleteNetwork: (id: number) => appClient.Delete(`api/irc/network/${id}`),
     },
     events: {
@@ -97,30 +98,28 @@ export const APIClient = {
     },
     release: {
         find: (query?: string) => appClient.Get<ReleaseFindResponse>(`api/release${query}`),
-        findQuery: (offset?: number, limit?: number, filters?: any[]) => {
-            let queryString = "?"
+        findQuery: (offset?: number, limit?: number, filters?: Array<ReleaseFilter>) => {
+            const params = new URLSearchParams();
+            if (offset !== undefined)
+                params.append("offset", offset.toString());
 
-            if (offset != 0) {
-                queryString += `offset=${offset}`
-            }
-            if (limit != 0) {
-                queryString += `&limit=${limit}`
-            }
-            if (filters && filters?.length > 0) {
-                filters?.map((filter) => {
-                    if (filter.id === "indexer" && filter.value != "") {
-                        queryString += `&indexer=${filter.value}`
-                    }
-                    // using action_status instead of push_status because thats the column accessor
-                    if (filter.id === "action_status" && filter.value != "") {
-                        queryString += `&push_status=${filter.value}`
-                    }
-                })
-            }
+            if (limit !== undefined)
+                params.append("limit", limit.toString());
 
-            return appClient.Get<ReleaseFindResponse>(`api/release${queryString}`)
+            filters?.forEach((filter) => {
+                if (!filter.value)
+                    return;
+
+                if (filter.id == "indexer")
+                    params.append("indexer", filter.value);
+                else if (filter.id === "action_status")
+                    params.append("push_status", filter.value);
+            });
+
+            return appClient.Get<ReleaseFindResponse>(`api/release?${params.toString()}`)
         },
         indexerOptions: () => appClient.Get<string[]>(`api/release/indexers`),
-        stats: () => appClient.Get<ReleaseStats>("api/release/stats")
+        stats: () => appClient.Get<ReleaseStats>("api/release/stats"),
+        delete: () => appClient.Delete(`api/release/all`),
     }
 };

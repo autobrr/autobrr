@@ -10,7 +10,7 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-func (s *service) execCmd(release domain.Release, action domain.Action, torrentFile string) {
+func (s *service) execCmd(release domain.Release, action domain.Action) {
 	log.Debug().Msgf("action exec: %v release: %v", action.Name, release.TorrentName)
 
 	// check if program exists
@@ -21,11 +21,7 @@ func (s *service) execCmd(release domain.Release, action domain.Action, torrentF
 	}
 
 	// handle args and replace vars
-	m := Macro{
-		TorrentName:     release.TorrentName,
-		TorrentPathName: torrentFile,
-		TorrentUrl:      release.TorrentURL,
-	}
+	m := NewMacro(release)
 
 	// parse and replace values in argument string before continuing
 	parsedArgs, err := m.Parse(action.ExecArgs)
@@ -46,7 +42,7 @@ func (s *service) execCmd(release domain.Release, action domain.Action, torrentF
 	output, err := command.CombinedOutput()
 	if err != nil {
 		// everything other than exit 0 is considered an error
-		log.Error().Stack().Err(err).Msgf("command: %v args: %v failed, torrent: %v", cmd, parsedArgs, torrentFile)
+		log.Error().Stack().Err(err).Msgf("command: %v args: %v failed, torrent: %v", cmd, parsedArgs, release.TorrentTmpFile)
 	}
 
 	log.Trace().Msgf("executed command: '%v'", string(output))

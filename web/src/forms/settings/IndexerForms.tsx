@@ -1,4 +1,4 @@
-import { Fragment } from "react";
+import {Fragment, useState} from "react";
 import { toast } from "react-hot-toast";
 import { useMutation, useQuery } from "react-query";
 import Select, { components } from "react-select";
@@ -16,7 +16,7 @@ import {
     TextFieldWide,
     PasswordFieldWide,
     SwitchGroupWide
-} from "../../components/inputs/input_wide";
+} from "../../components/inputs";
 import { SlideOver } from "../../components/panels";
 import Toast from '../../components/notifications/Toast';
 
@@ -57,12 +57,76 @@ const Option = (props: any) => {
     );
 }
 
+const IrcSettingFields = (ind: IndexerDefinition, indexer: string) => {
+    if (indexer !== "") {
+        return (
+            <Fragment>
+                {ind && ind.irc && ind.irc.settings && (
+                    <div className="border-t border-gray-200 dark:border-gray-700 py-5">
+                        <div className="px-6 space-y-1">
+                            <Dialog.Title className="text-lg font-medium text-gray-900 dark:text-white">IRC</Dialog.Title>
+                            <p className="text-sm text-gray-500 dark:text-gray-200">
+                                Networks, channels and invite commands are configured automatically.
+                            </p>
+                        </div>
+                        {ind.irc.settings.map((f: IndexerSetting, idx: number) => {
+                            switch (f.type) {
+                                case "text":
+                                    return <TextFieldWide name={`irc.${f.name}`} label={f.label} required={f.required} key={idx} help={f.help} />
+                                case "secret":
+                                    if (f.name === "invite_command") {
+                                        return <PasswordFieldWide name={`irc.${f.name}`} label={f.label} required={f.required} key={idx} help={f.help} defaultVisible={true} defaultValue={f.default} />
+                                    }
+                                    return <PasswordFieldWide name={`irc.${f.name}`} label={f.label} required={f.required} key={idx} help={f.help} defaultValue={f.default} />
+                            }
+                            return null
+                        })}
+
+                        {/* <div hidden={false}>
+                                <TextFieldWide name="irc.server" label="Server" defaultValue={ind.irc.server} />
+                                <NumberFieldWide name="irc.port" label="Port" defaultValue={ind.irc.port} />
+                                <SwitchGroupWide name="irc.tls" label="TLS" defaultValue={ind.irc.tls} />
+                            </div> */}
+                    </div>
+                )}
+            </Fragment>
+        )
+    }
+}
+
+const SettingFields = (ind: IndexerDefinition, indexer: string) => {
+    if (indexer !== "") {
+        return (
+            <div key="opt">
+                {ind && ind.settings && ind.settings.map((f: any, idx: number) => {
+                    switch (f.type) {
+                        case "text":
+                            return (
+                                <TextFieldWide name={`settings.${f.name}`} label={f.label} key={idx} help={f.help} defaultValue="" />
+                            )
+                        case "secret":
+                            return (
+                                <PasswordFieldWide name={`settings.${f.name}`} label={f.label} key={idx} help={f.help} defaultValue="" />
+                            )
+                    }
+                    return null
+                })}
+                <div hidden={true}>
+                    <TextFieldWide name="name" label="Name" defaultValue={ind?.name} />
+                </div>
+            </div>
+        )
+    }
+}
+
 interface AddProps {
     isOpen: boolean;
     toggle: any;
 }
 
 export function IndexerAddForm({ isOpen, toggle }: AddProps) {
+    const [indexer, setIndexer] = useState<IndexerDefinition>({} as IndexerDefinition)
+
     const { data } = useQuery('indexerDefinition', APIClient.indexers.getSchema,
         {
             enabled: isOpen,
@@ -70,7 +134,8 @@ export function IndexerAddForm({ isOpen, toggle }: AddProps) {
         }
     )
 
-    const mutation = useMutation((indexer: Indexer) => APIClient.indexers.create(indexer), {
+    const mutation = useMutation(
+      (indexer: Indexer) => APIClient.indexers.create(indexer), {
         onSuccess: () => {
             queryClient.invalidateQueries(['indexer']);
             toast.custom((t) => <Toast type="success" body="Indexer was added" t={t} />)
@@ -83,7 +148,7 @@ export function IndexerAddForm({ isOpen, toggle }: AddProps) {
     })
 
     const ircMutation = useMutation(
-        (network: Network) => APIClient.irc.createNetwork(network)
+        (network: IrcNetworkCreate) => APIClient.irc.createNetwork(network)
     );
 
     const onSubmit = (formData: any) => {
@@ -91,22 +156,30 @@ export function IndexerAddForm({ isOpen, toggle }: AddProps) {
         if (!ind)
             return;
 
-        const channels: Channel[] = [];
+        const channels: IrcChannel[] = [];
         if (ind.irc.channels.length) {
             ind.irc.channels.forEach(element => {
-                channels.push({ name: element, password: "" });
+                channels.push({
+                    id: 0,
+                    enabled: true,
+                    name: element,
+                    password: "",
+                    detached: false,
+                    monitoring: false
+                });
             });
         }
 
-        const network: Network = {
+        const network: IrcNetworkCreate = {
             name: ind.irc.network,
+            pass: "",
             enabled: false,
+            connected: false,
             server: ind.irc.server,
             port: ind.irc.port,
             tls: ind.irc.tls,
             nickserv: formData.irc.nickserv,
             invite_command: formData.irc.invite_command,
-            settings: formData.irc.settings,
             channels: channels,
         }
 
@@ -199,7 +272,9 @@ export function IndexerAddForm({ isOpen, toggle }: AddProps) {
                                         enabled: true,
                                         identifier: "",
                                         name: "",
-                                        irc: {},
+                                        irc: {
+                                            invite_command: "",
+                                        },
                                         settings: {},
                                     }}
                                     onSubmit={onSubmit}
@@ -242,7 +317,7 @@ export function IndexerAddForm({ isOpen, toggle }: AddProps) {
                                                             </div>
                                                             <div className="sm:col-span-2">
                                                                 <Field name="identifier" type="select">
-                                                                    {({ field, form: { setFieldValue } }: FieldProps) => (
+                                                                    {({ field, form: { setFieldValue, resetForm } }: FieldProps) => (
                                                                         <Select {...field}
                                                                             isClearable={true}
                                                                             isSearchable={true}
@@ -264,8 +339,17 @@ export function IndexerAddForm({ isOpen, toggle }: AddProps) {
                                                                             })}
                                                                             value={field?.value && field.value.value}
                                                                             onChange={(option: any) => {
+                                                                                resetForm()
                                                                                 setFieldValue("name", option?.label ?? "")
                                                                                 setFieldValue(field.name, option?.value ?? "")
+
+                                                                                const ind = data!.find(i => i.identifier === option.value);
+                                                                                setIndexer(ind!)
+                                                                                if (ind!.irc.settings) {
+                                                                                    ind!.irc.settings.forEach((s) => {
+                                                                                        setFieldValue(`irc.${s.name}`, s.default ?? "")
+                                                                                    })
+                                                                                }
                                                                             }}
                                                                             options={data && data.sort((a, b): any => a.name.localeCompare(b.name)).map(v => ({
                                                                                 label: v.name,
@@ -282,12 +366,11 @@ export function IndexerAddForm({ isOpen, toggle }: AddProps) {
                                                             <SwitchGroupWide name="enabled" label="Enabled" />
                                                         </div>
 
-
-                                                        {renderSettingFields(values.identifier)}
+                                                        {SettingFields(indexer, values.identifier)}
 
                                                     </div>
 
-                                                    {renderIrcSettingFields(values.identifier)}
+                                                    {IrcSettingFields(indexer, values.identifier)}
                                                 </div>
 
                                                 <div

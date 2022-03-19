@@ -8,8 +8,8 @@ import { ChevronDownIcon, MenuIcon, XIcon } from "@heroicons/react/outline";
 import Settings from "./Settings";
 
 import { Logs } from "./Logs";
-import { Releases } from "./Releases";
-import { Dashboard } from "./Dashboard";
+import { Releases } from "./releases";
+import { Dashboard } from "./dashboard";
 import { FilterDetails, Filters } from "./filters";
 import { AuthContext } from '../utils/Context';
 

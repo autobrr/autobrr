@@ -283,3 +283,33 @@ FROM "release";`
 
 	return &rls, nil
 }
+
+func (repo *ReleaseRepo) Delete(ctx context.Context) error {
+	tx, err := repo.db.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+
+	defer tx.Rollback()
+
+	_, err = tx.ExecContext(ctx, `DELETE FROM "release"`)
+	if err != nil {
+		log.Error().Stack().Err(err).Msg("error deleting all releases")
+		return err
+	}
+
+	_, err = tx.ExecContext(ctx, `DELETE FROM release_action_status`)
+	if err != nil {
+		log.Error().Stack().Err(err).Msg("error deleting all release_action_status")
+		return err
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		log.Error().Stack().Err(err).Msg("error deleting all releases")
+		return err
+
+	}
+
+	return nil
+}

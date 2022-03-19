@@ -7,22 +7,31 @@ import { useToggle } from "../../hooks/hooks";
 import { DeleteModal } from "../modals";
 import { classNames } from "../../utils";
 
-interface SlideOverProps {
+interface SlideOverProps<DataType> {
     title: string;
-    initialValues: any;
-    validate?: any;
-    onSubmit: any;
+    initialValues: DataType;
+    validate?: (values?: any) => void;
+    onSubmit: (values?: DataType) => void;
     isOpen: boolean;
-    toggle: any;
-    children?: (values: any) => React.ReactNode;
-    deleteAction?: any
+    toggle: () => void;
+    children?: (values: DataType) => React.ReactNode;
+    deleteAction?: () => void;
     type: "CREATE" | "UPDATE";
 }
 
-function SlideOver({ title, initialValues, validate, onSubmit, deleteAction, isOpen, toggle, type, children }: SlideOverProps) {
-    const [deleteModalIsOpen, toggleDeleteModal] = useToggle(false)
-
-    const cancelModalButtonRef = useRef(null)
+function SlideOver<DataType>({
+  title,
+  initialValues,
+  validate,
+  onSubmit,
+  deleteAction,
+  isOpen,
+  toggle,
+  type,
+  children
+}: SlideOverProps<DataType>): React.ReactElement {
+    const cancelModalButtonRef = useRef(null);
+    const [deleteModalIsOpen, toggleDeleteModal] = useToggle(false);
 
     return (
         <Transition.Root show={isOpen} as={Fragment}>
@@ -84,7 +93,9 @@ function SlideOver({ title, initialValues, validate, onSubmit, deleteAction, isO
                                                         </div>
                                                     </div>
 
-                                                    {children !== undefined && children(values)}
+                                                    {!!values && children !== undefined ? (
+                                                      children(values)
+                                                    ) : null}
                                                 </div>
 
                                                 <div className="flex-shrink-0 px-4 border-t border-gray-200 dark:border-gray-700 py-5 sm:px-6">

@@ -4,23 +4,24 @@ import "context"
 
 type DownloadClientRepo interface {
 	//FindByActionID(actionID int) ([]DownloadClient, error)
-	List() ([]DownloadClient, error)
+	List(ctx context.Context) ([]DownloadClient, error)
 	FindByID(ctx context.Context, id int32) (*DownloadClient, error)
-	Store(client DownloadClient) (*DownloadClient, error)
-	Delete(clientID int) error
+	Store(ctx context.Context, client DownloadClient) (*DownloadClient, error)
+	Delete(ctx context.Context, clientID int) error
 }
 
 type DownloadClient struct {
-	ID       int                    `json:"id"`
-	Name     string                 `json:"name"`
-	Type     DownloadClientType     `json:"type"`
-	Enabled  bool                   `json:"enabled"`
-	Host     string                 `json:"host"`
-	Port     int                    `json:"port"`
-	SSL      bool                   `json:"ssl"`
-	Username string                 `json:"username"`
-	Password string                 `json:"password"`
-	Settings DownloadClientSettings `json:"settings,omitempty"`
+	ID            int                    `json:"id"`
+	Name          string                 `json:"name"`
+	Type          DownloadClientType     `json:"type"`
+	Enabled       bool                   `json:"enabled"`
+	Host          string                 `json:"host"`
+	Port          int                    `json:"port"`
+	TLS           bool                   `json:"tls"`
+	TLSSkipVerify bool                   `json:"tls_skip_verify"`
+	Username      string                 `json:"username"`
+	Password      string                 `json:"password"`
+	Settings      DownloadClientSettings `json:"settings,omitempty"`
 }
 
 type DownloadClientSettings struct {

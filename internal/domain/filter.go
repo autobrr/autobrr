@@ -14,7 +14,7 @@ type FilterRepo interface {
 	FindByID(ctx context.Context, filterID int) (*Filter, error)
 	FindByIndexerIdentifier(indexer string) ([]Filter, error)
 	ListFilters(ctx context.Context) ([]Filter, error)
-	Store(filter Filter) (*Filter, error)
+	Store(ctx context.Context, filter Filter) (*Filter, error)
 	Update(ctx context.Context, filter Filter) (*Filter, error)
 	ToggleEnabled(ctx context.Context, filterID int, enabled bool) error
 	Delete(ctx context.Context, filterID int) error
@@ -32,6 +32,7 @@ type Filter struct {
 	MinSize             string    `json:"min_size"`
 	MaxSize             string    `json:"max_size"`
 	Delay               int       `json:"delay"`
+	Priority            int32     `json:"priority"`
 	MatchReleases       string    `json:"match_releases"`
 	ExceptReleases      string    `json:"except_releases"`
 	UseRegex            bool      `json:"use_regex"`

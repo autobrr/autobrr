@@ -50,13 +50,35 @@ archives:
 
 release:
   prerelease: auto
+  footer: |
+    **Full Changelog**: https://github.com/autobrr/autobrr/compare/{{ .PreviousTag }}...{{ .Tag }}
+    
+    ## Docker images
+    
+    - `docker pull ghcr.io/autobrr/autobrr:{{ .Tag }}`
+    
+    ## What to do next?
+    
+    - Read the [documentation](https://autobrr.com/docs/introduction)
+    - Join our [Discord server](https://discord.gg/WQ2eUycxyT)
 
 checksum:
   name_template: '{{ .ProjectName }}_{{ .Version }}_checksums.txt'
 
 changelog:
   sort: asc
+  use: github
   filters:
     exclude:
-      - '^docs:'
-      - '^test:'
+      - Merge pull request
+      - Merge remote-tracking branch
+      - Merge branch
+  groups:
+    - title: 'New Features'
+      regexp: "^.*feat[(\\w)]*:+.*$"
+      order: 0
+    - title: 'Bug fixes'
+      regexp: "^.*fix[(\\w)]*:+.*$"
+      order: 10
+    - title: Other work
+      order: 999

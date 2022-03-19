@@ -7,6 +7,7 @@ interface Filter {
   min_size: string;
   max_size: string;
   delay: number;
+  priority: number;
   match_releases: string;
   except_releases: string;
   use_regex: boolean;

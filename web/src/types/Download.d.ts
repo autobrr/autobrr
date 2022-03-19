@@ -33,7 +33,8 @@ interface DownloadClient {
   enabled: boolean;
   host: string;
   port: number;
-  ssl: boolean;
+  tls: boolean;
+  tls_skip_verify: boolean;
   username: string;
   password: string;
   settings?: DownloadClientSettings;
