@@ -66,9 +66,11 @@ interface Action {
   ignore_rules?: boolean;
   limit_upload_speed?: number;
   limit_download_speed?: number;
-  host: string;
-  data: string;
-  headers: string[];
+  webhook_host: string,
+  webhook_type: string;
+  webhook_method: string;
+  webhook_data: string,
+  webhook_headers: string[];
   filter_id?: number;
   client_id?: number;
 }

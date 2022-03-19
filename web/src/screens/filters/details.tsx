@@ -178,7 +178,16 @@ export default function FilterDetails() {
         return null
     }
 
-    const handleSubmit = (data: any) => {
+    const handleSubmit = (data: Filter) => {
+        // force set method and type on webhook actions
+        // TODO add options for these
+        data.actions.forEach((a: Action) => {
+            if (a.type === "WEBHOOK") {
+                a.webhook_method = "POST"
+                a.webhook_type = "JSON"
+            }
+        })
+
         updateMutation.mutate(data)
     }
 
@@ -268,8 +277,6 @@ export default function FilterDetails() {
                                         except_uploaders: filter.except_uploaders,
                                         freeleech: filter.freeleech,
                                         freeleech_percent: filter.freeleech_percent,
-                                        indexers: filter.indexers || [],
-                                        actions: filter.actions || [],
                                         formats: filter.formats || [],
                                         quality: filter.quality || [],
                                         media: filter.media || [],
@@ -280,6 +287,8 @@ export default function FilterDetails() {
                                         perfect_flac: filter.perfect_flac,
                                         artists: filter.artists,
                                         albums: filter.albums,
+                                        indexers: filter.indexers || [],
+                                        actions: filter.actions || [],
                                     } as Filter}
                                     onSubmit={handleSubmit}
                                 >
@@ -624,9 +633,11 @@ function FilterActions({ filter, values }: FilterActionsProps) {
         limit_upload_speed: 0,
         limit_download_speed: 0,
         filter_id: filter.id,
-        host: "",
-        data: "",
-        headers: [],
+        webhook_host: "",
+        webhook_type: "",
+        webhook_method: "",
+        webhook_data: "",
+        webhook_headers: [],
         //   client_id: 0,
     }
 
@@ -726,13 +737,13 @@ function FilterActionsItem({ action, clients, idx, remove }: FilterActionsItemPr
                 return (
                     <div className="mt-6 grid grid-cols-12 gap-6">
                         <TextField
-                            name={`actions.${idx}.host`}
+                            name={`actions.${idx}.webhook_host`}
                             label="Host"
                             columns={6}
                             placeholder="Host eg. http://localhost/webhook"
                         />
                         <TextField
-                            name={`actions.${idx}.data`}
+                            name={`actions.${idx}.webhook_data`}
                             label="Data (json)"
                             columns={6}
                             placeholder={`Request data: { "key": "value" }`}

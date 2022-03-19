@@ -356,13 +356,19 @@ var migrations = []string{
 	`,
 	`
 	ALTER TABLE "action"
-		ADD COLUMN host TEXT;
+		ADD COLUMN webhook_host TEXT;
 
 	ALTER TABLE "action"
-		ADD COLUMN data TEXT;
+		ADD COLUMN webhook_data TEXT;
 
 	ALTER TABLE "action"
-		ADD COLUMN headers TEXT []   DEFAULT '{}';
+		ADD COLUMN webhook_method TEXT;
+
+	ALTER TABLE "action"
+		ADD COLUMN webhook_type TEXT;
+
+	ALTER TABLE "action"
+		ADD COLUMN webhook_headers TEXT []   DEFAULT '{}';
 	`,
 }
 

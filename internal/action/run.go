@@ -270,17 +270,18 @@ func (s *service) webhook(action domain.Action, release domain.Release) {
 	m := NewMacro(release)
 
 	// parse and replace values in argument string before continuing
-	dataArgs, err := m.Parse(action.Data)
+	dataArgs, err := m.Parse(action.WebhookData)
 	if err != nil {
-		log.Error().Stack().Err(err).Msgf("could not parse macro: %v", action.Data)
+		log.Error().Stack().Err(err).Msgf("could not parse macro: %v", action.WebhookData)
+		return
 	}
 
 	log.Trace().Msgf("action WEBHOOK: '%v' file: %v", action.Name, release.TorrentName)
-	log.Trace().Msgf("webhook action '%v' - host: %v data: %v", action.Name, action.Host, action.Data)
+	log.Trace().Msgf("webhook action '%v' - host: %v data: %v", action.Name, action.WebhookHost, action.WebhookData)
 
 	jsonData, err := json.Marshal(dataArgs)
 	if err != nil {
-		log.Error().Err(err).Msgf("webhook client could not marshal data: %v", action.Host)
+		log.Error().Err(err).Msgf("webhook client could not marshal data: %v", action.WebhookHost)
 		return
 	}
 
@@ -292,9 +293,9 @@ func (s *service) webhook(action domain.Action, release domain.Release) {
 
 	client := http.Client{Transport: t, Timeout: 15 * time.Second}
 
-	req, err := http.NewRequest(http.MethodPost, action.Host, bytes.NewBuffer(jsonData))
+	req, err := http.NewRequest(http.MethodPost, action.WebhookHost, bytes.NewBuffer(jsonData))
 	if err != nil {
-		log.Error().Err(err).Msgf("webhook client request error: %v", action.Host)
+		log.Error().Err(err).Msgf("webhook client request error: %v", action.WebhookHost)
 		return
 	}
 
@@ -303,13 +304,13 @@ func (s *service) webhook(action domain.Action, release domain.Release) {
 
 	res, err := client.Do(req)
 	if err != nil {
-		log.Error().Err(err).Msgf("webhook client request error: %v", action.Host)
+		log.Error().Err(err).Msgf("webhook client request error: %v", action.WebhookHost)
 		return
 	}
 
 	defer res.Body.Close()
 
-	log.Info().Msgf("successfully ran webhook action: '%v' to: %v payload: %v", action.Name, action.Host, dataArgs)
+	log.Info().Msgf("successfully ran webhook action: '%v' to: %v payload: %v", action.Name, action.WebhookHost, dataArgs)
 
 	return
 }

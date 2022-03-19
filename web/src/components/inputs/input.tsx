@@ -7,22 +7,27 @@ type COL_WIDTHS = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12;
 
 interface TextFieldProps {
     name: string;
+    defaultValue?: string;
     label?: string;
     placeholder?: string;
     columns?: COL_WIDTHS;
     autoComplete?: string;
+    hidden?: boolean;
 }
 
 export const TextField = ({
     name,
+    defaultValue,
     label,
     placeholder,
     columns,
-    autoComplete
+    autoComplete,
+    hidden,
 }: TextFieldProps) => (
     <div
         className={classNames(
-            columns ? `col-span-${columns}` : "col-span-12"
+            hidden ? "hidden" : "",
+            columns ? `col-span-${columns}` : "col-span-12",
         )}
     >
         {label && (
@@ -40,6 +45,7 @@ export const TextField = ({
                         {...field}
                         id={name}
                         type="text"
+                        defaultValue={defaultValue}
                         autoComplete={autoComplete}
                         className="mt-2 block w-full dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-md py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:text-gray-100"
                         placeholder={placeholder}
