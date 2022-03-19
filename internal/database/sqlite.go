@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"sync"
 
-	_ "github.com/mattn/go-sqlite3"
 	"github.com/rs/zerolog/log"
+	_ "modernc.org/sqlite"
 )
 
 type SqliteDB struct {
@@ -37,15 +37,15 @@ func (db *SqliteDB) Open() error {
 	var err error
 
 	// open database connection
-	if db.handler, err = sql.Open("sqlite3", db.DSN); err != nil {
+	if db.handler, err = sql.Open("sqlite", db.DSN+"?_pragma=busy_timeout%3d1000"); err != nil {
 		log.Fatal().Err(err).Msg("could not open db connection")
 		return err
 	}
 
 	// Set busy timeout
-	if _, err = db.handler.Exec(`PRAGMA busy_timeout = 5000;`); err != nil {
-		return fmt.Errorf("busy timeout pragma: %w", err)
-	}
+	//if _, err = db.handler.Exec(`PRAGMA busy_timeout = 5000;`); err != nil {
+	//	return fmt.Errorf("busy timeout pragma: %w", err)
+	//}
 
 	// Enable WAL. SQLite performs better with the WAL  because it allows
 	// multiple readers to operate while data is being written.

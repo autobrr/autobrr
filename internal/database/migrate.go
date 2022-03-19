@@ -126,7 +126,7 @@ CREATE TABLE client
     type     		TEXT,
     host     		TEXT NOT NULL,
     port     		INTEGER,
-    ssl      		BOOLEAN,
+    tls      		BOOLEAN,
     tls_skip_verify BOOLEAN,
     username 		TEXT,
     password 		TEXT,

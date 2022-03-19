@@ -8,8 +8,8 @@ import (
 	"log"
 	"os"
 
-	_ "github.com/mattn/go-sqlite3"
 	"golang.org/x/crypto/ssh/terminal"
+	_ "modernc.org/sqlite"
 
 	"github.com/autobrr/autobrr/internal/database"
 	"github.com/autobrr/autobrr/internal/domain"
