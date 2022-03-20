@@ -318,27 +318,30 @@ func (s *service) LoadIndexerDefinitions() error {
 	}
 
 	for _, f := range entries {
-		filePath := "definitions/" + f.Name()
-
-		if strings.Contains(f.Name(), ".yaml") {
-			log.Trace().Msgf("parsing: %v", filePath)
-
-			var d domain.IndexerDefinition
-
-			data, err := fs.ReadFile(Definitions, filePath)
-			if err != nil {
-				log.Error().Stack().Err(err).Msgf("failed reading file: %v", filePath)
-				return err
-			}
-
-			err = yaml.Unmarshal(data, &d)
-			if err != nil {
-				log.Error().Stack().Err(err).Msgf("failed unmarshal file: %v", filePath)
-				return err
-			}
-
-			s.indexerDefinitions[d.Identifier] = d
+		fileExtension := filepath.Ext(f.Name())
+		if fileExtension != ".yaml" {
+			continue
 		}
+
+		file := "definitions/" + f.Name()
+
+		log.Trace().Msgf("parsing: %v", file)
+
+		var d domain.IndexerDefinition
+
+		data, err := fs.ReadFile(Definitions, file)
+		if err != nil {
+			log.Error().Stack().Err(err).Msgf("failed reading file: %v", file)
+			return err
+		}
+
+		err = yaml.Unmarshal(data, &d)
+		if err != nil {
+			log.Error().Stack().Err(err).Msgf("failed unmarshal file: %v", file)
+			return err
+		}
+
+		s.indexerDefinitions[d.Identifier] = d
 	}
 
 	log.Debug().Msgf("Loaded %d indexer definitions", len(s.indexerDefinitions))
@@ -368,30 +371,33 @@ func (s *service) LoadCustomIndexerDefinitions() error {
 	customCount := 0
 
 	for _, f := range entries {
+		fileExtension := filepath.Ext(f.Name())
+		if fileExtension != ".yaml" {
+			continue
+		}
+
 		file := filepath.Join(s.config.CustomDefinitions, f.Name())
 
-		if strings.Contains(f.Name(), ".yaml") {
-			log.Trace().Msgf("parsing custom: %v", file)
+		log.Trace().Msgf("parsing custom: %v", file)
 
-			var d domain.IndexerDefinition
+		var d domain.IndexerDefinition
 
-			//data, err := fs.ReadFile(Definitions, filePath)
-			data, err := os.ReadFile(file)
-			if err != nil {
-				log.Error().Stack().Err(err).Msgf("failed reading file: %v", file)
-				return err
-			}
-
-			err = yaml.Unmarshal(data, &d)
-			if err != nil {
-				log.Error().Stack().Err(err).Msgf("failed unmarshal file: %v", file)
-				return err
-			}
-
-			s.indexerDefinitions[d.Identifier] = d
-
-			customCount++
+		//data, err := fs.ReadFile(Definitions, filePath)
+		data, err := os.ReadFile(file)
+		if err != nil {
+			log.Error().Stack().Err(err).Msgf("failed reading file: %v", file)
+			return err
 		}
+
+		err = yaml.Unmarshal(data, &d)
+		if err != nil {
+			log.Error().Stack().Err(err).Msgf("failed unmarshal file: %v", file)
+			return err
+		}
+
+		s.indexerDefinitions[d.Identifier] = d
+
+		customCount++
 	}
 
 	log.Debug().Msgf("Loaded %d custom indexer definitions", customCount)
