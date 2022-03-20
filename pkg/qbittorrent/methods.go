@@ -492,3 +492,27 @@ func (c *Client) SetCategory(hashes []string, category string) error {
 
 	return nil
 }
+
+func (c *Client) SetLocation(hashes []string, location string) error {
+	v := url.Values{}
+
+	// Add hashes together with | separator
+	hv := strings.Join(hashes, "|")
+	v.Add("hashes", hv)
+	v.Add("location", location)
+
+	encodedHashes := v.Encode()
+
+	resp, err := c.get("torrents/setLocation?"+encodedHashes, nil)
+	if err != nil {
+		log.Error().Err(err).Msgf("SetLocation error: %v", hashes)
+		return err
+	} else if resp.StatusCode != http.StatusOK {
+		log.Error().Err(err).Msgf("SetLocation error bad status: %v", hashes)
+		return err
+	}
+
+	defer resp.Body.Close()
+
+	return nil
+}
