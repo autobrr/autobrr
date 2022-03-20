@@ -109,7 +109,7 @@ const (
 	TorrentStateCheckingDl TorrentState = "checkingDL"
 
 	// Torrent is forced to downloading to ignore queue limit
-	TorrentStateForceDl TorrentState = "forceDL"
+	TorrentStateForcedDl TorrentState = "forcedDL"
 
 	// Checking resume data on qBt startup
 	TorrentStateCheckingResumeData TorrentState = "checkingResumeData"

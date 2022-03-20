@@ -286,3 +286,74 @@ func (c *Client) GetTransferInfo() (*TransferInfo, error) {
 
 	return &info, nil
 }
+
+func (c *Client) Resume(hashes []string) error {
+	v := url.Values{}
+
+	// Add hashes together with | separator
+	hv := strings.Join(hashes, "|")
+	v.Add("hashes", hv)
+
+	encodedHashes := v.Encode()
+
+	resp, err := c.get("torrents/resume?"+encodedHashes, nil)
+	if err != nil {
+		log.Error().Err(err).Msgf("resume error: %v", hashes)
+		return err
+	} else if resp.StatusCode != http.StatusOK {
+		log.Error().Err(err).Msgf("resume error bad status: %v", hashes)
+		return err
+	}
+
+	defer resp.Body.Close()
+
+	return nil
+}
+
+func (c *Client) SetForceStart(hashes []string, value bool) error {
+	v := url.Values{}
+
+	// Add hashes together with | separator
+	hv := strings.Join(hashes, "|")
+	v.Add("hashes", hv)
+	v.Add("value", strconv.FormatBool(value))
+
+	encodedHashes := v.Encode()
+
+	resp, err := c.get("torrents/setForceStart?"+encodedHashes, nil)
+	if err != nil {
+		log.Error().Err(err).Msgf("resume error: %v", hashes)
+		return err
+	} else if resp.StatusCode != http.StatusOK {
+		log.Error().Err(err).Msgf("resume error bad status: %v", hashes)
+		return err
+	}
+
+	defer resp.Body.Close()
+
+	return nil
+}
+
+func (c *Client) Recheck(hashes []string) error {
+	v := url.Values{}
+
+	// Add hashes together with | separator
+	hv := strings.Join(hashes, "|")
+	v.Add("hashes", hv)
+
+	encodedHashes := v.Encode()
+
+	resp, err := c.get("torrents/recheck?"+encodedHashes, nil)
+	if err != nil {
+		log.Error().Err(err).Msgf("recheck error: %v", hashes)
+		return err
+	} else if resp.StatusCode != http.StatusOK {
+		log.Error().Err(err).Msgf("recheck error bad status: %v", hashes)
+		return err
+	}
+
+	defer resp.Body.Close()
+
+	return nil
+}
+
