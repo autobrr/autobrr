@@ -28,6 +28,11 @@ type Action struct {
 	IgnoreRules        bool       `json:"ignore_rules,omitempty"`
 	LimitUploadSpeed   int64      `json:"limit_upload_speed,omitempty"`
 	LimitDownloadSpeed int64      `json:"limit_download_speed,omitempty"`
+	WebhookHost        string     `json:"webhook_host,omitempty"`
+	WebhookType        string     `json:"webhook_type,omitempty"`
+	WebhookMethod      string     `json:"webhook_method,omitempty"`
+	WebhookData        string     `json:"webhook_data,omitempty"`
+	WebhookHeaders     []string   `json:"webhook_headers,omitempty"`
 	FilterID           int        `json:"filter_id,omitempty"`
 	ClientID           int32      `json:"client_id,omitempty"`
 }
@@ -41,6 +46,7 @@ const (
 	ActionTypeDelugeV1    ActionType = "DELUGE_V1"
 	ActionTypeDelugeV2    ActionType = "DELUGE_V2"
 	ActionTypeWatchFolder ActionType = "WATCH_FOLDER"
+	ActionTypeWebhook     ActionType = "WEBHOOK"
 	ActionTypeRadarr      ActionType = "RADARR"
 	ActionTypeSonarr      ActionType = "SONARR"
 	ActionTypeLidarr      ActionType = "LIDARR"

@@ -1,7 +1,11 @@
 package action
 
 import (
+	"bytes"
+	"crypto/tls"
+	"encoding/json"
 	"io"
+	"net/http"
 	"os"
 	"path"
 	"time"
@@ -69,6 +73,16 @@ func (s *service) runAction(action domain.Action, release domain.Release) error 
 		}
 
 		s.watchFolder(action, release)
+
+	case domain.ActionTypeWebhook:
+		if release.TorrentTmpFile == "" {
+			if err := release.DownloadTorrentFile(nil); err != nil {
+				log.Error().Stack().Err(err)
+				return err
+			}
+		}
+
+		s.webhook(action, release)
 
 	case domain.ActionTypeDelugeV1, domain.ActionTypeDelugeV2:
 		canDownload, err := s.delugeCheckRulesCanDownload(action)
@@ -250,4 +264,53 @@ func (s *service) watchFolder(action domain.Action, release domain.Release) {
 	}
 
 	log.Info().Msgf("saved file to watch folder: %v", fullFileName)
+}
+
+func (s *service) webhook(action domain.Action, release domain.Release) {
+	m := NewMacro(release)
+
+	// parse and replace values in argument string before continuing
+	dataArgs, err := m.Parse(action.WebhookData)
+	if err != nil {
+		log.Error().Stack().Err(err).Msgf("could not parse macro: %v", action.WebhookData)
+		return
+	}
+
+	log.Trace().Msgf("action WEBHOOK: '%v' file: %v", action.Name, release.TorrentName)
+	log.Trace().Msgf("webhook action '%v' - host: %v data: %v", action.Name, action.WebhookHost, action.WebhookData)
+
+	jsonData, err := json.Marshal(dataArgs)
+	if err != nil {
+		log.Error().Err(err).Msgf("webhook client could not marshal data: %v", action.WebhookHost)
+		return
+	}
+
+	t := &http.Transport{
+		TLSClientConfig: &tls.Config{
+			InsecureSkipVerify: true,
+		},
+	}
+
+	client := http.Client{Transport: t, Timeout: 15 * time.Second}
+
+	req, err := http.NewRequest(http.MethodPost, action.WebhookHost, bytes.NewBuffer(jsonData))
+	if err != nil {
+		log.Error().Err(err).Msgf("webhook client request error: %v", action.WebhookHost)
+		return
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("User-Agent", "autobrr")
+
+	res, err := client.Do(req)
+	if err != nil {
+		log.Error().Err(err).Msgf("webhook client request error: %v", action.WebhookHost)
+		return
+	}
+
+	defer res.Body.Close()
+
+	log.Info().Msgf("successfully ran webhook action: '%v' to: %v payload: %v", action.Name, action.WebhookHost, dataArgs)
+
+	return
 }

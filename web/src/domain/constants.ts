@@ -191,6 +191,7 @@ export const DownloadClientTypeNameMap: Record<DownloadClientType | string, stri
 export const ActionTypeOptions: RadioFieldsetOption[] = [
     {label: "Test", description: "A simple action to test a filter.", value: "TEST"},
     {label: "Watch dir", description: "Add filtered torrents to a watch directory", value: "WATCH_FOLDER"},
+    {label: "Webhook", description: "Run webhook", value: "WEBHOOK"},
     {label: "Exec", description: "Run a custom command after a filter match", value: "EXEC"},
     {label: "qBittorrent", description: "Add torrents directly to qBittorrent", value: "QBITTORRENT"},
     {label: "Deluge", description: "Add torrents directly to Deluge", value: "DELUGE_V1"},
@@ -203,6 +204,7 @@ export const ActionTypeOptions: RadioFieldsetOption[] = [
 export const ActionTypeNameMap = {
     "TEST": "Test",
     "WATCH_FOLDER": "Watch folder",
+    "WEBHOOK": "Webhook",
     "EXEC": "Exec",
     "DELUGE_V1": "Deluge v1",
     "DELUGE_V2": "Deluge v2",
