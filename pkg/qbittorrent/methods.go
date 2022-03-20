@@ -468,3 +468,27 @@ func (c *Client) RemoveCategories(categories[] string) error {
 
 	return nil
 }
+
+func (c *Client) SetCategory(hashes []string, category string) error {
+	v := url.Values{}
+
+	// Add hashes together with | separator
+	hv := strings.Join(hashes, "|")
+	v.Add("hashes", hv)
+	v.Add("category", category)
+
+	encodedHashes := v.Encode()
+
+	resp, err := c.get("torrents/setCategory?"+encodedHashes, nil)
+	if err != nil {
+		log.Error().Err(err).Msgf("SetCategory error: %v", hashes)
+		return err
+	} else if resp.StatusCode != http.StatusOK {
+		log.Error().Err(err).Msgf("SetCategory error bad status: %v", hashes)
+		return err
+	}
+
+	defer resp.Body.Close()
+
+	return nil
+}
