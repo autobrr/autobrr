@@ -38,3 +38,7 @@ logLevel = "TRACE"
 # Session secret
 #
 sessionSecret = "secret-session-key"
+
+# Custom definitions
+#
+#customDefinitions = "test/definitions"

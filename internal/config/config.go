@@ -16,12 +16,13 @@ var Config domain.Config
 
 func Defaults() domain.Config {
 	return domain.Config{
-		Host:          "localhost",
-		Port:          8989,
-		LogLevel:      "DEBUG",
-		LogPath:       "",
-		BaseURL:       "/",
-		SessionSecret: "secret-session-key",
+		Host:              "localhost",
+		Port:              8989,
+		LogLevel:          "TRACE",
+		LogPath:           "",
+		BaseURL:           "/",
+		SessionSecret:     "secret-session-key",
+		CustomDefinitions: "",
 	}
 }
 

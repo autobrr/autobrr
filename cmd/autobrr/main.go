@@ -80,7 +80,7 @@ func main() {
 		downloadClientService = download_client.NewService(downloadClientRepo)
 		actionService         = action.NewService(actionRepo, downloadClientService, bus)
 		apiService            = indexer.NewAPIService()
-		indexerService        = indexer.NewService(indexerRepo, apiService)
+		indexerService        = indexer.NewService(cfg, indexerRepo, apiService)
 		filterService         = filter.NewService(filterRepo, actionRepo, apiService, indexerService)
 		releaseService        = release.NewService(releaseRepo, actionService)
 		ircService            = irc.NewService(ircRepo, filterService, indexerService, releaseService)

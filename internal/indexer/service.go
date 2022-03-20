@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"io/fs"
+	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/rs/zerolog/log"
@@ -26,6 +28,7 @@ type Service interface {
 }
 
 type service struct {
+	config     domain.Config
 	repo       domain.IndexerRepo
 	apiService APIService
 
@@ -38,8 +41,9 @@ type service struct {
 	lookupIRCServerDefinition map[string]map[string]domain.IndexerDefinition
 }
 
-func NewService(repo domain.IndexerRepo, apiService APIService) Service {
+func NewService(config domain.Config, repo domain.IndexerRepo, apiService APIService) Service {
 	return &service{
+		config:                    config,
 		repo:                      repo,
 		apiService:                apiService,
 		indexerDefinitions:        make(map[string]domain.IndexerDefinition),
@@ -193,6 +197,14 @@ func (s *service) Start() error {
 		return err
 	}
 
+	if s.config.CustomDefinitions != "" {
+		// load custom indexer definitions
+		err = s.LoadCustomIndexerDefinitions()
+		if err != nil {
+			return fmt.Errorf("could not load custom indexer definitions: %w", err)
+		}
+	}
+
 	// load the indexers' setup by the user
 	indexerDefinitions, err := s.GetAll()
 	if err != nil {
@@ -330,6 +342,59 @@ func (s *service) LoadIndexerDefinitions() error {
 	}
 
 	log.Debug().Msgf("Loaded %d indexer definitions", len(s.indexerDefinitions))
+
+	return nil
+}
+
+// LoadCustomIndexerDefinitions load definitions from custom path
+func (s *service) LoadCustomIndexerDefinitions() error {
+	if s.config.CustomDefinitions == "" {
+		return nil
+	}
+
+	outputDirRead, _ := os.Open(s.config.CustomDefinitions)
+
+	//entries, err := fs.ReadDir(Definitions, "definitions")
+	entries, err := outputDirRead.ReadDir(0)
+	if err != nil {
+		log.Fatal().Stack().Msgf("failed reading directory: %s", err)
+	}
+
+	if len(entries) == 0 {
+		log.Fatal().Stack().Msgf("failed reading directory: %s", err)
+		return err
+	}
+
+	customCount := 0
+
+	for _, f := range entries {
+		file := filepath.Join(s.config.CustomDefinitions, f.Name())
+
+		if strings.Contains(f.Name(), ".yaml") {
+			log.Trace().Msgf("parsing custom: %v", file)
+
+			var d domain.IndexerDefinition
+
+			//data, err := fs.ReadFile(Definitions, filePath)
+			data, err := os.ReadFile(file)
+			if err != nil {
+				log.Error().Stack().Err(err).Msgf("failed reading file: %v", file)
+				return err
+			}
+
+			err = yaml.Unmarshal(data, &d)
+			if err != nil {
+				log.Error().Stack().Err(err).Msgf("failed unmarshal file: %v", file)
+				return err
+			}
+
+			s.indexerDefinitions[d.Identifier] = d
+
+			customCount++
+		}
+	}
+
+	log.Debug().Msgf("Loaded %d custom indexer definitions", customCount)
 
 	return nil
 }
