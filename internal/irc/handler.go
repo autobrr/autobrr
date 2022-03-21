@@ -246,7 +246,7 @@ func (h *Handler) onConnect(m ircmsg.Message) {
 	time.Sleep(4 * time.Second)
 
 	if h.network.NickServ.Password != "" {
-		err := h.HandleNickServIdentify(h.network.NickServ.Account, h.network.NickServ.Password)
+		err := h.HandleNickServIdentify(h.network.NickServ.Password)
 		if err != nil {
 			log.Error().Stack().Err(err).Msgf("error nickserv: %v", h.network.Name)
 			return
@@ -496,10 +496,10 @@ func (h *Handler) handleInvite(msg ircmsg.Message) {
 	return
 }
 
-func (h *Handler) HandleNickServIdentify(nick, password string) error {
+func (h *Handler) HandleNickServIdentify(password string) error {
 	m := ircmsg.Message{
 		Command: "PRIVMSG",
-		Params:  []string{"NickServ", "IDENTIFY", nick, password},
+		Params:  []string{"NickServ", "IDENTIFY", password},
 	}
 
 	log.Debug().Msgf("%v: NickServ: %v", h.network.Server, m)
