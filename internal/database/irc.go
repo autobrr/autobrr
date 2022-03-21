@@ -152,19 +152,24 @@ func (r *IrcRepo) ListChannels(networkID int64) ([]domain.IrcChannel, error) {
 	//r.db.lock.RLock()
 	//defer r.db.lock.RUnlock()
 
-	rows, err := r.db.handler.Query("SELECT id, name, enabled FROM irc_channel WHERE network_id = ?", networkID)
+	rows, err := r.db.handler.Query("SELECT id, name, enabled, password FROM irc_channel WHERE network_id = ?", networkID)
 	if err != nil {
-		log.Fatal().Err(err)
+		log.Error().Stack().Err(err).Msgf("error querying channels for network: %v", networkID)
+		return nil, err
 	}
 	defer rows.Close()
 
 	var channels []domain.IrcChannel
 	for rows.Next() {
 		var ch domain.IrcChannel
+		var pass sql.NullString
 
-		if err := rows.Scan(&ch.ID, &ch.Name, &ch.Enabled); err != nil {
-			log.Fatal().Err(err)
+		if err := rows.Scan(&ch.ID, &ch.Name, &ch.Enabled, &pass); err != nil {
+			log.Error().Stack().Err(err).Msgf("error querying channels for network: %v", networkID)
+			return nil, err
 		}
+
+		ch.Password = pass.String
 
 		channels = append(channels, ch)
 	}
