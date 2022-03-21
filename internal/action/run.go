@@ -3,7 +3,6 @@ package action
 import (
 	"bytes"
 	"crypto/tls"
-	"encoding/json"
 	"io"
 	"net/http"
 	"os"
@@ -279,12 +278,6 @@ func (s *service) webhook(action domain.Action, release domain.Release) {
 	log.Trace().Msgf("action WEBHOOK: '%v' file: %v", action.Name, release.TorrentName)
 	log.Trace().Msgf("webhook action '%v' - host: %v data: %v", action.Name, action.WebhookHost, action.WebhookData)
 
-	jsonData, err := json.Marshal(dataArgs)
-	if err != nil {
-		log.Error().Err(err).Msgf("webhook client could not marshal data: %v", action.WebhookHost)
-		return
-	}
-
 	t := &http.Transport{
 		TLSClientConfig: &tls.Config{
 			InsecureSkipVerify: true,
@@ -293,7 +286,7 @@ func (s *service) webhook(action domain.Action, release domain.Release) {
 
 	client := http.Client{Transport: t, Timeout: 15 * time.Second}
 
-	req, err := http.NewRequest(http.MethodPost, action.WebhookHost, bytes.NewBuffer(jsonData))
+	req, err := http.NewRequest(http.MethodPost, action.WebhookHost, bytes.NewBufferString(dataArgs))
 	if err != nil {
 		log.Error().Err(err).Msgf("webhook client request error: %v", action.WebhookHost)
 		return
