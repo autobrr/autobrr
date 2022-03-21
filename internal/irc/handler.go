@@ -338,18 +338,19 @@ func (h *Handler) sendToAnnounceProcessor(channel string, msg string) error {
 }
 
 func (h *Handler) HandleJoinChannel(channel string, password string) error {
-	// support channel password
-	ch := channel
-	if password != "" {
-		ch = fmt.Sprintf("%v %v", channel, password)
+	m := ircmsg.Message{
+		Command: "JOIN",
+		Params:  []string{channel},
 	}
 
-	log.Trace().Msgf("%v: JOIN sending %v", h.network.Server, ch)
+	// support channel password
+	if password != "" {
+		m.Params = []string{channel, password}
+	}
 
-	time.Sleep(1 * time.Second)
+	log.Debug().Msgf("%v: sending JOIN command %v", h.network.Server, strings.Join(m.Params, " "))
 
-	//err := h.client.Write(m.String())
-	err := h.client.Join(ch)
+	err := h.client.SendIRCMessage(m)
 	if err != nil {
 		log.Error().Stack().Err(err).Msgf("error handling join: %v", channel)
 		return err
@@ -529,7 +530,7 @@ func (h *Handler) handleMode(msg ircmsg.Message) {
 		return
 	}
 
-	time.Sleep(10 * time.Second)
+	time.Sleep(5 * time.Second)
 
 	if h.network.NickServ.Password != "" && !strings.Contains(msg.Params[0], h.client.Nick) || !strings.Contains(msg.Params[1], "+r") {
 		log.Trace().Msgf("%v: MODE: Not correct permission yet: %v", h.network.Server, msg.Params)
