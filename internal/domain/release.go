@@ -168,7 +168,7 @@ func (r *Release) extractYear() error {
 }
 
 func (r *Release) extractSeason() error {
-	s, err := findLastInt(r.TorrentName, `(?:S|Season\s*)(\d{1,3})`)
+	s, err := findLastInt(r.TorrentName, `(?i)(?:S|Season\s*)(\d{1,3})`)
 	if err != nil {
 		return err
 	}
@@ -188,7 +188,7 @@ func (r *Release) extractEpisode() error {
 }
 
 func (r *Release) extractResolution() error {
-	v, err := findLast(r.TorrentName, `\b(([0-9]{3,4}p|i))\b`)
+	v, err := findLast(r.TorrentName, `\b(?i)(([0-9]{3,4}p|i))\b`)
 	if err != nil {
 		return err
 	}
@@ -201,7 +201,7 @@ func (r *Release) extractResolutionFromTags(tag string) error {
 	if r.Resolution != "" {
 		return nil
 	}
-	v, err := findLast(tag, `\b(([0-9]{3,4}p|i))\b`)
+	v, err := findLast(tag, `\b(?i)(([0-9]{3,4}p|i))\b`)
 	if err != nil {
 		return err
 	}
@@ -320,7 +320,7 @@ func (r *Release) extractFormatsFromTags(tag string) error {
 		return nil
 	}
 
-	v, err := findLast(tag, `(?:MP3|FLAC|Ogg Vorbis|AAC|AC3|DTS)`)
+	v, err := findLast(tag, `(?i)(?:MP3|FLAC|Ogg Vorbis|AAC|AC3|DTS)`)
 	if err != nil {
 		return err
 	}
@@ -453,7 +453,7 @@ func (r *Release) extractFreeleechFromTags(tag string) error {
 	}
 
 	// Start with the basic most common ones
-	v, err := findLast(tag, `(Freeleech!|Freeleech)`)
+	v, err := findLast(tag, `(?i)(Freeleech!|Freeleech)`)
 	if err != nil {
 		return err
 	}
@@ -505,7 +505,7 @@ func (r *Release) extractQualityFromTags(tag string) error {
 
 	// Start with the basic most common ones
 
-	rxp, err := regexp.Compile(`(Lossless|24bit Lossless|V0 \(VBR\)|V1 \(VBR\)|V2 \(VBR\)|APS \(VBR\)|APX \(VBR\)|320|256|192)`)
+	rxp, err := regexp.Compile(`(?i)(Lossless|24bit Lossless|V0 \(VBR\)|V1 \(VBR\)|V2 \(VBR\)|APS \(VBR\)|APX \(VBR\)|320|256|192)`)
 	if err != nil {
 		return err
 		//return errors.Wrapf(err, "invalid regex: %s", value)
