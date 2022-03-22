@@ -23,7 +23,7 @@ export default function Filters() {
     const [createFilterIsOpen, toggleCreateFilter] = useToggle(false)
 
     const { isLoading, error, data } = useQuery(
-        "filters",
+        ["filters"],
         APIClient.filters.getAll,
         { refetchOnWindowFocus: false }
     );
@@ -117,8 +117,8 @@ const FilterItemDropdown = ({
         (id: number) => APIClient.filters.delete(id),
         {
             onSuccess: () => {
-                queryClient.invalidateQueries("filters");
-                queryClient.invalidateQueries(["filter", filter.id]);
+                queryClient.invalidateQueries(["filters"]);
+                queryClient.invalidateQueries(["filters", filter.id]);
 
                 toast.custom((t) => <Toast type="success" body={`Filter ${filter?.name} was deleted`} t={t} />);
             }
@@ -129,7 +129,7 @@ const FilterItemDropdown = ({
         (id: number) => APIClient.filters.duplicate(id),
         {
             onSuccess: () => {
-                queryClient.invalidateQueries("filters");
+                queryClient.invalidateQueries(["filters"]);
 
                 toast.custom((t) => <Toast type="success" body={`Filter ${filter?.name} duplicated`} t={t} />);
             }
@@ -274,8 +274,8 @@ function FilterListItem({ filter, idx }: FilterListItemProps) {
                 // We need to invalidate both keys here.
                 // The filters key is used on the /filters page,
                 // while the ["filter", filter.id] key is used on the details page.
-                queryClient.invalidateQueries("filters");
-                queryClient.invalidateQueries(["filter", filter?.id]);
+                queryClient.invalidateQueries(["filters"]);
+                queryClient.invalidateQueries(["filters", filter?.id]);
             }
         }
     );
