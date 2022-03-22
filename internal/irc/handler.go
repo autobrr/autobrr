@@ -225,6 +225,16 @@ func (h *Handler) SetNetwork(network *domain.IrcNetwork) {
 	h.m.Unlock()
 }
 
+func (h *Handler) AddChannelHealth(channel string) {
+	h.m.Lock()
+	h.channelHealth[channel] = &channelHealth{
+		name:            channel,
+		monitoring:      true,
+		monitoringSince: time.Now(),
+	}
+	h.m.Unlock()
+}
+
 func (h *Handler) Stop() {
 	log.Debug().Msgf("%v: Disconnecting...", h.network.Server)
 	h.client.Quit()
@@ -423,15 +433,6 @@ func (h *Handler) handleJoined(msg ircmsg.Message) {
 	// get channel
 	channel := msg.Params[1]
 
-	valid := h.isValidChannel(channel)
-	if !valid {
-		if err := h.HandlePartChannel(channel); err != nil {
-			log.Error().Stack().Err(err).Msgf("%v: Could not part channel: %v", h.network.Server, channel)
-			return
-		}
-		return
-	}
-
 	log.Debug().Msgf("%v: JOINED: %v", h.network.Server, msg.Params[1])
 
 	// set monitoring on current channelHealth, or add new
@@ -439,14 +440,14 @@ func (h *Handler) handleJoined(msg ircmsg.Message) {
 	if ok {
 		v.SetMonitoring()
 	} else if v == nil {
-		h.channelHealth[channel] = &channelHealth{
-			name:            channel,
-			monitoring:      true,
-			monitoringSince: time.Now(),
-		}
+		h.AddChannelHealth(channel)
 	}
 
-	log.Info().Msgf("%v: Monitoring channel %v", h.network.Server, msg.Params[1])
+	valid := h.isValidChannel(channel)
+	if valid {
+		log.Info().Msgf("%v: Monitoring channel %v", h.network.Server, msg.Params[1])
+		return
+	}
 }
 
 func (h *Handler) handleConnectCommands(msg string) error {
@@ -480,11 +481,6 @@ func (h *Handler) handleInvite(msg ircmsg.Message) {
 
 	// get channel
 	channel := msg.Params[1]
-
-	valid := h.isValidChannel(channel)
-	if !valid {
-		return
-	}
 
 	log.Debug().Msgf("%v: INVITE from %v, joining %v", h.network.Server, msg.Nick(), channel)
 
