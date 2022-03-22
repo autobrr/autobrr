@@ -87,7 +87,7 @@ export const ReleaseTable = () => {
         () => APIClient.release.findQuery(queryPageIndex * queryPageSize, queryPageSize, queryFilters),
         {
             keepPreviousData: true,
-            staleTime: Infinity,
+            staleTime: 5000,
         }
     );
 

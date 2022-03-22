@@ -135,7 +135,7 @@ export default function FilterDetails() {
     const { filterId } = useParams<{ filterId: string }>();
 
     const { isLoading, data: filter } = useQuery(
-        ["filter", +filterId],
+        ["filters", filterId],
         () => APIClient.filters.getByID(parseInt(filterId)),
         {
             retry: false,
@@ -151,7 +151,8 @@ export default function FilterDetails() {
                 toast.custom((t) => (
                   <Toast type="success" body={`${currentFilter.name} was updated successfully`} t={t} />
                 ));
-                queryClient.invalidateQueries(["filter", currentFilter.id]);
+                queryClient.refetchQueries(["filters"]);
+                // queryClient.invalidateQueries(["filters", currentFilter.id]);
             }
         }
     );
@@ -163,7 +164,7 @@ export default function FilterDetails() {
             ));
 
             // Invalidate filters just in case, most likely not necessary but can't hurt.
-            queryClient.invalidateQueries("filters");
+            queryClient.invalidateQueries(["filters"]);
 
             // redirect
             history.push("/filters")
@@ -334,7 +335,7 @@ export default function FilterDetails() {
 
 function General() {
     const { isLoading, data: indexers } = useQuery(
-        ["filter", "indexer_list"],
+        ["filters", "indexer_list"],
         APIClient.indexers.getOptions,
         { refetchOnWindowFocus: false }
     );
@@ -612,7 +613,7 @@ interface FilterActionsProps {
 
 function FilterActions({ filter, values }: FilterActionsProps) {
     const { data } = useQuery(
-        ["filter", "download_clients"],
+        ["filters", "download_clients"],
         APIClient.download_clients.getAll,
         { refetchOnWindowFocus: false }
     );
