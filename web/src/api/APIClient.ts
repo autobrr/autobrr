@@ -1,4 +1,5 @@
 import {baseUrl, sseBaseUrl} from "../utils";
+import {AuthContext} from "../utils/Context";
 
 interface ConfigType {
     body?: BodyInit | Record<string, unknown> | null;
@@ -22,7 +23,13 @@ export async function HttpClient<T>(
 
     return window.fetch(`${baseUrl()}${endpoint}`, config)
         .then(async response => {
-            if ([401, 403, 404].includes(response.status))
+            if (response.status === 401) {
+                AuthContext.set([{ username: "", isLoggedIn: false }] as any)
+
+                return Promise.reject(new Error(response.statusText));
+            }
+
+            if ([403, 404].includes(response.status))
                 return Promise.reject(new Error(response.statusText));
 
             if ([201, 204].includes(response.status))
@@ -49,7 +56,7 @@ export const APIClient = {
     auth: {
         login: (username: string, password: string) => appClient.Post("api/auth/login", { username: username, password: password }),
         logout: () => appClient.Post("api/auth/logout", null),
-        test: () => appClient.Get<void>("api/auth/test"),
+        validate: () => appClient.Get<void>("api/auth/validate"),
     },
     actions: {
         create: (action: Action) => appClient.Post("api/actions", action),
