@@ -105,6 +105,7 @@ CREATE TABLE filter
     except_uploaders      TEXT,
     tags                  TEXT,
     except_tags           TEXT,
+    origins				  TEXT,
     created_at            TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at            TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -374,6 +375,10 @@ var migrations = []string{
 
 	ALTER TABLE "action"
 		ADD COLUMN webhook_headers TEXT []   DEFAULT '{}';
+	`,
+	`
+	ALTER TABLE "filter"
+		ADD COLUMN origins TEXT;
 	`,
 }
 

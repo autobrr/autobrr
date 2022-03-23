@@ -868,6 +868,11 @@ func (r *Release) CheckFilter(filter Filter) bool {
 		return false
 	}
 
+	if len(filter.Origins) > 0 && !checkFilterStrings(r.Origin, filter.Origins) {
+		r.addRejection("origin not matching")
+		return false
+	}
+
 	return true
 }
 
@@ -993,6 +998,10 @@ func (r *Release) MapVars(def IndexerDefinition, varMap map[string]string) error
 
 	if resolution, err := getStringMapValue(varMap, "resolution"); err == nil {
 		r.Resolution = resolution
+	}
+
+	if origin, err := getStringMapValue(varMap, "origin"); err == nil {
+		r.Origin = origin
 	}
 
 	return nil

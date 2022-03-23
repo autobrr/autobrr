@@ -278,6 +278,7 @@ export default function FilterDetails() {
                                         except_uploaders: filter.except_uploaders,
                                         freeleech: filter.freeleech,
                                         freeleech_percent: filter.freeleech_percent,
+                                        origins: filter.origins,
                                         formats: filter.formats || [],
                                         quality: filter.quality || [],
                                         media: filter.media || [],
@@ -479,6 +480,7 @@ function Advanced() {
     const [categoriesIsOpen, toggleCategories] = useToggle(false)
     const [uploadersIsOpen, toggleUploaders] = useToggle(false)
     const [freeleechIsOpen, toggleFreeleech] = useToggle(false)
+    const [originsIsOpen, toggleOrigins] = useToggle(false)
 
     return (
         <div>
@@ -599,6 +601,28 @@ function Advanced() {
                         </div>
 
                         <TextField name="freeleech_percent" label="Freeleech percent" columns={6} />
+                    </div>
+                )}
+            </div>
+
+            <div className="mt-6 lg:pb-6 border-b border-gray-200 dark:border-gray-700">
+                <div className="flex justify-between items-center cursor-pointer" onClick={toggleOrigins}>
+                    <div className="-ml-2 -mt-2 flex flex-wrap items-baseline">
+                        <h3 className="ml-2 mt-2 text-lg leading-6 font-medium text-gray-900 dark:text-gray-200">Origins</h3>
+                        <p className="ml-2 mt-1 text-sm text-gray-500 dark:text-gray-400 truncate">Match only certain origins</p>
+                    </div>
+                    <div className="mt-3 sm:mt-0 sm:ml-4">
+                        <button
+                            type="button"
+                            className="inline-flex items-center px-4 py-2 border-transparent text-sm font-medium text-white"
+                        >
+                            {originsIsOpen ? <ChevronDownIcon className="h-6 w-6 text-gray-500" aria-hidden="true" /> : <ChevronRightIcon className="h-6 w-6 text-gray-500" aria-hidden="true" />}
+                        </button>
+                    </div>
+                </div>
+                {originsIsOpen && (
+                    <div className="mt-6 grid grid-cols-12 gap-6">
+                        <TextField name="origins" label="Match origins" columns={6} placeholder="eg. P2P,*SCENE*,INTERNAL" />
                     </div>
                 )}
             </div>
