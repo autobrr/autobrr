@@ -868,7 +868,7 @@ func (r *Release) CheckFilter(filter Filter) bool {
 		return false
 	}
 
-	if len(filter.Origins) > 0 && !checkFilterStrings(r.Origin, filter.Origins) {
+	if len(filter.Origins) > 0 && !checkExactFilterStrings(r.Origin, filter.Origins) {
 		r.addRejection("origin not matching")
 		return false
 	}
@@ -1002,6 +1002,12 @@ func (r *Release) MapVars(def IndexerDefinition, varMap map[string]string) error
 
 	if origin, err := getStringMapValue(varMap, "origin"); err == nil {
 		r.Origin = origin
+		if !r.IsScene {
+			s := strings.ToLower(r.Origin)
+			if strings.Contains(s, "scene") {
+				r.IsScene = true
+			}
+		}
 	}
 
 	return nil
@@ -1052,6 +1058,30 @@ func checkFilterStrings(name string, filterList string) bool {
 			}
 		}
 
+	}
+
+	return false
+}
+
+// checkExactFilterStrings check for exact filter match or wildcard match
+func checkExactFilterStrings(name string, filterList string) bool {
+	filterSplit := strings.Split(filterList, ",")
+	name = strings.ToLower(name)
+
+	for _, s := range filterSplit {
+		s = strings.ToLower(s)
+		s = strings.Trim(s, " ")
+		a := strings.ContainsAny(s, "?|*")
+		if a {
+			match := wildcard.Match(s, name)
+			if match {
+				return true
+			}
+		} else {
+			if s == name {
+				return true
+			}
+		}
 	}
 
 	return false
