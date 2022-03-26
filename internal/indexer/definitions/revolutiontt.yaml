@@ -51,7 +51,7 @@ parse:
     - test:
         - "!new Some.TV.Show.S01E02.720p.WEB.h264-KOGi | TV/HDx264 | https://revolutiontt.me/details.php?id=z4WBMrhj&hit=1"
         - "!new Some.Other.Show.S01E02.1080p.WEB.h264-KOGi | TV/HDx264 | https://revolutiontt.me/details.php?id=eAg24buk&hit=1"
-      pattern: !new (.*) \| (.*) \| (https?:\/\/.*\/).*id=([0-9a-zA-Z]+)
+      pattern: "!new (.*) \| (.*) \| (https?:\/\/.*\/).*id=([0-9a-zA-Z]+)"
       vars:
         - torrentName
         - category
