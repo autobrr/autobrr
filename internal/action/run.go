@@ -55,7 +55,7 @@ func (s *service) runAction(action domain.Action, release domain.Release) error 
 
 	case domain.ActionTypeExec:
 		if release.TorrentTmpFile == "" {
-			if err := release.DownloadTorrentFile(nil); err != nil {
+			if err := release.DownloadTorrentFile(); err != nil {
 				log.Error().Stack().Err(err)
 				return err
 			}
@@ -65,7 +65,7 @@ func (s *service) runAction(action domain.Action, release domain.Release) error 
 
 	case domain.ActionTypeWatchFolder:
 		if release.TorrentTmpFile == "" {
-			if err := release.DownloadTorrentFile(nil); err != nil {
+			if err := release.DownloadTorrentFile(); err != nil {
 				log.Error().Stack().Err(err)
 				return err
 			}
@@ -75,7 +75,7 @@ func (s *service) runAction(action domain.Action, release domain.Release) error 
 
 	case domain.ActionTypeWebhook:
 		if release.TorrentTmpFile == "" {
-			if err := release.DownloadTorrentFile(nil); err != nil {
+			if err := release.DownloadTorrentFile(); err != nil {
 				log.Error().Stack().Err(err)
 				return err
 			}
@@ -95,7 +95,7 @@ func (s *service) runAction(action domain.Action, release domain.Release) error 
 		}
 
 		if release.TorrentTmpFile == "" {
-			if err := release.DownloadTorrentFile(nil); err != nil {
+			if err := release.DownloadTorrentFile(); err != nil {
 				log.Error().Stack().Err(err)
 				return err
 			}
@@ -119,7 +119,7 @@ func (s *service) runAction(action domain.Action, release domain.Release) error 
 		}
 
 		if release.TorrentTmpFile == "" {
-			if err := release.DownloadTorrentFile(nil); err != nil {
+			if err := release.DownloadTorrentFile(); err != nil {
 				log.Error().Stack().Err(err)
 				return err
 			}

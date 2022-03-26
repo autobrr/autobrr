@@ -5,9 +5,11 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
+	"golang.org/x/net/publicsuffix"
 	"html"
 	"io"
 	"net/http"
+	"net/http/cookiejar"
 	"net/url"
 	"os"
 	"regexp"
@@ -88,6 +90,7 @@ type Release struct {
 	FreeleechPercent            int                   `json:"freeleech_percent"`
 	Uploader                    string                `json:"uploader"`
 	PreTime                     string                `json:"pre_time"`
+	RawCookie                   string                `json:"-"`
 	AdditionalSizeCheckRequired bool                  `json:"-"`
 	FilterID                    int                   `json:"-"`
 	Filter                      *Filter               `json:"-"`
@@ -605,12 +608,15 @@ func (r *Release) ParseTorrentUrl(match string, vars map[string]string, extraVar
 
 	r.TorrentURL = urlBytes.String()
 
-	// TODO handle cookies
+	// handle cookies
+	if v, ok := extraVars["cookie"]; ok {
+		r.RawCookie = v
+	}
 
 	return nil
 }
 
-func (r *Release) DownloadTorrentFile(opts map[string]string) error {
+func (r *Release) DownloadTorrentFile() error {
 	if r.TorrentURL == "" {
 		return errors.New("download_file: url can't be empty")
 	} else if r.TorrentTmpFile != "" {
@@ -618,12 +624,32 @@ func (r *Release) DownloadTorrentFile(opts map[string]string) error {
 		return nil
 	}
 
+	jar, err := cookiejar.New(&cookiejar.Options{PublicSuffixList: publicsuffix.List})
+	if err != nil {
+		return err
+	}
+
 	customTransport := http.DefaultTransport.(*http.Transport).Clone()
 	customTransport.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
-	client := &http.Client{Transport: customTransport}
+	client := &http.Client{
+		Transport: customTransport,
+		Jar:       jar,
+	}
+
+	req, err := http.NewRequest("GET", r.TorrentURL, nil)
+	if err != nil {
+		log.Error().Stack().Err(err).Msg("error downloading file")
+		return err
+	}
+
+	if r.RawCookie != "" {
+		// set the cookie on the header instead of req.AddCookie
+		// since we have a raw cookie like "uid=10; pass=000"
+		req.Header.Set("Cookie", r.RawCookie)
+	}
 
 	// Get the data
-	resp, err := client.Get(r.TorrentURL)
+	resp, err := client.Do(req)
 	if err != nil {
 		log.Error().Stack().Err(err).Msg("error downloading file")
 		return err
