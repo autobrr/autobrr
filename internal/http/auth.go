@@ -35,7 +35,7 @@ func newAuthHandler(encoder encoder, config domain.Config, cookieStore *sessions
 func (h authHandler) Routes(r chi.Router) {
 	r.Post("/login", h.login)
 	r.Post("/logout", h.logout)
-	r.Get("/test", h.test)
+	r.Get("/validate", h.validate)
 }
 
 func (h authHandler) login(w http.ResponseWriter, r *http.Request) {
@@ -91,13 +91,13 @@ func (h authHandler) logout(w http.ResponseWriter, r *http.Request) {
 	h.encoder.StatusResponse(ctx, w, nil, http.StatusNoContent)
 }
 
-func (h authHandler) test(w http.ResponseWriter, r *http.Request) {
+func (h authHandler) validate(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	session, _ := h.cookieStore.Get(r, "user_session")
 
 	// Check if user is authenticated
 	if auth, ok := session.Values["authenticated"].(bool); !ok || !auth {
-		http.Error(w, "Forbidden", http.StatusForbidden)
+		http.Error(w, "Forbidden", http.StatusUnauthorized)
 		return
 	}
 

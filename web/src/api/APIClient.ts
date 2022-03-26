@@ -1,4 +1,6 @@
 import {baseUrl, sseBaseUrl} from "../utils";
+import {AuthContext} from "../utils/Context";
+import {Cookies} from "react-cookie";
 
 interface ConfigType {
     body?: BodyInit | Record<string, unknown> | null;
@@ -20,9 +22,19 @@ export async function HttpClient<T>(
         ...customConfig
     } as RequestInit;
 
+
     return window.fetch(`${baseUrl()}${endpoint}`, config)
         .then(async response => {
-            if ([401, 403, 404].includes(response.status))
+            if (response.status === 401) {
+                // if 401 consider the session expired and force logout
+                const cookies = new Cookies();
+                cookies.remove("user_session");
+                AuthContext.reset()
+
+                return Promise.reject(new Error(response.statusText));
+            }
+
+            if ([403, 404].includes(response.status))
                 return Promise.reject(new Error(response.statusText));
 
             if ([201, 204].includes(response.status))
@@ -49,7 +61,7 @@ export const APIClient = {
     auth: {
         login: (username: string, password: string) => appClient.Post("api/auth/login", { username: username, password: password }),
         logout: () => appClient.Post("api/auth/logout", null),
-        test: () => appClient.Get<void>("api/auth/test"),
+        validate: () => appClient.Get<void>("api/auth/validate"),
     },
     actions: {
         create: (action: Action) => appClient.Post("api/actions", action),
