@@ -104,7 +104,7 @@ func (r *FilterRepo) FindByID(ctx context.Context, filterID int) (*domain.Filter
 	return &f, nil
 }
 
-// FindByIndexerIdentifier find active filters only
+// FindByIndexerIdentifier find active filters with active indexer only
 func (r *FilterRepo) FindByIndexerIdentifier(indexer string) ([]domain.Filter, error) {
 	//r.db.lock.RLock()
 	//defer r.db.lock.RUnlock()
@@ -159,6 +159,7 @@ func (r *FilterRepo) FindByIndexerIdentifier(indexer string) ([]domain.Filter, e
 				 JOIN indexer i on i.id = fi.indexer_id
 		WHERE i.identifier = ?
 		AND f.enabled = true
+		AND i.enabled = true
 		ORDER BY f.priority DESC`, indexer)
 	if err != nil {
 		log.Error().Stack().Err(err).Msg("error querying filter row")
