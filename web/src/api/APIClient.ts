@@ -1,5 +1,6 @@
 import {baseUrl, sseBaseUrl} from "../utils";
 import {AuthContext} from "../utils/Context";
+import {Cookies} from "react-cookie";
 
 interface ConfigType {
     body?: BodyInit | Record<string, unknown> | null;
@@ -21,10 +22,14 @@ export async function HttpClient<T>(
         ...customConfig
     } as RequestInit;
 
+
     return window.fetch(`${baseUrl()}${endpoint}`, config)
         .then(async response => {
             if (response.status === 401) {
-                AuthContext.set([{ username: "", isLoggedIn: false }] as any)
+                // if 401 consider the session expired and force logout
+                const cookies = new Cookies();
+                cookies.remove("user_session");
+                AuthContext.reset()
 
                 return Promise.reject(new Error(response.statusText));
             }
