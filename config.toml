@@ -8,9 +8,9 @@ host = "127.0.0.1"
 
 # Port
 #
-# Default: 8989
+# Default: 7474
 #
-port = 8989
+port = 7474
 
 # Base url
 # Set custom baseUrl eg /autobrr/ to serve in subdirectory.

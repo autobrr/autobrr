@@ -26,7 +26,7 @@ export function baseUrl() {
 // get sseBaseUrl for SSE
 export function sseBaseUrl() {
     if (process.env.NODE_ENV === "development")
-        return `http://localhost:8989/`;
+        return `http://localhost:7474/`;
 
     return `${window.location.origin}${baseUrl()}`;
 }

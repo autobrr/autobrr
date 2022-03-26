@@ -17,7 +17,7 @@ var Config domain.Config
 func Defaults() domain.Config {
 	return domain.Config{
 		Host:              "localhost",
-		Port:              8989,
+		Port:              7474,
 		LogLevel:          "TRACE",
 		LogPath:           "",
 		BaseURL:           "/",
@@ -59,9 +59,9 @@ host = "127.0.0.1"
 
 # Port
 #
-# Default: 8989
+# Default: 7474
 #
-port = 8989
+port = 7474
 
 # Base url
 # Set custom baseUrl eg /autobrr/ to serve in subdirectory.
