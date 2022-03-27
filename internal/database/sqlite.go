@@ -1,35 +1,15 @@
 package database
 
 import (
-	"context"
 	"database/sql"
 	"fmt"
-	"sync"
 
+	"github.com/lib/pq"
 	"github.com/rs/zerolog/log"
 	_ "modernc.org/sqlite"
 )
 
-type SqliteDB struct {
-	lock    sync.RWMutex
-	handler *sql.DB
-	ctx     context.Context
-	cancel  func()
-
-	DSN string
-}
-
-func NewSqliteDB(source string) *SqliteDB {
-	db := &SqliteDB{
-		DSN: dataSourceName(source, "autobrr.db"),
-	}
-
-	db.ctx, db.cancel = context.WithCancel(context.Background())
-
-	return db
-}
-
-func (db *SqliteDB) Open() error {
+func (db *DB) openSQLite() error {
 	if db.DSN == "" {
 		return fmt.Errorf("DSN required")
 	}
@@ -61,7 +41,7 @@ func (db *SqliteDB) Open() error {
 	}
 
 	// migrate db
-	if err = db.migrate(); err != nil {
+	if err = db.migrateSQLite(); err != nil {
 		log.Fatal().Err(err).Msg("could not migrate db")
 		return err
 	}
@@ -69,30 +49,143 @@ func (db *SqliteDB) Open() error {
 	return nil
 }
 
-func (db *SqliteDB) Close() error {
-	// cancel background context
-	db.cancel()
+func (db *DB) migrateSQLite() error {
+	db.lock.Lock()
+	defer db.lock.Unlock()
 
-	// close database
-	if db.handler != nil {
-		return db.handler.Close()
+	var version int
+	if err := db.handler.QueryRow("PRAGMA user_version").Scan(&version); err != nil {
+		return fmt.Errorf("failed to query schema version: %v", err)
 	}
-	return nil
-}
 
-func (db *SqliteDB) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) {
-	tx, err := db.handler.BeginTx(ctx, opts)
+	if version == len(migrations) {
+		return nil
+	} else if version > len(migrations) {
+		return fmt.Errorf("autobrr (version %d) older than schema (version: %d)", len(migrations), version)
+	}
+
+	tx, err := db.handler.Begin()
 	if err != nil {
-		return nil, err
+		return err
+	}
+	defer tx.Rollback()
+
+	if version == 0 {
+		if _, err := tx.Exec(schema); err != nil {
+			return fmt.Errorf("failed to initialize schema: %v", err)
+		}
+	} else {
+		for i := version; i < len(migrations); i++ {
+			if _, err := tx.Exec(migrations[i]); err != nil {
+				return fmt.Errorf("failed to execute migration #%v: %v", i, err)
+			}
+		}
 	}
 
-	return &Tx{
-		Tx:      tx,
-		handler: db,
-	}, nil
+	// temp custom data migration
+	// get data from filter.sources, check if specific types, move to new table and clear
+	// if migration 6
+	// TODO 2022-01-30 remove this in future version
+	if version == 5 && len(migrations) == 6 {
+		if err := customMigrateCopySourcesToMedia(tx); err != nil {
+			return fmt.Errorf("could not run custom data migration: %v", err)
+		}
+	}
+
+	_, err = tx.Exec(fmt.Sprintf("PRAGMA user_version = %d", len(migrations)))
+	if err != nil {
+		return fmt.Errorf("failed to bump schema version: %v", err)
+	}
+
+	return tx.Commit()
 }
 
-type Tx struct {
-	*sql.Tx
-	handler *SqliteDB
+// customMigrateCopySourcesToMedia move music specific sources to media
+func customMigrateCopySourcesToMedia(tx *sql.Tx) error {
+	rows, err := tx.Query(`
+		SELECT id, sources
+		FROM filter
+		WHERE sources LIKE '%"CD"%'
+		   OR sources LIKE '%"WEB"%'
+		   OR sources LIKE '%"DVD"%'
+		   OR sources LIKE '%"Vinyl"%'
+		   OR sources LIKE '%"Soundboard"%'
+		   OR sources LIKE '%"DAT"%'
+		   OR sources LIKE '%"Cassette"%'
+		   OR sources LIKE '%"Blu-Ray"%'
+		   OR sources LIKE '%"SACD"%'
+		;`)
+	if err != nil {
+		return fmt.Errorf("could not run custom data migration: %v", err)
+	}
+
+	defer rows.Close()
+
+	type tmpDataStruct struct {
+		id      int
+		sources []string
+	}
+
+	var tmpData []tmpDataStruct
+
+	// scan data
+	for rows.Next() {
+		var t tmpDataStruct
+
+		if err := rows.Scan(&t.id, pq.Array(&t.sources)); err != nil {
+			return err
+		}
+
+		tmpData = append(tmpData, t)
+	}
+	if err := rows.Err(); err != nil {
+		return err
+	}
+
+	// manipulate data
+	for _, d := range tmpData {
+		// create new slice with only music source if they exist in d.sources
+		mediaSources := []string{}
+		for _, source := range d.sources {
+			switch source {
+			case "CD":
+				mediaSources = append(mediaSources, source)
+			case "DVD":
+				mediaSources = append(mediaSources, source)
+			case "Vinyl":
+				mediaSources = append(mediaSources, source)
+			case "Soundboard":
+				mediaSources = append(mediaSources, source)
+			case "DAT":
+				mediaSources = append(mediaSources, source)
+			case "Cassette":
+				mediaSources = append(mediaSources, source)
+			case "Blu-Ray":
+				mediaSources = append(mediaSources, source)
+			case "SACD":
+				mediaSources = append(mediaSources, source)
+			}
+		}
+		_, err = tx.Exec(`UPDATE filter SET media = ? WHERE id = ?`, pq.Array(mediaSources), d.id)
+		if err != nil {
+			return err
+		}
+
+		// remove all music specific sources
+		cleanSources := []string{}
+		for _, source := range d.sources {
+			switch source {
+			case "CD", "WEB", "DVD", "Vinyl", "Soundboard", "DAT", "Cassette", "Blu-Ray", "SACD":
+				continue
+			}
+			cleanSources = append(cleanSources, source)
+		}
+		_, err := tx.Exec(`UPDATE filter SET sources = ? WHERE id = ?`, pq.Array(cleanSources), d.id)
+		if err != nil {
+			return err
+		}
+
+	}
+
+	return nil
 }

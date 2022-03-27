@@ -8,10 +8,10 @@ import (
 )
 
 type IndexerRepo struct {
-	db *SqliteDB
+	db *DB
 }
 
-func NewIndexerRepo(db *SqliteDB) domain.IndexerRepo {
+func NewIndexerRepo(db *DB) domain.IndexerRepo {
 	return &IndexerRepo{
 		db: db,
 	}

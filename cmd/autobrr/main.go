@@ -59,7 +59,7 @@ func main() {
 	log.Info().Msgf("Log-level: %v", cfg.LogLevel)
 
 	// open database connection
-	db := database.NewSqliteDB(configPath)
+	db, _ := database.NewDB(cfg)
 	if err := db.Open(); err != nil {
 		log.Fatal().Err(err).Msg("could not open db connection")
 	}

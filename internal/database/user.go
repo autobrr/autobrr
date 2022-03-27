@@ -8,10 +8,10 @@ import (
 )
 
 type UserRepo struct {
-	db *SqliteDB
+	db *DB
 }
 
-func NewUserRepo(db *SqliteDB) domain.UserRepo {
+func NewUserRepo(db *DB) domain.UserRepo {
 	return &UserRepo{db: db}
 }
 

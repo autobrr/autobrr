@@ -23,6 +23,12 @@ func Defaults() domain.Config {
 		BaseURL:           "/",
 		SessionSecret:     "secret-session-key",
 		CustomDefinitions: "",
+		DatabaseType:      "sqlite",
+		PostgresHost:      "",
+		PostgresPort:      0,
+		PostgresDatabase:  "",
+		PostgresUser:      "",
+		PostgresPass:      "",
 	}
 }
 
@@ -127,6 +133,7 @@ func Read(configPath string) domain.Config {
 		}
 
 		viper.SetConfigFile(path.Join(configPath, "config.toml"))
+		config.ConfigPath = configPath
 	} else {
 		viper.SetConfigName("config")
 

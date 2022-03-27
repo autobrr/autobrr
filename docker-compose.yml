@@ -9,3 +9,18 @@ services:
     ports:
       - "7474:7474"
     restart: unless-stopped
+  postgres:
+    image: postgres:12.10
+    container_name: postgres
+    volumes:
+      - postgres:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_USER=autobrr
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=autobrr
+
+
+volumes:
+  postgres:

@@ -12,7 +12,7 @@ import (
 )
 
 type DownloadClientRepo struct {
-	db    *SqliteDB
+	db    *DB
 	cache *clientCache
 }
 
@@ -49,7 +49,7 @@ func (c *clientCache) Pop(id int) {
 	c.mu.Unlock()
 }
 
-func NewDownloadClientRepo(db *SqliteDB) domain.DownloadClientRepo {
+func NewDownloadClientRepo(db *DB) domain.DownloadClientRepo {
 	return &DownloadClientRepo{
 		db:    db,
 		cache: NewClientCache(),

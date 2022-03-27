@@ -12,10 +12,10 @@ import (
 )
 
 type FilterRepo struct {
-	db *SqliteDB
+	db *DB
 }
 
-func NewFilterRepo(db *SqliteDB) domain.FilterRepo {
+func NewFilterRepo(db *DB) domain.FilterRepo {
 	return &FilterRepo{db: db}
 }
 

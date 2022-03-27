@@ -12,10 +12,10 @@ import (
 )
 
 type IrcRepo struct {
-	db *SqliteDB
+	db *DB
 }
 
-func NewIrcRepo(db *SqliteDB) domain.IrcRepo {
+func NewIrcRepo(db *DB) domain.IrcRepo {
 	return &IrcRepo{db: db}
 }
 

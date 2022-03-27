@@ -11,10 +11,10 @@ import (
 )
 
 type ReleaseRepo struct {
-	db *SqliteDB
+	db *DB
 }
 
-func NewReleaseRepo(db *SqliteDB) domain.ReleaseRepo {
+func NewReleaseRepo(db *DB) domain.ReleaseRepo {
 	return &ReleaseRepo{db: db}
 }
 

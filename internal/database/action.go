@@ -10,10 +10,10 @@ import (
 )
 
 type ActionRepo struct {
-	db *SqliteDB
+	db *DB
 }
 
-func NewActionRepo(db *SqliteDB) domain.ActionRepo {
+func NewActionRepo(db *DB) domain.ActionRepo {
 	return &ActionRepo{db: db}
 }
 
