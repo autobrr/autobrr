@@ -1,0 +1,61 @@
+---
+#id: torrentnetwork
+name: TorrentNetwork
+identifier: torrentnetwork
+description: Torrent Network (TN) is a GERMAN Private site for TV / MOVIES / GENERAL
+language: de-DE
+urls:
+  - https://tntracker.org/
+privacy: private
+protocol: torrent
+suppports:
+  - irc
+  - rss
+source: unknown
+settings:
+  - name: passkey
+    type: secret
+    label: PassKey
+    help: "Home -> RSS -> Extract PassKey from URL"
+
+irc:
+  network: TorrentNetwork
+  server: irc.tntracker.org
+  port: 19436
+  tls: true
+  channels:
+    - "#announce"
+  announcers:
+    - "|TN|"
+  settings:
+    - name: nickserv.account
+      type: text
+      required: true
+      label: NickServ Account
+      help: NickServ account. Make sure to group your user and bot. E.g. user|bot
+    - name: nickserv.password
+      type: secret
+      required: true
+      label: NickServ Password
+      help: NickServ password
+
+parse:
+  type: multi
+  lines:
+    - test:
+        - "{New Torrent} Name {Luke_EP--Wildstyle_-_Sump_Ting-(RNR002)-WEB-2016-OMA} Typ {Music|MP3} Pre {14 s}"
+      pattern: '\{New Torrent\} Name \{(.*)\} Typ \{(.*)\} Pre \{(.*)\}'
+      vars:
+        - torrentName
+        - category
+        - preTime
+    - test:
+        - "{New Torrent} Size {24.629 MiB} Files {5} Link {https://tntracker.org/torrent/000000}"
+      pattern: '\{New Torrent\} Size \{(.*)\} Files \{\d+\} Link \{(https?:\/\/[^\/]+)\/torrent\/(\d+)\}'
+      vars:
+        - torrentSize
+        - baseUrl
+        - torrentId
+
+  match:
+    torrenturl: "{{ .baseUrl }}/download/{{ .torrentId }}/{{ .passkey }}"
