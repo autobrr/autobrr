@@ -12,7 +12,7 @@ import (
 )
 
 type actionService interface {
-	Fetch() ([]domain.Action, error)
+	List(ctx context.Context) ([]domain.Action, error)
 	Store(ctx context.Context, action domain.Action) (*domain.Action, error)
 	Delete(actionID int) error
 	ToggleEnabled(actionID int) error
@@ -39,7 +39,7 @@ func (h actionHandler) Routes(r chi.Router) {
 }
 
 func (h actionHandler) getActions(w http.ResponseWriter, r *http.Request) {
-	actions, err := h.service.Fetch()
+	actions, err := h.service.List(r.Context())
 	if err != nil {
 		// encode error
 	}

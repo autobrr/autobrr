@@ -7,6 +7,7 @@ type DownloadClientRepo interface {
 	List(ctx context.Context) ([]DownloadClient, error)
 	FindByID(ctx context.Context, id int32) (*DownloadClient, error)
 	Store(ctx context.Context, client DownloadClient) (*DownloadClient, error)
+	Update(ctx context.Context, client DownloadClient) (*DownloadClient, error)
 	Delete(ctx context.Context, clientID int) error
 }
 

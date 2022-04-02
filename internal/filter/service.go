@@ -47,12 +47,12 @@ func (s *service) ListFilters(ctx context.Context) ([]domain.Filter, error) {
 		return nil, err
 	}
 
-	var ret []domain.Filter
+	ret := make([]domain.Filter, 0)
 
 	for _, filter := range filters {
 		indexers, err := s.indexerSvc.FindByFilterID(ctx, filter.ID)
 		if err != nil {
-			return nil, err
+			return ret, err
 		}
 		filter.Indexers = indexers
 

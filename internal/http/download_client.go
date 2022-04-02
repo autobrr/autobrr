@@ -15,6 +15,7 @@ import (
 type downloadClientService interface {
 	List(ctx context.Context) ([]domain.DownloadClient, error)
 	Store(ctx context.Context, client domain.DownloadClient) (*domain.DownloadClient, error)
+	Update(ctx context.Context, client domain.DownloadClient) (*domain.DownloadClient, error)
 	Delete(ctx context.Context, clientID int) error
 	Test(client domain.DownloadClient) error
 }
@@ -93,7 +94,7 @@ func (h downloadClientHandler) update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	client, err := h.service.Store(r.Context(), data)
+	client, err := h.service.Update(r.Context(), data)
 	if err != nil {
 		h.encoder.Error(w, err)
 		return

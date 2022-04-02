@@ -12,9 +12,9 @@ import (
 )
 
 type indexerService interface {
-	Store(indexer domain.Indexer) (*domain.Indexer, error)
-	Update(indexer domain.Indexer) (*domain.Indexer, error)
-	List() ([]domain.Indexer, error)
+	Store(ctx context.Context, indexer domain.Indexer) (*domain.Indexer, error)
+	Update(ctx context.Context, indexer domain.Indexer) (*domain.Indexer, error)
+	List(ctx context.Context) ([]domain.Indexer, error)
 	GetAll() ([]*domain.IndexerDefinition, error)
 	GetTemplates() ([]domain.IndexerDefinition, error)
 	Delete(ctx context.Context, id int) error
@@ -55,20 +55,23 @@ func (h indexerHandler) getSchema(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h indexerHandler) store(w http.ResponseWriter, r *http.Request) {
-	var data domain.Indexer
+	var (
+		ctx  = r.Context()
+		data domain.Indexer
+	)
 
 	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
 		return
 	}
 
-	indexer, err := h.service.Store(data)
+	indexer, err := h.service.Store(ctx, data)
 	if err != nil {
 		//
-		h.encoder.StatusResponse(r.Context(), w, nil, http.StatusBadRequest)
+		h.encoder.StatusResponse(ctx, w, nil, http.StatusBadRequest)
 		return
 	}
 
-	h.encoder.StatusResponse(r.Context(), w, indexer, http.StatusCreated)
+	h.encoder.StatusResponse(ctx, w, indexer, http.StatusCreated)
 }
 
 func (h indexerHandler) update(w http.ResponseWriter, r *http.Request) {
@@ -81,7 +84,7 @@ func (h indexerHandler) update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	indexer, err := h.service.Update(data)
+	indexer, err := h.service.Update(ctx, data)
 	if err != nil {
 		//
 	}
@@ -118,7 +121,7 @@ func (h indexerHandler) getAll(w http.ResponseWriter, r *http.Request) {
 func (h indexerHandler) list(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
-	indexers, err := h.service.List()
+	indexers, err := h.service.List(ctx)
 	if err != nil {
 		//
 	}

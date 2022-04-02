@@ -15,11 +15,11 @@ import (
 )
 
 type Service interface {
-	Store(indexer domain.Indexer) (*domain.Indexer, error)
-	Update(indexer domain.Indexer) (*domain.Indexer, error)
+	Store(ctx context.Context, indexer domain.Indexer) (*domain.Indexer, error)
+	Update(ctx context.Context, indexer domain.Indexer) (*domain.Indexer, error)
 	Delete(ctx context.Context, id int) error
 	FindByFilterID(ctx context.Context, id int) ([]domain.Indexer, error)
-	List() ([]domain.Indexer, error)
+	List(ctx context.Context) ([]domain.Indexer, error)
 	GetAll() ([]*domain.IndexerDefinition, error)
 	GetTemplates() ([]domain.IndexerDefinition, error)
 	LoadIndexerDefinitions() error
@@ -52,8 +52,8 @@ func NewService(config domain.Config, repo domain.IndexerRepo, apiService APISer
 	}
 }
 
-func (s *service) Store(indexer domain.Indexer) (*domain.Indexer, error) {
-	i, err := s.repo.Store(indexer)
+func (s *service) Store(ctx context.Context, indexer domain.Indexer) (*domain.Indexer, error) {
+	i, err := s.repo.Store(ctx, indexer)
 	if err != nil {
 		log.Error().Stack().Err(err).Msgf("failed to store indexer: %v", indexer.Name)
 		return nil, err
@@ -69,8 +69,8 @@ func (s *service) Store(indexer domain.Indexer) (*domain.Indexer, error) {
 	return i, nil
 }
 
-func (s *service) Update(indexer domain.Indexer) (*domain.Indexer, error) {
-	i, err := s.repo.Update(indexer)
+func (s *service) Update(ctx context.Context, indexer domain.Indexer) (*domain.Indexer, error) {
+	i, err := s.repo.Update(ctx, indexer)
 	if err != nil {
 		return nil, err
 	}
@@ -97,25 +97,15 @@ func (s *service) Delete(ctx context.Context, id int) error {
 }
 
 func (s *service) FindByFilterID(ctx context.Context, id int) ([]domain.Indexer, error) {
-	filters, err := s.repo.FindByFilterID(ctx, id)
-	if err != nil {
-		return nil, err
-	}
-
-	return filters, nil
+	return s.repo.FindByFilterID(ctx, id)
 }
 
-func (s *service) List() ([]domain.Indexer, error) {
-	i, err := s.repo.List()
-	if err != nil {
-		return nil, err
-	}
-
-	return i, nil
+func (s *service) List(ctx context.Context) ([]domain.Indexer, error) {
+	return s.repo.List(ctx)
 }
 
 func (s *service) GetAll() ([]*domain.IndexerDefinition, error) {
-	indexers, err := s.repo.List()
+	indexers, err := s.repo.List(context.Background())
 	if err != nil {
 		return nil, err
 	}

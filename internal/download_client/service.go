@@ -11,6 +11,7 @@ type Service interface {
 	List(ctx context.Context) ([]domain.DownloadClient, error)
 	FindByID(ctx context.Context, id int32) (*domain.DownloadClient, error)
 	Store(ctx context.Context, client domain.DownloadClient) (*domain.DownloadClient, error)
+	Update(ctx context.Context, client domain.DownloadClient) (*domain.DownloadClient, error)
 	Delete(ctx context.Context, clientID int) error
 	Test(client domain.DownloadClient) error
 }
@@ -41,6 +42,18 @@ func (s *service) Store(ctx context.Context, client domain.DownloadClient) (*dom
 
 	// store
 	return s.repo.Store(ctx, client)
+}
+
+func (s *service) Update(ctx context.Context, client domain.DownloadClient) (*domain.DownloadClient, error) {
+	// validate data
+	if client.Host == "" {
+		return nil, errors.New("validation error: no host")
+	} else if client.Type == "" {
+		return nil, errors.New("validation error: no type")
+	}
+
+	// store
+	return s.repo.Update(ctx, client)
 }
 
 func (s *service) Delete(ctx context.Context, clientID int) error {

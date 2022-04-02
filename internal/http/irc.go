@@ -15,7 +15,7 @@ type ircService interface {
 	ListNetworks(ctx context.Context) ([]domain.IrcNetwork, error)
 	GetNetworksWithHealth(ctx context.Context) ([]domain.IrcNetworkWithHealth, error)
 	DeleteNetwork(ctx context.Context, id int64) error
-	GetNetworkByID(id int64) (*domain.IrcNetwork, error)
+	GetNetworkByID(ctx context.Context, id int64) (*domain.IrcNetwork, error)
 	StoreNetwork(ctx context.Context, network *domain.IrcNetwork) error
 	UpdateNetwork(ctx context.Context, network *domain.IrcNetwork) error
 	StoreChannel(networkID int64, channel *domain.IrcChannel) error
@@ -61,7 +61,7 @@ func (h ircHandler) getNetworkByID(w http.ResponseWriter, r *http.Request) {
 
 	id, _ := strconv.Atoi(networkID)
 
-	network, err := h.service.GetNetworkByID(int64(id))
+	network, err := h.service.GetNetworkByID(ctx, int64(id))
 	if err != nil {
 		h.encoder.Error(w, err)
 	}

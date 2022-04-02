@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"sync"
 
+	sq "github.com/Masterminds/squirrel"
 	"github.com/rs/zerolog/log"
 
 	"github.com/autobrr/autobrr/internal/domain"
@@ -19,10 +20,15 @@ type DB struct {
 
 	Driver string
 	DSN    string
+
+	squirrel sq.StatementBuilderType
 }
 
 func NewDB(cfg domain.Config) (*DB, error) {
-	db := &DB{}
+	db := &DB{
+		// set default placeholder for squirrel to support both sqlite and postgres
+		squirrel: sq.StatementBuilder.PlaceholderFormat(sq.Dollar),
+	}
 	db.ctx, db.cancel = context.WithCancel(context.Background())
 
 	switch cfg.DatabaseType {
@@ -38,6 +44,8 @@ func NewDB(cfg domain.Config) (*DB, error) {
 	default:
 		return nil, fmt.Errorf("unsupported databse: %v", cfg.DatabaseType)
 	}
+
+	log.Info().Msgf("Using database: %v", db.Driver)
 
 	return db, nil
 }

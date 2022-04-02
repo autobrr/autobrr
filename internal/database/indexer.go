@@ -3,8 +3,11 @@ package database
 import (
 	"context"
 	"encoding/json"
-	"github.com/autobrr/autobrr/internal/domain"
+	"time"
+
 	"github.com/rs/zerolog/log"
+
+	"github.com/autobrr/autobrr/internal/domain"
 )
 
 type IndexerRepo struct {
@@ -17,52 +20,64 @@ func NewIndexerRepo(db *DB) domain.IndexerRepo {
 	}
 }
 
-func (r *IndexerRepo) Store(indexer domain.Indexer) (*domain.Indexer, error) {
-	//r.db.lock.RLock()
-	//defer r.db.lock.RUnlock()
-
+func (r *IndexerRepo) Store(ctx context.Context, indexer domain.Indexer) (*domain.Indexer, error) {
 	settings, err := json.Marshal(indexer.Settings)
 	if err != nil {
 		log.Error().Stack().Err(err).Msg("error marshaling json data")
 		return nil, err
 	}
 
-	res, err := r.db.handler.Exec(`INSERT INTO indexer (enabled, name, identifier, settings) VALUES (?, ?, ?, ?)`, indexer.Enabled, indexer.Name, indexer.Identifier, settings)
+	queryBuilder := r.db.squirrel.
+		Insert("indexer").Columns("enabled", "name", "identifier", "settings").
+		Values(indexer.Enabled, indexer.Name, indexer.Identifier, settings).
+		Suffix("RETURNING id").RunWith(r.db.handler)
+
+	// return values
+	var retID int64
+
+	err = queryBuilder.QueryRowContext(ctx).Scan(&retID)
 	if err != nil {
-		log.Error().Stack().Err(err).Msg("error executing query")
+		log.Error().Stack().Err(err).Msg("indexer.store: error executing query")
 		return nil, err
 	}
 
-	id, _ := res.LastInsertId()
-	indexer.ID = id
+	indexer.ID = retID
 
 	return &indexer, nil
 }
 
-func (r *IndexerRepo) Update(indexer domain.Indexer) (*domain.Indexer, error) {
-	//r.db.lock.RLock()
-	//defer r.db.lock.RUnlock()
-
-	sett, err := json.Marshal(indexer.Settings)
+func (r *IndexerRepo) Update(ctx context.Context, indexer domain.Indexer) (*domain.Indexer, error) {
+	settings, err := json.Marshal(indexer.Settings)
 	if err != nil {
 		log.Error().Stack().Err(err).Msg("error marshaling json data")
 		return nil, err
 	}
 
-	_, err = r.db.handler.Exec(`UPDATE indexer SET enabled = ?, name = ?, settings = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`, indexer.Enabled, indexer.Name, sett, indexer.ID)
+	queryBuilder := r.db.squirrel.
+		Update("indexer").
+		Set("enabled", indexer.Enabled).
+		Set("name", indexer.Name).
+		Set("settings", settings).
+		Set("updated_at", time.Now().Format(time.RFC3339)).
+		Where("id = ?", indexer.ID)
+
+	query, args, err := queryBuilder.ToSql()
 	if err != nil {
-		log.Error().Stack().Err(err).Msg("error executing query")
+		log.Error().Stack().Err(err).Msg("indexer.update: error building query")
+		return nil, err
+	}
+
+	_, err = r.db.handler.ExecContext(ctx, query, args...)
+	if err != nil {
+		log.Error().Stack().Err(err).Msg("indexer.update: error executing query")
 		return nil, err
 	}
 
 	return &indexer, nil
 }
 
-func (r *IndexerRepo) List() ([]domain.Indexer, error) {
-	//r.db.lock.RLock()
-	//defer r.db.lock.RUnlock()
-
-	rows, err := r.db.handler.Query("SELECT id, enabled, name, identifier, settings FROM indexer ORDER BY name ASC")
+func (r *IndexerRepo) List(ctx context.Context) ([]domain.Indexer, error) {
+	rows, err := r.db.handler.QueryContext(ctx, "SELECT id, enabled, name, identifier, settings FROM indexer ORDER BY name ASC")
 	if err != nil {
 		log.Error().Stack().Err(err).Msg("indexer.list: error query indexer")
 		return nil, err
@@ -100,14 +115,19 @@ func (r *IndexerRepo) List() ([]domain.Indexer, error) {
 }
 
 func (r *IndexerRepo) FindByFilterID(ctx context.Context, id int) ([]domain.Indexer, error) {
-	//r.db.lock.RLock()
-	//defer r.db.lock.RUnlock()
+	queryBuilder := r.db.squirrel.
+		Select("id", "enabled", "name", "identifier").
+		From("indexer").
+		Join("filter_indexer ON indexer.id = filter_indexer.indexer_id").
+		Where("filter_indexer.filter_id = ?", id)
 
-	rows, err := r.db.handler.QueryContext(ctx, `
-		SELECT i.id, i.enabled, i.name, i.identifier
-		FROM indexer i
-			JOIN filter_indexer fi on i.id = fi.indexer_id
-		WHERE fi.filter_id = ?`, id)
+	query, args, err := queryBuilder.ToSql()
+	if err != nil {
+		log.Error().Stack().Err(err).Msg("irc.check_existing_network: error fetching data")
+		return nil, err
+	}
+
+	rows, err := r.db.handler.QueryContext(ctx, query, args...)
 	if err != nil {
 		log.Error().Stack().Err(err).Msg("indexer.find_by_filter_id: error query indexer")
 		return nil, err
@@ -115,7 +135,7 @@ func (r *IndexerRepo) FindByFilterID(ctx context.Context, id int) ([]domain.Inde
 
 	defer rows.Close()
 
-	var indexers []domain.Indexer
+	indexers := make([]domain.Indexer, 0)
 	for rows.Next() {
 		var f domain.Indexer
 
@@ -146,12 +166,17 @@ func (r *IndexerRepo) FindByFilterID(ctx context.Context, id int) ([]domain.Inde
 }
 
 func (r *IndexerRepo) Delete(ctx context.Context, id int) error {
-	//r.db.lock.RLock()
-	//defer r.db.lock.RUnlock()
+	queryBuilder := r.db.squirrel.
+		Delete("indexer").
+		Where("id = ?", id)
 
-	query := `DELETE FROM indexer WHERE id = ?`
+	query, args, err := queryBuilder.ToSql()
+	if err != nil {
+		log.Error().Stack().Err(err).Msg("indexer.delete: error building query")
+		return err
+	}
 
-	_, err := r.db.handler.ExecContext(ctx, query, id)
+	_, err = r.db.handler.ExecContext(ctx, query, args...)
 	if err != nil {
 		log.Error().Stack().Err(err).Msgf("indexer.delete: error executing query: '%v'", query)
 		return err
