@@ -4,10 +4,9 @@ import (
 	"context"
 	"database/sql"
 	sq "github.com/Masterminds/squirrel"
+	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/lib/pq"
 	"github.com/rs/zerolog/log"
-
-	"github.com/autobrr/autobrr/internal/domain"
 )
 
 type ReleaseRepo struct {
@@ -87,7 +86,30 @@ func (repo *ReleaseRepo) StoreReleaseActionStatus(ctx context.Context, a *domain
 	return nil
 }
 
-func (repo *ReleaseRepo) Find(ctx context.Context, params domain.ReleaseQueryParams) ([]domain.Release, int64, int64, error) {
+func (repo *ReleaseRepo) Find(ctx context.Context, params domain.ReleaseQueryParams) ([]*domain.Release, int64, int64, error) {
+	tx, err := repo.db.BeginTx(ctx, &sql.TxOptions{})
+	if err != nil {
+		return nil, 0, 0, err
+	}
+	defer tx.Rollback()
+
+	releases, nextCursor, total, err := repo.findReleases(ctx, tx, params)
+	if err != nil {
+		return nil, nextCursor, total, err
+	}
+
+	for _, release := range releases {
+		statuses, err := repo.attachActionStatus(ctx, tx, release.ID)
+		if err != nil {
+			return releases, nextCursor, total, err
+		}
+		release.ActionStatus = statuses
+	}
+
+	return releases, nextCursor, total, nil
+}
+
+func (repo *ReleaseRepo) findReleases(ctx context.Context, tx *Tx, params domain.ReleaseQueryParams) ([]*domain.Release, int64, int64, error) {
 	queryBuilder := repo.db.squirrel.
 		Select("r.id", "r.filter_status", "r.rejections", "r.indexer", "r.filter", "r.protocol", "r.title", "r.torrent_name", "r.size", "r.timestamp", "COUNT(*) OVER() AS total_count").
 		From("release r").
@@ -123,9 +145,9 @@ func (repo *ReleaseRepo) Find(ctx context.Context, params domain.ReleaseQueryPar
 	query, args, err := queryBuilder.ToSql()
 	log.Trace().Str("database", "release.find").Msgf("query: '%v', args: '%v'", query, args)
 
-	res := make([]domain.Release, 0)
+	res := make([]*domain.Release, 0)
 
-	rows, err := repo.db.handler.QueryContext(ctx, query, args...)
+	rows, err := tx.QueryContext(ctx, query, args...)
 	if err != nil {
 		log.Error().Stack().Err(err).Msg("error fetching releases")
 		return res, 0, 0, nil
@@ -153,16 +175,7 @@ func (repo *ReleaseRepo) Find(ctx context.Context, params domain.ReleaseQueryPar
 		rls.Indexer = indexer.String
 		rls.FilterName = filter.String
 
-		// get action status
-		actionStatus, err := repo.GetActionStatusByReleaseID(ctx, rls.ID)
-		if err != nil {
-			log.Error().Stack().Err(err).Msg("release.find: error getting action status")
-			return res, 0, 0, err
-		}
-
-		rls.ActionStatus = actionStatus
-
-		res = append(res, rls)
+		res = append(res, &rls)
 	}
 
 	nextCursor := int64(0)
@@ -221,6 +234,44 @@ func (repo *ReleaseRepo) GetActionStatusByReleaseID(ctx context.Context, release
 	res := make([]domain.ReleaseActionStatus, 0)
 
 	rows, err := repo.db.handler.QueryContext(ctx, query, args...)
+	if err != nil {
+		log.Error().Stack().Err(err).Msg("error fetching releases")
+		return res, nil
+	}
+
+	defer rows.Close()
+
+	if err := rows.Err(); err != nil {
+		log.Error().Stack().Err(err)
+		return res, err
+	}
+
+	for rows.Next() {
+		var rls domain.ReleaseActionStatus
+
+		if err := rows.Scan(&rls.ID, &rls.Status, &rls.Action, &rls.Type, pq.Array(&rls.Rejections), &rls.Timestamp); err != nil {
+			log.Error().Stack().Err(err).Msg("release.find: error scanning data to struct")
+			return res, err
+		}
+
+		res = append(res, rls)
+	}
+
+	return res, nil
+}
+
+func (repo *ReleaseRepo) attachActionStatus(ctx context.Context, tx *Tx, releaseID int64) ([]domain.ReleaseActionStatus, error) {
+
+	queryBuilder := repo.db.squirrel.
+		Select("id", "status", "action", "type", "rejections", "timestamp").
+		From("release_action_status").
+		Where("release_id = ?", releaseID)
+
+	query, args, err := queryBuilder.ToSql()
+
+	res := make([]domain.ReleaseActionStatus, 0)
+
+	rows, err := tx.QueryContext(ctx, query, args...)
 	if err != nil {
 		log.Error().Stack().Err(err).Msg("error fetching releases")
 		return res, nil

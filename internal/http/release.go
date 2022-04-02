@@ -11,7 +11,7 @@ import (
 )
 
 type releaseService interface {
-	Find(ctx context.Context, query domain.ReleaseQueryParams) (res []domain.Release, nextCursor int64, count int64, err error)
+	Find(ctx context.Context, query domain.ReleaseQueryParams) (res []*domain.Release, nextCursor int64, count int64, err error)
 	GetIndexerOptions(ctx context.Context) ([]string, error)
 	Stats(ctx context.Context) (*domain.ReleaseStats, error)
 	Delete(ctx context.Context) error
@@ -105,9 +105,9 @@ func (h releaseHandler) findReleases(w http.ResponseWriter, r *http.Request) {
 	}
 
 	ret := struct {
-		Data       []domain.Release `json:"data"`
-		NextCursor int64            `json:"next_cursor"`
-		Count      int64            `json:"count"`
+		Data       []*domain.Release `json:"data"`
+		NextCursor int64             `json:"next_cursor"`
+		Count      int64             `json:"count"`
 	}{
 		Data:       releases,
 		NextCursor: nextCursor,

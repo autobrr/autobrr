@@ -19,7 +19,7 @@ func (r *UserRepo) FindByUsername(ctx context.Context, username string) (*domain
 
 	queryBuilder := r.db.squirrel.
 		Select("id", "username", "password").
-		From("user").
+		From("users").
 		Where("username = ?", username)
 
 	query, args, err := queryBuilder.ToSql()
