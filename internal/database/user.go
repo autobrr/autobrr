@@ -48,7 +48,7 @@ func (r *UserRepo) Store(ctx context.Context, user domain.User) error {
 	var err error
 	if user.ID != 0 {
 		queryBuilder := r.db.squirrel.
-			Update("user").
+			Update("users").
 			Set("username", user.Username).
 			Set("password", user.Password).
 			Where("username = ?", user.Username)
