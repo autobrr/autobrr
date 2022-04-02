@@ -11,7 +11,7 @@ import (
 
 type Service interface {
 	Store(ctx context.Context, action domain.Action) (*domain.Action, error)
-	Fetch() ([]domain.Action, error)
+	List(ctx context.Context) ([]domain.Action, error)
 	Delete(actionID int) error
 	DeleteByFilterID(ctx context.Context, filterID int) error
 	ToggleEnabled(actionID int) error
@@ -31,45 +31,21 @@ func NewService(repo domain.ActionRepo, clientSvc download_client.Service, bus E
 }
 
 func (s *service) Store(ctx context.Context, action domain.Action) (*domain.Action, error) {
-	// validate data
-
-	a, err := s.repo.Store(ctx, action)
-	if err != nil {
-		return nil, err
-	}
-
-	return a, nil
+	return s.repo.Store(ctx, action)
 }
 
 func (s *service) Delete(actionID int) error {
-	if err := s.repo.Delete(actionID); err != nil {
-		return err
-	}
-
-	return nil
+	return s.repo.Delete(actionID)
 }
 
 func (s *service) DeleteByFilterID(ctx context.Context, filterID int) error {
-	if err := s.repo.DeleteByFilterID(ctx, filterID); err != nil {
-		return err
-	}
-
-	return nil
+	return s.repo.DeleteByFilterID(ctx, filterID)
 }
 
-func (s *service) Fetch() ([]domain.Action, error) {
-	actions, err := s.repo.List()
-	if err != nil {
-		return nil, err
-	}
-
-	return actions, nil
+func (s *service) List(ctx context.Context) ([]domain.Action, error) {
+	return s.repo.List(ctx)
 }
 
 func (s *service) ToggleEnabled(actionID int) error {
-	if err := s.repo.ToggleEnabled(actionID); err != nil {
-		return err
-	}
-
-	return nil
+	return s.repo.ToggleEnabled(actionID)
 }

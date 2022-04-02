@@ -10,7 +10,7 @@ import (
 )
 
 type Service interface {
-	Find(ctx context.Context, query domain.ReleaseQueryParams) (res []domain.Release, nextCursor int64, count int64, err error)
+	Find(ctx context.Context, query domain.ReleaseQueryParams) (res []*domain.Release, nextCursor int64, count int64, err error)
 	GetIndexerOptions(ctx context.Context) ([]string, error)
 	Stats(ctx context.Context) (*domain.ReleaseStats, error)
 	Store(ctx context.Context, release *domain.Release) error
@@ -31,13 +31,8 @@ func NewService(repo domain.ReleaseRepo, actionService action.Service) Service {
 	}
 }
 
-func (s *service) Find(ctx context.Context, query domain.ReleaseQueryParams) (res []domain.Release, nextCursor int64, count int64, err error) {
-	res, nextCursor, count, err = s.repo.Find(ctx, query)
-	if err != nil {
-		return
-	}
-
-	return
+func (s *service) Find(ctx context.Context, query domain.ReleaseQueryParams) (res []*domain.Release, nextCursor int64, count int64, err error) {
+	return s.repo.Find(ctx, query)
 }
 
 func (s *service) GetIndexerOptions(ctx context.Context) ([]string, error) {

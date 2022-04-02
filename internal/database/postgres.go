@@ -55,26 +55,26 @@ func (db *DB) migratePostgres() error {
 		return err
 	}
 
-	if version == len(migrations) {
+	if version == len(postgresMigrations) {
 		return nil
 	}
-	if version > len(migrations) {
+	if version > len(postgresMigrations) {
 		return fmt.Errorf("old")
 	}
 
 	if version == 0 {
-		if _, err := tx.Exec(schema); err != nil {
+		if _, err := tx.Exec(postgresSchema); err != nil {
 			return fmt.Errorf("failed to initialize schema: %v", err)
 		}
 	} else {
-		for i := version; i < len(migrations); i++ {
-			if _, err := tx.Exec(migrations[i]); err != nil {
+		for i := version; i < len(postgresMigrations); i++ {
+			if _, err := tx.Exec(postgresMigrations[i]); err != nil {
 				return fmt.Errorf("failed to execute migration #%v: %v", i, err)
 			}
 		}
 	}
 
-	_, err = tx.Exec(`INSERT INTO schema_migrations (id, version) VALUES (1, $1) ON CONFLICT (id) DO UPDATE SET version = $1`, len(migrations))
+	_, err = tx.Exec(`INSERT INTO schema_migrations (id, version) VALUES (1, $1) ON CONFLICT (id) DO UPDATE SET version = $1`, len(postgresMigrations))
 	if err != nil {
 		return fmt.Errorf("failed to bump schema version: %v", err)
 	}

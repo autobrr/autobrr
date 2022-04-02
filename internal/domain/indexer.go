@@ -7,9 +7,9 @@ import (
 )
 
 type IndexerRepo interface {
-	Store(indexer Indexer) (*Indexer, error)
-	Update(indexer Indexer) (*Indexer, error)
-	List() ([]Indexer, error)
+	Store(ctx context.Context, indexer Indexer) (*Indexer, error)
+	Update(ctx context.Context, indexer Indexer) (*Indexer, error)
+	List(ctx context.Context) ([]Indexer, error)
 	Delete(ctx context.Context, id int) error
 	FindByFilterID(ctx context.Context, id int) ([]Indexer, error)
 }

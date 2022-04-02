@@ -58,10 +58,10 @@ func (db *DB) migrateSQLite() error {
 		return fmt.Errorf("failed to query schema version: %v", err)
 	}
 
-	if version == len(migrations) {
+	if version == len(sqliteMigrations) {
 		return nil
-	} else if version > len(migrations) {
-		return fmt.Errorf("autobrr (version %d) older than schema (version: %d)", len(migrations), version)
+	} else if version > len(sqliteMigrations) {
+		return fmt.Errorf("autobrr (version %d) older than schema (version: %d)", len(sqliteMigrations), version)
 	}
 
 	tx, err := db.handler.Begin()
@@ -71,12 +71,12 @@ func (db *DB) migrateSQLite() error {
 	defer tx.Rollback()
 
 	if version == 0 {
-		if _, err := tx.Exec(schema); err != nil {
+		if _, err := tx.Exec(sqliteSchema); err != nil {
 			return fmt.Errorf("failed to initialize schema: %v", err)
 		}
 	} else {
-		for i := version; i < len(migrations); i++ {
-			if _, err := tx.Exec(migrations[i]); err != nil {
+		for i := version; i < len(sqliteMigrations); i++ {
+			if _, err := tx.Exec(sqliteMigrations[i]); err != nil {
 				return fmt.Errorf("failed to execute migration #%v: %v", i, err)
 			}
 		}
@@ -86,13 +86,13 @@ func (db *DB) migrateSQLite() error {
 	// get data from filter.sources, check if specific types, move to new table and clear
 	// if migration 6
 	// TODO 2022-01-30 remove this in future version
-	if version == 5 && len(migrations) == 6 {
+	if version == 5 && len(sqliteMigrations) == 6 {
 		if err := customMigrateCopySourcesToMedia(tx); err != nil {
 			return fmt.Errorf("could not run custom data migration: %v", err)
 		}
 	}
 
-	_, err = tx.Exec(fmt.Sprintf("PRAGMA user_version = %d", len(migrations)))
+	_, err = tx.Exec(fmt.Sprintf("PRAGMA user_version = %d", len(sqliteMigrations)))
 	if err != nil {
 		return fmt.Errorf("failed to bump schema version: %v", err)
 	}

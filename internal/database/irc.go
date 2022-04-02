@@ -3,8 +3,8 @@ package database
 import (
 	"context"
 	"database/sql"
-
-	sq "github.com/Masterminds/squirrel"
+	"github.com/pkg/errors"
+	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
 
@@ -19,15 +19,18 @@ func NewIrcRepo(db *DB) domain.IrcRepo {
 	return &IrcRepo{db: db}
 }
 
-func (r *IrcRepo) GetNetworkByID(id int64) (*domain.IrcNetwork, error) {
-	//r.db.lock.RLock()
-	//defer r.db.lock.RUnlock()
+func (r *IrcRepo) GetNetworkByID(ctx context.Context, id int64) (*domain.IrcNetwork, error) {
+	queryBuilder := r.db.squirrel.
+		Select("id", "enabled", "name", "server", "port", "tls", "pass", "invite_command", "nickserv_account", "nickserv_password").
+		From("irc_network").
+		Where("id = ?", id)
 
-	row := r.db.handler.QueryRow("SELECT id, enabled, name, server, port, tls, pass, invite_command, nickserv_account, nickserv_password FROM irc_network WHERE id = ?", id)
-	if err := row.Err(); err != nil {
-		log.Fatal().Err(err)
+	query, args, err := queryBuilder.ToSql()
+	if err != nil {
+		log.Error().Stack().Err(err).Msg("irc.getNetworkByID: error building query")
 		return nil, err
 	}
+	log.Trace().Str("database", "irc.check_existing_network").Msgf("query: '%v', args: '%v'", query, args)
 
 	var n domain.IrcNetwork
 
@@ -35,8 +38,10 @@ func (r *IrcRepo) GetNetworkByID(id int64) (*domain.IrcNetwork, error) {
 	var nsAccount, nsPassword sql.NullString
 	var tls sql.NullBool
 
+	row := r.db.handler.QueryRowContext(ctx, query, args...)
 	if err := row.Scan(&n.ID, &n.Enabled, &n.Name, &n.Server, &n.Port, &tls, &pass, &inviteCmd, &nsAccount, &nsPassword); err != nil {
-		log.Fatal().Err(err)
+		log.Error().Stack().Err(err).Msg("irc.getNetworkByID: error executing query")
+		return nil, err
 	}
 
 	n.TLS = tls.Bool
@@ -56,21 +61,41 @@ func (r *IrcRepo) DeleteNetwork(ctx context.Context, id int64) error {
 
 	defer tx.Rollback()
 
-	_, err = tx.ExecContext(ctx, `DELETE FROM irc_channel WHERE network_id = ?`, id)
+	queryBuilder := r.db.squirrel.
+		Delete("irc_channel").
+		Where("network_id = ?", id)
+
+	query, args, err := queryBuilder.ToSql()
 	if err != nil {
-		log.Error().Stack().Err(err).Msgf("error deleting channels for network: %v", id)
+		log.Error().Stack().Err(err).Msg("irc.deleteNetwork: error building query")
 		return err
 	}
 
-	_, err = tx.ExecContext(ctx, `DELETE FROM irc_network WHERE id = ?`, id)
+	_, err = tx.ExecContext(ctx, query, args...)
 	if err != nil {
-		log.Error().Stack().Err(err).Msgf("error deleting network: %v", id)
+		log.Error().Stack().Err(err).Msg("irc.deleteNetwork: error executing query")
+		return err
+	}
+
+	netQueryBuilder := r.db.squirrel.
+		Delete("irc_network").
+		Where("id = ?", id)
+
+	netQuery, netArgs, err := netQueryBuilder.ToSql()
+	if err != nil {
+		log.Error().Stack().Err(err).Msg("irc.deleteNetwork: error building query")
+		return err
+	}
+
+	_, err = tx.ExecContext(ctx, netQuery, netArgs...)
+	if err != nil {
+		log.Error().Stack().Err(err).Msg("irc.deleteNetwork: error executing query")
 		return err
 	}
 
 	err = tx.Commit()
 	if err != nil {
-		log.Error().Stack().Err(err).Msgf("error deleting network: %v", id)
+		log.Error().Stack().Err(err).Msgf("irc.deleteNetwork: error deleting network %v", id)
 		return err
 
 	}
@@ -79,12 +104,21 @@ func (r *IrcRepo) DeleteNetwork(ctx context.Context, id int64) error {
 }
 
 func (r *IrcRepo) FindActiveNetworks(ctx context.Context) ([]domain.IrcNetwork, error) {
-	//r.db.lock.RLock()
-	//defer r.db.lock.RUnlock()
+	queryBuilder := r.db.squirrel.
+		Select("id", "enabled", "name", "server", "port", "tls", "pass", "invite_command", "nickserv_account", "nickserv_password").
+		From("irc_network").
+		Where("enabled = ?", true)
 
-	rows, err := r.db.handler.QueryContext(ctx, "SELECT id, enabled, name, server, port, tls, pass, invite_command, nickserv_account, nickserv_password FROM irc_network WHERE enabled = true")
+	query, args, err := queryBuilder.ToSql()
 	if err != nil {
-		log.Fatal().Err(err)
+		log.Error().Stack().Err(err).Msg("irc.findActiveNetworks: error building query")
+		return nil, err
+	}
+
+	rows, err := r.db.handler.QueryContext(ctx, query, args...)
+	if err != nil {
+		log.Error().Stack().Err(err).Msg("irc.findActiveNetworks: error executing query")
+		return nil, err
 	}
 
 	defer rows.Close()
@@ -94,19 +128,25 @@ func (r *IrcRepo) FindActiveNetworks(ctx context.Context) ([]domain.IrcNetwork, 
 		var net domain.IrcNetwork
 
 		var pass, inviteCmd sql.NullString
+		var nsAccount, nsPassword sql.NullString
 		var tls sql.NullBool
 
-		if err := rows.Scan(&net.ID, &net.Enabled, &net.Name, &net.Server, &net.Port, &tls, &pass, &inviteCmd, &net.NickServ.Account, &net.NickServ.Password); err != nil {
-			log.Fatal().Err(err)
+		if err := rows.Scan(&net.ID, &net.Enabled, &net.Name, &net.Server, &net.Port, &tls, &pass, &inviteCmd, &nsAccount, &nsPassword); err != nil {
+			log.Error().Stack().Err(err).Msg("irc.findActiveNetworks: error scanning row")
+			return nil, err
 		}
 
 		net.TLS = tls.Bool
 		net.Pass = pass.String
 		net.InviteCommand = inviteCmd.String
 
+		net.NickServ.Account = nsAccount.String
+		net.NickServ.Password = nsPassword.String
+
 		networks = append(networks, net)
 	}
 	if err := rows.Err(); err != nil {
+		log.Error().Stack().Err(err).Msg("irc.findActiveNetworks: row error")
 		return nil, err
 	}
 
@@ -114,12 +154,21 @@ func (r *IrcRepo) FindActiveNetworks(ctx context.Context) ([]domain.IrcNetwork, 
 }
 
 func (r *IrcRepo) ListNetworks(ctx context.Context) ([]domain.IrcNetwork, error) {
-	//r.db.lock.RLock()
-	//defer r.db.lock.RUnlock()
+	queryBuilder := r.db.squirrel.
+		Select("id", "enabled", "name", "server", "port", "tls", "pass", "invite_command", "nickserv_account", "nickserv_password").
+		From("irc_network").
+		OrderBy("name ASC")
 
-	rows, err := r.db.handler.QueryContext(ctx, "SELECT id, enabled, name, server, port, tls, pass, invite_command, nickserv_account, nickserv_password FROM irc_network ORDER BY name ASC")
+	query, args, err := queryBuilder.ToSql()
 	if err != nil {
-		log.Fatal().Err(err)
+		log.Error().Stack().Err(err).Msg("irc.listNetworks: error building query")
+		return nil, err
+	}
+
+	rows, err := r.db.handler.QueryContext(ctx, query, args...)
+	if err != nil {
+		log.Error().Stack().Err(err).Msg("irc.listNetworks: error executing query")
+		return nil, err
 	}
 
 	defer rows.Close()
@@ -129,19 +178,25 @@ func (r *IrcRepo) ListNetworks(ctx context.Context) ([]domain.IrcNetwork, error)
 		var net domain.IrcNetwork
 
 		var pass, inviteCmd sql.NullString
+		var nsAccount, nsPassword sql.NullString
 		var tls sql.NullBool
 
-		if err := rows.Scan(&net.ID, &net.Enabled, &net.Name, &net.Server, &net.Port, &tls, &pass, &inviteCmd, &net.NickServ.Account, &net.NickServ.Password); err != nil {
-			log.Fatal().Err(err)
+		if err := rows.Scan(&net.ID, &net.Enabled, &net.Name, &net.Server, &net.Port, &tls, &pass, &inviteCmd, &nsAccount, &nsPassword); err != nil {
+			log.Error().Stack().Err(err).Msg("irc.listNetworks: error scanning row")
+			return nil, err
 		}
 
 		net.TLS = tls.Bool
 		net.Pass = pass.String
 		net.InviteCommand = inviteCmd.String
 
+		net.NickServ.Account = nsAccount.String
+		net.NickServ.Password = nsPassword.String
+
 		networks = append(networks, net)
 	}
 	if err := rows.Err(); err != nil {
+		log.Error().Stack().Err(err).Msg("irc.listNetworks: row error")
 		return nil, err
 	}
 
@@ -149,12 +204,20 @@ func (r *IrcRepo) ListNetworks(ctx context.Context) ([]domain.IrcNetwork, error)
 }
 
 func (r *IrcRepo) ListChannels(networkID int64) ([]domain.IrcChannel, error) {
-	//r.db.lock.RLock()
-	//defer r.db.lock.RUnlock()
+	queryBuilder := r.db.squirrel.
+		Select("id", "name", "enabled", "password").
+		From("irc_channel").
+		Where("network_id = ?", networkID)
 
-	rows, err := r.db.handler.Query("SELECT id, name, enabled, password FROM irc_channel WHERE network_id = ?", networkID)
+	query, args, err := queryBuilder.ToSql()
 	if err != nil {
-		log.Error().Stack().Err(err).Msgf("error querying channels for network: %v", networkID)
+		log.Error().Stack().Err(err).Msg("irc.listChannels: error building query")
+		return nil, err
+	}
+
+	rows, err := r.db.handler.Query(query, args...)
+	if err != nil {
+		log.Error().Stack().Err(err).Msg("irc.listChannels: error executing query")
 		return nil, err
 	}
 	defer rows.Close()
@@ -165,7 +228,7 @@ func (r *IrcRepo) ListChannels(networkID int64) ([]domain.IrcChannel, error) {
 		var pass sql.NullString
 
 		if err := rows.Scan(&ch.ID, &ch.Name, &ch.Enabled, &pass); err != nil {
-			log.Error().Stack().Err(err).Msgf("error querying channels for network: %v", networkID)
+			log.Error().Stack().Err(err).Msg("irc.listChannels: error scanning row")
 			return nil, err
 		}
 
@@ -174,6 +237,7 @@ func (r *IrcRepo) ListChannels(networkID int64) ([]domain.IrcChannel, error) {
 		channels = append(channels, ch)
 	}
 	if err := rows.Err(); err != nil {
+		log.Error().Stack().Err(err).Msg("irc.listChannels: error row")
 		return nil, err
 	}
 
@@ -181,10 +245,7 @@ func (r *IrcRepo) ListChannels(networkID int64) ([]domain.IrcChannel, error) {
 }
 
 func (r *IrcRepo) CheckExistingNetwork(ctx context.Context, network *domain.IrcNetwork) (*domain.IrcNetwork, error) {
-	//r.db.lock.RLock()
-	//defer r.db.lock.RUnlock()
-
-	queryBuilder := sq.
+	queryBuilder := r.db.squirrel.
 		Select("id", "enabled", "name", "server", "port", "tls", "pass", "invite_command", "nickserv_account", "nickserv_password").
 		From("irc_network").
 		Where("server = ?", network.Server).
@@ -192,10 +253,10 @@ func (r *IrcRepo) CheckExistingNetwork(ctx context.Context, network *domain.IrcN
 
 	query, args, err := queryBuilder.ToSql()
 	if err != nil {
-		log.Error().Stack().Err(err).Msg("irc.check_existing_network: error fetching data")
+		log.Error().Stack().Err(err).Msg("irc.checkExistingNetwork: error building query")
 		return nil, err
 	}
-	log.Trace().Str("database", "irc.check_existing_network").Msgf("query: '%v', args: '%v'", query, args)
+	log.Trace().Str("database", "irc.checkExistingNetwork").Msgf("query: '%v', args: '%v'", query, args)
 
 	row := r.db.handler.QueryRowContext(ctx, query, args...)
 
@@ -209,7 +270,7 @@ func (r *IrcRepo) CheckExistingNetwork(ctx context.Context, network *domain.IrcN
 		// no result is not an error in our case
 		return nil, nil
 	} else if err != nil {
-		log.Error().Stack().Err(err).Msg("irc.check_existing_network: error scanning data to struct")
+		log.Error().Stack().Err(err).Msg("irc.checkExistingNetwork: error scanning data to struct")
 		return nil, err
 	}
 
@@ -222,9 +283,6 @@ func (r *IrcRepo) CheckExistingNetwork(ctx context.Context, network *domain.IrcN
 }
 
 func (r *IrcRepo) StoreNetwork(network *domain.IrcNetwork) error {
-	//r.db.lock.RLock()
-	//defer r.db.lock.RUnlock()
-
 	netName := toNullString(network.Name)
 	pass := toNullString(network.Pass)
 	inviteCmd := toNullString(network.InviteCommand)
@@ -233,20 +291,22 @@ func (r *IrcRepo) StoreNetwork(network *domain.IrcNetwork) error {
 	nsPassword := toNullString(network.NickServ.Password)
 
 	var err error
-	if network.ID != 0 {
-		// update record
-		_, err = r.db.handler.Exec(`UPDATE irc_network
-			SET enabled = ?,
-			    name = ?,
-			    server = ?,
-			    port = ?,
-			    tls = ?,
-			    pass = ?,
-			    invite_command = ?,
-			    nickserv_account = ?,
-			    nickserv_password = ?,
-			    updated_at = CURRENT_TIMESTAMP
-			WHERE id = ?`,
+	var retID int64
+
+	queryBuilder := r.db.squirrel.
+		Insert("irc_network").
+		Columns(
+			"enabled",
+			"name",
+			"server",
+			"port",
+			"tls",
+			"pass",
+			"invite_command",
+			"nickserv_account",
+			"nickserv_password",
+		).
+		Values(
 			network.Enabled,
 			netName,
 			network.Server,
@@ -256,51 +316,22 @@ func (r *IrcRepo) StoreNetwork(network *domain.IrcNetwork) error {
 			inviteCmd,
 			nsAccount,
 			nsPassword,
-			network.ID,
-		)
-		if err != nil {
-			log.Error().Stack().Err(err).Msg("irc.store_network: error executing query")
-			return err
-		}
-	} else {
-		var res sql.Result
+		).
+		Suffix("RETURNING id").
+		RunWith(r.db.handler)
 
-		res, err = r.db.handler.Exec(`INSERT INTO irc_network (
-                         enabled,
-                         name,
-                         server,
-                         port,
-                         tls,
-                         pass,
-                         invite_command,
-			    		 nickserv_account,
-			             nickserv_password
-                         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT DO NOTHING`,
-			network.Enabled,
-			netName,
-			network.Server,
-			network.Port,
-			network.TLS,
-			pass,
-			inviteCmd,
-			nsAccount,
-			nsPassword,
-		)
-		if err != nil {
-			log.Error().Stack().Err(err).Msg("irc.store_network: error executing query")
-			return err
-		}
-
-		network.ID, err = res.LastInsertId()
+	err = queryBuilder.QueryRow().Scan(&retID)
+	if err != nil {
+		log.Error().Stack().Err(err).Msg("irc.storeNetwork: error executing query")
+		return errors.Wrap(err, "error executing query")
 	}
+
+	network.ID = retID
 
 	return err
 }
 
 func (r *IrcRepo) UpdateNetwork(ctx context.Context, network *domain.IrcNetwork) error {
-	//r.db.lock.RLock()
-	//defer r.db.lock.RUnlock()
-
 	netName := toNullString(network.Name)
 	pass := toNullString(network.Pass)
 	inviteCmd := toNullString(network.InviteCommand)
@@ -309,32 +340,31 @@ func (r *IrcRepo) UpdateNetwork(ctx context.Context, network *domain.IrcNetwork)
 	nsPassword := toNullString(network.NickServ.Password)
 
 	var err error
-	// update record
-	_, err = r.db.handler.ExecContext(ctx, `UPDATE irc_network
-			SET enabled = ?,
-			    name = ?,
-			    server = ?,
-			    port = ?,
-			    tls = ?,
-			    pass = ?,
-			    invite_command = ?,
-			    nickserv_account = ?,
-			    nickserv_password = ?,
-			    updated_at = CURRENT_TIMESTAMP
-			WHERE id = ?`,
-		network.Enabled,
-		netName,
-		network.Server,
-		network.Port,
-		network.TLS,
-		pass,
-		inviteCmd,
-		nsAccount,
-		nsPassword,
-		network.ID,
-	)
+
+	queryBuilder := r.db.squirrel.
+		Update("irc_network").
+		Set("enabled", network.Enabled).
+		Set("name", netName).
+		Set("server", network.Server).
+		Set("port", network.Port).
+		Set("tls", network.TLS).
+		Set("pass", pass).
+		Set("invite_command", inviteCmd).
+		Set("nickserv_account", nsAccount).
+		Set("nickserv_password", nsPassword).
+		Set("updated_at", time.Now().Format(time.RFC3339)).
+		Where("id = ?", network.ID)
+
+	query, args, err := queryBuilder.ToSql()
 	if err != nil {
-		log.Error().Stack().Err(err).Msg("irc.store_network: error executing query")
+		log.Error().Stack().Err(err).Msg("irc.updateNetwork: error building query")
+		return err
+	}
+
+	// update record
+	_, err = r.db.handler.ExecContext(ctx, query, args...)
+	if err != nil {
+		log.Error().Stack().Err(err).Msg("irc.updateNetwork: error executing query")
 		return err
 	}
 
@@ -344,9 +374,6 @@ func (r *IrcRepo) UpdateNetwork(ctx context.Context, network *domain.IrcNetwork)
 // TODO create new channel handler to only add, not delete
 
 func (r *IrcRepo) StoreNetworkChannels(ctx context.Context, networkID int64, channels []domain.IrcChannel) error {
-	//r.db.lock.RLock()
-	//defer r.db.lock.RUnlock()
-
 	tx, err := r.db.handler.BeginTx(ctx, nil)
 	if err != nil {
 		return err
@@ -354,40 +381,74 @@ func (r *IrcRepo) StoreNetworkChannels(ctx context.Context, networkID int64, cha
 
 	defer tx.Rollback()
 
-	_, err = tx.ExecContext(ctx, `DELETE FROM irc_channel WHERE network_id = ?`, networkID)
+	queryBuilder := r.db.squirrel.
+		Delete("irc_channel").
+		Where("network_id = ?", networkID)
+
+	query, args, err := queryBuilder.ToSql()
 	if err != nil {
-		log.Error().Stack().Err(err).Msgf("error deleting channels for network: %v", networkID)
+		log.Error().Stack().Err(err).Msg("irc.storeNetworkChannels: error building query")
+		return err
+	}
+
+	_, err = tx.ExecContext(ctx, query, args...)
+	if err != nil {
+		log.Error().Stack().Err(err).Msg("irc.storeNetworkChannels: error executing query")
 		return err
 	}
 
 	for _, channel := range channels {
-		var res sql.Result
+		// values
 		pass := toNullString(channel.Password)
 
-		res, err = tx.ExecContext(ctx, `INSERT INTO irc_channel (
-                         enabled,
-                         detached,
-                         name,
-                         password,
-                         network_id
-                         ) VALUES (?, ?, ?, ?, ?)`,
-			channel.Enabled,
-			true,
-			channel.Name,
-			pass,
-			networkID,
-		)
+		channelQueryBuilder := r.db.squirrel.
+			Insert("irc_channel").
+			Columns(
+				"enabled",
+				"detached",
+				"name",
+				"password",
+				"network_id",
+			).
+			Values(
+				channel.Enabled,
+				true,
+				channel.Name,
+				pass,
+				networkID,
+			).
+			Suffix("RETURNING id").
+			RunWith(tx)
+
+		// returning
+		var retID int64
+
+		err = channelQueryBuilder.QueryRowContext(ctx).Scan(&retID)
 		if err != nil {
-			log.Error().Stack().Err(err).Msg("error executing query")
-			return err
+			log.Error().Stack().Err(err).Msg("irc.storeNetworkChannels: error executing query")
+			return errors.Wrap(err, "error executing query")
 		}
 
-		channel.ID, err = res.LastInsertId()
+		channel.ID = retID
+
+		//channelQuery, channelArgs, err := channelQueryBuilder.ToSql()
+		//if err != nil {
+		//	log.Error().Stack().Err(err).Msg("irc.storeNetworkChannels: error building query")
+		//	return err
+		//}
+		//
+		//res, err = r.db.handler.ExecContext(ctx, channelQuery, channelArgs...)
+		//if err != nil {
+		//	log.Error().Stack().Err(err).Msg("irc.storeNetworkChannels: error executing query")
+		//	return err
+		//}
+		//
+		//channel.ID, err = res.LastInsertId()
 	}
 
 	err = tx.Commit()
 	if err != nil {
-		log.Error().Stack().Err(err).Msgf("error deleting network: %v", networkID)
+		log.Error().Stack().Err(err).Msgf("irc.storeNetworkChannels: error deleting network: %v", networkID)
 		return err
 	}
 
@@ -395,50 +456,102 @@ func (r *IrcRepo) StoreNetworkChannels(ctx context.Context, networkID int64, cha
 }
 
 func (r *IrcRepo) StoreChannel(networkID int64, channel *domain.IrcChannel) error {
-	//r.db.lock.RLock()
-	//defer r.db.lock.RUnlock()
-
 	pass := toNullString(channel.Password)
 
 	var err error
 	if channel.ID != 0 {
 		// update record
-		_, err = r.db.handler.Exec(`UPDATE irc_channel
-			SET 
-			    enabled = ?,
-				detached = ?,
-				name = ?,
-				password = ?
-			WHERE 
-			      id = ?`,
-			channel.Enabled,
-			channel.Detached,
-			channel.Name,
-			pass,
-			channel.ID,
-		)
-	} else {
-		var res sql.Result
+		channelQueryBuilder := r.db.squirrel.
+			Update("irc_channel").
+			Set("enabled", channel.Enabled).
+			Set("detached", channel.Detached).
+			Set("name", channel.Name).
+			Set("pass", pass).
+			Where("id = ?", channel.ID)
 
-		res, err = r.db.handler.Exec(`INSERT INTO irc_channel (
-                         enabled,
-                         detached,
-                         name,
-                         password,
-                         network_id
-                         ) VALUES (?, ?, ?, ?, ?) ON CONFLICT DO NOTHING`,
-			channel.Enabled,
-			true,
-			channel.Name,
-			pass,
-			networkID,
-		)
+		query, args, err := channelQueryBuilder.ToSql()
 		if err != nil {
-			log.Error().Stack().Err(err).Msg("error executing query")
+			log.Error().Stack().Err(err).Msg("irc.storeChannel: error building query")
 			return err
 		}
 
-		channel.ID, err = res.LastInsertId()
+		_, err = r.db.handler.Exec(query, args...)
+		if err != nil {
+			log.Error().Stack().Err(err).Msg("irc.storeChannel: error executing query")
+			return err
+		}
+	} else {
+		queryBuilder := r.db.squirrel.
+			Insert("irc_channel").
+			Columns(
+				"enabled",
+				"detached",
+				"name",
+				"password",
+				"network_id",
+			).
+			Values(
+				channel.Enabled,
+				true,
+				channel.Name,
+				pass,
+				networkID,
+			).
+			Suffix("RETURNING id").
+			RunWith(r.db.handler)
+
+		// returning
+		var retID int64
+
+		err = queryBuilder.QueryRow().Scan(&retID)
+		if err != nil {
+			log.Error().Stack().Err(err).Msg("irc.storeChannels: error executing query")
+			return errors.Wrap(err, "error executing query")
+		}
+
+		channel.ID = retID
+
+		//channelQuery, channelArgs, err := channelQueryBuilder.ToSql()
+		//if err != nil {
+		//	log.Error().Stack().Err(err).Msg("irc.storeChannel: error building query")
+		//	return err
+		//}
+		//
+		//res, err := r.db.handler.Exec(channelQuery, channelArgs...)
+		//if err != nil {
+		//	log.Error().Stack().Err(err).Msg("irc.storeChannel: error executing query")
+		//	return errors.Wrap(err, "error executing query")
+		//	//return err
+		//}
+		//
+		//channel.ID, err = res.LastInsertId()
+	}
+
+	return err
+}
+
+func (r *IrcRepo) UpdateChannel(channel *domain.IrcChannel) error {
+	pass := toNullString(channel.Password)
+
+	// update record
+	channelQueryBuilder := r.db.squirrel.
+		Update("irc_channel").
+		Set("enabled", channel.Enabled).
+		Set("detached", channel.Detached).
+		Set("name", channel.Name).
+		Set("pass", pass).
+		Where("id = ?", channel.ID)
+
+	query, args, err := channelQueryBuilder.ToSql()
+	if err != nil {
+		log.Error().Stack().Err(err).Msg("irc.updateChannel: error building query")
+		return err
+	}
+
+	_, err = r.db.handler.Exec(query, args...)
+	if err != nil {
+		log.Error().Stack().Err(err).Msg("irc.updateChannel: error executing query")
+		return err
 	}
 
 	return err

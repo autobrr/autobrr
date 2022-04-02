@@ -5,6 +5,7 @@ import "context"
 type UserRepo interface {
 	FindByUsername(ctx context.Context, username string) (*User, error)
 	Store(ctx context.Context, user User) error
+	Update(ctx context.Context, user User) error
 }
 
 type User struct {

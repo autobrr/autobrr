@@ -3,6 +3,7 @@ package irc
 import (
 	"context"
 	"fmt"
+	"github.com/pkg/errors"
 	"strings"
 	"sync"
 
@@ -20,7 +21,7 @@ type Service interface {
 	StopNetwork(key handlerKey) error
 	ListNetworks(ctx context.Context) ([]domain.IrcNetwork, error)
 	GetNetworksWithHealth(ctx context.Context) ([]domain.IrcNetworkWithHealth, error)
-	GetNetworkByID(id int64) (*domain.IrcNetwork, error)
+	GetNetworkByID(ctx context.Context, id int64) (*domain.IrcNetwork, error)
 	DeleteNetwork(ctx context.Context, id int64) error
 	StoreNetwork(ctx context.Context, network *domain.IrcNetwork) error
 	UpdateNetwork(ctx context.Context, network *domain.IrcNetwork) error
@@ -335,8 +336,8 @@ func (s *service) StopNetworkIfRunning(key handlerKey) error {
 	return nil
 }
 
-func (s *service) GetNetworkByID(id int64) (*domain.IrcNetwork, error) {
-	network, err := s.repo.GetNetworkByID(id)
+func (s *service) GetNetworkByID(ctx context.Context, id int64) (*domain.IrcNetwork, error) {
+	network, err := s.repo.GetNetworkByID(ctx, id)
 	if err != nil {
 		log.Error().Err(err).Msgf("failed to get network: %v", id)
 		return nil, err
@@ -454,7 +455,7 @@ func (s *service) GetNetworksWithHealth(ctx context.Context) ([]domain.IrcNetwor
 }
 
 func (s *service) DeleteNetwork(ctx context.Context, id int64) error {
-	network, err := s.GetNetworkByID(id)
+	network, err := s.GetNetworkByID(ctx, id)
 	if err != nil {
 		return err
 	}
@@ -527,7 +528,9 @@ func (s *service) StoreNetwork(ctx context.Context, network *domain.IrcNetwork) 
 		if network.Channels != nil {
 			for _, channel := range network.Channels {
 				if err := s.repo.StoreChannel(network.ID, &channel); err != nil {
-					return err
+					log.Error().Stack().Err(err).Msg("irc.storeChannel: error executing query")
+					return errors.Wrap(err, "error storing channel on network")
+					//return err
 				}
 			}
 		}

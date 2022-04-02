@@ -2,7 +2,6 @@ package database
 
 import (
 	"context"
-	"database/sql"
 	"encoding/json"
 	"sync"
 
@@ -57,14 +56,34 @@ func NewDownloadClientRepo(db *DB) domain.DownloadClientRepo {
 }
 
 func (r *DownloadClientRepo) List(ctx context.Context) ([]domain.DownloadClient, error) {
-	//r.db.lock.RLock()
-	//defer r.db.lock.RUnlock()
 	clients := make([]domain.DownloadClient, 0)
 
-	rows, err := r.db.handler.QueryContext(ctx, "SELECT id, name, type, enabled, host, port, tls, tls_skip_verify, username, password, settings FROM client")
+	queryBuilder := r.db.squirrel.
+		Select(
+			"id",
+			"name",
+			"type",
+			"enabled",
+			"host",
+			"port",
+			"tls",
+			"tls_skip_verify",
+			"username",
+			"password",
+			"settings",
+		).
+		From("client")
+
+	query, args, err := queryBuilder.ToSql()
 	if err != nil {
-		log.Error().Stack().Err(err).Msg("could not query download client rows")
-		return clients, err
+		log.Error().Stack().Err(err).Msg("download_client.list: error building query")
+		return nil, err
+	}
+
+	rows, err := r.db.handler.QueryContext(ctx, query, args...)
+	if err != nil {
+		log.Error().Stack().Err(err).Msg("download_client.list: error executing query")
+		return nil, err
 	}
 
 	defer rows.Close()
@@ -74,7 +93,7 @@ func (r *DownloadClientRepo) List(ctx context.Context) ([]domain.DownloadClient,
 		var settingsJsonStr string
 
 		if err := rows.Scan(&f.ID, &f.Name, &f.Type, &f.Enabled, &f.Host, &f.Port, &f.TLS, &f.TLSSkipVerify, &f.Username, &f.Password, &settingsJsonStr); err != nil {
-			log.Error().Stack().Err(err).Msg("could not scan download client to struct")
+			log.Error().Stack().Err(err).Msg("download_client.list: error scanning row")
 			return clients, err
 		}
 
@@ -88,7 +107,7 @@ func (r *DownloadClientRepo) List(ctx context.Context) ([]domain.DownloadClient,
 		clients = append(clients, f)
 	}
 	if err := rows.Err(); err != nil {
-		log.Error().Stack().Err(err).Msg("could not query download client rows")
+		log.Error().Stack().Err(err).Msg("download_client.list: row error")
 		return clients, err
 	}
 
@@ -96,20 +115,38 @@ func (r *DownloadClientRepo) List(ctx context.Context) ([]domain.DownloadClient,
 }
 
 func (r *DownloadClientRepo) FindByID(ctx context.Context, id int32) (*domain.DownloadClient, error) {
-	//r.db.lock.RLock()
-	//defer r.db.lock.RUnlock()
-
 	// get client from cache
 	c := r.cache.Get(int(id))
 	if c != nil {
 		return c, nil
 	}
 
-	query := `SELECT id, name, type, enabled, host, port, tls, tls_skip_verify, username, password, settings FROM client WHERE id = ?`
+	queryBuilder := r.db.squirrel.
+		Select(
+			"id",
+			"name",
+			"type",
+			"enabled",
+			"host",
+			"port",
+			"tls",
+			"tls_skip_verify",
+			"username",
+			"password",
+			"settings",
+		).
+		From("client").
+		Where("id = ?", id)
 
-	row := r.db.handler.QueryRowContext(ctx, query, id)
-	if err := row.Err(); err != nil {
-		log.Error().Stack().Err(err).Msg("could not query download client rows")
+	query, args, err := queryBuilder.ToSql()
+	if err != nil {
+		log.Error().Stack().Err(err).Msg("download_client.findByID: error building query")
+		return nil, err
+	}
+
+	row := r.db.handler.QueryRowContext(ctx, query, args...)
+	if err != nil {
+		log.Error().Stack().Err(err).Msg("download_client.findByID: error executing query")
 		return nil, err
 	}
 
@@ -117,7 +154,7 @@ func (r *DownloadClientRepo) FindByID(ctx context.Context, id int32) (*domain.Do
 	var settingsJsonStr string
 
 	if err := row.Scan(&client.ID, &client.Name, &client.Type, &client.Enabled, &client.Host, &client.Port, &client.TLS, &client.TLSSkipVerify, &client.Username, &client.Password, &settingsJsonStr); err != nil {
-		log.Error().Stack().Err(err).Msg("could not scan download client to struct")
+		log.Error().Stack().Err(err).Msg("download_client.findByID: error scanning row")
 		return nil, err
 	}
 
@@ -132,9 +169,6 @@ func (r *DownloadClientRepo) FindByID(ctx context.Context, id int32) (*domain.Do
 }
 
 func (r *DownloadClientRepo) Store(ctx context.Context, client domain.DownloadClient) (*domain.DownloadClient, error) {
-	//r.db.lock.RLock()
-	//defer r.db.lock.RUnlock()
-
 	var err error
 
 	settings := domain.DownloadClientSettings{
@@ -149,79 +183,73 @@ func (r *DownloadClientRepo) Store(ctx context.Context, client domain.DownloadCl
 		return nil, err
 	}
 
-	if client.ID != 0 {
-		_, err = r.db.handler.ExecContext(ctx, `
-			UPDATE 
-    			client 
-			SET 
-			    name = ?, 
-			    type = ?, 
-			    enabled = ?, 
-			    host = ?, 
-			    port = ?, 
-			    tls = ?, 
-			    tls_skip_verify = ?,
-			    username = ?, 
-			    password = ?, 
-			    settings = (?) 
-			WHERE
-			    id = ?`,
-			client.Name,
-			client.Type,
-			client.Enabled,
-			client.Host,
-			client.Port,
-			client.TLS,
-			client.TLSSkipVerify,
-			client.Username,
-			client.Password,
-			string(settingsJson),
-			client.ID,
-		)
-		if err != nil {
-			log.Error().Stack().Err(err).Msgf("could not update download client: %v", client)
-			return nil, err
-		}
-	} else {
-		var res sql.Result
+	queryBuilder := r.db.squirrel.
+		Insert("client").
+		Columns("name", "type", "enabled", "host", "port", "tls", "tls_skip_verify", "username", "password", "settings").
+		Values(client.Name, client.Type, client.Enabled, client.Host, client.Port, client.TLS, client.TLSSkipVerify, client.Username, client.Password, settingsJson).
+		Suffix("RETURNING id").RunWith(r.db.handler)
 
-		res, err = r.db.handler.ExecContext(ctx, `INSERT INTO 
-    		client(
-    		       name,
-    		       type, 
-    		       enabled,
-    		       host,
-    		       port,
-    		       tls,
-    		       tls_skip_verify,
-    		       username,
-    		       password,
-    		       settings)
-			VALUES (?, ?, ?, ?, ?, ? , ?, ?, ?, ?) ON CONFLICT DO NOTHING`,
-			client.Name,
-			client.Type,
-			client.Enabled,
-			client.Host,
-			client.Port,
-			client.TLS,
-			client.TLSSkipVerify,
-			client.Username,
-			client.Password,
-			string(settingsJson),
-		)
-		if err != nil {
-			log.Error().Stack().Err(err).Msgf("could not store new download client: %v", client)
-			return nil, err
-		}
+	// return values
+	var retID int
 
-		resId, _ := res.LastInsertId()
-		client.ID = int(resId)
-
-		log.Trace().Msgf("download_client: store new record %d", client.ID)
+	err = queryBuilder.QueryRowContext(ctx).Scan(&retID)
+	if err != nil {
+		log.Error().Stack().Err(err).Msg("download_client.store: error executing query")
+		return nil, err
 	}
 
-	log.Info().Msgf("store download client: %v", client.Name)
-	log.Trace().Msgf("store download client: %+v", client)
+	client.ID = retID
+
+	log.Debug().Msgf("download_client.store: %d", client.ID)
+
+	// save to cache
+	r.cache.Set(client.ID, &client)
+
+	return &client, nil
+}
+
+func (r *DownloadClientRepo) Update(ctx context.Context, client domain.DownloadClient) (*domain.DownloadClient, error) {
+	var err error
+
+	settings := domain.DownloadClientSettings{
+		APIKey: client.Settings.APIKey,
+		Basic:  client.Settings.Basic,
+		Rules:  client.Settings.Rules,
+	}
+
+	settingsJson, err := json.Marshal(&settings)
+	if err != nil {
+		log.Error().Stack().Err(err).Msgf("could not marshal download client settings %v", settings)
+		return nil, err
+	}
+
+	queryBuilder := r.db.squirrel.
+		Update("client").
+		Set("name", client.Name).
+		Set("type", client.Type).
+		Set("enabled", client.Enabled).
+		Set("host", client.Host).
+		Set("port", client.Port).
+		Set("tls", client.TLS).
+		Set("tls_skip_verify", client.TLSSkipVerify).
+		Set("username", client.Username).
+		Set("password", client.Password).
+		Set("settings", string(settingsJson)).
+		Where("id = ?", client.ID)
+
+	query, args, err := queryBuilder.ToSql()
+	if err != nil {
+		log.Error().Stack().Err(err).Msg("download_client.update: error building query")
+		return nil, err
+	}
+
+	_, err = r.db.handler.ExecContext(ctx, query, args...)
+	if err != nil {
+		log.Error().Stack().Err(err).Msg("download_client.update: error querying data")
+		return nil, err
+	}
+
+	log.Debug().Msgf("download_client.update: %d", client.ID)
 
 	// save to cache
 	r.cache.Set(client.ID, &client)
@@ -230,12 +258,19 @@ func (r *DownloadClientRepo) Store(ctx context.Context, client domain.DownloadCl
 }
 
 func (r *DownloadClientRepo) Delete(ctx context.Context, clientID int) error {
-	//r.db.lock.RLock()
-	//defer r.db.lock.RUnlock()
+	queryBuilder := r.db.squirrel.
+		Delete("client").
+		Where("id = ?", clientID)
 
-	res, err := r.db.handler.ExecContext(ctx, `DELETE FROM client WHERE client.id = ?`, clientID)
+	query, args, err := queryBuilder.ToSql()
 	if err != nil {
-		log.Error().Stack().Err(err).Msgf("could not delete download client: %d", clientID)
+		log.Error().Stack().Err(err).Msg("download_client.delete: error building query")
+		return err
+	}
+
+	res, err := r.db.handler.ExecContext(ctx, query, args...)
+	if err != nil {
+		log.Error().Stack().Err(err).Msg("download_client.delete: error query data")
 		return err
 	}
 

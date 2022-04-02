@@ -39,7 +39,7 @@ func main() {
 	}
 
 	// open database connection
-	db, _ := database.NewDB(domain.Config{ConfigPath: configPath})
+	db, _ := database.NewDB(domain.Config{ConfigPath: configPath, DatabaseType: "sqlite"})
 	if err := db.Open(); err != nil {
 		log.Fatal("could not open db connection")
 	}
@@ -96,7 +96,7 @@ func main() {
 		}
 
 		user.Password = hashed
-		if err := userRepo.Store(context.Background(), *user); err != nil {
+		if err := userRepo.Update(context.Background(), *user); err != nil {
 			log.Fatalf("failed to create user: %v", err)
 		}
 	default:

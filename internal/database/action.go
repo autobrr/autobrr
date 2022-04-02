@@ -6,6 +6,7 @@ import (
 
 	"github.com/autobrr/autobrr/internal/domain"
 
+	sq "github.com/Masterminds/squirrel"
 	"github.com/rs/zerolog/log"
 )
 
@@ -18,17 +19,47 @@ func NewActionRepo(db *DB) domain.ActionRepo {
 }
 
 func (r *ActionRepo) FindByFilterID(ctx context.Context, filterID int) ([]domain.Action, error) {
-	//r.db.lock.RLock()
-	//defer r.db.lock.RUnlock()
+	queryBuilder := r.db.squirrel.
+		Select(
+			"id",
+			"name",
+			"type",
+			"enabled",
+			"exec_cmd",
+			"exec_args",
+			"watch_folder",
+			"category",
+			"tags",
+			"label",
+			"save_path",
+			"paused",
+			"ignore_rules",
+			"limit_upload_speed",
+			"limit_download_speed",
+			"webhook_host",
+			"webhook_type",
+			"webhook_method",
+			"webhook_data",
+			"client_id",
+		).
+		From("action").
+		Where("filter_id = ?", filterID)
 
-	rows, err := r.db.handler.QueryContext(ctx, "SELECT id, name, type, enabled, exec_cmd, exec_args, watch_folder, category, tags, label, save_path, paused, ignore_rules, limit_download_speed, limit_upload_speed, webhook_host, webhook_data, webhook_type, webhook_method, client_id FROM action WHERE action.filter_id = ?", filterID)
+	query, args, err := queryBuilder.ToSql()
 	if err != nil {
-		log.Fatal().Err(err)
+		log.Error().Stack().Err(err).Msg("action.findByFilterID: error building query")
+		return nil, err
+	}
+
+	rows, err := r.db.handler.QueryContext(ctx, query, args...)
+	if err != nil {
+		log.Error().Stack().Err(err).Msg("action.findByFilterID: query error")
+		return nil, err
 	}
 
 	defer rows.Close()
 
-	var actions []domain.Action
+	actions := make([]domain.Action, 0)
 	for rows.Next() {
 		var a domain.Action
 
@@ -39,9 +70,7 @@ func (r *ActionRepo) FindByFilterID(ctx context.Context, filterID int) ([]domain
 		var paused, ignoreRules sql.NullBool
 
 		if err := rows.Scan(&a.ID, &a.Name, &a.Type, &a.Enabled, &execCmd, &execArgs, &watchFolder, &category, &tags, &label, &savePath, &paused, &ignoreRules, &limitDl, &limitUl, &host, &data, &webhookType, &webhookMethod, &clientID); err != nil {
-			log.Fatal().Err(err)
-		}
-		if err != nil {
+			log.Error().Stack().Err(err).Msg("action.findByFilterID: error scanning row")
 			return nil, err
 		}
 
@@ -65,24 +94,54 @@ func (r *ActionRepo) FindByFilterID(ctx context.Context, filterID int) ([]domain
 		actions = append(actions, a)
 	}
 	if err := rows.Err(); err != nil {
+		log.Error().Stack().Err(err).Msg("action.findByFilterID: row error")
 		return nil, err
 	}
 
 	return actions, nil
 }
 
-func (r *ActionRepo) List() ([]domain.Action, error) {
-	//r.db.lock.RLock()
-	//defer r.db.lock.RUnlock()
+func (r *ActionRepo) List(ctx context.Context) ([]domain.Action, error) {
+	queryBuilder := r.db.squirrel.
+		Select(
+			"id",
+			"name",
+			"type",
+			"enabled",
+			"exec_cmd",
+			"exec_args",
+			"watch_folder",
+			"category",
+			"tags",
+			"label",
+			"save_path",
+			"paused",
+			"ignore_rules",
+			"limit_upload_speed",
+			"limit_download_speed",
+			"webhook_host",
+			"webhook_type",
+			"webhook_method",
+			"webhook_data",
+			"client_id",
+		).
+		From("action")
 
-	rows, err := r.db.handler.Query("SELECT id, name, type, enabled, exec_cmd, exec_args, watch_folder, category, tags, label, save_path, paused, ignore_rules, limit_download_speed, limit_upload_speed, client_id FROM action")
+	query, args, err := queryBuilder.ToSql()
 	if err != nil {
-		log.Fatal().Err(err)
+		log.Error().Stack().Err(err).Msg("action.list: error building query")
+		return nil, err
+	}
+
+	rows, err := r.db.handler.QueryContext(ctx, query, args...)
+	if err != nil {
+		log.Error().Stack().Err(err).Msg("action.list: error executing query")
+		return nil, err
 	}
 
 	defer rows.Close()
 
-	var actions []domain.Action
+	actions := make([]domain.Action, 0)
 	for rows.Next() {
 		var a domain.Action
 
@@ -92,9 +151,7 @@ func (r *ActionRepo) List() ([]domain.Action, error) {
 		var paused, ignoreRules sql.NullBool
 
 		if err := rows.Scan(&a.ID, &a.Name, &a.Type, &a.Enabled, &execCmd, &execArgs, &watchFolder, &category, &tags, &label, &savePath, &paused, &ignoreRules, &limitDl, &limitUl, &clientID); err != nil {
-			log.Fatal().Err(err)
-		}
-		if err != nil {
+			log.Error().Stack().Err(err).Msg("action.list: error scanning row")
 			return nil, err
 		}
 
@@ -111,6 +168,7 @@ func (r *ActionRepo) List() ([]domain.Action, error) {
 		actions = append(actions, a)
 	}
 	if err := rows.Err(); err != nil {
+		log.Error().Stack().Err(err).Msg("action.list: row error")
 		return nil, err
 	}
 
@@ -118,40 +176,50 @@ func (r *ActionRepo) List() ([]domain.Action, error) {
 }
 
 func (r *ActionRepo) Delete(actionID int) error {
-	//r.db.lock.RLock()
-	//defer r.db.lock.RUnlock()
+	queryBuilder := r.db.squirrel.
+		Delete("action").
+		Where("id = ?", actionID)
 
-	res, err := r.db.handler.Exec(`DELETE FROM action WHERE action.id = ?`, actionID)
+	query, args, err := queryBuilder.ToSql()
 	if err != nil {
+		log.Error().Stack().Err(err).Msg("action.delete: error building query")
 		return err
 	}
 
-	rows, _ := res.RowsAffected()
+	_, err = r.db.handler.Exec(query, args...)
+	if err != nil {
+		log.Error().Stack().Err(err).Msg("action.delete: error executing query")
+		return err
+	}
 
-	log.Info().Msgf("rows affected %v", rows)
+	log.Debug().Msgf("action.delete: %v", actionID)
 
 	return nil
 }
 
 func (r *ActionRepo) DeleteByFilterID(ctx context.Context, filterID int) error {
-	//r.db.lock.RLock()
-	//defer r.db.lock.RUnlock()
+	queryBuilder := r.db.squirrel.
+		Delete("action").
+		Where("filter_id = ?", filterID)
 
-	_, err := r.db.handler.ExecContext(ctx, `DELETE FROM action WHERE filter_id = ?`, filterID)
+	query, args, err := queryBuilder.ToSql()
 	if err != nil {
-		log.Error().Stack().Err(err).Msg("actions: error deleting by filterid")
+		log.Error().Stack().Err(err).Msg("action.deleteByFilterID: error building query")
 		return err
 	}
 
-	log.Debug().Msgf("actions: delete by filterid %v", filterID)
+	_, err = r.db.handler.ExecContext(ctx, query, args...)
+	if err != nil {
+		log.Error().Stack().Err(err).Msg("action.deleteByFilterID: error executing query")
+		return err
+	}
+
+	log.Debug().Msgf("action.deleteByFilterID: %v", filterID)
 
 	return nil
 }
 
 func (r *ActionRepo) Store(ctx context.Context, action domain.Action) (*domain.Action, error) {
-	//r.db.lock.RLock()
-	//defer r.db.lock.RUnlock()
-
 	execCmd := toNullString(action.ExecCmd)
 	execArgs := toNullString(action.ExecArgs)
 	watchFolder := toNullString(action.WatchFolder)
@@ -159,8 +227,89 @@ func (r *ActionRepo) Store(ctx context.Context, action domain.Action) (*domain.A
 	tags := toNullString(action.Tags)
 	label := toNullString(action.Label)
 	savePath := toNullString(action.SavePath)
-	host := toNullString(action.WebhookHost)
-	data := toNullString(action.WebhookData)
+	webhookHost := toNullString(action.WebhookHost)
+	webhookData := toNullString(action.WebhookData)
+	webhookType := toNullString(action.WebhookType)
+	webhookMethod := toNullString(action.WebhookMethod)
+
+	limitDL := toNullInt64(action.LimitDownloadSpeed)
+	limitUL := toNullInt64(action.LimitUploadSpeed)
+	clientID := toNullInt32(action.ClientID)
+	filterID := toNullInt32(int32(action.FilterID))
+
+	queryBuilder := r.db.squirrel.
+		Insert("action").
+		Columns(
+			"name",
+			"type",
+			"enabled",
+			"exec_cmd",
+			"exec_args",
+			"watch_folder",
+			"category",
+			"tags",
+			"label",
+			"save_path",
+			"paused",
+			"ignore_rules",
+			"limit_upload_speed",
+			"limit_download_speed",
+			"webhook_host",
+			"webhook_type",
+			"webhook_method",
+			"webhook_data",
+			"client_id",
+			"filter_id",
+		).
+		Values(
+			action.Name,
+			action.Type,
+			action.Enabled,
+			execCmd,
+			execArgs,
+			watchFolder,
+			category,
+			tags,
+			label,
+			savePath,
+			action.Paused,
+			action.IgnoreRules,
+			limitUL,
+			limitDL,
+			webhookHost,
+			webhookType,
+			webhookMethod,
+			webhookData,
+			clientID,
+			filterID,
+		).
+		Suffix("RETURNING id").RunWith(r.db.handler)
+
+	// return values
+	var retID int64
+
+	err := queryBuilder.QueryRowContext(ctx).Scan(&retID)
+	if err != nil {
+		log.Error().Stack().Err(err).Msg("action.store: error executing query")
+		return nil, err
+	}
+
+	log.Debug().Msgf("action.store: added new %v", retID)
+	action.ID = int(retID)
+
+	return &action, nil
+}
+
+func (r *ActionRepo) Update(ctx context.Context, action domain.Action) (*domain.Action, error) {
+	execCmd := toNullString(action.ExecCmd)
+	execArgs := toNullString(action.ExecArgs)
+	watchFolder := toNullString(action.WatchFolder)
+	category := toNullString(action.Category)
+	tags := toNullString(action.Tags)
+	label := toNullString(action.Label)
+	savePath := toNullString(action.SavePath)
+	webhookHost := toNullString(action.WebhookHost)
+	webhookData := toNullString(action.WebhookData)
 	webhookType := toNullString(action.WebhookType)
 	webhookMethod := toNullString(action.WebhookMethod)
 
@@ -170,32 +319,49 @@ func (r *ActionRepo) Store(ctx context.Context, action domain.Action) (*domain.A
 	filterID := toNullInt32(int32(action.FilterID))
 
 	var err error
-	if action.ID != 0 {
-		log.Debug().Msg("actions: update existing record")
-		_, err = r.db.handler.ExecContext(ctx, `UPDATE action SET name = ?, type = ?, enabled = ?, exec_cmd = ?, exec_args = ?, watch_folder = ? , category =? , tags = ?, label = ?, save_path = ?, paused = ?, ignore_rules = ?, limit_upload_speed = ?, limit_download_speed = ?, webhook_host = ?, webhook_data = ?, webhook_type = ?, webhook_method = ?, client_id = ? 
-			 WHERE id = ?`, action.Name, action.Type, action.Enabled, execCmd, execArgs, watchFolder, category, tags, label, savePath, action.Paused, action.IgnoreRules, limitUL, limitDL, host, data, webhookType, webhookMethod, clientID, action.ID)
-	} else {
-		var res sql.Result
 
-		res, err = r.db.handler.ExecContext(ctx, `INSERT INTO action(name, type, enabled, exec_cmd, exec_args, watch_folder, category, tags, label, save_path, paused, ignore_rules, limit_upload_speed, limit_download_speed, webhook_host, webhook_data, webhook_type, webhook_method, client_id, filter_id)
-			VALUES (?, ?, ?, ?, ?,? ,?, ?,?,?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT DO NOTHING`, action.Name, action.Type, action.Enabled, execCmd, execArgs, watchFolder, category, tags, label, savePath, action.Paused, action.IgnoreRules, limitUL, limitDL, host, data, webhookType, webhookMethod, clientID, filterID)
-		if err != nil {
-			log.Error().Err(err)
-			return nil, err
-		}
+	queryBuilder := r.db.squirrel.
+		Update("action").
+		Set("name", action.Name).
+		Set("type", action.Type).
+		Set("enabled", action.Enabled).
+		Set("exec_cmd", execCmd).
+		Set("exec_args", execArgs).
+		Set("watch_folder", watchFolder).
+		Set("category", category).
+		Set("tags", tags).
+		Set("label", label).
+		Set("save_path", savePath).
+		Set("paused", action.Paused).
+		Set("ignore_rules", action.IgnoreRules).
+		Set("limit_upload_speed", limitUL).
+		Set("limit_download_speed", limitDL).
+		Set("webhook_host", webhookHost).
+		Set("webhook_type", webhookType).
+		Set("webhook_method", webhookMethod).
+		Set("webhook_data", webhookData).
+		Set("client_id", clientID).
+		Set("filter_id", filterID).
+		Where("id = ?", action.ID)
 
-		resId, _ := res.LastInsertId()
-		log.Debug().Msgf("actions: added new %v", resId)
-		action.ID = int(resId)
+	query, args, err := queryBuilder.ToSql()
+	if err != nil {
+		log.Error().Stack().Err(err).Msg("action.update: error building query")
+		return nil, err
 	}
+
+	_, err = r.db.handler.ExecContext(ctx, query, args...)
+	if err != nil {
+		log.Error().Stack().Err(err).Msg("action.update: error executing query")
+		return nil, err
+	}
+
+	log.Debug().Msgf("action.update: %v", action.ID)
 
 	return &action, nil
 }
 
 func (r *ActionRepo) StoreFilterActions(ctx context.Context, actions []domain.Action, filterID int64) ([]domain.Action, error) {
-	//r.db.lock.RLock()
-	//defer r.db.lock.RUnlock()
-
 	tx, err := r.db.handler.BeginTx(ctx, nil)
 	if err != nil {
 		return nil, err
@@ -203,9 +369,18 @@ func (r *ActionRepo) StoreFilterActions(ctx context.Context, actions []domain.Ac
 
 	defer tx.Rollback()
 
-	_, err = tx.ExecContext(ctx, `DELETE FROM action WHERE filter_id = ?`, filterID)
+	deleteQueryBuilder := r.db.squirrel.
+		Delete("action").
+		Where("filter_id = ?", filterID)
+
+	deleteQuery, deleteArgs, err := deleteQueryBuilder.ToSql()
 	if err != nil {
-		log.Error().Stack().Err(err).Msgf("error deleting actions for filter: %v", filterID)
+		log.Error().Stack().Err(err).Msg("action.StoreFilterActions: error building query")
+		return nil, err
+	}
+	_, err = tx.ExecContext(ctx, deleteQuery, deleteArgs...)
+	if err != nil {
+		log.Error().Stack().Err(err).Msg("action.StoreFilterActions: error executing query")
 		return nil, err
 	}
 
@@ -217,8 +392,8 @@ func (r *ActionRepo) StoreFilterActions(ctx context.Context, actions []domain.Ac
 		tags := toNullString(action.Tags)
 		label := toNullString(action.Label)
 		savePath := toNullString(action.SavePath)
-		host := toNullString(action.WebhookHost)
-		data := toNullString(action.WebhookData)
+		webhookHost := toNullString(action.WebhookHost)
+		webhookData := toNullString(action.WebhookData)
 		webhookType := toNullString(action.WebhookType)
 		webhookMethod := toNullString(action.WebhookMethod)
 
@@ -226,25 +401,71 @@ func (r *ActionRepo) StoreFilterActions(ctx context.Context, actions []domain.Ac
 		limitUL := toNullInt64(action.LimitUploadSpeed)
 		clientID := toNullInt32(action.ClientID)
 
-		var err error
-		var res sql.Result
+		queryBuilder := r.db.squirrel.
+			Insert("action").
+			Columns(
+				"name",
+				"type",
+				"enabled",
+				"exec_cmd",
+				"exec_args",
+				"watch_folder",
+				"category",
+				"tags",
+				"label",
+				"save_path",
+				"paused",
+				"ignore_rules",
+				"limit_upload_speed",
+				"limit_download_speed",
+				"webhook_host",
+				"webhook_type",
+				"webhook_method",
+				"webhook_data",
+				"client_id",
+				"filter_id",
+			).
+			Values(
+				action.Name,
+				action.Type,
+				action.Enabled,
+				execCmd,
+				execArgs,
+				watchFolder,
+				category,
+				tags,
+				label,
+				savePath,
+				action.Paused,
+				action.IgnoreRules,
+				limitUL,
+				limitDL,
+				webhookHost,
+				webhookType,
+				webhookMethod,
+				webhookData,
+				clientID,
+				filterID,
+			).
+			Suffix("RETURNING id").RunWith(tx)
 
-		res, err = tx.ExecContext(ctx, `INSERT INTO action(name, type, enabled, exec_cmd, exec_args, watch_folder, category, tags, label, save_path, paused, ignore_rules, limit_upload_speed, limit_download_speed, webhook_host, webhook_data, webhook_type, webhook_method, client_id, filter_id)
-			VALUES (?, ?, ?, ?, ?,? ,?, ?,?,?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT DO NOTHING`, action.Name, action.Type, action.Enabled, execCmd, execArgs, watchFolder, category, tags, label, savePath, action.Paused, action.IgnoreRules, limitUL, limitDL, host, data, webhookType, webhookMethod, clientID, filterID)
+		// return values
+		var retID int
+
+		err = queryBuilder.QueryRowContext(ctx).Scan(&retID)
 		if err != nil {
-			log.Error().Stack().Err(err).Msg("actions: error executing query")
+			log.Error().Stack().Err(err).Msg("action.StoreFilterActions: error executing query")
 			return nil, err
 		}
 
-		resId, _ := res.LastInsertId()
-		action.ID = int(resId)
+		action.ID = retID
 
-		log.Debug().Msgf("actions: store '%v' type: '%v' on filter: %v", action.Name, action.Type, filterID)
+		log.Debug().Msgf("action.StoreFilterActions: store '%v' type: '%v' on filter: %v", action.Name, action.Type, filterID)
 	}
 
 	err = tx.Commit()
 	if err != nil {
-		log.Error().Stack().Err(err).Msg("error updating actions")
+		log.Error().Stack().Err(err).Msg("action.StoreFilterActions: error updating actions")
 		return nil, err
 
 	}
@@ -253,20 +474,26 @@ func (r *ActionRepo) StoreFilterActions(ctx context.Context, actions []domain.Ac
 }
 
 func (r *ActionRepo) ToggleEnabled(actionID int) error {
-	//r.db.lock.RLock()
-	//defer r.db.lock.RUnlock()
-
 	var err error
-	var res sql.Result
 
-	res, err = r.db.handler.Exec(`UPDATE action SET enabled = NOT enabled WHERE id = ?`, actionID)
+	queryBuilder := r.db.squirrel.
+		Update("action").
+		Set("enabled", sq.Expr("NOT enabled")).
+		Where("id = ?", actionID)
+
+	query, args, err := queryBuilder.ToSql()
 	if err != nil {
-		log.Error().Err(err)
+		log.Error().Stack().Err(err).Msg("action.toggleEnabled: error building query")
 		return err
 	}
 
-	resId, _ := res.LastInsertId()
-	log.Info().Msgf("LAST INSERT ID %v", resId)
+	_, err = r.db.handler.Exec(query, args...)
+	if err != nil {
+		log.Error().Stack().Err(err).Msg("action.toggleEnabled: error executing query")
+		return err
+	}
+
+	log.Debug().Msgf("action.toggleEnabled: %v", actionID)
 
 	return nil
 }

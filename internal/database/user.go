@@ -16,12 +16,19 @@ func NewUserRepo(db *DB) domain.UserRepo {
 }
 
 func (r *UserRepo) FindByUsername(ctx context.Context, username string) (*domain.User, error) {
-	//r.db.lock.RLock()
-	//defer r.db.lock.RUnlock()
 
-	query := `SELECT id, username, password FROM users WHERE username = ?`
+	queryBuilder := r.db.squirrel.
+		Select("id", "username", "password").
+		From("users").
+		Where("username = ?", username)
 
-	row := r.db.handler.QueryRowContext(ctx, query, username)
+	query, args, err := queryBuilder.ToSql()
+	if err != nil {
+		log.Error().Stack().Err(err).Msg("user.store: error building query")
+		return nil, err
+	}
+
+	row := r.db.handler.QueryRowContext(ctx, query, args...)
 	if err := row.Err(); err != nil {
 		return nil, err
 	}
@@ -37,25 +44,49 @@ func (r *UserRepo) FindByUsername(ctx context.Context, username string) (*domain
 }
 
 func (r *UserRepo) Store(ctx context.Context, user domain.User) error {
-	//r.db.lock.RLock()
-	//defer r.db.lock.RUnlock()
 
 	var err error
-	if user.ID != 0 {
-		update := `UPDATE users SET password = ? WHERE username = ?`
-		_, err = r.db.handler.ExecContext(ctx, update, user.Password, user.Username)
-		if err != nil {
-			log.Error().Stack().Err(err).Msg("error executing query")
-			return err
-		}
 
-	} else {
-		query := `INSERT INTO users (username, password) VALUES (?, ?)`
-		_, err = r.db.handler.ExecContext(ctx, query, user.Username, user.Password)
-		if err != nil {
-			log.Error().Stack().Err(err).Msg("error executing query")
-			return err
-		}
+	queryBuilder := r.db.squirrel.
+		Update("users").
+		Set("username", user.Username).
+		Set("password", user.Password).
+		Where("username = ?", user.Username)
+
+	query, args, err := queryBuilder.ToSql()
+	if err != nil {
+		log.Error().Stack().Err(err).Msg("user.store: error building query")
+		return err
+	}
+
+	_, err = r.db.handler.ExecContext(ctx, query, args...)
+	if err != nil {
+		log.Error().Stack().Err(err).Msg("user.store: error executing query")
+		return err
+	}
+
+	return err
+}
+func (r *UserRepo) Update(ctx context.Context, user domain.User) error {
+
+	var err error
+
+	queryBuilder := r.db.squirrel.
+		Update("users").
+		Set("username", user.Username).
+		Set("password", user.Password).
+		Where("username = ?", user.Username)
+
+	query, args, err := queryBuilder.ToSql()
+	if err != nil {
+		log.Error().Stack().Err(err).Msg("user.store: error building query")
+		return err
+	}
+
+	_, err = r.db.handler.ExecContext(ctx, query, args...)
+	if err != nil {
+		log.Error().Stack().Err(err).Msg("user.store: error executing query")
+		return err
 	}
 
 	return err

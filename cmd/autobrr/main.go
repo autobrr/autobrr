@@ -54,15 +54,18 @@ func main() {
 	// setup logger
 	logger.Setup(cfg, serverEvents)
 
-	log.Info().Msg("Starting autobrr")
-	log.Info().Msgf("Version: %v", version)
-	log.Info().Msgf("Log-level: %v", cfg.LogLevel)
-
 	// open database connection
 	db, _ := database.NewDB(cfg)
 	if err := db.Open(); err != nil {
 		log.Fatal().Err(err).Msg("could not open db connection")
 	}
+
+	log.Info().Msgf("Starting autobrr")
+	log.Info().Msgf("Version: %v", version)
+	log.Info().Msgf("Commit: %v", commit)
+	log.Info().Msgf("Build date: %v", date)
+	log.Info().Msgf("Log-level: %v", cfg.LogLevel)
+	log.Info().Msgf("Using database: %v", db.Driver)
 
 	// setup repos
 	var (
