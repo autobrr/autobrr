@@ -45,8 +45,6 @@ func NewDB(cfg domain.Config) (*DB, error) {
 		return nil, fmt.Errorf("unsupported databse: %v", cfg.DatabaseType)
 	}
 
-	log.Info().Msgf("Using database: %v", db.Driver)
-
 	return db, nil
 }
 

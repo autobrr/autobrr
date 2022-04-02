@@ -46,41 +46,47 @@ func (r *UserRepo) FindByUsername(ctx context.Context, username string) (*domain
 func (r *UserRepo) Store(ctx context.Context, user domain.User) error {
 
 	var err error
-	if user.ID != 0 {
-		queryBuilder := r.db.squirrel.
-			Update("users").
-			Set("username", user.Username).
-			Set("password", user.Password).
-			Where("username = ?", user.Username)
 
-		query, args, err := queryBuilder.ToSql()
-		if err != nil {
-			log.Error().Stack().Err(err).Msg("user.store: error building query")
-			return err
-		}
+	queryBuilder := r.db.squirrel.
+		Update("users").
+		Set("username", user.Username).
+		Set("password", user.Password).
+		Where("username = ?", user.Username)
 
-		_, err = r.db.handler.ExecContext(ctx, query, args...)
-		if err != nil {
-			log.Error().Stack().Err(err).Msg("user.store: error executing query")
-			return err
-		}
+	query, args, err := queryBuilder.ToSql()
+	if err != nil {
+		log.Error().Stack().Err(err).Msg("user.store: error building query")
+		return err
+	}
 
-	} else {
-		queryBuilder := r.db.squirrel.
-			Insert("user").Columns("username", "password").
-			Values(user.Username, user.Password)
+	_, err = r.db.handler.ExecContext(ctx, query, args...)
+	if err != nil {
+		log.Error().Stack().Err(err).Msg("user.store: error executing query")
+		return err
+	}
 
-		query, args, err := queryBuilder.ToSql()
-		if err != nil {
-			log.Error().Stack().Err(err).Msg("user.store: error building query")
-			return err
-		}
+	return err
+}
+func (r *UserRepo) Update(ctx context.Context, user domain.User) error {
 
-		_, err = r.db.handler.ExecContext(ctx, query, args...)
-		if err != nil {
-			log.Error().Stack().Err(err).Msg("user.store: error executing query")
-			return err
-		}
+	var err error
+
+	queryBuilder := r.db.squirrel.
+		Update("users").
+		Set("username", user.Username).
+		Set("password", user.Password).
+		Where("username = ?", user.Username)
+
+	query, args, err := queryBuilder.ToSql()
+	if err != nil {
+		log.Error().Stack().Err(err).Msg("user.store: error building query")
+		return err
+	}
+
+	_, err = r.db.handler.ExecContext(ctx, query, args...)
+	if err != nil {
+		log.Error().Stack().Err(err).Msg("user.store: error executing query")
+		return err
 	}
 
 	return err

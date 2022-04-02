@@ -96,7 +96,7 @@ func main() {
 		}
 
 		user.Password = hashed
-		if err := userRepo.Store(context.Background(), *user); err != nil {
+		if err := userRepo.Update(context.Background(), *user); err != nil {
 			log.Fatalf("failed to create user: %v", err)
 		}
 	default:
