@@ -1,4 +1,4 @@
-import {CogIcon, CollectionIcon, DownloadIcon, KeyIcon} from '@heroicons/react/outline'
+import {BellIcon, CogIcon, CollectionIcon, DownloadIcon, KeyIcon} from '@heroicons/react/outline'
 import {NavLink, Route, Switch as RouteSwitch, useLocation, useRouteMatch} from "react-router-dom";
 
 import { classNames } from "../utils";
@@ -8,17 +8,18 @@ import ApplicationSettings from "./settings/Application";
 import DownloadClientSettings from "./settings/DownloadClient";
 import { RegexPlayground } from './settings/RegexPlayground';
 import ReleaseSettings from "./settings/Releases";
+import NotificationSettings from "./settings/Notifications";
 
 const subNavigation = [
     {name: 'Application', href: '', icon: CogIcon, current: true},
     {name: 'Indexers', href: 'indexers', icon: KeyIcon, current: false},
     {name: 'IRC', href: 'irc', icon: KeyIcon, current: false},
     {name: 'Clients', href: 'clients', icon: DownloadIcon, current: false},
+    {name: 'Notifications', href: 'notifications', icon: BellIcon, current: false},
     {name: 'Releases', href: 'releases', icon: CollectionIcon, current: false},
     // {name: 'Regex Playground', href: 'regex-playground', icon: CogIcon, current: false}
     // {name: 'Actions', href: 'actions', icon: PlayIcon, current: false},
     // {name: 'Rules', href: 'rules', icon: ClipboardCheckIcon, current: false},
-    // {name: 'Notifications', href: 'notifications', icon: BellIcon, current: false},
 ]
 
 function SubNavLink({item, url}: any) {
@@ -91,6 +92,10 @@ export default function Settings() {
 
                             <Route path={`${url}/clients`}>
                                 <DownloadClientSettings/>
+                            </Route>
+
+                            <Route path={`${url}/notifications`}>
+                                <NotificationSettings />
                             </Route>
 
                             <Route path={`${url}/releases`}>

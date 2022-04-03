@@ -108,6 +108,12 @@ export const APIClient = {
     events: {
         logs: () => new EventSource(`${sseBaseUrl()}api/events?stream=logs`, { withCredentials: true })
     },
+    notifications: {
+        getAll: () => appClient.Get<Notification[]>("api/notification"),
+        create: (notification: Notification) => appClient.Post("api/notification", notification),
+        update: (notification: Notification) => appClient.Put(`api/notification/${notification.id}`, notification),
+        delete: (id: number) => appClient.Delete(`api/notification/${id}`),
+    },
     release: {
         find: (query?: string) => appClient.Get<ReleaseFindResponse>(`api/release${query}`),
         findQuery: (offset?: number, limit?: number, filters?: Array<ReleaseFilter>) => {

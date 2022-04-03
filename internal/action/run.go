@@ -157,26 +157,37 @@ func (s *service) runAction(action domain.Action, release domain.Release) error 
 		return nil
 	}
 
-	if rejections != nil {
-		s.bus.Publish("release:push-rejected", &domain.ReleaseActionStatus{
-			ReleaseID:  release.ID,
-			Status:     domain.ReleasePushStatusRejected,
-			Action:     action.Name,
-			Type:       action.Type,
-			Rejections: rejections,
-			Timestamp:  time.Now(),
-		})
-
-		return nil
-	}
-
-	s.bus.Publish("release:push-approved", &domain.ReleaseActionStatus{
+	rlsActionStatus := &domain.ReleaseActionStatus{
 		ReleaseID:  release.ID,
 		Status:     domain.ReleasePushStatusApproved,
 		Action:     action.Name,
 		Type:       action.Type,
 		Rejections: []string{},
 		Timestamp:  time.Now(),
+	}
+
+	if rejections != nil {
+		rlsActionStatus.Status = domain.ReleasePushStatusRejected
+		rlsActionStatus.Rejections = rejections
+	}
+
+	// send event for actions
+	s.bus.Publish("release:push", rlsActionStatus)
+
+	// send separate event for notifications
+	s.bus.Publish("events:release:push", &domain.EventsReleasePushed{
+		ReleaseName:    release.TorrentName,
+		Filter:         release.Filter.Name,
+		Indexer:        release.Indexer,
+		InfoHash:       release.TorrentHash,
+		Size:           release.Size,
+		Status:         domain.ReleasePushStatusApproved,
+		Action:         action.Name,
+		ActionType:     action.Type,
+		Rejections:     []string{},
+		Protocol:       domain.ReleaseProtocolTorrent,
+		Implementation: domain.ReleaseImplementationIRC,
+		Timestamp:      time.Now(),
 	})
 
 	return nil

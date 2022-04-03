@@ -1501,6 +1501,19 @@ const (
 	ReleasePushStatusPending  ReleasePushStatus = "PENDING" // Initial status
 )
 
+func (r ReleasePushStatus) String() string {
+	switch r {
+	case ReleasePushStatusApproved:
+		return "Approved"
+	case ReleasePushStatusRejected:
+		return "Rejected"
+	case ReleasePushStatusErr:
+		return "Error"
+	default:
+		return "Unknown"
+	}
+}
+
 type ReleaseFilterStatus string
 
 const (

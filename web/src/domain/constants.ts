@@ -228,3 +228,10 @@ export const PushStatusOptions: any[] = [
         value: "PUSH_ERROR"
     },
 ];
+
+export const NotificationTypeOptions: any[] = [
+    {
+        label: "Discord",
+        value: "DISCORD",
+    },
+];
