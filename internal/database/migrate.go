@@ -218,6 +218,29 @@ CREATE TABLE release_action_status
 	release_id    INTEGER NOT NULL,
 	FOREIGN KEY (release_id) REFERENCES "release"(id) ON DELETE CASCADE
 );
+
+CREATE TABLE notification
+(
+	id         INTEGER PRIMARY KEY,
+	name       TEXT,
+	type       TEXT,
+	enabled    BOOLEAN,
+	events     TEXT []   DEFAULT '{}' NOT NULL,
+	token      TEXT,
+	api_key    TEXT,
+	webhook    TEXT,
+	title      TEXT,
+	icon       TEXT,
+	host       TEXT,
+	username   TEXT,
+	password   TEXT,
+	channel    TEXT,
+	rooms      TEXT,
+	targets    TEXT,
+	devices    TEXT,
+	created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+	updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
 `
 
 var sqliteMigrations = []string{
@@ -488,6 +511,30 @@ DROP TABLE release_action_status;
 ALTER TABLE release_action_status_dg_tmp
     RENAME TO release_action_status;
 	`,
+	`
+	CREATE TABLE notification
+	(
+		id         INTEGER PRIMARY KEY,
+		name       TEXT,
+		type       TEXT,
+		enabled    BOOLEAN,
+		events     TEXT []   DEFAULT '{}' NOT NULL,
+		token      TEXT,
+		api_key    TEXT,
+		webhook    TEXT,
+		title      TEXT,
+		icon       TEXT,
+		host       TEXT,
+		username   TEXT,
+		password   TEXT,
+		channel    TEXT,
+		rooms      TEXT,
+		targets    TEXT,
+		devices    TEXT,
+		created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+		updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+	);
+	`,
 }
 
 const postgresSchema = `
@@ -708,8 +755,55 @@ CREATE TABLE release_action_status
 	release_id    INTEGER NOT NULL,
 	FOREIGN KEY (release_id) REFERENCES "release"(id) ON DELETE CASCADE
 );
+
+CREATE TABLE notification
+(
+	id         SERIAL PRIMARY KEY,
+	name       TEXT,
+	type       TEXT,
+	enabled    BOOLEAN,
+	events     TEXT []   DEFAULT '{}' NOT NULL,
+	token      TEXT,
+	api_key    TEXT,
+	webhook    TEXT,
+	title      TEXT,
+	icon       TEXT,
+	host       TEXT,
+	username   TEXT,
+	password   TEXT,
+	channel    TEXT,
+	rooms      TEXT,
+	targets    TEXT,
+	devices    TEXT,
+	created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+	updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
 `
 
 var postgresMigrations = []string{
 	"",
+	`
+	CREATE TABLE notification
+	(
+		id         SERIAL PRIMARY KEY,
+		name       TEXT,
+		type       TEXT,
+		enabled    BOOLEAN,
+		events     TEXT []   DEFAULT '{}' NOT NULL,
+		token      TEXT,
+		api_key    TEXT,
+		webhook    TEXT,
+		title      TEXT,
+		icon       TEXT,
+		host       TEXT,
+		username   TEXT,
+		password   TEXT,
+		channel    TEXT,
+		rooms      TEXT,
+		targets    TEXT,
+		devices    TEXT,
+		created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+		updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+	);
+	`,
 }

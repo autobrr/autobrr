@@ -22,6 +22,7 @@ import (
 	"github.com/autobrr/autobrr/internal/indexer"
 	"github.com/autobrr/autobrr/internal/irc"
 	"github.com/autobrr/autobrr/internal/logger"
+	"github.com/autobrr/autobrr/internal/notification"
 	"github.com/autobrr/autobrr/internal/release"
 	"github.com/autobrr/autobrr/internal/server"
 	"github.com/autobrr/autobrr/internal/user"
@@ -74,6 +75,7 @@ func main() {
 		filterRepo         = database.NewFilterRepo(db)
 		indexerRepo        = database.NewIndexerRepo(db)
 		ircRepo            = database.NewIrcRepo(db)
+		notificationRepo   = database.NewNotificationRepo(db)
 		releaseRepo        = database.NewReleaseRepo(db)
 		userRepo           = database.NewUserRepo(db)
 	)
@@ -87,17 +89,18 @@ func main() {
 		filterService         = filter.NewService(filterRepo, actionRepo, apiService, indexerService)
 		releaseService        = release.NewService(releaseRepo, actionService)
 		ircService            = irc.NewService(ircRepo, filterService, indexerService, releaseService)
+		notificationService   = notification.NewService(notificationRepo)
 		userService           = user.NewService(userRepo)
 		authService           = auth.NewService(userService)
 	)
 
 	// register event subscribers
-	events.NewSubscribers(bus, releaseService)
+	events.NewSubscribers(bus, notificationService, releaseService)
 
 	errorChannel := make(chan error)
 
 	go func() {
-		httpServer := http.NewServer(cfg, serverEvents, version, commit, date, actionService, authService, downloadClientService, filterService, indexerService, ircService, releaseService)
+		httpServer := http.NewServer(cfg, serverEvents, version, commit, date, actionService, authService, downloadClientService, filterService, indexerService, ircService, notificationService, releaseService)
 		errorChannel <- httpServer.Open()
 	}()
 
