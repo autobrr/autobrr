@@ -235,3 +235,27 @@ export const NotificationTypeOptions: any[] = [
         value: "DISCORD",
     },
 ];
+
+export interface SelectOption {
+    label: string;
+    description: string;
+    value: any;
+}
+
+export const EventOptions: SelectOption[] = [
+    {
+        label: "Push Rejected",
+        value: "PUSH_REJECTED",
+        description: "On push rejected for the arrs or download client",
+    },
+    {
+        label: "Push Approved",
+        value: "PUSH_APPROVED",
+        description: "On push approved for the arrs or download client",
+    },
+    {
+        label: "Push Error",
+        value: "PUSH_ERROR",
+        description: "On push error for the arrs or download client",
+    },
+];

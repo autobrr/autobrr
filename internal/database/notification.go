@@ -3,9 +3,9 @@ package database
 import (
 	"context"
 	"database/sql"
-
 	"github.com/autobrr/autobrr/internal/domain"
 
+	sq "github.com/Masterminds/squirrel"
 	"github.com/lib/pq"
 	"github.com/rs/zerolog/log"
 )
@@ -23,7 +23,7 @@ func NewNotificationRepo(db *DB) domain.NotificationRepo {
 func (r *NotificationRepo) Find(ctx context.Context, params domain.NotificationQueryParams) ([]domain.Notification, int, error) {
 
 	queryBuilder := r.db.squirrel.
-		Select("id", "name", "type", "enabled", "events", "created_at", "updated_at", "COUNT(*) OVER() AS total_count").
+		Select("id", "name", "type", "enabled", "events", "webhook", "created_at", "updated_at", "COUNT(*) OVER() AS total_count").
 		From("notification").
 		OrderBy("name")
 
@@ -46,17 +46,18 @@ func (r *NotificationRepo) Find(ctx context.Context, params domain.NotificationQ
 	for rows.Next() {
 		var n domain.Notification
 
+		var webhook sql.NullString
 		//var token, apiKey, webhook, title, icon, host, username, password, channel, targets, devices sql.NullString
 		//if err := rows.Scan(&n.ID, &n.Name, &n.Type, &n.Enabled, pq.Array(&n.Events), &token, &apiKey, &webhook, &title, &icon, &host, &username, &password, &channel, &targets, &devices, &n.CreatedAt, &n.UpdatedAt); err != nil {
 		//var token, apiKey, webhook, title, icon, host, username, password, channel, targets, devices sql.NullString
-		if err := rows.Scan(&n.ID, &n.Name, &n.Type, &n.Enabled, pq.Array(&n.Events), &n.CreatedAt, &n.UpdatedAt, &totalCount); err != nil {
+		if err := rows.Scan(&n.ID, &n.Name, &n.Type, &n.Enabled, pq.Array(&n.Events), &webhook, &n.CreatedAt, &n.UpdatedAt, &totalCount); err != nil {
 			log.Error().Stack().Err(err).Msg("notification.find: error scanning row")
 			return nil, 0, err
 		}
 
 		//n.Token = token.String
 		//n.APIKey = apiKey.String
-		//n.Webhook = webhook.String
+		n.Webhook = webhook.String
 		//n.Title = title.String
 		//n.Icon = icon.String
 		//n.Host = host.String
@@ -222,6 +223,7 @@ func (r *NotificationRepo) Update(ctx context.Context, notification domain.Notif
 		Set("enabled", notification.Enabled).
 		Set("events", pq.Array(notification.Events)).
 		Set("webhook", webhook).
+		Set("updated_at", sq.Expr("CURRENT_TIMESTAMP")).
 		Where("id = ?", notification.ID)
 
 	query, args, err := queryBuilder.ToSql()
