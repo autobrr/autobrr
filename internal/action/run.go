@@ -36,6 +36,21 @@ func (s *service) RunActions(actions []domain.Action, release domain.Release) er
 				Rejections: []string{err.Error()},
 				Timestamp:  time.Now(),
 			})
+
+			s.bus.Publish("events:release:push", &domain.EventsReleasePushed{
+				ReleaseName:    release.TorrentName,
+				Filter:         release.Filter.Name,
+				Indexer:        release.Indexer,
+				InfoHash:       release.TorrentHash,
+				Size:           release.Size,
+				Status:         domain.ReleasePushStatusErr,
+				Action:         action.Name,
+				ActionType:     action.Type,
+				Rejections:     []string{err.Error()},
+				Protocol:       domain.ReleaseProtocolTorrent,
+				Implementation: domain.ReleaseImplementationIRC,
+				Timestamp:      time.Now(),
+			})
 		}
 	}
 
@@ -166,16 +181,7 @@ func (s *service) runAction(action domain.Action, release domain.Release) error 
 		Timestamp:  time.Now(),
 	}
 
-	if rejections != nil {
-		rlsActionStatus.Status = domain.ReleasePushStatusRejected
-		rlsActionStatus.Rejections = rejections
-	}
-
-	// send event for actions
-	s.bus.Publish("release:push", rlsActionStatus)
-
-	// send separate event for notifications
-	s.bus.Publish("events:release:push", &domain.EventsReleasePushed{
+	notificationEvent := &domain.EventsReleasePushed{
 		ReleaseName:    release.TorrentName,
 		Filter:         release.Filter.Name,
 		Indexer:        release.Indexer,
@@ -188,7 +194,21 @@ func (s *service) runAction(action domain.Action, release domain.Release) error 
 		Protocol:       domain.ReleaseProtocolTorrent,
 		Implementation: domain.ReleaseImplementationIRC,
 		Timestamp:      time.Now(),
-	})
+	}
+
+	if rejections != nil {
+		rlsActionStatus.Status = domain.ReleasePushStatusRejected
+		rlsActionStatus.Rejections = rejections
+
+		notificationEvent.Status = domain.ReleasePushStatusRejected
+		notificationEvent.Rejections = rejections
+	}
+
+	// send event for actions
+	s.bus.Publish("release:push", rlsActionStatus)
+
+	// send separate event for notifications
+	s.bus.Publish("events:release:push", notificationEvent)
 
 	return nil
 }
