@@ -40,13 +40,19 @@ func discordNotification(event domain.EventsReleasePushed, webhookURL string) {
 
 	client := http.Client{Transport: t, Timeout: 15 * time.Second}
 
+	color := map[domain.ReleasePushStatus]int{
+		domain.ReleasePushStatusApproved: 5814783,
+		domain.ReleasePushStatusRejected: 5814783,
+		domain.ReleasePushStatusErr:      14026000,
+	}
+
 	m := DiscordMessage{
 		Content: nil,
 		Embeds: []DiscordEmbeds{
 			{
 				Title:       event.ReleaseName,
 				Description: "New release!",
-				Color:       5814783,
+				Color:       color[event.Status],
 				Fields: []DiscordEmbedsFields{
 					{
 						Name:   "Status",
