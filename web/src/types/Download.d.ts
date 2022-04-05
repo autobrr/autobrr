@@ -4,7 +4,8 @@ type DownloadClientType =
     'DELUGE_V2' |
     'RADARR' |
     'SONARR' |
-    'LIDARR';
+    'LIDARR' |
+    'WHISPARR';
 
 interface DownloadClientRules {
   enabled: boolean;

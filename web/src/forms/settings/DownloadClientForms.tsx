@@ -103,6 +103,7 @@ export const componentMap: any = {
     RADARR: <FormFieldsArr />,
     SONARR: <FormFieldsArr />,
     LIDARR: <FormFieldsArr />,
+    WHISPARR: <FormFieldsArr />,
 };
 
 

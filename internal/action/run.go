@@ -167,6 +167,13 @@ func (s *service) runAction(action domain.Action, release domain.Release) error 
 			return err
 		}
 
+	case domain.ActionTypeWhisparr:
+		rejections, err = s.whisparr(release, action)
+		if err != nil {
+			log.Error().Stack().Err(err).Msg("error sending torrent to whisparr")
+			return err
+		}
+
 	default:
 		log.Warn().Msgf("unsupported action: %v type: %v", action.Name, action.Type)
 		return nil
