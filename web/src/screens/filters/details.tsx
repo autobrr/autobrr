@@ -849,6 +849,7 @@ function FilterActionsItem({ action, clients, idx, remove }: FilterActionsItemPr
             case "RADARR":
             case "SONARR":
             case "LIDARR":
+            case "WHISPARR":
                 return (
                     <div className="mt-6 grid grid-cols-12 gap-6">
                         <DownloadClientSelect

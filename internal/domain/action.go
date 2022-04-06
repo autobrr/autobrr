@@ -50,4 +50,5 @@ const (
 	ActionTypeRadarr      ActionType = "RADARR"
 	ActionTypeSonarr      ActionType = "SONARR"
 	ActionTypeLidarr      ActionType = "LIDARR"
+	ActionTypeWhisparr    ActionType = "WHISPARR"
 )

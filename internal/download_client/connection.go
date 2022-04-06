@@ -1,6 +1,8 @@
 package download_client
 
 import (
+	"github.com/autobrr/autobrr/pkg/whisparr"
+	"github.com/pkg/errors"
 	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
@@ -29,9 +31,12 @@ func (s *service) testConnection(client domain.DownloadClient) error {
 
 	case domain.DownloadClientTypeLidarr:
 		return s.testLidarrConnection(client)
-	}
 
-	return nil
+	case domain.DownloadClientTypeWhisparr:
+		return s.testWhisparrConnection(client)
+	default:
+		return errors.New("unsupported client")
+	}
 }
 
 func (s *service) testQbittorrentConnection(client domain.DownloadClient) error {
@@ -156,6 +161,26 @@ func (s *service) testLidarrConnection(client domain.DownloadClient) error {
 	}
 
 	log.Debug().Msgf("test client connection for Lidarr: success")
+
+	return nil
+}
+
+func (s *service) testWhisparrConnection(client domain.DownloadClient) error {
+	r := whisparr.New(whisparr.Config{
+		Hostname:  client.Host,
+		APIKey:    client.Settings.APIKey,
+		BasicAuth: client.Settings.Basic.Auth,
+		Username:  client.Settings.Basic.Username,
+		Password:  client.Settings.Basic.Password,
+	})
+
+	_, err := r.Test()
+	if err != nil {
+		log.Error().Err(err).Msgf("whisparr: connection test failed: %v", client.Host)
+		return err
+	}
+
+	log.Debug().Msgf("test client connection for whisparr: success")
 
 	return nil
 }

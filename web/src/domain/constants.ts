@@ -177,6 +177,11 @@ export const DownloadClientTypeOptions: RadioFieldsetOption[] = [
         description: "Send to Lidarr and let it decide",
         value: "LIDARR"
     },
+    {
+        label: "Whisparr",
+        description: "Send to Whisparr and let it decide",
+        value: "WHISPARR"
+    },
 ];
 
 export const DownloadClientTypeNameMap: Record<DownloadClientType | string, string> = {
@@ -186,6 +191,7 @@ export const DownloadClientTypeNameMap: Record<DownloadClientType | string, stri
     "RADARR": "Radarr",
     "SONARR": "Sonarr",
     "LIDARR": "Lidarr",
+    "WHISPARR": "Whisparr",
 };
 
 export const ActionTypeOptions: RadioFieldsetOption[] = [
@@ -199,6 +205,7 @@ export const ActionTypeOptions: RadioFieldsetOption[] = [
     {label: "Radarr", description: "Send to Radarr and let it decide", value: "RADARR"},
     {label: "Sonarr", description: "Send to Sonarr and let it decide", value: "SONARR"},
     {label: "Lidarr", description: "Send to Lidarr and let it decide", value: "LIDARR"},
+    {label: "Whisparr", description: "Send to Whisparr and let it decide", value: "WHISPARR"},
 ];
 
 export const ActionTypeNameMap = {
@@ -212,6 +219,7 @@ export const ActionTypeNameMap = {
     "RADARR": "Radarr",
     "SONARR": "Sonarr",
     "LIDARR": "Lidarr",
+    "WHISPARR": "Whisparr",
 };
 
 export const PushStatusOptions: any[] = [

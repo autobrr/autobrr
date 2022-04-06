@@ -53,4 +53,5 @@ const (
 	DownloadClientTypeRadarr      DownloadClientType = "RADARR"
 	DownloadClientTypeSonarr      DownloadClientType = "SONARR"
 	DownloadClientTypeLidarr      DownloadClientType = "LIDARR"
+	DownloadClientTypeWhisparr    DownloadClientType = "WHISPARR"
 )
