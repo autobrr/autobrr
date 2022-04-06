@@ -24,7 +24,7 @@ settings:
 
 irc:
   network: DigitalIRC
-  server: irc.empornium.is
+  server: irc.digitalirc.org
   port: 6697
   tls: true
   channels:
