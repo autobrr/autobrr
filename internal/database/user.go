@@ -48,10 +48,9 @@ func (r *UserRepo) Store(ctx context.Context, user domain.User) error {
 	var err error
 
 	queryBuilder := r.db.squirrel.
-		Update("users").
-		Set("username", user.Username).
-		Set("password", user.Password).
-		Where("username = ?", user.Username)
+		Insert("users").
+		Columns("username", "password").
+		Values(user.Username, user.Password)
 
 	query, args, err := queryBuilder.ToSql()
 	if err != nil {
