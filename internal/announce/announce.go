@@ -2,7 +2,6 @@ package announce
 
 import (
 	"bytes"
-	"context"
 	"errors"
 	"fmt"
 	"net/url"
@@ -11,9 +10,6 @@ import (
 	"text/template"
 
 	"github.com/autobrr/autobrr/internal/domain"
-	"github.com/autobrr/autobrr/internal/filter"
-	"github.com/autobrr/autobrr/internal/release"
-
 	"github.com/rs/zerolog/log"
 )
 
@@ -24,17 +20,15 @@ type Processor interface {
 type announceProcessor struct {
 	indexer domain.IndexerDefinition
 
-	filterSvc  filter.Service
-	releaseSvc release.Service
+	announceSvc Service
 
 	queues map[string]chan string
 }
 
-func NewAnnounceProcessor(indexer domain.IndexerDefinition, filterSvc filter.Service, releaseSvc release.Service) Processor {
+func NewAnnounceProcessor(announceSvc Service, indexer domain.IndexerDefinition) Processor {
 	ap := &announceProcessor{
-		indexer:    indexer,
-		filterSvc:  filterSvc,
-		releaseSvc: releaseSvc,
+		announceSvc: announceSvc,
+		indexer:     indexer,
 	}
 
 	// setup queues and consumers
@@ -115,52 +109,8 @@ func (a *announceProcessor) processQueue(queue chan string) {
 			continue
 		}
 
-		// send to filter service to take care of the rest
-
-		// find and check filter
-		filterOK, foundFilter, err := a.filterSvc.FindAndCheckFilters(newRelease)
-		if err != nil {
-			log.Error().Err(err).Msg("could not find filter")
-			continue
-		}
-
-		// no foundFilter found, lets return
-		if !filterOK || foundFilter == nil {
-			log.Trace().Msg("no matching filter found")
-			continue
-
-			// TODO check in config for "Save all releases"
-			// Save as rejected
-			//newRelease.FilterStatus = domain.ReleaseStatusFilterRejected
-			//err = s.releaseSvc.Store(ctx, newRelease)
-			//if err != nil {
-			//	log.Error().Err(err).Msgf("error writing release to database: %+v", newRelease)
-			//	return nil
-			//}
-			//return nil
-		}
-
-		// save release
-		newRelease.Filter = foundFilter
-		newRelease.FilterName = foundFilter.Name
-		newRelease.FilterID = foundFilter.ID
-
-		newRelease.FilterStatus = domain.ReleaseStatusFilterApproved
-		err = a.releaseSvc.Store(context.Background(), newRelease)
-		if err != nil {
-			log.Error().Err(err).Msgf("error writing release to database: %+v", newRelease)
-			continue
-		}
-
-		log.Info().Msgf("Matched '%v' (%v) for %v", newRelease.TorrentName, newRelease.Filter.Name, newRelease.Indexer)
-
-		// process release
-		go func(rel *domain.Release) {
-			err = a.releaseSvc.Process(*rel)
-			if err != nil {
-				log.Error().Err(err).Msgf("could not process release: %+v", newRelease)
-			}
-		}(newRelease)
+		// process release in a new go routine
+		go a.announceSvc.Process(newRelease)
 	}
 }
 

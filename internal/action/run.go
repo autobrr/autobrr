@@ -59,6 +59,177 @@ func (s *service) RunActions(actions []domain.Action, release domain.Release) er
 	return nil
 }
 
+func (s *service) RunAction(action domain.Action, release domain.Release) ([]string, error) {
+
+	var err error
+	var rejections []string
+
+	switch action.Type {
+	case domain.ActionTypeTest:
+		s.test(action.Name)
+
+	case domain.ActionTypeExec:
+		if release.TorrentTmpFile == "" {
+			if err := release.DownloadTorrentFile(); err != nil {
+				log.Error().Stack().Err(err)
+				break
+			}
+		}
+
+		s.execCmd(release, action)
+
+	case domain.ActionTypeWatchFolder:
+		if release.TorrentTmpFile == "" {
+			if err := release.DownloadTorrentFile(); err != nil {
+				log.Error().Stack().Err(err)
+				break
+			}
+		}
+
+		s.watchFolder(action, release)
+
+	case domain.ActionTypeWebhook:
+		if release.TorrentTmpFile == "" {
+			if err := release.DownloadTorrentFile(); err != nil {
+				log.Error().Stack().Err(err)
+				break
+			}
+		}
+
+		s.webhook(action, release)
+
+	case domain.ActionTypeDelugeV1, domain.ActionTypeDelugeV2:
+		canDownload, err := s.delugeCheckRulesCanDownload(action)
+		if err != nil {
+			log.Error().Stack().Err(err).Msgf("error checking client rules: %v", action.Name)
+			break
+		}
+		if !canDownload {
+			rejections = []string{"max active downloads reached, skipping"}
+			break
+		}
+
+		if release.TorrentTmpFile == "" {
+			if err := release.DownloadTorrentFile(); err != nil {
+				log.Error().Stack().Err(err)
+				break
+			}
+		}
+
+		err = s.deluge(action, release)
+		if err != nil {
+			log.Error().Stack().Err(err).Msg("error sending torrent to Deluge")
+			break
+		}
+
+	case domain.ActionTypeQbittorrent:
+		canDownload, client, err := s.qbittorrentCheckRulesCanDownload(action)
+		if err != nil {
+			log.Error().Stack().Err(err).Msgf("error checking client rules: %v", action.Name)
+			break
+		}
+		if !canDownload {
+			rejections = []string{"max active downloads reached, skipping"}
+			break
+		}
+
+		if release.TorrentTmpFile == "" {
+			if err := release.DownloadTorrentFile(); err != nil {
+				log.Error().Stack().Err(err)
+				break
+			}
+		}
+
+		err = s.qbittorrent(client, action, release)
+		if err != nil {
+			log.Error().Stack().Err(err).Msg("error sending torrent to qBittorrent")
+			break
+		}
+
+	case domain.ActionTypeRadarr:
+		rejections, err = s.radarr(release, action)
+		if err != nil {
+			log.Error().Stack().Err(err).Msg("error sending torrent to radarr")
+			break
+		}
+
+	case domain.ActionTypeSonarr:
+		rejections, err = s.sonarr(release, action)
+		if err != nil {
+			log.Error().Stack().Err(err).Msg("error sending torrent to sonarr")
+			break
+		}
+
+	case domain.ActionTypeLidarr:
+		rejections, err = s.lidarr(release, action)
+		if err != nil {
+			log.Error().Stack().Err(err).Msg("error sending torrent to lidarr")
+			break
+		}
+
+	case domain.ActionTypeWhisparr:
+		rejections, err = s.whisparr(release, action)
+		if err != nil {
+			log.Error().Stack().Err(err).Msg("error sending torrent to whisparr")
+			break
+		}
+
+	default:
+		log.Warn().Msgf("unsupported action type: %v", action.Type)
+		return rejections, err
+	}
+
+	rlsActionStatus := &domain.ReleaseActionStatus{
+		ReleaseID:  release.ID,
+		Status:     domain.ReleasePushStatusApproved,
+		Action:     action.Name,
+		Type:       action.Type,
+		Rejections: []string{},
+		Timestamp:  time.Now(),
+	}
+
+	notificationEvent := &domain.EventsReleasePushed{
+		ReleaseName:    release.TorrentName,
+		Filter:         release.Filter.Name,
+		Indexer:        release.Indexer,
+		InfoHash:       release.TorrentHash,
+		Size:           release.Size,
+		Status:         domain.ReleasePushStatusApproved,
+		Action:         action.Name,
+		ActionType:     action.Type,
+		Rejections:     []string{},
+		Protocol:       domain.ReleaseProtocolTorrent,
+		Implementation: domain.ReleaseImplementationIRC,
+		Timestamp:      time.Now(),
+	}
+
+	if err != nil {
+		log.Err(err).Stack().Msgf("process action failed: %v for '%v'", action.Name, release.TorrentName)
+
+		rlsActionStatus.Status = domain.ReleasePushStatusErr
+		rlsActionStatus.Rejections = []string{err.Error()}
+
+		notificationEvent.Status = domain.ReleasePushStatusErr
+		notificationEvent.Rejections = []string{err.Error()}
+	}
+
+	if rejections != nil {
+		rlsActionStatus.Status = domain.ReleasePushStatusRejected
+		rlsActionStatus.Rejections = rejections
+
+		notificationEvent.Status = domain.ReleasePushStatusRejected
+		notificationEvent.Rejections = rejections
+	}
+
+	// send event for actions
+	s.bus.Publish("release:push", rlsActionStatus)
+
+	// send separate event for notifications
+	s.bus.Publish("events:release:push", notificationEvent)
+
+	return rejections, err
+}
+
 func (s *service) runAction(action domain.Action, release domain.Release) error {
 
 	var err error

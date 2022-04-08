@@ -23,7 +23,7 @@ var (
 		10 * time.Second,
 		20 * time.Second,
 	}
-	timeout = 20 * time.Second
+	timeout = 60 * time.Second
 )
 
 type Client struct {
