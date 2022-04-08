@@ -15,6 +15,29 @@ func NewUserRepo(db *DB) domain.UserRepo {
 	return &UserRepo{db: db}
 }
 
+func (r *UserRepo) GetUserCount(ctx context.Context) (int, error) {
+	queryBuilder := r.db.squirrel.Select("count(*)").From("users")
+
+	query, args, err := queryBuilder.ToSql()
+	if err != nil {
+		log.Error().Stack().Err(err).Msg("user.store: error building query")
+		return -1, err
+	}
+
+	row := r.db.handler.QueryRowContext(ctx, query, args...)
+	if err := row.Err(); err != nil {
+		return -1, err
+	}
+
+	result := 0
+	if err := row.Scan(&result); err != nil {
+		log.Error().Err(err).Msg("could not query number of users")
+		return -1, err
+	}
+
+	return result, nil
+}
+
 func (r *UserRepo) FindByUsername(ctx context.Context, username string) (*domain.User, error) {
 
 	queryBuilder := r.db.squirrel.
@@ -66,6 +89,7 @@ func (r *UserRepo) Store(ctx context.Context, user domain.User) error {
 
 	return err
 }
+
 func (r *UserRepo) Update(ctx context.Context, user domain.User) error {
 
 	var err error

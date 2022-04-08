@@ -47,12 +47,12 @@ export const TextField = ({
                         type="text"
                         defaultValue={defaultValue}
                         autoComplete={autoComplete}
-                        className="mt-2 block w-full dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-md py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:text-gray-100"
+                        className={classNames(meta.touched && meta.error ? "focus:ring-red-500 focus:border-red-500 border-red-500" : "focus:ring-indigo-500 dark:focus:ring-blue-500 focus:border-indigo-500 dark:focus:border-blue-500 border-gray-300 dark:border-gray-700", "mt-2 block w-full dark:bg-gray-800 dark:text-gray-100 rounded-md")}
                         placeholder={placeholder}
                     />
 
                     {meta.touched && meta.error && (
-                        <div className="error">{meta.error}</div>
+                        <p className="error text-sm text-red-600 mt-1">* {meta.error}</p>
                     )}
                 </div>
             )}
@@ -118,7 +118,7 @@ export const PasswordField = ({
                         )}
 
                         {meta.touched && meta.error && (
-                            <div className="error">{meta.error}</div>
+                            <p className="error text-sm text-red-600 mt-1">* {meta.error}</p>
                         )}
                     </div>
                 )}

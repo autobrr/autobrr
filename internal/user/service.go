@@ -2,11 +2,14 @@ package user
 
 import (
 	"context"
+	"errors"
 	"github.com/autobrr/autobrr/internal/domain"
 )
 
 type Service interface {
+	GetUserCount(ctx context.Context) (int, error)
 	FindByUsername(ctx context.Context, username string) (*domain.User, error)
+	CreateUser(ctx context.Context, user domain.User) error
 }
 
 type service struct {
@@ -19,6 +22,15 @@ func NewService(repo domain.UserRepo) Service {
 	}
 }
 
+func (s *service) GetUserCount(ctx context.Context) (int, error) {
+	userCount, err := s.repo.GetUserCount(ctx)
+	if err != nil {
+		return -1, err
+	}
+
+	return userCount, nil
+}
+
 func (s *service) FindByUsername(ctx context.Context, username string) (*domain.User, error) {
 	user, err := s.repo.FindByUsername(ctx, username)
 	if err != nil {
@@ -26,4 +38,17 @@ func (s *service) FindByUsername(ctx context.Context, username string) (*domain.
 	}
 
 	return user, nil
+}
+
+func (s *service) CreateUser(ctx context.Context, newUser domain.User) error {
+	userCount, err := s.repo.GetUserCount(ctx)
+	if err != nil {
+		return err
+	}
+
+	if userCount > 0 {
+		return errors.New("only 1 user account is supported at the moment")
+	}
+
+	return s.repo.Store(ctx, newUser)
 }

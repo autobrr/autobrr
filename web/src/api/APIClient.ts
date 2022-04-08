@@ -62,6 +62,8 @@ export const APIClient = {
         login: (username: string, password: string) => appClient.Post("api/auth/login", { username: username, password: password }),
         logout: () => appClient.Post("api/auth/logout", null),
         validate: () => appClient.Get<void>("api/auth/validate"),
+        onboard: (username: string, password: string) => appClient.Post("api/auth/onboard", { username: username, password: password }),
+        canOnboard: () => appClient.Get("api/auth/onboard"),
     },
     actions: {
         create: (action: Action) => appClient.Post("api/actions", action),
