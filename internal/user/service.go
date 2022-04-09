@@ -23,12 +23,7 @@ func NewService(repo domain.UserRepo) Service {
 }
 
 func (s *service) GetUserCount(ctx context.Context) (int, error) {
-	userCount, err := s.repo.GetUserCount(ctx)
-	if err != nil {
-		return -1, err
-	}
-
-	return userCount, nil
+	return s.repo.GetUserCount(ctx)
 }
 
 func (s *service) FindByUsername(ctx context.Context, username string) (*domain.User, error) {
