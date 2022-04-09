@@ -11,10 +11,10 @@ import (
 	"github.com/spf13/pflag"
 
 	"github.com/autobrr/autobrr/internal/action"
+	"github.com/autobrr/autobrr/internal/announce"
 	"github.com/autobrr/autobrr/internal/auth"
 	"github.com/autobrr/autobrr/internal/config"
 	"github.com/autobrr/autobrr/internal/database"
-	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/internal/download_client"
 	"github.com/autobrr/autobrr/internal/events"
 	"github.com/autobrr/autobrr/internal/filter"
@@ -29,7 +29,6 @@ import (
 )
 
 var (
-	cfg     domain.Config
 	version = "dev"
 	commit  = ""
 	date    = ""
@@ -41,7 +40,7 @@ func main() {
 	pflag.Parse()
 
 	// read config
-	cfg = config.Read(configPath)
+	cfg := config.Read(configPath)
 
 	// setup server-sent-events
 	serverEvents := sse.New()
@@ -70,8 +69,8 @@ func main() {
 
 	// setup repos
 	var (
-		actionRepo         = database.NewActionRepo(db)
 		downloadClientRepo = database.NewDownloadClientRepo(db)
+		actionRepo         = database.NewActionRepo(db, downloadClientRepo)
 		filterRepo         = database.NewFilterRepo(db)
 		indexerRepo        = database.NewIndexerRepo(db)
 		ircRepo            = database.NewIrcRepo(db)
@@ -87,8 +86,9 @@ func main() {
 		apiService            = indexer.NewAPIService()
 		indexerService        = indexer.NewService(cfg, indexerRepo, apiService)
 		filterService         = filter.NewService(filterRepo, actionRepo, apiService, indexerService)
-		releaseService        = release.NewService(releaseRepo, actionService)
-		ircService            = irc.NewService(ircRepo, filterService, indexerService, releaseService)
+		releaseService        = release.NewService(releaseRepo)
+		announceService       = announce.NewService(actionService, filterService, releaseService)
+		ircService            = irc.NewService(ircRepo, announceService, indexerService)
 		notificationService   = notification.NewService(notificationRepo)
 		userService           = user.NewService(userRepo)
 		authService           = auth.NewService(userService)

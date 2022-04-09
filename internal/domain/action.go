@@ -4,37 +4,38 @@ import "context"
 
 type ActionRepo interface {
 	Store(ctx context.Context, action Action) (*Action, error)
-	StoreFilterActions(ctx context.Context, actions []Action, filterID int64) ([]Action, error)
+	StoreFilterActions(ctx context.Context, actions []*Action, filterID int64) ([]*Action, error)
 	DeleteByFilterID(ctx context.Context, filterID int) error
-	FindByFilterID(ctx context.Context, filterID int) ([]Action, error)
+	FindByFilterID(ctx context.Context, filterID int) ([]*Action, error)
 	List(ctx context.Context) ([]Action, error)
 	Delete(actionID int) error
 	ToggleEnabled(actionID int) error
 }
 
 type Action struct {
-	ID                 int        `json:"id"`
-	Name               string     `json:"name"`
-	Type               ActionType `json:"type"`
-	Enabled            bool       `json:"enabled"`
-	ExecCmd            string     `json:"exec_cmd,omitempty"`
-	ExecArgs           string     `json:"exec_args,omitempty"`
-	WatchFolder        string     `json:"watch_folder,omitempty"`
-	Category           string     `json:"category,omitempty"`
-	Tags               string     `json:"tags,omitempty"`
-	Label              string     `json:"label,omitempty"`
-	SavePath           string     `json:"save_path,omitempty"`
-	Paused             bool       `json:"paused,omitempty"`
-	IgnoreRules        bool       `json:"ignore_rules,omitempty"`
-	LimitUploadSpeed   int64      `json:"limit_upload_speed,omitempty"`
-	LimitDownloadSpeed int64      `json:"limit_download_speed,omitempty"`
-	WebhookHost        string     `json:"webhook_host,omitempty"`
-	WebhookType        string     `json:"webhook_type,omitempty"`
-	WebhookMethod      string     `json:"webhook_method,omitempty"`
-	WebhookData        string     `json:"webhook_data,omitempty"`
-	WebhookHeaders     []string   `json:"webhook_headers,omitempty"`
-	FilterID           int        `json:"filter_id,omitempty"`
-	ClientID           int32      `json:"client_id,omitempty"`
+	ID                 int            `json:"id"`
+	Name               string         `json:"name"`
+	Type               ActionType     `json:"type"`
+	Enabled            bool           `json:"enabled"`
+	ExecCmd            string         `json:"exec_cmd,omitempty"`
+	ExecArgs           string         `json:"exec_args,omitempty"`
+	WatchFolder        string         `json:"watch_folder,omitempty"`
+	Category           string         `json:"category,omitempty"`
+	Tags               string         `json:"tags,omitempty"`
+	Label              string         `json:"label,omitempty"`
+	SavePath           string         `json:"save_path,omitempty"`
+	Paused             bool           `json:"paused,omitempty"`
+	IgnoreRules        bool           `json:"ignore_rules,omitempty"`
+	LimitUploadSpeed   int64          `json:"limit_upload_speed,omitempty"`
+	LimitDownloadSpeed int64          `json:"limit_download_speed,omitempty"`
+	WebhookHost        string         `json:"webhook_host,omitempty"`
+	WebhookType        string         `json:"webhook_type,omitempty"`
+	WebhookMethod      string         `json:"webhook_method,omitempty"`
+	WebhookData        string         `json:"webhook_data,omitempty"`
+	WebhookHeaders     []string       `json:"webhook_headers,omitempty"`
+	FilterID           int            `json:"filter_id,omitempty"`
+	ClientID           int32          `json:"client_id,omitempty"`
+	Client             DownloadClient `json:"client,omitempty"`
 }
 
 type ActionType string

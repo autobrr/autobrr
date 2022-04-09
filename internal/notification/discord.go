@@ -4,7 +4,9 @@ import (
 	"bytes"
 	"crypto/tls"
 	"encoding/json"
+	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
@@ -38,7 +40,7 @@ func discordNotification(event domain.EventsReleasePushed, webhookURL string) {
 		},
 	}
 
-	client := http.Client{Transport: t, Timeout: 15 * time.Second}
+	client := http.Client{Transport: t, Timeout: 30 * time.Second}
 
 	color := map[domain.ReleasePushStatus]int{
 		domain.ReleasePushStatusApproved: 5814783,
@@ -72,13 +74,48 @@ func discordNotification(event domain.EventsReleasePushed, webhookURL string) {
 					{
 						Name:   "Action",
 						Value:  event.Action,
-						Inline: false,
+						Inline: true,
 					},
+					{
+						Name:   "Action type",
+						Value:  string(event.ActionType),
+						Inline: true,
+					},
+					//{
+					//	Name:   "Action client",
+					//	Value:  event.ActionClient,
+					//	Inline: true,
+					//},
 				},
 				Timestamp: time.Now(),
 			},
 		},
 		Username: "brr",
+	}
+
+	if event.ActionClient == "" {
+		rej := DiscordEmbedsFields{
+			Name:   "Action client",
+			Value:  "n/a",
+			Inline: true,
+		}
+		m.Embeds[0].Fields = append(m.Embeds[0].Fields, rej)
+	} else {
+		rej := DiscordEmbedsFields{
+			Name:   "Action client",
+			Value:  event.ActionClient,
+			Inline: true,
+		}
+		m.Embeds[0].Fields = append(m.Embeds[0].Fields, rej)
+	}
+
+	if len(event.Rejections) > 0 {
+		rej := DiscordEmbedsFields{
+			Name:   "Reasons",
+			Value:  fmt.Sprintf("```\n%v\n```", strings.Join(event.Rejections, " ,")),
+			Inline: false,
+		}
+		m.Embeds[0].Fields = append(m.Embeds[0].Fields, rej)
 	}
 
 	jsonData, err := json.Marshal(m)
@@ -89,7 +126,7 @@ func discordNotification(event domain.EventsReleasePushed, webhookURL string) {
 
 	req, err := http.NewRequest(http.MethodPost, webhookURL, bytes.NewBuffer(jsonData))
 	if err != nil {
-		//log.Error().Err(err).Msgf("webhook client request error: %v", action.WebhookHost)
+		log.Error().Err(err).Msgf("discord client request error: %v", event.ReleaseName)
 		return
 	}
 
@@ -98,7 +135,7 @@ func discordNotification(event domain.EventsReleasePushed, webhookURL string) {
 
 	res, err := client.Do(req)
 	if err != nil {
-		//log.Error().Err(err).Msgf("webhook client request error: %v", action.WebhookHost)
+		log.Error().Err(err).Msgf("discord client request error: %v", event.ReleaseName)
 		return
 	}
 

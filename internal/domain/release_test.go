@@ -1249,7 +1249,7 @@ func TestRelease_CheckFilter(t *testing.T) {
 			r := tt.fields // Release
 
 			_ = r.Parse() // Parse TorrentName into struct
-			got := r.CheckFilter(tt.args.filter)
+			_, got := r.CheckFilter(tt.args.filter)
 
 			assert.Equal(t, tt.want, got)
 		})

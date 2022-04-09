@@ -11,6 +11,7 @@ type EventsReleasePushed struct {
 	Status         ReleasePushStatus
 	Action         string
 	ActionType     ActionType
+	ActionClient   string
 	Rejections     []string
 	Protocol       ReleaseProtocol       // torrent
 	Implementation ReleaseImplementation // irc, rss, api

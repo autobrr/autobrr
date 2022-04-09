@@ -10,10 +10,7 @@ import (
 
 	"github.com/autobrr/autobrr/internal/announce"
 	"github.com/autobrr/autobrr/internal/domain"
-	"github.com/autobrr/autobrr/internal/filter"
 	"github.com/autobrr/autobrr/internal/logger"
-	"github.com/autobrr/autobrr/internal/release"
-
 	"github.com/ergochat/irc-go/ircevent"
 	"github.com/ergochat/irc-go/ircmsg"
 	"github.com/rs/zerolog/log"
@@ -57,8 +54,7 @@ func (h *channelHealth) resetMonitoring() {
 
 type Handler struct {
 	network            *domain.IrcNetwork
-	filterService      filter.Service
-	releaseService     release.Service
+	announceSvc        announce.Service
 	announceProcessors map[string]announce.Processor
 	definitions        map[string]*domain.IndexerDefinition
 
@@ -75,12 +71,11 @@ type Handler struct {
 	channelHealth   map[string]*channelHealth
 }
 
-func NewHandler(network domain.IrcNetwork, filterService filter.Service, releaseService release.Service, definitions []domain.IndexerDefinition) *Handler {
+func NewHandler(network domain.IrcNetwork, definitions []domain.IndexerDefinition, announceSvc announce.Service) *Handler {
 	h := &Handler{
 		client:             nil,
 		network:            &network,
-		filterService:      filterService,
-		releaseService:     releaseService,
+		announceSvc:        announceSvc,
 		definitions:        map[string]*domain.IndexerDefinition{},
 		announceProcessors: map[string]announce.Processor{},
 		validAnnouncers:    map[string]struct{}{},
@@ -109,7 +104,7 @@ func (h *Handler) InitIndexers(definitions []domain.IndexerDefinition) {
 			// some channels are defined in mixed case
 			channel = strings.ToLower(channel)
 
-			h.announceProcessors[channel] = announce.NewAnnounceProcessor(definition, h.filterService, h.releaseService)
+			h.announceProcessors[channel] = announce.NewAnnounceProcessor(h.announceSvc, definition)
 
 			h.channelHealth[channel] = &channelHealth{
 				name:       channel,

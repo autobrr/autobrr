@@ -2,10 +2,6 @@ package release
 
 import (
 	"context"
-	"fmt"
-	"github.com/rs/zerolog/log"
-
-	"github.com/autobrr/autobrr/internal/action"
 	"github.com/autobrr/autobrr/internal/domain"
 )
 
@@ -15,19 +11,16 @@ type Service interface {
 	Stats(ctx context.Context) (*domain.ReleaseStats, error)
 	Store(ctx context.Context, release *domain.Release) error
 	StoreReleaseActionStatus(ctx context.Context, actionStatus *domain.ReleaseActionStatus) error
-	Process(release domain.Release) error
 	Delete(ctx context.Context) error
 }
 
 type service struct {
-	repo      domain.ReleaseRepo
-	actionSvc action.Service
+	repo domain.ReleaseRepo
 }
 
-func NewService(repo domain.ReleaseRepo, actionService action.Service) Service {
+func NewService(repo domain.ReleaseRepo) Service {
 	return &service{
-		repo:      repo,
-		actionSvc: actionService,
+		repo: repo,
 	}
 }
 
@@ -54,25 +47,6 @@ func (s *service) Store(ctx context.Context, release *domain.Release) error {
 
 func (s *service) StoreReleaseActionStatus(ctx context.Context, actionStatus *domain.ReleaseActionStatus) error {
 	return s.repo.StoreReleaseActionStatus(ctx, actionStatus)
-}
-
-func (s *service) Process(release domain.Release) error {
-	log.Trace().Msgf("start to process release: %+v", release)
-
-	if release.Filter.Actions == nil {
-		return fmt.Errorf("no actions for filter: %v", release.Filter.Name)
-	}
-
-	// smart episode?
-
-	// run actions (watchFolder, test, exec, qBittorrent, Deluge etc.)
-	err := s.actionSvc.RunActions(release.Filter.Actions, release)
-	if err != nil {
-		log.Error().Stack().Err(err).Msgf("error running actions for filter: %v", release.Filter.Name)
-		return err
-	}
-
-	return nil
 }
 
 func (s *service) Delete(ctx context.Context) error {

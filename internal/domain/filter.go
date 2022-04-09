@@ -71,6 +71,6 @@ type Filter struct {
 	ExceptTags          string    `json:"except_tags"`
 	TagsAny             string    `json:"tags_any"`
 	ExceptTagsAny       string    `json:"except_tags_any"`
-	Actions             []Action  `json:"actions"`
+	Actions             []*Action `json:"actions"`
 	Indexers            []Indexer `json:"indexers"`
 }
