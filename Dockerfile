@@ -1,7 +1,7 @@
 # build web
 FROM node:16-alpine AS web-builder
 WORKDIR /web
-COPY web/package.json ./
+COPY web/package.json web/yarn.lock ./
 RUN yarn install
 COPY web .
 RUN yarn build
