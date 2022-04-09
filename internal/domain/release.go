@@ -705,196 +705,178 @@ func (r *Release) addRejection(reason string) {
 	r.Rejections = append(r.Rejections, reason)
 }
 
+func (r *Release) addRejectionF(format string, v ...interface{}) {
+	r.Rejections = append(r.Rejections, fmt.Sprintf(format, v...))
+}
+
 // ResetRejections reset rejections between filter checks
 func (r *Release) resetRejections() {
 	r.Rejections = []string{}
 }
 
-func (r *Release) CheckFilter(filter Filter) bool {
+func (r *Release) RejectionsString() string {
+	if len(r.Rejections) > 0 {
+		return strings.Join(r.Rejections, ", ")
+	}
+	return ""
+}
+
+func (r *Release) CheckFilter(filter Filter) ([]string, bool) {
 	// reset rejections first to clean previous checks
 	r.resetRejections()
 
 	if !filter.Enabled {
-		return false
+		return nil, false
 	}
 
 	// FIXME what if someone explicitly doesnt want scene, or toggles in filter. Make enum? 0,1,2? Yes, No, Dont care
 	if filter.Scene && r.IsScene != filter.Scene {
 		r.addRejection("wanted: scene")
-		return false
 	}
 
 	if filter.Freeleech && r.Freeleech != filter.Freeleech {
 		r.addRejection("wanted: freeleech")
-		return false
 	}
 
 	if filter.FreeleechPercent != "" && !checkFreeleechPercent(r.FreeleechPercent, filter.FreeleechPercent) {
-		r.addRejection("freeleech percent not matching")
-		return false
+		r.addRejectionF("freeleech percent not matching. wanted: %v got: %v", filter.FreeleechPercent, r.FreeleechPercent)
 	}
 
 	// check against TorrentName and Clean which is a cleaned name without (. _ -)
 	if filter.Shows != "" && !checkMultipleFilterStrings(filter.Shows, r.TorrentName, r.Clean) {
 		r.addRejection("shows not matching")
-		return false
 	}
 
 	if filter.Seasons != "" && !checkFilterIntStrings(r.Season, filter.Seasons) {
-		r.addRejection("season not matching")
-		return false
+		r.addRejectionF("season not matching. wanted: %v got: %d", filter.Seasons, r.Season)
 	}
 
 	if filter.Episodes != "" && !checkFilterIntStrings(r.Episode, filter.Episodes) {
-		r.addRejection("episode not matching")
-		return false
+		r.addRejectionF("episodes not matching. wanted: %v got: %d", filter.Seasons, r.Season)
 	}
 
 	// matchRelease
 	// TODO allow to match against regex
 	if filter.MatchReleases != "" && !checkMultipleFilterStrings(filter.MatchReleases, r.TorrentName, r.Clean) {
 		r.addRejection("match release not matching")
-		return false
 	}
 
 	if filter.ExceptReleases != "" && checkMultipleFilterStrings(filter.ExceptReleases, r.TorrentName, r.Clean) {
 		r.addRejection("except_releases: unwanted release")
-		return false
 	}
 
 	if filter.MatchReleaseGroups != "" && !checkMultipleFilterGroups(filter.MatchReleaseGroups, r.Group, r.Clean) {
-		r.addRejection("release groups not matching")
-		return false
+		r.addRejectionF("release groups not matching. wanted: %v got: %v", filter.MatchReleaseGroups, r.Group)
 	}
 
 	if filter.ExceptReleaseGroups != "" && checkMultipleFilterGroups(filter.ExceptReleaseGroups, r.Group, r.Clean) {
-		r.addRejection("unwanted release group")
-		return false
+		r.addRejectionF("unwanted release group. unwanted: %v got: %v", filter.ExceptReleaseGroups, r.Group)
 	}
 
 	if filter.MatchUploaders != "" && !checkFilterStrings(r.Uploader, filter.MatchUploaders) {
-		r.addRejection("uploaders not matching")
-		return false
+		r.addRejectionF("uploaders not matching. wanted: %v got: %v", filter.MatchUploaders, r.Uploader)
 	}
 
 	if filter.ExceptUploaders != "" && checkFilterStrings(r.Uploader, filter.ExceptUploaders) {
-		r.addRejection("unwanted uploaders")
-		return false
+		r.addRejectionF("unwanted uploaders. unwanted: %v got: %v", filter.MatchUploaders, r.Uploader)
 	}
 
 	if len(filter.Resolutions) > 0 && !checkFilterSlice(r.Resolution, filter.Resolutions) {
-		r.addRejection("resolution not matching")
-		return false
+		r.addRejectionF("resolution not matching. wanted: %v got: %v", filter.Resolutions, r.Resolution)
 	}
 
 	if len(filter.Codecs) > 0 && !checkFilterSlice(r.Codec, filter.Codecs) {
-		r.addRejection("codec not matching")
-		return false
+		r.addRejectionF("codec not matching. wanted: %v got: %v", filter.Codecs, r.Codec)
 	}
 
 	if len(filter.Sources) > 0 && !checkFilterSource(r.Source, filter.Sources) {
-		r.addRejection("source not matching")
-		return false
+		r.addRejectionF("source not matching. wanted: %v got: %v", filter.Sources, r.Source)
 	}
 
 	if len(filter.Containers) > 0 && !checkFilterSlice(r.Container, filter.Containers) {
-		r.addRejection("container not matching")
-		return false
+		r.addRejectionF("container not matching. wanted: %v got: %v", filter.Containers, r.Container)
 	}
 
 	if len(filter.MatchHDR) > 0 && !checkMultipleFilterHDR(filter.MatchHDR, r.HDR, r.TorrentName) {
-		r.addRejection("hdr not matching")
-		return false
+		r.addRejectionF("hdr not matching. wanted: %v got: %v", filter.MatchHDR, r.HDR)
 	}
 
 	if len(filter.ExceptHDR) > 0 && checkMultipleFilterHDR(filter.ExceptHDR, r.HDR, r.TorrentName) {
-		r.addRejection("unwanted hdr")
-		return false
+		r.addRejectionF("hdr unwanted. unwanted: %v got: %v", filter.ExceptHDR, r.HDR)
 	}
 
 	if filter.Years != "" && !checkFilterIntStrings(r.Year, filter.Years) {
-		r.addRejection("year not matching")
-		return false
+		r.addRejectionF("year not matching. wanted: %v got: %d", filter.Years, r.Year)
 	}
 
 	if filter.MatchCategories != "" && !checkFilterStrings(r.Category, filter.MatchCategories) {
-		r.addRejection("category not matching")
-		return false
+		r.addRejectionF("category not matching. wanted: %v got: %v", filter.MatchCategories, r.Category)
 	}
 
 	if filter.ExceptCategories != "" && checkFilterStrings(r.Category, filter.ExceptCategories) {
-		r.addRejection("unwanted category")
-		return false
+		r.addRejectionF("category unwanted. unwanted: %v got: %v", filter.ExceptCategories, r.Category)
 	}
 
 	if len(filter.MatchReleaseTypes) > 0 && !checkFilterSlice(r.Category, filter.MatchReleaseTypes) {
-		r.addRejection("release type not matching")
-		return false
+		r.addRejectionF("release type not matching. wanted: %v got: %v", filter.MatchReleaseTypes, r.Category)
 	}
 
 	if (filter.MinSize != "" || filter.MaxSize != "") && !r.CheckSizeFilter(filter.MinSize, filter.MaxSize) {
-		return false
+		r.addRejectionF("size not matching. wanted min: %v max: %v got: %v", filter.MinSize, filter.MaxSize, r.Size)
 	}
 
 	if filter.Tags != "" && !checkFilterTags(r.Tags, filter.Tags) {
-		r.addRejection("tags not matching")
-		return false
+		r.addRejectionF("tags not matching. wanted: %v got: %v", filter.Tags, r.Tags)
 	}
 
 	if filter.ExceptTags != "" && checkFilterTags(r.Tags, filter.ExceptTags) {
-		r.addRejection("unwanted tags")
-		return false
+		r.addRejectionF("tags unwanted. wanted: %v got: %v", filter.ExceptTags, r.Tags)
 	}
 
 	if len(filter.Artists) > 0 && !checkFilterStrings(r.TorrentName, filter.Artists) {
 		r.addRejection("artists not matching")
-		return false
 	}
 
 	if len(filter.Albums) > 0 && !checkFilterStrings(r.TorrentName, filter.Albums) {
 		r.addRejection("albums not matching")
-		return false
 	}
 
 	// Perfect flac requires Cue, Log, Log Score 100, FLAC and 24bit Lossless
 	if filter.PerfectFlac {
 		if !r.HasLog || !r.HasCue || r.LogScore != 100 || r.Format != "FLAC" && !checkFilterSlice(r.Quality, []string{"Lossless", "24bit Lossless"}) {
-			r.addRejection("wanted: log")
-			return false
+			r.addRejectionF("wanted: perfect flac. got: cue %v log %v log score %v format %v quality %v", r.HasCue, r.HasLog, r.LogScore, r.Format, r.Quality)
 		}
 	}
 
 	if len(filter.Formats) > 0 && !checkFilterSlice(r.Format, filter.Formats) {
-		r.addRejection("formats not matching")
-		return false
+		r.addRejectionF("formats not matching. wanted: %v got: %v", filter.Formats, r.Format)
 	}
 
 	if len(filter.Quality) > 0 && !checkFilterSlice(r.Quality, filter.Quality) {
-		r.addRejection("formats not matching")
-		return false
+		r.addRejectionF("quality not matching. wanted: %v got: %v", filter.Quality, r.Quality)
 	}
 
 	if len(filter.Media) > 0 && !checkFilterSource(r.Source, filter.Media) {
-		r.addRejection("source not matching")
-		return false
+		r.addRejectionF("media not matching. wanted: %v got: %v", filter.Media, r.Source)
 	}
 
 	if filter.Log && r.HasLog != filter.Log {
 		r.addRejection("wanted: log")
-		return false
 	}
 
 	if filter.Log && filter.LogScore != 0 && r.LogScore != filter.LogScore {
-		r.addRejection("wanted: log score")
-		return false
+		r.addRejectionF("wanted: log score %v got: %v", filter.LogScore, r.LogScore)
 	}
 
 	if filter.Cue && r.HasCue != filter.Cue {
 		r.addRejection("wanted: cue")
-		return false
 	}
 
-	return true
+	if len(r.Rejections) > 0 {
+		return r.Rejections, false
+	}
+
+	return nil, true
 }
 
 // CheckSizeFilter additional size check

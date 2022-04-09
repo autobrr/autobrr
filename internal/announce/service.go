@@ -88,7 +88,7 @@ func (s *service) Process(release *domain.Release) {
 		for _, a := range release.Filter.Actions {
 			// only run enabled actions
 			if !a.Enabled {
-				log.Trace().Msgf("announce.Service.Process: indexer: %v, filter: %v release: %v action not enabled, skip", release.Indexer, release.Filter.Name, release.TorrentName)
+				log.Trace().Msgf("announce.Service.Process: indexer: %v, filter: %v release: %v action '%v' not enabled, skip", release.Indexer, release.Filter.Name, release.TorrentName, a.Name)
 				continue
 			}
 

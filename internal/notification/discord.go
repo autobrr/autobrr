@@ -40,7 +40,7 @@ func discordNotification(event domain.EventsReleasePushed, webhookURL string) {
 		},
 	}
 
-	client := http.Client{Transport: t, Timeout: 15 * time.Second}
+	client := http.Client{Transport: t, Timeout: 30 * time.Second}
 
 	color := map[domain.ReleasePushStatus]int{
 		domain.ReleasePushStatusApproved: 5814783,
