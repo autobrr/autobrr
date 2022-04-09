@@ -59,7 +59,7 @@ func (s *service) RunActions(actions []domain.Action, release domain.Release) er
 	return nil
 }
 
-func (s *service) RunAction(action domain.Action, release domain.Release) ([]string, error) {
+func (s *service) RunAction(action *domain.Action, release domain.Release) ([]string, error) {
 
 	var err error
 	var rejections []string
@@ -76,7 +76,7 @@ func (s *service) RunAction(action domain.Action, release domain.Release) ([]str
 			}
 		}
 
-		s.execCmd(release, action)
+		s.execCmd(release, *action)
 
 	case domain.ActionTypeWatchFolder:
 		if release.TorrentTmpFile == "" {
@@ -86,7 +86,7 @@ func (s *service) RunAction(action domain.Action, release domain.Release) ([]str
 			}
 		}
 
-		s.watchFolder(action, release)
+		s.watchFolder(*action, release)
 
 	case domain.ActionTypeWebhook:
 		if release.TorrentTmpFile == "" {
@@ -96,10 +96,10 @@ func (s *service) RunAction(action domain.Action, release domain.Release) ([]str
 			}
 		}
 
-		s.webhook(action, release)
+		s.webhook(*action, release)
 
 	case domain.ActionTypeDelugeV1, domain.ActionTypeDelugeV2:
-		canDownload, err := s.delugeCheckRulesCanDownload(action)
+		canDownload, err := s.delugeCheckRulesCanDownload(*action)
 		if err != nil {
 			log.Error().Stack().Err(err).Msgf("error checking client rules: %v", action.Name)
 			break
@@ -116,14 +116,14 @@ func (s *service) RunAction(action domain.Action, release domain.Release) ([]str
 			}
 		}
 
-		err = s.deluge(action, release)
+		err = s.deluge(*action, release)
 		if err != nil {
 			log.Error().Stack().Err(err).Msg("error sending torrent to Deluge")
 			break
 		}
 
 	case domain.ActionTypeQbittorrent:
-		canDownload, client, err := s.qbittorrentCheckRulesCanDownload(action)
+		canDownload, client, err := s.qbittorrentCheckRulesCanDownload(*action)
 		if err != nil {
 			log.Error().Stack().Err(err).Msgf("error checking client rules: %v", action.Name)
 			break
@@ -140,35 +140,35 @@ func (s *service) RunAction(action domain.Action, release domain.Release) ([]str
 			}
 		}
 
-		err = s.qbittorrent(client, action, release)
+		err = s.qbittorrent(client, *action, release)
 		if err != nil {
 			log.Error().Stack().Err(err).Msg("error sending torrent to qBittorrent")
 			break
 		}
 
 	case domain.ActionTypeRadarr:
-		rejections, err = s.radarr(release, action)
+		rejections, err = s.radarr(release, *action)
 		if err != nil {
 			log.Error().Stack().Err(err).Msg("error sending torrent to radarr")
 			break
 		}
 
 	case domain.ActionTypeSonarr:
-		rejections, err = s.sonarr(release, action)
+		rejections, err = s.sonarr(release, *action)
 		if err != nil {
 			log.Error().Stack().Err(err).Msg("error sending torrent to sonarr")
 			break
 		}
 
 	case domain.ActionTypeLidarr:
-		rejections, err = s.lidarr(release, action)
+		rejections, err = s.lidarr(release, *action)
 		if err != nil {
 			log.Error().Stack().Err(err).Msg("error sending torrent to lidarr")
 			break
 		}
 
 	case domain.ActionTypeWhisparr:
-		rejections, err = s.whisparr(release, action)
+		rejections, err = s.whisparr(release, *action)
 		if err != nil {
 			log.Error().Stack().Err(err).Msg("error sending torrent to whisparr")
 			break
@@ -197,6 +197,7 @@ func (s *service) RunAction(action domain.Action, release domain.Release) ([]str
 		Status:         domain.ReleasePushStatusApproved,
 		Action:         action.Name,
 		ActionType:     action.Type,
+		ActionClient:   action.Client.Name,
 		Rejections:     []string{},
 		Protocol:       domain.ReleaseProtocolTorrent,
 		Implementation: domain.ReleaseImplementationIRC,

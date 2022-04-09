@@ -69,8 +69,8 @@ func main() {
 
 	// setup repos
 	var (
-		actionRepo         = database.NewActionRepo(db)
 		downloadClientRepo = database.NewDownloadClientRepo(db)
+		actionRepo         = database.NewActionRepo(db, downloadClientRepo)
 		filterRepo         = database.NewFilterRepo(db)
 		indexerRepo        = database.NewIndexerRepo(db)
 		ircRepo            = database.NewIrcRepo(db)

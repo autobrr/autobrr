@@ -3,7 +3,7 @@ package database
 import (
 	"context"
 	"database/sql"
-
+	"encoding/json"
 	"github.com/autobrr/autobrr/internal/domain"
 
 	sq "github.com/Masterminds/squirrel"
@@ -11,14 +11,45 @@ import (
 )
 
 type ActionRepo struct {
-	db *DB
+	db         *DB
+	clientRepo domain.DownloadClientRepo
 }
 
-func NewActionRepo(db *DB) domain.ActionRepo {
-	return &ActionRepo{db: db}
+func NewActionRepo(db *DB, clientRepo domain.DownloadClientRepo) domain.ActionRepo {
+	return &ActionRepo{
+		db:         db,
+		clientRepo: clientRepo,
+	}
 }
 
-func (r *ActionRepo) FindByFilterID(ctx context.Context, filterID int) ([]domain.Action, error) {
+func (r *ActionRepo) FindByFilterID(ctx context.Context, filterID int) ([]*domain.Action, error) {
+
+	tx, err := r.db.BeginTx(ctx, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	defer tx.Rollback()
+
+	actions, err := r.findByFilterID(ctx, tx, filterID)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, action := range actions {
+		if action.ClientID != 0 {
+			client, err := r.attachDownloadClient(ctx, tx, action.ClientID)
+			if err != nil {
+				return nil, err
+			}
+			action.Client = *client
+		}
+	}
+
+	return actions, nil
+}
+
+func (r *ActionRepo) findByFilterID(ctx context.Context, tx *Tx, filterID int) ([]*domain.Action, error) {
 	queryBuilder := r.db.squirrel.
 		Select(
 			"id",
@@ -51,7 +82,7 @@ func (r *ActionRepo) FindByFilterID(ctx context.Context, filterID int) ([]domain
 		return nil, err
 	}
 
-	rows, err := r.db.handler.QueryContext(ctx, query, args...)
+	rows, err := tx.QueryContext(ctx, query, args...)
 	if err != nil {
 		log.Error().Stack().Err(err).Msg("action.findByFilterID: query error")
 		return nil, err
@@ -59,7 +90,7 @@ func (r *ActionRepo) FindByFilterID(ctx context.Context, filterID int) ([]domain
 
 	defer rows.Close()
 
-	actions := make([]domain.Action, 0)
+	actions := make([]*domain.Action, 0)
 	for rows.Next() {
 		var a domain.Action
 
@@ -91,7 +122,7 @@ func (r *ActionRepo) FindByFilterID(ctx context.Context, filterID int) ([]domain
 		a.WebhookMethod = webhookMethod.String
 		a.ClientID = clientID.Int32
 
-		actions = append(actions, a)
+		actions = append(actions, &a)
 	}
 	if err := rows.Err(); err != nil {
 		log.Error().Stack().Err(err).Msg("action.findByFilterID: row error")
@@ -99,6 +130,54 @@ func (r *ActionRepo) FindByFilterID(ctx context.Context, filterID int) ([]domain
 	}
 
 	return actions, nil
+}
+func (r *ActionRepo) attachDownloadClient(ctx context.Context, tx *Tx, clientID int32) (*domain.DownloadClient, error) {
+
+	queryBuilder := r.db.squirrel.
+		Select(
+			"id",
+			"name",
+			"type",
+			"enabled",
+			"host",
+			"port",
+			"tls",
+			"tls_skip_verify",
+			"username",
+			"password",
+			"settings",
+		).
+		From("client").
+		Where("id = ?", clientID)
+
+	query, args, err := queryBuilder.ToSql()
+	if err != nil {
+		log.Error().Stack().Err(err).Msg("action.attachDownloadClient: error building query")
+		return nil, err
+	}
+
+	row := tx.QueryRowContext(ctx, query, args...)
+	if err := row.Err(); err != nil {
+		log.Error().Stack().Err(err).Msg("action.attachDownloadClient: error query row")
+		return nil, err
+	}
+
+	var client domain.DownloadClient
+	var settingsJsonStr string
+
+	if err := row.Scan(&client.ID, &client.Name, &client.Type, &client.Enabled, &client.Host, &client.Port, &client.TLS, &client.TLSSkipVerify, &client.Username, &client.Password, &settingsJsonStr); err != nil {
+		log.Error().Stack().Err(err).Msg("action.attachDownloadClient: error scanning row")
+		return nil, err
+	}
+
+	if settingsJsonStr != "" {
+		if err := json.Unmarshal([]byte(settingsJsonStr), &client.Settings); err != nil {
+			log.Error().Stack().Err(err).Msgf("action.attachDownloadClient: could not marshal download client settings %v", settingsJsonStr)
+			return nil, err
+		}
+	}
+
+	return &client, nil
 }
 
 func (r *ActionRepo) List(ctx context.Context) ([]domain.Action, error) {
@@ -361,7 +440,7 @@ func (r *ActionRepo) Update(ctx context.Context, action domain.Action) (*domain.
 	return &action, nil
 }
 
-func (r *ActionRepo) StoreFilterActions(ctx context.Context, actions []domain.Action, filterID int64) ([]domain.Action, error) {
+func (r *ActionRepo) StoreFilterActions(ctx context.Context, actions []*domain.Action, filterID int64) ([]*domain.Action, error) {
 	tx, err := r.db.handler.BeginTx(ctx, nil)
 	if err != nil {
 		return nil, err
