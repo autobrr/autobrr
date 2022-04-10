@@ -36,9 +36,9 @@ func (db *DB) openSQLite() error {
 	// Enable foreign key checks. For historical reasons, SQLite does not check
 	// foreign key constraints by default. There's some overhead on inserts to
 	// verify foreign key integrity, but it's definitely worth it.
-	if _, err = db.handler.Exec(`PRAGMA foreign_keys = ON;`); err != nil {
-		return fmt.Errorf("foreign keys pragma: %w", err)
-	}
+	//if _, err = db.handler.Exec(`PRAGMA foreign_keys = ON;`); err != nil {
+	//	return fmt.Errorf("foreign keys pragma: %w", err)
+	//}
 
 	// migrate db
 	if err = db.migrateSQLite(); err != nil {
