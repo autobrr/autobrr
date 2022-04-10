@@ -51,14 +51,6 @@ func (s *service) Process(release *domain.Release) {
 	// save both client type and client id to potentially try another client of same type
 	triedActionClients := map[actionClientTypeKey]struct{}{}
 
-	// save release
-	//release.FilterStatus = domain.ReleaseStatusFilterApproved
-	err = s.releaseSvc.Store(context.Background(), release)
-	if err != nil {
-		log.Error().Err(err).Msgf("announce.Service.Process: error writing release to database: %+v", release)
-		return
-	}
-
 	// loop over and check filters
 	for _, f := range filters {
 		// save filter on release
@@ -81,6 +73,16 @@ func (s *service) Process(release *domain.Release) {
 		}
 
 		log.Info().Msgf("Matched '%v' (%v) for %v", release.TorrentName, release.Filter.Name, release.Indexer)
+
+		// save release here to only save those with rejections from actions instead of all releases
+		if release.ID == 0 {
+			release.FilterStatus = domain.ReleaseStatusFilterApproved
+			err = s.releaseSvc.Store(context.Background(), release)
+			if err != nil {
+				log.Error().Err(err).Msgf("announce.Service.Process: error writing release to database: %+v", release)
+				return
+			}
+		}
 
 		var rejections []string
 
