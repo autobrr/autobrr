@@ -131,14 +131,15 @@ func (h authHandler) canOnboard(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if userCount == 0 {
-		// send empty response as ok
-		// (client can proceed with redirection to onboarding page)
-		h.encoder.StatusResponse(ctx, w, nil, http.StatusNoContent)
-	} else {
+	if userCount > 0 {
 		// send 503 service onboarding unavailable
 		http.Error(w, "Onboarding unavailable", http.StatusServiceUnavailable)
+		return
 	}
+
+	// send empty response as ok
+	// (client can proceed with redirection to onboarding page)
+	h.encoder.StatusResponse(ctx, w, nil, http.StatusNoContent)
 }
 
 func (h authHandler) validate(w http.ResponseWriter, r *http.Request) {

@@ -21,18 +21,18 @@ func (r *UserRepo) GetUserCount(ctx context.Context) (int, error) {
 	query, args, err := queryBuilder.ToSql()
 	if err != nil {
 		log.Error().Stack().Err(err).Msg("user.store: error building query")
-		return -1, err
+		return 0, err
 	}
 
 	row := r.db.handler.QueryRowContext(ctx, query, args...)
 	if err := row.Err(); err != nil {
-		return -1, err
+		return 0, err
 	}
 
 	result := 0
 	if err := row.Scan(&result); err != nil {
 		log.Error().Err(err).Msg("could not query number of users")
-		return -1, err
+		return 0, err
 	}
 
 	return result, nil
