@@ -116,7 +116,7 @@ func (r *IndexerRepo) List(ctx context.Context) ([]domain.Indexer, error) {
 
 func (r *IndexerRepo) FindByFilterID(ctx context.Context, id int) ([]domain.Indexer, error) {
 	queryBuilder := r.db.squirrel.
-		Select("id", "enabled", "name", "identifier").
+		Select("id", "enabled", "name", "identifier", "settings").
 		From("indexer").
 		Join("filter_indexer ON indexer.id = filter_indexer.indexer_id").
 		Where("filter_indexer.filter_id = ?", id)
@@ -139,21 +139,21 @@ func (r *IndexerRepo) FindByFilterID(ctx context.Context, id int) ([]domain.Inde
 	for rows.Next() {
 		var f domain.Indexer
 
-		//var settings string
-		//var settingsMap map[string]string
+		var settings string
+		var settingsMap map[string]string
 
-		if err := rows.Scan(&f.ID, &f.Enabled, &f.Name, &f.Identifier); err != nil {
+		if err := rows.Scan(&f.ID, &f.Enabled, &f.Name, &f.Identifier, &settings); err != nil {
 			log.Error().Stack().Err(err).Msg("indexer.find_by_filter_id: error scanning data to struct")
 			return nil, err
 		}
 
-		//err = json.Unmarshal([]byte(settings), &settingsMap)
-		//if err != nil {
-		//	log.Error().Stack().Err(err).Msg("indexer.list: error unmarshal settings")
-		//	return nil, err
-		//}
-		//
-		//f.Settings = settingsMap
+		err = json.Unmarshal([]byte(settings), &settingsMap)
+		if err != nil {
+			log.Error().Stack().Err(err).Msg("indexer.find_by_filter_id: error unmarshal settings")
+			return nil, err
+		}
+
+		f.Settings = settingsMap
 
 		indexers = append(indexers, f)
 	}
