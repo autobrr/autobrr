@@ -12,7 +12,9 @@ import (
 )
 
 type authService interface {
+	GetUserCount(ctx context.Context) (int, error)
 	Login(ctx context.Context, username, password string) (*domain.User, error)
+	CreateUser(ctx context.Context, username, password string) error
 }
 
 type authHandler struct {
@@ -35,6 +37,8 @@ func newAuthHandler(encoder encoder, config domain.Config, cookieStore *sessions
 func (h authHandler) Routes(r chi.Router) {
 	r.Post("/login", h.login)
 	r.Post("/logout", h.logout)
+	r.Post("/onboard", h.onboard)
+	r.Get("/onboard", h.canOnboard)
 	r.Get("/validate", h.validate)
 }
 
@@ -88,6 +92,53 @@ func (h authHandler) logout(w http.ResponseWriter, r *http.Request) {
 	session.Values["authenticated"] = false
 	session.Save(r, w)
 
+	h.encoder.StatusResponse(ctx, w, nil, http.StatusNoContent)
+}
+
+func (h authHandler) onboard(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	session, _ := h.cookieStore.Get(r, "user_session")
+
+	// Don't proceed if user is authenticated
+	if _, ok := session.Values["authenticated"].(bool); ok {
+		http.Error(w, "Forbidden", http.StatusForbidden)
+		return
+	}
+
+	var data domain.User
+	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
+		// encode error
+		h.encoder.StatusResponse(ctx, w, nil, http.StatusBadRequest)
+		return
+	}
+
+	err := h.service.CreateUser(ctx, data.Username, data.Password)
+	if err != nil {
+		http.Error(w, "Forbidden", http.StatusForbidden)
+		return
+	}
+
+	// send empty response as ok
+	h.encoder.StatusResponse(ctx, w, nil, http.StatusNoContent)
+}
+
+func (h authHandler) canOnboard(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	userCount, err := h.service.GetUserCount(ctx)
+	if err != nil {
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	if userCount > 0 {
+		// send 503 service onboarding unavailable
+		http.Error(w, "Onboarding unavailable", http.StatusServiceUnavailable)
+		return
+	}
+
+	// send empty response as ok
+	// (client can proceed with redirection to onboarding page)
 	h.encoder.StatusResponse(ctx, w, nil, http.StatusNoContent)
 }
 
