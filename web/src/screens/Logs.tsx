@@ -96,6 +96,7 @@ export const Logs = () => {
                 key={idx}
                 className={classNames(
                   settings.indentLogLines ? "grid justify-start grid-flow-col" : "",
+                  settings.hideWrappedText ? "truncate hover:text-ellipsis hover:whitespace-normal" : "",
                 )}
               >
                 <span
@@ -114,12 +115,7 @@ export const Logs = () => {
                     {' '}
                   </span>
                 ) : null}
-                <span
-                  className={classNames(
-                    settings.hideWrappedText ? "truncate hover:text-ellipsis hover:whitespace-normal" : "",
-                    "ml-2 text-black dark:text-gray-300"
-                  )}
-                >
+                <span className="ml-2 text-black dark:text-gray-300">
                   {a.message}
                 </span>
               </div>
