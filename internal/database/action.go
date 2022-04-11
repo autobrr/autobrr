@@ -65,8 +65,8 @@ func (r *ActionRepo) findByFilterID(ctx context.Context, tx *Tx, filterID int) (
 			"save_path",
 			"paused",
 			"ignore_rules",
-			"limit_upload_speed",
 			"limit_download_speed",
+			"limit_upload_speed",
 			"webhook_host",
 			"webhook_type",
 			"webhook_method",
@@ -94,13 +94,13 @@ func (r *ActionRepo) findByFilterID(ctx context.Context, tx *Tx, filterID int) (
 	for rows.Next() {
 		var a domain.Action
 
-		var execCmd, execArgs, watchFolder, category, tags, label, savePath, host, data, webhookType, webhookMethod sql.NullString
+		var execCmd, execArgs, watchFolder, category, tags, label, savePath, webhookHost, webhookType, webhookMethod, webhookData sql.NullString
 		var limitUl, limitDl sql.NullInt64
 		var clientID sql.NullInt32
 		// filterID
 		var paused, ignoreRules sql.NullBool
 
-		if err := rows.Scan(&a.ID, &a.Name, &a.Type, &a.Enabled, &execCmd, &execArgs, &watchFolder, &category, &tags, &label, &savePath, &paused, &ignoreRules, &limitDl, &limitUl, &host, &data, &webhookType, &webhookMethod, &clientID); err != nil {
+		if err := rows.Scan(&a.ID, &a.Name, &a.Type, &a.Enabled, &execCmd, &execArgs, &watchFolder, &category, &tags, &label, &savePath, &paused, &ignoreRules, &limitDl, &limitUl, &webhookHost, &webhookType, &webhookMethod, &webhookData, &clientID); err != nil {
 			log.Error().Stack().Err(err).Msg("action.findByFilterID: error scanning row")
 			return nil, err
 		}
@@ -114,12 +114,15 @@ func (r *ActionRepo) findByFilterID(ctx context.Context, tx *Tx, filterID int) (
 		a.SavePath = savePath.String
 		a.Paused = paused.Bool
 		a.IgnoreRules = ignoreRules.Bool
-		a.LimitUploadSpeed = limitUl.Int64
+
 		a.LimitDownloadSpeed = limitDl.Int64
-		a.WebhookHost = host.String
-		a.WebhookData = data.String
+		a.LimitUploadSpeed = limitUl.Int64
+
+		a.WebhookHost = webhookHost.String
 		a.WebhookType = webhookType.String
 		a.WebhookMethod = webhookMethod.String
+		a.WebhookData = webhookData.String
+
 		a.ClientID = clientID.Int32
 
 		actions = append(actions, &a)
@@ -196,8 +199,8 @@ func (r *ActionRepo) List(ctx context.Context) ([]domain.Action, error) {
 			"save_path",
 			"paused",
 			"ignore_rules",
-			"limit_upload_speed",
 			"limit_download_speed",
+			"limit_upload_speed",
 			"webhook_host",
 			"webhook_type",
 			"webhook_method",
@@ -224,12 +227,12 @@ func (r *ActionRepo) List(ctx context.Context) ([]domain.Action, error) {
 	for rows.Next() {
 		var a domain.Action
 
-		var execCmd, execArgs, watchFolder, category, tags, label, savePath sql.NullString
+		var execCmd, execArgs, watchFolder, category, tags, label, savePath, webhookHost, webhookType, webhookMethod, webhookData sql.NullString
 		var limitUl, limitDl sql.NullInt64
 		var clientID sql.NullInt32
 		var paused, ignoreRules sql.NullBool
 
-		if err := rows.Scan(&a.ID, &a.Name, &a.Type, &a.Enabled, &execCmd, &execArgs, &watchFolder, &category, &tags, &label, &savePath, &paused, &ignoreRules, &limitDl, &limitUl, &clientID); err != nil {
+		if err := rows.Scan(&a.ID, &a.Name, &a.Type, &a.Enabled, &execCmd, &execArgs, &watchFolder, &category, &tags, &label, &savePath, &paused, &ignoreRules, &limitDl, &limitUl, &webhookHost, &webhookType, &webhookMethod, &webhookData, &clientID); err != nil {
 			log.Error().Stack().Err(err).Msg("action.list: error scanning row")
 			return nil, err
 		}
@@ -240,8 +243,15 @@ func (r *ActionRepo) List(ctx context.Context) ([]domain.Action, error) {
 		a.SavePath = savePath.String
 		a.Paused = paused.Bool
 		a.IgnoreRules = ignoreRules.Bool
-		a.LimitUploadSpeed = limitUl.Int64
+
 		a.LimitDownloadSpeed = limitDl.Int64
+		a.LimitUploadSpeed = limitUl.Int64
+
+		a.WebhookHost = webhookHost.String
+		a.WebhookType = webhookType.String
+		a.WebhookMethod = webhookMethod.String
+		a.WebhookData = webhookData.String
+
 		a.ClientID = clientID.Int32
 
 		actions = append(actions, a)
@@ -388,9 +398,9 @@ func (r *ActionRepo) Update(ctx context.Context, action domain.Action) (*domain.
 	label := toNullString(action.Label)
 	savePath := toNullString(action.SavePath)
 	webhookHost := toNullString(action.WebhookHost)
-	webhookData := toNullString(action.WebhookData)
 	webhookType := toNullString(action.WebhookType)
 	webhookMethod := toNullString(action.WebhookMethod)
+	webhookData := toNullString(action.WebhookData)
 
 	limitDL := toNullInt64(action.LimitDownloadSpeed)
 	limitUL := toNullInt64(action.LimitUploadSpeed)
@@ -472,9 +482,9 @@ func (r *ActionRepo) StoreFilterActions(ctx context.Context, actions []*domain.A
 		label := toNullString(action.Label)
 		savePath := toNullString(action.SavePath)
 		webhookHost := toNullString(action.WebhookHost)
-		webhookData := toNullString(action.WebhookData)
 		webhookType := toNullString(action.WebhookType)
 		webhookMethod := toNullString(action.WebhookMethod)
+		webhookData := toNullString(action.WebhookData)
 
 		limitDL := toNullInt64(action.LimitDownloadSpeed)
 		limitUL := toNullInt64(action.LimitUploadSpeed)
