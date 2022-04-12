@@ -43,8 +43,9 @@ func writeHealthy(w http.ResponseWriter) {
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte("OK"))
 }
+
 func writeUnhealthy(w http.ResponseWriter) {
 	w.Header().Set("Content-Type", "text/plain")
 	w.WriteHeader(http.StatusInternalServerError)
-	w.Write([]byte("Unhealthy"))
+	w.Write([]byte("Unhealthy. Database unreachable"))
 }
