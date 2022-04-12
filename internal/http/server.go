@@ -6,6 +6,7 @@ import (
 	"net"
 	"net/http"
 
+	"github.com/autobrr/autobrr/internal/database"
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/web"
 
@@ -17,6 +18,7 @@ import (
 
 type Server struct {
 	sse *sse.Server
+	db  *database.DB
 
 	config      domain.Config
 	cookieStore *sessions.CookieStore
@@ -35,10 +37,11 @@ type Server struct {
 	releaseService        releaseService
 }
 
-func NewServer(config domain.Config, sse *sse.Server, version string, commit string, date string, actionService actionService, authService authService, downloadClientSvc downloadClientService, filterSvc filterService, indexerSvc indexerService, ircSvc ircService, notificationSvc notificationService, releaseSvc releaseService) Server {
+func NewServer(config domain.Config, sse *sse.Server, db *database.DB, version string, commit string, date string, actionService actionService, authService authService, downloadClientSvc downloadClientService, filterSvc filterService, indexerSvc indexerService, ircSvc ircService, notificationSvc notificationService, releaseSvc releaseService) Server {
 	return Server{
 		config:  config,
 		sse:     sse,
+		db:      db,
 		version: version,
 		commit:  commit,
 		date:    date,
@@ -98,6 +101,7 @@ func (s Server) Handler() http.Handler {
 	})
 
 	r.Route("/api/auth", newAuthHandler(encoder, s.config, s.cookieStore, s.authService).Routes)
+	r.Route("/api/healthz", newHealthHandler(encoder, s.db).Routes)
 
 	r.Group(func(r chi.Router) {
 		r.Use(s.IsAuthenticated)

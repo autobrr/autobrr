@@ -100,7 +100,7 @@ func main() {
 	errorChannel := make(chan error)
 
 	go func() {
-		httpServer := http.NewServer(cfg, serverEvents, version, commit, date, actionService, authService, downloadClientService, filterService, indexerService, ircService, notificationService, releaseService)
+		httpServer := http.NewServer(cfg, serverEvents, db, version, commit, date, actionService, authService, downloadClientService, filterService, indexerService, ircService, notificationService, releaseService)
 		errorChannel <- httpServer.Open()
 	}()
 
