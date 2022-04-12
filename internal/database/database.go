@@ -82,6 +82,10 @@ func (db *DB) Close() error {
 	return nil
 }
 
+func (db *DB) Ping() error {
+	return db.handler.Ping()
+}
+
 func (db *DB) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) {
 	tx, err := db.handler.BeginTx(ctx, opts)
 	if err != nil {
