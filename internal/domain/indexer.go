@@ -123,6 +123,7 @@ func (t TorrentBasic) ReleaseSizeBytes() uint64 {
 	releaseSizeBytes, err := humanize.ParseBytes(t.Size)
 	if err != nil {
 		// log could not parse into bytes
+		return 0
 	}
 	return releaseSizeBytes
 }
