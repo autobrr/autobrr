@@ -101,7 +101,7 @@ func (s Server) Handler() http.Handler {
 	})
 
 	r.Route("/api/auth", newAuthHandler(encoder, s.config, s.cookieStore, s.authService).Routes)
-	r.Route("/api/health", newHealthHandler(encoder, s.db).Routes)
+	r.Route("/api/healthz", newHealthHandler(encoder, s.db).Routes)
 
 	r.Group(func(r chi.Router) {
 		r.Use(s.IsAuthenticated)
