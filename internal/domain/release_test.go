@@ -245,6 +245,26 @@ func TestRelease_Parse(t *testing.T) {
 			},
 			wantErr: false,
 		},
+		{
+			name: "parse_movies_case_1",
+			fields: Release{
+				TorrentName: "I Am Movie 2007 Theatrical UHD BluRay 2160p DTS-HD MA 5.1 DV HEVC HYBRID REMUX-GROUP1",
+			},
+			want: Release{
+				TorrentName: "I Am Movie 2007 Theatrical UHD BluRay 2160p DTS-HD MA 5.1 DV HEVC HYBRID REMUX-GROUP1",
+				Clean:       "I Am Movie 2007 Theatrical UHD BluRay 2160p DTS HD MA 5 1 DV HEVC HYBRID REMUX GROUP1",
+				Resolution:  "2160p",
+				Source:      "BluRay",
+				Codec:       "HEVC",
+				HDR:         "DV",
+				Audio:       "DTS-HD MA 5.1", // need to fix audio parsing
+				Edition:     "Theatrical",
+				Hybrid:      true,
+				Year:        2007,
+				Group:       "GROUP1",
+			},
+			wantErr: false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

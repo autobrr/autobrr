@@ -5,7 +5,6 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
-	"golang.org/x/net/publicsuffix"
 	"html"
 	"io"
 	"net/http"
@@ -17,6 +16,8 @@ import (
 	"strings"
 	"text/template"
 	"time"
+
+	"golang.org/x/net/publicsuffix"
 
 	"github.com/autobrr/autobrr/pkg/wildcard"
 
@@ -191,7 +192,7 @@ func (r *Release) extractEpisode() error {
 }
 
 func (r *Release) extractResolution() error {
-	v, err := findLast(r.TorrentName, `\b(?i)(([0-9]{3,4}p|i))\b`)
+	v, err := findLast(r.TorrentName, `\b(?i)[0-9]{3,4}(?:p|i)\b`)
 	if err != nil {
 		return err
 	}
