@@ -1,0 +1,61 @@
+---
+#id: tracker01
+name: MyAnonamouse
+identifier: myanonamouse
+description: MyAnonaMouse (MAM) is a large ebook and audiobook tracker.
+language: en-us
+urls:
+  - https://www.myanonamouse.net
+privacy: private
+protocol: torrent
+supports:
+  - irc
+  - rss
+source: custom
+settings:
+  - name: cookie
+    type: secret
+    label: Cookie (mam_id)
+    help: "Check how to get cookies in your browser and find the mam_id cookie. Changes monthly"
+
+irc:
+  network: MyAnonamouse
+  server: irc.myanonamouse.net
+  port: 6697
+  tls: true
+  channels:
+    - "#announce"
+  announcers:
+    - MouseBot
+  settings:
+    - name: nickserv.account
+      type: text
+      required: true
+      label: NickServ Account
+      help: NickServ account. Make sure to group your user and bot. Eg. user_bot
+    - name: nickserv.password
+      type: secret
+      required: true
+      label: NickServ Password
+      help: NickServ password
+
+parse:
+  type: single
+  lines:
+    - test:
+        - "New Torrent: Some famous book By: Author name Category: ( Ebooks - Science Fiction ) Size: ( 1.00 MiB ) Filetype: ( epub, mobi ) Language: ( English ) Link: ( https://www.myanonamouse.net/t/000000 )"
+        - "New Torrent: Some famous book By: Author name Category: ( Ebooks - Science Fiction ) Size: ( 2.11 MiB ) Filetype: ( epub, mobi ) Language: ( English ) Link: ( https://www.myanonamouse.net/t/000000 ) VIP"
+      pattern: 'New Torrent: (.*) By: (.*) Category: \( (.*) \) Size: \( (.*) \) Filetype: \( (.*) \) Language: \( (.*) \) Link: \( (https?\:\/\/[^\/]+\/).*?(\d+)\s*\)\s*(VIP)?'
+      vars:
+        - torrentName
+        - author
+        - category
+        - torrentSize
+        - tags
+        - language
+        - baseUrl
+        - torrentId
+        - freeleech
+
+  match:
+    torrenturl: "{{ .baseUrl }}tor/download.php?tid={{ .torrentId }}"
