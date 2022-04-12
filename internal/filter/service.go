@@ -296,7 +296,7 @@ func (s *service) AdditionalSizeCheck(f domain.Filter, release *domain.Release) 
 	log.Debug().Msgf("filter.Service.AdditionalSizeCheck: (%v) additional size check required", f.Name)
 
 	switch release.Indexer {
-	case "ptp", "btn", "ggn", "redacted":
+	case "ptp", "btn", "ggn", "redacted", "mock":
 		if release.Size == 0 {
 			log.Trace().Msgf("filter.Service.AdditionalSizeCheck: (%v) preparing to check via api", f.Name)
 			torrentInfo, err := s.apiService.GetTorrentByID(release.Indexer, release.TorrentID)
