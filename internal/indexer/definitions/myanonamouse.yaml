@@ -43,13 +43,16 @@ parse:
   type: single
   lines:
     - test:
-        - "New Torrent :  A Madman Dreams of Turing Machines [REQUESTED] Category: ( Ebooks - General Non-Fiction ) Size: ( 1.66 MB ) Link: ( https://www.myanonamouse.net/t/000000 )"
-        - "New Torrent :  The Economist - 7 November 2015 (pdf) By: The Economist Group Category: ( Ebooks - Magazines/Newspapers ) Size: ( 62.06 MB ) Link: ( https://www.myanonamouse.net/t/000000 ) VIP"
-      pattern: 'New Torrent:(.*) Category:\s*\((.*)\) Size: \((.*)\) Link: \(\s*https?\:\/\/([^\/]+\/).*?(\d+)\s*\)\s*(VIP)?'
+        - "New Torrent: Some famous book By: Author name Category: ( Ebooks - Science Fiction ) Size: ( 1.00 MiB ) Filetype: ( epub, mobi ) Language: ( English ) Link: ( https://www.myanonamouse.net/t/000000 )"
+        - "New Torrent: Some famous book By: Author name Category: ( Ebooks - Science Fiction ) Size: ( 2.11 MiB ) Filetype: ( epub, mobi ) Language: ( English ) Link: ( https://www.myanonamouse.net/t/000000 ) VIP"
+      pattern: 'New Torrent: (.*) By: (.*) Category: \( (.*) \) Size: \( (.*) \) Filetype: \( (.*) \) Language: \( (.*) \) Link: \( (https?\:\/\/[^\/]+\/).*?(\d+)\s*\)\s*(VIP)?'
       vars:
         - torrentName
+        - author
         - category
         - torrentSize
+        - tags
+        - language
         - baseUrl
         - torrentId
         - freeleech
