@@ -2,65 +2,72 @@ import { newRidgeState } from "react-ridge-state";
 
 
 export const InitializeGlobalContext = () => {
-    const auth_ctx = localStorage.getItem("auth");
-    if (auth_ctx)
-        AuthContext.set(JSON.parse(auth_ctx));
-  
-    const settings_ctx = localStorage.getItem("settings");
-    if (settings_ctx) {
-        SettingsContext.set(JSON.parse(settings_ctx));
-    } else {
-        // Only check for light theme, otherwise dark theme is the default
-        SettingsContext.set((state) => ({
-          ...state,
-          darkTheme: !(
-            window.matchMedia !== undefined &&
-            window.matchMedia("(prefers-color-scheme: light)").matches
-          )
-        }));
-    }
+  const auth_ctx = localStorage.getItem("auth");
+  if (auth_ctx)
+    AuthContext.set(JSON.parse(auth_ctx));
+
+  const settings_ctx = localStorage.getItem("settings");
+  if (settings_ctx) {
+    SettingsContext.set(JSON.parse(settings_ctx));
+  } else {
+    // Only check for light theme, otherwise dark theme is the default
+    SettingsContext.set((state) => ({
+      ...state,
+      darkTheme: !(
+        window.matchMedia !== undefined &&
+        window.matchMedia("(prefers-color-scheme: light)").matches
+      )
+    }));
+  }
 }
 
 interface AuthInfo {
-    username: string;
-    isLoggedIn: boolean;
+  username: string;
+  isLoggedIn: boolean;
 }
 
 export const AuthContext = newRidgeState<AuthInfo>(
-    {
-        username: "",
-        isLoggedIn: false
-    },
-    {
-        onSet: (new_state) => {
-            try {
-              localStorage.setItem("auth", JSON.stringify(new_state));
-            } catch (e) {
-              console.log("An error occurred while trying to modify the local auth context state.");
-              console.log("Error:", e);
-            }
-        }
+  {
+    username: "",
+    isLoggedIn: false
+  },
+  {
+    onSet: (new_state) => {
+      try {
+        localStorage.setItem("auth", JSON.stringify(new_state));
+      } catch (e) {
+        console.log("An error occurred while trying to modify the local auth context state.");
+        console.log("Error:", e);
+      }
     }
+  }
 );
 
 interface SettingsType {
-    debug: boolean;
-    darkTheme: boolean;
+  debug: boolean;
+  darkTheme: boolean;
+  scrollOnNewLog: boolean;
+  indentLogLines: boolean;
+  hideWrappedText: boolean;
 }
 
 export const SettingsContext = newRidgeState<SettingsType>(
   {
-      debug: false,
-      darkTheme: true
+    debug: false,
+    darkTheme: true,
+    scrollOnNewLog: false,
+    indentLogLines: false,
+    hideWrappedText: false
   },
   {
     onSet: (new_state) => {
       try {
         if (new_state.darkTheme) {
-            document.documentElement.classList.add("dark");
+          document.documentElement.classList.add("dark");
         } else {
-            document.documentElement.classList.remove("dark");
+          document.documentElement.classList.remove("dark");
         }
+
         localStorage.setItem("settings", JSON.stringify(new_state));
       } catch (e) {
         console.log("An error occurred while trying to modify the local settings context state.");
