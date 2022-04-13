@@ -1,8 +1,6 @@
 package download_client
 
 import (
-	"github.com/autobrr/autobrr/pkg/whisparr"
-	"github.com/pkg/errors"
 	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
@@ -10,8 +8,10 @@ import (
 	"github.com/autobrr/autobrr/pkg/qbittorrent"
 	"github.com/autobrr/autobrr/pkg/radarr"
 	"github.com/autobrr/autobrr/pkg/sonarr"
+	"github.com/autobrr/autobrr/pkg/whisparr"
 
 	delugeClient "github.com/gdm85/go-libdeluge"
+	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
 )
 
@@ -47,6 +47,13 @@ func (s *service) testQbittorrentConnection(client domain.DownloadClient) error 
 		Password:      client.Password,
 		TLS:           client.TLS,
 		TLSSkipVerify: client.TLSSkipVerify,
+	}
+
+	// only set basic auth if enabled
+	if client.Settings.Basic.Auth {
+		qbtSettings.BasicAuth = client.Settings.Basic.Auth
+		qbtSettings.Basic.Username = client.Settings.Basic.Username
+		qbtSettings.Basic.Password = client.Settings.Basic.Password
 	}
 
 	qbt := qbittorrent.NewClient(qbtSettings)
