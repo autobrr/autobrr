@@ -1,0 +1,35 @@
+---
+#id: torznab
+name: Torznab Generic
+identifier: torznab
+description: Generic Torznab
+language: en-us
+urls:
+  - https://domain.com
+privacy: private
+protocol: torrent
+supports:
+  - torznab
+source: torznab
+#settings:
+#  - name: authkey
+#    type: secret
+#    label: Auth key
+#    help: Right click DL on a torrent and get the authkey.
+#  - name: torrent_pass
+#    type: secret
+#    label: Torrent pass
+#    help: Right click DL on a torrent and get the torrent_pass.
+
+torznab:
+  minInterval: 15
+  settings:
+    - name: torznab_url
+      type: text
+      required: true
+      label: Torznab URL
+    - name: apikey
+      type: secret
+      required: true
+      label: apikey
+      help: Api key
