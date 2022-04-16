@@ -23,6 +23,7 @@ type Config struct {
 type Client interface {
 	Test() (*SystemStatusResponse, error)
 	Push(release Release) ([]string, error)
+	PushBody(release Release) ([]string, error)
 }
 
 type client struct {
@@ -119,6 +120,34 @@ func (c *client) Push(release Release) ([]string, error) {
 	}
 
 	log.Trace().Msgf("radarr release/push response body: %+v", string(body))
+
+	// log and return if rejected
+	if pushResponse[0].Rejected {
+		rejections := strings.Join(pushResponse[0].Rejections, ", ")
+
+		log.Trace().Msgf("radarr push rejected: %s - reasons: %q", release.Title, rejections)
+		return pushResponse[0].Rejections, nil
+	}
+
+	// success true
+	return nil, nil
+}
+
+func (c *client) PushBody(release Release) ([]string, error) {
+	status, res, err := c.postBody("release/push", release)
+	if err != nil {
+		log.Error().Stack().Err(err).Msgf("radarr client post error. status: %d", status)
+		return nil, err
+	}
+
+	pushResponse := make([]PushResponse, 0)
+	err = json.Unmarshal(res, &pushResponse)
+	if err != nil {
+		log.Error().Stack().Err(err).Msg("radarr client error json unmarshal")
+		return nil, err
+	}
+
+	log.Trace().Msgf("radarr release/push response body: %+v", string(res))
 
 	// log and return if rejected
 	if pushResponse[0].Rejected {
