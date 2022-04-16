@@ -63,7 +63,7 @@ export const Logs = () => {
               className="h-5 w-5 text-yellow-400"
               aria-hidden="true"
             />
-            <p className="ml-2 text-sm text-gray-800 dark:text-gray-400">This only shows new logs, no history</p>
+            <p className="ml-2 text-sm text-gray-800 dark:text-gray-400">This only shows new logs, no history.</p>
           </div>
         </div>
       </header>
@@ -78,13 +78,13 @@ export const Logs = () => {
           />
           <Checkbox
             label="Indent log lines"
-            description="Indent each log line according to their respective starting position"
+            description="Indent each log line according to their respective starting position."
             value={settings.indentLogLines}
             setValue={(newValue) => onSetValue("indentLogLines", newValue)}
           />
           <Checkbox
             label="Hide wrapped text"
-            description="Hides text that is meant to be wrapped"
+            description="Hides text that is meant to be wrapped."
             value={settings.hideWrappedText}
             setValue={(newValue) => onSetValue("hideWrappedText", newValue)}
           />
