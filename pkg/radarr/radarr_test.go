@@ -137,7 +137,7 @@ func Test_client_Push(t *testing.T) {
 				Protocol:         "torrent",
 				PublishDate:      "2021-08-21T15:36:00Z",
 			}},
-			err:     errors.New("radarr: bad request:  (status: 400 Bad Request): [\n  {\n    \"propertyName\": \"Title\",\n    \"errorMessage\": \"Unable to parse\",\n    \"attemptedValue\": \"Minx 1 epi 9 2160p\",\n    \"severity\": \"error\"\n  }\n]"),
+			err:     errors.New("radarr: bad request:  (status: 400 Bad Request): [\n  {\n    \"propertyName\": \"Title\",\n    \"errorMessage\": \"Unable to parse\",\n    \"attemptedValue\": \"Minx 1 epi 9 2160p\",\n    \"severity\": \"error\"\n  }\n]\n"),
 			wantErr: true,
 		},
 	}
