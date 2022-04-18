@@ -23,6 +23,7 @@ import (
 
 	"github.com/anacrolix/torrent/metainfo"
 	"github.com/dustin/go-humanize"
+	"github.com/moistari/rls"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
 )
@@ -122,6 +123,20 @@ func NewRelease(indexer string, line string) (*Release, error) {
 	}
 
 	return r, nil
+}
+
+func (r *Release) ParseString(title string) error {
+	rel := rls.ParseString(title)
+
+	r.Title = rel.Title
+	r.Source = rel.Source
+	r.Resolution = rel.Resolution
+	r.Year = rel.Year
+	r.Season = rel.Series
+	r.Episode = rel.Episode
+	r.Group = rel.Group
+
+	return nil
 }
 
 func (r *Release) Parse() error {

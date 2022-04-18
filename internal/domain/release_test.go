@@ -2,6 +2,7 @@ package domain
 
 import (
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -1489,6 +1490,150 @@ func TestSplitAny(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			assert.Equalf(t, tt.want, SplitAny(tt.args.s, tt.args.seps), "SplitAny(%v, %v)", tt.args.s, tt.args.seps)
+		})
+	}
+}
+
+func TestRelease_ParseString(t *testing.T) {
+	type fields struct {
+		ID                          int64
+		FilterStatus                ReleaseFilterStatus
+		Rejections                  []string
+		Indexer                     string
+		FilterName                  string
+		Protocol                    ReleaseProtocol
+		Implementation              ReleaseImplementation
+		Timestamp                   time.Time
+		GroupID                     string
+		TorrentID                   string
+		TorrentURL                  string
+		TorrentTmpFile              string
+		TorrentHash                 string
+		TorrentName                 string
+		Size                        uint64
+		Raw                         string
+		Clean                       string
+		Title                       string
+		Category                    string
+		Season                      int
+		Episode                     int
+		Year                        int
+		Resolution                  string
+		Source                      string
+		Codec                       string
+		Container                   string
+		HDR                         string
+		Audio                       string
+		Group                       string
+		Region                      string
+		Language                    string
+		Edition                     string
+		Unrated                     bool
+		Hybrid                      bool
+		Proper                      bool
+		Repack                      bool
+		Website                     string
+		ThreeD                      bool
+		Artists                     []string
+		Type                        string
+		Format                      string
+		Quality                     string
+		LogScore                    int
+		HasLog                      bool
+		HasCue                      bool
+		IsScene                     bool
+		Origin                      string
+		Tags                        []string
+		ReleaseTags                 string
+		Freeleech                   bool
+		FreeleechPercent            int
+		Uploader                    string
+		PreTime                     string
+		RawCookie                   string
+		AdditionalSizeCheckRequired bool
+		FilterID                    int
+		Filter                      *Filter
+		ActionStatus                []ReleaseActionStatus
+	}
+	type args struct {
+		title string
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		wantErr bool
+	}{
+		{name: "parse_1", fields: fields{}, args: args{title: "Phenomena 1985 International Cut UHD BluRay 2160p DTS-HD MA 5.1 DV HEVC HYBRID REMUX-FraMeSToR"}, wantErr: false},
+		{name: "parse_2", fields: fields{}, args: args{title: "Justice League: Dark 2017 UHD BluRay 2160p DTS-HD MA 5.1 DV HEVC HYBRID REMUX-FraMeSToR"}, wantErr: false},
+		{name: "parse_3", fields: fields{}, args: args{title: "Outer.Range.S01E02.The.Land.1080p.AMZN.WEB-DL.DDP5.1.H.264-TOMMY"}, wantErr: false},
+		{name: "parse_4", fields: fields{}, args: args{title: "WeCrashed S01E07 The Power of We 2160p ATVP WEB-DL DDP 5.1 Atmos HDR H.265-NOSiViD"}, wantErr: false},
+		{name: "parse_5", fields: fields{}, args: args{title: "WeCrashed.S01E07.The.Power.of.We.DV.2160p.ATVP.WEB-DL.DDPA5.1.H.265-NOSiViD"}, wantErr: false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			r := &Release{
+				ID:                          tt.fields.ID,
+				FilterStatus:                tt.fields.FilterStatus,
+				Rejections:                  tt.fields.Rejections,
+				Indexer:                     tt.fields.Indexer,
+				FilterName:                  tt.fields.FilterName,
+				Protocol:                    tt.fields.Protocol,
+				Implementation:              tt.fields.Implementation,
+				Timestamp:                   tt.fields.Timestamp,
+				GroupID:                     tt.fields.GroupID,
+				TorrentID:                   tt.fields.TorrentID,
+				TorrentURL:                  tt.fields.TorrentURL,
+				TorrentTmpFile:              tt.fields.TorrentTmpFile,
+				TorrentHash:                 tt.fields.TorrentHash,
+				TorrentName:                 tt.fields.TorrentName,
+				Size:                        tt.fields.Size,
+				Raw:                         tt.fields.Raw,
+				Clean:                       tt.fields.Clean,
+				Title:                       tt.fields.Title,
+				Category:                    tt.fields.Category,
+				Season:                      tt.fields.Season,
+				Episode:                     tt.fields.Episode,
+				Year:                        tt.fields.Year,
+				Resolution:                  tt.fields.Resolution,
+				Source:                      tt.fields.Source,
+				Codec:                       tt.fields.Codec,
+				Container:                   tt.fields.Container,
+				HDR:                         tt.fields.HDR,
+				Audio:                       tt.fields.Audio,
+				Group:                       tt.fields.Group,
+				Region:                      tt.fields.Region,
+				Language:                    tt.fields.Language,
+				Edition:                     tt.fields.Edition,
+				Unrated:                     tt.fields.Unrated,
+				Hybrid:                      tt.fields.Hybrid,
+				Proper:                      tt.fields.Proper,
+				Repack:                      tt.fields.Repack,
+				Website:                     tt.fields.Website,
+				ThreeD:                      tt.fields.ThreeD,
+				Artists:                     tt.fields.Artists,
+				Type:                        tt.fields.Type,
+				Format:                      tt.fields.Format,
+				Quality:                     tt.fields.Quality,
+				LogScore:                    tt.fields.LogScore,
+				HasLog:                      tt.fields.HasLog,
+				HasCue:                      tt.fields.HasCue,
+				IsScene:                     tt.fields.IsScene,
+				Origin:                      tt.fields.Origin,
+				Tags:                        tt.fields.Tags,
+				ReleaseTags:                 tt.fields.ReleaseTags,
+				Freeleech:                   tt.fields.Freeleech,
+				FreeleechPercent:            tt.fields.FreeleechPercent,
+				Uploader:                    tt.fields.Uploader,
+				PreTime:                     tt.fields.PreTime,
+				RawCookie:                   tt.fields.RawCookie,
+				AdditionalSizeCheckRequired: tt.fields.AdditionalSizeCheckRequired,
+				FilterID:                    tt.fields.FilterID,
+				Filter:                      tt.fields.Filter,
+				ActionStatus:                tt.fields.ActionStatus,
+			}
+			_ = r.ParseString(tt.args.title)
+			//fmt.Sprintf("ParseString(%v)", tt.args.title)
 		})
 	}
 }
