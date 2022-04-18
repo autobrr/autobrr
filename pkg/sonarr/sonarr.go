@@ -2,7 +2,7 @@ package sonarr
 
 import (
 	"encoding/json"
-	"io"
+	"errors"
 	"net/http"
 	"strings"
 	"time"
@@ -67,59 +67,43 @@ type SystemStatusResponse struct {
 }
 
 func (c *client) Test() (*SystemStatusResponse, error) {
-	res, err := c.get("system/status")
+	status, res, err := c.get("system/status")
 	if err != nil {
 		log.Error().Stack().Err(err).Msg("sonarr client get error")
 		return nil, err
 	}
 
-	defer res.Body.Close()
-
-	body, err := io.ReadAll(res.Body)
-	if err != nil {
-		log.Error().Stack().Err(err).Msg("sonarr client error reading body")
-		return nil, err
+	if status == http.StatusUnauthorized {
+		return nil, errors.New("unauthorized: bad credentials")
 	}
 
+	log.Trace().Msgf("sonarr system/status response: %v", string(res))
+
 	response := SystemStatusResponse{}
-	err = json.Unmarshal(body, &response)
+	err = json.Unmarshal(res, &response)
 	if err != nil {
 		log.Error().Stack().Err(err).Msg("sonarr client error json unmarshal")
 		return nil, err
 	}
-
-	log.Trace().Msgf("sonarr system/status response: %+v", response)
 
 	return &response, nil
 }
 
 func (c *client) Push(release Release) ([]string, error) {
-	res, err := c.post("release/push", release)
+	status, res, err := c.postBody("release/push", release)
 	if err != nil {
 		log.Error().Stack().Err(err).Msg("sonarr client post error")
 		return nil, err
 	}
 
-	if res == nil {
-		return nil, nil
-	}
-
-	defer res.Body.Close()
-
-	body, err := io.ReadAll(res.Body)
-	if err != nil {
-		log.Error().Stack().Err(err).Msg("sonarr client error reading body")
-		return nil, err
-	}
+	log.Trace().Msgf("sonarr release/push response status: (%v) body: %v", status, string(res))
 
 	pushResponse := make([]PushResponse, 0)
-	err = json.Unmarshal(body, &pushResponse)
+	err = json.Unmarshal(res, &pushResponse)
 	if err != nil {
 		log.Error().Stack().Err(err).Msg("sonarr client error json unmarshal")
 		return nil, err
 	}
-
-	log.Trace().Msgf("sonarr release/push response body: %+v", string(body))
 
 	// log and return if rejected
 	if pushResponse[0].Rejected {
