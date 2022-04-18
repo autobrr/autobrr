@@ -16,11 +16,11 @@ source: xbtit
 settings:
   - name: key
     type: secret
-    label: Rss key
+    label: RSS key
     help: "Generate a RSS feed and copy key from URL"
   - name: token
     type: secret
-    label: Rss Tolen
+    label: RSS Token
     help: "Generate a RSS feed and copy token from URL"
 
 irc:
