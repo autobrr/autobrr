@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -31,6 +32,20 @@ func Test_client_Push(t *testing.T) {
 				w.Write(nil)
 				return
 			}
+		}
+
+		defer r.Body.Close()
+		data, err := ioutil.ReadAll(r.Body)
+		if err != nil {
+			t.Errorf("expected error to be nil got %v", err)
+		}
+
+		if strings.Contains(string(data), "Minx 1 epi 9 2160p") {
+			jsonPayload, _ := ioutil.ReadFile("testdata/release_push_parse_error.json")
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusBadRequest)
+			w.Write(jsonPayload)
+			return
 		}
 
 		// read json response
@@ -101,6 +116,29 @@ func Test_client_Push(t *testing.T) {
 			rejections: []string{"Could not find Some Old Movie"},
 			//err:     errors.New("radarr push rejected Could not find Some Old Movie"),
 			//wantErr: true,
+		},
+		{
+			name: "push_parse_error",
+			fields: fields{
+				config: Config{
+					Hostname:  ts.URL,
+					APIKey:    key,
+					BasicAuth: false,
+					Username:  "",
+					Password:  "",
+				},
+			},
+			args: args{release: Release{
+				Title:            "Minx 1 epi 9 2160p",
+				DownloadUrl:      "https://www.test.org/rss/download/0000001/00000000000000000000/Minx.1.epi.9.2160p.torrent",
+				Size:             0,
+				Indexer:          "test",
+				DownloadProtocol: "torrent",
+				Protocol:         "torrent",
+				PublishDate:      "2021-08-21T15:36:00Z",
+			}},
+			err:     errors.New("radarr: bad request:  (status: 400 Bad Request): [\n  {\n    \"propertyName\": \"Title\",\n    \"errorMessage\": \"Unable to parse\",\n    \"attemptedValue\": \"Minx 1 epi 9 2160p\",\n    \"severity\": \"error\"\n  }\n]\n"),
+			wantErr: true,
 		},
 	}
 	for _, tt := range tests {

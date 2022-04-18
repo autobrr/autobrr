@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"fmt"
+	"io"
 	"net/http"
 	"net/url"
 	"path"
@@ -11,7 +13,7 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-func (c *client) get(endpoint string) (*http.Response, error) {
+func (c *client) get(endpoint string) (int, []byte, error) {
 	u, err := url.Parse(c.config.Hostname)
 	u.Path = path.Join(u.Path, "/api/v1/", endpoint)
 	reqUrl := u.String()
@@ -19,27 +21,29 @@ func (c *client) get(endpoint string) (*http.Response, error) {
 	req, err := http.NewRequest(http.MethodGet, reqUrl, http.NoBody)
 	if err != nil {
 		log.Error().Err(err).Msgf("lidarr client request error : %v", reqUrl)
-		return nil, err
+		return 0, nil, err
 	}
 
 	if c.config.BasicAuth {
 		req.SetBasicAuth(c.config.Username, c.config.Password)
 	}
 
-	req.Header.Add("X-Api-Key", c.config.APIKey)
-	req.Header.Set("User-Agent", "autobrr")
+	c.setHeaders(req)
 
-	res, err := c.http.Do(req)
+	resp, err := c.http.Do(req)
 	if err != nil {
-		log.Error().Err(err).Msgf("lidarr client request error : %v", reqUrl)
-		return nil, err
+		log.Error().Err(err).Msgf("lidarr client.get request error: %v", reqUrl)
+		return 0, nil, fmt.Errorf("lidarr.http.Do(req): %w", err)
 	}
 
-	if res.StatusCode == http.StatusUnauthorized {
-		return nil, errors.New("unauthorized: bad credentials")
+	defer resp.Body.Close()
+
+	var buf bytes.Buffer
+	if _, err = io.Copy(&buf, resp.Body); err != nil {
+		return resp.StatusCode, nil, fmt.Errorf("lidarr.io.Copy: %w", err)
 	}
 
-	return res, nil
+	return resp.StatusCode, buf.Bytes(), nil
 }
 
 func (c *client) post(endpoint string, data interface{}) (*http.Response, error) {
@@ -84,4 +88,57 @@ func (c *client) post(endpoint string, data interface{}) (*http.Response, error)
 
 	// return raw response and let the caller handle json unmarshal of body
 	return res, nil
+}
+
+func (c *client) postBody(endpoint string, data interface{}) (int, []byte, error) {
+	u, err := url.Parse(c.config.Hostname)
+	u.Path = path.Join(u.Path, "/api/v1/", endpoint)
+	reqUrl := u.String()
+
+	jsonData, err := json.Marshal(data)
+	if err != nil {
+		log.Error().Err(err).Msgf("lidarr client could not marshal data: %v", reqUrl)
+		return 0, nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, reqUrl, bytes.NewBuffer(jsonData))
+	if err != nil {
+		log.Error().Err(err).Msgf("lidarr client request error: %v", reqUrl)
+		return 0, nil, err
+	}
+
+	if c.config.BasicAuth {
+		req.SetBasicAuth(c.config.Username, c.config.Password)
+	}
+
+	c.setHeaders(req)
+
+	resp, err := c.http.Do(req)
+	if err != nil {
+		log.Error().Err(err).Msgf("lidarr client request error: %v", reqUrl)
+		return 0, nil, fmt.Errorf("lidarr.http.Do(req): %w", err)
+	}
+
+	defer resp.Body.Close()
+
+	var buf bytes.Buffer
+	if _, err = io.Copy(&buf, resp.Body); err != nil {
+		return resp.StatusCode, nil, fmt.Errorf("lidarr.io.Copy: %w", err)
+	}
+
+	if resp.StatusCode < 200 || resp.StatusCode > 299 {
+		return resp.StatusCode, buf.Bytes(), fmt.Errorf("lidarr: bad request: %v (status: %s): %s", resp.Request.RequestURI, resp.Status, buf.String())
+	}
+
+	return resp.StatusCode, buf.Bytes(), nil
+}
+
+func (c *client) setHeaders(req *http.Request) {
+	if req.Body != nil {
+		req.Header.Set("Content-Type", "application/json")
+	}
+
+	req.Header.Set("User-Agent", "autobrr")
+
+	req.Header.Set("X-Api-Key", c.config.APIKey)
 }
