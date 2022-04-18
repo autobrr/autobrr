@@ -145,7 +145,7 @@ func Test_client_Push(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			c := New(tt.fields.config)
 
-			rejections, err := c.PushBody(tt.args.release)
+			rejections, err := c.Push(tt.args.release)
 			assert.Equal(t, tt.rejections, rejections)
 			if tt.wantErr && assert.Error(t, err) {
 				assert.Equal(t, tt.err, err)

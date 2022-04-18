@@ -13,7 +13,7 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-func (c *client) get(endpoint string) (*http.Response, error) {
+func (c *client) get(endpoint string) (int, []byte, error) {
 	u, err := url.Parse(c.config.Hostname)
 	u.Path = path.Join(u.Path, "/api/v3/", endpoint)
 	reqUrl := u.String()
@@ -21,27 +21,29 @@ func (c *client) get(endpoint string) (*http.Response, error) {
 	req, err := http.NewRequest(http.MethodGet, reqUrl, http.NoBody)
 	if err != nil {
 		log.Error().Err(err).Msgf("radarr client request error : %v", reqUrl)
-		return nil, err
+		return 0, nil, err
 	}
 
 	if c.config.BasicAuth {
 		req.SetBasicAuth(c.config.Username, c.config.Password)
 	}
 
-	req.Header.Add("X-Api-Key", c.config.APIKey)
-	req.Header.Set("User-Agent", "autobrr")
+	c.setHeaders(req)
 
-	res, err := c.http.Do(req)
+	resp, err := c.http.Do(req)
 	if err != nil {
-		log.Error().Err(err).Msgf("radarr client request error : %v", reqUrl)
-		return nil, err
+		log.Error().Err(err).Msgf("radarr client.get request error: %v", reqUrl)
+		return 0, nil, fmt.Errorf("radarr.http.Do(req): %w", err)
 	}
 
-	if res.StatusCode == http.StatusUnauthorized {
-		return nil, errors.New("unauthorized: bad credentials")
+	defer resp.Body.Close()
+
+	var buf bytes.Buffer
+	if _, err = io.Copy(&buf, resp.Body); err != nil {
+		return resp.StatusCode, nil, fmt.Errorf("radarr.io.Copy: %w", err)
 	}
 
-	return res, nil
+	return resp.StatusCode, buf.Bytes(), nil
 }
 
 func (c *client) post(endpoint string, data interface{}) (*http.Response, error) {
@@ -123,13 +125,9 @@ func (c *client) postBody(endpoint string, data interface{}) (int, []byte, error
 	defer resp.Body.Close()
 
 	var buf bytes.Buffer
-
-	_, err = io.Copy(&buf, resp.Body)
-	if err != nil {
-		return resp.StatusCode, nil, fmt.Errorf("radarr.ioutil.Readall: %w", err)
+	if _, err = io.Copy(&buf, resp.Body); err != nil {
+		return resp.StatusCode, nil, fmt.Errorf("radarr.io.Copy: %w", err)
 	}
-
-	log.Debug().Msgf("buf: %v %v", buf.String(), string(buf.Bytes()))
 
 	if resp.StatusCode < 200 || resp.StatusCode > 299 {
 		return resp.StatusCode, buf.Bytes(), fmt.Errorf("radarr: bad request: %v (status: %s): %s", resp.Request.RequestURI, resp.Status, buf.String())
