@@ -113,7 +113,7 @@ function ApplicationSettings() {
                     <div className="px-4 sm:px-6 py-1">
                         <Checkbox
                             label="Dark theme"
-                            description="Switch between dark and light theme"
+                            description="Switch between dark and light theme."
                             value={settings.darkTheme}
                             setValue={(newValue: boolean) => setSettings({
                                 ...settings,

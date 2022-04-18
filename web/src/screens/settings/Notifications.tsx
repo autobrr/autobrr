@@ -24,7 +24,7 @@ function NotificationSettings() {
                     <div className="ml-4 mt-4">
                         <h3 className="text-lg leading-6 font-medium text-gray-900 dark:text-white">Notifications</h3>
                         <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                            Send notifications on events
+                            Send notifications on events.
                         </p>
                     </div>
                     <div className="ml-4 mt-4 flex-shrink-0">
