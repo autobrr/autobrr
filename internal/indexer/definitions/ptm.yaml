@@ -13,10 +13,10 @@ supports:
   - rss
 source: custom
 settings:
-  - name: passkey
+  - name: rsskey
     type: secret
-    label: Pass key
-    help: "Go to your profile and copy your Passkey"
+    label: RSS key
+    help: "Copy your RSS key from the RSS feed"
     regex: /([\da-fA-F]{32})
 
 irc:
@@ -27,7 +27,7 @@ irc:
   channels:
     - "#announce"
   announcers:
-    - PTMBot
+    - PTMbot
   settings:
     - name: nickserv.account
       type: text
@@ -46,7 +46,7 @@ parse:
     - test:
         - "tehFire: [Applications|Windows] Chen went to the Mall :: preGAP: 1m and 32s :: https://pretome.info/details.php?id=696969"
         - "[Movies|x264] Orlando.Bloom.Had.A.Cow-ze0s :: preGAP: P2P source :: https://pretome.info/details.php?id=646321"
-      pattern: .*\[([^\]]*)\] ([^:]*) .*(https?\:\/\/[^\/]+\/).*id=(\d+)
+      pattern: '\[([^\]]+)\] ([^:]+) :: [^:]+.*(https?\:\/\/[^\/]+).*id=(\d+)'
       vars:
         - category
         - torrentName
@@ -54,6 +54,6 @@ parse:
         - torrentId
 
   match:
-    torrenturl: "{{ .baseUrl }}/download.php/{{ .torrentId }}/{{ .passkey }}/{{ .torrentName }}.torrent"
+    torrenturl: "{{ .baseUrl }}/download.php/{{ .torrentId }}/{{ .rsskey }}/{{ .torrentName }}.torrent"
     encode:
       - torrentName
