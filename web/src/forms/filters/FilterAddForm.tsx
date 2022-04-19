@@ -9,7 +9,7 @@ import type { FieldProps } from "formik";
 import { queryClient } from "../../App";
 import { APIClient } from "../../api/APIClient";
 import DEBUG from "../../components/debug";
-import Toast from "../../components/notifications/Toast";
+import { Toast } from "../../components/notifications/Toast";
 
 interface filterAddFormProps {
     isOpen: boolean;

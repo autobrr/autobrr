@@ -73,11 +73,13 @@ export const APIClient = {
     }),
     logout: () => appClient.Post("api/auth/logout", null),
     validate: () => appClient.Get<void>("api/auth/validate"),
-    onboard: (username: string, password: string) => appClient.Post("api/auth/onboard", {
+    onboard: (username: string, password: string, logDir: string) => appClient.Post("api/auth/onboard", {
       username: username,
-      password: password
+      password: password,
+      log_dir: logDir
     }),
-    canOnboard: () => appClient.Get("api/auth/onboard")
+    canOnboard: () => appClient.Get("api/auth/onboard"),
+    getOnboardingPreferences: () => appClient.Get<OnboardingPreferences>("api/auth/onboard/preferences")
   },
   actions: {
     create: (action: Action) => appClient.Post("api/actions", action),

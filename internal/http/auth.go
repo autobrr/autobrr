@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
+	"os"
+	"path"
 
 	"github.com/go-chi/chi"
 	"github.com/gorilla/sessions"
@@ -14,7 +16,7 @@ import (
 type authService interface {
 	GetUserCount(ctx context.Context) (int, error)
 	Login(ctx context.Context, username, password string) (*domain.User, error)
-	CreateUser(ctx context.Context, username, password string) error
+	CreateUser(ctx context.Context, user domain.CreateUserRequest) error
 }
 
 type authHandler struct {
@@ -39,6 +41,7 @@ func (h authHandler) Routes(r chi.Router) {
 	r.Post("/logout", h.logout)
 	r.Post("/onboard", h.onboard)
 	r.Get("/onboard", h.canOnboard)
+	r.Get("/onboard/preferences", h.getOnboardingPreferences)
 	r.Get("/validate", h.validate)
 }
 
@@ -97,24 +100,17 @@ func (h authHandler) logout(w http.ResponseWriter, r *http.Request) {
 
 func (h authHandler) onboard(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	session, _ := h.cookieStore.Get(r, "user_session")
 
-	// Don't proceed if user is authenticated
-	if _, ok := session.Values["authenticated"].(bool); ok {
-		http.Error(w, "Forbidden", http.StatusForbidden)
-		return
-	}
-
-	var data domain.User
+	var data domain.CreateUserRequest
 	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
 		// encode error
 		h.encoder.StatusResponse(ctx, w, nil, http.StatusBadRequest)
 		return
 	}
 
-	err := h.service.CreateUser(ctx, data.Username, data.Password)
+	err := h.service.CreateUser(ctx, data)
 	if err != nil {
-		http.Error(w, "Forbidden", http.StatusForbidden)
+		http.Error(w, err.Error(), http.StatusForbidden)
 		return
 	}
 
@@ -140,6 +136,60 @@ func (h authHandler) canOnboard(w http.ResponseWriter, r *http.Request) {
 	// send empty response as ok
 	// (client can proceed with redirection to onboarding page)
 	h.encoder.StatusResponse(ctx, w, nil, http.StatusNoContent)
+}
+
+func GetPreferredLogDir() (string, []string) {
+	// 0. Check if ~/.config/autobrr/ is accessible to the current user
+	// 1. Check if ~/.config/autobrr/log/ is accessible to the current user
+	// 2. Check if golang can find the temp directory and use that.
+	// 3. If neither 1 nor 2 were successful, bail with an error message.
+	// NOTE: If neither $XDG_CONFIG_HOME nor $HOME are defined, UserConfigDir will return an error.
+	configDir, err := os.UserConfigDir()
+
+	// Keep track of errors, if any. Might help diagnose misconfiguration problems and such.
+	var discoveredErrors []string
+	if err == nil {
+		// If we managed to find the user config directory,
+		// then return ~/.config/autobrr/logs as the preferred log dir
+		logDir := path.Join(configDir, "autobrr", "logs")
+		return logDir, discoveredErrors
+	} else {
+		discoveredErrors = append(discoveredErrors, err.Error())
+	}
+
+	for _, dir := range [3]string{"/var/log/", "/opt/", os.TempDir()} {
+		if stat, err := os.Stat(dir); err == nil && stat.IsDir() {
+			return path.Join(dir, "autobrr", "logs"), discoveredErrors
+		} else {
+			discoveredErrors = append(discoveredErrors, err.Error())
+		}
+	}
+
+	return "", discoveredErrors
+}
+
+func (h authHandler) getOnboardingPreferences(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	userCount, err := h.service.GetUserCount(ctx)
+	if err != nil {
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	if userCount > 0 {
+		// send 503 service onboarding unavailable
+		http.Error(w, "Onboarding unavailable", http.StatusServiceUnavailable)
+		return
+	}
+
+	logDir, logErrors := GetPreferredLogDir()
+	result := domain.OnboardingPreferences{
+		LogDir:    logDir,
+		LogErrors: logErrors,
+	}
+
+	h.encoder.StatusResponse(r.Context(), w, result, http.StatusOK)
 }
 
 func (h authHandler) validate(w http.ResponseWriter, r *http.Request) {

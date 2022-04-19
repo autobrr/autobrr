@@ -12,7 +12,7 @@ import { Onboarding } from "./screens/auth/onboarding";
 import { baseUrl } from "./utils";
 import { AuthContext, SettingsContext } from "./utils/Context";
 import { ErrorPage } from "./components/alerts";
-import Toast from "./components/notifications/Toast";
+import { Toast } from "./components/notifications/Toast";
 
 export const queryClient = new QueryClient({
   defaultOptions: {

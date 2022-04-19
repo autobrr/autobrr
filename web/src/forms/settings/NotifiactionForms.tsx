@@ -14,7 +14,7 @@ import { useMutation } from "react-query";
 import { APIClient } from "../../api/APIClient";
 import { queryClient } from "../../App";
 import { toast } from "react-hot-toast";
-import Toast from "../../components/notifications/Toast";
+import { Toast } from "../../components/notifications/Toast";
 import { SlideOver } from "../../components/panels";
 import { componentMapType } from "./DownloadClientForms";
 

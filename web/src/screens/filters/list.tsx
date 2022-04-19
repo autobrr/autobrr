@@ -15,7 +15,7 @@ import { classNames } from "../../utils";
 import { FilterAddForm } from "../../forms";
 import { useToggle } from "../../hooks/hooks";
 import { APIClient } from "../../api/APIClient";
-import Toast from "../../components/notifications/Toast";
+import { Toast } from "../../components/notifications/Toast";
 import { EmptyListState } from "../../components/emptystates";
 import { DeleteModal } from "../../components/modals";
 

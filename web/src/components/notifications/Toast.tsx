@@ -1,4 +1,3 @@
-import { FC } from "react";
 import { XIcon, CheckCircleIcon, ExclamationIcon, ExclamationCircleIcon } from "@heroicons/react/solid";
 import { toast, Toast as Tooast } from "react-hot-toast";
 import { classNames } from "../../utils";
@@ -9,7 +8,7 @@ type Props = {
   t?: Tooast;
 };
 
-const Toast: FC<Props> = ({ type, body, t }) => (
+export const Toast = ({ type, body, t }: Props) => (
   <div className={classNames(
     t?.visible ? "animate-enter" : "animate-leave",
     "max-w-sm w-full bg-white dark:bg-gray-800 shadow-lg rounded-lg pointer-events-auto ring-1 ring-black ring-opacity-5 overflow-hidden transition-all")}>
@@ -43,5 +42,3 @@ const Toast: FC<Props> = ({ type, body, t }) => (
     </div>
   </div>
 );
-
-export default Toast;

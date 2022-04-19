@@ -46,7 +46,7 @@ import {
   CheckboxField
 } from "../../components/inputs";
 import DEBUG from "../../components/debug";
-import Toast from "../../components/notifications/Toast";
+import { Toast } from "../../components/notifications/Toast";
 import { AlertWarning } from "../../components/alerts";
 import { DeleteModal } from "../../components/modals";
 import { TitleSubtitle } from "../../components/headings";

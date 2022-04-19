@@ -14,7 +14,7 @@ import {
   NumberFieldWide
 } from "../../components/inputs";
 import { SlideOver } from "../../components/panels";
-import Toast from "../../components/notifications/Toast";
+import { Toast } from "../../components/notifications/Toast";
 
 interface ChannelsFieldArrayProps {
   channels: IrcChannel[];

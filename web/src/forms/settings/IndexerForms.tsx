@@ -24,7 +24,7 @@ import {
   SwitchGroupWide
 } from "../../components/inputs";
 import { SlideOver } from "../../components/panels";
-import Toast from "../../components/notifications/Toast";
+import { Toast } from "../../components/notifications/Toast";
 
 const Input = (props: InputProps) => {
   return (
@@ -534,7 +534,7 @@ export function IndexerUpdateForm({ isOpen, toggle, indexer }: UpdateProps) {
                 htmlFor="name"
                 className="block text-sm font-medium text-gray-900 dark:text-white sm:mt-px sm:pt-2"
               >
-                                Name
+                Name
               </label>
             </div>
             <Field name="name">

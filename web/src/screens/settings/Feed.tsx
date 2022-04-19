@@ -6,7 +6,7 @@ import { Menu, Switch, Transition } from "@headlessui/react";
 import { classNames } from "../../utils";
 import { Fragment, useRef, useState } from "react";
 import { toast } from "react-hot-toast";
-import Toast from "../../components/notifications/Toast";
+import { Toast } from "../../components/notifications/Toast";
 import { queryClient } from "../../App";
 import { DeleteModal } from "../../components/modals";
 import {

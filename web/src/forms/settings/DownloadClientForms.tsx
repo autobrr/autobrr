@@ -10,7 +10,7 @@ import { APIClient } from "../../api/APIClient";
 import { DownloadClientTypeOptions } from "../../domain/constants";
 
 import { toast } from "react-hot-toast";
-import Toast from "../../components/notifications/Toast";
+import { Toast } from "../../components/notifications/Toast";
 import { useToggle } from "../../hooks/hooks";
 import { DeleteModal } from "../../components/modals";
 import { NumberFieldWide, PasswordFieldWide, SwitchGroupWide, TextFieldWide } from "../../components/inputs/input_wide";

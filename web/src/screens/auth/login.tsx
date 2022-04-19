@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { useHistory } from "react-router-dom";
 import { useMutation } from "react-query";
 import { Form, Formik } from "formik";
@@ -7,7 +8,6 @@ import { TextField, PasswordField } from "../../components/inputs";
 
 import logo from "../../logo.png";
 import { AuthContext } from "../../utils/Context";
-import { useEffect } from "react";
 
 interface LoginData {
   username: string;
