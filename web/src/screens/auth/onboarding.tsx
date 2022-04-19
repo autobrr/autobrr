@@ -43,6 +43,10 @@ export const Onboarding = () => {
           return;
         
         responseData.log_errors.forEach((errString) => {
+          // Don't notify about empty errors
+          if (!errString.trim().length)
+            return;
+
           toast.custom((t) => <Toast type="error" body={errString} t={t} />);
         });
       }
