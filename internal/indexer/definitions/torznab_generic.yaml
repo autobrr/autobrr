@@ -11,6 +11,17 @@ protocol: torrent
 supports:
   - torznab
 source: torznab
+settings:
+  - name: torznab_url
+    type: text
+    required: true
+    label: Torznab URL
+  - name: apikey
+    type: secret
+    required: false
+    label: Api key
+    help: Api key
+
 #settings:
 #  - name: authkey
 #    type: secret
@@ -30,6 +41,6 @@ torznab:
       label: Torznab URL
     - name: apikey
       type: secret
-      required: true
-      label: apikey
+      required: false
+      label: Api key
       help: Api key

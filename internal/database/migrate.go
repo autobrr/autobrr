@@ -241,6 +241,14 @@ CREATE TABLE notification
 	created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 	updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+CREATE TABLE feed_cache
+(
+	bucket TEXT,
+	key    TEXT,
+	value  TEXT,
+	ttl    TIMESTAMP
+);
 `
 
 var sqliteMigrations = []string{
@@ -535,6 +543,15 @@ ALTER TABLE release_action_status_dg_tmp
 		updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 	);
 	`,
+	`
+	CREATE TABLE feed_cache
+	(
+		bucket TEXT,
+		key    TEXT,
+        value  TEXT,
+		ttl    TIMESTAMP
+	);
+	`,
 }
 
 const postgresSchema = `
@@ -778,6 +795,14 @@ CREATE TABLE notification
 	created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 	updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+CREATE TABLE feed_cache
+(
+	bucket TEXT,
+	key    TEXT,
+	value  TEXT,
+	ttl    TIMESTAMP
+);
 `
 
 var postgresMigrations = []string{
@@ -804,6 +829,15 @@ var postgresMigrations = []string{
 		devices    TEXT,
 		created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 		updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+	);
+	`,
+	`
+	CREATE TABLE feed_cache
+	(
+		bucket TEXT,
+		key    TEXT,
+        value  TEXT,
+		ttl    TIMESTAMP
 	);
 	`,
 }

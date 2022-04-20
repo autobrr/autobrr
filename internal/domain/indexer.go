@@ -37,6 +37,7 @@ type IndexerDefinition struct {
 	Settings    []IndexerSetting  `json:"settings"`
 	SettingsMap map[string]string `json:"-"`
 	IRC         *IndexerIRC       `json:"irc"`
+	Torznab     *Torznab          `json:"torznab"`
 	Parse       IndexerParse      `json:"parse"`
 }
 
@@ -59,6 +60,11 @@ type IndexerSetting struct {
 	Description string `json:"description,omitempty"`
 	Help        string `json:"help,omitempty"`
 	Regex       string `json:"regex,omitempty"`
+}
+
+type Torznab struct {
+	MinInterval int              `json:"minInterval"`
+	Settings    []IndexerSetting `json:"settings"`
 }
 
 type IndexerIRC struct {

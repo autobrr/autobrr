@@ -20,6 +20,7 @@ interface IndexerDefinition {
   supports: string[];
   settings: IndexerSetting[];
   irc: IndexerIRC;
+  torznab: IndexerTorznab;
   parse: IndexerParse;
 }
 
@@ -43,6 +44,11 @@ interface IndexerIRC {
   nickserv: boolean;
   channels: string[];
   announcers: string[];
+  settings: IndexerSetting[];
+}
+
+interface IndexerTorznab {
+  minInterval: number;
   settings: IndexerSetting[];
 }
 

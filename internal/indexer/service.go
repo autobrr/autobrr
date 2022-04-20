@@ -138,7 +138,7 @@ func (s *service) mapIndexer(indexer domain.Indexer) (*domain.IndexerDefinition,
 
 	indexerDefinition := domain.IndexerDefinition{
 		ID:          int(indexer.ID),
-		Name:        in.Name,
+		Name:        indexer.Name,
 		Identifier:  in.Identifier,
 		Enabled:     indexer.Enabled,
 		Description: in.Description,
@@ -150,6 +150,7 @@ func (s *service) mapIndexer(indexer domain.Indexer) (*domain.IndexerDefinition,
 		Settings:    nil,
 		SettingsMap: make(map[string]string),
 		IRC:         in.IRC,
+		Torznab:     in.Torznab,
 		Parse:       in.Parse,
 	}
 
@@ -202,17 +203,21 @@ func (s *service) Start() error {
 	}
 
 	for _, indexer := range indexerDefinitions {
-		s.mapIRCIndexerLookup(indexer.Identifier, *indexer)
+		if indexer.IRC != nil {
+			s.mapIRCIndexerLookup(indexer.Identifier, *indexer)
 
-		// add to irc server lookup table
-		s.mapIRCServerDefinitionLookup(indexer.IRC.Server, *indexer)
+			// add to irc server lookup table
+			s.mapIRCServerDefinitionLookup(indexer.IRC.Server, *indexer)
 
-		// check if it has api and add to api service
-		if indexer.Enabled && indexer.HasApi() {
-			if err := s.apiService.AddClient(indexer.Identifier, indexer.SettingsMap); err != nil {
-				log.Error().Stack().Err(err).Msgf("indexer.start: could not init api client for: '%v'", indexer.Identifier)
+			// check if it has api and add to api service
+			if indexer.Enabled && indexer.HasApi() {
+				if err := s.apiService.AddClient(indexer.Identifier, indexer.SettingsMap); err != nil {
+					log.Error().Stack().Err(err).Msgf("indexer.start: could not init api client for: '%v'", indexer.Identifier)
+				}
 			}
 		}
+
+		// TODO handle Torznab and rss
 	}
 
 	log.Info().Msgf("Loaded %d indexers", len(indexerDefinitions))
@@ -243,17 +248,21 @@ func (s *service) addIndexer(indexer domain.Indexer) error {
 	//	continue
 	//}
 
-	s.mapIRCIndexerLookup(indexer.Identifier, *indexerDefinition)
+	if indexerDefinition.IRC != nil {
+		s.mapIRCIndexerLookup(indexer.Identifier, *indexerDefinition)
 
-	// add to irc server lookup table
-	s.mapIRCServerDefinitionLookup(indexerDefinition.IRC.Server, *indexerDefinition)
+		// add to irc server lookup table
+		s.mapIRCServerDefinitionLookup(indexerDefinition.IRC.Server, *indexerDefinition)
 
-	// check if it has api and add to api service
-	if indexerDefinition.Enabled && indexerDefinition.HasApi() {
-		if err := s.apiService.AddClient(indexerDefinition.Identifier, indexerDefinition.SettingsMap); err != nil {
-			log.Error().Stack().Err(err).Msgf("indexer.start: could not init api client for: '%v'", indexer.Identifier)
+		// check if it has api and add to api service
+		if indexerDefinition.Enabled && indexerDefinition.HasApi() {
+			if err := s.apiService.AddClient(indexerDefinition.Identifier, indexerDefinition.SettingsMap); err != nil {
+				log.Error().Stack().Err(err).Msgf("indexer.start: could not init api client for: '%v'", indexer.Identifier)
+			}
 		}
 	}
+
+	// todo handle Torznab
 
 	return nil
 }

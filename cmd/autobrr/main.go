@@ -11,12 +11,12 @@ import (
 	"github.com/spf13/pflag"
 
 	"github.com/autobrr/autobrr/internal/action"
-	"github.com/autobrr/autobrr/internal/announce"
 	"github.com/autobrr/autobrr/internal/auth"
 	"github.com/autobrr/autobrr/internal/config"
 	"github.com/autobrr/autobrr/internal/database"
 	"github.com/autobrr/autobrr/internal/download_client"
 	"github.com/autobrr/autobrr/internal/events"
+	"github.com/autobrr/autobrr/internal/feed"
 	"github.com/autobrr/autobrr/internal/filter"
 	"github.com/autobrr/autobrr/internal/http"
 	"github.com/autobrr/autobrr/internal/indexer"
@@ -72,6 +72,7 @@ func main() {
 		downloadClientRepo = database.NewDownloadClientRepo(db)
 		actionRepo         = database.NewActionRepo(db, downloadClientRepo)
 		filterRepo         = database.NewFilterRepo(db)
+		feedCacheRepo      = database.NewFeedCacheRepo(db)
 		indexerRepo        = database.NewIndexerRepo(db)
 		ircRepo            = database.NewIrcRepo(db)
 		notificationRepo   = database.NewNotificationRepo(db)
@@ -86,12 +87,12 @@ func main() {
 		apiService            = indexer.NewAPIService()
 		indexerService        = indexer.NewService(cfg, indexerRepo, apiService)
 		filterService         = filter.NewService(filterRepo, actionRepo, apiService, indexerService)
-		releaseService        = release.NewService(releaseRepo)
-		announceService       = announce.NewService(actionService, filterService, releaseService)
-		ircService            = irc.NewService(ircRepo, announceService, indexerService)
+		releaseService        = release.NewService(releaseRepo, actionService, filterService)
+		ircService            = irc.NewService(ircRepo, releaseService, indexerService)
 		notificationService   = notification.NewService(notificationRepo)
 		userService           = user.NewService(userRepo)
 		authService           = auth.NewService(userService)
+		feedService           = feed.NewService(feedCacheRepo, releaseService)
 	)
 
 	// register event subscribers
@@ -104,7 +105,7 @@ func main() {
 		errorChannel <- httpServer.Open()
 	}()
 
-	srv := server.NewServer(ircService, indexerService)
+	srv := server.NewServer(ircService, indexerService, feedService)
 	srv.Hostname = cfg.Host
 	srv.Port = cfg.Port
 
