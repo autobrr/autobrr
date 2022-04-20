@@ -1,0 +1,59 @@
+---
+#id: tracker69
+name: PreToMe
+identifier: pretome
+description: PreToMe (PTM) is 0Day/General ratioless tracker with very good speed & Pretime.
+language: en-us
+urls:
+  - https://pretome.info/
+privacy: private
+protocol: torrent
+supports:
+  - irc
+  - rss
+source: custom
+settings:
+  - name: rsskey
+    type: secret
+    label: RSS key
+    help: "Copy your RSS key from the RSS feed"
+    regex: /([\da-fA-F]{32})
+
+irc:
+  network: PreToMe
+  server: irc.pretome.info
+  port: 6697
+  tls: true
+  channels:
+    - "#announce"
+  announcers:
+    - PTMbot
+  settings:
+    - name: nickserv.account
+      type: text
+      required: true
+      label: NickServ Account
+      help: NickServ account. Make sure to group your user and bot. Eg. user_bot
+    - name: nickserv.password
+      type: secret
+      required: true
+      label: NickServ Password
+      help: NickServ password
+
+parse:
+  type: single
+  lines:
+    - test:
+        - "tehFire: [Applications|Windows] Chen went to the Mall :: preGAP: 1m and 32s :: https://pretome.info/details.php?id=696969"
+        - "[Movies|x264] Orlando.Bloom.Had.A.Cow-ze0s :: preGAP: P2P source :: https://pretome.info/details.php?id=646321"
+      pattern: '\[([^\]]+)\] ([^:]+) :: [^:]+.*(https?\:\/\/[^\/]+).*id=(\d+)'
+      vars:
+        - category
+        - torrentName
+        - baseUrl
+        - torrentId
+
+  match:
+    torrenturl: "{{ .baseUrl }}/download.php/{{ .torrentId }}/{{ .rsskey }}/{{ .torrentName }}.torrent"
+    encode:
+      - torrentName
