@@ -24,6 +24,7 @@ import (
 	"github.com/autobrr/autobrr/internal/logger"
 	"github.com/autobrr/autobrr/internal/notification"
 	"github.com/autobrr/autobrr/internal/release"
+	"github.com/autobrr/autobrr/internal/scheduler"
 	"github.com/autobrr/autobrr/internal/server"
 	"github.com/autobrr/autobrr/internal/user"
 )
@@ -82,17 +83,18 @@ func main() {
 
 	// setup services
 	var (
+		schedulingService     = scheduler.NewService()
+		apiService            = indexer.NewAPIService()
+		userService           = user.NewService(userRepo)
+		authService           = auth.NewService(userService)
 		downloadClientService = download_client.NewService(downloadClientRepo)
 		actionService         = action.NewService(actionRepo, downloadClientService, bus)
-		apiService            = indexer.NewAPIService()
-		indexerService        = indexer.NewService(cfg, indexerRepo, apiService)
+		indexerService        = indexer.NewService(cfg, indexerRepo, apiService, schedulingService)
 		filterService         = filter.NewService(filterRepo, actionRepo, apiService, indexerService)
 		releaseService        = release.NewService(releaseRepo, actionService, filterService)
 		ircService            = irc.NewService(ircRepo, releaseService, indexerService)
 		notificationService   = notification.NewService(notificationRepo)
-		userService           = user.NewService(userRepo)
-		authService           = auth.NewService(userService)
-		feedService           = feed.NewService(feedCacheRepo, releaseService, indexerService)
+		feedService           = feed.NewService(feedCacheRepo, indexerService, releaseService, schedulingService)
 	)
 
 	// register event subscribers
@@ -105,7 +107,7 @@ func main() {
 		errorChannel <- httpServer.Open()
 	}()
 
-	srv := server.NewServer(ircService, indexerService, feedService)
+	srv := server.NewServer(ircService, indexerService, feedService, schedulingService)
 	srv.Hostname = cfg.Host
 	srv.Port = cfg.Port
 

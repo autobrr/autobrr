@@ -9,30 +9,28 @@ import (
 	"github.com/autobrr/autobrr/internal/release"
 	"github.com/autobrr/autobrr/pkg/torznab"
 
-	"github.com/robfig/cron/v3"
 	"github.com/rs/zerolog"
 )
 
-type torznabJob struct {
-	name              string
-	indexerIdentifier string
-	log               zerolog.Logger
-	url               string
-	client            *torznab.Client
-	repo              domain.FeedCacheRepo
-	releaseSvc        release.Service
+type TorznabJob struct {
+	Name              string
+	IndexerIdentifier string
+	Log               zerolog.Logger
+	URL               string
+	Client            *torznab.Client
+	Repo              domain.FeedCacheRepo
+	ReleaseSvc        release.Service
 
 	attempts int
 	errors   []error
 
-	cron  *cron.Cron
-	jobID cron.EntryID
+	JobID int
 }
 
-func (j *torznabJob) Run() {
+func (j *TorznabJob) Run() {
 	err := j.process()
 	if err != nil {
-		j.log.Err(err).Int("attempts", j.attempts).Msg("torznab process error")
+		j.Log.Err(err).Int("attempts", j.attempts).Msg("torznab process error")
 
 		j.errors = append(j.errors, err)
 	}
@@ -41,11 +39,11 @@ func (j *torznabJob) Run() {
 	j.errors = j.errors[:0]
 }
 
-func (j *torznabJob) process() error {
+func (j *TorznabJob) process() error {
 	// get feed
 	items, err := j.getFeed()
 	if err != nil {
-		j.log.Error().Err(err).Msgf("torznab.process: error fetching feed items")
+		j.Log.Error().Err(err).Msgf("torznab.process: error fetching feed items")
 		return fmt.Errorf("torznab.process: error getting feed items: %w", err)
 	}
 
@@ -53,7 +51,7 @@ func (j *torznabJob) process() error {
 		return nil
 	}
 
-	j.log.Debug().Msgf("torznab.process: refreshing feed: %v, found (%d) new items to check", j.name, len(items))
+	j.Log.Debug().Msgf("torznab.process: refreshing feed: %v, found (%d) new items to check", j.Name, len(items))
 
 	releases := make([]*domain.Release, 0)
 
@@ -66,11 +64,11 @@ func (j *torznabJob) process() error {
 		rls.TorrentName = item.Title
 		rls.TorrentURL = item.GUID
 		rls.Implementation = domain.ReleaseImplementationTorznab
-		rls.Indexer = j.indexerIdentifier
+		rls.Indexer = j.IndexerIdentifier
 		//rls.Size = item.Size // TODO parse size
 
 		if err := rls.Parse(); err != nil {
-			j.log.Error().Err(err).Msgf("torznab.process: error parsing release")
+			j.Log.Error().Err(err).Msgf("torznab.process: error parsing release")
 			continue
 		}
 
@@ -78,20 +76,20 @@ func (j *torznabJob) process() error {
 	}
 
 	// process all new releases
-	go j.releaseSvc.ProcessMultiple(releases)
+	go j.ReleaseSvc.ProcessMultiple(releases)
 
 	return nil
 }
 
-func (j *torznabJob) getFeed() ([]torznab.FeedItem, error) {
+func (j *TorznabJob) getFeed() ([]torznab.FeedItem, error) {
 	// get feed
-	feedItems, err := j.client.GetFeed()
+	feedItems, err := j.Client.GetFeed()
 	if err != nil {
-		j.log.Error().Err(err).Msgf("torznab.getFeed: error fetching feed items")
+		j.Log.Error().Err(err).Msgf("torznab.getFeed: error fetching feed items")
 		return nil, err
 	}
 
-	j.log.Trace().Msgf("torznab getFeed: refreshing feed: %v, found (%d) items", j.name, len(feedItems))
+	j.Log.Trace().Msgf("torznab getFeed: refreshing feed: %v, found (%d) items", j.Name, len(feedItems))
 
 	items := make([]torznab.FeedItem, 0)
 	if len(feedItems) == 0 {
@@ -107,13 +105,13 @@ func (j *torznabJob) getFeed() ([]torznab.FeedItem, error) {
 			continue
 		}
 
-		//if cacheValue, err := j.repo.Get(j.name, i.GUID); err == nil {
-		//	j.log.Trace().Msgf("torznab getFeed: cacheValue: %v", cacheValue)
+		//if cacheValue, err := j.Repo.Get(j.Name, i.GUID); err == nil {
+		//	j.Log.Trace().Msgf("torznab getFeed: cacheValue: %v", cacheValue)
 		//}
 
-		if exists, err := j.repo.Exists(j.name, i.GUID); err == nil {
+		if exists, err := j.Repo.Exists(j.Name, i.GUID); err == nil {
 			if exists {
-				j.log.Trace().Msg("torznab getFeed: cache item exists, skip")
+				j.Log.Trace().Msg("torznab getFeed: cache item exists, skip")
 				continue
 			}
 		}
@@ -124,8 +122,8 @@ func (j *torznabJob) getFeed() ([]torznab.FeedItem, error) {
 
 		ttl := (24 * time.Hour) * 28
 
-		if err := j.repo.Put(j.name, i.GUID, []byte("test"), ttl); err != nil {
-			j.log.Error().Err(err).Str("guid", i.GUID).Msg("torznab getFeed: cache.Put: error storing item in cache")
+		if err := j.Repo.Put(j.Name, i.GUID, []byte("test"), ttl); err != nil {
+			j.Log.Error().Err(err).Str("guid", i.GUID).Msg("torznab getFeed: cache.Put: error storing item in cache")
 		}
 	}
 

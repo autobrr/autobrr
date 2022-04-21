@@ -7,6 +7,7 @@ import (
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/internal/indexer"
 	"github.com/autobrr/autobrr/internal/release"
+	"github.com/autobrr/autobrr/internal/scheduler"
 	"github.com/autobrr/autobrr/pkg/torznab"
 
 	"github.com/robfig/cron/v3"
@@ -15,7 +16,7 @@ import (
 
 type Service interface {
 	Start() error
-	Stop()
+	StartJob(i domain.IndexerDefinition) error
 }
 
 type feedInstance struct {
@@ -29,23 +30,20 @@ type feedInstance struct {
 }
 
 type service struct {
-	cron  *cron.Cron
-	feeds []feedInstance
-	jobs  map[string]cron.EntryID
+	jobs map[string]cron.EntryID
 
 	repo       domain.FeedCacheRepo
-	releaseSvc release.Service
 	indexerSvc indexer.Service
+	releaseSvc release.Service
+	scheduler  scheduler.Service
 }
 
-func NewService(repo domain.FeedCacheRepo, releaseSvc release.Service, indexerSvc indexer.Service) Service {
+func NewService(repo domain.FeedCacheRepo, indexerSvc indexer.Service, releaseSvc release.Service, scheduler scheduler.Service) Service {
 	return &service{
 		repo:       repo,
-		releaseSvc: releaseSvc,
 		indexerSvc: indexerSvc,
-		cron: cron.New(cron.WithChain(
-			cron.Recover(cron.DefaultLogger),
-		)),
+		releaseSvc: releaseSvc,
+		scheduler:  scheduler,
 	}
 }
 
@@ -53,20 +51,16 @@ func (s service) Start() error {
 	// get all torznab indexer definitions
 	indexers := s.indexerSvc.GetTorznabIndexers()
 	for _, i := range indexers {
-		if err := s.startJob(i); err != nil {
+		if err := s.StartJob(i); err != nil {
 			log.Error().Err(err).Msg("failed to initialize torznab job")
 			continue
 		}
 	}
 
-	// start cron scheduler
-	// TODO move out to main?
-	s.cron.Start()
-
 	return nil
 }
 
-func (s service) startJob(i domain.IndexerDefinition) error {
+func (s service) StartJob(i domain.IndexerDefinition) error {
 	// get all torznab indexer definitions
 	if !i.Enabled {
 		return nil
@@ -107,13 +101,9 @@ func (s service) startJob(i domain.IndexerDefinition) error {
 	return nil
 }
 
-func (s service) Stop() {
-	s.cron.Stop()
-}
-
 func (s service) AddTorznabJob(f feedInstance) error {
 	if f.URL == "" {
-		return errors.New("torznab feed requires url")
+		return errors.New("torznab feed requires URL")
 	}
 	if f.Cron == "" {
 		f.Cron = "*/15 * * * *"
@@ -122,46 +112,31 @@ func (s service) AddTorznabJob(f feedInstance) error {
 	// setup logger
 	l := log.With().Str("feed_name", f.Name).Logger()
 
-	// setup torznab client
+	// setup torznab Client
 	c := torznab.NewClient(f.URL, f.ApiKey)
 
 	// create job
-	job := &torznabJob{
-		name:              f.Name,
-		indexerIdentifier: f.IndexerIdentifier,
-		client:            c,
-		log:               l,
-		repo:              s.repo,
-		releaseSvc:        s.releaseSvc,
-
-		url:  f.URL,
-		cron: s.cron,
+	job := &TorznabJob{
+		Name:              f.Name,
+		IndexerIdentifier: f.IndexerIdentifier,
+		Client:            c,
+		Log:               l,
+		Repo:              s.repo,
+		ReleaseSvc:        s.releaseSvc,
+		URL:               f.URL,
 	}
 
 	// schedule job
-	if id, err := s.cron.AddJob(f.Cron, cron.NewChain(
-		cron.SkipIfStillRunning(cron.DiscardLogger)).Then(job),
-	); err != nil {
-		return fmt.Errorf("add job fialed: %w", err)
-	} else {
-		job.jobID = id
-
-		// add to job map
-		s.jobs[f.IndexerIdentifier] = id
+	id, err := s.scheduler.AddJob(job, f.Cron, f.IndexerIdentifier)
+	if err != nil {
+		return fmt.Errorf("feeds,AddTorznabJob: add job failed: %w", err)
 	}
+	job.JobID = id
+	//
+	//// add to job map
+	//s.jobs[f.IndexerIdentifier] = id
 
 	log.Debug().Msgf("feeds.AddTorznabJob: %v", f.Name)
-
-	return nil
-}
-
-func (s service) StopTorznabJob(indexer string) error {
-	v, ok := s.jobs[indexer]
-	if !ok {
-		return nil
-	}
-
-	s.cron.Remove(v)
 
 	return nil
 }

@@ -314,7 +314,7 @@ export function IndexerAddForm({ isOpen, toggle }: AddProps) {
                                                                                 setFieldValue(field.name, option?.value ?? "")
 
                                                                                 const ind = data!.find(i => i.identifier === option.value);
-                                                                                setFieldValue("implementation", ind?.implementation ?? "irc")
+                                                                                setFieldValue("implementation", ind?.implementation ? ind.implementation : "irc")
                                                                                 setIndexer(ind!)
                                                                                 if (ind!.irc?.settings) {
                                                                                     ind!.irc.settings.forEach((s) => {
@@ -440,6 +440,7 @@ export function IndexerUpdateForm({ isOpen, toggle, indexer }: UpdateProps) {
         name: indexer.name,
         enabled: indexer.enabled,
         identifier: indexer.identifier,
+        implementation: indexer.implementation,
         settings: indexer.settings?.reduce(
             (o: Record<string, string>, obj: IndexerSetting) => ({
                 ...o,

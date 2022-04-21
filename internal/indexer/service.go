@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/autobrr/autobrr/internal/domain"
+	"github.com/autobrr/autobrr/internal/scheduler"
 
 	"github.com/gosimple/slug"
 	"github.com/rs/zerolog/log"
@@ -34,6 +35,7 @@ type service struct {
 	config     domain.Config
 	repo       domain.IndexerRepo
 	apiService APIService
+	scheduler  scheduler.Service
 
 	// contains all raw indexer definitions
 	indexerDefinitions map[string]domain.IndexerDefinition
@@ -46,11 +48,12 @@ type service struct {
 	torznabIndexers map[string]*domain.IndexerDefinition
 }
 
-func NewService(config domain.Config, repo domain.IndexerRepo, apiService APIService) Service {
+func NewService(config domain.Config, repo domain.IndexerRepo, apiService APIService, scheduler scheduler.Service) Service {
 	return &service{
 		config:                    config,
 		repo:                      repo,
 		apiService:                apiService,
+		scheduler:                 scheduler,
 		indexerDefinitions:        make(map[string]domain.IndexerDefinition),
 		mapIndexerIRCToName:       make(map[string]string),
 		lookupIRCServerDefinition: make(map[string]map[string]domain.IndexerDefinition),
@@ -95,6 +98,12 @@ func (s *service) Update(ctx context.Context, indexer domain.Indexer) (*domain.I
 	if err != nil {
 		log.Error().Stack().Err(err).Msgf("failed to add indexer: %v", indexer.Name)
 		return nil, err
+	}
+
+	if indexer.Implementation == "torznab" {
+		if !indexer.Enabled {
+			s.stopFeed(indexer.Identifier)
+		} // TODO else start
 	}
 
 	return i, nil
@@ -489,4 +498,31 @@ func (s *service) getDefinitionForAnnounce(name string) *domain.IndexerDefinitio
 	}
 
 	return nil
+}
+
+func (s *service) stopFeed(indexer string) {
+	// verify indexer is torznab indexer
+	_, ok := s.torznabIndexers[indexer]
+	if !ok {
+		return
+	}
+
+	if err := s.scheduler.RemoveJobByIdentifier(indexer); err != nil {
+		return
+	}
+}
+
+func (s *service) startFeed(indexer string) {
+	v, ok := s.torznabIndexers[indexer]
+	if !ok {
+		return
+	}
+
+	if v == nil {
+		return
+	}
+
+	//if err := s.scheduler.AddTorznabJob(*v); err != nil {
+	//	return
+	//}
 }
