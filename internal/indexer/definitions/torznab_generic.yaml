@@ -8,6 +8,7 @@ urls:
   - https://domain.com
 privacy: private
 protocol: torrent
+implementation: torznab
 supports:
   - torznab
 source: torznab

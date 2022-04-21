@@ -3,7 +3,7 @@ interface Indexer {
   name: string;
   identifier: string;
   enabled: boolean;
-  type?: string;
+  implementation: string;
   settings: Array<IndexerSetting>;
 }
 
@@ -11,6 +11,7 @@ interface IndexerDefinition {
   id?: number;
   name: string;
   identifier: string;
+  implementation: string;
   enabled?: boolean;
   description: string;
   language: string;

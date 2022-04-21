@@ -1,6 +1,7 @@
 package feed
 
 import (
+	"fmt"
 	"sort"
 	"time"
 
@@ -13,12 +14,13 @@ import (
 )
 
 type torznabJob struct {
-	name       string
-	log        zerolog.Logger
-	url        string
-	client     *torznab.Client
-	repo       domain.FeedCacheRepo
-	releaseSvc release.Service
+	name              string
+	indexerIdentifier string
+	log               zerolog.Logger
+	url               string
+	client            *torznab.Client
+	repo              domain.FeedCacheRepo
+	releaseSvc        release.Service
 
 	attempts int
 	errors   []error
@@ -44,28 +46,38 @@ func (j *torznabJob) process() error {
 	items, err := j.getFeed()
 	if err != nil {
 		j.log.Error().Err(err).Msgf("torznab.process: error fetching feed items")
+		return fmt.Errorf("torznab.process: error getting feed items: %w", err)
 	}
 
-	j.log.Debug().Msgf("torznab process: refreshing feed: %v, found (%d) new items to check", j.name, len(items))
+	if len(items) == 0 {
+		return nil
+	}
 
-	releases := make([]*domain.Release, len(items))
+	j.log.Debug().Msgf("torznab.process: refreshing feed: %v, found (%d) new items to check", j.name, len(items))
+
+	releases := make([]*domain.Release, 0)
 
 	for _, item := range items {
-		rls, err := domain.NewRelease(j.name, "")
+		rls, err := domain.NewRelease(item.Title, "")
 		if err != nil {
 			continue
 		}
+
 		rls.TorrentName = item.Title
 		rls.TorrentURL = item.GUID
 		rls.Implementation = domain.ReleaseImplementationTorznab
-		//rls.Size = item.Size
+		rls.Indexer = j.indexerIdentifier
+		//rls.Size = item.Size // TODO parse size
 
-		// TODO set indexer
+		if err := rls.Parse(); err != nil {
+			j.log.Error().Err(err).Msgf("torznab.process: error parsing release")
+			continue
+		}
 
 		releases = append(releases, rls)
 	}
 
-	// send to filters
+	// process all new releases
 	go j.releaseSvc.ProcessMultiple(releases)
 
 	return nil

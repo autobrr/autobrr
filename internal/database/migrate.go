@@ -13,13 +13,14 @@ CREATE TABLE users
 
 CREATE TABLE indexer
 (
-    id         INTEGER PRIMARY KEY,
-    identifier TEXT,
-    enabled    BOOLEAN,
-    name       TEXT NOT NULL,
-    settings   TEXT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    id             INTEGER PRIMARY KEY,
+    identifier     TEXT,
+	implementation TEXT,
+    enabled        BOOLEAN,
+    name           TEXT NOT NULL,
+    settings       TEXT,
+    created_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     UNIQUE (identifier)
 );
 
@@ -552,6 +553,10 @@ ALTER TABLE release_action_status_dg_tmp
 		ttl    TIMESTAMP
 	);
 	`,
+	`
+	ALTER TABLE indexer
+		ADD COLUMN implementation TEXT;
+	`,
 }
 
 const postgresSchema = `
@@ -567,13 +572,14 @@ CREATE TABLE users
 
 CREATE TABLE indexer
 (
-    id         SERIAL PRIMARY KEY,
-    identifier TEXT,
-    enabled    BOOLEAN,
-    name       TEXT NOT NULL,
-    settings   TEXT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    id             SERIAL PRIMARY KEY,
+    identifier     TEXT,
+	implementation TEXT,
+    enabled        BOOLEAN,
+    name           TEXT NOT NULL,
+    settings       TEXT,
+    created_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     UNIQUE (identifier)
 );
 
@@ -839,5 +845,9 @@ var postgresMigrations = []string{
         value  TEXT,
 		ttl    TIMESTAMP
 	);
+	`,
+	`
+	ALTER TABLE indexer
+		ADD COLUMN implementation TEXT;
 	`,
 }

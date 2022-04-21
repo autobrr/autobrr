@@ -73,6 +73,10 @@ func (s *service) Delete(ctx context.Context) error {
 }
 
 func (s *service) Process(release *domain.Release) {
+	if release == nil {
+		return
+	}
+
 	// TODO check in config for "Save all releases"
 	// TODO cross-seed check
 	// TODO dupe checks
@@ -81,6 +85,10 @@ func (s *service) Process(release *domain.Release) {
 	filters, err := s.filterSvc.FindByIndexerIdentifier(release.Indexer)
 	if err != nil {
 		log.Error().Err(err).Msgf("announce.Service.Process: error finding filters for indexer: %v", release.Indexer)
+		return
+	}
+
+	if len(filters) == 0 {
 		return
 	}
 
@@ -172,6 +180,9 @@ func (s *service) Process(release *domain.Release) {
 
 func (s *service) ProcessMultiple(releases []*domain.Release) {
 	for _, rls := range releases {
+		if rls == nil {
+			continue
+		}
 		s.Process(rls)
 	}
 }

@@ -92,7 +92,7 @@ func main() {
 		notificationService   = notification.NewService(notificationRepo)
 		userService           = user.NewService(userRepo)
 		authService           = auth.NewService(userService)
-		feedService           = feed.NewService(feedCacheRepo, releaseService)
+		feedService           = feed.NewService(feedCacheRepo, releaseService, indexerService)
 	)
 
 	// register event subscribers

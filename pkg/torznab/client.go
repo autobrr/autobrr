@@ -96,15 +96,15 @@ type BasicAuth struct {
 	Password string
 }
 
-func NewClient(url string) *Client {
+func NewClient(url string, apiKey string) *Client {
 	httpClient := &http.Client{
 		Timeout: time.Second * 20,
 	}
 
 	c := &Client{
-		http: httpClient,
-		Host: url,
-		//ApiKey: apiKey,
+		http:   httpClient,
+		Host:   url,
+		ApiKey: apiKey,
 	}
 
 	return c

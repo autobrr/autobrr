@@ -240,6 +240,7 @@ export function IndexerAddForm({ isOpen, toggle }: AddProps) {
                                     initialValues={{
                                         enabled: true,
                                         identifier: "",
+                                        implementation: "irc",
                                         name: "",
                                         irc: {
                                             invite_command: "",
@@ -313,6 +314,7 @@ export function IndexerAddForm({ isOpen, toggle }: AddProps) {
                                                                                 setFieldValue(field.name, option?.value ?? "")
 
                                                                                 const ind = data!.find(i => i.identifier === option.value);
+                                                                                setFieldValue("implementation", ind?.implementation ?? "irc")
                                                                                 setIndexer(ind!)
                                                                                 if (ind!.irc?.settings) {
                                                                                     ind!.irc.settings.forEach((s) => {
