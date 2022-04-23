@@ -73,6 +73,7 @@ func main() {
 		downloadClientRepo = database.NewDownloadClientRepo(db)
 		actionRepo         = database.NewActionRepo(db, downloadClientRepo)
 		filterRepo         = database.NewFilterRepo(db)
+		feedRepo           = database.NewFeedRepo(db)
 		feedCacheRepo      = database.NewFeedCacheRepo(db)
 		indexerRepo        = database.NewIndexerRepo(db)
 		ircRepo            = database.NewIrcRepo(db)
@@ -94,7 +95,7 @@ func main() {
 		releaseService        = release.NewService(releaseRepo, actionService, filterService)
 		ircService            = irc.NewService(ircRepo, releaseService, indexerService)
 		notificationService   = notification.NewService(notificationRepo)
-		feedService           = feed.NewService(feedCacheRepo, indexerService, releaseService, schedulingService)
+		feedService           = feed.NewService(feedRepo, feedCacheRepo, releaseService, schedulingService)
 	)
 
 	// register event subscribers
@@ -103,7 +104,23 @@ func main() {
 	errorChannel := make(chan error)
 
 	go func() {
-		httpServer := http.NewServer(cfg, serverEvents, db, version, commit, date, actionService, authService, downloadClientService, filterService, indexerService, ircService, notificationService, releaseService)
+		httpServer := http.NewServer(
+			cfg,
+			serverEvents,
+			db,
+			version,
+			commit,
+			date,
+			actionService,
+			authService,
+			downloadClientService,
+			filterService,
+			feedService,
+			indexerService,
+			ircService,
+			notificationService,
+			releaseService,
+		)
 		errorChannel <- httpServer.Open()
 	}()
 

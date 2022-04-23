@@ -243,6 +243,24 @@ CREATE TABLE notification
 	updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE TABLE feed
+(
+	id           INTEGER PRIMARY KEY,
+	indexer      TEXT,
+	name         TEXT,
+	type         TEXT,
+	enabled      BOOLEAN,
+	url          TEXT,
+	interval     INTEGER,
+	capabilities TEXT []   DEFAULT '{}' NOT NULL,
+	api_key      TEXT,
+	settings     TEXT,
+    indexer_id   INTEGER,
+    created_at   TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at   TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (indexer_id) REFERENCES indexer(id) ON DELETE CASCADE
+);
+
 CREATE TABLE feed_cache
 (
 	bucket TEXT,
@@ -545,6 +563,24 @@ ALTER TABLE release_action_status_dg_tmp
 	);
 	`,
 	`
+	CREATE TABLE feed
+	(
+		id           INTEGER PRIMARY KEY,
+		indexer      TEXT,
+		name         TEXT,
+		type         TEXT,
+		enabled      BOOLEAN,
+		url          TEXT,
+		interval     INTEGER,
+		capabilities TEXT []   DEFAULT '{}' NOT NULL,
+		api_key      TEXT,
+		settings     TEXT,
+		indexer_id   INTEGER,
+		created_at   TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+		updated_at   TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+		FOREIGN KEY (indexer_id) REFERENCES indexer(id) ON DELETE CASCADE
+	);
+
 	CREATE TABLE feed_cache
 	(
 		bucket TEXT,

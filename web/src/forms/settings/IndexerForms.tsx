@@ -8,7 +8,7 @@ import type { FieldProps } from "formik";
 import { XIcon } from "@heroicons/react/solid";
 import { Dialog, Transition } from "@headlessui/react";
 
-import { sleep } from "../../utils";
+import {sleep, slugify} from "../../utils";
 import { queryClient } from "../../App";
 import DEBUG from "../../components/debug";
 import { APIClient } from "../../api/APIClient";
@@ -88,7 +88,7 @@ const IrcSettingFields = (ind: IndexerDefinition, indexer: string) => {
     }
 }
 
-const TorznabSettingFields = (ind: IndexerDefinition, indexer: string) => {
+const FeedSettingFields = (ind: IndexerDefinition, indexer: string) => {
     if (indexer !== "") {
         return (
             <Fragment>
@@ -106,9 +106,9 @@ const TorznabSettingFields = (ind: IndexerDefinition, indexer: string) => {
                         {ind.torznab.settings.map((f: IndexerSetting, idx: number) => {
                             switch (f.type) {
                                 case "text":
-                                    return <TextFieldWide name={`settings.${f.name}`} label={f.label} required={f.required} key={idx} help={f.help} />
+                                    return <TextFieldWide name={`feed.${f.name}`} label={f.label} required={f.required} key={idx} help={f.help} />
                                 case "secret":
-                                    return <PasswordFieldWide name={`settings.${f.name}`} label={f.label} required={f.required} key={idx} help={f.help} defaultValue={f.default} />
+                                    return <PasswordFieldWide name={`feed.${f.name}`} label={f.label} required={f.required} key={idx} help={f.help} defaultValue={f.default} />
                             }
                             return null
                         })}
@@ -142,6 +142,12 @@ const SettingFields = (ind: IndexerDefinition, indexer: string) => {
             </div>
         )
     }
+}
+
+function slugIdentifier(name: string) {
+    const l = name.toLowerCase()
+    const r = l.replaceAll("torznab", "")
+    return slugify(`torznab-${r}`)
 }
 
 interface AddProps {
@@ -181,9 +187,21 @@ export function IndexerAddForm({ isOpen, toggle }: AddProps) {
         if (!ind)
             return;
 
-        if (!ind.irc) {
-            mutation.mutate(formData);
+
+        // if (!ind.irc) {
+        //     mutation.mutate(formData);
+        //     return;
+        // }
+
+        if (ind.implementation === "torznab") {
+            console.log("indexer: ", ind)
+            const name = slugIdentifier(formData.name)
+            console.log("slug: ", name)
             return;
+        }
+
+        if (ind.implementation === "irc") {
+            console.log("indexer: ", ind)
         }
 
         const channels: IrcChannel[] = [];
@@ -214,7 +232,11 @@ export function IndexerAddForm({ isOpen, toggle }: AddProps) {
         }
 
         mutation.mutate(formData, {
-            onSuccess: () => ircMutation.mutate(network)
+            onSuccess: () => {
+                if (ind.implementation === "irc") {
+                    ircMutation.mutate(network)
+                }
+            }
         });
     };
 
@@ -242,9 +264,8 @@ export function IndexerAddForm({ isOpen, toggle }: AddProps) {
                                         identifier: "",
                                         implementation: "irc",
                                         name: "",
-                                        irc: {
-                                            invite_command: "",
-                                        },
+                                        irc: {},
+                                        feed: {},
                                         settings: {},
                                     }}
                                     onSubmit={onSubmit}
@@ -342,7 +363,7 @@ export function IndexerAddForm({ isOpen, toggle }: AddProps) {
                                                     </div>
 
                                                     {IrcSettingFields(indexer, values.identifier)}
-                                                    {TorznabSettingFields(indexer, values.identifier)}
+                                                    {FeedSettingFields(indexer, values.identifier)}
                                                 </div>
 
                                                 <div

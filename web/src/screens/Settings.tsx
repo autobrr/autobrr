@@ -1,4 +1,4 @@
-import {BellIcon, CogIcon, CollectionIcon, DownloadIcon, KeyIcon} from '@heroicons/react/outline'
+import {BellIcon, CogIcon, CollectionIcon, DownloadIcon, KeyIcon, RssIcon} from '@heroicons/react/outline'
 import {NavLink, Route, Switch as RouteSwitch, useLocation, useRouteMatch} from "react-router-dom";
 
 import { classNames } from "../utils";
@@ -9,16 +9,17 @@ import DownloadClientSettings from "./settings/DownloadClient";
 import { RegexPlayground } from './settings/RegexPlayground';
 import ReleaseSettings from "./settings/Releases";
 import NotificationSettings from "./settings/Notifications";
+import FeedSettings from "./settings/Feed";
 
 const subNavigation = [
     {name: 'Application', href: '', icon: CogIcon, current: true},
     {name: 'Indexers', href: 'indexers', icon: KeyIcon, current: false},
     {name: 'IRC', href: 'irc', icon: KeyIcon, current: false},
+    {name: 'Feeds', href: 'feeds', icon: RssIcon, current: false},
     {name: 'Clients', href: 'clients', icon: DownloadIcon, current: false},
     {name: 'Notifications', href: 'notifications', icon: BellIcon, current: false},
     {name: 'Releases', href: 'releases', icon: CollectionIcon, current: false},
     // {name: 'Regex Playground', href: 'regex-playground', icon: CogIcon, current: false}
-    // {name: 'Actions', href: 'actions', icon: PlayIcon, current: false},
     // {name: 'Rules', href: 'rules', icon: ClipboardCheckIcon, current: false},
 ]
 
@@ -86,6 +87,10 @@ export default function Settings() {
                                 <IndexerSettings/>
                             </Route>
 
+                            <Route path={`${url}/feeds`}>
+                                <FeedSettings/>
+                            </Route>
+
                             <Route path={`${url}/irc`}>
                                 <IrcSettings/>
                             </Route>
@@ -101,10 +106,6 @@ export default function Settings() {
                             <Route path={`${url}/releases`}>
                                 <ReleaseSettings/>
                             </Route>
-
-                            {/*<Route path={`${url}/actions`}>
-                                <ActionSettings/>
-                            </Route>*/}
 
                             <Route path={`${url}/regex-playground`}>
                                 <RegexPlayground />

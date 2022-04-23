@@ -1,22 +1,28 @@
 package feed
 
 import (
+	"context"
 	"errors"
 	"fmt"
 
 	"github.com/autobrr/autobrr/internal/domain"
-	"github.com/autobrr/autobrr/internal/indexer"
 	"github.com/autobrr/autobrr/internal/release"
 	"github.com/autobrr/autobrr/internal/scheduler"
 	"github.com/autobrr/autobrr/pkg/torznab"
 
-	"github.com/robfig/cron/v3"
 	"github.com/rs/zerolog/log"
 )
 
 type Service interface {
+	FindByID(ctx context.Context, id int) (*domain.Feed, error)
+	FindByIndexerIdentifier(ctx context.Context, indexer string) (*domain.Feed, error)
+	Find(ctx context.Context) ([]domain.Feed, error)
+	Store(ctx context.Context, feed *domain.Feed) error
+	Update(ctx context.Context, feed *domain.Feed) error
+	ToggleEnabled(ctx context.Context, id int, enabled bool) error
+	Delete(ctx context.Context, id int) error
+
 	Start() error
-	StartJob(i domain.IndexerDefinition) error
 }
 
 type feedInstance struct {
@@ -30,29 +36,119 @@ type feedInstance struct {
 }
 
 type service struct {
-	jobs map[string]cron.EntryID
+	jobs map[string]int
 
-	repo       domain.FeedCacheRepo
-	indexerSvc indexer.Service
+	repo       domain.FeedRepo
+	cacheRepo  domain.FeedCacheRepo
 	releaseSvc release.Service
 	scheduler  scheduler.Service
 }
 
-func NewService(repo domain.FeedCacheRepo, indexerSvc indexer.Service, releaseSvc release.Service, scheduler scheduler.Service) Service {
+func NewService(repo domain.FeedRepo, cacheRepo domain.FeedCacheRepo, releaseSvc release.Service, scheduler scheduler.Service) Service {
 	return &service{
+		jobs:       map[string]int{},
 		repo:       repo,
-		indexerSvc: indexerSvc,
+		cacheRepo:  cacheRepo,
 		releaseSvc: releaseSvc,
 		scheduler:  scheduler,
 	}
 }
 
-func (s service) Start() error {
+func (s *service) FindByID(ctx context.Context, id int) (*domain.Feed, error) {
+	return s.repo.FindByID(ctx, id)
+}
+
+func (s *service) FindByIndexerIdentifier(ctx context.Context, indexer string) (*domain.Feed, error) {
+	return s.repo.FindByIndexerIdentifier(ctx, indexer)
+}
+
+func (s *service) Find(ctx context.Context) ([]domain.Feed, error) {
+	return s.repo.Find(ctx)
+}
+
+func (s *service) Store(ctx context.Context, feed *domain.Feed) error {
+	return s.repo.Store(ctx, feed)
+}
+
+func (s *service) Update(ctx context.Context, feed *domain.Feed) error {
+	// TODO restart job
+	return s.repo.Update(ctx, feed)
+}
+
+func (s *service) Delete(ctx context.Context, id int) error {
+	return s.delete(ctx, id)
+}
+
+func (s *service) delete(ctx context.Context, id int) error {
+	if err := s.repo.Delete(ctx, id); err != nil {
+		log.Error().Err(err).Msg("feed.Delete: error deleting feed")
+		return err
+	}
+
+	f, err := s.repo.FindByID(ctx, id)
+	if err != nil {
+		log.Error().Err(err).Msg("feed.ToggleEnabled: error finding feed")
+		return err
+	}
+
+	if err := s.stopTorznabJob(f.Indexer); err != nil {
+		log.Error().Err(err).Msg("feed.Delete: error stopping torznab job")
+		return err
+	}
+
+	log.Debug().Msgf("feed.Delete: stopping and removing feed: %v", f.Name)
+
+	return nil
+}
+
+func (s *service) ToggleEnabled(ctx context.Context, id int, enabled bool) error {
+	return s.toggleEnabled(ctx, id, enabled)
+}
+
+func (s *service) toggleEnabled(ctx context.Context, id int, enabled bool) error {
+	if err := s.repo.ToggleEnabled(ctx, id, enabled); err != nil {
+		log.Error().Err(err).Msg("feed.ToggleEnabled: error toggle enabled")
+		return err
+	}
+
+	f, err := s.repo.FindByID(ctx, id)
+	if err != nil {
+		log.Error().Err(err).Msg("feed.ToggleEnabled: error finding feed")
+		return err
+	}
+
+	if !enabled {
+		if err := s.stopTorznabJob(f.Indexer); err != nil {
+			log.Error().Err(err).Msg("feed.ToggleEnabled: error stopping torznab job")
+			return err
+		}
+
+		log.Debug().Msgf("feed.ToggleEnabled: stopping feed: %v", f.Name)
+
+		return nil
+	}
+
+	if err := s.startJob(*f); err != nil {
+		log.Error().Err(err).Msg("feed.ToggleEnabled: error starting torznab job")
+		return err
+	}
+
+	log.Debug().Msgf("feed.ToggleEnabled: started feed: %v", f.Name)
+
+	return nil
+}
+
+func (s *service) Start() error {
 	// get all torznab indexer definitions
-	indexers := s.indexerSvc.GetTorznabIndexers()
-	for _, i := range indexers {
-		if err := s.StartJob(i); err != nil {
-			log.Error().Err(err).Msg("failed to initialize torznab job")
+	feeds, err := s.repo.Find(context.TODO())
+	if err != nil {
+		log.Error().Err(err).Msg("feed.Start: error getting feeds")
+		return err
+	}
+
+	for _, i := range feeds {
+		if err := s.startJob(i); err != nil {
+			log.Error().Err(err).Msg("feed.Start: failed to initialize torznab job")
 			continue
 		}
 	}
@@ -60,38 +156,31 @@ func (s service) Start() error {
 	return nil
 }
 
-func (s service) StartJob(i domain.IndexerDefinition) error {
+func (s *service) startJob(f domain.Feed) error {
 	// get all torznab indexer definitions
-	if !i.Enabled {
+	if !f.Enabled {
 		return nil
 	}
 
 	// get torznab_url from settings
-	url, ok := i.SettingsMap["torznab_url"]
-	if !ok || url == "" {
+	if f.URL == "" {
 		return nil
 	}
 
-	// get apikey if it's there from settings
-	apiKey, ok := i.SettingsMap["apikey"]
-	if !ok {
-		return nil
-	}
-
-	f := feedInstance{
-		Name:              i.Name,
-		IndexerIdentifier: i.Identifier,
-		Implementation:    i.Implementation,
-		URL:               url,
-		ApiKey:            apiKey,
-		Interval:          "*/15 * * * *",
+	fi := feedInstance{
+		Name:              f.Name,
+		IndexerIdentifier: f.Indexer,
+		Implementation:    f.Type,
+		URL:               f.URL,
+		ApiKey:            f.ApiKey,
+		Interval:          "*/15 * * * *", // TODO build with sprintf
 		Cron:              "*/15 * * * *",
 	}
 
-	switch i.Implementation {
-	case "torznab":
-		if err := s.AddTorznabJob(f); err != nil {
-			log.Error().Err(err).Msg("failed to initialize feed")
+	switch fi.Implementation {
+	case string(domain.FeedTypeTorznab):
+		if err := s.addTorznabJob(fi); err != nil {
+			log.Error().Err(err).Msg("feed.startJob: failed to initialize feed")
 			return err
 		}
 		//case "rss":
@@ -101,7 +190,7 @@ func (s service) StartJob(i domain.IndexerDefinition) error {
 	return nil
 }
 
-func (s service) AddTorznabJob(f feedInstance) error {
+func (s *service) addTorznabJob(f feedInstance) error {
 	if f.URL == "" {
 		return errors.New("torznab feed requires URL")
 	}
@@ -121,7 +210,7 @@ func (s service) AddTorznabJob(f feedInstance) error {
 		IndexerIdentifier: f.IndexerIdentifier,
 		Client:            c,
 		Log:               l,
-		Repo:              s.repo,
+		Repo:              s.cacheRepo,
 		ReleaseSvc:        s.releaseSvc,
 		URL:               f.URL,
 	}
@@ -129,14 +218,31 @@ func (s service) AddTorznabJob(f feedInstance) error {
 	// schedule job
 	id, err := s.scheduler.AddJob(job, f.Cron, f.IndexerIdentifier)
 	if err != nil {
-		return fmt.Errorf("feeds,AddTorznabJob: add job failed: %w", err)
+		return fmt.Errorf("feed.AddTorznabJob: add job failed: %w", err)
 	}
 	job.JobID = id
-	//
-	//// add to job map
-	//s.jobs[f.IndexerIdentifier] = id
 
-	log.Debug().Msgf("feeds.AddTorznabJob: %v", f.Name)
+	// add to job map
+	s.jobs[f.IndexerIdentifier] = id
+
+	log.Debug().Msgf("feed.AddTorznabJob: %v", f.Name)
+
+	return nil
+}
+
+func (s *service) stopTorznabJob(indexer string) error {
+	//// add to job map
+	//jobID, ok := s.jobs[indexer]
+	//if !ok {
+	//	return nil
+	//}
+
+	// remove job from scheduler
+	if err := s.scheduler.RemoveJobByIdentifier(indexer); err != nil {
+		return fmt.Errorf("feed.stopTorznabJob: stop job failed: %w", err)
+	}
+
+	log.Debug().Msgf("feed.stopTorznabJob: %v", indexer)
 
 	return nil
 }

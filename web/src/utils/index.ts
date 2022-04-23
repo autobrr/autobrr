@@ -74,3 +74,12 @@ export function IsEmptyDate(date: string) {
     }
     return "n/a"
 }
+
+export function slugify(str: string) {
+    return str
+        .normalize('NFKD')
+        .toLowerCase()
+        .replace(/[^\w\s-]/g, '')
+        .trim()
+        .replace(/[-\s]+/g, '-');
+}

@@ -90,6 +90,12 @@ export const APIClient = {
         toggleEnable: (id: number, enabled: boolean) => appClient.Put(`api/filters/${id}/enabled`, { enabled }),
         delete: (id: number) => appClient.Delete(`api/filters/${id}`),
     },
+    feeds: {
+        find: () => appClient.Get<Feed[]>("api/feeds"),
+        toggleEnable: (id: number, enabled: boolean) => appClient.Patch(`api/feeds/${id}/enabled`, { enabled }),
+        update: (feed: Feed) => appClient.Put(`api/feeds/${feed.id}`, feed),
+        delete: (id: number) => appClient.Delete(`api/feeds/${id}`),
+    },
     indexers: {
         // returns indexer options for all currently present/enabled indexers
         getOptions: () => appClient.Get<Indexer[]>("api/indexer/options"),
