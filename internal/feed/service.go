@@ -71,20 +71,32 @@ func (s *service) Store(ctx context.Context, feed *domain.Feed) error {
 }
 
 func (s *service) Update(ctx context.Context, feed *domain.Feed) error {
-	// TODO restart job
-	return s.repo.Update(ctx, feed)
+	return s.update(ctx, feed)
 }
 
 func (s *service) Delete(ctx context.Context, id int) error {
 	return s.delete(ctx, id)
 }
 
-func (s *service) delete(ctx context.Context, id int) error {
-	if err := s.repo.Delete(ctx, id); err != nil {
-		log.Error().Err(err).Msg("feed.Delete: error deleting feed")
+func (s *service) ToggleEnabled(ctx context.Context, id int, enabled bool) error {
+	return s.toggleEnabled(ctx, id, enabled)
+}
+
+func (s *service) update(ctx context.Context, feed *domain.Feed) error {
+	if err := s.repo.Update(ctx, feed); err != nil {
+		log.Error().Err(err).Msg("feed.Update: error updating feed")
 		return err
 	}
 
+	if err := s.restartJob(feed); err != nil {
+		log.Error().Err(err).Msg("feed.Update: error restarting feed")
+		return err
+	}
+
+	return nil
+}
+
+func (s *service) delete(ctx context.Context, id int) error {
 	f, err := s.repo.FindByID(ctx, id)
 	if err != nil {
 		log.Error().Err(err).Msg("feed.ToggleEnabled: error finding feed")
@@ -96,13 +108,14 @@ func (s *service) delete(ctx context.Context, id int) error {
 		return err
 	}
 
+	if err := s.repo.Delete(ctx, id); err != nil {
+		log.Error().Err(err).Msg("feed.Delete: error deleting feed")
+		return err
+	}
+
 	log.Debug().Msgf("feed.Delete: stopping and removing feed: %v", f.Name)
 
 	return nil
-}
-
-func (s *service) ToggleEnabled(ctx context.Context, id int, enabled bool) error {
-	return s.toggleEnabled(ctx, id, enabled)
 }
 
 func (s *service) toggleEnabled(ctx context.Context, id int, enabled bool) error {
@@ -151,6 +164,27 @@ func (s *service) Start() error {
 			log.Error().Err(err).Msg("feed.Start: failed to initialize torznab job")
 			continue
 		}
+	}
+
+	return nil
+}
+
+func (s *service) restartJob(f *domain.Feed) error {
+	// stop feed
+	if err := s.stopTorznabJob(f.Indexer); err != nil {
+		log.Error().Err(err).Msg("feed.restartJob: error stopping torznab job")
+		return err
+	}
+
+	log.Debug().Msgf("feed.restartJob: stopping feed: %v", f.Name)
+
+	if f.Enabled {
+		if err := s.startJob(*f); err != nil {
+			log.Error().Err(err).Msg("feed.restartJob: error starting torznab job")
+			return err
+		}
+
+		log.Debug().Msgf("feed.restartJob: restarted feed: %v", f.Name)
 	}
 
 	return nil
@@ -231,12 +265,6 @@ func (s *service) addTorznabJob(f feedInstance) error {
 }
 
 func (s *service) stopTorznabJob(indexer string) error {
-	//// add to job map
-	//jobID, ok := s.jobs[indexer]
-	//if !ok {
-	//	return nil
-	//}
-
 	// remove job from scheduler
 	if err := s.scheduler.RemoveJobByIdentifier(indexer); err != nil {
 		return fmt.Errorf("feed.stopTorznabJob: stop job failed: %w", err)
