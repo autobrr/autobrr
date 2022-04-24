@@ -252,13 +252,14 @@ CREATE TABLE feed
 	enabled      BOOLEAN,
 	url          TEXT,
 	interval     INTEGER,
+	categories   TEXT []   DEFAULT '{}' NOT NULL,
 	capabilities TEXT []   DEFAULT '{}' NOT NULL,
 	api_key      TEXT,
 	settings     TEXT,
     indexer_id   INTEGER,
     created_at   TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at   TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (indexer_id) REFERENCES indexer(id) ON DELETE CASCADE
+    FOREIGN KEY (indexer_id) REFERENCES indexer(id) ON DELETE SET NULL
 );
 
 CREATE TABLE feed_cache
@@ -572,13 +573,14 @@ ALTER TABLE release_action_status_dg_tmp
 		enabled      BOOLEAN,
 		url          TEXT,
 		interval     INTEGER,
+		categories   TEXT []   DEFAULT '{}' NOT NULL,
 		capabilities TEXT []   DEFAULT '{}' NOT NULL,
 		api_key      TEXT,
 		settings     TEXT,
 		indexer_id   INTEGER,
 		created_at   TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 		updated_at   TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-		FOREIGN KEY (indexer_id) REFERENCES indexer(id) ON DELETE CASCADE
+		FOREIGN KEY (indexer_id) REFERENCES indexer(id) ON DELETE SET NULL
 	);
 
 	CREATE TABLE feed_cache
@@ -838,6 +840,25 @@ CREATE TABLE notification
 	updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE TABLE feed
+(
+	id           SERIAL PRIMARY KEY,
+	indexer      TEXT,
+	name         TEXT,
+	type         TEXT,
+	enabled      BOOLEAN,
+	url          TEXT,
+	interval     INTEGER,
+	categories   TEXT []   DEFAULT '{}' NOT NULL,
+	capabilities TEXT []   DEFAULT '{}' NOT NULL,
+	api_key      TEXT,
+	settings     TEXT,
+    indexer_id   INTEGER,
+    created_at   TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at   TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (indexer_id) REFERENCES indexer(id) ON DELETE SET NULL
+);
+
 CREATE TABLE feed_cache
 (
 	bucket TEXT,
@@ -874,6 +895,38 @@ var postgresMigrations = []string{
 	);
 	`,
 	`
+	CREATE TABLE feed_cache
+	(
+		bucket TEXT,
+		key    TEXT,
+        value  TEXT,
+		ttl    TIMESTAMP
+	);
+	`,
+	`
+	ALTER TABLE indexer
+		ADD COLUMN implementation TEXT;
+	`,
+	`
+	CREATE TABLE feed
+	(
+		id           SERIAL PRIMARY KEY,
+		indexer      TEXT,
+		name         TEXT,
+		type         TEXT,
+		enabled      BOOLEAN,
+		url          TEXT,
+		interval     INTEGER,
+		categories   TEXT []   DEFAULT '{}' NOT NULL,
+		capabilities TEXT []   DEFAULT '{}' NOT NULL,
+		api_key      TEXT,
+		settings     TEXT,
+		indexer_id   INTEGER,
+		created_at   TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+		updated_at   TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+		FOREIGN KEY (indexer_id) REFERENCES indexer(id) ON DELETE SET NULL
+	);
+
 	CREATE TABLE feed_cache
 	(
 		bucket TEXT,
