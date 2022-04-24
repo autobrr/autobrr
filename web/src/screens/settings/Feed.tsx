@@ -17,6 +17,7 @@ import {
     TrashIcon
 } from "@heroicons/react/outline";
 import {FeedUpdateForm} from "../../forms/settings/FeedForms";
+import {EmptyBasic} from "../../components/emptystates";
 
 function FeedSettings() {
     const {data} = useQuery<Feed[], Error>('feeds', APIClient.feeds.find,
@@ -58,7 +59,7 @@ function FeedSettings() {
                             ))}
                         </ol>
                     </section>
-                    : <span>No feeds setup</span>}
+                    : <EmptyBasic title="No feeds" subtitle="Setup via indexers" />}
             </div>
         </div>
     )
