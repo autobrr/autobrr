@@ -74,7 +74,7 @@ export default function Settings() {
             </header>
 
             <div className="max-w-screen-xl mx-auto pb-6 px-4 sm:px-6 lg:pb-16 lg:px-8">
-                <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg overflow-hidden">
+                <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg">
                     <div className="divide-y divide-gray-200 dark:divide-gray-700 lg:grid lg:grid-cols-12 lg:divide-y-0 lg:divide-x">
                         <SidebarNav url={url} subNavigation={subNavigation}/>
 

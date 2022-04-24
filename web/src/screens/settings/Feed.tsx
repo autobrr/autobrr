@@ -39,7 +39,7 @@ function FeedSettings() {
 
                 {data && data.length > 0 ?
                     <section className="mt-6 light:bg-white dark:bg-gray-800 light:shadow sm:rounded-md">
-                        <ol className="min-w-full">
+                        <ol className="min-w-full relative">
                             <li className="grid grid-cols-12 gap-4 border-b border-gray-200 dark:border-gray-700">
                                 <div
                                     className="col-span-2 px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Enabled
@@ -134,7 +134,7 @@ function ListItem({feed}: ListItemProps) {
                 <div className="col-span-2 flex items-center sm:px-6">
                     {ImplementationMap[feed.type]}
                 </div>
-                <div className="col-span-1 flex items-center sm:px-6 relative">
+                <div className="col-span-1 flex items-center sm:px-6">
                     <FeedItemDropdown
                         feed={feed}
                         onToggle={toggleActive}
