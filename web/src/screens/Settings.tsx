@@ -1,4 +1,4 @@
-import {BellIcon, CogIcon, CollectionIcon, DownloadIcon, KeyIcon, RssIcon} from '@heroicons/react/outline'
+import {BellIcon, ChatAlt2Icon, CogIcon, CollectionIcon, DownloadIcon, KeyIcon, RssIcon} from '@heroicons/react/outline'
 import {NavLink, Route, Switch as RouteSwitch, useLocation, useRouteMatch} from "react-router-dom";
 
 import { classNames } from "../utils";
@@ -14,7 +14,7 @@ import FeedSettings from "./settings/Feed";
 const subNavigation = [
     {name: 'Application', href: '', icon: CogIcon, current: true},
     {name: 'Indexers', href: 'indexers', icon: KeyIcon, current: false},
-    {name: 'IRC', href: 'irc', icon: KeyIcon, current: false},
+    {name: 'IRC', href: 'irc', icon: ChatAlt2Icon, current: false},
     {name: 'Feeds', href: 'feeds', icon: RssIcon, current: false},
     {name: 'Clients', href: 'clients', icon: DownloadIcon, current: false},
     {name: 'Notifications', href: 'notifications', icon: BellIcon, current: false},

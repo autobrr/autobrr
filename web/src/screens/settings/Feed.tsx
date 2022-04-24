@@ -66,7 +66,7 @@ function FeedSettings() {
 
 const ImplementationTorznab = () => (
     <span
-        className="inline-flex items-center px-2.5 py-0.5 rounded-md text-sm font-medium bg-orange-200 dark:bg-orange-700 text-orange-800 dark:text-orange-400"
+        className="inline-flex items-center px-2.5 py-0.5 rounded-md text-sm font-medium bg-orange-200 dark:bg-orange-400 text-orange-800 dark:text-orange-800"
     >
         Torznab
     </span>

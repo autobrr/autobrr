@@ -35,11 +35,11 @@ type IndexerDefinition struct {
 	Protocol       string            `json:"protocol"`
 	URLS           []string          `json:"urls"`
 	Supports       []string          `json:"supports"`
-	Settings       []IndexerSetting  `json:"settings"`
+	Settings       []IndexerSetting  `json:"settings,omitempty"`
 	SettingsMap    map[string]string `json:"-"`
-	IRC            *IndexerIRC       `json:"irc"`
-	Torznab        *Torznab          `json:"torznab"`
-	Parse          IndexerParse      `json:"parse"`
+	IRC            *IndexerIRC       `json:"irc,omitempty"`
+	Torznab        *Torznab          `json:"torznab,omitempty"`
+	Parse          *IndexerParse     `json:"parse,omitempty"`
 }
 
 func (i IndexerDefinition) HasApi() bool {

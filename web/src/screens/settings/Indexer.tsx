@@ -8,7 +8,7 @@ import { APIClient } from "../../api/APIClient";
 
 const ImplementationIRC = () => (
     <span
-        className="mr-2 inline-flex items-center px-2.5 py-0.5 rounded-md text-sm font-medium bg-green-200 dark:bg-green-700 text-green-800 dark:text-green-400"
+        className="mr-2 inline-flex items-center px-2.5 py-0.5 rounded-md text-sm font-medium bg-green-200 dark:bg-green-400 text-green-800 dark:text-green-800"
     >
         IRC
     </span>
@@ -16,7 +16,7 @@ const ImplementationIRC = () => (
 
 const ImplementationTorznab = () => (
     <span
-        className="mr-2 inline-flex items-center px-2.5 py-0.5 rounded-md text-sm font-medium bg-orange-200 dark:bg-orange-700 text-orange-800 dark:text-orange-400"
+        className="inline-flex items-center px-2.5 py-0.5 rounded-md text-sm font-medium bg-orange-200 dark:bg-orange-400 text-orange-800 dark:text-orange-800"
     >
         Torznab
     </span>

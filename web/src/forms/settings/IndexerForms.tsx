@@ -93,7 +93,7 @@ const FeedSettingFields = (ind: IndexerDefinition, indexer: string) => {
         return (
             <Fragment>
                 {ind && ind.torznab && ind.torznab.settings && (
-                    <div className="border-t border-gray-200 dark:border-gray-700 py-5">
+                    <div className="">
                         <div className="px-6 space-y-1">
                             <Dialog.Title className="text-lg font-medium text-gray-900 dark:text-white">Torznab</Dialog.Title>
                             <p className="text-sm text-gray-500 dark:text-gray-200">
@@ -150,6 +150,16 @@ function slugIdentifier(name: string) {
     return slugify(`torznab-${r}`)
 }
 
+// interface initialValues {
+//     enabled: boolean;
+//     identifier: string;
+//     implementation: string;
+//     name: string;
+//     irc?: Record<string, unknown>;
+//     feed?: Record<string, unknown>;
+//     settings?: Record<string, unknown>;
+// }
+
 interface AddProps {
     isOpen: boolean;
     toggle: any;
@@ -182,62 +192,75 @@ export function IndexerAddForm({ isOpen, toggle }: AddProps) {
         (network: IrcNetworkCreate) => APIClient.irc.createNetwork(network)
     );
 
+    const feedMutation = useMutation(
+        (feed: FeedCreate) => APIClient.feeds.create(feed)
+    );
+
     const onSubmit = (formData: any) => {
         const ind = data && data.find(i => i.identifier === formData.identifier);
         if (!ind)
             return;
 
-
-        // if (!ind.irc) {
-        //     mutation.mutate(formData);
-        //     return;
-        // }
-
-        if (ind.implementation === "torznab") {
-            console.log("indexer: ", ind)
+        if (formData.implementation === "torznab") {
+            // create slug for indexer identifier as "torznab-indexer_name"
             const name = slugIdentifier(formData.name)
-            console.log("slug: ", name)
+
+            const createFeed: FeedCreate = {
+                name: formData.name,
+                enabled: false,
+                type: "TORZNAB",
+                url: formData.feed.url,
+                api_key: formData.feed.api_key,
+                interval: 30,
+                indexer: name,
+                indexer_id: 0,
+            }
+
+            mutation.mutate(formData, {
+                onSuccess: (indexer) => {
+                    createFeed.indexer_id = indexer!.id
+
+                    feedMutation.mutate(createFeed)
+                }
+            });
             return;
         }
 
-        if (ind.implementation === "irc") {
-            console.log("indexer: ", ind)
-        }
+        if (formData.implementation === "irc") {
 
-        const channels: IrcChannel[] = [];
-        if (ind.irc?.channels.length) {
-            ind.irc.channels.forEach(element => {
-                channels.push({
-                    id: 0,
-                    enabled: true,
-                    name: element,
-                    password: "",
-                    detached: false,
-                    monitoring: false
+            const channels: IrcChannel[] = [];
+            if (ind.irc?.channels.length) {
+                ind.irc.channels.forEach(element => {
+                    channels.push({
+                        id: 0,
+                        enabled: true,
+                        name: element,
+                        password: "",
+                        detached: false,
+                        monitoring: false
+                    });
                 });
-            });
-        }
+            }
 
-        const network: IrcNetworkCreate = {
-            name: ind.irc.network,
-            pass: "",
-            enabled: false,
-            connected: false,
-            server: ind.irc.server,
-            port: ind.irc.port,
-            tls: ind.irc.tls,
-            nickserv: formData.irc.nickserv,
-            invite_command: formData.irc.invite_command,
-            channels: channels,
-        }
+            const network: IrcNetworkCreate = {
+                name: ind.irc.network,
+                pass: "",
+                enabled: false,
+                connected: false,
+                server: ind.irc.server,
+                port: ind.irc.port,
+                tls: ind.irc.tls,
+                nickserv: formData.irc.nickserv,
+                invite_command: formData.irc.invite_command,
+                channels: channels,
+            }
 
-        mutation.mutate(formData, {
-            onSuccess: () => {
-                if (ind.implementation === "irc") {
+            mutation.mutate(formData, {
+                onSuccess: () => {
                     ircMutation.mutate(network)
                 }
-            }
-        });
+            });
+        }
     };
 
     return (
