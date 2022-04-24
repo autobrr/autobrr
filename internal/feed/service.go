@@ -30,9 +30,8 @@ type feedInstance struct {
 	IndexerIdentifier string
 	URL               string
 	ApiKey            string
-	Interval          string
 	Implementation    string
-	Cron              string
+	CronSchedule      string
 }
 
 type service struct {
@@ -201,14 +200,16 @@ func (s *service) startJob(f domain.Feed) error {
 		return nil
 	}
 
+	// cron schedule to run every X minutes
+	schedule := fmt.Sprintf("*/%d * * * *", f.Interval)
+
 	fi := feedInstance{
 		Name:              f.Name,
 		IndexerIdentifier: f.Indexer,
 		Implementation:    f.Type,
 		URL:               f.URL,
 		ApiKey:            f.ApiKey,
-		Interval:          "*/15 * * * *", // TODO build with sprintf
-		Cron:              "*/15 * * * *",
+		CronSchedule:      schedule,
 	}
 
 	switch fi.Implementation {
@@ -228,8 +229,8 @@ func (s *service) addTorznabJob(f feedInstance) error {
 	if f.URL == "" {
 		return errors.New("torznab feed requires URL")
 	}
-	if f.Cron == "" {
-		f.Cron = "*/15 * * * *"
+	if f.CronSchedule == "" {
+		f.CronSchedule = "*/15 * * * *"
 	}
 
 	// setup logger
@@ -250,7 +251,7 @@ func (s *service) addTorznabJob(f feedInstance) error {
 	}
 
 	// schedule job
-	id, err := s.scheduler.AddJob(job, f.Cron, f.IndexerIdentifier)
+	id, err := s.scheduler.AddJob(job, f.CronSchedule, f.IndexerIdentifier)
 	if err != nil {
 		return fmt.Errorf("feed.AddTorznabJob: add job failed: %w", err)
 	}
