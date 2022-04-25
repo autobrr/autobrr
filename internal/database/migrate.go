@@ -895,19 +895,6 @@ var postgresMigrations = []string{
 	);
 	`,
 	`
-	CREATE TABLE feed_cache
-	(
-		bucket TEXT,
-		key    TEXT,
-        value  TEXT,
-		ttl    TIMESTAMP
-	);
-	`,
-	`
-	ALTER TABLE indexer
-		ADD COLUMN implementation TEXT;
-	`,
-	`
 	CREATE TABLE feed
 	(
 		id           SERIAL PRIMARY KEY,
