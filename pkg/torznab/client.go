@@ -138,15 +138,10 @@ func (c *Client) get(endpoint string, opts map[string]string) (int, *Response, e
 		return resp.StatusCode, nil, fmt.Errorf("torznab.io.Copy: %w", err)
 	}
 
-	//log.Printf("xml: %v", buf.String())
-
 	var response Response
 	if err := xml.Unmarshal(buf.Bytes(), &response); err != nil {
 		return resp.StatusCode, nil, fmt.Errorf("torznab: could not decode feed: %w", err)
 	}
-	//if err := xml.NewDecoder(resp.Body).Decode(&response); err != nil {
-	//	return resp.StatusCode, nil, fmt.Errorf("could not decode feed: %w", err)
-	//}
 
 	return resp.StatusCode, &response, nil
 }
@@ -162,15 +157,6 @@ func (c *Client) GetFeed() ([]FeedItem, error) {
 		return nil, err
 	}
 
-	//items := make([]FeedItem, 0)
-	//if len(response.Channel.Items) < 1 {
-	//	return items, nil
-	//}
-	//
-	//for _, item := range response.Channel.Items {
-	//	items = append(items, item)
-	//}
-
 	return res.Channel.Items, nil
 }
 
@@ -184,25 +170,9 @@ func (c *Client) Search(query string) ([]FeedItem, error) {
 		log.Fatalf("error fetching torznab feed: %v", err)
 	}
 
-	//defer res.Body.Close()
-
 	if status != http.StatusOK {
 		return nil, err
 	}
-
-	//var response Response
-	//if err := xml.NewDecoder(res.Body).Decode(&response); err != nil {
-	//	return nil, fmt.Errorf("could not decode feed: %w", err)
-	//}
-	//
-	//items := make([]FeedItem, 0)
-	//if len(response.Channel.Items) < 1 {
-	//	return items, nil
-	//}
-	//
-	//for _, item := range response.Channel.Items {
-	//	items = append(items, item)
-	//}
 
 	return res.Channel.Items, nil
 }

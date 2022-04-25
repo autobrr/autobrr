@@ -103,7 +103,7 @@ func (s *service) Update(ctx context.Context, indexer domain.Indexer) (*domain.I
 	if indexer.Implementation == "torznab" {
 		if !indexer.Enabled {
 			s.stopFeed(indexer.Identifier)
-		} // TODO else start
+		}
 	}
 
 	return i, nil
@@ -510,19 +510,4 @@ func (s *service) stopFeed(indexer string) {
 	if err := s.scheduler.RemoveJobByIdentifier(indexer); err != nil {
 		return
 	}
-}
-
-func (s *service) startFeed(indexer string) {
-	v, ok := s.torznabIndexers[indexer]
-	if !ok {
-		return
-	}
-
-	if v == nil {
-		return
-	}
-
-	//if err := s.scheduler.AddTorznabJob(*v); err != nil {
-	//	return
-	//}
 }

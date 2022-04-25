@@ -19,8 +19,6 @@ type service struct {
 	cron *cron.Cron
 
 	jobs map[string]cron.EntryID
-	//feedCache  domain.FeedCacheRepo
-	//releaseSvc release.Service
 }
 
 func NewService() Service {
@@ -29,8 +27,6 @@ func NewService() Service {
 			cron.Recover(cron.DefaultLogger),
 		)),
 		jobs: map[string]cron.EntryID{},
-		//feedCache:  feedCache,
-		//releaseSvc: releaseSvc,
 	}
 }
 
@@ -62,68 +58,6 @@ func (s *service) AddJob(job cron.Job, interval string, identifier string) (int,
 
 	return int(id), nil
 }
-
-//func (s *service) AddTorznabJob(indexer domain.IndexerDefinition) error {
-//
-//	// get all torznab indexer definitions
-//	if !indexer.Enabled {
-//		return nil
-//	}
-//
-//	// get torznab_url from settings
-//	url, ok := indexer.SettingsMap["torznab_url"]
-//	if !ok || url == "" {
-//		return nil
-//	}
-//
-//	// get apikey if it's there from settings
-//	apiKey, ok := indexer.SettingsMap["apikey"]
-//	if !ok {
-//		return nil
-//	}
-//
-//	cronSchedule := "*/15 * * * *"
-//	//if f.Cron == "" {
-//	//	f.Cron = "*/15 * * * *"
-//	//}
-//
-//	// setup logger
-//	l := log.With().Str("feed_name", indexer.Name).Logger()
-//
-//	// setup torznab client
-//	c := torznab.NewClient(url, apiKey)
-//
-//	// create job
-//	job := &feed.TorznabJob{
-//		Name:              indexer.Name,
-//		IndexerIdentifier: indexer.Identifier,
-//		Client:            c,
-//		Log:               l,
-//		Repo:              s.feedCache,
-//		ReleaseSvc:        s.releaseSvc,
-//		URL:               url,
-//	}
-//
-//	// schedule job
-//	id, err := s.AddJob(job, cronSchedule, indexer.Identifier)
-//	if err != nil {
-//		return fmt.Errorf("feeds,AddTorznabJob: add job failed: %w", err)
-//	}
-//	job.JobID = id
-//
-//	log.Debug().Msgf("feeds.AddTorznabJob: %v", indexer.Name)
-//
-//	//switch indexer.Implementation {
-//	//case "torznab":
-//	//	if err := s.AddTorznabJob(f); err != nil {
-//	//		log.Error().Err(err).Msg("failed to initialize feed")
-//	//		return err
-//	//	}
-//	//	//case "rss":
-//	//}
-//
-//	return nil
-//}
 
 func (s *service) RemoveJobByID(id cron.EntryID) error {
 	v, ok := s.jobs[""]
