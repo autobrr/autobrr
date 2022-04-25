@@ -3,6 +3,7 @@ package announce
 import (
 	"context"
 	"strings"
+	"time"
 
 	"github.com/autobrr/autobrr/internal/action"
 	"github.com/autobrr/autobrr/internal/domain"
@@ -85,6 +86,13 @@ func (s *service) Process(release *domain.Release) {
 		}
 
 		var rejections []string
+
+		// sleep for the delay period specified in the filter before running actions
+		delay := release.Filter.Delay
+		if delay > 0 {
+			log.Debug().Msgf("Delaying processing of '%v' (%v) for %v by %d seconds as specified in the filter", release.TorrentName, release.Filter.Name, release.Indexer, delay)
+			time.Sleep(time.Duration(delay) * time.Second)
+		}
 
 		// run actions (watchFolder, test, exec, qBittorrent, Deluge, arr etc.)
 		for _, a := range release.Filter.Actions {
