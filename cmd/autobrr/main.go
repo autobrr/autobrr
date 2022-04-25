@@ -11,12 +11,12 @@ import (
 	"github.com/spf13/pflag"
 
 	"github.com/autobrr/autobrr/internal/action"
-	"github.com/autobrr/autobrr/internal/announce"
 	"github.com/autobrr/autobrr/internal/auth"
 	"github.com/autobrr/autobrr/internal/config"
 	"github.com/autobrr/autobrr/internal/database"
 	"github.com/autobrr/autobrr/internal/download_client"
 	"github.com/autobrr/autobrr/internal/events"
+	"github.com/autobrr/autobrr/internal/feed"
 	"github.com/autobrr/autobrr/internal/filter"
 	"github.com/autobrr/autobrr/internal/http"
 	"github.com/autobrr/autobrr/internal/indexer"
@@ -24,6 +24,7 @@ import (
 	"github.com/autobrr/autobrr/internal/logger"
 	"github.com/autobrr/autobrr/internal/notification"
 	"github.com/autobrr/autobrr/internal/release"
+	"github.com/autobrr/autobrr/internal/scheduler"
 	"github.com/autobrr/autobrr/internal/server"
 	"github.com/autobrr/autobrr/internal/user"
 )
@@ -72,6 +73,8 @@ func main() {
 		downloadClientRepo = database.NewDownloadClientRepo(db)
 		actionRepo         = database.NewActionRepo(db, downloadClientRepo)
 		filterRepo         = database.NewFilterRepo(db)
+		feedRepo           = database.NewFeedRepo(db)
+		feedCacheRepo      = database.NewFeedCacheRepo(db)
 		indexerRepo        = database.NewIndexerRepo(db)
 		ircRepo            = database.NewIrcRepo(db)
 		notificationRepo   = database.NewNotificationRepo(db)
@@ -81,17 +84,18 @@ func main() {
 
 	// setup services
 	var (
-		downloadClientService = download_client.NewService(downloadClientRepo)
-		actionService         = action.NewService(actionRepo, downloadClientService, bus)
+		schedulingService     = scheduler.NewService()
 		apiService            = indexer.NewAPIService()
-		indexerService        = indexer.NewService(cfg, indexerRepo, apiService)
-		filterService         = filter.NewService(filterRepo, actionRepo, apiService, indexerService)
-		releaseService        = release.NewService(releaseRepo)
-		announceService       = announce.NewService(actionService, filterService, releaseService)
-		ircService            = irc.NewService(ircRepo, announceService, indexerService)
-		notificationService   = notification.NewService(notificationRepo)
 		userService           = user.NewService(userRepo)
 		authService           = auth.NewService(userService)
+		downloadClientService = download_client.NewService(downloadClientRepo)
+		actionService         = action.NewService(actionRepo, downloadClientService, bus)
+		indexerService        = indexer.NewService(cfg, indexerRepo, apiService, schedulingService)
+		filterService         = filter.NewService(filterRepo, actionRepo, apiService, indexerService)
+		releaseService        = release.NewService(releaseRepo, actionService, filterService)
+		ircService            = irc.NewService(ircRepo, releaseService, indexerService)
+		notificationService   = notification.NewService(notificationRepo)
+		feedService           = feed.NewService(feedRepo, feedCacheRepo, releaseService, schedulingService)
 	)
 
 	// register event subscribers
@@ -100,11 +104,27 @@ func main() {
 	errorChannel := make(chan error)
 
 	go func() {
-		httpServer := http.NewServer(cfg, serverEvents, db, version, commit, date, actionService, authService, downloadClientService, filterService, indexerService, ircService, notificationService, releaseService)
+		httpServer := http.NewServer(
+			cfg,
+			serverEvents,
+			db,
+			version,
+			commit,
+			date,
+			actionService,
+			authService,
+			downloadClientService,
+			filterService,
+			feedService,
+			indexerService,
+			ircService,
+			notificationService,
+			releaseService,
+		)
 		errorChannel <- httpServer.Open()
 	}()
 
-	srv := server.NewServer(ircService, indexerService)
+	srv := server.NewServer(ircService, indexerService, feedService, schedulingService)
 	srv.Hostname = cfg.Host
 	srv.Port = cfg.Port
 

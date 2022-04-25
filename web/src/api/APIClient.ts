@@ -37,7 +37,12 @@ export async function HttpClient<T>(
             if ([403, 404].includes(response.status))
                 return Promise.reject(new Error(response.statusText));
 
-            if ([201, 204].includes(response.status))
+            // 201 comes from a POST and can contain data
+            if ([201].includes(response.status))
+                return await response.json();
+
+            // 204 ok no data
+            if ([204].includes(response.status))
                 return Promise.resolve(response);
 
             if (response.ok) {
@@ -51,7 +56,7 @@ export async function HttpClient<T>(
 
 const appClient = {
     Get: <T>(endpoint: string) => HttpClient<T>(endpoint, "GET"),
-    Post: (endpoint: string, data: any) => HttpClient<void>(endpoint, "POST", { body: data }),
+    Post: <T>(endpoint: string, data: any) => HttpClient<void | T>(endpoint, "POST", { body: data }),
     Put: (endpoint: string, data: any) => HttpClient<void>(endpoint, "PUT", { body: data }),
     Patch: (endpoint: string, data: any) => HttpClient<void>(endpoint, "PATCH", { body: data }),
     Delete: (endpoint: string) => HttpClient<void>(endpoint, "DELETE")
@@ -90,6 +95,13 @@ export const APIClient = {
         toggleEnable: (id: number, enabled: boolean) => appClient.Put(`api/filters/${id}/enabled`, { enabled }),
         delete: (id: number) => appClient.Delete(`api/filters/${id}`),
     },
+    feeds: {
+        find: () => appClient.Get<Feed[]>("api/feeds"),
+        create: (feed: FeedCreate) => appClient.Post("api/feeds", feed),
+        toggleEnable: (id: number, enabled: boolean) => appClient.Patch(`api/feeds/${id}/enabled`, { enabled }),
+        update: (feed: Feed) => appClient.Put(`api/feeds/${feed.id}`, feed),
+        delete: (id: number) => appClient.Delete(`api/feeds/${id}`),
+    },
     indexers: {
         // returns indexer options for all currently present/enabled indexers
         getOptions: () => appClient.Get<Indexer[]>("api/indexer/options"),
@@ -97,7 +109,7 @@ export const APIClient = {
         getAll: () => appClient.Get<IndexerDefinition[]>("api/indexer"),
         // returns all possible indexer definitions
         getSchema: () => appClient.Get<IndexerDefinition[]>("api/indexer/schema"),
-        create: (indexer: Indexer) => appClient.Post("api/indexer", indexer),
+        create: (indexer: Indexer) => appClient.Post<Indexer>("api/indexer", indexer),
         update: (indexer: Indexer) => appClient.Put("api/indexer", indexer),
         delete: (id: number) => appClient.Delete(`api/indexer/${id}`),
     },

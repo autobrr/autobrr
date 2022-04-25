@@ -15,29 +15,31 @@ type IndexerRepo interface {
 }
 
 type Indexer struct {
-	ID         int64             `json:"id"`
-	Name       string            `json:"name"`
-	Identifier string            `json:"identifier"`
-	Enabled    bool              `json:"enabled"`
-	Type       string            `json:"type,omitempty"`
-	Settings   map[string]string `json:"settings,omitempty"`
+	ID             int64             `json:"id"`
+	Name           string            `json:"name"`
+	Identifier     string            `json:"identifier"`
+	Enabled        bool              `json:"enabled"`
+	Implementation string            `json:"implementation"`
+	Settings       map[string]string `json:"settings,omitempty"`
 }
 
 type IndexerDefinition struct {
-	ID          int               `json:"id,omitempty"`
-	Name        string            `json:"name"`
-	Identifier  string            `json:"identifier"`
-	Enabled     bool              `json:"enabled,omitempty"`
-	Description string            `json:"description"`
-	Language    string            `json:"language"`
-	Privacy     string            `json:"privacy"`
-	Protocol    string            `json:"protocol"`
-	URLS        []string          `json:"urls"`
-	Supports    []string          `json:"supports"`
-	Settings    []IndexerSetting  `json:"settings"`
-	SettingsMap map[string]string `json:"-"`
-	IRC         *IndexerIRC       `json:"irc"`
-	Parse       IndexerParse      `json:"parse"`
+	ID             int               `json:"id,omitempty"`
+	Name           string            `json:"name"`
+	Identifier     string            `json:"identifier"`
+	Implementation string            `json:"implementation"`
+	Enabled        bool              `json:"enabled,omitempty"`
+	Description    string            `json:"description"`
+	Language       string            `json:"language"`
+	Privacy        string            `json:"privacy"`
+	Protocol       string            `json:"protocol"`
+	URLS           []string          `json:"urls"`
+	Supports       []string          `json:"supports"`
+	Settings       []IndexerSetting  `json:"settings,omitempty"`
+	SettingsMap    map[string]string `json:"-"`
+	IRC            *IndexerIRC       `json:"irc,omitempty"`
+	Torznab        *Torznab          `json:"torznab,omitempty"`
+	Parse          *IndexerParse     `json:"parse,omitempty"`
 }
 
 func (i IndexerDefinition) HasApi() bool {
@@ -59,6 +61,11 @@ type IndexerSetting struct {
 	Description string `json:"description,omitempty"`
 	Help        string `json:"help,omitempty"`
 	Regex       string `json:"regex,omitempty"`
+}
+
+type Torznab struct {
+	MinInterval int              `json:"minInterval"`
+	Settings    []IndexerSetting `json:"settings"`
 }
 
 type IndexerIRC struct {

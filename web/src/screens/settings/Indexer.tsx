@@ -6,6 +6,27 @@ import { classNames } from "../../utils";
 import { EmptySimple } from "../../components/emptystates";
 import { APIClient } from "../../api/APIClient";
 
+const ImplementationIRC = () => (
+    <span
+        className="mr-2 inline-flex items-center px-2.5 py-0.5 rounded-md text-sm font-medium bg-green-200 dark:bg-green-400 text-green-800 dark:text-green-800"
+    >
+        IRC
+    </span>
+)
+
+const ImplementationTorznab = () => (
+    <span
+        className="inline-flex items-center px-2.5 py-0.5 rounded-md text-sm font-medium bg-orange-200 dark:bg-orange-400 text-orange-800 dark:text-orange-800"
+    >
+        Torznab
+    </span>
+)
+
+const implementationMap: any = {
+    "irc": <ImplementationIRC/>,
+    "torznab": <ImplementationTorznab />,
+};
+
 const ListItem = ({ indexer }: any) => {
     const [updateIsOpen, toggleUpdate] = useToggle(false)
 
@@ -33,6 +54,7 @@ const ListItem = ({ indexer }: any) => {
                 </Switch>
             </td>
             <td className="px-6 py-4 w-full whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">{indexer.name}</td>
+            <td className="px-6 py-4 w-full whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">{implementationMap[indexer.implementation]}</td>
             <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                 <span className="text-indigo-600 dark:text-gray-300 hover:text-indigo-900 dark:hover:text-blue-500 cursor-pointer" onClick={toggleUpdate}>
                     Edit
@@ -97,6 +119,12 @@ function IndexerSettings() {
                                                     className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
                                                 >
                                                     Name
+                                                </th>
+                                                <th
+                                                    scope="col"
+                                                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
+                                                >
+                                                    Implementation
                                                 </th>
                                                 <th scope="col" className="relative px-6 py-3">
                                                     <span className="sr-only">Edit</span>

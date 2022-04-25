@@ -10,6 +10,8 @@ import (
 	"text/template"
 
 	"github.com/autobrr/autobrr/internal/domain"
+	"github.com/autobrr/autobrr/internal/release"
+
 	"github.com/rs/zerolog/log"
 )
 
@@ -20,15 +22,15 @@ type Processor interface {
 type announceProcessor struct {
 	indexer domain.IndexerDefinition
 
-	announceSvc Service
+	releaseSvc release.Service
 
 	queues map[string]chan string
 }
 
-func NewAnnounceProcessor(announceSvc Service, indexer domain.IndexerDefinition) Processor {
+func NewAnnounceProcessor(releaseSvc release.Service, indexer domain.IndexerDefinition) Processor {
 	ap := &announceProcessor{
-		announceSvc: announceSvc,
-		indexer:     indexer,
+		releaseSvc: releaseSvc,
+		indexer:    indexer,
 	}
 
 	// setup queues and consumers
@@ -110,7 +112,7 @@ func (a *announceProcessor) processQueue(queue chan string) {
 		}
 
 		// process release in a new go routine
-		go a.announceSvc.Process(newRelease)
+		go a.releaseSvc.Process(newRelease)
 	}
 }
 

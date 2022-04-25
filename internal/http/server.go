@@ -31,13 +31,14 @@ type Server struct {
 	authService           authService
 	downloadClientService downloadClientService
 	filterService         filterService
+	feedService           feedService
 	indexerService        indexerService
 	ircService            ircService
 	notificationService   notificationService
 	releaseService        releaseService
 }
 
-func NewServer(config domain.Config, sse *sse.Server, db *database.DB, version string, commit string, date string, actionService actionService, authService authService, downloadClientSvc downloadClientService, filterSvc filterService, indexerSvc indexerService, ircSvc ircService, notificationSvc notificationService, releaseSvc releaseService) Server {
+func NewServer(config domain.Config, sse *sse.Server, db *database.DB, version string, commit string, date string, actionService actionService, authService authService, downloadClientSvc downloadClientService, filterSvc filterService, feedSvc feedService, indexerSvc indexerService, ircSvc ircService, notificationSvc notificationService, releaseSvc releaseService) Server {
 	return Server{
 		config:  config,
 		sse:     sse,
@@ -52,6 +53,7 @@ func NewServer(config domain.Config, sse *sse.Server, db *database.DB, version s
 		authService:           authService,
 		downloadClientService: downloadClientSvc,
 		filterService:         filterSvc,
+		feedService:           feedSvc,
 		indexerService:        indexerSvc,
 		ircService:            ircSvc,
 		notificationService:   notificationSvc,
@@ -111,6 +113,7 @@ func (s Server) Handler() http.Handler {
 			r.Route("/config", newConfigHandler(encoder, s).Routes)
 			r.Route("/download_clients", newDownloadClientHandler(encoder, s.downloadClientService).Routes)
 			r.Route("/filters", newFilterHandler(encoder, s.filterService).Routes)
+			r.Route("/feeds", newFeedHandler(encoder, s.feedService).Routes)
 			r.Route("/irc", newIrcHandler(encoder, s.ircService).Routes)
 			r.Route("/indexer", newIndexerHandler(encoder, s.indexerService, s.ircService).Routes)
 			r.Route("/notification", newNotificationHandler(encoder, s.notificationService).Routes)

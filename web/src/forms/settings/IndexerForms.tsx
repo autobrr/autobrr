@@ -8,7 +8,7 @@ import type { FieldProps } from "formik";
 import { XIcon } from "@heroicons/react/solid";
 import { Dialog, Transition } from "@headlessui/react";
 
-import { sleep } from "../../utils";
+import {sleep, slugify} from "../../utils";
 import { queryClient } from "../../App";
 import DEBUG from "../../components/debug";
 import { APIClient } from "../../api/APIClient";
@@ -81,12 +81,37 @@ const IrcSettingFields = (ind: IndexerDefinition, indexer: string) => {
                             }
                             return null
                         })}
+                    </div>
+                )}
+            </Fragment>
+        )
+    }
+}
 
-                        {/* <div hidden={false}>
-                                <TextFieldWide name="irc.server" label="Server" defaultValue={ind.irc.server} />
-                                <NumberFieldWide name="irc.port" label="Port" defaultValue={ind.irc.port} />
-                                <SwitchGroupWide name="irc.tls" label="TLS" defaultValue={ind.irc.tls} />
-                            </div> */}
+const FeedSettingFields = (ind: IndexerDefinition, indexer: string) => {
+    if (indexer !== "") {
+        return (
+            <Fragment>
+                {ind && ind.torznab && ind.torznab.settings && (
+                    <div className="">
+                        <div className="px-6 space-y-1">
+                            <Dialog.Title className="text-lg font-medium text-gray-900 dark:text-white">Torznab</Dialog.Title>
+                            <p className="text-sm text-gray-500 dark:text-gray-200">
+                                Torznab feed
+                            </p>
+                        </div>
+
+                        <TextFieldWide name="name" label="Name" defaultValue={""} />
+
+                        {ind.torznab.settings.map((f: IndexerSetting, idx: number) => {
+                            switch (f.type) {
+                                case "text":
+                                    return <TextFieldWide name={`feed.${f.name}`} label={f.label} required={f.required} key={idx} help={f.help} />
+                                case "secret":
+                                    return <PasswordFieldWide name={`feed.${f.name}`} label={f.label} required={f.required} key={idx} help={f.help} defaultValue={f.default} />
+                            }
+                            return null
+                        })}
                     </div>
                 )}
             </Fragment>
@@ -118,6 +143,22 @@ const SettingFields = (ind: IndexerDefinition, indexer: string) => {
         )
     }
 }
+
+function slugIdentifier(name: string) {
+    const l = name.toLowerCase()
+    const r = l.replaceAll("torznab", "")
+    return slugify(`torznab-${r}`)
+}
+
+// interface initialValues {
+//     enabled: boolean;
+//     identifier: string;
+//     implementation: string;
+//     name: string;
+//     irc?: Record<string, unknown>;
+//     feed?: Record<string, unknown>;
+//     settings?: Record<string, unknown>;
+// }
 
 interface AddProps {
     isOpen: boolean;
@@ -151,103 +192,76 @@ export function IndexerAddForm({ isOpen, toggle }: AddProps) {
         (network: IrcNetworkCreate) => APIClient.irc.createNetwork(network)
     );
 
+    const feedMutation = useMutation(
+        (feed: FeedCreate) => APIClient.feeds.create(feed)
+    );
+
     const onSubmit = (formData: any) => {
         const ind = data && data.find(i => i.identifier === formData.identifier);
         if (!ind)
             return;
 
-        const channels: IrcChannel[] = [];
-        if (ind.irc.channels.length) {
-            ind.irc.channels.forEach(element => {
-                channels.push({
-                    id: 0,
-                    enabled: true,
-                    name: element,
-                    password: "",
-                    detached: false,
-                    monitoring: false
+        if (formData.implementation === "torznab") {
+            // create slug for indexer identifier as "torznab-indexer_name"
+            const name = slugIdentifier(formData.name)
+
+            const createFeed: FeedCreate = {
+                name: formData.name,
+                enabled: false,
+                type: "TORZNAB",
+                url: formData.feed.url,
+                api_key: formData.feed.api_key,
+                interval: 30,
+                indexer: name,
+                indexer_id: 0,
+            }
+
+            mutation.mutate(formData, {
+                onSuccess: (indexer) => {
+                    createFeed.indexer_id = indexer!.id
+
+                    feedMutation.mutate(createFeed)
+                }
+            });
+            return;
+        }
+
+        if (formData.implementation === "irc") {
+
+            const channels: IrcChannel[] = [];
+            if (ind.irc?.channels.length) {
+                ind.irc.channels.forEach(element => {
+                    channels.push({
+                        id: 0,
+                        enabled: true,
+                        name: element,
+                        password: "",
+                        detached: false,
+                        monitoring: false
+                    });
                 });
+            }
+
+            const network: IrcNetworkCreate = {
+                name: ind.irc.network,
+                pass: "",
+                enabled: false,
+                connected: false,
+                server: ind.irc.server,
+                port: ind.irc.port,
+                tls: ind.irc.tls,
+                nickserv: formData.irc.nickserv,
+                invite_command: formData.irc.invite_command,
+                channels: channels,
+            }
+
+            mutation.mutate(formData, {
+                onSuccess: () => {
+                    ircMutation.mutate(network)
+                }
             });
         }
-
-        const network: IrcNetworkCreate = {
-            name: ind.irc.network,
-            pass: "",
-            enabled: false,
-            connected: false,
-            server: ind.irc.server,
-            port: ind.irc.port,
-            tls: ind.irc.tls,
-            nickserv: formData.irc.nickserv,
-            invite_command: formData.irc.invite_command,
-            channels: channels,
-        }
-
-        mutation.mutate(formData, {
-            onSuccess: () => ircMutation.mutate(network)
-        });
     };
-
-    const renderSettingFields = (indexer: string) => {
-        if (indexer !== "") {
-            const ind = data && data.find(i => i.identifier === indexer);
-            return (
-                <div key="opt">
-                    {ind && ind.settings && ind.settings.map((f: any, idx: number) => {
-                        switch (f.type) {
-                            case "text":
-                                return (
-                                    <TextFieldWide name={`settings.${f.name}`} label={f.label} key={idx} help={f.help} defaultValue="" />
-                                )
-                            case "secret":
-                                return (
-                                    <PasswordFieldWide name={`settings.${f.name}`} label={f.label} key={idx} help={f.help} defaultValue="" />
-                                )
-                        }
-                        return null
-                    })}
-                    <div hidden={true}>
-                        <TextFieldWide name="name" label="Name" defaultValue={ind?.name} />
-                    </div>
-                </div>
-            )
-        }
-    }
-
-    const renderIrcSettingFields = (indexer: string) => {
-        if (indexer !== "") {
-            const ind = data && data.find(i => i.identifier === indexer);
-            return (
-                <Fragment>
-                    {ind && ind.irc && ind.irc.settings && (
-                        <div className="border-t border-gray-200 dark:border-gray-700 py-5">
-                            <div className="px-6 space-y-1">
-                                <Dialog.Title className="text-lg font-medium text-gray-900 dark:text-white">IRC</Dialog.Title>
-                                <p className="text-sm text-gray-500 dark:text-gray-200">
-                                    Networks, channels and invite commands are configured automatically.
-                                </p>
-                            </div>
-                            {ind.irc.settings.map((f: IndexerSetting, idx: number) => {
-                                switch (f.type) {
-                                    case "text":
-                                        return <TextFieldWide name={`irc.${f.name}`} label={f.label} required={f.required} key={idx} help={f.help} />
-                                    case "secret":
-                                        return <PasswordFieldWide name={`irc.${f.name}`} label={f.label} required={f.required} key={idx} help={f.help} defaultValue={f.default} />
-                                }
-                                return null
-                            })}
-
-                            {/* <div hidden={false}>
-                                <TextFieldWide name="irc.server" label="Server" defaultValue={ind.irc.server} />
-                                <NumberFieldWide name="irc.port" label="Port" defaultValue={ind.irc.port} />
-                                <SwitchGroupWide name="irc.tls" label="TLS" defaultValue={ind.irc.tls} />
-                            </div> */}
-                        </div>
-                    )}
-                </Fragment>
-            )
-        }
-    }
 
     return (
         <Transition.Root show={isOpen} as={Fragment}>
@@ -271,10 +285,10 @@ export function IndexerAddForm({ isOpen, toggle }: AddProps) {
                                     initialValues={{
                                         enabled: true,
                                         identifier: "",
+                                        implementation: "irc",
                                         name: "",
-                                        irc: {
-                                            invite_command: "",
-                                        },
+                                        irc: {},
+                                        feed: {},
                                         settings: {},
                                     }}
                                     onSubmit={onSubmit}
@@ -344,8 +358,9 @@ export function IndexerAddForm({ isOpen, toggle }: AddProps) {
                                                                                 setFieldValue(field.name, option?.value ?? "")
 
                                                                                 const ind = data!.find(i => i.identifier === option.value);
+                                                                                setFieldValue("implementation", ind?.implementation ? ind.implementation : "irc")
                                                                                 setIndexer(ind!)
-                                                                                if (ind!.irc.settings) {
+                                                                                if (ind!.irc?.settings) {
                                                                                     ind!.irc.settings.forEach((s) => {
                                                                                         setFieldValue(`irc.${s.name}`, s.default ?? "")
                                                                                     })
@@ -371,6 +386,7 @@ export function IndexerAddForm({ isOpen, toggle }: AddProps) {
                                                     </div>
 
                                                     {IrcSettingFields(indexer, values.identifier)}
+                                                    {FeedSettingFields(indexer, values.identifier)}
                                                 </div>
 
                                                 <div
@@ -440,7 +456,7 @@ export function IndexerUpdateForm({ isOpen, toggle, indexer }: UpdateProps) {
     }
 
     const renderSettingFields = (settings: IndexerSetting[]) => {
-        if (settings === undefined) {
+        if (settings === undefined || settings === null) {
             return null
         }
 
@@ -468,6 +484,7 @@ export function IndexerUpdateForm({ isOpen, toggle, indexer }: UpdateProps) {
         name: indexer.name,
         enabled: indexer.enabled,
         identifier: indexer.identifier,
+        implementation: indexer.implementation,
         settings: indexer.settings?.reduce(
             (o: Record<string, string>, obj: IndexerSetting) => ({
                 ...o,

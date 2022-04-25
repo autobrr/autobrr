@@ -2,16 +2,19 @@ package indexer
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io/fs"
 	"os"
 	"path/filepath"
 	"strings"
 
+	"github.com/autobrr/autobrr/internal/domain"
+	"github.com/autobrr/autobrr/internal/scheduler"
+
+	"github.com/gosimple/slug"
 	"github.com/rs/zerolog/log"
 	"gopkg.in/yaml.v2"
-
-	"github.com/autobrr/autobrr/internal/domain"
 )
 
 type Service interface {
@@ -24,6 +27,7 @@ type Service interface {
 	GetTemplates() ([]domain.IndexerDefinition, error)
 	LoadIndexerDefinitions() error
 	GetIndexersByIRCNetwork(server string) []domain.IndexerDefinition
+	GetTorznabIndexers() []domain.IndexerDefinition
 	Start() error
 }
 
@@ -31,6 +35,7 @@ type service struct {
 	config     domain.Config
 	repo       domain.IndexerRepo
 	apiService APIService
+	scheduler  scheduler.Service
 
 	// contains all raw indexer definitions
 	indexerDefinitions map[string]domain.IndexerDefinition
@@ -39,20 +44,33 @@ type service struct {
 	mapIndexerIRCToName map[string]string
 
 	lookupIRCServerDefinition map[string]map[string]domain.IndexerDefinition
+
+	torznabIndexers map[string]*domain.IndexerDefinition
 }
 
-func NewService(config domain.Config, repo domain.IndexerRepo, apiService APIService) Service {
+func NewService(config domain.Config, repo domain.IndexerRepo, apiService APIService, scheduler scheduler.Service) Service {
 	return &service{
 		config:                    config,
 		repo:                      repo,
 		apiService:                apiService,
+		scheduler:                 scheduler,
 		indexerDefinitions:        make(map[string]domain.IndexerDefinition),
 		mapIndexerIRCToName:       make(map[string]string),
 		lookupIRCServerDefinition: make(map[string]map[string]domain.IndexerDefinition),
+		torznabIndexers:           make(map[string]*domain.IndexerDefinition),
 	}
 }
 
 func (s *service) Store(ctx context.Context, indexer domain.Indexer) (*domain.Indexer, error) {
+	identifier := indexer.Identifier
+	if indexer.Identifier == "torznab" {
+		// if the name already contains torznab remove it
+		cleanName := strings.ReplaceAll(strings.ToLower(indexer.Name), "torznab", "")
+		identifier = slug.Make(fmt.Sprintf("%v-%v", indexer.Identifier, cleanName))
+	}
+
+	indexer.Identifier = identifier
+
 	i, err := s.repo.Store(ctx, indexer)
 	if err != nil {
 		log.Error().Stack().Err(err).Msgf("failed to store indexer: %v", indexer.Name)
@@ -80,6 +98,12 @@ func (s *service) Update(ctx context.Context, indexer domain.Indexer) (*domain.I
 	if err != nil {
 		log.Error().Stack().Err(err).Msgf("failed to add indexer: %v", indexer.Name)
 		return nil, err
+	}
+
+	if indexer.Implementation == "torznab" {
+		if !indexer.Enabled {
+			s.stopFeed(indexer.Identifier)
+		}
 	}
 
 	return i, nil
@@ -130,27 +154,42 @@ func (s *service) GetAll() ([]*domain.IndexerDefinition, error) {
 
 func (s *service) mapIndexer(indexer domain.Indexer) (*domain.IndexerDefinition, error) {
 
-	in := s.getDefinitionByName(indexer.Identifier)
-	if in == nil {
-		// if no indexerDefinition found, continue
-		return nil, nil
+	var in *domain.IndexerDefinition
+	if indexer.Implementation == "torznab" {
+		in = s.getDefinitionByName("torznab")
+		if in == nil {
+			// if no indexerDefinition found, continue
+			return nil, nil
+		}
+	} else {
+		in = s.getDefinitionByName(indexer.Identifier)
+		if in == nil {
+			// if no indexerDefinition found, continue
+			return nil, nil
+		}
 	}
 
 	indexerDefinition := domain.IndexerDefinition{
-		ID:          int(indexer.ID),
-		Name:        in.Name,
-		Identifier:  in.Identifier,
-		Enabled:     indexer.Enabled,
-		Description: in.Description,
-		Language:    in.Language,
-		Privacy:     in.Privacy,
-		Protocol:    in.Protocol,
-		URLS:        in.URLS,
-		Supports:    in.Supports,
-		Settings:    nil,
-		SettingsMap: make(map[string]string),
-		IRC:         in.IRC,
-		Parse:       in.Parse,
+		ID:             int(indexer.ID),
+		Name:           indexer.Name,
+		Identifier:     indexer.Identifier,
+		Implementation: indexer.Implementation,
+		Enabled:        indexer.Enabled,
+		Description:    in.Description,
+		Language:       in.Language,
+		Privacy:        in.Privacy,
+		Protocol:       in.Protocol,
+		URLS:           in.URLS,
+		Supports:       in.Supports,
+		Settings:       nil,
+		SettingsMap:    make(map[string]string),
+		IRC:            in.IRC,
+		Torznab:        in.Torznab,
+		Parse:          in.Parse,
+	}
+
+	if indexerDefinition.Implementation == "" {
+		indexerDefinition.Implementation = "irc"
 	}
 
 	// map settings
@@ -202,16 +241,23 @@ func (s *service) Start() error {
 	}
 
 	for _, indexer := range indexerDefinitions {
-		s.mapIRCIndexerLookup(indexer.Identifier, *indexer)
+		if indexer.IRC != nil {
+			s.mapIRCIndexerLookup(indexer.Identifier, *indexer)
 
-		// add to irc server lookup table
-		s.mapIRCServerDefinitionLookup(indexer.IRC.Server, *indexer)
+			// add to irc server lookup table
+			s.mapIRCServerDefinitionLookup(indexer.IRC.Server, *indexer)
 
-		// check if it has api and add to api service
-		if indexer.Enabled && indexer.HasApi() {
-			if err := s.apiService.AddClient(indexer.Identifier, indexer.SettingsMap); err != nil {
-				log.Error().Stack().Err(err).Msgf("indexer.start: could not init api client for: '%v'", indexer.Identifier)
+			// check if it has api and add to api service
+			if indexer.Enabled && indexer.HasApi() {
+				if err := s.apiService.AddClient(indexer.Identifier, indexer.SettingsMap); err != nil {
+					log.Error().Stack().Err(err).Msgf("indexer.start: could not init api client for: '%v'", indexer.Identifier)
+				}
 			}
+		}
+
+		// handle Torznab
+		if indexer.Implementation == "torznab" {
+			s.torznabIndexers[indexer.Identifier] = indexer
 		}
 	}
 
@@ -238,21 +284,32 @@ func (s *service) addIndexer(indexer domain.Indexer) error {
 		return err
 	}
 
+	if indexerDefinition == nil {
+		return errors.New("addindexer: could not find definition")
+	}
+
 	// TODO only add enabled?
 	//if !indexer.Enabled {
 	//	continue
 	//}
 
-	s.mapIRCIndexerLookup(indexer.Identifier, *indexerDefinition)
+	if indexerDefinition.IRC != nil {
+		s.mapIRCIndexerLookup(indexer.Identifier, *indexerDefinition)
 
-	// add to irc server lookup table
-	s.mapIRCServerDefinitionLookup(indexerDefinition.IRC.Server, *indexerDefinition)
+		// add to irc server lookup table
+		s.mapIRCServerDefinitionLookup(indexerDefinition.IRC.Server, *indexerDefinition)
 
-	// check if it has api and add to api service
-	if indexerDefinition.Enabled && indexerDefinition.HasApi() {
-		if err := s.apiService.AddClient(indexerDefinition.Identifier, indexerDefinition.SettingsMap); err != nil {
-			log.Error().Stack().Err(err).Msgf("indexer.start: could not init api client for: '%v'", indexer.Identifier)
+		// check if it has api and add to api service
+		if indexerDefinition.Enabled && indexerDefinition.HasApi() {
+			if err := s.apiService.AddClient(indexerDefinition.Identifier, indexerDefinition.SettingsMap); err != nil {
+				log.Error().Stack().Err(err).Msgf("indexer.start: could not init api client for: '%v'", indexer.Identifier)
+			}
 		}
+	}
+
+	// handle Torznab
+	if indexerDefinition.Implementation == "torznab" {
+		s.torznabIndexers[indexer.Identifier] = indexerDefinition
 	}
 
 	return nil
@@ -410,6 +467,19 @@ func (s *service) GetIndexersByIRCNetwork(server string) []domain.IndexerDefinit
 	return indexerDefinitions
 }
 
+func (s *service) GetTorznabIndexers() []domain.IndexerDefinition {
+
+	indexerDefinitions := make([]domain.IndexerDefinition, 0)
+
+	for _, definition := range s.torznabIndexers {
+		if definition != nil {
+			indexerDefinitions = append(indexerDefinitions, *definition)
+		}
+	}
+
+	return indexerDefinitions
+}
+
 func (s *service) getDefinitionByName(name string) *domain.IndexerDefinition {
 
 	if v, ok := s.indexerDefinitions[name]; ok {
@@ -428,4 +498,16 @@ func (s *service) getDefinitionForAnnounce(name string) *domain.IndexerDefinitio
 	}
 
 	return nil
+}
+
+func (s *service) stopFeed(indexer string) {
+	// verify indexer is torznab indexer
+	_, ok := s.torznabIndexers[indexer]
+	if !ok {
+		return
+	}
+
+	if err := s.scheduler.RemoveJobByIdentifier(indexer); err != nil {
+		return
+	}
 }

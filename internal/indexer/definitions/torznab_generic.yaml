@@ -1,0 +1,27 @@
+---
+#id: torznab
+name: Generic Torznab
+identifier: torznab
+description: Generic Torznab
+language: en-us
+urls:
+  - https://domain.com
+privacy: private
+protocol: torrent
+implementation: torznab
+supports:
+  - torznab
+source: torznab
+
+torznab:
+  minInterval: 15
+  settings:
+    - name: url
+      type: text
+      required: true
+      label: Torznab URL
+    - name: api_key
+      type: secret
+      required: false
+      label: Api key
+      help: Api key

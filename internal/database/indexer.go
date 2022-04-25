@@ -2,6 +2,7 @@ package database
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
 	"time"
 
@@ -28,8 +29,8 @@ func (r *IndexerRepo) Store(ctx context.Context, indexer domain.Indexer) (*domai
 	}
 
 	queryBuilder := r.db.squirrel.
-		Insert("indexer").Columns("enabled", "name", "identifier", "settings").
-		Values(indexer.Enabled, indexer.Name, indexer.Identifier, settings).
+		Insert("indexer").Columns("enabled", "name", "identifier", "implementation", "settings").
+		Values(indexer.Enabled, indexer.Name, indexer.Identifier, indexer.Implementation, settings).
 		Suffix("RETURNING id").RunWith(r.db.handler)
 
 	// return values
@@ -77,7 +78,7 @@ func (r *IndexerRepo) Update(ctx context.Context, indexer domain.Indexer) (*doma
 }
 
 func (r *IndexerRepo) List(ctx context.Context) ([]domain.Indexer, error) {
-	rows, err := r.db.handler.QueryContext(ctx, "SELECT id, enabled, name, identifier, settings FROM indexer ORDER BY name ASC")
+	rows, err := r.db.handler.QueryContext(ctx, "SELECT id, enabled, name, identifier, implementation, settings FROM indexer ORDER BY name ASC")
 	if err != nil {
 		log.Error().Stack().Err(err).Msg("indexer.list: error query indexer")
 		return nil, err
@@ -89,13 +90,16 @@ func (r *IndexerRepo) List(ctx context.Context) ([]domain.Indexer, error) {
 	for rows.Next() {
 		var f domain.Indexer
 
+		var implementation sql.NullString
 		var settings string
 		var settingsMap map[string]string
 
-		if err := rows.Scan(&f.ID, &f.Enabled, &f.Name, &f.Identifier, &settings); err != nil {
+		if err := rows.Scan(&f.ID, &f.Enabled, &f.Name, &f.Identifier, &implementation, &settings); err != nil {
 			log.Error().Stack().Err(err).Msg("indexer.list: error scanning data to struct")
 			return nil, err
 		}
+
+		f.Implementation = implementation.String
 
 		err = json.Unmarshal([]byte(settings), &settingsMap)
 		if err != nil {
