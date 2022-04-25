@@ -65,7 +65,9 @@ func (j *TorznabJob) process() error {
 		rls.TorrentURL = item.GUID
 		rls.Implementation = domain.ReleaseImplementationTorznab
 		rls.Indexer = j.IndexerIdentifier
-		//rls.Size = item.Size // TODO parse size
+
+		// parse size bytes string
+		rls.ParseSizeBytesString(item.Size)
 
 		if err := rls.Parse(); err != nil {
 			j.Log.Error().Err(err).Msgf("torznab.process: error parsing release")

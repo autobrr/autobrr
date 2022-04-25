@@ -157,6 +157,15 @@ func (r *Release) Parse() error {
 	return nil
 }
 
+func (r *Release) ParseSizeBytesString(size string) {
+	s, err := humanize.ParseBytes(size)
+	if err != nil {
+		// log could not parse into bytes
+		r.Size = 0
+	}
+	r.Size = s
+}
+
 func (r *Release) extractYear() error {
 	if r.Year > 0 {
 		return nil
