@@ -8,10 +8,11 @@ import { classNames, COL_WIDTHS } from "../../utils";
 import { SettingsContext } from "../../utils/Context";
 
 interface MultiSelectProps {
+    name: string;
     label?: string;
     options?: [] | any;
-    name: string;
     columns?: COL_WIDTHS;
+    creatable?: boolean;
 }
 
 export const MultiSelect = ({
@@ -19,8 +20,16 @@ export const MultiSelect = ({
     label,
     options,
     columns,
+    creatable,
 }: MultiSelectProps) => {
     const settingsContext = SettingsContext.useValue();
+
+    const handleNewField = (value: string) => ({
+        value: value.toUpperCase(),
+        label: value.toUpperCase(),
+        key: value,
+    });
+
     return (
         <div
             className={classNames(
@@ -42,11 +51,17 @@ export const MultiSelect = ({
                     <RMSC
                         {...field}
                         type="select"
-                        options={options}
+                        options={[...[...options, ...field.value.map((i: any) => ({ value: i.value ?? i, label: i.label ?? i}))].reduce((map, obj) => map.set(obj.value, obj), new Map()).values()]}
                         labelledBy={name}
-                        value={field.value && field.value.map((item: any) => options.find((o: any) => o.value === item))}
+                        isCreatable={creatable}
+                        onCreateOption={handleNewField}
+                        value={field.value && field.value.map((item: any) => ({
+                            value: item.value ? item.value : item,
+                            label: item.label ? item.label : item,
+                        }))}
                         onChange={(values: any) => {
                             const am = values && values.map((i: any) => i.value);
+
                             setFieldValue(field.name, am);
                         }}
                         className={settingsContext.darkTheme ? "dark" : ""}

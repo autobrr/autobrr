@@ -26,7 +26,7 @@ import {
     FORMATS_OPTIONS,
     SOURCES_MUSIC_OPTIONS,
     QUALITY_MUSIC_OPTIONS,
-    RELEASE_TYPE_MUSIC_OPTIONS
+    RELEASE_TYPE_MUSIC_OPTIONS, OTHER_OPTIONS
 } from "../../domain/constants";
 import { queryClient } from "../../App";
 import { APIClient } from "../../api/APIClient";
@@ -264,6 +264,8 @@ export default function FilterDetails() {
                                         containers: filter.containers || [],
                                         match_hdr: filter.match_hdr || [],
                                         except_hdr: filter.except_hdr || [],
+                                        match_other: filter.match_other || [],
+                                        except_other: filter.except_other || [],
                                         seasons: filter.seasons,
                                         episodes: filter.episodes,
                                         match_releases: filter.match_releases,
@@ -403,18 +405,23 @@ function MoviesTv() {
                 <TitleSubtitle title="Quality" subtitle="Set resolution, source, codec and related match constraints" />
 
                 <div className="mt-6 grid grid-cols-12 gap-6">
-                    <MultiSelect name="resolutions" options={RESOLUTION_OPTIONS} label="resolutions" columns={6} />
-                    <MultiSelect name="sources" options={SOURCES_OPTIONS} label="sources" columns={6} />
+                    <MultiSelect name="resolutions" options={RESOLUTION_OPTIONS} label="resolutions" columns={6} creatable={true} />
+                    <MultiSelect name="sources" options={SOURCES_OPTIONS} label="sources" columns={6} creatable={true} />
                 </div>
 
                 <div className="mt-6 grid grid-cols-12 gap-6">
-                    <MultiSelect name="codecs" options={CODECS_OPTIONS} label="codecs" columns={6} />
-                    <MultiSelect name="containers" options={CONTAINER_OPTIONS} label="containers" columns={6} />
+                    <MultiSelect name="codecs" options={CODECS_OPTIONS} label="codecs" columns={6} creatable={true} />
+                    <MultiSelect name="containers" options={CONTAINER_OPTIONS} label="containers" columns={6} creatable={true} />
                 </div>
 
                 <div className="mt-6 grid grid-cols-12 gap-6">
-                    <MultiSelect name="match_hdr" options={HDR_OPTIONS} label="Match HDR" columns={6} />
-                    <MultiSelect name="except_hdr" options={HDR_OPTIONS} label="Except HDR" columns={6} />
+                    <MultiSelect name="match_hdr" options={HDR_OPTIONS} label="Match HDR" columns={6} creatable={true} />
+                    <MultiSelect name="except_hdr" options={HDR_OPTIONS} label="Except HDR" columns={6} creatable={true} />
+                </div>
+
+                <div className="mt-6 grid grid-cols-12 gap-6">
+                    <MultiSelect name="match_other" options={OTHER_OPTIONS} label="Match Other" columns={6} creatable={true} />
+                    <MultiSelect name="except_other" options={OTHER_OPTIONS} label="Except Other" columns={6} creatable={true} />
                 </div>
             </div>
         </div>

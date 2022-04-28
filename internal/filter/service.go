@@ -234,7 +234,7 @@ func (s *service) CheckFilter(f domain.Filter, release *domain.Release) (bool, e
 	log.Trace().Msgf("filter.Service.CheckFilter: checking filter: %v %+v", f.Name, f)
 	log.Trace().Msgf("filter.Service.CheckFilter: checking filter: %v for release: %+v", f.Name, release)
 
-	rejections, matchedFilter := release.CheckFilter(f)
+	rejections, matchedFilter := f.CheckFilter(release)
 	if len(rejections) > 0 {
 		log.Trace().Msgf("filter.Service.CheckFilter: (%v) for release: %v rejections: (%v)", f.Name, release.TorrentName, release.RejectionsString())
 		return false, nil

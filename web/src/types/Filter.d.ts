@@ -26,6 +26,8 @@ interface Filter {
   containers: string[];
   match_hdr: string[];
   except_hdr: string[];
+  match_other: string[];
+  except_other: string[];
   years: string;
   artists: string;
   albums: string;

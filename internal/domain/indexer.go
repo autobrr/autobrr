@@ -1,9 +1,13 @@
 package domain
 
 import (
+	"bytes"
 	"context"
+	"net/url"
+	"text/template"
 
 	"github.com/dustin/go-humanize"
+	"github.com/rs/zerolog/log"
 )
 
 type IndexerRepo interface {
@@ -113,6 +117,56 @@ type IndexerParseExtract struct {
 type IndexerParseMatch struct {
 	TorrentURL string   `json:"torrenturl"`
 	Encode     []string `json:"encode"`
+}
+
+func (p *IndexerParse) ParseTorrentUrl(vars map[string]string, extraVars map[string]string, release *Release) error {
+	tmpVars := map[string]string{}
+
+	// copy vars to new tmp map
+	for k, v := range vars {
+		tmpVars[k] = v
+	}
+
+	// merge extra vars with vars
+	if extraVars != nil {
+		for k, v := range extraVars {
+			tmpVars[k] = v
+		}
+	}
+
+	// handle url encode of values
+	if p.Match.Encode != nil {
+		for _, e := range p.Match.Encode {
+			if v, ok := tmpVars[e]; ok {
+				// url encode  value
+				t := url.QueryEscape(v)
+				tmpVars[e] = t
+			}
+		}
+	}
+
+	// setup text template to inject variables into
+	tmpl, err := template.New("torrenturl").Parse(p.Match.TorrentURL)
+	if err != nil {
+		log.Error().Err(err).Msg("could not create torrent url template")
+		return err
+	}
+
+	var urlBytes bytes.Buffer
+	err = tmpl.Execute(&urlBytes, &tmpVars)
+	if err != nil {
+		log.Error().Err(err).Msg("could not write torrent url template output")
+		return err
+	}
+
+	release.TorrentURL = urlBytes.String()
+
+	// handle cookies
+	if v, ok := extraVars["cookie"]; ok {
+		release.RawCookie = v
+	}
+
+	return nil
 }
 
 type TorrentBasic struct {
