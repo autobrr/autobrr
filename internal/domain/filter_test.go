@@ -679,7 +679,7 @@ func TestFilter_CheckFilter(t *testing.T) {
 					MatchHDR:           []string{"DV", "HDR"},
 				},
 			},
-			want: false,
+			want: true,
 		},
 		{
 			name: "match_hdr_3",
@@ -841,13 +841,7 @@ func TestFilter_CheckFilter(t *testing.T) {
 					Enabled:         true,
 					MatchCategories: "Album",
 					Artists:         "Artist",
-					//Sources:         []string{"CD"},
-					//Formats:         []string{"FLAC"},
-					//Quality:         []string{"24bit Lossless"},
-					PerfectFlac: true,
-					//Log:             true,
-					//LogScore:        100,
-					//Cue:             true,
+					PerfectFlac:     true,
 				},
 			},
 			want: false,
@@ -998,7 +992,7 @@ func TestFilter_CheckFilter(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			r := tt.fields // Release
 
-			_ = r.Parse() // Parse TorrentName into struct
+			_ = r.ParseString(tt.fields.TorrentName) // Parse TorrentName into struct
 			rejections, got := tt.args.filter.CheckFilter(r)
 			fmt.Println(rejections)
 
@@ -1335,30 +1329,25 @@ func TestFilter_CheckFilter1(t *testing.T) {
 			wantMatch:      false,
 		},
 		{
-			name: "test_20",
+			name: "test_21",
 			fields: fields{
-				Formats:  []string{"FLAC"},
-				Quality:  []string{"Lossless"},
-				Media:    []string{"CD"},
-				Log:      true,
-				LogScore: 100,
-				Cue:      true,
+				Formats: []string{"FLAC"},
+				Quality: []string{"Lossless"},
+				Media:   []string{"CD"},
+				Log:     true,
+				//LogScore: 100,
+				Cue: true,
 			},
 			args:           args{&Release{TorrentName: "Gillan - Future Shock", ReleaseTags: "FLAC / Lossless / Log / 100% / Cue / CD / Scene"}},
 			wantRejections: nil,
 			wantMatch:      true,
 		},
 		{
-			name: "test_20",
+			name: "test_22",
 			fields: fields{
-				Formats:  []string{"FLAC"},
-				Quality:  []string{"Lossless"},
-				Media:    []string{"CD"},
-				Log:      true,
-				LogScore: 100,
-				Cue:      true,
+				PerfectFlac: true,
 			},
-			args:           args{&Release{TorrentName: "Gillan - Future Shock [1981] [Album] - FLAC / Lossless / Log / 100% / Cue / CD"}},
+			args:           args{&Release{TorrentName: "Gillan - Future Shock", ReleaseTags: "FLAC / Lossless / Log / 100% / Cue / CD / Scene"}},
 			wantRejections: nil,
 			wantMatch:      true,
 		},
@@ -1420,6 +1409,119 @@ func TestFilter_CheckFilter1(t *testing.T) {
 			rejections, match := f.CheckFilter(tt.args.r)
 			assert.Equalf(t, tt.wantRejections, rejections, "CheckFilter(%v)", tt.args.r)
 			assert.Equalf(t, tt.wantMatch, match, "CheckFilter(%v)", tt.args.r)
+		})
+	}
+}
+
+func Test_contains(t *testing.T) {
+	type args struct {
+		tag    string
+		filter string
+	}
+	tests := []struct {
+		name string
+		args args
+		want bool
+	}{
+		{name: "test_1", args: args{tag: "group1", filter: "group1,group2"}, want: true},
+		{name: "test_2", args: args{tag: "group1", filter: "group1,group2"}, want: true},
+		{name: "test_3", args: args{tag: "group1", filter: "group2,group3"}, want: false},
+		{name: "test_4", args: args{tag: "something test something", filter: "*test*"}, want: true},
+		{name: "test_5", args: args{tag: "something.test.something", filter: "*test*"}, want: true},
+		{name: "test_6", args: args{tag: "that movie", filter: "that?movie"}, want: true},
+		{name: "test_7", args: args{tag: "that.movie", filter: "that?movie"}, want: true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equalf(t, tt.want, contains(tt.args.tag, tt.args.filter), "contains(%v, %v)", tt.args.tag, tt.args.filter)
+		})
+	}
+}
+
+func Test_containsSlice(t *testing.T) {
+	type args struct {
+		tag     string
+		filters []string
+	}
+	tests := []struct {
+		name string
+		args args
+		want bool
+	}{
+		{name: "test_1", args: args{tag: "group1", filters: []string{"group1", "group2"}}, want: true},
+		{name: "test_2", args: args{tag: "group1", filters: []string{"group2", "group3"}}, want: false},
+		{name: "test_3", args: args{tag: "2160p", filters: []string{"1080p", "2160p"}}, want: true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equalf(t, tt.want, containsSlice(tt.args.tag, tt.args.filters), "containsSlice(%v, %v)", tt.args.tag, tt.args.filters)
+		})
+	}
+}
+
+func Test_containsAny(t *testing.T) {
+	type args struct {
+		tags   []string
+		filter string
+	}
+	tests := []struct {
+		name string
+		args args
+		want bool
+	}{
+		{name: "test_1", args: args{tags: []string{"HDR", "DV"}, filter: "DV"}, want: true},
+		{name: "test_2", args: args{tags: []string{"HDR"}, filter: "DV"}, want: false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equalf(t, tt.want, containsAny(tt.args.tags, tt.args.filter), "containsAny(%v, %v)", tt.args.tags, tt.args.filter)
+		})
+	}
+}
+
+func Test_sliceContainsSlice(t *testing.T) {
+	type args struct {
+		tags    []string
+		filters []string
+	}
+	tests := []struct {
+		name string
+		args args
+		want bool
+	}{
+		{name: "test_1", args: args{tags: []string{"HDR", "DV"}, filters: []string{"HDR", "DoVi"}}, want: true},
+		{name: "test_2", args: args{tags: []string{"HDR10+", "DV"}, filters: []string{"HDR"}}, want: false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equalf(t, tt.want, sliceContainsSlice(tt.args.tags, tt.args.filters), "sliceContainsSlice(%v, %v)", tt.args.tags, tt.args.filters)
+		})
+	}
+}
+
+func Test_containsIntStrings(t *testing.T) {
+	type args struct {
+		value      int
+		filterList string
+	}
+	tests := []struct {
+		name string
+		args args
+		want bool
+	}{
+		{name: "test_1", args: args{value: 2, filterList: "1,2,3"}, want: true},
+		{name: "test_2", args: args{value: 2, filterList: "1-3"}, want: true},
+		{name: "test_3", args: args{value: 2, filterList: "2"}, want: true},
+		{name: "test_4", args: args{value: 2, filterList: "2-5"}, want: true},
+		{name: "test_5", args: args{value: 2, filterList: "3-5"}, want: false},
+		{name: "test_6", args: args{value: 2, filterList: "3-5"}, want: false},
+		{name: "test_7", args: args{value: 0, filterList: "3-5"}, want: false},
+		{name: "test_8", args: args{value: 0, filterList: "0"}, want: true},
+		{name: "test_9", args: args{value: 100, filterList: "1-1000"}, want: true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equalf(t, tt.want, containsIntStrings(tt.args.value, tt.args.filterList), "containsIntStrings(%v, %v)", tt.args.value, tt.args.filterList)
 		})
 	}
 }

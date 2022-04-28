@@ -176,14 +176,13 @@ func (a *announceProcessor) onLinesMatched(def domain.IndexerDefinition, vars ma
 	}
 
 	// parse fields
-	err = release.Parse()
+	err = release.ParseString(release.TorrentName)
 	if err != nil {
 		log.Error().Stack().Err(err).Msg("announce: could not parse release")
 		return err
 	}
 
 	// parse torrentUrl
-	//err = release.ParseTorrentUrl(def.Parse.Match.TorrentURL, vars, def.SettingsMap, def.Parse.Match.Encode)
 	err = def.Parse.ParseTorrentUrl(vars, def.SettingsMap, release)
 	if err != nil {
 		log.Error().Stack().Err(err).Msg("announce: could not parse torrent url")

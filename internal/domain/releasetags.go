@@ -9,16 +9,15 @@ var types map[string][]*TagInfo
 
 func init() {
 	types = make(map[string][]*TagInfo)
-	types["audio"] = []*TagInfo{}
 
 	audio := []*TagInfo{
 		{tag: "24BIT", title: "", regexp: "(?-i:24BIT)", re: nil},
-		{tag: "24BIT Lossless", title: "", regexp: "(?-i:24BIT lossless)", re: nil},
+		{tag: "24BIT Lossless", title: "", regexp: "(?:24BIT lossless)", re: nil},
 		{tag: "16BIT", title: "", regexp: "(?-i:16BIT)", re: nil},
-		{tag: "320Kbps", title: "320 Kbps", regexp: "320[\\-\\._ ]?kbps", re: nil},
-		{tag: "256Kbps", title: "256 Kbps", regexp: "256[\\-\\._ ]?kbps", re: nil},
-		{tag: "192Kbps", title: "192 Kbps", regexp: "192[\\-\\._ ]?kbps", re: nil},
-		{tag: "128Kbps", title: "128 Kbps", regexp: "128[\\-\\._ ]?kbps", re: nil},
+		{tag: "320", title: "320 Kbps", regexp: "320[\\\\-\\\\._ kbps]?", re: nil},
+		{tag: "256", title: "256 Kbps", regexp: "256[\\\\-\\\\._ kbps]?", re: nil},
+		{tag: "192", title: "192 Kbps", regexp: "192[\\\\-\\\\._ kbps]?", re: nil},
+		{tag: "128", title: "128 Kbps", regexp: "128[\\\\-\\\\._ kbps]?", re: nil},
 		{tag: "AAC-LC", title: "Advanced Audio Coding (LC)", regexp: "aac[\\-\\._ ]?lc", re: nil},
 		{tag: "AAC", title: "Advanced Audio Coding (LC)", regexp: "", re: nil},
 		{tag: "AC3D", title: "", regexp: "ac[\\-\\._ ]?3d", re: nil},
@@ -41,8 +40,9 @@ func init() {
 		{tag: "EX", title: "Dolby Digital (EX)", regexp: "(?-i:EX)", re: nil},
 		{tag: "FLAC", title: "Free Lossless Audio Codec", regexp: "", re: nil},
 		{tag: "LiNE", title: "Line", regexp: "(?-i:L[iI]NE)", re: nil},
-		{tag: "LOSSLESS", title: "", regexp: "(?-i:LOSSLESS)", re: nil},
-		{tag: "Log", title: "", regexp: "log [\\d\\.]+%", re: nil},
+		{tag: "Lossless", title: "", regexp: "(?i:Lossless)", re: nil},
+		{tag: "Log100", title: "", regexp: "(log 100%)", re: nil},
+		{tag: "Log", title: "", regexp: "(?:log)", re: nil},
 		{tag: "LPCM", title: "Linear Pulse-Code Modulation", regexp: "", re: nil},
 		{tag: "MP3", title: "", regexp: "", re: nil},
 		{tag: "OGG", title: "", regexp: "", re: nil},
@@ -51,6 +51,11 @@ func init() {
 		{tag: "VBR", title: "Variable Bit Rate", regexp: "", re: nil},
 	}
 	types["audio"] = audio
+
+	bonus := []*TagInfo{
+		{tag: "Freeleech", title: "Freeleech", regexp: "freeleech", re: nil},
+	}
+	types["bonus"] = bonus
 
 	channels := []*TagInfo{
 		{tag: "7.1", title: "", regexp: "7\\.1(?:[\\-\\._ ]?audios)?", re: nil},
@@ -68,9 +73,62 @@ func init() {
 	}
 	types["channels"] = channels
 
+	codecs := []*TagInfo{
+		{tag: "DiVX.SBC", title: "DivX SBC", regexp: "(?:divx[\\-\\._ ]?)?sbc", re: nil},
+		{tag: "x264.HQ", title: "x264 (HQ)", regexp: "x[\\\\-\\\\._ ]?264[\\\\-\\\\._ ]?hq", re: nil},
+		{tag: "MPEG-2", title: "", regexp: "mpe?g(?:[\\-\\._ ]?2)?", re: nil},
+		{tag: "H.265", title: "", regexp: "h[\\-\\._ ]?265", re: nil},
+		{tag: "H.264", title: "", regexp: "h[\\-\\._ ]?264", re: nil},
+		{tag: "H.263", title: "", regexp: "h[\\-\\._ ]?263", re: nil},
+		{tag: "H.262", title: "", regexp: "h[\\-\\._ ]?2[26]2", re: nil},
+		{tag: "H.261", title: "", regexp: "h[\\-\\._ ]?261", re: nil},
+		{tag: "dxva", title: "Direct-X Video Acceleration", regexp: "", re: nil},
+		{tag: "HEVC", title: "High Efficiency Video Coding", regexp: "", re: nil},
+		{tag: "VC-1", title: "", regexp: "vc[\\-\\._ ]?1", re: nil},
+		{tag: "x265", title: "", regexp: "x[\\-\\._ ]?265", re: nil},
+		{tag: "x264", title: "", regexp: "x[\\-\\._ ]?264", re: nil},
+		{tag: "XViD", title: "Xvid", regexp: "", re: nil},
+		{tag: "AVC", title: "Advanced Video Coding", regexp: "avc(?:[\\-\\._ ]?1)?", re: nil},
+		{tag: "VP9", title: "", regexp: "vp[\\-\\._ ]?9", re: nil},
+		{tag: "VP8", title: "", regexp: "vp[\\-\\._ ]?8", re: nil},
+		{tag: "VP7", title: "", regexp: "vp[\\-\\._ ]?7", re: nil},
+	}
+	types["codecs"] = codecs
+
+	container := []*TagInfo{
+		{tag: "avi", title: "Audio Video Interleave (avi)", regexp: "", re: nil},
+		{tag: "img", title: "IMG", regexp: "", re: nil},
+		{tag: "iso", title: "ISO", regexp: "", re: nil},
+		{tag: "mkv", title: "Matroska (mkv)", regexp: "", re: nil},
+		{tag: "mov", title: "MOV", regexp: "", re: nil},
+		{tag: "mp4", title: "MP4", regexp: "", re: nil},
+		{tag: "mpg", title: "MPEG", regexp: "mpe?g", re: nil},
+		{tag: "m2ts", title: "BluRay Disc (m2ts)", regexp: "", re: nil},
+		{tag: "vob", title: "VOB", regexp: "", re: nil},
+	}
+	types["container"] = container
+
+	hdr := []*TagInfo{
+		{tag: "HDR10+", title: "High Dynamic Range (10-bit+)", regexp: "hdr[\\-\\.]?10\\+|10\\+[\\-\\.]?bit|hdr10plus|hi10p", re: nil},
+		{tag: "HDR10", title: "High Dynamic Range (10-bit)", regexp: "hdr[\\-\\.]?10|10[\\-\\.]?bit|hi10", re: nil},
+		{tag: "HDR+", title: "High Dynamic Range+", regexp: "hdr\\+", re: nil},
+		{tag: "HDR", title: "High Dynamic Range", regexp: "", re: nil},
+		{tag: "SDR", title: "Standard Dynamic Range", regexp: "", re: nil},
+		{tag: "DV", title: "Dolby Vision", regexp: "(?i:dolby[\\-\\._ ]vision|dovi|\\Qdv\\E\\b)", re: nil},
+	}
+	types["hdr"] = hdr
+
+	other := []*TagInfo{
+		{tag: "HYBRID", title: "Hybrid", regexp: "", re: nil},
+		{tag: "REMUX", title: "Remux", regexp: "", re: nil},
+		{tag: "REPACK", title: "Repack", regexp: "repack(?:ed)?", re: nil},
+		{tag: "REREPACK", title: "Rerepack", regexp: "rerepack(?:ed)?", re: nil},
+	}
+	types["other"] = other
+
 	source := []*TagInfo{
+		{tag: "Cassette", title: "Cassette", regexp: "", re: nil},
 		{tag: "CD", title: "Compact Disc", regexp: "cd[\\-\\._ ]?(?:album)?", re: nil},
-		{tag: "WEB", title: "Web", regexp: "", re: nil},
 		{tag: "BDRiP", title: "BluRay (rip)", regexp: "b[dr]?[\\-\\._ ]?rip", re: nil},
 		{tag: "BDSCR", title: "BluRay (screener)", regexp: "b[dr][\\-\\._ ]?scr(?:eener)?", re: nil},
 		{tag: "BluRay3D", title: "", regexp: "blu[\\-\\._ ]?ray[\\-\\._ ]?3d|bd3d", re: nil},
@@ -85,6 +143,24 @@ func init() {
 		{tag: "DVDSCR", title: "Digital Video Disc (screener)", regexp: "(?:dvd[\\-\\._ ]?)?scr(?:eener)?", re: nil},
 		{tag: "DVDS", title: "Digital Video Disc (single)", regexp: "dvds(?:ingle)?", re: nil},
 		{tag: "DVD", title: "Digital Video Disc", regexp: "dvd", re: nil},
+		{tag: "SACD", title: "Super Audio Compact Disc", regexp: "", re: nil},
+		{tag: "RADIO", title: "Radio", regexp: "(?-i:R[aA]D[iI][oO])", re: nil},
+		{tag: "SATRiP", title: "Satellite (rip)", regexp: "sat[\\-\\._ ]?rip", re: nil},
+		{tag: "SAT", title: "Satellite Radio", regexp: "(?-i:SAT)", re: nil},
+		{tag: "SBD", title: "Soundboard", regexp: "(?-i:SBD|DAB|Soundboard)", re: nil},
+		{tag: "UHD.BDRiP", title: "Ultra High-Definition BluRay (rip)", regexp: "uhd[\\-\\._ ]?(?:bd)?rip", re: nil},
+		{tag: "UHD.BluRay", title: "Ultra High-Definition BluRay", regexp: "uhd[\\-\\._ ]?(?:blu[\\-\\._ ]?ray|bd)", re: nil},
+		{tag: "UHDTV", title: "Ultra High-Definition TV", regexp: "", re: nil},
+		{tag: "UMDMOVIE", title: "Universal Media Disc Movie", regexp: "", re: nil},
+		{tag: "Vinyl", title: "Vinyl", regexp: "vinyl|vl", re: nil},
+		{tag: "WEB-DL", title: "Web (DL)", regexp: "web[\\-\\._ ]?dl", re: nil},
+		{tag: "WEB-HD", title: "Web (HD)", regexp: "web[\\-\\._ ]?hd", re: nil},
+		{tag: "WEBFLAC", title: "Web (FLAC)", regexp: "", re: nil},
+		{tag: "WebHDRiP", title: "Web (HD rip)", regexp: "", re: nil},
+		{tag: "WEBRiP", title: "Web (rip)", regexp: "web[\\-\\._ ]?rip", re: nil},
+		{tag: "WEBSCR", title: "Web (screener)", regexp: "web[\\-\\._ ]?scr(?:eener)?", re: nil},
+		{tag: "WebUHD", title: "Web (UHD)", regexp: "", re: nil},
+		{tag: "WEB", title: "Web", regexp: "", re: nil},
 	}
 	types["source"] = source
 
@@ -107,11 +183,6 @@ func init() {
 		{tag: "$1p", title: "Other ($1p)", regexp: "([123]\\d{3})p", re: nil},
 	}
 	types["resolution"] = resolution
-
-	//codecs := []*TagInfo{
-	//	{tag: "", title: "", regexp: "", re: nil},
-	//}
-	//types["codecs"] = codecs
 
 	for s, infos := range types {
 		for _, info := range infos {
@@ -195,16 +266,19 @@ type ReleaseTags struct {
 	Channels   string
 	Source     string
 	Resolution string
+	Container  string
+	Codec      string
+	HDR        []string
+	Other      []string
+	Bonus      []string
 }
 
 func ParseReleaseTags(tags []string) ReleaseTags {
-	releasetags := ReleaseTags{}
+	releaseTags := ReleaseTags{}
 
 	for _, tag := range tags {
-		//fmt.Printf("tag: %v\n", tag)
 
 		for tagType, tagInfos := range types {
-			//fmt.Printf("tagType: %v\n", tagType)
 
 			for _, info := range tagInfos {
 				// check tag
@@ -213,16 +287,31 @@ func ParseReleaseTags(tags []string) ReleaseTags {
 					fmt.Printf("match: %v, info: %v\n", tag, info.Tag())
 					switch tagType {
 					case "audio":
-						releasetags.Audio = append(releasetags.Audio, info.Tag())
+						releaseTags.Audio = append(releaseTags.Audio, info.Tag())
+						continue
+					case "bonus":
+						releaseTags.Bonus = append(releaseTags.Bonus, info.Tag())
 						continue
 					case "channels":
-						releasetags.Channels = info.Tag()
+						releaseTags.Channels = info.Tag()
 						break
+					case "codecs":
+						releaseTags.Codec = info.Tag()
+						break
+					case "container":
+						releaseTags.Container = info.Tag()
+						break
+					case "hdr":
+						releaseTags.HDR = append(releaseTags.HDR, info.Tag())
+						continue
+					case "other":
+						releaseTags.Other = append(releaseTags.Other, info.Tag())
+						continue
 					case "source":
-						releasetags.Source = info.Tag()
+						releaseTags.Source = info.Tag()
 						break
 					case "resolution":
-						releasetags.Resolution = info.Tag()
+						releaseTags.Resolution = info.Tag()
 						break
 					}
 					break
@@ -231,10 +320,10 @@ func ParseReleaseTags(tags []string) ReleaseTags {
 		}
 	}
 
-	return releasetags
+	return releaseTags
 }
 func ParseReleaseTagString(tags string) ReleaseTags {
-	releasetags := ReleaseTags{}
+	releaseTags := ReleaseTags{}
 
 	for tagType, tagInfos := range types {
 		//fmt.Printf("tagType: %v\n", tagType)
@@ -246,24 +335,40 @@ func ParseReleaseTagString(tags string) ReleaseTags {
 				continue
 			}
 
-			fmt.Printf("match: info: %v\n", info.Tag())
+			//fmt.Printf("match: info: %v\n", info.Tag())
 			switch tagType {
 			case "audio":
-				releasetags.Audio = append(releasetags.Audio, info.Tag())
+				releaseTags.Audio = append(releaseTags.Audio, info.Tag())
+				continue
+			case "bonus":
+				releaseTags.Bonus = append(releaseTags.Bonus, info.Tag())
+				continue
 			case "channels":
-				releasetags.Channels = info.Tag()
+				releaseTags.Channels = info.Tag()
 				break
+			case "codecs":
+				releaseTags.Codec = info.Tag()
+				break
+			case "container":
+				releaseTags.Container = info.Tag()
+				break
+			case "hdr":
+				releaseTags.HDR = append(releaseTags.HDR, info.Tag())
+				continue
+			case "other":
+				releaseTags.Other = append(releaseTags.Other, info.Tag())
+				continue
 			case "source":
-				releasetags.Source = info.Tag()
+				releaseTags.Source = info.Tag()
 				break
 			case "resolution":
-				releasetags.Resolution = info.Tag()
+				releaseTags.Resolution = info.Tag()
 				break
 			}
-			continue
+			break
 		}
 
 	}
 
-	return releasetags
+	return releaseTags
 }

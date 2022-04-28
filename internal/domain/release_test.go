@@ -308,13 +308,15 @@ func TestRelease_MapVars(t *testing.T) {
 				Uploader:    "Anon",
 				Size:        uint64(10000000000),
 			},
-			args: args{varMap: map[string]string{
-				"torrentName": "Good show S02 2160p ATVP WEB-DL DDP 5.1 Atmos DV HEVC-GROUP2",
-				"category":    "tv",
-				"freeleech":   "freeleech",
-				"uploader":    "Anon",
-				"torrentSize": "10GB",
-			}},
+			args: args{
+				varMap: map[string]string{
+					"torrentName": "Good show S02 2160p ATVP WEB-DL DDP 5.1 Atmos DV HEVC-GROUP2",
+					"category":    "tv",
+					"freeleech":   "freeleech",
+					"uploader":    "Anon",
+					"torrentSize": "10GB",
+				},
+			},
 		},
 		{
 			name:   "3",
@@ -583,6 +585,7 @@ func TestRelease_ParseString(t *testing.T) {
 		{name: "parse_15", fields: fields{}, args: args{title: "Annette 2021 2160p GER UHD Blu-ray SDR HEVC DTS-HD MA 5.1-UNTOUCHED"}, wantErr: false},
 		{name: "parse_16", fields: fields{}, args: args{title: "Sing 2 2021 MULTi COMPLETE UHD Blu-ray TrueHD Atmos 7.1-MMCLX"}, wantErr: false},
 		{name: "parse_17", fields: fields{}, args: args{title: "NBC.Nightly.News.2022.04.12.1080p.NBC.WEB-DL.AAC2.0.H.264-TEPES"}, wantErr: false},
+		{name: "parse_18", fields: fields{}, args: args{title: "[SubsPlease] Heroine Tarumono! Kiraware Heroine to Naisho no Oshigoto - 04 (1080p) [17083ED9]"}, wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

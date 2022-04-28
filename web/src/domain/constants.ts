@@ -138,7 +138,7 @@ export const releaseTypeMusic = [
     "Demo",
     "Concert Recording",
     "DJ Mix",
-    "Unkown",
+    "Unknown",
 ];
 
 export const RELEASE_TYPE_MUSIC_OPTIONS = releaseTypeMusic.map(v => ({ value: v, label: v, key: v}));

@@ -90,6 +90,7 @@ type Release struct {
 	ReleaseTagsArr              []string              `json:"-"`
 	Freeleech                   bool                  `json:"freeleech"`
 	FreeleechPercent            int                   `json:"freeleech_percent"`
+	Bonus                       []string              `json:"-"`
 	Uploader                    string                `json:"uploader"`
 	PreTime                     string                `json:"pre_time"`
 	Other                       []string              `json:"-"`
@@ -197,9 +198,6 @@ func NewRelease(indexer string, line string) (*Release, error) {
 func (r *Release) ParseString(title string) error {
 	rel := rls.ParseString(title)
 
-	tags := rls.ParseString(r.ReleaseTags)
-	fmt.Printf("tags: %+v", tags)
-
 	r.TorrentName = title
 	r.Title = rel.Title
 	r.Source = rel.Source
@@ -218,11 +216,37 @@ func (r *Release) ParseString(title string) error {
 	r.Other = rel.Other
 	r.Artists = []string{rel.Artist}
 
-	//r.extractCodec()
+	r.ParseReleaseTagsString(r.ReleaseTags)
 
-	r.extractReleaseTags()
+	return nil
+}
 
-	//fmt.Printf("%v", rel.Codec)
+func (r *Release) ParseReleaseTagsString(tags string) error {
+	// trim delimiters and closest space
+	re := regexp.MustCompile(`\| |\/ |, `)
+	cleanTags := re.ReplaceAllString(tags, "")
+
+	t := ParseReleaseTagString(cleanTags)
+
+	r.AudioArr = append(r.AudioArr, t.Audio...)
+	r.Bonus = append(r.Bonus, t.Bonus...)
+	r.Other = append(r.Other, t.Other...)
+
+	if r.Codec == "" && t.Codec != "" {
+		r.Codec = t.Codec
+	}
+	if r.Container == "" && t.Container != "" {
+		r.Container = t.Container
+	}
+	if r.Resolution == "" && t.Resolution != "" {
+		r.Resolution = t.Resolution
+	}
+	if r.Source == "" && t.Source != "" {
+		r.Source = t.Source
+	}
+	if r.AudioChannels == "" && t.Channels != "" {
+		r.AudioChannels = t.Channels
+	}
 
 	return nil
 }
@@ -839,7 +863,7 @@ func (r *Release) MapVars(def IndexerDefinition, varMap map[string]string) error
 
 	if torrentSize, err := getStringMapValue(varMap, "torrentSize"); err == nil {
 		// handling for indexer who doesn't explicitly set which size unit is used like (AR)
-		if def.Parse.ForceSizeUnit != "" {
+		if def.Parse != nil && def.Parse.ForceSizeUnit != "" {
 			torrentSize = fmt.Sprintf("%v %v", torrentSize, def.Parse.ForceSizeUnit)
 		}
 
