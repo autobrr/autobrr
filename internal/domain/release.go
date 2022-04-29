@@ -375,7 +375,11 @@ func (r *Release) MapVars(def IndexerDefinition, varMap map[string]string) error
 	}
 
 	if freeleech, err := getStringMapValue(varMap, "freeleech"); err == nil {
-		r.Freeleech = strings.EqualFold(freeleech, "freeleech") || strings.EqualFold(freeleech, "yes") || strings.EqualFold(freeleech, "1")
+		fl := strings.EqualFold(freeleech, "freeleech") || strings.EqualFold(freeleech, "yes") || strings.EqualFold(freeleech, "1")
+		if fl {
+			r.Freeleech = true
+			r.Bonus = append(r.Bonus, "Freeleech")
+		}
 	}
 
 	if freeleechPercent, err := getStringMapValue(varMap, "freeleechPercent"); err == nil {
@@ -389,6 +393,22 @@ func (r *Release) MapVars(def IndexerDefinition, varMap map[string]string) error
 		}
 
 		r.FreeleechPercent = freeleechPercentInt
+
+		switch freeleechPercentInt {
+		case 25:
+			r.Bonus = append(r.Bonus, "Freeleech25")
+			break
+		case 50:
+			r.Bonus = append(r.Bonus, "Freeleech50")
+			break
+		case 75:
+			r.Bonus = append(r.Bonus, "Freeleech75")
+			break
+		case 100:
+			r.Bonus = append(r.Bonus, "Freeleech100")
+			break
+		}
+
 	}
 
 	if uploader, err := getStringMapValue(varMap, "uploader"); err == nil {
