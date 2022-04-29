@@ -49,47 +49,33 @@ type Release struct {
 	TorrentHash                 string                `json:"-"`
 	TorrentName                 string                `json:"torrent_name"` // full release name
 	Size                        uint64                `json:"size"`
-	Raw                         string                `json:"raw"`   // Raw release
-	Clean                       string                `json:"clean"` // cleaned release name
 	Title                       string                `json:"title"` // Parsed title
 	Category                    string                `json:"category"`
 	Season                      int                   `json:"season"`
 	Episode                     int                   `json:"episode"`
 	Year                        int                   `json:"year"`
 	Resolution                  string                `json:"resolution"`
-	Source                      string                `json:"source"` // CD, DVD, Vinyl, DAT, Cassette, WEB, Other
-	Codec                       string                `json:"codec"`
-	CodecArr                    []string              `json:"-"`
+	Source                      string                `json:"source"`
+	Codec                       []string              `json:"codec"`
 	Container                   string                `json:"container"`
-	HDR                         string                `json:"hdr"`
-	HDRArr                      []string              `json:"-"`
-	Audio                       string                `json:"audio"`
-	AudioArr                    []string              `json:"-"`
+	HDR                         []string              `json:"hdr"`
+	Audio                       []string              `json:"-"`
 	AudioChannels               string                `json:"-"`
 	Group                       string                `json:"group"`
-	Region                      string                `json:"region"`
-	Language                    string                `json:"language"`
-	Edition                     string                `json:"edition"` // Extended, directors cut
-	Unrated                     bool                  `json:"unrated"`
-	Hybrid                      bool                  `json:"hybrid"`
+	Region                      string                `json:"-"`
+	Language                    string                `json:"-"`
 	Proper                      bool                  `json:"proper"`
 	Repack                      bool                  `json:"repack"`
 	Website                     string                `json:"website"`
-	ThreeD                      bool                  `json:"-"`
-	Artists                     []string              `json:"artists"`
-	Type                        string                `json:"type"`    // Album,Single,EP
-	Format                      string                `json:"format"`  // music only
-	Quality                     string                `json:"quality"` // quality
-	LogScore                    int                   `json:"log_score"`
-	HasLog                      bool                  `json:"has_log"`
-	HasCue                      bool                  `json:"has_cue"`
-	IsScene                     bool                  `json:"is_scene"`
+	Artists                     string                `json:"-"`
+	Type                        string                `json:"type"` // Album,Single,EP
+	LogScore                    int                   `json:"-"`
+	IsScene                     bool                  `json:"-"`
 	Origin                      string                `json:"origin"` // P2P, Internal
-	Tags                        []string              `json:"tags"`
+	Tags                        []string              `json:"-"`
 	ReleaseTags                 string                `json:"-"`
-	ReleaseTagsArr              []string              `json:"-"`
-	Freeleech                   bool                  `json:"freeleech"`
-	FreeleechPercent            int                   `json:"freeleech_percent"`
+	Freeleech                   bool                  `json:"-"`
+	FreeleechPercent            int                   `json:"-"`
 	Bonus                       []string              `json:"-"`
 	Uploader                    string                `json:"uploader"`
 	PreTime                     string                `json:"pre_time"`
@@ -179,16 +165,14 @@ type ReleaseQueryParams struct {
 	Search string
 }
 
-func NewRelease(indexer string, line string) (*Release, error) {
+func NewRelease(indexer string) (*Release, error) {
 	r := &Release{
 		Indexer:        indexer,
-		Raw:            line,
 		FilterStatus:   ReleaseStatusFilterPending,
 		Rejections:     []string{},
 		Protocol:       ReleaseProtocolTorrent,
 		Implementation: ReleaseImplementationIRC,
 		Timestamp:      time.Now(),
-		Artists:        []string{},
 		Tags:           []string{},
 	}
 
@@ -202,19 +186,21 @@ func (r *Release) ParseString(title string) error {
 	r.Title = rel.Title
 	r.Source = rel.Source
 	r.Resolution = rel.Resolution
-	r.Year = rel.Year
 	r.Season = rel.Series
 	r.Episode = rel.Episode
 	r.Group = rel.Group
 	r.Region = rel.Region
-	//r.Language = rel.Language
-	r.AudioArr = rel.Audio
+	r.Audio = rel.Audio
 	r.AudioChannels = rel.Channels
-	r.CodecArr = rel.Codec
+	r.Codec = rel.Codec
 	r.Container = rel.Container
-	r.HDRArr = rel.HDR
+	r.HDR = rel.HDR
 	r.Other = rel.Other
-	r.Artists = []string{rel.Artist}
+	r.Artists = rel.Artist
+
+	if r.Year == 0 {
+		r.Year = rel.Year
+	}
 
 	r.ParseReleaseTagsString(r.ReleaseTags)
 
@@ -228,13 +214,19 @@ func (r *Release) ParseReleaseTagsString(tags string) error {
 
 	t := ParseReleaseTagString(cleanTags)
 
-	r.AudioArr = append(r.AudioArr, t.Audio...)
-	r.Bonus = append(r.Bonus, t.Bonus...)
-	r.Other = append(r.Other, t.Other...)
-
-	if r.Codec == "" && t.Codec != "" {
-		r.Codec = t.Codec
+	if len(t.Audio) > 0 {
+		r.Audio = append(r.Audio, t.Audio...)
 	}
+	if len(t.Bonus) > 0 {
+		r.Bonus = append(r.Bonus, t.Bonus...)
+	}
+	if len(t.Codec) > 0 {
+		r.Codec = append(r.Codec, t.Codec)
+	}
+	if len(t.Other) > 0 {
+		r.Other = append(r.Other, t.Other...)
+	}
+
 	if r.Container == "" && t.Container != "" {
 		r.Container = t.Container
 	}
@@ -251,39 +243,6 @@ func (r *Release) ParseReleaseTagsString(tags string) error {
 	return nil
 }
 
-func (r *Release) Parse() error {
-	var err error
-
-	err = r.extractYear()
-	err = r.extractSeason()
-	err = r.extractEpisode()
-	err = r.extractResolution()
-	err = r.extractSource()
-	err = r.extractCodec()
-	err = r.extractContainer()
-	err = r.extractHDR()
-	err = r.extractAudio()
-	err = r.extractGroup()
-	err = r.extractRegion()
-	err = r.extractLanguage()
-	err = r.extractEdition()
-	err = r.extractUnrated()
-	err = r.extractHybrid()
-	err = r.extractProper()
-	err = r.extractRepack()
-	err = r.extractWebsite()
-	err = r.extractReleaseTags()
-
-	r.Clean = cleanReleaseName(r.TorrentName)
-
-	if err != nil {
-		log.Trace().Msgf("could not parse release: %v", r.TorrentName)
-		return err
-	}
-
-	return nil
-}
-
 func (r *Release) ParseSizeBytesString(size string) {
 	s, err := humanize.ParseBytes(size)
 	if err != nil {
@@ -291,431 +250,6 @@ func (r *Release) ParseSizeBytesString(size string) {
 		r.Size = 0
 	}
 	r.Size = s
-}
-
-func (r *Release) extractYear() error {
-	if r.Year > 0 {
-		return nil
-	}
-
-	y, err := findLastInt(r.TorrentName, `\b(((?:19[0-9]|20[0-9])[0-9]))\b`)
-	if err != nil {
-		return err
-	}
-	r.Year = y
-
-	return nil
-}
-
-func (r *Release) extractSeason() error {
-	s, err := findLastInt(r.TorrentName, `(?i)(?:S|Season\s*)(\d{1,3})`)
-	if err != nil {
-		return err
-	}
-	r.Season = s
-
-	return nil
-}
-
-func (r *Release) extractEpisode() error {
-	e, err := findLastInt(r.TorrentName, `(?i)[ex]([0-9]{2})(?:[^0-9]|$)`)
-	if err != nil {
-		return err
-	}
-	r.Episode = e
-
-	return nil
-}
-
-func (r *Release) extractResolution() error {
-	v, err := findLast(r.TorrentName, `\b(?i)[0-9]{3,4}(?:p|i)\b`)
-	if err != nil {
-		return err
-	}
-	r.Resolution = v
-
-	return nil
-}
-
-func (r *Release) extractResolutionFromTags(tag string) error {
-	if r.Resolution != "" {
-		return nil
-	}
-	v, err := findLast(tag, `\b(?i)(([0-9]{3,4}p|i))\b`)
-	if err != nil {
-		return err
-	}
-	r.Resolution = v
-
-	return nil
-}
-
-func (r *Release) extractSource() error {
-	v, err := findLast(r.TorrentName, `(?i)\b(((?:PPV\.)?[HP]DTV|(?:HD)?CAM|B[DR]Rip|(?:HD-?)?TS|(?:PPV )?WEB-?DL(?: DVDRip)?|HDRip|DVDRip|DVDRIP|CamRip|WEB|W[EB]BRip|Blu-?Ray|DvDScr|telesync|CD|DVD|Vinyl|DAT|Cassette))\b`)
-	if err != nil {
-		return err
-	}
-	r.Source = v
-
-	return nil
-}
-
-func (r *Release) extractSourceFromTags(tag string) error {
-	if r.Source != "" {
-		return nil
-	}
-	v, err := findLast(tag, `(?i)\b(((?:PPV\.)?[HP]DTV|(?:HD)?CAM|B[DR]Rip|(?:HD-?)?TS|(?:PPV )?WEB-?DL(?: DVDRip)?|HDRip|DVDRip|DVDRIP|CamRip|WEB|W[EB]BRip|Blu-?Ray|DvDScr|telesync|CD|DVD|Vinyl|DAT|Cassette))\b`)
-	if err != nil {
-		return err
-	}
-	r.Source = v
-
-	return nil
-}
-
-func (r *Release) extractCodec() error {
-	v, err := findLast(r.TorrentName, `(?i)\b(HEVC|[hx]\.?26[45] 10-bit|[hx]\.?26[45]|xvid|divx|AVC|MPEG-?2|AV1|VC-?1|VP9|WebP)\b`)
-	if err != nil {
-		return err
-	}
-	r.Codec = v
-
-	return nil
-}
-
-func (r *Release) extractCodecFromTags(tag string) error {
-	if r.Codec != "" {
-		return nil
-	}
-
-	v, err := findLast(tag, `(?i)\b(HEVC|[hx]\.?26[45] 10-bit|[hx]\.?26[45]|xvid|divx|AVC|MPEG-?2|AV1|VC-?1|VP9|WebP)\b`)
-	if err != nil {
-		return err
-	}
-	r.Codec = v
-
-	return nil
-}
-
-func (r *Release) extractContainer() error {
-	v, err := findLast(r.TorrentName, `(?i)\b(AVI|MPG|MKV|MP4|VOB|m2ts|ISO|IMG)\b`)
-	if err != nil {
-		return err
-	}
-	r.Container = v
-
-	return nil
-}
-
-func (r *Release) extractContainerFromTags(tag string) error {
-	if r.Container != "" {
-		return nil
-	}
-
-	v, err := findLast(tag, `(?i)\b(AVI|MPG|MKV|MP4|VOB|m2ts|ISO|IMG)\b`)
-	if err != nil {
-		return err
-	}
-	r.Container = v
-
-	return nil
-}
-
-func (r *Release) extractHDR() error {
-	v, err := findLast(r.TorrentName, `(?i)[\. ](HDR10\+|HDR10|DoVi[\. ]HDR|DV[\. ]HDR10\+|DV[\. ]HDR10|DV[\. ]HDR|HDR|DV|DoVi|Dolby[\. ]Vision[\. ]\+[\. ]HDR10|Dolby[\. ]Vision)[\. ]`)
-	if err != nil {
-		return err
-	}
-	r.HDR = v
-
-	return nil
-}
-
-func (r *Release) extractAudio() error {
-	v, err := findLast(r.TorrentName, `(?i)(FLAC[\. ][1-7][\. ][0-2]|FLAC|Opus|DD-EX|DDP[\. ]?[124567][\. ][012] Atmos|DDP[\. ]?[124567][\. ][012]|DDP|DD[1-7][\. ][0-2]|Dual[\- ]Audio|LiNE|PCM|Dolby TrueHD [0-9][\. ][0-4]|TrueHD [0-9][\. ][0-4] Atmos|TrueHD [0-9][\. ][0-4]|DTS X|DTS-HD MA [0-9][\. ][0-4]|DTS-HD MA|DTS-ES|DTS [1-7][\. ][0-2]|DTS|DD|DD[12][\. ]0|Dolby Atmos|TrueHD ATMOS|TrueHD|Atmos|Dolby Digital Plus|Dolby Digital Audio|Dolby Digital|AAC[.-]LC|AAC (?:\.?[1-7]\.[0-2])?|AAC|eac3|AC3(?:\.5\.1)?)`)
-	if err != nil {
-		return err
-	}
-	r.Audio = v
-
-	return nil
-}
-
-func (r *Release) extractAudioFromTags(tag string) error {
-	if r.Audio != "" {
-		return nil
-	}
-
-	// "(?i)(FLAC|Opus|DD-EX|DDP Atmos|DDP|DD|Dual[\- ]Audio|LiNE|PCM|Dolby TrueHD|TrueHD Atmos|TrueHD|DTS X|DTS-HD MA|DTS-ES|DTS|DD|DD|Dolby Atmos|TrueHD ATMOS|TrueHD|Atmos|Dolby Digital Plus|Dolby Digital Audio|Dolby Digital|AAC[.-]LC|AAC|eac3|AC3)"
-	v, err := findLast(tag, `(?i)(FLAC[\. ][1-7][\. ][0-2]|FLAC|Opus|DD-EX|DDP[\. ]?[124567][\. ][012] Atmos|DDP[\. ]?[124567][\. ][012]|DDP|DD[1-7][\. ][0-2]|Dual[\- ]Audio|LiNE|PCM|Dolby TrueHD [0-9][\. ][0-4]|TrueHD [0-9][\. ][0-4] Atmos|TrueHD [0-9][\. ][0-4]|DTS X|DTS-HD MA [0-9][\. ][0-4]|DTS-HD MA|DTS-ES|DTS [1-7][\. ][0-2]|DTS|DD|DD[12][\. ]0|Dolby Atmos|TrueHD ATMOS|TrueHD|Atmos|Dolby Digital Plus|Dolby Digital Audio|Dolby Digital|AAC[.-]LC|AAC (?:\.?[1-7]\.[0-2])?|AAC|eac3|AC3(?:\.5\.1)?)`)
-	if err != nil {
-		return err
-	}
-	r.Audio = v
-
-	return nil
-}
-
-func (r *Release) extractAudioChannels(tag string) error {
-	if r.AudioChannels != "" {
-		return nil
-	}
-
-	v, err := findLast(tag, `(?i)([1-9][\. ][0-4])?)`)
-	if err != nil {
-		return err
-	}
-	r.AudioChannels = v
-
-	return nil
-}
-
-func (r *Release) extractFormatsFromTags(tag string) error {
-	if r.Format != "" {
-		return nil
-	}
-
-	v, err := findLast(tag, `(?i)(?:MP3|FLAC|Ogg Vorbis|AAC|AC3|DTS)`)
-	if err != nil {
-		return err
-	}
-	r.Format = v
-
-	return nil
-}
-
-//func (r *Release) extractCueFromTags(tag string) error {
-//	v, err := findLast(tag, `Cue`)
-//	if err != nil {
-//		return err
-//	}
-//	r.HasCue = v
-//
-//	return nil
-//}
-
-func (r *Release) extractGroup() error {
-	// try first for wierd anime group names [group] show name, or in brackets at the end
-
-	//g, err := findLast(r.Clean, `\[(.*?)\]`)
-	group, err := findLast(r.TorrentName, `\-([a-zA-Z0-9_\.]+)$`)
-	if err != nil {
-		return err
-	}
-
-	r.Group = group
-
-	return nil
-}
-
-func (r *Release) extractAnimeGroupFromTags(tag string) error {
-	if r.Group != "" {
-		return nil
-	}
-	v, err := findLast(tag, `(?:RAW|Softsubs|Hardsubs)\s\((.+)\)`)
-	if err != nil {
-		return err
-	}
-	r.Group = v
-
-	return nil
-}
-
-func (r *Release) extractRegion() error {
-	v, err := findLast(r.TorrentName, `(?i)\b(R([0-9]))\b`)
-	if err != nil {
-		return err
-	}
-	r.Region = v
-
-	return nil
-}
-
-func (r *Release) extractLanguage() error {
-	v, err := findLast(r.TorrentName, `(?i)\b((DK|DKSUBS|DANiSH|DUTCH|NL|NLSUBBED|ENG|FI|FLEMiSH|FiNNiSH|DE|FRENCH|GERMAN|HE|HEBREW|HebSub|HiNDi|iCELANDiC|KOR|MULTi|MULTiSUBS|NORWEGiAN|NO|NORDiC|PL|PO|POLiSH|PLDUB|RO|ROMANiAN|RUS|SPANiSH|SE|SWEDiSH|SWESUB||))\b`)
-	if err != nil {
-		return err
-	}
-	r.Language = v
-
-	return nil
-}
-
-func (r *Release) extractEdition() error {
-	v, err := findLast(r.TorrentName, `(?i)\b((?:DIRECTOR'?S|EXTENDED|INTERNATIONAL|THEATRICAL|ORIGINAL|FINAL|BOOTLEG)(?:.CUT)?)\b`)
-	if err != nil {
-		return err
-	}
-	r.Edition = v
-
-	return nil
-}
-
-func (r *Release) extractUnrated() error {
-	v, err := findLastBool(r.TorrentName, `(?i)\b((UNRATED))\b`)
-	if err != nil {
-		return err
-	}
-	r.Unrated = v
-
-	return nil
-}
-
-func (r *Release) extractHybrid() error {
-	v, err := findLastBool(r.TorrentName, `(?i)\b((HYBRID))\b`)
-	if err != nil {
-		return err
-	}
-	r.Hybrid = v
-
-	return nil
-}
-
-func (r *Release) extractProper() error {
-	v, err := findLastBool(r.TorrentName, `(?i)\b((PROPER))\b`)
-	if err != nil {
-		return err
-	}
-	r.Proper = v
-
-	return nil
-}
-
-func (r *Release) extractRepack() error {
-	v, err := findLastBool(r.TorrentName, `(?i)\b((REPACK))\b`)
-	if err != nil {
-		return err
-	}
-	r.Repack = v
-
-	return nil
-}
-
-func (r *Release) extractWebsite() error {
-	// Start with the basic most common ones
-	v, err := findLast(r.TorrentName, `(?i)\b((AMBC|AS|AMZN|AMC|ANPL|ATVP|iP|CORE|BCORE|CMOR|CN|CBC|CBS|CMAX|CNBC|CC|CRIT|CR|CSPN|CW|DAZN|DCU|DISC|DSCP|DSNY|DSNP|DPLY|ESPN|FOX|FUNI|PLAY|HBO|HMAX|HIST|HS|HOTSTAR|HULU|iT|MNBC|MTV|NATG|NBC|NF|NICK|NRK|PMNT|PMNP|PCOK|PBS|PBSK|PSN|QIBI|SBS|SHO|STAN|STZ|SVT|SYFY|TLC|TRVL|TUBI|TV3|TV4|TVL|VH1|VICE|VMEO|UFC|USAN|VIAP|VIAPLAY|VL|WWEN|XBOX|YHOO|YT|RED))\b`)
-	if err != nil {
-		return err
-	}
-	r.Website = v
-
-	return nil
-}
-
-func (r *Release) extractFreeleechFromTags(tag string) error {
-	if r.Freeleech == true {
-		return nil
-	}
-
-	// Start with the basic most common ones
-	v, err := findLast(tag, `(?i)(Freeleech!|Freeleech)`)
-	if err != nil {
-		return err
-	}
-	if v != "" {
-		r.Freeleech = true
-		return nil
-	}
-
-	r.Freeleech = false
-
-	return nil
-}
-
-func (r *Release) extractLogScoreFromTags(tag string) error {
-	if r.LogScore > 0 {
-		return nil
-	}
-
-	// Start with the basic most common ones
-
-	rxp, err := regexp.Compile(`([\d\.]+)%`)
-	if err != nil {
-		return err
-		//return errors.Wrapf(err, "invalid regex: %s", value)
-	}
-
-	matches := rxp.FindStringSubmatch(tag)
-	if matches != nil {
-		// first value is the match, second value is the text
-		if len(matches) >= 1 {
-			last := matches[len(matches)-1]
-			score, err := strconv.ParseInt(last, 10, 32)
-			if err != nil {
-				return err
-			}
-
-			r.LogScore = int(score)
-			return nil
-		}
-	}
-
-	return nil
-}
-
-func (r *Release) extractQualityFromTags(tag string) error {
-	if r.Quality != "" {
-		return nil
-	}
-
-	// Start with the basic most common ones
-
-	rxp, err := regexp.Compile(`(?i)(Lossless|24bit Lossless|V0 \(VBR\)|V1 \(VBR\)|V2 \(VBR\)|APS \(VBR\)|APX \(VBR\)|320|256|192)`)
-	if err != nil {
-		return err
-		//return errors.Wrapf(err, "invalid regex: %s", value)
-	}
-
-	matches := rxp.FindStringSubmatch(tag)
-	if matches != nil {
-		// first value is the match, second value is the text
-		if len(matches) >= 1 {
-			last := matches[len(matches)-1]
-
-			r.Quality = last
-			return nil
-		}
-	}
-
-	return nil
-}
-
-func (r *Release) extractReleaseTags() error {
-	if r.ReleaseTags == "" {
-		return nil
-	}
-
-	tags := SplitAny(r.ReleaseTags, ",|/")
-
-	for _, t := range tags {
-		t = strings.Trim(t, " ")
-
-		var err error
-		err = r.extractAudioFromTags(t)
-		err = r.extractFormatsFromTags(t)
-		err = r.extractResolutionFromTags(t)
-		err = r.extractCodecFromTags(t)
-		err = r.extractContainerFromTags(t)
-		err = r.extractSourceFromTags(t)
-		err = r.extractFreeleechFromTags(t)
-		err = r.extractLogScoreFromTags(t)
-		err = r.extractQualityFromTags(t)
-		//err = r.extractAnimeGroupFromTags(t)
-
-		if err != nil {
-			continue
-		}
-
-		switch t {
-		case "Cue":
-			r.HasCue = true
-		case "Log":
-			r.HasLog = true
-			// check percent
-		}
-	}
-
-	return nil
 }
 
 func (r *Release) DownloadTorrentFile() error {
@@ -878,6 +412,15 @@ func (r *Release) MapVars(def IndexerDefinition, varMap map[string]string) error
 		r.IsScene = strings.EqualFold(scene, "true") || strings.EqualFold(scene, "yes")
 	}
 
+	// set origin. P2P, SCENE, O-SCENE and Internal
+	if origin, err := getStringMapValue(varMap, "origin"); err == nil {
+		r.Origin = origin
+
+		if r.IsScene {
+			r.Origin = "SCENE"
+		}
+	}
+
 	if yearVal, err := getStringMapValue(varMap, "year"); err == nil {
 		year, err := strconv.Atoi(yearVal)
 		if err != nil {
@@ -894,7 +437,6 @@ func (r *Release) MapVars(def IndexerDefinition, varMap map[string]string) error
 	// handle releaseTags. Most of them are redundant but some are useful
 	if releaseTags, err := getStringMapValue(varMap, "releaseTags"); err == nil {
 		r.ReleaseTags = releaseTags
-		r.ReleaseTagsArr = SplitAny(r.ReleaseTags, ",|/") // TODO keep this?
 	}
 
 	if resolution, err := getStringMapValue(varMap, "resolution"); err == nil {
@@ -907,16 +449,6 @@ func (r *Release) MapVars(def IndexerDefinition, varMap map[string]string) error
 func getStringMapValue(stringMap map[string]string, key string) (string, error) {
 	lowerKey := strings.ToLower(key)
 
-	// case-sensitive match
-	//if caseSensitive {
-	//	v, ok := stringMap[key]
-	//	if !ok {
-	//		return "", fmt.Errorf("key was not found in map: %q", key)
-	//	}
-	//
-	//	return v, nil
-	//}
-
 	// case-insensitive match
 	for k, v := range stringMap {
 		if strings.ToLower(k) == lowerKey {
@@ -926,16 +458,6 @@ func getStringMapValue(stringMap map[string]string, key string) (string, error) 
 
 	return "", fmt.Errorf("key was not found in map: %q", lowerKey)
 }
-
-//func getFirstStringMapValue(stringMap map[string]string, keys []string) (string, error) {
-//	for _, k := range keys {
-//		if val, err := getStringMapValue(stringMap, k); err == nil {
-//			return val, nil
-//		}
-//	}
-//
-//	return "", fmt.Errorf("key were not found in map: %q", strings.Join(keys, ", "))
-//}
 
 func findLast(input string, pattern string) (string, error) {
 	matched := make([]string, 0)
@@ -970,109 +492,9 @@ func findLast(input string, pattern string) (string, error) {
 	return "", nil
 }
 
-func findLastBool(input string, pattern string) (bool, error) {
-	matched := make([]string, 0)
-
-	rxp, err := regexp.Compile(pattern)
-	if err != nil {
-		return false, err
-	}
-
-	matches := rxp.FindStringSubmatch(input)
-	if matches != nil {
-		// first value is the match, second value is the text
-		if len(matches) >= 1 {
-			last := matches[len(matches)-1]
-
-			// add to temp slice
-			matched = append(matched, last)
-		}
-	}
-
-	//}
-
-	// check if multiple values in temp slice, if so get the last one
-	if len(matched) >= 1 {
-		//last := matched[len(matched)-1]
-
-		return true, nil
-	}
-
-	return false, nil
-}
-
-func findLastInt(input string, pattern string) (int, error) {
-	matched := make([]string, 0)
-	//for _, s := range arr {
-
-	rxp, err := regexp.Compile(pattern)
-	if err != nil {
-		return 0, err
-		//return errors.Wrapf(err, "invalid regex: %s", value)
-	}
-
-	matches := rxp.FindStringSubmatch(input)
-	if matches != nil {
-		// first value is the match, second value is the text
-		if len(matches) >= 1 {
-			last := matches[len(matches)-1]
-
-			// add to temp slice
-			matched = append(matched, last)
-		}
-	}
-
-	//}
-
-	// check if multiple values in temp slice, if so get the last one
-	if len(matched) >= 1 {
-		last := matched[len(matched)-1]
-
-		i, err := strconv.Atoi(last)
-		if err != nil {
-			return 0, err
-		}
-
-		return i, nil
-	}
-
-	return 0, nil
-}
-
 func SplitAny(s string, seps string) []string {
 	splitter := func(r rune) bool {
 		return strings.ContainsRune(seps, r)
 	}
 	return strings.FieldsFunc(s, splitter)
-}
-
-//func Splitter(s string, splits string) []string {
-//	m := make(map[rune]int)
-//	for _, r := range splits {
-//		m[r] = 1
-//	}
-//
-//	splitter := func(r rune) bool {
-//		return m[r] == 1
-//	}
-//
-//	return strings.FieldsFunc(s, splitter)
-//}
-//
-//func canonicalizeString(s string) []string {
-//	//a := strings.FieldsFunc(s, split)
-//	a := Splitter(s, " .")
-//
-//	return a
-//}
-
-func cleanReleaseName(input string) string {
-	// Make a Regex to say we only want letters and numbers
-	reg, err := regexp.Compile(`[\x00-\x1F\x2D\x2E\x5F\x7F]`)
-	if err != nil {
-		return ""
-	}
-	processedString := reg.ReplaceAllString(input, " ")
-
-	return processedString
 }

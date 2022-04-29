@@ -98,21 +98,21 @@ func (a *announceProcessor) processQueue(queue chan string) {
 			continue
 		}
 
-		newRelease, err := domain.NewRelease(a.indexer.Identifier, "")
+		rls, err := domain.NewRelease(a.indexer.Identifier)
 		if err != nil {
 			log.Error().Err(err).Msg("could not create new release")
 			continue
 		}
 
 		// on lines matched
-		err = a.onLinesMatched(a.indexer, tmpVars, newRelease)
+		err = a.onLinesMatched(a.indexer, tmpVars, rls)
 		if err != nil {
 			log.Debug().Msgf("error match line: %v", "")
 			continue
 		}
 
 		// process release in a new go routine
-		go a.releaseSvc.Process(newRelease)
+		go a.releaseSvc.Process(rls)
 	}
 }
 
@@ -166,24 +166,24 @@ func (a *announceProcessor) parseExtract(pattern string, vars []string, tmpVars 
 }
 
 // onLinesMatched process vars into release
-func (a *announceProcessor) onLinesMatched(def domain.IndexerDefinition, vars map[string]string, release *domain.Release) error {
+func (a *announceProcessor) onLinesMatched(def domain.IndexerDefinition, vars map[string]string, rls *domain.Release) error {
 	var err error
 
-	err = release.MapVars(def, vars)
+	err = rls.MapVars(def, vars)
 	if err != nil {
 		log.Error().Stack().Err(err).Msg("announce: could not map vars for release")
 		return err
 	}
 
 	// parse fields
-	err = release.ParseString(release.TorrentName)
+	err = rls.ParseString(rls.TorrentName)
 	if err != nil {
 		log.Error().Stack().Err(err).Msg("announce: could not parse release")
 		return err
 	}
 
 	// parse torrentUrl
-	err = def.Parse.ParseTorrentUrl(vars, def.SettingsMap, release)
+	err = def.Parse.ParseTorrentUrl(vars, def.SettingsMap, rls)
 	if err != nil {
 		log.Error().Stack().Err(err).Msg("announce: could not parse torrent url")
 		return err
@@ -233,41 +233,6 @@ func (a *announceProcessor) processTorrentUrl(match string, vars map[string]stri
 	}
 
 	return b.String(), nil
-}
-
-func split(r rune) bool {
-	return r == ' ' || r == '.'
-}
-
-func Splitter(s string, splits string) []string {
-	m := make(map[rune]int)
-	for _, r := range splits {
-		m[r] = 1
-	}
-
-	splitter := func(r rune) bool {
-		return m[r] == 1
-	}
-
-	return strings.FieldsFunc(s, splitter)
-}
-
-func canonicalizeString(s string) []string {
-	//a := strings.FieldsFunc(s, split)
-	a := Splitter(s, " .")
-
-	return a
-}
-
-func cleanReleaseName(input string) string {
-	// Make a Regex to say we only want letters and numbers
-	reg, err := regexp.Compile("[^a-zA-Z0-9]+")
-	if err != nil {
-		//log.Fatal(err)
-	}
-	processedString := reg.ReplaceAllString(input, " ")
-
-	return processedString
 }
 
 func removeElement(s []string, i int) ([]string, error) {

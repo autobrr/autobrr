@@ -56,7 +56,7 @@ func (j *TorznabJob) process() error {
 	releases := make([]*domain.Release, 0)
 
 	for _, item := range items {
-		rls, err := domain.NewRelease(item.Title, "")
+		rls, err := domain.NewRelease(j.IndexerIdentifier)
 		if err != nil {
 			continue
 		}

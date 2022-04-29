@@ -50,7 +50,7 @@ parse:
       vars:
         - torrentName
         - freeleech
-        - internal
+        - origin
         - category
         - torrentSize
         - baseUrl

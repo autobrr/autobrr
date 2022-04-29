@@ -2,7 +2,6 @@ package domain
 
 import (
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -20,17 +19,18 @@ func TestRelease_Parse(t *testing.T) {
 				TorrentName: "Servant S01 2160p ATVP WEB-DL DDP 5.1 Atmos DV HEVC-FLUX",
 			},
 			want: Release{
-				TorrentName: "Servant S01 2160p ATVP WEB-DL DDP 5.1 Atmos DV HEVC-FLUX",
-				Clean:       "Servant S01 2160p ATVP WEB DL DDP 5 1 Atmos DV HEVC FLUX",
-				Season:      1,
-				Episode:     0,
-				Resolution:  "2160p",
-				Source:      "WEB-DL",
-				Codec:       "HEVC",
-				HDR:         "DV",
-				Audio:       "DDP 5.1 Atmos",
-				Group:       "FLUX",
-				Website:     "ATVP",
+				TorrentName:   "Servant S01 2160p ATVP WEB-DL DDP 5.1 Atmos DV HEVC-FLUX",
+				Title:         "Servant",
+				Season:        1,
+				Episode:       0,
+				Resolution:    "2160p",
+				Source:        "WEB-DL",
+				Codec:         []string{"HEVC"},
+				Audio:         []string{"DDP", "Atmos"},
+				AudioChannels: "5.1",
+				HDR:           []string{"DV"},
+				Group:         "FLUX",
+				//Website: "ATVP",
 			},
 			wantErr: false,
 		},
@@ -40,17 +40,17 @@ func TestRelease_Parse(t *testing.T) {
 				TorrentName: "Servant.S01.2160p.ATVP.WEB-DL.DDP.5.1.Atmos.DV.HEVC-FLUX",
 			},
 			want: Release{
-				TorrentName: "Servant.S01.2160p.ATVP.WEB-DL.DDP.5.1.Atmos.DV.HEVC-FLUX",
-				Clean:       "Servant S01 2160p ATVP WEB DL DDP 5 1 Atmos DV HEVC FLUX",
-				Season:      1,
-				Episode:     0,
-				Resolution:  "2160p",
-				Source:      "WEB-DL",
-				Codec:       "HEVC",
-				HDR:         "DV",
-				Audio:       "DDP.5.1", // need to fix audio parsing
-				Group:       "FLUX",
-				Website:     "ATVP",
+				TorrentName:   "Servant.S01.2160p.ATVP.WEB-DL.DDP.5.1.Atmos.DV.HEVC-FLUX",
+				Title:         "Servant",
+				Season:        1,
+				Episode:       0,
+				Resolution:    "2160p",
+				Source:        "WEB-DL",
+				Codec:         []string{"HEVC"},
+				Audio:         []string{"DDP", "Atmos"},
+				AudioChannels: "5.1",
+				HDR:           []string{"DV"},
+				Group:         "FLUX",
 			},
 			wantErr: false,
 		},
@@ -61,19 +61,19 @@ func TestRelease_Parse(t *testing.T) {
 				ReleaseTags: "MKV / 2160p / WEB-DL",
 			},
 			want: Release{
-				TorrentName: "Servant.S01.2160p.ATVP.WEB-DL.DDP.5.1.Atmos.DV.HEVC-FLUX",
-				Clean:       "Servant S01 2160p ATVP WEB DL DDP 5 1 Atmos DV HEVC FLUX",
-				ReleaseTags: "MKV / 2160p / WEB-DL",
-				Container:   "MKV",
-				Season:      1,
-				Episode:     0,
-				Resolution:  "2160p",
-				Source:      "WEB-DL",
-				Codec:       "HEVC",
-				HDR:         "DV",
-				Audio:       "DDP.5.1", // need to fix audio parsing
-				Group:       "FLUX",
-				Website:     "ATVP",
+				TorrentName:   "Servant.S01.2160p.ATVP.WEB-DL.DDP.5.1.Atmos.DV.HEVC-FLUX",
+				ReleaseTags:   "MKV / 2160p / WEB-DL",
+				Title:         "Servant",
+				Season:        1,
+				Episode:       0,
+				Resolution:    "2160p",
+				Source:        "WEB-DL",
+				Container:     "mkv",
+				Codec:         []string{"HEVC"},
+				Audio:         []string{"DDP", "Atmos"},
+				AudioChannels: "5.1",
+				HDR:           []string{"DV"},
+				Group:         "FLUX",
 			},
 			wantErr: false,
 		},
@@ -84,19 +84,19 @@ func TestRelease_Parse(t *testing.T) {
 				ReleaseTags: "MKV | 2160p | WEB-DL",
 			},
 			want: Release{
-				TorrentName: "Servant.S01.2160p.ATVP.WEB-DL.DDP.5.1.Atmos.DV.HEVC-FLUX",
-				Clean:       "Servant S01 2160p ATVP WEB DL DDP 5 1 Atmos DV HEVC FLUX",
-				ReleaseTags: "MKV | 2160p | WEB-DL",
-				Container:   "MKV",
-				Season:      1,
-				Episode:     0,
-				Resolution:  "2160p",
-				Source:      "WEB-DL",
-				Codec:       "HEVC",
-				HDR:         "DV",
-				Audio:       "DDP.5.1", // need to fix audio parsing
-				Group:       "FLUX",
-				Website:     "ATVP",
+				TorrentName:   "Servant.S01.2160p.ATVP.WEB-DL.DDP.5.1.Atmos.DV.HEVC-FLUX",
+				ReleaseTags:   "MKV | 2160p | WEB-DL",
+				Title:         "Servant",
+				Season:        1,
+				Episode:       0,
+				Resolution:    "2160p",
+				Source:        "WEB-DL",
+				Container:     "mkv",
+				Codec:         []string{"HEVC"},
+				Audio:         []string{"DDP", "Atmos"},
+				AudioChannels: "5.1",
+				HDR:           []string{"DV"},
+				Group:         "FLUX",
 			},
 			wantErr: false,
 		},
@@ -107,19 +107,19 @@ func TestRelease_Parse(t *testing.T) {
 				ReleaseTags: "MP4 | 2160p | WEB-DL",
 			},
 			want: Release{
-				TorrentName: "Servant.S01.2160p.ATVP.WEB-DL.DDP.5.1.Atmos.DV.HEVC-FLUX",
-				Clean:       "Servant S01 2160p ATVP WEB DL DDP 5 1 Atmos DV HEVC FLUX",
-				ReleaseTags: "MP4 | 2160p | WEB-DL",
-				Container:   "MP4",
-				Season:      1,
-				Episode:     0,
-				Resolution:  "2160p",
-				Source:      "WEB-DL",
-				Codec:       "HEVC",
-				HDR:         "DV",
-				Audio:       "DDP.5.1", // need to fix audio parsing
-				Group:       "FLUX",
-				Website:     "ATVP",
+				TorrentName:   "Servant.S01.2160p.ATVP.WEB-DL.DDP.5.1.Atmos.DV.HEVC-FLUX",
+				ReleaseTags:   "MP4 | 2160p | WEB-DL",
+				Title:         "Servant",
+				Season:        1,
+				Episode:       0,
+				Resolution:    "2160p",
+				Source:        "WEB-DL",
+				Container:     "mp4",
+				Codec:         []string{"HEVC"},
+				Audio:         []string{"DDP", "Atmos"},
+				AudioChannels: "5.1",
+				HDR:           []string{"DV"},
+				Group:         "FLUX",
 			},
 			wantErr: false,
 		},
@@ -130,20 +130,20 @@ func TestRelease_Parse(t *testing.T) {
 				ReleaseTags: "MP4 | 2160p | WEB-DL | Freeleech!",
 			},
 			want: Release{
-				TorrentName: "Servant.S01.2160p.ATVP.WEB-DL.DDP.5.1.Atmos.DV.HEVC-FLUX",
-				Clean:       "Servant S01 2160p ATVP WEB DL DDP 5 1 Atmos DV HEVC FLUX",
-				ReleaseTags: "MP4 | 2160p | WEB-DL | Freeleech!",
-				Container:   "MP4",
-				Season:      1,
-				Episode:     0,
-				Resolution:  "2160p",
-				Source:      "WEB-DL",
-				Codec:       "HEVC",
-				HDR:         "DV",
-				Audio:       "DDP.5.1", // need to fix audio parsing
-				Group:       "FLUX",
-				Website:     "ATVP",
-				Freeleech:   true,
+				TorrentName:   "Servant.S01.2160p.ATVP.WEB-DL.DDP.5.1.Atmos.DV.HEVC-FLUX",
+				ReleaseTags:   "MP4 | 2160p | WEB-DL | Freeleech!",
+				Title:         "Servant",
+				Season:        1,
+				Episode:       0,
+				Resolution:    "2160p",
+				Source:        "WEB-DL",
+				Container:     "mp4",
+				Codec:         []string{"HEVC"},
+				Audio:         []string{"DDP", "Atmos"},
+				AudioChannels: "5.1",
+				HDR:           []string{"DV"},
+				Group:         "FLUX",
+				Bonus:         []string{"Freeleech"},
 			},
 			wantErr: false,
 		},
@@ -155,16 +155,11 @@ func TestRelease_Parse(t *testing.T) {
 			},
 			want: Release{
 				TorrentName: "Artist - Albumname",
-				Clean:       "Artist   Albumname",
 				ReleaseTags: "FLAC / Lossless / Log / 100% / Cue / CD",
-				Group:       "",
-				Audio:       "FLAC",
-				Format:      "FLAC",
-				Quality:     "Lossless",
+				Title:       "Artist",
+				Group:       "Albumname",
+				Audio:       []string{"Cue", "FLAC", "Lossless", "Log100", "Log"},
 				Source:      "CD",
-				HasCue:      true,
-				HasLog:      true,
-				LogScore:    100,
 			},
 			wantErr: false,
 		},
@@ -177,13 +172,11 @@ func TestRelease_Parse(t *testing.T) {
 			},
 			want: Release{
 				TorrentName: "Various Artists - Music '21",
-				Clean:       "Various Artists   Music '21",
 				Tags:        []string{"house, techno, tech.house, electro.house, future.house, bass.house, melodic.house"},
 				ReleaseTags: "MP3 / 320 / Cassette",
-				Group:       "",
-				Format:      "MP3",
+				Title:       "Various Artists - Music '21",
 				Source:      "Cassette",
-				Quality:     "320",
+				Audio:       []string{"320", "MP3"},
 			},
 			wantErr: false,
 		},
@@ -195,12 +188,11 @@ func TestRelease_Parse(t *testing.T) {
 			},
 			want: Release{
 				TorrentName: "The artist (ザ・フリーダムユニティ) - Long album name",
-				Clean:       "The artist (ザ・フリーダムユニティ)   Long album name",
 				ReleaseTags: "MP3 / V0 (VBR) / CD",
-				Group:       "",
-				Format:      "MP3",
-				Quality:     "V0 (VBR)",
+				Title:       "The artist",
+				Group:       "name",
 				Source:      "CD",
+				Audio:       []string{"MP3", "VBR"},
 			},
 			wantErr: false,
 		},
@@ -212,16 +204,11 @@ func TestRelease_Parse(t *testing.T) {
 			},
 			want: Release{
 				TorrentName: "Artist - Albumname",
-				Clean:       "Artist   Albumname",
 				ReleaseTags: "FLAC / Lossless / Log / 100% / Cue / CD",
-				Group:       "",
-				Audio:       "FLAC",
-				Format:      "FLAC",
-				Quality:     "Lossless",
+				Title:       "Artist",
+				Group:       "Albumname",
+				Audio:       []string{"Cue", "FLAC", "Lossless", "Log100", "Log"},
 				Source:      "CD",
-				HasCue:      true,
-				HasLog:      true,
-				LogScore:    100,
 			},
 			wantErr: false,
 		},
@@ -233,16 +220,11 @@ func TestRelease_Parse(t *testing.T) {
 			},
 			want: Release{
 				TorrentName: "Artist - Albumname",
-				Clean:       "Artist   Albumname",
 				ReleaseTags: "FLAC / 24bit Lossless / Log / 100% / Cue / CD",
-				Group:       "",
-				Audio:       "FLAC",
-				Format:      "FLAC",
-				Quality:     "24bit Lossless",
+				Title:       "Artist",
+				Group:       "Albumname",
+				Audio:       []string{"24BIT Lossless", "Cue", "FLAC", "Lossless", "Log100", "Log"},
 				Source:      "CD",
-				HasCue:      true,
-				HasLog:      true,
-				LogScore:    100,
 			},
 			wantErr: false,
 		},
@@ -252,17 +234,17 @@ func TestRelease_Parse(t *testing.T) {
 				TorrentName: "I Am Movie 2007 Theatrical UHD BluRay 2160p DTS-HD MA 5.1 DV HEVC HYBRID REMUX-GROUP1",
 			},
 			want: Release{
-				TorrentName: "I Am Movie 2007 Theatrical UHD BluRay 2160p DTS-HD MA 5.1 DV HEVC HYBRID REMUX-GROUP1",
-				Clean:       "I Am Movie 2007 Theatrical UHD BluRay 2160p DTS HD MA 5 1 DV HEVC HYBRID REMUX GROUP1",
-				Resolution:  "2160p",
-				Source:      "BluRay",
-				Codec:       "HEVC",
-				HDR:         "DV",
-				Audio:       "DTS-HD MA 5.1", // need to fix audio parsing
-				Edition:     "Theatrical",
-				Hybrid:      true,
-				Year:        2007,
-				Group:       "GROUP1",
+				TorrentName:   "I Am Movie 2007 Theatrical UHD BluRay 2160p DTS-HD MA 5.1 DV HEVC HYBRID REMUX-GROUP1",
+				Title:         "I Am Movie",
+				Resolution:    "2160p",
+				Source:        "UHD.BluRay",
+				Codec:         []string{"HEVC"},
+				HDR:           []string{"DV"},
+				Audio:         []string{"DTS-HD.MA"},
+				AudioChannels: "5.1",
+				Year:          2007,
+				Group:         "GROUP1",
+				Other:         []string{"HYBRiD", "REMUX"},
 			},
 			wantErr: false,
 		},
@@ -270,7 +252,7 @@ func TestRelease_Parse(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			r := tt.fields
-			if err := r.Parse(); (err != nil) != tt.wantErr {
+			if err := r.ParseString(tt.fields.TorrentName); (err != nil) != tt.wantErr {
 				t.Errorf("Parse() error = %v, wantErr %v", err, tt.wantErr)
 			}
 
@@ -500,64 +482,7 @@ func TestSplitAny(t *testing.T) {
 
 func TestRelease_ParseString(t *testing.T) {
 	type fields struct {
-		ID                          int64
-		FilterStatus                ReleaseFilterStatus
-		Rejections                  []string
-		Indexer                     string
-		FilterName                  string
-		Protocol                    ReleaseProtocol
-		Implementation              ReleaseImplementation
-		Timestamp                   time.Time
-		GroupID                     string
-		TorrentID                   string
-		TorrentURL                  string
-		TorrentTmpFile              string
-		TorrentHash                 string
-		TorrentName                 string
-		Size                        uint64
-		Raw                         string
-		Clean                       string
-		Title                       string
-		Category                    string
-		Season                      int
-		Episode                     int
-		Year                        int
-		Resolution                  string
-		Source                      string
-		Codec                       string
-		Container                   string
-		HDR                         string
-		Audio                       string
-		Group                       string
-		Region                      string
-		Language                    string
-		Edition                     string
-		Unrated                     bool
-		Hybrid                      bool
-		Proper                      bool
-		Repack                      bool
-		Website                     string
-		ThreeD                      bool
-		Artists                     []string
-		Type                        string
-		Format                      string
-		Quality                     string
-		LogScore                    int
-		HasLog                      bool
-		HasCue                      bool
-		IsScene                     bool
-		Origin                      string
-		Tags                        []string
-		ReleaseTags                 string
-		Freeleech                   bool
-		FreeleechPercent            int
-		Uploader                    string
-		PreTime                     string
-		RawCookie                   string
-		AdditionalSizeCheckRequired bool
-		FilterID                    int
-		Filter                      *Filter
-		ActionStatus                []ReleaseActionStatus
+		Release
 	}
 	type args struct {
 		title string
@@ -586,6 +511,7 @@ func TestRelease_ParseString(t *testing.T) {
 		{name: "parse_16", fields: fields{}, args: args{title: "Sing 2 2021 MULTi COMPLETE UHD Blu-ray TrueHD Atmos 7.1-MMCLX"}, wantErr: false},
 		{name: "parse_17", fields: fields{}, args: args{title: "NBC.Nightly.News.2022.04.12.1080p.NBC.WEB-DL.AAC2.0.H.264-TEPES"}, wantErr: false},
 		{name: "parse_18", fields: fields{}, args: args{title: "[SubsPlease] Heroine Tarumono! Kiraware Heroine to Naisho no Oshigoto - 04 (1080p) [17083ED9]"}, wantErr: false},
+		{name: "parse_19", fields: fields{}, args: args{title: "The World is Not Enough 1999 2160p WEB-DL HEVC DTS-HD MA 5.1 H.265-DEFLATE"}, wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -605,8 +531,6 @@ func TestRelease_ParseString(t *testing.T) {
 				TorrentHash:                 tt.fields.TorrentHash,
 				TorrentName:                 tt.fields.TorrentName,
 				Size:                        tt.fields.Size,
-				Raw:                         tt.fields.Raw,
-				Clean:                       tt.fields.Clean,
 				Title:                       tt.fields.Title,
 				Category:                    tt.fields.Category,
 				Season:                      tt.fields.Season,
@@ -621,20 +545,12 @@ func TestRelease_ParseString(t *testing.T) {
 				Group:                       tt.fields.Group,
 				Region:                      tt.fields.Region,
 				Language:                    tt.fields.Language,
-				Edition:                     tt.fields.Edition,
-				Unrated:                     tt.fields.Unrated,
-				Hybrid:                      tt.fields.Hybrid,
 				Proper:                      tt.fields.Proper,
 				Repack:                      tt.fields.Repack,
 				Website:                     tt.fields.Website,
-				ThreeD:                      tt.fields.ThreeD,
 				Artists:                     tt.fields.Artists,
 				Type:                        tt.fields.Type,
-				Format:                      tt.fields.Format,
-				Quality:                     tt.fields.Quality,
 				LogScore:                    tt.fields.LogScore,
-				HasLog:                      tt.fields.HasLog,
-				HasCue:                      tt.fields.HasCue,
 				IsScene:                     tt.fields.IsScene,
 				Origin:                      tt.fields.Origin,
 				Tags:                        tt.fields.Tags,
