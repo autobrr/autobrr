@@ -256,6 +256,7 @@ export default function FilterDetails() {
                                         max_size: filter.max_size,
                                         delay: filter.delay,
                                         priority: filter.priority,
+                                        use_regex: filter.use_regex || false,
                                         shows: filter.shows,
                                         years: filter.years,
                                         resolutions: filter.resolutions || [],
@@ -487,6 +488,9 @@ function Advanced() {
             <CollapsableSection title="Releases" subtitle="Match only certain release names and/or ignore other release names">
                 <TextField name="match_releases" label="Match releases" columns={6} placeholder="eg. *some?movie*,*some?show*s01*" />
                 <TextField name="except_releases" label="Except releases" columns={6} placeholder="" />
+                <div className="col-span-6">
+                    <SwitchGroup name="use_regex" label="Use Regex" />
+                </div>
             </CollapsableSection>
 
             <CollapsableSection title="Groups" subtitle="Match only certain groups and/or ignore other groups">
