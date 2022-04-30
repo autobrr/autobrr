@@ -1361,6 +1361,56 @@ func TestFilter_CheckFilter1(t *testing.T) {
 			wantRejections: []string{"origin not matching. got:  want: [SCENE]"},
 			wantMatch:      false,
 		},
+		{
+			name: "test_27",
+			fields: fields{
+				UseRegex:      true,
+				MatchReleases: ".*1080p.+(group1|group3)",
+			},
+			args:           args{&Release{TorrentName: "Show.Name.S01.DV.2160p.ATVP.WEB-DL.DDPA5.1.x265-GROUP2"}},
+			wantRejections: []string{"match release regex not matching. got: Show.Name.S01.DV.2160p.ATVP.WEB-DL.DDPA5.1.x265-GROUP2 want: .*1080p.+(group1|group3)"},
+			wantMatch:      false,
+		},
+		{
+			name: "test_28",
+			fields: fields{
+				UseRegex:      true,
+				MatchReleases: ".*2160p.+(group1|group2)",
+			},
+			args:           args{&Release{TorrentName: "Show.Name.S01.DV.2160p.ATVP.WEB-DL.DDPA5.1.x265-GROUP2"}},
+			wantRejections: nil,
+			wantMatch:      true,
+		},
+		{
+			name: "test_29",
+			fields: fields{
+				UseRegex:      true,
+				MatchReleases: "*2160p*",
+			},
+			args:           args{&Release{TorrentName: "Show.Name.S01.DV.2160p.ATVP.WEB-DL.DDPA5.1.x265-GROUP2"}},
+			wantRejections: []string{"match release regex not matching. got: Show.Name.S01.DV.2160p.ATVP.WEB-DL.DDPA5.1.x265-GROUP2 want: *2160p*"},
+			wantMatch:      false,
+		},
+		{
+			name: "test_30",
+			fields: fields{
+				UseRegex:      true,
+				MatchReleases: "2160p",
+			},
+			args:           args{&Release{TorrentName: "Show.Name.S01.DV.2160p.ATVP.WEB-DL.DDPA5.1.x265-GROUP2"}},
+			wantRejections: nil,
+			wantMatch:      true,
+		},
+		{
+			name: "test_31",
+			fields: fields{
+				UseRegex:      false,
+				MatchReleases: "*2160p*",
+			},
+			args:           args{&Release{TorrentName: "Show.Name.S01.DV.2160p.ATVP.WEB-DL.DDPA5.1.x265-GROUP2"}},
+			wantRejections: nil,
+			wantMatch:      true,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -1532,6 +1582,26 @@ func Test_containsIntStrings(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			assert.Equalf(t, tt.want, containsIntStrings(tt.args.value, tt.args.filterList), "containsIntStrings(%v, %v)", tt.args.value, tt.args.filterList)
+		})
+	}
+}
+
+func Test_matchRegex(t *testing.T) {
+	type args struct {
+		tag    string
+		filter string
+	}
+	tests := []struct {
+		name string
+		args args
+		want bool
+	}{
+		{name: "test_1", args: args{tag: "Some.show.S01.DV.2160p.ATVP.WEB-DL.DDPA5.1.x265-GROUP1", filter: ".*2160p.+(group1|group2)"}, want: true},
+		{name: "test_2", args: args{tag: "Some.show.S01.DV.2160p.ATVP.WEB-DL.DDPA5.1.x265-GROUP2", filter: ".*1080p.+(group1|group3)"}, want: false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equalf(t, tt.want, matchRegex(tt.args.tag, tt.args.filter), "matchRegex(%v, %v)", tt.args.tag, tt.args.filter)
 		})
 	}
 }

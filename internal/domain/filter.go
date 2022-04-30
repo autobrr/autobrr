@@ -2,6 +2,7 @@ package domain
 
 import (
 	"context"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -113,13 +114,24 @@ func (f Filter) CheckFilter(r *Release) ([]string, bool) {
 	}
 
 	// matchRelease
-	// TODO allow to match against regex
-	if f.MatchReleases != "" && !containsFuzzy(r.TorrentName, f.MatchReleases) {
-		r.addRejectionF("match release not matching. got: %v want: %v", r.TorrentName, f.MatchReleases)
-	}
+	// match against regex
+	if f.UseRegex {
+		if f.MatchReleases != "" && !matchRegex(r.TorrentName, f.MatchReleases) {
+			r.addRejectionF("match release regex not matching. got: %v want: %v", r.TorrentName, f.MatchReleases)
+		}
 
-	if f.ExceptReleases != "" && containsFuzzy(r.TorrentName, f.ExceptReleases) {
-		r.addRejectionF("except releases: unwanted release. got: %v want: %v", r.TorrentName, f.ExceptReleases)
+		if f.ExceptReleases != "" && matchRegex(r.TorrentName, f.ExceptReleases) {
+			r.addRejectionF("except releases regex: unwanted release. got: %v want: %v", r.TorrentName, f.ExceptReleases)
+		}
+
+	} else {
+		if f.MatchReleases != "" && !containsFuzzy(r.TorrentName, f.MatchReleases) {
+			r.addRejectionF("match release not matching. got: %v want: %v", r.TorrentName, f.MatchReleases)
+		}
+
+		if f.ExceptReleases != "" && containsFuzzy(r.TorrentName, f.ExceptReleases) {
+			r.addRejectionF("except releases: unwanted release. got: %v want: %v", r.TorrentName, f.ExceptReleases)
+		}
 	}
 
 	if f.MatchReleaseGroups != "" && !contains(r.Group, f.MatchReleaseGroups) {
@@ -305,6 +317,15 @@ func (f Filter) checkSizeFilter(r *Release, minSize string, maxSize string) bool
 	}
 
 	return true
+}
+
+func matchRegex(tag string, filter string) bool {
+	re, err := regexp.Compile(`(?i)(?:` + filter + `)`)
+	if err != nil {
+		return false
+	}
+
+	return re.MatchString(tag)
 }
 
 // checkFilterIntStrings "1,2,3-20"
