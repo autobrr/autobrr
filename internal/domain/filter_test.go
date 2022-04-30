@@ -964,9 +964,6 @@ func TestFilter_CheckFilter(t *testing.T) {
 
 			assert.Equal(t, tt.want, got)
 			assert.Equal(t, tt.args.rejections, rejections)
-
-			//assert.Equalf(t, tt.wantRejections, rejections, "CheckFilter(%v)", tt.args.r)
-			//assert.Equalf(t, tt.wantMatch, match, "CheckFilter(%v)", tt.args.r)
 		})
 	}
 }
@@ -988,7 +985,7 @@ func TestFilter_CheckFilter1(t *testing.T) {
 		MatchReleaseGroups  string
 		ExceptReleaseGroups string
 		Scene               bool
-		Origins             string
+		Origins             []string
 		Freeleech           bool
 		FreeleechPercent    string
 		Shows               string
@@ -1276,6 +1273,7 @@ func TestFilter_CheckFilter1(t *testing.T) {
 			fields: fields{
 				Shows:       "Reacher",
 				Seasons:     "1",
+				Episodes:    "0",
 				Resolutions: []string{"2160p"},
 				Sources:     []string{"WEB-DL"},
 				Codecs:      []string{"x265"},
@@ -1317,6 +1315,51 @@ func TestFilter_CheckFilter1(t *testing.T) {
 			args:           args{&Release{TorrentName: "Gillan - Future Shock", ReleaseTags: "FLAC / Lossless / Log / 100% / Cue / CD / Scene"}},
 			wantRejections: nil,
 			wantMatch:      true,
+		},
+		{
+			name: "test_23",
+			fields: fields{
+				Origins: []string{"Internal"},
+			},
+			args:           args{&Release{TorrentName: "Gillan - Future Shock", ReleaseTags: "FLAC / Lossless / Log / 100% / Cue / CD / Scene", Origin: "Internal"}},
+			wantRejections: nil,
+			wantMatch:      true,
+		},
+		{
+			name: "test_24",
+			fields: fields{
+				Origins: []string{"P2P"},
+			},
+			args:           args{&Release{TorrentName: "Gillan - Future Shock", ReleaseTags: "FLAC / Lossless / Log / 100% / Cue / CD / Scene", Origin: "Internal"}},
+			wantRejections: []string{"origin not matching. got: Internal want: [P2P]"},
+			wantMatch:      false,
+		},
+		{
+			name: "test_25",
+			fields: fields{
+				Origins: []string{"O-SCENE"},
+			},
+			args:           args{&Release{TorrentName: "Gillan - Future Shock", ReleaseTags: "FLAC / Lossless / Log / 100% / Cue / CD / Scene", Origin: "SCENE"}},
+			wantRejections: []string{"origin not matching. got: SCENE want: [O-SCENE]"},
+			wantMatch:      false,
+		},
+		{
+			name: "test_26",
+			fields: fields{
+				Origins: []string{"SCENE"},
+			},
+			args:           args{&Release{TorrentName: "Gillan - Future Shock", ReleaseTags: "FLAC / Lossless / Log / 100% / Cue / CD / Scene", Origin: "O-SCENE"}},
+			wantRejections: []string{"origin not matching. got: O-SCENE want: [SCENE]"},
+			wantMatch:      false,
+		},
+		{
+			name: "test_26",
+			fields: fields{
+				Origins: []string{"SCENE"},
+			},
+			args:           args{&Release{TorrentName: "Gillan - Future Shock", ReleaseTags: "FLAC / Lossless / Log / 100% / Cue / CD / Scene"}},
+			wantRejections: []string{"origin not matching. got:  want: [SCENE]"},
+			wantMatch:      false,
 		},
 	}
 	for _, tt := range tests {

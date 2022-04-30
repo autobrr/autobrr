@@ -45,7 +45,7 @@ type Filter struct {
 	MatchReleaseGroups  string    `json:"match_release_groups"`
 	ExceptReleaseGroups string    `json:"except_release_groups"`
 	Scene               bool      `json:"scene"`
-	Origins             string    `json:"origins"`
+	Origins             []string  `json:"origins"`
 	Freeleech           bool      `json:"freeleech"`
 	FreeleechPercent    string    `json:"freeleech_percent"`
 	Shows               string    `json:"shows"`
@@ -95,7 +95,7 @@ func (f Filter) CheckFilter(r *Release) ([]string, bool) {
 		r.addRejectionF("freeleech percent not matching. got: %v want: %v", r.FreeleechPercent, f.FreeleechPercent)
 	}
 
-	if f.Origins != "" && !contains(r.Origin, f.Origins) {
+	if len(f.Origins) > 0 && !containsSlice(r.Origin, f.Origins) {
 		r.addRejectionF("origin not matching. got: %v want: %v", r.Origin, f.Origins)
 	}
 

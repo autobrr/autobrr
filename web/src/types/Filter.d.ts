@@ -14,7 +14,7 @@ interface Filter {
   match_release_groups: string;
   except_release_groups: string;
   scene: boolean;
-  origins: string;
+  origins: string[];
   freeleech: boolean;
   freeleech_percent: string;
   shows: string;

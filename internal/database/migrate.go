@@ -101,7 +101,7 @@ CREATE TABLE filter
     except_uploaders      TEXT,
     tags                  TEXT,
     except_tags           TEXT,
-    origins               TEXT,
+	origins               TEXT []   DEFAULT '{}' NOT NULL,
     created_at            TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at            TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -635,7 +635,7 @@ ALTER TABLE release_action_status_dg_tmp
 		DROP COLUMN freeleech_percent;
 
 	ALTER TABLE "filter"
-		ADD COLUMN origins TEXT;
+		ADD COLUMN origins TEXT []   DEFAULT '{}';
 	`,
 	`
 	ALTER TABLE "filter"
@@ -747,7 +747,7 @@ CREATE TABLE filter
     except_uploaders      TEXT,
     tags                  TEXT,
     except_tags           TEXT,
-    origins               TEXT,
+    origins               TEXT []   DEFAULT '{}',
     created_at            TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at            TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -1031,7 +1031,7 @@ var postgresMigrations = []string{
 		DROP COLUMN freeleech_percent;
 
 	ALTER TABLE "filter"
-		ADD COLUMN origins TEXT;
+		ADD COLUMN origins TEXT []   DEFAULT '{}';
 	`,
 	`
 	ALTER TABLE "filter"

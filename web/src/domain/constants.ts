@@ -143,6 +143,15 @@ export const releaseTypeMusic = [
 
 export const RELEASE_TYPE_MUSIC_OPTIONS = releaseTypeMusic.map(v => ({ value: v, label: v, key: v}));
 
+export const originOptions = [
+    "P2P",
+    "Internal",
+    "SCENE",
+    "O-SCENE",
+];
+
+export const ORIGIN_OPTIONS = originOptions.map(v => ({ value: v, label: v, key: v}));
+
 export interface RadioFieldsetOption {
     label: string;
     description: string;

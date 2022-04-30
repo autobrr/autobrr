@@ -26,7 +26,7 @@ import {
     FORMATS_OPTIONS,
     SOURCES_MUSIC_OPTIONS,
     QUALITY_MUSIC_OPTIONS,
-    RELEASE_TYPE_MUSIC_OPTIONS, OTHER_OPTIONS
+    RELEASE_TYPE_MUSIC_OPTIONS, OTHER_OPTIONS, ORIGIN_OPTIONS
 } from "../../domain/constants";
 import { queryClient } from "../../App";
 import { APIClient } from "../../api/APIClient";
@@ -290,6 +290,7 @@ export default function FilterDetails() {
                                         perfect_flac: filter.perfect_flac,
                                         artists: filter.artists,
                                         albums: filter.albums,
+                                        origins: filter.origins || [],
                                         indexers: filter.indexers || [],
                                         actions: filter.actions || [],
                                     } as Filter}
@@ -481,134 +482,76 @@ function Music() {
 }
 
 function Advanced() {
-    const [releasesIsOpen, toggleReleases] = useToggle(false)
-    const [groupsIsOpen, toggleGroups] = useToggle(false)
-    const [categoriesIsOpen, toggleCategories] = useToggle(false)
-    const [uploadersIsOpen, toggleUploaders] = useToggle(false)
-    const [freeleechIsOpen, toggleFreeleech] = useToggle(false)
-
     return (
         <div>
-            <div className="mt-6 lg:pb-6 border-b border-gray-200 dark:border-gray-700">
-                <div className="flex justify-between items-center cursor-pointer" onClick={toggleReleases}>
-                    <div className="-ml-2 -mt-2 flex flex-wrap items-baseline">
-                        <h3 className="ml-2 mt-2 text-lg leading-6 font-medium text-gray-900 dark:text-gray-200">Releases</h3>
-                        <p className="ml-2 mt-1 text-sm text-gray-500 dark:text-gray-400 truncate">Match only certain release names and/or ignore other release names</p>
-                    </div>
-                    <div className="mt-3 sm:mt-0 sm:ml-4">
-                        <button
-                            type="button"
-                            className="inline-flex items-center px-4 py-2 border-transparent text-sm font-medium text-white"
-                        >
-                            {releasesIsOpen ? <ChevronDownIcon className="h-6 w-6 text-gray-500" aria-hidden="true" /> : <ChevronRightIcon className="h-6 w-6 text-gray-500" aria-hidden="true" />}
-                        </button>
-                    </div>
+            <CollapsableSection title="Releases" subtitle="Match only certain release names and/or ignore other release names">
+                <TextField name="match_releases" label="Match releases" columns={6} placeholder="eg. *some?movie*,*some?show*s01*" />
+                <TextField name="except_releases" label="Except releases" columns={6} placeholder="" />
+            </CollapsableSection>
+
+            <CollapsableSection title="Groups" subtitle="Match only certain groups and/or ignore other groups">
+                <TextField name="match_release_groups" label="Match release groups" columns={6} placeholder="eg. group1,group2" />
+                <TextField name="except_release_groups" label="Except release groups" columns={6} placeholder="eg. badgroup1,badgroup2" />
+            </CollapsableSection>
+
+            <CollapsableSection title="Categories and tags" subtitle="Match or ignore categories or tags">
+                <TextField name="match_categories" label="Match categories" columns={6} placeholder="eg. *category*,category1" />
+                <TextField name="except_categories" label="Except categories" columns={6} placeholder="eg. *category*" />
+
+                <TextField name="tags" label="Match tags" columns={6} placeholder="eg. tag1,tag2" />
+                <TextField name="except_tags" label="Except tags" columns={6} placeholder="eg. tag1,tag2" />
+            </CollapsableSection>
+
+            <CollapsableSection title="Uploaders" subtitle="Match or ignore uploaders">
+                <TextField name="match_uploaders" label="Match uploaders" columns={6} placeholder="eg. uploader1" />
+                <TextField name="except_uploaders" label="Except uploaders" columns={6} placeholder="eg. anonymous" />
+            </CollapsableSection>
+
+            <CollapsableSection title="Origins" subtitle="Match Internals, scene, p2p etc if announced">
+                <MultiSelect name="origins" options={ORIGIN_OPTIONS} label="Origins" columns={6} />
+            </CollapsableSection>
+
+            <CollapsableSection title="Freeleech" subtitle="Match only freeleech and freeleech percent">
+                <div className="col-span-6">
+                    <SwitchGroup name="freeleech" label="Freeleech" />
                 </div>
-                {releasesIsOpen && (
-                    <div className="mt-6 grid grid-cols-12 gap-6">
-                        <TextField name="match_releases" label="Match releases" columns={6} placeholder="eg. *some?movie*,*some?show*s01*" />
-                        <TextField name="except_releases" label="Except releases" columns={6} placeholder="" />
-                    </div>
-                )}
-            </div>
 
-            <div className="mt-6 lg:pb-6 border-b border-gray-200 dark:border-gray-700">
-                <div className="flex justify-between items-center cursor-pointer" onClick={toggleGroups}>
-                    <div className="-ml-2 -mt-2 flex flex-wrap items-baseline">
-                        <h3 className="ml-2 mt-2 text-lg leading-6 font-medium text-gray-900 dark:text-gray-200">Groups</h3>
-                        <p className="ml-2 mt-1 text-sm text-gray-500 dark:text-gray-400 truncate">Match only certain groups and/or ignore other groups</p>
-                    </div>
-                    <div className="mt-3 sm:mt-0 sm:ml-4">
-                        <button
-                            type="button"
-                            className="inline-flex items-center px-4 py-2 border-transparent text-sm font-medium text-white"
-                        >
-                            {groupsIsOpen ? <ChevronDownIcon className="h-6 w-6 text-gray-500" aria-hidden="true" /> : <ChevronRightIcon className="h-6 w-6 text-gray-500" aria-hidden="true" />}
-                        </button>
-                    </div>
+                <TextField name="freeleech_percent" label="Freeleech percent" columns={6} />
+            </CollapsableSection>
+        </div>
+    )
+}
+
+interface CollapsableSectionProps {
+    title: string;
+    subtitle: string;
+    children: any;
+}
+
+function CollapsableSection({ title, subtitle, children }: CollapsableSectionProps) {
+    const [isOpen, toggleOpen] = useToggle(false)
+
+    return(
+        <div className="mt-6 lg:pb-6 border-b border-gray-200 dark:border-gray-700">
+            <div className="flex justify-between items-center cursor-pointer" onClick={toggleOpen}>
+                <div className="-ml-2 -mt-2 flex flex-wrap items-baseline">
+                    <h3 className="ml-2 mt-2 text-lg leading-6 font-medium text-gray-900 dark:text-gray-200">{title}</h3>
+                    <p className="ml-2 mt-1 text-sm text-gray-500 dark:text-gray-400 truncate">{subtitle}</p>
                 </div>
-                {groupsIsOpen && (
-                    <div className="mt-6 grid grid-cols-12 gap-6">
-                        <TextField name="match_release_groups" label="Match release groups" columns={6} placeholder="eg. group1,group2" />
-                        <TextField name="except_release_groups" label="Except release groups" columns={6} placeholder="eg. badgroup1,badgroup2" />
-                    </div>
-                )}
-            </div>
-
-            <div className="mt-6 lg:pb-6 border-b border-gray-200 dark:border-gray-700">
-                <div className="flex justify-between items-center cursor-pointer" onClick={toggleCategories}>
-                    <div className="-ml-2 -mt-2 flex flex-wrap items-baseline">
-                        <h3 className="ml-2 mt-2 text-lg leading-6 font-medium text-gray-900 dark:text-gray-200">Categories and tags</h3>
-                        <p className="ml-2 mt-1 text-sm text-gray-500 dark:text-gray-400 truncate">Match or ignore categories or tags</p>
-                    </div>
-                    <div className="mt-3 sm:mt-0 sm:ml-4">
-                        <button
-                            type="button"
-                            className="inline-flex items-center px-4 py-2 border-transparent text-sm font-medium text-white"
-                        >
-                            {categoriesIsOpen ? <ChevronDownIcon className="h-6 w-6 text-gray-500" aria-hidden="true" /> : <ChevronRightIcon className="h-6 w-6 text-gray-500" aria-hidden="true" />}
-                        </button>
-                    </div>
+                <div className="mt-3 sm:mt-0 sm:ml-4">
+                    <button
+                        type="button"
+                        className="inline-flex items-center px-4 py-2 border-transparent text-sm font-medium text-white"
+                    >
+                        {isOpen ? <ChevronDownIcon className="h-6 w-6 text-gray-500" aria-hidden="true" /> : <ChevronRightIcon className="h-6 w-6 text-gray-500" aria-hidden="true" />}
+                    </button>
                 </div>
-                {categoriesIsOpen && (
-                    <div className="mt-6 grid grid-cols-12 gap-6">
-                        <TextField name="match_categories" label="Match categories" columns={6} placeholder="eg. *category*,category1" />
-                        <TextField name="except_categories" label="Except categories" columns={6} placeholder="eg. *category*" />
-
-                        <TextField name="tags" label="Match tags" columns={6} placeholder="eg. tag1,tag2" />
-                        <TextField name="except_tags" label="Except tags" columns={6} placeholder="eg. tag1,tag2" />
-                    </div>
-                )}
             </div>
-
-            <div className="mt-6 lg:pb-6 border-b border-gray-200 dark:border-gray-700">
-                <div className="flex justify-between items-center cursor-pointer" onClick={toggleUploaders}>
-                    <div className="-ml-2 -mt-2 flex flex-wrap items-baseline">
-                        <h3 className="ml-2 mt-2 text-lg leading-6 font-medium text-gray-900 dark:text-gray-200">Uploaders</h3>
-                        <p className="ml-2 mt-1 text-sm text-gray-500 dark:text-gray-400 truncate">Match or ignore uploaders</p>
-                    </div>
-                    <div className="mt-3 sm:mt-0 sm:ml-4">
-                        <button
-                            type="button"
-                            className="inline-flex items-center px-4 py-2 border-transparent text-sm font-medium text-white"
-                        >
-                            {uploadersIsOpen ? <ChevronDownIcon className="h-6 w-6 text-gray-500" aria-hidden="true" /> : <ChevronRightIcon className="h-6 w-6 text-gray-500" aria-hidden="true" />}
-                        </button>
-                    </div>
+            {isOpen && (
+                <div className="mt-6 grid grid-cols-12 gap-6">
+                    {children}
                 </div>
-                {uploadersIsOpen && (
-                    <div className="mt-6 grid grid-cols-12 gap-6">
-                        <TextField name="match_uploaders" label="Match uploaders" columns={6} placeholder="eg. uploader1" />
-                        <TextField name="except_uploaders" label="Except uploaders" columns={6} placeholder="eg. anonymous" />
-                    </div>
-                )}
-            </div>
-
-            <div className="mt-6 lg:pb-6 border-b border-gray-200 dark:border-gray-700">
-                <div className="flex justify-between items-center cursor-pointer" onClick={toggleFreeleech}>
-                    <div className="-ml-2 -mt-2 flex flex-wrap items-baseline">
-                        <h3 className="ml-2 mt-2 text-lg leading-6 font-medium text-gray-900 dark:text-gray-200">Freeleech</h3>
-                        <p className="ml-2 mt-1 text-sm text-gray-500 dark:text-gray-400 truncate">Match only freeleech and freeleech percent</p>
-                    </div>
-                    <div className="mt-3 sm:mt-0 sm:ml-4">
-                        <button
-                            type="button"
-                            className="inline-flex items-center px-4 py-2 border-transparent text-sm font-medium text-white"
-                        >
-                            {freeleechIsOpen ? <ChevronDownIcon className="h-6 w-6 text-gray-500" aria-hidden="true" /> : <ChevronRightIcon className="h-6 w-6 text-gray-500" aria-hidden="true" />}
-                        </button>
-                    </div>
-                </div>
-                {freeleechIsOpen && (
-                    <div className="mt-6 grid grid-cols-12 gap-6">
-                        <div className="col-span-6">
-                            <SwitchGroup name="freeleech" label="Freeleech" />
-                        </div>
-
-                        <TextField name="freeleech_percent" label="Freeleech percent" columns={6} />
-                    </div>
-                )}
-            </div>
+            )}
         </div>
     )
 }
