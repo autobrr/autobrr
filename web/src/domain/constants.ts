@@ -12,29 +12,25 @@ export const resolutions = [
 export const RESOLUTION_OPTIONS = resolutions.map(r => ({ value: r, label: r, key: r}));
 
 export const codecs = [
-    "AVC",
-    "Remux",
-    "h.264 Remux",
-    "h.265 Remux",
     "HEVC",
-    "VC-1",
-    "VC-1 Remux",
-    "h264",
-    "h265",
+    "H.264",
+    "H.265",
     "x264",
     "x265",
-    "h264 10-bit",
-    "h265 10-bit",
-    "x264 10-bit",
-    "x265 10-bit",
+    "AVC",
+    "VC-1",
+    "AV1",
     "XviD"
 ];
 
 export const CODECS_OPTIONS = codecs.map(v => ({ value: v, label: v, key: v}));
 
 export const sources = [
-    "WEB-DL",
     "BluRay",
+    "UHD.BluRay",
+    "WEB-DL",
+    "WEB",
+    "WEBRip",
     "BD5",
     "BD9",
     "BDr",
@@ -51,7 +47,6 @@ export const sources = [
     "HDTV",
     "Mixed",
     "SiteRip",
-    "Webrip",
 ];
 
 export const SOURCES_OPTIONS = sources.map(v => ({ value: v, label: v, key: v}));
@@ -68,6 +63,7 @@ export const hdr = [
     "HDR",
     "HDR10",
     "HDR10+",
+    "HLG",
     "DV",
     "DV HDR",
     "DV HDR10",
@@ -78,6 +74,13 @@ export const hdr = [
 
 export const HDR_OPTIONS = hdr.map(v => ({ value: v, label: v, key: v}));
 
+export const quality_other = [
+    "REMUX",
+    "HYBRID",
+    "REPACK",
+];
+
+export const OTHER_OPTIONS = quality_other.map(v => ({ value: v, label: v, key: v}));
 
 export const formatMusic = [
     "MP3",
@@ -135,10 +138,19 @@ export const releaseTypeMusic = [
     "Demo",
     "Concert Recording",
     "DJ Mix",
-    "Unkown",
+    "Unknown",
 ];
 
 export const RELEASE_TYPE_MUSIC_OPTIONS = releaseTypeMusic.map(v => ({ value: v, label: v, key: v}));
+
+export const originOptions = [
+    "P2P",
+    "Internal",
+    "SCENE",
+    "O-SCENE",
+];
+
+export const ORIGIN_OPTIONS = originOptions.map(v => ({ value: v, label: v, key: v}));
 
 export interface RadioFieldsetOption {
     label: string;

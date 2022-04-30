@@ -2,6 +2,7 @@ package action
 
 import (
 	"bytes"
+	"strings"
 	"text/template"
 	"time"
 
@@ -14,6 +15,7 @@ type Macro struct {
 	TorrentHash     string
 	TorrentUrl      string
 	Indexer         string
+	Title           string
 	Resolution      string
 	Source          string
 	HDR             string
@@ -36,9 +38,10 @@ func NewMacro(release domain.Release) Macro {
 		TorrentPathName: release.TorrentTmpFile,
 		TorrentHash:     release.TorrentHash,
 		Indexer:         release.Indexer,
+		Title:           release.Title,
 		Resolution:      release.Resolution,
 		Source:          release.Source,
-		HDR:             release.HDR,
+		HDR:             strings.Join(release.HDR, ", "),
 		Season:          release.Season,
 		Episode:         release.Episode,
 		Year:            currentTime.Year(),

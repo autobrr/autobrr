@@ -14,7 +14,7 @@ interface Filter {
   match_release_groups: string;
   except_release_groups: string;
   scene: boolean;
-  origins: string;
+  origins: string[];
   freeleech: boolean;
   freeleech_percent: string;
   shows: string;
@@ -26,6 +26,8 @@ interface Filter {
   containers: string[];
   match_hdr: string[];
   except_hdr: string[];
+  match_other: string[];
+  except_other: string[];
   years: string;
   artists: string;
   albums: string;

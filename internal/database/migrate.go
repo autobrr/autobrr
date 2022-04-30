@@ -81,6 +81,8 @@ CREATE TABLE filter
     containers            TEXT []   DEFAULT '{}' NOT NULL,
     match_hdr             TEXT []   DEFAULT '{}',
     except_hdr            TEXT []   DEFAULT '{}',
+    match_other           TEXT []   DEFAULT '{}',
+    except_other          TEXT []   DEFAULT '{}',
     years                 TEXT,
     artists               TEXT,
     albums                TEXT,
@@ -99,6 +101,7 @@ CREATE TABLE filter
     except_uploaders      TEXT,
     tags                  TEXT,
     except_tags           TEXT,
+	origins               TEXT []   DEFAULT '{}' NOT NULL,
     created_at            TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at            TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -169,7 +172,6 @@ CREATE TABLE "release"
     torrent_id        TEXT,
     torrent_name      TEXT,
     size              INTEGER,
-    raw               TEXT,
     title             TEXT,
     category          TEXT,
     season            INTEGER,
@@ -180,28 +182,13 @@ CREATE TABLE "release"
     codec             TEXT,
     container         TEXT,
     hdr               TEXT,
-    audio             TEXT,
-    release_group     TEXT,
-    region            TEXT,
-    language          TEXT,
-    edition           TEXT,
-    unrated           BOOLEAN,
-    hybrid            BOOLEAN,
+    group             TEXT,
     proper            BOOLEAN,
     repack            BOOLEAN,
     website           TEXT,
-    artists           TEXT []   DEFAULT '{}' NOT NULL,
     type              TEXT,
-    format            TEXT,
-    quality           TEXT,
-    log_score         INTEGER,
-    has_log           BOOLEAN,
-    has_cue           BOOLEAN,
-    is_scene          BOOLEAN,
     origin            TEXT,
     tags              TEXT []   DEFAULT '{}' NOT NULL,
-    freeleech         BOOLEAN,
-    freeleech_percent INTEGER,
     uploader          TEXT,
     pre_time          TEXT
 );
@@ -595,6 +582,68 @@ ALTER TABLE release_action_status_dg_tmp
 	ALTER TABLE indexer
 		ADD COLUMN implementation TEXT;
 	`,
+	`
+	ALTER TABLE release
+		RENAME COLUMN release_group TO "group";
+
+	ALTER TABLE release
+		DROP COLUMN raw;
+
+	ALTER TABLE release
+		DROP COLUMN audio;
+
+	ALTER TABLE release
+		DROP COLUMN region;
+
+	ALTER TABLE release
+		DROP COLUMN language;
+
+	ALTER TABLE release
+		DROP COLUMN edition;
+
+	ALTER TABLE release
+		DROP COLUMN unrated;
+
+	ALTER TABLE release
+		DROP COLUMN hybrid;
+
+	ALTER TABLE release
+		DROP COLUMN artists;
+
+	ALTER TABLE release
+		DROP COLUMN format;
+
+	ALTER TABLE release
+		DROP COLUMN quality;
+
+	ALTER TABLE release
+		DROP COLUMN log_score;
+
+	ALTER TABLE release
+		DROP COLUMN has_log;
+
+	ALTER TABLE release
+		DROP COLUMN has_cue;
+
+	ALTER TABLE release
+		DROP COLUMN is_scene;
+
+	ALTER TABLE release
+		DROP COLUMN freeleech;
+
+	ALTER TABLE release
+		DROP COLUMN freeleech_percent;
+
+	ALTER TABLE "filter"
+		ADD COLUMN origins TEXT []   DEFAULT '{}';
+	`,
+	`
+	ALTER TABLE "filter"
+		ADD COLUMN match_other TEXT []   DEFAULT '{}';
+
+	ALTER TABLE "filter"
+		ADD COLUMN except_other TEXT []   DEFAULT '{}';
+	`,
 }
 
 const postgresSchema = `
@@ -678,6 +727,8 @@ CREATE TABLE filter
     containers            TEXT []   DEFAULT '{}' NOT NULL,
     match_hdr             TEXT []   DEFAULT '{}',
     except_hdr            TEXT []   DEFAULT '{}',
+    match_other           TEXT []   DEFAULT '{}',
+    except_other          TEXT []   DEFAULT '{}',
     years                 TEXT,
     artists               TEXT,
     albums                TEXT,
@@ -696,6 +747,7 @@ CREATE TABLE filter
     except_uploaders      TEXT,
     tags                  TEXT,
     except_tags           TEXT,
+    origins               TEXT []   DEFAULT '{}',
     created_at            TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at            TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -925,5 +977,67 @@ var postgresMigrations = []string{
 	`
 	ALTER TABLE indexer
 		ADD COLUMN implementation TEXT;
+	`,
+	`
+	ALTER TABLE release
+		RENAME COLUMN release_group TO "group";
+
+	ALTER TABLE release
+		DROP COLUMN raw;
+
+	ALTER TABLE release
+		DROP COLUMN audio;
+
+	ALTER TABLE release
+		DROP COLUMN region;
+
+	ALTER TABLE release
+		DROP COLUMN language;
+
+	ALTER TABLE release
+		DROP COLUMN edition;
+
+	ALTER TABLE release
+		DROP COLUMN unrated;
+
+	ALTER TABLE release
+		DROP COLUMN hybrid;
+
+	ALTER TABLE release
+		DROP COLUMN artists;
+
+	ALTER TABLE release
+		DROP COLUMN format;
+
+	ALTER TABLE release
+		DROP COLUMN quality;
+
+	ALTER TABLE release
+		DROP COLUMN log_score;
+
+	ALTER TABLE release
+		DROP COLUMN has_log;
+
+	ALTER TABLE release
+		DROP COLUMN has_cue;
+
+	ALTER TABLE release
+		DROP COLUMN is_scene;
+
+	ALTER TABLE release
+		DROP COLUMN freeleech;
+
+	ALTER TABLE release
+		DROP COLUMN freeleech_percent;
+
+	ALTER TABLE "filter"
+		ADD COLUMN origins TEXT []   DEFAULT '{}';
+	`,
+	`
+	ALTER TABLE "filter"
+		ADD COLUMN match_other TEXT []   DEFAULT '{}';
+
+	ALTER TABLE "filter"
+		ADD COLUMN except_other TEXT []   DEFAULT '{}';
 	`,
 }
