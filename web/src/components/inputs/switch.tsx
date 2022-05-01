@@ -77,7 +77,7 @@ const SwitchGroup = ({
     label,
     description
 }: SwitchGroupProps) => (
-    <HeadlessSwitch.Group as="li" className="py-4 flex items-center justify-between">
+    <HeadlessSwitch.Group as="ol" className="py-4 flex items-center justify-between">
         {label && <div className="flex flex-col">
             <HeadlessSwitch.Label as="p" className="text-sm font-medium text-gray-900 dark:text-gray-100"
                 passive>

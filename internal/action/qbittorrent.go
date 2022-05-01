@@ -71,8 +71,8 @@ func (s *service) qbittorrent(qbt *qbittorrent.Client, action domain.Action, rel
 		return err
 	}
 
-	if !action.Paused && release.TorrentHash != "" {
-		err = checkTrackerStatus(qbt, release.TorrentHash)
+	if !action.Paused && !action.ReAnnounceSkip && release.TorrentHash != "" {
+		err = s.checkTrackerStatus(qbt, action, release.TorrentHash)
 		if err != nil {
 			log.Error().Stack().Err(err).Msgf("could not reannounce torrent: %v", release.TorrentHash)
 			return err
@@ -156,14 +156,25 @@ func (s *service) qbittorrentCheckRulesCanDownload(action domain.Action) (bool, 
 	return true, qbt, nil
 }
 
-func checkTrackerStatus(qb *qbittorrent.Client, hash string) error {
+func (s *service) checkTrackerStatus(qb *qbittorrent.Client, action domain.Action, hash string) error {
 	announceOK := false
 	attempts := 0
 
 	// initial sleep to give tracker a head start
-	time.Sleep(6 * time.Second)
+	interval := ReannounceInterval
+	if action.ReAnnounceInterval == 0 {
+		time.Sleep(6 * time.Second)
+	} else {
+		interval = int(action.ReAnnounceInterval)
+		time.Sleep(time.Duration(interval) * time.Second)
+	}
 
-	for attempts < ReannounceMaxAttempts {
+	maxAttempts := ReannounceMaxAttempts
+	if action.ReAnnounceMaxAttempts > 0 {
+		maxAttempts = int(action.ReAnnounceMaxAttempts)
+	}
+
+	for attempts < maxAttempts {
 		log.Debug().Msgf("qBittorrent - run re-announce %v attempt: %v", hash, attempts)
 
 		trackers, err := qb.GetTorrentTrackers(hash)
@@ -193,16 +204,16 @@ func checkTrackerStatus(qb *qbittorrent.Client, hash string) error {
 		}
 
 		// add delay for next run
-		time.Sleep(ReannounceInterval * time.Millisecond)
+		time.Sleep(time.Duration(interval) * time.Second)
 
 		attempts++
 	}
 
 	// add extra delay before delete
-	// TODO add setting: delete on failure to reannounce
 	time.Sleep(30 * time.Second)
 
-	if !announceOK {
+	// delete on failure to reannounce
+	if !announceOK && action.ReAnnounceDelete {
 		log.Debug().Msgf("qBittorrent - re-announce for %v took too long, deleting torrent", hash)
 
 		err := qb.DeleteTorrents([]string{hash}, false)
