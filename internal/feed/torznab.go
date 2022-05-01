@@ -122,10 +122,11 @@ func (j *TorznabJob) getFeed() ([]torznab.FeedItem, error) {
 
 		items = append(items, i)
 
-		ttl := (24 * time.Hour) * 28
+		// set ttl to 1 month
+		ttl := time.Now().AddDate(0, 1, 0)
 
-		if err := j.Repo.Put(j.Name, i.GUID, []byte("test"), ttl); err != nil {
-			j.Log.Error().Err(err).Str("guid", i.GUID).Msg("torznab getFeed: cache.Put: error storing item in cache")
+		if err := j.Repo.Put(j.Name, i.GUID, []byte(i.Title), ttl); err != nil {
+			j.Log.Error().Stack().Err(err).Str("guid", i.GUID).Msg("torznab getFeed: cache.Put: error storing item in cache")
 		}
 	}
 

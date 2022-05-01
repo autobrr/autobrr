@@ -644,6 +644,10 @@ ALTER TABLE release_action_status_dg_tmp
 	ALTER TABLE "filter"
 		ADD COLUMN except_other TEXT []   DEFAULT '{}';
 	`,
+	`
+	ALTER TABLE release
+		RENAME COLUMN "group"" TO "release_group";
+	`,
 }
 
 const postgresSchema = `
@@ -817,7 +821,7 @@ CREATE TABLE "release"
     group_id          TEXT,
     torrent_id        TEXT,
     torrent_name      TEXT,
-    size              INTEGER,
+    size              BIGINT,
     raw               TEXT,
     title             TEXT,
     category          TEXT,
@@ -1039,5 +1043,12 @@ var postgresMigrations = []string{
 
 	ALTER TABLE "filter"
 		ADD COLUMN except_other TEXT []   DEFAULT '{}';
+	`,
+	`
+	ALTER TABLE release
+		RENAME COLUMN "group"" TO "release_group";
+
+	ALTER TABLE release
+    	ALTER COLUMN size TYPE BIGINT USING size::BIGINT;
 	`,
 }

@@ -77,7 +77,7 @@ func (r *FeedCacheRepo) Exists(bucket string, key string) (bool, error) {
 	return exists, nil
 }
 
-func (r *FeedCacheRepo) Put(bucket string, key string, val []byte, ttl time.Duration) error {
+func (r *FeedCacheRepo) Put(bucket string, key string, val []byte, ttl time.Time) error {
 	queryBuilder := r.db.squirrel.
 		Insert("feed_cache").
 		Columns("bucket", "key", "value", "ttl").
