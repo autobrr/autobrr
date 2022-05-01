@@ -68,6 +68,10 @@ interface Action {
   ignore_rules?: boolean;
   limit_upload_speed?: number;
   limit_download_speed?: number;
+  reannounce_skip: boolean;
+  reannounce_delete: boolean;
+  reannounce_interval: number;
+  reannounce_max_attempts: number;
   webhook_host: string,
   webhook_type: string;
   webhook_method: string;

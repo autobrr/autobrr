@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+
 	"github.com/autobrr/autobrr/internal/domain"
 
 	sq "github.com/Masterminds/squirrel"
@@ -67,6 +68,10 @@ func (r *ActionRepo) findByFilterID(ctx context.Context, tx *Tx, filterID int) (
 			"ignore_rules",
 			"limit_download_speed",
 			"limit_upload_speed",
+			"reannounce_skip",
+			"reannounce_delete",
+			"reannounce_interval",
+			"reannounce_max_attempts",
 			"webhook_host",
 			"webhook_type",
 			"webhook_method",
@@ -100,7 +105,7 @@ func (r *ActionRepo) findByFilterID(ctx context.Context, tx *Tx, filterID int) (
 		// filterID
 		var paused, ignoreRules sql.NullBool
 
-		if err := rows.Scan(&a.ID, &a.Name, &a.Type, &a.Enabled, &execCmd, &execArgs, &watchFolder, &category, &tags, &label, &savePath, &paused, &ignoreRules, &limitDl, &limitUl, &webhookHost, &webhookType, &webhookMethod, &webhookData, &clientID); err != nil {
+		if err := rows.Scan(&a.ID, &a.Name, &a.Type, &a.Enabled, &execCmd, &execArgs, &watchFolder, &category, &tags, &label, &savePath, &paused, &ignoreRules, &limitDl, &limitUl, &a.ReAnnounceSkip, &a.ReAnnounceDelete, &a.ReAnnounceInterval, &a.ReAnnounceMaxAttempts, &webhookHost, &webhookType, &webhookMethod, &webhookData, &clientID); err != nil {
 			log.Error().Stack().Err(err).Msg("action.findByFilterID: error scanning row")
 			return nil, err
 		}
@@ -201,6 +206,10 @@ func (r *ActionRepo) List(ctx context.Context) ([]domain.Action, error) {
 			"ignore_rules",
 			"limit_download_speed",
 			"limit_upload_speed",
+			"reannounce_skip",
+			"reannounce_delete",
+			"reannounce_interval",
+			"reannounce_max_attempts",
 			"webhook_host",
 			"webhook_type",
 			"webhook_method",
@@ -232,7 +241,7 @@ func (r *ActionRepo) List(ctx context.Context) ([]domain.Action, error) {
 		var clientID sql.NullInt32
 		var paused, ignoreRules sql.NullBool
 
-		if err := rows.Scan(&a.ID, &a.Name, &a.Type, &a.Enabled, &execCmd, &execArgs, &watchFolder, &category, &tags, &label, &savePath, &paused, &ignoreRules, &limitDl, &limitUl, &webhookHost, &webhookType, &webhookMethod, &webhookData, &clientID); err != nil {
+		if err := rows.Scan(&a.ID, &a.Name, &a.Type, &a.Enabled, &execCmd, &execArgs, &watchFolder, &category, &tags, &label, &savePath, &paused, &ignoreRules, &limitDl, &limitUl, &a.ReAnnounceSkip, &a.ReAnnounceDelete, &a.ReAnnounceInterval, &a.ReAnnounceMaxAttempts, &webhookHost, &webhookType, &webhookMethod, &webhookData, &clientID); err != nil {
 			log.Error().Stack().Err(err).Msg("action.list: error scanning row")
 			return nil, err
 		}
@@ -343,6 +352,10 @@ func (r *ActionRepo) Store(ctx context.Context, action domain.Action) (*domain.A
 			"ignore_rules",
 			"limit_upload_speed",
 			"limit_download_speed",
+			"reannounce_skip",
+			"reannounce_delete",
+			"reannounce_interval",
+			"reannounce_max_attempts",
 			"webhook_host",
 			"webhook_type",
 			"webhook_method",
@@ -365,6 +378,10 @@ func (r *ActionRepo) Store(ctx context.Context, action domain.Action) (*domain.A
 			action.IgnoreRules,
 			limitUL,
 			limitDL,
+			action.ReAnnounceSkip,
+			action.ReAnnounceDelete,
+			action.ReAnnounceInterval,
+			action.ReAnnounceMaxAttempts,
 			webhookHost,
 			webhookType,
 			webhookMethod,
@@ -425,6 +442,10 @@ func (r *ActionRepo) Update(ctx context.Context, action domain.Action) (*domain.
 		Set("ignore_rules", action.IgnoreRules).
 		Set("limit_upload_speed", limitUL).
 		Set("limit_download_speed", limitDL).
+		Set("reannounce_skip", action.ReAnnounceSkip).
+		Set("reannounce_delete", action.ReAnnounceDelete).
+		Set("reannounce_interval", action.ReAnnounceInterval).
+		Set("reannounce_max_attempts", action.ReAnnounceMaxAttempts).
 		Set("webhook_host", webhookHost).
 		Set("webhook_type", webhookType).
 		Set("webhook_method", webhookMethod).
@@ -507,6 +528,10 @@ func (r *ActionRepo) StoreFilterActions(ctx context.Context, actions []*domain.A
 				"ignore_rules",
 				"limit_upload_speed",
 				"limit_download_speed",
+				"reannounce_skip",
+				"reannounce_delete",
+				"reannounce_interval",
+				"reannounce_max_attempts",
 				"webhook_host",
 				"webhook_type",
 				"webhook_method",
@@ -529,6 +554,10 @@ func (r *ActionRepo) StoreFilterActions(ctx context.Context, actions []*domain.A
 				action.IgnoreRules,
 				limitUL,
 				limitDL,
+				action.ReAnnounceSkip,
+				action.ReAnnounceDelete,
+				action.ReAnnounceInterval,
+				action.ReAnnounceMaxAttempts,
 				webhookHost,
 				webhookType,
 				webhookMethod,

@@ -587,6 +587,10 @@ function FilterActions({ filter, values }: FilterActionsProps) {
         ignore_rules: false,
         limit_upload_speed: 0,
         limit_download_speed: 0,
+        reannounce_skip: false,
+        reannounce_delete: false,
+        reannounce_interval: 7,
+        reannounce_max_attempts: 25,
         filter_id: filter.id,
         webhook_host: "",
         webhook_type: "",
@@ -730,25 +734,59 @@ function FilterActionsItem({ action, clients, idx, remove }: FilterActionsItemPr
                             <TextField name={`actions.${idx}.tags`} label="Tags" columns={6} placeholder="eg. tag1,tag2" />
                         </div>
 
-                        <div className="mt-6 grid grid-cols-12 gap-6">
-                            <NumberField
-                                name={`actions.${idx}.limit_download_speed`}
-                                label="Limit download speed (KB/s)"
-                            />
-                            <NumberField
-                                name={`actions.${idx}.limit_upload_speed`}
-                                label="Limit upload speed (KB/s)"
-                            />
-                        </div>
-
-                        <div className="mt-6 grid grid-cols-12 gap-6">
-                            <div className="col-span-6">
-                                <SwitchGroup
-                                    name={`actions.${idx}.paused`}
-                                    label="Add paused"
+                        <CollapsableSection title="Rules" subtitle="client options">
+                            <div className="col-span-12">
+                                <div className="mt-6 grid grid-cols-12 gap-6">
+                                <NumberField
+                                    name={`actions.${idx}.limit_download_speed`}
+                                    label="Limit download speed (KB/s)"
+                                />
+                                <NumberField
+                                    name={`actions.${idx}.limit_upload_speed`}
+                                    label="Limit upload speed (KB/s)"
                                 />
                             </div>
-                        </div>
+                            </div>
+                                <div className="col-span-6">
+                                    <SwitchGroup
+                                        name={`actions.${idx}.paused`}
+                                        label="Add paused"
+                                        description="Add torrent as paused"
+                                    />
+                                    <SwitchGroup
+                                        name={`actions.${idx}.ignore_rules`}
+                                        label="Ignore client rules"
+                                        description="Download if max active reached"
+                                    />
+                                </div>
+                        </CollapsableSection>
+
+                        <CollapsableSection title="Advanced" subtitle="Advanced options">
+                            <div className="col-span-12">
+                                <div className="mt-6 grid grid-cols-12 gap-6">
+                                    <NumberField
+                                        name={`actions.${idx}.reannounce_interval`}
+                                        label="Reannounce interval. Run every X seconds"
+                                    />
+                                    <NumberField
+                                        name={`actions.${idx}.reannounce_max_attempts`}
+                                        label="Run reannounce Y times"
+                                    />
+                                </div>
+                            </div>
+                            <div className="col-span-6">
+                                <SwitchGroup
+                                    name={`actions.${idx}.reannounce_skip`}
+                                    label="Skip reannounce"
+                                    description="If reannounce is not needed, skip"
+                                />
+                                <SwitchGroup
+                                    name={`actions.${idx}.reannounce_delete`}
+                                    label="Delete stalled"
+                                    description="Delete stalled torrents after X attempts"
+                                />
+                            </div>
+                        </CollapsableSection>
                     </div>
                 );
             case "DELUGE_V1":

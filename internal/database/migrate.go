@@ -132,30 +132,34 @@ CREATE TABLE client
 
 CREATE TABLE action
 (
-    id                   INTEGER PRIMARY KEY,
-    name                 TEXT,
-    type                 TEXT,
-    enabled              BOOLEAN,
-    exec_cmd             TEXT,
-    exec_args            TEXT,
-    watch_folder         TEXT,
-    category             TEXT,
-    tags                 TEXT,
-    label                TEXT,
-    save_path            TEXT,
-    paused               BOOLEAN,
-    ignore_rules         BOOLEAN,
-    limit_upload_speed   INT,
-    limit_download_speed INT,
-	webhook_host         TEXT,
-	webhook_method       TEXT,
-	webhook_type         TEXT,
-	webhook_data         TEXT,
-	webhook_headers      TEXT []   DEFAULT '{}',
-    client_id            INTEGER,
-    filter_id            INTEGER,
-    FOREIGN KEY (filter_id) REFERENCES filter(id),
-    FOREIGN KEY (client_id) REFERENCES client(id) ON DELETE SET NULL
+    id                      INTEGER PRIMARY KEY,
+    name                    TEXT,
+    type                    TEXT,
+    enabled                 BOOLEAN,
+    exec_cmd                TEXT,
+    exec_args               TEXT,
+    watch_folder            TEXT,
+    category                TEXT,
+    tags                    TEXT,
+    label                   TEXT,
+    save_path               TEXT,
+    paused                  BOOLEAN,
+    ignore_rules            BOOLEAN,
+    limit_upload_speed      INT,
+    limit_download_speed    INT,
+    reannounce_skip         BOOLEAN DEFAULT false,
+    reannounce_delete       BOOLEAN DEFAULT false,
+    reannounce_interval     INTEGER DEFAULT 7,
+    reannounce_max_attempts INTEGER DEFAULT 50,
+    webhook_host            TEXT,
+    webhook_method          TEXT,
+    webhook_type            TEXT,
+    webhook_data            TEXT,
+    webhook_headers         TEXT[] DEFAULT '{}',
+    client_id               INTEGER,
+    filter_id               INTEGER,
+    FOREIGN KEY (filter_id) REFERENCES filter (id),
+    FOREIGN KEY (client_id) REFERENCES client (id) ON DELETE SET NULL
 );
 
 CREATE TABLE "release"
@@ -648,6 +652,19 @@ ALTER TABLE release_action_status_dg_tmp
 	ALTER TABLE release
 		RENAME COLUMN "group"" TO "release_group";
 	`,
+	`
+	ALTER TABLE "action"
+		ADD COLUMN reannounce_skip BOOLEAN DEFAULT false;
+	
+	ALTER TABLE "action"
+		ADD COLUMN reannounce_delete BOOLEAN DEFAULT false;
+	
+	ALTER TABLE "action"
+		ADD COLUMN reannounce_interval INTEGER DEFAULT 7;
+	
+	ALTER TABLE "action"
+		ADD COLUMN reannounce_max_attempts INTEGER DEFAULT 50;
+	`,
 }
 
 const postgresSchema = `
@@ -782,30 +799,34 @@ CREATE TABLE client
 
 CREATE TABLE action
 (
-    id                   SERIAL PRIMARY KEY,
-    name                 TEXT,
-    type                 TEXT,
-    enabled              BOOLEAN,
-    exec_cmd             TEXT,
-    exec_args            TEXT,
-    watch_folder         TEXT,
-    category             TEXT,
-    tags                 TEXT,
-    label                TEXT,
-    save_path            TEXT,
-    paused               BOOLEAN,
-    ignore_rules         BOOLEAN,
-    limit_upload_speed   INT,
-    limit_download_speed INT,
-	webhook_host         TEXT,
-	webhook_method       TEXT,
-	webhook_type         TEXT,
-	webhook_data         TEXT,
-	webhook_headers      TEXT []   DEFAULT '{}',
-    client_id            INTEGER,
-    filter_id            INTEGER,
-    FOREIGN KEY (filter_id) REFERENCES filter(id),
-    FOREIGN KEY (client_id) REFERENCES client(id) ON DELETE SET NULL
+    id                      SERIAL PRIMARY KEY,
+    name                    TEXT,
+    type                    TEXT,
+    enabled                 BOOLEAN,
+    exec_cmd                TEXT,
+    exec_args               TEXT,
+    watch_folder            TEXT,
+    category                TEXT,
+    tags                    TEXT,
+    label                   TEXT,
+    save_path               TEXT,
+    paused                  BOOLEAN,
+    ignore_rules            BOOLEAN,
+    limit_upload_speed      INT,
+    limit_download_speed    INT,
+    reannounce_skip         BOOLEAN DEFAULT false,
+    reannounce_delete       BOOLEAN DEFAULT false,
+    reannounce_interval     INTEGER DEFAULT 7,
+    reannounce_max_attempts INTEGER DEFAULT 50,
+    webhook_host            TEXT,
+    webhook_method          TEXT,
+    webhook_type            TEXT,
+    webhook_data            TEXT,
+    webhook_headers         TEXT[] DEFAULT '{}',
+    client_id               INTEGER,
+    filter_id               INTEGER,
+    FOREIGN KEY (filter_id) REFERENCES filter (id),
+    FOREIGN KEY (client_id) REFERENCES client (id) ON DELETE SET NULL
 );
 
 CREATE TABLE "release"
@@ -1050,5 +1071,18 @@ var postgresMigrations = []string{
 
 	ALTER TABLE release
     	ALTER COLUMN size TYPE BIGINT USING size::BIGINT;
+	`,
+	`
+	ALTER TABLE "action"
+		ADD COLUMN reannounce_skip BOOLEAN DEFAULT false;
+	
+	ALTER TABLE "action"
+		ADD COLUMN reannounce_delete BOOLEAN DEFAULT false;
+	
+	ALTER TABLE "action"
+		ADD COLUMN reannounce_interval INTEGER DEFAULT 7;
+	
+	ALTER TABLE "action"
+		ADD COLUMN reannounce_max_attempts INTEGER DEFAULT 50;
 	`,
 }
