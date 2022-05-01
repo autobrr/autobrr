@@ -186,7 +186,7 @@ CREATE TABLE "release"
     codec             TEXT,
     container         TEXT,
     hdr               TEXT,
-    group             TEXT,
+    release_group     TEXT,
     proper            BOOLEAN,
     repack            BOOLEAN,
     website           TEXT,
@@ -650,7 +650,7 @@ ALTER TABLE release_action_status_dg_tmp
 	`,
 	`
 	ALTER TABLE release
-		RENAME COLUMN "group"" TO "release_group";
+		RENAME COLUMN "group" TO "release_group";
 	`,
 	`
 	ALTER TABLE "action"
@@ -1067,7 +1067,7 @@ var postgresMigrations = []string{
 	`,
 	`
 	ALTER TABLE release
-		RENAME COLUMN "group"" TO "release_group";
+		RENAME COLUMN "group" TO "release_group";
 
 	ALTER TABLE release
     	ALTER COLUMN size TYPE BIGINT USING size::BIGINT;
