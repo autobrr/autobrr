@@ -35,7 +35,7 @@ type Feed struct {
 	Settings     map[string]string `json:"settings"`
 	CreatedAt    time.Time         `json:"created_at"`
 	UpdatedAt    time.Time         `json:"updated_at"`
-	IndexerID    int               `json:"-"`
+	IndexerID    int               `json:"indexer_id,omitempty"`
 	Indexerr     FeedIndexer       `json:"-"`
 }
 
