@@ -206,7 +206,6 @@ func (r *FeedRepo) Update(ctx context.Context, feed *domain.Feed) error {
 		Set("url", feed.URL).
 		Set("interval", feed.Interval).
 		Set("api_key", feed.ApiKey).
-		Set("indexer_id", feed.IndexerID).
 		Where("id = ?", feed.ID)
 
 	query, args, err := queryBuilder.ToSql()
