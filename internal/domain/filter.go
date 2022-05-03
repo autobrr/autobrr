@@ -319,13 +319,21 @@ func (f Filter) checkSizeFilter(r *Release, minSize string, maxSize string) bool
 	return true
 }
 
-func matchRegex(tag string, filter string) bool {
-	re, err := regexp.Compile(`(?i)(?:` + filter + `)`)
-	if err != nil {
-		return false
+func matchRegex(tag string, filterList string) bool {
+	filters := strings.Split(filterList, ",")
+
+	for _, filter := range filters {
+		re, err := regexp.Compile(`(?i)(?:` + filter + `)`)
+		if err != nil {
+			return false
+		}
+		match := re.MatchString(tag)
+		if match {
+			return true
+		}
 	}
 
-	return re.MatchString(tag)
+	return false
 }
 
 // checkFilterIntStrings "1,2,3-20"
