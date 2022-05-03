@@ -68,6 +68,8 @@ interface Action {
   ignore_rules?: boolean;
   limit_upload_speed?: number;
   limit_download_speed?: number;
+  limit_ratio?: number;
+  limit_seed_time?: number;
   reannounce_skip: boolean;
   reannounce_delete: boolean;
   reannounce_interval: number;

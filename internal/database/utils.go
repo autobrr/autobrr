@@ -32,3 +32,10 @@ func toNullInt64(s int64) sql.NullInt64 {
 		Valid: s != 0,
 	}
 }
+
+func toNullFloat64(s float64) sql.NullFloat64 {
+	return sql.NullFloat64{
+		Float64: s,
+		Valid:   s != 0,
+	}
+}
