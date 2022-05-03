@@ -131,12 +131,14 @@ interface NumberFieldProps {
     name: string;
     label?: string;
     placeholder?: string;
+    step?: number;
 }
 
 export const NumberField = ({
     name,
     label,
-    placeholder
+    placeholder,
+    step,
 }: NumberFieldProps) => (
     <div className="col-span-12 sm:col-span-6">
         <label htmlFor={name} className="block text-xs font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wide">
@@ -151,6 +153,7 @@ export const NumberField = ({
                 <div className="sm:col-span-2">
                     <input
                         type="number"
+                        step={step}
                         {...field}
                         className={classNames(
                             meta.touched && meta.error

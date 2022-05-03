@@ -587,6 +587,8 @@ function FilterActions({ filter, values }: FilterActionsProps) {
         ignore_rules: false,
         limit_upload_speed: 0,
         limit_download_speed: 0,
+        limit_ratio: 0,
+        limit_seed_time: 0,
         reannounce_skip: false,
         reannounce_delete: false,
         reannounce_interval: 7,
@@ -746,7 +748,19 @@ function FilterActionsItem({ action, clients, idx, remove }: FilterActionsItemPr
                                     label="Limit upload speed (KB/s)"
                                 />
                             </div>
-                            </div>
+
+                                    <div className="mt-6 grid grid-cols-12 gap-6">
+                                        <NumberField
+                                            name={`actions.${idx}.limit_ratio`}
+                                            label="Ratio limit"
+                                            step={0.5}
+                                        />
+                                        <NumberField
+                                            name={`actions.${idx}.limit_seed_time`}
+                                            label="Seed time limit (seconds)"
+                                        />
+                                    </div>
+                                </div>
                                 <div className="col-span-6">
                                     <SwitchGroup
                                         name={`actions.${idx}.paused`}

@@ -147,6 +147,8 @@ CREATE TABLE action
     ignore_rules            BOOLEAN,
     limit_upload_speed      INT,
     limit_download_speed    INT,
+    limit_ratio             REAL,
+    limit_seed_time         INT,
     reannounce_skip         BOOLEAN DEFAULT false,
     reannounce_delete       BOOLEAN DEFAULT false,
     reannounce_interval     INTEGER DEFAULT 7,
@@ -665,6 +667,13 @@ ALTER TABLE release_action_status_dg_tmp
 	ALTER TABLE "action"
 		ADD COLUMN reannounce_max_attempts INTEGER DEFAULT 50;
 	`,
+	`
+	ALTER TABLE "action"
+		ADD COLUMN limit_ratio REAL DEFAULT 0;
+	
+	ALTER TABLE "action"
+		ADD COLUMN limit_seed_time INTEGER DEFAULT 0;
+	`,
 }
 
 const postgresSchema = `
@@ -814,6 +823,8 @@ CREATE TABLE action
     ignore_rules            BOOLEAN,
     limit_upload_speed      INT,
     limit_download_speed    INT,
+    limit_ratio             REAL,
+    limit_seed_time         INT,
     reannounce_skip         BOOLEAN DEFAULT false,
     reannounce_delete       BOOLEAN DEFAULT false,
     reannounce_interval     INTEGER DEFAULT 7,
@@ -1084,5 +1095,12 @@ var postgresMigrations = []string{
 	
 	ALTER TABLE "action"
 		ADD COLUMN reannounce_max_attempts INTEGER DEFAULT 50;
+	`,
+	`
+	ALTER TABLE "action"
+		ADD COLUMN limit_ratio REAL DEFAULT 0;
+	
+	ALTER TABLE "action"
+		ADD COLUMN limit_seed_time INTEGER DEFAULT 0;
 	`,
 }

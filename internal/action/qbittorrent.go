@@ -62,6 +62,12 @@ func (s *service) qbittorrent(qbt *qbittorrent.Client, action domain.Action, rel
 	if action.LimitDownloadSpeed > 0 {
 		options["dlLimit"] = strconv.FormatInt(action.LimitDownloadSpeed, 10)
 	}
+	if action.LimitRatio > 0 {
+		options["ratioLimit"] = strconv.FormatFloat(action.LimitRatio, 'r', 2, 64)
+	}
+	if action.LimitSeedTime > 0 {
+		options["seedingTimeLimit"] = strconv.FormatInt(action.LimitSeedTime, 10)
+	}
 
 	log.Trace().Msgf("action qBittorrent options: %+v", options)
 
