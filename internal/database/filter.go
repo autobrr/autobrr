@@ -609,6 +609,52 @@ func (r *FilterRepo) Delete(ctx context.Context, filterID int) error {
 	return nil
 }
 
+func (r *FilterRepo) StatsByFilter(ctx context.Context, filterName string) (*domain.FilterStats, error) {
+	switch r.db.Driver {
+	case "sqlite":
+	// TODO make SQLite variant
+	case "postgres":
+		return r.statsByFilterIDPostgres(ctx, filterName)
+	}
+	return nil, nil
+}
+
+func (r *FilterRepo) statsByFilterIDPostgres(ctx context.Context, filterName string) (*domain.FilterStats, error) {
+	query := `SELECT (SELECT count(*)
+        FROM release
+        WHERE release.timestamp >= date_trunc('hour', CURRENT_TIMESTAMP) AND release.filter = r.filter) AS hour_count,
+       (SELECT count(*)
+        FROM release
+        WHERE release.timestamp >= date_trunc('day', CURRENT_DATE) AND release.filter = r.filter) AS day_count,
+       (SELECT count(*)
+        FROM release
+        WHERE release.timestamp >= date_trunc('week', CURRENT_DATE) AND release.filter = r.filter)  AS week_count,
+       (SELECT count(*)
+        FROM release
+        WHERE release.timestamp >= date_trunc('month', CURRENT_DATE) AND release.filter = r.filter) AS month_count
+FROM release r
+WHERE r.filter = ?
+GROUP BY hour_count,
+         day_count,
+         week_count,
+         month_count;`
+
+	row := r.db.handler.QueryRowContext(ctx, query, filterName)
+	if err := row.Err(); err != nil {
+		log.Error().Stack().Err(err).Msg("release.StatsByFilterID: error querying stats")
+		return nil, err
+	}
+
+	var rls domain.FilterStats
+
+	if err := row.Scan(&rls.HourCount, &rls.DayCount, &rls.WeekCount, &rls.MonthCount); err != nil {
+		log.Error().Stack().Err(err).Msg("release.StatsByFilterID: error scanning stats data to struct")
+		return nil, err
+	}
+
+	return &rls, nil
+}
+
 // Split string to slice. We store comma separated strings and convert to slice
 //func stringToSlice(str string) []string {
 //	if str == "" {

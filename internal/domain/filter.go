@@ -28,65 +28,91 @@ type FilterRepo interface {
 	StoreIndexerConnection(ctx context.Context, filterID int, indexerID int) error
 	StoreIndexerConnections(ctx context.Context, filterID int, indexers []Indexer) error
 	DeleteIndexerConnections(ctx context.Context, filterID int) error
+	StatsByFilter(ctx context.Context, filterName string) (*FilterStats, error)
 }
 
+type FilterStats struct {
+	HourCount  int
+	DayCount   int
+	WeekCount  int
+	MonthCount int
+}
+
+type FilterMaxDownloadsUnit string
+
+const (
+	FilterMaxDownloadsHour  FilterMaxDownloadsUnit = "HOUR"
+	FilterMaxDownloadsDay   FilterMaxDownloadsUnit = "DAY"
+	FilterMaxDownloadsWeek  FilterMaxDownloadsUnit = "WEEK"
+	FilterMaxDownloadsMonth FilterMaxDownloadsUnit = "MONTH"
+)
+
 type Filter struct {
-	ID                  int       `json:"id"`
-	Name                string    `json:"name"`
-	Enabled             bool      `json:"enabled"`
-	CreatedAt           time.Time `json:"created_at"`
-	UpdatedAt           time.Time `json:"updated_at"`
-	MinSize             string    `json:"min_size"`
-	MaxSize             string    `json:"max_size"`
-	Delay               int       `json:"delay"`
-	Priority            int32     `json:"priority"`
-	MatchReleases       string    `json:"match_releases"`
-	ExceptReleases      string    `json:"except_releases"`
-	UseRegex            bool      `json:"use_regex"`
-	MatchReleaseGroups  string    `json:"match_release_groups"`
-	ExceptReleaseGroups string    `json:"except_release_groups"`
-	Scene               bool      `json:"scene"`
-	Origins             []string  `json:"origins"`
-	Freeleech           bool      `json:"freeleech"`
-	FreeleechPercent    string    `json:"freeleech_percent"`
-	Shows               string    `json:"shows"`
-	Seasons             string    `json:"seasons"`
-	Episodes            string    `json:"episodes"`
-	Resolutions         []string  `json:"resolutions"` // SD, 480i, 480p, 576p, 720p, 810p, 1080i, 1080p.
-	Codecs              []string  `json:"codecs"`      // XviD, DivX, x264, h.264 (or h264), mpeg2 (or mpeg-2), VC-1 (or VC1), WMV, Remux, h.264 Remux (or h264 Remux), VC-1 Remux (or VC1 Remux).
-	Sources             []string  `json:"sources"`     // DSR, PDTV, HDTV, HR.PDTV, HR.HDTV, DVDRip, DVDScr, BDr, BD5, BD9, BDRip, BRRip, DVDR, MDVDR, HDDVD, HDDVDRip, BluRay, WEB-DL, TVRip, CAM, R5, TELESYNC, TS, TELECINE, TC. TELESYNC and TS are synonyms (you don't need both). Same for TELECINE and TC
-	Containers          []string  `json:"containers"`
-	MatchHDR            []string  `json:"match_hdr"`
-	ExceptHDR           []string  `json:"except_hdr"`
-	MatchOther          []string  `json:"match_other"`
-	ExceptOther         []string  `json:"except_other"`
-	Years               string    `json:"years"`
-	Artists             string    `json:"artists"`
-	Albums              string    `json:"albums"`
-	MatchReleaseTypes   []string  `json:"match_release_types"` // Album,Single,EP
-	ExceptReleaseTypes  string    `json:"except_release_types"`
-	Formats             []string  `json:"formats"` // MP3, FLAC, Ogg, AAC, AC3, DTS
-	Quality             []string  `json:"quality"` // 192, 320, APS (VBR), V2 (VBR), V1 (VBR), APX (VBR), V0 (VBR), q8.x (VBR), Lossless, 24bit Lossless, Other
-	Media               []string  `json:"media"`   // CD, DVD, Vinyl, Soundboard, SACD, DAT, Cassette, WEB, Other
-	PerfectFlac         bool      `json:"perfect_flac"`
-	Cue                 bool      `json:"cue"`
-	Log                 bool      `json:"log"`
-	LogScore            int       `json:"log_score"`
-	MatchCategories     string    `json:"match_categories"`
-	ExceptCategories    string    `json:"except_categories"`
-	MatchUploaders      string    `json:"match_uploaders"`
-	ExceptUploaders     string    `json:"except_uploaders"`
-	Tags                string    `json:"tags"`
-	ExceptTags          string    `json:"except_tags"`
-	TagsAny             string    `json:"tags_any"`
-	ExceptTagsAny       string    `json:"except_tags_any"`
-	Actions             []*Action `json:"actions"`
-	Indexers            []Indexer `json:"indexers"`
+	ID                  int                    `json:"id"`
+	Name                string                 `json:"name"`
+	Enabled             bool                   `json:"enabled"`
+	CreatedAt           time.Time              `json:"created_at"`
+	UpdatedAt           time.Time              `json:"updated_at"`
+	MinSize             string                 `json:"min_size"`
+	MaxSize             string                 `json:"max_size"`
+	Delay               int                    `json:"delay"`
+	Priority            int32                  `json:"priority"`
+	MaxDownloads        int                    `json:"max_downloads"`
+	MaxDownloadsPer     FilterMaxDownloadsUnit `json:"max_downloads_per"`
+	MatchReleases       string                 `json:"match_releases"`
+	ExceptReleases      string                 `json:"except_releases"`
+	UseRegex            bool                   `json:"use_regex"`
+	MatchReleaseGroups  string                 `json:"match_release_groups"`
+	ExceptReleaseGroups string                 `json:"except_release_groups"`
+	Scene               bool                   `json:"scene"`
+	Origins             []string               `json:"origins"`
+	Freeleech           bool                   `json:"freeleech"`
+	FreeleechPercent    string                 `json:"freeleech_percent"`
+	Shows               string                 `json:"shows"`
+	Seasons             string                 `json:"seasons"`
+	Episodes            string                 `json:"episodes"`
+	Resolutions         []string               `json:"resolutions"` // SD, 480i, 480p, 576p, 720p, 810p, 1080i, 1080p.
+	Codecs              []string               `json:"codecs"`      // XviD, DivX, x264, h.264 (or h264), mpeg2 (or mpeg-2), VC-1 (or VC1), WMV, Remux, h.264 Remux (or h264 Remux), VC-1 Remux (or VC1 Remux).
+	Sources             []string               `json:"sources"`     // DSR, PDTV, HDTV, HR.PDTV, HR.HDTV, DVDRip, DVDScr, BDr, BD5, BD9, BDRip, BRRip, DVDR, MDVDR, HDDVD, HDDVDRip, BluRay, WEB-DL, TVRip, CAM, R5, TELESYNC, TS, TELECINE, TC. TELESYNC and TS are synonyms (you don't need both). Same for TELECINE and TC
+	Containers          []string               `json:"containers"`
+	MatchHDR            []string               `json:"match_hdr"`
+	ExceptHDR           []string               `json:"except_hdr"`
+	MatchOther          []string               `json:"match_other"`
+	ExceptOther         []string               `json:"except_other"`
+	Years               string                 `json:"years"`
+	Artists             string                 `json:"artists"`
+	Albums              string                 `json:"albums"`
+	MatchReleaseTypes   []string               `json:"match_release_types"` // Album,Single,EP
+	ExceptReleaseTypes  string                 `json:"except_release_types"`
+	Formats             []string               `json:"formats"` // MP3, FLAC, Ogg, AAC, AC3, DTS
+	Quality             []string               `json:"quality"` // 192, 320, APS (VBR), V2 (VBR), V1 (VBR), APX (VBR), V0 (VBR), q8.x (VBR), Lossless, 24bit Lossless, Other
+	Media               []string               `json:"media"`   // CD, DVD, Vinyl, Soundboard, SACD, DAT, Cassette, WEB, Other
+	PerfectFlac         bool                   `json:"perfect_flac"`
+	Cue                 bool                   `json:"cue"`
+	Log                 bool                   `json:"log"`
+	LogScore            int                    `json:"log_score"`
+	MatchCategories     string                 `json:"match_categories"`
+	ExceptCategories    string                 `json:"except_categories"`
+	MatchUploaders      string                 `json:"match_uploaders"`
+	ExceptUploaders     string                 `json:"except_uploaders"`
+	Tags                string                 `json:"tags"`
+	ExceptTags          string                 `json:"except_tags"`
+	TagsAny             string                 `json:"tags_any"`
+	ExceptTagsAny       string                 `json:"except_tags_any"`
+	Actions             []*Action              `json:"actions"`
+	Indexers            []Indexer              `json:"indexers"`
+	State               *FilterStats           `json:"-"`
 }
 
 func (f Filter) CheckFilter(r *Release) ([]string, bool) {
 	// reset rejections first to clean previous checks
 	r.resetRejections()
+
+	// max downloads check. If reached return early
+	if f.MaxDownloads > 0 && !f.checkMaxDownloads(f.MaxDownloads, f.MaxDownloadsPer) {
+		r.addRejectionF("max downloads (%d) this (%v) reached", f.MaxDownloads, f.MaxDownloadsPer)
+		return r.Rejections, false
+	}
 
 	if f.Freeleech && r.Freeleech != f.Freeleech {
 		r.addRejection("wanted: freeleech")
@@ -246,6 +272,33 @@ func (f Filter) CheckFilter(r *Release) ([]string, bool) {
 	}
 
 	return nil, true
+}
+
+func (f Filter) checkMaxDownloads(max int, perTimeUnit FilterMaxDownloadsUnit) bool {
+	if f.State == nil {
+		return false
+	}
+
+	switch perTimeUnit {
+	case FilterMaxDownloadsHour:
+		if f.State.HourCount > 0 && f.State.HourCount >= max {
+			return false
+		}
+	case FilterMaxDownloadsDay:
+		if f.State.DayCount > 0 && f.State.DayCount >= max {
+			return false
+		}
+	case FilterMaxDownloadsWeek:
+		if f.State.WeekCount > 0 && f.State.WeekCount >= max {
+			return false
+		}
+	case FilterMaxDownloadsMonth:
+		if f.State.MonthCount > 0 && f.State.MonthCount >= max {
+			return false
+		}
+	}
+
+	return true
 }
 
 // isPerfectFLAC Perfect is "CD FLAC Cue Log 100% Lossless or 24bit Lossless"

@@ -95,6 +95,13 @@ func (s *service) FindByIndexerIdentifier(indexer string) ([]domain.Filter, erro
 		return nil, err
 	}
 
+	// add state
+	for i, filter := range filters {
+		stats, _ := s.repo.StatsByFilter(context.TODO(), filter.Name)
+		filter.State = stats
+		filters[i] = filter
+	}
+
 	return filters, nil
 }
 

@@ -977,6 +977,8 @@ func TestFilter_CheckFilter1(t *testing.T) {
 		UpdatedAt           time.Time
 		MinSize             string
 		MaxSize             string
+		MaxDownloads        int
+		MaxDownloadsPer     FilterMaxDownloadsUnit
 		Delay               int
 		Priority            int32
 		MatchReleases       string
@@ -1019,6 +1021,7 @@ func TestFilter_CheckFilter1(t *testing.T) {
 		ExceptTagsAny       string
 		Actions             []*Action
 		Indexers            []Indexer
+		State               *FilterStats
 	}
 	type args struct {
 		r *Release
@@ -1411,6 +1414,73 @@ func TestFilter_CheckFilter1(t *testing.T) {
 			wantRejections: nil,
 			wantMatch:      true,
 		},
+		{
+			name: "test_32",
+			fields: fields{
+				MaxDownloads:    1,
+				MaxDownloadsPer: FilterMaxDownloadsMonth,
+				State: &FilterStats{
+					MonthCount: 0,
+				},
+			},
+			args:           args{&Release{TorrentName: "Show.Name.S01.DV.2160p.ATVP.WEB-DL.DDPA5.1.x265-GROUP2"}},
+			wantRejections: nil,
+			wantMatch:      true,
+		},
+		{
+			name: "test_33",
+			fields: fields{
+				MaxDownloads:    10,
+				MaxDownloadsPer: FilterMaxDownloadsMonth,
+				State: &FilterStats{
+					MonthCount: 10,
+				},
+			},
+			args:           args{&Release{TorrentName: "Show.Name.S01.DV.2160p.ATVP.WEB-DL.DDPA5.1.x265-GROUP2"}},
+			wantRejections: []string{"max downloads (10) this (MONTH) reached"},
+			wantMatch:      false,
+		},
+		{
+			name: "test_34",
+			fields: fields{
+				MaxDownloads:    10,
+				MaxDownloadsPer: FilterMaxDownloadsMonth,
+				State: &FilterStats{
+					MonthCount: 50,
+				},
+			},
+			args:           args{&Release{TorrentName: "Show.Name.S01.DV.2160p.ATVP.WEB-DL.DDPA5.1.x265-GROUP2"}},
+			wantRejections: []string{"max downloads (10) this (MONTH) reached"},
+			wantMatch:      false,
+		},
+		{
+			name: "test_35",
+			fields: fields{
+				MaxDownloads:    15,
+				MaxDownloadsPer: FilterMaxDownloadsHour,
+				State: &FilterStats{
+					HourCount:  20,
+					MonthCount: 50,
+				},
+			},
+			args:           args{&Release{TorrentName: "Show.Name.S01.DV.2160p.ATVP.WEB-DL.DDPA5.1.x265-GROUP2"}},
+			wantRejections: []string{"max downloads (15) this (HOUR) reached"},
+			wantMatch:      false,
+		},
+		{
+			name: "test_36",
+			fields: fields{
+				MaxDownloads:    15,
+				MaxDownloadsPer: FilterMaxDownloadsHour,
+				State: &FilterStats{
+					HourCount:  14,
+					MonthCount: 50,
+				},
+			},
+			args:           args{&Release{TorrentName: "Show.Name.S01.DV.2160p.ATVP.WEB-DL.DDPA5.1.x265-GROUP2"}},
+			wantRejections: nil,
+			wantMatch:      true,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -1424,6 +1494,8 @@ func TestFilter_CheckFilter1(t *testing.T) {
 				MaxSize:             tt.fields.MaxSize,
 				Delay:               tt.fields.Delay,
 				Priority:            tt.fields.Priority,
+				MaxDownloads:        tt.fields.MaxDownloads,
+				MaxDownloadsPer:     tt.fields.MaxDownloadsPer,
 				MatchReleases:       tt.fields.MatchReleases,
 				ExceptReleases:      tt.fields.ExceptReleases,
 				UseRegex:            tt.fields.UseRegex,
@@ -1464,6 +1536,7 @@ func TestFilter_CheckFilter1(t *testing.T) {
 				ExceptTagsAny:       tt.fields.ExceptTagsAny,
 				Actions:             tt.fields.Actions,
 				Indexers:            tt.fields.Indexers,
+				State:               tt.fields.State,
 			}
 			tt.args.r.ParseString(tt.args.r.TorrentName)
 			rejections, match := f.CheckFilter(tt.args.r)
