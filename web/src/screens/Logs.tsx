@@ -56,8 +56,8 @@ export const Logs = () => {
   return (
     <main>
       <header className="py-10">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h1 className="text-3xl font-bold text-black dark:text-white capitalize">Logs</h1>
+        <div className="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8">
+          <h1 className="text-3xl font-bold text-black dark:text-white">Logs</h1>
           <div className="flex mt-4 justify-center">
             <ExclamationIcon
               className="h-5 w-5 text-yellow-400"
@@ -67,7 +67,7 @@ export const Logs = () => {
           </div>
         </div>
       </header>
-      <div className="max-w-7xl mx-auto pb-12 px-2 sm:px-4 lg:px-8">
+      <div className="max-w-screen-xl mx-auto pb-12 px-2 sm:px-4 lg:px-8">
         <div
           className="bg-white dark:bg-gray-800 rounded-lg shadow-lg px-2 sm:px-4 pb-3 sm:pb-4"
         >

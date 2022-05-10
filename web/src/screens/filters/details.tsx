@@ -205,17 +205,17 @@ export default function FilterDetails() {
     return (
         <main>
             <header className="py-10">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center">
-                    <h1 className="text-3xl font-bold text-black dark:text-white capitalize">
+                <div className="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center">
+                    <h1 className="text-3xl font-bold text-black dark:text-white">
                         <NavLink to="/filters" exact={true}>
                             Filters
                         </NavLink>
                     </h1>
                     <ChevronRightIcon className="h-6 w-6 text-gray-500" aria-hidden="true" />
-                    <h1 className="text-3xl font-bold text-black dark:text-white capitalize">{filter.name}</h1>
+                    <h1 className="text-3xl font-bold text-black dark:text-white">{filter.name}</h1>
                 </div>
             </header>
-            <div className="max-w-7xl mx-auto pb-12 px-4 sm:px-6 lg:px-8">
+            <div className="max-w-screen-xl mx-auto pb-12 px-4 sm:px-6 lg:px-8">
                 <div className="bg-white dark:bg-gray-800 rounded-lg shadow">
                     <div className="relative mx-auto md:px-6 xl:px-4">
                         <div className="px-4 sm:px-6 md:px-0">

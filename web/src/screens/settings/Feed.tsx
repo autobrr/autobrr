@@ -3,7 +3,6 @@ import { useMutation, useQuery, useQueryClient } from "react-query";
 import { APIClient } from "../../api/APIClient";
 import { Menu, Switch, Transition } from "@headlessui/react";
 
-import type {FieldProps} from "formik";
 import {classNames} from "../../utils";
 import {Fragment, useRef, useState} from "react";
 import {toast} from "react-hot-toast";
@@ -17,7 +16,7 @@ import {
     TrashIcon
 } from "@heroicons/react/outline";
 import {FeedUpdateForm} from "../../forms/settings/FeedForms";
-import {EmptyBasic} from "../../components/emptystates";
+import { EmptySimple } from "../../components/emptystates";
 
 function FeedSettings() {
     const {data} = useQuery<Feed[], Error>('feeds', APIClient.feeds.find,
@@ -33,7 +32,7 @@ function FeedSettings() {
                     <div className="ml-4 mt-4">
                         <h3 className="text-lg leading-6 font-medium text-gray-900 dark:text-white">Feeds</h3>
                         <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                            Manage torznab feeds.
+                            Manage Torznab feeds.
                         </p>
                     </div>
                 </div>
@@ -59,7 +58,7 @@ function FeedSettings() {
                             ))}
                         </ol>
                     </section>
-                    : <EmptyBasic title="No feeds" subtitle="Setup via indexers" />}
+                    : <EmptySimple title="No feeds" subtitle="Setup via indexers" />}
             </div>
         </div>
     )

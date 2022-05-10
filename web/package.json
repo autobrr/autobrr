@@ -13,6 +13,7 @@
     "react": "^17.0.2",
     "react-cookie": "^4.1.1",
     "react-dom": "^17.0.2",
+    "react-error-boundary": "^3.1.4",
     "react-hot-toast": "^2.1.1",
     "react-multi-select-component": "4.2.5",
     "react-query": "^3.18.1",
@@ -21,6 +22,7 @@
     "react-scripts": "^5.0.0",
     "react-select": "5.0.0-beta.0",
     "react-table": "^7.7.0",
+    "stacktracey": "^2.1.8",
     "web-vitals": "^1.0.1"
   },
   "scripts": {

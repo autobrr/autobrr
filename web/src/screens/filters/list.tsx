@@ -39,9 +39,10 @@ export default function Filters() {
             <FilterAddForm isOpen={createFilterIsOpen} toggle={toggleCreateFilter} />
 
             <header className="py-10">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex justify-between">
-                    <h1 className="text-3xl font-bold text-black dark:text-white capitalize">Filters</h1>
-
+                <div className="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8 flex justify-between">
+                    <h1 className="text-3xl font-bold text-black dark:text-white">
+                      Filters
+                    </h1>
                     <div className="flex-shrink-0">
                         <button
                             type="button"
@@ -54,7 +55,7 @@ export default function Filters() {
                 </div>
             </header>
 
-            <div className="max-w-7xl mx-auto pb-12 px-4 sm:px-6 lg:px-8 relative">
+            <div className="max-w-screen-xl mx-auto pb-12 px-4 sm:px-6 lg:px-8 relative">
                 {data && data.length > 0 ? (
                     <FilterList filters={data} />
                 ) : (
