@@ -8,15 +8,15 @@ interface StatsItemProps {
 
 const StatsItem = ({ name, value }: StatsItemProps) => (
   <div
-      className="relative px-4 pt-5 pb-2 overflow-hidden bg-white rounded-lg shadow-lg dark:bg-gray-800 sm:pt-6 sm:px-6"
+      className="relative px-4 py-5 overflow-hidden bg-white rounded-lg shadow-lg dark:bg-gray-800"
       title="All time"
   >
       <dt>
           <p className="pb-1 text-sm font-medium text-gray-500 truncate">{name}</p>
       </dt>
 
-      <dd className="flex items-baseline pb-6 sm:pb-7">
-          <p className="text-2xl font-semibold text-gray-900 dark:text-gray-200">{value}</p>
+      <dd className="flex items-baseline">
+          <p className="text-3xl font-extrabold text-gray-900 dark:text-gray-200">{value}</p>
       </dd>
   </div>
 )

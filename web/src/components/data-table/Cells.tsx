@@ -15,14 +15,11 @@ export const AgeCell = ({ value }: CellProps) => (
     </div>
 );
 
-export const ReleaseCell = ({ value }: CellProps) => (
-    <div className="text-sm font-medium text-gray-900 dark:text-gray-300" title={value}>
-        {value}
-    </div>
-);
-
-export const IndexerCell = ({ value }: CellProps) => (
-    <div className="text-sm font-medium text-gray-900 dark:text-gray-500" title={value}>
+export const TitleCell = ({ value }: CellProps) => (
+    <div
+      className="text-sm font-medium box-content text-gray-900 dark:text-gray-300 max-w-[128px] sm:max-w-none overflow-auto py-4"
+      title={value}
+    >
         {value}
     </div>
 );
@@ -46,7 +43,6 @@ const StatusCellMap: Record<string, StatusCellMapEntry> = {
     "PUSH_REJECTED": {
         colors: "bg-blue-200 dark:bg-blue-100 text-blue-400 dark:text-blue-800 hover:bg-blue-300 dark:hover:bg-blue-400",
         icon: <BanIcon className="h-5 w-5" aria-hidden="true" />
-
     },
     "PUSH_APPROVED": {
         colors: "bg-green-100 text-green-800 hover:bg-green-300",
@@ -58,12 +54,24 @@ const StatusCellMap: Record<string, StatusCellMapEntry> = {
     }
 };
 
+const GetReleaseStatusString = (releaseAction: ReleaseActionStatus) => {
+  const items: Array<string> = [
+    `action: ${releaseAction.action}`,
+    `type: ${releaseAction.type}`,
+    `status: ${releaseAction.status}`,
+    `time: ${simplifyDate(releaseAction.timestamp)}`
+  ];
+  if (releaseAction.rejections.length)
+    items.push(`rejections: ${releaseAction.rejections}`);
+  return items.join(" | ");
+};
+
 export const ReleaseStatusCell = ({ value }: ReleaseStatusCellProps) => (
     <div className="flex text-sm font-medium text-gray-900 dark:text-gray-300">
         {value.map((v, idx) => (
             <div
                 key={idx}
-                title={`action: ${v.action}, type: ${v.type}, status: ${v.status}, time: ${simplifyDate(v.timestamp)}, rejections: ${v?.rejections}`}
+                title={GetReleaseStatusString(v)}
                 className={classNames(
                     StatusCellMap[v.status].colors,
                     "mr-1 inline-flex items-center rounded text-xs font-semibold uppercase cursor-pointer"

@@ -28,3 +28,5 @@ export function AlertWarning({ title, text }: props) {
     </div>
   );
 }
+
+export { ErrorPage } from "./ErrorPage";

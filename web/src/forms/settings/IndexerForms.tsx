@@ -443,6 +443,9 @@ export function IndexerUpdateForm({ isOpen, toggle, indexer }: UpdateProps) {
         onSuccess: () => {
             queryClient.invalidateQueries(['indexer']);
             toast.custom((t) => <Toast type="success" body={`${indexer.name} was deleted.`} t={t} />)
+            sleep(1500);
+
+            toggle();
         }
     })
 

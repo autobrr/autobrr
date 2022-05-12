@@ -18,7 +18,11 @@ export const IrcSettings = () => {
     const { data } = useQuery(
         "networks",
         APIClient.irc.getNetworks,
-        { refetchOnWindowFocus: false }
+        {
+          refetchOnWindowFocus: false,
+          // Refetch every 3 seconds
+          refetchInterval: 3000
+        }
     );
 
     return (

@@ -59,7 +59,7 @@ export default function Base() {
             >
                 {({ open }) => (
                     <>
-                        <div className="max-w-7xl mx-auto sm:px-6 lg:px-8">
+                        <div className="max-w-screen-xl mx-auto sm:px-6 lg:px-8">
                             <div className="border-b border-gray-300 dark:border-gray-700">
                                 <div className="flex items-center justify-between h-16 px-4 sm:px-0">
                                     <div className="flex items-center">
@@ -86,7 +86,7 @@ export default function Base() {
                                                             "text-gray-600 dark:text-gray-500 hover:bg-gray-200 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white px-3 py-2 rounded-2xl text-sm font-medium",
                                                             "transition-colors duration-200"
                                                         )}
-                                                        activeClassName="text-black dark:text-gray-50 font-bold"
+                                                        activeClassName="text-black dark:text-gray-50 !font-bold"
                                                         isActive={(match, location) => isActiveMatcher(match, location, item)}
                                                     >
                                                         {item.name}

@@ -62,7 +62,7 @@ export const ReleaseTable = () => {
         {
             Header: "Release",
             accessor: 'torrent_name',
-            Cell: DataTable.ReleaseCell,
+            Cell: DataTable.TitleCell,
         },
         {
             Header: "Actions",
@@ -73,7 +73,7 @@ export const ReleaseTable = () => {
         {
             Header: "Indexer",
             accessor: 'indexer',
-            Cell: DataTable.IndexerCell,
+            Cell: DataTable.TitleCell,
             Filter: IndexerSelectColumnFilter,
             filter: 'equal',
         },
@@ -177,8 +177,7 @@ export const ReleaseTable = () => {
                     ))
                 )}
             </div>
-
-            <div className="overflow-hidden bg-white shadow-lg dark:bg-gray-800 sm:rounded-lg">
+            <div className="overflow-auto bg-white shadow-lg dark:bg-gray-800 rounded-lg">
                 <table {...getTableProps()} className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
                     <thead className="bg-gray-50 dark:bg-gray-800">
                         {headerGroups.map((headerGroup) => {
@@ -193,7 +192,7 @@ export const ReleaseTable = () => {
                                             <th
                                                 key={`${rowKey}-${columnKey}`}
                                                 scope="col"
-                                                className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase group"
+                                                className="first:pl-5 pl-3 pr-3 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase group"
                                                 {...columnRest}
                                             >
                                                 <div className="flex items-center justify-between">
@@ -233,14 +232,11 @@ export const ReleaseTable = () => {
                                         return (
                                             <td
                                                 key={cellRowKey}
-                                                className="px-6 py-4 whitespace-nowrap"
+                                                className="first:pl-5 pl-3 pr-3 whitespace-nowrap"
                                                 role="cell"
                                                 {...cellRowRest}
                                             >
-                                                {cell.column.Cell.name === "defaultRenderer"
-                                                    ? <div className="text-sm text-gray-500">{cell.render('Cell')}</div>
-                                                    : cell.render('Cell')
-                                                }
+                                                {cell.render('Cell')}
                                             </td>
                                         );
                                     })}

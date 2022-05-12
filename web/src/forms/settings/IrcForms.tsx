@@ -101,7 +101,7 @@ export function IrcNetworkAddForm({ isOpen, toggle }: any) {
         {
             onSuccess: () => {
                 queryClient.invalidateQueries(['networks']);
-                toast.custom((t) => <Toast type="success" body="IRC Network added" t={t} />)
+                toast.custom((t) => <Toast type="success" body="IRC Network added. Please allow up to 30 seconds for the network to come online." t={t} />)
                 toggle()
             },
             onError: () => {

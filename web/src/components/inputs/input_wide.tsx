@@ -32,7 +32,11 @@ export const TextFieldWide = ({
             </label>
         </div>
         <div className="sm:col-span-2">
-            <Field name={name} value={defaultValue}>
+            <Field
+              name={name}
+              value={defaultValue}
+              required={required}
+            >
                 {({ field, meta }: FieldProps) => (
                     <input
                         {...field}
