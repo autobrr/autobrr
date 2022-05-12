@@ -52,7 +52,8 @@ function FilterAddForm({ isOpen, toggle }: any) {
                                         resolutions: [],
                                         codecs: [],
                                         sources: [],
-                                        containers: []
+                                        containers: [],
+                                        origins: [],
                                     }}
                                     onSubmit={handleSubmit}
                                     validate={validate}
