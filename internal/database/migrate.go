@@ -101,7 +101,7 @@ CREATE TABLE filter
     except_uploaders      TEXT,
     tags                  TEXT,
     except_tags           TEXT,
-	origins               TEXT []   DEFAULT '{}' NOT NULL,
+	origins               TEXT []   DEFAULT '{}',
     created_at            TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at            TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
