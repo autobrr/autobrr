@@ -31,7 +31,7 @@ import {
 import { queryClient } from "../../App";
 import { APIClient } from "../../api/APIClient";
 import { useToggle } from "../../hooks/hooks";
-import { buildPath, classNames } from "../../utils";
+import { classNames } from "../../utils";
 
 import {
     NumberField,
@@ -61,17 +61,14 @@ const tabs = [
 
 function TabNavLink({ item, url }: any) {
     const location = useLocation();
-
-    const { pathname } = location;
-    const splitLocation = pathname.split("/");
+    const splitLocation = location.pathname.split("/");
 
     // we need to clean the / if it's a base root path
-    const too = item.href ? `${url}/${item.href}` : url
     return (
         <NavLink
             key={item.name}
-            to={too}
-            exact={true}
+            to={item.href ? `${url}/${item.href}` : url}
+            exact
             activeClassName="border-purple-600 dark:border-blue-500 text-purple-600 dark:text-white"
             className={classNames(
                 'border-transparent text-gray-500 hover:text-purple-600 dark:hover:text-white hover:border-purple-600 dark:hover:border-blue-500 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm'
@@ -196,18 +193,12 @@ export default function FilterDetails() {
         deleteMutation.mutate(filter.id)
     }
 
-    const handleMobileNav = (e: any, href: string) => {
-        const s = history.location.pathname.split(/((?:\/.*?)?\/filters\/\d)/gi);
-        const p = buildPath(s[1], href);
-        history.push(p);
-    }
-
     return (
         <main>
             <header className="py-10">
                 <div className="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center">
                     <h1 className="text-3xl font-bold text-black dark:text-white">
-                        <NavLink to="/filters" exact={true}>
+                        <NavLink to="/filters" exact>
                             Filters
                         </NavLink>
                     </h1>
@@ -219,27 +210,10 @@ export default function FilterDetails() {
                 <div className="bg-white dark:bg-gray-800 rounded-lg shadow">
                     <div className="relative mx-auto md:px-6 xl:px-4">
                         <div className="px-4 sm:px-6 md:px-0">
-                            <div className="pt-2 pb-6">
-
-                                <div className="sm:hidden">
-                                    <label htmlFor="selected-tab" className="sr-only">
-                                        Select a tab
-                                    </label>
-                                    <select
-                                        id="selected-tab"
-                                        name="selected-tab"
-                                        className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 dark:border-gray-700 focus:outline-none focus:ring-purple-500 focus:border-purple-500 sm:text-sm rounded-md"
-                                    >
-                                        {tabs.map((tab) => (
-                                            <option key={tab.name} onClick={(e) => handleMobileNav(e, tab.href)}>
-                                                {tab.name}
-                                            </option>
-                                        ))}
-                                    </select>
-                                </div>
-                                <div className="hidden sm:block">
+                            <div className="pt-1 pb-6">
+                                <div className="block overflow-auto">
                                     <div className="border-b border-gray-200 dark:border-gray-700">
-                                        <nav className="-mb-px flex space-x-8">
+                                        <nav className="-mb-px flex space-x-6 sm:space-x-8">
                                             {tabs.map((tab) => (
                                                 <TabNavLink item={tab} url={url} key={tab.href} />
                                             ))}

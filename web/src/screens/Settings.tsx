@@ -53,7 +53,7 @@ function SubNavLink({item, url}: any) {
 
 function SidebarNav({subNavigation, url}: any) {
     return (
-        <aside className="py-6 lg:col-span-3">
+        <aside className="py-2 lg:col-span-3">
             <nav className="space-y-1">
                 {subNavigation.map((item: any) => (
                     <SubNavLink item={item} url={url} key={item.href}/>
