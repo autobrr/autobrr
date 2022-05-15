@@ -12,7 +12,7 @@ import {
 import { toast } from "react-hot-toast";
 import { Field, FieldArray, Form, Formik } from "formik";
 import { Dialog, Transition, Switch as SwitchBasic } from "@headlessui/react";
-import { ChevronDownIcon, ChevronRightIcon, } from "@heroicons/react/solid";
+import { ChevronDownIcon, ChevronRightIcon } from "@heroicons/react/solid";
 
 
 import {
@@ -51,13 +51,13 @@ import { TitleSubtitle } from "../../components/headings";
 import { EmptyListState } from "../../components/emptystates";
 
 const tabs = [
-    { name: 'General', href: '', current: true },
-    { name: 'Movies and TV', href: 'movies-tv', current: false },
-    { name: 'Music', href: 'music', current: false },
+    { name: "General", href: "", current: true },
+    { name: "Movies and TV", href: "movies-tv", current: false },
+    { name: "Music", href: "music", current: false },
     // { name: 'P2P', href: 'p2p', current: false },
-    { name: 'Advanced', href: 'advanced', current: false },
-    { name: 'Actions', href: 'actions', current: false },
-]
+    { name: "Advanced", href: "advanced", current: false },
+    { name: "Actions", href: "actions", current: false }
+];
 
 function TabNavLink({ item, url }: any) {
     const location = useLocation();
@@ -71,13 +71,13 @@ function TabNavLink({ item, url }: any) {
             exact
             activeClassName="border-purple-600 dark:border-blue-500 text-purple-600 dark:text-white"
             className={classNames(
-                'border-transparent text-gray-500 hover:text-purple-600 dark:hover:text-white hover:border-purple-600 dark:hover:border-blue-500 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm'
+                "border-transparent text-gray-500 hover:text-purple-600 dark:hover:text-white hover:border-purple-600 dark:hover:border-blue-500 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm"
             )}
-            aria-current={splitLocation[2] === item.href ? 'page' : undefined}
+            aria-current={splitLocation[2] === item.href ? "page" : undefined}
         >
             {item.name}
         </NavLink>
-    )
+    );
 }
 
 const FormButtonsGroup = ({ values, deleteAction, reset }: any) => {
@@ -123,8 +123,8 @@ const FormButtonsGroup = ({ values, deleteAction, reset }: any) => {
                 </div>
             </div>
         </div>
-    )
-}
+    );
+};
 
 export default function FilterDetails() {
     const history = useHistory();
@@ -164,16 +164,16 @@ export default function FilterDetails() {
             queryClient.invalidateQueries(["filters"]);
 
             // redirect
-            history.push("/filters")
+            history.push("/filters");
         }
-    })
+    });
 
     if (isLoading) {
-        return null
+        return null;
     }
 
     if (!filter) {
-        return null
+        return null;
     }
 
     const handleSubmit = (data: Filter) => {
@@ -181,17 +181,17 @@ export default function FilterDetails() {
         // TODO add options for these
         data.actions.forEach((a: Action) => {
             if (a.type === "WEBHOOK") {
-                a.webhook_method = "POST"
-                a.webhook_type = "JSON"
+                a.webhook_method = "POST";
+                a.webhook_type = "JSON";
             }
-        })
+        });
 
-        updateMutation.mutate(data)
-    }
+        updateMutation.mutate(data);
+    };
 
     const deleteAction = () => {
-        deleteMutation.mutate(filter.id)
-    }
+        deleteMutation.mutate(filter.id);
+    };
 
     return (
         <main>
@@ -267,7 +267,7 @@ export default function FilterDetails() {
                                         albums: filter.albums,
                                         origins: filter.origins || [],
                                         indexers: filter.indexers || [],
-                                        actions: filter.actions || [],
+                                        actions: filter.actions || []
                                     } as Filter}
                                     onSubmit={handleSubmit}
                                 >
@@ -308,7 +308,7 @@ export default function FilterDetails() {
                 </div>
             </div>
         </main>
-    )
+    );
 }
 
 function General() {
@@ -320,12 +320,13 @@ function General() {
     
     const opts = indexers && indexers.length > 0 ? indexers.map(v => ({
         label: v.name,
-        value: {
-            id: v.id,
-            name: v.name,
-            identifier: v.identifier,
-            enabled: v.enabled
-        }
+        value: v.id
+        // value: {
+        //     id: v.id,
+        //     name: v.name,
+        //     identifier: v.identifier,
+        //     enabled: v.enabled
+        // }
     })) : [];
 
     return (
@@ -401,7 +402,7 @@ function MoviesTv() {
                 </div>
             </div>
         </div>
-    )
+    );
 }
 
 function Music() {
@@ -453,7 +454,7 @@ function Music() {
             </div>
             </div>
         </div>
-    )
+    );
 }
 
 function Advanced() {
@@ -531,7 +532,7 @@ function CollapsableSection({ title, subtitle, children }: CollapsableSectionPro
                 </div>
             )}
         </div>
-    )
+    );
 }
 
 interface FilterActionsProps {
@@ -572,9 +573,9 @@ function FilterActions({ filter, values }: FilterActionsProps) {
         webhook_type: "",
         webhook_method: "",
         webhook_data: "",
-        webhook_headers: [],
+        webhook_headers: []
         //   client_id: 0,
-    }
+    };
 
     return (
         <div className="mt-10">
@@ -603,7 +604,7 @@ function FilterActions({ filter, values }: FilterActionsProps) {
                             {values.actions.length > 0 ?
                                 <ul className="divide-y divide-gray-200 dark:divide-gray-700">
                                     {values.actions.map((action: any, index: number) => (
-                                        <FilterActionsItem action={action} clients={data!} idx={index} remove={remove} key={index} />
+                                        <FilterActionsItem action={action} clients={data ?? []} idx={index} remove={remove} key={index} />
                                     ))}
                                 </ul>
                                 : <EmptyListState text="No actions yet!" />
@@ -613,7 +614,7 @@ function FilterActions({ filter, values }: FilterActionsProps) {
                 )}
             </FieldArray>
         </div>
-    )
+    );
 }
 
 interface FilterActionsItemProps {
@@ -681,7 +682,7 @@ function FilterActionsItem({ action, clients, idx, remove }: FilterActionsItemPr
                             name={`actions.${idx}.webhook_data`}
                             label="Data (json)"
                             columns={6}
-                            placeholder={`Request data: { "key": "value" }`}
+                            placeholder={"Request data: { \"key\": \"value\" }"}
                         />
                     </div>
                 );
@@ -856,7 +857,7 @@ function FilterActionsItem({ action, clients, idx, remove }: FilterActionsItemPr
                 <Field name={`actions.${idx}.enabled`} type="checkbox">
                     {({
                         field,
-                        form: { setFieldValue },
+                        form: { setFieldValue }
                     }: any) => (
                         <SwitchBasic
                             {...field}
@@ -864,19 +865,19 @@ function FilterActionsItem({ action, clients, idx, remove }: FilterActionsItemPr
                             value={field.value}
                             checked={field.checked}
                             onChange={value => {
-                                setFieldValue(field?.name ?? '', value)
+                                setFieldValue(field?.name ?? "", value);
                             }}
                             className={classNames(
-                                field.value ? 'bg-teal-500 dark:bg-blue-500' : 'bg-gray-200 dark:bg-gray-600',
-                                'relative inline-flex flex-shrink-0 h-6 w-11 border-2 border-transparent rounded-full cursor-pointer transition-colors ease-in-out duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500'
+                                field.value ? "bg-teal-500 dark:bg-blue-500" : "bg-gray-200 dark:bg-gray-600",
+                                "relative inline-flex flex-shrink-0 h-6 w-11 border-2 border-transparent rounded-full cursor-pointer transition-colors ease-in-out duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                             )}
                         >
                             <span className="sr-only">toggle enabled</span>
                             <span
                                 aria-hidden="true"
                                 className={classNames(
-                                    field.value ? 'translate-x-5' : 'translate-x-0',
-                                    'inline-block h-5 w-5 rounded-full bg-white shadow transform ring-0 transition ease-in-out duration-200'
+                                    field.value ? "translate-x-5" : "translate-x-0",
+                                    "inline-block h-5 w-5 rounded-full bg-white shadow transform ring-0 transition ease-in-out duration-200"
                                 )}
                             />
                         </SwitchBasic>
@@ -972,5 +973,5 @@ function FilterActionsItem({ action, clients, idx, remove }: FilterActionsItemPr
                 </div>
             )}
         </li>
-    )
+    );
 }

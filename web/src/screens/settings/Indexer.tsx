@@ -36,19 +36,19 @@ const ListItem = ({ indexer }: any) => {
 
             <td className="px-6 py-4 whitespace-nowrap">
                 <Switch
-                    checked={indexer.enabled}
+                    checked={indexer.enabled ?? false}
                     onChange={toggleUpdate}
                     className={classNames(
-                        indexer.enabled ? 'bg-teal-500 dark:bg-blue-500' : 'bg-gray-200 dark:bg-gray-600',
-                        'relative inline-flex flex-shrink-0 h-6 w-11 border-2 border-transparent rounded-full cursor-pointer transition-colors ease-in-out duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500'
+                        indexer.enabled ? "bg-teal-500 dark:bg-blue-500" : "bg-gray-200 dark:bg-gray-600",
+                        "relative inline-flex flex-shrink-0 h-6 w-11 border-2 border-transparent rounded-full cursor-pointer transition-colors ease-in-out duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                     )}
                 >
                     <span className="sr-only">Enable</span>
                     <span
                         aria-hidden="true"
                         className={classNames(
-                            indexer.enabled ? 'translate-x-5' : 'translate-x-0',
-                            'inline-block h-5 w-5 rounded-full bg-white shadow transform ring-0 transition ease-in-out duration-200'
+                            indexer.enabled ? "translate-x-5" : "translate-x-0",
+                            "inline-block h-5 w-5 rounded-full bg-white shadow transform ring-0 transition ease-in-out duration-200"
                         )}
                     />
                 </Switch>
@@ -61,14 +61,14 @@ const ListItem = ({ indexer }: any) => {
                 </span>
             </td>
         </tr>
-    )
-}
+    );
+};
 
 function IndexerSettings() {
-    const [addIndexerIsOpen, toggleAddIndexer] = useToggle(false)
+    const [addIndexerIsOpen, toggleAddIndexer] = useToggle(false);
 
     const { error, data } = useQuery(
-        'indexer',
+        "indexer",
         APIClient.indexers.getAll,
         { refetchOnWindowFocus: false }
     );
@@ -146,7 +146,7 @@ function IndexerSettings() {
 
             </div>
         </div>
-    )
+    );
 }
 
 export default IndexerSettings;

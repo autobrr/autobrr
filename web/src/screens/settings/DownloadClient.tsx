@@ -13,10 +13,10 @@ interface DLSettingsItemProps {
 }
 
 function DownloadClientSettingsListItem({ client, idx }: DLSettingsItemProps) {
-    const [updateClientIsOpen, toggleUpdateClient] = useToggle(false)
+    const [updateClientIsOpen, toggleUpdateClient] = useToggle(false);
 
     return (
-        <tr key={client.name} className={idx % 2 === 0 ? 'light:bg-white' : 'light:bg-gray-50'}>
+        <tr key={client.name} className={idx % 2 === 0 ? "light:bg-white" : "light:bg-gray-50"}>
             <DownloadClientUpdateForm client={client} isOpen={updateClientIsOpen} toggle={toggleUpdateClient} />
             
             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
@@ -24,16 +24,16 @@ function DownloadClientSettingsListItem({ client, idx }: DLSettingsItemProps) {
                     checked={client.enabled}
                     onChange={toggleUpdateClient}
                     className={classNames(
-                        client.enabled ? 'bg-teal-500 dark:bg-blue-500' : 'bg-gray-200 dark:bg-gray-600',
-                        'relative inline-flex flex-shrink-0 h-6 w-11 border-2 border-transparent rounded-full cursor-pointer transition-colors ease-in-out duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500'
+                        client.enabled ? "bg-teal-500 dark:bg-blue-500" : "bg-gray-200 dark:bg-gray-600",
+                        "relative inline-flex flex-shrink-0 h-6 w-11 border-2 border-transparent rounded-full cursor-pointer transition-colors ease-in-out duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                     )}
                 >
                     <span className="sr-only">Use setting</span>
                     <span
                         aria-hidden="true"
                         className={classNames(
-                            client.enabled ? 'translate-x-5' : 'translate-x-0',
-                            'inline-block h-5 w-5 rounded-full bg-white shadow transform ring-0 transition ease-in-out duration-200'
+                            client.enabled ? "translate-x-5" : "translate-x-0",
+                            "inline-block h-5 w-5 rounded-full bg-white shadow transform ring-0 transition ease-in-out duration-200"
                         )}
                     />
                 </Switch>
@@ -47,14 +47,14 @@ function DownloadClientSettingsListItem({ client, idx }: DLSettingsItemProps) {
                 </span>
             </td>
         </tr>
-    )
+    );
 }
 
 function DownloadClientSettings() {
-    const [addClientIsOpen, toggleAddClient] = useToggle(false)
+    const [addClientIsOpen, toggleAddClient] = useToggle(false);
 
     const { error, data } = useQuery(
-        'downloadClients',
+        "downloadClients",
         APIClient.download_clients.getAll,
         { refetchOnWindowFocus: false }
     );
@@ -138,7 +138,7 @@ function DownloadClientSettings() {
             </div>
         </div>
 
-    )
+    );
 }
 
 export default DownloadClientSettings;

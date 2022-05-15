@@ -13,7 +13,7 @@ import { APIClient } from "../../api/APIClient";
 import { EmptySimple } from "../../components/emptystates";
 
 export const IrcSettings = () => {
-    const [addNetworkIsOpen, toggleAddNetwork] = useToggle(false)
+    const [addNetworkIsOpen, toggleAddNetwork] = useToggle(false);
 
     const { data } = useQuery(
         "networks",
@@ -66,8 +66,8 @@ export const IrcSettings = () => {
                 ) : <EmptySimple title="No networks" subtitle="Add a new network" buttonText="New network" buttonAction={toggleAddNetwork} />}
             </div>
         </div>
-    )
-}
+    );
+};
 
 interface ListItemProps {
     idx: number;
@@ -75,7 +75,7 @@ interface ListItemProps {
 }
 
 const ListItem = ({ idx, network }: ListItemProps) => {
-    const [updateIsOpen, toggleUpdate] = useToggle(false)
+    const [updateIsOpen, toggleUpdate] = useToggle(false);
     const [edit, toggleEdit] = useToggle(false);
 
     return (
@@ -153,5 +153,5 @@ const ListItem = ({ idx, network }: ListItemProps) => {
                 </div>
             )}
         </li>
-    )
-}
+    );
+};

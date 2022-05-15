@@ -7,32 +7,32 @@ export function sleep(ms: number) {
 
 // get baseUrl sent from server rendered index template
 export function baseUrl() {
-    let baseUrl = ""
+    let baseUrl = "";
     if (window.APP.baseUrl) {
         if (window.APP.baseUrl === "/") {
-            baseUrl = "/"
+            baseUrl = "/";
         } else if (window.APP.baseUrl === "{{.BaseUrl}}") {
-            baseUrl = "/"
+            baseUrl = "/";
         } else if (window.APP.baseUrl === "/autobrr/") {
-            baseUrl = "/autobrr/"
+            baseUrl = "/autobrr/";
         } else {
-            baseUrl = window.APP.baseUrl
+            baseUrl = window.APP.baseUrl;
         }
     }
 
-    return baseUrl
+    return baseUrl;
 }
 
 // get sseBaseUrl for SSE
 export function sseBaseUrl() {
     if (process.env.NODE_ENV === "development")
-        return `http://localhost:7474/`;
+        return "http://localhost:7474/";
 
     return `${window.location.origin}${baseUrl()}`;
 }
 
 export function classNames(...classes: string[]) {
-    return classes.filter(Boolean).join(' ')
+    return classes.filter(Boolean).join(" ");
 }
 
 // column widths for inputs etc
@@ -41,9 +41,9 @@ export type COL_WIDTHS = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12;
 // simplify date
 export function simplifyDate(date: string) {
     if (date !== "0001-01-01T00:00:00Z") {
-        return formatISO9075(new Date(date))
+        return formatISO9075(new Date(date));
     }
-    return "n/a"
+    return "n/a";
 }
 
 // if empty date show as n/a
@@ -52,7 +52,7 @@ export function IsEmptyDate(date: string) {
         return formatDistanceToNowStrict(
             new Date(date),
             { addSuffix: true }
-        )
+        );
     }
     return "n/a"
 }

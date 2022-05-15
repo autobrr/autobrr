@@ -11,9 +11,9 @@ import { Logs } from "./Logs";
 import { Releases } from "./releases";
 import { Dashboard } from "./dashboard";
 import { FilterDetails, Filters } from "./filters";
-import { AuthContext } from '../utils/Context';
+import { AuthContext } from "../utils/Context";
 
-import logo from '../logo.png';
+import logo from "../logo.png";
 
 interface NavItem {
   name: string;
@@ -21,11 +21,11 @@ interface NavItem {
 }
 
 function classNames(...classes: string[]) {
-    return classes.filter(Boolean).join(' ')
+    return classes.filter(Boolean).join(" ");
 }
 
 const isActiveMatcher = (
-    match: match<any> | null,
+    match: match | null,
     location: { pathname: string },
     item: NavItem
 ) => {
@@ -33,20 +33,20 @@ const isActiveMatcher = (
     return false;
 
   if (match?.url === "/" && item.path === "/" && location.pathname === "/")
-      return true
+      return true;
 
   if (match.url === "/")
       return false;
 
   return true;
-}
+};
 
 export default function Base() {
     const authContext = AuthContext.useValue();
     const nav: Array<NavItem> = [
-        { name: 'Dashboard', path: "/" },
-        { name: 'Filters', path: "/filters" },
-        { name: 'Releases', path: "/releases" },
+        { name: "Dashboard", path: "/" },
+        { name: "Filters", path: "/filters" },
+        { name: "Releases", path: "/releases" },
         { name: "Settings", path: "/settings" },
         { name: "Logs", path: "/logs" }
     ];
@@ -148,8 +148,8 @@ export default function Base() {
                                                                         <Link
                                                                             to="/settings"
                                                                             className={classNames(
-                                                                                active ? 'bg-gray-100 dark:bg-gray-600' : '',
-                                                                                'block px-4 py-2 text-sm text-gray-700 dark:text-gray-200'
+                                                                                active ? "bg-gray-100 dark:bg-gray-600" : "",
+                                                                                "block px-4 py-2 text-sm text-gray-700 dark:text-gray-200"
                                                                             )}
                                                                         >
                                                                             Settings
@@ -161,8 +161,8 @@ export default function Base() {
                                                                         <Link
                                                                             to="/logout"
                                                                             className={classNames(
-                                                                                active ? 'bg-gray-100 dark:bg-gray-600' : '',
-                                                                                'block px-4 py-2 text-sm text-gray-700 dark:text-gray-200'
+                                                                                active ? "bg-gray-100 dark:bg-gray-600" : "",
+                                                                                "block px-4 py-2 text-sm text-gray-700 dark:text-gray-200"
                                                                             )}
                                                                         >
                                                                             Logout
@@ -245,5 +245,5 @@ export default function Base() {
                 </Route>
             </Switch>
         </div>
-    )
+    );
 }

@@ -13,19 +13,19 @@ function ReleaseSettings() {
     const deleteMutation = useMutation(() => APIClient.release.delete(), {
         onSuccess: () => {
             toast.custom((t) => (
-                <Toast type="success" body={`All releases was deleted`} t={t}/>
+                <Toast type="success" body={"All releases was deleted"} t={t}/>
             ));
 
             // Invalidate filters just in case, most likely not necessary but can't hurt.
             queryClient.invalidateQueries("releases");
 
-            toggleDeleteModal()
+            toggleDeleteModal();
         }
-    })
+    });
 
     const deleteAction = () => {
-        deleteMutation.mutate()
-    }
+        deleteMutation.mutate();
+    };
 
     const cancelModalButtonRef = useRef(null);
 
@@ -36,7 +36,7 @@ function ReleaseSettings() {
                 toggle={toggleDeleteModal}
                 buttonRef={cancelModalButtonRef}
                 deleteAction={deleteAction}
-                title={`Delete all releases`}
+                title={"Delete all releases"}
                 text="Are you sure you want to delete all releases? This action cannot be undone."
             />
 
@@ -75,7 +75,7 @@ function ReleaseSettings() {
                 </div>
             </div>
         </form>
-    )
+    );
 }
 
 export default ReleaseSettings;

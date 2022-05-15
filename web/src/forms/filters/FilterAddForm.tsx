@@ -3,15 +3,20 @@ import { useMutation } from "react-query";
 import { toast } from "react-hot-toast";
 import { XIcon } from "@heroicons/react/solid";
 import { Dialog, Transition } from "@headlessui/react";
-import { Field, Form, Formik } from "formik";
+import {Field, Form, Formik, FormikErrors, FormikValues} from "formik";
 import type { FieldProps } from "formik";
 
 import { queryClient } from "../../App";
 import { APIClient } from "../../api/APIClient";
 import DEBUG from "../../components/debug";
-import Toast from '../../components/notifications/Toast';
+import Toast from "../../components/notifications/Toast";
 
-function FilterAddForm({ isOpen, toggle }: any) {
+interface filterAddFormProps {
+    isOpen: boolean;
+    toggle: () => void;
+}
+
+function FilterAddForm({ isOpen, toggle }: filterAddFormProps) {
     const mutation = useMutation(
         (filter: Filter) => APIClient.filters.create(filter),
         {
@@ -22,10 +27,16 @@ function FilterAddForm({ isOpen, toggle }: any) {
                 toggle();
             }
         }
-    )
+    );
 
-    const handleSubmit = (data: any) => mutation.mutate(data);
-    const validate = (values: any) => values.name ? {} : { name: "Required" };
+    const handleSubmit = (data: unknown) => mutation.mutate(data as Filter);
+    const validate = (values: FormikValues) => {
+        const errors = {} as FormikErrors<FormikValues>;
+        if (!values.name) {
+            errors.name = "Required";
+        }
+        return errors;
+    };
 
     return (
         <Transition.Root show={isOpen} as={Fragment}>
@@ -97,7 +108,7 @@ function FilterAddForm({ isOpen, toggle }: any) {
                                                             <Field name="name">
                                                                 {({
                                                                     field,
-                                                                    meta,
+                                                                    meta
                                                                 }: FieldProps ) => (
                                                                     <div className="sm:col-span-2">
                                                                         <input
@@ -145,7 +156,7 @@ function FilterAddForm({ isOpen, toggle }: any) {
                 </div>
             </Dialog>
         </Transition.Root>
-    )
+    );
 }
 
 export default FilterAddForm;

@@ -12,9 +12,9 @@ import {
     PasswordFieldWide,
     SwitchGroupWide,
     NumberFieldWide
-} from "../../components/inputs/input_wide";
+} from "../../components/inputs";
 import { SlideOver } from "../../components/panels";
-import Toast from '../../components/notifications/Toast';
+import Toast from "../../components/notifications/Toast";
 
 interface ChannelsFieldArrayProps {
   channels: IrcChannel[];
@@ -105,8 +105,8 @@ export function IrcNetworkAddForm({ isOpen, toggle }: any) {
                 toggle()
             },
             onError: () => {
-                toast.custom((t) => <Toast type="error" body="IRC Network could not be added" t={t} />)
-            },
+                toast.custom((t) => <Toast type="error" body="IRC Network could not be added" t={t} />);
+            }
         }
     );
 
@@ -137,7 +137,7 @@ export function IrcNetworkAddForm({ isOpen, toggle }: any) {
             errors.nickserv = { account: "Required" };
 
         return errors;
-    }
+    };
 
     const initialValues: IrcNetworkAddFormValues = {
         name: "",
@@ -149,7 +149,7 @@ export function IrcNetworkAddForm({ isOpen, toggle }: any) {
         nickserv: {
             account: ""
         },
-        channels: [],
+        channels: []
     };
 
     return (
@@ -193,7 +193,7 @@ export function IrcNetworkAddForm({ isOpen, toggle }: any) {
                 </>
             )}
         </SlideOver>
-    )
+    );
 }
 
 interface IrcNetworkUpdateFormValues {
@@ -222,20 +222,20 @@ export function IrcNetworkUpdateForm({
 }: IrcNetworkUpdateFormProps) {
     const mutation = useMutation((network: IrcNetwork) => APIClient.irc.updateNetwork(network), {
         onSuccess: () => {
-            queryClient.invalidateQueries(['networks']);
-            toast.custom((t) => <Toast type="success" body={`${network.name} was updated successfully`} t={t} />)
-            toggle()
+            queryClient.invalidateQueries(["networks"]);
+            toast.custom((t) => <Toast type="success" body={`${network.name} was updated successfully`} t={t} />);
+            toggle();
         }
-    })
+    });
 
     const deleteMutation = useMutation((id: number) => APIClient.irc.deleteNetwork(id), {
         onSuccess: () => {
-            queryClient.invalidateQueries(['networks']);
-            toast.custom((t) => <Toast type="success" body={`${network.name} was deleted.`} t={t} />)
+            queryClient.invalidateQueries(["networks"]);
+            toast.custom((t) => <Toast type="success" body={`${network.name} was deleted.`} t={t} />);
 
-            toggle()
+            toggle();
         }
-    })
+    });
 
     const onSubmit = (data: any) => {
         // easy way to split textarea lines into array of strings for each newline.
@@ -245,7 +245,7 @@ export function IrcNetworkUpdateForm({
         // data.connect_commands = cmds
         // console.log("formatted", data)
 
-        mutation.mutate(data)
+        mutation.mutate(data);
     };
 
     const validate = (values: any) => {
@@ -268,11 +268,11 @@ export function IrcNetworkUpdateForm({
         }
 
         return errors;
-    }
+    };
 
     const deleteAction = () => {
-        deleteMutation.mutate(network.id)
-    }
+        deleteMutation.mutate(network.id);
+    };
 
     const initialValues: IrcNetworkUpdateFormValues = {
         id: network.id,
@@ -285,7 +285,7 @@ export function IrcNetworkUpdateForm({
         pass: network.pass,
         channels: network.channels,
         invite_command: network.invite_command
-    }
+    };
 
     return (
         <SlideOver
@@ -329,5 +329,5 @@ export function IrcNetworkUpdateForm({
                 </>
             )}
         </SlideOver>
-    )
+    );
 }

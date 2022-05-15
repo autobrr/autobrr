@@ -18,7 +18,7 @@ import {
     SwitchGroupWide
 } from "../../components/inputs";
 import { SlideOver } from "../../components/panels";
-import Toast from '../../components/notifications/Toast';
+import Toast from "../../components/notifications/Toast";
 
 const Input = (props: any) => {
   return (
@@ -28,7 +28,7 @@ const Input = (props: any) => {
       className="text-gray-400 dark:text-gray-100"
     />
   );
-}
+};
 
 const Control = (props: any) => {
   return (
@@ -37,7 +37,7 @@ const Control = (props: any) => {
       className="block w-full dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:text-gray-100 sm:text-sm"
     />
   );
-}
+};
 
 const Menu = (props: any) => {
   return (
@@ -46,7 +46,7 @@ const Menu = (props: any) => {
       className="dark:bg-gray-800 border border-gray-300 dark:border-gray-700 dark:text-gray-400 rounded-md shadow-sm"
     />
   );
-}
+};
 
 const Option = (props: any) => {
     return (
@@ -55,7 +55,7 @@ const Option = (props: any) => {
         className="dark:text-gray-400 dark:bg-gray-800 dark:hover:bg-gray-900 dark:focus:bg-gray-900"
       />
     );
-}
+};
 
 const IrcSettingFields = (ind: IndexerDefinition, indexer: string) => {
     if (indexer !== "") {
@@ -72,14 +72,14 @@ const IrcSettingFields = (ind: IndexerDefinition, indexer: string) => {
                         {ind.irc.settings.map((f: IndexerSetting, idx: number) => {
                             switch (f.type) {
                                 case "text":
-                                    return <TextFieldWide name={`irc.${f.name}`} label={f.label} required={f.required} key={idx} help={f.help} />
+                                    return <TextFieldWide name={`irc.${f.name}`} label={f.label} required={f.required} key={idx} help={f.help} />;
                                 case "secret":
                                     if (f.name === "invite_command") {
-                                        return <PasswordFieldWide name={`irc.${f.name}`} label={f.label} required={f.required} key={idx} help={f.help} defaultVisible={true} defaultValue={f.default} />
+                                        return <PasswordFieldWide name={`irc.${f.name}`} label={f.label} required={f.required} key={idx} help={f.help} defaultVisible={true} defaultValue={f.default} />;
                                     }
-                                    return <PasswordFieldWide name={`irc.${f.name}`} label={f.label} required={f.required} key={idx} help={f.help} defaultValue={f.default} />
+                                    return <PasswordFieldWide name={`irc.${f.name}`} label={f.label} required={f.required} key={idx} help={f.help} defaultValue={f.default} />;
                             }
-                            return null
+                            return null;
                         })}
                     </div>
                 )}
@@ -115,9 +115,9 @@ const FeedSettingFields = (ind: IndexerDefinition, indexer: string) => {
                     </div>
                 )}
             </Fragment>
-        )
+        );
     }
-}
+};
 
 const SettingFields = (ind: IndexerDefinition, indexer: string) => {
     if (indexer !== "") {
@@ -128,21 +128,21 @@ const SettingFields = (ind: IndexerDefinition, indexer: string) => {
                         case "text":
                             return (
                                 <TextFieldWide name={`settings.${f.name}`} label={f.label} key={idx} help={f.help} defaultValue="" />
-                            )
+                            );
                         case "secret":
                             return (
                                 <PasswordFieldWide name={`settings.${f.name}`} label={f.label} key={idx} help={f.help} defaultValue="" />
-                            )
+                            );
                     }
-                    return null
+                    return null;
                 })}
                 <div hidden={true}>
                     <TextFieldWide name="name" label="Name" defaultValue={ind?.name} />
                 </div>
             </div>
-        )
+        );
     }
-}
+};
 
 function slugIdentifier(name: string) {
     const l = name.toLowerCase()
@@ -166,27 +166,27 @@ interface AddProps {
 }
 
 export function IndexerAddForm({ isOpen, toggle }: AddProps) {
-    const [indexer, setIndexer] = useState<IndexerDefinition>({} as IndexerDefinition)
+    const [indexer, setIndexer] = useState<IndexerDefinition>({} as IndexerDefinition);
 
-    const { data } = useQuery('indexerDefinition', APIClient.indexers.getSchema,
+    const { data } = useQuery("indexerDefinition", APIClient.indexers.getSchema,
         {
             enabled: isOpen,
             refetchOnWindowFocus: false
         }
-    )
+    );
 
     const mutation = useMutation(
       (indexer: Indexer) => APIClient.indexers.create(indexer), {
         onSuccess: () => {
-            queryClient.invalidateQueries(['indexer']);
-            toast.custom((t) => <Toast type="success" body="Indexer was added" t={t} />)
-            sleep(1500)
-            toggle()
+            queryClient.invalidateQueries(["indexer"]);
+            toast.custom((t) => <Toast type="success" body="Indexer was added" t={t} />);
+            sleep(1500);
+            toggle();
         },
         onError: () => {
-            toast.custom((t) => <Toast type="error" body="Indexer could not be added" t={t} />)
+            toast.custom((t) => <Toast type="error" body="Indexer could not be added" t={t} />);
         }
-    })
+    });
 
     const ircMutation = useMutation(
         (network: IrcNetworkCreate) => APIClient.irc.createNetwork(network)
@@ -287,9 +287,10 @@ export function IndexerAddForm({ isOpen, toggle }: AddProps) {
                                         identifier: "",
                                         implementation: "irc",
                                         name: "",
-                                        irc: {},
-                                        feed: {},
-                                        settings: {},
+                                        irc: {
+                                            invite_command: ""
+                                        },
+                                        settings: {}
                                     }}
                                     onSubmit={onSubmit}
                                 >
@@ -348,22 +349,23 @@ export function IndexerAddForm({ isOpen, toggle }: AddProps) {
                                                                                 spacing: {
                                                                                   ...theme.spacing,
                                                                                   controlHeight: 30,
-                                                                                  baseUnit: 2,
+                                                                                  baseUnit: 2
                                                                                 }
                                                                             })}
                                                                             value={field?.value && field.value.value}
                                                                             onChange={(option: any) => {
-                                                                                resetForm()
-                                                                                setFieldValue("name", option?.label ?? "")
-                                                                                setFieldValue(field.name, option?.value ?? "")
+                                                                                resetForm();
+                                                                                setFieldValue("name", option?.label ?? "");
+                                                                                setFieldValue(field.name, option?.value ?? "");
 
-                                                                                const ind = data!.find(i => i.identifier === option.value);
-                                                                                setFieldValue("implementation", ind?.implementation ? ind.implementation : "irc")
-                                                                                setIndexer(ind!)
-                                                                                if (ind!.irc?.settings) {
-                                                                                    ind!.irc.settings.forEach((s) => {
-                                                                                        setFieldValue(`irc.${s.name}`, s.default ?? "")
-                                                                                    })
+                                                                                const ind = data && data.find(i => i.identifier === option.value);
+                                                                                if (ind) {
+                                                                                    setIndexer(ind);
+                                                                                    if (ind.irc.settings) {
+                                                                                        ind.irc.settings.forEach((s) => {
+                                                                                            setFieldValue(`irc.${s.name}`, s.default ?? "");
+                                                                                        });
+                                                                                    }
                                                                                 }
                                                                             }}
                                                                             options={data && data.sort((a, b): any => a.name.localeCompare(b.name)).map(v => ({
@@ -419,48 +421,45 @@ export function IndexerAddForm({ isOpen, toggle }: AddProps) {
                 </div>
             </Dialog>
         </Transition.Root>
-    )
+    );
 }
 
 interface UpdateProps {
     isOpen: boolean;
     toggle: any;
-    indexer: Indexer;
+    indexer: IndexerDefinition;
 }
 
 export function IndexerUpdateForm({ isOpen, toggle, indexer }: UpdateProps) {
     const mutation = useMutation((indexer: Indexer) => APIClient.indexers.update(indexer), {
         onSuccess: () => {
-            queryClient.invalidateQueries(['indexer']);
-            toast.custom((t) => <Toast type="success" body={`${indexer.name} was updated successfully`} t={t} />)
-            sleep(1500)
-
-            toggle()
-        }
-    })
-
-    const deleteMutation = useMutation((id: number) => APIClient.indexers.delete(id), {
-        onSuccess: () => {
-            queryClient.invalidateQueries(['indexer']);
-            toast.custom((t) => <Toast type="success" body={`${indexer.name} was deleted.`} t={t} />)
+            queryClient.invalidateQueries(["indexer"]);
+            toast.custom((t) => <Toast type="success" body={`${indexer.name} was updated successfully`} t={t} />);
             sleep(1500);
 
             toggle();
         }
-    })
+    });
 
-    const onSubmit = (data: any) => {
+    const deleteMutation = useMutation((id: number) => APIClient.indexers.delete(id), {
+        onSuccess: () => {
+            queryClient.invalidateQueries(["indexer"]);
+            toast.custom((t) => <Toast type="success" body={`${indexer.name} was deleted.`} t={t} />);
+        }
+    });
+
+    const onSubmit = (data: unknown) => {
         // TODO clear data depending on type
-        mutation.mutate(data)
+        mutation.mutate(data as Indexer);
     };
 
     const deleteAction = () => {
-        deleteMutation.mutate(indexer.id)
-    }
+        deleteMutation.mutate(indexer.id ?? 0);
+    };
 
     const renderSettingFields = (settings: IndexerSetting[]) => {
-        if (settings === undefined || settings === null) {
-            return null
+        if (settings === undefined) {
+            return null;
         }
 
         return (
@@ -470,17 +469,17 @@ export function IndexerUpdateForm({ isOpen, toggle, indexer }: UpdateProps) {
                         case "text":
                             return (
                                 <TextFieldWide name={`settings.${f.name}`} label={f.label} key={idx} help={f.help} />
-                            )
+                            );
                         case "secret":
                             return (
                                 <PasswordFieldWide name={`settings.${f.name}`} label={f.label} key={idx} help={f.help} />
-                            )
+                            );
                     }
-                    return null
+                    return null;
                 })}
             </div>
-        )
-    }
+        );
+    };
 
     const initialValues = {
         id: indexer.id,
@@ -494,8 +493,8 @@ export function IndexerUpdateForm({ isOpen, toggle, indexer }: UpdateProps) {
                 [obj.name]: obj.value
             } as Record<string, string>),
             {} as Record<string, string>
-        ),
-    }
+        )
+    };
 
     return (
         <SlideOver
@@ -540,5 +539,5 @@ export function IndexerUpdateForm({ isOpen, toggle, indexer }: UpdateProps) {
                 </div>
             )}
         </SlideOver>
-    )
+    );
 }

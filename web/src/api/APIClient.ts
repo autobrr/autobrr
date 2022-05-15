@@ -3,9 +3,11 @@ import {AuthContext} from "../utils/Context";
 import {Cookies} from "react-cookie";
 
 interface ConfigType {
-    body?: BodyInit | Record<string, unknown> | null;
+    body?: BodyInit | Record<string, unknown> | unknown | null;
     headers?: Record<string, string>;
 }
+
+type PostBody = BodyInit | Record<string, unknown> | unknown | null;
 
 export async function HttpClient<T>(
     endpoint: string,
@@ -29,7 +31,7 @@ export async function HttpClient<T>(
                 // if 401 consider the session expired and force logout
                 const cookies = new Cookies();
                 cookies.remove("user_session");
-                AuthContext.reset()
+                AuthContext.reset();
 
                 return Promise.reject(new Error(response.statusText));
             }
@@ -56,11 +58,11 @@ export async function HttpClient<T>(
 
 const appClient = {
     Get: <T>(endpoint: string) => HttpClient<T>(endpoint, "GET"),
-    Post: <T>(endpoint: string, data: any) => HttpClient<void | T>(endpoint, "POST", { body: data }),
-    Put: (endpoint: string, data: any) => HttpClient<void>(endpoint, "PUT", { body: data }),
-    Patch: (endpoint: string, data: any) => HttpClient<void>(endpoint, "PATCH", { body: data }),
+    Post: <T>(endpoint: string, data: PostBody) => HttpClient<void | T>(endpoint, "POST", { body: data }),
+    Put: (endpoint: string, data: PostBody) => HttpClient<void>(endpoint, "PUT", { body: data }),
+    Patch: (endpoint: string, data: PostBody) => HttpClient<void>(endpoint, "PATCH", { body: data }),
     Delete: (endpoint: string) => HttpClient<void>(endpoint, "DELETE")
-}
+};
 
 export const APIClient = {
     auth: {
@@ -74,7 +76,7 @@ export const APIClient = {
         create: (action: Action) => appClient.Post("api/actions", action),
         update: (action: Action) => appClient.Put(`api/actions/${action.id}`, action),
         delete: (id: number) => appClient.Delete(`api/actions/${id}`),
-        toggleEnable: (id: number) => appClient.Patch(`api/actions/${id}/toggleEnabled`, null),
+        toggleEnable: (id: number) => appClient.Patch(`api/actions/${id}/toggleEnabled`, null)
     },
     config: {
         get: () => appClient.Get<Config>("api/config")
@@ -84,7 +86,7 @@ export const APIClient = {
         create: (dc: DownloadClient) => appClient.Post("api/download_clients", dc),
         update: (dc: DownloadClient) => appClient.Put("api/download_clients", dc),
         delete: (id: number) => appClient.Delete(`api/download_clients/${id}`),
-        test: (dc: DownloadClient) => appClient.Post("api/download_clients/test", dc),
+        test: (dc: DownloadClient) => appClient.Post("api/download_clients/test", dc)
     },
     filters: {
         getAll: () => appClient.Get<Filter[]>("api/filters"),
@@ -93,7 +95,7 @@ export const APIClient = {
         update: (filter: Filter) => appClient.Put(`api/filters/${filter.id}`, filter),
         duplicate: (id: number) => appClient.Get<Filter>(`api/filters/${id}/duplicate`),
         toggleEnable: (id: number, enabled: boolean) => appClient.Put(`api/filters/${id}/enabled`, { enabled }),
-        delete: (id: number) => appClient.Delete(`api/filters/${id}`),
+        delete: (id: number) => appClient.Delete(`api/filters/${id}`)
     },
     feeds: {
         find: () => appClient.Get<Feed[]>("api/feeds"),
@@ -111,13 +113,13 @@ export const APIClient = {
         getSchema: () => appClient.Get<IndexerDefinition[]>("api/indexer/schema"),
         create: (indexer: Indexer) => appClient.Post<Indexer>("api/indexer", indexer),
         update: (indexer: Indexer) => appClient.Put("api/indexer", indexer),
-        delete: (id: number) => appClient.Delete(`api/indexer/${id}`),
+        delete: (id: number) => appClient.Delete(`api/indexer/${id}`)
     },
     irc: {
         getNetworks: () => appClient.Get<IrcNetworkWithHealth[]>("api/irc"),
         createNetwork: (network: IrcNetworkCreate) => appClient.Post("api/irc", network),
         updateNetwork: (network: IrcNetwork) => appClient.Put(`api/irc/network/${network.id}`, network),
-        deleteNetwork: (id: number) => appClient.Delete(`api/irc/network/${id}`),
+        deleteNetwork: (id: number) => appClient.Delete(`api/irc/network/${id}`)
     },
     events: {
         logs: () => new EventSource(`${sseBaseUrl()}api/events?stream=logs`, { withCredentials: true })
@@ -126,7 +128,7 @@ export const APIClient = {
         getAll: () => appClient.Get<Notification[]>("api/notification"),
         create: (notification: Notification) => appClient.Post("api/notification", notification),
         update: (notification: Notification) => appClient.Put(`api/notification/${notification.id}`, notification),
-        delete: (id: number) => appClient.Delete(`api/notification/${id}`),
+        delete: (id: number) => appClient.Delete(`api/notification/${id}`)
     },
     release: {
         find: (query?: string) => appClient.Get<ReleaseFindResponse>(`api/release${query}`),
@@ -148,10 +150,10 @@ export const APIClient = {
                     params.append("push_status", filter.value);
             });
 
-            return appClient.Get<ReleaseFindResponse>(`api/release?${params.toString()}`)
+            return appClient.Get<ReleaseFindResponse>(`api/release?${params.toString()}`);
         },
-        indexerOptions: () => appClient.Get<string[]>(`api/release/indexers`),
+        indexerOptions: () => appClient.Get<string[]>("api/release/indexers"),
         stats: () => appClient.Get<ReleaseStats>("api/release/stats"),
-        delete: () => appClient.Delete(`api/release/all`),
+        delete: () => appClient.Delete("api/release/all")
     }
 };

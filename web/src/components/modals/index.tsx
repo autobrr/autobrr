@@ -1,12 +1,12 @@
-import { Fragment, FC } from "react";
+import React, { Fragment, FC } from "react";
 import { Dialog, Transition } from "@headlessui/react";
 import { ExclamationIcon } from "@heroicons/react/solid";
 
 interface DeleteModalProps {
     isOpen: boolean;
     buttonRef: any;
-    toggle: any;
-    deleteAction: any;
+    toggle: () => void;
+    deleteAction: () => void;
     title: string;
     text: string;
 }
@@ -89,4 +89,4 @@ export const DeleteModal: FC<DeleteModalProps> = ({ isOpen, buttonRef, toggle, d
             </div>
         </Dialog>
     </Transition.Root>
-)
+);

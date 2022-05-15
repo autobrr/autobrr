@@ -7,13 +7,13 @@ import { Switch } from "@headlessui/react";
 import { classNames } from "../../utils";
 
 function NotificationSettings() {
-    const [addNotificationsIsOpen, toggleAddNotifications] = useToggle(false)
+    const [addNotificationsIsOpen, toggleAddNotifications] = useToggle(false);
 
-    const { data } = useQuery<Notification[], Error>('notifications', APIClient.notifications.getAll,
+    const { data } = useQuery<Notification[], Error>("notifications", APIClient.notifications.getAll,
         {
             refetchOnWindowFocus: false
         }
-    )
+    );
 
     return (
         <div className="divide-y divide-gray-200 lg:col-span-9">
@@ -56,7 +56,7 @@ function NotificationSettings() {
                     : <EmptySimple title="No notifications setup" subtitle="Add a new notification" buttonText="New notification" buttonAction={toggleAddNotifications} />}
             </div>
         </div>
-    )
+    );
 }
 
 interface ListItemProps {
@@ -64,7 +64,7 @@ interface ListItemProps {
 }
 
 function ListItem({ notification }: ListItemProps) {
-    const [updateFormIsOpen, toggleUpdateForm] = useToggle(false)
+    const [updateFormIsOpen, toggleUpdateForm] = useToggle(false);
 
     return (
         <li key={notification.id} className="text-gray-500 dark:text-gray-400">
@@ -76,16 +76,16 @@ function ListItem({ notification }: ListItemProps) {
                         checked={notification.enabled}
                         onChange={toggleUpdateForm}
                         className={classNames(
-                            notification.enabled ? 'bg-teal-500 dark:bg-blue-500' : 'bg-gray-200 dark:bg-gray-600',
-                            'relative inline-flex flex-shrink-0 h-6 w-11 border-2 border-transparent rounded-full cursor-pointer transition-colors ease-in-out duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500'
+                            notification.enabled ? "bg-teal-500 dark:bg-blue-500" : "bg-gray-200 dark:bg-gray-600",
+                            "relative inline-flex flex-shrink-0 h-6 w-11 border-2 border-transparent rounded-full cursor-pointer transition-colors ease-in-out duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                         )}
                     >
                         <span className="sr-only">Use setting</span>
                         <span
                             aria-hidden="true"
                             className={classNames(
-                                notification.enabled ? 'translate-x-5' : 'translate-x-0',
-                                'inline-block h-5 w-5 rounded-full bg-white shadow transform ring-0 transition ease-in-out duration-200'
+                                notification.enabled ? "translate-x-5" : "translate-x-0",
+                                "inline-block h-5 w-5 rounded-full bg-white shadow transform ring-0 transition ease-in-out duration-200"
                             )}
                         />
                     </Switch>
@@ -113,7 +113,7 @@ function ListItem({ notification }: ListItemProps) {
                 </div>
             </div>
         </li>
-    )
+    );
 }
 
 export default NotificationSettings;

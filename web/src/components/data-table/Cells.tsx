@@ -26,8 +26,6 @@ export const TitleCell = ({ value }: CellProps) => (
 
 interface ReleaseStatusCellProps {
     value: ReleaseActionStatus[];
-    column: any;
-    row: any;
 }
 
 interface StatusCellMapEntry {

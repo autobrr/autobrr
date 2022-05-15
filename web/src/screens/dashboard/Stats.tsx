@@ -19,7 +19,7 @@ const StatsItem = ({ name, value }: StatsItemProps) => (
           <p className="text-3xl font-extrabold text-gray-900 dark:text-gray-200">{value}</p>
       </dd>
   </div>
-)
+);
 
 export const Stats = () => {
   const { isLoading, data } = useQuery(
@@ -44,5 +44,5 @@ export const Stats = () => {
               <StatsItem name="Approved Pushes" value={data?.push_approved_count} />
           </dl>
       </div>
-  )
-}
+  );
+};

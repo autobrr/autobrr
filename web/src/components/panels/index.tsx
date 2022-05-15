@@ -1,4 +1,4 @@
-import { Fragment, useRef } from "react";
+import React, { Fragment, useRef } from "react";
 import { XIcon } from "@heroicons/react/solid";
 import { Dialog, Transition } from "@headlessui/react";
 import { Form, Formik } from "formik";
@@ -10,7 +10,7 @@ import { classNames } from "../../utils";
 interface SlideOverProps<DataType> {
     title: string;
     initialValues: DataType;
-    validate?: (values?: any) => void;
+    validate?: (values: DataType) => void;
     onSubmit: (values?: DataType) => void;
     isOpen: boolean;
     toggle: () => void;
@@ -140,7 +140,7 @@ function SlideOver<DataType>({
                 </div>
             </Dialog>
         </Transition.Root>
-    )
+    );
 }
 
 export { SlideOver };

@@ -1,14 +1,13 @@
-import { Field } from "formik";
+import { Field, FieldProps } from "formik";
 
 interface ErrorFieldProps {
     name: string;
     classNames?: string;
-    subscribe?: any;
 }
 
 const ErrorField = ({ name, classNames }: ErrorFieldProps) => (
     <Field name={name} subscribe={{ touched: true, error: true }}>
-        {({ meta: { touched, error } }: any) =>
+        {({ meta: { touched, error } }: FieldProps) =>
             touched && error ? <span className={classNames}>{error}</span> : null
         }
     </Field>
@@ -41,6 +40,6 @@ const CheckboxField = ({
         <p className="text-gray-500">{sublabel}</p>
         </div>
     </div>
-)
+);
 
-export { ErrorField, CheckboxField }
+export { ErrorField, CheckboxField };

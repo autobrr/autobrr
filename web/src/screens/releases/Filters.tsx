@@ -3,19 +3,20 @@ import { useQuery } from "react-query";
 import { Listbox, Transition } from "@headlessui/react";
 import {
     CheckIcon,
-    ChevronDownIcon,
+    ChevronDownIcon
 } from "@heroicons/react/solid";
 
 import { APIClient } from "../../api/APIClient";
 import { classNames } from "../../utils";
 import { PushStatusOptions } from "../../domain/constants";
+import {FilterProps} from "react-table";
 
 interface ListboxFilterProps {
     id: string;
     label: string;
     currentValue: string;
     onChange: (newValue: string) => void;
-    children: any;
+    children: React.ReactNode;
 }
 
 const ListboxFilter = ({
@@ -62,13 +63,13 @@ const ListboxFilter = ({
 // a unique option from a list
 export const IndexerSelectColumnFilter = ({
     column: { filterValue, setFilter, id }
-}: any) => {
+}: FilterProps<object>) => {
     const { data, isSuccess } = useQuery(
         "release_indexers",
         () => APIClient.release.indexerOptions(),
         {
             keepPreviousData: true,
-            staleTime: Infinity,
+            staleTime: Infinity
         }
     );
 
@@ -84,8 +85,8 @@ export const IndexerSelectColumnFilter = ({
                 <FilterOption key={idx} label={indexer} value={indexer} />
             ))}
         </ListboxFilter>
-    )
-}
+    );
+};
 
 interface FilterOptionProps {
     label: string;
@@ -96,7 +97,7 @@ const FilterOption = ({ label, value }: FilterOptionProps) => (
     <Listbox.Option
         className={({ active }) => classNames(
             "cursor-pointer select-none relative py-2 pl-10 pr-4",
-            active ? 'text-black dark:text-gray-200 bg-gray-100 dark:bg-gray-900' : 'text-gray-700 dark:text-gray-400'
+            active ? "text-black dark:text-gray-200 bg-gray-100 dark:bg-gray-900" : "text-gray-700 dark:text-gray-400"
         )}
         value={value}
     >
@@ -122,15 +123,13 @@ const FilterOption = ({ label, value }: FilterOptionProps) => (
 
 export const PushStatusSelectColumnFilter = ({
     column: { filterValue, setFilter, id }
-}: any) => (
+}: FilterProps<object>) => {
+    const label = filterValue ? PushStatusOptions.find((o) => o.value === filterValue && o.value)?.label : "Push status";
+    return (
     <div className="mr-3">
         <ListboxFilter
             id={id}
-            label={
-                filterValue
-                    ? PushStatusOptions.find((o) => o.value === filterValue && o.value)?.label
-                    : "Push status"
-            }
+            label={label ?? "Push status"}
             currentValue={filterValue}
             onChange={setFilter}
         >
@@ -139,4 +138,4 @@ export const PushStatusSelectColumnFilter = ({
             ))}
         </ListboxFilter>
     </div>
-);
+);};

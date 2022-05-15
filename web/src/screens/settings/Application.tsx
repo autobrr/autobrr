@@ -4,12 +4,11 @@ import { APIClient } from "../../api/APIClient";
 import { Checkbox } from "../../components/Checkbox";
 import { SettingsContext } from "../../utils/Context";
 
-
 function ApplicationSettings() {
     const [settings, setSettings] = SettingsContext.use();
 
     const { isLoading, data } = useQuery(
-        ['config'],
+        ["config"],
         () => APIClient.config.get(),
         {
             retry: false,
@@ -125,7 +124,7 @@ function ApplicationSettings() {
             </div>
         </form>
 
-    )
+    );
 }
 
 export default ApplicationSettings;

@@ -4,7 +4,7 @@ import { classNames } from "../../utils";
 import { useToggle } from "../../hooks/hooks";
 import { EyeIcon, EyeOffIcon } from "@heroicons/react/solid";
 import { Switch } from "@headlessui/react";
-import { ErrorField } from "./common"
+import { ErrorField } from "./common";
 
 interface TextFieldWideProps {
     name: string;
@@ -56,7 +56,7 @@ export const TextFieldWide = ({
             <ErrorField name={name} classNames="block text-red-500 mt-2" />
         </div>
     </div>
-)
+);
 
 interface PasswordFieldWideProps {
     name: string;
@@ -77,7 +77,7 @@ export const PasswordFieldWide = ({
     required,
     defaultVisible
 }: PasswordFieldWideProps) => {
-    const [isVisible, toggleVisibility] = useToggle(defaultVisible)
+    const [isVisible, toggleVisibility] = useToggle(defaultVisible);
 
     return (
         <div className="space-y-1 px-4 sm:space-y-0 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6 sm:py-5">
@@ -114,8 +114,8 @@ export const PasswordFieldWide = ({
                 <ErrorField name={name} classNames="block text-red-500 mt-2" />
             </div>
         </div>
-    )
-}
+    );
+};
 
 interface NumberFieldWideProps {
     name: string;
@@ -154,7 +154,7 @@ export const NumberFieldWide = ({
                         id={name}
                         type="number"
                         value={field.value ? field.value : defaultValue ?? 0}
-                        onChange={(e) => { form.setFieldValue(field.name, parseInt(e.target.value)) }}
+                        onChange={(e) => { form.setFieldValue(field.name, parseInt(e.target.value)); }}
                         className={classNames(
                             meta.touched && meta.error
                                 ? "focus:ring-red-500 focus:border-red-500 border-red-500"
@@ -213,19 +213,19 @@ export const SwitchGroupWide = ({
                         value={field.value}
                         checked={field.checked ?? false}
                         onChange={value => {
-                            form.setFieldValue(field?.name ?? '', value)
+                            form.setFieldValue(field?.name ?? "", value);
                         }}
                         className={classNames(
-                            field.value ? 'bg-teal-500 dark:bg-blue-500' : 'bg-gray-200 dark:bg-gray-500',
-                            'ml-4 relative inline-flex flex-shrink-0 h-6 w-11 border-2 border-transparent rounded-full cursor-pointer transition-colors ease-in-out duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500'
+                            field.value ? "bg-teal-500 dark:bg-blue-500" : "bg-gray-200 dark:bg-gray-500",
+                            "ml-4 relative inline-flex flex-shrink-0 h-6 w-11 border-2 border-transparent rounded-full cursor-pointer transition-colors ease-in-out duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                         )}
                     >
                         <span className="sr-only">Use setting</span>
                         <span
                             aria-hidden="true"
                             className={classNames(
-                                field.value ? 'translate-x-5' : 'translate-x-0',
-                                'inline-block h-5 w-5 rounded-full bg-white shadow transform ring-0 transition ease-in-out duration-200'
+                                field.value ? "translate-x-5" : "translate-x-0",
+                                "inline-block h-5 w-5 rounded-full bg-white shadow transform ring-0 transition ease-in-out duration-200"
                             )}
                         />
                     </Switch>
@@ -233,5 +233,5 @@ export const SwitchGroupWide = ({
             </Field>
         </Switch.Group>
     </ul>
-)
+);
 

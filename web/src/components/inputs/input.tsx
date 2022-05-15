@@ -1,4 +1,4 @@
-import { Field } from "formik";
+import { Field, FieldProps } from "formik";
 import { classNames } from "../../utils";
 import { EyeIcon, EyeOffIcon } from "@heroicons/react/solid";
 import { useToggle } from "../../hooks/hooks";
@@ -22,12 +22,12 @@ export const TextField = ({
     placeholder,
     columns,
     autoComplete,
-    hidden,
+    hidden
 }: TextFieldProps) => (
     <div
         className={classNames(
             hidden ? "hidden" : "",
-            columns ? `col-span-${columns}` : "col-span-12",
+            columns ? `col-span-${columns}` : "col-span-12"
         )}
     >
         {label && (
@@ -38,8 +38,8 @@ export const TextField = ({
         <Field name={name}>
             {({
                 field,
-                meta,
-            }: any) => (
+                meta
+            }: FieldProps) => (
                 <div>
                     <input
                         {...field}
@@ -58,7 +58,7 @@ export const TextField = ({
             )}
         </Field>
     </div>
-)
+);
 
 interface PasswordFieldProps {
     name: string;
@@ -81,7 +81,7 @@ export const PasswordField = ({
     help,
     required
 }: PasswordFieldProps) => {
-    const [isVisible, toggleVisibility] = useToggle(false)
+    const [isVisible, toggleVisibility] = useToggle(false);
 
     return (
         <div
@@ -97,8 +97,8 @@ export const PasswordField = ({
             <Field name={name} defaultValue={defaultValue}>
                 {({
                     field,
-                    meta,
-                }: any) => (
+                    meta
+                }: FieldProps) => (
                     <div className="sm:col-span-2 relative">
                         <input
                             {...field}
@@ -124,8 +124,8 @@ export const PasswordField = ({
                 )}
             </Field>
         </div>
-    )
-}
+    );
+};
 
 interface NumberFieldProps {
     name: string;
@@ -148,8 +148,8 @@ export const NumberField = ({
         <Field name={name} type="number">
             {({
                 field,
-                meta,
-            }: any) => (
+                meta
+            }: FieldProps) => (
                 <div className="sm:col-span-2">
                     <input
                         type="number"

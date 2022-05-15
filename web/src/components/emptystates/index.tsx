@@ -29,12 +29,12 @@ export const EmptySimple = ({
           </div>
         ) : null}
     </div>
-)
+);
 
 interface EmptyListStateProps {
     text: string;
     buttonText?: string;
-    buttonOnClick?: any;
+    buttonOnClick?: () => void;
 }
 
 export function EmptyListState({ text, buttonText, buttonOnClick }: EmptyListStateProps) {
@@ -51,5 +51,5 @@ export function EmptyListState({ text, buttonText, buttonOnClick }: EmptyListSta
                 </button>
             )}
         </div>
-    )
+    );
 }

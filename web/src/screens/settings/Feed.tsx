@@ -19,11 +19,11 @@ import {FeedUpdateForm} from "../../forms/settings/FeedForms";
 import { EmptySimple } from "../../components/emptystates";
 
 function FeedSettings() {
-    const {data} = useQuery<Feed[], Error>('feeds', APIClient.feeds.find,
+    const {data} = useQuery<Feed[], Error>("feeds", APIClient.feeds.find,
         {
             refetchOnWindowFocus: false
         }
-    )
+    );
 
     return (
         <div className="divide-y divide-gray-200 lg:col-span-9">
@@ -61,7 +61,7 @@ function FeedSettings() {
                     : <EmptySimple title="No feeds" subtitle="Setup via indexers" />}
             </div>
         </div>
-    )
+    );
 }
 
 const ImplementationTorznab = () => (
@@ -70,10 +70,10 @@ const ImplementationTorznab = () => (
     >
         Torznab
     </span>
-)
+);
 
 export const ImplementationMap: any = {
-    "TORZNAB": <ImplementationTorznab/>,
+    "TORZNAB": <ImplementationTorznab/>
 };
 
 interface ListItemProps {
@@ -81,9 +81,9 @@ interface ListItemProps {
 }
 
 function ListItem({feed}: ListItemProps) {
-    const [updateFormIsOpen, toggleUpdateForm] = useToggle(false)
+    const [updateFormIsOpen, toggleUpdateForm] = useToggle(false);
 
-    const [enabled, setEnabled] = useState(feed.enabled)
+    const [enabled, setEnabled] = useState(feed.enabled);
 
     const updateMutation = useMutation(
         (status: boolean) => APIClient.feeds.toggleEnable(feed.id, status),
@@ -91,7 +91,7 @@ function ListItem({feed}: ListItemProps) {
             onSuccess: () => {
                 toast.custom((t) => <Toast type="success"
                                            body={`${feed.name} was ${enabled ? "disabled" : "enabled"} successfully`}
-                                           t={t}/>)
+                                           t={t}/>);
 
                 queryClient.invalidateQueries(["feeds"]);
                 queryClient.invalidateQueries(["feeds", feed?.id]);
@@ -102,7 +102,7 @@ function ListItem({feed}: ListItemProps) {
     const toggleActive = (status: boolean) => {
         setEnabled(status);
         updateMutation.mutate(status);
-    }
+    };
 
     return (
         <li key={feed.id} className="text-gray-500 dark:text-gray-400">
@@ -114,16 +114,16 @@ function ListItem({feed}: ListItemProps) {
                         checked={feed.enabled}
                         onChange={toggleActive}
                         className={classNames(
-                            feed.enabled ? 'bg-teal-500 dark:bg-blue-500' : 'bg-gray-200 dark:bg-gray-600',
-                            'relative inline-flex flex-shrink-0 h-6 w-11 border-2 border-transparent rounded-full cursor-pointer transition-colors ease-in-out duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500'
+                            feed.enabled ? "bg-teal-500 dark:bg-blue-500" : "bg-gray-200 dark:bg-gray-600",
+                            "relative inline-flex flex-shrink-0 h-6 w-11 border-2 border-transparent rounded-full cursor-pointer transition-colors ease-in-out duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                         )}
                     >
                         <span className="sr-only">Use setting</span>
                         <span
                             aria-hidden="true"
                             className={classNames(
-                                feed.enabled ? 'translate-x-5' : 'translate-x-0',
-                                'inline-block h-5 w-5 rounded-full bg-white shadow transform ring-0 transition ease-in-out duration-200'
+                                feed.enabled ? "translate-x-5" : "translate-x-0",
+                                "inline-block h-5 w-5 rounded-full bg-white shadow transform ring-0 transition ease-in-out duration-200"
                             )}
                         />
                     </Switch>
@@ -143,7 +143,7 @@ function ListItem({feed}: ListItemProps) {
                 </div>
             </div>
         </li>
-    )
+    );
 }
 
 interface FeedItemDropdownProps {
@@ -155,7 +155,7 @@ interface FeedItemDropdownProps {
 const FeedItemDropdown = ({
                               feed,
                               onToggle,
-                              toggleUpdate,
+                              toggleUpdate
                           }: FeedItemDropdownProps) => {
     const cancelModalButtonRef = useRef(null);
 
@@ -273,6 +273,6 @@ const FeedItemDropdown = ({
             </Transition>
         </Menu>
     );
-}
+};
 
 export default FeedSettings;

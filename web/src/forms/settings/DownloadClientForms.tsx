@@ -1,20 +1,21 @@
-import { Fragment, useRef, useState } from "react";
-import { useMutation } from "react-query";
-import { Dialog, Transition } from "@headlessui/react";
-import { XIcon } from "@heroicons/react/solid";
-import { sleep, classNames } from "../../utils";
-import { Form, Formik, useFormikContext } from "formik";
+import React, {Fragment, useRef, useState} from "react";
+import {useMutation} from "react-query";
+import {Dialog, Transition} from "@headlessui/react";
+import {XIcon} from "@heroicons/react/solid";
+import {classNames, sleep} from "../../utils";
+import {Form, Formik, useFormikContext} from "formik";
 import DEBUG from "../../components/debug";
-import { queryClient } from "../../App";
-import { APIClient } from "../../api/APIClient";
-import { DownloadClientTypeOptions } from "../../domain/constants";
+import {queryClient} from "../../App";
+import {APIClient} from "../../api/APIClient";
+import {DownloadClientTypeOptions} from "../../domain/constants";
 
-import { toast } from 'react-hot-toast'
-import Toast from '../../components/notifications/Toast';
-import { useToggle } from "../../hooks/hooks";
-import { DeleteModal } from "../../components/modals";
-import { NumberFieldWide, PasswordFieldWide, SwitchGroupWide, TextFieldWide } from "../../components/inputs/input_wide";
-import { RadioFieldsetWide } from "../../components/inputs/radio";
+import {toast} from "react-hot-toast";
+import Toast from "../../components/notifications/Toast";
+import {useToggle} from "../../hooks/hooks";
+import {DeleteModal} from "../../components/modals";
+import {NumberFieldWide, PasswordFieldWide, SwitchGroupWide, TextFieldWide} from "../../components/inputs/input_wide";
+import {RadioFieldsetWide} from "../../components/inputs/radio";
+import DownloadClient from "../../screens/settings/DownloadClient";
 
 interface InitialValuesSettings {
     basic?: {
@@ -46,7 +47,7 @@ interface InitialValues {
 
 function FormFieldsDefault() {
     const {
-        values: { tls },
+        values: { tls }
     } = useFormikContext<InitialValues>();
 
     return (
@@ -73,7 +74,7 @@ function FormFieldsDefault() {
 
 function FormFieldsArr() {
     const {
-        values: { settings },
+        values: { settings }
     } = useFormikContext<InitialValues>();
 
     return (
@@ -96,20 +97,23 @@ function FormFieldsArr() {
     );
 }
 
-export const componentMap: any = {
+interface componentMapType {
+    [key: string]: React.ReactElement;
+}
+
+export const componentMap: componentMapType = {
     DELUGE_V1: <FormFieldsDefault />,
     DELUGE_V2: <FormFieldsDefault />,
     QBITTORRENT: <FormFieldsDefault />,
     RADARR: <FormFieldsArr />,
     SONARR: <FormFieldsArr />,
     LIDARR: <FormFieldsArr />,
-    WHISPARR: <FormFieldsArr />,
+    WHISPARR: <FormFieldsArr />
 };
-
 
 function FormFieldsRulesBasic() {
     const {
-        values: { settings },
+        values: { settings }
     } = useFormikContext<InitialValues>();
 
     return (
@@ -137,7 +141,7 @@ function FormFieldsRulesBasic() {
 
 function FormFieldsRules() {
     const {
-        values: { settings },
+        values: { settings }
     } = useFormikContext<InitialValues>();
 
     return (
@@ -172,28 +176,28 @@ function FormFieldsRules() {
     );
 }
 
-export const rulesComponentMap: any = {
+export const rulesComponentMap: componentMapType = {
     DELUGE_V1: <FormFieldsRulesBasic />,
     DELUGE_V2: <FormFieldsRulesBasic />,
-    QBITTORRENT: <FormFieldsRules />,
+    QBITTORRENT: <FormFieldsRules />
 };
 
 interface formButtonsProps {
     isSuccessfulTest: boolean;
     isErrorTest: boolean;
     isTesting: boolean;
-    cancelFn: any;
-    testFn: any;
-    values: any;
+    cancelFn: () => void;
+    testFn: (data: unknown) => void;
+    values: unknown;
     type: "CREATE" | "UPDATE";
-    toggleDeleteModal?: any;
+    toggleDeleteModal?: () => void;
 }
 
 function DownloadClientFormButtons({ type, isSuccessfulTest, isErrorTest, isTesting, cancelFn, testFn, values, toggleDeleteModal }: formButtonsProps) {
 
     const test = () => {
-        testFn(values)
-    }
+        testFn(values);
+    };
 
     return (
         <div className="flex-shrink-0 px-4 border-t border-gray-200 dark:border-gray-700 py-5 sm:px-6">
@@ -269,10 +273,15 @@ function DownloadClientFormButtons({ type, isSuccessfulTest, isErrorTest, isTest
                 </div>
             </div>
         </div>
-    )
+    );
 }
 
-export function DownloadClientAddForm({ isOpen, toggle }: any) {
+interface formProps {
+    isOpen: boolean;
+    toggle: () => void;
+}
+
+export function DownloadClientAddForm({ isOpen, toggle }: formProps) {
     const [isTesting, setIsTesting] = useState(false);
     const [isSuccessfulTest, setIsSuccessfulTest] = useState(false);
     const [isErrorTest, setIsErrorTest] = useState(false);
@@ -282,12 +291,12 @@ export function DownloadClientAddForm({ isOpen, toggle }: any) {
         {
             onSuccess: () => {
                 queryClient.invalidateQueries(["downloadClients"]);
-                toast.custom((t) => <Toast type="success" body="Client was added" t={t} />)
+                toast.custom((t) => <Toast type="success" body="Client was added" t={t} />);
 
                 toggle();
             },
             onError: () => {
-                toast.custom((t) => <Toast type="error" body="Client could not be added" t={t} />)
+                toast.custom((t) => <Toast type="error" body="Client could not be added" t={t} />);
             }
         }
     );
@@ -313,22 +322,22 @@ export function DownloadClientAddForm({ isOpen, toggle }: any) {
                     });
             },
             onError: () => {
-                console.log('not added')
+                console.log("not added");
                 setIsTesting(false);
                 setIsErrorTest(true);
                 sleep(2500).then(() => {
                     setIsErrorTest(false);
                 });
-            },
+            }
         }
     );
 
-    const onSubmit = (data: any) => {
-        mutation.mutate(data);
+    const onSubmit = (data: unknown) => {
+        mutation.mutate(data as DownloadClient);
     };
 
-    const testClient = (data: any) => {
-        testClientMutation.mutate(data);
+    const testClient = (data: unknown) => {
+        testClientMutation.mutate(data as DownloadClient);
     };
 
     const initialValues: InitialValues = {
@@ -342,7 +351,7 @@ export function DownloadClientAddForm({ isOpen, toggle }: any) {
         username: "",
         password: "",
         settings: {}
-    }
+    };
 
     return (
         <Transition.Root show={isOpen} as={Fragment}>
@@ -445,7 +454,13 @@ export function DownloadClientAddForm({ isOpen, toggle }: any) {
     );
 }
 
-export function DownloadClientUpdateForm({ client, isOpen, toggle }: any) {
+interface updateFormProps {
+    isOpen: boolean;
+    toggle: () => void;
+    client: DownloadClient;
+}
+
+export function DownloadClientUpdateForm({ client, isOpen, toggle }: updateFormProps) {
     const [isTesting, setIsTesting] = useState(false);
     const [isSuccessfulTest, setIsSuccessfulTest] = useState(false);
     const [isErrorTest, setIsErrorTest] = useState(false);
@@ -456,9 +471,9 @@ export function DownloadClientUpdateForm({ client, isOpen, toggle }: any) {
         {
             onSuccess: () => {
                 queryClient.invalidateQueries(["downloadClients"]);
-                toast.custom((t) => <Toast type="success" body={`${client.name} was updated successfully`} t={t} />)
+                toast.custom((t) => <Toast type="success" body={`${client.name} was updated successfully`} t={t} />);
                 toggle();
-            },
+            }
         }
     );
 
@@ -467,9 +482,9 @@ export function DownloadClientUpdateForm({ client, isOpen, toggle }: any) {
         {
             onSuccess: () => {
                 queryClient.invalidateQueries();
-                toast.custom((t) => <Toast type="success" body={`${client.name} was deleted.`} t={t} />)
+                toast.custom((t) => <Toast type="success" body={`${client.name} was deleted.`} t={t} />);
                 toggleDeleteModal();
-            },
+            }
         }
     );
 
@@ -499,12 +514,12 @@ export function DownloadClientUpdateForm({ client, isOpen, toggle }: any) {
                 sleep(2500).then(() => {
                     setIsErrorTest(false);
                 });
-            },
+            }
         }
     );
 
-    const onSubmit = (data: any) => {
-        mutation.mutate(data);
+    const onSubmit = (data: unknown) => {
+        mutation.mutate(data as DownloadClient);
     };
 
     const cancelButtonRef = useRef(null);
@@ -514,8 +529,8 @@ export function DownloadClientUpdateForm({ client, isOpen, toggle }: any) {
         deleteMutation.mutate(client.id);
     };
 
-    const testClient = (data: any) => {
-        testClientMutation.mutate(data);
+    const testClient = (data: unknown) => {
+        testClientMutation.mutate(data as DownloadClient);
     };
 
     const initialValues = {
@@ -529,8 +544,8 @@ export function DownloadClientUpdateForm({ client, isOpen, toggle }: any) {
         tls_skip_verify: client.tls_skip_verify,
         username: client.username,
         password: client.password,
-        settings: client.settings,
-    }
+        settings: client.settings
+    };
 
     return (
         <Transition.Root show={isOpen} as={Fragment}>

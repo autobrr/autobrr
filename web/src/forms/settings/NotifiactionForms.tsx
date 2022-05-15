@@ -17,7 +17,6 @@ import {toast} from "react-hot-toast";
 import Toast from "../../components/notifications/Toast";
 import {SlideOver} from "../../components/panels";
 
-
 const Input = (props: any) => {
     return (
         <components.Input
@@ -26,7 +25,7 @@ const Input = (props: any) => {
             className="text-gray-400 dark:text-gray-100"
         />
     );
-}
+};
 
 const Control = (props: any) => {
     return (
@@ -35,7 +34,7 @@ const Control = (props: any) => {
             className="p-1 block w-full dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:text-gray-100 sm:text-sm"
         />
     );
-}
+};
 
 const Menu = (props: any) => {
     return (
@@ -44,7 +43,7 @@ const Menu = (props: any) => {
             className="dark:bg-gray-800 border border-gray-300 dark:border-gray-700 dark:text-gray-400 rounded-md shadow-sm"
         />
     );
-}
+};
 
 const Option = (props: any) => {
     return (
@@ -53,7 +52,7 @@ const Option = (props: any) => {
             className="dark:text-gray-400 dark:bg-gray-800 dark:hover:bg-gray-900 dark:focus:bg-gray-900"
         />
     );
-}
+};
 
 
 function FormFieldsDiscord() {
@@ -77,7 +76,7 @@ function FormFieldsDiscord() {
 }
 
 const componentMap: any = {
-    DISCORD: <FormFieldsDiscord/>,
+    DISCORD: <FormFieldsDiscord/>
 };
 
 interface NotificationAddFormValues {
@@ -95,19 +94,19 @@ export function NotificationAddForm({isOpen, toggle}: AddProps) {
         (notification: Notification) => APIClient.notifications.create(notification),
         {
             onSuccess: () => {
-                queryClient.invalidateQueries(['notifications']);
-                toast.custom((t) => <Toast type="success" body="Notification added!" t={t} />)
-                toggle()
+                queryClient.invalidateQueries(["notifications"]);
+                toast.custom((t) => <Toast type="success" body="Notification added!" t={t} />);
+                toggle();
             },
             onError: () => {
-                toast.custom((t) => <Toast type="error" body="Notification could not be added" t={t} />)
-            },
+                toast.custom((t) => <Toast type="error" body="Notification could not be added" t={t} />);
+            }
         }
     );
 
     const onSubmit = (formData: any) => {
-        mutation.mutate(formData)
-    }
+        mutation.mutate(formData);
+    };
 
     const validate = (values: NotificationAddFormValues) => {
         const errors = {} as any;
@@ -115,7 +114,7 @@ export function NotificationAddForm({isOpen, toggle}: AddProps) {
             errors.name = "Required";
 
         return errors;
-    }
+    };
 
     return (
         <Transition.Root show={isOpen} as={Fragment}>
@@ -141,7 +140,7 @@ export function NotificationAddForm({isOpen, toggle}: AddProps) {
                                         type: "",
                                         name: "",
                                         webhook: "",
-                                        events: [],
+                                        events: []
                                     }}
                                     onSubmit={onSubmit}
                                     validate={validate}
@@ -205,14 +204,14 @@ export function NotificationAddForm({isOpen, toggle}: AddProps) {
                                                                                 spacing: {
                                                                                     ...theme.spacing,
                                                                                     controlHeight: 30,
-                                                                                    baseUnit: 2,
+                                                                                    baseUnit: 2
                                                                                 }
                                                                             })}
                                                                             value={field?.value && field.value.value}
                                                                             onChange={(option: any) => {
-                                                                                resetForm()
+                                                                                resetForm();
                                                                                 // setFieldValue("name", option?.label ?? "")
-                                                                                setFieldValue(field.name, option?.value ?? "")
+                                                                                setFieldValue(field.name, option?.value ?? "");
                                                                             }}
                                                                             options={NotificationTypeOptions}
                                                                     />
@@ -273,7 +272,7 @@ export function NotificationAddForm({isOpen, toggle}: AddProps) {
                 </div>
             </Dialog>
         </Transition.Root>
-    )
+    );
 }
 
 const EventCheckBoxes = () => (
@@ -303,7 +302,7 @@ const EventCheckBoxes = () => (
                 </div>
             ))}
         </fieldset>
-)
+);
 
 interface UpdateProps {
     isOpen: boolean;
@@ -317,9 +316,9 @@ export function NotificationUpdateForm({isOpen, toggle, notification}: UpdatePro
         {
             onSuccess: () => {
                 queryClient.invalidateQueries(["notifications"]);
-                toast.custom((t) => <Toast type="success" body={`${notification.name} was updated successfully`} t={t}/>)
+                toast.custom((t) => <Toast type="success" body={`${notification.name} was updated successfully`} t={t}/>);
                 toggle();
-            },
+            }
         }
     );
 
@@ -328,14 +327,14 @@ export function NotificationUpdateForm({isOpen, toggle, notification}: UpdatePro
         {
             onSuccess: () => {
                 queryClient.invalidateQueries(["notifications"]);
-                toast.custom((t) => <Toast type="success" body={`${notification.name} was deleted.`} t={t}/>)
-            },
+                toast.custom((t) => <Toast type="success" body={`${notification.name} was deleted.`} t={t}/>);
+            }
         }
     );
 
     const onSubmit = (formData: any) => {
         mutation.mutate(formData);
-    }
+    };
 
     const deleteAction = () => {
         deleteMutation.mutate(notification.id);
@@ -347,8 +346,8 @@ export function NotificationUpdateForm({isOpen, toggle, notification}: UpdatePro
         type: notification.type,
         name: notification.name,
         webhook: notification.webhook,
-        events: notification.events || [],
-    }
+        events: notification.events || []
+    };
 
     return (
         <SlideOver
@@ -394,13 +393,13 @@ export function NotificationUpdateForm({isOpen, toggle, notification}: UpdatePro
                                                     spacing: {
                                                         ...theme.spacing,
                                                         controlHeight: 30,
-                                                        baseUnit: 2,
+                                                        baseUnit: 2
                                                     }
                                                 })}
                                                 value={field?.value && NotificationTypeOptions.find(o => o.value == field?.value)}
                                                 onChange={(option: any) => {
-                                                    resetForm()
-                                                    setFieldValue(field.name, option?.value ?? "")
+                                                    resetForm();
+                                                    setFieldValue(field.name, option?.value ?? "");
                                                 }}
                                                 options={NotificationTypeOptions}
                                         />
@@ -431,5 +430,5 @@ export function NotificationUpdateForm({isOpen, toggle, notification}: UpdatePro
                 </div>
             )}
         </SlideOver>
-    )
+    );
 }

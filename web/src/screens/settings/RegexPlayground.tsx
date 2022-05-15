@@ -15,7 +15,6 @@ export const RegexPlayground = () => {
             const matches = line.matchAll(regexp);
 
             let lastIndex = 0;
-            // @ts-ignore
             for (const match of matches) {
                 if (match.index === undefined)
                     continue;
@@ -52,7 +51,7 @@ export const RegexPlayground = () => {
         });
 
         setOutput(results);
-    }
+    };
 
     return (
         <div className="divide-y divide-gray-200 dark:divide-gray-700 lg:col-span-9">
@@ -103,4 +102,4 @@ export const RegexPlayground = () => {
             </div>
         </div>
     );
-}
+};

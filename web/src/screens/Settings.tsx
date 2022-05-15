@@ -6,7 +6,7 @@ import IndexerSettings from "./settings/Indexer";
 import { IrcSettings } from "./settings/Irc";
 import ApplicationSettings from "./settings/Application";
 import DownloadClientSettings from "./settings/DownloadClient";
-import { RegexPlayground } from './settings/RegexPlayground';
+import { RegexPlayground } from "./settings/RegexPlayground";
 import ReleaseSettings from "./settings/Releases";
 import NotificationSettings from "./settings/Notifications";
 import FeedSettings from "./settings/Feed";
@@ -21,7 +21,7 @@ const subNavigation = [
     {name: 'Releases', href: 'releases', icon: CollectionIcon, current: false},
     // {name: 'Regex Playground', href: 'regex-playground', icon: CogIcon, current: false}
     // {name: 'Rules', href: 'rules', icon: ClipboardCheckIcon, current: false},
-]
+];
 
 function SubNavLink({item, url}: any) {
     const location = useLocation();
@@ -30,7 +30,7 @@ function SubNavLink({item, url}: any) {
     const splitLocation = pathname.split("/");
 
     // we need to clean the / if it's a base root path
-    const too = item.href ? `${url}/${item.href}` : url
+    const too = item.href ? `${url}/${item.href}` : url;
     return (
         <NavLink
             key={item.name}
@@ -38,9 +38,9 @@ function SubNavLink({item, url}: any) {
             exact={true}
             activeClassName="bg-teal-50 dark:bg-gray-700 border-teal-500 dark:border-blue-500 text-teal-700 dark:text-white hover:bg-teal-50 dark:hover:bg-gray-500 hover:text-teal-700 dark:hover:text-gray-200"
             className={classNames(
-                'border-transparent text-gray-900 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-gray-300 group border-l-4 px-3 py-2 flex items-center text-sm font-medium'
+                "border-transparent text-gray-900 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-gray-300 group border-l-4 px-3 py-2 flex items-center text-sm font-medium"
             )}
-            aria-current={splitLocation[2] === item.href ? 'page' : undefined}
+            aria-current={splitLocation[2] === item.href ? "page" : undefined}
         >
             <item.icon
                 className="text-gray-400 group-hover:text-gray-500 dark:group-hover:text-gray-300 flex-shrink-0 -ml-1 mr-3 h-6 w-6"
@@ -48,7 +48,7 @@ function SubNavLink({item, url}: any) {
             />
             <span className="truncate">{item.name}</span>
         </NavLink>
-    )
+    );
 }
 
 function SidebarNav({subNavigation, url}: any) {
@@ -60,7 +60,7 @@ function SidebarNav({subNavigation, url}: any) {
                 ))}
             </nav>
         </aside>
-    )
+    );
 }
 
 export default function Settings() {
@@ -115,6 +115,6 @@ export default function Settings() {
                 </div>
             </div>
         </main>
-    )
+    );
 }
 

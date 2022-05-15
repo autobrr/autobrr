@@ -7,7 +7,7 @@ import {
     TrashIcon,
     PencilAltIcon,
     SwitchHorizontalIcon,
-    DotsHorizontalIcon, DuplicateIcon,
+    DotsHorizontalIcon, DuplicateIcon
 } from "@heroicons/react/outline";
 
 import { queryClient } from "../../App";
@@ -20,7 +20,7 @@ import { EmptyListState } from "../../components/emptystates";
 import { DeleteModal } from "../../components/modals";
 
 export default function Filters() {
-    const [createFilterIsOpen, toggleCreateFilter] = useToggle(false)
+    const [createFilterIsOpen, toggleCreateFilter] = useToggle(false);
 
     const { isLoading, error, data } = useQuery(
         ["filters"],
@@ -63,7 +63,7 @@ export default function Filters() {
                 )}
             </div>
         </main>
-    )
+    );
 }
 
 interface FilterListProps {
@@ -97,7 +97,7 @@ function FilterList({ filters }: FilterListProps) {
                 </tbody>
             </table>
         </div>
-    )
+    );
 }
 
 interface FilterItemDropdownProps {
@@ -256,7 +256,7 @@ const FilterItemDropdown = ({
             </Transition>
         </Menu>
     );
-}
+};
 
 interface FilterListItemProps {
     filter: Filter;
@@ -264,13 +264,13 @@ interface FilterListItemProps {
 }
 
 function FilterListItem({ filter, idx }: FilterListItemProps) {
-    const [enabled, setEnabled] = useState(filter.enabled)
+    const [enabled, setEnabled] = useState(filter.enabled);
 
     const updateMutation = useMutation(
         (status: boolean) => APIClient.filters.toggleEnable(filter.id, status),
         {
             onSuccess: () => {
-                toast.custom((t) => <Toast type="success" body={`${filter.name} was ${enabled ? "disabled" : "enabled"} successfully`} t={t} />)
+                toast.custom((t) => <Toast type="success" body={`${filter.name} was ${enabled ? "disabled" : "enabled"} successfully`} t={t} />);
 
                 // We need to invalidate both keys here.
                 // The filters key is used on the /filters page,
@@ -284,7 +284,7 @@ function FilterListItem({ filter, idx }: FilterListItemProps) {
     const toggleActive = (status: boolean) => {
         setEnabled(status);
         updateMutation.mutate(status);
-    }
+    };
 
     return (
         <tr
@@ -303,16 +303,16 @@ function FilterListItem({ filter, idx }: FilterListItemProps) {
                     checked={enabled}
                     onChange={toggleActive}
                     className={classNames(
-                        enabled ? 'bg-teal-500 dark:bg-blue-500' : 'bg-gray-200 dark:bg-gray-700',
-                        'relative inline-flex flex-shrink-0 h-6 w-11 border-2 border-transparent rounded-full cursor-pointer transition-colors ease-in-out duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500'
+                        enabled ? "bg-teal-500 dark:bg-blue-500" : "bg-gray-200 dark:bg-gray-700",
+                        "relative inline-flex flex-shrink-0 h-6 w-11 border-2 border-transparent rounded-full cursor-pointer transition-colors ease-in-out duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                     )}
                 >
                     <span className="sr-only">Use setting</span>
                     <span
                         aria-hidden="true"
                         className={classNames(
-                            enabled ? 'translate-x-5' : 'translate-x-0',
-                            'inline-block h-5 w-5 rounded-full bg-white dark:bg-gray-200 shadow transform ring-0 transition ease-in-out duration-200'
+                            enabled ? "translate-x-5" : "translate-x-0",
+                            "inline-block h-5 w-5 rounded-full bg-white dark:bg-gray-200 shadow transform ring-0 transition ease-in-out duration-200"
                         )}
                     />
                 </Switch>
@@ -342,5 +342,5 @@ function FilterListItem({ filter, idx }: FilterListItemProps) {
                 />
             </td>
         </tr>
-    )
+    );
 }

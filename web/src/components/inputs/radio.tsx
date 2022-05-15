@@ -15,15 +15,20 @@ interface props {
     options: radioFieldsetOption[];
 }
 
+interface anyObj {
+    [key: string]: string
+}
+
 function RadioFieldsetWide({ name, legend, options }: props) {
     const {
         values,
-        setFieldValue,
-    } = useFormikContext<any>();
+        setFieldValue
+    } = useFormikContext<anyObj>();
+
 
     const onChange = (value: string) => {
-        setFieldValue(name, value)
-    }
+        setFieldValue(name, value);
+    };
 
     return (
         <fieldset>

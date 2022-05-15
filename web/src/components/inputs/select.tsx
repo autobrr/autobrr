@@ -1,11 +1,18 @@
 import { Fragment } from "react";
-import { Field } from "formik";
+import { Field, FieldProps } from "formik";
 import { Transition, Listbox } from "@headlessui/react";
 import { CheckIcon, SelectorIcon } from "@heroicons/react/solid";
 import { MultiSelect as RMSC }  from "react-multi-select-component";
 
 import { classNames, COL_WIDTHS } from "../../utils";
 import { SettingsContext } from "../../utils/Context";
+
+export interface MultiSelectOption {
+    value: string | number;
+    label: string;
+    key?: string;
+    disabled?: boolean;
+}
 
 interface MultiSelectProps {
     name: string;
@@ -46,11 +53,10 @@ export const MultiSelect = ({
             <Field name={name} type="select" multiple={true}>
                 {({
                     field,
-                    form: { setFieldValue },
-                }: any) => (
+                    form: { setFieldValue }
+                }: FieldProps) => (
                     <RMSC
                         {...field}
-                        type="select"
                         options={[...[...options, ...field.value.map((i: any) => ({ value: i.value ?? i, label: i.label ?? i}))].reduce((map, obj) => map.set(obj.value, obj), new Map()).values()]}
                         labelledBy={name}
                         isCreatable={creatable}
@@ -70,13 +76,18 @@ export const MultiSelect = ({
             </Field>
         </div>
     );
+};
+
+interface IndexerMultiSelectOption {
+    id: number;
+    name: string;
 }
 
 export const IndexerMultiSelect = ({
     name,
     label,
     options,
-    columns,
+    columns
 }: MultiSelectProps) => {
   const settingsContext = SettingsContext.useValue();
   return (
@@ -95,26 +106,26 @@ export const IndexerMultiSelect = ({
           <Field name={name} type="select" multiple={true}>
               {({
                   field,
-                  form: { setFieldValue },
-              }: any) => (
+                  form: { setFieldValue }
+              }: FieldProps) => (
                   <RMSC
                       {...field}
-                      type="select"
                       options={options}
                       labelledBy={name}
-                      value={field.value && field.value.map((item: any) => options.find((o: any) => o.value?.id === item.id))}
-                      onChange={(values: any) => {
-                          const am = values && values.map((i: any) => i.value);
-                          setFieldValue(field.name, am);
+                      value={field.value && field.value.map((item: IndexerMultiSelectOption) => ({
+                          value: item.id, label: item.name
+                      }))}
+                      onChange={(values: MultiSelectOption[]) => {
+                          const item = values && values.map((i) => ({id: i.value, name: i.label }));
+                          setFieldValue(field.name, item);
                       }}
                       className={settingsContext.darkTheme ? "dark" : ""}
-                      itemHeight={50}
                   />
               )}
           </Field>
       </div>
   );
-}
+};
 
 interface DownloadClientSelectProps {
     name: string;
@@ -132,11 +143,11 @@ export function DownloadClientSelect({
             <Field name={name} type="select">
                 {({
                     field,
-                    form: { setFieldValue },
-                }: any) => (
+                    form: { setFieldValue }
+                }: FieldProps) => (
                     <Listbox
                         value={field.value}
-                        onChange={(value: any) => setFieldValue(field?.name, value)}
+                        onChange={(value) => setFieldValue(field?.name, value)}
                     >
                         {({ open }) => (
                             <>
@@ -147,7 +158,7 @@ export function DownloadClientSelect({
                                     <Listbox.Button className="bg-white dark:bg-gray-800 relative w-full border border-gray-300 dark:border-gray-700 rounded-md shadow-sm pl-3 pr-10 py-2 text-left cursor-default focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:focus:ring-blue-500 focus:border-indigo-500 dark:focus:border-blue-500 dark:text-gray-200 sm:text-sm">
                                         <span className="block truncate">
                                             {field.value
-                                                ? clients.find((c) => c.id === field.value)!.name
+                                                ? clients.find((c) => c.id === field.value)?.name
                                                 : "Choose a client"}
                                         </span>
                                         {/*<span className="block truncate">Choose a client</span>*/}
@@ -171,7 +182,7 @@ export function DownloadClientSelect({
                                         >
                                             {clients
                                                 .filter((c) => c.type === action.type)
-                                                .map((client: any) => (
+                                                .map((client) => (
                                                     <Listbox.Option
                                                         key={client.id}
                                                         className={({ active }) => classNames(
@@ -244,11 +255,11 @@ export const Select = ({
             <Field name={name} type="select">
                 {({
                     field,
-                    form: { setFieldValue },
-                }: any) => (
+                    form: { setFieldValue }
+                }: FieldProps) => (
                     <Listbox
                         value={field.value}
-                        onChange={(value: any) => setFieldValue(field?.name, value)}
+                        onChange={(value) => setFieldValue(field?.name, value)}
                     >
                         {({ open }) => (
                             <>
@@ -259,7 +270,7 @@ export const Select = ({
                                     <Listbox.Button className="bg-white dark:bg-gray-800 relative w-full border border-gray-300 dark:border-gray-700 rounded-md shadow-sm pl-3 pr-10 py-2 text-left cursor-default focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:focus:ring-blue-500 focus:border-indigo-500 dark:focus:border-blue-500 dark:text-gray-200 sm:text-sm">
                                         <span className="block truncate">
                                             {field.value
-                                                ? options.find((c) => c.value === field.value)!.label
+                                                ? options.find((c) => c.value === field.value)?.label
                                                 : optionDefaultText
                                             }
                                         </span>
@@ -333,7 +344,7 @@ export const Select = ({
             </Field>
         </div>
     );
-}
+};
 
 export const SelectWide = ({
     name,
@@ -348,11 +359,11 @@ export const SelectWide = ({
             <Field name={name} type="select">
                 {({
                     field,
-                    form: { setFieldValue },
-                }: any) => (
+                    form: { setFieldValue }
+                }: FieldProps) => (
                     <Listbox
                         value={field.value}
-                        onChange={(value: any) => setFieldValue(field?.name, value)}
+                        onChange={(value) => setFieldValue(field?.name, value)}
                     >
                         {({ open }) => (
                             <div className="py-4 flex items-center justify-between">
@@ -364,7 +375,7 @@ export const SelectWide = ({
                                     <Listbox.Button className="bg-white dark:bg-gray-800 relative w-full border border-gray-300 dark:border-gray-700 rounded-md shadow-sm pl-3 pr-10 py-2 text-left cursor-default focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:focus:ring-blue-500 focus:border-indigo-500 dark:focus:border-blue-500 dark:text-gray-200 sm:text-sm">
                                         <span className="block truncate">
                                             {field.value
-                                                ? options.find((c) => c.value === field.value)!.label
+                                                ? options.find((c) => c.value === field.value)?.label
                                                 : optionDefaultText
                                             }
                                         </span>
@@ -439,4 +450,4 @@ export const SelectWide = ({
         </div>
         </div>
     );
-}
+};

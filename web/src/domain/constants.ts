@@ -1,3 +1,5 @@
+import {MultiSelectOption} from "../components/inputs/select";
+
 export const resolutions = [
     "2160p",
     "1080p",
@@ -9,7 +11,7 @@ export const resolutions = [
     "480i"
 ];
 
-export const RESOLUTION_OPTIONS = resolutions.map(r => ({ value: r, label: r, key: r}));
+export const RESOLUTION_OPTIONS: MultiSelectOption[] = resolutions.map(r => ({ value: r, label: r, key: r}));
 
 export const codecs = [
     "HEVC",
@@ -23,7 +25,7 @@ export const codecs = [
     "XviD"
 ];
 
-export const CODECS_OPTIONS = codecs.map(v => ({ value: v, label: v, key: v}));
+export const CODECS_OPTIONS: MultiSelectOption[] = codecs.map(v => ({ value: v, label: v, key: v}));
 
 export const sources = [
     "BluRay",
@@ -49,15 +51,15 @@ export const sources = [
     "SiteRip",
 ];
 
-export const SOURCES_OPTIONS = sources.map(v => ({ value: v, label: v, key: v}));
+export const SOURCES_OPTIONS: MultiSelectOption[] = sources.map(v => ({ value: v, label: v, key: v}));
 
 export const containers = [
     "avi",
     "mp4",
-    "mkv",
+    "mkv"
 ];
 
-export const CONTAINER_OPTIONS = containers.map(v => ({ value: v, label: v, key: v}));
+export const CONTAINER_OPTIONS: MultiSelectOption[] = containers.map(v => ({ value: v, label: v, key: v}));
 
 export const hdr = [
     "HDR",
@@ -69,10 +71,10 @@ export const hdr = [
     "DV HDR10",
     "DV HDR10+",
     "DoVi",
-    "Dolby Vision",
+    "Dolby Vision"
 ];
 
-export const HDR_OPTIONS = hdr.map(v => ({ value: v, label: v, key: v}));
+export const HDR_OPTIONS: MultiSelectOption[] = hdr.map(v => ({ value: v, label: v, key: v}));
 
 export const quality_other = [
     "REMUX",
@@ -89,10 +91,10 @@ export const formatMusic = [
     "Ogg",
     "AAC",
     "AC3",
-    "DTS",
+    "DTS"
 ];
 
-export const FORMATS_OPTIONS = formatMusic.map(r => ({ value: r, label: r, key: r}));
+export const FORMATS_OPTIONS: MultiSelectOption[] = formatMusic.map(r => ({ value: r, label: r, key: r}));
 
 export const sourcesMusic = [
     "CD",
@@ -103,10 +105,10 @@ export const sourcesMusic = [
     "DAT",
     "Cassette",
     "Blu-Ray",
-    "SACD",
+    "SACD"
 ];
 
-export const SOURCES_MUSIC_OPTIONS = sourcesMusic.map(v => ({ value: v, label: v, key: v}));
+export const SOURCES_MUSIC_OPTIONS: MultiSelectOption[] = sourcesMusic.map(v => ({ value: v, label: v, key: v}));
 
 export const qualityMusic = [
     "192",
@@ -118,10 +120,10 @@ export const qualityMusic = [
     "V1 (VBR)",
     "V0 (VBR)",
     "Lossless",
-    "24bit Lossless",
+    "24bit Lossless"
 ];
 
-export const QUALITY_MUSIC_OPTIONS = qualityMusic.map(v => ({ value: v, label: v, key: v}));
+export const QUALITY_MUSIC_OPTIONS: MultiSelectOption[] = qualityMusic.map(v => ({ value: v, label: v, key: v}));
 
 export const releaseTypeMusic = [
     "Album",
@@ -141,7 +143,7 @@ export const releaseTypeMusic = [
     "Unknown",
 ];
 
-export const RELEASE_TYPE_MUSIC_OPTIONS = releaseTypeMusic.map(v => ({ value: v, label: v, key: v}));
+export const RELEASE_TYPE_MUSIC_OPTIONS: MultiSelectOption[] = releaseTypeMusic.map(v => ({ value: v, label: v, key: v}));
 
 export const originOptions = [
     "P2P",
@@ -193,7 +195,7 @@ export const DownloadClientTypeOptions: RadioFieldsetOption[] = [
         label: "Whisparr",
         description: "Send to Whisparr and let it decide",
         value: "WHISPARR"
-    },
+    }
 ];
 
 export const DownloadClientTypeNameMap: Record<DownloadClientType | string, string> = {
@@ -203,7 +205,7 @@ export const DownloadClientTypeNameMap: Record<DownloadClientType | string, stri
     "RADARR": "Radarr",
     "SONARR": "Sonarr",
     "LIDARR": "Lidarr",
-    "WHISPARR": "Whisparr",
+    "WHISPARR": "Whisparr"
 };
 
 export const ActionTypeOptions: RadioFieldsetOption[] = [
@@ -217,7 +219,7 @@ export const ActionTypeOptions: RadioFieldsetOption[] = [
     {label: "Radarr", description: "Send to Radarr and let it decide", value: "RADARR"},
     {label: "Sonarr", description: "Send to Sonarr and let it decide", value: "SONARR"},
     {label: "Lidarr", description: "Send to Lidarr and let it decide", value: "LIDARR"},
-    {label: "Whisparr", description: "Send to Whisparr and let it decide", value: "WHISPARR"},
+    {label: "Whisparr", description: "Send to Whisparr and let it decide", value: "WHISPARR"}
 ];
 
 export const ActionTypeNameMap = {
@@ -231,13 +233,18 @@ export const ActionTypeNameMap = {
     "RADARR": "Radarr",
     "SONARR": "Sonarr",
     "LIDARR": "Lidarr",
-    "WHISPARR": "Whisparr",
+    "WHISPARR": "Whisparr"
 };
 
-export const PushStatusOptions: any[] = [
+export interface OptionBasic {
+    label: string;
+    value: string;
+}
+
+export const PushStatusOptions: OptionBasic[] = [
     {
         label: "Rejected",
-        value: "PUSH_REJECTED",
+        value: "PUSH_REJECTED"
     },
     {
         label: "Approved",
@@ -246,36 +253,36 @@ export const PushStatusOptions: any[] = [
     {
         label: "Error",
         value: "PUSH_ERROR"
-    },
+    }
 ];
 
-export const NotificationTypeOptions: any[] = [
+export const NotificationTypeOptions: OptionBasic[] = [
     {
         label: "Discord",
-        value: "DISCORD",
-    },
+        value: "DISCORD"
+    }
 ];
 
 export interface SelectOption {
     label: string;
     description: string;
-    value: any;
+    value: string;
 }
 
 export const EventOptions: SelectOption[] = [
     {
         label: "Push Rejected",
         value: "PUSH_REJECTED",
-        description: "On push rejected for the arrs or download client",
+        description: "On push rejected for the arrs or download client"
     },
     {
         label: "Push Approved",
         value: "PUSH_APPROVED",
-        description: "On push approved for the arrs or download client",
+        description: "On push approved for the arrs or download client"
     },
     {
         label: "Push Error",
         value: "PUSH_ERROR",
-        description: "On push error for the arrs or download client",
-    },
+        description: "On push error for the arrs or download client"
+    }
 ];
