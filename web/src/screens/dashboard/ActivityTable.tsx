@@ -17,17 +17,17 @@ import * as DataTable from "../../components/data-table";
 // This is a custom filter UI for selecting
 // a unique option from a list
 function SelectColumnFilter({
-  column: { filterValue, setFilter, preFilteredRows, id, render },
+  column: { filterValue, setFilter, preFilteredRows, id, render }
 }: any) {
   // Calculate the options for filtering
   // using the preFilteredRows
   const options = React.useMemo(() => {
-    const options: any = new Set()
+    const options: any = new Set();
     preFilteredRows.forEach((row: { values: { [x: string]: unknown } }) => {
-      options.add(row.values[id])
-    })
-    return [...options.values()]
-  }, [id, preFilteredRows])
+      options.add(row.values[id]);
+    });
+    return [...options.values()];
+  }, [id, preFilteredRows]);
 
   // Render a multi-select box
   return (
@@ -39,7 +39,7 @@ function SelectColumnFilter({
         id={id}
         value={filterValue}
         onChange={e => {
-          setFilter(e.target.value || undefined)
+          setFilter(e.target.value || undefined);
         }}
       >
         <option value="">All</option>
@@ -50,7 +50,7 @@ function SelectColumnFilter({
         ))}
       </select>
     </label>
-  )
+  );
 }
 
 function Table({ columns, data }: any) {
@@ -60,7 +60,7 @@ function Table({ columns, data }: any) {
     getTableBodyProps,
     headerGroups,
     prepareRow,
-    page, // Instead of using 'rows', we'll use page,
+    page // Instead of using 'rows', we'll use page,
   } = useTable(
     { columns, data },
     useFilters,
@@ -94,7 +94,7 @@ function Table({ columns, data }: any) {
                         {...columnRest}
                       >
                         <div className="flex items-center justify-between">
-                          {column.render('Header')}
+                          {column.render("Header")}
                           {/* Add a sort direction indicator */}
                           <span>
                             {column.isSorted ? (
@@ -133,12 +133,12 @@ function Table({ columns, data }: any) {
                         role="cell"
                         {...cellRowRest}
                       >
-                        {cell.render('Cell')}
+                        {cell.render("Cell")}
                       </td>
-                    )
+                    );
                   })}
                 </tr>
-              )
+              );
             })}
           </tbody>
         </table>
@@ -151,30 +151,30 @@ export const ActivityTable = () => {
   const columns = React.useMemo(() => [
     {
       Header: "Age",
-      accessor: 'timestamp',
-      Cell: DataTable.AgeCell,
+      accessor: "timestamp",
+      Cell: DataTable.AgeCell
     },
     {
       Header: "Release",
-      accessor: 'torrent_name',
-      Cell: DataTable.TitleCell,
+      accessor: "torrent_name",
+      Cell: DataTable.TitleCell
     },
     {
       Header: "Actions",
-      accessor: 'action_status',
-      Cell: DataTable.ReleaseStatusCell,
+      accessor: "action_status",
+      Cell: DataTable.ReleaseStatusCell
     },
     {
       Header: "Indexer",
-      accessor: 'indexer',
+      accessor: "indexer",
       Cell: DataTable.TitleCell,
       Filter: SelectColumnFilter,
-      filter: 'includes',
-    },
-  ], [])
+      filter: "includes"
+    }
+  ], []);
 
   const { isLoading, data } = useQuery(
-    'dash_release',
+    "dash_release",
     () => APIClient.release.find("?limit=10"),
     { refetchOnWindowFocus: false }
   );
@@ -191,4 +191,4 @@ export const ActivityTable = () => {
       <Table columns={columns} data={data?.data} />
     </div>
   );
-}
+};

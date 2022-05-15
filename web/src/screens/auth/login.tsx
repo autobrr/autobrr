@@ -34,7 +34,7 @@ export const Login = () => {
           isLoggedIn: true
         });
         history.push("/");
-      },
+      }
     }
   );
 
@@ -75,4 +75,4 @@ export const Login = () => {
       </div>
     </div>
   );
-}
+};

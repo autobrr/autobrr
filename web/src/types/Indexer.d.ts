@@ -8,7 +8,7 @@ interface Indexer {
 }
 
 interface IndexerDefinition {
-  id?: number;
+  id: number;
   name: string;
   identifier: string;
   implementation: string;

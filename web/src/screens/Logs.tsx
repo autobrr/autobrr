@@ -18,7 +18,7 @@ const LogColors: Record<LogLevel, string> = {
   "TRACE": "text-purple-300",
   "DEBUG": "text-yellow-500",
   "INFO": "text-green-500",
-  "ERROR": "text-red-500",
+  "ERROR": "text-red-500"
 };
 
 export const Logs = () => {
@@ -29,7 +29,7 @@ export const Logs = () => {
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "auto" });
-  }
+  };
 
   useEffect(() => {
     const es = APIClient.events.logs();
@@ -40,7 +40,7 @@ export const Logs = () => {
 
       if (settings.scrollOnNewLog)
         scrollToBottom();
-    }
+    };
 
     return () => es.close();
   }, [setLogs, settings]);
@@ -96,7 +96,7 @@ export const Logs = () => {
                 key={idx}
                 className={classNames(
                   settings.indentLogLines ? "grid justify-start grid-flow-col" : "",
-                  settings.hideWrappedText ? "truncate hover:text-ellipsis hover:whitespace-normal" : "",
+                  settings.hideWrappedText ? "truncate hover:text-ellipsis hover:whitespace-normal" : ""
                 )}
               >
                 <span
@@ -112,7 +112,7 @@ export const Logs = () => {
                     )}
                   >
                     {a.level}
-                    {' '}
+                    {" "}
                   </span>
                 ) : null}
                 <span className="ml-2 text-black dark:text-gray-300">
@@ -125,5 +125,5 @@ export const Logs = () => {
         </div>
       </div>
     </main>
-  )
-}
+  );
+};
