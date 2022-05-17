@@ -20,14 +20,14 @@ type Processor interface {
 }
 
 type announceProcessor struct {
-	indexer domain.IndexerDefinition
+	indexer *domain.IndexerDefinition
 
 	releaseSvc release.Service
 
 	queues map[string]chan string
 }
 
-func NewAnnounceProcessor(releaseSvc release.Service, indexer domain.IndexerDefinition) Processor {
+func NewAnnounceProcessor(releaseSvc release.Service, indexer *domain.IndexerDefinition) Processor {
 	ap := &announceProcessor{
 		releaseSvc: releaseSvc,
 		indexer:    indexer,
@@ -166,7 +166,7 @@ func (a *announceProcessor) parseExtract(pattern string, vars []string, tmpVars 
 }
 
 // onLinesMatched process vars into release
-func (a *announceProcessor) onLinesMatched(def domain.IndexerDefinition, vars map[string]string, rls *domain.Release) error {
+func (a *announceProcessor) onLinesMatched(def *domain.IndexerDefinition, vars map[string]string, rls *domain.Release) error {
 	var err error
 
 	err = rls.MapVars(def, vars)

@@ -24,9 +24,9 @@ type Service interface {
 	FindByFilterID(ctx context.Context, id int) ([]domain.Indexer, error)
 	List(ctx context.Context) ([]domain.Indexer, error)
 	GetAll() ([]*domain.IndexerDefinition, error)
-	GetTemplates() ([]domain.IndexerDefinition, error)
+	GetTemplates() ([]*domain.IndexerDefinition, error)
 	LoadIndexerDefinitions() error
-	GetIndexersByIRCNetwork(server string) []domain.IndexerDefinition
+	GetIndexersByIRCNetwork(server string) []*domain.IndexerDefinition
 	GetTorznabIndexers() []domain.IndexerDefinition
 	Start() error
 }
@@ -38,12 +38,12 @@ type service struct {
 	scheduler  scheduler.Service
 
 	// contains all raw indexer definitions
-	indexerDefinitions map[string]domain.IndexerDefinition
+	indexerDefinitions map[string]*domain.IndexerDefinition
 
 	// map server:channel:announce to indexer.Identifier
 	mapIndexerIRCToName map[string]string
 
-	lookupIRCServerDefinition map[string]map[string]domain.IndexerDefinition
+	lookupIRCServerDefinition map[string]map[string]*domain.IndexerDefinition
 
 	torznabIndexers map[string]*domain.IndexerDefinition
 }
@@ -54,9 +54,9 @@ func NewService(config domain.Config, repo domain.IndexerRepo, apiService APISer
 		repo:                      repo,
 		apiService:                apiService,
 		scheduler:                 scheduler,
-		indexerDefinitions:        make(map[string]domain.IndexerDefinition),
+		indexerDefinitions:        make(map[string]*domain.IndexerDefinition),
 		mapIndexerIRCToName:       make(map[string]string),
-		lookupIRCServerDefinition: make(map[string]map[string]domain.IndexerDefinition),
+		lookupIRCServerDefinition: make(map[string]map[string]*domain.IndexerDefinition),
 		torznabIndexers:           make(map[string]*domain.IndexerDefinition),
 	}
 }
@@ -207,11 +207,11 @@ func (s *service) mapIndexer(indexer domain.Indexer) (*domain.IndexerDefinition,
 	return &indexerDefinition, nil
 }
 
-func (s *service) GetTemplates() ([]domain.IndexerDefinition, error) {
+func (s *service) GetTemplates() ([]*domain.IndexerDefinition, error) {
 
 	definitions := s.indexerDefinitions
 
-	var ret []domain.IndexerDefinition
+	ret := make([]*domain.IndexerDefinition, 0)
 	for _, definition := range definitions {
 		ret = append(ret, definition)
 	}
@@ -245,7 +245,7 @@ func (s *service) Start() error {
 			s.mapIRCIndexerLookup(indexer.Identifier, *indexer)
 
 			// add to irc server lookup table
-			s.mapIRCServerDefinitionLookup(indexer.IRC.Server, *indexer)
+			s.mapIRCServerDefinitionLookup(indexer.IRC.Server, indexer)
 
 			// check if it has api and add to api service
 			if indexer.Enabled && indexer.HasApi() {
@@ -297,7 +297,7 @@ func (s *service) addIndexer(indexer domain.Indexer) error {
 		s.mapIRCIndexerLookup(indexer.Identifier, *indexerDefinition)
 
 		// add to irc server lookup table
-		s.mapIRCServerDefinitionLookup(indexerDefinition.IRC.Server, *indexerDefinition)
+		s.mapIRCServerDefinitionLookup(indexerDefinition.IRC.Server, indexerDefinition)
 
 		// check if it has api and add to api service
 		if indexerDefinition.Enabled && indexerDefinition.HasApi() {
@@ -339,12 +339,12 @@ func (s *service) mapIRCIndexerLookup(indexerIdentifier string, indexerDefinitio
 // mapIRCServerDefinitionLookup map irc stuff to indexer.name
 // map[irc.network.test][indexer1] = indexer1
 // map[irc.network.test][indexer2] = indexer2
-func (s *service) mapIRCServerDefinitionLookup(ircServer string, indexerDefinition domain.IndexerDefinition) {
+func (s *service) mapIRCServerDefinitionLookup(ircServer string, indexerDefinition *domain.IndexerDefinition) {
 	if indexerDefinition.IRC != nil {
 		// check if already exists, if ok add it to existing, otherwise create new
 		_, exists := s.lookupIRCServerDefinition[ircServer]
 		if !exists {
-			s.lookupIRCServerDefinition[ircServer] = map[string]domain.IndexerDefinition{}
+			s.lookupIRCServerDefinition[ircServer] = map[string]*domain.IndexerDefinition{}
 		}
 
 		s.lookupIRCServerDefinition[ircServer][indexerDefinition.Identifier] = indexerDefinition
@@ -374,7 +374,7 @@ func (s *service) LoadIndexerDefinitions() error {
 
 		log.Trace().Msgf("parsing: %v", file)
 
-		var d domain.IndexerDefinition
+		var d *domain.IndexerDefinition
 
 		data, err := fs.ReadFile(Definitions, file)
 		if err != nil {
@@ -427,7 +427,7 @@ func (s *service) LoadCustomIndexerDefinitions() error {
 
 		log.Trace().Msgf("parsing custom: %v", file)
 
-		var d domain.IndexerDefinition
+		var d *domain.IndexerDefinition
 
 		//data, err := fs.ReadFile(Definitions, filePath)
 		data, err := os.ReadFile(file)
@@ -452,10 +452,10 @@ func (s *service) LoadCustomIndexerDefinitions() error {
 	return nil
 }
 
-func (s *service) GetIndexersByIRCNetwork(server string) []domain.IndexerDefinition {
+func (s *service) GetIndexersByIRCNetwork(server string) []*domain.IndexerDefinition {
 	server = strings.ToLower(server)
 
-	indexerDefinitions := make([]domain.IndexerDefinition, 0)
+	indexerDefinitions := make([]*domain.IndexerDefinition, 0)
 
 	// get indexer definitions matching irc network from lookup table
 	if srv, idOk := s.lookupIRCServerDefinition[server]; idOk {
@@ -483,7 +483,7 @@ func (s *service) GetTorznabIndexers() []domain.IndexerDefinition {
 func (s *service) getDefinitionByName(name string) *domain.IndexerDefinition {
 
 	if v, ok := s.indexerDefinitions[name]; ok {
-		return &v
+		return v
 	}
 
 	return nil
@@ -494,7 +494,7 @@ func (s *service) getDefinitionForAnnounce(name string) *domain.IndexerDefinitio
 	// map[network:channel:announcer] = indexer01
 
 	if v, ok := s.indexerDefinitions[name]; ok {
-		return &v
+		return v
 	}
 
 	return nil

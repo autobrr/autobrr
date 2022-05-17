@@ -358,7 +358,7 @@ func (r *Release) RejectionsString() string {
 }
 
 // MapVars better name
-func (r *Release) MapVars(def IndexerDefinition, varMap map[string]string) error {
+func (r *Release) MapVars(def *IndexerDefinition, varMap map[string]string) error {
 
 	if torrentName, err := getStringMapValue(varMap, "torrentName"); err != nil {
 		return errors.Wrap(err, "failed parsing required field")
