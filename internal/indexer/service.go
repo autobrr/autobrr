@@ -169,42 +169,30 @@ func (s *service) mapIndexer(indexer domain.Indexer) (*domain.IndexerDefinition,
 		}
 	}
 
-	indexerDefinition := domain.IndexerDefinition{
-		ID:             int(indexer.ID),
-		Name:           indexer.Name,
-		Identifier:     indexer.Identifier,
-		Implementation: indexer.Implementation,
-		Enabled:        indexer.Enabled,
-		Description:    in.Description,
-		Language:       in.Language,
-		Privacy:        in.Privacy,
-		Protocol:       in.Protocol,
-		URLS:           in.URLS,
-		Supports:       in.Supports,
-		Settings:       nil,
-		SettingsMap:    make(map[string]string),
-		IRC:            in.IRC,
-		Torznab:        in.Torznab,
-		Parse:          in.Parse,
-	}
+	in.ID = int(indexer.ID)
+	in.Name = indexer.Name
+	in.Identifier = indexer.Identifier
+	in.Implementation = indexer.Implementation
+	in.Enabled = indexer.Enabled
+	in.SettingsMap = make(map[string]string)
 
-	if indexerDefinition.Implementation == "" {
-		indexerDefinition.Implementation = "irc"
+	if in.Implementation == "" {
+		in.Implementation = "irc"
 	}
 
 	// map settings
 	// add value to settings objects
-	for _, setting := range in.Settings {
+	for i, setting := range in.Settings {
 		if v, ok := indexer.Settings[setting.Name]; ok {
 			setting.Value = v
 
-			indexerDefinition.SettingsMap[setting.Name] = v
+			in.SettingsMap[setting.Name] = v
 		}
 
-		indexerDefinition.Settings = append(indexerDefinition.Settings, setting)
+		in.Settings[i] = setting
 	}
 
-	return &indexerDefinition, nil
+	return in, nil
 }
 
 func (s *service) GetTemplates() ([]*domain.IndexerDefinition, error) {
@@ -242,7 +230,7 @@ func (s *service) Start() error {
 
 	for _, indexer := range indexerDefinitions {
 		if indexer.IRC != nil {
-			s.mapIRCIndexerLookup(indexer.Identifier, *indexer)
+			s.mapIRCIndexerLookup(indexer.Identifier, indexer)
 
 			// add to irc server lookup table
 			s.mapIRCServerDefinitionLookup(indexer.IRC.Server, indexer)
@@ -294,7 +282,7 @@ func (s *service) addIndexer(indexer domain.Indexer) error {
 	//}
 
 	if indexerDefinition.IRC != nil {
-		s.mapIRCIndexerLookup(indexer.Identifier, *indexerDefinition)
+		s.mapIRCIndexerLookup(indexer.Identifier, indexerDefinition)
 
 		// add to irc server lookup table
 		s.mapIRCServerDefinitionLookup(indexerDefinition.IRC.Server, indexerDefinition)
@@ -315,7 +303,7 @@ func (s *service) addIndexer(indexer domain.Indexer) error {
 	return nil
 }
 
-func (s *service) mapIRCIndexerLookup(indexerIdentifier string, indexerDefinition domain.IndexerDefinition) {
+func (s *service) mapIRCIndexerLookup(indexerIdentifier string, indexerDefinition *domain.IndexerDefinition) {
 	// map irc stuff to indexer.name
 	// map[irc.network.test:channel:announcer1] = indexer1
 	// map[irc.network.test:channel:announcer2] = indexer2
@@ -455,7 +443,7 @@ func (s *service) LoadCustomIndexerDefinitions() error {
 func (s *service) GetIndexersByIRCNetwork(server string) []*domain.IndexerDefinition {
 	server = strings.ToLower(server)
 
-	indexerDefinitions := make([]*domain.IndexerDefinition, 0)
+	var indexerDefinitions []*domain.IndexerDefinition
 
 	// get indexer definitions matching irc network from lookup table
 	if srv, idOk := s.lookupIRCServerDefinition[server]; idOk {
