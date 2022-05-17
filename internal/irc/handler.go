@@ -73,7 +73,7 @@ type Handler struct {
 	channelHealth   map[string]*channelHealth
 }
 
-func NewHandler(network domain.IrcNetwork, definitions []domain.IndexerDefinition, releaseSvc release.Service) *Handler {
+func NewHandler(network domain.IrcNetwork, definitions []*domain.IndexerDefinition, releaseSvc release.Service) *Handler {
 	h := &Handler{
 		client:             nil,
 		network:            &network,
@@ -91,7 +91,7 @@ func NewHandler(network domain.IrcNetwork, definitions []domain.IndexerDefinitio
 	return h
 }
 
-func (h *Handler) InitIndexers(definitions []domain.IndexerDefinition) {
+func (h *Handler) InitIndexers(definitions []*domain.IndexerDefinition) {
 	// Networks can be shared by multiple indexers but channels are unique
 	// so let's add a new AnnounceProcessor per channel
 	for _, definition := range definitions {
@@ -99,7 +99,7 @@ func (h *Handler) InitIndexers(definitions []domain.IndexerDefinition) {
 			continue
 		}
 
-		h.definitions[definition.Identifier] = &definition
+		h.definitions[definition.Identifier] = definition
 
 		// indexers can use multiple channels, but it's not common, but let's handle that anyway.
 		for _, channel := range definition.IRC.Channels {

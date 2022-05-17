@@ -370,15 +370,18 @@ export function IndexerAddForm({ isOpen, toggle }: AddProps) {
                                     })}
                                     value={field?.value && field.value.value}
                                     onChange={(option: unknown) => {
-                                      const opt = option as SelectValue;
                                       resetForm();
+
+                                      const opt = option as SelectValue;
                                       setFieldValue("name", opt.label ?? "");
                                       setFieldValue(field.name, opt.value ?? "");
 
                                       const ind = data && data.find(i => i.identifier === opt.value);
                                       if (ind) {
                                         setIndexer(ind);
-                                        if (ind.irc.settings) {
+                                        setFieldValue("implementation", ind.implementation);
+
+                                        if (ind.irc && ind.irc.settings) {
                                           ind.irc.settings.forEach((s) => {
                                             setFieldValue(`irc.${s.name}`, s.default ?? "");
                                           });
