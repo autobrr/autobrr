@@ -1,11 +1,21 @@
 type DownloadClientType =
-    'QBITTORRENT' |
-    'DELUGE_V1' |
-    'DELUGE_V2' |
-    'RADARR' |
-    'SONARR' |
-    'LIDARR' |
-    'WHISPARR';
+    "QBITTORRENT" |
+    "DELUGE_V1" |
+    "DELUGE_V2" |
+    "RADARR" |
+    "SONARR" |
+    "LIDARR" |
+    "WHISPARR";
+
+// export enum DownloadClientTypeEnum {
+//     QBITTORRENT = "QBITTORRENT",
+//     DELUGE_V1 = "DELUGE_V1",
+//     DELUGE_V2 = "DELUGE_V2",
+//     RADARR = "RADARR",
+//     SONARR = "SONARR",
+//     LIDARR = "LIDARR",
+//     WHISPARR = "WHISPARR"
+// }
 
 interface DownloadClientRules {
   enabled: boolean;
@@ -27,7 +37,6 @@ interface DownloadClientSettings {
 }
 
 interface DownloadClient {
-  id?: number;
   id: number;
   name: string;
   type: DownloadClientType;

@@ -83,4 +83,4 @@ interface Action {
   client_id?: number;
 }
 
-type ActionType = 'TEST' | 'EXEC' | 'WATCH_FOLDER' | 'WEBHOOK' | DownloadClientType;
+type ActionType = "TEST" | "EXEC" | "WATCH_FOLDER" | "WEBHOOK" | DownloadClientType;

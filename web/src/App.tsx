@@ -16,7 +16,7 @@ import Toast from "./components/notifications/Toast";
 
 export const queryClient = new QueryClient({
   defaultOptions: {
-    queries: { useErrorBoundary: true, },
+    queries: { useErrorBoundary: true },
     mutations: {
       onError: (error) => {
         // Use a format string to convert the error object to a proper string without much hassle.
@@ -27,8 +27,8 @@ export const queryClient = new QueryClient({
         );
         toast.custom((t) => <Toast type="error" body={message} t={t} />);
       }
-    },
-  },
+    }
+  }
 });
 
 export function App() {

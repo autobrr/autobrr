@@ -1,29 +1,29 @@
 interface IrcNetwork {
-    id: number;
-    name: string;
-    enabled: boolean;
-    server: string;
-    port: number;
-    tls: boolean;
-    pass: string;
-    invite_command: string;
-    nickserv?: NickServ; // optional
-    channels: IrcChannel[];
-    connected: boolean;
-    connected_since: Time;
+  id: number;
+  name: string;
+  enabled: boolean;
+  server: string;
+  port: number;
+  tls: boolean;
+  pass: string;
+  invite_command: string;
+  nickserv?: NickServ; // optional
+  channels: IrcChannel[];
+  connected: boolean;
+  connected_since: string;
 }
 
 interface IrcNetworkCreate {
-    name: string;
-    enabled: boolean;
-    server: string;
-    port: number;
-    tls: boolean;
-    pass: string;
-    invite_command: string;
-    nickserv?: NickServ; // optional
-    channels: IrcChannel[];
-    connected: boolean;
+  name: string;
+  enabled: boolean;
+  server: string;
+  port: number;
+  tls: boolean;
+  pass: string;
+  invite_command: string;
+  nickserv?: NickServ; // optional
+  channels: IrcChannel[];
+  connected: boolean;
 }
 
 interface IrcChannel {
@@ -61,12 +61,12 @@ interface NickServ {
 }
 
 interface Config {
-    host: string;
-    port: number;
-    log_level: string;
-    log_path: string;
-    base_url: string;
-    version: string;
-    commit: string;
-    date: string;
+  host: string;
+  port: number;
+  log_level: string;
+  log_path: string;
+  base_url: string;
+  version: string;
+  commit: string;
+  date: string;
 }

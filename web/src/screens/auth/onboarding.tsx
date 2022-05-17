@@ -27,7 +27,7 @@ export const Onboarding = () => {
     if (values.password1 !== values.password2)
       obj.password2 = "Passwords don't match!";
     
-      return obj;
+    return obj;
   };
 
   const history = useHistory();
@@ -37,7 +37,7 @@ export const Onboarding = () => {
     {
       onSuccess: () => {
         history.push("/login");
-      },
+      }
     }
   );
 
@@ -81,5 +81,5 @@ export const Onboarding = () => {
       </div>
     </div>
   );
-}
+};
 
