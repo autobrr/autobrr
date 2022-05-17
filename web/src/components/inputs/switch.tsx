@@ -11,13 +11,16 @@ import { Switch as HeadlessSwitch } from "@headlessui/react";
 import { classNames } from "../../utils";
 
 type SwitchProps<V = unknown> = {
-    label: string
+    label?: string
     checked: boolean
+    value: boolean
     disabled?: boolean
     onChange: (value: boolean) => void
     field?: FieldInputProps<V>
     form?: FormikProps<FormikValues>
     meta?: FieldMetaProps<V>
+    children: React.ReactNode
+  className: string
 };
 
 export const Switch = ({
@@ -64,7 +67,7 @@ export const Switch = ({
 
 export type SwitchFormikProps = SwitchProps & FieldProps & React.InputHTMLAttributes<HTMLInputElement>;
 
-export const SwitchFormik = (props: SwitchProps) => <Switch {...props} />;
+export const SwitchFormik = (props: SwitchProps) => <Switch {...props}  children={props.children}/>;
 
 interface SwitchGroupProps {
     name: string;
@@ -96,12 +99,12 @@ const SwitchGroup = ({
       {({
         field,
         form: { setFieldValue }
-      }: any) => (
+      }: FieldProps) => (
         <Switch
           {...field}
-          type="button"
+          // type="button"
           value={field.value}
-          checked={field.checked}
+          checked={field.checked ?? false}
           onChange={value => {
             setFieldValue(field?.name ?? "", value);
           }}

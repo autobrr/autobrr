@@ -6,10 +6,11 @@ import Toast from "../../components/notifications/Toast";
 import { SlideOver } from "../../components/panels";
 import { NumberFieldWide, PasswordFieldWide, SwitchGroupWide, TextFieldWide } from "../../components/inputs";
 import { ImplementationMap } from "../../screens/settings/Feed";
+import { componentMapType } from "./DownloadClientForms";
 
 interface UpdateProps {
   isOpen: boolean;
-  toggle: any;
+  toggle: () => void;
   feed: Feed;
 }
 
@@ -35,8 +36,8 @@ export function FeedUpdateForm({ isOpen, toggle, feed }: UpdateProps) {
     }
   );
 
-  const onSubmit = (formData: any) => {
-    mutation.mutate(formData);
+  const onSubmit = (formData: unknown) => {
+    mutation.mutate(formData as Feed);
   };
 
   const deleteAction = () => {
@@ -112,6 +113,6 @@ function FormFieldsTorznab() {
   );
 }
 
-const componentMap: any = {
+const componentMap: componentMapType = {
   TORZNAB: <FormFieldsTorznab/>
 };

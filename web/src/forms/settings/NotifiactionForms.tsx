@@ -1,55 +1,60 @@
 import { Dialog, Transition } from "@headlessui/react";
 import { Fragment } from "react";
-import { Field, Form, Formik } from "formik";
+import { Field, Form, Formik, FormikErrors, FormikValues } from "formik";
 import type { FieldProps } from "formik";
 import { XIcon } from "@heroicons/react/solid";
-import Select, { components } from "react-select";
+import Select, { components, ControlProps, InputProps, MenuProps, OptionProps } from "react-select";
 import {
   SwitchGroupWide,
   TextFieldWide
 } from "../../components/inputs";
 import DEBUG from "../../components/debug";
-import { EventOptions, NotificationTypeOptions } from "../../domain/constants";
+import { EventOptions, NotificationTypeOptions, SelectOption } from "../../domain/constants";
 import { useMutation } from "react-query";
 import { APIClient } from "../../api/APIClient";
 import { queryClient } from "../../App";
 import { toast } from "react-hot-toast";
 import Toast from "../../components/notifications/Toast";
 import { SlideOver } from "../../components/panels";
+import { componentMapType } from "./DownloadClientForms";
 
-const Input = (props: any) => {
+const Input = (props: InputProps) => {
   return (
     <components.Input
       {...props}
       inputClassName="outline-none border-none shadow-none focus:ring-transparent"
       className="text-gray-400 dark:text-gray-100"
+      children={props.children}
     />
   );
 };
 
-const Control = (props: any) => {
+const Control = (props: ControlProps) => {
   return (
     <components.Control
       {...props}
       className="p-1 block w-full dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:text-gray-100 sm:text-sm"
+      children={props.children}
     />
   );
 };
 
-const Menu = (props: any) => {
+const Menu = (props: MenuProps) => {
   return (
     <components.Menu
       {...props}
       className="dark:bg-gray-800 border border-gray-300 dark:border-gray-700 dark:text-gray-400 rounded-md shadow-sm"
+      children={props.children}
     />
   );
 };
 
-const Option = (props: any) => {
+const Option = (props: OptionProps) => {
   return (
     <components.Option
       {...props}
       className="dark:text-gray-400 dark:bg-gray-800 dark:hover:bg-gray-900 dark:focus:bg-gray-900"
+      children={props.children}
     />
   );
 };
@@ -75,7 +80,7 @@ function FormFieldsDiscord() {
   );
 }
 
-const componentMap: any = {
+const componentMap: componentMapType = {
   DISCORD: <FormFieldsDiscord/>
 };
 
@@ -86,7 +91,7 @@ interface NotificationAddFormValues {
 
 interface AddProps {
     isOpen: boolean;
-    toggle: any;
+    toggle: () => void;
 }
 
 export function NotificationAddForm({ isOpen, toggle }: AddProps) {
@@ -104,12 +109,12 @@ export function NotificationAddForm({ isOpen, toggle }: AddProps) {
     }
   );
 
-  const onSubmit = (formData: any) => {
-    mutation.mutate(formData);
+  const onSubmit = (formData: unknown) => {
+    mutation.mutate(formData as Notification);
   };
 
   const validate = (values: NotificationAddFormValues) => {
-    const errors = {} as any;
+    const errors = {} as FormikErrors<FormikValues>;
     if (!values.name)
       errors.name = "Required";
 
@@ -151,10 +156,11 @@ export function NotificationAddForm({ isOpen, toggle }: AddProps) {
                         <div className="px-4 py-6 bg-gray-50 dark:bg-gray-900 sm:px-6">
                           <div className="flex items-start justify-between space-x-3">
                             <div className="space-y-1">
-                              <Dialog.Title className="text-lg font-medium text-gray-900 dark:text-white">Add
-                                                                Notifications</Dialog.Title>
+                              <Dialog.Title className="text-lg font-medium text-gray-900 dark:text-white">
+                                Add Notifications
+                              </Dialog.Title>
                               <p className="text-sm text-gray-500 dark:text-gray-200">
-                                                                Trigger notifications on different events.
+                                Trigger notifications on different events.
                               </p>
                             </div>
                             <div className="h-7 flex items-center">
@@ -179,7 +185,7 @@ export function NotificationAddForm({ isOpen, toggle }: AddProps) {
                                 htmlFor="type"
                                 className="block text-sm font-medium text-gray-900 dark:text-white"
                               >
-                                                                Type
+                                Type
                               </label>
                             </div>
                             <div className="sm:col-span-2">
@@ -208,10 +214,12 @@ export function NotificationAddForm({ isOpen, toggle }: AddProps) {
                                       }
                                     })}
                                     value={field?.value && field.value.value}
-                                    onChange={(option: any) => {
+                                    onChange={(option: unknown) => {
                                       resetForm();
+
+                                      const opt = option as SelectOption;
                                       // setFieldValue("name", option?.label ?? "")
-                                      setFieldValue(field.name, option?.value ?? "");
+                                      setFieldValue(field.name, opt.value ?? "");
                                     }}
                                     options={NotificationTypeOptions}
                                   />
@@ -230,7 +238,7 @@ export function NotificationAddForm({ isOpen, toggle }: AddProps) {
                               <Dialog.Title
                                 className="text-lg font-medium text-gray-900 dark:text-white">Events</Dialog.Title>
                               <p className="text-sm text-gray-500 dark:text-gray-400">
-                                                                Select what events to trigger on
+                                Select what events to trigger on
                               </p>
                             </div>
 
@@ -250,13 +258,13 @@ export function NotificationAddForm({ isOpen, toggle }: AddProps) {
                             className="bg-white dark:bg-gray-700 py-2 px-4 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 dark:focus:ring-blue-500"
                             onClick={toggle}
                           >
-                                                        Cancel
+                            Cancel
                           </button>
                           <button
                             type="submit"
                             className="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 dark:bg-blue-600 hover:bg-indigo-700 dark:hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 dark:focus:ring-blue-500"
                           >
-                                                        Save
+                            Save
                           </button>
                         </div>
                       </div>
@@ -306,7 +314,7 @@ const EventCheckBoxes = () => (
 
 interface UpdateProps {
     isOpen: boolean;
-    toggle: any;
+    toggle: () => void;
     notification: Notification;
 }
 
@@ -332,8 +340,8 @@ export function NotificationUpdateForm({ isOpen, toggle, notification }: UpdateP
     }
   );
 
-  const onSubmit = (formData: any) => {
-    mutation.mutate(formData);
+  const onSubmit = (formData: unknown) => {
+    mutation.mutate(formData as Notification);
   };
 
   const deleteAction = () => {
@@ -370,7 +378,7 @@ export function NotificationUpdateForm({ isOpen, toggle, notification }: UpdateP
                   htmlFor="type"
                   className="block text-sm font-medium text-gray-900 dark:text-white"
                 >
-                                    Type
+                  Type
                 </label>
               </div>
               <div className="sm:col-span-2">
@@ -397,9 +405,10 @@ export function NotificationUpdateForm({ isOpen, toggle, notification }: UpdateP
                         }
                       })}
                       value={field?.value && NotificationTypeOptions.find(o => o.value == field?.value)}
-                      onChange={(option: any) => {
+                      onChange={(option: unknown) => {
                         resetForm();
-                        setFieldValue(field.name, option?.value ?? "");
+                        const opt = option as SelectOption;
+                        setFieldValue(field.name, opt.value ?? "");
                       }}
                       options={NotificationTypeOptions}
                     />
@@ -417,7 +426,7 @@ export function NotificationUpdateForm({ isOpen, toggle, notification }: UpdateP
                 <Dialog.Title
                   className="text-lg font-medium text-gray-900 dark:text-white">Events</Dialog.Title>
                 <p className="text-sm text-gray-500 dark:text-gray-400">
-                                    Select what events to trigger on
+                  Select what events to trigger on
                 </p>
               </div>
 

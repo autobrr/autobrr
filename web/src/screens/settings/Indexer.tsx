@@ -5,6 +5,7 @@ import { Switch } from "@headlessui/react";
 import { classNames } from "../../utils";
 import { EmptySimple } from "../../components/emptystates";
 import { APIClient } from "../../api/APIClient";
+import { componentMapType } from "../../forms/settings/DownloadClientForms";
 
 const ImplementationIRC = () => (
   <span
@@ -22,12 +23,16 @@ const ImplementationTorznab = () => (
   </span>
 );
 
-const implementationMap: any = {
+const implementationMap: componentMapType = {
   "irc": <ImplementationIRC/>,
   "torznab": <ImplementationTorznab />
 };
 
-const ListItem = ({ indexer }: any) => {
+interface ListItemProps {
+  indexer: IndexerDefinition;
+}
+
+const ListItem = ({ indexer }: ListItemProps) => {
   const [updateIsOpen, toggleUpdate] = useToggle(false);
 
   return (

@@ -38,7 +38,7 @@ export const Login = () => {
     }
   );
 
-  const handleSubmit = (data: any) => mutation.mutate(data);
+  const handleSubmit = (data: LoginData) => mutation.mutate(data);
 
   return (
     <div className="min-h-screen flex flex-col justify-center py-12 sm:px-6 lg:px-8">

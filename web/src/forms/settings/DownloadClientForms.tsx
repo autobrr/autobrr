@@ -97,7 +97,7 @@ function FormFieldsArr() {
   );
 }
 
-interface componentMapType {
+export interface componentMapType {
   [key: string]: React.ReactElement;
 }
 

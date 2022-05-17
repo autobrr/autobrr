@@ -17,7 +17,7 @@ export interface MultiSelectOption {
 interface MultiSelectProps {
     name: string;
     label?: string;
-    options?: [] | any;
+    options: MultiSelectOption[];
     columns?: COL_WIDTHS;
     creatable?: boolean;
 }
@@ -57,16 +57,16 @@ export const MultiSelect = ({
         }: FieldProps) => (
           <RMSC
             {...field}
-            options={[...[...options, ...field.value.map((i: any) => ({ value: i.value ?? i, label: i.label ?? i }))].reduce((map, obj) => map.set(obj.value, obj), new Map()).values()]}
+            options={[...[...options, ...field.value.map((i: MultiSelectOption) => ({ value: i.value ?? i, label: i.label ?? i }))].reduce((map, obj) => map.set(obj.value, obj), new Map()).values()]}
             labelledBy={name}
             isCreatable={creatable}
             onCreateOption={handleNewField}
-            value={field.value && field.value.map((item: any) => ({
+            value={field.value && field.value.map((item: MultiSelectOption) => ({
               value: item.value ? item.value : item,
               label: item.label ? item.label : item
             }))}
-            onChange={(values: any) => {
-              const am = values && values.map((i: any) => i.value);
+            onChange={(values: Array<MultiSelectOption>) => {
+              const am = values && values.map((i) => i.value);
 
               setFieldValue(field.name, am);
             }}

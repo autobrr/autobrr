@@ -1,4 +1,4 @@
-import { Fragment, useRef } from "react";
+import React, { Fragment, useRef } from "react";
 import { useMutation, useQuery } from "react-query";
 import {
   NavLink,
@@ -10,10 +10,9 @@ import {
   useRouteMatch
 } from "react-router-dom";
 import { toast } from "react-hot-toast";
-import { Field, FieldArray, Form, Formik } from "formik";
+import { Field, FieldArray, FieldProps, Form, Formik, FormikValues } from "formik";
 import { Dialog, Transition, Switch as SwitchBasic } from "@headlessui/react";
 import { ChevronDownIcon, ChevronRightIcon } from "@heroicons/react/solid";
-
 
 import {
   CONTAINER_OPTIONS,
@@ -50,7 +49,13 @@ import { DeleteModal } from "../../components/modals";
 import { TitleSubtitle } from "../../components/headings";
 import { EmptyListState } from "../../components/emptystates";
 
-const tabs = [
+interface tabType {
+  name: string;
+  href: string;
+  current: boolean;
+}
+
+const tabs: tabType[] = [
   { name: "General", href: "", current: true },
   { name: "Movies and TV", href: "movies-tv", current: false },
   { name: "Music", href: "music", current: false },
@@ -59,7 +64,12 @@ const tabs = [
   { name: "Actions", href: "actions", current: false }
 ];
 
-function TabNavLink({ item, url }: any) {
+export interface NavLinkProps {
+  item: tabType;
+  url: string;
+}
+
+function TabNavLink({ item, url }: NavLinkProps) {
   const location = useLocation();
   const splitLocation = location.pathname.split("/");
 
@@ -80,7 +90,14 @@ function TabNavLink({ item, url }: any) {
   );
 }
 
-const FormButtonsGroup = ({ values, deleteAction, reset }: any) => {
+interface FormButtonsGroupProps {
+  values: FormikValues;
+  deleteAction: () => void;
+  reset: () => void;
+  dirty?: boolean;
+}
+
+const FormButtonsGroup = ({ values, deleteAction, reset }: FormButtonsGroupProps) => {
   const [deleteModalIsOpen, toggleDeleteModal] = useToggle(false);
 
   const cancelModalButtonRef = useRef(null);
@@ -504,7 +521,7 @@ function Advanced() {
 interface CollapsableSectionProps {
     title: string;
     subtitle: string;
-    children: any;
+    children: React.ReactNode;
 }
 
 function CollapsableSection({ title, subtitle, children }: CollapsableSectionProps) {
@@ -537,7 +554,7 @@ function CollapsableSection({ title, subtitle, children }: CollapsableSectionPro
 
 interface FilterActionsProps {
     filter: Filter;
-    values: any;
+    values: FormikValues;
 }
 
 function FilterActions({ filter, values }: FilterActionsProps) {
@@ -603,7 +620,7 @@ function FilterActions({ filter, values }: FilterActionsProps) {
             <div className="light:bg-white dark:bg-gray-800 light:shadow sm:rounded-md">
               {values.actions.length > 0 ?
                 <ul className="divide-y divide-gray-200 dark:divide-gray-700">
-                  {values.actions.map((action: any, index: number) => (
+                  {values.actions.map((action: Action, index: number) => (
                     <FilterActionsItem action={action} clients={data ?? []} idx={index} remove={remove} key={index} />
                   ))}
                 </ul>
@@ -621,7 +638,7 @@ interface FilterActionsItemProps {
     action: Action;
     clients: DownloadClient[];
     idx: number;
-    remove: any;
+    remove: <T>(index: number) => T | undefined;
 }
 
 function FilterActionsItem({ action, clients, idx, remove }: FilterActionsItemProps) {
@@ -858,13 +875,13 @@ function FilterActionsItem({ action, clients, idx, remove }: FilterActionsItemPr
           {({
             field,
             form: { setFieldValue }
-          }: any) => (
+          }: FieldProps) => (
             <SwitchBasic
               {...field}
               type="button"
               value={field.value}
-              checked={field.checked}
-              onChange={value => {
+              checked={field.checked ?? false}
+              onChange={(value: boolean) => {
                 setFieldValue(field?.name ?? "", value);
               }}
               className={classNames(

@@ -30,7 +30,7 @@ function SlideOver<DataType>({
   type,
   children
 }: SlideOverProps<DataType>): React.ReactElement {
-  const cancelModalButtonRef = useRef(null);
+  const cancelModalButtonRef = useRef<HTMLInputElement | null>(null);
   const [deleteModalIsOpen, toggleDeleteModal] = useToggle(false);
 
   return (

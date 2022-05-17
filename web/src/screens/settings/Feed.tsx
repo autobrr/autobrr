@@ -17,6 +17,7 @@ import {
 } from "@heroicons/react/outline";
 import { FeedUpdateForm } from "../../forms/settings/FeedForms";
 import { EmptySimple } from "../../components/emptystates";
+import { componentMapType } from "../../forms/settings/DownloadClientForms";
 
 function FeedSettings() {
   const { data } = useQuery<Feed[], Error>("feeds", APIClient.feeds.find,
@@ -72,7 +73,7 @@ const ImplementationTorznab = () => (
   </span>
 );
 
-export const ImplementationMap: any = {
+export const ImplementationMap: componentMapType = {
   "TORZNAB": <ImplementationTorznab/>
 };
 

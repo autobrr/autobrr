@@ -5,7 +5,7 @@ import {
   useFilters,
   useGlobalFilter,
   useSortBy,
-  usePagination
+  usePagination, FilterProps, Column
 } from "react-table";
 
 import { APIClient } from "../../api/APIClient";
@@ -18,12 +18,12 @@ import * as DataTable from "../../components/data-table";
 // a unique option from a list
 function SelectColumnFilter({
   column: { filterValue, setFilter, preFilteredRows, id, render }
-}: any) {
+}: FilterProps<object>) {
   // Calculate the options for filtering
   // using the preFilteredRows
   const options = React.useMemo(() => {
-    const options: any = new Set();
-    preFilteredRows.forEach((row: { values: { [x: string]: unknown } }) => {
+    const options = new Set<string>();
+    preFilteredRows.forEach((row: { values: { [x: string]: string } }) => {
       options.add(row.values[id]);
     });
     return [...options.values()];
@@ -53,7 +53,12 @@ function SelectColumnFilter({
   );
 }
 
-function Table({ columns, data }: any) {
+interface TableProps {
+  columns: Column[];
+  data: Release[];
+}
+
+function Table({ columns, data }: TableProps) {
   // Use the state and functions returned from useTable to build your UI
   const {
     getTableProps,
@@ -119,12 +124,12 @@ function Table({ columns, data }: any) {
             {...getTableBodyProps()}
             className="divide-y divide-gray-200 dark:divide-gray-700"
           >
-            {page.map((row: any) => {
+            {page.map((row) => {
               prepareRow(row);
               const { key: bodyRowKey, ...bodyRowRest } = row.getRowProps();
               return (
                 <tr key={bodyRowKey} {...bodyRowRest}>
-                  {row.cells.map((cell: any) => {
+                  {row.cells.map((cell) => {
                     const { key: cellRowKey, ...cellRowRest } = cell.getCellProps();
                     return (
                       <td
@@ -188,7 +193,7 @@ export const ActivityTable = () => {
         Recent activity
       </h3>
 
-      <Table columns={columns} data={data?.data} />
+      <Table columns={columns} data={data?.data ?? []} />
     </div>
   );
 };

@@ -11,7 +11,14 @@ import ReleaseSettings from "./settings/Releases";
 import NotificationSettings from "./settings/Notifications";
 import FeedSettings from "./settings/Feed";
 
-const subNavigation = [
+interface NavTabType {
+  name: string;
+  href: string;
+  icon: typeof CogIcon;
+  current: boolean;
+}
+
+const subNavigation: NavTabType[] = [
   { name: "Application", href: "", icon: CogIcon, current: true },
   { name: "Indexers", href: "indexers", icon: KeyIcon, current: false },
   { name: "IRC", href: "irc", icon: ChatAlt2Icon, current: false },
@@ -23,7 +30,12 @@ const subNavigation = [
   // {name: 'Rules', href: 'rules', icon: ClipboardCheckIcon, current: false},
 ];
 
-function SubNavLink({ item, url }: any) {
+interface NavLinkProps {
+  item: NavTabType;
+  url: string;
+}
+
+function SubNavLink({ item, url }: NavLinkProps) {
   const location = useLocation();
   const { pathname } = location;
 
@@ -51,11 +63,16 @@ function SubNavLink({ item, url }: any) {
   );
 }
 
-function SidebarNav({ subNavigation, url }: any) {
+interface SidebarNavProps {
+  subNavigation: NavTabType[];
+  url: string;
+}
+
+function SidebarNav({ subNavigation, url }: SidebarNavProps) {
   return (
     <aside className="py-2 lg:col-span-3">
       <nav className="space-y-1">
-        {subNavigation.map((item: any) => (
+        {subNavigation.map((item) => (
           <SubNavLink item={item} url={url} key={item.href}/>
         ))}
       </nav>

@@ -1,8 +1,14 @@
 import { Fragment, useState } from "react";
 import { toast } from "react-hot-toast";
 import { useMutation, useQuery } from "react-query";
-import Select, { components } from "react-select";
-import { Field, Form, Formik } from "formik";
+import Select, {
+  components,
+  ControlProps,
+  InputProps,
+  MenuProps,
+  OptionProps
+} from "react-select";
+import { Field, Form, Formik, FormikValues } from "formik";
 import type { FieldProps } from "formik";
 
 import { XIcon } from "@heroicons/react/solid";
@@ -20,39 +26,43 @@ import {
 import { SlideOver } from "../../components/panels";
 import Toast from "../../components/notifications/Toast";
 
-const Input = (props: any) => {
+const Input = (props: InputProps) => {
   return (
     <components.Input 
       {...props} 
       inputClassName="outline-none border-none shadow-none focus:ring-transparent"
       className="text-gray-400 dark:text-gray-100"
+      children={props.children}
     />
   );
 };
 
-const Control = (props: any) => {
+const Control = (props: ControlProps) => {
   return (
     <components.Control 
       {...props} 
       className="block w-full dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:text-gray-100 sm:text-sm"
+      children={props.children}
     />
   );
 };
 
-const Menu = (props: any) => {
+const Menu = (props: MenuProps) => {
   return (
     <components.Menu 
       {...props}
       className="dark:bg-gray-800 border border-gray-300 dark:border-gray-700 dark:text-gray-400 rounded-md shadow-sm"
+      children={props.children}
     />
   );
 };
 
-const Option = (props: any) => {
+const Option = (props: OptionProps) => {
   return (
     <components.Option 
       {...props}
       className="dark:text-gray-400 dark:bg-gray-800 dark:hover:bg-gray-900 dark:focus:bg-gray-900"
+      children={props.children}
     />
   );
 };
@@ -123,7 +133,7 @@ const SettingFields = (ind: IndexerDefinition, indexer: string) => {
   if (indexer !== "") {
     return (
       <div key="opt">
-        {ind && ind.settings && ind.settings.map((f: any, idx: number) => {
+        {ind && ind.settings && ind.settings.map((f, idx: number) => {
           switch (f.type) {
           case "text":
             return (
@@ -160,9 +170,14 @@ function slugIdentifier(name: string) {
 //     settings?: Record<string, unknown>;
 // }
 
+type SelectValue = {
+  label: string;
+  value: string;
+};
+
 interface AddProps {
     isOpen: boolean;
-    toggle: any;
+    toggle: () => void;
 }
 
 export function IndexerAddForm({ isOpen, toggle }: AddProps) {
@@ -196,7 +211,7 @@ export function IndexerAddForm({ isOpen, toggle }: AddProps) {
     (feed: FeedCreate) => APIClient.feeds.create(feed)
   );
 
-  const onSubmit = (formData: any) => {
+  const onSubmit = (formData: FormikValues) => {
     const ind = data && data.find(i => i.identifier === formData.identifier);
     if (!ind)
       return;
@@ -216,7 +231,7 @@ export function IndexerAddForm({ isOpen, toggle }: AddProps) {
         indexer_id: 0
       };
 
-      mutation.mutate(formData, {
+      mutation.mutate(formData as Indexer, {
         onSuccess: (indexer) => {
           // @eslint-ignore
           createFeed.indexer_id = indexer.id;
@@ -256,7 +271,7 @@ export function IndexerAddForm({ isOpen, toggle }: AddProps) {
         channels: channels
       };
 
-      mutation.mutate(formData, {
+      mutation.mutate(formData as Indexer, {
         onSuccess: () => {
           ircMutation.mutate(network);
         }
@@ -354,12 +369,13 @@ export function IndexerAddForm({ isOpen, toggle }: AddProps) {
                                       }
                                     })}
                                     value={field?.value && field.value.value}
-                                    onChange={(option: any) => {
+                                    onChange={(option: unknown) => {
+                                      const opt = option as SelectValue;
                                       resetForm();
-                                      setFieldValue("name", option?.label ?? "");
-                                      setFieldValue(field.name, option?.value ?? "");
+                                      setFieldValue("name", opt.label ?? "");
+                                      setFieldValue(field.name, opt.value ?? "");
 
-                                      const ind = data && data.find(i => i.identifier === option.value);
+                                      const ind = data && data.find(i => i.identifier === opt.value);
                                       if (ind) {
                                         setIndexer(ind);
                                         if (ind.irc.settings) {
@@ -369,7 +385,7 @@ export function IndexerAddForm({ isOpen, toggle }: AddProps) {
                                         }
                                       }
                                     }}
-                                    options={data && data.sort((a, b): any => a.name.localeCompare(b.name)).map(v => ({
+                                    options={data && data.sort((a, b) => a.name.localeCompare(b.name)).map(v => ({
                                       label: v.name,
                                       value: v.identifier
                                     }))} 
@@ -427,7 +443,7 @@ export function IndexerAddForm({ isOpen, toggle }: AddProps) {
 
 interface UpdateProps {
     isOpen: boolean;
-    toggle: any;
+    toggle: () => void;
     indexer: IndexerDefinition;
 }
 

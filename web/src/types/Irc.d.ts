@@ -10,7 +10,7 @@ interface IrcNetwork {
   nickserv?: NickServ; // optional
   channels: IrcChannel[];
   connected: boolean;
-  connected_since: Time;
+  connected_since: string;
 }
 
 interface IrcNetworkCreate {

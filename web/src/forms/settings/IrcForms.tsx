@@ -1,7 +1,7 @@
 import { useMutation } from "react-query";
 import { toast } from "react-hot-toast";
 import { XIcon } from "@heroicons/react/solid";
-import { Field, FieldArray } from "formik";
+import { Field, FieldArray, FormikErrors, FormikValues } from "formik";
 import type { FieldProps } from "formik";
 
 import { queryClient } from "../../App";
@@ -95,7 +95,12 @@ interface IrcNetworkAddFormValues {
     channels: IrcChannel[];
 }
 
-export function IrcNetworkAddForm({ isOpen, toggle }: any) {
+interface AddFormProps {
+  isOpen: boolean;
+  toggle: () => void;
+}
+
+export function IrcNetworkAddForm({ isOpen, toggle }: AddFormProps) {
   const mutation = useMutation(
     (network: IrcNetwork) => APIClient.irc.createNetwork(network),
     {
@@ -110,20 +115,11 @@ export function IrcNetworkAddForm({ isOpen, toggle }: any) {
     }
   );
 
-  const onSubmit = (data: any) => {
-    // easy way to split textarea lines into array of strings for each newline.
-    // parse on the field didn't really work.
-    data.connect_commands = (
-      data.connect_commands && data.connect_commands.length > 0 ?
-        data.connect_commands.replace(/\r\n/g, "\n").split("\n") :
-        []
-    );
-
-    mutation.mutate(data);
+  const onSubmit = (data: unknown) => {
+    mutation.mutate(data as IrcNetwork);
   };
-
-  const validate = (values: IrcNetworkAddFormValues) => {
-    const errors = {} as any;
+  const validate = (values: FormikValues) => {
+    const errors = {} as FormikErrors<FormikValues>;
     if (!values.name)
       errors.name = "Required";
 
@@ -237,19 +233,12 @@ export function IrcNetworkUpdateForm({
     }
   });
 
-  const onSubmit = (data: any) => {
-    // easy way to split textarea lines into array of strings for each newline.
-    // parse on the field didn't really work.
-    // TODO fix connect_commands on network update
-    // let cmds = data.connect_commands && data.connect_commands.length > 0 ? data.connect_commands.replace(/\r\n/g,"\n").split("\n") : [];
-    // data.connect_commands = cmds
-    // console.log("formatted", data)
-
-    mutation.mutate(data);
+  const onSubmit = (data: unknown) => {
+    mutation.mutate(data as IrcNetwork);
   };
 
-  const validate = (values: any) => {
-    const errors = {} as any;
+  const validate = (values: FormikValues) => {
+    const errors = {} as FormikErrors<FormikValues>;
 
     if (!values.name) {
       errors.name = "Required";
@@ -264,7 +253,9 @@ export function IrcNetworkUpdateForm({
     }
 
     if (!values.nickserv?.account) {
-      errors.nickserv.account = "Required";
+      errors.nickserv = {
+        account: "Required"
+      };
     }
 
     return errors;
