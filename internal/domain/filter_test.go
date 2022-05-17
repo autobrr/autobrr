@@ -1490,6 +1490,8 @@ func Test_contains(t *testing.T) {
 		{name: "test_5", args: args{tag: "something.test.something", filter: "*test*"}, want: true},
 		{name: "test_6", args: args{tag: "that movie", filter: "that?movie"}, want: true},
 		{name: "test_7", args: args{tag: "that.movie", filter: "that?movie"}, want: true},
+		{name: "test_8", args: args{tag: "", filter: "that?movie,"}, want: false},
+		{name: "test_9", args: args{tag: "", filter: ""}, want: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -1511,6 +1513,7 @@ func Test_containsSlice(t *testing.T) {
 		{name: "test_1", args: args{tag: "group1", filters: []string{"group1", "group2"}}, want: true},
 		{name: "test_2", args: args{tag: "group1", filters: []string{"group2", "group3"}}, want: false},
 		{name: "test_3", args: args{tag: "2160p", filters: []string{"1080p", "2160p"}}, want: true},
+		{name: "test_4", args: args{tag: "", filters: []string{""}}, want: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -1531,6 +1534,7 @@ func Test_containsAny(t *testing.T) {
 	}{
 		{name: "test_1", args: args{tags: []string{"HDR", "DV"}, filter: "DV"}, want: true},
 		{name: "test_2", args: args{tags: []string{"HDR"}, filter: "DV"}, want: false},
+		{name: "test_3", args: args{tags: []string{""}, filter: "test,"}, want: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -1551,6 +1555,9 @@ func Test_sliceContainsSlice(t *testing.T) {
 	}{
 		{name: "test_1", args: args{tags: []string{"HDR", "DV"}, filters: []string{"HDR", "DoVi"}}, want: true},
 		{name: "test_2", args: args{tags: []string{"HDR10+", "DV"}, filters: []string{"HDR"}}, want: false},
+		{name: "test_3", args: args{tags: []string{""}, filters: []string{"test,"}}, want: false},
+		{name: "test_4", args: args{tags: []string{""}, filters: []string{","}}, want: false},
+		{name: "test_5", args: args{tags: []string{""}, filters: []string{""}}, want: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -1600,6 +1607,7 @@ func Test_matchRegex(t *testing.T) {
 		{name: "test_2", args: args{tag: "Some.show.S01.DV.2160p.ATVP.WEB-DL.DDPA5.1.x265-GROUP2", filter: ".*1080p.+(group1|group3)"}, want: false},
 		{name: "test_3", args: args{tag: "Some.show.S01.DV.2160p.ATVP.WEB-DL.DDPA5.1.x265-GROUP2", filter: ".*1080p.+(group1|group3),.*2160p.+"}, want: true},
 		{name: "test_4", args: args{tag: "Some.show.S01.DV.2160p.ATVP.WEB-DL.DDPA5.1.x265-GROUP2", filter: ".*1080p.+(group1|group3),.*720p.+"}, want: false},
+		{name: "test_5", args: args{tag: "Some.show.S01.DV.2160p.ATVP.WEB-DL.DDPA5.1.x265-GROUP2", filter: ".*1080p.+(group1|group3),.*720p.+,"}, want: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

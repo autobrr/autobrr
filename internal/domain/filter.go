@@ -320,9 +320,15 @@ func (f Filter) checkSizeFilter(r *Release, minSize string, maxSize string) bool
 }
 
 func matchRegex(tag string, filterList string) bool {
+	if tag == "" {
+		return false
+	}
 	filters := strings.Split(filterList, ",")
 
 	for _, filter := range filters {
+		if filter == "" {
+			continue
+		}
 		re, err := regexp.Compile(`(?i)(?:` + filter + `)`)
 		if err != nil {
 			return false
@@ -427,9 +433,15 @@ func containsMatchFuzzy(tags []string, filters []string) bool {
 
 func containsMatch(tags []string, filters []string) bool {
 	for _, tag := range tags {
+		if tag == "" {
+			continue
+		}
 		tag = strings.ToLower(tag)
 
 		for _, filter := range filters {
+			if filter == "" {
+				continue
+			}
 			filter = strings.ToLower(filter)
 			filter = strings.Trim(filter, " ")
 			// check if line contains * or ?, if so try wildcard match, otherwise try substring match
@@ -450,9 +462,15 @@ func containsMatch(tags []string, filters []string) bool {
 
 func containsMatchBasic(tags []string, filters []string) bool {
 	for _, tag := range tags {
+		if tag == "" {
+			continue
+		}
 		tag = strings.ToLower(tag)
 
 		for _, filter := range filters {
+			if filter == "" {
+				continue
+			}
 			filter = strings.ToLower(filter)
 			filter = strings.Trim(filter, " ")
 
@@ -467,9 +485,15 @@ func containsMatchBasic(tags []string, filters []string) bool {
 
 func containsAnySlice(tags []string, filters []string) bool {
 	for _, tag := range tags {
+		if tag == "" {
+			continue
+		}
 		tag = strings.ToLower(tag)
 
 		for _, filter := range filters {
+			if filter == "" {
+				continue
+			}
 			filter = strings.ToLower(filter)
 			filter = strings.Trim(filter, " ")
 			// check if line contains * or ?, if so try wildcard match, otherwise try substring match
