@@ -1021,7 +1021,7 @@ func TestFilter_CheckFilter1(t *testing.T) {
 		ExceptTagsAny       string
 		Actions             []*Action
 		Indexers            []Indexer
-		State               *FilterStats
+		State               *FilterDownloads
 	}
 	type args struct {
 		r *Release
@@ -1419,7 +1419,7 @@ func TestFilter_CheckFilter1(t *testing.T) {
 			fields: fields{
 				MaxDownloads:    1,
 				MaxDownloadsPer: FilterMaxDownloadsMonth,
-				State: &FilterStats{
+				State: &FilterDownloads{
 					MonthCount: 0,
 				},
 			},
@@ -1432,7 +1432,7 @@ func TestFilter_CheckFilter1(t *testing.T) {
 			fields: fields{
 				MaxDownloads:    10,
 				MaxDownloadsPer: FilterMaxDownloadsMonth,
-				State: &FilterStats{
+				State: &FilterDownloads{
 					MonthCount: 10,
 				},
 			},
@@ -1445,7 +1445,7 @@ func TestFilter_CheckFilter1(t *testing.T) {
 			fields: fields{
 				MaxDownloads:    10,
 				MaxDownloadsPer: FilterMaxDownloadsMonth,
-				State: &FilterStats{
+				State: &FilterDownloads{
 					MonthCount: 50,
 				},
 			},
@@ -1458,7 +1458,7 @@ func TestFilter_CheckFilter1(t *testing.T) {
 			fields: fields{
 				MaxDownloads:    15,
 				MaxDownloadsPer: FilterMaxDownloadsHour,
-				State: &FilterStats{
+				State: &FilterDownloads{
 					HourCount:  20,
 					MonthCount: 50,
 				},
@@ -1472,7 +1472,7 @@ func TestFilter_CheckFilter1(t *testing.T) {
 			fields: fields{
 				MaxDownloads:    15,
 				MaxDownloadsPer: FilterMaxDownloadsHour,
-				State: &FilterStats{
+				State: &FilterDownloads{
 					HourCount:  14,
 					MonthCount: 50,
 				},
@@ -1495,7 +1495,7 @@ func TestFilter_CheckFilter1(t *testing.T) {
 				Delay:               tt.fields.Delay,
 				Priority:            tt.fields.Priority,
 				MaxDownloads:        tt.fields.MaxDownloads,
-				MaxDownloadsPer:     tt.fields.MaxDownloadsPer,
+				MaxDownloadsUnit:    tt.fields.MaxDownloadsPer,
 				MatchReleases:       tt.fields.MatchReleases,
 				ExceptReleases:      tt.fields.ExceptReleases,
 				UseRegex:            tt.fields.UseRegex,
@@ -1536,7 +1536,7 @@ func TestFilter_CheckFilter1(t *testing.T) {
 				ExceptTagsAny:       tt.fields.ExceptTagsAny,
 				Actions:             tt.fields.Actions,
 				Indexers:            tt.fields.Indexers,
-				State:               tt.fields.State,
+				Downloads:           tt.fields.State,
 			}
 			tt.args.r.ParseString(tt.args.r.TorrentName)
 			rejections, match := f.CheckFilter(tt.args.r)

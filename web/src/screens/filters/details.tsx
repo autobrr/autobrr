@@ -25,7 +25,10 @@ import {
   FORMATS_OPTIONS,
   SOURCES_MUSIC_OPTIONS,
   QUALITY_MUSIC_OPTIONS,
-  RELEASE_TYPE_MUSIC_OPTIONS, OTHER_OPTIONS, ORIGIN_OPTIONS
+  RELEASE_TYPE_MUSIC_OPTIONS,
+  OTHER_OPTIONS,
+  ORIGIN_OPTIONS,
+  downloadsPerUnitOptions
 } from "../../domain/constants";
 import { queryClient } from "../../App";
 import { APIClient } from "../../api/APIClient";
@@ -247,6 +250,8 @@ export default function FilterDetails() {
                     max_size: filter.max_size,
                     delay: filter.delay,
                     priority: filter.priority,
+                    max_downloads: filter.max_downloads,
+                    max_downloads_unit: filter.max_downloads_unit,
                     use_regex: filter.use_regex || false,
                     shows: filter.shows,
                     years: filter.years,
@@ -338,12 +343,6 @@ function General() {
   const opts = indexers && indexers.length > 0 ? indexers.map(v => ({
     label: v.name,
     value: v.id
-    // value: {
-    //     id: v.id,
-    //     name: v.name,
-    //     identifier: v.identifier,
-    //     enabled: v.enabled
-    // }
   })) : [];
 
   return (
@@ -367,6 +366,9 @@ function General() {
           <TextField name="max_size" label="Max size" columns={6} placeholder="" />
           <NumberField name="delay" label="Delay" placeholder="" />
           <NumberField name="priority" label="Priority" placeholder="" />
+
+          <NumberField name="max_downloads" label="Max downloads" placeholder="" />
+          <Select name="max_downloads_unit" label="Max downloads per" options={downloadsPerUnitOptions}  optionDefaultText="Select unit" />
         </div>
       </div>
 

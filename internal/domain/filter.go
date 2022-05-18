@@ -28,14 +28,14 @@ type FilterRepo interface {
 	StoreIndexerConnection(ctx context.Context, filterID int, indexerID int) error
 	StoreIndexerConnections(ctx context.Context, filterID int, indexers []Indexer) error
 	DeleteIndexerConnections(ctx context.Context, filterID int) error
-	StatsByFilter(ctx context.Context, filterName string) (*FilterStats, error)
 }
 
-type FilterStats struct {
+type FilterDownloads struct {
 	HourCount  int
 	DayCount   int
 	WeekCount  int
 	MonthCount int
+	TotalCount int
 }
 
 type FilterMaxDownloadsUnit string
@@ -45,6 +45,7 @@ const (
 	FilterMaxDownloadsDay   FilterMaxDownloadsUnit = "DAY"
 	FilterMaxDownloadsWeek  FilterMaxDownloadsUnit = "WEEK"
 	FilterMaxDownloadsMonth FilterMaxDownloadsUnit = "MONTH"
+	FilterMaxDownloadsEver  FilterMaxDownloadsUnit = "EVER"
 )
 
 type Filter struct {
@@ -58,7 +59,7 @@ type Filter struct {
 	Delay               int                    `json:"delay"`
 	Priority            int32                  `json:"priority"`
 	MaxDownloads        int                    `json:"max_downloads"`
-	MaxDownloadsPer     FilterMaxDownloadsUnit `json:"max_downloads_per"`
+	MaxDownloadsUnit    FilterMaxDownloadsUnit `json:"max_downloads_unit"`
 	MatchReleases       string                 `json:"match_releases"`
 	ExceptReleases      string                 `json:"except_releases"`
 	UseRegex            bool                   `json:"use_regex"`
@@ -101,7 +102,7 @@ type Filter struct {
 	ExceptTagsAny       string                 `json:"except_tags_any"`
 	Actions             []*Action              `json:"actions"`
 	Indexers            []Indexer              `json:"indexers"`
-	State               *FilterStats           `json:"-"`
+	Downloads           *FilterDownloads       `json:"-"`
 }
 
 func (f Filter) CheckFilter(r *Release) ([]string, bool) {
@@ -109,8 +110,8 @@ func (f Filter) CheckFilter(r *Release) ([]string, bool) {
 	r.resetRejections()
 
 	// max downloads check. If reached return early
-	if f.MaxDownloads > 0 && !f.checkMaxDownloads(f.MaxDownloads, f.MaxDownloadsPer) {
-		r.addRejectionF("max downloads (%d) this (%v) reached", f.MaxDownloads, f.MaxDownloadsPer)
+	if f.MaxDownloads > 0 && !f.checkMaxDownloads(f.MaxDownloads, f.MaxDownloadsUnit) {
+		r.addRejectionF("max downloads (%d) this (%v) reached", f.MaxDownloads, f.MaxDownloadsUnit)
 		return r.Rejections, false
 	}
 
@@ -275,27 +276,33 @@ func (f Filter) CheckFilter(r *Release) ([]string, bool) {
 }
 
 func (f Filter) checkMaxDownloads(max int, perTimeUnit FilterMaxDownloadsUnit) bool {
-	if f.State == nil {
+	if f.Downloads == nil {
 		return false
 	}
 
 	switch perTimeUnit {
 	case FilterMaxDownloadsHour:
-		if f.State.HourCount > 0 && f.State.HourCount >= max {
+		if f.Downloads.HourCount > 0 && f.Downloads.HourCount >= max {
 			return false
 		}
 	case FilterMaxDownloadsDay:
-		if f.State.DayCount > 0 && f.State.DayCount >= max {
+		if f.Downloads.DayCount > 0 && f.Downloads.DayCount >= max {
 			return false
 		}
 	case FilterMaxDownloadsWeek:
-		if f.State.WeekCount > 0 && f.State.WeekCount >= max {
+		if f.Downloads.WeekCount > 0 && f.Downloads.WeekCount >= max {
 			return false
 		}
 	case FilterMaxDownloadsMonth:
-		if f.State.MonthCount > 0 && f.State.MonthCount >= max {
+		if f.Downloads.MonthCount > 0 && f.Downloads.MonthCount >= max {
 			return false
 		}
+	case FilterMaxDownloadsEver:
+		if f.Downloads.TotalCount > 0 && f.Downloads.TotalCount >= max {
+			return false
+		}
+	default:
+		return true
 	}
 
 	return true

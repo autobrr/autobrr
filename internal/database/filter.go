@@ -82,6 +82,8 @@ func (r *FilterRepo) FindByID(ctx context.Context, filterID int) (*domain.Filter
 			"max_size",
 			"delay",
 			"priority",
+			"max_downloads",
+			"max_downloads_unit",
 			"match_releases",
 			"except_releases",
 			"use_regex",
@@ -138,11 +140,11 @@ func (r *FilterRepo) FindByID(ctx context.Context, filterID int) (*domain.Filter
 	}
 
 	var f domain.Filter
-	var minSize, maxSize, matchReleases, exceptReleases, matchReleaseGroups, exceptReleaseGroups, freeleechPercent, shows, seasons, episodes, years, artists, albums, matchCategories, exceptCategories, matchUploaders, exceptUploaders, tags, exceptTags sql.NullString
+	var minSize, maxSize, maxDownloadsUnit, matchReleases, exceptReleases, matchReleaseGroups, exceptReleaseGroups, freeleechPercent, shows, seasons, episodes, years, artists, albums, matchCategories, exceptCategories, matchUploaders, exceptUploaders, tags, exceptTags sql.NullString
 	var useRegex, scene, freeleech, hasLog, hasCue, perfectFlac sql.NullBool
-	var delay, logScore sql.NullInt32
+	var delay, maxDownloads, logScore sql.NullInt32
 
-	if err := row.Scan(&f.ID, &f.Enabled, &f.Name, &minSize, &maxSize, &delay, &f.Priority, &matchReleases, &exceptReleases, &useRegex, &matchReleaseGroups, &exceptReleaseGroups, &scene, &freeleech, &freeleechPercent, &shows, &seasons, &episodes, pq.Array(&f.Resolutions), pq.Array(&f.Codecs), pq.Array(&f.Sources), pq.Array(&f.Containers), pq.Array(&f.MatchHDR), pq.Array(&f.ExceptHDR), pq.Array(&f.MatchOther), pq.Array(&f.ExceptOther), &years, &artists, &albums, pq.Array(&f.MatchReleaseTypes), pq.Array(&f.Formats), pq.Array(&f.Quality), pq.Array(&f.Media), &logScore, &hasLog, &hasCue, &perfectFlac, &matchCategories, &exceptCategories, &matchUploaders, &exceptUploaders, &tags, &exceptTags, pq.Array(&f.Origins), &f.CreatedAt, &f.UpdatedAt); err != nil {
+	if err := row.Scan(&f.ID, &f.Enabled, &f.Name, &minSize, &maxSize, &delay, &f.Priority, &maxDownloads, &maxDownloadsUnit, &matchReleases, &exceptReleases, &useRegex, &matchReleaseGroups, &exceptReleaseGroups, &scene, &freeleech, &freeleechPercent, &shows, &seasons, &episodes, pq.Array(&f.Resolutions), pq.Array(&f.Codecs), pq.Array(&f.Sources), pq.Array(&f.Containers), pq.Array(&f.MatchHDR), pq.Array(&f.ExceptHDR), pq.Array(&f.MatchOther), pq.Array(&f.ExceptOther), &years, &artists, &albums, pq.Array(&f.MatchReleaseTypes), pq.Array(&f.Formats), pq.Array(&f.Quality), pq.Array(&f.Media), &logScore, &hasLog, &hasCue, &perfectFlac, &matchCategories, &exceptCategories, &matchUploaders, &exceptUploaders, &tags, &exceptTags, pq.Array(&f.Origins), &f.CreatedAt, &f.UpdatedAt); err != nil {
 		log.Error().Stack().Err(err).Msgf("filter.findByID: %v : error scanning row", filterID)
 		return nil, err
 	}
@@ -150,6 +152,8 @@ func (r *FilterRepo) FindByID(ctx context.Context, filterID int) (*domain.Filter
 	f.MinSize = minSize.String
 	f.MaxSize = maxSize.String
 	f.Delay = int(delay.Int32)
+	f.MaxDownloads = int(maxDownloads.Int32)
+	f.MaxDownloadsUnit = domain.FilterMaxDownloadsUnit(maxDownloadsUnit.String)
 	f.MatchReleases = matchReleases.String
 	f.ExceptReleases = exceptReleases.String
 	f.MatchReleaseGroups = matchReleaseGroups.String
@@ -180,6 +184,30 @@ func (r *FilterRepo) FindByID(ctx context.Context, filterID int) (*domain.Filter
 
 // FindByIndexerIdentifier find active filters with active indexer only
 func (r *FilterRepo) FindByIndexerIdentifier(indexer string) ([]domain.Filter, error) {
+	ctx := context.TODO()
+	tx, err := r.db.BeginTx(ctx, nil)
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback()
+
+	filters, err := r.findByIndexerIdentifier(ctx, tx, indexer)
+	if err != nil {
+		return nil, err
+	}
+
+	for i, filter := range filters {
+		downloads, err := r.attachDownloadsByFilter(ctx, tx, filter.ID)
+		if err != nil {
+			continue
+		}
+		filters[i].Downloads = downloads
+	}
+
+	return filters, nil
+}
+
+func (r *FilterRepo) findByIndexerIdentifier(ctx context.Context, tx *Tx, indexer string) ([]domain.Filter, error) {
 	queryBuilder := r.db.squirrel.
 		Select(
 			"f.id",
@@ -189,6 +217,8 @@ func (r *FilterRepo) FindByIndexerIdentifier(indexer string) ([]domain.Filter, e
 			"f.max_size",
 			"f.delay",
 			"f.priority",
+			"f.max_downloads",
+			"f.max_downloads_unit",
 			"f.match_releases",
 			"f.except_releases",
 			"f.use_regex",
@@ -243,7 +273,7 @@ func (r *FilterRepo) FindByIndexerIdentifier(indexer string) ([]domain.Filter, e
 		return nil, err
 	}
 
-	rows, err := r.db.handler.Query(query, args...)
+	rows, err := tx.QueryContext(ctx, query, args...)
 	if err != nil {
 		log.Error().Stack().Err(err).Msg("filter.findByIndexerIdentifier: error executing query")
 		return nil, err
@@ -255,11 +285,11 @@ func (r *FilterRepo) FindByIndexerIdentifier(indexer string) ([]domain.Filter, e
 	for rows.Next() {
 		var f domain.Filter
 
-		var minSize, maxSize, matchReleases, exceptReleases, matchReleaseGroups, exceptReleaseGroups, freeleechPercent, shows, seasons, episodes, years, artists, albums, matchCategories, exceptCategories, matchUploaders, exceptUploaders, tags, exceptTags sql.NullString
+		var minSize, maxSize, maxDownloadsUnit, matchReleases, exceptReleases, matchReleaseGroups, exceptReleaseGroups, freeleechPercent, shows, seasons, episodes, years, artists, albums, matchCategories, exceptCategories, matchUploaders, exceptUploaders, tags, exceptTags sql.NullString
 		var useRegex, scene, freeleech, hasLog, hasCue, perfectFlac sql.NullBool
-		var delay, logScore sql.NullInt32
+		var delay, maxDownloads, logScore sql.NullInt32
 
-		if err := rows.Scan(&f.ID, &f.Enabled, &f.Name, &minSize, &maxSize, &delay, &f.Priority, &matchReleases, &exceptReleases, &useRegex, &matchReleaseGroups, &exceptReleaseGroups, &scene, &freeleech, &freeleechPercent, &shows, &seasons, &episodes, pq.Array(&f.Resolutions), pq.Array(&f.Codecs), pq.Array(&f.Sources), pq.Array(&f.Containers), pq.Array(&f.MatchHDR), pq.Array(&f.ExceptHDR), pq.Array(&f.MatchOther), pq.Array(&f.ExceptOther), &years, &artists, &albums, pq.Array(&f.MatchReleaseTypes), pq.Array(&f.Formats), pq.Array(&f.Quality), pq.Array(&f.Media), &logScore, &hasLog, &hasCue, &perfectFlac, &matchCategories, &exceptCategories, &matchUploaders, &exceptUploaders, &tags, &exceptTags, pq.Array(&f.Origins), &f.CreatedAt, &f.UpdatedAt); err != nil {
+		if err := rows.Scan(&f.ID, &f.Enabled, &f.Name, &minSize, &maxSize, &delay, &f.Priority, &maxDownloads, &maxDownloadsUnit, &matchReleases, &exceptReleases, &useRegex, &matchReleaseGroups, &exceptReleaseGroups, &scene, &freeleech, &freeleechPercent, &shows, &seasons, &episodes, pq.Array(&f.Resolutions), pq.Array(&f.Codecs), pq.Array(&f.Sources), pq.Array(&f.Containers), pq.Array(&f.MatchHDR), pq.Array(&f.ExceptHDR), pq.Array(&f.MatchOther), pq.Array(&f.ExceptOther), &years, &artists, &albums, pq.Array(&f.MatchReleaseTypes), pq.Array(&f.Formats), pq.Array(&f.Quality), pq.Array(&f.Media), &logScore, &hasLog, &hasCue, &perfectFlac, &matchCategories, &exceptCategories, &matchUploaders, &exceptUploaders, &tags, &exceptTags, pq.Array(&f.Origins), &f.CreatedAt, &f.UpdatedAt); err != nil {
 			log.Error().Stack().Err(err).Msg("filter.findByIndexerIdentifier: error scanning row")
 			return nil, err
 		}
@@ -267,6 +297,8 @@ func (r *FilterRepo) FindByIndexerIdentifier(indexer string) ([]domain.Filter, e
 		f.MinSize = minSize.String
 		f.MaxSize = maxSize.String
 		f.Delay = int(delay.Int32)
+		f.MaxDownloads = int(maxDownloads.Int32)
+		f.MaxDownloadsUnit = domain.FilterMaxDownloadsUnit(maxDownloadsUnit.String)
 		f.MatchReleases = matchReleases.String
 		f.ExceptReleases = exceptReleases.String
 		f.MatchReleaseGroups = matchReleaseGroups.String
@@ -308,6 +340,8 @@ func (r *FilterRepo) Store(ctx context.Context, filter domain.Filter) (*domain.F
 			"max_size",
 			"delay",
 			"priority",
+			"max_downloads",
+			"max_downloads_unit",
 			"match_releases",
 			"except_releases",
 			"use_regex",
@@ -353,6 +387,8 @@ func (r *FilterRepo) Store(ctx context.Context, filter domain.Filter) (*domain.F
 			filter.MaxSize,
 			filter.Delay,
 			filter.Priority,
+			filter.MaxDownloads,
+			filter.MaxDownloadsUnit,
 			filter.MatchReleases,
 			filter.ExceptReleases,
 			filter.UseRegex,
@@ -418,6 +454,8 @@ func (r *FilterRepo) Update(ctx context.Context, filter domain.Filter) (*domain.
 		Set("max_size", filter.MaxSize).
 		Set("delay", filter.Delay).
 		Set("priority", filter.Priority).
+		Set("max_downloads", filter.MaxDownloads).
+		Set("max_downloads_unit", filter.MaxDownloadsUnit).
 		Set("use_regex", filter.UseRegex).
 		Set("match_releases", filter.MatchReleases).
 		Set("except_releases", filter.ExceptReleases).
@@ -609,61 +647,62 @@ func (r *FilterRepo) Delete(ctx context.Context, filterID int) error {
 	return nil
 }
 
-func (r *FilterRepo) StatsByFilter(ctx context.Context, filterName string) (*domain.FilterStats, error) {
-	switch r.db.Driver {
-	case "sqlite":
-	// TODO make SQLite variant
-	case "postgres":
-		return r.statsByFilterIDPostgres(ctx, filterName)
+func (r *FilterRepo) attachDownloadsByFilter(ctx context.Context, tx *Tx, filterID int) (*domain.FilterDownloads, error) {
+	if r.db.Driver == "sqlite" {
+		return r.downloadsByFilterSqlite(ctx, tx, filterID)
 	}
-	return nil, nil
+
+	return r.downloadsByFilterPostgres(ctx, tx, filterID)
 }
 
-func (r *FilterRepo) statsByFilterIDPostgres(ctx context.Context, filterName string) (*domain.FilterStats, error) {
-	query := `SELECT (SELECT count(*)
-        FROM release
-        WHERE release.timestamp >= date_trunc('hour', CURRENT_TIMESTAMP) AND release.filter = r.filter) AS hour_count,
-       (SELECT count(*)
-        FROM release
-        WHERE release.timestamp >= date_trunc('day', CURRENT_DATE) AND release.filter = r.filter) AS day_count,
-       (SELECT count(*)
-        FROM release
-        WHERE release.timestamp >= date_trunc('week', CURRENT_DATE) AND release.filter = r.filter)  AS week_count,
-       (SELECT count(*)
-        FROM release
-        WHERE release.timestamp >= date_trunc('month', CURRENT_DATE) AND release.filter = r.filter) AS month_count
-FROM release r
-WHERE r.filter = ?
-GROUP BY hour_count,
-         day_count,
-         week_count,
-         month_count;`
+func (r *FilterRepo) downloadsByFilterSqlite(ctx context.Context, tx *Tx, filterID int) (*domain.FilterDownloads, error) {
+	query := `SELECT
+    IFNULL(SUM(CASE WHEN "release".timestamp >= datetime('now', '-1 hour') THEN 1 ELSE 0 END),0) as "hour_count",
+    IFNULL(SUM(CASE WHEN "release".timestamp >= datetime('now', 'start of day') THEN 1 ELSE 0 END),0) as "day_count",
+    IFNULL(SUM(CASE WHEN "release".timestamp >= datetime('now', 'weekday 0', '-7 days') THEN 1 ELSE 0 END),0) as "week_count",
+    IFNULL(SUM(CASE WHEN "release".timestamp >= datetime('now', 'start of month') THEN 1 ELSE 0 END),0) as "month_count",
+    count(*) as "total_count"
+FROM "release"
+WHERE "release".filter_id = ?;`
 
-	row := r.db.handler.QueryRowContext(ctx, query, filterName)
+	row := tx.QueryRowContext(ctx, query, filterID)
 	if err := row.Err(); err != nil {
-		log.Error().Stack().Err(err).Msg("release.StatsByFilterID: error querying stats")
+		log.Error().Stack().Err(err).Msg("filter.downloadsByFilterSqlite: error querying stats")
 		return nil, err
 	}
 
-	var rls domain.FilterStats
+	var f domain.FilterDownloads
 
-	if err := row.Scan(&rls.HourCount, &rls.DayCount, &rls.WeekCount, &rls.MonthCount); err != nil {
-		log.Error().Stack().Err(err).Msg("release.StatsByFilterID: error scanning stats data to struct")
+	if err := row.Scan(&f.HourCount, &f.DayCount, &f.WeekCount, &f.MonthCount, &f.TotalCount); err != nil {
+		log.Error().Stack().Err(err).Msg("filter.downloadsByFilterSqlite: error scanning stats data to struct")
 		return nil, err
 	}
 
-	return &rls, nil
+	return &f, nil
 }
 
-// Split string to slice. We store comma separated strings and convert to slice
-//func stringToSlice(str string) []string {
-//	if str == "" {
-//		return []string{}
-//	} else if !strings.Contains(str, ",") {
-//		return []string{str}
-//	}
-//
-//	split := strings.Split(str, ",")
-//
-//	return split
-//}
+func (r *FilterRepo) downloadsByFilterPostgres(ctx context.Context, tx *Tx, filterID int) (*domain.FilterDownloads, error) {
+	query := `SELECT
+    COALESCE(SUM(CASE WHEN "release".timestamp >= date_trunc('hour', CURRENT_TIMESTAMP) THEN 1 ELSE 0 END),0) as "hour_count",
+    COALESCE(SUM(CASE WHEN "release".timestamp >= date_trunc('day', CURRENT_DATE) THEN 1 ELSE 0 END),0) as "day_count",
+    COALESCE(SUM(CASE WHEN "release".timestamp >= date_trunc('week', CURRENT_DATE) THEN 1 ELSE 0 END),0) as "week_count",
+    COALESCE(SUM(CASE WHEN "release".timestamp >= date_trunc('month', CURRENT_DATE) THEN 1 ELSE 0 END),0) as "month_count",
+    count(*) as "total_count"
+FROM "release"
+WHERE "release".filter_id = ?;`
+
+	row := tx.QueryRowContext(ctx, query, filterID)
+	if err := row.Err(); err != nil {
+		log.Error().Stack().Err(err).Msg("filter.downloadsByFilterPostgres: error querying stats")
+		return nil, err
+	}
+
+	var f domain.FilterDownloads
+
+	if err := row.Scan(&f.HourCount, &f.DayCount, &f.WeekCount, &f.MonthCount, &f.TotalCount); err != nil {
+		log.Error().Stack().Err(err).Msg("filter.downloadsByFilterPostgres: error scanning stats data to struct")
+		return nil, err
+	}
+
+	return &f, nil
+}

@@ -263,6 +263,33 @@ export const NotificationTypeOptions: OptionBasic[] = [
   }
 ];
 
+export const downloadsPerUnitOptions: OptionBasic[] = [
+  {
+    label: "Select",
+    value: ""
+  },
+  {
+    label: "HOUR",
+    value: "HOUR"
+  },
+  {
+    label: "DAY",
+    value: "DAY"
+  },
+  {
+    label: "WEEK",
+    value: "WEEK"
+  },
+  {
+    label: "MONTH",
+    value: "MONTH"
+  },
+  {
+    label: "EVER",
+    value: "EVER"
+  }
+];
+
 export interface SelectOption {
     label: string;
     description: string;
