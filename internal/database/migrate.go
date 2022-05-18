@@ -1213,15 +1213,21 @@ var postgresMigrations = []string{
 		ADD COLUMN limit_seed_time INTEGER DEFAULT 0;
 	`,
 	`
-	alter table release
+	ALTER TABLE filter
+		ADD max_downloads INTEGER default 0;
+
+	ALTER TABLE filter
+		ADD max_downloads_unit TEXT;
+
+	ALTER TABLE release
 		add filter_id INTEGER;
 
-	create index release_filter_id_index
-		on release (filter_id);
+	CREATE INDEX release_filter_id_index
+		ON release (filter_id);
 
-	alter table release
-		add constraint release_filter_id_fk
-			foreign key (filter_id) references filter
-				on delete set null;
+	ALTER TABLE release
+		ADD CONSTRAINT release_filter_id_fk
+			FOREIGN KEY (filter_id) REFERENCES FILTER
+				ON DELETE SET NULL;
 	`,
 }
