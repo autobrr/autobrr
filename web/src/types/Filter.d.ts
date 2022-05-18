@@ -8,6 +8,8 @@ interface Filter {
   max_size: string;
   delay: number;
   priority: number;
+  max_downloads: number;
+  max_downloads_unit: string;
   match_releases: string;
   except_releases: string;
   use_regex: boolean;

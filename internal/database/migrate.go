@@ -64,6 +64,8 @@ CREATE TABLE filter
     max_size              TEXT,
     delay                 INTEGER,
     priority              INTEGER DEFAULT 0 NOT NULL,
+    max_downloads         INTEGER DEFAULT 0,
+    max_downloads_unit    TEXT,
     match_releases        TEXT,
     except_releases       TEXT,
     use_regex             BOOLEAN,
@@ -196,8 +198,14 @@ CREATE TABLE "release"
     origin            TEXT,
     tags              TEXT []   DEFAULT '{}' NOT NULL,
     uploader          TEXT,
-    pre_time          TEXT
+    pre_time          TEXT,
+    filter_id         INTEGER
+        REFERENCES filter
+            ON DELETE SET NULL
 );
+
+CREATE INDEX release_filter_id_index
+    ON "release" (filter_id);
 
 CREATE TABLE release_action_status
 (
@@ -674,6 +682,98 @@ ALTER TABLE release_action_status_dg_tmp
 	ALTER TABLE "action"
 		ADD COLUMN limit_seed_time INTEGER DEFAULT 0;
 	`,
+	`
+alter table filter
+    add max_downloads INTEGER default 0;
+
+alter table filter
+    add max_downloads_unit TEXT;
+
+create table release_dg_tmp
+(
+    id             INTEGER
+        primary key,
+    filter_status  TEXT,
+    rejections     TEXT []   default '{}' not null,
+    indexer        TEXT,
+    filter         TEXT,
+    protocol       TEXT,
+    implementation TEXT,
+    timestamp      TIMESTAMP default CURRENT_TIMESTAMP,
+    group_id       TEXT,
+    torrent_id     TEXT,
+    torrent_name   TEXT,
+    size           INTEGER,
+    title          TEXT,
+    category       TEXT,
+    season         INTEGER,
+    episode        INTEGER,
+    year           INTEGER,
+    resolution     TEXT,
+    source         TEXT,
+    codec          TEXT,
+    container      TEXT,
+    hdr            TEXT,
+    release_group  TEXT,
+    proper         BOOLEAN,
+    repack         BOOLEAN,
+    website        TEXT,
+    type           TEXT,
+    origin         TEXT,
+    tags           TEXT []   default '{}' not null,
+    uploader       TEXT,
+    pre_time       TEXT,
+    filter_id      INTEGER
+        CONSTRAINT release_filter_id_fk
+            REFERENCES filter
+            ON DELETE SET NULL
+);
+
+INSERT INTO release_dg_tmp(id, filter_status, rejections, indexer, filter, protocol, implementation, timestamp,
+                           group_id, torrent_id, torrent_name, size, title, category, season, episode, year, resolution,
+                           source, codec, container, hdr, release_group, proper, repack, website, type, origin, tags,
+                           uploader, pre_time)
+SELECT id,
+       filter_status,
+       rejections,
+       indexer,
+       filter,
+       protocol,
+       implementation,
+       timestamp,
+       group_id,
+       torrent_id,
+       torrent_name,
+       size,
+       title,
+       category,
+       season,
+       episode,
+       year,
+       resolution,
+       source,
+       codec,
+       container,
+       hdr,
+       release_group,
+       proper,
+       repack,
+       website,
+       type,
+       origin,
+       tags,
+       uploader,
+       pre_time
+FROM "release";
+
+DROP TABLE "release";
+
+ALTER TABLE release_dg_tmp
+    RENAME TO "release";
+
+CREATE INDEX release_filter_id_index
+    ON "release" (filter_id);
+	`,
 }
 
 const postgresSchema = `
@@ -740,6 +840,8 @@ CREATE TABLE filter
     max_size              TEXT,
     delay                 INTEGER,
     priority              INTEGER DEFAULT 0 NOT NULL,
+    max_downloads         INTEGER DEFAULT 0,
+    max_downloads_unit    TEXT,
     match_releases        TEXT,
     except_releases       TEXT,
     use_regex             BOOLEAN,
@@ -888,8 +990,15 @@ CREATE TABLE "release"
     freeleech         BOOLEAN,
     freeleech_percent INTEGER,
     uploader          TEXT,
-	pre_time          TEXT
+	pre_time          TEXT,
+    filter_id         INTEGER
+        CONSTRAINT release_filter_id_fk
+            REFERENCES filter
+            ON DELETE SET NULL
 );
+
+CREATE INDEX release_filter_id_index
+    ON release (filter_id);
 
 CREATE TABLE release_action_status
 (
@@ -1102,5 +1211,23 @@ var postgresMigrations = []string{
 	
 	ALTER TABLE "action"
 		ADD COLUMN limit_seed_time INTEGER DEFAULT 0;
+	`,
+	`
+	ALTER TABLE filter
+		ADD max_downloads INTEGER default 0;
+
+	ALTER TABLE filter
+		ADD max_downloads_unit TEXT;
+
+	ALTER TABLE release
+		add filter_id INTEGER;
+
+	CREATE INDEX release_filter_id_index
+		ON release (filter_id);
+
+	ALTER TABLE release
+		ADD CONSTRAINT release_filter_id_fk
+			FOREIGN KEY (filter_id) REFERENCES FILTER
+				ON DELETE SET NULL;
 	`,
 }
