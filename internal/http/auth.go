@@ -19,13 +19,13 @@ type authService interface {
 
 type authHandler struct {
 	encoder encoder
-	config  domain.Config
+	config  *domain.Config
 	service authService
 
 	cookieStore *sessions.CookieStore
 }
 
-func newAuthHandler(encoder encoder, config domain.Config, cookieStore *sessions.CookieStore, service authService) *authHandler {
+func newAuthHandler(encoder encoder, config *domain.Config, cookieStore *sessions.CookieStore, service authService) *authHandler {
 	return &authHandler{
 		encoder:     encoder,
 		config:      config,

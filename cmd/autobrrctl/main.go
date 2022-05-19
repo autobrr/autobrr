@@ -39,7 +39,7 @@ func main() {
 	}
 
 	// open database connection
-	db, _ := database.NewDB(domain.Config{ConfigPath: configPath, DatabaseType: "sqlite"})
+	db, _ := database.NewDB(&domain.Config{ConfigPath: configPath, DatabaseType: "sqlite"})
 	if err := db.Open(); err != nil {
 		log.Fatal("could not open db connection")
 	}

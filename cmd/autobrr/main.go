@@ -7,7 +7,6 @@ import (
 
 	"github.com/asaskevich/EventBus"
 	"github.com/r3labs/sse/v2"
-	"github.com/rs/zerolog/log"
 	"github.com/spf13/pflag"
 
 	"github.com/autobrr/autobrr/internal/action"
@@ -40,33 +39,33 @@ func main() {
 	pflag.StringVar(&configPath, "config", "", "path to configuration file")
 	pflag.Parse()
 
+	log := logger.NewLogger()
+
 	// read config
-	cfg := config.Read(configPath)
+	cfg := config.New(configPath, log)
 
 	// setup server-sent-events
 	serverEvents := sse.New()
 	serverEvents.AutoReplay = false
 
 	serverEvents.CreateStream("logs")
+	log.RegisterSSEHook(serverEvents)
 
 	// setup internal eventbus
 	bus := EventBus.New()
 
-	// setup logger
-	logger.Setup(cfg, serverEvents)
-
 	// open database connection
-	db, _ := database.NewDB(cfg)
+	db, _ := database.NewDB(cfg.Config)
 	if err := db.Open(); err != nil {
-		log.Fatal().Err(err).Msg("could not open db connection")
+		log.Log.Fatal().Err(err).Msg("could not open db connection")
 	}
 
-	log.Info().Msgf("Starting autobrr")
-	log.Info().Msgf("Version: %v", version)
-	log.Info().Msgf("Commit: %v", commit)
-	log.Info().Msgf("Build date: %v", date)
-	log.Info().Msgf("Log-level: %v", cfg.LogLevel)
-	log.Info().Msgf("Using database: %v", db.Driver)
+	log.Log.Info().Msgf("Starting autobrr")
+	log.Log.Info().Msgf("Version: %v", version)
+	log.Log.Info().Msgf("Commit: %v", commit)
+	log.Log.Info().Msgf("Build date: %v", date)
+	log.Log.Info().Msgf("Log-level: %v", cfg.Config.LogLevel)
+	log.Log.Info().Msgf("Using database: %v", db.Driver)
 
 	// setup repos
 	var (
@@ -90,7 +89,7 @@ func main() {
 		authService           = auth.NewService(userService)
 		downloadClientService = download_client.NewService(downloadClientRepo)
 		actionService         = action.NewService(actionRepo, downloadClientService, bus)
-		indexerService        = indexer.NewService(cfg, indexerRepo, apiService, schedulingService)
+		indexerService        = indexer.NewService(cfg.Config, indexerRepo, apiService, schedulingService)
 		filterService         = filter.NewService(filterRepo, actionRepo, apiService, indexerService)
 		releaseService        = release.NewService(releaseRepo, actionService, filterService)
 		ircService            = irc.NewService(ircRepo, releaseService, indexerService)
@@ -105,7 +104,7 @@ func main() {
 
 	go func() {
 		httpServer := http.NewServer(
-			cfg,
+			cfg.Config,
 			serverEvents,
 			db,
 			version,
@@ -125,21 +124,21 @@ func main() {
 	}()
 
 	srv := server.NewServer(ircService, indexerService, feedService, schedulingService)
-	srv.Hostname = cfg.Host
-	srv.Port = cfg.Port
+	srv.Hostname = cfg.Config.Host
+	srv.Port = cfg.Config.Port
 
 	sigCh := make(chan os.Signal, 1)
 	signal.Notify(sigCh, syscall.SIGHUP, syscall.SIGINT, syscall.SIGQUIT, syscall.SIGKILL, syscall.SIGTERM)
 
 	if err := srv.Start(); err != nil {
-		log.Fatal().Stack().Err(err).Msg("could not start server")
+		log.Log.Fatal().Stack().Err(err).Msg("could not start server")
 		return
 	}
 
 	for sig := range sigCh {
 		switch sig {
 		case syscall.SIGHUP:
-			log.Print("shutting down server sighup")
+			log.Log.Print("shutting down server sighup")
 			srv.Shutdown()
 			db.Close()
 			os.Exit(1)

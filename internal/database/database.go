@@ -24,7 +24,7 @@ type DB struct {
 	squirrel sq.StatementBuilderType
 }
 
-func NewDB(cfg domain.Config) (*DB, error) {
+func NewDB(cfg *domain.Config) (*DB, error) {
 	db := &DB{
 		// set default placeholder for squirrel to support both sqlite and postgres
 		squirrel: sq.StatementBuilder.PlaceholderFormat(sq.Dollar),

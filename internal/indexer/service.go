@@ -32,7 +32,7 @@ type Service interface {
 }
 
 type service struct {
-	config     domain.Config
+	config     *domain.Config
 	repo       domain.IndexerRepo
 	apiService APIService
 	scheduler  scheduler.Service
@@ -48,7 +48,7 @@ type service struct {
 	torznabIndexers map[string]*domain.IndexerDefinition
 }
 
-func NewService(config domain.Config, repo domain.IndexerRepo, apiService APIService, scheduler scheduler.Service) Service {
+func NewService(config *domain.Config, repo domain.IndexerRepo, apiService APIService, scheduler scheduler.Service) Service {
 	return &service{
 		config:                    config,
 		repo:                      repo,

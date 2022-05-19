@@ -2,10 +2,15 @@ package config
 
 import (
 	"errors"
+	"fmt"
 	"log"
 	"os"
 	"path"
 	"path/filepath"
+
+	"github.com/autobrr/autobrr/internal/logger"
+
+	"github.com/fsnotify/fsnotify"
 
 	"github.com/autobrr/autobrr/internal/domain"
 
@@ -155,4 +160,95 @@ func Read(configPath string) domain.Config {
 	Config = config
 
 	return config
+}
+
+type AppConfig struct {
+	Config *domain.Config
+	logger *logger.Logger
+}
+
+func New(configPath string, log *logger.Logger) *AppConfig {
+	c := &AppConfig{
+		logger: log,
+	}
+	c.defaults()
+	c.read(configPath)
+
+	return c
+}
+
+func (c *AppConfig) defaults() {
+	c.Config = &domain.Config{
+		Host:              "localhost",
+		Port:              7474,
+		LogLevel:          "TRACE",
+		LogPath:           "",
+		BaseURL:           "/",
+		SessionSecret:     "secret-session-key",
+		CustomDefinitions: "",
+		DatabaseType:      "sqlite",
+		PostgresHost:      "",
+		PostgresPort:      0,
+		PostgresDatabase:  "",
+		PostgresUser:      "",
+		PostgresPass:      "",
+	}
+}
+
+func (c *AppConfig) read(configPath string) error {
+	config := Defaults()
+
+	// or use viper.SetDefault(val, def)
+	//viper.SetDefault("host", config.Host)
+	//viper.SetDefault("port", config.Port)
+	//viper.SetDefault("logLevel", config.LogLevel)
+	//viper.SetDefault("logPath", config.LogPath)
+
+	viper.SetConfigType("toml")
+
+	// clean trailing slash from configPath
+	configPath = path.Clean(configPath)
+
+	if configPath != "" {
+		//viper.SetConfigName("config")
+
+		// check if path and file exists
+		// if not, create path and file
+		err := writeConfig(configPath, "config.toml")
+		if err != nil {
+			log.Printf("write error: %q", err)
+		}
+
+		viper.SetConfigFile(path.Join(configPath, "config.toml"))
+		config.ConfigPath = configPath
+	} else {
+		viper.SetConfigName("config")
+
+		// Search config in directories
+		viper.AddConfigPath(".")
+		viper.AddConfigPath("$HOME/.config/autobrr")
+		viper.AddConfigPath("$HOME/.autobrr")
+	}
+
+	// read config
+	if err := viper.ReadInConfig(); err != nil {
+		log.Printf("config read error: %q", err)
+	}
+
+	if err := viper.Unmarshal(&config); err != nil {
+		log.Fatalf("Could not unmarshal config file: %v", viper.ConfigFileUsed())
+	}
+
+	viper.OnConfigChange(func(e fsnotify.Event) {
+		fmt.Println("Config file changed:", e.Name)
+		if err := viper.Unmarshal(&config); err != nil {
+			log.Fatalf("Could not unmarshal config file: %v", viper.ConfigFileUsed())
+		}
+		c.logger.SetLogLevel(config.LogLevel)
+	})
+	viper.WatchConfig()
+
+	c.Config = &config
+
+	return nil
 }
