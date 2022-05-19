@@ -376,6 +376,10 @@ func (s *service) LoadIndexerDefinitions() error {
 			return err
 		}
 
+		if d.Implementation == "" {
+			d.Implementation = "irc"
+		}
+
 		s.indexerDefinitions[d.Identifier] = d
 	}
 
@@ -428,6 +432,10 @@ func (s *service) LoadCustomIndexerDefinitions() error {
 		if err != nil {
 			log.Error().Stack().Err(err).Msgf("failed unmarshal file: %v", file)
 			return err
+		}
+
+		if d.Implementation == "" {
+			d.Implementation = "irc"
 		}
 
 		s.indexerDefinitions[d.Identifier] = d
