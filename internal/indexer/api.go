@@ -4,13 +4,12 @@ import (
 	"fmt"
 
 	"github.com/autobrr/autobrr/internal/domain"
+	"github.com/autobrr/autobrr/internal/logger"
 	"github.com/autobrr/autobrr/internal/mock"
 	"github.com/autobrr/autobrr/pkg/btn"
 	"github.com/autobrr/autobrr/pkg/ggn"
 	"github.com/autobrr/autobrr/pkg/ptp"
 	"github.com/autobrr/autobrr/pkg/red"
-
-	"github.com/rs/zerolog/log"
 )
 
 type APIService interface {
@@ -26,11 +25,13 @@ type apiClient interface {
 }
 
 type apiService struct {
+	log        logger.Logger
 	apiClients map[string]apiClient
 }
 
-func NewAPIService() APIService {
+func NewAPIService(log logger.Logger) APIService {
 	return &apiService{
+		log:        log,
 		apiClients: make(map[string]apiClient),
 	}
 }
@@ -41,15 +42,15 @@ func (s *apiService) GetTorrentByID(indexer string, torrentID string) (*domain.T
 		return nil, nil
 	}
 
-	log.Trace().Str("service", "api").Str("method", "GetTorrentByID").Msgf("'%v' trying to fetch torrent from api", indexer)
+	s.log.Trace().Str("service", "api").Str("method", "GetTorrentByID").Msgf("'%v' trying to fetch torrent from api", indexer)
 
 	t, err := v.GetTorrentByID(torrentID)
 	if err != nil {
-		log.Error().Stack().Err(err).Msgf("could not get torrent: '%v' from: %v", torrentID, indexer)
+		s.log.Error().Stack().Err(err).Msgf("could not get torrent: '%v' from: %v", torrentID, indexer)
 		return nil, err
 	}
 
-	log.Trace().Str("service", "api").Str("method", "GetTorrentByID").Msgf("'%v' successfully fetched torrent from api: %+v", indexer, t)
+	s.log.Trace().Str("service", "api").Str("method", "GetTorrentByID").Msgf("'%v' successfully fetched torrent from api: %+v", indexer, t)
 
 	return t, nil
 }
@@ -76,7 +77,7 @@ func (s *apiService) AddClient(indexer string, settings map[string]string) error
 		return fmt.Errorf("api.Service.AddClient: validation falied: settings can't be empty")
 	}
 
-	log.Trace().Msgf("api.Service.AddClient: init api client for '%v'", indexer)
+	s.log.Trace().Msgf("api.Service.AddClient: init api client for '%v'", indexer)
 
 	// init client
 	switch indexer {

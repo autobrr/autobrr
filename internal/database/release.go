@@ -5,18 +5,23 @@ import (
 	"database/sql"
 	"strings"
 
-	sq "github.com/Masterminds/squirrel"
 	"github.com/autobrr/autobrr/internal/domain"
+	"github.com/autobrr/autobrr/internal/logger"
+
+	sq "github.com/Masterminds/squirrel"
 	"github.com/lib/pq"
-	"github.com/rs/zerolog/log"
 )
 
 type ReleaseRepo struct {
-	db *DB
+	log logger.Logger
+	db  *DB
 }
 
-func NewReleaseRepo(db *DB) domain.ReleaseRepo {
-	return &ReleaseRepo{db: db}
+func NewReleaseRepo(log logger.Logger, db *DB) domain.ReleaseRepo {
+	return &ReleaseRepo{
+		log: log,
+		db:  db,
+	}
 }
 
 func (repo *ReleaseRepo) Store(ctx context.Context, r *domain.Release) (*domain.Release, error) {
@@ -34,13 +39,13 @@ func (repo *ReleaseRepo) Store(ctx context.Context, r *domain.Release) (*domain.
 
 	err := queryBuilder.QueryRowContext(ctx).Scan(&retID)
 	if err != nil {
-		log.Error().Stack().Err(err).Msg("release.store: error executing query")
+		repo.log.Error().Stack().Err(err).Msg("release.store: error executing query")
 		return nil, err
 	}
 
 	r.ID = retID
 
-	log.Debug().Msgf("release.store: %+v", r)
+	repo.log.Debug().Msgf("release.store: %+v", r)
 
 	return r, nil
 }
@@ -57,13 +62,13 @@ func (repo *ReleaseRepo) StoreReleaseActionStatus(ctx context.Context, a *domain
 
 		query, args, err := queryBuilder.ToSql()
 		if err != nil {
-			log.Error().Stack().Err(err).Msg("release.store: error building query")
+			repo.log.Error().Stack().Err(err).Msg("release.store: error building query")
 			return err
 		}
 
 		_, err = repo.db.handler.ExecContext(ctx, query, args...)
 		if err != nil {
-			log.Error().Stack().Err(err).Msg("error updating status of release")
+			repo.log.Error().Stack().Err(err).Msg("error updating status of release")
 			return err
 		}
 
@@ -79,14 +84,14 @@ func (repo *ReleaseRepo) StoreReleaseActionStatus(ctx context.Context, a *domain
 
 		err := queryBuilder.QueryRowContext(ctx).Scan(&retID)
 		if err != nil {
-			log.Error().Stack().Err(err).Msg("release.storeReleaseActionStatus: error executing query")
+			repo.log.Error().Stack().Err(err).Msg("release.storeReleaseActionStatus: error executing query")
 			return err
 		}
 
 		a.ID = retID
 	}
 
-	log.Trace().Msgf("release.store_release_action_status: %+v", a)
+	repo.log.Trace().Msgf("release.store_release_action_status: %+v", a)
 
 	return nil
 }
@@ -148,20 +153,20 @@ func (repo *ReleaseRepo) findReleases(ctx context.Context, tx *Tx, params domain
 	}
 
 	query, args, err := queryBuilder.ToSql()
-	log.Trace().Str("database", "release.find").Msgf("query: '%v', args: '%v'", query, args)
+	repo.log.Trace().Str("database", "release.find").Msgf("query: '%v', args: '%v'", query, args)
 
 	res := make([]*domain.Release, 0)
 
 	rows, err := tx.QueryContext(ctx, query, args...)
 	if err != nil {
-		log.Error().Stack().Err(err).Msg("error fetching releases")
+		repo.log.Error().Stack().Err(err).Msg("error fetching releases")
 		return res, 0, 0, nil
 	}
 
 	defer rows.Close()
 
 	if err := rows.Err(); err != nil {
-		log.Error().Stack().Err(err)
+		repo.log.Error().Stack().Err(err)
 		return res, 0, 0, err
 	}
 
@@ -173,7 +178,7 @@ func (repo *ReleaseRepo) findReleases(ctx context.Context, tx *Tx, params domain
 		var indexer, filter sql.NullString
 
 		if err := rows.Scan(&rls.ID, &rls.FilterStatus, pq.Array(&rls.Rejections), &indexer, &filter, &rls.Protocol, &rls.Title, &rls.TorrentName, &rls.Size, &rls.Timestamp, &countItems); err != nil {
-			log.Error().Stack().Err(err).Msg("release.find: error scanning data to struct")
+			repo.log.Error().Stack().Err(err).Msg("release.find: error scanning data to struct")
 			return res, 0, 0, err
 		}
 
@@ -196,20 +201,20 @@ func (repo *ReleaseRepo) GetIndexerOptions(ctx context.Context) ([]string, error
 
 	query := `SELECT DISTINCT indexer FROM "release" UNION SELECT DISTINCT identifier indexer FROM indexer;`
 
-	log.Trace().Str("database", "release.get_indexers").Msgf("query: '%v'", query)
+	repo.log.Trace().Str("database", "release.get_indexers").Msgf("query: '%v'", query)
 
 	res := make([]string, 0)
 
 	rows, err := repo.db.handler.QueryContext(ctx, query)
 	if err != nil {
-		log.Error().Stack().Err(err).Msg("error fetching indexer list")
+		repo.log.Error().Stack().Err(err).Msg("error fetching indexer list")
 		return res, err
 	}
 
 	defer rows.Close()
 
 	if err := rows.Err(); err != nil {
-		log.Error().Stack().Err(err)
+		repo.log.Error().Stack().Err(err)
 		return res, err
 	}
 
@@ -217,7 +222,7 @@ func (repo *ReleaseRepo) GetIndexerOptions(ctx context.Context) ([]string, error
 		var indexer string
 
 		if err := rows.Scan(&indexer); err != nil {
-			log.Error().Stack().Err(err).Msg("release.find: error scanning data to struct")
+			repo.log.Error().Stack().Err(err).Msg("release.find: error scanning data to struct")
 			return res, err
 		}
 
@@ -240,14 +245,14 @@ func (repo *ReleaseRepo) GetActionStatusByReleaseID(ctx context.Context, release
 
 	rows, err := repo.db.handler.QueryContext(ctx, query, args...)
 	if err != nil {
-		log.Error().Stack().Err(err).Msg("error fetching releases")
+		repo.log.Error().Stack().Err(err).Msg("error fetching releases")
 		return res, nil
 	}
 
 	defer rows.Close()
 
 	if err := rows.Err(); err != nil {
-		log.Error().Stack().Err(err)
+		repo.log.Error().Stack().Err(err)
 		return res, err
 	}
 
@@ -255,7 +260,7 @@ func (repo *ReleaseRepo) GetActionStatusByReleaseID(ctx context.Context, release
 		var rls domain.ReleaseActionStatus
 
 		if err := rows.Scan(&rls.ID, &rls.Status, &rls.Action, &rls.Type, pq.Array(&rls.Rejections), &rls.Timestamp); err != nil {
-			log.Error().Stack().Err(err).Msg("release.find: error scanning data to struct")
+			repo.log.Error().Stack().Err(err).Msg("release.find: error scanning data to struct")
 			return res, err
 		}
 
@@ -278,14 +283,14 @@ func (repo *ReleaseRepo) attachActionStatus(ctx context.Context, tx *Tx, release
 
 	rows, err := tx.QueryContext(ctx, query, args...)
 	if err != nil {
-		log.Error().Stack().Err(err).Msg("error fetching releases")
+		repo.log.Error().Stack().Err(err).Msg("error fetching releases")
 		return res, nil
 	}
 
 	defer rows.Close()
 
 	if err := rows.Err(); err != nil {
-		log.Error().Stack().Err(err)
+		repo.log.Error().Stack().Err(err)
 		return res, err
 	}
 
@@ -293,7 +298,7 @@ func (repo *ReleaseRepo) attachActionStatus(ctx context.Context, tx *Tx, release
 		var rls domain.ReleaseActionStatus
 
 		if err := rows.Scan(&rls.ID, &rls.Status, &rls.Action, &rls.Type, pq.Array(&rls.Rejections), &rls.Timestamp); err != nil {
-			log.Error().Stack().Err(err).Msg("release.find: error scanning data to struct")
+			repo.log.Error().Stack().Err(err).Msg("release.find: error scanning data to struct")
 			return res, err
 		}
 
@@ -316,14 +321,14 @@ FROM "release";`
 
 	row := repo.db.handler.QueryRowContext(ctx, query)
 	if err := row.Err(); err != nil {
-		log.Error().Stack().Err(err).Msg("release.stats: error querying stats")
+		repo.log.Error().Stack().Err(err).Msg("release.stats: error querying stats")
 		return nil, err
 	}
 
 	var rls domain.ReleaseStats
 
 	if err := row.Scan(&rls.TotalCount, &rls.FilteredCount, &rls.FilterRejectedCount, &rls.PushApprovedCount, &rls.PushRejectedCount); err != nil {
-		log.Error().Stack().Err(err).Msg("release.stats: error scanning stats data to struct")
+		repo.log.Error().Stack().Err(err).Msg("release.stats: error scanning stats data to struct")
 		return nil, err
 	}
 
@@ -340,19 +345,19 @@ func (repo *ReleaseRepo) Delete(ctx context.Context) error {
 
 	_, err = tx.ExecContext(ctx, `DELETE FROM "release"`)
 	if err != nil {
-		log.Error().Stack().Err(err).Msg("error deleting all releases")
+		repo.log.Error().Stack().Err(err).Msg("error deleting all releases")
 		return err
 	}
 
 	_, err = tx.ExecContext(ctx, `DELETE FROM release_action_status`)
 	if err != nil {
-		log.Error().Stack().Err(err).Msg("error deleting all release_action_status")
+		repo.log.Error().Stack().Err(err).Msg("error deleting all release_action_status")
 		return err
 	}
 
 	err = tx.Commit()
 	if err != nil {
-		log.Error().Stack().Err(err).Msg("error deleting all releases")
+		repo.log.Error().Stack().Err(err).Msg("error deleting all releases")
 		return err
 
 	}

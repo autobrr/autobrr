@@ -2,17 +2,20 @@ package database
 
 import (
 	"context"
-	"github.com/rs/zerolog/log"
-
 	"github.com/autobrr/autobrr/internal/domain"
+	"github.com/autobrr/autobrr/internal/logger"
 )
 
 type UserRepo struct {
-	db *DB
+	log logger.Logger
+	db  *DB
 }
 
-func NewUserRepo(db *DB) domain.UserRepo {
-	return &UserRepo{db: db}
+func NewUserRepo(log logger.Logger, db *DB) domain.UserRepo {
+	return &UserRepo{
+		log: log,
+		db:  db,
+	}
 }
 
 func (r *UserRepo) GetUserCount(ctx context.Context) (int, error) {
@@ -20,7 +23,7 @@ func (r *UserRepo) GetUserCount(ctx context.Context) (int, error) {
 
 	query, args, err := queryBuilder.ToSql()
 	if err != nil {
-		log.Error().Stack().Err(err).Msg("user.store: error building query")
+		r.log.Error().Stack().Err(err).Msg("user.store: error building query")
 		return 0, err
 	}
 
@@ -31,7 +34,7 @@ func (r *UserRepo) GetUserCount(ctx context.Context) (int, error) {
 
 	result := 0
 	if err := row.Scan(&result); err != nil {
-		log.Error().Err(err).Msg("could not query number of users")
+		r.log.Error().Err(err).Msg("could not query number of users")
 		return 0, err
 	}
 
@@ -47,7 +50,7 @@ func (r *UserRepo) FindByUsername(ctx context.Context, username string) (*domain
 
 	query, args, err := queryBuilder.ToSql()
 	if err != nil {
-		log.Error().Stack().Err(err).Msg("user.store: error building query")
+		r.log.Error().Stack().Err(err).Msg("user.store: error building query")
 		return nil, err
 	}
 
@@ -59,7 +62,7 @@ func (r *UserRepo) FindByUsername(ctx context.Context, username string) (*domain
 	var user domain.User
 
 	if err := row.Scan(&user.ID, &user.Username, &user.Password); err != nil {
-		log.Error().Err(err).Msg("could not scan user to struct")
+		r.log.Error().Err(err).Msg("could not scan user to struct")
 		return nil, err
 	}
 
@@ -77,13 +80,13 @@ func (r *UserRepo) Store(ctx context.Context, user domain.User) error {
 
 	query, args, err := queryBuilder.ToSql()
 	if err != nil {
-		log.Error().Stack().Err(err).Msg("user.store: error building query")
+		r.log.Error().Stack().Err(err).Msg("user.store: error building query")
 		return err
 	}
 
 	_, err = r.db.handler.ExecContext(ctx, query, args...)
 	if err != nil {
-		log.Error().Stack().Err(err).Msg("user.store: error executing query")
+		r.log.Error().Stack().Err(err).Msg("user.store: error executing query")
 		return err
 	}
 
@@ -102,13 +105,13 @@ func (r *UserRepo) Update(ctx context.Context, user domain.User) error {
 
 	query, args, err := queryBuilder.ToSql()
 	if err != nil {
-		log.Error().Stack().Err(err).Msg("user.store: error building query")
+		r.log.Error().Stack().Err(err).Msg("user.store: error building query")
 		return err
 	}
 
 	_, err = r.db.handler.ExecContext(ctx, query, args...)
 	if err != nil {
-		log.Error().Stack().Err(err).Msg("user.store: error executing query")
+		r.log.Error().Stack().Err(err).Msg("user.store: error executing query")
 		return err
 	}
 

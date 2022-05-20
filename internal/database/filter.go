@@ -5,19 +5,23 @@ import (
 	"database/sql"
 	"time"
 
+	"github.com/autobrr/autobrr/internal/domain"
+	"github.com/autobrr/autobrr/internal/logger"
+
 	sq "github.com/Masterminds/squirrel"
 	"github.com/lib/pq"
-	"github.com/rs/zerolog/log"
-
-	"github.com/autobrr/autobrr/internal/domain"
 )
 
 type FilterRepo struct {
-	db *DB
+	log logger.Logger
+	db  *DB
 }
 
-func NewFilterRepo(db *DB) domain.FilterRepo {
-	return &FilterRepo{db: db}
+func NewFilterRepo(log logger.Logger, db *DB) domain.FilterRepo {
+	return &FilterRepo{
+		log: log,
+		db:  db,
+	}
 }
 
 func (r *FilterRepo) ListFilters(ctx context.Context) ([]domain.Filter, error) {
@@ -36,13 +40,13 @@ func (r *FilterRepo) ListFilters(ctx context.Context) ([]domain.Filter, error) {
 
 	query, args, err := queryBuilder.ToSql()
 	if err != nil {
-		log.Error().Stack().Err(err).Msg("filter.list: error building query")
+		r.log.Error().Stack().Err(err).Msg("filter.list: error building query")
 		return nil, err
 	}
 
 	rows, err := r.db.handler.QueryContext(ctx, query, args...)
 	if err != nil {
-		log.Error().Stack().Err(err).Msg("filter.list: error executing query")
+		r.log.Error().Stack().Err(err).Msg("filter.list: error executing query")
 		return nil, err
 	}
 
@@ -55,7 +59,7 @@ func (r *FilterRepo) ListFilters(ctx context.Context) ([]domain.Filter, error) {
 		var matchReleases, exceptReleases sql.NullString
 
 		if err := rows.Scan(&f.ID, &f.Enabled, &f.Name, &matchReleases, &exceptReleases, &f.CreatedAt, &f.UpdatedAt); err != nil {
-			log.Error().Stack().Err(err).Msg("filter.list: error scanning row")
+			r.log.Error().Stack().Err(err).Msg("filter.list: error scanning row")
 			return nil, err
 		}
 
@@ -65,7 +69,7 @@ func (r *FilterRepo) ListFilters(ctx context.Context) ([]domain.Filter, error) {
 		filters = append(filters, f)
 	}
 	if err := rows.Err(); err != nil {
-		log.Error().Stack().Err(err).Msg("filter.list: row error")
+		r.log.Error().Stack().Err(err).Msg("filter.list: row error")
 		return nil, err
 	}
 
@@ -129,13 +133,13 @@ func (r *FilterRepo) FindByID(ctx context.Context, filterID int) (*domain.Filter
 
 	query, args, err := queryBuilder.ToSql()
 	if err != nil {
-		log.Error().Stack().Err(err).Msg("filter.findByID: error building query")
+		r.log.Error().Stack().Err(err).Msg("filter.findByID: error building query")
 		return nil, err
 	}
 
 	row := r.db.handler.QueryRowContext(ctx, query, args...)
 	if err := row.Err(); err != nil {
-		log.Error().Stack().Err(err).Msg("filter.findByID: error query row")
+		r.log.Error().Stack().Err(err).Msg("filter.findByID: error query row")
 		return nil, err
 	}
 
@@ -145,7 +149,7 @@ func (r *FilterRepo) FindByID(ctx context.Context, filterID int) (*domain.Filter
 	var delay, maxDownloads, logScore sql.NullInt32
 
 	if err := row.Scan(&f.ID, &f.Enabled, &f.Name, &minSize, &maxSize, &delay, &f.Priority, &maxDownloads, &maxDownloadsUnit, &matchReleases, &exceptReleases, &useRegex, &matchReleaseGroups, &exceptReleaseGroups, &scene, &freeleech, &freeleechPercent, &shows, &seasons, &episodes, pq.Array(&f.Resolutions), pq.Array(&f.Codecs), pq.Array(&f.Sources), pq.Array(&f.Containers), pq.Array(&f.MatchHDR), pq.Array(&f.ExceptHDR), pq.Array(&f.MatchOther), pq.Array(&f.ExceptOther), &years, &artists, &albums, pq.Array(&f.MatchReleaseTypes), pq.Array(&f.Formats), pq.Array(&f.Quality), pq.Array(&f.Media), &logScore, &hasLog, &hasCue, &perfectFlac, &matchCategories, &exceptCategories, &matchUploaders, &exceptUploaders, &tags, &exceptTags, pq.Array(&f.Origins), &f.CreatedAt, &f.UpdatedAt); err != nil {
-		log.Error().Stack().Err(err).Msgf("filter.findByID: %v : error scanning row", filterID)
+		r.log.Error().Stack().Err(err).Msgf("filter.findByID: %v : error scanning row", filterID)
 		return nil, err
 	}
 
@@ -269,13 +273,13 @@ func (r *FilterRepo) findByIndexerIdentifier(ctx context.Context, tx *Tx, indexe
 
 	query, args, err := queryBuilder.ToSql()
 	if err != nil {
-		log.Error().Stack().Err(err).Msg("filter.findByIndexerIdentifier: error building query")
+		r.log.Error().Stack().Err(err).Msg("filter.findByIndexerIdentifier: error building query")
 		return nil, err
 	}
 
 	rows, err := tx.QueryContext(ctx, query, args...)
 	if err != nil {
-		log.Error().Stack().Err(err).Msg("filter.findByIndexerIdentifier: error executing query")
+		r.log.Error().Stack().Err(err).Msg("filter.findByIndexerIdentifier: error executing query")
 		return nil, err
 	}
 
@@ -290,7 +294,7 @@ func (r *FilterRepo) findByIndexerIdentifier(ctx context.Context, tx *Tx, indexe
 		var delay, maxDownloads, logScore sql.NullInt32
 
 		if err := rows.Scan(&f.ID, &f.Enabled, &f.Name, &minSize, &maxSize, &delay, &f.Priority, &maxDownloads, &maxDownloadsUnit, &matchReleases, &exceptReleases, &useRegex, &matchReleaseGroups, &exceptReleaseGroups, &scene, &freeleech, &freeleechPercent, &shows, &seasons, &episodes, pq.Array(&f.Resolutions), pq.Array(&f.Codecs), pq.Array(&f.Sources), pq.Array(&f.Containers), pq.Array(&f.MatchHDR), pq.Array(&f.ExceptHDR), pq.Array(&f.MatchOther), pq.Array(&f.ExceptOther), &years, &artists, &albums, pq.Array(&f.MatchReleaseTypes), pq.Array(&f.Formats), pq.Array(&f.Quality), pq.Array(&f.Media), &logScore, &hasLog, &hasCue, &perfectFlac, &matchCategories, &exceptCategories, &matchUploaders, &exceptUploaders, &tags, &exceptTags, pq.Array(&f.Origins), &f.CreatedAt, &f.UpdatedAt); err != nil {
-			log.Error().Stack().Err(err).Msg("filter.findByIndexerIdentifier: error scanning row")
+			r.log.Error().Stack().Err(err).Msg("filter.findByIndexerIdentifier: error scanning row")
 			return nil, err
 		}
 
@@ -434,7 +438,7 @@ func (r *FilterRepo) Store(ctx context.Context, filter domain.Filter) (*domain.F
 
 	err := queryBuilder.QueryRowContext(ctx).Scan(&retID)
 	if err != nil {
-		log.Error().Stack().Err(err).Msg("filter.store: error executing query")
+		r.log.Error().Stack().Err(err).Msg("filter.store: error executing query")
 		return nil, err
 	}
 
@@ -498,13 +502,13 @@ func (r *FilterRepo) Update(ctx context.Context, filter domain.Filter) (*domain.
 
 	query, args, err := queryBuilder.ToSql()
 	if err != nil {
-		log.Error().Stack().Err(err).Msg("filter.update: error building query")
+		r.log.Error().Stack().Err(err).Msg("filter.update: error building query")
 		return nil, err
 	}
 
 	_, err = r.db.handler.ExecContext(ctx, query, args...)
 	if err != nil {
-		log.Error().Stack().Err(err).Msg("filter.update: error executing query")
+		r.log.Error().Stack().Err(err).Msg("filter.update: error executing query")
 		return nil, err
 	}
 
@@ -522,12 +526,12 @@ func (r *FilterRepo) ToggleEnabled(ctx context.Context, filterID int, enabled bo
 
 	query, args, err := queryBuilder.ToSql()
 	if err != nil {
-		log.Error().Stack().Err(err).Msg("filter.toggleEnabled: error building query")
+		r.log.Error().Stack().Err(err).Msg("filter.toggleEnabled: error building query")
 		return err
 	}
 	_, err = r.db.handler.ExecContext(ctx, query, args...)
 	if err != nil {
-		log.Error().Stack().Err(err).Msg("filter.toggleEnabled: error executing query")
+		r.log.Error().Stack().Err(err).Msg("filter.toggleEnabled: error executing query")
 		return err
 	}
 
@@ -548,12 +552,12 @@ func (r *FilterRepo) StoreIndexerConnections(ctx context.Context, filterID int, 
 
 	deleteQuery, deleteArgs, err := deleteQueryBuilder.ToSql()
 	if err != nil {
-		log.Error().Stack().Err(err).Msg("filter.StoreIndexerConnections: error building query")
+		r.log.Error().Stack().Err(err).Msg("filter.StoreIndexerConnections: error building query")
 		return err
 	}
 	_, err = tx.ExecContext(ctx, deleteQuery, deleteArgs...)
 	if err != nil {
-		log.Error().Stack().Err(err).Msgf("filter.StoreIndexerConnections: error deleting indexers for filter: %v", filterID)
+		r.log.Error().Stack().Err(err).Msgf("filter.StoreIndexerConnections: error deleting indexers for filter: %v", filterID)
 		return err
 	}
 
@@ -564,21 +568,21 @@ func (r *FilterRepo) StoreIndexerConnections(ctx context.Context, filterID int, 
 
 		query, args, err := queryBuilder.ToSql()
 		if err != nil {
-			log.Error().Stack().Err(err).Msg("filter.StoreIndexerConnections: error building query")
+			r.log.Error().Stack().Err(err).Msg("filter.StoreIndexerConnections: error building query")
 			return err
 		}
 		_, err = tx.ExecContext(ctx, query, args...)
 		if err != nil {
-			log.Error().Stack().Err(err).Msg("filter.StoreIndexerConnections: error executing query")
+			r.log.Error().Stack().Err(err).Msg("filter.StoreIndexerConnections: error executing query")
 			return err
 		}
 
-		log.Debug().Msgf("filter.StoreIndexerConnections: store '%v' on filter: %v", indexer.Name, filterID)
+		r.log.Debug().Msgf("filter.StoreIndexerConnections: store '%v' on filter: %v", indexer.Name, filterID)
 	}
 
 	err = tx.Commit()
 	if err != nil {
-		log.Error().Stack().Err(err).Msgf("filter.StoreIndexerConnections: error storing indexers for filter: %v", filterID)
+		r.log.Error().Stack().Err(err).Msgf("filter.StoreIndexerConnections: error storing indexers for filter: %v", filterID)
 		return err
 	}
 
@@ -592,13 +596,13 @@ func (r *FilterRepo) StoreIndexerConnection(ctx context.Context, filterID int, i
 
 	query, args, err := queryBuilder.ToSql()
 	if err != nil {
-		log.Error().Stack().Err(err).Msg("filter.storeIndexerConnection: error building query")
+		r.log.Error().Stack().Err(err).Msg("filter.storeIndexerConnection: error building query")
 		return err
 	}
 
 	_, err = r.db.handler.ExecContext(ctx, query, args...)
 	if err != nil {
-		log.Error().Stack().Err(err).Msg("filter.storeIndexerConnection: error executing query")
+		r.log.Error().Stack().Err(err).Msg("filter.storeIndexerConnection: error executing query")
 		return err
 	}
 
@@ -612,13 +616,13 @@ func (r *FilterRepo) DeleteIndexerConnections(ctx context.Context, filterID int)
 
 	query, args, err := queryBuilder.ToSql()
 	if err != nil {
-		log.Error().Stack().Err(err).Msg("filter.deleteIndexerConnections: error building query")
+		r.log.Error().Stack().Err(err).Msg("filter.deleteIndexerConnections: error building query")
 		return err
 	}
 
 	_, err = r.db.handler.ExecContext(ctx, query, args...)
 	if err != nil {
-		log.Error().Stack().Err(err).Msg("filter.deleteIndexerConnections: error executing query")
+		r.log.Error().Stack().Err(err).Msg("filter.deleteIndexerConnections: error executing query")
 		return err
 	}
 
@@ -632,17 +636,17 @@ func (r *FilterRepo) Delete(ctx context.Context, filterID int) error {
 
 	query, args, err := queryBuilder.ToSql()
 	if err != nil {
-		log.Error().Stack().Err(err).Msg("filter.delete: error building query")
+		r.log.Error().Stack().Err(err).Msg("filter.delete: error building query")
 		return err
 	}
 
 	_, err = r.db.handler.ExecContext(ctx, query, args...)
 	if err != nil {
-		log.Error().Stack().Err(err).Msg("filter.delete: error executing query")
+		r.log.Error().Stack().Err(err).Msg("filter.delete: error executing query")
 		return err
 	}
 
-	log.Info().Msgf("filter.delete: successfully deleted: %v", filterID)
+	r.log.Info().Msgf("filter.delete: successfully deleted: %v", filterID)
 
 	return nil
 }
@@ -667,14 +671,14 @@ WHERE "release".filter_id = ?;`
 
 	row := tx.QueryRowContext(ctx, query, filterID)
 	if err := row.Err(); err != nil {
-		log.Error().Stack().Err(err).Msg("filter.downloadsByFilterSqlite: error querying stats")
+		r.log.Error().Stack().Err(err).Msg("filter.downloadsByFilterSqlite: error querying stats")
 		return nil, err
 	}
 
 	var f domain.FilterDownloads
 
 	if err := row.Scan(&f.HourCount, &f.DayCount, &f.WeekCount, &f.MonthCount, &f.TotalCount); err != nil {
-		log.Error().Stack().Err(err).Msg("filter.downloadsByFilterSqlite: error scanning stats data to struct")
+		r.log.Error().Stack().Err(err).Msg("filter.downloadsByFilterSqlite: error scanning stats data to struct")
 		return nil, err
 	}
 
@@ -693,14 +697,14 @@ WHERE "release".filter_id = ?;`
 
 	row := tx.QueryRowContext(ctx, query, filterID)
 	if err := row.Err(); err != nil {
-		log.Error().Stack().Err(err).Msg("filter.downloadsByFilterPostgres: error querying stats")
+		r.log.Error().Stack().Err(err).Msg("filter.downloadsByFilterPostgres: error querying stats")
 		return nil, err
 	}
 
 	var f domain.FilterDownloads
 
 	if err := row.Scan(&f.HourCount, &f.DayCount, &f.WeekCount, &f.MonthCount, &f.TotalCount); err != nil {
-		log.Error().Stack().Err(err).Msg("filter.downloadsByFilterPostgres: error scanning stats data to struct")
+		r.log.Error().Stack().Err(err).Msg("filter.downloadsByFilterPostgres: error scanning stats data to struct")
 		return nil, err
 	}
 

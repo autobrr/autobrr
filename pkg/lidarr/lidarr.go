@@ -3,11 +3,10 @@ package lidarr
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"strings"
 	"time"
-
-	"github.com/rs/zerolog/log"
 )
 
 type Config struct {
@@ -69,48 +68,43 @@ type SystemStatusResponse struct {
 func (c *client) Test() (*SystemStatusResponse, error) {
 	status, res, err := c.get("system/status")
 	if err != nil {
-		log.Error().Stack().Err(err).Msg("lidarr client get error")
-		return nil, err
+		return nil, fmt.Errorf("lidarr client get error: %w", err)
 	}
 
 	if status == http.StatusUnauthorized {
 		return nil, errors.New("unauthorized: bad credentials")
 	}
 
-	log.Trace().Msgf("lidarr system/status response status: %v body: %v", status, string(res))
+	//log.Trace().Msgf("lidarr system/status response status: %v body: %v", status, string(res))
 
 	response := SystemStatusResponse{}
 	err = json.Unmarshal(res, &response)
 	if err != nil {
-		log.Error().Stack().Err(err).Msg("lidarr client error json unmarshal")
-		return nil, err
+		return nil, fmt.Errorf("lidarr client error json unmarshal: %w", err)
 	}
 
 	return &response, nil
 }
 
 func (c *client) Push(release Release) ([]string, error) {
-	status, res, err := c.postBody("release/push", release)
+	_, res, err := c.postBody("release/push", release)
 	if err != nil {
-		log.Error().Stack().Err(err).Msg("lidarr client post error")
-		return nil, err
+		return nil, fmt.Errorf("lidarr client post error: %w", err)
 	}
 
-	log.Trace().Msgf("lidarr release/push response status: %v body: %v", status, string(res))
+	//log.Trace().Msgf("lidarr release/push response status: %v body: %v", status, string(res))
 
 	pushResponse := PushResponse{}
 	err = json.Unmarshal(res, &pushResponse)
 	if err != nil {
-		log.Error().Stack().Err(err).Msg("lidarr client error json unmarshal")
-		return nil, err
+		return nil, fmt.Errorf("lidarr client error json unmarshal: %w", err)
 	}
 
 	// log and return if rejected
 	if pushResponse.Rejected {
 		rejections := strings.Join(pushResponse.Rejections, ", ")
 
-		log.Trace().Msgf("lidarr push rejected: %s - reasons: %q", release.Title, rejections)
-		return pushResponse.Rejections, nil
+		return pushResponse.Rejections, fmt.Errorf("lidarr push rejected: %s - reasons: %q: err %w", release.Title, rejections, err)
 	}
 
 	return nil, nil

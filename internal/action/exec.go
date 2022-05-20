@@ -6,17 +6,15 @@ import (
 	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
-
-	"github.com/rs/zerolog/log"
 )
 
 func (s *service) execCmd(release domain.Release, action domain.Action) {
-	log.Debug().Msgf("action exec: %v release: %v", action.Name, release.TorrentName)
+	s.log.Debug().Msgf("action exec: %v release: %v", action.Name, release.TorrentName)
 
 	// check if program exists
 	cmd, err := exec.LookPath(action.ExecCmd)
 	if err != nil {
-		log.Error().Stack().Err(err).Msgf("exec failed, could not find program: %v", action.ExecCmd)
+		s.log.Error().Stack().Err(err).Msgf("exec failed, could not find program: %v", action.ExecCmd)
 		return
 	}
 
@@ -26,7 +24,7 @@ func (s *service) execCmd(release domain.Release, action domain.Action) {
 	// parse and replace values in argument string before continuing
 	parsedArgs, err := m.Parse(action.ExecArgs)
 	if err != nil {
-		log.Error().Stack().Err(err).Msgf("exec failed, could not parse arguments: %v", action.ExecCmd)
+		s.log.Error().Stack().Err(err).Msgf("exec failed, could not parse arguments: %v", action.ExecCmd)
 		return
 	}
 
@@ -42,12 +40,12 @@ func (s *service) execCmd(release domain.Release, action domain.Action) {
 	output, err := command.CombinedOutput()
 	if err != nil {
 		// everything other than exit 0 is considered an error
-		log.Error().Stack().Err(err).Msgf("command: %v args: %v failed, torrent: %v", cmd, parsedArgs, release.TorrentTmpFile)
+		s.log.Error().Stack().Err(err).Msgf("command: %v args: %v failed, torrent: %v", cmd, parsedArgs, release.TorrentTmpFile)
 	}
 
-	log.Trace().Msgf("executed command: '%v'", string(output))
+	s.log.Trace().Msgf("executed command: '%v'", string(output))
 
 	duration := time.Since(start)
 
-	log.Info().Msgf("executed command: '%v', args: '%v' %v,%v, total time %v", cmd, parsedArgs, release.TorrentName, release.Indexer, duration)
+	s.log.Info().Msgf("executed command: '%v', args: '%v' %v,%v, total time %v", cmd, parsedArgs, release.TorrentName, release.Indexer, duration)
 }

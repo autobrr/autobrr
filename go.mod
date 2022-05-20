@@ -10,12 +10,16 @@ require (
 	github.com/dcarbone/zadapters/zstdlog v0.3.1
 	github.com/dustin/go-humanize v1.0.0
 	github.com/ergochat/irc-go v0.1.0
+	github.com/fsnotify/fsnotify v1.5.1
 	github.com/gdm85/go-libdeluge v0.5.5
 	github.com/go-chi/chi v1.5.4
 	github.com/gorilla/sessions v1.2.1
+	github.com/gosimple/slug v1.12.0
 	github.com/lib/pq v1.10.4
+	github.com/moistari/rls v0.2.0
 	github.com/pkg/errors v0.9.1
 	github.com/r3labs/sse/v2 v2.7.2
+	github.com/robfig/cron/v3 v3.0.1
 	github.com/rs/cors v1.8.0
 	github.com/rs/zerolog v1.26.1
 	github.com/spf13/pflag v1.0.5
@@ -36,11 +40,9 @@ require (
 	github.com/bradfitz/iter v0.0.0-20191230175014-e8f45d346db8 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/fatih/color v1.10.0 // indirect
-	github.com/fsnotify/fsnotify v1.5.1 // indirect
 	github.com/gdm85/go-rencode v0.1.8 // indirect
 	github.com/google/uuid v1.3.0 // indirect
 	github.com/gorilla/securecookie v1.1.1 // indirect
-	github.com/gosimple/slug v1.12.0 // indirect
 	github.com/gosimple/unidecode v1.0.1 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect
 	github.com/huandu/xstrings v1.3.2 // indirect
@@ -52,14 +54,12 @@ require (
 	github.com/mattn/go-colorable v0.1.8 // indirect
 	github.com/mattn/go-isatty v0.0.14 // indirect
 	github.com/mitchellh/mapstructure v1.4.2 // indirect
-	github.com/moistari/rls v0.2.0 // indirect
 	github.com/nxadm/tail v1.4.6 // indirect
 	github.com/onsi/ginkgo v1.14.2 // indirect
 	github.com/onsi/gomega v1.10.1 // indirect
 	github.com/pelletier/go-toml v1.9.4 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/remyoudompheng/bigfft v0.0.0-20200410134404-eec4a21b6bb0 // indirect
-	github.com/robfig/cron/v3 v3.0.1 // indirect
 	github.com/rogpeppe/go-internal v1.8.0 // indirect
 	github.com/spf13/afero v1.6.0 // indirect
 	github.com/spf13/cast v1.4.1 // indirect

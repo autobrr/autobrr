@@ -39,12 +39,12 @@ func main() {
 	}
 
 	// open database connection
-	db, _ := database.NewDB(&domain.Config{ConfigPath: configPath, DatabaseType: "sqlite"})
+	db, _ := database.NewDB(&domain.Config{ConfigPath: configPath, DatabaseType: "sqlite"}, nil)
 	if err := db.Open(); err != nil {
 		log.Fatal("could not open db connection")
 	}
 
-	userRepo := database.NewUserRepo(db)
+	userRepo := database.NewUserRepo(nil, db)
 
 	switch cmd := flag.Arg(0); cmd {
 	case "create-user":

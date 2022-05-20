@@ -5,6 +5,7 @@ import (
 	"errors"
 
 	"github.com/autobrr/autobrr/internal/domain"
+	"github.com/autobrr/autobrr/internal/logger"
 )
 
 type Service interface {
@@ -17,11 +18,15 @@ type Service interface {
 }
 
 type service struct {
+	log  logger.Logger
 	repo domain.DownloadClientRepo
 }
 
-func NewService(repo domain.DownloadClientRepo) Service {
-	return &service{repo: repo}
+func NewService(log logger.Logger, repo domain.DownloadClientRepo) Service {
+	return &service{
+		log:  log,
+		repo: repo,
+	}
 }
 
 func (s *service) List(ctx context.Context) ([]domain.DownloadClient, error) {
@@ -69,5 +74,10 @@ func (s *service) Test(client domain.DownloadClient) error {
 	}
 
 	// test
-	return s.testConnection(client)
+	if err := s.testConnection(client); err != nil {
+		s.log.Err(err).Msg("client connection test error")
+		return err
+	}
+
+	return nil
 }

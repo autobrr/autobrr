@@ -1,18 +1,19 @@
 package download_client
 
 import (
-	"github.com/autobrr/autobrr/pkg/whisparr"
-	"github.com/pkg/errors"
+	"fmt"
 	"time"
+
+	"github.com/pkg/errors"
 
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/pkg/lidarr"
 	"github.com/autobrr/autobrr/pkg/qbittorrent"
 	"github.com/autobrr/autobrr/pkg/radarr"
 	"github.com/autobrr/autobrr/pkg/sonarr"
+	"github.com/autobrr/autobrr/pkg/whisparr"
 
 	delugeClient "github.com/gdm85/go-libdeluge"
-	"github.com/rs/zerolog/log"
 )
 
 func (s *service) testConnection(client domain.DownloadClient) error {
@@ -52,11 +53,10 @@ func (s *service) testQbittorrentConnection(client domain.DownloadClient) error 
 	qbt := qbittorrent.NewClient(qbtSettings)
 	err := qbt.Login()
 	if err != nil {
-		log.Error().Err(err).Msgf("error logging into client: %v", client.Host)
-		return err
+		return errors.Wrap(err, fmt.Sprintf("error logging into client: %v", client.Host))
 	}
 
-	log.Debug().Msgf("test client connection for qBittorrent: success")
+	s.log.Debug().Msgf("test client connection for qBittorrent: success")
 
 	return nil
 }
@@ -87,8 +87,7 @@ func (s *service) testDelugeConnection(client domain.DownloadClient) error {
 	// perform connection to Deluge server
 	err := deluge.Connect()
 	if err != nil {
-		log.Error().Err(err).Msgf("error logging into client: %v", client.Host)
-		return err
+		return errors.Wrap(err, fmt.Sprintf("error logging into client: %v", client.Host))
 	}
 
 	defer deluge.Close()
@@ -96,11 +95,10 @@ func (s *service) testDelugeConnection(client domain.DownloadClient) error {
 	// print daemon version
 	ver, err := deluge.DaemonVersion()
 	if err != nil {
-		log.Error().Err(err).Msgf("could not get daemon version: %v", client.Host)
-		return err
+		return errors.Wrap(err, fmt.Sprintf("could not get daemon version: %v", client.Host))
 	}
 
-	log.Debug().Msgf("test client connection for Deluge: success - daemon version: %v", ver)
+	s.log.Debug().Msgf("test client connection for Deluge: success - daemon version: %v", ver)
 
 	return nil
 }
@@ -116,11 +114,10 @@ func (s *service) testRadarrConnection(client domain.DownloadClient) error {
 
 	_, err := r.Test()
 	if err != nil {
-		log.Error().Err(err).Msgf("radarr: connection test failed: %v", client.Host)
-		return err
+		return errors.Wrap(err, fmt.Sprintf("radarr: connection test failed: %v", client.Host))
 	}
 
-	log.Debug().Msgf("test client connection for Radarr: success")
+	s.log.Debug().Msgf("test client connection for Radarr: success")
 
 	return nil
 }
@@ -136,11 +133,10 @@ func (s *service) testSonarrConnection(client domain.DownloadClient) error {
 
 	_, err := r.Test()
 	if err != nil {
-		log.Error().Err(err).Msgf("sonarr: connection test failed: %v", client.Host)
-		return err
+		return errors.Wrap(err, fmt.Sprintf("sonarr: connection test failed: %v", client.Host))
 	}
 
-	log.Debug().Msgf("test client connection for Sonarr: success")
+	s.log.Debug().Msgf("test client connection for Sonarr: success")
 
 	return nil
 }
@@ -156,11 +152,10 @@ func (s *service) testLidarrConnection(client domain.DownloadClient) error {
 
 	_, err := r.Test()
 	if err != nil {
-		log.Error().Err(err).Msgf("lidarr: connection test failed: %v", client.Host)
-		return err
+		return errors.Wrap(err, fmt.Sprintf("lidarr: connection test failed: %v", client.Host))
 	}
 
-	log.Debug().Msgf("test client connection for Lidarr: success")
+	s.log.Debug().Msgf("test client connection for Lidarr: success")
 
 	return nil
 }
@@ -176,11 +171,10 @@ func (s *service) testWhisparrConnection(client domain.DownloadClient) error {
 
 	_, err := r.Test()
 	if err != nil {
-		log.Error().Err(err).Msgf("whisparr: connection test failed: %v", client.Host)
-		return err
+		return errors.Wrap(err, fmt.Sprintf("whisparr: connection test failed: %v", client.Host))
 	}
 
-	log.Debug().Msgf("test client connection for whisparr: success")
+	s.log.Debug().Msgf("test client connection for whisparr: success")
 
 	return nil
 }
