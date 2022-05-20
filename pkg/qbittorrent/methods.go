@@ -18,7 +18,7 @@ func (c *Client) Login() error {
 	credentials["username"] = c.settings.Username
 	credentials["password"] = c.settings.Password
 
-	resp, err := c.post("auth/login", credentials)
+	resp, err := c.postBasic("auth/login", credentials)
 	if err != nil {
 		log.Error().Err(err).Msg("login error")
 		return err

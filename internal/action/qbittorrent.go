@@ -111,6 +111,13 @@ func (s *service) qbittorrentCheckRulesCanDownload(action domain.Action) (bool, 
 		TLSSkipVerify: client.TLSSkipVerify,
 	}
 
+	// only set basic auth if enabled
+	if client.Settings.Basic.Auth {
+		qbtSettings.BasicAuth = client.Settings.Basic.Auth
+		qbtSettings.Basic.Username = client.Settings.Basic.Username
+		qbtSettings.Basic.Password = client.Settings.Basic.Password
+	}
+
 	qbt := qbittorrent.NewClient(qbtSettings)
 	qbt.Name = client.Name
 	// save cookies?

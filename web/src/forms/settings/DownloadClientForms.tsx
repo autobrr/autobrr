@@ -97,6 +97,46 @@ function FormFieldsArr() {
   );
 }
 
+function FormFieldsQbit() {
+  const {
+    values: { port, tls, settings }
+  } = useFormikContext<InitialValues>();
+
+  return (
+    <Fragment>
+      <TextFieldWide name="host" label="Host" help="Eg. client.domain.ltd, domain.ltd/client, domain.ltd:port" />
+
+      {port > 0 && (
+        <NumberFieldWide name="port" label="Port" help="WebUI port for qBittorrent" />
+      )}
+
+      <div className="py-6 px-6 space-y-6 sm:py-0 sm:space-y-0 sm:divide-y sm:divide-gray-200 dark:divide-gray-700">
+        <SwitchGroupWide name="tls" label="TLS" />
+
+        {tls && (
+          <Fragment>
+            <SwitchGroupWide name="tls_skip_verify" label="Skip TLS verification (insecure)" />
+          </Fragment>
+        )}
+      </div>
+
+      <TextFieldWide name="username" label="Username" />
+      <PasswordFieldWide name="password" label="Password" />
+
+      <div className="py-6 px-6 space-y-6 sm:py-0 sm:space-y-0 sm:divide-y sm:divide-gray-200">
+        <SwitchGroupWide name="settings.basic.auth" label="Basic auth" />
+      </div>
+
+      {settings.basic?.auth === true && (
+        <Fragment>
+          <TextFieldWide name="settings.basic.username" label="Username" />
+          <PasswordFieldWide name="settings.basic.password" label="Password" />
+        </Fragment>
+      )}
+    </Fragment>
+  );
+}
+
 export interface componentMapType {
   [key: string]: React.ReactElement;
 }
@@ -104,7 +144,7 @@ export interface componentMapType {
 export const componentMap: componentMapType = {
   DELUGE_V1: <FormFieldsDefault/>,
   DELUGE_V2: <FormFieldsDefault/>,
-  QBITTORRENT: <FormFieldsDefault/>,
+  QBITTORRENT: <FormFieldsQbit/>,
   RADARR: <FormFieldsArr/>,
   SONARR: <FormFieldsArr/>,
   LIDARR: <FormFieldsArr/>,
@@ -356,7 +396,7 @@ export function DownloadClientAddForm({ isOpen, toggle }: formProps) {
     type: "QBITTORRENT",
     enabled: true,
     host: "",
-    port: 10000,
+    port: 0,
     tls: false,
     tls_skip_verify: false,
     username: "",
