@@ -171,6 +171,42 @@ func (c *Client) post(endpoint string, opts map[string]string) (*http.Response, 
 	return resp, nil
 }
 
+func (c *Client) postBasic(endpoint string, opts map[string]string) (*http.Response, error) {
+	// add optional parameters that the user wants
+	form := url.Values{}
+	if opts != nil {
+		for k, v := range opts {
+			form.Add(k, v)
+		}
+	}
+
+	var err error
+	var resp *http.Response
+
+	reqUrl := buildUrl(c.settings, endpoint)
+
+	req, err := http.NewRequest("POST", reqUrl, strings.NewReader(form.Encode()))
+	if err != nil {
+		log.Error().Err(err).Msgf("POST: req %v", reqUrl)
+		return nil, err
+	}
+
+	if c.settings.BasicAuth {
+		req.SetBasicAuth(c.settings.Basic.Username, c.settings.Basic.Password)
+	}
+
+	// add the content-type so qbittorrent knows what to expect
+	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
+
+	resp, err = c.http.Do(req)
+	if err != nil {
+		log.Error().Err(err).Msgf("POST: do %v", reqUrl)
+		return nil, err
+	}
+
+	return resp, nil
+}
+
 func (c *Client) postFile(endpoint string, fileName string, opts map[string]string) (*http.Response, error) {
 	var err error
 	var resp *http.Response
