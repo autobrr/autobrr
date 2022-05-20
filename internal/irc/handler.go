@@ -167,7 +167,7 @@ func (h *Handler) Run() error {
 	h.client.AddCallback("PRIVMSG", h.onMessage)
 
 	if err := h.client.Connect(); err != nil {
-		h.log.Error().Stack().Err(err).Msgf("%v: connect error", h.network.Server)
+		h.log.Error().Stack().Err(err).Msg("connect error")
 
 		// reset connection status on handler and channels
 		h.resetConnectionStatus()
@@ -238,12 +238,12 @@ func (h *Handler) AddChannelHealth(channel string) {
 }
 
 func (h *Handler) Stop() {
-	h.log.Debug().Msgf("%v: Disconnecting...", h.network.Server)
+	h.log.Debug().Msg("Disconnecting...")
 	h.client.Quit()
 }
 
 func (h *Handler) Restart() error {
-	h.log.Debug().Msgf("%v: Restarting network...", h.network.Server)
+	h.log.Debug().Msg("Restarting network...")
 
 	h.client.Quit()
 
@@ -260,7 +260,7 @@ func (h *Handler) onConnect(m ircmsg.Message) {
 	if h.network.NickServ.Password != "" {
 		err := h.HandleNickServIdentify(h.network.NickServ.Password)
 		if err != nil {
-			h.log.Error().Stack().Err(err).Msgf("error nickserv: %v", h.network.Name)
+			h.log.Error().Stack().Err(err).Msg("error nickserv")
 			return
 		}
 		identified = true
@@ -271,7 +271,7 @@ func (h *Handler) onConnect(m ircmsg.Message) {
 	if h.network.InviteCommand != "" {
 		err := h.handleConnectCommands(h.network.InviteCommand)
 		if err != nil {
-			h.log.Error().Stack().Err(err).Msgf("error sending connect command %v to network: %v", h.network.InviteCommand, h.network.Name)
+			h.log.Error().Stack().Err(err).Msgf("error sending connect command %v", h.network.InviteCommand)
 			return
 		}
 
@@ -313,7 +313,7 @@ func (h *Handler) onMessage(msg ircmsg.Message) {
 
 	// clean message
 	cleanedMsg := h.cleanMessage(message)
-	h.log.Debug().Msgf("%v: %v %v: %v", h.network.Server, channel, announcer, cleanedMsg)
+	h.log.Debug().Str("channel", channel).Str("user", announcer).Msgf("%v", cleanedMsg)
 
 	if err := h.sendToAnnounceProcessor(channel, cleanedMsg); err != nil {
 		h.log.Error().Stack().Err(err).Msgf("could not queue line: %v", cleanedMsg)
@@ -360,7 +360,7 @@ func (h *Handler) HandleJoinChannel(channel string, password string) error {
 		m.Params = []string{channel, password}
 	}
 
-	h.log.Debug().Msgf("%v: sending JOIN command %v", h.network.Server, strings.Join(m.Params, " "))
+	h.log.Debug().Msgf("sending JOIN command %v", strings.Join(m.Params, " "))
 
 	err := h.client.SendIRCMessage(m)
 	if err != nil {
@@ -373,13 +373,13 @@ func (h *Handler) HandleJoinChannel(channel string, password string) error {
 
 func (h *Handler) handlePart(msg ircmsg.Message) {
 	if !h.isOurNick(msg.Nick()) {
-		h.log.Debug().Msgf("%v: MODE OTHER USER: %+v", h.network.Server, msg)
+		h.log.Debug().Msgf("MODE OTHER USER: %+v", msg)
 		return
 	}
 
 	channel := msg.Params[0]
 
-	h.log.Debug().Msgf("%v: PART channel %v", h.network.Server, channel)
+	h.log.Debug().Msgf("PART channel %v", channel)
 
 	err := h.client.Part(channel)
 	if err != nil {
@@ -397,13 +397,13 @@ func (h *Handler) handlePart(msg ircmsg.Message) {
 
 	// TODO remove announceProcessor
 
-	h.log.Info().Msgf("%v: Left channel '%v'", h.network.Server, channel)
+	h.log.Info().Msgf("Left channel '%v'", channel)
 
 	return
 }
 
 func (h *Handler) HandlePartChannel(channel string) error {
-	h.log.Debug().Msgf("%v: PART channel %v", h.network.Server, channel)
+	h.log.Debug().Msgf("PART channel %v", channel)
 
 	err := h.client.Part(channel)
 	if err != nil {
@@ -428,14 +428,14 @@ func (h *Handler) HandlePartChannel(channel string) error {
 
 func (h *Handler) handleJoined(msg ircmsg.Message) {
 	if !h.isOurNick(msg.Params[0]) {
-		h.log.Debug().Msgf("%v: OTHER USER JOINED: %+v", h.network.Server, msg)
+		h.log.Debug().Msgf("OTHER USER JOINED: %+v", msg)
 		return
 	}
 
 	// get channel
 	channel := msg.Params[1]
 
-	h.log.Debug().Msgf("%v: JOINED: %v", h.network.Server, msg.Params[1])
+	h.log.Debug().Msgf("JOINED: %v", msg.Params[1])
 
 	// set monitoring on current channelHealth, or add new
 	v, ok := h.channelHealth[strings.ToLower(channel)]
@@ -447,7 +447,7 @@ func (h *Handler) handleJoined(msg ircmsg.Message) {
 
 	valid := h.isValidChannel(channel)
 	if valid {
-		h.log.Info().Msgf("%v: Monitoring channel %v", h.network.Server, msg.Params[1])
+		h.log.Info().Msgf("Monitoring channel %v", msg.Params[1])
 		return
 	}
 }
@@ -464,7 +464,7 @@ func (h *Handler) handleConnectCommands(msg string) error {
 			Params:  strings.Split(cmd, " "),
 		}
 
-		h.log.Debug().Msgf("%v: sending connect command", h.network.Server)
+		h.log.Debug().Msgf("sending connect command: %v", cmd)
 
 		err := h.client.SendIRCMessage(m)
 		if err != nil {
@@ -484,7 +484,7 @@ func (h *Handler) handleInvite(msg ircmsg.Message) {
 	// get channel
 	channel := msg.Params[1]
 
-	h.log.Debug().Msgf("%v: INVITE from %v, joining %v", h.network.Server, msg.Nick(), channel)
+	h.log.Debug().Msgf("INVITE from %v, joining %v", msg.Nick(), channel)
 
 	err := h.client.Join(channel)
 	if err != nil {
@@ -501,7 +501,7 @@ func (h *Handler) HandleNickServIdentify(password string) error {
 		Params:  []string{"NickServ", "IDENTIFY", password},
 	}
 
-	h.log.Debug().Msgf("%v: NickServ: %v", h.network.Server, m)
+	h.log.Debug().Msgf("NickServ: %v", m)
 
 	err := h.client.SendIRCMessage(m)
 	if err != nil {
@@ -513,7 +513,7 @@ func (h *Handler) HandleNickServIdentify(password string) error {
 }
 
 func (h *Handler) HandleNickChange(nick string) error {
-	h.log.Debug().Msgf("%v: Nick change: %v", h.network.Server, nick)
+	h.log.Debug().Msgf("Nick change: %v", nick)
 
 	h.client.SetNick(nick)
 
@@ -521,17 +521,17 @@ func (h *Handler) HandleNickChange(nick string) error {
 }
 
 func (h *Handler) handleMode(msg ircmsg.Message) {
-	h.log.Debug().Msgf("%v: MODE: %+v", h.network.Server, msg)
+	h.log.Debug().Msgf("MODE: %+v", msg)
 
 	if !h.isOurNick(msg.Params[0]) {
-		h.log.Debug().Msgf("%v: MODE OTHER USER: %+v", h.network.Server, msg)
+		h.log.Trace().Msgf("MODE OTHER USER: %+v", msg)
 		return
 	}
 
 	time.Sleep(5 * time.Second)
 
 	if h.network.NickServ.Password != "" && !strings.Contains(msg.Params[0], h.client.Nick) || !strings.Contains(msg.Params[1], "+r") {
-		h.log.Trace().Msgf("%v: MODE: Not correct permission yet: %v", h.network.Server, msg.Params)
+		h.log.Trace().Msgf("MODE: Not correct permission yet: %v", msg.Params)
 		return
 	}
 
