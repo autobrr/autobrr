@@ -29,4 +29,4 @@ export const Logout = () => {
       <p>Logged out</p>
     </div>
   );
-}
+};

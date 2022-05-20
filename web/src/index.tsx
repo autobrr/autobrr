@@ -17,8 +17,8 @@ window.APP = window.APP || {};
 InitializeGlobalContext();
 
 ReactDOM.render(
-    <StrictMode>
-        <App />
-    </StrictMode>,
-    document.getElementById("root")
+  <StrictMode>
+    <App />
+  </StrictMode>,
+  document.getElementById("root")
 );

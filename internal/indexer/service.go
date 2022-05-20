@@ -10,10 +10,10 @@ import (
 	"strings"
 
 	"github.com/autobrr/autobrr/internal/domain"
+	"github.com/autobrr/autobrr/internal/logger"
 	"github.com/autobrr/autobrr/internal/scheduler"
 
 	"github.com/gosimple/slug"
-	"github.com/rs/zerolog/log"
 	"gopkg.in/yaml.v2"
 )
 
@@ -24,39 +24,41 @@ type Service interface {
 	FindByFilterID(ctx context.Context, id int) ([]domain.Indexer, error)
 	List(ctx context.Context) ([]domain.Indexer, error)
 	GetAll() ([]*domain.IndexerDefinition, error)
-	GetTemplates() ([]domain.IndexerDefinition, error)
+	GetTemplates() ([]*domain.IndexerDefinition, error)
 	LoadIndexerDefinitions() error
-	GetIndexersByIRCNetwork(server string) []domain.IndexerDefinition
+	GetIndexersByIRCNetwork(server string) []*domain.IndexerDefinition
 	GetTorznabIndexers() []domain.IndexerDefinition
 	Start() error
 }
 
 type service struct {
-	config     domain.Config
+	log        logger.Logger
+	config     *domain.Config
 	repo       domain.IndexerRepo
 	apiService APIService
 	scheduler  scheduler.Service
 
 	// contains all raw indexer definitions
-	indexerDefinitions map[string]domain.IndexerDefinition
+	indexerDefinitions map[string]*domain.IndexerDefinition
 
 	// map server:channel:announce to indexer.Identifier
 	mapIndexerIRCToName map[string]string
 
-	lookupIRCServerDefinition map[string]map[string]domain.IndexerDefinition
+	lookupIRCServerDefinition map[string]map[string]*domain.IndexerDefinition
 
 	torznabIndexers map[string]*domain.IndexerDefinition
 }
 
-func NewService(config domain.Config, repo domain.IndexerRepo, apiService APIService, scheduler scheduler.Service) Service {
+func NewService(log logger.Logger, config *domain.Config, repo domain.IndexerRepo, apiService APIService, scheduler scheduler.Service) Service {
 	return &service{
+		log:                       log,
 		config:                    config,
 		repo:                      repo,
 		apiService:                apiService,
 		scheduler:                 scheduler,
-		indexerDefinitions:        make(map[string]domain.IndexerDefinition),
+		indexerDefinitions:        make(map[string]*domain.IndexerDefinition),
 		mapIndexerIRCToName:       make(map[string]string),
-		lookupIRCServerDefinition: make(map[string]map[string]domain.IndexerDefinition),
+		lookupIRCServerDefinition: make(map[string]map[string]*domain.IndexerDefinition),
 		torznabIndexers:           make(map[string]*domain.IndexerDefinition),
 	}
 }
@@ -73,14 +75,14 @@ func (s *service) Store(ctx context.Context, indexer domain.Indexer) (*domain.In
 
 	i, err := s.repo.Store(ctx, indexer)
 	if err != nil {
-		log.Error().Stack().Err(err).Msgf("failed to store indexer: %v", indexer.Name)
+		s.log.Error().Stack().Err(err).Msgf("failed to store indexer: %v", indexer.Name)
 		return nil, err
 	}
 
 	// add to indexerInstances
 	err = s.addIndexer(*i)
 	if err != nil {
-		log.Error().Stack().Err(err).Msgf("failed to add indexer: %v", indexer.Name)
+		s.log.Error().Stack().Err(err).Msgf("failed to add indexer: %v", indexer.Name)
 		return nil, err
 	}
 
@@ -96,7 +98,7 @@ func (s *service) Update(ctx context.Context, indexer domain.Indexer) (*domain.I
 	// add to indexerInstances
 	err = s.addIndexer(*i)
 	if err != nil {
-		log.Error().Stack().Err(err).Msgf("failed to add indexer: %v", indexer.Name)
+		s.log.Error().Stack().Err(err).Msgf("failed to add indexer: %v", indexer.Name)
 		return nil, err
 	}
 
@@ -169,49 +171,37 @@ func (s *service) mapIndexer(indexer domain.Indexer) (*domain.IndexerDefinition,
 		}
 	}
 
-	indexerDefinition := domain.IndexerDefinition{
-		ID:             int(indexer.ID),
-		Name:           indexer.Name,
-		Identifier:     indexer.Identifier,
-		Implementation: indexer.Implementation,
-		Enabled:        indexer.Enabled,
-		Description:    in.Description,
-		Language:       in.Language,
-		Privacy:        in.Privacy,
-		Protocol:       in.Protocol,
-		URLS:           in.URLS,
-		Supports:       in.Supports,
-		Settings:       nil,
-		SettingsMap:    make(map[string]string),
-		IRC:            in.IRC,
-		Torznab:        in.Torznab,
-		Parse:          in.Parse,
-	}
+	in.ID = int(indexer.ID)
+	in.Name = indexer.Name
+	in.Identifier = indexer.Identifier
+	in.Implementation = indexer.Implementation
+	in.Enabled = indexer.Enabled
+	in.SettingsMap = make(map[string]string)
 
-	if indexerDefinition.Implementation == "" {
-		indexerDefinition.Implementation = "irc"
+	if in.Implementation == "" {
+		in.Implementation = "irc"
 	}
 
 	// map settings
 	// add value to settings objects
-	for _, setting := range in.Settings {
+	for i, setting := range in.Settings {
 		if v, ok := indexer.Settings[setting.Name]; ok {
 			setting.Value = v
 
-			indexerDefinition.SettingsMap[setting.Name] = v
+			in.SettingsMap[setting.Name] = v
 		}
 
-		indexerDefinition.Settings = append(indexerDefinition.Settings, setting)
+		in.Settings[i] = setting
 	}
 
-	return &indexerDefinition, nil
+	return in, nil
 }
 
-func (s *service) GetTemplates() ([]domain.IndexerDefinition, error) {
+func (s *service) GetTemplates() ([]*domain.IndexerDefinition, error) {
 
 	definitions := s.indexerDefinitions
 
-	var ret []domain.IndexerDefinition
+	ret := make([]*domain.IndexerDefinition, 0)
 	for _, definition := range definitions {
 		ret = append(ret, definition)
 	}
@@ -242,15 +232,15 @@ func (s *service) Start() error {
 
 	for _, indexer := range indexerDefinitions {
 		if indexer.IRC != nil {
-			s.mapIRCIndexerLookup(indexer.Identifier, *indexer)
+			s.mapIRCIndexerLookup(indexer.Identifier, indexer)
 
 			// add to irc server lookup table
-			s.mapIRCServerDefinitionLookup(indexer.IRC.Server, *indexer)
+			s.mapIRCServerDefinitionLookup(indexer.IRC.Server, indexer)
 
 			// check if it has api and add to api service
 			if indexer.Enabled && indexer.HasApi() {
 				if err := s.apiService.AddClient(indexer.Identifier, indexer.SettingsMap); err != nil {
-					log.Error().Stack().Err(err).Msgf("indexer.start: could not init api client for: '%v'", indexer.Identifier)
+					s.log.Error().Stack().Err(err).Msgf("indexer.start: could not init api client for: '%v'", indexer.Identifier)
 				}
 			}
 		}
@@ -261,7 +251,7 @@ func (s *service) Start() error {
 		}
 	}
 
-	log.Info().Msgf("Loaded %d indexers", len(indexerDefinitions))
+	s.log.Info().Msgf("Loaded %d indexers", len(indexerDefinitions))
 
 	return nil
 }
@@ -294,15 +284,15 @@ func (s *service) addIndexer(indexer domain.Indexer) error {
 	//}
 
 	if indexerDefinition.IRC != nil {
-		s.mapIRCIndexerLookup(indexer.Identifier, *indexerDefinition)
+		s.mapIRCIndexerLookup(indexer.Identifier, indexerDefinition)
 
 		// add to irc server lookup table
-		s.mapIRCServerDefinitionLookup(indexerDefinition.IRC.Server, *indexerDefinition)
+		s.mapIRCServerDefinitionLookup(indexerDefinition.IRC.Server, indexerDefinition)
 
 		// check if it has api and add to api service
 		if indexerDefinition.Enabled && indexerDefinition.HasApi() {
 			if err := s.apiService.AddClient(indexerDefinition.Identifier, indexerDefinition.SettingsMap); err != nil {
-				log.Error().Stack().Err(err).Msgf("indexer.start: could not init api client for: '%v'", indexer.Identifier)
+				s.log.Error().Stack().Err(err).Msgf("indexer.start: could not init api client for: '%v'", indexer.Identifier)
 			}
 		}
 	}
@@ -315,7 +305,7 @@ func (s *service) addIndexer(indexer domain.Indexer) error {
 	return nil
 }
 
-func (s *service) mapIRCIndexerLookup(indexerIdentifier string, indexerDefinition domain.IndexerDefinition) {
+func (s *service) mapIRCIndexerLookup(indexerIdentifier string, indexerDefinition *domain.IndexerDefinition) {
 	// map irc stuff to indexer.name
 	// map[irc.network.test:channel:announcer1] = indexer1
 	// map[irc.network.test:channel:announcer2] = indexer2
@@ -339,12 +329,12 @@ func (s *service) mapIRCIndexerLookup(indexerIdentifier string, indexerDefinitio
 // mapIRCServerDefinitionLookup map irc stuff to indexer.name
 // map[irc.network.test][indexer1] = indexer1
 // map[irc.network.test][indexer2] = indexer2
-func (s *service) mapIRCServerDefinitionLookup(ircServer string, indexerDefinition domain.IndexerDefinition) {
+func (s *service) mapIRCServerDefinitionLookup(ircServer string, indexerDefinition *domain.IndexerDefinition) {
 	if indexerDefinition.IRC != nil {
 		// check if already exists, if ok add it to existing, otherwise create new
 		_, exists := s.lookupIRCServerDefinition[ircServer]
 		if !exists {
-			s.lookupIRCServerDefinition[ircServer] = map[string]domain.IndexerDefinition{}
+			s.lookupIRCServerDefinition[ircServer] = map[string]*domain.IndexerDefinition{}
 		}
 
 		s.lookupIRCServerDefinition[ircServer][indexerDefinition.Identifier] = indexerDefinition
@@ -356,11 +346,11 @@ func (s *service) LoadIndexerDefinitions() error {
 
 	entries, err := fs.ReadDir(Definitions, "definitions")
 	if err != nil {
-		log.Fatal().Stack().Msgf("failed reading directory: %s", err)
+		s.log.Fatal().Stack().Msgf("failed reading directory: %s", err)
 	}
 
 	if len(entries) == 0 {
-		log.Fatal().Stack().Msgf("failed reading directory: %s", err)
+		s.log.Fatal().Stack().Msgf("failed reading directory: %s", err)
 		return err
 	}
 
@@ -372,26 +362,30 @@ func (s *service) LoadIndexerDefinitions() error {
 
 		file := "definitions/" + f.Name()
 
-		log.Trace().Msgf("parsing: %v", file)
+		s.log.Trace().Msgf("parsing: %v", file)
 
-		var d domain.IndexerDefinition
+		var d *domain.IndexerDefinition
 
 		data, err := fs.ReadFile(Definitions, file)
 		if err != nil {
-			log.Error().Stack().Err(err).Msgf("failed reading file: %v", file)
+			s.log.Error().Stack().Err(err).Msgf("failed reading file: %v", file)
 			return err
 		}
 
 		err = yaml.Unmarshal(data, &d)
 		if err != nil {
-			log.Error().Stack().Err(err).Msgf("failed unmarshal file: %v", file)
+			s.log.Error().Stack().Err(err).Msgf("failed unmarshal file: %v", file)
 			return err
+		}
+
+		if d.Implementation == "" {
+			d.Implementation = "irc"
 		}
 
 		s.indexerDefinitions[d.Identifier] = d
 	}
 
-	log.Debug().Msgf("Loaded %d indexer definitions", len(s.indexerDefinitions))
+	s.log.Debug().Msgf("Loaded %d indexer definitions", len(s.indexerDefinitions))
 
 	return nil
 }
@@ -407,11 +401,11 @@ func (s *service) LoadCustomIndexerDefinitions() error {
 	//entries, err := fs.ReadDir(Definitions, "definitions")
 	entries, err := outputDirRead.ReadDir(0)
 	if err != nil {
-		log.Fatal().Stack().Msgf("failed reading directory: %s", err)
+		s.log.Fatal().Stack().Msgf("failed reading directory: %s", err)
 	}
 
 	if len(entries) == 0 {
-		log.Fatal().Stack().Msgf("failed reading directory: %s", err)
+		s.log.Fatal().Stack().Msgf("failed reading directory: %s", err)
 		return err
 	}
 
@@ -425,21 +419,25 @@ func (s *service) LoadCustomIndexerDefinitions() error {
 
 		file := filepath.Join(s.config.CustomDefinitions, f.Name())
 
-		log.Trace().Msgf("parsing custom: %v", file)
+		s.log.Trace().Msgf("parsing custom: %v", file)
 
-		var d domain.IndexerDefinition
+		var d *domain.IndexerDefinition
 
 		//data, err := fs.ReadFile(Definitions, filePath)
 		data, err := os.ReadFile(file)
 		if err != nil {
-			log.Error().Stack().Err(err).Msgf("failed reading file: %v", file)
+			s.log.Error().Stack().Err(err).Msgf("failed reading file: %v", file)
 			return err
 		}
 
 		err = yaml.Unmarshal(data, &d)
 		if err != nil {
-			log.Error().Stack().Err(err).Msgf("failed unmarshal file: %v", file)
+			s.log.Error().Stack().Err(err).Msgf("failed unmarshal file: %v", file)
 			return err
+		}
+
+		if d.Implementation == "" {
+			d.Implementation = "irc"
 		}
 
 		s.indexerDefinitions[d.Identifier] = d
@@ -447,15 +445,15 @@ func (s *service) LoadCustomIndexerDefinitions() error {
 		customCount++
 	}
 
-	log.Debug().Msgf("Loaded %d custom indexer definitions", customCount)
+	s.log.Debug().Msgf("Loaded %d custom indexer definitions", customCount)
 
 	return nil
 }
 
-func (s *service) GetIndexersByIRCNetwork(server string) []domain.IndexerDefinition {
+func (s *service) GetIndexersByIRCNetwork(server string) []*domain.IndexerDefinition {
 	server = strings.ToLower(server)
 
-	indexerDefinitions := make([]domain.IndexerDefinition, 0)
+	var indexerDefinitions []*domain.IndexerDefinition
 
 	// get indexer definitions matching irc network from lookup table
 	if srv, idOk := s.lookupIRCServerDefinition[server]; idOk {
@@ -483,7 +481,7 @@ func (s *service) GetTorznabIndexers() []domain.IndexerDefinition {
 func (s *service) getDefinitionByName(name string) *domain.IndexerDefinition {
 
 	if v, ok := s.indexerDefinitions[name]; ok {
-		return &v
+		return v
 	}
 
 	return nil
@@ -494,7 +492,7 @@ func (s *service) getDefinitionForAnnounce(name string) *domain.IndexerDefinitio
 	// map[network:channel:announcer] = indexer01
 
 	if v, ok := s.indexerDefinitions[name]; ok {
-		return &v
+		return v
 	}
 
 	return nil

@@ -977,6 +977,8 @@ func TestFilter_CheckFilter1(t *testing.T) {
 		UpdatedAt           time.Time
 		MinSize             string
 		MaxSize             string
+		MaxDownloads        int
+		MaxDownloadsPer     FilterMaxDownloadsUnit
 		Delay               int
 		Priority            int32
 		MatchReleases       string
@@ -1019,6 +1021,7 @@ func TestFilter_CheckFilter1(t *testing.T) {
 		ExceptTagsAny       string
 		Actions             []*Action
 		Indexers            []Indexer
+		State               *FilterDownloads
 	}
 	type args struct {
 		r *Release
@@ -1361,6 +1364,123 @@ func TestFilter_CheckFilter1(t *testing.T) {
 			wantRejections: []string{"origin not matching. got:  want: [SCENE]"},
 			wantMatch:      false,
 		},
+		{
+			name: "test_27",
+			fields: fields{
+				UseRegex:      true,
+				MatchReleases: ".*1080p.+(group1|group3)",
+			},
+			args:           args{&Release{TorrentName: "Show.Name.S01.DV.2160p.ATVP.WEB-DL.DDPA5.1.x265-GROUP2"}},
+			wantRejections: []string{"match release regex not matching. got: Show.Name.S01.DV.2160p.ATVP.WEB-DL.DDPA5.1.x265-GROUP2 want: .*1080p.+(group1|group3)"},
+			wantMatch:      false,
+		},
+		{
+			name: "test_28",
+			fields: fields{
+				UseRegex:      true,
+				MatchReleases: ".*2160p.+(group1|group2)",
+			},
+			args:           args{&Release{TorrentName: "Show.Name.S01.DV.2160p.ATVP.WEB-DL.DDPA5.1.x265-GROUP2"}},
+			wantRejections: nil,
+			wantMatch:      true,
+		},
+		{
+			name: "test_29",
+			fields: fields{
+				UseRegex:      true,
+				MatchReleases: "*2160p*",
+			},
+			args:           args{&Release{TorrentName: "Show.Name.S01.DV.2160p.ATVP.WEB-DL.DDPA5.1.x265-GROUP2"}},
+			wantRejections: []string{"match release regex not matching. got: Show.Name.S01.DV.2160p.ATVP.WEB-DL.DDPA5.1.x265-GROUP2 want: *2160p*"},
+			wantMatch:      false,
+		},
+		{
+			name: "test_30",
+			fields: fields{
+				UseRegex:      true,
+				MatchReleases: "2160p",
+			},
+			args:           args{&Release{TorrentName: "Show.Name.S01.DV.2160p.ATVP.WEB-DL.DDPA5.1.x265-GROUP2"}},
+			wantRejections: nil,
+			wantMatch:      true,
+		},
+		{
+			name: "test_31",
+			fields: fields{
+				UseRegex:      false,
+				MatchReleases: "*2160p*",
+			},
+			args:           args{&Release{TorrentName: "Show.Name.S01.DV.2160p.ATVP.WEB-DL.DDPA5.1.x265-GROUP2"}},
+			wantRejections: nil,
+			wantMatch:      true,
+		},
+		{
+			name: "test_32",
+			fields: fields{
+				MaxDownloads:    1,
+				MaxDownloadsPer: FilterMaxDownloadsMonth,
+				State: &FilterDownloads{
+					MonthCount: 0,
+				},
+			},
+			args:           args{&Release{TorrentName: "Show.Name.S01.DV.2160p.ATVP.WEB-DL.DDPA5.1.x265-GROUP2"}},
+			wantRejections: nil,
+			wantMatch:      true,
+		},
+		{
+			name: "test_33",
+			fields: fields{
+				MaxDownloads:    10,
+				MaxDownloadsPer: FilterMaxDownloadsMonth,
+				State: &FilterDownloads{
+					MonthCount: 10,
+				},
+			},
+			args:           args{&Release{TorrentName: "Show.Name.S01.DV.2160p.ATVP.WEB-DL.DDPA5.1.x265-GROUP2"}},
+			wantRejections: []string{"max downloads (10) this (MONTH) reached"},
+			wantMatch:      false,
+		},
+		{
+			name: "test_34",
+			fields: fields{
+				MaxDownloads:    10,
+				MaxDownloadsPer: FilterMaxDownloadsMonth,
+				State: &FilterDownloads{
+					MonthCount: 50,
+				},
+			},
+			args:           args{&Release{TorrentName: "Show.Name.S01.DV.2160p.ATVP.WEB-DL.DDPA5.1.x265-GROUP2"}},
+			wantRejections: []string{"max downloads (10) this (MONTH) reached"},
+			wantMatch:      false,
+		},
+		{
+			name: "test_35",
+			fields: fields{
+				MaxDownloads:    15,
+				MaxDownloadsPer: FilterMaxDownloadsHour,
+				State: &FilterDownloads{
+					HourCount:  20,
+					MonthCount: 50,
+				},
+			},
+			args:           args{&Release{TorrentName: "Show.Name.S01.DV.2160p.ATVP.WEB-DL.DDPA5.1.x265-GROUP2"}},
+			wantRejections: []string{"max downloads (15) this (HOUR) reached"},
+			wantMatch:      false,
+		},
+		{
+			name: "test_36",
+			fields: fields{
+				MaxDownloads:    15,
+				MaxDownloadsPer: FilterMaxDownloadsHour,
+				State: &FilterDownloads{
+					HourCount:  14,
+					MonthCount: 50,
+				},
+			},
+			args:           args{&Release{TorrentName: "Show.Name.S01.DV.2160p.ATVP.WEB-DL.DDPA5.1.x265-GROUP2"}},
+			wantRejections: nil,
+			wantMatch:      true,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -1374,6 +1494,8 @@ func TestFilter_CheckFilter1(t *testing.T) {
 				MaxSize:             tt.fields.MaxSize,
 				Delay:               tt.fields.Delay,
 				Priority:            tt.fields.Priority,
+				MaxDownloads:        tt.fields.MaxDownloads,
+				MaxDownloadsUnit:    tt.fields.MaxDownloadsPer,
 				MatchReleases:       tt.fields.MatchReleases,
 				ExceptReleases:      tt.fields.ExceptReleases,
 				UseRegex:            tt.fields.UseRegex,
@@ -1414,6 +1536,7 @@ func TestFilter_CheckFilter1(t *testing.T) {
 				ExceptTagsAny:       tt.fields.ExceptTagsAny,
 				Actions:             tt.fields.Actions,
 				Indexers:            tt.fields.Indexers,
+				Downloads:           tt.fields.State,
 			}
 			tt.args.r.ParseString(tt.args.r.TorrentName)
 			rejections, match := f.CheckFilter(tt.args.r)
@@ -1440,6 +1563,8 @@ func Test_contains(t *testing.T) {
 		{name: "test_5", args: args{tag: "something.test.something", filter: "*test*"}, want: true},
 		{name: "test_6", args: args{tag: "that movie", filter: "that?movie"}, want: true},
 		{name: "test_7", args: args{tag: "that.movie", filter: "that?movie"}, want: true},
+		{name: "test_8", args: args{tag: "", filter: "that?movie,"}, want: false},
+		{name: "test_9", args: args{tag: "", filter: ""}, want: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -1461,6 +1586,7 @@ func Test_containsSlice(t *testing.T) {
 		{name: "test_1", args: args{tag: "group1", filters: []string{"group1", "group2"}}, want: true},
 		{name: "test_2", args: args{tag: "group1", filters: []string{"group2", "group3"}}, want: false},
 		{name: "test_3", args: args{tag: "2160p", filters: []string{"1080p", "2160p"}}, want: true},
+		{name: "test_4", args: args{tag: "", filters: []string{""}}, want: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -1481,6 +1607,7 @@ func Test_containsAny(t *testing.T) {
 	}{
 		{name: "test_1", args: args{tags: []string{"HDR", "DV"}, filter: "DV"}, want: true},
 		{name: "test_2", args: args{tags: []string{"HDR"}, filter: "DV"}, want: false},
+		{name: "test_3", args: args{tags: []string{""}, filter: "test,"}, want: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -1501,6 +1628,9 @@ func Test_sliceContainsSlice(t *testing.T) {
 	}{
 		{name: "test_1", args: args{tags: []string{"HDR", "DV"}, filters: []string{"HDR", "DoVi"}}, want: true},
 		{name: "test_2", args: args{tags: []string{"HDR10+", "DV"}, filters: []string{"HDR"}}, want: false},
+		{name: "test_3", args: args{tags: []string{""}, filters: []string{"test,"}}, want: false},
+		{name: "test_4", args: args{tags: []string{""}, filters: []string{","}}, want: false},
+		{name: "test_5", args: args{tags: []string{""}, filters: []string{""}}, want: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -1532,6 +1662,29 @@ func Test_containsIntStrings(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			assert.Equalf(t, tt.want, containsIntStrings(tt.args.value, tt.args.filterList), "containsIntStrings(%v, %v)", tt.args.value, tt.args.filterList)
+		})
+	}
+}
+
+func Test_matchRegex(t *testing.T) {
+	type args struct {
+		tag    string
+		filter string
+	}
+	tests := []struct {
+		name string
+		args args
+		want bool
+	}{
+		{name: "test_1", args: args{tag: "Some.show.S01.DV.2160p.ATVP.WEB-DL.DDPA5.1.x265-GROUP1", filter: ".*2160p.+(group1|group2)"}, want: true},
+		{name: "test_2", args: args{tag: "Some.show.S01.DV.2160p.ATVP.WEB-DL.DDPA5.1.x265-GROUP2", filter: ".*1080p.+(group1|group3)"}, want: false},
+		{name: "test_3", args: args{tag: "Some.show.S01.DV.2160p.ATVP.WEB-DL.DDPA5.1.x265-GROUP2", filter: ".*1080p.+(group1|group3),.*2160p.+"}, want: true},
+		{name: "test_4", args: args{tag: "Some.show.S01.DV.2160p.ATVP.WEB-DL.DDPA5.1.x265-GROUP2", filter: ".*1080p.+(group1|group3),.*720p.+"}, want: false},
+		{name: "test_5", args: args{tag: "Some.show.S01.DV.2160p.ATVP.WEB-DL.DDPA5.1.x265-GROUP2", filter: ".*1080p.+(group1|group3),.*720p.+,"}, want: false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equalf(t, tt.want, matchRegex(tt.args.tag, tt.args.filter), "matchRegex(%v, %v)", tt.args.tag, tt.args.filter)
 		})
 	}
 }

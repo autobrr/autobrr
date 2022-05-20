@@ -20,7 +20,6 @@ import (
 	"github.com/dustin/go-humanize"
 	"github.com/moistari/rls"
 	"github.com/pkg/errors"
-	"github.com/rs/zerolog/log"
 )
 
 type ReleaseRepo interface {
@@ -274,8 +273,7 @@ func (r *Release) DownloadTorrentFile() error {
 
 	req, err := http.NewRequest("GET", r.TorrentURL, nil)
 	if err != nil {
-		log.Error().Stack().Err(err).Msg("error downloading file")
-		return err
+		return errors.Wrap(err, "error downloading file")
 	}
 
 	if r.RawCookie != "" {
@@ -287,43 +285,37 @@ func (r *Release) DownloadTorrentFile() error {
 	// Get the data
 	resp, err := client.Do(req)
 	if err != nil {
-		log.Error().Stack().Err(err).Msg("error downloading file")
-		return err
+		return errors.Wrap(err, "error downloading file")
 	}
 	defer resp.Body.Close()
 
 	// retry logic
 
 	if resp.StatusCode != http.StatusOK {
-		log.Error().Stack().Err(err).Msgf("error downloading file from: %v - bad status: %d", r.TorrentURL, resp.StatusCode)
 		return fmt.Errorf("error downloading torrent (%v) file (%v) from '%v' - status code: %d", r.TorrentName, r.TorrentURL, r.Indexer, resp.StatusCode)
 	}
 
 	// Create tmp file
 	tmpFile, err := os.CreateTemp("", "autobrr-")
 	if err != nil {
-		log.Error().Stack().Err(err).Msg("error creating temp file")
-		return err
+		return errors.Wrap(err, "error creating tmp file")
 	}
 	defer tmpFile.Close()
 
 	// Write the body to file
 	_, err = io.Copy(tmpFile, resp.Body)
 	if err != nil {
-		log.Error().Stack().Err(err).Msgf("error writing downloaded file: %v", tmpFile.Name())
-		return err
+		return errors.Wrap(err, fmt.Sprintf("error writing downloaded file: %v", tmpFile.Name()))
 	}
 
 	meta, err := metainfo.LoadFromFile(tmpFile.Name())
 	if err != nil {
-		log.Error().Stack().Err(err).Msgf("metainfo could not load file contents: %v", tmpFile.Name())
-		return err
+		return errors.Wrap(err, fmt.Sprintf("metainfo could not load file contents: %v", tmpFile.Name()))
 	}
 
 	torrentMetaInfo, err := meta.UnmarshalInfo()
 	if err != nil {
-		log.Error().Stack().Err(err).Msgf("metainfo could not unmarshal info from torrent: %v", tmpFile.Name())
-		return err
+		return errors.Wrap(err, fmt.Sprintf("metainfo could not unmarshal info from torrent: %v", tmpFile.Name()))
 	}
 
 	r.TorrentTmpFile = tmpFile.Name()
@@ -332,7 +324,7 @@ func (r *Release) DownloadTorrentFile() error {
 
 	// remove file if fail
 
-	log.Debug().Msgf("successfully downloaded file: %v", tmpFile.Name())
+	//log.Debug().Msgf("successfully downloaded file: %v", tmpFile.Name())
 
 	return nil
 }
@@ -358,7 +350,7 @@ func (r *Release) RejectionsString() string {
 }
 
 // MapVars better name
-func (r *Release) MapVars(def IndexerDefinition, varMap map[string]string) error {
+func (r *Release) MapVars(def *IndexerDefinition, varMap map[string]string) error {
 
 	if torrentName, err := getStringMapValue(varMap, "torrentName"); err != nil {
 		return errors.Wrap(err, "failed parsing required field")

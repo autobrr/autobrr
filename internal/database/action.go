@@ -4,19 +4,22 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+
 	"github.com/autobrr/autobrr/internal/domain"
+	"github.com/autobrr/autobrr/internal/logger"
 
 	sq "github.com/Masterminds/squirrel"
-	"github.com/rs/zerolog/log"
 )
 
 type ActionRepo struct {
+	log        logger.Logger
 	db         *DB
 	clientRepo domain.DownloadClientRepo
 }
 
-func NewActionRepo(db *DB, clientRepo domain.DownloadClientRepo) domain.ActionRepo {
+func NewActionRepo(log logger.Logger, db *DB, clientRepo domain.DownloadClientRepo) domain.ActionRepo {
 	return &ActionRepo{
+		log:        log,
 		db:         db,
 		clientRepo: clientRepo,
 	}
@@ -67,6 +70,12 @@ func (r *ActionRepo) findByFilterID(ctx context.Context, tx *Tx, filterID int) (
 			"ignore_rules",
 			"limit_download_speed",
 			"limit_upload_speed",
+			"limit_ratio",
+			"limit_seed_time",
+			"reannounce_skip",
+			"reannounce_delete",
+			"reannounce_interval",
+			"reannounce_max_attempts",
 			"webhook_host",
 			"webhook_type",
 			"webhook_method",
@@ -78,13 +87,13 @@ func (r *ActionRepo) findByFilterID(ctx context.Context, tx *Tx, filterID int) (
 
 	query, args, err := queryBuilder.ToSql()
 	if err != nil {
-		log.Error().Stack().Err(err).Msg("action.findByFilterID: error building query")
+		r.log.Error().Stack().Err(err).Msg("action.findByFilterID: error building query")
 		return nil, err
 	}
 
 	rows, err := tx.QueryContext(ctx, query, args...)
 	if err != nil {
-		log.Error().Stack().Err(err).Msg("action.findByFilterID: query error")
+		r.log.Error().Stack().Err(err).Msg("action.findByFilterID: query error")
 		return nil, err
 	}
 
@@ -95,13 +104,15 @@ func (r *ActionRepo) findByFilterID(ctx context.Context, tx *Tx, filterID int) (
 		var a domain.Action
 
 		var execCmd, execArgs, watchFolder, category, tags, label, savePath, webhookHost, webhookType, webhookMethod, webhookData sql.NullString
-		var limitUl, limitDl sql.NullInt64
+		var limitUl, limitDl, limitSeedTime sql.NullInt64
+		var limitRatio sql.NullFloat64
+
 		var clientID sql.NullInt32
 		// filterID
 		var paused, ignoreRules sql.NullBool
 
-		if err := rows.Scan(&a.ID, &a.Name, &a.Type, &a.Enabled, &execCmd, &execArgs, &watchFolder, &category, &tags, &label, &savePath, &paused, &ignoreRules, &limitDl, &limitUl, &webhookHost, &webhookType, &webhookMethod, &webhookData, &clientID); err != nil {
-			log.Error().Stack().Err(err).Msg("action.findByFilterID: error scanning row")
+		if err := rows.Scan(&a.ID, &a.Name, &a.Type, &a.Enabled, &execCmd, &execArgs, &watchFolder, &category, &tags, &label, &savePath, &paused, &ignoreRules, &limitDl, &limitUl, &limitRatio, &limitSeedTime, &a.ReAnnounceSkip, &a.ReAnnounceDelete, &a.ReAnnounceInterval, &a.ReAnnounceMaxAttempts, &webhookHost, &webhookType, &webhookMethod, &webhookData, &clientID); err != nil {
+			r.log.Error().Stack().Err(err).Msg("action.findByFilterID: error scanning row")
 			return nil, err
 		}
 
@@ -117,6 +128,8 @@ func (r *ActionRepo) findByFilterID(ctx context.Context, tx *Tx, filterID int) (
 
 		a.LimitDownloadSpeed = limitDl.Int64
 		a.LimitUploadSpeed = limitUl.Int64
+		a.LimitRatio = limitRatio.Float64
+		a.LimitSeedTime = limitSeedTime.Int64
 
 		a.WebhookHost = webhookHost.String
 		a.WebhookType = webhookType.String
@@ -128,7 +141,7 @@ func (r *ActionRepo) findByFilterID(ctx context.Context, tx *Tx, filterID int) (
 		actions = append(actions, &a)
 	}
 	if err := rows.Err(); err != nil {
-		log.Error().Stack().Err(err).Msg("action.findByFilterID: row error")
+		r.log.Error().Stack().Err(err).Msg("action.findByFilterID: row error")
 		return nil, err
 	}
 
@@ -155,13 +168,13 @@ func (r *ActionRepo) attachDownloadClient(ctx context.Context, tx *Tx, clientID 
 
 	query, args, err := queryBuilder.ToSql()
 	if err != nil {
-		log.Error().Stack().Err(err).Msg("action.attachDownloadClient: error building query")
+		r.log.Error().Stack().Err(err).Msg("action.attachDownloadClient: error building query")
 		return nil, err
 	}
 
 	row := tx.QueryRowContext(ctx, query, args...)
 	if err := row.Err(); err != nil {
-		log.Error().Stack().Err(err).Msg("action.attachDownloadClient: error query row")
+		r.log.Error().Stack().Err(err).Msg("action.attachDownloadClient: error query row")
 		return nil, err
 	}
 
@@ -169,13 +182,13 @@ func (r *ActionRepo) attachDownloadClient(ctx context.Context, tx *Tx, clientID 
 	var settingsJsonStr string
 
 	if err := row.Scan(&client.ID, &client.Name, &client.Type, &client.Enabled, &client.Host, &client.Port, &client.TLS, &client.TLSSkipVerify, &client.Username, &client.Password, &settingsJsonStr); err != nil {
-		log.Error().Stack().Err(err).Msg("action.attachDownloadClient: error scanning row")
+		r.log.Error().Stack().Err(err).Msg("action.attachDownloadClient: error scanning row")
 		return nil, err
 	}
 
 	if settingsJsonStr != "" {
 		if err := json.Unmarshal([]byte(settingsJsonStr), &client.Settings); err != nil {
-			log.Error().Stack().Err(err).Msgf("action.attachDownloadClient: could not marshal download client settings %v", settingsJsonStr)
+			r.log.Error().Stack().Err(err).Msgf("action.attachDownloadClient: could not marshal download client settings %v", settingsJsonStr)
 			return nil, err
 		}
 	}
@@ -201,6 +214,12 @@ func (r *ActionRepo) List(ctx context.Context) ([]domain.Action, error) {
 			"ignore_rules",
 			"limit_download_speed",
 			"limit_upload_speed",
+			"limit_ratio",
+			"limit_seed_time",
+			"reannounce_skip",
+			"reannounce_delete",
+			"reannounce_interval",
+			"reannounce_max_attempts",
 			"webhook_host",
 			"webhook_type",
 			"webhook_method",
@@ -211,13 +230,13 @@ func (r *ActionRepo) List(ctx context.Context) ([]domain.Action, error) {
 
 	query, args, err := queryBuilder.ToSql()
 	if err != nil {
-		log.Error().Stack().Err(err).Msg("action.list: error building query")
+		r.log.Error().Stack().Err(err).Msg("action.list: error building query")
 		return nil, err
 	}
 
 	rows, err := r.db.handler.QueryContext(ctx, query, args...)
 	if err != nil {
-		log.Error().Stack().Err(err).Msg("action.list: error executing query")
+		r.log.Error().Stack().Err(err).Msg("action.list: error executing query")
 		return nil, err
 	}
 
@@ -228,12 +247,13 @@ func (r *ActionRepo) List(ctx context.Context) ([]domain.Action, error) {
 		var a domain.Action
 
 		var execCmd, execArgs, watchFolder, category, tags, label, savePath, webhookHost, webhookType, webhookMethod, webhookData sql.NullString
-		var limitUl, limitDl sql.NullInt64
+		var limitUl, limitDl, limitSeedTime sql.NullInt64
+		var limitRatio sql.NullFloat64
 		var clientID sql.NullInt32
 		var paused, ignoreRules sql.NullBool
 
-		if err := rows.Scan(&a.ID, &a.Name, &a.Type, &a.Enabled, &execCmd, &execArgs, &watchFolder, &category, &tags, &label, &savePath, &paused, &ignoreRules, &limitDl, &limitUl, &webhookHost, &webhookType, &webhookMethod, &webhookData, &clientID); err != nil {
-			log.Error().Stack().Err(err).Msg("action.list: error scanning row")
+		if err := rows.Scan(&a.ID, &a.Name, &a.Type, &a.Enabled, &execCmd, &execArgs, &watchFolder, &category, &tags, &label, &savePath, &paused, &ignoreRules, &limitDl, &limitUl, &limitRatio, &limitSeedTime, &a.ReAnnounceSkip, &a.ReAnnounceDelete, &a.ReAnnounceInterval, &a.ReAnnounceMaxAttempts, &webhookHost, &webhookType, &webhookMethod, &webhookData, &clientID); err != nil {
+			r.log.Error().Stack().Err(err).Msg("action.list: error scanning row")
 			return nil, err
 		}
 
@@ -246,6 +266,8 @@ func (r *ActionRepo) List(ctx context.Context) ([]domain.Action, error) {
 
 		a.LimitDownloadSpeed = limitDl.Int64
 		a.LimitUploadSpeed = limitUl.Int64
+		a.LimitRatio = limitRatio.Float64
+		a.LimitSeedTime = limitSeedTime.Int64
 
 		a.WebhookHost = webhookHost.String
 		a.WebhookType = webhookType.String
@@ -257,7 +279,7 @@ func (r *ActionRepo) List(ctx context.Context) ([]domain.Action, error) {
 		actions = append(actions, a)
 	}
 	if err := rows.Err(); err != nil {
-		log.Error().Stack().Err(err).Msg("action.list: row error")
+		r.log.Error().Stack().Err(err).Msg("action.list: row error")
 		return nil, err
 	}
 
@@ -271,17 +293,17 @@ func (r *ActionRepo) Delete(actionID int) error {
 
 	query, args, err := queryBuilder.ToSql()
 	if err != nil {
-		log.Error().Stack().Err(err).Msg("action.delete: error building query")
+		r.log.Error().Stack().Err(err).Msg("action.delete: error building query")
 		return err
 	}
 
 	_, err = r.db.handler.Exec(query, args...)
 	if err != nil {
-		log.Error().Stack().Err(err).Msg("action.delete: error executing query")
+		r.log.Error().Stack().Err(err).Msg("action.delete: error executing query")
 		return err
 	}
 
-	log.Debug().Msgf("action.delete: %v", actionID)
+	r.log.Debug().Msgf("action.delete: %v", actionID)
 
 	return nil
 }
@@ -293,17 +315,17 @@ func (r *ActionRepo) DeleteByFilterID(ctx context.Context, filterID int) error {
 
 	query, args, err := queryBuilder.ToSql()
 	if err != nil {
-		log.Error().Stack().Err(err).Msg("action.deleteByFilterID: error building query")
+		r.log.Error().Stack().Err(err).Msg("action.deleteByFilterID: error building query")
 		return err
 	}
 
 	_, err = r.db.handler.ExecContext(ctx, query, args...)
 	if err != nil {
-		log.Error().Stack().Err(err).Msg("action.deleteByFilterID: error executing query")
+		r.log.Error().Stack().Err(err).Msg("action.deleteByFilterID: error executing query")
 		return err
 	}
 
-	log.Debug().Msgf("action.deleteByFilterID: %v", filterID)
+	r.log.Debug().Msgf("action.deleteByFilterID: %v", filterID)
 
 	return nil
 }
@@ -323,6 +345,8 @@ func (r *ActionRepo) Store(ctx context.Context, action domain.Action) (*domain.A
 
 	limitDL := toNullInt64(action.LimitDownloadSpeed)
 	limitUL := toNullInt64(action.LimitUploadSpeed)
+	limitRatio := toNullFloat64(action.LimitRatio)
+	limitSeedTime := toNullInt64(action.LimitSeedTime)
 	clientID := toNullInt32(action.ClientID)
 	filterID := toNullInt32(int32(action.FilterID))
 
@@ -343,6 +367,12 @@ func (r *ActionRepo) Store(ctx context.Context, action domain.Action) (*domain.A
 			"ignore_rules",
 			"limit_upload_speed",
 			"limit_download_speed",
+			"limit_ratio",
+			"limit_seed_time",
+			"reannounce_skip",
+			"reannounce_delete",
+			"reannounce_interval",
+			"reannounce_max_attempts",
 			"webhook_host",
 			"webhook_type",
 			"webhook_method",
@@ -365,6 +395,12 @@ func (r *ActionRepo) Store(ctx context.Context, action domain.Action) (*domain.A
 			action.IgnoreRules,
 			limitUL,
 			limitDL,
+			limitRatio,
+			limitSeedTime,
+			action.ReAnnounceSkip,
+			action.ReAnnounceDelete,
+			action.ReAnnounceInterval,
+			action.ReAnnounceMaxAttempts,
 			webhookHost,
 			webhookType,
 			webhookMethod,
@@ -379,11 +415,11 @@ func (r *ActionRepo) Store(ctx context.Context, action domain.Action) (*domain.A
 
 	err := queryBuilder.QueryRowContext(ctx).Scan(&retID)
 	if err != nil {
-		log.Error().Stack().Err(err).Msg("action.store: error executing query")
+		r.log.Error().Stack().Err(err).Msg("action.store: error executing query")
 		return nil, err
 	}
 
-	log.Debug().Msgf("action.store: added new %v", retID)
+	r.log.Debug().Msgf("action.store: added new %v", retID)
 	action.ID = int(retID)
 
 	return &action, nil
@@ -404,6 +440,9 @@ func (r *ActionRepo) Update(ctx context.Context, action domain.Action) (*domain.
 
 	limitDL := toNullInt64(action.LimitDownloadSpeed)
 	limitUL := toNullInt64(action.LimitUploadSpeed)
+	limitRatio := toNullFloat64(action.LimitRatio)
+	limitSeedTime := toNullInt64(action.LimitSeedTime)
+
 	clientID := toNullInt32(action.ClientID)
 	filterID := toNullInt32(int32(action.FilterID))
 
@@ -425,6 +464,12 @@ func (r *ActionRepo) Update(ctx context.Context, action domain.Action) (*domain.
 		Set("ignore_rules", action.IgnoreRules).
 		Set("limit_upload_speed", limitUL).
 		Set("limit_download_speed", limitDL).
+		Set("limit_ratio", limitRatio).
+		Set("limit_seed_time", limitSeedTime).
+		Set("reannounce_skip", action.ReAnnounceSkip).
+		Set("reannounce_delete", action.ReAnnounceDelete).
+		Set("reannounce_interval", action.ReAnnounceInterval).
+		Set("reannounce_max_attempts", action.ReAnnounceMaxAttempts).
 		Set("webhook_host", webhookHost).
 		Set("webhook_type", webhookType).
 		Set("webhook_method", webhookMethod).
@@ -435,17 +480,17 @@ func (r *ActionRepo) Update(ctx context.Context, action domain.Action) (*domain.
 
 	query, args, err := queryBuilder.ToSql()
 	if err != nil {
-		log.Error().Stack().Err(err).Msg("action.update: error building query")
+		r.log.Error().Stack().Err(err).Msg("action.update: error building query")
 		return nil, err
 	}
 
 	_, err = r.db.handler.ExecContext(ctx, query, args...)
 	if err != nil {
-		log.Error().Stack().Err(err).Msg("action.update: error executing query")
+		r.log.Error().Stack().Err(err).Msg("action.update: error executing query")
 		return nil, err
 	}
 
-	log.Debug().Msgf("action.update: %v", action.ID)
+	r.log.Debug().Msgf("action.update: %v", action.ID)
 
 	return &action, nil
 }
@@ -464,12 +509,12 @@ func (r *ActionRepo) StoreFilterActions(ctx context.Context, actions []*domain.A
 
 	deleteQuery, deleteArgs, err := deleteQueryBuilder.ToSql()
 	if err != nil {
-		log.Error().Stack().Err(err).Msg("action.StoreFilterActions: error building query")
+		r.log.Error().Stack().Err(err).Msg("action.StoreFilterActions: error building query")
 		return nil, err
 	}
 	_, err = tx.ExecContext(ctx, deleteQuery, deleteArgs...)
 	if err != nil {
-		log.Error().Stack().Err(err).Msg("action.StoreFilterActions: error executing query")
+		r.log.Error().Stack().Err(err).Msg("action.StoreFilterActions: error executing query")
 		return nil, err
 	}
 
@@ -488,6 +533,8 @@ func (r *ActionRepo) StoreFilterActions(ctx context.Context, actions []*domain.A
 
 		limitDL := toNullInt64(action.LimitDownloadSpeed)
 		limitUL := toNullInt64(action.LimitUploadSpeed)
+		limitRatio := toNullFloat64(action.LimitRatio)
+		limitSeedTime := toNullInt64(action.LimitSeedTime)
 		clientID := toNullInt32(action.ClientID)
 
 		queryBuilder := r.db.squirrel.
@@ -507,6 +554,12 @@ func (r *ActionRepo) StoreFilterActions(ctx context.Context, actions []*domain.A
 				"ignore_rules",
 				"limit_upload_speed",
 				"limit_download_speed",
+				"limit_ratio",
+				"limit_seed_time",
+				"reannounce_skip",
+				"reannounce_delete",
+				"reannounce_interval",
+				"reannounce_max_attempts",
 				"webhook_host",
 				"webhook_type",
 				"webhook_method",
@@ -529,6 +582,12 @@ func (r *ActionRepo) StoreFilterActions(ctx context.Context, actions []*domain.A
 				action.IgnoreRules,
 				limitUL,
 				limitDL,
+				limitRatio,
+				limitSeedTime,
+				action.ReAnnounceSkip,
+				action.ReAnnounceDelete,
+				action.ReAnnounceInterval,
+				action.ReAnnounceMaxAttempts,
 				webhookHost,
 				webhookType,
 				webhookMethod,
@@ -543,18 +602,18 @@ func (r *ActionRepo) StoreFilterActions(ctx context.Context, actions []*domain.A
 
 		err = queryBuilder.QueryRowContext(ctx).Scan(&retID)
 		if err != nil {
-			log.Error().Stack().Err(err).Msg("action.StoreFilterActions: error executing query")
+			r.log.Error().Stack().Err(err).Msg("action.StoreFilterActions: error executing query")
 			return nil, err
 		}
 
 		action.ID = retID
 
-		log.Debug().Msgf("action.StoreFilterActions: store '%v' type: '%v' on filter: %v", action.Name, action.Type, filterID)
+		r.log.Debug().Msgf("action.StoreFilterActions: store '%v' type: '%v' on filter: %v", action.Name, action.Type, filterID)
 	}
 
 	err = tx.Commit()
 	if err != nil {
-		log.Error().Stack().Err(err).Msg("action.StoreFilterActions: error updating actions")
+		r.log.Error().Stack().Err(err).Msg("action.StoreFilterActions: error updating actions")
 		return nil, err
 
 	}
@@ -572,17 +631,17 @@ func (r *ActionRepo) ToggleEnabled(actionID int) error {
 
 	query, args, err := queryBuilder.ToSql()
 	if err != nil {
-		log.Error().Stack().Err(err).Msg("action.toggleEnabled: error building query")
+		r.log.Error().Stack().Err(err).Msg("action.toggleEnabled: error building query")
 		return err
 	}
 
 	_, err = r.db.handler.Exec(query, args...)
 	if err != nil {
-		log.Error().Stack().Err(err).Msg("action.toggleEnabled: error executing query")
+		r.log.Error().Stack().Err(err).Msg("action.toggleEnabled: error executing query")
 		return err
 	}
 
-	log.Debug().Msgf("action.toggleEnabled: %v", actionID)
+	r.log.Debug().Msgf("action.toggleEnabled: %v", actionID)
 
 	return nil
 }

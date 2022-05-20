@@ -6,7 +6,6 @@ import (
 	"fmt"
 
 	_ "github.com/lib/pq"
-	"github.com/rs/zerolog/log"
 )
 
 func (db *DB) openPostgres() error {
@@ -14,19 +13,19 @@ func (db *DB) openPostgres() error {
 
 	// open database connection
 	if db.handler, err = sql.Open("postgres", db.DSN); err != nil {
-		log.Fatal().Err(err).Msg("could not open postgres connection")
+		db.log.Fatal().Err(err).Msg("could not open postgres connection")
 		return err
 	}
 
 	err = db.handler.Ping()
 	if err != nil {
-		log.Fatal().Err(err).Msg("could not ping postgres database")
+		db.log.Fatal().Err(err).Msg("could not ping postgres database")
 		return err
 	}
 
 	// migrate db
 	if err = db.migratePostgres(); err != nil {
-		log.Fatal().Err(err).Msg("could not migrate postgres database")
+		db.log.Fatal().Err(err).Msg("could not migrate postgres database")
 		return err
 	}
 

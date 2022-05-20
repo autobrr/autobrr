@@ -3,12 +3,12 @@ package release
 import (
 	"context"
 	"strings"
+	"time"
 
 	"github.com/autobrr/autobrr/internal/action"
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/internal/filter"
-
-	"github.com/rs/zerolog/log"
+	"github.com/autobrr/autobrr/internal/logger"
 )
 
 type Service interface {
@@ -29,14 +29,16 @@ type actionClientTypeKey struct {
 }
 
 type service struct {
+	log  logger.Logger
 	repo domain.ReleaseRepo
 
 	actionSvc action.Service
 	filterSvc filter.Service
 }
 
-func NewService(repo domain.ReleaseRepo, actionSvc action.Service, filterSvc filter.Service) Service {
+func NewService(log logger.Logger, repo domain.ReleaseRepo, actionSvc action.Service, filterSvc filter.Service) Service {
 	return &service{
+		log:       log,
 		repo:      repo,
 		actionSvc: actionSvc,
 		filterSvc: filterSvc,
@@ -84,7 +86,7 @@ func (s *service) Process(release *domain.Release) {
 	// get filters by priority
 	filters, err := s.filterSvc.FindByIndexerIdentifier(release.Indexer)
 	if err != nil {
-		log.Error().Err(err).Msgf("announce.Service.Process: error finding filters for indexer: %v", release.Indexer)
+		s.log.Error().Err(err).Msgf("announce.Service.Process: error finding filters for indexer: %v", release.Indexer)
 		return
 	}
 
@@ -108,25 +110,32 @@ func (s *service) Process(release *domain.Release) {
 		// test filter
 		match, err := s.filterSvc.CheckFilter(f, release)
 		if err != nil {
-			log.Error().Err(err).Msg("announce.Service.Process: could not find filter")
+			s.log.Error().Err(err).Msg("announce.Service.Process: could not find filter")
 			return
 		}
 
 		if !match {
-			log.Trace().Msgf("announce.Service.Process: indexer: %v, filter: %v release: %v, no match", release.Indexer, release.Filter.Name, release.TorrentName)
+			s.log.Trace().Msgf("announce.Service.Process: indexer: %v, filter: %v release: %v, no match", release.Indexer, release.Filter.Name, release.TorrentName)
 			continue
 		}
 
-		log.Info().Msgf("Matched '%v' (%v) for %v", release.TorrentName, release.Filter.Name, release.Indexer)
+		s.log.Info().Msgf("Matched '%v' (%v) for %v", release.TorrentName, release.Filter.Name, release.Indexer)
 
 		// save release here to only save those with rejections from actions instead of all releases
 		if release.ID == 0 {
 			release.FilterStatus = domain.ReleaseStatusFilterApproved
 			err = s.Store(context.Background(), release)
 			if err != nil {
-				log.Error().Err(err).Msgf("announce.Service.Process: error writing release to database: %+v", release)
+				s.log.Error().Err(err).Msgf("announce.Service.Process: error writing release to database: %+v", release)
 				return
 			}
+		}
+
+		// sleep for the delay period specified in the filter before running actions
+		delay := release.Filter.Delay
+		if delay > 0 {
+			s.log.Debug().Msgf("Delaying processing of '%v' (%v) for %v by %d seconds as specified in the filter", release.TorrentName, release.Filter.Name, release.Indexer, delay)
+			time.Sleep(time.Duration(delay) * time.Second)
 		}
 
 		var rejections []string
@@ -135,22 +144,22 @@ func (s *service) Process(release *domain.Release) {
 		for _, a := range release.Filter.Actions {
 			// only run enabled actions
 			if !a.Enabled {
-				log.Trace().Msgf("announce.Service.Process: indexer: %v, filter: %v release: %v action '%v' not enabled, skip", release.Indexer, release.Filter.Name, release.TorrentName, a.Name)
+				s.log.Trace().Msgf("announce.Service.Process: indexer: %v, filter: %v release: %v action '%v' not enabled, skip", release.Indexer, release.Filter.Name, release.TorrentName, a.Name)
 				continue
 			}
 
-			log.Trace().Msgf("announce.Service.Process: indexer: %v, filter: %v release: %v , run action: %v", release.Indexer, release.Filter.Name, release.TorrentName, a.Name)
+			s.log.Trace().Msgf("announce.Service.Process: indexer: %v, filter: %v release: %v , run action: %v", release.Indexer, release.Filter.Name, release.TorrentName, a.Name)
 
 			// keep track of action clients to avoid sending the same thing all over again
 			_, tried := triedActionClients[actionClientTypeKey{Type: a.Type, ClientID: a.ClientID}]
 			if tried {
-				log.Trace().Msgf("announce.Service.Process: indexer: %v, filter: %v release: %v action client already tried, skip", release.Indexer, release.Filter.Name, release.TorrentName)
+				s.log.Trace().Msgf("announce.Service.Process: indexer: %v, filter: %v release: %v action client already tried, skip", release.Indexer, release.Filter.Name, release.TorrentName)
 				continue
 			}
 
 			rejections, err = s.actionSvc.RunAction(a, *release)
 			if err != nil {
-				log.Error().Stack().Err(err).Msgf("announce.Service.Process: error running actions for filter: %v", release.Filter.Name)
+				s.log.Error().Stack().Err(err).Msgf("announce.Service.Process: error running actions for filter: %v", release.Filter.Name)
 				continue
 			}
 
@@ -159,7 +168,7 @@ func (s *service) Process(release *domain.Release) {
 				triedActionClients[actionClientTypeKey{Type: a.Type, ClientID: a.ClientID}] = struct{}{}
 
 				// log something and fire events
-				log.Debug().Msgf("announce.Service.Process: indexer: %v, filter: %v release: %v, rejected: %v", release.Indexer, release.Filter.Name, release.TorrentName, strings.Join(rejections, ", "))
+				s.log.Debug().Msgf("announce.Service.Process: indexer: %v, filter: %v release: %v, rejected: %v", release.Indexer, release.Filter.Name, release.TorrentName, strings.Join(rejections, ", "))
 			}
 
 			// if no rejections consider action approved, run next

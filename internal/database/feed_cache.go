@@ -4,18 +4,19 @@ import (
 	"database/sql"
 	"time"
 
-	"github.com/rs/zerolog/log"
-
 	"github.com/autobrr/autobrr/internal/domain"
+	"github.com/autobrr/autobrr/internal/logger"
 )
 
 type FeedCacheRepo struct {
-	db *DB
+	log logger.Logger
+	db  *DB
 }
 
-func NewFeedCacheRepo(db *DB) domain.FeedCacheRepo {
+func NewFeedCacheRepo(log logger.Logger, db *DB) domain.FeedCacheRepo {
 	return &FeedCacheRepo{
-		db: db,
+		log: log,
+		db:  db,
 	}
 }
 
@@ -32,13 +33,13 @@ func (r *FeedCacheRepo) Get(bucket string, key string) ([]byte, error) {
 
 	query, args, err := queryBuilder.ToSql()
 	if err != nil {
-		log.Error().Stack().Err(err).Msg("feedCache.Get: error building query")
+		r.log.Error().Stack().Err(err).Msg("feedCache.Get: error building query")
 		return nil, err
 	}
 
 	row := r.db.handler.QueryRow(query, args...)
 	if err := row.Err(); err != nil {
-		log.Error().Stack().Err(err).Msg("feedCache.Get: query error")
+		r.log.Error().Stack().Err(err).Msg("feedCache.Get: query error")
 		return nil, err
 	}
 
@@ -46,7 +47,7 @@ func (r *FeedCacheRepo) Get(bucket string, key string) ([]byte, error) {
 	var ttl time.Duration
 
 	if err := row.Scan(&value, &ttl); err != nil && err != sql.ErrNoRows {
-		log.Error().Stack().Err(err).Msg("feedCache.Get: error scanning row")
+		r.log.Error().Stack().Err(err).Msg("feedCache.Get: error scanning row")
 		return nil, err
 	}
 
@@ -64,20 +65,20 @@ func (r *FeedCacheRepo) Exists(bucket string, key string) (bool, error) {
 
 	query, args, err := queryBuilder.ToSql()
 	if err != nil {
-		log.Error().Stack().Err(err).Msg("feedCache.Exists: error building query")
+		r.log.Error().Stack().Err(err).Msg("feedCache.Exists: error building query")
 		return false, err
 	}
 
 	var exists bool
 	err = r.db.handler.QueryRow(query, args...).Scan(&exists)
 	if err != nil && err != sql.ErrNoRows {
-		log.Error().Stack().Err(err).Msg("feedCache.Exists: query error")
+		r.log.Error().Stack().Err(err).Msg("feedCache.Exists: query error")
 	}
 
 	return exists, nil
 }
 
-func (r *FeedCacheRepo) Put(bucket string, key string, val []byte, ttl time.Duration) error {
+func (r *FeedCacheRepo) Put(bucket string, key string, val []byte, ttl time.Time) error {
 	queryBuilder := r.db.squirrel.
 		Insert("feed_cache").
 		Columns("bucket", "key", "value", "ttl").
@@ -85,12 +86,12 @@ func (r *FeedCacheRepo) Put(bucket string, key string, val []byte, ttl time.Dura
 
 	query, args, err := queryBuilder.ToSql()
 	if err != nil {
-		log.Error().Stack().Err(err).Msg("feedCache.Put: error building query")
+		r.log.Error().Stack().Err(err).Msg("feedCache.Put: error building query")
 		return err
 	}
 
 	if _, err = r.db.handler.Exec(query, args...); err != nil {
-		log.Error().Stack().Err(err).Msg("feedCache.Put: error executing query")
+		r.log.Error().Stack().Err(err).Msg("feedCache.Put: error executing query")
 		return err
 	}
 

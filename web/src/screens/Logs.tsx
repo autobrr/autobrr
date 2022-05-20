@@ -18,7 +18,7 @@ const LogColors: Record<LogLevel, string> = {
   "TRACE": "text-purple-300",
   "DEBUG": "text-yellow-500",
   "INFO": "text-green-500",
-  "ERROR": "text-red-500",
+  "ERROR": "text-red-500"
 };
 
 export const Logs = () => {
@@ -29,7 +29,7 @@ export const Logs = () => {
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "auto" });
-  }
+  };
 
   useEffect(() => {
     const es = APIClient.events.logs();
@@ -40,7 +40,7 @@ export const Logs = () => {
 
       if (settings.scrollOnNewLog)
         scrollToBottom();
-    }
+    };
 
     return () => es.close();
   }, [setLogs, settings]);
@@ -56,8 +56,8 @@ export const Logs = () => {
   return (
     <main>
       <header className="py-10">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h1 className="text-3xl font-bold text-black dark:text-white capitalize">Logs</h1>
+        <div className="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8">
+          <h1 className="text-3xl font-bold text-black dark:text-white">Logs</h1>
           <div className="flex mt-4 justify-center">
             <ExclamationIcon
               className="h-5 w-5 text-yellow-400"
@@ -67,7 +67,7 @@ export const Logs = () => {
           </div>
         </div>
       </header>
-      <div className="max-w-7xl mx-auto pb-12 px-2 sm:px-4 lg:px-8">
+      <div className="max-w-screen-xl mx-auto pb-12 px-2 sm:px-4 lg:px-8">
         <div
           className="bg-white dark:bg-gray-800 rounded-lg shadow-lg px-2 sm:px-4 pb-3 sm:pb-4"
         >
@@ -96,7 +96,7 @@ export const Logs = () => {
                 key={idx}
                 className={classNames(
                   settings.indentLogLines ? "grid justify-start grid-flow-col" : "",
-                  settings.hideWrappedText ? "truncate hover:text-ellipsis hover:whitespace-normal" : "",
+                  settings.hideWrappedText ? "truncate hover:text-ellipsis hover:whitespace-normal" : ""
                 )}
               >
                 <span
@@ -112,7 +112,7 @@ export const Logs = () => {
                     )}
                   >
                     {a.level}
-                    {' '}
+                    {" "}
                   </span>
                 ) : null}
                 <span className="ml-2 text-black dark:text-gray-300">
@@ -125,5 +125,5 @@ export const Logs = () => {
         </div>
       </div>
     </main>
-  )
-}
+  );
+};

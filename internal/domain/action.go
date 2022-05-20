@@ -13,29 +13,35 @@ type ActionRepo interface {
 }
 
 type Action struct {
-	ID                 int            `json:"id"`
-	Name               string         `json:"name"`
-	Type               ActionType     `json:"type"`
-	Enabled            bool           `json:"enabled"`
-	ExecCmd            string         `json:"exec_cmd,omitempty"`
-	ExecArgs           string         `json:"exec_args,omitempty"`
-	WatchFolder        string         `json:"watch_folder,omitempty"`
-	Category           string         `json:"category,omitempty"`
-	Tags               string         `json:"tags,omitempty"`
-	Label              string         `json:"label,omitempty"`
-	SavePath           string         `json:"save_path,omitempty"`
-	Paused             bool           `json:"paused,omitempty"`
-	IgnoreRules        bool           `json:"ignore_rules,omitempty"`
-	LimitUploadSpeed   int64          `json:"limit_upload_speed,omitempty"`
-	LimitDownloadSpeed int64          `json:"limit_download_speed,omitempty"`
-	WebhookHost        string         `json:"webhook_host,omitempty"`
-	WebhookType        string         `json:"webhook_type,omitempty"`
-	WebhookMethod      string         `json:"webhook_method,omitempty"`
-	WebhookData        string         `json:"webhook_data,omitempty"`
-	WebhookHeaders     []string       `json:"webhook_headers,omitempty"`
-	FilterID           int            `json:"filter_id,omitempty"`
-	ClientID           int32          `json:"client_id,omitempty"`
-	Client             DownloadClient `json:"client,omitempty"`
+	ID                    int            `json:"id"`
+	Name                  string         `json:"name"`
+	Type                  ActionType     `json:"type"`
+	Enabled               bool           `json:"enabled"`
+	ExecCmd               string         `json:"exec_cmd,omitempty"`
+	ExecArgs              string         `json:"exec_args,omitempty"`
+	WatchFolder           string         `json:"watch_folder,omitempty"`
+	Category              string         `json:"category,omitempty"`
+	Tags                  string         `json:"tags,omitempty"`
+	Label                 string         `json:"label,omitempty"`
+	SavePath              string         `json:"save_path,omitempty"`
+	Paused                bool           `json:"paused,omitempty"`
+	IgnoreRules           bool           `json:"ignore_rules,omitempty"`
+	LimitUploadSpeed      int64          `json:"limit_upload_speed,omitempty"`
+	LimitDownloadSpeed    int64          `json:"limit_download_speed,omitempty"`
+	LimitRatio            float64        `json:"limit_ratio,omitempty"`
+	LimitSeedTime         int64          `json:"limit_seed_time,omitempty"`
+	ReAnnounceSkip        bool           `json:"reannounce_skip,omitempty"`
+	ReAnnounceDelete      bool           `json:"reannounce_delete,omitempty"`
+	ReAnnounceInterval    int64          `json:"reannounce_interval,omitempty"`
+	ReAnnounceMaxAttempts int64          `json:"reannounce_max_attempts,omitempty"`
+	WebhookHost           string         `json:"webhook_host,omitempty"`
+	WebhookType           string         `json:"webhook_type,omitempty"`
+	WebhookMethod         string         `json:"webhook_method,omitempty"`
+	WebhookData           string         `json:"webhook_data,omitempty"`
+	WebhookHeaders        []string       `json:"webhook_headers,omitempty"`
+	FilterID              int            `json:"filter_id,omitempty"`
+	ClientID              int32          `json:"client_id,omitempty"`
+	Client                DownloadClient `json:"client,omitempty"`
 }
 
 type ActionType string

@@ -3,8 +3,6 @@ package http
 import (
 	"net/http"
 
-	"github.com/autobrr/autobrr/internal/config"
-
 	"github.com/go-chi/chi"
 )
 
@@ -39,14 +37,12 @@ func (h configHandler) Routes(r chi.Router) {
 func (h configHandler) getConfig(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
-	c := config.Config
-
 	conf := configJson{
-		Host:     c.Host,
-		Port:     c.Port,
-		LogLevel: c.LogLevel,
-		LogPath:  c.LogPath,
-		BaseURL:  c.BaseURL,
+		Host:     h.server.config.Host,
+		Port:     h.server.config.Port,
+		LogLevel: h.server.config.LogLevel,
+		LogPath:  h.server.config.LogPath,
+		BaseURL:  h.server.config.BaseURL,
 		Version:  h.server.version,
 		Commit:   h.server.commit,
 		Date:     h.server.date,

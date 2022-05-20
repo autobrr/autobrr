@@ -19,7 +19,7 @@ export const InitializeGlobalContext = () => {
       )
     }));
   }
-}
+};
 
 interface AuthInfo {
   username: string;
