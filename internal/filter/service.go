@@ -5,11 +5,11 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/dustin/go-humanize"
-	"github.com/rs/zerolog/log"
-
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/internal/indexer"
+	"github.com/autobrr/autobrr/internal/logger"
+
+	"github.com/dustin/go-humanize"
 )
 
 type Service interface {
@@ -25,14 +25,16 @@ type Service interface {
 }
 
 type service struct {
+	log        logger.Logger
 	repo       domain.FilterRepo
 	actionRepo domain.ActionRepo
 	indexerSvc indexer.Service
 	apiService indexer.APIService
 }
 
-func NewService(repo domain.FilterRepo, actionRepo domain.ActionRepo, apiService indexer.APIService, indexerSvc indexer.Service) Service {
+func NewService(log logger.Logger, repo domain.FilterRepo, actionRepo domain.ActionRepo, apiService indexer.APIService, indexerSvc indexer.Service) Service {
 	return &service{
+		log:        log,
 		repo:       repo,
 		actionRepo: actionRepo,
 		apiService: apiService,
@@ -72,14 +74,14 @@ func (s *service) FindByID(ctx context.Context, filterID int) (*domain.Filter, e
 	// find actions and attach
 	actions, err := s.actionRepo.FindByFilterID(ctx, filter.ID)
 	if err != nil {
-		log.Error().Msgf("could not find filter actions: %+v", &filter.ID)
+		s.log.Error().Msgf("could not find filter actions: %+v", &filter.ID)
 	}
 	filter.Actions = actions
 
 	// find indexers and attach
 	indexers, err := s.indexerSvc.FindByFilterID(ctx, filter.ID)
 	if err != nil {
-		log.Error().Err(err).Msgf("could not find indexers for filter: %+v", &filter.Name)
+		s.log.Error().Err(err).Msgf("could not find indexers for filter: %+v", &filter.Name)
 		return nil, err
 	}
 	filter.Indexers = indexers
@@ -91,7 +93,7 @@ func (s *service) FindByIndexerIdentifier(indexer string) ([]domain.Filter, erro
 	// get filters for indexer
 	filters, err := s.repo.FindByIndexerIdentifier(indexer)
 	if err != nil {
-		log.Error().Err(err).Msgf("could not find filters for indexer: %v", indexer)
+		s.log.Error().Err(err).Msgf("could not find filters for indexer: %v", indexer)
 		return nil, err
 	}
 
@@ -104,7 +106,7 @@ func (s *service) Store(ctx context.Context, filter domain.Filter) (*domain.Filt
 	// store
 	f, err := s.repo.Store(ctx, filter)
 	if err != nil {
-		log.Error().Err(err).Msgf("could not store filter: %v", filter)
+		s.log.Error().Err(err).Msgf("could not store filter: %v", filter)
 		return nil, err
 	}
 
@@ -120,20 +122,20 @@ func (s *service) Update(ctx context.Context, filter domain.Filter) (*domain.Fil
 	// update
 	f, err := s.repo.Update(ctx, filter)
 	if err != nil {
-		log.Error().Err(err).Msgf("could not update filter: %v", filter.Name)
+		s.log.Error().Err(err).Msgf("could not update filter: %v", filter.Name)
 		return nil, err
 	}
 
 	// take care of connected indexers
 	if err = s.repo.StoreIndexerConnections(ctx, f.ID, filter.Indexers); err != nil {
-		log.Error().Err(err).Msgf("could not store filter indexer connections: %v", filter.Name)
+		s.log.Error().Err(err).Msgf("could not store filter indexer connections: %v", filter.Name)
 		return nil, err
 	}
 
 	// take care of filter actions
 	actions, err := s.actionRepo.StoreFilterActions(ctx, filter.Actions, int64(filter.ID))
 	if err != nil {
-		log.Error().Err(err).Msgf("could not store filter actions: %v", filter.Name)
+		s.log.Error().Err(err).Msgf("could not store filter actions: %v", filter.Name)
 		return nil, err
 	}
 
@@ -155,27 +157,27 @@ func (s *service) Duplicate(ctx context.Context, filterID int) (*domain.Filter, 
 	// find actions and attach
 	filterActions, err := s.actionRepo.FindByFilterID(ctx, filterID)
 	if err != nil {
-		log.Error().Msgf("could not find filter actions: %+v", &filterID)
+		s.log.Error().Msgf("could not find filter actions: %+v", &filterID)
 		return nil, err
 	}
 
 	// find indexers and attach
 	filterIndexers, err := s.indexerSvc.FindByFilterID(ctx, filterID)
 	if err != nil {
-		log.Error().Err(err).Msgf("could not find indexers for filter: %+v", &baseFilter.Name)
+		s.log.Error().Err(err).Msgf("could not find indexers for filter: %+v", &baseFilter.Name)
 		return nil, err
 	}
 
 	// update
 	filter, err := s.repo.Store(ctx, *baseFilter)
 	if err != nil {
-		log.Error().Err(err).Msgf("could not update filter: %v", baseFilter.Name)
+		s.log.Error().Err(err).Msgf("could not update filter: %v", baseFilter.Name)
 		return nil, err
 	}
 
 	// take care of connected indexers
 	if err = s.repo.StoreIndexerConnections(ctx, filter.ID, filterIndexers); err != nil {
-		log.Error().Err(err).Msgf("could not store filter indexer connections: %v", filter.Name)
+		s.log.Error().Err(err).Msgf("could not store filter indexer connections: %v", filter.Name)
 		return nil, err
 	}
 	filter.Indexers = filterIndexers
@@ -183,7 +185,7 @@ func (s *service) Duplicate(ctx context.Context, filterID int) (*domain.Filter, 
 	// take care of filter actions
 	actions, err := s.actionRepo.StoreFilterActions(ctx, filterActions, int64(filter.ID))
 	if err != nil {
-		log.Error().Err(err).Msgf("could not store filter actions: %v", filter.Name)
+		s.log.Error().Err(err).Msgf("could not store filter actions: %v", filter.Name)
 		return nil, err
 	}
 
@@ -194,11 +196,11 @@ func (s *service) Duplicate(ctx context.Context, filterID int) (*domain.Filter, 
 
 func (s *service) ToggleEnabled(ctx context.Context, filterID int, enabled bool) error {
 	if err := s.repo.ToggleEnabled(ctx, filterID, enabled); err != nil {
-		log.Error().Err(err).Msg("could not update filter enabled")
+		s.log.Error().Err(err).Msg("could not update filter enabled")
 		return err
 	}
 
-	log.Debug().Msgf("filter.toggle_enabled: update filter '%v' to '%v'", filterID, enabled)
+	s.log.Debug().Msgf("filter.toggle_enabled: update filter '%v' to '%v'", filterID, enabled)
 
 	return nil
 }
@@ -210,19 +212,19 @@ func (s *service) Delete(ctx context.Context, filterID int) error {
 
 	// take care of filter actions
 	if err := s.actionRepo.DeleteByFilterID(ctx, filterID); err != nil {
-		log.Error().Err(err).Msg("could not delete filter actions")
+		s.log.Error().Err(err).Msg("could not delete filter actions")
 		return err
 	}
 
 	// take care of filter indexers
 	if err := s.repo.DeleteIndexerConnections(ctx, filterID); err != nil {
-		log.Error().Err(err).Msg("could not delete filter indexers")
+		s.log.Error().Err(err).Msg("could not delete filter indexers")
 		return err
 	}
 
 	// delete filter
 	if err := s.repo.Delete(ctx, filterID); err != nil {
-		log.Error().Err(err).Msgf("could not delete filter: %v", filterID)
+		s.log.Error().Err(err).Msgf("could not delete filter: %v", filterID)
 		return err
 	}
 
@@ -231,19 +233,19 @@ func (s *service) Delete(ctx context.Context, filterID int) error {
 
 func (s *service) CheckFilter(f domain.Filter, release *domain.Release) (bool, error) {
 
-	log.Trace().Msgf("filter.Service.CheckFilter: checking filter: %v %+v", f.Name, f)
-	log.Trace().Msgf("filter.Service.CheckFilter: checking filter: %v for release: %+v", f.Name, release)
+	s.log.Trace().Msgf("filter.Service.CheckFilter: checking filter: %v %+v", f.Name, f)
+	s.log.Trace().Msgf("filter.Service.CheckFilter: checking filter: %v for release: %+v", f.Name, release)
 
 	rejections, matchedFilter := f.CheckFilter(release)
 	if len(rejections) > 0 {
-		log.Trace().Msgf("filter.Service.CheckFilter: (%v) for release: %v rejections: (%v)", f.Name, release.TorrentName, release.RejectionsString())
+		s.log.Trace().Msgf("filter.Service.CheckFilter: (%v) for release: %v rejections: (%v)", f.Name, release.TorrentName, release.RejectionsString())
 		return false, nil
 	}
 
 	if matchedFilter {
 		// if matched, do additional size check if needed, attach actions and return the filter
 
-		log.Debug().Msgf("filter.Service.CheckFilter: found and matched filter: %+v", f.Name)
+		s.log.Debug().Msgf("filter.Service.CheckFilter: found and matched filter: %+v", f.Name)
 
 		// Some indexers do not announce the size and if size (min,max) is set in a filter then it will need
 		// additional size check. Some indexers have api implemented to fetch this data and for the others
@@ -251,16 +253,16 @@ func (s *service) CheckFilter(f domain.Filter, release *domain.Release) (bool, e
 
 		// do additional size check against indexer api or download torrent for size check
 		if release.AdditionalSizeCheckRequired {
-			log.Debug().Msgf("filter.Service.CheckFilter: (%v) additional size check required", f.Name)
+			s.log.Debug().Msgf("filter.Service.CheckFilter: (%v) additional size check required", f.Name)
 
 			ok, err := s.AdditionalSizeCheck(f, release)
 			if err != nil {
-				log.Error().Stack().Err(err).Msgf("filter.Service.CheckFilter: (%v) additional size check error", f.Name)
+				s.log.Error().Stack().Err(err).Msgf("filter.Service.CheckFilter: (%v) additional size check error", f.Name)
 				return false, err
 			}
 
 			if !ok {
-				log.Trace().Msgf("filter.Service.CheckFilter: (%v) additional size check not matching what filter wanted", f.Name)
+				s.log.Trace().Msgf("filter.Service.CheckFilter: (%v) additional size check not matching what filter wanted", f.Name)
 				return false, nil
 			}
 		}
@@ -268,13 +270,13 @@ func (s *service) CheckFilter(f domain.Filter, release *domain.Release) (bool, e
 		// found matching filter, lets find the filter actions and attach
 		actions, err := s.actionRepo.FindByFilterID(context.TODO(), f.ID)
 		if err != nil {
-			log.Error().Err(err).Msgf("filter.Service.CheckFilter: error finding actions for filter: %+v", f.Name)
+			s.log.Error().Err(err).Msgf("filter.Service.CheckFilter: error finding actions for filter: %+v", f.Name)
 			return false, err
 		}
 
 		// if no actions, continue to next filter
 		if len(actions) == 0 {
-			log.Trace().Msgf("filter.Service.CheckFilter: no actions found for filter '%v', trying next one..", f.Name)
+			s.log.Trace().Msgf("filter.Service.CheckFilter: no actions found for filter '%v', trying next one..", f.Name)
 			return false, err
 		}
 		release.Filter.Actions = actions
@@ -293,30 +295,30 @@ func (s *service) CheckFilter(f domain.Filter, release *domain.Release) (bool, e
 func (s *service) AdditionalSizeCheck(f domain.Filter, release *domain.Release) (bool, error) {
 
 	// do additional size check against indexer api or torrent for size
-	log.Debug().Msgf("filter.Service.AdditionalSizeCheck: (%v) additional size check required", f.Name)
+	s.log.Debug().Msgf("filter.Service.AdditionalSizeCheck: (%v) additional size check required", f.Name)
 
 	switch release.Indexer {
 	case "ptp", "btn", "ggn", "redacted", "mock":
 		if release.Size == 0 {
-			log.Trace().Msgf("filter.Service.AdditionalSizeCheck: (%v) preparing to check via api", f.Name)
+			s.log.Trace().Msgf("filter.Service.AdditionalSizeCheck: (%v) preparing to check via api", f.Name)
 			torrentInfo, err := s.apiService.GetTorrentByID(release.Indexer, release.TorrentID)
 			if err != nil || torrentInfo == nil {
-				log.Error().Stack().Err(err).Msgf("filter.Service.AdditionalSizeCheck: (%v) could not get torrent info from api: '%v' from: %v", f.Name, release.TorrentID, release.Indexer)
+				s.log.Error().Stack().Err(err).Msgf("filter.Service.AdditionalSizeCheck: (%v) could not get torrent info from api: '%v' from: %v", f.Name, release.TorrentID, release.Indexer)
 				return false, err
 			}
 
-			log.Debug().Msgf("filter.Service.AdditionalSizeCheck: (%v) got torrent info from api: %+v", f.Name, torrentInfo)
+			s.log.Debug().Msgf("filter.Service.AdditionalSizeCheck: (%v) got torrent info from api: %+v", f.Name, torrentInfo)
 
 			release.Size = torrentInfo.ReleaseSizeBytes()
 		}
 
 	default:
-		log.Trace().Msgf("filter.Service.AdditionalSizeCheck: (%v) preparing to download torrent metafile", f.Name)
+		s.log.Trace().Msgf("filter.Service.AdditionalSizeCheck: (%v) preparing to download torrent metafile", f.Name)
 
 		// if indexer doesn't have api, download torrent and add to tmpPath
 		err := release.DownloadTorrentFile()
 		if err != nil {
-			log.Error().Stack().Err(err).Msgf("filter.Service.AdditionalSizeCheck: (%v) could not download torrent file with id: '%v' from: %v", f.Name, release.TorrentID, release.Indexer)
+			s.log.Error().Stack().Err(err).Msgf("filter.Service.AdditionalSizeCheck: (%v) could not download torrent file with id: '%v' from: %v", f.Name, release.TorrentID, release.Indexer)
 			return false, err
 		}
 	}
@@ -324,12 +326,12 @@ func (s *service) AdditionalSizeCheck(f domain.Filter, release *domain.Release) 
 	// compare size against filter
 	match, err := checkSizeFilter(f.MinSize, f.MaxSize, release.Size)
 	if err != nil {
-		log.Error().Stack().Err(err).Msgf("filter.Service.AdditionalSizeCheck: (%v) error checking extra size filter", f.Name)
+		s.log.Error().Stack().Err(err).Msgf("filter.Service.AdditionalSizeCheck: (%v) error checking extra size filter", f.Name)
 		return false, err
 	}
 	//no match, lets continue to next filter
 	if !match {
-		log.Debug().Msgf("filter.Service.AdditionalSizeCheck: (%v) filter did not match after additional size check, trying next", f.Name)
+		s.log.Debug().Msgf("filter.Service.AdditionalSizeCheck: (%v) filter did not match after additional size check, trying next", f.Name)
 		return false, nil
 	}
 

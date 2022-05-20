@@ -13,9 +13,10 @@ import (
 	"github.com/autobrr/autobrr/internal/logger"
 	"github.com/autobrr/autobrr/internal/release"
 
+	"github.com/dcarbone/zadapters/zstdlog"
 	"github.com/ergochat/irc-go/ircevent"
 	"github.com/ergochat/irc-go/ircmsg"
-	"github.com/rs/zerolog/log"
+	"github.com/rs/zerolog"
 )
 
 var (
@@ -55,6 +56,7 @@ func (h *channelHealth) resetMonitoring() {
 }
 
 type Handler struct {
+	log                zerolog.Logger
 	network            *domain.IrcNetwork
 	releaseSvc         release.Service
 	announceProcessors map[string]announce.Processor
@@ -73,8 +75,9 @@ type Handler struct {
 	channelHealth   map[string]*channelHealth
 }
 
-func NewHandler(network domain.IrcNetwork, definitions []*domain.IndexerDefinition, releaseSvc release.Service) *Handler {
+func NewHandler(log logger.Logger, network domain.IrcNetwork, definitions []*domain.IndexerDefinition, releaseSvc release.Service) *Handler {
 	h := &Handler{
+		log:                log.With().Time("time", time.Now()).Str("network", network.Server).Logger(),
 		client:             nil,
 		network:            &network,
 		releaseSvc:         releaseSvc,
@@ -106,7 +109,7 @@ func (h *Handler) InitIndexers(definitions []*domain.IndexerDefinition) {
 			// some channels are defined in mixed case
 			channel = strings.ToLower(channel)
 
-			h.announceProcessors[channel] = announce.NewAnnounceProcessor(h.releaseSvc, definition)
+			h.announceProcessors[channel] = announce.NewAnnounceProcessor(h.log, h.releaseSvc, definition)
 
 			h.channelHealth[channel] = &channelHealth{
 				name:       channel,
@@ -134,6 +137,8 @@ func (h *Handler) removeIndexer() {
 func (h *Handler) Run() error {
 	addr := fmt.Sprintf("%v:%d", h.network.Server, h.network.Port)
 
+	subLogger := zstdlog.NewStdLoggerWithLevel(h.log.With().Logger(), zerolog.TraceLevel)
+
 	h.client = &ircevent.Connection{
 		Nick:          h.network.NickServ.Account,
 		User:          h.network.NickServ.Account,
@@ -141,12 +146,12 @@ func (h *Handler) Run() error {
 		Password:      h.network.Pass,
 		Server:        addr,
 		KeepAlive:     4 * time.Minute,
-		Timeout:       1 * time.Minute,
+		Timeout:       2 * time.Minute,
 		ReconnectFreq: 15 * time.Second,
 		Version:       "autobrr",
 		QuitMessage:   "bye from autobrr",
 		Debug:         true,
-		Log:           logger.StdLeveledLogger,
+		Log:           subLogger,
 	}
 
 	if h.network.TLS {
@@ -162,7 +167,7 @@ func (h *Handler) Run() error {
 	h.client.AddCallback("PRIVMSG", h.onMessage)
 
 	if err := h.client.Connect(); err != nil {
-		log.Error().Stack().Err(err).Msgf("%v: connect error", h.network.Server)
+		h.log.Error().Stack().Err(err).Msgf("%v: connect error", h.network.Server)
 
 		// reset connection status on handler and channels
 		h.resetConnectionStatus()
@@ -233,12 +238,12 @@ func (h *Handler) AddChannelHealth(channel string) {
 }
 
 func (h *Handler) Stop() {
-	log.Debug().Msgf("%v: Disconnecting...", h.network.Server)
+	h.log.Debug().Msgf("%v: Disconnecting...", h.network.Server)
 	h.client.Quit()
 }
 
 func (h *Handler) Restart() error {
-	log.Debug().Msgf("%v: Restarting network...", h.network.Server)
+	h.log.Debug().Msgf("%v: Restarting network...", h.network.Server)
 
 	h.client.Quit()
 
@@ -255,7 +260,7 @@ func (h *Handler) onConnect(m ircmsg.Message) {
 	if h.network.NickServ.Password != "" {
 		err := h.HandleNickServIdentify(h.network.NickServ.Password)
 		if err != nil {
-			log.Error().Stack().Err(err).Msgf("error nickserv: %v", h.network.Name)
+			h.log.Error().Stack().Err(err).Msgf("error nickserv: %v", h.network.Name)
 			return
 		}
 		identified = true
@@ -266,7 +271,7 @@ func (h *Handler) onConnect(m ircmsg.Message) {
 	if h.network.InviteCommand != "" {
 		err := h.handleConnectCommands(h.network.InviteCommand)
 		if err != nil {
-			log.Error().Stack().Err(err).Msgf("error sending connect command %v to network: %v", h.network.InviteCommand, h.network.Name)
+			h.log.Error().Stack().Err(err).Msgf("error sending connect command %v to network: %v", h.network.InviteCommand, h.network.Name)
 			return
 		}
 
@@ -277,7 +282,7 @@ func (h *Handler) onConnect(m ircmsg.Message) {
 		for _, channel := range h.network.Channels {
 			err := h.HandleJoinChannel(channel.Name, channel.Password)
 			if err != nil {
-				log.Error().Stack().Err(err).Msgf("error joining channels %v", err)
+				h.log.Error().Stack().Err(err).Msgf("error joining channels %v", err)
 				return
 			}
 		}
@@ -307,11 +312,11 @@ func (h *Handler) onMessage(msg ircmsg.Message) {
 	}
 
 	// clean message
-	cleanedMsg := cleanMessage(message)
-	log.Debug().Msgf("%v: %v %v: %v", h.network.Server, channel, announcer, cleanedMsg)
+	cleanedMsg := h.cleanMessage(message)
+	h.log.Debug().Msgf("%v: %v %v: %v", h.network.Server, channel, announcer, cleanedMsg)
 
 	if err := h.sendToAnnounceProcessor(channel, cleanedMsg); err != nil {
-		log.Error().Stack().Err(err).Msgf("could not queue line: %v", cleanedMsg)
+		h.log.Error().Stack().Err(err).Msgf("could not queue line: %v", cleanedMsg)
 		return
 	}
 
@@ -330,7 +335,7 @@ func (h *Handler) sendToAnnounceProcessor(channel string, msg string) error {
 	// if it exists, add msg
 	err := queue.AddLineToQueue(channel, msg)
 	if err != nil {
-		log.Error().Stack().Err(err).Msgf("could not queue line: %v", msg)
+		h.log.Error().Stack().Err(err).Msgf("could not queue line: %v", msg)
 		return err
 	}
 
@@ -355,11 +360,11 @@ func (h *Handler) HandleJoinChannel(channel string, password string) error {
 		m.Params = []string{channel, password}
 	}
 
-	log.Debug().Msgf("%v: sending JOIN command %v", h.network.Server, strings.Join(m.Params, " "))
+	h.log.Debug().Msgf("%v: sending JOIN command %v", h.network.Server, strings.Join(m.Params, " "))
 
 	err := h.client.SendIRCMessage(m)
 	if err != nil {
-		log.Error().Stack().Err(err).Msgf("error handling join: %v", channel)
+		h.log.Error().Stack().Err(err).Msgf("error handling join: %v", channel)
 		return err
 	}
 
@@ -368,17 +373,17 @@ func (h *Handler) HandleJoinChannel(channel string, password string) error {
 
 func (h *Handler) handlePart(msg ircmsg.Message) {
 	if !h.isOurNick(msg.Nick()) {
-		log.Debug().Msgf("%v: MODE OTHER USER: %+v", h.network.Server, msg)
+		h.log.Debug().Msgf("%v: MODE OTHER USER: %+v", h.network.Server, msg)
 		return
 	}
 
 	channel := msg.Params[0]
 
-	log.Debug().Msgf("%v: PART channel %v", h.network.Server, channel)
+	h.log.Debug().Msgf("%v: PART channel %v", h.network.Server, channel)
 
 	err := h.client.Part(channel)
 	if err != nil {
-		log.Error().Err(err).Msgf("error handling part: %v", channel)
+		h.log.Error().Err(err).Msgf("error handling part: %v", channel)
 		return
 	}
 
@@ -392,17 +397,17 @@ func (h *Handler) handlePart(msg ircmsg.Message) {
 
 	// TODO remove announceProcessor
 
-	log.Info().Msgf("%v: Left channel '%v'", h.network.Server, channel)
+	h.log.Info().Msgf("%v: Left channel '%v'", h.network.Server, channel)
 
 	return
 }
 
 func (h *Handler) HandlePartChannel(channel string) error {
-	log.Debug().Msgf("%v: PART channel %v", h.network.Server, channel)
+	h.log.Debug().Msgf("%v: PART channel %v", h.network.Server, channel)
 
 	err := h.client.Part(channel)
 	if err != nil {
-		log.Error().Err(err).Msgf("error handling part: %v", channel)
+		h.log.Error().Err(err).Msgf("error handling part: %v", channel)
 		return err
 	}
 
@@ -416,21 +421,21 @@ func (h *Handler) HandlePartChannel(channel string) error {
 
 	// TODO remove announceProcessor
 
-	log.Info().Msgf("Left channel '%v' on network '%h'", channel, h.network.Server)
+	h.log.Info().Msgf("Left channel '%v' on network '%h'", channel, h.network.Server)
 
 	return nil
 }
 
 func (h *Handler) handleJoined(msg ircmsg.Message) {
 	if !h.isOurNick(msg.Params[0]) {
-		log.Debug().Msgf("%v: OTHER USER JOINED: %+v", h.network.Server, msg)
+		h.log.Debug().Msgf("%v: OTHER USER JOINED: %+v", h.network.Server, msg)
 		return
 	}
 
 	// get channel
 	channel := msg.Params[1]
 
-	log.Debug().Msgf("%v: JOINED: %v", h.network.Server, msg.Params[1])
+	h.log.Debug().Msgf("%v: JOINED: %v", h.network.Server, msg.Params[1])
 
 	// set monitoring on current channelHealth, or add new
 	v, ok := h.channelHealth[strings.ToLower(channel)]
@@ -442,7 +447,7 @@ func (h *Handler) handleJoined(msg ircmsg.Message) {
 
 	valid := h.isValidChannel(channel)
 	if valid {
-		log.Info().Msgf("%v: Monitoring channel %v", h.network.Server, msg.Params[1])
+		h.log.Info().Msgf("%v: Monitoring channel %v", h.network.Server, msg.Params[1])
 		return
 	}
 }
@@ -459,11 +464,11 @@ func (h *Handler) handleConnectCommands(msg string) error {
 			Params:  strings.Split(cmd, " "),
 		}
 
-		log.Debug().Msgf("%v: sending connect command", h.network.Server)
+		h.log.Debug().Msgf("%v: sending connect command", h.network.Server)
 
 		err := h.client.SendIRCMessage(m)
 		if err != nil {
-			log.Error().Err(err).Msgf("error handling invite: %v", m)
+			h.log.Error().Err(err).Msgf("error handling invite: %v", m)
 			return err
 		}
 	}
@@ -479,11 +484,11 @@ func (h *Handler) handleInvite(msg ircmsg.Message) {
 	// get channel
 	channel := msg.Params[1]
 
-	log.Debug().Msgf("%v: INVITE from %v, joining %v", h.network.Server, msg.Nick(), channel)
+	h.log.Debug().Msgf("%v: INVITE from %v, joining %v", h.network.Server, msg.Nick(), channel)
 
 	err := h.client.Join(channel)
 	if err != nil {
-		log.Error().Stack().Err(err).Msgf("error handling join: %v", channel)
+		h.log.Error().Stack().Err(err).Msgf("error handling join: %v", channel)
 		return
 	}
 
@@ -496,11 +501,11 @@ func (h *Handler) HandleNickServIdentify(password string) error {
 		Params:  []string{"NickServ", "IDENTIFY", password},
 	}
 
-	log.Debug().Msgf("%v: NickServ: %v", h.network.Server, m)
+	h.log.Debug().Msgf("%v: NickServ: %v", h.network.Server, m)
 
 	err := h.client.SendIRCMessage(m)
 	if err != nil {
-		log.Error().Stack().Err(err).Msgf("error identifying with nickserv: %v", m)
+		h.log.Error().Stack().Err(err).Msgf("error identifying with nickserv: %v", m)
 		return err
 	}
 
@@ -508,7 +513,7 @@ func (h *Handler) HandleNickServIdentify(password string) error {
 }
 
 func (h *Handler) HandleNickChange(nick string) error {
-	log.Debug().Msgf("%v: Nick change: %v", h.network.Server, nick)
+	h.log.Debug().Msgf("%v: Nick change: %v", h.network.Server, nick)
 
 	h.client.SetNick(nick)
 
@@ -516,24 +521,24 @@ func (h *Handler) HandleNickChange(nick string) error {
 }
 
 func (h *Handler) handleMode(msg ircmsg.Message) {
-	log.Debug().Msgf("%v: MODE: %+v", h.network.Server, msg)
+	h.log.Debug().Msgf("%v: MODE: %+v", h.network.Server, msg)
 
 	if !h.isOurNick(msg.Params[0]) {
-		log.Debug().Msgf("%v: MODE OTHER USER: %+v", h.network.Server, msg)
+		h.log.Debug().Msgf("%v: MODE OTHER USER: %+v", h.network.Server, msg)
 		return
 	}
 
 	time.Sleep(5 * time.Second)
 
 	if h.network.NickServ.Password != "" && !strings.Contains(msg.Params[0], h.client.Nick) || !strings.Contains(msg.Params[1], "+r") {
-		log.Trace().Msgf("%v: MODE: Not correct permission yet: %v", h.network.Server, msg.Params)
+		h.log.Trace().Msgf("%v: MODE: Not correct permission yet: %v", h.network.Server, msg.Params)
 		return
 	}
 
 	for _, ch := range h.network.Channels {
 		err := h.HandleJoinChannel(ch.Name, ch.Password)
 		if err != nil {
-			log.Error().Err(err).Msgf("error joining channel: %v", ch.Name)
+			h.log.Error().Err(err).Msgf("error joining channel: %v", ch.Name)
 			continue
 		}
 
@@ -572,12 +577,12 @@ func (h *Handler) GetLastPing() time.Time {
 }
 
 // irc line can contain lots of extra stuff like color so lets clean that
-func cleanMessage(message string) string {
+func (h *Handler) cleanMessage(message string) string {
 	var regexMessageClean = `\x0f|\x1f|\x02|\x03(?:[\d]{1,2}(?:,[\d]{1,2})?)?`
 
 	rxp, err := regexp.Compile(regexMessageClean)
 	if err != nil {
-		log.Error().Err(err).Msgf("error compiling regex: %v", regexMessageClean)
+		h.log.Error().Err(err).Msgf("error compiling regex: %v", regexMessageClean)
 		return ""
 	}
 

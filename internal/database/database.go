@@ -6,13 +6,14 @@ import (
 	"fmt"
 	"sync"
 
-	sq "github.com/Masterminds/squirrel"
-	"github.com/rs/zerolog/log"
-
 	"github.com/autobrr/autobrr/internal/domain"
+	"github.com/autobrr/autobrr/internal/logger"
+
+	sq "github.com/Masterminds/squirrel"
 )
 
 type DB struct {
+	log     logger.Logger
 	handler *sql.DB
 	lock    sync.RWMutex
 	ctx     context.Context
@@ -24,10 +25,11 @@ type DB struct {
 	squirrel sq.StatementBuilderType
 }
 
-func NewDB(cfg domain.Config) (*DB, error) {
+func NewDB(cfg *domain.Config, log logger.Logger) (*DB, error) {
 	db := &DB{
 		// set default placeholder for squirrel to support both sqlite and postgres
 		squirrel: sq.StatementBuilder.PlaceholderFormat(sq.Dollar),
+		log:      log,
 	}
 	db.ctx, db.cancel = context.WithCancel(context.Background())
 
@@ -58,12 +60,12 @@ func (db *DB) Open() error {
 	switch db.Driver {
 	case "sqlite":
 		if err = db.openSQLite(); err != nil {
-			log.Fatal().Err(err).Msg("could not open sqlite db connection")
+			db.log.Fatal().Err(err).Msg("could not open sqlite db connection")
 			return err
 		}
 	case "postgres":
 		if err = db.openPostgres(); err != nil {
-			log.Fatal().Err(err).Msg("could not open postgres db connection")
+			db.log.Fatal().Err(err).Msg("could not open postgres db connection")
 			return err
 		}
 	}

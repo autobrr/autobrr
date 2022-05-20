@@ -20,7 +20,7 @@ type Server struct {
 	sse *sse.Server
 	db  *database.DB
 
-	config      domain.Config
+	config      *domain.Config
 	cookieStore *sessions.CookieStore
 
 	version string
@@ -38,7 +38,7 @@ type Server struct {
 	releaseService        releaseService
 }
 
-func NewServer(config domain.Config, sse *sse.Server, db *database.DB, version string, commit string, date string, actionService actionService, authService authService, downloadClientSvc downloadClientService, filterSvc filterService, feedSvc feedService, indexerSvc indexerService, ircSvc ircService, notificationSvc notificationService, releaseSvc releaseService) Server {
+func NewServer(config *domain.Config, sse *sse.Server, db *database.DB, version string, commit string, date string, actionService actionService, authService authService, downloadClientSvc downloadClientService, filterSvc filterService, feedSvc feedService, indexerSvc indexerService, ircSvc ircService, notificationSvc notificationService, releaseSvc releaseService) Server {
 	return Server{
 		config:  config,
 		sse:     sse,

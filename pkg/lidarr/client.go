@@ -9,8 +9,6 @@ import (
 	"net/http"
 	"net/url"
 	"path"
-
-	"github.com/rs/zerolog/log"
 )
 
 func (c *client) get(endpoint string) (int, []byte, error) {
@@ -20,8 +18,7 @@ func (c *client) get(endpoint string) (int, []byte, error) {
 
 	req, err := http.NewRequest(http.MethodGet, reqUrl, http.NoBody)
 	if err != nil {
-		log.Error().Err(err).Msgf("lidarr client request error : %v", reqUrl)
-		return 0, nil, err
+		return 0, nil, errors.New(fmt.Sprintf("lidarr client request error : %v", reqUrl))
 	}
 
 	if c.config.BasicAuth {
@@ -32,7 +29,6 @@ func (c *client) get(endpoint string) (int, []byte, error) {
 
 	resp, err := c.http.Do(req)
 	if err != nil {
-		log.Error().Err(err).Msgf("lidarr client.get request error: %v", reqUrl)
 		return 0, nil, fmt.Errorf("lidarr.http.Do(req): %w", err)
 	}
 
@@ -53,14 +49,12 @@ func (c *client) post(endpoint string, data interface{}) (*http.Response, error)
 
 	jsonData, err := json.Marshal(data)
 	if err != nil {
-		log.Error().Err(err).Msgf("lidarr client could not marshal data: %v", reqUrl)
-		return nil, err
+		return nil, fmt.Errorf("lidarr client could not marshal data: %v", reqUrl)
 	}
 
 	req, err := http.NewRequest(http.MethodPost, reqUrl, bytes.NewBuffer(jsonData))
 	if err != nil {
-		log.Error().Err(err).Msgf("lidarr client request error: %v", reqUrl)
-		return nil, err
+		return nil, fmt.Errorf("lidarr client request error: %v", reqUrl)
 	}
 
 	if c.config.BasicAuth {
@@ -73,16 +67,13 @@ func (c *client) post(endpoint string, data interface{}) (*http.Response, error)
 
 	res, err := c.http.Do(req)
 	if err != nil {
-		log.Error().Err(err).Msgf("lidarr client request error: %v", reqUrl)
-		return nil, err
+		return nil, fmt.Errorf("lidarr client request error: %v", reqUrl)
 	}
 
 	// validate response
 	if res.StatusCode == http.StatusUnauthorized {
-		log.Error().Err(err).Msgf("lidarr client bad request: %v", reqUrl)
-		return nil, errors.New("unauthorized: bad credentials")
+		return nil, errors.New("lidarr: unauthorized: bad credentials")
 	} else if res.StatusCode != http.StatusOK {
-		log.Error().Err(err).Msgf("lidarr client request error: %v", reqUrl)
 		return nil, errors.New("lidarr: bad request")
 	}
 
@@ -97,14 +88,12 @@ func (c *client) postBody(endpoint string, data interface{}) (int, []byte, error
 
 	jsonData, err := json.Marshal(data)
 	if err != nil {
-		log.Error().Err(err).Msgf("lidarr client could not marshal data: %v", reqUrl)
-		return 0, nil, err
+		return 0, nil, fmt.Errorf("lidarr client could not marshal data: %v", reqUrl)
 	}
 
 	req, err := http.NewRequest(http.MethodPost, reqUrl, bytes.NewBuffer(jsonData))
 	if err != nil {
-		log.Error().Err(err).Msgf("lidarr client request error: %v", reqUrl)
-		return 0, nil, err
+		return 0, nil, fmt.Errorf("lidarr client request error: %v", reqUrl)
 	}
 
 	if c.config.BasicAuth {
@@ -115,7 +104,6 @@ func (c *client) postBody(endpoint string, data interface{}) (int, []byte, error
 
 	resp, err := c.http.Do(req)
 	if err != nil {
-		log.Error().Err(err).Msgf("lidarr client request error: %v", reqUrl)
 		return 0, nil, fmt.Errorf("lidarr.http.Do(req): %w", err)
 	}
 

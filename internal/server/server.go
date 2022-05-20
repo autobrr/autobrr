@@ -6,12 +6,12 @@ import (
 	"github.com/autobrr/autobrr/internal/feed"
 	"github.com/autobrr/autobrr/internal/indexer"
 	"github.com/autobrr/autobrr/internal/irc"
+	"github.com/autobrr/autobrr/internal/logger"
 	"github.com/autobrr/autobrr/internal/scheduler"
-
-	"github.com/rs/zerolog/log"
 )
 
 type Server struct {
+	log      logger.Logger
 	Hostname string
 	Port     int
 
@@ -24,8 +24,9 @@ type Server struct {
 	lock   sync.Mutex
 }
 
-func NewServer(ircSvc irc.Service, indexerSvc indexer.Service, feedSvc feed.Service, scheduler scheduler.Service) *Server {
+func NewServer(log logger.Logger, ircSvc irc.Service, indexerSvc indexer.Service, feedSvc feed.Service, scheduler scheduler.Service) *Server {
 	return &Server{
+		log:            log,
 		indexerService: indexerSvc,
 		ircService:     ircSvc,
 		feedService:    feedSvc,
@@ -34,14 +35,14 @@ func NewServer(ircSvc irc.Service, indexerSvc indexer.Service, feedSvc feed.Serv
 }
 
 func (s *Server) Start() error {
-	log.Info().Msgf("Starting server. Listening on %v:%v", s.Hostname, s.Port)
+	s.log.Info().Msgf("Starting server. Listening on %v:%v", s.Hostname, s.Port)
 
 	// start cron scheduler
 	s.scheduler.Start()
 
 	// instantiate indexers
 	if err := s.indexerService.Start(); err != nil {
-		log.Error().Err(err).Msg("Could not start indexer service")
+		s.log.Error().Err(err).Msg("Could not start indexer service")
 		return err
 	}
 
@@ -50,14 +51,14 @@ func (s *Server) Start() error {
 
 	// start torznab feeds
 	if err := s.feedService.Start(); err != nil {
-		log.Error().Err(err).Msg("Could not start feed service")
+		s.log.Error().Err(err).Msg("Could not start feed service")
 	}
 
 	return nil
 }
 
 func (s *Server) Shutdown() {
-	log.Info().Msg("Shutting down server")
+	s.log.Info().Msg("Shutting down server")
 
 	// stop all irc handlers
 	s.ircService.StopHandlers()

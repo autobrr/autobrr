@@ -10,10 +10,10 @@ import (
 	"strings"
 
 	"github.com/autobrr/autobrr/internal/domain"
+	"github.com/autobrr/autobrr/internal/logger"
 	"github.com/autobrr/autobrr/internal/scheduler"
 
 	"github.com/gosimple/slug"
-	"github.com/rs/zerolog/log"
 	"gopkg.in/yaml.v2"
 )
 
@@ -32,7 +32,8 @@ type Service interface {
 }
 
 type service struct {
-	config     domain.Config
+	log        logger.Logger
+	config     *domain.Config
 	repo       domain.IndexerRepo
 	apiService APIService
 	scheduler  scheduler.Service
@@ -48,8 +49,9 @@ type service struct {
 	torznabIndexers map[string]*domain.IndexerDefinition
 }
 
-func NewService(config domain.Config, repo domain.IndexerRepo, apiService APIService, scheduler scheduler.Service) Service {
+func NewService(log logger.Logger, config *domain.Config, repo domain.IndexerRepo, apiService APIService, scheduler scheduler.Service) Service {
 	return &service{
+		log:                       log,
 		config:                    config,
 		repo:                      repo,
 		apiService:                apiService,
@@ -73,14 +75,14 @@ func (s *service) Store(ctx context.Context, indexer domain.Indexer) (*domain.In
 
 	i, err := s.repo.Store(ctx, indexer)
 	if err != nil {
-		log.Error().Stack().Err(err).Msgf("failed to store indexer: %v", indexer.Name)
+		s.log.Error().Stack().Err(err).Msgf("failed to store indexer: %v", indexer.Name)
 		return nil, err
 	}
 
 	// add to indexerInstances
 	err = s.addIndexer(*i)
 	if err != nil {
-		log.Error().Stack().Err(err).Msgf("failed to add indexer: %v", indexer.Name)
+		s.log.Error().Stack().Err(err).Msgf("failed to add indexer: %v", indexer.Name)
 		return nil, err
 	}
 
@@ -96,7 +98,7 @@ func (s *service) Update(ctx context.Context, indexer domain.Indexer) (*domain.I
 	// add to indexerInstances
 	err = s.addIndexer(*i)
 	if err != nil {
-		log.Error().Stack().Err(err).Msgf("failed to add indexer: %v", indexer.Name)
+		s.log.Error().Stack().Err(err).Msgf("failed to add indexer: %v", indexer.Name)
 		return nil, err
 	}
 
@@ -238,7 +240,7 @@ func (s *service) Start() error {
 			// check if it has api and add to api service
 			if indexer.Enabled && indexer.HasApi() {
 				if err := s.apiService.AddClient(indexer.Identifier, indexer.SettingsMap); err != nil {
-					log.Error().Stack().Err(err).Msgf("indexer.start: could not init api client for: '%v'", indexer.Identifier)
+					s.log.Error().Stack().Err(err).Msgf("indexer.start: could not init api client for: '%v'", indexer.Identifier)
 				}
 			}
 		}
@@ -249,7 +251,7 @@ func (s *service) Start() error {
 		}
 	}
 
-	log.Info().Msgf("Loaded %d indexers", len(indexerDefinitions))
+	s.log.Info().Msgf("Loaded %d indexers", len(indexerDefinitions))
 
 	return nil
 }
@@ -290,7 +292,7 @@ func (s *service) addIndexer(indexer domain.Indexer) error {
 		// check if it has api and add to api service
 		if indexerDefinition.Enabled && indexerDefinition.HasApi() {
 			if err := s.apiService.AddClient(indexerDefinition.Identifier, indexerDefinition.SettingsMap); err != nil {
-				log.Error().Stack().Err(err).Msgf("indexer.start: could not init api client for: '%v'", indexer.Identifier)
+				s.log.Error().Stack().Err(err).Msgf("indexer.start: could not init api client for: '%v'", indexer.Identifier)
 			}
 		}
 	}
@@ -344,11 +346,11 @@ func (s *service) LoadIndexerDefinitions() error {
 
 	entries, err := fs.ReadDir(Definitions, "definitions")
 	if err != nil {
-		log.Fatal().Stack().Msgf("failed reading directory: %s", err)
+		s.log.Fatal().Stack().Msgf("failed reading directory: %s", err)
 	}
 
 	if len(entries) == 0 {
-		log.Fatal().Stack().Msgf("failed reading directory: %s", err)
+		s.log.Fatal().Stack().Msgf("failed reading directory: %s", err)
 		return err
 	}
 
@@ -360,19 +362,19 @@ func (s *service) LoadIndexerDefinitions() error {
 
 		file := "definitions/" + f.Name()
 
-		log.Trace().Msgf("parsing: %v", file)
+		s.log.Trace().Msgf("parsing: %v", file)
 
 		var d *domain.IndexerDefinition
 
 		data, err := fs.ReadFile(Definitions, file)
 		if err != nil {
-			log.Error().Stack().Err(err).Msgf("failed reading file: %v", file)
+			s.log.Error().Stack().Err(err).Msgf("failed reading file: %v", file)
 			return err
 		}
 
 		err = yaml.Unmarshal(data, &d)
 		if err != nil {
-			log.Error().Stack().Err(err).Msgf("failed unmarshal file: %v", file)
+			s.log.Error().Stack().Err(err).Msgf("failed unmarshal file: %v", file)
 			return err
 		}
 
@@ -383,7 +385,7 @@ func (s *service) LoadIndexerDefinitions() error {
 		s.indexerDefinitions[d.Identifier] = d
 	}
 
-	log.Debug().Msgf("Loaded %d indexer definitions", len(s.indexerDefinitions))
+	s.log.Debug().Msgf("Loaded %d indexer definitions", len(s.indexerDefinitions))
 
 	return nil
 }
@@ -399,11 +401,11 @@ func (s *service) LoadCustomIndexerDefinitions() error {
 	//entries, err := fs.ReadDir(Definitions, "definitions")
 	entries, err := outputDirRead.ReadDir(0)
 	if err != nil {
-		log.Fatal().Stack().Msgf("failed reading directory: %s", err)
+		s.log.Fatal().Stack().Msgf("failed reading directory: %s", err)
 	}
 
 	if len(entries) == 0 {
-		log.Fatal().Stack().Msgf("failed reading directory: %s", err)
+		s.log.Fatal().Stack().Msgf("failed reading directory: %s", err)
 		return err
 	}
 
@@ -417,20 +419,20 @@ func (s *service) LoadCustomIndexerDefinitions() error {
 
 		file := filepath.Join(s.config.CustomDefinitions, f.Name())
 
-		log.Trace().Msgf("parsing custom: %v", file)
+		s.log.Trace().Msgf("parsing custom: %v", file)
 
 		var d *domain.IndexerDefinition
 
 		//data, err := fs.ReadFile(Definitions, filePath)
 		data, err := os.ReadFile(file)
 		if err != nil {
-			log.Error().Stack().Err(err).Msgf("failed reading file: %v", file)
+			s.log.Error().Stack().Err(err).Msgf("failed reading file: %v", file)
 			return err
 		}
 
 		err = yaml.Unmarshal(data, &d)
 		if err != nil {
-			log.Error().Stack().Err(err).Msgf("failed unmarshal file: %v", file)
+			s.log.Error().Stack().Err(err).Msgf("failed unmarshal file: %v", file)
 			return err
 		}
 
@@ -443,7 +445,7 @@ func (s *service) LoadCustomIndexerDefinitions() error {
 		customCount++
 	}
 
-	log.Debug().Msgf("Loaded %d custom indexer definitions", customCount)
+	s.log.Debug().Msgf("Loaded %d custom indexer definitions", customCount)
 
 	return nil
 }

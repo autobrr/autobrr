@@ -3,7 +3,10 @@ package notification
 import (
 	"context"
 	"fmt"
+
 	"github.com/autobrr/autobrr/internal/domain"
+	"github.com/autobrr/autobrr/internal/logger"
+
 	"github.com/containrrr/shoutrrr"
 	t "github.com/containrrr/shoutrrr/pkg/types"
 )
@@ -19,11 +22,13 @@ type Service interface {
 }
 
 type service struct {
+	log  logger.Logger
 	repo domain.NotificationRepo
 }
 
-func NewService(repo domain.NotificationRepo) Service {
+func NewService(log logger.Logger, repo domain.NotificationRepo) Service {
 	return &service{
+		log:  log,
 		repo: repo,
 	}
 }
@@ -132,7 +137,7 @@ func (s *service) send(notifications []domain.Notification, event domain.EventsR
 			if evt == string(event.Status) {
 				switch n.Type {
 				case domain.NotificationTypeDiscord:
-					go discordNotification(event, n.Webhook)
+					go s.discordNotification(event, n.Webhook)
 				default:
 					return nil
 				}

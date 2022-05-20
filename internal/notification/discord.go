@@ -10,8 +10,6 @@ import (
 	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
-
-	"github.com/rs/zerolog/log"
 )
 
 type DiscordMessage struct {
@@ -33,7 +31,7 @@ type DiscordEmbedsFields struct {
 	Inline bool   `json:"inline,omitempty"`
 }
 
-func discordNotification(event domain.EventsReleasePushed, webhookURL string) {
+func (s *service) discordNotification(event domain.EventsReleasePushed, webhookURL string) {
 	t := &http.Transport{
 		TLSClientConfig: &tls.Config{
 			InsecureSkipVerify: true,
@@ -120,13 +118,13 @@ func discordNotification(event domain.EventsReleasePushed, webhookURL string) {
 
 	jsonData, err := json.Marshal(m)
 	if err != nil {
-		log.Error().Err(err).Msgf("discord client could not marshal data: %v", m)
+		s.log.Error().Err(err).Msgf("discord client could not marshal data: %v", m)
 		return
 	}
 
 	req, err := http.NewRequest(http.MethodPost, webhookURL, bytes.NewBuffer(jsonData))
 	if err != nil {
-		log.Error().Err(err).Msgf("discord client request error: %v", event.ReleaseName)
+		s.log.Error().Err(err).Msgf("discord client request error: %v", event.ReleaseName)
 		return
 	}
 
@@ -135,13 +133,13 @@ func discordNotification(event domain.EventsReleasePushed, webhookURL string) {
 
 	res, err := client.Do(req)
 	if err != nil {
-		log.Error().Err(err).Msgf("discord client request error: %v", event.ReleaseName)
+		s.log.Error().Err(err).Msgf("discord client request error: %v", event.ReleaseName)
 		return
 	}
 
 	defer res.Body.Close()
 
-	log.Debug().Msg("notification successfully sent to discord")
+	s.log.Debug().Msg("notification successfully sent to discord")
 
 	return
 }

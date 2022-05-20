@@ -3,8 +3,9 @@ package scheduler
 import (
 	"fmt"
 
+	"github.com/autobrr/autobrr/internal/logger"
+
 	"github.com/robfig/cron/v3"
-	"github.com/rs/zerolog/log"
 )
 
 type Service interface {
@@ -16,13 +17,15 @@ type Service interface {
 }
 
 type service struct {
+	log  logger.Logger
 	cron *cron.Cron
 
 	jobs map[string]cron.EntryID
 }
 
-func NewService() Service {
+func NewService(log logger.Logger) Service {
 	return &service{
+		log: log,
 		cron: cron.New(cron.WithChain(
 			cron.Recover(cron.DefaultLogger),
 		)),
@@ -31,14 +34,14 @@ func NewService() Service {
 }
 
 func (s *service) Start() {
-	log.Debug().Msg("scheduler.Start")
+	s.log.Debug().Msg("scheduler.Start")
 
 	s.cron.Start()
 	return
 }
 
 func (s *service) Stop() {
-	log.Debug().Msg("scheduler.Stop")
+	s.log.Debug().Msg("scheduler.Stop")
 	s.cron.Stop()
 	return
 }
@@ -51,7 +54,7 @@ func (s *service) AddJob(job cron.Job, interval string, identifier string) (int,
 		return 0, fmt.Errorf("scheduler: add job failed: %w", err)
 	}
 
-	log.Debug().Msgf("scheduler.AddJob: job successfully added: %v", id)
+	s.log.Debug().Msgf("scheduler.AddJob: job successfully added: %v", id)
 
 	// add to job map
 	s.jobs[identifier] = id
@@ -75,7 +78,7 @@ func (s *service) RemoveJobByIdentifier(id string) error {
 		return nil
 	}
 
-	log.Debug().Msgf("scheduler.Remove: removing job: %v", id)
+	s.log.Debug().Msgf("scheduler.Remove: removing job: %v", id)
 
 	// remove from cron
 	s.cron.Remove(v)

@@ -3,6 +3,7 @@ package user
 import (
 	"context"
 	"errors"
+
 	"github.com/autobrr/autobrr/internal/domain"
 )
 

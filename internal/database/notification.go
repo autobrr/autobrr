@@ -3,20 +3,23 @@ package database
 import (
 	"context"
 	"database/sql"
+
 	"github.com/autobrr/autobrr/internal/domain"
+	"github.com/autobrr/autobrr/internal/logger"
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/lib/pq"
-	"github.com/rs/zerolog/log"
 )
 
 type NotificationRepo struct {
-	db *DB
+	log logger.Logger
+	db  *DB
 }
 
-func NewNotificationRepo(db *DB) domain.NotificationRepo {
+func NewNotificationRepo(log logger.Logger, db *DB) domain.NotificationRepo {
 	return &NotificationRepo{
-		db: db,
+		log: log,
+		db:  db,
 	}
 }
 
@@ -29,13 +32,13 @@ func (r *NotificationRepo) Find(ctx context.Context, params domain.NotificationQ
 
 	query, args, err := queryBuilder.ToSql()
 	if err != nil {
-		log.Error().Stack().Err(err).Msg("notification.find: error building query")
+		r.log.Error().Stack().Err(err).Msg("notification.find: error building query")
 		return nil, 0, err
 	}
 
 	rows, err := r.db.handler.QueryContext(ctx, query, args...)
 	if err != nil {
-		log.Error().Stack().Err(err).Msg("notification.find: error executing query")
+		r.log.Error().Stack().Err(err).Msg("notification.find: error executing query")
 		return nil, 0, err
 	}
 
@@ -51,7 +54,7 @@ func (r *NotificationRepo) Find(ctx context.Context, params domain.NotificationQ
 		//if err := rows.Scan(&n.ID, &n.Name, &n.Type, &n.Enabled, pq.Array(&n.Events), &token, &apiKey, &webhook, &title, &icon, &host, &username, &password, &channel, &targets, &devices, &n.CreatedAt, &n.UpdatedAt); err != nil {
 		//var token, apiKey, webhook, title, icon, host, username, password, channel, targets, devices sql.NullString
 		if err := rows.Scan(&n.ID, &n.Name, &n.Type, &n.Enabled, pq.Array(&n.Events), &webhook, &n.CreatedAt, &n.UpdatedAt, &totalCount); err != nil {
-			log.Error().Stack().Err(err).Msg("notification.find: error scanning row")
+			r.log.Error().Stack().Err(err).Msg("notification.find: error scanning row")
 			return nil, 0, err
 		}
 
@@ -87,7 +90,7 @@ func (r *NotificationRepo) List(ctx context.Context) ([]domain.Notification, err
 
 	rows, err := r.db.handler.QueryContext(ctx, "SELECT id, name, type, enabled, events, token, api_key, webhook, title, icon, host, username, password, channel, targets, devices, created_at, updated_at FROM notification ORDER BY name ASC")
 	if err != nil {
-		log.Error().Stack().Err(err).Msg("filters_list: error query data")
+		r.log.Error().Stack().Err(err).Msg("filters_list: error query data")
 		return nil, err
 	}
 
@@ -100,7 +103,7 @@ func (r *NotificationRepo) List(ctx context.Context) ([]domain.Notification, err
 
 		var token, apiKey, webhook, title, icon, host, username, password, channel, targets, devices sql.NullString
 		if err := rows.Scan(&n.ID, &n.Name, &n.Type, &n.Enabled, pq.Array(&n.Events), &token, &apiKey, &webhook, &title, &icon, &host, &username, &password, &channel, &targets, &devices, &n.CreatedAt, &n.UpdatedAt); err != nil {
-			log.Error().Stack().Err(err).Msg("notification_list: error scanning data to struct")
+			r.log.Error().Stack().Err(err).Msg("notification_list: error scanning data to struct")
 			return nil, err
 		}
 
@@ -144,7 +147,7 @@ func (r *NotificationRepo) FindByID(ctx context.Context, id int) (*domain.Notifi
 
 	query, args, err := queryBuilder.ToSql()
 	if err != nil {
-		log.Error().Stack().Err(err).Msg("notification.findByID: error building query")
+		r.log.Error().Stack().Err(err).Msg("notification.findByID: error building query")
 		return nil, err
 	}
 
@@ -158,7 +161,7 @@ func (r *NotificationRepo) FindByID(ctx context.Context, id int) (*domain.Notifi
 
 	var token, apiKey, webhook, title, icon, host, username, password, channel, targets, devices sql.NullString
 	if err := row.Scan(&n.ID, &n.Name, &n.Type, &n.Enabled, pq.Array(&n.Events), &token, &apiKey, &webhook, &title, &icon, &host, &username, &password, &channel, &targets, &devices, &n.CreatedAt, &n.UpdatedAt); err != nil {
-		log.Error().Stack().Err(err).Msg("notification.findByID: error scanning row")
+		r.log.Error().Stack().Err(err).Msg("notification.findByID: error scanning row")
 		return nil, err
 	}
 
@@ -203,11 +206,11 @@ func (r *NotificationRepo) Store(ctx context.Context, notification domain.Notifi
 
 	err := queryBuilder.QueryRowContext(ctx).Scan(&retID)
 	if err != nil {
-		log.Error().Stack().Err(err).Msg("notification.store: error executing query")
+		r.log.Error().Stack().Err(err).Msg("notification.store: error executing query")
 		return nil, err
 	}
 
-	log.Debug().Msgf("notification.store: added new %v", retID)
+	r.log.Debug().Msgf("notification.store: added new %v", retID)
 	notification.ID = int(retID)
 
 	return &notification, nil
@@ -228,17 +231,17 @@ func (r *NotificationRepo) Update(ctx context.Context, notification domain.Notif
 
 	query, args, err := queryBuilder.ToSql()
 	if err != nil {
-		log.Error().Stack().Err(err).Msg("action.update: error building query")
+		r.log.Error().Stack().Err(err).Msg("action.update: error building query")
 		return nil, err
 	}
 
 	_, err = r.db.handler.ExecContext(ctx, query, args...)
 	if err != nil {
-		log.Error().Stack().Err(err).Msg("notification.update: error executing query")
+		r.log.Error().Stack().Err(err).Msg("notification.update: error executing query")
 		return nil, err
 	}
 
-	log.Debug().Msgf("notification.update: %v", notification.Name)
+	r.log.Debug().Msgf("notification.update: %v", notification.Name)
 
 	return &notification, nil
 }
@@ -250,17 +253,17 @@ func (r *NotificationRepo) Delete(ctx context.Context, notificationID int) error
 
 	query, args, err := queryBuilder.ToSql()
 	if err != nil {
-		log.Error().Stack().Err(err).Msg("notification.delete: error building query")
+		r.log.Error().Stack().Err(err).Msg("notification.delete: error building query")
 		return err
 	}
 
 	_, err = r.db.handler.ExecContext(ctx, query, args...)
 	if err != nil {
-		log.Error().Stack().Err(err).Msg("notification.delete: error executing query")
+		r.log.Error().Stack().Err(err).Msg("notification.delete: error executing query")
 		return err
 	}
 
-	log.Info().Msgf("notification.delete: successfully deleted: %v", notificationID)
+	r.log.Info().Msgf("notification.delete: successfully deleted: %v", notificationID)
 
 	return nil
 }

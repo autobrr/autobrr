@@ -9,10 +9,10 @@ import (
 	"strings"
 	"text/template"
 
+	"github.com/rs/zerolog"
+
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/internal/release"
-
-	"github.com/rs/zerolog/log"
 )
 
 type Processor interface {
@@ -20,6 +20,7 @@ type Processor interface {
 }
 
 type announceProcessor struct {
+	log     zerolog.Logger
 	indexer *domain.IndexerDefinition
 
 	releaseSvc release.Service
@@ -27,8 +28,9 @@ type announceProcessor struct {
 	queues map[string]chan string
 }
 
-func NewAnnounceProcessor(releaseSvc release.Service, indexer *domain.IndexerDefinition) Processor {
+func NewAnnounceProcessor(log zerolog.Logger, releaseSvc release.Service, indexer *domain.IndexerDefinition) Processor {
 	ap := &announceProcessor{
+		log:        log,
 		releaseSvc: releaseSvc,
 		indexer:    indexer,
 	}
@@ -46,7 +48,7 @@ func (a *announceProcessor) setupQueues() {
 		channel = strings.ToLower(channel)
 
 		queues[channel] = make(chan string, 128)
-		log.Trace().Msgf("announce: setup queue: %v", channel)
+		a.log.Trace().Msgf("announce: setup queue: %v", channel)
 	}
 
 	a.queues = queues
@@ -55,9 +57,9 @@ func (a *announceProcessor) setupQueues() {
 func (a *announceProcessor) setupQueueConsumers() {
 	for queueName, queue := range a.queues {
 		go func(name string, q chan string) {
-			log.Trace().Msgf("announce: setup queue consumer: %v", name)
+			a.log.Trace().Msgf("announce: setup queue consumer: %v", name)
 			a.processQueue(q)
-			log.Trace().Msgf("announce: queue consumer stopped: %v", name)
+			a.log.Trace().Msgf("announce: queue consumer stopped: %v", name)
 		}(queueName, queue)
 	}
 }
@@ -71,43 +73,43 @@ func (a *announceProcessor) processQueue(queue chan string) {
 		for _, pattern := range a.indexer.Parse.Lines {
 			line, err := a.getNextLine(queue)
 			if err != nil {
-				log.Error().Stack().Err(err).Msg("could not get line from queue")
+				a.log.Error().Stack().Err(err).Msg("could not get line from queue")
 				return
 			}
-			log.Trace().Msgf("announce: process line: %v", line)
+			a.log.Trace().Msgf("announce: process line: %v", line)
 
 			// check should ignore
 
 			match, err := a.parseExtract(pattern.Pattern, pattern.Vars, tmpVars, line)
 			if err != nil {
-				log.Debug().Msgf("error parsing extract: %v", line)
+				a.log.Debug().Msgf("error parsing extract: %v", line)
 
 				parseFailed = true
 				break
 			}
 
 			if !match {
-				log.Debug().Msgf("line not matching expected regex pattern: %v", line)
+				a.log.Debug().Msgf("line not matching expected regex pattern: %v", line)
 				parseFailed = true
 				break
 			}
 		}
 
 		if parseFailed {
-			log.Trace().Msg("announce: parse failed")
+			a.log.Trace().Msg("announce: parse failed")
 			continue
 		}
 
 		rls, err := domain.NewRelease(a.indexer.Identifier)
 		if err != nil {
-			log.Error().Err(err).Msg("could not create new release")
+			a.log.Error().Err(err).Msg("could not create new release")
 			continue
 		}
 
 		// on lines matched
 		err = a.onLinesMatched(a.indexer, tmpVars, rls)
 		if err != nil {
-			log.Debug().Msgf("error match line: %v", "")
+			a.log.Debug().Msgf("error match line: %v", "")
 			continue
 		}
 
@@ -135,7 +137,7 @@ func (a *announceProcessor) AddLineToQueue(channel string, line string) error {
 	}
 
 	queue <- line
-	log.Trace().Msgf("announce: queued line: %v", line)
+	a.log.Trace().Msgf("announce: queued line: %v", line)
 
 	return nil
 }
@@ -144,7 +146,7 @@ func (a *announceProcessor) parseExtract(pattern string, vars []string, tmpVars 
 
 	rxp, err := regExMatch(pattern, line)
 	if err != nil {
-		log.Debug().Msgf("did not match expected line: %v", line)
+		a.log.Debug().Msgf("did not match expected line: %v", line)
 	}
 
 	if rxp == nil {
@@ -171,21 +173,21 @@ func (a *announceProcessor) onLinesMatched(def *domain.IndexerDefinition, vars m
 
 	err = rls.MapVars(def, vars)
 	if err != nil {
-		log.Error().Stack().Err(err).Msg("announce: could not map vars for release")
+		a.log.Error().Stack().Err(err).Msg("announce: could not map vars for release")
 		return err
 	}
 
 	// parse fields
 	err = rls.ParseString(rls.TorrentName)
 	if err != nil {
-		log.Error().Stack().Err(err).Msg("announce: could not parse release")
+		a.log.Error().Stack().Err(err).Msg("announce: could not parse release")
 		return err
 	}
 
 	// parse torrentUrl
 	err = def.Parse.ParseTorrentUrl(vars, def.SettingsMap, rls)
 	if err != nil {
-		log.Error().Stack().Err(err).Msg("announce: could not parse torrent url")
+		a.log.Error().Stack().Err(err).Msg("announce: could not parse torrent url")
 		return err
 	}
 
@@ -221,14 +223,14 @@ func (a *announceProcessor) processTorrentUrl(match string, vars map[string]stri
 	// setup text template to inject variables into
 	tmpl, err := template.New("torrenturl").Parse(match)
 	if err != nil {
-		log.Error().Err(err).Msg("could not create torrent url template")
+		a.log.Error().Err(err).Msg("could not create torrent url template")
 		return "", err
 	}
 
 	var b bytes.Buffer
 	err = tmpl.Execute(&b, &tmpVars)
 	if err != nil {
-		log.Error().Err(err).Msg("could not write torrent url template output")
+		a.log.Error().Err(err).Msg("could not write torrent url template output")
 		return "", err
 	}
 

@@ -6,25 +6,26 @@ import (
 	"encoding/json"
 	"time"
 
-	"github.com/rs/zerolog/log"
-
 	"github.com/autobrr/autobrr/internal/domain"
+	"github.com/autobrr/autobrr/internal/logger"
 )
 
 type IndexerRepo struct {
-	db *DB
+	log logger.Logger
+	db  *DB
 }
 
-func NewIndexerRepo(db *DB) domain.IndexerRepo {
+func NewIndexerRepo(log logger.Logger, db *DB) domain.IndexerRepo {
 	return &IndexerRepo{
-		db: db,
+		log: log,
+		db:  db,
 	}
 }
 
 func (r *IndexerRepo) Store(ctx context.Context, indexer domain.Indexer) (*domain.Indexer, error) {
 	settings, err := json.Marshal(indexer.Settings)
 	if err != nil {
-		log.Error().Stack().Err(err).Msg("error marshaling json data")
+		r.log.Error().Stack().Err(err).Msg("error marshaling json data")
 		return nil, err
 	}
 
@@ -38,7 +39,7 @@ func (r *IndexerRepo) Store(ctx context.Context, indexer domain.Indexer) (*domai
 
 	err = queryBuilder.QueryRowContext(ctx).Scan(&retID)
 	if err != nil {
-		log.Error().Stack().Err(err).Msg("indexer.store: error executing query")
+		r.log.Error().Stack().Err(err).Msg("indexer.store: error executing query")
 		return nil, err
 	}
 
@@ -50,7 +51,7 @@ func (r *IndexerRepo) Store(ctx context.Context, indexer domain.Indexer) (*domai
 func (r *IndexerRepo) Update(ctx context.Context, indexer domain.Indexer) (*domain.Indexer, error) {
 	settings, err := json.Marshal(indexer.Settings)
 	if err != nil {
-		log.Error().Stack().Err(err).Msg("error marshaling json data")
+		r.log.Error().Stack().Err(err).Msg("error marshaling json data")
 		return nil, err
 	}
 
@@ -64,13 +65,13 @@ func (r *IndexerRepo) Update(ctx context.Context, indexer domain.Indexer) (*doma
 
 	query, args, err := queryBuilder.ToSql()
 	if err != nil {
-		log.Error().Stack().Err(err).Msg("indexer.update: error building query")
+		r.log.Error().Stack().Err(err).Msg("indexer.update: error building query")
 		return nil, err
 	}
 
 	_, err = r.db.handler.ExecContext(ctx, query, args...)
 	if err != nil {
-		log.Error().Stack().Err(err).Msg("indexer.update: error executing query")
+		r.log.Error().Stack().Err(err).Msg("indexer.update: error executing query")
 		return nil, err
 	}
 
@@ -80,7 +81,7 @@ func (r *IndexerRepo) Update(ctx context.Context, indexer domain.Indexer) (*doma
 func (r *IndexerRepo) List(ctx context.Context) ([]domain.Indexer, error) {
 	rows, err := r.db.handler.QueryContext(ctx, "SELECT id, enabled, name, identifier, implementation, settings FROM indexer ORDER BY name ASC")
 	if err != nil {
-		log.Error().Stack().Err(err).Msg("indexer.list: error query indexer")
+		r.log.Error().Stack().Err(err).Msg("indexer.list: error query indexer")
 		return nil, err
 	}
 
@@ -95,7 +96,7 @@ func (r *IndexerRepo) List(ctx context.Context) ([]domain.Indexer, error) {
 		var settingsMap map[string]string
 
 		if err := rows.Scan(&f.ID, &f.Enabled, &f.Name, &f.Identifier, &implementation, &settings); err != nil {
-			log.Error().Stack().Err(err).Msg("indexer.list: error scanning data to struct")
+			r.log.Error().Stack().Err(err).Msg("indexer.list: error scanning data to struct")
 			return nil, err
 		}
 
@@ -103,7 +104,7 @@ func (r *IndexerRepo) List(ctx context.Context) ([]domain.Indexer, error) {
 
 		err = json.Unmarshal([]byte(settings), &settingsMap)
 		if err != nil {
-			log.Error().Stack().Err(err).Msg("indexer.list: error unmarshal settings")
+			r.log.Error().Stack().Err(err).Msg("indexer.list: error unmarshal settings")
 			return nil, err
 		}
 
@@ -127,13 +128,13 @@ func (r *IndexerRepo) FindByFilterID(ctx context.Context, id int) ([]domain.Inde
 
 	query, args, err := queryBuilder.ToSql()
 	if err != nil {
-		log.Error().Stack().Err(err).Msg("irc.check_existing_network: error fetching data")
+		r.log.Error().Stack().Err(err).Msg("irc.check_existing_network: error fetching data")
 		return nil, err
 	}
 
 	rows, err := r.db.handler.QueryContext(ctx, query, args...)
 	if err != nil {
-		log.Error().Stack().Err(err).Msg("indexer.find_by_filter_id: error query indexer")
+		r.log.Error().Stack().Err(err).Msg("indexer.find_by_filter_id: error query indexer")
 		return nil, err
 	}
 
@@ -147,13 +148,13 @@ func (r *IndexerRepo) FindByFilterID(ctx context.Context, id int) ([]domain.Inde
 		var settingsMap map[string]string
 
 		if err := rows.Scan(&f.ID, &f.Enabled, &f.Name, &f.Identifier, &settings); err != nil {
-			log.Error().Stack().Err(err).Msg("indexer.find_by_filter_id: error scanning data to struct")
+			r.log.Error().Stack().Err(err).Msg("indexer.find_by_filter_id: error scanning data to struct")
 			return nil, err
 		}
 
 		err = json.Unmarshal([]byte(settings), &settingsMap)
 		if err != nil {
-			log.Error().Stack().Err(err).Msg("indexer.find_by_filter_id: error unmarshal settings")
+			r.log.Error().Stack().Err(err).Msg("indexer.find_by_filter_id: error unmarshal settings")
 			return nil, err
 		}
 
@@ -176,17 +177,17 @@ func (r *IndexerRepo) Delete(ctx context.Context, id int) error {
 
 	query, args, err := queryBuilder.ToSql()
 	if err != nil {
-		log.Error().Stack().Err(err).Msg("indexer.delete: error building query")
+		r.log.Error().Stack().Err(err).Msg("indexer.delete: error building query")
 		return err
 	}
 
 	_, err = r.db.handler.ExecContext(ctx, query, args...)
 	if err != nil {
-		log.Error().Stack().Err(err).Msgf("indexer.delete: error executing query: '%v'", query)
+		r.log.Error().Stack().Err(err).Msgf("indexer.delete: error executing query: '%v'", query)
 		return err
 	}
 
-	log.Debug().Msgf("indexer.delete: id %v", id)
+	r.log.Debug().Msgf("indexer.delete: id %v", id)
 
 	return nil
 }
