@@ -95,7 +95,7 @@ export default function Base() {
                         <a
                           rel="noopener noreferrer"
                           target="_blank"
-                          href="https://autobrr.com/docs/configuration/indexers"
+                          href="https://autobrr.com"
                           className={classNames(
                             "text-gray-600 dark:text-gray-500 hover:bg-gray-200 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white px-3 py-2 rounded-2xl text-sm font-medium",
                             "transition-colors duration-200 flex items-center justify-center"
