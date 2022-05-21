@@ -10,6 +10,7 @@ import (
 	"net/http/cookiejar"
 	"net/url"
 	"os"
+	"path"
 	"strings"
 	"time"
 
@@ -40,6 +41,13 @@ type Settings struct {
 	TLS           bool
 	TLSSkipVerify bool
 	protocol      string
+	BasicAuth     bool
+	Basic         Basic
+}
+
+type Basic struct {
+	Username string
+	Password string
 }
 
 func NewClient(s Settings) *Client {
@@ -77,15 +85,19 @@ func NewClient(s Settings) *Client {
 }
 
 func (c *Client) get(endpoint string, opts map[string]string) (*http.Response, error) {
-	reqUrl := fmt.Sprintf("%v://%v:%v/api/v2/%v", c.settings.protocol, c.settings.Hostname, c.settings.Port, endpoint)
-
 	var err error
 	var resp *http.Response
+
+	reqUrl := buildUrl(c.settings, endpoint)
 
 	req, err := http.NewRequest("GET", reqUrl, nil)
 	if err != nil {
 		log.Error().Err(err).Msgf("GET: error %v", reqUrl)
 		return nil, err
+	}
+
+	if c.settings.BasicAuth {
+		req.SetBasicAuth(c.settings.Basic.Username, c.settings.Basic.Password)
 	}
 
 	// try request and if fail run 3 retries
@@ -122,11 +134,16 @@ func (c *Client) post(endpoint string, opts map[string]string) (*http.Response, 
 	var err error
 	var resp *http.Response
 
-	reqUrl := fmt.Sprintf("%v://%v:%v/api/v2/%v", c.settings.protocol, c.settings.Hostname, c.settings.Port, endpoint)
+	reqUrl := buildUrl(c.settings, endpoint)
+
 	req, err := http.NewRequest("POST", reqUrl, strings.NewReader(form.Encode()))
 	if err != nil {
 		log.Error().Err(err).Msgf("POST: req %v", reqUrl)
 		return nil, err
+	}
+
+	if c.settings.BasicAuth {
+		req.SetBasicAuth(c.settings.Basic.Username, c.settings.Basic.Password)
 	}
 
 	// add the content-type so qbittorrent knows what to expect
@@ -146,6 +163,42 @@ func (c *Client) post(endpoint string, opts map[string]string) (*http.Response, 
 		time.Sleep(backoff)
 	}
 
+	if err != nil {
+		log.Error().Err(err).Msgf("POST: do %v", reqUrl)
+		return nil, err
+	}
+
+	return resp, nil
+}
+
+func (c *Client) postBasic(endpoint string, opts map[string]string) (*http.Response, error) {
+	// add optional parameters that the user wants
+	form := url.Values{}
+	if opts != nil {
+		for k, v := range opts {
+			form.Add(k, v)
+		}
+	}
+
+	var err error
+	var resp *http.Response
+
+	reqUrl := buildUrl(c.settings, endpoint)
+
+	req, err := http.NewRequest("POST", reqUrl, strings.NewReader(form.Encode()))
+	if err != nil {
+		log.Error().Err(err).Msgf("POST: req %v", reqUrl)
+		return nil, err
+	}
+
+	if c.settings.BasicAuth {
+		req.SetBasicAuth(c.settings.Basic.Username, c.settings.Basic.Password)
+	}
+
+	// add the content-type so qbittorrent knows what to expect
+	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
+
+	resp, err = c.http.Do(req)
 	if err != nil {
 		log.Error().Err(err).Msgf("POST: do %v", reqUrl)
 		return nil, err
@@ -206,11 +259,15 @@ func (c *Client) postFile(endpoint string, fileName string, opts map[string]stri
 	// Close multipart writer
 	multiPartWriter.Close()
 
-	reqUrl := fmt.Sprintf("%v://%v:%v/api/v2/%v", c.settings.protocol, c.settings.Hostname, c.settings.Port, endpoint)
+	reqUrl := buildUrl(c.settings, endpoint)
 	req, err := http.NewRequest("POST", reqUrl, &requestBody)
 	if err != nil {
 		log.Error().Err(err).Msgf("POST file: could not create request object %v", fileName)
 		return nil, err
+	}
+
+	if c.settings.BasicAuth {
+		req.SetBasicAuth(c.settings.Basic.Username, c.settings.Basic.Password)
 	}
 
 	// Set correct content type
@@ -241,4 +298,51 @@ func (c *Client) postFile(endpoint string, fileName string, opts map[string]stri
 func (c *Client) setCookies(cookies []*http.Cookie) {
 	cookieURL, _ := url.Parse(fmt.Sprintf("%v://%v:%v", c.settings.protocol, c.settings.Hostname, c.settings.Port))
 	c.http.Jar.SetCookies(cookieURL, cookies)
+}
+
+func buildUrl(settings Settings, endpoint string) string {
+	// parse url
+	u, _ := url.Parse(settings.Hostname)
+
+	// reset Opaque
+	u.Opaque = ""
+
+	// set scheme
+	scheme := "http"
+	if u.Scheme == "http" || u.Scheme == "https" {
+		if settings.TLS {
+			scheme = "https"
+		}
+		u.Scheme = scheme
+	} else {
+		if settings.TLS {
+			scheme = "https"
+		}
+		u.Scheme = scheme
+	}
+
+	// if host is empty lets use one from settings
+	if u.Host == "" {
+		u.Host = settings.Hostname
+	}
+
+	// reset Path
+	if u.Host == u.Path {
+		u.Path = ""
+	}
+
+	// handle ports
+	if settings.Port > 0 {
+		if settings.Port == 80 || settings.Port == 443 {
+			// skip for regular http and https
+		} else {
+			u.Host = fmt.Sprintf("%v:%v", u.Host, settings.Port)
+		}
+	}
+
+	// join path
+	u.Path = path.Join(u.Path, "/api/v2/", endpoint)
+
+	// make into new string and return
+	return u.String()
 }

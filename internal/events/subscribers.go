@@ -4,21 +4,23 @@ import (
 	"context"
 
 	"github.com/autobrr/autobrr/internal/domain"
+	"github.com/autobrr/autobrr/internal/logger"
 	"github.com/autobrr/autobrr/internal/notification"
 	"github.com/autobrr/autobrr/internal/release"
 
 	"github.com/asaskevich/EventBus"
-	"github.com/rs/zerolog/log"
 )
 
 type Subscriber struct {
+	log             logger.Logger
 	eventbus        EventBus.Bus
 	notificationSvc notification.Service
 	releaseSvc      release.Service
 }
 
-func NewSubscribers(eventbus EventBus.Bus, notificationSvc notification.Service, releaseSvc release.Service) Subscriber {
+func NewSubscribers(log logger.Logger, eventbus EventBus.Bus, notificationSvc notification.Service, releaseSvc release.Service) Subscriber {
 	s := Subscriber{
+		log:             log,
 		eventbus:        eventbus,
 		notificationSvc: notificationSvc,
 		releaseSvc:      releaseSvc,
@@ -36,26 +38,26 @@ func (s Subscriber) Register() {
 }
 
 func (s Subscriber) releaseActionStatus(actionStatus *domain.ReleaseActionStatus) {
-	log.Trace().Msgf("events: 'release:store-action-status' '%+v'", actionStatus)
+	s.log.Trace().Msgf("events: 'release:store-action-status' '%+v'", actionStatus)
 
 	err := s.releaseSvc.StoreReleaseActionStatus(context.Background(), actionStatus)
 	if err != nil {
-		log.Error().Err(err).Msgf("events: 'release:store-action-status' error")
+		s.log.Error().Err(err).Msgf("events: 'release:store-action-status' error")
 	}
 }
 
 func (s Subscriber) releasePushStatus(actionStatus *domain.ReleaseActionStatus) {
-	log.Trace().Msgf("events: 'release:push' '%+v'", actionStatus)
+	s.log.Trace().Msgf("events: 'release:push' '%+v'", actionStatus)
 
 	if err := s.releaseSvc.StoreReleaseActionStatus(context.Background(), actionStatus); err != nil {
-		log.Error().Err(err).Msgf("events: 'release:push' error")
+		s.log.Error().Err(err).Msgf("events: 'release:push' error")
 	}
 }
 
 func (s Subscriber) releasePush(event *domain.EventsReleasePushed) {
-	log.Trace().Msgf("events: 'events:release:push' '%+v'", event)
+	s.log.Trace().Msgf("events: 'events:release:push' '%+v'", event)
 
 	if err := s.notificationSvc.SendEvent(*event); err != nil {
-		log.Error().Err(err).Msgf("events: 'events:release:push' error sending notification")
+		s.log.Error().Err(err).Msgf("events: 'events:release:push' error sending notification")
 	}
 }

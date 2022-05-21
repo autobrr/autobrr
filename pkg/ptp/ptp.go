@@ -12,7 +12,6 @@ import (
 
 	"github.com/autobrr/autobrr/internal/domain"
 
-	"github.com/rs/zerolog/log"
 	"golang.org/x/time/rate"
 )
 
@@ -100,8 +99,7 @@ func (c *Client) Do(req *http.Request) (*http.Response, error) {
 func (c *Client) get(url string) (*http.Response, error) {
 	req, err := http.NewRequest(http.MethodGet, url, http.NoBody)
 	if err != nil {
-		log.Error().Err(err).Msgf("ptp client request error : %v", url)
-		return nil, err
+		return nil, fmt.Errorf("ptp client request error : %v", url)
 	}
 
 	req.Header.Add("ApiUser", c.APIUser)
@@ -110,8 +108,7 @@ func (c *Client) get(url string) (*http.Response, error) {
 
 	res, err := c.Do(req)
 	if err != nil {
-		log.Error().Err(err).Msgf("ptp client request error : %v", url)
-		return nil, err
+		return nil, fmt.Errorf("ptp client request error : %v", url)
 	}
 
 	if res.StatusCode == http.StatusUnauthorized {

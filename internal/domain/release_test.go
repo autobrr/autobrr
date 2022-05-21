@@ -438,7 +438,7 @@ func TestRelease_MapVars(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			r := tt.fields
-			_ = r.MapVars(tt.args.definition, tt.args.varMap)
+			_ = r.MapVars(&tt.args.definition, tt.args.varMap)
 
 			assert.Equal(t, tt.want, r)
 		})

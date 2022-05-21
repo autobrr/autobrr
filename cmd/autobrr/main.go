@@ -7,7 +7,6 @@ import (
 
 	"github.com/asaskevich/EventBus"
 	"github.com/r3labs/sse/v2"
-	"github.com/rs/zerolog/log"
 	"github.com/spf13/pflag"
 
 	"github.com/autobrr/autobrr/internal/action"
@@ -41,22 +40,27 @@ func main() {
 	pflag.Parse()
 
 	// read config
-	cfg := config.Read(configPath)
+	cfg := config.New(configPath, version)
+
+	// init new logger
+	log := logger.New(cfg.Config)
+
+	// init dynamic config
+	cfg.DynamicReload(log)
 
 	// setup server-sent-events
 	serverEvents := sse.New()
 	serverEvents.AutoReplay = false
-
 	serverEvents.CreateStream("logs")
+
+	// register SSE hook on logger
+	log.RegisterSSEHook(serverEvents)
 
 	// setup internal eventbus
 	bus := EventBus.New()
 
-	// setup logger
-	logger.Setup(cfg, serverEvents)
-
 	// open database connection
-	db, _ := database.NewDB(cfg)
+	db, _ := database.NewDB(cfg.Config, log)
 	if err := db.Open(); err != nil {
 		log.Fatal().Err(err).Msg("could not open db connection")
 	}
@@ -65,47 +69,47 @@ func main() {
 	log.Info().Msgf("Version: %v", version)
 	log.Info().Msgf("Commit: %v", commit)
 	log.Info().Msgf("Build date: %v", date)
-	log.Info().Msgf("Log-level: %v", cfg.LogLevel)
+	log.Info().Msgf("Log-level: %v", cfg.Config.LogLevel)
 	log.Info().Msgf("Using database: %v", db.Driver)
 
 	// setup repos
 	var (
-		downloadClientRepo = database.NewDownloadClientRepo(db)
-		actionRepo         = database.NewActionRepo(db, downloadClientRepo)
-		filterRepo         = database.NewFilterRepo(db)
-		feedRepo           = database.NewFeedRepo(db)
-		feedCacheRepo      = database.NewFeedCacheRepo(db)
-		indexerRepo        = database.NewIndexerRepo(db)
-		ircRepo            = database.NewIrcRepo(db)
-		notificationRepo   = database.NewNotificationRepo(db)
-		releaseRepo        = database.NewReleaseRepo(db)
-		userRepo           = database.NewUserRepo(db)
+		downloadClientRepo = database.NewDownloadClientRepo(log, db)
+		actionRepo         = database.NewActionRepo(log, db, downloadClientRepo)
+		filterRepo         = database.NewFilterRepo(log, db)
+		feedRepo           = database.NewFeedRepo(log, db)
+		feedCacheRepo      = database.NewFeedCacheRepo(log, db)
+		indexerRepo        = database.NewIndexerRepo(log, db)
+		ircRepo            = database.NewIrcRepo(log, db)
+		notificationRepo   = database.NewNotificationRepo(log, db)
+		releaseRepo        = database.NewReleaseRepo(log, db)
+		userRepo           = database.NewUserRepo(log, db)
 	)
 
 	// setup services
 	var (
-		schedulingService     = scheduler.NewService()
-		apiService            = indexer.NewAPIService()
+		schedulingService     = scheduler.NewService(log)
+		apiService            = indexer.NewAPIService(log)
 		userService           = user.NewService(userRepo)
 		authService           = auth.NewService(userService)
-		downloadClientService = download_client.NewService(downloadClientRepo)
-		actionService         = action.NewService(actionRepo, downloadClientService, bus)
-		indexerService        = indexer.NewService(cfg, indexerRepo, apiService, schedulingService)
-		filterService         = filter.NewService(filterRepo, actionRepo, apiService, indexerService)
-		releaseService        = release.NewService(releaseRepo, actionService, filterService)
-		ircService            = irc.NewService(ircRepo, releaseService, indexerService)
-		notificationService   = notification.NewService(notificationRepo)
-		feedService           = feed.NewService(feedRepo, feedCacheRepo, releaseService, schedulingService)
+		downloadClientService = download_client.NewService(log, downloadClientRepo)
+		actionService         = action.NewService(log, actionRepo, downloadClientService, bus)
+		indexerService        = indexer.NewService(log, cfg.Config, indexerRepo, apiService, schedulingService)
+		filterService         = filter.NewService(log, filterRepo, actionRepo, apiService, indexerService)
+		releaseService        = release.NewService(log, releaseRepo, actionService, filterService)
+		ircService            = irc.NewService(log, ircRepo, releaseService, indexerService)
+		notificationService   = notification.NewService(log, notificationRepo)
+		feedService           = feed.NewService(log, feedRepo, feedCacheRepo, releaseService, schedulingService)
 	)
 
 	// register event subscribers
-	events.NewSubscribers(bus, notificationService, releaseService)
+	events.NewSubscribers(log, bus, notificationService, releaseService)
 
 	errorChannel := make(chan error)
 
 	go func() {
 		httpServer := http.NewServer(
-			cfg,
+			cfg.Config,
 			serverEvents,
 			db,
 			version,
@@ -124,9 +128,9 @@ func main() {
 		errorChannel <- httpServer.Open()
 	}()
 
-	srv := server.NewServer(ircService, indexerService, feedService, schedulingService)
-	srv.Hostname = cfg.Host
-	srv.Port = cfg.Port
+	srv := server.NewServer(log, ircService, indexerService, feedService, schedulingService)
+	srv.Hostname = cfg.Config.Host
+	srv.Port = cfg.Config.Port
 
 	sigCh := make(chan os.Signal, 1)
 	signal.Notify(sigCh, syscall.SIGHUP, syscall.SIGINT, syscall.SIGQUIT, syscall.SIGKILL, syscall.SIGTERM)
@@ -139,7 +143,7 @@ func main() {
 	for sig := range sigCh {
 		switch sig {
 		case syscall.SIGHUP:
-			log.Print("shutting down server sighup")
+			log.Log().Msg("shutting down server sighup")
 			srv.Shutdown()
 			db.Close()
 			os.Exit(1)

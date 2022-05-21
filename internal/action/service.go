@@ -7,6 +7,7 @@ import (
 
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/internal/download_client"
+	"github.com/autobrr/autobrr/internal/logger"
 )
 
 type Service interface {
@@ -22,13 +23,19 @@ type Service interface {
 }
 
 type service struct {
+	log       logger.Logger
 	repo      domain.ActionRepo
 	clientSvc download_client.Service
 	bus       EventBus.Bus
 }
 
-func NewService(repo domain.ActionRepo, clientSvc download_client.Service, bus EventBus.Bus) Service {
-	return &service{repo: repo, clientSvc: clientSvc, bus: bus}
+func NewService(log logger.Logger, repo domain.ActionRepo, clientSvc download_client.Service, bus EventBus.Bus) Service {
+	return &service{
+		log:       log,
+		repo:      repo,
+		clientSvc: clientSvc,
+		bus:       bus,
+	}
 }
 
 func (s *service) Store(ctx context.Context, action domain.Action) (*domain.Action, error) {

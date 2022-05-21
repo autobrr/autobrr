@@ -8,6 +8,8 @@ interface Filter {
   max_size: string;
   delay: number;
   priority: number;
+  max_downloads: number;
+  max_downloads_unit: string;
   match_releases: string;
   except_releases: string;
   use_regex: boolean;
@@ -83,4 +85,4 @@ interface Action {
   client_id?: number;
 }
 
-type ActionType = 'TEST' | 'EXEC' | 'WATCH_FOLDER' | 'WEBHOOK' | DownloadClientType;
+type ActionType = "TEST" | "EXEC" | "WATCH_FOLDER" | "WEBHOOK" | DownloadClientType;

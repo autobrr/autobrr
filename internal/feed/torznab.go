@@ -5,11 +5,11 @@ import (
 	"sort"
 	"time"
 
+	"github.com/rs/zerolog"
+
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/internal/release"
 	"github.com/autobrr/autobrr/pkg/torznab"
-
-	"github.com/rs/zerolog"
 )
 
 type TorznabJob struct {

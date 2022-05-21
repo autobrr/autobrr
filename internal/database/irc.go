@@ -3,20 +3,24 @@ package database
 import (
 	"context"
 	"database/sql"
-	"github.com/pkg/errors"
 	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
+	"github.com/autobrr/autobrr/internal/logger"
 
-	"github.com/rs/zerolog/log"
+	"github.com/pkg/errors"
 )
 
 type IrcRepo struct {
-	db *DB
+	log logger.Logger
+	db  *DB
 }
 
-func NewIrcRepo(db *DB) domain.IrcRepo {
-	return &IrcRepo{db: db}
+func NewIrcRepo(log logger.Logger, db *DB) domain.IrcRepo {
+	return &IrcRepo{
+		log: log,
+		db:  db,
+	}
 }
 
 func (r *IrcRepo) GetNetworkByID(ctx context.Context, id int64) (*domain.IrcNetwork, error) {
@@ -27,10 +31,10 @@ func (r *IrcRepo) GetNetworkByID(ctx context.Context, id int64) (*domain.IrcNetw
 
 	query, args, err := queryBuilder.ToSql()
 	if err != nil {
-		log.Error().Stack().Err(err).Msg("irc.getNetworkByID: error building query")
+		r.log.Error().Stack().Err(err).Msg("irc.getNetworkByID: error building query")
 		return nil, err
 	}
-	log.Trace().Str("database", "irc.check_existing_network").Msgf("query: '%v', args: '%v'", query, args)
+	r.log.Trace().Str("database", "irc.check_existing_network").Msgf("query: '%v', args: '%v'", query, args)
 
 	var n domain.IrcNetwork
 
@@ -40,7 +44,7 @@ func (r *IrcRepo) GetNetworkByID(ctx context.Context, id int64) (*domain.IrcNetw
 
 	row := r.db.handler.QueryRowContext(ctx, query, args...)
 	if err := row.Scan(&n.ID, &n.Enabled, &n.Name, &n.Server, &n.Port, &tls, &pass, &inviteCmd, &nsAccount, &nsPassword); err != nil {
-		log.Error().Stack().Err(err).Msg("irc.getNetworkByID: error executing query")
+		r.log.Error().Stack().Err(err).Msg("irc.getNetworkByID: error executing query")
 		return nil, err
 	}
 
@@ -67,13 +71,13 @@ func (r *IrcRepo) DeleteNetwork(ctx context.Context, id int64) error {
 
 	query, args, err := queryBuilder.ToSql()
 	if err != nil {
-		log.Error().Stack().Err(err).Msg("irc.deleteNetwork: error building query")
+		r.log.Error().Stack().Err(err).Msg("irc.deleteNetwork: error building query")
 		return err
 	}
 
 	_, err = tx.ExecContext(ctx, query, args...)
 	if err != nil {
-		log.Error().Stack().Err(err).Msg("irc.deleteNetwork: error executing query")
+		r.log.Error().Stack().Err(err).Msg("irc.deleteNetwork: error executing query")
 		return err
 	}
 
@@ -83,19 +87,19 @@ func (r *IrcRepo) DeleteNetwork(ctx context.Context, id int64) error {
 
 	netQuery, netArgs, err := netQueryBuilder.ToSql()
 	if err != nil {
-		log.Error().Stack().Err(err).Msg("irc.deleteNetwork: error building query")
+		r.log.Error().Stack().Err(err).Msg("irc.deleteNetwork: error building query")
 		return err
 	}
 
 	_, err = tx.ExecContext(ctx, netQuery, netArgs...)
 	if err != nil {
-		log.Error().Stack().Err(err).Msg("irc.deleteNetwork: error executing query")
+		r.log.Error().Stack().Err(err).Msg("irc.deleteNetwork: error executing query")
 		return err
 	}
 
 	err = tx.Commit()
 	if err != nil {
-		log.Error().Stack().Err(err).Msgf("irc.deleteNetwork: error deleting network %v", id)
+		r.log.Error().Stack().Err(err).Msgf("irc.deleteNetwork: error deleting network %v", id)
 		return err
 
 	}
@@ -111,13 +115,13 @@ func (r *IrcRepo) FindActiveNetworks(ctx context.Context) ([]domain.IrcNetwork, 
 
 	query, args, err := queryBuilder.ToSql()
 	if err != nil {
-		log.Error().Stack().Err(err).Msg("irc.findActiveNetworks: error building query")
+		r.log.Error().Stack().Err(err).Msg("irc.findActiveNetworks: error building query")
 		return nil, err
 	}
 
 	rows, err := r.db.handler.QueryContext(ctx, query, args...)
 	if err != nil {
-		log.Error().Stack().Err(err).Msg("irc.findActiveNetworks: error executing query")
+		r.log.Error().Stack().Err(err).Msg("irc.findActiveNetworks: error executing query")
 		return nil, err
 	}
 
@@ -132,7 +136,7 @@ func (r *IrcRepo) FindActiveNetworks(ctx context.Context) ([]domain.IrcNetwork, 
 		var tls sql.NullBool
 
 		if err := rows.Scan(&net.ID, &net.Enabled, &net.Name, &net.Server, &net.Port, &tls, &pass, &inviteCmd, &nsAccount, &nsPassword); err != nil {
-			log.Error().Stack().Err(err).Msg("irc.findActiveNetworks: error scanning row")
+			r.log.Error().Stack().Err(err).Msg("irc.findActiveNetworks: error scanning row")
 			return nil, err
 		}
 
@@ -146,7 +150,7 @@ func (r *IrcRepo) FindActiveNetworks(ctx context.Context) ([]domain.IrcNetwork, 
 		networks = append(networks, net)
 	}
 	if err := rows.Err(); err != nil {
-		log.Error().Stack().Err(err).Msg("irc.findActiveNetworks: row error")
+		r.log.Error().Stack().Err(err).Msg("irc.findActiveNetworks: row error")
 		return nil, err
 	}
 
@@ -161,13 +165,13 @@ func (r *IrcRepo) ListNetworks(ctx context.Context) ([]domain.IrcNetwork, error)
 
 	query, args, err := queryBuilder.ToSql()
 	if err != nil {
-		log.Error().Stack().Err(err).Msg("irc.listNetworks: error building query")
+		r.log.Error().Stack().Err(err).Msg("irc.listNetworks: error building query")
 		return nil, err
 	}
 
 	rows, err := r.db.handler.QueryContext(ctx, query, args...)
 	if err != nil {
-		log.Error().Stack().Err(err).Msg("irc.listNetworks: error executing query")
+		r.log.Error().Stack().Err(err).Msg("irc.listNetworks: error executing query")
 		return nil, err
 	}
 
@@ -182,7 +186,7 @@ func (r *IrcRepo) ListNetworks(ctx context.Context) ([]domain.IrcNetwork, error)
 		var tls sql.NullBool
 
 		if err := rows.Scan(&net.ID, &net.Enabled, &net.Name, &net.Server, &net.Port, &tls, &pass, &inviteCmd, &nsAccount, &nsPassword); err != nil {
-			log.Error().Stack().Err(err).Msg("irc.listNetworks: error scanning row")
+			r.log.Error().Stack().Err(err).Msg("irc.listNetworks: error scanning row")
 			return nil, err
 		}
 
@@ -196,7 +200,7 @@ func (r *IrcRepo) ListNetworks(ctx context.Context) ([]domain.IrcNetwork, error)
 		networks = append(networks, net)
 	}
 	if err := rows.Err(); err != nil {
-		log.Error().Stack().Err(err).Msg("irc.listNetworks: row error")
+		r.log.Error().Stack().Err(err).Msg("irc.listNetworks: row error")
 		return nil, err
 	}
 
@@ -211,13 +215,13 @@ func (r *IrcRepo) ListChannels(networkID int64) ([]domain.IrcChannel, error) {
 
 	query, args, err := queryBuilder.ToSql()
 	if err != nil {
-		log.Error().Stack().Err(err).Msg("irc.listChannels: error building query")
+		r.log.Error().Stack().Err(err).Msg("irc.listChannels: error building query")
 		return nil, err
 	}
 
 	rows, err := r.db.handler.Query(query, args...)
 	if err != nil {
-		log.Error().Stack().Err(err).Msg("irc.listChannels: error executing query")
+		r.log.Error().Stack().Err(err).Msg("irc.listChannels: error executing query")
 		return nil, err
 	}
 	defer rows.Close()
@@ -228,7 +232,7 @@ func (r *IrcRepo) ListChannels(networkID int64) ([]domain.IrcChannel, error) {
 		var pass sql.NullString
 
 		if err := rows.Scan(&ch.ID, &ch.Name, &ch.Enabled, &pass); err != nil {
-			log.Error().Stack().Err(err).Msg("irc.listChannels: error scanning row")
+			r.log.Error().Stack().Err(err).Msg("irc.listChannels: error scanning row")
 			return nil, err
 		}
 
@@ -237,7 +241,7 @@ func (r *IrcRepo) ListChannels(networkID int64) ([]domain.IrcChannel, error) {
 		channels = append(channels, ch)
 	}
 	if err := rows.Err(); err != nil {
-		log.Error().Stack().Err(err).Msg("irc.listChannels: error row")
+		r.log.Error().Stack().Err(err).Msg("irc.listChannels: error row")
 		return nil, err
 	}
 
@@ -253,10 +257,10 @@ func (r *IrcRepo) CheckExistingNetwork(ctx context.Context, network *domain.IrcN
 
 	query, args, err := queryBuilder.ToSql()
 	if err != nil {
-		log.Error().Stack().Err(err).Msg("irc.checkExistingNetwork: error building query")
+		r.log.Error().Stack().Err(err).Msg("irc.checkExistingNetwork: error building query")
 		return nil, err
 	}
-	log.Trace().Str("database", "irc.checkExistingNetwork").Msgf("query: '%v', args: '%v'", query, args)
+	r.log.Trace().Str("database", "irc.checkExistingNetwork").Msgf("query: '%v', args: '%v'", query, args)
 
 	row := r.db.handler.QueryRowContext(ctx, query, args...)
 
@@ -270,7 +274,7 @@ func (r *IrcRepo) CheckExistingNetwork(ctx context.Context, network *domain.IrcN
 		// no result is not an error in our case
 		return nil, nil
 	} else if err != nil {
-		log.Error().Stack().Err(err).Msg("irc.checkExistingNetwork: error scanning data to struct")
+		r.log.Error().Stack().Err(err).Msg("irc.checkExistingNetwork: error scanning data to struct")
 		return nil, err
 	}
 
@@ -322,7 +326,7 @@ func (r *IrcRepo) StoreNetwork(network *domain.IrcNetwork) error {
 
 	err = queryBuilder.QueryRow().Scan(&retID)
 	if err != nil {
-		log.Error().Stack().Err(err).Msg("irc.storeNetwork: error executing query")
+		r.log.Error().Stack().Err(err).Msg("irc.storeNetwork: error executing query")
 		return errors.Wrap(err, "error executing query")
 	}
 
@@ -357,14 +361,14 @@ func (r *IrcRepo) UpdateNetwork(ctx context.Context, network *domain.IrcNetwork)
 
 	query, args, err := queryBuilder.ToSql()
 	if err != nil {
-		log.Error().Stack().Err(err).Msg("irc.updateNetwork: error building query")
+		r.log.Error().Stack().Err(err).Msg("irc.updateNetwork: error building query")
 		return err
 	}
 
 	// update record
 	_, err = r.db.handler.ExecContext(ctx, query, args...)
 	if err != nil {
-		log.Error().Stack().Err(err).Msg("irc.updateNetwork: error executing query")
+		r.log.Error().Stack().Err(err).Msg("irc.updateNetwork: error executing query")
 		return err
 	}
 
@@ -387,13 +391,13 @@ func (r *IrcRepo) StoreNetworkChannels(ctx context.Context, networkID int64, cha
 
 	query, args, err := queryBuilder.ToSql()
 	if err != nil {
-		log.Error().Stack().Err(err).Msg("irc.storeNetworkChannels: error building query")
+		r.log.Error().Stack().Err(err).Msg("irc.storeNetworkChannels: error building query")
 		return err
 	}
 
 	_, err = tx.ExecContext(ctx, query, args...)
 	if err != nil {
-		log.Error().Stack().Err(err).Msg("irc.storeNetworkChannels: error executing query")
+		r.log.Error().Stack().Err(err).Msg("irc.storeNetworkChannels: error executing query")
 		return err
 	}
 
@@ -425,7 +429,7 @@ func (r *IrcRepo) StoreNetworkChannels(ctx context.Context, networkID int64, cha
 
 		err = channelQueryBuilder.QueryRowContext(ctx).Scan(&retID)
 		if err != nil {
-			log.Error().Stack().Err(err).Msg("irc.storeNetworkChannels: error executing query")
+			r.log.Error().Stack().Err(err).Msg("irc.storeNetworkChannels: error executing query")
 			return errors.Wrap(err, "error executing query")
 		}
 
@@ -433,13 +437,13 @@ func (r *IrcRepo) StoreNetworkChannels(ctx context.Context, networkID int64, cha
 
 		//channelQuery, channelArgs, err := channelQueryBuilder.ToSql()
 		//if err != nil {
-		//	log.Error().Stack().Err(err).Msg("irc.storeNetworkChannels: error building query")
+		//	r.log.Error().Stack().Err(err).Msg("irc.storeNetworkChannels: error building query")
 		//	return err
 		//}
 		//
 		//res, err = r.db.handler.ExecContext(ctx, channelQuery, channelArgs...)
 		//if err != nil {
-		//	log.Error().Stack().Err(err).Msg("irc.storeNetworkChannels: error executing query")
+		//	r.log.Error().Stack().Err(err).Msg("irc.storeNetworkChannels: error executing query")
 		//	return err
 		//}
 		//
@@ -448,7 +452,7 @@ func (r *IrcRepo) StoreNetworkChannels(ctx context.Context, networkID int64, cha
 
 	err = tx.Commit()
 	if err != nil {
-		log.Error().Stack().Err(err).Msgf("irc.storeNetworkChannels: error deleting network: %v", networkID)
+		r.log.Error().Stack().Err(err).Msgf("irc.storeNetworkChannels: error deleting network: %v", networkID)
 		return err
 	}
 
@@ -471,13 +475,13 @@ func (r *IrcRepo) StoreChannel(networkID int64, channel *domain.IrcChannel) erro
 
 		query, args, err := channelQueryBuilder.ToSql()
 		if err != nil {
-			log.Error().Stack().Err(err).Msg("irc.storeChannel: error building query")
+			r.log.Error().Stack().Err(err).Msg("irc.storeChannel: error building query")
 			return err
 		}
 
 		_, err = r.db.handler.Exec(query, args...)
 		if err != nil {
-			log.Error().Stack().Err(err).Msg("irc.storeChannel: error executing query")
+			r.log.Error().Stack().Err(err).Msg("irc.storeChannel: error executing query")
 			return err
 		}
 	} else {
@@ -505,7 +509,7 @@ func (r *IrcRepo) StoreChannel(networkID int64, channel *domain.IrcChannel) erro
 
 		err = queryBuilder.QueryRow().Scan(&retID)
 		if err != nil {
-			log.Error().Stack().Err(err).Msg("irc.storeChannels: error executing query")
+			r.log.Error().Stack().Err(err).Msg("irc.storeChannels: error executing query")
 			return errors.Wrap(err, "error executing query")
 		}
 
@@ -513,13 +517,13 @@ func (r *IrcRepo) StoreChannel(networkID int64, channel *domain.IrcChannel) erro
 
 		//channelQuery, channelArgs, err := channelQueryBuilder.ToSql()
 		//if err != nil {
-		//	log.Error().Stack().Err(err).Msg("irc.storeChannel: error building query")
+		//	r.log.Error().Stack().Err(err).Msg("irc.storeChannel: error building query")
 		//	return err
 		//}
 		//
 		//res, err := r.db.handler.Exec(channelQuery, channelArgs...)
 		//if err != nil {
-		//	log.Error().Stack().Err(err).Msg("irc.storeChannel: error executing query")
+		//	r.log.Error().Stack().Err(err).Msg("irc.storeChannel: error executing query")
 		//	return errors.Wrap(err, "error executing query")
 		//	//return err
 		//}
@@ -544,13 +548,13 @@ func (r *IrcRepo) UpdateChannel(channel *domain.IrcChannel) error {
 
 	query, args, err := channelQueryBuilder.ToSql()
 	if err != nil {
-		log.Error().Stack().Err(err).Msg("irc.updateChannel: error building query")
+		r.log.Error().Stack().Err(err).Msg("irc.updateChannel: error building query")
 		return err
 	}
 
 	_, err = r.db.handler.Exec(query, args...)
 	if err != nil {
-		log.Error().Stack().Err(err).Msg("irc.updateChannel: error executing query")
+		r.log.Error().Stack().Err(err).Msg("irc.updateChannel: error executing query")
 		return err
 	}
 

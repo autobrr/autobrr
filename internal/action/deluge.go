@@ -10,18 +10,17 @@ import (
 	"github.com/autobrr/autobrr/internal/domain"
 
 	delugeClient "github.com/gdm85/go-libdeluge"
-	"github.com/rs/zerolog/log"
 )
 
 func (s *service) deluge(action domain.Action, release domain.Release) error {
-	log.Debug().Msgf("action Deluge: %v", action.Name)
+	s.log.Debug().Msgf("action Deluge: %v", action.Name)
 
 	var err error
 
 	// get client for action
 	client, err := s.clientSvc.FindByID(context.TODO(), action.ClientID)
 	if err != nil {
-		log.Error().Stack().Err(err).Msgf("error finding client: %v", action.ClientID)
+		s.log.Error().Stack().Err(err).Msgf("error finding client: %v", action.ClientID)
 		return err
 	}
 
@@ -40,12 +39,12 @@ func (s *service) deluge(action domain.Action, release domain.Release) error {
 
 	switch client.Type {
 	case "DELUGE_V1":
-		if err = delugeV1(client, settings, action, release); err != nil {
+		if err = s.delugeV1(client, settings, action, release); err != nil {
 			return err
 		}
 
 	case "DELUGE_V2":
-		if err = delugeV2(client, settings, action, release); err != nil {
+		if err = s.delugeV2(client, settings, action, release); err != nil {
 			return err
 		}
 	}
@@ -54,12 +53,12 @@ func (s *service) deluge(action domain.Action, release domain.Release) error {
 }
 
 func (s *service) delugeCheckRulesCanDownload(action domain.Action) (bool, error) {
-	log.Trace().Msgf("action Deluge: %v check rules", action.Name)
+	s.log.Trace().Msgf("action Deluge: %v check rules", action.Name)
 
 	// get client for action
 	client, err := s.clientSvc.FindByID(context.TODO(), action.ClientID)
 	if err != nil {
-		log.Error().Stack().Err(err).Msgf("error finding client: %v ID %v", action.Name, action.ClientID)
+		s.log.Error().Stack().Err(err).Msgf("error finding client: %v ID %v", action.Name, action.ClientID)
 		return false, err
 	}
 
@@ -88,7 +87,7 @@ func (s *service) delugeCheckRulesCanDownload(action domain.Action) (bool, error
 	// perform connection to Deluge server
 	err = deluge.Connect()
 	if err != nil {
-		log.Error().Stack().Err(err).Msgf("error logging into client: %v %v", client.Name, client.Host)
+		s.log.Error().Stack().Err(err).Msgf("error logging into client: %v %v", client.Name, client.Host)
 		return false, err
 	}
 
@@ -98,7 +97,7 @@ func (s *service) delugeCheckRulesCanDownload(action domain.Action) (bool, error
 	if client.Settings.Rules.Enabled && !action.IgnoreRules {
 		activeDownloads, err := deluge.TorrentsStatus(delugeClient.StateDownloading, nil)
 		if err != nil {
-			log.Error().Stack().Err(err).Msg("Deluge - could not fetch downloading torrents")
+			s.log.Error().Stack().Err(err).Msg("Deluge - could not fetch downloading torrents")
 			return false, err
 		}
 
@@ -107,7 +106,7 @@ func (s *service) delugeCheckRulesCanDownload(action domain.Action) (bool, error
 
 			// if max active downloads reached, check speed and if lower than threshold add anyways
 			if len(activeDownloads) >= client.Settings.Rules.MaxActiveDownloads {
-				log.Debug().Msg("max active downloads reached, skipping")
+				s.log.Debug().Msg("max active downloads reached, skipping")
 				return false, nil
 
 				//	// TODO handle ignore slow torrents
@@ -117,16 +116,16 @@ func (s *service) delugeCheckRulesCanDownload(action domain.Action) (bool, error
 				//	// gives type conversion errors
 				//	state, err := deluge.GetSessionStatus()
 				//	if err != nil {
-				//		log.Error().Err(err).Msg("could not get session state")
+				//		s.log.Error().Err(err).Msg("could not get session state")
 				//		return err
 				//	}
 				//
 				//	if int64(state.DownloadRate)*1024 >= client.Settings.Rules.DownloadSpeedThreshold {
-				//		log.Trace().Msg("max active downloads reached, skip adding")
+				//		s.log.Trace().Msg("max active downloads reached, skip adding")
 				//		return nil
 				//	}
 				//
-				//	log.Trace().Msg("active downloads are slower than set limit, lets add it")
+				//	s.log.Trace().Msg("active downloads are slower than set limit, lets add it")
 				//}
 			}
 		}
@@ -135,14 +134,14 @@ func (s *service) delugeCheckRulesCanDownload(action domain.Action) (bool, error
 	return true, nil
 }
 
-func delugeV1(client *domain.DownloadClient, settings delugeClient.Settings, action domain.Action, release domain.Release) error {
+func (s *service) delugeV1(client *domain.DownloadClient, settings delugeClient.Settings, action domain.Action, release domain.Release) error {
 
 	deluge := delugeClient.NewV1(settings)
 
 	// perform connection to Deluge server
 	err := deluge.Connect()
 	if err != nil {
-		log.Error().Stack().Err(err).Msgf("error logging into client: %v %v", client.Name, client.Host)
+		s.log.Error().Stack().Err(err).Msgf("error logging into client: %v %v", client.Name, client.Host)
 		return err
 	}
 
@@ -150,14 +149,14 @@ func delugeV1(client *domain.DownloadClient, settings delugeClient.Settings, act
 
 	t, err := ioutil.ReadFile(release.TorrentTmpFile)
 	if err != nil {
-		log.Error().Stack().Err(err).Msgf("could not read torrent file: %v", release.TorrentTmpFile)
+		s.log.Error().Stack().Err(err).Msgf("could not read torrent file: %v", release.TorrentTmpFile)
 		return err
 	}
 
 	// encode file to base64 before sending to deluge
 	encodedFile := base64.StdEncoding.EncodeToString(t)
 	if encodedFile == "" {
-		log.Error().Stack().Err(err).Msgf("could not encode torrent file: %v", release.TorrentTmpFile)
+		s.log.Error().Stack().Err(err).Msgf("could not encode torrent file: %v", release.TorrentTmpFile)
 		return err
 	}
 
@@ -174,7 +173,7 @@ func delugeV1(client *domain.DownloadClient, settings delugeClient.Settings, act
 		// parse and replace values in argument string before continuing
 		savePathArgs, err := m.Parse(action.SavePath)
 		if err != nil {
-			log.Error().Stack().Err(err).Msgf("could not parse macro: %v", action.SavePath)
+			s.log.Error().Stack().Err(err).Msgf("could not parse macro: %v", action.SavePath)
 			return err
 		}
 
@@ -189,25 +188,25 @@ func delugeV1(client *domain.DownloadClient, settings delugeClient.Settings, act
 		options.MaxUploadSpeed = &maxUL
 	}
 
-	log.Trace().Msgf("action Deluge options: %+v", options)
+	s.log.Trace().Msgf("action Deluge options: %+v", options)
 
 	torrentHash, err := deluge.AddTorrentFile(release.TorrentTmpFile, encodedFile, &options)
 	if err != nil {
-		log.Error().Stack().Err(err).Msgf("could not add torrent %v to client: %v", release.TorrentTmpFile, client.Name)
+		s.log.Error().Stack().Err(err).Msgf("could not add torrent %v to client: %v", release.TorrentTmpFile, client.Name)
 		return err
 	}
 
 	if action.Label != "" {
 		p, err := deluge.LabelPlugin()
 		if err != nil {
-			log.Error().Stack().Err(err).Msgf("could not load label plugin: %v", client.Name)
+			s.log.Error().Stack().Err(err).Msgf("could not load label plugin: %v", client.Name)
 			return err
 		}
 
 		// parse and replace values in argument string before continuing
 		labelArgs, err := m.Parse(action.Label)
 		if err != nil {
-			log.Error().Stack().Err(err).Msgf("could not parse macro: %v", action.Label)
+			s.log.Error().Stack().Err(err).Msgf("could not parse macro: %v", action.Label)
 			return err
 		}
 
@@ -215,25 +214,25 @@ func delugeV1(client *domain.DownloadClient, settings delugeClient.Settings, act
 			// TODO first check if label exists, if not, add it, otherwise set
 			err = p.SetTorrentLabel(torrentHash, labelArgs)
 			if err != nil {
-				log.Error().Stack().Err(err).Msgf("could not set label: %v on client: %v", action.Label, client.Name)
+				s.log.Error().Stack().Err(err).Msgf("could not set label: %v on client: %v", action.Label, client.Name)
 				return err
 			}
 		}
 	}
 
-	log.Info().Msgf("torrent with hash %v successfully added to client: '%v'", torrentHash, client.Name)
+	s.log.Info().Msgf("torrent with hash %v successfully added to client: '%v'", torrentHash, client.Name)
 
 	return nil
 }
 
-func delugeV2(client *domain.DownloadClient, settings delugeClient.Settings, action domain.Action, release domain.Release) error {
+func (s *service) delugeV2(client *domain.DownloadClient, settings delugeClient.Settings, action domain.Action, release domain.Release) error {
 
 	deluge := delugeClient.NewV2(settings)
 
 	// perform connection to Deluge server
 	err := deluge.Connect()
 	if err != nil {
-		log.Error().Stack().Err(err).Msgf("error logging into client: %v %v", client.Name, client.Host)
+		s.log.Error().Stack().Err(err).Msgf("error logging into client: %v %v", client.Name, client.Host)
 		return err
 	}
 
@@ -241,14 +240,14 @@ func delugeV2(client *domain.DownloadClient, settings delugeClient.Settings, act
 
 	t, err := ioutil.ReadFile(release.TorrentTmpFile)
 	if err != nil {
-		log.Error().Stack().Err(err).Msgf("could not read torrent file: %v", release.TorrentTmpFile)
+		s.log.Error().Stack().Err(err).Msgf("could not read torrent file: %v", release.TorrentTmpFile)
 		return err
 	}
 
 	// encode file to base64 before sending to deluge
 	encodedFile := base64.StdEncoding.EncodeToString(t)
 	if encodedFile == "" {
-		log.Error().Stack().Err(err).Msgf("could not encode torrent file: %v", release.TorrentTmpFile)
+		s.log.Error().Stack().Err(err).Msgf("could not encode torrent file: %v", release.TorrentTmpFile)
 		return err
 	}
 
@@ -265,7 +264,7 @@ func delugeV2(client *domain.DownloadClient, settings delugeClient.Settings, act
 		// parse and replace values in argument string before continuing
 		savePathArgs, err := m.Parse(action.SavePath)
 		if err != nil {
-			log.Error().Stack().Err(err).Msgf("could not parse macro: %v", action.SavePath)
+			s.log.Error().Stack().Err(err).Msgf("could not parse macro: %v", action.SavePath)
 			return err
 		}
 
@@ -280,25 +279,25 @@ func delugeV2(client *domain.DownloadClient, settings delugeClient.Settings, act
 		options.MaxUploadSpeed = &maxUL
 	}
 
-	log.Trace().Msgf("action Deluge options: %+v", options)
+	s.log.Trace().Msgf("action Deluge options: %+v", options)
 
 	torrentHash, err := deluge.AddTorrentFile(release.TorrentTmpFile, encodedFile, &options)
 	if err != nil {
-		log.Error().Stack().Err(err).Msgf("could not add torrent %v to client: %v", release.TorrentTmpFile, client.Name)
+		s.log.Error().Stack().Err(err).Msgf("could not add torrent %v to client: %v", release.TorrentTmpFile, client.Name)
 		return err
 	}
 
 	if action.Label != "" {
 		p, err := deluge.LabelPlugin()
 		if err != nil {
-			log.Error().Stack().Err(err).Msgf("could not load label plugin: %v", client.Name)
+			s.log.Error().Stack().Err(err).Msgf("could not load label plugin: %v", client.Name)
 			return err
 		}
 
 		// parse and replace values in argument string before continuing
 		labelArgs, err := m.Parse(action.Label)
 		if err != nil {
-			log.Error().Stack().Err(err).Msgf("could not parse macro: %v", action.Label)
+			s.log.Error().Stack().Err(err).Msgf("could not parse macro: %v", action.Label)
 			return err
 		}
 
@@ -306,13 +305,13 @@ func delugeV2(client *domain.DownloadClient, settings delugeClient.Settings, act
 			// TODO first check if label exists, if not, add it, otherwise set
 			err = p.SetTorrentLabel(torrentHash, labelArgs)
 			if err != nil {
-				log.Error().Stack().Err(err).Msgf("could not set label: %v on client: %v", action.Label, client.Name)
+				s.log.Error().Stack().Err(err).Msgf("could not set label: %v on client: %v", action.Label, client.Name)
 				return err
 			}
 		}
 	}
 
-	log.Info().Msgf("torrent with hash %v successfully added to client: '%v'", torrentHash, client.Name)
+	s.log.Info().Msgf("torrent with hash %v successfully added to client: '%v'", torrentHash, client.Name)
 
 	return nil
 }

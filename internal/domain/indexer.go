@@ -3,11 +3,11 @@ package domain
 import (
 	"bytes"
 	"context"
+	"errors"
 	"net/url"
 	"text/template"
 
 	"github.com/dustin/go-humanize"
-	"github.com/rs/zerolog/log"
 )
 
 type IndexerRepo interface {
@@ -148,15 +148,13 @@ func (p *IndexerParse) ParseTorrentUrl(vars map[string]string, extraVars map[str
 	// setup text template to inject variables into
 	tmpl, err := template.New("torrenturl").Parse(p.Match.TorrentURL)
 	if err != nil {
-		log.Error().Err(err).Msg("could not create torrent url template")
-		return err
+		return errors.New("could not create torrent url template")
 	}
 
 	var urlBytes bytes.Buffer
 	err = tmpl.Execute(&urlBytes, &tmpVars)
 	if err != nil {
-		log.Error().Err(err).Msg("could not write torrent url template output")
-		return err
+		return errors.New("could not write torrent url template output")
 	}
 
 	release.TorrentURL = urlBytes.String()

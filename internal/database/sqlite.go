@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	"github.com/lib/pq"
-	"github.com/rs/zerolog/log"
 	_ "modernc.org/sqlite"
 )
 
@@ -18,7 +17,7 @@ func (db *DB) openSQLite() error {
 
 	// open database connection
 	if db.handler, err = sql.Open("sqlite", db.DSN+"?_pragma=busy_timeout%3d1000"); err != nil {
-		log.Fatal().Err(err).Msg("could not open db connection")
+		db.log.Fatal().Err(err).Msg("could not open db connection")
 		return err
 	}
 
@@ -42,7 +41,7 @@ func (db *DB) openSQLite() error {
 
 	// migrate db
 	if err = db.migrateSQLite(); err != nil {
-		log.Fatal().Err(err).Msg("could not migrate db")
+		db.log.Fatal().Err(err).Msg("could not migrate db")
 		return err
 	}
 

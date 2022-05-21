@@ -6,11 +6,11 @@ import (
 	"sync"
 
 	"github.com/autobrr/autobrr/internal/domain"
-
-	"github.com/rs/zerolog/log"
+	"github.com/autobrr/autobrr/internal/logger"
 )
 
 type DownloadClientRepo struct {
+	log   logger.Logger
 	db    *DB
 	cache *clientCache
 }
@@ -48,8 +48,9 @@ func (c *clientCache) Pop(id int) {
 	c.mu.Unlock()
 }
 
-func NewDownloadClientRepo(db *DB) domain.DownloadClientRepo {
+func NewDownloadClientRepo(log logger.Logger, db *DB) domain.DownloadClientRepo {
 	return &DownloadClientRepo{
+		log:   log,
 		db:    db,
 		cache: NewClientCache(),
 	}
@@ -76,13 +77,13 @@ func (r *DownloadClientRepo) List(ctx context.Context) ([]domain.DownloadClient,
 
 	query, args, err := queryBuilder.ToSql()
 	if err != nil {
-		log.Error().Stack().Err(err).Msg("download_client.list: error building query")
+		r.log.Error().Stack().Err(err).Msg("download_client.list: error building query")
 		return nil, err
 	}
 
 	rows, err := r.db.handler.QueryContext(ctx, query, args...)
 	if err != nil {
-		log.Error().Stack().Err(err).Msg("download_client.list: error executing query")
+		r.log.Error().Stack().Err(err).Msg("download_client.list: error executing query")
 		return nil, err
 	}
 
@@ -93,13 +94,13 @@ func (r *DownloadClientRepo) List(ctx context.Context) ([]domain.DownloadClient,
 		var settingsJsonStr string
 
 		if err := rows.Scan(&f.ID, &f.Name, &f.Type, &f.Enabled, &f.Host, &f.Port, &f.TLS, &f.TLSSkipVerify, &f.Username, &f.Password, &settingsJsonStr); err != nil {
-			log.Error().Stack().Err(err).Msg("download_client.list: error scanning row")
+			r.log.Error().Stack().Err(err).Msg("download_client.list: error scanning row")
 			return clients, err
 		}
 
 		if settingsJsonStr != "" {
 			if err := json.Unmarshal([]byte(settingsJsonStr), &f.Settings); err != nil {
-				log.Error().Stack().Err(err).Msgf("could not marshal download client settings %v", settingsJsonStr)
+				r.log.Error().Stack().Err(err).Msgf("could not marshal download client settings %v", settingsJsonStr)
 				return clients, err
 			}
 		}
@@ -107,7 +108,7 @@ func (r *DownloadClientRepo) List(ctx context.Context) ([]domain.DownloadClient,
 		clients = append(clients, f)
 	}
 	if err := rows.Err(); err != nil {
-		log.Error().Stack().Err(err).Msg("download_client.list: row error")
+		r.log.Error().Stack().Err(err).Msg("download_client.list: row error")
 		return clients, err
 	}
 
@@ -140,13 +141,13 @@ func (r *DownloadClientRepo) FindByID(ctx context.Context, id int32) (*domain.Do
 
 	query, args, err := queryBuilder.ToSql()
 	if err != nil {
-		log.Error().Stack().Err(err).Msg("download_client.findByID: error building query")
+		r.log.Error().Stack().Err(err).Msg("download_client.findByID: error building query")
 		return nil, err
 	}
 
 	row := r.db.handler.QueryRowContext(ctx, query, args...)
 	if err != nil {
-		log.Error().Stack().Err(err).Msg("download_client.findByID: error executing query")
+		r.log.Error().Stack().Err(err).Msg("download_client.findByID: error executing query")
 		return nil, err
 	}
 
@@ -154,13 +155,13 @@ func (r *DownloadClientRepo) FindByID(ctx context.Context, id int32) (*domain.Do
 	var settingsJsonStr string
 
 	if err := row.Scan(&client.ID, &client.Name, &client.Type, &client.Enabled, &client.Host, &client.Port, &client.TLS, &client.TLSSkipVerify, &client.Username, &client.Password, &settingsJsonStr); err != nil {
-		log.Error().Stack().Err(err).Msg("download_client.findByID: error scanning row")
+		r.log.Error().Stack().Err(err).Msg("download_client.findByID: error scanning row")
 		return nil, err
 	}
 
 	if settingsJsonStr != "" {
 		if err := json.Unmarshal([]byte(settingsJsonStr), &client.Settings); err != nil {
-			log.Error().Stack().Err(err).Msgf("could not marshal download client settings %v", settingsJsonStr)
+			r.log.Error().Stack().Err(err).Msgf("could not marshal download client settings %v", settingsJsonStr)
 			return nil, err
 		}
 	}
@@ -179,7 +180,7 @@ func (r *DownloadClientRepo) Store(ctx context.Context, client domain.DownloadCl
 
 	settingsJson, err := json.Marshal(&settings)
 	if err != nil {
-		log.Error().Stack().Err(err).Msgf("could not marshal download client settings %v", settings)
+		r.log.Error().Stack().Err(err).Msgf("could not marshal download client settings %v", settings)
 		return nil, err
 	}
 
@@ -194,13 +195,13 @@ func (r *DownloadClientRepo) Store(ctx context.Context, client domain.DownloadCl
 
 	err = queryBuilder.QueryRowContext(ctx).Scan(&retID)
 	if err != nil {
-		log.Error().Stack().Err(err).Msg("download_client.store: error executing query")
+		r.log.Error().Stack().Err(err).Msg("download_client.store: error executing query")
 		return nil, err
 	}
 
 	client.ID = retID
 
-	log.Debug().Msgf("download_client.store: %d", client.ID)
+	r.log.Debug().Msgf("download_client.store: %d", client.ID)
 
 	// save to cache
 	r.cache.Set(client.ID, &client)
@@ -219,7 +220,7 @@ func (r *DownloadClientRepo) Update(ctx context.Context, client domain.DownloadC
 
 	settingsJson, err := json.Marshal(&settings)
 	if err != nil {
-		log.Error().Stack().Err(err).Msgf("could not marshal download client settings %v", settings)
+		r.log.Error().Stack().Err(err).Msgf("could not marshal download client settings %v", settings)
 		return nil, err
 	}
 
@@ -239,17 +240,17 @@ func (r *DownloadClientRepo) Update(ctx context.Context, client domain.DownloadC
 
 	query, args, err := queryBuilder.ToSql()
 	if err != nil {
-		log.Error().Stack().Err(err).Msg("download_client.update: error building query")
+		r.log.Error().Stack().Err(err).Msg("download_client.update: error building query")
 		return nil, err
 	}
 
 	_, err = r.db.handler.ExecContext(ctx, query, args...)
 	if err != nil {
-		log.Error().Stack().Err(err).Msg("download_client.update: error querying data")
+		r.log.Error().Stack().Err(err).Msg("download_client.update: error querying data")
 		return nil, err
 	}
 
-	log.Debug().Msgf("download_client.update: %d", client.ID)
+	r.log.Debug().Msgf("download_client.update: %d", client.ID)
 
 	// save to cache
 	r.cache.Set(client.ID, &client)
@@ -264,13 +265,13 @@ func (r *DownloadClientRepo) Delete(ctx context.Context, clientID int) error {
 
 	query, args, err := queryBuilder.ToSql()
 	if err != nil {
-		log.Error().Stack().Err(err).Msg("download_client.delete: error building query")
+		r.log.Error().Stack().Err(err).Msg("download_client.delete: error building query")
 		return err
 	}
 
 	res, err := r.db.handler.ExecContext(ctx, query, args...)
 	if err != nil {
-		log.Error().Stack().Err(err).Msg("download_client.delete: error query data")
+		r.log.Error().Stack().Err(err).Msg("download_client.delete: error query data")
 		return err
 	}
 
@@ -282,7 +283,7 @@ func (r *DownloadClientRepo) Delete(ctx context.Context, clientID int) error {
 		return err
 	}
 
-	log.Info().Msgf("delete download client: %d", clientID)
+	r.log.Info().Msgf("delete download client: %d", clientID)
 
 	return nil
 }
