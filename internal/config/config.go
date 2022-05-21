@@ -104,6 +104,7 @@ func New(configPath string, version string) *AppConfig {
 	c := &AppConfig{}
 	c.defaults()
 	c.Config.Version = version
+	c.Config.ConfigPath = configPath
 
 	c.load(configPath)
 
