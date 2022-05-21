@@ -23,7 +23,6 @@ Installation guide and documentation can be found at https://autobrr.com
     - With built in reannounce
   - Deluge
     - v1+ and v2 support
-    - With built in reannounce
   - Radarr
   - Sonarr
   - Lidarr
