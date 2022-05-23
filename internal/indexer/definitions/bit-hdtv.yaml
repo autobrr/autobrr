@@ -1,0 +1,58 @@
+---
+#id: tracker68
+name: BIT-HDTV
+identifier: bithdtv
+description: Bit-HDTV (BHDTV) is a specialized HD tracker in movies and TV with so many daily uploads.
+language: en-us
+urls:
+  - https://www.bit-hdtv.com
+privacy: private
+protocol: torrent
+supports:
+  - irc
+  - rss
+source: custom
+settings:
+  - name: passkey
+    type: secret
+    label: Pass key
+    help: "Your passkey"
+    regex: /([\da-z]{32})
+
+irc:
+  network: P2P-Network
+  server: irc.p2p-network.net
+  port: 6697
+  tls: true
+  channels:
+    - "#bit-hdtv"
+  announcers:
+    - BHD-Bot
+  settings:
+    - name: nickserv.account
+      type: text
+      required: true
+      label: NickServ Account
+      help: NickServ account. Make sure to group your user and bot. Eg. user_bot
+    - name: nickserv.password
+      type: secret
+      required: true
+      label: NickServ Password
+      help: NickServ password
+
+parse:
+  type: single
+  lines:
+    - test:
+        - "New torrent: Fear.the.walking.bee.s01e01.720p.WEB.h264-lemoncakes | Cat.: TV | WEB-DL | 720p | Uploader: ze0s | https://www.bit-hdtv.com/details.php?id=448412837123"
+        - "New torrent: Y.r.u.there.2022.1080p.BluRay.DDP5.1.x264-egg | Cat.: Movies | Encode x264 | 1080p | Uploader: Anonymous | https://www.bit-hdtv.com/details.php?id=69"
+      pattern: 'New torrent: (.*) \|\s*Cat.: ([^\|]*) \| .* Uploader: (.*) \| (https?\:\/\/[^\/]+).*id=(\d+)'
+      vars:
+        - torrentName
+        - category
+        - uploader
+        - baseUrl
+        - torrentId
+
+  match:
+    torrenturl: "{{ .baseUrl }}/rssdownload.php?id={{ .torrentId }}&passkey={{ .passkey }}"
