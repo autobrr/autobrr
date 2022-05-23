@@ -27,7 +27,7 @@ irc:
   channels:
     - "#bit-hdtv"
   announcers:
-    - BHD-Bot
+    - BHD-bot
   settings:
     - name: nickserv.account
       type: text
