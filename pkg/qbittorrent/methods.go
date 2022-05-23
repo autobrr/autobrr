@@ -286,3 +286,233 @@ func (c *Client) GetTransferInfo() (*TransferInfo, error) {
 
 	return &info, nil
 }
+
+func (c *Client) Resume(hashes []string) error {
+	v := url.Values{}
+
+	// Add hashes together with | separator
+	hv := strings.Join(hashes, "|")
+	v.Add("hashes", hv)
+
+	encodedHashes := v.Encode()
+
+	resp, err := c.get("torrents/resume?"+encodedHashes, nil)
+	if err != nil {
+		log.Error().Err(err).Msgf("resume error: %v", hashes)
+		return err
+	} else if resp.StatusCode != http.StatusOK {
+		log.Error().Err(err).Msgf("resume error bad status: %v", hashes)
+		return err
+	}
+
+	defer resp.Body.Close()
+
+	return nil
+}
+
+func (c *Client) SetForceStart(hashes []string, value bool) error {
+	v := url.Values{}
+
+	// Add hashes together with | separator
+	hv := strings.Join(hashes, "|")
+	v.Add("hashes", hv)
+	v.Add("value", strconv.FormatBool(value))
+
+	encodedHashes := v.Encode()
+
+	resp, err := c.get("torrents/setForceStart?"+encodedHashes, nil)
+	if err != nil {
+		log.Error().Err(err).Msgf("resume error: %v", hashes)
+		return err
+	} else if resp.StatusCode != http.StatusOK {
+		log.Error().Err(err).Msgf("resume error bad status: %v", hashes)
+		return err
+	}
+
+	defer resp.Body.Close()
+
+	return nil
+}
+
+func (c *Client) Recheck(hashes []string) error {
+	v := url.Values{}
+
+	// Add hashes together with | separator
+	hv := strings.Join(hashes, "|")
+	v.Add("hashes", hv)
+
+	encodedHashes := v.Encode()
+
+	resp, err := c.get("torrents/recheck?"+encodedHashes, nil)
+	if err != nil {
+		log.Error().Err(err).Msgf("recheck error: %v", hashes)
+		return err
+	} else if resp.StatusCode != http.StatusOK {
+		log.Error().Err(err).Msgf("recheck error bad status: %v", hashes)
+		return err
+	}
+
+	defer resp.Body.Close()
+
+	return nil
+}
+
+func (c *Client) Pause(hashes []string) error {
+	v := url.Values{}
+
+	// Add hashes together with | separator
+	hv := strings.Join(hashes, "|")
+	v.Add("hashes", hv)
+
+	encodedHashes := v.Encode()
+
+	resp, err := c.get("torrents/pause?"+encodedHashes, nil)
+	if err != nil {
+		log.Error().Err(err).Msgf("pause error: %v", hashes)
+		return err
+	} else if resp.StatusCode != http.StatusOK {
+		log.Error().Err(err).Msgf("pause error bad status: %v", hashes)
+		return err
+	}
+
+	defer resp.Body.Close()
+
+	return nil
+}
+
+func (c *Client) SetAutoManagement(hashes []string, enable bool) error {
+	v := url.Values{}
+
+	// Add hashes together with | separator
+	hv := strings.Join(hashes, "|")
+	v.Add("hashes", hv)
+	v.Add("enable", strconv.FormatBool(enable))
+
+	encodedHashes := v.Encode()
+
+	resp, err := c.get("torrents/setAutoManagement?"+encodedHashes, nil)
+	if err != nil {
+		log.Error().Err(err).Msgf("setAutoManagement error: %v", hashes)
+		return err
+	} else if resp.StatusCode != http.StatusOK {
+		log.Error().Err(err).Msgf("setAutoManagement error bad status: %v", hashes)
+		return err
+	}
+
+	defer resp.Body.Close()
+
+	return nil
+}
+
+func (c *Client) CreateCategory(category string, path string) error {
+	v := url.Values{}
+
+	v.Add("category", category)
+	v.Add("savePath", path)
+
+	encodedHashes := v.Encode()
+
+	resp, err := c.get("torrents/createCategory?"+encodedHashes, nil)
+	if err != nil {
+		log.Error().Err(err).Msgf("CreateCategory error: %q", category)
+		return err
+	} else if resp.StatusCode != http.StatusOK {
+		log.Error().Err(err).Msgf("CreateCategory error bad status: %q %v", category, resp.StatusCode)
+		return err
+	}
+
+	defer resp.Body.Close()
+
+	return nil
+}
+
+func (c *Client) EditCategory(category string, path string) error {
+	v := url.Values{}
+
+	v.Add("category", category)
+	v.Add("savePath", path)
+
+	encodedHashes := v.Encode()
+
+	resp, err := c.get("torrents/editCategory?"+encodedHashes, nil)
+	if err != nil {
+		log.Error().Err(err).Msgf("EditCategory error: %q %v", category)
+		return err
+	} else if resp.StatusCode != http.StatusOK {
+		log.Error().Err(err).Msgf("EditCategory error bad status: %q %v", category, resp.StatusCode)
+		return err
+	}
+
+	defer resp.Body.Close()
+
+	return nil
+}
+
+func (c *Client) RemoveCategories(categories[] string) error {
+	v := url.Values{}
+
+	v.Add("categories", strings.Join(categories, "\n"))
+
+	encodedHashes := v.Encode()
+
+	resp, err := c.get("torrents/removeCategories?"+encodedHashes, nil)
+	if err != nil {
+		log.Error().Err(err).Msgf("RemoveCategories error: %q", v.Get("categories"))
+		return err
+	} else if resp.StatusCode != http.StatusOK {
+		log.Error().Err(err).Msgf("RemoveCategories error bad status: %q %v", v.Get("categories"), resp.StatusCode)
+		return err
+	}
+
+	defer resp.Body.Close()
+
+	return nil
+}
+
+func (c *Client) SetCategory(hashes []string, category string) error {
+	v := url.Values{}
+
+	// Add hashes together with | separator
+	hv := strings.Join(hashes, "|")
+	v.Add("hashes", hv)
+	v.Add("category", category)
+
+	encodedHashes := v.Encode()
+
+	resp, err := c.get("torrents/setCategory?"+encodedHashes, nil)
+	if err != nil {
+		log.Error().Err(err).Msgf("SetCategory error: %v", hashes)
+		return err
+	} else if resp.StatusCode != http.StatusOK {
+		log.Error().Err(err).Msgf("SetCategory error bad status: %v", hashes)
+		return err
+	}
+
+	defer resp.Body.Close()
+
+	return nil
+}
+
+func (c *Client) SetLocation(hashes []string, location string) error {
+	v := url.Values{}
+
+	// Add hashes together with | separator
+	hv := strings.Join(hashes, "|")
+	v.Add("hashes", hv)
+	v.Add("location", location)
+
+	encodedHashes := v.Encode()
+
+	resp, err := c.get("torrents/setLocation?"+encodedHashes, nil)
+	if err != nil {
+		log.Error().Err(err).Msgf("SetLocation error: %v", hashes)
+		return err
+	} else if resp.StatusCode != http.StatusOK {
+		log.Error().Err(err).Msgf("SetLocation error bad status: %v", hashes)
+		return err
+	}
+
+	defer resp.Body.Close()
+
+	return nil
+}
