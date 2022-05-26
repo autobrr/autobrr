@@ -72,14 +72,7 @@ export const APIClient = {
       password: password
     }),
     logout: () => appClient.Post("api/auth/logout", null),
-    validate: () => appClient.Get<void>("api/auth/validate"),
-    onboard: (username: string, password: string, logDir: string) => appClient.Post("api/auth/onboard", {
-      username: username,
-      password: password,
-      log_dir: logDir
-    }),
-    canOnboard: () => appClient.Get("api/auth/onboard"),
-    getOnboardingPreferences: () => appClient.Get<OnboardingPreferences>("api/auth/onboard/preferences")
+    validate: () => appClient.Get<void>("api/auth/validate")
   },
   actions: {
     create: (action: Action) => appClient.Post("api/actions", action),
@@ -138,6 +131,15 @@ export const APIClient = {
     create: (notification: Notification) => appClient.Post("api/notification", notification),
     update: (notification: Notification) => appClient.Put(`api/notification/${notification.id}`, notification),
     delete: (id: number) => appClient.Delete(`api/notification/${id}`)
+  },
+  onboard: {
+    create: (username: string, password: string, logDir: string) => appClient.Post("api/onboard", {
+      username: username,
+      password: password,
+      log_dir: logDir
+    }),
+    canOnboard: () => appClient.Get("api/onboard"),
+    getPreferences: () => appClient.Get<OnboardingPreferences>("api/onboard/preferences")
   },
   release: {
     find: (query?: string) => appClient.Get<ReleaseFindResponse>(`api/release${query}`),

@@ -3,6 +3,7 @@ module github.com/autobrr/autobrr
 go 1.17
 
 require (
+	github.com/BurntSushi/toml v0.3.1
 	github.com/Masterminds/squirrel v1.5.1
 	github.com/anacrolix/torrent v1.11.0
 	github.com/asaskevich/EventBus v0.0.0-20200907212545-49d423059eef

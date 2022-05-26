@@ -21,7 +21,7 @@ export const Login = () => {
   useEffect(() => {
     // Check if onboarding is available for this instance
     // and redirect if needed
-    APIClient.auth.canOnboard()
+    APIClient.onboard.canOnboard()
       .then(() => history.push("/onboard"));
   }, [history]);
 

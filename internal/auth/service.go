@@ -3,11 +3,10 @@ package auth
 import (
 	"context"
 	"errors"
+
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/internal/user"
 	"github.com/autobrr/autobrr/pkg/argon2id"
-	"os"
-	"strings"
 )
 
 type Service interface {
@@ -70,16 +69,6 @@ func (s *service) CreateUser(ctx context.Context, user domain.CreateUserRequest)
 
 	if userCount > 0 {
 		return errors.New("only 1 user account is supported at the moment")
-	}
-
-	// create log dir before inserting a user into the database
-	// (in case problems arise)
-	// empty LogDir indicates that no log file is needed
-	if strings.TrimSpace(user.LogDir) != "" {
-		err = os.MkdirAll(user.LogDir, os.ModePerm)
-		if err != nil {
-			return errors.New("failed to create log dir: " + err.Error())
-		}
 	}
 
 	hashed, err := argon2id.CreateHash(user.Password, argon2id.DefaultParams)

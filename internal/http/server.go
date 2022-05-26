@@ -102,13 +102,15 @@ func (s Server) Handler() http.Handler {
 		fileSystem.ServeHTTP(w, r)
 	})
 
-	r.Route("/api/auth", newAuthHandler(encoder, s.config, s.cookieStore, s.authService).Routes)
-	r.Route("/api/healthz", newHealthHandler(encoder, s.db).Routes)
+	r.Route("/api", func(r chi.Router) {
+		r.Route("/healthz", newHealthHandler(encoder, s.db).Routes)
 
-	r.Group(func(r chi.Router) {
-		r.Use(s.IsAuthenticated)
+		r.Route("/auth", newAuthHandler(encoder, s.config, s.cookieStore, s.authService).Routes)
+		r.Route("/onboard", newOnboardHandler(encoder, s.config, s.authService).Routes)
 
-		r.Route("/api", func(r chi.Router) {
+		r.Group(func(r chi.Router) {
+			r.Use(s.IsAuthenticated)
+
 			r.Route("/actions", newActionHandler(encoder, s.actionService).Routes)
 			r.Route("/config", newConfigHandler(encoder, s).Routes)
 			r.Route("/download_clients", newDownloadClientHandler(encoder, s.downloadClientService).Routes)

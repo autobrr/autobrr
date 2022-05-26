@@ -18,5 +18,5 @@ type User struct {
 type CreateUserRequest struct {
 	Username string `json:"username"`
 	Password string `json:"password"`
-	LogDir   string `json:"log_dir"`
+	LogPath  string `json:"log_dir"`
 }
