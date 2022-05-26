@@ -94,35 +94,39 @@ export const PasswordField = ({
           {label} {required && <span className="text-gray-500">*</span>}
         </label>
       )}
-      <Field name={name} defaultValue={defaultValue}>
-        {({
-          field,
-          meta
-        }: FieldProps) => (
-          <div className="sm:col-span-2 relative">
-            <input
-              {...field}
-              id={name}
-              type={isVisible ? "text" : "password"}
-              autoComplete={autoComplete}
-              className={classNames(meta.touched && meta.error ? "focus:ring-red-500 focus:border-red-500 border-red-500" : "focus:ring-indigo-500 dark:focus:ring-blue-500 focus:border-indigo-500 dark:focus:border-blue-500 border-gray-300 dark:border-gray-700", "mt-2 block w-full dark:bg-gray-800 dark:text-gray-100 rounded-md")}
-              placeholder={placeholder}
-            />
+      <div>
+        <Field name={name} defaultValue={defaultValue}>
+          {({
+            field,
+            meta
+          }: FieldProps) => (
+            <>
+              <div className="sm:col-span-2 relative">
+                <input
+                  {...field}
+                  id={name}
+                  type={isVisible ? "text" : "password"}
+                  autoComplete={autoComplete}
+                  className={classNames(meta.touched && meta.error ? "focus:ring-red-500 focus:border-red-500 border-red-500" : "focus:ring-indigo-500 dark:focus:ring-blue-500 focus:border-indigo-500 dark:focus:border-blue-500 border-gray-300 dark:border-gray-700", "mt-2 block w-full dark:bg-gray-800 dark:text-gray-100 rounded-md")}
+                  placeholder={placeholder}
+                />
 
-            <div className="absolute inset-y-0 right-0 px-3 flex items-center" onClick={toggleVisibility}>
-              {!isVisible ? <EyeIcon className="h-5 w-5 text-gray-400 hover:text-gray-500" aria-hidden="true" /> : <EyeOffIcon className="h-5 w-5 text-gray-400 hover:text-gray-500" aria-hidden="true" />}
-            </div>
+                <div className="absolute inset-y-0 right-0 px-3 flex items-center" onClick={toggleVisibility}>
+                  {!isVisible ? <EyeIcon className="h-5 w-5 text-gray-400 hover:text-gray-500" aria-hidden="true" /> : <EyeOffIcon className="h-5 w-5 text-gray-400 hover:text-gray-500" aria-hidden="true" />}
+                </div>
 
-            {help && (
-              <p className="mt-2 text-sm text-gray-500" id="email-description">{help}</p>
-            )}
+              </div>
+              {help && (
+                <p className="mt-2 text-sm text-gray-500" id="email-description">{help}</p>
+              )}
 
-            {meta.touched && meta.error && (
-              <p className="error text-sm text-red-600 mt-1">* {meta.error}</p>
-            )}
-          </div>
-        )}
-      </Field>
+              {meta.touched && meta.error && (
+                <p className="error text-sm text-red-600 mt-1">* {meta.error}</p>
+              )}
+            </>
+          )}
+        </Field>
+      </div>
     </div>
   );
 };
