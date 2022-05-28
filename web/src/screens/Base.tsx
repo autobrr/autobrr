@@ -27,7 +27,6 @@ export default function Base() {
     { name: "Logs", path: "/logs" }
   ];
 
-  console.log("base");
   return (
     <div className="min-h-screen">
       <Disclosure
