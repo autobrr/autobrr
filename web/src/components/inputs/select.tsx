@@ -50,7 +50,7 @@ export const MultiSelect = ({
         {label}
       </label>
 
-      <Field name={name} type="select" multiple={true}>
+      {/*<Field name={name} type="select" multiple={true}>
         {({
           field,
           form: { setFieldValue }
@@ -73,7 +73,7 @@ export const MultiSelect = ({
             className={settingsContext.darkTheme ? "dark" : ""}
           />
         )}
-      </Field>
+          </Field>*/}
     </div>
   );
 };
@@ -103,7 +103,7 @@ export const IndexerMultiSelect = ({
         {label}
       </label>
 
-      <Field name={name} type="select" multiple={true}>
+      {/*<Field name={name} type="select" multiple={true}>
         {({
           field,
           form: { setFieldValue }
@@ -122,7 +122,7 @@ export const IndexerMultiSelect = ({
             className={settingsContext.darkTheme ? "dark" : ""}
           />
         )}
-      </Field>
+          </Field>*/}
     </div>
   );
 };
@@ -140,7 +140,7 @@ export function DownloadClientSelect({
 }: DownloadClientSelectProps) {
   return (
     <div className="col-span-6 sm:col-span-6">
-      <Field name={name} type="select">
+      {/*<Field name={name} type="select">
         {({
           field,
           form: { setFieldValue }
@@ -161,7 +161,6 @@ export function DownloadClientSelect({
                         ? clients.find((c) => c.id === field.value)?.name
                         : "Choose a client"}
                     </span>
-                    {/*<span className="block truncate">Choose a client</span>*/}
                     <span className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
                       <SelectorIcon
                         className="h-5 w-5 text-gray-400 dark:text-gray-300"
@@ -227,7 +226,7 @@ export function DownloadClientSelect({
             )}
           </Listbox>
         )}
-      </Field>
+      </Field>*/}
     </div>
   );
 }
@@ -252,7 +251,7 @@ export const Select = ({
 }: SelectFieldProps) => {
   return (
     <div className="col-span-6">
-      <Field name={name} type="select">
+      {/*<Field name={name} type="select">
         {({
           field,
           form: { setFieldValue }
@@ -341,7 +340,7 @@ export const Select = ({
             )}
           </Listbox>
         )}
-      </Field>
+      </Field>*/}
     </div>
   );
 };
@@ -356,7 +355,7 @@ export const SelectWide = ({
     <div className="py-6 px-6 space-y-6 sm:py-0 sm:space-y-0 sm:divide-y sm:divide-gray-200">
 
       <div className="space-y-1 px-4 sm:space-y-0 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6 sm:py-5">
-        <Field name={name} type="select">
+        {/*<Field name={name} type="select">
           {({
             field,
             form: { setFieldValue }
@@ -446,7 +445,7 @@ export const SelectWide = ({
               )}
             </Listbox>
           )}
-        </Field>
+                                    </Field>*/}
       </div>
     </div>
   );

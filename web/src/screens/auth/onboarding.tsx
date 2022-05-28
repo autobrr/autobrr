@@ -1,6 +1,6 @@
 import { Form, Formik } from "formik";
 import { useMutation } from "react-query";
-import { useHistory } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { APIClient } from "../../api/APIClient";
 
 import { TextField, PasswordField } from "../../components/inputs";
@@ -30,15 +30,11 @@ export const Onboarding = () => {
     return obj;
   };
 
-  const history = useHistory();
+  const navigate = useNavigate();
 
   const mutation = useMutation(
     (data: InputValues) => APIClient.auth.onboard(data.username, data.password1),
-    {
-      onSuccess: () => {
-        history.push("/login");
-      }
-    }
+    { onSuccess: () => navigate("/login") }
   );
 
   return (

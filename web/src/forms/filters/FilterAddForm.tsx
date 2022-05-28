@@ -102,7 +102,7 @@ function FilterAddForm({ isOpen, toggle }: filterAddFormProps) {
                                 htmlFor="name"
                                 className="block text-sm font-medium text-gray-900 dark:text-white sm:mt-px sm:pt-2"
                               >
-                                                                    Name
+                                Name
                               </label>
                             </div>
                             <Field name="name">
@@ -119,7 +119,7 @@ function FilterAddForm({ isOpen, toggle }: filterAddFormProps) {
                                   />
 
                                   {meta.touched && meta.error &&
-                                                                            <span className="block mt-2 text-red-500">{meta.error}</span>}
+                                    <span className="block mt-2 text-red-500">{meta.error}</span>}
 
                                 </div>
                               )}
@@ -136,13 +136,13 @@ function FilterAddForm({ isOpen, toggle }: filterAddFormProps) {
                             className="bg-white dark:bg-gray-800 py-2 px-4 border border-gray-300 dark:border-gray-700 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 dark:focus:ring-blue-500"
                             onClick={toggle}
                           >
-                                                            Cancel
+                            Cancel
                           </button>
                           <button
                             type="submit"
                             className="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 dark:bg-blue-600 hover:bg-indigo-700 dark:hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 dark:focus:ring-blue-500"
                           >
-                                                            Create
+                            Create
                           </button>
                         </div>
                       </div>

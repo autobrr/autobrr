@@ -1,4 +1,4 @@
-import { useHistory } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { useMutation } from "react-query";
 import { Form, Formik } from "formik";
 
@@ -15,14 +15,14 @@ interface LoginData {
 }
 
 export const Login = () => {
-  const history = useHistory();
+  const navigate = useNavigate();
   const [, setAuthContext] = AuthContext.use();
 
   useEffect(() => {
     // Check if onboarding is available for this instance
     // and redirect if needed
     APIClient.auth.canOnboard()
-      .then(() => history.push("/onboard"));
+      .then(() => navigate("/onboard"));
   }, [history]);
 
   const mutation = useMutation(
@@ -33,7 +33,7 @@ export const Login = () => {
           username: variables.username,
           isLoggedIn: true
         });
-        history.push("/");
+        navigate("/");
       }
     }
   );

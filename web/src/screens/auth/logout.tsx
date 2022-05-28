@@ -1,12 +1,12 @@
 import { useEffect } from "react";
 import { useCookies } from "react-cookie";
-import { useHistory } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 
 import { APIClient } from "../../api/APIClient";
 import { AuthContext } from "../../utils/Context";
 
 export const Logout = () => {
-  const history = useHistory();
+  const navigate = useNavigate();
 
   const [, setAuthContext] = AuthContext.use();
   const [,, removeCookie] = useCookies(["user_session"]);
@@ -15,10 +15,10 @@ export const Logout = () => {
     () => {
       APIClient.auth.logout()
         .then(() => {
-          setAuthContext({ username: "", isLoggedIn: false });
           removeCookie("user_session");
+          setAuthContext({ username: "", isLoggedIn: false });
 
-          history.push("/login");
+          navigate("/login");
         });
     },
     [history, removeCookie, setAuthContext]

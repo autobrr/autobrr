@@ -1,16 +1,9 @@
 import { Fragment } from "react";
-import type { match } from "react-router-dom";
-import { Link, NavLink, Route, Switch } from "react-router-dom";
+import { Link, NavLink, Outlet } from "react-router-dom";
 import { Disclosure, Menu, Transition } from "@headlessui/react";
 import { ExternalLinkIcon } from "@heroicons/react/solid";
 import { ChevronDownIcon, MenuIcon, XIcon } from "@heroicons/react/outline";
 
-import Settings from "./Settings";
-
-import { Logs } from "./Logs";
-import { Releases } from "./releases";
-import { Dashboard } from "./dashboard";
-import { FilterDetails, Filters } from "./filters";
 import { AuthContext } from "../utils/Context";
 
 import logo from "../logo.png";
@@ -24,23 +17,6 @@ function classNames(...classes: string[]) {
   return classes.filter(Boolean).join(" ");
 }
 
-const isActiveMatcher = (
-  match: match | null,
-  location: { pathname: string },
-  item: NavItem
-) => {
-  if (!match)
-    return false;
-
-  if (match?.url === "/" && item.path === "/" && location.pathname === "/")
-    return true;
-
-  if (match.url === "/")
-    return false;
-
-  return true;
-};
-
 export default function Base() {
   const authContext = AuthContext.useValue();
   const nav: Array<NavItem> = [
@@ -51,6 +27,7 @@ export default function Base() {
     { name: "Logs", path: "/logs" }
   ];
 
+  console.log("base");
   return (
     <div className="min-h-screen">
       <Disclosure
@@ -81,13 +58,11 @@ export default function Base() {
                           <NavLink
                             key={item.name + itemIdx}
                             to={item.path}
-                            strict
-                            className={classNames(
-                              "text-gray-600 dark:text-gray-500 hover:bg-gray-200 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white px-3 py-2 rounded-2xl text-sm font-medium",
-                              "transition-colors duration-200"
+                            className={({ isActive }) => classNames(
+                              "hover:bg-gray-200 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white px-3 py-2 rounded-2xl text-sm font-medium",
+                              "transition-colors duration-200",
+                              isActive ? "text-black dark:text-gray-50 font-bold" : "text-gray-600 dark:text-gray-500"
                             )}
-                            activeClassName="text-black dark:text-gray-50 !font-bold"
-                            isActive={(match, location) => isActiveMatcher(match, location, item)}
                           >
                             {item.name}
                           </NavLink>
@@ -199,10 +174,11 @@ export default function Base() {
                   <NavLink
                     key={item.path}
                     to={item.path}
-                    strict
-                    className="dark:bg-gray-900 dark:text-white block px-3 py-2 rounded-md text-base font-medium"
-                    activeClassName="font-bold bg-gray-300 text-black"
-                    isActive={(match, location) => isActiveMatcher(match, location, item)}
+                    className={({ isActive }) => classNames(
+                      // TODO: Double check whether this is correct
+                      "dark:bg-gray-900 dark:text-white block px-3 py-2 rounded-md text-base",
+                      isActive ? "font-bold bg-gray-300 text-black" : "font-medium"
+                    )}
                   >
                     {item.name}
                   </NavLink>
@@ -219,32 +195,7 @@ export default function Base() {
           </>
         )}
       </Disclosure>
-
-      <Switch>
-        <Route path="/logs">
-          <Logs/>
-        </Route>
-
-        <Route path="/settings">
-          <Settings/>
-        </Route>
-
-        <Route path="/releases">
-          <Releases/>
-        </Route>
-
-        <Route exact={true} path="/filters">
-          <Filters/>
-        </Route>
-
-        <Route path="/filters/:filterId">
-          <FilterDetails/>
-        </Route>
-
-        <Route exact path="/">
-          <Dashboard/>
-        </Route>
-      </Switch>
+      <Outlet />
     </div>
   );
 }

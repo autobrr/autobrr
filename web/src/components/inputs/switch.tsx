@@ -95,7 +95,7 @@ const SwitchGroup = ({
     </div>
     }
 
-    <Field name={name} type="checkbox">
+    {/*<Field name={name} type="checkbox">
       {({
         field,
         form: { setFieldValue }
@@ -123,7 +123,7 @@ const SwitchGroup = ({
         </Switch>
 
       )}
-    </Field>
+            </Field>*/}
   </HeadlessSwitch.Group>
 );
 
