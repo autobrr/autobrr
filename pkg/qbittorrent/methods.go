@@ -3,9 +3,9 @@ package qbittorrent
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io/ioutil"
 	"net/http"
-	"net/url"
 	"strconv"
 	"strings"
 
@@ -14,11 +14,12 @@ import (
 
 // Login https://github.com/qbittorrent/qBittorrent/wiki/WebUI-API-(qBittorrent-4.1)#authentication
 func (c *Client) Login() error {
-	credentials := make(map[string]string)
-	credentials["username"] = c.settings.Username
-	credentials["password"] = c.settings.Password
+	opts := map[string]string{
+		"username": c.settings.Username,
+		"password": c.settings.Password,
+	}
 
-	resp, err := c.postBasic("auth/login", credentials)
+	resp, err := c.postBasic("auth/login", opts)
 	if err != nil {
 		log.Error().Err(err).Msg("login error")
 		return err
@@ -57,7 +58,6 @@ func (c *Client) Login() error {
 }
 
 func (c *Client) GetTorrents() ([]Torrent, error) {
-	var torrents []Torrent
 
 	resp, err := c.get("torrents/info", nil)
 	if err != nil {
@@ -73,6 +73,7 @@ func (c *Client) GetTorrents() ([]Torrent, error) {
 		return nil, readErr
 	}
 
+	var torrents []Torrent
 	err = json.Unmarshal(body, &torrents)
 	if err != nil {
 		log.Error().Err(err).Msg("get torrents unmarshal error")
@@ -83,13 +84,11 @@ func (c *Client) GetTorrents() ([]Torrent, error) {
 }
 
 func (c *Client) GetTorrentsFilter(filter TorrentFilter) ([]Torrent, error) {
-	var torrents []Torrent
+	opts := map[string]string{
+		"filter": string(filter),
+	}
 
-	v := url.Values{}
-	v.Add("filter", string(filter))
-	params := v.Encode()
-
-	resp, err := c.get("torrents/info?"+params, nil)
+	resp, err := c.get("torrents/info", opts)
 	if err != nil {
 		log.Error().Err(err).Msgf("get filtered torrents error: %v", filter)
 		return nil, err
@@ -103,6 +102,7 @@ func (c *Client) GetTorrentsFilter(filter TorrentFilter) ([]Torrent, error) {
 		return nil, readErr
 	}
 
+	var torrents []Torrent
 	err = json.Unmarshal(body, &torrents)
 	if err != nil {
 		log.Error().Err(err).Msgf("get filtered torrents unmarshal error: %v", filter)
@@ -115,11 +115,11 @@ func (c *Client) GetTorrentsFilter(filter TorrentFilter) ([]Torrent, error) {
 func (c *Client) GetTorrentsActiveDownloads() ([]Torrent, error) {
 	var filter = TorrentFilterDownloading
 
-	v := url.Values{}
-	v.Add("filter", string(filter))
-	params := v.Encode()
+	opts := map[string]string{
+		"filter": string(filter),
+	}
 
-	resp, err := c.get("torrents/info?"+params, nil)
+	resp, err := c.get("torrents/info", opts)
 	if err != nil {
 		log.Error().Err(err).Msgf("get filtered torrents error: %v", filter)
 		return nil, err
@@ -167,14 +167,11 @@ func (c *Client) GetTorrentsRaw() (string, error) {
 }
 
 func (c *Client) GetTorrentTrackers(hash string) ([]TorrentTracker, error) {
-	var trackers []TorrentTracker
+	opts := map[string]string{
+		"hash": hash,
+	}
 
-	params := url.Values{}
-	params.Add("hash", hash)
-
-	p := params.Encode()
-
-	resp, err := c.get("torrents/trackers?"+p, nil)
+	resp, err := c.get("torrents/trackers", opts)
 	if err != nil {
 		log.Error().Err(err).Msgf("get torrent trackers error: %v", hash)
 		return nil, err
@@ -182,12 +179,17 @@ func (c *Client) GetTorrentTrackers(hash string) ([]TorrentTracker, error) {
 
 	defer resp.Body.Close()
 
+	if resp.StatusCode == http.StatusNotFound {
+		return nil, fmt.Errorf("torrent not found: %v", hash)
+	}
+
 	body, readErr := ioutil.ReadAll(resp.Body)
 	if readErr != nil {
 		log.Error().Err(err).Msgf("get torrent trackers read error: %v", hash)
 		return nil, readErr
 	}
 
+	var trackers []TorrentTracker
 	err = json.Unmarshal(body, &trackers)
 	if err != nil {
 		log.Error().Err(err).Msgf("get torrent trackers: %v", hash)
@@ -215,16 +217,15 @@ func (c *Client) AddTorrentFromFile(file string, options map[string]string) erro
 }
 
 func (c *Client) DeleteTorrents(hashes []string, deleteFiles bool) error {
-	v := url.Values{}
-
 	// Add hashes together with | separator
 	hv := strings.Join(hashes, "|")
-	v.Add("hashes", hv)
-	v.Add("deleteFiles", strconv.FormatBool(deleteFiles))
 
-	encodedHashes := v.Encode()
+	opts := map[string]string{
+		"hashes":      hv,
+		"deleteFiles": strconv.FormatBool(deleteFiles),
+	}
 
-	resp, err := c.get("torrents/delete?"+encodedHashes, nil)
+	resp, err := c.get("torrents/delete", opts)
 	if err != nil {
 		log.Error().Err(err).Msgf("delete torrents error: %v", hashes)
 		return err
@@ -239,15 +240,13 @@ func (c *Client) DeleteTorrents(hashes []string, deleteFiles bool) error {
 }
 
 func (c *Client) ReAnnounceTorrents(hashes []string) error {
-	v := url.Values{}
-
 	// Add hashes together with | separator
 	hv := strings.Join(hashes, "|")
-	v.Add("hashes", hv)
+	opts := map[string]string{
+		"hashes": hv,
+	}
 
-	encodedHashes := v.Encode()
-
-	resp, err := c.get("torrents/reannounce?"+encodedHashes, nil)
+	resp, err := c.get("torrents/reannounce", opts)
 	if err != nil {
 		log.Error().Err(err).Msgf("re-announce error: %v", hashes)
 		return err
@@ -262,8 +261,6 @@ func (c *Client) ReAnnounceTorrents(hashes []string) error {
 }
 
 func (c *Client) GetTransferInfo() (*TransferInfo, error) {
-	var info TransferInfo
-
 	resp, err := c.get("transfer/info", nil)
 	if err != nil {
 		log.Error().Err(err).Msg("get torrents error")
@@ -278,6 +275,7 @@ func (c *Client) GetTransferInfo() (*TransferInfo, error) {
 		return nil, readErr
 	}
 
+	var info TransferInfo
 	err = json.Unmarshal(body, &info)
 	if err != nil {
 		log.Error().Err(err).Msg("get torrents unmarshal error")
