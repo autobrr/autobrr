@@ -171,13 +171,9 @@ func (s *service) checkTrackerStatus(qb *qbittorrent.Client, action domain.Actio
 	announceOK := false
 	attempts := 0
 
-	// initial sleep to give tracker a head start
 	interval := ReannounceInterval
-	if action.ReAnnounceInterval == 0 {
-		time.Sleep(6 * time.Second)
-	} else {
+	if action.ReAnnounceInterval > 0 {
 		interval = int(action.ReAnnounceInterval)
-		time.Sleep(time.Duration(interval) * time.Second)
 	}
 
 	maxAttempts := ReannounceMaxAttempts
@@ -188,10 +184,19 @@ func (s *service) checkTrackerStatus(qb *qbittorrent.Client, action domain.Actio
 	for attempts < maxAttempts {
 		s.log.Debug().Msgf("qBittorrent - run re-announce %v attempt: %v", hash, attempts)
 
+		// add delay for next run
+		time.Sleep(time.Duration(interval) * time.Second)
+
 		trackers, err := qb.GetTorrentTrackers(hash)
 		if err != nil {
 			s.log.Error().Err(err).Msgf("qBittorrent - could not get trackers for torrent: %v", hash)
 			return err
+			//continue
+		}
+
+		if trackers == nil {
+			attempts++
+			continue
 		}
 
 		s.log.Trace().Msgf("qBittorrent - run re-announce %v attempt: %v trackers (%+v)", hash, attempts, trackers)
@@ -213,9 +218,6 @@ func (s *service) checkTrackerStatus(qb *qbittorrent.Client, action domain.Actio
 			s.log.Error().Err(err).Msgf("qBittorrent - could not get re-announce torrent: %v", hash)
 			return err
 		}
-
-		// add delay for next run
-		time.Sleep(time.Duration(interval) * time.Second)
 
 		attempts++
 	}

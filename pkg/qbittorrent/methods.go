@@ -3,9 +3,9 @@ package qbittorrent
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"io/ioutil"
 	"net/http"
+	"net/http/httputil"
 	"strconv"
 	"strings"
 
@@ -179,8 +179,20 @@ func (c *Client) GetTorrentTrackers(hash string) ([]TorrentTracker, error) {
 
 	defer resp.Body.Close()
 
+	dump, err := httputil.DumpResponse(resp, true)
+	if err != nil {
+		log.Error().Err(err).Msgf("get torrent trackers dump response error: %v", err)
+		//return nil, readErr
+	}
+
+	log.Trace().Msgf("get torrent trackers response dump: %v", string(dump))
+
 	if resp.StatusCode == http.StatusNotFound {
-		return nil, fmt.Errorf("torrent not found: %v", hash)
+		//return nil, fmt.Errorf("torrent not found: %v", hash)
+		return nil, nil
+	} else if resp.StatusCode == http.StatusForbidden {
+		//return nil, fmt.Errorf("torrent not found: %v", hash)
+		return nil, nil
 	}
 
 	body, readErr := ioutil.ReadAll(resp.Body)
@@ -188,6 +200,8 @@ func (c *Client) GetTorrentTrackers(hash string) ([]TorrentTracker, error) {
 		log.Error().Err(err).Msgf("get torrent trackers read error: %v", hash)
 		return nil, readErr
 	}
+
+	log.Trace().Msgf("get torrent trackers body: %v", string(body))
 
 	var trackers []TorrentTracker
 	err = json.Unmarshal(body, &trackers)
