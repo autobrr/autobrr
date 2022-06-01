@@ -182,7 +182,6 @@ func (c *Client) GetTorrentTrackers(hash string) ([]TorrentTracker, error) {
 	dump, err := httputil.DumpResponse(resp, true)
 	if err != nil {
 		log.Error().Err(err).Msgf("get torrent trackers dump response error: %v", err)
-		//return nil, readErr
 	}
 
 	log.Trace().Msgf("get torrent trackers response dump: %v", string(dump))
