@@ -3,6 +3,7 @@ package action
 import (
 	"context"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
@@ -76,8 +77,7 @@ func (s *service) qbittorrent(qbt *qbittorrent.Client, action domain.Action, rel
 	}
 
 	if !action.Paused && !action.ReAnnounceSkip && release.TorrentHash != "" {
-		err = s.checkTrackerStatus(qbt, action, release.TorrentHash)
-		if err != nil {
+		if err := s.reannounceTorrent(qbt, action, release.TorrentHash); err != nil {
 			s.log.Error().Stack().Err(err).Msgf("could not reannounce torrent: %v", release.TorrentHash)
 			return err
 		}
@@ -167,17 +167,13 @@ func (s *service) qbittorrentCheckRulesCanDownload(action domain.Action) (bool, 
 	return true, qbt, nil
 }
 
-func (s *service) checkTrackerStatus(qb *qbittorrent.Client, action domain.Action, hash string) error {
+func (s *service) reannounceTorrent(qb *qbittorrent.Client, action domain.Action, hash string) error {
 	announceOK := false
 	attempts := 0
 
-	// initial sleep to give tracker a head start
 	interval := ReannounceInterval
-	if action.ReAnnounceInterval == 0 {
-		time.Sleep(6 * time.Second)
-	} else {
+	if action.ReAnnounceInterval > 0 {
 		interval = int(action.ReAnnounceInterval)
-		time.Sleep(time.Duration(interval) * time.Second)
 	}
 
 	maxAttempts := ReannounceMaxAttempts
@@ -188,16 +184,24 @@ func (s *service) checkTrackerStatus(qb *qbittorrent.Client, action domain.Actio
 	for attempts < maxAttempts {
 		s.log.Debug().Msgf("qBittorrent - run re-announce %v attempt: %v", hash, attempts)
 
+		// add delay for next run
+		time.Sleep(time.Duration(interval) * time.Second)
+
 		trackers, err := qb.GetTorrentTrackers(hash)
 		if err != nil {
 			s.log.Error().Err(err).Msgf("qBittorrent - could not get trackers for torrent: %v", hash)
 			return err
 		}
 
+		if trackers == nil {
+			attempts++
+			continue
+		}
+
 		s.log.Trace().Msgf("qBittorrent - run re-announce %v attempt: %v trackers (%+v)", hash, attempts, trackers)
 
 		// check if status not working or something else
-		working := findTrackerStatus(trackers)
+		working := isTrackerStatusOK(trackers)
 		if working {
 			s.log.Debug().Msgf("qBittorrent - re-announce for %v OK", hash)
 
@@ -214,14 +218,8 @@ func (s *service) checkTrackerStatus(qb *qbittorrent.Client, action domain.Actio
 			return err
 		}
 
-		// add delay for next run
-		time.Sleep(time.Duration(interval) * time.Second)
-
 		attempts++
 	}
-
-	// add extra delay before delete
-	time.Sleep(30 * time.Second)
 
 	// delete on failure to reannounce
 	if !announceOK && action.ReAnnounceDelete {
@@ -244,13 +242,32 @@ func (s *service) checkTrackerStatus(qb *qbittorrent.Client, action domain.Actio
 //  2 Tracker has been contacted and is working
 //  3 Tracker is updating
 //  4 Tracker has been contacted, but it is not working (or doesn't send proper replies)
-func findTrackerStatus(slice []qbittorrent.TorrentTracker) bool {
-	for _, item := range slice {
-		if item.Status == qbittorrent.TrackerStatusDisabled {
+func isTrackerStatusOK(trackers []qbittorrent.TorrentTracker) bool {
+	for _, tracker := range trackers {
+		if tracker.Status == qbittorrent.TrackerStatusDisabled {
 			continue
 		}
 
-		if item.Status == qbittorrent.TrackerStatusOK {
+		// check for certain messages before the tracker status to catch ok status with unreg msg
+		if isUnregistered(tracker.Message) {
+			return false
+		}
+
+		if tracker.Status == qbittorrent.TrackerStatusOK {
+			return true
+		}
+	}
+
+	return false
+}
+
+func isUnregistered(msg string) bool {
+	words := []string{"unregistered", "not registered", "not found", "not exist"}
+
+	msg = strings.ToLower(msg)
+
+	for _, v := range words {
+		if strings.Contains(msg, v) {
 			return true
 		}
 	}

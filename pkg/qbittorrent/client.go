@@ -88,7 +88,7 @@ func (c *Client) get(endpoint string, opts map[string]string) (*http.Response, e
 	var err error
 	var resp *http.Response
 
-	reqUrl := buildUrl(c.settings, endpoint)
+	reqUrl := buildUrlOpts(c.settings, endpoint, opts)
 
 	req, err := http.NewRequest("GET", reqUrl, nil)
 	if err != nil {
@@ -296,7 +296,8 @@ func (c *Client) postFile(endpoint string, fileName string, opts map[string]stri
 }
 
 func (c *Client) setCookies(cookies []*http.Cookie) {
-	cookieURL, _ := url.Parse(fmt.Sprintf("%v://%v:%v", c.settings.protocol, c.settings.Hostname, c.settings.Port))
+	cookieURL, _ := url.Parse(buildUrl(c.settings, ""))
+
 	c.http.Jar.SetCookies(cookieURL, cookies)
 }
 
@@ -339,6 +340,61 @@ func buildUrl(settings Settings, endpoint string) string {
 			u.Host = fmt.Sprintf("%v:%v", u.Host, settings.Port)
 		}
 	}
+
+	// join path
+	u.Path = path.Join(u.Path, "/api/v2/", endpoint)
+
+	// make into new string and return
+	return u.String()
+}
+
+func buildUrlOpts(settings Settings, endpoint string, opts map[string]string) string {
+	// parse url
+	u, _ := url.Parse(settings.Hostname)
+
+	// reset Opaque
+	u.Opaque = ""
+
+	// set scheme
+	scheme := "http"
+	if u.Scheme == "http" || u.Scheme == "https" {
+		if settings.TLS {
+			scheme = "https"
+		}
+		u.Scheme = scheme
+	} else {
+		if settings.TLS {
+			scheme = "https"
+		}
+		u.Scheme = scheme
+	}
+
+	// if host is empty lets use one from settings
+	if u.Host == "" {
+		u.Host = settings.Hostname
+	}
+
+	// reset Path
+	if u.Host == u.Path {
+		u.Path = ""
+	}
+
+	// handle ports
+	if settings.Port > 0 {
+		if settings.Port == 80 || settings.Port == 443 {
+			// skip for regular http and https
+		} else {
+			u.Host = fmt.Sprintf("%v:%v", u.Host, settings.Port)
+		}
+	}
+
+	// add query params
+	q := u.Query()
+	for k, v := range opts {
+		q.Set(k, v)
+	}
+
+	u.RawQuery = q.Encode()
 
 	// join path
 	u.Path = path.Join(u.Path, "/api/v2/", endpoint)
