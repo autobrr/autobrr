@@ -14,7 +14,7 @@ import (
 	"github.com/autobrr/autobrr/internal/scheduler"
 
 	"github.com/gosimple/slug"
-	"gopkg.in/yaml.v2"
+	"gopkg.in/yaml.v3"
 )
 
 type Service interface {
