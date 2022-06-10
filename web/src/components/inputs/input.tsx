@@ -35,7 +35,7 @@ export const TextField = ({
         {label}
       </label>
     )}
-    {/*<Field name={name}>
+    <Field name={name}>
       {({
         field,
         meta
@@ -56,7 +56,7 @@ export const TextField = ({
           )}
         </div>
       )}
-          </Field>*/}
+    </Field>
   </div>
 );
 
@@ -94,7 +94,7 @@ export const PasswordField = ({
           {label} {required && <span className="text-gray-500">*</span>}
         </label>
       )}
-      {/*<Field name={name} defaultValue={defaultValue}>
+      <Field name={name} defaultValue={defaultValue}>
         {({
           field,
           meta
@@ -122,7 +122,7 @@ export const PasswordField = ({
             )}
           </div>
         )}
-            </Field>*/}
+      </Field>
     </div>
   );
 };
@@ -145,7 +145,7 @@ export const NumberField = ({
       {label}
     </label>
 
-    {/*<Field name={name} type="number">
+    <Field name={name} type="number">
       {({
         field,
         meta
@@ -169,6 +169,6 @@ export const NumberField = ({
         </div>
 
       )}
-          </Field>*/}
+    </Field>
   </div>
 );

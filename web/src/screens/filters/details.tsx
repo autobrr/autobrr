@@ -233,22 +233,7 @@ export default function FilterDetails() {
                 </nav>
               </div>
 
-              {/*
-                NOTE: We could put this in routes.ts, and use <Outlet context={context} />
-                in combination with `useOutletContext`
-                but this seems more convenient for the moment.
-              */}
-              <Routes>
-                <Route index element={<General />} />
-                <Route path="movies-tv" element={<MoviesTv />} />
-                <Route path="music" element={<Music />} />
-                <Route path="advanced" element={<Advanced />} />
-                <Route path="actions" element={
-                  <FilterActions filter={filter} values={{/*TODO*/}} />}
-                />
-              </Routes>
-
-              {/*<Formik
+              <Formik
                 initialValues={{
                   id: filter.id,
                   name: filter.name,
@@ -302,11 +287,19 @@ export default function FilterDetails() {
               >
                 {({ values, dirty, resetForm }) => (
                   <Form>
+                    <Routes>
+                      <Route index element={<General />} />
+                      <Route path="movies-tv" element={<MoviesTv />} />
+                      <Route path="music" element={<Music />} />
+                      <Route path="advanced" element={<Advanced />} />
+                      <Route path="actions" element={<FilterActions filter={filter} values={values} />}
+                      />
+                    </Routes>
                     <FormButtonsGroup values={values} deleteAction={deleteAction} dirty={dirty} reset={resetForm} />
                     <DEBUG values={values} />
                   </Form>
                 )}
-                </Formik>*/}
+              </Formik>
             </div>
           </div>
         </div>
@@ -321,7 +314,7 @@ export function General() {
     APIClient.indexers.getOptions,
     { refetchOnWindowFocus: false }
   );
-    
+
   const opts = indexers && indexers.length > 0 ? indexers.map(v => ({
     label: v.name,
     value: v.id
@@ -580,7 +573,7 @@ export function FilterActions({ filter, values }: FilterActionsProps) {
 
   return (
     <div className="mt-10">
-      {/*<FieldArray name="actions">
+      <FieldArray name="actions">
         {({ remove, push }) => (
           <Fragment>
             <div className="-ml-4 -mt-4 mb-6 flex justify-between items-center flex-wrap sm:flex-nowrap">
@@ -613,7 +606,7 @@ export function FilterActions({ filter, values }: FilterActionsProps) {
             </div>
           </Fragment>
         )}
-            </FieldArray>*/}
+      </FieldArray>
     </div>
   );
 }
