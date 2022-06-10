@@ -1,15 +1,9 @@
-import { BrowserRouter as Router, Route, Switch } from "react-router-dom";
 import { QueryClient, QueryClientProvider, useQueryErrorResetBoundary } from "react-query";
 import { ReactQueryDevtools } from "react-query/devtools";
 import { ErrorBoundary } from "react-error-boundary";
 import { toast, Toaster } from "react-hot-toast";
 
-import Base from "./screens/Base";
-import { Login } from "./screens/auth/login";
-import { Logout } from "./screens/auth/logout";
-import { Onboarding } from "./screens/auth/onboarding";
-
-import { baseUrl } from "./utils";
+import { LocalRouter } from "./domain/routes";
 import { AuthContext, SettingsContext } from "./utils/Context";
 import { ErrorPage } from "./components/alerts";
 import Toast from "./components/notifications/Toast";
@@ -44,17 +38,7 @@ export function App() {
         onReset={reset}
         fallbackRender={ErrorPage}
       >
-        <Router basename={baseUrl()}>
-          <Route exact path="/logout" component={Logout} />
-          {authContext.isLoggedIn ? (
-            <Route component={Base} />
-          ) : (
-            <Switch>
-              <Route exact path="/onboard" component={Onboarding} />
-              <Route component={Login} />
-            </Switch>
-          )}
-        </Router>
+        <LocalRouter isLoggedIn={authContext.isLoggedIn} />
         {settings.debug ? (
           <ReactQueryDevtools initialIsOpen={false} />
         ) : null}

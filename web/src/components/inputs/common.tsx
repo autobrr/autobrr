@@ -6,11 +6,13 @@ interface ErrorFieldProps {
 }
 
 const ErrorField = ({ name, classNames }: ErrorFieldProps) => (
-  <Field name={name} subscribe={{ touched: true, error: true }}>
-    {({ meta: { touched, error } }: FieldProps) =>
-      touched && error ? <span className={classNames}>{error}</span> : null
-    }
-  </Field>
+  <div>
+    <Field name={name} subscribe={{ touched: true, error: true }}>
+      {({ meta: { touched, error } }: FieldProps) =>
+        touched && error ? <span className={classNames}>{error}</span> : null
+      }
+    </Field>
+  </div>
 );
 
 interface CheckboxFieldProps {
@@ -26,7 +28,7 @@ const CheckboxField = ({
 }: CheckboxFieldProps) => (
   <div className="relative flex items-start">
     <div className="flex items-center h-5">
-      <Field  
+      <Field
         id={name}
         name={name}
         type="checkbox" 

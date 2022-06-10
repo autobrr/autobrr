@@ -3,11 +3,10 @@ import { useMutation, useQuery } from "react-query";
 import {
   NavLink,
   Route,
-  Switch as RouteSwitch,
-  useHistory,
+  Routes,
   useLocation,
-  useParams,
-  useRouteMatch
+  useNavigate,
+  useParams
 } from "react-router-dom";
 import { toast } from "react-hot-toast";
 import { Field, FieldArray, FieldProps, Form, Formik, FormikValues } from "formik";
@@ -55,24 +54,21 @@ import { EmptyListState } from "../../components/emptystates";
 interface tabType {
   name: string;
   href: string;
-  current: boolean;
 }
 
 const tabs: tabType[] = [
-  { name: "General", href: "", current: true },
-  { name: "Movies and TV", href: "movies-tv", current: false },
-  { name: "Music", href: "music", current: false },
-  // { name: 'P2P', href: 'p2p', current: false },
-  { name: "Advanced", href: "advanced", current: false },
-  { name: "Actions", href: "actions", current: false }
+  { name: "General", href: "" },
+  { name: "Movies and TV", href: "movies-tv" },
+  { name: "Music", href: "music" },
+  { name: "Advanced", href: "advanced" },
+  { name: "Actions", href: "actions" }
 ];
 
 export interface NavLinkProps {
   item: tabType;
-  url: string;
 }
 
-function TabNavLink({ item, url }: NavLinkProps) {
+function TabNavLink({ item }: NavLinkProps) {
   const location = useLocation();
   const splitLocation = location.pathname.split("/");
 
@@ -80,11 +76,11 @@ function TabNavLink({ item, url }: NavLinkProps) {
   return (
     <NavLink
       key={item.name}
-      to={item.href ? `${url}/${item.href}` : url}
-      exact
-      activeClassName="border-purple-600 dark:border-blue-500 text-purple-600 dark:text-white"
-      className={classNames(
-        "border-transparent text-gray-500 hover:text-purple-600 dark:hover:text-white hover:border-purple-600 dark:hover:border-blue-500 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm"
+      to={item.href}
+      end
+      className={({ isActive }) => classNames(
+        "text-gray-500 hover:text-purple-600 dark:hover:text-white hover:border-purple-600 dark:hover:border-blue-500 whitespace-nowrap py-4 px-1 font-medium text-sm",
+        isActive ? "border-b-2 border-purple-600 dark:border-blue-500 text-purple-600 dark:text-white" : ""
       )}
       aria-current={splitLocation[2] === item.href ? "page" : undefined}
     >
@@ -132,13 +128,13 @@ const FormButtonsGroup = ({ values, deleteAction, reset }: FormButtonsGroupProps
             className="light:bg-white light:border light:border-gray-300 rounded-md py-2 px-4 inline-flex justify-center text-sm font-medium text-gray-700 dark:text-gray-500 light:hover:bg-gray-50 dark:hover:text-gray-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
             onClick={reset}
           >
-                        Cancel
+            Cancel
           </button>
           <button
             type="submit"
             className="ml-4 relative inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 dark:bg-blue-600 hover:bg-indigo-700 dark:hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
           >
-                        Save
+            Save
           </button>
         </div>
       </div>
@@ -147,17 +143,16 @@ const FormButtonsGroup = ({ values, deleteAction, reset }: FormButtonsGroupProps
 };
 
 export default function FilterDetails() {
-  const history = useHistory();
-  const { url } = useRouteMatch();
+  const navigate = useNavigate();
   const { filterId } = useParams<{ filterId: string }>();
 
   const { isLoading, data: filter } = useQuery(
     ["filters", filterId],
-    () => APIClient.filters.getByID(parseInt(filterId)),
+    () => APIClient.filters.getByID(parseInt(filterId ?? "0")),
     {
       retry: false,
       refetchOnWindowFocus: false,
-      onError: () => history.push("./")
+      onError: () => navigate("./")
     }
   );
 
@@ -184,7 +179,7 @@ export default function FilterDetails() {
       queryClient.invalidateQueries(["filters"]);
 
       // redirect
-      history.push("/filters");
+      navigate("/filters");
     }
   });
 
@@ -218,8 +213,8 @@ export default function FilterDetails() {
       <header className="py-10">
         <div className="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center">
           <h1 className="text-3xl font-bold text-black dark:text-white">
-            <NavLink to="/filters" exact>
-                            Filters
+            <NavLink to="/filters">
+              Filters
             </NavLink>
           </h1>
           <ChevronRightIcon className="h-6 w-6 text-gray-500" aria-hidden="true" />
@@ -229,102 +224,82 @@ export default function FilterDetails() {
       <div className="max-w-screen-xl mx-auto pb-12 px-4 sm:px-6 lg:px-8">
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow">
           <div className="relative mx-auto md:px-6 xl:px-4">
-            <div className="px-4 sm:px-6 md:px-0">
-              <div className="pt-1 pb-6">
-                <div className="block overflow-auto">
-                  <div className="border-b border-gray-200 dark:border-gray-700">
-                    <nav className="-mb-px flex space-x-6 sm:space-x-8">
-                      {tabs.map((tab) => (
-                        <TabNavLink item={tab} url={url} key={tab.href} />
-                      ))}
-                    </nav>
-                  </div>
-                </div>
-
-                <Formik
-                  initialValues={{
-                    id: filter.id,
-                    name: filter.name,
-                    enabled: filter.enabled || false,
-                    min_size: filter.min_size,
-                    max_size: filter.max_size,
-                    delay: filter.delay,
-                    priority: filter.priority,
-                    max_downloads: filter.max_downloads,
-                    max_downloads_unit: filter.max_downloads_unit,
-                    use_regex: filter.use_regex || false,
-                    shows: filter.shows,
-                    years: filter.years,
-                    resolutions: filter.resolutions || [],
-                    sources: filter.sources || [],
-                    codecs: filter.codecs || [],
-                    containers: filter.containers || [],
-                    match_hdr: filter.match_hdr || [],
-                    except_hdr: filter.except_hdr || [],
-                    match_other: filter.match_other || [],
-                    except_other: filter.except_other || [],
-                    seasons: filter.seasons,
-                    episodes: filter.episodes,
-                    match_releases: filter.match_releases,
-                    except_releases: filter.except_releases,
-                    match_release_groups: filter.match_release_groups,
-                    except_release_groups: filter.except_release_groups,
-                    match_categories: filter.match_categories,
-                    except_categories: filter.except_categories,
-                    tags: filter.tags,
-                    except_tags: filter.except_tags,
-                    match_uploaders: filter.match_uploaders,
-                    except_uploaders: filter.except_uploaders,
-                    freeleech: filter.freeleech,
-                    freeleech_percent: filter.freeleech_percent,
-                    formats: filter.formats || [],
-                    quality: filter.quality || [],
-                    media: filter.media || [],
-                    match_release_types: filter.match_release_types || [],
-                    log_score: filter.log_score,
-                    log: filter.log,
-                    cue: filter.cue,
-                    perfect_flac: filter.perfect_flac,
-                    artists: filter.artists,
-                    albums: filter.albums,
-                    origins: filter.origins || [],
-                    indexers: filter.indexers || [],
-                    actions: filter.actions || []
-                  } as Filter}
-                  onSubmit={handleSubmit}
-                >
-                  {({ values, dirty, resetForm }) => (
-                    <Form>
-                      <RouteSwitch>
-                        <Route exact path={url}>
-                          <General />
-                        </Route>
-
-                        <Route path={`${url}/movies-tv`}>
-                          <MoviesTv />
-                        </Route>
-
-                        <Route path={`${url}/music`}>
-                          <Music />
-                        </Route>
-
-                        <Route path={`${url}/advanced`}>
-                          <Advanced />
-                        </Route>
-
-                        <Route path={`${url}/actions`}>
-                          <FilterActions filter={filter} values={values} />
-                        </Route>
-                      </RouteSwitch>
-
-                      <FormButtonsGroup values={values} deleteAction={deleteAction} dirty={dirty} reset={resetForm} />
-
-                      <DEBUG values={values} />
-                    </Form>
-                  )}
-                </Formik>
-
+            <div className="pt-1 pb-6 block overflow-auto">
+              <div className="border-b border-gray-200 dark:border-gray-700">
+                <nav className="-mb-px flex space-x-6 sm:space-x-8">
+                  {tabs.map((tab) => (
+                    <TabNavLink item={tab} key={tab.href} />
+                  ))}
+                </nav>
               </div>
+
+              <Formik
+                initialValues={{
+                  id: filter.id,
+                  name: filter.name,
+                  enabled: filter.enabled || false,
+                  min_size: filter.min_size,
+                  max_size: filter.max_size,
+                  delay: filter.delay,
+                  priority: filter.priority,
+                  max_downloads: filter.max_downloads,
+                  max_downloads_unit: filter.max_downloads_unit,
+                  use_regex: filter.use_regex || false,
+                  shows: filter.shows,
+                  years: filter.years,
+                  resolutions: filter.resolutions || [],
+                  sources: filter.sources || [],
+                  codecs: filter.codecs || [],
+                  containers: filter.containers || [],
+                  match_hdr: filter.match_hdr || [],
+                  except_hdr: filter.except_hdr || [],
+                  match_other: filter.match_other || [],
+                  except_other: filter.except_other || [],
+                  seasons: filter.seasons,
+                  episodes: filter.episodes,
+                  match_releases: filter.match_releases,
+                  except_releases: filter.except_releases,
+                  match_release_groups: filter.match_release_groups,
+                  except_release_groups: filter.except_release_groups,
+                  match_categories: filter.match_categories,
+                  except_categories: filter.except_categories,
+                  tags: filter.tags,
+                  except_tags: filter.except_tags,
+                  match_uploaders: filter.match_uploaders,
+                  except_uploaders: filter.except_uploaders,
+                  freeleech: filter.freeleech,
+                  freeleech_percent: filter.freeleech_percent,
+                  formats: filter.formats || [],
+                  quality: filter.quality || [],
+                  media: filter.media || [],
+                  match_release_types: filter.match_release_types || [],
+                  log_score: filter.log_score,
+                  log: filter.log,
+                  cue: filter.cue,
+                  perfect_flac: filter.perfect_flac,
+                  artists: filter.artists,
+                  albums: filter.albums,
+                  origins: filter.origins || [],
+                  indexers: filter.indexers || [],
+                  actions: filter.actions || []
+                } as Filter}
+                onSubmit={handleSubmit}
+              >
+                {({ values, dirty, resetForm }) => (
+                  <Form>
+                    <Routes>
+                      <Route index element={<General />} />
+                      <Route path="movies-tv" element={<MoviesTv />} />
+                      <Route path="music" element={<Music />} />
+                      <Route path="advanced" element={<Advanced />} />
+                      <Route path="actions" element={<FilterActions filter={filter} values={values} />}
+                      />
+                    </Routes>
+                    <FormButtonsGroup values={values} deleteAction={deleteAction} dirty={dirty} reset={resetForm} />
+                    <DEBUG values={values} />
+                  </Form>
+                )}
+              </Formik>
             </div>
           </div>
         </div>
@@ -333,13 +308,13 @@ export default function FilterDetails() {
   );
 }
 
-function General() {
+export function General() {
   const { isLoading, data: indexers } = useQuery(
     ["filters", "indexer_list"],
     APIClient.indexers.getOptions,
     { refetchOnWindowFocus: false }
   );
-    
+
   const opts = indexers && indexers.length > 0 ? indexers.map(v => ({
     label: v.name,
     value: v.id
@@ -380,7 +355,7 @@ function General() {
   );
 }
 
-function MoviesTv() {
+export function MoviesTv() {
   return (
     <div>
       <div className="mt-6 grid grid-cols-12 gap-6">
@@ -424,7 +399,7 @@ function MoviesTv() {
   );
 }
 
-function Music() {
+export function Music() {
   return (
     <div>
       <div className="mt-6 grid grid-cols-12 gap-6">
@@ -476,7 +451,7 @@ function Music() {
   );
 }
 
-function Advanced() {
+export function Advanced() {
   return (
     <div>
       <CollapsableSection title="Releases" subtitle="Match only certain release names and/or ignore other release names">
@@ -559,7 +534,7 @@ interface FilterActionsProps {
     values: FormikValues;
 }
 
-function FilterActions({ filter, values }: FilterActionsProps) {
+export function FilterActions({ filter, values }: FilterActionsProps) {
   const { data } = useQuery(
     ["filters", "download_clients"],
     APIClient.download_clients.getAll,
@@ -973,7 +948,7 @@ function FilterActionsItem({ action, clients, idx, remove }: FilterActionsItemPr
                   className="inline-flex items-center justify-center py-2 border border-transparent font-medium rounded-md text-red-700 dark:text-red-500 hover:text-red-500 dark:hover:text-red-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:text-sm"
                   onClick={toggleDeleteModal}
                 >
-                                    Remove
+                  Remove
                 </button>
 
                 <div>
@@ -982,7 +957,7 @@ function FilterActionsItem({ action, clients, idx, remove }: FilterActionsItemPr
                     className="light:bg-white light:border light:border-gray-300 rounded-md shadow-sm py-2 px-4 inline-flex justify-center text-sm font-medium text-gray-700 dark:text-gray-500 light:hover:bg-gray-50 dark:hover:text-gray-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                     onClick={toggleEdit}
                   >
-                                        Close
+                    Close
                   </button>
                 </div>
               </div>

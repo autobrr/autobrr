@@ -133,7 +133,7 @@ func (h authHandler) canOnboard(w http.ResponseWriter, r *http.Request) {
 
 	if userCount > 0 {
 		// send 503 service onboarding unavailable
-		http.Error(w, "Onboarding unavailable", http.StatusServiceUnavailable)
+		http.Error(w, "Onboarding unavailable", http.StatusForbidden)
 		return
 	}
 

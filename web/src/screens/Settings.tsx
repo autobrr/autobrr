@@ -1,56 +1,52 @@
-import { BellIcon, ChatAlt2Icon, CogIcon, CollectionIcon, DownloadIcon, KeyIcon, RssIcon } from "@heroicons/react/outline";
-import { NavLink, Route, Switch as RouteSwitch, useLocation, useRouteMatch } from "react-router-dom";
+import { NavLink, Outlet, useLocation } from "react-router-dom";
+import {
+  BellIcon,
+  ChatAlt2Icon,
+  CogIcon,
+  CollectionIcon,
+  DownloadIcon,
+  KeyIcon,
+  RssIcon
+} from "@heroicons/react/outline";
 
 import { classNames } from "../utils";
-import IndexerSettings from "./settings/Indexer";
-import { IrcSettings } from "./settings/Irc";
-import ApplicationSettings from "./settings/Application";
-import DownloadClientSettings from "./settings/DownloadClient";
-import { RegexPlayground } from "./settings/RegexPlayground";
-import ReleaseSettings from "./settings/Releases";
-import NotificationSettings from "./settings/Notifications";
-import FeedSettings from "./settings/Feed";
 
 interface NavTabType {
   name: string;
   href: string;
   icon: typeof CogIcon;
-  current: boolean;
 }
 
 const subNavigation: NavTabType[] = [
-  { name: "Application", href: "", icon: CogIcon, current: true },
-  { name: "Indexers", href: "indexers", icon: KeyIcon, current: false },
-  { name: "IRC", href: "irc", icon: ChatAlt2Icon, current: false },
-  { name: "Feeds", href: "feeds", icon: RssIcon, current: false },
-  { name: "Clients", href: "clients", icon: DownloadIcon, current: false },
-  { name: "Notifications", href: "notifications", icon: BellIcon, current: false },
-  { name: "Releases", href: "releases", icon: CollectionIcon, current: false }
+  { name: "Application", href: "", icon: CogIcon },
+  { name: "Indexers", href: "indexers", icon: KeyIcon },
+  { name: "IRC", href: "irc", icon: ChatAlt2Icon },
+  { name: "Feeds", href: "feeds", icon: RssIcon },
+  { name: "Clients", href: "clients", icon: DownloadIcon },
+  { name: "Notifications", href: "notifications", icon: BellIcon },
+  { name: "Releases", href: "releases", icon: CollectionIcon }
   // {name: 'Regex Playground', href: 'regex-playground', icon: CogIcon, current: false}
   // {name: 'Rules', href: 'rules', icon: ClipboardCheckIcon, current: false},
 ];
 
 interface NavLinkProps {
   item: NavTabType;
-  url: string;
 }
 
-function SubNavLink({ item, url }: NavLinkProps) {
-  const location = useLocation();
-  const { pathname } = location;
-
+function SubNavLink({ item }: NavLinkProps) {
+  const { pathname } = useLocation();
   const splitLocation = pathname.split("/");
 
   // we need to clean the / if it's a base root path
-  const too = item.href ? `${url}/${item.href}` : url;
   return (
     <NavLink
       key={item.name}
-      to={too}
-      exact={true}
-      activeClassName="bg-teal-50 dark:bg-gray-700 border-teal-500 dark:border-blue-500 text-teal-700 dark:text-white hover:bg-teal-50 dark:hover:bg-gray-500 hover:text-teal-700 dark:hover:text-gray-200"
-      className={classNames(
-        "border-transparent text-gray-900 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-gray-300 group border-l-4 px-3 py-2 flex items-center text-sm font-medium"
+      to={item.href}
+      end
+      className={({ isActive }) => classNames(
+        "border-transparent text-gray-900 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-gray-300 group border-l-4 px-3 py-2 flex items-center text-sm font-medium",
+        isActive ?
+          "bg-teal-50 dark:bg-gray-700 border-teal-500 dark:border-blue-500 text-teal-700 dark:text-white hover:bg-teal-50 dark:hover:bg-gray-500 hover:text-teal-700 dark:hover:text-gray-200" : ""
       )}
       aria-current={splitLocation[2] === item.href ? "page" : undefined}
     >
@@ -65,15 +61,14 @@ function SubNavLink({ item, url }: NavLinkProps) {
 
 interface SidebarNavProps {
   subNavigation: NavTabType[];
-  url: string;
 }
 
-function SidebarNav({ subNavigation, url }: SidebarNavProps) {
+function SidebarNav({ subNavigation }: SidebarNavProps) {
   return (
     <aside className="py-2 lg:col-span-3">
       <nav className="space-y-1">
         {subNavigation.map((item) => (
-          <SubNavLink item={item} url={url} key={item.href}/>
+          <SubNavLink item={item} key={item.href}/>
         ))}
       </nav>
     </aside>
@@ -81,7 +76,6 @@ function SidebarNav({ subNavigation, url }: SidebarNavProps) {
 }
 
 export default function Settings() {
-  const { url } = useRouteMatch();
   return (
     <main>
       <header className="py-10">
@@ -93,41 +87,8 @@ export default function Settings() {
       <div className="max-w-screen-xl mx-auto pb-6 px-4 sm:px-6 lg:pb-16 lg:px-8">
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg">
           <div className="divide-y divide-gray-200 dark:divide-gray-700 lg:grid lg:grid-cols-12 lg:divide-y-0 lg:divide-x">
-            <SidebarNav url={url} subNavigation={subNavigation}/>
-
-            <RouteSwitch>
-              <Route exact path={url}>
-                <ApplicationSettings/>
-              </Route>
-
-              <Route path={`${url}/indexers`}>
-                <IndexerSettings/>
-              </Route>
-
-              <Route path={`${url}/feeds`}>
-                <FeedSettings/>
-              </Route>
-
-              <Route path={`${url}/irc`}>
-                <IrcSettings/>
-              </Route>
-
-              <Route path={`${url}/clients`}>
-                <DownloadClientSettings/>
-              </Route>
-
-              <Route path={`${url}/notifications`}>
-                <NotificationSettings />
-              </Route>
-
-              <Route path={`${url}/releases`}>
-                <ReleaseSettings/>
-              </Route>
-
-              <Route path={`${url}/regex-playground`}>
-                <RegexPlayground />
-              </Route>
-            </RouteSwitch>
+            <SidebarNav subNavigation={subNavigation}/>
+            <Outlet />
           </div>
         </div>
       </div>

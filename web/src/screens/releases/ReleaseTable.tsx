@@ -186,7 +186,7 @@ export const ReleaseTable = () => {
           headerGroup.headers.map((column) => (
             column.Filter ? (
               <div className="mt-2 sm:mt-0" key={column.id}>
-                {column.render("Filter")}
+                <>{column.render("Filter")}</>
               </div>
             ) : null
           ))
@@ -211,7 +211,7 @@ export const ReleaseTable = () => {
                         {...columnRest}
                       >
                         <div className="flex items-center justify-between">
-                          {column.render("Header")}
+                          <>{column.render("Header")}</>
                           {/* Add a sort direction indicator */}
                           <span>
                             {column.isSorted ? (
@@ -251,7 +251,7 @@ export const ReleaseTable = () => {
                         role="cell"
                         {...cellRowRest}
                       >
-                        {cell.render("Cell")}
+                        <>{cell.render("Cell")}</>
                       </td>
                     );
                   })}

@@ -103,10 +103,10 @@ const ListItem = ({ idx, network }: ListItemProps) => {
         <div className="col-span-4 flex justify-between items-center sm:px-6 text-sm text-gray-500 dark:text-gray-400 cursor-pointer" onClick={toggleEdit}>{network.server}:{network.port} {network.tls && <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 dark:bg-green-300 text-green-800 dark:text-green-900">TLS</span>}</div>
         {network.nickserv && network.nickserv.account ? (
           <div className="col-span-4 items-center sm:px-6 text-sm text-gray-500 dark:text-gray-400 cursor-pointer" onClick={toggleEdit}>{network.nickserv.account}</div>
-        ) : null}
+        ) : <div className="col-span-4" />}
         <div className="col-span-1 text-sm text-gray-500 dark:text-gray-400">
           <span className="text-indigo-600 dark:text-gray-300 hover:text-indigo-900 cursor-pointer" onClick={toggleUpdate}>
-                        Edit
+            Edit
           </span>
         </div>
       </div>

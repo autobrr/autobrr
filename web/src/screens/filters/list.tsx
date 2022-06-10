@@ -41,7 +41,7 @@ export default function Filters() {
       <header className="py-10">
         <div className="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8 flex justify-between">
           <h1 className="text-3xl font-bold text-black dark:text-white">
-                      Filters
+            Filters
           </h1>
           <div className="flex-shrink-0">
             <button
@@ -49,7 +49,7 @@ export default function Filters() {
               className="relative inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 dark:bg-blue-600 hover:bg-indigo-700 dark:hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 dark:focus:ring-blue-500"
               onClick={toggleCreateFilter}
             >
-                            Add new
+              Add new
             </button>
           </div>
         </div>
@@ -101,8 +101,8 @@ function FilterList({ filters }: FilterListProps) {
 }
 
 interface FilterItemDropdownProps {
-    filter: Filter;
-    onToggle: (newState: boolean) => void;
+  filter: Filter;
+  onToggle: (newState: boolean) => void;
 }
 
 const FilterItemDropdown = ({
@@ -172,7 +172,7 @@ const FilterItemDropdown = ({
             <Menu.Item>
               {({ active }) => (
                 <Link
-                  to={`filters/${filter.id.toString()}`}
+                  to={filter.id.toString()}
                   className={classNames(
                     active ? "bg-blue-600 text-white" : "text-gray-900 dark:text-gray-300",
                     "font-medium group flex rounded-md items-center w-full px-2 py-2 text-sm"
@@ -185,7 +185,7 @@ const FilterItemDropdown = ({
                     )}
                     aria-hidden="true"
                   />
-                                    Edit
+                  Edit
                 </Link>
               )}
             </Menu.Item>
@@ -205,7 +205,7 @@ const FilterItemDropdown = ({
                     )}
                     aria-hidden="true"
                   />
-                                    Toggle
+                  Toggle
                 </button>
               )}
             </Menu.Item>
@@ -225,7 +225,7 @@ const FilterItemDropdown = ({
                     )}
                     aria-hidden="true"
                   />
-                                    Duplicate
+                  Duplicate
                 </button>
               )}
             </Menu.Item>
@@ -247,7 +247,7 @@ const FilterItemDropdown = ({
                     )}
                     aria-hidden="true"
                   />
-                                    Delete
+                  Delete
                 </button>
               )}
             </Menu.Item>
@@ -319,7 +319,7 @@ function FilterListItem({ filter, idx }: FilterListItemProps) {
       </td>
       <td className="px-6 w-full whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-100">
         <Link
-          to={`filters/${filter.id.toString()}`}
+          to={filter.id.toString()}
           className="hover:text-black dark:hover:text-gray-300 w-full py-4 flex"
         >
           {filter.name}
