@@ -1,11 +1,13 @@
 import { useToggle } from "../../hooks/hooks";
 import { Switch } from "@headlessui/react";
-import { useQuery } from "react-query";
+import { useMutation, useQuery, useQueryClient } from "react-query";
 import { classNames } from "../../utils";
 import { DownloadClientAddForm, DownloadClientUpdateForm } from "../../forms";
 import { EmptySimple } from "../../components/emptystates";
 import { APIClient } from "../../api/APIClient";
 import { DownloadClientTypeNameMap } from "../../domain/constants";
+import toast from "react-hot-toast";
+import Toast from "../../components/notifications/Toast";
 
 interface DLSettingsItemProps {
     client: DownloadClient;
@@ -15,14 +17,35 @@ interface DLSettingsItemProps {
 function DownloadClientSettingsListItem({ client, idx }: DLSettingsItemProps) {
   const [updateClientIsOpen, toggleUpdateClient] = useToggle(false);
 
+  const queryClient = useQueryClient();
+  const mutation = useMutation(
+    (client: DownloadClient) => APIClient.download_clients.update(client),
+    {
+      onSuccess: () => {
+        queryClient.invalidateQueries(["downloadClients"]);
+        toast.custom((t) => <Toast type="success" body={`${client.name} was updated successfully`} t={t}/>);
+      }
+    }
+  );
+
+  const onToggleMutation = (newState: boolean) => {
+    mutation.mutate({
+      ...client,
+      enabled: newState
+    });
+  };
+
   return (
     <tr key={client.name} className={idx % 2 === 0 ? "light:bg-white" : "light:bg-gray-50"}>
-      <DownloadClientUpdateForm client={client} isOpen={updateClientIsOpen} toggle={toggleUpdateClient} />
-            
+      <DownloadClientUpdateForm
+        client={client}
+        isOpen={updateClientIsOpen}
+        toggle={toggleUpdateClient}
+      />
       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
         <Switch
           checked={client.enabled}
-          onChange={toggleUpdateClient}
+          onChange={onToggleMutation}
           className={classNames(
             client.enabled ? "bg-teal-500 dark:bg-blue-500" : "bg-gray-200 dark:bg-gray-600",
             "relative inline-flex flex-shrink-0 h-6 w-11 border-2 border-transparent rounded-full cursor-pointer transition-colors ease-in-out duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"

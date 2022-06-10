@@ -181,7 +181,7 @@ export const ReleaseTable = () => {
   // Render the UI for your table
   return (
     <div className="flex flex-col">
-      <div className="flex mb-6">
+      <div className="flex mb-6 flex-col sm:flex-row">
         {headerGroups.map((headerGroup) =>
           headerGroup.headers.map((column) => (
             column.Filter ? (
