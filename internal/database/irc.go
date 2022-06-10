@@ -560,3 +560,26 @@ func (r *IrcRepo) UpdateChannel(channel *domain.IrcChannel) error {
 
 	return err
 }
+
+func (r *IrcRepo) UpdateInviteCommand(networkID int64, invite string) error {
+
+	// update record
+	channelQueryBuilder := r.db.squirrel.
+		Update("irc_network").
+		Set("invite_command", invite).
+		Where("id = ?", networkID)
+
+	query, args, err := channelQueryBuilder.ToSql()
+	if err != nil {
+		r.log.Error().Stack().Err(err).Msg("irc.UpdateInviteCommand: error building query")
+		return err
+	}
+
+	_, err = r.db.handler.Exec(query, args...)
+	if err != nil {
+		r.log.Error().Stack().Err(err).Msg("irc.UpdateInviteCommand: error executing query")
+		return err
+	}
+
+	return err
+}

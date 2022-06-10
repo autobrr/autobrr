@@ -72,6 +72,7 @@ type IrcRepo interface {
 	UpdateNetwork(ctx context.Context, network *IrcNetwork) error
 	StoreChannel(networkID int64, channel *IrcChannel) error
 	UpdateChannel(channel *IrcChannel) error
+	UpdateInviteCommand(networkID int64, invite string) error
 	StoreNetworkChannels(ctx context.Context, networkID int64, channels []IrcChannel) error
 	CheckExistingNetwork(ctx context.Context, network *IrcNetwork) (*IrcNetwork, error)
 	FindActiveNetworks(ctx context.Context) ([]IrcNetwork, error)

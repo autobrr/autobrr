@@ -556,6 +556,14 @@ func (s *service) StoreNetwork(ctx context.Context, network *domain.IrcNetwork) 
 		existingNetwork.Channels = append(existingNetwork.Channels, network.Channels...)
 	}
 
+	// append invite command for existing network
+	if network.InviteCommand != "" {
+		existingNetwork.InviteCommand = strings.Join([]string{existingNetwork.InviteCommand, network.InviteCommand}, ",")
+		if err := s.repo.UpdateInviteCommand(existingNetwork.ID, existingNetwork.InviteCommand); err != nil {
+			return err
+		}
+	}
+
 	if existingNetwork.Enabled {
 		// if server, tls, invite command, port : changed - restart
 		// if nickserv account, nickserv password : changed - stay connected, and change those
