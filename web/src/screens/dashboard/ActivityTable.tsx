@@ -13,6 +13,7 @@ import { EmptyListState } from "../../components/emptystates";
 
 import * as Icons from "../../components/Icons";
 import * as DataTable from "../../components/data-table";
+import { Fragment } from "react";
 
 // This is a custom filter UI for selecting
 // a unique option from a list
@@ -32,7 +33,7 @@ function SelectColumnFilter({
   // Render a multi-select box
   return (
     <label className="flex items-baseline gap-x-2">
-      <span className="text-gray-700">{render("Header")}: </span>
+      <span className="text-gray-700"><>{render("Header")}:</></span>
       <select
         className="border-gray-300 rounded-md shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
         name={id}
@@ -99,7 +100,7 @@ function Table({ columns, data }: TableProps) {
                         {...columnRest}
                       >
                         <div className="flex items-center justify-between">
-                          {column.render("Header")}
+                          <>{column.render("Header")}</>
                           {/* Add a sort direction indicator */}
                           <span>
                             {column.isSorted ? (
@@ -138,7 +139,7 @@ function Table({ columns, data }: TableProps) {
                         role="cell"
                         {...cellRowRest}
                       >
-                        {cell.render("Cell")}
+                        <>{cell.render("Cell")}</>
                       </td>
                     );
                   })}
