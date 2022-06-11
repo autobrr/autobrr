@@ -56,10 +56,10 @@ func (s *service) qbittorrent(qbt *qbittorrent.Client, action domain.Action, rel
 		options["tags"] = tagsArgs
 	}
 	if action.LimitUploadSpeed > 0 {
-		options["upLimit"] = (strconv.FormatInt(action.LimitUploadSpeed, 10) * 1000)
+		options["upLimit"] = strconv.FormatInt(action.LimitUploadSpeed * 1000, 10)
 	}
 	if action.LimitDownloadSpeed > 0 {
-		options["dlLimit"] = (strconv.FormatInt(action.LimitDownloadSpeed, 10) * 1000)
+		options["dlLimit"] = strconv.FormatInt(action.LimitDownloadSpeed * 1000, 10)
 	}
 	if action.LimitRatio > 0 {
 		options["ratioLimit"] = strconv.FormatFloat(action.LimitRatio, 'r', 2, 64)
