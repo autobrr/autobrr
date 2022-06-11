@@ -223,84 +223,82 @@ export default function FilterDetails() {
       </header>
       <div className="max-w-screen-xl mx-auto pb-12 px-4 sm:px-6 lg:px-8">
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow">
-          <div className="relative mx-auto md:px-6 xl:px-4">
-            <div className="pt-1 pb-6 block overflow-auto">
-              <div className="border-b border-gray-200 dark:border-gray-700">
-                <nav className="-mb-px flex space-x-6 sm:space-x-8">
-                  {tabs.map((tab) => (
-                    <TabNavLink item={tab} key={tab.href} />
-                  ))}
-                </nav>
-              </div>
-
-              <Formik
-                initialValues={{
-                  id: filter.id,
-                  name: filter.name,
-                  enabled: filter.enabled || false,
-                  min_size: filter.min_size,
-                  max_size: filter.max_size,
-                  delay: filter.delay,
-                  priority: filter.priority,
-                  max_downloads: filter.max_downloads,
-                  max_downloads_unit: filter.max_downloads_unit,
-                  use_regex: filter.use_regex || false,
-                  shows: filter.shows,
-                  years: filter.years,
-                  resolutions: filter.resolutions || [],
-                  sources: filter.sources || [],
-                  codecs: filter.codecs || [],
-                  containers: filter.containers || [],
-                  match_hdr: filter.match_hdr || [],
-                  except_hdr: filter.except_hdr || [],
-                  match_other: filter.match_other || [],
-                  except_other: filter.except_other || [],
-                  seasons: filter.seasons,
-                  episodes: filter.episodes,
-                  match_releases: filter.match_releases,
-                  except_releases: filter.except_releases,
-                  match_release_groups: filter.match_release_groups,
-                  except_release_groups: filter.except_release_groups,
-                  match_categories: filter.match_categories,
-                  except_categories: filter.except_categories,
-                  tags: filter.tags,
-                  except_tags: filter.except_tags,
-                  match_uploaders: filter.match_uploaders,
-                  except_uploaders: filter.except_uploaders,
-                  freeleech: filter.freeleech,
-                  freeleech_percent: filter.freeleech_percent,
-                  formats: filter.formats || [],
-                  quality: filter.quality || [],
-                  media: filter.media || [],
-                  match_release_types: filter.match_release_types || [],
-                  log_score: filter.log_score,
-                  log: filter.log,
-                  cue: filter.cue,
-                  perfect_flac: filter.perfect_flac,
-                  artists: filter.artists,
-                  albums: filter.albums,
-                  origins: filter.origins || [],
-                  indexers: filter.indexers || [],
-                  actions: filter.actions || []
-                } as Filter}
-                onSubmit={handleSubmit}
-              >
-                {({ values, dirty, resetForm }) => (
-                  <Form>
-                    <Routes>
-                      <Route index element={<General />} />
-                      <Route path="movies-tv" element={<MoviesTv />} />
-                      <Route path="music" element={<Music />} />
-                      <Route path="advanced" element={<Advanced />} />
-                      <Route path="actions" element={<FilterActions filter={filter} values={values} />}
-                      />
-                    </Routes>
-                    <FormButtonsGroup values={values} deleteAction={deleteAction} dirty={dirty} reset={resetForm} />
-                    <DEBUG values={values} />
-                  </Form>
-                )}
-              </Formik>
+          <div className="pt-1 px-4 pb-6 block">
+            <div className="border-b border-gray-200 dark:border-gray-700">
+              <nav className="-mb-px flex space-x-6 sm:space-x-8 overflow-x-auto">
+                {tabs.map((tab) => (
+                  <TabNavLink item={tab} key={tab.href} />
+                ))}
+              </nav>
             </div>
+
+            <Formik
+              initialValues={{
+                id: filter.id,
+                name: filter.name,
+                enabled: filter.enabled || false,
+                min_size: filter.min_size,
+                max_size: filter.max_size,
+                delay: filter.delay,
+                priority: filter.priority,
+                max_downloads: filter.max_downloads,
+                max_downloads_unit: filter.max_downloads_unit,
+                use_regex: filter.use_regex || false,
+                shows: filter.shows,
+                years: filter.years,
+                resolutions: filter.resolutions || [],
+                sources: filter.sources || [],
+                codecs: filter.codecs || [],
+                containers: filter.containers || [],
+                match_hdr: filter.match_hdr || [],
+                except_hdr: filter.except_hdr || [],
+                match_other: filter.match_other || [],
+                except_other: filter.except_other || [],
+                seasons: filter.seasons,
+                episodes: filter.episodes,
+                match_releases: filter.match_releases,
+                except_releases: filter.except_releases,
+                match_release_groups: filter.match_release_groups,
+                except_release_groups: filter.except_release_groups,
+                match_categories: filter.match_categories,
+                except_categories: filter.except_categories,
+                tags: filter.tags,
+                except_tags: filter.except_tags,
+                match_uploaders: filter.match_uploaders,
+                except_uploaders: filter.except_uploaders,
+                freeleech: filter.freeleech,
+                freeleech_percent: filter.freeleech_percent,
+                formats: filter.formats || [],
+                quality: filter.quality || [],
+                media: filter.media || [],
+                match_release_types: filter.match_release_types || [],
+                log_score: filter.log_score,
+                log: filter.log,
+                cue: filter.cue,
+                perfect_flac: filter.perfect_flac,
+                artists: filter.artists,
+                albums: filter.albums,
+                origins: filter.origins || [],
+                indexers: filter.indexers || [],
+                actions: filter.actions || []
+              } as Filter}
+              onSubmit={handleSubmit}
+            >
+              {({ values, dirty, resetForm }) => (
+                <Form>
+                  <Routes>
+                    <Route index element={<General />} />
+                    <Route path="movies-tv" element={<MoviesTv />} />
+                    <Route path="music" element={<Music />} />
+                    <Route path="advanced" element={<Advanced />} />
+                    <Route path="actions" element={<FilterActions filter={filter} values={values} />}
+                    />
+                  </Routes>
+                  <FormButtonsGroup values={values} deleteAction={deleteAction} dirty={dirty} reset={resetForm} />
+                  <DEBUG values={values} />
+                </Form>
+              )}
+            </Formik>
           </div>
         </div>
       </div>
