@@ -1,0 +1,62 @@
+---
+#id: tracker42
+name: PussyTorrents
+identifier: pussytorrents
+description: PussyTorrents is the adult sister site of the well known TorrentLeech.
+language: en-us
+urls:
+  - https://pussytorrents.org/
+privacy: private
+protocol: torrent
+supports:
+  - irc
+  - rss
+source: custom
+settings:
+  - name: rsskey
+    type: secret
+    label: RSS key
+    help: "Copy your RSS key from the RSS feed"
+    regex: /([\da-fA-F]{20})
+
+irc:
+  network: PussyTorrents
+  server: irc.pussytorrents.org
+  port: 6021
+  tls: true
+  channels:
+    - "#pussytorrents"
+  announcers:
+    - _PussyBot_
+  settings:
+    - name: nickserv.account
+      type: text
+      required: false
+      label: NickServ Account
+      help: NickServ account. Make sure to group your user and bot. Eg. user_bot
+    - name: nickserv.password
+      type: secret
+      required: false
+      label: NickServ Password
+      help: NickServ password
+
+parse:
+  type: single
+  lines:
+    - test:
+        - "New Torrent Announcement: Name:'BsBigHouse 12 12 21 ze0s Comes To Play XXX 480i MP2 YUSUF' uploaded by 'Anonymous' -  https://www.pussytorrents.org/torrent/69"
+        - "New Torrent Announcement: Name:'ze0sBus 8 9 98 carter and the lemon XXX 576p MP4 CatStevens' uploaded by 'Anonymous' -  https://www.pussytorrents.org/torrent/96"
+      pattern: New Torrent Announcement:\s*Name:'(.*)' uploaded by '([^']*)'\s*(freeleech)*\s*-\s*(https?\:\/\/[^\/]+\/)torrent\/(\d+)
+      vars:
+        - category
+        - torrentName
+        - uploader
+        - freeleech
+        - baseUrl
+        - torrentId
+
+  match:
+    torrenturl: "{{ .baseUrl }}rss/download/{{ .torrentId }}/{{ .rsskey }}/{{ .torrentName }}.torrent"
+    encode:
+      - torrentName
+
