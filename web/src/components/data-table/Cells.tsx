@@ -17,7 +17,7 @@ export const AgeCell = ({ value }: CellProps) => (
 
 export const TitleCell = ({ value }: CellProps) => (
   <div
-    className="text-sm font-medium box-content text-gray-900 dark:text-gray-300 max-w-[128px] sm:max-w-none overflow-auto py-4"
+    className="text-sm font-medium box-content text-gray-900 dark:text-gray-300 max-w-[128px] sm:max-w-[256px] md:max-w-[360px] lg:max-w-[640px] xl:max-w-[840px] overflow-auto py-4"
     title={value}
   >
     {value}
