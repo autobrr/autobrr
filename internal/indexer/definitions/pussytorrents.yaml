@@ -48,7 +48,6 @@ parse:
         - "New Torrent Announcement: Name:'ze0sBus 8 9 98 carter and the lemon XXX 576p MP4 CatStevens' uploaded by 'Anonymous' -  https://www.pussytorrents.org/torrent/96"
       pattern: New Torrent Announcement:\s*Name:'(.*)' uploaded by '([^']*)'\s*(freeleech)*\s*-\s*(https?\:\/\/[^\/]+\/)torrent\/(\d+)
       vars:
-        - category
         - torrentName
         - uploader
         - freeleech
