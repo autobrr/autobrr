@@ -135,7 +135,8 @@ export const APIClient = {
     getAll: () => appClient.Get<Notification[]>("api/notification"),
     create: (notification: Notification) => appClient.Post("api/notification", notification),
     update: (notification: Notification) => appClient.Put(`api/notification/${notification.id}`, notification),
-    delete: (id: number) => appClient.Delete(`api/notification/${id}`)
+    delete: (id: number) => appClient.Delete(`api/notification/${id}`),
+    test: (n: Notification) => appClient.Post("api/notification/test", n)
   },
   release: {
     find: (query?: string) => appClient.Get<ReleaseFindResponse>(`api/release${query}`),

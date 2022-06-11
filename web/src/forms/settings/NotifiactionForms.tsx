@@ -80,8 +80,33 @@ function FormFieldsDiscord() {
   );
 }
 
+function FormFieldsTelegram() {
+  return (
+    <div className="border-t border-gray-200 dark:border-gray-700 py-5">
+      {/*<div className="px-6 space-y-1">*/}
+      {/*    <Dialog.Title className="text-lg font-medium text-gray-900 dark:text-white">Credentials</Dialog.Title>*/}
+      {/*    <p className="text-sm text-gray-500 dark:text-gray-400">*/}
+      {/*        Api keys etc*/}
+      {/*    </p>*/}
+      {/*</div>*/}
+
+      <TextFieldWide
+        name="token"
+        label="Bot token"
+        help="Bot token"
+      />
+      <TextFieldWide
+        name="channel"
+        label="Chat ID"
+        help="Chat ID"
+      />
+    </div>
+  );
+}
+
 const componentMap: componentMapType = {
-  DISCORD: <FormFieldsDiscord/>
+  DISCORD: <FormFieldsDiscord/>,
+  TELEGRAM: <FormFieldsTelegram/>
 };
 
 interface NotificationAddFormValues {
@@ -109,8 +134,24 @@ export function NotificationAddForm({ isOpen, toggle }: AddProps) {
     }
   );
 
+  const testMutation = useMutation(
+    (n: Notification) => APIClient.notifications.test(n),
+    {
+      onSuccess: () => {
+        console.log("success");
+      },
+      onError: (err) => {
+        console.error(err);
+      }
+    }
+  );
+
   const onSubmit = (formData: unknown) => {
     mutation.mutate(formData as Notification);
+  };
+
+  const testNotification = (data: unknown) => {
+    testMutation.mutate(data as Notification);
   };
 
   const validate = (values: NotificationAddFormValues) => {
@@ -253,6 +294,13 @@ export function NotificationAddForm({ isOpen, toggle }: AddProps) {
 
                       <div className="flex-shrink-0 px-4 border-t border-gray-200 dark:border-gray-700 py-5 sm:px-6">
                         <div className="space-x-3 flex justify-end">
+                          <button
+                            type="button"
+                            className="bg-white dark:bg-gray-700 py-2 px-4 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 dark:focus:ring-blue-500"
+                            onClick={() => testNotification(values)}
+                          >
+                            Test
+                          </button>
                           <button
                             type="button"
                             className="bg-white dark:bg-gray-700 py-2 px-4 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 dark:focus:ring-blue-500"

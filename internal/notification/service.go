@@ -19,6 +19,7 @@ type Service interface {
 	Delete(ctx context.Context, id int) error
 	Send(event domain.NotificationEvent, msg string) error
 	SendEvent(event domain.EventsReleasePushed) error
+	Test(ctx context.Context, n domain.Notification) error
 }
 
 type service struct {
@@ -122,6 +123,17 @@ func (s *service) SendEvent(event domain.EventsReleasePushed) error {
 	return s.send(notifications, event)
 }
 
+func (s *service) Test(ctx context.Context, n domain.Notification) error {
+	switch n.Type {
+	//case domain.NotificationTypeDiscord:
+	//	go s.discordNotification(event, n.Webhook)
+	case domain.NotificationTypeTelegram:
+		return s.telegramNotification(nil, n.Channel, n.Token)
+	}
+
+	return nil
+}
+
 func (s *service) send(notifications []domain.Notification, event domain.EventsReleasePushed) error {
 	// find notifications for type X
 	for _, n := range notifications {
@@ -138,6 +150,8 @@ func (s *service) send(notifications []domain.Notification, event domain.EventsR
 				switch n.Type {
 				case domain.NotificationTypeDiscord:
 					go s.discordNotification(event, n.Webhook)
+				case domain.NotificationTypeTelegram:
+					go s.telegramNotification(&event, n.Channel, n.Token)
 				default:
 					return nil
 				}

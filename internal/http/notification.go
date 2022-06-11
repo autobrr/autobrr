@@ -17,6 +17,7 @@ type notificationService interface {
 	Store(ctx context.Context, n domain.Notification) (*domain.Notification, error)
 	Update(ctx context.Context, n domain.Notification) (*domain.Notification, error)
 	Delete(ctx context.Context, id int) error
+	Test(ctx context.Context, n domain.Notification) error
 }
 
 type notificationHandler struct {
@@ -34,6 +35,7 @@ func newNotificationHandler(encoder encoder, service notificationService) *notif
 func (h notificationHandler) Routes(r chi.Router) {
 	r.Get("/", h.list)
 	r.Post("/", h.store)
+	r.Post("/test", h.test)
 	r.Put("/{notificationID}", h.update)
 	r.Delete("/{notificationID}", h.delete)
 }
@@ -103,4 +105,25 @@ func (h notificationHandler) delete(w http.ResponseWriter, r *http.Request) {
 	}
 
 	h.encoder.StatusResponse(ctx, w, nil, http.StatusNoContent)
+}
+
+func (h notificationHandler) test(w http.ResponseWriter, r *http.Request) {
+	var (
+		ctx  = r.Context()
+		data domain.Notification
+	)
+
+	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
+		// encode error
+		h.encoder.Error(w, err)
+		return
+	}
+
+	err := h.service.Test(ctx, data)
+	if err != nil {
+		h.encoder.Error(w, err)
+		return
+	}
+
+	h.encoder.NoContent(w)
 }
