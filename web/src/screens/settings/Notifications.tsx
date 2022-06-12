@@ -42,10 +42,10 @@ function NotificationSettings() {
           <section className="mt-6 light:bg-white dark:bg-gray-800 light:shadow sm:rounded-md">
             <ol className="min-w-full">
               <li className="grid grid-cols-12 gap-4 border-b border-gray-200 dark:border-gray-700">
-                <div className="col-span-1 px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Enabled</div>
-                <div className="col-span-2 px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Name</div>
+                <div className="col-span-2 px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Enabled</div>
+                <div className="col-span-4 px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Name</div>
                 <div className="col-span-2 px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Type</div>
-                <div className="col-span-4 px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Events</div>
+                <div className="col-span-3 px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Events</div>
               </li>
 
               {data && data.map((n: Notification) => (
@@ -71,7 +71,7 @@ function ListItem({ notification }: ListItemProps) {
       <NotificationUpdateForm isOpen={updateFormIsOpen} toggle={toggleUpdateForm} notification={notification} />
 
       <div className="grid grid-cols-12 gap-4 items-center py-4">
-        <div className="col-span-1 flex items-center sm:px-6 ">
+        <div className="col-span-2 flex items-center sm:px-6 ">
           <Switch
             checked={notification.enabled}
             onChange={toggleUpdateForm}
@@ -90,25 +90,23 @@ function ListItem({ notification }: ListItemProps) {
             />
           </Switch>
         </div>
-        <div className="col-span-2 flex items-center sm:px-6 ">
+        <div className="col-span-4 flex items-center sm:px-6 ">
           {notification.name}
         </div>
         <div className="col-span-2 flex items-center sm:px-6 ">
           {notification.type}
         </div>
-        <div className="col-span-5 flex items-center sm:px-6 ">
-          {notification.events.map((n, idx) => (
-            <span
-              key={idx}
-              className="mr-2 inline-flex items-center px-2.5 py-0.5 rounded-md text-sm font-medium bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-400"
-            >
-              {n}
-            </span>
-          ))}
+        <div className="col-span-3 flex items-center sm:px-6 ">
+          <span
+            className="mr-2 inline-flex items-center px-2.5 py-0.5 rounded-md text-sm font-medium bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-400"
+            title={notification.events.join(", ")}
+          >
+            {notification.events.length}
+          </span>
         </div>
-        <div className="col-span-1 flex items-center sm:px-6 ">
+        <div className="col-span-1 flex items-center">
           <span className="text-indigo-600 dark:text-gray-300 hover:text-indigo-900 cursor-pointer" onClick={toggleUpdateForm}>
-                        Edit
+            Edit
           </span>
         </div>
       </div>
