@@ -5,6 +5,7 @@ import type { FieldProps } from "formik";
 import { XIcon } from "@heroicons/react/solid";
 import Select, { components, ControlProps, InputProps, MenuProps, OptionProps } from "react-select";
 import {
+  PasswordFieldWide,
   SwitchGroupWide,
   TextFieldWide
 } from "../../components/inputs";
@@ -59,18 +60,17 @@ const Option = (props: OptionProps) => {
   );
 };
 
-
 function FormFieldsDiscord() {
   return (
     <div className="border-t border-gray-200 dark:border-gray-700 py-5">
-      {/*<div className="px-6 space-y-1">*/}
-      {/*    <Dialog.Title className="text-lg font-medium text-gray-900 dark:text-white">Credentials</Dialog.Title>*/}
-      {/*    <p className="text-sm text-gray-500 dark:text-gray-400">*/}
-      {/*        Api keys etc*/}
-      {/*    </p>*/}
-      {/*</div>*/}
+      <div className="px-6 space-y-1">
+        <Dialog.Title className="text-lg font-medium text-gray-900 dark:text-white">Settings</Dialog.Title>
+        <p className="text-sm text-gray-500 dark:text-gray-400">
+          Create a <a href="https://support.discord.com/hc/en-us/articles/228383668-Intro-to-Webhooks" rel="noopener noreferrer" target="_blank" className="font-medium text-blue-500">webhook integration</a> in your server.
+        </p>
+      </div>
 
-      <TextFieldWide
+      <PasswordFieldWide
         name="webhook"
         label="Webhook URL"
         help="Discord channel webhook url"
@@ -80,8 +80,33 @@ function FormFieldsDiscord() {
   );
 }
 
+function FormFieldsTelegram() {
+  return (
+    <div className="border-t border-gray-200 dark:border-gray-700 py-5">
+      <div className="px-6 space-y-1">
+        <Dialog.Title className="text-lg font-medium text-gray-900 dark:text-white">Settings</Dialog.Title>
+        <p className="text-sm text-gray-500 dark:text-gray-400">
+          Read how to <a href="https://core.telegram.org/bots#3-how-do-i-create-a-bot" rel="noopener noreferrer" target="_blank" className="font-medium text-blue-500">create a bot</a>.
+        </p>
+      </div>
+
+      <PasswordFieldWide
+        name="token"
+        label="Bot token"
+        help="Bot token"
+      />
+      <PasswordFieldWide
+        name="channel"
+        label="Chat ID"
+        help="Chat ID"
+      />
+    </div>
+  );
+}
+
 const componentMap: componentMapType = {
-  DISCORD: <FormFieldsDiscord/>
+  DISCORD: <FormFieldsDiscord/>,
+  TELEGRAM: <FormFieldsTelegram/>
 };
 
 interface NotificationAddFormValues {
@@ -111,6 +136,19 @@ export function NotificationAddForm({ isOpen, toggle }: AddProps) {
 
   const onSubmit = (formData: unknown) => {
     mutation.mutate(formData as Notification);
+  };
+
+  const testMutation = useMutation(
+    (n: Notification) => APIClient.notifications.test(n),
+    {
+      onError: (err) => {
+        console.error(err);
+      }
+    }
+  );
+
+  const testNotification = (data: unknown) => {
+    testMutation.mutate(data as Notification);
   };
 
   const validate = (values: NotificationAddFormValues) => {
@@ -256,6 +294,13 @@ export function NotificationAddForm({ isOpen, toggle }: AddProps) {
                           <button
                             type="button"
                             className="bg-white dark:bg-gray-700 py-2 px-4 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 dark:focus:ring-blue-500"
+                            onClick={() => testNotification(values)}
+                          >
+                            Test
+                          </button>
+                          <button
+                            type="button"
+                            className="bg-white dark:bg-gray-700 py-2 px-4 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 dark:focus:ring-blue-500"
                             onClick={toggle}
                           >
                             Cancel
@@ -348,12 +393,27 @@ export function NotificationUpdateForm({ isOpen, toggle, notification }: UpdateP
     deleteMutation.mutate(notification.id);
   };
 
+  const testMutation = useMutation(
+    (n: Notification) => APIClient.notifications.test(n),
+    {
+      onError: (err) => {
+        console.error(err);
+      }
+    }
+  );
+
+  const testNotification = (data: unknown) => {
+    testMutation.mutate(data as Notification);
+  };
+
   const initialValues = {
     id: notification.id,
     enabled: notification.enabled,
     type: notification.type,
     name: notification.name,
     webhook: notification.webhook,
+    token: notification.token,
+    channel: notification.channel,
     events: notification.events || []
   };
 
@@ -366,6 +426,7 @@ export function NotificationUpdateForm({ isOpen, toggle, notification }: UpdateP
       onSubmit={onSubmit}
       deleteAction={deleteAction}
       initialValues={initialValues}
+      testFn={testNotification}
     >
       {(values) => (
         <div>

@@ -1,4 +1,4 @@
-type NotificationType = "DISCORD";
+type NotificationType = "DISCORD" | "TELEGRAM";
 
 interface Notification {
   id: number;
@@ -6,5 +6,7 @@ interface Notification {
   enabled: boolean;
   type: NotificationType;
   events: string[];
-  webhook: string;
+  webhook?: string;
+  token?: string;
+  channel?: string;
 }

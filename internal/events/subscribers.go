@@ -34,7 +34,7 @@ func NewSubscribers(log logger.Logger, eventbus EventBus.Bus, notificationSvc no
 func (s Subscriber) Register() {
 	s.eventbus.Subscribe("release:store-action-status", s.releaseActionStatus)
 	s.eventbus.Subscribe("release:push", s.releasePushStatus)
-	s.eventbus.Subscribe("events:release:push", s.releasePush)
+	s.eventbus.Subscribe("events:notification", s.sendNotification)
 }
 
 func (s Subscriber) releaseActionStatus(actionStatus *domain.ReleaseActionStatus) {
@@ -54,10 +54,10 @@ func (s Subscriber) releasePushStatus(actionStatus *domain.ReleaseActionStatus) 
 	}
 }
 
-func (s Subscriber) releasePush(event *domain.EventsReleasePushed) {
-	s.log.Trace().Msgf("events: 'events:release:push' '%+v'", event)
+func (s Subscriber) sendNotification(event *domain.NotificationEvent, payload *domain.NotificationPayload) {
+	s.log.Trace().Msgf("events: '%v' '%+v'", event, payload)
 
-	if err := s.notificationSvc.SendEvent(*event); err != nil {
-		s.log.Error().Err(err).Msgf("events: 'events:release:push' error sending notification")
+	if err := s.notificationSvc.Send(*event, *payload); err != nil {
+		s.log.Error().Err(err).Msgf("events: '%v' error sending notification", event)
 	}
 }

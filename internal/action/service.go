@@ -17,7 +17,6 @@ type Service interface {
 	DeleteByFilterID(ctx context.Context, filterID int) error
 	ToggleEnabled(actionID int) error
 
-	RunActions(actions []domain.Action, release domain.Release) error
 	RunAction(action *domain.Action, release domain.Release) ([]string, error)
 	CheckCanDownload(actions []domain.Action) bool
 }

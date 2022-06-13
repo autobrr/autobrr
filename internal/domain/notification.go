@@ -7,12 +7,16 @@ import (
 
 type NotificationRepo interface {
 	List(ctx context.Context) ([]Notification, error)
-	//FindByType(ctx context.Context, nType NotificationType) ([]Notification, error)
 	Find(ctx context.Context, params NotificationQueryParams) ([]Notification, int, error)
 	FindByID(ctx context.Context, id int) (*Notification, error)
 	Store(ctx context.Context, notification Notification) (*Notification, error)
 	Update(ctx context.Context, notification Notification) (*Notification, error)
 	Delete(ctx context.Context, notificationID int) error
+}
+
+type NotificationSender interface {
+	Send(event NotificationEvent, payload NotificationPayload) error
+	CanSend(event NotificationEvent) bool
 }
 
 type Notification struct {
@@ -37,6 +41,25 @@ type Notification struct {
 	UpdatedAt time.Time        `json:"updated_at"`
 }
 
+type NotificationPayload struct {
+	Subject        string
+	Message        string
+	Event          NotificationEvent
+	ReleaseName    string
+	Filter         string
+	Indexer        string
+	InfoHash       string
+	Size           uint64
+	Status         ReleasePushStatus
+	Action         string
+	ActionType     ActionType
+	ActionClient   string
+	Rejections     []string
+	Protocol       ReleaseProtocol       // torrent
+	Implementation ReleaseImplementation // irc, rss, api
+	Timestamp      time.Time
+}
+
 type NotificationType string
 
 const (
@@ -57,8 +80,10 @@ type NotificationEvent string
 const (
 	NotificationEventPushApproved    NotificationEvent = "PUSH_APPROVED"
 	NotificationEventPushRejected    NotificationEvent = "PUSH_REJECTED"
+	NotificationEventPushError       NotificationEvent = "PUSH_ERROR"
 	NotificationEventUpdateAvailable NotificationEvent = "UPDATE_AVAILABLE"
 	NotificationEventIRCHealth       NotificationEvent = "IRC_HEALTH"
+	NotificationEventTest            NotificationEvent = "TEST"
 )
 
 type NotificationEventArr []NotificationEvent

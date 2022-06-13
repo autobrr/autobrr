@@ -260,6 +260,10 @@ export const NotificationTypeOptions: OptionBasic[] = [
   {
     label: "Discord",
     value: "DISCORD"
+  },
+  {
+    label: "Telegram",
+    value: "TELEGRAM"
   }
 ];
 
