@@ -79,8 +79,8 @@ const TelegramIcon = () => (
 
 
 const iconComponentMap: componentMapType = {
-  DISCORD: <span className="flex items-center bg-gray-700 px-2 py-0.5 rounded"><DiscordIcon /> Discord</span>,
-  TELEGRAM: <span className="flex items-center bg-gray-700 px-2 py-0.5 rounded"><TelegramIcon /> Telegram</span>
+  DISCORD: <span className="flex items-center px-2 py-0.5 rounded bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-400"><DiscordIcon /> Discord</span>,
+  TELEGRAM: <span className="flex items-center px-2 py-0.5 rounded bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-400"><TelegramIcon /> Telegram</span>
 };
 
 interface ListItemProps {
