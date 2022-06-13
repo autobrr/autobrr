@@ -12,51 +12,6 @@ import (
 	"github.com/autobrr/autobrr/internal/domain"
 )
 
-func (s *service) RunActions(actions []domain.Action, release domain.Release) error {
-
-	for _, action := range actions {
-		// only run active actions
-		if !action.Enabled {
-			continue
-		}
-
-		s.log.Debug().Msgf("process action: %v for '%v'", action.Name, release.TorrentName)
-
-		err := s.runAction(action, release)
-		if err != nil {
-			s.log.Err(err).Stack().Msgf("process action failed: %v for '%v'", action.Name, release.TorrentName)
-
-			s.bus.Publish("release:store-action-status", &domain.ReleaseActionStatus{
-				ReleaseID:  release.ID,
-				Status:     domain.ReleasePushStatusErr,
-				Action:     action.Name,
-				Type:       action.Type,
-				Rejections: []string{err.Error()},
-				Timestamp:  time.Now(),
-			})
-
-			s.bus.Publish("events:release:push", &domain.EventsReleasePushed{
-				ReleaseName:    release.TorrentName,
-				Filter:         release.Filter.Name,
-				Indexer:        release.Indexer,
-				InfoHash:       release.TorrentHash,
-				Size:           release.Size,
-				Status:         domain.ReleasePushStatusErr,
-				Action:         action.Name,
-				ActionType:     action.Type,
-				Rejections:     []string{err.Error()},
-				Protocol:       domain.ReleaseProtocolTorrent,
-				Implementation: domain.ReleaseImplementationIRC,
-				Timestamp:      time.Now(),
-			})
-		}
-	}
-
-	// safe to delete tmp file
-
-	return nil
-}
-
 func (s *service) RunAction(action *domain.Action, release domain.Release) ([]string, error) {
 
 	var err error
@@ -186,7 +141,10 @@ func (s *service) RunAction(action *domain.Action, release domain.Release) ([]st
 		Timestamp:  time.Now(),
 	}
 
-	notificationEvent := &domain.EventsReleasePushed{
+	payload := &domain.NotificationPayload{
+		Subject:        release.TorrentName,
+		Message:        "New release!",
+		Event:          domain.NotificationEventPushApproved,
 		ReleaseName:    release.TorrentName,
 		Filter:         release.Filter.Name,
 		Indexer:        release.Indexer,
@@ -208,186 +166,27 @@ func (s *service) RunAction(action *domain.Action, release domain.Release) ([]st
 		rlsActionStatus.Status = domain.ReleasePushStatusErr
 		rlsActionStatus.Rejections = []string{err.Error()}
 
-		notificationEvent.Status = domain.ReleasePushStatusErr
-		notificationEvent.Rejections = []string{err.Error()}
+		payload.Event = domain.NotificationEventPushError
+		payload.Status = domain.ReleasePushStatusErr
+		payload.Rejections = []string{err.Error()}
 	}
 
 	if rejections != nil {
 		rlsActionStatus.Status = domain.ReleasePushStatusRejected
 		rlsActionStatus.Rejections = rejections
 
-		notificationEvent.Status = domain.ReleasePushStatusRejected
-		notificationEvent.Rejections = rejections
+		payload.Event = domain.NotificationEventPushRejected
+		payload.Status = domain.ReleasePushStatusRejected
+		payload.Rejections = rejections
 	}
 
 	// send event for actions
 	s.bus.Publish("release:push", rlsActionStatus)
 
 	// send separate event for notifications
-	s.bus.Publish("events:release:push", notificationEvent)
+	s.bus.Publish("events:notification", payload.Event, payload)
 
 	return rejections, err
-}
-
-func (s *service) runAction(action domain.Action, release domain.Release) error {
-
-	var err error
-	var rejections []string
-
-	switch action.Type {
-	case domain.ActionTypeTest:
-		s.test(action.Name)
-
-	case domain.ActionTypeExec:
-		if release.TorrentTmpFile == "" {
-			if err := release.DownloadTorrentFile(); err != nil {
-				s.log.Error().Stack().Err(err)
-				return err
-			}
-		}
-
-		s.execCmd(release, action)
-
-	case domain.ActionTypeWatchFolder:
-		if release.TorrentTmpFile == "" {
-			if err := release.DownloadTorrentFile(); err != nil {
-				s.log.Error().Stack().Err(err)
-				return err
-			}
-		}
-
-		s.watchFolder(action, release)
-
-	case domain.ActionTypeWebhook:
-		if release.TorrentTmpFile == "" {
-			if err := release.DownloadTorrentFile(); err != nil {
-				s.log.Error().Stack().Err(err)
-				return err
-			}
-		}
-
-		s.webhook(action, release)
-
-	case domain.ActionTypeDelugeV1, domain.ActionTypeDelugeV2:
-		canDownload, err := s.delugeCheckRulesCanDownload(action)
-		if err != nil {
-			s.log.Error().Stack().Err(err).Msgf("error checking client rules: %v", action.Name)
-			return err
-		}
-		if !canDownload {
-			rejections = []string{"max active downloads reached, skipping"}
-			break
-		}
-
-		if release.TorrentTmpFile == "" {
-			if err := release.DownloadTorrentFile(); err != nil {
-				s.log.Error().Stack().Err(err)
-				return err
-			}
-		}
-
-		err = s.deluge(action, release)
-		if err != nil {
-			s.log.Error().Stack().Err(err).Msg("error sending torrent to Deluge")
-			return err
-		}
-
-	case domain.ActionTypeQbittorrent:
-		canDownload, client, err := s.qbittorrentCheckRulesCanDownload(action)
-		if err != nil {
-			s.log.Error().Stack().Err(err).Msgf("error checking client rules: %v", action.Name)
-			return err
-		}
-		if !canDownload {
-			rejections = []string{"max active downloads reached, skipping"}
-			break
-		}
-
-		if release.TorrentTmpFile == "" {
-			if err := release.DownloadTorrentFile(); err != nil {
-				s.log.Error().Stack().Err(err)
-				return err
-			}
-		}
-
-		err = s.qbittorrent(client, action, release)
-		if err != nil {
-			s.log.Error().Stack().Err(err).Msg("error sending torrent to qBittorrent")
-			return err
-		}
-
-	case domain.ActionTypeRadarr:
-		rejections, err = s.radarr(release, action)
-		if err != nil {
-			s.log.Error().Stack().Err(err).Msg("error sending torrent to radarr")
-			return err
-		}
-
-	case domain.ActionTypeSonarr:
-		rejections, err = s.sonarr(release, action)
-		if err != nil {
-			s.log.Error().Stack().Err(err).Msg("error sending torrent to sonarr")
-			return err
-		}
-
-	case domain.ActionTypeLidarr:
-		rejections, err = s.lidarr(release, action)
-		if err != nil {
-			s.log.Error().Stack().Err(err).Msg("error sending torrent to lidarr")
-			return err
-		}
-
-	case domain.ActionTypeWhisparr:
-		rejections, err = s.whisparr(release, action)
-		if err != nil {
-			s.log.Error().Stack().Err(err).Msg("error sending torrent to whisparr")
-			return err
-		}
-
-	default:
-		s.log.Warn().Msgf("unsupported action: %v type: %v", action.Name, action.Type)
-		return nil
-	}
-
-	rlsActionStatus := &domain.ReleaseActionStatus{
-		ReleaseID:  release.ID,
-		Status:     domain.ReleasePushStatusApproved,
-		Action:     action.Name,
-		Type:       action.Type,
-		Rejections: []string{},
-		Timestamp:  time.Now(),
-	}
-
-	notificationEvent := &domain.EventsReleasePushed{
-		ReleaseName:    release.TorrentName,
-		Filter:         release.Filter.Name,
-		Indexer:        release.Indexer,
-		InfoHash:       release.TorrentHash,
-		Size:           release.Size,
-		Status:         domain.ReleasePushStatusApproved,
-		Action:         action.Name,
-		ActionType:     action.Type,
-		Rejections:     []string{},
-		Protocol:       domain.ReleaseProtocolTorrent,
-		Implementation: domain.ReleaseImplementationIRC,
-		Timestamp:      time.Now(),
-	}
-
-	if rejections != nil {
-		rlsActionStatus.Status = domain.ReleasePushStatusRejected
-		rlsActionStatus.Rejections = rejections
-
-		notificationEvent.Status = domain.ReleasePushStatusRejected
-		notificationEvent.Rejections = rejections
-	}
-
-	// send event for actions
-	s.bus.Publish("release:push", rlsActionStatus)
-
-	// send separate event for notifications
-	s.bus.Publish("events:release:push", notificationEvent)
-
-	return nil
 }
 
 func (s *service) CheckCanDownload(actions []domain.Action) bool {

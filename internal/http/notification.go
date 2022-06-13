@@ -17,7 +17,7 @@ type notificationService interface {
 	Store(ctx context.Context, n domain.Notification) (*domain.Notification, error)
 	Update(ctx context.Context, n domain.Notification) (*domain.Notification, error)
 	Delete(ctx context.Context, id int) error
-	Test(ctx context.Context, n domain.Notification) error
+	Test(ctx context.Context, notification domain.Notification) error
 }
 
 type notificationHandler struct {
