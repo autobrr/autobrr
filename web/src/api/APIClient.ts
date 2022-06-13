@@ -140,9 +140,10 @@ export const APIClient = {
   },
   release: {
     find: (query?: string) => appClient.Get<ReleaseFindResponse>(`api/release${query}`),
+    findRecent: () => appClient.Get<ReleaseFindResponse>("api/release/recent"),
     findQuery: (offset?: number, limit?: number, filters?: Array<ReleaseFilter>) => {
       const params = new URLSearchParams();
-      if (offset !== undefined)
+      if (offset !== undefined && offset > 0)
         params.append("offset", offset.toString());
 
       if (limit !== undefined)
@@ -156,6 +157,8 @@ export const APIClient = {
           params.append("indexer", filter.value);
         else if (filter.id === "action_status")
           params.append("push_status", filter.value);
+        else if (filter.id == "torrent_name")
+          params.append("q", filter.value);
       });
 
       return appClient.Get<ReleaseFindResponse>(`api/release?${params.toString()}`);

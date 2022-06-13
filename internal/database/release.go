@@ -3,6 +3,7 @@ package database
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"strings"
 
 	"github.com/autobrr/autobrr/internal/domain"
@@ -116,6 +117,11 @@ func (repo *ReleaseRepo) Find(ctx context.Context, params domain.ReleaseQueryPar
 		release.ActionStatus = statuses
 	}
 
+	if err = tx.Commit(); err != nil {
+		repo.log.Error().Stack().Err(err).Msg("error finding releases")
+		return nil, 0, 0, err
+	}
+
 	return releases, nextCursor, total, nil
 }
 
@@ -139,6 +145,10 @@ func (repo *ReleaseRepo) findReleases(ctx context.Context, tx *Tx, params domain
 		queryBuilder = queryBuilder.Where(sq.Lt{"r.id": params.Cursor})
 	}
 
+	if params.Search != "" {
+		queryBuilder = queryBuilder.Where("r.torrent_name LIKE ?", fmt.Sprint("%", params.Search, "%"))
+	}
+
 	if params.Filters.Indexers != nil {
 		filter := sq.And{}
 		for _, v := range params.Filters.Indexers {
@@ -154,6 +164,10 @@ func (repo *ReleaseRepo) findReleases(ctx context.Context, tx *Tx, params domain
 
 	query, args, err := queryBuilder.ToSql()
 	repo.log.Trace().Str("database", "release.find").Msgf("query: '%v', args: '%v'", query, args)
+	if err != nil {
+		repo.log.Error().Stack().Err(err).Msg("error building query")
+		return nil, 0, 0, err
+	}
 
 	res := make([]*domain.Release, 0)
 
@@ -195,6 +209,82 @@ func (repo *ReleaseRepo) findReleases(ctx context.Context, tx *Tx, params domain
 	}
 
 	return res, nextCursor, countItems, nil
+}
+
+func (repo *ReleaseRepo) FindRecent(ctx context.Context) ([]*domain.Release, error) {
+	tx, err := repo.db.BeginTx(ctx, &sql.TxOptions{})
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback()
+
+	releases, err := repo.findRecentReleases(ctx, tx)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, release := range releases {
+		statuses, err := repo.attachActionStatus(ctx, tx, release.ID)
+		if err != nil {
+			return releases, err
+		}
+		release.ActionStatus = statuses
+	}
+
+	if err = tx.Commit(); err != nil {
+		repo.log.Error().Stack().Err(err).Msg("error finding releases")
+		return nil, err
+	}
+
+	return releases, nil
+}
+
+func (repo *ReleaseRepo) findRecentReleases(ctx context.Context, tx *Tx) ([]*domain.Release, error) {
+	queryBuilder := repo.db.squirrel.
+		Select("r.id", "r.filter_status", "r.rejections", "r.indexer", "r.filter", "r.protocol", "r.title", "r.torrent_name", "r.size", "r.timestamp").
+		From("release r").
+		OrderBy("r.timestamp DESC").
+		Limit(10)
+
+	query, args, err := queryBuilder.ToSql()
+	repo.log.Trace().Str("database", "release.find").Msgf("query: '%v', args: '%v'", query, args)
+	if err != nil {
+		repo.log.Error().Stack().Err(err).Msg("error building query")
+		return nil, err
+	}
+
+	res := make([]*domain.Release, 0)
+
+	rows, err := tx.QueryContext(ctx, query, args...)
+	if err != nil {
+		repo.log.Error().Stack().Err(err).Msg("error fetching releases")
+		return res, nil
+	}
+
+	defer rows.Close()
+
+	if err := rows.Err(); err != nil {
+		repo.log.Error().Stack().Err(err)
+		return res, err
+	}
+
+	for rows.Next() {
+		var rls domain.Release
+
+		var indexer, filter sql.NullString
+
+		if err := rows.Scan(&rls.ID, &rls.FilterStatus, pq.Array(&rls.Rejections), &indexer, &filter, &rls.Protocol, &rls.Title, &rls.TorrentName, &rls.Size, &rls.Timestamp); err != nil {
+			repo.log.Error().Stack().Err(err).Msg("release.find: error scanning data to struct")
+			return res, err
+		}
+
+		rls.Indexer = indexer.String
+		rls.FilterName = filter.String
+
+		res = append(res, &rls)
+	}
+
+	return res, nil
 }
 
 func (repo *ReleaseRepo) GetIndexerOptions(ctx context.Context) ([]string, error) {
@@ -359,7 +449,6 @@ func (repo *ReleaseRepo) Delete(ctx context.Context) error {
 	if err != nil {
 		repo.log.Error().Stack().Err(err).Msg("error deleting all releases")
 		return err
-
 	}
 
 	return nil

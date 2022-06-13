@@ -22,7 +22,7 @@ import * as DataTable from "../../components/data-table";
 
 import {
   IndexerSelectColumnFilter,
-  PushStatusSelectColumnFilter
+  PushStatusSelectColumnFilter, SearchColumnFilter
 } from "./Filters";
 
 type TableState = {
@@ -77,7 +77,8 @@ export const ReleaseTable = () => {
     {
       Header: "Release",
       accessor: "torrent_name",
-      Cell: DataTable.TitleCell
+      Cell: DataTable.TitleCell,
+      Filter: SearchColumnFilter
     },
     {
       Header: "Actions",
@@ -185,9 +186,7 @@ export const ReleaseTable = () => {
         {headerGroups.map((headerGroup) =>
           headerGroup.headers.map((column) => (
             column.Filter ? (
-              <div className="mt-2 sm:mt-0" key={column.id}>
-                <>{column.render("Filter")}</>
-              </div>
+              <React.Fragment key={column.id}>{column.render("Filter")}</React.Fragment>
             ) : null
           ))
         )}

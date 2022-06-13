@@ -12,6 +12,7 @@ import (
 
 type releaseService interface {
 	Find(ctx context.Context, query domain.ReleaseQueryParams) (res []*domain.Release, nextCursor int64, count int64, err error)
+	FindRecent(ctx context.Context) (res []*domain.Release, err error)
 	GetIndexerOptions(ctx context.Context) ([]string, error)
 	Stats(ctx context.Context) (*domain.ReleaseStats, error)
 	Delete(ctx context.Context) error
@@ -31,6 +32,7 @@ func newReleaseHandler(encoder encoder, service releaseService) *releaseHandler 
 
 func (h releaseHandler) Routes(r chi.Router) {
 	r.Get("/", h.findReleases)
+	r.Get("/recent", h.findRecentReleases)
 	r.Get("/stats", h.getStats)
 	r.Get("/indexers", h.getIndexerOptions)
 	r.Delete("/all", h.deleteReleases)
@@ -86,6 +88,7 @@ func (h releaseHandler) findReleases(w http.ResponseWriter, r *http.Request) {
 	indexer := vals["indexer"]
 
 	pushStatus := r.URL.Query().Get("push_status")
+	search := r.URL.Query().Get("q")
 
 	query := domain.ReleaseQueryParams{
 		Limit:  uint64(limit),
@@ -96,6 +99,7 @@ func (h releaseHandler) findReleases(w http.ResponseWriter, r *http.Request) {
 			Indexers   []string
 			PushStatus string
 		}{Indexers: indexer, PushStatus: pushStatus},
+		Search: search,
 	}
 
 	releases, nextCursor, count, err := h.service.Find(r.Context(), query)
@@ -112,6 +116,23 @@ func (h releaseHandler) findReleases(w http.ResponseWriter, r *http.Request) {
 		Data:       releases,
 		NextCursor: nextCursor,
 		Count:      count,
+	}
+
+	h.encoder.StatusResponse(r.Context(), w, ret, http.StatusOK)
+}
+
+func (h releaseHandler) findRecentReleases(w http.ResponseWriter, r *http.Request) {
+
+	releases, err := h.service.FindRecent(r.Context())
+	if err != nil {
+		h.encoder.StatusNotFound(r.Context(), w)
+		return
+	}
+
+	ret := struct {
+		Data []*domain.Release `json:"data"`
+	}{
+		Data: releases,
 	}
 
 	h.encoder.StatusResponse(r.Context(), w, ret, http.StatusOK)
