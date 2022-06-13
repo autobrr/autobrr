@@ -17,6 +17,7 @@ interface SlideOverProps<DataType> {
     children?: (values: DataType) => React.ReactNode;
     deleteAction?: () => void;
     type: "CREATE" | "UPDATE";
+    testFn?: (data: unknown) => void;
 }
 
 function SlideOver<DataType>({
@@ -28,10 +29,17 @@ function SlideOver<DataType>({
   isOpen,
   toggle,
   type,
-  children
+  children,
+  testFn
 }: SlideOverProps<DataType>): React.ReactElement {
   const cancelModalButtonRef = useRef<HTMLInputElement | null>(null);
   const [deleteModalIsOpen, toggleDeleteModal] = useToggle(false);
+
+  const test = (values: unknown) => {
+    if (testFn) {
+      testFn(values);
+    }
+  };
 
   return (
     <Transition.Root show={isOpen} as={Fragment}>
@@ -106,17 +114,26 @@ function SlideOver<DataType>({
                               className="inline-flex items-center justify-center px-4 py-2 border border-transparent font-medium rounded-md text-red-700 dark:text-white bg-red-100 dark:bg-red-700 hover:bg-red-200 dark:hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:text-sm"
                               onClick={toggleDeleteModal}
                             >
-                                                                Remove
+                              Remove
                             </button>
                           )}
                           <div>
+                            {testFn && (
+                              <button
+                                type="button"
+                                className="mr-2 bg-white dark:bg-gray-700 py-2 px-4 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 dark:focus:ring-blue-500"
+                                onClick={() => test(values)}
+                              >
+                                Test
+                              </button>
+                            )}
 
                             <button
                               type="button"
                               className="bg-white dark:bg-gray-700 py-2 px-4 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 dark:focus:ring-blue-500"
                               onClick={toggle}
                             >
-                                                                Cancel
+                              Cancel
                             </button>
                             <button
                               type="submit"
