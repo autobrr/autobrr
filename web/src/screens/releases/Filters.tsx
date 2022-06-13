@@ -10,6 +10,7 @@ import { APIClient } from "../../api/APIClient";
 import { classNames } from "../../utils";
 import { PushStatusOptions } from "../../domain/constants";
 import { FilterProps } from "react-table";
+import { DebounceInput } from "react-debounce-input";
 
 interface ListboxFilterProps {
     id: string;
@@ -77,6 +78,7 @@ export const IndexerSelectColumnFilter = ({
   return (
     <ListboxFilter
       id={id}
+      key={id}
       label={filterValue ?? "Indexer"}
       currentValue={filterValue}
       onChange={setFilter}
@@ -126,7 +128,7 @@ export const PushStatusSelectColumnFilter = ({
 }: FilterProps<object>) => {
   const label = filterValue ? PushStatusOptions.find((o) => o.value === filterValue && o.value)?.label : "Push status";
   return (
-    <div className="mr-3">
+    <div className="mr-3" key={id}>
       <ListboxFilter
         id={id}
         label={label ?? "Push status"}
@@ -137,5 +139,26 @@ export const PushStatusSelectColumnFilter = ({
           <FilterOption key={idx} value={status.value} label={status.label} />
         ))}
       </ListboxFilter>
+    </div>
+  );};
+
+export const SearchColumnFilter = ({
+  column: { filterValue, setFilter, id }
+}: FilterProps<object>) => {
+  return (
+    <div className="flex-1 mr-3 mt-1" key={id}>
+      <DebounceInput
+        minLength={2}
+        value={filterValue || undefined}
+        debounceTimeout={500}
+        onChange={e => {
+          setFilter(e.target.value || undefined); // Set undefined to remove the filter entirely
+        }}
+        id="filter"
+        type="text"
+        autoComplete="off"
+        className="relative w-full py-2 pl-3 pr-10 text-left bg-white dark:bg-gray-800 rounded-lg shadow-md cursor-default dark:text-gray-400 sm:text-sm border-none"
+        placeholder="Search releases..."
+      />
     </div>
   );};

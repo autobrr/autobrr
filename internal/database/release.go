@@ -3,6 +3,7 @@ package database
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"strings"
 
 	"github.com/autobrr/autobrr/internal/domain"
@@ -139,6 +140,10 @@ func (repo *ReleaseRepo) findReleases(ctx context.Context, tx *Tx, params domain
 		queryBuilder = queryBuilder.Where(sq.Lt{"r.id": params.Cursor})
 	}
 
+	if params.Search != "" {
+		queryBuilder = queryBuilder.Where("r.torrent_name LIKE ?", fmt.Sprint("%", params.Search, "%"))
+	}
+
 	if params.Filters.Indexers != nil {
 		filter := sq.And{}
 		for _, v := range params.Filters.Indexers {
@@ -154,6 +159,10 @@ func (repo *ReleaseRepo) findReleases(ctx context.Context, tx *Tx, params domain
 
 	query, args, err := queryBuilder.ToSql()
 	repo.log.Trace().Str("database", "release.find").Msgf("query: '%v', args: '%v'", query, args)
+	if err != nil {
+		repo.log.Error().Stack().Err(err).Msg("error building query")
+		return nil, 0, 0, err
+	}
 
 	res := make([]*domain.Release, 0)
 

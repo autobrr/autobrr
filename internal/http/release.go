@@ -86,6 +86,7 @@ func (h releaseHandler) findReleases(w http.ResponseWriter, r *http.Request) {
 	indexer := vals["indexer"]
 
 	pushStatus := r.URL.Query().Get("push_status")
+	search := r.URL.Query().Get("q")
 
 	query := domain.ReleaseQueryParams{
 		Limit:  uint64(limit),
@@ -96,6 +97,7 @@ func (h releaseHandler) findReleases(w http.ResponseWriter, r *http.Request) {
 			Indexers   []string
 			PushStatus string
 		}{Indexers: indexer, PushStatus: pushStatus},
+		Search: search,
 	}
 
 	releases, nextCursor, count, err := h.service.Find(r.Context(), query)
