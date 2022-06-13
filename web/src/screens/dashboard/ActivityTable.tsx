@@ -13,7 +13,6 @@ import { EmptyListState } from "../../components/emptystates";
 
 import * as Icons from "../../components/Icons";
 import * as DataTable from "../../components/data-table";
-import { Fragment } from "react";
 
 // This is a custom filter UI for selecting
 // a unique option from a list
@@ -180,8 +179,8 @@ export const ActivityTable = () => {
   ], []);
 
   const { isLoading, data } = useQuery(
-    "dash_release",
-    () => APIClient.release.find("?limit=10"),
+    "dash_recent_releases",
+    () => APIClient.release.findRecent(),
     { refetchOnWindowFocus: false }
   );
 

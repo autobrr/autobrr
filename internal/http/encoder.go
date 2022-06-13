@@ -10,7 +10,7 @@ type encoder struct{}
 
 type errorResponse struct {
 	Message string `json:"message"`
-	Status  int    `json:"status"`
+	Status  int    `json:"status,omitempty"`
 }
 
 func (e encoder) StatusResponse(ctx context.Context, w http.ResponseWriter, response interface{}, status int) {

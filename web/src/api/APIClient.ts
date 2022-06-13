@@ -140,6 +140,7 @@ export const APIClient = {
   },
   release: {
     find: (query?: string) => appClient.Get<ReleaseFindResponse>(`api/release${query}`),
+    findRecent: () => appClient.Get<ReleaseFindResponse>("api/release/recent"),
     findQuery: (offset?: number, limit?: number, filters?: Array<ReleaseFilter>) => {
       const params = new URLSearchParams();
       if (offset !== undefined && offset > 0)
