@@ -54,10 +54,10 @@ func (s Subscriber) releasePushStatus(actionStatus *domain.ReleaseActionStatus) 
 	}
 }
 
-func (s Subscriber) sendNotification(event domain.NotificationEvent, payload domain.NotificationPayload) {
+func (s Subscriber) sendNotification(event *domain.NotificationEvent, payload *domain.NotificationPayload) {
 	s.log.Trace().Msgf("events: '%v' '%+v'", event, payload)
 
-	if err := s.notificationSvc.Send(event, payload); err != nil {
+	if err := s.notificationSvc.Send(*event, *payload); err != nil {
 		s.log.Error().Err(err).Msgf("events: '%v' error sending notification", event)
 	}
 }

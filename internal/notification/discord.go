@@ -138,6 +138,8 @@ func (a *discordSender) buildEmbed(event domain.NotificationEvent, payload domai
 		color = GREEN
 	case domain.NotificationEventPushRejected:
 		color = GRAY
+	case domain.NotificationEventPushError:
+		color = RED
 	case domain.NotificationEventTest:
 		color = LIGHT_BLUE
 	}
@@ -202,11 +204,16 @@ func (a *discordSender) buildEmbed(event domain.NotificationEvent, payload domai
 	}
 
 	embed := DiscordEmbeds{
-		Title:       payload.Subject,
-		Description: payload.Message,
+		Title:       payload.ReleaseName,
+		Description: "New release!",
 		Color:       int(color),
 		Fields:      fields,
 		Timestamp:   time.Now(),
+	}
+
+	if payload.Subject != "" && payload.Message != "" {
+		embed.Title = payload.Subject
+		embed.Description = payload.Message
 	}
 
 	return embed

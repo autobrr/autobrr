@@ -44,15 +44,48 @@ func (s *service) FindByID(ctx context.Context, id int) (*domain.Notification, e
 }
 
 func (s *service) Store(ctx context.Context, n domain.Notification) (*domain.Notification, error) {
-	return s.repo.Store(ctx, n)
+	_, err := s.repo.Store(ctx, n)
+	if err != nil {
+		return nil, err
+	}
+
+	// reset senders
+	s.senders = []domain.NotificationSender{}
+
+	// re register senders
+	s.registerSenders()
+
+	return nil, nil
 }
 
 func (s *service) Update(ctx context.Context, n domain.Notification) (*domain.Notification, error) {
-	return s.repo.Update(ctx, n)
+	_, err := s.repo.Update(ctx, n)
+	if err != nil {
+		return nil, err
+	}
+
+	// reset senders
+	s.senders = []domain.NotificationSender{}
+
+	// re register senders
+	s.registerSenders()
+
+	return nil, nil
 }
 
 func (s *service) Delete(ctx context.Context, id int) error {
-	return s.repo.Delete(ctx, id)
+	err := s.repo.Delete(ctx, id)
+	if err != nil {
+		return err
+	}
+
+	// reset senders
+	s.senders = []domain.NotificationSender{}
+
+	// re register senders
+	s.registerSenders()
+
+	return nil
 }
 
 func (s *service) registerSenders() {

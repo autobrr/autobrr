@@ -98,7 +98,7 @@ func (s *telegramSender) CanSend(event domain.NotificationEvent) bool {
 }
 
 func (s *telegramSender) isEnabled() bool {
-	if s.Settings.Enabled && s.Settings.Webhook != "" {
+	if s.Settings.Enabled && s.Settings.Token != "" && s.Settings.Channel != "" {
 		return true
 	}
 	return false
@@ -117,18 +117,27 @@ func (s *telegramSender) isEnabledEvent(event domain.NotificationEvent) bool {
 func (s *telegramSender) buildMessage(event domain.NotificationEvent, payload domain.NotificationPayload) string {
 	msg := ""
 
-	msg += fmt.Sprintf("%v\n<b>%v</b>", payload.Subject, html.EscapeString(payload.Message))
+	if payload.Subject != "" && payload.Message != "" {
+		msg += fmt.Sprintf("%v\n<b>%v</b>", payload.Subject, html.EscapeString(payload.Message))
+	}
+	if payload.ReleaseName != "" {
+		msg += fmt.Sprintf("\n<b>New release:</b> %v", html.EscapeString(payload.ReleaseName))
+	}
 	if payload.Status != "" {
-		msg += fmt.Sprintf("\nStatus: %v", payload.Status.String())
+		msg += fmt.Sprintf("\n<b>Status:</b> %v", payload.Status.String())
 	}
 	if payload.Indexer != "" {
-		msg += fmt.Sprintf("\nIndexer: %v", payload.Indexer)
+		msg += fmt.Sprintf("\n<b>Indexer:</b> %v", payload.Indexer)
 	}
 	if payload.Filter != "" {
-		msg += fmt.Sprintf("\nFilter: %v", payload.Filter)
+		msg += fmt.Sprintf("\n<b>Filter:</b> %v", html.EscapeString(payload.Filter))
 	}
 	if payload.Action != "" {
-		msg += fmt.Sprintf("\nAction: %v type: %v client: %v", payload.Action, payload.ActionType, payload.ActionClient)
+		action := fmt.Sprintf("\n<b>Action:</b> %v <b>Type:</b> %v", html.EscapeString(payload.Action), payload.ActionType)
+		if payload.ActionClient != "" {
+			action += fmt.Sprintf(" <b>Client:</b> %v", html.EscapeString(payload.ActionClient))
+		}
+		msg += action
 	}
 	if len(payload.Rejections) > 0 {
 		msg += fmt.Sprintf("\nRejections: %v", strings.Join(payload.Rejections, ", "))

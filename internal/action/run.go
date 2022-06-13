@@ -142,8 +142,6 @@ func (s *service) RunAction(action *domain.Action, release domain.Release) ([]st
 	}
 
 	payload := &domain.NotificationPayload{
-		Subject:        release.TorrentName,
-		Message:        "New release!",
 		Event:          domain.NotificationEventPushApproved,
 		ReleaseName:    release.TorrentName,
 		Filter:         release.Filter.Name,
@@ -184,7 +182,7 @@ func (s *service) RunAction(action *domain.Action, release domain.Release) ([]st
 	s.bus.Publish("release:push", rlsActionStatus)
 
 	// send separate event for notifications
-	s.bus.Publish("events:notification", payload.Event, payload)
+	s.bus.Publish("events:notification", &payload.Event, payload)
 
 	return rejections, err
 }
