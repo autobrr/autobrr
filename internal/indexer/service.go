@@ -396,24 +396,24 @@ func (s *service) LoadCustomIndexerDefinitions() error {
 		return nil
 	}
 
-	outputDirRead, _ := os.Open(s.config.CustomDefinitions)
+	outputDirRead, err := os.Open(s.config.CustomDefinitions)
 
+	if err != nil {
+		s.Log.Warn().Stack().Msgf("failed opening custom definitions directory %q: %s", s.config.CustomDefinitions, err)
+		return nil
+	}
 	//entries, err := fs.ReadDir(Definitions, "definitions")
 	entries, err := outputDirRead.ReadDir(0)
 	if err != nil {
 		s.log.Fatal().Stack().Msgf("failed reading directory: %s", err)
 	}
 
-	if len(entries) == 0 {
-		s.log.Fatal().Stack().Msgf("failed reading directory: %s", err)
-		return err
-	}
-
 	customCount := 0
 
 	for _, f := range entries {
 		fileExtension := filepath.Ext(f.Name())
-		if fileExtension != ".yaml" {
+		if fileExtension != ".yaml" && fileExtension != ".yml" {
+			s.log.Warn().Stack().Msgf("skipping unknown extension definition file: %s", f.Name())
 			continue
 		}
 
