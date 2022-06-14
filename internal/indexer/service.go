@@ -399,7 +399,7 @@ func (s *service) LoadCustomIndexerDefinitions() error {
 	outputDirRead, err := os.Open(s.config.CustomDefinitions)
 
 	if err != nil {
-		s.Log.Warn().Stack().Msgf("failed opening custom definitions directory %q: %s", s.config.CustomDefinitions, err)
+		s.log.Warn().Stack().Msgf("failed opening custom definitions directory %q: %s", s.config.CustomDefinitions, err)
 		return nil
 	}
 
