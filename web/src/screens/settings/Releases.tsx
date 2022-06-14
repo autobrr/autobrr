@@ -13,13 +13,11 @@ function ReleaseSettings() {
   const deleteMutation = useMutation(() => APIClient.release.delete(), {
     onSuccess: () => {
       toast.custom((t) => (
-        <Toast type="success" body={"All releases was deleted"} t={t}/>
+        <Toast type="success" body={"All releases were deleted"} t={t}/>
       ));
 
       // Invalidate filters just in case, most likely not necessary but can't hurt.
       queryClient.invalidateQueries("releases");
-
-      toggleDeleteModal();
     }
   });
 
