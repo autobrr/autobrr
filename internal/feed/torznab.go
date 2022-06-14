@@ -56,10 +56,7 @@ func (j *TorznabJob) process() error {
 	releases := make([]*domain.Release, 0)
 
 	for _, item := range items {
-		rls, err := domain.NewRelease(j.IndexerIdentifier)
-		if err != nil {
-			continue
-		}
+		rls := domain.NewRelease(j.IndexerIdentifier)
 
 		rls.TorrentName = item.Title
 		rls.TorrentURL = item.GUID
@@ -69,10 +66,7 @@ func (j *TorznabJob) process() error {
 		// parse size bytes string
 		rls.ParseSizeBytesString(item.Size)
 
-		if err := rls.ParseString(item.Title); err != nil {
-			j.Log.Error().Err(err).Msgf("torznab.process: error parsing release")
-			continue
-		}
+		rls.ParseString(item.Title)
 
 		releases = append(releases, rls)
 	}

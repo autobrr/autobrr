@@ -100,14 +100,10 @@ func (a *announceProcessor) processQueue(queue chan string) {
 			continue
 		}
 
-		rls, err := domain.NewRelease(a.indexer.Identifier)
-		if err != nil {
-			a.log.Error().Err(err).Msg("could not create new release")
-			continue
-		}
+		rls := domain.NewRelease(a.indexer.Identifier)
 
 		// on lines matched
-		err = a.onLinesMatched(a.indexer, tmpVars, rls)
+		err := a.onLinesMatched(a.indexer, tmpVars, rls)
 		if err != nil {
 			a.log.Debug().Msgf("error match line: %v", "")
 			continue
@@ -178,11 +174,7 @@ func (a *announceProcessor) onLinesMatched(def *domain.IndexerDefinition, vars m
 	}
 
 	// parse fields
-	err = rls.ParseString(rls.TorrentName)
-	if err != nil {
-		a.log.Error().Stack().Err(err).Msg("announce: could not parse release")
-		return err
-	}
+	rls.ParseString(rls.TorrentName)
 
 	// parse torrentUrl
 	err = def.Parse.ParseTorrentUrl(vars, def.SettingsMap, rls)

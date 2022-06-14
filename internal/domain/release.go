@@ -116,7 +116,8 @@ const (
 	ReleasePushStatusApproved ReleasePushStatus = "PUSH_APPROVED"
 	ReleasePushStatusRejected ReleasePushStatus = "PUSH_REJECTED"
 	ReleasePushStatusErr      ReleasePushStatus = "PUSH_ERROR"
-	ReleasePushStatusPending  ReleasePushStatus = "PENDING" // Initial status
+
+	//ReleasePushStatusPending  ReleasePushStatus = "PENDING" // Initial status
 )
 
 func (r ReleasePushStatus) String() string {
@@ -136,8 +137,9 @@ type ReleaseFilterStatus string
 
 const (
 	ReleaseStatusFilterApproved ReleaseFilterStatus = "FILTER_APPROVED"
-	ReleaseStatusFilterRejected ReleaseFilterStatus = "FILTER_REJECTED"
 	ReleaseStatusFilterPending  ReleaseFilterStatus = "PENDING"
+
+	//ReleaseStatusFilterRejected ReleaseFilterStatus = "FILTER_REJECTED"
 )
 
 type ReleaseProtocol string
@@ -165,7 +167,7 @@ type ReleaseQueryParams struct {
 	Search string
 }
 
-func NewRelease(indexer string) (*Release, error) {
+func NewRelease(indexer string) *Release {
 	r := &Release{
 		Indexer:        indexer,
 		FilterStatus:   ReleaseStatusFilterPending,
@@ -176,10 +178,10 @@ func NewRelease(indexer string) (*Release, error) {
 		Tags:           []string{},
 	}
 
-	return r, nil
+	return r
 }
 
-func (r *Release) ParseString(title string) error {
+func (r *Release) ParseString(title string) {
 	rel := rls.ParseString(title)
 
 	r.TorrentName = title
@@ -204,12 +206,12 @@ func (r *Release) ParseString(title string) error {
 
 	r.ParseReleaseTagsString(r.ReleaseTags)
 
-	return nil
+	return
 }
 
-func (r *Release) ParseReleaseTagsString(tags string) error {
+func (r *Release) ParseReleaseTagsString(tags string) {
 	// trim delimiters and closest space
-	re := regexp.MustCompile(`\| |\/ |, `)
+	re := regexp.MustCompile(`\| |/ |, `)
 	cleanTags := re.ReplaceAllString(tags, "")
 
 	t := ParseReleaseTagString(cleanTags)
@@ -218,6 +220,11 @@ func (r *Release) ParseReleaseTagsString(tags string) error {
 		r.Audio = append(r.Audio, t.Audio...)
 	}
 	if len(t.Bonus) > 0 {
+		if sliceContainsSlice([]string{"Freeleech"}, t.Bonus) {
+			r.Freeleech = true
+		}
+		// TODO handle percent and other types
+
 		r.Bonus = append(r.Bonus, t.Bonus...)
 	}
 	if len(t.Codec) > 0 {
@@ -240,7 +247,7 @@ func (r *Release) ParseReleaseTagsString(tags string) error {
 		r.AudioChannels = t.Channels
 	}
 
-	return nil
+	return
 }
 
 func (r *Release) ParseSizeBytesString(size string) {
@@ -385,7 +392,10 @@ func (r *Release) MapVars(def *IndexerDefinition, varMap map[string]string) erro
 			//log.Debug().Msgf("bad freeleechPercent var: %v", year)
 		}
 
+		r.Freeleech = true
 		r.FreeleechPercent = freeleechPercentInt
+
+		r.Bonus = append(r.Bonus, "Freeleech")
 
 		switch freeleechPercentInt {
 		case 25:
@@ -470,39 +480,6 @@ func getStringMapValue(stringMap map[string]string, key string) (string, error) 
 	}
 
 	return "", fmt.Errorf("key was not found in map: %q", lowerKey)
-}
-
-func findLast(input string, pattern string) (string, error) {
-	matched := make([]string, 0)
-	//for _, s := range arr {
-
-	rxp, err := regexp.Compile(pattern)
-	if err != nil {
-		return "", err
-		//return errors.Wrapf(err, "invalid regex: %s", value)
-	}
-
-	matches := rxp.FindStringSubmatch(input)
-	if matches != nil {
-		// first value is the match, second value is the text
-		if len(matches) >= 1 {
-			last := matches[len(matches)-1]
-
-			// add to temp slice
-			matched = append(matched, last)
-		}
-	}
-
-	//}
-
-	// check if multiple values in temp slice, if so get the last one
-	if len(matched) >= 1 {
-		last := matched[len(matched)-1]
-
-		return last, nil
-	}
-
-	return "", nil
 }
 
 func SplitAny(s string, seps string) []string {

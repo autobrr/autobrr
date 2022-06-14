@@ -954,12 +954,41 @@ func TestFilter_CheckFilter(t *testing.T) {
 			},
 			want: true,
 		},
+		{
+			name: "match_anime_1",
+			fields: &Release{
+				TorrentName: "Kaginado",
+				ReleaseTags: "Web / MKV / h264 / 1080p / AAC 2.0 / Softsubs (SubsPlease) / Episode 22 / Freeleech",
+			},
+			args: args{
+				filter: Filter{
+					Enabled:   true,
+					Freeleech: true,
+				},
+			},
+			want: true,
+		},
+		{
+			name: "match_anime_2",
+			fields: &Release{
+				TorrentName: "Kaginado",
+				ReleaseTags: "Web / MKV / h264 / 1080p / AAC 2.0 / Softsubs (SubsPlease) / Episode 22",
+			},
+			args: args{
+				filter: Filter{
+					Enabled:   true,
+					Freeleech: true,
+				},
+				rejections: []string{"wanted: freeleech"},
+			},
+			want: false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			r := tt.fields // Release
 
-			_ = r.ParseString(tt.fields.TorrentName) // Parse TorrentName into struct
+			r.ParseString(tt.fields.TorrentName) // Parse TorrentName into struct
 			rejections, got := tt.args.filter.CheckFilter(r)
 
 			assert.Equal(t, tt.want, got)
