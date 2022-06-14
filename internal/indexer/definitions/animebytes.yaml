@@ -53,11 +53,12 @@ parse:
         - "Show 1 - TV Series [2004] :: DVD / MKV / h264 10-bit / 712x478 / FLAC 2.0 / Dual Audio / Softsubs (WSE) || https://animebytes.tv/torrents.php?id=0000&torrentid=000000 || coming.of.age, romance, seinen, slice.of.life, tragedy || Uploaded by: Uploader"
         - "Artist - Album! Original Sound Track [2011] :: MP3 / V0 (VBR) / CD || https://animebytes.tv/torrents2.php?id=000000&torrentid=0000000 || soundtrack || Uploaded by: Test-Uploader"
         - "Cool Movie - Movie  [2020] :: Blu-ray / MKV / h265 10-bit / 1929x804 / AC3 5.1 / Dual Audio / Softsubs (CBM) || https://animebytes.tv/torrents.php?id=000000&torrentid=0000000 || drama, romance, slice.of.life || Uploaded by: Anonymous"
-      pattern: '(.*)[\s\p{Zs}]{2,}\[(\d+)\] :: (.*) \|\| (https.*)\/torrents.*\?id=\d+&torrentid=(\d+) \|\| (.+?(?:(?:\|\| Uploaded by|$))?)(?:\|\| Uploaded by: (.*))?$'
+      pattern: '(.*)[\s\p{Zs}]{2,}\[(\d+)\] :: (.*?)(Freeleech)* \|\| (https.*)\/torrents.*\?id=\d+&torrentid=(\d+) \|\| (.+?(?:(?:\|\| Uploaded by|$))?)(?:\|\| Uploaded by: (.*))?$'
       vars:
         - torrentName
         - year
         - releaseTags
+        - freeleech
         - baseUrl
         - torrentId
         - tags
