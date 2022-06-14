@@ -47,6 +47,8 @@ func TestParseReleaseTagString(t *testing.T) {
 		{name: "movies_6", args: args{tags: "H.264, DVD"}, want: ReleaseTags{Codec: "H.264", Source: "DVD"}},
 		{name: "movies_7", args: args{tags: "H.264, DVD, Freeleech"}, want: ReleaseTags{Codec: "H.264", Source: "DVD", Bonus: []string{"Freeleech"}}},
 		{name: "movies_8", args: args{tags: "H.264, DVD, Freeleech!"}, want: ReleaseTags{Codec: "H.264", Source: "DVD", Bonus: []string{"Freeleech"}}},
+		{name: "anime_1", args: args{tags: "Web / MKV / h264 / 1080p / AAC 2.0 / Softsubs (SubsPlease) / Episode 22 / Freeleech"}, want: ReleaseTags{Audio: []string{"AAC"}, Channels: "2.0", Source: "WEB", Resolution: "1080p", Container: "iso", Codec: "H.264", Bonus: []string{"Freeleech"}}},
+		{name: "anime_2", args: args{tags: "Web | MKV | h264 | 1080p | AAC 2.0 | Softsubs (SubsPlease) | Episode 22 | Freeleech"}, want: ReleaseTags{Audio: []string{"AAC"}, Channels: "2.0", Source: "WEB", Resolution: "1080p", Container: "iso", Codec: "H.264", Bonus: []string{"Freeleech"}}},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

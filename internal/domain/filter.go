@@ -67,6 +67,7 @@ type Filter struct {
 	ExceptReleaseGroups string                 `json:"except_release_groups"`
 	Scene               bool                   `json:"scene"`
 	Origins             []string               `json:"origins"`
+	Bonus               []string               `json:"bonus"`
 	Freeleech           bool                   `json:"freeleech"`
 	FreeleechPercent    string                 `json:"freeleech_percent"`
 	Shows               string                 `json:"shows"`
@@ -113,6 +114,10 @@ func (f Filter) CheckFilter(r *Release) ([]string, bool) {
 	if f.MaxDownloads > 0 && !f.checkMaxDownloads(f.MaxDownloads, f.MaxDownloadsUnit) {
 		r.addRejectionF("max downloads (%d) this (%v) reached", f.MaxDownloads, f.MaxDownloadsUnit)
 		return r.Rejections, false
+	}
+
+	if len(f.Bonus) > 0 && !sliceContainsSlice(r.Bonus, f.Bonus) {
+		r.addRejectionF("bonus not matching. got: %v want: %v", r.Bonus, f.Bonus)
 	}
 
 	if f.Freeleech && r.Freeleech != f.Freeleech {
@@ -574,15 +579,6 @@ func containsAnySlice(tags []string, filters []string) bool {
 
 func checkFreeleechPercent(announcePercent int, filterPercent string) bool {
 	filters := strings.Split(filterPercent, ",")
-
-	// remove % and trim spaces
-	//announcePercent = strings.Replace(announcePercent, "%", "", -1)
-	//announcePercent = strings.Trim(announcePercent, " ")
-
-	//announcePercentInt, err := strconv.ParseInt(announcePercent, 10, 32)
-	//if err != nil {
-	//	return false
-	//}
 
 	for _, s := range filters {
 		s = strings.Replace(s, "%", "", -1)

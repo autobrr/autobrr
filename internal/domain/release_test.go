@@ -8,10 +8,9 @@ import (
 
 func TestRelease_Parse(t *testing.T) {
 	tests := []struct {
-		name    string
-		fields  Release
-		want    Release
-		wantErr bool
+		name   string
+		fields Release
+		want   Release
 	}{
 		{
 			name: "parse_1",
@@ -32,7 +31,6 @@ func TestRelease_Parse(t *testing.T) {
 				Group:         "FLUX",
 				//Website: "ATVP",
 			},
-			wantErr: false,
 		},
 		{
 			name: "parse_2",
@@ -52,7 +50,6 @@ func TestRelease_Parse(t *testing.T) {
 				HDR:           []string{"DV"},
 				Group:         "FLUX",
 			},
-			wantErr: false,
 		},
 		{
 			name: "parse_3",
@@ -75,7 +72,6 @@ func TestRelease_Parse(t *testing.T) {
 				HDR:           []string{"DV"},
 				Group:         "FLUX",
 			},
-			wantErr: false,
 		},
 		{
 			name: "parse_4",
@@ -98,7 +94,6 @@ func TestRelease_Parse(t *testing.T) {
 				HDR:           []string{"DV"},
 				Group:         "FLUX",
 			},
-			wantErr: false,
 		},
 		{
 			name: "parse_5",
@@ -121,7 +116,6 @@ func TestRelease_Parse(t *testing.T) {
 				HDR:           []string{"DV"},
 				Group:         "FLUX",
 			},
-			wantErr: false,
 		},
 		{
 			name: "parse_6",
@@ -143,9 +137,9 @@ func TestRelease_Parse(t *testing.T) {
 				AudioChannels: "5.1",
 				HDR:           []string{"DV"},
 				Group:         "FLUX",
+				Freeleech:     true,
 				Bonus:         []string{"Freeleech"},
 			},
-			wantErr: false,
 		},
 		{
 			name: "parse_music_1",
@@ -161,7 +155,6 @@ func TestRelease_Parse(t *testing.T) {
 				Audio:       []string{"Cue", "FLAC", "Lossless", "Log100", "Log"},
 				Source:      "CD",
 			},
-			wantErr: false,
 		},
 		{
 			name: "parse_music_2",
@@ -178,7 +171,6 @@ func TestRelease_Parse(t *testing.T) {
 				Source:      "Cassette",
 				Audio:       []string{"320", "MP3"},
 			},
-			wantErr: false,
 		},
 		{
 			name: "parse_music_3",
@@ -194,7 +186,6 @@ func TestRelease_Parse(t *testing.T) {
 				Source:      "CD",
 				Audio:       []string{"MP3", "VBR"},
 			},
-			wantErr: false,
 		},
 		{
 			name: "parse_music_4",
@@ -210,7 +201,6 @@ func TestRelease_Parse(t *testing.T) {
 				Audio:       []string{"Cue", "FLAC", "Lossless", "Log100", "Log"},
 				Source:      "CD",
 			},
-			wantErr: false,
 		},
 		{
 			name: "parse_music_5",
@@ -226,7 +216,6 @@ func TestRelease_Parse(t *testing.T) {
 				Audio:       []string{"24BIT Lossless", "Cue", "FLAC", "Lossless", "Log100", "Log"},
 				Source:      "CD",
 			},
-			wantErr: false,
 		},
 		{
 			name: "parse_movies_case_1",
@@ -246,15 +235,12 @@ func TestRelease_Parse(t *testing.T) {
 				Group:         "GROUP1",
 				Other:         []string{"HYBRiD", "REMUX"},
 			},
-			wantErr: false,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			r := tt.fields
-			if err := r.ParseString(tt.fields.TorrentName); (err != nil) != tt.wantErr {
-				t.Errorf("Parse() error = %v, wantErr %v", err, tt.wantErr)
-			}
+			r.ParseString(tt.fields.TorrentName)
 
 			assert.Equal(t, tt.want, r)
 		})
@@ -307,8 +293,9 @@ func TestRelease_MapVars(t *testing.T) {
 			want: &Release{
 				TorrentName:      "Good show S02 2160p ATVP WEB-DL DDP 5.1 Atmos DV HEVC-GROUP2",
 				Category:         "tv",
+				Freeleech:        true,
 				FreeleechPercent: 100,
-				Bonus:            []string{"Freeleech100"},
+				Bonus:            []string{"Freeleech", "Freeleech100"},
 				Uploader:         "Anon",
 				Size:             uint64(10000000000),
 			},
@@ -326,8 +313,9 @@ func TestRelease_MapVars(t *testing.T) {
 			want: &Release{
 				TorrentName:      "Good show S02 2160p ATVP WEB-DL DDP 5.1 Atmos DV HEVC-GROUP2",
 				Category:         "tv",
+				Freeleech:        true,
 				FreeleechPercent: 50,
-				Bonus:            []string{"Freeleech50"},
+				Bonus:            []string{"Freeleech", "Freeleech50"},
 				Uploader:         "Anon",
 				Size:             uint64(10000000000),
 				Tags:             []string{"foreign", "tv"},
@@ -347,8 +335,9 @@ func TestRelease_MapVars(t *testing.T) {
 			want: &Release{
 				TorrentName:      "Good show S02 2160p ATVP WEB-DL DDP 5.1 Atmos DV HEVC-GROUP2",
 				Category:         "tv",
+				Freeleech:        true,
 				FreeleechPercent: 100,
-				Bonus:            []string{"Freeleech100"},
+				Bonus:            []string{"Freeleech", "Freeleech100"},
 				Uploader:         "Anon",
 				Size:             uint64(10000000000),
 				Tags:             []string{"foreign", "tv"},
@@ -369,8 +358,9 @@ func TestRelease_MapVars(t *testing.T) {
 				TorrentName:      "Good show S02 2160p ATVP WEB-DL DDP 5.1 Atmos DV HEVC-GROUP2",
 				Category:         "tv",
 				Year:             2020,
+				Freeleech:        true,
 				FreeleechPercent: 100,
-				Bonus:            []string{"Freeleech100"},
+				Bonus:            []string{"Freeleech", "Freeleech100"},
 				Uploader:         "Anon",
 				Size:             uint64(10000000000),
 				Tags:             []string{"foreign", "tv"},
@@ -392,8 +382,9 @@ func TestRelease_MapVars(t *testing.T) {
 				TorrentName:      "Good show S02 2160p ATVP WEB-DL DDP 5.1 Atmos DV HEVC-GROUP2",
 				Category:         "tv",
 				Year:             2020,
+				Freeleech:        true,
 				FreeleechPercent: 25,
-				Bonus:            []string{"Freeleech25"},
+				Bonus:            []string{"Freeleech", "Freeleech25"},
 				Uploader:         "Anon",
 				Size:             uint64(10000000000),
 				Tags:             []string{"hip.hop", "rhythm.and.blues", "2000s"},
@@ -415,8 +406,9 @@ func TestRelease_MapVars(t *testing.T) {
 				TorrentName:      "Good show S02 2160p ATVP WEB-DL DDP 5.1 Atmos DV HEVC-GROUP2",
 				Category:         "tv",
 				Year:             2020,
+				Freeleech:        true,
 				FreeleechPercent: 100,
-				Bonus:            []string{"Freeleech100"},
+				Bonus:            []string{"Freeleech", "Freeleech100"},
 				Uploader:         "Anon",
 				Size:             uint64(10000000000),
 				Tags:             []string{"hip.hop", "rhythm.and.blues", "2000s"},
@@ -572,8 +564,7 @@ func TestRelease_ParseString(t *testing.T) {
 				Filter:                      tt.fields.Filter,
 				ActionStatus:                tt.fields.ActionStatus,
 			}
-			_ = r.ParseString(tt.args.title)
-			//fmt.Sprintf("ParseString(%v)", tt.args.title)
+			r.ParseString(tt.args.title)
 		})
 	}
 }

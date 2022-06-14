@@ -181,7 +181,7 @@ func NewRelease(indexer string) *Release {
 	return r
 }
 
-func (r *Release) ParseString(title string) error {
+func (r *Release) ParseString(title string) {
 	rel := rls.ParseString(title)
 
 	r.TorrentName = title
@@ -206,7 +206,7 @@ func (r *Release) ParseString(title string) error {
 
 	r.ParseReleaseTagsString(r.ReleaseTags)
 
-	return nil
+	return
 }
 
 func (r *Release) ParseReleaseTagsString(tags string) {
@@ -220,6 +220,11 @@ func (r *Release) ParseReleaseTagsString(tags string) {
 		r.Audio = append(r.Audio, t.Audio...)
 	}
 	if len(t.Bonus) > 0 {
+		if sliceContainsSlice([]string{"Freeleech"}, t.Bonus) {
+			r.Freeleech = true
+		}
+		// TODO handle percent and other types
+
 		r.Bonus = append(r.Bonus, t.Bonus...)
 	}
 	if len(t.Codec) > 0 {
@@ -387,7 +392,10 @@ func (r *Release) MapVars(def *IndexerDefinition, varMap map[string]string) erro
 			//log.Debug().Msgf("bad freeleechPercent var: %v", year)
 		}
 
+		r.Freeleech = true
 		r.FreeleechPercent = freeleechPercentInt
+
+		r.Bonus = append(r.Bonus, "Freeleech")
 
 		switch freeleechPercentInt {
 		case 25:

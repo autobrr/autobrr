@@ -66,10 +66,7 @@ func (j *TorznabJob) process() error {
 		// parse size bytes string
 		rls.ParseSizeBytesString(item.Size)
 
-		if err := rls.ParseString(item.Title); err != nil {
-			j.Log.Error().Err(err).Msgf("torznab.process: error parsing release")
-			continue
-		}
+		rls.ParseString(item.Title)
 
 		releases = append(releases, rls)
 	}
