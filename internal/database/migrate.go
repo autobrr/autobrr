@@ -24,6 +24,9 @@ CREATE TABLE indexer
     UNIQUE (identifier)
 );
 
+CREATE INDEX indexer_identifier_index
+    ON indexer (identifier);
+
 CREATE TABLE irc_network
 (
     id                  INTEGER PRIMARY KEY,
@@ -207,6 +210,15 @@ CREATE TABLE "release"
 CREATE INDEX release_filter_id_index
     ON "release" (filter_id);
 
+CREATE INDEX release_indexer_index
+    ON "release" (indexer);
+
+CREATE INDEX release_timestamp_index
+    ON "release" (timestamp DESC);
+
+CREATE INDEX release_torrent_name_index
+    ON "release" (torrent_name);
+
 CREATE TABLE release_action_status
 (
 	id            INTEGER PRIMARY KEY,
@@ -220,6 +232,9 @@ CREATE TABLE release_action_status
 	release_id    INTEGER NOT NULL,
 	FOREIGN KEY (release_id) REFERENCES "release"(id) ON DELETE CASCADE
 );
+
+CREATE INDEX release_action_status_release_id_index
+    ON release_action_status (release_id);
 
 CREATE TABLE notification
 (
@@ -774,6 +789,22 @@ ALTER TABLE release_dg_tmp
 CREATE INDEX release_filter_id_index
     ON "release" (filter_id);
 	`,
+	`
+CREATE INDEX release_action_status_release_id_index
+    ON release_action_status (release_id);
+
+CREATE INDEX release_indexer_index
+    ON "release" (indexer);
+
+CREATE INDEX release_timestamp_index
+    ON "release" (timestamp DESC);
+
+CREATE INDEX release_torrent_name_index
+    ON "release" (torrent_name);
+
+CREATE INDEX indexer_identifier_index
+    ON indexer (identifier);
+	`,
 }
 
 const postgresSchema = `
@@ -799,6 +830,9 @@ CREATE TABLE indexer
     updated_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     UNIQUE (identifier)
 );
+
+CREATE INDEX indexer_identifier_index
+    ON indexer (identifier);
 
 CREATE TABLE irc_network
 (
@@ -1000,6 +1034,15 @@ CREATE TABLE "release"
 CREATE INDEX release_filter_id_index
     ON release (filter_id);
 
+CREATE INDEX release_indexer_index
+    ON "release" (indexer);
+
+CREATE INDEX release_timestamp_index
+    ON "release" (timestamp DESC);
+
+CREATE INDEX release_torrent_name_index
+    ON "release" (torrent_name);
+
 CREATE TABLE release_action_status
 (
 	id            SERIAL PRIMARY KEY,
@@ -1013,6 +1056,9 @@ CREATE TABLE release_action_status
 	release_id    INTEGER NOT NULL,
 	FOREIGN KEY (release_id) REFERENCES "release"(id) ON DELETE CASCADE
 );
+
+CREATE INDEX release_action_status_release_id_index
+    ON release_action_status (release_id);
 
 CREATE TABLE notification
 (
@@ -1229,5 +1275,21 @@ var postgresMigrations = []string{
 		ADD CONSTRAINT release_filter_id_fk
 			FOREIGN KEY (filter_id) REFERENCES FILTER
 				ON DELETE SET NULL;
+	`,
+	`
+CREATE INDEX release_action_status_release_id_index
+    ON release_action_status (release_id);
+
+CREATE INDEX release_indexer_index
+    ON "release" (indexer);
+
+CREATE INDEX release_timestamp_index
+    ON "release" (timestamp DESC);
+
+CREATE INDEX release_torrent_name_index
+    ON "release" (torrent_name);
+
+CREATE INDEX indexer_identifier_index
+    ON indexer (identifier);
 	`,
 }
