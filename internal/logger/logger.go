@@ -101,45 +101,45 @@ func (l *DefaultLogger) SetLogLevel(level string) {
 
 // Log log something at fatal level.
 func (l *DefaultLogger) Log() *zerolog.Event {
-	return l.log.Log().Time("time", time.Now())
+	return l.log.Log().Timestamp()
 }
 
 // Fatal log something at fatal level. This will panic!
 func (l *DefaultLogger) Fatal() *zerolog.Event {
-	return l.log.Fatal().Time("time", time.Now())
+	return l.log.Fatal().Timestamp()
 }
 
 // Error log something at Error level
 func (l *DefaultLogger) Error() *zerolog.Event {
-	return l.log.Error().Time("time", time.Now())
+	return l.log.Error().Timestamp()
 }
 
 // Err log something at Err level
 func (l *DefaultLogger) Err(err error) *zerolog.Event {
-	return l.log.Err(err).Time("time", time.Now())
+	return l.log.Err(err).Timestamp()
 }
 
 // Warn log something at warning level.
 func (l *DefaultLogger) Warn() *zerolog.Event {
-	return l.log.Warn().Time("time", time.Now())
+	return l.log.Warn().Timestamp()
 }
 
 // Info log something at fatal level.
 func (l *DefaultLogger) Info() *zerolog.Event {
-	return l.log.Info().Time("time", time.Now())
+	return l.log.Info().Timestamp()
 }
 
 // Debug log something at debug level.
 func (l *DefaultLogger) Debug() *zerolog.Event {
-	return l.log.Debug().Time("time", time.Now())
+	return l.log.Debug().Timestamp()
 }
 
 // Trace log something at fatal level. This will panic!
 func (l *DefaultLogger) Trace() *zerolog.Event {
-	return l.log.Trace().Time("time", time.Now())
+	return l.log.Trace().Timestamp()
 }
 
 // With log with context
 func (l *DefaultLogger) With() zerolog.Context {
-	return l.log.With()
+	return l.log.With().Timestamp()
 }

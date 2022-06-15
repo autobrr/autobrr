@@ -77,7 +77,7 @@ type Handler struct {
 
 func NewHandler(log logger.Logger, network domain.IrcNetwork, definitions []*domain.IndexerDefinition, releaseSvc release.Service) *Handler {
 	h := &Handler{
-		log:                log.With().Time("time", time.Now()).Str("network", network.Server).Logger(),
+		log:                log.With().Str("network", network.Server).Logger(),
 		client:             nil,
 		network:            &network,
 		releaseSvc:         releaseSvc,
@@ -421,7 +421,7 @@ func (h *Handler) HandlePartChannel(channel string) error {
 
 	// TODO remove announceProcessor
 
-	h.log.Info().Msgf("Left channel '%v' on network '%h'", channel, h.network.Server)
+	h.log.Info().Msgf("Left channel '%v' on network '%v'", channel, h.network.Server)
 
 	return nil
 }
