@@ -693,7 +693,7 @@ func (r *FilterRepo) downloadsByFilterPostgres(ctx context.Context, tx *Tx, filt
     COALESCE(SUM(CASE WHEN "release".timestamp >= date_trunc('month', CURRENT_DATE) THEN 1 ELSE 0 END),0) as "month_count",
     count(*) as "total_count"
 FROM "release"
-WHERE "release".filter_id = ?;`
+WHERE "release".filter_id = $1;`
 
 	row := tx.QueryRowContext(ctx, query, filterID)
 	if err := row.Err(); err != nil {
