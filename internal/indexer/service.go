@@ -424,8 +424,6 @@ func (s *service) LoadCustomIndexerDefinitions() error {
 
 		s.log.Trace().Msgf("parsing custom: %v", file)
 
-		var d *domain.IndexerDefinition
-
 		//data, err := fs.ReadFile(Definitions, filePath)
 		data, err := os.ReadFile(file)
 		if err != nil {
@@ -433,10 +431,15 @@ func (s *service) LoadCustomIndexerDefinitions() error {
 			return err
 		}
 
-		err = yaml.Unmarshal(data, &d)
-		if err != nil {
+		var d *domain.IndexerDefinition
+		if err = yaml.Unmarshal(data, &d); err != nil {
 			s.log.Error().Stack().Err(err).Msgf("failed unmarshal file: %v", file)
 			return err
+		}
+
+		if d == nil {
+			s.log.Warn().Stack().Err(err).Msgf("skipping empty file: %v", file)
+			continue
 		}
 
 		if d.Implementation == "" {
