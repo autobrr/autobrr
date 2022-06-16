@@ -1,13 +1,12 @@
 import { baseUrl, sseBaseUrl } from "../utils";
 import { AuthContext } from "../utils/Context";
-import { Cookies } from "react-cookie";
 
 interface ConfigType {
-  body?: BodyInit | Record<string, unknown> | unknown | null;
+  body?: BodyInit | Record<string, unknown> | unknown;
   headers?: Record<string, string>;
 }
 
-type PostBody = BodyInit | Record<string, unknown> | unknown | null;
+type PostBody = BodyInit | Record<string, unknown> | unknown;
 
 export async function HttpClient<T>(
   endpoint: string,
@@ -16,7 +15,7 @@ export async function HttpClient<T>(
 ): Promise<T> {
   const config = {
     method: method,
-    body: body ? JSON.stringify(body) : null,
+    body: body ? JSON.stringify(body) : undefined,
     headers: {
       "Content-Type": "application/json"
     },
@@ -24,44 +23,34 @@ export async function HttpClient<T>(
     ...customConfig
   } as RequestInit;
 
-
   return window.fetch(`${baseUrl()}${endpoint}`, config)
     .then(async response => {
-      if (response.status === 401) {
+      if (!response.ok) {
         // if 401 consider the session expired and force logout
-        const cookies = new Cookies();
-        cookies.remove("user_session");
-        AuthContext.reset();
+        if (response.status === 401) {
+          // Remove auth info from localStorage
+          AuthContext.reset();
 
-        return Promise.reject(new Error(response.statusText));
+          // Show an error toast to notify the user what occurred
+          return Promise.reject(new Error("Unauthorized."));
+        }
+
+        return Promise.reject(new Error(await response.text()));
       }
 
-      if ([403, 404].includes(response.status))
-        return Promise.reject(new Error(response.statusText));
-
-      // 201 comes from a POST and can contain data
-      if ([201].includes(response.status))
-        return await response.json();
-
-      // 204 ok no data
-      if ([204].includes(response.status))
+      // Resolve immediately since 204 contains no data
+      if (response.status === 204)
         return Promise.resolve(response);
-
-      if (response.ok) {
-        return await response.json();
-      } else {
-        const errorMessage = await response.text();
-        return Promise.reject(new Error(errorMessage));
-      }
+    
+      return await response.json();
     });
 }
 
 const appClient = {
   Get: <T>(endpoint: string) => HttpClient<T>(endpoint, "GET"),
-  Post: <T>(endpoint: string, data: PostBody) => HttpClient<void | T>(endpoint, "POST", { body: data }),
-  PostBody: <T>(endpoint: string, data: PostBody) => HttpClient<T>(endpoint, "POST", { body: data }),
+  Post: <T = void>(endpoint: string, data: PostBody = undefined) => HttpClient<T>(endpoint, "POST", { body: data }),
   Put: (endpoint: string, data: PostBody) => HttpClient<void>(endpoint, "PUT", { body: data }),
-  Patch: (endpoint: string, data: PostBody) => HttpClient<void>(endpoint, "PATCH", { body: data }),
+  Patch: (endpoint: string, data: PostBody = undefined) => HttpClient<void>(endpoint, "PATCH", { body: data }),
   Delete: (endpoint: string) => HttpClient<void>(endpoint, "DELETE")
 };
 
@@ -71,7 +60,7 @@ export const APIClient = {
       username: username,
       password: password
     }),
-    logout: () => appClient.Post("api/auth/logout", null),
+    logout: () => appClient.Post("api/auth/logout"),
     validate: () => appClient.Get<void>("api/auth/validate"),
     onboard: (username: string, password: string) => appClient.Post("api/auth/onboard", {
       username: username,
@@ -83,7 +72,7 @@ export const APIClient = {
     create: (action: Action) => appClient.Post("api/actions", action),
     update: (action: Action) => appClient.Put(`api/actions/${action.id}`, action),
     delete: (id: number) => appClient.Delete(`api/actions/${id}`),
-    toggleEnable: (id: number) => appClient.Patch(`api/actions/${id}/toggleEnabled`, null)
+    toggleEnable: (id: number) => appClient.Patch(`api/actions/${id}/toggleEnabled`)
   },
   config: {
     get: () => appClient.Get<Config>("api/config")
@@ -118,7 +107,7 @@ export const APIClient = {
     getAll: () => appClient.Get<IndexerDefinition[]>("api/indexer"),
     // returns all possible indexer definitions
     getSchema: () => appClient.Get<IndexerDefinition[]>("api/indexer/schema"),
-    create: (indexer: Indexer) => appClient.PostBody<Indexer>("api/indexer", indexer),
+    create: (indexer: Indexer) => appClient.Post<Indexer>("api/indexer", indexer),
     update: (indexer: Indexer) => appClient.Put("api/indexer", indexer),
     delete: (id: number) => appClient.Delete(`api/indexer/${id}`)
   },

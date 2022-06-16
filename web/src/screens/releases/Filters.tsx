@@ -157,7 +157,7 @@ export const SearchColumnFilter = ({
         id="filter"
         type="text"
         autoComplete="off"
-        className="relative w-full py-2 pl-3 pr-10 text-left bg-white dark:bg-gray-800 rounded-lg shadow-md cursor-default dark:text-gray-400 sm:text-sm border-none"
+        className="relative w-full py-2 pl-3 pr-10 text-left bg-white dark:bg-gray-800 rounded-lg shadow-md dark:text-gray-400 sm:text-sm border-none"
         placeholder="Search releases..."
       />
     </div>

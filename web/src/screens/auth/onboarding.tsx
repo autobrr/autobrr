@@ -34,7 +34,7 @@ export const Onboarding = () => {
 
   const mutation = useMutation(
     (data: InputValues) => APIClient.auth.onboard(data.username, data.password1),
-    { onSuccess: () => navigate("/login") }
+    { onSuccess: () => navigate("/") }
   );
 
   return (
