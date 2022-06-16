@@ -1,12 +1,11 @@
+import { useEffect } from "react";
+import { useForm } from "react-hook-form";
 import { useNavigate } from "react-router-dom";
 import { useMutation } from "react-query";
 
-import { APIClient } from "../../api/APIClient";
-
 import logo from "../../logo.png";
+import { APIClient } from "../../api/APIClient";
 import { AuthContext } from "../../utils/Context";
-import { useEffect } from "react";
-import { SubmitHandler, useForm } from "react-hook-form";
 import { PasswordInput, TextInput } from "../../components/inputs/text";
 
 export type LoginFormFields = {
@@ -15,7 +14,7 @@ export type LoginFormFields = {
 };
 
 export const Login = () => {
-  const { handleSubmit, register, formState: { errors }  } = useForm<LoginFormFields>({
+  const { handleSubmit, register, formState } = useForm<LoginFormFields>({
     defaultValues: { username: "", password: "" },
     mode: "onBlur"
   });
@@ -26,8 +25,9 @@ export const Login = () => {
     // Check if onboarding is available for this instance
     // and redirect if needed
     APIClient.auth.canOnboard()
-      .then(() => navigate("/onboard"));
-  }, [history]);
+      .then(() => navigate("/onboard"))
+      .catch(() => { /*don't log to console PAHLLEEEASSSE*/ });
+  }, []);
 
   const loginMutation = useMutation(
     (data: LoginFormFields) => APIClient.auth.login(data.username, data.password),
@@ -42,7 +42,7 @@ export const Login = () => {
     }
   );
 
-  const onSubmit: SubmitHandler<LoginFormFields> = (data: LoginFormFields) => loginMutation.mutate(data);
+  const onSubmit = (data: LoginFormFields) => loginMutation.mutate(data);
 
   return (
     <div className="min-h-screen flex flex-col justify-center py-12 sm:px-6 lg:px-8">
@@ -55,7 +55,6 @@ export const Login = () => {
       </div>
       <div className="sm:mx-auto sm:w-full sm:max-w-md shadow-lg">
         <div className="bg-white dark:bg-gray-800 py-8 px-4 sm:rounded-lg sm:px-10">
-
           <form onSubmit={handleSubmit(onSubmit)}>
             <div className="space-y-6">
               <TextInput<LoginFormFields>
@@ -65,7 +64,7 @@ export const Login = () => {
                 type="text"
                 register={register}
                 rules={{ required: "Username is required" }}
-                errors={errors}
+                errors={formState.errors}
                 autoComplete="username"
               />
               <PasswordInput<LoginFormFields>
@@ -74,7 +73,7 @@ export const Login = () => {
                 label="password"
                 register={register}
                 rules={{ required: "Password is required" }}
-                errors={errors}
+                errors={formState.errors}
                 autoComplete="current-password"
               />
             </div>
@@ -88,7 +87,6 @@ export const Login = () => {
               </button>
             </div>
           </form>
-
         </div>
       </div>
     </div>

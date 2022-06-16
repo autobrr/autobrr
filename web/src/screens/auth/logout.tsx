@@ -1,32 +1,27 @@
 import { useEffect } from "react";
-import { useCookies } from "react-cookie";
-import { useNavigate } from "react-router-dom";
+import toast from "react-hot-toast";
 
 import { APIClient } from "../../api/APIClient";
+import Toast from "../../components/notifications/Toast";
 import { AuthContext } from "../../utils/Context";
 
 export const Logout = () => {
-  const navigate = useNavigate();
-
-  const [, setAuthContext] = AuthContext.use();
-  const [,, removeCookie] = useCookies(["user_session"]);
-
   useEffect(
     () => {
       APIClient.auth.logout()
         .then(() => {
-          removeCookie("user_session");
-          setAuthContext({ username: "", isLoggedIn: false });
-
-          navigate("/login");
+          toast.custom((t) => (
+            <Toast type="success" body="You have been logged out. Goodbye!" t={t} />
+          ));
+          AuthContext.reset();
         });
     },
-    [history, removeCookie, setAuthContext]
+    []
   );
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-800 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
-      <p>Logged out</p>
+    <div className="min-h-screen flex justify-center items-center">
+      {/*<h1 className="font-bold text-7xl">Goodbye!</h1>*/}
     </div>
   );
 };
