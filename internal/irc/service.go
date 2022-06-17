@@ -9,6 +9,7 @@ import (
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/internal/indexer"
 	"github.com/autobrr/autobrr/internal/logger"
+	"github.com/autobrr/autobrr/internal/notification"
 	"github.com/autobrr/autobrr/internal/release"
 
 	"github.com/pkg/errors"
@@ -28,24 +29,26 @@ type Service interface {
 }
 
 type service struct {
-	log            logger.Logger
-	repo           domain.IrcRepo
-	releaseService release.Service
-	indexerService indexer.Service
-	indexerMap     map[string]string
-	handlers       map[handlerKey]*Handler
+	log                 logger.Logger
+	repo                domain.IrcRepo
+	releaseService      release.Service
+	indexerService      indexer.Service
+	notificationService notification.Service
+	indexerMap          map[string]string
+	handlers            map[handlerKey]*Handler
 
 	stopWG sync.WaitGroup
 	lock   sync.Mutex
 }
 
-func NewService(log logger.Logger, repo domain.IrcRepo, releaseSvc release.Service, indexerSvc indexer.Service) Service {
+func NewService(log logger.Logger, repo domain.IrcRepo, releaseSvc release.Service, indexerSvc indexer.Service, notificationSvc notification.Service) Service {
 	return &service{
-		log:            log,
-		repo:           repo,
-		releaseService: releaseSvc,
-		indexerService: indexerSvc,
-		handlers:       make(map[handlerKey]*Handler),
+		log:                 log,
+		repo:                repo,
+		releaseService:      releaseSvc,
+		indexerService:      indexerSvc,
+		notificationService: notificationSvc,
+		handlers:            make(map[handlerKey]*Handler),
 	}
 }
 
@@ -79,7 +82,7 @@ func (s *service) StartHandlers() {
 		definitions := s.indexerService.GetIndexersByIRCNetwork(network.Server)
 
 		// init new irc handler
-		handler := NewHandler(s.log, network, definitions, s.releaseService)
+		handler := NewHandler(s.log, network, definitions, s.releaseService, s.notificationService)
 
 		// use network.Server + nick to use multiple indexers with different nick per network
 		// this allows for multiple handlers to one network
@@ -135,7 +138,7 @@ func (s *service) startNetwork(network domain.IrcNetwork) error {
 		definitions := s.indexerService.GetIndexersByIRCNetwork(network.Server)
 
 		// init new irc handler
-		handler := NewHandler(s.log, network, definitions, s.releaseService)
+		handler := NewHandler(s.log, network, definitions, s.releaseService, s.notificationService)
 
 		s.handlers[handlerKey{network.Server, network.NickServ.Account}] = handler
 		s.lock.Unlock()

@@ -11,6 +11,7 @@ import (
 	"github.com/autobrr/autobrr/internal/announce"
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/internal/logger"
+	"github.com/autobrr/autobrr/internal/notification"
 	"github.com/autobrr/autobrr/internal/release"
 
 	"github.com/dcarbone/zadapters/zstdlog"
@@ -56,35 +57,38 @@ func (h *channelHealth) resetMonitoring() {
 }
 
 type Handler struct {
-	log                zerolog.Logger
-	network            *domain.IrcNetwork
-	releaseSvc         release.Service
-	announceProcessors map[string]announce.Processor
-	definitions        map[string]*domain.IndexerDefinition
+	log                 zerolog.Logger
+	network             *domain.IrcNetwork
+	releaseSvc          release.Service
+	notificationService notification.Service
+	announceProcessors  map[string]announce.Processor
+	definitions         map[string]*domain.IndexerDefinition
 
 	client *ircevent.Connection
 	m      sync.RWMutex
 
-	lastPing       time.Time
-	connected      bool
-	connectedSince time.Time
+	lastPing         time.Time
+	connected        bool
+	connectedSince   time.Time
+	haveDisconnected bool
 
 	validAnnouncers map[string]struct{}
 	validChannels   map[string]struct{}
 	channelHealth   map[string]*channelHealth
 }
 
-func NewHandler(log logger.Logger, network domain.IrcNetwork, definitions []*domain.IndexerDefinition, releaseSvc release.Service) *Handler {
+func NewHandler(log logger.Logger, network domain.IrcNetwork, definitions []*domain.IndexerDefinition, releaseSvc release.Service, notificationSvc notification.Service) *Handler {
 	h := &Handler{
-		log:                log.With().Str("network", network.Server).Logger(),
-		client:             nil,
-		network:            &network,
-		releaseSvc:         releaseSvc,
-		definitions:        map[string]*domain.IndexerDefinition{},
-		announceProcessors: map[string]announce.Processor{},
-		validAnnouncers:    map[string]struct{}{},
-		validChannels:      map[string]struct{}{},
-		channelHealth:      map[string]*channelHealth{},
+		log:                 log.With().Str("network", network.Server).Logger(),
+		client:              nil,
+		network:             &network,
+		releaseSvc:          releaseSvc,
+		notificationService: notificationSvc,
+		definitions:         map[string]*domain.IndexerDefinition{},
+		announceProcessors:  map[string]announce.Processor{},
+		validAnnouncers:     map[string]struct{}{},
+		validChannels:       map[string]struct{}{},
+		channelHealth:       map[string]*channelHealth{},
 	}
 
 	// init indexer, announceProcessor
@@ -159,6 +163,7 @@ func (h *Handler) Run() error {
 	}
 
 	h.client.AddConnectCallback(h.onConnect)
+	h.client.AddDisconnectCallback(h.onDisconnect)
 	h.client.AddCallback("MODE", h.handleMode)
 	h.client.AddCallback("INVITE", h.handleInvite)
 	h.client.AddCallback("366", h.handleJoined)
@@ -258,7 +263,16 @@ func (h *Handler) onConnect(m ircmsg.Message) {
 
 	h.setConnectionStatus()
 
-	h.log.Debug().Msgf("onConnect current nick: %v", h.client.CurrentNick())
+	if h.haveDisconnected {
+		h.notificationService.Send(domain.NotificationEventIRCReconnected, domain.NotificationPayload{
+			Subject: "IRC Reconnected",
+			Message: fmt.Sprintf("Network: %v", h.network.Name),
+		})
+	}
+	// reset haveDisconnected
+	h.haveDisconnected = true
+
+	h.log.Debug().Msgf("connected to: %v", h.network.Name)
 
 	time.Sleep(2 * time.Second)
 
@@ -278,13 +292,25 @@ func (h *Handler) onConnect(m ircmsg.Message) {
 			return
 		}
 
-		time.Sleep(1 * time.Second)
 		return
 	}
 
 	// join channels if no password or no invite command
 	h.JoinChannels()
 
+}
+
+func (h *Handler) onDisconnect(m ircmsg.Message) {
+	h.log.Debug().Msgf("DISCONNECT")
+
+	h.haveDisconnected = true
+
+	h.resetConnectionStatus()
+
+	h.notificationService.Send(domain.NotificationEventIRCDisconnected, domain.NotificationPayload{
+		Subject: "IRC Disconnected unexpectedly",
+		Message: fmt.Sprintf("Network: %v", h.network.Name),
+	})
 }
 
 func (h *Handler) onNotice(msg ircmsg.Message) {
@@ -332,23 +358,10 @@ func contains(s string, substr ...string) bool {
 }
 
 func (h *Handler) onNick(msg ircmsg.Message) {
+	h.log.Debug().Msgf("NICK event: %v params: %v", msg.Nick(), msg.Params)
 
-	h.log.Debug().Msgf("NICK event: %v params: %v", msg.Nick(), msg.Params[1])
-	h.client.SetNick(msg.Params[0])
-
-	//h.client.SetNick(h.network.NickServ.Account)
-
-	time.Sleep(2 * time.Second)
-	h.log.Debug().Msgf("NICK current nick: %v", h.client.CurrentNick())
-	//h.log.Debug().Msgf("NICK %v - current nick: %v", strings.Join(msg.Params, " "), h.client.CurrentNick())
-
-	if h.client.CurrentNick() == "" {
-		h.log.Debug().Msgf("nick empty")
-		//} else if h.client.CurrentNick() != h.network.NickServ.Account {
-	} else if h.client.CurrentNick() != h.client.PreferredNick() {
-		//h.log.Warn().Msgf("nick miss-match: got %v want %v", h.client.CurrentNick(), h.network.NickServ.Account)
-		h.log.Warn().Msgf("nick miss-match: got %v want %v", h.client.CurrentNick(), h.client.PreferredNick())
-		//h.client.SetNick(h.network.NickServ.Account)
+	if h.client.CurrentNick() != h.client.PreferredNick() {
+		h.log.Debug().Msgf("nick miss-match: got %v want %v", h.client.CurrentNick(), h.client.PreferredNick())
 	}
 }
 
@@ -470,7 +483,7 @@ func (h *Handler) handlePart(msg ircmsg.Message) {
 
 	// TODO remove announceProcessor
 
-	h.log.Info().Msgf("Left channel '%v'", channel)
+	h.log.Debug().Msgf("Left channel '%v'", channel)
 
 	return
 }
@@ -601,12 +614,12 @@ func (h *Handler) handleMode(msg ircmsg.Message) {
 		return
 	}
 
-	time.Sleep(2 * time.Second)
-
 	if h.network.NickServ.Password != "" && !strings.Contains(msg.Params[0], h.client.Nick) || !strings.Contains(msg.Params[1], "+r") {
 		h.log.Trace().Msgf("MODE: Not correct permission yet: %v", msg.Params)
 		return
 	}
+
+	time.Sleep(2 * time.Second)
 
 	// join channels
 	h.JoinChannels()

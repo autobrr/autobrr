@@ -8,7 +8,7 @@ require (
 	github.com/asaskevich/EventBus v0.0.0-20200907212545-49d423059eef
 	github.com/dcarbone/zadapters/zstdlog v0.3.1
 	github.com/dustin/go-humanize v1.0.0
-	github.com/ergochat/irc-go v0.1.0
+	github.com/ergochat/irc-go v0.1.1-0.20220617221609-4beae5ca3b44
 	github.com/fsnotify/fsnotify v1.5.4
 	github.com/gdm85/go-libdeluge v0.5.5
 	github.com/go-chi/chi v1.5.4

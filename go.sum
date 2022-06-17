@@ -207,6 +207,10 @@ github.com/envoyproxy/go-control-plane v0.10.2-0.20220325020618-49ff273808a1/go.
 github.com/envoyproxy/protoc-gen-validate v0.1.0/go.mod h1:iSmxcyjqTsJpI2R4NaDN7+kN2VEUnK/pcBlmesArF7c=
 github.com/ergochat/irc-go v0.1.0 h1:jBHUayERH9SiPOWe4ePDWRztBjIQsU/jwLbbGUuiOWM=
 github.com/ergochat/irc-go v0.1.0/go.mod h1:2vi7KNpIPWnReB5hmLpl92eMywQvuIeIIGdt/FQCph0=
+github.com/ergochat/irc-go v0.1.1-0.20220617191532-0187c396b8d2 h1:fZWpf92pc8cgvLaNr7Fkkc/pXWf+YS9KgeQa22iM6Os=
+github.com/ergochat/irc-go v0.1.1-0.20220617191532-0187c396b8d2/go.mod h1:2vi7KNpIPWnReB5hmLpl92eMywQvuIeIIGdt/FQCph0=
+github.com/ergochat/irc-go v0.1.1-0.20220617221609-4beae5ca3b44 h1:SUNaIQAUXp5RxEk5zaUC/fBils/lFmAOf5waEZ5+vAM=
+github.com/ergochat/irc-go v0.1.1-0.20220617221609-4beae5ca3b44/go.mod h1:2vi7KNpIPWnReB5hmLpl92eMywQvuIeIIGdt/FQCph0=
 github.com/etcd-io/bbolt v1.3.3/go.mod h1:ZF2nL25h33cCyBtcyWeZ2/I3HQOfTP+0PIEvHjkjCrw=
 github.com/fatih/color v1.7.0/go.mod h1:Zm6kSWBoL9eyXnKyktHP6abPY2pDugNf5KwzbycvMj4=
 github.com/fatih/color v1.9.0/go.mod h1:eQcE1qtQxscV5RaZvpXrrb8Drkc3/DdQ+uUYCNjL+zU=
