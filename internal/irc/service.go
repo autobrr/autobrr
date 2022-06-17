@@ -198,15 +198,13 @@ func (s *service) checkIfNetworkRestartNeeded(network *domain.IrcNetwork) error 
 			if handler.NickServ.Account != network.NickServ.Account {
 				s.log.Debug().Msg("changing nick")
 
-				err := existingHandler.HandleNickChange(network.NickServ.Account)
-				if err != nil {
+				if err := existingHandler.NickChange(network.NickServ.Account); err != nil {
 					s.log.Error().Stack().Err(err).Msgf("failed to change nick %q", network.NickServ.Account)
 				}
 			} else if handler.NickServ.Password != network.NickServ.Password {
 				s.log.Debug().Msg("nickserv: changing password")
 
-				err := existingHandler.HandleNickServIdentify(network.NickServ.Password)
-				if err != nil {
+				if err := existingHandler.NickServIdentify(network.NickServ.Password); err != nil {
 					s.log.Error().Stack().Err(err).Msgf("failed to identify with nickserv %q", network.NickServ.Account)
 				}
 			}
@@ -252,8 +250,8 @@ func (s *service) checkIfNetworkRestartNeeded(network *domain.IrcNetwork) error 
 			// leave channels
 			for _, leaveChannel := range channelsToLeave {
 				s.log.Debug().Msgf("%v: part channel %v", network.Server, leaveChannel)
-				err := existingHandler.HandlePartChannel(leaveChannel)
-				if err != nil {
+
+				if err := existingHandler.PartChannel(leaveChannel); err != nil {
 					s.log.Error().Stack().Err(err).Msgf("failed to leave channel: %q", leaveChannel)
 				}
 			}
@@ -261,8 +259,8 @@ func (s *service) checkIfNetworkRestartNeeded(network *domain.IrcNetwork) error 
 			// join channels
 			for _, joinChannel := range channelsToJoin {
 				s.log.Debug().Msgf("%v: join new channel %v", network.Server, joinChannel)
-				err := existingHandler.HandleJoinChannel(joinChannel.Name, joinChannel.Password)
-				if err != nil {
+
+				if err := existingHandler.JoinChannel(joinChannel.Name, joinChannel.Password); err != nil {
 					s.log.Error().Stack().Err(err).Msgf("failed to join channel: %q", joinChannel.Name)
 				}
 			}

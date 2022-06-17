@@ -68,7 +68,6 @@ type Handler struct {
 	lastPing       time.Time
 	connected      bool
 	connectedSince time.Time
-	// tODO disconnectedTime
 
 	validAnnouncers map[string]struct{}
 	validChannels   map[string]struct{}
@@ -165,6 +164,8 @@ func (h *Handler) Run() error {
 	h.client.AddCallback("366", h.handleJoined)
 	h.client.AddCallback("PART", h.handlePart)
 	h.client.AddCallback("PRIVMSG", h.onMessage)
+	h.client.AddCallback("NOTICE", h.onNotice)
+	h.client.AddCallback("NICK", h.onNick)
 
 	if err := h.client.Connect(); err != nil {
 		h.log.Error().Stack().Err(err).Msg("connect error")
@@ -174,9 +175,6 @@ func (h *Handler) Run() error {
 
 		//return err
 	}
-
-	// set connected since now
-	h.setConnectionStatus()
 
 	h.client.Loop()
 
@@ -253,41 +251,105 @@ func (h *Handler) Restart() error {
 }
 
 func (h *Handler) onConnect(m ircmsg.Message) {
-	identified := false
+	// 1. No nickserv, no invite command - join
+	// 2. Nickserv - join after auth
+	// 3. nickserv and invite command - join after nickserv
+	// 4. invite command - join
 
-	time.Sleep(4 * time.Second)
+	h.setConnectionStatus()
+
+	h.log.Debug().Msgf("onConnect current nick: %v", h.client.CurrentNick())
+
+	time.Sleep(2 * time.Second)
 
 	if h.network.NickServ.Password != "" {
-		err := h.HandleNickServIdentify(h.network.NickServ.Password)
-		if err != nil {
+		if err := h.NickServIdentify(h.network.NickServ.Password); err != nil {
 			h.log.Error().Stack().Err(err).Msg("error nickserv")
 			return
 		}
-		identified = true
+
+		// return and wait for NOTICE of nickserv auth
+		return
 	}
 
-	time.Sleep(4 * time.Second)
-
-	if h.network.InviteCommand != "" {
-		err := h.handleConnectCommands(h.network.InviteCommand)
-		if err != nil {
+	if h.network.InviteCommand != "" && h.network.NickServ.Password == "" {
+		if err := h.sendConnectCommands(h.network.InviteCommand); err != nil {
 			h.log.Error().Stack().Err(err).Msgf("error sending connect command %v", h.network.InviteCommand)
 			return
 		}
 
 		time.Sleep(1 * time.Second)
+		return
 	}
 
-	if !identified {
-		for _, channel := range h.network.Channels {
-			err := h.HandleJoinChannel(channel.Name, channel.Password)
-			if err != nil {
-				h.log.Error().Stack().Err(err).Msgf("error joining channels %v", err)
+	// join channels if no password or no invite command
+	h.JoinChannels()
+
+}
+
+func (h *Handler) onNotice(msg ircmsg.Message) {
+	h.log.Debug().Msgf("NOTICE: %v", msg.Nick())
+
+	if msg.Nick() == "NickServ" {
+		h.log.Debug().Msgf("NOTICE from nickserv: %v", msg.Params)
+
+		// params: [test-bot You're now logged in as test-bot]
+		if contains(msg.Params[1], "you're now logged in as") {
+			h.log.Debug().Msgf("NOTICE nickserv logged in: %v", msg.Params)
+
+			// if no invite command, join
+			if h.network.InviteCommand == "" {
+				h.JoinChannels()
+				return
+			}
+
+			// else send connect commands
+			if err := h.sendConnectCommands(h.network.InviteCommand); err != nil {
+				h.log.Error().Stack().Err(err).Msgf("error sending connect command %v", h.network.InviteCommand)
 				return
 			}
 		}
-	}
 
+		//[test-bot Invalid parameters. For usage, do /msg NickServ HELP IDENTIFY]
+		if contains(msg.Params[1], "invalid", "help") {
+			h.log.Debug().Msgf("NOTICE nickserv invalid: %v", msg.Params)
+
+			h.client.Send("PRIVMSG", "NickServ", fmt.Sprintf("IDENTIFY %v %v", h.network.NickServ.Account, h.network.NickServ.Password))
+		}
+
+		// Your nickname is not registered
+	}
+}
+
+func contains(s string, substr ...string) bool {
+	s = strings.ToLower(s)
+	for _, c := range substr {
+		if strings.Contains(s, c) {
+			return true
+		}
+	}
+	return false
+}
+
+func (h *Handler) onNick(msg ircmsg.Message) {
+
+	h.log.Debug().Msgf("NICK event: %v params: %v", msg.Nick(), msg.Params[1])
+	h.client.SetNick(msg.Params[0])
+
+	//h.client.SetNick(h.network.NickServ.Account)
+
+	time.Sleep(2 * time.Second)
+	h.log.Debug().Msgf("NICK current nick: %v", h.client.CurrentNick())
+	//h.log.Debug().Msgf("NICK %v - current nick: %v", strings.Join(msg.Params, " "), h.client.CurrentNick())
+
+	if h.client.CurrentNick() == "" {
+		h.log.Debug().Msgf("nick empty")
+		//} else if h.client.CurrentNick() != h.network.NickServ.Account {
+	} else if h.client.CurrentNick() != h.client.PreferredNick() {
+		//h.log.Warn().Msgf("nick miss-match: got %v want %v", h.client.CurrentNick(), h.network.NickServ.Account)
+		h.log.Warn().Msgf("nick miss-match: got %v want %v", h.client.CurrentNick(), h.client.PreferredNick())
+		//h.client.SetNick(h.network.NickServ.Account)
+	}
 }
 
 func (h *Handler) onMessage(msg ircmsg.Message) {
@@ -349,7 +411,18 @@ func (h *Handler) sendToAnnounceProcessor(channel string, msg string) error {
 	return nil
 }
 
-func (h *Handler) HandleJoinChannel(channel string, password string) error {
+func (h *Handler) JoinChannels() {
+	for _, channel := range h.network.Channels {
+		if err := h.JoinChannel(channel.Name, channel.Password); err != nil {
+			h.log.Error().Stack().Err(err).Msgf("error joining channel %v", channel.Name)
+			continue
+		}
+
+		time.Sleep(1 * time.Second)
+	}
+}
+
+func (h *Handler) JoinChannel(channel string, password string) error {
 	m := ircmsg.Message{
 		Command: "JOIN",
 		Params:  []string{channel},
@@ -402,7 +475,7 @@ func (h *Handler) handlePart(msg ircmsg.Message) {
 	return
 }
 
-func (h *Handler) HandlePartChannel(channel string) error {
+func (h *Handler) PartChannel(channel string) error {
 	h.log.Debug().Msgf("PART channel %v", channel)
 
 	err := h.client.Part(channel)
@@ -452,7 +525,7 @@ func (h *Handler) handleJoined(msg ircmsg.Message) {
 	}
 }
 
-func (h *Handler) handleConnectCommands(msg string) error {
+func (h *Handler) sendConnectCommands(msg string) error {
 	connectCommand := strings.ReplaceAll(msg, "/msg", "")
 	connectCommands := strings.Split(connectCommand, ",")
 
@@ -495,7 +568,7 @@ func (h *Handler) handleInvite(msg ircmsg.Message) {
 	return
 }
 
-func (h *Handler) HandleNickServIdentify(password string) error {
+func (h *Handler) NickServIdentify(password string) error {
 	m := ircmsg.Message{
 		Command: "PRIVMSG",
 		Params:  []string{"NickServ", "IDENTIFY", password},
@@ -512,7 +585,7 @@ func (h *Handler) HandleNickServIdentify(password string) error {
 	return nil
 }
 
-func (h *Handler) HandleNickChange(nick string) error {
+func (h *Handler) NickChange(nick string) error {
 	h.log.Debug().Msgf("Nick change: %v", nick)
 
 	h.client.SetNick(nick)
@@ -528,22 +601,15 @@ func (h *Handler) handleMode(msg ircmsg.Message) {
 		return
 	}
 
-	time.Sleep(5 * time.Second)
+	time.Sleep(2 * time.Second)
 
 	if h.network.NickServ.Password != "" && !strings.Contains(msg.Params[0], h.client.Nick) || !strings.Contains(msg.Params[1], "+r") {
 		h.log.Trace().Msgf("MODE: Not correct permission yet: %v", msg.Params)
 		return
 	}
 
-	for _, ch := range h.network.Channels {
-		err := h.HandleJoinChannel(ch.Name, ch.Password)
-		if err != nil {
-			h.log.Error().Err(err).Msgf("error joining channel: %v", ch.Name)
-			continue
-		}
-
-		time.Sleep(1 * time.Second)
-	}
+	// join channels
+	h.JoinChannels()
 
 	return
 }
@@ -566,14 +632,6 @@ func (h *Handler) isValidChannel(channel string) bool {
 	}
 
 	return true
-}
-
-func (h *Handler) setLastPing() {
-	h.lastPing = time.Now()
-}
-
-func (h *Handler) GetLastPing() time.Time {
-	return h.lastPing
 }
 
 // irc line can contain lots of extra stuff like color so lets clean that
