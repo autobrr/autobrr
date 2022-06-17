@@ -315,5 +315,15 @@ export const EventOptions: SelectOption[] = [
     label: "Push Error",
     value: "PUSH_ERROR",
     description: "On push error for the arrs or download client"
+  },
+  {
+    label: "IRC Disconnected",
+    value: "IRC_DISCONNECTED",
+    description: "Unexpectedly disconnected from irc network"
+  },
+  {
+    label: "IRC Reconnected",
+    value: "IRC_RECONNECTED",
+    description: "Reconnected to irc network after error"
   }
 ];
