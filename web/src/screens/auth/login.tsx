@@ -8,7 +8,7 @@ import { APIClient } from "../../api/APIClient";
 import { AuthContext } from "../../utils/Context";
 import { PasswordInput, TextInput } from "../../components/inputs/text";
 
-export type LoginFormFields = {
+type LoginFormFields = {
   username: string;
   password: string;
 };
