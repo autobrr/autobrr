@@ -343,6 +343,8 @@ func (s *service) addIndexer(indexer domain.Indexer) error {
 		s.torznabIndexers[indexer.Identifier] = indexerDefinition
 	}
 
+	s.mappedDefinitions[indexer.Identifier] = indexerDefinition
+
 	return nil
 }
 
@@ -372,6 +374,8 @@ func (s *service) updateIndexer(indexer domain.Indexer) error {
 	if indexerDefinition.Implementation == "torznab" {
 		s.torznabIndexers[indexer.Identifier] = indexerDefinition
 	}
+
+	s.mappedDefinitions[indexer.Identifier] = indexerDefinition
 
 	return nil
 }

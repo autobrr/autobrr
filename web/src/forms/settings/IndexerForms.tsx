@@ -1,15 +1,9 @@
 import { Fragment, useState } from "react";
 import { toast } from "react-hot-toast";
 import { useMutation, useQuery } from "react-query";
-import Select, {
-  components,
-  ControlProps,
-  InputProps,
-  MenuProps,
-  OptionProps
-} from "react-select";
-import { Field, Form, Formik, FormikValues } from "formik";
+import Select, { components, ControlProps, InputProps, MenuProps, OptionProps } from "react-select";
 import type { FieldProps } from "formik";
+import { Field, Form, Formik, FormikValues } from "formik";
 
 import { XIcon } from "@heroicons/react/solid";
 import { Dialog, Transition } from "@headlessui/react";
@@ -18,11 +12,7 @@ import { sleep, slugify } from "../../utils";
 import { queryClient } from "../../App";
 import DEBUG from "../../components/debug";
 import { APIClient } from "../../api/APIClient";
-import {
-  TextFieldWide,
-  PasswordFieldWide,
-  SwitchGroupWide
-} from "../../components/inputs";
+import { PasswordFieldWide, SwitchGroupWide, TextFieldWide } from "../../components/inputs";
 import { SlideOver } from "../../components/panels";
 import Toast from "../../components/notifications/Toast";
 
@@ -76,7 +66,7 @@ const IrcSettingFields = (ind: IndexerDefinition, indexer: string) => {
             <div className="px-6 space-y-1">
               <Dialog.Title className="text-lg font-medium text-gray-900 dark:text-white">IRC</Dialog.Title>
               <p className="text-sm text-gray-500 dark:text-gray-200">
-                                Networks, channels and invite commands are configured automatically.
+                Networks, channels and invite commands are configured automatically.
               </p>
             </div>
             {ind.irc.settings.map((f: IndexerSetting, idx: number) => {
@@ -107,7 +97,7 @@ const FeedSettingFields = (ind: IndexerDefinition, indexer: string) => {
             <div className="px-6 space-y-1">
               <Dialog.Title className="text-lg font-medium text-gray-900 dark:text-white">Torznab</Dialog.Title>
               <p className="text-sm text-gray-500 dark:text-gray-200">
-                                Torznab feed
+                Torznab feed
               </p>
             </div>
 
