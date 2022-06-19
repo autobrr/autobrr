@@ -16,7 +16,7 @@ type indexerService interface {
 	Update(ctx context.Context, indexer domain.Indexer) (*domain.Indexer, error)
 	List(ctx context.Context) ([]domain.Indexer, error)
 	GetAll() ([]*domain.IndexerDefinition, error)
-	GetTemplates() ([]*domain.IndexerDefinition, error)
+	GetTemplates() ([]domain.IndexerDefinition, error)
 	Delete(ctx context.Context, id int) error
 }
 

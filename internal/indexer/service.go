@@ -7,6 +7,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 
 	"github.com/autobrr/autobrr/internal/domain"
@@ -14,6 +15,7 @@ import (
 	"github.com/autobrr/autobrr/internal/scheduler"
 
 	"github.com/gosimple/slug"
+	"github.com/rs/zerolog"
 	"gopkg.in/yaml.v3"
 )
 
@@ -24,7 +26,7 @@ type Service interface {
 	FindByFilterID(ctx context.Context, id int) ([]domain.Indexer, error)
 	List(ctx context.Context) ([]domain.Indexer, error)
 	GetAll() ([]*domain.IndexerDefinition, error)
-	GetTemplates() ([]*domain.IndexerDefinition, error)
+	GetTemplates() ([]domain.IndexerDefinition, error)
 	LoadIndexerDefinitions() error
 	GetIndexersByIRCNetwork(server string) []*domain.IndexerDefinition
 	GetTorznabIndexers() []domain.IndexerDefinition
@@ -32,43 +34,43 @@ type Service interface {
 }
 
 type service struct {
-	log        logger.Logger
+	log        zerolog.Logger
 	config     *domain.Config
 	repo       domain.IndexerRepo
 	apiService APIService
 	scheduler  scheduler.Service
 
 	// contains all raw indexer definitions
-	indexerDefinitions map[string]*domain.IndexerDefinition
-
+	definitions map[string]*domain.IndexerDefinition
+	// definition with indexer data
+	mappedDefinitions map[string]*domain.IndexerDefinition
 	// map server:channel:announce to indexer.Identifier
-	mapIndexerIRCToName map[string]string
-
 	lookupIRCServerDefinition map[string]map[string]*domain.IndexerDefinition
-
+	// torznab indexers
 	torznabIndexers map[string]*domain.IndexerDefinition
 }
 
 func NewService(log logger.Logger, config *domain.Config, repo domain.IndexerRepo, apiService APIService, scheduler scheduler.Service) Service {
 	return &service{
-		log:                       log,
+		log:                       log.With().Str("service", "indexer").Logger(),
 		config:                    config,
 		repo:                      repo,
 		apiService:                apiService,
 		scheduler:                 scheduler,
-		indexerDefinitions:        make(map[string]*domain.IndexerDefinition),
-		mapIndexerIRCToName:       make(map[string]string),
 		lookupIRCServerDefinition: make(map[string]map[string]*domain.IndexerDefinition),
 		torznabIndexers:           make(map[string]*domain.IndexerDefinition),
+		definitions:               make(map[string]*domain.IndexerDefinition),
+		mappedDefinitions:         make(map[string]*domain.IndexerDefinition),
 	}
 }
 
 func (s *service) Store(ctx context.Context, indexer domain.Indexer) (*domain.Indexer, error) {
 	identifier := indexer.Identifier
-	if indexer.Identifier == "torznab" {
+	//if indexer.Identifier == "torznab" {
+	if indexer.Implementation == "torznab" {
 		// if the name already contains torznab remove it
 		cleanName := strings.ReplaceAll(strings.ToLower(indexer.Name), "torznab", "")
-		identifier = slug.Make(fmt.Sprintf("%v-%v", indexer.Identifier, cleanName))
+		identifier = slug.Make(fmt.Sprintf("%v-%v", indexer.Implementation, cleanName)) // torznab-name
 	}
 
 	indexer.Identifier = identifier
@@ -96,7 +98,7 @@ func (s *service) Update(ctx context.Context, indexer domain.Indexer) (*domain.I
 	}
 
 	// add to indexerInstances
-	err = s.addIndexer(*i)
+	err = s.updateIndexer(*i)
 	if err != nil {
 		s.log.Error().Stack().Err(err).Msgf("failed to add indexer: %v", indexer.Name)
 		return nil, err
@@ -131,12 +133,29 @@ func (s *service) List(ctx context.Context) ([]domain.Indexer, error) {
 }
 
 func (s *service) GetAll() ([]*domain.IndexerDefinition, error) {
+	var res = make([]*domain.IndexerDefinition, 0)
+
+	for _, indexer := range s.mappedDefinitions {
+		if indexer == nil {
+			continue
+		}
+
+		res = append(res, indexer)
+	}
+
+	// sort by name
+	sort.SliceStable(res, func(i, j int) bool {
+		return strings.ToLower(res[i].Name) < strings.ToLower(res[j].Name)
+	})
+
+	return res, nil
+}
+
+func (s *service) mapIndexers() (map[string]*domain.IndexerDefinition, error) {
 	indexers, err := s.repo.List(context.Background())
 	if err != nil {
 		return nil, err
 	}
-
-	var res = make([]*domain.IndexerDefinition, 0)
 
 	for _, indexer := range indexers {
 		indexerDefinition, err := s.mapIndexer(indexer)
@@ -148,62 +167,99 @@ func (s *service) GetAll() ([]*domain.IndexerDefinition, error) {
 			continue
 		}
 
-		res = append(res, indexerDefinition)
+		s.mappedDefinitions[indexer.Identifier] = indexerDefinition
 	}
 
-	return res, nil
+	return s.mappedDefinitions, nil
 }
 
 func (s *service) mapIndexer(indexer domain.Indexer) (*domain.IndexerDefinition, error) {
-
-	var in *domain.IndexerDefinition
+	definitionName := indexer.Identifier
 	if indexer.Implementation == "torznab" {
-		in = s.getDefinitionByName("torznab")
-		if in == nil {
-			// if no indexerDefinition found, continue
-			return nil, nil
-		}
-	} else {
-		in = s.getDefinitionByName(indexer.Identifier)
-		if in == nil {
-			// if no indexerDefinition found, continue
-			return nil, nil
-		}
+		definitionName = "torznab"
 	}
 
-	in.ID = int(indexer.ID)
-	in.Name = indexer.Name
-	in.Identifier = indexer.Identifier
-	in.Implementation = indexer.Implementation
-	in.Enabled = indexer.Enabled
-	in.SettingsMap = make(map[string]string)
+	d := s.getDefinitionByName(definitionName)
+	if d == nil {
+		// if no indexerDefinition found, continue
+		return nil, nil
+	}
 
-	if in.Implementation == "" {
-		in.Implementation = "irc"
+	d.ID = int(indexer.ID)
+	d.Name = indexer.Name
+	d.Identifier = indexer.Identifier
+	d.Implementation = indexer.Implementation
+	d.Enabled = indexer.Enabled
+
+	if d.SettingsMap == nil {
+		d.SettingsMap = make(map[string]string)
+	}
+
+	if d.Implementation == "" {
+		d.Implementation = "irc"
 	}
 
 	// map settings
 	// add value to settings objects
-	for i, setting := range in.Settings {
+	for i, setting := range d.Settings {
 		if v, ok := indexer.Settings[setting.Name]; ok {
 			setting.Value = v
 
-			in.SettingsMap[setting.Name] = v
+			d.SettingsMap[setting.Name] = v
 		}
 
-		in.Settings[i] = setting
+		d.Settings[i] = setting
 	}
 
-	return in, nil
+	return d, nil
 }
 
-func (s *service) GetTemplates() ([]*domain.IndexerDefinition, error) {
+func (s *service) updateMapIndexer(indexer domain.Indexer) (*domain.IndexerDefinition, error) {
+	definitionName := indexer.Identifier
+	if indexer.Implementation == "torznab" {
+		definitionName = "torznab"
+	}
 
-	definitions := s.indexerDefinitions
+	d, dOK := s.mappedDefinitions[definitionName]
+	if !dOK {
+		return nil, nil
+	}
 
-	ret := make([]*domain.IndexerDefinition, 0)
+	d.ID = int(indexer.ID)
+	d.Name = indexer.Name
+	d.Identifier = indexer.Identifier
+	d.Implementation = indexer.Implementation
+	d.Enabled = indexer.Enabled
+
+	if d.SettingsMap == nil {
+		d.SettingsMap = make(map[string]string)
+	}
+
+	if d.Implementation == "" {
+		d.Implementation = "irc"
+	}
+
+	// map settings
+	// add value to settings objects
+	for i, setting := range d.Settings {
+		if v, ok := indexer.Settings[setting.Name]; ok {
+			setting.Value = v
+
+			d.SettingsMap[setting.Name] = v
+		}
+
+		d.Settings[i] = setting
+	}
+
+	return d, nil
+}
+
+func (s *service) GetTemplates() ([]domain.IndexerDefinition, error) {
+	definitions := s.definitions
+
+	ret := make([]domain.IndexerDefinition, 0)
 	for _, definition := range definitions {
-		ret = append(ret, definition)
+		ret = append(ret, *definition)
 	}
 
 	return ret, nil
@@ -225,15 +281,13 @@ func (s *service) Start() error {
 	}
 
 	// load the indexers' setup by the user
-	indexerDefinitions, err := s.GetAll()
+	indexerDefinitions, err := s.mapIndexers()
 	if err != nil {
 		return err
 	}
 
 	for _, indexer := range indexerDefinitions {
 		if indexer.IRC != nil {
-			s.mapIRCIndexerLookup(indexer.Identifier, indexer)
-
 			// add to irc server lookup table
 			s.mapIRCServerDefinitionLookup(indexer.IRC.Server, indexer)
 
@@ -257,18 +311,12 @@ func (s *service) Start() error {
 }
 
 func (s *service) removeIndexer(indexer domain.Indexer) error {
-
-	delete(s.indexerDefinitions, indexer.Identifier)
-
-	// TODO delete from mapIndexerIRCToName
+	delete(s.definitions, indexer.Identifier)
 
 	return nil
 }
 
 func (s *service) addIndexer(indexer domain.Indexer) error {
-
-	// TODO only add if not already there?? Overwrite?
-
 	indexerDefinition, err := s.mapIndexer(indexer)
 	if err != nil {
 		return err
@@ -278,14 +326,7 @@ func (s *service) addIndexer(indexer domain.Indexer) error {
 		return errors.New("addindexer: could not find definition")
 	}
 
-	// TODO only add enabled?
-	//if !indexer.Enabled {
-	//	continue
-	//}
-
 	if indexerDefinition.IRC != nil {
-		s.mapIRCIndexerLookup(indexer.Identifier, indexerDefinition)
-
 		// add to irc server lookup table
 		s.mapIRCServerDefinitionLookup(indexerDefinition.IRC.Server, indexerDefinition)
 
@@ -305,25 +346,34 @@ func (s *service) addIndexer(indexer domain.Indexer) error {
 	return nil
 }
 
-func (s *service) mapIRCIndexerLookup(indexerIdentifier string, indexerDefinition *domain.IndexerDefinition) {
-	// map irc stuff to indexer.name
-	// map[irc.network.test:channel:announcer1] = indexer1
-	// map[irc.network.test:channel:announcer2] = indexer2
+func (s *service) updateIndexer(indexer domain.Indexer) error {
+	indexerDefinition, err := s.updateMapIndexer(indexer)
+	if err != nil {
+		return err
+	}
+
+	if indexerDefinition == nil {
+		return errors.New("update indexer: could not find definition")
+	}
+
 	if indexerDefinition.IRC != nil {
-		server := indexerDefinition.IRC.Server
-		channels := indexerDefinition.IRC.Channels
-		announcers := indexerDefinition.IRC.Announcers
+		// add to irc server lookup table
+		s.mapIRCServerDefinitionLookup(indexerDefinition.IRC.Server, indexerDefinition)
 
-		for _, channel := range channels {
-			for _, announcer := range announcers {
-				// format to server:channel:announcer
-				val := fmt.Sprintf("%v:%v:%v", server, channel, announcer)
-				val = strings.ToLower(val)
-
-				s.mapIndexerIRCToName[val] = indexerIdentifier
+		// check if it has api and add to api service
+		if indexerDefinition.Enabled && indexerDefinition.HasApi() {
+			if err := s.apiService.AddClient(indexerDefinition.Identifier, indexerDefinition.SettingsMap); err != nil {
+				s.log.Error().Stack().Err(err).Msgf("indexer.start: could not init api client for: '%v'", indexer.Identifier)
 			}
 		}
 	}
+
+	// handle Torznab
+	if indexerDefinition.Implementation == "torznab" {
+		s.torznabIndexers[indexer.Identifier] = indexerDefinition
+	}
+
+	return nil
 }
 
 // mapIRCServerDefinitionLookup map irc stuff to indexer.name
@@ -343,7 +393,6 @@ func (s *service) mapIRCServerDefinitionLookup(ircServer string, indexerDefiniti
 
 // LoadIndexerDefinitions load definitions from golang embed fs
 func (s *service) LoadIndexerDefinitions() error {
-
 	entries, err := fs.ReadDir(Definitions, "definitions")
 	if err != nil {
 		s.log.Fatal().Stack().Msgf("failed reading directory: %s", err)
@@ -382,10 +431,10 @@ func (s *service) LoadIndexerDefinitions() error {
 			d.Implementation = "irc"
 		}
 
-		s.indexerDefinitions[d.Identifier] = d
+		s.definitions[d.Identifier] = d
 	}
 
-	s.log.Debug().Msgf("Loaded %d indexer definitions", len(s.indexerDefinitions))
+	s.log.Debug().Msgf("Loaded %d indexer definitions", len(s.definitions))
 
 	return nil
 }
@@ -397,7 +446,6 @@ func (s *service) LoadCustomIndexerDefinitions() error {
 	}
 
 	outputDirRead, err := os.Open(s.config.CustomDefinitions)
-
 	if err != nil {
 		s.log.Warn().Stack().Msgf("failed opening custom definitions directory %q: %s", s.config.CustomDefinitions, err)
 		return nil
@@ -405,7 +453,6 @@ func (s *service) LoadCustomIndexerDefinitions() error {
 
 	defer outputDirRead.Close()
 
-	//entries, err := fs.ReadDir(Definitions, "definitions")
 	entries, err := outputDirRead.ReadDir(0)
 	if err != nil {
 		s.log.Fatal().Stack().Msgf("failed reading directory: %s", err)
@@ -446,7 +493,7 @@ func (s *service) LoadCustomIndexerDefinitions() error {
 			d.Implementation = "irc"
 		}
 
-		s.indexerDefinitions[d.Identifier] = d
+		s.definitions[d.Identifier] = d
 
 		customCount++
 	}
@@ -472,7 +519,6 @@ func (s *service) GetIndexersByIRCNetwork(server string) []*domain.IndexerDefini
 }
 
 func (s *service) GetTorznabIndexers() []domain.IndexerDefinition {
-
 	indexerDefinitions := make([]domain.IndexerDefinition, 0)
 
 	for _, definition := range s.torznabIndexers {
@@ -485,19 +531,7 @@ func (s *service) GetTorznabIndexers() []domain.IndexerDefinition {
 }
 
 func (s *service) getDefinitionByName(name string) *domain.IndexerDefinition {
-
-	if v, ok := s.indexerDefinitions[name]; ok {
-		return v
-	}
-
-	return nil
-}
-
-func (s *service) getDefinitionForAnnounce(name string) *domain.IndexerDefinition {
-
-	// map[network:channel:announcer] = indexer01
-
-	if v, ok := s.indexerDefinitions[name]; ok {
+	if v, ok := s.definitions[name]; ok {
 		return v
 	}
 
