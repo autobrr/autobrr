@@ -41,7 +41,7 @@ type service struct {
 	scheduler  scheduler.Service
 
 	// contains all raw indexer definitions
-	definitions map[string]*domain.IndexerDefinition
+	definitions map[string]domain.IndexerDefinition
 	// definition with indexer data
 	mappedDefinitions map[string]*domain.IndexerDefinition
 	// map server:channel:announce to indexer.Identifier
@@ -59,7 +59,7 @@ func NewService(log logger.Logger, config *domain.Config, repo domain.IndexerRep
 		scheduler:                 scheduler,
 		lookupIRCServerDefinition: make(map[string]map[string]*domain.IndexerDefinition),
 		torznabIndexers:           make(map[string]*domain.IndexerDefinition),
-		definitions:               make(map[string]*domain.IndexerDefinition),
+		definitions:               make(map[string]domain.IndexerDefinition),
 		mappedDefinitions:         make(map[string]*domain.IndexerDefinition),
 	}
 }
@@ -220,8 +220,8 @@ func (s *service) updateMapIndexer(indexer domain.Indexer) (*domain.IndexerDefin
 		definitionName = "torznab"
 	}
 
-	d, dOK := s.mappedDefinitions[definitionName]
-	if !dOK {
+	d, ok := s.mappedDefinitions[definitionName]
+	if !ok {
 		return nil, nil
 	}
 
@@ -259,7 +259,7 @@ func (s *service) GetTemplates() ([]domain.IndexerDefinition, error) {
 
 	ret := make([]domain.IndexerDefinition, 0)
 	for _, definition := range definitions {
-		ret = append(ret, *definition)
+		ret = append(ret, definition)
 	}
 
 	return ret, nil
@@ -431,7 +431,7 @@ func (s *service) LoadIndexerDefinitions() error {
 			d.Implementation = "irc"
 		}
 
-		s.definitions[d.Identifier] = d
+		s.definitions[d.Identifier] = *d
 	}
 
 	s.log.Debug().Msgf("Loaded %d indexer definitions", len(s.definitions))
@@ -493,7 +493,7 @@ func (s *service) LoadCustomIndexerDefinitions() error {
 			d.Implementation = "irc"
 		}
 
-		s.definitions[d.Identifier] = d
+		s.definitions[d.Identifier] = *d
 
 		customCount++
 	}
@@ -532,7 +532,7 @@ func (s *service) GetTorznabIndexers() []domain.IndexerDefinition {
 
 func (s *service) getDefinitionByName(name string) *domain.IndexerDefinition {
 	if v, ok := s.definitions[name]; ok {
-		return v
+		return &v
 	}
 
 	return nil
