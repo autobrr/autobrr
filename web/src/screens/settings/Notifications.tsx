@@ -10,10 +10,10 @@ import { componentMapType } from "../../forms/settings/DownloadClientForms";
 function NotificationSettings() {
   const [addNotificationsIsOpen, toggleAddNotifications] = useToggle(false);
 
-  const { data } = useQuery<Notification[], Error>("notifications", APIClient.notifications.getAll,
-    {
-      refetchOnWindowFocus: false
-    }
+  const { data } = useQuery(
+    "notifications",
+    () => APIClient.notifications.getAll(),
+    { refetchOnWindowFocus: false }
   );
 
   return (
