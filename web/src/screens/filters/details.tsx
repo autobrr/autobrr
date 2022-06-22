@@ -309,7 +309,7 @@ export default function FilterDetails() {
 export function General() {
   const { isLoading, data: indexers } = useQuery(
     ["filters", "indexer_list"],
-    APIClient.indexers.getOptions,
+    () => APIClient.indexers.getOptions(),
     { refetchOnWindowFocus: false }
   );
 
@@ -535,7 +535,7 @@ interface FilterActionsProps {
 export function FilterActions({ filter, values }: FilterActionsProps) {
   const { data } = useQuery(
     ["filters", "download_clients"],
-    APIClient.download_clients.getAll,
+    () => APIClient.download_clients.getAll(),
     { refetchOnWindowFocus: false }
   );
 

@@ -32,17 +32,17 @@ export function App() {
   const settings = SettingsContext.useValue();
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <Toaster position="top-right" />
-      <ErrorBoundary
-        onReset={reset}
-        fallbackRender={ErrorPage}
-      >
+    <ErrorBoundary
+      onReset={reset}
+      fallbackRender={ErrorPage}
+    >
+      <QueryClientProvider client={queryClient}>
+        <Toaster position="top-right" />
         <LocalRouter isLoggedIn={authContext.isLoggedIn} />
         {settings.debug ? (
           <ReactQueryDevtools initialIsOpen={false} />
         ) : null}
-      </ErrorBoundary>
-    </QueryClientProvider>
+      </QueryClientProvider>
+    </ErrorBoundary>
   );
 }

@@ -13,7 +13,7 @@ export const ErrorPage = ({ error, resetErrorBoundary }: FallbackProps) => {
   });
 
   return (
-    <div className="min-h-screen flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+    <div className="min-h-screen flex flex-col justify-center py-12 px-2 sm:px-6 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-screen-md md:max-w-screen-lg lg:max-w-screen-xl">
         <h1 className="text-3xl font-bold leading-6 text-gray-900 dark:text-gray-200 mt-4 mb-3">
           We caught an unrecoverable error!

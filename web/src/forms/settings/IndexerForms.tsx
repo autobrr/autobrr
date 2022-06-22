@@ -173,7 +173,9 @@ interface AddProps {
 export function IndexerAddForm({ isOpen, toggle }: AddProps) {
   const [indexer, setIndexer] = useState<IndexerDefinition>({} as IndexerDefinition);
 
-  const { data } = useQuery("indexerDefinition", APIClient.indexers.getSchema,
+  const { data } = useQuery(
+    "indexerDefinition",
+    () => APIClient.indexers.getSchema(),
     {
       enabled: isOpen,
       refetchOnWindowFocus: false
