@@ -17,7 +17,7 @@ export const IrcSettings = () => {
 
   const { data } = useQuery(
     "networks",
-    APIClient.irc.getNetworks,
+    () => APIClient.irc.getNetworks(),
     {
       refetchOnWindowFocus: false,
       // Refetch every 3 seconds

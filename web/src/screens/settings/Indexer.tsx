@@ -74,7 +74,7 @@ function IndexerSettings() {
 
   const { error, data } = useQuery(
     "indexer",
-    APIClient.indexers.getAll,
+    () => APIClient.indexers.getAll(),
     { refetchOnWindowFocus: false }
   );
 
@@ -137,7 +137,7 @@ function IndexerSettings() {
                       </tr>
                     </thead>
                     <tbody className="light:bg-white divide-y divide-gray-200 dark:divide-gray-700">
-                      {data && data.map((indexer: IndexerDefinition, idx: number) => (
+                      {data.map((indexer, idx) => (
                         <ListItem indexer={indexer} key={idx} />
                       ))}
                     </tbody>

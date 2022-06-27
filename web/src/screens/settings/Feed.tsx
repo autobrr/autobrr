@@ -20,10 +20,10 @@ import { EmptySimple } from "../../components/emptystates";
 import { componentMapType } from "../../forms/settings/DownloadClientForms";
 
 function FeedSettings() {
-  const { data } = useQuery<Feed[], Error>("feeds", APIClient.feeds.find,
-    {
-      refetchOnWindowFocus: false
-    }
+  const { data } = useQuery(
+    "feeds",
+    () => APIClient.feeds.find(),
+    { refetchOnWindowFocus: false }
   );
 
   return (

@@ -24,7 +24,7 @@ export default function Filters() {
 
   const { isLoading, error, data } = useQuery(
     ["filters"],
-    APIClient.filters.getAll,
+    () => APIClient.filters.getAll(),
     { refetchOnWindowFocus: false }
   );
 

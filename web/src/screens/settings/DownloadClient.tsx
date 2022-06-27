@@ -78,7 +78,7 @@ function DownloadClientSettings() {
 
   const { error, data } = useQuery(
     "downloadClients",
-    APIClient.download_clients.getAll,
+    () => APIClient.download_clients.getAll(),
     { refetchOnWindowFocus: false }
   );
 

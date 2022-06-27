@@ -3,22 +3,17 @@ import type { FallbackProps } from "react-error-boundary";
 import { RefreshIcon } from "@heroicons/react/solid";
 
 export const ErrorPage = ({ error, resetErrorBoundary }: FallbackProps) => {
-  const stack = new StackTracey(error).withSources();
+  const stack = new StackTracey(error);
   const summary = stack.clean().asTable({
     maxColumnWidths: {
       callee: 48,
       file: 48,
-      sourceLine: 256
+      sourceLine: 384
     }
   });
 
-  const type = String(
-    (error && error.constructor && error.constructor.name)
-    || typeof (error)
-  );
-  const msg = String(error && error.message);
   return (
-    <div className="min-h-screen flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+    <div className="min-h-screen flex flex-col justify-center py-12 px-2 sm:px-6 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-screen-md md:max-w-screen-lg lg:max-w-screen-xl">
         <h1 className="text-3xl font-bold leading-6 text-gray-900 dark:text-gray-200 mt-4 mb-3">
           We caught an unrecoverable error!
@@ -59,7 +54,7 @@ export const ErrorPage = ({ error, resetErrorBoundary }: FallbackProps) => {
                 clipRule="evenodd"
               />
             </svg>
-            <h3 className="text-lg font-medium text-red-700 dark:text-red-800">{type}: {msg}</h3>
+            <h3 className="text-lg font-medium text-red-700 dark:text-red-800">{error.toString()}</h3>
           </div>
           {summary ? (
             <pre className="mt-2 mb-4 text-sm text-red-700 dark:text-red-800 overflow-x-auto">
@@ -67,7 +62,7 @@ export const ErrorPage = ({ error, resetErrorBoundary }: FallbackProps) => {
             </pre>
           ) : null}
           <span className="block text-gray-800 mb-2 text-md">
-            You can try resetting the page page using the button provided below.
+            You can try resetting the page state using the button provided below.
             However, this is not guaranteed to fix the error.
           </span>
           <button
