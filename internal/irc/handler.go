@@ -14,14 +14,11 @@ import (
 	"github.com/autobrr/autobrr/internal/notification"
 	"github.com/autobrr/autobrr/internal/release"
 
+	"github.com/avast/retry-go"
 	"github.com/dcarbone/zadapters/zstdlog"
 	"github.com/ergochat/irc-go/ircevent"
 	"github.com/ergochat/irc-go/ircmsg"
 	"github.com/rs/zerolog"
-)
-
-var (
-	connectTimeout = 15 * time.Second
 )
 
 type channelHealth struct {
@@ -53,6 +50,7 @@ func (h *channelHealth) resetMonitoring() {
 	h.m.Lock()
 	h.monitoring = false
 	h.monitoringSince = time.Time{}
+	h.lastAnnounce = time.Time{}
 	h.m.Unlock()
 }
 
@@ -67,7 +65,6 @@ type Handler struct {
 	client *ircevent.Connection
 	m      sync.RWMutex
 
-	lastPing         time.Time
 	connected        bool
 	connectedSince   time.Time
 	haveDisconnected bool
@@ -178,7 +175,31 @@ func (h *Handler) Run() error {
 		// reset connection status on handler and channels
 		h.resetConnectionStatus()
 
-		//return err
+		// count connect attempts
+		connectAttempts := 1
+
+		// retry initial connect if network is down
+		// using exponential backoff of 15 seconds
+		err := retry.Do(
+			func() error {
+				h.log.Debug().Msgf("connect attempt %d", connectAttempts)
+
+				err := h.client.Connect()
+				if err != nil {
+					connectAttempts++
+					return err
+				}
+				h.log.Debug().Msgf("connected at attempt %d", connectAttempts)
+				return nil
+			},
+			retry.Delay(time.Second*15),
+			retry.Attempts(25),
+			retry.DelayType(func(n uint, err error, config *retry.Config) time.Duration {
+				return retry.BackOffDelay(n, err, config)
+			}),
+		)
+
+		h.log.Error().Stack().Err(err).Msgf("connect error: attempt %d", connectAttempts)
 	}
 
 	h.client.Loop()
