@@ -246,6 +246,9 @@ func (r *Release) ParseReleaseTagsString(tags string) {
 	if r.AudioChannels == "" && t.Channels != "" {
 		r.AudioChannels = t.Channels
 	}
+	if t.Group != "" {
+		r.Group = t.Group
+	}
 
 	return
 }

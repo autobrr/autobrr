@@ -108,6 +108,12 @@ func init() {
 	}
 	types["container"] = container
 
+	group := []*TagInfo{
+
+		{tag: "rls_group", title: "Release Group", regexp: "(?:RAW|Softsubs|Hardsubs|Translated)\\s\\((.+)\\)", re: nil},
+	}
+	types["group"] = group
+
 	hdr := []*TagInfo{
 		{tag: "HDR10+", title: "High Dynamic Range (10-bit+)", regexp: "hdr[\\-\\.]?10\\+|10\\+[\\-\\.]?bit|hdr10plus|hi10p", re: nil},
 		{tag: "HDR10", title: "High Dynamic Range (10-bit)", regexp: "hdr[\\-\\.]?10|10[\\-\\.]?bit|hi10", re: nil},
@@ -270,6 +276,7 @@ type ReleaseTags struct {
 	Source     string
 	Resolution string
 	Container  string
+	Group      string
 	Codec      string
 	HDR        []string
 	Other      []string
@@ -303,6 +310,11 @@ func ParseReleaseTags(tags []string) ReleaseTags {
 						break
 					case "container":
 						releaseTags.Container = info.Tag()
+						break
+					case "group":
+						reg := regexp.MustCompile(`(?:RAW|Softsubs|Hardsubs|Translated)\s\((.+)\)`)
+						matches := reg.FindStringSubmatch(tag)
+						releaseTags.Group = matches[1]
 						break
 					case "hdr":
 						releaseTags.HDR = append(releaseTags.HDR, info.Tag())
@@ -354,6 +366,11 @@ func ParseReleaseTagString(tags string) ReleaseTags {
 				break
 			case "container":
 				releaseTags.Container = info.Tag()
+				break
+			case "group":
+				reg := regexp.MustCompile(`(?:RAW|Softsubs|Hardsubs|Translated)\s\((.+)\)`)
+				matches := reg.FindStringSubmatch(tags)
+				releaseTags.Group = matches[1]
 				break
 			case "hdr":
 				releaseTags.HDR = append(releaseTags.HDR, info.Tag())
