@@ -142,6 +142,59 @@ func TestRelease_Parse(t *testing.T) {
 			},
 		},
 		{
+			name: "pase_manga_1",
+			fields: Release{
+				TorrentName: "Witch Hat Atelier - Manga",
+				ReleaseTags: "Translated (Kodansha Comics) / Digital / Ongoing",
+			},
+			want: Release{
+				TorrentName: "Witch Hat Atelier - Manga",
+				Title:       "Witch Hat Atelier",
+				Group:       "Kodansha Comics",
+				ReleaseTags: "Translated (Kodansha Comics) / Digital / Ongoing",
+			},
+		},
+		{
+			name: "pase_ln_1",
+			fields: Release{
+				TorrentName: "The Misfit of Demon King Academy - Light Novel",
+				ReleaseTags: "Translated (J-Novel Club) / EPUB",
+			},
+			want: Release{
+				TorrentName: "The Misfit of Demon King Academy - Light Novel",
+				Title:       "The Misfit of Demon King Academy - Light Novel",
+				Group:       "J-Novel Club",
+				ReleaseTags: "Translated (J-Novel Club) / EPUB",
+				Container:   "epub",
+			},
+		},
+		{
+			name: "parse_anime_1",
+			fields: Release{
+				TorrentName: "Shachiku-san wa Youjo Yuurei ni Iyasaretai. - TV Series",
+				ReleaseTags: "Web / MKV / h264 / 1080p / AAC 2.0 / Softsubs (SubsPlease) / Episode 12 / Freeleech",
+				Year:        2022,
+			},
+			want: Release{
+				TorrentName:      "Shachiku-san wa Youjo Yuurei ni Iyasaretai. - TV Series",
+				Title:            "Shachiku-san wa Youjo Yuurei ni Iyasaretai.",
+				ReleaseTags:      "Web / MKV / h264 / 1080p / AAC 2.0 / Softsubs (SubsPlease) / Episode 12 / Freeleech",
+				Season:           0,
+				Episode:          0,
+				Year:             2022,
+				Resolution:       "1080p",
+				Source:           "WEB",
+				Container:        "mkv",
+				Freeleech:        true,
+				FreeleechPercent: 0,
+				Bonus:            []string{"Freeleech"},
+				Codec:            []string{"H.264"},
+				Audio:            []string{"AAC"},
+				AudioChannels:    "2.0",
+				Group:            "SubsPlease",
+			},
+		},
+		{
 			name: "parse_music_1",
 			fields: Release{
 				TorrentName: "Artist - Albumname",
