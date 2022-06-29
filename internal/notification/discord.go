@@ -15,9 +15,8 @@ import (
 )
 
 type DiscordMessage struct {
-	Content  interface{}     `json:"content"`
-	Embeds   []DiscordEmbeds `json:"embeds,omitempty"`
-	Username string          `json:"username"`
+	Content interface{}     `json:"content"`
+	Embeds  []DiscordEmbeds `json:"embeds,omitempty"`
 }
 
 type DiscordEmbeds struct {
@@ -53,9 +52,8 @@ func NewDiscordSender(log logger.Logger, settings domain.Notification) domain.No
 
 func (a *discordSender) Send(event domain.NotificationEvent, payload domain.NotificationPayload) error {
 	m := DiscordMessage{
-		Content:  nil,
-		Embeds:   []DiscordEmbeds{a.buildEmbed(event, payload)},
-		Username: "brr",
+		Content: nil,
+		Embeds:  []DiscordEmbeds{a.buildEmbed(event, payload)},
 	}
 
 	jsonData, err := json.Marshal(m)
