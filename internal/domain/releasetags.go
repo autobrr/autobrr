@@ -98,7 +98,6 @@ func init() {
 	container := []*TagInfo{
 		{tag: "avi", title: "Audio Video Interleave (avi)", regexp: "", re: nil},
 		{tag: "img", title: "IMG", regexp: "", re: nil},
-		{tag: "iso", title: "ISO", regexp: "", re: nil},
 		{tag: "mkv", title: "Matroska (mkv)", regexp: "", re: nil},
 		{tag: "mov", title: "MOV", regexp: "", re: nil},
 		{tag: "mp4", title: "MP4", regexp: "", re: nil},
