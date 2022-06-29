@@ -11,6 +11,7 @@ import {
 import { useToggle } from "../../hooks/hooks";
 import { APIClient } from "../../api/APIClient";
 import { EmptySimple } from "../../components/emptystates";
+import {ExclamationCircleIcon} from "@heroicons/react/outline";
 
 export const IrcSettings = () => {
   const [addNetworkIsOpen, toggleAddNetwork] = useToggle(false);
@@ -88,12 +89,12 @@ const ListItem = ({ idx, network }: ListItemProps) => {
           <span className="relative inline-flex items-center">
             {
               network.enabled ? (
-                network.connected ? (
+                networkHealthy(network) ? (
                   <span className="mr-3 flex h-3 w-3 relative" title={`Connected since: ${simplifyDate(network.connected_since)}`}>
                     <span className="animate-ping inline-flex h-full w-full rounded-full bg-green-400 opacity-75"/>
                     <span className="inline-flex absolute rounded-full h-3 w-3 bg-green-500"/>
                   </span>
-                ) : <span className="mr-3 flex h-3 w-3 rounded-full opacity-75 bg-red-400" />
+                ) : <span className="mr-3 flex items-center" title={network.connection_errors.toString()}><ExclamationCircleIcon className="h-4 w-4 text-red-400 hover:text-red-600" /></span>
               ) : <span className="mr-3 flex h-3 w-3 rounded-full opacity-75 bg-gray-500" />
             }
             {network.name}
@@ -155,3 +156,11 @@ const ListItem = ({ idx, network }: ListItemProps) => {
     </li>
   );
 };
+
+function networkHealthy(network: IrcNetworkWithHealth): boolean {
+  if (network.connection_errors.length > 0) {
+    return false
+  }
+
+  return true
+}

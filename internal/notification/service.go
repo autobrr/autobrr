@@ -13,7 +13,7 @@ type Service interface {
 	Store(ctx context.Context, n domain.Notification) (*domain.Notification, error)
 	Update(ctx context.Context, n domain.Notification) (*domain.Notification, error)
 	Delete(ctx context.Context, id int) error
-	Send(event domain.NotificationEvent, payload domain.NotificationPayload) error
+	Send(event domain.NotificationEvent, payload domain.NotificationPayload)
 	Test(ctx context.Context, notification domain.Notification) error
 }
 
@@ -109,17 +109,19 @@ func (s *service) registerSenders() {
 }
 
 // Send notifications
-func (s *service) Send(event domain.NotificationEvent, payload domain.NotificationPayload) error {
+func (s *service) Send(event domain.NotificationEvent, payload domain.NotificationPayload) {
 	s.log.Debug().Msgf("sending notification for %v", string(event))
 
-	for _, sender := range s.senders {
-		// check if sender is active and have notification types
-		if sender.CanSend(event) {
-			sender.Send(event, payload)
+	go func() {
+		for _, sender := range s.senders {
+			// check if sender is active and have notification types
+			if sender.CanSend(event) {
+				sender.Send(event, payload)
+			}
 		}
-	}
+	}()
 
-	return nil
+	return
 }
 
 func (s *service) Test(ctx context.Context, notification domain.Notification) error {

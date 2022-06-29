@@ -140,6 +140,10 @@ func (a *discordSender) buildEmbed(event domain.NotificationEvent, payload domai
 		color = GRAY
 	case domain.NotificationEventPushError:
 		color = RED
+	case domain.NotificationEventIRCDisconnected:
+		color = RED
+	case domain.NotificationEventIRCReconnected:
+		color = GREEN
 	case domain.NotificationEventTest:
 		color = LIGHT_BLUE
 	}

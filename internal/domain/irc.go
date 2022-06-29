@@ -35,18 +35,21 @@ type IrcNetwork struct {
 }
 
 type IrcNetworkWithHealth struct {
-	ID             int64               `json:"id"`
-	Name           string              `json:"name"`
-	Enabled        bool                `json:"enabled"`
-	Server         string              `json:"server"`
-	Port           int                 `json:"port"`
-	TLS            bool                `json:"tls"`
-	Pass           string              `json:"pass"`
-	InviteCommand  string              `json:"invite_command"`
-	NickServ       NickServ            `json:"nickserv,omitempty"`
-	Channels       []ChannelWithHealth `json:"channels"`
-	Connected      bool                `json:"connected"`
-	ConnectedSince time.Time           `json:"connected_since"`
+	ID               int64               `json:"id"`
+	Name             string              `json:"name"`
+	Enabled          bool                `json:"enabled"`
+	Server           string              `json:"server"`
+	Port             int                 `json:"port"`
+	TLS              bool                `json:"tls"`
+	Pass             string              `json:"pass"`
+	InviteCommand    string              `json:"invite_command"`
+	NickServ         NickServ            `json:"nickserv,omitempty"`
+	CurrentNick      string              `json:"current_nick"`
+	PreferredNick    string              `json:"preferred_nick"`
+	Channels         []ChannelWithHealth `json:"channels"`
+	Connected        bool                `json:"connected"`
+	ConnectedSince   time.Time           `json:"connected_since"`
+	ConnectionErrors []string            `json:"connection_errors"`
 }
 
 type ChannelWithHealth struct {

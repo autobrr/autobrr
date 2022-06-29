@@ -97,8 +97,8 @@ func main() {
 		indexerService        = indexer.NewService(log, cfg.Config, indexerRepo, apiService, schedulingService)
 		filterService         = filter.NewService(log, filterRepo, actionRepo, apiService, indexerService)
 		releaseService        = release.NewService(log, releaseRepo, actionService, filterService)
-		ircService            = irc.NewService(log, ircRepo, releaseService, indexerService)
 		notificationService   = notification.NewService(log, notificationRepo)
+		ircService            = irc.NewService(log, ircRepo, releaseService, indexerService, notificationService)
 		feedService           = feed.NewService(log, feedRepo, feedCacheRepo, releaseService, schedulingService)
 	)
 
