@@ -104,6 +104,7 @@ func init() {
 		{tag: "mpg", title: "MPEG", regexp: "mpe?g", re: nil},
 		{tag: "m2ts", title: "BluRay Disc (m2ts)", regexp: "", re: nil},
 		{tag: "vob", title: "VOB", regexp: "", re: nil},
+		{tag: "epub", title: "EPUB", regexp: "", re: nil},
 	}
 	types["container"] = container
 

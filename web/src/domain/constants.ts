@@ -56,7 +56,8 @@ export const SOURCES_OPTIONS: MultiSelectOption[] = sources.map(v => ({ value: v
 export const containers = [
   "avi",
   "mp4",
-  "mkv"
+  "mkv",
+  "epub"
 ];
 
 export const CONTAINER_OPTIONS: MultiSelectOption[] = containers.map(v => ({ value: v, label: v, key: v }));
