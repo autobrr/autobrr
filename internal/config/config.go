@@ -38,7 +38,7 @@ func writeConfig(configPath string, configFile string) error {
 		}
 
 		host := "127.0.0.1"
-		if pd, err := os.Open("/proc/1/cgroup"); pd != nil {
+		if pd, _ := os.Open("/proc/1/cgroup"); pd != nil {
 			defer pd.Close()
 			b := make([]byte, 4096, 4096)
 			pd.Read(b)
