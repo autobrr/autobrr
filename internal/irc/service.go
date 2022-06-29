@@ -387,17 +387,18 @@ func (s *service) GetNetworksWithHealth(ctx context.Context) ([]domain.IrcNetwor
 
 	for _, n := range networks {
 		netw := domain.IrcNetworkWithHealth{
-			ID:            n.ID,
-			Name:          n.Name,
-			Enabled:       n.Enabled,
-			Server:        n.Server,
-			Port:          n.Port,
-			TLS:           n.TLS,
-			Pass:          n.Pass,
-			InviteCommand: n.InviteCommand,
-			NickServ:      n.NickServ,
-			Connected:     false,
-			Channels:      []domain.ChannelWithHealth{},
+			ID:               n.ID,
+			Name:             n.Name,
+			Enabled:          n.Enabled,
+			Server:           n.Server,
+			Port:             n.Port,
+			TLS:              n.TLS,
+			Pass:             n.Pass,
+			InviteCommand:    n.InviteCommand,
+			NickServ:         n.NickServ,
+			Connected:        false,
+			Channels:         []domain.ChannelWithHealth{},
+			ConnectionErrors: []string{},
 		}
 
 		handler, ok := s.handlers[handlerKey{n.Server, n.NickServ.Account}]
@@ -405,9 +406,20 @@ func (s *service) GetNetworksWithHealth(ctx context.Context) ([]domain.IrcNetwor
 			// only set connected and connected since if we have an active handler and connection
 			if handler.client.Connected() {
 				handler.m.RLock()
+
 				netw.Connected = handler.connected
 				netw.ConnectedSince = handler.connectedSince
+
+				// current and preferred nick is only available if the network is connected
+				netw.CurrentNick = handler.CurrentNick()
+				netw.PreferredNick = handler.PreferredNick()
+
 				handler.m.RUnlock()
+			}
+
+			// if we have any connection errors like bad nickserv auth add them here
+			if len(handler.connectionErrors) > 0 {
+				netw.ConnectionErrors = handler.connectionErrors
 			}
 		}
 

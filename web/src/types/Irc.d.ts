@@ -53,6 +53,7 @@ interface IrcNetworkWithHealth {
   channels: IrcChannelWithHealth[];
   connected: boolean;
   connected_since: string;
+  connection_errors: string[];
 }
 
 interface NickServ {

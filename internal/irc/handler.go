@@ -65,13 +65,17 @@ type Handler struct {
 	client *ircevent.Connection
 	m      sync.RWMutex
 
-	connected        bool
-	connectedSince   time.Time
-	haveDisconnected bool
+	connected            bool
+	connectedSince       time.Time
+	haveDisconnected     bool
+	manuallyDisconnected bool
 
 	validAnnouncers map[string]struct{}
 	validChannels   map[string]struct{}
 	channelHealth   map[string]*channelHealth
+
+	connectionErrors       []string
+	failedNickServAttempts int
 }
 
 func NewHandler(log logger.Logger, network domain.IrcNetwork, definitions []*domain.IndexerDefinition, releaseSvc release.Service, notificationSvc notification.Service) *Handler {
@@ -135,6 +139,10 @@ func (h *Handler) removeIndexer() {
 }
 
 func (h *Handler) Run() error {
+	// TODO validate
+	// check if network requires nickserv
+	// chech if network or channels requires invite command
+
 	addr := fmt.Sprintf("%v:%d", h.network.Server, h.network.Port)
 
 	subLogger := zstdlog.NewStdLoggerWithLevel(h.log.With().Logger(), zerolog.TraceLevel)
@@ -263,11 +271,19 @@ func (h *Handler) AddChannelHealth(channel string) {
 
 func (h *Handler) Stop() {
 	h.log.Debug().Msg("Disconnecting...")
+
+	h.m.Lock()
+	h.manuallyDisconnected = true
+	h.m.Unlock()
 	h.client.Quit()
 }
 
 func (h *Handler) Restart() error {
 	h.log.Debug().Msg("Restarting network...")
+
+	h.m.Lock()
+	h.manuallyDisconnected = true
+	h.m.Unlock()
 
 	h.client.Quit()
 
@@ -282,6 +298,7 @@ func (h *Handler) onConnect(m ircmsg.Message) {
 	// 3. nickserv and invite command - join after nickserv
 	// 4. invite command - join
 
+	h.resetConnectErrors()
 	h.setConnectionStatus()
 
 	if h.haveDisconnected {
@@ -289,9 +306,10 @@ func (h *Handler) onConnect(m ircmsg.Message) {
 			Subject: "IRC Reconnected",
 			Message: fmt.Sprintf("Network: %v", h.network.Name),
 		})
+
+		// reset haveDisconnected
+		h.haveDisconnected = false
 	}
-	// reset haveDisconnected
-	h.haveDisconnected = true
 
 	h.log.Debug().Msgf("connected to: %v", h.network.Name)
 
@@ -328,21 +346,82 @@ func (h *Handler) onDisconnect(m ircmsg.Message) {
 
 	h.resetConnectionStatus()
 
-	h.notificationService.Send(domain.NotificationEventIRCDisconnected, domain.NotificationPayload{
-		Subject: "IRC Disconnected unexpectedly",
-		Message: fmt.Sprintf("Network: %v", h.network.Name),
-	})
+	// check if we are responsible for disconnect
+	if !h.manuallyDisconnected {
+		// only send notification if we did not initiate disconnect/restart/stop
+		h.notificationService.Send(domain.NotificationEventIRCDisconnected, domain.NotificationPayload{
+			Subject: "IRC Disconnected unexpectedly",
+			Message: fmt.Sprintf("Network: %v", h.network.Name),
+		})
+
+		// reset
+		h.manuallyDisconnected = false
+	}
 }
 
 func (h *Handler) onNotice(msg ircmsg.Message) {
-	h.log.Debug().Msgf("NOTICE: %v", msg.Nick())
-
 	if msg.Nick() == "NickServ" {
 		h.log.Debug().Msgf("NOTICE from nickserv: %v", msg.Params)
 
+		if contains(msg.Params[1],
+			"Invalid account credentials",
+			"Authentication failed: Invalid account credentials",
+			"password incorrect",
+		) {
+			h.addConnectError("authentication failed: Bad account credentials")
+			h.log.Warn().Msg("NickServ: authentication failed - bad account credentials")
+
+			if h.failedNickServAttempts >= 1 {
+				h.log.Warn().Msgf("NickServ %d failed login attempts", h.failedNickServAttempts)
+
+				// stop network and notify user
+				h.Stop()
+			}
+
+			h.failedNickServAttempts++
+		}
+
+		if contains(msg.Params[1],
+			"Account does not exist",
+			"Authentication failed: Account does not exist", // Nick ANICK isn't registered
+		) {
+			h.addConnectError("authentication failed: account does not exist")
+
+			if h.failedNickServAttempts >= 2 {
+				h.log.Warn().Msgf("NickServ %d failed login attempts", h.failedNickServAttempts)
+
+				// stop network and notify user
+				h.Stop()
+			}
+
+			h.failedNickServAttempts++
+		}
+
+		if contains(msg.Params[1],
+			"This nickname is registered and protected",
+			"please choose a different nick",
+			"choose a different nick",
+		) {
+
+			if h.failedNickServAttempts >= 3 {
+				h.log.Warn().Msgf("NickServ %d failed login attempts", h.failedNickServAttempts)
+
+				h.addConnectError("authentication failed: nick in use and not authenticated")
+
+				// stop network and notify user
+				h.Stop()
+			}
+
+			h.failedNickServAttempts++
+		}
+
 		// params: [test-bot You're now logged in as test-bot]
-		if contains(msg.Params[1], "you're now logged in as") {
+		// Password accepted - you are now recognized.
+		if contains(msg.Params[1], "you're now logged in as", "password accepted", "you are now recognized") {
 			h.log.Debug().Msgf("NOTICE nickserv logged in: %v", msg.Params)
+
+			h.resetConnectErrors()
+			h.failedNickServAttempts = 0
 
 			// if no invite command, join
 			if h.network.InviteCommand == "" {
@@ -358,10 +437,13 @@ func (h *Handler) onNotice(msg ircmsg.Message) {
 		}
 
 		//[test-bot Invalid parameters. For usage, do /msg NickServ HELP IDENTIFY]
-		if contains(msg.Params[1], "invalid", "help") {
+		// fallback for networks that require both password and nick to NickServ IDENTIFY
+		if contains(msg.Params[1], "invalid parameters", "help identify") {
 			h.log.Debug().Msgf("NOTICE nickserv invalid: %v", msg.Params)
 
-			h.client.Send("PRIVMSG", "NickServ", fmt.Sprintf("IDENTIFY %v %v", h.network.NickServ.Account, h.network.NickServ.Password))
+			if err := h.client.Send("PRIVMSG", "NickServ", fmt.Sprintf("IDENTIFY %v %v", h.network.NickServ.Account, h.network.NickServ.Password)); err != nil {
+				return
+			}
 		}
 
 		// Your nickname is not registered
@@ -371,7 +453,10 @@ func (h *Handler) onNotice(msg ircmsg.Message) {
 func contains(s string, substr ...string) bool {
 	s = strings.ToLower(s)
 	for _, c := range substr {
+		c = strings.ToLower(c)
 		if strings.Contains(s, c) {
+			return true
+		} else if c == s {
 			return true
 		}
 	}
@@ -627,6 +712,14 @@ func (h *Handler) NickChange(nick string) error {
 	return nil
 }
 
+func (h *Handler) CurrentNick() string {
+	return h.client.CurrentNick()
+}
+
+func (h *Handler) PreferredNick() string {
+	return h.client.PreferredNick()
+}
+
 func (h *Handler) handleMode(msg ircmsg.Message) {
 	h.log.Debug().Msgf("MODE: %+v", msg)
 
@@ -679,4 +772,18 @@ func (h *Handler) cleanMessage(message string) string {
 	}
 
 	return rxp.ReplaceAllString(message, "")
+}
+
+func (h *Handler) addConnectError(message string) {
+	h.m.Lock()
+	defer h.m.Unlock()
+
+	h.connectionErrors = append(h.connectionErrors, message)
+}
+
+func (h *Handler) resetConnectErrors() {
+	h.m.Lock()
+	defer h.m.Unlock()
+
+	h.connectionErrors = []string{}
 }
