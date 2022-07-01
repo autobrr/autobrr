@@ -28,6 +28,8 @@ irc:
     - "#milkie-announce"
   announcers:
     - the_cow
+    - the_cow1
+    - the_cow2
   settings:
     - name: nickserv.account
       type: text
