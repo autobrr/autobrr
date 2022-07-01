@@ -190,7 +190,6 @@ func (r *Release) ParseString(title string) {
 	r.Resolution = rel.Resolution
 	r.Season = rel.Series
 	r.Episode = rel.Episode
-	r.Group = rel.Group
 	r.Region = rel.Region
 	r.Audio = rel.Audio
 	r.AudioChannels = rel.Channels
@@ -202,6 +201,10 @@ func (r *Release) ParseString(title string) {
 
 	if r.Year == 0 {
 		r.Year = rel.Year
+	}
+
+	if r.Group == "" {
+		r.Group = rel.Group
 	}
 
 	r.ParseReleaseTagsString(r.ReleaseTags)
@@ -464,6 +467,10 @@ func (r *Release) MapVars(def *IndexerDefinition, varMap map[string]string) erro
 
 	if resolution, err := getStringMapValue(varMap, "resolution"); err == nil {
 		r.Resolution = resolution
+	}
+
+	if releaseGroup, err := getStringMapValue(varMap, "releaseGroup"); err == nil {
+		r.Group = releaseGroup
 	}
 
 	return nil
