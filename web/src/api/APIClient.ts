@@ -32,7 +32,7 @@ export async function HttpClient<T>(
           AuthContext.reset();
 
           // Show an error toast to notify the user what occurred
-          return Promise.reject(new Error("Unauthorized."));
+          return Promise.resolve(response);
         }
 
         return Promise.reject(new Error(await response.text()));
