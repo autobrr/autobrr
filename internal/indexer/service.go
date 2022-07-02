@@ -215,12 +215,7 @@ func (s *service) mapIndexer(indexer domain.Indexer) (*domain.IndexerDefinition,
 }
 
 func (s *service) updateMapIndexer(indexer domain.Indexer) (*domain.IndexerDefinition, error) {
-	definitionName := indexer.Identifier
-	if indexer.Implementation == "torznab" {
-		definitionName = "torznab"
-	}
-
-	d, ok := s.mappedDefinitions[definitionName]
+	d, ok := s.mappedDefinitions[indexer.Identifier]
 	if !ok {
 		return nil, nil
 	}
