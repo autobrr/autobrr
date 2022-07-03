@@ -10,6 +10,7 @@ import (
 	"github.com/autobrr/autobrr/internal/logger"
 
 	"github.com/dustin/go-humanize"
+	"github.com/rs/zerolog"
 )
 
 type Service interface {
@@ -25,7 +26,7 @@ type Service interface {
 }
 
 type service struct {
-	log        logger.Logger
+	log        zerolog.Logger
 	repo       domain.FilterRepo
 	actionRepo domain.ActionRepo
 	indexerSvc indexer.Service
@@ -34,7 +35,7 @@ type service struct {
 
 func NewService(log logger.Logger, repo domain.FilterRepo, actionRepo domain.ActionRepo, apiService indexer.APIService, indexerSvc indexer.Service) Service {
 	return &service{
-		log:        log,
+		log:        log.With().Str("module", "filter").Logger(),
 		repo:       repo,
 		actionRepo: actionRepo,
 		apiService: apiService,

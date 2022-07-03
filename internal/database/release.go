@@ -11,16 +11,17 @@ import (
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/lib/pq"
+	"github.com/rs/zerolog"
 )
 
 type ReleaseRepo struct {
-	log logger.Logger
+	log zerolog.Logger
 	db  *DB
 }
 
 func NewReleaseRepo(log logger.Logger, db *DB) domain.ReleaseRepo {
 	return &ReleaseRepo{
-		log: log,
+		log: log.With().Str("repo", "release").Logger(),
 		db:  db,
 	}
 }

@@ -9,16 +9,17 @@ import (
 	"github.com/autobrr/autobrr/internal/logger"
 
 	"github.com/pkg/errors"
+	"github.com/rs/zerolog"
 )
 
 type IrcRepo struct {
-	log logger.Logger
+	log zerolog.Logger
 	db  *DB
 }
 
 func NewIrcRepo(log logger.Logger, db *DB) domain.IrcRepo {
 	return &IrcRepo{
-		log: log,
+		log: log.With().Str("repo", "irc").Logger(),
 		db:  db,
 	}
 }

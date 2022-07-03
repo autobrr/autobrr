@@ -3,6 +3,8 @@ package indexer
 import (
 	"fmt"
 
+	"github.com/rs/zerolog"
+
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/internal/logger"
 	"github.com/autobrr/autobrr/internal/mock"
@@ -25,13 +27,13 @@ type apiClient interface {
 }
 
 type apiService struct {
-	log        logger.Logger
+	log        zerolog.Logger
 	apiClients map[string]apiClient
 }
 
 func NewAPIService(log logger.Logger) APIService {
 	return &apiService{
-		log:        log,
+		log:        log.With().Str("module", "indexer-api").Logger(),
 		apiClients: make(map[string]apiClient),
 	}
 }
@@ -42,7 +44,7 @@ func (s *apiService) GetTorrentByID(indexer string, torrentID string) (*domain.T
 		return nil, nil
 	}
 
-	s.log.Trace().Str("service", "api").Str("method", "GetTorrentByID").Msgf("'%v' trying to fetch torrent from api", indexer)
+	s.log.Trace().Str("method", "GetTorrentByID").Msgf("'%v' trying to fetch torrent from api", indexer)
 
 	t, err := v.GetTorrentByID(torrentID)
 	if err != nil {
@@ -50,7 +52,7 @@ func (s *apiService) GetTorrentByID(indexer string, torrentID string) (*domain.T
 		return nil, err
 	}
 
-	s.log.Trace().Str("service", "api").Str("method", "GetTorrentByID").Msgf("'%v' successfully fetched torrent from api: %+v", indexer, t)
+	s.log.Trace().Str("method", "GetTorrentByID").Msgf("'%v' successfully fetched torrent from api: %+v", indexer, t)
 
 	return t, nil
 }

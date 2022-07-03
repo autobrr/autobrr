@@ -5,6 +5,8 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/rs/zerolog"
+
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/internal/logger"
 	"github.com/autobrr/autobrr/internal/release"
@@ -34,7 +36,7 @@ type feedInstance struct {
 }
 
 type service struct {
-	log  logger.Logger
+	log  zerolog.Logger
 	jobs map[string]int
 
 	repo       domain.FeedRepo
@@ -45,7 +47,7 @@ type service struct {
 
 func NewService(log logger.Logger, repo domain.FeedRepo, cacheRepo domain.FeedCacheRepo, releaseSvc release.Service, scheduler scheduler.Service) Service {
 	return &service{
-		log:        log,
+		log:        log.With().Str("module", "feed").Logger(),
 		jobs:       map[string]int{},
 		repo:       repo,
 		cacheRepo:  cacheRepo,
@@ -241,15 +243,7 @@ func (s *service) addTorznabJob(f feedInstance) error {
 	c := torznab.NewClient(f.URL, f.ApiKey)
 
 	// create job
-	job := &TorznabJob{
-		Name:              f.Name,
-		IndexerIdentifier: f.IndexerIdentifier,
-		Client:            c,
-		Log:               l,
-		Repo:              s.cacheRepo,
-		ReleaseSvc:        s.releaseSvc,
-		URL:               f.URL,
-	}
+	job := NewTorznabJob(f.Name, f.IndexerIdentifier, l, f.URL, c, s.cacheRepo, s.releaseSvc)
 
 	// schedule job
 	id, err := s.scheduler.AddJob(job, f.CronSchedule, f.IndexerIdentifier)

@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 
+	"github.com/rs/zerolog"
+
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/internal/logger"
 )
@@ -18,13 +20,13 @@ type Service interface {
 }
 
 type service struct {
-	log  logger.Logger
+	log  zerolog.Logger
 	repo domain.DownloadClientRepo
 }
 
 func NewService(log logger.Logger, repo domain.DownloadClientRepo) Service {
 	return &service{
-		log:  log,
+		log:  log.With().Str("module", "download_client").Logger(),
 		repo: repo,
 	}
 }

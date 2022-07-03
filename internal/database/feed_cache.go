@@ -4,18 +4,20 @@ import (
 	"database/sql"
 	"time"
 
+	"github.com/rs/zerolog"
+
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/internal/logger"
 )
 
 type FeedCacheRepo struct {
-	log logger.Logger
+	log zerolog.Logger
 	db  *DB
 }
 
 func NewFeedCacheRepo(log logger.Logger, db *DB) domain.FeedCacheRepo {
 	return &FeedCacheRepo{
-		log: log,
+		log: log.With().Str("repo", "feed_cache").Logger(),
 		db:  db,
 	}
 }

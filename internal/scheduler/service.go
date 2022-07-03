@@ -3,6 +3,8 @@ package scheduler
 import (
 	"fmt"
 
+	"github.com/rs/zerolog"
+
 	"github.com/autobrr/autobrr/internal/logger"
 
 	"github.com/robfig/cron/v3"
@@ -17,7 +19,7 @@ type Service interface {
 }
 
 type service struct {
-	log  logger.Logger
+	log  zerolog.Logger
 	cron *cron.Cron
 
 	jobs map[string]cron.EntryID
@@ -25,7 +27,7 @@ type service struct {
 
 func NewService(log logger.Logger) Service {
 	return &service{
-		log: log,
+		log: log.With().Str("module", "scheduler").Logger(),
 		cron: cron.New(cron.WithChain(
 			cron.Recover(cron.DefaultLogger),
 		)),

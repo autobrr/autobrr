@@ -2,18 +2,21 @@ package database
 
 import (
 	"context"
+
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/internal/logger"
+
+	"github.com/rs/zerolog"
 )
 
 type UserRepo struct {
-	log logger.Logger
+	log zerolog.Logger
 	db  *DB
 }
 
 func NewUserRepo(log logger.Logger, db *DB) domain.UserRepo {
 	return &UserRepo{
-		log: log,
+		log: log.With().Str("repo", "user").Logger(),
 		db:  db,
 	}
 }

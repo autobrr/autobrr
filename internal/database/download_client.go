@@ -7,10 +7,12 @@ import (
 
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/internal/logger"
+
+	"github.com/rs/zerolog"
 )
 
 type DownloadClientRepo struct {
-	log   logger.Logger
+	log   zerolog.Logger
 	db    *DB
 	cache *clientCache
 }
@@ -50,7 +52,7 @@ func (c *clientCache) Pop(id int) {
 
 func NewDownloadClientRepo(log logger.Logger, db *DB) domain.DownloadClientRepo {
 	return &DownloadClientRepo{
-		log:   log,
+		log:   log.With().Str("repo", "action").Logger(),
 		db:    db,
 		cache: NewClientCache(),
 	}

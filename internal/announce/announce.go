@@ -30,7 +30,7 @@ type announceProcessor struct {
 
 func NewAnnounceProcessor(log zerolog.Logger, releaseSvc release.Service, indexer *domain.IndexerDefinition) Processor {
 	ap := &announceProcessor{
-		log:        log,
+		log:        log.With().Str("module", "announce_processor").Logger(),
 		releaseSvc: releaseSvc,
 		indexer:    indexer,
 	}
@@ -225,6 +225,8 @@ func (a *announceProcessor) processTorrentUrl(match string, vars map[string]stri
 		a.log.Error().Err(err).Msg("could not write torrent url template output")
 		return "", err
 	}
+
+	a.log.Trace().Msg("torrenturl processed")
 
 	return b.String(), nil
 }

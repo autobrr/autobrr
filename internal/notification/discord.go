@@ -10,8 +10,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/rs/zerolog"
+
 	"github.com/autobrr/autobrr/internal/domain"
-	"github.com/autobrr/autobrr/internal/logger"
 )
 
 type DiscordMessage struct {
@@ -42,12 +43,15 @@ const (
 )
 
 type discordSender struct {
-	log      logger.Logger
+	log      zerolog.Logger
 	Settings domain.Notification
 }
 
-func NewDiscordSender(log logger.Logger, settings domain.Notification) domain.NotificationSender {
-	return &discordSender{log: log, Settings: settings}
+func NewDiscordSender(log zerolog.Logger, settings domain.Notification) domain.NotificationSender {
+	return &discordSender{
+		log:      log.With().Str("sender", "discord").Logger(),
+		Settings: settings,
+	}
 }
 
 func (a *discordSender) Send(event domain.NotificationEvent, payload domain.NotificationPayload) error {
@@ -94,7 +98,8 @@ func (a *discordSender) Send(event domain.NotificationEvent, payload domain.Noti
 
 	a.log.Trace().Msgf("discord status: %v response: %v", res.StatusCode, string(body))
 
-	if res.StatusCode != http.StatusNoContent {
+	// discord responds with 204, Notifiarr with 204 so lets take all 200 as ok
+	if res.StatusCode >= 300 {
 		a.log.Error().Err(err).Msgf("discord client request error: %v", string(body))
 		return fmt.Errorf("err: %v", string(body))
 	}

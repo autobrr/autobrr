@@ -6,6 +6,8 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/rs/zerolog"
+
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/internal/indexer"
 	"github.com/autobrr/autobrr/internal/logger"
@@ -29,7 +31,7 @@ type Service interface {
 }
 
 type service struct {
-	log                 logger.Logger
+	log                 zerolog.Logger
 	repo                domain.IrcRepo
 	releaseService      release.Service
 	indexerService      indexer.Service
@@ -43,7 +45,7 @@ type service struct {
 
 func NewService(log logger.Logger, repo domain.IrcRepo, releaseSvc release.Service, indexerSvc indexer.Service, notificationSvc notification.Service) Service {
 	return &service{
-		log:                 log,
+		log:                 log.With().Str("module", "irc").Logger(),
 		repo:                repo,
 		releaseService:      releaseSvc,
 		indexerService:      indexerSvc,

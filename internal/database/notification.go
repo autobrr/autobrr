@@ -9,16 +9,17 @@ import (
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/lib/pq"
+	"github.com/rs/zerolog"
 )
 
 type NotificationRepo struct {
-	log logger.Logger
+	log zerolog.Logger
 	db  *DB
 }
 
 func NewNotificationRepo(log logger.Logger, db *DB) domain.NotificationRepo {
 	return &NotificationRepo{
-		log: log,
+		log: log.With().Str("repo", "notification").Logger(),
 		db:  db,
 	}
 }

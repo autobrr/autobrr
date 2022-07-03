@@ -10,10 +10,11 @@ import (
 	"github.com/autobrr/autobrr/internal/logger"
 
 	sq "github.com/Masterminds/squirrel"
+	"github.com/rs/zerolog"
 )
 
 type DB struct {
-	log     logger.Logger
+	log     zerolog.Logger
 	handler *sql.DB
 	lock    sync.RWMutex
 	ctx     context.Context
@@ -29,7 +30,7 @@ func NewDB(cfg *domain.Config, log logger.Logger) (*DB, error) {
 	db := &DB{
 		// set default placeholder for squirrel to support both sqlite and postgres
 		squirrel: sq.StatementBuilder.PlaceholderFormat(sq.Dollar),
-		log:      log,
+		log:      log.With().Str("module", "database").Logger(),
 	}
 	db.ctx, db.cancel = context.WithCancel(context.Background())
 

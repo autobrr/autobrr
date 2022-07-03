@@ -10,16 +10,17 @@ import (
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/lib/pq"
+	"github.com/rs/zerolog"
 )
 
 type FilterRepo struct {
-	log logger.Logger
+	log zerolog.Logger
 	db  *DB
 }
 
 func NewFilterRepo(log logger.Logger, db *DB) domain.FilterRepo {
 	return &FilterRepo{
-		log: log,
+		log: log.With().Str("repo", "filter").Logger(),
 		db:  db,
 	}
 }

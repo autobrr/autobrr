@@ -91,7 +91,7 @@ func main() {
 		schedulingService     = scheduler.NewService(log)
 		apiService            = indexer.NewAPIService(log)
 		userService           = user.NewService(userRepo)
-		authService           = auth.NewService(userService)
+		authService           = auth.NewService(log, userService)
 		downloadClientService = download_client.NewService(log, downloadClientRepo)
 		actionService         = action.NewService(log, actionRepo, downloadClientService, bus)
 		indexerService        = indexer.NewService(log, cfg.Config, indexerRepo, apiService, schedulingService)

@@ -27,6 +27,18 @@ type TorznabJob struct {
 	JobID int
 }
 
+func NewTorznabJob(name string, indexerIdentifier string, log zerolog.Logger, url string, client *torznab.Client, repo domain.FeedCacheRepo, releaseSvc release.Service) *TorznabJob {
+	return &TorznabJob{
+		Name:              name,
+		IndexerIdentifier: indexerIdentifier,
+		Log:               log,
+		URL:               url,
+		Client:            client,
+		Repo:              repo,
+		ReleaseSvc:        releaseSvc,
+	}
+}
+
 func (j *TorznabJob) Run() {
 	err := j.process()
 	if err != nil {

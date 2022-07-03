@@ -9,10 +9,11 @@ import (
 	"github.com/autobrr/autobrr/internal/release"
 
 	"github.com/asaskevich/EventBus"
+	"github.com/rs/zerolog"
 )
 
 type Subscriber struct {
-	log             logger.Logger
+	log             zerolog.Logger
 	eventbus        EventBus.Bus
 	notificationSvc notification.Service
 	releaseSvc      release.Service
@@ -20,7 +21,7 @@ type Subscriber struct {
 
 func NewSubscribers(log logger.Logger, eventbus EventBus.Bus, notificationSvc notification.Service, releaseSvc release.Service) Subscriber {
 	s := Subscriber{
-		log:             log,
+		log:             log.With().Str("module", "events").Logger(),
 		eventbus:        eventbus,
 		notificationSvc: notificationSvc,
 		releaseSvc:      releaseSvc,

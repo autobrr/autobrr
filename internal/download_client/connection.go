@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/pkg/errors"
-
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/pkg/lidarr"
 	"github.com/autobrr/autobrr/pkg/qbittorrent"
@@ -14,6 +12,7 @@ import (
 	"github.com/autobrr/autobrr/pkg/whisparr"
 
 	delugeClient "github.com/gdm85/go-libdeluge"
+	"github.com/pkg/errors"
 )
 
 func (s *service) testConnection(client domain.DownloadClient) error {

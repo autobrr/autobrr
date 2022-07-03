@@ -9,17 +9,18 @@ import (
 	"github.com/autobrr/autobrr/internal/logger"
 
 	sq "github.com/Masterminds/squirrel"
+	"github.com/rs/zerolog"
 )
 
 type ActionRepo struct {
-	log        logger.Logger
+	log        zerolog.Logger
 	db         *DB
 	clientRepo domain.DownloadClientRepo
 }
 
 func NewActionRepo(log logger.Logger, db *DB, clientRepo domain.DownloadClientRepo) domain.ActionRepo {
 	return &ActionRepo{
-		log:        log,
+		log:        log.With().Str("repo", "action").Logger(),
 		db:         db,
 		clientRepo: clientRepo,
 	}

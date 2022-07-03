@@ -11,8 +11,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/rs/zerolog"
+
 	"github.com/autobrr/autobrr/internal/domain"
-	"github.com/autobrr/autobrr/internal/logger"
 )
 
 type TelegramMessage struct {
@@ -22,13 +23,13 @@ type TelegramMessage struct {
 }
 
 type telegramSender struct {
-	log      logger.Logger
+	log      zerolog.Logger
 	Settings domain.Notification
 }
 
-func NewTelegramSender(log logger.Logger, settings domain.Notification) domain.NotificationSender {
+func NewTelegramSender(log zerolog.Logger, settings domain.Notification) domain.NotificationSender {
 	return &telegramSender{
-		log:      log,
+		log:      log.With().Str("sender", "telegram").Logger(),
 		Settings: settings,
 	}
 }

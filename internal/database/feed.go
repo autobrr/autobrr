@@ -8,17 +8,18 @@ import (
 	"github.com/autobrr/autobrr/internal/logger"
 
 	sq "github.com/Masterminds/squirrel"
+	"github.com/rs/zerolog"
 )
 
 func NewFeedRepo(log logger.Logger, db *DB) domain.FeedRepo {
 	return &FeedRepo{
-		log: log,
+		log: log.With().Str("repo", "feed").Logger(),
 		db:  db,
 	}
 }
 
 type FeedRepo struct {
-	log logger.Logger
+	log zerolog.Logger
 	db  *DB
 }
 

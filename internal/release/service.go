@@ -5,6 +5,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/rs/zerolog"
+
 	"github.com/autobrr/autobrr/internal/action"
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/internal/filter"
@@ -30,7 +32,7 @@ type actionClientTypeKey struct {
 }
 
 type service struct {
-	log  logger.Logger
+	log  zerolog.Logger
 	repo domain.ReleaseRepo
 
 	actionSvc action.Service
@@ -39,7 +41,7 @@ type service struct {
 
 func NewService(log logger.Logger, repo domain.ReleaseRepo, actionSvc action.Service, filterSvc filter.Service) Service {
 	return &service{
-		log:       log,
+		log:       log.With().Str("module", "release").Logger(),
 		repo:      repo,
 		actionSvc: actionSvc,
 		filterSvc: filterSvc,

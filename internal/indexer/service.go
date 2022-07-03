@@ -52,7 +52,7 @@ type service struct {
 
 func NewService(log logger.Logger, config *domain.Config, repo domain.IndexerRepo, apiService APIService, scheduler scheduler.Service) Service {
 	return &service{
-		log:                       log.With().Str("service", "indexer").Logger(),
+		log:                       log.With().Str("module", "indexer").Logger(),
 		config:                    config,
 		repo:                      repo,
 		apiService:                apiService,

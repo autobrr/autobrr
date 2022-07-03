@@ -8,16 +8,18 @@ import (
 
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/internal/logger"
+
+	"github.com/rs/zerolog"
 )
 
 type IndexerRepo struct {
-	log logger.Logger
+	log zerolog.Logger
 	db  *DB
 }
 
 func NewIndexerRepo(log logger.Logger, db *DB) domain.IndexerRepo {
 	return &IndexerRepo{
-		log: log,
+		log: log.With().Str("repo", "indexer").Logger(),
 		db:  db,
 	}
 }

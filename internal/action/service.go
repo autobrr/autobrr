@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/asaskevich/EventBus"
+	"github.com/rs/zerolog"
 
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/internal/download_client"
@@ -22,7 +23,7 @@ type Service interface {
 }
 
 type service struct {
-	log       logger.Logger
+	log       zerolog.Logger
 	repo      domain.ActionRepo
 	clientSvc download_client.Service
 	bus       EventBus.Bus
@@ -30,7 +31,7 @@ type service struct {
 
 func NewService(log logger.Logger, repo domain.ActionRepo, clientSvc download_client.Service, bus EventBus.Bus) Service {
 	return &service{
-		log:       log,
+		log:       log.With().Str("module", "action").Logger(),
 		repo:      repo,
 		clientSvc: clientSvc,
 		bus:       bus,

@@ -3,6 +3,8 @@ package notification
 import (
 	"context"
 
+	"github.com/rs/zerolog"
+
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/internal/logger"
 )
@@ -18,14 +20,14 @@ type Service interface {
 }
 
 type service struct {
-	log     logger.Logger
+	log     zerolog.Logger
 	repo    domain.NotificationRepo
 	senders []domain.NotificationSender
 }
 
 func NewService(log logger.Logger, repo domain.NotificationRepo) Service {
 	s := &service{
-		log:     log,
+		log:     log.With().Str("module", "notification").Logger(),
 		repo:    repo,
 		senders: []domain.NotificationSender{},
 	}
