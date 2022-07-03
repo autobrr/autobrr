@@ -76,6 +76,8 @@ type Handler struct {
 
 	connectionErrors       []string
 	failedNickServAttempts int
+
+	authenticated bool
 }
 
 func NewHandler(log logger.Logger, network domain.IrcNetwork, definitions []*domain.IndexerDefinition, releaseSvc release.Service, notificationSvc notification.Service) *Handler {
@@ -90,6 +92,7 @@ func NewHandler(log logger.Logger, network domain.IrcNetwork, definitions []*dom
 		validAnnouncers:     map[string]struct{}{},
 		validChannels:       map[string]struct{}{},
 		channelHealth:       map[string]*channelHealth{},
+		authenticated:       false,
 	}
 
 	// init indexer, announceProcessor
@@ -152,6 +155,9 @@ func (h *Handler) Run() error {
 		User:          h.network.NickServ.Account,
 		RealName:      h.network.NickServ.Account,
 		Password:      h.network.Pass,
+		SASLLogin:     h.network.NickServ.Account,
+		SASLPassword:  h.network.NickServ.Password,
+		SASLOptional:  true,
 		Server:        addr,
 		KeepAlive:     4 * time.Minute,
 		Timeout:       2 * time.Minute,
@@ -176,6 +182,7 @@ func (h *Handler) Run() error {
 	h.client.AddCallback("PRIVMSG", h.onMessage)
 	h.client.AddCallback("NOTICE", h.onNotice)
 	h.client.AddCallback("NICK", h.onNick)
+	h.client.AddCallback("903", h.handleSASLSuccess)
 
 	if err := h.client.Connect(); err != nil {
 		h.log.Error().Stack().Err(err).Msg("connect error")
@@ -217,6 +224,10 @@ func (h *Handler) Run() error {
 
 func (h *Handler) isOurNick(nick string) bool {
 	return h.network.NickServ.Account == nick
+}
+
+func (h *Handler) isOurCurrentNick(nick string) bool {
+	return h.client.CurrentNick() == nick
 }
 
 func (h *Handler) setConnectionStatus() {
@@ -293,9 +304,10 @@ func (h *Handler) Restart() error {
 }
 
 func (h *Handler) onConnect(m ircmsg.Message) {
+	// 0. Authenticated via SASL - join
 	// 1. No nickserv, no invite command - join
-	// 2. Nickserv - join after auth
-	// 3. nickserv and invite command - join after nickserv
+	// 2. Nickserv password - join after auth
+	// 3. nickserv and invite command - send nickserv pass, wait for mode to send invite cmd, then join
 	// 4. invite command - join
 
 	h.resetConnectErrors()
@@ -313,9 +325,28 @@ func (h *Handler) onConnect(m ircmsg.Message) {
 
 	h.log.Debug().Msgf("connected to: %v", h.network.Name)
 
-	time.Sleep(2 * time.Second)
+	time.Sleep(1 * time.Second)
 
-	if h.network.NickServ.Password != "" {
+	// if already authenticated via SASL then join channels
+	if h.authenticated {
+		h.log.Trace().Msg("on connect - already authenticated: join channels")
+
+		// check for invite command
+		if h.network.InviteCommand != "" {
+			if err := h.sendConnectCommands(h.network.InviteCommand); err != nil {
+				h.log.Error().Stack().Err(err).Msgf("error sending connect command %v", h.network.InviteCommand)
+				return
+			}
+
+			// let's return because MODE will change, and we join when we have the correct mode
+			return
+		}
+
+		// if authenticated and no invite command lets join
+		h.JoinChannels()
+
+	} else if h.network.NickServ.Password != "" {
+		h.log.Trace().Msg("on connect not authenticated and password not empty: send nickserv identify")
 		if err := h.NickServIdentify(h.network.NickServ.Password); err != nil {
 			h.log.Error().Stack().Err(err).Msg("error nickserv")
 			return
@@ -323,20 +354,21 @@ func (h *Handler) onConnect(m ircmsg.Message) {
 
 		// return and wait for NOTICE of nickserv auth
 		return
-	}
 
-	if h.network.InviteCommand != "" && h.network.NickServ.Password == "" {
+	} else if h.network.InviteCommand != "" {
+		h.log.Trace().Msg("on connect invite command not empty: send connect commands")
 		if err := h.sendConnectCommands(h.network.InviteCommand); err != nil {
 			h.log.Error().Stack().Err(err).Msgf("error sending connect command %v", h.network.InviteCommand)
 			return
 		}
 
 		return
+
+	} else {
+		// join channels if no password or no invite command
+		h.log.Trace().Msg("on connect - no nickserv or invite command: join channels")
+		h.JoinChannels()
 	}
-
-	// join channels if no password or no invite command
-	h.JoinChannels()
-
 }
 
 func (h *Handler) onDisconnect(m ircmsg.Message) {
@@ -345,6 +377,7 @@ func (h *Handler) onDisconnect(m ircmsg.Message) {
 	h.haveDisconnected = true
 
 	h.resetConnectionStatus()
+	h.resetAuthenticated()
 
 	// check if we are responsible for disconnect
 	if !h.manuallyDisconnected {
@@ -360,94 +393,101 @@ func (h *Handler) onDisconnect(m ircmsg.Message) {
 }
 
 func (h *Handler) onNotice(msg ircmsg.Message) {
-	if msg.Nick() == "NickServ" {
-		h.log.Debug().Msgf("NOTICE from nickserv: %v", msg.Params)
-
-		if contains(msg.Params[1],
-			"Invalid account credentials",
-			"Authentication failed: Invalid account credentials",
-			"password incorrect",
-		) {
-			h.addConnectError("authentication failed: Bad account credentials")
-			h.log.Warn().Msg("NickServ: authentication failed - bad account credentials")
-
-			if h.failedNickServAttempts >= 1 {
-				h.log.Warn().Msgf("NickServ %d failed login attempts", h.failedNickServAttempts)
-
-				// stop network and notify user
-				h.Stop()
-			}
-
-			h.failedNickServAttempts++
-		}
-
-		if contains(msg.Params[1],
-			"Account does not exist",
-			"Authentication failed: Account does not exist", // Nick ANICK isn't registered
-		) {
-			h.addConnectError("authentication failed: account does not exist")
-
-			if h.failedNickServAttempts >= 2 {
-				h.log.Warn().Msgf("NickServ %d failed login attempts", h.failedNickServAttempts)
-
-				// stop network and notify user
-				h.Stop()
-			}
-
-			h.failedNickServAttempts++
-		}
-
-		if contains(msg.Params[1],
-			"This nickname is registered and protected",
-			"please choose a different nick",
-			"choose a different nick",
-		) {
-
-			if h.failedNickServAttempts >= 3 {
-				h.log.Warn().Msgf("NickServ %d failed login attempts", h.failedNickServAttempts)
-
-				h.addConnectError("authentication failed: nick in use and not authenticated")
-
-				// stop network and notify user
-				h.Stop()
-			}
-
-			h.failedNickServAttempts++
-		}
-
-		// params: [test-bot You're now logged in as test-bot]
-		// Password accepted - you are now recognized.
-		if contains(msg.Params[1], "you're now logged in as", "password accepted", "you are now recognized") {
-			h.log.Debug().Msgf("NOTICE nickserv logged in: %v", msg.Params)
-
-			h.resetConnectErrors()
-			h.failedNickServAttempts = 0
-
-			// if no invite command, join
-			if h.network.InviteCommand == "" {
-				h.JoinChannels()
-				return
-			}
-
-			// else send connect commands
-			if err := h.sendConnectCommands(h.network.InviteCommand); err != nil {
-				h.log.Error().Stack().Err(err).Msgf("error sending connect command %v", h.network.InviteCommand)
-				return
-			}
-		}
-
-		//[test-bot Invalid parameters. For usage, do /msg NickServ HELP IDENTIFY]
-		// fallback for networks that require both password and nick to NickServ IDENTIFY
-		if contains(msg.Params[1], "invalid parameters", "help identify") {
-			h.log.Debug().Msgf("NOTICE nickserv invalid: %v", msg.Params)
-
-			if err := h.client.Send("PRIVMSG", "NickServ", fmt.Sprintf("IDENTIFY %v %v", h.network.NickServ.Account, h.network.NickServ.Password)); err != nil {
-				return
-			}
-		}
-
-		// Your nickname is not registered
+	switch msg.Nick() {
+	case "NickServ":
+		h.handleNickServ(msg)
 	}
+}
+
+func (h *Handler) handleNickServ(msg ircmsg.Message) {
+	h.log.Trace().Msgf("NOTICE from nickserv: %v", msg.Params)
+
+	if contains(msg.Params[1],
+		"Invalid account credentials",
+		"Authentication failed: Invalid account credentials",
+		"password incorrect",
+	) {
+		h.addConnectError("authentication failed: Bad account credentials")
+		h.log.Warn().Msg("NickServ: authentication failed - bad account credentials")
+
+		if h.failedNickServAttempts >= 1 {
+			h.log.Warn().Msgf("NickServ %d failed login attempts", h.failedNickServAttempts)
+
+			// stop network and notify user
+			h.Stop()
+		}
+
+		h.failedNickServAttempts++
+	}
+
+	if contains(msg.Params[1],
+		"Account does not exist",
+		"Authentication failed: Account does not exist", // Nick ANICK isn't registered
+	) {
+		h.addConnectError("authentication failed: account does not exist")
+
+		if h.failedNickServAttempts >= 2 {
+			h.log.Warn().Msgf("NickServ %d failed login attempts", h.failedNickServAttempts)
+
+			// stop network and notify user
+			h.Stop()
+		}
+
+		h.failedNickServAttempts++
+	}
+
+	if contains(msg.Params[1],
+		"This nickname is registered and protected",
+		"please choose a different nick",
+		"choose a different nick",
+	) {
+
+		if h.failedNickServAttempts >= 3 {
+			h.log.Warn().Msgf("NickServ %d failed login attempts", h.failedNickServAttempts)
+
+			h.addConnectError("authentication failed: nick in use and not authenticated")
+
+			// stop network and notify user
+			h.Stop()
+		}
+
+		h.failedNickServAttempts++
+	}
+
+	// You're now logged in as test-bot
+	// Password accepted - you are now recognized.
+	if contains(msg.Params[1], "you're now logged in as", "password accepted", "you are now recognized") {
+		h.log.Debug().Msgf("NOTICE nickserv logged in: %v", msg.Params)
+	}
+
+	// fallback for networks that require both password and nick to NickServ IDENTIFY
+	// Invalid parameters. For usage, do /msg NickServ HELP IDENTIFY
+	if contains(msg.Params[1], "invalid parameters", "help identify") {
+		h.log.Debug().Msgf("NOTICE nickserv invalid: %v", msg.Params)
+
+		if err := h.client.Send("PRIVMSG", "NickServ", fmt.Sprintf("IDENTIFY %v %v", h.network.NickServ.Account, h.network.NickServ.Password)); err != nil {
+			return
+		}
+	}
+}
+
+// handleSASLSuccess we get here early so set authenticated before we hit onConnect
+func (h *Handler) handleSASLSuccess(msg ircmsg.Message) {
+	h.setAuthenticated()
+}
+
+func (h *Handler) setAuthenticated() {
+	h.m.Lock()
+	defer h.m.Unlock()
+
+	h.authenticated = true
+}
+
+func (h *Handler) resetAuthenticated() {
+	h.m.Lock()
+	defer h.m.Unlock()
+
+	h.authenticated = false
 }
 
 func contains(s string, substr ...string) bool {
@@ -464,7 +504,7 @@ func contains(s string, substr ...string) bool {
 }
 
 func (h *Handler) onNick(msg ircmsg.Message) {
-	h.log.Debug().Msgf("NICK event: %v params: %v", msg.Nick(), msg.Params)
+	h.log.Trace().Msgf("NICK event: %v params: %v", msg.Nick(), msg.Params)
 
 	if h.client.CurrentNick() != h.client.PreferredNick() {
 		h.log.Debug().Msgf("nick miss-match: got %v want %v", h.client.CurrentNick(), h.client.PreferredNick())
@@ -565,7 +605,7 @@ func (h *Handler) JoinChannel(channel string, password string) error {
 
 func (h *Handler) handlePart(msg ircmsg.Message) {
 	if !h.isOurNick(msg.Nick()) {
-		h.log.Debug().Msgf("MODE OTHER USER: %+v", msg)
+		h.log.Trace().Msgf("PART other user: %+v", msg)
 		return
 	}
 
@@ -573,8 +613,7 @@ func (h *Handler) handlePart(msg ircmsg.Message) {
 
 	h.log.Debug().Msgf("PART channel %v", channel)
 
-	err := h.client.Part(channel)
-	if err != nil {
+	if err := h.client.Part(channel); err != nil {
 		h.log.Error().Err(err).Msgf("error handling part: %v", channel)
 		return
 	}
@@ -589,7 +628,7 @@ func (h *Handler) handlePart(msg ircmsg.Message) {
 
 	// TODO remove announceProcessor
 
-	h.log.Debug().Msgf("Left channel '%v'", channel)
+	h.log.Debug().Msgf("Left channel %v", channel)
 
 	return
 }
@@ -613,14 +652,14 @@ func (h *Handler) PartChannel(channel string) error {
 
 	// TODO remove announceProcessor
 
-	h.log.Info().Msgf("Left channel '%v' on network '%v'", channel, h.network.Server)
+	h.log.Info().Msgf("Left channel: %v", channel)
 
 	return nil
 }
 
 func (h *Handler) handleJoined(msg ircmsg.Message) {
 	if !h.isOurNick(msg.Params[0]) {
-		h.log.Debug().Msgf("OTHER USER JOINED: %+v", msg)
+		h.log.Trace().Msgf("JOINED other user: %+v", msg)
 		return
 	}
 
@@ -705,7 +744,7 @@ func (h *Handler) NickServIdentify(password string) error {
 }
 
 func (h *Handler) NickChange(nick string) error {
-	h.log.Debug().Msgf("Nick change: %v", nick)
+	h.log.Debug().Msgf("NICK change: %v", nick)
 
 	h.client.SetNick(nick)
 
@@ -721,22 +760,33 @@ func (h *Handler) PreferredNick() string {
 }
 
 func (h *Handler) handleMode(msg ircmsg.Message) {
-	h.log.Debug().Msgf("MODE: %+v", msg)
+	h.log.Trace().Msgf("MODE: %+v", msg)
 
-	if !h.isOurNick(msg.Params[0]) {
-		h.log.Trace().Msgf("MODE OTHER USER: %+v", msg)
+	// if our nick and user mode +r (Identifies the nick as being Registered (settable by services only)) then return
+	if h.isOurCurrentNick(msg.Params[0]) && strings.Contains(msg.Params[1], "+r") {
+		h.setAuthenticated()
+
+		h.resetConnectErrors()
+		h.failedNickServAttempts = 0
+
+		// if invite command send
+		if h.network.InviteCommand != "" {
+			// send connect commands
+			if err := h.sendConnectCommands(h.network.InviteCommand); err != nil {
+				h.log.Error().Stack().Err(err).Msgf("error sending connect command %v", h.network.InviteCommand)
+				return
+			}
+
+			return
+		}
+
+		time.Sleep(1 * time.Second)
+
+		//join channels
+		h.JoinChannels()
+
 		return
 	}
-
-	if h.network.NickServ.Password != "" && !strings.Contains(msg.Params[0], h.client.Nick) || !strings.Contains(msg.Params[1], "+r") {
-		h.log.Trace().Msgf("MODE: Not correct permission yet: %v", msg.Params)
-		return
-	}
-
-	time.Sleep(2 * time.Second)
-
-	// join channels
-	h.JoinChannels()
 
 	return
 }
