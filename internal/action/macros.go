@@ -22,8 +22,6 @@ type Macro struct {
 	Season          int
 	Episode         int
 	ParsedYear	int
-	ParsedMonth	int
-	ParsedDay	int
 	Year            int
 	Month           int
 	Day             int
@@ -48,8 +46,6 @@ func NewMacro(release domain.Release) Macro {
 		Season:          release.Season,
 		Episode:         release.Episode,
 		ParsedYear:      release.Year,
-		ParsedMonth:     release.Month,
-		ParsedDay:       release.Day,
 		Year:            currentTime.Year(),
 		Month:           int(currentTime.Month()),
 		Day:             currentTime.Day(),
