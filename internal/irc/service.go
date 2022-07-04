@@ -60,7 +60,7 @@ type handlerKey struct {
 func (s *service) StartHandlers() {
 	networks, err := s.repo.FindActiveNetworks(context.Background())
 	if err != nil {
-		s.log.Error().Msgf("failed to list networks: %v", err)
+		s.log.Error().Err(err).Msg("failed to list networks")
 	}
 
 	for _, network := range networks {
@@ -356,7 +356,7 @@ func (s *service) GetNetworkByID(ctx context.Context, id int64) (*domain.IrcNetw
 func (s *service) ListNetworks(ctx context.Context) ([]domain.IrcNetwork, error) {
 	networks, err := s.repo.ListNetworks(ctx)
 	if err != nil {
-		s.log.Error().Err(err).Msgf("failed to list networks: %v", err)
+		s.log.Error().Err(err).Msg("failed to list networks")
 		return nil, err
 	}
 
@@ -379,7 +379,7 @@ func (s *service) ListNetworks(ctx context.Context) ([]domain.IrcNetwork, error)
 func (s *service) GetNetworksWithHealth(ctx context.Context) ([]domain.IrcNetworkWithHealth, error) {
 	networks, err := s.repo.ListNetworks(ctx)
 	if err != nil {
-		s.log.Error().Err(err).Msgf("failed to list networks: %v", err)
+		s.log.Error().Err(err).Msg("failed to list networks")
 		return nil, err
 	}
 

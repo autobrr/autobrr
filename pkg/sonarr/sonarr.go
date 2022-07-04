@@ -3,8 +3,8 @@ package sonarr
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
-	"os"
 	"strings"
 	"time"
 
@@ -51,7 +51,8 @@ func New(config Config) Client {
 	}
 
 	if config.Log == nil {
-		c.Log = log.New(os.Stdout, "", log.LstdFlags)
+		// if no provided logger then use io.Discard
+		c.Log = log.New(io.Discard, "", log.LstdFlags)
 	}
 
 	return c
@@ -121,7 +122,7 @@ func (c *client) Push(release Release) ([]string, error) {
 			return nil, errors.Wrap(err, "could not unmarshal data")
 		}
 
-		if badreqResponse[0] != nil && badreqResponse[0].PropertyName == "title" && badreqResponse[0].ErrorMessage == "Unable to parse" {
+		if badreqResponse[0] != nil && badreqResponse[0].PropertyName == "Title" && badreqResponse[0].ErrorMessage == "Unable to parse" {
 			rejections := []string{fmt.Sprintf("unable to parse: %v", badreqResponse[0].AttemptedValue)}
 			return rejections, err
 		}

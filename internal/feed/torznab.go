@@ -56,7 +56,7 @@ func (j *TorznabJob) process() error {
 	items, err := j.getFeed()
 	if err != nil {
 		j.Log.Error().Err(err).Msgf("torznab.process: error fetching feed items")
-		return errors.Wrap(err, "torznab.process: error getting feed items: %w", err)
+		return errors.Wrap(err, "torznab.process: error getting feed items")
 	}
 
 	if len(items) == 0 {

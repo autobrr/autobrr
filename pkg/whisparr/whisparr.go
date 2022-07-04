@@ -5,7 +5,6 @@ import (
 	"io"
 	"log"
 	"net/http"
-	"os"
 	"strings"
 	"time"
 
@@ -49,7 +48,7 @@ func New(config Config) Client {
 	}
 
 	if config.Log == nil {
-		c.Log = log.New(os.Stdout, "", log.LstdFlags)
+		c.Log = log.New(io.Discard, "", log.LstdFlags)
 	}
 
 	return c

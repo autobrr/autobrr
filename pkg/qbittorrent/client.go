@@ -61,7 +61,7 @@ func NewClient(s Settings) *Client {
 	}
 
 	if s.Log == nil {
-		c.Log = log.New(os.Stdout, "qbittorrent", log.LstdFlags)
+		c.Log = log.New(io.Discard, "qbittorrent", log.LstdFlags)
 	}
 
 	//store cookies in jar

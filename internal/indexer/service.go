@@ -410,11 +410,11 @@ func (s *service) mapIRCServerDefinitionLookup(ircServer string, indexerDefiniti
 func (s *service) LoadIndexerDefinitions() error {
 	entries, err := fs.ReadDir(Definitions, "definitions")
 	if err != nil {
-		s.log.Fatal().Stack().Msgf("failed reading directory: %s", err)
+		s.log.Fatal().Err(err).Stack().Msg("failed reading directory")
 	}
 
 	if len(entries) == 0 {
-		s.log.Fatal().Stack().Msgf("failed reading directory: %s", err)
+		s.log.Fatal().Err(err).Stack().Msg("failed reading directory")
 		return errors.Wrap(err, "could not read directory")
 	}
 
@@ -470,7 +470,7 @@ func (s *service) LoadCustomIndexerDefinitions() error {
 
 	entries, err := outputDirRead.ReadDir(0)
 	if err != nil {
-		s.log.Fatal().Stack().Msgf("failed reading directory: %s", err)
+		s.log.Fatal().Err(err).Stack().Msg("failed reading directory")
 		return errors.Wrap(err, "could not read directory")
 	}
 

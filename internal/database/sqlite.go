@@ -31,7 +31,7 @@ func (db *DB) openSQLite() error {
 	// Enable WAL. SQLite performs better with the WAL  because it allows
 	// multiple readers to operate while data is being written.
 	if _, err = db.handler.Exec(`PRAGMA journal_mode = wal;`); err != nil {
-		return errors.New("enable wal: %w", err)
+		return errors.Wrap(err, "enable wal")
 	}
 
 	// Enable foreign key checks. For historical reasons, SQLite does not check
@@ -56,7 +56,7 @@ func (db *DB) migrateSQLite() error {
 
 	var version int
 	if err := db.handler.QueryRow("PRAGMA user_version").Scan(&version); err != nil {
-		return errors.New("failed to query schema version: %v", err)
+		return errors.Wrap(err, "failed to query schema version")
 	}
 
 	if version == len(sqliteMigrations) {
@@ -73,12 +73,12 @@ func (db *DB) migrateSQLite() error {
 
 	if version == 0 {
 		if _, err := tx.Exec(sqliteSchema); err != nil {
-			return errors.New("failed to initialize schema: %v", err)
+			return errors.Wrap(err, "failed to initialize schema")
 		}
 	} else {
 		for i := version; i < len(sqliteMigrations); i++ {
 			if _, err := tx.Exec(sqliteMigrations[i]); err != nil {
-				return errors.New("failed to execute migration #%v: %v", i, err)
+				return errors.Wrap(err, "failed to execute migration #%v", i)
 			}
 		}
 	}
@@ -89,13 +89,13 @@ func (db *DB) migrateSQLite() error {
 	// TODO 2022-01-30 remove this in future version
 	if version == 5 && len(sqliteMigrations) == 6 {
 		if err := customMigrateCopySourcesToMedia(tx); err != nil {
-			return errors.New("could not run custom data migration: %v", err)
+			return errors.Wrap(err, "could not run custom data migration")
 		}
 	}
 
 	_, err = tx.Exec(fmt.Sprintf("PRAGMA user_version = %d", len(sqliteMigrations)))
 	if err != nil {
-		return errors.New("failed to bump schema version: %v", err)
+		return errors.Wrap(err, "failed to bump schema version")
 	}
 
 	return tx.Commit()
@@ -117,7 +117,7 @@ func customMigrateCopySourcesToMedia(tx *sql.Tx) error {
 		   OR sources LIKE '%"SACD"%'
 		;`)
 	if err != nil {
-		return errors.New("could not run custom data migration: %v", err)
+		return errors.Wrap(err, "could not run custom data migration")
 	}
 
 	defer rows.Close()

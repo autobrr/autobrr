@@ -2,9 +2,9 @@ package btn
 
 import (
 	"context"
+	"io"
 	"log"
 	"net/http"
-	"os"
 	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
@@ -47,7 +47,7 @@ func NewClient(url string, apiKey string) BTNClient {
 	}
 
 	if c.Log == nil {
-		c.Log = log.New(os.Stdout, "", log.LstdFlags)
+		c.Log = log.New(io.Discard, "", log.LstdFlags)
 	}
 
 	return c

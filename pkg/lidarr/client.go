@@ -114,7 +114,9 @@ func (c *client) postBody(endpoint string, data interface{}) (int, []byte, error
 		return resp.StatusCode, nil, errors.Wrap(err, "lidarr.io.Copy")
 	}
 
-	if resp.StatusCode < 200 || resp.StatusCode > 299 {
+	if resp.StatusCode == http.StatusBadRequest {
+		return resp.StatusCode, buf.Bytes(), nil
+	} else if resp.StatusCode < 200 || resp.StatusCode > 401 {
 		return resp.StatusCode, buf.Bytes(), errors.New("lidarr: bad request: %v (status: %s): %s", resp.Request.RequestURI, resp.Status, buf.String())
 	}
 

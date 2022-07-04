@@ -64,7 +64,7 @@ func (s *apiService) TestConnection(indexer string) (bool, error) {
 
 	t, err := v.TestAPI()
 	if err != nil {
-		s.log.Error().Err(err).Msgf("error testing connection for api", indexer)
+		s.log.Error().Err(err).Msgf("error testing connection for api: %v", indexer)
 		return false, err
 	}
 

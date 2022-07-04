@@ -2,9 +2,10 @@ package lidarr
 
 import (
 	"encoding/json"
+	"fmt"
+	"io"
 	"log"
 	"net/http"
-	"os"
 	"strings"
 	"time"
 
@@ -49,7 +50,7 @@ func New(config Config) Client {
 	}
 
 	if config.Log == nil {
-		c.Log = log.New(os.Stdout, "", log.LstdFlags)
+		c.Log = log.New(io.Discard, "", log.LstdFlags)
 	}
 
 	return c
@@ -72,6 +73,13 @@ type PushResponse struct {
 	Rejections   []string `json:"rejections"`
 }
 
+type BadRequestResponse struct {
+	PropertyName   string `json:"propertyName"`
+	ErrorMessage   string `json:"errorMessage"`
+	AttemptedValue string `json:"attemptedValue"`
+	Severity       string `json:"severity"`
+}
+
 type SystemStatusResponse struct {
 	Version string `json:"version"`
 }
@@ -91,7 +99,7 @@ func (c *client) Test() (*SystemStatusResponse, error) {
 	response := SystemStatusResponse{}
 	err = json.Unmarshal(res, &response)
 	if err != nil {
-		return nil, errors.Wrap(err, "lidarr client error json unmarshal: %w")
+		return nil, errors.Wrap(err, "lidarr client error json unmarshal")
 	}
 
 	return &response, nil
@@ -104,6 +112,19 @@ func (c *client) Push(release Release) ([]string, error) {
 	}
 
 	c.Log.Printf("lidarr release/push response status: %v body: %v", status, string(res))
+
+	if status == http.StatusBadRequest {
+		badreqResponse := make([]*BadRequestResponse, 0)
+		err = json.Unmarshal(res, &badreqResponse)
+		if err != nil {
+			return nil, errors.Wrap(err, "could not unmarshal data")
+		}
+
+		if badreqResponse[0] != nil && badreqResponse[0].PropertyName == "Title" && badreqResponse[0].ErrorMessage == "Unable to parse" {
+			rejections := []string{fmt.Sprintf("unable to parse: %v", badreqResponse[0].AttemptedValue)}
+			return rejections, err
+		}
+	}
 
 	pushResponse := PushResponse{}
 	err = json.Unmarshal(res, &pushResponse)
