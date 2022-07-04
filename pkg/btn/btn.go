@@ -1,21 +1,20 @@
 package btn
 
 import (
-	"fmt"
-
 	"github.com/autobrr/autobrr/internal/domain"
+	"github.com/autobrr/autobrr/pkg/errors"
 )
 
 func (c *Client) TestAPI() (bool, error) {
 	res, err := c.rpcClient.Call("userInfo", [2]string{c.APIKey})
 	if err != nil {
-		return false, err
+		return false, errors.Wrap(err, "test api userInfo failed")
 	}
 
 	var u *UserInfo
 	err = res.GetObject(&u)
 	if err != nil {
-		return false, err
+		return false, errors.Wrap(err, "test api get userInfo")
 	}
 
 	if u.Username != "" {
@@ -27,12 +26,12 @@ func (c *Client) TestAPI() (bool, error) {
 
 func (c *Client) GetTorrentByID(torrentID string) (*domain.TorrentBasic, error) {
 	if torrentID == "" {
-		return nil, fmt.Errorf("btn client: must have torrentID")
+		return nil, errors.New("btn client: must have torrentID")
 	}
 
 	res, err := c.rpcClient.Call("getTorrentById", [2]string{c.APIKey, torrentID})
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "call getTorrentById failed")
 	}
 
 	var r *domain.TorrentBasic

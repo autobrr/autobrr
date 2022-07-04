@@ -12,12 +12,12 @@ import (
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/internal/notification"
 	"github.com/autobrr/autobrr/internal/release"
+	"github.com/autobrr/autobrr/pkg/errors"
 
 	"github.com/avast/retry-go"
 	"github.com/dcarbone/zadapters/zstdlog"
 	"github.com/ergochat/irc-go/ircevent"
 	"github.com/ergochat/irc-go/ircmsg"
-	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
 )
 
@@ -550,7 +550,7 @@ func (h *Handler) sendToAnnounceProcessor(channel string, msg string) error {
 	// check if queue exists
 	queue, ok := h.announceProcessors[channel]
 	if !ok {
-		return fmt.Errorf("queue '%v' not found", channel)
+		return errors.New("queue '%v' not found", channel)
 	}
 
 	// if it exists, add msg

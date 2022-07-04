@@ -6,6 +6,7 @@ import (
 
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/internal/logger"
+	"github.com/autobrr/autobrr/pkg/errors"
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/lib/pq"
@@ -33,14 +34,12 @@ func (r *NotificationRepo) Find(ctx context.Context, params domain.NotificationQ
 
 	query, args, err := queryBuilder.ToSql()
 	if err != nil {
-		r.log.Error().Stack().Err(err).Msg("notification.find: error building query")
-		return nil, 0, err
+		return nil, 0, errors.Wrap(err, "error building query")
 	}
 
 	rows, err := r.db.handler.QueryContext(ctx, query, args...)
 	if err != nil {
-		r.log.Error().Stack().Err(err).Msg("notification.find: error executing query")
-		return nil, 0, err
+		return nil, 0, errors.Wrap(err, "error executing query")
 	}
 
 	defer rows.Close()
@@ -55,8 +54,7 @@ func (r *NotificationRepo) Find(ctx context.Context, params domain.NotificationQ
 		//if err := rows.Scan(&n.ID, &n.Name, &n.Type, &n.Enabled, pq.Array(&n.Events), &token, &apiKey, &webhook, &title, &icon, &host, &username, &password, &channel, &targets, &devices, &n.CreatedAt, &n.UpdatedAt); err != nil {
 		//var token, apiKey, webhook, title, icon, host, username, password, channel, targets, devices sql.NullString
 		if err := rows.Scan(&n.ID, &n.Name, &n.Type, &n.Enabled, pq.Array(&n.Events), &webhook, &token, &channel, &n.CreatedAt, &n.UpdatedAt, &totalCount); err != nil {
-			r.log.Error().Stack().Err(err).Msg("notification.find: error scanning row")
-			return nil, 0, err
+			return nil, 0, errors.Wrap(err, "error scanning row")
 		}
 
 		//n.APIKey = apiKey.String
@@ -75,7 +73,7 @@ func (r *NotificationRepo) Find(ctx context.Context, params domain.NotificationQ
 		notifications = append(notifications, n)
 	}
 	if err := rows.Err(); err != nil {
-		return nil, 0, err
+		return nil, 0, errors.Wrap(err, "error rows find")
 	}
 
 	return notifications, totalCount, nil
@@ -83,17 +81,9 @@ func (r *NotificationRepo) Find(ctx context.Context, params domain.NotificationQ
 
 func (r *NotificationRepo) List(ctx context.Context) ([]domain.Notification, error) {
 
-	//queryBuilder := r.db.squirrel.
-	//	Select("r.id", "r.filter_status", "r.rejections", "r.indexer", "r.filter", "r.protocol", "r.title", "r.torrent_name", "r.size", "r.timestamp", "COUNT(*) OVER() AS total_count").
-	//	From("release r").
-	//	OrderBy("r.timestamp DESC")
-	//
-	//query, args, err := queryBuilder.ToSql()
-
 	rows, err := r.db.handler.QueryContext(ctx, "SELECT id, name, type, enabled, events, token, api_key, webhook, title, icon, host, username, password, channel, targets, devices, created_at, updated_at FROM notification ORDER BY name ASC")
 	if err != nil {
-		r.log.Error().Stack().Err(err).Msg("filters_list: error query data")
-		return nil, err
+		return nil, errors.Wrap(err, "error executing query")
 	}
 
 	defer rows.Close()
@@ -105,8 +95,7 @@ func (r *NotificationRepo) List(ctx context.Context) ([]domain.Notification, err
 
 		var token, apiKey, webhook, title, icon, host, username, password, channel, targets, devices sql.NullString
 		if err := rows.Scan(&n.ID, &n.Name, &n.Type, &n.Enabled, pq.Array(&n.Events), &token, &apiKey, &webhook, &title, &icon, &host, &username, &password, &channel, &targets, &devices, &n.CreatedAt, &n.UpdatedAt); err != nil {
-			r.log.Error().Stack().Err(err).Msg("notification_list: error scanning data to struct")
-			return nil, err
+			return nil, errors.Wrap(err, "error scanning row")
 		}
 
 		//n.Events = ([]domain.NotificationEvent)(eventsSlice)
@@ -125,7 +114,7 @@ func (r *NotificationRepo) List(ctx context.Context) ([]domain.Notification, err
 		notifications = append(notifications, n)
 	}
 	if err := rows.Err(); err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "error rows list")
 	}
 
 	return notifications, nil
@@ -149,22 +138,20 @@ func (r *NotificationRepo) FindByID(ctx context.Context, id int) (*domain.Notifi
 
 	query, args, err := queryBuilder.ToSql()
 	if err != nil {
-		r.log.Error().Stack().Err(err).Msg("notification.findByID: error building query")
-		return nil, err
+		return nil, errors.Wrap(err, "error building query")
 	}
 
 	//row := r.db.handler.QueryRowContext(ctx, "SELECT id, name, type, enabled, events, token, api_key, webhook, title, icon, host, username, password, channel, targets, devices, created_at, updated_at FROM notification WHERE id = ?", id)
 	row := r.db.handler.QueryRowContext(ctx, query, args...)
 	if err := row.Err(); err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "error executing query")
 	}
 
 	var n domain.Notification
 
 	var token, apiKey, webhook, title, icon, host, username, password, channel, targets, devices sql.NullString
 	if err := row.Scan(&n.ID, &n.Name, &n.Type, &n.Enabled, pq.Array(&n.Events), &token, &apiKey, &webhook, &title, &icon, &host, &username, &password, &channel, &targets, &devices, &n.CreatedAt, &n.UpdatedAt); err != nil {
-		r.log.Error().Stack().Err(err).Msg("notification.findByID: error scanning row")
-		return nil, err
+		return nil, errors.Wrap(err, "error scanning row")
 	}
 
 	n.Token = token.String
@@ -214,8 +201,7 @@ func (r *NotificationRepo) Store(ctx context.Context, notification domain.Notifi
 
 	err := queryBuilder.QueryRowContext(ctx).Scan(&retID)
 	if err != nil {
-		r.log.Error().Stack().Err(err).Msg("notification.store: error executing query")
-		return nil, err
+		return nil, errors.Wrap(err, "error executing query")
 	}
 
 	r.log.Debug().Msgf("notification.store: added new %v", retID)
@@ -243,14 +229,12 @@ func (r *NotificationRepo) Update(ctx context.Context, notification domain.Notif
 
 	query, args, err := queryBuilder.ToSql()
 	if err != nil {
-		r.log.Error().Stack().Err(err).Msg("action.update: error building query")
-		return nil, err
+		return nil, errors.Wrap(err, "error building query")
 	}
 
 	_, err = r.db.handler.ExecContext(ctx, query, args...)
 	if err != nil {
-		r.log.Error().Stack().Err(err).Msg("notification.update: error executing query")
-		return nil, err
+		return nil, errors.Wrap(err, "error executing query")
 	}
 
 	r.log.Debug().Msgf("notification.update: %v", notification.Name)
@@ -265,14 +249,12 @@ func (r *NotificationRepo) Delete(ctx context.Context, notificationID int) error
 
 	query, args, err := queryBuilder.ToSql()
 	if err != nil {
-		r.log.Error().Stack().Err(err).Msg("notification.delete: error building query")
-		return err
+		return errors.Wrap(err, "error building query")
 	}
 
 	_, err = r.db.handler.ExecContext(ctx, query, args...)
 	if err != nil {
-		r.log.Error().Stack().Err(err).Msg("notification.delete: error executing query")
-		return err
+		return errors.Wrap(err, "error executing query")
 	}
 
 	r.log.Info().Msgf("notification.delete: successfully deleted: %v", notificationID)

@@ -3,14 +3,12 @@ package radarr
 import (
 	"bytes"
 	"encoding/json"
-	"errors"
-	"fmt"
 	"io"
 	"net/http"
 	"net/url"
 	"path"
 
-	"github.com/rs/zerolog/log"
+	"github.com/autobrr/autobrr/pkg/errors"
 )
 
 func (c *client) get(endpoint string) (int, []byte, error) {
@@ -20,8 +18,7 @@ func (c *client) get(endpoint string) (int, []byte, error) {
 
 	req, err := http.NewRequest(http.MethodGet, reqUrl, http.NoBody)
 	if err != nil {
-		log.Error().Err(err).Msgf("radarr client request error : %v", reqUrl)
-		return 0, nil, err
+		return 0, nil, errors.Wrap(err, "could not build request: %v", reqUrl)
 	}
 
 	if c.config.BasicAuth {
@@ -32,15 +29,14 @@ func (c *client) get(endpoint string) (int, []byte, error) {
 
 	resp, err := c.http.Do(req)
 	if err != nil {
-		log.Error().Err(err).Msgf("radarr client.get request error: %v", reqUrl)
-		return 0, nil, fmt.Errorf("radarr.http.Do(req): %w", err)
+		return 0, nil, errors.Wrap(err, "radarr.http.Do(req): %v", reqUrl)
 	}
 
 	defer resp.Body.Close()
 
 	var buf bytes.Buffer
 	if _, err = io.Copy(&buf, resp.Body); err != nil {
-		return resp.StatusCode, nil, fmt.Errorf("radarr.io.Copy: %w", err)
+		return resp.StatusCode, nil, errors.Wrap(err, "radarr.io.Copy")
 	}
 
 	return resp.StatusCode, buf.Bytes(), nil
@@ -53,14 +49,12 @@ func (c *client) post(endpoint string, data interface{}) (*http.Response, error)
 
 	jsonData, err := json.Marshal(data)
 	if err != nil {
-		log.Error().Err(err).Msgf("radarr client could not marshal data: %v", reqUrl)
-		return nil, err
+		return nil, errors.Wrap(err, "could not marshal data: %+v", data)
 	}
 
 	req, err := http.NewRequest(http.MethodPost, reqUrl, bytes.NewBuffer(jsonData))
 	if err != nil {
-		log.Error().Err(err).Msgf("radarr client request error: %v", reqUrl)
-		return nil, err
+		return nil, errors.Wrap(err, "could not build request: %v", reqUrl)
 	}
 
 	if c.config.BasicAuth {
@@ -73,19 +67,15 @@ func (c *client) post(endpoint string, data interface{}) (*http.Response, error)
 
 	res, err := c.http.Do(req)
 	if err != nil {
-		log.Error().Err(err).Msgf("radarr client request error: %v", reqUrl)
-		return nil, err
+		return nil, errors.Wrap(err, "could not make request: %+v", req)
 	}
 
 	// validate response
 	if res.StatusCode == http.StatusUnauthorized {
-		log.Error().Err(err).Msgf("radarr client bad request: %v", reqUrl)
 		return nil, errors.New("unauthorized: bad credentials")
 	} else if res.StatusCode == http.StatusBadRequest {
-		log.Error().Err(err).Msgf("radarr client request error: %v", reqUrl)
 		return nil, errors.New("radarr: bad request")
 	} else if res.StatusCode != http.StatusOK {
-		log.Error().Err(err).Msgf("radarr client request error: %v", reqUrl)
 		return nil, errors.New("radarr: bad request")
 	}
 
@@ -100,14 +90,12 @@ func (c *client) postBody(endpoint string, data interface{}) (int, []byte, error
 
 	jsonData, err := json.Marshal(data)
 	if err != nil {
-		log.Error().Err(err).Msgf("radarr client could not marshal data: %v", reqUrl)
-		return 0, nil, err
+		return 0, nil, errors.Wrap(err, "could not marshal data: %+v", data)
 	}
 
 	req, err := http.NewRequest(http.MethodPost, reqUrl, bytes.NewBuffer(jsonData))
 	if err != nil {
-		log.Error().Err(err).Msgf("radarr client request error: %v", reqUrl)
-		return 0, nil, err
+		return 0, nil, errors.Wrap(err, "could not build request: %v", reqUrl)
 	}
 
 	if c.config.BasicAuth {
@@ -118,19 +106,18 @@ func (c *client) postBody(endpoint string, data interface{}) (int, []byte, error
 
 	resp, err := c.http.Do(req)
 	if err != nil {
-		log.Error().Err(err).Msgf("radarr client request error: %v", reqUrl)
-		return 0, nil, fmt.Errorf("radarr.http.Do(req): %w", err)
+		return 0, nil, errors.Wrap(err, "radarr.http.Do(req): %+v", req)
 	}
 
 	defer resp.Body.Close()
 
 	var buf bytes.Buffer
 	if _, err = io.Copy(&buf, resp.Body); err != nil {
-		return resp.StatusCode, nil, fmt.Errorf("radarr.io.Copy: %w", err)
+		return resp.StatusCode, nil, errors.Wrap(err, "radarr.io.Copy")
 	}
 
 	if resp.StatusCode < 200 || resp.StatusCode > 299 {
-		return resp.StatusCode, buf.Bytes(), fmt.Errorf("radarr: bad request: %v (status: %s): %s", resp.Request.RequestURI, resp.Status, buf.String())
+		return resp.StatusCode, buf.Bytes(), errors.New("radarr: bad request: %v (status: %s): %s", resp.Request.RequestURI, resp.Status, buf.String())
 	}
 
 	return resp.StatusCode, buf.Bytes(), nil

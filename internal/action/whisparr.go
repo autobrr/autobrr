@@ -29,6 +29,7 @@ func (s *service) whisparr(release domain.Release, action domain.Action) ([]stri
 	cfg := whisparr.Config{
 		Hostname: client.Host,
 		APIKey:   client.Settings.APIKey,
+		Log:      s.subLogger,
 	}
 
 	// only set basic auth if enabled

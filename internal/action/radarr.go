@@ -29,6 +29,7 @@ func (s *service) radarr(release domain.Release, action domain.Action) ([]string
 	cfg := radarr.Config{
 		Hostname: client.Host,
 		APIKey:   client.Settings.APIKey,
+		Log:      s.subLogger,
 	}
 
 	// only set basic auth if enabled

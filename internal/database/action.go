@@ -7,6 +7,7 @@ import (
 
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/internal/logger"
+	"github.com/autobrr/autobrr/pkg/errors"
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/rs/zerolog"
@@ -88,14 +89,12 @@ func (r *ActionRepo) findByFilterID(ctx context.Context, tx *Tx, filterID int) (
 
 	query, args, err := queryBuilder.ToSql()
 	if err != nil {
-		r.log.Error().Stack().Err(err).Msg("action.findByFilterID: error building query")
-		return nil, err
+		return nil, errors.Wrap(err, "error building query")
 	}
 
 	rows, err := tx.QueryContext(ctx, query, args...)
 	if err != nil {
-		r.log.Error().Stack().Err(err).Msg("action.findByFilterID: query error")
-		return nil, err
+		return nil, errors.Wrap(err, "error executing query")
 	}
 
 	defer rows.Close()
@@ -113,8 +112,7 @@ func (r *ActionRepo) findByFilterID(ctx context.Context, tx *Tx, filterID int) (
 		var paused, ignoreRules sql.NullBool
 
 		if err := rows.Scan(&a.ID, &a.Name, &a.Type, &a.Enabled, &execCmd, &execArgs, &watchFolder, &category, &tags, &label, &savePath, &paused, &ignoreRules, &limitDl, &limitUl, &limitRatio, &limitSeedTime, &a.ReAnnounceSkip, &a.ReAnnounceDelete, &a.ReAnnounceInterval, &a.ReAnnounceMaxAttempts, &webhookHost, &webhookType, &webhookMethod, &webhookData, &clientID); err != nil {
-			r.log.Error().Stack().Err(err).Msg("action.findByFilterID: error scanning row")
-			return nil, err
+			return nil, errors.Wrap(err, "error scanning row")
 		}
 
 		a.ExecCmd = execCmd.String
@@ -142,8 +140,7 @@ func (r *ActionRepo) findByFilterID(ctx context.Context, tx *Tx, filterID int) (
 		actions = append(actions, &a)
 	}
 	if err := rows.Err(); err != nil {
-		r.log.Error().Stack().Err(err).Msg("action.findByFilterID: row error")
-		return nil, err
+		return nil, errors.Wrap(err, "row error")
 	}
 
 	return actions, nil
@@ -169,28 +166,24 @@ func (r *ActionRepo) attachDownloadClient(ctx context.Context, tx *Tx, clientID 
 
 	query, args, err := queryBuilder.ToSql()
 	if err != nil {
-		r.log.Error().Stack().Err(err).Msg("action.attachDownloadClient: error building query")
-		return nil, err
+		return nil, errors.Wrap(err, "error building query")
 	}
 
 	row := tx.QueryRowContext(ctx, query, args...)
 	if err := row.Err(); err != nil {
-		r.log.Error().Stack().Err(err).Msg("action.attachDownloadClient: error query row")
-		return nil, err
+		return nil, errors.Wrap(err, "error executing query")
 	}
 
 	var client domain.DownloadClient
 	var settingsJsonStr string
 
 	if err := row.Scan(&client.ID, &client.Name, &client.Type, &client.Enabled, &client.Host, &client.Port, &client.TLS, &client.TLSSkipVerify, &client.Username, &client.Password, &settingsJsonStr); err != nil {
-		r.log.Error().Stack().Err(err).Msg("action.attachDownloadClient: error scanning row")
-		return nil, err
+		return nil, errors.Wrap(err, "error scanning row")
 	}
 
 	if settingsJsonStr != "" {
 		if err := json.Unmarshal([]byte(settingsJsonStr), &client.Settings); err != nil {
-			r.log.Error().Stack().Err(err).Msgf("action.attachDownloadClient: could not marshal download client settings %v", settingsJsonStr)
-			return nil, err
+			return nil, errors.Wrap(err, "could not unmarshal download client settings: %v", settingsJsonStr)
 		}
 	}
 
@@ -231,14 +224,12 @@ func (r *ActionRepo) List(ctx context.Context) ([]domain.Action, error) {
 
 	query, args, err := queryBuilder.ToSql()
 	if err != nil {
-		r.log.Error().Stack().Err(err).Msg("action.list: error building query")
-		return nil, err
+		return nil, errors.Wrap(err, "error building query")
 	}
 
 	rows, err := r.db.handler.QueryContext(ctx, query, args...)
 	if err != nil {
-		r.log.Error().Stack().Err(err).Msg("action.list: error executing query")
-		return nil, err
+		return nil, errors.Wrap(err, "error executing query")
 	}
 
 	defer rows.Close()
@@ -254,8 +245,7 @@ func (r *ActionRepo) List(ctx context.Context) ([]domain.Action, error) {
 		var paused, ignoreRules sql.NullBool
 
 		if err := rows.Scan(&a.ID, &a.Name, &a.Type, &a.Enabled, &execCmd, &execArgs, &watchFolder, &category, &tags, &label, &savePath, &paused, &ignoreRules, &limitDl, &limitUl, &limitRatio, &limitSeedTime, &a.ReAnnounceSkip, &a.ReAnnounceDelete, &a.ReAnnounceInterval, &a.ReAnnounceMaxAttempts, &webhookHost, &webhookType, &webhookMethod, &webhookData, &clientID); err != nil {
-			r.log.Error().Stack().Err(err).Msg("action.list: error scanning row")
-			return nil, err
+			return nil, errors.Wrap(err, "error scanning row")
 		}
 
 		a.Category = category.String
@@ -280,8 +270,7 @@ func (r *ActionRepo) List(ctx context.Context) ([]domain.Action, error) {
 		actions = append(actions, a)
 	}
 	if err := rows.Err(); err != nil {
-		r.log.Error().Stack().Err(err).Msg("action.list: row error")
-		return nil, err
+		return nil, errors.Wrap(err, "rows error")
 	}
 
 	return actions, nil
@@ -294,14 +283,12 @@ func (r *ActionRepo) Delete(actionID int) error {
 
 	query, args, err := queryBuilder.ToSql()
 	if err != nil {
-		r.log.Error().Stack().Err(err).Msg("action.delete: error building query")
-		return err
+		return errors.Wrap(err, "error building query")
 	}
 
 	_, err = r.db.handler.Exec(query, args...)
 	if err != nil {
-		r.log.Error().Stack().Err(err).Msg("action.delete: error executing query")
-		return err
+		return errors.Wrap(err, "error executing query")
 	}
 
 	r.log.Debug().Msgf("action.delete: %v", actionID)
@@ -316,14 +303,12 @@ func (r *ActionRepo) DeleteByFilterID(ctx context.Context, filterID int) error {
 
 	query, args, err := queryBuilder.ToSql()
 	if err != nil {
-		r.log.Error().Stack().Err(err).Msg("action.deleteByFilterID: error building query")
-		return err
+		return errors.Wrap(err, "error building query")
 	}
 
 	_, err = r.db.handler.ExecContext(ctx, query, args...)
 	if err != nil {
-		r.log.Error().Stack().Err(err).Msg("action.deleteByFilterID: error executing query")
-		return err
+		return errors.Wrap(err, "error executing query")
 	}
 
 	r.log.Debug().Msgf("action.deleteByFilterID: %v", filterID)
@@ -416,8 +401,7 @@ func (r *ActionRepo) Store(ctx context.Context, action domain.Action) (*domain.A
 
 	err := queryBuilder.QueryRowContext(ctx).Scan(&retID)
 	if err != nil {
-		r.log.Error().Stack().Err(err).Msg("action.store: error executing query")
-		return nil, err
+		return nil, errors.Wrap(err, "error executing query")
 	}
 
 	r.log.Debug().Msgf("action.store: added new %v", retID)
@@ -481,14 +465,12 @@ func (r *ActionRepo) Update(ctx context.Context, action domain.Action) (*domain.
 
 	query, args, err := queryBuilder.ToSql()
 	if err != nil {
-		r.log.Error().Stack().Err(err).Msg("action.update: error building query")
-		return nil, err
+		return nil, errors.Wrap(err, "error building query")
 	}
 
 	_, err = r.db.handler.ExecContext(ctx, query, args...)
 	if err != nil {
-		r.log.Error().Stack().Err(err).Msg("action.update: error executing query")
-		return nil, err
+		return nil, errors.Wrap(err, "error executing query")
 	}
 
 	r.log.Debug().Msgf("action.update: %v", action.ID)
@@ -499,7 +481,7 @@ func (r *ActionRepo) Update(ctx context.Context, action domain.Action) (*domain.
 func (r *ActionRepo) StoreFilterActions(ctx context.Context, actions []*domain.Action, filterID int64) ([]*domain.Action, error) {
 	tx, err := r.db.handler.BeginTx(ctx, nil)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "error begin transaction")
 	}
 
 	defer tx.Rollback()
@@ -510,13 +492,11 @@ func (r *ActionRepo) StoreFilterActions(ctx context.Context, actions []*domain.A
 
 	deleteQuery, deleteArgs, err := deleteQueryBuilder.ToSql()
 	if err != nil {
-		r.log.Error().Stack().Err(err).Msg("action.StoreFilterActions: error building query")
-		return nil, err
+		return nil, errors.Wrap(err, "error building query")
 	}
 	_, err = tx.ExecContext(ctx, deleteQuery, deleteArgs...)
 	if err != nil {
-		r.log.Error().Stack().Err(err).Msg("action.StoreFilterActions: error executing query")
-		return nil, err
+		return nil, errors.Wrap(err, "error executing query")
 	}
 
 	for _, action := range actions {
@@ -603,8 +583,7 @@ func (r *ActionRepo) StoreFilterActions(ctx context.Context, actions []*domain.A
 
 		err = queryBuilder.QueryRowContext(ctx).Scan(&retID)
 		if err != nil {
-			r.log.Error().Stack().Err(err).Msg("action.StoreFilterActions: error executing query")
-			return nil, err
+			return nil, errors.Wrap(err, "error executing query")
 		}
 
 		action.ID = retID
@@ -614,8 +593,7 @@ func (r *ActionRepo) StoreFilterActions(ctx context.Context, actions []*domain.A
 
 	err = tx.Commit()
 	if err != nil {
-		r.log.Error().Stack().Err(err).Msg("action.StoreFilterActions: error updating actions")
-		return nil, err
+		return nil, errors.Wrap(err, "error updating filter actions")
 
 	}
 
@@ -632,14 +610,12 @@ func (r *ActionRepo) ToggleEnabled(actionID int) error {
 
 	query, args, err := queryBuilder.ToSql()
 	if err != nil {
-		r.log.Error().Stack().Err(err).Msg("action.toggleEnabled: error building query")
-		return err
+		return errors.Wrap(err, "error building query")
 	}
 
 	_, err = r.db.handler.Exec(query, args...)
 	if err != nil {
-		r.log.Error().Stack().Err(err).Msg("action.toggleEnabled: error executing query")
-		return err
+		return errors.Wrap(err, "error executing query")
 	}
 
 	r.log.Debug().Msgf("action.toggleEnabled: %v", actionID)

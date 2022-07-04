@@ -2,9 +2,9 @@ package user
 
 import (
 	"context"
-	"errors"
 
 	"github.com/autobrr/autobrr/internal/domain"
+	"github.com/autobrr/autobrr/pkg/errors"
 )
 
 type Service interface {

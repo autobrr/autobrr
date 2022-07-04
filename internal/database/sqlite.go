@@ -4,13 +4,15 @@ import (
 	"database/sql"
 	"fmt"
 
+	"github.com/autobrr/autobrr/pkg/errors"
+
 	"github.com/lib/pq"
 	_ "modernc.org/sqlite"
 )
 
 func (db *DB) openSQLite() error {
 	if db.DSN == "" {
-		return fmt.Errorf("DSN required")
+		return errors.New("DSN required")
 	}
 
 	var err error
@@ -23,20 +25,20 @@ func (db *DB) openSQLite() error {
 
 	// Set busy timeout
 	//if _, err = db.handler.Exec(`PRAGMA busy_timeout = 5000;`); err != nil {
-	//	return fmt.Errorf("busy timeout pragma: %w", err)
+	//	return errors.New("busy timeout pragma: %w", err)
 	//}
 
 	// Enable WAL. SQLite performs better with the WAL  because it allows
 	// multiple readers to operate while data is being written.
 	if _, err = db.handler.Exec(`PRAGMA journal_mode = wal;`); err != nil {
-		return fmt.Errorf("enable wal: %w", err)
+		return errors.New("enable wal: %w", err)
 	}
 
 	// Enable foreign key checks. For historical reasons, SQLite does not check
 	// foreign key constraints by default. There's some overhead on inserts to
 	// verify foreign key integrity, but it's definitely worth it.
 	//if _, err = db.handler.Exec(`PRAGMA foreign_keys = ON;`); err != nil {
-	//	return fmt.Errorf("foreign keys pragma: %w", err)
+	//	return errors.New("foreign keys pragma: %w", err)
 	//}
 
 	// migrate db
@@ -54,13 +56,13 @@ func (db *DB) migrateSQLite() error {
 
 	var version int
 	if err := db.handler.QueryRow("PRAGMA user_version").Scan(&version); err != nil {
-		return fmt.Errorf("failed to query schema version: %v", err)
+		return errors.New("failed to query schema version: %v", err)
 	}
 
 	if version == len(sqliteMigrations) {
 		return nil
 	} else if version > len(sqliteMigrations) {
-		return fmt.Errorf("autobrr (version %d) older than schema (version: %d)", len(sqliteMigrations), version)
+		return errors.New("autobrr (version %d) older than schema (version: %d)", len(sqliteMigrations), version)
 	}
 
 	tx, err := db.handler.Begin()
@@ -71,12 +73,12 @@ func (db *DB) migrateSQLite() error {
 
 	if version == 0 {
 		if _, err := tx.Exec(sqliteSchema); err != nil {
-			return fmt.Errorf("failed to initialize schema: %v", err)
+			return errors.New("failed to initialize schema: %v", err)
 		}
 	} else {
 		for i := version; i < len(sqliteMigrations); i++ {
 			if _, err := tx.Exec(sqliteMigrations[i]); err != nil {
-				return fmt.Errorf("failed to execute migration #%v: %v", i, err)
+				return errors.New("failed to execute migration #%v: %v", i, err)
 			}
 		}
 	}
@@ -87,13 +89,13 @@ func (db *DB) migrateSQLite() error {
 	// TODO 2022-01-30 remove this in future version
 	if version == 5 && len(sqliteMigrations) == 6 {
 		if err := customMigrateCopySourcesToMedia(tx); err != nil {
-			return fmt.Errorf("could not run custom data migration: %v", err)
+			return errors.New("could not run custom data migration: %v", err)
 		}
 	}
 
 	_, err = tx.Exec(fmt.Sprintf("PRAGMA user_version = %d", len(sqliteMigrations)))
 	if err != nil {
-		return fmt.Errorf("failed to bump schema version: %v", err)
+		return errors.New("failed to bump schema version: %v", err)
 	}
 
 	return tx.Commit()
@@ -115,7 +117,7 @@ func customMigrateCopySourcesToMedia(tx *sql.Tx) error {
 		   OR sources LIKE '%"SACD"%'
 		;`)
 	if err != nil {
-		return fmt.Errorf("could not run custom data migration: %v", err)
+		return errors.New("could not run custom data migration: %v", err)
 	}
 
 	defer rows.Close()

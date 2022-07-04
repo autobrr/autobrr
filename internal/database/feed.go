@@ -6,6 +6,7 @@ import (
 
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/internal/logger"
+	"github.com/autobrr/autobrr/pkg/errors"
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/rs/zerolog"
@@ -42,14 +43,12 @@ func (r *FeedRepo) FindByID(ctx context.Context, id int) (*domain.Feed, error) {
 
 	query, args, err := queryBuilder.ToSql()
 	if err != nil {
-		r.log.Error().Stack().Err(err).Msg("feed.FindById: error building query")
-		return nil, err
+		return nil, errors.Wrap(err, "error building query")
 	}
 
 	row := r.db.handler.QueryRowContext(ctx, query, args...)
 	if err := row.Err(); err != nil {
-		r.log.Error().Stack().Err(err).Msg("feed.FindById: error executing query")
-		return nil, err
+		return nil, errors.Wrap(err, "error executing query")
 	}
 
 	var f domain.Feed
@@ -57,8 +56,7 @@ func (r *FeedRepo) FindByID(ctx context.Context, id int) (*domain.Feed, error) {
 	var apiKey sql.NullString
 
 	if err := row.Scan(&f.ID, &f.Indexer, &f.Name, &f.Type, &f.Enabled, &f.URL, &f.Interval, &apiKey, &f.CreatedAt, &f.UpdatedAt); err != nil {
-		r.log.Error().Stack().Err(err).Msg("feed.FindById: error scanning row")
-		return nil, err
+		return nil, errors.Wrap(err, "error scanning row")
 
 	}
 
@@ -86,14 +84,12 @@ func (r *FeedRepo) FindByIndexerIdentifier(ctx context.Context, indexer string) 
 
 	query, args, err := queryBuilder.ToSql()
 	if err != nil {
-		r.log.Error().Stack().Err(err).Msg("feed.FindByIndexerIdentifier: error building query")
-		return nil, err
+		return nil, errors.Wrap(err, "error building query")
 	}
 
 	row := r.db.handler.QueryRowContext(ctx, query, args...)
 	if err := row.Err(); err != nil {
-		r.log.Error().Stack().Err(err).Msg("feed.FindByIndexerIdentifier: error executing query")
-		return nil, err
+		return nil, errors.Wrap(err, "error executing query")
 	}
 
 	var f domain.Feed
@@ -101,8 +97,7 @@ func (r *FeedRepo) FindByIndexerIdentifier(ctx context.Context, indexer string) 
 	var apiKey sql.NullString
 
 	if err := row.Scan(&f.ID, &f.Indexer, &f.Name, &f.Type, &f.Enabled, &f.URL, &f.Interval, &apiKey, &f.CreatedAt, &f.UpdatedAt); err != nil {
-		r.log.Error().Stack().Err(err).Msg("feed.FindByIndexerIdentifier: error scanning row")
-		return nil, err
+		return nil, errors.Wrap(err, "error scanning row")
 
 	}
 
@@ -130,14 +125,12 @@ func (r *FeedRepo) Find(ctx context.Context) ([]domain.Feed, error) {
 
 	query, args, err := queryBuilder.ToSql()
 	if err != nil {
-		r.log.Error().Stack().Err(err).Msg("feed.Find: error building query")
-		return nil, err
+		return nil, errors.Wrap(err, "error building query")
 	}
 
 	rows, err := r.db.handler.QueryContext(ctx, query, args...)
 	if err != nil {
-		r.log.Error().Stack().Err(err).Msg("feed.Find: error executing query")
-		return nil, err
+		return nil, errors.Wrap(err, "error executing query")
 	}
 
 	defer rows.Close()
@@ -149,8 +142,7 @@ func (r *FeedRepo) Find(ctx context.Context) ([]domain.Feed, error) {
 		var apiKey sql.NullString
 
 		if err := rows.Scan(&f.ID, &f.Indexer, &f.Name, &f.Type, &f.Enabled, &f.URL, &f.Interval, &apiKey, &f.CreatedAt, &f.UpdatedAt); err != nil {
-			r.log.Error().Stack().Err(err).Msg("feed.Find: error scanning row")
-			return nil, err
+			return nil, errors.Wrap(err, "error scanning row")
 
 		}
 
@@ -190,8 +182,7 @@ func (r *FeedRepo) Store(ctx context.Context, feed *domain.Feed) error {
 	var retID int
 
 	if err := queryBuilder.QueryRowContext(ctx).Scan(&retID); err != nil {
-		r.log.Error().Stack().Err(err).Msg("feed.Store: error executing query")
-		return err
+		return errors.Wrap(err, "error executing query")
 	}
 
 	feed.ID = retID
@@ -213,14 +204,12 @@ func (r *FeedRepo) Update(ctx context.Context, feed *domain.Feed) error {
 
 	query, args, err := queryBuilder.ToSql()
 	if err != nil {
-		r.log.Error().Stack().Err(err).Msg("feed.Update: error building query")
-		return err
+		return errors.Wrap(err, "error building query")
 	}
 
 	_, err = r.db.handler.ExecContext(ctx, query, args...)
 	if err != nil {
-		r.log.Error().Stack().Err(err).Msg("feed.Update: error executing query")
-		return err
+		return errors.Wrap(err, "error executing query")
 	}
 
 	return nil
@@ -237,13 +226,11 @@ func (r *FeedRepo) ToggleEnabled(ctx context.Context, id int, enabled bool) erro
 
 	query, args, err := queryBuilder.ToSql()
 	if err != nil {
-		r.log.Error().Stack().Err(err).Msg("feed.ToggleEnabled: error building query")
-		return err
+		return errors.Wrap(err, "error building query")
 	}
 	_, err = r.db.handler.ExecContext(ctx, query, args...)
 	if err != nil {
-		r.log.Error().Stack().Err(err).Msg("feed.ToggleEnabled: error executing query")
-		return err
+		return errors.Wrap(err, "error executing query")
 	}
 
 	return nil
@@ -256,14 +243,12 @@ func (r *FeedRepo) Delete(ctx context.Context, id int) error {
 
 	query, args, err := queryBuilder.ToSql()
 	if err != nil {
-		r.log.Error().Stack().Err(err).Msg("feed.delete: error building query")
-		return err
+		return errors.Wrap(err, "error building query")
 	}
 
 	_, err = r.db.handler.ExecContext(ctx, query, args...)
 	if err != nil {
-		r.log.Error().Stack().Err(err).Msg("feed.delete: error executing query")
-		return err
+		return errors.Wrap(err, "error executing query")
 	}
 
 	r.log.Info().Msgf("feed.delete: successfully deleted: %v", id)

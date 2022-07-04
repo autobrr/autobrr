@@ -8,6 +8,7 @@ import (
 
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/internal/logger"
+	"github.com/autobrr/autobrr/pkg/errors"
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/rs/zerolog"
@@ -40,12 +41,12 @@ func NewDB(cfg *domain.Config, log logger.Logger) (*DB, error) {
 		db.DSN = dataSourceName(cfg.ConfigPath, "autobrr.db")
 	case "postgres":
 		if cfg.PostgresHost == "" || cfg.PostgresPort == 0 || cfg.PostgresDatabase == "" {
-			return nil, fmt.Errorf("postgres: bad variables")
+			return nil, errors.New("postgres: bad variables")
 		}
 		db.DSN = fmt.Sprintf("postgres://%v:%v@%v:%d/%v?sslmode=disable", cfg.PostgresUser, cfg.PostgresPass, cfg.PostgresHost, cfg.PostgresPort, cfg.PostgresDatabase)
 		db.Driver = "postgres"
 	default:
-		return nil, fmt.Errorf("unsupported databse: %v", cfg.DatabaseType)
+		return nil, errors.New("unsupported databse: %v", cfg.DatabaseType)
 	}
 
 	return db, nil
@@ -53,7 +54,7 @@ func NewDB(cfg *domain.Config, log logger.Logger) (*DB, error) {
 
 func (db *DB) Open() error {
 	if db.DSN == "" {
-		return fmt.Errorf("DSN required")
+		return errors.New("DSN required")
 	}
 
 	var err error

@@ -2,16 +2,16 @@ package feed
 
 import (
 	"context"
-	"errors"
 	"fmt"
-
-	"github.com/rs/zerolog"
 
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/internal/logger"
 	"github.com/autobrr/autobrr/internal/release"
 	"github.com/autobrr/autobrr/internal/scheduler"
+	"github.com/autobrr/autobrr/pkg/errors"
 	"github.com/autobrr/autobrr/pkg/torznab"
+
+	"github.com/rs/zerolog"
 )
 
 type Service interface {
@@ -57,31 +57,67 @@ func NewService(log logger.Logger, repo domain.FeedRepo, cacheRepo domain.FeedCa
 }
 
 func (s *service) FindByID(ctx context.Context, id int) (*domain.Feed, error) {
-	return s.repo.FindByID(ctx, id)
+	feed, err := s.repo.FindByID(ctx, id)
+	if err != nil {
+		s.log.Error().Err(err).Msgf("could not find feed by id: %v", id)
+		return nil, err
+	}
+
+	return feed, nil
 }
 
 func (s *service) FindByIndexerIdentifier(ctx context.Context, indexer string) (*domain.Feed, error) {
-	return s.repo.FindByIndexerIdentifier(ctx, indexer)
+	feed, err := s.repo.FindByIndexerIdentifier(ctx, indexer)
+	if err != nil {
+		s.log.Error().Err(err).Msgf("could not find feed by indexer: %v", indexer)
+		return nil, err
+	}
+
+	return feed, nil
 }
 
 func (s *service) Find(ctx context.Context) ([]domain.Feed, error) {
-	return s.repo.Find(ctx)
+	feeds, err := s.repo.Find(ctx)
+	if err != nil {
+		s.log.Error().Err(err).Msg("could not find feeds")
+		return nil, err
+	}
+
+	return feeds, err
 }
 
 func (s *service) Store(ctx context.Context, feed *domain.Feed) error {
-	return s.repo.Store(ctx, feed)
+	if err := s.repo.Store(ctx, feed); err != nil {
+		s.log.Error().Err(err).Msgf("could not store feed: %+v", feed)
+		return err
+	}
+
+	return nil
 }
 
 func (s *service) Update(ctx context.Context, feed *domain.Feed) error {
-	return s.update(ctx, feed)
+	if err := s.repo.Update(ctx, feed); err != nil {
+		s.log.Error().Err(err).Msgf("could not update feed: %+v", feed)
+		return err
+	}
+	return nil
 }
 
 func (s *service) Delete(ctx context.Context, id int) error {
-	return s.delete(ctx, id)
+	if err := s.repo.Delete(ctx, id); err != nil {
+		s.log.Error().Err(err).Msgf("could not delete feed by id: %v", id)
+		return err
+	}
+	return nil
 }
 
 func (s *service) ToggleEnabled(ctx context.Context, id int, enabled bool) error {
-	return s.toggleEnabled(ctx, id, enabled)
+	err := s.repo.ToggleEnabled(ctx, id, enabled)
+	if err != nil {
+		s.log.Error().Err(err).Msgf("could not toggle feed by id: %v", id)
+		return err
+	}
+	return nil
 }
 
 func (s *service) update(ctx context.Context, feed *domain.Feed) error {
@@ -157,7 +193,7 @@ func (s *service) Start() error {
 	// get all torznab indexer definitions
 	feeds, err := s.repo.Find(context.TODO())
 	if err != nil {
-		s.log.Error().Err(err).Msg("feed.Start: error getting feeds")
+		s.log.Error().Err(err).Msg("feed.Start: error finding feeds")
 		return err
 	}
 
@@ -248,7 +284,7 @@ func (s *service) addTorznabJob(f feedInstance) error {
 	// schedule job
 	id, err := s.scheduler.AddJob(job, f.CronSchedule, f.IndexerIdentifier)
 	if err != nil {
-		return fmt.Errorf("feed.AddTorznabJob: add job failed: %w", err)
+		return errors.Wrap(err, "feed.AddTorznabJob: add job failed")
 	}
 	job.JobID = id
 
@@ -263,7 +299,7 @@ func (s *service) addTorznabJob(f feedInstance) error {
 func (s *service) stopTorznabJob(indexer string) error {
 	// remove job from scheduler
 	if err := s.scheduler.RemoveJobByIdentifier(indexer); err != nil {
-		return fmt.Errorf("feed.stopTorznabJob: stop job failed: %w", err)
+		return errors.Wrap(err, "feed.stopTorznabJob: stop job failed")
 	}
 
 	s.log.Debug().Msgf("feed.stopTorznabJob: %v", indexer)

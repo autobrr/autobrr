@@ -3,14 +3,12 @@ package sonarr
 import (
 	"bytes"
 	"encoding/json"
-	"errors"
-	"fmt"
 	"io"
 	"net/http"
 	"net/url"
 	"path"
 
-	"github.com/rs/zerolog/log"
+	"github.com/autobrr/autobrr/pkg/errors"
 )
 
 func (c *client) get(endpoint string) (int, []byte, error) {
@@ -20,8 +18,7 @@ func (c *client) get(endpoint string) (int, []byte, error) {
 
 	req, err := http.NewRequest(http.MethodGet, reqUrl, http.NoBody)
 	if err != nil {
-		log.Error().Err(err).Msgf("sonarr client request error : %v", reqUrl)
-		return 0, nil, err
+		return 0, nil, errors.Wrap(err, "could not build request")
 	}
 
 	if c.config.BasicAuth {
@@ -32,15 +29,14 @@ func (c *client) get(endpoint string) (int, []byte, error) {
 
 	resp, err := c.http.Do(req)
 	if err != nil {
-		log.Error().Err(err).Msgf("sonarr client.get request error: %v", reqUrl)
-		return 0, nil, fmt.Errorf("sonarr.http.Do(req): %w", err)
+		return 0, nil, errors.Wrap(err, "sonarr.http.Do(req): %+v", req)
 	}
 
 	defer resp.Body.Close()
 
 	var buf bytes.Buffer
 	if _, err = io.Copy(&buf, resp.Body); err != nil {
-		return resp.StatusCode, nil, fmt.Errorf("sonarr.io.Copy: %w", err)
+		return resp.StatusCode, nil, errors.Wrap(err, "sonarr.io.Copy")
 	}
 
 	return resp.StatusCode, buf.Bytes(), nil
@@ -53,14 +49,12 @@ func (c *client) post(endpoint string, data interface{}) (*http.Response, error)
 
 	jsonData, err := json.Marshal(data)
 	if err != nil {
-		log.Error().Err(err).Msgf("sonarr client could not marshal data: %v", reqUrl)
-		return nil, err
+		return nil, errors.Wrap(err, "could not marshal data: %+v", data)
 	}
 
 	req, err := http.NewRequest(http.MethodPost, reqUrl, bytes.NewBuffer(jsonData))
 	if err != nil {
-		log.Error().Err(err).Msgf("sonarr client request error: %v", reqUrl)
-		return nil, err
+		return nil, errors.Wrap(err, "could not build request")
 	}
 
 	if c.config.BasicAuth {
@@ -73,16 +67,13 @@ func (c *client) post(endpoint string, data interface{}) (*http.Response, error)
 
 	res, err := c.http.Do(req)
 	if err != nil {
-		log.Error().Err(err).Msgf("sonarr client request error: %v", reqUrl)
-		return nil, err
+		return nil, errors.Wrap(err, "could not make request: %+v", req)
 	}
 
 	// validate response
 	if res.StatusCode == http.StatusUnauthorized {
-		log.Error().Err(err).Msgf("sonarr client bad request: %v", reqUrl)
 		return nil, errors.New("unauthorized: bad credentials")
 	} else if res.StatusCode != http.StatusOK {
-		log.Error().Err(err).Msgf("sonarr client request error: %v", reqUrl)
 		return nil, errors.New("sonarr: bad request")
 	}
 
@@ -97,14 +88,12 @@ func (c *client) postBody(endpoint string, data interface{}) (int, []byte, error
 
 	jsonData, err := json.Marshal(data)
 	if err != nil {
-		log.Error().Err(err).Msgf("sonarr client could not marshal data: %v", reqUrl)
-		return 0, nil, err
+		return 0, nil, errors.Wrap(err, "could not marshal data: %+v", data)
 	}
 
 	req, err := http.NewRequest(http.MethodPost, reqUrl, bytes.NewBuffer(jsonData))
 	if err != nil {
-		log.Error().Err(err).Msgf("sonarr client request error: %v", reqUrl)
-		return 0, nil, err
+		return 0, nil, errors.Wrap(err, "could not build request")
 	}
 
 	if c.config.BasicAuth {
@@ -115,19 +104,20 @@ func (c *client) postBody(endpoint string, data interface{}) (int, []byte, error
 
 	resp, err := c.http.Do(req)
 	if err != nil {
-		log.Error().Err(err).Msgf("sonarr client request error: %v", reqUrl)
-		return 0, nil, fmt.Errorf("sonarr.http.Do(req): %w", err)
+		return 0, nil, errors.Wrap(err, "sonarr.http.Do(req): %+v", req)
 	}
 
 	defer resp.Body.Close()
 
 	var buf bytes.Buffer
 	if _, err = io.Copy(&buf, resp.Body); err != nil {
-		return resp.StatusCode, nil, fmt.Errorf("sonarr.io.Copy: %w", err)
+		return resp.StatusCode, nil, errors.Wrap(err, "sonarr.io.Copy")
 	}
 
-	if resp.StatusCode < 200 || resp.StatusCode > 299 {
-		return resp.StatusCode, buf.Bytes(), fmt.Errorf("sonarr: bad request: %v (status: %s): %s", resp.Request.RequestURI, resp.Status, buf.String())
+	if resp.StatusCode == http.StatusBadRequest {
+		return resp.StatusCode, buf.Bytes(), nil
+	} else if resp.StatusCode < 200 || resp.StatusCode > 401 {
+		return resp.StatusCode, buf.Bytes(), errors.New("sonarr: bad request: %v (status: %s): %s", resp.Request.RequestURI, resp.Status, buf.String())
 	}
 
 	return resp.StatusCode, buf.Bytes(), nil

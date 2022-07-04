@@ -1,14 +1,13 @@
 package indexer
 
 import (
-	"fmt"
-
 	"github.com/rs/zerolog"
 
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/internal/logger"
 	"github.com/autobrr/autobrr/internal/mock"
 	"github.com/autobrr/autobrr/pkg/btn"
+	"github.com/autobrr/autobrr/pkg/errors"
 	"github.com/autobrr/autobrr/pkg/ggn"
 	"github.com/autobrr/autobrr/pkg/ptp"
 	"github.com/autobrr/autobrr/pkg/red"
@@ -65,6 +64,7 @@ func (s *apiService) TestConnection(indexer string) (bool, error) {
 
 	t, err := v.TestAPI()
 	if err != nil {
+		s.log.Error().Err(err).Msgf("error testing connection for api", indexer)
 		return false, err
 	}
 
@@ -74,9 +74,9 @@ func (s *apiService) TestConnection(indexer string) (bool, error) {
 func (s *apiService) AddClient(indexer string, settings map[string]string) error {
 	// basic validation
 	if indexer == "" {
-		return fmt.Errorf("api.Service.AddClient: validation falied: indexer can't be empty")
+		return errors.New("api.Service.AddClient: validation falied: indexer can't be empty")
 	} else if len(settings) == 0 {
-		return fmt.Errorf("api.Service.AddClient: validation falied: settings can't be empty")
+		return errors.New("api.Service.AddClient: validation falied: settings can't be empty")
 	}
 
 	s.log.Trace().Msgf("api.Service.AddClient: init api client for '%v'", indexer)
@@ -86,33 +86,33 @@ func (s *apiService) AddClient(indexer string, settings map[string]string) error
 	case "btn":
 		key, ok := settings["api_key"]
 		if !ok || key == "" {
-			return fmt.Errorf("api.Service.AddClient: could not initialize btn client: missing var 'api_key'")
+			return errors.New("api.Service.AddClient: could not initialize btn client: missing var 'api_key'")
 		}
 		s.apiClients[indexer] = btn.NewClient("", key)
 
 	case "ptp":
 		user, ok := settings["api_user"]
 		if !ok || user == "" {
-			return fmt.Errorf("api.Service.AddClient: could not initialize ptp client: missing var 'api_user'")
+			return errors.New("api.Service.AddClient: could not initialize ptp client: missing var 'api_user'")
 		}
 
 		key, ok := settings["api_key"]
 		if !ok || key == "" {
-			return fmt.Errorf("api.Service.AddClient: could not initialize ptp client: missing var 'api_key'")
+			return errors.New("api.Service.AddClient: could not initialize ptp client: missing var 'api_key'")
 		}
 		s.apiClients[indexer] = ptp.NewClient("", user, key)
 
 	case "ggn":
 		key, ok := settings["api_key"]
 		if !ok || key == "" {
-			return fmt.Errorf("api.Service.AddClient: could not initialize ggn client: missing var 'api_key'")
+			return errors.New("api.Service.AddClient: could not initialize ggn client: missing var 'api_key'")
 		}
 		s.apiClients[indexer] = ggn.NewClient("", key)
 
 	case "redacted":
 		key, ok := settings["api_key"]
 		if !ok || key == "" {
-			return fmt.Errorf("api.Service.AddClient: could not initialize red client: missing var 'api_key'")
+			return errors.New("api.Service.AddClient: could not initialize red client: missing var 'api_key'")
 		}
 		s.apiClients[indexer] = red.NewClient("", key)
 
@@ -120,7 +120,7 @@ func (s *apiService) AddClient(indexer string, settings map[string]string) error
 		s.apiClients[indexer] = mock.NewMockClient("", "mock")
 
 	default:
-		return fmt.Errorf("api.Service.AddClient: could not initialize client: unsupported indexer '%v'", indexer)
+		return errors.New("api.Service.AddClient: could not initialize client: unsupported indexer '%v'", indexer)
 
 	}
 	return nil

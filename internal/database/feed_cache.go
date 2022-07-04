@@ -4,10 +4,11 @@ import (
 	"database/sql"
 	"time"
 
-	"github.com/rs/zerolog"
-
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/internal/logger"
+	"github.com/autobrr/autobrr/pkg/errors"
+
+	"github.com/rs/zerolog"
 )
 
 type FeedCacheRepo struct {
@@ -35,22 +36,19 @@ func (r *FeedCacheRepo) Get(bucket string, key string) ([]byte, error) {
 
 	query, args, err := queryBuilder.ToSql()
 	if err != nil {
-		r.log.Error().Stack().Err(err).Msg("feedCache.Get: error building query")
-		return nil, err
+		return nil, errors.Wrap(err, "error building query")
 	}
 
 	row := r.db.handler.QueryRow(query, args...)
 	if err := row.Err(); err != nil {
-		r.log.Error().Stack().Err(err).Msg("feedCache.Get: query error")
-		return nil, err
+		return nil, errors.Wrap(err, "error executing query")
 	}
 
 	var value []byte
 	var ttl time.Duration
 
 	if err := row.Scan(&value, &ttl); err != nil && err != sql.ErrNoRows {
-		r.log.Error().Stack().Err(err).Msg("feedCache.Get: error scanning row")
-		return nil, err
+		return nil, errors.Wrap(err, "error scanning row")
 	}
 
 	return value, nil
@@ -67,14 +65,13 @@ func (r *FeedCacheRepo) Exists(bucket string, key string) (bool, error) {
 
 	query, args, err := queryBuilder.ToSql()
 	if err != nil {
-		r.log.Error().Stack().Err(err).Msg("feedCache.Exists: error building query")
-		return false, err
+		return false, errors.Wrap(err, "error building query")
 	}
 
 	var exists bool
 	err = r.db.handler.QueryRow(query, args...).Scan(&exists)
 	if err != nil && err != sql.ErrNoRows {
-		r.log.Error().Stack().Err(err).Msg("feedCache.Exists: query error")
+		return false, errors.Wrap(err, "error query")
 	}
 
 	return exists, nil
@@ -88,13 +85,11 @@ func (r *FeedCacheRepo) Put(bucket string, key string, val []byte, ttl time.Time
 
 	query, args, err := queryBuilder.ToSql()
 	if err != nil {
-		r.log.Error().Stack().Err(err).Msg("feedCache.Put: error building query")
-		return err
+		return errors.Wrap(err, "error building query")
 	}
 
 	if _, err = r.db.handler.Exec(query, args...); err != nil {
-		r.log.Error().Stack().Err(err).Msg("feedCache.Put: error executing query")
-		return err
+		return errors.Wrap(err, "error executing query")
 	}
 
 	return nil

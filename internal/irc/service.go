@@ -2,19 +2,17 @@ package irc
 
 import (
 	"context"
-	"fmt"
 	"strings"
 	"sync"
-
-	"github.com/rs/zerolog"
 
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/internal/indexer"
 	"github.com/autobrr/autobrr/internal/logger"
 	"github.com/autobrr/autobrr/internal/notification"
 	"github.com/autobrr/autobrr/internal/release"
+	"github.com/autobrr/autobrr/pkg/errors"
 
-	"github.com/pkg/errors"
+	"github.com/rs/zerolog"
 )
 
 type Service interface {
@@ -471,6 +469,7 @@ func (s *service) GetNetworksWithHealth(ctx context.Context) ([]domain.IrcNetwor
 func (s *service) DeleteNetwork(ctx context.Context, id int64) error {
 	network, err := s.GetNetworkByID(ctx, id)
 	if err != nil {
+		s.log.Error().Stack().Err(err).Msgf("could not find network before delete: %v", network.Name)
 		return err
 	}
 
@@ -479,10 +478,12 @@ func (s *service) DeleteNetwork(ctx context.Context, id int64) error {
 	// Remove network and handler
 	//if err = s.StopNetwork(network.Server); err != nil {
 	if err = s.StopAndRemoveNetwork(handlerKey{network.Server, network.NickServ.Account}); err != nil {
+		s.log.Error().Stack().Err(err).Msgf("could not stop and delete network: %v", network.Name)
 		return err
 	}
 
 	if err = s.repo.DeleteNetwork(ctx, id); err != nil {
+		s.log.Error().Stack().Err(err).Msgf("could not delete network: %v", network.Name)
 		return err
 	}
 
@@ -511,7 +512,7 @@ func (s *service) UpdateNetwork(ctx context.Context, network *domain.IrcNetwork)
 		err := s.checkIfNetworkRestartNeeded(network)
 		if err != nil {
 			s.log.Error().Stack().Err(err).Msgf("could not restart network: %+v", network.Name)
-			return fmt.Errorf("could not restart network: %v", network.Name)
+			return errors.New("could not restart network: %v", network.Name)
 		}
 
 	} else {
@@ -519,7 +520,7 @@ func (s *service) UpdateNetwork(ctx context.Context, network *domain.IrcNetwork)
 		err := s.StopAndRemoveNetwork(handlerKey{network.Server, network.NickServ.Account})
 		if err != nil {
 			s.log.Error().Stack().Err(err).Msgf("could not stop network: %+v", network.Name)
-			return fmt.Errorf("could not stop network: %v", network.Name)
+			return errors.New("could not stop network: %v", network.Name)
 		}
 	}
 
@@ -587,7 +588,7 @@ func (s *service) StoreNetwork(ctx context.Context, network *domain.IrcNetwork) 
 		err := s.checkIfNetworkRestartNeeded(existingNetwork)
 		if err != nil {
 			s.log.Error().Err(err).Msgf("could not restart network: %+v", existingNetwork.Name)
-			return fmt.Errorf("could not restart network: %v", existingNetwork.Name)
+			return errors.New("could not restart network: %v", existingNetwork.Name)
 		}
 	}
 

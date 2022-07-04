@@ -56,7 +56,7 @@ func (s Subscriber) releasePushStatus(actionStatus *domain.ReleaseActionStatus) 
 }
 
 func (s Subscriber) sendNotification(event *domain.NotificationEvent, payload *domain.NotificationPayload) {
-	s.log.Trace().Msgf("events: '%v' '%+v'", event, payload)
+	s.log.Trace().Msgf("events: '%v' '%+v'", *event, payload)
 
 	s.notificationSvc.Send(*event, *payload)
 }

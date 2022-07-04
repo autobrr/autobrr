@@ -10,9 +10,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/rs/zerolog"
-
 	"github.com/autobrr/autobrr/internal/domain"
+	"github.com/autobrr/autobrr/pkg/errors"
+
+	"github.com/rs/zerolog"
 )
 
 type DiscordMessage struct {
@@ -63,13 +64,13 @@ func (a *discordSender) Send(event domain.NotificationEvent, payload domain.Noti
 	jsonData, err := json.Marshal(m)
 	if err != nil {
 		a.log.Error().Err(err).Msgf("discord client could not marshal data: %v", m)
-		return err
+		return errors.Wrap(err, "could not marshal data: %+v", m)
 	}
 
 	req, err := http.NewRequest(http.MethodPost, a.Settings.Webhook, bytes.NewBuffer(jsonData))
 	if err != nil {
 		a.log.Error().Err(err).Msgf("discord client request error: %v", event)
-		return err
+		return errors.Wrap(err, "could not create request")
 	}
 
 	req.Header.Set("Content-Type", "application/json")
@@ -85,13 +86,13 @@ func (a *discordSender) Send(event domain.NotificationEvent, payload domain.Noti
 	res, err := client.Do(req)
 	if err != nil {
 		a.log.Error().Err(err).Msgf("discord client request error: %v", event)
-		return err
+		return errors.Wrap(err, "could not make request: %+v", req)
 	}
 
 	body, err := ioutil.ReadAll(res.Body)
 	if err != nil {
 		a.log.Error().Err(err).Msgf("discord client request error: %v", event)
-		return err
+		return errors.Wrap(err, "could not read data")
 	}
 
 	defer res.Body.Close()
@@ -101,7 +102,7 @@ func (a *discordSender) Send(event domain.NotificationEvent, payload domain.Noti
 	// discord responds with 204, Notifiarr with 204 so lets take all 200 as ok
 	if res.StatusCode >= 300 {
 		a.log.Error().Err(err).Msgf("discord client request error: %v", string(body))
-		return fmt.Errorf("err: %v", string(body))
+		return errors.New("bad status: %v body: %v", res.StatusCode, string(body))
 	}
 
 	a.log.Debug().Msg("notification successfully sent to discord")

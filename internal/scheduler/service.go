@@ -1,13 +1,11 @@
 package scheduler
 
 import (
-	"fmt"
-
-	"github.com/rs/zerolog"
-
 	"github.com/autobrr/autobrr/internal/logger"
+	"github.com/autobrr/autobrr/pkg/errors"
 
 	"github.com/robfig/cron/v3"
+	"github.com/rs/zerolog"
 )
 
 type Service interface {
@@ -53,7 +51,7 @@ func (s *service) AddJob(job cron.Job, interval string, identifier string) (int,
 		cron.SkipIfStillRunning(cron.DiscardLogger)).Then(job),
 	)
 	if err != nil {
-		return 0, fmt.Errorf("scheduler: add job failed: %w", err)
+		return 0, errors.Wrap(err, "scheduler: add job failed")
 	}
 
 	s.log.Debug().Msgf("scheduler.AddJob: job successfully added: %v", id)

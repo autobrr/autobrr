@@ -11,9 +11,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/rs/zerolog"
-
 	"github.com/autobrr/autobrr/internal/domain"
+	"github.com/autobrr/autobrr/pkg/errors"
+
+	"github.com/rs/zerolog"
 )
 
 type TelegramMessage struct {
@@ -45,7 +46,7 @@ func (s *telegramSender) Send(event domain.NotificationEvent, payload domain.Not
 	jsonData, err := json.Marshal(m)
 	if err != nil {
 		s.log.Error().Err(err).Msgf("telegram client could not marshal data: %v", m)
-		return err
+		return errors.Wrap(err, "could not marshal data: %+v", m)
 	}
 
 	url := fmt.Sprintf("https://api.telegram.org/bot%v/sendMessage", s.Settings.Token)
@@ -53,7 +54,7 @@ func (s *telegramSender) Send(event domain.NotificationEvent, payload domain.Not
 	req, err := http.NewRequest(http.MethodPost, url, bytes.NewBuffer(jsonData))
 	if err != nil {
 		s.log.Error().Err(err).Msgf("telegram client request error: %v", event)
-		return err
+		return errors.Wrap(err, "could not create request")
 	}
 
 	req.Header.Set("Content-Type", "application/json")
@@ -69,13 +70,13 @@ func (s *telegramSender) Send(event domain.NotificationEvent, payload domain.Not
 	res, err := client.Do(req)
 	if err != nil {
 		s.log.Error().Err(err).Msgf("telegram client request error: %v", event)
-		return err
+		return errors.Wrap(err, "could not make request: %+v", req)
 	}
 
 	body, err := ioutil.ReadAll(res.Body)
 	if err != nil {
 		s.log.Error().Err(err).Msgf("telegram client request error: %v", event)
-		return err
+		return errors.Wrap(err, "could not read data")
 	}
 
 	defer res.Body.Close()
@@ -84,7 +85,7 @@ func (s *telegramSender) Send(event domain.NotificationEvent, payload domain.Not
 
 	if res.StatusCode != http.StatusOK {
 		s.log.Error().Err(err).Msgf("telegram client request error: %v", string(body))
-		return fmt.Errorf("err: %v", string(body))
+		return errors.New("bad status: %v body: %v", res.StatusCode, string(body))
 	}
 
 	s.log.Debug().Msg("notification successfully sent to telegram")

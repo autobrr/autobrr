@@ -2,13 +2,15 @@ package action
 
 import (
 	"context"
-
-	"github.com/asaskevich/EventBus"
-	"github.com/rs/zerolog"
+	"log"
 
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/internal/download_client"
 	"github.com/autobrr/autobrr/internal/logger"
+
+	"github.com/asaskevich/EventBus"
+	"github.com/dcarbone/zadapters/zstdlog"
+	"github.com/rs/zerolog"
 )
 
 type Service interface {
@@ -24,18 +26,23 @@ type Service interface {
 
 type service struct {
 	log       zerolog.Logger
+	subLogger *log.Logger
 	repo      domain.ActionRepo
 	clientSvc download_client.Service
 	bus       EventBus.Bus
 }
 
 func NewService(log logger.Logger, repo domain.ActionRepo, clientSvc download_client.Service, bus EventBus.Bus) Service {
-	return &service{
+	s := &service{
 		log:       log.With().Str("module", "action").Logger(),
 		repo:      repo,
 		clientSvc: clientSvc,
 		bus:       bus,
 	}
+
+	s.subLogger = zstdlog.NewStdLoggerWithLevel(s.log.With().Logger(), zerolog.TraceLevel)
+
+	return s
 }
 
 func (s *service) Store(ctx context.Context, action domain.Action) (*domain.Action, error) {

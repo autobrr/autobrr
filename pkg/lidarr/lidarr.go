@@ -2,11 +2,13 @@ package lidarr
 
 import (
 	"encoding/json"
-	"errors"
-	"fmt"
+	"log"
 	"net/http"
+	"os"
 	"strings"
 	"time"
+
+	"github.com/autobrr/autobrr/pkg/errors"
 )
 
 type Config struct {
@@ -17,6 +19,8 @@ type Config struct {
 	BasicAuth bool
 	Username  string
 	Password  string
+
+	Log *log.Logger
 }
 
 type Client interface {
@@ -27,6 +31,8 @@ type Client interface {
 type client struct {
 	config Config
 	http   *http.Client
+
+	Log *log.Logger
 }
 
 // New create new lidarr client
@@ -39,6 +45,11 @@ func New(config Config) Client {
 	c := &client{
 		config: config,
 		http:   httpClient,
+		Log:    config.Log,
+	}
+
+	if config.Log == nil {
+		c.Log = log.New(os.Stdout, "", log.LstdFlags)
 	}
 
 	return c
@@ -68,43 +79,43 @@ type SystemStatusResponse struct {
 func (c *client) Test() (*SystemStatusResponse, error) {
 	status, res, err := c.get("system/status")
 	if err != nil {
-		return nil, fmt.Errorf("lidarr client get error: %w", err)
+		return nil, errors.Wrap(err, "lidarr client get error")
 	}
 
 	if status == http.StatusUnauthorized {
 		return nil, errors.New("unauthorized: bad credentials")
 	}
 
-	//log.Trace().Msgf("lidarr system/status response status: %v body: %v", status, string(res))
+	c.Log.Printf("lidarr system/status response status: %v body: %v", status, string(res))
 
 	response := SystemStatusResponse{}
 	err = json.Unmarshal(res, &response)
 	if err != nil {
-		return nil, fmt.Errorf("lidarr client error json unmarshal: %w", err)
+		return nil, errors.Wrap(err, "lidarr client error json unmarshal: %w")
 	}
 
 	return &response, nil
 }
 
 func (c *client) Push(release Release) ([]string, error) {
-	_, res, err := c.postBody("release/push", release)
+	status, res, err := c.postBody("release/push", release)
 	if err != nil {
-		return nil, fmt.Errorf("lidarr client post error: %w", err)
+		return nil, errors.Wrap(err, "lidarr client post error")
 	}
 
-	//log.Trace().Msgf("lidarr release/push response status: %v body: %v", status, string(res))
+	c.Log.Printf("lidarr release/push response status: %v body: %v", status, string(res))
 
 	pushResponse := PushResponse{}
 	err = json.Unmarshal(res, &pushResponse)
 	if err != nil {
-		return nil, fmt.Errorf("lidarr client error json unmarshal: %w", err)
+		return nil, errors.Wrap(err, "lidarr client error json unmarshal")
 	}
 
 	// log and return if rejected
 	if pushResponse.Rejected {
 		rejections := strings.Join(pushResponse.Rejections, ", ")
 
-		return pushResponse.Rejections, fmt.Errorf("lidarr push rejected: %s - reasons: %q: err %w", release.Title, rejections, err)
+		return pushResponse.Rejections, errors.New("lidarr push rejected: %s - reasons: %q", release.Title, rejections)
 	}
 
 	return nil, nil
