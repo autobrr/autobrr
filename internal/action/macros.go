@@ -21,13 +21,13 @@ type Macro struct {
 	HDR             string
 	Season          int
 	Episode         int
-	ParsedYear	int
 	Year            int
-	Month           int
-	Day             int
-	Hour            int
-	Minute          int
-	Second          int
+	CurrentYear     int
+	CurrentMonth    int
+	CurrentDay      int
+	CurrentHour     int
+	CurrentMinute   int
+	CurrentSecond   int
 }
 
 func NewMacro(release domain.Release) Macro {
@@ -45,13 +45,13 @@ func NewMacro(release domain.Release) Macro {
 		HDR:             strings.Join(release.HDR, ", "),
 		Season:          release.Season,
 		Episode:         release.Episode,
-		ParsedYear:      release.Year,
-		Year:            currentTime.Year(),
-		Month:           int(currentTime.Month()),
-		Day:             currentTime.Day(),
-		Hour:            currentTime.Hour(),
-		Minute:          currentTime.Minute(),
-		Second:          currentTime.Second(),
+		Year:            release.Year,
+		CurrentYear:     currentTime.Year(),
+		CurrentMonth:    int(currentTime.Month()),
+		CurrentDay:      currentTime.Day(),
+		CurrentHour:     currentTime.Hour(),
+		CurrentMinute:   currentTime.Minute(),
+		CurrentSecond:   currentTime.Second(),
 	}
 
 	return ma
