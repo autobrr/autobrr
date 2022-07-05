@@ -14,12 +14,12 @@ import (
 	"strings"
 	"time"
 
-	"golang.org/x/net/publicsuffix"
+	"github.com/autobrr/autobrr/pkg/errors"
 
 	"github.com/anacrolix/torrent/metainfo"
 	"github.com/dustin/go-humanize"
 	"github.com/moistari/rls"
-	"github.com/pkg/errors"
+	"golang.org/x/net/publicsuffix"
 )
 
 type ReleaseRepo interface {
@@ -269,7 +269,7 @@ func (r *Release) DownloadTorrentFile() error {
 
 	jar, err := cookiejar.New(&cookiejar.Options{PublicSuffixList: publicsuffix.List})
 	if err != nil {
-		return err
+		return errors.Wrap(err, "could not create cookiejar")
 	}
 
 	customTransport := http.DefaultTransport.(*http.Transport).Clone()
@@ -300,7 +300,7 @@ func (r *Release) DownloadTorrentFile() error {
 	// retry logic
 
 	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("error downloading torrent (%v) file (%v) from '%v' - status code: %d", r.TorrentName, r.TorrentURL, r.Indexer, resp.StatusCode)
+		return errors.New("error downloading torrent (%v) file (%v) from '%v' - status code: %d", r.TorrentName, r.TorrentURL, r.Indexer, resp.StatusCode)
 	}
 
 	// Create tmp file
@@ -479,7 +479,7 @@ func getStringMapValue(stringMap map[string]string, key string) (string, error) 
 		}
 	}
 
-	return "", fmt.Errorf("key was not found in map: %q", lowerKey)
+	return "", errors.New("key was not found in map: %q", lowerKey)
 }
 
 func SplitAny(s string, seps string) []string {

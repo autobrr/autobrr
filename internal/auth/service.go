@@ -4,6 +4,9 @@ import (
 	"context"
 	"errors"
 
+	"github.com/autobrr/autobrr/internal/logger"
+	"github.com/rs/zerolog"
+
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/internal/user"
 	"github.com/autobrr/autobrr/pkg/argon2id"
@@ -16,11 +19,13 @@ type Service interface {
 }
 
 type service struct {
+	log     zerolog.Logger
 	userSvc user.Service
 }
 
-func NewService(userSvc user.Service) Service {
+func NewService(log logger.Logger, userSvc user.Service) Service {
 	return &service{
+		log:     log.With().Str("module", "auth").Logger(),
 		userSvc: userSvc,
 	}
 }
@@ -37,6 +42,7 @@ func (s *service) Login(ctx context.Context, username, password string) (*domain
 	// find user
 	u, err := s.userSvc.FindByUsername(ctx, username)
 	if err != nil {
+		s.log.Error().Err(err).Msgf("could not find user by username: %v", username)
 		return nil, err
 	}
 
@@ -51,6 +57,7 @@ func (s *service) Login(ctx context.Context, username, password string) (*domain
 	}
 
 	if !match {
+		s.log.Error().Msg("bad credentials")
 		return nil, errors.New("bad credentials")
 	}
 
@@ -81,6 +88,7 @@ func (s *service) CreateUser(ctx context.Context, username, password string) err
 		Password: hashed,
 	}
 	if err := s.userSvc.CreateUser(context.Background(), newUser); err != nil {
+		s.log.Error().Err(err).Msgf("could not create user: %v", username)
 		return errors.New("failed to create new user")
 	}
 

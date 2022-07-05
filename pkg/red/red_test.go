@@ -1,17 +1,15 @@
 package red
 
 import (
-	"errors"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
 
+	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
-	
-	"github.com/autobrr/autobrr/internal/domain"
 )
 
 func TestREDClient_GetTorrentByID(t *testing.T) {
@@ -57,7 +55,7 @@ func TestREDClient_GetTorrentByID(t *testing.T) {
 		fields  fields
 		args    args
 		want    *domain.TorrentBasic
-		wantErr error
+		wantErr string
 	}{
 		{
 			name: "get_by_id_1",
@@ -71,7 +69,7 @@ func TestREDClient_GetTorrentByID(t *testing.T) {
 				InfoHash: "B2BABD3A361EAFC6C4E9142C422DF7DDF5D7E163",
 				Size:     "527749302",
 			},
-			wantErr: nil,
+			wantErr: "",
 		},
 		{
 			name: "get_by_id_2",
@@ -81,7 +79,7 @@ func TestREDClient_GetTorrentByID(t *testing.T) {
 			},
 			args:    args{torrentID: "100002"},
 			want:    nil,
-			wantErr: errors.New("bad id parameter"),
+			wantErr: "could not get torrent by id: 100002: bad id parameter",
 		},
 		{
 			name: "get_by_id_3",
@@ -91,7 +89,7 @@ func TestREDClient_GetTorrentByID(t *testing.T) {
 			},
 			args:    args{torrentID: "100002"},
 			want:    nil,
-			wantErr: errors.New("unauthorized: bad credentials"),
+			wantErr: "could not get torrent by id: 100002: unauthorized: bad credentials",
 		},
 	}
 	for _, tt := range tests {
@@ -99,8 +97,8 @@ func TestREDClient_GetTorrentByID(t *testing.T) {
 			c := NewClient(tt.fields.Url, tt.fields.APIKey)
 
 			got, err := c.GetTorrentByID(tt.args.torrentID)
-			if tt.wantErr != nil && assert.Error(t, err) {
-				assert.Equal(t, tt.wantErr, err)
+			if tt.wantErr != "" && assert.Error(t, err) {
+				assert.EqualErrorf(t, err, tt.wantErr, "Error should be: %v, got: %v", tt.wantErr, err)
 			}
 
 			assert.Equal(t, tt.want, got)

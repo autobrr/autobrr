@@ -3,7 +3,6 @@ package ptp
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -11,6 +10,7 @@ import (
 	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
+	"github.com/autobrr/autobrr/pkg/errors"
 
 	"golang.org/x/time/rate"
 )
@@ -87,11 +87,11 @@ func (c *Client) Do(req *http.Request) (*http.Response, error) {
 	ctx := context.Background()
 	err := c.Ratelimiter.Wait(ctx) // This is a blocking call. Honors the rate limit
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "error waiting for ratelimiter")
 	}
 	resp, err := c.client.Do(req)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "error making request")
 	}
 	return resp, nil
 }
@@ -99,7 +99,7 @@ func (c *Client) Do(req *http.Request) (*http.Response, error) {
 func (c *Client) get(url string) (*http.Response, error) {
 	req, err := http.NewRequest(http.MethodGet, url, http.NoBody)
 	if err != nil {
-		return nil, fmt.Errorf("ptp client request error : %v", url)
+		return nil, errors.Wrap(err, "ptp client request error : %v", url)
 	}
 
 	req.Header.Add("ApiUser", c.APIUser)
@@ -108,7 +108,7 @@ func (c *Client) get(url string) (*http.Response, error) {
 
 	res, err := c.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("ptp client request error : %v", url)
+		return nil, errors.Wrap(err, "ptp client request error : %v", url)
 	}
 
 	if res.StatusCode == http.StatusUnauthorized {
@@ -124,7 +124,7 @@ func (c *Client) get(url string) (*http.Response, error) {
 
 func (c *Client) GetTorrentByID(torrentID string) (*domain.TorrentBasic, error) {
 	if torrentID == "" {
-		return nil, fmt.Errorf("ptp client: must have torrentID")
+		return nil, errors.New("ptp client: must have torrentID")
 	}
 
 	var r TorrentResponse
@@ -133,23 +133,23 @@ func (c *Client) GetTorrentByID(torrentID string) (*domain.TorrentBasic, error) 
 	v.Add("torrentid", torrentID)
 	params := v.Encode()
 
-	url := fmt.Sprintf("%v?%v", c.Url, params)
+	reqUrl := fmt.Sprintf("%v?%v", c.Url, params)
 
-	resp, err := c.get(url)
+	resp, err := c.get(reqUrl)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "error requesting data")
 	}
 
 	defer resp.Body.Close()
 
 	body, readErr := ioutil.ReadAll(resp.Body)
 	if readErr != nil {
-		return nil, readErr
+		return nil, errors.Wrap(readErr, "could not read body")
 	}
 
 	err = json.Unmarshal(body, &r)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(readErr, "could not unmarshal body")
 	}
 
 	for _, torrent := range r.Torrents {
@@ -169,7 +169,7 @@ func (c *Client) GetTorrentByID(torrentID string) (*domain.TorrentBasic, error) 
 func (c *Client) TestAPI() (bool, error) {
 	resp, err := c.get(c.Url)
 	if err != nil {
-		return false, err
+		return false, errors.Wrap(err, "error requesting data")
 	}
 
 	defer resp.Body.Close()

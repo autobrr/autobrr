@@ -5,6 +5,7 @@ import (
 
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/internal/logger"
+
 	"github.com/stretchr/testify/assert"
 )
 
@@ -63,7 +64,7 @@ func Test_service_parseExecArgs(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			s := &service{
-				log:       logger.Mock(),
+				log:       logger.Mock().With().Logger(),
 				repo:      nil,
 				clientSvc: nil,
 				bus:       nil,
@@ -102,7 +103,7 @@ func Test_service_execCmd(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			s := &service{
-				log:       logger.Mock(),
+				log:       logger.Mock().With().Logger(),
 				repo:      nil,
 				clientSvc: nil,
 				bus:       nil,

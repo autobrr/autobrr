@@ -5,6 +5,7 @@ import (
 	"crypto/tls"
 	"fmt"
 	"io"
+	"log"
 	"mime/multipart"
 	"net/http"
 	"net/http/cookiejar"
@@ -14,8 +15,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/rs/zerolog/log"
-	"golang.org/x/net/publicsuffix"
+	"github.com/autobrr/autobrr/pkg/errors"
+
+	publicsuffix "golang.org/x/net/publicsuffix"
 )
 
 var (
@@ -31,6 +33,8 @@ type Client struct {
 	Name     string
 	settings Settings
 	http     *http.Client
+
+	Log *log.Logger
 }
 
 type Settings struct {
@@ -43,6 +47,7 @@ type Settings struct {
 	protocol      string
 	BasicAuth     bool
 	Basic         Basic
+	Log           *log.Logger
 }
 
 type Basic struct {
@@ -51,20 +56,24 @@ type Basic struct {
 }
 
 func NewClient(s Settings) *Client {
-	jarOptions := &cookiejar.Options{PublicSuffixList: publicsuffix.List}
-	//store cookies in jar
-	jar, err := cookiejar.New(jarOptions)
-	if err != nil {
-		log.Error().Err(err).Msg("new client cookie error")
-	}
-	httpClient := &http.Client{
-		Timeout: timeout,
-		Jar:     jar,
-	}
-
 	c := &Client{
 		settings: s,
-		http:     httpClient,
+	}
+
+	if s.Log == nil {
+		c.Log = log.New(io.Discard, "qbittorrent", log.LstdFlags)
+	}
+
+	//store cookies in jar
+	jarOptions := &cookiejar.Options{PublicSuffixList: publicsuffix.List}
+	jar, err := cookiejar.New(jarOptions)
+	if err != nil {
+		c.Log.Println("new client cookie error")
+	}
+
+	c.http = &http.Client{
+		Timeout: timeout,
+		Jar:     jar,
 	}
 
 	c.settings.protocol = "http"
@@ -92,8 +101,7 @@ func (c *Client) get(endpoint string, opts map[string]string) (*http.Response, e
 
 	req, err := http.NewRequest("GET", reqUrl, nil)
 	if err != nil {
-		log.Error().Err(err).Msgf("GET: error %v", reqUrl)
-		return nil, err
+		return nil, errors.Wrap(err, "could not build request")
 	}
 
 	if c.settings.BasicAuth {
@@ -109,14 +117,13 @@ func (c *Client) get(endpoint string, opts map[string]string) (*http.Response, e
 			break
 		}
 
-		log.Debug().Msgf("qbit GET failed: retrying attempt %d - %v", i, reqUrl)
+		c.Log.Printf("qbit GET failed: retrying attempt %d - %v\n", i, reqUrl)
 
 		time.Sleep(backoff)
 	}
 
 	if err != nil {
-		log.Error().Err(err).Msgf("GET: do %v", reqUrl)
-		return nil, err
+		return nil, errors.Wrap(err, "error making get request: %v", reqUrl)
 	}
 
 	return resp, nil
@@ -138,8 +145,7 @@ func (c *Client) post(endpoint string, opts map[string]string) (*http.Response, 
 
 	req, err := http.NewRequest("POST", reqUrl, strings.NewReader(form.Encode()))
 	if err != nil {
-		log.Error().Err(err).Msgf("POST: req %v", reqUrl)
-		return nil, err
+		return nil, errors.Wrap(err, "could not build request")
 	}
 
 	if c.settings.BasicAuth {
@@ -158,14 +164,13 @@ func (c *Client) post(endpoint string, opts map[string]string) (*http.Response, 
 			break
 		}
 
-		log.Debug().Msgf("qbit POST failed: retrying attempt %d - %v", i, reqUrl)
+		c.Log.Printf("qbit POST failed: retrying attempt %d - %v\n", i, reqUrl)
 
 		time.Sleep(backoff)
 	}
 
 	if err != nil {
-		log.Error().Err(err).Msgf("POST: do %v", reqUrl)
-		return nil, err
+		return nil, errors.Wrap(err, "error making post request: %v", reqUrl)
 	}
 
 	return resp, nil
@@ -187,8 +192,7 @@ func (c *Client) postBasic(endpoint string, opts map[string]string) (*http.Respo
 
 	req, err := http.NewRequest("POST", reqUrl, strings.NewReader(form.Encode()))
 	if err != nil {
-		log.Error().Err(err).Msgf("POST: req %v", reqUrl)
-		return nil, err
+		return nil, errors.Wrap(err, "could not build request")
 	}
 
 	if c.settings.BasicAuth {
@@ -200,8 +204,7 @@ func (c *Client) postBasic(endpoint string, opts map[string]string) (*http.Respo
 
 	resp, err = c.http.Do(req)
 	if err != nil {
-		log.Error().Err(err).Msgf("POST: do %v", reqUrl)
-		return nil, err
+		return nil, errors.Wrap(err, "error making post request: %v", reqUrl)
 	}
 
 	return resp, nil
@@ -213,8 +216,7 @@ func (c *Client) postFile(endpoint string, fileName string, opts map[string]stri
 
 	file, err := os.Open(fileName)
 	if err != nil {
-		log.Error().Err(err).Msgf("POST file: opening file %v", fileName)
-		return nil, err
+		return nil, errors.Wrap(err, "error opening file %v", fileName)
 	}
 	// Close the file later
 	defer file.Close()
@@ -228,15 +230,13 @@ func (c *Client) postFile(endpoint string, fileName string, opts map[string]stri
 	// Initialize file field
 	fileWriter, err := multiPartWriter.CreateFormFile("torrents", fileName)
 	if err != nil {
-		log.Error().Err(err).Msgf("POST file: initializing file field %v", fileName)
-		return nil, err
+		return nil, errors.Wrap(err, "error initializing file field %v", fileName)
 	}
 
 	// Copy the actual file content to the fields writer
 	_, err = io.Copy(fileWriter, file)
 	if err != nil {
-		log.Error().Err(err).Msgf("POST file: could not copy file to writer %v", fileName)
-		return nil, err
+		return nil, errors.Wrap(err, "error copy file contents to writer %v", fileName)
 	}
 
 	// Populate other fields
@@ -244,14 +244,12 @@ func (c *Client) postFile(endpoint string, fileName string, opts map[string]stri
 		for key, val := range opts {
 			fieldWriter, err := multiPartWriter.CreateFormField(key)
 			if err != nil {
-				log.Error().Err(err).Msgf("POST file: could not add other fields %v", fileName)
-				return nil, err
+				return nil, errors.Wrap(err, "error creating form field %v with value %v", key, val)
 			}
 
 			_, err = fieldWriter.Write([]byte(val))
 			if err != nil {
-				log.Error().Err(err).Msgf("POST file: could not write field %v", fileName)
-				return nil, err
+				return nil, errors.Wrap(err, "error writing field %v with value %v", key, val)
 			}
 		}
 	}
@@ -262,8 +260,7 @@ func (c *Client) postFile(endpoint string, fileName string, opts map[string]stri
 	reqUrl := buildUrl(c.settings, endpoint)
 	req, err := http.NewRequest("POST", reqUrl, &requestBody)
 	if err != nil {
-		log.Error().Err(err).Msgf("POST file: could not create request object %v", fileName)
-		return nil, err
+		return nil, errors.Wrap(err, "error creating request %v", fileName)
 	}
 
 	if c.settings.BasicAuth {
@@ -282,14 +279,13 @@ func (c *Client) postFile(endpoint string, fileName string, opts map[string]stri
 			break
 		}
 
-		log.Debug().Msgf("qbit POST file failed: retrying attempt %d - %v", i, reqUrl)
+		c.Log.Printf("qbit POST file failed: retrying attempt %d - %v\n", i, reqUrl)
 
 		time.Sleep(backoff)
 	}
 
 	if err != nil {
-		log.Error().Err(err).Msgf("POST file: could not perform request %v", fileName)
-		return nil, err
+		return nil, errors.Wrap(err, "error making post file request %v", fileName)
 	}
 
 	return resp, nil

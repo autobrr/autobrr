@@ -5,12 +5,11 @@ import (
 	"encoding/xml"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"net/url"
 	"time"
 
-	"github.com/pkg/errors"
+	"github.com/autobrr/autobrr/pkg/errors"
 )
 
 type Response struct {
@@ -69,12 +68,12 @@ func (t *Time) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
 
 	err := d.DecodeElement(&raw, &start)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "could not decode element")
 	}
-	date, err := time.Parse(time.RFC1123Z, raw)
 
+	date, err := time.Parse(time.RFC1123Z, raw)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "could not parse date")
 	}
 
 	*t = Time{date}
@@ -115,7 +114,7 @@ func (c *Client) get(endpoint string, opts map[string]string) (int, *Response, e
 
 	req, err := http.NewRequest("GET", reqUrl, nil)
 	if err != nil {
-		return 0, nil, err
+		return 0, nil, errors.Wrap(err, "could not build request")
 	}
 
 	if c.UseBasicAuth {
@@ -128,19 +127,19 @@ func (c *Client) get(endpoint string, opts map[string]string) (int, *Response, e
 
 	resp, err := c.http.Do(req)
 	if err != nil {
-		return 0, nil, err
+		return 0, nil, errors.Wrap(err, "could not make request. %+v", req)
 	}
 
 	defer resp.Body.Close()
 
 	var buf bytes.Buffer
 	if _, err = io.Copy(&buf, resp.Body); err != nil {
-		return resp.StatusCode, nil, fmt.Errorf("torznab.io.Copy: %w", err)
+		return resp.StatusCode, nil, errors.Wrap(err, "torznab.io.Copy")
 	}
 
 	var response Response
 	if err := xml.Unmarshal(buf.Bytes(), &response); err != nil {
-		return resp.StatusCode, nil, fmt.Errorf("torznab: could not decode feed: %w", err)
+		return resp.StatusCode, nil, errors.Wrap(err, "torznab: could not decode feed")
 	}
 
 	return resp.StatusCode, &response, nil
@@ -149,12 +148,11 @@ func (c *Client) get(endpoint string, opts map[string]string) (int, *Response, e
 func (c *Client) GetFeed() ([]FeedItem, error) {
 	status, res, err := c.get("?t=search", nil)
 	if err != nil {
-		//log.Fatalf("error fetching torznab feed: %v", err)
-		return nil, err
+		return nil, errors.Wrap(err, "could not get feed")
 	}
 
 	if status != http.StatusOK {
-		return nil, err
+		return nil, errors.New("could not get feed")
 	}
 
 	return res.Channel.Items, nil
@@ -167,11 +165,11 @@ func (c *Client) Search(query string) ([]FeedItem, error) {
 
 	status, res, err := c.get("&t=search&"+params, nil)
 	if err != nil {
-		log.Fatalf("error fetching torznab feed: %v", err)
+		return nil, errors.Wrap(err, "could not search feed")
 	}
 
 	if status != http.StatusOK {
-		return nil, err
+		return nil, errors.New("could not search feed")
 	}
 
 	return res.Channel.Items, nil

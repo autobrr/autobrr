@@ -2,17 +2,16 @@ package announce
 
 import (
 	"bytes"
-	"errors"
-	"fmt"
 	"net/url"
 	"regexp"
 	"strings"
 	"text/template"
 
-	"github.com/rs/zerolog"
-
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/internal/release"
+	"github.com/autobrr/autobrr/pkg/errors"
+
+	"github.com/rs/zerolog"
 )
 
 type Processor interface {
@@ -30,7 +29,7 @@ type announceProcessor struct {
 
 func NewAnnounceProcessor(log zerolog.Logger, releaseSvc release.Service, indexer *domain.IndexerDefinition) Processor {
 	ap := &announceProcessor{
-		log:        log,
+		log:        log.With().Str("module", "announce_processor").Logger(),
 		releaseSvc: releaseSvc,
 		indexer:    indexer,
 	}
@@ -129,7 +128,7 @@ func (a *announceProcessor) AddLineToQueue(channel string, line string) error {
 	channel = strings.ToLower(channel)
 	queue, ok := a.queues[channel]
 	if !ok {
-		return fmt.Errorf("no queue for channel (%v) found", channel)
+		return errors.New("no queue for channel (%v) found", channel)
 	}
 
 	queue <- line
@@ -226,6 +225,8 @@ func (a *announceProcessor) processTorrentUrl(match string, vars map[string]stri
 		return "", err
 	}
 
+	a.log.Trace().Msg("torrenturl processed")
+
 	return b.String(), nil
 }
 
@@ -234,7 +235,7 @@ func removeElement(s []string, i int) ([]string, error) {
 
 	// perform bounds checking first to prevent a panic!
 	if i >= len(s) || i < 0 {
-		return nil, fmt.Errorf("Index is out of range. Index is %d with slice length %d", i, len(s))
+		return nil, errors.New("Index is out of range. Index is %d with slice length %d", i, len(s))
 	}
 
 	// This creates a new slice by creating 2 slices from the original:

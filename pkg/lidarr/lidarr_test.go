@@ -1,7 +1,6 @@
 package lidarr
 
 import (
-	"errors"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
@@ -134,11 +133,11 @@ func Test_client_Test(t *testing.T) {
 	defer srv.Close()
 
 	tests := []struct {
-		name    string
-		cfg     Config
-		want    *SystemStatusResponse
-		err     error
-		wantErr bool
+		name        string
+		cfg         Config
+		want        *SystemStatusResponse
+		expectedErr string
+		wantErr     bool
 	}{
 		{
 			name: "fetch",
@@ -149,9 +148,9 @@ func Test_client_Test(t *testing.T) {
 				Username:  "",
 				Password:  "",
 			},
-			want:    &SystemStatusResponse{Version: "0.8.1.2135"},
-			err:     nil,
-			wantErr: false,
+			want:        &SystemStatusResponse{Version: "0.8.1.2135"},
+			expectedErr: "",
+			wantErr:     false,
 		},
 		{
 			name: "fetch_unauthorized",
@@ -162,9 +161,9 @@ func Test_client_Test(t *testing.T) {
 				Username:  "",
 				Password:  "",
 			},
-			want:    nil,
-			wantErr: true,
-			err:     errors.New("unauthorized: bad credentials"),
+			want:        nil,
+			wantErr:     true,
+			expectedErr: "unauthorized: bad credentials",
 		},
 	}
 	for _, tt := range tests {
@@ -173,7 +172,7 @@ func Test_client_Test(t *testing.T) {
 
 			got, err := c.Test()
 			if tt.wantErr && assert.Error(t, err) {
-				assert.Equal(t, tt.err, err)
+				assert.EqualErrorf(t, err, tt.expectedErr, "Error should be: %v, got: %v", tt.wantErr, err)
 			}
 
 			assert.Equal(t, tt.want, got)

@@ -3,6 +3,8 @@ package domain
 import (
 	"fmt"
 	"regexp"
+
+	"github.com/autobrr/autobrr/pkg/errors"
 )
 
 var types map[string][]*TagInfo
@@ -192,7 +194,7 @@ func init() {
 			var err error
 			//if info.re, err = regexp.Compile(`(?i)^(?:` + info.RE() + `)$`); err != nil {
 			if info.re, err = regexp.Compile(`(?i)(?:` + info.RE() + `)`); err != nil {
-				fmt.Errorf("tag %q has invalid regexp %q\n", s, info.re)
+				errors.Wrap(err, "tag %q has invalid regexp %q\n", s, info.re)
 			}
 		}
 	}

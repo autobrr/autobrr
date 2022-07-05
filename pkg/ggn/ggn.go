@@ -3,7 +3,6 @@ package ggn
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -12,6 +11,7 @@ import (
 	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
+	"github.com/autobrr/autobrr/pkg/errors"
 
 	"golang.org/x/time/rate"
 )
@@ -147,11 +147,11 @@ func (c *client) Do(req *http.Request) (*http.Response, error) {
 	ctx := context.Background()
 	err := c.Ratelimiter.Wait(ctx) // This is a blocking call. Honors the rate limit
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "error waiting for ratelimiter")
 	}
 	resp, err := c.client.Do(req)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "error making request")
 	}
 	return resp, nil
 }
@@ -159,7 +159,7 @@ func (c *client) Do(req *http.Request) (*http.Response, error) {
 func (c *client) get(url string) (*http.Response, error) {
 	req, err := http.NewRequest(http.MethodGet, url, http.NoBody)
 	if err != nil {
-		return nil, errors.New(fmt.Sprintf("ggn client request error : %v", url))
+		return nil, errors.Wrap(err, "ggn client request error : %v", url)
 	}
 
 	req.Header.Add("X-API-Key", c.APIKey)
@@ -167,7 +167,7 @@ func (c *client) get(url string) (*http.Response, error) {
 
 	res, err := c.Do(req)
 	if err != nil {
-		return nil, errors.New(fmt.Sprintf("ggn client request error : %v", url))
+		return nil, errors.Wrap(err, "ggn client request error : %v", url)
 	}
 
 	if res.StatusCode == http.StatusUnauthorized {
@@ -183,7 +183,7 @@ func (c *client) get(url string) (*http.Response, error) {
 
 func (c *client) GetTorrentByID(torrentID string) (*domain.TorrentBasic, error) {
 	if torrentID == "" {
-		return nil, fmt.Errorf("ggn client: must have torrentID")
+		return nil, errors.New("ggn client: must have torrentID")
 	}
 
 	var r Response
@@ -192,27 +192,27 @@ func (c *client) GetTorrentByID(torrentID string) (*domain.TorrentBasic, error) 
 	v.Add("id", torrentID)
 	params := v.Encode()
 
-	url := fmt.Sprintf("%v?%v&%v", c.Url, "request=torrent", params)
+	reqUrl := fmt.Sprintf("%v?%v&%v", c.Url, "request=torrent", params)
 
-	resp, err := c.get(url)
+	resp, err := c.get(reqUrl)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "error getting data")
 	}
 
 	defer resp.Body.Close()
 
 	body, readErr := ioutil.ReadAll(resp.Body)
 	if readErr != nil {
-		return nil, readErr
+		return nil, errors.Wrap(readErr, "error reading body")
 	}
 
 	err = json.Unmarshal(body, &r)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "error unmarshal body")
 	}
 
 	if r.Status != "success" {
-		return nil, fmt.Errorf("bad status: %v", r.Status)
+		return nil, errors.New("bad status: %v", r.Status)
 	}
 
 	t := &domain.TorrentBasic{
@@ -229,7 +229,7 @@ func (c *client) GetTorrentByID(torrentID string) (*domain.TorrentBasic, error) 
 func (c *client) TestAPI() (bool, error) {
 	resp, err := c.get(c.Url)
 	if err != nil {
-		return false, err
+		return false, errors.Wrap(err, "error getting data")
 	}
 
 	defer resp.Body.Close()

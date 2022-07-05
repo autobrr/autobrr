@@ -10,6 +10,7 @@ import (
 	"github.com/autobrr/autobrr/internal/logger"
 
 	"github.com/dustin/go-humanize"
+	"github.com/rs/zerolog"
 )
 
 type Service interface {
@@ -25,7 +26,7 @@ type Service interface {
 }
 
 type service struct {
-	log        logger.Logger
+	log        zerolog.Logger
 	repo       domain.FilterRepo
 	actionRepo domain.ActionRepo
 	indexerSvc indexer.Service
@@ -34,7 +35,7 @@ type service struct {
 
 func NewService(log logger.Logger, repo domain.FilterRepo, actionRepo domain.ActionRepo, apiService indexer.APIService, indexerSvc indexer.Service) Service {
 	return &service{
-		log:        log,
+		log:        log.With().Str("module", "filter").Logger(),
 		repo:       repo,
 		actionRepo: actionRepo,
 		apiService: apiService,
@@ -46,6 +47,7 @@ func (s *service) ListFilters(ctx context.Context) ([]domain.Filter, error) {
 	// get filters
 	filters, err := s.repo.ListFilters(ctx)
 	if err != nil {
+		s.log.Error().Err(err).Msgf("could not find list filters")
 		return nil, err
 	}
 
@@ -238,7 +240,7 @@ func (s *service) CheckFilter(f domain.Filter, release *domain.Release) (bool, e
 
 	rejections, matchedFilter := f.CheckFilter(release)
 	if len(rejections) > 0 {
-		s.log.Trace().Msgf("filter.Service.CheckFilter: (%v) for release: %v rejections: (%v)", f.Name, release.TorrentName, release.RejectionsString())
+		s.log.Debug().Msgf("filter.Service.CheckFilter: (%v) for release: %v rejections: (%v)", f.Name, release.TorrentName, release.RejectionsString())
 		return false, nil
 	}
 

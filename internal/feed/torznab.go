@@ -1,15 +1,15 @@
 package feed
 
 import (
-	"fmt"
 	"sort"
 	"time"
 
-	"github.com/rs/zerolog"
-
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/internal/release"
+	"github.com/autobrr/autobrr/pkg/errors"
 	"github.com/autobrr/autobrr/pkg/torznab"
+
+	"github.com/rs/zerolog"
 )
 
 type TorznabJob struct {
@@ -25,6 +25,18 @@ type TorznabJob struct {
 	errors   []error
 
 	JobID int
+}
+
+func NewTorznabJob(name string, indexerIdentifier string, log zerolog.Logger, url string, client *torznab.Client, repo domain.FeedCacheRepo, releaseSvc release.Service) *TorznabJob {
+	return &TorznabJob{
+		Name:              name,
+		IndexerIdentifier: indexerIdentifier,
+		Log:               log,
+		URL:               url,
+		Client:            client,
+		Repo:              repo,
+		ReleaseSvc:        releaseSvc,
+	}
 }
 
 func (j *TorznabJob) Run() {
@@ -44,7 +56,7 @@ func (j *TorznabJob) process() error {
 	items, err := j.getFeed()
 	if err != nil {
 		j.Log.Error().Err(err).Msgf("torznab.process: error fetching feed items")
-		return fmt.Errorf("torznab.process: error getting feed items: %w", err)
+		return errors.Wrap(err, "torznab.process: error getting feed items")
 	}
 
 	if len(items) == 0 {
@@ -82,7 +94,7 @@ func (j *TorznabJob) getFeed() ([]torznab.FeedItem, error) {
 	feedItems, err := j.Client.GetFeed()
 	if err != nil {
 		j.Log.Error().Err(err).Msgf("torznab.getFeed: error fetching feed items")
-		return nil, err
+		return nil, errors.Wrap(err, "error fetching feed items")
 	}
 
 	j.Log.Trace().Msgf("torznab getFeed: refreshing feed: %v, found (%d) items", j.Name, len(feedItems))

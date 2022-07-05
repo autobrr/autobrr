@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
+	"github.com/autobrr/autobrr/pkg/errors"
 	"github.com/autobrr/autobrr/pkg/sonarr"
 )
 
@@ -17,18 +18,19 @@ func (s *service) sonarr(release domain.Release, action domain.Action) ([]string
 	client, err := s.clientSvc.FindByID(context.TODO(), action.ClientID)
 	if err != nil {
 		s.log.Error().Err(err).Msgf("sonarr: error finding client: %v", action.ClientID)
-		return nil, err
+		return nil, errors.Wrap(err, "sonarr could not find client: %v", action.ClientID)
 	}
 
 	// return early if no client found
 	if client == nil {
-		return nil, err
+		return nil, errors.New("no client found")
 	}
 
 	// initial config
 	cfg := sonarr.Config{
 		Hostname: client.Host,
 		APIKey:   client.Settings.APIKey,
+		Log:      s.subLogger,
 	}
 
 	// only set basic auth if enabled

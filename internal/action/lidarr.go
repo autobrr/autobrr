@@ -30,6 +30,7 @@ func (s *service) lidarr(release domain.Release, action domain.Action) ([]string
 	cfg := lidarr.Config{
 		Hostname: client.Host,
 		APIKey:   client.Settings.APIKey,
+		Log:      s.subLogger,
 	}
 
 	// only set basic auth if enabled
