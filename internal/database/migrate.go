@@ -225,6 +225,8 @@ CREATE TABLE release_action_status
 	status        TEXT,
 	action        TEXT NOT NULL,
 	type          TEXT NOT NULL,
+	client        TEXT,
+	filter        TEXT,
 	rejections    TEXT []   DEFAULT '{}' NOT NULL,
 	timestamp     TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 	raw           TEXT,
@@ -805,6 +807,13 @@ CREATE INDEX release_torrent_name_index
 CREATE INDEX indexer_identifier_index
     ON indexer (identifier);
 	`,
+	`
+	ALTER TABLE release_action_status
+		ADD COLUMN client;
+
+	ALTER TABLE release_action_status
+		ADD COLUMN filter;
+	`,
 }
 
 const postgresSchema = `
@@ -1049,6 +1058,8 @@ CREATE TABLE release_action_status
 	status        TEXT,
 	action        TEXT NOT NULL,
 	type          TEXT NOT NULL,
+	client        TEXT,
+	filter        TEXT,
 	rejections    TEXT []   DEFAULT '{}' NOT NULL,
 	timestamp     TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 	raw           TEXT,
@@ -1291,5 +1302,12 @@ CREATE INDEX release_torrent_name_index
 
 CREATE INDEX indexer_identifier_index
     ON indexer (identifier);
+	`,
+	`
+	ALTER TABLE release_action_status
+		ADD COLUMN client;
+
+	ALTER TABLE release_action_status
+		ADD COLUMN filter;
 	`,
 }

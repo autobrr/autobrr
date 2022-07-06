@@ -269,7 +269,7 @@ export const ReleaseTable = () => {
           <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
             <div className="flex items-baseline gap-x-2">
               <span className="text-sm text-gray-700">
-                                Page <span className="font-medium">{pageIndex + 1}</span> of <span className="font-medium">{pageOptions.length}</span>
+                Page <span className="font-medium">{pageIndex + 1}</span> of <span className="font-medium">{pageOptions.length}</span>
               </span>
               <label>
                 <span className="sr-only bg-gray-700">Items Per Page</span>
@@ -282,7 +282,7 @@ export const ReleaseTable = () => {
                 >
                   {[5, 10, 20, 50].map(pageSize => (
                     <option key={pageSize} value={pageSize}>
-                                            Show {pageSize}
+                      Show {pageSize}
                     </option>
                   ))}
                 </select>

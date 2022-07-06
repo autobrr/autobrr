@@ -59,6 +59,10 @@ const GetReleaseStatusString = (releaseAction: ReleaseActionStatus) => {
     `status: ${releaseAction.status}`,
     `time: ${simplifyDate(releaseAction.timestamp)}`
   ];
+  if (releaseAction.client != "")
+    items.push(`client: ${releaseAction.client}`);
+  if (releaseAction.filter != "")
+    items.push(`filter: ${releaseAction.filter}`);
   if (releaseAction.rejections.length)
     items.push(`rejections: ${releaseAction.rejections}`);
   return items.join(" | ");
