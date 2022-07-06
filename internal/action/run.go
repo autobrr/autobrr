@@ -137,6 +137,8 @@ func (s *service) RunAction(action *domain.Action, release domain.Release) ([]st
 		Status:     domain.ReleasePushStatusApproved,
 		Action:     action.Name,
 		Type:       action.Type,
+		Client:     action.Client.Name,
+		Filter:     release.Filter.Name,
 		Rejections: []string{},
 		Timestamp:  time.Now(),
 	}

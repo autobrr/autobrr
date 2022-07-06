@@ -92,6 +92,8 @@ type ReleaseActionStatus struct {
 	Status     ReleasePushStatus `json:"status"`
 	Action     string            `json:"action"`
 	Type       ActionType        `json:"type"`
+	Client     string            `json:"client"`
+	Filter     string            `json:"filter"`
 	Rejections []string          `json:"rejections"`
 	Timestamp  time.Time         `json:"timestamp"`
 	ReleaseID  int64             `json:"-"`

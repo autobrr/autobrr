@@ -17,6 +17,8 @@ interface ReleaseActionStatus {
   status: string;
   action: string;
   type: string;
+  client: string;
+  filter: string;
   rejections: string[];
   timestamp: string
 }
