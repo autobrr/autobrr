@@ -191,7 +191,7 @@ export const ReleaseTable = () => {
           ))
         )}
       </div>
-      <div className="overflow-auto bg-white shadow-lg dark:bg-gray-800 rounded-lg">
+      <div className="bg-white shadow-lg dark:bg-gray-800 rounded-lg">
         <table {...getTableProps()} className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
           <thead className="bg-gray-50 dark:bg-gray-800">
             {headerGroups.map((headerGroup) => {

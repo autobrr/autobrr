@@ -4,6 +4,7 @@ import { CheckIcon } from "@heroicons/react/solid";
 import { ClockIcon, BanIcon, ExclamationCircleIcon } from "@heroicons/react/outline";
 
 import { classNames, simplifyDate } from "../../utils";
+import { Tooltip } from "../tooltips/Tooltip";
 
 interface CellProps {
     value: string;
@@ -52,34 +53,42 @@ const StatusCellMap: Record<string, StatusCellMapEntry> = {
   }
 };
 
-const GetReleaseStatusString = (releaseAction: ReleaseActionStatus) => {
-  const items: Array<string> = [
-    `action: ${releaseAction.action}`,
-    `type: ${releaseAction.type}`,
-    `status: ${releaseAction.status}`,
-    `time: ${simplifyDate(releaseAction.timestamp)}`
-  ];
-  if (releaseAction.client != "")
-    items.push(`client: ${releaseAction.client}`);
-  if (releaseAction.filter != "")
-    items.push(`filter: ${releaseAction.filter}`);
-  if (releaseAction.rejections.length)
-    items.push(`rejections: ${releaseAction.rejections}`);
-  return items.join(" | ");
-};
+// const GetReleaseStatusString = (releaseAction: ReleaseActionStatus) => {
+//   const items: Array<string> = [
+//     `action: ${releaseAction.action}`,
+//     `type: ${releaseAction.type}`,
+//     `status: ${releaseAction.status}`,
+//     `time: ${simplifyDate(releaseAction.timestamp)}`
+//   ];
+//   if (releaseAction.client != "")
+//     items.push(`client: ${releaseAction.client}`);
+//   if (releaseAction.filter != "")
+//     items.push(`filter: ${releaseAction.filter}`);
+//   if (releaseAction.rejections.length)
+//     items.push(`rejections: ${releaseAction.rejections}`);
+//   return items.join(" | ");
+// };
 
 export const ReleaseStatusCell = ({ value }: ReleaseStatusCellProps) => (
   <div className="flex text-sm font-medium text-gray-900 dark:text-gray-300">
     {value.map((v, idx) => (
       <div
         key={idx}
-        title={GetReleaseStatusString(v)}
         className={classNames(
           StatusCellMap[v.status].colors,
-          "mr-1 inline-flex items-center rounded text-xs font-semibold uppercase cursor-pointer"
+          "mr-1 inline-flex items-center rounded text-xs font-semibold cursor-pointer"
         )}
       >
-        {StatusCellMap[v.status].icon}
+        <Tooltip button={StatusCellMap[v.status].icon}>
+          <ol className="flex flex-col">
+            <li className="py-1">Status: {v.status}</li>
+            <li className="py-1">Action: {v.action}</li>
+            <li className="py-1">Type: {v.type}</li>
+            {v.client && <li className="py-1">Client: {v.client}</li>}
+            {v.filter && <li className="py-1">Filter: {v.filter}</li>}
+            <li className="py-1">Time: {simplifyDate(v.timestamp)}</li>
+          </ol>
+        </Tooltip>
       </div>
     ))}
   </div>
