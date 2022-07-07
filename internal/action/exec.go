@@ -4,25 +4,30 @@ import (
 	"os/exec"
 	"time"
 
-	"github.com/mattn/go-shellwords"
-
 	"github.com/autobrr/autobrr/internal/domain"
+	"github.com/autobrr/autobrr/pkg/errors"
+
+	"github.com/mattn/go-shellwords"
 )
 
-func (s *service) execCmd(release domain.Release, action domain.Action) {
+func (s *service) execCmd(action domain.Action, release domain.Release) error {
 	s.log.Debug().Msgf("action exec: %v release: %v", action.Name, release.TorrentName)
+
+	if release.TorrentTmpFile == "" {
+		if err := release.DownloadTorrentFile(); err != nil {
+			return errors.Wrap(err, "error downloading torrent file for release: %v", release.TorrentName)
+		}
+	}
 
 	// check if program exists
 	cmd, err := exec.LookPath(action.ExecCmd)
 	if err != nil {
-		s.log.Error().Stack().Err(err).Msgf("exec failed, could not find program: %v", action.ExecCmd)
-		return
+		return errors.Wrap(err, "exec failed, could not find program: %v", action.ExecCmd)
 	}
 
 	args, err := s.parseExecArgs(release, action.ExecArgs)
 	if err != nil {
-		s.log.Error().Stack().Err(err).Msgf("parsing args failed: command: %v args: %v torrent: %v", cmd, action.ExecArgs, release.TorrentTmpFile)
-		return
+		return errors.Wrap(err, "could not parse exec args: %v", action.ExecArgs)
 	}
 
 	// we need to split on space into a string slice, so we can spread the args into exec
@@ -36,8 +41,7 @@ func (s *service) execCmd(release domain.Release, action domain.Action) {
 	output, err := command.CombinedOutput()
 	if err != nil {
 		// everything other than exit 0 is considered an error
-		s.log.Error().Stack().Err(err).Msgf("command: %v args: %v failed, torrent: %v", cmd, args, release.TorrentTmpFile)
-		return
+		return errors.Wrap(err, "error executing command: %v args: %v", cmd, args)
 	}
 
 	s.log.Trace().Msgf("executed command: '%v'", string(output))
@@ -45,6 +49,8 @@ func (s *service) execCmd(release domain.Release, action domain.Action) {
 	duration := time.Since(start)
 
 	s.log.Info().Msgf("executed command: '%v', args: '%v' %v,%v, total time %v", cmd, args, release.TorrentName, release.Indexer, duration)
+
+	return nil
 }
 
 func (s *service) parseExecArgs(release domain.Release, execArgs string) ([]string, error) {
@@ -54,14 +60,14 @@ func (s *service) parseExecArgs(release domain.Release, execArgs string) ([]stri
 	// parse and replace values in argument string before continuing
 	parsedArgs, err := m.Parse(execArgs)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "could not parse macro")
 	}
 
 	p := shellwords.NewParser()
 	p.ParseBacktick = true
 	args, err := p.Parse(parsedArgs)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "could not parse into shell-words")
 	}
 
 	return args, nil

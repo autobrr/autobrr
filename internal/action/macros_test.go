@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
+
 	"github.com/stretchr/testify/assert"
 )
 
