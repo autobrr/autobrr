@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
+	"github.com/autobrr/autobrr/pkg/errors"
 )
 
 type Macro struct {
@@ -65,13 +66,13 @@ func (m Macro) Parse(text string) (string, error) {
 	// setup template
 	tmpl, err := template.New("macro").Parse(text)
 	if err != nil {
-		return "", err
+		return "", errors.Wrap(err, "could parse macro template")
 	}
 
 	var tpl bytes.Buffer
 	err = tmpl.Execute(&tpl, m)
 	if err != nil {
-		return "", err
+		return "", errors.Wrap(err, "could not parse macro")
 	}
 
 	return tpl.String(), nil

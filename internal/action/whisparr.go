@@ -5,10 +5,11 @@ import (
 	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
+	"github.com/autobrr/autobrr/pkg/errors"
 	"github.com/autobrr/autobrr/pkg/whisparr"
 )
 
-func (s *service) whisparr(release domain.Release, action domain.Action) ([]string, error) {
+func (s *service) whisparr(action domain.Action, release domain.Release) ([]string, error) {
 	s.log.Trace().Msg("action WHISPARR")
 
 	// TODO validate data
@@ -16,13 +17,12 @@ func (s *service) whisparr(release domain.Release, action domain.Action) ([]stri
 	// get client for action
 	client, err := s.clientSvc.FindByID(context.TODO(), action.ClientID)
 	if err != nil {
-		s.log.Error().Err(err).Msgf("whisparr: error finding client: %v", action.ClientID)
-		return nil, err
+		return nil, errors.Wrap(err, "sonarr could not find client: %v", action.ClientID)
 	}
 
 	// return early if no client found
 	if client == nil {
-		return nil, err
+		return nil, errors.New("could not find client by id: %v", action.ClientID)
 	}
 
 	// initial config
@@ -53,8 +53,7 @@ func (s *service) whisparr(release domain.Release, action domain.Action) ([]stri
 
 	rejections, err := arr.Push(r)
 	if err != nil {
-		s.log.Error().Stack().Err(err).Msgf("whisparr: failed to push release: %v", r)
-		return nil, err
+		return nil, errors.Wrap(err, "whisparr: failed to push release: %v", r)
 	}
 
 	if rejections != nil {

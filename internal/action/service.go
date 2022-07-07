@@ -7,6 +7,7 @@ import (
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/internal/download_client"
 	"github.com/autobrr/autobrr/internal/logger"
+	"github.com/autobrr/autobrr/pkg/qbittorrent"
 
 	"github.com/asaskevich/EventBus"
 	"github.com/dcarbone/zadapters/zstdlog"
@@ -21,7 +22,11 @@ type Service interface {
 	ToggleEnabled(actionID int) error
 
 	RunAction(action *domain.Action, release domain.Release) ([]string, error)
-	CheckCanDownload(actions []domain.Action) bool
+}
+
+type qbitKey struct {
+	I int    // type
+	N string // name
 }
 
 type service struct {
@@ -30,14 +35,17 @@ type service struct {
 	repo      domain.ActionRepo
 	clientSvc download_client.Service
 	bus       EventBus.Bus
+
+	qbitClients map[qbitKey]*qbittorrent.Client
 }
 
 func NewService(log logger.Logger, repo domain.ActionRepo, clientSvc download_client.Service, bus EventBus.Bus) Service {
 	s := &service{
-		log:       log.With().Str("module", "action").Logger(),
-		repo:      repo,
-		clientSvc: clientSvc,
-		bus:       bus,
+		log:         log.With().Str("module", "action").Logger(),
+		repo:        repo,
+		clientSvc:   clientSvc,
+		bus:         bus,
+		qbitClients: map[qbitKey]*qbittorrent.Client{},
 	}
 
 	s.subLogger = zstdlog.NewStdLoggerWithLevel(s.log.With().Logger(), zerolog.TraceLevel)
