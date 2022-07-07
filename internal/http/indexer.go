@@ -48,7 +48,8 @@ func (h indexerHandler) getSchema(w http.ResponseWriter, r *http.Request) {
 
 	indexers, err := h.service.GetTemplates()
 	if err != nil {
-		//
+		h.encoder.Error(w, err)
+		return
 	}
 
 	h.encoder.StatusResponse(ctx, w, indexers, http.StatusOK)
@@ -66,8 +67,7 @@ func (h indexerHandler) store(w http.ResponseWriter, r *http.Request) {
 
 	indexer, err := h.service.Store(ctx, data)
 	if err != nil {
-		//
-		h.encoder.StatusResponse(ctx, w, nil, http.StatusBadRequest)
+		h.encoder.Error(w, err)
 		return
 	}
 
@@ -86,7 +86,8 @@ func (h indexerHandler) update(w http.ResponseWriter, r *http.Request) {
 
 	indexer, err := h.service.Update(ctx, data)
 	if err != nil {
-		//
+		h.encoder.Error(w, err)
+		return
 	}
 
 	h.encoder.StatusResponse(ctx, w, indexer, http.StatusOK)
@@ -101,7 +102,8 @@ func (h indexerHandler) delete(w http.ResponseWriter, r *http.Request) {
 	id, _ := strconv.Atoi(idParam)
 
 	if err := h.service.Delete(ctx, id); err != nil {
-		// return err
+		h.encoder.Error(w, err)
+		return
 	}
 
 	h.encoder.StatusResponse(ctx, w, nil, http.StatusNoContent)
@@ -112,7 +114,8 @@ func (h indexerHandler) getAll(w http.ResponseWriter, r *http.Request) {
 
 	indexers, err := h.service.GetAll()
 	if err != nil {
-		//
+		h.encoder.Error(w, err)
+		return
 	}
 
 	h.encoder.StatusResponse(ctx, w, indexers, http.StatusOK)
@@ -123,7 +126,8 @@ func (h indexerHandler) list(w http.ResponseWriter, r *http.Request) {
 
 	indexers, err := h.service.List(ctx)
 	if err != nil {
-		//
+		h.encoder.Error(w, err)
+		return
 	}
 
 	h.encoder.StatusResponse(ctx, w, indexers, http.StatusOK)
