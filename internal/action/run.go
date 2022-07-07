@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"path"
+	"strings"
 	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
@@ -171,7 +172,7 @@ func (s *service) watchFolder(action domain.Action, release domain.Release) erro
 }
 
 func (s *service) webhook(action domain.Action, release domain.Release) error {
-	if release.TorrentTmpFile == "" {
+	if release.TorrentTmpFile == "" && strings.Contains(action.WebhookData, "TorrentPathName") {
 		if err := release.DownloadTorrentFile(); err != nil {
 			return errors.Wrap(err, "webhook: could not download torrent file for release: %v", release.TorrentName)
 		}

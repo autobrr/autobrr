@@ -2,6 +2,7 @@ package action
 
 import (
 	"os/exec"
+	"strings"
 	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
@@ -13,7 +14,7 @@ import (
 func (s *service) execCmd(action domain.Action, release domain.Release) error {
 	s.log.Debug().Msgf("action exec: %v release: %v", action.Name, release.TorrentName)
 
-	if release.TorrentTmpFile == "" {
+	if release.TorrentTmpFile == "" && strings.Contains(action.ExecArgs, "TorrentPathName") {
 		if err := release.DownloadTorrentFile(); err != nil {
 			return errors.Wrap(err, "error downloading torrent file for release: %v", release.TorrentName)
 		}
