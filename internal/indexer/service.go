@@ -24,6 +24,7 @@ type Service interface {
 	Update(ctx context.Context, indexer domain.Indexer) (*domain.Indexer, error)
 	Delete(ctx context.Context, id int) error
 	FindByFilterID(ctx context.Context, id int) ([]domain.Indexer, error)
+	FindByID(ctx context.Context, id int) (*domain.Indexer, error)
 	List(ctx context.Context) ([]domain.Indexer, error)
 	GetAll() ([]*domain.IndexerDefinition, error)
 	GetTemplates() ([]domain.IndexerDefinition, error)
@@ -115,13 +116,18 @@ func (s *service) Update(ctx context.Context, indexer domain.Indexer) (*domain.I
 }
 
 func (s *service) Delete(ctx context.Context, id int) error {
+	indexer, err := s.repo.FindByID(ctx, id)
+	if err != nil {
+		return err
+	}
+
 	if err := s.repo.Delete(ctx, id); err != nil {
 		s.log.Error().Err(err).Msgf("could not delete indexer by id: %v", id)
 		return err
 	}
 
-	// TODO remove handler if needed
 	// remove from lookup tables
+	s.removeIndexer(*indexer)
 
 	return nil
 }
@@ -130,6 +136,16 @@ func (s *service) FindByFilterID(ctx context.Context, id int) ([]domain.Indexer,
 	indexers, err := s.repo.FindByFilterID(ctx, id)
 	if err != nil {
 		s.log.Error().Err(err).Msgf("could not find indexers by filter id: %v", id)
+		return nil, err
+	}
+
+	return indexers, err
+}
+
+func (s *service) FindByID(ctx context.Context, id int) (*domain.Indexer, error) {
+	indexers, err := s.repo.FindByID(ctx, id)
+	if err != nil {
+		s.log.Error().Err(err).Msgf("could not find indexer by id: %v", id)
 		return nil, err
 	}
 
@@ -321,10 +337,16 @@ func (s *service) Start() error {
 	return nil
 }
 
-func (s *service) removeIndexer(indexer domain.Indexer) error {
-	delete(s.definitions, indexer.Identifier)
+func (s *service) removeIndexer(indexer domain.Indexer) {
+	// remove Torznab
+	if indexer.Implementation == "torznab" {
+		delete(s.torznabIndexers, indexer.Identifier)
+	}
 
-	return nil
+	// remove mapped definition
+	delete(s.mappedDefinitions, indexer.Identifier)
+
+	return
 }
 
 func (s *service) addIndexer(indexer domain.Indexer) error {
