@@ -20,6 +20,14 @@ func (s *service) RunAction(action *domain.Action, release domain.Release) ([]st
 		rejections []string
 	)
 
+	defer func() {
+		if r := recover(); r != nil {
+			s.log.Error().Msgf("recovering from panic in run action %v error: %v", action.Name, r)
+			err = errors.New("panic in action: %v", action.Name)
+			return
+		}
+	}()
+
 	switch action.Type {
 	case domain.ActionTypeTest:
 		s.test(action.Name)

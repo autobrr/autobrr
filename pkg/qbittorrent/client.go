@@ -15,10 +15,23 @@ import (
 	"strings"
 	"time"
 
-	"github.com/autobrr/autobrr/pkg/errors"
+	"golang.org/x/net/publicsuffix"
 
-	publicsuffix "golang.org/x/net/publicsuffix"
+	"github.com/autobrr/autobrr/pkg/errors"
 )
+
+type Client interface {
+	Login() error
+	GetTorrents() ([]Torrent, error)
+	GetTorrentsFilter(filter TorrentFilter) ([]Torrent, error)
+	GetTorrentsActiveDownloads() ([]Torrent, error)
+	GetTorrentsRaw() (string, error)
+	GetTorrentTrackers(hash string) ([]TorrentTracker, error)
+	AddTorrentFromFile(file string, options map[string]string) error
+	DeleteTorrents(hashes []string, deleteFiles bool) error
+	ReAnnounceTorrents(hashes []string) error
+	GetTransferInfo() (*TransferInfo, error)
+}
 
 var (
 	backoffSchedule = []time.Duration{
@@ -29,15 +42,16 @@ var (
 	timeout = 60 * time.Second
 )
 
-type Client struct {
+type client struct {
 	Name     string
 	settings Settings
 	http     *http.Client
 
-	Log *log.Logger
+	log *log.Logger
 }
 
 type Settings struct {
+	Name          string
 	Hostname      string
 	Port          uint
 	Username      string
@@ -55,20 +69,23 @@ type Basic struct {
 	Password string
 }
 
-func NewClient(s Settings) *Client {
-	c := &Client{
-		settings: s,
+func NewClient(settings Settings) Client {
+	c := &client{
+		settings: settings,
+		Name:     settings.Name,
+		log:      log.New(io.Discard, "", log.LstdFlags),
 	}
 
-	if s.Log == nil {
-		c.Log = log.New(io.Discard, "qbittorrent", log.LstdFlags)
+	// override logger if we pass one
+	if settings.Log != nil {
+		c.log = settings.Log
 	}
 
 	//store cookies in jar
 	jarOptions := &cookiejar.Options{PublicSuffixList: publicsuffix.List}
 	jar, err := cookiejar.New(jarOptions)
 	if err != nil {
-		c.Log.Println("new client cookie error")
+		c.log.Println("new client cookie error")
 	}
 
 	c.http = &http.Client{
@@ -93,7 +110,7 @@ func NewClient(s Settings) *Client {
 	return c
 }
 
-func (c *Client) get(endpoint string, opts map[string]string) (*http.Response, error) {
+func (c *client) get(endpoint string, opts map[string]string) (*http.Response, error) {
 	var err error
 	var resp *http.Response
 
@@ -117,7 +134,7 @@ func (c *Client) get(endpoint string, opts map[string]string) (*http.Response, e
 			break
 		}
 
-		c.Log.Printf("qbit GET failed: retrying attempt %d - %v\n", i, reqUrl)
+		c.log.Printf("qbit GET failed: retrying attempt %d - %v\n", i, reqUrl)
 
 		time.Sleep(backoff)
 	}
@@ -129,7 +146,7 @@ func (c *Client) get(endpoint string, opts map[string]string) (*http.Response, e
 	return resp, nil
 }
 
-func (c *Client) post(endpoint string, opts map[string]string) (*http.Response, error) {
+func (c *client) post(endpoint string, opts map[string]string) (*http.Response, error) {
 	// add optional parameters that the user wants
 	form := url.Values{}
 	if opts != nil {
@@ -164,7 +181,7 @@ func (c *Client) post(endpoint string, opts map[string]string) (*http.Response, 
 			break
 		}
 
-		c.Log.Printf("qbit POST failed: retrying attempt %d - %v\n", i, reqUrl)
+		c.log.Printf("qbit POST failed: retrying attempt %d - %v\n", i, reqUrl)
 
 		time.Sleep(backoff)
 	}
@@ -176,7 +193,7 @@ func (c *Client) post(endpoint string, opts map[string]string) (*http.Response, 
 	return resp, nil
 }
 
-func (c *Client) postBasic(endpoint string, opts map[string]string) (*http.Response, error) {
+func (c *client) postBasic(endpoint string, opts map[string]string) (*http.Response, error) {
 	// add optional parameters that the user wants
 	form := url.Values{}
 	if opts != nil {
@@ -210,7 +227,7 @@ func (c *Client) postBasic(endpoint string, opts map[string]string) (*http.Respo
 	return resp, nil
 }
 
-func (c *Client) postFile(endpoint string, fileName string, opts map[string]string) (*http.Response, error) {
+func (c *client) postFile(endpoint string, fileName string, opts map[string]string) (*http.Response, error) {
 	var err error
 	var resp *http.Response
 
@@ -279,7 +296,7 @@ func (c *Client) postFile(endpoint string, fileName string, opts map[string]stri
 			break
 		}
 
-		c.Log.Printf("qbit POST file failed: retrying attempt %d - %v\n", i, reqUrl)
+		c.log.Printf("qbit POST file failed: retrying attempt %d - %v\n", i, reqUrl)
 
 		time.Sleep(backoff)
 	}
@@ -291,7 +308,7 @@ func (c *Client) postFile(endpoint string, fileName string, opts map[string]stri
 	return resp, nil
 }
 
-func (c *Client) setCookies(cookies []*http.Cookie) {
+func (c *client) setCookies(cookies []*http.Cookie) {
 	cookieURL, _ := url.Parse(buildUrl(c.settings, ""))
 
 	c.http.Jar.SetCookies(cookieURL, cookies)

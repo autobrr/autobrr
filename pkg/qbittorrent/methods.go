@@ -12,7 +12,7 @@ import (
 )
 
 // Login https://github.com/qbittorrent/qBittorrent/wiki/WebUI-API-(qBittorrent-4.1)#authentication
-func (c *Client) Login() error {
+func (c *client) Login() error {
 	opts := map[string]string{
 		"username": c.settings.Username,
 		"password": c.settings.Password,
@@ -50,10 +50,12 @@ func (c *Client) Login() error {
 		return errors.New("bad credentials")
 	}
 
+	c.log.Printf("logged into client: %v", c.Name)
+
 	return nil
 }
 
-func (c *Client) GetTorrents() ([]Torrent, error) {
+func (c *client) GetTorrents() ([]Torrent, error) {
 
 	resp, err := c.get("torrents/info", nil)
 	if err != nil {
@@ -76,7 +78,7 @@ func (c *Client) GetTorrents() ([]Torrent, error) {
 	return torrents, nil
 }
 
-func (c *Client) GetTorrentsFilter(filter TorrentFilter) ([]Torrent, error) {
+func (c *client) GetTorrentsFilter(filter TorrentFilter) ([]Torrent, error) {
 	opts := map[string]string{
 		"filter": string(filter),
 	}
@@ -102,7 +104,7 @@ func (c *Client) GetTorrentsFilter(filter TorrentFilter) ([]Torrent, error) {
 	return torrents, nil
 }
 
-func (c *Client) GetTorrentsActiveDownloads() ([]Torrent, error) {
+func (c *client) GetTorrentsActiveDownloads() ([]Torrent, error) {
 	var filter = TorrentFilterDownloading
 
 	opts := map[string]string{
@@ -139,7 +141,7 @@ func (c *Client) GetTorrentsActiveDownloads() ([]Torrent, error) {
 	return res, nil
 }
 
-func (c *Client) GetTorrentsRaw() (string, error) {
+func (c *client) GetTorrentsRaw() (string, error) {
 	resp, err := c.get("torrents/info", nil)
 	if err != nil {
 		return "", errors.Wrap(err, "could not get torrents raw")
@@ -155,7 +157,7 @@ func (c *Client) GetTorrentsRaw() (string, error) {
 	return string(data), nil
 }
 
-func (c *Client) GetTorrentTrackers(hash string) ([]TorrentTracker, error) {
+func (c *client) GetTorrentTrackers(hash string) ([]TorrentTracker, error) {
 	opts := map[string]string{
 		"hash": hash,
 	}
@@ -169,10 +171,11 @@ func (c *Client) GetTorrentTrackers(hash string) ([]TorrentTracker, error) {
 
 	dump, err := httputil.DumpResponse(resp, true)
 	if err != nil {
-		c.Log.Printf("get torrent trackers error dump response: %v\n", string(dump))
+		//c.log.Printf("get torrent trackers error dump response: %v\n", string(dump))
+		return nil, errors.Wrap(err, "could not dump response for hash: %v", hash)
 	}
 
-	c.Log.Printf("get torrent trackers response dump: %v\n", string(dump))
+	c.log.Printf("get torrent trackers response dump: %q", dump)
 
 	if resp.StatusCode == http.StatusNotFound {
 		return nil, nil
@@ -185,7 +188,7 @@ func (c *Client) GetTorrentTrackers(hash string) ([]TorrentTracker, error) {
 		return nil, errors.Wrap(err, "could not read body")
 	}
 
-	c.Log.Printf("get torrent trackers body: %v\n", string(body))
+	c.log.Printf("get torrent trackers body: %v\n", string(body))
 
 	var trackers []TorrentTracker
 	err = json.Unmarshal(body, &trackers)
@@ -197,7 +200,7 @@ func (c *Client) GetTorrentTrackers(hash string) ([]TorrentTracker, error) {
 }
 
 // AddTorrentFromFile add new torrent from torrent file
-func (c *Client) AddTorrentFromFile(file string, options map[string]string) error {
+func (c *client) AddTorrentFromFile(file string, options map[string]string) error {
 
 	res, err := c.postFile("torrents/add", file, options)
 	if err != nil {
@@ -211,7 +214,7 @@ func (c *Client) AddTorrentFromFile(file string, options map[string]string) erro
 	return nil
 }
 
-func (c *Client) DeleteTorrents(hashes []string, deleteFiles bool) error {
+func (c *client) DeleteTorrents(hashes []string, deleteFiles bool) error {
 	// Add hashes together with | separator
 	hv := strings.Join(hashes, "|")
 
@@ -232,7 +235,7 @@ func (c *Client) DeleteTorrents(hashes []string, deleteFiles bool) error {
 	return nil
 }
 
-func (c *Client) ReAnnounceTorrents(hashes []string) error {
+func (c *client) ReAnnounceTorrents(hashes []string) error {
 	// Add hashes together with | separator
 	hv := strings.Join(hashes, "|")
 	opts := map[string]string{
@@ -251,7 +254,7 @@ func (c *Client) ReAnnounceTorrents(hashes []string) error {
 	return nil
 }
 
-func (c *Client) GetTransferInfo() (*TransferInfo, error) {
+func (c *client) GetTransferInfo() (*TransferInfo, error) {
 	resp, err := c.get("transfer/info", nil)
 	if err != nil {
 		return nil, errors.Wrap(err, "could not get transfer info")
