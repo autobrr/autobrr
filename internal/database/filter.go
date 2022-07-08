@@ -116,6 +116,10 @@ func (r *FilterRepo) FindByID(ctx context.Context, filterID int) (*domain.Filter
 			"has_log",
 			"has_cue",
 			"perfect_flac",
+			"books",
+			"authors",
+			"text_formats",
+			"languages",
 			"match_categories",
 			"except_categories",
 			"match_uploaders",
@@ -140,11 +144,11 @@ func (r *FilterRepo) FindByID(ctx context.Context, filterID int) (*domain.Filter
 	}
 
 	var f domain.Filter
-	var minSize, maxSize, maxDownloadsUnit, matchReleases, exceptReleases, matchReleaseGroups, exceptReleaseGroups, freeleechPercent, shows, seasons, episodes, years, artists, albums, matchCategories, exceptCategories, matchUploaders, exceptUploaders, tags, exceptTags sql.NullString
+	var minSize, maxSize, maxDownloadsUnit, matchReleases, exceptReleases, matchReleaseGroups, exceptReleaseGroups, freeleechPercent, shows, seasons, episodes, years, artists, albums, books, authors, matchCategories, exceptCategories, matchUploaders, exceptUploaders, tags, exceptTags sql.NullString
 	var useRegex, scene, freeleech, hasLog, hasCue, perfectFlac sql.NullBool
 	var delay, maxDownloads, logScore sql.NullInt32
 
-	if err := row.Scan(&f.ID, &f.Enabled, &f.Name, &minSize, &maxSize, &delay, &f.Priority, &maxDownloads, &maxDownloadsUnit, &matchReleases, &exceptReleases, &useRegex, &matchReleaseGroups, &exceptReleaseGroups, &scene, &freeleech, &freeleechPercent, &shows, &seasons, &episodes, pq.Array(&f.Resolutions), pq.Array(&f.Codecs), pq.Array(&f.Sources), pq.Array(&f.Containers), pq.Array(&f.MatchHDR), pq.Array(&f.ExceptHDR), pq.Array(&f.MatchOther), pq.Array(&f.ExceptOther), &years, &artists, &albums, pq.Array(&f.MatchReleaseTypes), pq.Array(&f.Formats), pq.Array(&f.Quality), pq.Array(&f.Media), &logScore, &hasLog, &hasCue, &perfectFlac, &matchCategories, &exceptCategories, &matchUploaders, &exceptUploaders, &tags, &exceptTags, pq.Array(&f.Origins), &f.CreatedAt, &f.UpdatedAt); err != nil {
+	if err := row.Scan(&f.ID, &f.Enabled, &f.Name, &minSize, &maxSize, &delay, &f.Priority, &maxDownloads, &maxDownloadsUnit, &matchReleases, &exceptReleases, &useRegex, &matchReleaseGroups, &exceptReleaseGroups, &scene, &freeleech, &freeleechPercent, &shows, &seasons, &episodes, pq.Array(&f.Resolutions), pq.Array(&f.Codecs), pq.Array(&f.Sources), pq.Array(&f.Containers), pq.Array(&f.MatchHDR), pq.Array(&f.ExceptHDR), pq.Array(&f.MatchOther), pq.Array(&f.ExceptOther), &years, &artists, &albums, pq.Array(&f.MatchReleaseTypes), pq.Array(&f.Formats), pq.Array(&f.Quality), pq.Array(&f.Media), &logScore, &hasLog, &hasCue, &perfectFlac, &books, &authors, pq.Array(&f.TextFormats), pq.Array(&f.Languages), &matchCategories, &exceptCategories, &matchUploaders, &exceptUploaders, &tags, &exceptTags, pq.Array(&f.Origins), &f.CreatedAt, &f.UpdatedAt); err != nil {
 		return nil, errors.Wrap(err, "error scanning row")
 	}
 
@@ -168,6 +172,8 @@ func (r *FilterRepo) FindByID(ctx context.Context, filterID int) (*domain.Filter
 	f.Log = hasLog.Bool
 	f.Cue = hasCue.Bool
 	f.PerfectFlac = perfectFlac.Bool
+	f.Books = books.String
+	f.Authors = authors.String
 	f.MatchCategories = matchCategories.String
 	f.ExceptCategories = exceptCategories.String
 	f.MatchUploaders = matchUploaders.String
@@ -248,6 +254,10 @@ func (r *FilterRepo) findByIndexerIdentifier(ctx context.Context, tx *Tx, indexe
 			"f.has_log",
 			"f.has_cue",
 			"f.perfect_flac",
+			"f.books",
+			"f.authors",
+			"f.text_formats",
+			"f.languages",
 			"f.match_categories",
 			"f.except_categories",
 			"f.match_uploaders",
@@ -282,11 +292,11 @@ func (r *FilterRepo) findByIndexerIdentifier(ctx context.Context, tx *Tx, indexe
 	for rows.Next() {
 		var f domain.Filter
 
-		var minSize, maxSize, maxDownloadsUnit, matchReleases, exceptReleases, matchReleaseGroups, exceptReleaseGroups, freeleechPercent, shows, seasons, episodes, years, artists, albums, matchCategories, exceptCategories, matchUploaders, exceptUploaders, tags, exceptTags sql.NullString
+		var minSize, maxSize, maxDownloadsUnit, matchReleases, exceptReleases, matchReleaseGroups, exceptReleaseGroups, freeleechPercent, shows, seasons, episodes, years, artists, albums, books, authors, matchCategories, exceptCategories, matchUploaders, exceptUploaders, tags, exceptTags sql.NullString
 		var useRegex, scene, freeleech, hasLog, hasCue, perfectFlac sql.NullBool
 		var delay, maxDownloads, logScore sql.NullInt32
 
-		if err := rows.Scan(&f.ID, &f.Enabled, &f.Name, &minSize, &maxSize, &delay, &f.Priority, &maxDownloads, &maxDownloadsUnit, &matchReleases, &exceptReleases, &useRegex, &matchReleaseGroups, &exceptReleaseGroups, &scene, &freeleech, &freeleechPercent, &shows, &seasons, &episodes, pq.Array(&f.Resolutions), pq.Array(&f.Codecs), pq.Array(&f.Sources), pq.Array(&f.Containers), pq.Array(&f.MatchHDR), pq.Array(&f.ExceptHDR), pq.Array(&f.MatchOther), pq.Array(&f.ExceptOther), &years, &artists, &albums, pq.Array(&f.MatchReleaseTypes), pq.Array(&f.Formats), pq.Array(&f.Quality), pq.Array(&f.Media), &logScore, &hasLog, &hasCue, &perfectFlac, &matchCategories, &exceptCategories, &matchUploaders, &exceptUploaders, &tags, &exceptTags, pq.Array(&f.Origins), &f.CreatedAt, &f.UpdatedAt); err != nil {
+		if err := rows.Scan(&f.ID, &f.Enabled, &f.Name, &minSize, &maxSize, &delay, &f.Priority, &maxDownloads, &maxDownloadsUnit, &matchReleases, &exceptReleases, &useRegex, &matchReleaseGroups, &exceptReleaseGroups, &scene, &freeleech, &freeleechPercent, &shows, &seasons, &episodes, pq.Array(&f.Resolutions), pq.Array(&f.Codecs), pq.Array(&f.Sources), pq.Array(&f.Containers), pq.Array(&f.MatchHDR), pq.Array(&f.ExceptHDR), pq.Array(&f.MatchOther), pq.Array(&f.ExceptOther), &years, &artists, &albums, pq.Array(&f.MatchReleaseTypes), pq.Array(&f.Formats), pq.Array(&f.Quality), pq.Array(&f.Media), &logScore, &hasLog, &hasCue, &perfectFlac, &books, &authors, pq.Array(&f.TextFormats), pq.Array(&f.Languages), &matchCategories, &exceptCategories, &matchUploaders, &exceptUploaders, &tags, &exceptTags, pq.Array(&f.Origins), &f.CreatedAt, &f.UpdatedAt); err != nil {
 			return nil, errors.Wrap(err, "error scanning row")
 		}
 
@@ -310,6 +320,8 @@ func (r *FilterRepo) findByIndexerIdentifier(ctx context.Context, tx *Tx, indexe
 		f.Log = hasLog.Bool
 		f.Cue = hasCue.Bool
 		f.PerfectFlac = perfectFlac.Bool
+		f.Books = books.String
+		f.Authors = authors.String
 		f.MatchCategories = matchCategories.String
 		f.ExceptCategories = exceptCategories.String
 		f.MatchUploaders = matchUploaders.String
@@ -374,6 +386,10 @@ func (r *FilterRepo) Store(ctx context.Context, filter domain.Filter) (*domain.F
 			"has_log",
 			"has_cue",
 			"perfect_flac",
+			"books",
+			"authors",
+			"text_formats",
+			"languages",
 			"origins",
 		).
 		Values(
@@ -421,6 +437,10 @@ func (r *FilterRepo) Store(ctx context.Context, filter domain.Filter) (*domain.F
 			filter.Log,
 			filter.Cue,
 			filter.PerfectFlac,
+			filter.Books,
+			filter.Authors,
+			pq.Array(filter.TextFormats),
+			pq.Array(filter.Languages),
 			pq.Array(filter.Origins),
 		).
 		Suffix("RETURNING id").RunWith(r.db.handler)
@@ -487,6 +507,10 @@ func (r *FilterRepo) Update(ctx context.Context, filter domain.Filter) (*domain.
 		Set("has_log", filter.Log).
 		Set("has_cue", filter.Cue).
 		Set("perfect_flac", filter.PerfectFlac).
+		Set("books", filter.Books).
+		Set("authors", filter.Authors).
+		Set("text_formats", pq.Array(filter.TextFormats)).
+		Set("languages", pq.Array(filter.Languages)).
 		Set("origins", pq.Array(filter.Origins)).
 		Set("updated_at", time.Now().Format(time.RFC3339)).
 		Where("id = ?", filter.ID)
