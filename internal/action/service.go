@@ -36,7 +36,7 @@ type service struct {
 	clientSvc download_client.Service
 	bus       EventBus.Bus
 
-	qbitClients map[qbitKey]*qbittorrent.Client
+	qbitClients map[qbitKey]qbittorrent.Client
 }
 
 func NewService(log logger.Logger, repo domain.ActionRepo, clientSvc download_client.Service, bus EventBus.Bus) Service {
@@ -45,7 +45,7 @@ func NewService(log logger.Logger, repo domain.ActionRepo, clientSvc download_cl
 		repo:        repo,
 		clientSvc:   clientSvc,
 		bus:         bus,
-		qbitClients: map[qbitKey]*qbittorrent.Client{},
+		qbitClients: map[qbitKey]qbittorrent.Client{},
 	}
 
 	s.subLogger = zstdlog.NewStdLoggerWithLevel(s.log.With().Logger(), zerolog.TraceLevel)
