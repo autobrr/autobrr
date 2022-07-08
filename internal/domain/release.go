@@ -323,17 +323,17 @@ func (r *Release) DownloadTorrentFile() error {
 	// Write the body to file
 	_, err = io.Copy(tmpFile, resp.Body)
 	if err != nil {
-		return errors.Wrap(err, fmt.Sprintf("error writing downloaded file: %v", tmpFile.Name()))
+		return errors.Wrap(err, "error writing downloaded file: %v", tmpFile.Name())
 	}
 
 	meta, err := metainfo.LoadFromFile(tmpFile.Name())
 	if err != nil {
-		return errors.Wrap(err, fmt.Sprintf("metainfo could not load file contents: %v", tmpFile.Name()))
+		return errors.Wrap(err, "metainfo could not load file contents: %v", tmpFile.Name())
 	}
 
 	torrentMetaInfo, err := meta.UnmarshalInfo()
 	if err != nil {
-		return errors.Wrap(err, fmt.Sprintf("metainfo could not unmarshal info from torrent: %v", tmpFile.Name()))
+		return errors.Wrap(err, "metainfo could not unmarshal info from torrent: %v", tmpFile.Name())
 	}
 
 	r.TorrentTmpFile = tmpFile.Name()
@@ -341,8 +341,6 @@ func (r *Release) DownloadTorrentFile() error {
 	r.Size = uint64(torrentMetaInfo.TotalLength())
 
 	// remove file if fail
-
-	//log.Debug().Msgf("successfully downloaded file: %v", tmpFile.Name())
 
 	return nil
 }

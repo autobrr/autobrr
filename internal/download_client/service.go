@@ -113,7 +113,7 @@ func (s *service) Test(client domain.DownloadClient) error {
 
 	// test
 	if err := s.testConnection(client); err != nil {
-		s.log.Err(err).Msg("client connection test error")
+		s.log.Error().Err(err).Msg("client connection test error")
 		return err
 	}
 

@@ -20,7 +20,7 @@ type IndexerRepo struct {
 
 func NewIndexerRepo(log logger.Logger, db *DB) domain.IndexerRepo {
 	return &IndexerRepo{
-		log: log.With().Str("repo", "indexer").Logger(),
+		log: log.With().Str("module", "database").Str("repo", "indexer").Logger(),
 		db:  db,
 	}
 }
@@ -114,6 +114,43 @@ func (r *IndexerRepo) List(ctx context.Context) ([]domain.Indexer, error) {
 	return indexers, nil
 }
 
+func (r *IndexerRepo) FindByID(ctx context.Context, id int) (*domain.Indexer, error) {
+	queryBuilder := r.db.squirrel.
+		Select("id", "enabled", "name", "identifier", "implementation", "settings").
+		From("indexer").
+		Where("id = ?", id)
+
+	query, args, err := queryBuilder.ToSql()
+	if err != nil {
+		return nil, errors.Wrap(err, "error building query")
+	}
+
+	row := r.db.handler.QueryRowContext(ctx, query, args...)
+	if err := row.Err(); err != nil {
+		return nil, errors.Wrap(err, "error executing query")
+	}
+
+	var i domain.Indexer
+
+	var implementation, settings sql.NullString
+
+	if err := row.Scan(&i.ID, &i.Enabled, &i.Name, &i.Identifier, &implementation, &settings); err != nil {
+		return nil, errors.Wrap(err, "error scanning row")
+	}
+
+	i.Implementation = implementation.String
+
+	var settingsMap map[string]string
+	if err = json.Unmarshal([]byte(settings.String), &settingsMap); err != nil {
+		return nil, errors.Wrap(err, "error unmarshal settings")
+	}
+
+	i.Settings = settingsMap
+
+	return &i, nil
+
+}
+
 func (r *IndexerRepo) FindByFilterID(ctx context.Context, id int) ([]domain.Indexer, error) {
 	queryBuilder := r.db.squirrel.
 		Select("id", "enabled", "name", "identifier", "settings").
@@ -171,12 +208,21 @@ func (r *IndexerRepo) Delete(ctx context.Context, id int) error {
 		return errors.Wrap(err, "error building query")
 	}
 
-	_, err = r.db.handler.ExecContext(ctx, query, args...)
+	result, err := r.db.handler.ExecContext(ctx, query, args...)
 	if err != nil {
 		return errors.Wrap(err, "error executing query")
 	}
 
-	r.log.Debug().Msgf("indexer.delete: id %v", id)
+	rows, err := result.RowsAffected()
+	if err != nil {
+		return errors.Wrap(err, "error rows affected")
+	}
+
+	if rows != 1 {
+		return errors.New("error deleting row")
+	}
+
+	r.log.Debug().Str("method", "delete").Msgf("successfully deleted indexer with id %v", id)
 
 	return nil
 }

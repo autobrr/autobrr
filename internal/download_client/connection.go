@@ -57,9 +57,14 @@ func (s *service) testQbittorrentConnection(client domain.DownloadClient) error 
 	}
 
 	qbt := qbittorrent.NewClient(qbtSettings)
-	err := qbt.Login()
-	if err != nil {
+
+	if err := qbt.Login(); err != nil {
 		return errors.Wrap(err, "error logging into client: %v", client.Host)
+	}
+
+	_, err := qbt.GetTorrents()
+	if err != nil {
+		return errors.Wrap(err, "error getting torrents: %v", client.Host)
 	}
 
 	s.log.Debug().Msgf("test client connection for qBittorrent: success")

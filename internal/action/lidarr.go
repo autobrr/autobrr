@@ -6,10 +6,11 @@ import (
 	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
+	"github.com/autobrr/autobrr/pkg/errors"
 	"github.com/autobrr/autobrr/pkg/lidarr"
 )
 
-func (s *service) lidarr(release domain.Release, action domain.Action) ([]string, error) {
+func (s *service) lidarr(action domain.Action, release domain.Release) ([]string, error) {
 	s.log.Trace().Msg("action LIDARR")
 
 	// TODO validate data
@@ -23,7 +24,7 @@ func (s *service) lidarr(release domain.Release, action domain.Action) ([]string
 
 	// return early if no client found
 	if client == nil {
-		return nil, err
+		return nil, errors.New("could not find client by id: %v", action.ClientID)
 	}
 
 	// initial config
