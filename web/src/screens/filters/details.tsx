@@ -25,6 +25,9 @@ import {
   SOURCES_MUSIC_OPTIONS,
   QUALITY_MUSIC_OPTIONS,
   RELEASE_TYPE_MUSIC_OPTIONS,
+  FORMATS_EBOOK_OPTIONS,
+  FORMATS_AUDIOBOOK_OPTIONS,
+  LANGUAGE_OPTIONS,
   OTHER_OPTIONS,
   ORIGIN_OPTIONS,
   downloadsPerUnitOptions
@@ -60,6 +63,7 @@ const tabs: tabType[] = [
   { name: "General", href: "" },
   { name: "Movies and TV", href: "movies-tv" },
   { name: "Music", href: "music" },
+  { name: "Books and Audiobooks", href: "books-audiobooks"},
   { name: "Advanced", href: "advanced" },
   { name: "Actions", href: "actions" }
 ];
@@ -278,6 +282,10 @@ export default function FilterDetails() {
                 perfect_flac: filter.perfect_flac,
                 artists: filter.artists,
                 albums: filter.albums,
+                authors: filter.authors,
+                books: filter.books,
+                text_formats: filter.text_formats || [],
+                languages: filter.languages || [],
                 origins: filter.origins || [],
                 indexers: filter.indexers || [],
                 actions: filter.actions || []
@@ -290,6 +298,7 @@ export default function FilterDetails() {
                     <Route index element={<General />} />
                     <Route path="movies-tv" element={<MoviesTv />} />
                     <Route path="music" element={<Music />} />
+                    <Route path="books-audiobooks" element={<Books />} />
                     <Route path="advanced" element={<Advanced />} />
                     <Route path="actions" element={<FilterActions filter={filter} values={values} />}
                     />
@@ -443,6 +452,31 @@ export function Music() {
               </div>
             </div>
           </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export function Books() {
+  return (
+    <div>
+      <div className="mt-6 grid grid-cols-12 gap-6">
+        <TextField name="books" label="Books" columns={4} placeholder="eg. Book One" />
+        <TextField name="authors" label="Authors" columns={4} placeholder="eg. Author One" />
+        <TextField name="years" label="Years" columns={4} placeholder="eg. 2018,2019-2021" />
+      </div>
+
+      <div className="mt-6 lg:pb-8">
+        <TitleSubtitle title="Options" subtitle="Format and language" />
+
+        <div className="mt-6 grid grid-cols-12 gap-6">
+          <MultiSelect name="text_formats" options={FORMATS_EBOOK_OPTIONS} label="Ebook Format" columns={6} />
+          <MultiSelect name="formats" options={FORMATS_AUDIOBOOK_OPTIONS} label="Audiobook Format" columns={6} />
+        </div>
+
+        <div className="mt-6 grid grid-cols-12 gap-6">
+          <MultiSelect name="languages" options={LANGUAGE_OPTIONS} label="Language" columns={6} />
         </div>
       </div>
     </div>

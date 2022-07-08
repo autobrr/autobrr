@@ -160,6 +160,106 @@ export interface RadioFieldsetOption {
     value: ActionType;
 }
 
+export const formatText = [
+  "epub",
+  "pdf",
+  "mobi",
+  "azw3",
+  "azw",
+  "cbz",
+  "cbr",
+  "pdb",
+  "doc",
+  "docx",
+  "lit",
+  "chm",
+  "djvu",
+  "lrf",
+  "fb2",
+  "html",
+  "htm",
+  "txt",
+  "rtf",
+  "xml"
+];
+
+export const FORMATS_EBOOK_OPTIONS: MultiSelectOption[] = formatText.map(r => ({ value: r, label: r, key: r }));
+
+export const formatAudiobooks = [
+  "MP3",
+  "M4A",
+  "M4B",
+  "AAC",
+  "OGG",
+  "WMA",
+  "FLAC",
+  "WAV"
+];
+
+export const FORMATS_AUDIOBOOK_OPTIONS: MultiSelectOption[] = formatAudiobooks.map(v => ({ value: v, label: v, key: v }));
+
+export const languages = [
+  "English",
+  "Afrikaans",
+  "Arabic",
+  "Bengali",
+  "Bosnian",
+  "Bulgarian",
+  "Burmese",
+  "Cantonese",
+  "Catalan",
+  "Chinese",
+  "Croatian",
+  "Czech",
+  "Danish",
+  "Dutch",
+  "Farsi",
+  "Finnish",
+  "French",
+  "German",
+  "Greek",
+  "Gujarati",
+  "Hebrew",
+  "Hindi",
+  "Hungarian",
+  "Indonesian",
+  "Irish",
+  "Italian",
+  "Japanese",
+  "Javanese",
+  "Kannada",
+  "Korean",
+  "Lithuanian",
+  "Latin",
+  "Malay",
+  "Manx",
+  "Marathi",
+  "Norwegian",
+  "Polish",
+  "Portuguese",
+  "Brazilian Portuguese (BP)",
+  "Punjabi",
+  "Romanian",
+  "Russian",
+  "Scottish Gaelic",
+  "Serbian",
+  "Slovenian",
+  "Spanish",
+  "Castilian Spanish",
+  "Swedish",
+  "Tagalog",
+  "Tamil",
+  "Telugu",
+  "Thai",
+  "Turkish",
+  "Ukrainian",
+  "Urdu",
+  "Vietnamese",
+  "Other"
+];
+
+export const LANGUAGE_OPTIONS: MultiSelectOption[] = languages.map(v => ({ value: v, label: v, key: v }));
+
 export const DownloadClientTypeOptions: RadioFieldsetOption[] = [
   {
     label: "qBittorrent",

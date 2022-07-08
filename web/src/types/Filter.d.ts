@@ -33,6 +33,10 @@ interface Filter {
   years: string;
   artists: string;
   albums: string;
+  authors: string;
+  books: string;
+  text_formats: string[];
+  languages: string[]; 
   match_release_types: string[];
   except_release_types: string[];
   formats: string[];

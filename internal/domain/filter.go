@@ -93,6 +93,10 @@ type Filter struct {
 	Cue                 bool                   `json:"cue"`
 	Log                 bool                   `json:"log"`
 	LogScore            int                    `json:"log_score"`
+	Books               string                 `json:"books"`
+	Authors             string                 `json:"authors"`
+	TextFormats         []string               `json:"text_formats"` // epub, mobi, azw3
+	Languages           []string               `json:"languages"`
 	MatchCategories     string                 `json:"match_categories"`
 	ExceptCategories    string                 `json:"except_categories"`
 	MatchUploaders      string                 `json:"match_uploaders"`
@@ -145,6 +149,10 @@ func (f Filter) CheckFilter(r *Release) ([]string, bool) {
 		r.addRejectionF("episodes not matching. got: %d want: %v", r.Episode, f.Episodes)
 	}
 
+	if f.Books != "" && !contains(r.Title, f.Books) {
+		r.addRejectionF("books not matching. got: %v want: %v", r.Title, f.Books)
+	}
+	
 	// matchRelease
 	// match against regex
 	if f.UseRegex {
@@ -198,6 +206,14 @@ func (f Filter) CheckFilter(r *Release) ([]string, bool) {
 		r.addRejectionF("container not matching. got: %v want: %v", r.Container, f.Containers)
 	}
 
+	if len(f.Languages) > 0 && !containsSlice(r.Language, f.Languages) {
+		r.addRejectionF("language not matching. got: %v want: %v", r.Language, f.Languages)
+	}
+
+	if len(f.TextFormats) > 0 && !sliceContainsSlice(r.TextFormat, f.TextFormats) {
+		r.addRejectionF("ebook format not matching. got: %v want: %v", r.TextFormat, f.TextFormats)
+	}
+
 	// HDR is parsed into the Codec slice from rls
 	if len(f.MatchHDR) > 0 && !sliceContainsSlice(r.HDR, f.MatchHDR) {
 		r.addRejectionF("hdr not matching. got: %v want: %v", r.HDR, f.MatchHDR)
@@ -238,6 +254,10 @@ func (f Filter) CheckFilter(r *Release) ([]string, bool) {
 
 	if len(f.Artists) > 0 && !containsFuzzy(r.TorrentName, f.Artists) {
 		r.addRejectionF("artists not matching. got: %v want: %v", r.TorrentName, f.Artists)
+	}
+
+	if len(f.Authors) > 0 && !containsFuzzy(r.Author, f.Authors) {
+		r.addRejectionF("authors not matching. got: %v want: %v", r.Author, f.Authors)
 	}
 
 	if len(f.Albums) > 0 && !containsFuzzy(r.TorrentName, f.Albums) {

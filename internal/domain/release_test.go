@@ -218,6 +218,20 @@ func TestRelease_Parse(t *testing.T) {
 			},
 		},
 		{
+			name: "parse_book_1",
+			fields: Release{
+				TorrentName: "The Best Newspaper - [06 July 2022]",
+				ReleaseTags: "epub, mobi",
+			},
+			want: Release{
+				TorrentName: "The Best Newspaper - [06 July 2022]",
+				ReleaseTags: "epub, mobi",
+				Title:       "The Best Newspaper",
+				Year:        2022,
+				TextFormat:  []string{"epub", "mobi"},
+			},
+		},
+		{
 			name: "parse_movies_case_1",
 			fields: Release{
 				TorrentName: "I Am Movie 2007 Theatrical UHD BluRay 2160p DTS-HD MA 5.1 DV HEVC HYBRID REMUX-GROUP1",
@@ -442,6 +456,22 @@ func TestRelease_MapVars(t *testing.T) {
 				"releaseGroup": "GROUP1",
 				"tags":         "comedy, fantasy, school.life, shounen, slice.of.life",
 				"uploader":     "Tester",
+			}},
+		},
+		{
+			name:   "10",
+			fields: &Release{},
+			want: &Release{
+				TorrentName: "The Best Journal - [06 July 2022]",
+				Author:      "Journal Writer",
+				Category:    "Ebooks - Magazines/Newspapers",
+				Language:    "English",
+			},
+			args: args{varMap: map[string]string{
+				"torrentName": "The Best Journal - [06 July 2022]",
+				"author":      "Journal Writer",
+				"category":    "Ebooks - Magazines/Newspapers",
+				"language":    "English",
 			}},
 		},
 	}

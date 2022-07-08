@@ -51,7 +51,7 @@ parse:
         - author
         - category
         - torrentSize
-        - tags
+        - releaseTags
         - language
         - baseUrl
         - torrentId
