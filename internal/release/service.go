@@ -199,6 +199,8 @@ func (s *service) Process(release *domain.Release) {
 }
 
 func (s *service) ProcessMultiple(releases []*domain.Release) {
+	s.log.Debug().Msgf("process (%v) new releases from feed", len(releases))
+
 	for _, rls := range releases {
 		if rls == nil {
 			continue
