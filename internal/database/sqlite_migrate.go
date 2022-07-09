@@ -100,6 +100,10 @@ CREATE TABLE filter
     has_log               BOOLEAN,
     has_cue               BOOLEAN,
     perfect_flac          BOOLEAN,
+    books                 TEXT,
+    authors               TEXT,
+    text_formats          TEXT []   DEFAULT '{}',
+    languages             TEXT []   DEFAULT '{}', 
     match_categories      TEXT,
     except_categories     TEXT,
     match_uploaders       TEXT,
@@ -194,10 +198,12 @@ CREATE TABLE "release"
     container         TEXT,
     hdr               TEXT,
     release_group     TEXT,
+    language          TEXT,
     proper            BOOLEAN,
     repack            BOOLEAN,
     website           TEXT,
     type              TEXT,
+    text_format       TEXT []   DEFAULT '{}',
     origin            TEXT,
     tags              TEXT []   DEFAULT '{}' NOT NULL,
     uploader          TEXT,
@@ -814,4 +820,23 @@ CREATE INDEX indexer_identifier_index
 	ALTER TABLE release_action_status
 		ADD COLUMN filter TEXT;
 	`,
+	`
+    ALTER TABLE "filter"
+        ADD COLUMN books TEXT;
+
+    ALTER TABLE "filter"
+        ADD COLUMN authors TEXT;
+
+    ALTER TABLE "filter"
+        ADD COLUMN text_formats TEXT []   DEFAULT '{}';
+    
+    ALTER TABLE "filter"
+        ADD COLUMN languages TEXT []   DEFAULT '{}';
+
+    ALTER TABLE "release"
+        ADD COLUMN language TEXT;
+
+    ALTER TABLE "release"
+        ADD COLUMN text_format TEXT []   DEFAULT '{}';
+    `,
 }
