@@ -92,28 +92,33 @@ func (s *service) Store(ctx context.Context, feed *domain.Feed) error {
 		return err
 	}
 
+	s.log.Debug().Msgf("successfully added feed: %+v", feed)
+
 	return nil
 }
 
 func (s *service) Update(ctx context.Context, feed *domain.Feed) error {
-	if err := s.repo.Update(ctx, feed); err != nil {
+	if err := s.update(ctx, feed); err != nil {
 		s.log.Error().Err(err).Msgf("could not update feed: %+v", feed)
 		return err
 	}
+
+	s.log.Debug().Msgf("successfully updated feed: %+v", feed)
+
 	return nil
 }
 
 func (s *service) Delete(ctx context.Context, id int) error {
-	if err := s.repo.Delete(ctx, id); err != nil {
+	if err := s.delete(ctx, id); err != nil {
 		s.log.Error().Err(err).Msgf("could not delete feed by id: %v", id)
 		return err
 	}
+
 	return nil
 }
 
 func (s *service) ToggleEnabled(ctx context.Context, id int, enabled bool) error {
-	err := s.repo.ToggleEnabled(ctx, id, enabled)
-	if err != nil {
+	if err := s.toggleEnabled(ctx, id, enabled); err != nil {
 		s.log.Error().Err(err).Msgf("could not toggle feed by id: %v", id)
 		return err
 	}
@@ -137,17 +142,22 @@ func (s *service) update(ctx context.Context, feed *domain.Feed) error {
 func (s *service) delete(ctx context.Context, id int) error {
 	f, err := s.repo.FindByID(ctx, id)
 	if err != nil {
-		s.log.Error().Err(err).Msg("feed.ToggleEnabled: error finding feed")
+		s.log.Error().Err(err).Msg("error finding feed")
 		return err
 	}
 
 	if err := s.stopTorznabJob(f.Indexer); err != nil {
-		s.log.Error().Err(err).Msg("feed.Delete: error stopping torznab job")
+		s.log.Error().Err(err).Msg("error stopping torznab job")
 		return err
 	}
 
 	if err := s.repo.Delete(ctx, id); err != nil {
-		s.log.Error().Err(err).Msg("feed.Delete: error deleting feed")
+		s.log.Error().Err(err).Msg("error deleting feed")
+		return err
+	}
+
+	if err := s.cacheRepo.DeleteBucket(ctx, f.Name); err != nil {
+		s.log.Error().Err(err).Msgf("could not delete feedCache bucket by id: %v", id)
 		return err
 	}
 
@@ -273,7 +283,7 @@ func (s *service) addTorznabJob(f feedInstance) error {
 	}
 
 	// setup logger
-	l := s.log.With().Str("feed_name", f.Name).Logger()
+	l := s.log.With().Str("feed", f.Name).Logger()
 
 	// setup torznab Client
 	c := torznab.NewClient(f.URL, f.ApiKey)

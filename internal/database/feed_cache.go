@@ -1,6 +1,7 @@
 package database
 
 import (
+	"context"
 	"database/sql"
 	"time"
 
@@ -18,7 +19,7 @@ type FeedCacheRepo struct {
 
 func NewFeedCacheRepo(log logger.Logger, db *DB) domain.FeedCacheRepo {
 	return &FeedCacheRepo{
-		log: log.With().Str("repo", "feed_cache").Logger(),
+		log: log.With().Str("module", "database").Str("repo", "feed_cache").Logger(),
 		db:  db,
 	}
 }
@@ -95,7 +96,48 @@ func (r *FeedCacheRepo) Put(bucket string, key string, val []byte, ttl time.Time
 	return nil
 }
 
-func (r *FeedCacheRepo) Delete(bucket string, key string) error {
-	//TODO implement me
-	panic("implement me")
+func (r *FeedCacheRepo) Delete(ctx context.Context, bucket string, key string) error {
+	queryBuilder := r.db.squirrel.
+		Delete("feed_cache").
+		Where("bucket = ?", bucket).
+		Where("key = ?", key)
+
+	query, args, err := queryBuilder.ToSql()
+	if err != nil {
+		return errors.Wrap(err, "error building query")
+	}
+
+	_, err = r.db.handler.ExecContext(ctx, query, args...)
+	if err != nil {
+		return errors.Wrap(err, "error executing query")
+	}
+
+	return nil
+}
+
+func (r *FeedCacheRepo) DeleteBucket(ctx context.Context, bucket string) error {
+	queryBuilder := r.db.squirrel.
+		Delete("feed_cache").
+		Where("bucket = ?", bucket)
+
+	query, args, err := queryBuilder.ToSql()
+	if err != nil {
+		return errors.Wrap(err, "error building query")
+	}
+
+	result, err := r.db.handler.ExecContext(ctx, query, args...)
+	if err != nil {
+		return errors.Wrap(err, "error executing query")
+	}
+
+	rows, err := result.RowsAffected()
+	if err != nil {
+		return errors.Wrap(err, "error exec result")
+	}
+
+	if rows == 0 {
+		return errors.Wrap(err, "error no rows affected")
+	}
+
+	return nil
 }

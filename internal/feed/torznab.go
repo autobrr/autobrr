@@ -55,15 +55,15 @@ func (j *TorznabJob) process() error {
 	// get feed
 	items, err := j.getFeed()
 	if err != nil {
-		j.Log.Error().Err(err).Msgf("torznab.process: error fetching feed items")
-		return errors.Wrap(err, "torznab.process: error getting feed items")
+		j.Log.Error().Err(err).Msgf("error fetching feed items")
+		return errors.Wrap(err, "error getting feed items")
 	}
+
+	j.Log.Debug().Msgf("found (%d) new items to process", len(items))
 
 	if len(items) == 0 {
 		return nil
 	}
-
-	j.Log.Debug().Msgf("torznab.process: refreshing feed: %v, found (%d) new items to check", j.Name, len(items))
 
 	releases := make([]*domain.Release, 0)
 
@@ -93,11 +93,11 @@ func (j *TorznabJob) getFeed() ([]torznab.FeedItem, error) {
 	// get feed
 	feedItems, err := j.Client.GetFeed()
 	if err != nil {
-		j.Log.Error().Err(err).Msgf("torznab.getFeed: error fetching feed items")
+		j.Log.Error().Err(err).Msgf("error fetching feed items")
 		return nil, errors.Wrap(err, "error fetching feed items")
 	}
 
-	j.Log.Trace().Msgf("torznab getFeed: refreshing feed: %v, found (%d) items", j.Name, len(feedItems))
+	j.Log.Debug().Msgf("refreshing feed: %v, found (%d) items", j.Name, len(feedItems))
 
 	items := make([]torznab.FeedItem, 0)
 	if len(feedItems) == 0 {
@@ -113,27 +113,26 @@ func (j *TorznabJob) getFeed() ([]torznab.FeedItem, error) {
 			continue
 		}
 
-		//if cacheValue, err := j.Repo.Get(j.Name, i.GUID); err == nil {
-		//	j.Log.Trace().Msgf("torznab getFeed: cacheValue: %v", cacheValue)
-		//}
-
-		if exists, err := j.Repo.Exists(j.Name, i.GUID); err == nil {
-			if exists {
-				j.Log.Trace().Msg("torznab getFeed: cache item exists, skip")
-				continue
-			}
+		exists, err := j.Repo.Exists(j.Name, i.GUID)
+		if err == nil {
+			j.Log.Error().Err(err).Msg("could not check if item exists")
+			continue
 		}
-
-		// do something more
-
-		items = append(items, i)
+		if exists {
+			j.Log.Trace().Msgf("cache item exists, skipping release: %v", i.Title)
+			continue
+		}
 
 		// set ttl to 1 month
 		ttl := time.Now().AddDate(0, 1, 0)
 
 		if err := j.Repo.Put(j.Name, i.GUID, []byte(i.Title), ttl); err != nil {
-			j.Log.Error().Stack().Err(err).Str("guid", i.GUID).Msg("torznab getFeed: cache.Put: error storing item in cache")
+			j.Log.Error().Stack().Err(err).Str("guid", i.GUID).Msg("cache.Put: error storing item in cache")
+			continue
 		}
+
+		// only append if we successfully added to cache
+		items = append(items, i)
 	}
 
 	// send to filters
