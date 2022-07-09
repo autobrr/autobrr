@@ -3,6 +3,8 @@ package server
 import (
 	"sync"
 
+	"github.com/rs/zerolog"
+
 	"github.com/autobrr/autobrr/internal/feed"
 	"github.com/autobrr/autobrr/internal/indexer"
 	"github.com/autobrr/autobrr/internal/irc"
@@ -11,7 +13,7 @@ import (
 )
 
 type Server struct {
-	log      logger.Logger
+	log      zerolog.Logger
 	Hostname string
 	Port     int
 
@@ -26,7 +28,7 @@ type Server struct {
 
 func NewServer(log logger.Logger, ircSvc irc.Service, indexerSvc indexer.Service, feedSvc feed.Service, scheduler scheduler.Service) *Server {
 	return &Server{
-		log:            log,
+		log:            log.With().Str("module", "server").Logger(),
 		indexerService: indexerSvc,
 		ircService:     ircSvc,
 		feedService:    feedSvc,

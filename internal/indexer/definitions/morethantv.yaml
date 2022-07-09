@@ -48,7 +48,7 @@ parse:
   lines:
     - test:
         - "TV.Show.2008.720p.BluRay.DTS.x264-TEST - Size: 6.56 GiB - Uploader: Test - Tags: autoup,h264,hd,dts.audio,bluray,720p,p2p.group.release,Test.release,hd.movie - https://www.morethantv.me/torrents.php?torrentid=000000"
-      pattern: '^(.*?) - Size: ([0-9]+?.*?) - Uploader: (.*?) - Tags: (.*(hd.episode|hd.season|sd.episode|sd.eason|sd.movies|hd.movie)) - (https?:\/\/.*torrents.php\?)torrentid=(.*)$'
+      pattern: '^(.*?) - Size: ([0-9]+?.*?) - Uploader: (.*?) - Tags: (.*(hd.episode|hd.season|sd.episode|sd.season|sd.movie|hd.movie)) - (https?:\/\/.*torrents.php\?)torrentid=(.*)$'
       vars:
         - torrentName
         - torrentSize

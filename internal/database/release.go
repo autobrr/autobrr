@@ -8,19 +8,21 @@ import (
 
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/internal/logger"
+	"github.com/autobrr/autobrr/pkg/errors"
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/lib/pq"
+	"github.com/rs/zerolog"
 )
 
 type ReleaseRepo struct {
-	log logger.Logger
+	log zerolog.Logger
 	db  *DB
 }
 
 func NewReleaseRepo(log logger.Logger, db *DB) domain.ReleaseRepo {
 	return &ReleaseRepo{
-		log: log,
+		log: log.With().Str("repo", "release").Logger(),
 		db:  db,
 	}
 }
@@ -40,8 +42,7 @@ func (repo *ReleaseRepo) Store(ctx context.Context, r *domain.Release) (*domain.
 
 	err := queryBuilder.QueryRowContext(ctx).Scan(&retID)
 	if err != nil {
-		repo.log.Error().Stack().Err(err).Msg("release.store: error executing query")
-		return nil, err
+		return nil, errors.Wrap(err, "error executing query")
 	}
 
 	r.ID = retID
@@ -63,21 +64,19 @@ func (repo *ReleaseRepo) StoreReleaseActionStatus(ctx context.Context, a *domain
 
 		query, args, err := queryBuilder.ToSql()
 		if err != nil {
-			repo.log.Error().Stack().Err(err).Msg("release.store: error building query")
-			return err
+			return errors.Wrap(err, "error building query")
 		}
 
 		_, err = repo.db.handler.ExecContext(ctx, query, args...)
 		if err != nil {
-			repo.log.Error().Stack().Err(err).Msg("error updating status of release")
-			return err
+			return errors.Wrap(err, "error executing query")
 		}
 
 	} else {
 		queryBuilder := repo.db.squirrel.
 			Insert("release_action_status").
-			Columns("status", "action", "type", "rejections", "timestamp", "release_id").
-			Values(a.Status, a.Action, a.Type, pq.Array(a.Rejections), a.Timestamp, a.ReleaseID).
+			Columns("status", "action", "type", "client", "filter", "rejections", "timestamp", "release_id").
+			Values(a.Status, a.Action, a.Type, a.Client, a.Filter, pq.Array(a.Rejections), a.Timestamp, a.ReleaseID).
 			Suffix("RETURNING id").RunWith(repo.db.handler)
 
 		// return values
@@ -85,8 +84,7 @@ func (repo *ReleaseRepo) StoreReleaseActionStatus(ctx context.Context, a *domain
 
 		err := queryBuilder.QueryRowContext(ctx).Scan(&retID)
 		if err != nil {
-			repo.log.Error().Stack().Err(err).Msg("release.storeReleaseActionStatus: error executing query")
-			return err
+			return errors.Wrap(err, "error executing query")
 		}
 
 		a.ID = retID
@@ -100,7 +98,7 @@ func (repo *ReleaseRepo) StoreReleaseActionStatus(ctx context.Context, a *domain
 func (repo *ReleaseRepo) Find(ctx context.Context, params domain.ReleaseQueryParams) ([]*domain.Release, int64, int64, error) {
 	tx, err := repo.db.BeginTx(ctx, &sql.TxOptions{})
 	if err != nil {
-		return nil, 0, 0, err
+		return nil, 0, 0, errors.Wrap(err, "error begin transaction")
 	}
 	defer tx.Rollback()
 
@@ -118,8 +116,7 @@ func (repo *ReleaseRepo) Find(ctx context.Context, params domain.ReleaseQueryPar
 	}
 
 	if err = tx.Commit(); err != nil {
-		repo.log.Error().Stack().Err(err).Msg("error finding releases")
-		return nil, 0, 0, err
+		return nil, 0, 0, errors.Wrap(err, "error commit transaction find releases")
 	}
 
 	return releases, nextCursor, total, nil
@@ -163,25 +160,23 @@ func (repo *ReleaseRepo) findReleases(ctx context.Context, tx *Tx, params domain
 	}
 
 	query, args, err := queryBuilder.ToSql()
-	repo.log.Trace().Str("database", "release.find").Msgf("query: '%v', args: '%v'", query, args)
 	if err != nil {
-		repo.log.Error().Stack().Err(err).Msg("error building query")
-		return nil, 0, 0, err
+		return nil, 0, 0, errors.Wrap(err, "error building query")
 	}
+
+	repo.log.Trace().Str("database", "release.find").Msgf("query: '%v', args: '%v'", query, args)
 
 	res := make([]*domain.Release, 0)
 
 	rows, err := tx.QueryContext(ctx, query, args...)
 	if err != nil {
-		repo.log.Error().Stack().Err(err).Msg("error fetching releases")
-		return res, 0, 0, nil
+		return nil, 0, 0, errors.Wrap(err, "error executing query")
 	}
 
 	defer rows.Close()
 
 	if err := rows.Err(); err != nil {
-		repo.log.Error().Stack().Err(err)
-		return res, 0, 0, err
+		return res, 0, 0, errors.Wrap(err, "error rows findreleases")
 	}
 
 	var countItems int64 = 0
@@ -192,8 +187,7 @@ func (repo *ReleaseRepo) findReleases(ctx context.Context, tx *Tx, params domain
 		var indexer, filter sql.NullString
 
 		if err := rows.Scan(&rls.ID, &rls.FilterStatus, pq.Array(&rls.Rejections), &indexer, &filter, &rls.Protocol, &rls.Title, &rls.TorrentName, &rls.Size, &rls.Timestamp, &countItems); err != nil {
-			repo.log.Error().Stack().Err(err).Msg("release.find: error scanning data to struct")
-			return res, 0, 0, err
+			return res, 0, 0, errors.Wrap(err, "error scanning row")
 		}
 
 		rls.Indexer = indexer.String
@@ -214,7 +208,7 @@ func (repo *ReleaseRepo) findReleases(ctx context.Context, tx *Tx, params domain
 func (repo *ReleaseRepo) FindRecent(ctx context.Context) ([]*domain.Release, error) {
 	tx, err := repo.db.BeginTx(ctx, &sql.TxOptions{})
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "error begin transaction")
 	}
 	defer tx.Rollback()
 
@@ -232,8 +226,7 @@ func (repo *ReleaseRepo) FindRecent(ctx context.Context) ([]*domain.Release, err
 	}
 
 	if err = tx.Commit(); err != nil {
-		repo.log.Error().Stack().Err(err).Msg("error finding releases")
-		return nil, err
+		return nil, errors.Wrap(err, "error transaction commit")
 	}
 
 	return releases, nil
@@ -247,25 +240,23 @@ func (repo *ReleaseRepo) findRecentReleases(ctx context.Context, tx *Tx) ([]*dom
 		Limit(10)
 
 	query, args, err := queryBuilder.ToSql()
-	repo.log.Trace().Str("database", "release.find").Msgf("query: '%v', args: '%v'", query, args)
 	if err != nil {
-		repo.log.Error().Stack().Err(err).Msg("error building query")
-		return nil, err
+		return nil, errors.Wrap(err, "error building query")
 	}
+
+	repo.log.Trace().Str("database", "release.find").Msgf("query: '%v', args: '%v'", query, args)
 
 	res := make([]*domain.Release, 0)
 
 	rows, err := tx.QueryContext(ctx, query, args...)
 	if err != nil {
-		repo.log.Error().Stack().Err(err).Msg("error fetching releases")
-		return res, nil
+		return res, errors.Wrap(err, "error executing query")
 	}
 
 	defer rows.Close()
 
 	if err := rows.Err(); err != nil {
-		repo.log.Error().Stack().Err(err)
-		return res, err
+		return res, errors.Wrap(err, "rows error")
 	}
 
 	for rows.Next() {
@@ -274,8 +265,7 @@ func (repo *ReleaseRepo) findRecentReleases(ctx context.Context, tx *Tx) ([]*dom
 		var indexer, filter sql.NullString
 
 		if err := rows.Scan(&rls.ID, &rls.FilterStatus, pq.Array(&rls.Rejections), &indexer, &filter, &rls.Protocol, &rls.Title, &rls.TorrentName, &rls.Size, &rls.Timestamp); err != nil {
-			repo.log.Error().Stack().Err(err).Msg("release.find: error scanning data to struct")
-			return res, err
+			return res, errors.Wrap(err, "error scanning row")
 		}
 
 		rls.Indexer = indexer.String
@@ -297,23 +287,20 @@ func (repo *ReleaseRepo) GetIndexerOptions(ctx context.Context) ([]string, error
 
 	rows, err := repo.db.handler.QueryContext(ctx, query)
 	if err != nil {
-		repo.log.Error().Stack().Err(err).Msg("error fetching indexer list")
-		return res, err
+		return res, errors.Wrap(err, "error executing query")
 	}
 
 	defer rows.Close()
 
 	if err := rows.Err(); err != nil {
-		repo.log.Error().Stack().Err(err)
-		return res, err
+		return res, errors.Wrap(err, "rows error")
 	}
 
 	for rows.Next() {
 		var indexer string
 
 		if err := rows.Scan(&indexer); err != nil {
-			repo.log.Error().Stack().Err(err).Msg("release.find: error scanning data to struct")
-			return res, err
+			return res, errors.Wrap(err, "error scanning row")
 		}
 
 		res = append(res, indexer)
@@ -325,18 +312,20 @@ func (repo *ReleaseRepo) GetIndexerOptions(ctx context.Context) ([]string, error
 func (repo *ReleaseRepo) GetActionStatusByReleaseID(ctx context.Context, releaseID int64) ([]domain.ReleaseActionStatus, error) {
 
 	queryBuilder := repo.db.squirrel.
-		Select("id", "status", "action", "type", "rejections", "timestamp").
+		Select("id", "status", "action", "type", "client", "filter", "rejections", "timestamp").
 		From("release_action_status").
 		Where("release_id = ?", releaseID)
 
 	query, args, err := queryBuilder.ToSql()
+	if err != nil {
+		return nil, errors.Wrap(err, "error building query")
+	}
 
 	res := make([]domain.ReleaseActionStatus, 0)
 
 	rows, err := repo.db.handler.QueryContext(ctx, query, args...)
 	if err != nil {
-		repo.log.Error().Stack().Err(err).Msg("error fetching releases")
-		return res, nil
+		return res, errors.Wrap(err, "error executing query")
 	}
 
 	defer rows.Close()
@@ -349,10 +338,14 @@ func (repo *ReleaseRepo) GetActionStatusByReleaseID(ctx context.Context, release
 	for rows.Next() {
 		var rls domain.ReleaseActionStatus
 
-		if err := rows.Scan(&rls.ID, &rls.Status, &rls.Action, &rls.Type, pq.Array(&rls.Rejections), &rls.Timestamp); err != nil {
-			repo.log.Error().Stack().Err(err).Msg("release.find: error scanning data to struct")
-			return res, err
+		var client, filter sql.NullString
+
+		if err := rows.Scan(&rls.ID, &rls.Status, &rls.Action, &rls.Type, &client, &filter, pq.Array(&rls.Rejections), &rls.Timestamp); err != nil {
+			return res, errors.Wrap(err, "error scanning row")
 		}
+
+		rls.Client = client.String
+		rls.Filter = filter.String
 
 		res = append(res, rls)
 	}
@@ -363,34 +356,39 @@ func (repo *ReleaseRepo) GetActionStatusByReleaseID(ctx context.Context, release
 func (repo *ReleaseRepo) attachActionStatus(ctx context.Context, tx *Tx, releaseID int64) ([]domain.ReleaseActionStatus, error) {
 
 	queryBuilder := repo.db.squirrel.
-		Select("id", "status", "action", "type", "rejections", "timestamp").
+		Select("id", "status", "action", "type", "client", "filter", "rejections", "timestamp").
 		From("release_action_status").
 		Where("release_id = ?", releaseID)
 
 	query, args, err := queryBuilder.ToSql()
+	if err != nil {
+		return nil, errors.Wrap(err, "error building query")
+	}
 
 	res := make([]domain.ReleaseActionStatus, 0)
 
 	rows, err := tx.QueryContext(ctx, query, args...)
 	if err != nil {
-		repo.log.Error().Stack().Err(err).Msg("error fetching releases")
-		return res, nil
+		return res, errors.Wrap(err, "error executing query")
 	}
 
 	defer rows.Close()
 
 	if err := rows.Err(); err != nil {
-		repo.log.Error().Stack().Err(err)
-		return res, err
+		return res, errors.Wrap(err, "error rows")
 	}
 
 	for rows.Next() {
 		var rls domain.ReleaseActionStatus
 
-		if err := rows.Scan(&rls.ID, &rls.Status, &rls.Action, &rls.Type, pq.Array(&rls.Rejections), &rls.Timestamp); err != nil {
-			repo.log.Error().Stack().Err(err).Msg("release.find: error scanning data to struct")
-			return res, err
+		var client, filter sql.NullString
+
+		if err := rows.Scan(&rls.ID, &rls.Status, &rls.Action, &rls.Type, &client, &filter, pq.Array(&rls.Rejections), &rls.Timestamp); err != nil {
+			return res, errors.Wrap(err, "error scanning row")
 		}
+
+		rls.Client = client.String
+		rls.Filter = filter.String
 
 		res = append(res, rls)
 	}
@@ -411,15 +409,13 @@ FROM "release";`
 
 	row := repo.db.handler.QueryRowContext(ctx, query)
 	if err := row.Err(); err != nil {
-		repo.log.Error().Stack().Err(err).Msg("release.stats: error querying stats")
-		return nil, err
+		return nil, errors.Wrap(err, "error executing query")
 	}
 
 	var rls domain.ReleaseStats
 
 	if err := row.Scan(&rls.TotalCount, &rls.FilteredCount, &rls.FilterRejectedCount, &rls.PushApprovedCount, &rls.PushRejectedCount); err != nil {
-		repo.log.Error().Stack().Err(err).Msg("release.stats: error scanning stats data to struct")
-		return nil, err
+		return nil, errors.Wrap(err, "error scanning row")
 	}
 
 	return &rls, nil
@@ -435,20 +431,17 @@ func (repo *ReleaseRepo) Delete(ctx context.Context) error {
 
 	_, err = tx.ExecContext(ctx, `DELETE FROM "release"`)
 	if err != nil {
-		repo.log.Error().Stack().Err(err).Msg("error deleting all releases")
-		return err
+		return errors.Wrap(err, "error executing query")
 	}
 
 	_, err = tx.ExecContext(ctx, `DELETE FROM release_action_status`)
 	if err != nil {
-		repo.log.Error().Stack().Err(err).Msg("error deleting all release_action_status")
-		return err
+		return errors.Wrap(err, "error executing query")
 	}
 
 	err = tx.Commit()
 	if err != nil {
-		repo.log.Error().Stack().Err(err).Msg("error deleting all releases")
-		return err
+		return errors.Wrap(err, "error commit transaction delete")
 	}
 
 	return nil

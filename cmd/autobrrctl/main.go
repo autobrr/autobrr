@@ -8,12 +8,13 @@ import (
 	"log"
 	"os"
 
-	"golang.org/x/crypto/ssh/terminal"
-	_ "modernc.org/sqlite"
-
 	"github.com/autobrr/autobrr/internal/database"
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/pkg/argon2id"
+	"github.com/autobrr/autobrr/pkg/errors"
+
+	"golang.org/x/crypto/ssh/terminal"
+	_ "modernc.org/sqlite"
 )
 
 const usage = `usage: autobrrctl --config path <action>
@@ -131,7 +132,7 @@ func readPassword() ([]byte, error) {
 		password = scanner.Bytes()
 
 		if len(password) == 0 {
-			return nil, fmt.Errorf("zero length password")
+			return nil, errors.New("zero length password")
 		}
 	}
 

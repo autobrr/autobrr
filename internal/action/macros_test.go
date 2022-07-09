@@ -2,10 +2,12 @@ package action
 
 import (
 	"fmt"
-	"github.com/autobrr/autobrr/internal/domain"
-	"github.com/stretchr/testify/assert"
 	"testing"
 	"time"
+
+	"github.com/autobrr/autobrr/internal/domain"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestMacros_Parse(t *testing.T) {
@@ -122,7 +124,7 @@ func TestMacros_Parse(t *testing.T) {
 				TorrentURL:  "https://some.site/download/fakeid",
 				Indexer:     "mock1",
 			},
-			args:    args{text: "{{.Indexer}}-{{.Year}}-race"},
+			args:    args{text: "{{.Indexer}}-{{.CurrentYear}}-race"},
 			want:    fmt.Sprintf("mock1-%v-race", currentTime.Year()),
 			wantErr: false,
 		},
@@ -152,13 +154,27 @@ func TestMacros_Parse(t *testing.T) {
 			want:    "movies-2160p-HDR",
 			wantErr: false,
 		},
+		{
+			name: "test_release_year_1",
+			release: domain.Release{
+				TorrentName: "This movie 2021",
+				TorrentURL:  "https://some.site/download/fakeid",
+				Indexer:     "mock1",
+				Resolution:  "2160p",
+				HDR:         []string{"HDR"},
+				Year:        2021,
+			},
+			args:    args{text: "movies-{{.Year}}"},
+			want:    "movies-2021",
+			wantErr: false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			m := NewMacro(tt.release)
 			got, err := m.Parse(tt.args.text)
 
-			assert.Equal(t, currentTime.Year(), m.Year)
+			assert.Equal(t, currentTime.Year(), m.CurrentYear)
 
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Parse() error = %v, wantErr %v", err, tt.wantErr)

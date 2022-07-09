@@ -2,7 +2,6 @@ package indexer
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"io/fs"
 	"os"
@@ -13,6 +12,7 @@ import (
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/internal/logger"
 	"github.com/autobrr/autobrr/internal/scheduler"
+	"github.com/autobrr/autobrr/pkg/errors"
 
 	"github.com/gosimple/slug"
 	"github.com/rs/zerolog"
@@ -24,6 +24,7 @@ type Service interface {
 	Update(ctx context.Context, indexer domain.Indexer) (*domain.Indexer, error)
 	Delete(ctx context.Context, id int) error
 	FindByFilterID(ctx context.Context, id int) ([]domain.Indexer, error)
+	FindByID(ctx context.Context, id int) (*domain.Indexer, error)
 	List(ctx context.Context) ([]domain.Indexer, error)
 	GetAll() ([]*domain.IndexerDefinition, error)
 	GetTemplates() ([]domain.IndexerDefinition, error)
@@ -52,7 +53,7 @@ type service struct {
 
 func NewService(log logger.Logger, config *domain.Config, repo domain.IndexerRepo, apiService APIService, scheduler scheduler.Service) Service {
 	return &service{
-		log:                       log.With().Str("service", "indexer").Logger(),
+		log:                       log.With().Str("module", "indexer").Logger(),
 		config:                    config,
 		repo:                      repo,
 		apiService:                apiService,
@@ -94,13 +95,14 @@ func (s *service) Store(ctx context.Context, indexer domain.Indexer) (*domain.In
 func (s *service) Update(ctx context.Context, indexer domain.Indexer) (*domain.Indexer, error) {
 	i, err := s.repo.Update(ctx, indexer)
 	if err != nil {
+		s.log.Error().Err(err).Msgf("could not update indexer: %+v", indexer)
 		return nil, err
 	}
 
 	// add to indexerInstances
 	err = s.updateIndexer(*i)
 	if err != nil {
-		s.log.Error().Stack().Err(err).Msgf("failed to add indexer: %v", indexer.Name)
+		s.log.Error().Err(err).Msgf("failed to add indexer: %v", indexer.Name)
 		return nil, err
 	}
 
@@ -110,26 +112,56 @@ func (s *service) Update(ctx context.Context, indexer domain.Indexer) (*domain.I
 		}
 	}
 
+	s.log.Debug().Msgf("successfully updated indexer: %v", indexer.Name)
+
 	return i, nil
 }
 
 func (s *service) Delete(ctx context.Context, id int) error {
-	if err := s.repo.Delete(ctx, id); err != nil {
+	indexer, err := s.repo.FindByID(ctx, id)
+	if err != nil {
 		return err
 	}
 
-	// TODO remove handler if needed
+	if err := s.repo.Delete(ctx, id); err != nil {
+		s.log.Error().Err(err).Msgf("could not delete indexer by id: %v", id)
+		return err
+	}
+
 	// remove from lookup tables
+	s.removeIndexer(*indexer)
 
 	return nil
 }
 
 func (s *service) FindByFilterID(ctx context.Context, id int) ([]domain.Indexer, error) {
-	return s.repo.FindByFilterID(ctx, id)
+	indexers, err := s.repo.FindByFilterID(ctx, id)
+	if err != nil {
+		s.log.Error().Err(err).Msgf("could not find indexers by filter id: %v", id)
+		return nil, err
+	}
+
+	return indexers, err
+}
+
+func (s *service) FindByID(ctx context.Context, id int) (*domain.Indexer, error) {
+	indexers, err := s.repo.FindByID(ctx, id)
+	if err != nil {
+		s.log.Error().Err(err).Msgf("could not find indexer by id: %v", id)
+		return nil, err
+	}
+
+	return indexers, err
 }
 
 func (s *service) List(ctx context.Context) ([]domain.Indexer, error) {
-	return s.repo.List(ctx)
+	indexers, err := s.repo.List(ctx)
+	if err != nil {
+		s.log.Error().Err(err).Msg("could not get indexer list")
+		return nil, err
+	}
+
+	return indexers, err
 }
 
 func (s *service) GetAll() ([]*domain.IndexerDefinition, error) {
@@ -154,6 +186,7 @@ func (s *service) GetAll() ([]*domain.IndexerDefinition, error) {
 func (s *service) mapIndexers() (map[string]*domain.IndexerDefinition, error) {
 	indexers, err := s.repo.List(context.Background())
 	if err != nil {
+		s.log.Error().Err(err).Msg("could not read indexer list")
 		return nil, err
 	}
 
@@ -264,6 +297,7 @@ func (s *service) Start() error {
 	// load all indexer definitions
 	err := s.LoadIndexerDefinitions()
 	if err != nil {
+		s.log.Error().Err(err).Msg("could not load indexer definitions")
 		return err
 	}
 
@@ -271,7 +305,7 @@ func (s *service) Start() error {
 		// load custom indexer definitions
 		err = s.LoadCustomIndexerDefinitions()
 		if err != nil {
-			return fmt.Errorf("could not load custom indexer definitions: %w", err)
+			return errors.Wrap(err, "could not load custom indexer definitions")
 		}
 	}
 
@@ -305,10 +339,16 @@ func (s *service) Start() error {
 	return nil
 }
 
-func (s *service) removeIndexer(indexer domain.Indexer) error {
-	delete(s.definitions, indexer.Identifier)
+func (s *service) removeIndexer(indexer domain.Indexer) {
+	// remove Torznab
+	if indexer.Implementation == "torznab" {
+		delete(s.torznabIndexers, indexer.Identifier)
+	}
 
-	return nil
+	// remove mapped definition
+	delete(s.mappedDefinitions, indexer.Identifier)
+
+	return
 }
 
 func (s *service) addIndexer(indexer domain.Indexer) error {
@@ -394,12 +434,12 @@ func (s *service) mapIRCServerDefinitionLookup(ircServer string, indexerDefiniti
 func (s *service) LoadIndexerDefinitions() error {
 	entries, err := fs.ReadDir(Definitions, "definitions")
 	if err != nil {
-		s.log.Fatal().Stack().Msgf("failed reading directory: %s", err)
+		s.log.Fatal().Err(err).Stack().Msg("failed reading directory")
 	}
 
 	if len(entries) == 0 {
-		s.log.Fatal().Stack().Msgf("failed reading directory: %s", err)
-		return err
+		s.log.Fatal().Err(err).Stack().Msg("failed reading directory")
+		return errors.Wrap(err, "could not read directory")
 	}
 
 	for _, f := range entries {
@@ -417,13 +457,13 @@ func (s *service) LoadIndexerDefinitions() error {
 		data, err := fs.ReadFile(Definitions, file)
 		if err != nil {
 			s.log.Error().Stack().Err(err).Msgf("failed reading file: %v", file)
-			return err
+			return errors.Wrap(err, "could not read file: %v", file)
 		}
 
 		err = yaml.Unmarshal(data, &d)
 		if err != nil {
 			s.log.Error().Stack().Err(err).Msgf("failed unmarshal file: %v", file)
-			return err
+			return errors.Wrap(err, "could not unmarshal file: %v", file)
 		}
 
 		if d.Implementation == "" {
@@ -454,7 +494,8 @@ func (s *service) LoadCustomIndexerDefinitions() error {
 
 	entries, err := outputDirRead.ReadDir(0)
 	if err != nil {
-		s.log.Fatal().Stack().Msgf("failed reading directory: %s", err)
+		s.log.Fatal().Err(err).Stack().Msg("failed reading directory")
+		return errors.Wrap(err, "could not read directory")
 	}
 
 	customCount := 0
@@ -474,13 +515,13 @@ func (s *service) LoadCustomIndexerDefinitions() error {
 		data, err := os.ReadFile(file)
 		if err != nil {
 			s.log.Error().Stack().Err(err).Msgf("failed reading file: %v", file)
-			return err
+			return errors.Wrap(err, "could not read file: %v", file)
 		}
 
 		var d *domain.IndexerDefinition
 		if err = yaml.Unmarshal(data, &d); err != nil {
 			s.log.Error().Stack().Err(err).Msgf("failed unmarshal file: %v", file)
-			return err
+			return errors.Wrap(err, "could not unmarshal file: %v", file)
 		}
 
 		if d == nil {

@@ -3,18 +3,17 @@ package red
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
 	"net/url"
 	"strconv"
 	"time"
-	
-	"github.com/rs/zerolog/log"
-	"golang.org/x/time/rate"
 
 	"github.com/autobrr/autobrr/internal/domain"
+	"github.com/autobrr/autobrr/pkg/errors"
+
+	"golang.org/x/time/rate"
 )
 
 type REDClient interface {
@@ -131,8 +130,7 @@ func (c *Client) Do(req *http.Request) (*http.Response, error) {
 func (c *Client) get(url string) (*http.Response, error) {
 	req, err := http.NewRequest(http.MethodGet, url, http.NoBody)
 	if err != nil {
-		log.Error().Err(err).Msgf("red client request error : %v", url)
-		return nil, err
+		return nil, errors.Wrap(err, "could not build request")
 	}
 
 	req.Header.Add("Authorization", c.APIKey)
@@ -140,8 +138,7 @@ func (c *Client) get(url string) (*http.Response, error) {
 
 	res, err := c.Do(req)
 	if err != nil {
-		log.Error().Err(err).Msgf("red client request error : %v", url)
-		return nil, err
+		return nil, errors.Wrap(err, "could not make request: %+v", req)
 	}
 
 	if res.StatusCode == http.StatusUnauthorized {
@@ -159,7 +156,7 @@ func (c *Client) get(url string) (*http.Response, error) {
 
 func (c *Client) GetTorrentByID(torrentID string) (*domain.TorrentBasic, error) {
 	if torrentID == "" {
-		return nil, fmt.Errorf("red client: must have torrentID")
+		return nil, errors.New("red client: must have torrentID")
 	}
 
 	var r TorrentDetailsResponse
@@ -168,23 +165,23 @@ func (c *Client) GetTorrentByID(torrentID string) (*domain.TorrentBasic, error) 
 	v.Add("id", torrentID)
 	params := v.Encode()
 
-	url := fmt.Sprintf("%v?action=torrent&%v", c.URL, params)
+	reqUrl := fmt.Sprintf("%v?action=torrent&%v", c.URL, params)
 
-	resp, err := c.get(url)
+	resp, err := c.get(reqUrl)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "could not get torrent by id: %v", torrentID)
 	}
 
 	defer resp.Body.Close()
 
 	body, readErr := ioutil.ReadAll(resp.Body)
 	if readErr != nil {
-		return nil, readErr
+		return nil, errors.Wrap(readErr, "could not read body")
 	}
 
 	err = json.Unmarshal(body, &r)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(readErr, "could not unmarshal body")
 	}
 
 	return &domain.TorrentBasic{
@@ -199,7 +196,7 @@ func (c *Client) GetTorrentByID(torrentID string) (*domain.TorrentBasic, error) 
 func (c *Client) TestAPI() (bool, error) {
 	resp, err := c.get(c.URL + "?action=index")
 	if err != nil {
-		return false, err
+		return false, errors.Wrap(err, "could not run test api")
 	}
 
 	defer resp.Body.Close()

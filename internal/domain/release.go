@@ -14,12 +14,12 @@ import (
 	"strings"
 	"time"
 
-	"golang.org/x/net/publicsuffix"
+	"github.com/autobrr/autobrr/pkg/errors"
 
 	"github.com/anacrolix/torrent/metainfo"
 	"github.com/dustin/go-humanize"
 	"github.com/moistari/rls"
-	"github.com/pkg/errors"
+	"golang.org/x/net/publicsuffix"
 )
 
 type ReleaseRepo interface {
@@ -92,6 +92,8 @@ type ReleaseActionStatus struct {
 	Status     ReleasePushStatus `json:"status"`
 	Action     string            `json:"action"`
 	Type       ActionType        `json:"type"`
+	Client     string            `json:"client"`
+	Filter     string            `json:"filter"`
 	Rejections []string          `json:"rejections"`
 	Timestamp  time.Time         `json:"timestamp"`
 	ReleaseID  int64             `json:"-"`
@@ -190,7 +192,6 @@ func (r *Release) ParseString(title string) {
 	r.Resolution = rel.Resolution
 	r.Season = rel.Series
 	r.Episode = rel.Episode
-	r.Group = rel.Group
 	r.Region = rel.Region
 	r.Audio = rel.Audio
 	r.AudioChannels = rel.Channels
@@ -202,6 +203,10 @@ func (r *Release) ParseString(title string) {
 
 	if r.Year == 0 {
 		r.Year = rel.Year
+	}
+
+	if r.Group == "" {
+		r.Group = rel.Group
 	}
 
 	r.ParseReleaseTagsString(r.ReleaseTags)
@@ -269,7 +274,7 @@ func (r *Release) DownloadTorrentFile() error {
 
 	jar, err := cookiejar.New(&cookiejar.Options{PublicSuffixList: publicsuffix.List})
 	if err != nil {
-		return err
+		return errors.Wrap(err, "could not create cookiejar")
 	}
 
 	customTransport := http.DefaultTransport.(*http.Transport).Clone()
@@ -300,7 +305,7 @@ func (r *Release) DownloadTorrentFile() error {
 	// retry logic
 
 	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("error downloading torrent (%v) file (%v) from '%v' - status code: %d", r.TorrentName, r.TorrentURL, r.Indexer, resp.StatusCode)
+		return errors.New("error downloading torrent (%v) file (%v) from '%v' - status code: %d", r.TorrentName, r.TorrentURL, r.Indexer, resp.StatusCode)
 	}
 
 	// Create tmp file
@@ -313,17 +318,17 @@ func (r *Release) DownloadTorrentFile() error {
 	// Write the body to file
 	_, err = io.Copy(tmpFile, resp.Body)
 	if err != nil {
-		return errors.Wrap(err, fmt.Sprintf("error writing downloaded file: %v", tmpFile.Name()))
+		return errors.Wrap(err, "error writing downloaded file: %v", tmpFile.Name())
 	}
 
 	meta, err := metainfo.LoadFromFile(tmpFile.Name())
 	if err != nil {
-		return errors.Wrap(err, fmt.Sprintf("metainfo could not load file contents: %v", tmpFile.Name()))
+		return errors.Wrap(err, "metainfo could not load file contents: %v", tmpFile.Name())
 	}
 
 	torrentMetaInfo, err := meta.UnmarshalInfo()
 	if err != nil {
-		return errors.Wrap(err, fmt.Sprintf("metainfo could not unmarshal info from torrent: %v", tmpFile.Name()))
+		return errors.Wrap(err, "metainfo could not unmarshal info from torrent: %v", tmpFile.Name())
 	}
 
 	r.TorrentTmpFile = tmpFile.Name()
@@ -331,8 +336,6 @@ func (r *Release) DownloadTorrentFile() error {
 	r.Size = uint64(torrentMetaInfo.TotalLength())
 
 	// remove file if fail
-
-	//log.Debug().Msgf("successfully downloaded file: %v", tmpFile.Name())
 
 	return nil
 }
@@ -466,6 +469,10 @@ func (r *Release) MapVars(def *IndexerDefinition, varMap map[string]string) erro
 		r.Resolution = resolution
 	}
 
+	if releaseGroup, err := getStringMapValue(varMap, "releaseGroup"); err == nil {
+		r.Group = releaseGroup
+	}
+
 	return nil
 }
 
@@ -479,7 +486,7 @@ func getStringMapValue(stringMap map[string]string, key string) (string, error) 
 		}
 	}
 
-	return "", fmt.Errorf("key was not found in map: %q", lowerKey)
+	return "", errors.New("key was not found in map: %q", lowerKey)
 }
 
 func SplitAny(s string, seps string) []string {

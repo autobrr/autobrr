@@ -5,6 +5,8 @@ import (
 
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/internal/logger"
+
+	"github.com/rs/zerolog"
 )
 
 type Service interface {
@@ -18,14 +20,14 @@ type Service interface {
 }
 
 type service struct {
-	log     logger.Logger
+	log     zerolog.Logger
 	repo    domain.NotificationRepo
 	senders []domain.NotificationSender
 }
 
 func NewService(log logger.Logger, repo domain.NotificationRepo) Service {
 	s := &service{
-		log:     log,
+		log:     log.With().Str("module", "notification").Logger(),
 		repo:    repo,
 		senders: []domain.NotificationSender{},
 	}
@@ -36,16 +38,29 @@ func NewService(log logger.Logger, repo domain.NotificationRepo) Service {
 }
 
 func (s *service) Find(ctx context.Context, params domain.NotificationQueryParams) ([]domain.Notification, int, error) {
-	return s.repo.Find(ctx, params)
+	n, count, err := s.repo.Find(ctx, params)
+	if err != nil {
+		s.log.Error().Err(err).Msgf("could not find notification with params: %+v", params)
+		return nil, 0, err
+	}
+
+	return n, count, err
 }
 
 func (s *service) FindByID(ctx context.Context, id int) (*domain.Notification, error) {
-	return s.repo.FindByID(ctx, id)
+	n, err := s.repo.FindByID(ctx, id)
+	if err != nil {
+		s.log.Error().Err(err).Msgf("could not find notification by id: %v", id)
+		return nil, err
+	}
+
+	return n, err
 }
 
 func (s *service) Store(ctx context.Context, n domain.Notification) (*domain.Notification, error) {
 	_, err := s.repo.Store(ctx, n)
 	if err != nil {
+		s.log.Error().Err(err).Msgf("could not store notification: %+v", n)
 		return nil, err
 	}
 
@@ -61,6 +76,7 @@ func (s *service) Store(ctx context.Context, n domain.Notification) (*domain.Not
 func (s *service) Update(ctx context.Context, n domain.Notification) (*domain.Notification, error) {
 	_, err := s.repo.Update(ctx, n)
 	if err != nil {
+		s.log.Error().Err(err).Msgf("could not update notification: %+v", n)
 		return nil, err
 	}
 
@@ -76,6 +92,7 @@ func (s *service) Update(ctx context.Context, n domain.Notification) (*domain.No
 func (s *service) Delete(ctx context.Context, id int) error {
 	err := s.repo.Delete(ctx, id)
 	if err != nil {
+		s.log.Error().Err(err).Msgf("could not delete notification: %v", id)
 		return err
 	}
 
@@ -91,6 +108,7 @@ func (s *service) Delete(ctx context.Context, id int) error {
 func (s *service) registerSenders() {
 	senders, err := s.repo.List(context.Background())
 	if err != nil {
+		s.log.Error().Err(err).Msg("could not find notifications")
 		return
 	}
 

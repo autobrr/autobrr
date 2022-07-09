@@ -2,7 +2,6 @@ package irc
 
 import (
 	"context"
-	"fmt"
 	"strings"
 	"sync"
 
@@ -11,8 +10,9 @@ import (
 	"github.com/autobrr/autobrr/internal/logger"
 	"github.com/autobrr/autobrr/internal/notification"
 	"github.com/autobrr/autobrr/internal/release"
+	"github.com/autobrr/autobrr/pkg/errors"
 
-	"github.com/pkg/errors"
+	"github.com/rs/zerolog"
 )
 
 type Service interface {
@@ -29,7 +29,7 @@ type Service interface {
 }
 
 type service struct {
-	log                 logger.Logger
+	log                 zerolog.Logger
 	repo                domain.IrcRepo
 	releaseService      release.Service
 	indexerService      indexer.Service
@@ -43,7 +43,7 @@ type service struct {
 
 func NewService(log logger.Logger, repo domain.IrcRepo, releaseSvc release.Service, indexerSvc indexer.Service, notificationSvc notification.Service) Service {
 	return &service{
-		log:                 log,
+		log:                 log.With().Str("module", "irc").Logger(),
 		repo:                repo,
 		releaseService:      releaseSvc,
 		indexerService:      indexerSvc,
@@ -60,7 +60,7 @@ type handlerKey struct {
 func (s *service) StartHandlers() {
 	networks, err := s.repo.FindActiveNetworks(context.Background())
 	if err != nil {
-		s.log.Error().Msgf("failed to list networks: %v", err)
+		s.log.Error().Err(err).Msg("failed to list networks")
 	}
 
 	for _, network := range networks {
@@ -356,7 +356,7 @@ func (s *service) GetNetworkByID(ctx context.Context, id int64) (*domain.IrcNetw
 func (s *service) ListNetworks(ctx context.Context) ([]domain.IrcNetwork, error) {
 	networks, err := s.repo.ListNetworks(ctx)
 	if err != nil {
-		s.log.Error().Err(err).Msgf("failed to list networks: %v", err)
+		s.log.Error().Err(err).Msg("failed to list networks")
 		return nil, err
 	}
 
@@ -379,7 +379,7 @@ func (s *service) ListNetworks(ctx context.Context) ([]domain.IrcNetwork, error)
 func (s *service) GetNetworksWithHealth(ctx context.Context) ([]domain.IrcNetworkWithHealth, error) {
 	networks, err := s.repo.ListNetworks(ctx)
 	if err != nil {
-		s.log.Error().Err(err).Msgf("failed to list networks: %v", err)
+		s.log.Error().Err(err).Msg("failed to list networks")
 		return nil, err
 	}
 
@@ -469,6 +469,7 @@ func (s *service) GetNetworksWithHealth(ctx context.Context) ([]domain.IrcNetwor
 func (s *service) DeleteNetwork(ctx context.Context, id int64) error {
 	network, err := s.GetNetworkByID(ctx, id)
 	if err != nil {
+		s.log.Error().Stack().Err(err).Msgf("could not find network before delete: %v", network.Name)
 		return err
 	}
 
@@ -477,10 +478,12 @@ func (s *service) DeleteNetwork(ctx context.Context, id int64) error {
 	// Remove network and handler
 	//if err = s.StopNetwork(network.Server); err != nil {
 	if err = s.StopAndRemoveNetwork(handlerKey{network.Server, network.NickServ.Account}); err != nil {
+		s.log.Error().Stack().Err(err).Msgf("could not stop and delete network: %v", network.Name)
 		return err
 	}
 
 	if err = s.repo.DeleteNetwork(ctx, id); err != nil {
+		s.log.Error().Stack().Err(err).Msgf("could not delete network: %v", network.Name)
 		return err
 	}
 
@@ -509,7 +512,7 @@ func (s *service) UpdateNetwork(ctx context.Context, network *domain.IrcNetwork)
 		err := s.checkIfNetworkRestartNeeded(network)
 		if err != nil {
 			s.log.Error().Stack().Err(err).Msgf("could not restart network: %+v", network.Name)
-			return fmt.Errorf("could not restart network: %v", network.Name)
+			return errors.New("could not restart network: %v", network.Name)
 		}
 
 	} else {
@@ -517,7 +520,7 @@ func (s *service) UpdateNetwork(ctx context.Context, network *domain.IrcNetwork)
 		err := s.StopAndRemoveNetwork(handlerKey{network.Server, network.NickServ.Account})
 		if err != nil {
 			s.log.Error().Stack().Err(err).Msgf("could not stop network: %+v", network.Name)
-			return fmt.Errorf("could not stop network: %v", network.Name)
+			return errors.New("could not stop network: %v", network.Name)
 		}
 	}
 
@@ -585,7 +588,7 @@ func (s *service) StoreNetwork(ctx context.Context, network *domain.IrcNetwork) 
 		err := s.checkIfNetworkRestartNeeded(existingNetwork)
 		if err != nil {
 			s.log.Error().Err(err).Msgf("could not restart network: %+v", existingNetwork.Name)
-			return fmt.Errorf("could not restart network: %v", existingNetwork.Name)
+			return errors.New("could not restart network: %v", existingNetwork.Name)
 		}
 	}
 

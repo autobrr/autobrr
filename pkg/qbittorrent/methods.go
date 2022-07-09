@@ -2,18 +2,17 @@ package qbittorrent
 
 import (
 	"encoding/json"
-	"errors"
 	"io/ioutil"
 	"net/http"
 	"net/http/httputil"
 	"strconv"
 	"strings"
 
-	"github.com/rs/zerolog/log"
+	"github.com/autobrr/autobrr/pkg/errors"
 )
 
 // Login https://github.com/qbittorrent/qBittorrent/wiki/WebUI-API-(qBittorrent-4.1)#authentication
-func (c *Client) Login() error {
+func (c *client) Login() error {
 	opts := map[string]string{
 		"username": c.settings.Username,
 		"password": c.settings.Password,
@@ -21,15 +20,12 @@ func (c *Client) Login() error {
 
 	resp, err := c.postBasic("auth/login", opts)
 	if err != nil {
-		log.Error().Err(err).Msg("login error")
-		return err
+		return errors.Wrap(err, "login error")
 	} else if resp.StatusCode == http.StatusForbidden {
-		log.Error().Err(err).Msg("User's IP is banned for too many failed login attempts")
-		return err
+		return errors.New("User's IP is banned for too many failed login attempts")
 
 	} else if resp.StatusCode != http.StatusOK { // check for correct status code
-		log.Error().Err(err).Msgf("login bad status %v error", resp.StatusCode)
-		return errors.New("qbittorrent login bad status")
+		return errors.New("qbittorrent login bad status %v", resp.StatusCode)
 	}
 
 	defer resp.Body.Close()
@@ -54,65 +50,61 @@ func (c *Client) Login() error {
 		return errors.New("bad credentials")
 	}
 
+	c.log.Printf("logged into client: %v", c.Name)
+
 	return nil
 }
 
-func (c *Client) GetTorrents() ([]Torrent, error) {
+func (c *client) GetTorrents() ([]Torrent, error) {
 
 	resp, err := c.get("torrents/info", nil)
 	if err != nil {
-		log.Error().Err(err).Msg("get torrents error")
-		return nil, err
+		return nil, errors.Wrap(err, "get torrents error")
 	}
 
 	defer resp.Body.Close()
 
 	body, readErr := ioutil.ReadAll(resp.Body)
 	if readErr != nil {
-		log.Error().Err(err).Msg("get torrents read error")
-		return nil, readErr
+		return nil, errors.Wrap(readErr, "could not read body")
 	}
 
 	var torrents []Torrent
 	err = json.Unmarshal(body, &torrents)
 	if err != nil {
-		log.Error().Err(err).Msg("get torrents unmarshal error")
-		return nil, err
+		return nil, errors.Wrap(err, "could not unmarshal body")
 	}
 
 	return torrents, nil
 }
 
-func (c *Client) GetTorrentsFilter(filter TorrentFilter) ([]Torrent, error) {
+func (c *client) GetTorrentsFilter(filter TorrentFilter) ([]Torrent, error) {
 	opts := map[string]string{
 		"filter": string(filter),
 	}
 
 	resp, err := c.get("torrents/info", opts)
 	if err != nil {
-		log.Error().Err(err).Msgf("get filtered torrents error: %v", filter)
-		return nil, err
+		return nil, errors.Wrap(err, "could not get filtered torrents with filter: %v", filter)
 	}
 
 	defer resp.Body.Close()
 
 	body, readErr := ioutil.ReadAll(resp.Body)
 	if readErr != nil {
-		log.Error().Err(err).Msgf("get filtered torrents read error: %v", filter)
-		return nil, readErr
+		return nil, errors.Wrap(readErr, "could not read body")
 	}
 
 	var torrents []Torrent
 	err = json.Unmarshal(body, &torrents)
 	if err != nil {
-		log.Error().Err(err).Msgf("get filtered torrents unmarshal error: %v", filter)
-		return nil, err
+		return nil, errors.Wrap(err, "could not unmarshal body")
 	}
 
 	return torrents, nil
 }
 
-func (c *Client) GetTorrentsActiveDownloads() ([]Torrent, error) {
+func (c *client) GetTorrentsActiveDownloads() ([]Torrent, error) {
 	var filter = TorrentFilterDownloading
 
 	opts := map[string]string{
@@ -121,23 +113,20 @@ func (c *Client) GetTorrentsActiveDownloads() ([]Torrent, error) {
 
 	resp, err := c.get("torrents/info", opts)
 	if err != nil {
-		log.Error().Err(err).Msgf("get filtered torrents error: %v", filter)
-		return nil, err
+		return nil, errors.Wrap(err, "could not get active torrents")
 	}
 
 	defer resp.Body.Close()
 
 	body, readErr := ioutil.ReadAll(resp.Body)
 	if readErr != nil {
-		log.Error().Err(err).Msgf("get filtered torrents read error: %v", filter)
-		return nil, readErr
+		return nil, errors.Wrap(readErr, "could not read body")
 	}
 
 	var torrents []Torrent
 	err = json.Unmarshal(body, &torrents)
 	if err != nil {
-		log.Error().Err(err).Msgf("get filtered torrents unmarshal error: %v", filter)
-		return nil, err
+		return nil, errors.Wrap(readErr, "could not unmarshal body")
 	}
 
 	res := make([]Torrent, 0)
@@ -152,76 +141,72 @@ func (c *Client) GetTorrentsActiveDownloads() ([]Torrent, error) {
 	return res, nil
 }
 
-func (c *Client) GetTorrentsRaw() (string, error) {
+func (c *client) GetTorrentsRaw() (string, error) {
 	resp, err := c.get("torrents/info", nil)
 	if err != nil {
-		log.Error().Err(err).Msg("get torrent trackers raw error")
-		return "", err
+		return "", errors.Wrap(err, "could not get torrents raw")
 	}
 
 	defer resp.Body.Close()
 
-	data, _ := ioutil.ReadAll(resp.Body)
+	data, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return "", errors.Wrap(err, "could not get read body torrents raw")
+	}
 
 	return string(data), nil
 }
 
-func (c *Client) GetTorrentTrackers(hash string) ([]TorrentTracker, error) {
+func (c *client) GetTorrentTrackers(hash string) ([]TorrentTracker, error) {
 	opts := map[string]string{
 		"hash": hash,
 	}
 
 	resp, err := c.get("torrents/trackers", opts)
 	if err != nil {
-		log.Error().Err(err).Msgf("get torrent trackers error: %v", hash)
-		return nil, err
+		return nil, errors.Wrap(err, "could not get torrent trackers for hash: %v", hash)
 	}
 
 	defer resp.Body.Close()
 
 	dump, err := httputil.DumpResponse(resp, true)
 	if err != nil {
-		log.Error().Err(err).Msgf("get torrent trackers dump response error: %v", err)
+		//c.log.Printf("get torrent trackers error dump response: %v\n", string(dump))
+		return nil, errors.Wrap(err, "could not dump response for hash: %v", hash)
 	}
 
-	log.Trace().Msgf("get torrent trackers response dump: %v", string(dump))
+	c.log.Printf("get torrent trackers response dump: %q", dump)
 
 	if resp.StatusCode == http.StatusNotFound {
-		//return nil, fmt.Errorf("torrent not found: %v", hash)
 		return nil, nil
 	} else if resp.StatusCode == http.StatusForbidden {
-		//return nil, fmt.Errorf("torrent not found: %v", hash)
 		return nil, nil
 	}
 
 	body, readErr := ioutil.ReadAll(resp.Body)
 	if readErr != nil {
-		log.Error().Err(err).Msgf("get torrent trackers read error: %v", hash)
-		return nil, readErr
+		return nil, errors.Wrap(err, "could not read body")
 	}
 
-	log.Trace().Msgf("get torrent trackers body: %v", string(body))
+	c.log.Printf("get torrent trackers body: %v\n", string(body))
 
 	var trackers []TorrentTracker
 	err = json.Unmarshal(body, &trackers)
 	if err != nil {
-		log.Error().Err(err).Msgf("get torrent trackers: %v", hash)
-		return nil, err
+		return nil, errors.Wrap(err, "could not unmarshal body")
 	}
 
 	return trackers, nil
 }
 
 // AddTorrentFromFile add new torrent from torrent file
-func (c *Client) AddTorrentFromFile(file string, options map[string]string) error {
+func (c *client) AddTorrentFromFile(file string, options map[string]string) error {
 
 	res, err := c.postFile("torrents/add", file, options)
 	if err != nil {
-		log.Error().Err(err).Msgf("add torrents error: %v", file)
-		return err
+		return errors.Wrap(err, "could not add torrent %v", file)
 	} else if res.StatusCode != http.StatusOK {
-		log.Error().Err(err).Msgf("add torrents bad status: %v", file)
-		return err
+		return errors.Wrap(err, "could not add torrent %v unexpected status: %v", file, res.StatusCode)
 	}
 
 	defer res.Body.Close()
@@ -229,7 +214,7 @@ func (c *Client) AddTorrentFromFile(file string, options map[string]string) erro
 	return nil
 }
 
-func (c *Client) DeleteTorrents(hashes []string, deleteFiles bool) error {
+func (c *client) DeleteTorrents(hashes []string, deleteFiles bool) error {
 	// Add hashes together with | separator
 	hv := strings.Join(hashes, "|")
 
@@ -240,11 +225,9 @@ func (c *Client) DeleteTorrents(hashes []string, deleteFiles bool) error {
 
 	resp, err := c.get("torrents/delete", opts)
 	if err != nil {
-		log.Error().Err(err).Msgf("delete torrents error: %v", hashes)
-		return err
+		return errors.Wrap(err, "could not delete torrents: %+v", hashes)
 	} else if resp.StatusCode != http.StatusOK {
-		log.Error().Err(err).Msgf("delete torrents bad code: %v", hashes)
-		return err
+		return errors.Wrap(err, "could not delete torrents %v unexpected status: %v", hashes, resp.StatusCode)
 	}
 
 	defer resp.Body.Close()
@@ -252,7 +235,7 @@ func (c *Client) DeleteTorrents(hashes []string, deleteFiles bool) error {
 	return nil
 }
 
-func (c *Client) ReAnnounceTorrents(hashes []string) error {
+func (c *client) ReAnnounceTorrents(hashes []string) error {
 	// Add hashes together with | separator
 	hv := strings.Join(hashes, "|")
 	opts := map[string]string{
@@ -261,11 +244,9 @@ func (c *Client) ReAnnounceTorrents(hashes []string) error {
 
 	resp, err := c.get("torrents/reannounce", opts)
 	if err != nil {
-		log.Error().Err(err).Msgf("re-announce error: %v", hashes)
-		return err
+		return errors.Wrap(err, "could not re-announce torrents: %v", hashes)
 	} else if resp.StatusCode != http.StatusOK {
-		log.Error().Err(err).Msgf("re-announce error bad status: %v", hashes)
-		return err
+		return errors.Wrap(err, "could not re-announce torrents: %v unexpected status: %v", hashes, resp.StatusCode)
 	}
 
 	defer resp.Body.Close()
@@ -273,26 +254,23 @@ func (c *Client) ReAnnounceTorrents(hashes []string) error {
 	return nil
 }
 
-func (c *Client) GetTransferInfo() (*TransferInfo, error) {
+func (c *client) GetTransferInfo() (*TransferInfo, error) {
 	resp, err := c.get("transfer/info", nil)
 	if err != nil {
-		log.Error().Err(err).Msg("get torrents error")
-		return nil, err
+		return nil, errors.Wrap(err, "could not get transfer info")
 	}
 
 	defer resp.Body.Close()
 
 	body, readErr := ioutil.ReadAll(resp.Body)
 	if readErr != nil {
-		log.Error().Err(err).Msg("get torrents read error")
-		return nil, readErr
+		return nil, errors.Wrap(readErr, "could not read body")
 	}
 
 	var info TransferInfo
 	err = json.Unmarshal(body, &info)
 	if err != nil {
-		log.Error().Err(err).Msg("get torrents unmarshal error")
-		return nil, err
+		return nil, errors.Wrap(readErr, "could not unmarshal body")
 	}
 
 	return &info, nil

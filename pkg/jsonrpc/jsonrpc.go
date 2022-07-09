@@ -7,6 +7,8 @@ import (
 	"net/http"
 	"reflect"
 	"strconv"
+
+	"github.com/autobrr/autobrr/pkg/errors"
 )
 
 type Client interface {
@@ -110,12 +112,12 @@ func (c *rpcClient) Call(method string, params ...interface{}) (*RPCResponse, er
 func (c *rpcClient) newRequest(req interface{}) (*http.Request, error) {
 	body, err := json.Marshal(req)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "could not marshal request")
 	}
 
 	request, err := http.NewRequest("POST", c.endpoint, bytes.NewReader(body))
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "error creating request")
 	}
 	request.Header.Set("Content-Type", "application/json")
 	request.Header.Set("Accept", "application/json")
@@ -131,12 +133,12 @@ func (c *rpcClient) doCall(request RPCRequest) (*RPCResponse, error) {
 
 	httpRequest, err := c.newRequest(request)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "could not create rpc http request")
 	}
 
 	httpResponse, err := c.httpClient.Do(httpRequest)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "error during rpc http request")
 	}
 
 	defer httpResponse.Body.Close()
@@ -149,7 +151,7 @@ func (c *rpcClient) doCall(request RPCRequest) (*RPCResponse, error) {
 
 	if err != nil {
 		if httpResponse.StatusCode >= 400 {
-			return nil, fmt.Errorf("rpc call %v() on %v status code: %v. Could not decode body to rpc response: %v", request.Method, httpRequest.URL.String(), httpResponse.StatusCode, err.Error())
+			return nil, errors.Wrap(err, fmt.Sprintf("rpc call %v() on %v status code: %v. Could not decode body to rpc response", request.Method, httpRequest.URL.String(), httpResponse.StatusCode))
 		}
 		//	if res.StatusCode == http.StatusUnauthorized {
 		//		return nil, errors.New("unauthorized: bad credentials")
@@ -167,7 +169,7 @@ func (c *rpcClient) doCall(request RPCRequest) (*RPCResponse, error) {
 	}
 
 	if rpcResponse == nil {
-		return nil, fmt.Errorf("rpc call %v() on %v status code: %v. rpc response missing", request.Method, httpRequest.URL.String(), httpResponse.StatusCode)
+		return nil, errors.New("rpc call %v() on %v status code: %v. rpc response missing", request.Method, httpRequest.URL.String(), httpResponse.StatusCode)
 	}
 
 	return rpcResponse, nil
@@ -220,12 +222,12 @@ func Params(params ...interface{}) interface{} {
 func (r *RPCResponse) GetObject(toType interface{}) error {
 	js, err := json.Marshal(r.Result)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "could not marshal object")
 	}
 
 	err = json.Unmarshal(js, toType)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "could not unmarshal object")
 	}
 
 	return nil

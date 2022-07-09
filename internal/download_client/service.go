@@ -3,9 +3,13 @@ package download_client
 import (
 	"context"
 	"errors"
+	"log"
 
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/internal/logger"
+
+	"github.com/dcarbone/zadapters/zstdlog"
+	"github.com/rs/zerolog"
 )
 
 type Service interface {
@@ -18,23 +22,40 @@ type Service interface {
 }
 
 type service struct {
-	log  logger.Logger
-	repo domain.DownloadClientRepo
+	log       zerolog.Logger
+	repo      domain.DownloadClientRepo
+	subLogger *log.Logger
 }
 
 func NewService(log logger.Logger, repo domain.DownloadClientRepo) Service {
-	return &service{
-		log:  log,
+	s := &service{
+		log:  log.With().Str("module", "download_client").Logger(),
 		repo: repo,
 	}
+
+	s.subLogger = zstdlog.NewStdLoggerWithLevel(s.log.With().Logger(), zerolog.TraceLevel)
+
+	return s
 }
 
 func (s *service) List(ctx context.Context) ([]domain.DownloadClient, error) {
-	return s.repo.List(ctx)
+	clients, err := s.repo.List(ctx)
+	if err != nil {
+		s.log.Error().Err(err).Msg("could not list download clients")
+		return nil, err
+	}
+
+	return clients, nil
 }
 
 func (s *service) FindByID(ctx context.Context, id int32) (*domain.DownloadClient, error) {
-	return s.repo.FindByID(ctx, id)
+	client, err := s.repo.FindByID(ctx, id)
+	if err != nil {
+		s.log.Error().Err(err).Msgf("could not find download client by id: %v", id)
+		return nil, err
+	}
+
+	return client, nil
 }
 
 func (s *service) Store(ctx context.Context, client domain.DownloadClient) (*domain.DownloadClient, error) {
@@ -46,7 +67,13 @@ func (s *service) Store(ctx context.Context, client domain.DownloadClient) (*dom
 	}
 
 	// store
-	return s.repo.Store(ctx, client)
+	c, err := s.repo.Store(ctx, client)
+	if err != nil {
+		s.log.Error().Err(err).Msgf("could not store download client: %+v", client)
+		return nil, err
+	}
+
+	return c, err
 }
 
 func (s *service) Update(ctx context.Context, client domain.DownloadClient) (*domain.DownloadClient, error) {
@@ -57,12 +84,23 @@ func (s *service) Update(ctx context.Context, client domain.DownloadClient) (*do
 		return nil, errors.New("validation error: no type")
 	}
 
-	// store
-	return s.repo.Update(ctx, client)
+	// update
+	c, err := s.repo.Update(ctx, client)
+	if err != nil {
+		s.log.Error().Err(err).Msgf("could not update download client: %+v", client)
+		return nil, err
+	}
+
+	return c, err
 }
 
 func (s *service) Delete(ctx context.Context, clientID int) error {
-	return s.repo.Delete(ctx, clientID)
+	err := s.repo.Delete(ctx, clientID)
+	if err != nil {
+		s.log.Error().Err(err).Msgf("could not delete download client: %v", clientID)
+		return err
+	}
+	return nil
 }
 
 func (s *service) Test(client domain.DownloadClient) error {
@@ -75,7 +113,7 @@ func (s *service) Test(client domain.DownloadClient) error {
 
 	// test
 	if err := s.testConnection(client); err != nil {
-		s.log.Err(err).Msg("client connection test error")
+		s.log.Error().Err(err).Msg("client connection test error")
 		return err
 	}
 

@@ -1,8 +1,8 @@
 package sonarr
 
 import (
-	"errors"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -15,6 +15,7 @@ import (
 func Test_client_Push(t *testing.T) {
 	// disable logger
 	zerolog.SetGlobalLevel(zerolog.Disabled)
+	log.SetOutput(ioutil.Discard)
 
 	mux := http.NewServeMux()
 	ts := httptest.NewServer(mux)
@@ -119,6 +120,7 @@ func Test_client_Push(t *testing.T) {
 func Test_client_Test(t *testing.T) {
 	// disable logger
 	zerolog.SetGlobalLevel(zerolog.Disabled)
+	log.SetOutput(ioutil.Discard)
 
 	key := "mock-key"
 
@@ -139,11 +141,11 @@ func Test_client_Test(t *testing.T) {
 	defer srv.Close()
 
 	tests := []struct {
-		name    string
-		cfg     Config
-		want    *SystemStatusResponse
-		err     error
-		wantErr bool
+		name        string
+		cfg         Config
+		want        *SystemStatusResponse
+		expectedErr string
+		wantErr     bool
 	}{
 		{
 			name: "fetch",
@@ -154,9 +156,9 @@ func Test_client_Test(t *testing.T) {
 				Username:  "",
 				Password:  "",
 			},
-			want:    &SystemStatusResponse{Version: "3.0.6.1196"},
-			err:     nil,
-			wantErr: false,
+			want:        &SystemStatusResponse{Version: "3.0.6.1196"},
+			expectedErr: "",
+			wantErr:     false,
 		},
 		{
 			name: "fetch_unauthorized",
@@ -167,9 +169,9 @@ func Test_client_Test(t *testing.T) {
 				Username:  "",
 				Password:  "",
 			},
-			want:    nil,
-			wantErr: true,
-			err:     errors.New("unauthorized: bad credentials"),
+			want:        nil,
+			wantErr:     true,
+			expectedErr: "unauthorized: bad credentials",
 		},
 	}
 	for _, tt := range tests {
@@ -178,7 +180,7 @@ func Test_client_Test(t *testing.T) {
 
 			got, err := c.Test()
 			if tt.wantErr && assert.Error(t, err) {
-				assert.Equal(t, tt.err, err)
+				assert.EqualErrorf(t, err, tt.expectedErr, "Error should be: %v, got: %v", tt.wantErr, err)
 			}
 
 			assert.Equal(t, tt.want, got)

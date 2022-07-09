@@ -426,6 +426,24 @@ func TestRelease_MapVars(t *testing.T) {
 				definition: IndexerDefinition{Parse: &IndexerParse{ForceSizeUnit: "MB"}},
 			},
 		},
+		{
+			name:   "9",
+			fields: &Release{},
+			want: &Release{
+				TorrentName: "Greatest Anime Ever",
+				Year:        2022,
+				Group:       "GROUP1",
+				Tags:        []string{"comedy", "fantasy", "school.life", "shounen", "slice.of.life"},
+				Uploader:    "Tester",
+			},
+			args: args{varMap: map[string]string{
+				"torrentName":  "Greatest Anime Ever",
+				"year":         "2022",
+				"releaseGroup": "GROUP1",
+				"tags":         "comedy, fantasy, school.life, shounen, slice.of.life",
+				"uploader":     "Tester",
+			}},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

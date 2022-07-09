@@ -1,7 +1,6 @@
 package radarr
 
 import (
-	"errors"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
@@ -90,8 +89,6 @@ func Test_client_Push(t *testing.T) {
 				PublishDate:      "2021-08-21T15:36:00Z",
 			}},
 			rejections: []string{"Could not find Some Old Movie"},
-			//err:     errors.New("radarr push rejected Could not find Some Old Movie"),
-			//wantErr: true,
 		},
 		{
 			name: "push_error",
@@ -114,8 +111,6 @@ func Test_client_Push(t *testing.T) {
 				PublishDate:      "2021-08-21T15:36:00Z",
 			}},
 			rejections: []string{"Could not find Some Old Movie"},
-			//err:     errors.New("radarr push rejected Could not find Some Old Movie"),
-			//wantErr: true,
 		},
 		{
 			name: "push_parse_error",
@@ -137,8 +132,8 @@ func Test_client_Push(t *testing.T) {
 				Protocol:         "torrent",
 				PublishDate:      "2021-08-21T15:36:00Z",
 			}},
-			err:     errors.New("radarr: bad request:  (status: 400 Bad Request): [\n  {\n    \"propertyName\": \"Title\",\n    \"errorMessage\": \"Unable to parse\",\n    \"attemptedValue\": \"Minx 1 epi 9 2160p\",\n    \"severity\": \"error\"\n  }\n]\n"),
-			wantErr: true,
+			rejections: []string{"unable to parse: Minx 1 epi 9 2160p"},
+			wantErr:    false,
 		},
 	}
 	for _, tt := range tests {
@@ -177,11 +172,11 @@ func Test_client_Test(t *testing.T) {
 	defer srv.Close()
 
 	tests := []struct {
-		name    string
-		cfg     Config
-		want    *SystemStatusResponse
-		err     error
-		wantErr bool
+		name        string
+		cfg         Config
+		want        *SystemStatusResponse
+		expectedErr string
+		wantErr     bool
 	}{
 		{
 			name: "fetch",
@@ -192,9 +187,9 @@ func Test_client_Test(t *testing.T) {
 				Username:  "",
 				Password:  "",
 			},
-			want:    &SystemStatusResponse{Version: "3.2.2.5080"},
-			err:     nil,
-			wantErr: false,
+			want:        &SystemStatusResponse{Version: "3.2.2.5080"},
+			expectedErr: "",
+			wantErr:     false,
 		},
 		{
 			name: "fetch_unauthorized",
@@ -205,9 +200,9 @@ func Test_client_Test(t *testing.T) {
 				Username:  "",
 				Password:  "",
 			},
-			want:    nil,
-			wantErr: true,
-			err:     errors.New("unauthorized: bad credentials"),
+			want:        nil,
+			wantErr:     true,
+			expectedErr: "unauthorized: bad credentials",
 		},
 		{
 			name: "fetch_subfolder",
@@ -218,9 +213,9 @@ func Test_client_Test(t *testing.T) {
 				Username:  "",
 				Password:  "",
 			},
-			want:    &SystemStatusResponse{Version: "3.2.2.5080"},
-			err:     nil,
-			wantErr: false,
+			want:        &SystemStatusResponse{Version: "3.2.2.5080"},
+			expectedErr: "",
+			wantErr:     false,
 		},
 	}
 	for _, tt := range tests {
@@ -229,7 +224,7 @@ func Test_client_Test(t *testing.T) {
 
 			got, err := c.Test()
 			if tt.wantErr && assert.Error(t, err) {
-				assert.Equal(t, tt.err, err)
+				assert.EqualErrorf(t, err, tt.expectedErr, "Error should be: %v, got: %v", tt.wantErr, err)
 			}
 
 			assert.Equal(t, tt.want, got)

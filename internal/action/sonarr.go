@@ -5,10 +5,11 @@ import (
 	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
+	"github.com/autobrr/autobrr/pkg/errors"
 	"github.com/autobrr/autobrr/pkg/sonarr"
 )
 
-func (s *service) sonarr(release domain.Release, action domain.Action) ([]string, error) {
+func (s *service) sonarr(action domain.Action, release domain.Release) ([]string, error) {
 	s.log.Trace().Msg("action SONARR")
 
 	// TODO validate data
@@ -16,19 +17,19 @@ func (s *service) sonarr(release domain.Release, action domain.Action) ([]string
 	// get client for action
 	client, err := s.clientSvc.FindByID(context.TODO(), action.ClientID)
 	if err != nil {
-		s.log.Error().Err(err).Msgf("sonarr: error finding client: %v", action.ClientID)
-		return nil, err
+		return nil, errors.Wrap(err, "sonarr could not find client: %v", action.ClientID)
 	}
 
 	// return early if no client found
 	if client == nil {
-		return nil, err
+		return nil, errors.New("no client found")
 	}
 
 	// initial config
 	cfg := sonarr.Config{
 		Hostname: client.Host,
 		APIKey:   client.Settings.APIKey,
+		Log:      s.subLogger,
 	}
 
 	// only set basic auth if enabled
@@ -52,8 +53,7 @@ func (s *service) sonarr(release domain.Release, action domain.Action) ([]string
 
 	rejections, err := arr.Push(r)
 	if err != nil {
-		s.log.Error().Stack().Err(err).Msgf("sonarr: failed to push release: %v", r)
-		return nil, err
+		return nil, errors.Wrap(err, "sonarr: failed to push release: %v", r)
 	}
 
 	if rejections != nil {

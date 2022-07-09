@@ -1,9 +1,8 @@
 package mock
 
 import (
-	"fmt"
-
 	"github.com/autobrr/autobrr/internal/domain"
+	"github.com/autobrr/autobrr/pkg/errors"
 )
 
 type IndexerApiClient interface {
@@ -27,7 +26,7 @@ func NewMockClient(url string, apiKey string) IndexerApiClient {
 
 func (c *IndexerClient) GetTorrentByID(torrentID string) (*domain.TorrentBasic, error) {
 	if torrentID == "" {
-		return nil, fmt.Errorf("mock client: must have torrentID")
+		return nil, errors.New("mock client: must have torrentID")
 	}
 
 	r := &domain.TorrentBasic{

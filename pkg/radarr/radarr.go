@@ -2,12 +2,14 @@ package radarr
 
 import (
 	"encoding/json"
-	"errors"
+	"fmt"
+	"io"
+	"log"
 	"net/http"
 	"strings"
 	"time"
 
-	"github.com/rs/zerolog/log"
+	"github.com/autobrr/autobrr/pkg/errors"
 )
 
 type Config struct {
@@ -18,6 +20,8 @@ type Config struct {
 	BasicAuth bool
 	Username  string
 	Password  string
+
+	Log *log.Logger
 }
 
 type Client interface {
@@ -28,6 +32,8 @@ type Client interface {
 type client struct {
 	config Config
 	http   *http.Client
+
+	Log *log.Logger
 }
 
 func New(config Config) Client {
@@ -39,6 +45,11 @@ func New(config Config) Client {
 	c := &client{
 		config: config,
 		http:   httpClient,
+		Log:    config.Log,
+	}
+
+	if config.Log == nil {
+		c.Log = log.New(io.Discard, "", log.LstdFlags)
 	}
 
 	return c
@@ -65,11 +76,17 @@ type SystemStatusResponse struct {
 	Version string `json:"version"`
 }
 
+type BadRequestResponse struct {
+	PropertyName   string `json:"propertyName"`
+	ErrorMessage   string `json:"errorMessage"`
+	AttemptedValue string `json:"attemptedValue"`
+	Severity       string `json:"severity"`
+}
+
 func (c *client) Test() (*SystemStatusResponse, error) {
 	status, res, err := c.get("system/status")
 	if err != nil {
-		log.Error().Stack().Err(err).Msg("radarr client get error")
-		return nil, err
+		return nil, errors.Wrap(err, "radarr error running test")
 	}
 
 	if status == http.StatusUnauthorized {
@@ -79,11 +96,10 @@ func (c *client) Test() (*SystemStatusResponse, error) {
 	response := SystemStatusResponse{}
 	err = json.Unmarshal(res, &response)
 	if err != nil {
-		log.Error().Stack().Err(err).Msg("radarr client error json unmarshal")
-		return nil, err
+		return nil, errors.Wrap(err, "could not unmarshal data")
 	}
 
-	log.Trace().Msgf("radarr system/status response: %+v", response)
+	c.Log.Printf("radarr system/status status: (%v) response: %v\n", status, string(res))
 
 	return &response, nil
 }
@@ -91,24 +107,35 @@ func (c *client) Test() (*SystemStatusResponse, error) {
 func (c *client) Push(release Release) ([]string, error) {
 	status, res, err := c.postBody("release/push", release)
 	if err != nil {
-		log.Error().Stack().Err(err).Msgf("radarr client post error. status: %d", status)
-		return nil, err
+		return nil, errors.Wrap(err, "error push release")
+	}
+
+	c.Log.Printf("radarr release/push status: (%v) response: %v\n", status, string(res))
+
+	if status == http.StatusBadRequest {
+		badreqResponse := make([]*BadRequestResponse, 0)
+		err = json.Unmarshal(res, &badreqResponse)
+		if err != nil {
+			return nil, errors.Wrap(err, "could not unmarshal data")
+		}
+
+		if badreqResponse[0] != nil && badreqResponse[0].PropertyName == "Title" && badreqResponse[0].ErrorMessage == "Unable to parse" {
+			rejections := []string{fmt.Sprintf("unable to parse: %v", badreqResponse[0].AttemptedValue)}
+			return rejections, nil
+		}
 	}
 
 	pushResponse := make([]PushResponse, 0)
 	err = json.Unmarshal(res, &pushResponse)
 	if err != nil {
-		log.Error().Stack().Err(err).Msg("radarr client error json unmarshal")
-		return nil, err
+		return nil, errors.Wrap(err, "could not unmarshal data")
 	}
-
-	log.Trace().Msgf("radarr release/push response status: %v body: %+v", status, string(res))
 
 	// log and return if rejected
 	if pushResponse[0].Rejected {
 		rejections := strings.Join(pushResponse[0].Rejections, ", ")
 
-		log.Trace().Msgf("radarr push rejected: %s - reasons: %q", release.Title, rejections)
+		c.Log.Printf("radarr release/push rejected %v reasons: %q\n", release.Title, rejections)
 		return pushResponse[0].Rejections, nil
 	}
 

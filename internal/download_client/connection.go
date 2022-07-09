@@ -1,12 +1,10 @@
 package download_client
 
 import (
-	"fmt"
 	"time"
 
-	"github.com/pkg/errors"
-
 	"github.com/autobrr/autobrr/internal/domain"
+	"github.com/autobrr/autobrr/pkg/errors"
 	"github.com/autobrr/autobrr/pkg/lidarr"
 	"github.com/autobrr/autobrr/pkg/qbittorrent"
 	"github.com/autobrr/autobrr/pkg/radarr"
@@ -48,6 +46,7 @@ func (s *service) testQbittorrentConnection(client domain.DownloadClient) error 
 		Password:      client.Password,
 		TLS:           client.TLS,
 		TLSSkipVerify: client.TLSSkipVerify,
+		Log:           s.subLogger,
 	}
 
 	// only set basic auth if enabled
@@ -58,9 +57,14 @@ func (s *service) testQbittorrentConnection(client domain.DownloadClient) error 
 	}
 
 	qbt := qbittorrent.NewClient(qbtSettings)
-	err := qbt.Login()
+
+	if err := qbt.Login(); err != nil {
+		return errors.Wrap(err, "error logging into client: %v", client.Host)
+	}
+
+	_, err := qbt.GetTorrents()
 	if err != nil {
-		return errors.Wrap(err, fmt.Sprintf("error logging into client: %v", client.Host))
+		return errors.Wrap(err, "error getting torrents: %v", client.Host)
 	}
 
 	s.log.Debug().Msgf("test client connection for qBittorrent: success")
@@ -94,7 +98,7 @@ func (s *service) testDelugeConnection(client domain.DownloadClient) error {
 	// perform connection to Deluge server
 	err := deluge.Connect()
 	if err != nil {
-		return errors.Wrap(err, fmt.Sprintf("error logging into client: %v", client.Host))
+		return errors.Wrap(err, "error logging into client: %v", client.Host)
 	}
 
 	defer deluge.Close()
@@ -102,7 +106,7 @@ func (s *service) testDelugeConnection(client domain.DownloadClient) error {
 	// print daemon version
 	ver, err := deluge.DaemonVersion()
 	if err != nil {
-		return errors.Wrap(err, fmt.Sprintf("could not get daemon version: %v", client.Host))
+		return errors.Wrap(err, "could not get daemon version: %v", client.Host)
 	}
 
 	s.log.Debug().Msgf("test client connection for Deluge: success - daemon version: %v", ver)
@@ -117,11 +121,12 @@ func (s *service) testRadarrConnection(client domain.DownloadClient) error {
 		BasicAuth: client.Settings.Basic.Auth,
 		Username:  client.Settings.Basic.Username,
 		Password:  client.Settings.Basic.Password,
+		Log:       s.subLogger,
 	})
 
 	_, err := r.Test()
 	if err != nil {
-		return errors.Wrap(err, fmt.Sprintf("radarr: connection test failed: %v", client.Host))
+		return errors.Wrap(err, "radarr: connection test failed: %v", client.Host)
 	}
 
 	s.log.Debug().Msgf("test client connection for Radarr: success")
@@ -136,11 +141,12 @@ func (s *service) testSonarrConnection(client domain.DownloadClient) error {
 		BasicAuth: client.Settings.Basic.Auth,
 		Username:  client.Settings.Basic.Username,
 		Password:  client.Settings.Basic.Password,
+		Log:       s.subLogger,
 	})
 
 	_, err := r.Test()
 	if err != nil {
-		return errors.Wrap(err, fmt.Sprintf("sonarr: connection test failed: %v", client.Host))
+		return errors.Wrap(err, "sonarr: connection test failed: %v", client.Host)
 	}
 
 	s.log.Debug().Msgf("test client connection for Sonarr: success")
@@ -155,11 +161,12 @@ func (s *service) testLidarrConnection(client domain.DownloadClient) error {
 		BasicAuth: client.Settings.Basic.Auth,
 		Username:  client.Settings.Basic.Username,
 		Password:  client.Settings.Basic.Password,
+		Log:       s.subLogger,
 	})
 
 	_, err := r.Test()
 	if err != nil {
-		return errors.Wrap(err, fmt.Sprintf("lidarr: connection test failed: %v", client.Host))
+		return errors.Wrap(err, "lidarr: connection test failed: %v", client.Host)
 	}
 
 	s.log.Debug().Msgf("test client connection for Lidarr: success")
@@ -174,11 +181,12 @@ func (s *service) testWhisparrConnection(client domain.DownloadClient) error {
 		BasicAuth: client.Settings.Basic.Auth,
 		Username:  client.Settings.Basic.Username,
 		Password:  client.Settings.Basic.Password,
+		Log:       s.subLogger,
 	})
 
 	_, err := r.Test()
 	if err != nil {
-		return errors.Wrap(err, fmt.Sprintf("whisparr: connection test failed: %v", client.Host))
+		return errors.Wrap(err, "whisparr: connection test failed: %v", client.Host)
 	}
 
 	s.log.Debug().Msgf("test client connection for whisparr: success")

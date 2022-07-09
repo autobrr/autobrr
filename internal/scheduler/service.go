@@ -1,11 +1,11 @@
 package scheduler
 
 import (
-	"fmt"
-
 	"github.com/autobrr/autobrr/internal/logger"
+	"github.com/autobrr/autobrr/pkg/errors"
 
 	"github.com/robfig/cron/v3"
+	"github.com/rs/zerolog"
 )
 
 type Service interface {
@@ -17,7 +17,7 @@ type Service interface {
 }
 
 type service struct {
-	log  logger.Logger
+	log  zerolog.Logger
 	cron *cron.Cron
 
 	jobs map[string]cron.EntryID
@@ -25,7 +25,7 @@ type service struct {
 
 func NewService(log logger.Logger) Service {
 	return &service{
-		log: log,
+		log: log.With().Str("module", "scheduler").Logger(),
 		cron: cron.New(cron.WithChain(
 			cron.Recover(cron.DefaultLogger),
 		)),
@@ -51,7 +51,7 @@ func (s *service) AddJob(job cron.Job, interval string, identifier string) (int,
 		cron.SkipIfStillRunning(cron.DiscardLogger)).Then(job),
 	)
 	if err != nil {
-		return 0, fmt.Errorf("scheduler: add job failed: %w", err)
+		return 0, errors.Wrap(err, "scheduler: add job failed")
 	}
 
 	s.log.Debug().Msgf("scheduler.AddJob: job successfully added: %v", id)
