@@ -114,7 +114,7 @@ func (j *TorznabJob) getFeed() ([]torznab.FeedItem, error) {
 		}
 
 		exists, err := j.Repo.Exists(j.Name, i.GUID)
-		if err == nil {
+		if err != nil {
 			j.Log.Error().Err(err).Msg("could not check if item exists")
 			continue
 		}
