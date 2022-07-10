@@ -153,6 +153,12 @@ func (s *service) watchFolder(action domain.Action, release domain.Release) erro
 	_, tmpFileName := path.Split(release.TorrentTmpFile)
 	fullFileName := path.Join(watchFolderArgs, tmpFileName+".torrent")
 
+	// Create folder
+	err := os.MkdirAll(watchFolderArgs, os.ModePerm);
+	if err != nil {
+		return errors.Wrap(err, "could not create new folders %v", fullFileName)
+	}
+	
 	// Create new file
 	newFile, err := os.Create(fullFileName)
 	if err != nil {
