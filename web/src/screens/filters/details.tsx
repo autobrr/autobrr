@@ -819,6 +819,35 @@ function FilterActionsItem({ action, clients, idx, remove }: FilterActionsItemPr
           </div>
         </div>
       );
+      case "TRANSMISSION":
+        return (
+          <div>
+            <div className="mt-6 grid grid-cols-12 gap-6">
+              <DownloadClientSelect
+                name={`actions.${idx}.client_id`}
+                action={action}
+                clients={clients}
+              />
+
+              <div className="col-span-12 sm:col-span-6">
+                <TextField
+                  name={`actions.${idx}.save_path`}
+                  label="Save path"
+                  columns={6}
+                />
+              </div>
+            </div>
+
+            <div className="mt-6 grid grid-cols-12 gap-6">
+              <div className="col-span-6">
+                <SwitchGroup
+                  name={`actions.${idx}.paused`}
+                  label="Add paused"
+                />
+              </div>
+            </div>
+          </div>
+        );
     case "RADARR":
     case "SONARR":
     case "LIDARR":
