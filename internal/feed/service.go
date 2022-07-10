@@ -11,6 +11,7 @@ import (
 	"github.com/autobrr/autobrr/pkg/errors"
 	"github.com/autobrr/autobrr/pkg/torznab"
 
+	"github.com/dcarbone/zadapters/zstdlog"
 	"github.com/rs/zerolog"
 )
 
@@ -20,6 +21,7 @@ type Service interface {
 	Find(ctx context.Context) ([]domain.Feed, error)
 	Store(ctx context.Context, feed *domain.Feed) error
 	Update(ctx context.Context, feed *domain.Feed) error
+	Test(ctx context.Context, feed *domain.Feed) error
 	ToggleEnabled(ctx context.Context, id int, enabled bool) error
 	Delete(ctx context.Context, id int) error
 
@@ -199,6 +201,28 @@ func (s *service) toggleEnabled(ctx context.Context, id int, enabled bool) error
 	return nil
 }
 
+func (s *service) Test(ctx context.Context, feed *domain.Feed) error {
+
+	subLogger := zstdlog.NewStdLoggerWithLevel(s.log.With().Logger(), zerolog.DebugLevel)
+
+	// setup torznab Client
+	c := torznab.NewClient(torznab.Config{Host: feed.URL, ApiKey: feed.ApiKey, Log: subLogger})
+	caps, err := c.GetCaps()
+	if err != nil {
+		s.log.Error().Err(err).Msg("error testing feed")
+		return err
+	}
+
+	if caps == nil {
+		s.log.Error().Msg("could not test feed and get caps")
+		return errors.New("could not test feed and get caps")
+	}
+
+	s.log.Debug().Msgf("test successful - connected to feed: %+v", feed.URL)
+
+	return nil
+}
+
 func (s *service) Start() error {
 	// get all torznab indexer definitions
 	feeds, err := s.repo.Find(context.TODO())
@@ -286,7 +310,7 @@ func (s *service) addTorznabJob(f feedInstance) error {
 	l := s.log.With().Str("feed", f.Name).Logger()
 
 	// setup torznab Client
-	c := torznab.NewClient(f.URL, f.ApiKey)
+	c := torznab.NewClient(torznab.Config{Host: f.URL, ApiKey: f.ApiKey})
 
 	// create job
 	job := NewTorznabJob(f.Name, f.IndexerIdentifier, l, f.URL, c, s.cacheRepo, s.releaseSvc)

@@ -7,6 +7,8 @@ import { SlideOver } from "../../components/panels";
 import { NumberFieldWide, PasswordFieldWide, SwitchGroupWide, TextFieldWide } from "../../components/inputs";
 import { ImplementationMap } from "../../screens/settings/Feed";
 import { componentMapType } from "./DownloadClientForms";
+import { sleep } from "../../utils";
+import { useState } from "react";
 
 interface UpdateProps {
   isOpen: boolean;
@@ -15,6 +17,10 @@ interface UpdateProps {
 }
 
 export function FeedUpdateForm({ isOpen, toggle, feed }: UpdateProps) {
+  const [isTesting, setIsTesting] = useState(false);
+  const [isTestSuccessful, setIsSuccessfulTest] = useState(false);
+  const [isTestError, setIsErrorTest] = useState(false);
+
   const mutation = useMutation(
     (feed: Feed) => APIClient.feeds.update(feed),
     {
@@ -26,6 +32,10 @@ export function FeedUpdateForm({ isOpen, toggle, feed }: UpdateProps) {
     }
   );
 
+  const onSubmit = (formData: unknown) => {
+    mutation.mutate(formData as Feed);
+  };
+
   const deleteMutation = useMutation(
     (feedID: number) => APIClient.feeds.delete(feedID),
     {
@@ -36,12 +46,43 @@ export function FeedUpdateForm({ isOpen, toggle, feed }: UpdateProps) {
     }
   );
 
-  const onSubmit = (formData: unknown) => {
-    mutation.mutate(formData as Feed);
-  };
 
   const deleteAction = () => {
     deleteMutation.mutate(feed.id);
+  };
+
+  const testFeedMutation = useMutation(
+    (feed: Feed) => APIClient.feeds.test(feed),
+    {
+      onMutate: () => {
+        setIsTesting(true);
+        setIsErrorTest(false);
+        setIsSuccessfulTest(false);
+      },
+      onSuccess: () => {
+        sleep(1000)
+          .then(() => {
+            setIsTesting(false);
+            setIsSuccessfulTest(true);
+          })
+          .then(() => {
+            sleep(2500).then(() => {
+              setIsSuccessfulTest(false);
+            });
+          });
+      },
+      onError: () => {
+        setIsTesting(false);
+        setIsErrorTest(true);
+        sleep(2500).then(() => {
+          setIsErrorTest(false);
+        });
+      }
+    }
+  );
+
+  const testFeed = (data: unknown) => {
+    testFeedMutation.mutate(data as Feed);
   };
 
   const initialValues = {
@@ -64,6 +105,10 @@ export function FeedUpdateForm({ isOpen, toggle, feed }: UpdateProps) {
       onSubmit={onSubmit}
       deleteAction={deleteAction}
       initialValues={initialValues}
+      testFn={testFeed}
+      isTesting={isTesting}
+      isTestSuccessful={isTestSuccessful}
+      isTestError={isTestError}
     >
       {(values) => (
         <div>
