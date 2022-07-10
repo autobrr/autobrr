@@ -1,6 +1,7 @@
 package download_client
 
 import (
+	"context"
 	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
@@ -12,6 +13,7 @@ import (
 	"github.com/autobrr/autobrr/pkg/whisparr"
 
 	delugeClient "github.com/gdm85/go-libdeluge"
+	"github.com/hekmon/transmissionrpc/v2"
 )
 
 func (s *service) testConnection(client domain.DownloadClient) error {
@@ -21,6 +23,9 @@ func (s *service) testConnection(client domain.DownloadClient) error {
 
 	case domain.DownloadClientTypeDelugeV1, domain.DownloadClientTypeDelugeV2:
 		return s.testDelugeConnection(client)
+
+	case domain.DownloadClientTypeTransmission:
+		return s.testTransmissionConnection(client)
 
 	case domain.DownloadClientTypeRadarr:
 		return s.testRadarrConnection(client)
@@ -110,6 +115,31 @@ func (s *service) testDelugeConnection(client domain.DownloadClient) error {
 	}
 
 	s.log.Debug().Msgf("test client connection for Deluge: success - daemon version: %v", ver)
+
+	return nil
+}
+
+func (s *service) testTransmissionConnection(client domain.DownloadClient) error {
+	tbt, err := transmissionrpc.New(client.Host, client.Username, client.Password, &transmissionrpc.AdvancedConfig{
+		HTTPS: client.TLS,
+		Port:  uint16(client.Port),
+	})
+	if err != nil {
+		return errors.Wrap(err, "error logging into client: %v", client.Host)
+	}
+
+	ok, version, _, err := tbt.RPCVersion(context.TODO())
+	if err != nil {
+		return errors.Wrap(err, "error getting rpc info: %v", client.Host)
+	}
+
+	if !ok {
+		return errors.Wrap(err, "error getting rpc info: %v", client.Host)
+	}
+
+	s.log.Debug().Msgf("test client connection for Transmission: got version: %v", version)
+
+	s.log.Debug().Msgf("test client connection for Transmission: success")
 
 	return nil
 }

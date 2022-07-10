@@ -46,11 +46,12 @@ type BasicAuth struct {
 type DownloadClientType string
 
 const (
-	DownloadClientTypeQbittorrent DownloadClientType = "QBITTORRENT"
-	DownloadClientTypeDelugeV1    DownloadClientType = "DELUGE_V1"
-	DownloadClientTypeDelugeV2    DownloadClientType = "DELUGE_V2"
-	DownloadClientTypeRadarr      DownloadClientType = "RADARR"
-	DownloadClientTypeSonarr      DownloadClientType = "SONARR"
-	DownloadClientTypeLidarr      DownloadClientType = "LIDARR"
-	DownloadClientTypeWhisparr    DownloadClientType = "WHISPARR"
+	DownloadClientTypeQbittorrent  DownloadClientType = "QBITTORRENT"
+	DownloadClientTypeDelugeV1     DownloadClientType = "DELUGE_V1"
+	DownloadClientTypeDelugeV2     DownloadClientType = "DELUGE_V2"
+	DownloadClientTypeTransmission DownloadClientType = "TRANSMISSION"
+	DownloadClientTypeRadarr       DownloadClientType = "RADARR"
+	DownloadClientTypeSonarr       DownloadClientType = "SONARR"
+	DownloadClientTypeLidarr       DownloadClientType = "LIDARR"
+	DownloadClientTypeWhisparr     DownloadClientType = "WHISPARR"
 )

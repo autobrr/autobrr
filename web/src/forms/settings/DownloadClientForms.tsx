@@ -13,8 +13,7 @@ import { toast } from "react-hot-toast";
 import Toast from "../../components/notifications/Toast";
 import { useToggle } from "../../hooks/hooks";
 import { DeleteModal } from "../../components/modals";
-import { NumberFieldWide, PasswordFieldWide, SwitchGroupWide, TextFieldWide } from "../../components/inputs/input_wide";
-import { RadioFieldsetWide } from "../../components/inputs/radio";
+import { NumberFieldWide, PasswordFieldWide, SwitchGroupWide, TextFieldWide, RadioFieldsetWide } from "../../components/inputs";
 import DownloadClient from "../../screens/settings/DownloadClient";
 
 interface InitialValuesSettings {
@@ -137,6 +136,33 @@ function FormFieldsQbit() {
   );
 }
 
+function FormFieldsTransmission() {
+  const {
+    values: { tls }
+  } = useFormikContext<InitialValues>();
+
+  return (
+    <Fragment>
+      <TextFieldWide name="host" label="Host" help="Eg. client.domain.ltd, domain.ltd/client, domain.ltd"/>
+
+      <NumberFieldWide name="port" label="Port" help="Port for Transmission"/>
+
+      <div className="py-6 px-6 space-y-6 sm:py-0 sm:space-y-0 sm:divide-y sm:divide-gray-200 dark:divide-gray-700">
+        <SwitchGroupWide name="tls" label="TLS"/>
+
+        {tls && (
+          <Fragment>
+            <SwitchGroupWide name="tls_skip_verify" label="Skip TLS verification (insecure)"/>
+          </Fragment>
+        )}
+      </div>
+
+      <TextFieldWide name="username" label="Username"/>
+      <PasswordFieldWide name="password" label="Password"/>
+    </Fragment>
+  );
+}
+
 export interface componentMapType {
   [key: string]: React.ReactElement;
 }
@@ -145,6 +171,7 @@ export const componentMap: componentMapType = {
   DELUGE_V1: <FormFieldsDefault/>,
   DELUGE_V2: <FormFieldsDefault/>,
   QBITTORRENT: <FormFieldsQbit/>,
+  TRANSMISSION: <FormFieldsTransmission/>,
   RADARR: <FormFieldsArr/>,
   SONARR: <FormFieldsArr/>,
   LIDARR: <FormFieldsArr/>,
@@ -221,7 +248,7 @@ function FormFieldsRules() {
 export const rulesComponentMap: componentMapType = {
   DELUGE_V1: <FormFieldsRulesBasic/>,
   DELUGE_V2: <FormFieldsRulesBasic/>,
-  QBITTORRENT: <FormFieldsRules/>
+  QBITTORRENT: <FormFieldsRules/>,
 };
 
 interface formButtonsProps {
