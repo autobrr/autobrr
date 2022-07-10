@@ -17,7 +17,7 @@ type TorznabJob struct {
 	IndexerIdentifier string
 	Log               zerolog.Logger
 	URL               string
-	Client            *torznab.Client
+	Client            torznab.Client
 	Repo              domain.FeedCacheRepo
 	ReleaseSvc        release.Service
 
@@ -27,7 +27,7 @@ type TorznabJob struct {
 	JobID int
 }
 
-func NewTorznabJob(name string, indexerIdentifier string, log zerolog.Logger, url string, client *torznab.Client, repo domain.FeedCacheRepo, releaseSvc release.Service) *TorznabJob {
+func NewTorznabJob(name string, indexerIdentifier string, log zerolog.Logger, url string, client torznab.Client, repo domain.FeedCacheRepo, releaseSvc release.Service) *TorznabJob {
 	return &TorznabJob{
 		Name:              name,
 		IndexerIdentifier: indexerIdentifier,
