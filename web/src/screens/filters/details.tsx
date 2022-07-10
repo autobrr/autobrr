@@ -282,9 +282,9 @@ export default function FilterDetails() {
                 perfect_flac: filter.perfect_flac,
                 artists: filter.artists,
                 albums: filter.albums,
-                authors: filter.authors,
-                books: filter.books,
-                text_formats: filter.text_formats || [],
+                creators: filter.creators,
+                titles: filter.titles,
+                other_formats: filter.other_formats || [],
                 languages: filter.languages || [],
                 origins: filter.origins || [],
                 indexers: filter.indexers || [],
@@ -462,17 +462,17 @@ export function Books() {
   return (
     <div>
       <div className="mt-6 grid grid-cols-12 gap-6">
-        <TextField name="books" label="Books" columns={4} placeholder="eg. Book One" />
-        <TextField name="authors" label="Authors" columns={4} placeholder="eg. Author One" />
+        <TextField name="titles" label="Books" columns={4} placeholder="eg. Book One" />
+        <TextField name="creators" label="Authors" columns={4} placeholder="eg. Author One" />
         <TextField name="years" label="Years" columns={4} placeholder="eg. 2018,2019-2021" />
       </div>
 
       <div className="mt-6 lg:pb-8">
-        <TitleSubtitle title="Options" subtitle="Format and language" />
+        <TitleSubtitle title="Options" subtitle="Format and language." />
 
         <div className="mt-6 grid grid-cols-12 gap-6">
-          <MultiSelect name="text_formats" options={FORMATS_EBOOK_OPTIONS} label="Ebook Format" columns={6} />
-          <MultiSelect name="formats" options={FORMATS_AUDIOBOOK_OPTIONS} label="Audiobook Format" columns={6} />
+          <MultiSelect name="other_formats" options={FORMATS_EBOOK_OPTIONS} label="Ebook Format" columns={6} />
+          <MultiSelect name="other_formats" options={FORMATS_AUDIOBOOK_OPTIONS} label="Audiobook Format" columns={6} />
         </div>
 
         <div className="mt-6 grid grid-cols-12 gap-6">

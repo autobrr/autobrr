@@ -70,8 +70,8 @@ type Release struct {
 	Artists                     string                `json:"-"`
 	Type                        string                `json:"type"` // Album,Single,EP
 	LogScore                    int                   `json:"-"`
-	Author                      string                `json:"author"`
-	TextFormat                  []string              `json:"-"` // pdf,epub,mobi
+	Creator                     string                `json:"creator"`
+	OtherFormats                []string              `json:"-"` // pdf,epub,m4a,m4b,etc
 	IsScene                     bool                  `json:"-"`
 	Origin                      string                `json:"origin"` // P2P, Internal
 	Tags                        []string              `json:"-"`
@@ -240,8 +240,8 @@ func (r *Release) ParseReleaseTagsString(tags string) {
 	if len(t.Other) > 0 {
 		r.Other = append(r.Other, t.Other...)
 	}
-	if len(t.TextFormat) > 0 {
-		r.TextFormat = append(r.TextFormat, t.TextFormat...)
+	if len(t.OtherFormats) > 0 {
+		r.OtherFormats = append(r.OtherFormats, t.OtherFormats...)
 	}
 
 	if r.Container == "" && t.Container != "" {
@@ -482,8 +482,8 @@ func (r *Release) MapVars(def *IndexerDefinition, varMap map[string]string) erro
 		r.Language = language
 	}
 
-	if author, err := getStringMapValue(varMap, "author"); err == nil {
-		r.Author = author
+	if creator, err := getStringMapValue(varMap, "creator"); err == nil {
+		r.Creator = creator
 	}
 
 	return nil

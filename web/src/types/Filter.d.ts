@@ -33,9 +33,9 @@ interface Filter {
   years: string;
   artists: string;
   albums: string;
-  authors: string;
-  books: string;
-  text_formats: string[];
+  creators: string;
+  titles: string;
+  other_formats: string[];
   languages: string[]; 
   match_release_types: string[];
   except_release_types: string[];

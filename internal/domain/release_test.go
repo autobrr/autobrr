@@ -224,11 +224,11 @@ func TestRelease_Parse(t *testing.T) {
 				ReleaseTags: "epub, mobi",
 			},
 			want: Release{
-				TorrentName: "The Best Newspaper - [06 July 2022]",
-				ReleaseTags: "epub, mobi",
-				Title:       "The Best Newspaper",
-				Year:        2022,
-				TextFormat:  []string{"epub", "mobi"},
+				TorrentName:  "The Best Newspaper - [06 July 2022]",
+				ReleaseTags:  "epub, mobi",
+				Title:        "The Best Newspaper",
+				Year:         2022,
+				OtherFormats: []string{"epub", "mobi"},
 			},
 		},
 		{
@@ -463,7 +463,7 @@ func TestRelease_MapVars(t *testing.T) {
 			fields: &Release{},
 			want: &Release{
 				TorrentName: "The Best Journal - [06 July 2022]",
-				Author:      "Journal Writer",
+				Creator:      "Journal Writer",
 				Category:    "Ebooks - Magazines/Newspapers",
 				Language:    "English",
 			},

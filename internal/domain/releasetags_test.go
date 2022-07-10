@@ -49,10 +49,10 @@ func TestParseReleaseTagString(t *testing.T) {
 		{name: "movies_8", args: args{tags: "H.264, DVD, Freeleech!"}, want: ReleaseTags{Codec: "H.264", Source: "DVD", Bonus: []string{"Freeleech"}}},
 		{name: "anime_1", args: args{tags: "Web / MKV / h264 / 1080p / AAC 2.0 / Softsubs (SubsPlease) / Episode 22 / Freeleech"}, want: ReleaseTags{Audio: []string{"AAC"}, Channels: "2.0", Source: "WEB", Resolution: "1080p", Container: "mkv", Codec: "H.264", Bonus: []string{"Freeleech"}}},
 		{name: "anime_2", args: args{tags: "Web | ISO | h264 | 1080p | AAC 2.0 | Softsubs (SubsPlease) | Episode 22 | Freeleech"}, want: ReleaseTags{Audio: []string{"AAC"}, Channels: "2.0", Source: "WEB", Resolution: "1080p", Container: "iso", Codec: "H.264", Bonus: []string{"Freeleech"}}},
-		{name: "ln_1", args: args{tags: "Translated (Translation Group) / EPUB"}, want: ReleaseTags{TextFormat: []string{"epub"}}},
-		{name: "book_1", args: args{tags: "pdf"}, want: ReleaseTags{TextFormat: []string{"pdf"}}},
-		{name: "book_2", args: args{tags: "azw3"}, want: ReleaseTags{TextFormat: []string{"azw3"}}},
-		{name: "book_3", args: args{tags: "mobi"}, want: ReleaseTags{TextFormat: []string{"mobi"}}},
+		{name: "ln_1", args: args{tags: "Translated (Translation Group) / EPUB"}, want: ReleaseTags{OtherFormats: []string{"epub"}}},
+		{name: "book_1", args: args{tags: "pdf"}, want: ReleaseTags{OtherFormats: []string{"pdf"}}},
+		{name: "book_2", args: args{tags: "azw3"}, want: ReleaseTags{OtherFormats: []string{"azw3"}}},
+		{name: "book_3", args: args{tags: "mobi"}, want: ReleaseTags{OtherFormats: []string{"mobi"}}},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

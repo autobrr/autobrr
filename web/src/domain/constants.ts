@@ -186,14 +186,14 @@ export const formatText = [
 export const FORMATS_EBOOK_OPTIONS: MultiSelectOption[] = formatText.map(r => ({ value: r, label: r, key: r }));
 
 export const formatAudiobooks = [
-  "MP3",
-  "M4A",
-  "M4B",
-  "AAC",
-  "OGG",
-  "WMA",
-  "FLAC",
-  "WAV"
+  "mp3",
+  "m4a",
+  "m4b",
+  "aac",
+  "ogg",
+  "wma",
+  "flac",
+  "wav"
 ];
 
 export const FORMATS_AUDIOBOOK_OPTIONS: MultiSelectOption[] = formatAudiobooks.map(v => ({ value: v, label: v, key: v }));

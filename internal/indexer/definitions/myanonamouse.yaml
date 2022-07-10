@@ -48,7 +48,7 @@ parse:
       pattern: 'New Torrent: (.*) By: (.*) Category: \( (.*) \) Size: \( (.*) \) Filetype: \( (.*) \) Language: \( (.*) \) Link: \( (https?\:\/\/[^\/]+\/).*?(\d+)\s*\)\s*(VIP)?'
       vars:
         - torrentName
-        - author
+        - creator
         - category
         - torrentSize
         - releaseTags

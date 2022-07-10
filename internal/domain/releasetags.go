@@ -47,10 +47,6 @@ func init() {
 		{tag: "Log", title: "", regexp: "(?:log)", re: nil},
 		{tag: "LPCM", title: "Linear Pulse-Code Modulation", regexp: "", re: nil},
 		{tag: "MP3", title: "", regexp: "", re: nil},
-		{tag: "M4A", title: "", regexp: "", re: nil},
-		{tag: "M4B", title: "", regexp: "", re: nil},
-		{tag: "WMA", title: "", regexp: "", re: nil},
-		{tag: "WAV", title: "", regexp: "", re: nil},
 		{tag: "OGG", title: "", regexp: "", re: nil},
 		{tag: "OPUS", title: "", regexp: "", re: nil},
 		{tag: "TrueHD", title: "Dolby TrueHD", regexp: "(?:dolby[\\-\\._ ]?)?true[\\-\\._ ]?hd", re: nil},
@@ -190,7 +186,7 @@ func init() {
 	}
 	types["resolution"] = resolution
 
-	text := []*TagInfo{
+	other_formats := []*TagInfo{
 		{tag: "epub", title: "EPUB", regexp: "", re: nil},
 		{tag: "pdf", title: "Portable Document Format (PDF)", regexp: "", re: nil},
 		{tag: "mobi", title: "Mobipocket (MOBI)", regexp: "", re: nil},
@@ -211,8 +207,16 @@ func init() {
 		{tag: "txt", title: "Plain Text File", regexp: "", re: nil},
 		{tag: "rtf", title: "Rich Text Format", regexp: "", re: nil},
 		{tag: "xml", title: "Text Encoding Initiative (XML)", regexp: "", re: nil},
+		{tag: "mp3", title: "", regexp: "", re: nil},
+		{tag: "m4a", title: "", regexp: "", re: nil},
+		{tag: "m4b", title: "", regexp: "", re: nil},
+		{tag: "aac", title: "", regexp: "", re: nil},
+		{tag: "ogg", title: "", regexp: "", re: nil},
+		{tag: "wma", title: "", regexp: "", re: nil},
+		{tag: "flac", title: "", regexp: "", re: nil},
+		{tag: "wav", title: "", regexp: "", re: nil},
 	}
-	types["text"] = text
+	types["other_formats"] = other_formats
 
 	// language `(?i)\b((DK|DKSUBS|DANiSH|DUTCH|NL|NLSUBBED|ENG|FI|FLEMiSH|FiNNiSH|DE|FRENCH|GERMAN|HE|HEBREW|HebSub|HiNDi|iCELANDiC|KOR|MULTi|MULTiSUBS|NORWEGiAN|NO|NORDiC|PL|PO|POLiSH|PLDUB|RO|ROMANiAN|RUS|SPANiSH|SE|SWEDiSH|SWESUB||))\b`)
 	// websites `(?i)\b((AMBC|AS|AMZN|AMC|ANPL|ATVP|iP|CORE|BCORE|CMOR|CN|CBC|CBS|CMAX|CNBC|CC|CRIT|CR|CSPN|CW|DAZN|DCU|DISC|DSCP|DSNY|DSNP|DPLY|ESPN|FOX|FUNI|PLAY|HBO|HMAX|HIST|HS|HOTSTAR|HULU|iT|MNBC|MTV|NATG|NBC|NF|NICK|NRK|PMNT|PMNP|PCOK|PBS|PBSK|PSN|QIBI|SBS|SHO|STAN|STZ|SVT|SYFY|TLC|TRVL|TUBI|TV3|TV4|TVL|VH1|VICE|VMEO|UFC|USAN|VIAP|VIAPLAY|VL|WWEN|XBOX|YHOO|YT|RED))\b`)
@@ -295,16 +299,16 @@ func Find(infos ...*TagInfo) FindFunc {
 }
 
 type ReleaseTags struct {
-	Audio      []string
-	Channels   string
-	Source     string
-	Resolution string
-	Container  string
-	Codec      string
-	HDR        []string
-	Other      []string
-	Bonus      []string
-	TextFormat []string
+	Audio        []string
+	Channels     string
+	Source       string
+	Resolution   string
+	Container    string
+	Codec        string
+	HDR          []string
+	Other        []string
+	Bonus        []string
+	OtherFormats []string
 }
 
 func ParseReleaseTags(tags []string) ReleaseTags {
@@ -347,8 +351,8 @@ func ParseReleaseTags(tags []string) ReleaseTags {
 					case "resolution":
 						releaseTags.Resolution = info.Tag()
 						break
-					case "text":
-						releaseTags.TextFormat = append(releaseTags.TextFormat, info.Tag())
+					case "other_formats":
+						releaseTags.OtherFormats = append(releaseTags.OtherFormats, info.Tag())
 						continue
 					}
 					break
@@ -401,8 +405,8 @@ func ParseReleaseTagString(tags string) ReleaseTags {
 			case "resolution":
 				releaseTags.Resolution = info.Tag()
 				break
-			case "text":
-				releaseTags.TextFormat = append(releaseTags.TextFormat, info.Tag())
+			case "other_formats":
+				releaseTags.OtherFormats = append(releaseTags.OtherFormats, info.Tag())
 				continue
 			}
 			break
