@@ -2,6 +2,7 @@ type DownloadClientType =
     "QBITTORRENT" |
     "DELUGE_V1" |
     "DELUGE_V2" |
+    "TRANSMISSION" |
     "RADARR" |
     "SONARR" |
     "LIDARR" |

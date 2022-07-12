@@ -345,6 +345,20 @@ func (h *Handler) onConnect(m ircmsg.Message) {
 		// if authenticated and no invite command lets join
 		h.JoinChannels()
 
+		return
+	}
+
+	// if not authenticated, no nickserv pass but invite command, send invite command to trigger MODE change then join
+	if h.network.NickServ.Password == "" && h.network.InviteCommand != "" {
+		h.log.Trace().Msg("on connect invite command not empty: send connect commands")
+		if err := h.sendConnectCommands(h.network.InviteCommand); err != nil {
+			h.log.Error().Stack().Err(err).Msgf("error sending connect command %v", h.network.InviteCommand)
+			return
+		}
+
+		return
+
+		// if not authenticated but we do have a nick serv pass, send identify to trigger MODE change and then join
 	} else if h.network.NickServ.Password != "" {
 		h.log.Trace().Msg("on connect not authenticated and password not empty: send nickserv identify")
 		if err := h.NickServIdentify(h.network.NickServ.Password); err != nil {
@@ -354,21 +368,13 @@ func (h *Handler) onConnect(m ircmsg.Message) {
 
 		// return and wait for NOTICE of nickserv auth
 		return
-
-	} else if h.network.InviteCommand != "" {
-		h.log.Trace().Msg("on connect invite command not empty: send connect commands")
-		if err := h.sendConnectCommands(h.network.InviteCommand); err != nil {
-			h.log.Error().Stack().Err(err).Msgf("error sending connect command %v", h.network.InviteCommand)
-			return
-		}
-
-		return
-
-	} else {
-		// join channels if no password or no invite command
-		h.log.Trace().Msg("on connect - no nickserv or invite command: join channels")
-		h.JoinChannels()
 	}
+
+	// if no password nor invite command, join channels
+	h.log.Trace().Msg("on connect - no nickserv or invite command: join channels")
+	h.JoinChannels()
+
+	return
 }
 
 func (h *Handler) onDisconnect(m ircmsg.Message) {
@@ -764,7 +770,9 @@ func (h *Handler) handleMode(msg ircmsg.Message) {
 
 	// if our nick and user mode +r (Identifies the nick as being Registered (settable by services only)) then return
 	if h.isOurCurrentNick(msg.Params[0]) && strings.Contains(msg.Params[1], "+r") {
-		h.setAuthenticated()
+		if !h.authenticated {
+			h.setAuthenticated()
+		}
 
 		h.resetConnectErrors()
 		h.failedNickServAttempts = 0
@@ -776,8 +784,6 @@ func (h *Handler) handleMode(msg ircmsg.Message) {
 				h.log.Error().Stack().Err(err).Msgf("error sending connect command %v", h.network.InviteCommand)
 				return
 			}
-
-			return
 		}
 
 		time.Sleep(1 * time.Second)

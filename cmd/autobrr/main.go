@@ -88,7 +88,8 @@ func main() {
 
 	// setup services
 	var (
-		schedulingService     = scheduler.NewService(log)
+		notificationService   = notification.NewService(log, notificationRepo)
+		schedulingService     = scheduler.NewService(log, version, notificationService)
 		apiService            = indexer.NewAPIService(log)
 		userService           = user.NewService(userRepo)
 		authService           = auth.NewService(log, userService)
@@ -97,7 +98,6 @@ func main() {
 		indexerService        = indexer.NewService(log, cfg.Config, indexerRepo, apiService, schedulingService)
 		filterService         = filter.NewService(log, filterRepo, actionRepo, apiService, indexerService)
 		releaseService        = release.NewService(log, releaseRepo, actionService, filterService)
-		notificationService   = notification.NewService(log, notificationRepo)
 		ircService            = irc.NewService(log, ircRepo, releaseService, indexerService, notificationService)
 		feedService           = feed.NewService(log, feedRepo, feedCacheRepo, releaseService, schedulingService)
 	)

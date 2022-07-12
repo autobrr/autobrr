@@ -47,15 +47,16 @@ type Action struct {
 type ActionType string
 
 const (
-	ActionTypeTest        ActionType = "TEST"
-	ActionTypeExec        ActionType = "EXEC"
-	ActionTypeQbittorrent ActionType = "QBITTORRENT"
-	ActionTypeDelugeV1    ActionType = "DELUGE_V1"
-	ActionTypeDelugeV2    ActionType = "DELUGE_V2"
-	ActionTypeWatchFolder ActionType = "WATCH_FOLDER"
-	ActionTypeWebhook     ActionType = "WEBHOOK"
-	ActionTypeRadarr      ActionType = "RADARR"
-	ActionTypeSonarr      ActionType = "SONARR"
-	ActionTypeLidarr      ActionType = "LIDARR"
-	ActionTypeWhisparr    ActionType = "WHISPARR"
+	ActionTypeTest         ActionType = "TEST"
+	ActionTypeExec         ActionType = "EXEC"
+	ActionTypeQbittorrent  ActionType = "QBITTORRENT"
+	ActionTypeDelugeV1     ActionType = "DELUGE_V1"
+	ActionTypeDelugeV2     ActionType = "DELUGE_V2"
+	ActionTypeTransmission ActionType = "TRANSMISSION"
+	ActionTypeWatchFolder  ActionType = "WATCH_FOLDER"
+	ActionTypeWebhook      ActionType = "WEBHOOK"
+	ActionTypeRadarr       ActionType = "RADARR"
+	ActionTypeSonarr       ActionType = "SONARR"
+	ActionTypeLidarr       ActionType = "LIDARR"
+	ActionTypeWhisparr     ActionType = "WHISPARR"
 )
