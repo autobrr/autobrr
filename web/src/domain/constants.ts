@@ -305,7 +305,7 @@ export const downloadsPerUnitOptions: OptionBasic[] = [
 export interface SelectOption {
     label: string;
     description: string;
-    value: string;
+    value: NotificationEvent;
 }
 
 export const EventOptions: SelectOption[] = [
@@ -333,5 +333,10 @@ export const EventOptions: SelectOption[] = [
     label: "IRC Reconnected",
     value: "IRC_RECONNECTED",
     description: "Reconnected to irc network after error"
-  }
+  },
+  {
+    label: "New update",
+    value: "APP_UPDATE_AVAILABLE",
+    description: "Get notified on updates"
+  },
 ];

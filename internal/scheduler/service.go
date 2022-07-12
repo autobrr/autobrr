@@ -1,7 +1,10 @@
 package scheduler
 
 import (
+	"time"
+
 	"github.com/autobrr/autobrr/internal/logger"
+	"github.com/autobrr/autobrr/internal/notification"
 	"github.com/autobrr/autobrr/pkg/errors"
 
 	"github.com/robfig/cron/v3"
@@ -17,15 +20,19 @@ type Service interface {
 }
 
 type service struct {
-	log  zerolog.Logger
-	cron *cron.Cron
+	log             zerolog.Logger
+	version         string
+	notificationSvc notification.Service
 
+	cron *cron.Cron
 	jobs map[string]cron.EntryID
 }
 
-func NewService(log logger.Logger) Service {
+func NewService(log logger.Logger, version string, notificationSvc notification.Service) Service {
 	return &service{
-		log: log.With().Str("module", "scheduler").Logger(),
+		log:             log.With().Str("module", "scheduler").Logger(),
+		version:         version,
+		notificationSvc: notificationSvc,
 		cron: cron.New(cron.WithChain(
 			cron.Recover(cron.DefaultLogger),
 		)),
@@ -36,8 +43,27 @@ func NewService(log logger.Logger) Service {
 func (s *service) Start() {
 	s.log.Debug().Msg("scheduler.Start")
 
+	// start scheduler
 	s.cron.Start()
+
+	// init jobs
+	go s.addAppJobs()
+
 	return
+}
+
+func (s *service) addAppJobs() {
+	time.Sleep(5 * time.Second)
+
+	checkUpdates := &CheckUpdatesJob{
+		Name:             "app-check-updates",
+		Log:              s.log.With().Str("job", "app-check-updates").Logger(),
+		Version:          s.version,
+		NotifSvc:         s.notificationSvc,
+		lastCheckVersion: "",
+	}
+
+	s.AddJob(checkUpdates, "2 */6 * * *", "app-check-updates")
 }
 
 func (s *service) Stop() {
@@ -45,6 +71,7 @@ func (s *service) Stop() {
 	s.cron.Stop()
 	return
 }
+
 func (s *service) AddJob(job cron.Job, interval string, identifier string) (int, error) {
 
 	id, err := s.cron.AddJob(interval, cron.NewChain(
@@ -87,4 +114,15 @@ func (s *service) RemoveJobByIdentifier(id string) error {
 	delete(s.jobs, id)
 
 	return nil
+}
+
+type GenericJob struct {
+	Name string
+	Log  zerolog.Logger
+
+	callback func()
+}
+
+func (j *GenericJob) Run() {
+	j.callback()
 }
