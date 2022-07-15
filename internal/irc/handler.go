@@ -619,11 +619,6 @@ func (h *Handler) handlePart(msg ircmsg.Message) {
 
 	h.log.Debug().Msgf("PART channel %v", channel)
 
-	if err := h.client.Part(channel); err != nil {
-		h.log.Error().Err(err).Msgf("error handling part: %v", channel)
-		return
-	}
-
 	// reset monitoring status
 	v, ok := h.channelHealth[channel]
 	if !ok {
@@ -642,8 +637,7 @@ func (h *Handler) handlePart(msg ircmsg.Message) {
 func (h *Handler) PartChannel(channel string) error {
 	h.log.Debug().Msgf("PART channel %v", channel)
 
-	err := h.client.Part(channel)
-	if err != nil {
+	if err := h.client.Part(channel); err != nil {
 		h.log.Error().Err(err).Msgf("error handling part: %v", channel)
 		return err
 	}
@@ -670,23 +664,29 @@ func (h *Handler) handleJoined(msg ircmsg.Message) {
 	}
 
 	// get channel
-	channel := msg.Params[1]
+	channel := strings.ToLower(msg.Params[1])
 
 	h.log.Debug().Msgf("JOINED: %v", msg.Params[1])
 
+	// check if channel is valid and if not lets part
+	valid := h.isValidHandlerChannel(channel)
+	if !valid {
+		if err := h.PartChannel(channel); err != nil {
+			h.log.Error().Err(err).Msgf("error handling part for unwanted channel: %v", channel)
+			return
+		}
+		return
+	}
+
 	// set monitoring on current channelHealth, or add new
-	v, ok := h.channelHealth[strings.ToLower(channel)]
+	v, ok := h.channelHealth[channel]
 	if ok {
 		v.SetMonitoring()
 	} else if v == nil {
 		h.AddChannelHealth(channel)
 	}
 
-	valid := h.isValidChannel(channel)
-	if valid {
-		h.log.Info().Msgf("Monitoring channel %v", msg.Params[1])
-		return
-	}
+	h.log.Info().Msgf("Monitoring channel %v", msg.Params[1])
 }
 
 func (h *Handler) sendConnectCommands(msg string) error {
@@ -720,6 +720,14 @@ func (h *Handler) handleInvite(msg ircmsg.Message) {
 
 	// get channel
 	channel := msg.Params[1]
+
+	h.log.Trace().Msgf("INVITE from %v to join: %v ", msg.Nick(), channel)
+
+	validChannel := h.isValidHandlerChannel(channel)
+	if !validChannel {
+		h.log.Trace().Msgf("invite from %v to join: %v - invalid channel, skip joining", msg.Nick(), channel)
+		return
+	}
 
 	h.log.Debug().Msgf("INVITE from %v, joining %v", msg.Nick(), channel)
 
@@ -815,6 +823,24 @@ func (h *Handler) isValidChannel(channel string) bool {
 	}
 
 	return true
+}
+
+// check if channel is from definition or user defined
+func (h *Handler) isValidHandlerChannel(channel string) bool {
+	channel = strings.ToLower(channel)
+
+	_, ok := h.validChannels[channel]
+	if ok {
+		return true
+	}
+
+	for _, ircChannel := range h.network.Channels {
+		if channel == strings.ToLower(ircChannel.Name) {
+			return true
+		}
+	}
+
+	return false
 }
 
 // irc line can contain lots of extra stuff like color so lets clean that
