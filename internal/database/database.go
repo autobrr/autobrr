@@ -46,7 +46,7 @@ func NewDB(cfg *domain.Config, log logger.Logger) (*DB, error) {
 		db.DSN = fmt.Sprintf("postgres://%v:%v@%v:%d/%v?sslmode=disable", cfg.PostgresUser, cfg.PostgresPass, cfg.PostgresHost, cfg.PostgresPort, cfg.PostgresDatabase)
 		db.Driver = "postgres"
 	default:
-		return nil, errors.New("unsupported databse: %v", cfg.DatabaseType)
+		return nil, errors.New("unsupported database: %v", cfg.DatabaseType)
 	}
 
 	return db, nil
