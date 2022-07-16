@@ -31,7 +31,7 @@ port = 7474
 #
 # Default: "DEBUG"
 #
-# Options: "ERROR", "DEBUG", "INFO", "WARN"
+# Options: "ERROR", "DEBUG", "INFO", "WARN", "TRACE"
 #
 logLevel = "TRACE"
 

@@ -6,8 +6,8 @@ import (
 	"os"
 	"path"
 	"path/filepath"
-	"sync"
 	"strings"
+	"sync"
 
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/internal/logger"
@@ -81,7 +81,7 @@ port = 7474
 #
 # Default: "DEBUG"
 #
-# Options: "ERROR", "DEBUG", "INFO", "WARN"
+# Options: "ERROR", "DEBUG", "INFO", "WARN", "TRACE"
 #
 logLevel = "DEBUG"
 
