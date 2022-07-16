@@ -53,12 +53,11 @@ func (s *service) qbittorrent(action domain.Action, release domain.Release) ([]s
 		}
 
 		qbt = qbittorrent.NewClient(qbtSettings)
-
-		s.qbitClients[qbitKey{client.ID, client.Name}] = qbt
-
 		if err = qbt.Login(); err != nil {
 			return nil, errors.Wrap(err, "could not log into client: %v at %v", client.Name, client.Host)
 		}
+
+		s.qbitClients[qbitKey{client.ID, client.Name}] = qbt
 	}
 
 	if qbt == nil {
