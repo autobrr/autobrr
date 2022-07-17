@@ -30,39 +30,33 @@ func (s *service) qbittorrent(action domain.Action, release domain.Release) ([]s
 		return nil, errors.New("could not find client by id: %v", action.ClientID)
 	}
 
-	qbt, exists := s.qbitClients[qbitKey{client.ID, client.Name}]
-	if !exists {
-		qbtSettings := qbittorrent.Settings{
-			Name:          client.Name,
-			Hostname:      client.Host,
-			Port:          uint(client.Port),
-			Username:      client.Username,
-			Password:      client.Password,
-			TLS:           client.TLS,
-			TLSSkipVerify: client.TLSSkipVerify,
-		}
+	qbtSettings := qbittorrent.Settings{
+		Name:          client.Name,
+		Hostname:      client.Host,
+		Port:          uint(client.Port),
+		Username:      client.Username,
+		Password:      client.Password,
+		TLS:           client.TLS,
+		TLSSkipVerify: client.TLSSkipVerify,
+	}
 
-		// setup sub logger adapter which is compatible with *log.Logger
-		qbtSettings.Log = zstdlog.NewStdLoggerWithLevel(s.log.With().Str("type", "qBittorrent").Str("client", client.Name).Logger(), zerolog.TraceLevel)
+	// setup sub logger adapter which is compatible with *log.Logger
+	qbtSettings.Log = zstdlog.NewStdLoggerWithLevel(s.log.With().Str("type", "qBittorrent").Str("client", client.Name).Logger(), zerolog.TraceLevel)
 
-		// only set basic auth if enabled
-		if client.Settings.Basic.Auth {
-			qbtSettings.BasicAuth = client.Settings.Basic.Auth
-			qbtSettings.Basic.Username = client.Settings.Basic.Username
-			qbtSettings.Basic.Password = client.Settings.Basic.Password
-		}
+	// only set basic auth if enabled
+	if client.Settings.Basic.Auth {
+		qbtSettings.BasicAuth = client.Settings.Basic.Auth
+		qbtSettings.Basic.Username = client.Settings.Basic.Username
+		qbtSettings.Basic.Password = client.Settings.Basic.Password
+	}
 
-		qbt = qbittorrent.NewClient(qbtSettings)
+	qbt := qbittorrent.NewClient(qbtSettings)
 
-		s.qbitClients[qbitKey{client.ID, client.Name}] = qbt
-
+	// only login if we have a password
+	if qbtSettings.Password != "" {
 		if err = qbt.Login(); err != nil {
 			return nil, errors.Wrap(err, "could not log into client: %v at %v", client.Name, client.Host)
 		}
-	}
-
-	if qbt == nil {
-		return nil, errors.New("qbit client does not exist")
 	}
 
 	rejections, err := s.qbittorrentCheckRulesCanDownload(action, client, qbt)
@@ -157,7 +151,7 @@ func (s *service) prepareQbitOptions(action domain.Action, m Macro) (map[string]
 	return options, nil
 }
 
-func (s *service) qbittorrentCheckRulesCanDownload(action domain.Action, client *domain.DownloadClient, qbt qbittorrent.Client) ([]string, error) {
+func (s *service) qbittorrentCheckRulesCanDownload(action domain.Action, client *domain.DownloadClient, qbt *qbittorrent.Client) ([]string, error) {
 	s.log.Trace().Msgf("action qBittorrent: %v check rules", action.Name)
 
 	// check for active downloads and other rules
@@ -202,7 +196,7 @@ func (s *service) qbittorrentCheckRulesCanDownload(action domain.Action, client 
 	return nil, nil
 }
 
-func (s *service) reannounceTorrent(qb qbittorrent.Client, action domain.Action, hash string) error {
+func (s *service) reannounceTorrent(qb *qbittorrent.Client, action domain.Action, hash string) error {
 	announceOK := false
 	attempts := 0
 
