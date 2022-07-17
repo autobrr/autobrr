@@ -47,7 +47,7 @@ jobs:
           build-args: |
             BUILDTIME=${{ fromJSON(steps.meta.outputs.json).labels['org.opencontainers.image.created'] }}
             VERSION=${{ fromJSON(steps.meta.outputs.json).labels['org.opencontainers.image.version'] }}
-            REVISION=${{ github.sha }}
+            REVISION=${{ github.event.pull_request.head.sha }}
 
       - name: Image digest
         run: echo ${{ steps.docker_build.outputs.digest }}
