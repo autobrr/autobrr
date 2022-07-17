@@ -4,6 +4,7 @@ on:
   push:
     tags:
       - '*'
+  pull_request:
 
 permissions:
   contents: write
@@ -43,3 +44,9 @@ jobs:
           args: release --rm-dist
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload assets
+        uses: actions/upload-artifact@v3
+        with:
+          name: autobrr
+          path: dist/*
