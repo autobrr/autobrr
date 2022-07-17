@@ -63,7 +63,7 @@ const IrcSettingFields = (ind: IndexerDefinition, indexer: string) => {
       <Fragment>
         {ind && ind.irc && ind.irc.settings && (
           <div className="border-t border-gray-200 dark:border-gray-700 py-5">
-            <div className="px-6 space-y-1">
+            <div className="px-4 space-y-1">
               <Dialog.Title className="text-lg font-medium text-gray-900 dark:text-white">IRC</Dialog.Title>
               <p className="text-sm text-gray-500 dark:text-gray-200">
                 Networks, channels and invite commands are configured automatically.
@@ -94,7 +94,7 @@ const FeedSettingFields = (ind: IndexerDefinition, indexer: string) => {
       <Fragment>
         {ind && ind.torznab && ind.torznab.settings && (
           <div className="">
-            <div className="px-6 space-y-1">
+            <div className="px-4 space-y-1">
               <Dialog.Title className="text-lg font-medium text-gray-900 dark:text-white">Torznab</Dialog.Title>
               <p className="text-sm text-gray-500 dark:text-gray-200">
                 Torznab feed
@@ -329,13 +329,13 @@ export function IndexerAddForm({ isOpen, toggle }: AddProps) {
                         </div>
 
                         <div className="py-6 space-y-4 divide-y divide-gray-200 dark:divide-gray-700">
-                          <div className="py-4 flex items-center justify-between space-y-1 px-4 sm:space-y-0 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6 sm:py-5">
+                          <div className="py-4 flex items-center justify-between space-y-1 px-4 sm:space-y-0 sm:grid sm:grid-cols-3 sm:gap-4 sm:py-4">
                             <div>
                               <label
                                 htmlFor="identifier"
                                 className="block text-sm font-medium text-gray-900 dark:text-white"
                               >
-                                                                    Indexer
+                                Indexer
                               </label>
                             </div>
                             <div className="sm:col-span-2">
@@ -391,9 +391,7 @@ export function IndexerAddForm({ isOpen, toggle }: AddProps) {
                             </div>
                           </div>
 
-                          <div className="py-6 px-6 space-y-6 sm:py-0 sm:space-y-0 sm:divide-y sm:divide-gray-200">
-                            <SwitchGroupWide name="enabled" label="Enabled" />
-                          </div>
+                          <SwitchGroupWide name="enabled" label="Enabled" />
 
                           {SettingFields(indexer, values.identifier)}
 
@@ -504,7 +502,7 @@ export function IndexerUpdateForm({ isOpen, toggle, indexer }: UpdateProps) {
         ...o,
         [obj.name]: obj.value
       } as Record<string, string>),
-            {} as Record<string, string>
+      {} as Record<string, string>
     )
   };
 
@@ -519,16 +517,14 @@ export function IndexerUpdateForm({ isOpen, toggle, indexer }: UpdateProps) {
       initialValues={initialValues}
     >
       {() => (
-        <div className="py-6 space-y-6 sm:py-0 sm:space-y-0 divide-y divide-gray-200 dark:divide-gray-700">
-          <div className="space-y-1 px-4 sm:space-y-0 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6 sm:py-5">
-            <div>
-              <label
-                htmlFor="name"
-                className="block text-sm font-medium text-gray-900 dark:text-white sm:mt-px sm:pt-2"
-              >
-                                Name
-              </label>
-            </div>
+        <div className="py-2 space-y-6 sm:py-0 sm:space-y-0 divide-y divide-gray-200 dark:divide-gray-700">
+          <div className="space-y-1 p-4 sm:space-y-0 sm:grid sm:grid-cols-3 sm:gap-4">
+            <label
+              htmlFor="name"
+              className="block text-sm font-medium text-gray-900 dark:text-white sm:mt-px sm:pt-2"
+            >
+              Name
+            </label>
             <Field name="name">
               {({ field, meta }: FieldProps) => (
                 <div className="sm:col-span-2">
@@ -542,11 +538,7 @@ export function IndexerUpdateForm({ isOpen, toggle, indexer }: UpdateProps) {
               )}
             </Field>
           </div>
-
-          <div className="py-6 px-6 space-y-6 sm:py-0 sm:space-y-0 sm:divide-y sm:divide-gray-200 dark:sm:divide-gray-700">
-            <SwitchGroupWide name="enabled" label="Enabled" />
-          </div>
-
+          <SwitchGroupWide name="enabled" label="Enabled" />
           {renderSettingFields(indexer.settings)}
         </div>
       )}

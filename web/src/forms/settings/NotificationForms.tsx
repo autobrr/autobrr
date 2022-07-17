@@ -62,11 +62,11 @@ const Option = (props: OptionProps) => {
 
 function FormFieldsDiscord() {
   return (
-    <div className="border-t border-gray-200 dark:border-gray-700 py-5">
-      <div className="px-6 space-y-1">
+    <div className="border-t border-gray-200 dark:border-gray-700 py-4">
+      <div className="px-4 space-y-1">
         <Dialog.Title className="text-lg font-medium text-gray-900 dark:text-white">Settings</Dialog.Title>
         <p className="text-sm text-gray-500 dark:text-gray-400">
-          Create a <a href="https://support.discord.com/hc/en-us/articles/228383668-Intro-to-Webhooks" rel="noopener noreferrer" target="_blank" className="font-medium text-blue-500">webhook integration</a> in your server.
+          Create a <a href="https://support.discord.com/hc/en-us/articles/228383668-Intro-to-Webhooks" rel="noopener noreferrer" target="_blank" className="font-medium text-blue-500 underline underline-offset-1 hover:text-blue-400">webhook integration</a> in your server.
         </p>
       </div>
 
@@ -82,11 +82,11 @@ function FormFieldsDiscord() {
 
 function FormFieldsTelegram() {
   return (
-    <div className="border-t border-gray-200 dark:border-gray-700 py-5">
-      <div className="px-6 space-y-1">
+    <div className="border-t border-gray-200 dark:border-gray-700 py-4">
+      <div className="px-4 space-y-1">
         <Dialog.Title className="text-lg font-medium text-gray-900 dark:text-white">Settings</Dialog.Title>
         <p className="text-sm text-gray-500 dark:text-gray-400">
-          Read how to <a href="https://core.telegram.org/bots#3-how-do-i-create-a-bot" rel="noopener noreferrer" target="_blank" className="font-medium text-blue-500">create a bot</a>.
+          Read how to <a href="https://core.telegram.org/bots#3-how-do-i-create-a-bot" rel="noopener noreferrer" target="_blank" className="font-medium text-blue-500 underline underline-offset-1 hover:text-blue-400">create a bot</a>.
         </p>
       </div>
 
@@ -161,9 +161,15 @@ export function NotificationAddForm({ isOpen, toggle }: AddProps) {
 
   return (
     <Transition.Root show={isOpen} as={Fragment}>
-      <Dialog as="div" static className="fixed inset-0 overflow-hidden" open={isOpen} onClose={toggle}>
+      <Dialog
+        as="div"
+        static
+        className="fixed inset-0 overflow-hidden"
+        open={isOpen}
+        onClose={toggle}
+      >
         <div className="absolute inset-0 overflow-hidden">
-          <Dialog.Overlay className="absolute inset-0"/>
+          <Dialog.Overlay className="absolute inset-0" />
 
           <div className="fixed inset-y-0 right-0 pl-10 max-w-full flex sm:pl-16">
             <Transition.Child
@@ -208,16 +214,20 @@ export function NotificationAddForm({ isOpen, toggle }: AddProps) {
                                 onClick={toggle}
                               >
                                 <span className="sr-only">Close panel</span>
-                                <XIcon className="h-6 w-6" aria-hidden="true"/>
+                                <XIcon className="h-6 w-6" aria-hidden="true" />
                               </button>
                             </div>
                           </div>
                         </div>
 
-                        <TextFieldWide name="name" label="Name" required={true}/>
+                        <div className="flex flex-col space-y-4 px-1 py-6 sm:py-0 sm:space-y-0">
+                          <TextFieldWide
+                            name="name"
+                            label="Name"
+                            required={true}
+                          />
 
-                        <div className="space-y-4 divide-y divide-gray-200 dark:divide-gray-700">
-                          <div className="py-4 flex items-center justify-between space-y-1 px-4 sm:space-y-0 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6 sm:py-5">
+                          <div className="flex items-center justify-between space-y-1 px-4 sm:space-y-0 sm:grid sm:grid-cols-3 sm:gap-4">
                             <div>
                               <label
                                 htmlFor="type"
@@ -232,10 +242,16 @@ export function NotificationAddForm({ isOpen, toggle }: AddProps) {
                                   field,
                                   form: { setFieldValue, resetForm }
                                 }: FieldProps) => (
-                                  <Select {...field}
+                                  <Select
+                                    {...field}
                                     isClearable={true}
                                     isSearchable={true}
-                                    components={{ Input, Control, Menu, Option }}
+                                    components={{
+                                      Input,
+                                      Control,
+                                      Menu,
+                                      Option
+                                    }}
                                     placeholder="Choose a type"
                                     styles={{
                                       singleValue: (base) => ({
@@ -257,39 +273,39 @@ export function NotificationAddForm({ isOpen, toggle }: AddProps) {
 
                                       const opt = option as SelectOption;
                                       // setFieldValue("name", option?.label ?? "")
-                                      setFieldValue(field.name, opt.value ?? "");
+                                      setFieldValue(
+                                        field.name,
+                                        opt.value ?? ""
+                                      );
                                     }}
                                     options={NotificationTypeOptions}
                                   />
                                 )}
                               </Field>
-
                             </div>
                           </div>
 
-                          <div className="py-6 px-6 space-y-6 sm:py-0 sm:space-y-0 sm:divide-y sm:divide-gray-200">
-                            <SwitchGroupWide name="enabled" label="Enabled"/>
-                          </div>
+                          <SwitchGroupWide name="enabled" label="Enabled" />
 
-                          <div className="border-t border-gray-200 dark:border-gray-700 py-5">
-                            <div className="px-6 space-y-1">
-                              <Dialog.Title
-                                className="text-lg font-medium text-gray-900 dark:text-white">Events</Dialog.Title>
+                          <div className="border-t mt-2 border-gray-200 dark:border-gray-700 py-4">
+                            <div className="px-4 space-y-1">
+                              <Dialog.Title className="text-lg font-medium text-gray-900 dark:text-white">
+                                Events
+                              </Dialog.Title>
                               <p className="text-sm text-gray-500 dark:text-gray-400">
                                 Select what events to trigger on
                               </p>
                             </div>
 
-                            <div className="space-y-1 px-4 sm:space-y-0 sm:grid sm:gap-4 sm:px-6 sm:py-5">
+                            <div className="space-y-1 px-4 sm:space-y-0 sm:grid sm:gap-4 sm:py-4">
                               <EventCheckBoxes />
                             </div>
                           </div>
-
                         </div>
                         {componentMap[values.type]}
                       </div>
 
-                      <div className="flex-shrink-0 px-4 border-t border-gray-200 dark:border-gray-700 py-5 sm:px-6">
+                      <div className="flex-shrink-0 px-4 border-t border-gray-200 dark:border-gray-700 py-4 sm:px-6">
                         <div className="space-x-3 flex justify-end">
                           <button
                             type="button"
@@ -314,12 +330,11 @@ export function NotificationAddForm({ isOpen, toggle }: AddProps) {
                         </div>
                       </div>
 
-                      <DEBUG values={values}/>
+                      <DEBUG values={values} />
                     </Form>
                   )}
                 </Formik>
               </div>
-
             </Transition.Child>
           </div>
         </div>
@@ -432,8 +447,8 @@ export function NotificationUpdateForm({ isOpen, toggle, notification }: UpdateP
         <div>
           <TextFieldWide name="name" label="Name" required={true}/>
 
-          <div className="space-y-4 divide-y divide-gray-200 dark:divide-gray-700">
-            <div className="py-4 flex items-center justify-between space-y-1 px-4 sm:space-y-0 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6 sm:py-5">
+          <div className="space-y-2 divide-y divide-gray-200 dark:divide-gray-700">
+            <div className="py-4 flex items-center justify-between space-y-1 px-4 sm:space-y-0 sm:grid sm:grid-cols-3 sm:gap-4 sm:py-4">
               <div>
                 <label
                   htmlFor="type"
@@ -477,13 +492,9 @@ export function NotificationUpdateForm({ isOpen, toggle, notification }: UpdateP
                 </Field>
               </div>
             </div>
-
-            <div className="py-6 px-6 space-y-6 sm:py-0 sm:space-y-0 sm:divide-y sm:divide-gray-200">
-              <SwitchGroupWide name="enabled" label="Enabled"/>
-            </div>
-
-            <div className="border-t border-gray-200 dark:border-gray-700 py-5">
-              <div className="px-6 space-y-1">
+            <SwitchGroupWide name="enabled" label="Enabled"/>
+            <div className="border-t border-gray-200 dark:border-gray-700 py-4">
+              <div className="px-4 space-y-1">
                 <Dialog.Title
                   className="text-lg font-medium text-gray-900 dark:text-white">Events</Dialog.Title>
                 <p className="text-sm text-gray-500 dark:text-gray-400">
@@ -491,7 +502,7 @@ export function NotificationUpdateForm({ isOpen, toggle, notification }: UpdateP
                 </p>
               </div>
 
-              <div className="space-y-1 px-4 sm:space-y-0 sm:grid sm:gap-4 sm:px-6 sm:py-5">
+              <div className="space-y-1 px-4 sm:space-y-0 sm:grid sm:gap-4 sm:py-2">
                 <EventCheckBoxes />
               </div>
             </div>

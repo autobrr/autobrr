@@ -24,7 +24,7 @@ const ChannelsFieldArray = ({ channels }: ChannelsFieldArrayProps) => (
   <div className="p-6">
     <FieldArray name="channels">
       {({ remove, push }) => (
-        <div className="flex flex-col border-2 border-dashed dark:border-gray-700 p-4">
+        <div className="flex flex-col space-y-2 border-2 border-dashed dark:border-gray-700 p-4">
           {channels && channels.length > 0 ? (
             channels.map((_channel: IrcChannel, index: number) => (
               <div key={index} className="flex justify-between">
@@ -68,7 +68,7 @@ const ChannelsFieldArray = ({ channels }: ChannelsFieldArrayProps) => (
             ))
           ) : (
             <span className="text-center text-sm text-grey-darker dark:text-white">
-                            No channels!
+              No channels!
             </span>
           )}
           <button
@@ -76,7 +76,7 @@ const ChannelsFieldArray = ({ channels }: ChannelsFieldArrayProps) => (
             className="border dark:border-gray-600 dark:bg-gray-700 my-4 px-4 py-2 text-sm text-gray-700 dark:text-white hover:bg-gray-50 dark:hover:bg-gray-600 rounded self-center text-center"
             onClick={() => push({ name: "", password: "" })}
           >
-                        Add Channel
+            Add Channel
           </button>
         </div>
       )}
@@ -159,34 +159,47 @@ export function IrcNetworkAddForm({ isOpen, toggle }: AddFormProps) {
       validate={validate}
     >
       {(values) => (
-        <>
-          <TextFieldWide name="name" label="Name" placeholder="Name" required={true} />
+        <div className="flex flex-col space-y-4 px-1 py-6 sm:py-0 sm:space-y-0">
+          <TextFieldWide
+            name="name"
+            label="Name"
+            placeholder="Name"
+            required={true}
+          />
 
-          <div className="py-6 space-y-6 sm:py-0 sm:space-y-0 sm:divide-y dark:divide-gray-700">
-
-            <div className="py-6 px-6 space-y-6 sm:py-0 sm:space-y-0 sm:divide-y sm:divide-gray-200 dark:sm:divide-gray-700">
-              <SwitchGroupWide name="enabled" label="Enabled" />
-            </div>
-
-            <div>
-              <TextFieldWide name="server" label="Server" placeholder="Address: Eg irc.server.net" required={true} />
-              <NumberFieldWide name="port" label="Port" placeholder="Eg 6667" required={true} />
-
-              <div className="py-6 px-6 space-y-6 sm:py-0 sm:space-y-0 sm:divide-y sm:divide-gray-200">
-                <SwitchGroupWide name="tls" label="TLS" />
-              </div>
-
-              <PasswordFieldWide name="pass" label="Password" help="Network password" />
-
-              <TextFieldWide name="nickserv.account" label="NickServ Account" placeholder="NickServ Account" required={true} />
-              <PasswordFieldWide name="nickserv.password" label="NickServ Password" />
-
-              <PasswordFieldWide name="invite_command" label="Invite command" />
-            </div>
-          </div>
+          <SwitchGroupWide name="enabled" label="Enabled" />
+          <TextFieldWide
+            name="server"
+            label="Server"
+            placeholder="Address: Eg irc.server.net"
+            required={true}
+          />
+          <NumberFieldWide
+            name="port"
+            label="Port"
+            placeholder="Eg 6667"
+            required={true}
+          />
+          <SwitchGroupWide name="tls" label="TLS" />
+          <PasswordFieldWide
+            name="pass"
+            label="Password"
+            help="Network password"
+          />
+          <TextFieldWide
+            name="nickserv.account"
+            label="NickServ Account"
+            placeholder="NickServ Account"
+            required={true}
+          />
+          <PasswordFieldWide
+            name="nickserv.password"
+            label="NickServ Password"
+          />
+          <PasswordFieldWide name="invite_command" label="Invite command" />
 
           <ChannelsFieldArray channels={values.channels} />
-        </>
+        </div>
       )}
     </SlideOver>
   );
@@ -290,34 +303,51 @@ export function IrcNetworkUpdateForm({
       validate={validate}
     >
       {(values) => (
-        <>
-          <TextFieldWide name="name" label="Name" placeholder="Name" required={true} />
+        <div className="flex flex-col space-y-4 px-1 py-6 sm:py-0 sm:space-y-0">
+          <TextFieldWide
+            name="name"
+            label="Name"
+            placeholder="Name"
+            required={true}
+          />
 
-          <div className="py-6 space-y-6 sm:py-0 sm:space-y-0 sm:divide-y dark:divide-gray-700">
+          <SwitchGroupWide name="enabled" label="Enabled" />
+          <TextFieldWide
+            name="server"
+            label="Server"
+            placeholder="Address: Eg irc.server.net"
+            required={true}
+          />
+          <NumberFieldWide
+            name="port"
+            label="Port"
+            placeholder="Eg 6667"
+            required={true}
+          />
 
-            <div className="py-6 px-6 space-y-6 sm:py-0 sm:space-y-0">
-              <SwitchGroupWide name="enabled" label="Enabled" />
-            </div>
+          <SwitchGroupWide name="tls" label="TLS" />
 
-            <div>
-              <TextFieldWide name="server" label="Server" placeholder="Address: Eg irc.server.net" required={true} />
-              <NumberFieldWide name="port" label="Port" placeholder="Eg 6667" required={true} />
+          <PasswordFieldWide
+            name="pass"
+            label="Password"
+            help="Network password"
+          />
 
-              <div className="py-6 px-6 space-y-6 sm:py-0 sm:space-y-0 sm:divide-y sm:divide-gray-200">
-                <SwitchGroupWide name="tls" label="TLS" />
-              </div>
+          <TextFieldWide
+            name="nickserv.account"
+            label="NickServ Account"
+            placeholder="NickServ Account"
+            required={true}
+          />
+          <PasswordFieldWide
+            name="nickserv.password"
+            label="NickServ Password"
+          />
 
-              <PasswordFieldWide name="pass" label="Password" help="Network password" />
-
-              <TextFieldWide name="nickserv.account" label="NickServ Account" placeholder="NickServ Account" required={true} />
-              <PasswordFieldWide name="nickserv.password" label="NickServ Password" />
-
-              <PasswordFieldWide name="invite_command" label="Invite command" />
-            </div>
-          </div>
+          <PasswordFieldWide name="invite_command" label="Invite command" />
 
           <ChannelsFieldArray channels={values.channels} />
-        </>
+        </div>
       )}
     </SlideOver>
   );

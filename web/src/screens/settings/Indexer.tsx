@@ -82,7 +82,7 @@ function IndexerSettings() {
     return (<p>An error has occurred</p>);
 
   return (
-    <div className="divide-y divide-gray-200 lg:col-span-9">
+    <div className="lg:col-span-9">
 
       <IndexerAddForm isOpen={addIndexerIsOpen} toggle={toggleAddIndexer} />
 
