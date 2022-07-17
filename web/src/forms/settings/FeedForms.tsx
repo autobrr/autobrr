@@ -116,7 +116,7 @@ export function FeedUpdateForm({ isOpen, toggle, feed }: UpdateProps) {
 
           <div className="space-y-4 divide-y divide-gray-200 dark:divide-gray-700">
             <div
-              className="py-4 flex items-center justify-between space-y-1 px-4 sm:space-y-0 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6 sm:py-5">
+              className="py-4 flex items-center justify-between space-y-1 px-4 sm:space-y-0 sm:grid sm:grid-cols-3 sm:gap-4 sm:py-4">
               <div>
                 <label
                   htmlFor="type"

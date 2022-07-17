@@ -25,7 +25,7 @@ export const TextFieldWide = ({
   required,
   hidden
 }: TextFieldWideProps) => (
-  <div hidden={hidden} className="space-y-1 px-4 sm:space-y-0 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6 sm:py-5">
+  <div hidden={hidden} className="space-y-1 p-4 sm:space-y-0 sm:grid sm:grid-cols-3 sm:gap-4">
     <div>
       <label htmlFor={name} className="block text-sm font-medium text-gray-900 dark:text-white sm:mt-px sm:pt-2">
         {label} {required && <span className="text-gray-500">*</span>}
@@ -80,7 +80,7 @@ export const PasswordFieldWide = ({
   const [isVisible, toggleVisibility] = useToggle(defaultVisible);
 
   return (
-    <div className="space-y-1 px-4 sm:space-y-0 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6 sm:py-5">
+    <div className="space-y-1 p-4 sm:space-y-0 sm:grid sm:grid-cols-3 sm:gap-4">
       <div>
         <label htmlFor={name} className="block text-sm font-medium text-gray-900 dark:text-white sm:mt-px sm:pt-2">
           {label} {required && <span className="text-gray-500">*</span>}
@@ -134,7 +134,7 @@ export const NumberFieldWide = ({
   defaultValue,
   required
 }: NumberFieldWideProps) => (
-  <div className="px-4 space-y-1 sm:space-y-0 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6 sm:py-5">
+  <div className="px-4 space-y-1 sm:space-y-0 sm:grid sm:grid-cols-3 sm:gap-4 sm:py-4">
     <div>
       <label
         htmlFor={name}
@@ -187,7 +187,7 @@ export const SwitchGroupWide = ({
   description,
   defaultValue
 }: SwitchGroupWideProps) => (
-  <ul className="mt-2 divide-y divide-gray-200 dark:divide-gray-700">
+  <ul className="mt-2 px-4 divide-y divide-gray-200 dark:divide-gray-700">
     <Switch.Group as="li" className="py-4 flex items-center justify-between">
       <div className="flex flex-col">
         <Switch.Label as="p" className="text-sm font-medium text-gray-900 dark:text-white"
@@ -212,7 +212,7 @@ export const SwitchGroupWide = ({
             type="button"
             value={field.value}
             checked={field.checked ?? false}
-            onChange={value => {
+            onChange={(value: unknown) => {
               form.setFieldValue(field?.name ?? "", value);
             }}
             className={classNames(

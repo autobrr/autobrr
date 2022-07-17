@@ -35,7 +35,7 @@ export const DeleteModal: FC<DeleteModalProps> = ({ isOpen, buttonRef, toggle, d
         </Transition.Child>
 
         <span className="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">
-                    &#8203;
+          &#8203;
         </span>
         <Transition.Child
           as={Fragment}

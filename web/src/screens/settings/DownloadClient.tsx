@@ -86,7 +86,7 @@ function DownloadClientSettings() {
     return (<p>An error has occurred: </p>);
 
   return (
-    <div className="divide-y divide-gray-200 lg:col-span-9">
+    <div className="lg:col-span-9">
 
       <DownloadClientAddForm isOpen={addClientIsOpen} toggle={toggleAddClient} />
 
@@ -121,25 +121,25 @@ function DownloadClientSettings() {
                           scope="col"
                           className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
                         >
-                                                    Enabled
+                          Enabled
                         </th>
                         <th
                           scope="col"
                           className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
                         >
-                                                    Name
+                          Name
                         </th>
                         <th
                           scope="col"
                           className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
                         >
-                                                    Host
+                          Host
                         </th>
                         <th
                           scope="col"
                           className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
                         >
-                                                    Type
+                          Type
                         </th>
                         <th scope="col" className="relative px-6 py-3">
                           <span className="sr-only">Edit</span>

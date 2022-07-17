@@ -50,24 +50,31 @@ function FormFieldsDefault() {
   } = useFormikContext<InitialValues>();
 
   return (
-    <Fragment>
-      <TextFieldWide name="host" label="Host" help="Eg. client.domain.ltd, domain.ltd/client, domain.ltd:port"/>
+    <div className="flex flex-col space-y-4 px-1 py-6 sm:py-0 sm:space-y-0">
+      <TextFieldWide
+        name="host"
+        label="Host"
+        help="Eg. client.domain.ltd, domain.ltd/client, domain.ltd:port"
+      />
 
-      <NumberFieldWide name="port" label="Port" help="WebUI port for qBittorrent and daemon port for Deluge"/>
+      <NumberFieldWide
+        name="port"
+        label="Port"
+        help="WebUI port for qBittorrent and daemon port for Deluge"
+      />
 
-      <div className="py-6 px-6 space-y-6 sm:py-0 sm:space-y-0 sm:divide-y sm:divide-gray-200 dark:divide-gray-700">
-        <SwitchGroupWide name="tls" label="TLS"/>
+      <SwitchGroupWide name="tls" label="TLS" />
 
-        {tls && (
-          <Fragment>
-            <SwitchGroupWide name="tls_skip_verify" label="Skip TLS verification (insecure)"/>
-          </Fragment>
-        )}
-      </div>
+      {tls && (
+        <SwitchGroupWide
+          name="tls_skip_verify"
+          label="Skip TLS verification (insecure)"
+        />
+      )}
 
-      <TextFieldWide name="username" label="Username"/>
-      <PasswordFieldWide name="password" label="Password"/>
-    </Fragment>
+      <TextFieldWide name="username" label="Username" />
+      <PasswordFieldWide name="password" label="Password" />
+    </div>
   );
 }
 
@@ -77,22 +84,24 @@ function FormFieldsArr() {
   } = useFormikContext<InitialValues>();
 
   return (
-    <Fragment>
-      <TextFieldWide name="host" label="Host" help="Full url http(s)://domain.ltd and/or subdomain/subfolder"/>
+    <div className="flex flex-col space-y-4 px-1 mb-4 sm:py-0 sm:space-y-0">
+      <TextFieldWide
+        name="host"
+        label="Host"
+        help="Full url http(s)://domain.ltd and/or subdomain/subfolder"
+      />
 
-      <PasswordFieldWide name="settings.apikey" label="API key"/>
+      <PasswordFieldWide name="settings.apikey" label="API key" />
 
-      <div className="py-6 px-6 space-y-6 sm:py-0 sm:space-y-0 sm:divide-y sm:divide-gray-200">
-        <SwitchGroupWide name="settings.basic.auth" label="Basic auth"/>
-      </div>
+      <SwitchGroupWide name="settings.basic.auth" label="Basic auth" />
 
       {settings.basic?.auth === true && (
-        <Fragment>
-          <TextFieldWide name="settings.basic.username" label="Username"/>
-          <PasswordFieldWide name="settings.basic.password" label="Password"/>
-        </Fragment>
+        <>
+          <TextFieldWide name="settings.basic.username" label="Username" />
+          <PasswordFieldWide name="settings.basic.password" label="Password" />
+        </>
       )}
-    </Fragment>
+    </div>
   );
 }
 
@@ -102,37 +111,42 @@ function FormFieldsQbit() {
   } = useFormikContext<InitialValues>();
 
   return (
-    <Fragment>
-      <TextFieldWide name="host" label="Host" help="Eg. client.domain.ltd, domain.ltd/client, domain.ltd:port" />
+    <div className="flex flex-col space-y-4 px-1 py-6 sm:py-0 sm:space-y-0">
+      <TextFieldWide
+        name="host"
+        label="Host"
+        help="Eg. client.domain.ltd, domain.ltd/client, domain.ltd:port"
+      />
 
       {port > 0 && (
-        <NumberFieldWide name="port" label="Port" help="WebUI port for qBittorrent" />
+        <NumberFieldWide
+          name="port"
+          label="Port"
+          help="WebUI port for qBittorrent"
+        />
       )}
 
-      <div className="py-6 px-6 space-y-6 sm:py-0 sm:space-y-0 sm:divide-y sm:divide-gray-200 dark:divide-gray-700">
-        <SwitchGroupWide name="tls" label="TLS" />
+      <SwitchGroupWide name="tls" label="TLS" />
 
-        {tls && (
-          <Fragment>
-            <SwitchGroupWide name="tls_skip_verify" label="Skip TLS verification (insecure)" />
-          </Fragment>
-        )}
-      </div>
+      {tls && (
+        <SwitchGroupWide
+          name="tls_skip_verify"
+          label="Skip TLS verification (insecure)"
+        />
+      )}
 
       <TextFieldWide name="username" label="Username" />
       <PasswordFieldWide name="password" label="Password" />
 
-      <div className="py-6 px-6 space-y-6 sm:py-0 sm:space-y-0 sm:divide-y sm:divide-gray-200">
-        <SwitchGroupWide name="settings.basic.auth" label="Basic auth" />
-      </div>
+      <SwitchGroupWide name="settings.basic.auth" label="Basic auth" />
 
       {settings.basic?.auth === true && (
-        <Fragment>
+        <>
           <TextFieldWide name="settings.basic.username" label="Username" />
           <PasswordFieldWide name="settings.basic.password" label="Password" />
-        </Fragment>
+        </>
       )}
-    </Fragment>
+    </div>
   );
 }
 
@@ -142,24 +156,27 @@ function FormFieldsTransmission() {
   } = useFormikContext<InitialValues>();
 
   return (
-    <Fragment>
-      <TextFieldWide name="host" label="Host" help="Eg. client.domain.ltd, domain.ltd/client, domain.ltd"/>
+    <div className="flex flex-col space-y-4 px-1 py-6 sm:py-0 sm:space-y-0">
+      <TextFieldWide
+        name="host"
+        label="Host"
+        help="Eg. client.domain.ltd, domain.ltd/client, domain.ltd"
+      />
 
-      <NumberFieldWide name="port" label="Port" help="Port for Transmission"/>
+      <NumberFieldWide name="port" label="Port" help="Port for Transmission" />
 
-      <div className="py-6 px-6 space-y-6 sm:py-0 sm:space-y-0 sm:divide-y sm:divide-gray-200 dark:divide-gray-700">
-        <SwitchGroupWide name="tls" label="TLS"/>
+      <SwitchGroupWide name="tls" label="TLS" />
 
-        {tls && (
-          <Fragment>
-            <SwitchGroupWide name="tls_skip_verify" label="Skip TLS verification (insecure)"/>
-          </Fragment>
-        )}
-      </div>
+      {tls && (
+        <SwitchGroupWide
+          name="tls_skip_verify"
+          label="Skip TLS verification (insecure)"
+        />
+      )}
 
-      <TextFieldWide name="username" label="Username"/>
-      <PasswordFieldWide name="password" label="Password"/>
-    </Fragment>
+      <TextFieldWide name="username" label="Username" />
+      <PasswordFieldWide name="password" label="Password" />
+    </div>
   );
 }
 
@@ -186,21 +203,17 @@ function FormFieldsRulesBasic() {
   return (
     <div className="border-t border-gray-200 dark:border-gray-700 py-5">
 
-      <div className="px-6 space-y-1">
+      <div className="px-4 space-y-1">
         <Dialog.Title className="text-lg font-medium text-gray-900 dark:text-white">Rules</Dialog.Title>
         <p className="text-sm text-gray-500 dark:text-gray-400">
           Manage max downloads.
         </p>
       </div>
 
-      <div className="py-6 px-6 space-y-6 sm:py-0 sm:space-y-0 sm:divide-y sm:divide-gray-200">
-        <SwitchGroupWide name="settings.rules.enabled" label="Enabled"/>
-      </div>
+      <SwitchGroupWide name="settings.rules.enabled" label="Enabled"/>
 
       {settings && settings.rules?.enabled === true && (
-        <Fragment>
-          <NumberFieldWide name="settings.rules.max_active_downloads" label="Max active downloads"/>
-        </Fragment>
+        <NumberFieldWide name="settings.rules.max_active_downloads" label="Max active downloads"/>
       )}
     </div>
   );
@@ -212,34 +225,38 @@ function FormFieldsRules() {
   } = useFormikContext<InitialValues>();
 
   return (
-    <div className="border-t border-gray-200 dark:border-gray-700 py-5">
-
-      <div className="px-6 space-y-1">
-        <Dialog.Title className="text-lg font-medium text-gray-900 dark:text-white">Rules</Dialog.Title>
+    <div className="border-t border-gray-200 dark:border-gray-700 py-5 px-2">
+      <div className="px-4 space-y-1">
+        <Dialog.Title className="text-lg font-medium text-gray-900 dark:text-white">
+          Rules
+        </Dialog.Title>
         <p className="text-sm text-gray-500 dark:text-gray-400">
           Manage max downloads etc.
         </p>
       </div>
 
-      <div className="py-6 px-6 space-y-6 sm:py-0 sm:space-y-0 sm:divide-y sm:divide-gray-200">
-        <SwitchGroupWide name="settings.rules.enabled" label="Enabled"/>
-      </div>
+      <SwitchGroupWide name="settings.rules.enabled" label="Enabled" />
 
       {settings.rules?.enabled === true && (
-        <Fragment>
-          <NumberFieldWide name="settings.rules.max_active_downloads" label="Max active downloads"/>
-          <div className="py-6 px-6 space-y-6 sm:py-0 sm:space-y-0 sm:divide-y sm:divide-gray-200">
-            <SwitchGroupWide name="settings.rules.ignore_slow_torrents" label="Ignore slow torrents"/>
-          </div>
+        <>
+          <NumberFieldWide
+            name="settings.rules.max_active_downloads"
+            label="Max active downloads"
+          />
+          <SwitchGroupWide
+            name="settings.rules.ignore_slow_torrents"
+            label="Ignore slow torrents"
+          />
 
           {settings.rules?.ignore_slow_torrents === true && (
-            <Fragment>
-              <NumberFieldWide name="settings.rules.download_speed_threshold" label="Download speed threshold"
-                placeholder="in KB/s"
-                help="If download speed is below this when max active downloads is hit, download anyways. KB/s"/>
-            </Fragment>
+            <NumberFieldWide
+              name="settings.rules.download_speed_threshold"
+              label="Download speed threshold"
+              placeholder="in KB/s"
+              help="If download speed is below this when max active downloads is hit, download anyways. KB/s"
+            />
           )}
-        </Fragment>
+        </>
       )}
     </div>
   );
@@ -248,7 +265,7 @@ function FormFieldsRules() {
 export const rulesComponentMap: componentMapType = {
   DELUGE_V1: <FormFieldsRulesBasic/>,
   DELUGE_V2: <FormFieldsRulesBasic/>,
-  QBITTORRENT: <FormFieldsRules/>,
+  QBITTORRENT: <FormFieldsRules/>
 };
 
 interface formButtonsProps {
@@ -490,20 +507,14 @@ export function DownloadClientAddForm({ isOpen, toggle }: formProps) {
                           </div>
                         </div>
 
-                        <div className="py-6 space-y-6 sm:py-0 sm:space-y-0 sm:divide-y dark:divide-gray-700">
+                        <div className="flex flex-col space-y-4 px-1 py-6 sm:py-0 sm:space-y-0">
                           <TextFieldWide name="name" label="Name"/>
-
-                          <div
-                            className="py-6 px-6 space-y-6 sm:py-0 sm:space-y-0 sm:divide-y sm:divide-gray-200 dark:divide-gray-700">
-                            <SwitchGroupWide name="enabled" label="Enabled"/>
-                          </div>
-
+                          <SwitchGroupWide name="enabled" label="Enabled"/>
                           <RadioFieldsetWide
                             name="type"
                             legend="Type"
                             options={DownloadClientTypeOptions}
                           />
-
                           <div>{componentMap[values.type]}</div>
                         </div>
                       </div>
@@ -697,17 +708,12 @@ export function DownloadClientUpdateForm({ client, isOpen, toggle }: updateFormP
 
                           <div className="py-6 space-y-6 sm:py-0 sm:space-y-0 sm:divide-y dark:divide-gray-700">
                             <TextFieldWide name="name" label="Name"/>
-
-                            <div className="py-6 px-6 space-y-6 sm:py-0 sm:space-y-0 sm:divide-y sm:divide-gray-200">
-                              <SwitchGroupWide name="enabled" label="Enabled"/>
-                            </div>
-
+                            <SwitchGroupWide name="enabled" label="Enabled"/>
                             <RadioFieldsetWide
                               name="type"
                               legend="Type"
                               options={DownloadClientTypeOptions}
                             />
-
                             <div>{componentMap[values.type]}</div>
                           </div>
                         </div>

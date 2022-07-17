@@ -36,7 +36,7 @@ function SlideOver<DataType>({
   testFn,
   isTesting,
   isTestSuccessful,
-  isTestError,
+  isTestError
 }: SlideOverProps<DataType>): React.ReactElement {
   const cancelModalButtonRef = useRef<HTMLInputElement | null>(null);
   const [deleteModalIsOpen, toggleDeleteModal] = useToggle(false);
@@ -64,7 +64,7 @@ function SlideOver<DataType>({
         <div className="absolute inset-0 overflow-hidden">
           <Dialog.Overlay className="absolute inset-0" />
 
-          <div className="fixed inset-y-0 right-0 pl-10 max-w-full flex sm:pl-16">
+          <div className="fixed inset-y-0 right-0 max-w-full flex">
             <Transition.Child
               as={Fragment}
               enter="transform transition ease-in-out duration-500 sm:duration-700"
