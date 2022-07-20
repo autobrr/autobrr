@@ -71,7 +71,7 @@ func (j *TorznabJob) process() error {
 		rls := domain.NewRelease(j.IndexerIdentifier)
 
 		rls.TorrentName = item.Title
-		rls.TorrentURL = item.GUID
+		rls.TorrentURL = item.Link
 		rls.Implementation = domain.ReleaseImplementationTorznab
 		rls.Indexer = j.IndexerIdentifier
 
