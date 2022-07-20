@@ -23,7 +23,7 @@ Installation guide and documentation can be found at https://autobrr.com
 - Easy to use and mobile friendly web UI (with dark mode!) to manage everything
 - Built on Go and React making autobrr lightweight and perfect for supporting multiple platforms (Linux, Windows, macOS) on different architectures (e.g. x86, ARM)
 - Great container support (Docker, k8s/Kubernetes)
-- Proper database with either SQLite or Postgres
+- Database engine supporting both PostgreSQL and SQLite
 - Notifications (Discord, Telegram, Notifiarr)
 - One autobrr instance can communicate with multiple clients (both torrent and \*arr) on remote servers
 - Base path / Subfolder (and subdomain) support for convenient reverse-proxy support
