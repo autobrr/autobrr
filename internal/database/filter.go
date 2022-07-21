@@ -507,9 +507,9 @@ func (r *FilterRepo) Update(ctx context.Context, filter domain.Filter) (*domain.
 		Set("has_log", filter.Log).
 		Set("has_cue", filter.Cue).
 		Set("perfect_flac", filter.PerfectFlac).
-		Set("books", filter.Titles).
-		Set("authors", filter.Creators).
-		Set("text_formats", pq.Array(filter.OtherFormats)).
+		Set("titles", filter.Titles).
+		Set("creators", filter.Creators).
+		Set("other_formats", pq.Array(filter.OtherFormats)).
 		Set("languages", pq.Array(filter.Languages)).
 		Set("origins", pq.Array(filter.Origins)).
 		Set("updated_at", time.Now().Format(time.RFC3339)).

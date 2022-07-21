@@ -160,7 +160,7 @@ export interface RadioFieldsetOption {
     value: ActionType;
 }
 
-export const formatText = [
+export const formatBooks = [
   "epub",
   "pdf",
   "mobi",
@@ -180,12 +180,7 @@ export const formatText = [
   "htm",
   "txt",
   "rtf",
-  "xml"
-];
-
-export const FORMATS_EBOOK_OPTIONS: MultiSelectOption[] = formatText.map(r => ({ value: r, label: r, key: r }));
-
-export const formatAudiobooks = [
+  "xml",
   "mp3",
   "m4a",
   "m4b",
@@ -196,7 +191,7 @@ export const formatAudiobooks = [
   "wav"
 ];
 
-export const FORMATS_AUDIOBOOK_OPTIONS: MultiSelectOption[] = formatAudiobooks.map(v => ({ value: v, label: v, key: v }));
+export const FORMATS_BOOK_OPTIONS: MultiSelectOption[] = formatBooks.map(r => ({ value: r, label: r, key: r }));
 
 export const languages = [
   "English",

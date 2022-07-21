@@ -25,8 +25,7 @@ import {
   SOURCES_MUSIC_OPTIONS,
   QUALITY_MUSIC_OPTIONS,
   RELEASE_TYPE_MUSIC_OPTIONS,
-  FORMATS_EBOOK_OPTIONS,
-  FORMATS_AUDIOBOOK_OPTIONS,
+  FORMATS_BOOK_OPTIONS,
   LANGUAGE_OPTIONS,
   OTHER_OPTIONS,
   ORIGIN_OPTIONS,
@@ -471,11 +470,7 @@ export function Books() {
         <TitleSubtitle title="Options" subtitle="Format and language." />
 
         <div className="mt-6 grid grid-cols-12 gap-6">
-          <MultiSelect name="other_formats" options={FORMATS_EBOOK_OPTIONS} label="Ebook Format" columns={6} />
-          <MultiSelect name="other_formats" options={FORMATS_AUDIOBOOK_OPTIONS} label="Audiobook Format" columns={6} />
-        </div>
-
-        <div className="mt-6 grid grid-cols-12 gap-6">
+          <MultiSelect name="other_formats" options={FORMATS_BOOK_OPTIONS} label="Ebook/Audiobook Format" columns={6} />
           <MultiSelect name="languages" options={LANGUAGE_OPTIONS} label="Language" columns={6} />
         </div>
       </div>

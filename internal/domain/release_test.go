@@ -463,13 +463,13 @@ func TestRelease_MapVars(t *testing.T) {
 			fields: &Release{},
 			want: &Release{
 				TorrentName: "The Best Journal - [06 July 2022]",
-				Creator:      "Journal Writer",
+				Creator:     "Journal Writer",
 				Category:    "Ebooks - Magazines/Newspapers",
 				Language:    "English",
 			},
 			args: args{varMap: map[string]string{
 				"torrentName": "The Best Journal - [06 July 2022]",
-				"author":      "Journal Writer",
+				"creator":     "Journal Writer",
 				"category":    "Ebooks - Magazines/Newspapers",
 				"language":    "English",
 			}},
