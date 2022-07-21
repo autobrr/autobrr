@@ -71,7 +71,15 @@ export const ReleaseStatusCell = ({ value }: ReleaseStatusCellProps) => (
             {v.client && <li className="py-1">Client: {v.client}</li>}
             {v.filter && <li className="py-1">Filter: {v.filter}</li>}
             <li className="py-1">Time: {simplifyDate(v.timestamp)}</li>
-            {v.rejections.length > 0 && <li className="py-1">Rejections: <span className="break-all">{v.rejections.toString()}</span></li>}
+            {v.rejections.length ? (
+              <li className="py-1">
+                Rejections:
+                {" "}
+                <p className="whitespace-pre-wrap break-all">
+                  {v.rejections.toString()}
+                </p>
+              </li>
+            ) : null}
           </ol>
         </Tooltip>
       </div>
