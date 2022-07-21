@@ -15,6 +15,8 @@ require (
 	github.com/go-chi/chi v1.5.4
 	github.com/gorilla/sessions v1.2.1
 	github.com/gosimple/slug v1.12.0
+	github.com/hashicorp/go-version v1.6.0
+	github.com/hekmon/transmissionrpc/v2 v2.0.1
 	github.com/lib/pq v1.10.4
 	github.com/mattn/go-shellwords v1.0.12
 	github.com/moistari/rls v0.2.6
@@ -44,7 +46,9 @@ require (
 	github.com/google/uuid v1.3.0 // indirect
 	github.com/gorilla/securecookie v1.1.1 // indirect
 	github.com/gosimple/unidecode v1.0.1 // indirect
+	github.com/hashicorp/go-cleanhttp v0.5.2 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect
+	github.com/hekmon/cunits/v2 v2.1.0 // indirect
 	github.com/huandu/xstrings v1.3.2 // indirect
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51 // indirect
 	github.com/lann/builder v0.0.0-20180802200727-47ae307949d0 // indirect

@@ -17,6 +17,7 @@ type feedService interface {
 	Update(ctx context.Context, feed *domain.Feed) error
 	Delete(ctx context.Context, id int) error
 	ToggleEnabled(ctx context.Context, id int, enabled bool) error
+	Test(ctx context.Context, feed *domain.Feed) error
 }
 
 type feedHandler struct {
@@ -34,6 +35,7 @@ func newFeedHandler(encoder encoder, service feedService) *feedHandler {
 func (h feedHandler) Routes(r chi.Router) {
 	r.Get("/", h.find)
 	r.Post("/", h.store)
+	r.Post("/test", h.test)
 	r.Put("/{feedID}", h.update)
 	r.Patch("/{feedID}/enabled", h.toggleEnabled)
 	r.Delete("/{feedID}", h.delete)
@@ -71,6 +73,27 @@ func (h feedHandler) store(w http.ResponseWriter, r *http.Request) {
 	}
 
 	h.encoder.StatusResponse(ctx, w, data, http.StatusCreated)
+}
+
+func (h feedHandler) test(w http.ResponseWriter, r *http.Request) {
+	var (
+		ctx  = r.Context()
+		data *domain.Feed
+	)
+
+	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
+		// encode error
+		h.encoder.StatusInternalError(w)
+		return
+	}
+
+	if err := h.service.Test(ctx, data); err != nil {
+		// encode error
+		h.encoder.StatusInternalError(w)
+		return
+	}
+
+	h.encoder.NoContent(w)
 }
 
 func (h feedHandler) update(w http.ResponseWriter, r *http.Request) {

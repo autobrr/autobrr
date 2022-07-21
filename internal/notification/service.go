@@ -128,7 +128,9 @@ func (s *service) registerSenders() {
 
 // Send notifications
 func (s *service) Send(event domain.NotificationEvent, payload domain.NotificationPayload) {
-	s.log.Debug().Msgf("sending notification for %v", string(event))
+	if len(s.senders) > 0 {
+		s.log.Debug().Msgf("sending notification for %v", string(event))
+	}
 
 	go func() {
 		for _, sender := range s.senders {

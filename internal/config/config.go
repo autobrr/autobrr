@@ -6,6 +6,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"strings"
 	"sync"
 
 	"github.com/autobrr/autobrr/internal/domain"
@@ -36,6 +37,15 @@ func writeConfig(configPath string, configFile string) error {
 			return err
 		}
 
+		host := "127.0.0.1"
+		if pd, _ := os.Open("/proc/1/cgroup"); pd != nil {
+			defer pd.Close()
+			b := make([]byte, 4096, 4096)
+			pd.Read(b)
+			if strings.Contains(string(b), "/docker") || strings.Contains(string(b), "/lxc") {
+				host = "0.0.0.0"
+			}
+		}
 		defer f.Close()
 
 		_, err = f.WriteString(`# config.toml
@@ -44,7 +54,7 @@ func writeConfig(configPath string, configFile string) error {
 #
 # Default: "localhost"
 #
-host = "127.0.0.1"
+host = "` + host + `"
 
 # Port
 #
@@ -71,7 +81,7 @@ port = 7474
 #
 # Default: "DEBUG"
 #
-# Options: "ERROR", "DEBUG", "INFO", "WARN"
+# Options: "ERROR", "DEBUG", "INFO", "WARN", "TRACE"
 #
 logLevel = "DEBUG"
 

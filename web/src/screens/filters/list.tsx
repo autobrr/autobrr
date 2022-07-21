@@ -72,7 +72,7 @@ interface FilterListProps {
 
 function FilterList({ filters }: FilterListProps) {
   return (
-    <div className="overflow-x-auto align-middle min-w-full rounded-lg shadow-lg">
+    <div className="overflow-x-auto align-middle min-w-full rounded-t-md rounded-b-lg shadow-lg">
       <table className="min-w-full">
         <thead className="bg-gray-50 dark:bg-gray-800 text-gray-500 dark:text-gray-400 border-b border-gray-200 dark:border-gray-700">
           <tr>
@@ -80,7 +80,7 @@ function FilterList({ filters }: FilterListProps) {
               <th
                 key={`th-${label}`}
                 scope="col"
-                className="px-6 py-2.5 text-left text-xs font-medium uppercase tracking-wider"
+                className="px-6 pt-4 pb-3 text-left text-xs font-medium uppercase tracking-wider"
               >
                 {label}
               </th>

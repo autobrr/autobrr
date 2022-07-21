@@ -11,6 +11,7 @@ import (
 	"github.com/autobrr/autobrr/pkg/errors"
 	"github.com/autobrr/autobrr/pkg/torznab"
 
+	"github.com/dcarbone/zadapters/zstdlog"
 	"github.com/rs/zerolog"
 )
 
@@ -20,6 +21,7 @@ type Service interface {
 	Find(ctx context.Context) ([]domain.Feed, error)
 	Store(ctx context.Context, feed *domain.Feed) error
 	Update(ctx context.Context, feed *domain.Feed) error
+	Test(ctx context.Context, feed *domain.Feed) error
 	ToggleEnabled(ctx context.Context, id int, enabled bool) error
 	Delete(ctx context.Context, id int) error
 
@@ -92,28 +94,33 @@ func (s *service) Store(ctx context.Context, feed *domain.Feed) error {
 		return err
 	}
 
+	s.log.Debug().Msgf("successfully added feed: %+v", feed)
+
 	return nil
 }
 
 func (s *service) Update(ctx context.Context, feed *domain.Feed) error {
-	if err := s.repo.Update(ctx, feed); err != nil {
+	if err := s.update(ctx, feed); err != nil {
 		s.log.Error().Err(err).Msgf("could not update feed: %+v", feed)
 		return err
 	}
+
+	s.log.Debug().Msgf("successfully updated feed: %+v", feed)
+
 	return nil
 }
 
 func (s *service) Delete(ctx context.Context, id int) error {
-	if err := s.repo.Delete(ctx, id); err != nil {
+	if err := s.delete(ctx, id); err != nil {
 		s.log.Error().Err(err).Msgf("could not delete feed by id: %v", id)
 		return err
 	}
+
 	return nil
 }
 
 func (s *service) ToggleEnabled(ctx context.Context, id int, enabled bool) error {
-	err := s.repo.ToggleEnabled(ctx, id, enabled)
-	if err != nil {
+	if err := s.toggleEnabled(ctx, id, enabled); err != nil {
 		s.log.Error().Err(err).Msgf("could not toggle feed by id: %v", id)
 		return err
 	}
@@ -137,17 +144,22 @@ func (s *service) update(ctx context.Context, feed *domain.Feed) error {
 func (s *service) delete(ctx context.Context, id int) error {
 	f, err := s.repo.FindByID(ctx, id)
 	if err != nil {
-		s.log.Error().Err(err).Msg("feed.ToggleEnabled: error finding feed")
+		s.log.Error().Err(err).Msg("error finding feed")
 		return err
 	}
 
 	if err := s.stopTorznabJob(f.Indexer); err != nil {
-		s.log.Error().Err(err).Msg("feed.Delete: error stopping torznab job")
+		s.log.Error().Err(err).Msg("error stopping torznab job")
 		return err
 	}
 
 	if err := s.repo.Delete(ctx, id); err != nil {
-		s.log.Error().Err(err).Msg("feed.Delete: error deleting feed")
+		s.log.Error().Err(err).Msg("error deleting feed")
+		return err
+	}
+
+	if err := s.cacheRepo.DeleteBucket(ctx, f.Name); err != nil {
+		s.log.Error().Err(err).Msgf("could not delete feedCache bucket by id: %v", id)
 		return err
 	}
 
@@ -185,6 +197,28 @@ func (s *service) toggleEnabled(ctx context.Context, id int, enabled bool) error
 	}
 
 	s.log.Debug().Msgf("feed.ToggleEnabled: started feed: %v", f.Name)
+
+	return nil
+}
+
+func (s *service) Test(ctx context.Context, feed *domain.Feed) error {
+
+	subLogger := zstdlog.NewStdLoggerWithLevel(s.log.With().Logger(), zerolog.DebugLevel)
+
+	// setup torznab Client
+	c := torznab.NewClient(torznab.Config{Host: feed.URL, ApiKey: feed.ApiKey, Log: subLogger})
+	caps, err := c.GetCaps()
+	if err != nil {
+		s.log.Error().Err(err).Msg("error testing feed")
+		return err
+	}
+
+	if caps == nil {
+		s.log.Error().Msg("could not test feed and get caps")
+		return errors.New("could not test feed and get caps")
+	}
+
+	s.log.Debug().Msgf("test successful - connected to feed: %+v", feed.URL)
 
 	return nil
 }
@@ -273,10 +307,10 @@ func (s *service) addTorznabJob(f feedInstance) error {
 	}
 
 	// setup logger
-	l := s.log.With().Str("feed_name", f.Name).Logger()
+	l := s.log.With().Str("feed", f.Name).Logger()
 
 	// setup torznab Client
-	c := torznab.NewClient(f.URL, f.ApiKey)
+	c := torznab.NewClient(torznab.Config{Host: f.URL, ApiKey: f.ApiKey})
 
 	// create job
 	job := NewTorznabJob(f.Name, f.IndexerIdentifier, l, f.URL, c, s.cacheRepo, s.releaseSvc)

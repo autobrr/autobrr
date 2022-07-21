@@ -2,7 +2,7 @@ import { useQuery } from "react-query";
 import { APIClient } from "../../api/APIClient";
 import { EmptySimple } from "../../components/emptystates";
 import { useToggle } from "../../hooks/hooks";
-import { NotificationAddForm, NotificationUpdateForm } from "../../forms/settings/NotifiactionForms";
+import { NotificationAddForm, NotificationUpdateForm } from "../../forms/settings/NotificationForms";
 import { Switch } from "@headlessui/react";
 import { classNames } from "../../utils";
 import { componentMapType } from "../../forms/settings/DownloadClientForms";

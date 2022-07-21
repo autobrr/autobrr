@@ -18,6 +18,9 @@ interface SlideOverProps<DataType> {
     deleteAction?: () => void;
     type: "CREATE" | "UPDATE";
     testFn?: (data: unknown) => void;
+    isTesting?: boolean;
+    isTestSuccessful?: boolean;
+    isTestError?: boolean;
 }
 
 function SlideOver<DataType>({
@@ -30,7 +33,10 @@ function SlideOver<DataType>({
   toggle,
   type,
   children,
-  testFn
+  testFn,
+  isTesting,
+  isTestSuccessful,
+  isTestError
 }: SlideOverProps<DataType>): React.ReactElement {
   const cancelModalButtonRef = useRef<HTMLInputElement | null>(null);
   const [deleteModalIsOpen, toggleDeleteModal] = useToggle(false);
@@ -58,7 +64,7 @@ function SlideOver<DataType>({
         <div className="absolute inset-0 overflow-hidden">
           <Dialog.Overlay className="absolute inset-0" />
 
-          <div className="fixed inset-y-0 right-0 pl-10 max-w-full flex sm:pl-16">
+          <div className="fixed inset-y-0 right-0 max-w-full flex">
             <Transition.Child
               as={Fragment}
               enter="transform transition ease-in-out duration-500 sm:duration-700"
@@ -121,10 +127,46 @@ function SlideOver<DataType>({
                             {testFn && (
                               <button
                                 type="button"
-                                className="mr-2 bg-white dark:bg-gray-700 py-2 px-4 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 dark:focus:ring-blue-500"
+                                className={classNames(
+                                  isTestSuccessful
+                                    ? "text-green-500 border-green-500 bg-green-50"
+                                    : isTestError
+                                      ? "text-red-500 border-red-500 bg-red-50"
+                                      : "border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-400 bg-white dark:bg-gray-700 hover:bg-gray-50 focus:border-rose-700 active:bg-rose-700",
+                                  isTesting ? "cursor-not-allowed" : "",
+                                  "mr-2 inline-flex items-center px-4 py-2 border font-medium rounded-md shadow-sm text-sm transition ease-in-out duration-150 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 dark:focus:ring-blue-500"
+                                )}
+                                disabled={isTesting}
                                 onClick={() => test(values)}
                               >
-                                Test
+                                {isTesting ? (
+                                  <svg
+                                    className="animate-spin h-5 w-5 text-green-500"
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    fill="none"
+                                    viewBox="0 0 24 24"
+                                  >
+                                    <circle
+                                      className="opacity-25"
+                                      cx="12"
+                                      cy="12"
+                                      r="10"
+                                      stroke="currentColor"
+                                      strokeWidth="4"
+                                    ></circle>
+                                    <path
+                                      className="opacity-75"
+                                      fill="currentColor"
+                                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                                    ></path>
+                                  </svg>
+                                ) : isTestSuccessful ? (
+                                  "OK!"
+                                ) : isTestError ? (
+                                  "ERROR"
+                                ) : (
+                                  "Test"
+                                )}
                               </button>
                             )}
 

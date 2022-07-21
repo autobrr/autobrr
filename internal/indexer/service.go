@@ -102,7 +102,7 @@ func (s *service) Update(ctx context.Context, indexer domain.Indexer) (*domain.I
 	// add to indexerInstances
 	err = s.updateIndexer(*i)
 	if err != nil {
-		s.log.Error().Stack().Err(err).Msgf("failed to add indexer: %v", indexer.Name)
+		s.log.Error().Err(err).Msgf("failed to add indexer: %v", indexer.Name)
 		return nil, err
 	}
 
@@ -111,6 +111,8 @@ func (s *service) Update(ctx context.Context, indexer domain.Indexer) (*domain.I
 			s.stopFeed(indexer.Identifier)
 		}
 	}
+
+	s.log.Debug().Msgf("successfully updated indexer: %v", indexer.Name)
 
 	return i, nil
 }

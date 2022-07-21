@@ -345,6 +345,20 @@ func (h *Handler) onConnect(m ircmsg.Message) {
 		// if authenticated and no invite command lets join
 		h.JoinChannels()
 
+		return
+	}
+
+	// if not authenticated, no nickserv pass but invite command, send invite command to trigger MODE change then join
+	if h.network.NickServ.Password == "" && h.network.InviteCommand != "" {
+		h.log.Trace().Msg("on connect invite command not empty: send connect commands")
+		if err := h.sendConnectCommands(h.network.InviteCommand); err != nil {
+			h.log.Error().Stack().Err(err).Msgf("error sending connect command %v", h.network.InviteCommand)
+			return
+		}
+
+		return
+
+		// if not authenticated but we do have a nick serv pass, send identify to trigger MODE change and then join
 	} else if h.network.NickServ.Password != "" {
 		h.log.Trace().Msg("on connect not authenticated and password not empty: send nickserv identify")
 		if err := h.NickServIdentify(h.network.NickServ.Password); err != nil {
@@ -354,21 +368,13 @@ func (h *Handler) onConnect(m ircmsg.Message) {
 
 		// return and wait for NOTICE of nickserv auth
 		return
-
-	} else if h.network.InviteCommand != "" {
-		h.log.Trace().Msg("on connect invite command not empty: send connect commands")
-		if err := h.sendConnectCommands(h.network.InviteCommand); err != nil {
-			h.log.Error().Stack().Err(err).Msgf("error sending connect command %v", h.network.InviteCommand)
-			return
-		}
-
-		return
-
-	} else {
-		// join channels if no password or no invite command
-		h.log.Trace().Msg("on connect - no nickserv or invite command: join channels")
-		h.JoinChannels()
 	}
+
+	// if no password nor invite command, join channels
+	h.log.Trace().Msg("on connect - no nickserv or invite command: join channels")
+	h.JoinChannels()
+
+	return
 }
 
 func (h *Handler) onDisconnect(m ircmsg.Message) {
@@ -613,11 +619,6 @@ func (h *Handler) handlePart(msg ircmsg.Message) {
 
 	h.log.Debug().Msgf("PART channel %v", channel)
 
-	if err := h.client.Part(channel); err != nil {
-		h.log.Error().Err(err).Msgf("error handling part: %v", channel)
-		return
-	}
-
 	// reset monitoring status
 	v, ok := h.channelHealth[channel]
 	if !ok {
@@ -636,8 +637,7 @@ func (h *Handler) handlePart(msg ircmsg.Message) {
 func (h *Handler) PartChannel(channel string) error {
 	h.log.Debug().Msgf("PART channel %v", channel)
 
-	err := h.client.Part(channel)
-	if err != nil {
+	if err := h.client.Part(channel); err != nil {
 		h.log.Error().Err(err).Msgf("error handling part: %v", channel)
 		return err
 	}
@@ -664,23 +664,29 @@ func (h *Handler) handleJoined(msg ircmsg.Message) {
 	}
 
 	// get channel
-	channel := msg.Params[1]
+	channel := strings.ToLower(msg.Params[1])
 
 	h.log.Debug().Msgf("JOINED: %v", msg.Params[1])
 
+	// check if channel is valid and if not lets part
+	valid := h.isValidHandlerChannel(channel)
+	if !valid {
+		if err := h.PartChannel(channel); err != nil {
+			h.log.Error().Err(err).Msgf("error handling part for unwanted channel: %v", channel)
+			return
+		}
+		return
+	}
+
 	// set monitoring on current channelHealth, or add new
-	v, ok := h.channelHealth[strings.ToLower(channel)]
+	v, ok := h.channelHealth[channel]
 	if ok {
 		v.SetMonitoring()
 	} else if v == nil {
 		h.AddChannelHealth(channel)
 	}
 
-	valid := h.isValidChannel(channel)
-	if valid {
-		h.log.Info().Msgf("Monitoring channel %v", msg.Params[1])
-		return
-	}
+	h.log.Info().Msgf("Monitoring channel %v", msg.Params[1])
 }
 
 func (h *Handler) sendConnectCommands(msg string) error {
@@ -714,6 +720,14 @@ func (h *Handler) handleInvite(msg ircmsg.Message) {
 
 	// get channel
 	channel := msg.Params[1]
+
+	h.log.Trace().Msgf("INVITE from %v to join: %v ", msg.Nick(), channel)
+
+	validChannel := h.isValidHandlerChannel(channel)
+	if !validChannel {
+		h.log.Trace().Msgf("invite from %v to join: %v - invalid channel, skip joining", msg.Nick(), channel)
+		return
+	}
 
 	h.log.Debug().Msgf("INVITE from %v, joining %v", msg.Nick(), channel)
 
@@ -764,7 +778,9 @@ func (h *Handler) handleMode(msg ircmsg.Message) {
 
 	// if our nick and user mode +r (Identifies the nick as being Registered (settable by services only)) then return
 	if h.isOurCurrentNick(msg.Params[0]) && strings.Contains(msg.Params[1], "+r") {
-		h.setAuthenticated()
+		if !h.authenticated {
+			h.setAuthenticated()
+		}
 
 		h.resetConnectErrors()
 		h.failedNickServAttempts = 0
@@ -776,8 +792,6 @@ func (h *Handler) handleMode(msg ircmsg.Message) {
 				h.log.Error().Stack().Err(err).Msgf("error sending connect command %v", h.network.InviteCommand)
 				return
 			}
-
-			return
 		}
 
 		time.Sleep(1 * time.Second)
@@ -809,6 +823,24 @@ func (h *Handler) isValidChannel(channel string) bool {
 	}
 
 	return true
+}
+
+// check if channel is from definition or user defined
+func (h *Handler) isValidHandlerChannel(channel string) bool {
+	channel = strings.ToLower(channel)
+
+	_, ok := h.validChannels[channel]
+	if ok {
+		return true
+	}
+
+	for _, ircChannel := range h.network.Channels {
+		if channel == strings.ToLower(ircChannel.Name) {
+			return true
+		}
+	}
+
+	return false
 }
 
 // irc line can contain lots of extra stuff like color so lets clean that

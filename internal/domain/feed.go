@@ -9,7 +9,8 @@ type FeedCacheRepo interface {
 	Get(bucket string, key string) ([]byte, error)
 	Exists(bucket string, key string) (bool, error)
 	Put(bucket string, key string, val []byte, ttl time.Time) error
-	Delete(bucket string, key string) error
+	Delete(ctx context.Context, bucket string, key string) error
+	DeleteBucket(ctx context.Context, bucket string) error
 }
 
 type FeedRepo interface {

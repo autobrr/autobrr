@@ -277,6 +277,11 @@ export const DownloadClientTypeOptions: RadioFieldsetOption[] = [
     value: "DELUGE_V2"
   },
   {
+    label: "Transmission",
+    description: "Add torrents directly to Transmission",
+    value: "TRANSMISSION"
+  },
+  {
     label: "Radarr",
     description: "Send to Radarr and let it decide",
     value: "RADARR"
@@ -302,6 +307,7 @@ export const DownloadClientTypeNameMap: Record<DownloadClientType | string, stri
   "DELUGE_V1": "Deluge v1",
   "DELUGE_V2": "Deluge v2",
   "QBITTORRENT": "qBittorrent",
+  "TRANSMISSION": "Transmission",
   "RADARR": "Radarr",
   "SONARR": "Sonarr",
   "LIDARR": "Lidarr",
@@ -316,6 +322,7 @@ export const ActionTypeOptions: RadioFieldsetOption[] = [
   { label: "qBittorrent", description: "Add torrents directly to qBittorrent", value: "QBITTORRENT" },
   { label: "Deluge", description: "Add torrents directly to Deluge", value: "DELUGE_V1" },
   { label: "Deluge v2", description: "Add torrents directly to Deluge 2", value: "DELUGE_V2" },
+  { label: "Transmission", description: "Add torrents directly to Transmission", value: "TRANSMISSION" },
   { label: "Radarr", description: "Send to Radarr and let it decide", value: "RADARR" },
   { label: "Sonarr", description: "Send to Sonarr and let it decide", value: "SONARR" },
   { label: "Lidarr", description: "Send to Lidarr and let it decide", value: "LIDARR" },
@@ -330,6 +337,7 @@ export const ActionTypeNameMap = {
   "DELUGE_V1": "Deluge v1",
   "DELUGE_V2": "Deluge v2",
   "QBITTORRENT": "qBittorrent",
+  "TRANSMISSION": "Transmission",
   "RADARR": "Radarr",
   "SONARR": "Sonarr",
   "LIDARR": "Lidarr",
@@ -397,7 +405,7 @@ export const downloadsPerUnitOptions: OptionBasic[] = [
 export interface SelectOption {
     label: string;
     description: string;
-    value: string;
+    value: NotificationEvent;
 }
 
 export const EventOptions: SelectOption[] = [
@@ -425,5 +433,10 @@ export const EventOptions: SelectOption[] = [
     label: "IRC Reconnected",
     value: "IRC_RECONNECTED",
     description: "Reconnected to irc network after error"
+  },
+  {
+    label: "New update",
+    value: "APP_UPDATE_AVAILABLE",
+    description: "Get notified on updates"
   }
 ];

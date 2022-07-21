@@ -27,13 +27,13 @@ function FeedSettings() {
   );
 
   return (
-    <div className="divide-y divide-gray-200 lg:col-span-9">
+    <div className="lg:col-span-9">
       <div className="py-6 px-4 sm:p-6 lg:pb-8">
         <div className="-ml-4 -mt-4 flex justify-between items-center flex-wrap sm:flex-nowrap">
           <div className="ml-4 mt-4">
             <h3 className="text-lg leading-6 font-medium text-gray-900 dark:text-white">Feeds</h3>
             <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                            Manage Torznab feeds.
+              Manage Torznab feeds.
             </p>
           </div>
         </div>

@@ -78,14 +78,13 @@ const (
 type NotificationEvent string
 
 const (
-	//NotificationEventAppUpdateAvailable NotificationEvent = "APP_UPDATE_AVAILABLE"
-
-	NotificationEventPushApproved    NotificationEvent = "PUSH_APPROVED"
-	NotificationEventPushRejected    NotificationEvent = "PUSH_REJECTED"
-	NotificationEventPushError       NotificationEvent = "PUSH_ERROR"
-	NotificationEventIRCDisconnected NotificationEvent = "IRC_DISCONNECTED"
-	NotificationEventIRCReconnected  NotificationEvent = "IRC_RECONNECTED"
-	NotificationEventTest            NotificationEvent = "TEST"
+	NotificationEventAppUpdateAvailable NotificationEvent = "APP_UPDATE_AVAILABLE"
+	NotificationEventPushApproved       NotificationEvent = "PUSH_APPROVED"
+	NotificationEventPushRejected       NotificationEvent = "PUSH_REJECTED"
+	NotificationEventPushError          NotificationEvent = "PUSH_ERROR"
+	NotificationEventIRCDisconnected    NotificationEvent = "IRC_DISCONNECTED"
+	NotificationEventIRCReconnected     NotificationEvent = "IRC_RECONNECTED"
+	NotificationEventTest               NotificationEvent = "TEST"
 )
 
 type NotificationEventArr []NotificationEvent

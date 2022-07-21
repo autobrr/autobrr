@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"path"
+	"strings"
 	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
@@ -46,6 +47,9 @@ func (s *service) RunAction(action *domain.Action, release domain.Release) ([]st
 
 	case domain.ActionTypeQbittorrent:
 		rejections, err = s.qbittorrent(*action, release)
+
+	case domain.ActionTypeTransmission:
+		rejections, err = s.transmission(*action, release)
 
 	case domain.ActionTypeRadarr:
 		rejections, err = s.radarr(*action, release)
@@ -152,6 +156,12 @@ func (s *service) watchFolder(action domain.Action, release domain.Release) erro
 	_, tmpFileName := path.Split(release.TorrentTmpFile)
 	fullFileName := path.Join(watchFolderArgs, tmpFileName+".torrent")
 
+	// Create folder
+	err = os.MkdirAll(watchFolderArgs, os.ModePerm)
+	if err != nil {
+		return errors.Wrap(err, "could not create new folders %v", fullFileName)
+	}
+
 	// Create new file
 	newFile, err := os.Create(fullFileName)
 	if err != nil {
@@ -171,7 +181,7 @@ func (s *service) watchFolder(action domain.Action, release domain.Release) erro
 }
 
 func (s *service) webhook(action domain.Action, release domain.Release) error {
-	if release.TorrentTmpFile == "" {
+	if release.TorrentTmpFile == "" && strings.Contains(action.WebhookData, "TorrentPathName") {
 		if err := release.DownloadTorrentFile(); err != nil {
 			return errors.Wrap(err, "webhook: could not download torrent file for release: %v", release.TorrentName)
 		}

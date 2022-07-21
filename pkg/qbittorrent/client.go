@@ -20,19 +20,6 @@ import (
 	"github.com/autobrr/autobrr/pkg/errors"
 )
 
-type Client interface {
-	Login() error
-	GetTorrents() ([]Torrent, error)
-	GetTorrentsFilter(filter TorrentFilter) ([]Torrent, error)
-	GetTorrentsActiveDownloads() ([]Torrent, error)
-	GetTorrentsRaw() (string, error)
-	GetTorrentTrackers(hash string) ([]TorrentTracker, error)
-	AddTorrentFromFile(file string, options map[string]string) error
-	DeleteTorrents(hashes []string, deleteFiles bool) error
-	ReAnnounceTorrents(hashes []string) error
-	GetTransferInfo() (*TransferInfo, error)
-}
-
 var (
 	backoffSchedule = []time.Duration{
 		5 * time.Second,
@@ -42,7 +29,7 @@ var (
 	timeout = 60 * time.Second
 )
 
-type client struct {
+type Client struct {
 	Name     string
 	settings Settings
 	http     *http.Client
@@ -69,8 +56,8 @@ type Basic struct {
 	Password string
 }
 
-func NewClient(settings Settings) Client {
-	c := &client{
+func NewClient(settings Settings) *Client {
+	c := &Client{
 		settings: settings,
 		Name:     settings.Name,
 		log:      log.New(io.Discard, "", log.LstdFlags),
@@ -110,7 +97,7 @@ func NewClient(settings Settings) Client {
 	return c
 }
 
-func (c *client) get(endpoint string, opts map[string]string) (*http.Response, error) {
+func (c *Client) get(endpoint string, opts map[string]string) (*http.Response, error) {
 	var err error
 	var resp *http.Response
 
@@ -146,7 +133,7 @@ func (c *client) get(endpoint string, opts map[string]string) (*http.Response, e
 	return resp, nil
 }
 
-func (c *client) post(endpoint string, opts map[string]string) (*http.Response, error) {
+func (c *Client) post(endpoint string, opts map[string]string) (*http.Response, error) {
 	// add optional parameters that the user wants
 	form := url.Values{}
 	if opts != nil {
@@ -193,7 +180,7 @@ func (c *client) post(endpoint string, opts map[string]string) (*http.Response, 
 	return resp, nil
 }
 
-func (c *client) postBasic(endpoint string, opts map[string]string) (*http.Response, error) {
+func (c *Client) postBasic(endpoint string, opts map[string]string) (*http.Response, error) {
 	// add optional parameters that the user wants
 	form := url.Values{}
 	if opts != nil {
@@ -227,7 +214,7 @@ func (c *client) postBasic(endpoint string, opts map[string]string) (*http.Respo
 	return resp, nil
 }
 
-func (c *client) postFile(endpoint string, fileName string, opts map[string]string) (*http.Response, error) {
+func (c *Client) postFile(endpoint string, fileName string, opts map[string]string) (*http.Response, error) {
 	var err error
 	var resp *http.Response
 
@@ -308,7 +295,7 @@ func (c *client) postFile(endpoint string, fileName string, opts map[string]stri
 	return resp, nil
 }
 
-func (c *client) setCookies(cookies []*http.Cookie) {
+func (c *Client) setCookies(cookies []*http.Cookie) {
 	cookieURL, _ := url.Parse(buildUrl(c.settings, ""))
 
 	c.http.Jar.SetCookies(cookieURL, cookies)
