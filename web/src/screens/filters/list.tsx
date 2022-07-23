@@ -76,16 +76,16 @@ function FilterList({ filters }: FilterListProps) {
       <table className="min-w-full">
         <thead className="bg-gray-50 dark:bg-gray-800 text-gray-500 dark:text-gray-400 border-b border-gray-200 dark:border-gray-700">
           <tr>
-            {["Enabled", "Name", "Indexers"].map((label) => (
+            {["Enabled", "Name", "Actions", "Indexers"].map((label) => (
               <th
                 key={`th-${label}`}
                 scope="col"
-                className="px-6 pt-4 pb-3 text-left text-xs font-medium uppercase tracking-wider"
+                className="px-4 pt-4 pb-3 text-left text-xs font-medium uppercase tracking-wider"
               >
                 {label}
               </th>
             ))}
-            <th scope="col" className="relative px-6 py-3">
+            <th scope="col" className="relative px-4 py-3">
               <span className="sr-only">Edit</span>
             </th>
           </tr>
@@ -297,7 +297,7 @@ function FilterListItem({ filter, idx }: FilterListItemProps) {
       )}
     >
       <td
-        className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-100"
+        className="px-4 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-100"
       >
         <Switch
           checked={enabled}
@@ -317,7 +317,7 @@ function FilterListItem({ filter, idx }: FilterListItemProps) {
           />
         </Switch>
       </td>
-      <td className="px-6 w-full whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-100">
+      <td className="px-4 w-full whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-100">
         <Link
           to={filter.id.toString()}
           className="hover:text-black dark:hover:text-gray-300 w-full py-4 flex"
@@ -325,7 +325,15 @@ function FilterListItem({ filter, idx }: FilterListItemProps) {
           {filter.name}
         </Link>
       </td>
-      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+      <td className="px-4 w-full whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-100">
+        <Link
+          to={`${filter.id.toString()}/actions`}
+          className="hover:text-black dark:hover:text-gray-300 w-full py-4 flex"
+        >
+          <span className={classNames(filter.actions_count == 0 ? "text-red-500" : "")}>{filter.actions_count}</span>
+        </Link>
+      </td>
+      <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
         {filter.indexers && filter.indexers.map((t) => (
           <span
             key={t.id}
@@ -335,7 +343,7 @@ function FilterListItem({ filter, idx }: FilterListItemProps) {
           </span>
         ))}
       </td>
-      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+      <td className="px-4 py-4 whitespace-nowrap text-right text-sm font-medium">
         <FilterItemDropdown
           filter={filter}
           onToggle={toggleActive}
