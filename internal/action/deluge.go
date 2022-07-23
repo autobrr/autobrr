@@ -117,8 +117,7 @@ func (s *service) delugeV1(client *domain.DownloadClient, action domain.Action, 
 	}
 
 	if release.TorrentTmpFile == "" {
-		err = release.DownloadTorrentFile()
-		if err != nil {
+		if err = release.DownloadTorrentFile(); err != nil {
 			s.log.Error().Err(err).Msgf("could not download torrent file for release: %v", release.TorrentName)
 			return nil, err
 		}
@@ -195,6 +194,23 @@ func (s *service) delugeV2(client *domain.DownloadClient, action domain.Action, 
 	}
 
 	defer deluge.Close()
+
+	// perform connection to Deluge server
+	rejections, err := s.delugeCheckRulesCanDownload(deluge, client, action)
+	if err != nil {
+		s.log.Error().Err(err).Msgf("error checking client rules: %v", action.Name)
+		return nil, err
+	}
+	if rejections != nil {
+		return rejections, nil
+	}
+
+	if release.TorrentTmpFile == "" {
+		if err = release.DownloadTorrentFile(); err != nil {
+			s.log.Error().Err(err).Msgf("could not download torrent file for release: %v", release.TorrentName)
+			return nil, err
+		}
+	}
 
 	t, err := ioutil.ReadFile(release.TorrentTmpFile)
 	if err != nil {
