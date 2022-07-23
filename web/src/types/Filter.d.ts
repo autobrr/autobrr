@@ -52,6 +52,14 @@ interface Filter {
   except_tags_any: string;
   actions: Action[];
   indexers: Indexer[];
+  external_script_enabled: boolean;
+  external_script_cmd: string;
+  external_script_args: string;
+  external_script_expect_status: number;
+  external_webhook_enabled: boolean;
+  external_webhook_host: string;
+  external_webhook_data: string;
+  external_webhook_expect_status: number;
 }
 
 interface Action {

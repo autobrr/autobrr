@@ -344,6 +344,10 @@ func (r *Release) addRejection(reason string) {
 	r.Rejections = append(r.Rejections, reason)
 }
 
+func (r *Release) AddRejectionF(format string, v ...interface{}) {
+	r.addRejectionF(format, v...)
+}
+
 func (r *Release) addRejectionF(format string, v ...interface{}) {
 	r.Rejections = append(r.Rejections, fmt.Sprintf(format, v...))
 }

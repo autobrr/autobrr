@@ -1,4 +1,4 @@
-package action
+package domain
 
 import (
 	"bytes"
@@ -6,7 +6,6 @@ import (
 	"text/template"
 	"time"
 
-	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/pkg/errors"
 )
 
@@ -32,7 +31,7 @@ type Macro struct {
 	CurrentSecond   int
 }
 
-func NewMacro(release domain.Release) Macro {
+func NewMacro(release Release) Macro {
 	currentTime := time.Now()
 
 	ma := Macro{

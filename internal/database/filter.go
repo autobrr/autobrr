@@ -123,6 +123,14 @@ func (r *FilterRepo) FindByID(ctx context.Context, filterID int) (*domain.Filter
 			"tags",
 			"except_tags",
 			"origins",
+			"external_script_enabled",
+			"external_script_cmd",
+			"external_script_args",
+			"external_script_expect_status",
+			"external_webhook_enabled",
+			"external_webhook_host",
+			"external_webhook_data",
+			"external_webhook_expect_status",
 			"created_at",
 			"updated_at",
 		).
@@ -140,11 +148,11 @@ func (r *FilterRepo) FindByID(ctx context.Context, filterID int) (*domain.Filter
 	}
 
 	var f domain.Filter
-	var minSize, maxSize, maxDownloadsUnit, matchReleases, exceptReleases, matchReleaseGroups, exceptReleaseGroups, freeleechPercent, shows, seasons, episodes, years, artists, albums, matchCategories, exceptCategories, matchUploaders, exceptUploaders, tags, exceptTags sql.NullString
-	var useRegex, scene, freeleech, hasLog, hasCue, perfectFlac sql.NullBool
-	var delay, maxDownloads, logScore sql.NullInt32
+	var minSize, maxSize, maxDownloadsUnit, matchReleases, exceptReleases, matchReleaseGroups, exceptReleaseGroups, freeleechPercent, shows, seasons, episodes, years, artists, albums, matchCategories, exceptCategories, matchUploaders, exceptUploaders, tags, exceptTags, extScriptCmd, extScriptArgs, extWebhookHost, extWebhookData sql.NullString
+	var useRegex, scene, freeleech, hasLog, hasCue, perfectFlac, extScriptEnabled, extWebhookEnabled sql.NullBool
+	var delay, maxDownloads, logScore, extWebhookStatus, extScriptStatus sql.NullInt32
 
-	if err := row.Scan(&f.ID, &f.Enabled, &f.Name, &minSize, &maxSize, &delay, &f.Priority, &maxDownloads, &maxDownloadsUnit, &matchReleases, &exceptReleases, &useRegex, &matchReleaseGroups, &exceptReleaseGroups, &scene, &freeleech, &freeleechPercent, &shows, &seasons, &episodes, pq.Array(&f.Resolutions), pq.Array(&f.Codecs), pq.Array(&f.Sources), pq.Array(&f.Containers), pq.Array(&f.MatchHDR), pq.Array(&f.ExceptHDR), pq.Array(&f.MatchOther), pq.Array(&f.ExceptOther), &years, &artists, &albums, pq.Array(&f.MatchReleaseTypes), pq.Array(&f.Formats), pq.Array(&f.Quality), pq.Array(&f.Media), &logScore, &hasLog, &hasCue, &perfectFlac, &matchCategories, &exceptCategories, &matchUploaders, &exceptUploaders, &tags, &exceptTags, pq.Array(&f.Origins), &f.CreatedAt, &f.UpdatedAt); err != nil {
+	if err := row.Scan(&f.ID, &f.Enabled, &f.Name, &minSize, &maxSize, &delay, &f.Priority, &maxDownloads, &maxDownloadsUnit, &matchReleases, &exceptReleases, &useRegex, &matchReleaseGroups, &exceptReleaseGroups, &scene, &freeleech, &freeleechPercent, &shows, &seasons, &episodes, pq.Array(&f.Resolutions), pq.Array(&f.Codecs), pq.Array(&f.Sources), pq.Array(&f.Containers), pq.Array(&f.MatchHDR), pq.Array(&f.ExceptHDR), pq.Array(&f.MatchOther), pq.Array(&f.ExceptOther), &years, &artists, &albums, pq.Array(&f.MatchReleaseTypes), pq.Array(&f.Formats), pq.Array(&f.Quality), pq.Array(&f.Media), &logScore, &hasLog, &hasCue, &perfectFlac, &matchCategories, &exceptCategories, &matchUploaders, &exceptUploaders, &tags, &exceptTags, pq.Array(&f.Origins), &extScriptEnabled, &extScriptCmd, &extScriptArgs, &extScriptStatus, &extWebhookEnabled, &extWebhookHost, &extWebhookData, &extWebhookStatus, &f.CreatedAt, &f.UpdatedAt); err != nil {
 		return nil, errors.Wrap(err, "error scanning row")
 	}
 
@@ -177,6 +185,16 @@ func (r *FilterRepo) FindByID(ctx context.Context, filterID int) (*domain.Filter
 	f.UseRegex = useRegex.Bool
 	f.Scene = scene.Bool
 	f.Freeleech = freeleech.Bool
+
+	f.ExternalScriptEnabled = extScriptEnabled.Bool
+	f.ExternalScriptCmd = extScriptCmd.String
+	f.ExternalScriptArgs = extScriptArgs.String
+	f.ExternalScriptExpectStatus = int(extScriptStatus.Int32)
+
+	f.ExternalWebhookEnabled = extWebhookEnabled.Bool
+	f.ExternalWebhookHost = extWebhookHost.String
+	f.ExternalWebhookData = extWebhookData.String
+	f.ExternalWebhookExpectStatus = int(extWebhookStatus.Int32)
 
 	return &f, nil
 }
@@ -255,6 +273,14 @@ func (r *FilterRepo) findByIndexerIdentifier(ctx context.Context, tx *Tx, indexe
 			"f.tags",
 			"f.except_tags",
 			"f.origins",
+			"f.external_script_enabled",
+			"f.external_script_cmd",
+			"f.external_script_args",
+			"f.external_script_expect_status",
+			"f.external_webhook_enabled",
+			"f.external_webhook_host",
+			"f.external_webhook_data",
+			"f.external_webhook_expect_status",
 			"f.created_at",
 			"f.updated_at",
 		).
@@ -282,11 +308,11 @@ func (r *FilterRepo) findByIndexerIdentifier(ctx context.Context, tx *Tx, indexe
 	for rows.Next() {
 		var f domain.Filter
 
-		var minSize, maxSize, maxDownloadsUnit, matchReleases, exceptReleases, matchReleaseGroups, exceptReleaseGroups, freeleechPercent, shows, seasons, episodes, years, artists, albums, matchCategories, exceptCategories, matchUploaders, exceptUploaders, tags, exceptTags sql.NullString
-		var useRegex, scene, freeleech, hasLog, hasCue, perfectFlac sql.NullBool
-		var delay, maxDownloads, logScore sql.NullInt32
+		var minSize, maxSize, maxDownloadsUnit, matchReleases, exceptReleases, matchReleaseGroups, exceptReleaseGroups, freeleechPercent, shows, seasons, episodes, years, artists, albums, matchCategories, exceptCategories, matchUploaders, exceptUploaders, tags, exceptTags, extScriptCmd, extScriptArgs, extWebhookHost, extWebhookData sql.NullString
+		var useRegex, scene, freeleech, hasLog, hasCue, perfectFlac, extScriptEnabled, extWebhookEnabled sql.NullBool
+		var delay, maxDownloads, logScore, extWebhookStatus, extScriptStatus sql.NullInt32
 
-		if err := rows.Scan(&f.ID, &f.Enabled, &f.Name, &minSize, &maxSize, &delay, &f.Priority, &maxDownloads, &maxDownloadsUnit, &matchReleases, &exceptReleases, &useRegex, &matchReleaseGroups, &exceptReleaseGroups, &scene, &freeleech, &freeleechPercent, &shows, &seasons, &episodes, pq.Array(&f.Resolutions), pq.Array(&f.Codecs), pq.Array(&f.Sources), pq.Array(&f.Containers), pq.Array(&f.MatchHDR), pq.Array(&f.ExceptHDR), pq.Array(&f.MatchOther), pq.Array(&f.ExceptOther), &years, &artists, &albums, pq.Array(&f.MatchReleaseTypes), pq.Array(&f.Formats), pq.Array(&f.Quality), pq.Array(&f.Media), &logScore, &hasLog, &hasCue, &perfectFlac, &matchCategories, &exceptCategories, &matchUploaders, &exceptUploaders, &tags, &exceptTags, pq.Array(&f.Origins), &f.CreatedAt, &f.UpdatedAt); err != nil {
+		if err := rows.Scan(&f.ID, &f.Enabled, &f.Name, &minSize, &maxSize, &delay, &f.Priority, &maxDownloads, &maxDownloadsUnit, &matchReleases, &exceptReleases, &useRegex, &matchReleaseGroups, &exceptReleaseGroups, &scene, &freeleech, &freeleechPercent, &shows, &seasons, &episodes, pq.Array(&f.Resolutions), pq.Array(&f.Codecs), pq.Array(&f.Sources), pq.Array(&f.Containers), pq.Array(&f.MatchHDR), pq.Array(&f.ExceptHDR), pq.Array(&f.MatchOther), pq.Array(&f.ExceptOther), &years, &artists, &albums, pq.Array(&f.MatchReleaseTypes), pq.Array(&f.Formats), pq.Array(&f.Quality), pq.Array(&f.Media), &logScore, &hasLog, &hasCue, &perfectFlac, &matchCategories, &exceptCategories, &matchUploaders, &exceptUploaders, &tags, &exceptTags, pq.Array(&f.Origins), &extScriptEnabled, &extScriptCmd, &extScriptArgs, &extScriptStatus, &extWebhookEnabled, &extWebhookHost, &extWebhookData, &extWebhookStatus, &f.CreatedAt, &f.UpdatedAt); err != nil {
 			return nil, errors.Wrap(err, "error scanning row")
 		}
 
@@ -319,6 +345,16 @@ func (r *FilterRepo) findByIndexerIdentifier(ctx context.Context, tx *Tx, indexe
 		f.UseRegex = useRegex.Bool
 		f.Scene = scene.Bool
 		f.Freeleech = freeleech.Bool
+
+		f.ExternalScriptEnabled = extScriptEnabled.Bool
+		f.ExternalScriptCmd = extScriptCmd.String
+		f.ExternalScriptArgs = extScriptArgs.String
+		f.ExternalScriptExpectStatus = int(extScriptStatus.Int32)
+
+		f.ExternalWebhookEnabled = extWebhookEnabled.Bool
+		f.ExternalWebhookHost = extWebhookHost.String
+		f.ExternalWebhookData = extWebhookData.String
+		f.ExternalWebhookExpectStatus = int(extWebhookStatus.Int32)
 
 		filters = append(filters, f)
 	}
@@ -375,6 +411,14 @@ func (r *FilterRepo) Store(ctx context.Context, filter domain.Filter) (*domain.F
 			"has_cue",
 			"perfect_flac",
 			"origins",
+			"external_script_enabled",
+			"external_script_cmd",
+			"external_script_args",
+			"external_script_expect_status",
+			"external_webhook_enabled",
+			"external_webhook_host",
+			"external_webhook_data",
+			"external_webhook_expect_status",
 		).
 		Values(
 			filter.Name,
@@ -422,6 +466,14 @@ func (r *FilterRepo) Store(ctx context.Context, filter domain.Filter) (*domain.F
 			filter.Cue,
 			filter.PerfectFlac,
 			pq.Array(filter.Origins),
+			filter.ExternalScriptEnabled,
+			filter.ExternalScriptCmd,
+			filter.ExternalScriptArgs,
+			filter.ExternalScriptExpectStatus,
+			filter.ExternalWebhookEnabled,
+			filter.ExternalWebhookHost,
+			filter.ExternalWebhookData,
+			filter.ExternalWebhookExpectStatus,
 		).
 		Suffix("RETURNING id").RunWith(r.db.handler)
 
@@ -488,6 +540,14 @@ func (r *FilterRepo) Update(ctx context.Context, filter domain.Filter) (*domain.
 		Set("has_cue", filter.Cue).
 		Set("perfect_flac", filter.PerfectFlac).
 		Set("origins", pq.Array(filter.Origins)).
+		Set("external_script_enabled", filter.ExternalScriptEnabled).
+		Set("external_script_cmd", filter.ExternalScriptCmd).
+		Set("external_script_args", filter.ExternalScriptArgs).
+		Set("external_script_expect_status", filter.ExternalScriptExpectStatus).
+		Set("external_webhook_enabled", filter.ExternalWebhookEnabled).
+		Set("external_webhook_host", filter.ExternalWebhookHost).
+		Set("external_webhook_data", filter.ExternalWebhookData).
+		Set("external_webhook_expect_status", filter.ExternalWebhookExpectStatus).
 		Set("updated_at", time.Now().Format(time.RFC3339)).
 		Where("id = ?", filter.ID)
 

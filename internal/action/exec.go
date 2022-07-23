@@ -56,7 +56,7 @@ func (s *service) execCmd(action domain.Action, release domain.Release) error {
 
 func (s *service) parseExecArgs(release domain.Release, execArgs string) ([]string, error) {
 	// handle args and replace vars
-	m := NewMacro(release)
+	m := domain.NewMacro(release)
 
 	// parse and replace values in argument string before continuing
 	parsedArgs, err := m.Parse(execArgs)

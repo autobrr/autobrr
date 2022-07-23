@@ -13,6 +13,7 @@ interface TextFieldProps {
     columns?: COL_WIDTHS;
     autoComplete?: string;
     hidden?: boolean;
+    disabled?: boolean;
 }
 
 export const TextField = ({
@@ -22,7 +23,8 @@ export const TextField = ({
   placeholder,
   columns,
   autoComplete,
-  hidden
+  hidden,
+  disabled,
 }: TextFieldProps) => (
   <div
     className={classNames(
@@ -47,8 +49,77 @@ export const TextField = ({
             type="text"
             defaultValue={defaultValue}
             autoComplete={autoComplete}
-            className={classNames(meta.touched && meta.error ? "focus:ring-red-500 focus:border-red-500 border-red-500" : "focus:ring-indigo-500 dark:focus:ring-blue-500 focus:border-indigo-500 dark:focus:border-blue-500 border-gray-300 dark:border-gray-700", "mt-2 block w-full dark:bg-gray-800 dark:text-gray-100 rounded-md")}
+            className={classNames(
+              meta.touched && meta.error ? "focus:ring-red-500 focus:border-red-500 border-red-500" : "focus:ring-indigo-500 dark:focus:ring-blue-500 focus:border-indigo-500 dark:focus:border-blue-500 border-gray-300 dark:border-gray-700",
+              disabled ? "bg-gray-100 dark:bg-gray-700 cursor-not-allowed" : "dark:bg-gray-800",
+              "mt-2 block w-full dark:text-gray-100 rounded-md",
+            )}
+            disabled={disabled}
             placeholder={placeholder}
+          />
+
+          {meta.touched && meta.error && (
+            <p className="error text-sm text-red-600 mt-1">* {meta.error}</p>
+          )}
+        </div>
+      )}
+    </Field>
+  </div>
+);
+
+interface TextAreaProps {
+  name: string;
+  defaultValue?: string;
+  label?: string;
+  placeholder?: string;
+  columns?: COL_WIDTHS;
+  rows?: number;
+  autoComplete?: string;
+  hidden?: boolean;
+  disabled?: boolean;
+}
+
+export const TextArea = ({
+  name,
+  defaultValue,
+  label,
+  placeholder,
+  columns,
+  rows,
+  autoComplete,
+  hidden,
+  disabled,
+}: TextAreaProps) => (
+  <div
+    className={classNames(
+      hidden ? "hidden" : "",
+      columns ? `col-span-${columns}` : "col-span-12"
+    )}
+  >
+    {label && (
+      <label htmlFor={name} className="block text-xs font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wide">
+        {label}
+      </label>
+    )}
+    <Field name={name}>
+      {({
+          field,
+          meta
+        }: FieldProps) => (
+        <div>
+          <textarea
+            {...field}
+            id={name}
+            rows={rows}
+            defaultValue={defaultValue}
+            autoComplete={autoComplete}
+            className={classNames(
+              meta.touched && meta.error ? "focus:ring-red-500 focus:border-red-500 border-red-500" : "focus:ring-indigo-500 dark:focus:ring-blue-500 focus:border-indigo-500 dark:focus:border-blue-500 border-gray-300 dark:border-gray-700",
+              disabled ? "bg-gray-100 dark:bg-gray-700 cursor-not-allowed" : "dark:bg-gray-800",
+              "mt-2 block w-full dark:text-gray-100 rounded-md",
+            )}
+            placeholder={placeholder}
+            disabled={disabled}
           />
 
           {meta.touched && meta.error && (
@@ -132,13 +203,15 @@ interface NumberFieldProps {
     label?: string;
     placeholder?: string;
     step?: number;
+    disabled?: boolean;
 }
 
 export const NumberField = ({
   name,
   label,
   placeholder,
-  step
+  step,
+  disabled,
 }: NumberFieldProps) => (
   <div className="col-span-12 sm:col-span-6">
     <label htmlFor={name} className="block text-xs font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wide">
@@ -159,9 +232,11 @@ export const NumberField = ({
               meta.touched && meta.error
                 ? "focus:ring-red-500 focus:border-red-500 border-red-500"
                 : "focus:ring-indigo-500 dark:focus:ring-blue-500 focus:border-indigo-500 dark:focus:border-blue-500 border-gray-300",
-              "mt-2 block w-full dark:bg-gray-800 border border-gray-300 dark:border-gray-700 dark:text-gray-100 rounded-md"
+              "mt-2 block w-full border border-gray-300 dark:border-gray-700 dark:text-gray-100 rounded-md",
+              disabled ? "bg-gray-100 dark:bg-gray-700 cursor-not-allowed" : "dark:bg-gray-800",
             )}
             placeholder={placeholder}
+            disabled={disabled}
           />
           {meta.touched && meta.error && (
             <div className="error">{meta.error}</div>

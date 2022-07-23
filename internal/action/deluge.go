@@ -135,7 +135,7 @@ func (s *service) delugeV1(client *domain.DownloadClient, action domain.Action, 
 	}
 
 	// macros handle args and replace vars
-	m := NewMacro(release)
+	m := domain.NewMacro(release)
 
 	options, err := s.prepareDelugeOptions(action, m)
 	if err != nil {
@@ -224,7 +224,7 @@ func (s *service) delugeV2(client *domain.DownloadClient, action domain.Action, 
 	}
 
 	// macros handle args and replace vars
-	m := NewMacro(release)
+	m := domain.NewMacro(release)
 
 	// set options
 	options, err := s.prepareDelugeOptions(action, m)
@@ -265,7 +265,7 @@ func (s *service) delugeV2(client *domain.DownloadClient, action domain.Action, 
 	return nil, nil
 }
 
-func (s *service) prepareDelugeOptions(action domain.Action, m Macro) (delugeClient.Options, error) {
+func (s *service) prepareDelugeOptions(action domain.Action, m domain.Macro) (delugeClient.Options, error) {
 
 	// set options
 	options := delugeClient.Options{}

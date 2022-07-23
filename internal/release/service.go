@@ -114,8 +114,6 @@ func (s *service) Process(release *domain.Release) {
 		release.FilterName = f.Name
 		release.FilterID = f.ID
 
-		// TODO filter limit checks
-
 		// test filter
 		match, err := s.filterSvc.CheckFilter(f, release)
 		if err != nil {

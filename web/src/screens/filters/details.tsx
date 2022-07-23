@@ -9,7 +9,7 @@ import {
   useParams
 } from "react-router-dom";
 import { toast } from "react-hot-toast";
-import { Field, FieldArray, FieldProps, Form, Formik, FormikValues } from "formik";
+import { Field, FieldArray, FieldProps, Form, Formik, FormikValues, useFormikContext } from "formik";
 import { Dialog, Transition, Switch as SwitchBasic } from "@headlessui/react";
 import { ChevronDownIcon, ChevronRightIcon } from "@heroicons/react/solid";
 
@@ -50,6 +50,7 @@ import { AlertWarning } from "../../components/alerts";
 import { DeleteModal } from "../../components/modals";
 import { TitleSubtitle } from "../../components/headings";
 import { EmptyListState } from "../../components/emptystates";
+import { TextArea } from "../../components/inputs/input";
 
 interface tabType {
   name: string;
@@ -61,6 +62,7 @@ const tabs: tabType[] = [
   { name: "Movies and TV", href: "movies-tv" },
   { name: "Music", href: "music" },
   { name: "Advanced", href: "advanced" },
+  { name: "External", href: "external" },
   { name: "Actions", href: "actions" }
 ];
 
@@ -280,7 +282,15 @@ export default function FilterDetails() {
                 albums: filter.albums,
                 origins: filter.origins || [],
                 indexers: filter.indexers || [],
-                actions: filter.actions || []
+                actions: filter.actions || [],
+                external_script_enabled: filter.external_script_enabled || false,
+                external_script_cmd: filter.external_script_cmd || "",
+                external_script_args: filter.external_script_args || "",
+                external_script_expect_status: filter.external_script_expect_status || 0,
+                external_webhook_enabled: filter.external_webhook_enabled || false,
+                external_webhook_host: filter.external_webhook_host || "",
+                external_webhook_data: filter.external_webhook_data ||"",
+                external_webhook_expect_status: filter.external_webhook_expect_status || 0,
               } as Filter}
               onSubmit={handleSubmit}
             >
@@ -291,6 +301,7 @@ export default function FilterDetails() {
                     <Route path="movies-tv" element={<MoviesTv />} />
                     <Route path="music" element={<Music />} />
                     <Route path="advanced" element={<Advanced />} />
+                    <Route path="external" element={<External />} />
                     <Route path="actions" element={<FilterActions filter={filter} values={values} />}
                     />
                   </Routes>
@@ -523,6 +534,75 @@ function CollapsableSection({ title, subtitle, children }: CollapsableSectionPro
           {children}
         </div>
       )}
+    </div>
+  );
+}
+
+export function External() {
+  const { values } = useFormikContext<Filter>();
+
+  return (
+    <div>
+
+      <div className="mt-6">
+        <SwitchGroup name="external_script_enabled" heading={true} label="Script" description="Run external script and check status as part of filtering" />
+
+        <div className="mt-6 grid grid-cols-12 gap-6">
+          <TextField
+            name="external_script_cmd"
+            label="Command"
+            columns={6}
+            placeholder="Path to program eg. /bin/test"
+            disabled={!values.external_script_enabled}
+          />
+          <TextField
+            name="external_script_args"
+            label="Arguments"
+            columns={6}
+            placeholder="Arguments eg. --test"
+            disabled={!values.external_script_enabled}
+          />
+          <NumberField
+            name="external_script_expect_status"
+            label="Expected exit status"
+            placeholder="0"
+            disabled={!values.external_script_enabled}
+          />
+        </div>
+      </div>
+
+      <div className="mt-6">
+        <div className="border-t dark:border-gray-700">
+          <SwitchGroup name="external_webhook_enabled" heading={true} label="Webhook" description="Run external webhook and check status as part of filtering" />
+        </div>
+
+        <div className="mt-6 grid grid-cols-12 gap-6">
+          <div className="grid col-span-6 gap-6">
+            <TextField
+              name="external_webhook_host"
+              label="Host"
+              columns={6}
+              placeholder="Host eg. http://localhost/webhook"
+              disabled={!values.external_webhook_enabled}
+            />
+            <NumberField
+              name="external_webhook_expect_status"
+              label="Expected http status"
+              placeholder="200"
+              disabled={!values.external_webhook_enabled}
+            />
+          </div>
+
+          <TextArea
+            name="external_webhook_data"
+            label="Data (json)"
+            columns={6}
+            rows={5}
+            placeholder={"{ \"key\": \"value\" }"}
+            disabled={!values.external_webhook_enabled}
+          />
+        </div>
+      </div>
     </div>
   );
 }

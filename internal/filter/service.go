@@ -1,15 +1,22 @@
 package filter
 
 import (
+	"bytes"
 	"context"
-	"errors"
+	"crypto/tls"
 	"fmt"
+	"net/http"
+	"os/exec"
+	"strings"
+	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/internal/indexer"
 	"github.com/autobrr/autobrr/internal/logger"
+	"github.com/autobrr/autobrr/pkg/errors"
 
 	"github.com/dustin/go-humanize"
+	"github.com/mattn/go-shellwords"
 	"github.com/rs/zerolog"
 )
 
@@ -269,6 +276,37 @@ func (s *service) CheckFilter(f domain.Filter, release *domain.Release) (bool, e
 			}
 		}
 
+		// run external script
+		if f.ExternalScriptEnabled && f.ExternalScriptCmd != "" {
+			exitCode, err := s.execCmd(release, f.ExternalScriptCmd, f.ExternalScriptArgs)
+			if err != nil {
+				s.log.Error().Err(err).Msgf("filter.Service.CheckFilter: error executing external command for filter: %+v", f.Name)
+				return false, err
+			}
+
+			if exitCode != f.ExternalScriptExpectStatus {
+				s.log.Trace().Msgf("filter.Service.CheckFilter: external script unexpected exit code. got: %v want: %v", exitCode, f.ExternalScriptExpectStatus)
+				release.AddRejectionF("external script unexpected exit code. got: %v want: %v", exitCode, f.ExternalScriptExpectStatus)
+				return false, nil
+			}
+		}
+
+		// run external webhook
+		if f.ExternalWebhookEnabled && f.ExternalWebhookHost != "" && f.ExternalWebhookData != "" {
+			// run external scripts
+			statusCode, err := s.webhook(release, f.ExternalWebhookHost, f.ExternalWebhookData)
+			if err != nil {
+				s.log.Error().Err(err).Msgf("filter.Service.CheckFilter: error executing external webhook for filter: %v", f.Name)
+				return false, err
+			}
+
+			if statusCode != f.ExternalWebhookExpectStatus {
+				s.log.Trace().Msgf("filter.Service.CheckFilter: external webhook unexpected status code. got: %v want: %v", statusCode, f.ExternalWebhookExpectStatus)
+				release.AddRejectionF("external webhook unexpected status code. got: %v want: %v", statusCode, f.ExternalWebhookExpectStatus)
+				return false, nil
+			}
+		}
+
 		// found matching filter, lets find the filter actions and attach
 		actions, err := s.actionRepo.FindByFilterID(context.TODO(), f.ID)
 		if err != nil {
@@ -279,7 +317,7 @@ func (s *service) CheckFilter(f domain.Filter, release *domain.Release) (bool, e
 		// if no actions, continue to next filter
 		if len(actions) == 0 {
 			s.log.Trace().Msgf("filter.Service.CheckFilter: no actions found for filter '%v', trying next one..", f.Name)
-			return false, err
+			return false, nil
 		}
 		release.Filter.Actions = actions
 
@@ -370,4 +408,103 @@ func checkSizeFilter(minSize string, maxSize string, releaseSize uint64) (bool, 
 	}
 
 	return true, nil
+}
+
+func (s *service) execCmd(release *domain.Release, cmd string, args string) (int, error) {
+	s.log.Debug().Msgf("filter exec release: %v", release.TorrentName)
+
+	if release.TorrentTmpFile == "" && strings.Contains(args, "TorrentPathName") {
+		if err := release.DownloadTorrentFile(); err != nil {
+			return 0, errors.Wrap(err, "error downloading torrent file for release: %v", release.TorrentName)
+		}
+	}
+
+	// check if program exists
+	cmd, err := exec.LookPath(cmd)
+	if err != nil {
+		return 0, errors.Wrap(err, "exec failed, could not find program: %v", cmd)
+	}
+
+	// handle args and replace vars
+	m := domain.NewMacro(*release)
+
+	// parse and replace values in argument string before continuing
+	parsedArgs, err := m.Parse(args)
+	if err != nil {
+		return 0, errors.Wrap(err, "could not parse macro")
+	}
+
+	// we need to split on space into a string slice, so we can spread the args into exec
+	p := shellwords.NewParser()
+	p.ParseBacktick = true
+	commandArgs, err := p.Parse(parsedArgs)
+	if err != nil {
+		return 0, errors.Wrap(err, "could not parse into shell-words")
+	}
+
+	start := time.Now()
+
+	// setup command and args
+	command := exec.Command(cmd, commandArgs...)
+
+	err = command.Run()
+	var exitErr *exec.ExitError
+	if errors.As(err, &exitErr) {
+		s.log.Debug().Msgf("filter script command exited with non zero code: %v", exitErr.ExitCode())
+		return exitErr.ExitCode(), nil
+	}
+
+	duration := time.Since(start)
+
+	s.log.Debug().Msgf("executed external script: (%v), args: (%v) for release: (%v) indexer: (%v) total time (%v)", cmd, args, release.TorrentName, release.Indexer, duration)
+
+	return 0, nil
+}
+
+func (s *service) webhook(release *domain.Release, url string, data string) (int, error) {
+
+	if release.TorrentTmpFile == "" && strings.Contains(data, "TorrentPathName") {
+		if err := release.DownloadTorrentFile(); err != nil {
+			return 0, errors.Wrap(err, "webhook: could not download torrent file for release: %v", release.TorrentName)
+		}
+	}
+
+	m := domain.NewMacro(*release)
+
+	// parse and replace values in argument string before continuing
+	dataArgs, err := m.Parse(data)
+	if err != nil {
+		return 0, errors.Wrap(err, "could not parse webhook data macro: %v", data)
+	}
+
+	t := &http.Transport{
+		TLSClientConfig: &tls.Config{
+			InsecureSkipVerify: true,
+		},
+	}
+
+	client := http.Client{Transport: t, Timeout: 15 * time.Second}
+
+	req, err := http.NewRequest(http.MethodPost, url, bytes.NewBufferString(dataArgs))
+	if err != nil {
+		return 0, errors.Wrap(err, "could not build request for webhook")
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("User-Agent", "autobrr")
+
+	res, err := client.Do(req)
+	if err != nil {
+		return 0, errors.Wrap(err, "could not make request for webhook")
+	}
+
+	defer res.Body.Close()
+
+	if res.StatusCode > 299 {
+		return res.StatusCode, nil
+	}
+
+	s.log.Debug().Msgf("successfully ran external webhook filter to: (%v) payload: (%v)", url, dataArgs)
+
+	return res.StatusCode, nil
 }

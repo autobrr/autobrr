@@ -76,7 +76,7 @@ func (s *service) qbittorrent(action domain.Action, release domain.Release) ([]s
 	}
 
 	// macros handle args and replace vars
-	m := NewMacro(release)
+	m := domain.NewMacro(release)
 
 	options, err := s.prepareQbitOptions(action, m)
 	if err != nil {
@@ -100,7 +100,7 @@ func (s *service) qbittorrent(action domain.Action, release domain.Release) ([]s
 	return nil, nil
 }
 
-func (s *service) prepareQbitOptions(action domain.Action, m Macro) (map[string]string, error) {
+func (s *service) prepareQbitOptions(action domain.Action, m domain.Macro) (map[string]string, error) {
 
 	options := map[string]string{}
 

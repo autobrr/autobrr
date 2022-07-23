@@ -49,61 +49,69 @@ const (
 )
 
 type Filter struct {
-	ID                  int                    `json:"id"`
-	Name                string                 `json:"name"`
-	Enabled             bool                   `json:"enabled"`
-	CreatedAt           time.Time              `json:"created_at"`
-	UpdatedAt           time.Time              `json:"updated_at"`
-	MinSize             string                 `json:"min_size"`
-	MaxSize             string                 `json:"max_size"`
-	Delay               int                    `json:"delay"`
-	Priority            int32                  `json:"priority"`
-	MaxDownloads        int                    `json:"max_downloads"`
-	MaxDownloadsUnit    FilterMaxDownloadsUnit `json:"max_downloads_unit"`
-	MatchReleases       string                 `json:"match_releases"`
-	ExceptReleases      string                 `json:"except_releases"`
-	UseRegex            bool                   `json:"use_regex"`
-	MatchReleaseGroups  string                 `json:"match_release_groups"`
-	ExceptReleaseGroups string                 `json:"except_release_groups"`
-	Scene               bool                   `json:"scene"`
-	Origins             []string               `json:"origins"`
-	Bonus               []string               `json:"bonus"`
-	Freeleech           bool                   `json:"freeleech"`
-	FreeleechPercent    string                 `json:"freeleech_percent"`
-	Shows               string                 `json:"shows"`
-	Seasons             string                 `json:"seasons"`
-	Episodes            string                 `json:"episodes"`
-	Resolutions         []string               `json:"resolutions"` // SD, 480i, 480p, 576p, 720p, 810p, 1080i, 1080p.
-	Codecs              []string               `json:"codecs"`      // XviD, DivX, x264, h.264 (or h264), mpeg2 (or mpeg-2), VC-1 (or VC1), WMV, Remux, h.264 Remux (or h264 Remux), VC-1 Remux (or VC1 Remux).
-	Sources             []string               `json:"sources"`     // DSR, PDTV, HDTV, HR.PDTV, HR.HDTV, DVDRip, DVDScr, BDr, BD5, BD9, BDRip, BRRip, DVDR, MDVDR, HDDVD, HDDVDRip, BluRay, WEB-DL, TVRip, CAM, R5, TELESYNC, TS, TELECINE, TC. TELESYNC and TS are synonyms (you don't need both). Same for TELECINE and TC
-	Containers          []string               `json:"containers"`
-	MatchHDR            []string               `json:"match_hdr"`
-	ExceptHDR           []string               `json:"except_hdr"`
-	MatchOther          []string               `json:"match_other"`
-	ExceptOther         []string               `json:"except_other"`
-	Years               string                 `json:"years"`
-	Artists             string                 `json:"artists"`
-	Albums              string                 `json:"albums"`
-	MatchReleaseTypes   []string               `json:"match_release_types"` // Album,Single,EP
-	ExceptReleaseTypes  string                 `json:"except_release_types"`
-	Formats             []string               `json:"formats"` // MP3, FLAC, Ogg, AAC, AC3, DTS
-	Quality             []string               `json:"quality"` // 192, 320, APS (VBR), V2 (VBR), V1 (VBR), APX (VBR), V0 (VBR), q8.x (VBR), Lossless, 24bit Lossless, Other
-	Media               []string               `json:"media"`   // CD, DVD, Vinyl, Soundboard, SACD, DAT, Cassette, WEB, Other
-	PerfectFlac         bool                   `json:"perfect_flac"`
-	Cue                 bool                   `json:"cue"`
-	Log                 bool                   `json:"log"`
-	LogScore            int                    `json:"log_score"`
-	MatchCategories     string                 `json:"match_categories"`
-	ExceptCategories    string                 `json:"except_categories"`
-	MatchUploaders      string                 `json:"match_uploaders"`
-	ExceptUploaders     string                 `json:"except_uploaders"`
-	Tags                string                 `json:"tags"`
-	ExceptTags          string                 `json:"except_tags"`
-	TagsAny             string                 `json:"tags_any"`
-	ExceptTagsAny       string                 `json:"except_tags_any"`
-	Actions             []*Action              `json:"actions"`
-	Indexers            []Indexer              `json:"indexers"`
-	Downloads           *FilterDownloads       `json:"-"`
+	ID                          int                    `json:"id"`
+	Name                        string                 `json:"name"`
+	Enabled                     bool                   `json:"enabled"`
+	CreatedAt                   time.Time              `json:"created_at"`
+	UpdatedAt                   time.Time              `json:"updated_at"`
+	MinSize                     string                 `json:"min_size"`
+	MaxSize                     string                 `json:"max_size"`
+	Delay                       int                    `json:"delay"`
+	Priority                    int32                  `json:"priority"`
+	MaxDownloads                int                    `json:"max_downloads"`
+	MaxDownloadsUnit            FilterMaxDownloadsUnit `json:"max_downloads_unit"`
+	MatchReleases               string                 `json:"match_releases"`
+	ExceptReleases              string                 `json:"except_releases"`
+	UseRegex                    bool                   `json:"use_regex"`
+	MatchReleaseGroups          string                 `json:"match_release_groups"`
+	ExceptReleaseGroups         string                 `json:"except_release_groups"`
+	Scene                       bool                   `json:"scene"`
+	Origins                     []string               `json:"origins"`
+	Bonus                       []string               `json:"bonus"`
+	Freeleech                   bool                   `json:"freeleech"`
+	FreeleechPercent            string                 `json:"freeleech_percent"`
+	Shows                       string                 `json:"shows"`
+	Seasons                     string                 `json:"seasons"`
+	Episodes                    string                 `json:"episodes"`
+	Resolutions                 []string               `json:"resolutions"` // SD, 480i, 480p, 576p, 720p, 810p, 1080i, 1080p.
+	Codecs                      []string               `json:"codecs"`      // XviD, DivX, x264, h.264 (or h264), mpeg2 (or mpeg-2), VC-1 (or VC1), WMV, Remux, h.264 Remux (or h264 Remux), VC-1 Remux (or VC1 Remux).
+	Sources                     []string               `json:"sources"`     // DSR, PDTV, HDTV, HR.PDTV, HR.HDTV, DVDRip, DVDScr, BDr, BD5, BD9, BDRip, BRRip, DVDR, MDVDR, HDDVD, HDDVDRip, BluRay, WEB-DL, TVRip, CAM, R5, TELESYNC, TS, TELECINE, TC. TELESYNC and TS are synonyms (you don't need both). Same for TELECINE and TC
+	Containers                  []string               `json:"containers"`
+	MatchHDR                    []string               `json:"match_hdr"`
+	ExceptHDR                   []string               `json:"except_hdr"`
+	MatchOther                  []string               `json:"match_other"`
+	ExceptOther                 []string               `json:"except_other"`
+	Years                       string                 `json:"years"`
+	Artists                     string                 `json:"artists"`
+	Albums                      string                 `json:"albums"`
+	MatchReleaseTypes           []string               `json:"match_release_types"` // Album,Single,EP
+	ExceptReleaseTypes          string                 `json:"except_release_types"`
+	Formats                     []string               `json:"formats"` // MP3, FLAC, Ogg, AAC, AC3, DTS
+	Quality                     []string               `json:"quality"` // 192, 320, APS (VBR), V2 (VBR), V1 (VBR), APX (VBR), V0 (VBR), q8.x (VBR), Lossless, 24bit Lossless, Other
+	Media                       []string               `json:"media"`   // CD, DVD, Vinyl, Soundboard, SACD, DAT, Cassette, WEB, Other
+	PerfectFlac                 bool                   `json:"perfect_flac"`
+	Cue                         bool                   `json:"cue"`
+	Log                         bool                   `json:"log"`
+	LogScore                    int                    `json:"log_score"`
+	MatchCategories             string                 `json:"match_categories"`
+	ExceptCategories            string                 `json:"except_categories"`
+	MatchUploaders              string                 `json:"match_uploaders"`
+	ExceptUploaders             string                 `json:"except_uploaders"`
+	Tags                        string                 `json:"tags"`
+	ExceptTags                  string                 `json:"except_tags"`
+	TagsAny                     string                 `json:"tags_any"`
+	ExceptTagsAny               string                 `json:"except_tags_any"`
+	ExternalScriptEnabled       bool                   `json:"external_script_enabled"`
+	ExternalScriptCmd           string                 `json:"external_script_cmd"`
+	ExternalScriptArgs          string                 `json:"external_script_args"`
+	ExternalScriptExpectStatus  int                    `json:"external_script_expect_status"`
+	ExternalWebhookEnabled      bool                   `json:"external_webhook_enabled"`
+	ExternalWebhookHost         string                 `json:"external_webhook_host"`
+	ExternalWebhookData         string                 `json:"external_webhook_data"`
+	ExternalWebhookExpectStatus int                    `json:"external_webhook_expect_status"`
+	Actions                     []*Action              `json:"actions"`
+	Indexers                    []Indexer              `json:"indexers"`
+	Downloads                   *FilterDownloads       `json:"-"`
 }
 
 func (f Filter) CheckFilter(r *Release) ([]string, bool) {

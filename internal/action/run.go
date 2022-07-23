@@ -136,7 +136,7 @@ func (s *service) watchFolder(action domain.Action, release domain.Release) erro
 		}
 	}
 
-	m := NewMacro(release)
+	m := domain.NewMacro(release)
 
 	// parse and replace values in argument string before continuing
 	watchFolderArgs, err := m.Parse(action.WatchFolder)
@@ -187,7 +187,7 @@ func (s *service) webhook(action domain.Action, release domain.Release) error {
 		}
 	}
 
-	m := NewMacro(release)
+	m := domain.NewMacro(release)
 
 	// parse and replace values in argument string before continuing
 	dataArgs, err := m.Parse(action.WebhookData)

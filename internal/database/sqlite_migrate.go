@@ -60,55 +60,63 @@ CREATE TABLE irc_channel
 
 CREATE TABLE filter
 (
-    id                    INTEGER PRIMARY KEY,
-    enabled               BOOLEAN,
-    name                  TEXT NOT NULL,
-    min_size              TEXT,
-    max_size              TEXT,
-    delay                 INTEGER,
-    priority              INTEGER DEFAULT 0 NOT NULL,
-    max_downloads         INTEGER DEFAULT 0,
-    max_downloads_unit    TEXT,
-    match_releases        TEXT,
-    except_releases       TEXT,
-    use_regex             BOOLEAN,
-    match_release_groups  TEXT,
-    except_release_groups TEXT,
-    scene                 BOOLEAN,
-    freeleech             BOOLEAN,
-    freeleech_percent     TEXT,
-    shows                 TEXT,
-    seasons               TEXT,
-    episodes              TEXT,
-    resolutions           TEXT []   DEFAULT '{}' NOT NULL,
-    codecs                TEXT []   DEFAULT '{}' NOT NULL,
-    sources               TEXT []   DEFAULT '{}' NOT NULL,
-    containers            TEXT []   DEFAULT '{}' NOT NULL,
-    match_hdr             TEXT []   DEFAULT '{}',
-    except_hdr            TEXT []   DEFAULT '{}',
-    match_other           TEXT []   DEFAULT '{}',
-    except_other          TEXT []   DEFAULT '{}',
-    years                 TEXT,
-    artists               TEXT,
-    albums                TEXT,
-    release_types_match   TEXT []   DEFAULT '{}',
-    release_types_ignore  TEXT []   DEFAULT '{}',
-    formats               TEXT []   DEFAULT '{}',
-    quality               TEXT []   DEFAULT '{}',
-	media 				  TEXT []   DEFAULT '{}',
-    log_score             INTEGER,
-    has_log               BOOLEAN,
-    has_cue               BOOLEAN,
-    perfect_flac          BOOLEAN,
-    match_categories      TEXT,
-    except_categories     TEXT,
-    match_uploaders       TEXT,
-    except_uploaders      TEXT,
-    tags                  TEXT,
-    except_tags           TEXT,
-	origins               TEXT []   DEFAULT '{}',
-    created_at            TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at            TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    id                             INTEGER PRIMARY KEY,
+    enabled                        BOOLEAN,
+    name                           TEXT NOT NULL,
+    min_size                       TEXT,
+    max_size                       TEXT,
+    delay                          INTEGER,
+    priority                       INTEGER   DEFAULT 0 NOT NULL,
+    max_downloads                  INTEGER   DEFAULT 0,
+    max_downloads_unit             TEXT,
+    match_releases                 TEXT,
+    except_releases                TEXT,
+    use_regex                      BOOLEAN,
+    match_release_groups           TEXT,
+    except_release_groups          TEXT,
+    scene                          BOOLEAN,
+    freeleech                      BOOLEAN,
+    freeleech_percent              TEXT,
+    shows                          TEXT,
+    seasons                        TEXT,
+    episodes                       TEXT,
+    resolutions                    TEXT []   DEFAULT '{}' NOT NULL,
+    codecs                         TEXT []   DEFAULT '{}' NOT NULL,
+    sources                        TEXT []   DEFAULT '{}' NOT NULL,
+    containers                     TEXT []   DEFAULT '{}' NOT NULL,
+    match_hdr                      TEXT []   DEFAULT '{}',
+    except_hdr                     TEXT []   DEFAULT '{}',
+    match_other                    TEXT []   DEFAULT '{}',
+    except_other                   TEXT []   DEFAULT '{}',
+    years                          TEXT,
+    artists                        TEXT,
+    albums                         TEXT,
+    release_types_match            TEXT []   DEFAULT '{}',
+    release_types_ignore           TEXT []   DEFAULT '{}',
+    formats                        TEXT []   DEFAULT '{}',
+    quality                        TEXT []   DEFAULT '{}',
+    media                          TEXT []   DEFAULT '{}',
+    log_score                      INTEGER,
+    has_log                        BOOLEAN,
+    has_cue                        BOOLEAN,
+    perfect_flac                   BOOLEAN,
+    match_categories               TEXT,
+    except_categories              TEXT,
+    match_uploaders                TEXT,
+    except_uploaders               TEXT,
+    tags                           TEXT,
+    except_tags                    TEXT,
+    origins                        TEXT []   DEFAULT '{}',
+    external_script_enabled        BOOLEAN   DEFAULT FALSE,
+    external_script_cmd            TEXT,
+    external_script_args           TEXT,
+    external_script_expect_status  INTEGER,
+    external_webhook_enabled       BOOLEAN   DEFAULT FALSE,
+    external_webhook_host          TEXT,
+    external_webhook_data          TEXT,
+    external_webhook_expect_status INTEGER,
+    created_at                     TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at                     TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE filter_indexer
@@ -813,5 +821,30 @@ CREATE INDEX indexer_identifier_index
 
 	ALTER TABLE release_action_status
 		ADD COLUMN filter TEXT;
+	`,
+	`
+	ALTER TABLE filter
+		ADD COLUMN external_script_enabled BOOLEAN DEFAULT FALSE;
+
+	ALTER TABLE filter
+		ADD COLUMN external_script_cmd TEXT;
+
+	ALTER TABLE filter
+		ADD COLUMN external_script_args TEXT;
+
+	ALTER TABLE filter
+		ADD COLUMN external_script_expect_status INTEGER;
+
+	ALTER TABLE filter
+		ADD COLUMN external_webhook_enabled BOOLEAN DEFAULT FALSE;
+
+	ALTER TABLE filter
+		ADD COLUMN external_webhook_host TEXT;
+
+	ALTER TABLE filter
+		ADD COLUMN external_webhook_data TEXT;
+
+	ALTER TABLE filter
+		ADD COLUMN external_webhook_expect_status INTEGER;
 	`,
 }

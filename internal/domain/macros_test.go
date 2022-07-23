@@ -1,11 +1,9 @@
-package action
+package domain
 
 import (
 	"fmt"
 	"testing"
 	"time"
-
-	"github.com/autobrr/autobrr/internal/domain"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -25,14 +23,14 @@ func TestMacros_Parse(t *testing.T) {
 	tests := []struct {
 		name    string
 		fields  fields
-		release domain.Release
+		release Release
 		args    args
 		want    string
 		wantErr bool
 	}{
 		{
 			name: "test_ok",
-			release: domain.Release{
+			release: Release{
 				TorrentName:    "This movie 2021",
 				TorrentTmpFile: "/tmp/a-temporary-file.torrent",
 				Indexer:        "mock1",
@@ -43,7 +41,7 @@ func TestMacros_Parse(t *testing.T) {
 		},
 		{
 			name: "test_bad",
-			release: domain.Release{
+			release: Release{
 				TorrentName:    "This movie 2021",
 				TorrentTmpFile: "/tmp/a-temporary-file.torrent",
 				Indexer:        "mock1",
@@ -54,7 +52,7 @@ func TestMacros_Parse(t *testing.T) {
 		},
 		{
 			name: "test_program_arg",
-			release: domain.Release{
+			release: Release{
 				TorrentName:    "This movie 2021",
 				TorrentTmpFile: "/tmp/a-temporary-file.torrent",
 				Indexer:        "mock1",
@@ -65,7 +63,7 @@ func TestMacros_Parse(t *testing.T) {
 		},
 		{
 			name: "test_program_arg_bad",
-			release: domain.Release{
+			release: Release{
 				TorrentTmpFile: "/tmp/a-temporary-file.torrent",
 				Indexer:        "mock1",
 			},
@@ -75,7 +73,7 @@ func TestMacros_Parse(t *testing.T) {
 		},
 		{
 			name: "test_program_arg",
-			release: domain.Release{
+			release: Release{
 				TorrentName:    "This movie 2021",
 				TorrentTmpFile: "/tmp/a-temporary-file.torrent",
 				Indexer:        "mock1",
@@ -86,7 +84,7 @@ func TestMacros_Parse(t *testing.T) {
 		},
 		{
 			name: "test_args_long",
-			release: domain.Release{
+			release: Release{
 				TorrentName: "This movie 2021",
 				TorrentURL:  "https://some.site/download/fakeid",
 				Indexer:     "mock1",
@@ -97,7 +95,7 @@ func TestMacros_Parse(t *testing.T) {
 		},
 		{
 			name: "test_args_long_1",
-			release: domain.Release{
+			release: Release{
 				TorrentName: "This movie 2021",
 				TorrentURL:  "https://some.site/download/fakeid",
 				Indexer:     "mock1",
@@ -108,7 +106,7 @@ func TestMacros_Parse(t *testing.T) {
 		},
 		{
 			name: "test_args_category",
-			release: domain.Release{
+			release: Release{
 				TorrentName: "This movie 2021",
 				TorrentURL:  "https://some.site/download/fakeid",
 				Indexer:     "mock1",
@@ -119,7 +117,7 @@ func TestMacros_Parse(t *testing.T) {
 		},
 		{
 			name: "test_args_category_year",
-			release: domain.Release{
+			release: Release{
 				TorrentName: "This movie 2021",
 				TorrentURL:  "https://some.site/download/fakeid",
 				Indexer:     "mock1",
@@ -130,7 +128,7 @@ func TestMacros_Parse(t *testing.T) {
 		},
 		{
 			name: "test_args_category_year",
-			release: domain.Release{
+			release: Release{
 				TorrentName: "This movie 2021",
 				TorrentURL:  "https://some.site/download/fakeid",
 				Indexer:     "mock1",
@@ -143,7 +141,7 @@ func TestMacros_Parse(t *testing.T) {
 		},
 		{
 			name: "test_args_category_and_if",
-			release: domain.Release{
+			release: Release{
 				TorrentName: "This movie 2021",
 				TorrentURL:  "https://some.site/download/fakeid",
 				Indexer:     "mock1",
@@ -156,7 +154,7 @@ func TestMacros_Parse(t *testing.T) {
 		},
 		{
 			name: "test_release_year_1",
-			release: domain.Release{
+			release: Release{
 				TorrentName: "This movie 2021",
 				TorrentURL:  "https://some.site/download/fakeid",
 				Indexer:     "mock1",
