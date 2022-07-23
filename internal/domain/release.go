@@ -238,7 +238,9 @@ func (r *Release) ParseReleaseTagsString(tags string) {
 	if len(t.Other) > 0 {
 		r.Other = append(r.Other, t.Other...)
 	}
-
+	if r.Origin == "" && t.Origin != "" {
+		r.Origin = t.Origin
+	}
 	if r.Container == "" && t.Container != "" {
 		r.Container = t.Container
 	}
