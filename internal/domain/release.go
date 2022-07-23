@@ -238,7 +238,9 @@ func (r *Release) ParseReleaseTagsString(tags string) {
 	if len(t.Other) > 0 {
 		r.Other = append(r.Other, t.Other...)
 	}
-
+	if r.Origin == "" && t.Origin != "" {
+		r.Origin = t.Origin
+	}
 	if r.Container == "" && t.Container != "" {
 		r.Container = t.Container
 	}
@@ -462,6 +464,10 @@ func (r *Release) MapVars(def *IndexerDefinition, varMap map[string]string) erro
 	if tags, err := getStringMapValue(varMap, "tags"); err == nil {
 		tagArr := strings.Split(strings.ReplaceAll(tags, " ", ""), ",")
 		r.Tags = tagArr
+	}
+
+	if title, err := getStringMapValue(varMap, "title"); err == nil {
+		r.Title = title
 	}
 
 	// handle releaseTags. Most of them are redundant but some are useful

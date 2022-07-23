@@ -70,12 +70,11 @@ parse:
         - torrentName
     - test:
         - "[ Title: S06E07 ] [ Series: The Show ]"
-      pattern: '^\[ Title: (.*) \] \[ Series: (.*) \]'
+      pattern: '^\[ Title: .* \] \[ Series: (.*) \]'
       vars:
         - title
-        - name1
     - test:
-        - "[ 2010 ] [ Episode ] [ MKV | x264 | WEB ] [ Uploader: Uploader1 ]"
+        - "[ 2010 ] [ Episode ] [ MKV | x264 | WEB | P2P ] [ Uploader: Uploader1 ]"
       pattern: '^(?:\[ (\d+) \] )?\[ (.*) \] \[ (.*) \] \[ Uploader: (.*?) \](?: \[ Pretime: (.*) \])?'
       vars:
         - year
