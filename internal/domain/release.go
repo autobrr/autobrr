@@ -464,6 +464,10 @@ func (r *Release) MapVars(def *IndexerDefinition, varMap map[string]string) erro
 		r.Tags = tagArr
 	}
 
+	if title, err := getStringMapValue(varMap, "title"); err == nil {
+		r.Title = title
+	}
+
 	// handle releaseTags. Most of them are redundant but some are useful
 	if releaseTags, err := getStringMapValue(varMap, "releaseTags"); err == nil {
 		r.ReleaseTags = releaseTags

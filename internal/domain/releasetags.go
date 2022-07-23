@@ -128,6 +128,14 @@ func init() {
 	}
 	types["other"] = other
 
+	origin := []*TagInfo{
+		{tag: "P2P", title: "P2P", regexp: "", re: nil},
+		{tag: "Scene", title: "Scene", regexp: "", re: nil},
+		{tag: "O-Scene", title: "O-Scene", regexp: "", re: nil},
+		{tag: "Internal", title: "Internal", regexp: "", re: nil},
+	}
+	types["origin"] = origin
+
 	source := []*TagInfo{
 		{tag: "Cassette", title: "Cassette", regexp: "", re: nil},
 		{tag: "CD", title: "Compact Disc", regexp: "cd[\\-\\._ ]?(?:album)?", re: nil},
@@ -268,14 +276,15 @@ func Find(infos ...*TagInfo) FindFunc {
 
 type ReleaseTags struct {
 	Audio      []string
-	Channels   string
-	Source     string
-	Resolution string
-	Container  string
-	Codec      string
-	HDR        []string
-	Other      []string
 	Bonus      []string
+	Channels   string
+	Codec      string
+	Container  string
+	HDR        []string
+	Origin     string
+	Other      []string
+	Resolution string
+	Source     string
 }
 
 func ParseReleaseTags(tags []string) ReleaseTags {
@@ -309,6 +318,9 @@ func ParseReleaseTags(tags []string) ReleaseTags {
 					case "hdr":
 						releaseTags.HDR = append(releaseTags.HDR, info.Tag())
 						continue
+					case "origin":
+						releaseTags.Origin = info.Tag()
+						break
 					case "other":
 						releaseTags.Other = append(releaseTags.Other, info.Tag())
 						continue
@@ -360,6 +372,9 @@ func ParseReleaseTagString(tags string) ReleaseTags {
 			case "hdr":
 				releaseTags.HDR = append(releaseTags.HDR, info.Tag())
 				continue
+			case "origin":
+				releaseTags.Origin = info.Tag()
+				break
 			case "other":
 				releaseTags.Other = append(releaseTags.Other, info.Tag())
 				continue

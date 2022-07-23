@@ -49,6 +49,9 @@ func TestParseReleaseTagString(t *testing.T) {
 		{name: "movies_8", args: args{tags: "H.264, DVD, Freeleech!"}, want: ReleaseTags{Codec: "H.264", Source: "DVD", Bonus: []string{"Freeleech"}}},
 		{name: "anime_1", args: args{tags: "Web / MKV / h264 / 1080p / AAC 2.0 / Softsubs (SubsPlease) / Episode 22 / Freeleech"}, want: ReleaseTags{Audio: []string{"AAC"}, Channels: "2.0", Source: "WEB", Resolution: "1080p", Container: "mkv", Codec: "H.264", Bonus: []string{"Freeleech"}}},
 		{name: "anime_2", args: args{tags: "Web | ISO | h264 | 1080p | AAC 2.0 | Softsubs (SubsPlease) | Episode 22 | Freeleech"}, want: ReleaseTags{Audio: []string{"AAC"}, Channels: "2.0", Source: "WEB", Resolution: "1080p", Container: "iso", Codec: "H.264", Bonus: []string{"Freeleech"}}},
+		{name: "tv_1", args: args{tags: "MKV | H.264 | WEB-DL | 1080p | Internal | FastTorrent"}, want: ReleaseTags{Source: "WEB-DL", Codec: "H.264", Resolution: "1080p", Container: "mkv", Origin: "Internal"}},
+		{name: "tv_2", args: args{tags: "MKV | H.264 | WEB-DL | 1080p | Scene | FastTorrent"}, want: ReleaseTags{Source: "WEB-DL", Codec: "H.264", Resolution: "1080p", Container: "mkv", Origin: "Scene"}},
+		{name: "tv_3", args: args{tags: "MKV | H.264 | WEB-DL | 1080p | P2P | FastTorrent"}, want: ReleaseTags{Source: "WEB-DL", Codec: "H.264", Resolution: "1080p", Container: "mkv", Origin: "P2P"}},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
