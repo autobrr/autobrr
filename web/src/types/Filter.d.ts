@@ -50,6 +50,7 @@ interface Filter {
   except_tags: string;
   tags_any: string;
   except_tags_any: string;
+  actions_count: number;
   actions: Action[];
   indexers: Indexer[];
   external_script_enabled: boolean;

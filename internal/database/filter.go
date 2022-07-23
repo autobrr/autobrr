@@ -27,18 +27,22 @@ func NewFilterRepo(log logger.Logger, db *DB) domain.FilterRepo {
 }
 
 func (r *FilterRepo) ListFilters(ctx context.Context) ([]domain.Filter, error) {
+	actionCountQuery := r.db.squirrel.
+		Select("COUNT(*)").
+		From("action a").
+		Where("a.filter_id = f.id")
+
 	queryBuilder := r.db.squirrel.
 		Select(
-			"id",
-			"enabled",
-			"name",
-			"match_releases",
-			"except_releases",
-			"created_at",
-			"updated_at",
+			"f.id",
+			"f.enabled",
+			"f.name",
+			"f.created_at",
+			"f.updated_at",
 		).
-		From("filter").
-		OrderBy("name ASC")
+		Column(sq.Alias(actionCountQuery, "action_count")).
+		From("filter f").
+		OrderBy("f.name ASC")
 
 	query, args, err := queryBuilder.ToSql()
 	if err != nil {
@@ -56,14 +60,9 @@ func (r *FilterRepo) ListFilters(ctx context.Context) ([]domain.Filter, error) {
 	for rows.Next() {
 		var f domain.Filter
 
-		var matchReleases, exceptReleases sql.NullString
-
-		if err := rows.Scan(&f.ID, &f.Enabled, &f.Name, &matchReleases, &exceptReleases, &f.CreatedAt, &f.UpdatedAt); err != nil {
+		if err := rows.Scan(&f.ID, &f.Enabled, &f.Name, &f.CreatedAt, &f.UpdatedAt, &f.ActionsCount); err != nil {
 			return nil, errors.Wrap(err, "error scanning row")
 		}
-
-		f.MatchReleases = matchReleases.String
-		f.ExceptReleases = exceptReleases.String
 
 		filters = append(filters, f)
 	}
