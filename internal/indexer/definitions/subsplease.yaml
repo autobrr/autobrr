@@ -1,0 +1,49 @@
+---
+#id: subsplease
+name: SubsPlease
+identifier: subsplease
+description: SubsPlease is an indexer for Anime.
+language: en-us
+urls:
+  - https://subsplease.org
+privacy: public
+protocol: torrent
+supports:
+  - irc
+  - rss
+source: custom
+
+irc:
+  network: Rizon
+  server: irc.rizon.net
+  port: 6697
+  tls: true
+  channels:
+    - "#subsplease"
+  announcers:
+    - "Katou"
+  settings:
+    - name: nickserv.account
+      type: text
+      required: true
+      label: NickServ Account
+      help: NickServ account.
+    - name: nickserv.password
+      type: secret
+      required: true
+      label: NickServ Password
+      help: NickServ password
+
+parse:
+  type: single
+  lines:
+    - pattern: '\[Release\] (.*(SubsPlease).*.(mkv)) \((.*)\) - .* - (.*)'
+      vars:
+        - torrentName
+        - releaseGroup
+        - releaseTags
+        - torrentSize
+        - torrentUrl
+
+  match:
+    torrenturl: "{{.torrentUrl}}"
