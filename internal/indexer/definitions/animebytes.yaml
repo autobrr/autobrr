@@ -57,7 +57,7 @@ parse:
         - "Awesome Live Action Special - Live Action TV Special  [2021] :: Web / MKV / h264 / 848x480 / AAC 2.0 / Softsubs (Sub Group) || https://animebytes.tv/torrents.php?id=00000&torrentid=00000 || manga|| Uploaded by: Some-Uploader"
         - "Best Visual Novel - Visual Novel  [2006] :: Game / PC / Unarchived / Hentai (Censored) || https://animebytes.tv/torrents.php?id=00000&torrentid=00000 || nukige || Uploaded by: Uploader"
         - "Artist Name - Album of awesome Music  [1991] :: MP3 / V0 (VBR) / CD || https://animebytes.tv/torrents2.php?id=00000&torrentid=000000 || ambient, folk || Uploaded by: Uploader"
-      pattern: '(.*?(Visual Novel|Light Novel|TV.*|Movie|Manga|OVA|ONA|DVD Special|BD Special|Oneshot|Anthology|Manhwa|Manhua|Artbook|Game|Live Action.*|))[\s\p{Zs}]{2,}\[(\d+)\] :: (.*(?:RAW|Softsubs|Hardsubs|Translated)\s\((.+)\).*|.*)\|\| (https.*)\/torrents.*\?id=\d+&torrentid=(\d+) \|\| (.+?(?:(?:\|\| Uploaded by|$))?)(?:\|\| Uploaded by: (.*))?$'
+      pattern: '(.*?) - (Visual Novel|Light Novel|TV.*|Movie|Manga|OVA|ONA|DVD Special|BD Special|Oneshot|Anthology|Manhwa|Manhua|Artbook|Game|Live Action.*|)[\s\p{Zs}]{2,}\[(\d+)\] :: (.*(?:RAW|Softsubs|Hardsubs|Translated)\s\((.+)\).*|.*)\|\| (https.*)\/torrents.*\?id=\d+&torrentid=(\d+) \|\| (.+?(?:(?:\|\| Uploaded by|$))?)(?:\|\| Uploaded by: (.*))?$'
       vars:
         - torrentName
         - category
