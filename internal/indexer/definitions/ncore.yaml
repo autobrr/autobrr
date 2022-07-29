@@ -1,0 +1,65 @@
+#id: nCore
+name: nCore
+identifier: ncore
+description: nCore
+language: en-us
+urls:
+  - https://ncore.pro
+privacy: private
+protocol: torrent
+supports:
+  - irc
+  - rss
+source: unknown
+settings:
+  - name: passkey
+    type: secret
+    label: Passkey
+    help: "Check a torrent download link. key='value' is your passkey."
+
+irc:
+  network: nCore
+  server: irc.ncore.pro
+  port: 6697
+  tls: true
+  channels:
+    - "#ncore-bot"
+  announcers:
+    - nCore
+  settings:
+    - name: nickserv.account
+      type: text
+      required: true
+      label: NickServ Account
+      help: NickServ account. Make sure to group your user and bot. Eg. user|autodl
+
+    - name: nickserv.password
+      type: secret
+      required: false
+      label: NickServ Password
+      help: NickServ password
+
+    - name: invite_command
+      type: secret
+      default: "NBOT !invite <KEY>"
+      required: true
+      label: Invite command
+      help: Invite auth with the key from https://ncore.pro/irc.php
+
+parse:
+  type: single
+  lines:
+    - test:
+        - "[NEW TORRENT in mp3] Artist name - Album name > 115.63 MiB in 17F > https://ncore.pro/torrents.php?action=details&id=0000000"
+        - "[NEW TORRENT in xvidser_hun] Some.Show.S02E67.RTLM.WEB-DL.H264.HUN-GROUP > 269.31 MiB in 2F > https://ncore.pro/torrents.php?action=details&id=0000000"
+      pattern: '\[NEW TORRENT in (.*)\] (.*) > (.*) in .* > (https?://ncore.pro.*action=).*id=(.*)'
+      vars:
+        - category
+        - torrentName
+        - torrentSize
+        - baseUrl
+        - torrentId
+
+  match:
+    # https://ncore.pro/torrents.php?action=download&id=0000&key=00000
+    torrenturl: "{{ .baseUrl }}download&id={{ .torrentId }}&key={{ .passkey }}"
