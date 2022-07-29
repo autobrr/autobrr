@@ -107,3 +107,23 @@ func TestGitHubReleaseChecker_checkNewVersion(t *testing.T) {
 		})
 	}
 }
+
+func Test_isDevelop(t *testing.T) {
+	tests := []struct {
+		name    string
+		version string
+		want    bool
+	}{
+		{name: "test_1", version: "dev", want: true},
+		{name: "test_2", version: "develop", want: true},
+		{name: "test_3", version: "master", want: true},
+		{name: "test_4", version: "latest", want: true},
+		{name: "test_5", version: "v1.0.1", want: false},
+		{name: "test_6", version: "1.0.1", want: false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equalf(t, tt.want, isDevelop(tt.version), "isDevelop(%v)", tt.version)
+		})
+	}
+}
