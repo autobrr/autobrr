@@ -1,0 +1,67 @@
+---
+#id: immortalseed
+name: ImmortalSeed
+identifier: immortalseed
+description: ImmortalSeed (iS) is a Private Torrent Tracker for MOVIES / TV / GENERAL
+language: en-us
+urls:
+  - https://immortalseed.me
+privacy: private
+protocol: torrent
+supports:
+  - irc
+  - rss
+source: custom
+settings:
+  - name: passkey
+    type: secret
+    label: Passkey
+    help: "Go to https://immortalseed.me/getrss.php to get the RSS feed link and extract passkey from secret_key"
+    regex: [\?&;]secret_key=([\da-fA-F]{32})
+
+irc:
+  network: ImmortalSeed
+  server: irc.immortalseed.me
+  port: 6697
+  tls: true
+  channels:
+    - "#immortal"
+  announcers:
+    - thoth
+  settings:
+    - name: nickserv.account
+      type: text
+      required: false
+      label: NickServ Account
+      help: NickServ account. Make sure to group your user and bot. Eg. user_bot
+
+    - name: nickserv.password
+      type: secret
+      required: true
+      label: NickServ Password
+      help: NickServ password
+
+    - name: invite_command
+      type: secret
+      default: "immortal invite USERNAME IRCKEY"
+      required: true
+      label: Invite command
+      help: Invite auth with immortal.
+
+parse:
+  type: single
+  lines:
+    - test:
+        - "ImmortalSeed - Category: ( TV - High Definition ) Torrent: ( The.Show.S07E02.Lunch.At.Sea.720p.WEBRip.X264-GROUP1 ) Size: ( 457.07 MB ) Link: ( https://immortalseed.me/details.php?id=0000000 )"
+        - "ImmortalSeed - Category: ( TV - High Definition ) Torrent: ( Other.Show.S01E02.1080p.WEB.H264-GROUP2 ) Size: ( 3.66 GB ) Link: ( https://immortalseed.me/details.php?id=0000000 )"
+        - "ImmortalSeed - Category: ( Anime ) Torrent: ( Some.Anime.Show.S01E04.1080p.WEB.H264-GROUP3 ) Size: ( 1.34 GB ) Link: ( https://immortalseed.me/details.php?id=0000000 )"
+      pattern: '\s*ImmortalSeed - Category: \( ([^)]*) \) Torrent: \( ([^)]*) \) Size: \( ([^)]*) \) Link: \( (https?\:\/\/[^\/]+\/).*[&\?]id=(\d+) \)'
+      vars:
+        - category
+        - torrentName
+        - torrentSize
+        - baseUrl
+        - torrentId
+
+  match:
+    torrenturl: "{{ .baseUrl }}download.php?type=rss&secret_key={{ .passkey }}&id={{ .torrentId }}"
