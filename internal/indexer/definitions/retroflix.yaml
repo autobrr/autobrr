@@ -1,0 +1,62 @@
+---
+#id: retroflix
+name: RetroFlix
+identifier: retroflix
+description: RetroFlix (RFX) is a private torrent tracker for CLASSIC MOVIES / TV / GENERAL
+language: en-us
+urls:
+  - https://retroflix.club
+privacy: private
+protocol: torrent
+supports:
+  - irc
+  - rss
+source: custom
+settings:
+  - name: passkey
+    type: secret
+    label: Passkey
+    help: "Go to User CP, User CP Home and copy the passkey"
+
+irc:
+  network: P2P-Network
+  server: irc.p2p-network.net
+  port: 6697
+  tls: true
+  channels:
+    - "#retroflix"
+  announcers:
+    - retroflix-announcer
+    - retroflix-announcer1
+    - retroflix-announcer2
+    - retroflix-announcer3
+  settings:
+    - name: nickserv.account
+      type: text
+      required: true
+      label: NickServ Account
+      help: NickServ account. Make sure to group your user and bot. Eg. user_bot
+    - name: nickserv.password
+      type: secret
+      required: true
+      label: NickServ Password
+      help: NickServ password
+
+parse:
+  type: single
+  lines:
+    - test:
+        - "New! (Movies) - [REQUESTED].French.Movie.(1978).(French.with.English.Subtitles) - (18.76 GB) - https://retroflix.club/browse/t/00000/french-movie-1978-french-with-english-subtitles"
+        - "New! (Movies) - Old.Movie.1967.1080p.BluRay.x265.10bit-GROUP1 - (5.42 GB) - https://retroflix.club/browse/t/00000/old-movie-1967-1080p-bluray-x265-10bit-group1"
+      pattern: ^New! \((.*)\) - (.*) - \((.*)\) - (https?:\/\/.*\/)browse/t/(\d+).*
+      vars:
+        - category
+        - torrentName
+        - torrentSize
+        - baseUrl
+        - torrentId
+
+  match:
+    torrenturl: "{{ .baseUrl }}download.php?id={{ .torrentId }}&passkey={{ .passkey }}"
+    encode:
+      - torrentName
