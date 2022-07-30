@@ -72,3 +72,4 @@ parse:
 
   match:
     torrenturl: "{{ .baseUrl }}/torrent/{{ .torrentId }}/download/{{ .passkey }}"
+    torrentname: "[{{ .releaseGroup }}] {{ .torrentName }} {{ printf "%02d" .releaseEpisode }} {{ cat "[" .releaseTags "]" | replace " / " "][" }}"
