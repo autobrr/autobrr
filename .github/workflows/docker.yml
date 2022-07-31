@@ -15,8 +15,10 @@ permissions:
 
 jobs:
   docker:
-    name: Build and publish Docker images
-    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        platform: [linux/arm/v7, linux/amd64, linux/arm64/v8]
+    name: Build and publish Docker image ${{ matrix.platform }}
     steps:
       - name: Checkout
         uses: actions/checkout@v2
@@ -41,6 +43,7 @@ jobs:
         uses: docker/build-push-action@v2
         with:
           context: .
+          platform: ${{ matrix.platform }}
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
