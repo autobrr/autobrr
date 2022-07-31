@@ -65,7 +65,7 @@ func (c *Checker) get(ctx context.Context) (*Release, error) {
 }
 
 func (c *Checker) CheckNewVersion(ctx context.Context, version string) (bool, string, error) {
-	if version == "dev" {
+	if isDevelop(version) {
 		return false, "", nil
 	}
 
@@ -98,4 +98,16 @@ func (c *Checker) checkNewVersion(version string, release *Release) (bool, strin
 	}
 
 	return false, "", nil
+}
+
+func isDevelop(version string) bool {
+	tags := []string{"dev", "develop", "master", "latest"}
+
+	for _, tag := range tags {
+		if version == tag {
+			return true
+		}
+	}
+
+	return false
 }

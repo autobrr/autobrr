@@ -1390,8 +1390,8 @@ func TestFilter_CheckFilter1(t *testing.T) {
 				Origins: []string{"SCENE"},
 			},
 			args:           args{&Release{TorrentName: "Gillan - Future Shock", ReleaseTags: "FLAC / Lossless / Log / 100% / Cue / CD / Scene"}},
-			wantRejections: []string{"origin not matching. got:  want: [SCENE]"},
-			wantMatch:      false,
+			wantRejections: nil,
+			wantMatch:      true,
 		},
 		{
 			name: "test_27",
