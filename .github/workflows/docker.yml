@@ -18,6 +18,7 @@ jobs:
     strategy:
       matrix:
         platform: [linux/arm/v7, linux/amd64, linux/arm64/v8]
+    runs-on: ubuntu-latest
     name: Build and publish Docker image ${{ matrix.platform }}
     steps:
       - name: Checkout
