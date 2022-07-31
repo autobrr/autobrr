@@ -178,7 +178,7 @@ func (a *announceProcessor) onLinesMatched(def *domain.IndexerDefinition, vars m
 	// parse torrentUrl
 	err = def.Parse.ParseTorrentUrl(vars, def.SettingsMap, rls)
 	if err != nil {
-		a.log.Error().Stack().Err(err).Msg("announce: could not parse torrent url")
+		a.log.Error().Stack().Err(err).Msgf("announce: %v", err)
 		return err
 	}
 

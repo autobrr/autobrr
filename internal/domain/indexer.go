@@ -8,6 +8,7 @@ import (
 	"text/template"
 
 	"github.com/dustin/go-humanize"
+	"github.com/Masterminds/sprig/v3"
 )
 
 type IndexerRepo interface {
@@ -117,6 +118,7 @@ type IndexerParseExtract struct {
 
 type IndexerParseMatch struct {
 	TorrentURL string   `json:"torrenturl"`
+	TorrentName string 	`json:"torrentname"`
 	Encode     []string `json:"encode"`
 }
 
@@ -147,7 +149,7 @@ func (p *IndexerParse) ParseTorrentUrl(vars map[string]string, extraVars map[str
 	}
 
 	// setup text template to inject variables into
-	tmpl, err := template.New("torrenturl").Parse(p.Match.TorrentURL)
+	tmpl, err := template.New("torrenturl").Funcs(sprig.TxtFuncMap()).Parse(p.Match.TorrentURL)
 	if err != nil {
 		return errors.New("could not create torrent url template")
 	}
@@ -159,6 +161,20 @@ func (p *IndexerParse) ParseTorrentUrl(vars map[string]string, extraVars map[str
 	}
 
 	release.TorrentURL = urlBytes.String()
+
+	// setup text tempalte to inject variables into
+	tmplName, err := template.New("torrentname").Funcs(sprig.TxtFuncMap()).Parse(p.Match.TorrentName);
+	if err != nil {
+		return err
+	}
+
+	var nameBytes bytes.Buffer
+	err = tmplName.Execute(&nameBytes, &tmpVars)
+	if err != nil {
+		return errors.New("could not write torrent name template output")
+	}
+
+	release.TorrentName = nameBytes.String()
 
 	// handle cookies
 	if v, ok := extraVars["cookie"]; ok {
