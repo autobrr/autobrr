@@ -300,7 +300,7 @@ func (s *service) addTorznabJob(f feedInstance) error {
 	if f.URL == "" {
 		return errors.New("torznab feed requires URL")
 	}
-	if f.CronSchedule < time.Duration(15 * time.Minute) {
+	if f.CronSchedule < time.Duration(5 * time.Minute) {
 		f.CronSchedule = time.Duration(15 * time.Minute)
 	}
 
