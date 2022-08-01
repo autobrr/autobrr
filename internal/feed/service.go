@@ -2,7 +2,6 @@ package feed
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/internal/logger"
@@ -281,7 +280,7 @@ func (s *service) startJob(f domain.Feed) error {
 		Implementation:    f.Type,
 		URL:               f.URL,
 		ApiKey:            f.ApiKey,
-		CronSchedule:      time.Duration(f.Interval * time.Minute),
+		CronSchedule:      time.Duration(f.Interval) * time.Minute,
 	}
 
 	switch fi.Implementation {
