@@ -77,9 +77,6 @@ func (s *service) AddJob(job cron.Job, interval time.Duration, identifier string
 	id := s.cron.Schedule(cron.Every(interval), cron.NewChain(
 		cron.SkipIfStillRunning(cron.DiscardLogger)).Then(job),
 	)
-	if err != nil {
-		return 0, errors.Wrap(err, "scheduler: add job failed")
-	}
 
 	s.log.Debug().Msgf("scheduler.AddJob: job successfully added: %v", id)
 
