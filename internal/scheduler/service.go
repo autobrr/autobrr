@@ -14,7 +14,7 @@ import (
 type Service interface {
 	Start()
 	Stop()
-	AddJob(job cron.Job, interval string, identifier string) (int, error)
+	AddJob(job cron.Job, interval time.Duration, identifier string) (int, error)
 	RemoveJobByID(id cron.EntryID) error
 	RemoveJobByIdentifier(id string) error
 }
@@ -74,7 +74,7 @@ func (s *service) Stop() {
 
 func (s *service) AddJob(job cron.Job, interval time.Duration, identifier string) (int, error) {
 
-	id, err := s.cron.Schedule(cron.ConstantDelaySchedule(interval), cron.NewChain(
+	id, err := s.cron.Schedule(cron.ConstantDelaySchedule.Every(interval), cron.NewChain(
 		cron.SkipIfStillRunning(cron.DiscardLogger)).Then(job),
 	)
 	if err != nil {
