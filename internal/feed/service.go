@@ -13,6 +13,7 @@ import (
 
 	"github.com/dcarbone/zadapters/zstdlog"
 	"github.com/rs/zerolog"
+	"time"
 )
 
 type Service interface {
@@ -34,7 +35,7 @@ type feedInstance struct {
 	URL               string
 	ApiKey            string
 	Implementation    string
-	CronSchedule      string
+	CronSchedule      time.Duration
 }
 
 type service struct {
@@ -274,15 +275,13 @@ func (s *service) startJob(f domain.Feed) error {
 	}
 
 	// cron schedule to run every X minutes
-	schedule := fmt.Sprintf("*/%d * * * *", f.Interval)
-
 	fi := feedInstance{
 		Name:              f.Name,
 		IndexerIdentifier: f.Indexer,
 		Implementation:    f.Type,
 		URL:               f.URL,
 		ApiKey:            f.ApiKey,
-		CronSchedule:      schedule,
+		CronSchedule:      time.Duration(f.Interval * time.Minute),
 	}
 
 	switch fi.Implementation {
@@ -302,8 +301,8 @@ func (s *service) addTorznabJob(f feedInstance) error {
 	if f.URL == "" {
 		return errors.New("torznab feed requires URL")
 	}
-	if f.CronSchedule == "" {
-		f.CronSchedule = "*/15 * * * *"
+	if f.CronSchedule < 1 {
+		f.CronSchedule = time.Duration(15 * time.Minute)
 	}
 
 	// setup logger
