@@ -125,6 +125,7 @@ func (c *client) GetFeed() ([]FeedItem, error) {
 func (c *client) getCaps(endpoint string, opts map[string]string) (int, *Caps, error) {
 	params := url.Values{
 		"t": {"caps"},
+		"apikey": {c.ApiKey},
 	}
 
 	u, err := url.Parse(c.Host)
