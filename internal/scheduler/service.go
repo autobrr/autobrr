@@ -74,7 +74,7 @@ func (s *service) Stop() {
 
 func (s *service) AddJob(job cron.Job, interval time.Duration, identifier string) (int, error) {
 
-	id, err := s.cron.Schedule(cron.ConstantDelaySchedule.Every(interval), cron.NewChain(
+	id := s.cron.Schedule(cron.Every(interval), cron.NewChain(
 		cron.SkipIfStillRunning(cron.DiscardLogger)).Then(job),
 	)
 	if err != nil {
