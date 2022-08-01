@@ -63,7 +63,7 @@ func (s *service) addAppJobs() {
 		lastCheckVersion: "",
 	}
 
-	s.AddJob(checkUpdates, "2 */6 * * *", "app-check-updates")
+	s.AddJob(checkUpdates, time.Duration(36 * time.Hour), "app-check-updates")
 }
 
 func (s *service) Stop() {
@@ -72,9 +72,9 @@ func (s *service) Stop() {
 	return
 }
 
-func (s *service) AddJob(job cron.Job, interval string, identifier string) (int, error) {
+func (s *service) AddJob(job cron.Job, interval time.Duration, identifier string) (int, error) {
 
-	id, err := s.cron.AddJob(interval, cron.NewChain(
+	id, err := s.cron.Schedule(cron.ConstantDelaySchedule(interval), cron.NewChain(
 		cron.SkipIfStillRunning(cron.DiscardLogger)).Then(job),
 	)
 	if err != nil {
