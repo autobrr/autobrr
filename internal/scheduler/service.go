@@ -5,7 +5,6 @@ import (
 
 	"github.com/autobrr/autobrr/internal/logger"
 	"github.com/autobrr/autobrr/internal/notification"
-	"github.com/autobrr/autobrr/pkg/errors"
 
 	"github.com/robfig/cron/v3"
 	"github.com/rs/zerolog"
