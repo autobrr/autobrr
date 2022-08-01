@@ -22,8 +22,8 @@ settings:
 irc:
   network: ImmortalSeed
   server: irc.immortalseed.me
-  port: 6697
-  tls: true
+  port: 6667
+  tls: false
   channels:
     - "#immortal"
   announcers:
