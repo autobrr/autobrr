@@ -16,8 +16,7 @@ settings:
   - name: rsskey
     type: secret
     label: RSS key
-    help: "Go to your profile and copy your RSS key"
-    regex: /([\da-fA-F]{20})
+    help: "Go to My Panel and then Change PID. It will show the PID, but don't click it!"
 
 irc:
   network: P2P-Network
@@ -56,6 +55,6 @@ parse:
         - torrentId
 
   match:
-    torrenturl: "{{ .baseUrl }}download.php?id={{ .torrentId }}&f={{ .torrentName }}.torrent"
+    torrenturl: "{{ .baseUrl }}download.php?id={{ .torrentId }}&f={{ .torrentName }}.torrent&rsspid={{ .rsskey }}"
     encode:
       - torrentName
