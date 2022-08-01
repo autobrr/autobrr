@@ -3,6 +3,7 @@ module github.com/autobrr/autobrr
 go 1.18
 
 require (
+	github.com/Masterminds/sprig/v3 v3.2.2
 	github.com/Masterminds/squirrel v1.5.3
 	github.com/anacrolix/torrent v1.46.0
 	github.com/asaskevich/EventBus v0.0.0-20200907212545-49d423059eef
@@ -39,7 +40,6 @@ require (
 require (
 	github.com/Masterminds/goutils v1.1.1 // indirect
 	github.com/Masterminds/semver/v3 v3.1.1 // indirect
-	github.com/Masterminds/sprig/v3 v3.2.2 // indirect
 	github.com/anacrolix/dht/v2 v2.18.0 // indirect
 	github.com/anacrolix/missinggo v1.3.0 // indirect
 	github.com/anacrolix/missinggo/v2 v2.7.0 // indirect

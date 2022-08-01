@@ -73,4 +73,4 @@ parse:
 
   match:
     torrenturl: "{{ .baseUrl }}/torrent/{{ .torrentId }}/download/{{ .passkey }}"
-    torrentname: "{{ if .releaseGroup }}[{{ .releaseGroup }}] {{ end }}{{ .torrentName }} {{ if .releaseEpisode }}{{ printf \"- %02s \" .releaseEpisode }}{{ end }}{{ print \"[\" .releaseTags \"]\" | replace \" / \" \"][\" }}"
+    torrentname: "{{ if .releaseGroup }}[{{ .releaseGroup }}] {{ end }}{{ .torrentName }} [{{ .year }}] {{ if .releaseEpisode }}{{ printf \"- %02s \" .releaseEpisode }}{{ end }}{{ print \"[\" .releaseTags \"]\" | replace \" / \" \"][\" }}"

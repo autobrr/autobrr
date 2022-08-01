@@ -7,8 +7,8 @@ import (
 	"net/url"
 	"text/template"
 
-	"github.com/dustin/go-humanize"
 	"github.com/Masterminds/sprig/v3"
+	"github.com/dustin/go-humanize"
 )
 
 type IndexerRepo interface {
@@ -117,12 +117,12 @@ type IndexerParseExtract struct {
 }
 
 type IndexerParseMatch struct {
-	TorrentURL string   `json:"torrenturl"`
-	TorrentName string 	`json:"torrentname"`
-	Encode     []string `json:"encode"`
+	TorrentURL  string   `json:"torrenturl"`
+	TorrentName string   `json:"torrentname"`
+	Encode      []string `json:"encode"`
 }
 
-func (p *IndexerParse) ParseTorrentUrl(vars map[string]string, extraVars map[string]string, release *Release) error {
+func (p *IndexerParse) ParseMatch(vars map[string]string, extraVars map[string]string, release *Release) error {
 	tmpVars := map[string]string{}
 
 	// copy vars to new tmp map
@@ -148,33 +148,37 @@ func (p *IndexerParse) ParseTorrentUrl(vars map[string]string, extraVars map[str
 		}
 	}
 
-	// setup text template to inject variables into
-	tmpl, err := template.New("torrenturl").Funcs(sprig.TxtFuncMap()).Parse(p.Match.TorrentURL)
-	if err != nil {
-		return errors.New("could not create torrent url template")
+	if p.Match.TorrentURL != "" {
+		// setup text template to inject variables into
+		tmpl, err := template.New("torrenturl").Funcs(sprig.TxtFuncMap()).Parse(p.Match.TorrentURL)
+		if err != nil {
+			return errors.New("could not create torrent url template")
+		}
+
+		var urlBytes bytes.Buffer
+		err = tmpl.Execute(&urlBytes, &tmpVars)
+		if err != nil {
+			return errors.New("could not write torrent url template output")
+		}
+
+		release.TorrentURL = urlBytes.String()
 	}
 
-	var urlBytes bytes.Buffer
-	err = tmpl.Execute(&urlBytes, &tmpVars)
-	if err != nil {
-		return errors.New("could not write torrent url template output")
+	if p.Match.TorrentName != "" {
+		// setup text template to inject variables into
+		tmplName, err := template.New("torrentname").Funcs(sprig.TxtFuncMap()).Parse(p.Match.TorrentName)
+		if err != nil {
+			return err
+		}
+
+		var nameBytes bytes.Buffer
+		err = tmplName.Execute(&nameBytes, &tmpVars)
+		if err != nil {
+			return errors.New("could not write torrent name template output")
+		}
+
+		release.TorrentName = nameBytes.String()
 	}
-
-	release.TorrentURL = urlBytes.String()
-
-	// setup text tempalte to inject variables into
-	tmplName, err := template.New("torrentname").Funcs(sprig.TxtFuncMap()).Parse(p.Match.TorrentName);
-	if err != nil {
-		return err
-	}
-
-	var nameBytes bytes.Buffer
-	err = tmplName.Execute(&nameBytes, &tmpVars)
-	if err != nil {
-		return errors.New("could not write torrent name template output")
-	}
-
-	release.TorrentName = nameBytes.String()
 
 	// handle cookies
 	if v, ok := extraVars["cookie"]; ok {
