@@ -68,6 +68,7 @@ func NewClient(config Config) Client {
 func (c *client) get(endpoint string, opts map[string]string) (int, *Response, error) {
 	params := url.Values{
 		"t": {"search"},
+		"apikey": {c.ApiKey},
 	}
 
 	u, err := url.Parse(c.Host)
