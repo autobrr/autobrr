@@ -793,11 +793,11 @@ const TypeForm = ({ action, idx, clients }: TypeFormProps) => {
             <div className="mt-6 grid grid-cols-12 gap-6">
               <NumberField
                 name={`actions.${idx}.limit_download_speed`}
-                label="Limit download speed (KB/s)"
+                label="Limit download speed (KiB/s)"
               />
               <NumberField
                 name={`actions.${idx}.limit_upload_speed`}
-                label="Limit upload speed (KB/s)"
+                label="Limit upload speed (KiB/s)"
               />
             </div>
 

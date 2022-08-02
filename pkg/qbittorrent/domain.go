@@ -1,5 +1,9 @@
 package qbittorrent
 
+import (
+	"strconv"
+)
+
 type Torrent struct {
 	AddedOn            int          `json:"added_on"`
 	AmountLeft         int          `json:"amount_left"`
@@ -215,4 +219,69 @@ type TransferInfo struct {
 	UpInfoData       int64            `json:"up_info_data"`
 	UpInfoSpeed      int64            `json:"up_info_speed"`
 	UpRateLimit      int64            `json:"up_rate_limit"`
+}
+
+type ContentLayout string
+
+const (
+	ContentLayoutOriginal        ContentLayout = "ORIGINAL"
+	ContentLayoutSubfolderNone   ContentLayout = "SUBFOLDER_NONE"
+	ContentLayoutSubfolderCreate ContentLayout = "SUBFOLDER_CREATE"
+)
+
+type TorrentAddOptions struct {
+	Paused             *bool
+	SkipHashCheck      *bool
+	ContentLayout      *ContentLayout
+	SavePath           *string
+	AutoTMM            *bool
+	Category           *string
+	Tags               *string
+	LimitUploadSpeed   *int64
+	LimitDownloadSpeed *int64
+	LimitRatio         *float64
+	LimitSeedTime      *int64
+}
+
+func (o *TorrentAddOptions) Prepare() map[string]string {
+	options := map[string]string{}
+
+	if o.Paused != nil {
+		options["paused"] = "true"
+	}
+	if o.SkipHashCheck != nil {
+		options["skip_checking"] = "true"
+	}
+	if o.ContentLayout != nil {
+		if *o.ContentLayout == ContentLayoutSubfolderCreate {
+			options["root_folder"] = "true"
+		} else if *o.ContentLayout == ContentLayoutSubfolderNone {
+			options["root_folder"] = "false"
+		}
+		// if ORIGINAL then leave empty
+	}
+	if o.SavePath != nil && *o.SavePath != "" {
+		options["savepath"] = *o.SavePath
+		options["autoTMM"] = "false"
+	}
+	if o.Category != nil && *o.Category != "" {
+		options["category"] = *o.Category
+	}
+	if o.Tags != nil && *o.Tags != "" {
+		options["tags"] = *o.Tags
+	}
+	if o.LimitUploadSpeed != nil && *o.LimitUploadSpeed > 0 {
+		options["upLimit"] = strconv.FormatInt(*o.LimitUploadSpeed*1000, 10)
+	}
+	if o.LimitDownloadSpeed != nil && *o.LimitDownloadSpeed > 0 {
+		options["dlLimit"] = strconv.FormatInt(*o.LimitDownloadSpeed*1000, 10)
+	}
+	if o.LimitRatio != nil && *o.LimitRatio > 0 {
+		options["ratioLimit"] = strconv.FormatFloat(*o.LimitRatio, 'f', 2, 64)
+	}
+	if o.LimitSeedTime != nil && *o.LimitSeedTime > 0 {
+		options["seedingTimeLimit"] = strconv.FormatInt(*o.LimitSeedTime, 10)
+	}
+
+	return options
 }

@@ -2,7 +2,6 @@ package action
 
 import (
 	"context"
-	"strconv"
 	"strings"
 	"time"
 
@@ -102,19 +101,21 @@ func (s *service) qbittorrent(action domain.Action, release domain.Release) ([]s
 
 func (s *service) prepareQbitOptions(action domain.Action, m domain.Macro) (map[string]string, error) {
 
-	options := map[string]string{}
+	opts := &qbittorrent.TorrentAddOptions{}
 
 	if action.Paused {
-		options["paused"] = "true"
+		opts.Paused = BoolPointer(true)
 	}
 	if action.SkipHashCheck {
-		options["skip_checking"] = "true"
+		opts.SkipHashCheck = BoolPointer(true)
 	}
 	if action.ContentLayout != "" {
 		if action.ContentLayout == domain.ActionContentLayoutSubfolderCreate {
-			options["root_folder"] = "true"
+			layout := qbittorrent.ContentLayoutSubfolderCreate
+			opts.ContentLayout = &layout
 		} else if action.ContentLayout == domain.ActionContentLayoutSubfolderNone {
-			options["root_folder"] = "false"
+			layout := qbittorrent.ContentLayoutSubfolderNone
+			opts.ContentLayout = &layout
 		}
 		// if ORIGINAL then leave empty
 	}
@@ -125,8 +126,8 @@ func (s *service) prepareQbitOptions(action domain.Action, m domain.Macro) (map[
 			return nil, errors.Wrap(err, "could not parse savepath macro: %v", action.SavePath)
 		}
 
-		options["savepath"] = actionArgs
-		options["autoTMM"] = "false"
+		opts.SavePath = &actionArgs
+		opts.AutoTMM = BoolPointer(false)
 	}
 	if action.Category != "" {
 		// parse and replace values in argument string before continuing
@@ -135,7 +136,7 @@ func (s *service) prepareQbitOptions(action domain.Action, m domain.Macro) (map[
 			return nil, errors.Wrap(err, "could not parse category macro: %v", action.Category)
 		}
 
-		options["category"] = categoryArgs
+		opts.Category = &categoryArgs
 	}
 	if action.Tags != "" {
 		// parse and replace values in argument string before continuing
@@ -144,22 +145,26 @@ func (s *service) prepareQbitOptions(action domain.Action, m domain.Macro) (map[
 			return nil, errors.Wrap(err, "could not parse tags macro: %v", action.Tags)
 		}
 
-		options["tags"] = tagsArgs
+		opts.Tags = &tagsArgs
 	}
 	if action.LimitUploadSpeed > 0 {
-		options["upLimit"] = strconv.FormatInt(action.LimitUploadSpeed*1000, 10)
+		opts.LimitUploadSpeed = &action.LimitUploadSpeed
 	}
 	if action.LimitDownloadSpeed > 0 {
-		options["dlLimit"] = strconv.FormatInt(action.LimitDownloadSpeed*1000, 10)
+		opts.LimitDownloadSpeed = &action.LimitDownloadSpeed
 	}
 	if action.LimitRatio > 0 {
-		options["ratioLimit"] = strconv.FormatFloat(action.LimitRatio, 'r', 2, 64)
+		opts.LimitRatio = &action.LimitRatio
 	}
 	if action.LimitSeedTime > 0 {
-		options["seedingTimeLimit"] = strconv.FormatInt(action.LimitSeedTime, 10)
+		opts.LimitSeedTime = &action.LimitSeedTime
 	}
 
-	return options, nil
+	return opts.Prepare(), nil
+}
+
+func BoolPointer(b bool) *bool {
+	return &b
 }
 
 func (s *service) qbittorrentCheckRulesCanDownload(action domain.Action, client *domain.DownloadClient, qbt *qbittorrent.Client) ([]string, error) {
