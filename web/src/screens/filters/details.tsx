@@ -282,6 +282,7 @@ export default function FilterDetails() {
                 artists: filter.artists,
                 albums: filter.albums,
                 origins: filter.origins || [],
+                except_origins: filter.except_origins || [],
                 indexers: filter.indexers || [],
                 actions: filter.actions || [],
                 external_script_enabled: filter.external_script_enabled || false,
@@ -491,7 +492,8 @@ export function Advanced() {
       </CollapsableSection>
 
       <CollapsableSection title="Origins" subtitle="Match Internals, scene, p2p etc if announced">
-        <MultiSelect name="origins" options={ORIGIN_OPTIONS} label="Origins" columns={6} />
+        <MultiSelect name="origins" options={ORIGIN_OPTIONS} label="Match Origins" columns={6} creatable={true} />
+        <MultiSelect name="except_origins" options={ORIGIN_OPTIONS} label="Except Origins" columns={6} creatable={true} />
       </CollapsableSection>
 
       <CollapsableSection title="Freeleech" subtitle="Match only freeleech and freeleech percent">
@@ -509,10 +511,11 @@ interface CollapsableSectionProps {
     title: string;
     subtitle: string;
     children: React.ReactNode;
+    defaultOpen?: boolean;
 }
 
-function CollapsableSection({ title, subtitle, children }: CollapsableSectionProps) {
-  const [isOpen, toggleOpen] = useToggle(false);
+function CollapsableSection({ title, subtitle, children, defaultOpen }: CollapsableSectionProps) {
+  const [isOpen, toggleOpen] = useToggle(defaultOpen ?? false);
 
   return (
     <div className="mt-6 lg:pb-6 border-b border-gray-200 dark:border-gray-700">

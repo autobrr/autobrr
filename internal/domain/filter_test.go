@@ -1017,6 +1017,7 @@ func TestFilter_CheckFilter1(t *testing.T) {
 		ExceptReleaseGroups string
 		Scene               bool
 		Origins             []string
+		ExceptOrigins       []string
 		Freeleech           bool
 		FreeleechPercent    string
 		Shows               string
@@ -1510,6 +1511,24 @@ func TestFilter_CheckFilter1(t *testing.T) {
 			wantRejections: nil,
 			wantMatch:      true,
 		},
+		{
+			name: "test_37",
+			fields: fields{
+				ExceptOrigins: []string{"Internal"},
+			},
+			args:           args{&Release{TorrentName: "Gillan - Future Shock", Origin: "Internal"}},
+			wantRejections: []string{"except origin not matching. got: Internal unwanted: [Internal]"},
+			wantMatch:      false,
+		},
+		{
+			name: "test_38",
+			fields: fields{
+				ExceptOrigins: []string{"Internal"},
+			},
+			args:           args{&Release{TorrentName: "Gillan - Future Shock", Origin: "Scene"}},
+			wantRejections: nil,
+			wantMatch:      true,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -1532,6 +1551,7 @@ func TestFilter_CheckFilter1(t *testing.T) {
 				ExceptReleaseGroups: tt.fields.ExceptReleaseGroups,
 				Scene:               tt.fields.Scene,
 				Origins:             tt.fields.Origins,
+				ExceptOrigins:       tt.fields.ExceptOrigins,
 				Freeleech:           tt.fields.Freeleech,
 				FreeleechPercent:    tt.fields.FreeleechPercent,
 				Shows:               tt.fields.Shows,
