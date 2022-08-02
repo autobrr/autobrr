@@ -27,7 +27,8 @@ import {
   RELEASE_TYPE_MUSIC_OPTIONS,
   OTHER_OPTIONS,
   ORIGIN_OPTIONS,
-  downloadsPerUnitOptions
+  downloadsPerUnitOptions,
+  ActionContentLayoutOptions
 } from "../../domain/constants";
 import { queryClient } from "../../App";
 import { APIClient } from "../../api/APIClient";
@@ -632,6 +633,8 @@ export function FilterActions({ filter, values }: FilterActionsProps) {
     save_path: "",
     paused: false,
     ignore_rules: false,
+    skip_hash_check: false,
+    content_layout: "",
     limit_upload_speed: 0,
     limit_download_speed: 0,
     limit_ratio: 0,
@@ -658,7 +661,7 @@ export function FilterActions({ filter, values }: FilterActionsProps) {
               <div className="ml-4 mt-4">
                 <h3 className="text-lg leading-6 font-medium text-gray-900 dark:text-gray-200">Actions</h3>
                 <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                                    Add to download clients or run custom commands.
+                  Add to download clients or run custom commands.
                 </p>
               </div>
               <div className="ml-4 mt-4 flex-shrink-0">
@@ -667,7 +670,7 @@ export function FilterActions({ filter, values }: FilterActionsProps) {
                   className="relative inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 dark:bg-blue-600 hover:bg-indigo-700 dark:hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 dark:focus:ring-blue-500"
                   onClick={() => push(newAction)}
                 >
-                                    Add new
+                  Add new
                 </button>
               </div>
             </div>
@@ -790,11 +793,11 @@ const TypeForm = ({ action, idx, clients }: TypeFormProps) => {
             <div className="mt-6 grid grid-cols-12 gap-6">
               <NumberField
                 name={`actions.${idx}.limit_download_speed`}
-                label="Limit download speed (KB/s)"
+                label="Limit download speed (KiB/s)"
               />
               <NumberField
                 name={`actions.${idx}.limit_upload_speed`}
-                label="Limit upload speed (KB/s)"
+                label="Limit upload speed (KiB/s)"
               />
             </div>
 
@@ -821,6 +824,21 @@ const TypeForm = ({ action, idx, clients }: TypeFormProps) => {
               label="Ignore client rules"
               description="Download if max active reached"
             />
+          </div>
+          <div className="col-span-6">
+            <Select
+              name={`actions.${idx}.content_layout`}
+              label="Content Layout"
+              optionDefaultText="Select content layout"
+              options={ActionContentLayoutOptions}
+            />
+            <div className="mt-2">
+              <SwitchGroup
+                name={`actions.${idx}.skip_hash_check`}
+                label="Skip hash check"
+                description="Add torrent and skip hash check"
+              />
+            </div>
           </div>
         </CollapsableSection>
 

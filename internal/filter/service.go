@@ -83,14 +83,14 @@ func (s *service) FindByID(ctx context.Context, filterID int) (*domain.Filter, e
 	// find actions and attach
 	actions, err := s.actionRepo.FindByFilterID(ctx, filter.ID)
 	if err != nil {
-		s.log.Error().Msgf("could not find filter actions: %+v", &filter.ID)
+		s.log.Error().Msgf("could not find filter actions for filter id: %v", filter.ID)
 	}
 	filter.Actions = actions
 
 	// find indexers and attach
 	indexers, err := s.indexerSvc.FindByFilterID(ctx, filter.ID)
 	if err != nil {
-		s.log.Error().Err(err).Msgf("could not find indexers for filter: %+v", &filter.Name)
+		s.log.Error().Err(err).Msgf("could not find indexers for filter: %v", filter.Name)
 		return nil, err
 	}
 	filter.Indexers = indexers

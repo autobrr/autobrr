@@ -244,6 +244,12 @@ export const ActionTypeNameMap = {
   "WHISPARR": "Whisparr"
 };
 
+export const ActionContentLayoutOptions: SelectGenericOption<ActionContentLayout>[] = [
+  { label: "Original", description: "Original", value: "ORIGINAL" },
+  { label: "Create subfolder", description: "Create subfolder", value: "SUBFOLDER_CREATE" },
+  { label: "Don't create subfolder", description: "Don't create subfolder", value: "SUBFOLDER_NONE" },
+];
+
 export interface OptionBasic {
     label: string;
     value: string;
@@ -306,6 +312,12 @@ export interface SelectOption {
     label: string;
     description: string;
     value: NotificationEvent;
+}
+
+export interface SelectGenericOption<T> {
+  label: string;
+  description: string;
+  value: T;
 }
 
 export const EventOptions: SelectOption[] = [

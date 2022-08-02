@@ -78,5 +78,7 @@ func (db *DB) migratePostgres() error {
 		return errors.Wrap(err, "failed to bump schema version")
 	}
 
+	db.log.Info().Msgf("Database schema upgraded to version: %v", len(postgresMigrations))
+
 	return tx.Commit()
 }
