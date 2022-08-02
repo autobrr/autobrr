@@ -98,6 +98,8 @@ func (db *DB) migrateSQLite() error {
 		return errors.Wrap(err, "failed to bump schema version")
 	}
 
+	db.log.Info().Msgf("Database schema upgraded to version: %v", len(sqliteMigrations))
+
 	return tx.Commit()
 }
 

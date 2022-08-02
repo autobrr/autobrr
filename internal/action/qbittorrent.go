@@ -107,6 +107,17 @@ func (s *service) prepareQbitOptions(action domain.Action, m domain.Macro) (map[
 	if action.Paused {
 		options["paused"] = "true"
 	}
+	if action.SkipHashCheck {
+		options["skip_checking"] = "true"
+	}
+	if action.ContentLayout != "" {
+		if action.ContentLayout == domain.ActionContentLayoutSubfolderCreate {
+			options["root_folder"] = "true"
+		} else if action.ContentLayout == domain.ActionContentLayoutSubfolderNone {
+			options["root_folder"] = "false"
+		}
+		// if ORIGINAL then leave empty
+	}
 	if action.SavePath != "" {
 		// parse and replace values in argument string before continuing
 		actionArgs, err := m.Parse(action.SavePath)
