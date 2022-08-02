@@ -60,6 +60,6 @@ parse:
         - torrentSize
         - baseUrl
         - torrentId
-        - releaseTags
+        - tags
   match:
     torrenturl: "{{ .baseUrl }}/download.php?id={{ .torrentId }}&apikey={{ .api_key }}"
