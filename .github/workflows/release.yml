@@ -152,8 +152,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v4
         with:
-          images: |
-            ghcr.io/autobrr/autobrr
+          images: ghcr.io/autobrr/autobrr
           # generate Docker tags based on the following events/attributes
           tags: |
             type=ref,event=branch
