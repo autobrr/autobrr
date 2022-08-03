@@ -7,6 +7,7 @@ builds:
     goos:
       - linux
       - windows
+      - darwin
     goarch:
       - amd64
       - arm
@@ -18,12 +19,15 @@ builds:
         goarch: arm
       - goos: windows
         goarch: arm64
+      - goos: darwin
+        goarch: arm
     main: ./cmd/autobrr/main.go
     binary: autobrr
   - id: autobrrctl
     goos:
       - linux
       - windows
+      - darwin
     goarch:
       - amd64
       - arm
@@ -35,6 +39,8 @@ builds:
         goarch: arm
       - goos: windows
         goarch: arm64
+      - goos: darwin
+        goarch: arm
     main: ./cmd/autobrrctl/main.go
     binary: autobrrctl
 
