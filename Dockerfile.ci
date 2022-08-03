@@ -1,12 +1,3 @@
-# build web
-FROM node:18.7.0-alpine3.16 AS web-builder
-WORKDIR /web
-COPY web/package.json web/yarn.lock web/.yarnrc.yml ./
-COPY web/.yarn/releases/ ./.yarn/releases/
-RUN yarn install --network-timeout 120000
-COPY web .
-RUN yarn build
-
 # build app
 FROM golang:1.18-alpine3.16 AS app-builder
 
@@ -24,9 +15,6 @@ COPY go.mod go.sum ./
 RUN go mod download
 
 COPY . ./
-
-COPY --from=web-builder /web/build ./web/build
-COPY --from=web-builder /web/build.go ./web
 
 #ENV GOOS=linux
 #ENV CGO_ENABLED=0
