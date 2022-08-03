@@ -1,8 +1,9 @@
 # build web
 FROM node:18.7.0-alpine3.16 AS web-builder
 WORKDIR /web
-COPY web/package.json web/yarn.lock ./
-RUN yarn install
+COPY web/package.json web/yarn.lock web/.yarnrc.yml ./
+COPY web/.yarn/releases/ ./.yarn/releases/
+RUN yarn install --network-timeout 120000
 COPY web .
 RUN yarn build
 
