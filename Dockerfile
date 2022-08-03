@@ -1,8 +1,8 @@
 # build web
-FROM node:16-alpine AS web-builder
+FROM node:18.7.0-alpine3.16 AS web-builder
 WORKDIR /web
 COPY web/package.json web/yarn.lock ./
-RUN yarn install --network-timeout 100000
+RUN yarn install
 COPY web .
 RUN yarn build
 
@@ -27,8 +27,8 @@ COPY . ./
 COPY --from=web-builder /web/build ./web/build
 COPY --from=web-builder /web/build.go ./web
 
-ENV GOOS=linux
-ENV CGO_ENABLED=1
+#ENV GOOS=linux
+#ENV CGO_ENABLED=0
 
 RUN go build -ldflags "-s -w -X main.version=${VERSION} -X main.commit=${REVISION} -X main.date=${BUILDTIME}" -o bin/autobrr cmd/autobrr/main.go
 RUN go build -ldflags "-s -w -X main.version=${VERSION} -X main.commit=${REVISION} -X main.date=${BUILDTIME}" -o bin/autobrrctl cmd/autobrrctl/main.go
