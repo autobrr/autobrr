@@ -16,12 +16,6 @@ RUN go mod download
 
 COPY . ./
 
-COPY web/build ./web/build
-COPY web/build.go ./web
-
-#COPY --from=web-builder /web/build ./web/build
-#COPY --from=web-builder /web/build.go ./web
-
 #ENV GOOS=linux
 #ENV CGO_ENABLED=0
 
