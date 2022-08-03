@@ -38,8 +38,8 @@ jobs:
       - name: Upload web production build
         uses: actions/upload-artifact@v3
         with:
-          name: web-dist
-          path: web/dist
+          name: web-build
+          path: web/build
 
   goreleaserbuild:
     name: Build Go binaries
@@ -55,8 +55,8 @@ jobs:
       - name: Download web production build
         uses: actions/download-artifact@v3
         with:
-          name: web-dist
-          path: web/dist
+          name: web-build
+          path: web/build
 
       - name: Set up Go
         uses: actions/setup-go@v3
@@ -93,8 +93,8 @@ jobs:
       - name: Download web production build
         uses: actions/download-artifact@v3
         with:
-          name: web-dist
-          path: web/dist
+          name: web-build
+          path: web/build
 
       - name: Set up Go
         uses: actions/setup-go@v3
