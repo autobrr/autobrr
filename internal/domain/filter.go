@@ -67,6 +67,7 @@ type Filter struct {
 	ExceptReleaseGroups         string                 `json:"except_release_groups,omitempty"`
 	Scene                       bool                   `json:"scene,omitempty"`
 	Origins                     []string               `json:"origins,omitempty"`
+	ExceptOrigins               []string               `json:"except_origins,omitempty"`
 	Bonus                       []string               `json:"bonus,omitempty"`
 	Freeleech                   bool                   `json:"freeleech,omitempty"`
 	FreeleechPercent            string                 `json:"freeleech_percent,omitempty"`
@@ -139,6 +140,9 @@ func (f Filter) CheckFilter(r *Release) ([]string, bool) {
 
 	if len(f.Origins) > 0 && !containsSlice(r.Origin, f.Origins) {
 		r.addRejectionF("origin not matching. got: %v want: %v", r.Origin, f.Origins)
+	}
+	if len(f.ExceptOrigins) > 0 && containsSlice(r.Origin, f.ExceptOrigins) {
+		r.addRejectionF("except origin not matching. got: %v unwanted: %v", r.Origin, f.ExceptOrigins)
 	}
 
 	// title is the parsed title

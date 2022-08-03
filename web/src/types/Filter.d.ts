@@ -17,6 +17,7 @@ interface Filter {
   except_release_groups: string;
   scene: boolean;
   origins: string[];
+  except_origins: string[];
   freeleech: boolean;
   freeleech_percent: string;
   shows: string;
@@ -77,6 +78,8 @@ interface Action {
   save_path?: string;
   paused?: boolean;
   ignore_rules?: boolean;
+  skip_hash_check: boolean;
+  content_layout?: ActionContentLayout;
   limit_upload_speed?: number;
   limit_download_speed?: number;
   limit_ratio?: number;
@@ -93,5 +96,7 @@ interface Action {
   filter_id?: number;
   client_id?: number;
 }
+
+type ActionContentLayout = "ORIGINAL" | "SUBFOLDER_CREATE" | "SUBFOLDER_NONE";
 
 type ActionType = "TEST" | "EXEC" | "WATCH_FOLDER" | "WEBHOOK" | DownloadClientType;

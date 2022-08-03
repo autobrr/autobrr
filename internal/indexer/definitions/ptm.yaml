@@ -46,7 +46,9 @@ parse:
     - test:
         - "tehFire: [Applications|Windows] Chen went to the Mall :: preGAP: 1m and 32s :: https://pretome.info/details.php?id=696969"
         - "[Movies|x264] Orlando.Bloom.Had.A.Cow-ze0s :: preGAP: P2P source :: https://pretome.info/details.php?id=646321"
-      pattern: '\[([^\]]+)\] ([^:]+) :: [^:]+.*(https?\:\/\/[^\/]+).*id=(\d+)'
+        - "tehFIRE: [TV|XviD] Royal.Institution.Christmas.Lectures.2009.Part2.WS.PDTV.XviD-WATERS :: preGAP: 1m and 9s :: https://pretome.info/details.php?id=127107"
+        - "tehFIRE: [TV|x264] Newsreaders.S01E05.HDTV.x264-2HD https://pretome.info/details.php?id=333951"
+      pattern: '\[([^\]]+)\] ([^:]+)(?: :: [^:]+:.* :: )?(https?\:\/\/[^\/]+).*id=(\d+)'
       vars:
         - category
         - torrentName

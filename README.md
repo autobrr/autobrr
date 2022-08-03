@@ -17,7 +17,7 @@ Installation guide and documentation can be found at https://autobrr.com
 
 ## Key features
 
-- Support for 37+ trackers with IRC announces
+- Support for 40+ trackers with IRC announces
 - Torznab/RSS support via Prowlarr to easily get access to hundreds of trackers
 - Powerful but simple filtering with RegEx support (like in autodl-irssi)
 - Easy to use and mobile friendly web UI (with dark mode!) to manage everything
@@ -188,7 +188,7 @@ WantedBy=multi-user.target
 Start the service. Enable will make it startup on reboot.
 
 ```bash
-systemctl enable -q --now autobrr
+systemctl enable -q --now --user autobrr
 ```
 
 It's highly advised to put it behind a reverse-proxy like nginx or traefik etc.

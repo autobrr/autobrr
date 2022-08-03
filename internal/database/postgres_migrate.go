@@ -107,6 +107,7 @@ CREATE TABLE filter
     tags                           TEXT,
     except_tags                    TEXT,
     origins                        TEXT []   DEFAULT '{}',
+    except_origins                 TEXT []   DEFAULT '{}',
     external_script_enabled        BOOLEAN   DEFAULT FALSE,
     external_script_cmd            TEXT,
     external_script_args           TEXT,
@@ -158,6 +159,8 @@ CREATE TABLE action
     save_path               TEXT,
     paused                  BOOLEAN,
     ignore_rules            BOOLEAN,
+    skip_hash_check         BOOLEAN DEFAULT false,
+    content_layout          TEXT,
     limit_upload_speed      INT,
     limit_download_speed    INT,
     limit_ratio             REAL,
@@ -526,5 +529,16 @@ CREATE INDEX indexer_identifier_index
 
 	ALTER TABLE filter
 		ADD COLUMN external_webhook_expect_status INTEGER;
+	`,
+	`
+	ALTER TABLE action
+		ADD COLUMN skip_hash_check BOOLEAN DEFAULT FALSE;
+
+	ALTER TABLE action
+		ADD COLUMN content_layout TEXT;
+	`,
+	`
+	ALTER TABLE filter
+		ADD COLUMN except_origins TEXT []   DEFAULT '{}';
 	`,
 }
