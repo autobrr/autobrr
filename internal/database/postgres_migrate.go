@@ -107,6 +107,7 @@ CREATE TABLE filter
     tags                           TEXT,
     except_tags                    TEXT,
     origins                        TEXT []   DEFAULT '{}',
+    except_origins                 TEXT []   DEFAULT '{}',
     external_script_enabled        BOOLEAN   DEFAULT FALSE,
     external_script_cmd            TEXT,
     external_script_args           TEXT,
@@ -535,5 +536,9 @@ CREATE INDEX indexer_identifier_index
 
 	ALTER TABLE action
 		ADD COLUMN content_layout TEXT;
+	`,
+	`
+	ALTER TABLE filter
+		ADD COLUMN except_origins TEXT []   DEFAULT '{}';
 	`,
 }
