@@ -133,6 +133,7 @@ func init() {
 		{tag: "Scene", title: "Scene", regexp: "", re: nil},
 		{tag: "O-Scene", title: "O-Scene", regexp: "", re: nil},
 		{tag: "Internal", title: "Internal", regexp: "", re: nil},
+		{tag: "User", title: "User", regexp: "", re: nil},
 	}
 	types["origin"] = origin
 
