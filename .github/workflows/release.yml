@@ -130,7 +130,8 @@ jobs:
       - name: Download web production build
         uses: actions/download-artifact@v3
         with:
-          name: web-dist
+          name: web-build
+          path: web/build
 
       - name: Login to DockerHub
         if: github.event_name != 'pull_request'
