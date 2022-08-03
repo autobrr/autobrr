@@ -28,6 +28,7 @@ jobs:
         with:
           node-version: 18
           cache: 'yarn'
+          cache-dependency-path: web/yarn.lock
 
       - name: Build web
         run: |
@@ -38,7 +39,7 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: web-dist
-          path: dist
+          path: web/dist
 
   goreleaserbuild:
     name: Build Go binaries
@@ -55,6 +56,7 @@ jobs:
         uses: actions/download-artifact@v3
         with:
           name: web-dist
+          path: web/dist
 
       - name: Set up Go
         uses: actions/setup-go@v3
@@ -92,6 +94,7 @@ jobs:
         uses: actions/download-artifact@v3
         with:
           name: web-dist
+          path: web/dist
 
       - name: Set up Go
         uses: actions/setup-go@v3
