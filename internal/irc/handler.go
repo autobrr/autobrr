@@ -392,9 +392,9 @@ func (h *Handler) onDisconnect(m ircmsg.Message) {
 			Subject: "IRC Disconnected unexpectedly",
 			Message: fmt.Sprintf("Network: %v", h.network.Name),
 		})
-
+	} else {
 		// reset
-		h.manuallyDisconnected = false
+		h.manuallyDisconnected = false	
 	}
 }
 
