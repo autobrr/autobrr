@@ -369,8 +369,10 @@ func (h *Handler) onConnect(m ircmsg.Message) {
 func (h *Handler) onDisconnect(m ircmsg.Message) {
 	h.log.Debug().Msgf("DISCONNECT")
 
+	h.m.Lock()
 	h.haveDisconnected = true
-
+	h.m.Unlock()
+	
 	h.resetConnectionStatus()
 	h.resetAuthenticated()
 
@@ -383,7 +385,9 @@ func (h *Handler) onDisconnect(m ircmsg.Message) {
 		})
 	} else {
 		// reset
-		h.manuallyDisconnected = false	
+		h.m.Lock()
+		h.manuallyDisconnected = false
+		h.m.Unlock()
 	}
 }
 
@@ -557,7 +561,8 @@ func (h *Handler) sendToAnnounceProcessor(channel string, msg string) error {
 		return err
 	}
 
-	
+	h.m.Lock()
+	defer h.m.Unlock()
 	if v, ok := h.channelHealth[channel]; ok {
 		v.SetLastAnnounce()
 	}
@@ -566,6 +571,8 @@ func (h *Handler) sendToAnnounceProcessor(channel string, msg string) error {
 }
 
 func (h *Handler) JoinChannels() {
+	h.m.Lock()
+	defer h.m.Unlock()
 	for _, channel := range h.network.Channels {
 		if err := h.JoinChannel(channel.Name, channel.Password); err != nil {
 			h.log.Error().Stack().Err(err).Msgf("error joining channel %v", channel.Name)
@@ -607,7 +614,8 @@ func (h *Handler) handlePart(msg ircmsg.Message) {
 	h.log.Debug().Msgf("PART channel %v", channel)
 
 	// reset monitoring status
-
+	h.m.Lock()
+	defer h.m.Unlock()
 	if v, ok := h.channelHealth[channel]; ok {
 		v.resetMonitoring()
 	}
@@ -629,6 +637,8 @@ func (h *Handler) PartChannel(channel string) error {
 	}
 
 	// reset monitoring status
+	h.m.Lock()
+	defer h.m.Unlock()
 	if v, ok := h.channelHealth[channel]; ok {
 		v.resetMonitoring()
 	}
@@ -662,9 +672,12 @@ func (h *Handler) handleJoined(msg ircmsg.Message) {
 	}
 
 	// set monitoring on current channelHealth, or add new
+	h.m.Lock()
 	if v, ok := h.channelHealth[channel]; ok {
 		v.SetMonitoring()
+		h.m.Unlock()
 	} else {
+		h.m.Unlock()
 		h.AddChannelHealth(channel)
 	}
 
@@ -809,8 +822,7 @@ func (h *Handler) isValidChannel(channel string) bool {
 func (h *Handler) isValidHandlerChannel(channel string) bool {
 	channel = strings.ToLower(channel)
 
-	_, ok := h.validChannels[channel]
-	if ok {
+	if h.isValidChannel(channel) {
 		return true
 	}
 
