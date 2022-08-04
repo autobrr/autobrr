@@ -383,32 +383,20 @@ func (h *Handler) onConnect(m ircmsg.Message) {
 	}
 
 	// if not authenticated, no nickserv pass but invite command, send invite command to trigger MODE change then join
-	if h.network.NickServ.Password == "" && h.network.InviteCommand != "" {
-		h.log.Trace().Msg("on connect invite command not empty: send connect commands")
-		if err := h.sendConnectCommands(h.network.InviteCommand); err != nil {
-			h.log.Error().Stack().Err(err).Msgf("error sending connect command %v", h.network.InviteCommand)
-			return
-		}
+	if h.network.NickServ.Password == "" {
+		if h.network.InviteCommand != "" {
+			h.log.Trace().Msg("on connect invite command not empty: send connect commands")
+			if err := h.sendConnectCommands(h.network.InviteCommand); err != nil {
+				h.log.Error().Stack().Err(err).Msgf("error sending connect command %v", h.network.InviteCommand)
+				return
+			}
 
-		return
-
-		// if not authenticated but we do have a nick serv pass, send identify to trigger MODE change and then join
-	} else if h.network.NickServ.Password != "" {
-		h.log.Trace().Msg("on connect not authenticated and password not empty: send nickserv identify")
-		if err := h.NickServIdentify(h.network.NickServ.Password); err != nil {
-			h.log.Error().Stack().Err(err).Msg("error nickserv")
-			return
-		}
-
-		// return and wait for NOTICE of nickserv auth
-		return
+		// if no password nor invite command, join channels
+		h.log.Trace().Msg("on connect - no nickserv or invite command: join channels")
+		h.JoinChannels()
+	} else {
+		h.log.Trace().Msg("on connect nickserv passowrd not empty; waiting for nickserv notice")
 	}
-
-	// if no password nor invite command, join channels
-	h.log.Trace().Msg("on connect - no nickserv or invite command: join channels")
-	h.JoinChannels()
-
-	return
 }
 
 func (h *Handler) onDisconnect(m ircmsg.Message) {
@@ -483,7 +471,6 @@ func (h *Handler) handleNickServ(msg ircmsg.Message) {
 		"please choose a different nick",
 		"choose a different nick",
 	) {
-
 		if h.failedNickServAttempts >= 3 {
 			h.log.Warn().Msgf("NickServ %d failed login attempts", h.failedNickServAttempts)
 
@@ -494,6 +481,24 @@ func (h *Handler) handleNickServ(msg ircmsg.Message) {
 		}
 
 		h.failedNickServAttempts++
+
+		if h.network.NickServ.Password == "" {
+			h.log.Error().Msgf("NickServ missing password for %q", h.client.CurrentNick())
+			h.addConnectError("authentication failed: nick registered no pasword provided")
+
+			// stop network and notify user
+			h.Stop()
+		} else {
+			// if not authenticated but we do have a nick serv pass, send identify to trigger MODE change and then join
+			h.log.Trace().Msg("on connect not authenticated and password not empty: send nickserv identify")
+			if err := h.NickServIdentify(h.network.NickServ.Password); err != nil {
+				h.log.Error().Stack().Err(err).Msg("error nickserv")
+				return
+			}
+
+			// return and wait for NOTICE of nickserv auth
+			return
+		}
 	}
 
 	// You're now logged in as test-bot
