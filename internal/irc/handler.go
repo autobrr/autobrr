@@ -238,7 +238,7 @@ func (h *Handler) resetConnectionStatus() {
 	// set connected false if we loose connection or stop
 	h.connectedSince = time.Time{}
 	h.connected = false
-	h.channelHealth = nil
+	h.channelHealth = map[string]*channelHealth{}
 
 	h.m.Unlock()
 }
