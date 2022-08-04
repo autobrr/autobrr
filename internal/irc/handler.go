@@ -719,11 +719,11 @@ func (h *Handler) handleJoined(msg ircmsg.Message) {
 	h.m.Lock()
 	if v, ok := h.channelHealth[channel]; ok {
 		v.SetMonitoring()
-		//h.m.Unlock()
+		h.m.Unlock()
+	} else {
+		h.m.Unlock()
+		h.AddChannelHealth(channel)
 	}
-	h.m.Unlock()
-
-	h.AddChannelHealth(channel)
 
 	h.log.Info().Msgf("Monitoring channel %v", msg.Params[1])
 }
