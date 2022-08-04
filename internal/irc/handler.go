@@ -391,6 +391,9 @@ func (h *Handler) onConnect(m ircmsg.Message) {
 				return
 			}
 
+			return
+		}
+
 		// if no password nor invite command, join channels
 		h.log.Trace().Msg("on connect - no nickserv or invite command: join channels")
 		h.JoinChannels()
