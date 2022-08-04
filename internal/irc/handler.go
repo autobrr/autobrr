@@ -487,6 +487,7 @@ func (h *Handler) setAuthenticated() {
 	defer h.m.Unlock()
 
 	h.authenticated = true
+	h.failedNickServAttempts = 0
 }
 
 func (h *Handler) resetAuthenticated() {
@@ -494,6 +495,7 @@ func (h *Handler) resetAuthenticated() {
 	defer h.m.Unlock()
 
 	h.authenticated = false
+	h.failedNickServAttempts = 0
 }
 
 func contains(s string, substr ...string) bool {
@@ -783,7 +785,6 @@ func (h *Handler) handleMode(msg ircmsg.Message) {
 		}
 
 		h.resetConnectErrors()
-		h.failedNickServAttempts = 0
 
 		// if invite command send
 		if h.network.InviteCommand != "" {
