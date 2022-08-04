@@ -421,6 +421,10 @@ func (s *service) GetNetworksWithHealth(ctx context.Context) ([]domain.IrcNetwor
 			if len(handler.connectionErrors) > 0 {
 				netw.ConnectionErrors = handler.connectionErrors
 			}
+
+			if handler.haveDisconnected {
+				netw.DisconnectedSince = handler.disconnectedSince
+			}
 		}
 
 		channels, err := s.repo.ListChannels(n.ID)
@@ -446,6 +450,7 @@ func (s *service) GetNetworksWithHealth(ctx context.Context) ([]domain.IrcNetwor
 			if handler != nil {
 				name := strings.ToLower(channel.Name)
 
+				handler.m.RLock()
 				chan1, ok := handler.channelHealth[name]
 				if ok {
 					chan1.m.RLock()
@@ -455,6 +460,7 @@ func (s *service) GetNetworksWithHealth(ctx context.Context) ([]domain.IrcNetwor
 
 					chan1.m.RUnlock()
 				}
+				handler.m.RUnlock()
 			}
 
 			netw.Channels = append(netw.Channels, ch)

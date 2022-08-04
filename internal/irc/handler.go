@@ -33,25 +33,28 @@ type channelHealth struct {
 // SetLastAnnounce set last announce to now
 func (h *channelHealth) SetLastAnnounce() {
 	h.m.Lock()
+	defer h.m.Unlock()
+
 	h.lastAnnounce = time.Now()
-	h.m.Unlock()
 }
 
 // SetMonitoring set monitoring and time
 func (h *channelHealth) SetMonitoring() {
 	h.m.Lock()
+	defer h.m.Unlock()
+
 	h.monitoring = true
 	h.monitoringSince = time.Now()
-	h.m.Unlock()
 }
 
 // resetMonitoring remove monitoring and time
 func (h *channelHealth) resetMonitoring() {
 	h.m.Lock()
+	defer h.m.Unlock()
+
 	h.monitoring = false
 	h.monitoringSince = time.Time{}
 	h.lastAnnounce = time.Time{}
-	h.m.Unlock()
 }
 
 type Handler struct {
@@ -68,6 +71,7 @@ type Handler struct {
 	connected            bool
 	connectedSince       time.Time
 	haveDisconnected     bool
+	disconnectedSince    time.Time
 	manuallyDisconnected bool
 
 	validAnnouncers map[string]struct{}
@@ -102,6 +106,9 @@ func NewHandler(log zerolog.Logger, network domain.IrcNetwork, definitions []*do
 }
 
 func (h *Handler) InitIndexers(definitions []*domain.IndexerDefinition) {
+	h.m.Lock()
+	defer h.m.Unlock()
+
 	// Networks can be shared by multiple indexers but channels are unique
 	// so let's add a new AnnounceProcessor per channel
 	for _, definition := range definitions {
@@ -182,6 +189,8 @@ func (h *Handler) Run() error {
 	if err := h.client.Connect(); err != nil {
 		h.log.Error().Stack().Err(err).Msg("connect error")
 
+		h.addConnectError(err.Error())
+
 		// reset connection status on handler and channels
 		h.resetConnectionStatus()
 
@@ -209,7 +218,10 @@ func (h *Handler) Run() error {
 			}),
 		)
 
-		h.log.Error().Stack().Err(err).Msgf("connect error: attempt %d", connectAttempts)
+		if err != nil {
+			h.log.Error().Stack().Err(err).Msgf("connect error: attempt %d", connectAttempts)
+		}
+
 	}
 
 	h.client.Loop()
@@ -227,20 +239,53 @@ func (h *Handler) isOurCurrentNick(nick string) bool {
 
 func (h *Handler) setConnectionStatus() {
 	h.m.Lock()
+	defer h.m.Unlock()
+
 	// set connected since now
 	h.connectedSince = time.Now()
 	h.connected = true
-	h.m.Unlock()
 }
 
 func (h *Handler) resetConnectionStatus() {
 	h.m.Lock()
+	defer h.m.Unlock()
+
 	// set connected false if we loose connection or stop
 	h.connectedSince = time.Time{}
 	h.connected = false
 	h.channelHealth = map[string]*channelHealth{}
 
-	h.m.Unlock()
+}
+
+func (h *Handler) setHaveDisconnected(b bool) {
+	h.m.Lock()
+	defer h.m.Unlock()
+
+	h.haveDisconnected = b
+}
+
+func (h *Handler) setManuallyDisconnected(b bool) {
+	h.m.Lock()
+	defer h.m.Unlock()
+
+	h.manuallyDisconnected = b
+}
+
+func (h *Handler) setDisconnectedSince() {
+	h.m.Lock()
+	defer h.m.Unlock()
+
+	h.disconnectedSince = time.Now()
+}
+
+// reset haveDisconnected and disconnectedSince
+func (h *Handler) resetDisconnected() {
+	h.m.Lock()
+	defer h.m.Unlock()
+
+	h.disconnectedSince = time.Time{}
+	h.haveDisconnected = false
+
 }
 
 func (h *Handler) GetNetwork() *domain.IrcNetwork {
@@ -249,41 +294,41 @@ func (h *Handler) GetNetwork() *domain.IrcNetwork {
 
 func (h *Handler) UpdateNetwork(network *domain.IrcNetwork) {
 	h.m.Lock()
+	defer h.m.Unlock()
+
 	h.network = network
-	h.m.Unlock()
 }
 
 func (h *Handler) SetNetwork(network *domain.IrcNetwork) {
 	h.m.Lock()
+	defer h.m.Unlock()
+
 	h.network = network
-	h.m.Unlock()
 }
 
 func (h *Handler) AddChannelHealth(channel string) {
 	h.m.Lock()
+	defer h.m.Unlock()
+
 	h.channelHealth[channel] = &channelHealth{
 		name:            channel,
 		monitoring:      true,
 		monitoringSince: time.Now(),
 	}
-	h.m.Unlock()
 }
 
 func (h *Handler) Stop() {
 	h.log.Debug().Msg("Disconnecting...")
 
-	h.m.Lock()
-	h.manuallyDisconnected = true
-	h.m.Unlock()
+	h.setManuallyDisconnected(true)
+
 	h.client.Quit()
 }
 
 func (h *Handler) Restart() error {
 	h.log.Debug().Msg("Restarting network...")
 
-	h.m.Lock()
-	h.manuallyDisconnected = true
-	h.m.Unlock()
+	h.setManuallyDisconnected(true)
 
 	h.client.Quit()
 
@@ -308,8 +353,8 @@ func (h *Handler) onConnect(m ircmsg.Message) {
 			Message: fmt.Sprintf("Network: %v", h.network.Name),
 		})
 
-		// reset haveDisconnected
-		h.haveDisconnected = false
+		// reset haveDisconnected and disconnectedSince
+		h.resetDisconnected()
 	}
 
 	h.log.Debug().Msgf("connected to: %v", h.network.Name)
@@ -369,15 +414,15 @@ func (h *Handler) onConnect(m ircmsg.Message) {
 func (h *Handler) onDisconnect(m ircmsg.Message) {
 	h.log.Debug().Msgf("DISCONNECT")
 
-	h.m.Lock()
-	h.haveDisconnected = true
-	h.m.Unlock()
-	
+	h.setHaveDisconnected(true)
+
 	h.resetConnectionStatus()
 	h.resetAuthenticated()
 
 	// check if we are responsible for disconnect
 	if !h.manuallyDisconnected {
+		h.setDisconnectedSince()
+
 		// only send notification if we did not initiate disconnect/restart/stop
 		h.notificationService.Send(domain.NotificationEventIRCDisconnected, domain.NotificationPayload{
 			Subject: "IRC Disconnected unexpectedly",
@@ -385,9 +430,7 @@ func (h *Handler) onDisconnect(m ircmsg.Message) {
 		})
 	} else {
 		// reset
-		h.m.Lock()
-		h.manuallyDisconnected = false
-		h.m.Unlock()
+		h.setManuallyDisconnected(false)
 	}
 }
 
@@ -573,6 +616,7 @@ func (h *Handler) sendToAnnounceProcessor(channel string, msg string) error {
 func (h *Handler) JoinChannels() {
 	h.m.Lock()
 	defer h.m.Unlock()
+
 	for _, channel := range h.network.Channels {
 		if err := h.JoinChannel(channel.Name, channel.Password); err != nil {
 			h.log.Error().Stack().Err(err).Msgf("error joining channel %v", channel.Name)
@@ -675,11 +719,11 @@ func (h *Handler) handleJoined(msg ircmsg.Message) {
 	h.m.Lock()
 	if v, ok := h.channelHealth[channel]; ok {
 		v.SetMonitoring()
-		h.m.Unlock()
-	} else {
-		h.m.Unlock()
-		h.AddChannelHealth(channel)
+		//h.m.Unlock()
 	}
+	h.m.Unlock()
+
+	h.AddChannelHealth(channel)
 
 	h.log.Info().Msgf("Monitoring channel %v", msg.Params[1])
 }
@@ -800,7 +844,7 @@ func (h *Handler) handleMode(msg ircmsg.Message) {
 
 // check if announcer is one from the list in the definition
 func (h *Handler) isValidAnnouncer(nick string) bool {
-	_, ok := h.validAnnouncers[nick]
+	_, ok := h.validAnnouncers[strings.ToLower(nick)]
 	if !ok {
 		return false
 	}

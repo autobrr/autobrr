@@ -84,9 +84,11 @@ const ListItem = ({ idx, network }: ListItemProps) => {
   const [updateIsOpen, toggleUpdate] = useToggle(false);
   const [edit, toggleEdit] = useToggle(false);
 
+  const isHealthy = IsNetworkHealthy(network)
+
   return (
     <li key={idx}>
-      <div className="grid grid-cols-12 gap-2 lg:gap-4 items-center hover:bg-gray-50 dark:hover:bg-gray-700 py-4">
+      <div className={classNames("grid grid-cols-12 gap-2 lg:gap-4 items-center hover:bg-gray-50 dark:hover:bg-gray-700 py-4", isHealthy ? "": "bg-red-50")}>
         <IrcNetworkUpdateForm
           isOpen={updateIsOpen}
           toggle={toggleUpdate}
@@ -100,7 +102,7 @@ const ListItem = ({ idx, network }: ListItemProps) => {
           <div className="flex">
             <span className="relative inline-flex items-center ml-1">
               {network.enabled ? (
-                IsNetworkHealthy(network) ? (
+                isHealthy ? (
                   <span
                     className="mr-3 flex h-3 w-3 relative"
                     title={`Connected since: ${simplifyDate(network.connected_since)}`}
@@ -111,7 +113,7 @@ const ListItem = ({ idx, network }: ListItemProps) => {
                 ) : (
                   <span
                     className="mr-3 flex items-center"
-                    title={network.connection_errors.toString()}
+                    title={`Disconnected since: ${simplifyDate(network.disconnected_since)} Errors: ${network.connection_errors.toString()}`}
                   >
                     <ExclamationCircleIcon className="h-4 w-4 text-red-400 hover:text-red-600" />
                   </span>
@@ -138,7 +140,7 @@ const ListItem = ({ idx, network }: ListItemProps) => {
                 <LockClosedIcon
                   className={classNames(
                     "mr-2 h-4 w-4",
-                    network.enabled ? "text-green-600" : "text-gray-500"
+                    network.enabled && isHealthy ? "text-green-600" : "text-gray-500"
                   )}
                 />
               ) : (
@@ -239,5 +241,15 @@ const ListItem = ({ idx, network }: ListItemProps) => {
   );
 };
 
-const IsNetworkHealthy = (network: IrcNetworkWithHealth) =>
-  network.connection_errors.length <= 0;
+const IsNetworkHealthy = (network: IrcNetworkWithHealth) => {
+  if (network.enabled) {
+    if (!network.connected) {
+      return false
+    } else if (network.connection_errors.length > 0) {
+      return false
+    }
+
+    return true
+  }
+  return true
+}
