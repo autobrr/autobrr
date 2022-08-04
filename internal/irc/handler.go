@@ -118,11 +118,6 @@ func (h *Handler) InitIndexers(definitions []*domain.IndexerDefinition) {
 
 			h.announceProcessors[channel] = announce.NewAnnounceProcessor(h.log, h.releaseSvc, definition)
 
-			h.channelHealth[channel] = &channelHealth{
-				name:       channel,
-				monitoring: false,
-			}
-
 			// create map of valid channels
 			h.validChannels[channel] = struct{}{}
 		}
@@ -243,13 +238,7 @@ func (h *Handler) resetConnectionStatus() {
 	// set connected false if we loose connection or stop
 	h.connectedSince = time.Time{}
 	h.connected = false
-
-	// loop over channelHealth and reset each one
-	for _, h := range h.channelHealth {
-		if h != nil {
-			h.resetMonitoring()
-		}
-	}
+	h.channelHealth = nil
 
 	h.m.Unlock()
 }
@@ -568,12 +557,10 @@ func (h *Handler) sendToAnnounceProcessor(channel string, msg string) error {
 		return err
 	}
 
-	v, ok := h.channelHealth[channel]
-	if !ok {
-		return nil
+	
+	if v, ok := h.channelHealth[channel]; ok {
+		v.SetLastAnnounce()
 	}
-
-	v.SetLastAnnounce()
 
 	return nil
 }
@@ -602,8 +589,7 @@ func (h *Handler) JoinChannel(channel string, password string) error {
 
 	h.log.Debug().Msgf("sending JOIN command %v", strings.Join(m.Params, " "))
 
-	err := h.client.SendIRCMessage(m)
-	if err != nil {
+	if err := h.client.SendIRCMessage(m); err != nil {
 		h.log.Error().Stack().Err(err).Msgf("error handling join: %v", channel)
 		return err
 	}
@@ -617,17 +603,14 @@ func (h *Handler) handlePart(msg ircmsg.Message) {
 		return
 	}
 
-	channel := msg.Params[0]
-
+	channel := strings.ToLower(msg.Params[0])
 	h.log.Debug().Msgf("PART channel %v", channel)
 
 	// reset monitoring status
-	v, ok := h.channelHealth[channel]
-	if !ok {
-		return
-	}
 
-	v.resetMonitoring()
+	if v, ok := h.channelHealth[channel]; ok {
+		v.resetMonitoring()
+	}
 
 	// TODO remove announceProcessor
 
@@ -637,6 +620,7 @@ func (h *Handler) handlePart(msg ircmsg.Message) {
 }
 
 func (h *Handler) PartChannel(channel string) error {
+	channel = strings.ToLower(channel)
 	h.log.Debug().Msgf("PART channel %v", channel)
 
 	if err := h.client.Part(channel); err != nil {
@@ -645,12 +629,9 @@ func (h *Handler) PartChannel(channel string) error {
 	}
 
 	// reset monitoring status
-	v, ok := h.channelHealth[channel]
-	if !ok {
-		return nil
+	if v, ok := h.channelHealth[channel]; ok {
+		v.resetMonitoring()
 	}
-
-	v.resetMonitoring()
 
 	// TODO remove announceProcessor
 
@@ -681,10 +662,9 @@ func (h *Handler) handleJoined(msg ircmsg.Message) {
 	}
 
 	// set monitoring on current channelHealth, or add new
-	v, ok := h.channelHealth[channel]
-	if ok {
+	if v, ok := h.channelHealth[channel]; ok {
 		v.SetMonitoring()
-	} else if v == nil {
+	} else {
 		h.AddChannelHealth(channel)
 	}
 
@@ -705,8 +685,7 @@ func (h *Handler) sendConnectCommands(msg string) error {
 
 		h.log.Debug().Msgf("sending connect command: %v", cmd)
 
-		err := h.client.SendIRCMessage(m)
-		if err != nil {
+		if err := h.client.SendIRCMessage(m); err != nil {
 			h.log.Error().Err(err).Msgf("error handling invite: %v", m)
 			return err
 		}
