@@ -91,15 +91,11 @@ func (s *service) StartHandlers() {
 
 		s.log.Debug().Msgf("starting network: %+v", network.Name)
 
-		s.stopWG.Add(1)
-
 		go func() {
 			if err := handler.Run(); err != nil {
 				s.log.Error().Err(err).Msgf("failed to start handler for network %q", network.Name)
 			}
 		}()
-
-		s.stopWG.Done()
 	}
 }
 
@@ -145,15 +141,11 @@ func (s *service) startNetwork(network domain.IrcNetwork) error {
 
 		s.log.Debug().Msgf("starting network: %+v", network.Name)
 
-		s.stopWG.Add(1)
-
 		go func() {
 			if err := handler.Run(); err != nil {
 				s.log.Error().Err(err).Msgf("failed to start handler for network %q", network.Name)
 			}
 		}()
-
-		s.stopWG.Done()
 	}
 
 	return nil
@@ -407,7 +399,7 @@ func (s *service) GetNetworksWithHealth(ctx context.Context) ([]domain.IrcNetwor
 			if handler.client.Connected() {
 				handler.m.RLock()
 
-				netw.Connected = handler.connected
+				netw.Connected = true
 				netw.ConnectedSince = handler.connectedSince
 
 				// current and preferred nick is only available if the network is connected
