@@ -13,6 +13,7 @@ import (
 	"github.com/autobrr/autobrr/pkg/errors"
 
 	"github.com/rs/zerolog"
+	"time"
 )
 
 type Service interface {
@@ -399,7 +400,7 @@ func (s *service) GetNetworksWithHealth(ctx context.Context) ([]domain.IrcNetwor
 			if handler.client.Connected() {
 				handler.m.RLock()
 
-				netw.Connected = true
+				netw.Connected = handler.connectedSince != time.Time{}
 				netw.ConnectedSince = handler.connectedSince
 
 				// current and preferred nick is only available if the network is connected

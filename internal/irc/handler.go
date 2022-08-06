@@ -400,7 +400,6 @@ func (h *Handler) handleNickServ(msg ircmsg.Message) {
 	// Password accepted - you are now recognized.
 	if contains(msg.Params[1], "you're now logged in as", "password accepted", "you are now recognized") {
 		h.log.Debug().Msgf("NOTICE nickserv logged in: %v", msg.Params)
-		h.setAuthenticated()
 	}
 
 	// fallback for networks that require both password and nick to NickServ IDENTIFY
@@ -497,11 +496,15 @@ func contains(s string, substr ...string) bool {
 
 func (h *Handler) onNick(msg ircmsg.Message) {
 	h.log.Trace().Msgf("NICK event: %v params: %v", msg.Nick(), msg.Params)
+	if len(msg.Params) < 1 {
+		return
+	}
 
-	if h.client.CurrentNick() != h.client.PreferredNick() {
-		h.log.Debug().Msgf("nick mismatch: got %v want %v", h.client.CurrentNick(), h.client.PreferredNick())
-	} else {
-		h.resetAuthenticated()
+	if msg.Params[0] != h.PreferredNick() {
+		return
+	}
+
+	if !h.authenticated {
 		h.authenticate()
 	}
 }
