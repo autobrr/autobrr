@@ -4,6 +4,7 @@ import (
 	"context"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/internal/indexer"
@@ -13,7 +14,6 @@ import (
 	"github.com/autobrr/autobrr/pkg/errors"
 
 	"github.com/rs/zerolog"
-	"time"
 )
 
 type Service interface {
@@ -30,6 +30,9 @@ type Service interface {
 }
 
 type service struct {
+	stopWG sync.WaitGroup
+	lock   sync.RWMutex
+
 	log                 zerolog.Logger
 	repo                domain.IrcRepo
 	releaseService      release.Service
@@ -37,9 +40,6 @@ type service struct {
 	notificationService notification.Service
 	indexerMap          map[string]string
 	handlers            map[handlerKey]*Handler
-
-	stopWG sync.WaitGroup
-	lock   sync.Mutex
 }
 
 func NewService(log logger.Logger, repo domain.IrcRepo, releaseSvc release.Service, indexerSvc indexer.Service, notificationSvc notification.Service) Service {
@@ -92,11 +92,11 @@ func (s *service) StartHandlers() {
 
 		s.log.Debug().Msgf("starting network: %+v", network.Name)
 
-		go func() {
+		go func(network domain.IrcNetwork) {
 			if err := handler.Run(); err != nil {
 				s.log.Error().Err(err).Msgf("failed to start handler for network %q", network.Name)
 			}
-		}()
+		}(network)
 	}
 }
 
@@ -115,11 +115,11 @@ func (s *service) startNetwork(network domain.IrcNetwork) error {
 		s.log.Debug().Msgf("starting network: %+v", network.Name)
 
 		if !existingHandler.client.Connected() {
-			go func() {
-				if err := existingHandler.Run(); err != nil {
-					s.log.Error().Err(err).Msgf("failed to start existingHandler for network %q", existingHandler.network.Name)
+			go func(handler *Handler) {
+				if err := handler.Run(); err != nil {
+					s.log.Error().Err(err).Msgf("failed to start existingHandler for network %q", handler.network.Name)
 				}
-			}()
+			}(existingHandler)
 		}
 	} else {
 		// if not found in handlers, lets add it and run it
@@ -142,11 +142,11 @@ func (s *service) startNetwork(network domain.IrcNetwork) error {
 
 		s.log.Debug().Msgf("starting network: %+v", network.Name)
 
-		go func() {
+		go func(network domain.IrcNetwork) {
 			if err := handler.Run(); err != nil {
 				s.log.Error().Err(err).Msgf("failed to start handler for network %q", network.Name)
 			}
-		}()
+		}(network)
 	}
 
 	return nil
@@ -271,8 +271,7 @@ func (s *service) checkIfNetworkRestartNeeded(network *domain.IrcNetwork) error 
 			existingHandler.InitIndexers(definitions)
 		}
 	} else {
-		err := s.startNetwork(*network)
-		if err != nil {
+		if err := s.startNetwork(*network); err != nil {
 			s.log.Error().Stack().Err(err).Msgf("failed to start network: %q", network.Name)
 		}
 	}
@@ -396,9 +395,10 @@ func (s *service) GetNetworksWithHealth(ctx context.Context) ([]domain.IrcNetwor
 
 		handler, ok := s.handlers[handlerKey{n.Server, n.NickServ.Account}]
 		if ok {
+			handler.m.RLock()
+
 			// only set connected and connected since if we have an active handler and connection
 			if handler.client.Connected() {
-				handler.m.RLock()
 
 				netw.Connected = handler.connectedSince != time.Time{}
 				netw.ConnectedSince = handler.connectedSince
@@ -406,14 +406,15 @@ func (s *service) GetNetworksWithHealth(ctx context.Context) ([]domain.IrcNetwor
 				// current and preferred nick is only available if the network is connected
 				netw.CurrentNick = handler.CurrentNick()
 				netw.PreferredNick = handler.PreferredNick()
-
-				handler.m.RUnlock()
 			}
+			netw.Healthy = handler.Healthy()
 
 			// if we have any connection errors like bad nickserv auth add them here
 			if len(handler.connectionErrors) > 0 {
 				netw.ConnectionErrors = handler.connectionErrors
 			}
+
+			handler.m.RUnlock()
 		}
 
 		channels, err := s.repo.ListChannels(n.ID)
@@ -439,6 +440,7 @@ func (s *service) GetNetworksWithHealth(ctx context.Context) ([]domain.IrcNetwor
 			if handler != nil {
 				name := strings.ToLower(channel.Name)
 
+				handler.m.RLock()
 				chan1, ok := handler.channelHealth[name]
 				if ok {
 					chan1.m.RLock()
@@ -448,12 +450,14 @@ func (s *service) GetNetworksWithHealth(ctx context.Context) ([]domain.IrcNetwor
 
 					chan1.m.RUnlock()
 				}
+				handler.m.RUnlock()
 			}
 
 			netw.Channels = append(netw.Channels, ch)
 		}
 
 		ret = append(ret, netw)
+
 	}
 
 	return ret, nil

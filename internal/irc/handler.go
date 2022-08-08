@@ -4,7 +4,6 @@ import (
 	"crypto/tls"
 	"fmt"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/autobrr/autobrr/internal/announce"
@@ -19,10 +18,11 @@ import (
 	"github.com/ergochat/irc-go/ircfmt"
 	"github.com/ergochat/irc-go/ircmsg"
 	"github.com/rs/zerolog"
+	"github.com/sasha-s/go-deadlock"
 )
 
 type channelHealth struct {
-	m sync.RWMutex
+	m deadlock.RWMutex
 
 	name            string
 	monitoring      bool
@@ -31,27 +31,27 @@ type channelHealth struct {
 }
 
 // SetLastAnnounce set last announce to now
-func (h *channelHealth) SetLastAnnounce() {
-	h.m.Lock()
-	defer h.m.Unlock()
-	h.lastAnnounce = time.Now()
+func (ch *channelHealth) SetLastAnnounce() {
+	ch.m.Lock()
+	ch.lastAnnounce = time.Now()
+	ch.m.Unlock()
 }
 
 // SetMonitoring set monitoring and time
-func (h *channelHealth) SetMonitoring() {
-	h.m.Lock()
-	defer h.m.Unlock()
-	h.monitoring = true
-	h.monitoringSince = time.Now()
+func (ch *channelHealth) SetMonitoring() {
+	ch.m.Lock()
+	ch.monitoring = true
+	ch.monitoringSince = time.Now()
+	ch.m.Unlock()
 }
 
 // resetMonitoring remove monitoring and time
-func (h *channelHealth) resetMonitoring() {
-	h.m.Lock()
-	defer h.m.Unlock()
-	h.monitoring = false
-	h.monitoringSince = time.Time{}
-	h.lastAnnounce = time.Time{}
+func (ch *channelHealth) resetMonitoring() {
+	ch.m.Lock()
+	ch.monitoring = false
+	ch.monitoringSince = time.Time{}
+	ch.lastAnnounce = time.Time{}
+	ch.m.Unlock()
 }
 
 type Handler struct {
@@ -63,7 +63,7 @@ type Handler struct {
 	definitions         map[string]*domain.IndexerDefinition
 
 	client *ircevent.Connection
-	m      sync.RWMutex
+	m      deadlock.RWMutex
 
 	connectedSince       time.Time
 	haveDisconnected     bool
@@ -77,7 +77,7 @@ type Handler struct {
 	failedNickServAttempts int
 
 	authenticated bool
-	saslauthed bool
+	saslauthed    bool
 }
 
 func NewHandler(log zerolog.Logger, network domain.IrcNetwork, definitions []*domain.IndexerDefinition, releaseSvc release.Service, notificationSvc notification.Service) *Handler {
@@ -94,6 +94,7 @@ func NewHandler(log zerolog.Logger, network domain.IrcNetwork, definitions []*do
 		channelHealth:       map[string]*channelHealth{},
 		authenticated:       false,
 		saslauthed:          false,
+		connectionErrors:    []string{},
 	}
 
 	// init indexer, announceProcessor
@@ -185,7 +186,7 @@ func (h *Handler) Run() error {
 	h.client.AddCallback("NICK", h.onNick)
 	h.client.AddCallback("903", h.handleSASLSuccess)
 
-	h.setConnectionStatus()
+	//h.setConnectionStatus()
 	h.saslauthed = false
 
 	if err := func() error {
@@ -198,12 +199,13 @@ func (h *Handler) Run() error {
 			func() error {
 				h.log.Debug().Msgf("connect attempt %d", connectAttempts)
 
-				err := h.client.Connect()
-				if err != nil {
+				if err := h.client.Connect(); err != nil {
 					connectAttempts++
 					return err
 				}
+
 				h.log.Debug().Msgf("connected at attempt %d", connectAttempts)
+
 				return nil
 			},
 			retry.Delay(time.Second*15),
@@ -235,13 +237,22 @@ func (h *Handler) isOurCurrentNick(nick string) bool {
 
 func (h *Handler) setConnectionStatus() {
 	h.m.Lock()
-	defer h.m.Unlock()
 	if h.client.Connected() {
 		h.connectedSince = time.Now()
-	} else {
-		h.connectedSince = time.Time{}
-		h.channelHealth = map[string]*channelHealth{}
 	}
+	h.m.Unlock()
+	//else {
+	//	h.connectedSince = time.Time{}
+	//	//h.channelHealth = map[string]*channelHealth{}
+	//	h.resetChannelHealth()
+	//}
+}
+
+func (h *Handler) resetConnectionStatus() {
+	h.m.Lock()
+	h.connectedSince = time.Time{}
+	h.resetChannelHealth()
+	h.m.Unlock()
 }
 
 func (h *Handler) GetNetwork() *domain.IrcNetwork {
@@ -252,34 +263,40 @@ func (h *Handler) GetNetwork() *domain.IrcNetwork {
 
 func (h *Handler) UpdateNetwork(network *domain.IrcNetwork) {
 	h.m.Lock()
-	defer h.m.Unlock()
 	h.network = network
+	h.m.Unlock()
 }
 
 func (h *Handler) SetNetwork(network *domain.IrcNetwork) {
 	h.m.Lock()
-	defer h.m.Unlock()
 	h.network = network
+	h.m.Unlock()
 }
 
 func (h *Handler) AddChannelHealth(channel string) {
 	h.m.Lock()
-	defer h.m.Unlock()
 	h.channelHealth[channel] = &channelHealth{
 		name:            channel,
 		monitoring:      true,
 		monitoringSince: time.Now(),
 	}
+	h.m.Unlock()
+}
+
+func (h *Handler) resetChannelHealth() {
+	for _, ch := range h.channelHealth {
+		ch.resetMonitoring()
+	}
 }
 
 func (h *Handler) Stop() {
 	h.m.Lock()
-	defer h.m.Unlock()
 	h.manuallyDisconnected = true
 
 	if h.client.Connected() {
 		h.log.Debug().Msg("Disconnecting...")
 	}
+	h.m.Unlock()
 
 	h.client.Quit()
 }
@@ -301,8 +318,7 @@ func (h *Handler) onConnect(m ircmsg.Message) {
 	h.setConnectionStatus()
 
 	func() {
-		h.m.RLock()
-		defer h.m.RUnlock()
+		h.m.Lock()
 		if h.haveDisconnected {
 			h.notificationService.Send(domain.NotificationEventIRCReconnected, domain.NotificationPayload{
 				Subject: "IRC Reconnected",
@@ -312,22 +328,32 @@ func (h *Handler) onConnect(m ircmsg.Message) {
 			// reset haveDisconnected
 			h.haveDisconnected = false
 		}
+		h.m.Unlock()
 
 		h.log.Debug().Msgf("connected to: %v", h.network.Name)
 	}()
-	
+
 	time.Sleep(1 * time.Second)
+
 	h.authenticate()
 }
 
 func (h *Handler) onDisconnect(m ircmsg.Message) {
 	h.log.Debug().Msgf("DISCONNECT")
 
-	h.setConnectionStatus()
-	h.resetAuthenticated()
-	
 	h.m.Lock()
-	defer h.m.Unlock()
+
+	// reset connectedSince
+	h.connectedSince = time.Time{}
+
+	// reset channelHealth
+	for _, ch := range h.channelHealth {
+		ch.resetMonitoring()
+	}
+
+	// reset authenticated
+	h.authenticated = false
+
 	h.haveDisconnected = true
 
 	// check if we are responsible for disconnect
@@ -341,6 +367,7 @@ func (h *Handler) onDisconnect(m ircmsg.Message) {
 		// reset
 		h.manuallyDisconnected = false
 	}
+	h.m.Unlock()
 }
 
 func (h *Handler) onNotice(msg ircmsg.Message) {
@@ -369,7 +396,7 @@ func (h *Handler) handleNickServ(msg ircmsg.Message) {
 	if contains(msg.Params[1],
 		"Account does not exist",
 		"Authentication failed: Account does not exist",
-		"isn't registered.",		// Nick ANICK isn't registered
+		"isn't registered.", // Nick ANICK isn't registered
 	) {
 		if h.CurrentNick() == h.PreferredNick() {
 			h.addConnectError("authentication failed: account does not exist")
@@ -393,7 +420,7 @@ func (h *Handler) handleNickServ(msg ircmsg.Message) {
 
 			// stop network and notify user
 			h.Stop()
-		}		
+		}
 	}
 
 	// You're now logged in as test-bot
@@ -430,11 +457,7 @@ func (h *Handler) authenticate() bool {
 
 		return false
 	} else {
-		func() {
-			h.m.RUnlock()
-			defer h.m.RLock()
-			h.setAuthenticated()
-		}()
+		h.setAuthenticated()
 	}
 
 	// return and wait for NOTICE of nickserv auth
@@ -444,27 +467,20 @@ func (h *Handler) authenticate() bool {
 // handleSASLSuccess we get here early so set authenticated before we hit onConnect
 func (h *Handler) handleSASLSuccess(msg ircmsg.Message) {
 	h.m.Lock()
-	defer h.m.Unlock()
 	h.saslauthed = true
+	h.m.Unlock()
 }
 
 func (h *Handler) setAuthenticated() {
-	func (){
-		h.m.Lock()
-		defer h.m.Unlock()
-
-		h.authenticated = true
-	}()
-
-	h.resetConnectErrors()
+	h.authenticated = true
+	h.connectionErrors = []string{}
+	h.failedNickServAttempts = 0
 
 	h.inviteCommand()
 	h.JoinChannels()
 }
 
 func (h *Handler) inviteCommand() {
-	h.m.RLock()
-	defer h.m.RUnlock()
 	if h.network.InviteCommand != "" {
 		h.log.Trace().Msg("on connect invite command not empty: send connect commands")
 		if err := h.sendConnectCommands(h.network.InviteCommand); err != nil {
@@ -472,13 +488,6 @@ func (h *Handler) inviteCommand() {
 			return
 		}
 	}
-}
-
-func (h *Handler) resetAuthenticated() {
-	h.m.Lock()
-	defer h.m.Unlock()
-
-	h.authenticated = false
 }
 
 func contains(s string, substr ...string) bool {
@@ -557,28 +566,17 @@ func (h *Handler) sendToAnnounceProcessor(channel string, msg string) error {
 
 	if v, ok := h.channelHealth[channel]; ok {
 		v.SetLastAnnounce()
-	}	
+	}
 
 	return nil
 }
 
 func (h *Handler) JoinChannels() {
-	h.m.RLock()
-	defer h.m.RUnlock()
-
 	for _, channel := range h.network.Channels {
-		if res := func() bool {
-			h.m.RUnlock()
-			defer h.m.RLock()
-			if err := h.JoinChannel(channel.Name, channel.Password); err != nil {
-				h.log.Error().Stack().Err(err).Msgf("error joining channel %v", channel.Name)
-				return false
-			}
-
-			return true
-		}(); res == true {
-			time.Sleep(1 * time.Second)
+		if err := h.JoinChannel(channel.Name, channel.Password); err != nil {
+			h.log.Error().Stack().Err(err).Msgf("error joining channel %v", channel.Name)
 		}
+		time.Sleep(1 * time.Second)
 	}
 }
 
@@ -593,12 +591,9 @@ func (h *Handler) JoinChannel(channel string, password string) error {
 		m.Params = []string{channel, password}
 	}
 
-	h.m.RLock()
-	defer h.m.RUnlock()
 	h.log.Debug().Msgf("sending JOIN command %v", strings.Join(m.Params, " "))
 
-	err := h.client.SendIRCMessage(m)
-	if err != nil {
+	if err := h.client.SendIRCMessage(m); err != nil {
 		h.log.Error().Stack().Err(err).Msgf("error handling join: %v", channel)
 		return err
 	}
@@ -659,12 +654,27 @@ func (h *Handler) handleJoined(msg ircmsg.Message) {
 		return
 	}
 
+	h.m.Lock()
 	// set monitoring on current channelHealth, or add new
 	if v, ok := h.channelHealth[channel]; ok {
-		v.SetMonitoring()
+		if v != nil {
+			h.log.Debug().Msgf("set monitoring: %v", v.name)
+			//v.m.Lock()
+			v.monitoring = true
+			v.monitoringSince = time.Now()
+			//v.m.Unlock()
+		}
+
 	} else {
-		h.AddChannelHealth(channel)
+		h.log.Debug().Msgf("add channel health monitoring: %v", v.name)
+		h.channelHealth[channel] = &channelHealth{
+			name:            channel,
+			monitoring:      true,
+			monitoringSince: time.Now(),
+		}
+
 	}
+	h.m.Unlock()
 
 	h.log.Info().Msgf("Monitoring channel %v", channel)
 }
@@ -706,16 +716,14 @@ func (h *Handler) handleInvite(msg ircmsg.Message) {
 
 	h.log.Trace().Msgf("INVITE from %v to join: %v", msg.Nick(), channel)
 
-	validChannel := h.isValidHandlerChannel(channel)
-	if !validChannel {
+	if validChannel := h.isValidHandlerChannel(channel); !validChannel {
 		h.log.Trace().Msgf("invite from %v to join: %v - invalid channel, skip joining", msg.Nick(), channel)
 		return
 	}
 
 	h.log.Debug().Msgf("INVITE from %v, joining %v", msg.Nick(), channel)
 
-	err := h.client.Join(msg.Params[1])
-	if err != nil {
+	if err := h.client.Join(msg.Params[1]); err != nil {
 		h.log.Error().Stack().Err(err).Msgf("error handling join: %v", msg.Params[1])
 		return
 	}
@@ -731,8 +739,7 @@ func (h *Handler) NickServIdentify(password string) error {
 
 	h.log.Debug().Msgf("NickServ: %v", m)
 
-	err := h.client.SendIRCMessage(m)
-	if err != nil {
+	if err := h.client.SendIRCMessage(m); err != nil {
 		h.log.Error().Stack().Err(err).Msgf("error identifying with nickserv: %v", m)
 		return err
 	}
@@ -821,10 +828,46 @@ func (h *Handler) addConnectError(message string) {
 	h.connectionErrors = append(h.connectionErrors, message)
 }
 
-func (h *Handler) resetConnectErrors() {
-	h.m.Lock()
-	defer h.m.Unlock()
+// Healthy if enabled but not monitoring return false,
+//
+// if any channel is enabled but not monitoring return false,
+// else return true
+func (h *Handler) Healthy() bool {
+	isHealthy := h.networkHealth()
+	if !isHealthy {
+		h.log.Warn().Msg("network unhealthy")
+		return isHealthy
+	}
 
-	h.connectionErrors = []string{}
-	h.failedNickServAttempts = 0
+	h.log.Trace().Msg("network healthy")
+
+	return true
+}
+
+func (h *Handler) networkHealth() bool {
+	if h.network.Enabled {
+		if !h.client.Connected() {
+			return false
+		}
+		if (h.connectedSince == time.Time{}) {
+			return false
+		}
+
+		for _, channel := range h.network.Channels {
+			name := strings.ToLower(channel.Name)
+
+			if chanHealth, ok := h.channelHealth[name]; ok {
+				chanHealth.m.RLock()
+
+				if !chanHealth.monitoring {
+					chanHealth.m.RUnlock()
+					return false
+				}
+
+				chanHealth.m.RUnlock()
+			}
+		}
+	}
+
+	return true
 }
