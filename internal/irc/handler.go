@@ -686,6 +686,11 @@ func (h *Handler) sendConnectCommands(msg string) error {
 	for _, command := range connectCommands {
 		cmd := strings.TrimSpace(command)
 
+		// if there's an extra , (comma) the command will be empty so lets skip that
+		if cmd == "" {
+			continue
+		}
+
 		m := ircmsg.Message{
 			Command: "PRIVMSG",
 			Params:  strings.Split(cmd, " "),
@@ -693,14 +698,12 @@ func (h *Handler) sendConnectCommands(msg string) error {
 
 		h.log.Debug().Msgf("sending connect command: %v", cmd)
 
-		if err := func() error {
-			h.m.RLock()
-			defer h.m.RUnlock()
-			return h.client.SendIRCMessage(m)
-		}(); err != nil {
-			h.log.Error().Err(err).Msgf("error handling invite: %v", m)
+		if err := h.client.SendIRCMessage(m); err != nil {
+			h.log.Error().Err(err).Msgf("error handling connect command: %v", m)
 			return err
 		}
+
+		time.Sleep(1 * time.Second)
 	}
 
 	return nil
