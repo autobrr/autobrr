@@ -658,23 +658,28 @@ func (h *Handler) handleJoined(msg ircmsg.Message) {
 	// set monitoring on current channelHealth, or add new
 	if v, ok := h.channelHealth[channel]; ok {
 		if v != nil {
-			h.log.Debug().Msgf("set monitoring: %v", v.name)
-			//v.m.Lock()
 			v.monitoring = true
 			v.monitoringSince = time.Now()
-			//v.m.Unlock()
+
+			h.log.Trace().Msgf("set monitoring: %v", v.name)
 		}
 
 	} else {
-		h.log.Debug().Msgf("add channel health monitoring: %v", v.name)
 		h.channelHealth[channel] = &channelHealth{
 			name:            channel,
 			monitoring:      true,
 			monitoringSince: time.Now(),
 		}
 
+		h.log.Trace().Msgf("add channel health monitoring: %v", channel)
 	}
 	h.m.Unlock()
+
+	// if not valid it's considered an extra channel
+	if valid := h.isValidChannel(channel); !valid {
+		h.log.Info().Msgf("Joined extra channel %v", channel)
+		return
+	}
 
 	h.log.Info().Msgf("Monitoring channel %v", channel)
 }
