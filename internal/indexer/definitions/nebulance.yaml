@@ -26,6 +26,7 @@ irc:
   network: Nebulance
   server: irc.nebulance.cc
   port: 6697
+  tls: true
   channels:
     - "#nbl-announce"
   announcers:
