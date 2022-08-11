@@ -136,7 +136,8 @@ func (c *client) Push(release Release) ([]string, error) {
 	if pushResponse.Rejected {
 		rejections := strings.Join(pushResponse.Rejections, ", ")
 
-		return pushResponse.Rejections, errors.New("lidarr push rejected: %s - reasons: %q", release.Title, rejections)
+		c.Log.Printf("lidarr release/push rejected %v reasons: %q\n", release.Title, rejections)
+		return pushResponse.Rejections, nil
 	}
 
 	return nil, nil
