@@ -36,12 +36,20 @@ irc:
       type: text
       required: true
       label: NickServ Account
-      help: NickServ account. Make sure to group your user and bot. Eg. user|bot
+      help: NickServ account. Make sure to group your user and bot. Like user|bot
+
     - name: nickserv.password
       type: secret
       required: true
       label: NickServ Password
       help: NickServ password
+
+    - name: invite_command
+      type: secret
+      default: "Muffit bot #nbl-announce USERNAME IRCKey"
+      required: true
+      label: Invite command
+      help: Invite auth with Muffit.
 
 parse:
   type: single
@@ -49,11 +57,12 @@ parse:
     - test:
         - "[Episodes] The Show - S02E08 [WebRip / x264 / MKV / 720p / HD / VLAD / The.Show.S02E08.Episode.Name.720p.ANPL.WEBRip.AAC2.0.x264-GROUP.mkv] [702.00 MB - Uploader: UPLOADER] - http://nebulance.io/torrents.php?id=000 [Tags: comedy,subtitles,cbs]"
         - "[Seasons] Other Show - S10 [HDTV / x264 / MKV / MP4 / 480p / SD / BTN / Other.Show.S10.HDTV.x264-GROUP] [5.27 GB - Uploader: UPLOADER] - http://nebulance.io/torrents.php?id=0000 [Tags: comedy,subtitles,cbs]"
-      pattern: '\[(.*?)\] (.*?) \[(.*?)\] \[(.*?) - Uploader: (.*?)\] - (https?:\/\/.*)id=(\d+) \[Tags: (.*)\]'
+      pattern: '\[(.*?)\] (.*?) - S.* \[(.*) \/ (.*)\] \[(.*?) - Uploader: (.*?)\] - (https?:\/\/.*)id=(\d+) \[Tags: (.*)\]'
       vars:
         - category
-        - torrentName
+        - title
         - releaseTags
+        - torrentName
         - torrentSize
         - uploader
         - baseUrl
