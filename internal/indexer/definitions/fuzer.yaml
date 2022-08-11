@@ -44,9 +44,9 @@ parse:
   type: single
   lines:
     - test:
-        - "New Torrent: פאודה - עונה 4 פרק 5 | Fauda S04E05 2160p UHDTV x265-Sweet-Star Category: סדרות ישראליות HD By: Sweet-Star Size: 2.88GB Link: http://fuzer.me/attachment.php?attachmentid=104892 [Fauda.S04E05.2160p.UHDTV.x265-Sweet-Star]"
-        - "New Torrent: יוסי המרגל אכול החרטה - עונה 1 פרק 7 - תרגום בצד | Iosi el esp a arrepentido S01E07 1080p AMZN WEB-DL DDP5.1 H.264-playWEB Category: סדרות HD By: MNU Size: 2.27GB Link: http://fuzer.me/attachment.php?attachmentid=104874 [Iosi.el.esp.a.arrepentido.S01E07.14.45.1080p.AMZN.WEB-DL.DDP5.1.H.264-playWEB]"
-        - "New Torrent: ארסנל : הכל או כלום - עונה 1 פרק 5 - תרגום בצד | All or Nothing Arsenal S01E05 1080p WEB H264-BIGDOC Category: סדרות HD By: MNU Size: 3.25GB Link: http://fuzer.me/attachment.php?attachmentid=104881 [All.or.Nothing.Arsenal.S01E05.1080p.WEB.H264-BIGDOC]"
+        - "New Torrent: סדרה - עונה 4 פרק 5 | Show S04E05 2160p UHDTV x265-Release-Group Category: סדרות ישראליות HD By: Uploader1 Size: 2.88GB Link: http://fuzer.me/attachment.php?attachmentid=101010 [Show.S04E05.2160p.UHDTV.x265-Release-Group]"
+        - "New Torrent: סדרה אפילו יותר טובה - עונה 1 פרק 7 - תרגום בצד | Even Better Show S01E07 1080p AMZN WEB-DL DDP5.1 H.264 Category: סדרות HD By: EvenBett3rUploader Size: 2.27GB Link: http://fuzer.me/attachment.php?attachmentid=222222 [Even.Better.Show.S01E07.14.45.1080p.AMZN.WEB-DL.DDP5.1.H.264]"
+        - "New Torrent: הכי טובה - עונה 1 פרק 5 - תרגום בצד | The Best S01E05 1080p WEB H264-TEST Category: סדרות HD By: Uploader5 Size: 3.25GB Link: http://fuzer.me/attachment.php?attachmentid=616161 [The.Best.S01E05.1080p.WEB.H264-TEST]"
       pattern: 'New Torrent: (.*) Category: (.*) By: (.*) Size: (.*) Link: https?\:\/\/([^\/]+)\/.*[&amp;\?]attachmentid=(\d+) \[(.*)\]'
       vars:
         - name1
@@ -59,3 +59,5 @@ parse:
 
   match:
     torrenturl: "https://www.{{ .baseUrl }}/rss/torrent.php/{{ .torrentId }}/{{ .uid }}/{{ .passkey }}/{{ .torrentName }}.torrent"
+    encode:
+      - torrentName
