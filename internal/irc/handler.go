@@ -289,6 +289,7 @@ func (h *Handler) resetChannelHealth() {
 	}
 }
 
+// Stop the network and quit
 func (h *Handler) Stop() {
 	h.m.Lock()
 	h.manuallyDisconnected = true
@@ -301,6 +302,7 @@ func (h *Handler) Stop() {
 	h.client.Quit()
 }
 
+// Restart stops the network and then runs it
 func (h *Handler) Restart() error {
 	h.log.Debug().Msg("Restarting network...")
 	h.Stop()
@@ -308,6 +310,7 @@ func (h *Handler) Restart() error {
 	return h.Run()
 }
 
+// onConnect is the connect callback
 func (h *Handler) onConnect(m ircmsg.Message) {
 	// 0. Authenticated via SASL - join
 	// 1. No nickserv, no invite command - join
@@ -338,6 +341,7 @@ func (h *Handler) onConnect(m ircmsg.Message) {
 	h.authenticate()
 }
 
+// onDisconnect is the disconnect callback
 func (h *Handler) onDisconnect(m ircmsg.Message) {
 	h.log.Debug().Msgf("DISCONNECT")
 
@@ -370,6 +374,7 @@ func (h *Handler) onDisconnect(m ircmsg.Message) {
 	h.m.Unlock()
 }
 
+// onNotice handles NOTICE events
 func (h *Handler) onNotice(msg ircmsg.Message) {
 	switch msg.Nick() {
 	case "NickServ":
@@ -377,6 +382,7 @@ func (h *Handler) onNotice(msg ircmsg.Message) {
 	}
 }
 
+// handleNickServ is called from NOTICE events
 func (h *Handler) handleNickServ(msg ircmsg.Message) {
 	h.log.Trace().Msgf("NOTICE from nickserv: %v", msg.Params)
 
@@ -440,6 +446,7 @@ func (h *Handler) handleNickServ(msg ircmsg.Message) {
 	}
 }
 
+// authenticate sends NickServIdentify if not authenticated
 func (h *Handler) authenticate() bool {
 	h.m.RLock()
 	defer h.m.RUnlock()
@@ -464,13 +471,15 @@ func (h *Handler) authenticate() bool {
 	return true
 }
 
-// handleSASLSuccess we get here early so set authenticated before we hit onConnect
+// handleSASLSuccess we get here early so set saslauthed before we hit onConnect
 func (h *Handler) handleSASLSuccess(msg ircmsg.Message) {
 	h.m.Lock()
 	h.saslauthed = true
 	h.m.Unlock()
 }
 
+// setAuthenticated sets the states for authenticated, connectionErrors, failedNickServAttempts
+// and then sends inviteCommand and after that JoinChannels
 func (h *Handler) setAuthenticated() {
 	h.authenticated = true
 	h.connectionErrors = []string{}
@@ -480,6 +489,7 @@ func (h *Handler) setAuthenticated() {
 	h.JoinChannels()
 }
 
+// send invite commands if not empty
 func (h *Handler) inviteCommand() {
 	if h.network.InviteCommand != "" {
 		h.log.Trace().Msg("on connect invite command not empty: send connect commands")
@@ -503,6 +513,7 @@ func contains(s string, substr ...string) bool {
 	return false
 }
 
+// onNick handles NICK events
 func (h *Handler) onNick(msg ircmsg.Message) {
 	h.log.Trace().Msgf("NICK event: %v params: %v", msg.Nick(), msg.Params)
 	if len(msg.Params) < 1 {
@@ -518,6 +529,7 @@ func (h *Handler) onNick(msg ircmsg.Message) {
 	}
 }
 
+// onMessage handles PRIVMSG events
 func (h *Handler) onMessage(msg ircmsg.Message) {
 	if len(msg.Params) < 2 {
 		return
@@ -549,6 +561,7 @@ func (h *Handler) onMessage(msg ircmsg.Message) {
 	return
 }
 
+// send the msg to announce processor
 func (h *Handler) sendToAnnounceProcessor(channel string, msg string) error {
 	channel = strings.ToLower(channel)
 
@@ -571,6 +584,7 @@ func (h *Handler) sendToAnnounceProcessor(channel string, msg string) error {
 	return nil
 }
 
+// JoinChannels sends multiple join commands
 func (h *Handler) JoinChannels() {
 	for _, channel := range h.network.Channels {
 		if err := h.JoinChannel(channel.Name, channel.Password); err != nil {
@@ -580,6 +594,7 @@ func (h *Handler) JoinChannels() {
 	}
 }
 
+// JoinChannel sends join command
 func (h *Handler) JoinChannel(channel string, password string) error {
 	m := ircmsg.Message{
 		Command: "JOIN",
@@ -601,6 +616,7 @@ func (h *Handler) JoinChannel(channel string, password string) error {
 	return nil
 }
 
+// handlePart listens for PART events
 func (h *Handler) handlePart(msg ircmsg.Message) {
 	if !h.isOurCurrentNick(msg.Nick()) {
 		h.log.Trace().Msgf("PART other user: %+v", msg)
@@ -620,8 +636,9 @@ func (h *Handler) handlePart(msg ircmsg.Message) {
 	h.log.Debug().Msgf("Left channel %v", channel)
 }
 
+// PartChannel parts/leaves channel
 func (h *Handler) PartChannel(channel string) error {
-	h.log.Debug().Msgf("PART channel %v", channel)
+	h.log.Debug().Msgf("Leaving channel %v", channel)
 
 	if err := h.client.Part(channel); err != nil {
 		h.log.Error().Err(err).Msgf("error handling part: %v", channel)
@@ -629,11 +646,11 @@ func (h *Handler) PartChannel(channel string) error {
 	}
 
 	// TODO remove announceProcessor
-	h.log.Info().Msgf("Left channel: %v", channel)
 
 	return nil
 }
 
+// handleJoined listens for 366 JOIN events
 func (h *Handler) handleJoined(msg ircmsg.Message) {
 	if !h.isOurCurrentNick(msg.Params[0]) {
 		h.log.Trace().Msgf("JOINED other user: %+v", msg)
@@ -684,6 +701,7 @@ func (h *Handler) handleJoined(msg ircmsg.Message) {
 	h.log.Info().Msgf("Monitoring channel %v", channel)
 }
 
+// sendConnectCommands sends invite commands
 func (h *Handler) sendConnectCommands(msg string) error {
 	connectCommand := strings.ReplaceAll(msg, "/msg", "")
 	connectCommands := strings.Split(connectCommand, ",")
@@ -714,6 +732,7 @@ func (h *Handler) sendConnectCommands(msg string) error {
 	return nil
 }
 
+// handleInvite listens for INVITE events
 func (h *Handler) handleInvite(msg ircmsg.Message) {
 	if len(msg.Params) < 2 {
 		return
@@ -739,6 +758,7 @@ func (h *Handler) handleInvite(msg ircmsg.Message) {
 	return
 }
 
+// NickServIdentify sends NickServ Identify commands
 func (h *Handler) NickServIdentify(password string) error {
 	m := ircmsg.Message{
 		Command: "PRIVMSG",
@@ -755,6 +775,7 @@ func (h *Handler) NickServIdentify(password string) error {
 	return nil
 }
 
+// NickChange sets a new nick for our user
 func (h *Handler) NickChange(nick string) error {
 	h.log.Debug().Msgf("NICK change: %v", nick)
 
@@ -763,14 +784,17 @@ func (h *Handler) NickChange(nick string) error {
 	return nil
 }
 
+// CurrentNick returns our current nick set by the server
 func (h *Handler) CurrentNick() string {
 	return h.client.CurrentNick()
 }
 
+// PreferredNick returns our preferred nick from settings
 func (h *Handler) PreferredNick() string {
 	return h.client.PreferredNick()
 }
 
+// listens for MODE events
 func (h *Handler) handleMode(msg ircmsg.Message) {
 	h.log.Trace().Msgf("MODE: %+v", msg)
 
