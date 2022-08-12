@@ -444,6 +444,27 @@ func TestRelease_MapVars(t *testing.T) {
 				"uploader":     "Tester",
 			}},
 		},
+		{
+			name:   "10",
+			fields: &Release{},
+			want: &Release{
+				TorrentName: "Greatest Anime Ever",
+				Year:        2022,
+				Group:       "GROUP1",
+				Tags:        []string{"comedy", "fantasy", "school.life", "shounen", "slice.of.life"},
+				Uploader:    "Tester",
+				Freeleech:   true,
+				Bonus:       []string{"Freeleech"},
+			},
+			args: args{varMap: map[string]string{
+				"torrentName":  "Greatest Anime Ever",
+				"year":         "2022",
+				"releaseGroup": "GROUP1",
+				"tags":         "comedy, fantasy, school.life, shounen, slice.of.life",
+				"uploader":     "Tester",
+				"freeleech":    "VIP",
+			}},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
