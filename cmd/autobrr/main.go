@@ -10,6 +10,7 @@ import (
 	"github.com/spf13/pflag"
 
 	"github.com/autobrr/autobrr/internal/action"
+	"github.com/autobrr/autobrr/internal/api"
 	"github.com/autobrr/autobrr/internal/auth"
 	"github.com/autobrr/autobrr/internal/config"
 	"github.com/autobrr/autobrr/internal/database"
@@ -74,6 +75,7 @@ func main() {
 
 	// setup repos
 	var (
+		apikeyRepo         = database.NewAPIRepo(log, db)
 		downloadClientRepo = database.NewDownloadClientRepo(log, db)
 		actionRepo         = database.NewActionRepo(log, db, downloadClientRepo)
 		filterRepo         = database.NewFilterRepo(log, db)
@@ -88,15 +90,16 @@ func main() {
 
 	// setup services
 	var (
+		apiService            = api.NewService(log, apikeyRepo)
 		notificationService   = notification.NewService(log, notificationRepo)
 		schedulingService     = scheduler.NewService(log, version, notificationService)
-		apiService            = indexer.NewAPIService(log)
+		indexerAPIService     = indexer.NewAPIService(log)
 		userService           = user.NewService(userRepo)
 		authService           = auth.NewService(log, userService)
 		downloadClientService = download_client.NewService(log, downloadClientRepo)
 		actionService         = action.NewService(log, actionRepo, downloadClientService, bus)
-		indexerService        = indexer.NewService(log, cfg.Config, indexerRepo, apiService, schedulingService)
-		filterService         = filter.NewService(log, filterRepo, actionRepo, apiService, indexerService)
+		indexerService        = indexer.NewService(log, cfg.Config, indexerRepo, indexerAPIService, schedulingService)
+		filterService         = filter.NewService(log, filterRepo, actionRepo, indexerAPIService, indexerService)
 		releaseService        = release.NewService(log, releaseRepo, actionService, filterService)
 		ircService            = irc.NewService(log, ircRepo, releaseService, indexerService, notificationService)
 		feedService           = feed.NewService(log, feedRepo, feedCacheRepo, releaseService, schedulingService)
@@ -116,6 +119,7 @@ func main() {
 			commit,
 			date,
 			actionService,
+			apiService,
 			authService,
 			downloadClientService,
 			filterService,
