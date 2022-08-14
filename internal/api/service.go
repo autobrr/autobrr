@@ -49,11 +49,10 @@ func (s *service) Store(ctx context.Context, key *domain.APIKey) error {
 		return err
 	}
 
-	// reset
-	s.keyCache = []domain.APIKey{}
-
-	// set new key
-	s.keyCache = append(s.keyCache, *key)
+	if len(s.keyCache) > 0 {
+		// set new key
+		s.keyCache = append(s.keyCache, *key)
+	}
 
 	return nil
 }
