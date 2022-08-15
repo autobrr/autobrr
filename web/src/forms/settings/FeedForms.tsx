@@ -158,6 +158,21 @@ function FormFieldsTorznab() {
   );
 }
 
+function FormFieldsRSS() {
+  return (
+    <div className="border-t border-gray-200 dark:border-gray-700 py-5">
+      <TextFieldWide
+        name="url"
+        label="URL"
+        help="RSS url"
+      />
+
+      <NumberFieldWide name="interval" label="Refresh interval" help="Minutes. Recommended 15-30. To low and risk ban."/>
+    </div>
+  );
+}
+
 const componentMap: componentMapType = {
-  TORZNAB: <FormFieldsTorznab/>
+  TORZNAB: <FormFieldsTorznab/>,
+  RSS: <FormFieldsRSS />
 };

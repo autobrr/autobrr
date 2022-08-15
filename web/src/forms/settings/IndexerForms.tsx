@@ -119,6 +119,37 @@ const FeedSettingFields = (ind: IndexerDefinition, indexer: string) => {
   }
 };
 
+const RSSFeedSettingFields = (ind: IndexerDefinition, indexer: string) => {
+  if (indexer !== "") {
+    return (
+      <Fragment>
+        {ind && ind.rss && ind.rss.settings && (
+          <div className="">
+            <div className="px-4 space-y-1">
+              <Dialog.Title className="text-lg font-medium text-gray-900 dark:text-white">RSS</Dialog.Title>
+              <p className="text-sm text-gray-500 dark:text-gray-200">
+                RSS feed
+              </p>
+            </div>
+
+            <TextFieldWide name="name" label="Name" defaultValue={""} />
+
+            {ind.rss.settings.map((f: IndexerSetting, idx: number) => {
+              switch (f.type) {
+              case "text":
+                return <TextFieldWide name={`feed.${f.name}`} label={f.label} required={f.required} key={idx} help={f.help} />;
+              case "secret":
+                return <PasswordFieldWide name={`feed.${f.name}`} label={f.label} required={f.required} key={idx} help={f.help} defaultValue={f.default} />;
+              }
+              return null;
+            })}
+          </div>
+        )}
+      </Fragment>
+    );
+  }
+};
+
 const SettingFields = (ind: IndexerDefinition, indexer: string) => {
   if (indexer !== "") {
     return (
@@ -144,10 +175,13 @@ const SettingFields = (ind: IndexerDefinition, indexer: string) => {
   }
 };
 
-function slugIdentifier(name: string) {
+function slugIdentifier(name: string, prefix?: string) {
   const l = name.toLowerCase();
-  const r = l.replaceAll("torznab", "");
-  return slugify(`torznab-${r}`);
+  if (prefix && prefix !== "") {
+    const r = l.replaceAll(prefix, "");
+    return slugify(`${prefix}-${r}`);
+  }
+  return slugify(l);
 }
 
 // interface initialValues {
@@ -210,7 +244,7 @@ export function IndexerAddForm({ isOpen, toggle }: AddProps) {
 
     if (formData.implementation === "torznab") {
       // create slug for indexer identifier as "torznab-indexer_name"
-      const name = slugIdentifier(formData.name);
+      const name = slugIdentifier(formData.name, "torznab");
 
       const createFeed: FeedCreate = {
         name: formData.name,
@@ -218,6 +252,31 @@ export function IndexerAddForm({ isOpen, toggle }: AddProps) {
         type: "TORZNAB",
         url: formData.feed.url,
         api_key: formData.feed.api_key,
+        interval: 30,
+        indexer: name,
+        indexer_id: 0
+      };
+
+      mutation.mutate(formData as Indexer, {
+        onSuccess: (indexer) => {
+          // @eslint-ignore
+          createFeed.indexer_id = indexer.id;
+
+          feedMutation.mutate(createFeed);
+        }
+      });
+      return;
+    }
+
+    if (formData.implementation === "rss") {
+      // create slug for indexer identifier as "torznab-indexer_name"
+      const name = slugIdentifier(formData.name, "rss");
+
+      const createFeed: FeedCreate = {
+        name: formData.name,
+        enabled: false,
+        type: "RSS",
+        url: formData.feed.url,
         interval: 30,
         indexer: name,
         indexer_id: 0
@@ -399,6 +458,7 @@ export function IndexerAddForm({ isOpen, toggle }: AddProps) {
 
                         {IrcSettingFields(indexer, values.identifier)}
                         {FeedSettingFields(indexer, values.identifier)}
+                        {RSSFeedSettingFields(indexer, values.identifier)}
                       </div>
 
                       <div

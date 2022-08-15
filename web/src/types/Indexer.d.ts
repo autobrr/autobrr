@@ -22,6 +22,7 @@ interface IndexerDefinition {
   settings: IndexerSetting[];
   irc: IndexerIRC;
   torznab: IndexerTorznab;
+  rss: IndexerFeed;
   parse: IndexerParse;
 }
 
@@ -49,6 +50,11 @@ interface IndexerIRC {
 }
 
 interface IndexerTorznab {
+  minInterval: number;
+  settings: IndexerSetting[];
+}
+
+interface IndexerFeed {
   minInterval: number;
   settings: IndexerSetting[];
 }
