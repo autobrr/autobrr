@@ -568,6 +568,198 @@ func (r *FilterRepo) Update(ctx context.Context, filter domain.Filter) (*domain.
 	return &filter, nil
 }
 
+func (r *FilterRepo) UpdatePartial(ctx context.Context, filter domain.FilterUpdate) error {
+	var err error
+
+	q := r.db.squirrel.Update("filter")
+
+	if filter.Name != nil {
+		q = q.Set("name", filter.Name)
+	}
+	if filter.Enabled != nil {
+		q = q.Set("enabled", filter.Enabled)
+	}
+	if filter.MinSize != nil {
+		q = q.Set("min_size", filter.MinSize)
+	}
+	if filter.MaxSize != nil {
+		q = q.Set("max_size", filter.MaxSize)
+	}
+	if filter.Delay != nil {
+		q = q.Set("delay", filter.Delay)
+	}
+	if filter.Priority != nil {
+		q = q.Set("priority", filter.Priority)
+	}
+	if filter.MaxDownloads != nil {
+		q = q.Set("max_downloads", filter.MaxDownloads)
+	}
+	if filter.MaxDownloadsUnit != nil {
+		q = q.Set("max_downloads_unit", filter.MaxDownloadsUnit)
+	}
+	if filter.UseRegex != nil {
+		q = q.Set("use_regex", filter.UseRegex)
+	}
+	if filter.MatchReleases != nil {
+		q = q.Set("match_releases", filter.MatchReleases)
+	}
+	if filter.ExceptReleases != nil {
+		q = q.Set("except_releases", filter.ExceptReleases)
+	}
+	if filter.MatchReleaseGroups != nil {
+		q = q.Set("match_release_groups", filter.MatchReleaseGroups)
+	}
+	if filter.ExceptReleaseGroups != nil {
+		q = q.Set("except_release_groups", filter.ExceptReleaseGroups)
+	}
+	if filter.Scene != nil {
+		q = q.Set("scene", filter.Scene)
+	}
+	if filter.Freeleech != nil {
+		q = q.Set("freeleech", filter.Freeleech)
+	}
+	if filter.FreeleechPercent != nil {
+		q = q.Set("freeleech_percent", filter.FreeleechPercent)
+	}
+	if filter.Shows != nil {
+		q = q.Set("shows", filter.Shows)
+	}
+	if filter.Seasons != nil {
+		q = q.Set("seasons", filter.Seasons)
+	}
+	if filter.Episodes != nil {
+		q = q.Set("episodes", filter.Episodes)
+	}
+	if filter.Resolutions != nil {
+		q = q.Set("resolutions", pq.Array(filter.Resolutions))
+	}
+	if filter.Codecs != nil {
+		q = q.Set("codecs", pq.Array(filter.Codecs))
+	}
+	if filter.Sources != nil {
+		q = q.Set("sources", pq.Array(filter.Sources))
+	}
+	if filter.Containers != nil {
+		q = q.Set("containers", pq.Array(filter.Containers))
+	}
+	if filter.MatchHDR != nil {
+		q = q.Set("match_hdr", pq.Array(filter.MatchHDR))
+	}
+	if filter.ExceptHDR != nil {
+		q = q.Set("except_hdr", pq.Array(filter.ExceptHDR))
+	}
+	if filter.MatchOther != nil {
+		q = q.Set("match_other", pq.Array(filter.MatchOther))
+	}
+	if filter.ExceptOther != nil {
+		q = q.Set("except_other", pq.Array(filter.ExceptOther))
+	}
+	if filter.Years != nil {
+		q = q.Set("years", filter.Years)
+	}
+	if filter.MatchCategories != nil {
+		q = q.Set("match_categories", filter.MatchCategories)
+	}
+	if filter.ExceptCategories != nil {
+		q = q.Set("except_categories", filter.ExceptCategories)
+	}
+	if filter.MatchUploaders != nil {
+		q = q.Set("match_uploaders", filter.MatchUploaders)
+	}
+	if filter.ExceptUploaders != nil {
+		q = q.Set("except_uploaders", filter.ExceptUploaders)
+	}
+	if filter.Tags != nil {
+		q = q.Set("tags", filter.Tags)
+	}
+	if filter.ExceptTags != nil {
+		q = q.Set("except_tags", filter.ExceptTags)
+	}
+	if filter.Artists != nil {
+		q = q.Set("artists", filter.Artists)
+	}
+	if filter.Albums != nil {
+		q = q.Set("albums", filter.Albums)
+	}
+	if filter.MatchReleaseTypes != nil {
+		q = q.Set("release_types_match", pq.Array(filter.MatchReleaseTypes))
+	}
+	if filter.Formats != nil {
+		q = q.Set("formats", pq.Array(filter.Formats))
+	}
+	if filter.Quality != nil {
+		q = q.Set("quality", pq.Array(filter.Quality))
+	}
+	if filter.Media != nil {
+		q = q.Set("media", pq.Array(filter.Media))
+	}
+	if filter.LogScore != nil {
+		q = q.Set("log_score", filter.LogScore)
+	}
+	if filter.Log != nil {
+		q = q.Set("has_log", filter.Log)
+	}
+	if filter.Cue != nil {
+		q = q.Set("has_cue", filter.Cue)
+	}
+	if filter.PerfectFlac != nil {
+		q = q.Set("perfect_flac", filter.PerfectFlac)
+	}
+	if filter.Origins != nil {
+		q = q.Set("origins", pq.Array(filter.Origins))
+	}
+	if filter.ExceptOrigins != nil {
+		q = q.Set("except_origins", pq.Array(filter.ExceptOrigins))
+	}
+	if filter.ExternalScriptEnabled != nil {
+		q = q.Set("external_script_enabled", filter.ExternalScriptEnabled)
+	}
+	if filter.ExternalScriptCmd != nil {
+		q = q.Set("external_script_cmd", filter.ExternalScriptCmd)
+	}
+	if filter.ExternalScriptArgs != nil {
+		q = q.Set("external_script_args", filter.ExternalScriptArgs)
+	}
+	if filter.ExternalScriptExpectStatus != nil {
+		q = q.Set("external_script_expect_status", filter.ExternalScriptExpectStatus)
+	}
+	if filter.ExternalWebhookEnabled != nil {
+		q = q.Set("external_webhook_enabled", filter.ExternalWebhookEnabled)
+	}
+	if filter.ExternalWebhookHost != nil {
+		q = q.Set("external_webhook_host", filter.ExternalWebhookHost)
+	}
+	if filter.ExternalWebhookData != nil {
+		q = q.Set("external_webhook_data", filter.ExternalWebhookData)
+	}
+	if filter.ExternalWebhookExpectStatus != nil {
+		q = q.Set("external_webhook_expect_status", filter.ExternalWebhookExpectStatus)
+	}
+
+	q = q.Where("id = ?", filter.ID)
+
+	query, args, err := q.ToSql()
+	if err != nil {
+		return errors.Wrap(err, "error building query")
+	}
+
+	result, err := r.db.handler.ExecContext(ctx, query, args...)
+	if err != nil {
+		return errors.Wrap(err, "error executing query")
+	}
+
+	count, err := result.RowsAffected()
+	if err != nil {
+		return errors.Wrap(err, "error executing query")
+	}
+
+	if count == 0 {
+		return errors.New("no rows affected")
+	}
+
+	return nil
+}
+
 func (r *FilterRepo) ToggleEnabled(ctx context.Context, filterID int, enabled bool) error {
 	var err error
 
