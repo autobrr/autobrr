@@ -74,6 +74,11 @@ export const APIClient = {
     delete: (id: number) => appClient.Delete(`api/actions/${id}`),
     toggleEnable: (id: number) => appClient.Patch(`api/actions/${id}/toggleEnabled`)
   },
+  apikeys: {
+    getAll: () => appClient.Get<APIKey[]>("api/keys"),
+    create: (key: APIKey) => appClient.Post("api/keys", key),
+    delete: (key: string) => appClient.Delete(`api/keys/${key}`),
+  },
   config: {
     get: () => appClient.Get<Config>("api/config")
   },

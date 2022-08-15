@@ -17,6 +17,7 @@ import { IrcSettings } from "../screens/settings/Irc";
 import NotificationSettings from "../screens/settings/Notifications";
 import { RegexPlayground } from "../screens/settings/RegexPlayground";
 import ReleaseSettings from "../screens/settings/Releases";
+import APISettings from "../screens/settings/Api";
 
 import { baseUrl } from "../utils";
 
@@ -35,6 +36,7 @@ export const LocalRouter = ({ isLoggedIn }: { isLoggedIn: boolean }) => (
           </Route>
           <Route path="settings" element={<Settings />}>
             <Route index element={<ApplicationSettings />} />
+            <Route path="api-keys" element={<APISettings />} />
             <Route path="indexers" element={<IndexerSettings />} />
             <Route path="feeds" element={<FeedSettings />} />
             <Route path="irc" element={<IrcSettings />} />

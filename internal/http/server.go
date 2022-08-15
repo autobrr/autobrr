@@ -10,7 +10,8 @@ import (
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/web"
 
-	"github.com/go-chi/chi"
+	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
 	"github.com/gorilla/sessions"
 	"github.com/r3labs/sse/v2"
 	"github.com/rs/cors"
@@ -28,6 +29,7 @@ type Server struct {
 	date    string
 
 	actionService         actionService
+	apiService            apikeyService
 	authService           authService
 	downloadClientService downloadClientService
 	filterService         filterService
@@ -38,7 +40,7 @@ type Server struct {
 	releaseService        releaseService
 }
 
-func NewServer(config *domain.Config, sse *sse.Server, db *database.DB, version string, commit string, date string, actionService actionService, authService authService, downloadClientSvc downloadClientService, filterSvc filterService, feedSvc feedService, indexerSvc indexerService, ircSvc ircService, notificationSvc notificationService, releaseSvc releaseService) Server {
+func NewServer(config *domain.Config, sse *sse.Server, db *database.DB, version string, commit string, date string, actionService actionService, apiService apikeyService, authService authService, downloadClientSvc downloadClientService, filterSvc filterService, feedSvc feedService, indexerSvc indexerService, ircSvc ircService, notificationSvc notificationService, releaseSvc releaseService) Server {
 	return Server{
 		config:  config,
 		sse:     sse,
@@ -50,6 +52,7 @@ func NewServer(config *domain.Config, sse *sse.Server, db *database.DB, version 
 		cookieStore: sessions.NewCookieStore([]byte(config.SessionSecret)),
 
 		actionService:         actionService,
+		apiService:            apiService,
 		authService:           authService,
 		downloadClientService: downloadClientSvc,
 		filterService:         filterSvc,
@@ -77,6 +80,10 @@ func (s Server) Open() error {
 
 func (s Server) Handler() http.Handler {
 	r := chi.NewRouter()
+
+	r.Use(middleware.RequestID)
+	r.Use(middleware.RealIP)
+	r.Use(middleware.Recoverer)
 
 	c := cors.New(cors.Options{
 		AllowCredentials:   true,
@@ -116,6 +123,7 @@ func (s Server) Handler() http.Handler {
 			r.Route("/feeds", newFeedHandler(encoder, s.feedService).Routes)
 			r.Route("/irc", newIrcHandler(encoder, s.ircService).Routes)
 			r.Route("/indexer", newIndexerHandler(encoder, s.indexerService, s.ircService).Routes)
+			r.Route("/keys", newAPIKeyHandler(encoder, s.apiService).Routes)
 			r.Route("/notification", newNotificationHandler(encoder, s.notificationService).Routes)
 			r.Route("/release", newReleaseHandler(encoder, s.releaseService).Routes)
 

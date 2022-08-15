@@ -315,6 +315,14 @@ CREATE TABLE feed_cache
 	value  TEXT,
 	ttl    TIMESTAMP
 );
+
+CREATE TABLE api_key
+(
+	name       TEXT,
+	key        TEXT PRIMARY KEY,
+	scopes     TEXT []   DEFAULT '{}' NOT NULL,
+	created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
 `
 
 var postgresMigrations = []string{
@@ -540,5 +548,13 @@ CREATE INDEX indexer_identifier_index
 	`
 	ALTER TABLE filter
 		ADD COLUMN except_origins TEXT []   DEFAULT '{}';
+	`,
+	`CREATE TABLE api_key
+	(
+		name       TEXT,
+		key        TEXT PRIMARY KEY,
+		scopes     TEXT []   DEFAULT '{}' NOT NULL,
+		created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+	);
 	`,
 }
