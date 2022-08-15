@@ -27,6 +27,7 @@ type Service interface {
 	ListFilters(ctx context.Context) ([]domain.Filter, error)
 	Store(ctx context.Context, filter domain.Filter) (*domain.Filter, error)
 	Update(ctx context.Context, filter domain.Filter) (*domain.Filter, error)
+	UpdatePartial(ctx context.Context, filter domain.FilterUpdate) error
 	Duplicate(ctx context.Context, filterID int) (*domain.Filter, error)
 	ToggleEnabled(ctx context.Context, filterID int, enabled bool) error
 	Delete(ctx context.Context, filterID int) error
@@ -151,6 +152,33 @@ func (s *service) Update(ctx context.Context, filter domain.Filter) (*domain.Fil
 	f.Actions = actions
 
 	return f, nil
+}
+
+func (s *service) UpdatePartial(ctx context.Context, filter domain.FilterUpdate) error {
+
+	// update
+	if err := s.repo.UpdatePartial(ctx, filter); err != nil {
+		s.log.Error().Err(err).Msgf("could not update partial filter: %v", filter.ID)
+		return err
+	}
+
+	if filter.Indexers != nil {
+		// take care of connected indexers
+		if err := s.repo.StoreIndexerConnections(ctx, filter.ID, filter.Indexers); err != nil {
+			s.log.Error().Err(err).Msgf("could not store filter indexer connections: %v", filter.Name)
+			return err
+		}
+	}
+
+	if filter.Actions != nil {
+		// take care of filter actions
+		if _, err := s.actionRepo.StoreFilterActions(ctx, filter.Actions, int64(filter.ID)); err != nil {
+			s.log.Error().Err(err).Msgf("could not store filter actions: %v", filter.ID)
+			return err
+		}
+	}
+
+	return nil
 }
 
 func (s *service) Duplicate(ctx context.Context, filterID int) (*domain.Filter, error) {
