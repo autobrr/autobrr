@@ -50,4 +50,5 @@ type FeedType string
 
 const (
 	FeedTypeTorznab FeedType = "TORZNAB"
+	FeedTypeRSS     FeedType = "RSS"
 )

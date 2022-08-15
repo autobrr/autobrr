@@ -155,6 +155,7 @@ type ReleaseImplementation string
 const (
 	ReleaseImplementationIRC     ReleaseImplementation = "IRC"
 	ReleaseImplementationTorznab ReleaseImplementation = "TORZNAB"
+	ReleaseImplementationRSS     ReleaseImplementation = "RSS"
 )
 
 type ReleaseQueryParams struct {
