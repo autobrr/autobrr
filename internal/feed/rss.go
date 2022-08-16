@@ -69,9 +69,11 @@ func (j *RSSJob) process() error {
 
 	for _, item := range items {
 		rls := domain.NewRelease(j.IndexerIdentifier)
+		rls.Implementation = domain.ReleaseImplementationRSS
 
-		rls.TorrentName = item.Title
+		rls.ParseString(item.Title)
 		rls.TorrentURL = item.Link
+
 		for _, v := range item.Categories {
 			if len(rls.Category) != 0 {
 				rls.Category += ", "
@@ -88,14 +90,10 @@ func (j *RSSJob) process() error {
 			rls.Uploader += v.Name
 		}
 
-		rls.Implementation = domain.ReleaseImplementationRSS
-
 		// parse size bytes string
 		if sz, ok := item.Custom["size"]; ok {
 			rls.ParseSizeBytesString(sz)
 		}
-
-		rls.ParseString(item.Title)
 
 		releases = append(releases, rls)
 	}
