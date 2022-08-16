@@ -89,7 +89,6 @@ func (j *RSSJob) process() error {
 		}
 
 		rls.Implementation = domain.ReleaseImplementationRSS
-		rls.Indexer = j.IndexerIdentifier
 
 		// parse size bytes string
 		if sz, ok := item.Custom["size"]; ok {
