@@ -76,7 +76,9 @@ func (j *RSSJob) process() error {
 		rls.Indexer = j.IndexerIdentifier
 
 		// parse size bytes string
-		//rls.ParseSizeBytesString(item.Size) ?? not standard.
+		if sz, ok := item.Custom["size"]; ok {
+			rls.ParseSizeBytesString(sz)
+		}
 
 		rls.ParseString(item.Title)
 
