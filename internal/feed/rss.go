@@ -72,6 +72,22 @@ func (j *RSSJob) process() error {
 
 		rls.TorrentName = item.Title
 		rls.TorrentURL = item.Link
+		for _, v := range item.Categories {
+			if len(rls.Category) != 0 {
+				rls.Category += ", "
+			}
+
+			rls.Category += v
+		}
+
+		for _, v := range item.Authors {
+			if len(rls.Uploader) != 0 {
+				rls.Uploader += ", "
+			}
+
+			rls.Uploader += v.Name
+		}
+
 		rls.Implementation = domain.ReleaseImplementationRSS
 		rls.Indexer = j.IndexerIdentifier
 
