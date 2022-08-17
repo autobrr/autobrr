@@ -49,6 +49,8 @@ type service struct {
 	lookupIRCServerDefinition map[string]map[string]*domain.IndexerDefinition
 	// torznab indexers
 	torznabIndexers map[string]*domain.IndexerDefinition
+	// rss indexers
+	rssIndexers map[string]*domain.IndexerDefinition
 }
 
 func NewService(log logger.Logger, config *domain.Config, repo domain.IndexerRepo, apiService APIService, scheduler scheduler.Service) Service {
@@ -60,6 +62,7 @@ func NewService(log logger.Logger, config *domain.Config, repo domain.IndexerRep
 		scheduler:                 scheduler,
 		lookupIRCServerDefinition: make(map[string]map[string]*domain.IndexerDefinition),
 		torznabIndexers:           make(map[string]*domain.IndexerDefinition),
+		rssIndexers:               make(map[string]*domain.IndexerDefinition),
 		definitions:               make(map[string]domain.IndexerDefinition),
 		mappedDefinitions:         make(map[string]*domain.IndexerDefinition),
 	}
@@ -67,11 +70,17 @@ func NewService(log logger.Logger, config *domain.Config, repo domain.IndexerRep
 
 func (s *service) Store(ctx context.Context, indexer domain.Indexer) (*domain.Indexer, error) {
 	identifier := indexer.Identifier
-	//if indexer.Identifier == "torznab" {
-	if indexer.Implementation == "torznab" {
+
+	switch indexer.Implementation {
+	case "torznab":
 		// if the name already contains torznab remove it
 		cleanName := strings.ReplaceAll(strings.ToLower(indexer.Name), "torznab", "")
 		identifier = slug.Make(fmt.Sprintf("%v-%v", indexer.Implementation, cleanName)) // torznab-name
+
+	case "rss":
+		// if the name already contains rss remove it
+		cleanName := strings.ReplaceAll(strings.ToLower(indexer.Name), "rss", "")
+		identifier = slug.Make(fmt.Sprintf("%v-%v", indexer.Implementation, cleanName)) // rss-name
 	}
 
 	indexer.Identifier = identifier
@@ -106,7 +115,7 @@ func (s *service) Update(ctx context.Context, indexer domain.Indexer) (*domain.I
 		return nil, err
 	}
 
-	if indexer.Implementation == "torznab" {
+	if indexer.Implementation == "torznab" || indexer.Implementation == "rss" {
 		if !indexer.Enabled {
 			s.stopFeed(indexer.Identifier)
 		}
@@ -210,6 +219,8 @@ func (s *service) mapIndexer(indexer domain.Indexer) (*domain.IndexerDefinition,
 	definitionName := indexer.Identifier
 	if indexer.Implementation == "torznab" {
 		definitionName = "torznab"
+	} else if indexer.Implementation == "rss" {
+		definitionName = "rss"
 	}
 
 	d := s.getDefinitionByName(definitionName)
@@ -331,6 +342,8 @@ func (s *service) Start() error {
 		// handle Torznab
 		if indexer.Implementation == "torznab" {
 			s.torznabIndexers[indexer.Identifier] = indexer
+		} else if indexer.Implementation == "rss" {
+			s.rssIndexers[indexer.Identifier] = indexer
 		}
 	}
 
@@ -343,6 +356,8 @@ func (s *service) removeIndexer(indexer domain.Indexer) {
 	// remove Torznab
 	if indexer.Implementation == "torznab" {
 		delete(s.torznabIndexers, indexer.Identifier)
+	} else if indexer.Implementation == "rss" {
+		delete(s.rssIndexers, indexer.Identifier)
 	}
 
 	// remove mapped definition
@@ -373,9 +388,11 @@ func (s *service) addIndexer(indexer domain.Indexer) error {
 		}
 	}
 
-	// handle Torznab
+	// handle Torznab and RSS
 	if indexerDefinition.Implementation == "torznab" {
 		s.torznabIndexers[indexer.Identifier] = indexerDefinition
+	} else if indexerDefinition.Implementation == "rss" {
+		s.rssIndexers[indexer.Identifier] = indexerDefinition
 	}
 
 	s.mappedDefinitions[indexer.Identifier] = indexerDefinition
@@ -408,6 +425,8 @@ func (s *service) updateIndexer(indexer domain.Indexer) error {
 	// handle Torznab
 	if indexerDefinition.Implementation == "torznab" {
 		s.torznabIndexers[indexer.Identifier] = indexerDefinition
+	} else if indexerDefinition.Implementation == "rss" {
+		s.rssIndexers[indexer.Identifier] = indexerDefinition
 	}
 
 	s.mappedDefinitions[indexer.Identifier] = indexerDefinition
@@ -570,6 +589,18 @@ func (s *service) GetTorznabIndexers() []domain.IndexerDefinition {
 	return indexerDefinitions
 }
 
+func (s *service) GetRSSIndexers() []domain.IndexerDefinition {
+	indexerDefinitions := make([]domain.IndexerDefinition, 0)
+
+	for _, definition := range s.rssIndexers {
+		if definition != nil {
+			indexerDefinitions = append(indexerDefinitions, *definition)
+		}
+	}
+
+	return indexerDefinitions
+}
+
 func (s *service) getDefinitionByName(name string) *domain.IndexerDefinition {
 	if v, ok := s.definitions[name]; ok {
 		return &v
@@ -582,6 +613,10 @@ func (s *service) stopFeed(indexer string) {
 	// verify indexer is torznab indexer
 	_, ok := s.torznabIndexers[indexer]
 	if !ok {
+		_, rssOK := s.torznabIndexers[indexer]
+		if !rssOK {
+			return
+		}
 		return
 	}
 
