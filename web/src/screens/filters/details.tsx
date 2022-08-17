@@ -293,6 +293,7 @@ export default function FilterDetails() {
                 external_webhook_host: filter.external_webhook_host || "",
                 external_webhook_data: filter.external_webhook_data ||"",
                 external_webhook_expect_status: filter.external_webhook_expect_status || 0,
+                tears_recorded: false,
               } as Filter}
               onSubmit={handleSubmit}
             >
@@ -463,10 +464,14 @@ export function Music() {
 }
 
 export function Advanced() {
+  const { values } = useFormikContext<Filter>();
   return (
     <div>
       <CollapsableSection title="Releases" subtitle="Match only certain release names and/or ignore other release names">
-        <TextField name="match_releases" label="Match releases" columns={6} placeholder="eg. *some?movie*,*some?show*s01*" />
+        <div className="border-t dark:border-gray-700">
+          <SwitchGroup name="tears_recorded" heading={true} label="WARNING" description="Did you know it's a mistake to use this? Autobrr has extensive filtering built-in, if you need help please ask." />
+        </div>
+        <TextField name="match_releases" label="Match releases" columns={6} placeholder="eg. *some?movie*,*some?show*s01*" disabled={!values.tears_recorded} />
         <TextField name="except_releases" label="Except releases" columns={6} placeholder="" />
         <div className="col-span-6">
           <SwitchGroup name="use_regex" label="Use Regex" />
