@@ -613,7 +613,7 @@ func (s *service) stopFeed(indexer string) {
 	// verify indexer is torznab indexer
 	_, ok := s.torznabIndexers[indexer]
 	if !ok {
-		_, rssOK := s.torznabIndexers[indexer]
+		_, rssOK := s.rssIndexers[indexer]
 		if !rssOK {
 			return
 		}
