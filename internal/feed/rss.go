@@ -1,15 +1,15 @@
 package feed
 
 import (
-	"github.com/mmcdole/gofeed"
+	"context"
 	"sort"
 	"time"
-	"context"
 
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/internal/release"
 	"github.com/autobrr/autobrr/pkg/errors"
 
+	"github.com/mmcdole/gofeed"
 	"github.com/rs/zerolog"
 )
 
@@ -72,7 +72,20 @@ func (j *RSSJob) process() error {
 		rls.Implementation = domain.ReleaseImplementationRSS
 
 		rls.ParseString(item.Title)
-		rls.TorrentURL = item.Link
+
+		if len(item.Enclosures) > 0 {
+			e := item.Enclosures[0]
+			if e.Type == "application/x-bittorrent" && e.URL != "" {
+				rls.TorrentURL = e.URL
+			}
+			if e.Length != "" {
+				rls.ParseSizeBytesString(e.Length)
+			}
+		}
+
+		if rls.TorrentURL == "" && item.Link != "" {
+			rls.TorrentURL = item.Link
+		}
 
 		for _, v := range item.Categories {
 			if len(rls.Category) != 0 {
