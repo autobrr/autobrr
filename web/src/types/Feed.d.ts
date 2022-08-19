@@ -2,7 +2,7 @@ interface Feed {
   id: number;
   indexer: string;
   name: string;
-  type: string;
+  type: FeedType;
   enabled: boolean;
   url: string;
   interval: number;
@@ -11,13 +11,15 @@ interface Feed {
   updated_at: Date;
 }
 
+type FeedType = "TORZNAB" | "RSS";
+
 interface FeedCreate {
   indexer: string;
   name: string;
-  type: string;
+  type: FeedType;
   enabled: boolean;
   url: string;
   interval: number;
-  api_key: string;
+  api_key?: string;
   indexer_id: number;
 }

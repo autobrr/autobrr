@@ -7,7 +7,7 @@ import { EmptySimple } from "../../components/emptystates";
 import { APIClient } from "../../api/APIClient";
 import { componentMapType } from "../../forms/settings/DownloadClientForms";
 
-const ImplementationIRC = () => (
+const ImplementationBadgeIRC = () => (
   <span
     className="mr-2 inline-flex items-center px-2.5 py-0.5 rounded-md text-sm font-medium bg-green-200 dark:bg-green-400 text-green-800 dark:text-green-800"
   >
@@ -15,17 +15,26 @@ const ImplementationIRC = () => (
   </span>
 );
 
-const ImplementationTorznab = () => (
+const ImplementationBadgeTorznab = () => (
   <span
     className="inline-flex items-center px-2.5 py-0.5 rounded-md text-sm font-medium bg-orange-200 dark:bg-orange-400 text-orange-800 dark:text-orange-800"
   >
-        Torznab
+    Torznab
   </span>
 );
 
-const implementationMap: componentMapType = {
-  "irc": <ImplementationIRC/>,
-  "torznab": <ImplementationTorznab />
+const ImplementationBadgeRSS = () => (
+  <span
+    className="inline-flex items-center px-2.5 py-0.5 rounded-md text-sm font-medium bg-amber-200 dark:bg-amber-400 text-amber-800 dark:text-amber-800"
+  >
+    RSS
+  </span>
+);
+
+export const ImplementationBadges: componentMapType = {
+  "irc": <ImplementationBadgeIRC/>,
+  "torznab": <ImplementationBadgeTorznab />,
+  "rss": <ImplementationBadgeRSS />
 };
 
 interface ListItemProps {
@@ -59,10 +68,10 @@ const ListItem = ({ indexer }: ListItemProps) => {
         </Switch>
       </td>
       <td className="px-6 py-4 w-full whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">{indexer.name}</td>
-      <td className="px-6 py-4 w-full whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">{implementationMap[indexer.implementation]}</td>
+      <td className="px-6 py-4 w-full whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">{ImplementationBadges[indexer.implementation]}</td>
       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
         <span className="text-indigo-600 dark:text-gray-300 hover:text-indigo-900 dark:hover:text-blue-500 cursor-pointer" onClick={toggleUpdate}>
-                    Edit
+          Edit
         </span>
       </td>
     </tr>
@@ -100,7 +109,7 @@ function IndexerSettings() {
               onClick={toggleAddIndexer}
               className="relative inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 dark:bg-blue-600 hover:bg-indigo-700 dark:hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 dark:focus:ring-blue-500"
             >
-                            Add new
+              Add new
             </button>
           </div>
         </div>
@@ -117,19 +126,19 @@ function IndexerSettings() {
                           scope="col"
                           className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
                         >
-                                                    Enabled
+                          Enabled
                         </th>
                         <th
                           scope="col"
                           className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
                         >
-                                                    Name
+                          Name
                         </th>
                         <th
                           scope="col"
                           className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
                         >
-                                                    Implementation
+                          Implementation
                         </th>
                         <th scope="col" className="relative px-6 py-3">
                           <span className="sr-only">Edit</span>

@@ -44,6 +44,7 @@ type IndexerDefinition struct {
 	SettingsMap    map[string]string `json:"-"`
 	IRC            *IndexerIRC       `json:"irc,omitempty"`
 	Torznab        *Torznab          `json:"torznab,omitempty"`
+	RSS            *FeedSettings     `json:"rss,omitempty"`
 	Parse          *IndexerParse     `json:"parse,omitempty"`
 }
 
@@ -69,6 +70,11 @@ type IndexerSetting struct {
 }
 
 type Torznab struct {
+	MinInterval int              `json:"minInterval"`
+	Settings    []IndexerSetting `json:"settings"`
+}
+
+type FeedSettings struct {
 	MinInterval int              `json:"minInterval"`
 	Settings    []IndexerSetting `json:"settings"`
 }
