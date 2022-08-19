@@ -103,9 +103,11 @@ func (j *RSSJob) process() error {
 			rls.Uploader += v.Name
 		}
 
-		// parse size bytes string
-		if sz, ok := item.Custom["size"]; ok {
-			rls.ParseSizeBytesString(sz)
+		if rls.Size == 0 {
+			// parse size bytes string
+			if sz, ok := item.Custom["size"]; ok {
+				rls.ParseSizeBytesString(sz)
+			}
 		}
 
 		releases = append(releases, rls)
