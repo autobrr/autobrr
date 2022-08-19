@@ -177,18 +177,18 @@ func (s *service) delete(ctx context.Context, id int) error {
 }
 
 func (s *service) toggleEnabled(ctx context.Context, id int, enabled bool) error {
-	if err := s.repo.ToggleEnabled(ctx, id, enabled); err != nil {
-		s.log.Error().Err(err).Msg("feed.ToggleEnabled: error toggle enabled")
-		return err
-	}
-
 	f, err := s.repo.FindByID(ctx, id)
 	if err != nil {
 		s.log.Error().Err(err).Msg("feed.ToggleEnabled: error finding feed")
 		return err
 	}
 
-	if !enabled {
+	if err := s.repo.ToggleEnabled(ctx, id, enabled); err != nil {
+		s.log.Error().Err(err).Msg("feed.ToggleEnabled: error toggle enabled")
+		return err
+	}
+
+	if f.Enabled && !enabled {
 		switch f.Type {
 		case string(domain.FeedTypeTorznab):
 			if err := s.stopTorznabJob(f.Indexer); err != nil {
