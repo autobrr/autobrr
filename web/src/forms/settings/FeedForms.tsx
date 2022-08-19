@@ -5,10 +5,10 @@ import { toast } from "react-hot-toast";
 import Toast from "../../components/notifications/Toast";
 import { SlideOver } from "../../components/panels";
 import { NumberFieldWide, PasswordFieldWide, SwitchGroupWide, TextFieldWide } from "../../components/inputs";
-import { ImplementationMap } from "../../screens/settings/Feed";
 import { componentMapType } from "./DownloadClientForms";
 import { sleep } from "../../utils";
 import { useState } from "react";
+import { ImplementationBadges } from "../../screens/settings/Indexer";
 
 interface UpdateProps {
   isOpen: boolean;
@@ -126,11 +126,11 @@ export function FeedUpdateForm({ isOpen, toggle, feed }: UpdateProps) {
                 </label>
               </div>
               <div className="flex justify-end sm:col-span-2">
-                {ImplementationMap[feed.type]}
+                {ImplementationBadges[feed.type.toLowerCase()]}
               </div>
             </div>
 
-            <div className="py-6 px-6 space-y-6 sm:py-0 sm:space-y-0 sm:divide-y sm:divide-gray-200">
+            <div className="py-6 space-y-6 sm:py-0 sm:space-y-0 sm:divide-y sm:divide-gray-200">
               <SwitchGroupWide name="enabled" label="Enabled"/>
             </div>
           </div>
@@ -158,6 +158,21 @@ function FormFieldsTorznab() {
   );
 }
 
+function FormFieldsRSS() {
+  return (
+    <div className="border-t border-gray-200 dark:border-gray-700 py-5">
+      <TextFieldWide
+        name="url"
+        label="URL"
+        help="RSS url"
+      />
+
+      <NumberFieldWide name="interval" label="Refresh interval" help="Minutes. Recommended 15-30. To low and risk ban."/>
+    </div>
+  );
+}
+
 const componentMap: componentMapType = {
-  TORZNAB: <FormFieldsTorznab/>
+  TORZNAB: <FormFieldsTorznab/>,
+  RSS: <FormFieldsRSS />
 };
