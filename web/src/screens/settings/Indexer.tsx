@@ -7,7 +7,7 @@ import { EmptySimple } from "../../components/emptystates";
 import { APIClient } from "../../api/APIClient";
 import { componentMapType } from "../../forms/settings/DownloadClientForms";
 
-const ImplementationIRC = () => (
+const ImplementationBadgeIRC = () => (
   <span
     className="mr-2 inline-flex items-center px-2.5 py-0.5 rounded-md text-sm font-medium bg-green-200 dark:bg-green-400 text-green-800 dark:text-green-800"
   >
@@ -15,7 +15,7 @@ const ImplementationIRC = () => (
   </span>
 );
 
-const ImplementationTorznab = () => (
+const ImplementationBadgeTorznab = () => (
   <span
     className="inline-flex items-center px-2.5 py-0.5 rounded-md text-sm font-medium bg-orange-200 dark:bg-orange-400 text-orange-800 dark:text-orange-800"
   >
@@ -23,7 +23,7 @@ const ImplementationTorznab = () => (
   </span>
 );
 
-const ImplementationRSS = () => (
+const ImplementationBadgeRSS = () => (
   <span
     className="inline-flex items-center px-2.5 py-0.5 rounded-md text-sm font-medium bg-amber-200 dark:bg-amber-400 text-amber-800 dark:text-amber-800"
   >
@@ -31,10 +31,10 @@ const ImplementationRSS = () => (
   </span>
 );
 
-const implementationMap: componentMapType = {
-  "irc": <ImplementationIRC/>,
-  "torznab": <ImplementationTorznab />,
-  "rss": <ImplementationRSS />
+export const ImplementationBadges: componentMapType = {
+  "irc": <ImplementationBadgeIRC/>,
+  "torznab": <ImplementationBadgeTorznab />,
+  "rss": <ImplementationBadgeRSS />
 };
 
 interface ListItemProps {
@@ -68,7 +68,7 @@ const ListItem = ({ indexer }: ListItemProps) => {
         </Switch>
       </td>
       <td className="px-6 py-4 w-full whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">{indexer.name}</td>
-      <td className="px-6 py-4 w-full whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">{implementationMap[indexer.implementation]}</td>
+      <td className="px-6 py-4 w-full whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">{ImplementationBadges[indexer.implementation]}</td>
       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
         <span className="text-indigo-600 dark:text-gray-300 hover:text-indigo-900 dark:hover:text-blue-500 cursor-pointer" onClick={toggleUpdate}>
           Edit

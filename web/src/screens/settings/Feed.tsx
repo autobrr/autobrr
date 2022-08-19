@@ -17,7 +17,7 @@ import {
 } from "@heroicons/react/outline";
 import { FeedUpdateForm } from "../../forms/settings/FeedForms";
 import { EmptySimple } from "../../components/emptystates";
-import { componentMapType } from "../../forms/settings/DownloadClientForms";
+import { ImplementationBadges } from "./Indexer";
 
 function FeedSettings() {
   const { data } = useQuery(
@@ -67,27 +67,6 @@ function FeedSettings() {
     </div>
   );
 }
-
-const ImplementationTorznab = () => (
-  <span
-    className="inline-flex items-center px-2.5 py-0.5 rounded-md text-sm font-medium bg-orange-200 dark:bg-orange-400 text-orange-800 dark:text-orange-800"
-  >
-    Torznab
-  </span>
-);
-
-const ImplementationRSS = () => (
-  <span
-    className="inline-flex items-center px-2.5 py-0.5 rounded-md text-sm font-medium bg-orange-200 dark:bg-orange-400 text-orange-800 dark:text-orange-800"
-  >
-    RSS
-  </span>
-);
-
-export const ImplementationMap: componentMapType = {
-  "TORZNAB": <ImplementationTorznab/>,
-  "RSS": <ImplementationRSS/>
-};
 
 interface ListItemProps {
     feed: Feed;
@@ -148,7 +127,7 @@ function ListItem({ feed }: ListItemProps) {
           {feed.indexer}
         </div>
         <div className="col-span-2 flex items-center sm:px-6">
-          {ImplementationMap[feed.type]}
+          {ImplementationBadges[feed.type.toLowerCase()]}
         </div>
         <div className="col-span-1 flex justify-center items-center sm:px-6">
           <FeedItemDropdown
