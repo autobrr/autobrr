@@ -11,7 +11,7 @@ const ImplementationBadgeIRC = () => (
   <span
     className="mr-2 inline-flex items-center px-2.5 py-0.5 rounded-md text-sm font-medium bg-green-200 dark:bg-green-400 text-green-800 dark:text-green-800"
   >
-        IRC
+    IRC
   </span>
 );
 
