@@ -62,7 +62,6 @@ interface Filter {
   external_webhook_host: string;
   external_webhook_data: string;
   external_webhook_expect_status: number;
-  tears_recorded: boolean;
 }
 
 interface Action {
