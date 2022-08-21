@@ -52,5 +52,7 @@ VOLUME /config
 COPY --from=app-builder /src/bin/autobrr /usr/local/bin/
 COPY --from=app-builder /src/bin/autobrrctl /usr/local/bin/
 
+EXPOSE 7474
+
 ENTRYPOINT ["/usr/local/bin/autobrr", "--config", "/config"]
 #CMD ["--config", "/config"]
