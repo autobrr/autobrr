@@ -17,7 +17,7 @@ Installation guide and documentation can be found at https://autobrr.com
 
 ## Key features
 
-- Support for 40+ trackers with IRC announces
+- Support for 45+ trackers with IRC announces
 - Torznab/RSS support via Prowlarr to easily get access to hundreds of trackers
 - Powerful but simple filtering with RegEx support (like in autodl-irssi)
 - Easy to use and mobile friendly web UI (with dark mode!) to manage everything
@@ -32,6 +32,7 @@ Available download clients and actions
 
 - qBittorrent (with built in re-announce, categories, rules, max active downloads, etc)
 - Deluge v1+ and v2+
+- rTorrent
 - Transmission
 - Sonarr, Radarr, Lidarr and Whisparr (pushes releases directly to them and gets in the early swarm, instead of getting them via RSS when it's already over)
 - Watch folder

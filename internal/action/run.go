@@ -48,6 +48,9 @@ func (s *service) RunAction(action *domain.Action, release domain.Release) ([]st
 	case domain.ActionTypeQbittorrent:
 		rejections, err = s.qbittorrent(*action, release)
 
+	case domain.ActionTypeRTorrent:
+		rejections, err = s.rtorrent(*action, release)
+
 	case domain.ActionTypeTransmission:
 		rejections, err = s.transmission(*action, release)
 

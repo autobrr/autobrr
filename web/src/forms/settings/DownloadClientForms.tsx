@@ -44,7 +44,7 @@ interface InitialValues {
 }
 
 
-function FormFieldsDefault() {
+function FormFieldsDeluge() {
   const {
     values: { tls }
   } = useFormikContext<InitialValues>();
@@ -60,7 +60,7 @@ function FormFieldsDefault() {
       <NumberFieldWide
         name="port"
         label="Port"
-        help="WebUI port for qBittorrent and daemon port for Deluge"
+        help="Daemon port"
       />
 
       <SwitchGroupWide name="tls" label="TLS" />
@@ -115,7 +115,7 @@ function FormFieldsQbit() {
       <TextFieldWide
         name="host"
         label="Host"
-        help="Eg. client.domain.ltd, domain.ltd/client, domain.ltd:port"
+        help="Eg. http(s)://client.domain.ltd, http(s)://domain.ltd/qbittorrent, http://domain.ltd:port"
       />
 
       {port > 0 && (
@@ -146,6 +146,18 @@ function FormFieldsQbit() {
           <PasswordFieldWide name="settings.basic.password" label="Password" />
         </>
       )}
+    </div>
+  );
+}
+
+function FormFieldsRTorrent() {
+  return (
+    <div className="flex flex-col space-y-4 px-1 py-6 sm:py-0 sm:space-y-0">
+      <TextFieldWide
+        name="host"
+        label="Host"
+        help="Eg. http(s)://client.domain.ltd/RPC2, http(s)://domain.ltd/client, http(s)://domain.ltd/RPC2"
+      />
     </div>
   );
 }
@@ -185,9 +197,10 @@ export interface componentMapType {
 }
 
 export const componentMap: componentMapType = {
-  DELUGE_V1: <FormFieldsDefault/>,
-  DELUGE_V2: <FormFieldsDefault/>,
+  DELUGE_V1: <FormFieldsDeluge/>,
+  DELUGE_V2: <FormFieldsDeluge/>,
   QBITTORRENT: <FormFieldsQbit/>,
+  RTORRENT: <FormFieldsRTorrent />,
   TRANSMISSION: <FormFieldsTransmission/>,
   RADARR: <FormFieldsArr/>,
   SONARR: <FormFieldsArr/>,

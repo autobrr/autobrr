@@ -49,6 +49,7 @@ const (
 	DownloadClientTypeQbittorrent  DownloadClientType = "QBITTORRENT"
 	DownloadClientTypeDelugeV1     DownloadClientType = "DELUGE_V1"
 	DownloadClientTypeDelugeV2     DownloadClientType = "DELUGE_V2"
+	DownloadClientTypeRTorrent     DownloadClientType = "RTORRENT"
 	DownloadClientTypeTransmission DownloadClientType = "TRANSMISSION"
 	DownloadClientTypeRadarr       DownloadClientType = "RADARR"
 	DownloadClientTypeSonarr       DownloadClientType = "SONARR"
