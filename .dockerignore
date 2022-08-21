@@ -13,5 +13,14 @@ bin
 config
 test
 web/*
+!web/public
+!web/src
 !web/build*
-#!web/build.go
+!web/package.json
+!web/yarn.lock
+!web/.yarnrc.yml
+!web/.yarn/releases
+!web/.eslintrc.js
+!web/postcss.config.js
+!web/tailwind.config.js
+!web/tsconfig.json

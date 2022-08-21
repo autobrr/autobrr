@@ -43,7 +43,7 @@ func (s *service) List(ctx context.Context) ([]domain.APIKey, error) {
 }
 
 func (s *service) Store(ctx context.Context, key *domain.APIKey) error {
-	key.Key = generateSecureToken(16)
+	key.Key = GenerateSecureToken(16)
 
 	if err := s.repo.Store(ctx, key); err != nil {
 		return err
@@ -82,7 +82,7 @@ func (s *service) ValidateAPIKey(ctx context.Context, key string) bool {
 	return false
 }
 
-func generateSecureToken(length int) string {
+func GenerateSecureToken(length int) string {
 	b := make([]byte, length)
 	if _, err := rand.Read(b); err != nil {
 		return ""
