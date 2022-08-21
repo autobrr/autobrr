@@ -54,6 +54,7 @@ const (
 	ActionTypeQbittorrent  ActionType = "QBITTORRENT"
 	ActionTypeDelugeV1     ActionType = "DELUGE_V1"
 	ActionTypeDelugeV2     ActionType = "DELUGE_V2"
+	ActionTypeRTorrent     ActionType = "RTORRENT"
 	ActionTypeTransmission ActionType = "TRANSMISSION"
 	ActionTypeWatchFolder  ActionType = "WATCH_FOLDER"
 	ActionTypeWebhook      ActionType = "WEBHOOK"
