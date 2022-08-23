@@ -55,9 +55,9 @@ parse:
   type: single
   lines:
     - test:
-      - [Feature Film] Tremar (1897) [H264 / MKV / Blu-ray / 1080p / DTS / Subs / Freeleech!] [12.84 GiB - Uploader: ze0s] https://anthelion.me/torrents.php?action=download&id=110 - action,horror,subtitles
-      - [Feature Film] Circus Du (1928) [H264 / MKV / Blu-ray / 1080p / AC3 / Scene / Freeleech!] [8.24 GiB - Uploader: b] https://anthelion.me/torrents.php?action=download&id=85 - comedy,romance
-      - [Feature Film] Judo (1918) [H264 / MKV / Blu-ray / 1080p / DTS / Subs / Freeleech!] [7.40 GiB - Uploader: ze0s] https://anthelion.me/torrents.php?action=download&id=117 - crime,drama,thriller,action,subtitles
+      - "[Feature Film] Tremar (1897) [H264 / MKV / Blu-ray / 1080p / DTS / Subs / Freeleech!] [12.84 GiB - Uploader: ze0s] https://anthelion.me/torrents.php?action=download&id=110 - action,horror,subtitles"
+      - "[Feature Film] Circus Du (1928) [H264 / MKV / Blu-ray / 1080p / AC3 / Scene / Freeleech!] [8.24 GiB - Uploader: b] https://anthelion.me/torrents.php?action=download&id=85 - comedy,romance"
+      - "[Feature Film] Judo (1918) [H264 / MKV / Blu-ray / 1080p / DTS / Subs / Freeleech!] [7.40 GiB - Uploader: ze0s] https://anthelion.me/torrents.php?action=download&id=117 - crime,drama,thriller,action,subtitles"
       pattern: '\[(.*?)\] (.*) \[(.*)\] \[(.*) - Uploader: (.*)\] (https?\:\/\/.*)\/.*id=(\d+).* - (.*)'
       vars:
         - category
