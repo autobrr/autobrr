@@ -153,7 +153,7 @@ function FormFieldsTorznab() {
       <PasswordFieldWide name="api_key" label="API key"/>
 
       <NumberFieldWide name="interval" label="Refresh interval"
-        help="Minutes. Recommended 15-30. To low and risk ban."/>
+        help="Minutes. Recommended 15-30. Too low and risk ban."/>
     </div>
   );
 }
@@ -167,7 +167,7 @@ function FormFieldsRSS() {
         help="RSS url"
       />
 
-      <NumberFieldWide name="interval" label="Refresh interval" help="Minutes. Recommended 15-30. To low and risk ban."/>
+      <NumberFieldWide name="interval" label="Refresh interval" help="Minutes. Recommended 15-30. Too low and risk ban."/>
     </div>
   );
 }
