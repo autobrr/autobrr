@@ -1,8 +1,9 @@
 # build web
-FROM node:16-alpine AS web-builder
+FROM node:18.7.0-alpine3.16 AS web-builder
 WORKDIR /web
-COPY web/package.json web/yarn.lock ./
-RUN yarn install
+COPY web/package.json web/yarn.lock web/.yarnrc.yml ./
+COPY web/.yarn/releases/ ./.yarn/releases/
+RUN yarn install --network-timeout 120000
 COPY web .
 RUN yarn build
 
@@ -27,8 +28,8 @@ COPY . ./
 COPY --from=web-builder /web/build ./web/build
 COPY --from=web-builder /web/build.go ./web
 
-ENV GOOS=linux
-ENV CGO_ENABLED=1
+#ENV GOOS=linux
+#ENV CGO_ENABLED=0
 
 RUN go build -ldflags "-s -w -X main.version=${VERSION} -X main.commit=${REVISION} -X main.date=${BUILDTIME}" -o bin/autobrr cmd/autobrr/main.go
 RUN go build -ldflags "-s -w -X main.version=${VERSION} -X main.commit=${REVISION} -X main.date=${BUILDTIME}" -o bin/autobrrctl cmd/autobrrctl/main.go
@@ -50,6 +51,8 @@ VOLUME /config
 
 COPY --from=app-builder /src/bin/autobrr /usr/local/bin/
 COPY --from=app-builder /src/bin/autobrrctl /usr/local/bin/
+
+EXPOSE 7474
 
 ENTRYPOINT ["/usr/local/bin/autobrr", "--config", "/config"]
 #CMD ["--config", "/config"]

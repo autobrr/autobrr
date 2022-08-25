@@ -155,6 +155,7 @@ type ReleaseImplementation string
 const (
 	ReleaseImplementationIRC     ReleaseImplementation = "IRC"
 	ReleaseImplementationTorznab ReleaseImplementation = "TORZNAB"
+	ReleaseImplementationRSS     ReleaseImplementation = "RSS"
 )
 
 type ReleaseQueryParams struct {
@@ -384,7 +385,7 @@ func (r *Release) MapVars(def *IndexerDefinition, varMap map[string]string) erro
 	}
 
 	if freeleech, err := getStringMapValue(varMap, "freeleech"); err == nil {
-		fl := strings.EqualFold(freeleech, "freeleech") || strings.EqualFold(freeleech, "yes") || strings.EqualFold(freeleech, "1")
+		fl := StringEqualFoldMulti(freeleech, "freeleech", "yes", "1", "VIP")
 		if fl {
 			r.Freeleech = true
 			r.Bonus = append(r.Bonus, "Freeleech")
@@ -441,7 +442,7 @@ func (r *Release) MapVars(def *IndexerDefinition, varMap map[string]string) erro
 	}
 
 	if scene, err := getStringMapValue(varMap, "scene"); err == nil {
-		r.IsScene = strings.EqualFold(scene, "true") || strings.EqualFold(scene, "yes")
+		r.IsScene = StringEqualFoldMulti(scene, "true", "yes")
 	}
 
 	// set origin. P2P, SCENE, O-SCENE and Internal
@@ -509,4 +510,13 @@ func SplitAny(s string, seps string) []string {
 		return strings.ContainsRune(seps, r)
 	}
 	return strings.FieldsFunc(s, splitter)
+}
+
+func StringEqualFoldMulti(s string, values ...string) bool {
+	for _, value := range values {
+		if strings.EqualFold(s, value) {
+			return true
+		}
+	}
+	return false
 }

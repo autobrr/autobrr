@@ -15,7 +15,7 @@ type errorResponse struct {
 
 func (e encoder) StatusResponse(ctx context.Context, w http.ResponseWriter, response interface{}, status int) {
 	if response != nil {
-		w.Header().Set("Content-Type", "application/json; charset=utf=8")
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		w.WriteHeader(status)
 		if err := json.NewEncoder(w).Encode(response); err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
@@ -28,6 +28,15 @@ func (e encoder) StatusResponse(ctx context.Context, w http.ResponseWriter, resp
 
 func (e encoder) StatusCreated(w http.ResponseWriter) {
 	w.WriteHeader(http.StatusCreated)
+}
+
+func (e encoder) StatusCreatedData(w http.ResponseWriter, data interface{}) {
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.WriteHeader(http.StatusCreated)
+	if err := json.NewEncoder(w).Encode(data); err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
 }
 
 func (e encoder) NoContent(w http.ResponseWriter) {
@@ -47,7 +56,7 @@ func (e encoder) Error(w http.ResponseWriter, err error) {
 		Message: err.Error(),
 	}
 
-	w.Header().Set("Content-Type", "application/json; charset=utf=8")
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.WriteHeader(http.StatusInternalServerError)
 	json.NewEncoder(w).Encode(res)
 }

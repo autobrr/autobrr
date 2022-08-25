@@ -86,7 +86,7 @@ const ListItem = ({ idx, network }: ListItemProps) => {
 
   return (
     <li key={idx}>
-      <div className="grid grid-cols-12 gap-2 lg:gap-4 items-center hover:bg-gray-50 dark:hover:bg-gray-700 py-4">
+      <div className={classNames("grid grid-cols-12 gap-2 lg:gap-4 items-center py-4", network.enabled && !network.healthy ? "bg-red-50 dark:bg-red-900 hover:bg-red-100 dark:hover:bg-red-800" : "hover:bg-gray-50 dark:hover:bg-gray-700 ")}>
         <IrcNetworkUpdateForm
           isOpen={updateIsOpen}
           toggle={toggleUpdate}
@@ -100,7 +100,7 @@ const ListItem = ({ idx, network }: ListItemProps) => {
           <div className="flex">
             <span className="relative inline-flex items-center ml-1">
               {network.enabled ? (
-                IsNetworkHealthy(network) ? (
+                network.healthy ? (
                   <span
                     className="mr-3 flex h-3 w-3 relative"
                     title={`Connected since: ${simplifyDate(network.connected_since)}`}
@@ -113,7 +113,7 @@ const ListItem = ({ idx, network }: ListItemProps) => {
                     className="mr-3 flex items-center"
                     title={network.connection_errors.toString()}
                   >
-                    <ExclamationCircleIcon className="h-4 w-4 text-red-400 hover:text-red-600" />
+                    <ExclamationCircleIcon className="h-4 w-4 text-yellow-400 hover:text-yellow-600" />
                   </span>
                 )
               ) : (
@@ -238,6 +238,3 @@ const ListItem = ({ idx, network }: ListItemProps) => {
     </li>
   );
 };
-
-const IsNetworkHealthy = (network: IrcNetworkWithHealth) =>
-  network.connection_errors.length <= 0;

@@ -50,6 +50,7 @@ type IrcNetworkWithHealth struct {
 	Connected        bool                `json:"connected"`
 	ConnectedSince   time.Time           `json:"connected_since"`
 	ConnectionErrors []string            `json:"connection_errors"`
+	Healthy          bool                `json:"healthy"`
 }
 
 type ChannelWithHealth struct {

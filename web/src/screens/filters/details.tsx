@@ -1,33 +1,23 @@
-import React, { Fragment, useRef } from "react";
+import React, { useRef } from "react";
 import { useMutation, useQuery } from "react-query";
-import {
-  NavLink,
-  Route,
-  Routes,
-  useLocation,
-  useNavigate,
-  useParams
-} from "react-router-dom";
+import { NavLink, Route, Routes, useLocation, useNavigate, useParams } from "react-router-dom";
 import { toast } from "react-hot-toast";
-import { Field, FieldArray, FieldProps, Form, Formik, FormikValues, useFormikContext } from "formik";
-import { Dialog, Transition, Switch as SwitchBasic } from "@headlessui/react";
+import { Form, Formik, FormikValues, useFormikContext } from "formik";
 import { ChevronDownIcon, ChevronRightIcon } from "@heroicons/react/solid";
 
 import {
-  CONTAINER_OPTIONS,
   CODECS_OPTIONS,
-  RESOLUTION_OPTIONS,
-  SOURCES_OPTIONS,
-  ActionTypeNameMap,
-  ActionTypeOptions,
-  HDR_OPTIONS,
+  CONTAINER_OPTIONS,
+  downloadsPerUnitOptions,
   FORMATS_OPTIONS,
-  SOURCES_MUSIC_OPTIONS,
+  HDR_OPTIONS,
+  ORIGIN_OPTIONS,
+  OTHER_OPTIONS,
   QUALITY_MUSIC_OPTIONS,
   RELEASE_TYPE_MUSIC_OPTIONS,
-  OTHER_OPTIONS,
-  ORIGIN_OPTIONS,
-  downloadsPerUnitOptions
+  RESOLUTION_OPTIONS,
+  SOURCES_MUSIC_OPTIONS,
+  SOURCES_OPTIONS
 } from "../../domain/constants";
 import { queryClient } from "../../App";
 import { APIClient } from "../../api/APIClient";
@@ -35,22 +25,20 @@ import { useToggle } from "../../hooks/hooks";
 import { classNames } from "../../utils";
 
 import {
-  NumberField,
-  TextField,
-  SwitchGroup,
-  Select,
-  MultiSelect,
-  DownloadClientSelect,
+  CheckboxField,
   IndexerMultiSelect,
-  CheckboxField
+  MultiSelect,
+  NumberField,
+  Select,
+  SwitchGroup,
+  TextField
 } from "../../components/inputs";
 import DEBUG from "../../components/debug";
 import Toast from "../../components/notifications/Toast";
-import { AlertWarning } from "../../components/alerts";
 import { DeleteModal } from "../../components/modals";
 import { TitleSubtitle } from "../../components/headings";
-import { EmptyListState } from "../../components/emptystates";
 import { TextArea } from "../../components/inputs/input";
+import { FilterActions } from "./action";
 
 interface tabType {
   name: string;
@@ -281,6 +269,7 @@ export default function FilterDetails() {
                 artists: filter.artists,
                 albums: filter.albums,
                 origins: filter.origins || [],
+                except_origins: filter.except_origins || [],
                 indexers: filter.indexers || [],
                 actions: filter.actions || [],
                 external_script_enabled: filter.external_script_enabled || false,
@@ -290,7 +279,7 @@ export default function FilterDetails() {
                 external_webhook_enabled: filter.external_webhook_enabled || false,
                 external_webhook_host: filter.external_webhook_host || "",
                 external_webhook_data: filter.external_webhook_data ||"",
-                external_webhook_expect_status: filter.external_webhook_expect_status || 0,
+                external_webhook_expect_status: filter.external_webhook_expect_status || 0
               } as Filter}
               onSubmit={handleSubmit}
             >
@@ -464,10 +453,27 @@ export function Advanced() {
   return (
     <div>
       <CollapsableSection title="Releases" subtitle="Match only certain release names and/or ignore other release names">
-        <TextField name="match_releases" label="Match releases" columns={6} placeholder="eg. *some?movie*,*some?show*s01*" />
-        <TextField name="except_releases" label="Except releases" columns={6} placeholder="" />
-        <div className="col-span-6">
-          <SwitchGroup name="use_regex" label="Use Regex" />
+        <div className="grid col-span-12 gap-6">
+          <div
+            className="col-span-12 flex p-4 text-sm text-yellow-700 bg-yellow-100 rounded-lg dark:bg-yellow-200 dark:text-yellow-800"
+            role="alert">
+            <svg aria-hidden="true" className="flex-shrink-0 inline w-5 h-5 mr-3" fill="currentColor"
+              viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+              <path fillRule="evenodd"
+                d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
+                clipRule="evenodd"></path>
+            </svg>
+            <span className="sr-only">Info</span>
+            <div>
+              <span className="font-bold">Warning!</span> autobrr has extensive filtering built-in - only use this if nothing else works. If you need help please ask.
+            </div>
+          </div>
+
+          <TextField name="match_releases" label="Match releases" columns={6} placeholder="eg. *some?movie*,*some?show*s01*" />
+          <TextField name="except_releases" label="Except releases" columns={6} placeholder="" />
+          <div className="col-span-6">
+            <SwitchGroup name="use_regex" label="Use Regex" />
+          </div>
         </div>
       </CollapsableSection>
 
@@ -490,7 +496,8 @@ export function Advanced() {
       </CollapsableSection>
 
       <CollapsableSection title="Origins" subtitle="Match Internals, scene, p2p etc if announced">
-        <MultiSelect name="origins" options={ORIGIN_OPTIONS} label="Origins" columns={6} />
+        <MultiSelect name="origins" options={ORIGIN_OPTIONS} label="Match Origins" columns={6} creatable={true} />
+        <MultiSelect name="except_origins" options={ORIGIN_OPTIONS} label="Except Origins" columns={6} creatable={true} />
       </CollapsableSection>
 
       <CollapsableSection title="Freeleech" subtitle="Match only freeleech and freeleech percent">
@@ -508,10 +515,11 @@ interface CollapsableSectionProps {
     title: string;
     subtitle: string;
     children: React.ReactNode;
+    defaultOpen?: boolean;
 }
 
-function CollapsableSection({ title, subtitle, children }: CollapsableSectionProps) {
-  const [isOpen, toggleOpen] = useToggle(false);
+export function CollapsableSection({ title, subtitle, children, defaultOpen }: CollapsableSectionProps) {
+  const [isOpen, toggleOpen] = useToggle(defaultOpen ?? false);
 
   return (
     <div className="mt-6 lg:pb-6 border-b border-gray-200 dark:border-gray-700">
@@ -607,487 +615,3 @@ export function External() {
   );
 }
 
-interface FilterActionsProps {
-    filter: Filter;
-    values: FormikValues;
-}
-
-export function FilterActions({ filter, values }: FilterActionsProps) {
-  const { data } = useQuery(
-    ["filters", "download_clients"],
-    () => APIClient.download_clients.getAll(),
-    { refetchOnWindowFocus: false }
-  );
-
-  const newAction = {
-    name: "new action",
-    enabled: true,
-    type: "TEST",
-    watch_folder: "",
-    exec_cmd: "",
-    exec_args: "",
-    category: "",
-    tags: "",
-    label: "",
-    save_path: "",
-    paused: false,
-    ignore_rules: false,
-    limit_upload_speed: 0,
-    limit_download_speed: 0,
-    limit_ratio: 0,
-    limit_seed_time: 0,
-    reannounce_skip: false,
-    reannounce_delete: false,
-    reannounce_interval: 7,
-    reannounce_max_attempts: 25,
-    filter_id: filter.id,
-    webhook_host: "",
-    webhook_type: "",
-    webhook_method: "",
-    webhook_data: "",
-    webhook_headers: []
-    //   client_id: 0,
-  };
-
-  return (
-    <div className="mt-10">
-      <FieldArray name="actions">
-        {({ remove, push }) => (
-          <Fragment>
-            <div className="-ml-4 -mt-4 mb-6 flex justify-between items-center flex-wrap sm:flex-nowrap">
-              <div className="ml-4 mt-4">
-                <h3 className="text-lg leading-6 font-medium text-gray-900 dark:text-gray-200">Actions</h3>
-                <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                                    Add to download clients or run custom commands.
-                </p>
-              </div>
-              <div className="ml-4 mt-4 flex-shrink-0">
-                <button
-                  type="button"
-                  className="relative inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 dark:bg-blue-600 hover:bg-indigo-700 dark:hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 dark:focus:ring-blue-500"
-                  onClick={() => push(newAction)}
-                >
-                                    Add new
-                </button>
-              </div>
-            </div>
-
-            <div className="light:bg-white dark:bg-gray-800 light:shadow sm:rounded-md">
-              {values.actions.length > 0 ?
-                <ul className="divide-y divide-gray-200 dark:divide-gray-700">
-                  {values.actions.map((action: Action, index: number) => (
-                    <FilterActionsItem action={action} clients={data ?? []} idx={index} remove={remove} key={index} />
-                  ))}
-                </ul>
-                : <EmptyListState text="No actions yet!" />
-              }
-            </div>
-          </Fragment>
-        )}
-      </FieldArray>
-    </div>
-  );
-}
-
-interface TypeFormProps {
-  action: Action;
-  idx: number;
-  clients: Array<DownloadClient>;
-}
-
-const TypeForm = ({ action, idx, clients }: TypeFormProps) => {
-  switch (action.type) {
-  case "TEST":
-    return (
-      <AlertWarning
-        text="The test action does nothing except to show if the filter works."
-      />
-    );
-  case "EXEC":
-    return (
-      <div>
-        <div className="mt-6 grid grid-cols-12 gap-6">
-          <TextField
-            name={`actions.${idx}.exec_cmd`}
-            label="Command"
-            columns={6}
-            placeholder="Path to program eg. /bin/test"
-          />
-          <TextField
-            name={`actions.${idx}.exec_args`}
-            label="Arguments"
-            columns={6}
-            placeholder="Arguments eg. --test"
-          />
-        </div>
-      </div>
-    );
-  case "WATCH_FOLDER":
-    return (
-      <div className="mt-6 grid grid-cols-12 gap-6">
-        <TextField
-          name={`actions.${idx}.watch_folder`}
-          label="Watch folder"
-          columns={6}
-          placeholder="Watch directory eg. /home/user/rwatch"
-        />
-      </div>
-    );
-  case "WEBHOOK":
-    return (
-      <div className="mt-6 grid grid-cols-12 gap-6">
-        <TextField
-          name={`actions.${idx}.webhook_host`}
-          label="Host"
-          columns={6}
-          placeholder="Host eg. http://localhost/webhook"
-        />
-        <TextField
-          name={`actions.${idx}.webhook_data`}
-          label="Data (json)"
-          columns={6}
-          placeholder={"Request data: { \"key\": \"value\" }"}
-        />
-      </div>
-    );
-  case "QBITTORRENT":
-    return (
-      <div className="w-full">
-        <div className="mt-6 grid grid-cols-12 gap-6">
-          <DownloadClientSelect
-            name={`actions.${idx}.client_id`}
-            action={action}
-            clients={clients}
-          />
-
-          <div className="col-span-6 sm:col-span-6">
-            <TextField
-              name={`actions.${idx}.save_path`}
-              label="Save path"
-              columns={6}
-              placeholder="eg. /full/path/to/watch_folder"
-            />
-          </div>
-        </div>
-
-        <div className="mt-6 grid grid-cols-12 gap-6">
-          <TextField
-            name={`actions.${idx}.category`}
-            label="Category"
-            columns={6}
-            placeholder="eg. category"
-          />
-          <TextField
-            name={`actions.${idx}.tags`}
-            label="Tags"
-            columns={6}
-            placeholder="eg. tag1,tag2"
-          />
-        </div>
-
-        <CollapsableSection title="Rules" subtitle="client options">
-          <div className="col-span-12">
-            <div className="mt-6 grid grid-cols-12 gap-6">
-              <NumberField
-                name={`actions.${idx}.limit_download_speed`}
-                label="Limit download speed (KB/s)"
-              />
-              <NumberField
-                name={`actions.${idx}.limit_upload_speed`}
-                label="Limit upload speed (KB/s)"
-              />
-            </div>
-
-            <div className="mt-6 grid grid-cols-12 gap-6">
-              <NumberField
-                name={`actions.${idx}.limit_ratio`}
-                label="Ratio limit"
-                step={0.5}
-              />
-              <NumberField
-                name={`actions.${idx}.limit_seed_time`}
-                label="Seed time limit (seconds)"
-              />
-            </div>
-          </div>
-          <div className="col-span-6">
-            <SwitchGroup
-              name={`actions.${idx}.paused`}
-              label="Add paused"
-              description="Add torrent as paused"
-            />
-            <SwitchGroup
-              name={`actions.${idx}.ignore_rules`}
-              label="Ignore client rules"
-              description="Download if max active reached"
-            />
-          </div>
-        </CollapsableSection>
-
-        <CollapsableSection title="Advanced" subtitle="Advanced options">
-          <div className="col-span-12">
-            <div className="mt-6 grid grid-cols-12 gap-6">
-              <NumberField
-                name={`actions.${idx}.reannounce_interval`}
-                label="Reannounce interval. Run every X seconds"
-              />
-              <NumberField
-                name={`actions.${idx}.reannounce_max_attempts`}
-                label="Run reannounce Y times"
-              />
-            </div>
-          </div>
-          <div className="col-span-6">
-            <SwitchGroup
-              name={`actions.${idx}.reannounce_skip`}
-              label="Skip reannounce"
-              description="If reannounce is not needed, skip"
-            />
-            <SwitchGroup
-              name={`actions.${idx}.reannounce_delete`}
-              label="Delete stalled"
-              description="Delete stalled torrents after X attempts"
-            />
-          </div>
-        </CollapsableSection>
-      </div>
-    );
-  case "DELUGE_V1":
-  case "DELUGE_V2":
-    return (
-      <div>
-        <div className="mt-6 grid grid-cols-12 gap-6">
-          <DownloadClientSelect
-            name={`actions.${idx}.client_id`}
-            action={action}
-            clients={clients}
-          />
-
-          <div className="col-span-12 sm:col-span-6">
-            <TextField
-              name={`actions.${idx}.save_path`}
-              label="Save path"
-              columns={6}
-            />
-          </div>
-        </div>
-
-        <div className="mt-6 col-span-12 sm:col-span-6">
-          <TextField
-            name={`actions.${idx}.label`}
-            label="Label"
-            columns={6}
-          />
-        </div>
-
-        <div className="mt-6 grid grid-cols-12 gap-6">
-          <NumberField
-            name={`actions.${idx}.limit_download_speed`}
-            label="Limit download speed (KB/s)"
-          />
-          <NumberField
-            name={`actions.${idx}.limit_upload_speed`}
-            label="Limit upload speed (KB/s)"
-          />
-        </div>
-
-        <div className="mt-6 grid grid-cols-12 gap-6">
-          <div className="col-span-6">
-            <SwitchGroup
-              name={`actions.${idx}.paused`}
-              label="Add paused"
-            />
-          </div>
-        </div>
-      </div>
-    );
-  case "TRANSMISSION":
-    return (
-      <div>
-        <div className="mt-6 grid grid-cols-12 gap-6">
-          <DownloadClientSelect
-            name={`actions.${idx}.client_id`}
-            action={action}
-            clients={clients}
-          />
-
-          <div className="col-span-12 sm:col-span-6">
-            <TextField
-              name={`actions.${idx}.save_path`}
-              label="Save path"
-              columns={6}
-            />
-          </div>
-        </div>
-
-        <div className="mt-6 grid grid-cols-12 gap-6">
-          <div className="col-span-6">
-            <SwitchGroup
-              name={`actions.${idx}.paused`}
-              label="Add paused"
-            />
-          </div>
-        </div>
-      </div>
-    );
-  case "RADARR":
-  case "SONARR":
-  case "LIDARR":
-  case "WHISPARR":
-    return (
-      <div className="mt-6 grid grid-cols-12 gap-6">
-        <DownloadClientSelect
-          name={`actions.${idx}.client_id`}
-          action={action}
-          clients={clients}
-        />
-      </div>
-    );
-
-  default:
-    return null;
-  }
-};
-
-interface FilterActionsItemProps {
-    action: Action;
-    clients: DownloadClient[];
-    idx: number;
-    remove: <T>(index: number) => T | undefined;
-}
-
-function FilterActionsItem({ action, clients, idx, remove }: FilterActionsItemProps) {
-  const cancelButtonRef = useRef(null);
-
-  const [deleteModalIsOpen, toggleDeleteModal] = useToggle(false);
-  const [edit, toggleEdit] = useToggle(false);
-
-  return (
-    <li>
-      <div
-        className={classNames(
-          idx % 2 === 0 ? "bg-white dark:bg-gray-800" : "bg-gray-50 dark:bg-gray-700",
-          "flex items-center sm:px-6 hover:bg-gray-50 dark:hover:bg-gray-600"
-        )}
-      >
-        <Field name={`actions.${idx}.enabled`} type="checkbox">
-          {({
-            field,
-            form: { setFieldValue }
-          }: FieldProps) => (
-            <SwitchBasic
-              {...field}
-              type="button"
-              value={field.value}
-              checked={field.checked ?? false}
-              onChange={(value: boolean) => {
-                setFieldValue(field?.name ?? "", value);
-              }}
-              className={classNames(
-                field.value ? "bg-teal-500 dark:bg-blue-500" : "bg-gray-200 dark:bg-gray-600",
-                "relative inline-flex flex-shrink-0 h-6 w-11 border-2 border-transparent rounded-full cursor-pointer transition-colors ease-in-out duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-              )}
-            >
-              <span className="sr-only">toggle enabled</span>
-              <span
-                aria-hidden="true"
-                className={classNames(
-                  field.value ? "translate-x-5" : "translate-x-0",
-                  "inline-block h-5 w-5 rounded-full bg-white shadow transform ring-0 transition ease-in-out duration-200"
-                )}
-              />
-            </SwitchBasic>
-          )}
-        </Field>
-
-        <button className="px-4 py-4 w-full flex" type="button" onClick={toggleEdit}>
-          <div className="min-w-0 flex-1 sm:flex sm:items-center sm:justify-between">
-            <div className="truncate">
-              <div className="flex text-sm">
-                <p className="ml-4 font-medium text-indigo-600 dark:text-gray-100 truncate">
-                  {action.name}
-                </p>
-              </div>
-            </div>
-            <div className="mt-4 flex-shrink-0 sm:mt-0 sm:ml-5">
-              <div className="flex overflow-hidden -space-x-1">
-                <span className="text-sm font-normal text-gray-500 dark:text-gray-400">
-                  {ActionTypeNameMap[action.type]}
-                </span>
-              </div>
-            </div>
-          </div>
-          <div className="ml-5 flex-shrink-0">
-            <ChevronRightIcon
-              className="h-5 w-5 text-gray-400"
-              aria-hidden="true"
-            />
-          </div>
-        </button>
-
-      </div>
-      {edit && (
-        <div className="px-4 py-4 flex items-center sm:px-6 border dark:border-gray-600">
-          <Transition.Root show={deleteModalIsOpen} as={Fragment}>
-            <Dialog
-              as="div"
-              static
-              className="fixed inset-0 overflow-y-auto"
-              initialFocus={cancelButtonRef}
-              open={deleteModalIsOpen}
-              onClose={toggleDeleteModal}
-            >
-              <DeleteModal
-                isOpen={deleteModalIsOpen}
-                buttonRef={cancelButtonRef}
-                toggle={toggleDeleteModal}
-                deleteAction={() => remove(idx)}
-                title="Remove filter action"
-                text="Are you sure you want to remove this action? This action cannot be undone."
-              />
-            </Dialog>
-          </Transition.Root>
-
-          <div className="w-full">
-
-            <div className="mt-6 grid grid-cols-12 gap-6">
-              <Select
-                name={`actions.${idx}.type`}
-                label="Type"
-                optionDefaultText="Select type"
-                options={ActionTypeOptions}
-              />
-
-              <TextField name={`actions.${idx}.name`} label="Name" columns={6} />
-            </div>
-
-            <TypeForm action={action} clients={clients} idx={idx} />
-
-            <div className="pt-6 divide-y divide-gray-200">
-              <div className="mt-4 pt-4 flex justify-between">
-                <button
-                  type="button"
-                  className="inline-flex items-center justify-center py-2 border border-transparent font-medium rounded-md text-red-700 dark:text-red-500 hover:text-red-500 dark:hover:text-red-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:text-sm"
-                  onClick={toggleDeleteModal}
-                >
-                  Remove
-                </button>
-
-                <div>
-                  <button
-                    type="button"
-                    className="light:bg-white light:border light:border-gray-300 rounded-md shadow-sm py-2 px-4 inline-flex justify-center text-sm font-medium text-gray-700 dark:text-gray-500 light:hover:bg-gray-50 dark:hover:text-gray-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                    onClick={toggleEdit}
-                  >
-                    Close
-                  </button>
-                </div>
-              </div>
-            </div>
-
-          </div>
-        </div>
-      )}
-    </li>
-  );
-}

@@ -1,60 +1,31 @@
 package config
 
 import (
-	"errors"
+	"bytes"
 	"log"
 	"os"
 	"path"
 	"path/filepath"
 	"strings"
 	"sync"
+	"text/template"
 
+	"github.com/autobrr/autobrr/internal/api"
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/internal/logger"
+	"github.com/autobrr/autobrr/pkg/errors"
 
 	"github.com/fsnotify/fsnotify"
 	"github.com/spf13/viper"
 )
 
-func writeConfig(configPath string, configFile string) error {
-	path := filepath.Join(configPath, configFile)
-
-	// check if configPath exists, if not create it
-	if _, err := os.Stat(configPath); errors.Is(err, os.ErrNotExist) {
-		err := os.MkdirAll(configPath, os.ModePerm)
-		if err != nil {
-			log.Println(err)
-			return err
-		}
-	}
-
-	// check if config exists, if not create it
-	if _, err := os.Stat(path); errors.Is(err, os.ErrNotExist) {
-		f, err := os.Create(path)
-		if err != nil { // perm 0666
-			// handle failed create
-			log.Printf("error creating file: %q", err)
-			return err
-		}
-
-		host := "127.0.0.1"
-		if pd, _ := os.Open("/proc/1/cgroup"); pd != nil {
-			defer pd.Close()
-			b := make([]byte, 4096, 4096)
-			pd.Read(b)
-			if strings.Contains(string(b), "/docker") || strings.Contains(string(b), "/lxc") {
-				host = "0.0.0.0"
-			}
-		}
-		defer f.Close()
-
-		_, err = f.WriteString(`# config.toml
+var configTemplate = `# config.toml
 
 # Hostname / IP
 #
 # Default: "localhost"
 #
-host = "` + host + `"
+host = "{{ .host }}"
 
 # Port
 #
@@ -87,15 +58,74 @@ logLevel = "DEBUG"
 
 # Session secret
 #
-sessionSecret = "secret-session-key"`)
+sessionSecret = "{{ .sessionSecret }}"
+`
 
+func writeConfig(configPath string, configFile string) error {
+	cfgPath := filepath.Join(configPath, configFile)
+
+	// check if configPath exists, if not create it
+	if _, err := os.Stat(configPath); errors.Is(err, os.ErrNotExist) {
+		err := os.MkdirAll(configPath, os.ModePerm)
 		if err != nil {
+			log.Println(err)
+			return err
+		}
+	}
+
+	// check if config exists, if not create it
+	if _, err := os.Stat(cfgPath); errors.Is(err, os.ErrNotExist) {
+		// set default host
+		host := "127.0.0.1"
+
+		if _, err := os.Stat("/.dockerenv"); err == nil {
+			// docker creates a .dockerenv file at the root
+			// of the directory tree inside the container.
+			// if this file exists then the viewer is running
+			// from inside a container so return true
+			host = "0.0.0.0"
+		} else if pd, _ := os.Open("/proc/1/cgroup"); pd != nil {
+			defer pd.Close()
+			b := make([]byte, 4096, 4096)
+			pd.Read(b)
+			if strings.Contains(string(b), "/docker") || strings.Contains(string(b), "/lxc") {
+				host = "0.0.0.0"
+			}
+		}
+
+		f, err := os.Create(cfgPath)
+		if err != nil { // perm 0666
+			// handle failed create
+			log.Printf("error creating file: %q", err)
+			return err
+		}
+		defer f.Close()
+
+		// generate default sessionSecret
+		sessionSecret := api.GenerateSecureToken(16)
+
+		// setup text template to inject variables into
+		tmpl, err := template.New("config").Parse(configTemplate)
+		if err != nil {
+			return errors.Wrap(err, "could not create config template")
+		}
+
+		tmplVars := map[string]string{
+			"host":          host,
+			"sessionSecret": sessionSecret,
+		}
+
+		var buffer bytes.Buffer
+		if err = tmpl.Execute(&buffer, &tmplVars); err != nil {
+			return errors.Wrap(err, "could not write torrent url template output")
+		}
+
+		if _, err = f.WriteString(buffer.String()); err != nil {
 			log.Printf("error writing contents to file: %v %q", configPath, err)
 			return err
 		}
 
 		return f.Sync()
-
 	}
 
 	return nil
@@ -157,8 +187,7 @@ func (c *AppConfig) load(configPath string) {
 
 		// check if path and file exists
 		// if not, create path and file
-		err := writeConfig(configPath, "config.toml")
-		if err != nil {
+		if err := writeConfig(configPath, "config.toml"); err != nil {
 			log.Printf("write error: %q", err)
 		}
 

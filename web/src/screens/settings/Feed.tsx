@@ -17,7 +17,7 @@ import {
 } from "@heroicons/react/outline";
 import { FeedUpdateForm } from "../../forms/settings/FeedForms";
 import { EmptySimple } from "../../components/emptystates";
-import { componentMapType } from "../../forms/settings/DownloadClientForms";
+import { ImplementationBadges } from "./Indexer";
 
 function FeedSettings() {
   const { data } = useQuery(
@@ -46,10 +46,13 @@ function FeedSettings() {
                   className="col-span-2 px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Enabled
                 </div>
                 <div
-                  className="col-span-6 px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Name
+                  className="col-span-4 px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Name
                 </div>
                 <div
-                  className="col-span-2 px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Type
+                  className="col-span-3 px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Indexer
+                </div>
+                <div
+                  className="col-span-3 px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Type
                 </div>
                 {/*<div className="col-span-4 px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Events</div>*/}
               </li>
@@ -64,18 +67,6 @@ function FeedSettings() {
     </div>
   );
 }
-
-const ImplementationTorznab = () => (
-  <span
-    className="inline-flex items-center px-2.5 py-0.5 rounded-md text-sm font-medium bg-orange-200 dark:bg-orange-400 text-orange-800 dark:text-orange-800"
-  >
-        Torznab
-  </span>
-);
-
-export const ImplementationMap: componentMapType = {
-  "TORZNAB": <ImplementationTorznab/>
-};
 
 interface ListItemProps {
     feed: Feed;
@@ -129,13 +120,16 @@ function ListItem({ feed }: ListItemProps) {
             />
           </Switch>
         </div>
-        <div className="col-span-6 flex items-center sm:px-6 text-sm font-medium text-gray-900 dark:text-white">
+        <div className="col-span-4 flex items-center sm:px-6 text-sm font-medium text-gray-900 dark:text-white">
           {feed.name}
         </div>
-        <div className="col-span-2 flex items-center sm:px-6">
-          {ImplementationMap[feed.type]}
+        <div className="col-span-3 flex items-center sm:px-6 text-sm font-medium text-gray-900 dark:text-gray-500">
+          {feed.indexer}
         </div>
-        <div className="col-span-1 flex items-center sm:px-6">
+        <div className="col-span-2 flex items-center sm:px-6">
+          {ImplementationBadges[feed.type.toLowerCase()]}
+        </div>
+        <div className="col-span-1 flex justify-center items-center sm:px-6">
           <FeedItemDropdown
             feed={feed}
             onToggle={toggleActive}
@@ -223,7 +217,7 @@ const FeedItemDropdown = ({
                     )}
                     aria-hidden="true"
                   />
-                                    Edit
+                  Edit
                 </button>
               )}
             </Menu.Item>
@@ -243,7 +237,7 @@ const FeedItemDropdown = ({
                     )}
                     aria-hidden="true"
                   />
-                                    Toggle
+                  Toggle
                 </button>
               )}
             </Menu.Item>
@@ -265,7 +259,7 @@ const FeedItemDropdown = ({
                     )}
                     aria-hidden="true"
                   />
-                                    Delete
+                  Delete
                 </button>
               )}
             </Menu.Item>

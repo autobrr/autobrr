@@ -14,6 +14,7 @@ import (
 
 	delugeClient "github.com/gdm85/go-libdeluge"
 	"github.com/hekmon/transmissionrpc/v2"
+	"github.com/mrobinsn/go-rtorrent/rtorrent"
 )
 
 func (s *service) testConnection(client domain.DownloadClient) error {
@@ -23,6 +24,9 @@ func (s *service) testConnection(client domain.DownloadClient) error {
 
 	case domain.DownloadClientTypeDelugeV1, domain.DownloadClientTypeDelugeV2:
 		return s.testDelugeConnection(client)
+
+	case domain.DownloadClientTypeRTorrent:
+		return s.testRTorrentConnection(client)
 
 	case domain.DownloadClientTypeTransmission:
 		return s.testTransmissionConnection(client)
@@ -115,6 +119,21 @@ func (s *service) testDelugeConnection(client domain.DownloadClient) error {
 	}
 
 	s.log.Debug().Msgf("test client connection for Deluge: success - daemon version: %v", ver)
+
+	return nil
+}
+
+func (s *service) testRTorrentConnection(client domain.DownloadClient) error {
+	// create client
+	rt := rtorrent.New(client.Host, true)
+	name, err := rt.Name()
+	if err != nil {
+		return errors.Wrap(err, "error logging into client: %v", client.Host)
+	}
+
+	s.log.Trace().Msgf("test client connection for rTorrent: got client: %v", name)
+
+	s.log.Debug().Msgf("test client connection for rTorrent: success")
 
 	return nil
 }

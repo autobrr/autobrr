@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -71,8 +72,14 @@ func TestClient_GetCaps(t *testing.T) {
 	key := "mock-key"
 
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		apiKey := r.Header.Get("X-API-Key")
-		if apiKey != key {
+		//apiKey := r.Header.Get("X-API-Key")
+		//if apiKey != key {
+		//	w.WriteHeader(http.StatusUnauthorized)
+		//	w.Write(nil)
+		//	return
+		//}
+
+		if !strings.Contains(r.RequestURI, key) {
 			w.WriteHeader(http.StatusUnauthorized)
 			w.Write(nil)
 			return

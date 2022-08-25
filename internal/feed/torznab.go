@@ -73,7 +73,6 @@ func (j *TorznabJob) process() error {
 		rls.TorrentName = item.Title
 		rls.TorrentURL = item.Link
 		rls.Implementation = domain.ReleaseImplementationTorznab
-		rls.Indexer = j.IndexerIdentifier
 
 		// parse size bytes string
 		rls.ParseSizeBytesString(item.Size)

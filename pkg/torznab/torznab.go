@@ -70,6 +70,10 @@ func (c *client) get(endpoint string, opts map[string]string) (int, *Response, e
 		"t": {"search"},
 	}
 
+	if c.ApiKey != "" {
+		params.Add("apikey", c.ApiKey)
+	}
+
 	u, err := url.Parse(c.Host)
 	u.Path = strings.TrimSuffix(u.Path, "/")
 	u.RawQuery = params.Encode()
@@ -84,9 +88,10 @@ func (c *client) get(endpoint string, opts map[string]string) (int, *Response, e
 		req.SetBasicAuth(c.BasicAuth.Username, c.BasicAuth.Password)
 	}
 
-	if c.ApiKey != "" {
-		req.Header.Add("X-API-Key", c.ApiKey)
-	}
+	// Jackett only supports api key via url param while Prowlarr does that and via header
+	//if c.ApiKey != "" {
+	//	req.Header.Add("X-API-Key", c.ApiKey)
+	//}
 
 	resp, err := c.http.Do(req)
 	if err != nil {
@@ -126,6 +131,10 @@ func (c *client) getCaps(endpoint string, opts map[string]string) (int, *Caps, e
 		"t": {"caps"},
 	}
 
+	if c.ApiKey != "" {
+		params.Add("apikey", c.ApiKey)
+	}
+
 	u, err := url.Parse(c.Host)
 	u.Path = strings.TrimSuffix(u.Path, "/")
 	u.RawQuery = params.Encode()
@@ -140,9 +149,10 @@ func (c *client) getCaps(endpoint string, opts map[string]string) (int, *Caps, e
 		req.SetBasicAuth(c.BasicAuth.Username, c.BasicAuth.Password)
 	}
 
-	if c.ApiKey != "" {
-		req.Header.Add("X-API-Key", c.ApiKey)
-	}
+	// Jackett only supports api key via url param while Prowlarr does that and via header
+	//if c.ApiKey != "" {
+	//	req.Header.Add("X-API-Key", c.ApiKey)
+	//}
 
 	resp, err := c.http.Do(req)
 	if err != nil {

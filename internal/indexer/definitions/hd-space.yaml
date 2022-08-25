@@ -1,0 +1,60 @@
+---
+#id: hdspace
+name: HD-Space
+identifier: hd-space
+description: HD-Space (HDS) is a Private Torrent Tracker for HD MOVIES / TV
+language: en-us
+urls:
+  - https://hd-space.org
+privacy: private
+protocol: torrent
+supports:
+  - irc
+  - rss
+source: custom
+settings:
+  - name: rsskey
+    type: secret
+    label: RSS key
+    help: "Go to My Panel and then Change PID. It will show the PID, but don't click it!"
+
+irc:
+  network: P2P-Network
+  server: irc.p2p-network.net
+  port: 6697
+  tls: true
+  channels:
+    - "#HD-Space"
+  announcers:
+    - hdspace
+  settings:
+    - name: nickserv.account
+      type: text
+      required: false
+      label: NickServ Account
+      help: NickServ account. Make sure to group your user and bot. Eg. user_bot
+    - name: nickserv.password
+      type: secret
+      required: false
+      label: NickServ Password
+      help: NickServ password
+
+parse:
+  type: single
+  lines:
+    - test:
+        - "New Torrent in category [HDTV 1080] Show S03E06 2160p PMTP WEB-DL DDP5 1 DV HEVC-GROUP1 (4.52 GB) uploaded! Download: https://hd-space.org/download.php?id=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        - "New Torrent in category [Blu-Ray] The Movie 2022 1080p Blu-ray AVC DTS-HD MA 5.1-GROUP2 (23.21 GB) uploaded! Download: https://hd-space.org/download.php?id=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        - "New Torrent in category [Blu-Ray] Other movie with long tittle 2013 2160 UHD EXTENDED Blu-ray HEVC TrueHD 7.1-GROUP3@HDSpace (88.20 GB) uploaded! Download: https://hd-space.org/download.php?id=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      pattern: 'New Torrent in category \[([^\]]*)\] (.*) \(([^\)]*)\) uploaded! Download\: (https?\:\/\/[^\/]+\/).*[&\?]id=([a-f0-9]+)'
+      vars:
+        - category
+        - torrentName
+        - torrentSize
+        - baseUrl
+        - torrentId
+
+  match:
+    torrenturl: "{{ .baseUrl }}download.php?id={{ .torrentId }}&f={{ .torrentName }}.torrent&rsspid={{ .rsskey }}"
+    encode:
+      - torrentName

@@ -54,6 +54,7 @@ interface IrcNetworkWithHealth {
   connected: boolean;
   connected_since: string;
   connection_errors: string[];
+  healthy: boolean;
 }
 
 interface NickServ {
