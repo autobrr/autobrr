@@ -484,6 +484,11 @@ func (r *Release) MapVars(def *IndexerDefinition, varMap map[string]string) erro
 		r.Group = releaseGroup
 	}
 
+	if episodeVal, err := getStringMapValue(varMap, "releaseEpisode"); err == nil {
+		episode, _ := strconv.Atoi(episodeVal);
+		r.Episode = episode
+	}
+
 	return nil
 }
 
