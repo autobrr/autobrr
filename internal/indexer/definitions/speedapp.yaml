@@ -1,0 +1,57 @@
+---
+#id: spd
+name: SpeedApp
+identifier: speedapp
+description: SpeedApp is a ROMANIAN Private Torrent Tracker for MOVIES / TV / GENERAL
+language: ro-RO
+urls:
+  - https://speedapp.io/
+privacy: private
+protocol: torrent
+supports:
+  - irc
+source: unknown
+settings:
+  - name: passkey
+    type: secret
+    label: PassKey
+    help: Copy the passkey from your profile
+
+irc:
+  network: P2P-Network
+  server: irc.p2p-network.net
+  port: 6697
+  tls: true
+  channels:
+    - "#speedapp"
+  announcers:
+    - speedapp-announcer
+  settings:
+    - name: nickserv.account
+      type: text
+      required: true
+      label: NickServ Account
+
+    - name: nickserv.password
+      type: secret
+      required: true
+      label: NickServ Password
+      help: NickServ password
+
+parse:
+  type: single
+  lines:
+    - test:
+        - "New! (Movies HD-RO) - Some.File.2022.1080p.WEB-DL.DDP5.1.Atmos.H.264.mkv - (5.14 GB) - https://speedapp.io/browse/00000/t/some-file-2022-1080p-web-dl-ddp5-1-atmos-h-264-mkv"
+        - "New! (XXX HD) - Some.XXX.21.05.19.famous.actress.XXX.1080p.MP4-WRB - (841.64 MB) - https://speedapp.io/browse/000000/t/some-xxx-21-05-19-famous-actress-xxx-1080p-mp4-wrb"
+      pattern: 'New! \((.*)\) - (.*) - \((.*)\) - (https?:\/\/.*)\/browse/(\d+)/t/(.*)'
+      vars:
+        - category
+        - torrentName
+        - torrentSize
+        - baseUrl
+        - torrentId
+        - torrentNameId
+
+  match:
+    torrenturl: "{{ .baseUrl }}/rss/download{{ .torrentId }}/{{ .torrentNameId }}.torrent?passkey={{ .passkey }}"
