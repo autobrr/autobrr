@@ -286,6 +286,16 @@ func (f Filter) CheckFilter(r *Release) ([]string, bool) {
 		r.addRejectionF("hdr unwanted. got: %v want: %v", r.HDR, f.ExceptHDR)
 	}
 
+	// Other is parsed into the Other slice from rls
+	if len(f.MatchOther) > 0 && !sliceContainsSlice(r.Other, f.MatchOther) {
+		r.addRejectionF("match other not matching. got: %v want: %v", r.Other, f.MatchOther)
+	}
+
+	// Other is parsed into the Other slice from rls
+	if len(f.ExceptOther) > 0 && sliceContainsSlice(r.Other, f.ExceptOther) {
+		r.addRejectionF("except other unwanted. got: %v unwanted: %v", r.Other, f.ExceptOther)
+	}
+
 	if f.Years != "" && !containsIntStrings(r.Year, f.Years) {
 		r.addRejectionF("year not matching. got: %d want: %v", r.Year, f.Years)
 	}
