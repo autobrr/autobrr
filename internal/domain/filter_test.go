@@ -2,7 +2,6 @@ package domain
 
 import (
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -998,61 +997,7 @@ func TestFilter_CheckFilter(t *testing.T) {
 }
 
 func TestFilter_CheckFilter1(t *testing.T) {
-	type fields struct {
-		ID                  int
-		Name                string
-		Enabled             bool
-		CreatedAt           time.Time
-		UpdatedAt           time.Time
-		MinSize             string
-		MaxSize             string
-		MaxDownloads        int
-		MaxDownloadsPer     FilterMaxDownloadsUnit
-		Delay               int
-		Priority            int32
-		MatchReleases       string
-		ExceptReleases      string
-		UseRegex            bool
-		MatchReleaseGroups  string
-		ExceptReleaseGroups string
-		Scene               bool
-		Origins             []string
-		ExceptOrigins       []string
-		Freeleech           bool
-		FreeleechPercent    string
-		Shows               string
-		Seasons             string
-		Episodes            string
-		Resolutions         []string
-		Codecs              []string
-		Sources             []string
-		Containers          []string
-		MatchHDR            []string
-		ExceptHDR           []string
-		Years               string
-		Artists             string
-		Albums              string
-		MatchReleaseTypes   []string
-		ExceptReleaseTypes  string
-		Formats             []string
-		Quality             []string
-		Media               []string
-		PerfectFlac         bool
-		Cue                 bool
-		Log                 bool
-		LogScore            int
-		MatchCategories     string
-		ExceptCategories    string
-		MatchUploaders      string
-		ExceptUploaders     string
-		Tags                string
-		ExceptTags          string
-		TagsAny             string
-		ExceptTagsAny       string
-		Actions             []*Action
-		Indexers            []Indexer
-		State               *FilterDownloads
-	}
+	type fields Filter
 	type args struct {
 		r *Release
 	}
@@ -1205,9 +1150,10 @@ func TestFilter_CheckFilter1(t *testing.T) {
 				Sources:     []string{"BluRay"},
 				Codecs:      []string{"x265", "HEVC"},
 				MatchHDR:    []string{"DV", "HDR"},
+				ExceptOther: []string{"REMUX", "HYBRID"},
 			},
 			args:           args{&Release{TorrentName: "Stranger Things S02 UHD BluRay 2160p DTS-HD MA 5.1 DV HEVC HYBRID REMUX-FraMeSToR"}},
-			wantRejections: []string{"source not matching. got: UHD.BluRay want: [BluRay]"},
+			wantRejections: []string{"source not matching. got: UHD.BluRay want: [BluRay]", "except other unwanted. got: [HYBRiD REMUX] unwanted: [REMUX HYBRID]"},
 			wantMatch:      false,
 		},
 		{
@@ -1217,6 +1163,7 @@ func TestFilter_CheckFilter1(t *testing.T) {
 				Sources:     []string{"UHD.BluRay"},
 				Codecs:      []string{"x265", "HEVC"},
 				MatchHDR:    []string{"DV", "HDR"},
+				MatchOther:  []string{"REMUX", "HYBRID"},
 			},
 			args:           args{&Release{TorrentName: "Stranger Things S02 UHD BluRay 2160p DTS-HD MA 5.1 DV HEVC HYBRID REMUX-FraMeSToR"}},
 			wantRejections: nil,
@@ -1447,9 +1394,9 @@ func TestFilter_CheckFilter1(t *testing.T) {
 		{
 			name: "test_32",
 			fields: fields{
-				MaxDownloads:    1,
-				MaxDownloadsPer: FilterMaxDownloadsMonth,
-				State: &FilterDownloads{
+				MaxDownloads:     1,
+				MaxDownloadsUnit: FilterMaxDownloadsMonth,
+				Downloads: &FilterDownloads{
 					MonthCount: 0,
 				},
 			},
@@ -1460,9 +1407,9 @@ func TestFilter_CheckFilter1(t *testing.T) {
 		{
 			name: "test_33",
 			fields: fields{
-				MaxDownloads:    10,
-				MaxDownloadsPer: FilterMaxDownloadsMonth,
-				State: &FilterDownloads{
+				MaxDownloads:     10,
+				MaxDownloadsUnit: FilterMaxDownloadsMonth,
+				Downloads: &FilterDownloads{
 					MonthCount: 10,
 				},
 			},
@@ -1473,9 +1420,9 @@ func TestFilter_CheckFilter1(t *testing.T) {
 		{
 			name: "test_34",
 			fields: fields{
-				MaxDownloads:    10,
-				MaxDownloadsPer: FilterMaxDownloadsMonth,
-				State: &FilterDownloads{
+				MaxDownloads:     10,
+				MaxDownloadsUnit: FilterMaxDownloadsMonth,
+				Downloads: &FilterDownloads{
 					MonthCount: 50,
 				},
 			},
@@ -1486,9 +1433,9 @@ func TestFilter_CheckFilter1(t *testing.T) {
 		{
 			name: "test_35",
 			fields: fields{
-				MaxDownloads:    15,
-				MaxDownloadsPer: FilterMaxDownloadsHour,
-				State: &FilterDownloads{
+				MaxDownloads:     15,
+				MaxDownloadsUnit: FilterMaxDownloadsHour,
+				Downloads: &FilterDownloads{
 					HourCount:  20,
 					MonthCount: 50,
 				},
@@ -1500,9 +1447,9 @@ func TestFilter_CheckFilter1(t *testing.T) {
 		{
 			name: "test_36",
 			fields: fields{
-				MaxDownloads:    15,
-				MaxDownloadsPer: FilterMaxDownloadsHour,
-				State: &FilterDownloads{
+				MaxDownloads:     15,
+				MaxDownloadsUnit: FilterMaxDownloadsHour,
+				Downloads: &FilterDownloads{
 					HourCount:  14,
 					MonthCount: 50,
 				},
@@ -1543,7 +1490,7 @@ func TestFilter_CheckFilter1(t *testing.T) {
 				Delay:               tt.fields.Delay,
 				Priority:            tt.fields.Priority,
 				MaxDownloads:        tt.fields.MaxDownloads,
-				MaxDownloadsUnit:    tt.fields.MaxDownloadsPer,
+				MaxDownloadsUnit:    tt.fields.MaxDownloadsUnit,
 				MatchReleases:       tt.fields.MatchReleases,
 				ExceptReleases:      tt.fields.ExceptReleases,
 				UseRegex:            tt.fields.UseRegex,
@@ -1575,6 +1522,8 @@ func TestFilter_CheckFilter1(t *testing.T) {
 				Cue:                 tt.fields.Cue,
 				Log:                 tt.fields.Log,
 				LogScore:            tt.fields.LogScore,
+				MatchOther:          tt.fields.MatchOther,
+				ExceptOther:         tt.fields.ExceptOther,
 				MatchCategories:     tt.fields.MatchCategories,
 				ExceptCategories:    tt.fields.ExceptCategories,
 				MatchUploaders:      tt.fields.MatchUploaders,
@@ -1585,7 +1534,7 @@ func TestFilter_CheckFilter1(t *testing.T) {
 				ExceptTagsAny:       tt.fields.ExceptTagsAny,
 				Actions:             tt.fields.Actions,
 				Indexers:            tt.fields.Indexers,
-				Downloads:           tt.fields.State,
+				Downloads:           tt.fields.Downloads,
 			}
 			tt.args.r.ParseString(tt.args.r.TorrentName)
 			rejections, match := f.CheckFilter(tt.args.r)
