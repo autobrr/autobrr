@@ -9,6 +9,7 @@ import (
 	"path"
 	"strings"
 	"time"
+	"io/ioutil"
 
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/pkg/errors"
@@ -139,6 +140,15 @@ func (s *service) watchFolder(action domain.Action, release domain.Release) erro
 		}
 	}
 
+	if len(release.TorrentDataRawBytes) == 0 {
+		t, err := ioutil.ReadFile(release.TorrentTmpFile)
+		if err != nil {
+			return errors.Wrap(err, "could not read torrent file: %v", release.TorrentTmpFile)
+		}
+
+		release.TorrentDataRawBytes = t
+	}
+
 	m := domain.NewMacro(release)
 
 	// parse and replace values in argument string before continuing
@@ -184,10 +194,19 @@ func (s *service) watchFolder(action domain.Action, release domain.Release) erro
 }
 
 func (s *service) webhook(action domain.Action, release domain.Release) error {
-	if release.TorrentTmpFile == "" && strings.Contains(action.WebhookData, "TorrentPathName") {
+	if release.TorrentTmpFile == "" && (strings.Contains(action.WebhookData, "TorrentPathName") || strings.Contains(action.WebhookData, "TorrentDataRawBytes")) {
 		if err := release.DownloadTorrentFile(); err != nil {
 			return errors.Wrap(err, "webhook: could not download torrent file for release: %v", release.TorrentName)
 		}
+	}
+
+	if len(release.TorrentDataRawBytes) == 0 {
+		t, err := ioutil.ReadFile(release.TorrentTmpFile)
+		if err != nil {
+			return errors.Wrap(err, "could not read torrent file: %v", release.TorrentTmpFile)
+		}
+
+		release.TorrentDataRawBytes = t
 	}
 
 	m := domain.NewMacro(release)
