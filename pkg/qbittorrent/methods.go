@@ -2,30 +2,33 @@ package qbittorrent
 
 import (
 	"encoding/json"
+	"errors"
 	"io/ioutil"
 	"net/http"
-	"net/http/httputil"
+	"net/url"
 	"strconv"
 	"strings"
 
-	"github.com/autobrr/autobrr/pkg/errors"
+	"github.com/rs/zerolog/log"
 )
 
 // Login https://github.com/qbittorrent/qBittorrent/wiki/WebUI-API-(qBittorrent-4.1)#authentication
 func (c *Client) Login() error {
-	opts := map[string]string{
-		"username": c.settings.Username,
-		"password": c.settings.Password,
-	}
+	credentials := make(map[string]string)
+	credentials["username"] = c.settings.Username
+	credentials["password"] = c.settings.Password
 
-	resp, err := c.postBasic("auth/login", opts)
+	resp, err := c.post("auth/login", credentials)
 	if err != nil {
-		return errors.Wrap(err, "login error")
+		log.Error().Err(err).Msg("login error")
+		return err
 	} else if resp.StatusCode == http.StatusForbidden {
-		return errors.New("User's IP is banned for too many failed login attempts")
+		log.Error().Err(err).Msg("User's IP is banned for too many failed login attempts")
+		return err
 
 	} else if resp.StatusCode != http.StatusOK { // check for correct status code
-		return errors.New("qbittorrent login bad status %v", resp.StatusCode)
+		log.Error().Err(err).Msgf("login bad status %v error", resp.StatusCode)
+		return errors.New("qbittorrent login bad status")
 	}
 
 	defer resp.Body.Close()
@@ -50,55 +53,60 @@ func (c *Client) Login() error {
 		return errors.New("bad credentials")
 	}
 
-	c.log.Printf("logged into client: %v", c.Name)
-
 	return nil
 }
 
 func (c *Client) GetTorrents() ([]Torrent, error) {
+	var torrents []Torrent
 
 	resp, err := c.get("torrents/info", nil)
 	if err != nil {
-		return nil, errors.Wrap(err, "get torrents error")
+		log.Error().Err(err).Msg("get torrents error")
+		return nil, err
 	}
 
 	defer resp.Body.Close()
 
 	body, readErr := ioutil.ReadAll(resp.Body)
 	if readErr != nil {
-		return nil, errors.Wrap(readErr, "could not read body")
+		log.Error().Err(err).Msg("get torrents read error")
+		return nil, readErr
 	}
 
-	var torrents []Torrent
 	err = json.Unmarshal(body, &torrents)
 	if err != nil {
-		return nil, errors.Wrap(err, "could not unmarshal body")
+		log.Error().Err(err).Msg("get torrents unmarshal error")
+		return nil, err
 	}
 
 	return torrents, nil
 }
 
 func (c *Client) GetTorrentsFilter(filter TorrentFilter) ([]Torrent, error) {
-	opts := map[string]string{
-		"filter": string(filter),
-	}
+	var torrents []Torrent
 
-	resp, err := c.get("torrents/info", opts)
+	v := url.Values{}
+	v.Add("filter", string(filter))
+	params := v.Encode()
+
+	resp, err := c.get("torrents/info?"+params, nil)
 	if err != nil {
-		return nil, errors.Wrap(err, "could not get filtered torrents with filter: %v", filter)
+		log.Error().Err(err).Msgf("get filtered torrents error: %v", filter)
+		return nil, err
 	}
 
 	defer resp.Body.Close()
 
 	body, readErr := ioutil.ReadAll(resp.Body)
 	if readErr != nil {
-		return nil, errors.Wrap(readErr, "could not read body")
+		log.Error().Err(err).Msgf("get filtered torrents read error: %v", filter)
+		return nil, readErr
 	}
 
-	var torrents []Torrent
 	err = json.Unmarshal(body, &torrents)
 	if err != nil {
-		return nil, errors.Wrap(err, "could not unmarshal body")
+		log.Error().Err(err).Msgf("get filtered torrents unmarshal error: %v", filter)
+		return nil, err
 	}
 
 	return torrents, nil
@@ -107,26 +115,29 @@ func (c *Client) GetTorrentsFilter(filter TorrentFilter) ([]Torrent, error) {
 func (c *Client) GetTorrentsActiveDownloads() ([]Torrent, error) {
 	var filter = TorrentFilterDownloading
 
-	opts := map[string]string{
-		"filter": string(filter),
-	}
+	v := url.Values{}
+	v.Add("filter", string(filter))
+	params := v.Encode()
 
-	resp, err := c.get("torrents/info", opts)
+	resp, err := c.get("torrents/info?"+params, nil)
 	if err != nil {
-		return nil, errors.Wrap(err, "could not get active torrents")
+		log.Error().Err(err).Msgf("get filtered torrents error: %v", filter)
+		return nil, err
 	}
 
 	defer resp.Body.Close()
 
 	body, readErr := ioutil.ReadAll(resp.Body)
 	if readErr != nil {
-		return nil, errors.Wrap(readErr, "could not read body")
+		log.Error().Err(err).Msgf("get filtered torrents read error: %v", filter)
+		return nil, readErr
 	}
 
 	var torrents []Torrent
 	err = json.Unmarshal(body, &torrents)
 	if err != nil {
-		return nil, errors.Wrap(readErr, "could not unmarshal body")
+		log.Error().Err(err).Msgf("get filtered torrents unmarshal error: %v", filter)
+		return nil, err
 	}
 
 	res := make([]Torrent, 0)
@@ -144,56 +155,43 @@ func (c *Client) GetTorrentsActiveDownloads() ([]Torrent, error) {
 func (c *Client) GetTorrentsRaw() (string, error) {
 	resp, err := c.get("torrents/info", nil)
 	if err != nil {
-		return "", errors.Wrap(err, "could not get torrents raw")
+		log.Error().Err(err).Msg("get torrent trackers raw error")
+		return "", err
 	}
 
 	defer resp.Body.Close()
 
-	data, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return "", errors.Wrap(err, "could not get read body torrents raw")
-	}
+	data, _ := ioutil.ReadAll(resp.Body)
 
 	return string(data), nil
 }
 
 func (c *Client) GetTorrentTrackers(hash string) ([]TorrentTracker, error) {
-	opts := map[string]string{
-		"hash": hash,
-	}
+	var trackers []TorrentTracker
 
-	resp, err := c.get("torrents/trackers", opts)
+	params := url.Values{}
+	params.Add("hash", hash)
+
+	p := params.Encode()
+
+	resp, err := c.get("torrents/trackers?"+p, nil)
 	if err != nil {
-		return nil, errors.Wrap(err, "could not get torrent trackers for hash: %v", hash)
+		log.Error().Err(err).Msgf("get torrent trackers error: %v", hash)
+		return nil, err
 	}
 
 	defer resp.Body.Close()
 
-	dump, err := httputil.DumpResponse(resp, true)
-	if err != nil {
-		//c.log.Printf("get torrent trackers error dump response: %v\n", string(dump))
-		return nil, errors.Wrap(err, "could not dump response for hash: %v", hash)
-	}
-
-	c.log.Printf("get torrent trackers response dump: %q", dump)
-
-	if resp.StatusCode == http.StatusNotFound {
-		return nil, nil
-	} else if resp.StatusCode == http.StatusForbidden {
-		return nil, nil
-	}
-
 	body, readErr := ioutil.ReadAll(resp.Body)
 	if readErr != nil {
-		return nil, errors.Wrap(err, "could not read body")
+		log.Error().Err(err).Msgf("get torrent trackers read error: %v", hash)
+		return nil, readErr
 	}
 
-	c.log.Printf("get torrent trackers body: %v\n", string(body))
-
-	var trackers []TorrentTracker
 	err = json.Unmarshal(body, &trackers)
 	if err != nil {
-		return nil, errors.Wrap(err, "could not unmarshal body")
+		log.Error().Err(err).Msgf("get torrent trackers: %v", hash)
+		return nil, err
 	}
 
 	return trackers, nil
@@ -204,9 +202,11 @@ func (c *Client) AddTorrentFromFile(file string, options map[string]string) erro
 
 	res, err := c.postFile("torrents/add", file, options)
 	if err != nil {
-		return errors.Wrap(err, "could not add torrent %v", file)
+		log.Error().Err(err).Msgf("add torrents error: %v", file)
+		return err
 	} else if res.StatusCode != http.StatusOK {
-		return errors.Wrap(err, "could not add torrent %v unexpected status: %v", file, res.StatusCode)
+		log.Error().Err(err).Msgf("add torrents bad status: %v", file)
+		return err
 	}
 
 	defer res.Body.Close()
@@ -215,19 +215,22 @@ func (c *Client) AddTorrentFromFile(file string, options map[string]string) erro
 }
 
 func (c *Client) DeleteTorrents(hashes []string, deleteFiles bool) error {
+	v := url.Values{}
+
 	// Add hashes together with | separator
 	hv := strings.Join(hashes, "|")
+	v.Add("hashes", hv)
+	v.Add("deleteFiles", strconv.FormatBool(deleteFiles))
 
-	opts := map[string]string{
-		"hashes":      hv,
-		"deleteFiles": strconv.FormatBool(deleteFiles),
-	}
+	encodedHashes := v.Encode()
 
-	resp, err := c.get("torrents/delete", opts)
+	resp, err := c.get("torrents/delete?"+encodedHashes, nil)
 	if err != nil {
-		return errors.Wrap(err, "could not delete torrents: %+v", hashes)
+		log.Error().Err(err).Msgf("delete torrents error: %v", hashes)
+		return err
 	} else if resp.StatusCode != http.StatusOK {
-		return errors.Wrap(err, "could not delete torrents %v unexpected status: %v", hashes, resp.StatusCode)
+		log.Error().Err(err).Msgf("delete torrents bad code: %v", hashes)
+		return err
 	}
 
 	defer resp.Body.Close()
@@ -236,17 +239,21 @@ func (c *Client) DeleteTorrents(hashes []string, deleteFiles bool) error {
 }
 
 func (c *Client) ReAnnounceTorrents(hashes []string) error {
+	v := url.Values{}
+
 	// Add hashes together with | separator
 	hv := strings.Join(hashes, "|")
-	opts := map[string]string{
-		"hashes": hv,
-	}
+	v.Add("hashes", hv)
 
-	resp, err := c.get("torrents/reannounce", opts)
+	encodedHashes := v.Encode()
+
+	resp, err := c.get("torrents/reannounce?"+encodedHashes, nil)
 	if err != nil {
-		return errors.Wrap(err, "could not re-announce torrents: %v", hashes)
+		log.Error().Err(err).Msgf("re-announce error: %v", hashes)
+		return err
 	} else if resp.StatusCode != http.StatusOK {
-		return errors.Wrap(err, "could not re-announce torrents: %v unexpected status: %v", hashes, resp.StatusCode)
+		log.Error().Err(err).Msgf("re-announce error bad status: %v", hashes)
+		return err
 	}
 
 	defer resp.Body.Close()
@@ -255,23 +262,233 @@ func (c *Client) ReAnnounceTorrents(hashes []string) error {
 }
 
 func (c *Client) GetTransferInfo() (*TransferInfo, error) {
+	var info TransferInfo
+
 	resp, err := c.get("transfer/info", nil)
 	if err != nil {
-		return nil, errors.Wrap(err, "could not get transfer info")
+		log.Error().Err(err).Msg("get torrents error")
+		return nil, err
 	}
 
 	defer resp.Body.Close()
 
 	body, readErr := ioutil.ReadAll(resp.Body)
 	if readErr != nil {
-		return nil, errors.Wrap(readErr, "could not read body")
+		log.Error().Err(err).Msg("get torrents read error")
+		return nil, readErr
 	}
 
-	var info TransferInfo
 	err = json.Unmarshal(body, &info)
 	if err != nil {
-		return nil, errors.Wrap(readErr, "could not unmarshal body")
+		log.Error().Err(err).Msg("get torrents unmarshal error")
+		return nil, err
 	}
 
 	return &info, nil
+}
+
+func (c *Client) Resume(hashes []string) error {
+	v := url.Values{}
+
+	// Add hashes together with | separator
+	hv := strings.Join(hashes, "|")
+	v.Add("hashes", hv)
+
+	encodedHashes := v.Encode()
+
+	resp, err := c.get("torrents/resume?"+encodedHashes, nil)
+	if err != nil {
+		log.Error().Err(err).Msgf("resume error: %v", hashes)
+		return err
+	} else if resp.StatusCode != http.StatusOK {
+		log.Error().Err(err).Msgf("resume error bad status: %v", hashes)
+		return err
+	}
+
+	defer resp.Body.Close()
+
+	return nil
+}
+
+func (c *Client) SetForceStart(hashes []string, value bool) error {
+	v := url.Values{}
+
+	// Add hashes together with | separator
+	hv := strings.Join(hashes, "|")
+	v.Add("hashes", hv)
+	v.Add("value", strconv.FormatBool(value))
+
+	encodedHashes := v.Encode()
+
+	resp, err := c.get("torrents/setForceStart?"+encodedHashes, nil)
+	if err != nil {
+		log.Error().Err(err).Msgf("resume error: %v", hashes)
+		return err
+	} else if resp.StatusCode != http.StatusOK {
+		log.Error().Err(err).Msgf("resume error bad status: %v", hashes)
+		return err
+	}
+
+	defer resp.Body.Close()
+
+	return nil
+}
+
+func (c *Client) Recheck(hashes []string) error {
+	v := url.Values{}
+
+	// Add hashes together with | separator
+	hv := strings.Join(hashes, "|")
+	v.Add("hashes", hv)
+
+	encodedHashes := v.Encode()
+
+	resp, err := c.get("torrents/recheck?"+encodedHashes, nil)
+	if err != nil {
+		log.Error().Err(err).Msgf("recheck error: %v", hashes)
+		return err
+	} else if resp.StatusCode != http.StatusOK {
+		log.Error().Err(err).Msgf("recheck error bad status: %v", hashes)
+		return err
+	}
+
+	defer resp.Body.Close()
+
+	return nil
+}
+
+func (c *Client) Pause(hashes []string) error {
+	v := url.Values{}
+
+	// Add hashes together with | separator
+	hv := strings.Join(hashes, "|")
+	v.Add("hashes", hv)
+
+	encodedHashes := v.Encode()
+
+	resp, err := c.get("torrents/pause?"+encodedHashes, nil)
+	if err != nil {
+		log.Error().Err(err).Msgf("pause error: %v", hashes)
+		return err
+	} else if resp.StatusCode != http.StatusOK {
+		log.Error().Err(err).Msgf("pause error bad status: %v", hashes)
+		return err
+	}
+
+	defer resp.Body.Close()
+
+	return nil
+}
+
+func (c *Client) SetAutoManagement(hashes []string, enable bool) error {
+	v := url.Values{}
+
+	// Add hashes together with | separator
+	hv := strings.Join(hashes, "|")
+	v.Add("hashes", hv)
+	v.Add("enable", strconv.FormatBool(enable))
+
+	encodedHashes := v.Encode()
+
+	resp, err := c.get("torrents/setAutoManagement?"+encodedHashes, nil)
+	if err != nil {
+		log.Error().Err(err).Msgf("setAutoManagement error: %v", hashes)
+		return err
+	} else if resp.StatusCode != http.StatusOK {
+		log.Error().Err(err).Msgf("setAutoManagement error bad status: %v", hashes)
+		return err
+	}
+
+	defer resp.Body.Close()
+
+	return nil
+}
+
+func (c *Client) CreateCategory(category string, path string) error {
+	v := url.Values{}
+
+	v.Add("category", category)
+	v.Add("savePath", path)
+
+	encodedHashes := v.Encode()
+
+	resp, err := c.get("torrents/createCategory?"+encodedHashes, nil)
+	if err != nil {
+		log.Error().Err(err).Msgf("CreateCategory error: %q", category)
+		return err
+	} else if resp.StatusCode != http.StatusOK {
+		log.Error().Err(err).Msgf("CreateCategory error bad status: %q %v", category, resp.StatusCode)
+		return err
+	}
+
+	defer resp.Body.Close()
+
+	return nil
+}
+
+func (c *Client) EditCategory(category string, path string) error {
+	v := url.Values{}
+
+	v.Add("category", category)
+	v.Add("savePath", path)
+
+	encodedHashes := v.Encode()
+
+	resp, err := c.get("torrents/editCategory?"+encodedHashes, nil)
+	if err != nil {
+		log.Error().Err(err).Msgf("EditCategory error: %q %v", category)
+		return err
+	} else if resp.StatusCode != http.StatusOK {
+		log.Error().Err(err).Msgf("EditCategory error bad status: %q %v", category, resp.StatusCode)
+		return err
+	}
+
+	defer resp.Body.Close()
+
+	return nil
+}
+
+func (c *Client) RemoveCategories(categories[] string) error {
+	v := url.Values{}
+
+	v.Add("categories", strings.Join(categories, "\n"))
+
+	encodedHashes := v.Encode()
+
+	resp, err := c.get("torrents/removeCategories?"+encodedHashes, nil)
+	if err != nil {
+		log.Error().Err(err).Msgf("RemoveCategories error: %q", v.Get("categories"))
+		return err
+	} else if resp.StatusCode != http.StatusOK {
+		log.Error().Err(err).Msgf("RemoveCategories error bad status: %q %v", v.Get("categories"), resp.StatusCode)
+		return err
+	}
+
+	defer resp.Body.Close()
+
+	return nil
+}
+
+func (c *Client) SetCategory(hashes []string, category string) error {
+	v := url.Values{}
+
+	// Add hashes together with | separator
+	hv := strings.Join(hashes, "|")
+	v.Add("hashes", hv)
+	v.Add("category", category)
+
+	encodedHashes := v.Encode()
+
+	resp, err := c.get("torrents/setCategory?"+encodedHashes, nil)
+	if err != nil {
+		log.Error().Err(err).Msgf("SetCategory error: %v", hashes)
+		return err
+	} else if resp.StatusCode != http.StatusOK {
+		log.Error().Err(err).Msgf("SetCategory error bad status: %v", hashes)
+		return err
+	}
+
+	defer resp.Body.Close()
+
+	return nil
 }
