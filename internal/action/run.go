@@ -140,7 +140,7 @@ func (s *service) watchFolder(action domain.Action, release domain.Release) erro
 		}
 	}
 
-	if len(release.TorrentDataRawBytes) == 0 {
+	if len(release.TorrentDataRawBytes) == 0 && strings.Contains(action.WebhookData, "TorrentDataRawBytes") {
 		t, err := ioutil.ReadFile(release.TorrentTmpFile)
 		if err != nil {
 			return errors.Wrap(err, "could not read torrent file: %v", release.TorrentTmpFile)
@@ -200,7 +200,7 @@ func (s *service) webhook(action domain.Action, release domain.Release) error {
 		}
 	}
 
-	if len(release.TorrentDataRawBytes) == 0 {
+	if len(release.TorrentDataRawBytes) == 0 && strings.Contains(action.WebhookData, "TorrentDataRawBytes") {
 		t, err := ioutil.ReadFile(release.TorrentTmpFile)
 		if err != nil {
 			return errors.Wrap(err, "could not read torrent file: %v", release.TorrentTmpFile)
