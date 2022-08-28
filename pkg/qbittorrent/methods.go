@@ -465,3 +465,25 @@ func (c *Client) GetFilesInformation(hash string) (*TorrentFiles, error) {
 
 	return &info, nil
 }
+
+func (c *Client) GetCategories() (map[string]Category, error) {
+	resp, err := c.get("torrents/categories", nil)
+	if err != nil {
+		return nil, errors.Wrap(err, "could not get files info")
+	}
+
+	defer resp.Body.Close()
+
+	body, readErr := ioutil.ReadAll(resp.Body)
+	if readErr != nil {
+		return nil, errors.Wrap(readErr, "could not read body")
+	}
+
+	m := make(map[string]Category)
+	err = json.Unmarshal(body, &m)
+	if err != nil {
+		return nil, errors.Wrap(readErr, "could not unmarshal body")
+	}
+
+	return m, nil
+}

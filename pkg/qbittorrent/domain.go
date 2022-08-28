@@ -75,6 +75,11 @@ type TorrentFiles []struct {
 	Size         int    `json:"size"`
 }
 
+type Category struct {
+	Name     string `json:"name"`
+	SavePath string `json:"savePath"`
+}
+
 type TorrentState string
 
 const (
