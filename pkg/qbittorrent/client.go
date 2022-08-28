@@ -5,16 +5,19 @@ import (
 	"crypto/tls"
 	"fmt"
 	"io"
+	"log"
 	"mime/multipart"
 	"net/http"
 	"net/http/cookiejar"
 	"net/url"
 	"os"
+	"path"
 	"strings"
 	"time"
 
-	"github.com/rs/zerolog/log"
 	"golang.org/x/net/publicsuffix"
+
+	"github.com/autobrr/autobrr/pkg/errors"
 )
 
 var (
@@ -23,16 +26,19 @@ var (
 		10 * time.Second,
 		20 * time.Second,
 	}
-	timeout = 20 * time.Second
+	timeout = 60 * time.Second
 )
 
 type Client struct {
 	Name     string
 	settings Settings
 	http     *http.Client
+
+	log *log.Logger
 }
 
 type Settings struct {
+	Name          string
 	Hostname      string
 	Port          uint
 	Username      string
@@ -40,23 +46,38 @@ type Settings struct {
 	TLS           bool
 	TLSSkipVerify bool
 	protocol      string
+	BasicAuth     bool
+	Basic         Basic
+	Log           *log.Logger
 }
 
-func NewClient(s Settings) *Client {
-	jarOptions := &cookiejar.Options{PublicSuffixList: publicsuffix.List}
-	//store cookies in jar
-	jar, err := cookiejar.New(jarOptions)
-	if err != nil {
-		log.Error().Err(err).Msg("new client cookie error")
-	}
-	httpClient := &http.Client{
-		Timeout: timeout,
-		Jar:     jar,
+type Basic struct {
+	Username string
+	Password string
+}
+
+func NewClient(settings Settings) *Client {
+	c := &Client{
+		settings: settings,
+		Name:     settings.Name,
+		log:      log.New(io.Discard, "", log.LstdFlags),
 	}
 
-	c := &Client{
-		settings: s,
-		http:     httpClient,
+	// override logger if we pass one
+	if settings.Log != nil {
+		c.log = settings.Log
+	}
+
+	//store cookies in jar
+	jarOptions := &cookiejar.Options{PublicSuffixList: publicsuffix.List}
+	jar, err := cookiejar.New(jarOptions)
+	if err != nil {
+		c.log.Println("new client cookie error")
+	}
+
+	c.http = &http.Client{
+		Timeout: timeout,
+		Jar:     jar,
 	}
 
 	c.settings.protocol = "http"
@@ -77,15 +98,18 @@ func NewClient(s Settings) *Client {
 }
 
 func (c *Client) get(endpoint string, opts map[string]string) (*http.Response, error) {
-	reqUrl := fmt.Sprintf("%v://%v:%v/api/v2/%v", c.settings.protocol, c.settings.Hostname, c.settings.Port, endpoint)
-
 	var err error
 	var resp *http.Response
 
+	reqUrl := buildUrlOpts(c.settings, endpoint, opts)
+
 	req, err := http.NewRequest("GET", reqUrl, nil)
 	if err != nil {
-		log.Error().Err(err).Msgf("GET: error %v", reqUrl)
-		return nil, err
+		return nil, errors.Wrap(err, "could not build request")
+	}
+
+	if c.settings.BasicAuth {
+		req.SetBasicAuth(c.settings.Basic.Username, c.settings.Basic.Password)
 	}
 
 	// try request and if fail run 3 retries
@@ -97,14 +121,13 @@ func (c *Client) get(endpoint string, opts map[string]string) (*http.Response, e
 			break
 		}
 
-		log.Debug().Msgf("qbit GET failed: retrying attempt %d - %v", i, reqUrl)
+		c.log.Printf("qbit GET failed: retrying attempt %d - %v\n", i, reqUrl)
 
 		time.Sleep(backoff)
 	}
 
 	if err != nil {
-		log.Error().Err(err).Msgf("GET: do %v", reqUrl)
-		return nil, err
+		return nil, errors.Wrap(err, "error making get request: %v", reqUrl)
 	}
 
 	return resp, nil
@@ -122,11 +145,15 @@ func (c *Client) post(endpoint string, opts map[string]string) (*http.Response, 
 	var err error
 	var resp *http.Response
 
-	reqUrl := fmt.Sprintf("%v://%v:%v/api/v2/%v", c.settings.protocol, c.settings.Hostname, c.settings.Port, endpoint)
+	reqUrl := buildUrl(c.settings, endpoint)
+
 	req, err := http.NewRequest("POST", reqUrl, strings.NewReader(form.Encode()))
 	if err != nil {
-		log.Error().Err(err).Msgf("POST: req %v", reqUrl)
-		return nil, err
+		return nil, errors.Wrap(err, "could not build request")
+	}
+
+	if c.settings.BasicAuth {
+		req.SetBasicAuth(c.settings.Basic.Username, c.settings.Basic.Password)
 	}
 
 	// add the content-type so qbittorrent knows what to expect
@@ -141,14 +168,47 @@ func (c *Client) post(endpoint string, opts map[string]string) (*http.Response, 
 			break
 		}
 
-		log.Debug().Msgf("qbit POST failed: retrying attempt %d - %v", i, reqUrl)
+		c.log.Printf("qbit POST failed: retrying attempt %d - %v\n", i, reqUrl)
 
 		time.Sleep(backoff)
 	}
 
 	if err != nil {
-		log.Error().Err(err).Msgf("POST: do %v", reqUrl)
-		return nil, err
+		return nil, errors.Wrap(err, "error making post request: %v", reqUrl)
+	}
+
+	return resp, nil
+}
+
+func (c *Client) postBasic(endpoint string, opts map[string]string) (*http.Response, error) {
+	// add optional parameters that the user wants
+	form := url.Values{}
+	if opts != nil {
+		for k, v := range opts {
+			form.Add(k, v)
+		}
+	}
+
+	var err error
+	var resp *http.Response
+
+	reqUrl := buildUrl(c.settings, endpoint)
+
+	req, err := http.NewRequest("POST", reqUrl, strings.NewReader(form.Encode()))
+	if err != nil {
+		return nil, errors.Wrap(err, "could not build request")
+	}
+
+	if c.settings.BasicAuth {
+		req.SetBasicAuth(c.settings.Basic.Username, c.settings.Basic.Password)
+	}
+
+	// add the content-type so qbittorrent knows what to expect
+	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
+
+	resp, err = c.http.Do(req)
+	if err != nil {
+		return nil, errors.Wrap(err, "error making post request: %v", reqUrl)
 	}
 
 	return resp, nil
@@ -160,8 +220,7 @@ func (c *Client) postFile(endpoint string, fileName string, opts map[string]stri
 
 	file, err := os.Open(fileName)
 	if err != nil {
-		log.Error().Err(err).Msgf("POST file: opening file %v", fileName)
-		return nil, err
+		return nil, errors.Wrap(err, "error opening file %v", fileName)
 	}
 	// Close the file later
 	defer file.Close()
@@ -175,15 +234,13 @@ func (c *Client) postFile(endpoint string, fileName string, opts map[string]stri
 	// Initialize file field
 	fileWriter, err := multiPartWriter.CreateFormFile("torrents", fileName)
 	if err != nil {
-		log.Error().Err(err).Msgf("POST file: initializing file field %v", fileName)
-		return nil, err
+		return nil, errors.Wrap(err, "error initializing file field %v", fileName)
 	}
 
 	// Copy the actual file content to the fields writer
 	_, err = io.Copy(fileWriter, file)
 	if err != nil {
-		log.Error().Err(err).Msgf("POST file: could not copy file to writer %v", fileName)
-		return nil, err
+		return nil, errors.Wrap(err, "error copy file contents to writer %v", fileName)
 	}
 
 	// Populate other fields
@@ -191,14 +248,12 @@ func (c *Client) postFile(endpoint string, fileName string, opts map[string]stri
 		for key, val := range opts {
 			fieldWriter, err := multiPartWriter.CreateFormField(key)
 			if err != nil {
-				log.Error().Err(err).Msgf("POST file: could not add other fields %v", fileName)
-				return nil, err
+				return nil, errors.Wrap(err, "error creating form field %v with value %v", key, val)
 			}
 
 			_, err = fieldWriter.Write([]byte(val))
 			if err != nil {
-				log.Error().Err(err).Msgf("POST file: could not write field %v", fileName)
-				return nil, err
+				return nil, errors.Wrap(err, "error writing field %v with value %v", key, val)
 			}
 		}
 	}
@@ -206,11 +261,14 @@ func (c *Client) postFile(endpoint string, fileName string, opts map[string]stri
 	// Close multipart writer
 	multiPartWriter.Close()
 
-	reqUrl := fmt.Sprintf("%v://%v:%v/api/v2/%v", c.settings.protocol, c.settings.Hostname, c.settings.Port, endpoint)
+	reqUrl := buildUrl(c.settings, endpoint)
 	req, err := http.NewRequest("POST", reqUrl, &requestBody)
 	if err != nil {
-		log.Error().Err(err).Msgf("POST file: could not create request object %v", fileName)
-		return nil, err
+		return nil, errors.Wrap(err, "error creating request %v", fileName)
+	}
+
+	if c.settings.BasicAuth {
+		req.SetBasicAuth(c.settings.Basic.Username, c.settings.Basic.Password)
 	}
 
 	// Set correct content type
@@ -225,20 +283,122 @@ func (c *Client) postFile(endpoint string, fileName string, opts map[string]stri
 			break
 		}
 
-		log.Debug().Msgf("qbit POST file failed: retrying attempt %d - %v", i, reqUrl)
+		c.log.Printf("qbit POST file failed: retrying attempt %d - %v\n", i, reqUrl)
 
 		time.Sleep(backoff)
 	}
 
 	if err != nil {
-		log.Error().Err(err).Msgf("POST file: could not perform request %v", fileName)
-		return nil, err
+		return nil, errors.Wrap(err, "error making post file request %v", fileName)
 	}
 
 	return resp, nil
 }
 
 func (c *Client) setCookies(cookies []*http.Cookie) {
-	cookieURL, _ := url.Parse(fmt.Sprintf("%v://%v:%v", c.settings.protocol, c.settings.Hostname, c.settings.Port))
+	cookieURL, _ := url.Parse(buildUrl(c.settings, ""))
+
 	c.http.Jar.SetCookies(cookieURL, cookies)
+}
+
+func buildUrl(settings Settings, endpoint string) string {
+	// parse url
+	u, _ := url.Parse(settings.Hostname)
+
+	// reset Opaque
+	u.Opaque = ""
+
+	// set scheme
+	scheme := "http"
+	if u.Scheme == "http" || u.Scheme == "https" {
+		if settings.TLS {
+			scheme = "https"
+		}
+		u.Scheme = scheme
+	} else {
+		if settings.TLS {
+			scheme = "https"
+		}
+		u.Scheme = scheme
+	}
+
+	// if host is empty lets use one from settings
+	if u.Host == "" {
+		u.Host = settings.Hostname
+	}
+
+	// reset Path
+	if u.Host == u.Path {
+		u.Path = ""
+	}
+
+	// handle ports
+	if settings.Port > 0 {
+		if settings.Port == 80 || settings.Port == 443 {
+			// skip for regular http and https
+		} else {
+			u.Host = fmt.Sprintf("%v:%v", u.Host, settings.Port)
+		}
+	}
+
+	// join path
+	u.Path = path.Join(u.Path, "/api/v2/", endpoint)
+
+	// make into new string and return
+	return u.String()
+}
+
+func buildUrlOpts(settings Settings, endpoint string, opts map[string]string) string {
+	// parse url
+	u, _ := url.Parse(settings.Hostname)
+
+	// reset Opaque
+	u.Opaque = ""
+
+	// set scheme
+	scheme := "http"
+	if u.Scheme == "http" || u.Scheme == "https" {
+		if settings.TLS {
+			scheme = "https"
+		}
+		u.Scheme = scheme
+	} else {
+		if settings.TLS {
+			scheme = "https"
+		}
+		u.Scheme = scheme
+	}
+
+	// if host is empty lets use one from settings
+	if u.Host == "" {
+		u.Host = settings.Hostname
+	}
+
+	// reset Path
+	if u.Host == u.Path {
+		u.Path = ""
+	}
+
+	// handle ports
+	if settings.Port > 0 {
+		if settings.Port == 80 || settings.Port == 443 {
+			// skip for regular http and https
+		} else {
+			u.Host = fmt.Sprintf("%v:%v", u.Host, settings.Port)
+		}
+	}
+
+	// add query params
+	q := u.Query()
+	for k, v := range opts {
+		q.Set(k, v)
+	}
+
+	u.RawQuery = q.Encode()
+
+	// join path
+	u.Path = path.Join(u.Path, "/api/v2/", endpoint)
+
+	// make into new string and return
+	return u.String()
 }
