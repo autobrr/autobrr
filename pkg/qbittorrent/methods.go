@@ -439,3 +439,29 @@ func (c *Client) SetCategory(hashes []string, category string) error {
 	defer resp.Body.Close()
 	return nil
 }
+
+func (c *Client) GetFilesInformation(hash string) (*TorrentFiles, error) {
+	opts := map[string]string{
+		"hash": hash,
+	}
+
+	resp, err := c.get("torrents/files", opts)
+	if err != nil {
+		return nil, errors.Wrap(err, "could not get files info")
+	}
+
+	defer resp.Body.Close()
+
+	body, readErr := ioutil.ReadAll(resp.Body)
+	if readErr != nil {
+		return nil, errors.Wrap(readErr, "could not read body")
+	}
+
+	var info TorrentFiles
+	err = json.Unmarshal(body, &info)
+	if err != nil {
+		return nil, errors.Wrap(readErr, "could not unmarshal body")
+	}
+
+	return &info, nil
+}

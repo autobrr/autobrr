@@ -64,6 +64,17 @@ type TorrentTracker struct {
 	Message       string        `json:"msg"`
 }
 
+type TorrentFiles []struct {
+	Availability int    `json:"availability"`
+	Index        int    `json:"index"`
+	IsSeed       bool   `json:"is_seed,omitempty"`
+	Name         string `json:"name"`
+	PieceRange   []int  `json:"piece_range"`
+	Priority     int    `json:"priority"`
+	Progress     int    `json:"progress"`
+	Size         int    `json:"size"`
+}
+
 type TorrentState string
 
 const (
