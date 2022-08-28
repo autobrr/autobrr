@@ -440,7 +440,7 @@ func (c *Client) SetCategory(hashes []string, category string) error {
 	return nil
 }
 
-func (c *Client) GetFilesInformation(hash string) (TorrentFiles, error) {
+func (c *Client) GetFilesInformation(hash string) (*TorrentFiles, error) {
 	opts := map[string]string{
 		"hash": hash,
 	}
@@ -463,7 +463,7 @@ func (c *Client) GetFilesInformation(hash string) (TorrentFiles, error) {
 		return nil, errors.Wrap(readErr, "could not unmarshal body")
 	}
 
-	return info, nil
+	return &info, nil
 }
 
 func (c *Client) GetCategories() (map[string]Category, error) {
