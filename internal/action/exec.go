@@ -1,6 +1,7 @@
 package action
 
 import (
+	"io/ioutil"
 	"os/exec"
 	"strings"
 	"time"
@@ -18,6 +19,16 @@ func (s *service) execCmd(action domain.Action, release domain.Release) error {
 		if err := release.DownloadTorrentFile(); err != nil {
 			return errors.Wrap(err, "error downloading torrent file for release: %v", release.TorrentName)
 		}
+	}
+
+	// read the file into bytes we can then use in the macro
+	if len(release.TorrentDataRawBytes) == 0 && release.TorrentTmpFile != "" {
+		t, err := ioutil.ReadFile(release.TorrentTmpFile)
+		if err != nil {
+			return errors.Wrap(err, "could not read torrent file: %v", release.TorrentTmpFile)
+		}
+
+		release.TorrentDataRawBytes = t
 	}
 
 	// check if program exists
