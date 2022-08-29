@@ -448,6 +448,16 @@ func (s *service) execCmd(release *domain.Release, cmd string, args string) (int
 		}
 	}
 
+	// read the file into bytes we can then use in the macro
+	if len(release.TorrentDataRawBytes) == 0 && release.TorrentTmpFile != "" {
+		t, err := ioutil.ReadFile(release.TorrentTmpFile)
+		if err != nil {
+			return 0, errors.Wrap(err, "could not read torrent file: %v", release.TorrentTmpFile)
+		}
+
+		release.TorrentDataRawBytes = t
+	}
+
 	// check if program exists
 	cmd, err := exec.LookPath(cmd)
 	if err != nil {
