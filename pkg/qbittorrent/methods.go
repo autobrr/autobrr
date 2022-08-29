@@ -275,3 +275,215 @@ func (c *Client) GetTransferInfo() (*TransferInfo, error) {
 
 	return &info, nil
 }
+
+func (c *Client) Resume(hashes []string) error {
+	// Add hashes together with | separator
+	hv := strings.Join(hashes, "|")
+	opts := map[string]string{
+		"hashes": hv,
+	}
+
+	resp, err := c.get("torrents/resume", opts)
+	if err != nil {
+		return errors.Wrap(err, "could not resume torrents: %v", hashes)
+	} else if resp.StatusCode != http.StatusOK {
+		return errors.Wrap(err, "could not resume torrents: %v unexpected status: %v", hashes, resp.StatusCode)
+	}
+
+	defer resp.Body.Close()
+
+	return nil
+}
+
+func (c *Client) SetForceStart(hashes []string, value bool) error {
+	// Add hashes together with | separator
+	hv := strings.Join(hashes, "|")
+	opts := map[string]string{
+		"hashes": hv,
+		"value": strconv.FormatBool(value),
+	}
+
+	resp, err := c.get("torrents/setForceStart", opts)
+	if err != nil {
+		return errors.Wrap(err, "could not setForceStart torrents: %v", hashes)
+	} else if resp.StatusCode != http.StatusOK {
+		return errors.Wrap(err, "could not setForceStart torrents: %v unexpected status: %v", hashes, resp.StatusCode)
+	}
+
+	defer resp.Body.Close()
+	return nil
+}
+
+func (c *Client) Recheck(hashes []string) error {
+	// Add hashes together with | separator
+	hv := strings.Join(hashes, "|")
+	opts := map[string]string{
+		"hashes": hv,
+	}
+
+	resp, err := c.get("torrents/recheck", opts)
+	if err != nil {
+		return errors.Wrap(err, "could not recheck torrents: %v", hashes)
+	} else if resp.StatusCode != http.StatusOK {
+		return errors.Wrap(err, "could not recheck torrents: %v unexpected status: %v", hashes, resp.StatusCode)
+	}
+
+	defer resp.Body.Close()
+
+	return nil
+}
+
+func (c *Client) Pause(hashes []string) error {
+	// Add hashes together with | separator
+	hv := strings.Join(hashes, "|")
+	opts := map[string]string{
+		"hashes": hv,
+	}
+
+	resp, err := c.get("torrents/pause", opts)
+	if err != nil {
+		return errors.Wrap(err, "could not pause torrents: %v", hashes)
+	} else if resp.StatusCode != http.StatusOK {
+		return errors.Wrap(err, "could not pause torrents: %v unexpected status: %v", hashes, resp.StatusCode)
+	}
+
+	defer resp.Body.Close()
+
+	return nil
+}
+
+func (c *Client) SetAutoManagement(hashes []string, enable bool) error {
+	// Add hashes together with | separator
+	hv := strings.Join(hashes, "|")
+	opts := map[string]string{
+		"hashes": hv,
+		"enable": strconv.FormatBool(enable),
+	}
+
+	resp, err := c.get("torrents/setAutoManagement", opts)
+	if err != nil {
+		return errors.Wrap(err, "could not setAutoManagement torrents: %v", hashes)
+	} else if resp.StatusCode != http.StatusOK {
+		return errors.Wrap(err, "could not setAutoManagement torrents: %v unexpected status: %v", hashes, resp.StatusCode)
+	}
+
+	defer resp.Body.Close()
+	return nil
+}
+
+func (c *Client) CreateCategory(category string, path string) error {
+	opts := map[string]string{
+		"category": category,
+		"savePath": path,
+	}
+
+	resp, err := c.get("torrents/createCategory", opts)
+	if err != nil {
+		return errors.Wrap(err, "could not createCategory torrents: %v", category)
+	} else if resp.StatusCode != http.StatusOK {
+		return errors.Wrap(err, "could not createCategory torrents: %v unexpected status: %v", category, resp.StatusCode)
+	}
+
+	defer resp.Body.Close()
+	return nil
+}
+
+func (c *Client) EditCategory(category string, path string) error {
+	opts := map[string]string{
+		"category": category,
+		"savePath": path,
+	}
+
+	resp, err := c.get("torrents/editCategory", opts)
+	if err != nil {
+		return errors.Wrap(err, "could not editCategory torrents: %v", category)
+	} else if resp.StatusCode != http.StatusOK {
+		return errors.Wrap(err, "could not editCategory torrents: %v unexpected status: %v", category, resp.StatusCode)
+	}
+
+	defer resp.Body.Close()
+	return nil
+}
+
+func (c *Client) RemoveCategories(categories[] string) error {
+	opts := map[string]string{
+		"categories": strings.Join(categories, "\n"),
+	}
+
+	resp, err := c.get("torrents/removeCategories", opts)
+	if err != nil {
+		return errors.Wrap(err, "could not removeCategories torrents: %v", opts["categories"])
+	} else if resp.StatusCode != http.StatusOK {
+		return errors.Wrap(err, "could not removeCategories torrents: %v unexpected status: %v", opts["categories"], resp.StatusCode)
+	}
+
+	defer resp.Body.Close()
+	return nil
+}
+
+func (c *Client) SetCategory(hashes []string, category string) error {
+	// Add hashes together with | separator
+	hv := strings.Join(hashes, "|")
+	opts := map[string]string{
+		"hashes": hv,
+		"category": category,
+	}
+
+	resp, err := c.get("torrents/setCategory", opts)
+	if err != nil {
+		return errors.Wrap(err, "could not setCategory torrents: %v", hashes)
+	} else if resp.StatusCode != http.StatusOK {
+		return errors.Wrap(err, "could not setCategory torrents: %v unexpected status: %v", hashes, resp.StatusCode)
+	}
+
+	defer resp.Body.Close()
+	return nil
+}
+
+func (c *Client) GetFilesInformation(hash string) (*TorrentFiles, error) {
+	opts := map[string]string{
+		"hash": hash,
+	}
+
+	resp, err := c.get("torrents/files", opts)
+	if err != nil {
+		return nil, errors.Wrap(err, "could not get files info")
+	}
+
+	defer resp.Body.Close()
+
+	body, readErr := ioutil.ReadAll(resp.Body)
+	if readErr != nil {
+		return nil, errors.Wrap(readErr, "could not read body")
+	}
+
+	var info TorrentFiles
+	err = json.Unmarshal(body, &info)
+	if err != nil {
+		return nil, errors.Wrap(readErr, "could not unmarshal body")
+	}
+
+	return &info, nil
+}
+
+func (c *Client) GetCategories() (map[string]Category, error) {
+	resp, err := c.get("torrents/categories", nil)
+	if err != nil {
+		return nil, errors.Wrap(err, "could not get files info")
+	}
+
+	defer resp.Body.Close()
+
+	body, readErr := ioutil.ReadAll(resp.Body)
+	if readErr != nil {
+		return nil, errors.Wrap(readErr, "could not read body")
+	}
+
+	m := make(map[string]Category)
+	err = json.Unmarshal(body, &m)
+	if err != nil {
+		return nil, errors.Wrap(readErr, "could not unmarshal body")
+	}
+
+	return m, nil
+}
