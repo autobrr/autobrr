@@ -59,9 +59,25 @@ type TorrentTracker struct {
 	Status        TrackerStatus `json:"status"`
 	NumPeers      int           `json:"num_peers"`
 	NumSeeds      int           `json:"num_seeds"`
-	NumLeechers   int           `json:"num_leeches"`
+	NumLeechers   int           `json:"num_leechers"`
 	NumDownloaded int           `json:"num_downloaded"`
 	Message       string        `json:"msg"`
+}
+
+type TorrentFiles []struct {
+	Availability int    `json:"availability"`
+	Index        int    `json:"index"`
+	IsSeed       bool   `json:"is_seed,omitempty"`
+	Name         string `json:"name"`
+	PieceRange   []int  `json:"piece_range"`
+	Priority     int    `json:"priority"`
+	Progress     int    `json:"progress"`
+	Size         int    `json:"size"`
+}
+
+type Category struct {
+	Name     string `json:"name"`
+	SavePath string `json:"savePath"`
 }
 
 type TorrentState string
@@ -113,7 +129,7 @@ const (
 	TorrentStateCheckingDl TorrentState = "checkingDL"
 
 	// Torrent is forced to downloading to ignore queue limit
-	TorrentStateForceDl TorrentState = "forceDL"
+	TorrentStateForcedDl TorrentState = "forcedDL"
 
 	// Checking resume data on qBt startup
 	TorrentStateCheckingResumeData TorrentState = "checkingResumeData"
