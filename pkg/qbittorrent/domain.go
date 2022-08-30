@@ -242,10 +242,11 @@ type TransferInfo struct {
 
 type ContentLayout string
 
+// https://www.youtube.com/watch?v=4N1iwQxiHrs
 const (
-	ContentLayoutOriginal        ContentLayout = "ORIGINAL"
-	ContentLayoutSubfolderNone   ContentLayout = "SUBFOLDER_NONE"
-	ContentLayoutSubfolderCreate ContentLayout = "SUBFOLDER_CREATE"
+	ContentLayoutOriginal        ContentLayout = "Original"
+	ContentLayoutSubfolderNone   ContentLayout = "NoSubfolder"
+	ContentLayoutSubfolderCreate ContentLayout = "Subfolder"
 )
 
 type TorrentAddOptions struct {
