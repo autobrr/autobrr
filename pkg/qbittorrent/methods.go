@@ -64,14 +64,13 @@ func (c *Client) GetTorrents() ([]Torrent, error) {
 
 	defer resp.Body.Close()
 
-	body, readErr := ioutil.ReadAll(resp.Body)
-	if readErr != nil {
-		return nil, errors.Wrap(readErr, "could not read body")
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return nil, errors.Wrap(err, "could not read body")
 	}
 
 	var torrents []Torrent
-	err = json.Unmarshal(body, &torrents)
-	if err != nil {
+	if err := json.Unmarshal(body, &torrents); err != nil {
 		return nil, errors.Wrap(err, "could not unmarshal body")
 	}
 
@@ -90,14 +89,13 @@ func (c *Client) GetTorrentsFilter(filter TorrentFilter) ([]Torrent, error) {
 
 	defer resp.Body.Close()
 
-	body, readErr := ioutil.ReadAll(resp.Body)
-	if readErr != nil {
-		return nil, errors.Wrap(readErr, "could not read body")
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return nil, errors.Wrap(err, "could not read body")
 	}
 
 	var torrents []Torrent
-	err = json.Unmarshal(body, &torrents)
-	if err != nil {
+	if err := json.Unmarshal(body, &torrents); err != nil {
 		return nil, errors.Wrap(err, "could not unmarshal body")
 	}
 
@@ -118,15 +116,14 @@ func (c *Client) GetTorrentsActiveDownloads() ([]Torrent, error) {
 
 	defer resp.Body.Close()
 
-	body, readErr := ioutil.ReadAll(resp.Body)
-	if readErr != nil {
-		return nil, errors.Wrap(readErr, "could not read body")
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return nil, errors.Wrap(err, "could not read body")
 	}
 
 	var torrents []Torrent
-	err = json.Unmarshal(body, &torrents)
-	if err != nil {
-		return nil, errors.Wrap(readErr, "could not unmarshal body")
+	if err := json.Unmarshal(body, &torrents); err != nil {
+		return nil, errors.Wrap(err, "could not unmarshal body")
 	}
 
 	res := make([]Torrent, 0)
@@ -183,16 +180,15 @@ func (c *Client) GetTorrentTrackers(hash string) ([]TorrentTracker, error) {
 		return nil, nil
 	}
 
-	body, readErr := ioutil.ReadAll(resp.Body)
-	if readErr != nil {
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
 		return nil, errors.Wrap(err, "could not read body")
 	}
 
 	c.log.Printf("get torrent trackers body: %v\n", string(body))
 
 	var trackers []TorrentTracker
-	err = json.Unmarshal(body, &trackers)
-	if err != nil {
+	if err := json.Unmarshal(body, &trackers); err != nil {
 		return nil, errors.Wrap(err, "could not unmarshal body")
 	}
 
@@ -262,15 +258,14 @@ func (c *Client) GetTransferInfo() (*TransferInfo, error) {
 
 	defer resp.Body.Close()
 
-	body, readErr := ioutil.ReadAll(resp.Body)
-	if readErr != nil {
-		return nil, errors.Wrap(readErr, "could not read body")
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return nil, errors.Wrap(err, "could not read body")
 	}
 
 	var info TransferInfo
-	err = json.Unmarshal(body, &info)
-	if err != nil {
-		return nil, errors.Wrap(readErr, "could not unmarshal body")
+	if err := json.Unmarshal(body, &info); err != nil {
+		return nil, errors.Wrap(err, "could not unmarshal body")
 	}
 
 	return &info, nil
@@ -452,15 +447,14 @@ func (c *Client) GetFilesInformation(hash string) (*TorrentFiles, error) {
 
 	defer resp.Body.Close()
 
-	body, readErr := ioutil.ReadAll(resp.Body)
-	if readErr != nil {
-		return nil, errors.Wrap(readErr, "could not read body")
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return nil, errors.Wrap(err, "could not read body")
 	}
 
 	var info TorrentFiles
-	err = json.Unmarshal(body, &info)
-	if err != nil {
-		return nil, errors.Wrap(readErr, "could not unmarshal body")
+	if err := json.Unmarshal(body, &info); err != nil {
+		return nil, errors.Wrap(err, "could not unmarshal body")
 	}
 
 	return &info, nil
@@ -474,15 +468,14 @@ func (c *Client) GetCategories() (map[string]Category, error) {
 
 	defer resp.Body.Close()
 
-	body, readErr := ioutil.ReadAll(resp.Body)
-	if readErr != nil {
-		return nil, errors.Wrap(readErr, "could not read body")
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return nil, errors.Wrap(err, "could not read body")
 	}
 
 	m := make(map[string]Category)
-	err = json.Unmarshal(body, &m)
-	if err != nil {
-		return nil, errors.Wrap(readErr, "could not unmarshal body")
+	if err := json.Unmarshal(body, &m); err != nil {
+		return nil, errors.Wrap(err, "could not unmarshal body")
 	}
 
 	return m, nil

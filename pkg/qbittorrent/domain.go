@@ -176,6 +176,9 @@ const (
 
 	// Torrent is being downloaded, but no connection were made
 	TorrentFilterStalledDownloading TorrentFilter = "stalled_downloading"
+
+	// Torrent is errored
+	TorrentFilterError TorrentFilter = "errored"
 )
 
 // TrackerStatus https://github.com/qbittorrent/qBittorrent/wiki/WebUI-API-(qBittorrent-4.1)#get-torrent-trackers
@@ -239,10 +242,11 @@ type TransferInfo struct {
 
 type ContentLayout string
 
+// https://www.youtube.com/watch?v=4N1iwQxiHrs
 const (
-	ContentLayoutOriginal        ContentLayout = "ORIGINAL"
-	ContentLayoutSubfolderNone   ContentLayout = "SUBFOLDER_NONE"
-	ContentLayoutSubfolderCreate ContentLayout = "SUBFOLDER_CREATE"
+	ContentLayoutOriginal        ContentLayout = "Original"
+	ContentLayoutSubfolderNone   ContentLayout = "NoSubfolder"
+	ContentLayoutSubfolderCreate ContentLayout = "Subfolder"
 )
 
 type TorrentAddOptions struct {
@@ -270,9 +274,18 @@ func (o *TorrentAddOptions) Prepare() map[string]string {
 	}
 	if o.ContentLayout != nil {
 		if *o.ContentLayout == ContentLayoutSubfolderCreate {
+			// pre qBittorrent version 4.3.2
 			options["root_folder"] = "true"
+
+			// post version 4.3.2
+			options["contentLayout"] = string(ContentLayoutSubfolderCreate)
+
 		} else if *o.ContentLayout == ContentLayoutSubfolderNone {
+			// pre qBittorrent version 4.3.2
 			options["root_folder"] = "false"
+
+			// post version 4.3.2
+			options["contentLayout"] = string(ContentLayoutSubfolderNone)
 		}
 		// if ORIGINAL then leave empty
 	}
