@@ -176,6 +176,9 @@ const (
 
 	// Torrent is being downloaded, but no connection were made
 	TorrentFilterStalledDownloading TorrentFilter = "stalled_downloading"
+	
+	// Torrent is errored
+	TorrentFilterError TorrentFilter = "errored"	
 )
 
 // TrackerStatus https://github.com/qbittorrent/qBittorrent/wiki/WebUI-API-(qBittorrent-4.1)#get-torrent-trackers
