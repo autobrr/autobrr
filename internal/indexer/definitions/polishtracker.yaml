@@ -21,7 +21,7 @@ settings:
 irc:
   network: PolishTracker
   server: irc.pte.nu
-  port: 6697
+  port: 6775
   tls: true
   channels:
     - "#pt-announce"
