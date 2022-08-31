@@ -51,7 +51,7 @@ parse:
   lines:
     - test:
         - "[NEW] Some.Show.S08E20.EXTENDED.720p.BluRay.X264-GROUP [TV/720] https://scenehd.org/details.php?id=00000"
-      pattern: "\[NEW] (.*) \[([^\]]+)] (https?\:\/\/[^\/]+)\/.*[&\?]id=(\d+)"
+      pattern: '\[NEW] (.*) \[([^\]]+)] (https?\:\/\/[^\/]+)\/.*[&\?]id=(\d+)'
       vars:
         - torrentName
         - category
