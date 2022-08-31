@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"crypto/tls"
 	"io"
+	"io/ioutil"
 	"net/http"
 	"os"
 	"path"
@@ -139,6 +140,15 @@ func (s *service) watchFolder(action domain.Action, release domain.Release) erro
 		}
 	}
 
+	if len(release.TorrentDataRawBytes) == 0 {
+		t, err := ioutil.ReadFile(release.TorrentTmpFile)
+		if err != nil {
+			return errors.Wrap(err, "could not read torrent file: %v", release.TorrentTmpFile)
+		}
+
+		release.TorrentDataRawBytes = t
+	}
+
 	m := domain.NewMacro(release)
 
 	// parse and replace values in argument string before continuing
@@ -184,10 +194,21 @@ func (s *service) watchFolder(action domain.Action, release domain.Release) erro
 }
 
 func (s *service) webhook(action domain.Action, release domain.Release) error {
-	if release.TorrentTmpFile == "" && strings.Contains(action.WebhookData, "TorrentPathName") {
+	// if webhook data contains TorrentPathName or TorrentDataRawBytes, lets download the torrent file
+	if release.TorrentTmpFile == "" && (strings.Contains(action.WebhookData, "TorrentPathName") || strings.Contains(action.WebhookData, "TorrentDataRawBytes")) {
 		if err := release.DownloadTorrentFile(); err != nil {
 			return errors.Wrap(err, "webhook: could not download torrent file for release: %v", release.TorrentName)
 		}
+	}
+
+	// if webhook data contains TorrentDataRawBytes, lets read the file into bytes we can then use in the macro
+	if len(release.TorrentDataRawBytes) == 0 && strings.Contains(action.WebhookData, "TorrentDataRawBytes") {
+		t, err := ioutil.ReadFile(release.TorrentTmpFile)
+		if err != nil {
+			return errors.Wrap(err, "could not read torrent file: %v", release.TorrentTmpFile)
+		}
+
+		release.TorrentDataRawBytes = t
 	}
 
 	m := domain.NewMacro(release)

@@ -46,6 +46,7 @@ type Release struct {
 	TorrentID                   string                `json:"torrent_id"`
 	TorrentURL                  string                `json:"-"`
 	TorrentTmpFile              string                `json:"-"`
+	TorrentDataRawBytes         []byte                `json:"-"`
 	TorrentHash                 string                `json:"-"`
 	TorrentName                 string                `json:"torrent_name"` // full release name
 	Size                        uint64                `json:"size"`

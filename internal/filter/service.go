@@ -5,6 +5,7 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"os/exec"
 	"strings"
@@ -447,6 +448,16 @@ func (s *service) execCmd(release *domain.Release, cmd string, args string) (int
 		}
 	}
 
+	// read the file into bytes we can then use in the macro
+	if len(release.TorrentDataRawBytes) == 0 && release.TorrentTmpFile != "" {
+		t, err := ioutil.ReadFile(release.TorrentTmpFile)
+		if err != nil {
+			return 0, errors.Wrap(err, "could not read torrent file: %v", release.TorrentTmpFile)
+		}
+
+		release.TorrentDataRawBytes = t
+	}
+
 	// check if program exists
 	cmd, err := exec.LookPath(cmd)
 	if err != nil {
@@ -490,11 +501,21 @@ func (s *service) execCmd(release *domain.Release, cmd string, args string) (int
 }
 
 func (s *service) webhook(release *domain.Release, url string, data string) (int, error) {
-
-	if release.TorrentTmpFile == "" && strings.Contains(data, "TorrentPathName") {
+	// if webhook data contains TorrentPathName or TorrentDataRawBytes, lets download the torrent file
+	if release.TorrentTmpFile == "" && (strings.Contains(data, "TorrentPathName") || strings.Contains(data, "TorrentDataRawBytes")) {
 		if err := release.DownloadTorrentFile(); err != nil {
 			return 0, errors.Wrap(err, "webhook: could not download torrent file for release: %v", release.TorrentName)
 		}
+	}
+
+	// if webhook data contains TorrentDataRawBytes, lets read the file into bytes we can then use in the macro
+	if len(release.TorrentDataRawBytes) == 0 && strings.Contains(data, "TorrentDataRawBytes") {
+		t, err := ioutil.ReadFile(release.TorrentTmpFile)
+		if err != nil {
+			return 0, errors.Wrap(err, "could not read torrent file: %v", release.TorrentTmpFile)
+		}
+
+		release.TorrentDataRawBytes = t
 	}
 
 	m := domain.NewMacro(*release)
