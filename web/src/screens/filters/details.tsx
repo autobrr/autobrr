@@ -401,7 +401,7 @@ export function Music() {
   return (
     <div>
       <div className="mt-6 grid grid-cols-12 gap-6">
-        <TextField name="artists" label="Artists" columns={4} placeholder="eg. Aritst One" />
+        <TextField name="artists" label="Artists" columns={4} placeholder="eg. Artist One" />
         <TextField name="albums" label="Albums" columns={4} placeholder="eg. That Album" />
         <TextField name="years" label="Years" columns={4} placeholder="eg. 2018,2019-2021" />
       </div>
