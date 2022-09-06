@@ -22,6 +22,10 @@ builds:
         goarch: arm64
       - goos: darwin
         goarch: arm
+      - goos: freebsd
+        goarch: arm
+      - goos: freebsd
+        goarch: arm64
     main: ./cmd/autobrr/main.go
     binary: autobrr
   - id: autobrrctl
@@ -43,6 +47,10 @@ builds:
         goarch: arm64
       - goos: darwin
         goarch: arm
+      - goos: freebsd
+        goarch: arm
+      - goos: freebsd
+        goarch: arm64
     main: ./cmd/autobrrctl/main.go
     binary: autobrrctl
 
