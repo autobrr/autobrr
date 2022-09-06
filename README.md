@@ -21,7 +21,7 @@ Installation guide and documentation can be found at https://autobrr.com
 - Torznab/RSS support via Prowlarr to easily get access to hundreds of trackers
 - Powerful but simple filtering with RegEx support (like in autodl-irssi)
 - Easy to use and mobile friendly web UI (with dark mode!) to manage everything
-- Built on Go and React making autobrr lightweight and perfect for supporting multiple platforms (Linux, Windows, macOS) on different architectures (e.g. x86, ARM)
+- Built on Go and React making autobrr lightweight and perfect for supporting multiple platforms (Linux, FreeBSD, Windows, macOS) on different architectures (e.g. x86, ARM)
 - Great container support (Docker, k8s/Kubernetes)
 - Database engine supporting both PostgreSQL and SQLite
 - Notifications (Discord, Telegram, Notifiarr)
@@ -78,7 +78,7 @@ For more info check the [docs](https://quickbox.io/knowledge-base/v3/application
 
 We have support for a couple of providers out of the box and if yours are missing then please write on Discord so we add support.
 
-The scripts requires some input but does most of the work.
+The scripts require some input but does most of the work.
 
 #### Seedbox.io 
 
