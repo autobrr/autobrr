@@ -6,6 +6,7 @@ interface Feed {
   enabled: boolean;
   url: string;
   interval: number;
+  timeout: number;
   api_key: string;
   created_at: Date;
   updated_at: Date;
@@ -20,6 +21,7 @@ interface FeedCreate {
   enabled: boolean;
   url: string;
   interval: number;
+  timeout: number;
   api_key?: string;
   indexer_id: number;
 }

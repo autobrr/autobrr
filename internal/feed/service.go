@@ -35,6 +35,7 @@ type feedInstance struct {
 	ApiKey            string
 	Implementation    string
 	CronSchedule      time.Duration
+	Timeout           time.Duration
 }
 
 type service struct {
@@ -300,6 +301,7 @@ func (s *service) startJob(f domain.Feed) error {
 		URL:               f.URL,
 		ApiKey:            f.ApiKey,
 		CronSchedule:      time.Duration(f.Interval) * time.Minute,
+		Timeout:           time.Duration(f.Timeout) * time.Second,
 	}
 
 	switch fi.Implementation {
@@ -330,7 +332,7 @@ func (s *service) addTorznabJob(f feedInstance) error {
 	l := s.log.With().Str("feed", f.Name).Logger()
 
 	// setup torznab Client
-	c := torznab.NewClient(torznab.Config{Host: f.URL, ApiKey: f.ApiKey})
+	c := torznab.NewClient(torznab.Config{Host: f.URL, ApiKey: f.ApiKey, Timeout: f.Timeout})
 
 	// create job
 	job := NewTorznabJob(f.Name, f.IndexerIdentifier, l, f.URL, c, s.cacheRepo, s.releaseSvc)
@@ -373,7 +375,7 @@ func (s *service) addRSSJob(f feedInstance) error {
 	l := s.log.With().Str("feed", f.Name).Logger()
 
 	// create job
-	job := NewRSSJob(f.Name, f.IndexerIdentifier, l, f.URL, s.cacheRepo, s.releaseSvc)
+	job := NewRSSJob(f.Name, f.IndexerIdentifier, l, f.URL, s.cacheRepo, s.releaseSvc, f.Timeout)
 
 	// schedule job
 	id, err := s.scheduler.AddJob(job, f.CronSchedule, f.IndexerIdentifier)

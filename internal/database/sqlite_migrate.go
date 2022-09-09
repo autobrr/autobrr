@@ -877,4 +877,7 @@ CREATE INDEX indexer_identifier_index
 		created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 	);
 	`,
+	`ALTER TABLE feed
+     	ADD COLUMN timeout INTEGER DEFAULT 60;
+    `,
 }
