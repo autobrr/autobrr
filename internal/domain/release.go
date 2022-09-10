@@ -464,8 +464,12 @@ func (r *Release) MapVars(def *IndexerDefinition, varMap map[string]string) erro
 	}
 
 	if tags, err := getStringMapValue(varMap, "tags"); err == nil {
-		tagArr := strings.Split(strings.ReplaceAll(tags, " ", ""), ",")
-		r.Tags = tagArr
+		tagsArr := []string{}
+		s := strings.Split(tags, ",")
+		for _, t := range s {
+			tagsArr = append(tagsArr, strings.Trim(t, " "))
+		}
+		r.Tags = tagsArr
 	}
 
 	if title, err := getStringMapValue(varMap, "title"); err == nil {
@@ -486,7 +490,7 @@ func (r *Release) MapVars(def *IndexerDefinition, varMap map[string]string) erro
 	}
 
 	if episodeVal, err := getStringMapValue(varMap, "releaseEpisode"); err == nil {
-		episode, _ := strconv.Atoi(episodeVal);
+		episode, _ := strconv.Atoi(episodeVal)
 		r.Episode = episode
 	}
 

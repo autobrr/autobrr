@@ -465,6 +465,29 @@ func TestRelease_MapVars(t *testing.T) {
 				"freeleech":    "VIP",
 			}},
 		},
+		{
+			name:   "11",
+			fields: &Release{},
+			want: &Release{
+				TorrentName: "Good show S02 2160p ATVP WEB-DL DDP 5.1 Atmos DV HEVC-GROUP2",
+				Category:    "tv",
+				Freeleech:   true,
+				Bonus:       []string{"Freeleech"},
+				Uploader:    "Anon",
+				Size:        uint64(10000000000),
+				Tags:        []string{"comedy", "science fiction", "fantasy", "school.life", "shounen", "slice.of.life"},
+			},
+			args: args{
+				varMap: map[string]string{
+					"torrentName": "Good show S02 2160p ATVP WEB-DL DDP 5.1 Atmos DV HEVC-GROUP2",
+					"category":    "tv",
+					"tags":        "comedy, science fiction, fantasy, school.life, shounen, slice.of.life",
+					"freeleech":   "freeleech",
+					"uploader":    "Anon",
+					"torrentSize": "10GB",
+				},
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
