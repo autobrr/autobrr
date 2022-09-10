@@ -88,6 +88,7 @@ func TestTorrentAddOptions_Prepare(t *testing.T) {
 			want: map[string]string{
 				"skip_checking":    "true",
 				"root_folder":      "true",
+				"contentLayout":    "Subfolder",
 				"autoTMM":          "false",
 				"ratioLimit":       "2.00",
 				"savepath":         "/home/test/torrents",
@@ -116,6 +117,7 @@ func TestTorrentAddOptions_Prepare(t *testing.T) {
 			want: map[string]string{
 				"skip_checking":    "true",
 				"root_folder":      "false",
+				"contentLayout":    "NoSubfolder",
 				"autoTMM":          "false",
 				"ratioLimit":       "2.00",
 				"savepath":         "/home/test/torrents",
