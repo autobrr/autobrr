@@ -1,9 +1,9 @@
 package ptp
 
 import (
-	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"testing"
 
 	"github.com/autobrr/autobrr/internal/domain"
@@ -36,7 +36,7 @@ func TestPTPClient_GetTorrentByID(t *testing.T) {
 		}
 
 		// read json response
-		jsonPayload, _ := ioutil.ReadFile("testdata/ptp_get_torrent_by_id.json")
+		jsonPayload, _ := os.ReadFile("testdata/ptp_get_torrent_by_id.json")
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		w.Write(jsonPayload)

@@ -1,9 +1,10 @@
 package radarr
 
 import (
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"strings"
 	"testing"
 
@@ -34,13 +35,13 @@ func Test_client_Push(t *testing.T) {
 		}
 
 		defer r.Body.Close()
-		data, err := ioutil.ReadAll(r.Body)
+		data, err := io.ReadAll(r.Body)
 		if err != nil {
 			t.Errorf("expected error to be nil got %v", err)
 		}
 
 		if strings.Contains(string(data), "Minx 1 epi 9 2160p") {
-			jsonPayload, _ := ioutil.ReadFile("testdata/release_push_parse_error.json")
+			jsonPayload, _ := os.ReadFile("testdata/release_push_parse_error.json")
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusBadRequest)
 			w.Write(jsonPayload)
@@ -48,7 +49,7 @@ func Test_client_Push(t *testing.T) {
 		}
 
 		// read json response
-		jsonPayload, _ := ioutil.ReadFile("testdata/release_push_response.json")
+		jsonPayload, _ := os.ReadFile("testdata/release_push_response.json")
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		w.Write(jsonPayload)
@@ -164,7 +165,7 @@ func Test_client_Test(t *testing.T) {
 				return
 			}
 		}
-		jsonPayload, _ := ioutil.ReadFile("testdata/system_status_response.json")
+		jsonPayload, _ := os.ReadFile("testdata/system_status_response.json")
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		w.Write(jsonPayload)
