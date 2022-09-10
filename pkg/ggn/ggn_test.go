@@ -1,9 +1,9 @@
 package ggn
 
 import (
-	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"strings"
 	"testing"
 
@@ -29,7 +29,7 @@ func Test_client_GetTorrentByID(t *testing.T) {
 		}
 
 		if !strings.Contains(r.RequestURI, "422368") {
-			jsonPayload, _ := ioutil.ReadFile("testdata/ggn_get_torrent_by_id_not_found.json")
+			jsonPayload, _ := os.ReadFile("testdata/ggn_get_torrent_by_id_not_found.json")
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusOK)
 			w.Write(jsonPayload)
@@ -37,7 +37,7 @@ func Test_client_GetTorrentByID(t *testing.T) {
 		}
 
 		// read json response
-		jsonPayload, _ := ioutil.ReadFile("testdata/ggn_get_torrent_by_id.json")
+		jsonPayload, _ := os.ReadFile("testdata/ggn_get_torrent_by_id.json")
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		w.Write(jsonPayload)

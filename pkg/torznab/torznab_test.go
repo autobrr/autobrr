@@ -2,9 +2,9 @@ package torznab
 
 import (
 	"encoding/xml"
-	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"strings"
 	"testing"
 
@@ -23,7 +23,7 @@ import (
 //				return
 //			}
 //		}
-//		payload, err := ioutil.ReadFile("testdata/torznab_response.xml")
+//		payload, err := os.ReadFile("testdata/torznab_response.xml")
 //		if err != nil {
 //			http.Error(w, err.Error(), http.StatusInternalServerError)
 //			return
@@ -85,7 +85,7 @@ func TestClient_GetCaps(t *testing.T) {
 			return
 		}
 
-		payload, err := ioutil.ReadFile("testdata/caps_response.xml")
+		payload, err := os.ReadFile("testdata/caps_response.xml")
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return

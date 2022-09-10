@@ -2,7 +2,7 @@ package action
 
 import (
 	"context"
-	"io/ioutil"
+	"os"
 
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/pkg/errors"
@@ -38,7 +38,7 @@ func (s *service) rtorrent(action domain.Action, release domain.Release) ([]stri
 	// create client
 	rt := rtorrent.New(client.Host, true)
 
-	tmpFile, err := ioutil.ReadFile(release.TorrentTmpFile)
+	tmpFile, err := os.ReadFile(release.TorrentTmpFile)
 	if err != nil {
 		return nil, errors.Wrap(err, "could not read torrent file: %v", release.TorrentTmpFile)
 	}

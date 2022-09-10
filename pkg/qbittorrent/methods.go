@@ -2,7 +2,7 @@ package qbittorrent
 
 import (
 	"encoding/json"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/http/httputil"
 	"strconv"
@@ -30,7 +30,7 @@ func (c *Client) Login() error {
 
 	defer resp.Body.Close()
 
-	bodyBytes, err := ioutil.ReadAll(resp.Body)
+	bodyBytes, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return err
 	}
@@ -64,7 +64,7 @@ func (c *Client) GetTorrents() ([]Torrent, error) {
 
 	defer resp.Body.Close()
 
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, errors.Wrap(err, "could not read body")
 	}
@@ -89,7 +89,7 @@ func (c *Client) GetTorrentsFilter(filter TorrentFilter) ([]Torrent, error) {
 
 	defer resp.Body.Close()
 
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, errors.Wrap(err, "could not read body")
 	}
@@ -116,7 +116,7 @@ func (c *Client) GetTorrentsActiveDownloads() ([]Torrent, error) {
 
 	defer resp.Body.Close()
 
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, errors.Wrap(err, "could not read body")
 	}
@@ -146,7 +146,7 @@ func (c *Client) GetTorrentsRaw() (string, error) {
 
 	defer resp.Body.Close()
 
-	data, err := ioutil.ReadAll(resp.Body)
+	data, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return "", errors.Wrap(err, "could not get read body torrents raw")
 	}
@@ -180,7 +180,7 @@ func (c *Client) GetTorrentTrackers(hash string) ([]TorrentTracker, error) {
 		return nil, nil
 	}
 
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, errors.Wrap(err, "could not read body")
 	}
@@ -258,7 +258,7 @@ func (c *Client) GetTransferInfo() (*TransferInfo, error) {
 
 	defer resp.Body.Close()
 
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, errors.Wrap(err, "could not read body")
 	}
@@ -295,7 +295,7 @@ func (c *Client) SetForceStart(hashes []string, value bool) error {
 	hv := strings.Join(hashes, "|")
 	opts := map[string]string{
 		"hashes": hv,
-		"value": strconv.FormatBool(value),
+		"value":  strconv.FormatBool(value),
 	}
 
 	resp, err := c.get("torrents/setForceStart", opts)
@@ -400,7 +400,7 @@ func (c *Client) EditCategory(category string, path string) error {
 	return nil
 }
 
-func (c *Client) RemoveCategories(categories[] string) error {
+func (c *Client) RemoveCategories(categories []string) error {
 	opts := map[string]string{
 		"categories": strings.Join(categories, "\n"),
 	}
@@ -420,7 +420,7 @@ func (c *Client) SetCategory(hashes []string, category string) error {
 	// Add hashes together with | separator
 	hv := strings.Join(hashes, "|")
 	opts := map[string]string{
-		"hashes": hv,
+		"hashes":   hv,
 		"category": category,
 	}
 
@@ -447,7 +447,7 @@ func (c *Client) GetFilesInformation(hash string) (*TorrentFiles, error) {
 
 	defer resp.Body.Close()
 
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, errors.Wrap(err, "could not read body")
 	}
@@ -468,7 +468,7 @@ func (c *Client) GetCategories() (map[string]Category, error) {
 
 	defer resp.Body.Close()
 
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, errors.Wrap(err, "could not read body")
 	}
