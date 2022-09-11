@@ -75,3 +75,4 @@ parse:
 
   match:
     torrenturl: "https://{{ .baseUrl }}/torrents.php?action=download&id={{ .torrentId }}&authkey={{ .authkey }}&torrent_pass={{ .passkey }}"
+
