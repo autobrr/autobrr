@@ -263,6 +263,11 @@ export interface OptionBasic {
     value: string;
 }
 
+export interface OptionBasicTyped<T> {
+  label: string;
+  value: T;
+}
+
 export const PushStatusOptions: OptionBasic[] = [
   {
     label: "Rejected",
@@ -278,10 +283,14 @@ export const PushStatusOptions: OptionBasic[] = [
   }
 ];
 
-export const NotificationTypeOptions: OptionBasic[] = [
+export const NotificationTypeOptions: OptionBasicTyped<NotificationType>[] = [
   {
     label: "Discord",
     value: "DISCORD"
+  },
+  {
+    label: "Notifiarr",
+    value: "NOTIFIARR"
   },
   {
     label: "Telegram",
