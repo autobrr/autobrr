@@ -1,14 +1,10 @@
 import { Dialog, Transition } from "@headlessui/react";
 import { Fragment } from "react";
-import { Field, Form, Formik, FormikErrors, FormikValues } from "formik";
 import type { FieldProps } from "formik";
+import { Field, Form, Formik, FormikErrors, FormikValues } from "formik";
 import { XIcon } from "@heroicons/react/solid";
 import Select, { components, ControlProps, InputProps, MenuProps, OptionProps } from "react-select";
-import {
-  PasswordFieldWide,
-  SwitchGroupWide,
-  TextFieldWide
-} from "../../components/inputs";
+import { PasswordFieldWide, SwitchGroupWide, TextFieldWide } from "../../components/inputs";
 import DEBUG from "../../components/debug";
 import { EventOptions, NotificationTypeOptions, SelectOption } from "../../domain/constants";
 import { useMutation } from "react-query";
@@ -80,6 +76,25 @@ function FormFieldsDiscord() {
   );
 }
 
+function FormFieldsNotifiarr() {
+  return (
+    <div className="border-t border-gray-200 dark:border-gray-700 py-4">
+      <div className="px-4 space-y-1">
+        <Dialog.Title className="text-lg font-medium text-gray-900 dark:text-white">Settings</Dialog.Title>
+        <p className="text-sm text-gray-500 dark:text-gray-400">
+          Enable the autobrr integration and optionally create a new API Key.
+        </p>
+      </div>
+
+      <PasswordFieldWide
+        name="api_key"
+        label="API Key"
+        help="Notifiarr API Key"
+      />
+    </div>
+  );
+}
+
 function FormFieldsTelegram() {
   return (
     <div className="border-t border-gray-200 dark:border-gray-700 py-4">
@@ -105,8 +120,9 @@ function FormFieldsTelegram() {
 }
 
 const componentMap: componentMapType = {
-  DISCORD: <FormFieldsDiscord/>,
-  TELEGRAM: <FormFieldsTelegram/>
+  DISCORD: <FormFieldsDiscord />,
+  NOTIFIARR: <FormFieldsNotifiarr />,
+  TELEGRAM: <FormFieldsTelegram />
 };
 
 interface NotificationAddFormValues {
@@ -428,6 +444,7 @@ export function NotificationUpdateForm({ isOpen, toggle, notification }: UpdateP
     name: notification.name,
     webhook: notification.webhook,
     token: notification.token,
+    api_key: notification.api_key,
     channel: notification.channel,
     events: notification.events || []
   };
