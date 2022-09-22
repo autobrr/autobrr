@@ -1,7 +1,7 @@
 import { Fragment } from "react";
 import { useMutation } from "react-query";
 import { toast } from "react-hot-toast";
-import { XIcon } from "@heroicons/react/solid";
+import { XMarkIcon } from "@heroicons/react/24/solid";
 import { Dialog, Transition } from "@headlessui/react";
 import type { FieldProps } from "formik";
 import { Field, Form, Formik, FormikErrors, FormikValues } from "formik";
@@ -83,7 +83,7 @@ function APIKeyAddForm({ isOpen, toggle }: apiKeyAddFormProps) {
                                 onClick={toggle}
                               >
                                 <span className="sr-only">Close panel</span>
-                                <XIcon className="h-6 w-6" aria-hidden="true"/>
+                                <XMarkIcon className="h-6 w-6" aria-hidden="true"/>
                               </button>
                             </div>
                           </div>

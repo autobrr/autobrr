@@ -1,12 +1,12 @@
-import { useEffect, useRef, useState } from "react";
-import { ExclamationIcon } from "@heroicons/react/solid";
+import {useEffect, useRef, useState} from "react";
+import {ExclamationTriangleIcon} from "@heroicons/react/24/solid";
 import format from "date-fns/format";
-import { DebounceInput } from "react-debounce-input";
+import {DebounceInput} from "react-debounce-input";
 
-import { APIClient } from "../api/APIClient";
-import { Checkbox } from "../components/Checkbox";
-import { classNames } from "../utils";
-import { SettingsContext } from "../utils/Context";
+import {APIClient} from "../api/APIClient";
+import {Checkbox} from "../components/Checkbox";
+import {classNames} from "../utils";
+import {SettingsContext} from "../utils/Context";
 
 type LogEvent = {
   time: string;
@@ -79,7 +79,7 @@ export const Logs = () => {
         <div className="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8">
           <h1 className="text-3xl font-bold text-black dark:text-white">Logs</h1>
           <div className="flex justify-center">
-            <ExclamationIcon
+            <ExclamationTriangleIcon
               className="h-5 w-5 text-yellow-400"
               aria-hidden="true"
             />

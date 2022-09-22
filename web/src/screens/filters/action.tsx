@@ -1,17 +1,17 @@
-import { AlertWarning } from "../../components/alerts";
-import { DownloadClientSelect, NumberField, Select, SwitchGroup, TextField } from "../../components/inputs";
-import { ActionContentLayoutOptions, ActionTypeNameMap, ActionTypeOptions } from "../../domain/constants";
-import React, { Fragment, useRef } from "react";
-import { useQuery } from "react-query";
-import { APIClient } from "../../api/APIClient";
-import { Field, FieldArray, FieldProps, FormikValues } from "formik";
-import { EmptyListState } from "../../components/emptystates";
-import { useToggle } from "../../hooks/hooks";
-import { classNames } from "../../utils";
-import { Dialog, Switch as SwitchBasic, Transition } from "@headlessui/react";
-import { ChevronRightIcon } from "@heroicons/react/solid";
-import { DeleteModal } from "../../components/modals";
-import { CollapsableSection } from "./details";
+import {AlertWarning} from "../../components/alerts";
+import {DownloadClientSelect, NumberField, Select, SwitchGroup, TextField} from "../../components/inputs";
+import {ActionContentLayoutOptions, ActionTypeNameMap, ActionTypeOptions} from "../../domain/constants";
+import React, {Fragment, useRef} from "react";
+import {useQuery} from "react-query";
+import {APIClient} from "../../api/APIClient";
+import {Field, FieldArray, FieldProps, FormikValues} from "formik";
+import {EmptyListState} from "../../components/emptystates";
+import {useToggle} from "../../hooks/hooks";
+import {classNames} from "../../utils";
+import {Dialog, Switch as SwitchBasic, Transition} from "@headlessui/react";
+import {ChevronRightIcon} from "@heroicons/react/24/solid";
+import {DeleteModal} from "../../components/modals";
+import {CollapsableSection} from "./details";
 
 interface FilterActionsProps {
   filter: Filter;

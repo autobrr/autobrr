@@ -1,26 +1,26 @@
-import { Dispatch, FC, Fragment, MouseEventHandler, useReducer, useRef, useState } from "react";
-import { Link } from "react-router-dom";
-import { toast } from "react-hot-toast";
-import { Listbox, Menu, Switch, Transition } from "@headlessui/react";
-import { useMutation, useQuery, useQueryClient } from "react-query";
+import {Dispatch, FC, Fragment, MouseEventHandler, useReducer, useRef, useState} from "react";
+import {Link} from "react-router-dom";
+import {toast} from "react-hot-toast";
+import {Listbox, Menu, Switch, Transition} from "@headlessui/react";
+import {useMutation, useQuery, useQueryClient} from "react-query";
 import {
+  ArrowsRightLeftIcon,
   CheckIcon,
   ChevronDownIcon,
-  DotsHorizontalIcon,
-  DuplicateIcon,
-  PencilAltIcon,
-  SwitchHorizontalIcon,
+  DocumentDuplicateIcon,
+  EllipsisHorizontalIcon,
+  PencilSquareIcon,
   TrashIcon
-} from "@heroicons/react/outline";
+} from "@heroicons/react/24/outline";
 
-import { queryClient } from "../../App";
-import { classNames } from "../../utils";
-import { FilterAddForm } from "../../forms";
-import { useToggle } from "../../hooks/hooks";
-import { APIClient } from "../../api/APIClient";
+import {queryClient} from "../../App";
+import {classNames} from "../../utils";
+import {FilterAddForm} from "../../forms";
+import {useToggle} from "../../hooks/hooks";
+import {APIClient} from "../../api/APIClient";
 import Toast from "../../components/notifications/Toast";
-import { EmptyListState } from "../../components/emptystates";
-import { DeleteModal } from "../../components/modals";
+import {EmptyListState} from "../../components/emptystates";
+import {DeleteModal} from "../../components/modals";
 
 type FilterListState = {
   indexerFilter: string[],
@@ -250,7 +250,7 @@ const FilterItemDropdown = ({
         text="Are you sure you want to remove this filter? This action cannot be undone."
       />
       <Menu.Button className="px-4 py-2">
-        <DotsHorizontalIcon
+        <EllipsisHorizontalIcon
           className="w-5 h-5 text-gray-700 hover:text-gray-900 dark:text-gray-100 dark:hover:text-gray-400"
           aria-hidden="true"
         />
@@ -277,7 +277,7 @@ const FilterItemDropdown = ({
                     "font-medium group flex rounded-md items-center w-full px-2 py-2 text-sm"
                   )}
                 >
-                  <PencilAltIcon
+                  <PencilSquareIcon
                     className={classNames(
                       active ? "text-white" : "text-blue-500",
                       "w-5 h-5 mr-2"
@@ -297,7 +297,7 @@ const FilterItemDropdown = ({
                   )}
                   onClick={() => onToggle(!filter.enabled)}
                 >
-                  <SwitchHorizontalIcon
+                  <ArrowsRightLeftIcon
                     className={classNames(
                       active ? "text-white" : "text-blue-500",
                       "w-5 h-5 mr-2"
@@ -317,7 +317,7 @@ const FilterItemDropdown = ({
                   )}
                   onClick={() => duplicateMutation.mutate(filter.id)}
                 >
-                  <DuplicateIcon
+                  <DocumentDuplicateIcon
                     className={classNames(
                       active ? "text-white" : "text-blue-500",
                       "w-5 h-5 mr-2"

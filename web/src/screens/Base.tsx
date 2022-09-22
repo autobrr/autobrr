@@ -1,8 +1,8 @@
 import { Fragment } from "react";
 import { Link, NavLink, Outlet } from "react-router-dom";
 import { Disclosure, Menu, Transition } from "@headlessui/react";
-import { ExternalLinkIcon } from "@heroicons/react/solid";
-import { ChevronDownIcon, MenuIcon, XIcon } from "@heroicons/react/outline";
+import { ArrowTopRightOnSquareIcon } from "@heroicons/react/24/solid";
+import { Bars3Icon, ChevronDownIcon, XMarkIcon } from "@heroicons/react/24/outline";
 
 import { AuthContext } from "../utils/Context";
 
@@ -76,7 +76,7 @@ export default function Base() {
                           )}
                         >
                           Docs
-                          <ExternalLinkIcon className="inline ml-1 h-5 w-5"
+                          <ArrowTopRightOnSquareIcon className="inline ml-1 h-5 w-5"
                             aria-hidden="true"/>
                         </a>
                       </div>
@@ -157,9 +157,9 @@ export default function Base() {
                       className="bg-gray-200 dark:bg-gray-800 inline-flex items-center justify-center p-2 rounded-md text-gray-600 dark:text-gray-400 hover:text-white hover:bg-gray-700">
                       <span className="sr-only">Open main menu</span>
                       {open ? (
-                        <XIcon className="block h-6 w-6" aria-hidden="true"/>
+                        <XMarkIcon className="block h-6 w-6" aria-hidden="true"/>
                       ) : (
-                        <MenuIcon className="block h-6 w-6" aria-hidden="true"/>
+                        <Bars3Icon className="block h-6 w-6" aria-hidden="true"/>
                       )}
                     </Disclosure.Button>
                   </div>

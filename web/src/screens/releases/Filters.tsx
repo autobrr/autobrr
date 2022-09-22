@@ -1,16 +1,13 @@
 import * as React from "react";
-import { useQuery } from "react-query";
-import { Listbox, Transition } from "@headlessui/react";
-import {
-  CheckIcon,
-  ChevronDownIcon
-} from "@heroicons/react/solid";
+import {useQuery} from "react-query";
+import {Listbox, Transition} from "@headlessui/react";
+import {CheckIcon, ChevronDownIcon} from "@heroicons/react/24/solid";
 
-import { APIClient } from "../../api/APIClient";
-import { classNames } from "../../utils";
-import { PushStatusOptions } from "../../domain/constants";
-import { FilterProps } from "react-table";
-import { DebounceInput } from "react-debounce-input";
+import {APIClient} from "../../api/APIClient";
+import {classNames} from "../../utils";
+import {PushStatusOptions} from "../../domain/constants";
+import {FilterProps} from "react-table";
+import {DebounceInput} from "react-debounce-input";
 
 interface ListboxFilterProps {
     id: string;

@@ -2012,12 +2012,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@heroicons/react@npm:^1.0.6":
-  version: 1.0.6
-  resolution: "@heroicons/react@npm:1.0.6"
+"@heroicons/react@npm:^2.0.11":
+  version: 2.0.11
+  resolution: "@heroicons/react@npm:2.0.11"
   peerDependencies:
     react: ">= 16"
-  checksum: 372b1eda3ce735ef069777bc96304f70de585ebb71a6d1cedc121bb695f9bca235619112e3ee14e8779e95a03096813cbbe3b755927a54b7580d1ce084fa4096
+  checksum: 9049e12bdb9bb1cc2ebc555877f538055ae01828bda781f0a7f3b2fe17aff8b6337d8562c5984bfe09ee77e95befd4e62854a58c9900c2e2650798b15ab807c3
   languageName: node
   linkType: hard
 
@@ -12886,7 +12886,7 @@ __metadata:
   dependencies:
     "@fontsource/inter": ^4.5.11
     "@headlessui/react": ^1.6.4
-    "@heroicons/react": ^1.0.6
+    "@heroicons/react": ^2.0.11
     "@hookform/error-message": ^2.0.0
     "@tailwindcss/forms": ^0.5.2
     "@types/node": ^18.0.0
