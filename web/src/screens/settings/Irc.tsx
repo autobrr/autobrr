@@ -1,20 +1,28 @@
-import { useMutation, useQuery, useQueryClient } from "react-query";
+import {useMutation, useQuery, useQueryClient} from "react-query";
 
-import { classNames, IsEmptyDate, simplifyDate } from "../../utils";
-import { IrcNetworkAddForm, IrcNetworkUpdateForm } from "../../forms";
-import { useToggle } from "../../hooks/hooks";
-import { APIClient } from "../../api/APIClient";
-import { EmptySimple } from "../../components/emptystates";
-import { DotsHorizontalIcon, ExclamationCircleIcon, PencilAltIcon, TrashIcon } from "@heroicons/react/outline";
-import { LockClosedIcon, LockOpenIcon } from "@heroicons/react/solid";
-import { Menu, Transition } from "@headlessui/react";
-import { Fragment, useRef } from "react";
-import { DeleteModal } from "../../components/modals";
+import {classNames, IsEmptyDate, simplifyDate} from "../../utils";
+import {IrcNetworkAddForm, IrcNetworkUpdateForm} from "../../forms";
+import {useToggle} from "../../hooks/hooks";
+import {APIClient} from "../../api/APIClient";
+import {EmptySimple} from "../../components/emptystates";
+import {LockClosedIcon, LockOpenIcon} from "@heroicons/react/24/solid";
+import {Menu, Transition} from "@headlessui/react";
+import {Fragment, useRef} from "react";
+import {DeleteModal} from "../../components/modals";
 
-import { toast } from "react-hot-toast";
+import {toast} from "react-hot-toast";
 import Toast from "../../components/notifications/Toast";
+import {
+  ArrowsPointingInIcon,
+  ArrowsPointingOutIcon,
+  EllipsisHorizontalIcon,
+  ExclamationCircleIcon,
+  PencilSquareIcon,
+  TrashIcon
+} from "@heroicons/react/24/outline";
 
 export const IrcSettings = () => {
+  const [expandNetworks, toggleExpand] = useToggle(false);
   const [addNetworkIsOpen, toggleAddNetwork] = useToggle(false);
 
   const { data } = useQuery("networks", () => APIClient.irc.getNetworks(), {
@@ -49,8 +57,8 @@ export const IrcSettings = () => {
           </div>
         </div>
 
-        <div className="flex flex-col mt-10 px-1">
-          <ol className="flex gap-2 divide-x divide-gray-200 dark:divide-gray-700">
+        <div className="flex justify-between flex-col sm:flex-row mt-10 px-1">
+          <ol className="flex flex-col sm:flex-row sm:gap-2 pb-4 sm:pb-0 sm:divide-x sm:divide-gray-200 sm:dark:divide-gray-700">
             <li className="flex items-center">
               <span
                 className="mr-2 flex h-4 w-4 relative"
@@ -62,17 +70,17 @@ export const IrcSettings = () => {
               <span className="text-sm text-gray-800 dark:text-gray-500">Network healthy</span>
             </li>
 
-            <li className="flex items-center pl-2">
+            <li className="flex items-center sm:pl-2">
               <span
                 className="mr-2 flex items-center"
                 title="Network unhealthy"
               >
-                <ExclamationCircleIcon className="h-5 w-5 text-yellow-400 hover:text-yellow-600" />
+                <ExclamationCircleIcon className="h-4 w-4 text-yellow-400 hover:text-yellow-600" />
               </span>
               <span className="text-sm text-gray-800 dark:text-gray-500">Network unhealthy</span>
             </li>
 
-            <li className="flex items-center pl-2">
+            <li className="flex items-center sm:pl-2">
               <span
                 className="mr-2 flex h-4 w-4 rounded-full opacity-75 bg-gray-500"
                 title="Network disabled"
@@ -81,6 +89,14 @@ export const IrcSettings = () => {
               <span className="text-sm text-gray-800 dark:text-gray-500">Network disabled</span>
             </li>
           </ol>
+          <div className="flex gap-x-2">
+            <button className="flex items-center text-sm text-gray-800 dark:text-gray-400 p-1 px-2 rounded shadow bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600" onClick={toggleExpand} title={expandNetworks ? "collapse" : "expand"}>
+              {expandNetworks
+                ? <span className="flex items-center">Collapse <ArrowsPointingInIcon className="ml-1 w-4 h-4"/></span>
+                : <span className="flex items-center">Expand <ArrowsPointingOutIcon className="ml-1 w-4 h-4"/></span>
+              }</button>
+            {/*<button className="flex items-center text-sm text-gray-800 dark:text-gray-400 p-1 dark:bg-gray-700" onClick={toggleExpand} title="collapse"><ArrowsPointingInIcon className="w-4 h-4"/></button>*/}
+          </div>
         </div>
 
         {data && data.length > 0 ? (
@@ -90,16 +106,16 @@ export const IrcSettings = () => {
                 <div className="col-span-3 px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                   Network
                 </div>
-                <div className="col-span-5 px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                <div className="hidden sm:flex col-span-5 px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                   Server
                 </div>
-                <div className="col-span-3 px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                <div className="hidden sm:flex col-span-3 px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                   Nick
                 </div>
               </li>
               {data &&
                 data.map((network, idx) => (
-                  <ListItem key={idx} idx={idx} network={network} />
+                  <ListItem key={idx} idx={idx} expanded={expandNetworks} network={network} />
                 ))}
             </ol>
           </section>
@@ -119,9 +135,10 @@ export const IrcSettings = () => {
 interface ListItemProps {
   idx: number;
   network: IrcNetworkWithHealth;
+  expanded: boolean;
 }
 
-const ListItem = ({ idx, network }: ListItemProps) => {
+const ListItem = ({ idx, network, expanded }: ListItemProps) => {
   const [updateIsOpen, toggleUpdate] = useToggle(false);
   const [edit, toggleEdit] = useToggle(false);
 
@@ -135,7 +152,7 @@ const ListItem = ({ idx, network }: ListItemProps) => {
         />
 
         <div
-          className="col-span-3 items-center sm:px-6 text-sm font-medium text-gray-900 dark:text-white cursor-pointer"
+          className="col-span-10 xs:col-span-3 sm:col-span-3 items-center sm:px-6 text-sm font-medium text-gray-900 dark:text-white cursor-pointer"
           onClick={toggleEdit}
         >
           <div className="flex">
@@ -167,7 +184,7 @@ const ListItem = ({ idx, network }: ListItemProps) => {
           </div>
         </div>
         <div
-          className="col-span-5 sm:px-6 text-sm text-gray-500 dark:text-gray-400 cursor-pointer"
+          className="hidden sm:flex col-span-5 sm:px-6 text-sm text-gray-500 dark:text-gray-400 cursor-pointer"
           onClick={toggleEdit}
         >
           <div
@@ -196,7 +213,7 @@ const ListItem = ({ idx, network }: ListItemProps) => {
         </div>
         {network.nickserv && network.nickserv.account ? (
           <div
-            className="col-span-3 items-center sm:px-6 text-sm text-gray-500 dark:text-gray-400 cursor-pointer"
+            className="hidden sm:flex col-span-3 items-center sm:px-6 text-sm text-gray-500 dark:text-gray-400 cursor-pointer"
             onClick={toggleEdit}
           >
             <div className="overflow-x-auto flex">
@@ -210,7 +227,7 @@ const ListItem = ({ idx, network }: ListItemProps) => {
           <ListItemDropdown network={network} toggleUpdate={toggleUpdate} />
         </div>
       </div>
-      {edit && (
+      {edit || expanded && (
         <div className="px-4 py-4 flex border-b border-x-0 dark:border-gray-600 dark:bg-gray-700">
           <div className="min-w-full">
             {network.channels.length > 0 ? (
@@ -333,7 +350,7 @@ const ListItemDropdown = ({
         text="Are you sure you want to remove this network? This action cannot be undone."
       />
       <Menu.Button className="px-4 py-2">
-        <DotsHorizontalIcon
+        <EllipsisHorizontalIcon
           className="w-5 h-5 text-gray-700 hover:text-gray-900 dark:text-gray-100 dark:hover:text-gray-400"
           aria-hidden="true"
         />
@@ -348,7 +365,7 @@ const ListItemDropdown = ({
         leaveTo="transform opacity-0 scale-95"
       >
         <Menu.Items
-          className="absolute right-0 w-56 mt-2 origin-top-right bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700 rounded-md shadow-lg ring-1 ring-black ring-opacity-10 focus:outline-none"
+          className="absolute right-0 w-32 sm:w-56 mt-2 origin-top-right bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700 rounded-md shadow-lg ring-1 ring-black ring-opacity-10 focus:outline-none"
         >
           <div className="px-1 py-1">
             <Menu.Item>
@@ -360,7 +377,7 @@ const ListItemDropdown = ({
                   )}
                   onClick={() => toggleUpdate()}
                 >
-                  <PencilAltIcon
+                  <PencilSquareIcon
                     className={classNames(
                       active ? "text-white" : "text-blue-500",
                       "w-5 h-5 mr-2"

@@ -1,6 +1,6 @@
-import { useToggle } from "../../hooks/hooks";
-import { ClipboardCopyIcon, EyeIcon, EyeOffIcon, CheckIcon } from "@heroicons/react/outline";
-import { useState } from "react";
+import {useToggle} from "../../hooks/hooks";
+import {CheckIcon, DocumentDuplicateIcon, EyeIcon, EyeSlashIcon} from "@heroicons/react/24/outline";
+import {useState} from "react";
 
 interface KeyFieldProps {
   value: string;
@@ -52,7 +52,7 @@ export const KeyField = ({ value }: KeyFieldProps) => {
           onClick={toggleVisibility}
           title="show"
         >
-          {!isVisible ? <EyeIcon className="h-5 w-5 text-gray-400 hover:text-gray-500" aria-hidden="true" /> : <EyeOffIcon className="h-5 w-5 text-gray-400 hover:text-gray-500" aria-hidden="true" />}
+          {!isVisible ? <EyeIcon className="h-5 w-5 text-gray-400 hover:text-gray-500" aria-hidden="true" /> : <EyeSlashIcon className="h-5 w-5 text-gray-400 hover:text-gray-500" aria-hidden="true" />}
         </button>
         <button
           type="button"
@@ -65,7 +65,7 @@ export const KeyField = ({ value }: KeyFieldProps) => {
               className="text-blue-500 w-5 h-5"
               aria-hidden="true"
             />
-            : <ClipboardCopyIcon
+            : <DocumentDuplicateIcon
               className="text-blue-500 w-5 h-5"
               aria-hidden="true"
             />

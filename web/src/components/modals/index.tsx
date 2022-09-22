@@ -1,6 +1,6 @@
-import React, { Fragment, FC } from "react";
-import { Dialog, Transition } from "@headlessui/react";
-import { ExclamationIcon } from "@heroicons/react/solid";
+import React, {FC, Fragment} from "react";
+import {Dialog, Transition} from "@headlessui/react";
+import {ExclamationTriangleIcon} from "@heroicons/react/24/solid";
 
 interface DeleteModalProps {
     isOpen: boolean;
@@ -49,7 +49,7 @@ export const DeleteModal: FC<DeleteModalProps> = ({ isOpen, buttonRef, toggle, d
           <div className="inline-block align-bottom rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
             <div className="bg-white dark:bg-gray-800 px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
               <div className="sm:flex sm:items-start">
-                <ExclamationIcon className="h-16 w-16 text-red-500 dark:text-red-500" aria-hidden="true" />
+                <ExclamationTriangleIcon className="h-16 w-16 text-red-500 dark:text-red-500" aria-hidden="true" />
                 <div className="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left">
                   <Dialog.Title as="h3" className="text-lg leading-6 font-medium text-gray-900 dark:text-white">
                     {title}

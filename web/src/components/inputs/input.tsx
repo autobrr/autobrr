@@ -1,7 +1,7 @@
-import { Field, FieldProps } from "formik";
-import { classNames } from "../../utils";
-import { EyeIcon, EyeOffIcon } from "@heroicons/react/solid";
-import { useToggle } from "../../hooks/hooks";
+import {Field, FieldProps} from "formik";
+import {classNames} from "../../utils";
+import {EyeIcon, EyeSlashIcon} from "@heroicons/react/24/solid";
+import {useToggle} from "../../hooks/hooks";
 
 type COL_WIDTHS = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12;
 
@@ -24,7 +24,7 @@ export const TextField = ({
   columns,
   autoComplete,
   hidden,
-  disabled,
+  disabled
 }: TextFieldProps) => (
   <div
     className={classNames(
@@ -52,7 +52,7 @@ export const TextField = ({
             className={classNames(
               meta.touched && meta.error ? "focus:ring-red-500 focus:border-red-500 border-red-500" : "focus:ring-indigo-500 dark:focus:ring-blue-500 focus:border-indigo-500 dark:focus:border-blue-500 border-gray-300 dark:border-gray-700",
               disabled ? "bg-gray-100 dark:bg-gray-700 cursor-not-allowed" : "dark:bg-gray-800",
-              "mt-2 block w-full dark:text-gray-100 rounded-md",
+              "mt-2 block w-full dark:text-gray-100 rounded-md"
             )}
             disabled={disabled}
             placeholder={placeholder}
@@ -88,7 +88,7 @@ export const TextArea = ({
   rows,
   autoComplete,
   hidden,
-  disabled,
+  disabled
 }: TextAreaProps) => (
   <div
     className={classNames(
@@ -103,9 +103,9 @@ export const TextArea = ({
     )}
     <Field name={name}>
       {({
-          field,
-          meta
-        }: FieldProps) => (
+        field,
+        meta
+      }: FieldProps) => (
         <div>
           <textarea
             {...field}
@@ -116,7 +116,7 @@ export const TextArea = ({
             className={classNames(
               meta.touched && meta.error ? "focus:ring-red-500 focus:border-red-500 border-red-500" : "focus:ring-indigo-500 dark:focus:ring-blue-500 focus:border-indigo-500 dark:focus:border-blue-500 border-gray-300 dark:border-gray-700",
               disabled ? "bg-gray-100 dark:bg-gray-700 cursor-not-allowed" : "dark:bg-gray-800",
-              "mt-2 block w-full dark:text-gray-100 rounded-md",
+              "mt-2 block w-full dark:text-gray-100 rounded-md"
             )}
             placeholder={placeholder}
             disabled={disabled}
@@ -181,7 +181,7 @@ export const PasswordField = ({
             />
 
             <div className="absolute inset-y-0 right-0 px-3 flex items-center" onClick={toggleVisibility}>
-              {!isVisible ? <EyeIcon className="h-5 w-5 text-gray-400 hover:text-gray-500" aria-hidden="true" /> : <EyeOffIcon className="h-5 w-5 text-gray-400 hover:text-gray-500" aria-hidden="true" />}
+              {!isVisible ? <EyeIcon className="h-5 w-5 text-gray-400 hover:text-gray-500" aria-hidden="true" /> : <EyeSlashIcon className="h-5 w-5 text-gray-400 hover:text-gray-500" aria-hidden="true" />}
             </div>
 
             {help && (
@@ -211,7 +211,7 @@ export const NumberField = ({
   label,
   placeholder,
   step,
-  disabled,
+  disabled
 }: NumberFieldProps) => (
   <div className="col-span-12 sm:col-span-6">
     <label htmlFor={name} className="block text-xs font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wide">
@@ -233,7 +233,7 @@ export const NumberField = ({
                 ? "focus:ring-red-500 focus:border-red-500 border-red-500"
                 : "focus:ring-indigo-500 dark:focus:ring-blue-500 focus:border-indigo-500 dark:focus:border-blue-500 border-gray-300",
               "mt-2 block w-full border border-gray-300 dark:border-gray-700 dark:text-gray-100 rounded-md",
-              disabled ? "bg-gray-100 dark:bg-gray-700 cursor-not-allowed" : "dark:bg-gray-800",
+              disabled ? "bg-gray-100 dark:bg-gray-700 cursor-not-allowed" : "dark:bg-gray-800"
             )}
             placeholder={placeholder}
             disabled={disabled}

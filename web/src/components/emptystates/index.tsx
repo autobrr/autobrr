@@ -1,4 +1,4 @@
-import { PlusIcon } from "@heroicons/react/solid";
+import {PlusIcon} from "@heroicons/react/24/solid";
 
 interface EmptySimpleProps {
     title: string;

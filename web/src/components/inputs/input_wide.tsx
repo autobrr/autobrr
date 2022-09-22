@@ -1,10 +1,10 @@
-import { Field } from "formik";
-import type { FieldProps } from "formik";
-import { classNames } from "../../utils";
-import { useToggle } from "../../hooks/hooks";
-import { EyeIcon, EyeOffIcon } from "@heroicons/react/solid";
-import { Switch } from "@headlessui/react";
-import { ErrorField } from "./common";
+import type {FieldProps} from "formik";
+import {Field} from "formik";
+import {classNames} from "../../utils";
+import {useToggle} from "../../hooks/hooks";
+import {EyeIcon, EyeSlashIcon} from "@heroicons/react/24/solid";
+import {Switch} from "@headlessui/react";
+import {ErrorField} from "./common";
 
 interface TextFieldWideProps {
     name: string;
@@ -103,7 +103,7 @@ export const PasswordFieldWide = ({
                 placeholder={placeholder}
               />
               <div className="absolute inset-y-0 right-0 px-3 flex items-center" onClick={toggleVisibility}>
-                {!isVisible ? <EyeIcon className="h-5 w-5 text-gray-400 hover:text-gray-500" aria-hidden="true" /> : <EyeOffIcon className="h-5 w-5 text-gray-400 hover:text-gray-500" aria-hidden="true" />}
+                {!isVisible ? <EyeIcon className="h-5 w-5 text-gray-400 hover:text-gray-500" aria-hidden="true" /> : <EyeSlashIcon className="h-5 w-5 text-gray-400 hover:text-gray-500" aria-hidden="true" />}
               </div>
             </div>
           )}

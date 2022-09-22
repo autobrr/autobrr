@@ -1,18 +1,9 @@
-import React, {
-  FC,
-  forwardRef,
-  ReactNode
-} from "react";
-import {
-  FieldError,
-  UseFormRegister,
-  Path,
-  RegisterOptions, DeepMap
-} from "react-hook-form";
-import { classNames, get } from "../../utils";
-import { useToggle } from "../../hooks/hooks";
-import { EyeIcon, EyeOffIcon } from "@heroicons/react/solid";
-import { ErrorMessage } from "@hookform/error-message";
+import React, {FC, forwardRef, ReactNode} from "react";
+import {DeepMap, FieldError, Path, RegisterOptions, UseFormRegister} from "react-hook-form";
+import {classNames, get} from "../../utils";
+import {useToggle} from "../../hooks/hooks";
+import {EyeIcon, EyeSlashIcon} from "@heroicons/react/24/solid";
+import {ErrorMessage} from "@hookform/error-message";
 
 export type FormErrorMessageProps = {
   className?: string;
@@ -183,7 +174,7 @@ export const PasswordInput = <TFormValues extends Record<string, unknown>>({
             {...(register && register(name, rules))}
           />
           <div className="absolute inset-y-0 right-0 px-3 flex items-center" onClick={toggleVisibility}>
-            {!isVisible ? <EyeIcon className="h-5 w-5 text-gray-400 hover:text-gray-500" aria-hidden="true" /> : <EyeOffIcon className="h-5 w-5 text-gray-400 hover:text-gray-500" aria-hidden="true" />}
+            {!isVisible ? <EyeIcon className="h-5 w-5 text-gray-400 hover:text-gray-500" aria-hidden="true" /> : <EyeSlashIcon className="h-5 w-5 text-gray-400 hover:text-gray-500" aria-hidden="true" />}
           </div>
         </div>
         <ErrorMessage

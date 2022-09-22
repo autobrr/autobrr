@@ -1,16 +1,16 @@
-import { queryClient } from "../../App";
-import { useRef } from "react";
-import { useMutation, useQuery } from "react-query";
-import { KeyField } from "../../components/fields/text";
-import { DeleteModal } from "../../components/modals";
+import {queryClient} from "../../App";
+import {useRef} from "react";
+import {useMutation, useQuery} from "react-query";
+import {KeyField} from "../../components/fields/text";
+import {DeleteModal} from "../../components/modals";
 import APIKeyAddForm from "../../forms/settings/APIKeyAddForm";
 import Toast from "../../components/notifications/Toast";
-import { APIClient } from "../../api/APIClient";
-import { useToggle } from "../../hooks/hooks";
-import { toast } from "react-hot-toast";
-import { classNames } from "../../utils";
-import { TrashIcon } from "@heroicons/react/outline";
-import { EmptySimple } from "../../components/emptystates";
+import {APIClient} from "../../api/APIClient";
+import {useToggle} from "../../hooks/hooks";
+import {toast} from "react-hot-toast";
+import {classNames} from "../../utils";
+import {TrashIcon} from "@heroicons/react/24/outline";
+import {EmptySimple} from "../../components/emptystates";
 
 function APISettings() {
   const [addFormIsOpen, toggleAddForm] = useToggle(false);

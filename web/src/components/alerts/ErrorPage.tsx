@@ -1,6 +1,6 @@
 import StackTracey from "stacktracey";
-import type { FallbackProps } from "react-error-boundary";
-import { RefreshIcon } from "@heroicons/react/solid";
+import type {FallbackProps} from "react-error-boundary";
+import {ArrowPathIcon} from "@heroicons/react/24/solid";
 
 export const ErrorPage = ({ error, resetErrorBoundary }: FallbackProps) => {
   const stack = new StackTracey(error);
@@ -73,7 +73,7 @@ export const ErrorPage = ({ error, resetErrorBoundary }: FallbackProps) => {
               resetErrorBoundary();
             }}
           >
-            <RefreshIcon className="-ml-0.5 mr-2 h-5 w-5"/>
+            <ArrowPathIcon className="-ml-0.5 mr-2 h-5 w-5"/>
             Reset page state
           </button>
         </div>

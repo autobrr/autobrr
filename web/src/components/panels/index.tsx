@@ -1,11 +1,11 @@
-import React, { Fragment, useRef } from "react";
-import { XIcon } from "@heroicons/react/solid";
-import { Dialog, Transition } from "@headlessui/react";
-import { Form, Formik } from "formik";
+import React, {Fragment, useRef} from "react";
+import {XMarkIcon} from "@heroicons/react/24/solid";
+import {Dialog, Transition} from "@headlessui/react";
+import {Form, Formik} from "formik";
 import DEBUG from "../debug";
-import { useToggle } from "../../hooks/hooks";
-import { DeleteModal } from "../modals";
-import { classNames } from "../../utils";
+import {useToggle} from "../../hooks/hooks";
+import {DeleteModal} from "../modals";
+import {classNames} from "../../utils";
 
 interface SlideOverProps<DataType> {
     title: string;
@@ -101,7 +101,7 @@ function SlideOver<DataType>({
                                 onClick={toggle}
                               >
                                 <span className="sr-only">Close panel</span>
-                                <XIcon className="h-6 w-6" aria-hidden="true" />
+                                <XMarkIcon className="h-6 w-6" aria-hidden="true" />
                               </button>
                             </div>
                           </div>

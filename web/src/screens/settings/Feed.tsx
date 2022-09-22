@@ -1,23 +1,18 @@
-import { useToggle } from "../../hooks/hooks";
-import { useMutation, useQuery, useQueryClient } from "react-query";
-import { APIClient } from "../../api/APIClient";
-import { Menu, Switch, Transition } from "@headlessui/react";
+import {useToggle} from "../../hooks/hooks";
+import {useMutation, useQuery, useQueryClient} from "react-query";
+import {APIClient} from "../../api/APIClient";
+import {Menu, Switch, Transition} from "@headlessui/react";
 
-import { classNames } from "../../utils";
-import { Fragment, useRef, useState } from "react";
-import { toast } from "react-hot-toast";
+import {classNames} from "../../utils";
+import {Fragment, useRef, useState} from "react";
+import {toast} from "react-hot-toast";
 import Toast from "../../components/notifications/Toast";
-import { queryClient } from "../../App";
-import { DeleteModal } from "../../components/modals";
-import {
-  DotsHorizontalIcon,
-  PencilAltIcon,
-  SwitchHorizontalIcon,
-  TrashIcon
-} from "@heroicons/react/outline";
-import { FeedUpdateForm } from "../../forms/settings/FeedForms";
-import { EmptySimple } from "../../components/emptystates";
-import { ImplementationBadges } from "./Indexer";
+import {queryClient} from "../../App";
+import {DeleteModal} from "../../components/modals";
+import {ArrowsRightLeftIcon, EllipsisHorizontalIcon, PencilSquareIcon, TrashIcon} from "@heroicons/react/24/outline";
+import {FeedUpdateForm} from "../../forms/settings/FeedForms";
+import {EmptySimple} from "../../components/emptystates";
+import {ImplementationBadges} from "./Indexer";
 
 function FeedSettings() {
   const { data } = useQuery(
@@ -183,7 +178,7 @@ const FeedItemDropdown = ({
         text="Are you sure you want to remove this feed? This action cannot be undone."
       />
       <Menu.Button className="px-4 py-2">
-        <DotsHorizontalIcon
+        <EllipsisHorizontalIcon
           className="w-5 h-5 text-gray-700 hover:text-gray-900 dark:text-gray-100 dark:hover:text-gray-400"
           aria-hidden="true"
         />
@@ -210,7 +205,7 @@ const FeedItemDropdown = ({
                   )}
                   onClick={() => toggleUpdate()}
                 >
-                  <PencilAltIcon
+                  <PencilSquareIcon
                     className={classNames(
                       active ? "text-white" : "text-blue-500",
                       "w-5 h-5 mr-2"
@@ -230,7 +225,7 @@ const FeedItemDropdown = ({
                   )}
                   onClick={() => onToggle(!feed.enabled)}
                 >
-                  <SwitchHorizontalIcon
+                  <ArrowsRightLeftIcon
                     className={classNames(
                       active ? "text-white" : "text-blue-500",
                       "w-5 h-5 mr-2"
