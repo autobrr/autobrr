@@ -1,12 +1,18 @@
-import { useQuery } from "react-query";
+import { useMutation, useQuery, useQueryClient } from "react-query";
 
 import { classNames, IsEmptyDate, simplifyDate } from "../../utils";
 import { IrcNetworkAddForm, IrcNetworkUpdateForm } from "../../forms";
 import { useToggle } from "../../hooks/hooks";
 import { APIClient } from "../../api/APIClient";
 import { EmptySimple } from "../../components/emptystates";
-import { ExclamationCircleIcon } from "@heroicons/react/outline";
+import { DotsHorizontalIcon, ExclamationCircleIcon, PencilAltIcon, TrashIcon } from "@heroicons/react/outline";
 import { LockClosedIcon, LockOpenIcon } from "@heroicons/react/solid";
+import { Menu, Transition } from "@headlessui/react";
+import { Fragment, useRef } from "react";
+import { DeleteModal } from "../../components/modals";
+
+import { toast } from "react-hot-toast";
+import Toast from "../../components/notifications/Toast";
 
 export const IrcSettings = () => {
   const [addNetworkIsOpen, toggleAddNetwork] = useToggle(false);
@@ -43,11 +49,11 @@ export const IrcSettings = () => {
           </div>
         </div>
 
-        <div className="flex flex-col mt-10">
+        <div className="flex flex-col mt-10 px-1">
           <ol className="flex gap-2 divide-x divide-gray-200 dark:divide-gray-700">
             <li className="flex items-center">
               <span
-                className="mr-3 flex h-4 w-4 relative"
+                className="mr-2 flex h-4 w-4 relative"
                 title="Network healthy"
               >
                 <span className="animate-ping inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
@@ -58,17 +64,17 @@ export const IrcSettings = () => {
 
             <li className="flex items-center pl-2">
               <span
-                className="mr-3 flex items-center"
+                className="mr-2 flex items-center"
                 title="Network unhealthy"
               >
-                <ExclamationCircleIcon className="h-4 w-4 text-yellow-400 hover:text-yellow-600" />
+                <ExclamationCircleIcon className="h-5 w-5 text-yellow-400 hover:text-yellow-600" />
               </span>
               <span className="text-sm text-gray-800 dark:text-gray-500">Network unhealthy</span>
             </li>
 
             <li className="flex items-center pl-2">
               <span
-                className="mr-3 flex h-4 w-4 rounded-full opacity-75 bg-gray-500"
+                className="mr-2 flex h-4 w-4 rounded-full opacity-75 bg-gray-500"
                 title="Network disabled"
               >
               </span>
@@ -79,7 +85,7 @@ export const IrcSettings = () => {
 
         {data && data.length > 0 ? (
           <section className="mt-6 light:bg-white dark:bg-gray-800 light:shadow sm:rounded-md">
-            <ol className="min-w-full">
+            <ol className="min-w-full relative">
               <li className="grid grid-cols-12 gap-4 border-b border-gray-200 dark:border-gray-700">
                 <div className="col-span-3 px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                   Network
@@ -121,7 +127,7 @@ const ListItem = ({ idx, network }: ListItemProps) => {
 
   return (
     <li key={idx}>
-      <div className={classNames("grid grid-cols-12 gap-2 lg:gap-4 items-center py-4", network.enabled && !network.healthy ? "bg-red-50 dark:bg-red-900 hover:bg-red-100 dark:hover:bg-red-800" : "hover:bg-gray-50 dark:hover:bg-gray-700 ")}>
+      <div className={classNames("grid grid-cols-12 gap-2 lg:gap-4 items-center py-2", network.enabled && !network.healthy ? "bg-red-50 dark:bg-red-900 hover:bg-red-100 dark:hover:bg-red-800" : "hover:bg-gray-50 dark:hover:bg-gray-700 ")}>
         <IrcNetworkUpdateForm
           isOpen={updateIsOpen}
           toggle={toggleUpdate}
@@ -201,12 +207,7 @@ const ListItem = ({ idx, network }: ListItemProps) => {
           <div className="col-span-3" />
         )}
         <div className="col-span-1 text-sm text-gray-500 dark:text-gray-400">
-          <span
-            className="text-indigo-600 dark:text-gray-300 hover:text-indigo-900 cursor-pointer"
-            onClick={toggleUpdate}
-          >
-            Edit
-          </span>
+          <ListItemDropdown network={network} toggleUpdate={toggleUpdate} />
         </div>
       </div>
       {edit && (
@@ -271,5 +272,170 @@ const ListItem = ({ idx, network }: ListItemProps) => {
         </div>
       )}
     </li>
+  );
+};
+
+interface ListItemDropdownProps {
+  network: IrcNetwork;
+  toggleUpdate: () => void;
+}
+
+const ListItemDropdown = ({
+  network,
+  toggleUpdate
+}: ListItemDropdownProps) => {
+  const cancelModalButtonRef = useRef(null);
+
+  const queryClient = useQueryClient();
+
+  const [deleteModalIsOpen, toggleDeleteModal] = useToggle(false);
+  const deleteMutation = useMutation(
+    (id: number) => APIClient.irc.deleteNetwork(id),
+    {
+      onSuccess: () => {
+        queryClient.invalidateQueries(["networks"]);
+        queryClient.invalidateQueries(["networks", network.id]);
+
+        toast.custom((t) => <Toast type="success" body={`Network ${network.name} was deleted`} t={t}/>);
+      }
+    }
+  );
+
+  const restartMutation = useMutation(
+    (id: number) => APIClient.irc.restartNetwork(id),
+    {
+      onSuccess: () => {
+        toast.custom((t) => <Toast type="success"
+          body={`${network.name} was successfully restarted`}
+          t={t}/>);
+
+        queryClient.invalidateQueries(["networks"]);
+        queryClient.invalidateQueries(["networks", network.id]);
+      }
+    }
+  );
+
+  const restart = (id: number) => {
+    restartMutation.mutate(id);
+  };
+
+  return (
+    <Menu as="div">
+      <DeleteModal
+        isOpen={deleteModalIsOpen}
+        toggle={toggleDeleteModal}
+        buttonRef={cancelModalButtonRef}
+        deleteAction={() => {
+          deleteMutation.mutate(network.id);
+          toggleDeleteModal();
+        }}
+        title={`Remove network: ${network.name}`}
+        text="Are you sure you want to remove this network? This action cannot be undone."
+      />
+      <Menu.Button className="px-4 py-2">
+        <DotsHorizontalIcon
+          className="w-5 h-5 text-gray-700 hover:text-gray-900 dark:text-gray-100 dark:hover:text-gray-400"
+          aria-hidden="true"
+        />
+      </Menu.Button>
+      <Transition
+        as={Fragment}
+        enter="transition ease-out duration-100"
+        enterFrom="transform opacity-0 scale-95"
+        enterTo="transform opacity-100 scale-100"
+        leave="transition ease-in duration-75"
+        leaveFrom="transform opacity-100 scale-100"
+        leaveTo="transform opacity-0 scale-95"
+      >
+        <Menu.Items
+          className="absolute right-0 w-56 mt-2 origin-top-right bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700 rounded-md shadow-lg ring-1 ring-black ring-opacity-10 focus:outline-none"
+        >
+          <div className="px-1 py-1">
+            <Menu.Item>
+              {({ active }) => (
+                <button
+                  className={classNames(
+                    active ? "bg-blue-600 text-white" : "text-gray-900 dark:text-gray-300",
+                    "font-medium group flex rounded-md items-center w-full px-2 py-2 text-sm"
+                  )}
+                  onClick={() => toggleUpdate()}
+                >
+                  <PencilAltIcon
+                    className={classNames(
+                      active ? "text-white" : "text-blue-500",
+                      "w-5 h-5 mr-2"
+                    )}
+                    aria-hidden="true"
+                  />
+                  Edit
+                </button>
+              )}
+            </Menu.Item>
+            {/*<Menu.Item>*/}
+            {/*  {({ active }) => (*/}
+            {/*    <button*/}
+            {/*      className={classNames(*/}
+            {/*        active ? "bg-blue-600 text-white" : "text-gray-900 dark:text-gray-300",*/}
+            {/*        "font-medium group flex rounded-md items-center w-full px-2 py-2 text-sm"*/}
+            {/*      )}*/}
+            {/*      onClick={() => onToggle(!network.enabled)}*/}
+            {/*    >*/}
+            {/*      <SwitchHorizontalIcon*/}
+            {/*        className={classNames(*/}
+            {/*          active ? "text-white" : "text-blue-500",*/}
+            {/*          "w-5 h-5 mr-2"*/}
+            {/*        )}*/}
+            {/*        aria-hidden="true"*/}
+            {/*      />*/}
+            {/*      {network.enabled ? "Disable" : "Enable"}*/}
+            {/*    </button>*/}
+            {/*  )}*/}
+            {/*</Menu.Item>*/}
+            <Menu.Item>
+              {({ active }) => (
+                <button
+                  className={classNames(
+                    active ? "bg-blue-600 text-white" : "text-gray-900 dark:text-gray-300",
+                    "font-medium group flex rounded-md items-center w-full px-2 py-2 text-sm"
+                  )}
+                  onClick={() => restart(network.id)}
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={classNames(
+                    active ? "text-white" : "text-blue-500",
+                    "w-5 h-5 mr-2"
+                  )}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M5.636 5.636a9 9 0 1012.728 0M12 3v9" />
+                  </svg>
+
+                  Restart
+                </button>
+              )}
+            </Menu.Item>
+          </div>
+          <div className="px-1 py-1">
+            <Menu.Item>
+              {({ active }) => (
+                <button
+                  className={classNames(
+                    active ? "bg-red-600 text-white" : "text-gray-900 dark:text-gray-300",
+                    "font-medium group flex rounded-md items-center w-full px-2 py-2 text-sm"
+                  )}
+                  onClick={() => toggleDeleteModal()}
+                >
+                  <TrashIcon
+                    className={classNames(
+                      active ? "text-white" : "text-red-500",
+                      "w-5 h-5 mr-2"
+                    )}
+                    aria-hidden="true"
+                  />
+                  Delete
+                </button>
+              )}
+            </Menu.Item>
+          </div>
+        </Menu.Items>
+      </Transition>
+    </Menu>
   );
 };

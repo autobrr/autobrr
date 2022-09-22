@@ -139,7 +139,8 @@ export const APIClient = {
     getNetworks: () => appClient.Get<IrcNetworkWithHealth[]>("api/irc"),
     createNetwork: (network: IrcNetworkCreate) => appClient.Post("api/irc", network),
     updateNetwork: (network: IrcNetwork) => appClient.Put(`api/irc/network/${network.id}`, network),
-    deleteNetwork: (id: number) => appClient.Delete(`api/irc/network/${id}`)
+    deleteNetwork: (id: number) => appClient.Delete(`api/irc/network/${id}`),
+    restartNetwork: (id: number) => appClient.Get(`api/irc/network/${id}/restart`)
   },
   events: {
     logs: () => new EventSource(`${sseBaseUrl()}api/events?stream=logs`, { withCredentials: true })
