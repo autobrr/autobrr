@@ -1,6 +1,6 @@
 import { useQuery } from "react-query";
 
-import { simplifyDate, IsEmptyDate, classNames } from "../../utils";
+import { classNames, IsEmptyDate, simplifyDate } from "../../utils";
 import { IrcNetworkAddForm, IrcNetworkUpdateForm } from "../../forms";
 import { useToggle } from "../../hooks/hooks";
 import { APIClient } from "../../api/APIClient";
@@ -42,6 +42,41 @@ export const IrcSettings = () => {
             </button>
           </div>
         </div>
+
+        <div className="flex flex-col mt-10">
+          <ol className="flex gap-2 divide-x divide-gray-200 dark:divide-gray-700">
+            <li className="flex items-center">
+              <span
+                className="mr-3 flex h-4 w-4 relative"
+                title="Network healthy"
+              >
+                <span className="animate-ping inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
+                <span className="inline-flex absolute rounded-full h-4 w-4 bg-green-500" />
+              </span>
+              <span className="text-sm text-gray-800 dark:text-gray-500">Network healthy</span>
+            </li>
+
+            <li className="flex items-center pl-2">
+              <span
+                className="mr-3 flex items-center"
+                title="Network unhealthy"
+              >
+                <ExclamationCircleIcon className="h-4 w-4 text-yellow-400 hover:text-yellow-600" />
+              </span>
+              <span className="text-sm text-gray-800 dark:text-gray-500">Network unhealthy</span>
+            </li>
+
+            <li className="flex items-center pl-2">
+              <span
+                className="mr-3 flex h-4 w-4 rounded-full opacity-75 bg-gray-500"
+                title="Network disabled"
+              >
+              </span>
+              <span className="text-sm text-gray-800 dark:text-gray-500">Network disabled</span>
+            </li>
+          </ol>
+        </div>
+
         {data && data.length > 0 ? (
           <section className="mt-6 light:bg-white dark:bg-gray-800 light:shadow sm:rounded-md">
             <ol className="min-w-full">
