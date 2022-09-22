@@ -77,7 +77,7 @@ export const APIClient = {
   apikeys: {
     getAll: () => appClient.Get<APIKey[]>("api/keys"),
     create: (key: APIKey) => appClient.Post("api/keys", key),
-    delete: (key: string) => appClient.Delete(`api/keys/${key}`),
+    delete: (key: string) => appClient.Delete(`api/keys/${key}`)
   },
   config: {
     get: () => appClient.Get<Config>("api/config")
@@ -91,6 +91,24 @@ export const APIClient = {
   },
   filters: {
     getAll: () => appClient.Get<Filter[]>("api/filters"),
+    find: (indexers: string[], sortOrder: string) => {
+      const params = new URLSearchParams();
+
+      if (sortOrder.length > 0) {
+        params.append("sort", sortOrder);
+      }
+
+      indexers?.forEach((i) => {
+        if (i !== undefined || i !== "") {
+          params.append("indexer", i);
+        }
+      });
+
+      const p = params.toString();
+      const q = p ? `?${p}` : "";
+
+      return appClient.Get<Filter[]>(`api/filters${q}`);
+    },
     getByID: (id: number) => appClient.Get<Filter>(`api/filters/${id}`),
     create: (filter: Filter) => appClient.Post("api/filters", filter),
     update: (filter: Filter) => appClient.Put(`api/filters/${filter.id}`, filter),

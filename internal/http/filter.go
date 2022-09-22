@@ -4,7 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
+	"net/url"
 	"strconv"
+	"strings"
 
 	"github.com/go-chi/chi/v5"
 
@@ -14,6 +16,7 @@ import (
 type filterService interface {
 	ListFilters(ctx context.Context) ([]domain.Filter, error)
 	FindByID(ctx context.Context, filterID int) (*domain.Filter, error)
+	Find(ctx context.Context, params domain.FilterQueryParams) ([]domain.Filter, error)
 	Store(ctx context.Context, filter domain.Filter) (*domain.Filter, error)
 	Delete(ctx context.Context, filterID int) error
 	Update(ctx context.Context, filter domain.Filter) (*domain.Filter, error)
@@ -48,7 +51,43 @@ func (h filterHandler) Routes(r chi.Router) {
 func (h filterHandler) getFilters(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
-	trackers, err := h.service.ListFilters(ctx)
+	params := domain.FilterQueryParams{
+		Sort: map[string]string{},
+		Filters: struct {
+			Indexers []string
+		}{},
+		Search: "",
+	}
+
+	sort := r.URL.Query().Get("sort")
+	if sort != "" && strings.Contains(sort, "-") {
+		field := ""
+		order := ""
+
+		s := strings.Split(sort, "-")
+		if s[0] == "name" || s[0] == "priority" {
+			field = s[0]
+		}
+
+		if s[1] == "asc" || s[1] == "desc" {
+			order = s[1]
+		}
+
+		params.Sort[field] = order
+	}
+
+	u, err := url.Parse(r.URL.String())
+	if err != nil {
+		h.encoder.StatusResponse(r.Context(), w, map[string]interface{}{
+			"code":    "BAD_REQUEST_PARAMS",
+			"message": "indexer parameter is invalid",
+		}, http.StatusBadRequest)
+		return
+	}
+	vals := u.Query()
+	params.Filters.Indexers = vals["indexer"]
+
+	trackers, err := h.service.Find(ctx, params)
 	if err != nil {
 		//
 		h.encoder.Error(w, err)

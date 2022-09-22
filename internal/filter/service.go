@@ -24,6 +24,7 @@ import (
 type Service interface {
 	FindByID(ctx context.Context, filterID int) (*domain.Filter, error)
 	FindByIndexerIdentifier(indexer string) ([]domain.Filter, error)
+	Find(ctx context.Context, params domain.FilterQueryParams) ([]domain.Filter, error)
 	CheckFilter(f domain.Filter, release *domain.Release) (bool, error)
 	ListFilters(ctx context.Context) ([]domain.Filter, error)
 	Store(ctx context.Context, filter domain.Filter) (*domain.Filter, error)
@@ -50,6 +51,29 @@ func NewService(log logger.Logger, repo domain.FilterRepo, actionRepo domain.Act
 		apiService: apiService,
 		indexerSvc: indexerSvc,
 	}
+}
+
+func (s *service) Find(ctx context.Context, params domain.FilterQueryParams) ([]domain.Filter, error) {
+	// get filters
+	filters, err := s.repo.Find(ctx, params)
+	if err != nil {
+		s.log.Error().Err(err).Msgf("could not find list filters")
+		return nil, err
+	}
+
+	ret := make([]domain.Filter, 0)
+
+	for _, filter := range filters {
+		indexers, err := s.indexerSvc.FindByFilterID(ctx, filter.ID)
+		if err != nil {
+			return ret, err
+		}
+		filter.Indexers = indexers
+
+		ret = append(ret, filter)
+	}
+
+	return ret, nil
 }
 
 func (s *service) ListFilters(ctx context.Context) ([]domain.Filter, error) {

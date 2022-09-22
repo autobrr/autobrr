@@ -3,6 +3,8 @@ package database
 import (
 	"context"
 	"database/sql"
+	"fmt"
+	"strings"
 	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
@@ -26,6 +28,97 @@ func NewFilterRepo(log logger.Logger, db *DB) domain.FilterRepo {
 	}
 }
 
+func (r *FilterRepo) Find(ctx context.Context, params domain.FilterQueryParams) ([]domain.Filter, error) {
+	tx, err := r.db.BeginTx(ctx, &sql.TxOptions{})
+	if err != nil {
+		return nil, errors.Wrap(err, "error begin transaction")
+	}
+	defer tx.Rollback()
+
+	filters, err := r.find(ctx, tx, params)
+	if err != nil {
+		return nil, err
+	}
+
+	if err = tx.Commit(); err != nil {
+		return nil, errors.Wrap(err, "error commit transaction find releases")
+	}
+
+	return filters, nil
+}
+
+func (r *FilterRepo) find(ctx context.Context, tx *Tx, params domain.FilterQueryParams) ([]domain.Filter, error) {
+
+	actionCountQuery := r.db.squirrel.
+		Select("COUNT(*)").
+		From("action a").
+		Where("a.filter_id = f.id")
+
+	queryBuilder := r.db.squirrel.
+		Select(
+			"f.id",
+			"f.enabled",
+			"f.name",
+			"f.priority",
+			"f.created_at",
+			"f.updated_at",
+		).
+		Distinct().
+		Column(sq.Alias(actionCountQuery, "action_count")).
+		LeftJoin("filter_indexer fi ON f.id = fi.filter_id").
+		LeftJoin("indexer i ON i.id = fi.indexer_id").
+		From("filter f")
+
+	if params.Search != "" {
+		queryBuilder = queryBuilder.Where("f.name LIKE ?", fmt.Sprint("%", params.Search, "%"))
+	}
+
+	if len(params.Sort) > 0 {
+		for field, order := range params.Sort {
+			queryBuilder = queryBuilder.OrderBy(fmt.Sprintf("f.%v %v", field, strings.ToUpper(order)))
+		}
+	} else {
+		queryBuilder = queryBuilder.OrderBy("f.name ASC")
+	}
+
+	if params.Filters.Indexers != nil {
+		filter := sq.And{}
+		for _, v := range params.Filters.Indexers {
+			filter = append(filter, sq.Eq{"i.identifier": v})
+		}
+
+		queryBuilder = queryBuilder.Where(filter)
+	}
+
+	query, args, err := queryBuilder.ToSql()
+	if err != nil {
+		return nil, errors.Wrap(err, "error building query")
+	}
+
+	rows, err := tx.QueryContext(ctx, query, args...)
+	if err != nil {
+		return nil, errors.Wrap(err, "error executing query")
+	}
+
+	defer rows.Close()
+
+	var filters []domain.Filter
+	for rows.Next() {
+		var f domain.Filter
+
+		if err := rows.Scan(&f.ID, &f.Enabled, &f.Name, &f.Priority, &f.CreatedAt, &f.UpdatedAt, &f.ActionsCount); err != nil {
+			return nil, errors.Wrap(err, "error scanning row")
+		}
+
+		filters = append(filters, f)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, errors.Wrap(err, "row error")
+	}
+
+	return filters, nil
+}
+
 func (r *FilterRepo) ListFilters(ctx context.Context) ([]domain.Filter, error) {
 	actionCountQuery := r.db.squirrel.
 		Select("COUNT(*)").
@@ -37,6 +130,7 @@ func (r *FilterRepo) ListFilters(ctx context.Context) ([]domain.Filter, error) {
 			"f.id",
 			"f.enabled",
 			"f.name",
+			"f.priority",
 			"f.created_at",
 			"f.updated_at",
 		).
@@ -60,7 +154,7 @@ func (r *FilterRepo) ListFilters(ctx context.Context) ([]domain.Filter, error) {
 	for rows.Next() {
 		var f domain.Filter
 
-		if err := rows.Scan(&f.ID, &f.Enabled, &f.Name, &f.CreatedAt, &f.UpdatedAt, &f.ActionsCount); err != nil {
+		if err := rows.Scan(&f.ID, &f.Enabled, &f.Name, &f.Priority, &f.CreatedAt, &f.UpdatedAt, &f.ActionsCount); err != nil {
 			return nil, errors.Wrap(err, "error scanning row")
 		}
 
