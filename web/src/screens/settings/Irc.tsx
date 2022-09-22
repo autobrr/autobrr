@@ -1,16 +1,16 @@
-import {useMutation, useQuery, useQueryClient} from "react-query";
+import { useMutation, useQuery, useQueryClient } from "react-query";
 
-import {classNames, IsEmptyDate, simplifyDate} from "../../utils";
-import {IrcNetworkAddForm, IrcNetworkUpdateForm} from "../../forms";
-import {useToggle} from "../../hooks/hooks";
-import {APIClient} from "../../api/APIClient";
-import {EmptySimple} from "../../components/emptystates";
-import {LockClosedIcon, LockOpenIcon} from "@heroicons/react/24/solid";
-import {Menu, Transition} from "@headlessui/react";
-import {Fragment, useRef} from "react";
-import {DeleteModal} from "../../components/modals";
+import { classNames, IsEmptyDate, simplifyDate } from "../../utils";
+import { IrcNetworkAddForm, IrcNetworkUpdateForm } from "../../forms";
+import { useToggle } from "../../hooks/hooks";
+import { APIClient } from "../../api/APIClient";
+import { EmptySimple } from "../../components/emptystates";
+import { LockClosedIcon, LockOpenIcon } from "@heroicons/react/24/solid";
+import { Menu, Transition } from "@headlessui/react";
+import { Fragment, useRef } from "react";
+import { DeleteModal } from "../../components/modals";
 
-import {toast} from "react-hot-toast";
+import { toast } from "react-hot-toast";
 import Toast from "../../components/notifications/Toast";
 import {
   ArrowsPointingInIcon,
@@ -72,11 +72,9 @@ export const IrcSettings = () => {
 
             <li className="flex items-center sm:pl-2">
               <span
-                className="mr-2 flex items-center"
+                className="mr-2 flex h-4 w-4 rounded-full opacity-75 bg-yellow-400 over:text-yellow-600"
                 title="Network unhealthy"
-              >
-                <ExclamationCircleIcon className="h-4 w-4 text-yellow-400 hover:text-yellow-600" />
-              </span>
+              />
               <span className="text-sm text-gray-800 dark:text-gray-500">Network unhealthy</span>
             </li>
 
@@ -95,7 +93,6 @@ export const IrcSettings = () => {
                 ? <span className="flex items-center">Collapse <ArrowsPointingInIcon className="ml-1 w-4 h-4"/></span>
                 : <span className="flex items-center">Expand <ArrowsPointingOutIcon className="ml-1 w-4 h-4"/></span>
               }</button>
-            {/*<button className="flex items-center text-sm text-gray-800 dark:text-gray-400 p-1 dark:bg-gray-700" onClick={toggleExpand} title="collapse"><ArrowsPointingInIcon className="w-4 h-4"/></button>*/}
           </div>
         </div>
 
@@ -227,7 +224,7 @@ const ListItem = ({ idx, network, expanded }: ListItemProps) => {
           <ListItemDropdown network={network} toggleUpdate={toggleUpdate} />
         </div>
       </div>
-      {edit || expanded && (
+      {(edit || expanded) && (
         <div className="px-4 py-4 flex border-b border-x-0 dark:border-gray-600 dark:bg-gray-700">
           <div className="min-w-full">
             {network.channels.length > 0 ? (

@@ -1,6 +1,6 @@
 import StackTracey from "stacktracey";
-import type {FallbackProps} from "react-error-boundary";
-import {ArrowPathIcon} from "@heroicons/react/24/solid";
+import type { FallbackProps } from "react-error-boundary";
+import { ArrowPathIcon } from "@heroicons/react/24/solid";
 
 export const ErrorPage = ({ error, resetErrorBoundary }: FallbackProps) => {
   const stack = new StackTracey(error);

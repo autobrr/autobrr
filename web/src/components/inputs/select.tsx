@@ -1,11 +1,11 @@
-import {Fragment} from "react";
-import {Field, FieldProps} from "formik";
-import {Listbox, Transition} from "@headlessui/react";
-import {CheckIcon, ChevronUpDownIcon} from "@heroicons/react/24/solid";
-import {MultiSelect as RMSC} from "react-multi-select-component";
+import { Fragment } from "react";
+import { Field, FieldProps } from "formik";
+import { Listbox, Transition } from "@headlessui/react";
+import { CheckIcon, ChevronUpDownIcon } from "@heroicons/react/24/solid";
+import { MultiSelect as RMSC } from "react-multi-select-component";
 
-import {classNames, COL_WIDTHS} from "../../utils";
-import {SettingsContext} from "../../utils/Context";
+import { classNames, COL_WIDTHS } from "../../utils";
+import { SettingsContext } from "../../utils/Context";
 
 export interface MultiSelectOption {
     value: string | number;

@@ -1,6 +1,6 @@
-import React, {FC, Fragment} from "react";
-import {Dialog, Transition} from "@headlessui/react";
-import {ExclamationTriangleIcon} from "@heroicons/react/24/solid";
+import React, { FC, Fragment } from "react";
+import { Dialog, Transition } from "@headlessui/react";
+import { ExclamationTriangleIcon } from "@heroicons/react/24/solid";
 
 interface DeleteModalProps {
     isOpen: boolean;

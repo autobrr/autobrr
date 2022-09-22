@@ -1,6 +1,6 @@
-import {useToggle} from "../../hooks/hooks";
-import {CheckIcon, DocumentDuplicateIcon, EyeIcon, EyeSlashIcon} from "@heroicons/react/24/outline";
-import {useState} from "react";
+import { useToggle } from "../../hooks/hooks";
+import { CheckIcon, DocumentDuplicateIcon, EyeIcon, EyeSlashIcon } from "@heroicons/react/24/outline";
+import { useState } from "react";
 
 interface KeyFieldProps {
   value: string;

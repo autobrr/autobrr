@@ -1,19 +1,19 @@
-import {Fragment, useState} from "react";
-import {toast} from "react-hot-toast";
-import {useMutation, useQuery} from "react-query";
-import Select, {components, ControlProps, InputProps, MenuProps, OptionProps} from "react-select";
-import type {FieldProps} from "formik";
-import {Field, Form, Formik, FormikValues} from "formik";
+import { Fragment, useState } from "react";
+import { toast } from "react-hot-toast";
+import { useMutation, useQuery } from "react-query";
+import Select, { components, ControlProps, InputProps, MenuProps, OptionProps } from "react-select";
+import type { FieldProps } from "formik";
+import { Field, Form, Formik, FormikValues } from "formik";
 
-import {XMarkIcon} from "@heroicons/react/24/solid";
-import {Dialog, Transition} from "@headlessui/react";
+import { XMarkIcon } from "@heroicons/react/24/solid";
+import { Dialog, Transition } from "@headlessui/react";
 
-import {sleep, slugify} from "../../utils";
-import {queryClient} from "../../App";
+import { sleep, slugify } from "../../utils";
+import { queryClient } from "../../App";
 import DEBUG from "../../components/debug";
-import {APIClient} from "../../api/APIClient";
-import {PasswordFieldWide, SwitchGroupWide, TextFieldWide} from "../../components/inputs";
-import {SlideOver} from "../../components/panels";
+import { APIClient } from "../../api/APIClient";
+import { PasswordFieldWide, SwitchGroupWide, TextFieldWide } from "../../components/inputs";
+import { SlideOver } from "../../components/panels";
 import Toast from "../../components/notifications/Toast";
 
 const Input = (props: InputProps) => {

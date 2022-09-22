@@ -1,10 +1,10 @@
-import type {FieldProps} from "formik";
-import {Field} from "formik";
-import {classNames} from "../../utils";
-import {useToggle} from "../../hooks/hooks";
-import {EyeIcon, EyeSlashIcon} from "@heroicons/react/24/solid";
-import {Switch} from "@headlessui/react";
-import {ErrorField} from "./common";
+import type { FieldProps } from "formik";
+import { Field } from "formik";
+import { classNames } from "../../utils";
+import { useToggle } from "../../hooks/hooks";
+import { EyeIcon, EyeSlashIcon } from "@heroicons/react/24/solid";
+import { Switch } from "@headlessui/react";
+import { ErrorField } from "./common";
 
 interface TextFieldWideProps {
     name: string;

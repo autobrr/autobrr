@@ -1,10 +1,10 @@
-import {Fragment} from "react";
-import {Link, NavLink, Outlet} from "react-router-dom";
-import {Disclosure, Menu, Transition} from "@headlessui/react";
-import {ArrowTopRightOnSquareIcon} from "@heroicons/react/24/solid";
-import {Bars3Icon, ChevronDownIcon, XMarkIcon} from "@heroicons/react/24/outline";
+import { Fragment } from "react";
+import { Link, NavLink, Outlet } from "react-router-dom";
+import { Disclosure, Menu, Transition } from "@headlessui/react";
+import { ArrowTopRightOnSquareIcon } from "@heroicons/react/24/solid";
+import { Bars3Icon, ChevronDownIcon, XMarkIcon } from "@heroicons/react/24/outline";
 
-import {AuthContext} from "../utils/Context";
+import { AuthContext } from "../utils/Context";
 
 import logo from "../logo.png";
 

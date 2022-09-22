@@ -1,18 +1,18 @@
-import React, {Fragment, useRef, useState} from "react";
-import {useMutation} from "react-query";
-import {Dialog, Transition} from "@headlessui/react";
-import {XMarkIcon} from "@heroicons/react/24/solid";
-import {classNames, sleep} from "../../utils";
-import {Form, Formik, useFormikContext} from "formik";
+import React, { Fragment, useRef, useState } from "react";
+import { useMutation } from "react-query";
+import { Dialog, Transition } from "@headlessui/react";
+import { XMarkIcon } from "@heroicons/react/24/solid";
+import { classNames, sleep } from "../../utils";
+import { Form, Formik, useFormikContext } from "formik";
 import DEBUG from "../../components/debug";
-import {queryClient} from "../../App";
-import {APIClient} from "../../api/APIClient";
-import {DownloadClientTypeOptions} from "../../domain/constants";
+import { queryClient } from "../../App";
+import { APIClient } from "../../api/APIClient";
+import { DownloadClientTypeOptions } from "../../domain/constants";
 
-import {toast} from "react-hot-toast";
+import { toast } from "react-hot-toast";
 import Toast from "../../components/notifications/Toast";
-import {useToggle} from "../../hooks/hooks";
-import {DeleteModal} from "../../components/modals";
+import { useToggle } from "../../hooks/hooks";
+import { DeleteModal } from "../../components/modals";
 import {
   NumberFieldWide,
   PasswordFieldWide,
