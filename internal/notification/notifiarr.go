@@ -115,7 +115,12 @@ func (s *notifiarrSender) CanSend(event domain.NotificationEvent) bool {
 }
 
 func (s *notifiarrSender) isEnabled() bool {
-	if s.Settings.Enabled && s.Settings.Webhook != "" {
+	if s.Settings.Enabled {
+		if s.Settings.APIKey == "" {
+			s.log.Warn().Msg("notifiarr missing api key")
+			return false
+		}
+
 		return true
 	}
 	return false
