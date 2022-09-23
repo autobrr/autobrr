@@ -394,6 +394,18 @@ interface UpdateProps {
     notification: Notification;
 }
 
+interface InitialValues {
+  id: number;
+  enabled: boolean;
+  type: NotificationType;
+  name: string;
+  webhook?: string;
+  token?: string;
+  api_key?: string;
+  channel?: string;
+  events: NotificationEvent[];
+}
+
 export function NotificationUpdateForm({ isOpen, toggle, notification }: UpdateProps) {
   const mutation = useMutation(
     (notification: Notification) => APIClient.notifications.update(notification),
@@ -437,7 +449,7 @@ export function NotificationUpdateForm({ isOpen, toggle, notification }: UpdateP
     testMutation.mutate(data as Notification);
   };
 
-  const initialValues = {
+  const initialValues: InitialValues = {
     id: notification.id,
     enabled: notification.enabled,
     type: notification.type,
@@ -450,7 +462,7 @@ export function NotificationUpdateForm({ isOpen, toggle, notification }: UpdateP
   };
 
   return (
-    <SlideOver
+    <SlideOver<InitialValues>
       type="UPDATE"
       title="Notification"
       isOpen={isOpen}

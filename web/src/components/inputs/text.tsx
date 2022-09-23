@@ -4,6 +4,7 @@ import { classNames, get } from "../../utils";
 import { useToggle } from "../../hooks/hooks";
 import { EyeIcon, EyeSlashIcon } from "@heroicons/react/24/solid";
 import { ErrorMessage } from "@hookform/error-message";
+import type { FieldValues } from "react-hook-form";
 
 export type FormErrorMessageProps = {
   className?: string;
@@ -81,7 +82,7 @@ export const Input: FC<InputProps> = forwardRef<HTMLInputElement, InputProps>(
 export type FormInputProps<TFormValues> = {
   name: Path<TFormValues>;
   rules?: RegisterOptions;
-  register?: UseFormRegister<TFormValues>;
+  register?: UseFormRegister<TFormValues & FieldValues>;
   errors?: Partial<DeepMap<TFormValues, FieldError>>;
 } & Omit<InputProps, "name">;
 

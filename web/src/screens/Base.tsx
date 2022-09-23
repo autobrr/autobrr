@@ -62,6 +62,7 @@ export default function Base() {
                               "transition-colors duration-200",
                               isActive ? "text-black dark:text-gray-50 font-bold" : "text-gray-600 dark:text-gray-500"
                             )}
+                            end={item.path === "/"}
                           >
                             {item.name}
                           </NavLink>
