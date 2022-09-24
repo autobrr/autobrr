@@ -480,3 +480,25 @@ func (c *Client) GetCategories() (map[string]Category, error) {
 
 	return m, nil
 }
+
+
+func (c *Client) RenameFile(hash, oldPath, newPath string) error {
+	opts := map[string]string{
+		"hash":    hash,
+		"oldPath": oldPath,
+		"newPath": newPath,
+	}
+
+	resp, err := c.post("torrents/renameFile", opts)
+	if err != nil {
+		return errors.Wrap(err, "could not renameFile: %v | old: %v | new: %v", hash, oldPath, newPath)
+	}
+
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return errors.Wrap(err, "could not renameFile: %v | old: %v | new: %v unexpected status: %v", hash, oldPath, newPath, resp.StatusCode)
+	}
+
+	return nil
+}
