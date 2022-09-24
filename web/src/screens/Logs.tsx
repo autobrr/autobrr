@@ -99,7 +99,7 @@ export const Logs = () => {
             type="text"
             autoComplete="off"
             className={classNames(
-              "focus:ring-indigo-500 dark:focus:ring-blue-500 focus:border-indigo-500 dark:focus:border-blue-500 border-gray-300 dark:border-gray-700",
+              "focus:ring-blue-500 dark:focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-500 border-gray-300 dark:border-gray-700",
               "block w-full dark:bg-gray-800 shadow-sm dark:text-gray-100 sm:text-sm rounded-md"
             )}
             placeholder="Enter a string to filter logs by..."

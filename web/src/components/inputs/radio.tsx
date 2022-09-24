@@ -58,7 +58,7 @@ function RadioFieldsetWide({ name, legend, options }: props) {
                               ? "rounded-bl-md rounded-br-md"
                               : "",
                             checked
-                              ? "border-1 bg-blue-100 dark:bg-blue-900 border-indigo-400 dark:border-blue-600 z-10"
+                              ? "border-1 bg-blue-100 dark:bg-blue-900 border-blue-400 dark:border-blue-600 z-10"
                               : "border-gray-200 dark:border-gray-700",
                             "relative border p-4 flex cursor-pointer focus:outline-none"
                           )
