@@ -550,7 +550,7 @@ const ListboxFilter = ({
 // a unique option from a list
 const IndexerSelectFilter = ({ dispatch }: any) => {
   const { data, isSuccess } = useQuery(
-    "release_indexers",
+    "indexers_options",
     () => APIClient.indexers.getOptions(),
     {
       keepPreviousData: true,
