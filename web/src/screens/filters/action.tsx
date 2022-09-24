@@ -72,7 +72,7 @@ export function FilterActions({ filter, values }: FilterActionsProps) {
               <div className="ml-4 mt-4 flex-shrink-0">
                 <button
                   type="button"
-                  className="relative inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 dark:bg-blue-600 hover:bg-indigo-700 dark:hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 dark:focus:ring-blue-500"
+                  className="relative inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 dark:focus:ring-blue-500"
                   onClick={() => push(newAction)}
                 >
                   Add new
@@ -435,7 +435,7 @@ function FilterActionsItem({ action, clients, idx, remove }: FilterActionsItemPr
                 setFieldValue(field?.name ?? "", value);
               }}
               className={classNames(
-                field.value ? "bg-teal-500 dark:bg-blue-500" : "bg-gray-200 dark:bg-gray-600",
+                field.value ? "bg-blue-500" : "bg-gray-200 dark:bg-gray-600",
                 "relative inline-flex flex-shrink-0 h-6 w-11 border-2 border-transparent rounded-full cursor-pointer transition-colors ease-in-out duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
               )}
             >
@@ -455,7 +455,7 @@ function FilterActionsItem({ action, clients, idx, remove }: FilterActionsItemPr
           <div className="min-w-0 flex-1 sm:flex sm:items-center sm:justify-between">
             <div className="truncate">
               <div className="flex text-sm">
-                <p className="ml-4 font-medium text-indigo-600 dark:text-gray-100 truncate">
+                <p className="ml-4 font-medium text-blue-600 dark:text-gray-100 truncate">
                   {action.name}
                 </p>
               </div>

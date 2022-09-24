@@ -186,7 +186,7 @@ export function DownloadClientSelect({
                             key={client.id}
                             className={({ active }) => classNames(
                               active
-                                ? "text-white dark:text-gray-100 bg-indigo-600 dark:bg-gray-800"
+                                ? "text-white dark:text-gray-100 bg-blue-600 dark:bg-gray-800"
                                 : "text-gray-900 dark:text-gray-300",
                               "cursor-default select-none relative py-2 pl-3 pr-9"
                             )}
@@ -206,7 +206,7 @@ export function DownloadClientSelect({
                                 {selected ? (
                                   <span
                                     className={classNames(
-                                      active ? "text-white dark:text-gray-100" : "text-indigo-600 dark:text-gray-700",
+                                      active ? "text-white dark:text-gray-100" : "text-blue-600 dark:text-gray-700",
                                       "absolute inset-y-0 right-0 flex items-center pr-4"
                                     )}
                                   >
@@ -298,7 +298,7 @@ export const Select = ({
                           className={({ active }) =>
                             classNames(
                               active
-                                ? "text-white dark:text-gray-100 bg-indigo-600 dark:bg-gray-800"
+                                ? "text-white dark:text-gray-100 bg-blue-600 dark:bg-gray-800"
                                 : "text-gray-900 dark:text-gray-300",
                               "cursor-default select-none relative py-2 pl-3 pr-9"
                             )
@@ -319,7 +319,7 @@ export const Select = ({
                               {selected ? (
                                 <span
                                   className={classNames(
-                                    active ? "text-white dark:text-gray-100" : "text-indigo-600 dark:text-gray-700",
+                                    active ? "text-white dark:text-gray-100" : "text-blue-600 dark:text-gray-700",
                                     "absolute inset-y-0 right-0 flex items-center pr-4"
                                   )}
                                 >
@@ -403,7 +403,7 @@ export const SelectWide = ({
                             className={({ active }) =>
                               classNames(
                                 active
-                                  ? "text-white dark:text-gray-100 bg-indigo-600 dark:bg-gray-800"
+                                  ? "text-white dark:text-gray-100 bg-blue-600 dark:bg-gray-800"
                                   : "text-gray-900 dark:text-gray-300",
                                 "cursor-default select-none relative py-2 pl-3 pr-9"
                               )
@@ -424,7 +424,7 @@ export const SelectWide = ({
                                 {selected ? (
                                   <span
                                     className={classNames(
-                                      active ? "text-white dark:text-gray-100" : "text-indigo-600 dark:text-gray-700",
+                                      active ? "text-white dark:text-gray-100" : "text-blue-600 dark:text-gray-700",
                                       "absolute inset-y-0 right-0 flex items-center pr-4"
                                     )}
                                   >

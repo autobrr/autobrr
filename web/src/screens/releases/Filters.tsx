@@ -31,7 +31,7 @@ const ListboxFilter = ({
       onChange={onChange}
     >
       <div className="relative mt-1">
-        <Listbox.Button className="relative w-full py-2 pl-3 pr-10 text-left bg-white dark:bg-gray-800 rounded-lg shadow-md cursor-default dark:text-gray-400 sm:text-sm">
+        <Listbox.Button className="relative w-full py-2 pl-3 pr-10 text-left bg-white dark:bg-gray-800 rounded-lg shadow-md cursor-pointer dark:text-gray-400 sm:text-sm">
           <span className="block truncate">{label}</span>
           <span className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
             <ChevronDownIcon
@@ -63,7 +63,7 @@ export const IndexerSelectColumnFilter = ({
   column: { filterValue, setFilter, id }
 }: FilterProps<object>) => {
   const { data, isSuccess } = useQuery(
-    "release_indexers",
+    "indexer_options",
     () => APIClient.release.indexerOptions(),
     {
       keepPreviousData: true,

@@ -75,15 +75,15 @@ export const Logs = () => {
 
   return (
     <main>
-      <header className="py-10">
+      <header className="pt-10 pb-5">
         <div className="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8">
           <h1 className="text-3xl font-bold text-black dark:text-white">Logs</h1>
-          <div className="flex justify-center">
+          <div className="flex justify-center mt-1">
             <ExclamationTriangleIcon
               className="h-5 w-5 text-yellow-400"
               aria-hidden="true"
             />
-            <p className="ml-2 text-sm text-gray-800 dark:text-gray-400">This only shows new logs, no history.</p>
+            <p className="ml-2 text-sm text-black dark:text-gray-400">This page shows only new logs, i.e. no history.</p>
           </div>
         </div>
       </header>

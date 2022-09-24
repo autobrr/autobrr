@@ -77,8 +77,7 @@ export default function Base() {
                           )}
                         >
                           Docs
-                          <ArrowTopRightOnSquareIcon className="inline ml-1 h-5 w-5"
-                            aria-hidden="true"/>
+                          <ArrowTopRightOnSquareIcon className="inline ml-1 h-5 w-5" aria-hidden="true" />
                         </a>
                       </div>
                     </div>
@@ -125,7 +124,7 @@ export default function Base() {
                                       to="/settings"
                                       className={classNames(
                                         active ? "bg-gray-100 dark:bg-gray-600" : "",
-                                        "block px-4 py-2 text-sm text-gray-700 dark:text-gray-200"
+                                        "block px-4 py-2 text-sm text-gray-900 dark:text-gray-200"
                                       )}
                                     >
                                       Settings
@@ -138,7 +137,7 @@ export default function Base() {
                                       to="/logout"
                                       className={classNames(
                                         active ? "bg-gray-100 dark:bg-gray-600" : "",
-                                        "block px-4 py-2 text-sm text-gray-700 dark:text-gray-200"
+                                        "block px-4 py-2 text-sm text-gray-900 dark:text-gray-200"
                                       )}
                                     >
                                       Logout
@@ -175,17 +174,17 @@ export default function Base() {
                     key={item.path}
                     to={item.path}
                     className={({ isActive }) => classNames(
-                      // TODO: Double check whether this is correct
-                      "dark:bg-gray-900 dark:text-white block px-3 py-2 rounded-md text-base",
-                      isActive ? "font-bold bg-gray-300 text-black" : "font-medium"
+                      "shadow-sm border bg-gray-100 border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-white block px-3 py-2 rounded-md text-base",
+                      isActive ? "underline underline-offset-2 decoration-2 decoration-sky-500 font-bold text-black" : "font-medium"
                     )}
+                    end={item.path === "/"}
                   >
                     {item.name}
                   </NavLink>
                 )}
                 <Link
                   to="/logout"
-                  className="dark:bg-gray-900 dark:text-white block px-3 py-2 rounded-md text-base font-medium"
+                  className="shadow-sm border bg-gray-100 border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-white block px-3 py-2 rounded-md text-base font-medium"
                 >
                   Logout
                 </Link>

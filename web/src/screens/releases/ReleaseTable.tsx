@@ -182,7 +182,7 @@ export const ReleaseTable = () => {
           ))
         )}
       </div>
-      <div className="bg-white shadow-lg dark:bg-gray-800 rounded-lg">
+      <div className="bg-white shadow-lg dark:bg-gray-800 rounded-md overflow-auto">
         <table {...getTableProps()} className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
           <thead className="bg-gray-50 dark:bg-gray-800">
             {headerGroups.map((headerGroup) => {
@@ -197,7 +197,7 @@ export const ReleaseTable = () => {
                       <th
                         key={`${rowKey}-${columnKey}`}
                         scope="col"
-                        className="first:pl-5 pl-3 pr-3 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase group"
+                        className="first:pl-5 pl-3 pr-3 py-3 first:rounded-tl-md last:rounded-tr-md text-xs font-medium tracking-wider text-left text-gray-500 uppercase group"
                         {...columnRest}
                       >
                         <div className="flex items-center justify-between">
@@ -259,13 +259,13 @@ export const ReleaseTable = () => {
           </div>
           <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
             <div className="flex items-baseline gap-x-2">
-              <span className="text-sm text-gray-700">
+              <span className="text-sm text-gray-700 dark:text-gray-500">
                 Page <span className="font-medium">{pageIndex + 1}</span> of <span className="font-medium">{pageOptions.length}</span>
               </span>
               <label>
                 <span className="sr-only bg-gray-700">Items Per Page</span>
                 <select
-                  className="block w-full border-gray-300 rounded-md shadow-sm cursor-pointer dark:bg-gray-800 dark:border-gray-800 dark:text-gray-600 dark:hover:text-gray-500 focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
+                  className="py-1 pl-2 pr-8 text-sm block w-full border-gray-300 rounded-md shadow-sm cursor-pointer dark:bg-gray-800 dark:border-gray-600 dark:text-gray-400 dark:hover:text-gray-500 focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
                   value={pageSize}
                   onChange={e => {
                     setPageSize(Number(e.target.value));
@@ -280,7 +280,7 @@ export const ReleaseTable = () => {
               </label>
             </div>
             <div>
-              <nav className="relative z-0 inline-flex -space-x-px rounded-md shadow-sm" aria-label="Pagination">
+              <nav className="inline-flex -space-x-px rounded-md shadow-sm" aria-label="Pagination">
                 <DataTable.PageButton
                   className="rounded-l-md"
                   onClick={() => gotoPage(0)}
