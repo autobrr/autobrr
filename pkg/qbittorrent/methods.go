@@ -21,14 +21,15 @@ func (c *Client) Login() error {
 	resp, err := c.postBasic("auth/login", opts)
 	if err != nil {
 		return errors.Wrap(err, "login error")
-	} else if resp.StatusCode == http.StatusForbidden {
-		return errors.New("User's IP is banned for too many failed login attempts")
-
-	} else if resp.StatusCode != http.StatusOK { // check for correct status code
-		return errors.New("qbittorrent login bad status %v", resp.StatusCode)
 	}
 
 	defer resp.Body.Close()
+
+	if resp.StatusCode == http.StatusForbidden {
+		return errors.New("User's IP is banned for too many failed login attempts")
+	} else if resp.StatusCode != http.StatusOK { // check for correct status code
+		return errors.New("qbittorrent login bad status %v", resp.StatusCode)
+	}
 
 	bodyBytes, err := io.ReadAll(resp.Body)
 	if err != nil {
@@ -56,7 +57,6 @@ func (c *Client) Login() error {
 }
 
 func (c *Client) GetTorrents() ([]Torrent, error) {
-
 	resp, err := c.get("torrents/info", nil)
 	if err != nil {
 		return nil, errors.Wrap(err, "get torrents error")
@@ -201,11 +201,13 @@ func (c *Client) AddTorrentFromFile(file string, options map[string]string) erro
 	res, err := c.postFile("torrents/add", file, options)
 	if err != nil {
 		return errors.Wrap(err, "could not add torrent %v", file)
-	} else if res.StatusCode != http.StatusOK {
-		return errors.Wrap(err, "could not add torrent %v unexpected status: %v", file, res.StatusCode)
 	}
 
 	defer res.Body.Close()
+
+	if res.StatusCode != http.StatusOK {
+		return errors.Wrap(err, "could not add torrent %v unexpected status: %v", file, res.StatusCode)
+	}
 
 	return nil
 }
@@ -222,11 +224,13 @@ func (c *Client) DeleteTorrents(hashes []string, deleteFiles bool) error {
 	resp, err := c.get("torrents/delete", opts)
 	if err != nil {
 		return errors.Wrap(err, "could not delete torrents: %+v", hashes)
-	} else if resp.StatusCode != http.StatusOK {
-		return errors.Wrap(err, "could not delete torrents %v unexpected status: %v", hashes, resp.StatusCode)
 	}
 
 	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return errors.Wrap(err, "could not delete torrents %v unexpected status: %v", hashes, resp.StatusCode)
+	}
 
 	return nil
 }
@@ -241,11 +245,13 @@ func (c *Client) ReAnnounceTorrents(hashes []string) error {
 	resp, err := c.get("torrents/reannounce", opts)
 	if err != nil {
 		return errors.Wrap(err, "could not re-announce torrents: %v", hashes)
-	} else if resp.StatusCode != http.StatusOK {
-		return errors.Wrap(err, "could not re-announce torrents: %v unexpected status: %v", hashes, resp.StatusCode)
 	}
 
 	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return errors.Wrap(err, "could not re-announce torrents: %v unexpected status: %v", hashes, resp.StatusCode)
+	}
 
 	return nil
 }
@@ -281,11 +287,13 @@ func (c *Client) Resume(hashes []string) error {
 	resp, err := c.get("torrents/resume", opts)
 	if err != nil {
 		return errors.Wrap(err, "could not resume torrents: %v", hashes)
-	} else if resp.StatusCode != http.StatusOK {
-		return errors.Wrap(err, "could not resume torrents: %v unexpected status: %v", hashes, resp.StatusCode)
 	}
 
 	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return errors.Wrap(err, "could not resume torrents: %v unexpected status: %v", hashes, resp.StatusCode)
+	}
 
 	return nil
 }
@@ -301,11 +309,14 @@ func (c *Client) SetForceStart(hashes []string, value bool) error {
 	resp, err := c.get("torrents/setForceStart", opts)
 	if err != nil {
 		return errors.Wrap(err, "could not setForceStart torrents: %v", hashes)
-	} else if resp.StatusCode != http.StatusOK {
-		return errors.Wrap(err, "could not setForceStart torrents: %v unexpected status: %v", hashes, resp.StatusCode)
 	}
 
 	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return errors.Wrap(err, "could not setForceStart torrents: %v unexpected status: %v", hashes, resp.StatusCode)
+	}
+
 	return nil
 }
 
@@ -319,11 +330,13 @@ func (c *Client) Recheck(hashes []string) error {
 	resp, err := c.get("torrents/recheck", opts)
 	if err != nil {
 		return errors.Wrap(err, "could not recheck torrents: %v", hashes)
-	} else if resp.StatusCode != http.StatusOK {
-		return errors.Wrap(err, "could not recheck torrents: %v unexpected status: %v", hashes, resp.StatusCode)
 	}
 
 	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return errors.Wrap(err, "could not recheck torrents: %v unexpected status: %v", hashes, resp.StatusCode)
+	}
 
 	return nil
 }
@@ -338,11 +351,13 @@ func (c *Client) Pause(hashes []string) error {
 	resp, err := c.get("torrents/pause", opts)
 	if err != nil {
 		return errors.Wrap(err, "could not pause torrents: %v", hashes)
-	} else if resp.StatusCode != http.StatusOK {
-		return errors.Wrap(err, "could not pause torrents: %v unexpected status: %v", hashes, resp.StatusCode)
 	}
 
 	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return errors.Wrap(err, "could not pause torrents: %v unexpected status: %v", hashes, resp.StatusCode)
+	}
 
 	return nil
 }
@@ -358,11 +373,14 @@ func (c *Client) SetAutoManagement(hashes []string, enable bool) error {
 	resp, err := c.get("torrents/setAutoManagement", opts)
 	if err != nil {
 		return errors.Wrap(err, "could not setAutoManagement torrents: %v", hashes)
-	} else if resp.StatusCode != http.StatusOK {
-		return errors.Wrap(err, "could not setAutoManagement torrents: %v unexpected status: %v", hashes, resp.StatusCode)
 	}
 
 	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return errors.Wrap(err, "could not setAutoManagement torrents: %v unexpected status: %v", hashes, resp.StatusCode)
+	}
+
 	return nil
 }
 
@@ -375,11 +393,14 @@ func (c *Client) CreateCategory(category string, path string) error {
 	resp, err := c.get("torrents/createCategory", opts)
 	if err != nil {
 		return errors.Wrap(err, "could not createCategory torrents: %v", category)
-	} else if resp.StatusCode != http.StatusOK {
-		return errors.Wrap(err, "could not createCategory torrents: %v unexpected status: %v", category, resp.StatusCode)
 	}
 
 	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return errors.Wrap(err, "could not createCategory torrents: %v unexpected status: %v", category, resp.StatusCode)
+	}
+
 	return nil
 }
 
@@ -392,11 +413,14 @@ func (c *Client) EditCategory(category string, path string) error {
 	resp, err := c.get("torrents/editCategory", opts)
 	if err != nil {
 		return errors.Wrap(err, "could not editCategory torrents: %v", category)
-	} else if resp.StatusCode != http.StatusOK {
-		return errors.Wrap(err, "could not editCategory torrents: %v unexpected status: %v", category, resp.StatusCode)
 	}
 
 	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return errors.Wrap(err, "could not editCategory torrents: %v unexpected status: %v", category, resp.StatusCode)
+	}
+
 	return nil
 }
 
@@ -408,11 +432,14 @@ func (c *Client) RemoveCategories(categories []string) error {
 	resp, err := c.get("torrents/removeCategories", opts)
 	if err != nil {
 		return errors.Wrap(err, "could not removeCategories torrents: %v", opts["categories"])
-	} else if resp.StatusCode != http.StatusOK {
-		return errors.Wrap(err, "could not removeCategories torrents: %v unexpected status: %v", opts["categories"], resp.StatusCode)
 	}
 
 	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return errors.Wrap(err, "could not removeCategories torrents: %v unexpected status: %v", opts["categories"], resp.StatusCode)
+	}
+
 	return nil
 }
 
@@ -427,11 +454,14 @@ func (c *Client) SetCategory(hashes []string, category string) error {
 	resp, err := c.get("torrents/setCategory", opts)
 	if err != nil {
 		return errors.Wrap(err, "could not setCategory torrents: %v", hashes)
-	} else if resp.StatusCode != http.StatusOK {
-		return errors.Wrap(err, "could not setCategory torrents: %v unexpected status: %v", hashes, resp.StatusCode)
 	}
 
 	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return errors.Wrap(err, "could not setCategory torrents: %v unexpected status: %v", hashes, resp.StatusCode)
+	}
+
 	return nil
 }
 
@@ -480,7 +510,6 @@ func (c *Client) GetCategories() (map[string]Category, error) {
 
 	return m, nil
 }
-
 
 func (c *Client) RenameFile(hash, oldPath, newPath string) error {
 	opts := map[string]string{
