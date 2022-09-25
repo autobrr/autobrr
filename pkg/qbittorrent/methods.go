@@ -56,7 +56,27 @@ func (c *Client) Login() error {
 	return nil
 }
 
-func (c *Client) GetTorrents() ([]Torrent, error) {
+func (c *Client) GetTorrents(fo TorrentFilterOptions) ([]Torrent, error) {
+	opts := map[string]string{
+		"filter": string(fo.Filter),
+		"sort": fo.Sort,
+		"reverse": strconv.FormatBool(fo.Reverse),
+		"limit": strconv.Itoa(fo.Limit),
+		"offset": strconv.Itoa(fo.Offset),
+	}
+
+	if fo.Category != nil {
+		opts["category"] = *fo.Category
+	}
+
+	if fo.Tag != nil {
+		opts["tag"] = *fo.Tag
+	}
+
+	if len(fo.Hashes) > 0 {
+		opts["hashes"] = strings.Join(fo.Hashes, "|")
+	}
+
 	resp, err := c.get("torrents/info", nil)
 	if err != nil {
 		return nil, errors.Wrap(err, "get torrents error")
@@ -77,53 +97,10 @@ func (c *Client) GetTorrents() ([]Torrent, error) {
 	return torrents, nil
 }
 
-func (c *Client) GetTorrentsFilter(filter TorrentFilter) ([]Torrent, error) {
-	opts := map[string]string{
-		"filter": string(filter),
-	}
-
-	resp, err := c.get("torrents/info", opts)
-	if err != nil {
-		return nil, errors.Wrap(err, "could not get filtered torrents with filter: %v", filter)
-	}
-
-	defer resp.Body.Close()
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, errors.Wrap(err, "could not read body")
-	}
-
-	var torrents []Torrent
-	if err := json.Unmarshal(body, &torrents); err != nil {
-		return nil, errors.Wrap(err, "could not unmarshal body")
-	}
-
-	return torrents, nil
-}
-
 func (c *Client) GetTorrentsActiveDownloads() ([]Torrent, error) {
-	var filter = TorrentFilterDownloading
-
-	opts := map[string]string{
-		"filter": string(filter),
-	}
-
-	resp, err := c.get("torrents/info", opts)
+	torrents, err := c.GetTorrents(TorrentFilterOptions{ Filter: TorrentFilterDownloading })
 	if err != nil {
-		return nil, errors.Wrap(err, "could not get active torrents")
-	}
-
-	defer resp.Body.Close()
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, errors.Wrap(err, "could not read body")
-	}
-
-	var torrents []Torrent
-	if err := json.Unmarshal(body, &torrents); err != nil {
-		return nil, errors.Wrap(err, "could not unmarshal body")
+		return nil, err
 	}
 
 	res := make([]Torrent, 0)

@@ -314,3 +314,14 @@ func (o *TorrentAddOptions) Prepare() map[string]string {
 
 	return options
 }
+
+type TorrentFilterOptions struct {
+	Filter TorrentFilter
+	Category *string
+	Tag *string
+	Sort string
+	Reverse bool
+	Limit int
+	Offset int
+	Hashes []string
+}
