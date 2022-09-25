@@ -71,7 +71,7 @@ func (s *service) testQbittorrentConnection(client domain.DownloadClient) error 
 		return errors.Wrap(err, "error logging into client: %v", client.Host)
 	}
 
-	_, err := qbt.GetTorrents()
+	_, err := qbt.GetTorrents(qbittorrent.TorrentFilterOptions{})
 	if err != nil {
 		return errors.Wrap(err, "error getting torrents: %v", client.Host)
 	}
