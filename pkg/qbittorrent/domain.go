@@ -228,7 +228,6 @@ const (
 // dht_nodes 			integer 	DHT nodes connected to
 //
 // connection_status 	string 		Connection status. See possible values here below
-//
 type TransferInfo struct {
 	ConnectionStatus ConnectionStatus `json:"connection_status"`
 	DHTNodes         int64            `json:"dht_nodes"`
@@ -316,12 +315,12 @@ func (o *TorrentAddOptions) Prepare() map[string]string {
 }
 
 type TorrentFilterOptions struct {
-	Filter TorrentFilter
+	Filter   TorrentFilter
 	Category *string
-	Tag *string
-	Sort string
-	Reverse bool
-	Limit int
-	Offset int
-	Hashes []string
+	Tag      *string
+	Sort     string
+	Reverse  bool
+	Limit    int
+	Offset   int
+	Hashes   []string
 }

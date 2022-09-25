@@ -58,11 +58,11 @@ func (c *Client) Login() error {
 
 func (c *Client) GetTorrents(fo TorrentFilterOptions) ([]Torrent, error) {
 	opts := map[string]string{
-		"filter": string(fo.Filter),
-		"sort": fo.Sort,
+		"filter":  string(fo.Filter),
+		"sort":    fo.Sort,
 		"reverse": strconv.FormatBool(fo.Reverse),
-		"limit": strconv.Itoa(fo.Limit),
-		"offset": strconv.Itoa(fo.Offset),
+		"limit":   strconv.Itoa(fo.Limit),
+		"offset":  strconv.Itoa(fo.Offset),
 	}
 
 	if fo.Category != nil {
@@ -98,7 +98,7 @@ func (c *Client) GetTorrents(fo TorrentFilterOptions) ([]Torrent, error) {
 }
 
 func (c *Client) GetTorrentsActiveDownloads() ([]Torrent, error) {
-	torrents, err := c.GetTorrents(TorrentFilterOptions{ Filter: TorrentFilterDownloading })
+	torrents, err := c.GetTorrents(TorrentFilterOptions{Filter: TorrentFilterDownloading})
 	if err != nil {
 		return nil, err
 	}
