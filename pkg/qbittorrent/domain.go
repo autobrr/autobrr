@@ -71,7 +71,7 @@ type TorrentFiles []struct {
 	Name         string `json:"name"`
 	PieceRange   []int  `json:"piece_range"`
 	Priority     int    `json:"priority"`
-	Progress     int    `json:"progress"`
+	Progress     float  `json:"progress"`
 	Size         int    `json:"size"`
 }
 
