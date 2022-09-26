@@ -365,7 +365,7 @@ func (c *Client) SetLocation(hashes []string, location string) error {
 	// Add hashes together with | separator
 	hv := strings.Join(hashes, "|")
 	opts := map[string]string{
-		"hashes": hv,
+		"hashes":   hv,
 		"location": location,
 	}
 
@@ -530,4 +530,3 @@ func (c *Client) RenameFile(hash, oldPath, newPath string) error {
 
 	return nil
 }
-
