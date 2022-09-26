@@ -65,14 +65,14 @@ type TorrentTracker struct {
 }
 
 type TorrentFiles []struct {
-	Availability int    `json:"availability"`
-	Index        int    `json:"index"`
-	IsSeed       bool   `json:"is_seed,omitempty"`
-	Name         string `json:"name"`
-	PieceRange   []int  `json:"piece_range"`
-	Priority     int    `json:"priority"`
-	Progress     float  `json:"progress"`
-	Size         int    `json:"size"`
+	Availability int     `json:"availability"`
+	Index        int     `json:"index"`
+	IsSeed       bool    `json:"is_seed,omitempty"`
+	Name         string  `json:"name"`
+	PieceRange   []int   `json:"piece_range"`
+	Priority     int     `json:"priority"`
+	Progress     float32 `json:"progress"`
+	Size         int     `json:"size"`
 }
 
 type Category struct {

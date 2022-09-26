@@ -77,7 +77,7 @@ func (c *Client) GetTorrents(fo TorrentFilterOptions) ([]Torrent, error) {
 		opts["hashes"] = strings.Join(fo.Hashes, "|")
 	}
 
-	resp, err := c.get("torrents/info", nil)
+	resp, err := c.get("torrents/info", opts)
 	if err != nil {
 		return nil, errors.Wrap(err, "get torrents error")
 	}
@@ -361,6 +361,28 @@ func (c *Client) SetAutoManagement(hashes []string, enable bool) error {
 	return nil
 }
 
+func (c *Client) SetLocation(hashes []string, location string) error {
+	// Add hashes together with | separator
+	hv := strings.Join(hashes, "|")
+	opts := map[string]string{
+		"hashes": hv,
+		"location": location,
+	}
+
+	resp, err := c.post("torrents/setLocation", opts)
+	if err != nil {
+		return errors.Wrap(err, "could not setLocation torrents: %v", hashes)
+	}
+
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return errors.Wrap(err, "could not setLocation torrents: %v unexpected status: %v", hashes, resp.StatusCode)
+	}
+
+	return nil
+}
+
 func (c *Client) CreateCategory(category string, path string) error {
 	opts := map[string]string{
 		"category": category,
@@ -508,3 +530,4 @@ func (c *Client) RenameFile(hash, oldPath, newPath string) error {
 
 	return nil
 }
+
