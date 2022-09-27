@@ -18,14 +18,10 @@ import (
 	"golang.org/x/net/publicsuffix"
 
 	"github.com/autobrr/autobrr/pkg/errors"
+	"github.com/avast/retry-go"
 )
 
 var (
-	backoffSchedule = []time.Duration{
-		5 * time.Second,
-		10 * time.Second,
-		20 * time.Second,
-	}
 	timeout = 60 * time.Second
 )
 
@@ -113,18 +109,22 @@ func (c *Client) get(endpoint string, opts map[string]string) (*http.Response, e
 	}
 
 	// try request and if fail run 3 retries
-	for i, backoff := range backoffSchedule {
+	err = retry.Do(func() error {
 		resp, err = c.http.Do(req)
-
-		// request ok, lets break out of the loop
-		if err == nil {
-			break
+		if resp != nil && resp.StatusCode == http.StatusForbidden {
+			if err := c.Login(); err != nil {
+				return errors.Wrap(err, "failed to re-login.")
+			}
+		} else if err != nil {
+			return errors.Wrap(err, "qbit GET failed")
 		}
 
-		c.log.Printf("qbit GET failed: retrying attempt %d - %v\n", i, reqUrl)
-
-		time.Sleep(backoff)
-	}
+		return err
+	},
+		retry.OnRetry(func(n uint, err error) { c.log.Print("%q | attempt %d - %v\n", err, n, reqUrl) }),
+		retry.Delay(time.Second*5),
+		retry.Attempts(10),
+		retry.MaxJitter(time.Second*1))
 
 	if err != nil {
 		return nil, errors.Wrap(err, "error making get request: %v", reqUrl)
@@ -160,18 +160,22 @@ func (c *Client) post(endpoint string, opts map[string]string) (*http.Response, 
 	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 
 	// try request and if fail run 3 retries
-	for i, backoff := range backoffSchedule {
+	err = retry.Do(func() error {
 		resp, err = c.http.Do(req)
-
-		// request ok, lets break out of the loop
-		if err == nil {
-			break
+		if resp != nil && resp.StatusCode == http.StatusForbidden {
+			if err := c.Login(); err != nil {
+				return errors.Wrap(err, "failed to re-login.")
+			}
+		} else if err != nil {
+			return errors.Wrap(err, "qbit POST failed")
 		}
 
-		c.log.Printf("qbit POST failed: retrying attempt %d - %v\n", i, reqUrl)
-
-		time.Sleep(backoff)
-	}
+		return err
+	},
+		retry.OnRetry(func(n uint, err error) { c.log.Print("%q | attempt %d - %v\n", err, n, reqUrl) }),
+		retry.Delay(time.Second*5),
+		retry.Attempts(10),
+		retry.MaxJitter(time.Second*1))
 
 	if err != nil {
 		return nil, errors.Wrap(err, "error making post request: %v", reqUrl)
@@ -275,18 +279,22 @@ func (c *Client) postFile(endpoint string, fileName string, opts map[string]stri
 	req.Header.Set("Content-Type", multiPartWriter.FormDataContentType())
 
 	// try request and if fail run 3 retries
-	for i, backoff := range backoffSchedule {
+	err = retry.Do(func() error {
 		resp, err = c.http.Do(req)
-
-		// request ok, lets break out of the loop
-		if err == nil {
-			break
+		if resp != nil && resp.StatusCode == http.StatusForbidden {
+			if err := c.Login(); err != nil {
+				return errors.Wrap(err, "failed to re-login.")
+			}
+		} else if err != nil {
+			return errors.Wrap(err, "qbit POST file failed")
 		}
 
-		c.log.Printf("qbit POST file failed: retrying attempt %d - %v\n", i, reqUrl)
-
-		time.Sleep(backoff)
-	}
+		return err
+	},
+		retry.OnRetry(func(n uint, err error) { c.log.Print("%q | attempt %d - %v\n", err, n, reqUrl) }),
+		retry.Delay(time.Second*5),
+		retry.Attempts(10),
+		retry.MaxJitter(time.Second*1))
 
 	if err != nil {
 		return nil, errors.Wrap(err, "error making post file request %v", fileName)
