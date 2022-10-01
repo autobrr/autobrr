@@ -11,6 +11,7 @@ import (
 
 	"github.com/mmcdole/gofeed"
 	"github.com/rs/zerolog"
+	"net/url"
 )
 
 type RSSJob struct {
@@ -85,6 +86,16 @@ func (j *RSSJob) process() error {
 
 		if rls.TorrentURL == "" && item.Link != "" {
 			rls.TorrentURL = item.Link
+		}
+
+		if rls.TorrentURL != "" {
+			if parsedURL, err := url.Parse(rls.TorrentURL); err != nil {
+				if len(parsedURL.Hostname()) == 0 {
+					if parentURL, err := url.Parse(j.URL); err != nil {
+						rls.TorrentURL = parentURL.Hostname() + rls.TorrentURL
+					}
+				}
+			}
 		}
 
 		for _, v := range item.Categories {
