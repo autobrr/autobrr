@@ -92,7 +92,8 @@ func (j *RSSJob) process() error {
 			if parsedURL, err := url.Parse(rls.TorrentURL); err != nil {
 				if len(parsedURL.Hostname()) == 0 {
 					if parentURL, err := url.Parse(j.URL); err != nil {
-						rls.TorrentURL = parentURL.Hostname() + rls.TorrentURL
+						parentURL.Path, parentURL.RawPath = "", ""
+						rls.TorrentURL = parentURL.JoinPath(rls.TorrentURL).String()
 					}
 				}
 			}
