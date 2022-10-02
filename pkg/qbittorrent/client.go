@@ -113,15 +113,15 @@ func (c *Client) get(endpoint string, opts map[string]string) (*http.Response, e
 		resp, err = c.http.Do(req)
 		if resp != nil && resp.StatusCode == http.StatusForbidden {
 			if err := c.Login(); err != nil {
-				return errors.Wrap(err, "failed to re-login.")
+				return errors.Wrap(err, "qbit re-login failed")
 			}
 		} else if err != nil {
-			return errors.Wrap(err, "qbit GET failed")
+			return errors.Wrap(err, "qbit POST failed")
 		}
 
 		return err
 	},
-		retry.OnRetry(func(n uint, err error) { c.log.Print("%q | attempt %d - %v\n", err, n, reqUrl) }),
+		retry.OnRetry(func(n uint, err error) { c.log.Print("%q: attempt %d - %v\n", err, n, reqUrl) }),
 		retry.Delay(time.Second*5),
 		retry.Attempts(10),
 		retry.MaxJitter(time.Second*1))
@@ -164,7 +164,7 @@ func (c *Client) post(endpoint string, opts map[string]string) (*http.Response, 
 		resp, err = c.http.Do(req)
 		if resp != nil && resp.StatusCode == http.StatusForbidden {
 			if err := c.Login(); err != nil {
-				return errors.Wrap(err, "failed to re-login.")
+				return errors.Wrap(err, "qbit re-login failed")
 			}
 		} else if err != nil {
 			return errors.Wrap(err, "qbit POST failed")
@@ -172,7 +172,7 @@ func (c *Client) post(endpoint string, opts map[string]string) (*http.Response, 
 
 		return err
 	},
-		retry.OnRetry(func(n uint, err error) { c.log.Print("%q | attempt %d - %v\n", err, n, reqUrl) }),
+		retry.OnRetry(func(n uint, err error) { c.log.Print("%q: attempt %d - %v\n", err, n, reqUrl) }),
 		retry.Delay(time.Second*5),
 		retry.Attempts(10),
 		retry.MaxJitter(time.Second*1))
@@ -283,15 +283,15 @@ func (c *Client) postFile(endpoint string, fileName string, opts map[string]stri
 		resp, err = c.http.Do(req)
 		if resp != nil && resp.StatusCode == http.StatusForbidden {
 			if err := c.Login(); err != nil {
-				return errors.Wrap(err, "failed to re-login.")
+				return errors.Wrap(err, "qbit re-login failed")
 			}
 		} else if err != nil {
-			return errors.Wrap(err, "qbit POST file failed")
+			return errors.Wrap(err, "qbit POST failed")
 		}
 
 		return err
 	},
-		retry.OnRetry(func(n uint, err error) { c.log.Print("%q | attempt %d - %v\n", err, n, reqUrl) }),
+		retry.OnRetry(func(n uint, err error) { c.log.Print("%q: attempt %d - %v\n", err, n, reqUrl) }),
 		retry.Delay(time.Second*5),
 		retry.Attempts(10),
 		retry.MaxJitter(time.Second*1))
