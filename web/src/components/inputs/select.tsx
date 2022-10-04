@@ -1,8 +1,8 @@
 import { Fragment } from "react";
 import { Field, FieldProps } from "formik";
-import { Transition, Listbox } from "@headlessui/react";
-import { CheckIcon, SelectorIcon } from "@heroicons/react/solid";
-import { MultiSelect as RMSC }  from "react-multi-select-component";
+import { Listbox, Transition } from "@headlessui/react";
+import { CheckIcon, ChevronUpDownIcon } from "@heroicons/react/24/solid";
+import { MultiSelect as RMSC } from "react-multi-select-component";
 
 import { classNames, COL_WIDTHS } from "../../utils";
 import { SettingsContext } from "../../utils/Context";
@@ -162,7 +162,7 @@ export function DownloadClientSelect({
                         : "Choose a client"}
                     </span>
                     <span className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
-                      <SelectorIcon
+                      <ChevronUpDownIcon
                         className="h-5 w-5 text-gray-400 dark:text-gray-300"
                         aria-hidden="true" />
                     </span>
@@ -274,7 +274,7 @@ export const Select = ({
                       }
                     </span>
                     <span className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
-                      <SelectorIcon
+                      <ChevronUpDownIcon
                         className="h-5 w-5 text-gray-400 dark:text-gray-300"
                         aria-hidden="true"
                       />
@@ -379,7 +379,7 @@ export const SelectWide = ({
                         }
                       </span>
                       <span className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
-                        <SelectorIcon
+                        <ChevronUpDownIcon
                           className="h-5 w-5 text-gray-400 dark:text-gray-300"
                           aria-hidden="true"
                         />

@@ -1,20 +1,16 @@
-import { useMutation } from "react-query";
-import { toast } from "react-hot-toast";
-import { XIcon } from "@heroicons/react/solid";
-import { Field, FieldArray, FormikErrors, FormikValues } from "formik";
-import type { FieldProps } from "formik";
+import {useMutation} from "react-query";
+import {toast} from "react-hot-toast";
+import {XMarkIcon} from "@heroicons/react/24/solid";
+import type {FieldProps} from "formik";
+import {Field, FieldArray, FormikErrors, FormikValues} from "formik";
 
-import { queryClient } from "../../App";
-import { APIClient } from "../../api/APIClient";
+import {queryClient} from "../../App";
+import {APIClient} from "../../api/APIClient";
 
-import {
-  TextFieldWide,
-  PasswordFieldWide,
-  SwitchGroupWide,
-  NumberFieldWide
-} from "../../components/inputs";
-import { SlideOver } from "../../components/panels";
+import {NumberFieldWide, PasswordFieldWide, SwitchGroupWide, TextFieldWide} from "../../components/inputs";
+import {SlideOver} from "../../components/panels";
 import Toast from "../../components/notifications/Toast";
+import {ExclamationTriangleIcon} from "@heroicons/react/24/outline";
 
 interface ChannelsFieldArrayProps {
   channels: IrcChannel[];
@@ -62,7 +58,7 @@ const ChannelsFieldArray = ({ channels }: ChannelsFieldArrayProps) => (
                   onClick={() => remove(index)}
                 >
                   <span className="sr-only">Remove</span>
-                  <XIcon className="h-6 w-6" aria-hidden="true" />
+                  <XMarkIcon className="h-6 w-6" aria-hidden="true" />
                 </button>
               </div>
             ))
@@ -160,6 +156,8 @@ export function IrcNetworkAddForm({ isOpen, toggle }: AddFormProps) {
     >
       {(values) => (
         <div className="flex flex-col space-y-4 px-1 py-6 sm:py-0 sm:space-y-0">
+          <div className="flex justify-center dark:bg-red-300 text-sm font-bold text-center p-4 py-8 dark:text-red-800"><span className="flex"><ExclamationTriangleIcon className="mr-2 h-6 w-6" /> ADD NETWORKS VIA INDEXERS! ONLY USE THIS IS YOU DELETED NETWORKS</span></div>
+
           <TextFieldWide
             name="name"
             label="Name"

@@ -1,9 +1,9 @@
-import React, { useRef } from "react";
-import { useMutation, useQuery } from "react-query";
-import { NavLink, Route, Routes, useLocation, useNavigate, useParams } from "react-router-dom";
-import { toast } from "react-hot-toast";
-import { Form, Formik, FormikValues, useFormikContext } from "formik";
-import { ChevronDownIcon, ChevronRightIcon } from "@heroicons/react/solid";
+import React, {useRef} from "react";
+import {useMutation, useQuery} from "react-query";
+import {NavLink, Route, Routes, useLocation, useNavigate, useParams} from "react-router-dom";
+import {toast} from "react-hot-toast";
+import {Form, Formik, FormikValues, useFormikContext} from "formik";
+import {ChevronDownIcon, ChevronRightIcon} from "@heroicons/react/24/solid";
 
 import {
   CODECS_OPTIONS,
@@ -19,10 +19,10 @@ import {
   SOURCES_MUSIC_OPTIONS,
   SOURCES_OPTIONS
 } from "../../domain/constants";
-import { queryClient } from "../../App";
-import { APIClient } from "../../api/APIClient";
-import { useToggle } from "../../hooks/hooks";
-import { classNames } from "../../utils";
+import {queryClient} from "../../App";
+import {APIClient} from "../../api/APIClient";
+import {useToggle} from "../../hooks/hooks";
+import {classNames} from "../../utils";
 
 import {
   CheckboxField,
@@ -35,10 +35,10 @@ import {
 } from "../../components/inputs";
 import DEBUG from "../../components/debug";
 import Toast from "../../components/notifications/Toast";
-import { DeleteModal } from "../../components/modals";
-import { TitleSubtitle } from "../../components/headings";
-import { TextArea } from "../../components/inputs/input";
-import { FilterActions } from "./action";
+import {DeleteModal} from "../../components/modals";
+import {TitleSubtitle} from "../../components/headings";
+import {TextArea} from "../../components/inputs/input";
+import {FilterActions} from "./action";
 
 interface tabType {
   name: string;
@@ -452,7 +452,7 @@ export function Music() {
 export function Advanced() {
   return (
     <div>
-      <CollapsableSection title="Releases" subtitle="Match only certain release names and/or ignore other release names">
+      <CollapsableSection defaultOpen={true} title="Releases" subtitle="Match only certain release names and/or ignore other release names">
         <div className="grid col-span-12 gap-6">
           <div
             className="col-span-12 flex p-4 text-sm text-yellow-700 bg-yellow-100 rounded-lg dark:bg-yellow-200 dark:text-yellow-800"
@@ -477,12 +477,12 @@ export function Advanced() {
         </div>
       </CollapsableSection>
 
-      <CollapsableSection title="Groups" subtitle="Match only certain groups and/or ignore other groups">
+      <CollapsableSection defaultOpen={true} title="Groups" subtitle="Match only certain groups and/or ignore other groups">
         <TextField name="match_release_groups" label="Match release groups" columns={6} placeholder="eg. group1,group2" />
         <TextField name="except_release_groups" label="Except release groups" columns={6} placeholder="eg. badgroup1,badgroup2" />
       </CollapsableSection>
 
-      <CollapsableSection title="Categories and tags" subtitle="Match or ignore categories or tags">
+      <CollapsableSection defaultOpen={true} title="Categories and tags" subtitle="Match or ignore categories or tags">
         <TextField name="match_categories" label="Match categories" columns={6} placeholder="eg. *category*,category1" />
         <TextField name="except_categories" label="Except categories" columns={6} placeholder="eg. *category*" />
 
@@ -490,17 +490,17 @@ export function Advanced() {
         <TextField name="except_tags" label="Except tags" columns={6} placeholder="eg. tag1,tag2" />
       </CollapsableSection>
 
-      <CollapsableSection title="Uploaders" subtitle="Match or ignore uploaders">
+      <CollapsableSection defaultOpen={true} title="Uploaders" subtitle="Match or ignore uploaders">
         <TextField name="match_uploaders" label="Match uploaders" columns={6} placeholder="eg. uploader1" />
         <TextField name="except_uploaders" label="Except uploaders" columns={6} placeholder="eg. anonymous" />
       </CollapsableSection>
 
-      <CollapsableSection title="Origins" subtitle="Match Internals, scene, p2p etc if announced">
+      <CollapsableSection defaultOpen={true} title="Origins" subtitle="Match Internals, scene, p2p etc if announced">
         <MultiSelect name="origins" options={ORIGIN_OPTIONS} label="Match Origins" columns={6} creatable={true} />
         <MultiSelect name="except_origins" options={ORIGIN_OPTIONS} label="Except Origins" columns={6} creatable={true} />
       </CollapsableSection>
 
-      <CollapsableSection title="Freeleech" subtitle="Match only freeleech and freeleech percent">
+      <CollapsableSection defaultOpen={true} title="Freeleech" subtitle="Match only freeleech and freeleech percent">
         <div className="col-span-6">
           <SwitchGroup name="freeleech" label="Freeleech" />
         </div>

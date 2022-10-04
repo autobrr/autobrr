@@ -20,6 +20,7 @@ type Service interface {
 	StartHandlers()
 	StopHandlers()
 	StopNetwork(key handlerKey) error
+	RestartNetwork(ctx context.Context, id int64) error
 	ListNetworks(ctx context.Context) ([]domain.IrcNetwork, error)
 	GetNetworksWithHealth(ctx context.Context) ([]domain.IrcNetworkWithHealth, error)
 	GetNetworkByID(ctx context.Context, id int64) (*domain.IrcNetwork, error)
@@ -277,6 +278,15 @@ func (s *service) checkIfNetworkRestartNeeded(network *domain.IrcNetwork) error 
 	}
 
 	return nil
+}
+
+func (s *service) RestartNetwork(ctx context.Context, id int64) error {
+	network, err := s.repo.GetNetworkByID(ctx, id)
+	if err != nil {
+		return err
+	}
+
+	return s.restartNetwork(*network)
 }
 
 func (s *service) restartNetwork(network domain.IrcNetwork) error {

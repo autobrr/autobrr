@@ -1,7 +1,7 @@
 import * as React from "react";
 import { formatDistanceToNowStrict } from "date-fns";
-import { CheckIcon } from "@heroicons/react/solid";
-import { ClockIcon, BanIcon, ExclamationCircleIcon } from "@heroicons/react/outline";
+import { CheckIcon } from "@heroicons/react/24/solid";
+import { ClockIcon, ExclamationCircleIcon, NoSymbolIcon } from "@heroicons/react/24/outline";
 
 import { classNames, simplifyDate } from "../../utils";
 import { Tooltip } from "../tooltips/Tooltip";
@@ -41,7 +41,7 @@ const StatusCellMap: Record<string, StatusCellMapEntry> = {
   },
   "PUSH_REJECTED": {
     colors: "bg-blue-200 dark:bg-blue-100 text-blue-400 dark:text-blue-800 hover:bg-blue-300 dark:hover:bg-blue-400",
-    icon: <BanIcon className="h-5 w-5" aria-hidden="true" />
+    icon: <NoSymbolIcon className="h-5 w-5" aria-hidden="true" />
   },
   "PUSH_APPROVED": {
     colors: "bg-green-100 text-green-800 hover:bg-green-300",

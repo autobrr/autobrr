@@ -16,6 +16,17 @@ interface UpdateProps {
   feed: Feed;
 }
 
+interface InitialValues {
+  id: number;
+  indexer: string;
+  enabled: boolean;
+  type: FeedType;
+  name: string;
+  url: string;
+  api_key: string;
+  interval: number;
+}
+
 export function FeedUpdateForm({ isOpen, toggle, feed }: UpdateProps) {
   const [isTesting, setIsTesting] = useState(false);
   const [isTestSuccessful, setIsSuccessfulTest] = useState(false);
@@ -26,7 +37,7 @@ export function FeedUpdateForm({ isOpen, toggle, feed }: UpdateProps) {
     {
       onSuccess: () => {
         queryClient.invalidateQueries(["feeds"]);
-        toast.custom((t) => <Toast type="success" body={`${feed.name} was updated successfully`} t={t}/>);
+        toast.custom((t) => <Toast type="success" body={`${feed.name} was updated successfully`} t={t} />);
         toggle();
       }
     }
@@ -41,11 +52,10 @@ export function FeedUpdateForm({ isOpen, toggle, feed }: UpdateProps) {
     {
       onSuccess: () => {
         queryClient.invalidateQueries(["feeds"]);
-        toast.custom((t) => <Toast type="success" body={`${feed.name} was deleted.`} t={t}/>);
+        toast.custom((t) => <Toast type="success" body={`${feed.name} was deleted.`} t={t} />);
       }
     }
   );
-
 
   const deleteAction = () => {
     deleteMutation.mutate(feed.id);
@@ -85,7 +95,7 @@ export function FeedUpdateForm({ isOpen, toggle, feed }: UpdateProps) {
     testFeedMutation.mutate(data as Feed);
   };
 
-  const initialValues = {
+  const initialValues: InitialValues = {
     id: feed.id,
     indexer: feed.indexer,
     enabled: feed.enabled,
@@ -98,7 +108,7 @@ export function FeedUpdateForm({ isOpen, toggle, feed }: UpdateProps) {
   };
 
   return (
-    <SlideOver
+    <SlideOver<InitialValues>
       type="UPDATE"
       title="Feed"
       isOpen={isOpen}
@@ -113,7 +123,7 @@ export function FeedUpdateForm({ isOpen, toggle, feed }: UpdateProps) {
     >
       {(values) => (
         <div>
-          <TextFieldWide name="name" label="Name" required={true}/>
+          <TextFieldWide name="name" label="Name" required={true} />
 
           <div className="space-y-4 divide-y divide-gray-200 dark:divide-gray-700">
             <div
@@ -132,7 +142,7 @@ export function FeedUpdateForm({ isOpen, toggle, feed }: UpdateProps) {
             </div>
 
             <div className="py-6 space-y-6 sm:py-0 sm:space-y-0 sm:divide-y sm:divide-gray-200">
-              <SwitchGroupWide name="enabled" label="Enabled"/>
+              <SwitchGroupWide name="enabled" label="Enabled" />
             </div>
           </div>
           {componentMap[values.type]}
@@ -151,13 +161,11 @@ function FormFieldsTorznab() {
         help="Torznab url"
       />
 
-      <PasswordFieldWide name="api_key" label="API key"/>
+      <PasswordFieldWide name="api_key" label="API key" />
 
-      <NumberFieldWide name="interval" label="Refresh interval"
-        help="Minutes. Recommended 15-30. Too low and risk ban."/>
+      <NumberFieldWide name="interval" label="Refresh interval" help="Minutes. Recommended 15-30. Too low and risk ban."/>
 
-      <NumberFieldWide name="timeout" label="Refresh timeout"
-        help="Seconds to wait before cancelling refresh."/>
+      <NumberFieldWide name="timeout" label="Refresh timeout" help="Seconds to wait before cancelling refresh."/>
     </div>
   );
 }
@@ -178,6 +186,6 @@ function FormFieldsRSS() {
 }
 
 const componentMap: componentMapType = {
-  TORZNAB: <FormFieldsTorznab/>,
+  TORZNAB: <FormFieldsTorznab />,
   RSS: <FormFieldsRSS />
 };

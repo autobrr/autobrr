@@ -1,26 +1,27 @@
 import React, { Fragment, useRef } from "react";
-import { XIcon } from "@heroicons/react/solid";
+import { XMarkIcon } from "@heroicons/react/24/solid";
 import { Dialog, Transition } from "@headlessui/react";
 import { Form, Formik } from "formik";
+import type { FormikValues } from "formik";
 import DEBUG from "../debug";
 import { useToggle } from "../../hooks/hooks";
 import { DeleteModal } from "../modals";
 import { classNames } from "../../utils";
 
 interface SlideOverProps<DataType> {
-    title: string;
-    initialValues: DataType;
-    validate?: (values: DataType) => void;
-    onSubmit: (values?: DataType) => void;
-    isOpen: boolean;
-    toggle: () => void;
-    children?: (values: DataType) => React.ReactNode;
-    deleteAction?: () => void;
-    type: "CREATE" | "UPDATE";
-    testFn?: (data: unknown) => void;
-    isTesting?: boolean;
-    isTestSuccessful?: boolean;
-    isTestError?: boolean;
+  title: string;
+  initialValues: FormikValues & DataType;
+  validate?: (values: DataType) => void;
+  onSubmit: (values?: DataType) => void;
+  isOpen: boolean;
+  toggle: () => void;
+  children?: (values: DataType) => React.ReactNode;
+  deleteAction?: () => void;
+  type: "CREATE" | "UPDATE";
+  testFn?: (data: unknown) => void;
+  isTesting?: boolean;
+  isTestSuccessful?: boolean;
+  isTestError?: boolean;
 }
 
 function SlideOver<DataType>({
@@ -81,7 +82,7 @@ function SlideOver<DataType>({
                   onSubmit={onSubmit}
                   validate={validate}
                 >
-                  {({ handleSubmit, values }) => ( 
+                  {({ handleSubmit, values }) => (
                     <Form className="h-full flex flex-col bg-white dark:bg-gray-800 shadow-xl overflow-y-scroll"
                       onSubmit={handleSubmit}>
 
@@ -101,7 +102,7 @@ function SlideOver<DataType>({
                                 onClick={toggle}
                               >
                                 <span className="sr-only">Close panel</span>
-                                <XIcon className="h-6 w-6" aria-hidden="true" />
+                                <XMarkIcon className="h-6 w-6" aria-hidden="true" />
                               </button>
                             </div>
                           </div>

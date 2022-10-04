@@ -2,10 +2,9 @@ package action
 
 import (
 	"context"
-	"io/ioutil"
-
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/pkg/errors"
+	"os"
 
 	"github.com/mrobinsn/go-rtorrent/rtorrent"
 )
@@ -38,7 +37,7 @@ func (s *service) rtorrent(action domain.Action, release domain.Release) ([]stri
 	// create client
 	rt := rtorrent.New(client.Host, true)
 
-	tmpFile, err := ioutil.ReadFile(release.TorrentTmpFile)
+	tmpFile, err := os.ReadFile(release.TorrentTmpFile)
 	if err != nil {
 		return nil, errors.Wrap(err, "could not read torrent file: %v", release.TorrentTmpFile)
 	}
@@ -47,13 +46,13 @@ func (s *service) rtorrent(action domain.Action, release domain.Release) ([]stri
 
 	if action.Label != "" {
 		args = append(args, &rtorrent.FieldValue{
-			Field: "d.custom1",
+			Field: rtorrent.DLabel,
 			Value: action.Label,
 		})
 	}
 	if action.SavePath != "" {
 		args = append(args, &rtorrent.FieldValue{
-			Field: "d.base_path",
+			Field: rtorrent.DDirectory,
 			Value: action.SavePath,
 		})
 	}

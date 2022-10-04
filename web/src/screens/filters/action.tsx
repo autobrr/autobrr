@@ -9,7 +9,7 @@ import { EmptyListState } from "../../components/emptystates";
 import { useToggle } from "../../hooks/hooks";
 import { classNames } from "../../utils";
 import { Dialog, Switch as SwitchBasic, Transition } from "@headlessui/react";
-import { ChevronRightIcon } from "@heroicons/react/solid";
+import { ChevronRightIcon } from "@heroicons/react/24/solid";
 import { DeleteModal } from "../../components/modals";
 import { CollapsableSection } from "./details";
 
@@ -214,7 +214,7 @@ const TypeForm = ({ action, idx, clients }: TypeFormProps) => {
               />
               <NumberField
                 name={`actions.${idx}.limit_seed_time`}
-                label="Seed time limit (seconds)"
+                label="Seed time limit (minutes)"
               />
             </div>
           </div>

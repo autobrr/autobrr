@@ -20,6 +20,7 @@ https://autodl-community.github.io/autodl-irssi/configuration/filter/
 type FilterRepo interface {
 	FindByID(ctx context.Context, filterID int) (*Filter, error)
 	FindByIndexerIdentifier(indexer string) ([]Filter, error)
+	Find(ctx context.Context, params FilterQueryParams) ([]Filter, error)
 	ListFilters(ctx context.Context) ([]Filter, error)
 	Store(ctx context.Context, filter Filter) (*Filter, error)
 	Update(ctx context.Context, filter Filter) (*Filter, error)
@@ -49,6 +50,14 @@ const (
 	FilterMaxDownloadsEver  FilterMaxDownloadsUnit = "EVER"
 )
 
+type FilterQueryParams struct {
+	Sort    map[string]string
+	Filters struct {
+		Indexers []string
+	}
+	Search string
+}
+
 type Filter struct {
 	ID                          int                    `json:"id"`
 	Name                        string                 `json:"name"`
@@ -58,7 +67,7 @@ type Filter struct {
 	MinSize                     string                 `json:"min_size,omitempty"`
 	MaxSize                     string                 `json:"max_size,omitempty"`
 	Delay                       int                    `json:"delay,omitempty"`
-	Priority                    int32                  `json:"priority,omitempty"`
+	Priority                    int32                  `json:"priority"`
 	MaxDownloads                int                    `json:"max_downloads,omitempty"`
 	MaxDownloadsUnit            FilterMaxDownloadsUnit `json:"max_downloads_unit,omitempty"`
 	MatchReleases               string                 `json:"match_releases,omitempty"`

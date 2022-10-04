@@ -1,9 +1,9 @@
 package lidarr
 
 import (
-	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"testing"
 
 	"github.com/rs/zerolog"
@@ -32,7 +32,7 @@ func Test_client_Push(t *testing.T) {
 		}
 
 		// read json response
-		jsonPayload, _ := ioutil.ReadFile("testdata/release_push_response.json")
+		jsonPayload, _ := os.ReadFile("testdata/release_push_response.json")
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		w.Write(jsonPayload)
@@ -125,7 +125,7 @@ func Test_client_Test(t *testing.T) {
 				return
 			}
 		}
-		jsonPayload, _ := ioutil.ReadFile("testdata/system_status_response.json")
+		jsonPayload, _ := os.ReadFile("testdata/system_status_response.json")
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		w.Write(jsonPayload)

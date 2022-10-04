@@ -1,15 +1,15 @@
-import { NavLink, Outlet, useLocation } from "react-router-dom";
+import {NavLink, Outlet, useLocation} from "react-router-dom";
 import {
   BellIcon,
-  ChatAlt2Icon,
+  ChatBubbleLeftRightIcon,
   CogIcon,
-  CollectionIcon,
-  DownloadIcon,
+  FolderArrowDownIcon,
   KeyIcon,
+  RectangleStackIcon,
   RssIcon
-} from "@heroicons/react/outline";
+} from "@heroicons/react/24/outline";
 
-import { classNames } from "../utils";
+import {classNames} from "../utils";
 
 interface NavTabType {
   name: string;
@@ -20,12 +20,12 @@ interface NavTabType {
 const subNavigation: NavTabType[] = [
   { name: "Application", href: "", icon: CogIcon },
   { name: "Indexers", href: "indexers", icon: KeyIcon },
-  { name: "IRC", href: "irc", icon: ChatAlt2Icon },
+  { name: "IRC", href: "irc", icon: ChatBubbleLeftRightIcon },
   { name: "Feeds", href: "feeds", icon: RssIcon },
-  { name: "Clients", href: "clients", icon: DownloadIcon },
+  { name: "Clients", href: "clients", icon: FolderArrowDownIcon },
   { name: "Notifications", href: "notifications", icon: BellIcon },
   { name: "API keys", href: "api-keys", icon: KeyIcon },
-  { name: "Releases", href: "releases", icon: CollectionIcon }
+  { name: "Releases", href: "releases", icon: RectangleStackIcon }
   // {name: 'Regex Playground', href: 'regex-playground', icon: CogIcon, current: false}
   // {name: 'Rules', href: 'rules', icon: ClipboardCheckIcon, current: false},
 ];

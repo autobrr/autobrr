@@ -64,6 +64,7 @@ type NotificationType string
 
 const (
 	NotificationTypeDiscord    NotificationType = "DISCORD"
+	NotificationTypeNotifiarr  NotificationType = "NOTIFIARR"
 	NotificationTypeIFTTT      NotificationType = "IFTTT"
 	NotificationTypeJoin       NotificationType = "JOIN"
 	NotificationTypeMattermost NotificationType = "MATTERMOST"

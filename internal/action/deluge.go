@@ -3,7 +3,7 @@ package action
 import (
 	"context"
 	"encoding/base64"
-	"io/ioutil"
+	"os"
 	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
@@ -123,7 +123,7 @@ func (s *service) delugeV1(client *domain.DownloadClient, action domain.Action, 
 		}
 	}
 
-	t, err := ioutil.ReadFile(release.TorrentTmpFile)
+	t, err := os.ReadFile(release.TorrentTmpFile)
 	if err != nil {
 		return nil, errors.Wrap(err, "could not read torrent file: %v", release.TorrentTmpFile)
 	}
@@ -212,7 +212,7 @@ func (s *service) delugeV2(client *domain.DownloadClient, action domain.Action, 
 		}
 	}
 
-	t, err := ioutil.ReadFile(release.TorrentTmpFile)
+	t, err := os.ReadFile(release.TorrentTmpFile)
 	if err != nil {
 		return nil, errors.Wrap(err, "could not read torrent file: %v", release.TorrentTmpFile)
 	}

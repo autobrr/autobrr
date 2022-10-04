@@ -4,10 +4,9 @@ import (
 	"bytes"
 	"crypto/tls"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"os"
-	"path"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -141,7 +140,7 @@ func (s *service) watchFolder(action domain.Action, release domain.Release) erro
 	}
 
 	if len(release.TorrentDataRawBytes) == 0 {
-		t, err := ioutil.ReadFile(release.TorrentTmpFile)
+		t, err := os.ReadFile(release.TorrentTmpFile)
 		if err != nil {
 			return errors.Wrap(err, "could not read torrent file: %v", release.TorrentTmpFile)
 		}
@@ -166,12 +165,11 @@ func (s *service) watchFolder(action domain.Action, release domain.Release) erro
 	}
 	defer original.Close()
 
-	_, tmpFileName := path.Split(release.TorrentTmpFile)
-	fullFileName := path.Join(watchFolderArgs, tmpFileName+".torrent")
+	_, tmpFileName := filepath.Split(release.TorrentTmpFile)
+	fullFileName := filepath.Join(watchFolderArgs, tmpFileName+".torrent")
 
 	// Create folder
-	err = os.MkdirAll(watchFolderArgs, os.ModePerm)
-	if err != nil {
+	if err = os.MkdirAll(watchFolderArgs, os.ModePerm); err != nil {
 		return errors.Wrap(err, "could not create new folders %v", fullFileName)
 	}
 
@@ -183,8 +181,7 @@ func (s *service) watchFolder(action domain.Action, release domain.Release) erro
 	defer newFile.Close()
 
 	// Copy file
-	_, err = io.Copy(newFile, original)
-	if err != nil {
+	if _, err := io.Copy(newFile, original); err != nil {
 		return errors.Wrap(err, "could not copy file %v to watch folder", fullFileName)
 	}
 
@@ -203,7 +200,7 @@ func (s *service) webhook(action domain.Action, release domain.Release) error {
 
 	// if webhook data contains TorrentDataRawBytes, lets read the file into bytes we can then use in the macro
 	if len(release.TorrentDataRawBytes) == 0 && strings.Contains(action.WebhookData, "TorrentDataRawBytes") {
-		t, err := ioutil.ReadFile(release.TorrentTmpFile)
+		t, err := os.ReadFile(release.TorrentTmpFile)
 		if err != nil {
 			return errors.Wrap(err, "could not read torrent file: %v", release.TorrentTmpFile)
 		}

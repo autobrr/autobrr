@@ -1,7 +1,7 @@
 import React, { Fragment, useRef, useState } from "react";
 import { useMutation } from "react-query";
 import { Dialog, Transition } from "@headlessui/react";
-import { XIcon } from "@heroicons/react/solid";
+import { XMarkIcon } from "@heroicons/react/24/solid";
 import { classNames, sleep } from "../../utils";
 import { Form, Formik, useFormikContext } from "formik";
 import DEBUG from "../../components/debug";
@@ -13,7 +13,13 @@ import { toast } from "react-hot-toast";
 import Toast from "../../components/notifications/Toast";
 import { useToggle } from "../../hooks/hooks";
 import { DeleteModal } from "../../components/modals";
-import { NumberFieldWide, PasswordFieldWide, SwitchGroupWide, TextFieldWide, RadioFieldsetWide } from "../../components/inputs";
+import {
+  NumberFieldWide,
+  PasswordFieldWide,
+  RadioFieldsetWide,
+  SwitchGroupWide,
+  TextFieldWide
+} from "../../components/inputs";
 import DownloadClient from "../../screens/settings/DownloadClient";
 
 interface InitialValuesSettings {
@@ -511,7 +517,7 @@ export function DownloadClientAddForm({ isOpen, toggle }: formProps) {
                                 onClick={toggle}
                               >
                                 <span className="sr-only">Close panel</span>
-                                <XIcon
+                                <XMarkIcon
                                   className="h-6 w-6"
                                   aria-hidden="true"
                                 />
@@ -710,7 +716,7 @@ export function DownloadClientUpdateForm({ client, isOpen, toggle }: updateFormP
                                   onClick={toggle}
                                 >
                                   <span className="sr-only">Close panel</span>
-                                  <XIcon
+                                  <XMarkIcon
                                     className="h-6 w-6"
                                     aria-hidden="true"
                                   />

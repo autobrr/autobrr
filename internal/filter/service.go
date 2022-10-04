@@ -5,8 +5,8 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
-	"io/ioutil"
 	"net/http"
+	"os"
 	"os/exec"
 	"strings"
 	"time"
@@ -24,6 +24,7 @@ import (
 type Service interface {
 	FindByID(ctx context.Context, filterID int) (*domain.Filter, error)
 	FindByIndexerIdentifier(indexer string) ([]domain.Filter, error)
+	Find(ctx context.Context, params domain.FilterQueryParams) ([]domain.Filter, error)
 	CheckFilter(f domain.Filter, release *domain.Release) (bool, error)
 	ListFilters(ctx context.Context) ([]domain.Filter, error)
 	Store(ctx context.Context, filter domain.Filter) (*domain.Filter, error)
@@ -50,6 +51,29 @@ func NewService(log logger.Logger, repo domain.FilterRepo, actionRepo domain.Act
 		apiService: apiService,
 		indexerSvc: indexerSvc,
 	}
+}
+
+func (s *service) Find(ctx context.Context, params domain.FilterQueryParams) ([]domain.Filter, error) {
+	// get filters
+	filters, err := s.repo.Find(ctx, params)
+	if err != nil {
+		s.log.Error().Err(err).Msgf("could not find list filters")
+		return nil, err
+	}
+
+	ret := make([]domain.Filter, 0)
+
+	for _, filter := range filters {
+		indexers, err := s.indexerSvc.FindByFilterID(ctx, filter.ID)
+		if err != nil {
+			return ret, err
+		}
+		filter.Indexers = indexers
+
+		ret = append(ret, filter)
+	}
+
+	return ret, nil
 }
 
 func (s *service) ListFilters(ctx context.Context) ([]domain.Filter, error) {
@@ -450,7 +474,7 @@ func (s *service) execCmd(release *domain.Release, cmd string, args string) (int
 
 	// read the file into bytes we can then use in the macro
 	if len(release.TorrentDataRawBytes) == 0 && release.TorrentTmpFile != "" {
-		t, err := ioutil.ReadFile(release.TorrentTmpFile)
+		t, err := os.ReadFile(release.TorrentTmpFile)
 		if err != nil {
 			return 0, errors.Wrap(err, "could not read torrent file: %v", release.TorrentTmpFile)
 		}
@@ -510,7 +534,7 @@ func (s *service) webhook(release *domain.Release, url string, data string) (int
 
 	// if webhook data contains TorrentDataRawBytes, lets read the file into bytes we can then use in the macro
 	if len(release.TorrentDataRawBytes) == 0 && strings.Contains(data, "TorrentDataRawBytes") {
-		t, err := ioutil.ReadFile(release.TorrentTmpFile)
+		t, err := os.ReadFile(release.TorrentTmpFile)
 		if err != nil {
 			return 0, errors.Wrap(err, "could not read torrent file: %v", release.TorrentTmpFile)
 		}
