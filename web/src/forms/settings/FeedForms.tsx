@@ -25,6 +25,7 @@ interface InitialValues {
   url: string;
   api_key: string;
   interval: number;
+  timeout: number;
 }
 
 export function FeedUpdateForm({ isOpen, toggle, feed }: UpdateProps) {
@@ -104,7 +105,7 @@ export function FeedUpdateForm({ isOpen, toggle, feed }: UpdateProps) {
     url: feed.url,
     api_key: feed.api_key,
     interval: feed.interval,
-    timeout: feed.timeout,
+    timeout: feed.timeout
   };
 
   return (
