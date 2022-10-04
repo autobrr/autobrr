@@ -37,8 +37,9 @@ type BasicAuth struct {
 }
 
 type Config struct {
-	Host   string
-	ApiKey string
+	Host    string
+	ApiKey  string
+	Timeout time.Duration
 
 	UseBasicAuth bool
 	BasicAuth    BasicAuth
@@ -48,7 +49,7 @@ type Config struct {
 
 func NewClient(config Config) Client {
 	httpClient := &http.Client{
-		Timeout: time.Second * 20,
+		Timeout: config.Timeout,
 	}
 
 	c := &client{

@@ -21,6 +21,7 @@ type RSSJob struct {
 	URL               string
 	Repo              domain.FeedCacheRepo
 	ReleaseSvc        release.Service
+	Timeout           time.Duration
 
 	attempts int
 	errors   []error
@@ -28,7 +29,7 @@ type RSSJob struct {
 	JobID int
 }
 
-func NewRSSJob(name string, indexerIdentifier string, log zerolog.Logger, url string, repo domain.FeedCacheRepo, releaseSvc release.Service) *RSSJob {
+func NewRSSJob(name string, indexerIdentifier string, log zerolog.Logger, url string, repo domain.FeedCacheRepo, releaseSvc release.Service, timeout time.Duration) *RSSJob {
 	return &RSSJob{
 		Name:              name,
 		IndexerIdentifier: indexerIdentifier,
@@ -36,6 +37,7 @@ func NewRSSJob(name string, indexerIdentifier string, log zerolog.Logger, url st
 		URL:               url,
 		Repo:              repo,
 		ReleaseSvc:        releaseSvc,
+		Timeout:           timeout,
 	}
 }
 
@@ -140,7 +142,7 @@ func (j *RSSJob) processItem(item *gofeed.Item) *domain.Release {
 }
 
 func (j *RSSJob) getFeed() (items []*gofeed.Item, err error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), j.Timeout)
 	defer cancel()
 
 	feed, err := gofeed.NewParser().ParseURLWithContext(j.URL, ctx) // there's an RSS specific parser as well.

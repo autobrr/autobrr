@@ -298,6 +298,7 @@ CREATE TABLE feed
 	enabled      BOOLEAN,
 	url          TEXT,
 	interval     INTEGER,
+	timeout      INTEGER DEFAULT 60,
 	categories   TEXT []   DEFAULT '{}' NOT NULL,
 	capabilities TEXT []   DEFAULT '{}' NOT NULL,
 	api_key      TEXT,
@@ -557,4 +558,7 @@ CREATE INDEX indexer_identifier_index
 		created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 	);
 	`,
+	`ALTER TABLE feed
+     	ADD COLUMN timeout INTEGER DEFAULT 60;
+    `,
 }
