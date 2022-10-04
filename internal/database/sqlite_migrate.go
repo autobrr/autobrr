@@ -281,6 +281,7 @@ CREATE TABLE feed
 	enabled      BOOLEAN,
 	url          TEXT,
 	interval     INTEGER,
+	timeout      INTEGER DEFAULT 60,
 	categories   TEXT []   DEFAULT '{}' NOT NULL,
 	capabilities TEXT []   DEFAULT '{}' NOT NULL,
 	api_key      TEXT,
