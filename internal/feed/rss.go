@@ -2,6 +2,7 @@ package feed
 
 import (
 	"context"
+	"net/url"
 	"sort"
 	"time"
 
@@ -68,47 +69,7 @@ func (j *RSSJob) process() error {
 	releases := make([]*domain.Release, 0)
 
 	for _, item := range items {
-		rls := domain.NewRelease(j.IndexerIdentifier)
-		rls.Implementation = domain.ReleaseImplementationRSS
-
-		rls.ParseString(item.Title)
-
-		if len(item.Enclosures) > 0 {
-			e := item.Enclosures[0]
-			if e.Type == "application/x-bittorrent" && e.URL != "" {
-				rls.TorrentURL = e.URL
-			}
-			if e.Length != "" {
-				rls.ParseSizeBytesString(e.Length)
-			}
-		}
-
-		if rls.TorrentURL == "" && item.Link != "" {
-			rls.TorrentURL = item.Link
-		}
-
-		for _, v := range item.Categories {
-			if len(rls.Category) != 0 {
-				rls.Category += ", "
-			}
-
-			rls.Category += v
-		}
-
-		for _, v := range item.Authors {
-			if len(rls.Uploader) != 0 {
-				rls.Uploader += ", "
-			}
-
-			rls.Uploader += v.Name
-		}
-
-		if rls.Size == 0 {
-			// parse size bytes string
-			if sz, ok := item.Custom["size"]; ok {
-				rls.ParseSizeBytesString(sz)
-			}
-		}
+		rls := j.processItem(item)
 
 		releases = append(releases, rls)
 	}
@@ -117,6 +78,65 @@ func (j *RSSJob) process() error {
 	go j.ReleaseSvc.ProcessMultiple(releases)
 
 	return nil
+}
+
+func (j *RSSJob) processItem(item *gofeed.Item) *domain.Release {
+	rls := domain.NewRelease(j.IndexerIdentifier)
+	rls.Implementation = domain.ReleaseImplementationRSS
+
+	rls.ParseString(item.Title)
+
+	if len(item.Enclosures) > 0 {
+		e := item.Enclosures[0]
+		if e.Type == "application/x-bittorrent" && e.URL != "" {
+			rls.TorrentURL = e.URL
+		}
+		if e.Length != "" {
+			rls.ParseSizeBytesString(e.Length)
+		}
+	}
+
+	if rls.TorrentURL == "" && item.Link != "" {
+		rls.TorrentURL = item.Link
+	}
+
+	if rls.TorrentURL != "" {
+		// handle no baseurl with only relative url
+		// grab url from feed url and create full url
+		if parsedURL, _ := url.Parse(rls.TorrentURL); parsedURL != nil && len(parsedURL.Hostname()) == 0 {
+			if parentURL, _ := url.Parse(j.URL); parentURL != nil {
+				parentURL.Path, parentURL.RawPath = "", ""
+
+				// unescape the query params for max compatibility
+				escapedUrl, _ := url.QueryUnescape(parentURL.JoinPath(rls.TorrentURL).String())
+				rls.TorrentURL = escapedUrl
+			}
+		}
+	}
+
+	for _, v := range item.Categories {
+		if len(rls.Category) != 0 {
+			rls.Category += ", "
+		}
+
+		rls.Category += v
+	}
+
+	for _, v := range item.Authors {
+		if len(rls.Uploader) != 0 {
+			rls.Uploader += ", "
+		}
+
+		rls.Uploader += v.Name
+	}
+
+	if rls.Size == 0 {
+		// parse size bytes string
+		if sz, ok := item.Custom["size"]; ok {
+			rls.ParseSizeBytesString(sz)
+		}
+	}
+	return rls
 }
 
 func (j *RSSJob) getFeed() (items []*gofeed.Item, err error) {
