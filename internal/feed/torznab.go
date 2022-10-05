@@ -79,6 +79,11 @@ func (j *TorznabJob) process() error {
 
 		rls.ParseString(item.Title)
 
+		if parseFreeleech(item) {
+			rls.Freeleech = true
+			rls.Bonus = []string{"Freeleech"}
+		}
+
 		releases = append(releases, rls)
 	}
 
@@ -86,6 +91,18 @@ func (j *TorznabJob) process() error {
 	go j.ReleaseSvc.ProcessMultiple(releases)
 
 	return nil
+}
+
+func parseFreeleech(item torznab.FeedItem) bool {
+	for _, attr := range item.Attributes {
+		if attr.Name == "downloadvolumefactor" {
+			if attr.Value == "0" {
+				return true
+			}
+		}
+	}
+
+	return false
 }
 
 func (j *TorznabJob) getFeed() ([]torznab.FeedItem, error) {
