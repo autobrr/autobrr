@@ -52,6 +52,7 @@ type Release struct {
 	Size                        uint64                `json:"size"`
 	Title                       string                `json:"title"` // Parsed title
 	Category                    string                `json:"category"`
+	Categories                  []string              `json:"categories,omitempty"`
 	Season                      int                   `json:"season"`
 	Episode                     int                   `json:"episode"`
 	Year                        int                   `json:"year"`

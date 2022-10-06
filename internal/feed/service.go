@@ -226,15 +226,10 @@ func (s *service) Test(ctx context.Context, feed *domain.Feed) error {
 	if feed.Type == string(domain.FeedTypeTorznab) {
 		// setup torznab Client
 		c := torznab.NewClient(torznab.Config{Host: feed.URL, ApiKey: feed.ApiKey, Log: subLogger})
-		caps, err := c.GetCaps()
-		if err != nil {
-			s.log.Error().Err(err).Msg("error testing feed")
-			return err
-		}
 
-		if caps == nil {
-			s.log.Error().Msg("could not test feed and get caps")
-			return errors.New("could not test feed and get caps")
+		if _, err := c.FetchFeed(); err != nil {
+			s.log.Error().Err(err).Msg("error getting torznab feed")
+			return err
 		}
 	}
 

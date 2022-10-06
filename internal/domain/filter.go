@@ -309,12 +309,26 @@ func (f Filter) CheckFilter(r *Release) ([]string, bool) {
 		r.addRejectionF("year not matching. got: %d want: %v", r.Year, f.Years)
 	}
 
-	if f.MatchCategories != "" && !contains(r.Category, f.MatchCategories) {
-		r.addRejectionF("category not matching. got: %v want: %v", r.Category, f.MatchCategories)
+	if f.MatchCategories != "" {
+		var categories []string
+		categories = append(categories, r.Categories...)
+		if r.Category != "" {
+			categories = append(categories, r.Category)
+		}
+		if !contains(r.Category, f.MatchCategories) && !containsAny(r.Categories, f.MatchCategories) {
+			r.addRejectionF("category not matching. got: %v want: %v", strings.Join(categories, ","), f.MatchCategories)
+		}
 	}
 
-	if f.ExceptCategories != "" && contains(r.Category, f.ExceptCategories) {
-		r.addRejectionF("category unwanted. got: %v want: %v", r.Category, f.ExceptCategories)
+	if f.ExceptCategories != "" {
+		var categories []string
+		categories = append(categories, r.Categories...)
+		if r.Category != "" {
+			categories = append(categories, r.Category)
+		}
+		if !contains(r.Category, f.ExceptCategories) && !containsAny(r.Categories, f.ExceptCategories) {
+			r.addRejectionF("category unwanted. got: %v want: %v", strings.Join(categories, ","), f.ExceptCategories)
+		}
 	}
 
 	if len(f.MatchReleaseTypes) > 0 && !containsSlice(r.Category, f.MatchReleaseTypes) {
@@ -566,15 +580,25 @@ func containsAny(tags []string, filter string) bool {
 	return containsMatch(tags, strings.Split(filter, ","))
 }
 
+func containsAnyOther(filter string, tags ...string) bool {
+	return containsMatch(tags, strings.Split(filter, ","))
+}
+
 func sliceContainsSlice(tags []string, filters []string) bool {
 	return containsMatchBasic(tags, filters)
 }
 
 func containsMatchFuzzy(tags []string, filters []string) bool {
 	for _, tag := range tags {
+		if tag == "" {
+			continue
+		}
 		tag = strings.ToLower(tag)
 
 		for _, filter := range filters {
+			if filter == "" {
+				continue
+			}
 			filter = strings.ToLower(filter)
 			filter = strings.Trim(filter, " ")
 			// check if line contains * or ?, if so try wildcard match, otherwise try substring match

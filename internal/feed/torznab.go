@@ -2,6 +2,7 @@ package feed
 
 import (
 	"sort"
+	"strconv"
 	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
@@ -84,6 +85,12 @@ func (j *TorznabJob) process() error {
 			rls.Bonus = []string{"Freeleech"}
 		}
 
+		// map torznab categories ID and Name into rls.Categories
+		// so we can filter on both ID and Name
+		for _, category := range item.Categories {
+			rls.Categories = append(rls.Categories, []string{category.Name, strconv.Itoa(category.ID)}...)
+		}
+
 		releases = append(releases, rls)
 	}
 
@@ -107,7 +114,7 @@ func parseFreeleech(item torznab.FeedItem) bool {
 
 func (j *TorznabJob) getFeed() ([]torznab.FeedItem, error) {
 	// get feed
-	feedItems, err := j.Client.GetFeed()
+	feedItems, err := j.Client.FetchFeed()
 	if err != nil {
 		j.Log.Error().Err(err).Msgf("error fetching feed items")
 		return nil, errors.Wrap(err, "error fetching feed items")
