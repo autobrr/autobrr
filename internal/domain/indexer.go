@@ -191,6 +191,23 @@ func (p *IndexerParse) ParseMatch(vars map[string]string, extraVars map[string]s
 		release.RawCookie = v
 	}
 
+	if release.Indexer == "myanonamouse" {
+		var mamTmpl = "{ .torrentName } by { .author } [{{ .language }} / {{ .tags }}]"
+
+		tmpl, err := template.New("mamtitle").Funcs(sprig.TxtFuncMap()).Parse(mamTmpl)
+		if err != nil {
+			return err
+		}
+
+		var mamTitleBytes bytes.Buffer
+		err = tmpl.Execute(&mamTitleBytes, &tmpVars)
+		if err != nil {
+			return errors.New("could not write mam name template output")
+		}
+
+		release.Title = mamTitleBytes.String()
+	}
+
 	return nil
 }
 

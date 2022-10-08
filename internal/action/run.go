@@ -66,6 +66,9 @@ func (s *service) RunAction(action *domain.Action, release domain.Release) ([]st
 	case domain.ActionTypeWhisparr:
 		rejections, err = s.whisparr(*action, release)
 
+	case domain.ActionTypeReadarr:
+		rejections, err = s.readarr(*action, release)		
+
 	default:
 		s.log.Warn().Msgf("unsupported action type: %v", action.Type)
 		return rejections, err
