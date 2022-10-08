@@ -51,11 +51,6 @@ func (s *service) readarr(action domain.Action, release domain.Release) ([]strin
 		PublishDate:      time.Now().Format(time.RFC3339),
 	}
 
-	// // special handling for MaM because the torent names are "Meh"
-	// if release.Indexer == "myanonamouse" {
-	// 	r.Title = fmt.Sprintf("%s", release.Author, k)
-	// }
-
 	rejections, err := arr.Push(r)
 	if err != nil {
 		return nil, errors.Wrap(err, "readarr: failed to push release: %v", r)

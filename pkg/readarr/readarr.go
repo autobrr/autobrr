@@ -128,18 +128,19 @@ func (c *client) Push(release Release) ([]string, error) {
 		}
 	}
 
-	pushResponse := make([]PushResponse, 0)
+	//	pushResponse := make([]PushResponse, 0)
+	var pushResponse PushResponse
 	err = json.Unmarshal(res, &pushResponse)
 	if err != nil {
 		return nil, errors.Wrap(err, "could not unmarshal data")
 	}
 
 	// log and return if rejected
-	if pushResponse[0].Rejected {
-		rejections := strings.Join(pushResponse[0].Rejections, ", ")
+	if pushResponse.Rejected {
+		rejections := strings.Join(pushResponse.Rejections, ", ")
 
 		c.Log.Printf("readarr release/push rejected %v reasons: %q\n", release.Title, rejections)
-		return pushResponse[0].Rejections, nil
+		return pushResponse.Rejections, nil
 	}
 
 	// successful push

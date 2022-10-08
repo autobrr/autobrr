@@ -59,3 +59,4 @@ parse:
 
   match:
     torrenturl: "{{ .baseUrl }}tor/download.php?tid={{ .torrentId }}"
+    torrentname: "{{ .torrentName }} by {{ .author }} [{{ .language }} / {{ .tags }}]"
