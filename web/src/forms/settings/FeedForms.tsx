@@ -25,6 +25,7 @@ interface InitialValues {
   url: string;
   api_key: string;
   interval: number;
+  timeout: number;
 }
 
 export function FeedUpdateForm({ isOpen, toggle, feed }: UpdateProps) {
@@ -103,7 +104,8 @@ export function FeedUpdateForm({ isOpen, toggle, feed }: UpdateProps) {
     name: feed.name,
     url: feed.url,
     api_key: feed.api_key,
-    interval: feed.interval
+    interval: feed.interval,
+    timeout: feed.timeout
   };
 
   return (
@@ -162,8 +164,9 @@ function FormFieldsTorznab() {
 
       <PasswordFieldWide name="api_key" label="API key" />
 
-      <NumberFieldWide name="interval" label="Refresh interval"
-        help="Minutes. Recommended 15-30. Too low and risk ban." />
+      <NumberFieldWide name="interval" label="Refresh interval" help="Minutes. Recommended 15-30. Too low and risk ban."/>
+
+      <NumberFieldWide name="timeout" label="Refresh timeout" help="Seconds to wait before cancelling refresh."/>
     </div>
   );
 }
@@ -177,7 +180,8 @@ function FormFieldsRSS() {
         help="RSS url"
       />
 
-      <NumberFieldWide name="interval" label="Refresh interval" help="Minutes. Recommended 15-30. Too low and risk ban." />
+      <NumberFieldWide name="interval" label="Refresh interval" help="Minutes. Recommended 15-30. Too low and risk ban."/>
+      <NumberFieldWide name="timeout" label="Refresh timeout" help="Seconds to wait before cancelling refresh."/>
     </div>
   );
 }
