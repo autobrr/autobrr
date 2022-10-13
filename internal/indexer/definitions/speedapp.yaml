@@ -51,7 +51,6 @@ parse:
         - torrentSize
         - baseUrl
         - torrentId
-        - torrentNameId
 
   match:
-    torrenturl: "{{ .baseUrl }}/rss/download/{{ .torrentId }}/{{ .torrentNameId }}.torrent?passkey={{ .passkey }}"
+    torrenturl: "{{ .baseUrl }}/rss/download/{{ .torrentId }}/{{ .torrentName }}.torrent?passkey={{ .passkey }}"
