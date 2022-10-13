@@ -31,6 +31,7 @@ type Feed struct {
 	Enabled      bool              `json:"enabled"`
 	URL          string            `json:"url"`
 	Interval     int               `json:"interval"`
+	Timeout      int               `json:"timeout"`
 	Capabilities []string          `json:"capabilities"`
 	ApiKey       string            `json:"api_key"`
 	Settings     map[string]string `json:"settings"`

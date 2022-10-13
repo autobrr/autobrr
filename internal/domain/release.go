@@ -192,8 +192,6 @@ func (r *Release) ParseString(title string) {
 	r.Title = rel.Title
 	r.Source = rel.Source
 	r.Resolution = rel.Resolution
-	r.Season = rel.Series
-	r.Episode = rel.Episode
 	r.Region = rel.Region
 	r.Audio = rel.Audio
 	r.AudioChannels = rel.Channels
@@ -202,6 +200,13 @@ func (r *Release) ParseString(title string) {
 	r.HDR = rel.HDR
 	r.Other = rel.Other
 	r.Artists = rel.Artist
+
+	if r.Season == 0 {
+		r.Season = rel.Series
+	}
+	if r.Episode == 0 {
+		r.Episode = rel.Episode
+	}
 
 	if r.Year == 0 {
 		r.Year = rel.Year

@@ -49,15 +49,16 @@ parse:
   type: single
   lines:
     - test:
-        - "Aweomse Raw Novel - Light Novel  [2005] :: Raw / EPUB || https://animebytes.tv/torrents.php?id=00000&torrentid=00000 || supernatural || Uploaded by: Test-Uploader"
+        - "Awesome Raw Novel - Light Novel  [2005] :: Raw / EPUB || https://animebytes.tv/torrents.php?id=00000&torrentid=00000 || supernatural || Uploaded by: Test-Uploader"
         - "Awesome Translated Novel - Light Novel  [2018] :: Translated (Translation Group) / EPUB || https://animebytes.tv/torrents.php?id=00000&torrentid=000000 || adventure, comedy, fantasy, harem, school.life, magic, action || Uploaded by: UPLOADER"
         - "Great BluRay SoftSubbed Anime - TV Series  [2020] :: Blu-ray / MKV / h264 10-bit / 1080p / FLAC 2.0 / Dual Audio / Softsubs (Sub Group) / Freeleech || https://animebytes.tv/torrents.php?id=00008&torrentid=000000 || comedy, drama, school.life, sports || Uploaded by: Uploader"
         - "Awesome Translated Manga - Manga  [2019] :: Translated (Translation Group) / Digital / Ongoing || https://animebytes.tv/torrents.php?id=00000&torrentid=000000 || comedy, fantasy, school.life, shounen, slice.of.life"
         - "Cool Movie - Movie  [2020] :: Blu-ray / MKV / h265 10-bit / 1929x804 / AC3 5.1 / Dual Audio / Softsubs (Sub Group) || https://animebytes.tv/torrents.php?id=000000&torrentid=0000000 || drama, romance, slice.of.life || Uploaded by: Anon-Uploader"
-        - "Awesome Live Action Special - Live Action TV Special  [2021] :: Web / MKV / h264 / 848x480 / AAC 2.0 / Softsubs (Sub Group) || https://animebytes.tv/torrents.php?id=00000&torrentid=00000 || manga|| Uploaded by: Some-Uploader"
+        - "Awesome Live Action Special - Live Action TV Special  [2021] :: Web / MKV / h264 / 848x480 / AAC 2.0 / Softsubs (Sub Group) || https://animebytes.tv/torrents.php?id=00000&torrentid=00000 || manga || Uploaded by: Some-Uploader"
         - "Best Visual Novel - Visual Novel  [2006] :: Game / PC / Unarchived / Hentai (Censored) || https://animebytes.tv/torrents.php?id=00000&torrentid=00000 || nukige || Uploaded by: Uploader"
         - "Artist Name - Album of awesome Music  [1991] :: MP3 / V0 (VBR) / CD || https://animebytes.tv/torrents2.php?id=00000&torrentid=000000 || ambient, folk || Uploaded by: Uploader"
-      pattern: '(.*?)(?: - )?(Visual Novel|Light Novel|TV.*|Movie|Manga|OVA|ONA|DVD Special|BD Special|Oneshot|Anthology|Manhwa|Manhua|Artbook|Game|Live Action.*|)[\s\p{Zs}]{2,}\[(\d+)\] :: (.*?)(?: \/ (?:RAW|Softsubs|Hardsubs|Translated)\s\((.+)\)(?:.*Episode\s(\d+))?(?:.*(Freeleech))?.*)? \|\| (https.*)\/torrents.*\?id=\d+&torrentid=(\d+) \|\| (.+?(?:(?:\|\| Uploaded by|$))?) (?:\|\| Uploaded by: (.*))?$'
+        - "Awesome Series - TV Series  [2022] :: Web / MKV / h264 / 1080p / AAC 2.0 / Softsubs (Sub Group) / Episode 1 / Freeleech || https://animebytes.tv/torrents.php?id=00000&torrentid=000000 || || Uploaded by: Uploader"
+      pattern: '(.*?)(?: - )?(Visual Novel|Light Novel|TV.*|Movie|Manga|OVA|ONA|DVD Special|BD Special|Oneshot|Anthology|Manhwa|Manhua|Artbook|Game|Live Action.*|)[\s\p{Zs}]{2,}\[(\d+)\] :: (.*?)(?: \/ (?:RAW|Softsubs|Hardsubs|Translated)\s\((.+)\)(?:.*Episode\s(\d+))?(?:.*(Freeleech))?.*)?(?:.?\|\|.?)?(https.*)\/torrents.*\?id=\d+&torrentid=(\d+)(?:.?\|\|.?)?([A-Za-z,. ]+\w)?(?:.?\|\|.?)?(?:Uploaded by: (.*))?'
       vars:
         - torrentName
         - category

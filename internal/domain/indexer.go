@@ -162,8 +162,7 @@ func (p *IndexerParse) ParseMatch(vars map[string]string, extraVars map[string]s
 		}
 
 		var urlBytes bytes.Buffer
-		err = tmpl.Execute(&urlBytes, &tmpVars)
-		if err != nil {
+		if err := tmpl.Execute(&urlBytes, &tmpVars); err != nil {
 			return errors.New("could not write torrent url template output")
 		}
 
@@ -178,8 +177,7 @@ func (p *IndexerParse) ParseMatch(vars map[string]string, extraVars map[string]s
 		}
 
 		var nameBytes bytes.Buffer
-		err = tmplName.Execute(&nameBytes, &tmpVars)
-		if err != nil {
+		if err := tmplName.Execute(&nameBytes, &tmpVars); err != nil {
 			return errors.New("could not write torrent name template output")
 		}
 
