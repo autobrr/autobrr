@@ -102,8 +102,7 @@ func (a *announceProcessor) processQueue(queue chan string) {
 		rls := domain.NewRelease(a.indexer.Identifier)
 
 		// on lines matched
-		err := a.onLinesMatched(a.indexer, tmpVars, rls)
-		if err != nil {
+		if err := a.onLinesMatched(a.indexer, tmpVars, rls); err != nil {
 			a.log.Debug().Msgf("error match line: %v", "")
 			continue
 		}
@@ -164,20 +163,18 @@ func (a *announceProcessor) parseExtract(pattern string, vars []string, tmpVars 
 
 // onLinesMatched process vars into release
 func (a *announceProcessor) onLinesMatched(def *domain.IndexerDefinition, vars map[string]string, rls *domain.Release) error {
-	var err error
 
-	err = rls.MapVars(def, vars)
-	if err != nil {
+	if err := rls.MapVars(def, vars); err != nil {
 		a.log.Error().Stack().Err(err).Msg("announce: could not map vars for release")
 		return err
 	}
 
 	// parse fields
+	// run before ParseMatch to not potentially use a reconstructed TorrentName
 	rls.ParseString(rls.TorrentName)
 
 	// parse torrentUrl
-	err = def.Parse.ParseMatch(vars, def.SettingsMap, rls)
-	if err != nil {
+	if err := def.Parse.ParseMatch(vars, def.SettingsMap, rls); err != nil {
 		a.log.Error().Stack().Err(err).Msgf("announce: %v", err)
 		return err
 	}
@@ -219,8 +216,7 @@ func (a *announceProcessor) processTorrentUrl(match string, vars map[string]stri
 	}
 
 	var b bytes.Buffer
-	err = tmpl.Execute(&b, &tmpVars)
-	if err != nil {
+	if err := tmpl.Execute(&b, &tmpVars); err != nil {
 		a.log.Error().Err(err).Msg("could not write torrent url template output")
 		return "", err
 	}
