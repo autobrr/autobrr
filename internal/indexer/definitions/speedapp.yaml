@@ -54,4 +54,4 @@ parse:
         - torrentNameId
 
   match:
-    torrenturl: "{{ .baseUrl }}/rss/download{{ .torrentId }}/{{ .torrentNameId }}.torrent?passkey={{ .passkey }}"
+    torrenturl: "{{ .baseUrl }}/rss/download/{{ .torrentId }}/{{ .torrentNameId }}.torrent?passkey={{ .passkey }}"
