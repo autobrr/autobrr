@@ -83,6 +83,7 @@ type BadRequestResponse struct {
 }
 
 type SystemStatusResponse struct {
+	AppName string `json:"appName"`
 	Version string `json:"version"`
 }
 
