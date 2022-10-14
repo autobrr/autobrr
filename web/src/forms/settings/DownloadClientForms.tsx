@@ -211,7 +211,8 @@ export const componentMap: componentMapType = {
   RADARR: <FormFieldsArr/>,
   SONARR: <FormFieldsArr/>,
   LIDARR: <FormFieldsArr/>,
-  WHISPARR: <FormFieldsArr/>
+  WHISPARR: <FormFieldsArr/>,
+  READARR: <FormFieldsArr/>  
 };
 
 function FormFieldsRulesBasic() {

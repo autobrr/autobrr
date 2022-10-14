@@ -55,4 +55,5 @@ const (
 	DownloadClientTypeSonarr       DownloadClientType = "SONARR"
 	DownloadClientTypeLidarr       DownloadClientType = "LIDARR"
 	DownloadClientTypeWhisparr     DownloadClientType = "WHISPARR"
+	DownloadClientTypeReadarr      DownloadClientType = "READARR"
 )

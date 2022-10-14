@@ -8,7 +8,7 @@ COPY web .
 RUN yarn build
 
 # build app
-FROM golang:1.18-alpine3.16 AS app-builder
+FROM golang:1.19-alpine3.16 AS app-builder
 
 ARG VERSION=dev
 ARG REVISION=dev

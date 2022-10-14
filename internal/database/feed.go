@@ -34,6 +34,7 @@ func (r *FeedRepo) FindByID(ctx context.Context, id int) (*domain.Feed, error) {
 			"enabled",
 			"url",
 			"interval",
+			"timeout",
 			"api_key",
 			"created_at",
 			"updated_at",
@@ -55,7 +56,7 @@ func (r *FeedRepo) FindByID(ctx context.Context, id int) (*domain.Feed, error) {
 
 	var apiKey sql.NullString
 
-	if err := row.Scan(&f.ID, &f.Indexer, &f.Name, &f.Type, &f.Enabled, &f.URL, &f.Interval, &apiKey, &f.CreatedAt, &f.UpdatedAt); err != nil {
+	if err := row.Scan(&f.ID, &f.Indexer, &f.Name, &f.Type, &f.Enabled, &f.URL, &f.Interval, &f.Timeout, &apiKey, &f.CreatedAt, &f.UpdatedAt); err != nil {
 		return nil, errors.Wrap(err, "error scanning row")
 
 	}
@@ -75,6 +76,7 @@ func (r *FeedRepo) FindByIndexerIdentifier(ctx context.Context, indexer string) 
 			"enabled",
 			"url",
 			"interval",
+			"timeout",
 			"api_key",
 			"created_at",
 			"updated_at",
@@ -96,7 +98,7 @@ func (r *FeedRepo) FindByIndexerIdentifier(ctx context.Context, indexer string) 
 
 	var apiKey sql.NullString
 
-	if err := row.Scan(&f.ID, &f.Indexer, &f.Name, &f.Type, &f.Enabled, &f.URL, &f.Interval, &apiKey, &f.CreatedAt, &f.UpdatedAt); err != nil {
+	if err := row.Scan(&f.ID, &f.Indexer, &f.Name, &f.Type, &f.Enabled, &f.URL, &f.Interval, &f.Timeout, &apiKey, &f.CreatedAt, &f.UpdatedAt); err != nil {
 		return nil, errors.Wrap(err, "error scanning row")
 
 	}
@@ -116,6 +118,7 @@ func (r *FeedRepo) Find(ctx context.Context) ([]domain.Feed, error) {
 			"enabled",
 			"url",
 			"interval",
+			"timeout",
 			"api_key",
 			"created_at",
 			"updated_at",
@@ -141,7 +144,7 @@ func (r *FeedRepo) Find(ctx context.Context) ([]domain.Feed, error) {
 
 		var apiKey sql.NullString
 
-		if err := rows.Scan(&f.ID, &f.Indexer, &f.Name, &f.Type, &f.Enabled, &f.URL, &f.Interval, &apiKey, &f.CreatedAt, &f.UpdatedAt); err != nil {
+		if err := rows.Scan(&f.ID, &f.Indexer, &f.Name, &f.Type, &f.Enabled, &f.URL, &f.Interval, &f.Timeout, &apiKey, &f.CreatedAt, &f.UpdatedAt); err != nil {
 			return nil, errors.Wrap(err, "error scanning row")
 
 		}
@@ -164,6 +167,7 @@ func (r *FeedRepo) Store(ctx context.Context, feed *domain.Feed) error {
 			"enabled",
 			"url",
 			"interval",
+			"timeout",
 			"api_key",
 			"indexer_id",
 		).
@@ -174,6 +178,7 @@ func (r *FeedRepo) Store(ctx context.Context, feed *domain.Feed) error {
 			feed.Enabled,
 			feed.URL,
 			feed.Interval,
+			feed.Timeout,
 			feed.ApiKey,
 			feed.IndexerID,
 		).
@@ -199,6 +204,7 @@ func (r *FeedRepo) Update(ctx context.Context, feed *domain.Feed) error {
 		Set("enabled", feed.Enabled).
 		Set("url", feed.URL).
 		Set("interval", feed.Interval).
+		Set("timeout", feed.Timeout).
 		Set("api_key", feed.ApiKey).
 		Where("id = ?", feed.ID)
 

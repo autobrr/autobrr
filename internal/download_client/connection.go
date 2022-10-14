@@ -9,6 +9,7 @@ import (
 	"github.com/autobrr/autobrr/pkg/lidarr"
 	"github.com/autobrr/autobrr/pkg/qbittorrent"
 	"github.com/autobrr/autobrr/pkg/radarr"
+	"github.com/autobrr/autobrr/pkg/readarr"
 	"github.com/autobrr/autobrr/pkg/sonarr"
 	"github.com/autobrr/autobrr/pkg/whisparr"
 
@@ -42,6 +43,9 @@ func (s *service) testConnection(client domain.DownloadClient) error {
 
 	case domain.DownloadClientTypeWhisparr:
 		return s.testWhisparrConnection(client)
+
+	case domain.DownloadClientTypeReadarr:
+		return s.testReadarrConnection(client)
 	default:
 		return errors.New("unsupported client")
 	}
@@ -239,6 +243,26 @@ func (s *service) testWhisparrConnection(client domain.DownloadClient) error {
 	}
 
 	s.log.Debug().Msgf("test client connection for whisparr: success")
+
+	return nil
+}
+
+func (s *service) testReadarrConnection(client domain.DownloadClient) error {
+	r := readarr.New(readarr.Config{
+		Hostname:  client.Host,
+		APIKey:    client.Settings.APIKey,
+		BasicAuth: client.Settings.Basic.Auth,
+		Username:  client.Settings.Basic.Username,
+		Password:  client.Settings.Basic.Password,
+		Log:       s.subLogger,
+	})
+
+	_, err := r.Test()
+	if err != nil {
+		return errors.Wrap(err, "readarr: connection test failed: %v", client.Host)
+	}
+
+	s.log.Debug().Msgf("test client connection for readarr: success")
 
 	return nil
 }

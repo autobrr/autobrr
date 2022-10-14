@@ -253,6 +253,7 @@ export function IndexerAddForm({ isOpen, toggle }: AddProps) {
         url: formData.feed.url,
         api_key: formData.feed.api_key,
         interval: 30,
+        timeout: 60,
         indexer: name,
         indexer_id: 0
       };
@@ -278,6 +279,7 @@ export function IndexerAddForm({ isOpen, toggle }: AddProps) {
         type: "RSS",
         url: formData.feed.url,
         interval: 30,
+        timeout: 60,
         indexer: name,
         indexer_id: 0
       };
