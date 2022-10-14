@@ -1,12 +1,6 @@
 import React from "react";
+import type { FieldInputProps, FieldMetaProps, FieldProps, FormikProps, FormikValues } from "formik";
 import { Field } from "formik";
-import type {
-  FieldInputProps,
-  FieldMetaProps,
-  FieldProps,
-  FormikProps,
-  FormikValues
-} from "formik";
 import { Switch as HeadlessSwitch } from "@headlessui/react";
 import { classNames } from "../../utils";
 
@@ -81,7 +75,7 @@ const SwitchGroup = ({
   name,
   label,
   description,
-  heading,
+  heading
 }: SwitchGroupProps) => (
   <HeadlessSwitch.Group as="ol" className="py-4 flex items-center justify-between">
     {label && <div className="flex flex-col">

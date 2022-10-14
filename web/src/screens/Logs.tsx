@@ -1,12 +1,11 @@
-import {useEffect, useRef, useState} from "react";
-import {ExclamationTriangleIcon} from "@heroicons/react/24/solid";
+import { useEffect, useRef, useState } from "react";
+import { ExclamationTriangleIcon } from "@heroicons/react/24/solid";
 import format from "date-fns/format";
-import {DebounceInput} from "react-debounce-input";
-
-import {APIClient} from "../api/APIClient";
-import {Checkbox} from "../components/Checkbox";
-import {classNames} from "../utils";
-import {SettingsContext} from "../utils/Context";
+import { DebounceInput } from "react-debounce-input";
+import { APIClient } from "../api/APIClient";
+import { Checkbox } from "../components/Checkbox";
+import { classNames } from "../utils";
+import { SettingsContext } from "../utils/Context";
 
 type LogEvent = {
   time: string;
