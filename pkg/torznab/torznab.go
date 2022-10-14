@@ -15,8 +15,9 @@ import (
 )
 
 type Client interface {
-	GetFeed() ([]FeedItem, error)
-	GetCaps() (*Caps, error)
+	FetchFeed() ([]FeedItem, error)
+	FetchCaps() (*Caps, error)
+	GetCaps() *Caps
 }
 
 type client struct {
@@ -27,6 +28,8 @@ type client struct {
 
 	UseBasicAuth bool
 	BasicAuth    BasicAuth
+
+	Capabilities *Caps
 
 	Log *log.Logger
 }
@@ -45,6 +48,11 @@ type Config struct {
 	BasicAuth    BasicAuth
 
 	Log *log.Logger
+}
+
+type Capabilities struct {
+	Search     Searching
+	Categories Categories
 }
 
 func NewClient(config Config) Client {
@@ -101,6 +109,13 @@ func (c *client) get(endpoint string, opts map[string]string) (int, *Response, e
 
 	defer resp.Body.Close()
 
+	dump, err := httputil.DumpResponse(resp, true)
+	if err != nil {
+		return 0, nil, errors.Wrap(err, "could not dump response")
+	}
+
+	c.Log.Printf("torznab get feed response dump: %q", dump)
+
 	var buf bytes.Buffer
 	if _, err = io.Copy(&buf, resp.Body); err != nil {
 		return resp.StatusCode, nil, errors.Wrap(err, "torznab.io.Copy")
@@ -114,7 +129,20 @@ func (c *client) get(endpoint string, opts map[string]string) (int, *Response, e
 	return resp.StatusCode, &response, nil
 }
 
-func (c *client) GetFeed() ([]FeedItem, error) {
+func (c *client) FetchFeed() ([]FeedItem, error) {
+	if c.Capabilities == nil {
+		status, caps, err := c.getCaps("?t=caps", nil)
+		if err != nil {
+			return nil, errors.Wrap(err, "could not get caps for feed")
+		}
+
+		if status != http.StatusOK {
+			return nil, errors.Wrap(err, "could not get caps for feed")
+		}
+
+		c.Capabilities = caps
+	}
+
 	status, res, err := c.get("", nil)
 	if err != nil {
 		return nil, errors.Wrap(err, "could not get feed")
@@ -122,6 +150,10 @@ func (c *client) GetFeed() ([]FeedItem, error) {
 
 	if status != http.StatusOK {
 		return nil, errors.New("could not get feed")
+	}
+
+	for _, item := range res.Channel.Items {
+		item.MapCategories(c.Capabilities.Categories.Categories)
 	}
 
 	return res.Channel.Items, nil
@@ -167,7 +199,7 @@ func (c *client) getCaps(endpoint string, opts map[string]string) (int, *Caps, e
 		return 0, nil, errors.Wrap(err, "could not dump response")
 	}
 
-	c.Log.Printf("get torrent trackers response dump: %q", dump)
+	c.Log.Printf("torznab get caps response dump: %q", dump)
 
 	if resp.StatusCode == http.StatusUnauthorized {
 		return resp.StatusCode, nil, errors.New("unauthorized")
@@ -188,7 +220,7 @@ func (c *client) getCaps(endpoint string, opts map[string]string) (int, *Caps, e
 	return resp.StatusCode, &response, nil
 }
 
-func (c *client) GetCaps() (*Caps, error) {
+func (c *client) FetchCaps() (*Caps, error) {
 
 	status, res, err := c.getCaps("?t=caps", nil)
 	if err != nil {
@@ -200,6 +232,10 @@ func (c *client) GetCaps() (*Caps, error) {
 	}
 
 	return res, nil
+}
+
+func (c *client) GetCaps() *Caps {
+	return c.Capabilities
 }
 
 func (c *client) Search(query string) ([]FeedItem, error) {
