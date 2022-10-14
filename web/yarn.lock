@@ -1620,6 +1620,15 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@babel/runtime@npm:^7.18.3":
+  version: 7.19.0
+  resolution: "@babel/runtime@npm:7.19.0"
+  dependencies:
+    regenerator-runtime: ^0.13.4
+  checksum: fa69c351bb05e1db3ceb9a02fdcf620c234180af68cdda02152d3561015f6d55277265d3109815992f96d910f3db709458cae4f8df1c3def66f32e0867d82294
+  languageName: node
+  linkType: hard
+
 "@babel/template@npm:^7.16.7, @babel/template@npm:^7.3.3":
   version: 7.16.7
   resolution: "@babel/template@npm:7.16.7"
@@ -2490,6 +2499,13 @@ __metadata:
     webpack-plugin-serve:
       optional: true
   checksum: 3490649181878cc8808fb91f3870ef095e5a1fb9647b3ac83740df07379c9d1cf540f24bf2b09d5f26a3a8c805b2c6b9c5be7192bdb9317d0ffffa67426e9f66
+  languageName: node
+  linkType: hard
+
+"@popperjs/core@npm:^2.11.5":
+  version: 2.11.6
+  resolution: "@popperjs/core@npm:2.11.6"
+  checksum: 47fb328cec1924559d759b48235c78574f2d71a8a6c4c03edb6de5d7074078371633b91e39bbf3f901b32aa8af9b9d8f82834856d2f5737a23475036b16817f0
   languageName: node
   linkType: hard
 
@@ -8724,7 +8740,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"loose-envify@npm:^1.1.0, loose-envify@npm:^1.4.0":
+"loose-envify@npm:^1.0.0, loose-envify@npm:^1.1.0, loose-envify@npm:^1.4.0":
   version: 1.4.0
   resolution: "loose-envify@npm:1.4.0"
   dependencies:
@@ -10865,6 +10881,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"react-fast-compare@npm:^3.0.1":
+  version: 3.2.0
+  resolution: "react-fast-compare@npm:3.2.0"
+  checksum: 8ef272c825ae329f61633ce4ce7f15aa5b84e5214d88bc0823880236e03e985a13195befa2c7a4eda7db3b017dc7985729152d88445823f652403cf36c2b86aa
+  languageName: node
+  linkType: hard
+
 "react-hook-form@npm:^7.32.1":
   version: 7.32.1
   resolution: "react-hook-form@npm:7.32.1"
@@ -10914,6 +10937,34 @@ __metadata:
     react: ^16 || ^17 || ^18
     react-dom: ^16 || ^17 || ^18
   checksum: f05880722cc38b8f25248f68d0cbfcd7689efde01501c8ce054e22aee14f62b9ab00b0607ad91b824c4aebaa678d659173d0c59e1cc5d465eff5414e0f5aa6a8
+  languageName: node
+  linkType: hard
+
+"react-popper-tooltip@npm:^4.4.2":
+  version: 4.4.2
+  resolution: "react-popper-tooltip@npm:4.4.2"
+  dependencies:
+    "@babel/runtime": ^7.18.3
+    "@popperjs/core": ^2.11.5
+    react-popper: ^2.3.0
+  peerDependencies:
+    react: ">=16.6.0"
+    react-dom: ">=16.6.0"
+  checksum: 516988b9258f05fe8f48d702654d70c3701d9a730c10a07c2b5229193322b985478fad7033092c8f0449d83e77aa536d2993747609206208ed6f6b014b98acb0
+  languageName: node
+  linkType: hard
+
+"react-popper@npm:^2.3.0":
+  version: 2.3.0
+  resolution: "react-popper@npm:2.3.0"
+  dependencies:
+    react-fast-compare: ^3.0.1
+    warning: ^4.0.2
+  peerDependencies:
+    "@popperjs/core": ^2.0.0
+    react: ^16.8.0 || ^17 || ^18
+    react-dom: ^16.8.0 || ^17 || ^18
+  checksum: 837111c98738011c69b3069a464ea5bdcbf487105b6148e8faf90cb7337e134edb1b98b8824322941c378756cca30a15c18c25f558e53b85ed5762fa0dc8e6b2
   languageName: node
   linkType: hard
 
@@ -12861,6 +12912,15 @@ __metadata:
   languageName: node
   linkType: hard
 
+"warning@npm:^4.0.2":
+  version: 4.0.3
+  resolution: "warning@npm:4.0.3"
+  dependencies:
+    loose-envify: ^1.0.0
+  checksum: 4f2cb6a9575e4faf71ddad9ad1ae7a00d0a75d24521c193fa464f30e6b04027bd97aa5d9546b0e13d3a150ab402eda216d59c1d0f2d6ca60124d96cd40dfa35c
+  languageName: node
+  linkType: hard
+
 "watchpack@npm:^2.3.1":
   version: 2.4.0
   resolution: "watchpack@npm:2.4.0"
@@ -12913,6 +12973,7 @@ __metadata:
     react-hook-form: ^7.32.1
     react-hot-toast: ^2.2.0
     react-multi-select-component: ^4.2.9
+    react-popper-tooltip: ^4.4.2
     react-query: ^3.39.1
     react-ridge-state: 4.2.2
     react-router-dom: ^6.3.0

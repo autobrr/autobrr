@@ -1,16 +1,16 @@
-import {useMutation} from "react-query";
-import {toast} from "react-hot-toast";
-import {XMarkIcon} from "@heroicons/react/24/solid";
-import type {FieldProps} from "formik";
-import {Field, FieldArray, FormikErrors, FormikValues} from "formik";
+import { useMutation } from "react-query";
+import { toast } from "react-hot-toast";
+import { XMarkIcon } from "@heroicons/react/24/solid";
+import type { FieldProps } from "formik";
+import { Field, FieldArray, FormikErrors, FormikValues } from "formik";
 
-import {queryClient} from "../../App";
-import {APIClient} from "../../api/APIClient";
+import { queryClient } from "../../App";
+import { APIClient } from "../../api/APIClient";
 
-import {NumberFieldWide, PasswordFieldWide, SwitchGroupWide, TextFieldWide} from "../../components/inputs";
-import {SlideOver} from "../../components/panels";
+import { NumberFieldWide, PasswordFieldWide, SwitchGroupWide, TextFieldWide } from "../../components/inputs";
+import { SlideOver } from "../../components/panels";
 import Toast from "../../components/notifications/Toast";
-import {ExclamationTriangleIcon} from "@heroicons/react/24/outline";
+import { ExclamationTriangleIcon } from "@heroicons/react/24/outline";
 
 interface ChannelsFieldArrayProps {
   channels: IrcChannel[];
@@ -33,7 +33,7 @@ const ChannelsFieldArray = ({ channels }: ChannelsFieldArrayProps) => (
                         value={field.value ?? ""}
                         onChange={field.onChange}
                         placeholder="#Channel"
-                        className="mr-4 dark:bg-gray-700 focus:ring-indigo-500 dark:focus:ring-blue-500 focus:border-indigo-500 dark:focus:border-blue-500 border-gray-300 dark:border-gray-600 block w-full shadow-sm sm:text-sm dark:text-white rounded-md"
+                        className="mr-4 dark:bg-gray-700 focus:ring-blue-500 dark:focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-500 border-gray-300 dark:border-gray-600 block w-full shadow-sm sm:text-sm dark:text-white rounded-md"
                       />
                     )}
                   </Field>
@@ -46,7 +46,7 @@ const ChannelsFieldArray = ({ channels }: ChannelsFieldArrayProps) => (
                         value={field.value ?? ""}
                         onChange={field.onChange}
                         placeholder="Password"
-                        className="mr-4 dark:bg-gray-700 focus:ring-indigo-500 dark:focus:ring-blue-500 focus:border-indigo-500 dark:focus:border-blue-500 border-gray-300 dark:border-gray-600 block w-full shadow-sm sm:text-sm dark:text-white rounded-md"
+                        className="mr-4 dark:bg-gray-700 focus:ring-blue-500 dark:focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-500 border-gray-300 dark:border-gray-600 block w-full shadow-sm sm:text-sm dark:text-white rounded-md"
                       />
                     )}
                   </Field>
@@ -54,7 +54,7 @@ const ChannelsFieldArray = ({ channels }: ChannelsFieldArrayProps) => (
 
                 <button
                   type="button"
-                  className="bg-white dark:bg-gray-700 rounded-md text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:focus:ring-blue-500"
+                  className="bg-white dark:bg-gray-700 rounded-md text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-500"
                   onClick={() => remove(index)}
                 >
                   <span className="sr-only">Remove</span>

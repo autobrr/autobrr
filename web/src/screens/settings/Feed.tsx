@@ -1,18 +1,18 @@
-import {useToggle} from "../../hooks/hooks";
-import {useMutation, useQuery, useQueryClient} from "react-query";
-import {APIClient} from "../../api/APIClient";
-import {Menu, Switch, Transition} from "@headlessui/react";
+import { useToggle } from "../../hooks/hooks";
+import { useMutation, useQuery, useQueryClient } from "react-query";
+import { APIClient } from "../../api/APIClient";
+import { Menu, Switch, Transition } from "@headlessui/react";
 
-import {classNames} from "../../utils";
-import {Fragment, useRef, useState} from "react";
-import {toast} from "react-hot-toast";
+import { classNames } from "../../utils";
+import { Fragment, useRef, useState } from "react";
+import { toast } from "react-hot-toast";
 import Toast from "../../components/notifications/Toast";
-import {queryClient} from "../../App";
-import {DeleteModal} from "../../components/modals";
-import {ArrowsRightLeftIcon, EllipsisHorizontalIcon, PencilSquareIcon, TrashIcon} from "@heroicons/react/24/outline";
-import {FeedUpdateForm} from "../../forms/settings/FeedForms";
-import {EmptySimple} from "../../components/emptystates";
-import {ImplementationBadges} from "./Indexer";
+import { queryClient } from "../../App";
+import { DeleteModal } from "../../components/modals";
+import { ArrowsRightLeftIcon, EllipsisHorizontalIcon, PencilSquareIcon, TrashIcon } from "@heroicons/react/24/outline";
+import { FeedUpdateForm } from "../../forms/settings/FeedForms";
+import { EmptySimple } from "../../components/emptystates";
+import { ImplementationBadges } from "./Indexer";
 
 function FeedSettings() {
   const { data } = useQuery(
@@ -101,7 +101,7 @@ function ListItem({ feed }: ListItemProps) {
             checked={feed.enabled}
             onChange={toggleActive}
             className={classNames(
-              feed.enabled ? "bg-teal-500 dark:bg-blue-500" : "bg-gray-200 dark:bg-gray-600",
+              feed.enabled ? "bg-blue-500 dark:bg-blue-500" : "bg-gray-200 dark:bg-gray-600",
               "relative inline-flex flex-shrink-0 h-6 w-11 border-2 border-transparent rounded-full cursor-pointer transition-colors ease-in-out duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
             )}
           >

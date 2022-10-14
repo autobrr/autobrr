@@ -1,8 +1,9 @@
-import {Dispatch, FC, Fragment, MouseEventHandler, useReducer, useRef, useState} from "react";
-import {Link} from "react-router-dom";
-import {toast} from "react-hot-toast";
-import {Listbox, Menu, Switch, Transition} from "@headlessui/react";
-import {useMutation, useQuery, useQueryClient} from "react-query";
+import { Dispatch, FC, Fragment, MouseEventHandler, useReducer, useRef, useState } from "react";
+import { Link } from "react-router-dom";
+import { toast } from "react-hot-toast";
+import { Listbox, Menu, Switch, Transition } from "@headlessui/react";
+import { useMutation, useQuery, useQueryClient } from "react-query";
+
 import {
   ArrowsRightLeftIcon,
   CheckIcon,
@@ -13,14 +14,14 @@ import {
   TrashIcon
 } from "@heroicons/react/24/outline";
 
-import {queryClient} from "../../App";
-import {classNames} from "../../utils";
-import {FilterAddForm} from "../../forms";
-import {useToggle} from "../../hooks/hooks";
-import {APIClient} from "../../api/APIClient";
+import { queryClient } from "../../App";
+import { classNames } from "../../utils";
+import { FilterAddForm } from "../../forms";
+import { useToggle } from "../../hooks/hooks";
+import { APIClient } from "../../api/APIClient";
 import Toast from "../../components/notifications/Toast";
-import {EmptyListState} from "../../components/emptystates";
-import {DeleteModal} from "../../components/modals";
+import { EmptyListState } from "../../components/emptystates";
+import { DeleteModal } from "../../components/modals";
 
 type FilterListState = {
   indexerFilter: string[],
@@ -85,7 +86,7 @@ export default function Filters() {
           <div className="flex-shrink-0">
             <button
               type="button"
-              className="relative inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 dark:bg-blue-600 hover:bg-indigo-700 dark:hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 dark:focus:ring-blue-500"
+              className="relative inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
               onClick={toggleCreateFilter}
             >
               Add new
@@ -139,8 +140,8 @@ function FilterList({ toggleCreateFilter }: any) {
 
   return (
     <div className="max-w-screen-xl mx-auto pb-12 px-4 sm:px-6 lg:px-8 relative">
-      <div className="align-middle min-w-full rounded-t-md rounded-b-lg shadow-lg bg-gray-50 dark:bg-gray-800">
-        <div className="flex justify-between px-4 bg-gray-50 dark:bg-gray-800  border-b border-gray-200 dark:border-gray-700">
+      <div className="align-middle min-w-full rounded-t-lg rounded-b-lg shadow-lg bg-gray-50 dark:bg-gray-800">
+        <div className="rounded-t-lg flex justify-between px-4 bg-gray-50 dark:bg-gray-800  border-b border-gray-200 dark:border-gray-700">
           <div className="flex gap-4">
             <StatusButton data={filtered.all} label="All" value="" currentValue={status} dispatch={dispatchFilter} />
             <StatusButton data={filtered.enabled} label="Enabled" value="enabled" currentValue={status} dispatch={dispatchFilter} />
@@ -389,7 +390,7 @@ function FilterListItem({ filter, idx }: FilterListItemProps) {
     <li
       key={filter.id}
       className={classNames(
-        "flex items-center hover:bg-gray-100 dark:hover:bg-[#222225]",
+        "flex items-center hover:bg-gray-100 dark:hover:bg-[#222225] rounded-b-lg",
         idx % 2 === 0 ?
           "bg-white dark:bg-[#2e2e31]" :
           "bg-gray-50 dark:bg-gray-800"
@@ -402,7 +403,7 @@ function FilterListItem({ filter, idx }: FilterListItemProps) {
           checked={enabled}
           onChange={toggleActive}
           className={classNames(
-            enabled ? "bg-teal-500 dark:bg-blue-500" : "bg-gray-200 dark:bg-gray-700",
+            enabled ? "bg-blue-500 dark:bg-blue-500" : "bg-gray-200 dark:bg-gray-700",
             "relative inline-flex flex-shrink-0 h-6 w-11 border-2 border-transparent rounded-full cursor-pointer transition-colors ease-in-out duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
           )}
         >
@@ -514,37 +515,35 @@ const ListboxFilter = ({
   onChange,
   children
 }: ListboxFilterProps) => (
-  <div className="">
-    <Listbox
-      refName={id}
-      value={currentValue}
-      onChange={onChange}
-    >
-      <div className="relative">
-        <Listbox.Button className="relative w-full py-2 pr-5 text-left cursor-default dark:text-gray-400 sm:text-sm">
-          <span className="block truncate">{label}</span>
-          <span className="absolute inset-y-0 right-0 flex items-center pointer-events-none">
-            <ChevronDownIcon
-              className="w-3 h-3 text-gray-600 hover:text-gray-600"
-              aria-hidden="true"
-            />
-          </span>
-        </Listbox.Button>
-        <Transition
-          as={Fragment}
-          leave="transition ease-in duration-100"
-          leaveFrom="opacity-100"
-          leaveTo="opacity-0"
+  <Listbox
+    refName={id}
+    value={currentValue}
+    onChange={onChange}
+  >
+    <div className="relative">
+      <Listbox.Button className="relative w-full py-2 pr-5 text-left dark:text-gray-400 sm:text-sm">
+        <span className="block truncate">{label}</span>
+        <span className="absolute inset-y-0 right-0 flex items-center pointer-events-none">
+          <ChevronDownIcon
+            className="w-3 h-3 text-gray-600 hover:text-gray-600"
+            aria-hidden="true"
+          />
+        </span>
+      </Listbox.Button>
+      <Transition
+        as={Fragment}
+        leave="transition ease-in duration-100"
+        leaveFrom="opacity-100"
+        leaveTo="opacity-0"
+      >
+        <Listbox.Options
+          className="w-48 absolute z-10 w-full mt-1 right-0 overflow-auto text-base bg-white dark:bg-gray-800 rounded-md shadow-lg max-h-60 border border-opacity-5 border-black dark:border-gray-700 dark:border-opacity-40 focus:outline-none sm:text-sm"
         >
-          <Listbox.Options
-            className="w-48 absolute z-10 w-full mt-1 right-0 overflow-auto text-base bg-white dark:bg-gray-800 rounded-md shadow-lg max-h-60 border border-opacity-5 border-black dark:border-gray-700 dark:border-opacity-40 focus:outline-none sm:text-sm"
-          >
-            {children}
-          </Listbox.Options>
-        </Transition>
-      </div>
-    </Listbox>
-  </div>
+          {children}
+        </Listbox.Options>
+      </Transition>
+    </div>
+  </Listbox>
 );
 
 // a unique option from a list

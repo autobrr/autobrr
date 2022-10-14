@@ -30,7 +30,7 @@ const Toast: FC<Props> = ({ type, body, t }) => (
         </div>
         <div className="ml-4 flex-shrink-0 flex">
           <button
-            className="bg-white dark:bg-gray-700 rounded-md inline-flex text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 dark:focus:ring-blue-500"
+            className="bg-white dark:bg-gray-700 rounded-md inline-flex text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
             onClick={() => {
               toast.dismiss(t?.id);
             }}

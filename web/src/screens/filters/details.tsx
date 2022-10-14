@@ -1,9 +1,9 @@
-import React, {useRef} from "react";
-import {useMutation, useQuery} from "react-query";
-import {NavLink, Route, Routes, useLocation, useNavigate, useParams} from "react-router-dom";
-import {toast} from "react-hot-toast";
-import {Form, Formik, FormikValues, useFormikContext} from "formik";
-import {ChevronDownIcon, ChevronRightIcon} from "@heroicons/react/24/solid";
+import React, { useRef } from "react";
+import { useMutation, useQuery } from "react-query";
+import { NavLink, Route, Routes, useLocation, useNavigate, useParams } from "react-router-dom";
+import { toast } from "react-hot-toast";
+import { Form, Formik, FormikValues, useFormikContext } from "formik";
+import { ChevronDownIcon, ChevronRightIcon } from "@heroicons/react/24/solid";
 
 import {
   CODECS_OPTIONS,
@@ -19,10 +19,10 @@ import {
   SOURCES_MUSIC_OPTIONS,
   SOURCES_OPTIONS
 } from "../../domain/constants";
-import {queryClient} from "../../App";
-import {APIClient} from "../../api/APIClient";
-import {useToggle} from "../../hooks/hooks";
-import {classNames} from "../../utils";
+import { queryClient } from "../../App";
+import { APIClient } from "../../api/APIClient";
+import { useToggle } from "../../hooks/hooks";
+import { classNames } from "../../utils";
 
 import {
   CheckboxField,
@@ -35,10 +35,10 @@ import {
 } from "../../components/inputs";
 import DEBUG from "../../components/debug";
 import Toast from "../../components/notifications/Toast";
-import {DeleteModal} from "../../components/modals";
-import {TitleSubtitle} from "../../components/headings";
-import {TextArea} from "../../components/inputs/input";
-import {FilterActions} from "./action";
+import { DeleteModal } from "../../components/modals";
+import { TitleSubtitle } from "../../components/headings";
+import { TextArea } from "../../components/inputs/input";
+import { FilterActions } from "./action";
 
 interface tabType {
   name: string;
@@ -122,7 +122,7 @@ const FormButtonsGroup = ({ values, deleteAction, reset }: FormButtonsGroupProps
           </button>
           <button
             type="submit"
-            className="ml-4 relative inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 dark:bg-blue-600 hover:bg-indigo-700 dark:hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+            className="ml-4 relative inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
           >
             Save
           </button>
