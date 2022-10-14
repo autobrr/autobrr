@@ -385,6 +385,7 @@ const TypeForm = ({ action, idx, clients }: TypeFormProps) => {
   case "SONARR":
   case "LIDARR":
   case "WHISPARR":
+  case "READARR":
     return (
       <div className="mt-6 grid grid-cols-12 gap-6">
         <DownloadClientSelect
