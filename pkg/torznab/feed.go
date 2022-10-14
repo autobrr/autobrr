@@ -21,11 +21,11 @@ type FeedItem struct {
 		Text string `xml:",chardata"`
 		ID   string `xml:"id,attr"`
 	} `xml:"prowlarrindexer"`
-	Comments   string   `xml:"comments"`
-	Size       string   `xml:"size"`
-	Link       string   `xml:"link"`
-	Category   []string `xml:"category,omitempty"`
-	Categories []string
+	Comments   string `xml:"comments"`
+	Size       string `xml:"size"`
+	Link       string `xml:"link"`
+	Category   []int  `xml:"category,omitempty"`
+	Categories Categories
 
 	// attributes
 	TvdbId string `xml:"tvdb,omitempty"`
@@ -33,11 +33,33 @@ type FeedItem struct {
 	ImdbId string `xml:"imdb,omitempty"`
 	TmdbId string `xml:"tmdb,omitempty"`
 
-	Attributes []struct {
-		XMLName xml.Name
-		Name    string `xml:"name,attr"`
-		Value   string `xml:"value,attr"`
-	} `xml:"attr"`
+	Attributes []ItemAttr `xml:"attr"`
+}
+
+type ItemAttr struct {
+	Name  string `xml:"name,attr"`
+	Value string `xml:"value,attr"`
+}
+
+func (f FeedItem) MapCategories(categories []Category) {
+	for _, category := range f.Category {
+		// less than 10000 it's default categories
+		if category < 10000 {
+			f.Categories = append(f.Categories, ParentCategory(Category{ID: category}))
+			continue
+		}
+
+		// categories 10000+ are custom tracker specific
+		for _, capCat := range categories {
+			if capCat.ID == category {
+				f.Categories = append(f.Categories, Category{
+					ID:   capCat.ID,
+					Name: capCat.Name,
+				})
+				break
+			}
+		}
+	}
 }
 
 // Time credits: https://github.com/mrobinsn/go-newznab/blob/cd89d9c56447859fa1298dc9a0053c92c45ac7ef/newznab/structs.go#L150
