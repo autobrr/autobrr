@@ -1,8 +1,9 @@
-import {Dispatch, FC, Fragment, MouseEventHandler, useReducer, useRef, useState} from "react";
-import {Link} from "react-router-dom";
-import {toast} from "react-hot-toast";
-import {Listbox, Menu, Switch, Transition} from "@headlessui/react";
-import {useMutation, useQuery, useQueryClient} from "react-query";
+import { Dispatch, FC, Fragment, MouseEventHandler, useReducer, useRef, useState } from "react";
+import { Link } from "react-router-dom";
+import { toast } from "react-hot-toast";
+import { Listbox, Menu, Switch, Transition } from "@headlessui/react";
+import { useMutation, useQuery, useQueryClient } from "react-query";
+
 import {
   ArrowsRightLeftIcon,
   CheckIcon,
@@ -13,14 +14,14 @@ import {
   TrashIcon
 } from "@heroicons/react/24/outline";
 
-import {queryClient} from "../../App";
-import {classNames} from "../../utils";
-import {FilterAddForm} from "../../forms";
-import {useToggle} from "../../hooks/hooks";
-import {APIClient} from "../../api/APIClient";
+import { queryClient } from "../../App";
+import { classNames } from "../../utils";
+import { FilterAddForm } from "../../forms";
+import { useToggle } from "../../hooks/hooks";
+import { APIClient } from "../../api/APIClient";
 import Toast from "../../components/notifications/Toast";
-import {EmptyListState} from "../../components/emptystates";
-import {DeleteModal} from "../../components/modals";
+import { EmptyListState } from "../../components/emptystates";
+import { DeleteModal } from "../../components/modals";
 
 type FilterListState = {
   indexerFilter: string[],
