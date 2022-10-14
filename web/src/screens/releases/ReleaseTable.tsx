@@ -1,6 +1,6 @@
 import * as React from "react";
-import {useQuery} from "react-query";
-import {Column, useFilters, usePagination, useSortBy, useTable} from "react-table";
+import { useQuery } from "react-query";
+import { Column, useFilters, usePagination, useSortBy, useTable } from "react-table";
 import {
   ChevronDoubleLeftIcon,
   ChevronDoubleRightIcon,
@@ -8,13 +8,13 @@ import {
   ChevronRightIcon
 } from "@heroicons/react/24/solid";
 
-import {APIClient} from "../../api/APIClient";
-import {EmptyListState} from "../../components/emptystates";
+import { APIClient } from "../../api/APIClient";
+import { EmptyListState } from "../../components/emptystates";
 
 import * as Icons from "../../components/Icons";
 import * as DataTable from "../../components/data-table";
 
-import {IndexerSelectColumnFilter, PushStatusSelectColumnFilter, SearchColumnFilter} from "./Filters";
+import { IndexerSelectColumnFilter, PushStatusSelectColumnFilter, SearchColumnFilter } from "./Filters";
 
 type TableState = {
     queryPageIndex: number;

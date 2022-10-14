@@ -1,18 +1,18 @@
-import {useToggle} from "../../hooks/hooks";
-import {useMutation, useQuery, useQueryClient} from "react-query";
-import {APIClient} from "../../api/APIClient";
-import {Menu, Switch, Transition} from "@headlessui/react";
+import { useToggle } from "../../hooks/hooks";
+import { useMutation, useQuery, useQueryClient } from "react-query";
+import { APIClient } from "../../api/APIClient";
+import { Menu, Switch, Transition } from "@headlessui/react";
 
-import {classNames} from "../../utils";
-import {Fragment, useRef, useState} from "react";
-import {toast} from "react-hot-toast";
+import { classNames } from "../../utils";
+import { Fragment, useRef, useState } from "react";
+import { toast } from "react-hot-toast";
 import Toast from "../../components/notifications/Toast";
-import {queryClient} from "../../App";
-import {DeleteModal} from "../../components/modals";
-import {ArrowsRightLeftIcon, EllipsisHorizontalIcon, PencilSquareIcon, TrashIcon} from "@heroicons/react/24/outline";
-import {FeedUpdateForm} from "../../forms/settings/FeedForms";
-import {EmptySimple} from "../../components/emptystates";
-import {ImplementationBadges} from "./Indexer";
+import { queryClient } from "../../App";
+import { DeleteModal } from "../../components/modals";
+import { ArrowsRightLeftIcon, EllipsisHorizontalIcon, PencilSquareIcon, TrashIcon } from "@heroicons/react/24/outline";
+import { FeedUpdateForm } from "../../forms/settings/FeedForms";
+import { EmptySimple } from "../../components/emptystates";
+import { ImplementationBadges } from "./Indexer";
 
 function FeedSettings() {
   const { data } = useQuery(

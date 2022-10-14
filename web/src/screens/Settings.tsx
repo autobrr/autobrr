@@ -1,4 +1,4 @@
-import {NavLink, Outlet, useLocation} from "react-router-dom";
+import { NavLink, Outlet, useLocation } from "react-router-dom";
 import {
   BellIcon,
   ChatBubbleLeftRightIcon,
@@ -9,7 +9,7 @@ import {
   RssIcon
 } from "@heroicons/react/24/outline";
 
-import {classNames} from "../utils";
+import { classNames } from "../utils";
 
 interface NavTabType {
   name: string;
