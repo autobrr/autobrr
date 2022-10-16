@@ -173,7 +173,7 @@ func (j *RSSJob) getFeed() (items []*gofeed.Item, err error) {
 	ctx, cancel := context.WithTimeout(context.Background(), j.Timeout)
 	defer cancel()
 
-	feed, err := gofeed.NewParser().ParseURLWithContext(j.URL, ctx) // there's an RSS specific parser as well.
+	feed, err := NewFeedParser(j.Timeout, j.Feed.Cookie).ParseURLWithContext(ctx, j.URL)
 	if err != nil {
 		return nil, errors.Wrap(err, "error fetching rss feed items")
 	}

@@ -39,6 +39,7 @@ type Feed struct {
 	MaxAge       int               `json:"max_age"` // seconds
 	Capabilities []string          `json:"capabilities"`
 	ApiKey       string            `json:"api_key"`
+	Cookie       string            `json:"cookie"`
 	Settings     map[string]string `json:"settings"`
 	CreatedAt    time.Time         `json:"created_at"`
 	UpdatedAt    time.Time         `json:"updated_at"`

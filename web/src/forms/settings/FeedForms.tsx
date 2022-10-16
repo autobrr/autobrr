@@ -25,6 +25,7 @@ interface InitialValues {
   name: string;
   url: string;
   api_key: string;
+  cookie: string;
   interval: number;
   timeout: number;
   max_age: number;
@@ -106,6 +107,7 @@ export function FeedUpdateForm({ isOpen, toggle, feed }: UpdateProps) {
     name: feed.name,
     url: feed.url,
     api_key: feed.api_key,
+    cookie: feed.cookie || "",
     interval: feed.interval,
     timeout: feed.timeout,
     max_age: feed.max_age
@@ -212,6 +214,8 @@ function FormFieldsRSS() {
       <NumberFieldWide name="interval" label="Refresh interval" help="Minutes. Recommended 15-30. Too low and risk ban."/>
       <NumberFieldWide name="timeout" label="Refresh timeout" help="Seconds to wait before cancelling refresh."/>
       <NumberFieldWide name="max_age" label="Max age" help="Seconds. Will not grab older than this value."/>
+
+      <PasswordFieldWide name="cookie" label="Cookie" help="Not commonly used" />
     </div>
   );
 }

@@ -286,6 +286,7 @@ CREATE TABLE feed
 	categories    TEXT []   DEFAULT '{}' NOT NULL,
 	capabilities  TEXT []   DEFAULT '{}' NOT NULL,
 	api_key       TEXT,
+	cookie        TEXT,
 	settings      TEXT,
     indexer_id    INTEGER,
     last_run      TIMESTAMP,
@@ -892,5 +893,8 @@ CREATE INDEX indexer_identifier_index
 
 	ALTER TABLE feed
      	ADD COLUMN last_run_data TEXT;
+
+	ALTER TABLE feed
+     	ADD COLUMN cookie TEXT;
     `,
 }
