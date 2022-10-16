@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/url"
+	"regexp"
 	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
@@ -159,6 +160,12 @@ func (j *RSSJob) processItem(item *gofeed.Item) *domain.Release {
 		}
 	}
 
+	// basic freeleech parsing
+	if isFreeleech([]string{item.Title, item.Description}) {
+		rls.Freeleech = true
+		rls.Bonus = []string{"Freeleech"}
+	}
+
 	return rls
 }
 
@@ -243,4 +250,19 @@ func isMaxAge(maxAge int, item, now time.Time) bool {
 	}
 
 	return true
+}
+
+// isFreeleech basic freeleech parsing
+func isFreeleech(str []string) bool {
+	for _, s := range str {
+		var re = regexp.MustCompile(`(?mi)(\bfreeleech\b)`)
+
+		match := re.FindAllString(s, -1)
+
+		if len(match) > 0 {
+			return true
+		}
+	}
+
+	return false
 }
