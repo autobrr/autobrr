@@ -2,6 +2,9 @@ package feed
 
 import (
 	"context"
+	"fmt"
+	"log"
+	"strconv"
 	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
@@ -12,6 +15,7 @@ import (
 	"github.com/autobrr/autobrr/pkg/torznab"
 
 	"github.com/dcarbone/zadapters/zstdlog"
+	"github.com/mmcdole/gofeed"
 	"github.com/rs/zerolog"
 )
 
@@ -19,6 +23,7 @@ type Service interface {
 	FindByID(ctx context.Context, id int) (*domain.Feed, error)
 	FindByIndexerIdentifier(ctx context.Context, indexer string) (*domain.Feed, error)
 	Find(ctx context.Context) ([]domain.Feed, error)
+	GetCacheByID(ctx context.Context, bucket string) ([]domain.FeedCacheItem, error)
 	Store(ctx context.Context, feed *domain.Feed) error
 	Update(ctx context.Context, feed *domain.Feed) error
 	Test(ctx context.Context, feed *domain.Feed) error
@@ -29,6 +34,7 @@ type Service interface {
 }
 
 type feedInstance struct {
+	Feed              *domain.Feed
 	Name              string
 	IndexerIdentifier string
 	URL               string
@@ -36,6 +42,16 @@ type feedInstance struct {
 	Implementation    string
 	CronSchedule      time.Duration
 	Timeout           time.Duration
+}
+
+type feedKey struct {
+	id      int
+	indexer string
+	name    string
+}
+
+func (k feedKey) ToString() string {
+	return fmt.Sprintf("%v+%v+%v", k.id, k.indexer, k.name)
 }
 
 type service struct {
@@ -60,72 +76,57 @@ func NewService(log logger.Logger, repo domain.FeedRepo, cacheRepo domain.FeedCa
 }
 
 func (s *service) FindByID(ctx context.Context, id int) (*domain.Feed, error) {
+	return s.repo.FindByID(ctx, id)
+}
+
+func (s *service) FindByIndexerIdentifier(ctx context.Context, indexer string) (*domain.Feed, error) {
+	return s.repo.FindByIndexerIdentifier(ctx, indexer)
+}
+
+func (s *service) Find(ctx context.Context) ([]domain.Feed, error) {
+	return s.repo.Find(ctx)
+}
+
+func (s *service) GetCacheByID(ctx context.Context, bucket string) ([]domain.FeedCacheItem, error) {
+	id, _ := strconv.Atoi(bucket)
+
 	feed, err := s.repo.FindByID(ctx, id)
 	if err != nil {
 		s.log.Error().Err(err).Msgf("could not find feed by id: %v", id)
 		return nil, err
 	}
 
-	return feed, nil
-}
-
-func (s *service) FindByIndexerIdentifier(ctx context.Context, indexer string) (*domain.Feed, error) {
-	feed, err := s.repo.FindByIndexerIdentifier(ctx, indexer)
+	data, err := s.cacheRepo.GetByBucket(ctx, feed.Name)
 	if err != nil {
-		s.log.Error().Err(err).Msgf("could not find feed by indexer: %v", indexer)
+		s.log.Error().Err(err).Msg("could not get feed cache")
 		return nil, err
 	}
 
-	return feed, nil
-}
-
-func (s *service) Find(ctx context.Context) ([]domain.Feed, error) {
-	feeds, err := s.repo.Find(ctx)
-	if err != nil {
-		s.log.Error().Err(err).Msg("could not find feeds")
-		return nil, err
-	}
-
-	return feeds, err
+	return data, err
 }
 
 func (s *service) Store(ctx context.Context, feed *domain.Feed) error {
-	if err := s.repo.Store(ctx, feed); err != nil {
-		s.log.Error().Err(err).Msgf("could not store feed: %+v", feed)
-		return err
-	}
-
-	s.log.Debug().Msgf("successfully added feed: %+v", feed)
-
-	return nil
+	return s.repo.Store(ctx, feed)
 }
 
 func (s *service) Update(ctx context.Context, feed *domain.Feed) error {
-	if err := s.update(ctx, feed); err != nil {
-		s.log.Error().Err(err).Msgf("could not update feed: %+v", feed)
-		return err
-	}
-
-	s.log.Debug().Msgf("successfully updated feed: %+v", feed)
-
-	return nil
+	return s.update(ctx, feed)
 }
 
 func (s *service) Delete(ctx context.Context, id int) error {
-	if err := s.delete(ctx, id); err != nil {
-		s.log.Error().Err(err).Msgf("could not delete feed by id: %v", id)
-		return err
-	}
-
-	return nil
+	return s.delete(ctx, id)
 }
 
 func (s *service) ToggleEnabled(ctx context.Context, id int, enabled bool) error {
-	if err := s.toggleEnabled(ctx, id, enabled); err != nil {
-		s.log.Error().Err(err).Msgf("could not toggle feed by id: %v", id)
-		return err
-	}
-	return nil
+	return s.toggleEnabled(ctx, id, enabled)
+}
+
+func (s *service) Test(ctx context.Context, feed *domain.Feed) error {
+	return s.test(ctx, feed)
+}
+
+func (s *service) Start() error {
+	return s.start()
 }
 
 func (s *service) update(ctx context.Context, feed *domain.Feed) error {
@@ -149,17 +150,13 @@ func (s *service) delete(ctx context.Context, id int) error {
 		return err
 	}
 
-	switch f.Type {
-	case string(domain.FeedTypeTorznab):
-		if err := s.stopTorznabJob(f.Indexer); err != nil {
-			s.log.Error().Err(err).Msg("error stopping torznab job")
-			return err
-		}
-	case string(domain.FeedTypeRSS):
-		if err := s.stopRSSJob(f.Indexer); err != nil {
-			s.log.Error().Err(err).Msg("error stopping rss job")
-			return err
-		}
+	s.log.Debug().Msgf("feed.Delete: stopping and removing feed: %v", f.Name)
+
+	identifierKey := feedKey{f.ID, f.Indexer, f.Name}.ToString()
+
+	if err := s.stopFeedJob(identifierKey); err != nil {
+		s.log.Error().Err(err).Msg("error stopping rss job")
+		return err
 	}
 
 	if err := s.repo.Delete(ctx, id); err != nil {
@@ -171,8 +168,6 @@ func (s *service) delete(ctx context.Context, id int) error {
 		s.log.Error().Err(err).Msgf("could not delete feedCache bucket by id: %v", id)
 		return err
 	}
-
-	s.log.Debug().Msgf("feed.Delete: stopping and removing feed: %v", f.Name)
 
 	return nil
 }
@@ -189,56 +184,86 @@ func (s *service) toggleEnabled(ctx context.Context, id int, enabled bool) error
 		return err
 	}
 
-	if f.Enabled && !enabled {
-		switch f.Type {
-		case string(domain.FeedTypeTorznab):
-			if err := s.stopTorznabJob(f.Indexer); err != nil {
-				s.log.Error().Err(err).Msg("feed.ToggleEnabled: error stopping torznab job")
+	if f.Enabled != enabled {
+		if enabled {
+			// override enabled
+			f.Enabled = true
+
+			if err := s.startJob(f); err != nil {
+				s.log.Error().Err(err).Msg("feed.ToggleEnabled: error starting feed job")
 				return err
 			}
-		case string(domain.FeedTypeRSS):
-			if err := s.stopRSSJob(f.Indexer); err != nil {
-				s.log.Error().Err(err).Msg("feed.ToggleEnabled: error stopping rss job")
+
+			s.log.Debug().Msgf("feed.ToggleEnabled: feed started: %v", f.Name)
+
+			return nil
+		} else {
+			s.log.Debug().Msgf("feed.ToggleEnabled: stopping feed: %v", f.Name)
+
+			identifierKey := feedKey{f.ID, f.Indexer, f.Name}.ToString()
+
+			if err := s.stopFeedJob(identifierKey); err != nil {
+				s.log.Error().Err(err).Msg("feed.ToggleEnabled: error stopping feed job")
 				return err
 			}
+
+			s.log.Debug().Msgf("feed.ToggleEnabled: feed stopped: %v", f.Name)
+
+			return nil
 		}
-
-		s.log.Debug().Msgf("feed.ToggleEnabled: stopping feed: %v", f.Name)
-
-		return nil
 	}
-
-	if err := s.startJob(*f); err != nil {
-		s.log.Error().Err(err).Msg("feed.ToggleEnabled: error starting torznab job")
-		return err
-	}
-
-	s.log.Debug().Msgf("feed.ToggleEnabled: started feed: %v", f.Name)
 
 	return nil
 }
 
-func (s *service) Test(ctx context.Context, feed *domain.Feed) error {
-
+func (s *service) test(ctx context.Context, feed *domain.Feed) error {
+	// create sub logger
 	subLogger := zstdlog.NewStdLoggerWithLevel(s.log.With().Logger(), zerolog.DebugLevel)
 
-	// implementation == TORZNAB
+	// test feeds
 	if feed.Type == string(domain.FeedTypeTorznab) {
-		// setup torznab Client
-		c := torznab.NewClient(torznab.Config{Host: feed.URL, ApiKey: feed.ApiKey, Log: subLogger})
-
-		if _, err := c.FetchFeed(); err != nil {
-			s.log.Error().Err(err).Msg("error getting torznab feed")
+		if err := s.testTorznab(feed, subLogger); err != nil {
+			return err
+		}
+	} else if feed.Type == string(domain.FeedTypeRSS) {
+		if err := s.testRSS(ctx, feed); err != nil {
 			return err
 		}
 	}
 
-	s.log.Debug().Msgf("test successful - connected to feed: %+v", feed.URL)
+	s.log.Info().Msgf("feed test successful - connected to feed: %v", feed.URL)
 
 	return nil
 }
 
-func (s *service) Start() error {
+func (s *service) testRSS(ctx context.Context, feed *domain.Feed) error {
+	f, err := gofeed.NewParser().ParseURLWithContext(feed.URL, ctx)
+	if err != nil {
+		s.log.Error().Err(err).Msgf("error fetching rss feed items")
+		return errors.Wrap(err, "error fetching rss feed items")
+	}
+
+	s.log.Info().Msgf("refreshing rss feed: %v, found (%d) items", feed.Name, len(f.Items))
+
+	return nil
+}
+
+func (s *service) testTorznab(feed *domain.Feed, subLogger *log.Logger) error {
+	// setup torznab Client
+	c := torznab.NewClient(torznab.Config{Host: feed.URL, ApiKey: feed.ApiKey, Log: subLogger})
+
+	items, err := c.FetchFeed()
+	if err != nil {
+		s.log.Error().Err(err).Msg("error getting torznab feed")
+		return err
+	}
+
+	s.log.Info().Msgf("refreshing torznab feed: %v, found (%d) items", feed.Name, len(items))
+
+	return nil
+}
+
+func (s *service) start() error {
 	// get all torznab indexer definitions
 	feeds, err := s.repo.Find(context.TODO())
 	if err != nil {
@@ -246,8 +271,9 @@ func (s *service) Start() error {
 		return err
 	}
 
-	for _, i := range feeds {
-		if err := s.startJob(i); err != nil {
+	for _, feed := range feeds {
+		feed := feed
+		if err := s.startJob(&feed); err != nil {
 			s.log.Error().Err(err).Msg("feed.Start: failed to initialize torznab job")
 			continue
 		}
@@ -257,17 +283,19 @@ func (s *service) Start() error {
 }
 
 func (s *service) restartJob(f *domain.Feed) error {
-	// stop feed
-	if err := s.stopTorznabJob(f.Indexer); err != nil {
-		s.log.Error().Err(err).Msg("feed.restartJob: error stopping torznab job")
+	s.log.Debug().Msgf("feed.restartJob: stopping feed: %v", f.Name)
+
+	identifierKey := feedKey{f.ID, f.Indexer, f.Name}.ToString()
+
+	// stop feed job
+	if err := s.stopFeedJob(identifierKey); err != nil {
+		s.log.Error().Err(err).Msg("feed.restartJob: error stopping feed job")
 		return err
 	}
 
-	s.log.Debug().Msgf("feed.restartJob: stopping feed: %v", f.Name)
-
 	if f.Enabled {
-		if err := s.startJob(*f); err != nil {
-			s.log.Error().Err(err).Msg("feed.restartJob: error starting torznab job")
+		if err := s.startJob(f); err != nil {
+			s.log.Error().Err(err).Msg("feed.restartJob: error starting feed job")
 			return err
 		}
 
@@ -277,7 +305,7 @@ func (s *service) restartJob(f *domain.Feed) error {
 	return nil
 }
 
-func (s *service) startJob(f domain.Feed) error {
+func (s *service) startJob(f *domain.Feed) error {
 	// get all torznab indexer definitions
 	if !f.Enabled {
 		return nil
@@ -285,11 +313,12 @@ func (s *service) startJob(f domain.Feed) error {
 
 	// get torznab_url from settings
 	if f.URL == "" {
-		return nil
+		return errors.New("no URL provided for feed: %v", f.Name)
 	}
 
 	// cron schedule to run every X minutes
 	fi := feedInstance{
+		Feed:              f,
 		Name:              f.Name,
 		IndexerIdentifier: f.Indexer,
 		Implementation:    f.Type,
@@ -319,9 +348,10 @@ func (s *service) addTorznabJob(f feedInstance) error {
 	if f.URL == "" {
 		return errors.New("torznab feed requires URL")
 	}
-	if f.CronSchedule < time.Duration(5*time.Minute) {
-		f.CronSchedule = time.Duration(15 * time.Minute)
-	}
+
+	//if f.CronSchedule < 5*time.Minute {
+	//	f.CronSchedule = 15 * time.Minute
+	//}
 
 	// setup logger
 	l := s.log.With().Str("feed", f.Name).Logger()
@@ -332,28 +362,19 @@ func (s *service) addTorznabJob(f feedInstance) error {
 	// create job
 	job := NewTorznabJob(f.Name, f.IndexerIdentifier, l, f.URL, c, s.cacheRepo, s.releaseSvc)
 
+	identifierKey := feedKey{f.Feed.ID, f.Feed.Indexer, f.Feed.Name}.ToString()
+
 	// schedule job
-	id, err := s.scheduler.AddJob(job, f.CronSchedule, f.IndexerIdentifier)
+	id, err := s.scheduler.AddJob(job, f.CronSchedule, identifierKey)
 	if err != nil {
 		return errors.Wrap(err, "feed.AddTorznabJob: add job failed")
 	}
 	job.JobID = id
 
 	// add to job map
-	s.jobs[f.IndexerIdentifier] = id
+	s.jobs[identifierKey] = id
 
 	s.log.Debug().Msgf("feed.AddTorznabJob: %v", f.Name)
-
-	return nil
-}
-
-func (s *service) stopTorznabJob(indexer string) error {
-	// remove job from scheduler
-	if err := s.scheduler.RemoveJobByIdentifier(indexer); err != nil {
-		return errors.Wrap(err, "feed.stopTorznabJob: stop job failed")
-	}
-
-	s.log.Debug().Msgf("feed.stopTorznabJob: %v", indexer)
 
 	return nil
 }
@@ -362,38 +383,41 @@ func (s *service) addRSSJob(f feedInstance) error {
 	if f.URL == "" {
 		return errors.New("rss feed requires URL")
 	}
-	if f.CronSchedule < time.Duration(5*time.Minute) {
-		f.CronSchedule = time.Duration(15 * time.Minute)
-	}
+
+	//if f.CronSchedule < time.Duration(5*time.Minute) {
+	//	f.CronSchedule = time.Duration(15 * time.Minute)
+	//}
 
 	// setup logger
 	l := s.log.With().Str("feed", f.Name).Logger()
 
 	// create job
-	job := NewRSSJob(f.Name, f.IndexerIdentifier, l, f.URL, s.cacheRepo, s.releaseSvc, f.Timeout)
+	job := NewRSSJob(f.Feed, f.Name, f.IndexerIdentifier, l, f.URL, s.repo, s.cacheRepo, s.releaseSvc, f.Timeout)
+
+	identifierKey := feedKey{f.Feed.ID, f.Feed.Indexer, f.Feed.Name}.ToString()
 
 	// schedule job
-	id, err := s.scheduler.AddJob(job, f.CronSchedule, f.IndexerIdentifier)
+	id, err := s.scheduler.AddJob(job, f.CronSchedule, identifierKey)
 	if err != nil {
 		return errors.Wrap(err, "feed.AddRSSJob: add job failed")
 	}
 	job.JobID = id
 
 	// add to job map
-	s.jobs[f.IndexerIdentifier] = id
+	s.jobs[identifierKey] = id
 
 	s.log.Debug().Msgf("feed.AddRSSJob: %v", f.Name)
 
 	return nil
 }
 
-func (s *service) stopRSSJob(indexer string) error {
+func (s *service) stopFeedJob(indexer string) error {
 	// remove job from scheduler
 	if err := s.scheduler.RemoveJobByIdentifier(indexer); err != nil {
-		return errors.Wrap(err, "feed.stopRSSJob: stop job failed")
+		return errors.Wrap(err, "feed.stopFeedJob: stop job failed")
 	}
 
-	s.log.Debug().Msgf("feed.stopRSSJob: %v", indexer)
+	s.log.Debug().Msgf("feed.stopFeedJob: %v", indexer)
 
 	return nil
 }

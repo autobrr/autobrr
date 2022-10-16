@@ -274,21 +274,24 @@ CREATE TABLE notification
 
 CREATE TABLE feed
 (
-	id           INTEGER PRIMARY KEY,
-	indexer      TEXT,
-	name         TEXT,
-	type         TEXT,
-	enabled      BOOLEAN,
-	url          TEXT,
-	interval     INTEGER,
-	timeout      INTEGER DEFAULT 60,
-	categories   TEXT []   DEFAULT '{}' NOT NULL,
-	capabilities TEXT []   DEFAULT '{}' NOT NULL,
-	api_key      TEXT,
-	settings     TEXT,
-    indexer_id   INTEGER,
-    created_at   TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at   TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+	id            INTEGER PRIMARY KEY,
+	indexer       TEXT,
+	name          TEXT,
+	type          TEXT,
+	enabled       BOOLEAN,
+	url           TEXT,
+	interval      INTEGER,
+	timeout       INTEGER DEFAULT 60,
+	max_age       INTEGER DEFAULT 3600,
+	categories    TEXT []   DEFAULT '{}' NOT NULL,
+	capabilities  TEXT []   DEFAULT '{}' NOT NULL,
+	api_key       TEXT,
+	settings      TEXT,
+    indexer_id    INTEGER,
+    last_run      TIMESTAMP,
+    last_run_data TEXT,
+    created_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (indexer_id) REFERENCES indexer(id) ON DELETE SET NULL
 );
 
@@ -880,5 +883,14 @@ CREATE INDEX indexer_identifier_index
 	`,
 	`ALTER TABLE feed
      	ADD COLUMN timeout INTEGER DEFAULT 60;
+    `,
+	`ALTER TABLE feed
+     	ADD COLUMN max_age INTEGER DEFAULT 3600;
+
+	ALTER TABLE feed
+     	ADD COLUMN last_run TIMESTAMP;
+
+	ALTER TABLE feed
+     	ADD COLUMN last_run_data TEXT;
     `,
 }

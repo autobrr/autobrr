@@ -119,7 +119,10 @@ func (r *FeedRepo) Find(ctx context.Context) ([]domain.Feed, error) {
 			"url",
 			"interval",
 			"timeout",
+			"max_age",
 			"api_key",
+			"last_run",
+			"last_run_data",
 			"created_at",
 			"updated_at",
 		).
@@ -142,13 +145,21 @@ func (r *FeedRepo) Find(ctx context.Context) ([]domain.Feed, error) {
 	for rows.Next() {
 		var f domain.Feed
 
-		var apiKey sql.NullString
+		var apiKey, lastRunData sql.NullString
+		var lastRun sql.NullTime
 
-		if err := rows.Scan(&f.ID, &f.Indexer, &f.Name, &f.Type, &f.Enabled, &f.URL, &f.Interval, &f.Timeout, &apiKey, &f.CreatedAt, &f.UpdatedAt); err != nil {
+		if err := rows.Scan(&f.ID, &f.Indexer, &f.Name, &f.Type, &f.Enabled, &f.URL, &f.Interval, &f.Timeout, &f.MaxAge, &apiKey, &lastRun, &lastRunData, &f.CreatedAt, &f.UpdatedAt); err != nil {
 			return nil, errors.Wrap(err, "error scanning row")
-
 		}
 
+		//if lastRunData.String != "" {
+		//	if err := json.Unmarshal([]byte(lastRunData.String), &f.LastRunData); err != nil {
+		//		return nil, err
+		//	}
+		//}
+
+		f.LastRun = lastRun.Time
+		f.LastRunData = lastRunData.String
 		f.ApiKey = apiKey.String
 
 		feeds = append(feeds, f)
@@ -205,8 +216,49 @@ func (r *FeedRepo) Update(ctx context.Context, feed *domain.Feed) error {
 		Set("url", feed.URL).
 		Set("interval", feed.Interval).
 		Set("timeout", feed.Timeout).
+		Set("max_age", feed.MaxAge).
 		Set("api_key", feed.ApiKey).
+		Set("updated_at", sq.Expr("CURRENT_TIMESTAMP")).
 		Where("id = ?", feed.ID)
+
+	query, args, err := queryBuilder.ToSql()
+	if err != nil {
+		return errors.Wrap(err, "error building query")
+	}
+
+	_, err = r.db.handler.ExecContext(ctx, query, args...)
+	if err != nil {
+		return errors.Wrap(err, "error executing query")
+	}
+
+	return nil
+}
+
+func (r *FeedRepo) UpdateLastRun(ctx context.Context, feedID int) error {
+	queryBuilder := r.db.squirrel.
+		Update("feed").
+		Set("last_run", sq.Expr("CURRENT_TIMESTAMP")).
+		Where("id = ?", feedID)
+
+	query, args, err := queryBuilder.ToSql()
+	if err != nil {
+		return errors.Wrap(err, "error building query")
+	}
+
+	_, err = r.db.handler.ExecContext(ctx, query, args...)
+	if err != nil {
+		return errors.Wrap(err, "error executing query")
+	}
+
+	return nil
+}
+
+func (r *FeedRepo) UpdateLastRunWithData(ctx context.Context, feedID int, data string) error {
+	queryBuilder := r.db.squirrel.
+		Update("feed").
+		Set("last_run", sq.Expr("CURRENT_TIMESTAMP")).
+		Set("last_run_data", data).
+		Where("id = ?", feedID)
 
 	query, args, err := queryBuilder.ToSql()
 	if err != nil {

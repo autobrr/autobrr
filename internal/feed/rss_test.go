@@ -108,3 +108,40 @@ func TestRSSJob_processItem(t *testing.T) {
 		})
 	}
 }
+
+func Test_isMaxAge(t *testing.T) {
+	type args struct {
+		maxAge int
+		item   time.Time
+		now    time.Time
+	}
+	tests := []struct {
+		name string
+		args args
+		want bool
+	}{
+		{
+			name: "01",
+			args: args{
+				maxAge: 3600,
+				item:   time.Now().Add(time.Duration(-500) * time.Second),
+				now:    time.Now(),
+			},
+			want: true,
+		},
+		{
+			name: "02",
+			args: args{
+				maxAge: 3600,
+				item:   time.Now().Add(time.Duration(-5000) * time.Second),
+				now:    time.Now(),
+			},
+			want: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equalf(t, tt.want, isMaxAge(tt.args.maxAge, tt.args.item, tt.args.now), "isMaxAge(%v, %v, %v)", tt.args.maxAge, tt.args.item, tt.args.now)
+		})
+	}
+}
