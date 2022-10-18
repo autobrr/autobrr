@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "react-query";
 import { APIClient } from "../../api/APIClient";
 import { Menu, Switch, Transition } from "@headlessui/react";
 
-import { classNames } from "../../utils";
+import { classNames, IsEmptyDate, simplifyDate } from "../../utils";
 import { Fragment, useRef, useState } from "react";
 import { toast } from "react-hot-toast";
 import Toast from "../../components/notifications/Toast";
@@ -44,10 +44,10 @@ function FeedSettings() {
                   className="col-span-4 px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Name
                 </div>
                 <div
-                  className="col-span-3 px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Indexer
+                  className="col-span-2 px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Type
                 </div>
                 <div
-                  className="col-span-3 px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Type
+                  className="col-span-3 px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Last run
                 </div>
                 {/*<div className="col-span-4 px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Events</div>*/}
               </li>
@@ -115,14 +115,19 @@ function ListItem({ feed }: ListItemProps) {
             />
           </Switch>
         </div>
-        <div className="col-span-4 flex items-center sm:px-6 text-sm font-medium text-gray-900 dark:text-white">
-          {feed.name}
-        </div>
-        <div className="col-span-3 flex items-center sm:px-6 text-sm font-medium text-gray-900 dark:text-gray-500">
-          {feed.indexer}
+        <div className="col-span-4 flex flex-col sm:px-6 text-sm font-medium text-gray-900 dark:text-white">
+          <span>{feed.name}</span>
+          <span className="text-gray-900 dark:text-gray-500 text-xs">
+            {feed.indexer}
+          </span>
         </div>
         <div className="col-span-2 flex items-center sm:px-6">
           {ImplementationBadges[feed.type.toLowerCase()]}
+        </div>
+        <div className="col-span-3 flex items-center sm:px-6 text-sm font-medium text-gray-900 dark:text-gray-500">
+          <span title={simplifyDate(feed.last_run)}>
+            {IsEmptyDate(feed.last_run)}
+          </span>
         </div>
         <div className="col-span-1 flex justify-center items-center sm:px-6">
           <FeedItemDropdown

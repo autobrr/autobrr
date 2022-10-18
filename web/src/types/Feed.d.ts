@@ -7,7 +7,11 @@ interface Feed {
   url: string;
   interval: number;
   timeout: number;
+  max_age: number;
   api_key: string;
+  cookie: string;
+  last_run: string;
+  last_run_data: string;
   created_at: Date;
   updated_at: Date;
 }

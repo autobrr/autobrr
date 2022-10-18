@@ -2,8 +2,10 @@ package feed
 
 import (
 	"context"
+	"encoding/xml"
+	"fmt"
 	"net/url"
-	"sort"
+	"regexp"
 	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
@@ -15,11 +17,13 @@ import (
 )
 
 type RSSJob struct {
+	Feed              *domain.Feed
 	Name              string
 	IndexerIdentifier string
 	Log               zerolog.Logger
 	URL               string
-	Repo              domain.FeedCacheRepo
+	Repo              domain.FeedRepo
+	CacheRepo         domain.FeedCacheRepo
 	ReleaseSvc        release.Service
 	Timeout           time.Duration
 
@@ -29,13 +33,15 @@ type RSSJob struct {
 	JobID int
 }
 
-func NewRSSJob(name string, indexerIdentifier string, log zerolog.Logger, url string, repo domain.FeedCacheRepo, releaseSvc release.Service, timeout time.Duration) *RSSJob {
+func NewRSSJob(feed *domain.Feed, name string, indexerIdentifier string, log zerolog.Logger, url string, repo domain.FeedRepo, cacheRepo domain.FeedCacheRepo, releaseSvc release.Service, timeout time.Duration) *RSSJob {
 	return &RSSJob{
+		Feed:              feed,
 		Name:              name,
 		IndexerIdentifier: indexerIdentifier,
 		Log:               log,
 		URL:               url,
 		Repo:              repo,
+		CacheRepo:         cacheRepo,
 		ReleaseSvc:        releaseSvc,
 		Timeout:           timeout,
 	}
@@ -43,7 +49,7 @@ func NewRSSJob(name string, indexerIdentifier string, log zerolog.Logger, url st
 
 func (j *RSSJob) Run() {
 	if err := j.process(); err != nil {
-		j.Log.Err(err).Int("attempts", j.attempts).Msg("rss feed process error")
+		j.Log.Error().Err(err).Int("attempts", j.attempts).Msg("rss feed process error")
 
 		j.errors = append(j.errors, err)
 		return
@@ -71,9 +77,13 @@ func (j *RSSJob) process() error {
 	releases := make([]*domain.Release, 0)
 
 	for _, item := range items {
-		rls := j.processItem(item)
+		item := item
+		j.Log.Debug().Msgf("item: %v", item.Title)
 
-		releases = append(releases, rls)
+		rls := j.processItem(item)
+		if rls != nil {
+			releases = append(releases, rls)
+		}
 	}
 
 	// process all new releases
@@ -83,6 +93,16 @@ func (j *RSSJob) process() error {
 }
 
 func (j *RSSJob) processItem(item *gofeed.Item) *domain.Release {
+	now := time.Now()
+
+	if j.Feed.MaxAge > 0 {
+		if item.PublishedParsed != nil {
+			if !isNewerThanMaxAge(j.Feed.MaxAge, *item.PublishedParsed, now) {
+				return nil
+			}
+		}
+	}
+
 	rls := domain.NewRelease(j.IndexerIdentifier)
 	rls.Implementation = domain.ReleaseImplementationRSS
 
@@ -117,6 +137,8 @@ func (j *RSSJob) processItem(item *gofeed.Item) *domain.Release {
 	}
 
 	for _, v := range item.Categories {
+		rls.Categories = append(rls.Categories, item.Categories...)
+
 		if len(rls.Category) != 0 {
 			rls.Category += ", "
 		}
@@ -138,6 +160,38 @@ func (j *RSSJob) processItem(item *gofeed.Item) *domain.Release {
 			rls.ParseSizeBytesString(sz)
 		}
 	}
+
+	// additional size parsing
+	// some feeds have a fixed size for enclosure so lets check for custom elements
+	// and parse size from there if it differs
+	if customTorrent, ok := item.Custom["torrent"]; ok {
+		var element itemCustomElement
+		if err := xml.Unmarshal([]byte("<torrent>"+customTorrent+"</torrent>"), &element); err != nil {
+			j.Log.Error().Err(err).Msg("could not unmarshal item.Custom.Torrent")
+		}
+
+		if element.ContentLength > 0 {
+			if uint64(element.ContentLength) != rls.Size {
+				rls.Size = uint64(element.ContentLength)
+			}
+		}
+
+		if rls.TorrentHash == "" && element.InfoHash != "" {
+			rls.TorrentHash = element.InfoHash
+		}
+	}
+
+	// basic freeleech parsing
+	if isFreeleech([]string{item.Title, item.Description}) {
+		rls.Freeleech = true
+		rls.Bonus = []string{"Freeleech"}
+	}
+
+	// add cookie to release for download if needed
+	if j.Feed.Cookie != "" {
+		rls.RawCookie = j.Feed.Cookie
+	}
+
 	return rls
 }
 
@@ -145,10 +199,16 @@ func (j *RSSJob) getFeed() (items []*gofeed.Item, err error) {
 	ctx, cancel := context.WithTimeout(context.Background(), j.Timeout)
 	defer cancel()
 
-	feed, err := gofeed.NewParser().ParseURLWithContext(j.URL, ctx) // there's an RSS specific parser as well.
+	feed, err := NewFeedParser(j.Timeout, j.Feed.Cookie).ParseURLWithContext(ctx, j.URL)
 	if err != nil {
-		j.Log.Error().Err(err).Msgf("error fetching rss feed items")
 		return nil, errors.Wrap(err, "error fetching rss feed items")
+	}
+
+	// get feed as JSON string
+	feedData := feed.String()
+
+	if err := j.Repo.UpdateLastRunWithData(context.Background(), j.Feed.ID, feedData); err != nil {
+		j.Log.Error().Err(err).Msgf("error updating last run for feed id: %v", j.Feed.ID)
 	}
 
 	j.Log.Debug().Msgf("refreshing rss feed: %v, found (%d) items", j.Name, len(feed.Items))
@@ -157,39 +217,85 @@ func (j *RSSJob) getFeed() (items []*gofeed.Item, err error) {
 		return
 	}
 
-	sort.Sort(feed)
+	bucketKey := fmt.Sprintf("%v+%v", j.IndexerIdentifier, j.Name)
+
+	//sort.Sort(feed)
+
+	bucketCount, err := j.CacheRepo.GetCountByBucket(ctx, bucketKey)
+	if err != nil {
+		j.Log.Error().Err(err).Msg("could not check if item exists")
+		return nil, err
+	}
+
+	// set ttl to 1 month
+	ttl := time.Now().AddDate(0, 1, 0)
 
 	for _, i := range feed.Items {
-		s := i.GUID
-		if len(s) == 0 {
-			s = i.Title
-			if len(s) == 0 {
+		item := i
+
+		key := item.GUID
+		if len(key) == 0 {
+			key = item.Title
+			if len(key) == 0 {
 				continue
 			}
 		}
 
-		exists, err := j.Repo.Exists(j.Name, s)
+		exists, err := j.CacheRepo.Exists(bucketKey, key)
 		if err != nil {
 			j.Log.Error().Err(err).Msg("could not check if item exists")
 			continue
 		}
 		if exists {
-			j.Log.Trace().Msgf("cache item exists, skipping release: %v", i.Title)
+			j.Log.Trace().Msgf("cache item exists, skipping release: %v", item.Title)
 			continue
 		}
 
-		// set ttl to 1 month
-		ttl := time.Now().AddDate(0, 1, 0)
-
-		if err := j.Repo.Put(j.Name, s, []byte(i.Title), ttl); err != nil {
-			j.Log.Error().Stack().Err(err).Str("entry", s).Msg("cache.Put: error storing item in cache")
+		if err := j.CacheRepo.Put(bucketKey, key, []byte(item.Title), ttl); err != nil {
+			j.Log.Error().Err(err).Str("entry", key).Msg("cache.Put: error storing item in cache")
 			continue
 		}
 
-		// only append if we successfully added to cache
-		items = append(items, i)
+		// first time we fetch the feed the cached bucket count will be 0
+		// only append to items if it's bigger than 0, so we get new items only
+		if bucketCount > 0 {
+			items = append(items, item)
+		}
 	}
 
 	// send to filters
 	return
+}
+
+func isNewerThanMaxAge(maxAge int, item, now time.Time) bool {
+	// now minus max age
+	nowMaxAge := now.Add(time.Duration(-maxAge) * time.Second)
+
+	if item.After(nowMaxAge) {
+		return true
+	}
+
+	return false
+}
+
+// isFreeleech basic freeleech parsing
+func isFreeleech(str []string) bool {
+	for _, s := range str {
+		var re = regexp.MustCompile(`(?mi)(\bfreeleech\b)`)
+
+		match := re.FindAllString(s, -1)
+
+		if len(match) > 0 {
+			return true
+		}
+	}
+
+	return false
+}
+
+// itemCustomElement
+// used for some feeds like Aviztas network
+type itemCustomElement struct {
+	ContentLength int64  `xml:"contentLength"`
+	InfoHash      string `xml:"infoHash"`
 }

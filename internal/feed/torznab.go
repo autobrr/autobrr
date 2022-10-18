@@ -80,7 +80,7 @@ func (j *TorznabJob) process() error {
 
 		rls.ParseString(item.Title)
 
-		if parseFreeleech(item) {
+		if parseFreeleechTorznab(item) {
 			rls.Freeleech = true
 			rls.Bonus = []string{"Freeleech"}
 		}
@@ -100,7 +100,7 @@ func (j *TorznabJob) process() error {
 	return nil
 }
 
-func parseFreeleech(item torznab.FeedItem) bool {
+func parseFreeleechTorznab(item torznab.FeedItem) bool {
 	for _, attr := range item.Attributes {
 		if attr.Name == "downloadvolumefactor" {
 			if attr.Value == "0" {

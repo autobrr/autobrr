@@ -180,7 +180,7 @@ func TestClient_GetCaps(t *testing.T) {
 								Name: "HD",
 							},
 							{
-								ID:   "5070",
+								ID:   5070,
 								Name: "Anime",
 							},
 						},
