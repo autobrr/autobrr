@@ -1,0 +1,61 @@
+---
+#id: enthralled
+name: Enthralled
+identifier: enthralled
+description: Enthralled (ENT) is a private torrent tracker for XXX
+language: en-us
+urls:
+  - https://enthralled.me
+privacy: private
+protocol: torrent
+supports:
+  - irc
+  - rss
+source: gazelle
+settings:
+  - name: authkey
+    type: secret
+    label: Auth key
+    help: Right click DL on a torrent and get the authkey.
+  - name: torrent_pass
+    type: secret
+    label: Torrent pass
+    help: Right click DL on a torrent and get the torrent_pass.
+
+irc:
+  network: DigitalIRC
+  server: irc.enthralled.me
+  port: 6697
+  tls: true
+  channels:
+    - "#enthralled-announce"
+  announcers:
+    - TheGimp
+  settings:
+    - name: nickserv.account
+      type: text
+      required: true
+      label: NickServ Account
+      help: NickServ account. Make sure to group your user and bot. Eg. user|bot
+    - name: nickserv.password
+      type: secret
+      required: true
+      label: NickServ Password
+      help: NickServ password
+
+parse:
+  type: single
+  lines:
+    - test:
+        - "Some release - Size: 559.06 MiB - Uploader: anon - Tags: worship,other - https://www.enthralled.me/torrents.php?torrentid=0000"
+      pattern: '(.*) - Size: (.*) - Uploader: (.*) - Tags: (.*?) - (https://.*)/torrents.php\?torrentid=(.*)'
+      vars:
+        - torrentName
+        - torrentSize
+        - uploader
+        - tags
+        - baseUrl
+        - torrentId
+
+  match:
+    torrenturl: "{{ .baseUrl }}/torrents.php?action=download&id={{ .torrentId }}&authkey={{ .authkey }}&torrent_pass={{ .torrent_pass }}"
