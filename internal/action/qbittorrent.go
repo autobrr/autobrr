@@ -68,8 +68,7 @@ func (s *service) qbittorrent(action domain.Action, release domain.Release) ([]s
 	}
 
 	if release.TorrentTmpFile == "" {
-		err = release.DownloadTorrentFile()
-		if err != nil {
+		if err := release.DownloadTorrentFile(); err != nil {
 			return nil, errors.Wrap(err, "error downloading torrent file for release: %v", release.TorrentName)
 		}
 	}
@@ -279,11 +278,12 @@ func (s *service) reannounceTorrent(qb *qbittorrent.Client, action domain.Action
 
 // Check if status not working or something else
 // https://github.com/qbittorrent/qBittorrent/wiki/WebUI-API-(qBittorrent-4.1)#get-torrent-trackers
-//  0 Tracker is disabled (used for DHT, PeX, and LSD)
-//  1 Tracker has not been contacted yet
-//  2 Tracker has been contacted and is working
-//  3 Tracker is updating
-//  4 Tracker has been contacted, but it is not working (or doesn't send proper replies)
+//
+//	0 Tracker is disabled (used for DHT, PeX, and LSD)
+//	1 Tracker has not been contacted yet
+//	2 Tracker has been contacted and is working
+//	3 Tracker is updating
+//	4 Tracker has been contacted, but it is not working (or doesn't send proper replies)
 func isTrackerStatusOK(trackers []qbittorrent.TorrentTracker) bool {
 	for _, tracker := range trackers {
 		if tracker.Status == qbittorrent.TrackerStatusDisabled {

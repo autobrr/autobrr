@@ -1,15 +1,15 @@
 package client
 
 import (
-	"errors"
 	"io"
 	"net/http"
 	"os"
 	"time"
 
+	"github.com/autobrr/autobrr/pkg/errors"
+
 	"github.com/anacrolix/torrent/metainfo"
 	"github.com/avast/retry-go"
-
 	"github.com/rs/zerolog/log"
 )
 
@@ -49,9 +49,9 @@ func (c *HttpClient) DownloadTorrentFile(url string, opts map[string]string) (*D
 	}
 	defer tmpFile.Close()
 
-	res := DownloadTorrentFileResponse{}
+	res := &DownloadTorrentFileResponse{}
 	// try request and if fail run 3 retries
-	err := retry.Do(func() error {
+	err = retry.Do(func() error {
 		resp, err := http.Get(url)
 		if err != nil {
 			return errors.New("error downloading file: %q", err)
@@ -63,7 +63,7 @@ func (c *HttpClient) DownloadTorrentFile(url string, opts map[string]string) (*D
 		}
 
 		nuke := func() {
-			tmpFile.Seek(0, SEEK_SET)
+			tmpFile.Seek(0, io.SeekStart)
 			tmpFile.Truncate(0)
 		}
 
@@ -80,17 +80,17 @@ func (c *HttpClient) DownloadTorrentFile(url string, opts map[string]string) (*D
 			return errors.New("metainfo could not load file contents: %v | %q", tmpFile.Name(), err)
 		}
 
-		res = DownloadTorrentFileResponse{
+		res = &DownloadTorrentFileResponse{
 			MetaInfo:    meta,
 			TmpFileName: tmpFile.Name(),
 		}
 
 		if res.TmpFileName == "" || res.MetaInfo == nil {
 			nuke()
-			return errors.New("tmp file error - empty body",)
+			return errors.New("tmp file error - empty body")
 		}
 
-		if len(res.MetaInfo.InfoBytes) < 1  {
+		if len(res.MetaInfo.InfoBytes) < 1 {
 			nuke()
 			return errors.New("could not read infohash")
 		}
@@ -98,7 +98,7 @@ func (c *HttpClient) DownloadTorrentFile(url string, opts map[string]string) (*D
 		log.Debug().Msgf("successfully downloaded file: %v", tmpFile.Name())
 		return nil
 	},
-		retry.OnRetry(func(n uint, err error) { c.log.Printf("%q: attempt %d - %v\n", err, n, url) }),
+		//retry.OnRetry(func(n uint, err error) { c.log.Printf("%q: attempt %d - %v\n", err, n, url) }),
 		retry.Delay(time.Second*5),
 		retry.Attempts(3),
 		retry.MaxJitter(time.Second*1))
