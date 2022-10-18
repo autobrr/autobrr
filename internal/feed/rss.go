@@ -2,6 +2,7 @@ package feed
 
 import (
 	"context"
+	"encoding/xml"
 	"fmt"
 	"net/url"
 	"regexp"
@@ -160,6 +161,26 @@ func (j *RSSJob) processItem(item *gofeed.Item) *domain.Release {
 		}
 	}
 
+	// additional size parsing
+	// some feeds have a fixed size for enclosure so lets check for custom elements
+	// and parse size from there if it differs
+	if customTorrent, ok := item.Custom["torrent"]; ok {
+		var element itemCustomElement
+		if err := xml.Unmarshal([]byte("<torrent>"+customTorrent+"</torrent>"), &element); err != nil {
+			j.Log.Error().Err(err).Msg("could not unmarshal item.Custom.Torrent")
+		}
+
+		if element.ContentLength > 0 {
+			if uint64(element.ContentLength) != rls.Size {
+				rls.Size = uint64(element.ContentLength)
+			}
+		}
+
+		if rls.TorrentHash == "" && element.InfoHash != "" {
+			rls.TorrentHash = element.InfoHash
+		}
+	}
+
 	// basic freeleech parsing
 	if isFreeleech([]string{item.Title, item.Description}) {
 		rls.Freeleech = true
@@ -270,4 +291,11 @@ func isFreeleech(str []string) bool {
 	}
 
 	return false
+}
+
+// itemCustomElement
+// used for some feeds like Aviztas network
+type itemCustomElement struct {
+	ContentLength int64  `xml:"contentLength"`
+	InfoHash      string `xml:"infoHash"`
 }
