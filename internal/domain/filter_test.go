@@ -1581,6 +1581,45 @@ func TestFilter_CheckFilter1(t *testing.T) {
 			wantRejections: nil,
 			wantMatch:      true,
 		},
+		{
+			name: "test_39",
+			fields: fields{
+				UseRegexReleaseTags: true,
+				MatchReleaseTags:    ".*1080p.+(group1|group3)",
+			},
+			args:           args{&Release{TorrentName: "Show.Name.S01.DV.2160p.ATVP.WEB-DL.DDPA5.1.x265-GROUP2", ReleaseTags: "MKV | x264 | WEB | P2P"}},
+			wantRejections: []string{"match release tags regex not matching. got: MKV | x264 | WEB | P2P want: .*1080p.+(group1|group3)"},
+			wantMatch:      false,
+		},
+		{
+			name: "test_40",
+			fields: fields{
+				UseRegexReleaseTags: true,
+				MatchReleaseTags:    "foreign - 16",
+			},
+			args:           args{&Release{TorrentName: "Show.Name.S01.DV.2160p.ATVP.WEB-DL.DDPA5.1.x265-GROUP2", ReleaseTags: "MKV | x264 | WEB | P2P | Foreign - 17"}},
+			wantRejections: []string{"match release tags regex not matching. got: MKV | x264 | WEB | P2P | Foreign - 17 want: foreign - 16"},
+			wantMatch:      false,
+		},
+		{
+			name: "test_41",
+			fields: fields{
+				UseRegexReleaseTags: true,
+				MatchReleaseTags:    "foreign - 17",
+			},
+			args:      args{&Release{TorrentName: "Show.Name.S01.DV.2160p.ATVP.WEB-DL.DDPA5.1.x265-GROUP2", ReleaseTags: "MKV | x264 | WEB | P2P | Foreign - 17"}},
+			wantMatch: true,
+		},
+		{
+			name: "test_42",
+			fields: fields{
+				UseRegexReleaseTags: true,
+				MatchReleaseTags:    "foreign - 17",
+			},
+			args:           args{&Release{TorrentName: "Show.Name.S01.DV.2160p.ATVP.WEB-DL.DDPA5.1.x265-GROUP2", ReleaseTags: ""}},
+			wantRejections: []string{"match release tags regex not matching. got:  want: foreign - 17"},
+			wantMatch:      false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -1601,6 +1640,9 @@ func TestFilter_CheckFilter1(t *testing.T) {
 				UseRegex:            tt.fields.UseRegex,
 				MatchReleaseGroups:  tt.fields.MatchReleaseGroups,
 				ExceptReleaseGroups: tt.fields.ExceptReleaseGroups,
+				MatchReleaseTags:    tt.fields.MatchReleaseTags,
+				ExceptReleaseTags:   tt.fields.ExceptReleaseTags,
+				UseRegexReleaseTags: tt.fields.UseRegexReleaseTags,
 				Scene:               tt.fields.Scene,
 				Origins:             tt.fields.Origins,
 				ExceptOrigins:       tt.fields.ExceptOrigins,

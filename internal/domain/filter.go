@@ -112,6 +112,9 @@ type Filter struct {
 	ExceptTags                  string                 `json:"except_tags,omitempty"`
 	TagsAny                     string                 `json:"tags_any,omitempty"`
 	ExceptTagsAny               string                 `json:"except_tags_any,omitempty"`
+	MatchReleaseTags            string                 `json:"match_release_tags,omitempty"`
+	ExceptReleaseTags           string                 `json:"except_release_tags,omitempty"`
+	UseRegexReleaseTags         bool                   `json:"use_regex_release_tags,omitempty"`
 	ExternalScriptEnabled       bool                   `json:"external_script_enabled,omitempty"`
 	ExternalScriptCmd           string                 `json:"external_script_cmd,omitempty"`
 	ExternalScriptArgs          string                 `json:"external_script_args,omitempty"`
@@ -141,6 +144,9 @@ type FilterUpdate struct {
 	UseRegex                    *bool                   `json:"use_regex,omitempty"`
 	MatchReleaseGroups          *string                 `json:"match_release_groups,omitempty"`
 	ExceptReleaseGroups         *string                 `json:"except_release_groups,omitempty"`
+	MatchReleaseTags            *string                 `json:"match_release_tags,omitempty"`
+	ExceptReleaseTags           *string                 `json:"except_release_tags,omitempty"`
+	UseRegexReleaseTags         *bool                   `json:"use_regex_release_tags,omitempty"`
 	Scene                       *bool                   `json:"scene,omitempty"`
 	Origins                     *[]string               `json:"origins,omitempty"`
 	ExceptOrigins               *[]string               `json:"except_origins,omitempty"`
@@ -259,6 +265,26 @@ func (f Filter) CheckFilter(r *Release) ([]string, bool) {
 
 	if f.ExceptReleaseGroups != "" && contains(r.Group, f.ExceptReleaseGroups) {
 		r.addRejectionF("unwanted release group. got: %v unwanted: %v", r.Group, f.ExceptReleaseGroups)
+	}
+
+	// check raw releaseTags string
+	if f.UseRegexReleaseTags {
+		if f.MatchReleaseTags != "" && !matchRegex(r.ReleaseTags, f.MatchReleaseTags) {
+			r.addRejectionF("match release tags regex not matching. got: %v want: %v", r.ReleaseTags, f.MatchReleaseTags)
+		}
+
+		if f.ExceptReleaseTags != "" && matchRegex(r.ReleaseTags, f.ExceptReleaseTags) {
+			r.addRejectionF("except release tags regex: unwanted release. got: %v want: %v", r.ReleaseTags, f.ExceptReleaseTags)
+		}
+
+	} else {
+		if f.MatchReleaseTags != "" && !containsFuzzy(r.ReleaseTags, f.MatchReleaseTags) {
+			r.addRejectionF("match release tags not matching. got: %v want: %v", r.ReleaseTags, f.MatchReleaseTags)
+		}
+
+		if f.ExceptReleaseTags != "" && containsFuzzy(r.ReleaseTags, f.ExceptReleaseTags) {
+			r.addRejectionF("except release tags: unwanted release. got: %v want: %v", r.ReleaseTags, f.ExceptReleaseTags)
+		}
 	}
 
 	if f.MatchUploaders != "" && !contains(r.Uploader, f.MatchUploaders) {
