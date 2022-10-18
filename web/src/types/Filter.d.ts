@@ -15,6 +15,9 @@ interface Filter {
   use_regex: boolean;
   match_release_groups: string;
   except_release_groups: string;
+  match_release_tags: string;
+  except_release_tags: string;
+  use_regex_release_tags: boolean;
   scene: boolean;
   origins: string[];
   except_origins: string[];
