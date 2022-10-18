@@ -1,19 +1,19 @@
-import {Dialog, Transition} from "@headlessui/react";
-import {Fragment} from "react";
-import type {FieldProps} from "formik";
-import {Field, Form, Formik, FormikErrors, FormikValues} from "formik";
-import {XMarkIcon} from "@heroicons/react/24/solid";
-import Select, {components, ControlProps, InputProps, MenuProps, OptionProps} from "react-select";
-import {PasswordFieldWide, SwitchGroupWide, TextFieldWide} from "../../components/inputs";
+import { Dialog, Transition } from "@headlessui/react";
+import { Fragment } from "react";
+import type { FieldProps } from "formik";
+import { Field, Form, Formik, FormikErrors, FormikValues } from "formik";
+import { XMarkIcon } from "@heroicons/react/24/solid";
+import Select, { components, ControlProps, InputProps, MenuProps, OptionProps } from "react-select";
+import { PasswordFieldWide, SwitchGroupWide, TextFieldWide } from "../../components/inputs";
 import DEBUG from "../../components/debug";
-import {EventOptions, NotificationTypeOptions, SelectOption} from "../../domain/constants";
-import {useMutation} from "react-query";
-import {APIClient} from "../../api/APIClient";
-import {queryClient} from "../../App";
-import {toast} from "react-hot-toast";
+import { EventOptions, NotificationTypeOptions, SelectOption } from "../../domain/constants";
+import { useMutation } from "react-query";
+import { APIClient } from "../../api/APIClient";
+import { queryClient } from "../../App";
+import { toast } from "react-hot-toast";
 import Toast from "../../components/notifications/Toast";
-import {SlideOver} from "../../components/panels";
-import {componentMapType} from "./DownloadClientForms";
+import { SlideOver } from "../../components/panels";
+import { componentMapType } from "./DownloadClientForms";
 
 const Input = (props: InputProps) => {
   return (
@@ -226,7 +226,7 @@ export function NotificationAddForm({ isOpen, toggle }: AddProps) {
                             <div className="h-7 flex items-center">
                               <button
                                 type="button"
-                                className="bg-white dark:bg-gray-700 rounded-md text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                className="bg-white dark:bg-gray-700 rounded-md text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
                                 onClick={toggle}
                               >
                                 <span className="sr-only">Close panel</span>
@@ -325,21 +325,21 @@ export function NotificationAddForm({ isOpen, toggle }: AddProps) {
                         <div className="space-x-3 flex justify-end">
                           <button
                             type="button"
-                            className="bg-white dark:bg-gray-700 py-2 px-4 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 dark:focus:ring-blue-500"
+                            className="bg-white dark:bg-gray-700 py-2 px-4 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
                             onClick={() => testNotification(values)}
                           >
                             Test
                           </button>
                           <button
                             type="button"
-                            className="bg-white dark:bg-gray-700 py-2 px-4 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 dark:focus:ring-blue-500"
+                            className="bg-white dark:bg-gray-700 py-2 px-4 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
                             onClick={toggle}
                           >
                             Cancel
                           </button>
                           <button
                             type="submit"
-                            className="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 dark:bg-blue-600 hover:bg-indigo-700 dark:hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 dark:focus:ring-blue-500"
+                            className="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
                           >
                             Save
                           </button>

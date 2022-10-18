@@ -1,4 +1,4 @@
-import {NavLink, Outlet, useLocation} from "react-router-dom";
+import { NavLink, Outlet, useLocation } from "react-router-dom";
 import {
   BellIcon,
   ChatBubbleLeftRightIcon,
@@ -9,7 +9,7 @@ import {
   RssIcon
 } from "@heroicons/react/24/outline";
 
-import {classNames} from "../utils";
+import { classNames } from "../utils";
 
 interface NavTabType {
   name: string;
@@ -45,9 +45,9 @@ function SubNavLink({ item }: NavLinkProps) {
       to={item.href}
       end
       className={({ isActive }) => classNames(
-        "border-transparent text-gray-900 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-gray-300 group border-l-4 px-3 py-2 flex items-center text-sm font-medium",
+        "border-transparent text-gray-900 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 hover:text-gray-900 dark:hover:text-gray-300 group border-l-4 px-3 py-2 flex items-center text-sm font-medium",
         isActive ?
-          "font-bold bg-teal-50 dark:bg-gray-700 border-teal-500 dark:border-blue-500 text-teal-700 dark:text-white hover:bg-teal-50 dark:hover:bg-gray-500 hover:text-teal-700 dark:hover:text-gray-200" : ""
+          "font-bold bg-blue-50 dark:bg-gray-700 border-sky-500 dark:border-blue-500 text-sky-700 dark:text-white hover:bg-blue-100 dark:hover:bg-gray-500 hover:text-sky-700 dark:hover:text-gray-200" : ""
       )}
       aria-current={splitLocation[2] === item.href ? "page" : undefined}
     >

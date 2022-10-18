@@ -9,6 +9,7 @@ import { componentMapType } from "./DownloadClientForms";
 import { sleep } from "../../utils";
 import { useState } from "react";
 import { ImplementationBadges } from "../../screens/settings/Indexer";
+import { useFormikContext } from "formik";
 
 interface UpdateProps {
   isOpen: boolean;
@@ -24,8 +25,10 @@ interface InitialValues {
   name: string;
   url: string;
   api_key: string;
+  cookie: string;
   interval: number;
   timeout: number;
+  max_age: number;
 }
 
 export function FeedUpdateForm({ isOpen, toggle, feed }: UpdateProps) {
@@ -104,8 +107,10 @@ export function FeedUpdateForm({ isOpen, toggle, feed }: UpdateProps) {
     name: feed.name,
     url: feed.url,
     api_key: feed.api_key,
+    cookie: feed.cookie || "",
     interval: feed.interval,
-    timeout: feed.timeout
+    timeout: feed.timeout,
+    max_age: feed.max_age
   };
 
   return (
@@ -153,7 +158,26 @@ export function FeedUpdateForm({ isOpen, toggle, feed }: UpdateProps) {
   );
 }
 
+function WarningLabel() {
+  return (
+    <div className="px-4 py-1">
+      <span className="w-full block px-2 py-2 bg-red-300 dark:bg-red-400 text-red-900 dark:text-red-900 text-sm rounded">
+        <span className="font-semibold">
+          Warning: Indexers might ban you for too low interval!
+        </span>
+        <span className="ml-1">
+          Read the indexer rules.
+        </span>
+      </span>
+    </div>
+  );
+}
+
 function FormFieldsTorznab() {
+  const {
+    values: { interval }
+  } = useFormikContext<InitialValues>();
+
   return (
     <div className="border-t border-gray-200 dark:border-gray-700 py-5">
       <TextFieldWide
@@ -164,14 +188,20 @@ function FormFieldsTorznab() {
 
       <PasswordFieldWide name="api_key" label="API key" />
 
+      {interval < 15 && <WarningLabel />}
       <NumberFieldWide name="interval" label="Refresh interval" help="Minutes. Recommended 15-30. Too low and risk ban."/>
 
       <NumberFieldWide name="timeout" label="Refresh timeout" help="Seconds to wait before cancelling refresh."/>
+      <NumberFieldWide name="max_age" label="Max age" help="Seconds. Will not grab older than this value."/>
     </div>
   );
 }
 
 function FormFieldsRSS() {
+  const {
+    values: { interval }
+  } = useFormikContext<InitialValues>();
+
   return (
     <div className="border-t border-gray-200 dark:border-gray-700 py-5">
       <TextFieldWide
@@ -180,8 +210,12 @@ function FormFieldsRSS() {
         help="RSS url"
       />
 
+      {interval < 15 && <WarningLabel />}
       <NumberFieldWide name="interval" label="Refresh interval" help="Minutes. Recommended 15-30. Too low and risk ban."/>
       <NumberFieldWide name="timeout" label="Refresh timeout" help="Seconds to wait before cancelling refresh."/>
+      <NumberFieldWide name="max_age" label="Max age" help="Seconds. Will not grab older than this value."/>
+
+      <PasswordFieldWide name="cookie" label="Cookie" help="Not commonly used" />
     </div>
   );
 }

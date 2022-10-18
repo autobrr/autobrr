@@ -1,18 +1,18 @@
-import {useToggle} from "../../hooks/hooks";
-import {useMutation, useQuery, useQueryClient} from "react-query";
-import {APIClient} from "../../api/APIClient";
-import {Menu, Switch, Transition} from "@headlessui/react";
+import { useToggle } from "../../hooks/hooks";
+import { useMutation, useQuery, useQueryClient } from "react-query";
+import { APIClient } from "../../api/APIClient";
+import { Menu, Switch, Transition } from "@headlessui/react";
 
-import {classNames} from "../../utils";
-import {Fragment, useRef, useState} from "react";
-import {toast} from "react-hot-toast";
+import { classNames, IsEmptyDate, simplifyDate } from "../../utils";
+import { Fragment, useRef, useState } from "react";
+import { toast } from "react-hot-toast";
 import Toast from "../../components/notifications/Toast";
-import {queryClient} from "../../App";
-import {DeleteModal} from "../../components/modals";
-import {ArrowsRightLeftIcon, EllipsisHorizontalIcon, PencilSquareIcon, TrashIcon} from "@heroicons/react/24/outline";
-import {FeedUpdateForm} from "../../forms/settings/FeedForms";
-import {EmptySimple} from "../../components/emptystates";
-import {ImplementationBadges} from "./Indexer";
+import { queryClient } from "../../App";
+import { DeleteModal } from "../../components/modals";
+import { ArrowsRightLeftIcon, EllipsisHorizontalIcon, PencilSquareIcon, TrashIcon } from "@heroicons/react/24/outline";
+import { FeedUpdateForm } from "../../forms/settings/FeedForms";
+import { EmptySimple } from "../../components/emptystates";
+import { ImplementationBadges } from "./Indexer";
 
 function FeedSettings() {
   const { data } = useQuery(
@@ -44,10 +44,10 @@ function FeedSettings() {
                   className="col-span-4 px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Name
                 </div>
                 <div
-                  className="col-span-3 px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Indexer
+                  className="col-span-2 px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Type
                 </div>
                 <div
-                  className="col-span-3 px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Type
+                  className="col-span-3 px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Last run
                 </div>
                 {/*<div className="col-span-4 px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Events</div>*/}
               </li>
@@ -101,7 +101,7 @@ function ListItem({ feed }: ListItemProps) {
             checked={feed.enabled}
             onChange={toggleActive}
             className={classNames(
-              feed.enabled ? "bg-teal-500 dark:bg-blue-500" : "bg-gray-200 dark:bg-gray-600",
+              feed.enabled ? "bg-blue-500 dark:bg-blue-500" : "bg-gray-200 dark:bg-gray-600",
               "relative inline-flex flex-shrink-0 h-6 w-11 border-2 border-transparent rounded-full cursor-pointer transition-colors ease-in-out duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
             )}
           >
@@ -115,14 +115,19 @@ function ListItem({ feed }: ListItemProps) {
             />
           </Switch>
         </div>
-        <div className="col-span-4 flex items-center sm:px-6 text-sm font-medium text-gray-900 dark:text-white">
-          {feed.name}
-        </div>
-        <div className="col-span-3 flex items-center sm:px-6 text-sm font-medium text-gray-900 dark:text-gray-500">
-          {feed.indexer}
+        <div className="col-span-4 flex flex-col sm:px-6 text-sm font-medium text-gray-900 dark:text-white">
+          <span>{feed.name}</span>
+          <span className="text-gray-900 dark:text-gray-500 text-xs">
+            {feed.indexer}
+          </span>
         </div>
         <div className="col-span-2 flex items-center sm:px-6">
           {ImplementationBadges[feed.type.toLowerCase()]}
+        </div>
+        <div className="col-span-3 flex items-center sm:px-6 text-sm font-medium text-gray-900 dark:text-gray-500">
+          <span title={simplifyDate(feed.last_run)}>
+            {IsEmptyDate(feed.last_run)}
+          </span>
         </div>
         <div className="col-span-1 flex justify-center items-center sm:px-6">
           <FeedItemDropdown

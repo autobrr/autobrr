@@ -1,12 +1,11 @@
-import {useEffect, useRef, useState} from "react";
-import {ExclamationTriangleIcon} from "@heroicons/react/24/solid";
+import { useEffect, useRef, useState } from "react";
+import { ExclamationTriangleIcon } from "@heroicons/react/24/solid";
 import format from "date-fns/format";
-import {DebounceInput} from "react-debounce-input";
-
-import {APIClient} from "../api/APIClient";
-import {Checkbox} from "../components/Checkbox";
-import {classNames} from "../utils";
-import {SettingsContext} from "../utils/Context";
+import { DebounceInput } from "react-debounce-input";
+import { APIClient } from "../api/APIClient";
+import { Checkbox } from "../components/Checkbox";
+import { classNames } from "../utils";
+import { SettingsContext } from "../utils/Context";
 
 type LogEvent = {
   time: string;
@@ -75,15 +74,15 @@ export const Logs = () => {
 
   return (
     <main>
-      <header className="py-10">
+      <header className="pt-10 pb-5">
         <div className="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8">
           <h1 className="text-3xl font-bold text-black dark:text-white">Logs</h1>
-          <div className="flex justify-center">
+          <div className="flex justify-center mt-1">
             <ExclamationTriangleIcon
               className="h-5 w-5 text-yellow-400"
               aria-hidden="true"
             />
-            <p className="ml-2 text-sm text-gray-800 dark:text-gray-400">This only shows new logs, no history.</p>
+            <p className="ml-2 text-sm text-black dark:text-gray-400">This page shows only new logs, i.e. no history.</p>
           </div>
         </div>
       </header>
@@ -99,7 +98,7 @@ export const Logs = () => {
             type="text"
             autoComplete="off"
             className={classNames(
-              "focus:ring-indigo-500 dark:focus:ring-blue-500 focus:border-indigo-500 dark:focus:border-blue-500 border-gray-300 dark:border-gray-700",
+              "focus:ring-blue-500 dark:focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-500 border-gray-300 dark:border-gray-700",
               "block w-full dark:bg-gray-800 shadow-sm dark:text-gray-100 sm:text-sm rounded-md"
             )}
             placeholder="Enter a string to filter logs by..."

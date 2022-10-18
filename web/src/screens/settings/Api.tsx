@@ -1,21 +1,21 @@
-import {queryClient} from "../../App";
-import {useRef} from "react";
-import {useMutation, useQuery} from "react-query";
-import {KeyField} from "../../components/fields/text";
-import {DeleteModal} from "../../components/modals";
+import { queryClient } from "../../App";
+import { useRef } from "react";
+import { useMutation, useQuery } from "react-query";
+import { KeyField } from "../../components/fields/text";
+import { DeleteModal } from "../../components/modals";
 import APIKeyAddForm from "../../forms/settings/APIKeyAddForm";
 import Toast from "../../components/notifications/Toast";
-import {APIClient} from "../../api/APIClient";
-import {useToggle} from "../../hooks/hooks";
-import {toast} from "react-hot-toast";
-import {classNames} from "../../utils";
-import {TrashIcon} from "@heroicons/react/24/outline";
-import {EmptySimple} from "../../components/emptystates";
+import { APIClient } from "../../api/APIClient";
+import { useToggle } from "../../hooks/hooks";
+import { toast } from "react-hot-toast";
+import { classNames } from "../../utils";
+import { TrashIcon } from "@heroicons/react/24/outline";
+import { EmptySimple } from "../../components/emptystates";
 
 function APISettings() {
   const [addFormIsOpen, toggleAddForm] = useToggle(false);
 
-  const { isLoading, data } = useQuery(
+  const { data } = useQuery(
     ["apikeys"],
     () => APIClient.apikeys.getAll(),
     {
@@ -40,7 +40,7 @@ function APISettings() {
           <div className="ml-4 mt-4 flex-shrink-0">
             <button
               type="button"
-              className="relative inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 dark:bg-blue-600 hover:bg-indigo-700 dark:hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+              className="relative inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
               onClick={toggleAddForm}
             >
               Add new

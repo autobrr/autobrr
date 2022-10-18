@@ -1,12 +1,6 @@
 import React from "react";
+import type { FieldInputProps, FieldMetaProps, FieldProps, FormikProps, FormikValues } from "formik";
 import { Field } from "formik";
-import type {
-  FieldInputProps,
-  FieldMetaProps,
-  FieldProps,
-  FormikProps,
-  FormikValues
-} from "formik";
 import { Switch as HeadlessSwitch } from "@headlessui/react";
 import { classNames } from "../../utils";
 
@@ -47,7 +41,7 @@ export const Switch = ({
         }}
 
         className={classNames(
-          checked ? "bg-teal-500 dark:bg-blue-500" : "bg-gray-200 dark:bg-gray-600",
+          checked ? "bg-blue-500" : "bg-gray-200 dark:bg-gray-600",
           "ml-4 relative inline-flex flex-shrink-0 h-6 w-11 border-2 border-transparent rounded-full cursor-pointer transition-colors ease-in-out duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
         )}
       >
@@ -81,7 +75,7 @@ const SwitchGroup = ({
   name,
   label,
   description,
-  heading,
+  heading
 }: SwitchGroupProps) => (
   <HeadlessSwitch.Group as="ol" className="py-4 flex items-center justify-between">
     {label && <div className="flex flex-col">
@@ -111,7 +105,7 @@ const SwitchGroup = ({
             setFieldValue(field?.name ?? "", value);
           }}
           className={classNames(
-            field.value ? "bg-teal-500 dark:bg-blue-500" : "bg-gray-200",
+            field.value ? "bg-blue-500" : "bg-gray-200",
             "ml-4 relative inline-flex flex-shrink-0 h-6 w-11 border-2 border-transparent rounded-full cursor-pointer transition-colors ease-in-out duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
           )}
         >

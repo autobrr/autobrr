@@ -160,27 +160,27 @@ func TestClient_GetCaps(t *testing.T) {
 						SupportedParams: "q",
 					},
 				},
-				Categories: Categories{Category: []Category{
+				Categories: CapCategories{Categories: []Category{
 					{
-						ID:   "2000",
+						ID:   2000,
 						Name: "Movies",
-						Subcat: []SubCategory{
+						SubCategories: []Category{
 							{
-								ID:   "2010",
+								ID:   2010,
 								Name: "Foreign",
 							},
 						},
 					},
 					{
-						ID:   "5000",
+						ID:   5000,
 						Name: "TV",
-						Subcat: []SubCategory{
+						SubCategories: []Category{
 							{
-								ID:   "5040",
+								ID:   5040,
 								Name: "HD",
 							},
 							{
-								ID:   "5070",
+								ID:   5070,
 								Name: "Anime",
 							},
 						},
@@ -232,7 +232,7 @@ func TestClient_GetCaps(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			c := NewClient(Config{Host: tt.fields.Host, ApiKey: tt.fields.ApiKey})
 
-			got, err := c.GetCaps()
+			got, err := c.FetchCaps()
 			if tt.wantErr && assert.Error(t, err) {
 				assert.EqualErrorf(t, err, tt.expectedErr, "Error should be: %v, got: %v", tt.wantErr, err)
 			}

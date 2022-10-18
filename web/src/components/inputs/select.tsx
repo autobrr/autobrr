@@ -155,7 +155,7 @@ export function DownloadClientSelect({
                                     Client
                 </Listbox.Label>
                 <div className="mt-2 relative">
-                  <Listbox.Button className="bg-white dark:bg-gray-800 relative w-full border border-gray-300 dark:border-gray-700 rounded-md shadow-sm pl-3 pr-10 py-2 text-left cursor-default focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:focus:ring-blue-500 focus:border-indigo-500 dark:focus:border-blue-500 dark:text-gray-200 sm:text-sm">
+                  <Listbox.Button className="bg-white dark:bg-gray-800 relative w-full border border-gray-300 dark:border-gray-700 rounded-md shadow-sm pl-3 pr-10 py-2 text-left cursor-default focus:outline-none focus:ring-1 focus:ring-blue-500 dark:focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-500 dark:text-gray-200 sm:text-sm">
                     <span className="block truncate">
                       {field.value
                         ? clients.find((c) => c.id === field.value)?.name
@@ -186,7 +186,7 @@ export function DownloadClientSelect({
                             key={client.id}
                             className={({ active }) => classNames(
                               active
-                                ? "text-white dark:text-gray-100 bg-indigo-600 dark:bg-gray-800"
+                                ? "text-white dark:text-gray-100 bg-blue-600 dark:bg-gray-800"
                                 : "text-gray-900 dark:text-gray-300",
                               "cursor-default select-none relative py-2 pl-3 pr-9"
                             )}
@@ -206,7 +206,7 @@ export function DownloadClientSelect({
                                 {selected ? (
                                   <span
                                     className={classNames(
-                                      active ? "text-white dark:text-gray-100" : "text-indigo-600 dark:text-gray-700",
+                                      active ? "text-white dark:text-gray-100" : "text-blue-600 dark:text-gray-700",
                                       "absolute inset-y-0 right-0 flex items-center pr-4"
                                     )}
                                   >
@@ -266,7 +266,7 @@ export const Select = ({
                   {label}
                 </Listbox.Label>
                 <div className="mt-2 relative">
-                  <Listbox.Button className="bg-white dark:bg-gray-800 relative w-full border border-gray-300 dark:border-gray-700 rounded-md shadow-sm pl-3 pr-10 py-2.5 text-left cursor-default focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:focus:ring-blue-500 focus:border-indigo-500 dark:focus:border-blue-500 dark:text-gray-200 sm:text-sm">
+                  <Listbox.Button className="bg-white dark:bg-gray-800 relative w-full border border-gray-300 dark:border-gray-700 rounded-md shadow-sm pl-3 pr-10 py-2.5 text-left cursor-default focus:outline-none focus:ring-1 focus:ring-blue-500 dark:focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-500 dark:text-gray-200 sm:text-sm">
                     <span className="block truncate">
                       {field.value
                         ? options.find((c) => c.value === field.value)?.label
@@ -298,7 +298,7 @@ export const Select = ({
                           className={({ active }) =>
                             classNames(
                               active
-                                ? "text-white dark:text-gray-100 bg-indigo-600 dark:bg-gray-800"
+                                ? "text-white dark:text-gray-100 bg-blue-600 dark:bg-gray-800"
                                 : "text-gray-900 dark:text-gray-300",
                               "cursor-default select-none relative py-2 pl-3 pr-9"
                             )
@@ -319,7 +319,7 @@ export const Select = ({
                               {selected ? (
                                 <span
                                   className={classNames(
-                                    active ? "text-white dark:text-gray-100" : "text-indigo-600 dark:text-gray-700",
+                                    active ? "text-white dark:text-gray-100" : "text-blue-600 dark:text-gray-700",
                                     "absolute inset-y-0 right-0 flex items-center pr-4"
                                   )}
                                 >
@@ -371,7 +371,7 @@ export const SelectWide = ({
                     {label}
                   </Listbox.Label>
                   <div className="w-full">
-                    <Listbox.Button className="bg-white dark:bg-gray-800 relative w-full border border-gray-300 dark:border-gray-700 rounded-md shadow-sm pl-3 pr-10 py-2 text-left cursor-default focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:focus:ring-blue-500 focus:border-indigo-500 dark:focus:border-blue-500 dark:text-gray-200 sm:text-sm">
+                    <Listbox.Button className="bg-white dark:bg-gray-800 relative w-full border border-gray-300 dark:border-gray-700 rounded-md shadow-sm pl-3 pr-10 py-2 text-left cursor-default focus:outline-none focus:ring-1 focus:ring-blue-500 dark:focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-500 dark:text-gray-200 sm:text-sm">
                       <span className="block truncate">
                         {field.value
                           ? options.find((c) => c.value === field.value)?.label
@@ -403,7 +403,7 @@ export const SelectWide = ({
                             className={({ active }) =>
                               classNames(
                                 active
-                                  ? "text-white dark:text-gray-100 bg-indigo-600 dark:bg-gray-800"
+                                  ? "text-white dark:text-gray-100 bg-blue-600 dark:bg-gray-800"
                                   : "text-gray-900 dark:text-gray-300",
                                 "cursor-default select-none relative py-2 pl-3 pr-9"
                               )
@@ -424,7 +424,7 @@ export const SelectWide = ({
                                 {selected ? (
                                   <span
                                     className={classNames(
-                                      active ? "text-white dark:text-gray-100" : "text-indigo-600 dark:text-gray-700",
+                                      active ? "text-white dark:text-gray-100" : "text-blue-600 dark:text-gray-700",
                                       "absolute inset-y-0 right-0 flex items-center pr-4"
                                     )}
                                   >

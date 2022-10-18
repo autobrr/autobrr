@@ -18,10 +18,19 @@ export const AgeCell = ({ value }: CellProps) => (
 
 export const TitleCell = ({ value }: CellProps) => (
   <div
-    className="text-sm font-medium box-content text-gray-900 dark:text-gray-300 max-w-[128px] sm:max-w-[256px] md:max-w-[360px] lg:max-w-[640px] xl:max-w-[840px] overflow-auto py-4"
-    title={value}
+    className={classNames(
+      "py-3 text-sm font-medium box-content text-gray-900 dark:text-gray-300",
+      "max-w-[96px] sm:max-w-[216px] md:max-w-[360px] lg:max-w-[640px] xl:max-w-[840px]"
+    )}
   >
-    {value}
+    <Tooltip
+      label={value}
+      maxWidth="max-w-[90vw]"
+    >
+      <span className="whitespace-pre-wrap break-word">
+        {value}
+      </span>
+    </Tooltip>
   </div>
 );
 
@@ -32,25 +41,85 @@ interface ReleaseStatusCellProps {
 interface StatusCellMapEntry {
     colors: string;
     icon: React.ReactElement;
+    textFormatter: (text: string) => React.ReactElement;
 }
 
 const StatusCellMap: Record<string, StatusCellMapEntry> = {
   "PUSH_ERROR": {
     colors: "bg-pink-100 text-pink-800 hover:bg-pink-300",
-    icon: <ExclamationCircleIcon className="h-5 w-5" aria-hidden="true" />
+    icon: <ExclamationCircleIcon className="h-5 w-5" aria-hidden="true" />,
+    textFormatter: (text: string) => (
+      <>
+        Action
+        {" "}
+        <span className="font-bold underline underline-offset-2 decoration-2 decoration-red-500">
+          error
+        </span>
+        {": "}
+        {text}
+      </>
+    )
   },
   "PUSH_REJECTED": {
-    colors: "bg-blue-200 dark:bg-blue-100 text-blue-400 dark:text-blue-800 hover:bg-blue-300 dark:hover:bg-blue-400",
-    icon: <NoSymbolIcon className="h-5 w-5" aria-hidden="true" />
+    colors: "bg-blue-100 dark:bg-blue-100 text-blue-400 dark:text-blue-800 hover:bg-blue-300 dark:hover:bg-blue-400",
+    icon: <NoSymbolIcon className="h-5 w-5" aria-hidden="true" />,
+    textFormatter: (text: string) => (
+      <>
+        Action
+        {" "}
+        <span
+          className="font-bold underline underline-offset-2 decoration-2 decoration-sky-500"
+        >
+          rejected
+        </span>
+        {": "}
+        {text}
+      </>
+    )
   },
   "PUSH_APPROVED": {
     colors: "bg-green-100 text-green-800 hover:bg-green-300",
-    icon: <CheckIcon className="h-5 w-5" aria-hidden="true" />
+    icon: <CheckIcon className="h-5 w-5" aria-hidden="true" />,
+    textFormatter: (text: string) => (
+      <>
+        Action
+        {" "}
+        <span className="font-bold underline underline-offset-2 decoration-2 decoration-green-500">
+          approved
+        </span>
+        {": "}
+        {text}
+      </>
+    )
   },
   "PENDING": {
     colors: "bg-yellow-100 text-yellow-800 hover:bg-yellow-200",
-    icon: <ClockIcon className="h-5 w-5" aria-hidden="true" />
+    icon: <ClockIcon className="h-5 w-5" aria-hidden="true" />,
+    textFormatter: (text: string) => (
+      <>
+        Action
+        {" "}
+        <span className="font-bold underline underline-offset-2 decoration-2 decoration-yellow-500">
+          pending
+        </span>
+        {": "}
+        {text}
+      </>
+    )
   }
+};
+
+const CellLine = ({ title, children }: { title: string; children?: string; }) => {
+  if (!children)
+    return null;
+
+  return (
+    <div className="mt-1">
+      <span className="font-bold">{title}</span>
+      {": "}
+      <span className="whitespace-pre-wrap break-word leading-4">{children}</span>
+    </div>
+  );
 };
 
 export const ReleaseStatusCell = ({ value }: ReleaseStatusCellProps) => (
@@ -60,27 +129,24 @@ export const ReleaseStatusCell = ({ value }: ReleaseStatusCellProps) => (
         key={idx}
         className={classNames(
           StatusCellMap[v.status].colors,
-          "mr-1 inline-flex items-center rounded text-xs font-semibold cursor-pointer"
+          "mr-1 inline-flex items-center rounded text-xs cursor-pointer"
         )}
       >
-        <Tooltip button={StatusCellMap[v.status].icon}>
-          <ol className="flex flex-col max-w-sm">
-            <li className="py-1">Status: {v.status}</li>
-            <li className="py-1">Action: {v.action}</li>
-            <li className="py-1">Type: {v.type}</li>
-            {v.client && <li className="py-1">Client: {v.client}</li>}
-            {v.filter && <li className="py-1">Filter: {v.filter}</li>}
-            <li className="py-1">Time: {simplifyDate(v.timestamp)}</li>
+        <Tooltip
+          label={StatusCellMap[v.status].icon}
+          title={StatusCellMap[v.status].textFormatter(v.action)}
+        >
+          <div className="mb-1">
+            <CellLine title="Type">{v.type}</CellLine>
+            <CellLine title="Client">{v.client}</CellLine>
+            <CellLine title="Filter">{v.filter}</CellLine>
+            <CellLine title="Time">{simplifyDate(v.timestamp)}</CellLine>
             {v.rejections.length ? (
-              <li className="py-1">
-                Rejections:
-                {" "}
-                <p className="whitespace-pre-wrap break-all">
-                  {v.rejections.toString()}
-                </p>
-              </li>
+              <CellLine title="Filter">
+                {v.rejections.toString()}
+              </CellLine>
             ) : null}
-          </ol>
+          </div>
         </Tooltip>
       </div>
     ))}

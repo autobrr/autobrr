@@ -48,7 +48,7 @@ parse:
   lines:
     - test:
         - "Some long funny title - Size: 2.54 GiB - Uploader: uploader1 - Tags: tag1,tag2 - https://www.empornium.is/torrents.php?torrentid=000000"
-    - pattern: '(.*) - Size: (.*) - Uploader: (.*) - Tags: (.*) - (https:\/\/.*torrents\.php\?)torrentid=(.*)'
+      pattern: '(.*) - Size: (.*) - Uploader: (.*) - Tags: (.*) - (https:\/\/.*torrents\.php\?)torrentid=(.*)'
       vars:
         - torrentName
         - torrentSize
