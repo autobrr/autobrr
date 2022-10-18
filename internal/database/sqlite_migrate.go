@@ -74,6 +74,9 @@ CREATE TABLE filter
     use_regex                      BOOLEAN,
     match_release_groups           TEXT,
     except_release_groups          TEXT,
+    match_release_tags             TEXT,
+    except_release_tags            TEXT,
+    use_regex_release_tags         BOOLEAN DEFAULT FALSE,
     scene                          BOOLEAN,
     freeleech                      BOOLEAN,
     freeleech_percent              TEXT,
@@ -897,4 +900,13 @@ CREATE INDEX indexer_identifier_index
 	ALTER TABLE feed
      	ADD COLUMN cookie TEXT;
     `,
+	`ALTER TABLE filter
+		ADD COLUMN match_release_tags TEXT;
+
+	ALTER TABLE filter
+		ADD COLUMN except_release_tags TEXT;
+
+	ALTER TABLE filter
+		ADD COLUMN use_regex_release_tags BOOLEAN DEFAULT FALSE;
+	`,
 }

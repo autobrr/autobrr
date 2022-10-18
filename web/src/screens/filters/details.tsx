@@ -250,6 +250,9 @@ export default function FilterDetails() {
                 except_releases: filter.except_releases,
                 match_release_groups: filter.match_release_groups,
                 except_release_groups: filter.except_release_groups,
+                match_release_tags: filter.match_release_tags,
+                except_release_tags: filter.except_release_tags,
+                use_regex_release_tags: filter.use_regex_release_tags,
                 match_categories: filter.match_categories,
                 except_categories: filter.except_categories,
                 tags: filter.tags,
@@ -454,20 +457,7 @@ export function Advanced() {
     <div>
       <CollapsableSection defaultOpen={true} title="Releases" subtitle="Match only certain release names and/or ignore other release names">
         <div className="grid col-span-12 gap-6">
-          <div
-            className="col-span-12 flex p-4 text-sm text-yellow-700 bg-yellow-100 rounded-lg dark:bg-yellow-200 dark:text-yellow-800"
-            role="alert">
-            <svg aria-hidden="true" className="flex-shrink-0 inline w-5 h-5 mr-3" fill="currentColor"
-              viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-              <path fillRule="evenodd"
-                d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
-                clipRule="evenodd"></path>
-            </svg>
-            <span className="sr-only">Info</span>
-            <div>
-              <span className="font-bold">Warning!</span> autobrr has extensive filtering built-in - only use this if nothing else works. If you need help please ask.
-            </div>
-          </div>
+          <WarningAlert text="autobrr has extensive filtering built-in - only use this if nothing else works. If you need help please ask." />
 
           <TextField name="match_releases" label="Match releases" columns={6} placeholder="eg. *some?movie*,*some?show*s01*" />
           <TextField name="except_releases" label="Except releases" columns={6} placeholder="" />
@@ -500,6 +490,18 @@ export function Advanced() {
         <MultiSelect name="except_origins" options={ORIGIN_OPTIONS} label="Except Origins" columns={6} creatable={true} />
       </CollapsableSection>
 
+      <CollapsableSection defaultOpen={true} title="Release Tags" subtitle="This is the non-parsed releaseTags string from the announce">
+        <div className="grid col-span-12 gap-6">
+          <WarningAlert text="These might not be what you think they are. For advanced users who know how things are parsed." />
+
+          <TextField name="match_release_tags" label="Match release tags" columns={6} placeholder="eg. *mkv*,*foreign*" />
+          <TextField name="except_release_tags" label="Except release tags" columns={6} placeholder="" />
+          <div className="col-span-6">
+            <SwitchGroup name="use_regex_release_tags" label="Use Regex" />
+          </div>
+        </div>
+      </CollapsableSection>
+
       <CollapsableSection defaultOpen={true} title="Freeleech" subtitle="Match only freeleech and freeleech percent">
         <div className="col-span-6">
           <SwitchGroup name="freeleech" label="Freeleech" />
@@ -507,6 +509,29 @@ export function Advanced() {
 
         <TextField name="freeleech_percent" label="Freeleech percent" columns={6} />
       </CollapsableSection>
+    </div>
+  );
+}
+
+interface WarningAlertProps {
+  text: string;
+}
+
+function WarningAlert({ text }: WarningAlertProps) {
+  return (
+    <div
+      className="col-span-12 flex p-4 text-sm text-yellow-700 bg-yellow-100 rounded-lg dark:bg-yellow-200 dark:text-yellow-800"
+      role="alert">
+      <svg aria-hidden="true" className="flex-shrink-0 inline w-5 h-5 mr-3" fill="currentColor"
+        viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+        <path fillRule="evenodd"
+          d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
+          clipRule="evenodd"></path>
+      </svg>
+      <span className="sr-only">Info</span>
+      <div>
+        <span className="font-bold">Warning!</span> {text}
+      </div>
     </div>
   );
 }
