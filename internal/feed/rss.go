@@ -97,7 +97,7 @@ func (j *RSSJob) processItem(item *gofeed.Item) *domain.Release {
 
 	if j.Feed.MaxAge > 0 {
 		if item.PublishedParsed != nil {
-			if isMaxAge(j.Feed.MaxAge, *item.PublishedParsed, now) {
+			if !isNewerThanMaxAge(j.Feed.MaxAge, *item.PublishedParsed, now) {
 				return nil
 			}
 		}
@@ -267,15 +267,15 @@ func (j *RSSJob) getFeed() (items []*gofeed.Item, err error) {
 	return
 }
 
-func isMaxAge(maxAge int, item, now time.Time) bool {
+func isNewerThanMaxAge(maxAge int, item, now time.Time) bool {
 	// now minus max age
 	nowMaxAge := now.Add(time.Duration(-maxAge) * time.Second)
 
-	if nowMaxAge.After(item) {
-		return false
+	if item.After(nowMaxAge) {
+		return true
 	}
 
-	return true
+	return false
 }
 
 // isFreeleech basic freeleech parsing
