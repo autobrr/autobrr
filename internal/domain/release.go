@@ -223,6 +223,8 @@ func (r *Release) ParseString(title string) {
 	return
 }
 
+var ErrUnrecoverableError = errors.New("unrecoverable error")
+
 func (r *Release) ParseReleaseTagsString(tags string) {
 	// trim delimiters and closest space
 	re := regexp.MustCompile(`\| |/ |, `)
@@ -314,7 +316,7 @@ func (r *Release) DownloadTorrentFile() error {
 	}
 	defer tmpFile.Close()
 
-	err = retry.Do(func() error {
+	errFunc := retry.Do(func() error {
 		// Get the data
 		resp, err := client.Do(req)
 		if err != nil {
@@ -323,40 +325,41 @@ func (r *Release) DownloadTorrentFile() error {
 		defer resp.Body.Close()
 
 		if resp.StatusCode != http.StatusOK {
-			err := errors.New("unrecoverable error downloading torrent (%v) file (%v) from '%v' - status code: %d", r.TorrentName, r.TorrentURL, r.Indexer, resp.StatusCode)
+			unRecoverableErr := errors.Wrap(ErrUnrecoverableError, "unrecoverable error downloading torrent (%v) file (%v) from '%v' - status code: %d", r.TorrentName, r.TorrentURL, r.Indexer, resp.StatusCode)
 
-			if resp.StatusCode == 401 || resp.StatusCode == 403 || resp.StatusCode == 405 {
-				return retry.Unrecoverable(err)
+			if resp.StatusCode == 401 || resp.StatusCode == 403 || resp.StatusCode == 404 || resp.StatusCode == 405 {
+				return retry.Unrecoverable(unRecoverableErr)
 			}
 
-			return err
+			return errors.New("unexpected status: %v", resp.StatusCode)
 		}
 
-		clean := func() {
+		resetTmpFile := func() {
 			tmpFile.Seek(0, io.SeekStart)
 			tmpFile.Truncate(0)
 		}
 
 		// Write the body to file
-		_, err = io.Copy(tmpFile, resp.Body)
-		if err != nil {
-			clean()
+		if _, err := io.Copy(tmpFile, resp.Body); err != nil {
+			resetTmpFile()
 			return errors.Wrap(err, "error writing downloaded file: %v", tmpFile.Name())
 		}
 
 		meta, err := metainfo.LoadFromFile(tmpFile.Name())
 		if err != nil {
-			clean()
+			resetTmpFile()
 			return errors.Wrap(err, "metainfo could not load file contents: %v", tmpFile.Name())
 		}
 
 		torrentMetaInfo, err := meta.UnmarshalInfo()
 		if err != nil {
-			clean()
+			resetTmpFile()
 			return errors.Wrap(err, "metainfo could not unmarshal info from torrent: %v", tmpFile.Name())
 		}
 
-		if len(meta.HashInfoBytes().Bytes()) < 1 {
+		hashInfoBytes := meta.HashInfoBytes().Bytes()
+		if len(hashInfoBytes) < 1 {
+			resetTmpFile()
 			return errors.New("could not read infohash")
 		}
 
@@ -371,9 +374,7 @@ func (r *Release) DownloadTorrentFile() error {
 		retry.MaxJitter(time.Second*1),
 	)
 
-	// remove file if fail
-
-	return nil
+	return errFunc
 }
 
 func (r *Release) addRejection(reason string) {
