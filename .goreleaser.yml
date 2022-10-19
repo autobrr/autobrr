@@ -64,66 +64,6 @@ archives:
     replacements:
       amd64: x86_64
 
-dockers:
-  - use: buildx
-    goos: linux
-    goarch: amd64
-    ids:
-      - autobrr
-      - autobrrctl
-    dockerfile: goreleaser.Dockerfile
-    image_templates:
-      - "ghcr.io/autobrr/autobrr:{{ .Tag }}"
-      - "ghcr.io/autobrr/autobrr:latest"
-    build_flag_templates:
-      - "--pull"
-      - "--platform=linux/amd64"
-      - "--label=org.opencontainers.image.created={{.Date}}"
-      - "--label=org.opencontainers.image.title={{.ProjectName}}"
-      - "--label=org.opencontainers.image.revision={{.FullCommit}}"
-      - "--label=org.opencontainers.image.version={{.Version}}"
-  - use: buildx
-    goos: linux
-    goarch: arm64
-    goarm: 6
-    ids:
-      - autobrr
-      - autobrrctl
-    dockerfile: goreleaser.Dockerfile
-    image_templates:
-      - "ghcr.io/autobrr/autobrr:{{ .Tag }}"
-      - "ghcr.io/autobrr/autobrr:latest"
-    build_flag_templates:
-      - "--pull"
-      - "--platform=linux/arm64/v8"
-      - "--label=org.opencontainers.image.created={{.Date}}"
-      - "--label=org.opencontainers.image.title={{.ProjectName}}"
-      - "--label=org.opencontainers.image.revision={{.FullCommit}}"
-      - "--label=org.opencontainers.image.version={{.Version}}"
-  - use: buildx
-    goos: linux
-    goarch: arm
-    goarm: 6
-    ids:
-      - autobrr
-      - autobrrctl
-    dockerfile: goreleaser.Dockerfile
-    image_templates:
-      - "ghcr.io/autobrr/autobrr:{{ .Tag }}"
-      - "ghcr.io/autobrr/autobrr:latest"
-    build_flag_templates:
-      - "--pull"
-      - "--platform=linux/arm/v7"
-      - "--label=org.opencontainers.image.created={{.Date}}"
-      - "--label=org.opencontainers.image.title={{.ProjectName}}"
-      - "--label=org.opencontainers.image.revision={{.FullCommit}}"
-      - "--label=org.opencontainers.image.version={{.Version}}"
-docker_manifests:
-  - name_template: ghcr.io/autobrr/autobrr:{{ .Tag }}
-    image_templates:
-      - ghcr.io/autobrr/autobrr:{{ .Tag }}
-      - ghcr.io/autobrr/autobrr:latest
-
 release:
   prerelease: auto
   footer: |
