@@ -117,7 +117,7 @@ func (s *service) delugeV1(client *domain.DownloadClient, action domain.Action, 
 	}
 
 	if release.TorrentTmpFile == "" {
-		if err = release.DownloadTorrentFile(); err != nil {
+		if err := release.DownloadTorrentFile(); err != nil {
 			s.log.Error().Err(err).Msgf("could not download torrent file for release: %v", release.TorrentName)
 			return nil, err
 		}
@@ -206,7 +206,7 @@ func (s *service) delugeV2(client *domain.DownloadClient, action domain.Action, 
 	}
 
 	if release.TorrentTmpFile == "" {
-		if err = release.DownloadTorrentFile(); err != nil {
+		if err := release.DownloadTorrentFile(); err != nil {
 			s.log.Error().Err(err).Msgf("could not download torrent file for release: %v", release.TorrentName)
 			return nil, err
 		}

@@ -28,8 +28,7 @@ func (s *service) transmission(action domain.Action, release domain.Release) ([]
 	var rejections []string
 
 	if release.TorrentTmpFile == "" {
-		err = release.DownloadTorrentFile()
-		if err != nil {
+		if err := release.DownloadTorrentFile(); err != nil {
 			s.log.Error().Err(err).Msgf("could not download torrent file for release: %v", release.TorrentName)
 			return nil, err
 		}

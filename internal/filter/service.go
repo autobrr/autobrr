@@ -409,8 +409,7 @@ func (s *service) AdditionalSizeCheck(f domain.Filter, release *domain.Release) 
 		s.log.Trace().Msgf("filter.Service.AdditionalSizeCheck: (%v) preparing to download torrent metafile", f.Name)
 
 		// if indexer doesn't have api, download torrent and add to tmpPath
-		err := release.DownloadTorrentFile()
-		if err != nil {
+		if err := release.DownloadTorrentFile(); err != nil {
 			s.log.Error().Stack().Err(err).Msgf("filter.Service.AdditionalSizeCheck: (%v) could not download torrent file with id: '%v' from: %v", f.Name, release.TorrentID, release.Indexer)
 			return false, err
 		}

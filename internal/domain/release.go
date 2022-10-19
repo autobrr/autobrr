@@ -17,6 +17,7 @@ import (
 	"github.com/autobrr/autobrr/pkg/errors"
 
 	"github.com/anacrolix/torrent/metainfo"
+	"github.com/avast/retry-go"
 	"github.com/dustin/go-humanize"
 	"github.com/moistari/rls"
 	"golang.org/x/net/publicsuffix"
@@ -222,6 +223,8 @@ func (r *Release) ParseString(title string) {
 	return
 }
 
+var ErrUnrecoverableError = errors.New("unrecoverable error")
+
 func (r *Release) ParseReleaseTagsString(tags string) {
 	// trim delimiters and closest space
 	re := regexp.MustCompile(`\| |/ |, `)
@@ -292,9 +295,10 @@ func (r *Release) DownloadTorrentFile() error {
 	client := &http.Client{
 		Transport: customTransport,
 		Jar:       jar,
+		Timeout:   time.Second * 45,
 	}
 
-	req, err := http.NewRequest("GET", r.TorrentURL, nil)
+	req, err := http.NewRequest(http.MethodGet, r.TorrentURL, nil)
 	if err != nil {
 		return errors.Wrap(err, "error downloading file")
 	}
@@ -305,19 +309,6 @@ func (r *Release) DownloadTorrentFile() error {
 		req.Header.Set("Cookie", r.RawCookie)
 	}
 
-	// Get the data
-	resp, err := client.Do(req)
-	if err != nil {
-		return errors.Wrap(err, "error downloading file")
-	}
-	defer resp.Body.Close()
-
-	// retry logic
-
-	if resp.StatusCode != http.StatusOK {
-		return errors.New("error downloading torrent (%v) file (%v) from '%v' - status code: %d", r.TorrentName, r.TorrentURL, r.Indexer, resp.StatusCode)
-	}
-
 	// Create tmp file
 	tmpFile, err := os.CreateTemp("", "autobrr-")
 	if err != nil {
@@ -325,29 +316,65 @@ func (r *Release) DownloadTorrentFile() error {
 	}
 	defer tmpFile.Close()
 
-	// Write the body to file
-	_, err = io.Copy(tmpFile, resp.Body)
-	if err != nil {
-		return errors.Wrap(err, "error writing downloaded file: %v", tmpFile.Name())
-	}
+	errFunc := retry.Do(func() error {
+		// Get the data
+		resp, err := client.Do(req)
+		if err != nil {
+			return errors.Wrap(err, "error downloading file")
+		}
+		defer resp.Body.Close()
 
-	meta, err := metainfo.LoadFromFile(tmpFile.Name())
-	if err != nil {
-		return errors.Wrap(err, "metainfo could not load file contents: %v", tmpFile.Name())
-	}
+		if resp.StatusCode != http.StatusOK {
+			unRecoverableErr := errors.Wrap(ErrUnrecoverableError, "unrecoverable error downloading torrent (%v) file (%v) from '%v' - status code: %d", r.TorrentName, r.TorrentURL, r.Indexer, resp.StatusCode)
 
-	torrentMetaInfo, err := meta.UnmarshalInfo()
-	if err != nil {
-		return errors.Wrap(err, "metainfo could not unmarshal info from torrent: %v", tmpFile.Name())
-	}
+			if resp.StatusCode == 401 || resp.StatusCode == 403 || resp.StatusCode == 404 || resp.StatusCode == 405 {
+				return retry.Unrecoverable(unRecoverableErr)
+			}
 
-	r.TorrentTmpFile = tmpFile.Name()
-	r.TorrentHash = meta.HashInfoBytes().String()
-	r.Size = uint64(torrentMetaInfo.TotalLength())
+			return errors.New("unexpected status: %v", resp.StatusCode)
+		}
 
-	// remove file if fail
+		resetTmpFile := func() {
+			tmpFile.Seek(0, io.SeekStart)
+			tmpFile.Truncate(0)
+		}
 
-	return nil
+		// Write the body to file
+		if _, err := io.Copy(tmpFile, resp.Body); err != nil {
+			resetTmpFile()
+			return errors.Wrap(err, "error writing downloaded file: %v", tmpFile.Name())
+		}
+
+		meta, err := metainfo.LoadFromFile(tmpFile.Name())
+		if err != nil {
+			resetTmpFile()
+			return errors.Wrap(err, "metainfo could not load file contents: %v", tmpFile.Name())
+		}
+
+		torrentMetaInfo, err := meta.UnmarshalInfo()
+		if err != nil {
+			resetTmpFile()
+			return errors.Wrap(err, "metainfo could not unmarshal info from torrent: %v", tmpFile.Name())
+		}
+
+		hashInfoBytes := meta.HashInfoBytes().Bytes()
+		if len(hashInfoBytes) < 1 {
+			resetTmpFile()
+			return errors.New("could not read infohash")
+		}
+
+		r.TorrentTmpFile = tmpFile.Name()
+		r.TorrentHash = meta.HashInfoBytes().String()
+		r.Size = uint64(torrentMetaInfo.TotalLength())
+
+		return nil
+	},
+		retry.Delay(time.Second*3),
+		retry.Attempts(3),
+		retry.MaxJitter(time.Second*1),
+	)
+
+	return errFunc
 }
 
 func (r *Release) addRejection(reason string) {
