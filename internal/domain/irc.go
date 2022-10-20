@@ -14,9 +14,17 @@ type IrcChannel struct {
 	Monitoring bool   `json:"monitoring"`
 }
 
-type NickServ struct {
-	Account  string `json:"account,omitempty"`
-	Password string `json:"password,omitempty"`
+type IRCAuthMechanism string
+
+const (
+	IRCAuthMechanismSASLPlain IRCAuthMechanism = "SASL_PLAIN"
+	IRCAuthMechanismNickServ  IRCAuthMechanism = "NICKSERV"
+)
+
+type IRCAuth struct {
+	Mechanism IRCAuthMechanism `json:"mechanism,omitempty"`
+	Account   string           `json:"account,omitempty"`
+	Password  string           `json:"password,omitempty"`
 }
 
 type IrcNetwork struct {
@@ -27,8 +35,9 @@ type IrcNetwork struct {
 	Port           int          `json:"port"`
 	TLS            bool         `json:"tls"`
 	Pass           string       `json:"pass"`
+	Nick           string       `json:"nick"`
+	Auth           IRCAuth      `json:"auth,omitempty"`
 	InviteCommand  string       `json:"invite_command"`
-	NickServ       NickServ     `json:"nickserv,omitempty"`
 	Channels       []IrcChannel `json:"channels"`
 	Connected      bool         `json:"connected"`
 	ConnectedSince *time.Time   `json:"connected_since"`
@@ -42,8 +51,9 @@ type IrcNetworkWithHealth struct {
 	Port             int                 `json:"port"`
 	TLS              bool                `json:"tls"`
 	Pass             string              `json:"pass"`
+	Nick             string              `json:"nick"`
+	Auth             IRCAuth             `json:"auth,omitempty"`
 	InviteCommand    string              `json:"invite_command"`
-	NickServ         NickServ            `json:"nickserv,omitempty"`
 	CurrentNick      string              `json:"current_nick"`
 	PreferredNick    string              `json:"preferred_nick"`
 	Channels         []ChannelWithHealth `json:"channels"`

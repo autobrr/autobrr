@@ -2,7 +2,7 @@ import { Fragment, useState } from "react";
 import { toast } from "react-hot-toast";
 import { useMutation, useQuery } from "react-query";
 import Select, { components, ControlProps, InputProps, MenuProps, OptionProps } from "react-select";
-import type { FieldProps } from "formik";
+import type { FieldProps, FormikErrors } from "formik";
 import { Field, Form, Formik, FormikValues } from "formik";
 
 import { XMarkIcon } from "@heroicons/react/24/solid";
@@ -69,6 +69,14 @@ const IrcSettingFields = (ind: IndexerDefinition, indexer: string) => {
                 Networks, channels and invite commands are configured automatically.
               </p>
             </div>
+
+            <TextFieldWide
+              name="irc.nick"
+              label="Nick"
+              placeholder="nick"
+              required={true}
+            />
+
             {ind.irc.settings.map((f: IndexerSetting, idx: number) => {
               switch (f.type) {
               case "text":
@@ -158,11 +166,11 @@ const SettingFields = (ind: IndexerDefinition, indexer: string) => {
           switch (f.type) {
           case "text":
             return (
-              <TextFieldWide name={`settings.${f.name}`} label={f.label} key={idx} help={f.help} defaultValue="" />
+              <TextFieldWide name={`settings.${f.name}`} label={f.label} required={f.required} key={idx} help={f.help} defaultValue="" />
             );
           case "secret":
             return (
-              <PasswordFieldWide name={`settings.${f.name}`} label={f.label} key={idx} help={f.help} defaultValue="" />
+              <PasswordFieldWide name={`settings.${f.name}`} label={f.label} required={f.required} key={idx} help={f.help} defaultValue="" />
             );
           }
           return null;
@@ -193,6 +201,15 @@ function slugIdentifier(name: string, prefix?: string) {
 //     feed?: Record<string, unknown>;
 //     settings?: Record<string, unknown>;
 // }
+
+interface ValidationErrors {
+  settings: {
+    [field: string]: string;
+  },
+  irc: {
+    [field: string]: string;
+  }
+}
 
 type SelectValue = {
   label: string;
@@ -314,12 +331,13 @@ export function IndexerAddForm({ isOpen, toggle }: AddProps) {
       const network: IrcNetworkCreate = {
         name: ind.irc.network,
         pass: "",
+        nick: "",
         enabled: false,
         connected: false,
         server: ind.irc.server,
         port: ind.irc.port,
         tls: ind.irc.tls,
-        nickserv: formData.irc.nickserv,
+        auth: formData.irc.nickserv,
         invite_command: formData.irc.invite_command,
         channels: channels
       };
@@ -330,6 +348,33 @@ export function IndexerAddForm({ isOpen, toggle }: AddProps) {
         }
       });
     }
+  };
+
+  const validate = (values: FormikValues) => {
+    const errors = {
+      settings: {},
+      irc: {}
+    } as FormikErrors<ValidationErrors>;
+
+    indexer.settings?.map(s => {
+      if (s.required) {
+        if (!values.settings[s.name]) {
+          errors.settings![s.name]  = "Required";
+        }
+      }
+    });
+
+    indexer.irc?.settings?.map(s => {
+      if (s.required) {
+        if (!values.irc[s.name]) {
+          errors.irc![s.name]  = "Required";
+        }
+      }
+    });
+
+    console.log("errors: ", errors);
+
+    return errors;
   };
 
   return (
@@ -362,6 +407,7 @@ export function IndexerAddForm({ isOpen, toggle }: AddProps) {
                     settings: {}
                   }}
                   onSubmit={onSubmit}
+                  validate={validate}
                 >
                   {({ values }) => (
                     <Form className="h-full flex flex-col bg-white dark:bg-gray-800 shadow-xl overflow-y-scroll">
@@ -369,11 +415,11 @@ export function IndexerAddForm({ isOpen, toggle }: AddProps) {
                         <div className="px-4 py-6 bg-gray-50 dark:bg-gray-900 sm:px-6">
                           <div className="flex items-start justify-between space-x-3">
                             <div className="space-y-1">
-                              <Dialog.Title
-                                className="text-lg font-medium text-gray-900 dark:text-white">Add
-                                                                    indexer</Dialog.Title>
+                              <Dialog.Title className="text-lg font-medium text-gray-900 dark:text-white">
+                                Add indexer
+                              </Dialog.Title>
                               <p className="text-sm text-gray-500 dark:text-gray-200">
-                                                                    Add indexer.
+                                Add indexer.
                               </p>
                             </div>
                             <div className="h-7 flex items-center">
@@ -425,19 +471,21 @@ export function IndexerAddForm({ isOpen, toggle }: AddProps) {
                                     onChange={(option: unknown) => {
                                       resetForm();
 
-                                      const opt = option as SelectValue;
-                                      setFieldValue("name", opt.label ?? "");
-                                      setFieldValue(field.name, opt.value ?? "");
+                                      if (option != null) {
+                                        const opt = option as SelectValue;
+                                        setFieldValue("name", opt.label ?? "");
+                                        setFieldValue(field.name, opt.value ?? "");
 
-                                      const ind = data && data.find(i => i.identifier === opt.value);
-                                      if (ind) {
-                                        setIndexer(ind);
-                                        setFieldValue("implementation", ind.implementation);
+                                        const ind = data && data.find(i => i.identifier === opt.value);
+                                        if (ind) {
+                                          setIndexer(ind);
+                                          setFieldValue("implementation", ind.implementation);
 
-                                        if (ind.irc && ind.irc.settings) {
-                                          ind.irc.settings.forEach((s) => {
-                                            setFieldValue(`irc.${s.name}`, s.default ?? "");
-                                          });
+                                          if (ind.irc && ind.irc.settings) {
+                                            ind.irc.settings.forEach((s) => {
+                                              setFieldValue(`irc.${s.name}`, s.default ?? "");
+                                            });
+                                          }
                                         }
                                       }
                                     }}
@@ -471,13 +519,13 @@ export function IndexerAddForm({ isOpen, toggle }: AddProps) {
                             className="bg-white dark:bg-gray-700 py-2 px-4 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
                             onClick={toggle}
                           >
-                                                            Cancel
+                            Cancel
                           </button>
                           <button
                             type="submit"
                             className="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
                           >
-                                                            Save
+                            Save
                           </button>
                         </div>
                       </div>

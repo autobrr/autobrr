@@ -88,7 +88,7 @@ func (s *service) StartHandlers() {
 
 		// use network.Server + nick to use multiple indexers with different nick per network
 		// this allows for multiple handlers to one network
-		s.handlers[handlerKey{network.Server, network.NickServ.Account}] = handler
+		s.handlers[handlerKey{network.Server, network.Auth.Account}] = handler
 		s.lock.Unlock()
 
 		s.log.Debug().Msgf("starting network: %+v", network.Name)
@@ -112,7 +112,7 @@ func (s *service) StopHandlers() {
 
 func (s *service) startNetwork(network domain.IrcNetwork) error {
 	// look if we have the network in handlers already, if so start it
-	if existingHandler, found := s.handlers[handlerKey{network.Server, network.NickServ.Account}]; found {
+	if existingHandler, found := s.handlers[handlerKey{network.Server, network.Auth.Account}]; found {
 		s.log.Debug().Msgf("starting network: %+v", network.Name)
 
 		if !existingHandler.client.Connected() {
@@ -138,7 +138,7 @@ func (s *service) startNetwork(network domain.IrcNetwork) error {
 		// init new irc handler
 		handler := NewHandler(s.log, network, definitions, s.releaseService, s.notificationService)
 
-		s.handlers[handlerKey{network.Server, network.NickServ.Account}] = handler
+		s.handlers[handlerKey{network.Server, network.Auth.Account}] = handler
 		s.lock.Unlock()
 
 		s.log.Debug().Msgf("starting network: %+v", network.Name)
@@ -155,7 +155,7 @@ func (s *service) startNetwork(network domain.IrcNetwork) error {
 
 func (s *service) checkIfNetworkRestartNeeded(network *domain.IrcNetwork) error {
 	// look if we have the network in handlers, if so restart it
-	if existingHandler, found := s.handlers[handlerKey{network.Server, network.NickServ.Account}]; found {
+	if existingHandler, found := s.handlers[handlerKey{network.Server, network.Auth.Account}]; found {
 		s.log.Debug().Msgf("irc: decide if irc network handler needs restart or updating: %+v", network.Server)
 
 		// if server, tls, invite command, port : changed - restart
@@ -192,17 +192,17 @@ func (s *service) checkIfNetworkRestartNeeded(network *domain.IrcNetwork) error 
 				return nil
 			}
 
-			if handler.NickServ.Account != network.NickServ.Account {
+			if handler.Auth.Account != network.Auth.Account {
 				s.log.Debug().Msg("changing nick")
 
-				if err := existingHandler.NickChange(network.NickServ.Account); err != nil {
-					s.log.Error().Stack().Err(err).Msgf("failed to change nick %q", network.NickServ.Account)
+				if err := existingHandler.NickChange(network.Auth.Account); err != nil {
+					s.log.Error().Stack().Err(err).Msgf("failed to change nick %q", network.Auth.Account)
 				}
-			} else if handler.NickServ.Password != network.NickServ.Password {
+			} else if handler.Auth.Password != network.Auth.Password {
 				s.log.Debug().Msg("nickserv: changing password")
 
-				if err := existingHandler.NickServIdentify(network.NickServ.Password); err != nil {
-					s.log.Error().Stack().Err(err).Msgf("failed to identify with nickserv %q", network.NickServ.Account)
+				if err := existingHandler.NickServIdentify(network.Auth.Password); err != nil {
+					s.log.Error().Stack().Err(err).Msgf("failed to identify with nickserv %q", network.Auth.Account)
 				}
 			}
 
@@ -291,7 +291,7 @@ func (s *service) RestartNetwork(ctx context.Context, id int64) error {
 
 func (s *service) restartNetwork(network domain.IrcNetwork) error {
 	// look if we have the network in handlers, if so restart it
-	if existingHandler, found := s.handlers[handlerKey{network.Server, network.NickServ.Account}]; found {
+	if existingHandler, found := s.handlers[handlerKey{network.Server, network.Auth.Account}]; found {
 		s.log.Info().Msgf("restarting network: %v", network.Name)
 
 		if existingHandler.client.Connected() {
@@ -396,14 +396,15 @@ func (s *service) GetNetworksWithHealth(ctx context.Context) ([]domain.IrcNetwor
 			Port:             n.Port,
 			TLS:              n.TLS,
 			Pass:             n.Pass,
+			Nick:             n.Nick,
+			Auth:             n.Auth,
 			InviteCommand:    n.InviteCommand,
-			NickServ:         n.NickServ,
 			Connected:        false,
 			Channels:         []domain.ChannelWithHealth{},
 			ConnectionErrors: []string{},
 		}
 
-		handler, ok := s.handlers[handlerKey{n.Server, n.NickServ.Account}]
+		handler, ok := s.handlers[handlerKey{n.Server, n.Auth.Account}]
 		if ok {
 			handler.m.RLock()
 
@@ -484,7 +485,7 @@ func (s *service) DeleteNetwork(ctx context.Context, id int64) error {
 
 	// Remove network and handler
 	//if err = s.StopNetwork(network.Server); err != nil {
-	if err = s.StopAndRemoveNetwork(handlerKey{network.Server, network.NickServ.Account}); err != nil {
+	if err = s.StopAndRemoveNetwork(handlerKey{network.Server, network.Auth.Account}); err != nil {
 		s.log.Error().Stack().Err(err).Msgf("could not stop and delete network: %v", network.Name)
 		return err
 	}
@@ -524,7 +525,7 @@ func (s *service) UpdateNetwork(ctx context.Context, network *domain.IrcNetwork)
 
 	} else {
 		// take into account multiple channels per network
-		err := s.StopAndRemoveNetwork(handlerKey{network.Server, network.NickServ.Account})
+		err := s.StopAndRemoveNetwork(handlerKey{network.Server, network.Auth.Account})
 		if err != nil {
 			s.log.Error().Stack().Err(err).Msgf("could not stop network: %+v", network.Name)
 			return errors.New("could not stop network: %v", network.Name)

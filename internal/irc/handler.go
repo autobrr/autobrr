@@ -153,13 +153,13 @@ func (h *Handler) Run() error {
 	subLogger := zstdlog.NewStdLoggerWithLevel(h.log.With().Logger(), zerolog.TraceLevel)
 
 	h.client = &ircevent.Connection{
-		Nick:          h.network.NickServ.Account,
-		User:          h.network.NickServ.Account,
-		RealName:      h.network.NickServ.Account,
-		Password:      h.network.Pass,
-		SASLLogin:     h.network.NickServ.Account,
-		SASLPassword:  h.network.NickServ.Password,
-		SASLOptional:  true,
+		Nick:     h.network.Nick,
+		User:     h.network.Auth.Account,
+		RealName: h.network.Auth.Account,
+		Password: h.network.Pass,
+		//SASLLogin:     h.network.Auth.Account,
+		//SASLPassword:  h.network.Auth.Password,
+		//SASLOptional:  true,
 		Server:        addr,
 		KeepAlive:     4 * time.Minute,
 		Timeout:       2 * time.Minute,
@@ -168,6 +168,13 @@ func (h *Handler) Run() error {
 		QuitMessage:   "bye from autobrr",
 		Debug:         true,
 		Log:           subLogger,
+	}
+
+	if h.network.Auth.Mechanism == domain.IRCAuthMechanismSASLPlain {
+		h.client.SASLLogin = h.network.Auth.Account
+		h.client.SASLPassword = h.network.Auth.Password
+		h.client.SASLOptional = true
+		h.client.UseSASL = true
 	}
 
 	if h.network.TLS {
@@ -226,7 +233,7 @@ func (h *Handler) Run() error {
 func (h *Handler) isOurNick(nick string) bool {
 	h.m.RLock()
 	defer h.m.RUnlock()
-	return h.network.NickServ.Account == nick
+	return h.network.Auth.Account == nick
 }
 
 func (h *Handler) isOurCurrentNick(nick string) bool {
