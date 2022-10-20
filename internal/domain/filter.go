@@ -341,7 +341,7 @@ func (f Filter) CheckFilter(r *Release) ([]string, bool) {
 		if r.Category != "" {
 			categories = append(categories, r.Category)
 		}
-		if !contains(r.Category, f.MatchCategories) && !containsAny(r.Categories, f.MatchCategories) {
+		if !contains(r.Category, f.MatchCategories) && !containsAny(categories, f.MatchCategories) {
 			r.addRejectionF("category not matching. got: %v want: %v", strings.Join(categories, ","), f.MatchCategories)
 		}
 	}
@@ -352,8 +352,8 @@ func (f Filter) CheckFilter(r *Release) ([]string, bool) {
 		if r.Category != "" {
 			categories = append(categories, r.Category)
 		}
-		if !contains(r.Category, f.ExceptCategories) && !containsAny(r.Categories, f.ExceptCategories) {
-			r.addRejectionF("category unwanted. got: %v want: %v", strings.Join(categories, ","), f.ExceptCategories)
+		if contains(r.Category, f.ExceptCategories) && containsAny(categories, f.ExceptCategories) {
+			r.addRejectionF("category unwanted. got: %v unwanted: %v", strings.Join(categories, ","), f.ExceptCategories)
 		}
 	}
 
