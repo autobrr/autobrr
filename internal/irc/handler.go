@@ -447,7 +447,7 @@ func (h *Handler) handleNickServ(msg ircmsg.Message) {
 	if contains(msg.Params[1], "invalid parameters", "help identify") {
 		h.log.Debug().Msgf("NOTICE nickserv invalid: %v", msg.Params)
 
-		if err := h.client.Send("PRIVMSG", "NickServ", fmt.Sprintf("IDENTIFY %v %v", h.network.NickServ.Account, h.network.NickServ.Password)); err != nil {
+		if err := h.client.Send("PRIVMSG", "NickServ", fmt.Sprintf("IDENTIFY %v %v", h.network.Auth.Account, h.network.Auth.Password)); err != nil {
 			return
 		}
 	}
@@ -462,9 +462,9 @@ func (h *Handler) authenticate() bool {
 		return true
 	}
 
-	if !h.saslauthed && h.network.NickServ.Password != "" {
+	if !h.saslauthed && h.network.Auth.Password != "" {
 		h.log.Trace().Msg("on connect not authenticated and password not empty: send nickserv identify")
-		if err := h.NickServIdentify(h.network.NickServ.Password); err != nil {
+		if err := h.NickServIdentify(h.network.Auth.Password); err != nil {
 			h.log.Error().Stack().Err(err).Msg("error nickserv")
 			return false
 		}
