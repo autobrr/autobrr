@@ -15,6 +15,7 @@ source: custom
 settings:
   - name: rsskey
     type: secret
+    required: true
     label: RSS key
     help: "Go to My Panel and then Change PID. It will show the PID, but don't click it!"
 
@@ -28,12 +29,19 @@ irc:
   announcers:
     - hdspace
   settings:
-    - name: nickserv.account
+    - name: nick
+      type: text
+      required: true
+      label: Nick
+      help: Bot nick. Eg. user_bot
+
+    - name: auth.account
       type: text
       required: false
       label: NickServ Account
-      help: NickServ account. Make sure to group your user and bot. Eg. user_bot
-    - name: nickserv.password
+      help: NickServ account. Make sure to group your user and bot.
+
+    - name: auth.password
       type: secret
       required: false
       label: NickServ Password

@@ -15,8 +15,9 @@ source: UNIT3D
 settings:
   - name: rsskey
     type: secret
-    label: Rss key
-    help: "Click on your nick / Go to Security / Copy the RID (RSS Key) and paste it here."
+    required: true
+    label: RSS key
+    help: "Click on your nick / Go to Settings / Security / Copy the RID (RSS Key) and paste it here."
 
 irc:
   network: Torrentseeds.org
@@ -28,22 +29,30 @@ irc:
   announcers:
     - torrentseeds
   settings:
-    - name: nickserv.account
+    - name: nick
       type: text
       required: true
+      label: Nick
+      help: Bot nick. Eg. user_bot
+
+    - name: auth.account
+      type: text
+      required: false
       label: NickServ Account
-      help: NickServ account. Make sure to group your user and bot. Eg. user_bot
-    - name: nickserv.password
+      help: NickServ account. Make sure to group your user and bot.
+
+    - name: auth.password
       type: secret
       required: false
       label: NickServ Password
       help: NickServ password
+
     - name: invite_command
       type: secret
-      default: "Cerberus identify USERNAME IRCKEY"
+      default: "Cerberus identify USERNAME PID"
       required: true
       label: Invite command
-      help: Invite auth with Cerberus. Replace USERNAME and IRCKEY
+      help: Invite auth with Cerberus. Replace USERNAME and PID (passkey).
 
 parse:
   type: single

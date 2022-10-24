@@ -15,10 +15,13 @@ source: gazelle
 settings:
   - name: authkey
     type: secret
+    required: true
     label: Auth key
     help: Right click DL on a torrent and get the authkey.
+
   - name: torrent_pass
     type: secret
+    required: true
     label: Torrent pass
     help: Right click DL on a torrent and get the torrent_pass.
 
@@ -32,24 +35,30 @@ irc:
   announcers:
     - DRADIS
   settings:
-    - name: nickserv.account
+    - name: nick
       type: text
       required: true
-      label: NickServ Account
-      help: NickServ account. Make sure to group your user and bot. Like user|bot
+      label: Nick
+      help: Bot nick. Eg. user|bot
 
-    - name: nickserv.password
+    - name: auth.account
+      type: text
+      required: false
+      label: NickServ Account
+      help: NickServ account. Make sure to group your user and bot.
+
+    - name: auth.password
       type: secret
-      required: true
+      required: false
       label: NickServ Password
       help: NickServ password
 
     - name: invite_command
       type: secret
-      default: "Muffit bot #nbl-announce USERNAME IRCKey"
+      default: "Muffit bot #nbl-announce USERNAME IRCKEY"
       required: true
       label: Invite command
-      help: Invite auth with Muffit.
+      help: Invite auth with Muffit. Replace USERNAME and IRCKEY.
 
 parse:
   type: single
