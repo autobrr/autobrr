@@ -16,46 +16,53 @@ import { PasswordFieldWide, SwitchGroupWide, TextFieldWide } from "../../compone
 import { SlideOver } from "../../components/panels";
 import Toast from "../../components/notifications/Toast";
 
-const Input = (props: InputProps) => {
-  return (
-    <components.Input 
-      {...props} 
-      inputClassName="outline-none border-none shadow-none focus:ring-transparent"
-      className="text-gray-400 dark:text-gray-100"
-      children={props.children}
-    />
-  );
-};
+const Input = (props: InputProps) => (
+  <components.Input 
+    {...props} 
+    inputClassName="outline-none border-none shadow-none focus:ring-transparent"
+    className="text-gray-400 dark:text-gray-100"
+    children={props.children}
+  />
+);
 
-const Control = (props: ControlProps) => {
-  return (
-    <components.Control 
-      {...props} 
-      className="block w-full dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:text-gray-100 sm:text-sm"
-      children={props.children}
-    />
-  );
-};
+const Control = (props: ControlProps) => (
+  <components.Control 
+    {...props} 
+    className="p-1 block w-full dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:text-gray-100 sm:text-sm"
+    children={props.children}
+  />
+);
 
-const Menu = (props: MenuProps) => {
-  return (
-    <components.Menu 
-      {...props}
-      className="dark:bg-gray-800 border border-gray-300 dark:border-gray-700 dark:text-gray-400 rounded-md shadow-sm"
-      children={props.children}
-    />
-  );
-};
+const Menu = (props: MenuProps) => (
+  <components.Menu 
+    {...props}
+    className="dark:bg-gray-800 border border-gray-300 dark:border-gray-700 dark:text-gray-400 rounded-md shadow-sm cursor-pointer"
+    children={props.children}
+  />
+);
 
-const Option = (props: OptionProps) => {
-  return (
-    <components.Option 
-      {...props}
-      className="dark:text-gray-400 dark:bg-gray-800 dark:hover:bg-gray-900 dark:focus:bg-gray-900"
-      children={props.children}
-    />
-  );
-};
+const Option = (props: OptionProps) => (
+  <components.Option 
+    {...props}
+    className="dark:text-gray-400 dark:bg-gray-800 dark:hover:bg-gray-900 dark:focus:bg-gray-900 cursor-pointer"
+    children={props.children}
+  />
+);
+
+// const isRequired = (message: string) => (value?: string | undefined) => (!!value ? undefined : message);
+
+function validateField(s: IndexerSetting) {
+  return (value?: string | undefined) => {
+    if (s.required) {
+      if (s.default !== "") {
+        if (value && s.default === value) {
+          return "Default value, please edit";
+        }
+      }
+      return !!value ? undefined : "Required";
+    }
+  };
+}
 
 const IrcSettingFields = (ind: IndexerDefinition, indexer: string) => {
   if (indexer !== "") {
@@ -66,26 +73,19 @@ const IrcSettingFields = (ind: IndexerDefinition, indexer: string) => {
             <div className="px-4 space-y-1">
               <Dialog.Title className="text-lg font-medium text-gray-900 dark:text-white">IRC</Dialog.Title>
               <p className="text-sm text-gray-500 dark:text-gray-200">
-                Networks, channels and invite commands are configured automatically.
+                Networks and channels are configured automatically in the background.
               </p>
             </div>
-
-            <TextFieldWide
-              name="irc.nick"
-              label="Nick"
-              placeholder="nick"
-              required={true}
-            />
 
             {ind.irc.settings.map((f: IndexerSetting, idx: number) => {
               switch (f.type) {
               case "text":
-                return <TextFieldWide name={`irc.${f.name}`} label={f.label} required={f.required} key={idx} help={f.help} />;
+                return <TextFieldWide name={`irc.${f.name}`} label={f.label} required={f.required} key={idx} help={f.help} validate={validateField(f)} />;
               case "secret":
                 if (f.name === "invite_command") {
-                  return <PasswordFieldWide name={`irc.${f.name}`} label={f.label} required={f.required} key={idx} help={f.help} defaultVisible={true} defaultValue={f.default} />;
+                  return <PasswordFieldWide name={`irc.${f.name}`} label={f.label} required={f.required} key={idx} help={f.help} defaultVisible={true} defaultValue={f.default} validate={validateField(f)} />;
                 }
-                return <PasswordFieldWide name={`irc.${f.name}`} label={f.label} required={f.required} key={idx} help={f.help} defaultValue={f.default} />;
+                return <PasswordFieldWide name={`irc.${f.name}`} label={f.label} required={f.required} key={idx} help={f.help} defaultValue={f.default} validate={validateField(f)} />;
               }
               return null;
             })}
@@ -109,14 +109,14 @@ const FeedSettingFields = (ind: IndexerDefinition, indexer: string) => {
               </p>
             </div>
 
-            <TextFieldWide name="name" label="Name" defaultValue={""} />
+            <TextFieldWide name="name" label="Name" defaultValue="" />
 
             {ind.torznab.settings.map((f: IndexerSetting, idx: number) => {
               switch (f.type) {
               case "text":
-                return <TextFieldWide name={`feed.${f.name}`} label={f.label} required={f.required} key={idx} help={f.help} />;
+                return <TextFieldWide name={`feed.${f.name}`} label={f.label} required={f.required} key={idx} help={f.help} validate={validateField(f)} />;
               case "secret":
-                return <PasswordFieldWide name={`feed.${f.name}`} label={f.label} required={f.required} key={idx} help={f.help} defaultValue={f.default} />;
+                return <PasswordFieldWide name={`feed.${f.name}`} label={f.label} required={f.required} key={idx} help={f.help} defaultValue={f.default} validate={validateField(f)} />;
               }
               return null;
             })}
@@ -140,14 +140,14 @@ const RSSFeedSettingFields = (ind: IndexerDefinition, indexer: string) => {
               </p>
             </div>
 
-            <TextFieldWide name="name" label="Name" defaultValue={""} />
+            <TextFieldWide name="name" label="Name" defaultValue="" />
 
             {ind.rss.settings.map((f: IndexerSetting, idx: number) => {
               switch (f.type) {
               case "text":
-                return <TextFieldWide name={`feed.${f.name}`} label={f.label} required={f.required} key={idx} help={f.help} />;
+                return <TextFieldWide name={`feed.${f.name}`} label={f.label} required={f.required} key={idx} help={f.help} validate={validateField(f)} />;
               case "secret":
-                return <PasswordFieldWide name={`feed.${f.name}`} label={f.label} required={f.required} key={idx} help={f.help} defaultValue={f.default} />;
+                return <PasswordFieldWide name={`feed.${f.name}`} label={f.label} required={f.required} key={idx} help={f.help} defaultValue={f.default} validate={validateField(f)} />;
               }
               return null;
             })}
@@ -166,11 +166,11 @@ const SettingFields = (ind: IndexerDefinition, indexer: string) => {
           switch (f.type) {
           case "text":
             return (
-              <TextFieldWide name={`settings.${f.name}`} label={f.label} required={f.required} key={idx} help={f.help} defaultValue="" />
+              <TextFieldWide name={`settings.${f.name}`} label={f.label} required={f.required} key={idx} help={f.help} validate={validateField(f)} />
             );
           case "secret":
             return (
-              <PasswordFieldWide name={`settings.${f.name}`} label={f.label} required={f.required} key={idx} help={f.help} defaultValue="" />
+              <PasswordFieldWide name={`settings.${f.name}`} label={f.label} required={f.required} key={idx} help={f.help} validate={validateField(f)} />
             );
           }
           return null;
@@ -192,33 +192,14 @@ function slugIdentifier(name: string, prefix?: string) {
   return slugify(l);
 }
 
-// interface initialValues {
-//     enabled: boolean;
-//     identifier: string;
-//     implementation: string;
-//     name: string;
-//     irc?: Record<string, unknown>;
-//     feed?: Record<string, unknown>;
-//     settings?: Record<string, unknown>;
-// }
-
-interface ValidationErrors {
-  settings: {
-    [field: string]: string;
-  },
-  irc: {
-    [field: string]: string;
-  }
-}
-
 type SelectValue = {
   label: string;
   value: string;
 };
 
 interface AddProps {
-    isOpen: boolean;
-    toggle: () => void;
+  isOpen: boolean;
+  toggle: () => void;
 }
 
 export function IndexerAddForm({ isOpen, toggle }: AddProps) {
@@ -255,6 +236,7 @@ export function IndexerAddForm({ isOpen, toggle }: AddProps) {
   );
 
   const onSubmit = (formData: FormikValues) => {
+    console.log("form: ", formData);
     const ind = data && data.find(i => i.identifier === formData.identifier);
     if (!ind)
       return;
@@ -331,16 +313,26 @@ export function IndexerAddForm({ isOpen, toggle }: AddProps) {
       const network: IrcNetworkCreate = {
         name: ind.irc.network,
         pass: "",
-        nick: "",
         enabled: false,
         connected: false,
         server: ind.irc.server,
         port: ind.irc.port,
         tls: ind.irc.tls,
-        auth: formData.irc.nickserv,
+        nick: formData.irc.nick,
+        auth: {
+          mechanism: "NONE"
+          // account: formData.irc.auth.account,
+          // password: formData.irc.auth.password
+        },
         invite_command: formData.irc.invite_command,
         channels: channels
       };
+
+      if (formData.irc.auth.account !== "" && formData.irc.auth.password !== "") {
+        network.auth.mechanism = "SASL_PLAIN";
+        network.auth.account = formData.irc.auth.account;
+        network.auth.password = formData.irc.auth.password;
+      }
 
       mutation.mutate(formData as Indexer, {
         onSuccess: () => {
@@ -348,33 +340,6 @@ export function IndexerAddForm({ isOpen, toggle }: AddProps) {
         }
       });
     }
-  };
-
-  const validate = (values: FormikValues) => {
-    const errors = {
-      settings: {},
-      irc: {}
-    } as FormikErrors<ValidationErrors>;
-
-    indexer.settings?.map(s => {
-      if (s.required) {
-        if (!values.settings[s.name]) {
-          errors.settings![s.name]  = "Required";
-        }
-      }
-    });
-
-    indexer.irc?.settings?.map(s => {
-      if (s.required) {
-        if (!values.irc[s.name]) {
-          errors.irc![s.name]  = "Required";
-        }
-      }
-    });
-
-    console.log("errors: ", errors);
-
-    return errors;
   };
 
   return (
@@ -401,13 +366,10 @@ export function IndexerAddForm({ isOpen, toggle }: AddProps) {
                     identifier: "",
                     implementation: "irc",
                     name: "",
-                    irc: {
-                      invite_command: ""
-                    },
+                    irc: {},
                     settings: {}
                   }}
                   onSubmit={onSubmit}
-                  validate={validate}
                 >
                   {({ values }) => (
                     <Form className="h-full flex flex-col bg-white dark:bg-gray-800 shadow-xl overflow-y-scroll">
@@ -565,6 +527,8 @@ export function IndexerUpdateForm({ isOpen, toggle, indexer }: UpdateProps) {
     onSuccess: () => {
       queryClient.invalidateQueries(["indexer"]);
       toast.custom((t) => <Toast type="success" body={`${indexer.name} was deleted.`} t={t} />);
+
+      toggle();
     }
   });
 

@@ -238,7 +238,7 @@ func (r *IrcRepo) CheckExistingNetwork(ctx context.Context, network *domain.IrcN
 		Select("id", "enabled", "name", "server", "port", "tls", "pass", "nick", "auth_mechanism", "auth_account", "auth_password", "invite_command").
 		From("irc_network").
 		Where("server = ?", network.Server).
-		Where("nickserv_account = ?", network.Auth.Account)
+		Where("auth_account = ?", network.Auth.Account)
 
 	query, args, err := queryBuilder.ToSql()
 	if err != nil {

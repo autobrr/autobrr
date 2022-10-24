@@ -17,6 +17,7 @@ type IrcChannel struct {
 type IRCAuthMechanism string
 
 const (
+	IRCAuthMechanismNone      IRCAuthMechanism = "NONE"
 	IRCAuthMechanismSASLPlain IRCAuthMechanism = "SASL_PLAIN"
 	IRCAuthMechanismNickServ  IRCAuthMechanism = "NICKSERV"
 )

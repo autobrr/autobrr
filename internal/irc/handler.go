@@ -153,13 +153,10 @@ func (h *Handler) Run() error {
 	subLogger := zstdlog.NewStdLoggerWithLevel(h.log.With().Logger(), zerolog.TraceLevel)
 
 	h.client = &ircevent.Connection{
-		Nick:     h.network.Nick,
-		User:     h.network.Auth.Account,
-		RealName: h.network.Auth.Account,
-		Password: h.network.Pass,
-		//SASLLogin:     h.network.Auth.Account,
-		//SASLPassword:  h.network.Auth.Password,
-		//SASLOptional:  true,
+		Nick:          h.network.Nick,
+		User:          h.network.Auth.Account,
+		RealName:      h.network.Auth.Account,
+		Password:      h.network.Pass,
 		Server:        addr,
 		KeepAlive:     4 * time.Minute,
 		Timeout:       2 * time.Minute,
@@ -171,10 +168,12 @@ func (h *Handler) Run() error {
 	}
 
 	if h.network.Auth.Mechanism == domain.IRCAuthMechanismSASLPlain {
-		h.client.SASLLogin = h.network.Auth.Account
-		h.client.SASLPassword = h.network.Auth.Password
-		h.client.SASLOptional = true
-		h.client.UseSASL = true
+		if h.network.Auth.Account != "" && h.network.Auth.Password != "" {
+			h.client.SASLLogin = h.network.Auth.Account
+			h.client.SASLPassword = h.network.Auth.Password
+			h.client.SASLOptional = true
+			h.client.UseSASL = true
+		}
 	}
 
 	if h.network.TLS {

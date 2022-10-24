@@ -115,6 +115,7 @@ export function IrcNetworkAddForm({ isOpen, toggle }: AddFormProps) {
   const onSubmit = (data: unknown) => {
     mutation.mutate(data as IrcNetwork);
   };
+
   const validate = (values: FormikValues) => {
     const errors = {} as FormikErrors<FormikValues>;
     if (!values.name)

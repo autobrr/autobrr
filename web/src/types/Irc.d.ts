@@ -7,7 +7,7 @@ interface IrcNetwork {
   tls: boolean;
   nick: string;
   pass: string;
-  auth?: IrcAuth; // optional
+  auth: IrcAuth; // optional
   invite_command: string;
   channels: IrcChannel[];
   connected: boolean;
@@ -22,7 +22,7 @@ interface IrcNetworkCreate {
   tls: boolean;
   pass: string;
   nick: string;
-  auth?: IrcAuth; // optional
+  auth: IrcAuth; // optional
   invite_command: string;
   channels: IrcChannel[];
   connected: boolean;
@@ -51,7 +51,7 @@ interface IrcNetworkWithHealth {
   tls: boolean;
   pass: string;
   nick: string;
-  auth?: IrcAuth; // optional
+  auth: IrcAuth; // optional
   invite_command: string;
   channels: IrcChannelWithHealth[];
   connected: boolean;
@@ -60,7 +60,7 @@ interface IrcNetworkWithHealth {
   healthy: boolean;
 }
 
-type IrcAuthMechanism = "SASL_PLAIN" | "NICKSERV";
+type IrcAuthMechanism = "NONE" | "SASL_PLAIN" | "NICKSERV";
 
 interface IrcAuth {
   mechanism: IrcAuthMechanism; // optional

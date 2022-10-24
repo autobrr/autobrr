@@ -307,6 +307,8 @@ const ListItemDropdown = ({
         queryClient.invalidateQueries(["networks", network.id]);
 
         toast.custom((t) => <Toast type="success" body={`Network ${network.name} was deleted`} t={t}/>);
+
+        toggleDeleteModal();
       }
     }
   );
