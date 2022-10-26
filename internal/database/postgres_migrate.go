@@ -36,14 +36,16 @@ CREATE TABLE irc_network
     port                INTEGER NOT NULL,
     tls                 BOOLEAN,
     pass                TEXT,
+    nick                TEXT,
+    auth_mechanism      TEXT,
+    auth_account        TEXT,
+    auth_password       TEXT,
     invite_command      TEXT,
-    nickserv_account    TEXT,
-    nickserv_password   TEXT,
     connected           BOOLEAN,
     connected_since     TIMESTAMP,
     created_at          TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at          TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE (server, port, nickserv_account)
+    UNIQUE (server, port, nick)
 );
 
 CREATE TABLE irc_channel
@@ -588,5 +590,52 @@ CREATE INDEX indexer_identifier_index
 
 	ALTER TABLE filter
 		ADD COLUMN use_regex_release_tags BOOLEAN DEFAULT FALSE;
+	`,
+	`
+CREATE TABLE irc_network_dg_tmp
+(
+    id                  SERIAL PRIMARY KEY,
+    enabled             BOOLEAN,
+    name                TEXT NOT NULL,
+    server              TEXT NOT NULL,
+    port                INTEGER NOT NULL,
+    tls                 BOOLEAN,
+    pass                TEXT,
+    nick                TEXT,
+    auth_mechanism      TEXT,
+    auth_account        TEXT,
+    auth_password       TEXT,
+    invite_command      TEXT,
+    connected           BOOLEAN,
+    connected_since     TIMESTAMP,
+    created_at          TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at          TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE (server, port, nick)
+);
+
+INSERT INTO irc_network_dg_tmp(id, enabled, name, server, port, tls, pass, nick, auth_mechanism, auth_account, auth_password, invite_command, 
+                               connected, connected_since, created_at, updated_at)
+SELECT id,
+       enabled,
+       name,
+       server,
+       port,
+       tls,
+       pass,
+       nickserv_account,
+       'SASL_PLAIN',
+       nickserv_account,
+       nickserv_password,
+       invite_command,
+       connected,
+       connected_since,
+       created_at,
+       updated_at
+FROM irc_network;
+
+DROP TABLE irc_network;
+
+ALTER TABLE irc_network_dg_tmp
+    RENAME TO irc_network;
 	`,
 }
