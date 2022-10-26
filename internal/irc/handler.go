@@ -232,7 +232,7 @@ func (h *Handler) Run() error {
 func (h *Handler) isOurNick(nick string) bool {
 	h.m.RLock()
 	defer h.m.RUnlock()
-	return h.network.Auth.Account == nick
+	return h.network.Nick == nick
 }
 
 func (h *Handler) isOurCurrentNick(nick string) bool {
@@ -446,7 +446,7 @@ func (h *Handler) handleNickServ(msg ircmsg.Message) {
 	if contains(msg.Params[1], "invalid parameters", "help identify") {
 		h.log.Debug().Msgf("NOTICE nickserv invalid: %v", msg.Params)
 
-		if err := h.client.Send("PRIVMSG", "NickServ", fmt.Sprintf("IDENTIFY %v %v", h.network.Auth.Account, h.network.Auth.Password)); err != nil {
+		if err := h.client.Send("PRIVMSG", "NickServ", fmt.Sprintf("IDENTIFY %v %v", h.network.Nick, h.network.Auth.Password)); err != nil {
 			return
 		}
 	}
