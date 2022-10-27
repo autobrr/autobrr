@@ -1015,10 +1015,10 @@ func (r *FilterRepo) attachDownloadsByFilter(ctx context.Context, tx *Tx, filter
 
 func (r *FilterRepo) downloadsByFilterSqlite(ctx context.Context, tx *Tx, filterID int) (*domain.FilterDownloads, error) {
 	query := `SELECT
-    IFNULL(SUM(CASE WHEN "release".timestamp >= datetime('now', '-1 hour') THEN 1 ELSE 0 END),0) as "hour_count",
-    IFNULL(SUM(CASE WHEN "release".timestamp >= datetime('now', 'start of day') THEN 1 ELSE 0 END),0) as "day_count",
-    IFNULL(SUM(CASE WHEN "release".timestamp >= datetime('now', 'weekday 0', '-7 days') THEN 1 ELSE 0 END),0) as "week_count",
-    IFNULL(SUM(CASE WHEN "release".timestamp >= datetime('now', 'start of month') THEN 1 ELSE 0 END),0) as "month_count",
+    IFNULL(SUM(CASE WHEN "release".timestamp >= strftime('%Y-%m-%dT%H:00:00Z', datetime('now','localtime')) THEN 1 ELSE 0 END),0) as "hour_count",
+    IFNULL(SUM(CASE WHEN "release".timestamp >= datetime('now', 'localtime', 'start of day') THEN 1 ELSE 0 END),0) as "day_count",
+    IFNULL(SUM(CASE WHEN "release".timestamp >= datetime('now', 'localtime', 'weekday 0', '-7 days') THEN 1 ELSE 0 END),0) as "week_count",
+    IFNULL(SUM(CASE WHEN "release".timestamp >= datetime('now', 'localtime', 'start of month') THEN 1 ELSE 0 END),0) as "month_count",
     count(*) as "total_count"
 FROM "release"
 WHERE "release".filter_id = ?;`
@@ -1033,6 +1033,8 @@ WHERE "release".filter_id = ?;`
 	if err := row.Scan(&f.HourCount, &f.DayCount, &f.WeekCount, &f.MonthCount, &f.TotalCount); err != nil {
 		return nil, errors.Wrap(err, "error scanning stats data sqlite")
 	}
+
+	r.log.Trace().Msgf("filter %v downloads: %+v", filterID, &f)
 
 	return &f, nil
 }

@@ -14,6 +14,7 @@ source: unknown
 settings:
   - name: passkey
     type: secret
+    required: true
     label: PassKey
     help: Copy the passkey from your profile
 
@@ -27,12 +28,19 @@ irc:
   announcers:
     - speedapp-announcer
   settings:
-    - name: nickserv.account
+    - name: nick
+      type: text
+      required: true
+      label: Nick
+      help: Bot nick. Eg. user_bot
+
+    - name: auth.account
       type: text
       required: true
       label: NickServ Account
+      help: NickServ account. Make sure to group your main user and bot.
 
-    - name: nickserv.password
+    - name: auth.password
       type: secret
       required: true
       label: NickServ Password

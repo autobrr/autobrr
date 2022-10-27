@@ -15,6 +15,7 @@ source: gazelle
 settings:
   - name: passkey
     type: secret
+    required: true
     label: PassKey
     help: Settings -> Account -> Passkey.
 
@@ -28,22 +29,30 @@ irc:
   announcers:
     - Satsuki
   settings:
-    - name: nickserv.account
+    - name: nick
       type: text
       required: true
+      label: Nick
+      help: Bot nick. Eg. user|autodl
+
+    - name: auth.account
+      type: text
+      required: false
       label: NickServ Account
-      help: NickServ account. Make sure to group your user and bot. Eg. user|autodl
-    - name: nickserv.password
+      help: NickServ account. Make sure to group your user and bot.
+
+    - name: auth.password
       type: secret
       required: false
       label: NickServ Password
       help: NickServ password
+
     - name: invite_command
       type: secret
-      default: "/msg Satsuki enter #announce {AB username} ircKey"
+      default: "Satsuki enter #announce USERNAME IRCKEY"
       required: true
       label: Invite command
-      help: Invite auth with Satsuki, animebytes.tv/irc
+      help: Invite auth with Satsuki, animebytes.tv/irc. Replace USERNAME and IRCKEY.
 
 parse:
   type: single
@@ -74,4 +83,4 @@ parse:
 
   match:
     torrenturl: "{{ .baseUrl }}/torrent/{{ .torrentId }}/download/{{ .passkey }}"
-    torrentname: "{{ if .releaseGroup }}[{{ .releaseGroup }}] {{ end }}{{ .torrentName }} ({{ .year }}) {{ if .releaseEpisode }}{{ printf \"- %02s \" .releaseEpisode }}{{ end }}{{ print \"[\" .releaseTags \"]\" | replace \" / \" \"][\" }}"
+    torrentname: "{{ if .releaseGroup }}[{{ .releaseGroup }}] {{ end }}{{ .torrentName }} {{ if .releaseEpisode }}{{ printf \"- %02s \" .releaseEpisode }}{{ end }} {{ if .year }}[{{ .year }}]{{ end }}{{ print \"[\" .releaseTags \"]\" | replace \" / \" \"][\" }}"

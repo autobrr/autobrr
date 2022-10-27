@@ -153,13 +153,10 @@ func (h *Handler) Run() error {
 	subLogger := zstdlog.NewStdLoggerWithLevel(h.log.With().Logger(), zerolog.TraceLevel)
 
 	h.client = &ircevent.Connection{
-		Nick:          h.network.NickServ.Account,
-		User:          h.network.NickServ.Account,
-		RealName:      h.network.NickServ.Account,
+		Nick:          h.network.Nick,
+		User:          h.network.Auth.Account,
+		RealName:      h.network.Auth.Account,
 		Password:      h.network.Pass,
-		SASLLogin:     h.network.NickServ.Account,
-		SASLPassword:  h.network.NickServ.Password,
-		SASLOptional:  true,
 		Server:        addr,
 		KeepAlive:     4 * time.Minute,
 		Timeout:       2 * time.Minute,
@@ -168,6 +165,15 @@ func (h *Handler) Run() error {
 		QuitMessage:   "bye from autobrr",
 		Debug:         true,
 		Log:           subLogger,
+	}
+
+	if h.network.Auth.Mechanism == domain.IRCAuthMechanismSASLPlain {
+		if h.network.Auth.Account != "" && h.network.Auth.Password != "" {
+			h.client.SASLLogin = h.network.Auth.Account
+			h.client.SASLPassword = h.network.Auth.Password
+			h.client.SASLOptional = true
+			h.client.UseSASL = true
+		}
 	}
 
 	if h.network.TLS {
@@ -226,7 +232,7 @@ func (h *Handler) Run() error {
 func (h *Handler) isOurNick(nick string) bool {
 	h.m.RLock()
 	defer h.m.RUnlock()
-	return h.network.NickServ.Account == nick
+	return h.network.Nick == nick
 }
 
 func (h *Handler) isOurCurrentNick(nick string) bool {
@@ -440,7 +446,7 @@ func (h *Handler) handleNickServ(msg ircmsg.Message) {
 	if contains(msg.Params[1], "invalid parameters", "help identify") {
 		h.log.Debug().Msgf("NOTICE nickserv invalid: %v", msg.Params)
 
-		if err := h.client.Send("PRIVMSG", "NickServ", fmt.Sprintf("IDENTIFY %v %v", h.network.NickServ.Account, h.network.NickServ.Password)); err != nil {
+		if err := h.client.Send("PRIVMSG", "NickServ", fmt.Sprintf("IDENTIFY %v %v", h.network.Auth.Account, h.network.Auth.Password)); err != nil {
 			return
 		}
 	}
@@ -455,9 +461,9 @@ func (h *Handler) authenticate() bool {
 		return true
 	}
 
-	if !h.saslauthed && h.network.NickServ.Password != "" {
+	if !h.saslauthed && h.network.Auth.Password != "" {
 		h.log.Trace().Msg("on connect not authenticated and password not empty: send nickserv identify")
-		if err := h.NickServIdentify(h.network.NickServ.Password); err != nil {
+		if err := h.NickServIdentify(h.network.Auth.Password); err != nil {
 			h.log.Error().Stack().Err(err).Msg("error nickserv")
 			return false
 		}

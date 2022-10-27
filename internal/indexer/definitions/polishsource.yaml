@@ -15,6 +15,7 @@ source: custom
 settings:
   - name: passkey
     type: secret
+    required: true
     label: Passkey
     help: "Copy your passkey from the RSS feed"
 
@@ -28,13 +29,19 @@ irc:
   announcers:
     - PS-Info
   settings:
-    - name: nickserv.account
+    - name: nick
       type: text
-      required: false
-      label: NickServ Account
-      help: NickServ account. Make sure to group your user and bot. Eg. user_bot
+      required: true
+      label: Nick
+      help: Bot nick. Eg. user_bot
 
-    - name: nickserv.password
+    - name: auth.account
+      type: text
+      required: true
+      label: NickServ Account
+      help: NickServ account. Make sure to group your user and bot.
+
+    - name: auth.password
       type: secret
       required: true
       label: NickServ Password
@@ -42,10 +49,10 @@ irc:
 
     - name: invite_command
       type: secret
-      default: "PS-Info pass <IRC_KEY>"
+      default: "PS-Info pass IRCKEY"
       required: true
       label: Invite command
-      help: Invite auth with PS-Info. Replace <IRC_KEY> with your IRC key.
+      help: Invite auth with PS-Info. Replace IRCKEY with your IRC key.
 
 
 parse:

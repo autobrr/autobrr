@@ -67,7 +67,7 @@ func (s *service) RunAction(action *domain.Action, release domain.Release) ([]st
 		rejections, err = s.whisparr(*action, release)
 
 	case domain.ActionTypeReadarr:
-		rejections, err = s.readarr(*action, release)		
+		rejections, err = s.readarr(*action, release)
 
 	default:
 		s.log.Warn().Msgf("unsupported action type: %v", action.Type)
@@ -154,6 +154,10 @@ func (s *service) watchFolder(action domain.Action, release domain.Release) erro
 	m := domain.NewMacro(release)
 
 	// parse and replace values in argument string before continuing
+	//   /mnt/watch/{{.Indexer}}
+	//   /mnt/watch/mock
+	//   /mnt/watch/{{.Indexer}}-{{.TorrentName}}.torrent
+	//   /mnt/watch/mock-Torrent.Name-GROUP.torrent
 	watchFolderArgs, err := m.Parse(action.WatchFolder)
 	if err != nil {
 		return errors.Wrap(err, "could not parse watch folder macro: %v", action.WatchFolder)
@@ -168,27 +172,37 @@ func (s *service) watchFolder(action domain.Action, release domain.Release) erro
 	}
 	defer original.Close()
 
-	_, tmpFileName := filepath.Split(release.TorrentTmpFile)
-	fullFileName := filepath.Join(watchFolderArgs, tmpFileName+".torrent")
+	// default dir to watch folder
+	dir := watchFolderArgs
+	newFileName := watchFolderArgs
+
+	// if watchFolderArgs does not contain .torrent, create
+	if !strings.Contains(watchFolderArgs, ".torrent") {
+		_, tmpFileName := filepath.Split(release.TorrentTmpFile)
+
+		newFileName = filepath.Join(watchFolderArgs, tmpFileName+".torrent")
+	} else {
+		dir, _ = filepath.Split(watchFolderArgs)
+	}
 
 	// Create folder
-	if err = os.MkdirAll(watchFolderArgs, os.ModePerm); err != nil {
-		return errors.Wrap(err, "could not create new folders %v", fullFileName)
+	if err = os.MkdirAll(dir, os.ModePerm); err != nil {
+		return errors.Wrap(err, "could not create new folders %v", dir)
 	}
 
 	// Create new file
-	newFile, err := os.Create(fullFileName)
+	newFile, err := os.Create(newFileName)
 	if err != nil {
-		return errors.Wrap(err, "could not create new file %v", fullFileName)
+		return errors.Wrap(err, "could not create new file %v", newFileName)
 	}
 	defer newFile.Close()
 
 	// Copy file
 	if _, err := io.Copy(newFile, original); err != nil {
-		return errors.Wrap(err, "could not copy file %v to watch folder", fullFileName)
+		return errors.Wrap(err, "could not copy file %v to watch folder", newFileName)
 	}
 
-	s.log.Info().Msgf("saved file to watch folder: %v", fullFileName)
+	s.log.Info().Msgf("saved file to watch folder: %v", newFileName)
 
 	return nil
 }
