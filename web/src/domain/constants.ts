@@ -306,6 +306,21 @@ export const NotificationTypeOptions: OptionBasicTyped<NotificationType>[] = [
   }
 ];
 
+export const IrcAuthMechanismTypeOptions: OptionBasicTyped<IrcAuthMechanism>[] = [
+  {
+    label: "None",
+    value: "NONE"
+  },
+  {
+    label: "SASL (plain)",
+    value: "SASL_PLAIN"
+  },
+  {
+    label: "NickServ",
+    value: "NICKSERV"
+  }
+];
+
 export const downloadsPerUnitOptions: OptionBasic[] = [
   {
     label: "Select",

@@ -15,6 +15,7 @@ source: custom
 settings:
   - name: passkey
     type: secret
+    required: true
     label: Passkey
     help: "Go to your profile and copy your passkey"
 
@@ -28,12 +29,19 @@ irc:
   announcers:
     - Metal
   settings:
-    - name: nickserv.account
+    - name: nick
+      type: text
+      required: true
+      label: Nick
+      help: Bot nick. Eg. user_bot
+
+    - name: auth.account
       type: text
       required: true
       label: NickServ Account
-      help: NickServ account. Make sure to group your user and bot. Eg. user_bot
-    - name: nickserv.password
+      help: NickServ account. Make sure to group your user and bot.
+
+    - name: auth.password
       type: secret
       required: true
       label: NickServ Password

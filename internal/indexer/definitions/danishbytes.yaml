@@ -15,7 +15,8 @@ source: UNIT3D
 settings:
   - name: passkey
     type: secret
-    label: Passkey
+    required: true
+    label: RSS key
     help: "Go to your profile tab under safety, copy RSS Key (RID)"
 
 irc:
@@ -28,22 +29,30 @@ irc:
   announcers:
     - DBBot
   settings:
-    - name: nickserv.account
+    - name: nick
       type: text
       required: true
+      label: Nick
+      help: Bot nick. Eg. user_bot
+
+    - name: auth.account
+      type: text
+      required: false
       label: NickServ Account
-      help: NickServ account. Make sure to group your user and bot. Eg. user|autodl
-    - name: nickserv.password
+      help: NickServ account. Make sure to group your user and bot.
+
+    - name: auth.password
       type: secret
       required: false
       label: NickServ Password
       help: NickServ password
+
     - name: invite_command
       type: secret
-      default: "DBBot announce ircKey"
+      default: "DBBot announce IRCKEY"
       required: true
       label: Invite command
-      help: Invite auth with DBBot.
+      help: Invite auth with DBBot. Replace IRCKEY with your key.
 
 parse:
   type: single

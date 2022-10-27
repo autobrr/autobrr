@@ -208,18 +208,14 @@ const ListItem = ({ idx, network, expanded }: ListItemProps) => {
             </p>
           </div>
         </div>
-        {network.nickserv && network.nickserv.account ? (
-          <div
-            className="hidden sm:flex col-span-3 items-center sm:px-6 text-sm text-gray-500 dark:text-gray-400 cursor-pointer"
-            onClick={toggleEdit}
-          >
-            <div className="overflow-x-auto flex">
-              {network.nickserv.account}
-            </div>
+        <div
+          className="hidden sm:flex col-span-3 items-center sm:px-6 text-sm text-gray-500 dark:text-gray-400 cursor-pointer"
+          onClick={toggleEdit}
+        >
+          <div className="overflow-x-auto flex">
+            {network.nick}
           </div>
-        ) : (
-          <div className="col-span-3" />
-        )}
+        </div>
         <div className="col-span-1 text-sm text-gray-500 dark:text-gray-400">
           <ListItemDropdown network={network} toggleUpdate={toggleUpdate} />
         </div>
@@ -311,6 +307,8 @@ const ListItemDropdown = ({
         queryClient.invalidateQueries(["networks", network.id]);
 
         toast.custom((t) => <Toast type="success" body={`Network ${network.name} was deleted`} t={t}/>);
+
+        toggleDeleteModal();
       }
     }
   );

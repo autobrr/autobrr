@@ -15,6 +15,7 @@ source: custom
 settings:
   - name: passkey
     type: secret
+    required: true
     label: Passkey
     help: "Copy the passkey from a download link"
 
@@ -28,16 +29,24 @@ irc:
   announcers:
     - RevoTT
   settings:
-    - name: nickserv.account
+    - name: nick
       type: text
       required: true
+      label: Nick
+      help: Bot nick. Eg. user_autodl
+
+    - name: auth.account
+      type: text
+      required: false
       label: NickServ Account
-      help: NickServ account. Make sure to group your user and bot. Eg. user_autodl
-    - name: nickserv.password
+      help: NickServ account. Make sure to group your user and bot.
+
+    - name: auth.password
       type: secret
       required: false
       label: NickServ Password
       help: NickServ password
+
     - name: invite_command
       type: secret
       default: "RevoTT !invite USERNAME PASSKEY"

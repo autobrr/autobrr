@@ -15,6 +15,7 @@ source: unknown
 settings:
   - name: api_key
     type: secret
+    required: true
     label: Api-Key
     help: "Generate an apikey with download scope and copy it. Profileinstellungen -> API-Keys -> API-Key erzeugen"
 
@@ -28,16 +29,24 @@ irc:
   announcers:
     - Synd1c4t3
   settings:
-    - name: nickserv.account
+    - name: nick
       type: text
       required: true
+      label: Nick
+      help: Bot nick. Eg. user-bot
+
+    - name: auth.account
+      type: text
+      required: false
       label: NickServ Account
-      help: NickServ account. Make sure to group your user and bot. Eg. user-bot
-    - name: nickserv.password
+      help: NickServ account. Make sure to group your user and bot.
+
+    - name: auth.password
       type: secret
       required: false
       label: NickServ Password
       help: NickServ password
+
     - name: invite_command
       type: secret
       default: "Synd1c4t3 invite IRCKEY"

@@ -14,6 +14,7 @@ source: unknown
 settings:
   - name: passkey
     type: secret
+    required: true
     label: Passkey
     help: "Check a torrent download link. key='value' is your passkey."
 
@@ -27,13 +28,19 @@ irc:
   announcers:
     - nCore
   settings:
-    - name: nickserv.account
+    - name: nick
       type: text
       required: true
-      label: NickServ Account
-      help: NickServ account. Make sure to group your user and bot. Eg. user|autodl
+      label: Nick
+      help: Bot nick. Eg. user|autodl
 
-    - name: nickserv.password
+    - name: auth.account
+      type: text
+      required: false
+      label: NickServ Account
+      help: NickServ account. Make sure to group your user and bot.
+
+    - name: auth.password
       type: secret
       required: false
       label: NickServ Password
@@ -41,10 +48,10 @@ irc:
 
     - name: invite_command
       type: secret
-      default: "NBOT !invite <KEY>"
+      default: "NBOT !invite IRCKEY"
       required: true
       label: Invite command
-      help: Invite auth with the key from https://ncore.pro/irc.php
+      help: Invite auth with the key from https://ncore.pro/irc.php. Replace IRCKEY
 
 parse:
   type: single

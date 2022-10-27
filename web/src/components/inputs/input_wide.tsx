@@ -1,4 +1,4 @@
-import type { FieldProps } from "formik";
+import type { FieldProps, FieldValidator } from "formik";
 import { Field } from "formik";
 import { classNames } from "../../utils";
 import { useToggle } from "../../hooks/hooks";
@@ -14,6 +14,7 @@ interface TextFieldWideProps {
     defaultValue?: string;
     required?: boolean;
     hidden?: boolean;
+    validate?: FieldValidator;
 }
 
 export const TextFieldWide = ({
@@ -23,7 +24,8 @@ export const TextFieldWide = ({
   placeholder,
   defaultValue,
   required,
-  hidden
+  hidden,
+  validate
 }: TextFieldWideProps) => (
   <div hidden={hidden} className="space-y-1 p-4 sm:space-y-0 sm:grid sm:grid-cols-3 sm:gap-4">
     <div>
@@ -36,6 +38,7 @@ export const TextFieldWide = ({
         name={name}
         value={defaultValue}
         required={required}
+        validate={validate}
       >
         {({ field, meta }: FieldProps) => (
           <input
@@ -66,6 +69,7 @@ interface PasswordFieldWideProps {
     help?: string;
     required?: boolean;
     defaultVisible?: boolean;
+    validate?: FieldValidator;
 }
 
 export const PasswordFieldWide = ({
@@ -75,7 +79,8 @@ export const PasswordFieldWide = ({
   defaultValue,
   help,
   required,
-  defaultVisible
+  defaultVisible,
+  validate
 }: PasswordFieldWideProps) => {
   const [isVisible, toggleVisibility] = useToggle(defaultVisible);
 
@@ -90,6 +95,7 @@ export const PasswordFieldWide = ({
         <Field
           name={name}
           defaultValue={defaultValue}
+          validate={validate}
         >
           {({ field, meta }: FieldProps) => (
             <div className="relative">
