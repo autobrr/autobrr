@@ -591,51 +591,28 @@ CREATE INDEX indexer_identifier_index
 	ALTER TABLE filter
 		ADD COLUMN use_regex_release_tags BOOLEAN DEFAULT FALSE;
 	`,
-	`
-CREATE TABLE irc_network_dg_tmp
-(
-    id                  SERIAL PRIMARY KEY,
-    enabled             BOOLEAN,
-    name                TEXT NOT NULL,
-    server              TEXT NOT NULL,
-    port                INTEGER NOT NULL,
-    tls                 BOOLEAN,
-    pass                TEXT,
-    nick                TEXT,
-    auth_mechanism      TEXT,
-    auth_account        TEXT,
-    auth_password       TEXT,
-    invite_command      TEXT,
-    connected           BOOLEAN,
-    connected_since     TIMESTAMP,
-    created_at          TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at          TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE (server, port, nick)
-);
+	`ALTER TABLE irc_network
+    RENAME COLUMN nickserv_account TO auth_account;
 
-INSERT INTO irc_network_dg_tmp(id, enabled, name, server, port, tls, pass, nick, auth_mechanism, auth_account, auth_password, invite_command, 
-                               connected, connected_since, created_at, updated_at)
-SELECT id,
-       enabled,
-       name,
-       server,
-       port,
-       tls,
-       pass,
-       nickserv_account,
-       'SASL_PLAIN',
-       nickserv_account,
-       nickserv_password,
-       invite_command,
-       connected,
-       connected_since,
-       created_at,
-       updated_at
-FROM irc_network;
+	ALTER TABLE irc_network
+		RENAME COLUMN nickserv_password TO auth_password;
 
-DROP TABLE irc_network;
+	ALTER TABLE irc_network
+		ADD nick TEXT;
 
-ALTER TABLE irc_network_dg_tmp
-    RENAME TO irc_network;
-	`,
+	ALTER TABLE irc_network
+		ADD auth_mechanism TEXT DEFAULT 'SASL_PLAIN';
+
+	ALTER TABLE irc_network
+		DROP CONSTRAINT irc_network_server_port_nickserv_account_key;
+
+	ALTER TABLE irc_network
+		ADD CONSTRAINT irc_network_server_port_nick_key
+			UNIQUE (server, port, nick);
+
+	UPDATE irc_network
+		SET nick = irc_network.auth_account;
+
+	UPDATE irc_network
+		SET auth_mechanism = 'SASL_PLAIN';`,
 }
