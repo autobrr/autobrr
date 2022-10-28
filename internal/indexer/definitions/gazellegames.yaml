@@ -85,7 +85,7 @@ parse:
     - test:
         - "Uploader :-: Nintendo 3DS :-: Cool.Game.KOR.3DS-BigBlueBox in Cool Game [2013] ::Korean, Multi-Region, Scene:: https://gazellegames.net/torrents.php?torrentid=00000 - adventure, role_playing_game, nintendo;"
         - "Uploader :-: Windows :-: Other.Game-HI2U in Other Game [2016] ::English, Scene:: FREELEECH! :: https://gazellegames.net/torrents.php?torrentid=00000 - action, adventure, casual, indie, role.playing.game;"
-      pattern: '^(.+) :-: (.+) :-: (.+) \[(\d+)\] ::(.+?)?:: ?(.+?)?(?:! ::)? (https?:\/\/[^\/]+\/)torrents.php\?torrentid=(\d+) ?-? ?(.*?)?;?$'
+      pattern: '^(.+) :-: (.+) :-: (.+) \[(\d+)?\] ::(.+?)?:: ?(.+?)?(?:! ::)? (https?:\/\/[^\/]+\/)torrents.php\?torrentid=(\d+)(?: - )?([a-zA-Z0-9, _\.]+)?;?(?:[ :]*(?:[NSFW]*)?[! :]*)?$'
       vars:
         - uploader
         - category
