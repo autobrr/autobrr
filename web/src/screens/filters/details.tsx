@@ -69,8 +69,8 @@ function TabNavLink({ item }: NavLinkProps) {
       to={item.href}
       end
       className={({ isActive }) => classNames(
-        "text-gray-500 hover:text-purple-600 dark:hover:text-white hover:border-purple-600 dark:hover:border-blue-500 whitespace-nowrap py-4 px-1 font-medium text-sm",
-        isActive ? "border-b-2 border-purple-600 dark:border-blue-500 text-purple-600 dark:text-white" : ""
+        "text-gray-500 hover:text-blue-600 dark:hover:text-white hover:border-blue-600 dark:hover:border-blue-500 whitespace-nowrap py-4 px-1 font-medium text-sm",
+        isActive ? "border-b-2 border-blue-600 dark:border-blue-500 text-blue-600 dark:text-white" : ""
       )}
       aria-current={splitLocation[2] === item.href ? "page" : undefined}
     >
