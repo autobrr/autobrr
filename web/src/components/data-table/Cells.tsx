@@ -27,7 +27,7 @@ export const TitleCell = ({ value }: CellProps) => (
       label={value}
       maxWidth="max-w-[90vw]"
     >
-      <span className="whitespace-pre-wrap break-word">
+      <span className="whitespace-pre-wrap break-words">
         {value}
       </span>
     </Tooltip>
@@ -114,10 +114,10 @@ const CellLine = ({ title, children }: { title: string; children?: string; }) =>
     return null;
 
   return (
-    <div className="mt-1">
+    <div className="mt-0.5">
       <span className="font-bold">{title}</span>
       {": "}
-      <span className="whitespace-pre-wrap break-word leading-4">{children}</span>
+      <span className="whitespace-pre-wrap break-words leading-5">{children}</span>
     </div>
   );
 };
@@ -142,7 +142,7 @@ export const ReleaseStatusCell = ({ value }: ReleaseStatusCellProps) => (
             <CellLine title="Filter">{v.filter}</CellLine>
             <CellLine title="Time">{simplifyDate(v.timestamp)}</CellLine>
             {v.rejections.length ? (
-              <CellLine title="Filter">
+              <CellLine title="Rejected">
                 {v.rejections.toString()}
               </CellLine>
             ) : null}
