@@ -91,8 +91,8 @@ function DownloadClientSettings() {
 
       <DownloadClientAddForm isOpen={addClientIsOpen} toggle={toggleAddClient} />
 
-      <div className="py-6 px-4 sm:p-6 lg:pb-8">
-        <div className="-ml-4 -mt-4 flex justify-between items-center flex-wrap sm:flex-nowrap">
+      <div className="py-6 px-2 lg:pb-8">
+        <div className="px-4 -ml-4 -mt-4 flex justify-between items-center flex-wrap sm:flex-nowrap">
           <div className="ml-4 mt-4">
             <h3 className="text-lg leading-6 font-medium text-gray-900 dark:text-white">Clients</h3>
             <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
@@ -112,8 +112,8 @@ function DownloadClientSettings() {
 
         <div className="flex flex-col mt-6">
           {data && data.length > 0 ?
-            <div className="-my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
-              <div className="py-2 align-middle inline-block min-w-full sm:px-6 lg:px-8">
+            <div className="-my-2 overflow-x-auto">
+              <div className="py-2 align-middle inline-block min-w-full">
                 <div className="light:shadow overflow-hidden light:border-b light:border-gray-200 sm:rounded-lg">
                   <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
                     <thead className="light:bg-gray-50">
