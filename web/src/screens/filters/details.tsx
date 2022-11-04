@@ -360,10 +360,18 @@ export function MoviesTv() {
   return (
     <div>
       <div className="mt-6 grid grid-rows-3 grid-flow-col gap-6">
-      <div className="col-span-12 row-span-3"> <TextArea name="shows" label="Movies / Shows" rows={9} placeholder="eg. Movie,Show 1,Show?2" /></div>
-      <div className="col-span-1"><TextField name="years" label="Years" placeholder="eg. 2018,2019-2021" /></div>
-      <div className="col-span-1"><TextField name="seasons" label="Seasons" placeholder="eg. 1,3,2-6" /></div>
-      <div className="col-span-1"><TextField name="episodes" label="Episodes" placeholder="eg. 2,4,10-20" /></div>
+        <div className="col-span-12 row-span-3"> 
+          <TextArea name="shows" label="Movies / Shows" rows={9} placeholder="eg. Movie,Show 1,Show?2" />
+       </div>
+       <div className="col-span-1">
+         <TextField name="years" label="Years" placeholder="eg. 2018,2019-2021" />
+       </div>
+       <div className="col-span-1">
+          <TextField name="seasons" label="Seasons" placeholder="eg. 1,3,2-6" />
+        </div>
+        <div className="col-span-1">
+          <TextField name="episodes" label="Episodes" placeholder="eg. 2,4,10-20" />
+        </div>
       </div>
 
       <div className="mt-6 lg:pb-8">
@@ -451,7 +459,6 @@ export function Advanced() {
       <CollapsableSection defaultOpen={true} title="Releases" subtitle="Match only certain release names and/or ignore other release names">
         <div className="grid col-span-12 gap-6">
           <WarningAlert text="autobrr has extensive filtering built-in - only use this if nothing else works. If you need help please ask." />
-
           <TextArea name="match_releases" label="Match releases" columns={12} rows={5} placeholder="eg. *some?movie*,*some?show*s01*" />
           <TextArea name="except_releases" label="Except releases" columns={12} rows={5} placeholder="" />
           <div className="col-span-1">
