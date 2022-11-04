@@ -112,9 +112,29 @@ function DownloadClientSettings() {
 
         <div className="flex flex-col mt-6">
           {data && data.length > 0 ?
-            <div className="-my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
+            <section className="mt-6 light:bg-white dark:bg-gray-800 light:shadow sm:rounded-md">
+            <ol className="min-w-full relative">
+              <li className="grid grid-cols-12 gap-4 border-b border-gray-200 dark:border-gray-700">
+              
+                <div className="col-span-2 px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  Enabled
+                </div>
+                <div className="hidden sm:flex col-span-4 px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  Name
+                </div>
+                <div className="hidden sm:flex col-span-5 px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  Host
+                </div>
+              </li>
+              {data &&
+                {data && data.map((client, idx) => (
+                  <DownloadClientSettingsListItem client={client} idx={idx} key={idx} />
+                ))}
+            </ol>
+          </section>
+            /* <div className="-my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
               <div className="py-2 align-middle inline-block min-w-full sm:px-6 lg:px-8">
-                <div className="light:shadow overflow-hidden light:border-b light:border-gray-200 sm:rounded-lg">
+                <div className="light:shadow overflow-hidden light:border-b light:border-gray-200 sm:rounded-lg table-responsive">
                   <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
                     <thead className="light:bg-gray-50">
                       <tr>
@@ -155,7 +175,7 @@ function DownloadClientSettings() {
                   </table>
                 </div>
               </div>
-            </div>
+            </div> */
             : <EmptySimple title="No download clients" subtitle="Add a new client" buttonText="New client" buttonAction={toggleAddClient} />
           }
         </div>
