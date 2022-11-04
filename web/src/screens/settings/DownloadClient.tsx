@@ -61,9 +61,9 @@ function DownloadClientSettingsListItem({ client, idx }: DLSettingsItemProps) {
           />
         </Switch>
       </td>
-      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">{client.name}</td>
-      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{client.host}</td>
-      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{DownloadClientTypeNameMap[client.type]}</td>
+      <td className="px-6 py-4 whitespace-nowrap text-sm truncate max-w-sm font-medium text-gray-900 dark:text-white">{client.name}</td>
+      <td className="px-6 py-4 whitespace-nowrap text-sm truncate max-w-sm text-gray-500 dark:text-gray-400">{client.host}</td>
+      <td className="px-6 py-4 whitespace-nowrap text-sm truncate max-w-sm text-gray-500 dark:text-gray-400">{DownloadClientTypeNameMap[client.type]}</td>
       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
         <span className="text-blue-600 dark:text-gray-300 hover:text-blue-900 cursor-pointer" onClick={toggleUpdateClient}>
           Edit

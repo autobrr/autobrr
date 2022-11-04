@@ -3,6 +3,25 @@ import { APIClient } from "../../api/APIClient";
 import { Checkbox } from "../../components/Checkbox";
 import { SettingsContext } from "../../utils/Context";
 
+interface RowItemProps {
+  label: string;
+  value?: string;
+}
+
+const RowItem = ({ label, value }: RowItemProps) => {
+  if (!value)
+    return null;
+
+  return (
+    <div className="py-4 sm:py-5 sm:grid sm:grid-cols-4 sm:gap-4 sm:px-6">
+      <dt className="font-medium text-gray-500 dark:text-white">{label}:</dt>
+      <dd className="mt-1 text-gray-900 dark:text-white sm:mt-0 sm:col-span-2 break-all">
+        {value}
+      </dd>
+    </div>
+  );
+}
+
 function ApplicationSettings() {
   const [settings, setSettings] = SettingsContext.use();
 
@@ -31,7 +50,7 @@ function ApplicationSettings() {
             <div className="mt-6 grid grid-cols-12 gap-6">
               <div className="col-span-6 sm:col-span-4">
                 <label htmlFor="host" className="block text-xs font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wide">
-                Host
+                  Host
                 </label>
                 <input
                   type="text"
@@ -45,7 +64,7 @@ function ApplicationSettings() {
 
               <div className="col-span-6 sm:col-span-4">
                 <label htmlFor="port" className="block text-xs font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wide">
-                Port
+                  Port
                 </label>
                 <input
                   type="text"
@@ -59,7 +78,7 @@ function ApplicationSettings() {
 
               <div className="col-span-6 sm:col-span-4">
                 <label htmlFor="base_url" className="block text-xs font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wide">
-                Base url
+                  Base url
                 </label>
                 <input
                   type="text"
@@ -78,26 +97,11 @@ function ApplicationSettings() {
       <div className="divide-y divide-gray-200 dark:divide-gray-700">
         <div className="px-4 py-5 sm:p-0">
           <dl className="sm:divide-y divide-gray-200 dark:divide-gray-700">
-            {data?.version ? (
-              <div className="py-4 sm:py-5 sm:grid sm:grid-cols-4 sm:gap-4 sm:px-6">
-                <dt className="font-medium text-gray-500 dark:text-white">Version:</dt>
-                <dd className="mt-1 text-gray-900 dark:text-white sm:mt-0 sm:col-span-2 break-all">
-                  {data?.version}
-                </dd>
-              </div>
-            ) : null}
-            {data?.commit ? (
-              <div className="py-4 sm:py-5 sm:grid sm:grid-cols-4 sm:gap-4 sm:px-6">
-                <dt className="font-medium text-gray-500 dark:text-white">Commit:</dt>
-                <dd className="mt-1 text-gray-900 dark:text-white sm:mt-0 sm:col-span-2 break-all">{data.commit}</dd>
-              </div>
-            ) : null}
-            {data?.date ? (
-              <div className="py-4 sm:py-5 sm:grid sm:grid-cols-4 sm:gap-4 sm:px-6">
-                <dt className="font-medium text-gray-500 dark:text-white">Date:</dt>
-                <dd className="mt-1 text-gray-900 dark:text-white sm:mt-0 sm:col-span-2 break-all">{data?.date}</dd>
-              </div>
-            ) : null}
+            <RowItem label="Version" value={data?.version} />
+            <RowItem label="Log path" value={data?.log_path} />
+            <RowItem label="Log level" value={data?.log_level} />
+            <RowItem label="Commit" value={data?.commit} />
+            <RowItem label="Build date" value={data?.date} />
           </dl>
         </div>
         <ul className="divide-y divide-gray-200 dark:divide-gray-700">

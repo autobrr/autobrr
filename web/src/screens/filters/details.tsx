@@ -108,17 +108,22 @@ const FormButtonsGroup = ({ values, deleteAction, reset }: FormButtonsGroupProps
           className="inline-flex items-center justify-center px-4 py-2 rounded-md text-red-700 dark:text-red-500 light:bg-red-100 light:hover:bg-red-200 dark:hover:text-red-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:text-sm"
           onClick={toggleDeleteModal}
         >
-                    Remove
+          Remove
         </button>
 
         <div>
           {/* {dirty && <span className="mr-4 text-sm text-gray-500">Unsaved changes..</span>} */}
           <button
             type="button"
-            className="light:bg-white light:border light:border-gray-300 rounded-md py-2 px-4 inline-flex justify-center text-sm font-medium text-gray-700 dark:text-gray-500 light:hover:bg-gray-50 dark:hover:text-gray-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-            onClick={reset}
+            className="bg-white dark:bg-gray-700 py-2 px-4 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
+            onClick={(e) => {
+              e.preventDefault();
+              reset();
+
+              toast.custom((t) => <Toast type="success" body="Reset all filter values." t={t}/>);
+            }}
           >
-            Cancel
+            Reset form values
           </button>
           <button
             type="submit"
@@ -292,10 +297,9 @@ export default function FilterDetails() {
                     <Route index element={<General />} />
                     <Route path="movies-tv" element={<MoviesTv />} />
                     <Route path="music" element={<Music />} />
-                    <Route path="advanced" element={<Advanced />} />
+                    <Route path="advanced" element={<Advanced values={values} />} />
                     <Route path="external" element={<External />} />
-                    <Route path="actions" element={<FilterActions filter={filter} values={values} />}
-                    />
+                    <Route path="actions" element={<FilterActions filter={filter} values={values} />} />
                   </Routes>
                   <FormButtonsGroup values={values} deleteAction={deleteAction} dirty={dirty} reset={resetForm} />
                   <DEBUG values={values} />
@@ -452,7 +456,11 @@ export function Music() {
   );
 }
 
-export function Advanced() {
+interface AdvancedProps {
+  values: FormikValues;
+}
+
+export function Advanced({ values }: AdvancedProps) {
   return (
     <div>
       <CollapsableSection defaultOpen={true} title="Releases" subtitle="Match only certain release names and/or ignore other release names">
@@ -461,6 +469,24 @@ export function Advanced() {
 
           <TextField name="match_releases" label="Match releases" columns={6} placeholder="eg. *some?movie*,*some?show*s01*" />
           <TextField name="except_releases" label="Except releases" columns={6} placeholder="" />
+          {values.match_releases ? (
+            <WarningAlert
+              alert="Ask yourself:"
+              text={
+                <>Do you have a good reason to use <strong>Match releases</strong> instead of one of the other tabs?</>
+              }
+              colors="text-cyan-700 bg-cyan-100 dark:bg-cyan-200 dark:text-cyan-800"
+            />
+          ) : null}
+          {values.except_releases ? (
+            <WarningAlert
+              alert="Ask yourself:"
+              text={
+                <>Do you have a good reason to use <strong>Except releases</strong> instead of one of the other tabs?</>
+              }
+              colors="text-fuchsia-700 bg-fuchsia-100 dark:bg-fuchsia-200 dark:text-fuchsia-800"
+            />
+          ) : null}
           <div className="col-span-6">
             <SwitchGroup name="use_regex" label="Use Regex" />
           </div>
@@ -514,13 +540,18 @@ export function Advanced() {
 }
 
 interface WarningAlertProps {
-  text: string;
+  text: string | JSX.Element;
+  alert?: string;
+  colors?: string;
 }
 
-function WarningAlert({ text }: WarningAlertProps) {
+function WarningAlert({ text, alert, colors }: WarningAlertProps) {
   return (
     <div
-      className="col-span-12 flex p-4 text-sm text-yellow-700 bg-yellow-100 rounded-lg dark:bg-yellow-200 dark:text-yellow-800"
+      className={classNames(
+        "col-span-12 flex p-4 text-sm rounded-lg",
+        colors ?? "text-yellow-700 bg-yellow-100 dark:bg-yellow-200 dark:text-yellow-800"
+      )}
       role="alert">
       <svg aria-hidden="true" className="flex-shrink-0 inline w-5 h-5 mr-3" fill="currentColor"
         viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
@@ -530,7 +561,8 @@ function WarningAlert({ text }: WarningAlertProps) {
       </svg>
       <span className="sr-only">Info</span>
       <div>
-        <span className="font-bold">Warning!</span> {text}
+        <span className="font-bold">{alert ?? "Warning!"}</span>
+        {" "}{text}
       </div>
     </div>
   );
