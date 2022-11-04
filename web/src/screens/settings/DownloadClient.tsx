@@ -126,11 +126,10 @@ function DownloadClientSettings() {
                   Host
                 </div>
               </li>
-              {data &&
-                {data && data.map((client, idx) => (
-                  <DownloadClientSettingsListItem client={client} idx={idx} key={idx} />
-                ))}
-            </ol>
+              {data && data.map((client, idx) => (
+                <DownloadClientSettingsListItem client={client} idx={idx} key={idx} />
+              ))}
+    </ol>
           </section>
             /* <div className="-my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
               <div className="py-2 align-middle inline-block min-w-full sm:px-6 lg:px-8">
