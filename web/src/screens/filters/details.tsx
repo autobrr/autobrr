@@ -361,18 +361,17 @@ export function General() {
 export function MoviesTv() {
   return (
     <div>
-      <div className="mt-6 grid grid-rows-3 grid-flow-col gap-6">
-        <div className="col-span-12 row-span-3"> 
-          <TextAreaAutoResize name="shows" label="Movies / Shows" placeholder="eg. Movie,Show 1,Show?2" />
-       </div>
-       <div className="col-span-12">
-         <TextField name="years" label="Years" placeholder="eg. 2018,2019-2021" />
-       </div>
-       <div className="col-span-12">
-          <TextField name="seasons" label="Seasons" placeholder="eg. 1,3,2-6" />
-        </div>
-        <div className="col-span-12">
-          <TextField name="episodes" label="Episodes" placeholder="eg. 2,4,10-20" />
+<     div className="mt-6 grid grid-cols-12 gap-6">
+        <TextAreaAutoResize name="shows" label="Movies / Shows" columns={8} placeholder="eg. Movie,Show 1,Show?2" />
+        <TextField name="years" label="Years" columns={4} placeholder="eg. 2018,2019-2021" />
+      </div>
+
+      <div className="mt-6 lg:pb-8">
+        <TitleSubtitle title="Seasons and Episodes" subtitle="Set season and episode match constraints" />
+
+        <div className="mt-6 grid grid-cols-12 gap-6">
+          <TextField name="seasons" label="Seasons" columns={8} placeholder="eg. 1,3,2-6" />
+          <TextField name="episodes" label="Episodes" columns={4} placeholder="eg. 2,4,10-20" />
         </div>
       </div>
 
