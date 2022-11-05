@@ -361,7 +361,7 @@ export function General() {
 export function MoviesTv() {
   return (
     <div>
-<     div className="mt-6 grid grid-cols-12 gap-6">
+      <div className="mt-6 grid grid-cols-12 gap-6">
         <TextAreaAutoResize name="shows" label="Movies / Shows" columns={8} placeholder="eg. Movie,Show 1,Show?2" />
         <TextField name="years" label="Years" columns={4} placeholder="eg. 2018,2019-2021" />
       </div>
