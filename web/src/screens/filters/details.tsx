@@ -459,14 +459,12 @@ export function Advanced() {
   return (
     <div>
       <CollapsableSection defaultOpen={true} title="Releases" subtitle="Match only certain release names and/or ignore other release names">
-        <div className="grid col-span-12 gap-6">
           <WarningAlert text="autobrr has extensive filtering built-in - only use this if nothing else works. If you need help please ask." />
           <TextAreaAutoResize name="match_releases" label="Match releases" columns={6} placeholder="eg. *some?movie*,*some?show*s01*" />
           <TextAreaAutoResize name="except_releases" label="Except releases" columns={6} placeholder="" />
-          <div className="col-span-1">
+          <div className="col-span-6">
             <SwitchGroup name="use_regex" label="Use Regex" />
           </div>
-        </div>
       </CollapsableSection>
 
       <CollapsableSection defaultOpen={true} title="Groups" subtitle="Match only certain groups and/or ignore other groups">
