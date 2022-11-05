@@ -2,6 +2,7 @@ import { Field, FieldProps } from "formik";
 import { classNames } from "../../utils";
 import { EyeIcon, EyeSlashIcon } from "@heroicons/react/24/solid";
 import { useToggle } from "../../hooks/hooks";
+import TextareaAutosize from "react-textarea-autosize";
 
 type COL_WIDTHS = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12;
 
@@ -130,6 +131,71 @@ export const TextArea = ({
     </Field>
   </div>
 );
+
+interface TextAreaAutoResizeProps {
+  name: string;
+  defaultValue?: string;
+  label?: string;
+  placeholder?: string;
+  columns?: COL_WIDTHS;
+  rows?: number;
+  autoComplete?: string;
+  hidden?: boolean;
+  disabled?: boolean;
+}
+
+export const TextAreaAutoResize = ({
+  name,
+  defaultValue,
+  label,
+  placeholder,
+  columns,
+  rows,
+  autoComplete,
+  hidden,
+  disabled
+}: TextAreaAutoResizeProps) => (
+  <div
+    className={classNames(
+      hidden ? "hidden" : "",
+      columns ? `col-span-${columns}` : "col-span-12"
+    )}
+  >
+    {label && (
+      <label htmlFor={name} className="block text-xs font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wide">
+        {label}
+      </label>
+    )}
+    <Field name={name}>
+      {({
+        field,
+        meta
+      }: FieldProps) => (
+        <div>
+          <TextareaAutosize
+            {...field}
+            id={name}
+            rows={rows}
+            defaultValue={defaultValue}
+            autoComplete={autoComplete}
+            className={classNames(
+              meta.touched && meta.error ? "focus:ring-red-500 focus:border-red-500 border-red-500" : "focus:ring-blue-500 dark:focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-500 border-gray-300 dark:border-gray-700",
+              disabled ? "bg-gray-100 dark:bg-gray-700 cursor-not-allowed" : "dark:bg-gray-800",
+              "mt-2 block w-full dark:text-gray-100 rounded-md"
+            )}
+            placeholder={placeholder}
+            disabled={disabled}
+          />
+
+          {meta.touched && meta.error && (
+            <p className="error text-sm text-red-600 mt-1">* {meta.error}</p>
+          )}
+        </div>
+      )}
+    </Field>
+  </div>
+);
+
 
 interface PasswordFieldProps {
     name: string;

@@ -4,7 +4,7 @@ import { NavLink, Route, Routes, useLocation, useNavigate, useParams } from "rea
 import { toast } from "react-hot-toast";
 import { Form, Formik, FormikValues, useFormikContext } from "formik";
 import { ChevronDownIcon, ChevronRightIcon } from "@heroicons/react/24/solid";
-import TextareaAutosize from 'react-textarea-autosize';
+import TextareaAutosize from "react-textarea-autosize";
 
 import {
   CODECS_OPTIONS,
@@ -39,6 +39,7 @@ import Toast from "../../components/notifications/Toast";
 import { DeleteModal } from "../../components/modals";
 import { TitleSubtitle } from "../../components/headings";
 import { TextArea } from "../../components/inputs/input";
+import { TextAreaAutoResize } from "../../components/inputs/input";
 import { FilterActions } from "./action";
 
 interface tabType {
@@ -362,15 +363,15 @@ export function MoviesTv() {
     <div>
       <div className="mt-6 grid grid-rows-3 grid-flow-col gap-6">
         <div className="col-span-12 row-span-3"> 
-          <TextArea name="shows" label="Movies / Shows" rows={9} placeholder="eg. Movie,Show 1,Show?2" />
+          <TextAreaAutoResize name="shows" label="Movies / Shows" placeholder="eg. Movie,Show 1,Show?2" />
        </div>
-       <div className="col-span-1">
+       <div className="col-span-12">
          <TextField name="years" label="Years" placeholder="eg. 2018,2019-2021" />
        </div>
-       <div className="col-span-1">
+       <div className="col-span-12">
           <TextField name="seasons" label="Seasons" placeholder="eg. 1,3,2-6" />
         </div>
-        <div className="col-span-1">
+        <div className="col-span-12">
           <TextField name="episodes" label="Episodes" placeholder="eg. 2,4,10-20" />
         </div>
       </div>
@@ -460,8 +461,8 @@ export function Advanced() {
       <CollapsableSection defaultOpen={true} title="Releases" subtitle="Match only certain release names and/or ignore other release names">
         <div className="grid col-span-12 gap-6">
           <WarningAlert text="autobrr has extensive filtering built-in - only use this if nothing else works. If you need help please ask." />
-          <TextareaAutosize name="match_releases" label="Match releases" columns={6} placeholder="eg. *some?movie*,*some?show*s01*" />
-          <TextareaAutosize name="except_releases" label="Except releases" columns={6} placeholder="" />
+          <TextAreaAutoResize name="match_releases" label="Match releases" columns={6} placeholder="eg. *some?movie*,*some?show*s01*" />
+          <TextAreaAutoResize name="except_releases" label="Except releases" columns={6} placeholder="" />
           <div className="col-span-1">
             <SwitchGroup name="use_regex" label="Use Regex" />
           </div>
