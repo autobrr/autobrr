@@ -12,7 +12,7 @@ interface CellProps {
 
 export const AgeCell = ({ value }: CellProps) => (
   <div className="text-sm text-gray-500" title={value}>
-    {formatDistanceToNowStrict(new Date(value), { addSuffix: true })}
+    {formatDistanceToNowStrict(new Date(value), { addSuffix: false })}
   </div>
 );
 
