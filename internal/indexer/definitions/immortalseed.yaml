@@ -23,8 +23,8 @@ settings:
 irc:
   network: ImmortalSeed
   server: irc.immortalseed.me
-  port: 6667
-  tls: false
+  port: 7000
+  tls: true
   channels:
     - "#immortal"
   announcers:
@@ -50,10 +50,10 @@ irc:
 
     - name: invite_command
       type: secret
-      default: "immortal invite USERNAME IRCKEY"
+      default: "immortal invite USERNAME PASSKEY"
       required: true
       label: Invite command
-      help: Invite auth with immortal. Replace USERNAME and IRCKEY.
+      help: Invite auth with immortal. Replace USERNAME and PASSKEY.
 
 parse:
   type: single
