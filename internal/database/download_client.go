@@ -2,6 +2,7 @@ package database
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
 	"sync"
 
@@ -151,6 +152,10 @@ func (r *DownloadClientRepo) FindByID(ctx context.Context, id int32) (*domain.Do
 	var settingsJsonStr string
 
 	if err := row.Scan(&client.ID, &client.Name, &client.Type, &client.Enabled, &client.Host, &client.Port, &client.TLS, &client.TLSSkipVerify, &client.Username, &client.Password, &settingsJsonStr); err != nil {
+		if err == sql.ErrNoRows {
+			return nil, errors.New("no client configured")
+		}
+
 		return nil, errors.Wrap(err, "error scanning row")
 	}
 
