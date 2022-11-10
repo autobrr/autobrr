@@ -91,8 +91,8 @@ parse:
         - category
         - torrentName
         - year
-        - flags
-        - bonus
+        - releaseTags
+        - freeleech
         - baseUrl
         - torrentId
         - tags
