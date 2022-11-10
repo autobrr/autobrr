@@ -6,21 +6,22 @@ import { SettingsContext } from "../../utils/Context";
 interface RowItemProps {
   label: string;
   value?: string;
+  title?: string;
 }
 
-const RowItem = ({ label, value }: RowItemProps) => {
+const RowItem = ({ label, value, title }: RowItemProps) => {
   if (!value)
     return null;
 
   return (
     <div className="py-4 sm:py-5 sm:grid sm:grid-cols-4 sm:gap-4 sm:px-6">
-      <dt className="font-medium text-gray-500 dark:text-white">{label}:</dt>
+      <dt className="font-medium text-gray-500 dark:text-white" title={title}>{label}:</dt>
       <dd className="mt-1 text-gray-900 dark:text-white sm:mt-0 sm:col-span-2 break-all">
         {value}
       </dd>
     </div>
   );
-}
+};
 
 function ApplicationSettings() {
   const [settings, setSettings] = SettingsContext.use();
@@ -98,17 +99,17 @@ function ApplicationSettings() {
         <div className="px-4 py-5 sm:p-0">
           <dl className="sm:divide-y divide-gray-200 dark:divide-gray-700">
             <RowItem label="Version" value={data?.version} />
-            <RowItem label="Log path" value={data?.log_path} />
-            <RowItem label="Log level" value={data?.log_level} />
             <RowItem label="Commit" value={data?.commit} />
             <RowItem label="Build date" value={data?.date} />
+            <RowItem label="Log path" value={data?.log_path} title="Set in config.toml" />
+            <RowItem label="Log level" value={data?.log_level} title="Set in config.toml" />
           </dl>
         </div>
         <ul className="divide-y divide-gray-200 dark:divide-gray-700">
           <div className="px-4 sm:px-6 py-1">
             <Checkbox
-              label="Debug"
-              description="Enable debug mode to get more logs."
+              label="Debug mode"
+              description="Frontend only. To change log level for backend, update config.toml"
               value={settings.debug}
               setValue={(newValue: boolean) => setSettings({
                 ...settings,
