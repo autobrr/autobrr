@@ -80,7 +80,7 @@ function Table({ columns, data }: TableProps) {
   // Render the UI for your table
   return (
     <div className="inline-block min-w-full mt-4 mb-2 align-middle">
-      <div className="bg-white shadow-lg dark:bg-gray-800 rounded-md rounded-md overflow-auto">
+      <div className="bg-white shadow-lg dark:bg-gray-800 rounded-md overflow-auto">
         <table {...getTableProps()} className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
           <thead className="bg-gray-50 dark:bg-gray-800">
             {headerGroups.map((headerGroup) => {

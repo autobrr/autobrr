@@ -27,6 +27,8 @@ import (
 	"github.com/autobrr/autobrr/internal/scheduler"
 	"github.com/autobrr/autobrr/internal/server"
 	"github.com/autobrr/autobrr/internal/user"
+
+	_ "time/tzdata"
 )
 
 var (

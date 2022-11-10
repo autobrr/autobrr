@@ -96,7 +96,7 @@ func (j *RSSJob) processItem(item *gofeed.Item) *domain.Release {
 	now := time.Now()
 
 	if j.Feed.MaxAge > 0 {
-		if item.PublishedParsed != nil {
+		if item.PublishedParsed != nil && item.PublishedParsed.After(time.Date(1970, time.April, 1, 0, 0, 0, 0, time.UTC)) {
 			if !isNewerThanMaxAge(j.Feed.MaxAge, *item.PublishedParsed, now) {
 				return nil
 			}
