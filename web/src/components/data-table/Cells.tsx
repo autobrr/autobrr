@@ -115,8 +115,7 @@ const CellLine = ({ title, children }: { title: string; children?: string; }) =>
 
   return (
     <div className="mt-0.5">
-      <span className="font-bold">{title}</span>
-      {": "}
+      <span className="font-bold">{title}: </span>
       <span className="whitespace-pre-wrap break-words leading-5">{children}</span>
     </div>
   );

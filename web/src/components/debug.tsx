@@ -1,11 +1,14 @@
 import { FC } from "react";
+import { SettingsContext } from "../utils/Context";
 
 interface DebugProps {
     values: unknown;
 }
 
 const DEBUG: FC<DebugProps> = ({ values }) => {
-  if (process.env.NODE_ENV !== "development") {
+  const settings = SettingsContext.useValue();
+
+  if (process.env.NODE_ENV !== "development" || !settings.debug) {
     return null;
   }
 

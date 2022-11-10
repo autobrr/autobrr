@@ -163,7 +163,7 @@ export function IrcNetworkAddForm({ isOpen, toggle }: AddFormProps) {
     >
       {(values) => (
         <div className="flex flex-col space-y-4 px-1 py-6 sm:py-0 sm:space-y-0">
-          <div className="flex justify-center dark:bg-red-300 text-sm font-bold text-center p-4 py-8 dark:text-red-800"><span className="flex"><ExclamationTriangleIcon className="mr-2 h-6 w-6" /> ADD NETWORKS VIA INDEXERS! ONLY USE THIS IS YOU DELETED NETWORKS</span></div>
+          <div className="flex justify-center dark:bg-red-300 text-sm font-bold text-center p-4 py-8 dark:text-red-800"><span className="flex"><ExclamationTriangleIcon className="mr-2 h-6 w-6" /> ADD NETWORKS VIA INDEXERS! ONLY USE THIS IF YOU DELETED NETWORKS</span></div>
 
           <TextFieldWide
             name="name"
