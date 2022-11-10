@@ -14,7 +14,7 @@ ARG VERSION=dev
 ARG REVISION=dev
 ARG BUILDTIME
 
-RUN apk add --no-cache git make build-base
+RUN apk add --no-cache git make build-base tzdata
 
 ENV SERVICE=autobrr
 
@@ -43,7 +43,7 @@ ENV HOME="/config" \
 XDG_CONFIG_HOME="/config" \
 XDG_DATA_HOME="/config"
 
-RUN apk --no-cache add ca-certificates curl
+RUN apk --no-cache add ca-certificates curl tzdata
 
 WORKDIR /app
 
