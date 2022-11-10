@@ -49,7 +49,7 @@ irc:
 
     - name: invite_command
       type: secret
-      default: "SceneHD .invite IRCKEY #annnonce"
+      default: "SceneHD .invite IRCKEY #announce"
       required: true
       label: Invite command
       help: Invite auth with SceneHD. Replace IRCKEY with your IRC key
