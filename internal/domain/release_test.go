@@ -243,6 +243,25 @@ func TestRelease_Parse(t *testing.T) {
 				Other:         []string{"HYBRiD", "REMUX"},
 			},
 		},
+		{
+			name: "parse_title_1",
+			fields: Release{
+				TorrentName: "The Peripheral (2022) S01 (2160p AMZN WEB-DL H265 HDR10+ DDP 5.1 English - GROUP1)",
+			},
+			want: Release{
+				TorrentName:   "The Peripheral (2022) S01 (2160p AMZN WEB-DL H265 HDR10+ DDP 5.1 English - GROUP1)",
+				Title:         "The Peripheral",
+				Resolution:    "2160p",
+				Source:        "WEB-DL",
+				Codec:         []string{"H.265"},
+				HDR:           []string{"HDR10+"},
+				Audio:         []string{"DDP"},
+				AudioChannels: "5.1",
+				Year:          2022,
+				Group:         "GROUP1",
+				Season:        1,
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
