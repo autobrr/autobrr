@@ -74,12 +74,12 @@ func (s *service) Store(ctx context.Context, indexer domain.Indexer) (*domain.In
 	switch indexer.Implementation {
 	case "torznab":
 		// if the name already contains torznab remove it
-		cleanName := strings.ReplaceAll(strings.ToLower(indexer.Name), "torznab", "")
+		cleanName := strings.ToLower(indexer.Name)
 		identifier = slug.Make(fmt.Sprintf("%v-%v", indexer.Implementation, cleanName)) // torznab-name
 
 	case "rss":
 		// if the name already contains rss remove it
-		cleanName := strings.ReplaceAll(strings.ToLower(indexer.Name), "rss", "")
+		cleanName := strings.ToLower(indexer.Name)
 		identifier = slug.Make(fmt.Sprintf("%v-%v", indexer.Implementation, cleanName)) // rss-name
 	}
 
