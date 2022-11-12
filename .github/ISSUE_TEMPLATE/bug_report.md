@@ -7,6 +7,9 @@ assignees: ''
 
 ---
 
+**Version**
+The autobrr version you're running. If you run something other than latest, please update before reporting issues.
+
 **Describe the bug**
 A clear and concise description of what the bug is.
 
