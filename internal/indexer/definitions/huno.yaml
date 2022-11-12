@@ -53,7 +53,7 @@ parse:
     - test:
         - "New in [Movie]: Old Movie (1981) (1080p BluRay x265 SDR DD 2.0 English - group1) [4.5 GiB] [FL: No] [INTERNAL: Yes] [https://hawke.uno/torrents/0000] by: [anon]"
         - "New in [TV]: Popular show (2022) S01E09 (1080p DSNP WEB-DL x265 SDR DDP Atmos 5.1 English - GROUP)[REPACK] [955.97 MiB] [FL: Yes] [INTERNAL: Yes] [https://hawke.uno/torrents/0000] by: [uploader]"
-      pattern: 'New in \[(.*)\]: ((.*) \(\d+\)(?: S\d+E\d+)? \((.*)\))(?:\[(?:REPACK2|REPACK|PROPER)\])? \[(.*)\] \[FL: (Yes|No)\] \[Internal: (Yes|No)\] \[(https://.+)/torrents/(\d+)\] by: \[(.*)\]'
+      pattern: 'New in \[(.*)\]: ((.*) \(\d+\)(?: S\d+E\d+)? \((.*)\))(?:\[(?:REPACK2|REPACK|PROPER)\])? \[(.*)\] \[FL: (Yes|No)\] \[Internal: (Yes|No)\] \[(https:\/\/.+)\/torrents\/(\d+)\] by: \[(.*)\]'
       vars:
         - category
         - torrentName
