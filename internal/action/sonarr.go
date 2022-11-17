@@ -46,8 +46,8 @@ func (s *service) sonarr(action domain.Action, release domain.Release) ([]string
 		DownloadUrl:      release.TorrentURL,
 		Size:             int64(release.Size),
 		Indexer:          release.Indexer,
-		DownloadProtocol: "torrent",
-		Protocol:         "torrent",
+		DownloadProtocol: string(release.Protocol),
+		Protocol:         string(release.Protocol),
 		PublishDate:      time.Now().Format(time.RFC3339),
 	}
 
