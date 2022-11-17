@@ -112,12 +112,12 @@ function DownloadClientSettings() {
           </div>
         </div>
 
-        <div className="flex flex-col mt-6">
+        <div className="flex flex-col mt-6 px-4">
           {data && data.length > 0 ?
             <section className="light:bg-white dark:bg-gray-800 light:shadow sm:rounded-md">
               <ol className="min-w-full relative">
                 <li className="grid grid-cols-12 gap-4 border-b border-gray-200 dark:border-gray-700">
-                  <div className="col-span-3 sm:col-span-2 px-2 sm:px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  <div className="col-span-3 sm:col-span-2 px-2 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                     Enabled
                   </div>
                   <div className="col-span-6 sm:col-span-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
