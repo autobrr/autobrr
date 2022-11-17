@@ -488,6 +488,13 @@ func (r *Release) MapVars(def *IndexerDefinition, varMap map[string]string) erro
 		}
 	}
 
+	if internal, err := getStringMapValue(varMap, "internal"); err == nil {
+		i := StringEqualFoldMulti(internal, "internal", "yes", "1")
+		if i {
+			r.Origin = "INTERNAL"
+		}
+	}
+
 	if yearVal, err := getStringMapValue(varMap, "year"); err == nil {
 		year, err := strconv.Atoi(yearVal)
 		if err != nil {

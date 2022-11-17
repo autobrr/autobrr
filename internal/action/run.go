@@ -91,6 +91,7 @@ func (s *service) RunAction(action *domain.Action, release domain.Release) ([]st
 		Filter:         release.Filter.Name,
 		Indexer:        release.Indexer,
 		InfoHash:       release.TorrentHash,
+		
 		Size:           release.Size,
 		Status:         domain.ReleasePushStatusApproved,
 		Action:         action.Name,
@@ -177,7 +178,7 @@ func (s *service) watchFolder(action domain.Action, release domain.Release) erro
 	newFileName := watchFolderArgs
 
 	// if watchFolderArgs does not contain .torrent, create
-	if !strings.Contains(watchFolderArgs, ".torrent") {
+	if !strings.HasSuffix(watchFolderArgs, ".torrent") {
 		_, tmpFileName := filepath.Split(release.TorrentTmpFile)
 
 		newFileName = filepath.Join(watchFolderArgs, tmpFileName+".torrent")

@@ -2,13 +2,13 @@ import { Fragment, useState } from "react";
 import { toast } from "react-hot-toast";
 import { useMutation, useQuery } from "react-query";
 import Select, { components, ControlProps, InputProps, MenuProps, OptionProps } from "react-select";
-import type { FieldProps, FormikErrors } from "formik";
+import type { FieldProps } from "formik";
 import { Field, Form, Formik, FormikValues } from "formik";
 
 import { XMarkIcon } from "@heroicons/react/24/solid";
 import { Dialog, Transition } from "@headlessui/react";
 
-import { sleep, slugify } from "../../utils";
+import { sleep } from "../../utils";
 import { queryClient } from "../../App";
 import DEBUG from "../../components/debug";
 import { APIClient } from "../../api/APIClient";
@@ -183,15 +183,6 @@ const SettingFields = (ind: IndexerDefinition, indexer: string) => {
   }
 };
 
-function slugIdentifier(name: string, prefix?: string) {
-  const l = name.toLowerCase();
-  if (prefix && prefix !== "") {
-    const r = l.replaceAll(prefix, "");
-    return slugify(`${prefix}-${r}`);
-  }
-  return slugify(l);
-}
-
 type SelectValue = {
   label: string;
   value: string;
@@ -236,15 +227,11 @@ export function IndexerAddForm({ isOpen, toggle }: AddProps) {
   );
 
   const onSubmit = (formData: FormikValues) => {
-    console.log("form: ", formData);
     const ind = data && data.find(i => i.identifier === formData.identifier);
     if (!ind)
       return;
 
     if (formData.implementation === "torznab") {
-      // create slug for indexer identifier as "torznab-indexer_name"
-      const name = slugIdentifier(formData.name, "torznab");
-
       const createFeed: FeedCreate = {
         name: formData.name,
         enabled: false,
@@ -253,7 +240,6 @@ export function IndexerAddForm({ isOpen, toggle }: AddProps) {
         api_key: formData.feed.api_key,
         interval: 30,
         timeout: 60,
-        indexer: name,
         indexer_id: 0
       };
 
@@ -266,12 +252,8 @@ export function IndexerAddForm({ isOpen, toggle }: AddProps) {
         }
       });
       return;
-    }
 
-    if (formData.implementation === "rss") {
-      // create slug for indexer identifier as "torznab-indexer_name"
-      const name = slugIdentifier(formData.name, "rss");
-
+    } else if (formData.implementation === "rss") {
       const createFeed: FeedCreate = {
         name: formData.name,
         enabled: false,
@@ -279,7 +261,6 @@ export function IndexerAddForm({ isOpen, toggle }: AddProps) {
         url: formData.feed.url,
         interval: 30,
         timeout: 60,
-        indexer: name,
         indexer_id: 0
       };
 
@@ -292,10 +273,8 @@ export function IndexerAddForm({ isOpen, toggle }: AddProps) {
         }
       });
       return;
-    }
 
-    if (formData.implementation === "irc") {
-
+    } else if (formData.implementation === "irc") {
       const channels: IrcChannel[] = [];
       if (ind.irc?.channels.length) {
         ind.irc.channels.forEach(element => {
