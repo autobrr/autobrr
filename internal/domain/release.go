@@ -151,6 +151,7 @@ type ReleaseProtocol string
 
 const (
 	ReleaseProtocolTorrent ReleaseProtocol = "torrent"
+	ReleaseProtocolUsenet ReleaseProtocol = "usenet"
 )
 
 type ReleaseImplementation string
