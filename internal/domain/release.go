@@ -280,9 +280,8 @@ func (r *Release) ParseSizeBytesString(size string) {
 
 func (r *Release) DownloadTorrentFile() error {
 	if r.Protocol != ReleaseProtocolTorrent {
-		return errors.New("protocol is not %s: %s", ReleaseProtocolTorrent, r.Protocol)
-	}
-	else if r.TorrentURL == "" {
+		return errors.New("download_file: protocol is not %s: %s", ReleaseProtocolTorrent, r.Protocol)
+	} else if r.TorrentURL == "" {
 		return errors.New("download_file: url can't be empty")
 	} else if r.TorrentTmpFile != "" {
 		// already downloaded
