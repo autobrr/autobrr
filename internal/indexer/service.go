@@ -69,21 +69,16 @@ func NewService(log logger.Logger, config *domain.Config, repo domain.IndexerRep
 }
 
 func (s *service) Store(ctx context.Context, indexer domain.Indexer) (*domain.Indexer, error) {
-	identifier := indexer.Identifier
 
+	// if indexer is rss or torznab do additional cleanup for identifier
 	switch indexer.Implementation {
-	case "torznab":
-		// if the name already contains torznab remove it
+	case "torznab", "rss":
+		// make lowercase
 		cleanName := strings.ToLower(indexer.Name)
-		identifier = slug.Make(fmt.Sprintf("%v-%v", indexer.Implementation, cleanName)) // torznab-name
 
-	case "rss":
-		// if the name already contains rss remove it
-		cleanName := strings.ToLower(indexer.Name)
-		identifier = slug.Make(fmt.Sprintf("%v-%v", indexer.Implementation, cleanName)) // rss-name
+		// torznab-name OR rss-name
+		indexer.Identifier = slug.Make(fmt.Sprintf("%v-%v", indexer.Implementation, cleanName))
 	}
-
-	indexer.Identifier = identifier
 
 	i, err := s.repo.Store(ctx, indexer)
 	if err != nil {
@@ -92,8 +87,7 @@ func (s *service) Store(ctx context.Context, indexer domain.Indexer) (*domain.In
 	}
 
 	// add to indexerInstances
-	err = s.addIndexer(*i)
-	if err != nil {
+	if err = s.addIndexer(*i); err != nil {
 		s.log.Error().Stack().Err(err).Msgf("failed to add indexer: %v", indexer.Name)
 		return nil, err
 	}
