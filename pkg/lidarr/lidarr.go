@@ -76,8 +76,13 @@ type PushResponse struct {
 type BadRequestResponse struct {
 	PropertyName   string `json:"propertyName"`
 	ErrorMessage   string `json:"errorMessage"`
+	ErrorCode      string `json:"errorCode"`
 	AttemptedValue string `json:"attemptedValue"`
 	Severity       string `json:"severity"`
+}
+
+func (r BadRequestResponse) String() string {
+	return fmt.Sprintf("[%v: %v] %v: %v - got value: %v", r.Severity, r.ErrorCode, r.PropertyName, r.ErrorMessage, r.AttemptedValue)
 }
 
 type SystemStatusResponse struct {
@@ -114,21 +119,21 @@ func (c *client) Push(release Release) ([]string, error) {
 	c.Log.Printf("lidarr release/push response status: %v body: %v", status, string(res))
 
 	if status == http.StatusBadRequest {
-		badreqResponse := make([]*BadRequestResponse, 0)
-		err = json.Unmarshal(res, &badreqResponse)
-		if err != nil {
+		badRequestResponses := make([]*BadRequestResponse, 0)
+		if err = json.Unmarshal(res, &badRequestResponses); err != nil {
 			return nil, errors.Wrap(err, "could not unmarshal data")
 		}
 
-		if badreqResponse[0] != nil && badreqResponse[0].PropertyName == "Title" && badreqResponse[0].ErrorMessage == "Unable to parse" {
-			rejections := []string{fmt.Sprintf("unable to parse: %v", badreqResponse[0].AttemptedValue)}
-			return rejections, err
+		rejections := []string{}
+		for _, response := range badRequestResponses {
+			rejections = append(rejections, response.String())
 		}
+
+		return rejections, nil
 	}
 
 	pushResponse := PushResponse{}
-	err = json.Unmarshal(res, &pushResponse)
-	if err != nil {
+	if err = json.Unmarshal(res, &pushResponse); err != nil {
 		return nil, errors.Wrap(err, "lidarr client error json unmarshal")
 	}
 

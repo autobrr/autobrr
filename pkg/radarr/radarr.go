@@ -77,10 +77,15 @@ type SystemStatusResponse struct {
 }
 
 type BadRequestResponse struct {
-	PropertyName   string `json:"propertyName"`
-	ErrorMessage   string `json:"errorMessage"`
-	AttemptedValue string `json:"attemptedValue"`
 	Severity       string `json:"severity"`
+	ErrorCode      string `json:"errorCode"`
+	ErrorMessage   string `json:"errorMessage"`
+	PropertyName   string `json:"propertyName"`
+	AttemptedValue string `json:"attemptedValue"`
+}
+
+func (r *BadRequestResponse) String() string {
+	return fmt.Sprintf("[%v: %v] %v: %v - got value: %v", r.Severity, r.ErrorCode, r.PropertyName, r.ErrorMessage, r.AttemptedValue)
 }
 
 func (c *client) Test() (*SystemStatusResponse, error) {
@@ -94,8 +99,7 @@ func (c *client) Test() (*SystemStatusResponse, error) {
 	}
 
 	response := SystemStatusResponse{}
-	err = json.Unmarshal(res, &response)
-	if err != nil {
+	if err = json.Unmarshal(res, &response); err != nil {
 		return nil, errors.Wrap(err, "could not unmarshal data")
 	}
 
@@ -113,21 +117,21 @@ func (c *client) Push(release Release) ([]string, error) {
 	c.Log.Printf("radarr release/push status: (%v) response: %v\n", status, string(res))
 
 	if status == http.StatusBadRequest {
-		badreqResponse := make([]*BadRequestResponse, 0)
-		err = json.Unmarshal(res, &badreqResponse)
-		if err != nil {
+		badRequestResponses := make([]*BadRequestResponse, 0)
+		if err = json.Unmarshal(res, &badRequestResponses); err != nil {
 			return nil, errors.Wrap(err, "could not unmarshal data")
 		}
 
-		if badreqResponse[0] != nil && badreqResponse[0].PropertyName == "Title" && badreqResponse[0].ErrorMessage == "Unable to parse" {
-			rejections := []string{fmt.Sprintf("unable to parse: %v", badreqResponse[0].AttemptedValue)}
-			return rejections, nil
+		rejections := []string{}
+		for _, response := range badRequestResponses {
+			rejections = append(rejections, response.String())
 		}
+
+		return rejections, nil
 	}
 
 	pushResponse := make([]PushResponse, 0)
-	err = json.Unmarshal(res, &pushResponse)
-	if err != nil {
+	if err = json.Unmarshal(res, &pushResponse); err != nil {
 		return nil, errors.Wrap(err, "could not unmarshal data")
 	}
 

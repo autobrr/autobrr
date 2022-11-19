@@ -133,7 +133,7 @@ func Test_client_Push(t *testing.T) {
 				Protocol:         "torrent",
 				PublishDate:      "2021-08-21T15:36:00Z",
 			}},
-			rejections: []string{"unable to parse: Minx 1 epi 9 2160p"},
+			rejections: []string{"[error: ] Title: Unable to parse - got value: Minx 1 epi 9 2160p"},
 			wantErr:    false,
 		},
 	}
