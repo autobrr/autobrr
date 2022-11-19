@@ -72,7 +72,7 @@ func (a *announceProcessor) processQueue(queue chan string) {
 		for _, pattern := range a.indexer.Parse.Lines {
 			line, err := a.getNextLine(queue)
 			if err != nil {
-				a.log.Error().Stack().Err(err).Msg("could not get line from queue")
+				a.log.Error().Err(err).Msg("could not get line from queue")
 				return
 			}
 			a.log.Trace().Msgf("announce: process line: %v", line)
@@ -81,7 +81,7 @@ func (a *announceProcessor) processQueue(queue chan string) {
 
 			match, err := a.parseExtract(pattern.Pattern, pattern.Vars, tmpVars, line)
 			if err != nil {
-				a.log.Debug().Msgf("error parsing extract: %v", line)
+				a.log.Error().Err(err).Msgf("error parsing extract for line: %v", line)
 
 				parseFailed = true
 				break
@@ -95,7 +95,6 @@ func (a *announceProcessor) processQueue(queue chan string) {
 		}
 
 		if parseFailed {
-			a.log.Trace().Msg("announce: parse failed")
 			continue
 		}
 
@@ -103,7 +102,7 @@ func (a *announceProcessor) processQueue(queue chan string) {
 
 		// on lines matched
 		if err := a.onLinesMatched(a.indexer, tmpVars, rls); err != nil {
-			a.log.Debug().Msgf("error match line: %v", "")
+			a.log.Error().Err(err).Msg("error match line")
 			continue
 		}
 
@@ -165,7 +164,7 @@ func (a *announceProcessor) parseExtract(pattern string, vars []string, tmpVars 
 func (a *announceProcessor) onLinesMatched(def *domain.IndexerDefinition, vars map[string]string, rls *domain.Release) error {
 
 	if err := rls.MapVars(def, vars); err != nil {
-		a.log.Error().Stack().Err(err).Msg("announce: could not map vars for release")
+		a.log.Error().Err(err).Msg("announce: could not map vars for release")
 		return err
 	}
 
@@ -173,9 +172,14 @@ func (a *announceProcessor) onLinesMatched(def *domain.IndexerDefinition, vars m
 	// run before ParseMatch to not potentially use a reconstructed TorrentName
 	rls.ParseString(rls.TorrentName)
 
+	// override baseUrl to get around blocked domains
+	if def.BaseURL != "" {
+		vars["baseUrl"] = def.BaseURL
+	}
+
 	// parse torrentUrl
 	if err := def.Parse.ParseMatch(vars, def.SettingsMap, rls); err != nil {
-		a.log.Error().Stack().Err(err).Msgf("announce: %v", err)
+		a.log.Error().Err(err).Msgf("announce: %v", err)
 		return err
 	}
 

@@ -401,7 +401,7 @@ func (r *Release) RejectionsString() string {
 	return ""
 }
 
-// MapVars better name
+// MapVars map vars from regex captures to fields on release
 func (r *Release) MapVars(def *IndexerDefinition, varMap map[string]string) error {
 
 	if torrentName, err := getStringMapValue(varMap, "torrentName"); err != nil {
