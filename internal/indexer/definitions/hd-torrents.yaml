@@ -6,7 +6,7 @@ description: HD-Torrents (HD-T) is a private torrent tracker for HD MOVIES / TV
 language: en-us
 urls:
   - https://hd-torrents.org/
-  - https://hdts.ru
+  - https://hdts.ru/
 privacy: private
 protocol: torrent
 supports:

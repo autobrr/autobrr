@@ -68,6 +68,6 @@ parse:
         - torrentName
 
   match:
-    torrenturl: "https://www.{{ .baseUrl }}/rss/torrent.php/{{ .torrentId }}/{{ .uid }}/{{ .passkey }}/{{ .torrentName }}.torrent"
+    torrenturl: "{{ .baseUrl }}rss/torrent.php/{{ .torrentId }}/{{ .uid }}/{{ .passkey }}/{{ .torrentName }}.torrent"
     encode:
       - torrentName

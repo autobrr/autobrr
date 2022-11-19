@@ -5,7 +5,7 @@ identifier: polishsource
 description: PolishSource (PS) is a POLISH private torrent tracker for 0DAY / GENERAL.
 language: en-us
 urls:
-  - https://polishsource.cz
+  - https://polishsource.cz/
 privacy: private
 protocol: torrent
 supports:
@@ -61,15 +61,16 @@ parse:
     - test:
         - "Some.Show.S09E01.HDTV.x264-GROUP > TV/SD > 359.285 MB / 2 F > [ http://polishsource.cz/details.php?id=000000 ]-[ 5h 25min 15sec after pre ]"
         - "Some.Movie.2011.DVDRip.x264-GROUP2 > Movies/x264 (Documentary) > 563.296 MB / 2 F > [ http://polishsource.cz/details.php?id=000000 ]-[ 2min 48sec after pre ]"
-      pattern: '(.*)\s>\s(.*)\s>\s(.*) \/.*>\s*\[ https?\:\/\/([^\/]+)\/.*[&?]id=(\d+)\s\](?:-\[ (.*) \])?'
+      pattern: '(.*) > (.*) > (.*) \/.*>\s*\[ (https?\:\/\/.+\/).*[&?]id=(\d+)\s\](?:-\[ (.*) \])?'
       vars:
         - torrentName
         - category
         - torrentSize
         - baseUrl
         - torrentId
+        - preTime
 
   match:
-    torrenturl: "https://{{ .baseUrl }}/downloadssl.php?id={{ .torrentId }}&torr={{ .torrentName }}.torrent&passkey={{ .passkey }}"
+    torrenturl: "{{ .baseUrl }}downloadssl.php?id={{ .torrentId }}&torr={{ .torrentName }}.torrent&passkey={{ .passkey }}"
     encode:
       - torrentName

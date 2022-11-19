@@ -5,7 +5,7 @@ identifier: immortalseed
 description: ImmortalSeed (iS) is a Private Torrent Tracker for MOVIES / TV / GENERAL
 language: en-us
 urls:
-  - https://immortalseed.me
+  - https://immortalseed.me/
 privacy: private
 protocol: torrent
 supports:

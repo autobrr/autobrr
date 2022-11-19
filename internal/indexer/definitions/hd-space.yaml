@@ -5,7 +5,7 @@ identifier: hd-space
 description: HD-Space (HDS) is a Private Torrent Tracker for HD MOVIES / TV
 language: en-us
 urls:
-  - https://hd-space.org
+  - https://hd-space.org/
 privacy: private
 protocol: torrent
 supports:

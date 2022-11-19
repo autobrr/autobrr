@@ -7,6 +7,15 @@ language: en-us
 urls:
   - https://iptorrents.com/
   - https://iptorrents.me/
+  - https://nemo.iptorrents.com/
+  - https://ipt.getcrazy.me/
+  - https://ipt.findnemo.net/
+  - https://ipt.beelyrics.net/
+  - https://ipt.venom.global/
+  - https://ipt.workisboring.net/
+  - https://ipt.lol/
+  - https://ipt.cool/
+  - https://ipt.world/
 privacy: private
 protocol: torrent
 supports:
@@ -55,7 +64,7 @@ parse:
     - test:
         - "[Movies/XviD] The Movie 2010 DVDRip XviD-GROUP FREELEECH - http://www.iptorrents.com/details.php?id=000000 - 716.219 MB"
         - "[Movies/XviD] The Movie 2010 DVDRip XviD-GROUP - http://www.iptorrents.com/details.php?id=000000 - 716.219 MB"
-      pattern: '^\[([^\]]*)] (.*?)\s*(FREELEECH)*\s*-\s+(https?\:\/\/[^\/]+).*[&\?]id=(\d+)\s*- (.*)'
+      pattern: '\[(.+)] (.*?)\s*(FREELEECH)* - (https?\:\/\/.+\/).+id=(\d+) - (.*)'
       vars:
         - category
         - torrentName
@@ -65,6 +74,6 @@ parse:
         - torrentSize
 
   match:
-    torrenturl: "{{ .baseUrl }}/download.php/{{ .torrentId }}/{{ .torrentName }}.torrent?torrent_pass={{ .passkey }}"
+    torrenturl: "{{ .baseUrl }}download.php/{{ .torrentId }}/{{ .torrentName }}.torrent?torrent_pass={{ .passkey }}"
     encode:
       - torrentName

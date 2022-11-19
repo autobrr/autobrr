@@ -59,11 +59,11 @@ parse:
         - preTime
     - test:
         - "{New Torrent} Size {24.629 MiB} Files {5} Link {https://tntracker.org/torrent/000000}"
-      pattern: '\{New Torrent\} Size \{(.*)\} Files \{\d+\} Link \{(https?:\/\/[^\/]+)\/torrent\/(\d+)\}'
+      pattern: '\{New Torrent\} Size \{(.*)\} Files \{\d+\} Link \{(https?:\/\/[^\/]+\/)torrent\/(\d+)\}'
       vars:
         - torrentSize
         - baseUrl
         - torrentId
 
   match:
-    torrenturl: "{{ .baseUrl }}/download/{{ .torrentId }}/{{ .passkey }}"
+    torrenturl: "{{ .baseUrl }}download/{{ .torrentId }}/{{ .passkey }}"

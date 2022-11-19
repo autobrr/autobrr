@@ -5,7 +5,7 @@ identifier: ptp
 description: PassThePopcorn (PTP) is a private torrent tracker for MOVIES
 language: en-us
 urls:
-  - https://passthepopcorn.me
+  - https://passthepopcorn.me/
 privacy: private
 protocol: torrent
 supports:
@@ -104,4 +104,4 @@ parse:
         - tags
 
   match:
-    torrenturl: "https://passthepopcorn.me/torrents.php?action=download&id={{ .torrentId }}&authkey={{ .authkey }}&torrent_pass={{ .torrent_pass }}"
+    torrenturl: "{{ .baseUrl }}torrents.php?action=download&id={{ .torrentId }}&authkey={{ .authkey }}&torrent_pass={{ .torrent_pass }}"

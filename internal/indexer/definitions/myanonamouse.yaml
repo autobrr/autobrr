@@ -5,7 +5,7 @@ identifier: myanonamouse
 description: MyAnonaMouse (MAM) is a large ebook and audiobook tracker.
 language: en-us
 urls:
-  - https://www.myanonamouse.net
+  - https://www.myanonamouse.net/
 privacy: private
 protocol: torrent
 supports:

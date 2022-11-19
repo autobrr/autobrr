@@ -172,7 +172,12 @@ func (a *announceProcessor) onLinesMatched(def *domain.IndexerDefinition, vars m
 	// run before ParseMatch to not potentially use a reconstructed TorrentName
 	rls.ParseString(rls.TorrentName)
 
-	// override baseUrl to get around blocked domains
+	// set baseUrl since some announces don't include it
+	if len(def.URLS) > 0 {
+		vars["baseUrl"] = def.URLS[0]
+	}
+
+	// override baseUrl
 	if def.BaseURL != "" {
 		vars["baseUrl"] = def.BaseURL
 	}

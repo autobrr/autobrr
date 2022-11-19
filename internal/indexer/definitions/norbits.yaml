@@ -5,7 +5,7 @@ identifier: norbits
 description: NorBits is a Norwegian Private site for MOVIES / TV / GENERAL
 language: nb-NO
 urls:
-  - https://www.norbits.net
+  - https://www.norbits.net/
 privacy: private
 protocol: torrent
 supports:

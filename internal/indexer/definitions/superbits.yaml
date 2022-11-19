@@ -64,4 +64,4 @@ parse:
         - preTime
 
   match:
-    torrenturl: "https://superbits.org/download.php?id={{ .torrentId }}&passkey={{ .passkey }}"
+    torrenturl: "{{ .baseUrl }}download.php?id={{ .torrentId }}&passkey={{ .passkey }}"

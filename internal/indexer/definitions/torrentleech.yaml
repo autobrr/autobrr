@@ -5,7 +5,11 @@ identifier: torrentleech
 description: TorrentLeech (TL) is a private torrent tracker for 0DAY / GENERAL.
 language: en-us
 urls:
-  - https://www.torrentleech.org
+  - https://www.torrentleech.org/
+  - https://www.torrentleech.cc/
+  - https://www.torrentleech.me/
+  - https://www.tleechreload.org/
+  - https://www.tlgetin.cc/
 privacy: private
 protocol: torrent
 supports:

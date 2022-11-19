@@ -5,7 +5,7 @@ identifier: subsplease
 description: SubsPlease is an indexer for Anime.
 language: en-us
 urls:
-  - https://subsplease.org
+  - https://subsplease.org/
 privacy: public
 protocol: torrent
 supports:
@@ -53,4 +53,4 @@ parse:
         - torrentUrl
 
   match:
-    torrenturl: "{{.torrentUrl}}"
+    torrenturl: "{{ .torrentUrl }}"

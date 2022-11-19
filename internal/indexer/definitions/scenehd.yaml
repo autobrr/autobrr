@@ -5,7 +5,7 @@ identifier: scenehd
 description: SceneHD (SCHD) is a private torrent tracker for HD MOVIES / TV.
 language: en-us
 urls:
-  - https://scenehd.org
+  - https://scenehd.org/
 privacy: private
 protocol: torrent
 supports:
@@ -59,7 +59,7 @@ parse:
   lines:
     - test:
         - "[NEW] Some.Show.S08E20.EXTENDED.720p.BluRay.X264-GROUP [TV/720] https://scenehd.org/details.php?id=00000"
-      pattern: '\[NEW] (.*) \[([^\]]+)] (https?\:\/\/[^\/]+)\/.*[&\?]id=(\d+)'
+      pattern: '\[NEW] (.+) \[(.+)] (https?\:\/\/.+\/).*id=(\d+)'
       vars:
         - torrentName
         - category
@@ -67,4 +67,4 @@ parse:
         - torrentId
 
   match:
-    torrenturl: "{{ .baseUrl }}/download.php?id={{ .torrentId }}&passkey={{ .passkey }}"
+    torrenturl: "{{ .baseUrl }}download.php?id={{ .torrentId }}&passkey={{ .passkey }}"

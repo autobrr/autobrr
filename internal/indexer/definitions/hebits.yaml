@@ -72,7 +72,7 @@ parse:
         - torrentSize
     - test:
         - "Link: https://hebits.net/torrents.php?torrentid=80081"
-      pattern: '^Link: https?\:\/\/?[w{3}.]*([^\/]+).*(?:&amp;|\?)torrentid=(\d+)'
+      pattern: '^Link: (https?\:\/\/?[w{3}.]*[^\/]+\/).+torrentid=(\d+)'
       vars:
         - baseUrl
         - torrentId
@@ -85,4 +85,4 @@ parse:
         - torrentName
 
   match:
-    torrenturl: "https://{{ .baseUrl }}/torrents.php?action=download&id={{ .torrentId }}&authkey={{ .authkey }}&torrent_pass={{ .passkey }}"
+    torrenturl: "{{ .baseUrl }}torrents.php?action=download&id={{ .torrentId }}&authkey={{ .authkey }}&torrent_pass={{ .passkey }}"

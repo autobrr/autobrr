@@ -5,7 +5,7 @@ identifier: enthralled
 description: Enthralled (ENT) is a private torrent tracker for XXX
 language: en-us
 urls:
-  - https://enthralled.me
+  - https://enthralled.me/
 privacy: private
 protocol: torrent
 supports:
@@ -58,7 +58,7 @@ parse:
   lines:
     - test:
         - "Some release - Size: 559.06 MiB - Uploader: anon - Tags: worship,other - https://www.enthralled.me/torrents.php?torrentid=0000"
-      pattern: '(.*) - Size: (.*) - Uploader: (.*) - Tags: (.*?) - (https://.*)/torrents.php\?torrentid=(.*)'
+      pattern: '(.*) - Size: (.+) - Uploader: (.+) - Tags: (.*?) - (https://.+\/)torrents.php\?torrentid=(\d+)'
       vars:
         - torrentName
         - torrentSize
@@ -68,4 +68,4 @@ parse:
         - torrentId
 
   match:
-    torrenturl: "{{ .baseUrl }}/torrents.php?action=download&id={{ .torrentId }}&authkey={{ .authkey }}&torrent_pass={{ .torrent_pass }}"
+    torrenturl: "{{ .baseUrl }}torrents.php?action=download&id={{ .torrentId }}&authkey={{ .authkey }}&torrent_pass={{ .torrent_pass }}"

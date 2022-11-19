@@ -96,10 +96,10 @@ parse:
         - preTime
     - test:
         - "[ https://XXXXXXXXX/torrents.php?id=7338 / https://XXXXXXXXX/torrents.php?action=download&id=9116 ]"
-      pattern: ^\[ .* \/ (https?:\/\/.*id=(\d+)) \]
+      pattern: \[ .* \/ (https?:\/\/.*\/).+id=(\d+) \]
       vars:
         - baseUrl
         - torrentId
 
   match:
-    torrenturl: "{{ .baseUrl }}&authkey={{ .authkey }}&torrent_pass={{ .torrent_pass }}"
+    torrenturl: "{{ .baseUrl }}torrents.php?action=download&id={{ .torrentId }}&authkey={{ .authkey }}&torrent_pass={{ .torrent_pass }}"

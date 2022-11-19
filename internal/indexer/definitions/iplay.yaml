@@ -5,7 +5,7 @@ identifier: romanianmetaltorrents
 description: Romanian Metal Torrents (RMT) is a private torrent tracker for METAL MUSIC.
 language: en-us
 urls:
-  - https://metal.iplay.ro
+  - https://metal.iplay.ro/
 privacy: private
 protocol: torrent
 supports:
@@ -63,4 +63,4 @@ parse:
         - uploader
 
   match:
-    torrenturl: "{{ .baseUrl }}/download2.php?id={{ .torrentId }}&passkey={{ .passkey }}"
+    torrenturl: "{{ .baseUrl }}download2.php?id={{ .torrentId }}&passkey={{ .passkey }}"

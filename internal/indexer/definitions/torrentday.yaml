@@ -5,7 +5,15 @@ identifier: torrentday
 description: TorrentDay (TD) is a private torrent tracker for GENERAL.
 language: en-us
 urls:
-  - https://www.torrentday.com
+  - https://www.torrentday.com/
+  - https://tday.love/
+  - https://secure.torrentday.com/
+  - https://classic.torrentday.com/
+  - https://torrentday.it/
+  - https://td.findnemo.net/
+  - https://td.getcrazy.me/
+  - https://td.venom.global/
+  - https://td.workisboring.net/
 privacy: private
 protocol: torrent
 supports:
@@ -53,7 +61,7 @@ parse:
     - test:
         - "[Movie/4K] This is a Movie 2160p UHD BluRay x265-TEST - https://www.torrentday.com/details.php?id=0000000 - 5.83 GB"
         - "[Movie/4K] This is a Movie 2160p UHD BluRay x265-TEST FREELEECH - https://www.torrentday.com/details.php?id=0000000 - 5.83 GB"
-      pattern: '\[([^\]]*)] (.*?)\s*(FREELEECH)*\s*-\s+(https?\:\/\/[^\/]+).*[&\?]id=(\d+)\s*- (.*)'
+      pattern: '\[([^\]]*)] (.*?)\s*(FREELEECH)*\s*-\s+(https?\:\/\/[^\/]+\/).*[&\?]id=(\d+)\s*- (.*)'
       vars:
         - category
         - torrentName
@@ -63,6 +71,6 @@ parse:
         - torrentSize
 
   match:
-    torrenturl: "{{ .baseUrl }}/download.php/{{ .torrentId }}/{{ .torrentName }}.torrent?torrent_pass={{ .passkey }}"
+    torrenturl: "{{ .baseUrl }}download.php/{{ .torrentId }}/{{ .torrentName }}.torrent?torrent_pass={{ .passkey }}"
     encode:
       - torrentName

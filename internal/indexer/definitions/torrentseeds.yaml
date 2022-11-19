@@ -5,7 +5,7 @@ identifier: torrentseeds
 description: TorrentSeeds (TS) is a GENERAL/0-DAY tracker with great pretimes.
 language: en-us
 urls:
-  - https://torrentseeds.org
+  - https://torrentseeds.org/
 privacy: private
 protocol: torrent
 supports:
@@ -59,7 +59,7 @@ parse:
   lines:
     - test:
         - "New: This.Is.A.New.show.S00E00.720p.WEB.H264-Test .:. Category: TV/HD .:. Size: 364.82 MB .:. URL:  https://www.torrentseeds.org/details.php?id=000000 .:. Uploaded by: George."
-      pattern: 'New: (.*) \.:\. Category: (.*) \.:\. Size: (.*) \.:\. URL:  (https?\:\/\/[^\/]+).*\/(\d{6,9}) \.:\. Uploaded by: (.*)\.'
+      pattern: 'New: (.+) \.:\. Category: (.+) \.:\. Size: (.+) \.:\. URL:  (https?\:\/\/.+\/).+id=(\d+) \.:\. Uploaded by: (.*)\.'
       vars:
         - torrentName
         - category
@@ -69,4 +69,4 @@ parse:
         - uploader
 
   match:
-    torrenturl: "{{ .baseUrl }}/torrent/download/{{ .torrentId }}.{{ .rsskey }}"
+    torrenturl: "{{ .baseUrl }}torrent/download/{{ .torrentId }}.{{ .rsskey }}"

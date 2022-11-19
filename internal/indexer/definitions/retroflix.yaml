@@ -5,7 +5,7 @@ identifier: retroflix
 description: RetroFlix (RFX) is a private torrent tracker for CLASSIC MOVIES / TV / GENERAL
 language: en-us
 urls:
-  - https://retroflix.club
+  - https://retroflix.club/
 privacy: private
 protocol: torrent
 supports:

@@ -65,8 +65,8 @@ parse:
   forcesizeunit: MB
   lines:
     - test:
-        - "[New Release]-[MovieHD]-[That.Movie.2017.INTERNAL.1080p.BluRay.CRF.x264-GROUP]-[URL]-[ https://alpharatio.cc/torrents.php?id=000000 ]-[ 000000 ]-[ Uploaded 2 Mins, 59 Secs after pre. ]"
-      pattern: \[New Release\]-\[(.*)\]-\[(.*)\]-\[URL\]-\[ (https?://.*)id=\d+ \]-\[ (\d+) \](?:-\[ Uploaded (.*) after pre. ])?
+        - "[new release]-[moviehd]-[that.movie.2017.internal.1080p.bluray.crf.x264-group]-[url]-[ https://alpharatio.cc/torrents.php?id=000000 ]-[ 000000 ]-[ uploaded 2 mins, 59 secs after pre. ]"
+      pattern: \[new release\]-\[(.*)\]-\[(.*)\]-\[url\]-\[ (https?://.+/).+id=\d+ \]-\[ (\d+) \](?:-\[ uploaded (.*) after pre. ])?
       vars:
         - category
         - torrentName
@@ -83,4 +83,4 @@ parse:
         - auto
 
   match:
-    torrenturl: "{{ .baseUrl }}action=download&id={{ .torrentId }}&authkey={{ .authkey }}&torrent_pass={{ .torrent_pass }}"
+    torrenturl: "{{ .baseUrl }}torrents.php?action=download&id={{ .torrentId }}&authkey={{ .authkey }}&torrent_pass={{ .torrent_pass }}"
