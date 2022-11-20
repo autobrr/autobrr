@@ -47,24 +47,24 @@ irc:
       label: NickServ Password
       help: NickServ password
 
-parse:
-  type: single
-  lines:
-    - test:
-        - "New Torrent: Some famous book By: Author name Category: ( Ebooks - Science Fiction ) Size: ( 1.00 MiB ) Filetype: ( epub, mobi ) Language: ( English ) Link: ( https://www.myanonamouse.net/t/000000 )"
-        - "New Torrent: Some famous book By: Author name Category: ( Ebooks - Science Fiction ) Size: ( 2.11 MiB ) Filetype: ( epub, mobi ) Language: ( English ) Link: ( https://www.myanonamouse.net/t/000000 ) VIP"
-      pattern: 'New Torrent: (.*) By: (.*) Category: \( (.*) \) Size: \( (.*) \) Filetype: \( (.*) \) Language: \( (.*) \) Link: \( (https?\:\/\/[^\/]+\/).*?(\d+)\s*\)\s*(VIP)?'
-      vars:
-        - torrentName
-        - author
-        - category
-        - torrentSize
-        - tags
-        - language
-        - baseUrl
-        - torrentId
-        - freeleech
+  parse:
+    type: single
+    lines:
+      - test:
+          - "New Torrent: Some famous book By: Author name Category: ( Ebooks - Science Fiction ) Size: ( 1.00 MiB ) Filetype: ( epub, mobi ) Language: ( English ) Link: ( https://www.myanonamouse.net/t/000000 )"
+          - "New Torrent: Some famous book By: Author name Category: ( Ebooks - Science Fiction ) Size: ( 2.11 MiB ) Filetype: ( epub, mobi ) Language: ( English ) Link: ( https://www.myanonamouse.net/t/000000 ) VIP"
+        pattern: 'New Torrent: (.*) By: (.*) Category: \( (.*) \) Size: \( (.*) \) Filetype: \( (.*) \) Language: \( (.*) \) Link: \( (https?\:\/\/[^\/]+\/).*?(\d+)\s*\)\s*(VIP)?'
+        vars:
+          - torrentName
+          - author
+          - category
+          - torrentSize
+          - tags
+          - language
+          - baseUrl
+          - torrentId
+          - freeleech
 
-  match:
-    torrenturl: "{{ .baseUrl }}tor/download.php?tid={{ .torrentId }}"
-    torrentname: "{{ .torrentName }} by {{ .author }} [{{ .language }} / {{ .tags }}]"
+    match:
+      torrentUrl: "/tor/download.php?tid={{ .torrentId }}"
+      torrentname: "{{ .torrentName }} by {{ .author }} [{{ .language }} / {{ .tags }}]"

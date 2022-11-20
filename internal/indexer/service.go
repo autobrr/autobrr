@@ -358,8 +358,6 @@ func (s *service) removeIndexer(indexer domain.Indexer) {
 
 	// remove mapped definition
 	delete(s.mappedDefinitions, indexer.Identifier)
-
-	return
 }
 
 func (s *service) addIndexer(indexer domain.Indexer) error {
@@ -475,8 +473,7 @@ func (s *service) LoadIndexerDefinitions() error {
 			return errors.Wrap(err, "could not read file: %v", file)
 		}
 
-		err = yaml.Unmarshal(data, &d)
-		if err != nil {
+		if err = yaml.Unmarshal(data, &d); err != nil {
 			s.log.Error().Stack().Err(err).Msgf("failed unmarshal file: %v", file)
 			return errors.Wrap(err, "could not unmarshal file: %v", file)
 		}
@@ -546,6 +543,12 @@ func (s *service) LoadCustomIndexerDefinitions() error {
 
 		if d.Implementation == "" {
 			d.Implementation = "irc"
+		}
+
+		// to prevent crashing from non-updated definitions lets skip
+		if d.Implementation == "irc" && d.IRC.Parse == nil {
+			s.log.Warn().Msgf("skipping invalid indexer definition: %v", file)
+			continue
 		}
 
 		s.definitions[d.Identifier] = *d

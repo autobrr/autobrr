@@ -3,7 +3,6 @@ import { Field } from "formik";
 import { components, ControlProps, InputProps, MenuProps, OptionProps } from "react-select";
 import { OptionBasicTyped } from "../../domain/constants";
 import CreatableSelect from "react-select/creatable";
-import { MultiSelectOption } from "./select";
 
 interface SelectFieldProps<T> {
   name: string;
@@ -33,7 +32,7 @@ export function SelectFieldCreatable<T>({ name, label, help, placeholder, option
             <CreatableSelect
               {...field}
               id={name}
-              // isClearable={true}
+              isClearable={true}
               isSearchable={true}
               components={{
                 Input,
@@ -59,12 +58,12 @@ export function SelectFieldCreatable<T>({ name, label, help, placeholder, option
               // value={field?.value ? field.value : options.find(o => o.value == field?.value)}
               value={field?.value ? { value: field.value, label: field.value  } : field.value}
               onChange={(option) => {
-                // const opt = option as SelectOption;
-                // setFieldValue("name", option?.label ?? "")
-                setFieldValue(
-                  field.name,
-                  option.value ?? ""
-                );
+                if (option === null) {
+                  setFieldValue(field.name, "");
+                  return;
+                } else {
+                  setFieldValue(field.name, option.value ?? "");
+                }
               }}
               options={[...[...options, { value: field.value, label: field.value  }].reduce((map, obj) => map.set(obj.value, obj), new Map()).values()]}
             />

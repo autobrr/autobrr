@@ -58,22 +58,22 @@ irc:
       label: NickServ Password
       help: NickServ password
 
-parse:
-  type: single
-  lines:
-    - test:
-        - "[Movies/XviD] The Movie 2010 DVDRip XviD-GROUP FREELEECH - http://www.iptorrents.com/details.php?id=000000 - 716.219 MB"
-        - "[Movies/XviD] The Movie 2010 DVDRip XviD-GROUP - http://www.iptorrents.com/details.php?id=000000 - 716.219 MB"
-      pattern: '\[(.+)] (.*?)\s*(FREELEECH)* - (https?\:\/\/.+\/).+id=(\d+) - (.*)'
-      vars:
-        - category
-        - torrentName
-        - freeleech
-        - baseUrl
-        - torrentId
-        - torrentSize
+  parse:
+    type: single
+    lines:
+      - test:
+          - "[Movies/XviD] The Movie 2010 DVDRip XviD-GROUP FREELEECH - http://www.iptorrents.com/details.php?id=000000 - 716.219 MB"
+          - "[Movies/XviD] The Movie 2010 DVDRip XviD-GROUP - http://www.iptorrents.com/details.php?id=000000 - 716.219 MB"
+        pattern: '\[(.+)] (.*?)\s*(FREELEECH)* - (https?\:\/\/.+\/).+id=(\d+) - (.*)'
+        vars:
+          - category
+          - torrentName
+          - freeleech
+          - baseUrl
+          - torrentId
+          - torrentSize
 
-  match:
-    torrenturl: "{{ .baseUrl }}download.php/{{ .torrentId }}/{{ .torrentName }}.torrent?torrent_pass={{ .passkey }}"
-    encode:
-      - torrentName
+    match:
+      torrentUrl: "/download.php/{{ .torrentId }}/{{ .torrentName }}.torrent?torrent_pass={{ .passkey }}"
+      encode:
+        - torrentName

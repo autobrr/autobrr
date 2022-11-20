@@ -48,19 +48,19 @@ irc:
       label: NickServ Password
       help: NickServ password
 
-parse:
-  type: single
-  lines:
-    - test:
-        - "New torrent: Fear.the.walking.bee.s01e01.720p.WEB.h264-lemoncakes | Cat.: TV | WEB-DL | 720p | Uploader: ze0s | https://www.bit-hdtv.com/details.php?id=448412837123"
-        - "New torrent: Y.r.u.there.2022.1080p.BluRay.DDP5.1.x264-egg | Cat.: Movies | Encode x264 | 1080p | Uploader: Anonymous | https://www.bit-hdtv.com/details.php?id=69"
-      pattern: 'New torrent: (.*) \|\s*Cat.: ([^\|]*) \| .* Uploader: (.*) \| (https?\:\/\/[^\/]+\/).*id=(\d+)'
-      vars:
-        - torrentName
-        - category
-        - uploader
-        - baseUrl
-        - torrentId
+  parse:
+    type: single
+    lines:
+      - test:
+          - "New torrent: Fear.the.walking.bee.s01e01.720p.WEB.h264-lemoncakes | Cat.: TV | WEB-DL | 720p | Uploader: ze0s | https://www.bit-hdtv.com/details.php?id=448412837123"
+          - "New torrent: Y.r.u.there.2022.1080p.BluRay.DDP5.1.x264-egg | Cat.: Movies | Encode x264 | 1080p | Uploader: Anonymous | https://www.bit-hdtv.com/details.php?id=69"
+        pattern: 'New torrent: (.*) \|\s*Cat.: ([^\|]*) \| .* Uploader: (.*) \| (https?\:\/\/[^\/]+\/).*id=(\d+)'
+        vars:
+          - torrentName
+          - category
+          - uploader
+          - baseUrl
+          - torrentId
 
-  match:
-    torrenturl: "{{ .baseUrl }}rssdownload.php?id={{ .torrentId }}&passkey={{ .passkey }}"
+    match:
+      torrentUrl: "/rssdownload.php?id={{ .torrentId }}&passkey={{ .passkey }}"

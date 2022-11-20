@@ -54,21 +54,21 @@ irc:
       label: Invite command
       help: Invite auth with Hermes. Replace USERNAME and IRCKEY.
 
-parse:
-  type: single
-  lines:
-    - test:
-        - "TORRENT: That Artist - Albuum [2002] [Single] - FLAC / Lossless / WEB - 2000s,house,uk.garage,garage.house - https://orpheus.network/torrents.php?id=000000 / https://orpheus.network/torrents.php?action=download&id=0000000"
-        - "TORRENT: Something [2021] [Album] - FLAC / Lossless / CD -  - https://orpheus.network/torrents.php?id=000000 / https://orpheus.network/torrents.php?action=download&id=0000000"
-      pattern: 'TORRENT: (.*) \[(.+?)\] \[(.+?)\] - (.*) - \s*(.*) - https?:\/\/.* \/ (https?:\/\/.+\/).+id=(\d+)'
-      vars:
-        - torrentName
-        - year
-        - category
-        - releaseTags
-        - tags
-        - baseUrl
-        - torrentId
+  parse:
+    type: single
+    lines:
+      - test:
+          - "TORRENT: That Artist - Albuum [2002] [Single] - FLAC / Lossless / WEB - 2000s,house,uk.garage,garage.house - https://orpheus.network/torrents.php?id=000000 / https://orpheus.network/torrents.php?action=download&id=0000000"
+          - "TORRENT: Something [2021] [Album] - FLAC / Lossless / CD -  - https://orpheus.network/torrents.php?id=000000 / https://orpheus.network/torrents.php?action=download&id=0000000"
+        pattern: 'TORRENT: (.*) \[(.+?)\] \[(.+?)\] - (.*) - \s*(.*) - https?:\/\/.* \/ (https?:\/\/.+\/).+id=(\d+)'
+        vars:
+          - torrentName
+          - year
+          - category
+          - releaseTags
+          - tags
+          - baseUrl
+          - torrentId
 
-  match:
-    torrenturl: "{{ .baseUrl }}torrents.php?action=download&id={{ .torrentId }}&torrent_pass={{ .torrent_pass }}"
+    match:
+      torrentUrl: "/torrents.php?action=download&id={{ .torrentId }}&torrent_pass={{ .torrent_pass }}"

@@ -69,7 +69,7 @@ func (a *announceProcessor) processQueue(queue chan string) {
 		parseFailed := false
 		//patternParsed := false
 
-		for _, pattern := range a.indexer.Parse.Lines {
+		for _, pattern := range a.indexer.IRC.Parse.Lines {
 			line, err := a.getNextLine(queue)
 			if err != nil {
 				a.log.Error().Err(err).Msg("could not get line from queue")
@@ -162,7 +162,7 @@ func (a *announceProcessor) parseExtract(pattern string, vars []string, tmpVars 
 
 // onLinesMatched process vars into release
 func (a *announceProcessor) onLinesMatched(def *domain.IndexerDefinition, vars map[string]string, rls *domain.Release) error {
-
+	// map variables from regex capture onto release struct
 	if err := rls.MapVars(def, vars); err != nil {
 		a.log.Error().Err(err).Msg("announce: could not map vars for release")
 		return err
@@ -172,20 +172,36 @@ func (a *announceProcessor) onLinesMatched(def *domain.IndexerDefinition, vars m
 	// run before ParseMatch to not potentially use a reconstructed TorrentName
 	rls.ParseString(rls.TorrentName)
 
-	// set baseUrl since some announces don't include it
-	if len(def.URLS) > 0 {
-		vars["baseUrl"] = def.URLS[0]
-	}
+	// set baseUrl to default domain
+	baseUrl := def.URLS[0]
 
 	// override baseUrl
 	if def.BaseURL != "" {
-		vars["baseUrl"] = def.BaseURL
+		baseUrl = def.BaseURL
 	}
 
+	// merge vars from regex captures on announce and vars from settings
+	mergedVars := mergeVars(vars, def.SettingsMap)
+
 	// parse torrentUrl
-	if err := def.Parse.ParseMatch(vars, def.SettingsMap, rls); err != nil {
+	matched, err := def.IRC.Parse.ParseMatch(baseUrl, mergedVars)
+	if err != nil {
 		a.log.Error().Err(err).Msgf("announce: %v", err)
 		return err
+	}
+
+	if matched != nil {
+		rls.TorrentURL = matched.TorrentURL
+
+		// only used by few indexers
+		if matched.TorrentName != "" {
+			rls.TorrentName = matched.TorrentName
+		}
+	}
+
+	// handle optional cookies
+	if v, ok := def.SettingsMap["cookie"]; ok {
+		rls.RawCookie = v
 	}
 
 	return nil
@@ -200,20 +216,16 @@ func (a *announceProcessor) processTorrentUrl(match string, vars map[string]stri
 	}
 
 	// merge extra vars with vars
-	if extraVars != nil {
-		for k, v := range extraVars {
-			tmpVars[k] = v
-		}
+	for k, v := range extraVars {
+		tmpVars[k] = v
 	}
 
 	// handle url encode of values
-	if encode != nil {
-		for _, e := range encode {
-			if v, ok := tmpVars[e]; ok {
-				// url encode  value
-				t := url.QueryEscape(v)
-				tmpVars[e] = t
-			}
+	for _, e := range encode {
+		if v, ok := tmpVars[e]; ok {
+			// url encode  value
+			t := url.QueryEscape(v)
+			tmpVars[e] = t
 		}
 	}
 
@@ -233,6 +245,19 @@ func (a *announceProcessor) processTorrentUrl(match string, vars map[string]stri
 	a.log.Trace().Msg("torrenturl processed")
 
 	return b.String(), nil
+}
+
+// mergeVars merge maps
+func mergeVars(data ...map[string]string) map[string]string {
+	tmpVars := map[string]string{}
+
+	for _, vars := range data {
+		// copy vars to new tmp map
+		for k, v := range vars {
+			tmpVars[k] = v
+		}
+	}
+	return tmpVars
 }
 
 func removeElement(s []string, i int) ([]string, error) {

@@ -47,21 +47,21 @@ irc:
       label: NickServ Password
       help: NickServ password
 
-parse:
-  type: single
-  lines:
-    - test:
-        - "New Torrent Announcement: <TV : Pack> Name:'That Show S01-S06 COMPLETE 1080p BluRay DD5 1 (With Commentary) x265-GROUP' Size:'42.92 GB' Freeleech Uploaded by:'Anonymous Uploader' - https://torrentdb.net/torrent/that-show-s01-s06-complete-1080p-bluray-dd5-1-with-commentary-x265-group"
-        - "New Torrent Announcement: <Games : PC> Name:'Small Game + All DLCs-GROUP2' Size:'2.65 GB' Uploaded by:'uploader1' - https://torrentdb.net/torrent/small-game-all-dlcs-group2"
-      pattern: "^New Torrent Announcement: <(.*)> Name:'(.*?)' Size:'(.*?)' ?(Freeleech)? Uploaded by:'(.*)' - (https.*)torrent.(.*)$"
-      vars:
-        - category
-        - torrentName
-        - torrentSize
-        - freeleech
-        - uploader
-        - baseUrl
-        - torrentId
+  parse:
+    type: single
+    lines:
+      - test:
+          - "New Torrent Announcement: <TV : Pack> Name:'That Show S01-S06 COMPLETE 1080p BluRay DD5 1 (With Commentary) x265-GROUP' Size:'42.92 GB' Freeleech Uploaded by:'Anonymous Uploader' - https://torrentdb.net/torrent/that-show-s01-s06-complete-1080p-bluray-dd5-1-with-commentary-x265-group"
+          - "New Torrent Announcement: <Games : PC> Name:'Small Game + All DLCs-GROUP2' Size:'2.65 GB' Uploaded by:'uploader1' - https://torrentdb.net/torrent/small-game-all-dlcs-group2"
+        pattern: "^New Torrent Announcement: <(.*)> Name:'(.*?)' Size:'(.*?)' ?(Freeleech)? Uploaded by:'(.*)' - (https.*)torrent.(.*)$"
+        vars:
+          - category
+          - torrentName
+          - torrentSize
+          - freeleech
+          - uploader
+          - baseUrl
+          - torrentId
 
-  match:
-    torrenturl: "{{ .baseUrl }}torrent/download/irssi/{{ .torrentId }}/{{ .passkey }}"
+    match:
+      torrentUrl: "/torrent/download/irssi/{{ .torrentId }}/{{ .passkey }}"

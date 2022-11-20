@@ -3,9 +3,10 @@ package domain
 import (
 	"bytes"
 	"context"
-	"errors"
 	"net/url"
 	"text/template"
+
+	"github.com/autobrr/autobrr/pkg/errors"
 
 	"github.com/Masterminds/sprig/v3"
 	"github.com/dustin/go-humanize"
@@ -48,7 +49,6 @@ type IndexerDefinition struct {
 	IRC            *IndexerIRC       `json:"irc,omitempty"`
 	Torznab        *Torznab          `json:"torznab,omitempty"`
 	RSS            *FeedSettings     `json:"rss,omitempty"`
-	Parse          *IndexerParse     `json:"parse,omitempty"`
 }
 
 func (i IndexerDefinition) HasApi() bool {
@@ -91,6 +91,7 @@ type IndexerIRC struct {
 	Announcers  []string          `json:"announcers"`
 	SettingsMap map[string]string `json:"-"`
 	Settings    []IndexerSetting  `json:"settings"`
+	Parse       *IndexerIRCParse  `json:"parse,omitempty"`
 }
 
 func (i IndexerIRC) ValidAnnouncer(announcer string) bool {
@@ -111,48 +112,39 @@ func (i IndexerIRC) ValidChannel(channel string) bool {
 	return false
 }
 
-type IndexerParse struct {
-	Type          string                `json:"type"`
-	ForceSizeUnit string                `json:"forcesizeunit"`
-	Lines         []IndexerParseExtract `json:"lines"`
-	Match         IndexerParseMatch     `json:"match"`
+type IndexerIRCParse struct {
+	Type          string                   `json:"type"`
+	ForceSizeUnit string                   `json:"forcesizeunit"`
+	Lines         []IndexerIRCParseExtract `json:"lines"`
+	Match         IndexerIRCParseMatch     `json:"match"`
 }
 
-type IndexerParseExtract struct {
+type IndexerIRCParseExtract struct {
 	Test    []string `json:"test"`
 	Pattern string   `json:"pattern"`
 	Vars    []string `json:"vars"`
 }
 
-type IndexerParseMatch struct {
+type IndexerIRCParseMatch struct {
 	TorrentURL  string   `json:"torrenturl"`
 	TorrentName string   `json:"torrentname"`
 	Encode      []string `json:"encode"`
 }
 
-func (p *IndexerParse) ParseMatch(vars map[string]string, extraVars map[string]string, release *Release) error {
-	tmpVars := map[string]string{}
+type IndexerIRCParseMatched struct {
+	TorrentURL  string
+	TorrentName string
+}
 
-	// copy vars to new tmp map
-	for k, v := range vars {
-		tmpVars[k] = v
-	}
-
-	// merge extra vars with vars
-	if extraVars != nil {
-		for k, v := range extraVars {
-			tmpVars[k] = v
-		}
-	}
+func (p *IndexerIRCParse) ParseMatch(baseURL string, vars map[string]string) (*IndexerIRCParseMatched, error) {
+	matched := &IndexerIRCParseMatched{}
 
 	// handle url encode of values
-	if p.Match.Encode != nil {
-		for _, e := range p.Match.Encode {
-			if v, ok := tmpVars[e]; ok {
-				// url encode  value
-				t := url.QueryEscape(v)
-				tmpVars[e] = t
-			}
+	for _, e := range p.Match.Encode {
+		if v, ok := vars[e]; ok {
+			// url encode  value
+			t := url.QueryEscape(v)
+			vars[e] = t
 		}
 	}
 
@@ -160,38 +152,41 @@ func (p *IndexerParse) ParseMatch(vars map[string]string, extraVars map[string]s
 		// setup text template to inject variables into
 		tmpl, err := template.New("torrenturl").Funcs(sprig.TxtFuncMap()).Parse(p.Match.TorrentURL)
 		if err != nil {
-			return errors.New("could not create torrent url template")
+			return nil, errors.New("could not create torrent url template")
 		}
 
 		var urlBytes bytes.Buffer
-		if err := tmpl.Execute(&urlBytes, &tmpVars); err != nil {
-			return errors.New("could not write torrent url template output")
+		if err := tmpl.Execute(&urlBytes, &vars); err != nil {
+			return nil, errors.New("could not write torrent url template output")
 		}
 
-		release.TorrentURL = urlBytes.String()
+		query := urlBytes.String()
+
+		// join baseURL with query
+		torrentURL, err := url.JoinPath(baseURL, query)
+		if err != nil {
+			return nil, errors.Wrap(err, "could not join torrent url")
+		}
+
+		matched.TorrentURL = torrentURL
 	}
 
 	if p.Match.TorrentName != "" {
 		// setup text template to inject variables into
 		tmplName, err := template.New("torrentname").Funcs(sprig.TxtFuncMap()).Parse(p.Match.TorrentName)
 		if err != nil {
-			return err
+			return nil, err
 		}
 
 		var nameBytes bytes.Buffer
-		if err := tmplName.Execute(&nameBytes, &tmpVars); err != nil {
-			return errors.New("could not write torrent name template output")
+		if err := tmplName.Execute(&nameBytes, &vars); err != nil {
+			return nil, errors.New("could not write torrent name template output")
 		}
 
-		release.TorrentName = nameBytes.String()
+		matched.TorrentName = nameBytes.String()
 	}
 
-	// handle cookies
-	if v, ok := extraVars["cookie"]; ok {
-		release.RawCookie = v
-	}
-
-	return nil
+	return matched, nil
 }
 
 type TorrentBasic struct {

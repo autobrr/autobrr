@@ -61,20 +61,20 @@ irc:
       label: Invite command
       help: Invite auth with UHDBot. Replace IRCKEY.
 
-parse:
-  type: single
-  lines:
-    - test:
-        - "New Torrent: A Movie [2015] - GROUP Type: Movie / 1080p / Encode / Freeleech: 100 Size: 7.00GB - https://uhdbits.org/torrents.php?id=00000 / https://uhdbits.org/torrents.php?action=download&id=00000"
-      pattern: 'New Torrent: (.+) Type: (.+?) \/ (.*?) Freeleech: (.+) Size: (.+) - https?:\/\/.+ \/ (https?:\/\/.+\/).+id=(\d+)'
-      vars:
-        - torrentName
-        - category
-        - releaseTags
-        - freeleechPercent
-        - torrentSize
-        - baseUrl
-        - torrentId
+  parse:
+    type: single
+    lines:
+      - test:
+          - "New Torrent: A Movie [2015] - GROUP Type: Movie / 1080p / Encode / Freeleech: 100 Size: 7.00GB - https://uhdbits.org/torrents.php?id=00000 / https://uhdbits.org/torrents.php?action=download&id=00000"
+        pattern: 'New Torrent: (.+) Type: (.+?) \/ (.*?) Freeleech: (.+) Size: (.+) - https?:\/\/.+ \/ (https?:\/\/.+\/).+id=(\d+)'
+        vars:
+          - torrentName
+          - category
+          - releaseTags
+          - freeleechPercent
+          - torrentSize
+          - baseUrl
+          - torrentId
 
-  match:
-    torrenturl: "{{ .baseUrl }}torrents.php?action=download&id={{ .torrentId }}&authkey={{ .authkey }}&torrent_pass={{ .torrent_pass }}"
+    match:
+      torrentUrl: "/torrents.php?action=download&id={{ .torrentId }}&authkey={{ .authkey }}&torrent_pass={{ .torrent_pass }}"

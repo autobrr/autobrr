@@ -55,19 +55,19 @@ irc:
       label: Invite command
       help: Invite auth with Millie. Replace IRCKEY.
 
-parse:
-  type: single
-  lines:
-    - test:
-        - "New Torrent: That.Show.S01.1080p.Blu-ray.AVC.DTS-HD.MA.5.1-Test Category: TV By: Uploader Size: 137.73 GB Link: https://beyond-hd.me/details.php?id=00000"
-      pattern: 'New Torrent: (.*) Category: (.*) By: (.*) Size: (.*) Link: (https?\:\/\/[^\/]+\/).*[&\?]id=(\d+)'
-      vars:
-        - torrentName
-        - category
-        - uploader
-        - torrentSize
-        - baseUrl
-        - torrentId
+  parse:
+    type: single
+    lines:
+      - test:
+          - "New Torrent: That.Show.S01.1080p.Blu-ray.AVC.DTS-HD.MA.5.1-Test Category: TV By: Uploader Size: 137.73 GB Link: https://beyond-hd.me/details.php?id=00000"
+        pattern: 'New Torrent: (.*) Category: (.*) By: (.*) Size: (.*) Link: (https?\:\/\/[^\/]+\/).*[&\?]id=(\d+)'
+        vars:
+          - torrentName
+          - category
+          - uploader
+          - torrentSize
+          - baseUrl
+          - torrentId
 
-  match:
-    torrenturl: "{{ .baseUrl }}torrent/download/auto.{{ .torrentId }}.{{ .rsskey }}"
+    match:
+      torrentUrl: "/torrent/download/auto.{{ .torrentId }}.{{ .rsskey }}"
