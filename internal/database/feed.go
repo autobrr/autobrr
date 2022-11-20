@@ -27,22 +27,23 @@ type FeedRepo struct {
 func (r *FeedRepo) FindByID(ctx context.Context, id int) (*domain.Feed, error) {
 	queryBuilder := r.db.squirrel.
 		Select(
-			"id",
-			"indexer",
-			"name",
-			"type",
-			"enabled",
-			"url",
-			"interval",
-			"timeout",
-			"max_age",
-			"api_key",
-			"cookie",
-			"created_at",
-			"updated_at",
+			"f.id",
+			"i.identifier",
+			"f.name",
+			"f.type",
+			"f.enabled",
+			"f.url",
+			"f.interval",
+			"f.timeout",
+			"f.max_age",
+			"f.api_key",
+			"f.cookie",
+			"f.created_at",
+			"f.updated_at",
 		).
-		From("feed").
-		Where("id = ?", id)
+		From("feed f").
+		Join("indexer i ON f.indexer_id = i.id").
+		Where("f.id = ?", id)
 
 	query, args, err := queryBuilder.ToSql()
 	if err != nil {
@@ -72,22 +73,23 @@ func (r *FeedRepo) FindByID(ctx context.Context, id int) (*domain.Feed, error) {
 func (r *FeedRepo) FindByIndexerIdentifier(ctx context.Context, indexer string) (*domain.Feed, error) {
 	queryBuilder := r.db.squirrel.
 		Select(
-			"id",
-			"indexer",
-			"name",
-			"type",
-			"enabled",
-			"url",
-			"interval",
-			"timeout",
-			"max_age",
-			"api_key",
-			"cookie",
-			"created_at",
-			"updated_at",
+			"f.id",
+			"i.identifier",
+			"f.name",
+			"f.type",
+			"f.enabled",
+			"f.url",
+			"f.interval",
+			"f.timeout",
+			"f.max_age",
+			"f.api_key",
+			"f.cookie",
+			"f.created_at",
+			"f.updated_at",
 		).
-		From("feed").
-		Where("indexer = ?", indexer)
+		From("feed f").
+		Join("indexer i ON f.indexer_id = i.id").
+		Where("i.name = ?", indexer)
 
 	query, args, err := queryBuilder.ToSql()
 	if err != nil {
@@ -105,7 +107,6 @@ func (r *FeedRepo) FindByIndexerIdentifier(ctx context.Context, indexer string) 
 
 	if err := row.Scan(&f.ID, &f.Indexer, &f.Name, &f.Type, &f.Enabled, &f.URL, &f.Interval, &f.Timeout, &f.MaxAge, &apiKey, &cookie, &f.CreatedAt, &f.UpdatedAt); err != nil {
 		return nil, errors.Wrap(err, "error scanning row")
-
 	}
 
 	f.ApiKey = apiKey.String
@@ -117,24 +118,25 @@ func (r *FeedRepo) FindByIndexerIdentifier(ctx context.Context, indexer string) 
 func (r *FeedRepo) Find(ctx context.Context) ([]domain.Feed, error) {
 	queryBuilder := r.db.squirrel.
 		Select(
-			"id",
-			"indexer",
-			"name",
-			"type",
-			"enabled",
-			"url",
-			"interval",
-			"timeout",
-			"max_age",
-			"api_key",
-			"cookie",
-			"last_run",
-			"last_run_data",
-			"created_at",
-			"updated_at",
+			"f.id",
+			"i.identifier",
+			"f.name",
+			"f.type",
+			"f.enabled",
+			"f.url",
+			"f.interval",
+			"f.timeout",
+			"f.max_age",
+			"f.api_key",
+			"f.cookie",
+			"f.last_run",
+			"f.last_run_data",
+			"f.created_at",
+			"f.updated_at",
 		).
-		From("feed").
-		OrderBy("name ASC")
+		From("feed f").
+		Join("indexer i ON f.indexer_id = i.id").
+		OrderBy("f.name ASC")
 
 	query, args, err := queryBuilder.ToSql()
 	if err != nil {
@@ -175,7 +177,6 @@ func (r *FeedRepo) Store(ctx context.Context, feed *domain.Feed) error {
 		Insert("feed").
 		Columns(
 			"name",
-			"indexer",
 			"type",
 			"enabled",
 			"url",
@@ -186,7 +187,6 @@ func (r *FeedRepo) Store(ctx context.Context, feed *domain.Feed) error {
 		).
 		Values(
 			feed.Name,
-			feed.Indexer,
 			feed.Type,
 			feed.Enabled,
 			feed.URL,
@@ -212,7 +212,6 @@ func (r *FeedRepo) Update(ctx context.Context, feed *domain.Feed) error {
 	queryBuilder := r.db.squirrel.
 		Update("feed").
 		Set("name", feed.Name).
-		Set("indexer", feed.Indexer).
 		Set("type", feed.Type).
 		Set("enabled", feed.Enabled).
 		Set("url", feed.URL).

@@ -19,7 +19,6 @@ interface Feed {
 type FeedType = "TORZNAB" | "RSS";
 
 interface FeedCreate {
-  indexer: string;
   name: string;
   type: FeedType;
   enabled: boolean;
