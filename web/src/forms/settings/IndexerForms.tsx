@@ -450,7 +450,7 @@ export function IndexerAddForm({ isOpen, toggle }: AddProps) {
                               name="base_url"
                               label="Base URL"
                               help="Override baseurl if it's blocked by your ISP."
-                              options={indexer.urls.map(u => ({ value: u ?? u, label: u ?? u, key: u ?? u })) }
+                              options={indexer.urls.map(u => ({ value: u, label: u, key: u })) }
                             />
                           )}
 
@@ -610,7 +610,7 @@ export function IndexerUpdateForm({ isOpen, toggle, indexer }: UpdateProps) {
               name="base_url"
               label="Base URL"
               help="Override baseurl if it's blocked by your ISP."
-              options={indexer.urls.map(u => ({ value: u ?? u, label: u ?? u, key: u ?? u })) }
+              options={indexer.urls.map(u => ({ value: u, label: u, key: u })) }
             />
           )}
 
