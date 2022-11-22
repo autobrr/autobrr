@@ -72,4 +72,4 @@ irc:
           - freeleech
 
     match:
-      torrentUrl: "/torrent/download/{{ .torrentId }}.{{ .passkey }}"
+      torrenturl: "/torrent/download/{{ .torrentId }}.{{ .passkey }}"

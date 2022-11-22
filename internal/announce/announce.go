@@ -69,7 +69,7 @@ func (a *announceProcessor) processQueue(queue chan string) {
 		parseFailed := false
 		//patternParsed := false
 
-		for _, pattern := range a.indexer.IRC.Parse.Lines {
+		for _, parseLine := range a.indexer.IRC.Parse.Lines {
 			line, err := a.getNextLine(queue)
 			if err != nil {
 				a.log.Error().Err(err).Msg("could not get line from queue")
@@ -79,7 +79,7 @@ func (a *announceProcessor) processQueue(queue chan string) {
 
 			// check should ignore
 
-			match, err := a.parseExtract(pattern.Pattern, pattern.Vars, tmpVars, line)
+			match, err := a.parseLine(parseLine.Pattern, parseLine.Vars, tmpVars, line)
 			if err != nil {
 				a.log.Error().Err(err).Msgf("error parsing extract for line: %v", line)
 
@@ -135,6 +135,14 @@ func (a *announceProcessor) AddLineToQueue(channel string, line string) error {
 	return nil
 }
 
+func (a *announceProcessor) parseLine(pattern string, vars []string, tmpVars map[string]string, line string) (bool, error) {
+	if len(vars) > 0 {
+		return a.parseExtract(pattern, vars, tmpVars, line)
+	}
+
+	return a.parseMatchRegexp(pattern, tmpVars, line)
+}
+
 func (a *announceProcessor) parseExtract(pattern string, vars []string, tmpVars map[string]string, line string) (bool, error) {
 
 	rxp, err := regExMatch(pattern, line)
@@ -157,6 +165,23 @@ func (a *announceProcessor) parseExtract(pattern string, vars []string, tmpVars 
 
 		tmpVars[v] = value
 	}
+	return true, nil
+}
+
+func (a *announceProcessor) parseMatchRegexp(pattern string, tmpVars map[string]string, line string) (bool, error) {
+	var re = regexp.MustCompile(`(?mi)` + pattern)
+
+	groupNames := re.SubexpNames()
+	for _, match := range re.FindAllStringSubmatch(line, -1) {
+		for groupIdx, group := range match {
+			name := groupNames[groupIdx]
+			if name == "" {
+				name = "raw"
+			}
+			tmpVars[name] = group
+		}
+	}
+
 	return true, nil
 }
 
@@ -280,7 +305,6 @@ func regExMatch(pattern string, value string) ([]string, error) {
 	rxp, err := regexp.Compile(pattern)
 	if err != nil {
 		return nil, err
-		//return errors.Wrapf(err, "invalid regex: %s", value)
 	}
 
 	matches := rxp.FindStringSubmatch(value)

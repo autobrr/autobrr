@@ -60,6 +60,55 @@ func (i IndexerDefinition) HasApi() bool {
 	return false
 }
 
+type IndexerDefinitionCustom struct {
+	ID             int               `json:"id,omitempty"`
+	Name           string            `json:"name"`
+	Identifier     string            `json:"identifier"`
+	Implementation string            `json:"implementation"`
+	BaseURL        string            `json:"base_url,omitempty"`
+	Enabled        bool              `json:"enabled,omitempty"`
+	Description    string            `json:"description"`
+	Language       string            `json:"language"`
+	Privacy        string            `json:"privacy"`
+	Protocol       string            `json:"protocol"`
+	URLS           []string          `json:"urls"`
+	Supports       []string          `json:"supports"`
+	Settings       []IndexerSetting  `json:"settings,omitempty"`
+	SettingsMap    map[string]string `json:"-"`
+	IRC            *IndexerIRC       `json:"irc,omitempty"`
+	Torznab        *Torznab          `json:"torznab,omitempty"`
+	RSS            *FeedSettings     `json:"rss,omitempty"`
+	Parse          *IndexerIRCParse  `json:"parse,omitempty"`
+}
+
+func (i *IndexerDefinitionCustom) ToIndexerDefinition() *IndexerDefinition {
+	d := &IndexerDefinition{
+		ID:             i.ID,
+		Name:           i.Name,
+		Identifier:     i.Identifier,
+		Implementation: i.Implementation,
+		BaseURL:        i.BaseURL,
+		Enabled:        i.Enabled,
+		Description:    i.Description,
+		Language:       i.Language,
+		Privacy:        i.Privacy,
+		Protocol:       i.Protocol,
+		URLS:           i.URLS,
+		Supports:       i.Supports,
+		Settings:       i.Settings,
+		SettingsMap:    i.SettingsMap,
+		IRC:            i.IRC,
+		Torznab:        i.Torznab,
+		RSS:            i.RSS,
+	}
+
+	if i.IRC != nil && i.Parse != nil {
+		i.IRC.Parse = i.Parse
+	}
+
+	return d
+}
+
 type IndexerSetting struct {
 	Name        string `json:"name"`
 	Required    bool   `json:"required,omitempty"`
@@ -113,13 +162,13 @@ func (i IndexerIRC) ValidChannel(channel string) bool {
 }
 
 type IndexerIRCParse struct {
-	Type          string                   `json:"type"`
-	ForceSizeUnit string                   `json:"forcesizeunit"`
-	Lines         []IndexerIRCParseExtract `json:"lines"`
-	Match         IndexerIRCParseMatch     `json:"match"`
+	Type          string                `json:"type"`
+	ForceSizeUnit string                `json:"forcesizeunit"`
+	Lines         []IndexerIRCParseLine `json:"lines"`
+	Match         IndexerIRCParseMatch  `json:"match"`
 }
 
-type IndexerIRCParseExtract struct {
+type IndexerIRCParseLine struct {
 	Test    []string `json:"test"`
 	Pattern string   `json:"pattern"`
 	Vars    []string `json:"vars"`
@@ -160,10 +209,21 @@ func (p *IndexerIRCParse) ParseMatch(baseURL string, vars map[string]string) (*I
 			return nil, errors.New("could not write torrent url template output")
 		}
 
-		query := urlBytes.String()
+		parsedUrl, err := url.Parse(urlBytes.String())
+		if err != nil {
+			return nil, err
+		}
+
+		// for backwards compatibility remove Host and Scheme to rebuild url
+		if parsedUrl.Host != "" {
+			parsedUrl.Host = ""
+		}
+		if parsedUrl.Scheme != "" {
+			parsedUrl.Scheme = ""
+		}
 
 		// join baseURL with query
-		torrentURL, err := url.JoinPath(baseURL, query)
+		torrentURL, err := url.JoinPath(baseURL, parsedUrl.Path)
 		if err != nil {
 			return nil, errors.Wrap(err, "could not join torrent url")
 		}

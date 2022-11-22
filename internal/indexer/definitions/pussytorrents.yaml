@@ -63,6 +63,6 @@ irc:
           - torrentId
 
     match:
-      torrentUrl: "/rss/download/{{ .torrentId }}/{{ .rsskey }}/{{ .torrentName }}.torrent"
+      torrenturl: "/rss/download/{{ .torrentId }}/{{ .rsskey }}/{{ .torrentName }}.torrent"
       encode:
         - torrentName

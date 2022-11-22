@@ -63,4 +63,4 @@ irc:
           - uploader
 
     match:
-      torrentUrl: "/download2.php?id={{ .torrentId }}&passkey={{ .passkey }}"
+      torrenturl: "/download2.php?id={{ .torrentId }}&passkey={{ .passkey }}"

@@ -68,6 +68,6 @@ irc:
           - torrentName
 
     match:
-      torrentUrl: "/rss/torrent.php/{{ .torrentId }}/{{ .uid }}/{{ .passkey }}/{{ .torrentName }}.torrent"
+      torrenturl: "/rss/torrent.php/{{ .torrentId }}/{{ .uid }}/{{ .passkey }}/{{ .torrentName }}.torrent"
       encode:
         - torrentName

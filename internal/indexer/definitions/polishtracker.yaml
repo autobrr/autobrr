@@ -70,4 +70,4 @@ irc:
           - torrentId
 
     match:
-      torrentUrl: "/downrss/{{ .rsskey }}/{{ .torrentId }}"
+      torrenturl: "/downrss/{{ .rsskey }}/{{ .torrentId }}"

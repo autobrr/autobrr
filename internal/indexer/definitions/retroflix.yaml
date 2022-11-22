@@ -65,6 +65,6 @@ irc:
           - torrentId
 
     match:
-      torrentUrl: "/download.php?id={{ .torrentId }}&passkey={{ .passkey }}"
+      torrenturl: "/download.php?id={{ .torrentId }}&passkey={{ .passkey }}"
       encode:
         - torrentName

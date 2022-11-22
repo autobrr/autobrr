@@ -302,16 +302,14 @@ func (s *service) GetTemplates() ([]domain.IndexerDefinition, error) {
 
 func (s *service) Start() error {
 	// load all indexer definitions
-	err := s.LoadIndexerDefinitions()
-	if err != nil {
+	if err := s.LoadIndexerDefinitions(); err != nil {
 		s.log.Error().Err(err).Msg("could not load indexer definitions")
 		return err
 	}
 
 	if s.config.CustomDefinitions != "" {
 		// load custom indexer definitions
-		err = s.LoadCustomIndexerDefinitions()
-		if err != nil {
+		if err := s.LoadCustomIndexerDefinitions(); err != nil {
 			return errors.Wrap(err, "could not load custom indexer definitions")
 		}
 	}
@@ -465,14 +463,13 @@ func (s *service) LoadIndexerDefinitions() error {
 
 		s.log.Trace().Msgf("parsing: %v", file)
 
-		var d *domain.IndexerDefinition
-
 		data, err := fs.ReadFile(Definitions, file)
 		if err != nil {
 			s.log.Error().Stack().Err(err).Msgf("failed reading file: %v", file)
 			return errors.Wrap(err, "could not read file: %v", file)
 		}
 
+		var d domain.IndexerDefinition
 		if err = yaml.Unmarshal(data, &d); err != nil {
 			s.log.Error().Stack().Err(err).Msgf("failed unmarshal file: %v", file)
 			return errors.Wrap(err, "could not unmarshal file: %v", file)
@@ -482,7 +479,7 @@ func (s *service) LoadIndexerDefinitions() error {
 			d.Implementation = "irc"
 		}
 
-		s.definitions[d.Identifier] = *d
+		s.definitions[d.Identifier] = d
 	}
 
 	s.log.Debug().Msgf("Loaded %d indexer definitions", len(s.definitions))
@@ -523,14 +520,13 @@ func (s *service) LoadCustomIndexerDefinitions() error {
 
 		s.log.Trace().Msgf("parsing custom: %v", file)
 
-		//data, err := fs.ReadFile(Definitions, filePath)
 		data, err := os.ReadFile(file)
 		if err != nil {
 			s.log.Error().Stack().Err(err).Msgf("failed reading file: %v", file)
 			return errors.Wrap(err, "could not read file: %v", file)
 		}
 
-		var d *domain.IndexerDefinition
+		var d *domain.IndexerDefinitionCustom
 		if err = yaml.Unmarshal(data, &d); err != nil {
 			s.log.Error().Stack().Err(err).Msgf("failed unmarshal file: %v", file)
 			return errors.Wrap(err, "could not unmarshal file: %v", file)
@@ -547,11 +543,10 @@ func (s *service) LoadCustomIndexerDefinitions() error {
 
 		// to prevent crashing from non-updated definitions lets skip
 		if d.Implementation == "irc" && d.IRC.Parse == nil {
-			s.log.Warn().Msgf("skipping invalid indexer definition: %v", file)
-			continue
+			s.log.Warn().Msgf("DEPRECATED: indexer definition version: %v", file)
 		}
 
-		s.definitions[d.Identifier] = *d
+		s.definitions[d.Identifier] = *d.ToIndexerDefinition()
 
 		customCount++
 	}

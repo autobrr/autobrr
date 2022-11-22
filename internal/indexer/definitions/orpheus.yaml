@@ -71,4 +71,4 @@ irc:
           - torrentId
 
     match:
-      torrentUrl: "/torrents.php?action=download&id={{ .torrentId }}&torrent_pass={{ .torrent_pass }}"
+      torrenturl: "/torrents.php?action=download&id={{ .torrentId }}&torrent_pass={{ .torrent_pass }}"

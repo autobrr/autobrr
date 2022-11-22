@@ -69,4 +69,4 @@ irc:
 
     match:
       # https://ncore.pro/torrents.php?action=download&id=0000&key=00000
-      torrentUrl: "/download&id={{ .torrentId }}&key={{ .passkey }}"
+      torrenturl: "/download&id={{ .torrentId }}&key={{ .passkey }}"

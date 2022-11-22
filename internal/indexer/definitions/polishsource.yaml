@@ -70,6 +70,6 @@ irc:
           - preTime
 
     match:
-      torrentUrl: "/downloadssl.php?id={{ .torrentId }}&torr={{ .torrentName }}.torrent&passkey={{ .passkey }}"
+      torrenturl: "/downloadssl.php?id={{ .torrentId }}&torr={{ .torrentName }}.torrent&passkey={{ .passkey }}"
       encode:
         - torrentName

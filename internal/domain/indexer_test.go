@@ -10,7 +10,7 @@ func TestIndexerIRCParse_ParseMatch(t *testing.T) {
 	type fields struct {
 		Type          string
 		ForceSizeUnit string
-		Lines         []IndexerIRCParseExtract
+		Lines         []IndexerIRCParseLine
 		Match         IndexerIRCParseMatch
 	}
 	type args struct {
@@ -29,7 +29,7 @@ func TestIndexerIRCParse_ParseMatch(t *testing.T) {
 			fields: fields{
 				Type:          "",
 				ForceSizeUnit: "",
-				Lines: []IndexerIRCParseExtract{
+				Lines: []IndexerIRCParseLine{
 					{
 						Test:    nil,
 						Pattern: "New Torrent Announcement:\\s*<([^>]*)>\\s*Name:'(.*)' uploaded by '([^']*)'\\s*(freeleech)*\\s*-\\s*(https?\\:\\/\\/[^\\/]+\\/)torrent\\/(\\d+)",
@@ -70,7 +70,7 @@ func TestIndexerIRCParse_ParseMatch(t *testing.T) {
 			fields: fields{
 				Type:          "",
 				ForceSizeUnit: "",
-				Lines: []IndexerIRCParseExtract{
+				Lines: []IndexerIRCParseLine{
 					{
 						Test:    nil,
 						Pattern: `(.*?)(?: - )?(Visual Novel|Light Novel|TV.*|Movie|Manga|OVA|ONA|DVD Special|BD Special|Oneshot|Anthology|Manhwa|Manhua|Artbook|Game|Live Action.*|)[\s\p{Zs}]{2,}\[(\d+)\] :: (.*?)(?: \/ (?:RAW|Softsubs|Hardsubs|Translated)\s\((.+)\)(?:.*Episode\s(\d+))?(?:.*(Freeleech))?.*)? \|\| (https.*)\/torrents.*\?id=\d+&torrentid=(\d+) \|\| (.+?(?:(?:\|\| Uploaded by|$))?) (?:\|\| Uploaded by: (.*))?$`,
@@ -115,6 +115,88 @@ func TestIndexerIRCParse_ParseMatch(t *testing.T) {
 			want: &IndexerIRCParseMatched{
 				TorrentURL:  "https://mock.local/torrent/240860011/download/00000000000000000000",
 				TorrentName: "[Softsubs] Great BluRay SoftSubbed Anime [2020] [Blu-ray][MKV][h264 10-bit][1080p][FLAC 2.0][Dual Audio][Softsubs (Sub Group)][Freeleech]",
+			},
+			wantErr: false,
+		},
+		{
+			name: "test_03",
+			fields: fields{
+				Type:          "",
+				ForceSizeUnit: "",
+				Lines: []IndexerIRCParseLine{
+					{
+						Test:    nil,
+						Pattern: "New Torrent Announcement:\\s*<([^>]*)>\\s*Name:'(.*)' uploaded by '([^']*)'\\s*(freeleech)*\\s*-\\s*(https?\\:\\/\\/[^\\/]+\\/)torrent\\/(\\d+)",
+						Vars: []string{
+							"category",
+							"torrentName",
+							"uploader",
+							"freeleech",
+							"baseUrl",
+							"torrentId",
+						},
+					},
+				},
+				Match: IndexerIRCParseMatch{
+					TorrentURL: "{{ .baseUrl }}rss/download/{{ .torrentId }}/{{ .rsskey }}/{{ .torrentName }}.torrent",
+					Encode:     []string{"torrentName"},
+				},
+			},
+			args: args{
+				baseURL: "https://mock.local/",
+				vars: map[string]string{
+					"category":    "TV :: Episodes HD",
+					"torrentName": "The Show 2019 S03E08 2160p DV WEBRip 6CH x265 HEVC-GROUP",
+					"uploader":    "Anonymous",
+					"freeleech":   "",
+					"baseUrl":     "https://mock.local/",
+					"torrentId":   "240860011",
+					"rsskey":      "00000000000000000000",
+				},
+			},
+			want: &IndexerIRCParseMatched{
+				TorrentURL: "https://mock.local/rss/download/240860011/00000000000000000000/The+Show+2019+S03E08+2160p+DV+WEBRip+6CH+x265+HEVC-GROUP.torrent",
+			},
+			wantErr: false,
+		},
+		{
+			name: "test_04",
+			fields: fields{
+				Type:          "",
+				ForceSizeUnit: "",
+				Lines: []IndexerIRCParseLine{
+					{
+						Test:    nil,
+						Pattern: "New Torrent Announcement:\\s*<([^>]*)>\\s*Name:'(.*)' uploaded by '([^']*)'\\s*(freeleech)*\\s*-\\s*(https?\\:\\/\\/[^\\/]+\\/)torrent\\/(\\d+)",
+						Vars: []string{
+							"category",
+							"torrentName",
+							"uploader",
+							"freeleech",
+							"baseUrl",
+							"torrentId",
+						},
+					},
+				},
+				Match: IndexerIRCParseMatch{
+					TorrentURL: "https://mock.local/rss/download/{{ .torrentId }}/{{ .rsskey }}/{{ .torrentName }}.torrent",
+					Encode:     []string{"torrentName"},
+				},
+			},
+			args: args{
+				baseURL: "https://mock.local/",
+				vars: map[string]string{
+					"category":    "TV :: Episodes HD",
+					"torrentName": "The Show 2019 S03E08 2160p DV WEBRip 6CH x265 HEVC-GROUP",
+					"uploader":    "Anonymous",
+					"freeleech":   "",
+					"baseUrl":     "https://mock.local/",
+					"torrentId":   "240860011",
+					"rsskey":      "00000000000000000000",
+				},
+			},
+			want: &IndexerIRCParseMatched{
+				TorrentURL: "https://mock.local/rss/download/240860011/00000000000000000000/The+Show+2019+S03E08+2160p+DV+WEBRip+6CH+x265+HEVC-GROUP.torrent",
 			},
 			wantErr: false,
 		},

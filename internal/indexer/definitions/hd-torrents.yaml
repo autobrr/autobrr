@@ -67,6 +67,6 @@ irc:
           - torrentId
 
     match:
-      torrentUrl: "/rss/?action=download&key={{ .key }}&token={{ .token }}&hash={{ .torrentId }}&title={{ .torrentName }}"
+      torrenturl: "/rss/?action=download&key={{ .key }}&token={{ .token }}&hash={{ .torrentId }}&title={{ .torrentName }}"
       encode:
         - torrentName
