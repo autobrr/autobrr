@@ -8,7 +8,8 @@ type DownloadClientType =
     "SONARR" |
     "LIDARR" |
     "WHISPARR" |
-    "READARR";
+    "READARR" |
+    "PORLA";
 
 // export enum DownloadClientTypeEnum {
 //     QBITTORRENT = "QBITTORRENT",

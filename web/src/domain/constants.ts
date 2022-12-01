@@ -265,6 +265,11 @@ export const DownloadClientTypeOptions: RadioFieldsetOption[] = [
     label: "Readarr",
     description: "Send to Readarr and let it decide",
     value: "READARR"
+  },
+  {
+    label: "Porla",
+    description: "Add torrents directly to Porla",
+    value: "PORLA"
   }
 ];
 
@@ -312,7 +317,8 @@ export const ActionTypeNameMap = {
   "SONARR": "Sonarr",
   "LIDARR": "Lidarr",
   "WHISPARR": "Whisparr",
-  "READARR": "Readarr" 
+  "READARR": "Readarr",
+  "PORLA": "Porla"
 };
 
 export const ActionContentLayoutOptions: SelectGenericOption<ActionContentLayout>[] = [

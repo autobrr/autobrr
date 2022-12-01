@@ -7,6 +7,8 @@ import (
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/pkg/errors"
 	"github.com/autobrr/autobrr/pkg/lidarr"
+	"github.com/autobrr/autobrr/pkg/porla"
+	"github.com/autobrr/autobrr/pkg/qbittorrent"
 	"github.com/autobrr/autobrr/pkg/radarr"
 	"github.com/autobrr/autobrr/pkg/readarr"
 	"github.com/autobrr/autobrr/pkg/sonarr"
@@ -46,6 +48,9 @@ func (s *service) testConnection(ctx context.Context, client domain.DownloadClie
 
 	case domain.DownloadClientTypeReadarr:
 		return s.testReadarrConnection(ctx, client)
+
+	case domain.DownloadClientTypePorla:
+		return s.testPorlaConnection(client)
 
 	default:
 		return errors.New("unsupported client")
@@ -255,6 +260,23 @@ func (s *service) testReadarrConnection(ctx context.Context, client domain.Downl
 	}
 
 	s.log.Debug().Msgf("test client connection for readarr: success")
+
+	return nil
+}
+
+func (s *service) testPorlaConnection(client domain.DownloadClient) error {
+	p := porla.NewClient(porla.Settings{
+		Hostname:  client.Host,
+		AuthToken: client.Settings.APIKey,
+	})
+
+	version, err := p.Version()
+
+	if err != nil {
+		return errors.Wrap(err, "porla: failed to get version: %v", client.Host)
+	}
+
+	s.log.Debug().Msgf("test client connection for porla: found version %s (commit %s)", version.Version, version.Commitish[:8])
 
 	return nil
 }
