@@ -5,25 +5,19 @@ identifier: mock
 description: MockIndexer is a mock indexer.
 language: en-us
 urls:
-  - http://localhost.test
+  - http://localhost:3999
 privacy: private
 protocol: torrent
 supports:
   - irc
   - api
 source: custom
-settings:
-  - name: rsskey
-    type: secret
-    label: RSS key
-    help: "Go to your profile and copy your RSS key"
-    regex: /([\da-fA-F]{20})
 
 irc:
-  network: LocalHost
+  network: Mock
   server: localhost
   port: 6697
-  tls: true
+  tls: false
   channels:
     - "#announces"
   announcers:
@@ -63,8 +57,6 @@ parse:
         - torrentId
 
   match:
-    torrenturl: "{{ .baseUrl }}rss/download/{{ .torrentId }}/{{ .rsskey }}/{{ .torrentName }}.torrent"
+    torrenturl: "{{ .baseUrl }}file/{{ .torrentId }}/{{ .torrentName }}.torrent"
     encode:
       - torrentName
-
-

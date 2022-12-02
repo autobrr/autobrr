@@ -1,4 +1,4 @@
-# autobrr SelfIndexer
+# autobrr MockIndexer
 
 This is a simple IRC announcer and torrent indexer rolled into one. It is built
 as a tool for testing IRC announces and actions.
@@ -6,15 +6,15 @@ as a tool for testing IRC announces and actions.
 ## Getting started
 
  * Put a torrent file in `./files`, name it `1.torrent`.
- * Run the SelfIndexer with `go run main.go`.
+ * Run the MockIndexer with `go run main.go`.
 
 For autobrr, uncomment the `customDefinitions` line in `config.toml` to load the
 extra indexer definitions. Then start autobrr as usual.
 
- * Add an instance of the SelfIndexer in autobrr UI. Pick any nickname,
+ * Add an instance of the MockIndexer in autobrr UI. Pick any nickname,
    _don't set any auth_.
  * Set up an action - for example the watchdir action which will make autobrr
-   actually download the announced torrent file from the SelfIndexer.
+   actually download the announced torrent file from the MockIndexer.
 
 Posting announces.
 
@@ -26,4 +26,4 @@ Posting announces.
 New Torrent Announcement: <PC :: Iso>  Name:'debian live 10 6 0 amd64 standard iso' uploaded by 'Anonymous' freeleech -  http://localhost:3999/torrent/1
 ```
 
-It is the `1` in the end of the announce line that should match the file name.
+It is the `1` at the end of the announce line that should match the file name.

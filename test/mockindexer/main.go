@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/autobrr/autobrr/test/selfindexer/irc"
+	"github.com/autobrr/autobrr/test/mockindexer/irc"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 )
@@ -24,7 +24,7 @@ func main() {
 
 	go s.Run()
 
-	log.Print("autobrr SelfIndexer running")
+	log.Print("autobrr MockIndexer running")
 
 	r := chi.NewRouter()
 	r.Use(middleware.Logger)
