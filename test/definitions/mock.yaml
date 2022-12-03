@@ -5,7 +5,7 @@ identifier: mock
 description: MockIndexer is a mock indexer.
 language: en-us
 urls:
-  - http://localhost.test/
+  - http://localhost:3999
 privacy: private
 protocol: torrent
 supports:
@@ -20,10 +20,10 @@ settings:
     regex: /([\da-fA-F]{20})
 
 irc:
-  network: LocalHost
+  network: Mock
   server: localhost
   port: 6697
-  tls: true
+  tls: false
   channels:
     - "#announces"
   announcers:
@@ -51,8 +51,8 @@ irc:
     type: single
     lines:
       - test:
-          - "New Torrent Announcement: <PC :: Iso>  Name:'debian live 10 6 0 amd64 standard iso' uploaded by 'Anonymous' -  http://www.localhost.test/torrent/000000"
-          - "New Torrent Announcement: <PC :: Iso>  Name:'debian live 10 6 0 amd64 standard iso' uploaded by 'Anonymous' freeleech -  http://www.localhost.test/torrent/000000"
+          - "New Torrent Announcement: <PC :: Iso>  Name:'debian live 10 6 0 amd64 standard iso' uploaded by 'Anonymous' -  http://localhost:3999/torrent/000000"
+          - "New Torrent Announcement: <PC :: Iso>  Name:'debian live 10 6 0 amd64 standard iso' uploaded by 'Anonymous' freeleech -  http://localhost:3999/torrent/000000"
         pattern: New Torrent Announcement:\s*<([^>]*)>\s*Name:'(.*)' uploaded by '([^']*)'\s*(freeleech)*\s*-\s*(https?\:\/\/[^\/]+\/)torrent\/(\d+)
         vars:
           - category
@@ -63,6 +63,6 @@ irc:
           - torrentId
 
     match:
-      torrenturl: "/rss/download/{{ .torrentId }}/{{ .rsskey }}/{{ .torrentName }}.torrent"
+      torrenturl: "/file/{{ .torrentId }}/{{ .torrentName }}.torrent"
       encode:
         - torrentName
