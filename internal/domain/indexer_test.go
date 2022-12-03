@@ -200,6 +200,49 @@ func TestIndexerIRCParse_ParseMatch(t *testing.T) {
 			},
 			wantErr: false,
 		},
+		{
+			name: "test_04",
+			fields: fields{
+				Type:          "",
+				ForceSizeUnit: "",
+				Lines: []IndexerIRCParseLine{
+					{
+						Test:    nil,
+						Pattern: "New Torrent in category \\[([^\\]]*)\\] (.*) \\(([^\\)]*)\\) uploaded! Download\\: (https?\\:\\/\\/[^\\/]+\\/).+id=(.+)",
+						Vars: []string{
+							"category",
+							"torrentName",
+							"uploader",
+							"freeleech",
+							"baseUrl",
+							"torrentId",
+						},
+					},
+				},
+				Match: IndexerIRCParseMatch{
+					TorrentURL: "/rss/?action=download&key={{ .key }}&token={{ .token }}&hash={{ .torrentId }}&title={{ .torrentName }}",
+					Encode:     []string{"torrentName"},
+				},
+			},
+			args: args{
+				baseURL: "https://mock.local/",
+				vars: map[string]string{
+					"category":    "Movies/Remux",
+					"torrentName": "The Show 2019 S03E08 2160p DV WEBRip 6CH x265 HEVC-GROUP",
+					"uploader":    "Anonymous",
+					"torrentSize": "",
+					"baseUrl":     "https://mock.local/",
+					"torrentId":   "240860011",
+					"key":         "KEY",
+					"token":       "TOKEN",
+					"rsskey":      "00000000000000000000",
+				},
+			},
+			want: &IndexerIRCParseMatched{
+				TorrentURL: "https://mock.local/rss/?action=download&key=KEY&token=TOKEN&hash=240860011&title=The+Show+2019+S03E08+2160p+DV+WEBRip+6CH+x265+HEVC-GROUP",
+			},
+			wantErr: false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

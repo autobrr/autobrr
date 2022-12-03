@@ -209,7 +209,8 @@ func (p *IndexerIRCParse) ParseMatch(baseURL string, vars map[string]string) (*I
 			return nil, errors.New("could not write torrent url template output")
 		}
 
-		parsedUrl, err := url.Parse(urlBytes.String())
+		templateUrl := urlBytes.String()
+		parsedUrl, err := url.Parse(templateUrl)
 		if err != nil {
 			return nil, err
 		}
@@ -223,12 +224,16 @@ func (p *IndexerIRCParse) ParseMatch(baseURL string, vars map[string]string) (*I
 		}
 
 		// join baseURL with query
-		torrentURL, err := url.JoinPath(baseURL, parsedUrl.Path)
+		baseUrlPath, err := url.JoinPath(baseURL, parsedUrl.Path)
 		if err != nil {
 			return nil, errors.Wrap(err, "could not join torrent url")
 		}
 
-		matched.TorrentURL = torrentURL
+		// reconstruct url
+		torrentUrl, _ := url.Parse(baseUrlPath)
+		torrentUrl.RawQuery = parsedUrl.RawQuery
+
+		matched.TorrentURL = torrentUrl.String()
 	}
 
 	if p.Match.TorrentName != "" {
