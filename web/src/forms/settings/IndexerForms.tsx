@@ -15,6 +15,7 @@ import { APIClient } from "../../api/APIClient";
 import { PasswordFieldWide, SwitchGroupWide, TextFieldWide } from "../../components/inputs";
 import { SlideOver } from "../../components/panels";
 import Toast from "../../components/notifications/Toast";
+import { SelectFieldCreatable } from "../../components/inputs/select_wide";
 
 const Input = (props: InputProps) => (
   <components.Input 
@@ -423,6 +424,7 @@ export function IndexerAddForm({ isOpen, toggle }: AddProps) {
                                           setFieldValue("implementation", ind.implementation);
 
                                           if (ind.irc && ind.irc.settings) {
+                                            setFieldValue("base_url", ind.urls[0]);
                                             ind.irc.settings.forEach((s) => {
                                               setFieldValue(`irc.${s.name}`, s.default ?? "");
                                             });
@@ -442,6 +444,15 @@ export function IndexerAddForm({ isOpen, toggle }: AddProps) {
                           </div>
 
                           <SwitchGroupWide name="enabled" label="Enabled" />
+
+                          {indexer.implementation == "irc" && (
+                            <SelectFieldCreatable
+                              name="base_url"
+                              label="Base URL"
+                              help="Override baseurl if it's blocked by your ISP."
+                              options={indexer.urls.map(u => ({ value: u, label: u, key: u })) }
+                            />
+                          )}
 
                           {SettingFields(indexer, values.identifier)}
 
@@ -550,6 +561,7 @@ export function IndexerUpdateForm({ isOpen, toggle, indexer }: UpdateProps) {
     enabled: indexer.enabled,
     identifier: indexer.identifier,
     implementation: indexer.implementation,
+    base_url: indexer.base_url,
     settings: indexer.settings?.reduce(
       (o: Record<string, string>, obj: IndexerSetting) => ({
         ...o,
@@ -592,6 +604,16 @@ export function IndexerUpdateForm({ isOpen, toggle, indexer }: UpdateProps) {
             </Field>
           </div>
           <SwitchGroupWide name="enabled" label="Enabled" />
+
+          {indexer.implementation == "irc" && (
+            <SelectFieldCreatable
+              name="base_url"
+              label="Base URL"
+              help="Override baseurl if it's blocked by your ISP."
+              options={indexer.urls.map(u => ({ value: u, label: u, key: u })) }
+            />
+          )}
+
           {renderSettingFields(indexer.settings)}
         </div>
       )}

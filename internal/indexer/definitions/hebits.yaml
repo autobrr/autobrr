@@ -58,31 +58,31 @@ irc:
       label: Invite command
       help: "Replace IRCKEY with: Edit Profile -> Access Settings -> IRC Key"
 
-parse:
-  type: multi
-  lines:
-    - test:
-        - "New: (מה שקורה בצללים - עונה 4, פרק 3 / What We Do in the Shadows - S04E03 *היידפנישן*) Category: סדרות - HD Size: 825.43 MiB Seeders: 0 Leechers: 0"
-        - "New: (לגו מלחמת הכוכבים: חופשת קיץ / LEGO Star Wars Summer Vacation *היידפנישן*) Category: סרטים - HD Size: 1.02 GiB Seeders: 0 Leechers: 0"
-        - "New: (תמונות מחיי נישואין - עונה 1 / Scenes from a Marriage (US) - S01 *היידפנישן מלא*) Category: סדרות - HD מלא Size: 18.61 GiB Seeders: 0 Leechers: 0"
-      pattern: '^New: \((.*)\) Category: (.*) Size: ([\d\.,]+ \w+) Seeders: .+ Leechers: .+'
-      vars:
-        - name1
-        - category
-        - torrentSize
-    - test:
-        - "Link: https://hebits.net/torrents.php?torrentid=80081"
-      pattern: '^Link: https?\:\/\/?[w{3}.]*([^\/]+).*(?:&amp;|\?)torrentid=(\d+)'
-      vars:
-        - baseUrl
-        - torrentId
-    - test:
-        - "Release: What.We.Do.in.the.Shadows.S04E03.The.Grand.Opening.720p.AMZN.WEB.DL.DDP5.1.H.264-FLUX"
-        - "Release: LEGO.Star.Wars.Summer.Vacation.2022.720p.WEB-DL.H.264.HebDub-iSrael"
-        - "Release: Scenes.From.a.Marriage.US.S01.1080p.AMZN.WEB-DL.DDP5.1.H.264-FLUX"
-      pattern: "^Release: (.*)"
-      vars:
-        - torrentName
+  parse:
+    type: multi
+    lines:
+      - test:
+          - "New: (מה שקורה בצללים - עונה 4, פרק 3 / What We Do in the Shadows - S04E03 *היידפנישן*) Category: סדרות - HD Size: 825.43 MiB Seeders: 0 Leechers: 0"
+          - "New: (לגו מלחמת הכוכבים: חופשת קיץ / LEGO Star Wars Summer Vacation *היידפנישן*) Category: סרטים - HD Size: 1.02 GiB Seeders: 0 Leechers: 0"
+          - "New: (תמונות מחיי נישואין - עונה 1 / Scenes from a Marriage (US) - S01 *היידפנישן מלא*) Category: סדרות - HD מלא Size: 18.61 GiB Seeders: 0 Leechers: 0"
+        pattern: '^New: \((.*)\) Category: (.*) Size: ([\d\.,]+ \w+) Seeders: .+ Leechers: .+'
+        vars:
+          - name1
+          - category
+          - torrentSize
+      - test:
+          - "Link: https://hebits.net/torrents.php?torrentid=80081"
+        pattern: '^Link: (https?\:\/\/?[w{3}.]*[^\/]+\/).+torrentid=(\d+)'
+        vars:
+          - baseUrl
+          - torrentId
+      - test:
+          - "Release: What.We.Do.in.the.Shadows.S04E03.The.Grand.Opening.720p.AMZN.WEB.DL.DDP5.1.H.264-FLUX"
+          - "Release: LEGO.Star.Wars.Summer.Vacation.2022.720p.WEB-DL.H.264.HebDub-iSrael"
+          - "Release: Scenes.From.a.Marriage.US.S01.1080p.AMZN.WEB-DL.DDP5.1.H.264-FLUX"
+        pattern: "^Release: (.*)"
+        vars:
+          - torrentName
 
-  match:
-    torrenturl: "https://{{ .baseUrl }}/torrents.php?action=download&id={{ .torrentId }}&authkey={{ .authkey }}&torrent_pass={{ .passkey }}"
+    match:
+      torrenturl: "/torrents.php?action=download&id={{ .torrentId }}&authkey={{ .authkey }}&torrent_pass={{ .passkey }}"

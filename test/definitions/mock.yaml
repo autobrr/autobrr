@@ -12,6 +12,12 @@ supports:
   - irc
   - api
 source: custom
+settings:
+  - name: rsskey
+    type: secret
+    label: RSS key
+    help: "Go to your profile and copy your RSS key"
+    regex: /([\da-fA-F]{20})
 
 irc:
   network: Mock
@@ -41,22 +47,22 @@ irc:
       label: NickServ Password
       help: NickServ password
 
-parse:
-  type: single
-  lines:
-    - test:
-        - "New Torrent Announcement: <PC :: Iso>  Name:'debian live 10 6 0 amd64 standard iso' uploaded by 'Anonymous' -  http://www.localhost.test/torrent/000000"
-        - "New Torrent Announcement: <PC :: Iso>  Name:'debian live 10 6 0 amd64 standard iso' uploaded by 'Anonymous' freeleech -  http://www.localhost.test/torrent/000000"
-      pattern: New Torrent Announcement:\s*<([^>]*)>\s*Name:'(.*)' uploaded by '([^']*)'\s*(freeleech)*\s*-\s*(https?\:\/\/[^\/]+\/)torrent\/(\d+)
-      vars:
-        - category
-        - torrentName
-        - uploader
-        - freeleech
-        - baseUrl
-        - torrentId
+  parse:
+    type: single
+    lines:
+      - test:
+          - "New Torrent Announcement: <PC :: Iso>  Name:'debian live 10 6 0 amd64 standard iso' uploaded by 'Anonymous' -  http://localhost:3999/torrent/000000"
+          - "New Torrent Announcement: <PC :: Iso>  Name:'debian live 10 6 0 amd64 standard iso' uploaded by 'Anonymous' freeleech -  http://localhost:3999/torrent/000000"
+        pattern: New Torrent Announcement:\s*<([^>]*)>\s*Name:'(.*)' uploaded by '([^']*)'\s*(freeleech)*\s*-\s*(https?\:\/\/[^\/]+\/)torrent\/(\d+)
+        vars:
+          - category
+          - torrentName
+          - uploader
+          - freeleech
+          - baseUrl
+          - torrentId
 
-  match:
-    torrenturl: "{{ .baseUrl }}file/{{ .torrentId }}/{{ .torrentName }}.torrent"
-    encode:
-      - torrentName
+    match:
+      torrenturl: "/file/{{ .torrentId }}/{{ .torrentName }}.torrent"
+      encode:
+        - torrentName
