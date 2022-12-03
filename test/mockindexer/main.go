@@ -35,10 +35,10 @@ func main() {
 
 	r.Get("/file/{fileId}/{fileName}", func(w http.ResponseWriter, r *http.Request) {
 		f, err := os.Open("files/" + chi.URLParam(r, "fileId") + ".torrent")
-
 		if err != nil {
 			log.Fatalf("Err: %v", err)
 		}
+		defer f.Close()
 
 		w.Header().Set("Content-Disposition", "attachment; filename="+chi.URLParam(r, "fileName"))
 		w.Header().Set("Content-Type", "application/x-bittorrent")
