@@ -16,6 +16,7 @@ CREATE TABLE indexer
     id             SERIAL PRIMARY KEY,
     identifier     TEXT,
 	implementation TEXT,
+	base_url       TEXT,
     enabled        BOOLEAN,
     name           TEXT NOT NULL,
     settings       TEXT,
@@ -615,4 +616,7 @@ CREATE INDEX indexer_identifier_index
 
 	UPDATE irc_network
 		SET auth_mechanism = 'SASL_PLAIN';`,
+	`ALTER TABLE indexer
+     	ADD COLUMN base_url TEXT;
+    `,
 }

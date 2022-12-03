@@ -72,34 +72,34 @@ irc:
       label: NickServ Password
       help: NickServ password
 
-parse:
-  type: multi
-  lines:
-    - test:
-        - "NOW BROADCASTING! [ The Show S06E07 720p WEB-DL DD 5.1 H.264 - LP ]"
-      pattern: ^NOW BROADCASTING! \[ (.*) \]
-      vars:
-        - torrentName
-    - test:
-        - "[ Title: S06E07 ] [ Series: The Show ]"
-      pattern: '^\[ Title: .* \] \[ Series: (.*) \]'
-      vars:
-        - title
-    - test:
-        - "[ 2010 ] [ Episode ] [ MKV | x264 | WEB | P2P ] [ Uploader: Uploader1 ]"
-      pattern: '^(?:\[ (\d+) \] )?\[ (.*) \] \[ (.*) \] \[ Uploader: (.*?) \](?: \[ Pretime: (.*) \])?'
-      vars:
-        - year
-        - category
-        - releaseTags
-        - uploader
-        - preTime
-    - test:
-        - "[ https://XXXXXXXXX/torrents.php?id=7338 / https://XXXXXXXXX/torrents.php?action=download&id=9116 ]"
-      pattern: ^\[ .* \/ (https?:\/\/.*id=(\d+)) \]
-      vars:
-        - baseUrl
-        - torrentId
+  parse:
+    type: multi
+    lines:
+      - test:
+          - "NOW BROADCASTING! [ The Show S06E07 720p WEB-DL DD 5.1 H.264 - LP ]"
+        pattern: ^NOW BROADCASTING! \[ (.*) \]
+        vars:
+          - torrentName
+      - test:
+          - "[ Title: S06E07 ] [ Series: The Show ]"
+        pattern: '^\[ Title: .* \] \[ Series: (.*) \]'
+        vars:
+          - title
+      - test:
+          - "[ 2010 ] [ Episode ] [ MKV | x264 | WEB | P2P ] [ Uploader: Uploader1 ]"
+        pattern: '^(?:\[ (\d+) \] )?\[ (.*) \] \[ (.*) \] \[ Uploader: (.*?) \](?: \[ Pretime: (.*) \])?'
+        vars:
+          - year
+          - category
+          - releaseTags
+          - uploader
+          - preTime
+      - test:
+          - "[ https://XXXXXXXXX/torrents.php?id=7338 / https://XXXXXXXXX/torrents.php?action=download&id=9116 ]"
+        pattern: \[ .* \/ (https?:\/\/.*\/).+id=(\d+) \]
+        vars:
+          - baseUrl
+          - torrentId
 
-  match:
-    torrenturl: "{{ .baseUrl }}&authkey={{ .authkey }}&torrent_pass={{ .torrent_pass }}"
+    match:
+      torrenturl: "/torrents.php?action=download&id={{ .torrentId }}&authkey={{ .authkey }}&torrent_pass={{ .torrent_pass }}"

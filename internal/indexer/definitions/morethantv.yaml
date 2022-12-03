@@ -5,7 +5,7 @@ identifier: morethantv
 description: MoreThanTv (MTV) is a torrent tracker for Series and Movies.
 language: en-us
 urls:
-  - https://www.morethantv.me
+  - https://www.morethantv.me/
 privacy: private
 protocol: torrent
 supports:
@@ -53,20 +53,20 @@ irc:
       label: NickServ Password
       help: NickServ password
 
-parse:
-  type: single
-  lines:
-    - test:
-        - "TV.Show.2008.720p.BluRay.DTS.x264-TEST - Size: 6.56 GiB - Uploader: Test - Tags: autoup,h264,hd,dts.audio,bluray,720p,p2p.group.release,Test.release,hd.movie - https://www.morethantv.me/torrents.php?torrentid=000000"
-      pattern: '^(.*?) - Size: ([0-9]+?.*?) - Uploader: (.*?) - Tags: (.*(hd.episode|hd.season|sd.episode|sd.season|sd.movie|hd.movie)) - (https?:\/\/.*torrents.php\?)torrentid=(.*)$'
-      vars:
-        - torrentName
-        - torrentSize
-        - uploader
-        - tags
-        - category
-        - baseUrl
-        - torrentId
+  parse:
+    type: single
+    lines:
+      - test:
+          - "TV.Show.2008.720p.BluRay.DTS.x264-TEST - Size: 6.56 GiB - Uploader: Test - Tags: autoup,h264,hd,dts.audio,bluray,720p,p2p.group.release,Test.release,hd.movie - https://www.morethantv.me/torrents.php?torrentid=000000"
+        pattern: '(.+) - Size: (.+) - Uploader: (.+) - Tags: (.+(hd.episode|hd.season|sd.episode|sd.season|sd.movie|hd.movie)) - (https?:\/\/.+\/)torrents.php\?torrentid=(\d+)'
+        vars:
+          - torrentName
+          - torrentSize
+          - uploader
+          - tags
+          - category
+          - baseUrl
+          - torrentId
 
-  match:
-    torrenturl: "{{ .baseUrl }}action=download&id={{ .torrentId }}&authkey={{ .authkey }}&torrent_pass={{ .torrent_pass }}"
+    match:
+      torrenturl: "/torrents.php?action=download&id={{ .torrentId }}&authkey={{ .authkey }}&torrent_pass={{ .torrent_pass }}"

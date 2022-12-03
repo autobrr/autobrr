@@ -68,21 +68,21 @@ irc:
 # Audio
 # Other
 
-parse:
-  type: single
-  lines:
-    - test:
-        - "[Manga] Kirisaki Byakko – Hatsujou Shitara Wakasagihime ni Omakase! [English] - https://oppaiti.me/torrents.php?id=9057 / https://oppaiti.me/torrents.php?action=download&id=10047 - futanari:female,kagerou.imaizumi:character, wakasagihime:character, sole.dickgirl:female, mermaid:female, monster.girl:female, sole.female:female, touhou.project:parody, big.breasts:female, wolf.girl:female"
-        - "[Games] Redamz – Monster Girl Island Halloween VR Build [Loose / English / Archived (zip) / Uncensored] - https://oppaiti.me/torrents.php?id=9064 / https://oppaiti.me/torrents.php?action=download&id=10064 - slime.girl,multiple.arms,robot.girl,virtual.reality,spider.girl,elf,catgirl,big.breasts,small.breasts,nukige"
-      pattern: '\[(\w+)\] (.+) – (.+) \[(.+)\] - https?:\/\/.* \/ (https?:\/\/.*\/)torrents\.php\?action=download&id=(\d+) - (.+)'
-      vars:
-        - category
-        - uploader
-        - torrentName
-        - releaseTags
-        - baseUrl
-        - torrentId
-        - tags
+  parse:
+    type: single
+    lines:
+      - test:
+          - "[Manga] Kirisaki Byakko – Hatsujou Shitara Wakasagihime ni Omakase! [English] - https://oppaiti.me/torrents.php?id=9057 / https://oppaiti.me/torrents.php?action=download&id=10047 - futanari:female,kagerou.imaizumi:character, wakasagihime:character, sole.dickgirl:female, mermaid:female, monster.girl:female, sole.female:female, touhou.project:parody, big.breasts:female, wolf.girl:female"
+          - "[Games] Redamz – Monster Girl Island Halloween VR Build [Loose / English / Archived (zip) / Uncensored] - https://oppaiti.me/torrents.php?id=9064 / https://oppaiti.me/torrents.php?action=download&id=10064 - slime.girl,multiple.arms,robot.girl,virtual.reality,spider.girl,elf,catgirl,big.breasts,small.breasts,nukige"
+        pattern: '\[(\w+)\] (.+) – (.+) \[(.+)\] - https?:\/\/.* \/ (https?:\/\/.*\/)torrents\.php\?action=download&id=(\d+) - (.+)'
+        vars:
+          - category
+          - uploader
+          - torrentName
+          - releaseTags
+          - baseUrl
+          - torrentId
+          - tags
 
-  match:
-    torrenturl: "{{ .baseUrl }}torrents.php?action=download&id={{ .torrentId }}&authkey={{ .authkey }}&torrent_pass={{ .torrent_pass }}"
+    match:
+      torrenturl: "/torrents.php?action=download&id={{ .torrentId }}&authkey={{ .authkey }}&torrent_pass={{ .torrent_pass }}"
