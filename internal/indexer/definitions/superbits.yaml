@@ -47,21 +47,21 @@ irc:
       label: NickServ Password
       help: NickServ password
 
-parse:
-  type: single
-  lines:
-    - test:
-        - "-[archive Film 1080]2[A.Movie.1985.FRENCH.1080p.BluRay.x264-GROUP]3[000000]4[Size: 4.41 GB]5[FL: no]6[Scene: yes]"
-        - "-[new TV]2[Some.Show.S05E05.720p.WEB.h264-GROUP]3[000000]4[Size: 964.04 MB]5[FL: no]6[Scene: yes]7[Pred 1m 30s ago]"
-      pattern: '\-\[(.*)\]2\[(.*)\]3\[(\d+)\]4\[Size\:\s(.*)\]5\[FL\:\s(no|yes)\]6\[Scene\:\s(no|yes)\](?:7\[Pred\s(.*)\sago\])?'
-      vars:
-        - category
-        - torrentName
-        - torrentId
-        - torrentSize
-        - freeleech
-        - scene
-        - preTime
+  parse:
+    type: single
+    lines:
+      - test:
+          - "-[archive Film 1080]2[A.Movie.1985.FRENCH.1080p.BluRay.x264-GROUP]3[000000]4[Size: 4.41 GB]5[FL: no]6[Scene: yes]"
+          - "-[new TV]2[Some.Show.S05E05.720p.WEB.h264-GROUP]3[000000]4[Size: 964.04 MB]5[FL: no]6[Scene: yes]7[Pred 1m 30s ago]"
+        pattern: '\-\[(.*)\]2\[(.*)\]3\[(\d+)\]4\[Size\:\s(.*)\]5\[FL\:\s(no|yes)\]6\[Scene\:\s(no|yes)\](?:7\[Pred\s(.*)\sago\])?'
+        vars:
+          - category
+          - torrentName
+          - torrentId
+          - torrentSize
+          - freeleech
+          - scene
+          - preTime
 
-  match:
-    torrenturl: "https://superbits.org/download.php?id={{ .torrentId }}&passkey={{ .passkey }}"
+    match:
+      torrenturl: "/download.php?id={{ .torrentId }}&passkey={{ .passkey }}"

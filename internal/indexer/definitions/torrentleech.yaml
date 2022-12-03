@@ -5,7 +5,11 @@ identifier: torrentleech
 description: TorrentLeech (TL) is a private torrent tracker for 0DAY / GENERAL.
 language: en-us
 urls:
-  - https://www.torrentleech.org
+  - https://www.torrentleech.org/
+  - https://www.torrentleech.cc/
+  - https://www.torrentleech.me/
+  - https://www.tleechreload.org/
+  - https://www.tlgetin.cc/
 privacy: private
 protocol: torrent
 supports:
@@ -48,24 +52,22 @@ irc:
       label: NickServ Password
       help: NickServ password
 
-parse:
-  type: single
-  lines:
-    - test:
-        - "New Torrent Announcement: <PC :: Iso>  Name:'debian live 10 6 0 amd64 standard iso' uploaded by 'Anonymous' -  http://www.tracker01.test/torrent/000000"
-        - "New Torrent Announcement: <PC :: Iso>  Name:'debian live 10 6 0 amd64 standard iso' uploaded by 'Anonymous' freeleech -  http://www.tracker01.test/torrent/000000"
-      pattern: New Torrent Announcement:\s*<([^>]*)>\s*Name:'(.*)' uploaded by '([^']*)'\s*(freeleech)*\s*-\s*(https?\:\/\/[^\/]+\/)torrent\/(\d+)
-      vars:
-        - category
+  parse:
+    type: single
+    lines:
+      - test:
+          - "New Torrent Announcement: <PC :: Iso>  Name:'debian live 10 6 0 amd64 standard iso' uploaded by 'Anonymous' -  http://www.tracker01.test/torrent/000000"
+          - "New Torrent Announcement: <PC :: Iso>  Name:'debian live 10 6 0 amd64 standard iso' uploaded by 'Anonymous' freeleech -  http://www.tracker01.test/torrent/000000"
+        pattern: New Torrent Announcement:\s*<([^>]*)>\s*Name:'(.*)' uploaded by '([^']*)'\s*(freeleech)*\s*-\s*(https?\:\/\/[^\/]+\/)torrent\/(\d+)
+        vars:
+          - category
+          - torrentName
+          - uploader
+          - freeleech
+          - baseUrl
+          - torrentId
+
+    match:
+      torrenturl: "/rss/download/{{ .torrentId }}/{{ .rsskey }}/{{ .torrentName }}.torrent"
+      encode:
         - torrentName
-        - uploader
-        - freeleech
-        - baseUrl
-        - torrentId
-
-  match:
-    torrenturl: "{{ .baseUrl }}rss/download/{{ .torrentId }}/{{ .rsskey }}/{{ .torrentName }}.torrent"
-    encode:
-      - torrentName
-
-

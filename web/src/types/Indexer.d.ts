@@ -4,6 +4,7 @@ interface Indexer {
   identifier: string;
   enabled: boolean;
   implementation: string;
+  base_url: string;
   settings: Array<IndexerSetting>;
 }
 
@@ -12,6 +13,7 @@ interface IndexerDefinition {
   name: string;
   identifier: string;
   implementation: string;
+  base_url: string;
   enabled?: boolean;
   description: string;
   language: string;

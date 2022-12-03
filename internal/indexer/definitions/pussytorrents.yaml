@@ -48,22 +48,21 @@ irc:
       label: NickServ Password
       help: NickServ password
 
-parse:
-  type: single
-  lines:
-    - test:
-        - "New Torrent Announcement: Name:'BsBigHouse 12 12 21 Kyle Comes To Play XXX 480i MP2 YUSUF' uploaded by 'Anonymous' -  https://www.pussytorrents.org/torrent/69"
-        - "New Torrent Announcement: Name:'BadBus 8 9 98 carter and the lemon XXX 576p MP4 CatStevens' uploaded by 'Anonymous' -  https://www.pussytorrents.org/torrent/96"
-      pattern: New Torrent Announcement:\s*Name:'(.*)' uploaded by '([^']*)'\s*(freeleech)*\s*-\s*(https?\:\/\/[^\/]+\/)torrent\/(\d+)
-      vars:
+  parse:
+    type: single
+    lines:
+      - test:
+          - "New Torrent Announcement: Name:'BsBigHouse 12 12 21 Kyle Comes To Play XXX 480i MP2 YUSUF' uploaded by 'Anonymous' -  https://www.pussytorrents.org/torrent/69"
+          - "New Torrent Announcement: Name:'BadBus 8 9 98 carter and the lemon XXX 576p MP4 CatStevens' uploaded by 'Anonymous' -  https://www.pussytorrents.org/torrent/96"
+        pattern: New Torrent Announcement:\s*Name:'(.*)' uploaded by '([^']*)'\s*(freeleech)*\s*-\s*(https?\:\/\/[^\/]+\/)torrent\/(\d+)
+        vars:
+          - torrentName
+          - uploader
+          - freeleech
+          - baseUrl
+          - torrentId
+
+    match:
+      torrenturl: "/rss/download/{{ .torrentId }}/{{ .rsskey }}/{{ .torrentName }}.torrent"
+      encode:
         - torrentName
-        - uploader
-        - freeleech
-        - baseUrl
-        - torrentId
-
-  match:
-    torrenturl: "{{ .baseUrl }}rss/download/{{ .torrentId }}/{{ .rsskey }}/{{ .torrentName }}.torrent"
-    encode:
-      - torrentName
-

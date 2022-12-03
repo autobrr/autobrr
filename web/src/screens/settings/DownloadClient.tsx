@@ -36,40 +36,42 @@ function DownloadClientSettingsListItem({ client, idx }: DLSettingsItemProps) {
   };
 
   return (
-    <tr key={client.name} className={idx % 2 === 0 ? "light:bg-white" : "light:bg-gray-50"}>
-      <DownloadClientUpdateForm
-        client={client}
-        isOpen={updateClientIsOpen}
-        toggle={toggleUpdateClient}
-      />
-      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-        <Switch
-          checked={client.enabled}
-          onChange={onToggleMutation}
-          className={classNames(
-            client.enabled ? "bg-blue-500" : "bg-gray-200 dark:bg-gray-600",
-            "relative inline-flex flex-shrink-0 h-6 w-11 border-2 border-transparent rounded-full cursor-pointer transition-colors ease-in-out duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-          )}
-        >
-          <span className="sr-only">Use setting</span>
-          <span
-            aria-hidden="true"
-            className={classNames(
-              client.enabled ? "translate-x-5" : "translate-x-0",
-              "inline-block h-5 w-5 rounded-full bg-white shadow transform ring-0 transition ease-in-out duration-200"
-            )}
-          />
-        </Switch>
-      </td>
-      <td className="px-6 py-4 whitespace-nowrap text-sm truncate max-w-sm font-medium text-gray-900 dark:text-white">{client.name}</td>
-      <td className="px-6 py-4 whitespace-nowrap text-sm truncate max-w-sm text-gray-500 dark:text-gray-400">{client.host}</td>
-      <td className="px-6 py-4 whitespace-nowrap text-sm truncate max-w-sm text-gray-500 dark:text-gray-400">{DownloadClientTypeNameMap[client.type]}</td>
-      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-        <span className="text-blue-600 dark:text-gray-300 hover:text-blue-900 cursor-pointer" onClick={toggleUpdateClient}>
-          Edit
-        </span>
-      </td>
-    </tr>
+    <li key={client.name}>
+      <div className="grid grid-cols-12 gap-2 lg:gap-4 items-center py-2">
+        <DownloadClientUpdateForm
+          client={client}
+          isOpen={updateClientIsOpen}
+          toggle={toggleUpdateClient}
+        />
+          <div className="col-span-3 sm:col-span-2 px-4 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+            <Switch
+              checked={client.enabled}
+              onChange={onToggleMutation}
+              className={classNames(
+                client.enabled ? "bg-blue-500" : "bg-gray-200 dark:bg-gray-600",
+                "relative inline-flex flex-shrink-0 h-6 w-11 border-2 border-transparent rounded-full cursor-pointer transition-colors ease-in-out duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              )}
+            >
+              <span className="sr-only">Use setting</span>
+              <span
+                aria-hidden="true"
+                className={classNames(
+                  client.enabled ? "translate-x-5" : "translate-x-0",
+                  "inline-block h-5 w-5 rounded-full bg-white shadow transform ring-0 transition ease-in-out duration-200"
+                )}
+              />
+            </Switch>
+          </div>
+          <div className="col-span-7 sm:col-span-3 px-1 sm:px-0 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white truncate" title={client.name}>{client.name}</div>
+          <div className="hidden sm:block col-span-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400 truncate" title={client.host}>{client.host}</div>
+          <div className="hidden sm:block col-span-2 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{DownloadClientTypeNameMap[client.type]}</div>
+          <div className="col-span-1 whitespace-nowrap text-center text-sm font-medium">
+            <span className="text-blue-600 dark:text-gray-300 hover:text-blue-900 cursor-pointer" onClick={toggleUpdateClient}>
+              Edit
+            </span>
+        </div>
+      </div>
+    </li>
   );
 }
 
@@ -110,52 +112,29 @@ function DownloadClientSettings() {
           </div>
         </div>
 
-        <div className="flex flex-col mt-6">
+        <div className="flex flex-col mt-6 px-4">
           {data && data.length > 0 ?
-            <div className="-my-2 overflow-x-auto">
-              <div className="py-2 align-middle inline-block min-w-full">
-                <div className="light:shadow overflow-hidden light:border-b light:border-gray-200 sm:rounded-lg">
-                  <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                    <thead className="light:bg-gray-50">
-                      <tr>
-                        <th
-                          scope="col"
-                          className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
-                        >
-                          Enabled
-                        </th>
-                        <th
-                          scope="col"
-                          className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
-                        >
-                          Name
-                        </th>
-                        <th
-                          scope="col"
-                          className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
-                        >
-                          Host
-                        </th>
-                        <th
-                          scope="col"
-                          className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
-                        >
-                          Type
-                        </th>
-                        <th scope="col" className="relative px-6 py-3">
-                          <span className="sr-only">Edit</span>
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody className="light:bg-white divide-y divide-gray-200 dark:divide-gray-700">
-                      {data && data.map((client, idx) => (
-                        <DownloadClientSettingsListItem client={client} idx={idx} key={idx} />
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            </div>
+            <section className="light:bg-white dark:bg-gray-800 light:shadow sm:rounded-md">
+              <ol className="min-w-full relative">
+                <li className="grid grid-cols-12 gap-4 border-b border-gray-200 dark:border-gray-700">
+                  <div className="col-span-3 sm:col-span-2 px-2 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    Enabled
+                  </div>
+                  <div className="col-span-6 sm:col-span-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    Name
+                  </div>
+                  <div className="hidden sm:block col-span-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    Host
+                  </div>
+                  <div className="hidden sm:block col-span-2 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    Type
+                  </div>
+                </li>
+                {data && data.map((client, idx) => (
+                  <DownloadClientSettingsListItem client={client} idx={idx} key={idx} />
+                ))}
+              </ol>
+            </section>
             : <EmptySimple title="No download clients" subtitle="Add a new client" buttonText="New client" buttonAction={toggleAddClient} />
           }
         </div>

@@ -213,7 +213,7 @@ export default function FilterDetails() {
             </NavLink>
           </h1>
           <ChevronRightIcon className="h-6 w-6 text-gray-500" aria-hidden="true" />
-          <h1 className="text-3xl font-bold text-black dark:text-white">{filter.name}</h1>
+          <h1 className="text-3xl font-bold text-black dark:text-white truncate" title={filter.name}>{filter.name}</h1>
         </div>
       </header>
       <div className="max-w-screen-xl mx-auto pb-12 px-4 sm:px-6 lg:px-8">

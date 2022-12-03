@@ -16,6 +16,7 @@ CREATE TABLE indexer
     id             INTEGER PRIMARY KEY,
     identifier     TEXT,
 	implementation TEXT,
+	base_url       TEXT,
     enabled        BOOLEAN,
     name           TEXT NOT NULL,
     settings       TEXT,
@@ -959,4 +960,7 @@ DROP TABLE irc_network;
 ALTER TABLE irc_network_dg_tmp
     RENAME TO irc_network;
 	`,
+	`ALTER TABLE indexer
+     	ADD COLUMN base_url TEXT;
+    `,
 }

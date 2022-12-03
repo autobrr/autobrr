@@ -54,22 +54,22 @@ irc:
       label: Invite command
       help: Invite auth with DBBot. Replace IRCKEY with your key.
 
-parse:
-  type: single
-  lines:
-    - test:
-        - ":[N]-[Movies]-[Encode]-[720p]-[797 MiB]-[Some.Old.Movie.1972.720p.BluRay.x264.AAC-GROUP]-[Anonymous]-[https://danishbytes.club/torrents/0000]-[FL: 0]-[DU: 0];"
-      pattern: ':\[N\]-\[(.*)\]-\[(.*)\]-\[(.*)\]-\[(.*)\]-\[(.*)\]-\[(.*)\]-\[(.*\/)(?:.*\/)(.*)\]-\[FL: (.*)\]-\[DU: .*\];'
-      vars:
-        - category
-        - releaseTags
-        - resolution
-        - torrentSize
-        - torrentName
-        - uploader
-        - baseUrl
-        - torrentId
-        - freeleech
+  parse:
+    type: single
+    lines:
+      - test:
+          - ":[N]-[Movies]-[Encode]-[720p]-[797 MiB]-[Some.Old.Movie.1972.720p.BluRay.x264.AAC-GROUP]-[Anonymous]-[https://danishbytes.club/torrents/0000]-[FL: 0]-[DU: 0];"
+        pattern: ':\[N\]-\[(.*)\]-\[(.*)\]-\[(.*)\]-\[(.*)\]-\[(.*)\]-\[(.*)\]-\[(.*\/)(?:.*\/)(.*)\]-\[FL: (.*)\]-\[DU: .*\];'
+        vars:
+          - category
+          - releaseTags
+          - resolution
+          - torrentSize
+          - torrentName
+          - uploader
+          - baseUrl
+          - torrentId
+          - freeleech
 
-  match:
-    torrenturl: "{{ .baseUrl }}torrent/download/{{ .torrentId }}.{{ .passkey }}"
+    match:
+      torrenturl: "/torrent/download/{{ .torrentId }}.{{ .passkey }}"

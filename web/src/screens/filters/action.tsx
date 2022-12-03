@@ -84,7 +84,7 @@ export function FilterActions({ filter, values }: FilterActionsProps) {
               {values.actions.length > 0 ?
                 <ul className="divide-y divide-gray-200 dark:divide-gray-700">
                   {values.actions.map((action: Action, index: number) => (
-                    <FilterActionsItem action={action} clients={data ?? []} idx={index} remove={remove} key={index}/>
+                    <FilterActionsItem action={action} clients={data ?? []} idx={index} initialEdit={values.actions.length === 1} remove={remove} key={index}/>
                   ))}
                 </ul>
                 : <EmptyListState text="No actions yet!"/>
@@ -405,14 +405,15 @@ interface FilterActionsItemProps {
   action: Action;
   clients: DownloadClient[];
   idx: number;
+  initialEdit: boolean;
   remove: <T>(index: number) => T | undefined;
 }
 
-function FilterActionsItem({ action, clients, idx, remove }: FilterActionsItemProps) {
+function FilterActionsItem({ action, clients, idx, initialEdit, remove }: FilterActionsItemProps) {
   const cancelButtonRef = useRef(null);
 
   const [deleteModalIsOpen, toggleDeleteModal] = useToggle(false);
-  const [edit, toggleEdit] = useToggle(false);
+  const [edit, toggleEdit] = useToggle(initialEdit);
 
   return (
     <li>

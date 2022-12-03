@@ -5,7 +5,7 @@ identifier: fl
 description: FileList (FL) is a ROMANIAN private torrent tracker for MOVIES / TV / GENERAL
 language: en-us
 urls:
-  - https://filelist.io
+  - https://filelist.io/
 privacy: private
 protocol: torrent
 supports:
@@ -47,25 +47,25 @@ irc:
       label: NickServ Password
       help: NickServ password
 
-parse:
-  type: single
-  lines:
-    - test:
-        - 'New Torrent: This.Really.Old.Movie.1965.DVDRip.DD1.0.x264 -- [Filme SD] [1.91 GB] -- https://filelist.io/details.php?id=000000 -- by uploader1'
-        - 'New Torrent: This.New.Movie.2021.1080p.Blu-ray.AVC.DTS-HD.MA.5.1-BEATRIX -- [FreeLeech!] -- [Filme Blu-Ray] [26.78 GB] -- https://filelist.io/details.php?id=000000 -- by uploader1'
-        - 'New Torrent: This.New.Movie.2021.1080p.Remux.AVC.DTS-HD.MA.5.1-playBD -- [FreeLeech!] -- [Internal!] -- [Filme Blu-Ray] [17.69 GB] -- https://filelist.io/details.php?id=000000 -- by uploader1'
-      pattern: 'New Torrent: (.*?) (?:-- \[(FreeLeech)!] )?(?:-- \[(Internal)!] )?-- \[(.*)] \[(.*)] -- (https?:\/\/filelist.io\/).*id=(.*) -- by (.*)'
-      vars:
-        - torrentName
-        - freeleech
-        - origin
-        - category
-        - torrentSize
-        - baseUrl
-        - torrentId
-        - uploader
+  parse:
+    type: single
+    lines:
+      - test:
+          - 'New Torrent: This.Really.Old.Movie.1965.DVDRip.DD1.0.x264 -- [Filme SD] [1.91 GB] -- https://filelist.io/details.php?id=000000 -- by uploader1'
+          - 'New Torrent: This.New.Movie.2021.1080p.Blu-ray.AVC.DTS-HD.MA.5.1-BEATRIX -- [FreeLeech!] -- [Filme Blu-Ray] [26.78 GB] -- https://filelist.io/details.php?id=000000 -- by uploader1'
+          - 'New Torrent: This.New.Movie.2021.1080p.Remux.AVC.DTS-HD.MA.5.1-playBD -- [FreeLeech!] -- [Internal!] -- [Filme Blu-Ray] [17.69 GB] -- https://filelist.io/details.php?id=000000 -- by uploader1'
+        pattern: 'New Torrent: (.*?) (?:-- \[(FreeLeech)!] )?(?:-- \[(Internal)!] )?-- \[(.*)] \[(.*)] -- (https?:\/\/filelist.io\/).*id=(.*) -- by (.*)'
+        vars:
+          - torrentName
+          - freeleech
+          - origin
+          - category
+          - torrentSize
+          - baseUrl
+          - torrentId
+          - uploader
 
-  match:
-    torrenturl: "{{ .baseUrl }}download.php?id={{ .torrentId }}&file={{ .torrentName }}.torrent&passkey={{ .passkey }}"
-    encode:
-      - torrentName
+    match:
+      torrenturl: "/download.php?id={{ .torrentId }}&file={{ .torrentName }}.torrent&passkey={{ .passkey }}"
+      encode:
+        - torrentName

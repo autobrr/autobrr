@@ -449,7 +449,7 @@ func TestRelease_MapVars(t *testing.T) {
 					"torrentSize":      "10000",
 					"tags":             "hip.hop,rhythm.and.blues, 2000s",
 				},
-				definition: IndexerDefinition{Parse: &IndexerParse{ForceSizeUnit: "MB"}},
+				definition: IndexerDefinition{IRC: &IndexerIRC{Parse: &IndexerIRCParse{ForceSizeUnit: "MB"}}},
 			},
 		},
 		{
@@ -769,10 +769,7 @@ func TestRelease_DownloadTorrentFile(t *testing.T) {
 				TorrentURL:  fmt.Sprintf("%v/%v", ts.URL, 401),
 			},
 			wantErr: func(t assert.TestingT, err error, i ...interface{}) bool {
-				if err != nil {
-					return true
-				}
-				return false
+				return err != nil
 			},
 		},
 		{
@@ -783,10 +780,7 @@ func TestRelease_DownloadTorrentFile(t *testing.T) {
 				TorrentURL:  fmt.Sprintf("%v/%v", ts.URL, 403),
 			},
 			wantErr: func(t assert.TestingT, err error, i ...interface{}) bool {
-				if err != nil {
-					return true
-				}
-				return false
+				return err != nil
 			},
 		},
 		{
@@ -797,13 +791,11 @@ func TestRelease_DownloadTorrentFile(t *testing.T) {
 				TorrentURL:  fmt.Sprintf("%v/%v", ts.URL, "file.torrent"),
 			},
 			wantErr: func(t assert.TestingT, err error, i ...interface{}) bool {
-				if err != nil {
-					return true
-				}
-				return false
+				return err != nil
 			},
 		},
 	}
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			r := &Release{
@@ -861,7 +853,7 @@ func TestRelease_DownloadTorrentFile(t *testing.T) {
 				Filter:                      tt.fields.Filter,
 				ActionStatus:                tt.fields.ActionStatus,
 			}
-			tt.wantErr(t, r.DownloadTorrentFile(), fmt.Sprintf("DownloadTorrentFile()"))
+			tt.wantErr(t, r.DownloadTorrentFile(), "DownloadTorrentFile()")
 		})
 	}
 }

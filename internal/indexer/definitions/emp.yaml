@@ -5,7 +5,8 @@ identifier: emp
 description: Empornium (EMP) is a private torrent tracker for XXX
 language: en-us
 urls:
-  - https://www.empornium.is
+  - https://www.empornium.is/
+  - https://www.empornium.sx/
 privacy: private
 protocol: torrent
 supports:
@@ -53,19 +54,19 @@ irc:
       label: NickServ Password
       help: NickServ password
 
-parse:
-  type: single
-  lines:
-    - test:
-        - "Some long funny title - Size: 2.54 GiB - Uploader: uploader1 - Tags: tag1,tag2 - https://www.empornium.is/torrents.php?torrentid=000000"
-      pattern: '(.*) - Size: (.*) - Uploader: (.*) - Tags: (.*) - (https:\/\/.*torrents\.php\?)torrentid=(.*)'
-      vars:
-        - torrentName
-        - torrentSize
-        - uploader
-        - tags
-        - baseUrl
-        - torrentId
+  parse:
+    type: single
+    lines:
+      - test:
+          - "Some long funny title - Size: 2.54 GiB - Uploader: uploader1 - Tags: tag1,tag2 - https://www.empornium.is/torrents.php?torrentid=000000"
+        pattern: '(.*) - Size: (.+) - Uploader: (.+) - Tags: (.*) - (https:\/\/.*\/)torrents\.php\?torrentid=(\d+)'
+        vars:
+          - torrentName
+          - torrentSize
+          - uploader
+          - tags
+          - baseUrl
+          - torrentId
 
-  match:
-    torrenturl: "{{ .baseUrl }}action=download&id={{ .torrentId }}&authkey={{ .authkey }}&torrent_pass={{ .torrent_pass }}"
+    match:
+      torrenturl: "/torrents.php?action=download&id={{ .torrentId }}&authkey={{ .authkey }}&torrent_pass={{ .torrent_pass }}"
