@@ -7,6 +7,7 @@ require (
 	github.com/Masterminds/squirrel v1.5.3
 	github.com/anacrolix/torrent v1.46.0
 	github.com/asaskevich/EventBus v0.0.0-20200907212545-49d423059eef
+	github.com/autobrr/go-qbittorrent v1.0.0
 	github.com/avast/retry-go v3.0.0+incompatible
 	github.com/dcarbone/zadapters/zstdlog v0.3.1
 	github.com/dustin/go-humanize v1.0.0
@@ -34,7 +35,7 @@ require (
 	github.com/spf13/viper v1.13.0
 	github.com/stretchr/testify v1.8.0
 	golang.org/x/crypto v0.0.0-20220829220503-c86fa9a7ed90
-	golang.org/x/net v0.0.0-20220909164309-bea034e7d591
+	golang.org/x/net v0.0.0-20221002022538-bcab6841153b
 	golang.org/x/sync v0.0.0-20220929204114-8fcdb60fdcc0
 	golang.org/x/time v0.0.0-20220722155302-e5dcc9cfc0b9
 	gopkg.in/natefinch/lumberjack.v2 v2.0.0

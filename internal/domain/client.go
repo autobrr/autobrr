@@ -1,6 +1,10 @@
 package domain
 
-import "context"
+import (
+	"context"
+	"fmt"
+	"net/url"
+)
 
 type DownloadClientRepo interface {
 	List(ctx context.Context) ([]DownloadClient, error)
@@ -57,3 +61,54 @@ const (
 	DownloadClientTypeWhisparr     DownloadClientType = "WHISPARR"
 	DownloadClientTypeReadarr      DownloadClientType = "READARR"
 )
+
+func (c DownloadClient) BuildLegacyHost() string {
+	if c.Type == DownloadClientTypeQbittorrent {
+		return c.qbitBuildLegacyHost()
+	}
+	return ""
+}
+
+func (c DownloadClient) qbitBuildLegacyHost() string {
+	// parse url
+	u, _ := url.Parse(c.Host)
+
+	// reset Opaque
+	u.Opaque = ""
+
+	// set scheme
+	scheme := "http"
+	if u.Scheme == "http" || u.Scheme == "https" {
+		if c.TLS {
+			scheme = "https"
+		}
+		u.Scheme = scheme
+	} else {
+		if c.TLS {
+			scheme = "https"
+		}
+		u.Scheme = scheme
+	}
+
+	// if host is empty lets use one from settings
+	if u.Host == "" {
+		u.Host = c.Host
+	}
+
+	// reset Path
+	if u.Host == u.Path {
+		u.Path = ""
+	}
+
+	// handle ports
+	if c.Port > 0 {
+		if c.Port == 80 || c.Port == 443 {
+			// skip for regular http and https
+		} else {
+			u.Host = fmt.Sprintf("%v:%v", u.Host, c.Port)
+		}
+	}
+
+	// make into new string and return
+	return u.String()
+}

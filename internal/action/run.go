@@ -2,6 +2,7 @@ package action
 
 import (
 	"bytes"
+	"context"
 	"crypto/tls"
 	"io"
 	"net/http"
@@ -14,7 +15,7 @@ import (
 	"github.com/autobrr/autobrr/pkg/errors"
 )
 
-func (s *service) RunAction(action *domain.Action, release domain.Release) ([]string, error) {
+func (s *service) RunAction(ctx context.Context, action *domain.Action, release domain.Release) ([]string, error) {
 
 	var (
 		err        error
@@ -46,7 +47,7 @@ func (s *service) RunAction(action *domain.Action, release domain.Release) ([]st
 		rejections, err = s.deluge(*action, release)
 
 	case domain.ActionTypeQbittorrent:
-		rejections, err = s.qbittorrent(*action, release)
+		rejections, err = s.qbittorrent(ctx, *action, release)
 
 	case domain.ActionTypeRTorrent:
 		rejections, err = s.rtorrent(*action, release)
@@ -86,12 +87,12 @@ func (s *service) RunAction(action *domain.Action, release domain.Release) ([]st
 	}
 
 	payload := &domain.NotificationPayload{
-		Event:          domain.NotificationEventPushApproved,
-		ReleaseName:    release.TorrentName,
-		Filter:         release.Filter.Name,
-		Indexer:        release.Indexer,
-		InfoHash:       release.TorrentHash,
-		
+		Event:       domain.NotificationEventPushApproved,
+		ReleaseName: release.TorrentName,
+		Filter:      release.Filter.Name,
+		Indexer:     release.Indexer,
+		InfoHash:    release.TorrentHash,
+
 		Size:           release.Size,
 		Status:         domain.ReleasePushStatusApproved,
 		Action:         action.Name,
