@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"net/url"
+
+	"github.com/autobrr/go-qbittorrent"
 )
 
 type DownloadClientRepo interface {
@@ -26,6 +28,11 @@ type DownloadClient struct {
 	Username      string                 `json:"username"`
 	Password      string                 `json:"password"`
 	Settings      DownloadClientSettings `json:"settings,omitempty"`
+}
+
+type DownloadClientCached struct {
+	Dc  *DownloadClient
+	Qbt *qbittorrent.Client
 }
 
 type DownloadClientSettings struct {

@@ -8,6 +8,7 @@ import (
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/internal/logger"
 
+	"github.com/autobrr/go-qbittorrent"
 	"github.com/dcarbone/zadapters/zstdlog"
 	"github.com/rs/zerolog"
 )
@@ -19,18 +20,24 @@ type Service interface {
 	Update(ctx context.Context, client domain.DownloadClient) (*domain.DownloadClient, error)
 	Delete(ctx context.Context, clientID int) error
 	Test(client domain.DownloadClient) error
+
+	GetCachedClient(ctx context.Context, clientId int32) *domain.DownloadClientCached
 }
 
 type service struct {
 	log       zerolog.Logger
 	repo      domain.DownloadClientRepo
 	subLogger *log.Logger
+
+	qbitClients map[int32]*domain.DownloadClientCached
 }
 
 func NewService(log logger.Logger, repo domain.DownloadClientRepo) Service {
 	s := &service{
 		log:  log.With().Str("module", "download_client").Logger(),
 		repo: repo,
+
+		qbitClients: map[int32]*domain.DownloadClientCached{},
 	}
 
 	s.subLogger = zstdlog.NewStdLoggerWithLevel(s.log.With().Logger(), zerolog.TraceLevel)
@@ -91,15 +98,21 @@ func (s *service) Update(ctx context.Context, client domain.DownloadClient) (*do
 		return nil, err
 	}
 
+	if client.Type == domain.DownloadClientTypeQbittorrent {
+		delete(s.qbitClients, int32(client.ID))
+	}
+
 	return c, err
 }
 
 func (s *service) Delete(ctx context.Context, clientID int) error {
-	err := s.repo.Delete(ctx, clientID)
-	if err != nil {
+	if err := s.repo.Delete(ctx, clientID); err != nil {
 		s.log.Error().Err(err).Msgf("could not delete download client: %v", clientID)
 		return err
 	}
+
+	delete(s.qbitClients, int32(clientID))
+
 	return nil
 }
 
@@ -118,4 +131,46 @@ func (s *service) Test(client domain.DownloadClient) error {
 	}
 
 	return nil
+}
+
+func (s *service) GetCachedClient(ctx context.Context, clientId int32) *domain.DownloadClientCached {
+	// check if client exists in cache
+	cached, ok := s.qbitClients[clientId]
+	if !ok {
+		// get client for action
+		client, err := s.FindByID(ctx, clientId)
+		if err != nil {
+			return nil
+		}
+
+		if client == nil {
+			return nil
+		}
+
+		qbtSettings := qbittorrent.Config{
+			Host:          client.BuildLegacyHost(),
+			Username:      client.Username,
+			Password:      client.Password,
+			TLSSkipVerify: client.TLSSkipVerify,
+		}
+
+		// setup sub logger adapter which is compatible with *log.Logger
+		qbtSettings.Log = zstdlog.NewStdLoggerWithLevel(s.log.With().Str("type", "qBittorrent").Str("client", client.Name).Logger(), zerolog.TraceLevel)
+
+		// only set basic auth if enabled
+		if client.Settings.Basic.Auth {
+			qbtSettings.BasicUser = client.Settings.Basic.Username
+			qbtSettings.BasicPass = client.Settings.Basic.Password
+		}
+
+		qc := &domain.DownloadClientCached{
+			Dc:  client,
+			Qbt: qbittorrent.NewClient(qbtSettings),
+		}
+
+		cached = qc
+		s.qbitClients[clientId] = cached
+	}
+
+	return cached
 }
