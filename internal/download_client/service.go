@@ -19,7 +19,7 @@ type Service interface {
 	Store(ctx context.Context, client domain.DownloadClient) (*domain.DownloadClient, error)
 	Update(ctx context.Context, client domain.DownloadClient) (*domain.DownloadClient, error)
 	Delete(ctx context.Context, clientID int) error
-	Test(client domain.DownloadClient) error
+	Test(ctx context.Context, client domain.DownloadClient) error
 
 	GetCachedClient(ctx context.Context, clientId int32) *domain.DownloadClientCached
 }
@@ -116,7 +116,7 @@ func (s *service) Delete(ctx context.Context, clientID int) error {
 	return nil
 }
 
-func (s *service) Test(client domain.DownloadClient) error {
+func (s *service) Test(ctx context.Context, client domain.DownloadClient) error {
 	// basic validation of client
 	if client.Host == "" {
 		return errors.New("validation error: no host")
@@ -125,7 +125,7 @@ func (s *service) Test(client domain.DownloadClient) error {
 	}
 
 	// test
-	if err := s.testConnection(client); err != nil {
+	if err := s.testConnection(ctx, client); err != nil {
 		s.log.Error().Err(err).Msg("client connection test error")
 		return err
 	}
