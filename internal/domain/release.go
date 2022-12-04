@@ -274,7 +274,7 @@ func (r *Release) ParseSizeBytesString(size string) {
 }
 
 func (r *Release) DownloadTorrentFileCtx(ctx context.Context) error {
-	return r.DownloadTorrentFileCtx(ctx)
+	return r.downloadTorrentFile(ctx)
 }
 
 func (r *Release) DownloadTorrentFile() error {
