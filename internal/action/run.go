@@ -41,7 +41,7 @@ func (s *service) RunAction(ctx context.Context, action *domain.Action, release 
 		err = s.watchFolder(*action, release)
 
 	case domain.ActionTypeWebhook:
-		err = s.webhook(*action, release)
+		err = s.webhook(ctx, *action, release)
 
 	case domain.ActionTypeDelugeV1, domain.ActionTypeDelugeV2:
 		rejections, err = s.deluge(*action, release)
@@ -209,10 +209,10 @@ func (s *service) watchFolder(action domain.Action, release domain.Release) erro
 	return nil
 }
 
-func (s *service) webhook(action domain.Action, release domain.Release) error {
+func (s *service) webhook(ctx context.Context, action domain.Action, release domain.Release) error {
 	// if webhook data contains TorrentPathName or TorrentDataRawBytes, lets download the torrent file
 	if release.TorrentTmpFile == "" && (strings.Contains(action.WebhookData, "TorrentPathName") || strings.Contains(action.WebhookData, "TorrentDataRawBytes")) {
-		if err := release.DownloadTorrentFile(); err != nil {
+		if err := release.DownloadTorrentFileCtx(ctx); err != nil {
 			return errors.Wrap(err, "webhook: could not download torrent file for release: %v", release.TorrentName)
 		}
 	}
@@ -246,7 +246,7 @@ func (s *service) webhook(action domain.Action, release domain.Release) error {
 
 	client := http.Client{Transport: t, Timeout: 15 * time.Second}
 
-	req, err := http.NewRequest(http.MethodPost, action.WebhookHost, bytes.NewBufferString(dataArgs))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, action.WebhookHost, bytes.NewBufferString(dataArgs))
 	if err != nil {
 		return errors.Wrap(err, "could not build request for webhook")
 	}

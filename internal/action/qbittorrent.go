@@ -2,17 +2,12 @@ package action
 
 import (
 	"context"
-	"strings"
-	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/pkg/errors"
 
 	"github.com/autobrr/go-qbittorrent"
 )
-
-const ReannounceMaxAttempts = 50
-const ReannounceInterval = 7000
 
 func (s *service) qbittorrent(ctx context.Context, action domain.Action, release domain.Release) ([]string, error) {
 	s.log.Debug().Msgf("action qBittorrent: %v", action.Name)
@@ -24,12 +19,12 @@ func (s *service) qbittorrent(ctx context.Context, action domain.Action, release
 		return nil, errors.Wrap(err, "error checking client rules: %v", action.Name)
 	}
 
-	if rejections != nil {
+	if len(rejections) > 0 {
 		return rejections, nil
 	}
 
 	if release.TorrentTmpFile == "" {
-		if err := release.DownloadTorrentFile(); err != nil {
+		if err := release.DownloadTorrentFileCtx(ctx); err != nil {
 			return nil, errors.Wrap(err, "error downloading torrent file for release: %v", release.TorrentName)
 		}
 	}
@@ -49,7 +44,12 @@ func (s *service) qbittorrent(ctx context.Context, action domain.Action, release
 	}
 
 	if !action.Paused && !action.ReAnnounceSkip && release.TorrentHash != "" {
-		if err := s.reannounceTorrent(ctx, c.Qbt, action, release.TorrentHash); err != nil {
+		opts := qbittorrent.ReannounceOptions{
+			Interval:        int(action.ReAnnounceInterval),
+			MaxAttempts:     int(action.ReAnnounceMaxAttempts),
+			DeleteOnFailure: action.ReAnnounceDelete,
+		}
+		if err := c.Qbt.ReannounceTorrentWithRetry(ctx, opts, release.TorrentHash); err != nil {
 			return nil, errors.Wrap(err, "could not reannounce torrent: %v", release.TorrentHash)
 		}
 	}
@@ -60,7 +60,6 @@ func (s *service) qbittorrent(ctx context.Context, action domain.Action, release
 }
 
 func (s *service) prepareQbitOptions(action domain.Action, m domain.Macro) (map[string]string, error) {
-
 	opts := &qbittorrent.TorrentAddOptions{}
 
 	opts.Paused = false
@@ -165,109 +164,4 @@ func (s *service) qbittorrentCheckRulesCanDownload(ctx context.Context, action d
 	}
 
 	return nil, nil
-}
-
-func (s *service) reannounceTorrent(ctx context.Context, qb *qbittorrent.Client, action domain.Action, hash string) error {
-	announceOK := false
-	attempts := 0
-
-	interval := ReannounceInterval
-	if action.ReAnnounceInterval > 0 {
-		interval = int(action.ReAnnounceInterval)
-	}
-
-	maxAttempts := ReannounceMaxAttempts
-	if action.ReAnnounceMaxAttempts > 0 {
-		maxAttempts = int(action.ReAnnounceMaxAttempts)
-	}
-
-	for attempts < maxAttempts {
-		s.log.Debug().Msgf("qBittorrent - run re-announce %v attempt: %v", hash, attempts)
-
-		// add delay for next run
-		time.Sleep(time.Duration(interval) * time.Second)
-
-		trackers, err := qb.GetTorrentTrackersCtx(ctx, hash)
-		if err != nil {
-			return errors.Wrap(err, "could not get trackers for torrent with hash: %v", hash)
-		}
-
-		if trackers == nil {
-			attempts++
-			continue
-		}
-
-		s.log.Trace().Msgf("qBittorrent - run re-announce %v attempt: %v trackers (%+v)", hash, attempts, trackers)
-
-		// check if status not working or something else
-		working := isTrackerStatusOK(trackers)
-		if working {
-			s.log.Debug().Msgf("qBittorrent - re-announce for %v OK", hash)
-
-			announceOK = true
-
-			// if working lets return
-			return nil
-		}
-
-		s.log.Trace().Msgf("qBittorrent - not working yet, lets re-announce %v attempt: %v", hash, attempts)
-
-		if err = qb.ReAnnounceTorrentsCtx(ctx, []string{hash}); err != nil {
-			return errors.Wrap(err, "could not re-announce torrent with hash: %v", hash)
-		}
-
-		attempts++
-	}
-
-	// delete on failure to reannounce
-	if !announceOK && action.ReAnnounceDelete {
-		s.log.Debug().Msgf("qBittorrent - re-announce for %v took too long, deleting torrent", hash)
-
-		if err := qb.DeleteTorrentsCtx(ctx, []string{hash}, false); err != nil {
-			return errors.Wrap(err, "could not delete torrent with hash: %v", hash)
-		}
-	}
-
-	return nil
-}
-
-// Check if status not working or something else
-// https://github.com/qbittorrent/qBittorrent/wiki/WebUI-API-(qBittorrent-4.1)#get-torrent-trackers
-//
-//	0 Tracker is disabled (used for DHT, PeX, and LSD)
-//	1 Tracker has not been contacted yet
-//	2 Tracker has been contacted and is working
-//	3 Tracker is updating
-//	4 Tracker has been contacted, but it is not working (or doesn't send proper replies)
-func isTrackerStatusOK(trackers []qbittorrent.TorrentTracker) bool {
-	for _, tracker := range trackers {
-		if tracker.Status == qbittorrent.TrackerStatusDisabled {
-			continue
-		}
-
-		// check for certain messages before the tracker status to catch ok status with unreg msg
-		if isUnregistered(tracker.Message) {
-			return false
-		}
-
-		if tracker.Status == qbittorrent.TrackerStatusOK {
-			return true
-		}
-	}
-
-	return false
-}
-
-func isUnregistered(msg string) bool {
-	words := []string{"unregistered", "not registered", "not found", "not exist"}
-
-	msg = strings.ToLower(msg)
-
-	for _, v := range words {
-		if strings.Contains(msg, v) {
-			return true
-		}
-	}
-
-	return false
 }
