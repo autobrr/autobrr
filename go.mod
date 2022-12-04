@@ -7,7 +7,7 @@ require (
 	github.com/Masterminds/squirrel v1.5.3
 	github.com/anacrolix/torrent v1.46.0
 	github.com/asaskevich/EventBus v0.0.0-20200907212545-49d423059eef
-	github.com/autobrr/go-qbittorrent v1.1.0
+	github.com/autobrr/go-qbittorrent v1.1.1
 	github.com/avast/retry-go v3.0.0+incompatible
 	github.com/dcarbone/zadapters/zstdlog v0.3.1
 	github.com/dustin/go-humanize v1.0.0
