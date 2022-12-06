@@ -20,3 +20,24 @@ func (c *Client) Version() (*SysVersionsPorla, error) {
 
 	return &versions.Porla, nil
 }
+
+func (c *Client) TorrentsAdd(req *TorrentsAddReq) error {
+	response, err := c.rpcClient.Call("torrents.add", req)
+
+	if err != nil {
+		return err
+	}
+
+	if response.Error != nil {
+		return response.Error
+	}
+
+	var res *TorrentsAddRes
+	err = response.GetObject(&res)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}

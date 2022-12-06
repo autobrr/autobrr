@@ -1,6 +1,8 @@
 package porla
 
 import (
+	"log"
+
 	"github.com/autobrr/autobrr/pkg/jsonrpc"
 )
 
@@ -13,6 +15,7 @@ type Client struct {
 type Settings struct {
 	Hostname  string
 	AuthToken string
+	Log       *log.Logger
 }
 
 func NewClient(settings Settings) *Client {
