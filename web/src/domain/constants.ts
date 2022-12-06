@@ -300,7 +300,8 @@ export const ActionTypeOptions: RadioFieldsetOption[] = [
   { label: "Sonarr", description: "Send to Sonarr and let it decide", value: "SONARR" },
   { label: "Lidarr", description: "Send to Lidarr and let it decide", value: "LIDARR" },
   { label: "Whisparr", description: "Send to Whisparr and let it decide", value: "WHISPARR" },
-  { label: "Readarr", description: "Send to Readarr and let it decide", value: "READARR" }
+  { label: "Readarr", description: "Send to Readarr and let it decide", value: "READARR" },
+  { label: "Porla", description: "Add torrents directly to Porla", value: "PORLA" }
 ];
 
 export const ActionTypeNameMap = {
