@@ -411,6 +411,49 @@ const TypeForm = ({ action, idx, clients }: TypeFormProps) => {
         />
       </div>
     );
+  case "PORLA":
+    return (
+      <div className="w-full">
+        <div className="mt-6 grid grid-cols-12 gap-6">
+          <DownloadClientSelect
+            name={`actions.${idx}.client_id`}
+            action={action}
+            clients={clients}
+          />
+
+          <div className="col-span-6 sm:col-span-6">
+            <TextField
+              name={`actions.${idx}.save_path`}
+              label="Save path"
+              columns={6}
+              placeholder="eg. /full/path/to/watch_folder"
+            />
+          </div>
+        </div>
+
+        <CollapsableSection title="Rules" subtitle="client options">
+          <div className="col-span-12">
+            <div className="mt-6 grid grid-cols-12 gap-6">
+              <NumberField
+                name={`actions.${idx}.limit_download_speed`}
+                label="Limit download speed (KiB/s)"
+              />
+              <NumberField
+                name={`actions.${idx}.limit_upload_speed`}
+                label="Limit upload speed (KiB/s)"
+              />
+            </div>
+          </div>
+          <div className="col-span-6">
+            <SwitchGroup
+              name={`actions.${idx}.paused`}
+              label="Add paused"
+              description="Add torrent as paused"
+            />
+          </div>
+        </CollapsableSection>
+      </div>
+    );
 
   default:
     return null;
