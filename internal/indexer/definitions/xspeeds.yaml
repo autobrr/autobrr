@@ -5,7 +5,7 @@ identifier: xspeeds
 description: XSpeeds (XS) is a private torrent tracker for  MOVIES / TV / GENERAL.
 language: en-us
 urls:
-  - https://xspeeds.eu
+  - https://xspeeds.eu/
 privacy: private
 protocol: torrent
 supports:
@@ -47,61 +47,61 @@ irc:
       label: NickServ Password
       help: NickServ password
 
-categories:
-  - 4K Movies
-  - 4K TV
-  - 4K TV Boxsets
-  - Anime
-  - Audiobooks
-  - Blu-Ray
-  - Books Magazines
-  - Cams/TS
-  - Documentaries
-  - DVDR
-  - Foreign
-  - Kids
-  - Mac Games
-  - MMA
-  - Movie Boxsets
-  - Movies
-  - Music
-  - Music Videos
-  - Nintendo
-  - Other
-  - PC Games
-  - Pictures
-  - Playstation
-  - PPV
-  - Soaps
-  - Sports / MotorSports
-  - Sports / Olympics
-  - Sports / UK Football
-  - TOTM
-  - TV Boxsets
-  - TV Boxsets / HD Boxsets
-  - TV Boxsets / HEVC Boxsets
-  - TV-HD
-  - TV-HD / HEVC
-  - TV-SD
-  - Wii Games
-  - Wrestling
-  - Xbox Games
+  categories:
+    - 4K Movies
+    - 4K TV
+    - 4K TV Boxsets
+    - Anime
+    - Audiobooks
+    - Blu-Ray
+    - Books Magazines
+    - Cams/TS
+    - Documentaries
+    - DVDR
+    - Foreign
+    - Kids
+    - Mac Games
+    - MMA
+    - Movie Boxsets
+    - Movies
+    - Music
+    - Music Videos
+    - Nintendo
+    - Other
+    - PC Games
+    - Pictures
+    - Playstation
+    - PPV
+    - Soaps
+    - Sports / MotorSports
+    - Sports / Olympics
+    - Sports / UK Football
+    - TOTM
+    - TV Boxsets
+    - TV Boxsets / HD Boxsets
+    - TV Boxsets / HEVC Boxsets
+    - TV-HD
+    - TV-HD / HEVC
+    - TV-SD
+    - Wii Games
+    - Wrestling
+    - Xbox Games
 
-parse:
-  type: single
-  lines:
-    - test:
-        - "xspeeds.eu - New Torrent: ( The.Best.Show.S03E07.720p.BluRay.x264-GROUP ) Size: ( 1.96 GB )  Category: ( TV-HD ) Uploader: ( uploader1 ) Link: ( https://www.xspeeds.eu/details.php?id=0000000 )"
-        - "xspeeds.eu - New Torrent: ( Some.Show.S21E06.1080p.HEVC.x265-GROUP1 ) Size: ( 1.04 GB )  Category: ( HEVC ) Uploader: ( uploader2 ) Link: ( https://www.xspeeds.eu/details.php?id=0000000 )"
-        - "xspeeds.eu - New Torrent: ( Some.Show.S21E06.XviD-GROUP2 ) Size: ( 861.32 MB )  Category: ( TV-SD ) Uploader: ( uploader2 ) Link: ( https://www.xspeeds.eu/details.php?id=0000000 )"
-      pattern: '\s*xspeeds.eu - New Torrent: \( (.*) \) Size: \( ([^)]*) \)\s*Category: \( ([^)]*) \) Uploader: \( ([^)]*) \) Link: \( (https?\:\/\/[^\/]+)\/.*[&\?]id=(\d+) \)'
-      vars:
-        - torrentName
-        - torrentSize
-        - category
-        - uploader
-        - baseUrl
-        - torrentId
+  parse:
+    type: single
+    lines:
+      - test:
+          - "xspeeds.eu - New Torrent: ( The.Best.Show.S03E07.720p.BluRay.x264-GROUP ) Size: ( 1.96 GB )  Category: ( TV-HD ) Uploader: ( uploader1 ) Link: ( https://www.xspeeds.eu/details.php?id=0000000 )"
+          - "xspeeds.eu - New Torrent: ( Some.Show.S21E06.1080p.HEVC.x265-GROUP1 ) Size: ( 1.04 GB )  Category: ( HEVC ) Uploader: ( uploader2 ) Link: ( https://www.xspeeds.eu/details.php?id=0000000 )"
+          - "xspeeds.eu - New Torrent: ( Some.Show.S21E06.XviD-GROUP2 ) Size: ( 861.32 MB )  Category: ( TV-SD ) Uploader: ( uploader2 ) Link: ( https://www.xspeeds.eu/details.php?id=0000000 )"
+        pattern: '\s*xspeeds.eu - New Torrent: \( (.*) \) Size: \( ([^)]*) \)\s*Category: \( ([^)]*) \) Uploader: \( ([^)]*) \) Link: \( (https?\:\/\/[^\/]+\/).*[&\?]id=(\d+) \)'
+        vars:
+          - torrentName
+          - torrentSize
+          - category
+          - uploader
+          - baseUrl
+          - torrentId
 
-  match:
-    torrenturl: "{{ .baseUrl }}/download.php?type=rss&secret_key={{ .passkey }}&id={{ .torrentId }}"
+    match:
+      torrenturl: "/download.php?type=rss&secret_key={{ .passkey }}&id={{ .torrentId }}"

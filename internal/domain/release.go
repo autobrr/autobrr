@@ -220,8 +220,6 @@ func (r *Release) ParseString(title string) {
 	}
 
 	r.ParseReleaseTagsString(r.ReleaseTags)
-
-	return
 }
 
 var ErrUnrecoverableError = errors.New("unrecoverable error")
@@ -265,8 +263,6 @@ func (r *Release) ParseReleaseTagsString(tags string) {
 	if r.AudioChannels == "" && t.Channels != "" {
 		r.AudioChannels = t.Channels
 	}
-
-	return
 }
 
 func (r *Release) ParseSizeBytesString(size string) {
@@ -278,7 +274,15 @@ func (r *Release) ParseSizeBytesString(size string) {
 	r.Size = s
 }
 
+func (r *Release) DownloadTorrentFileCtx(ctx context.Context) error {
+	return r.downloadTorrentFile(ctx)
+}
+
 func (r *Release) DownloadTorrentFile() error {
+	return r.downloadTorrentFile(context.Background())
+}
+
+func (r *Release) downloadTorrentFile(ctx context.Context) error {
 	if r.Protocol != ReleaseProtocolTorrent {
 		return errors.New("download_file: protocol is not %s: %s", ReleaseProtocolTorrent, r.Protocol)
 	} else if r.TorrentURL == "" {
@@ -301,7 +305,7 @@ func (r *Release) DownloadTorrentFile() error {
 		Timeout:   time.Second * 45,
 	}
 
-	req, err := http.NewRequest(http.MethodGet, r.TorrentURL, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, r.TorrentURL, nil)
 	if err != nil {
 		return errors.Wrap(err, "error downloading file")
 	}
@@ -404,7 +408,7 @@ func (r *Release) RejectionsString() string {
 	return ""
 }
 
-// MapVars better name
+// MapVars map vars from regex captures to fields on release
 func (r *Release) MapVars(def *IndexerDefinition, varMap map[string]string) error {
 
 	if torrentName, err := getStringMapValue(varMap, "torrentName"); err != nil {
@@ -447,16 +451,12 @@ func (r *Release) MapVars(def *IndexerDefinition, varMap map[string]string) erro
 		switch freeleechPercentInt {
 		case 25:
 			r.Bonus = append(r.Bonus, "Freeleech25")
-			break
 		case 50:
 			r.Bonus = append(r.Bonus, "Freeleech50")
-			break
 		case 75:
 			r.Bonus = append(r.Bonus, "Freeleech75")
-			break
 		case 100:
 			r.Bonus = append(r.Bonus, "Freeleech100")
-			break
 		}
 
 	}
@@ -467,8 +467,8 @@ func (r *Release) MapVars(def *IndexerDefinition, varMap map[string]string) erro
 
 	if torrentSize, err := getStringMapValue(varMap, "torrentSize"); err == nil {
 		// handling for indexer who doesn't explicitly set which size unit is used like (AR)
-		if def.Parse != nil && def.Parse.ForceSizeUnit != "" {
-			torrentSize = fmt.Sprintf("%v %v", torrentSize, def.Parse.ForceSizeUnit)
+		if def.IRC != nil && def.IRC.Parse != nil && def.IRC.Parse.ForceSizeUnit != "" {
+			torrentSize = fmt.Sprintf("%v %v", torrentSize, def.IRC.Parse.ForceSizeUnit)
 		}
 
 		size, err := humanize.ParseBytes(torrentSize)
