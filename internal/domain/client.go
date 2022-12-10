@@ -76,6 +76,7 @@ func (c DownloadClient) BuildLegacyHost() string {
 	return ""
 }
 
+// qbitBuildLegacyHost exists to support older configs
 func (c DownloadClient) qbitBuildLegacyHost() string {
 	// parse url
 	u, _ := url.Parse(c.Host)
@@ -91,6 +92,7 @@ func (c DownloadClient) qbitBuildLegacyHost() string {
 		}
 		u.Scheme = scheme
 	} else {
+		// else if empty like a bare ip as 127.0.0.1, set scheme
 		if c.TLS {
 			scheme = "https"
 		}

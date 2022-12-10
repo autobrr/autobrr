@@ -121,6 +121,18 @@ func TestDownloadClient_qbitBuildLegacyHost(t *testing.T) {
 			},
 			want: "https://domain.ltd/qbittorrent",
 		},
+		{
+			name: "build_url_9",
+			fields: fields{
+				Host:          "127.0.0.1",
+				Port:          8080,
+				Username:      "",
+				Password:      "",
+				TLS:           false,
+				TLSSkipVerify: false,
+			},
+			want: "http://127.0.0.1:8080",
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
