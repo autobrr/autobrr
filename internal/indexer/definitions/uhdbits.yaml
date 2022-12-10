@@ -35,6 +35,7 @@ irc:
   announcers:
     - UHDBot
     - cr0nusbot
+    - uhdAnnounceBot
   settings:
     - name: nick
       type: text
@@ -65,13 +66,13 @@ irc:
     type: single
     lines:
       - test:
-          - "New Torrent: A Movie [2015] - GROUP Type: Movie / 1080p / Encode / Freeleech: 100 Size: 7.00GB - https://uhdbits.org/torrents.php?id=00000 / https://uhdbits.org/torrents.php?action=download&id=00000"
-        pattern: 'New Torrent: (.+) Type: (.+?) \/ (.*?) Freeleech: (.+) Size: (.+) - https?:\/\/.+ \/ (https?:\/\/.+\/).+id=(\d+)'
+          - "Category [Movie] A movie [1988] A.Movie.1988.Extended.720p.BluRay.x264-GROUP.mkv [720p, Encode, Freeleech, Scene, mkv] Size [4.99 GB] Url [https://uhdbits.org/torrents.php?action=download&id=00000]"
+        pattern: 'Category \[(.+)\] .+ \[(\d+)\] (.+) \[(.+)\] Size \[(.+)\] Url \[(https?\:\/\/.+\/).+id=(\d+)\]'
         vars:
-          - torrentName
           - category
+          - year
+          - torrentName
           - releaseTags
-          - freeleechPercent
           - torrentSize
           - baseUrl
           - torrentId
