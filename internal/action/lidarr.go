@@ -59,7 +59,7 @@ func (s *service) lidarr(ctx context.Context, action *domain.Action, release dom
 		r.Title = fmt.Sprintf("%v (%d)", release.TorrentName, release.Year)
 	}
 
-	rejections, err := arr.Push(r)
+	rejections, err := arr.Push(ctx, r)
 	if err != nil {
 		s.log.Error().Err(err).Msgf("lidarr: failed to push release: %v", r)
 		return nil, err

@@ -51,7 +51,7 @@ func (s *service) sonarr(ctx context.Context, action *domain.Action, release dom
 		PublishDate:      time.Now().Format(time.RFC3339),
 	}
 
-	rejections, err := arr.Push(r)
+	rejections, err := arr.Push(ctx, r)
 	if err != nil {
 		return nil, errors.Wrap(err, "sonarr: failed to push release: %v", r)
 	}

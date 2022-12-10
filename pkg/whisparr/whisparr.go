@@ -1,6 +1,7 @@
 package whisparr
 
 import (
+	"context"
 	"encoding/json"
 	"io"
 	"log"
@@ -24,8 +25,8 @@ type Config struct {
 }
 
 type Client interface {
-	Test() (*SystemStatusResponse, error)
-	Push(release Release) ([]string, error)
+	Test(ctx context.Context) (*SystemStatusResponse, error)
+	Push(ctx context.Context, release Release) ([]string, error)
 }
 
 type client struct {
@@ -75,8 +76,8 @@ type SystemStatusResponse struct {
 	Version string `json:"version"`
 }
 
-func (c *client) Test() (*SystemStatusResponse, error) {
-	res, err := c.get("system/status")
+func (c *client) Test(ctx context.Context) (*SystemStatusResponse, error) {
+	res, err := c.get(ctx, "system/status")
 	if err != nil {
 		return nil, errors.Wrap(err, "could not test whisparr")
 	}
@@ -99,8 +100,8 @@ func (c *client) Test() (*SystemStatusResponse, error) {
 	return &response, nil
 }
 
-func (c *client) Push(release Release) ([]string, error) {
-	res, err := c.post("release/push", release)
+func (c *client) Push(ctx context.Context, release Release) ([]string, error) {
+	res, err := c.post(ctx, "release/push", release)
 	if err != nil {
 		return nil, errors.Wrap(err, "could not push release to whisparr: %+v", release)
 	}

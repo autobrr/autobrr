@@ -1,6 +1,7 @@
 package lidarr
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -25,8 +26,8 @@ type Config struct {
 }
 
 type Client interface {
-	Test() (*SystemStatusResponse, error)
-	Push(release Release) ([]string, error)
+	Test(ctx context.Context) (*SystemStatusResponse, error)
+	Push(ctx context.Context, release Release) ([]string, error)
 }
 
 type client struct {
@@ -89,8 +90,8 @@ type SystemStatusResponse struct {
 	Version string `json:"version"`
 }
 
-func (c *client) Test() (*SystemStatusResponse, error) {
-	status, res, err := c.get("system/status")
+func (c *client) Test(ctx context.Context) (*SystemStatusResponse, error) {
+	status, res, err := c.get(ctx, "system/status")
 	if err != nil {
 		return nil, errors.Wrap(err, "lidarr client get error")
 	}
@@ -110,8 +111,8 @@ func (c *client) Test() (*SystemStatusResponse, error) {
 	return &response, nil
 }
 
-func (c *client) Push(release Release) ([]string, error) {
-	status, res, err := c.postBody("release/push", release)
+func (c *client) Push(ctx context.Context, release Release) ([]string, error) {
+	status, res, err := c.postBody(ctx, "release/push", release)
 	if err != nil {
 		return nil, errors.Wrap(err, "lidarr client post error")
 	}
