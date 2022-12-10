@@ -273,7 +273,15 @@ func (r *Release) ParseSizeBytesString(size string) {
 	r.Size = s
 }
 
+func (r *Release) DownloadTorrentFileCtx(ctx context.Context) error {
+	return r.downloadTorrentFile(ctx)
+}
+
 func (r *Release) DownloadTorrentFile() error {
+	return r.downloadTorrentFile(context.Background())
+}
+
+func (r *Release) downloadTorrentFile(ctx context.Context) error {
 	if r.TorrentURL == "" {
 		return errors.New("download_file: url can't be empty")
 	} else if r.TorrentTmpFile != "" {
@@ -294,7 +302,7 @@ func (r *Release) DownloadTorrentFile() error {
 		Timeout:   time.Second * 45,
 	}
 
-	req, err := http.NewRequest(http.MethodGet, r.TorrentURL, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, r.TorrentURL, nil)
 	if err != nil {
 		return errors.Wrap(err, "error downloading file")
 	}

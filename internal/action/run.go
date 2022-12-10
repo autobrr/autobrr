@@ -2,6 +2,7 @@ package action
 
 import (
 	"bytes"
+	"context"
 	"crypto/tls"
 	"io"
 	"net/http"
@@ -14,7 +15,7 @@ import (
 	"github.com/autobrr/autobrr/pkg/errors"
 )
 
-func (s *service) RunAction(action *domain.Action, release domain.Release) ([]string, error) {
+func (s *service) RunAction(ctx context.Context, action *domain.Action, release domain.Release) ([]string, error) {
 
 	var (
 		err        error
@@ -40,13 +41,13 @@ func (s *service) RunAction(action *domain.Action, release domain.Release) ([]st
 		err = s.watchFolder(*action, release)
 
 	case domain.ActionTypeWebhook:
-		err = s.webhook(*action, release)
+		err = s.webhook(ctx, *action, release)
 
 	case domain.ActionTypeDelugeV1, domain.ActionTypeDelugeV2:
 		rejections, err = s.deluge(*action, release)
 
 	case domain.ActionTypeQbittorrent:
-		rejections, err = s.qbittorrent(*action, release)
+		rejections, err = s.qbittorrent(ctx, *action, release)
 
 	case domain.ActionTypeRTorrent:
 		rejections, err = s.rtorrent(*action, release)
@@ -86,12 +87,12 @@ func (s *service) RunAction(action *domain.Action, release domain.Release) ([]st
 	}
 
 	payload := &domain.NotificationPayload{
-		Event:          domain.NotificationEventPushApproved,
-		ReleaseName:    release.TorrentName,
-		Filter:         release.Filter.Name,
-		Indexer:        release.Indexer,
-		InfoHash:       release.TorrentHash,
-		
+		Event:       domain.NotificationEventPushApproved,
+		ReleaseName: release.TorrentName,
+		Filter:      release.Filter.Name,
+		Indexer:     release.Indexer,
+		InfoHash:    release.TorrentHash,
+
 		Size:           release.Size,
 		Status:         domain.ReleasePushStatusApproved,
 		Action:         action.Name,
@@ -208,10 +209,10 @@ func (s *service) watchFolder(action domain.Action, release domain.Release) erro
 	return nil
 }
 
-func (s *service) webhook(action domain.Action, release domain.Release) error {
+func (s *service) webhook(ctx context.Context, action domain.Action, release domain.Release) error {
 	// if webhook data contains TorrentPathName or TorrentDataRawBytes, lets download the torrent file
 	if release.TorrentTmpFile == "" && (strings.Contains(action.WebhookData, "TorrentPathName") || strings.Contains(action.WebhookData, "TorrentDataRawBytes")) {
-		if err := release.DownloadTorrentFile(); err != nil {
+		if err := release.DownloadTorrentFileCtx(ctx); err != nil {
 			return errors.Wrap(err, "webhook: could not download torrent file for release: %v", release.TorrentName)
 		}
 	}
@@ -245,7 +246,7 @@ func (s *service) webhook(action domain.Action, release domain.Release) error {
 
 	client := http.Client{Transport: t, Timeout: 15 * time.Second}
 
-	req, err := http.NewRequest(http.MethodPost, action.WebhookHost, bytes.NewBufferString(dataArgs))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, action.WebhookHost, bytes.NewBufferString(dataArgs))
 	if err != nil {
 		return errors.Wrap(err, "could not build request for webhook")
 	}

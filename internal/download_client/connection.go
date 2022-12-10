@@ -7,21 +7,21 @@ import (
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/pkg/errors"
 	"github.com/autobrr/autobrr/pkg/lidarr"
-	"github.com/autobrr/autobrr/pkg/qbittorrent"
 	"github.com/autobrr/autobrr/pkg/radarr"
 	"github.com/autobrr/autobrr/pkg/readarr"
 	"github.com/autobrr/autobrr/pkg/sonarr"
 	"github.com/autobrr/autobrr/pkg/whisparr"
+	"github.com/autobrr/go-qbittorrent"
 
 	delugeClient "github.com/gdm85/go-libdeluge"
 	"github.com/hekmon/transmissionrpc/v2"
 	"github.com/mrobinsn/go-rtorrent/rtorrent"
 )
 
-func (s *service) testConnection(client domain.DownloadClient) error {
+func (s *service) testConnection(ctx context.Context, client domain.DownloadClient) error {
 	switch client.Type {
 	case domain.DownloadClientTypeQbittorrent:
-		return s.testQbittorrentConnection(client)
+		return s.testQbittorrentConnection(ctx, client)
 
 	case domain.DownloadClientTypeDelugeV1, domain.DownloadClientTypeDelugeV2:
 		return s.testDelugeConnection(client)
@@ -51,32 +51,28 @@ func (s *service) testConnection(client domain.DownloadClient) error {
 	}
 }
 
-func (s *service) testQbittorrentConnection(client domain.DownloadClient) error {
-	qbtSettings := qbittorrent.Settings{
-		Hostname:      client.Host,
-		Port:          uint(client.Port),
+func (s *service) testQbittorrentConnection(ctx context.Context, client domain.DownloadClient) error {
+	qbtSettings := qbittorrent.Config{
+		Host:          client.BuildLegacyHost(),
 		Username:      client.Username,
 		Password:      client.Password,
-		TLS:           client.TLS,
 		TLSSkipVerify: client.TLSSkipVerify,
 		Log:           s.subLogger,
 	}
 
 	// only set basic auth if enabled
 	if client.Settings.Basic.Auth {
-		qbtSettings.BasicAuth = client.Settings.Basic.Auth
-		qbtSettings.Basic.Username = client.Settings.Basic.Username
-		qbtSettings.Basic.Password = client.Settings.Basic.Password
+		qbtSettings.BasicUser = client.Settings.Basic.Username
+		qbtSettings.BasicPass = client.Settings.Basic.Password
 	}
 
 	qbt := qbittorrent.NewClient(qbtSettings)
 
-	if err := qbt.Login(); err != nil {
+	if err := qbt.LoginCtx(ctx); err != nil {
 		return errors.Wrap(err, "error logging into client: %v", client.Host)
 	}
 
-	_, err := qbt.GetTorrents()
-	if err != nil {
+	if _, err := qbt.GetTorrentsCtx(ctx, qbittorrent.TorrentFilterOptions{Filter: qbittorrent.TorrentFilterAll}); err != nil {
 		return errors.Wrap(err, "error getting torrents: %v", client.Host)
 	}
 
