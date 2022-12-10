@@ -477,9 +477,36 @@ func checkSizeFilter(minSize string, maxSize string, releaseSize uint64) (bool, 
 }
 
 func (s *service) SmartEpisode(f domain.Filter, release *domain.Release) (bool, error) {
+	/*
+	if rls.Episode != 0 {
+		q := sql.Query("SELECT '' FROM release WHERE Title LIKE %q AND ((Season == %d AND Episode > %d) OR Season > %d)", rls.Title, rls.Season, rls.Episode, rls.Season)
+		if q.RowCount() != 0 {
+			return false, fmt.Errorf("stale release")
+		}
+	} else if rls.Day > 0 {
+		// Maybe in the future
+		// SELECT '' FROM release WHERE Title LIKE %q AND ((Year == %d AND Month == %d AND Day > %d) OR (Year == %d AND Month > %d) OR (Year > %d))"
+		qs := sql.Query("SELECT torrent_name FROM release WHERE Title LIKE %q AND Year >= %d", rls.Title, rls.Year)
+
+		for q := range qs.Rows() {
+			r := rls.ParseTitle(q)
+			if r.Year > rls.Year {
+				return false, fmt.Errorf("stale release year")
+			}
+
+			if r.Month > rls.Month {
+				return false, fmt.Errorf("stale release month")
+			}
+
+			if r.Month == rls.Month && r.Day > rls.Day {
+				return false, fmt.Errorf("stale release day")
+			}
+		}
+	}
+	*/
 	// s.releaseService.Check(release.Title, release.Season, release.Episode)
 
-	return false, nil
+	return true, nil
 }
 
 func (s *service) execCmd(release *domain.Release, cmd string, args string) (int, error) {
