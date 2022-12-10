@@ -9,7 +9,7 @@ import (
 	"github.com/autobrr/go-qbittorrent"
 )
 
-func (s *service) qbittorrent(ctx context.Context, action domain.Action, release domain.Release) ([]string, error) {
+func (s *service) qbittorrent(ctx context.Context, action *domain.Action, release domain.Release) ([]string, error) {
 	s.log.Debug().Msgf("action qBittorrent: %v", action.Name)
 
 	c := s.clientSvc.GetCachedClient(ctx, action.ClientID)
@@ -29,10 +29,7 @@ func (s *service) qbittorrent(ctx context.Context, action domain.Action, release
 		}
 	}
 
-	// macros handle args and replace vars
-	m := domain.NewMacro(release)
-
-	options, err := s.prepareQbitOptions(action, m)
+	options, err := s.prepareQbitOptions(action)
 	if err != nil {
 		return nil, errors.Wrap(err, "could not prepare options")
 	}
@@ -59,7 +56,7 @@ func (s *service) qbittorrent(ctx context.Context, action domain.Action, release
 	return nil, nil
 }
 
-func (s *service) prepareQbitOptions(action domain.Action, m domain.Macro) (map[string]string, error) {
+func (s *service) prepareQbitOptions(action *domain.Action) (map[string]string, error) {
 	opts := &qbittorrent.TorrentAddOptions{}
 
 	opts.Paused = false
@@ -78,32 +75,14 @@ func (s *service) prepareQbitOptions(action domain.Action, m domain.Macro) (map[
 		// if ORIGINAL then leave empty
 	}
 	if action.SavePath != "" {
-		// parse and replace values in argument string before continuing
-		actionArgs, err := m.Parse(action.SavePath)
-		if err != nil {
-			return nil, errors.Wrap(err, "could not parse savepath macro: %v", action.SavePath)
-		}
-
-		opts.SavePath = actionArgs
+		opts.SavePath = action.SavePath
 		opts.AutoTMM = false
 	}
 	if action.Category != "" {
-		// parse and replace values in argument string before continuing
-		categoryArgs, err := m.Parse(action.Category)
-		if err != nil {
-			return nil, errors.Wrap(err, "could not parse category macro: %v", action.Category)
-		}
-
-		opts.Category = categoryArgs
+		opts.Category = action.Category
 	}
 	if action.Tags != "" {
-		// parse and replace values in argument string before continuing
-		tagsArgs, err := m.Parse(action.Tags)
-		if err != nil {
-			return nil, errors.Wrap(err, "could not parse tags macro: %v", action.Tags)
-		}
-
-		opts.Tags = tagsArgs
+		opts.Tags = action.Tags
 	}
 	if action.LimitUploadSpeed > 0 {
 		opts.LimitUploadSpeed = action.LimitUploadSpeed
@@ -121,7 +100,7 @@ func (s *service) prepareQbitOptions(action domain.Action, m domain.Macro) (map[
 	return opts.Prepare(), nil
 }
 
-func (s *service) qbittorrentCheckRulesCanDownload(ctx context.Context, action domain.Action, client *domain.DownloadClient, qbt *qbittorrent.Client) ([]string, error) {
+func (s *service) qbittorrentCheckRulesCanDownload(ctx context.Context, action *domain.Action, client *domain.DownloadClient, qbt *qbittorrent.Client) ([]string, error) {
 	s.log.Trace().Msgf("action qBittorrent: %v check rules", action.Name)
 
 	// check for active downloads and other rules

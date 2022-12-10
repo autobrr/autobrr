@@ -1,6 +1,7 @@
 package action
 
 import (
+	"context"
 	"os"
 	"os/exec"
 	"strings"
@@ -12,11 +13,11 @@ import (
 	"github.com/mattn/go-shellwords"
 )
 
-func (s *service) execCmd(action domain.Action, release domain.Release) error {
+func (s *service) execCmd(ctx context.Context, action *domain.Action, release domain.Release) error {
 	s.log.Debug().Msgf("action exec: %v release: %v", action.Name, release.TorrentName)
 
 	if release.TorrentTmpFile == "" && strings.Contains(action.ExecArgs, "TorrentPathName") {
-		if err := release.DownloadTorrentFile(); err != nil {
+		if err := release.DownloadTorrentFileCtx(ctx); err != nil {
 			return errors.Wrap(err, "error downloading torrent file for release: %v", release.TorrentName)
 		}
 	}
@@ -37,7 +38,9 @@ func (s *service) execCmd(action domain.Action, release domain.Release) error {
 		return errors.Wrap(err, "exec failed, could not find program: %v", action.ExecCmd)
 	}
 
-	args, err := s.parseExecArgs(release, action.ExecArgs)
+	p := shellwords.NewParser()
+	p.ParseBacktick = true
+	args, err := p.Parse(action.ExecArgs)
 	if err != nil {
 		return errors.Wrap(err, "could not parse exec args: %v", action.ExecArgs)
 	}
@@ -47,7 +50,7 @@ func (s *service) execCmd(action domain.Action, release domain.Release) error {
 	start := time.Now()
 
 	// setup command and args
-	command := exec.Command(cmd, args...)
+	command := exec.CommandContext(ctx, cmd, args...)
 
 	// execute command
 	output, err := command.CombinedOutput()
@@ -63,24 +66,4 @@ func (s *service) execCmd(action domain.Action, release domain.Release) error {
 	s.log.Info().Msgf("executed command: '%v', args: '%v' %v,%v, total time %v", cmd, args, release.TorrentName, release.Indexer, duration)
 
 	return nil
-}
-
-func (s *service) parseExecArgs(release domain.Release, execArgs string) ([]string, error) {
-	// handle args and replace vars
-	m := domain.NewMacro(release)
-
-	// parse and replace values in argument string before continuing
-	parsedArgs, err := m.Parse(execArgs)
-	if err != nil {
-		return nil, errors.Wrap(err, "could not parse macro")
-	}
-
-	p := shellwords.NewParser()
-	p.ParseBacktick = true
-	args, err := p.Parse(parsedArgs)
-	if err != nil {
-		return nil, errors.Wrap(err, "could not parse into shell-words")
-	}
-
-	return args, nil
 }

@@ -9,13 +9,13 @@ import (
 	"github.com/autobrr/autobrr/pkg/sonarr"
 )
 
-func (s *service) sonarr(action domain.Action, release domain.Release) ([]string, error) {
+func (s *service) sonarr(ctx context.Context, action *domain.Action, release domain.Release) ([]string, error) {
 	s.log.Trace().Msg("action SONARR")
 
 	// TODO validate data
 
 	// get client for action
-	client, err := s.clientSvc.FindByID(context.TODO(), action.ClientID)
+	client, err := s.clientSvc.FindByID(ctx, action.ClientID)
 	if err != nil {
 		return nil, errors.Wrap(err, "sonarr could not find client: %v", action.ClientID)
 	}
