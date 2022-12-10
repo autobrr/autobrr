@@ -9,13 +9,13 @@ import (
 	"github.com/mrobinsn/go-rtorrent/rtorrent"
 )
 
-func (s *service) rtorrent(action domain.Action, release domain.Release) ([]string, error) {
+func (s *service) rtorrent(ctx context.Context, action *domain.Action, release domain.Release) ([]string, error) {
 	s.log.Debug().Msgf("action rTorrent: %v", action.Name)
 
 	var err error
 
 	// get client for action
-	client, err := s.clientSvc.FindByID(context.TODO(), action.ClientID)
+	client, err := s.clientSvc.FindByID(ctx, action.ClientID)
 	if err != nil {
 		s.log.Error().Stack().Err(err).Msgf("error finding client: %v", action.ClientID)
 		return nil, err
@@ -28,7 +28,7 @@ func (s *service) rtorrent(action domain.Action, release domain.Release) ([]stri
 	var rejections []string
 
 	if release.TorrentTmpFile == "" {
-		if err := release.DownloadTorrentFile(); err != nil {
+		if err := release.DownloadTorrentFileCtx(ctx); err != nil {
 			s.log.Error().Err(err).Msgf("could not download torrent file for release: %v", release.TorrentName)
 			return nil, err
 		}

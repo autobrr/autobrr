@@ -2,7 +2,6 @@ package download_client
 
 import (
 	"context"
-	"errors"
 	"log"
 	"sync"
 
@@ -69,11 +68,9 @@ func (s *service) FindByID(ctx context.Context, id int32) (*domain.DownloadClien
 }
 
 func (s *service) Store(ctx context.Context, client domain.DownloadClient) (*domain.DownloadClient, error) {
-	// validate data
-	if client.Host == "" {
-		return nil, errors.New("validation error: no host")
-	} else if client.Type == "" {
-		return nil, errors.New("validation error: no type")
+	// basic validation of client
+	if err := client.Validate(); err != nil {
+		return nil, err
 	}
 
 	// store
@@ -87,11 +84,9 @@ func (s *service) Store(ctx context.Context, client domain.DownloadClient) (*dom
 }
 
 func (s *service) Update(ctx context.Context, client domain.DownloadClient) (*domain.DownloadClient, error) {
-	// validate data
-	if client.Host == "" {
-		return nil, errors.New("validation error: no host")
-	} else if client.Type == "" {
-		return nil, errors.New("validation error: no type")
+	// basic validation of client
+	if err := client.Validate(); err != nil {
+		return nil, err
 	}
 
 	// update
@@ -125,10 +120,8 @@ func (s *service) Delete(ctx context.Context, clientID int) error {
 
 func (s *service) Test(ctx context.Context, client domain.DownloadClient) error {
 	// basic validation of client
-	if client.Host == "" {
-		return errors.New("validation error: no host")
-	} else if client.Type == "" {
-		return errors.New("validation error: no type")
+	if err := client.Validate(); err != nil {
+		return err
 	}
 
 	// test

@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"net/url"
 
+	"github.com/autobrr/autobrr/pkg/errors"
+
 	"github.com/autobrr/go-qbittorrent"
 )
 
@@ -68,6 +70,18 @@ const (
 	DownloadClientTypeWhisparr     DownloadClientType = "WHISPARR"
 	DownloadClientTypeReadarr      DownloadClientType = "READARR"
 )
+
+// Validate basic validation of client
+func (c DownloadClient) Validate() error {
+	// basic validation of client
+	if c.Host == "" {
+		return errors.New("validation error: missing host")
+	} else if c.Type == "" {
+		return errors.New("validation error: missing type")
+	}
+
+	return nil
+}
 
 func (c DownloadClient) BuildLegacyHost() string {
 	if c.Type == DownloadClientTypeQbittorrent {

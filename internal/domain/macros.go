@@ -10,54 +10,54 @@ import (
 )
 
 type Macro struct {
-	TorrentName     string
-	TorrentPathName string
-	TorrentHash     string
-	TorrentUrl      string
-	TorrentDataRawBytes	[]byte
-	Indexer         string
-	Title           string
-	Resolution      string
-	Source          string
-	HDR             string
-	FilterName      string
-	Size		uint64
-	Season          int
-	Episode         int
-	Year            int
-	CurrentYear     int
-	CurrentMonth    int
-	CurrentDay      int
-	CurrentHour     int
-	CurrentMinute   int
-	CurrentSecond   int
+	TorrentName         string
+	TorrentPathName     string
+	TorrentHash         string
+	TorrentUrl          string
+	TorrentDataRawBytes []byte
+	Indexer             string
+	Title               string
+	Resolution          string
+	Source              string
+	HDR                 string
+	FilterName          string
+	Size                uint64
+	Season              int
+	Episode             int
+	Year                int
+	CurrentYear         int
+	CurrentMonth        int
+	CurrentDay          int
+	CurrentHour         int
+	CurrentMinute       int
+	CurrentSecond       int
 }
 
 func NewMacro(release Release) Macro {
 	currentTime := time.Now()
 
 	ma := Macro{
-		TorrentName:     release.TorrentName,
-		TorrentUrl:      release.TorrentURL,
-		TorrentPathName: release.TorrentTmpFile,
+		TorrentName:         release.TorrentName,
+		TorrentUrl:          release.TorrentURL,
+		TorrentPathName:     release.TorrentTmpFile,
 		TorrentDataRawBytes: release.TorrentDataRawBytes,
-		TorrentHash:     release.TorrentHash,
-		Indexer:         release.Indexer,
-		Title:           release.Title,
-		Resolution:      release.Resolution,
-		Source:          release.Source,
-		HDR:             strings.Join(release.HDR, ", "),
-		FilterName:      release.FilterName,
-		Size:            release.Size,
-		Season:          release.Season,
-		Episode:         release.Episode,
-		Year:            release.Year,
-		CurrentYear:     currentTime.Year(),
-		CurrentMonth:    int(currentTime.Month()),
-		CurrentDay:      currentTime.Day(),
-		CurrentHour:     currentTime.Hour(),
-		CurrentMinute:   currentTime.Minute(),
-		CurrentSecond:   currentTime.Second(),
+		TorrentHash:         release.TorrentHash,
+		Indexer:             release.Indexer,
+		Title:               release.Title,
+		Resolution:          release.Resolution,
+		Source:              release.Source,
+		HDR:                 strings.Join(release.HDR, ", "),
+		FilterName:          release.FilterName,
+		Size:                release.Size,
+		Season:              release.Season,
+		Episode:             release.Episode,
+		Year:                release.Year,
+		CurrentYear:         currentTime.Year(),
+		CurrentMonth:        int(currentTime.Month()),
+		CurrentDay:          currentTime.Day(),
+		CurrentHour:         currentTime.Hour(),
+		CurrentMinute:       currentTime.Minute(),
+		CurrentSecond:       currentTime.Second(),
 	}
 
 	return ma
@@ -65,6 +65,9 @@ func NewMacro(release Release) Macro {
 
 // Parse takes a string and replaces valid vars
 func (m Macro) Parse(text string) (string, error) {
+	if text == "" {
+		return "", nil
+	}
 
 	// setup template
 	tmpl, err := template.New("macro").Parse(text)
@@ -79,4 +82,25 @@ func (m Macro) Parse(text string) (string, error) {
 	}
 
 	return tpl.String(), nil
+}
+
+// MustParse takes a string and replaces valid vars
+func (m Macro) MustParse(text string) string {
+	if text == "" {
+		return ""
+	}
+
+	// setup template
+	tmpl, err := template.New("macro").Parse(text)
+	if err != nil {
+		return ""
+	}
+
+	var tpl bytes.Buffer
+	err = tmpl.Execute(&tpl, m)
+	if err != nil {
+		return ""
+	}
+
+	return tpl.String()
 }

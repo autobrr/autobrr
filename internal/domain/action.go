@@ -1,6 +1,9 @@
 package domain
 
-import "context"
+import (
+	"context"
+	"github.com/autobrr/autobrr/pkg/errors"
+)
 
 type ActionRepo interface {
 	Store(ctx context.Context, action Action) (*Action, error)
@@ -44,6 +47,27 @@ type Action struct {
 	FilterID              int                 `json:"filter_id,omitempty"`
 	ClientID              int32               `json:"client_id,omitempty"`
 	Client                DownloadClient      `json:"client,omitempty"`
+}
+
+// ParseMacros parse all macros on action
+func (a *Action) ParseMacros(release Release) error {
+	var err error
+
+	m := NewMacro(release)
+
+	a.ExecArgs, err = m.Parse(a.ExecArgs)
+	a.WatchFolder, err = m.Parse(a.WatchFolder)
+	a.Category, err = m.Parse(a.Category)
+	a.Tags, err = m.Parse(a.Tags)
+	a.Label, err = m.Parse(a.Label)
+	a.SavePath, err = m.Parse(a.SavePath)
+	a.WebhookData, err = m.Parse(a.WebhookData)
+
+	if err != nil {
+		return errors.Wrap(err, "could not parse macros for action: %v", a.Name)
+	}
+
+	return nil
 }
 
 type ActionType string
