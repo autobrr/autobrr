@@ -86,18 +86,10 @@ func (c DownloadClient) qbitBuildLegacyHost() string {
 
 	// set scheme
 	scheme := "http"
-	if u.Scheme == "http" || u.Scheme == "https" {
-		if c.TLS {
-			scheme = "https"
-		}
-		u.Scheme = scheme
-	} else {
-		// else if empty like a bare ip as 127.0.0.1, set scheme
-		if c.TLS {
-			scheme = "https"
-		}
-		u.Scheme = scheme
+	if c.TLS {
+		scheme = "https"
 	}
+	u.Scheme = scheme
 
 	// if host is empty lets use one from settings
 	if u.Host == "" {
