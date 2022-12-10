@@ -251,6 +251,7 @@ export default function FilterDetails() {
                 except_other: filter.except_other || [],
                 seasons: filter.seasons,
                 episodes: filter.episodes,
+                smart_episode: filter.smart_episode,
                 match_releases: filter.match_releases,
                 except_releases: filter.except_releases,
                 match_release_groups: filter.match_release_groups,
@@ -374,6 +375,10 @@ export function MoviesTv() {
         <div className="mt-6 grid grid-cols-12 gap-6">
           <TextField name="seasons" label="Seasons" columns={8} placeholder="eg. 1,3,2-6" />
           <TextField name="episodes" label="Episodes" columns={4} placeholder="eg. 2,4,10-20" />
+        </div>
+
+        <div className="mt-6">
+          <CheckboxField name="smart_episode" label="Smart Episode" sublabel="Do not download older or already existing episodes."/>
         </div>
       </div>
 
