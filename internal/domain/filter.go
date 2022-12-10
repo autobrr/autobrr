@@ -81,6 +81,7 @@ type Filter struct {
 	Bonus                       []string               `json:"bonus,omitempty"`
 	Freeleech                   bool                   `json:"freeleech,omitempty"`
 	FreeleechPercent            string                 `json:"freeleech_percent,omitempty"`
+	SmartEpisode                bool                   `json:"smart_episode"`
 	Shows                       string                 `json:"shows,omitempty"`
 	Seasons                     string                 `json:"seasons,omitempty"`
 	Episodes                    string                 `json:"episodes,omitempty"`
@@ -153,6 +154,7 @@ type FilterUpdate struct {
 	Bonus                       *[]string               `json:"bonus,omitempty"`
 	Freeleech                   *bool                   `json:"freeleech,omitempty"`
 	FreeleechPercent            *string                 `json:"freeleech_percent,omitempty"`
+	SmartEpisode                *bool                   `json:"smart_episode,omitempty"`
 	Shows                       *string                 `json:"shows,omitempty"`
 	Seasons                     *string                 `json:"seasons,omitempty"`
 	Episodes                    *string                 `json:"episodes,omitempty"`

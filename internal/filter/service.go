@@ -305,6 +305,20 @@ func (s *service) CheckFilter(f domain.Filter, release *domain.Release) (bool, e
 	}
 
 	if matchedFilter {
+		// smartEpisode check
+		if f.SmartEpisode {
+			isNew, err := s.SmartEpisode(f, release)
+			if err != nil {
+				s.log.Trace().Msgf("filter.Service.CheckFilter: failed smart episode check: %s", f.Name)
+				return false, nil
+			}
+
+			if !isNew {
+				s.log.Trace().Msgf("filter.Service.CheckFilter: failed smart episode check: %s", f.Name)
+				return false, nil
+			}
+		}
+
 		// if matched, do additional size check if needed, attach actions and return the filter
 
 		s.log.Debug().Msgf("filter.Service.CheckFilter: found and matched filter: %+v", f.Name)
@@ -460,6 +474,12 @@ func checkSizeFilter(minSize string, maxSize string, releaseSize uint64) (bool, 
 	}
 
 	return true, nil
+}
+
+func (s *service) SmartEpisode(f domain.Filter, release *domain.Release) (bool, error) {
+	// s.releaseService.Check(release.Title, release.Season, release.Episode)
+
+	return false, nil
 }
 
 func (s *service) execCmd(release *domain.Release, cmd string, args string) (int, error) {
