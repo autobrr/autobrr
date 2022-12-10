@@ -7,7 +7,7 @@ import { Field, FieldArray, FormikErrors, FormikValues } from "formik";
 import { queryClient } from "../../App";
 import { APIClient } from "../../api/APIClient";
 
-import { NumberFieldWide, PasswordFieldWide, SwitchGroupWide, TextFieldWide } from "../../components/inputs";
+import { NumberFieldWide, PasswordFieldWide, SwitchGroupWide, SwitchGroupWideRed, TextFieldWide } from "../../components/inputs";
 import { SlideOver } from "../../components/panels";
 import Toast from "../../components/notifications/Toast";
 import { ExclamationTriangleIcon } from "@heroicons/react/24/outline";
@@ -323,7 +323,7 @@ export function IrcNetworkUpdateForm({
             required={true}
           />
 
-          <SwitchGroupWide name="enabled" label="Enabled" />
+          <SwitchGroupWideRed name="enabled" label="Enabled" />
           <TextFieldWide
             name="server"
             label="Server"
