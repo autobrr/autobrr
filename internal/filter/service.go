@@ -25,7 +25,7 @@ type Service interface {
 	FindByID(ctx context.Context, filterID int) (*domain.Filter, error)
 	FindByIndexerIdentifier(indexer string) ([]domain.Filter, error)
 	Find(ctx context.Context, params domain.FilterQueryParams) ([]domain.Filter, error)
-	CheckFilter(f domain.Filter, release *domain.Release) (bool, error)
+	CheckFilter(ctx context.Context, f domain.Filter, release *domain.Release) (bool, error)
 	ListFilters(ctx context.Context) ([]domain.Filter, error)
 	Store(ctx context.Context, filter domain.Filter) (*domain.Filter, error)
 	Update(ctx context.Context, filter domain.Filter) (*domain.Filter, error)
@@ -36,20 +36,22 @@ type Service interface {
 }
 
 type service struct {
-	log        zerolog.Logger
-	repo       domain.FilterRepo
-	actionRepo domain.ActionRepo
-	indexerSvc indexer.Service
-	apiService indexer.APIService
+	log         zerolog.Logger
+	repo        domain.FilterRepo
+	actionRepo  domain.ActionRepo
+	releaseRepo domain.ReleaseRepo
+	indexerSvc  indexer.Service
+	apiService  indexer.APIService
 }
 
-func NewService(log logger.Logger, repo domain.FilterRepo, actionRepo domain.ActionRepo, apiService indexer.APIService, indexerSvc indexer.Service) Service {
+func NewService(log logger.Logger, repo domain.FilterRepo, actionRepo domain.ActionRepo, releaseRepo domain.ReleaseRepo, apiService indexer.APIService, indexerSvc indexer.Service) Service {
 	return &service{
-		log:        log.With().Str("module", "filter").Logger(),
-		repo:       repo,
-		actionRepo: actionRepo,
-		apiService: apiService,
-		indexerSvc: indexerSvc,
+		log:         log.With().Str("module", "filter").Logger(),
+		repo:        repo,
+		actionRepo:  actionRepo,
+		releaseRepo: releaseRepo,
+		apiService:  apiService,
+		indexerSvc:  indexerSvc,
 	}
 }
 
@@ -293,7 +295,7 @@ func (s *service) Delete(ctx context.Context, filterID int) error {
 	return nil
 }
 
-func (s *service) CheckFilter(f domain.Filter, release *domain.Release) (bool, error) {
+func (s *service) CheckFilter(ctx context.Context, f domain.Filter, release *domain.Release) (bool, error) {
 
 	s.log.Trace().Msgf("filter.Service.CheckFilter: checking filter: %v %+v", f.Name, f)
 	s.log.Trace().Msgf("filter.Service.CheckFilter: checking filter: %v for release: %+v", f.Name, release)
@@ -307,7 +309,7 @@ func (s *service) CheckFilter(f domain.Filter, release *domain.Release) (bool, e
 	if matchedFilter {
 		// smartEpisode check
 		if f.SmartEpisode {
-			isNew, err := s.SmartEpisode(f, release)
+			isNew, err := s.SmartEpisode(ctx, f, release)
 			if err != nil {
 				s.log.Trace().Msgf("filter.Service.CheckFilter: failed smart episode check: %s", f.Name)
 				return false, nil
@@ -315,6 +317,7 @@ func (s *service) CheckFilter(f domain.Filter, release *domain.Release) (bool, e
 
 			if !isNew {
 				s.log.Trace().Msgf("filter.Service.CheckFilter: failed smart episode check: %s", f.Name)
+				release.AddRejectionF("smart episode check failed: %s", f.Name)
 				return false, nil
 			}
 		}
@@ -476,37 +479,38 @@ func checkSizeFilter(minSize string, maxSize string, releaseSize uint64) (bool, 
 	return true, nil
 }
 
-func (s *service) SmartEpisode(f domain.Filter, release *domain.Release) (bool, error) {
+func (s *service) SmartEpisode(ctx context.Context, f domain.Filter, release *domain.Release) (bool, error) {
 	/*
-	if rls.Episode != 0 {
-		q := sql.Query("SELECT '' FROM release WHERE Title LIKE %q AND ((Season == %d AND Episode > %d) OR Season > %d)", rls.Title, rls.Season, rls.Episode, rls.Season)
-		if q.RowCount() != 0 {
-			return false, fmt.Errorf("stale release")
+		if rls.Episode != 0 {
+			q := sql.Query("SELECT '' FROM release WHERE Title LIKE %q AND ((Season == %d AND Episode > %d) OR Season > %d)", rls.Title, rls.Season, rls.Episode, rls.Season)
+			if q.RowCount() != 0 {
+				return false, fmt.Errorf("stale release")
+			}
+		} else if rls.Day > 0 {
+			// Maybe in the future
+			// SELECT '' FROM release WHERE Title LIKE %q AND ((Year == %d AND Month == %d AND Day > %d) OR (Year == %d AND Month > %d) OR (Year > %d))"
+			qs := sql.Query("SELECT torrent_name FROM release WHERE Title LIKE %q AND Year >= %d", rls.Title, rls.Year)
+
+			for q := range qs.Rows() {
+				r := rls.ParseTitle(q)
+				if r.Year > rls.Year {
+					return false, fmt.Errorf("stale release year")
+				}
+
+				if r.Month > rls.Month {
+					return false, fmt.Errorf("stale release month")
+				}
+
+				if r.Month == rls.Month && r.Day > rls.Day {
+					return false, fmt.Errorf("stale release day")
+				}
+			}
 		}
-	} else if rls.Day > 0 {
-		// Maybe in the future
-		// SELECT '' FROM release WHERE Title LIKE %q AND ((Year == %d AND Month == %d AND Day > %d) OR (Year == %d AND Month > %d) OR (Year > %d))"
-		qs := sql.Query("SELECT torrent_name FROM release WHERE Title LIKE %q AND Year >= %d", rls.Title, rls.Year)
-
-		for q := range qs.Rows() {
-			r := rls.ParseTitle(q)
-			if r.Year > rls.Year {
-				return false, fmt.Errorf("stale release year")
-			}
-
-			if r.Month > rls.Month {
-				return false, fmt.Errorf("stale release month")
-			}
-
-			if r.Month == rls.Month && r.Day > rls.Day {
-				return false, fmt.Errorf("stale release day")
-			}
-		}
-	}
 	*/
 	// s.releaseService.Check(release.Title, release.Season, release.Episode)
+	//return true, nil
 
-	return true, nil
+	return s.releaseRepo.SmartEpisodeCheck(ctx, release.Title, release.Season, release.Episode)
 }
 
 func (s *service) execCmd(release *domain.Release, cmd string, args string) (int, error) {

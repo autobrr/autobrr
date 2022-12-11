@@ -447,3 +447,45 @@ func (repo *ReleaseRepo) Delete(ctx context.Context) error {
 
 	return nil
 }
+
+func (repo *ReleaseRepo) SmartEpisodeCheck(ctx context.Context, title string, season int, episode int) (bool, error) {
+
+	queryBuilder := repo.db.squirrel.
+		Select("COUNT(*) AS total_count").
+		From("release").
+		Where("title LIKE ?", fmt.Sprint("%", title, "%"))
+
+	if season > 0 && episode > 0 {
+		queryBuilder = queryBuilder.Where(sq.And{
+			sq.Eq{"season": season},
+			sq.Gt{"episode": episode},
+		})
+	} else if episode == 0 && season > 0 {
+		queryBuilder = queryBuilder.Where(sq.And{
+			sq.Gt{"season": season},
+		})
+	}
+
+	query, args, err := queryBuilder.ToSql()
+	if err != nil {
+		return false, errors.Wrap(err, "error building query")
+	}
+
+	//row := repo.db.handler.QueryRowContext(ctx, "SELECT count(*) FROM release WHERE title LIKE %q AND ((season == %d AND episode > %d) OR season > %d)", title, season, episode)
+	row := repo.db.handler.QueryRowContext(ctx, query, args...)
+	if err := row.Err(); err != nil {
+		return false, err
+	}
+
+	var count int
+
+	if err := row.Scan(&count); err != nil {
+		return false, err
+	}
+
+	if count == 0 {
+		return true, nil
+	}
+
+	return false, nil
+}
