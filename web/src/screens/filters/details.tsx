@@ -378,7 +378,7 @@ export function MoviesTv() {
         </div>
 
         <div className="mt-6">
-          <CheckboxField name="smart_episode" label="Smart Episode" sublabel="Do not download older episodes than the ones that already exist."/> {/* Do not download older or already existing episodes. */}
+          <CheckboxField name="smart_episode" label="Smart Episode" sublabel="Do not match episodes older than the last one matched."/> {/*Do not match older or already existing episodes.*/}
         </div>
       </div>
 
