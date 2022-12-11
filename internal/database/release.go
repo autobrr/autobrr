@@ -448,21 +448,43 @@ func (repo *ReleaseRepo) Delete(ctx context.Context) error {
 	return nil
 }
 
-func (repo *ReleaseRepo) SmartEpisodeCheck(ctx context.Context, title string, season int, episode int) (bool, error) {
+func (repo *ReleaseRepo) CanDownloadShow(ctx context.Context, title string, season int, episode int) (bool, error) {
+	// TODO support non season episode shows
+	// if rls.Day > 0 {
+	//	// Maybe in the future
+	//	// SELECT '' FROM release WHERE Title LIKE %q AND ((Year == %d AND Month == %d AND Day > %d) OR (Year == %d AND Month > %d) OR (Year > %d))"
+	//	qs := sql.Query("SELECT torrent_name FROM release WHERE Title LIKE %q AND Year >= %d", rls.Title, rls.Year)
+	//
+	//	for q := range qs.Rows() {
+	//		r := rls.ParseTitle(q)
+	//		if r.Year > rls.Year {
+	//			return false, fmt.Errorf("stale release year")
+	//		}
+	//
+	//		if r.Month > rls.Month {
+	//			return false, fmt.Errorf("stale release month")
+	//		}
+	//
+	//		if r.Month == rls.Month && r.Day > rls.Day {
+	//			return false, fmt.Errorf("stale release day")
+	//		}
+	//	}
+	//}
 
 	queryBuilder := repo.db.squirrel.
-		Select("COUNT(*) AS total_count").
+		Select("COUNT(*)").
 		From("release").
 		Where("title LIKE ?", fmt.Sprint("%", title, "%"))
 
 	if season > 0 && episode > 0 {
 		queryBuilder = queryBuilder.Where(sq.And{
-			sq.Eq{"season": season},
+			sq.GtOrEq{"season": season},
 			sq.Gt{"episode": episode},
 		})
-	} else if episode == 0 && season > 0 {
+	} else if season > 0 && episode == 0 {
 		queryBuilder = queryBuilder.Where(sq.And{
 			sq.Gt{"season": season},
+			sq.Eq{"episode": 0},
 		})
 	}
 
@@ -471,7 +493,6 @@ func (repo *ReleaseRepo) SmartEpisodeCheck(ctx context.Context, title string, se
 		return false, errors.Wrap(err, "error building query")
 	}
 
-	//row := repo.db.handler.QueryRowContext(ctx, "SELECT count(*) FROM release WHERE title LIKE %q AND ((season == %d AND episode > %d) OR season > %d)", title, season, episode)
 	row := repo.db.handler.QueryRowContext(ctx, query, args...)
 	if err := row.Err(); err != nil {
 		return false, err
@@ -483,9 +504,9 @@ func (repo *ReleaseRepo) SmartEpisodeCheck(ctx context.Context, title string, se
 		return false, err
 	}
 
-	if count == 0 {
-		return true, nil
+	if count > 0 {
+		return false, nil
 	}
 
-	return false, nil
+	return true, nil
 }

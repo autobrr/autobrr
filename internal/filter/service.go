@@ -33,6 +33,8 @@ type Service interface {
 	Duplicate(ctx context.Context, filterID int) (*domain.Filter, error)
 	ToggleEnabled(ctx context.Context, filterID int, enabled bool) error
 	Delete(ctx context.Context, filterID int) error
+	AdditionalSizeCheck(f domain.Filter, release *domain.Release) (bool, error)
+	CanDownloadShow(ctx context.Context, release *domain.Release) (bool, error)
 }
 
 type service struct {
@@ -309,15 +311,15 @@ func (s *service) CheckFilter(ctx context.Context, f domain.Filter, release *dom
 	if matchedFilter {
 		// smartEpisode check
 		if f.SmartEpisode {
-			isNew, err := s.SmartEpisode(ctx, f, release)
+			canDownloadShow, err := s.CanDownloadShow(ctx, release)
 			if err != nil {
 				s.log.Trace().Msgf("filter.Service.CheckFilter: failed smart episode check: %s", f.Name)
 				return false, nil
 			}
 
-			if !isNew {
+			if !canDownloadShow {
 				s.log.Trace().Msgf("filter.Service.CheckFilter: failed smart episode check: %s", f.Name)
-				release.AddRejectionF("smart episode check failed: %s", f.Name)
+				release.AddRejectionF("smart episode check: not new: (%s) season: %d ep: %d", release.Title, release.Season, release.Episode)
 				return false, nil
 			}
 		}
@@ -479,38 +481,8 @@ func checkSizeFilter(minSize string, maxSize string, releaseSize uint64) (bool, 
 	return true, nil
 }
 
-func (s *service) SmartEpisode(ctx context.Context, f domain.Filter, release *domain.Release) (bool, error) {
-	/*
-		if rls.Episode != 0 {
-			q := sql.Query("SELECT '' FROM release WHERE Title LIKE %q AND ((Season == %d AND Episode > %d) OR Season > %d)", rls.Title, rls.Season, rls.Episode, rls.Season)
-			if q.RowCount() != 0 {
-				return false, fmt.Errorf("stale release")
-			}
-		} else if rls.Day > 0 {
-			// Maybe in the future
-			// SELECT '' FROM release WHERE Title LIKE %q AND ((Year == %d AND Month == %d AND Day > %d) OR (Year == %d AND Month > %d) OR (Year > %d))"
-			qs := sql.Query("SELECT torrent_name FROM release WHERE Title LIKE %q AND Year >= %d", rls.Title, rls.Year)
-
-			for q := range qs.Rows() {
-				r := rls.ParseTitle(q)
-				if r.Year > rls.Year {
-					return false, fmt.Errorf("stale release year")
-				}
-
-				if r.Month > rls.Month {
-					return false, fmt.Errorf("stale release month")
-				}
-
-				if r.Month == rls.Month && r.Day > rls.Day {
-					return false, fmt.Errorf("stale release day")
-				}
-			}
-		}
-	*/
-	// s.releaseService.Check(release.Title, release.Season, release.Episode)
-	//return true, nil
-
-	return s.releaseRepo.SmartEpisodeCheck(ctx, release.Title, release.Season, release.Episode)
+func (s *service) CanDownloadShow(ctx context.Context, release *domain.Release) (bool, error) {
+	return s.releaseRepo.CanDownloadShow(ctx, release.Title, release.Season, release.Episode)
 }
 
 func (s *service) execCmd(release *domain.Release, cmd string, args string) (int, error) {
