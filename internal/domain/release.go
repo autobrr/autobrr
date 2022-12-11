@@ -32,6 +32,7 @@ type ReleaseRepo interface {
 	Stats(ctx context.Context) (*ReleaseStats, error)
 	StoreReleaseActionStatus(ctx context.Context, actionStatus *ReleaseActionStatus) error
 	Delete(ctx context.Context) error
+	SmartEpisodeCheck(ctx context.Context, title string, season int, episode int) (bool, error)
 }
 
 type Release struct {
