@@ -26,6 +26,7 @@ interface Filter {
   shows: string;
   seasons: string;
   episodes: string;
+  smart_episode: boolean;
   resolutions: string[];
   codecs: string[];
   sources: string[];
