@@ -10,13 +10,13 @@ import (
 	"github.com/autobrr/autobrr/pkg/lidarr"
 )
 
-func (s *service) lidarr(action domain.Action, release domain.Release) ([]string, error) {
+func (s *service) lidarr(ctx context.Context, action *domain.Action, release domain.Release) ([]string, error) {
 	s.log.Trace().Msg("action LIDARR")
 
 	// TODO validate data
 
 	// get client for action
-	client, err := s.clientSvc.FindByID(context.TODO(), action.ClientID)
+	client, err := s.clientSvc.FindByID(ctx, action.ClientID)
 	if err != nil {
 		s.log.Error().Err(err).Msgf("lidarr: error finding client: %v", action.ClientID)
 		return nil, err
@@ -59,9 +59,9 @@ func (s *service) lidarr(action domain.Action, release domain.Release) ([]string
 		r.Title = fmt.Sprintf("%v (%d)", release.TorrentName, release.Year)
 	}
 
-	rejections, err := arr.Push(r)
+	rejections, err := arr.Push(ctx, r)
 	if err != nil {
-		s.log.Error().Stack().Err(err).Msgf("lidarr: failed to push release: %v", r)
+		s.log.Error().Err(err).Msgf("lidarr: failed to push release: %v", r)
 		return nil, err
 	}
 

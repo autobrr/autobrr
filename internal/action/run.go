@@ -30,45 +30,50 @@ func (s *service) RunAction(ctx context.Context, action *domain.Action, release 
 		}
 	}()
 
+	// parse all macros in one go
+	if err := action.ParseMacros(release); err != nil {
+		return nil, err
+	}
+
 	switch action.Type {
 	case domain.ActionTypeTest:
 		s.test(action.Name)
 
 	case domain.ActionTypeExec:
-		err = s.execCmd(*action, release)
+		err = s.execCmd(ctx, action, release)
 
 	case domain.ActionTypeWatchFolder:
-		err = s.watchFolder(*action, release)
+		err = s.watchFolder(ctx, action, release)
 
 	case domain.ActionTypeWebhook:
-		err = s.webhook(ctx, *action, release)
+		err = s.webhook(ctx, action, release)
 
 	case domain.ActionTypeDelugeV1, domain.ActionTypeDelugeV2:
-		rejections, err = s.deluge(*action, release)
+		rejections, err = s.deluge(ctx, action, release)
 
 	case domain.ActionTypeQbittorrent:
-		rejections, err = s.qbittorrent(ctx, *action, release)
+		rejections, err = s.qbittorrent(ctx, action, release)
 
 	case domain.ActionTypeRTorrent:
-		rejections, err = s.rtorrent(*action, release)
+		rejections, err = s.rtorrent(ctx, action, release)
 
 	case domain.ActionTypeTransmission:
-		rejections, err = s.transmission(*action, release)
+		rejections, err = s.transmission(ctx, action, release)
 
 	case domain.ActionTypeRadarr:
-		rejections, err = s.radarr(*action, release)
+		rejections, err = s.radarr(ctx, action, release)
 
 	case domain.ActionTypeSonarr:
-		rejections, err = s.sonarr(*action, release)
+		rejections, err = s.sonarr(ctx, action, release)
 
 	case domain.ActionTypeLidarr:
-		rejections, err = s.lidarr(*action, release)
+		rejections, err = s.lidarr(ctx, action, release)
 
 	case domain.ActionTypeWhisparr:
-		rejections, err = s.whisparr(*action, release)
+		rejections, err = s.whisparr(ctx, action, release)
 
 	case domain.ActionTypeReadarr:
-		rejections, err = s.readarr(*action, release)
+		rejections, err = s.readarr(ctx, action, release)
 
 	default:
 		s.log.Warn().Msgf("unsupported action type: %v", action.Type)
@@ -137,9 +142,9 @@ func (s *service) test(name string) {
 	s.log.Info().Msgf("action TEST: %v", name)
 }
 
-func (s *service) watchFolder(action domain.Action, release domain.Release) error {
+func (s *service) watchFolder(ctx context.Context, action *domain.Action, release domain.Release) error {
 	if release.TorrentTmpFile == "" {
-		if err := release.DownloadTorrentFile(); err != nil {
+		if err := release.DownloadTorrentFileCtx(ctx); err != nil {
 			return errors.Wrap(err, "watch folder: could not download torrent file for release: %v", release.TorrentName)
 		}
 	}
@@ -153,19 +158,7 @@ func (s *service) watchFolder(action domain.Action, release domain.Release) erro
 		release.TorrentDataRawBytes = t
 	}
 
-	m := domain.NewMacro(release)
-
-	// parse and replace values in argument string before continuing
-	//   /mnt/watch/{{.Indexer}}
-	//   /mnt/watch/mock
-	//   /mnt/watch/{{.Indexer}}-{{.TorrentName}}.torrent
-	//   /mnt/watch/mock-Torrent.Name-GROUP.torrent
-	watchFolderArgs, err := m.Parse(action.WatchFolder)
-	if err != nil {
-		return errors.Wrap(err, "could not parse watch folder macro: %v", action.WatchFolder)
-	}
-
-	s.log.Trace().Msgf("action WATCH_FOLDER: %v file: %v", watchFolderArgs, release.TorrentTmpFile)
+	s.log.Trace().Msgf("action WATCH_FOLDER: %v file: %v", action.WatchFolder, release.TorrentTmpFile)
 
 	// Open original file
 	original, err := os.Open(release.TorrentTmpFile)
@@ -175,16 +168,20 @@ func (s *service) watchFolder(action domain.Action, release domain.Release) erro
 	defer original.Close()
 
 	// default dir to watch folder
-	dir := watchFolderArgs
-	newFileName := watchFolderArgs
+	//  /mnt/watch/{{.Indexer}}
+	//  /mnt/watch/mock
+	//  /mnt/watch/{{.Indexer}}-{{.TorrentName}}.torrent
+	//  /mnt/watch/mock-Torrent.Name-GROUP.torrent
+	dir := action.WatchFolder
+	newFileName := action.WatchFolder
 
 	// if watchFolderArgs does not contain .torrent, create
-	if !strings.HasSuffix(watchFolderArgs, ".torrent") {
+	if !strings.HasSuffix(action.WatchFolder, ".torrent") {
 		_, tmpFileName := filepath.Split(release.TorrentTmpFile)
 
-		newFileName = filepath.Join(watchFolderArgs, tmpFileName+".torrent")
+		newFileName = filepath.Join(action.WatchFolder, tmpFileName+".torrent")
 	} else {
-		dir, _ = filepath.Split(watchFolderArgs)
+		dir, _ = filepath.Split(action.WatchFolder)
 	}
 
 	// Create folder
@@ -209,7 +206,7 @@ func (s *service) watchFolder(action domain.Action, release domain.Release) erro
 	return nil
 }
 
-func (s *service) webhook(ctx context.Context, action domain.Action, release domain.Release) error {
+func (s *service) webhook(ctx context.Context, action *domain.Action, release domain.Release) error {
 	// if webhook data contains TorrentPathName or TorrentDataRawBytes, lets download the torrent file
 	if release.TorrentTmpFile == "" && (strings.Contains(action.WebhookData, "TorrentPathName") || strings.Contains(action.WebhookData, "TorrentDataRawBytes")) {
 		if err := release.DownloadTorrentFileCtx(ctx); err != nil {
@@ -227,14 +224,6 @@ func (s *service) webhook(ctx context.Context, action domain.Action, release dom
 		release.TorrentDataRawBytes = t
 	}
 
-	m := domain.NewMacro(release)
-
-	// parse and replace values in argument string before continuing
-	dataArgs, err := m.Parse(action.WebhookData)
-	if err != nil {
-		return errors.Wrap(err, "could not parse webhook data macro: %v", action.WebhookData)
-	}
-
 	s.log.Trace().Msgf("action WEBHOOK: '%v' file: %v", action.Name, release.TorrentName)
 	s.log.Trace().Msgf("webhook action '%v' - host: %v data: %v", action.Name, action.WebhookHost, action.WebhookData)
 
@@ -246,7 +235,7 @@ func (s *service) webhook(ctx context.Context, action domain.Action, release dom
 
 	client := http.Client{Transport: t, Timeout: 15 * time.Second}
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, action.WebhookHost, bytes.NewBufferString(dataArgs))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, action.WebhookHost, bytes.NewBufferString(action.WebhookData))
 	if err != nil {
 		return errors.Wrap(err, "could not build request for webhook")
 	}
@@ -261,7 +250,11 @@ func (s *service) webhook(ctx context.Context, action domain.Action, release dom
 
 	defer res.Body.Close()
 
-	s.log.Info().Msgf("successfully ran webhook action: '%v' to: %v payload: %v", action.Name, action.WebhookHost, dataArgs)
+	s.log.Info().Msgf("successfully ran webhook action: '%v' to: %v payload: %v", action.Name, action.WebhookHost, action.WebhookData)
 
 	return nil
+}
+func (s *service) parseMacros(action *domain.Action, release domain.Release) error {
+	// parse all macros in one go
+	return action.ParseMacros(release)
 }

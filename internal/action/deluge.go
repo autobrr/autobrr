@@ -12,13 +12,13 @@ import (
 	delugeClient "github.com/gdm85/go-libdeluge"
 )
 
-func (s *service) deluge(action domain.Action, release domain.Release) ([]string, error) {
+func (s *service) deluge(ctx context.Context, action *domain.Action, release domain.Release) ([]string, error) {
 	s.log.Debug().Msgf("action Deluge: %v", action.Name)
 
 	var err error
 
 	// get client for action
-	client, err := s.clientSvc.FindByID(context.TODO(), action.ClientID)
+	client, err := s.clientSvc.FindByID(ctx, action.ClientID)
 	if err != nil {
 		s.log.Error().Stack().Err(err).Msgf("error finding client: %v", action.ClientID)
 		return nil, err
@@ -32,16 +32,16 @@ func (s *service) deluge(action domain.Action, release domain.Release) ([]string
 
 	switch client.Type {
 	case "DELUGE_V1":
-		rejections, err = s.delugeV1(client, action, release)
+		rejections, err = s.delugeV1(ctx, client, action, release)
 
 	case "DELUGE_V2":
-		rejections, err = s.delugeV2(client, action, release)
+		rejections, err = s.delugeV2(ctx, client, action, release)
 	}
 
 	return rejections, err
 }
 
-func (s *service) delugeCheckRulesCanDownload(deluge delugeClient.DelugeClient, client *domain.DownloadClient, action domain.Action) ([]string, error) {
+func (s *service) delugeCheckRulesCanDownload(deluge delugeClient.DelugeClient, client *domain.DownloadClient, action *domain.Action) ([]string, error) {
 	s.log.Trace().Msgf("action Deluge: %v check rules", action.Name)
 
 	// check for active downloads and other rules
@@ -86,7 +86,7 @@ func (s *service) delugeCheckRulesCanDownload(deluge delugeClient.DelugeClient, 
 	return nil, nil
 }
 
-func (s *service) delugeV1(client *domain.DownloadClient, action domain.Action, release domain.Release) ([]string, error) {
+func (s *service) delugeV1(ctx context.Context, client *domain.DownloadClient, action *domain.Action, release domain.Release) ([]string, error) {
 	settings := delugeClient.Settings{
 		Hostname:             client.Host,
 		Port:                 uint(client.Port),
@@ -117,7 +117,7 @@ func (s *service) delugeV1(client *domain.DownloadClient, action domain.Action, 
 	}
 
 	if release.TorrentTmpFile == "" {
-		if err := release.DownloadTorrentFile(); err != nil {
+		if err := release.DownloadTorrentFileCtx(ctx); err != nil {
 			s.log.Error().Err(err).Msgf("could not download torrent file for release: %v", release.TorrentName)
 			return nil, err
 		}
@@ -134,10 +134,7 @@ func (s *service) delugeV1(client *domain.DownloadClient, action domain.Action, 
 		return nil, errors.Wrap(err, "could not encode torrent file: %v", release.TorrentTmpFile)
 	}
 
-	// macros handle args and replace vars
-	m := domain.NewMacro(release)
-
-	options, err := s.prepareDelugeOptions(action, m)
+	options, err := s.prepareDelugeOptions(action)
 	if err != nil {
 		return nil, errors.Wrap(err, "could not prepare options")
 	}
@@ -155,15 +152,9 @@ func (s *service) delugeV1(client *domain.DownloadClient, action domain.Action, 
 			return nil, errors.Wrap(err, "could not load label plugin for client: %v", client.Name)
 		}
 
-		// parse and replace values in argument string before continuing
-		labelArgs, err := m.Parse(action.Label)
-		if err != nil {
-			return nil, errors.Wrap(err, "could not parse macro label: %v", action.Label)
-		}
-
 		if labelPluginActive != nil {
 			// TODO first check if label exists, if not, add it, otherwise set
-			err = labelPluginActive.SetTorrentLabel(torrentHash, labelArgs)
+			err = labelPluginActive.SetTorrentLabel(torrentHash, action.Label)
 			if err != nil {
 				return nil, errors.Wrap(err, "could not set label: %v on client: %v", action.Label, client.Name)
 			}
@@ -175,7 +166,7 @@ func (s *service) delugeV1(client *domain.DownloadClient, action domain.Action, 
 	return nil, nil
 }
 
-func (s *service) delugeV2(client *domain.DownloadClient, action domain.Action, release domain.Release) ([]string, error) {
+func (s *service) delugeV2(ctx context.Context, client *domain.DownloadClient, action *domain.Action, release domain.Release) ([]string, error) {
 	settings := delugeClient.Settings{
 		Hostname:             client.Host,
 		Port:                 uint(client.Port),
@@ -206,7 +197,7 @@ func (s *service) delugeV2(client *domain.DownloadClient, action domain.Action, 
 	}
 
 	if release.TorrentTmpFile == "" {
-		if err := release.DownloadTorrentFile(); err != nil {
+		if err := release.DownloadTorrentFileCtx(ctx); err != nil {
 			s.log.Error().Err(err).Msgf("could not download torrent file for release: %v", release.TorrentName)
 			return nil, err
 		}
@@ -223,11 +214,8 @@ func (s *service) delugeV2(client *domain.DownloadClient, action domain.Action, 
 		return nil, errors.Wrap(err, "could not encode torrent file: %v", release.TorrentTmpFile)
 	}
 
-	// macros handle args and replace vars
-	m := domain.NewMacro(release)
-
 	// set options
-	options, err := s.prepareDelugeOptions(action, m)
+	options, err := s.prepareDelugeOptions(action)
 	if err != nil {
 		return nil, errors.Wrap(err, "could not prepare options")
 	}
@@ -245,15 +233,9 @@ func (s *service) delugeV2(client *domain.DownloadClient, action domain.Action, 
 			return nil, errors.Wrap(err, "could not load label plugin for client: %v", client.Name)
 		}
 
-		// parse and replace values in argument string before continuing
-		labelArgs, err := m.Parse(action.Label)
-		if err != nil {
-			return nil, errors.Wrap(err, "could not parse macro label: %v", action.Label)
-		}
-
 		if labelPluginActive != nil {
 			// TODO first check if label exists, if not, add it, otherwise set
-			err = labelPluginActive.SetTorrentLabel(torrentHash, labelArgs)
+			err = labelPluginActive.SetTorrentLabel(torrentHash, action.Label)
 			if err != nil {
 				return nil, errors.Wrap(err, "could not set label: %v on client: %v", action.Label, client.Name)
 			}
@@ -265,7 +247,7 @@ func (s *service) delugeV2(client *domain.DownloadClient, action domain.Action, 
 	return nil, nil
 }
 
-func (s *service) prepareDelugeOptions(action domain.Action, m domain.Macro) (delugeClient.Options, error) {
+func (s *service) prepareDelugeOptions(action *domain.Action) (delugeClient.Options, error) {
 
 	// set options
 	options := delugeClient.Options{}
@@ -274,13 +256,7 @@ func (s *service) prepareDelugeOptions(action domain.Action, m domain.Macro) (de
 		options.AddPaused = &action.Paused
 	}
 	if action.SavePath != "" {
-		// parse and replace values in argument string before continuing
-		savePathArgs, err := m.Parse(action.SavePath)
-		if err != nil {
-			return options, errors.Wrap(err, "could not parse save path macro: %v", action.SavePath)
-		}
-
-		options.DownloadLocation = &savePathArgs
+		options.DownloadLocation = &action.SavePath
 	}
 	if action.LimitDownloadSpeed > 0 {
 		maxDL := int(action.LimitDownloadSpeed)
