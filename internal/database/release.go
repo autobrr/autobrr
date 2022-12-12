@@ -237,7 +237,7 @@ func (repo *ReleaseRepo) findRecentReleases(ctx context.Context, tx *Tx) ([]*dom
 	queryBuilder := repo.db.squirrel.
 		Select("r.id", "r.filter_status", "r.rejections", "r.indexer", "r.filter", "r.protocol", "r.title", "r.torrent_name", "r.size", "r.timestamp").
 		From("release r").
-		OrderBy("r.timestamp DESC").
+		OrderBy("r.id DESC").
 		Limit(10)
 
 	query, args, err := queryBuilder.ToSql()
