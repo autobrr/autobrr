@@ -125,7 +125,7 @@ func (repo *ReleaseRepo) Find(ctx context.Context, params domain.ReleaseQueryPar
 
 func (repo *ReleaseRepo) findReleases(ctx context.Context, tx *Tx, params domain.ReleaseQueryParams) ([]*domain.Release, int64, int64, error) {
 	queryBuilder := repo.db.squirrel.
-		Select("r.id", "r.filter_status", "r.rejections", "r.indexer", "r.filter", "r.protocol", "r.title", "r.torrent_name", "r.size", "r.timestamp", "(SELECT COUNT(*) FROM release) AS total_count").
+		Select("r.id", "r.filter_status", "r.rejections", "r.indexer", "r.filter", "r.protocol", "r.title", "r.torrent_name", "r.size", "r.timestamp", "(SELECT COUNT() FROM release) AS total_count").
 		From("release r").
 		OrderBy("r.id DESC")
 
