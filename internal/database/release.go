@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 	"strings"
+	"regexp"
 	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
@@ -144,7 +145,35 @@ func (repo *ReleaseRepo) findReleases(ctx context.Context, tx *Tx, params domain
 	}
 
 	if params.Search != "" {
-		queryBuilder = queryBuilder.Where("r.torrent_name LIKE ?", fmt.Sprint("%", params.Search, "%"))
+		reserved := map[string]string{
+			"title": "title",
+			"group": "release_group",
+			"category": "category",
+			"season": "season",
+			"episode": "episode",
+			"year": "year",
+			"resolution": "resolution",
+			"source": "source",
+			"codec": "codec",
+		}
+
+		search := strings.TrimSpace(params.Search)
+		for k, v := range reserved {
+			r := regexp.MustCompile(fmt.Sprintf("(?:%s:)(?P<value>[^\\s-]+)", k))
+			if reskey := r.FindAllStringSubmatch(search, -1); len(reskey) != 0 {
+				filter := sq.Or{}
+				for _, found := range reskey {
+					filter = append(filter, sq.Like{"r." + v: found[1] + "%"})
+				}
+
+				queryBuilder = queryBuilder.Where(filter)
+				search = strings.TrimSpace(r.ReplaceAllLiteralString(search, ""))
+			}
+		}
+
+		if len(search) != 0 {
+			queryBuilder = queryBuilder.Where(sq.Like{"r.torrent_name": search + "%"})
+		}
 	}
 
 	if params.Filters.Indexers != nil {
