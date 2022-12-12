@@ -165,7 +165,7 @@ func (repo *ReleaseRepo) findReleases(ctx context.Context, tx *Tx, params domain
 			if reskey := r.FindAllStringSubmatch(search, -1); len(reskey) != 0 {
 				filter := sq.Or{}
 				for _, found := range reskey {
-					filter = append(filter, sq.Like{"r." + v: strings.Trim(strings.Trim(found[1], `"`), `'`) + "%"})
+					filter = append(filter, sq.Like{"r." + v: strings.ReplaceAll(strings.Trim(strings.Trim(found[1], `"`), `'`), ".", "_") + "%"})
 				}
 
 				queryBuilder = queryBuilder.Where(filter)
