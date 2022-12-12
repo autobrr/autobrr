@@ -400,16 +400,17 @@ func (repo *ReleaseRepo) attachActionStatus(ctx context.Context, tx *Tx, release
 func (repo *ReleaseRepo) Stats(ctx context.Context) (*domain.ReleaseStats, error) {
 
 	query := `SELECT *
-FROM (SELECT
+FROM (
+	SELECT
 	COUNT() AS total,
-	COUNT(CASE WHEN filter_status = 'FILTER_APPROVED' THEN '' END) AS filtered_count,
-	COUNT(CASE WHEN filter_status = 'FILTER_REJECTED' THEN '' END) AS filter_rejected_count
+	COUNT(CASE WHEN filter_status = 'FILTER_APPROVED' THEN 0 END) AS filtered_count,
+	COUNT(CASE WHEN filter_status = 'FILTER_REJECTED' THEN 0 END) AS filter_rejected_count
 	FROM release
 )
 CROSS JOIN (
 	SELECT
-	COUNT(CASE WHEN status = 'PUSH_APPROVED' THEN '' END) AS push_approved_count,
-	COUNT(CASE WHEN status = 'PUSH_REJECTED' THEN '' END) AS push_rejected_count
+	COUNT(CASE WHEN status = 'PUSH_APPROVED' THEN 0 END) AS push_approved_count,
+	COUNT(CASE WHEN status = 'PUSH_REJECTED' THEN 0 END) AS push_rejected_count
 	FROM release_action_status
 )`
 
