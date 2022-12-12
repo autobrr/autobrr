@@ -155,6 +155,8 @@ func (repo *ReleaseRepo) findReleases(ctx context.Context, tx *Tx, params domain
 			"resolution": "resolution",
 			"source": "source",
 			"codec": "codec",
+			"hdr": "hdr",
+			"filter": "filter",
 		}
 
 		search := strings.TrimSpace(params.Search)
