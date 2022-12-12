@@ -477,15 +477,19 @@ func (repo *ReleaseRepo) CanDownloadShow(ctx context.Context, title string, seas
 		Where("title LIKE ?", fmt.Sprint("%", title, "%"))
 
 	if season > 0 && episode > 0 {
-		queryBuilder = queryBuilder.Where(sq.And{
-			sq.GtOrEq{"season": season},
-			sq.Gt{"episode": episode},
+		queryBuilder = queryBuilder.Where(sq.Or{
+			sq.And{
+				sq.Eq{"season": season},
+				sq.Gt{"episode": episode},
+			},
+			sq.Gt{"season": season},
 		})
 	} else if season > 0 && episode == 0 {
-		queryBuilder = queryBuilder.Where(sq.And{
-			sq.Gt{"season": season},
-			sq.Eq{"episode": 0},
-		})
+		queryBuilder = queryBuilder.Where(sq.Gt{"season": season})
+	} else {
+		/* No support for this scenario today. Specifically multi-part specials.
+		 * The Database presently does not have Subtitle as a field, but is coming at a future date. */
+		return true, nil
 	}
 
 	query, args, err := queryBuilder.ToSql()
