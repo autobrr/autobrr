@@ -399,14 +399,19 @@ func (repo *ReleaseRepo) attachActionStatus(ctx context.Context, tx *Tx, release
 
 func (repo *ReleaseRepo) Stats(ctx context.Context) (*domain.ReleaseStats, error) {
 
-	query := `SELECT COUNT(*)                                                                      total,
-       COALESCE(SUM(CASE WHEN filter_status = 'FILTER_APPROVED' THEN 1 ELSE 0 END), 0) AS filtered_count,
-       COALESCE(SUM(CASE WHEN filter_status = 'FILTER_REJECTED' THEN 1 ELSE 0 END), 0) AS filter_rejected_count,
-       (SELECT COALESCE(SUM(CASE WHEN status = 'PUSH_APPROVED' THEN 1 ELSE 0 END), 0)
-        FROM "release_action_status") AS                                             push_approved_count,
-       (SELECT COALESCE(SUM(CASE WHEN status = 'PUSH_REJECTED' THEN 1 ELSE 0 END), 0)
-        FROM "release_action_status") AS                                             push_rejected_count
-FROM "release";`
+	query := `SELECT *
+FROM (SELECT
+	COUNT() AS total,
+	COUNT(CASE WHEN filter_status = 'FILTER_APPROVED' THEN '' END) AS filtered_count,
+	COUNT(CASE WHEN filter_status = 'FILTER_REJECTED' THEN '' END) AS filter_rejected_count
+	FROM release
+)
+CROSS JOIN (
+	SELECT
+	COUNT(CASE WHEN status = 'PUSH_APPROVED' THEN '' END) AS push_approved_count,
+	COUNT(CASE WHEN status = 'PUSH_REJECTED' THEN '' END) AS push_rejected_count
+	FROM release_action_status
+)`
 
 	row := repo.db.handler.QueryRowContext(ctx, query)
 	if err := row.Err(); err != nil {
