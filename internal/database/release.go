@@ -161,11 +161,11 @@ func (repo *ReleaseRepo) findReleases(ctx context.Context, tx *Tx, params domain
 
 		search := strings.TrimSpace(params.Search)
 		for k, v := range reserved {
-			r := regexp.MustCompile(fmt.Sprintf("(?:%s:)(?P<value>[^\\s-]+)", k))
+			r := regexp.MustCompile(fmt.Sprintf(`(?:%s:)(?P<value>'.*?'|".*?"|\S+)`, k))
 			if reskey := r.FindAllStringSubmatch(search, -1); len(reskey) != 0 {
 				filter := sq.Or{}
 				for _, found := range reskey {
-					filter = append(filter, sq.Like{"r." + v: found[1] + "%"})
+					filter = append(filter, sq.Like{"r." + v: strings.Trim(strings.Trim(found[1], `"`), `'`) + "%"})
 				}
 
 				queryBuilder = queryBuilder.Where(filter)
