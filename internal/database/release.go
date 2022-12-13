@@ -146,17 +146,17 @@ func (repo *ReleaseRepo) findReleases(ctx context.Context, tx *Tx, params domain
 
 	if params.Search != "" {
 		reserved := map[string]string{
-			"title": "title",
-			"group": "release_group",
-			"category": "category",
-			"season": "season",
-			"episode": "episode",
-			"year": "year",
-			"resolution": "resolution",
-			"source": "source",
-			"codec": "codec",
-			"hdr": "hdr",
-			"filter": "filter",
+			"title": "r.title",
+			"group": "r.release_group",
+			"category": "r.category",
+			"season": "r.season",
+			"episode": "r.episode",
+			"year": "r.year",
+			"resolution": "r.resolution",
+			"source": "r.source",
+			"codec": "r.codec",
+			"hdr": "r.hdr",
+			"filter": "r.filter",
 		}
 
 		search := strings.TrimSpace(params.Search)
@@ -165,7 +165,7 @@ func (repo *ReleaseRepo) findReleases(ctx context.Context, tx *Tx, params domain
 			if reskey := r.FindAllStringSubmatch(search, -1); len(reskey) != 0 {
 				filter := sq.Or{}
 				for _, found := range reskey {
-					filter = append(filter, sq.Like{"r." + v: strings.ReplaceAll(strings.Trim(strings.Trim(found[1], `"`), `'`), ".", "_") + "%"})
+					filter = append(filter, sq.Like{v: strings.ReplaceAll(strings.Trim(strings.Trim(found[1], `"`), `'`), ".", "_") + "%"})
 				}
 
 				queryBuilder = queryBuilder.Where(filter)
