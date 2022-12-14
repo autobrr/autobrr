@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 	"strings"
+	"regexp"
 	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
@@ -144,7 +145,37 @@ func (repo *ReleaseRepo) findReleases(ctx context.Context, tx *Tx, params domain
 	}
 
 	if params.Search != "" {
-		queryBuilder = queryBuilder.Where("r.torrent_name LIKE ?", fmt.Sprint("%", params.Search, "%"))
+		reserved := map[string]string{
+			"title": "r.title",
+			"group": "r.release_group",
+			"category": "r.category",
+			"season": "r.season",
+			"episode": "r.episode",
+			"year": "r.year",
+			"resolution": "r.resolution",
+			"source": "r.source",
+			"codec": "r.codec",
+			"hdr": "r.hdr",
+			"filter": "r.filter",
+		}
+
+		search := strings.TrimSpace(params.Search)
+		for k, v := range reserved {
+			r := regexp.MustCompile(fmt.Sprintf(`(?:%s:)(?P<value>'.*?'|".*?"|\S+)`, k))
+			if reskey := r.FindAllStringSubmatch(search, -1); len(reskey) != 0 {
+				filter := sq.Or{}
+				for _, found := range reskey {
+					filter = append(filter, sq.Like{v: strings.ReplaceAll(strings.Trim(strings.Trim(found[1], `"`), `'`), ".", "_") + "%"})
+				}
+
+				queryBuilder = queryBuilder.Where(filter)
+				search = strings.TrimSpace(r.ReplaceAllLiteralString(search, ""))
+			}
+		}
+
+		if len(search) != 0 {
+			queryBuilder = queryBuilder.Where(sq.Like{"r.torrent_name": search + "%"})
+		}
 	}
 
 	if params.Filters.Indexers != nil {
