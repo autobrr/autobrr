@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 	"strings"
+	"regexp"
 	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
@@ -144,7 +145,37 @@ func (repo *ReleaseRepo) findReleases(ctx context.Context, tx *Tx, params domain
 	}
 
 	if params.Search != "" {
-		queryBuilder = queryBuilder.Where("r.torrent_name LIKE ?", fmt.Sprint("%", params.Search, "%"))
+		reserved := map[string]string{
+			"title": "r.title",
+			"group": "r.release_group",
+			"category": "r.category",
+			"season": "r.season",
+			"episode": "r.episode",
+			"year": "r.year",
+			"resolution": "r.resolution",
+			"source": "r.source",
+			"codec": "r.codec",
+			"hdr": "r.hdr",
+			"filter": "r.filter",
+		}
+
+		search := strings.TrimSpace(params.Search)
+		for k, v := range reserved {
+			r := regexp.MustCompile(fmt.Sprintf(`(?:%s:)(?P<value>'.*?'|".*?"|\S+)`, k))
+			if reskey := r.FindAllStringSubmatch(search, -1); len(reskey) != 0 {
+				filter := sq.Or{}
+				for _, found := range reskey {
+					filter = append(filter, sq.Like{v: strings.ReplaceAll(strings.Trim(strings.Trim(found[1], `"`), `'`), ".", "_") + "%"})
+				}
+
+				queryBuilder = queryBuilder.Where(filter)
+				search = strings.TrimSpace(r.ReplaceAllLiteralString(search, ""))
+			}
+		}
+
+		if len(search) != 0 {
+			queryBuilder = queryBuilder.Where(sq.Like{"r.torrent_name": search + "%"})
+		}
 	}
 
 	if params.Filters.Indexers != nil {
@@ -452,4 +483,71 @@ func (repo *ReleaseRepo) Delete(ctx context.Context) error {
 	}
 
 	return nil
+}
+
+func (repo *ReleaseRepo) CanDownloadShow(ctx context.Context, title string, season int, episode int) (bool, error) {
+	// TODO support non season episode shows
+	// if rls.Day > 0 {
+	//	// Maybe in the future
+	//	// SELECT '' FROM release WHERE Title LIKE %q AND ((Year == %d AND Month == %d AND Day > %d) OR (Year == %d AND Month > %d) OR (Year > %d))"
+	//	qs := sql.Query("SELECT torrent_name FROM release WHERE Title LIKE %q AND Year >= %d", rls.Title, rls.Year)
+	//
+	//	for q := range qs.Rows() {
+	//		r := rls.ParseTitle(q)
+	//		if r.Year > rls.Year {
+	//			return false, fmt.Errorf("stale release year")
+	//		}
+	//
+	//		if r.Month > rls.Month {
+	//			return false, fmt.Errorf("stale release month")
+	//		}
+	//
+	//		if r.Month == rls.Month && r.Day > rls.Day {
+	//			return false, fmt.Errorf("stale release day")
+	//		}
+	//	}
+	//}
+
+	queryBuilder := repo.db.squirrel.
+		Select("COUNT(*)").
+		From("release").
+		Where("title LIKE ?", fmt.Sprint("%", title, "%"))
+
+	if season > 0 && episode > 0 {
+		queryBuilder = queryBuilder.Where(sq.Or{
+			sq.And{
+				sq.Eq{"season": season},
+				sq.Gt{"episode": episode},
+			},
+			sq.Gt{"season": season},
+		})
+	} else if season > 0 && episode == 0 {
+		queryBuilder = queryBuilder.Where(sq.Gt{"season": season})
+	} else {
+		/* No support for this scenario today. Specifically multi-part specials.
+		 * The Database presently does not have Subtitle as a field, but is coming at a future date. */
+		return true, nil
+	}
+
+	query, args, err := queryBuilder.ToSql()
+	if err != nil {
+		return false, errors.Wrap(err, "error building query")
+	}
+
+	row := repo.db.handler.QueryRowContext(ctx, query, args...)
+	if err := row.Err(); err != nil {
+		return false, err
+	}
+
+	var count int
+
+	if err := row.Scan(&count); err != nil {
+		return false, err
+	}
+
+	if count > 0 {
+		return false, nil
+	}
+
+	return true, nil
 }
