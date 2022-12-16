@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"regexp"
 	"strings"
 	"time"
 
@@ -125,9 +126,9 @@ func (repo *ReleaseRepo) Find(ctx context.Context, params domain.ReleaseQueryPar
 
 func (repo *ReleaseRepo) findReleases(ctx context.Context, tx *Tx, params domain.ReleaseQueryParams) ([]*domain.Release, int64, int64, error) {
 	queryBuilder := repo.db.squirrel.
-		Select("r.id", "r.filter_status", "r.rejections", "r.indexer", "r.filter", "r.protocol", "r.title", "r.torrent_name", "r.size", "r.timestamp", "COUNT(*) OVER() AS total_count").
+		Select("r.id", "r.filter_status", "r.rejections", "r.indexer", "r.filter", "r.protocol", "r.title", "r.torrent_name", "r.size", "r.timestamp", "(SELECT COUNT(*) FROM release) AS total_count").
 		From("release r").
-		OrderBy("r.timestamp DESC")
+		OrderBy("r.id DESC")
 
 	if params.Limit > 0 {
 		queryBuilder = queryBuilder.Limit(params.Limit)
@@ -144,7 +145,37 @@ func (repo *ReleaseRepo) findReleases(ctx context.Context, tx *Tx, params domain
 	}
 
 	if params.Search != "" {
-		queryBuilder = queryBuilder.Where("r.torrent_name LIKE ?", fmt.Sprint("%", params.Search, "%"))
+		reserved := map[string]string{
+			"title":      "r.title",
+			"group":      "r.release_group",
+			"category":   "r.category",
+			"season":     "r.season",
+			"episode":    "r.episode",
+			"year":       "r.year",
+			"resolution": "r.resolution",
+			"source":     "r.source",
+			"codec":      "r.codec",
+			"hdr":        "r.hdr",
+			"filter":     "r.filter",
+		}
+
+		search := strings.TrimSpace(params.Search)
+		for k, v := range reserved {
+			r := regexp.MustCompile(fmt.Sprintf(`(?:%s:)(?P<value>'.*?'|".*?"|\S+)`, k))
+			if reskey := r.FindAllStringSubmatch(search, -1); len(reskey) != 0 {
+				filter := sq.Or{}
+				for _, found := range reskey {
+					filter = append(filter, sq.Like{v: strings.ReplaceAll(strings.Trim(strings.Trim(found[1], `"`), `'`), ".", "_") + "%"})
+				}
+
+				queryBuilder = queryBuilder.Where(filter)
+				search = strings.TrimSpace(r.ReplaceAllLiteralString(search, ""))
+			}
+		}
+
+		if len(search) != 0 {
+			queryBuilder = queryBuilder.Where(sq.Like{"r.torrent_name": search + "%"})
+		}
 	}
 
 	if params.Filters.Indexers != nil {
@@ -237,7 +268,7 @@ func (repo *ReleaseRepo) findRecentReleases(ctx context.Context, tx *Tx) ([]*dom
 	queryBuilder := repo.db.squirrel.
 		Select("r.id", "r.filter_status", "r.rejections", "r.indexer", "r.filter", "r.protocol", "r.title", "r.torrent_name", "r.size", "r.timestamp").
 		From("release r").
-		OrderBy("r.timestamp DESC").
+		OrderBy("r.id DESC").
 		Limit(10)
 
 	query, args, err := queryBuilder.ToSql()
@@ -399,14 +430,20 @@ func (repo *ReleaseRepo) attachActionStatus(ctx context.Context, tx *Tx, release
 
 func (repo *ReleaseRepo) Stats(ctx context.Context) (*domain.ReleaseStats, error) {
 
-	query := `SELECT COUNT(*)                                                                      total,
-       COALESCE(SUM(CASE WHEN filter_status = 'FILTER_APPROVED' THEN 1 ELSE 0 END), 0) AS filtered_count,
-       COALESCE(SUM(CASE WHEN filter_status = 'FILTER_REJECTED' THEN 1 ELSE 0 END), 0) AS filter_rejected_count,
-       (SELECT COALESCE(SUM(CASE WHEN status = 'PUSH_APPROVED' THEN 1 ELSE 0 END), 0)
-        FROM "release_action_status") AS                                             push_approved_count,
-       (SELECT COALESCE(SUM(CASE WHEN status = 'PUSH_REJECTED' THEN 1 ELSE 0 END), 0)
-        FROM "release_action_status") AS                                             push_rejected_count
-FROM "release";`
+	query := `SELECT *
+FROM (
+	SELECT
+	COUNT(*) AS total,
+	COUNT(CASE WHEN filter_status = 'FILTER_APPROVED' THEN 0 END) AS filtered_count,
+	COUNT(CASE WHEN filter_status = 'FILTER_REJECTED' THEN 0 END) AS filter_rejected_count
+	FROM release
+) AS zoo
+CROSS JOIN (
+	SELECT
+	COUNT(CASE WHEN status = 'PUSH_APPROVED' THEN 0 END) AS push_approved_count,
+	COUNT(CASE WHEN status = 'PUSH_REJECTED' THEN 0 END) AS push_rejected_count
+	FROM release_action_status
+) AS foo`
 
 	row := repo.db.handler.QueryRowContext(ctx, query)
 	if err := row.Err(); err != nil {
@@ -446,4 +483,71 @@ func (repo *ReleaseRepo) Delete(ctx context.Context) error {
 	}
 
 	return nil
+}
+
+func (repo *ReleaseRepo) CanDownloadShow(ctx context.Context, title string, season int, episode int) (bool, error) {
+	// TODO support non season episode shows
+	// if rls.Day > 0 {
+	//	// Maybe in the future
+	//	// SELECT '' FROM release WHERE Title LIKE %q AND ((Year == %d AND Month == %d AND Day > %d) OR (Year == %d AND Month > %d) OR (Year > %d))"
+	//	qs := sql.Query("SELECT torrent_name FROM release WHERE Title LIKE %q AND Year >= %d", rls.Title, rls.Year)
+	//
+	//	for q := range qs.Rows() {
+	//		r := rls.ParseTitle(q)
+	//		if r.Year > rls.Year {
+	//			return false, fmt.Errorf("stale release year")
+	//		}
+	//
+	//		if r.Month > rls.Month {
+	//			return false, fmt.Errorf("stale release month")
+	//		}
+	//
+	//		if r.Month == rls.Month && r.Day > rls.Day {
+	//			return false, fmt.Errorf("stale release day")
+	//		}
+	//	}
+	//}
+
+	queryBuilder := repo.db.squirrel.
+		Select("COUNT(*)").
+		From("release").
+		Where("title LIKE ?", fmt.Sprint("%", title, "%"))
+
+	if season > 0 && episode > 0 {
+		queryBuilder = queryBuilder.Where(sq.Or{
+			sq.And{
+				sq.Eq{"season": season},
+				sq.Gt{"episode": episode},
+			},
+			sq.Gt{"season": season},
+		})
+	} else if season > 0 && episode == 0 {
+		queryBuilder = queryBuilder.Where(sq.Gt{"season": season})
+	} else {
+		/* No support for this scenario today. Specifically multi-part specials.
+		 * The Database presently does not have Subtitle as a field, but is coming at a future date. */
+		return true, nil
+	}
+
+	query, args, err := queryBuilder.ToSql()
+	if err != nil {
+		return false, errors.Wrap(err, "error building query")
+	}
+
+	row := repo.db.handler.QueryRowContext(ctx, query, args...)
+	if err := row.Err(); err != nil {
+		return false, err
+	}
+
+	var count int
+
+	if err := row.Scan(&count); err != nil {
+		return false, err
+	}
+
+	if count > 0 {
+		return false, nil
+	}
+
+	return true, nil
 }
