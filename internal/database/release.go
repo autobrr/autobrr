@@ -4,8 +4,8 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"strings"
 	"regexp"
+	"strings"
 	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
@@ -126,9 +126,9 @@ func (repo *ReleaseRepo) Find(ctx context.Context, params domain.ReleaseQueryPar
 
 func (repo *ReleaseRepo) findReleases(ctx context.Context, tx *Tx, params domain.ReleaseQueryParams) ([]*domain.Release, int64, int64, error) {
 	queryBuilder := repo.db.squirrel.
-		Select("r.id", "r.filter_status", "r.rejections", "r.indexer", "r.filter", "r.protocol", "r.title", "r.torrent_name", "r.size", "r.timestamp", "COUNT(*) OVER() AS total_count").
+		Select("r.id", "r.filter_status", "r.rejections", "r.indexer", "r.filter", "r.protocol", "r.title", "r.torrent_name", "r.size", "r.timestamp", "(SELECT COUNT(*) FROM release) AS total_count").
 		From("release r").
-		OrderBy("r.timestamp DESC")
+		OrderBy("r.id DESC")
 
 	if params.Limit > 0 {
 		queryBuilder = queryBuilder.Limit(params.Limit)
@@ -146,17 +146,17 @@ func (repo *ReleaseRepo) findReleases(ctx context.Context, tx *Tx, params domain
 
 	if params.Search != "" {
 		reserved := map[string]string{
-			"title": "r.title",
-			"group": "r.release_group",
-			"category": "r.category",
-			"season": "r.season",
-			"episode": "r.episode",
-			"year": "r.year",
+			"title":      "r.title",
+			"group":      "r.release_group",
+			"category":   "r.category",
+			"season":     "r.season",
+			"episode":    "r.episode",
+			"year":       "r.year",
 			"resolution": "r.resolution",
-			"source": "r.source",
-			"codec": "r.codec",
-			"hdr": "r.hdr",
-			"filter": "r.filter",
+			"source":     "r.source",
+			"codec":      "r.codec",
+			"hdr":        "r.hdr",
+			"filter":     "r.filter",
 		}
 
 		search := strings.TrimSpace(params.Search)
@@ -268,7 +268,7 @@ func (repo *ReleaseRepo) findRecentReleases(ctx context.Context, tx *Tx) ([]*dom
 	queryBuilder := repo.db.squirrel.
 		Select("r.id", "r.filter_status", "r.rejections", "r.indexer", "r.filter", "r.protocol", "r.title", "r.torrent_name", "r.size", "r.timestamp").
 		From("release r").
-		OrderBy("r.timestamp DESC").
+		OrderBy("r.id DESC").
 		Limit(10)
 
 	query, args, err := queryBuilder.ToSql()
@@ -430,14 +430,20 @@ func (repo *ReleaseRepo) attachActionStatus(ctx context.Context, tx *Tx, release
 
 func (repo *ReleaseRepo) Stats(ctx context.Context) (*domain.ReleaseStats, error) {
 
-	query := `SELECT COUNT(*)                                                                      total,
-       COALESCE(SUM(CASE WHEN filter_status = 'FILTER_APPROVED' THEN 1 ELSE 0 END), 0) AS filtered_count,
-       COALESCE(SUM(CASE WHEN filter_status = 'FILTER_REJECTED' THEN 1 ELSE 0 END), 0) AS filter_rejected_count,
-       (SELECT COALESCE(SUM(CASE WHEN status = 'PUSH_APPROVED' THEN 1 ELSE 0 END), 0)
-        FROM "release_action_status") AS                                             push_approved_count,
-       (SELECT COALESCE(SUM(CASE WHEN status = 'PUSH_REJECTED' THEN 1 ELSE 0 END), 0)
-        FROM "release_action_status") AS                                             push_rejected_count
-FROM "release";`
+	query := `SELECT *
+FROM (
+	SELECT
+	COUNT(*) AS total,
+	COUNT(CASE WHEN filter_status = 'FILTER_APPROVED' THEN 0 END) AS filtered_count,
+	COUNT(CASE WHEN filter_status = 'FILTER_REJECTED' THEN 0 END) AS filter_rejected_count
+	FROM release
+) AS zoo
+CROSS JOIN (
+	SELECT
+	COUNT(CASE WHEN status = 'PUSH_APPROVED' THEN 0 END) AS push_approved_count,
+	COUNT(CASE WHEN status = 'PUSH_REJECTED' THEN 0 END) AS push_rejected_count
+	FROM release_action_status
+) AS foo`
 
 	row := repo.db.handler.QueryRowContext(ctx, query)
 	if err := row.Err(); err != nil {
