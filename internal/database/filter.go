@@ -40,7 +40,7 @@ func (r *FilterRepo) Find(ctx context.Context, params domain.FilterQueryParams) 
 		return nil, err
 	}
 
-	if err = tx.Commit(); err != nil {
+	if err := tx.Commit(); err != nil {
 		return nil, errors.Wrap(err, "error commit transaction find releases")
 	}
 
@@ -319,6 +319,10 @@ func (r *FilterRepo) FindByIndexerIdentifier(indexer string) ([]domain.Filter, e
 			continue
 		}
 		filters[i].Downloads = downloads
+	}
+
+	if err := tx.Commit(); err != nil {
+		return nil, errors.Wrap(err, "error finding filter by identifier")
 	}
 
 	return filters, nil
@@ -949,8 +953,7 @@ func (r *FilterRepo) StoreIndexerConnections(ctx context.Context, filterID int, 
 		r.log.Debug().Msgf("filter.StoreIndexerConnections: store '%v' on filter: %v", indexer.Name, filterID)
 	}
 
-	err = tx.Commit()
-	if err != nil {
+	if err := tx.Commit(); err != nil {
 		return errors.Wrap(err, "error store indexers for filter: %v", filterID)
 	}
 

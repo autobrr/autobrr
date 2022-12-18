@@ -94,10 +94,8 @@ func (r *IrcRepo) DeleteNetwork(ctx context.Context, id int64) error {
 		return errors.Wrap(err, "error executing query")
 	}
 
-	err = tx.Commit()
-	if err != nil {
+	if err := tx.Commit(); err != nil {
 		return errors.Wrap(err, "error commit deleting network")
-
 	}
 
 	return nil
@@ -439,8 +437,7 @@ func (r *IrcRepo) StoreNetworkChannels(ctx context.Context, networkID int64, cha
 		//channel.ID, err = res.LastInsertId()
 	}
 
-	err = tx.Commit()
-	if err != nil {
+	if err := tx.Commit(); err != nil {
 		return errors.Wrap(err, "error commit transaction store network")
 	}
 

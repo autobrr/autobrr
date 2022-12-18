@@ -51,6 +51,10 @@ func (r *ActionRepo) FindByFilterID(ctx context.Context, filterID int) ([]*domai
 		}
 	}
 
+	if err = tx.Commit(); err != nil {
+		return nil, errors.Wrap(err, "error finding filter by id")
+	}
+
 	return actions, nil
 }
 
