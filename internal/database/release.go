@@ -270,55 +270,6 @@ func (repo *ReleaseRepo) FindRecent(ctx context.Context) ([]*domain.Release, err
 	return releases, nil
 }
 
-func (repo *ReleaseRepo) findRecentReleases(ctx context.Context, tx *Tx) ([]*domain.Release, error) {
-	queryBuilder := repo.db.squirrel.
-		Select("r.id", "r.filter_status", "r.rejections", "r.indexer", "r.filter", "r.protocol", "r.title", "r.torrent_name", "r.size", "r.timestamp").
-		FromSelect(repo.db.squirrel.
-			Select("*").
-			From("release").
-			OrderBy("r.id DESC").
-			Limit(10), "r").
-		LeftJoin("release_action_status as ra ON r.id = ra.release_id")
-
-	query, args, err := queryBuilder.ToSql()
-	if err != nil {
-		return nil, errors.Wrap(err, "error building query")
-	}
-
-	repo.log.Trace().Str("database", "release.find").Msgf("query: '%v', args: '%v'", query, args)
-
-	res := make([]*domain.Release, 0)
-
-	rows, err := tx.QueryContext(ctx, query, args...)
-	if err != nil {
-		return res, errors.Wrap(err, "error executing query")
-	}
-
-	defer rows.Close()
-
-	if err := rows.Err(); err != nil {
-		return res, errors.Wrap(err, "rows error")
-	}
-
-	for rows.Next() {
-		var rls domain.Release
-
-		var indexer, filter sql.NullString
-
-		if err := rows.Scan(&rls.ID, &rls.FilterStatus, pq.Array(&rls.Rejections), &indexer, &filter, &rls.Protocol, &rls.Title, &rls.TorrentName, &rls.Size, &rls.Timestamp); err != nil {
-			return res, errors.Wrap(err, "error scanning row")
-		}
-
-		rls.Indexer = indexer.String
-		rls.FilterName = filter.String
-
-		
-		res = append(res, &rls)
-	}
-
-	return res, nil
-}
-
 func (repo *ReleaseRepo) GetIndexerOptions(ctx context.Context) ([]string, error) {
 
 	query := `SELECT DISTINCT indexer FROM "release" UNION SELECT DISTINCT identifier indexer FROM indexer;`
