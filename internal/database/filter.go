@@ -233,7 +233,7 @@ func (r *FilterRepo) FindByID(ctx context.Context, filterID int) (*domain.Filter
 			"updated_at",
 		).
 		From("filter").
-		Where("id = ?", filterID)
+		Where(sq.Eq{"id": filterID})
 
 	query, args, err := queryBuilder.ToSql()
 	if err != nil {
@@ -392,9 +392,9 @@ func (r *FilterRepo) findByIndexerIdentifier(ctx context.Context, tx *Tx, indexe
 		From("filter f").
 		Join("filter_indexer fi ON f.id = fi.filter_id").
 		Join("indexer i ON i.id = fi.indexer_id").
-		Where("i.identifier = ?", indexer).
-		Where("i.enabled = ?", true).
-		Where("f.enabled = ?", true).
+		Where(sq.Eq{"i.identifier": indexer}).
+		Where(sq.Eq{"i.enabled": true}).
+		Where(sq.Eq{"f.enabled": true}).
 		OrderBy("f.priority DESC")
 
 	query, args, err := queryBuilder.ToSql()
@@ -671,7 +671,7 @@ func (r *FilterRepo) Update(ctx context.Context, filter domain.Filter) (*domain.
 		Set("external_webhook_data", filter.ExternalWebhookData).
 		Set("external_webhook_expect_status", filter.ExternalWebhookExpectStatus).
 		Set("updated_at", time.Now().Format(time.RFC3339)).
-		Where("id = ?", filter.ID)
+		Where(sq.Eq{"id": filter.ID})
 
 	query, args, err := queryBuilder.ToSql()
 	if err != nil {
@@ -866,7 +866,7 @@ func (r *FilterRepo) UpdatePartial(ctx context.Context, filter domain.FilterUpda
 		q = q.Set("external_webhook_expect_status", filter.ExternalWebhookExpectStatus)
 	}
 
-	q = q.Where("id = ?", filter.ID)
+	q = q.Where(sq.Eq{"id": filter.ID})
 
 	query, args, err := q.ToSql()
 	if err != nil {
@@ -897,7 +897,7 @@ func (r *FilterRepo) ToggleEnabled(ctx context.Context, filterID int, enabled bo
 		Update("filter").
 		Set("enabled", enabled).
 		Set("updated_at", sq.Expr("CURRENT_TIMESTAMP")).
-		Where("id = ?", filterID)
+		Where(sq.Eq{"id": filterID})
 
 	query, args, err := queryBuilder.ToSql()
 	if err != nil {
@@ -921,7 +921,7 @@ func (r *FilterRepo) StoreIndexerConnections(ctx context.Context, filterID int, 
 
 	deleteQueryBuilder := r.db.squirrel.
 		Delete("filter_indexer").
-		Where("filter_id = ?", filterID)
+		Where(sq.Eq{"filter_id": filterID})
 
 	deleteQuery, deleteArgs, err := deleteQueryBuilder.ToSql()
 	if err != nil {
@@ -978,7 +978,7 @@ func (r *FilterRepo) StoreIndexerConnection(ctx context.Context, filterID int, i
 func (r *FilterRepo) DeleteIndexerConnections(ctx context.Context, filterID int) error {
 	queryBuilder := r.db.squirrel.
 		Delete("filter_indexer").
-		Where("filter_id = ?", filterID)
+		Where(sq.Eq{"filter_id": filterID})
 
 	query, args, err := queryBuilder.ToSql()
 	if err != nil {
@@ -996,7 +996,7 @@ func (r *FilterRepo) DeleteIndexerConnections(ctx context.Context, filterID int)
 func (r *FilterRepo) Delete(ctx context.Context, filterID int) error {
 	queryBuilder := r.db.squirrel.
 		Delete("filter").
-		Where("id = ?", filterID)
+		Where(sq.Eq{"id": filterID})
 
 	query, args, err := queryBuilder.ToSql()
 	if err != nil {

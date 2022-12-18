@@ -61,8 +61,8 @@ func (repo *ReleaseRepo) StoreReleaseActionStatus(ctx context.Context, a *domain
 			Set("status", a.Status).
 			Set("rejections", pq.Array(a.Rejections)).
 			Set("timestamp", a.Timestamp).
-			Where("id = ?", a.ID).
-			Where("release_id = ?", a.ReleaseID)
+			Where(sq.Eq{"id": a.ID}).
+			Where(sq.Eq{"release_id": a.ReleaseID})
 
 		query, args, err := queryBuilder.ToSql()
 		if err != nil {
@@ -346,7 +346,7 @@ func (repo *ReleaseRepo) GetActionStatusByReleaseID(ctx context.Context, release
 	queryBuilder := repo.db.squirrel.
 		Select("id", "status", "action", "type", "client", "filter", "rejections", "timestamp").
 		From("release_action_status").
-		Where("release_id = ?", releaseID)
+		Where(sq.Eq{"release_id": releaseID})
 
 	query, args, err := queryBuilder.ToSql()
 	if err != nil {
@@ -390,7 +390,7 @@ func (repo *ReleaseRepo) attachActionStatus(ctx context.Context, tx *Tx, release
 	queryBuilder := repo.db.squirrel.
 		Select("id", "status", "action", "type", "client", "filter", "rejections", "timestamp").
 		From("release_action_status").
-		Where("release_id = ?", releaseID)
+		Where(sq.Eq{"release_id": releaseID})
 
 	query, args, err := queryBuilder.ToSql()
 	if err != nil {

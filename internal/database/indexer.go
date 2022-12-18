@@ -9,6 +9,7 @@ import (
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/internal/logger"
 	"github.com/autobrr/autobrr/pkg/errors"
+	sq "github.com/Masterminds/squirrel"
 
 	"github.com/rs/zerolog"
 )
@@ -61,7 +62,7 @@ func (r *IndexerRepo) Update(ctx context.Context, indexer domain.Indexer) (*doma
 		Set("base_url", indexer.BaseURL).
 		Set("settings", settings).
 		Set("updated_at", time.Now().Format(time.RFC3339)).
-		Where("id = ?", indexer.ID)
+		Where(sq.Eq{"id": indexer.ID})
 
 	query, args, err := queryBuilder.ToSql()
 	if err != nil {
@@ -117,7 +118,7 @@ func (r *IndexerRepo) FindByID(ctx context.Context, id int) (*domain.Indexer, er
 	queryBuilder := r.db.squirrel.
 		Select("id", "enabled", "name", "identifier", "implementation", "base_url", "settings").
 		From("indexer").
-		Where("id = ?", id)
+		Where(sq.Eq{"id": id})
 
 	query, args, err := queryBuilder.ToSql()
 	if err != nil {
@@ -156,7 +157,7 @@ func (r *IndexerRepo) FindByFilterID(ctx context.Context, id int) ([]domain.Inde
 		Select("id", "enabled", "name", "identifier", "base_url", "settings").
 		From("indexer").
 		Join("filter_indexer ON indexer.id = filter_indexer.indexer_id").
-		Where("filter_indexer.filter_id = ?", id)
+		Where(sq.Eq{"filter_indexer.filter_id": id})
 
 	query, args, err := queryBuilder.ToSql()
 	if err != nil {
@@ -202,7 +203,7 @@ func (r *IndexerRepo) FindByFilterID(ctx context.Context, id int) ([]domain.Inde
 func (r *IndexerRepo) Delete(ctx context.Context, id int) error {
 	queryBuilder := r.db.squirrel.
 		Delete("indexer").
-		Where("id = ?", id)
+		Where(sq.Eq{"id": id})
 
 	query, args, err := queryBuilder.ToSql()
 	if err != nil {

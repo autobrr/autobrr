@@ -9,6 +9,8 @@ import (
 	"github.com/autobrr/autobrr/internal/logger"
 	"github.com/autobrr/autobrr/pkg/errors"
 
+
+	sq "github.com/Masterminds/squirrel"
 	"github.com/lib/pq"
 	"github.com/rs/zerolog"
 )
@@ -55,7 +57,7 @@ func (r *APIRepo) Store(ctx context.Context, key *domain.APIKey) error {
 func (r *APIRepo) Delete(ctx context.Context, key string) error {
 	queryBuilder := r.db.squirrel.
 		Delete("api_key").
-		Where("key = ?", key)
+		Where(sq.Eq{"key": key})
 
 	query, args, err := queryBuilder.ToSql()
 	if err != nil {

@@ -43,7 +43,7 @@ func (r *FeedRepo) FindByID(ctx context.Context, id int) (*domain.Feed, error) {
 		).
 		From("feed f").
 		Join("indexer i ON f.indexer_id = i.id").
-		Where("f.id = ?", id)
+		Where(sq.Eq{"f.id": id})
 
 	query, args, err := queryBuilder.ToSql()
 	if err != nil {
@@ -89,7 +89,7 @@ func (r *FeedRepo) FindByIndexerIdentifier(ctx context.Context, indexer string) 
 		).
 		From("feed f").
 		Join("indexer i ON f.indexer_id = i.id").
-		Where("i.name = ?", indexer)
+		Where(sq.Eq{"i.name": indexer})
 
 	query, args, err := queryBuilder.ToSql()
 	if err != nil {
@@ -221,7 +221,7 @@ func (r *FeedRepo) Update(ctx context.Context, feed *domain.Feed) error {
 		Set("api_key", feed.ApiKey).
 		Set("cookie", feed.Cookie).
 		Set("updated_at", sq.Expr("CURRENT_TIMESTAMP")).
-		Where("id = ?", feed.ID)
+		Where(sq.Eq{"id": feed.ID})
 
 	query, args, err := queryBuilder.ToSql()
 	if err != nil {
@@ -240,7 +240,7 @@ func (r *FeedRepo) UpdateLastRun(ctx context.Context, feedID int) error {
 	queryBuilder := r.db.squirrel.
 		Update("feed").
 		Set("last_run", sq.Expr("CURRENT_TIMESTAMP")).
-		Where("id = ?", feedID)
+		Where(sq.Eq{"id": feedID})
 
 	query, args, err := queryBuilder.ToSql()
 	if err != nil {
@@ -260,7 +260,7 @@ func (r *FeedRepo) UpdateLastRunWithData(ctx context.Context, feedID int, data s
 		Update("feed").
 		Set("last_run", sq.Expr("CURRENT_TIMESTAMP")).
 		Set("last_run_data", data).
-		Where("id = ?", feedID)
+		Where(sq.Eq{"id": feedID})
 
 	query, args, err := queryBuilder.ToSql()
 	if err != nil {
@@ -282,7 +282,7 @@ func (r *FeedRepo) ToggleEnabled(ctx context.Context, id int, enabled bool) erro
 		Update("feed").
 		Set("enabled", enabled).
 		Set("updated_at", sq.Expr("CURRENT_TIMESTAMP")).
-		Where("id = ?", id)
+		Where(sq.Eq{"id": id})
 
 	query, args, err := queryBuilder.ToSql()
 	if err != nil {
@@ -299,7 +299,7 @@ func (r *FeedRepo) ToggleEnabled(ctx context.Context, id int, enabled bool) erro
 func (r *FeedRepo) Delete(ctx context.Context, id int) error {
 	queryBuilder := r.db.squirrel.
 		Delete("feed").
-		Where("id = ?", id)
+		Where(sq.Eq{"id": id})
 
 	query, args, err := queryBuilder.ToSql()
 	if err != nil {
