@@ -98,7 +98,7 @@ func (repo *ReleaseRepo) StoreReleaseActionStatus(ctx context.Context, a *domain
 }
 
 func (repo *ReleaseRepo) Find(ctx context.Context, params domain.ReleaseQueryParams) ([]*domain.Release, int64, int64, error) {
-	tx, err := repo.db.BeginTx(ctx, &sql.TxOptions{})
+	tx, err := repo.db.BeginTx(ctx, &sql.TxOptions{Isolation: sql.LevelReadCommitted})
 	if err != nil {
 		return nil, 0, 0, errors.Wrap(err, "error begin transaction")
 	}
@@ -238,7 +238,7 @@ func (repo *ReleaseRepo) findReleases(ctx context.Context, tx *Tx, params domain
 }
 
 func (repo *ReleaseRepo) FindRecent(ctx context.Context) ([]*domain.Release, error) {
-	tx, err := repo.db.BeginTx(ctx, &sql.TxOptions{})
+	tx, err := repo.db.BeginTx(ctx, &sql.TxOptions{Isolation: sql.LevelReadCommitted})
 	if err != nil {
 		return nil, errors.Wrap(err, "error begin transaction")
 	}

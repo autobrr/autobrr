@@ -29,7 +29,7 @@ func NewFilterRepo(log logger.Logger, db *DB) domain.FilterRepo {
 }
 
 func (r *FilterRepo) Find(ctx context.Context, params domain.FilterQueryParams) ([]domain.Filter, error) {
-	tx, err := r.db.BeginTx(ctx, &sql.TxOptions{})
+	tx, err := r.db.BeginTx(ctx, &sql.TxOptions{Isolation: sql.LevelReadCommitted})
 	if err != nil {
 		return nil, errors.Wrap(err, "error begin transaction")
 	}
