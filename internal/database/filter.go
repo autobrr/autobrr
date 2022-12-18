@@ -52,7 +52,7 @@ func (r *FilterRepo) find(ctx context.Context, tx *Tx, params domain.FilterQuery
 	actionCountQuery := r.db.squirrel.
 		Select("COUNT(*)").
 		From("action a").
-		Where("a.filter_id = f.id")
+		Where(sq.Eq{"a.filter_id": "f.id"})
 
 	queryBuilder := r.db.squirrel.
 		Select(
@@ -70,7 +70,7 @@ func (r *FilterRepo) find(ctx context.Context, tx *Tx, params domain.FilterQuery
 		From("filter f")
 
 	if params.Search != "" {
-		queryBuilder = queryBuilder.Where("f.name LIKE ?", fmt.Sprint("%", params.Search, "%"))
+		queryBuilder = queryBuilder.Where(sq.Like{"f.name": params.Search + "%"})
 	}
 
 	if len(params.Sort) > 0 {
@@ -123,7 +123,7 @@ func (r *FilterRepo) ListFilters(ctx context.Context) ([]domain.Filter, error) {
 	actionCountQuery := r.db.squirrel.
 		Select("COUNT(*)").
 		From("action a").
-		Where("a.filter_id = f.id")
+		Where(sq.Eq{"a.filter_id": "f.id"})
 
 	queryBuilder := r.db.squirrel.
 		Select(

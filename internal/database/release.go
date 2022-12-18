@@ -511,7 +511,7 @@ func (repo *ReleaseRepo) CanDownloadShow(ctx context.Context, title string, seas
 	queryBuilder := repo.db.squirrel.
 		Select("COUNT(*)").
 		From("release").
-		Where("title LIKE ?", fmt.Sprint("%", title, "%"))
+		Where(sq.Like{"title": title + "%"})
 
 	if season > 0 && episode > 0 {
 		queryBuilder = queryBuilder.Where(sq.Or{
