@@ -109,14 +109,6 @@ func (repo *ReleaseRepo) Find(ctx context.Context, params domain.ReleaseQueryPar
 		return nil, nextCursor, total, err
 	}
 
-	for _, release := range releases {
-		statuses, err := repo.attachActionStatus(ctx, tx, release.ID)
-		if err != nil {
-			return releases, nextCursor, total, err
-		}
-		release.ActionStatus = statuses
-	}
-
 	if err = tx.Commit(); err != nil {
 		return nil, 0, 0, errors.Wrap(err, "error commit transaction find releases")
 	}
@@ -126,7 +118,7 @@ func (repo *ReleaseRepo) Find(ctx context.Context, params domain.ReleaseQueryPar
 
 func (repo *ReleaseRepo) findReleases(ctx context.Context, tx *Tx, params domain.ReleaseQueryParams) ([]*domain.Release, int64, int64, error) {
 	queryBuilder := repo.db.squirrel.
-		Select("r.id", "r.filter_status", "r.rejections", "r.indexer", "r.filter", "r.protocol", "r.title", "r.torrent_name", "r.size", "r.timestamp", "(SELECT COUNT(*) FROM release) AS total_count").
+		Select("r.id", "r.filter_status", "r.rejections", "r.indexer", "r.filter", "r.protocol", "r.title", "r.torrent_name", "r.size", "r.timestamp", "ras.id", "ras.status", "ras.action", "ras.type", "ras.client", "ras.filter", "ras.rejections", "ras.timestamp", "(SELECT COUNT(*) FROM release) AS total_count").
 		From("release r").
 		OrderBy("r.id DESC")
 
@@ -189,6 +181,8 @@ func (repo *ReleaseRepo) findReleases(ctx context.Context, tx *Tx, params domain
 
 	if params.Filters.PushStatus != "" {
 		queryBuilder = queryBuilder.InnerJoin("release_action_status ras ON r.id = ras.release_id").Where(sq.Eq{"ras.status": params.Filters.PushStatus})
+	} else {
+		queryBuilder = queryBuilder.LeftJoin("release_action_status ras ON r.id = ras.release_id")
 	}
 
 	query, args, err := queryBuilder.ToSql()
@@ -215,15 +209,35 @@ func (repo *ReleaseRepo) findReleases(ctx context.Context, tx *Tx, params domain
 
 	for rows.Next() {
 		var rls domain.Release
+		var ras domain.ReleaseActionStatus
 
-		var indexer, filter sql.NullString
+		var rlsindexer, rlsfilter sql.NullString
+		var rasclient, rasfilter sql.NullString
 
-		if err := rows.Scan(&rls.ID, &rls.FilterStatus, pq.Array(&rls.Rejections), &indexer, &filter, &rls.Protocol, &rls.Title, &rls.TorrentName, &rls.Size, &rls.Timestamp, &countItems); err != nil {
+		if err := rows.Scan(&rls.ID, &rls.FilterStatus, pq.Array(&rls.Rejections), &rlsindexer, &rlsfilter, &rls.Protocol, &rls.Title, &rls.TorrentName, &rls.Size, &rls.Timestamp, &ras.ID, &ras.Status, &ras.Action, &ras.Type, &rasclient, &rasfilter, pq.Array(&ras.Rejections), &ras.Timestamp, &countItems); err != nil {
 			return res, 0, 0, errors.Wrap(err, "error scanning row")
 		}
 
-		rls.Indexer = indexer.String
-		rls.FilterName = filter.String
+		ras.Client = rasclient.String
+		ras.Filter = rasfilter.String
+
+		idx := 0
+		for ; idx < len(res); idx++ {
+			if res[idx].ID != rls.ID {
+				continue
+			}
+
+			res[idx].ActionStatus = append(res[idx].ActionStatus, ras)
+			break
+		}
+
+		if idx != len(res) {
+			continue
+		}
+
+		rls.Indexer = rlsindexer.String
+		rls.FilterName = rlsfilter.String
+		rls.ActionStatus = append(make([]domain.ReleaseActionStatus, 0, 1), ras)
 
 		res = append(res, &rls)
 	}
@@ -244,17 +258,9 @@ func (repo *ReleaseRepo) FindRecent(ctx context.Context) ([]*domain.Release, err
 	}
 	defer tx.Rollback()
 
-	releases, err := repo.findRecentReleases(ctx, tx)
+	releases, _, _, err := repo.findReleases(ctx, tx, domain.ReleaseQueryParams{Limit:10})
 	if err != nil {
 		return nil, err
-	}
-
-	for _, release := range releases {
-		statuses, err := repo.attachActionStatus(ctx, tx, release.ID)
-		if err != nil {
-			return releases, err
-		}
-		release.ActionStatus = statuses
 	}
 
 	if err = tx.Commit(); err != nil {
@@ -267,9 +273,12 @@ func (repo *ReleaseRepo) FindRecent(ctx context.Context) ([]*domain.Release, err
 func (repo *ReleaseRepo) findRecentReleases(ctx context.Context, tx *Tx) ([]*domain.Release, error) {
 	queryBuilder := repo.db.squirrel.
 		Select("r.id", "r.filter_status", "r.rejections", "r.indexer", "r.filter", "r.protocol", "r.title", "r.torrent_name", "r.size", "r.timestamp").
-		From("release r").
-		OrderBy("r.id DESC").
-		Limit(10)
+		FromSelect(repo.db.squirrel.
+			Select("*").
+			From("release").
+			OrderBy("r.id DESC").
+			Limit(10), "r").
+		LeftJoin("release_action_status as ra ON r.id = ra.release_id")
 
 	query, args, err := queryBuilder.ToSql()
 	if err != nil {
@@ -303,6 +312,7 @@ func (repo *ReleaseRepo) findRecentReleases(ctx context.Context, tx *Tx) ([]*dom
 		rls.Indexer = indexer.String
 		rls.FilterName = filter.String
 
+		
 		res = append(res, &rls)
 	}
 
@@ -386,7 +396,6 @@ func (repo *ReleaseRepo) GetActionStatusByReleaseID(ctx context.Context, release
 }
 
 func (repo *ReleaseRepo) attachActionStatus(ctx context.Context, tx *Tx, releaseID int64) ([]domain.ReleaseActionStatus, error) {
-
 	queryBuilder := repo.db.squirrel.
 		Select("id", "status", "action", "type", "client", "filter", "rejections", "timestamp").
 		From("release_action_status").
