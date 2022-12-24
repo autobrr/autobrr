@@ -59,7 +59,7 @@ irc:
     lines:
       - test:
           - "New: This.Is.A.New.show.S00E00.720p.WEB.H264-Test .:. Category: TV/HD .:. Size: 364.82 MB .:. URL:  https://www.torrentseeds.org/details.php?id=000000 .:. Uploaded by: George."
-        pattern: 'New: (.+) \.:\. Category: (.+) \.:\. Size: (.+) \.:\. URL:  (https?\:\/\/.+\/).+id=(\d+) \.:\. Uploaded by: (.*)\.'
+        pattern: 'New: (.+) \.:\. Category: (.+) \.:\. Size: (.+) \.:\. URL:  (https?\:\/\/.+\/).+/(\d+) \.:\. Uploaded by: (.*)\.'
         vars:
           - torrentName
           - category
