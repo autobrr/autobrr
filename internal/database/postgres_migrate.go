@@ -83,6 +83,7 @@ CREATE TABLE filter
     scene                          BOOLEAN,
     freeleech                      BOOLEAN,
     freeleech_percent              TEXT,
+    smart_episode                  BOOLEAN DEFAULT FALSE,
     shows                          TEXT,
     seasons                        TEXT,
     episodes                       TEXT,
@@ -619,4 +620,7 @@ CREATE INDEX indexer_identifier_index
 	`ALTER TABLE indexer
      	ADD COLUMN base_url TEXT;
     `,
+	`ALTER TABLE "filter"
+	ADD COLUMN smart_episode BOOLEAN DEFAULT false;
+	`,
 }

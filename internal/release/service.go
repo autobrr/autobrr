@@ -117,7 +117,7 @@ func (s *service) Process(release *domain.Release) {
 		release.FilterID = f.ID
 
 		// test filter
-		match, err := s.filterSvc.CheckFilter(f, release)
+		match, err := s.filterSvc.CheckFilter(ctx, f, release)
 		if err != nil {
 			l.Error().Err(err).Msg("release.Process: error checking filter")
 			return

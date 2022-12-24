@@ -25,7 +25,7 @@ type Service interface {
 	FindByID(ctx context.Context, filterID int) (*domain.Filter, error)
 	FindByIndexerIdentifier(indexer string) ([]domain.Filter, error)
 	Find(ctx context.Context, params domain.FilterQueryParams) ([]domain.Filter, error)
-	CheckFilter(f domain.Filter, release *domain.Release) (bool, error)
+	CheckFilter(ctx context.Context, f domain.Filter, release *domain.Release) (bool, error)
 	ListFilters(ctx context.Context) ([]domain.Filter, error)
 	Store(ctx context.Context, filter domain.Filter) (*domain.Filter, error)
 	Update(ctx context.Context, filter domain.Filter) (*domain.Filter, error)
@@ -33,23 +33,27 @@ type Service interface {
 	Duplicate(ctx context.Context, filterID int) (*domain.Filter, error)
 	ToggleEnabled(ctx context.Context, filterID int, enabled bool) error
 	Delete(ctx context.Context, filterID int) error
+	AdditionalSizeCheck(f domain.Filter, release *domain.Release) (bool, error)
+	CanDownloadShow(ctx context.Context, release *domain.Release) (bool, error)
 }
 
 type service struct {
-	log        zerolog.Logger
-	repo       domain.FilterRepo
-	actionRepo domain.ActionRepo
-	indexerSvc indexer.Service
-	apiService indexer.APIService
+	log         zerolog.Logger
+	repo        domain.FilterRepo
+	actionRepo  domain.ActionRepo
+	releaseRepo domain.ReleaseRepo
+	indexerSvc  indexer.Service
+	apiService  indexer.APIService
 }
 
-func NewService(log logger.Logger, repo domain.FilterRepo, actionRepo domain.ActionRepo, apiService indexer.APIService, indexerSvc indexer.Service) Service {
+func NewService(log logger.Logger, repo domain.FilterRepo, actionRepo domain.ActionRepo, releaseRepo domain.ReleaseRepo, apiService indexer.APIService, indexerSvc indexer.Service) Service {
 	return &service{
-		log:        log.With().Str("module", "filter").Logger(),
-		repo:       repo,
-		actionRepo: actionRepo,
-		apiService: apiService,
-		indexerSvc: indexerSvc,
+		log:         log.With().Str("module", "filter").Logger(),
+		repo:        repo,
+		actionRepo:  actionRepo,
+		releaseRepo: releaseRepo,
+		apiService:  apiService,
+		indexerSvc:  indexerSvc,
 	}
 }
 
@@ -293,7 +297,7 @@ func (s *service) Delete(ctx context.Context, filterID int) error {
 	return nil
 }
 
-func (s *service) CheckFilter(f domain.Filter, release *domain.Release) (bool, error) {
+func (s *service) CheckFilter(ctx context.Context, f domain.Filter, release *domain.Release) (bool, error) {
 
 	s.log.Trace().Msgf("filter.Service.CheckFilter: checking filter: %v %+v", f.Name, f)
 	s.log.Trace().Msgf("filter.Service.CheckFilter: checking filter: %v for release: %+v", f.Name, release)
@@ -305,6 +309,21 @@ func (s *service) CheckFilter(f domain.Filter, release *domain.Release) (bool, e
 	}
 
 	if matchedFilter {
+		// smartEpisode check
+		if f.SmartEpisode {
+			canDownloadShow, err := s.CanDownloadShow(ctx, release)
+			if err != nil {
+				s.log.Trace().Msgf("filter.Service.CheckFilter: failed smart episode check: %s", f.Name)
+				return false, nil
+			}
+
+			if !canDownloadShow {
+				s.log.Trace().Msgf("filter.Service.CheckFilter: failed smart episode check: %s", f.Name)
+				release.AddRejectionF("smart episode check: not new: (%s) season: %d ep: %d", release.Title, release.Season, release.Episode)
+				return false, nil
+			}
+		}
+
 		// if matched, do additional size check if needed, attach actions and return the filter
 
 		s.log.Debug().Msgf("filter.Service.CheckFilter: found and matched filter: %+v", f.Name)
@@ -460,6 +479,10 @@ func checkSizeFilter(minSize string, maxSize string, releaseSize uint64) (bool, 
 	}
 
 	return true, nil
+}
+
+func (s *service) CanDownloadShow(ctx context.Context, release *domain.Release) (bool, error) {
+	return s.releaseRepo.CanDownloadShow(ctx, release.Title, release.Season, release.Episode)
 }
 
 func (s *service) execCmd(release *domain.Release, cmd string, args string) (int, error) {
