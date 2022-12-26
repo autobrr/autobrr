@@ -291,6 +291,7 @@ const TypeForm = ({ action, idx, clients }: TypeFormProps) => {
               name={`actions.${idx}.save_path`}
               label="Save path"
               columns={6}
+              placeholder="eg. /full/path/to/watch_folder"
             />
           </div>
         </div>
@@ -300,6 +301,7 @@ const TypeForm = ({ action, idx, clients }: TypeFormProps) => {
             name={`actions.${idx}.label`}
             label="Label"
             columns={6}
+            placeholder="eg. label1 (must exist in Deluge to work)"
           />
         </div>
 
@@ -339,6 +341,7 @@ const TypeForm = ({ action, idx, clients }: TypeFormProps) => {
               name={`actions.${idx}.label`}
               label="Label"
               columns={6}
+              placeholder="eg. label1,label2"
             />
           </div>
 
@@ -347,6 +350,7 @@ const TypeForm = ({ action, idx, clients }: TypeFormProps) => {
               name={`actions.${idx}.save_path`}
               label="Save path"
               columns={6}
+              placeholder="eg. /full/path/to/watch_folder"
             />
           </div>
         </div>
@@ -367,6 +371,7 @@ const TypeForm = ({ action, idx, clients }: TypeFormProps) => {
               name={`actions.${idx}.save_path`}
               label="Save path"
               columns={6}
+              placeholder="eg. /full/path/to/watch_folder"
             />
           </div>
         </div>
