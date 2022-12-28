@@ -114,6 +114,7 @@ func main() {
 
 	go func() {
 		httpServer := http.NewServer(
+			log,
 			cfg.Config,
 			serverEvents,
 			db,

@@ -8,6 +8,7 @@ import (
 
 	"github.com/autobrr/autobrr/internal/database"
 	"github.com/autobrr/autobrr/internal/domain"
+	"github.com/autobrr/autobrr/internal/logger"
 	"github.com/autobrr/autobrr/web"
 
 	"github.com/go-chi/chi/v5"
@@ -15,9 +16,11 @@ import (
 	"github.com/gorilla/sessions"
 	"github.com/r3labs/sse/v2"
 	"github.com/rs/cors"
+	"github.com/rs/zerolog"
 )
 
 type Server struct {
+	log zerolog.Logger
 	sse *sse.Server
 	db  *database.DB
 
@@ -40,8 +43,9 @@ type Server struct {
 	releaseService        releaseService
 }
 
-func NewServer(config *domain.Config, sse *sse.Server, db *database.DB, version string, commit string, date string, actionService actionService, apiService apikeyService, authService authService, downloadClientSvc downloadClientService, filterSvc filterService, feedSvc feedService, indexerSvc indexerService, ircSvc ircService, notificationSvc notificationService, releaseSvc releaseService) Server {
+func NewServer(log logger.Logger, config *domain.Config, sse *sse.Server, db *database.DB, version string, commit string, date string, actionService actionService, apiService apikeyService, authService authService, downloadClientSvc downloadClientService, filterSvc filterService, feedSvc feedService, indexerSvc indexerService, ircSvc ircService, notificationSvc notificationService, releaseSvc releaseService) Server {
 	return Server{
+		log:     log.With().Str("module", "http").Logger(),
 		config:  config,
 		sse:     sse,
 		db:      db,
@@ -109,7 +113,7 @@ func (s Server) Handler() http.Handler {
 		fileSystem.ServeHTTP(w, r)
 	})
 
-	r.Route("/api/auth", newAuthHandler(encoder, s.config, s.cookieStore, s.authService).Routes)
+	r.Route("/api/auth", newAuthHandler(encoder, s.log, s.config, s.cookieStore, s.authService).Routes)
 	r.Route("/api/healthz", newHealthHandler(encoder, s.db).Routes)
 
 	r.Group(func(r chi.Router) {
