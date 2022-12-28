@@ -343,12 +343,12 @@ export function General() {
         <TitleSubtitle title="Rules" subtitle="Specify rules on how torrents should be handled/selected" />
 
         <div className="mt-6 grid grid-cols-12 gap-6">
-          <TextField name="min_size" label="Min size" columns={6} placeholder="" />
-          <TextField name="max_size" label="Max size" columns={6} placeholder="" />
-          <NumberField name="delay" label="Delay" placeholder="" />
-          <NumberField name="priority" label="Priority" placeholder="" />
+          <TextField name="min_size" label="Min size" columns={6} placeholder="eg. 100MiB, 80GB" />
+          <TextField name="max_size" label="Max size" columns={6} placeholder="eg. 100MiB, 80GB" />
+          <NumberField name="delay" label="Delay" placeholder="Number of seconds to delay actions" />
+          <NumberField name="priority" label="Priority" placeholder="Higher number = higher prio" />
 
-          <NumberField name="max_downloads" label="Max downloads" placeholder="" />
+          <NumberField name="max_downloads" label="Max downloads" placeholder="Takes any number (0 is infinite)" />
           <Select name="max_downloads_unit" label="Max downloads per" options={downloadsPerUnitOptions}  optionDefaultText="Select unit" />
         </div>
       </div>
@@ -473,7 +473,7 @@ export function Advanced({ values }: AdvancedProps) {
           <WarningAlert text="autobrr has extensive filtering built-in - only use this if nothing else works. If you need help please ask." />
 
           <TextField name="match_releases" label="Match releases" columns={6} placeholder="eg. *some?movie*,*some?show*s01*" />
-          <TextField name="except_releases" label="Except releases" columns={6} placeholder="" />
+          <TextField name="except_releases" label="Except releases" columns={6} placeholder="eg. *bad?movie*,*bad?show*s03*" />
           {values.match_releases ? (
             <WarningAlert
               alert="Ask yourself:"
@@ -526,7 +526,7 @@ export function Advanced({ values }: AdvancedProps) {
           <WarningAlert text="These might not be what you think they are. For advanced users who know how things are parsed." />
 
           <TextField name="match_release_tags" label="Match release tags" columns={6} placeholder="eg. *mkv*,*foreign*" />
-          <TextField name="except_release_tags" label="Except release tags" columns={6} placeholder="" />
+          <TextField name="except_release_tags" label="Except release tags" columns={6} placeholder="eg. *mkv*,*foreign*" />
           <div className="col-span-6">
             <SwitchGroup name="use_regex_release_tags" label="Use Regex" />
           </div>
@@ -538,7 +538,7 @@ export function Advanced({ values }: AdvancedProps) {
           <SwitchGroup name="freeleech" label="Freeleech" />
         </div>
 
-        <TextField name="freeleech_percent" label="Freeleech percent" columns={6} />
+        <TextField name="freeleech_percent" label="Freeleech percent" columns={6} placeholder="eg. 50,75-100" />
       </CollapsableSection>
     </div>
   );
