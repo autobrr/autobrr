@@ -2,14 +2,14 @@ package auth
 
 import (
 	"context"
-	"errors"
-
-	"github.com/autobrr/autobrr/internal/logger"
-	"github.com/rs/zerolog"
 
 	"github.com/autobrr/autobrr/internal/domain"
+	"github.com/autobrr/autobrr/internal/logger"
 	"github.com/autobrr/autobrr/internal/user"
 	"github.com/autobrr/autobrr/pkg/argon2id"
+
+	"github.com/pkg/errors"
+	"github.com/rs/zerolog"
 )
 
 type Service interface {
@@ -47,7 +47,7 @@ func (s *service) Login(ctx context.Context, username, password string) (*domain
 	}
 
 	if u == nil {
-		return nil, errors.New("bad credentials")
+		return nil, errors.Errorf("invalid login: %s", username)
 	}
 
 	// compare password from request and the saved password
