@@ -2,6 +2,7 @@ package database
 
 import (
 	"context"
+	"database/sql"
 
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/internal/logger"
@@ -64,6 +65,10 @@ func (r *UserRepo) FindByUsername(ctx context.Context, username string) (*domain
 	var user domain.User
 
 	if err := row.Scan(&user.ID, &user.Username, &user.Password); err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+
 		return nil, errors.Wrap(err, "error scanning row")
 	}
 
