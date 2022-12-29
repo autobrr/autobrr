@@ -118,32 +118,29 @@ func (repo *ReleaseRepo) Find(ctx context.Context, params domain.ReleaseQueryPar
 
 func (repo *ReleaseRepo) findReleases(ctx context.Context, tx *Tx, params domain.ReleaseQueryParams) ([]*domain.Release, int64, int64, error) {
 	subQueryBuilder := repo.db.squirrel.
-		Select("id").
+		Select("*").
 		From("release").
-		Limit(20)
+		OrderBy("id DESC")
 
 	if params.Limit > 0 {
 		subQueryBuilder = subQueryBuilder.Limit(params.Limit)
+	} else {
+		subQueryBuilder = subQueryBuilder.Limit(20)
 	}
 
 	if params.Offset > 0 {
 		subQueryBuilder = subQueryBuilder.Offset(params.Offset)
 	}
 
-	subQuery, subArgs, err := subQueryBuilder.ToSql()
-	if err != nil {
-		return nil, 0, 0, errors.Wrap(err, "error building sub query")
+	if params.Cursor > 0 {
+		subQueryBuilder = subQueryBuilder.Where(sq.Lt{"r.id": params.Cursor})
 	}
 
 	queryBuilder := repo.db.squirrel.
-		Select("r.id", "r.filter_status", "r.rejections", "r.indexer", "r.filter", "r.protocol", "r.title", "r.torrent_name", "r.size", "r.timestamp", "ras.id", "ras.status", "ras.action", "ras.type", "ras.client", "ras.filter", "ras.rejections", "ras.timestamp", "(SELECT COUNT(*) FROM release) AS total_count").
-		From("release r").
-		OrderBy("r.id DESC").
-		Where("r.id IN ("+subQuery+")", subArgs...)
-
-	if params.Cursor > 0 {
-		queryBuilder = queryBuilder.Where(sq.Lt{"r.id": params.Cursor})
-	}
+		Select("r.id", "r.filter_status", "r.rejections", "r.indexer", "r.filter", "r.protocol", "r.title", "r.torrent_name", "r.size", "r.timestamp",
+			"ras.id", "ras.status", "ras.action", "ras.type", "ras.client", "ras.filter", "ras.rejections", "ras.timestamp",
+			"(SELECT COUNT(*) FROM release) AS total_count").
+		FromSelect(subQueryBuilder, "r")
 
 	if params.Search != "" {
 		reserved := map[string]string{
@@ -221,14 +218,28 @@ func (repo *ReleaseRepo) findReleases(ctx context.Context, tx *Tx, params domain
 		var ras domain.ReleaseActionStatus
 
 		var rlsindexer, rlsfilter sql.NullString
-		var rasclient, rasfilter sql.NullString
 
-		if err := rows.Scan(&rls.ID, &rls.FilterStatus, pq.Array(&rls.Rejections), &rlsindexer, &rlsfilter, &rls.Protocol, &rls.Title, &rls.TorrentName, &rls.Size, &rls.Timestamp, &ras.ID, &ras.Status, &ras.Action, &ras.Type, &rasclient, &rasfilter, pq.Array(&ras.Rejections), &ras.Timestamp, &countItems); err != nil {
+		var rasId sql.NullInt64
+		var rasStatus, rasAction, rasType, rasClient, rasFilter sql.NullString
+		var rasRejections []sql.NullString
+		var rasTimestamp sql.NullTime
+
+		if err := rows.Scan(&rls.ID, &rls.FilterStatus, pq.Array(&rls.Rejections), &rlsindexer, &rlsfilter, &rls.Protocol, &rls.Title, &rls.TorrentName, &rls.Size, &rls.Timestamp, &rasId, &rasStatus, &rasAction, &rasType, &rasClient, &rasFilter, pq.Array(&rasRejections), &rasTimestamp, &countItems); err != nil {
 			return res, 0, 0, errors.Wrap(err, "error scanning row")
 		}
 
-		ras.Client = rasclient.String
-		ras.Filter = rasfilter.String
+		ras.ID = rasId.Int64
+		ras.Status = domain.ReleasePushStatus(rasStatus.String)
+		ras.Action = rasAction.String
+		ras.Type = domain.ActionType(rasType.String)
+		ras.Client = rasClient.String
+		ras.Filter = rasFilter.String
+		ras.Timestamp = rasTimestamp.Time
+		ras.Rejections = []string{}
+
+		for _, rejection := range rasRejections {
+			ras.Rejections = append(ras.Rejections, rejection.String)
+		}
 
 		idx := 0
 		for ; idx < len(res); idx++ {
@@ -246,7 +257,12 @@ func (repo *ReleaseRepo) findReleases(ctx context.Context, tx *Tx, params domain
 
 		rls.Indexer = rlsindexer.String
 		rls.FilterName = rlsfilter.String
-		rls.ActionStatus = append(make([]domain.ReleaseActionStatus, 0, 1), ras)
+		rls.ActionStatus = make([]domain.ReleaseActionStatus, 0)
+
+		// only add ActionStatus if it's not empty
+		if ras.ID > 0 {
+			rls.ActionStatus = append(rls.ActionStatus, ras)
+		}
 
 		res = append(res, &rls)
 	}
