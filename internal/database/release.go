@@ -117,20 +117,29 @@ func (repo *ReleaseRepo) Find(ctx context.Context, params domain.ReleaseQueryPar
 }
 
 func (repo *ReleaseRepo) findReleases(ctx context.Context, tx *Tx, params domain.ReleaseQueryParams) ([]*domain.Release, int64, int64, error) {
-	queryBuilder := repo.db.squirrel.
-		Select("r.id", "r.filter_status", "r.rejections", "r.indexer", "r.filter", "r.protocol", "r.title", "r.torrent_name", "r.size", "r.timestamp", "ras.id", "ras.status", "ras.action", "ras.type", "ras.client", "ras.filter", "ras.rejections", "ras.timestamp", "(SELECT COUNT(*) FROM release) AS total_count").
-		From("release r").
-		OrderBy("r.id DESC")
+	subQueryBuilder := repo.db.squirrel.
+		Select("id").
+		From("release").
+		Limit(20)
 
 	if params.Limit > 0 {
-		queryBuilder = queryBuilder.Limit(params.Limit)
-	} else {
-		queryBuilder = queryBuilder.Limit(20)
+		subQueryBuilder = subQueryBuilder.Limit(params.Limit)
 	}
 
 	if params.Offset > 0 {
-		queryBuilder = queryBuilder.Offset(params.Offset)
+		subQueryBuilder = subQueryBuilder.Offset(params.Offset)
 	}
+
+	subQuery, subArgs, err := subQueryBuilder.ToSql()
+	if err != nil {
+		return nil, 0, 0, errors.Wrap(err, "error building sub query")
+	}
+
+	queryBuilder := repo.db.squirrel.
+		Select("r.id", "r.filter_status", "r.rejections", "r.indexer", "r.filter", "r.protocol", "r.title", "r.torrent_name", "r.size", "r.timestamp", "ras.id", "ras.status", "ras.action", "ras.type", "ras.client", "ras.filter", "ras.rejections", "ras.timestamp", "(SELECT COUNT(*) FROM release) AS total_count").
+		From("release r").
+		OrderBy("r.id DESC").
+		Where("r.id IN ("+subQuery+")", subArgs...)
 
 	if params.Cursor > 0 {
 		queryBuilder = queryBuilder.Where(sq.Lt{"r.id": params.Cursor})
@@ -258,7 +267,7 @@ func (repo *ReleaseRepo) FindRecent(ctx context.Context) ([]*domain.Release, err
 	}
 	defer tx.Rollback()
 
-	releases, _, _, err := repo.findReleases(ctx, tx, domain.ReleaseQueryParams{Limit:10})
+	releases, _, _, err := repo.findReleases(ctx, tx, domain.ReleaseQueryParams{Limit: 10})
 	if err != nil {
 		return nil, err
 	}
