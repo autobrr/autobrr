@@ -52,7 +52,7 @@ irc:
           - category
           - releaseTags
           - torrentName
-          - freeleech
+          - freeleechPercent
           - tags
           - torrentSize
           - uploader
