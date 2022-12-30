@@ -117,30 +117,10 @@ func (repo *ReleaseRepo) Find(ctx context.Context, params domain.ReleaseQueryPar
 }
 
 func (repo *ReleaseRepo) findReleases(ctx context.Context, tx *Tx, params domain.ReleaseQueryParams) ([]*domain.Release, int64, int64, error) {
-	subQueryBuilder := repo.db.squirrel.
-		Select("*").
-		From("release").
-		OrderBy("id DESC")
-
-	if params.Limit > 0 {
-		subQueryBuilder = subQueryBuilder.Limit(params.Limit)
-	} else {
-		subQueryBuilder = subQueryBuilder.Limit(20)
-	}
-
-	if params.Offset > 0 {
-		subQueryBuilder = subQueryBuilder.Offset(params.Offset)
-	}
-
+	whereQueryBuilder := sq.And{}
 	if params.Cursor > 0 {
-		subQueryBuilder = subQueryBuilder.Where(sq.Lt{"r.id": params.Cursor})
+		whereQueryBuilder = append(whereQueryBuilder, sq.Lt{"r.id": params.Cursor})
 	}
-
-	queryBuilder := repo.db.squirrel.
-		Select("r.id", "r.filter_status", "r.rejections", "r.indexer", "r.filter", "r.protocol", "r.title", "r.torrent_name", "r.size", "r.timestamp",
-			"ras.id", "ras.status", "ras.action", "ras.type", "ras.client", "ras.filter", "ras.rejections", "ras.timestamp",
-			"(SELECT COUNT(*) FROM release) AS total_count").
-		FromSelect(subQueryBuilder, "r")
 
 	if params.Search != "" {
 		reserved := map[string]string{
@@ -166,13 +146,17 @@ func (repo *ReleaseRepo) findReleases(ctx context.Context, tx *Tx, params domain
 					filter = append(filter, ILike(v, strings.ReplaceAll(strings.Trim(strings.Trim(found[1], `"`), `'`), ".", "_")+"%"))
 				}
 
-				queryBuilder = queryBuilder.Where(filter)
+				if len(filter) == 0 {
+					continue
+				}
+
+				whereQueryBuilder = append(whereQueryBuilder, filter)
 				search = strings.TrimSpace(r.ReplaceAllLiteralString(search, ""))
 			}
 		}
 
 		if len(search) != 0 {
-			queryBuilder = queryBuilder.Where(ILike("r.torrent_name", search+"%"))
+			whereQueryBuilder = append(whereQueryBuilder, sq.Like{"r.torrent_name": search + "%"})
 		}
 	}
 
@@ -182,14 +166,55 @@ func (repo *ReleaseRepo) findReleases(ctx context.Context, tx *Tx, params domain
 			filter = append(filter, sq.Eq{"r.indexer": v})
 		}
 
-		queryBuilder = queryBuilder.Where(filter)
+		if len(filter) > 0 {
+			whereQueryBuilder = append(whereQueryBuilder, filter)
+		}
 	}
 
-	if params.Filters.PushStatus != "" {
-		queryBuilder = queryBuilder.InnerJoin("release_action_status ras ON r.id = ras.release_id").Where(sq.Eq{"ras.status": params.Filters.PushStatus})
-	} else {
-		queryBuilder = queryBuilder.LeftJoin("release_action_status ras ON r.id = ras.release_id")
+	whereQuery, _, err := whereQueryBuilder.ToSql()
+	if err != nil {
+		return nil, 0, 0, errors.Wrap(err, "error building wherequery")
 	}
+
+	subQueryBuilder := repo.db.squirrel.
+		Select("r.id").
+		Distinct().
+		From("release r")
+
+	if params.Limit > 0 {
+		subQueryBuilder = subQueryBuilder.Limit(params.Limit)
+	} else {
+		subQueryBuilder = subQueryBuilder.Limit(20)
+	}
+
+	if params.Offset > 0 {
+		subQueryBuilder = subQueryBuilder.Offset(params.Offset)
+	}
+
+	if len(whereQueryBuilder) != 0 {
+		subQueryBuilder = subQueryBuilder.Where(whereQueryBuilder)
+	}
+
+	countQuery := repo.db.squirrel.Select("COUNT(*)").From("release r").Where(whereQuery)
+
+	if params.Filters.PushStatus != "" {
+		subQueryBuilder = subQueryBuilder.InnerJoin("release_action_status ras ON r.id = ras.release_id").Where(sq.Eq{"ras.status": params.Filters.PushStatus})
+		countQuery = countQuery.InnerJoin("release_action_status ras ON r.id = ras.release_id").Where("ras.status = '" + params.Filters.PushStatus + `'`)
+	}
+
+	subQuery, subArgs, err := subQueryBuilder.ToSql()
+	if err != nil {
+		return nil, 0, 0, errors.Wrap(err, "error building subquery")
+	}
+
+	queryBuilder := repo.db.squirrel.
+		Select("r.id", "r.filter_status", "r.rejections", "r.indexer", "r.filter", "r.protocol", "r.title", "r.torrent_name", "r.size", "r.timestamp",
+			"ras.id", "ras.status", "ras.action", "ras.type", "ras.client", "ras.filter", "ras.rejections", "ras.timestamp").
+		Column(sq.Alias(countQuery, "page_total")).
+		From("release r").
+		OrderBy("r.id DESC").
+		Where("r.id IN ("+subQuery+")", subArgs...).
+		LeftJoin("release_action_status ras ON r.id = ras.release_id")
 
 	query, args, err := queryBuilder.ToSql()
 	if err != nil {
