@@ -57,7 +57,7 @@ irc:
     type: single
     lines:
       - test:
-          - "New Torrent ~ Some Cool Movie (1950) ~ Movies ~ 10.20 GiB ~ http://www.crt.test/torrents.php?id=1234"
+          - "New Torrent ~ Some Cool Movie (1950) ~ Movies ~ 10.20 GiB ~ https://www.crt.test/torrents.php?id=1234"
           - "New Torrent ~ Some Show: With a Subtitle - Seasons 1-2 (2001-2002) ~ TV ~ 33.44 GiB ~ https://www.crt.test/torrents.php?id=5678"
         pattern: New Torrent ~ (.*) ~ (.*) ~ (.*) ~ (https:\/\/.+)\/torrents\.php\?id=(\d+)
         vars:
