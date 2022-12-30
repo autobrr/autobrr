@@ -29,7 +29,7 @@ irc:
   network: DejaToons.net
   server: irc.dejatoons.net
   port: 6697
-  tls: false
+  tls: true
   channels:
     - "#CRT"
   announcers:
