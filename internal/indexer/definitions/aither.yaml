@@ -46,13 +46,15 @@ irc:
     type: single
     lines:
       - test:
-          - "Category [Movie] Type [Full Disc] Name [Sye 2004 NTSC DVD9 DD 5.1-DUSIcTv] Freeleech [0%] Double Upload [No] Size [7.47 GB] Uploader [Anonymous] Url [https://aither.cc/torrent/download/62365]"
-        pattern: 'Category \[(.+)\] Type \[(.+)\] Name \[(.+)\] Freeleech \[(.+)\] Double Upload \[(.+)\] Size \[(.+)\] Uploader \[(.+)\] Url \[(https?\:\/\/.+\/).+/(\d+)\]'
+          - "Category [Movie] Type [WEB-DL] Name [A Guide to Dating at the End of the World 2022 1080p AMZN WEB-DL DD+ 5.1 H.264-THR] Resolution [1080p] Freeleech [0%] Internal [No] Double Upload [No] Size [5.13 GB] Uploader [Anonymous] Url [https://aither.cc/torrents/download/63267]"
+        pattern: 'Category \[(.+)\] Type \[(.+)\] Name \[(.+)\] Resolution \[(.+)\] Freeleech \[(.+)\] Internal \[(.+)\] Double Upload \[(.+)\] Size \[(.+)\] Uploader \[(.+)\] Url \[(https?\:\/\/.+\/).+/(\d+)\]'
         vars:
           - category
           - releaseTags
           - torrentName
+          - resolution
           - freeleechPercent
+          - internal
           - tags
           - torrentSize
           - uploader
