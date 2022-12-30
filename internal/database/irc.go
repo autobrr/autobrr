@@ -8,6 +8,7 @@ import (
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/internal/logger"
 	"github.com/autobrr/autobrr/pkg/errors"
+	sq "github.com/Masterminds/squirrel"
 
 	"github.com/rs/zerolog"
 )
@@ -28,7 +29,7 @@ func (r *IrcRepo) GetNetworkByID(ctx context.Context, id int64) (*domain.IrcNetw
 	queryBuilder := r.db.squirrel.
 		Select("id", "enabled", "name", "server", "port", "tls", "pass", "nick", "auth_mechanism", "auth_account", "auth_password", "invite_command").
 		From("irc_network").
-		Where("id = ?", id)
+		Where(sq.Eq{"id": id})
 
 	query, args, err := queryBuilder.ToSql()
 	if err != nil {
@@ -67,7 +68,7 @@ func (r *IrcRepo) DeleteNetwork(ctx context.Context, id int64) error {
 
 	queryBuilder := r.db.squirrel.
 		Delete("irc_channel").
-		Where("network_id = ?", id)
+		Where(sq.Eq{"network_id": id})
 
 	query, args, err := queryBuilder.ToSql()
 	if err != nil {
@@ -81,7 +82,7 @@ func (r *IrcRepo) DeleteNetwork(ctx context.Context, id int64) error {
 
 	netQueryBuilder := r.db.squirrel.
 		Delete("irc_network").
-		Where("id = ?", id)
+		Where(sq.Eq{"id": id})
 
 	netQuery, netArgs, err := netQueryBuilder.ToSql()
 	if err != nil {
@@ -93,10 +94,8 @@ func (r *IrcRepo) DeleteNetwork(ctx context.Context, id int64) error {
 		return errors.Wrap(err, "error executing query")
 	}
 
-	err = tx.Commit()
-	if err != nil {
+	if err := tx.Commit(); err != nil {
 		return errors.Wrap(err, "error commit deleting network")
-
 	}
 
 	return nil
@@ -106,7 +105,7 @@ func (r *IrcRepo) FindActiveNetworks(ctx context.Context) ([]domain.IrcNetwork, 
 	queryBuilder := r.db.squirrel.
 		Select("id", "enabled", "name", "server", "port", "tls", "pass", "nick", "auth_mechanism", "auth_account", "auth_password", "invite_command").
 		From("irc_network").
-		Where("enabled = ?", true)
+		Where(sq.Eq{"enabled": true})
 
 	query, args, err := queryBuilder.ToSql()
 	if err != nil {
@@ -200,7 +199,7 @@ func (r *IrcRepo) ListChannels(networkID int64) ([]domain.IrcChannel, error) {
 	queryBuilder := r.db.squirrel.
 		Select("id", "name", "enabled", "password").
 		From("irc_channel").
-		Where("network_id = ?", networkID)
+		Where(sq.Eq{"network_id": networkID})
 
 	query, args, err := queryBuilder.ToSql()
 	if err != nil {
@@ -237,8 +236,8 @@ func (r *IrcRepo) CheckExistingNetwork(ctx context.Context, network *domain.IrcN
 	queryBuilder := r.db.squirrel.
 		Select("id", "enabled", "name", "server", "port", "tls", "pass", "nick", "auth_mechanism", "auth_account", "auth_password", "invite_command").
 		From("irc_network").
-		Where("server = ?", network.Server).
-		Where("auth_account = ?", network.Auth.Account)
+		Where(sq.Eq{"server": network.Server}).
+		Where(sq.Eq{"auth_account": network.Auth.Account})
 
 	query, args, err := queryBuilder.ToSql()
 	if err != nil {
@@ -350,7 +349,7 @@ func (r *IrcRepo) UpdateNetwork(ctx context.Context, network *domain.IrcNetwork)
 		Set("auth_password", password).
 		Set("invite_command", inviteCmd).
 		Set("updated_at", time.Now().Format(time.RFC3339)).
-		Where("id = ?", network.ID)
+		Where(sq.Eq{"id": network.ID})
 
 	query, args, err := queryBuilder.ToSql()
 	if err != nil {
@@ -378,7 +377,7 @@ func (r *IrcRepo) StoreNetworkChannels(ctx context.Context, networkID int64, cha
 
 	queryBuilder := r.db.squirrel.
 		Delete("irc_channel").
-		Where("network_id = ?", networkID)
+		Where(sq.Eq{"network_id": networkID})
 
 	query, args, err := queryBuilder.ToSql()
 	if err != nil {
@@ -438,8 +437,7 @@ func (r *IrcRepo) StoreNetworkChannels(ctx context.Context, networkID int64, cha
 		//channel.ID, err = res.LastInsertId()
 	}
 
-	err = tx.Commit()
-	if err != nil {
+	if err := tx.Commit(); err != nil {
 		return errors.Wrap(err, "error commit transaction store network")
 	}
 
@@ -458,7 +456,7 @@ func (r *IrcRepo) StoreChannel(networkID int64, channel *domain.IrcChannel) erro
 			Set("detached", channel.Detached).
 			Set("name", channel.Name).
 			Set("pass", pass).
-			Where("id = ?", channel.ID)
+			Where(sq.Eq{"id": channel.ID})
 
 		query, args, err := channelQueryBuilder.ToSql()
 		if err != nil {
@@ -528,7 +526,7 @@ func (r *IrcRepo) UpdateChannel(channel *domain.IrcChannel) error {
 		Set("detached", channel.Detached).
 		Set("name", channel.Name).
 		Set("pass", pass).
-		Where("id = ?", channel.ID)
+		Where(sq.Eq{"id": channel.ID})
 
 	query, args, err := channelQueryBuilder.ToSql()
 	if err != nil {
@@ -549,7 +547,7 @@ func (r *IrcRepo) UpdateInviteCommand(networkID int64, invite string) error {
 	channelQueryBuilder := r.db.squirrel.
 		Update("irc_network").
 		Set("invite_command", invite).
-		Where("id = ?", networkID)
+		Where(sq.Eq{"id": networkID})
 
 	query, args, err := channelQueryBuilder.ToSql()
 	if err != nil {
