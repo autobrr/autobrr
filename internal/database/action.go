@@ -29,7 +29,7 @@ func NewActionRepo(log logger.Logger, db *DB, clientRepo domain.DownloadClientRe
 
 func (r *ActionRepo) FindByFilterID(ctx context.Context, filterID int) ([]*domain.Action, error) {
 
-	tx, err := r.db.BeginTx(ctx, nil)
+	tx, err := r.db.BeginTx(ctx, &sql.TxOptions{Isolation: sql.LevelReadCommitted})
 	if err != nil {
 		return nil, err
 	}
@@ -49,6 +49,10 @@ func (r *ActionRepo) FindByFilterID(ctx context.Context, filterID int) ([]*domai
 			}
 			action.Client = *client
 		}
+	}
+
+	if err = tx.Commit(); err != nil {
+		return nil, errors.Wrap(err, "error finding filter by id")
 	}
 
 	return actions, nil
@@ -87,7 +91,7 @@ func (r *ActionRepo) findByFilterID(ctx context.Context, tx *Tx, filterID int) (
 			"client_id",
 		).
 		From("action").
-		Where("filter_id = ?", filterID)
+		Where(sq.Eq{"filter_id": filterID})
 
 	query, args, err := queryBuilder.ToSql()
 	if err != nil {
@@ -165,7 +169,7 @@ func (r *ActionRepo) attachDownloadClient(ctx context.Context, tx *Tx, clientID 
 			"settings",
 		).
 		From("client").
-		Where("id = ?", clientID)
+		Where(sq.Eq{"id": clientID})
 
 	query, args, err := queryBuilder.ToSql()
 	if err != nil {
@@ -282,7 +286,7 @@ func (r *ActionRepo) List(ctx context.Context) ([]domain.Action, error) {
 func (r *ActionRepo) Delete(actionID int) error {
 	queryBuilder := r.db.squirrel.
 		Delete("action").
-		Where("id = ?", actionID)
+		Where(sq.Eq{"id": actionID})
 
 	query, args, err := queryBuilder.ToSql()
 	if err != nil {
@@ -302,7 +306,7 @@ func (r *ActionRepo) Delete(actionID int) error {
 func (r *ActionRepo) DeleteByFilterID(ctx context.Context, filterID int) error {
 	queryBuilder := r.db.squirrel.
 		Delete("action").
-		Where("filter_id = ?", filterID)
+		Where(sq.Eq{"filter_id": filterID})
 
 	query, args, err := queryBuilder.ToSql()
 	if err != nil {
@@ -472,7 +476,7 @@ func (r *ActionRepo) Update(ctx context.Context, action domain.Action) (*domain.
 		Set("webhook_data", webhookData).
 		Set("client_id", clientID).
 		Set("filter_id", filterID).
-		Where("id = ?", action.ID)
+		Where(sq.Eq{"id": action.ID})
 
 	query, args, err := queryBuilder.ToSql()
 	if err != nil {
@@ -499,7 +503,7 @@ func (r *ActionRepo) StoreFilterActions(ctx context.Context, actions []*domain.A
 
 	deleteQueryBuilder := r.db.squirrel.
 		Delete("action").
-		Where("filter_id = ?", filterID)
+		Where(sq.Eq{"filter_id": filterID})
 
 	deleteQuery, deleteArgs, err := deleteQueryBuilder.ToSql()
 	if err != nil {
@@ -622,7 +626,7 @@ func (r *ActionRepo) ToggleEnabled(actionID int) error {
 	queryBuilder := r.db.squirrel.
 		Update("action").
 		Set("enabled", sq.Expr("NOT enabled")).
-		Where("id = ?", actionID)
+		Where(sq.Eq{"id": actionID})
 
 	query, args, err := queryBuilder.ToSql()
 	if err != nil {
