@@ -967,4 +967,8 @@ ALTER TABLE irc_network_dg_tmp
 	`ALTER TABLE "filter"
 	ADD COLUMN smart_episode BOOLEAN DEFAULT false;
 	`,
+    `ALTER TABLE notification
+        ADD COLUMN user_key TEXT;
+    ALTER TABLE notification
+        ADD COLUMN priority TEXT DEFAULT '0';`
 }
