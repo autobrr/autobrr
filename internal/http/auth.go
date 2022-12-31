@@ -75,7 +75,7 @@ func (h authHandler) login(w http.ResponseWriter, r *http.Request) {
 
 	_, err := h.service.Login(ctx, data.Username, data.Password)
 	if err != nil {
-		h.log.Error().Err(err).Msgf("invalid login [%s] from: %s", ReadUserIP(r))
+		h.log.Error().Err(err).Msgf("Auth: Failed login attempt username: [%s] ip: %s", data.Username, ReadUserIP(r))
 		h.encoder.StatusResponse(ctx, w, nil, http.StatusUnauthorized)
 		return
 	}
