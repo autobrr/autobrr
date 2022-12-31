@@ -27,6 +27,7 @@ func NewIrcRepo(log logger.Logger, db *DB) domain.IrcRepo {
 
 func (r *IrcRepo) GetNetworkByID(ctx context.Context, id int64) (*domain.IrcNetwork, error) {
 	queryBuilder := r.db.squirrel.
+		RunWith(r.db.handler).
 		Select("id", "enabled", "name", "server", "port", "tls", "pass", "nick", "auth_mechanism", "auth_account", "auth_password", "invite_command").
 		From("irc_network").
 		Where(sq.Eq{"id": id})
@@ -43,7 +44,7 @@ func (r *IrcRepo) GetNetworkByID(ctx context.Context, id int64) (*domain.IrcNetw
 	var account, password sql.NullString
 	var tls sql.NullBool
 
-	row := r.db.handler.QueryRowContext(ctx, query, args...)
+	row := queryBuilder.QueryRow()
 	if err := row.Scan(&n.ID, &n.Enabled, &n.Name, &n.Server, &n.Port, &tls, &pass, &nick, &n.Auth.Mechanism, &account, &password, &inviteCmd); err != nil {
 		return nil, errors.Wrap(err, "error scanning row")
 	}
@@ -103,16 +104,12 @@ func (r *IrcRepo) DeleteNetwork(ctx context.Context, id int64) error {
 
 func (r *IrcRepo) FindActiveNetworks(ctx context.Context) ([]domain.IrcNetwork, error) {
 	queryBuilder := r.db.squirrel.
+		RunWith(r.db.handler).
 		Select("id", "enabled", "name", "server", "port", "tls", "pass", "nick", "auth_mechanism", "auth_account", "auth_password", "invite_command").
 		From("irc_network").
 		Where(sq.Eq{"enabled": true})
 
-	query, args, err := queryBuilder.ToSql()
-	if err != nil {
-		return nil, errors.Wrap(err, "error building query")
-	}
-
-	rows, err := r.db.handler.QueryContext(ctx, query, args...)
+	rows, err := queryBuilder.Query()
 	if err != nil {
 		return nil, errors.Wrap(err, "error executing query")
 	}
@@ -150,16 +147,12 @@ func (r *IrcRepo) FindActiveNetworks(ctx context.Context) ([]domain.IrcNetwork, 
 
 func (r *IrcRepo) ListNetworks(ctx context.Context) ([]domain.IrcNetwork, error) {
 	queryBuilder := r.db.squirrel.
+		RunWith(r.db.handler).
 		Select("id", "enabled", "name", "server", "port", "tls", "pass", "nick", "auth_mechanism", "auth_account", "auth_password", "invite_command").
 		From("irc_network").
 		OrderBy("name ASC")
 
-	query, args, err := queryBuilder.ToSql()
-	if err != nil {
-		return nil, errors.Wrap(err, "error building query")
-	}
-
-	rows, err := r.db.handler.QueryContext(ctx, query, args...)
+	rows, err := queryBuilder.Query()
 	if err != nil {
 		return nil, errors.Wrap(err, "error executing query")
 	}
@@ -234,6 +227,7 @@ func (r *IrcRepo) ListChannels(networkID int64) ([]domain.IrcChannel, error) {
 
 func (r *IrcRepo) CheckExistingNetwork(ctx context.Context, network *domain.IrcNetwork) (*domain.IrcNetwork, error) {
 	queryBuilder := r.db.squirrel.
+		RunWith(r.db.handler).
 		Select("id", "enabled", "name", "server", "port", "tls", "pass", "nick", "auth_mechanism", "auth_account", "auth_password", "invite_command").
 		From("irc_network").
 		Where(sq.Eq{"server": network.Server}).
@@ -245,7 +239,7 @@ func (r *IrcRepo) CheckExistingNetwork(ctx context.Context, network *domain.IrcN
 	}
 	r.log.Trace().Str("database", "irc.checkExistingNetwork").Msgf("query: '%v', args: '%v'", query, args)
 
-	row := r.db.handler.QueryRowContext(ctx, query, args...)
+	row := queryBuilder.QueryRow()
 
 	var net domain.IrcNetwork
 
@@ -336,6 +330,7 @@ func (r *IrcRepo) UpdateNetwork(ctx context.Context, network *domain.IrcNetwork)
 	var err error
 
 	queryBuilder := r.db.squirrel.
+		RunWith(r.db.handler).
 		Update("irc_network").
 		Set("enabled", network.Enabled).
 		Set("name", netName).
@@ -351,14 +346,8 @@ func (r *IrcRepo) UpdateNetwork(ctx context.Context, network *domain.IrcNetwork)
 		Set("updated_at", time.Now().Format(time.RFC3339)).
 		Where(sq.Eq{"id": network.ID})
 
-	query, args, err := queryBuilder.ToSql()
-	if err != nil {
-		return errors.Wrap(err, "error building query")
-	}
-
 	// update record
-	_, err = r.db.handler.ExecContext(ctx, query, args...)
-	if err != nil {
+	if _, err := queryBuilder.Exec(); err != nil {
 		return errors.Wrap(err, "error executing query")
 	}
 
@@ -368,7 +357,7 @@ func (r *IrcRepo) UpdateNetwork(ctx context.Context, network *domain.IrcNetwork)
 // TODO create new channel handler to only add, not delete
 
 func (r *IrcRepo) StoreNetworkChannels(ctx context.Context, networkID int64, channels []domain.IrcChannel) error {
-	tx, err := r.db.handler.BeginTx(ctx, nil)
+	tx, err := r.db.handler.Begin()
 	if err != nil {
 		return err
 	}
@@ -376,33 +365,33 @@ func (r *IrcRepo) StoreNetworkChannels(ctx context.Context, networkID int64, cha
 	defer tx.Rollback()
 
 	queryBuilder := r.db.squirrel.
+		RunWith(tx).
 		Delete("irc_channel").
 		Where(sq.Eq{"network_id": networkID})
 
-	query, args, err := queryBuilder.ToSql()
-	if err != nil {
-		return errors.Wrap(err, "error building query")
-	}
-
-	_, err = tx.ExecContext(ctx, query, args...)
+	_, err = queryBuilder.Exec()
 	if err != nil {
 		return errors.Wrap(err, "error executing query")
 	}
+
+	channelQueryBuilder := r.db.squirrel.
+		RunWith(tx).
+		Insert("irc_channel").
+		Columns(
+			"enabled",
+			"detached",
+			"name",
+			"password",
+			"network_id",
+		)
 
 	for _, channel := range channels {
 		// values
 		pass := toNullString(channel.Password)
 
-		channelQueryBuilder := r.db.squirrel.
-			Insert("irc_channel").
-			Columns(
-				"enabled",
-				"detached",
-				"name",
-				"password",
-				"network_id",
-			).
-			Values(
+		// returning
+		var retID int64
+		if err := channelQueryBuilder.Values(
 				channel.Enabled,
 				true,
 				channel.Name,
@@ -410,14 +399,9 @@ func (r *IrcRepo) StoreNetworkChannels(ctx context.Context, networkID int64, cha
 				networkID,
 			).
 			Suffix("RETURNING id").
-			RunWith(tx)
-
-		// returning
-		var retID int64
-
-		err = channelQueryBuilder.QueryRowContext(ctx).Scan(&retID)
-		if err != nil {
-			return errors.Wrap(err, "error executing query storeNetworkChannels")
+			QueryRow().
+			Scan(&retID); err != nil {
+				return errors.Wrap(err, "error executing query storeNetworkChannels")
 		}
 
 		channel.ID = retID

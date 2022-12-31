@@ -18,13 +18,14 @@ var databaseDriver = "sqlite"
 
 type DB struct {
 	log     zerolog.Logger
-	handler *sql.DB
+	handler sq.DBProxyBeginner
 	lock    sync.RWMutex
 	ctx     context.Context
 	cancel  func()
 
 	Driver string
 	DSN    string
+	db     *sql.DB
 
 	squirrel sq.StatementBuilderType
 }
@@ -84,31 +85,34 @@ func (db *DB) Close() error {
 	db.cancel()
 
 	// close database
-	if db.handler != nil {
-		return db.handler.Close()
+	if db.db != nil {
+		defer func() {
+			db.db = nil
+		}()
+		return db.db.Close()
 	}
 	return nil
 }
 
 func (db *DB) Ping() error {
-	return db.handler.Ping()
+	return db.db.Ping()
 }
 
 func (db *DB) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) {
-	tx, err := db.handler.BeginTx(ctx, opts)
+	tx, err := db.db.BeginTx(ctx, opts)
 	if err != nil {
 		return nil, err
 	}
 
 	return &Tx{
 		Tx:      tx,
-		handler: db,
+		handler: &db.handler,
 	}, nil
 }
 
 type Tx struct {
 	*sql.Tx
-	handler *DB
+	handler *sq.DBProxyBeginner
 }
 
 type ILikeDynamic interface {

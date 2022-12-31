@@ -52,7 +52,7 @@ func (r *FilterRepo) find(ctx context.Context, tx *Tx, params domain.FilterQuery
 	actionCountQuery := r.db.squirrel.
 		Select("COUNT(*)").
 		From("action a").
-		Where(sq.Eq{"a.filter_id": "f.id"})
+		Where("a.filter_id = f.id")
 
 	queryBuilder := r.db.squirrel.
 		Select(
@@ -121,11 +121,13 @@ func (r *FilterRepo) find(ctx context.Context, tx *Tx, params domain.FilterQuery
 
 func (r *FilterRepo) ListFilters(ctx context.Context) ([]domain.Filter, error) {
 	actionCountQuery := r.db.squirrel.
+		RunWith(r.db.handler).
 		Select("COUNT(*)").
 		From("action a").
 		Where(sq.Eq{"a.filter_id": "f.id"})
 
 	queryBuilder := r.db.squirrel.
+		RunWith(r.db.handler).
 		Select(
 			"f.id",
 			"f.enabled",
@@ -138,12 +140,7 @@ func (r *FilterRepo) ListFilters(ctx context.Context) ([]domain.Filter, error) {
 		From("filter f").
 		OrderBy("f.name ASC")
 
-	query, args, err := queryBuilder.ToSql()
-	if err != nil {
-		return nil, errors.Wrap(err, "error building query")
-	}
-
-	rows, err := r.db.handler.QueryContext(ctx, query, args...)
+	rows, err := queryBuilder.Query()
 	if err != nil {
 		return nil, errors.Wrap(err, "error executing query")
 	}
@@ -169,6 +166,7 @@ func (r *FilterRepo) ListFilters(ctx context.Context) ([]domain.Filter, error) {
 
 func (r *FilterRepo) FindByID(ctx context.Context, filterID int) (*domain.Filter, error) {
 	queryBuilder := r.db.squirrel.
+		RunWith(r.db.handler).
 		Select(
 			"id",
 			"enabled",
@@ -235,15 +233,7 @@ func (r *FilterRepo) FindByID(ctx context.Context, filterID int) (*domain.Filter
 		From("filter").
 		Where(sq.Eq{"id": filterID})
 
-	query, args, err := queryBuilder.ToSql()
-	if err != nil {
-		return nil, errors.Wrap(err, "error building query")
-	}
-
-	row := r.db.handler.QueryRowContext(ctx, query, args...)
-	if err := row.Err(); err != nil {
-		return nil, errors.Wrap(err, "error executing query")
-	}
+	row := queryBuilder.QueryRow()
 
 	var f domain.Filter
 	var minSize, maxSize, maxDownloadsUnit, matchReleases, exceptReleases, matchReleaseGroups, exceptReleaseGroups, matchReleaseTags, exceptReleaseTags, freeleechPercent, shows, seasons, episodes, years, artists, albums, matchCategories, exceptCategories, matchUploaders, exceptUploaders, tags, exceptTags, extScriptCmd, extScriptArgs, extWebhookHost, extWebhookData sql.NullString
@@ -475,6 +465,7 @@ func (r *FilterRepo) findByIndexerIdentifier(ctx context.Context, tx *Tx, indexe
 
 func (r *FilterRepo) Store(ctx context.Context, filter domain.Filter) (*domain.Filter, error) {
 	queryBuilder := r.db.squirrel.
+		RunWith(r.db.handler).
 		Insert("filter").
 		Columns(
 			"name",
@@ -596,13 +587,11 @@ func (r *FilterRepo) Store(ctx context.Context, filter domain.Filter) (*domain.F
 			filter.ExternalWebhookData,
 			filter.ExternalWebhookExpectStatus,
 		).
-		Suffix("RETURNING id").RunWith(r.db.handler)
+		Suffix("RETURNING id")
 
 	// return values
-	var retID int
-
-	err := queryBuilder.QueryRowContext(ctx).Scan(&retID)
-	if err != nil {
+	var retID int	
+	if err := queryBuilder.QueryRow().Scan(&retID); err != nil {
 		return nil, errors.Wrap(err, "error executing query")
 	}
 
@@ -615,6 +604,7 @@ func (r *FilterRepo) Update(ctx context.Context, filter domain.Filter) (*domain.
 	var err error
 
 	queryBuilder := r.db.squirrel.
+		RunWith(r.db.handler).
 		Update("filter").
 		Set("name", filter.Name).
 		Set("enabled", filter.Enabled).
@@ -677,13 +667,7 @@ func (r *FilterRepo) Update(ctx context.Context, filter domain.Filter) (*domain.
 		Set("updated_at", time.Now().Format(time.RFC3339)).
 		Where(sq.Eq{"id": filter.ID})
 
-	query, args, err := queryBuilder.ToSql()
-	if err != nil {
-		return nil, errors.Wrap(err, "error building query")
-	}
-
-	_, err = r.db.handler.ExecContext(ctx, query, args...)
-	if err != nil {
+	if _, err = queryBuilder.Exec(); err != nil {
 		return nil, errors.Wrap(err, "error executing query")
 	}
 
@@ -693,7 +677,7 @@ func (r *FilterRepo) Update(ctx context.Context, filter domain.Filter) (*domain.
 func (r *FilterRepo) UpdatePartial(ctx context.Context, filter domain.FilterUpdate) error {
 	var err error
 
-	q := r.db.squirrel.Update("filter")
+	q := r.db.squirrel.RunWith(r.db.handler).Update("filter")
 
 	if filter.Name != nil {
 		q = q.Set("name", filter.Name)
@@ -872,12 +856,7 @@ func (r *FilterRepo) UpdatePartial(ctx context.Context, filter domain.FilterUpda
 
 	q = q.Where(sq.Eq{"id": filter.ID})
 
-	query, args, err := q.ToSql()
-	if err != nil {
-		return errors.Wrap(err, "error building query")
-	}
-
-	result, err := r.db.handler.ExecContext(ctx, query, args...)
+	result, err := q.Exec()
 	if err != nil {
 		return errors.Wrap(err, "error executing query")
 	}
@@ -895,20 +874,14 @@ func (r *FilterRepo) UpdatePartial(ctx context.Context, filter domain.FilterUpda
 }
 
 func (r *FilterRepo) ToggleEnabled(ctx context.Context, filterID int, enabled bool) error {
-	var err error
-
 	queryBuilder := r.db.squirrel.
+		RunWith(r.db.handler).
 		Update("filter").
 		Set("enabled", enabled).
 		Set("updated_at", sq.Expr("CURRENT_TIMESTAMP")).
 		Where(sq.Eq{"id": filterID})
 
-	query, args, err := queryBuilder.ToSql()
-	if err != nil {
-		return errors.Wrap(err, "error building query")
-	}
-	_, err = r.db.handler.ExecContext(ctx, query, args...)
-	if err != nil {
+	if _, err := queryBuilder.Exec(); err != nil {
 		return errors.Wrap(err, "error executing query")
 	}
 
@@ -916,7 +889,7 @@ func (r *FilterRepo) ToggleEnabled(ctx context.Context, filterID int, enabled bo
 }
 
 func (r *FilterRepo) StoreIndexerConnections(ctx context.Context, filterID int, indexers []domain.Indexer) error {
-	tx, err := r.db.handler.BeginTx(ctx, nil)
+	tx, err := r.db.handler.Begin()
 	if err != nil {
 		return err
 	}
@@ -924,29 +897,21 @@ func (r *FilterRepo) StoreIndexerConnections(ctx context.Context, filterID int, 
 	defer tx.Rollback()
 
 	deleteQueryBuilder := r.db.squirrel.
+		RunWith(tx).
 		Delete("filter_indexer").
 		Where(sq.Eq{"filter_id": filterID})
 
-	deleteQuery, deleteArgs, err := deleteQueryBuilder.ToSql()
-	if err != nil {
-		return errors.Wrap(err, "error building query")
-	}
-	_, err = tx.ExecContext(ctx, deleteQuery, deleteArgs...)
-	if err != nil {
+	if _, err := deleteQueryBuilder.Exec(); err != nil {
 		return errors.Wrap(err, "error executing query")
 	}
 
 	for _, indexer := range indexers {
 		queryBuilder := r.db.squirrel.
+			RunWith(tx).
 			Insert("filter_indexer").Columns("filter_id", "indexer_id").
 			Values(filterID, indexer.ID)
 
-		query, args, err := queryBuilder.ToSql()
-		if err != nil {
-			return errors.Wrap(err, "error building query")
-		}
-		_, err = tx.ExecContext(ctx, query, args...)
-		if err != nil {
+		if _, err := queryBuilder.Exec(); err != nil {
 			return errors.Wrap(err, "error executing query")
 		}
 
@@ -962,16 +927,11 @@ func (r *FilterRepo) StoreIndexerConnections(ctx context.Context, filterID int, 
 
 func (r *FilterRepo) StoreIndexerConnection(ctx context.Context, filterID int, indexerID int) error {
 	queryBuilder := r.db.squirrel.
+		RunWith(r.db.handler).
 		Insert("filter_indexer").Columns("filter_id", "indexer_id").
 		Values(filterID, indexerID)
 
-	query, args, err := queryBuilder.ToSql()
-	if err != nil {
-		return errors.Wrap(err, "error building query")
-	}
-
-	_, err = r.db.handler.ExecContext(ctx, query, args...)
-	if err != nil {
+	if _, err := queryBuilder.Exec(); err != nil {
 		return errors.Wrap(err, "error executing query")
 	}
 
@@ -980,16 +940,11 @@ func (r *FilterRepo) StoreIndexerConnection(ctx context.Context, filterID int, i
 
 func (r *FilterRepo) DeleteIndexerConnections(ctx context.Context, filterID int) error {
 	queryBuilder := r.db.squirrel.
+		RunWith(r.db.handler).
 		Delete("filter_indexer").
 		Where(sq.Eq{"filter_id": filterID})
 
-	query, args, err := queryBuilder.ToSql()
-	if err != nil {
-		return errors.Wrap(err, "error building query")
-	}
-
-	_, err = r.db.handler.ExecContext(ctx, query, args...)
-	if err != nil {
+	if _, err := queryBuilder.Exec(); err != nil {
 		return errors.Wrap(err, "error executing query")
 	}
 
@@ -998,16 +953,11 @@ func (r *FilterRepo) DeleteIndexerConnections(ctx context.Context, filterID int)
 
 func (r *FilterRepo) Delete(ctx context.Context, filterID int) error {
 	queryBuilder := r.db.squirrel.
+		RunWith(r.db.handler).
 		Delete("filter").
 		Where(sq.Eq{"id": filterID})
 
-	query, args, err := queryBuilder.ToSql()
-	if err != nil {
-		return errors.Wrap(err, "error building query")
-	}
-
-	_, err = r.db.handler.ExecContext(ctx, query, args...)
-	if err != nil {
+	if _, err := queryBuilder.Exec(); err != nil {
 		return errors.Wrap(err, "error executing query")
 	}
 
@@ -1034,7 +984,7 @@ func (r *FilterRepo) downloadsByFilterSqlite(ctx context.Context, tx *Tx, filter
 FROM "release"
 WHERE "release".filter_id = ?;`
 
-	row := tx.QueryRowContext(ctx, query, filterID)
+	row := tx.QueryRow(query, filterID)
 	if err := row.Err(); err != nil {
 		return nil, errors.Wrap(err, "error executing query")
 	}
@@ -1060,7 +1010,7 @@ func (r *FilterRepo) downloadsByFilterPostgres(ctx context.Context, tx *Tx, filt
 FROM "release"
 WHERE "release".filter_id = $1;`
 
-	row := tx.QueryRowContext(ctx, query, filterID)
+	row := tx.QueryRow(query, filterID)
 	if err := row.Err(); err != nil {
 		return nil, errors.Wrap(err, "error executing query")
 	}

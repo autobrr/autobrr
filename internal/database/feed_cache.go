@@ -27,6 +27,7 @@ func NewFeedCacheRepo(log logger.Logger, db *DB) domain.FeedCacheRepo {
 
 func (r *FeedCacheRepo) Get(bucket string, key string) ([]byte, error) {
 	queryBuilder := r.db.squirrel.
+		RunWith(r.db.handler).
 		Select(
 			"value",
 			"ttl",
@@ -36,20 +37,17 @@ func (r *FeedCacheRepo) Get(bucket string, key string) ([]byte, error) {
 		Where(sq.Eq{"key": key}).
 		Where(sq.Gt{"ttl": time.Now()})
 
-	query, args, err := queryBuilder.ToSql()
+	rows, err := queryBuilder.Query()
 	if err != nil {
-		return nil, errors.Wrap(err, "error building query")
-	}
-
-	row := r.db.handler.QueryRow(query, args...)
-	if err := row.Err(); err != nil {
 		return nil, errors.Wrap(err, "error executing query")
 	}
+
+	defer rows.Close()
 
 	var value []byte
 	var ttl time.Duration
 
-	if err := row.Scan(&value, &ttl); err != nil && err != sql.ErrNoRows {
+	if err := rows.Scan(&value, &ttl); err != nil && err != sql.ErrNoRows {
 		return nil, errors.Wrap(err, "error scanning row")
 	}
 
@@ -58,6 +56,7 @@ func (r *FeedCacheRepo) Get(bucket string, key string) ([]byte, error) {
 
 func (r *FeedCacheRepo) GetByBucket(ctx context.Context, bucket string) ([]domain.FeedCacheItem, error) {
 	queryBuilder := r.db.squirrel.
+		RunWith(r.db.handler).
 		Select(
 			"bucket",
 			"key",
@@ -67,12 +66,7 @@ func (r *FeedCacheRepo) GetByBucket(ctx context.Context, bucket string) ([]domai
 		From("feed_cache").
 		Where(sq.Eq{"bucket": bucket})
 
-	query, args, err := queryBuilder.ToSql()
-	if err != nil {
-		return nil, errors.Wrap(err, "error building query")
-	}
-
-	rows, err := r.db.handler.QueryContext(ctx, query, args...)
+	rows, err := queryBuilder.Query()
 	if err != nil {
 		return nil, errors.Wrap(err, "error executing query")
 	}
@@ -99,24 +93,15 @@ func (r *FeedCacheRepo) GetByBucket(ctx context.Context, bucket string) ([]domai
 }
 
 func (r *FeedCacheRepo) GetCountByBucket(ctx context.Context, bucket string) (int, error) {
-
 	queryBuilder := r.db.squirrel.
+		RunWith(r.db.handler).
 		Select("COUNT(*)").
 		From("feed_cache").
 		Where(sq.Eq{"bucket": bucket})
 
-	query, args, err := queryBuilder.ToSql()
-	if err != nil {
-		return 0, errors.Wrap(err, "error building query")
-	}
-
-	row := r.db.handler.QueryRowContext(ctx, query, args...)
-	if err != nil {
-		return 0, errors.Wrap(err, "error executing query")
-	}
+	row := queryBuilder.QueryRow()
 
 	var count = 0
-
 	if err := row.Scan(&count); err != nil {
 		return 0, errors.Wrap(err, "error scanning row")
 	}
@@ -126,6 +111,7 @@ func (r *FeedCacheRepo) GetCountByBucket(ctx context.Context, bucket string) (in
 
 func (r *FeedCacheRepo) Exists(bucket string, key string) (bool, error) {
 	queryBuilder := r.db.squirrel.
+		RunWith(r.db.handler).
 		Select("1").
 		Prefix("SELECT EXISTS (").
 		From("feed_cache").
@@ -133,13 +119,8 @@ func (r *FeedCacheRepo) Exists(bucket string, key string) (bool, error) {
 		Where(sq.Eq{"key": key}).
 		Suffix(")")
 
-	query, args, err := queryBuilder.ToSql()
-	if err != nil {
-		return false, errors.Wrap(err, "error building query")
-	}
-
 	var exists bool
-	err = r.db.handler.QueryRow(query, args...).Scan(&exists)
+	err := queryBuilder.QueryRow().Scan(&exists)
 	if err != nil && err != sql.ErrNoRows {
 		return false, errors.Wrap(err, "error query")
 	}
@@ -149,16 +130,12 @@ func (r *FeedCacheRepo) Exists(bucket string, key string) (bool, error) {
 
 func (r *FeedCacheRepo) Put(bucket string, key string, val []byte, ttl time.Time) error {
 	queryBuilder := r.db.squirrel.
+		RunWith(r.db.handler).
 		Insert("feed_cache").
 		Columns("bucket", "key", "value", "ttl").
 		Values(bucket, key, val, ttl)
 
-	query, args, err := queryBuilder.ToSql()
-	if err != nil {
-		return errors.Wrap(err, "error building query")
-	}
-
-	if _, err = r.db.handler.Exec(query, args...); err != nil {
+	if _, err := queryBuilder.Exec(); err != nil {
 		return errors.Wrap(err, "error executing query")
 	}
 
@@ -167,17 +144,12 @@ func (r *FeedCacheRepo) Put(bucket string, key string, val []byte, ttl time.Time
 
 func (r *FeedCacheRepo) Delete(ctx context.Context, bucket string, key string) error {
 	queryBuilder := r.db.squirrel.
+		RunWith(r.db.handler).
 		Delete("feed_cache").
 		Where(sq.Eq{"bucket": bucket}).
 		Where(sq.Eq{"key": key})
 
-	query, args, err := queryBuilder.ToSql()
-	if err != nil {
-		return errors.Wrap(err, "error building query")
-	}
-
-	_, err = r.db.handler.ExecContext(ctx, query, args...)
-	if err != nil {
+	if _, err := queryBuilder.Exec(); err != nil {
 		return errors.Wrap(err, "error executing query")
 	}
 
@@ -186,15 +158,11 @@ func (r *FeedCacheRepo) Delete(ctx context.Context, bucket string, key string) e
 
 func (r *FeedCacheRepo) DeleteBucket(ctx context.Context, bucket string) error {
 	queryBuilder := r.db.squirrel.
+		RunWith(r.db.handler).
 		Delete("feed_cache").
 		Where(sq.Eq{"bucket": bucket})
 
-	query, args, err := queryBuilder.ToSql()
-	if err != nil {
-		return errors.Wrap(err, "error building query")
-	}
-
-	result, err := r.db.handler.ExecContext(ctx, query, args...)
+	result, err := queryBuilder.Exec()
 	if err != nil {
 		return errors.Wrap(err, "error executing query")
 	}

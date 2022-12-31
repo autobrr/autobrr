@@ -26,6 +26,7 @@ type FeedRepo struct {
 
 func (r *FeedRepo) FindByID(ctx context.Context, id int) (*domain.Feed, error) {
 	queryBuilder := r.db.squirrel.
+		RunWith(r.db.handler).
 		Select(
 			"f.id",
 			"i.identifier",
@@ -45,23 +46,18 @@ func (r *FeedRepo) FindByID(ctx context.Context, id int) (*domain.Feed, error) {
 		Join("indexer i ON f.indexer_id = i.id").
 		Where(sq.Eq{"f.id": id})
 
-	query, args, err := queryBuilder.ToSql()
-	if err != nil {
-		return nil, errors.Wrap(err, "error building query")
-	}
-
-	row := r.db.handler.QueryRowContext(ctx, query, args...)
-	if err := row.Err(); err != nil {
-		return nil, errors.Wrap(err, "error executing query")
-	}
+	row := queryBuilder.QueryRow()
 
 	var f domain.Feed
 
 	var apiKey, cookie sql.NullString
 
 	if err := row.Scan(&f.ID, &f.Indexer, &f.Name, &f.Type, &f.Enabled, &f.URL, &f.Interval, &f.Timeout, &f.MaxAge, &apiKey, &cookie, &f.CreatedAt, &f.UpdatedAt); err != nil {
-		return nil, errors.Wrap(err, "error scanning row")
+		if err == sql.ErrNoRows {
+			return nil, errors.New("no feed configured")
+		}
 
+		return nil, errors.Wrap(err, "error scanning row")
 	}
 
 	f.ApiKey = apiKey.String
@@ -72,6 +68,7 @@ func (r *FeedRepo) FindByID(ctx context.Context, id int) (*domain.Feed, error) {
 
 func (r *FeedRepo) FindByIndexerIdentifier(ctx context.Context, indexer string) (*domain.Feed, error) {
 	queryBuilder := r.db.squirrel.
+		RunWith(r.db.handler).
 		Select(
 			"f.id",
 			"i.identifier",
@@ -91,21 +88,17 @@ func (r *FeedRepo) FindByIndexerIdentifier(ctx context.Context, indexer string) 
 		Join("indexer i ON f.indexer_id = i.id").
 		Where(sq.Eq{"i.name": indexer})
 
-	query, args, err := queryBuilder.ToSql()
-	if err != nil {
-		return nil, errors.Wrap(err, "error building query")
-	}
-
-	row := r.db.handler.QueryRowContext(ctx, query, args...)
-	if err := row.Err(); err != nil {
-		return nil, errors.Wrap(err, "error executing query")
-	}
+	row := queryBuilder.QueryRow()
 
 	var f domain.Feed
 
 	var apiKey, cookie sql.NullString
 
 	if err := row.Scan(&f.ID, &f.Indexer, &f.Name, &f.Type, &f.Enabled, &f.URL, &f.Interval, &f.Timeout, &f.MaxAge, &apiKey, &cookie, &f.CreatedAt, &f.UpdatedAt); err != nil {
+		if err == sql.ErrNoRows {
+			return nil, errors.New("no feed byid configured")
+		}
+
 		return nil, errors.Wrap(err, "error scanning row")
 	}
 
@@ -117,6 +110,7 @@ func (r *FeedRepo) FindByIndexerIdentifier(ctx context.Context, indexer string) 
 
 func (r *FeedRepo) Find(ctx context.Context) ([]domain.Feed, error) {
 	queryBuilder := r.db.squirrel.
+		RunWith(r.db.handler).
 		Select(
 			"f.id",
 			"i.identifier",
@@ -138,12 +132,7 @@ func (r *FeedRepo) Find(ctx context.Context) ([]domain.Feed, error) {
 		Join("indexer i ON f.indexer_id = i.id").
 		OrderBy("f.name ASC")
 
-	query, args, err := queryBuilder.ToSql()
-	if err != nil {
-		return nil, errors.Wrap(err, "error building query")
-	}
-
-	rows, err := r.db.handler.QueryContext(ctx, query, args...)
+	rows, err := queryBuilder.Query()
 	if err != nil {
 		return nil, errors.Wrap(err, "error executing query")
 	}
@@ -199,7 +188,7 @@ func (r *FeedRepo) Store(ctx context.Context, feed *domain.Feed) error {
 
 	var retID int
 
-	if err := queryBuilder.QueryRowContext(ctx).Scan(&retID); err != nil {
+	if err := queryBuilder.QueryRow().Scan(&retID); err != nil {
 		return errors.Wrap(err, "error executing query")
 	}
 
@@ -210,6 +199,7 @@ func (r *FeedRepo) Store(ctx context.Context, feed *domain.Feed) error {
 
 func (r *FeedRepo) Update(ctx context.Context, feed *domain.Feed) error {
 	queryBuilder := r.db.squirrel.
+		RunWith(r.db.handler).
 		Update("feed").
 		Set("name", feed.Name).
 		Set("type", feed.Type).
@@ -223,13 +213,7 @@ func (r *FeedRepo) Update(ctx context.Context, feed *domain.Feed) error {
 		Set("updated_at", sq.Expr("CURRENT_TIMESTAMP")).
 		Where(sq.Eq{"id": feed.ID})
 
-	query, args, err := queryBuilder.ToSql()
-	if err != nil {
-		return errors.Wrap(err, "error building query")
-	}
-
-	_, err = r.db.handler.ExecContext(ctx, query, args...)
-	if err != nil {
+	if _, err := queryBuilder.Exec(); err != nil {
 		return errors.Wrap(err, "error executing query")
 	}
 
@@ -238,17 +222,12 @@ func (r *FeedRepo) Update(ctx context.Context, feed *domain.Feed) error {
 
 func (r *FeedRepo) UpdateLastRun(ctx context.Context, feedID int) error {
 	queryBuilder := r.db.squirrel.
+		RunWith(r.db.handler).
 		Update("feed").
 		Set("last_run", sq.Expr("CURRENT_TIMESTAMP")).
 		Where(sq.Eq{"id": feedID})
 
-	query, args, err := queryBuilder.ToSql()
-	if err != nil {
-		return errors.Wrap(err, "error building query")
-	}
-
-	_, err = r.db.handler.ExecContext(ctx, query, args...)
-	if err != nil {
+	if _, err := queryBuilder.Exec(); err != nil {
 		return errors.Wrap(err, "error executing query")
 	}
 
@@ -257,18 +236,13 @@ func (r *FeedRepo) UpdateLastRun(ctx context.Context, feedID int) error {
 
 func (r *FeedRepo) UpdateLastRunWithData(ctx context.Context, feedID int, data string) error {
 	queryBuilder := r.db.squirrel.
+		RunWith(r.db.handler).
 		Update("feed").
 		Set("last_run", sq.Expr("CURRENT_TIMESTAMP")).
 		Set("last_run_data", data).
 		Where(sq.Eq{"id": feedID})
 
-	query, args, err := queryBuilder.ToSql()
-	if err != nil {
-		return errors.Wrap(err, "error building query")
-	}
-
-	_, err = r.db.handler.ExecContext(ctx, query, args...)
-	if err != nil {
+	if _, err := queryBuilder.Exec(); err != nil {
 		return errors.Wrap(err, "error executing query")
 	}
 
@@ -276,20 +250,14 @@ func (r *FeedRepo) UpdateLastRunWithData(ctx context.Context, feedID int, data s
 }
 
 func (r *FeedRepo) ToggleEnabled(ctx context.Context, id int, enabled bool) error {
-	var err error
-
 	queryBuilder := r.db.squirrel.
+		RunWith(r.db.handler).
 		Update("feed").
 		Set("enabled", enabled).
 		Set("updated_at", sq.Expr("CURRENT_TIMESTAMP")).
 		Where(sq.Eq{"id": id})
 
-	query, args, err := queryBuilder.ToSql()
-	if err != nil {
-		return errors.Wrap(err, "error building query")
-	}
-	_, err = r.db.handler.ExecContext(ctx, query, args...)
-	if err != nil {
+	if _, err := queryBuilder.Exec(); err != nil {
 		return errors.Wrap(err, "error executing query")
 	}
 
@@ -298,16 +266,11 @@ func (r *FeedRepo) ToggleEnabled(ctx context.Context, id int, enabled bool) erro
 
 func (r *FeedRepo) Delete(ctx context.Context, id int) error {
 	queryBuilder := r.db.squirrel.
+		RunWith(r.db.handler).
 		Delete("feed").
 		Where(sq.Eq{"id": id})
-
-	query, args, err := queryBuilder.ToSql()
-	if err != nil {
-		return errors.Wrap(err, "error building query")
-	}
-
-	_, err = r.db.handler.ExecContext(ctx, query, args...)
-	if err != nil {
+	
+	if _, err := queryBuilder.Exec(); err != nil {
 		return errors.Wrap(err, "error executing query")
 	}
 

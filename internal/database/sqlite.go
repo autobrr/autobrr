@@ -7,6 +7,8 @@ import (
 	"github.com/autobrr/autobrr/pkg/errors"
 
 	"github.com/lib/pq"
+	sq "github.com/Masterminds/squirrel"
+
 	_ "modernc.org/sqlite"
 )
 
@@ -18,10 +20,14 @@ func (db *DB) openSQLite() error {
 	var err error
 
 	// open database connection
-	if db.handler, err = sql.Open("sqlite", db.DSN+"?_pragma=busy_timeout%3d1000"); err != nil {
+	handler, err := sql.Open("sqlite", db.DSN+"?_pragma=busy_timeout%3d1000");
+	if err != nil {
 		db.log.Fatal().Err(err).Msg("could not open db connection")
 		return err
 	}
+
+	db.db = handler
+	db.handler = sq.NewStmtCacheProxy(db.db)
 
 	// Set busy timeout
 	//if _, err = db.handler.Exec(`PRAGMA busy_timeout = 5000;`); err != nil {

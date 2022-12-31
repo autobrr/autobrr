@@ -28,7 +28,6 @@ func NewActionRepo(log logger.Logger, db *DB, clientRepo domain.DownloadClientRe
 }
 
 func (r *ActionRepo) FindByFilterID(ctx context.Context, filterID int) ([]*domain.Action, error) {
-
 	tx, err := r.db.BeginTx(ctx, &sql.TxOptions{Isolation: sql.LevelReadCommitted})
 	if err != nil {
 		return nil, err
@@ -51,15 +50,12 @@ func (r *ActionRepo) FindByFilterID(ctx context.Context, filterID int) ([]*domai
 		}
 	}
 
-	if err = tx.Commit(); err != nil {
-		return nil, errors.Wrap(err, "error finding filter by id")
-	}
-
 	return actions, nil
 }
 
 func (r *ActionRepo) findByFilterID(ctx context.Context, tx *Tx, filterID int) ([]*domain.Action, error) {
 	queryBuilder := r.db.squirrel.
+		RunWith(tx).
 		Select(
 			"id",
 			"name",
@@ -93,12 +89,7 @@ func (r *ActionRepo) findByFilterID(ctx context.Context, tx *Tx, filterID int) (
 		From("action").
 		Where(sq.Eq{"filter_id": filterID})
 
-	query, args, err := queryBuilder.ToSql()
-	if err != nil {
-		return nil, errors.Wrap(err, "error building query")
-	}
-
-	rows, err := tx.QueryContext(ctx, query, args...)
+	rows, err := queryBuilder.Query()
 	if err != nil {
 		return nil, errors.Wrap(err, "error executing query")
 	}
@@ -153,8 +144,8 @@ func (r *ActionRepo) findByFilterID(ctx context.Context, tx *Tx, filterID int) (
 	return actions, nil
 }
 func (r *ActionRepo) attachDownloadClient(ctx context.Context, tx *Tx, clientID int32) (*domain.DownloadClient, error) {
-
 	queryBuilder := r.db.squirrel.
+		RunWith(tx).
 		Select(
 			"id",
 			"name",
@@ -171,21 +162,18 @@ func (r *ActionRepo) attachDownloadClient(ctx context.Context, tx *Tx, clientID 
 		From("client").
 		Where(sq.Eq{"id": clientID})
 
-	query, args, err := queryBuilder.ToSql()
+	row, err := queryBuilder.Query()
 	if err != nil {
-		return nil, errors.Wrap(err, "error building query")
-	}
-
-	row := tx.QueryRowContext(ctx, query, args...)
-	if err := row.Err(); err != nil {
 		return nil, errors.Wrap(err, "error executing query")
 	}
 
 	var client domain.DownloadClient
 	var settingsJsonStr string
 
-	if err := row.Scan(&client.ID, &client.Name, &client.Type, &client.Enabled, &client.Host, &client.Port, &client.TLS, &client.TLSSkipVerify, &client.Username, &client.Password, &settingsJsonStr); err != nil {
-		return nil, errors.Wrap(err, "error scanning row")
+	for row.Next() {
+		if err := row.Scan(&client.ID, &client.Name, &client.Type, &client.Enabled, &client.Host, &client.Port, &client.TLS, &client.TLSSkipVerify, &client.Username, &client.Password, &settingsJsonStr); err != nil {
+			return nil, errors.Wrap(err, "error scanning row")
+		}
 	}
 
 	if settingsJsonStr != "" {
@@ -199,6 +187,7 @@ func (r *ActionRepo) attachDownloadClient(ctx context.Context, tx *Tx, clientID 
 
 func (r *ActionRepo) List(ctx context.Context) ([]domain.Action, error) {
 	queryBuilder := r.db.squirrel.
+		RunWith(r.db.handler).
 		Select(
 			"id",
 			"name",
@@ -229,12 +218,7 @@ func (r *ActionRepo) List(ctx context.Context) ([]domain.Action, error) {
 		).
 		From("action")
 
-	query, args, err := queryBuilder.ToSql()
-	if err != nil {
-		return nil, errors.Wrap(err, "error building query")
-	}
-
-	rows, err := r.db.handler.QueryContext(ctx, query, args...)
+	rows, err := queryBuilder.Query()
 	if err != nil {
 		return nil, errors.Wrap(err, "error executing query")
 	}
@@ -285,15 +269,11 @@ func (r *ActionRepo) List(ctx context.Context) ([]domain.Action, error) {
 
 func (r *ActionRepo) Delete(actionID int) error {
 	queryBuilder := r.db.squirrel.
+		RunWith(r.db.handler).
 		Delete("action").
 		Where(sq.Eq{"id": actionID})
 
-	query, args, err := queryBuilder.ToSql()
-	if err != nil {
-		return errors.Wrap(err, "error building query")
-	}
-
-	_, err = r.db.handler.Exec(query, args...)
+	_, err := queryBuilder.Exec()
 	if err != nil {
 		return errors.Wrap(err, "error executing query")
 	}
@@ -305,15 +285,11 @@ func (r *ActionRepo) Delete(actionID int) error {
 
 func (r *ActionRepo) DeleteByFilterID(ctx context.Context, filterID int) error {
 	queryBuilder := r.db.squirrel.
+		RunWith(r.db.handler).
 		Delete("action").
 		Where(sq.Eq{"filter_id": filterID})
 
-	query, args, err := queryBuilder.ToSql()
-	if err != nil {
-		return errors.Wrap(err, "error building query")
-	}
-
-	_, err = r.db.handler.ExecContext(ctx, query, args...)
+	_, err := queryBuilder.Exec()
 	if err != nil {
 		return errors.Wrap(err, "error executing query")
 	}
@@ -345,6 +321,7 @@ func (r *ActionRepo) Store(ctx context.Context, action domain.Action) (*domain.A
 	filterID := toNullInt32(int32(action.FilterID))
 
 	queryBuilder := r.db.squirrel.
+		RunWith(r.db.handler).
 		Insert("action").
 		Columns(
 			"name",
@@ -406,12 +383,12 @@ func (r *ActionRepo) Store(ctx context.Context, action domain.Action) (*domain.A
 			clientID,
 			filterID,
 		).
-		Suffix("RETURNING id").RunWith(r.db.handler)
+		Suffix("RETURNING id")
 
 	// return values
 	var retID int64
 
-	err := queryBuilder.QueryRowContext(ctx).Scan(&retID)
+	err := queryBuilder.QueryRow().Scan(&retID)
 	if err != nil {
 		return nil, errors.Wrap(err, "error executing query")
 	}
@@ -447,6 +424,7 @@ func (r *ActionRepo) Update(ctx context.Context, action domain.Action) (*domain.
 	var err error
 
 	queryBuilder := r.db.squirrel.
+		RunWith(r.db.handler).
 		Update("action").
 		Set("name", action.Name).
 		Set("type", action.Type).
@@ -478,12 +456,7 @@ func (r *ActionRepo) Update(ctx context.Context, action domain.Action) (*domain.
 		Set("filter_id", filterID).
 		Where(sq.Eq{"id": action.ID})
 
-	query, args, err := queryBuilder.ToSql()
-	if err != nil {
-		return nil, errors.Wrap(err, "error building query")
-	}
-
-	_, err = r.db.handler.ExecContext(ctx, query, args...)
+	_, err = queryBuilder.Exec()
 	if err != nil {
 		return nil, errors.Wrap(err, "error executing query")
 	}
@@ -494,7 +467,7 @@ func (r *ActionRepo) Update(ctx context.Context, action domain.Action) (*domain.
 }
 
 func (r *ActionRepo) StoreFilterActions(ctx context.Context, actions []*domain.Action, filterID int64) ([]*domain.Action, error) {
-	tx, err := r.db.handler.BeginTx(ctx, nil)
+	tx, err := (r.db.handler).Begin()
 	if err != nil {
 		return nil, errors.Wrap(err, "error begin transaction")
 	}
@@ -502,17 +475,48 @@ func (r *ActionRepo) StoreFilterActions(ctx context.Context, actions []*domain.A
 	defer tx.Rollback()
 
 	deleteQueryBuilder := r.db.squirrel.
+		RunWith(tx).
 		Delete("action").
 		Where(sq.Eq{"filter_id": filterID})
 
-	deleteQuery, deleteArgs, err := deleteQueryBuilder.ToSql()
-	if err != nil {
-		return nil, errors.Wrap(err, "error building query")
-	}
-	_, err = tx.ExecContext(ctx, deleteQuery, deleteArgs...)
+	_, err = deleteQueryBuilder.Exec()
 	if err != nil {
 		return nil, errors.Wrap(err, "error executing query")
 	}
+
+	queryBuilder := r.db.squirrel.
+	RunWith(tx).
+	Insert("action").
+	Columns(
+		"name",
+		"type",
+		"enabled",
+		"exec_cmd",
+		"exec_args",
+		"watch_folder",
+		"category",
+		"tags",
+		"label",
+		"save_path",
+		"paused",
+		"ignore_rules",
+		"skip_hash_check",
+		"content_layout",
+		"limit_upload_speed",
+		"limit_download_speed",
+		"limit_ratio",
+		"limit_seed_time",
+		"reannounce_skip",
+		"reannounce_delete",
+		"reannounce_interval",
+		"reannounce_max_attempts",
+		"webhook_host",
+		"webhook_type",
+		"webhook_method",
+		"webhook_data",
+		"client_id",
+		"filter_id",
+	)
 
 	for _, action := range actions {
 		execCmd := toNullString(action.ExecCmd)
@@ -534,39 +538,11 @@ func (r *ActionRepo) StoreFilterActions(ctx context.Context, actions []*domain.A
 		limitSeedTime := toNullInt64(action.LimitSeedTime)
 		clientID := toNullInt32(action.ClientID)
 
-		queryBuilder := r.db.squirrel.
-			Insert("action").
-			Columns(
-				"name",
-				"type",
-				"enabled",
-				"exec_cmd",
-				"exec_args",
-				"watch_folder",
-				"category",
-				"tags",
-				"label",
-				"save_path",
-				"paused",
-				"ignore_rules",
-				"skip_hash_check",
-				"content_layout",
-				"limit_upload_speed",
-				"limit_download_speed",
-				"limit_ratio",
-				"limit_seed_time",
-				"reannounce_skip",
-				"reannounce_delete",
-				"reannounce_interval",
-				"reannounce_max_attempts",
-				"webhook_host",
-				"webhook_type",
-				"webhook_method",
-				"webhook_data",
-				"client_id",
-				"filter_id",
-			).
-			Values(
+
+		// scan values
+		var retID int
+
+		if err := queryBuilder.Values(
 				action.Name,
 				action.Type,
 				action.Enabled,
@@ -596,45 +572,32 @@ func (r *ActionRepo) StoreFilterActions(ctx context.Context, actions []*domain.A
 				clientID,
 				filterID,
 			).
-			Suffix("RETURNING id").RunWith(tx)
-
-		// return values
-		var retID int
-
-		err = queryBuilder.QueryRowContext(ctx).Scan(&retID)
-		if err != nil {
-			return nil, errors.Wrap(err, "error executing query")
-		}
+			Suffix("RETURNING id").
+			QueryRow().
+			Scan(&retID); err != nil {
+				return nil, errors.Wrap(err, "error executing query")
+			}
 
 		action.ID = retID
 
 		r.log.Debug().Msgf("action.StoreFilterActions: store '%v' type: '%v' on filter: %v", action.Name, action.Type, filterID)
 	}
 
-	err = tx.Commit()
-	if err != nil {
+	if err := tx.Commit(); err != nil {
 		return nil, errors.Wrap(err, "error updating filter actions")
-
 	}
 
 	return actions, nil
 }
 
 func (r *ActionRepo) ToggleEnabled(actionID int) error {
-	var err error
-
 	queryBuilder := r.db.squirrel.
+		RunWith(r.db.handler).
 		Update("action").
 		Set("enabled", sq.Expr("NOT enabled")).
 		Where(sq.Eq{"id": actionID})
 
-	query, args, err := queryBuilder.ToSql()
-	if err != nil {
-		return errors.Wrap(err, "error building query")
-	}
-
-	_, err = r.db.handler.Exec(query, args...)
-	if err != nil {
+	if _, err := queryBuilder.Exec(); err != nil {
 		return errors.Wrap(err, "error executing query")
 	}
 

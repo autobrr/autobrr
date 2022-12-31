@@ -34,15 +34,16 @@ func (repo *ReleaseRepo) Store(ctx context.Context, r *domain.Release) (*domain.
 	hdrStr := strings.Join(r.HDR, ",")
 
 	queryBuilder := repo.db.squirrel.
+		RunWith(repo.db.handler).
 		Insert("release").
 		Columns("filter_status", "rejections", "indexer", "filter", "protocol", "implementation", "timestamp", "group_id", "torrent_id", "torrent_name", "size", "title", "category", "season", "episode", "year", "resolution", "source", "codec", "container", "hdr", "release_group", "proper", "repack", "website", "type", "origin", "tags", "uploader", "pre_time", "filter_id").
 		Values(r.FilterStatus, pq.Array(r.Rejections), r.Indexer, r.FilterName, r.Protocol, r.Implementation, r.Timestamp.Format(time.RFC3339), r.GroupID, r.TorrentID, r.TorrentName, r.Size, r.Title, r.Category, r.Season, r.Episode, r.Year, r.Resolution, r.Source, codecStr, r.Container, hdrStr, r.Group, r.Proper, r.Repack, r.Website, r.Type, r.Origin, pq.Array(r.Tags), r.Uploader, r.PreTime, r.FilterID).
-		Suffix("RETURNING id").RunWith(repo.db.handler)
+		Suffix("RETURNING id")
 
 	// return values
 	var retID int64
 
-	err := queryBuilder.QueryRowContext(ctx).Scan(&retID)
+	err := queryBuilder.QueryRow().Scan(&retID)
 	if err != nil {
 		return nil, errors.Wrap(err, "error executing query")
 	}
@@ -57,6 +58,7 @@ func (repo *ReleaseRepo) Store(ctx context.Context, r *domain.Release) (*domain.
 func (repo *ReleaseRepo) StoreReleaseActionStatus(ctx context.Context, a *domain.ReleaseActionStatus) error {
 	if a.ID != 0 {
 		queryBuilder := repo.db.squirrel.
+			RunWith(repo.db.handler).
 			Update("release_action_status").
 			Set("status", a.Status).
 			Set("rejections", pq.Array(a.Rejections)).
@@ -64,28 +66,21 @@ func (repo *ReleaseRepo) StoreReleaseActionStatus(ctx context.Context, a *domain
 			Where(sq.Eq{"id": a.ID}).
 			Where(sq.Eq{"release_id": a.ReleaseID})
 
-		query, args, err := queryBuilder.ToSql()
-		if err != nil {
-			return errors.Wrap(err, "error building query")
-		}
-
-		_, err = repo.db.handler.ExecContext(ctx, query, args...)
-		if err != nil {
+		if _, err := queryBuilder.Exec(); err != nil {
 			return errors.Wrap(err, "error executing query")
 		}
 
 	} else {
 		queryBuilder := repo.db.squirrel.
+			RunWith(repo.db.handler).
 			Insert("release_action_status").
 			Columns("status", "action", "type", "client", "filter", "rejections", "timestamp", "release_id").
 			Values(a.Status, a.Action, a.Type, a.Client, a.Filter, pq.Array(a.Rejections), a.Timestamp, a.ReleaseID).
-			Suffix("RETURNING id").RunWith(repo.db.handler)
+			Suffix("RETURNING id")
 
 		// return values
 		var retID int64
-
-		err := queryBuilder.QueryRowContext(ctx).Scan(&retID)
-		if err != nil {
+		if err := queryBuilder.QueryRow().Scan(&retID); err != nil {
 			return errors.Wrap(err, "error executing query")
 		}
 
@@ -98,7 +93,7 @@ func (repo *ReleaseRepo) StoreReleaseActionStatus(ctx context.Context, a *domain
 }
 
 func (repo *ReleaseRepo) Find(ctx context.Context, params domain.ReleaseQueryParams) ([]*domain.Release, int64, int64, error) {
-	tx, err := repo.db.BeginTx(ctx, &sql.TxOptions{Isolation: sql.LevelReadCommitted})
+	tx, err := repo.db.handler.Begin()
 	if err != nil {
 		return nil, 0, 0, errors.Wrap(err, "error begin transaction")
 	}
@@ -109,14 +104,10 @@ func (repo *ReleaseRepo) Find(ctx context.Context, params domain.ReleaseQueryPar
 		return nil, nextCursor, total, err
 	}
 
-	if err = tx.Commit(); err != nil {
-		return nil, 0, 0, errors.Wrap(err, "error commit transaction find releases")
-	}
-
 	return releases, nextCursor, total, nil
 }
 
-func (repo *ReleaseRepo) findReleases(ctx context.Context, tx *Tx, params domain.ReleaseQueryParams) ([]*domain.Release, int64, int64, error) {
+func (repo *ReleaseRepo) findReleases(ctx context.Context, tx *sql.Tx, params domain.ReleaseQueryParams) ([]*domain.Release, int64, int64, error) {
 	whereQueryBuilder := sq.And{}
 	if params.Cursor > 0 {
 		whereQueryBuilder = append(whereQueryBuilder, sq.Lt{"r.id": params.Cursor})
@@ -177,6 +168,7 @@ func (repo *ReleaseRepo) findReleases(ctx context.Context, tx *Tx, params domain
 	}
 
 	subQueryBuilder := repo.db.squirrel.
+		RunWith(tx).
 		Select("r.id").
 		Distinct().
 		From("release r")
@@ -195,7 +187,7 @@ func (repo *ReleaseRepo) findReleases(ctx context.Context, tx *Tx, params domain
 		subQueryBuilder = subQueryBuilder.Where(whereQueryBuilder)
 	}
 
-	countQuery := repo.db.squirrel.Select("COUNT(*)").From("release r").Where(whereQuery)
+	countQuery := repo.db.squirrel.RunWith(repo.db.handler).Select("COUNT(*)").From("release r").Where(whereQuery)
 
 	if params.Filters.PushStatus != "" {
 		subQueryBuilder = subQueryBuilder.InnerJoin("release_action_status ras ON r.id = ras.release_id").Where(sq.Eq{"ras.status": params.Filters.PushStatus})
@@ -208,6 +200,7 @@ func (repo *ReleaseRepo) findReleases(ctx context.Context, tx *Tx, params domain
 	}
 
 	queryBuilder := repo.db.squirrel.
+		RunWith(tx).
 		Select("r.id", "r.filter_status", "r.rejections", "r.indexer", "r.filter", "r.protocol", "r.title", "r.torrent_name", "r.size", "r.timestamp",
 			"ras.id", "ras.status", "ras.action", "ras.type", "ras.client", "ras.filter", "ras.rejections", "ras.timestamp").
 		Column(sq.Alias(countQuery, "page_total")).
@@ -225,7 +218,7 @@ func (repo *ReleaseRepo) findReleases(ctx context.Context, tx *Tx, params domain
 
 	res := make([]*domain.Release, 0)
 
-	rows, err := tx.QueryContext(ctx, query, args...)
+	rows, err := queryBuilder.Query()
 	if err != nil {
 		return nil, 0, 0, errors.Wrap(err, "error executing query")
 	}
@@ -302,7 +295,7 @@ func (repo *ReleaseRepo) findReleases(ctx context.Context, tx *Tx, params domain
 }
 
 func (repo *ReleaseRepo) FindRecent(ctx context.Context) ([]*domain.Release, error) {
-	tx, err := repo.db.BeginTx(ctx, &sql.TxOptions{Isolation: sql.LevelReadCommitted})
+	tx, err := repo.db.handler.Begin()
 	if err != nil {
 		return nil, errors.Wrap(err, "error begin transaction")
 	}
@@ -313,22 +306,17 @@ func (repo *ReleaseRepo) FindRecent(ctx context.Context) ([]*domain.Release, err
 		return nil, err
 	}
 
-	if err = tx.Commit(); err != nil {
-		return nil, errors.Wrap(err, "error transaction commit")
-	}
-
 	return releases, nil
 }
 
 func (repo *ReleaseRepo) GetIndexerOptions(ctx context.Context) ([]string, error) {
-
 	query := `SELECT DISTINCT indexer FROM "release" UNION SELECT DISTINCT identifier indexer FROM indexer;`
 
 	repo.log.Trace().Str("database", "release.get_indexers").Msgf("query: '%v'", query)
 
 	res := make([]string, 0)
 
-	rows, err := repo.db.handler.QueryContext(ctx, query)
+	rows, err := repo.db.handler.Query(query)
 	if err != nil {
 		return res, errors.Wrap(err, "error executing query")
 	}
@@ -353,20 +341,15 @@ func (repo *ReleaseRepo) GetIndexerOptions(ctx context.Context) ([]string, error
 }
 
 func (repo *ReleaseRepo) GetActionStatusByReleaseID(ctx context.Context, releaseID int64) ([]domain.ReleaseActionStatus, error) {
-
 	queryBuilder := repo.db.squirrel.
+		RunWith(repo.db.handler).
 		Select("id", "status", "action", "type", "client", "filter", "rejections", "timestamp").
 		From("release_action_status").
 		Where(sq.Eq{"release_id": releaseID})
 
-	query, args, err := queryBuilder.ToSql()
-	if err != nil {
-		return nil, errors.Wrap(err, "error building query")
-	}
-
 	res := make([]domain.ReleaseActionStatus, 0)
 
-	rows, err := repo.db.handler.QueryContext(ctx, query, args...)
+	rows, err := queryBuilder.Query()
 	if err != nil {
 		return res, errors.Wrap(err, "error executing query")
 	}
@@ -396,7 +379,7 @@ func (repo *ReleaseRepo) GetActionStatusByReleaseID(ctx context.Context, release
 	return res, nil
 }
 
-func (repo *ReleaseRepo) attachActionStatus(ctx context.Context, tx *Tx, releaseID int64) ([]domain.ReleaseActionStatus, error) {
+func (repo *ReleaseRepo) attachActionStatus(ctx context.Context, tx *sql.Tx, releaseID int64) ([]domain.ReleaseActionStatus, error) {
 	queryBuilder := repo.db.squirrel.
 		Select("id", "status", "action", "type", "client", "filter", "rejections", "timestamp").
 		From("release_action_status").
@@ -439,7 +422,6 @@ func (repo *ReleaseRepo) attachActionStatus(ctx context.Context, tx *Tx, release
 }
 
 func (repo *ReleaseRepo) Stats(ctx context.Context) (*domain.ReleaseStats, error) {
-
 	query := `SELECT *
 FROM (
 	SELECT
@@ -455,10 +437,7 @@ CROSS JOIN (
 	FROM release_action_status
 ) AS foo`
 
-	row := repo.db.handler.QueryRowContext(ctx, query)
-	if err := row.Err(); err != nil {
-		return nil, errors.Wrap(err, "error executing query")
-	}
+	row := repo.db.handler.QueryRow(query)
 
 	var rls domain.ReleaseStats
 
@@ -487,8 +466,7 @@ func (repo *ReleaseRepo) Delete(ctx context.Context) error {
 		return errors.Wrap(err, "error executing query")
 	}
 
-	err = tx.Commit()
-	if err != nil {
+	if err := tx.Commit(); err != nil {
 		return errors.Wrap(err, "error commit transaction delete")
 	}
 
@@ -519,6 +497,7 @@ func (repo *ReleaseRepo) CanDownloadShow(ctx context.Context, title string, seas
 	//}
 
 	queryBuilder := repo.db.squirrel.
+		RunWith(repo.db.handler).
 		Select("COUNT(*)").
 		From("release").
 		Where(ILike("title", title+"%"))
@@ -539,13 +518,8 @@ func (repo *ReleaseRepo) CanDownloadShow(ctx context.Context, title string, seas
 		return true, nil
 	}
 
-	query, args, err := queryBuilder.ToSql()
+	row, err := queryBuilder.Query()
 	if err != nil {
-		return false, errors.Wrap(err, "error building query")
-	}
-
-	row := repo.db.handler.QueryRowContext(ctx, query, args...)
-	if err := row.Err(); err != nil {
 		return false, err
 	}
 

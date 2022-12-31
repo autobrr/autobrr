@@ -33,14 +33,15 @@ func (r *IndexerRepo) Store(ctx context.Context, indexer domain.Indexer) (*domai
 	}
 
 	queryBuilder := r.db.squirrel.
+		RunWith(r.db.handler).
 		Insert("indexer").Columns("enabled", "name", "identifier", "implementation", "base_url", "settings").
 		Values(indexer.Enabled, indexer.Name, indexer.Identifier, indexer.Implementation, indexer.BaseURL, settings).
-		Suffix("RETURNING id").RunWith(r.db.handler)
+		Suffix("RETURNING id")
 
 	// return values
 	var retID int64
 
-	if err = queryBuilder.QueryRowContext(ctx).Scan(&retID); err != nil {
+	if err = queryBuilder.QueryRow().Scan(&retID); err != nil {
 		return nil, errors.Wrap(err, "error executing query")
 	}
 
@@ -56,6 +57,7 @@ func (r *IndexerRepo) Update(ctx context.Context, indexer domain.Indexer) (*doma
 	}
 
 	queryBuilder := r.db.squirrel.
+		RunWith(r.db.handler).
 		Update("indexer").
 		Set("enabled", indexer.Enabled).
 		Set("name", indexer.Name).
@@ -64,12 +66,7 @@ func (r *IndexerRepo) Update(ctx context.Context, indexer domain.Indexer) (*doma
 		Set("updated_at", time.Now().Format(time.RFC3339)).
 		Where(sq.Eq{"id": indexer.ID})
 
-	query, args, err := queryBuilder.ToSql()
-	if err != nil {
-		return nil, errors.Wrap(err, "error building query")
-	}
-
-	if _, err = r.db.handler.ExecContext(ctx, query, args...); err != nil {
+	if _, err := queryBuilder.Exec(); err != nil {
 		return nil, errors.Wrap(err, "error executing query")
 	}
 
@@ -77,7 +74,13 @@ func (r *IndexerRepo) Update(ctx context.Context, indexer domain.Indexer) (*doma
 }
 
 func (r *IndexerRepo) List(ctx context.Context) ([]domain.Indexer, error) {
-	rows, err := r.db.handler.QueryContext(ctx, "SELECT id, enabled, name, identifier, implementation, base_url, settings FROM indexer ORDER BY name ASC")
+	queryBuilder := r.db.squirrel.
+		RunWith(r.db.handler).
+		Select("id", "enabled", "name", "identifier", "implementation", "base_url", "settings").
+		From("indexer").
+		OrderBy("name ASC")
+
+	rows, err := queryBuilder.Query()
 	if err != nil {
 		return nil, errors.Wrap(err, "error executing query")
 	}
@@ -116,19 +119,12 @@ func (r *IndexerRepo) List(ctx context.Context) ([]domain.Indexer, error) {
 
 func (r *IndexerRepo) FindByID(ctx context.Context, id int) (*domain.Indexer, error) {
 	queryBuilder := r.db.squirrel.
+		RunWith(r.db.handler).
 		Select("id", "enabled", "name", "identifier", "implementation", "base_url", "settings").
 		From("indexer").
 		Where(sq.Eq{"id": id})
 
-	query, args, err := queryBuilder.ToSql()
-	if err != nil {
-		return nil, errors.Wrap(err, "error building query")
-	}
-
-	row := r.db.handler.QueryRowContext(ctx, query, args...)
-	if err := row.Err(); err != nil {
-		return nil, errors.Wrap(err, "error executing query")
-	}
+	row := queryBuilder.QueryRow()
 
 	var i domain.Indexer
 
@@ -142,7 +138,7 @@ func (r *IndexerRepo) FindByID(ctx context.Context, id int) (*domain.Indexer, er
 	i.BaseURL = baseURL.String
 
 	var settingsMap map[string]string
-	if err = json.Unmarshal([]byte(settings.String), &settingsMap); err != nil {
+	if err := json.Unmarshal([]byte(settings.String), &settingsMap); err != nil {
 		return nil, errors.Wrap(err, "error unmarshal settings")
 	}
 
@@ -154,17 +150,13 @@ func (r *IndexerRepo) FindByID(ctx context.Context, id int) (*domain.Indexer, er
 
 func (r *IndexerRepo) FindByFilterID(ctx context.Context, id int) ([]domain.Indexer, error) {
 	queryBuilder := r.db.squirrel.
+		RunWith(r.db.handler).
 		Select("id", "enabled", "name", "identifier", "base_url", "settings").
 		From("indexer").
 		Join("filter_indexer ON indexer.id = filter_indexer.indexer_id").
 		Where(sq.Eq{"filter_indexer.filter_id": id})
 
-	query, args, err := queryBuilder.ToSql()
-	if err != nil {
-		return nil, errors.Wrap(err, "error building query")
-	}
-
-	rows, err := r.db.handler.QueryContext(ctx, query, args...)
+	rows, err := queryBuilder.Query()
 	if err != nil {
 		return nil, errors.Wrap(err, "error executing query")
 	}
@@ -202,15 +194,11 @@ func (r *IndexerRepo) FindByFilterID(ctx context.Context, id int) ([]domain.Inde
 
 func (r *IndexerRepo) Delete(ctx context.Context, id int) error {
 	queryBuilder := r.db.squirrel.
+		RunWith(r.db.handler).
 		Delete("indexer").
 		Where(sq.Eq{"id": id})
 
-	query, args, err := queryBuilder.ToSql()
-	if err != nil {
-		return errors.Wrap(err, "error building query")
-	}
-
-	result, err := r.db.handler.ExecContext(ctx, query, args...)
+	result, err := queryBuilder.Exec()
 	if err != nil {
 		return errors.Wrap(err, "error executing query")
 	}

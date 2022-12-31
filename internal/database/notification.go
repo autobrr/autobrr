@@ -26,18 +26,13 @@ func NewNotificationRepo(log logger.Logger, db *DB) domain.NotificationRepo {
 }
 
 func (r *NotificationRepo) Find(ctx context.Context, params domain.NotificationQueryParams) ([]domain.Notification, int, error) {
-
 	queryBuilder := r.db.squirrel.
+		RunWith(r.db.handler).
 		Select("id", "name", "type", "enabled", "events", "webhook", "token", "api_key", "channel", "created_at", "updated_at", "COUNT(*) OVER() AS total_count").
 		From("notification").
 		OrderBy("name")
 
-	query, args, err := queryBuilder.ToSql()
-	if err != nil {
-		return nil, 0, errors.Wrap(err, "error building query")
-	}
-
-	rows, err := r.db.handler.QueryContext(ctx, query, args...)
+	rows, err := queryBuilder.Query()
 	if err != nil {
 		return nil, 0, errors.Wrap(err, "error executing query")
 	}
@@ -80,8 +75,12 @@ func (r *NotificationRepo) Find(ctx context.Context, params domain.NotificationQ
 }
 
 func (r *NotificationRepo) List(ctx context.Context) ([]domain.Notification, error) {
-
-	rows, err := r.db.handler.QueryContext(ctx, "SELECT id, name, type, enabled, events, token, api_key, webhook, title, icon, host, username, password, channel, targets, devices, created_at, updated_at FROM notification ORDER BY name ASC")
+	queryBuilder := r.db.squirrel.
+		RunWith(r.db.handler).
+		Select("id", "name", "type", "enabled", "events", "token", "api_key", "webhook", "title", "icon", "host", "username", "password", "channel", "targets", "devices", "created_at", "updated_at").
+		From("notification").
+		OrderBy("name ASC")
+	rows, err := queryBuilder.Query()
 	if err != nil {
 		return nil, errors.Wrap(err, "error executing query")
 	}
@@ -121,8 +120,8 @@ func (r *NotificationRepo) List(ctx context.Context) ([]domain.Notification, err
 }
 
 func (r *NotificationRepo) FindByID(ctx context.Context, id int) (*domain.Notification, error) {
-
 	queryBuilder := r.db.squirrel.
+		RunWith(r.db.handler).
 		Select(
 			"id",
 			"name",
@@ -146,16 +145,7 @@ func (r *NotificationRepo) FindByID(ctx context.Context, id int) (*domain.Notifi
 		From("notification").
 		Where(sq.Eq{"id": id})
 
-	query, args, err := queryBuilder.ToSql()
-	if err != nil {
-		return nil, errors.Wrap(err, "error building query")
-	}
-
-	//row := r.db.handler.QueryRowContext(ctx, "SELECT id, name, type, enabled, events, token, api_key, webhook, title, icon, host, username, password, channel, targets, devices, created_at, updated_at FROM notification WHERE id = ?", id)
-	row := r.db.handler.QueryRowContext(ctx, query, args...)
-	if err := row.Err(); err != nil {
-		return nil, errors.Wrap(err, "error executing query")
-	}
+	row := queryBuilder.QueryRow()
 
 	var n domain.Notification
 
@@ -186,6 +176,7 @@ func (r *NotificationRepo) Store(ctx context.Context, notification domain.Notifi
 	channel := toNullString(notification.Channel)
 
 	queryBuilder := r.db.squirrel.
+		RunWith(r.db.handler).
 		Insert("notification").
 		Columns(
 			"name",
@@ -207,12 +198,12 @@ func (r *NotificationRepo) Store(ctx context.Context, notification domain.Notifi
 			apiKey,
 			channel,
 		).
-		Suffix("RETURNING id").RunWith(r.db.handler)
+		Suffix("RETURNING id")
 
 	// return values
 	var retID int64
 
-	err := queryBuilder.QueryRowContext(ctx).Scan(&retID)
+	err := queryBuilder.QueryRow().Scan(&retID)
 	if err != nil {
 		return nil, errors.Wrap(err, "error executing query")
 	}
@@ -230,6 +221,7 @@ func (r *NotificationRepo) Update(ctx context.Context, notification domain.Notif
 	channel := toNullString(notification.Channel)
 
 	queryBuilder := r.db.squirrel.
+		RunWith(r.db.handler).
 		Update("notification").
 		Set("name", notification.Name).
 		Set("type", notification.Type).
@@ -242,13 +234,7 @@ func (r *NotificationRepo) Update(ctx context.Context, notification domain.Notif
 		Set("updated_at", sq.Expr("CURRENT_TIMESTAMP")).
 		Where(sq.Eq{"id": notification.ID})
 
-	query, args, err := queryBuilder.ToSql()
-	if err != nil {
-		return nil, errors.Wrap(err, "error building query")
-	}
-
-	_, err = r.db.handler.ExecContext(ctx, query, args...)
-	if err != nil {
+	if _, err := queryBuilder.Exec(); err != nil {
 		return nil, errors.Wrap(err, "error executing query")
 	}
 
@@ -259,16 +245,11 @@ func (r *NotificationRepo) Update(ctx context.Context, notification domain.Notif
 
 func (r *NotificationRepo) Delete(ctx context.Context, notificationID int) error {
 	queryBuilder := r.db.squirrel.
+		RunWith(r.db.handler).
 		Delete("notification").
 		Where(sq.Eq{"id": notificationID})
 
-	query, args, err := queryBuilder.ToSql()
-	if err != nil {
-		return errors.Wrap(err, "error building query")
-	}
-
-	_, err = r.db.handler.ExecContext(ctx, query, args...)
-	if err != nil {
+	if _, err := queryBuilder.Exec(); err != nil {
 		return errors.Wrap(err, "error executing query")
 	}
 

@@ -65,6 +65,7 @@ func (r *DownloadClientRepo) List(ctx context.Context) ([]domain.DownloadClient,
 	clients := make([]domain.DownloadClient, 0)
 
 	queryBuilder := r.db.squirrel.
+		RunWith(r.db.handler).
 		Select(
 			"id",
 			"name",
@@ -80,12 +81,7 @@ func (r *DownloadClientRepo) List(ctx context.Context) ([]domain.DownloadClient,
 		).
 		From("client")
 
-	query, args, err := queryBuilder.ToSql()
-	if err != nil {
-		return nil, errors.Wrap(err, "error building query")
-	}
-
-	rows, err := r.db.handler.QueryContext(ctx, query, args...)
+	rows, err := queryBuilder.Query()
 	if err != nil {
 		return nil, errors.Wrap(err, "error executing query")
 	}
@@ -123,6 +119,7 @@ func (r *DownloadClientRepo) FindByID(ctx context.Context, id int32) (*domain.Do
 	}
 
 	queryBuilder := r.db.squirrel.
+		RunWith(r.db.handler).
 		Select(
 			"id",
 			"name",
@@ -139,18 +136,10 @@ func (r *DownloadClientRepo) FindByID(ctx context.Context, id int32) (*domain.Do
 		From("client").
 		Where(sq.Eq{"id": id})
 
-	query, args, err := queryBuilder.ToSql()
-	if err != nil {
-		return nil, errors.Wrap(err, "error building query")
-	}
-
-	row := r.db.handler.QueryRowContext(ctx, query, args...)
-	if err != nil {
-		return nil, errors.Wrap(err, "error executing query")
-	}
-
 	var client domain.DownloadClient
 	var settingsJsonStr string
+
+	row := queryBuilder.QueryRow()
 
 	if err := row.Scan(&client.ID, &client.Name, &client.Type, &client.Enabled, &client.Host, &client.Port, &client.TLS, &client.TLSSkipVerify, &client.Username, &client.Password, &settingsJsonStr); err != nil {
 		if err == sql.ErrNoRows {
@@ -170,8 +159,6 @@ func (r *DownloadClientRepo) FindByID(ctx context.Context, id int32) (*domain.Do
 }
 
 func (r *DownloadClientRepo) Store(ctx context.Context, client domain.DownloadClient) (*domain.DownloadClient, error) {
-	var err error
-
 	settings := domain.DownloadClientSettings{
 		APIKey: client.Settings.APIKey,
 		Basic:  client.Settings.Basic,
@@ -184,15 +171,16 @@ func (r *DownloadClientRepo) Store(ctx context.Context, client domain.DownloadCl
 	}
 
 	queryBuilder := r.db.squirrel.
+		RunWith(r.db.handler).
 		Insert("client").
 		Columns("name", "type", "enabled", "host", "port", "tls", "tls_skip_verify", "username", "password", "settings").
 		Values(client.Name, client.Type, client.Enabled, client.Host, client.Port, client.TLS, client.TLSSkipVerify, client.Username, client.Password, settingsJson).
-		Suffix("RETURNING id").RunWith(r.db.handler)
+		Suffix("RETURNING id")
 
 	// return values
 	var retID int
 
-	err = queryBuilder.QueryRowContext(ctx).Scan(&retID)
+	err = queryBuilder.QueryRow().Scan(&retID)
 	if err != nil {
 		return nil, errors.Wrap(err, "error executing query")
 	}
@@ -208,8 +196,6 @@ func (r *DownloadClientRepo) Store(ctx context.Context, client domain.DownloadCl
 }
 
 func (r *DownloadClientRepo) Update(ctx context.Context, client domain.DownloadClient) (*domain.DownloadClient, error) {
-	var err error
-
 	settings := domain.DownloadClientSettings{
 		APIKey: client.Settings.APIKey,
 		Basic:  client.Settings.Basic,
@@ -222,6 +208,7 @@ func (r *DownloadClientRepo) Update(ctx context.Context, client domain.DownloadC
 	}
 
 	queryBuilder := r.db.squirrel.
+		RunWith(r.db.handler).
 		Update("client").
 		Set("name", client.Name).
 		Set("type", client.Type).
@@ -235,13 +222,7 @@ func (r *DownloadClientRepo) Update(ctx context.Context, client domain.DownloadC
 		Set("settings", string(settingsJson)).
 		Where(sq.Eq{"id": client.ID})
 
-	query, args, err := queryBuilder.ToSql()
-	if err != nil {
-		return nil, errors.Wrap(err, "error building query")
-	}
-
-	_, err = r.db.handler.ExecContext(ctx, query, args...)
-	if err != nil {
+	if _, err := queryBuilder.Exec(); err != nil {
 		return nil, errors.Wrap(err, "error executing query")
 	}
 
@@ -255,15 +236,11 @@ func (r *DownloadClientRepo) Update(ctx context.Context, client domain.DownloadC
 
 func (r *DownloadClientRepo) Delete(ctx context.Context, clientID int) error {
 	queryBuilder := r.db.squirrel.
+		RunWith(r.db.handler).
 		Delete("client").
 		Where(sq.Eq{"id": clientID})
 
-	query, args, err := queryBuilder.ToSql()
-	if err != nil {
-		return errors.Wrap(err, "error building query")
-	}
-
-	res, err := r.db.handler.ExecContext(ctx, query, args...)
+	res, err := queryBuilder.Exec()
 	if err != nil {
 		return errors.Wrap(err, "error executing query")
 	}

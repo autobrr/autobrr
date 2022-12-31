@@ -4,6 +4,7 @@ import (
 	"database/sql"
 
 	"github.com/autobrr/autobrr/pkg/errors"
+	sq "github.com/Masterminds/squirrel"
 
 	_ "github.com/lib/pq"
 )
@@ -12,16 +13,20 @@ func (db *DB) openPostgres() error {
 	var err error
 
 	// open database connection
-	if db.handler, err = sql.Open("postgres", db.DSN); err != nil {
+	handler, err := sql.Open("postgres", db.DSN);
+	if err != nil {
 		db.log.Fatal().Err(err).Msg("could not open postgres connection")
 		return errors.Wrap(err, "could not open postgres connection")
 	}
 
-	err = db.handler.Ping()
+	err = handler.Ping()
 	if err != nil {
 		db.log.Fatal().Err(err).Msg("could not ping postgres database")
 		return errors.Wrap(err, "could not ping postgres database")
 	}
+
+	db.db = handler
+	db.handler = sq.NewStmtCacheProxy(db.db)
 
 	// migrate db
 	if err = db.migratePostgres(); err != nil {

@@ -44,7 +44,7 @@ func (r *APIRepo) Store(ctx context.Context, key *domain.APIKey) error {
 
 	var createdAt time.Time
 
-	if err := queryBuilder.QueryRowContext(ctx).Scan(&createdAt); err != nil {
+	if err := queryBuilder.QueryRow().Scan(&createdAt); err != nil {
 		return errors.Wrap(err, "error executing query")
 	}
 
@@ -55,16 +55,11 @@ func (r *APIRepo) Store(ctx context.Context, key *domain.APIKey) error {
 
 func (r *APIRepo) Delete(ctx context.Context, key string) error {
 	queryBuilder := r.db.squirrel.
+		RunWith(r.db.handler).
 		Delete("api_key").
 		Where(sq.Eq{"key": key})
 
-	query, args, err := queryBuilder.ToSql()
-	if err != nil {
-		return errors.Wrap(err, "error building query")
-	}
-
-	_, err = r.db.handler.ExecContext(ctx, query, args...)
-	if err != nil {
+	if _, err := queryBuilder.Exec(); err != nil {
 		return errors.Wrap(err, "error executing query")
 	}
 
@@ -75,6 +70,7 @@ func (r *APIRepo) Delete(ctx context.Context, key string) error {
 
 func (r *APIRepo) GetKeys(ctx context.Context) ([]domain.APIKey, error) {
 	queryBuilder := r.db.squirrel.
+		RunWith(r.db.handler).
 		Select(
 			"name",
 			"key",
@@ -83,12 +79,7 @@ func (r *APIRepo) GetKeys(ctx context.Context) ([]domain.APIKey, error) {
 		).
 		From("api_key")
 
-	query, args, err := queryBuilder.ToSql()
-	if err != nil {
-		return nil, errors.Wrap(err, "error building query")
-	}
-
-	rows, err := r.db.handler.QueryContext(ctx, query, args...)
+	rows, err := queryBuilder.Query()
 	if err != nil {
 		return nil, errors.Wrap(err, "error executing query")
 	}

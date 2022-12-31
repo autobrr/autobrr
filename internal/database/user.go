@@ -25,15 +25,10 @@ func NewUserRepo(log logger.Logger, db *DB) domain.UserRepo {
 }
 
 func (r *UserRepo) GetUserCount(ctx context.Context) (int, error) {
-	queryBuilder := r.db.squirrel.Select("count(*)").From("users")
+	queryBuilder := r.db.squirrel.RunWith(r.db.handler).Select("count(*)").From("users")
 
-	query, args, err := queryBuilder.ToSql()
+	row, err := queryBuilder.Query()
 	if err != nil {
-		return 0, errors.Wrap(err, "error building query")
-	}
-
-	row := r.db.handler.QueryRowContext(ctx, query, args...)
-	if err := row.Err(); err != nil {
 		return 0, errors.Wrap(err, "error executing query")
 	}
 
@@ -46,19 +41,14 @@ func (r *UserRepo) GetUserCount(ctx context.Context) (int, error) {
 }
 
 func (r *UserRepo) FindByUsername(ctx context.Context, username string) (*domain.User, error) {
-
 	queryBuilder := r.db.squirrel.
+		RunWith(r.db.handler).
 		Select("id", "username", "password").
 		From("users").
 		Where(sq.Eq{"username": username})
 
-	query, args, err := queryBuilder.ToSql()
+	row, err := queryBuilder.Query()
 	if err != nil {
-		return nil, errors.Wrap(err, "error building query")
-	}
-
-	row := r.db.handler.QueryRowContext(ctx, query, args...)
-	if err := row.Err(); err != nil {
 		return nil, errors.Wrap(err, "error executing query")
 	}
 
@@ -76,46 +66,30 @@ func (r *UserRepo) FindByUsername(ctx context.Context, username string) (*domain
 }
 
 func (r *UserRepo) Store(ctx context.Context, user domain.User) error {
-
-	var err error
-
 	queryBuilder := r.db.squirrel.
+		RunWith(r.db.handler).
 		Insert("users").
 		Columns("username", "password").
 		Values(user.Username, user.Password)
 
-	query, args, err := queryBuilder.ToSql()
-	if err != nil {
-		return errors.Wrap(err, "error building query")
-	}
-
-	_, err = r.db.handler.ExecContext(ctx, query, args...)
-	if err != nil {
+	if _, err := queryBuilder.Exec(); err != nil {
 		return errors.Wrap(err, "error executing query")
 	}
 
-	return err
+	return nil
 }
 
 func (r *UserRepo) Update(ctx context.Context, user domain.User) error {
-
-	var err error
-
 	queryBuilder := r.db.squirrel.
+		RunWith(r.db.handler).
 		Update("users").
 		Set("username", user.Username).
 		Set("password", user.Password).
 		Where(sq.Eq{"username": user.Username})
 
-	query, args, err := queryBuilder.ToSql()
-	if err != nil {
-		return errors.Wrap(err, "error building query")
-	}
-
-	_, err = r.db.handler.ExecContext(ctx, query, args...)
-	if err != nil {
+	if _, err := queryBuilder.Exec(); err != nil {
 		return errors.Wrap(err, "error executing query")
 	}
 
-	return err
+	return nil
 }
