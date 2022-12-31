@@ -109,10 +109,6 @@ func (repo *ReleaseRepo) Find(ctx context.Context, params domain.ReleaseQueryPar
 		return nil, nextCursor, total, err
 	}
 
-	if err = tx.Commit(); err != nil {
-		return nil, 0, 0, errors.Wrap(err, "error commit transaction find releases")
-	}
-
 	return releases, nextCursor, total, nil
 }
 
@@ -313,10 +309,6 @@ func (repo *ReleaseRepo) FindRecent(ctx context.Context) ([]*domain.Release, err
 		return nil, err
 	}
 
-	if err = tx.Commit(); err != nil {
-		return nil, errors.Wrap(err, "error transaction commit")
-	}
-
 	return releases, nil
 }
 
@@ -487,8 +479,7 @@ func (repo *ReleaseRepo) Delete(ctx context.Context) error {
 		return errors.Wrap(err, "error executing query")
 	}
 
-	err = tx.Commit()
-	if err != nil {
+	if err := tx.Commit(); err != nil {
 		return errors.Wrap(err, "error commit transaction delete")
 	}
 

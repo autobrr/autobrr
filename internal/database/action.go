@@ -28,7 +28,6 @@ func NewActionRepo(log logger.Logger, db *DB, clientRepo domain.DownloadClientRe
 }
 
 func (r *ActionRepo) FindByFilterID(ctx context.Context, filterID int) ([]*domain.Action, error) {
-
 	tx, err := r.db.BeginTx(ctx, &sql.TxOptions{Isolation: sql.LevelReadCommitted})
 	if err != nil {
 		return nil, err
@@ -49,10 +48,6 @@ func (r *ActionRepo) FindByFilterID(ctx context.Context, filterID int) ([]*domai
 			}
 			action.Client = *client
 		}
-	}
-
-	if err = tx.Commit(); err != nil {
-		return nil, errors.Wrap(err, "error finding filter by id")
 	}
 
 	return actions, nil
@@ -611,8 +606,7 @@ func (r *ActionRepo) StoreFilterActions(ctx context.Context, actions []*domain.A
 		r.log.Debug().Msgf("action.StoreFilterActions: store '%v' type: '%v' on filter: %v", action.Name, action.Type, filterID)
 	}
 
-	err = tx.Commit()
-	if err != nil {
+	if err := tx.Commit(); err != nil {
 		return nil, errors.Wrap(err, "error updating filter actions")
 
 	}
