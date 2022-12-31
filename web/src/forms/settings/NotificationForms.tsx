@@ -491,7 +491,7 @@ export function NotificationUpdateForm({ isOpen, toggle, notification }: UpdateP
     token: notification.token,
     api_key: notification.api_key,
     user_key: notification.user_key,
-    priority: notification.priority || '0',
+    priority: notification.priority || "0",
     channel: notification.channel,
     events: notification.events || []
   };
