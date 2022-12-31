@@ -124,6 +124,8 @@ func (s *service) registerSenders() {
 				s.senders = append(s.senders, NewNotifiarrSender(s.log, n))
 			case domain.NotificationTypeTelegram:
 				s.senders = append(s.senders, NewTelegramSender(s.log, n))
+			case domain.NotificationTypePushover:
+				s.senders = append(s.senders, NewPushoverSender(s.log, n))
 			}
 		}
 	}
@@ -235,6 +237,8 @@ func (s *service) Test(ctx context.Context, notification domain.Notification) er
 		agent = NewNotifiarrSender(s.log, notification)
 	case domain.NotificationTypeTelegram:
 		agent = NewTelegramSender(s.log, notification)
+	case domain.NotificationTypePushover:
+		agent = NewPushoverSender(s.log, notification)
 	}
 
 	g, ctx := errgroup.WithContext(ctx)

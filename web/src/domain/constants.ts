@@ -257,7 +257,7 @@ export const ActionTypeNameMap = {
   "SONARR": "Sonarr",
   "LIDARR": "Lidarr",
   "WHISPARR": "Whisparr",
-  "READARR": "Readarr" 
+  "READARR": "Readarr"
 };
 
 export const ActionContentLayoutOptions: SelectGenericOption<ActionContentLayout>[] = [
@@ -303,6 +303,10 @@ export const NotificationTypeOptions: OptionBasicTyped<NotificationType>[] = [
   {
     label: "Telegram",
     value: "TELEGRAM"
+  },
+  {
+    label: "Pushover",
+    value: "PUSHOVER"
   }
 ];
 

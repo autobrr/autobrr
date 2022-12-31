@@ -24,7 +24,7 @@ Installation guide and documentation can be found at https://autobrr.com
 - Built on Go and React making autobrr lightweight and perfect for supporting multiple platforms (Linux, FreeBSD, Windows, macOS) on different architectures (e.g. x86, ARM)
 - Great container support (Docker, k8s/Kubernetes)
 - Database engine supporting both PostgreSQL and SQLite
-- Notifications (Discord, Telegram, Notifiarr)
+- Notifications (Discord, Telegram, Pushover)
 - One autobrr instance can communicate with multiple clients (both torrent and \*arr) on remote servers
 - Base path / Subfolder (and subdomain) support for convenient reverse-proxy support
 
@@ -80,7 +80,7 @@ We have support for a couple of providers out of the box and if yours are missin
 
 The scripts require some input but does most of the work.
 
-#### Seedbox.io 
+#### Seedbox.io
 
     curl https://gobrr.sh/install_sbio | bash
 
@@ -93,7 +93,7 @@ The scripts require some input but does most of the work.
     curl https://gobrr.sh/install_ultra | bash
 
 #### WhatBox
-    
+
     curl https://gobrr.sh/install_whatbox | bash
 
 #### Other providers
