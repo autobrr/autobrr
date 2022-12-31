@@ -52,7 +52,7 @@ func (r *FilterRepo) find(ctx context.Context, tx *Tx, params domain.FilterQuery
 	actionCountQuery := r.db.squirrel.
 		Select("COUNT(*)").
 		From("action a").
-		Where(sq.Eq{"a.filter_id": "f.id"})
+		Where("a.filter_id = f.id")
 
 	queryBuilder := r.db.squirrel.
 		Select(
@@ -123,7 +123,7 @@ func (r *FilterRepo) ListFilters(ctx context.Context) ([]domain.Filter, error) {
 	actionCountQuery := r.db.squirrel.
 		Select("COUNT(*)").
 		From("action a").
-		Where(sq.Eq{"a.filter_id": "f.id"})
+		Where("a.filter_id = f.id")
 
 	queryBuilder := r.db.squirrel.
 		Select(
