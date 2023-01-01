@@ -175,7 +175,8 @@ func (repo *ReleaseRepo) findReleases(ctx context.Context, tx *Tx, params domain
 	subQueryBuilder := repo.db.squirrel.
 		Select("r.id").
 		Distinct().
-		From("release r")
+		From("release r").
+		OrderBy("r.id DESC")
 
 	if params.Limit > 0 {
 		subQueryBuilder = subQueryBuilder.Limit(params.Limit)
