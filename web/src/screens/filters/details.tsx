@@ -189,6 +189,12 @@ export default function FilterDetails() {
   const handleSubmit = (data: Filter) => {
     // force set method and type on webhook actions
     // TODO add options for these
+    if (data.priority < 0) {
+      console.log(data.priority);
+    }
+    console.log(data);
+    return;
+
     data.actions.forEach((a: Action) => {
       if (a.type === "WEBHOOK") {
         a.webhook_method = "POST";
@@ -346,7 +352,7 @@ export function General() {
           <TextField name="min_size" label="Min size" columns={6} placeholder="eg. 100MiB, 80GB" />
           <TextField name="max_size" label="Max size" columns={6} placeholder="eg. 100MiB, 80GB" />
           <NumberField name="delay" label="Delay" placeholder="Number of seconds to delay actions" />
-          <NumberField name="priority" label="Priority" placeholder="Higher number = higher prio" />
+          <NumberField name="priority" label="Priority" placeholder="Higher number = higher prio" min={0} required={true} />
 
           <NumberField name="max_downloads" label="Max downloads" placeholder="Takes any number (0 is infinite)" />
           <Select name="max_downloads_unit" label="Max downloads per" options={downloadsPerUnitOptions}  optionDefaultText="Select unit" />
