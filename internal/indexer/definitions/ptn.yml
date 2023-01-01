@@ -1,0 +1,78 @@
+---
+#id: ptn
+name: Piratethenet
+identifier: ptn
+description: PTN is a ratioless movie tracker.
+language: en-us
+urls:
+  - https://piratethenet.org/
+privacy: private
+protocol: torrent
+supports:
+  - irc
+  - rss
+#source: gazelle
+settings:
+#  - name: authkey
+#    type: secret
+#    required: true
+#    label: Auth key
+#    help: Right click DL on a torrent and get the authkey.
+
+  - name: torrent_pass
+    type: secret
+    required: true
+    label: Torrent pass
+    help: Check the RSS feed for your passkey.
+
+irc:
+  network: TiK-T0K
+  server: irc.tik-t0k.net
+  port: 6697
+  tls: true
+  channels:
+    - "#piratethe.net"
+    - "#ptn.announce"
+  announcers:
+    - PTNBot
+  settings:
+    - name: nick
+      type: text
+      required: true
+      label: Nick
+      help: Bot nick. Eg. user|autodl
+
+    - name: auth.account
+      type: text
+      required: true
+      label: NickServ Account
+      help: NickServ account. Make sure to group your user and bot.
+
+    - name: auth.password
+      type: secret
+      required: true
+      label: NickServ Password
+      help: NickServ password
+
+    #- name: invite_command
+    #  type: secret
+    #  default: "Placeholder"
+    #  required: true
+    #  label: Invite command
+    #  help: Placeholder
+
+  parse:
+    type: single
+    lines:
+      - test:
+          - "New in 720P: Rabbit.Without.Ears.II.2009.ROSUB.720p.BluRay.x264-ZoNE with 4.37 GB in 2F @ https://PTN/moviedetails.php?movieid=7036 https://PTN/details.php?id=65157"
+        pattern: 'New in (.*): (.*) with (.*) in .* (https?\:\/\/.+\/).+id=(.+)'
+        vars:
+          - category
+          - torrentName
+          - torrentSize
+          - baseUrl
+          - torrentId
+
+    match:
+      torrenturl: "/download.php?torrent={{ .torrentId }}&torrent_pass={{ .torrent_pass }}"
