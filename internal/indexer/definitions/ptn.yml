@@ -11,7 +11,7 @@ protocol: torrent
 supports:
   - irc
   - rss
-#source: gazelle
+source: custom
 settings:
 #  - name: authkey
 #    type: secret
