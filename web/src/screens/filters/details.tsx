@@ -189,12 +189,6 @@ export default function FilterDetails() {
   const handleSubmit = (data: Filter) => {
     // force set method and type on webhook actions
     // TODO add options for these
-    if (data.priority < 0) {
-      console.log(data.priority);
-    }
-    console.log(data);
-    return;
-
     data.actions.forEach((a: Action) => {
       if (a.type === "WEBHOOK") {
         a.webhook_method = "POST";
