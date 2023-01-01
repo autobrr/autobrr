@@ -432,7 +432,7 @@ export function Music({ values }: AdvancedProps) {
         </div>
 
         <div className="mt-6 grid grid-cols-12 gap-6">
-          <NumberField name="log_score" label="Log score" placeholder="eg. 100" disabled={values.perfect_flac} />
+          <NumberField name="log_score" label="Log score" placeholder="eg. 100" min={0} max={100} disabled={values.perfect_flac} />
         </div>
 
       </div>

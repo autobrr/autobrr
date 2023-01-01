@@ -204,6 +204,8 @@ interface NumberFieldProps {
     placeholder?: string;
     step?: number;
     disabled?: boolean;
+    min?: number;
+    max?: number;
 }
 
 export const NumberField = ({
@@ -211,6 +213,8 @@ export const NumberField = ({
   label,
   placeholder,
   step,
+  min,
+  max,
   disabled
 }: NumberFieldProps) => (
   <div className="col-span-12 sm:col-span-6">
@@ -228,6 +232,8 @@ export const NumberField = ({
             type="number"
             step={step}
             {...field}
+            min={min}
+            max={max}
             className={classNames(
               meta.touched && meta.error
                 ? "focus:ring-red-500 focus:border-red-500 border-red-500"
