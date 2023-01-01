@@ -235,7 +235,7 @@ export default function FilterDetails() {
                 min_size: filter.min_size,
                 max_size: filter.max_size,
                 delay: filter.delay,
-                priority: filter.priority,
+                priority: filter.priority ?? 0,
                 max_downloads: filter.max_downloads,
                 max_downloads_unit: filter.max_downloads_unit,
                 use_regex: filter.use_regex || false,
