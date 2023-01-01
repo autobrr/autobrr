@@ -6,7 +6,7 @@ import { useToggle } from "../../hooks/hooks";
 import { APIClient } from "../../api/APIClient";
 import { EmptySimple } from "../../components/emptystates";
 import { LockClosedIcon, LockOpenIcon } from "@heroicons/react/24/solid";
-import { Menu, Transition } from "@headlessui/react";
+import { Menu, Switch, Transition } from "@headlessui/react";
 import { Fragment, useRef } from "react";
 import { DeleteModal } from "../../components/modals";
 
@@ -100,10 +100,13 @@ export const IrcSettings = () => {
           <section className="mt-6 light:bg-white dark:bg-gray-800 light:shadow sm:rounded-md">
             <ol className="min-w-full relative">
               <li className="grid grid-cols-12 gap-4 border-b border-gray-200 dark:border-gray-700">
-                <div className="col-span-3 px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                <div className="col-span-2 sm:col-span-1 sm:px-4 px-3 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  Enabled
+                </div>
+                <div className="col-span-10 sm:col-span-3 px-8 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                   Network
                 </div>
-                <div className="hidden sm:flex col-span-5 px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                <div className="hidden sm:flex col-span-4 px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                   Server
                 </div>
                 <div className="hidden sm:flex col-span-3 px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
@@ -147,9 +150,27 @@ const ListItem = ({ idx, network, expanded }: ListItemProps) => {
           toggle={toggleUpdate}
           network={network}
         />
-
+        <div className="col-span-3 sm:col-span-1 flex sm:block justify-center sm:px-6 text-sm text-gray-500 dark:text-gray-400 cursor-pointer">
+          <Switch
+            checked={network.enabled ?? false}
+            onChange={toggleUpdate}
+            className={classNames(
+              network.enabled ? "bg-blue-500" : "bg-gray-200 dark:bg-gray-600",
+              "items-center relative inline-flex flex-shrink-0 h-6 w-11 border-2 border-transparent rounded-full cursor-pointer transition-colors ease-in-out duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+            )}
+          >
+            <span className="sr-only">Enable</span>
+            <span
+              aria-hidden="true"
+              className={classNames(
+                network.enabled ? "translate-x-5" : "translate-x-0",
+                "inline-block h-5 w-5 rounded-full bg-white shadow transform ring-0 transition ease-in-out duration-200"
+              )}
+            />
+          </Switch>
+        </div>
         <div
-          className="col-span-10 xs:col-span-3 sm:col-span-3 items-center sm:px-6 text-sm font-medium text-gray-900 dark:text-white cursor-pointer"
+          className="col-span-7 xs:col-span-3 sm:col-span-3 items-center sm:px-6 text-sm font-medium text-gray-900 dark:text-white cursor-pointer"
           onClick={toggleEdit}
         >
           <div className="flex">
@@ -181,7 +202,7 @@ const ListItem = ({ idx, network, expanded }: ListItemProps) => {
           </div>
         </div>
         <div
-          className="hidden sm:flex col-span-5 sm:px-6 text-sm text-gray-500 dark:text-gray-400 cursor-pointer"
+          className="hidden sm:flex col-span-4 sm:px-6 text-sm text-gray-500 dark:text-gray-400 cursor-pointer"
           onClick={toggleEdit}
         >
           <div
