@@ -249,16 +249,6 @@ export const NumberField = ({
             )}
             placeholder={placeholder}
             disabled={disabled}
-            onChange={event => {
-              // safeguard and validation if user removes the number
-              // it will then set 0 by default. Formik can't handle this properly
-              if (event.target.value == "") {
-                form.setFieldValue(field.name, 0);
-                return;
-              }
-
-              form.setFieldValue(field.name, event.target.value);
-            }}
           />
           {meta.touched && meta.error && (
             <div className="error">{meta.error}</div>
