@@ -61,7 +61,7 @@ irc:
       help: Invite auth with LiMEY_. Replace IRCKEY and SITEUSERNAME.
 
   parse:
-    type: single
+    type: multi
     lines:
       - test:
           - "Title: Dragons Forever | Year: 1988 | URL: https://pixelhd.me/torrents.php?torrentid=23001"
