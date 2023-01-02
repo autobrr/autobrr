@@ -67,7 +67,7 @@ irc:
           - "Title: Dragons Forever | Year: 1988 | URL: https://pixelhd.me/torrents.php?torrentid=23001"
         pattern: 'Title: (.*) \| Year: (.*) \| URL: (https?:\/\/.*\/).+id=(.+)'
         vars:
-          - title
+          - torrentName
           - year
           - baseUrl
           - torrentId
