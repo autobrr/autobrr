@@ -19,6 +19,7 @@ type FeedRepo interface {
 	FindByID(ctx context.Context, id int) (*Feed, error)
 	FindByIndexerIdentifier(ctx context.Context, indexer string) (*Feed, error)
 	Find(ctx context.Context) ([]Feed, error)
+	GetLastRunDataByID(ctx context.Context, id int) (string, error)
 	Store(ctx context.Context, feed *Feed) error
 	Update(ctx context.Context, feed *Feed) error
 	UpdateLastRun(ctx context.Context, feedID int) error

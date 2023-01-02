@@ -16,6 +16,7 @@ type Service interface {
 	Stop()
 	AddJob(job cron.Job, interval time.Duration, identifier string) (int, error)
 	RemoveJobByIdentifier(id string) error
+	GetNextRun(id string) (time.Time, error)
 }
 
 type service struct {
@@ -108,6 +109,30 @@ func (s *service) RemoveJobByIdentifier(id string) error {
 	delete(s.jobs, id)
 
 	return nil
+}
+
+func (s *service) GetNextRun(id string) (time.Time, error) {
+	entry := s.getEntryById(id)
+
+	if !entry.Valid() {
+		return time.Time{}, nil
+	}
+
+	s.log.Debug().Msgf("scheduler.GetNextRun: %s next run: %s", id, entry.Next)
+
+	return entry.Next, nil
+}
+
+func (s *service) getEntryById(id string) cron.Entry {
+	s.m.Lock()
+	defer s.m.Unlock()
+
+	v, ok := s.jobs[id]
+	if !ok {
+		return cron.Entry{}
+	}
+
+	return s.cron.Entry(v)
 }
 
 type GenericJob struct {
