@@ -20,6 +20,7 @@ interface MultiSelectProps {
     options: MultiSelectOption[];
     columns?: COL_WIDTHS;
     creatable?: boolean;
+    disabled?: boolean;
 }
 
 export const MultiSelect = ({
@@ -27,7 +28,8 @@ export const MultiSelect = ({
   label,
   options,
   columns,
-  creatable
+  creatable,
+  disabled
 }: MultiSelectProps) => {
   const settingsContext = SettingsContext.useValue();
 
@@ -58,6 +60,7 @@ export const MultiSelect = ({
           <RMSC
             {...field}
             options={[...[...options, ...field.value.map((i: MultiSelectOption) => ({ value: i.value ?? i, label: i.label ?? i }))].reduce((map, obj) => map.set(obj.value, obj), new Map()).values()]}
+            disabled={disabled}
             labelledBy={name}
             isCreatable={creatable}
             onCreateOption={handleNewField}

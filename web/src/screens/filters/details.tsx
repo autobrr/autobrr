@@ -235,7 +235,7 @@ export default function FilterDetails() {
                 min_size: filter.min_size,
                 max_size: filter.max_size,
                 delay: filter.delay,
-                priority: filter.priority,
+                priority: filter.priority ?? 0,
                 max_downloads: filter.max_downloads,
                 max_downloads_unit: filter.max_downloads_unit,
                 use_regex: filter.use_regex || false,
@@ -297,7 +297,7 @@ export default function FilterDetails() {
                   <Routes>
                     <Route index element={<General />} />
                     <Route path="movies-tv" element={<MoviesTv />} />
-                    <Route path="music" element={<Music />} />
+                    <Route path="music" element={<Music values={values} />} />
                     <Route path="advanced" element={<Advanced values={values} />} />
                     <Route path="external" element={<External />} />
                     <Route path="actions" element={<FilterActions filter={filter} values={values} />} />
@@ -346,7 +346,7 @@ export function General() {
           <TextField name="min_size" label="Min size" columns={6} placeholder="eg. 100MiB, 80GB" />
           <TextField name="max_size" label="Max size" columns={6} placeholder="eg. 100MiB, 80GB" />
           <NumberField name="delay" label="Delay" placeholder="Number of seconds to delay actions" />
-          <NumberField name="priority" label="Priority" placeholder="Higher number = higher prio" />
+          <NumberField name="priority" label="Priority" placeholder="Higher number = higher prio" min={0} required={true} />
 
           <NumberField name="max_downloads" label="Max downloads" placeholder="Takes any number (0 is infinite)" />
           <Select name="max_downloads_unit" label="Max downloads per" options={downloadsPerUnitOptions}  optionDefaultText="Select unit" />
@@ -409,7 +409,7 @@ export function MoviesTv() {
   );
 }
 
-export function Music() {
+export function Music({ values }: AdvancedProps) {
   return (
     <div>
       <div className="mt-6 grid grid-cols-12 gap-6">
@@ -422,17 +422,17 @@ export function Music() {
         <TitleSubtitle title="Quality" subtitle="Format, source, log etc." />
 
         <div className="mt-6 grid grid-cols-12 gap-6">
-          <MultiSelect name="formats" options={FORMATS_OPTIONS} label="Format" columns={6} />
-          <MultiSelect name="quality" options={QUALITY_MUSIC_OPTIONS} label="Quality" columns={6} />
+          <MultiSelect name="formats" options={FORMATS_OPTIONS} label="Format" columns={6} disabled={values.perfect_flac} />
+          <MultiSelect name="quality" options={QUALITY_MUSIC_OPTIONS} label="Quality" columns={6} disabled={values.perfect_flac} />
         </div>
 
         <div className="mt-6 grid grid-cols-12 gap-6">
-          <MultiSelect name="media" options={SOURCES_MUSIC_OPTIONS} label="Media" columns={6} />
-          <MultiSelect name="match_release_types" options={RELEASE_TYPE_MUSIC_OPTIONS} label="Type" columns={6} />
+          <MultiSelect name="media" options={SOURCES_MUSIC_OPTIONS} label="Media" columns={6} disabled={values.perfect_flac} />
+          <MultiSelect name="match_release_types" options={RELEASE_TYPE_MUSIC_OPTIONS} label="Type" columns={6} disabled={values.perfect_flac} />
         </div>
 
         <div className="mt-6 grid grid-cols-12 gap-6">
-          <NumberField name="log_score" label="Log score" placeholder="eg. 100" />
+          <NumberField name="log_score" label="Log score" placeholder="eg. 100" min={0} max={100} disabled={values.perfect_flac} />
         </div>
 
       </div>
@@ -448,8 +448,8 @@ export function Music() {
                   </div> */}
               <div className="mt-4 sm:mt-0 sm:col-span-2">
                 <div className="max-w-lg space-y-4">
-                  <CheckboxField name="log" label="Log" sublabel="Must include Log" />
-                  <CheckboxField name="cue" label="Cue" sublabel="Must include Cue"/>
+                  <CheckboxField name="log" label="Log" sublabel="Must include Log" disabled={values.perfect_flac} />
+                  <CheckboxField name="cue" label="Cue" sublabel="Must include Cue" disabled={values.perfect_flac} />
                   <CheckboxField name="perfect_flac" label="Perfect FLAC" sublabel="Override all options about quality, source, format, and cue/log/log score"/>
                 </div>
               </div>
