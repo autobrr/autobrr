@@ -172,6 +172,33 @@ func (r *FeedRepo) Find(ctx context.Context) ([]domain.Feed, error) {
 	return feeds, nil
 }
 
+func (r *FeedRepo) GetLastRunDataByID(ctx context.Context, id int) (string, error) {
+	queryBuilder := r.db.squirrel.
+		Select(
+			"last_run_data",
+		).
+		From("feed").
+		Where(sq.Eq{"id": id})
+
+	query, args, err := queryBuilder.ToSql()
+	if err != nil {
+		return "", errors.Wrap(err, "error building query")
+	}
+
+	row := r.db.handler.QueryRowContext(ctx, query, args...)
+	if err := row.Err(); err != nil {
+		return "", errors.Wrap(err, "error executing query")
+	}
+
+	var data sql.NullString
+
+	if err := row.Scan(&data); err != nil {
+		return "", errors.Wrap(err, "error scanning row")
+	}
+
+	return data.String, nil
+}
+
 func (r *FeedRepo) Store(ctx context.Context, feed *domain.Feed) error {
 	queryBuilder := r.db.squirrel.
 		Insert("feed").

@@ -2,6 +2,7 @@ package torznab
 
 import (
 	"bytes"
+	"context"
 	"encoding/xml"
 	"io"
 	"log"
@@ -15,8 +16,8 @@ import (
 )
 
 type Client interface {
-	FetchFeed() ([]FeedItem, error)
-	FetchCaps() (*Caps, error)
+	FetchFeed(ctx context.Context) (*Feed, error)
+	FetchCaps(ctx context.Context) (*Caps, error)
 	GetCaps() *Caps
 }
 
@@ -74,7 +75,7 @@ func NewClient(config Config) Client {
 	return c
 }
 
-func (c *client) get(endpoint string, opts map[string]string) (int, *Response, error) {
+func (c *client) get(ctx context.Context, endpoint string, opts map[string]string) (int, *Feed, error) {
 	params := url.Values{
 		"t": {"search"},
 	}
@@ -88,7 +89,7 @@ func (c *client) get(endpoint string, opts map[string]string) (int, *Response, e
 	u.RawQuery = params.Encode()
 	reqUrl := u.String()
 
-	req, err := http.NewRequest("GET", reqUrl, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, reqUrl, nil)
 	if err != nil {
 		return 0, nil, errors.Wrap(err, "could not build request")
 	}
@@ -121,17 +122,19 @@ func (c *client) get(endpoint string, opts map[string]string) (int, *Response, e
 		return resp.StatusCode, nil, errors.Wrap(err, "torznab.io.Copy")
 	}
 
-	var response Response
+	var response Feed
 	if err := xml.Unmarshal(buf.Bytes(), &response); err != nil {
 		return resp.StatusCode, nil, errors.Wrap(err, "torznab: could not decode feed")
 	}
 
+	response.Raw = buf.String()
+
 	return resp.StatusCode, &response, nil
 }
 
-func (c *client) FetchFeed() ([]FeedItem, error) {
+func (c *client) FetchFeed(ctx context.Context) (*Feed, error) {
 	if c.Capabilities == nil {
-		status, caps, err := c.getCaps("?t=caps", nil)
+		status, caps, err := c.getCaps(ctx, "?t=caps", nil)
 		if err != nil {
 			return nil, errors.Wrap(err, "could not get caps for feed")
 		}
@@ -143,7 +146,7 @@ func (c *client) FetchFeed() ([]FeedItem, error) {
 		c.Capabilities = caps
 	}
 
-	status, res, err := c.get("", nil)
+	status, res, err := c.get(ctx, "", nil)
 	if err != nil {
 		return nil, errors.Wrap(err, "could not get feed")
 	}
@@ -156,10 +159,10 @@ func (c *client) FetchFeed() ([]FeedItem, error) {
 		item.MapCategories(c.Capabilities.Categories.Categories)
 	}
 
-	return res.Channel.Items, nil
+	return res, nil
 }
 
-func (c *client) getCaps(endpoint string, opts map[string]string) (int, *Caps, error) {
+func (c *client) getCaps(ctx context.Context, endpoint string, opts map[string]string) (int, *Caps, error) {
 	params := url.Values{
 		"t": {"caps"},
 	}
@@ -173,7 +176,7 @@ func (c *client) getCaps(endpoint string, opts map[string]string) (int, *Caps, e
 	u.RawQuery = params.Encode()
 	reqUrl := u.String()
 
-	req, err := http.NewRequest("GET", reqUrl, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, reqUrl, nil)
 	if err != nil {
 		return 0, nil, errors.Wrap(err, "could not build request")
 	}
@@ -220,9 +223,9 @@ func (c *client) getCaps(endpoint string, opts map[string]string) (int, *Caps, e
 	return resp.StatusCode, &response, nil
 }
 
-func (c *client) FetchCaps() (*Caps, error) {
+func (c *client) FetchCaps(ctx context.Context) (*Caps, error) {
 
-	status, res, err := c.getCaps("?t=caps", nil)
+	status, res, err := c.getCaps(ctx, "?t=caps", nil)
 	if err != nil {
 		return nil, errors.Wrap(err, "could not get caps for feed")
 	}
@@ -238,12 +241,12 @@ func (c *client) GetCaps() *Caps {
 	return c.Capabilities
 }
 
-func (c *client) Search(query string) ([]FeedItem, error) {
+func (c *client) Search(ctx context.Context, query string) ([]FeedItem, error) {
 	v := url.Values{}
 	v.Add("q", query)
 	params := v.Encode()
 
-	status, res, err := c.get("&t=search&"+params, nil)
+	status, res, err := c.get(ctx, "&t=search&"+params, nil)
 	if err != nil {
 		return nil, errors.Wrap(err, "could not search feed")
 	}

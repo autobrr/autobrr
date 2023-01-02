@@ -105,7 +105,7 @@ func (s *service) RunAction(ctx context.Context, action *domain.Action, release 
 		ActionClient:   action.Client.Name,
 		Rejections:     []string{},
 		Protocol:       domain.ReleaseProtocolTorrent,
-		Implementation: domain.ReleaseImplementationIRC,
+		Implementation: release.Implementation,
 		Timestamp:      time.Now(),
 	}
 
