@@ -7,6 +7,20 @@ import (
 	"github.com/autobrr/autobrr/pkg/errors"
 )
 
+type Feed struct {
+	Channel Channel `xml:"channel"`
+	Raw     string
+}
+
+func (f Feed) Len() int {
+	return len(f.Channel.Items)
+}
+
+type Channel struct {
+	Title string     `xml:"title"`
+	Items []FeedItem `xml:"item"`
+}
+
 type Response struct {
 	Channel struct {
 		Items []FeedItem `xml:"item"`
