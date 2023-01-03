@@ -29,6 +29,7 @@ type Service interface {
 	Test(ctx context.Context, feed *domain.Feed) error
 	ToggleEnabled(ctx context.Context, id int, enabled bool) error
 	Delete(ctx context.Context, id int) error
+	GetLastRunData(ctx context.Context, id int) (string, error)
 
 	Start() error
 }
@@ -222,7 +223,7 @@ func (s *service) test(ctx context.Context, feed *domain.Feed) error {
 
 	// test feeds
 	if feed.Type == string(domain.FeedTypeTorznab) {
-		if err := s.testTorznab(feed, subLogger); err != nil {
+		if err := s.testTorznab(ctx, feed, subLogger); err != nil {
 			return err
 		}
 	} else if feed.Type == string(domain.FeedTypeRSS) {
@@ -248,17 +249,17 @@ func (s *service) testRSS(ctx context.Context, feed *domain.Feed) error {
 	return nil
 }
 
-func (s *service) testTorznab(feed *domain.Feed, subLogger *log.Logger) error {
+func (s *service) testTorznab(ctx context.Context, feed *domain.Feed, subLogger *log.Logger) error {
 	// setup torznab Client
 	c := torznab.NewClient(torznab.Config{Host: feed.URL, ApiKey: feed.ApiKey, Log: subLogger})
 
-	items, err := c.FetchFeed()
+	items, err := c.FetchFeed(ctx)
 	if err != nil {
 		s.log.Error().Err(err).Msg("error getting torznab feed")
 		return err
 	}
 
-	s.log.Info().Msgf("refreshing torznab feed: %v, found (%d) items", feed.Name, len(items))
+	s.log.Info().Msgf("refreshing torznab feed: %v, found (%d) items", feed.Name, len(items.Channel.Items))
 
 	return nil
 }
@@ -360,7 +361,7 @@ func (s *service) addTorznabJob(f feedInstance) error {
 	c := torznab.NewClient(torznab.Config{Host: f.URL, ApiKey: f.ApiKey, Timeout: f.Timeout})
 
 	// create job
-	job := NewTorznabJob(f.Name, f.IndexerIdentifier, l, f.URL, c, s.cacheRepo, s.releaseSvc)
+	job := NewTorznabJob(f.Feed, f.Name, f.IndexerIdentifier, l, f.URL, c, s.repo, s.cacheRepo, s.releaseSvc)
 
 	identifierKey := feedKey{f.Feed.ID, f.Feed.Indexer, f.Feed.Name}.ToString()
 
@@ -420,4 +421,17 @@ func (s *service) stopFeedJob(indexer string) error {
 	s.log.Debug().Msgf("stop feed job: %v", indexer)
 
 	return nil
+}
+
+func (s *service) GetNextRun(indexer string) (time.Time, error) {
+	return s.scheduler.GetNextRun(indexer)
+}
+
+func (s *service) GetLastRunData(ctx context.Context, id int) (string, error) {
+	feed, err := s.repo.GetLastRunDataByID(ctx, id)
+	if err != nil {
+		return "", err
+	}
+
+	return feed, nil
 }

@@ -9,7 +9,13 @@ import { toast } from "react-hot-toast";
 import Toast from "../../components/notifications/Toast";
 import { queryClient } from "../../App";
 import { DeleteModal } from "../../components/modals";
-import { ArrowsRightLeftIcon, EllipsisHorizontalIcon, PencilSquareIcon, TrashIcon } from "@heroicons/react/24/outline";
+import {
+  ArrowsRightLeftIcon,
+  DocumentTextIcon,
+  EllipsisHorizontalIcon,
+  PencilSquareIcon,
+  TrashIcon
+} from "@heroicons/react/24/outline";
 import { FeedUpdateForm } from "../../forms/settings/FeedForms";
 import { EmptySimple } from "../../components/emptystates";
 import { ImplementationBadges } from "./Indexer";
@@ -242,6 +248,27 @@ const FeedItemDropdown = ({
               )}
             </Menu.Item>
           </div>
+          <Menu.Item>
+            {({ active }) => (
+              <a
+                href={`/api/feeds/${feed.id}/latest`}
+                target="_blank"
+                className={classNames(
+                  active ? "bg-blue-600 text-white" : "text-gray-900 dark:text-gray-300",
+                  "font-medium group flex rounded-md items-center w-full px-2 py-2 text-sm"
+                )}
+              >
+                <DocumentTextIcon
+                  className={classNames(
+                    active ? "text-white" : "text-blue-500",
+                    "w-5 h-5 mr-2"
+                  )}
+                  aria-hidden="true"
+                />
+                View latest run
+              </a>
+            )}
+          </Menu.Item>
           <div className="px-1 py-1">
             <Menu.Item>
               {({ active }) => (
