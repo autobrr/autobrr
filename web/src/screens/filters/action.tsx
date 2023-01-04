@@ -341,7 +341,7 @@ const TypeForm = ({ action, idx, clients }: TypeFormProps) => {
               name={`actions.${idx}.label`}
               label="Label"
               columns={6}
-              placeholder="eg. label1,label2"
+              placeholder="eg. label1 (must exist in rTorrent to work)"
             />
           </div>
 
