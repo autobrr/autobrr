@@ -135,7 +135,7 @@ function DownloadClientSettings() {
                 ))}
               </ol>
             </section>
-            : <EmptySimple title="No download clients" subtitle="Add a new client" buttonText="New client" buttonAction={toggleAddClient} />
+            : <EmptySimple title="No download clients" subtitle="" buttonText="Add new client" buttonAction={toggleAddClient} />
           }
         </div>
       </div>

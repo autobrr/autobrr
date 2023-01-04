@@ -54,7 +54,7 @@ function NotificationSettings() {
               ))}
             </ol>
           </section>
-          : <EmptySimple title="No notifications setup" subtitle="Add a new notification" buttonText="New notification" buttonAction={toggleAddNotifications} />}
+          : <EmptySimple title="No notifications" subtitle="" buttonText="Create new notification" buttonAction={toggleAddNotifications} />}
       </div>
     </div>
   );

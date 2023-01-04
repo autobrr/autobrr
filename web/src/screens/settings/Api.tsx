@@ -65,7 +65,7 @@ function APISettings() {
               ))}
             </ol>
           </section>
-          : <EmptySimple title="No API keys" subtitle="Create a new" buttonAction={toggleAddForm}
+          : <EmptySimple title="No API keys" subtitle="" buttonAction={toggleAddForm}
             buttonText="Create API key"/>}
       </div>
     </div>
