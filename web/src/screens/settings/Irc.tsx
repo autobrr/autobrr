@@ -142,6 +142,24 @@ const ListItem = ({ idx, network, expanded }: ListItemProps) => {
   const [updateIsOpen, toggleUpdate] = useToggle(false);
   const [edit, toggleEdit] = useToggle(false);
 
+  const queryClient = useQueryClient();
+  const mutation = useMutation(
+    (network: IrcNetwork) => APIClient.irc.updateNetwork(network),
+    {
+      onSuccess: () => {
+        queryClient.invalidateQueries(["networks"]);
+        toast.custom((t) => <Toast type="success" body={`${network.name} was updated successfully`} t={t}/>);
+      }
+    }
+  );
+
+  const onToggleMutation = (newState: boolean) => {
+    mutation.mutate({
+      ...network,
+      enabled: newState
+    });
+  };
+
   return (
     <li key={idx}>
       <div className={classNames("grid grid-cols-12 gap-2 lg:gap-4 items-center py-2", network.enabled && !network.healthy ? "bg-red-50 dark:bg-red-900 hover:bg-red-100 dark:hover:bg-red-800" : "hover:bg-gray-50 dark:hover:bg-gray-700 ")}>
@@ -152,8 +170,8 @@ const ListItem = ({ idx, network, expanded }: ListItemProps) => {
         />
         <div className="col-span-2 md:col-span-1 flex pl-5 text-sm text-gray-500 dark:text-gray-400 cursor-pointer">
           <Switch
-            checked={network.enabled ?? false}
-            onChange={toggleUpdate}
+            checked={network.enabled}
+            onChange={onToggleMutation}
             className={classNames(
               network.enabled ? "bg-blue-500" : "bg-gray-200 dark:bg-gray-600",
               "items-center relative inline-flex flex-shrink-0 h-6 w-11 border-2 border-transparent rounded-full cursor-pointer transition-colors ease-in-out duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
