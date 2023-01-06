@@ -71,6 +71,7 @@ irc:
         vars:
           - category
           - torrentName
+          - year
           - releaseTags
           - torrentSize
           - uploader
