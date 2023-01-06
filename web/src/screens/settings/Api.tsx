@@ -53,7 +53,7 @@ function APISettings() {
             <ol className="min-w-full relative">
               <li className="grid grid-cols-12 gap-4 mb-2 border-b border-gray-200 dark:border-gray-700">
                 <div
-                  className="col-span-5 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Name
+                  className="col-span-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Name
                 </div>
                 <div
                   className="col-span-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Key
@@ -107,14 +107,14 @@ function APIListItem({ apikey }: ApiKeyItemProps) {
       />
 
       <div className="grid grid-cols-12 gap-4 items-center py-2">
-        <div className="col-span-5 flex items-center text-sm font-medium text-gray-900 dark:text-white">
+        <div className="col-span-4 overflow-auto flex items-center text-sm font-medium text-gray-900 dark:text-white">
           {apikey.name}
         </div>
         <div className="col-span-6 flex items-center text-sm font-medium text-gray-900 dark:text-white">
           <KeyField value={apikey.key}/>
         </div>
 
-        <div className="col-span-1 flex items-center justify-end text-sm font-medium text-gray-900 dark:text-white">
+        <div className="col-span-2 flex items-center justify-end text-sm font-medium text-gray-900 dark:text-white">
           <button
             className={classNames(
               "text-gray-900 dark:text-gray-300",
