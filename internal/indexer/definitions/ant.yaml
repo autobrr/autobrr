@@ -11,14 +11,17 @@ protocol: torrent
 supports:
   - irc
   - rss
-source: custom
+source: gazelle
 settings:
   - name: authkey
     type: secret
+    required: true
     label: Auth key
     help: Right click DL on a torrent and get the authkey.
+
   - name: torrent_pass
     type: secret
+    required: true
     label: Torrent pass
     help: Right click DL on a torrent and get the torrent_pass.
 
@@ -32,15 +35,21 @@ irc:
   announcers:
     - Sauron
   settings:
-    - name: nickserv.account
+    - name: nick
       type: text
       required: true
-      label: NickServ Account
-      help: NickServ account. Make sure to group your user and bot. Like user|bot
+      label: Nick
+      help: Bot nick. Eg. user|bot
 
-    - name: nickserv.password
+    - name: auth.account
+      type: text
+      required: false
+      label: NickServ Account
+      help: NickServ account. Make sure to group your user and bot.
+
+    - name: auth.password
       type: secret
-      required: true
+      required: false
       label: NickServ Password
       help: NickServ password
 
@@ -49,25 +58,25 @@ irc:
       default: "Sauron bot #ant-announce USERNAME IRCKey"
       required: true
       label: Invite command
-      help: Invite auth with Sauron.
+      help: Invite auth with Muffit. Replace USERNAME and IRCKEY.
 
-parse:
-  type: single
-  lines:
-    - test:
-      - "[Feature Film] Tremar (1897) [H264 / MKV / Blu-ray / 1080p / DTS / Subs / Freeleech!] [12.84 GiB - Uploader: ze0s] https://anthelion.me/torrents.php?action=download&id=110 - action,horror,subtitles"
-      - "[Feature Film] Circus Du (1928) [H264 / MKV / Blu-ray / 1080p / AC3 / Scene / Freeleech!] [8.24 GiB - Uploader: b] https://anthelion.me/torrents.php?action=download&id=85 - comedy,romance"
-      - "[Feature Film] Judo (1918) [H264 / MKV / Blu-ray / 1080p / DTS / Subs / Freeleech!] [7.40 GiB - Uploader: ze0s] https://anthelion.me/torrents.php?action=download&id=117 - crime,drama,thriller,action,subtitles"
-      pattern: '\[(.*?)\] (.*) \[(.*)\] \[(.*) - Uploader: (.*)\] (https?\:\/\/.*)\/.*id=(\d+).* - (.*)'
-      vars:
-        - category
-        - title
-        - releaseTags
-        - torrentSize
-        - uploader
-        - baseUrl
-        - torrentId
-        - tags
+  parse:
+    type: single
+    lines:
+      - test:
+        - "[Feature Film] Tremar (1897) [H264 / MKV / Blu-ray / 1080p / DTS / Subs / Freeleech!] [12.84 GiB - Uploader: user] https://anthelion.me/torrents.php?action=download&id=110 - action,horror,subtitles"
+        - "[Feature Film] Circus Du (1928) [H264 / MKV / Blu-ray / 1080p / AC3 / Scene / Freeleech!] [8.24 GiB - Uploader: anon] https://anthelion.me/torrents.php?action=download&id=85 - comedy,romance"
+        - "[Feature Film] Judo (1918) [H264 / MKV / Blu-ray / 1080p / DTS / Subs / Freeleech!] [7.40 GiB - Uploader: user1] https://anthelion.me/torrents.php?action=download&id=117 - crime,drama,thriller,action,subtitles"
+        pattern: '\[(.*?)\] (.*) \((.*)\) \[(.*)\] \[(.*) - Uploader: (.*)\] (https?\:\/\/.*\/).*id=(\d+).* - (.*)'
+        vars:
+          - category
+          - torrentName
+          - releaseTags
+          - torrentSize
+          - uploader
+          - baseUrl
+          - torrentId
+          - tags
 
-  match:
-    torrenturl: "{{ .baseUrl }}/torrents.php?action=download&id={{ .torrentId }}&authkey={{ .authkey }}&torrent_pass={{ .torrent_pass }}"
+    match:
+      torrenturl: "/torrents.php?action=download&id={{ .torrentId }}&authkey={{ .authkey }}&torrent_pass={{ .torrent_pass }}"
