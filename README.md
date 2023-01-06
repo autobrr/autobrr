@@ -17,7 +17,7 @@ Installation guide and documentation can be found at https://autobrr.com
 
 ## Key features
 
-- Support for 62+ trackers with IRC announces
+- Support for 60+ trackers with IRC announces
 - Torznab/RSS support via Prowlarr to easily get access to hundreds of trackers
 - Powerful but simple filtering with RegEx support (like in autodl-irssi)
 - Easy to use and mobile friendly web UI (with dark mode!) to manage everything
