@@ -125,12 +125,11 @@ Use their official one-click installer or ours:
 
 #### Other providers
 
+##### One-click installers
 
 For other providers the Seedbox.io installer should work. If not, open an issue or contact us on [Discord](https://discord.gg/WQ2eUycxyT)
 
     wget https://gobrr.sh/install_sbio && bash install_sbio
-
-##### One-click installers
 
 - Ultra.cc
 - Seedit4.me
