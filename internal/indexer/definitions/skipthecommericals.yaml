@@ -13,11 +13,11 @@ supports:
   - rss
 source: UNIT3D
 settings:
-  - name: passkey
+  - name: rsskey
     type: secret
     required: true
-    label: RSS key
-    help: "Copy the RSS key from your settings or profile page"
+    label: RSS key (RID)
+    help: "Go to your profile tab, Settings > Security, copy RSS Key (RID)"
 
 irc:
   network: SkipTheCommericals
@@ -51,18 +51,20 @@ irc:
     type: single
     lines:
       - test:
-          - "New Torrent Announcement: Category: [TV Show] Type: [WEB-DL] Name: [House of the Dragon S01E04 720p HMAX WEB-DL DD+ 5.1 Atmos H.264-NTb] Size: [1.82 GiB] Uploaded By: [user] - https://skipthecommericals.xyz/torrent/download/00000"
-          - "New Torrent Announcement: Category: [TV Show] Type: [WEB-DL] Name: [House of the Dragon S01E04 720p HMAX WEB-DL DD+ 5.1 Atmos H.264-NTb FREELEECH] Size: [1.82 GiB] Uploaded By: [anon] - https://skipthecommericals.xyz/torrent/download/00000"
-        pattern: 'New Torrent Announcement: Category: \[(.*)\] Type: \[(.*)\] Name: \[(.*?)(?:\s(FREELEECH))?\] Size: \[(.*)\] Uploaded By: \[(.*)\] - (https?\:\/\/.*?\/).*\/(\d+)'
+          - "Category [TV Show] Type [WEB-DL] Name [The best show S24E10 Jumped In 1080p AMZN WEB-DL DD+ 5.1 H.264-NTb] Freeleech [0%] Double Upload [No] Size [2.9 GB] Uploader [userone] Url [https://skipthecommericals.xyz/torrent/download/00000]"
+        pattern: 'Category \[(.+)\] Type \[(.+)\] Name \[(.+?)\] ?(?:Resolution \[(.*)\])? Freeleech \[(.+)\] Internal \[(.+)\] Double Upload \[(.+)\] Size \[(.+)\] Uploader \[(.+)\] Url \[(https?\:\/\/.+\/).+\/.+\/(\d+)\]'
         vars:
           - category
           - releaseTags
           - torrentName
-          - freeleech
+          - resolution
+          - freeleechPercent
+          - internal
+          - tags
           - torrentSize
           - uploader
           - baseUrl
           - torrentId
 
     match:
-      torrenturl: "/torrent/download/{{ .torrentId }}.{{ .passkey }}"
+      torrenturl: "/torrent/download/{{ .torrentId }}.{{ .rsskey }}"
