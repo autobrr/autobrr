@@ -5,7 +5,7 @@ identifier: subsplease
 description: SubsPlease is an indexer for Anime.
 language: en-us
 urls:
-  - https://subsplease.org/
+  - https://nyaa.si/
 privacy: public
 protocol: torrent
 supports:
