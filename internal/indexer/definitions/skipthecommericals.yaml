@@ -1,0 +1,68 @@
+---
+#id: skipthecommericals
+name: SkipTheCommericals
+identifier: stc
+description: SkipTheCommericals (STC) is a Private Torrent Tracker for TV
+language: en-us
+urls:
+  - https://skipthecommericals.xyz/
+privacy: private
+protocol: torrent
+supports:
+  - irc
+  - rss
+source: UNIT3D
+settings:
+  - name: passkey
+    type: secret
+    required: true
+    label: RSS key
+    help: "Copy the RSS key from your settings or profile page"
+
+irc:
+  network: SkipTheCommericals
+  server: irc.skipthecommericals.xyz
+  port: 6697
+  tls: true
+  channels:
+    - "#announce"
+  announcers:
+    - STCBOT
+  settings:
+    - name: nick
+      type: text
+      required: true
+      label: Nick
+      help: Bot nick. Eg. user_bot
+
+    - name: auth.account
+      type: text
+      required: false
+      label: NickServ Account
+      help: NickServ account. Make sure to group your user and bot.
+
+    - name: auth.password
+      type: secret
+      required: false
+      label: NickServ Password
+      help: NickServ password
+
+  parse:
+    type: single
+    lines:
+      - test:
+          - "New Torrent Announcement: Category: [TV Show] Type: [WEB-DL] Name: [House of the Dragon S01E04 720p HMAX WEB-DL DD+ 5.1 Atmos H.264-NTb] Size: [1.82 GiB] Uploaded By: [user] - https://skipthecommericals.xyz/torrent/download/00000"
+          - "New Torrent Announcement: Category: [TV Show] Type: [WEB-DL] Name: [House of the Dragon S01E04 720p HMAX WEB-DL DD+ 5.1 Atmos H.264-NTb FREELEECH] Size: [1.82 GiB] Uploaded By: [anon] - https://skipthecommericals.xyz/torrent/download/00000"
+        pattern: 'New Torrent Announcement: Category: \[(.*)\] Type: \[(.*)\] Name: \[(.*?)(?:\s(FREELEECH))?\] Size: \[(.*)\] Uploaded By: \[(.*)\] - (https?\:\/\/.*?\/).*\/(\d+)'
+        vars:
+          - category
+          - releaseTags
+          - torrentName
+          - freeleech
+          - torrentSize
+          - uploader
+          - baseUrl
+          - torrentId
+
+    match:
+      torrenturl: "/torrent/download/{{ .torrentId }}.{{ .passkey }}"
