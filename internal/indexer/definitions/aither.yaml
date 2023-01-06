@@ -47,7 +47,7 @@ irc:
     lines:
       - test:
           - "Category [Music] Type [Music - General] Name [Melanie Martinez - Copy Cat 2020 WEB FLAC 24-bits 44.1 kHz] Freeleech [0%] Internal [No] Double Upload [No] Size [44.06 MB] Uploader [Pure] Url [https://aither.cc/torrents/download/1231231]"
-          - "Category [Movie] Type [WEB-DL] Name [Izla 2021 FIL 1080p NF WEB-DL DD+ 5.1 H.264-HBO] Resolution [1080p] Freeleech [0%] Internal [No] Double Upload [No] Size [3.38 GB] Uploader [Anonymous] Url [https://aither.cc/torrents/download/213123123"
+          - "Category [Movie] Type [WEB-DL] Name [Izla 2021 FIL 1080p NF WEB-DL DD+ 5.1 H.264-HBO] Resolution [1080p] Freeleech [0%] Internal [No] Double Upload [No] Size [3.38 GB] Uploader [Anonymous] Url [https://aither.cc/torrents/download/213123123]"
         pattern: 'Category \[(.+)\] Type \[(.+)\] Name \[(.+?)\] ?(?:Resolution \[(.*)\])? Freeleech \[(.+)\] Internal \[(.+)\] Double Upload \[(.+)\] Size \[(.+)\] Uploader \[(.+)\] Url \[(https?\:\/\/.+\/).+\/.+\/(\d+)\]'
         vars:
           - category
