@@ -115,7 +115,7 @@ function ListItem({ notification }: ListItemProps) {
             />
           </Switch>
         </div>
-        <div className="col-span-6 md:col-span-3 lg:col-span-3 px-6 overflow-auto flex items-center sm:px-6">
+        <div className="col-span-6 md:col-span-3 lg:col-span-3 px-6 overflow-hidden flex items-center sm:px-6">
           {notification.name}
         </div>
         <div className="hidden md:flex col-span-3 flex items-center">
