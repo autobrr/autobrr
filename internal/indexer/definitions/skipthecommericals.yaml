@@ -52,7 +52,7 @@ irc:
     lines:
       - test:
           - "Category [TV Show] Type [WEB-DL] Name [The best show S24E10 Jumped In 1080p AMZN WEB-DL DD+ 5.1 H.264-NTb] Freeleech [0%] Double Upload [No] Size [2.9 GB] Uploader [userone] Url [https://skipthecommericals.xyz/torrent/download/00000]"
-        pattern: 'Category \[(.+)\] Type \[(.+)\] Name \[(.+?)\] ?(?:Resolution \[(.*)\])? Freeleech \[(.+)\] Internal \[(.+)\] Double Upload \[(.+)\] Size \[(.+)\] Uploader \[(.+)\] Url \[(https?\:\/\/.+\/).+\/.+\/(\d+)\]'
+        pattern: 'Category \[(.+)\] Type \[(.+)\] Name \[(.+?)\] Freeleech \[(.+)\] Double Upload \[(.+)\] Size \[(.+)\] Uploader \[(.+)\] Url \[(https?\:\/\/.+\/).+\/.+\/(\d+)\]'
         vars:
           - category
           - releaseTags
