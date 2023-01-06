@@ -1,0 +1,63 @@
+---
+#id: bitsexy
+name: BitSexy
+identifier: bitsexy
+description: BitSexy (BSEX) is a private torrent tracker for XXX
+language: en-us
+urls:
+  - https://bitsexy.org/
+privacy: private
+protocol: torrent
+supports:
+  - irc
+  - rss
+source: custom
+settings:
+  - name: passkey
+    type: secret
+    required: true
+    label: Passkey
+    help: "Copy your passkey from the profile and paste it in the field below."
+
+irc:
+  network: BitSexy
+  server: irc.bitsexy.org
+  port: 6697
+  tls: true
+  channels:
+    - "#announce"
+  announcers:
+    - Mmmmm
+  settings:
+    - name: nick
+      type: text
+      required: true
+      label: Nick
+      help: Bot nick. Eg. user_dl
+
+    - name: auth.account
+      type: text
+      required: false
+      label: NickServ Account
+      help: NickServ account. Make sure to group your user and bot.
+
+    - name: auth.password
+      type: secret
+      required: false
+      label: NickServ Password
+      help: NickServ password
+
+  parse:
+    type: single
+    lines:
+      - test:
+          - '[NEW] Best actress - Funny title 15 [720p]-SEX (Hardcore) https://bitsexy.org/details.php?id=00000 [PRED 90 seconds ago]'
+        pattern: '\[NEW\] (.*) \(([^)]*)\) (https?\:\/\/[^\/]+\/).*[&\?]id=(\d+)\s*(?:\[PRED ([^\]]*)\])?'
+        vars:
+          - torrentName
+          - category
+          - baseUrl
+          - torrentId
+
+    match:
+      torrenturl: "/download.php?torrent={{ .torrentId }}&torrent_pass={{ .passkey }}"
