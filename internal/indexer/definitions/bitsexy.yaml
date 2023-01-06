@@ -53,12 +53,13 @@ irc:
       - test:
           - '[NEW] Best actress - Funny title 15 [720p]-SEX (Hardcore) https://bitsexy.org/details.php?id=00000 [PRED 90 seconds ago]'
           - '[NEW] Best actress - Funny title 15 [720p]-SEX (Hardcore) https://bitsexy.org/details.php?id=00000'
-        pattern: '\[NEW\] (.*) \(([^)]*)\) (https?\:\/\/[^\/]+\/).*[&\?]id=(\d+)\s*(?:\[PRED ([^\]]*)\])?'
+        pattern: '\[NEW\] (.*) \(([^)]*)\) (https?\:\/\/[^\/]+\/).*[&\?]id=(\d+)\s*(?:\[PRED ([^\]]*) ago\])?'
         vars:
           - torrentName
           - category
           - baseUrl
           - torrentId
+          - preTime
 
     match:
       torrenturl: "/download.php?torrent={{ .torrentId }}&torrent_pass={{ .passkey }}"
