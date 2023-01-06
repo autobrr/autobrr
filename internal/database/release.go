@@ -61,8 +61,8 @@ func (repo *ReleaseRepo) StoreReleaseActionStatus(ctx context.Context, a *domain
 			Set("status", a.Status).
 			Set("rejections", pq.Array(a.Rejections)).
 			Set("timestamp", a.Timestamp).
-			Where("id = ?", a.ID).
-			Where("release_id = ?", a.ReleaseID)
+			Where(sq.Eq{"id": a.ID}).
+			Where(sq.Eq{"release_id": a.ReleaseID})
 
 		query, args, err := queryBuilder.ToSql()
 		if err != nil {
@@ -98,7 +98,7 @@ func (repo *ReleaseRepo) StoreReleaseActionStatus(ctx context.Context, a *domain
 }
 
 func (repo *ReleaseRepo) Find(ctx context.Context, params domain.ReleaseQueryParams) ([]*domain.Release, int64, int64, error) {
-	tx, err := repo.db.BeginTx(ctx, &sql.TxOptions{})
+	tx, err := repo.db.BeginTx(ctx, &sql.TxOptions{Isolation: sql.LevelReadCommitted})
 	if err != nil {
 		return nil, 0, 0, errors.Wrap(err, "error begin transaction")
 	}
@@ -109,39 +109,13 @@ func (repo *ReleaseRepo) Find(ctx context.Context, params domain.ReleaseQueryPar
 		return nil, nextCursor, total, err
 	}
 
-	for _, release := range releases {
-		statuses, err := repo.attachActionStatus(ctx, tx, release.ID)
-		if err != nil {
-			return releases, nextCursor, total, err
-		}
-		release.ActionStatus = statuses
-	}
-
-	if err = tx.Commit(); err != nil {
-		return nil, 0, 0, errors.Wrap(err, "error commit transaction find releases")
-	}
-
 	return releases, nextCursor, total, nil
 }
 
 func (repo *ReleaseRepo) findReleases(ctx context.Context, tx *Tx, params domain.ReleaseQueryParams) ([]*domain.Release, int64, int64, error) {
-	queryBuilder := repo.db.squirrel.
-		Select("r.id", "r.filter_status", "r.rejections", "r.indexer", "r.filter", "r.protocol", "r.title", "r.torrent_name", "r.size", "r.timestamp", "(SELECT COUNT(*) FROM release) AS total_count").
-		From("release r").
-		OrderBy("r.id DESC")
-
-	if params.Limit > 0 {
-		queryBuilder = queryBuilder.Limit(params.Limit)
-	} else {
-		queryBuilder = queryBuilder.Limit(20)
-	}
-
-	if params.Offset > 0 {
-		queryBuilder = queryBuilder.Offset(params.Offset)
-	}
-
+	whereQueryBuilder := sq.And{}
 	if params.Cursor > 0 {
-		queryBuilder = queryBuilder.Where(sq.Lt{"r.id": params.Cursor})
+		whereQueryBuilder = append(whereQueryBuilder, sq.Lt{"r.id": params.Cursor})
 	}
 
 	if params.Search != "" {
@@ -165,16 +139,20 @@ func (repo *ReleaseRepo) findReleases(ctx context.Context, tx *Tx, params domain
 			if reskey := r.FindAllStringSubmatch(search, -1); len(reskey) != 0 {
 				filter := sq.Or{}
 				for _, found := range reskey {
-					filter = append(filter, sq.Like{v: strings.ReplaceAll(strings.Trim(strings.Trim(found[1], `"`), `'`), ".", "_") + "%"})
+					filter = append(filter, ILike(v, strings.ReplaceAll(strings.Trim(strings.Trim(found[1], `"`), `'`), ".", "_")+"%"))
 				}
 
-				queryBuilder = queryBuilder.Where(filter)
+				if len(filter) == 0 {
+					continue
+				}
+
+				whereQueryBuilder = append(whereQueryBuilder, filter)
 				search = strings.TrimSpace(r.ReplaceAllLiteralString(search, ""))
 			}
 		}
 
 		if len(search) != 0 {
-			queryBuilder = queryBuilder.Where(sq.Like{"r.torrent_name": search + "%"})
+			whereQueryBuilder = append(whereQueryBuilder, sq.Like{"r.torrent_name": search + "%"})
 		}
 	}
 
@@ -184,12 +162,56 @@ func (repo *ReleaseRepo) findReleases(ctx context.Context, tx *Tx, params domain
 			filter = append(filter, sq.Eq{"r.indexer": v})
 		}
 
-		queryBuilder = queryBuilder.Where(filter)
+		if len(filter) > 0 {
+			whereQueryBuilder = append(whereQueryBuilder, filter)
+		}
 	}
 
-	if params.Filters.PushStatus != "" {
-		queryBuilder = queryBuilder.InnerJoin("release_action_status ras ON r.id = ras.release_id").Where(sq.Eq{"ras.status": params.Filters.PushStatus})
+	whereQuery, _, err := whereQueryBuilder.ToSql()
+	if err != nil {
+		return nil, 0, 0, errors.Wrap(err, "error building wherequery")
 	}
+
+	subQueryBuilder := repo.db.squirrel.
+		Select("r.id").
+		Distinct().
+		From("release r").
+		OrderBy("r.id DESC")
+
+	if params.Limit > 0 {
+		subQueryBuilder = subQueryBuilder.Limit(params.Limit)
+	} else {
+		subQueryBuilder = subQueryBuilder.Limit(20)
+	}
+
+	if params.Offset > 0 {
+		subQueryBuilder = subQueryBuilder.Offset(params.Offset)
+	}
+
+	if len(whereQueryBuilder) != 0 {
+		subQueryBuilder = subQueryBuilder.Where(whereQueryBuilder)
+	}
+
+	countQuery := repo.db.squirrel.Select("COUNT(*)").From("release r").Where(whereQuery)
+
+	if params.Filters.PushStatus != "" {
+		subQueryBuilder = subQueryBuilder.InnerJoin("release_action_status ras ON r.id = ras.release_id").Where(sq.Eq{"ras.status": params.Filters.PushStatus})
+		countQuery = countQuery.InnerJoin("release_action_status ras ON r.id = ras.release_id").Where("ras.status = '" + params.Filters.PushStatus + `'`)
+	}
+
+	subQuery, subArgs, err := subQueryBuilder.ToSql()
+	if err != nil {
+		return nil, 0, 0, errors.Wrap(err, "error building subquery")
+	}
+
+	queryBuilder := repo.db.squirrel.
+		Select("r.id", "r.filter_status", "r.rejections", "r.indexer", "r.filter", "r.protocol", "r.title", "r.torrent_name", "r.size", "r.timestamp",
+			"ras.id", "ras.status", "ras.action", "ras.type", "ras.client", "ras.filter", "ras.rejections", "ras.timestamp").
+		Column(sq.Alias(countQuery, "page_total")).
+		From("release r").
+		OrderBy("r.id DESC").
+		Where("r.id IN ("+subQuery+")", subArgs...).
+		LeftJoin("release_action_status ras ON r.id = ras.release_id")
 
 	query, args, err := queryBuilder.ToSql()
 	if err != nil {
@@ -215,15 +237,54 @@ func (repo *ReleaseRepo) findReleases(ctx context.Context, tx *Tx, params domain
 
 	for rows.Next() {
 		var rls domain.Release
+		var ras domain.ReleaseActionStatus
 
-		var indexer, filter sql.NullString
+		var rlsindexer, rlsfilter sql.NullString
 
-		if err := rows.Scan(&rls.ID, &rls.FilterStatus, pq.Array(&rls.Rejections), &indexer, &filter, &rls.Protocol, &rls.Title, &rls.TorrentName, &rls.Size, &rls.Timestamp, &countItems); err != nil {
+		var rasId sql.NullInt64
+		var rasStatus, rasAction, rasType, rasClient, rasFilter sql.NullString
+		var rasRejections []sql.NullString
+		var rasTimestamp sql.NullTime
+
+		if err := rows.Scan(&rls.ID, &rls.FilterStatus, pq.Array(&rls.Rejections), &rlsindexer, &rlsfilter, &rls.Protocol, &rls.Title, &rls.TorrentName, &rls.Size, &rls.Timestamp, &rasId, &rasStatus, &rasAction, &rasType, &rasClient, &rasFilter, pq.Array(&rasRejections), &rasTimestamp, &countItems); err != nil {
 			return res, 0, 0, errors.Wrap(err, "error scanning row")
 		}
 
-		rls.Indexer = indexer.String
-		rls.FilterName = filter.String
+		ras.ID = rasId.Int64
+		ras.Status = domain.ReleasePushStatus(rasStatus.String)
+		ras.Action = rasAction.String
+		ras.Type = domain.ActionType(rasType.String)
+		ras.Client = rasClient.String
+		ras.Filter = rasFilter.String
+		ras.Timestamp = rasTimestamp.Time
+		ras.Rejections = []string{}
+
+		for _, rejection := range rasRejections {
+			ras.Rejections = append(ras.Rejections, rejection.String)
+		}
+
+		idx := 0
+		for ; idx < len(res); idx++ {
+			if res[idx].ID != rls.ID {
+				continue
+			}
+
+			res[idx].ActionStatus = append(res[idx].ActionStatus, ras)
+			break
+		}
+
+		if idx != len(res) {
+			continue
+		}
+
+		rls.Indexer = rlsindexer.String
+		rls.FilterName = rlsfilter.String
+		rls.ActionStatus = make([]domain.ReleaseActionStatus, 0)
+
+		// only add ActionStatus if it's not empty
+		if ras.ID > 0 {
+			rls.ActionStatus = append(rls.ActionStatus, ras)
+		}
 
 		res = append(res, &rls)
 	}
@@ -238,75 +299,18 @@ func (repo *ReleaseRepo) findReleases(ctx context.Context, tx *Tx, params domain
 }
 
 func (repo *ReleaseRepo) FindRecent(ctx context.Context) ([]*domain.Release, error) {
-	tx, err := repo.db.BeginTx(ctx, &sql.TxOptions{})
+	tx, err := repo.db.BeginTx(ctx, &sql.TxOptions{Isolation: sql.LevelReadCommitted})
 	if err != nil {
 		return nil, errors.Wrap(err, "error begin transaction")
 	}
 	defer tx.Rollback()
 
-	releases, err := repo.findRecentReleases(ctx, tx)
+	releases, _, _, err := repo.findReleases(ctx, tx, domain.ReleaseQueryParams{Limit: 10})
 	if err != nil {
 		return nil, err
 	}
 
-	for _, release := range releases {
-		statuses, err := repo.attachActionStatus(ctx, tx, release.ID)
-		if err != nil {
-			return releases, err
-		}
-		release.ActionStatus = statuses
-	}
-
-	if err = tx.Commit(); err != nil {
-		return nil, errors.Wrap(err, "error transaction commit")
-	}
-
 	return releases, nil
-}
-
-func (repo *ReleaseRepo) findRecentReleases(ctx context.Context, tx *Tx) ([]*domain.Release, error) {
-	queryBuilder := repo.db.squirrel.
-		Select("r.id", "r.filter_status", "r.rejections", "r.indexer", "r.filter", "r.protocol", "r.title", "r.torrent_name", "r.size", "r.timestamp").
-		From("release r").
-		OrderBy("r.id DESC").
-		Limit(10)
-
-	query, args, err := queryBuilder.ToSql()
-	if err != nil {
-		return nil, errors.Wrap(err, "error building query")
-	}
-
-	repo.log.Trace().Str("database", "release.find").Msgf("query: '%v', args: '%v'", query, args)
-
-	res := make([]*domain.Release, 0)
-
-	rows, err := tx.QueryContext(ctx, query, args...)
-	if err != nil {
-		return res, errors.Wrap(err, "error executing query")
-	}
-
-	defer rows.Close()
-
-	if err := rows.Err(); err != nil {
-		return res, errors.Wrap(err, "rows error")
-	}
-
-	for rows.Next() {
-		var rls domain.Release
-
-		var indexer, filter sql.NullString
-
-		if err := rows.Scan(&rls.ID, &rls.FilterStatus, pq.Array(&rls.Rejections), &indexer, &filter, &rls.Protocol, &rls.Title, &rls.TorrentName, &rls.Size, &rls.Timestamp); err != nil {
-			return res, errors.Wrap(err, "error scanning row")
-		}
-
-		rls.Indexer = indexer.String
-		rls.FilterName = filter.String
-
-		res = append(res, &rls)
-	}
-
-	return res, nil
 }
 
 func (repo *ReleaseRepo) GetIndexerOptions(ctx context.Context) ([]string, error) {
@@ -346,7 +350,7 @@ func (repo *ReleaseRepo) GetActionStatusByReleaseID(ctx context.Context, release
 	queryBuilder := repo.db.squirrel.
 		Select("id", "status", "action", "type", "client", "filter", "rejections", "timestamp").
 		From("release_action_status").
-		Where("release_id = ?", releaseID)
+		Where(sq.Eq{"release_id": releaseID})
 
 	query, args, err := queryBuilder.ToSql()
 	if err != nil {
@@ -386,11 +390,10 @@ func (repo *ReleaseRepo) GetActionStatusByReleaseID(ctx context.Context, release
 }
 
 func (repo *ReleaseRepo) attachActionStatus(ctx context.Context, tx *Tx, releaseID int64) ([]domain.ReleaseActionStatus, error) {
-
 	queryBuilder := repo.db.squirrel.
 		Select("id", "status", "action", "type", "client", "filter", "rejections", "timestamp").
 		From("release_action_status").
-		Where("release_id = ?", releaseID)
+		Where(sq.Eq{"release_id": releaseID})
 
 	query, args, err := queryBuilder.ToSql()
 	if err != nil {
@@ -477,8 +480,7 @@ func (repo *ReleaseRepo) Delete(ctx context.Context) error {
 		return errors.Wrap(err, "error executing query")
 	}
 
-	err = tx.Commit()
-	if err != nil {
+	if err := tx.Commit(); err != nil {
 		return errors.Wrap(err, "error commit transaction delete")
 	}
 
@@ -511,7 +513,7 @@ func (repo *ReleaseRepo) CanDownloadShow(ctx context.Context, title string, seas
 	queryBuilder := repo.db.squirrel.
 		Select("COUNT(*)").
 		From("release").
-		Where("title LIKE ?", fmt.Sprint("%", title, "%"))
+		Where(ILike("title", title+"%"))
 
 	if season > 0 && episode > 0 {
 		queryBuilder = queryBuilder.Where(sq.Or{

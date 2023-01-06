@@ -60,6 +60,7 @@ irc:
       - test:
           - "TORRENT: That Artist - Albuum [2002] [Single] - FLAC / Lossless / WEB - 2000s,house,uk.garage,garage.house - https://orpheus.network/torrents.php?id=000000 / https://orpheus.network/torrents.php?action=download&id=0000000"
           - "TORRENT: Something [2021] [Album] - FLAC / Lossless / CD -  - https://orpheus.network/torrents.php?id=000000 / https://orpheus.network/torrents.php?action=download&id=0000000"
+          - "TORRENT: Artist 1 & Artist 2 - Best album (subtitle) [2004] [Album] - FLAC / Lossless / Log (100%) / Cue / CD - experimental,ambient,downtempo - https://orpheus.network/torrents.php?id=000000 / https://orpheus.network/torrents.php?action=download&id=0000000"
         pattern: 'TORRENT: (.*) \[(.+?)\] \[(.+?)\] - (.*) - \s*(.*) - https?:\/\/.* \/ (https?:\/\/.+\/).+id=(\d+)'
         vars:
           - torrentName

@@ -43,7 +43,7 @@ func (s *service) Login(ctx context.Context, username, password string) (*domain
 	u, err := s.userSvc.FindByUsername(ctx, username)
 	if err != nil {
 		s.log.Error().Err(err).Msgf("could not find user by username: %v", username)
-		return nil, err
+		return nil, errors.Wrapf(err, "invalid login: %s", username)
 	}
 
 	if u == nil {
@@ -58,7 +58,7 @@ func (s *service) Login(ctx context.Context, username, password string) (*domain
 
 	if !match {
 		s.log.Error().Msg("bad credentials")
-		return nil, errors.New("bad credentials")
+		return nil, errors.Errorf("invalid login: %s", username)
 	}
 
 	return u, nil

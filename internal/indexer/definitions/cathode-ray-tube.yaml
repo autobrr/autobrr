@@ -1,0 +1,71 @@
+---
+#id: crt
+name: Cathode-Ray Tube
+identifier: crt
+description: Cathode-Ray Tube (CRT) is a private torrent tracker for classic and international movies.
+language: en-us
+urls:
+  - https://www.cathode-ray.tube/
+privacy: private
+protocol: torrent
+supports:
+  - irc
+  - rss
+source: gazelle
+settings:
+  - name: authkey
+    type: secret
+    required: true
+    label: Auth key
+    help: Right click DL on a torrent and get the authkey.
+
+  - name: torrent_pass
+    type: secret
+    required: true
+    label: Torrent pass
+    help: Right click DL on a torrent and get the torrent_pass.
+
+irc:
+  network: DejaToons.net
+  server: irc.dejatoons.net
+  port: 6697
+  tls: true
+  channels:
+    - "#CRT"
+  announcers:
+    - Johnny5
+  settings:
+    - name: nick
+      type: text
+      required: true
+      label: Nick
+      help: Bot nick. Eg. user_bot
+
+    - name: auth.account
+      type: text
+      required: false
+      label: NickServ Account
+      help: NickServ account. Make sure to group your user and bot.
+
+    - name: auth.password
+      type: secret
+      required: false
+      label: NickServ Password
+      help: NickServ password
+
+  parse:
+    type: single
+    lines:
+      - test:
+          - "New Torrent ~ Some Cool Movie (1950) ~ Movies ~ 10.20 GiB ~ https://www.crt.test/torrents.php?id=1234"
+          - "New Torrent ~ Some Show: With a Subtitle - Seasons 1-2 (2001-2002) ~ TV ~ 33.44 GiB ~ https://www.crt.test/torrents.php?id=5678"
+        pattern: New Torrent ~ (.*) ~ (.*) ~ (.*) ~ (https:\/\/.+)\/torrents\.php\?id=(\d+)
+        vars:
+          - torrentName
+          - category
+          - torrentSize
+          - baseUrl
+          - torrentId
+
+    match:
+      torrenturl: "/torrents.php?action=download&id={{ .torrentId }}&authkey={{ .authkey }}&torrent_pass={{ .torrent_pass }}"
