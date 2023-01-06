@@ -1,8 +1,8 @@
 import { Fragment } from "react";
 import { Link, NavLink, Outlet } from "react-router-dom";
 import { Disclosure, Menu, Transition } from "@headlessui/react";
-import { ArrowTopRightOnSquareIcon } from "@heroicons/react/24/solid";
-import { Bars3Icon, ChevronDownIcon, XMarkIcon } from "@heroicons/react/24/outline";
+import { BookOpenIcon, UserIcon } from "@heroicons/react/24/solid";
+import { Bars3Icon, XMarkIcon } from "@heroicons/react/24/outline";
 
 import { AuthContext } from "../utils/Context";
 
@@ -77,7 +77,7 @@ export default function Base() {
                           )}
                         >
                           Docs
-                          <ArrowTopRightOnSquareIcon className="inline ml-1 h-5 w-5" aria-hidden="true" />
+                          <BookOpenIcon className="inline ml-1 h-5 w-5" aria-hidden="true" />
                         </a>
                       </div>
                     </div>
@@ -90,7 +90,7 @@ export default function Base() {
                             <Menu.Button
                               className={classNames(
                                 open ? "bg-gray-200 dark:bg-gray-800" : "",
-                                "text-gray-800 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-800",
+                                "text-gray-600 dark:text-gray-500 hover:bg-gray-200 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white px-3 py-2 rounded-2xl text-sm font-medium",
                                 "max-w-xs rounded-full flex items-center text-sm px-3 py-2",
                                 "transition-colors duration-200"
                               )}
@@ -99,8 +99,8 @@ export default function Base() {
                                 <span className="sr-only">Open user menu for </span>
                                 {authContext.username}
                               </span>
-                              <ChevronDownIcon
-                                className="hidden flex-shrink-0 ml-1 h-5 w-5 text-gray-800 dark:text-gray-300 sm:block"
+                              <UserIcon
+                                className="inline ml-1 h-5 w-5"
                                 aria-hidden="true"
                               />
                             </Menu.Button>
