@@ -44,7 +44,7 @@ irc:
   parse:
     type: single
     lines:
-      - pattern: '\[Release\] (.*(SubsPlease).*.(mkv)) \((.*)\) - .* - (.*)'
+      - pattern: '\[Release\] (.*(SubsPlease).*?)\.?(mkv)? \((\d+.?\d*[KMGTP]?B)\) - .* - (.*)'
         vars:
           - torrentName
           - releaseGroup
