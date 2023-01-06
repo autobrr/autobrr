@@ -154,7 +154,7 @@ function IndexerSettings() {
                 </div>
               </div>
             </div>
-            : <EmptySimple title="No indexers" subtitle="Add a new indexer" buttonText="New indexer" buttonAction={toggleAddIndexer} />
+            : <EmptySimple title="No indexers" subtitle="" buttonText="Add new indexer" buttonAction={toggleAddIndexer} />
           }
         </div>
 
