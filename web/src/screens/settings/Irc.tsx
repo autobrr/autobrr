@@ -122,8 +122,8 @@ export const IrcSettings = () => {
         ) : (
           <EmptySimple
             title="No networks"
-            subtitle="Add a new network"
-            buttonText="New network"
+            subtitle="Normally set up via Indexers"
+            buttonText="Add new network"
             buttonAction={toggleAddNetwork}
           />
         )}
