@@ -45,7 +45,7 @@ function NotificationSettings() {
               <li className="grid grid-cols-12 gap-4 border-b border-gray-200 dark:border-gray-700">
                 <div className="col-span-2 px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Enabled</div>
                 <div className="col-span-4 px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Name</div>
-                <div className="col-span-2 px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Type</div>
+                <div className="col-span-3 px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Type</div>
                 <div className="col-span-3 px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Events</div>
               </li>
 
@@ -96,7 +96,7 @@ function ListItem({ notification }: ListItemProps) {
       <NotificationUpdateForm isOpen={updateFormIsOpen} toggle={toggleUpdateForm} notification={notification} />
 
       <div className="grid grid-cols-12 gap-4 items-center py-3">
-        <div className="col-span-2 flex items-center sm:px-6">
+        <div className="col-span-2 px-6 flex items-center sm:px-6">
           <Switch
             checked={notification.enabled}
             onChange={toggleUpdateForm}
@@ -115,15 +115,15 @@ function ListItem({ notification }: ListItemProps) {
             />
           </Switch>
         </div>
-        <div className="col-span-4 flex items-center sm:px-6">
+        <div className="col-span-4 px-6 overflow-hidden flex items-center sm:px-6">
           {notification.name}
         </div>
-        <div className="col-span-2 flex items-center sm:px-6">
+        <div className="col-span-3 px-6 flex items-center sm:px-6">
           {iconComponentMap[notification.type]}
         </div>
-        <div className="col-span-3 flex items-center sm:px-6">
+        <div className="col-span-2 px-6 flex items-center sm:px-6">
           <span
-            className="mr-2 inline-flex items-center px-2.5 py-1 rounded-md text-sm font-medium bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-400"
+            className="mr-2 px-6 inline-flex items-center px-2.5 py-1 rounded-md text-sm font-medium bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-400"
             title={notification.events.join(", ")}
           >
             {notification.events.length}
