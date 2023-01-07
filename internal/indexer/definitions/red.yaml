@@ -85,7 +85,7 @@ irc:
       - test:
           - "Artist - Albumname [2008] [Single] - FLAC / Lossless / Log / 100% / Cue / CD - https://redacted.ch/torrents.php?id=0000000 / https://redacted.ch/torrents.php?action=download&id=0000000 - hip.hop,rhythm.and.blues,2000s"
           - "A really long name here - Concertos 5 and 6, Suite No 2 [1991] [Album] - FLAC / Lossless / Log / 100% / Cue / CD - https://redacted.ch/torrents.php?id=0000000 / https://redacted.ch/torrents.php?action=download&id=0000000 - classical"
-        pattern: '(.* (?:\[(.*)\] \[(.*)\] - (.*))?) - .* \/ (https?\:\/\/.+\/).+id=(\d+) - (.+)'
+        pattern: '(.* (?:\[(.*)\] \[(.*)\] - (.*))?) - .* \/ (https?\:\/\/.+\/).+id=(\d+)[ -]*(.*)'
         vars:
           - torrentName
           - year
