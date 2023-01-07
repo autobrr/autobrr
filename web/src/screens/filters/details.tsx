@@ -11,6 +11,7 @@ import {
   downloadsPerUnitOptions,
   FORMATS_OPTIONS,
   HDR_OPTIONS,
+  LANGUAGE_OPTIONS,
   ORIGIN_OPTIONS,
   OTHER_OPTIONS,
   QUALITY_MUSIC_OPTIONS,
@@ -265,6 +266,8 @@ export default function FilterDetails() {
                 except_tags: filter.except_tags,
                 match_uploaders: filter.match_uploaders,
                 except_uploaders: filter.except_uploaders,
+                match_language: filter.match_language || [],
+                except_language: filter.except_language || [],
                 freeleech: filter.freeleech,
                 freeleech_percent: filter.freeleech_percent,
                 formats: filter.formats || [],
@@ -514,6 +517,11 @@ export function Advanced({ values }: AdvancedProps) {
       <CollapsableSection defaultOpen={true} title="Uploaders" subtitle="Match or ignore uploaders.">
         <TextField name="match_uploaders" label="Match uploaders" columns={6} placeholder="eg. uploader1" />
         <TextField name="except_uploaders" label="Except uploaders" columns={6} placeholder="eg. anonymous" />
+      </CollapsableSection>
+
+      <CollapsableSection defaultOpen={true} title="Language" subtitle="Match or ignore languages.">
+        <MultiSelect name="match_language" options={LANGUAGE_OPTIONS} label="Match Language" columns={6} creatable={true} />
+        <MultiSelect name="except_language" options={LANGUAGE_OPTIONS} label="Except Language" columns={6} creatable={true} />
       </CollapsableSection>
 
       <CollapsableSection defaultOpen={true} title="Origins" subtitle="Match Internals, scene, p2p etc. if announced.">

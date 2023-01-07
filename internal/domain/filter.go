@@ -109,6 +109,8 @@ type Filter struct {
 	ExceptCategories            string                 `json:"except_categories,omitempty"`
 	MatchUploaders              string                 `json:"match_uploaders,omitempty"`
 	ExceptUploaders             string                 `json:"except_uploaders,omitempty"`
+	MatchLanguage               []string               `json:"match_language,omitempty"`
+	ExceptLanguage              []string               `json:"except_language,omitempty"`
 	Tags                        string                 `json:"tags,omitempty"`
 	ExceptTags                  string                 `json:"except_tags,omitempty"`
 	TagsAny                     string                 `json:"tags_any,omitempty"`
@@ -182,6 +184,8 @@ type FilterUpdate struct {
 	ExceptCategories            *string                 `json:"except_categories,omitempty"`
 	MatchUploaders              *string                 `json:"match_uploaders,omitempty"`
 	ExceptUploaders             *string                 `json:"except_uploaders,omitempty"`
+	MatchLanguage               *[]string               `json:"match_language,omitempty"`
+	ExceptLanguage              *[]string               `json:"except_language,omitempty"`
 	Tags                        *string                 `json:"tags,omitempty"`
 	ExceptTags                  *string                 `json:"except_tags,omitempty"`
 	TagsAny                     *string                 `json:"tags_any,omitempty"`
@@ -295,6 +299,14 @@ func (f Filter) CheckFilter(r *Release) ([]string, bool) {
 
 	if f.ExceptUploaders != "" && contains(r.Uploader, f.ExceptUploaders) {
 		r.addRejectionF("unwanted uploaders. got: %v unwanted: %v", r.Uploader, f.ExceptUploaders)
+	}
+
+	if len(f.MatchLanguage) > 0 && !sliceContainsSlice(r.Language, f.MatchLanguage) {
+		r.addRejectionF("language not matching. got: %v want: %v", r.Language, f.MatchLanguage)
+	}
+
+	if len(f.ExceptLanguage) > 0 && sliceContainsSlice(r.Language, f.ExceptLanguage) {
+		r.addRejectionF("language unwanted. got: %v want: %v", r.Language, f.ExceptLanguage)
 	}
 
 	if len(f.Resolutions) > 0 && !containsSlice(r.Resolution, f.Resolutions) {
