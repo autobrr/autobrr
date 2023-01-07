@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "react-query";
 import { APIClient } from "../../api/APIClient";
 import { Menu, Switch, Transition } from "@headlessui/react";
 
-import { classNames, IsEmptyDate, simplifyDate } from "../../utils";
+import { baseUrl, classNames, IsEmptyDate, simplifyDate } from "../../utils";
 import { Fragment, useRef, useState } from "react";
 import { toast } from "react-hot-toast";
 import Toast from "../../components/notifications/Toast";
@@ -251,7 +251,7 @@ const FeedItemDropdown = ({
           <Menu.Item>
             {({ active }) => (
               <a
-                href={`/api/feeds/${feed.id}/latest`}
+                href={`${baseUrl()}api/feeds/${feed.id}/latest`}
                 target="_blank"
                 className={classNames(
                   active ? "bg-blue-600 text-white" : "text-gray-900 dark:text-gray-300",
