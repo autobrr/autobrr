@@ -376,11 +376,11 @@ func (f Filter) CheckFilter(r *Release) ([]string, bool) {
 	}
 
 	if len(f.Artists) > 0 && !contains(r.Artists, f.Artists) {
-		r.addRejectionF("artists not matching. got: %v want: %v", r.TorrentName, f.Artists)
+		r.addRejectionF("artists not matching. got: %v want: %v", r.Artists, f.Artists)
 	}
 
 	if len(f.Albums) > 0 && !contains(r.Title, f.Albums) {
-		r.addRejectionF("albums not matching. got: %v want: %v", r.TorrentName, f.Albums)
+		r.addRejectionF("albums not matching. got: %v want: %v", r.Title, f.Albums)
 	}
 
 	// Perfect flac requires Cue, Log, Log Score 100, FLAC and 24bit Lossless
