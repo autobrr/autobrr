@@ -43,7 +43,7 @@ function NotificationSettings() {
           <section className="mt-6 light:bg-white dark:bg-gray-800 light:shadow sm:rounded-md">
             <ol className="min-w-full">
               <li className="grid grid-cols-12 border-b border-gray-200 dark:border-gray-700">
-                <div className="col-span-1 sm:col-span-1 pl-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Enabled</div>
+                <div className="col-span-2 sm:col-span-1 pl-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Enabled</div>
                 <div className="col-span-6 pl-10 md:pl-12 pr-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Name</div>
                 <div className="hidden md:flex col-span-2 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Type</div>
                 <div className="hidden md:flex col-span-3 px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Events</div>
