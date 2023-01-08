@@ -269,12 +269,20 @@ function FormFieldsRules() {
           />
 
           {settings.rules?.ignore_slow_torrents === true && (
-            <NumberFieldWide
-              name="settings.rules.download_speed_threshold"
-              label="Download speed threshold"
-              placeholder="in KB/s"
-              help="If download speed is below this when max active downloads is hit, download anyways. KB/s"
-            />
+            <>
+              <NumberFieldWide
+                name="settings.rules.download_speed_threshold"
+                label="Download speed threshold"
+                placeholder="in KB/s"
+                help="If download speed is below this when max active downloads is hit, download anyways. KB/s"
+              />
+              <NumberFieldWide
+                name="settings.rules.upload_speed_threshold"
+                label="Upload speed threshold"
+                placeholder="in KB/s"
+                help="If upload speed is below this when max active downloads is hit, download anyways. KB/s"
+              />
+            </>
           )}
         </>
       )}
