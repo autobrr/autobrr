@@ -42,9 +42,9 @@ function NotificationSettings() {
         {data && data.length > 0 ?
           <section className="mt-6 light:bg-white dark:bg-gray-800 light:shadow sm:rounded-md">
             <ol className="min-w-full">
-              <li className="grid grid-cols-12 gap-4 border-b border-gray-200 dark:border-gray-700">
-                <div className="col-span-2 pl-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Enabled</div>
-                <div className="col-span-6 md:col-span-5 pl-10 md:pl-0 pr-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Name</div>
+              <li className="grid grid-cols-12 border-b border-gray-200 dark:border-gray-700">
+                <div className="col-span-1 sm:col-span-1 pl-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Enabled</div>
+                <div className="col-span-6 pl-10 md:pl-12 pr-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Name</div>
                 <div className="hidden md:flex col-span-2 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Type</div>
                 <div className="hidden md:flex col-span-3 px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Events</div>
               </li>
@@ -95,8 +95,8 @@ function ListItem({ notification }: ListItemProps) {
     <li key={notification.id} className="text-gray-500 dark:text-gray-400">
       <NotificationUpdateForm isOpen={updateFormIsOpen} toggle={toggleUpdateForm} notification={notification} />
 
-      <div className="grid grid-cols-12 gap-4 items-center py-3">
-        <div className="col-span-2 md:col-span-2 pl-6 flex items-center sm:pl-6">
+      <div className="grid grid-cols-12 items-center py-4">
+        <div className="col-span-2 sm:col-span-1 px-6 flex items-center ">
           <Switch
             checked={notification.enabled}
             onChange={toggleUpdateForm}
@@ -115,7 +115,7 @@ function ListItem({ notification }: ListItemProps) {
             />
           </Switch>
         </div>
-        <div className="col-span-8 md:col-span-5 pl-10 md:pl-0 pr-2 sm:pr-6 truncate block items-center" title={notification.name}>
+        <div className="col-span-8 md:col-span-6 pl-10 md:pl-12 pr-2 sm:pr-6 truncate block items-center text-sm font-medium text-gray-900 dark:text-white" title={notification.name}>
           {notification.name}
         </div>
         <div className="hidden md:flex col-span-2 items-center">
@@ -129,11 +129,15 @@ function ListItem({ notification }: ListItemProps) {
             {notification.events.length}
           </span>
         </div>
-        <div className="col-span-2 md:col-span-1 flex items-center">
-          <span className="text-blue-600 dark:text-gray-300 hover:text-blue-900 cursor-pointer" onClick={toggleUpdateForm}>
+        <div className="col-span-1 flex first-letter:px-6 whitespace-nowrap text-right text-sm font-medium">
+          <span
+            className="col-span-1 px-6 text-blue-600 dark:text-gray-300 hover:text-blue-900 dark:hover:text-blue-500 cursor-pointer"
+            onClick={toggleUpdateForm}
+          >
             Edit
           </span>
         </div>
+
       </div>
     </li>
   );

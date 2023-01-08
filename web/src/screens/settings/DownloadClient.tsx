@@ -14,7 +14,7 @@ interface DLSettingsItemProps {
     idx: number;
 }
 
-function DownloadClientSettingsListItem({ client, idx }: DLSettingsItemProps) {
+function DownloadClientSettingsListItem({ client }: DLSettingsItemProps) {
   const [updateClientIsOpen, toggleUpdateClient] = useToggle(false);
 
   const queryClient = useQueryClient();
@@ -37,13 +37,13 @@ function DownloadClientSettingsListItem({ client, idx }: DLSettingsItemProps) {
 
   return (
     <li key={client.name}>
-      <div className="grid grid-cols-12 gap-4 items-center py-3">
+      <div className="grid grid-cols-12 items-center py-2">
         <DownloadClientUpdateForm
           client={client}
           isOpen={updateClientIsOpen}
           toggle={toggleUpdateClient}
         />
-        <div className="col-span-3 px-6 flex items-center sm:px-6">
+        <div className="col-span-2 sm:col-span-1 px-6 flex items-center sm:px-6">
           <Switch
             checked={client.enabled}
             onChange={onToggleMutation}
@@ -62,10 +62,10 @@ function DownloadClientSettingsListItem({ client, idx }: DLSettingsItemProps) {
             />
           </Switch>
         </div>
-        <div className="col-span-6 md:col-span-3 lg:col-span-3 px-6 py-3 flex flex-col px-6 text-sm font-medium text-gray-900 dark:text-white truncate" title={client.name}>{client.name}</div>
-        <div className="hidden md:flex col-span-3 py-3 flex items-center whitespace-nowrap text-sm text-gray-500 dark:text-gray-400 truncate" title={client.host}>{client.host}</div>
-        <div className="hidden md:flex col-span-2 py-3 flex items-center sm:px-6 text-sm text-gray-500 dark:text-gray-400">{DownloadClientTypeNameMap[client.type]}</div>
-        <div className="col-span-1 whitespace-nowrap text-center text-sm font-medium">
+        <div className="col-span-8 sm:col-span-4 lg:col-span-4 pl-12 pr-6 py-3 block flex-col text-sm font-medium text-gray-900 dark:text-white truncate" title={client.name}>{client.name}</div>
+        <div className="hidden sm:block col-span-4 pr-6 py-3 text-left items-center whitespace-nowrap text-sm text-gray-500 dark:text-gray-400 truncate" title={client.host}>{client.host}</div>
+        <div className="hidden sm:block col-span-2 py-3 text-left items-center text-sm text-gray-500 dark:text-gray-400">{DownloadClientTypeNameMap[client.type]}</div>
+        <div className="col-span-1 pl-0.5 whitespace-nowrap text-center text-sm font-medium">
           <span className="text-blue-600 dark:text-gray-300 hover:text-blue-900 cursor-pointer" onClick={toggleUpdateClient}>
             Edit
           </span>
@@ -104,7 +104,7 @@ function DownloadClientSettings() {
           <div className="ml-4 mt-4 flex-shrink-0">
             <button
               type="button"
-              className="relative inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              className="relative inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-sm text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
               onClick={toggleAddClient}
             >
               Add new
@@ -114,19 +114,19 @@ function DownloadClientSettings() {
 
         <div className="flex flex-col mt-6 px-4">
           {data && data.length > 0 ?
-            <section className="light:bg-white dark:bg-gray-800 light:shadow sm:rounded-md">
+            <section className="light:bg-white dark:bg-gray-800 light:shadow sm:rounded-sm">
               <ol className="min-w-full relative">
-                <li className="grid grid-cols-12 gap-4 border-b border-gray-200 dark:border-gray-700">
-                  <div className="col-span-3 px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                <li className="grid grid-cols-12 border-b border-gray-200 dark:border-gray-700">
+                  <div className="col-span-2 sm:col-span-1 px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                     Enabled
                   </div>
-                  <div className="col-span-6 md:col-span-3 lg:col-span-3 px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  <div className="col-span-6 sm:col-span-4 lg:col-span-4 pl-12 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                     Name
                   </div>
-                  <div className="hidden md:flex col-span-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  <div className="hidden sm:flex col-span-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                     Host
                   </div>
-                  <div className="hidden md:flex col-span-3 px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  <div className="hidden sm:flex col-span-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                     Type
                   </div>
                 </li>
