@@ -29,18 +29,17 @@ irc:
   announcers:
     - BOT
   settings:
-
     - name: nick
       type: text
-      required: false
+      required: true
       label: Username
       help: Profile > Settings > External Chat Tokens > Add Device Token.
 
-    - name: auth.password
+    - name: pass
       type: secret
-      required: false
-      label: NickServ Password
-      help: NickServ password
+      required: true
+      label: Token
+      help: Profile > Settings > External Chat Tokens > Token.
 
   parse:
     type: single
