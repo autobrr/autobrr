@@ -292,7 +292,7 @@ export function IndexerAddForm({ isOpen, toggle }: AddProps) {
 
       const network: IrcNetworkCreate = {
         name: ind.irc.network,
-        pass: "",
+        pass: formData.irc.pass || "",
         enabled: false,
         connected: false,
         server: ind.irc.server,
