@@ -5,7 +5,7 @@ identifier: funfile
 description: Welcome to funfile.org, where files are fun!
 language: en-us
 urls:
-  - https://funfile.org
+  - https://funfile.org/
 privacy: private
 protocol: torrent
 supports:
@@ -65,8 +65,10 @@ irc:
           - "[Scene] Uploaded 33 secs after pre"
         pattern: '\[(Scene)\]\s+Uploaded (.*) after pre'
         vars:
-          - scene
+          - origin
           - preTime
 
     match:
       torrenturl: "/download.php?{{ .torrentId }}/{{ .passkey }}/{{ .torrentName }}.torrent"
+      encode:
+        - torrentName
