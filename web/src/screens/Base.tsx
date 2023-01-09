@@ -40,16 +40,18 @@ export default function Base() {
                 <div className="flex items-center justify-between h-16 px-4 sm:px-0">
                   <div className="flex items-center">
                     <div className="flex-shrink-0 flex items-center">
-                      <img
-                        className="block lg:hidden h-10 w-auto"
-                        src={logo}
-                        alt="Logo"
-                      />
-                      <img
-                        className="hidden lg:block h-10 w-auto"
-                        src={logo}
-                        alt="Logo"
-                      />
+                      <Link to="/">
+                        <img
+                          className="block lg:hidden h-10 w-auto"
+                          src={logo}
+                          alt="Logo"
+                        />
+                        <img
+                          className="hidden lg:block h-10 w-auto"
+                          src={logo}
+                          alt="Logo"
+                        />
+                      </Link>
                     </div>
                     <div className="sm:ml-3 hidden sm:block">
                       <div className="flex items-baseline space-x-4">
