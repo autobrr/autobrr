@@ -172,6 +172,7 @@ type IndexerIRCParseLine struct {
 	Test    []string `json:"test"`
 	Pattern string   `json:"pattern"`
 	Vars    []string `json:"vars"`
+	Ignore  bool     `json:"ignore"`
 }
 
 type IndexerIRCParseMatch struct {
