@@ -11,6 +11,7 @@ import {
   downloadsPerUnitOptions,
   FORMATS_OPTIONS,
   HDR_OPTIONS,
+  LANGUAGE_OPTIONS,
   ORIGIN_OPTIONS,
   OTHER_OPTIONS,
   QUALITY_MUSIC_OPTIONS,
@@ -235,7 +236,7 @@ export default function FilterDetails() {
                 min_size: filter.min_size,
                 max_size: filter.max_size,
                 delay: filter.delay,
-                priority: filter.priority,
+                priority: filter.priority ?? 0,
                 max_downloads: filter.max_downloads,
                 max_downloads_unit: filter.max_downloads_unit,
                 use_regex: filter.use_regex || false,
@@ -265,6 +266,8 @@ export default function FilterDetails() {
                 except_tags: filter.except_tags,
                 match_uploaders: filter.match_uploaders,
                 except_uploaders: filter.except_uploaders,
+                match_language: filter.match_language || [],
+                except_language: filter.except_language || [],
                 freeleech: filter.freeleech,
                 freeleech_percent: filter.freeleech_percent,
                 formats: filter.formats || [],
@@ -297,7 +300,7 @@ export default function FilterDetails() {
                   <Routes>
                     <Route index element={<General />} />
                     <Route path="movies-tv" element={<MoviesTv />} />
-                    <Route path="music" element={<Music />} />
+                    <Route path="music" element={<Music values={values} />} />
                     <Route path="advanced" element={<Advanced values={values} />} />
                     <Route path="external" element={<External />} />
                     <Route path="actions" element={<FilterActions filter={filter} values={values} />} />
@@ -340,13 +343,13 @@ export function General() {
       </div>
 
       <div className="mt-6 lg:pb-8">
-        <TitleSubtitle title="Rules" subtitle="Specify rules on how torrents should be handled/selected" />
+        <TitleSubtitle title="Rules" subtitle="Specify rules on how torrents should be handled/selected." />
 
         <div className="mt-6 grid grid-cols-12 gap-6">
           <TextField name="min_size" label="Min size" columns={6} placeholder="eg. 100MiB, 80GB" />
           <TextField name="max_size" label="Max size" columns={6} placeholder="eg. 100MiB, 80GB" />
           <NumberField name="delay" label="Delay" placeholder="Number of seconds to delay actions" />
-          <NumberField name="priority" label="Priority" placeholder="Higher number = higher prio" />
+          <NumberField name="priority" label="Priority" placeholder="Higher number = higher prio" min={0} required={true} />
 
           <NumberField name="max_downloads" label="Max downloads" placeholder="Takes any number (0 is infinite)" />
           <Select name="max_downloads_unit" label="Max downloads per" options={downloadsPerUnitOptions}  optionDefaultText="Select unit" />
@@ -354,7 +357,7 @@ export function General() {
       </div>
 
       <div className="border-t dark:border-gray-700">
-        <SwitchGroup name="enabled" label="Enabled" description="Enable or disable this filter" />
+        <SwitchGroup name="enabled" label="Enabled" description="Enable or disable this filter." />
       </div>
 
     </div>
@@ -370,7 +373,7 @@ export function MoviesTv() {
       </div>
 
       <div className="mt-6 lg:pb-8">
-        <TitleSubtitle title="Seasons and Episodes" subtitle="Set season and episode match constraints" />
+        <TitleSubtitle title="Seasons and Episodes" subtitle="Set season and episode match constraints." />
 
         <div className="mt-6 grid grid-cols-12 gap-6">
           <TextField name="seasons" label="Seasons" columns={8} placeholder="eg. 1,3,2-6" />
@@ -383,7 +386,7 @@ export function MoviesTv() {
       </div>
 
       <div className="mt-6 lg:pb-8">
-        <TitleSubtitle title="Quality" subtitle="Set resolution, source, codec and related match constraints" />
+        <TitleSubtitle title="Quality" subtitle="Set resolution, source, codec and related match constraints." />
 
         <div className="mt-6 grid grid-cols-12 gap-6">
           <MultiSelect name="resolutions" options={RESOLUTION_OPTIONS} label="resolutions" columns={6} creatable={true} />
@@ -409,7 +412,7 @@ export function MoviesTv() {
   );
 }
 
-export function Music() {
+export function Music({ values }: AdvancedProps) {
   return (
     <div>
       <div className="mt-6 grid grid-cols-12 gap-6">
@@ -422,17 +425,17 @@ export function Music() {
         <TitleSubtitle title="Quality" subtitle="Format, source, log etc." />
 
         <div className="mt-6 grid grid-cols-12 gap-6">
-          <MultiSelect name="formats" options={FORMATS_OPTIONS} label="Format" columns={6} />
-          <MultiSelect name="quality" options={QUALITY_MUSIC_OPTIONS} label="Quality" columns={6} />
+          <MultiSelect name="formats" options={FORMATS_OPTIONS} label="Format" columns={6} disabled={values.perfect_flac} />
+          <MultiSelect name="quality" options={QUALITY_MUSIC_OPTIONS} label="Quality" columns={6} disabled={values.perfect_flac} />
         </div>
 
         <div className="mt-6 grid grid-cols-12 gap-6">
-          <MultiSelect name="media" options={SOURCES_MUSIC_OPTIONS} label="Media" columns={6} />
-          <MultiSelect name="match_release_types" options={RELEASE_TYPE_MUSIC_OPTIONS} label="Type" columns={6} />
+          <MultiSelect name="media" options={SOURCES_MUSIC_OPTIONS} label="Media" columns={6} disabled={values.perfect_flac} />
+          <MultiSelect name="match_release_types" options={RELEASE_TYPE_MUSIC_OPTIONS} label="Type" columns={6} disabled={values.perfect_flac} />
         </div>
 
         <div className="mt-6 grid grid-cols-12 gap-6">
-          <NumberField name="log_score" label="Log score" placeholder="eg. 100" />
+          <NumberField name="log_score" label="Log score" placeholder="eg. 100" min={0} max={100} disabled={values.perfect_flac} />
         </div>
 
       </div>
@@ -448,9 +451,9 @@ export function Music() {
                   </div> */}
               <div className="mt-4 sm:mt-0 sm:col-span-2">
                 <div className="max-w-lg space-y-4">
-                  <CheckboxField name="log" label="Log" sublabel="Must include Log" />
-                  <CheckboxField name="cue" label="Cue" sublabel="Must include Cue"/>
-                  <CheckboxField name="perfect_flac" label="Perfect FLAC" sublabel="Override all options about quality, source, format, and cue/log/log score"/>
+                  <CheckboxField name="log" label="Log" sublabel="Must include Log." disabled={values.perfect_flac} />
+                  <CheckboxField name="cue" label="Cue" sublabel="Must include Cue." disabled={values.perfect_flac} />
+                  <CheckboxField name="perfect_flac" label="Perfect FLAC" sublabel="Override all options about quality, source, format, and cue/log/log score."/>
                 </div>
               </div>
             </div>
@@ -468,7 +471,7 @@ interface AdvancedProps {
 export function Advanced({ values }: AdvancedProps) {
   return (
     <div>
-      <CollapsableSection defaultOpen={true} title="Releases" subtitle="Match only certain release names and/or ignore other release names">
+      <CollapsableSection defaultOpen={true} title="Releases" subtitle="Match only certain release names and/or ignore other release names.">
         <div className="grid col-span-12 gap-6">
           <WarningAlert text="autobrr has extensive filtering built-in - only use this if nothing else works. If you need help please ask." />
 
@@ -498,12 +501,12 @@ export function Advanced({ values }: AdvancedProps) {
         </div>
       </CollapsableSection>
 
-      <CollapsableSection defaultOpen={true} title="Groups" subtitle="Match only certain groups and/or ignore other groups">
+      <CollapsableSection defaultOpen={true} title="Groups" subtitle="Match only certain groups and/or ignore other groups.">
         <TextField name="match_release_groups" label="Match release groups" columns={6} placeholder="eg. group1,group2" />
         <TextField name="except_release_groups" label="Except release groups" columns={6} placeholder="eg. badgroup1,badgroup2" />
       </CollapsableSection>
 
-      <CollapsableSection defaultOpen={true} title="Categories and tags" subtitle="Match or ignore categories or tags">
+      <CollapsableSection defaultOpen={true} title="Categories and tags" subtitle="Match or ignore categories or tags.">
         <TextField name="match_categories" label="Match categories" columns={6} placeholder="eg. *category*,category1" />
         <TextField name="except_categories" label="Except categories" columns={6} placeholder="eg. *category*" />
 
@@ -511,17 +514,22 @@ export function Advanced({ values }: AdvancedProps) {
         <TextField name="except_tags" label="Except tags" columns={6} placeholder="eg. tag1,tag2" />
       </CollapsableSection>
 
-      <CollapsableSection defaultOpen={true} title="Uploaders" subtitle="Match or ignore uploaders">
+      <CollapsableSection defaultOpen={true} title="Uploaders" subtitle="Match or ignore uploaders.">
         <TextField name="match_uploaders" label="Match uploaders" columns={6} placeholder="eg. uploader1" />
         <TextField name="except_uploaders" label="Except uploaders" columns={6} placeholder="eg. anonymous" />
       </CollapsableSection>
 
-      <CollapsableSection defaultOpen={true} title="Origins" subtitle="Match Internals, scene, p2p etc if announced">
+      <CollapsableSection defaultOpen={true} title="Language" subtitle="Match or ignore languages.">
+        <MultiSelect name="match_language" options={LANGUAGE_OPTIONS} label="Match Language" columns={6} creatable={true} />
+        <MultiSelect name="except_language" options={LANGUAGE_OPTIONS} label="Except Language" columns={6} creatable={true} />
+      </CollapsableSection>
+
+      <CollapsableSection defaultOpen={true} title="Origins" subtitle="Match Internals, scene, p2p etc. if announced.">
         <MultiSelect name="origins" options={ORIGIN_OPTIONS} label="Match Origins" columns={6} creatable={true} />
         <MultiSelect name="except_origins" options={ORIGIN_OPTIONS} label="Except Origins" columns={6} creatable={true} />
       </CollapsableSection>
 
-      <CollapsableSection defaultOpen={true} title="Release Tags" subtitle="This is the non-parsed releaseTags string from the announce">
+      <CollapsableSection defaultOpen={true} title="Release Tags" subtitle="This is the non-parsed releaseTags string from the announce.">
         <div className="grid col-span-12 gap-6">
           <WarningAlert text="These might not be what you think they are. For advanced users who know how things are parsed." />
 
@@ -533,7 +541,7 @@ export function Advanced({ values }: AdvancedProps) {
         </div>
       </CollapsableSection>
 
-      <CollapsableSection defaultOpen={true} title="Freeleech" subtitle="Match only freeleech and freeleech percent">
+      <CollapsableSection defaultOpen={true} title="Freeleech" subtitle="Match only freeleech and freeleech percent.">
         <div className="col-span-6">
           <SwitchGroup name="freeleech" label="Freeleech" />
         </div>
@@ -615,7 +623,7 @@ export function External() {
     <div>
 
       <div className="mt-6">
-        <SwitchGroup name="external_script_enabled" heading={true} label="Script" description="Run external script and check status as part of filtering" />
+        <SwitchGroup name="external_script_enabled" heading={true} label="Script" description="Run external script and check status as part of filtering." />
 
         <div className="mt-6 grid grid-cols-12 gap-6">
           <TextField
@@ -643,7 +651,7 @@ export function External() {
 
       <div className="mt-6">
         <div className="border-t dark:border-gray-700">
-          <SwitchGroup name="external_webhook_enabled" heading={true} label="Webhook" description="Run external webhook and check status as part of filtering" />
+          <SwitchGroup name="external_webhook_enabled" heading={true} label="Webhook" description="Run external webhook and check status as part of filtering." />
         </div>
 
         <div className="mt-6 grid grid-cols-12 gap-6">

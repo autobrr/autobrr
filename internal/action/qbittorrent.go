@@ -2,6 +2,7 @@ package action
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/pkg/errors"
@@ -125,18 +126,30 @@ func (s *service) qbittorrentCheckRulesCanDownload(ctx context.Context, action *
 					// if current transfer speed is more than threshold return out and skip
 					// DlInfoSpeed is in bytes so lets convert to KB to match DownloadSpeedThreshold
 					if info.DlInfoSpeed/1024 >= client.Settings.Rules.DownloadSpeedThreshold {
-						s.log.Debug().Msg("max active downloads reached, skipping")
+						rejection := fmt.Sprintf("max active downloads reached and total download speed above threshold: %d, skipping", client.Settings.Rules.DownloadSpeedThreshold)
 
-						rejections := []string{"max active downloads reached, skipping"}
-						return rejections, nil
+						s.log.Debug().Msg(rejection)
+
+						return []string{rejection}, nil
+					}
+
+					// if current transfer speed is more than threshold return out and skip
+					// UpInfoSpeed is in bytes so lets convert to KB to match UploadSpeedThreshold
+					if info.UpInfoSpeed/1024 >= client.Settings.Rules.UploadSpeedThreshold {
+						rejection := fmt.Sprintf("max active downloads reached and total upload speed above threshold: %d, skipping", client.Settings.Rules.UploadSpeedThreshold)
+
+						s.log.Debug().Msg(rejection)
+
+						return []string{rejection}, nil
 					}
 
 					s.log.Debug().Msg("active downloads are slower than set limit, lets add it")
 				} else {
-					s.log.Debug().Msg("max active downloads reached, skipping")
+					rejection := "max active downloads reached, skipping"
 
-					rejections := []string{"max active downloads reached, skipping"}
-					return rejections, nil
+					s.log.Debug().Msg(rejection)
+
+					return []string{rejection}, nil
 				}
 			}
 		}

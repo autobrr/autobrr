@@ -6,7 +6,7 @@
 <p align="center">autobrr is the modern download automation tool for torrents.
 With inspiration and ideas from tools like trackarr, autodl-irssi and flexget we built one tool that can do it all, and then some.</p>
 
-<p align="center"><img alt="GitHub release (latest by date)" src="https://img.shields.io/github/v/release/autobrr/autobrr?style=for-the-badge">&nbsp;<img alt="GitHub all releases" src="https://img.shields.io/github/downloads/autobrr/autobrr/total?style=for-the-badge">&nbsp;<img alt="GitHub Workflow Status" src="https://img.shields.io/github/workflow/status/autobrr/autobrr/docker?style=for-the-badge"></p>
+<p align="center"><img alt="GitHub release (latest by date)" src="https://img.shields.io/github/v/release/autobrr/autobrr?style=for-the-badge">&nbsp;<img alt="GitHub all releases" src="https://img.shields.io/github/downloads/autobrr/autobrr/total?style=for-the-badge">&nbsp;<img alt="GitHub Workflow Status" src="https://img.shields.io/github/actions/workflow/status/autobrr/autobrr/release.yml?style=for-the-badge"></p>
 
 <img alt="autobrr ui" src=".github/images/autobrr-front.png"/><br/>
 
@@ -17,7 +17,7 @@ Installation guide and documentation can be found at https://autobrr.com
 
 ## Key features
 
-- Support for 45+ trackers with IRC announces
+- Support for 60+ trackers with IRC announces
 - Torznab/RSS support via Prowlarr to easily get access to hundreds of trackers
 - Powerful but simple filtering with RegEx support (like in autodl-irssi)
 - Easy to use and mobile friendly web UI (with dark mode!) to manage everything
@@ -39,6 +39,24 @@ Available download clients and actions
 - Exec custom scripts
 - Webhook
 
+## What is autobrr and how does it fit into the ecosystem?
+
+We can start by talking about torrent trackers (hereby referred to as indexers) and maintaining ratio. You are required to maintain a ratio with most indexers. Ratio is built by seeding your torrents. The earlier you're seeding a torrent, the more peers you make yourself available to on that torrent.
+
+Software like Radarr and Sonarr utilizes RSS to look for new torrents. RSS feeds are updated regularly, but too slow to let you be a part of what we call the initial swarm of a torrent. This is were autobrr comes into play.
+
+Many indexers announce new torrents on their IRC channels the second it is uploaded to the site. autobrr monitors such channels in real time and grabs the torrent file as soon as it's uploaded based on certain conditions (hereby referred to as filters) that you set up within autobrr. It then sends that torrent file to a download client of your choice via an action set within the filter. A download client can be anything from qBittorrent and Deluge, to Radarr and Sonarr, or a watch folder.
+
+When your autobrr filter is set to send the torrent files to Radarr and Sonarr, they will decide if it's something they want, and then forward it to the torrent client they are set up with.
+
+autobrr can also send matches (torrent files that meets your filter's criteria) directly to torrent clients like qBittorrent, Deluge, r(u)Torrent and Transmission. You don't need to use the *arr suite to make use of autobrr.
+
+### RSS support for indexers without an IRC announcer
+
+A lot of indexers do not announce new torrents in an IRC channel. You can still make use of these indexers with autobrr since it has built in support for feeds as well. Both torznab and regular RSS is supported. RSS indexers are treated the same way as regular indexers within autobrr.
+
+This isn't needed if your usecase is feeding the *arrs only. Since they have RSS support already.
+
 ## Installation
 
 Full installation guide and documentation can be found at https://autobrr.com
@@ -52,7 +70,6 @@ Remember to head over to our [Configuration Guide](https://autobrr.com/configura
 ```
 sudo box install autobrr
 ```
-
 
 ### Saltbox
 
@@ -80,27 +97,42 @@ We have support for a couple of providers out of the box and if yours are missin
 
 The scripts require some input but does most of the work.
 
-#### Seedbox.io 
+#### HostingByDesign (former Seedbox.io)
 
-    curl https://gobrr.sh/install_sbio | bash
+    wget https://gobrr.sh/install_sbio && bash install_sbio
 
 #### Swizzin.net
 
-    curl https://gobrr.sh/install_sbio | bash
+    wget https://gobrr.sh/install_sbio && bash install_sbio
 
 #### Ultra.cc
 
-    curl https://gobrr.sh/install_ultra | bash
+Use their official one-click installer or ours:
+
+    wget https://gobrr.sh/install_ultra && bash install_ultra
 
 #### WhatBox
-    
-    curl https://gobrr.sh/install_whatbox | bash
+
+    wget https://gobrr.sh/install_whatbox && bash install_whatbox
+
+#### Feralhosting
+
+    wget https://gobrr.sh/install_feral && bash install_feral
+
+#### Bytesized hosting
+
+    wget https://gobrr.sh/install_bytesized && bash install_bytesized
 
 #### Other providers
 
-For other providers the Seedboxio installer should work. If not, open an issue or contact us on [Discord](https://discord.gg/WQ2eUycxyT)
+For other providers the Seedbox.io installer should work. If not, open an issue or contact us on [Discord](https://discord.gg/WQ2eUycxyT)
 
-    curl https://gobrr.sh/install_sbio | bash
+    wget https://gobrr.sh/install_sbio && bash install_sbio
+
+##### One-click installers
+
+- Ultra.cc
+- Seedit4.me
 
 ### Docker compose
 
@@ -122,9 +154,8 @@ services:
     image: ghcr.io/autobrr/autobrr:latest
     restart: unless-stopped
     environment:
-      - PUID=${PUID}
-      - PGID=${GUID}
       - TZ=${TZ}
+    user: 1000:1000
     volumes:
       - ${BASE_DOCKER_DATA_PATH}/autobrr/config:/config
     ports:
@@ -189,10 +220,12 @@ WantedBy=multi-user.target
 Start the service. Enable will make it startup on reboot.
 
 ```bash
-systemctl enable -q --now --user autobrr
+systemctl enable -q --now --user autobrr@$USER
 ```
 
-It's highly advised to put it behind a reverse-proxy like nginx or traefik etc.
+By default it the config is set to listen on only `127.0.0.1`.  It's highly advised to put it behind a reverse-proxy like nginx or traefik etc.
+
+If you are not running a reverse proxy change `host` in the `config.toml` to `0.0.0.0`.
 
 ## Community
 

@@ -48,6 +48,7 @@ type DownloadClientRules struct {
 	MaxActiveDownloads     int   `json:"max_active_downloads"`
 	IgnoreSlowTorrents     bool  `json:"ignore_slow_torrents"`
 	DownloadSpeedThreshold int64 `json:"download_speed_threshold"`
+	UploadSpeedThreshold   int64 `json:"upload_speed_threshold"`
 }
 
 type BasicAuth struct {

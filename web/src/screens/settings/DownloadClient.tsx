@@ -37,38 +37,38 @@ function DownloadClientSettingsListItem({ client, idx }: DLSettingsItemProps) {
 
   return (
     <li key={client.name}>
-      <div className="grid grid-cols-12 gap-2 lg:gap-4 items-center py-2">
+      <div className="grid grid-cols-12 gap-4 items-center py-3">
         <DownloadClientUpdateForm
           client={client}
           isOpen={updateClientIsOpen}
           toggle={toggleUpdateClient}
         />
-          <div className="col-span-3 sm:col-span-2 px-4 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-            <Switch
-              checked={client.enabled}
-              onChange={onToggleMutation}
+        <div className="col-span-3 px-6 flex items-center sm:px-6">
+          <Switch
+            checked={client.enabled}
+            onChange={onToggleMutation}
+            className={classNames(
+              client.enabled ? "bg-blue-500" : "bg-gray-200 dark:bg-gray-600",
+              "relative inline-flex flex-shrink-0 h-6 w-11 border-2 border-transparent rounded-full cursor-pointer transition-colors ease-in-out duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+            )}
+          >
+            <span className="sr-only">Use setting</span>
+            <span
+              aria-hidden="true"
               className={classNames(
-                client.enabled ? "bg-blue-500" : "bg-gray-200 dark:bg-gray-600",
-                "relative inline-flex flex-shrink-0 h-6 w-11 border-2 border-transparent rounded-full cursor-pointer transition-colors ease-in-out duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                client.enabled ? "translate-x-5" : "translate-x-0",
+                "inline-block h-5 w-5 rounded-full bg-white shadow transform ring-0 transition ease-in-out duration-200"
               )}
-            >
-              <span className="sr-only">Use setting</span>
-              <span
-                aria-hidden="true"
-                className={classNames(
-                  client.enabled ? "translate-x-5" : "translate-x-0",
-                  "inline-block h-5 w-5 rounded-full bg-white shadow transform ring-0 transition ease-in-out duration-200"
-                )}
-              />
-            </Switch>
-          </div>
-          <div className="col-span-7 sm:col-span-3 px-1 sm:px-0 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white truncate" title={client.name}>{client.name}</div>
-          <div className="hidden sm:block col-span-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400 truncate" title={client.host}>{client.host}</div>
-          <div className="hidden sm:block col-span-2 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{DownloadClientTypeNameMap[client.type]}</div>
-          <div className="col-span-1 whitespace-nowrap text-center text-sm font-medium">
-            <span className="text-blue-600 dark:text-gray-300 hover:text-blue-900 cursor-pointer" onClick={toggleUpdateClient}>
-              Edit
-            </span>
+            />
+          </Switch>
+        </div>
+        <div className="col-span-6 md:col-span-3 lg:col-span-3 px-6 py-3 flex flex-col px-6 text-sm font-medium text-gray-900 dark:text-white truncate" title={client.name}>{client.name}</div>
+        <div className="hidden md:flex col-span-3 py-3 flex items-center whitespace-nowrap text-sm text-gray-500 dark:text-gray-400 truncate" title={client.host}>{client.host}</div>
+        <div className="hidden md:flex col-span-2 py-3 flex items-center sm:px-6 text-sm text-gray-500 dark:text-gray-400">{DownloadClientTypeNameMap[client.type]}</div>
+        <div className="col-span-1 whitespace-nowrap text-center text-sm font-medium">
+          <span className="text-blue-600 dark:text-gray-300 hover:text-blue-900 cursor-pointer" onClick={toggleUpdateClient}>
+            Edit
+          </span>
         </div>
       </div>
     </li>
@@ -117,16 +117,16 @@ function DownloadClientSettings() {
             <section className="light:bg-white dark:bg-gray-800 light:shadow sm:rounded-md">
               <ol className="min-w-full relative">
                 <li className="grid grid-cols-12 gap-4 border-b border-gray-200 dark:border-gray-700">
-                  <div className="col-span-3 sm:col-span-2 px-2 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  <div className="col-span-3 px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                     Enabled
                   </div>
-                  <div className="col-span-6 sm:col-span-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  <div className="col-span-6 md:col-span-3 lg:col-span-3 px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                     Name
                   </div>
-                  <div className="hidden sm:block col-span-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  <div className="hidden md:flex col-span-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                     Host
                   </div>
-                  <div className="hidden sm:block col-span-2 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  <div className="hidden md:flex col-span-3 px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                     Type
                   </div>
                 </li>
@@ -135,7 +135,7 @@ function DownloadClientSettings() {
                 ))}
               </ol>
             </section>
-            : <EmptySimple title="No download clients" subtitle="Add a new client" buttonText="New client" buttonAction={toggleAddClient} />
+            : <EmptySimple title="No download clients" subtitle="" buttonText="Add new client" buttonAction={toggleAddClient} />
           }
         </div>
       </div>
