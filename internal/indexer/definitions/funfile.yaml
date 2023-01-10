@@ -65,7 +65,7 @@ irc:
       - test:
           - "[Scene] Uploaded 1 min and 18 secs after pre"
           - "[Scene] Uploaded 1 min and 55 secs after pre"
-        pattern: '\[(Scene)\]\s+Uploaded (.*) after pre'
+        pattern: '\[(.*)\] Uploaded (.*) after pre'
         vars:
           - origin
           - preTime
