@@ -5,7 +5,7 @@ identifier: funfile
 description: Welcome to funfile.org, where files are fun!
 language: en-us
 urls:
-  - https://funfile.org/
+  - https://www.funfile.org/
 privacy: private
 protocol: torrent
 supports:
