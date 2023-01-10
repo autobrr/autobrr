@@ -51,7 +51,8 @@ irc:
     type: multi
     lines:
       - test:
-          - '[New Shit] S.W.A.T.Firefight.2011.PROPER.NTSC.MULTi.DVDR-BonG [Movies] @ https://www.funfile.org/details.php?id=131267 [size] [freeleech]'
+          - "[New Shit] Wiseguy.S04E01.720p.WEB.h264-SKYFiRE [TV/Web-HD] @ https://www.funfile.org/details.php?id=1662804 [2 GB] [FL]"
+          - "[New Shit] DC.-.Wonder.Woman.The.Twelve.Labors.2018.Hybrid.Comic.eBook-BitBook [Ebook] @ https://www.funfile.org/details.php?id=1662668 [206 MB]"
         pattern: '\[New Shit\] (.*) \[(.*)\] @ (https?\:\/\/.*\/).*id=(.*?) \[(.*?)\] ?(?:\[(.*?)\])?'
         vars:
           - torrentName
@@ -62,7 +63,8 @@ irc:
           - freeleech
 
       - test:
-          - "[Scene] Uploaded 33 secs after pre"
+          - "[Scene] Uploaded 1 min and 18 secs after pre"
+          - "[Scene] Uploaded 1 min and 55 secs after pre"
         pattern: '\[(Scene)\]\s+Uploaded (.*) after pre'
         vars:
           - origin
