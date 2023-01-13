@@ -417,8 +417,8 @@ function FilterListItem({ filter, idx }: FilterListItemProps) {
           />
         </Switch>
       </span>
-      <div className="flex flex-col w-full justify-center">
-        <span className="whitespace-wrap text-sm font-bold text-gray-900 dark:text-gray-100">
+      <div className="flex flex-col overflow-hidden w-full justify-center">
+        <span className="w-4/5 break-words whitespace-wrap py-1 text-sm font-bold text-gray-900 dark:text-gray-100">
           <Link
             to={filter.id.toString()}
             className="hover:text-black dark:hover:text-gray-300"
@@ -427,7 +427,7 @@ function FilterListItem({ filter, idx }: FilterListItemProps) {
           </Link>
         </span>
         <div className="flex-col">
-          <span className="mr-2 whitespace-nowrap text-xs font-medium text-gray-600 dark:text-gray-400">
+          <span className="mr-2 break-words whitespace-nowrap text-xs font-medium text-gray-600 dark:text-gray-400">
             Priority: {filter.priority}
           </span>
           <span className="whitespace-nowrap text-xs font-medium text-gray-600 dark:text-gray-400">
@@ -440,10 +440,10 @@ function FilterListItem({ filter, idx }: FilterListItemProps) {
           </span>
         </div>
       </div>
-      <span className="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+      <span className="hidden sm:flex px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
         <FilterIndexers indexers={filter.indexers} />
       </span>
-      <span className="px-4 py-4 whitespace-nowrap text-right text-sm font-medium">
+      <span className="min-w-fit px-4 py-4 whitespace-nowrap text-right text-sm font-medium">
         <FilterItemDropdown
           filter={filter}
           onToggle={toggleActive}
