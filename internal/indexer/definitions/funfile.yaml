@@ -1,0 +1,76 @@
+---
+#id: funfile
+name: FunFile
+identifier: funfile
+description: Welcome to funfile.org, where files are fun!
+language: en-us
+urls:
+  - https://www.funfile.org/
+privacy: private
+protocol: torrent
+supports:
+  - irc
+  - rss
+source: custom
+settings:
+  - name: passkey
+    type: secret
+    required: true
+    label: Passkey
+    help: "The passkey in your FunFile RSS feed link."
+
+irc:
+  network: FunFile
+  server: irc.funfile.org
+  port: 6697
+  tls: true
+  channels:
+    - "#FunFile.org"
+  announcers:
+    - H3r4ut
+  settings:
+    - name: nick
+      type: text
+      required: true
+      label: Nick
+      help: Use your site username.
+
+    - name: auth.account
+      type: text
+      required: true
+      label: NickServ Account
+      help: NickServ account. Make sure to group your user and bot.
+
+    - name: auth.password
+      type: secret
+      required: true
+      label: NickServ Password
+      help: NickServ password
+
+  parse:
+    type: multi
+    lines:
+      - test:
+          - "[New Shit] Wiseguy.S04E01.720p.WEB.h264-SKYFiRE [TV/Web-HD] @ https://www.funfile.org/details.php?id=1662804 [2 GB] [FL]"
+          - "[New Shit] DC.-.Wonder.Woman.The.Twelve.Labors.2018.Hybrid.Comic.eBook-BitBook [Ebook] @ https://www.funfile.org/details.php?id=1662668 [206 MB]"
+        pattern: '\[New Shit\] (.*) \[(.*)\] @ (https?\:\/\/.*\/).*id=(.*?) \[(.*?)\] ?(?:\[(.*?)\])?'
+        vars:
+          - torrentName
+          - category
+          - baseUrl
+          - torrentId
+          - torrentSize
+          - freeleech
+
+      - test:
+          - "[Scene] Uploaded 1 min and 18 secs after pre"
+          - "[Scene] Uploaded 1 min and 55 secs after pre"
+        pattern: '\[(.*)\] Uploaded (.*) after pre'
+        vars:
+          - origin
+          - preTime
+
+    match:
+      torrenturl: "/download.php?{{ .torrentId }}/{{ .passkey }}/{{ .torrentName }}.torrent"
+      encode:
+        - torrentName

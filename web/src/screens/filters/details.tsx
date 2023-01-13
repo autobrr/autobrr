@@ -431,7 +431,7 @@ export function Music({ values }: AdvancedProps) {
 
         <div className="mt-6 grid grid-cols-12 gap-6">
           <MultiSelect name="media" options={SOURCES_MUSIC_OPTIONS} label="Media" columns={6} disabled={values.perfect_flac} />
-          <MultiSelect name="match_release_types" options={RELEASE_TYPE_MUSIC_OPTIONS} label="Type" columns={6} disabled={values.perfect_flac} />
+          <MultiSelect name="match_release_types" options={RELEASE_TYPE_MUSIC_OPTIONS} label="Type" columns={6} />
         </div>
 
         <div className="mt-6 grid grid-cols-12 gap-6">
