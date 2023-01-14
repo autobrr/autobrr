@@ -237,7 +237,7 @@ export default function FilterDetails() {
                 max_size: filter.max_size,
                 delay: filter.delay,
                 priority: filter.priority ?? 0,
-                max_downloads: filter.max_downloads,
+                max_downloads: filter.max_downloads ?? 0,
                 max_downloads_unit: filter.max_downloads_unit,
                 use_regex: filter.use_regex || false,
                 shows: filter.shows,
@@ -351,7 +351,7 @@ export function General() {
           <NumberField name="delay" label="Delay" placeholder="Number of seconds to delay actions" />
           <NumberField name="priority" label="Priority" placeholder="Higher number = higher prio" min={0} required={true} />
 
-          <NumberField name="max_downloads" label="Max downloads" placeholder="Takes any number (0 is infinite)" />
+          <NumberField name="max_downloads" label="Max downloads" placeholder="Takes any number (0 is infinite)" min={0} required={true} />
           <Select name="max_downloads_unit" label="Max downloads per" options={downloadsPerUnitOptions}  optionDefaultText="Select unit" />
         </div>
       </div>
