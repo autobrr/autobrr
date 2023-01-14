@@ -48,7 +48,7 @@ irc:
       help: NickServ password
 
   parse:
-    type: multi
+    type: single
     lines:
       - test:
           - "[New Shit] Wiseguy.S04E01.720p.WEB.h264-SKYFiRE [TV/Web-HD] @ https://www.funfile.org/details.php?id=1662804 [2 GB] [FL]"
@@ -63,13 +63,16 @@ irc:
           - torrentSize
           - freeleech
 
-      - test:
-          - "[Scene] Uploaded 1 min and 18 secs after pre"
-          - "[Scene] Uploaded 1 min and 55 secs after pre"
-        pattern: '?(?:\[(.*)\] Uploaded (.*) after pre)?'
-        vars:
-          - origin
-          - preTime
+# Commented out until we make a better fix for optional multi line
+#
+#      - test:
+#          - "[Scene] Uploaded 1 min and 18 secs after pre"
+#          - "[Scene] Uploaded 1 min and 55 secs after pre"
+#        pattern: '?(?:\[(.*)\] Uploaded (.*) after pre)?'
+#        vars:
+#          - origin
+#          - preTime
+
 
     match:
       torrenturl: "/download.php?{{ .torrentId }}/{{ .passkey }}/{{ .torrentName }}.torrent"
