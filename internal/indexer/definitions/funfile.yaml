@@ -48,11 +48,12 @@ irc:
       help: NickServ password
 
   parse:
-    type: multi
+    type: single
     lines:
       - test:
           - "[New Shit] Wiseguy.S04E01.720p.WEB.h264-SKYFiRE [TV/Web-HD] @ https://www.funfile.org/details.php?id=1662804 [2 GB] [FL]"
           - "[New Shit] DC.-.Wonder.Woman.The.Twelve.Labors.2018.Hybrid.Comic.eBook-BitBook [Ebook] @ https://www.funfile.org/details.php?id=1662668 [206 MB]"
+          - "[New Shit] Sister.Wives.S17.1080p.AMZN.WEB-DL.DDP2.0.H.264-NTb [TV/x264-HD] @ https://www.funfile.org/details.php?id=1663540 [49 GB] [FL]"
         pattern: '\[New Shit\] (.*) \[(.*)\] @ (https?\:\/\/.*\/).*id=(.*?) \[(.*?)\] ?(?:\[(.*?)\])?'
         vars:
           - torrentName
@@ -62,13 +63,16 @@ irc:
           - torrentSize
           - freeleech
 
-      - test:
-          - "[Scene] Uploaded 1 min and 18 secs after pre"
-          - "[Scene] Uploaded 1 min and 55 secs after pre"
-        pattern: '\[(.*)\] Uploaded (.*) after pre'
-        vars:
-          - origin
-          - preTime
+# Commented out until we make a better fix for optional multi line
+#
+#      - test:
+#          - "[Scene] Uploaded 1 min and 18 secs after pre"
+#          - "[Scene] Uploaded 1 min and 55 secs after pre"
+#        pattern: '?(?:\[(.*)\] Uploaded (.*) after pre)?'
+#        vars:
+#          - origin
+#          - preTime
+
 
     match:
       torrenturl: "/download.php?{{ .torrentId }}/{{ .passkey }}/{{ .torrentName }}.torrent"
