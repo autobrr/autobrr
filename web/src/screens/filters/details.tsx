@@ -274,7 +274,7 @@ export default function FilterDetails() {
                 quality: filter.quality || [],
                 media: filter.media || [],
                 match_release_types: filter.match_release_types || [],
-                log_score: filter.log_score,
+                log_score: filter.log_score ?? 0,
                 log: filter.log,
                 cue: filter.cue,
                 perfect_flac: filter.perfect_flac,
@@ -435,7 +435,7 @@ export function Music({ values }: AdvancedProps) {
         </div>
 
         <div className="mt-6 grid grid-cols-12 gap-6">
-          <NumberField name="log_score" label="Log score" placeholder="eg. 100" min={0} max={100} disabled={values.perfect_flac} />
+          <NumberField name="log_score" label="Log score" placeholder="eg. 100" min={0} required={true} disabled={values.perfect_flac} />
         </div>
 
       </div>
