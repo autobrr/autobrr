@@ -16,7 +16,7 @@ import { DeleteModal } from "../../components/modals";
 import {
   NumberFieldWide,
   PasswordFieldWide,
-  RadioFieldsetWide,
+  RadioFieldsetWide, SelectWide,
   SwitchGroupWide,
   TextFieldWide
 } from "../../components/inputs";
@@ -270,6 +270,7 @@ function FormFieldsRules() {
 
           {settings.rules?.ignore_slow_torrents === true && (
             <>
+              <SelectWide name="settings.rules.ignore_slow_torrents_mod" label="Mode" optionDefaultText="Select option" options={[]} />
               <NumberFieldWide
                 name="settings.rules.download_speed_threshold"
                 label="Download speed threshold"
