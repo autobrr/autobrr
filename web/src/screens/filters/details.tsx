@@ -237,7 +237,7 @@ export default function FilterDetails() {
                 max_size: filter.max_size,
                 delay: filter.delay,
                 priority: filter.priority ?? 0,
-                max_downloads: filter.max_downloads,
+                max_downloads: filter.max_downloads ?? 0,
                 max_downloads_unit: filter.max_downloads_unit,
                 use_regex: filter.use_regex || false,
                 shows: filter.shows,
@@ -274,7 +274,7 @@ export default function FilterDetails() {
                 quality: filter.quality || [],
                 media: filter.media || [],
                 match_release_types: filter.match_release_types || [],
-                log_score: filter.log_score,
+                log_score: filter.log_score ?? 0,
                 log: filter.log,
                 cue: filter.cue,
                 perfect_flac: filter.perfect_flac,
@@ -351,7 +351,7 @@ export function General() {
           <NumberField name="delay" label="Delay" placeholder="Number of seconds to delay actions" />
           <NumberField name="priority" label="Priority" placeholder="Higher number = higher prio" min={0} required={true} />
 
-          <NumberField name="max_downloads" label="Max downloads" placeholder="Takes any number (0 is infinite)" />
+          <NumberField name="max_downloads" label="Max downloads" placeholder="Takes any number (0 is infinite)" min={0} required={true} />
           <Select name="max_downloads_unit" label="Max downloads per" options={downloadsPerUnitOptions}  optionDefaultText="Select unit" />
         </div>
       </div>
@@ -435,7 +435,7 @@ export function Music({ values }: AdvancedProps) {
         </div>
 
         <div className="mt-6 grid grid-cols-12 gap-6">
-          <NumberField name="log_score" label="Log score" placeholder="eg. 100" min={0} max={100} disabled={values.perfect_flac} />
+          <NumberField name="log_score" label="Log score" placeholder="eg. 100" min={0} max={100} required={true} disabled={values.perfect_flac} />
         </div>
 
       </div>
