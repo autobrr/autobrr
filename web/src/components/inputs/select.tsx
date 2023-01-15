@@ -234,12 +234,12 @@ export function DownloadClientSelect({
   );
 }
 
-interface SelectFieldOption {
+export interface SelectFieldOption {
     label: string;
     value: string;
 }
 
-interface SelectFieldProps {
+export interface SelectFieldProps {
     name: string;
     label: string;
     optionDefaultText: string;

@@ -7,7 +7,7 @@ import { Form, Formik, useFormikContext } from "formik";
 import DEBUG from "../../components/debug";
 import { queryClient } from "../../App";
 import { APIClient } from "../../api/APIClient";
-import { DownloadClientTypeOptions } from "../../domain/constants";
+import { DownloadClientTypeOptions, DownloadRuleConditionOptions } from "../../domain/constants";
 
 import { toast } from "react-hot-toast";
 import Toast from "../../components/notifications/Toast";
@@ -16,11 +16,12 @@ import { DeleteModal } from "../../components/modals";
 import {
   NumberFieldWide,
   PasswordFieldWide,
-  RadioFieldsetWide, SelectWide,
+  RadioFieldsetWide,
   SwitchGroupWide,
   TextFieldWide
 } from "../../components/inputs";
 import DownloadClient from "../../screens/settings/DownloadClient";
+import { SelectFieldWide } from "../../components/inputs/input_wide";
 
 interface InitialValuesSettings {
   basic?: {
@@ -270,7 +271,12 @@ function FormFieldsRules() {
 
           {settings.rules?.ignore_slow_torrents === true && (
             <>
-              <SelectWide name="settings.rules.ignore_slow_torrents_mod" label="Mode" optionDefaultText="Select option" options={[]} />
+              <SelectFieldWide
+                name="settings.rules.ignore_slow_torrents_condition"
+                label="Ignore condition"
+                optionDefaultText="Select ignore condition"
+                options={DownloadRuleConditionOptions}
+              />
               <NumberFieldWide
                 name="settings.rules.download_speed_threshold"
                 label="Download speed threshold"
