@@ -59,7 +59,6 @@ irc:
           - "New Torrent: הכי טובה - עונה 1 פרק 5 - תרגום בצד | The Best S01E05 1080p WEB H264-TEST Category: סדרות HD By: Uploader5 Size: 3.25GB Link: http://fuzer.me/attachment.php?attachmentid=616161 [The.Best.S01E05.1080p.WEB.H264-TEST]"
         pattern: 'New Torrent: (.*) Category: (.*) By: (.*) Size: (.*) Link: https?\:\/\/([^\/]+)\/.*[&amp;\?]attachmentid=(\d+) \[(.*)\]'
         vars:
-          - name1
           - category
           - uploader
           - torrentSize
