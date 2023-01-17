@@ -56,7 +56,7 @@ irc:
       - test:
           - "New! (Movies) - [REQUESTED].French.Movie.(1978).(French.with.English.Subtitles) - (18.76 GB) - https://retroflix.club/browse/t/00000/french-movie-1978-french-with-english-subtitles"
           - "New! (Movies) - Old.Movie.1967.1080p.BluRay.x265.10bit-GROUP1 - (5.42 GB) - https://retroflix.club/browse/t/00000/old-movie-1967-1080p-bluray-x265-10bit-group1"
-        pattern: ^New! \((.*)\) - (.*) - \((.*)\) - (https?:\/\/.*\/)browse/t/(\d+).*
+        pattern: '^New! \((.*)\) - (?:\[REQUESTED\].)?(.*) - \((.*)\) - (https?:\/\/.*\/)browse/t/(\d+).*'
         vars:
           - category
           - torrentName
