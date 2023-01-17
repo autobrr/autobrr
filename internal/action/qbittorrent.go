@@ -144,6 +144,10 @@ func (s *service) qbittorrentCheckRulesCanDownload(ctx context.Context, action *
 			if err != nil {
 				return rejections, err
 			}
+
+			if len(rejections) > 0 {
+				return rejections, nil
+			}
 		}
 	}
 
