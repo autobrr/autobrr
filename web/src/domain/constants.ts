@@ -403,6 +403,18 @@ export const downloadsPerUnitOptions: OptionBasic[] = [
   }
 ];
 
+export const DownloadRuleConditionOptions: OptionBasic[] = [
+  {
+    label: "Always",
+    value: "ALWAYS"
+  },
+  {
+    label: "Max downloads reached",
+    value: "MAX_DOWNLOADS_REACHED"
+  }
+];
+
+
 export interface SelectOption {
     label: string;
     description: string;

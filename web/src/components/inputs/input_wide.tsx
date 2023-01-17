@@ -5,6 +5,8 @@ import { useToggle } from "../../hooks/hooks";
 import { EyeIcon, EyeSlashIcon } from "@heroicons/react/24/solid";
 import { Switch } from "@headlessui/react";
 import { ErrorField } from "./common";
+import Select, { components, ControlProps, InputProps, MenuProps, OptionProps } from "react-select";
+import { SelectFieldProps } from "./select";
 
 interface TextFieldWideProps {
     name: string;
@@ -303,3 +305,100 @@ export const SwitchGroupWideRed = ({
   </ul>
 );
 
+const Input = (props: InputProps) => {
+  return (
+    <components.Input
+      {...props}
+      inputClassName="outline-none border-none shadow-none focus:ring-transparent"
+      className="text-gray-400 dark:text-gray-100"
+      children={props.children}
+    />
+  );
+};
+
+const Control = (props: ControlProps) => {
+  return (
+    <components.Control
+      {...props}
+      className="p-1 block w-full dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:text-gray-100 sm:text-sm"
+      children={props.children}
+    />
+  );
+};
+
+const Menu = (props: MenuProps) => {
+  return (
+    <components.Menu
+      {...props}
+      className="dark:bg-gray-800 border border-gray-300 dark:border-gray-700 dark:text-gray-400 rounded-md shadow-sm"
+      children={props.children}
+    />
+  );
+};
+
+const Option = (props: OptionProps) => {
+  return (
+    <components.Option
+      {...props}
+      className="dark:text-gray-400 dark:bg-gray-800 dark:hover:bg-gray-900 dark:focus:bg-gray-900"
+      children={props.children}
+    />
+  );
+};
+
+export const SelectFieldWide = ({
+  name,
+  label,
+  optionDefaultText,
+  options
+}: SelectFieldProps) => (
+  <div className="flex items-center justify-between space-y-1 px-4 py-4 sm:space-y-0 sm:grid sm:grid-cols-3 sm:gap-4">
+    <div>
+      <label
+        htmlFor={name}
+        className="block text-sm font-medium text-gray-900 dark:text-white"
+      >
+        {label}
+      </label>
+    </div>
+    <div className="sm:col-span-2">
+      <Field name={name} type="select">
+        {({
+          field,
+          form: { setFieldValue }
+        }: FieldProps) => (
+          <Select
+            {...field}
+            id={name}
+            isClearable={true}
+            isSearchable={true}
+            components={{
+              Input,
+              Control,
+              Menu,
+              Option
+            }}
+            placeholder={optionDefaultText}
+            styles={{
+              singleValue: (base) => ({
+                ...base,
+                color: "unset"
+              })
+            }}
+            theme={(theme) => ({
+              ...theme,
+              spacing: {
+                ...theme.spacing,
+                controlHeight: 30,
+                baseUnit: 2
+              }
+            })}
+            value={field?.value && field.value.value}
+            onChange={(option) => setFieldValue(field.name, option?.value ?? "")}
+            options={options}
+          />
+        )}
+      </Field>
+    </div>
+  </div>
+);
