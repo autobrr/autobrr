@@ -199,10 +199,14 @@ const TypeForm = ({ action, idx, clients }: TypeFormProps) => {
               <NumberField
                 name={`actions.${idx}.limit_download_speed`}
                 label="Limit download speed (KiB/s)"
+                placeholder="Takes any number (0 is no limit)"
+                min={0} required={true}
               />
               <NumberField
                 name={`actions.${idx}.limit_upload_speed`}
                 label="Limit upload speed (KiB/s)"
+                placeholder="Takes any number (0 is no limit)"
+                min={0} required={true}
               />
             </div>
 
@@ -210,11 +214,15 @@ const TypeForm = ({ action, idx, clients }: TypeFormProps) => {
               <NumberField
                 name={`actions.${idx}.limit_ratio`}
                 label="Ratio limit"
+                placeholder="Takes any number (0 is no limit)"
+                min={0} required={true}
                 step={0.5}
               />
               <NumberField
                 name={`actions.${idx}.limit_seed_time`}
                 label="Seed time limit (minutes)"
+                placeholder="Takes any number (0 is no limit)"
+                min={0} required={true}
               />
             </div>
           </div>
@@ -253,10 +261,13 @@ const TypeForm = ({ action, idx, clients }: TypeFormProps) => {
               <NumberField
                 name={`actions.${idx}.reannounce_interval`}
                 label="Reannounce interval. Run every X seconds"
+                placeholder="7 is default and recommended"
+                min={1} required={true}
               />
               <NumberField
                 name={`actions.${idx}.reannounce_max_attempts`}
                 label="Run reannounce Y times"
+                min={1} required={true}
               />
             </div>
           </div>

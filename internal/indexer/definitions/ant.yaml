@@ -1,5 +1,5 @@
 ---
-#id: tracker007
+#id: anthelion
 name: Anthelion
 identifier: anthelion
 description: Anthelion (ANT) is a Private Torrent Tracker for MOVIES
@@ -13,12 +13,6 @@ supports:
   - rss
 source: gazelle
 settings:
-  - name: authkey
-    type: secret
-    required: true
-    label: Auth key
-    help: Right click DL on a torrent and get the authkey.
-
   - name: torrent_pass
     type: secret
     required: true
@@ -39,7 +33,7 @@ irc:
       type: text
       required: true
       label: Nick
-      help: Bot nick. Eg. user|bot
+      help: Bot nick. Must be like username|bot
 
     - name: auth.account
       type: text
@@ -55,10 +49,10 @@ irc:
 
     - name: invite_command
       type: secret
-      default: "Sauron bot #ant-announce USERNAME IRCKey"
+      default: "Sauron bot #ant-announce USERNAME IRCKEY"
       required: true
       label: Invite command
-      help: Invite auth with Muffit. Replace USERNAME and IRCKEY.
+      help: Invite auth with Sauron. Replace USERNAME and IRCKEY.
 
   parse:
     type: single
@@ -80,4 +74,4 @@ irc:
           - tags
 
     match:
-      torrenturl: "/torrents.php?action=download&id={{ .torrentId }}&authkey={{ .authkey }}&torrent_pass={{ .torrent_pass }}"
+      torrenturl: "/torrents.php?action=download&id={{ .torrentId }}&torrent_pass={{ .torrent_pass }}"

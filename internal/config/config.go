@@ -56,6 +56,22 @@ port = 7474
 #
 logLevel = "DEBUG"
 
+# Log Max Size
+#
+# Default: 50
+#
+# Max log size in megabytes
+#
+#logMaxSize = 50
+
+# Log Max Backups
+#
+# Default: 3
+#
+# Max amount of old log files
+#
+#logMaxBackups = 3
+
 # Session secret
 #
 sessionSecret = "{{ .sessionSecret }}"
@@ -158,6 +174,8 @@ func (c *AppConfig) defaults() {
 		Port:              7474,
 		LogLevel:          "TRACE",
 		LogPath:           "",
+		LogMaxSize:        50,
+		LogMaxBackups:     3,
 		BaseURL:           "/",
 		SessionSecret:     "secret-session-key",
 		CustomDefinitions: "",

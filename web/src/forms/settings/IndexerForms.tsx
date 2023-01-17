@@ -292,7 +292,7 @@ export function IndexerAddForm({ isOpen, toggle }: AddProps) {
 
       const network: IrcNetworkCreate = {
         name: ind.irc.network,
-        pass: "",
+        pass: formData.irc.pass || "",
         enabled: false,
         connected: false,
         server: ind.irc.server,
@@ -308,10 +308,12 @@ export function IndexerAddForm({ isOpen, toggle }: AddProps) {
         channels: channels
       };
 
-      if (formData.irc.auth.account !== "" && formData.irc.auth.password !== "") {
-        network.auth.mechanism = "SASL_PLAIN";
-        network.auth.account = formData.irc.auth.account;
-        network.auth.password = formData.irc.auth.password;
+      if (formData.irc.auth) {
+        if (formData.irc.auth.account !== "" && formData.irc.auth.password !== "") {
+          network.auth.mechanism = "SASL_PLAIN";
+          network.auth.account = formData.irc.auth.account;
+          network.auth.password = formData.irc.auth.password;
+        }
       }
 
       mutation.mutate(formData as Indexer, {

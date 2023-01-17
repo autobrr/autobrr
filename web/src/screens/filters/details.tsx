@@ -11,6 +11,7 @@ import {
   downloadsPerUnitOptions,
   FORMATS_OPTIONS,
   HDR_OPTIONS,
+  LANGUAGE_OPTIONS,
   ORIGIN_OPTIONS,
   OTHER_OPTIONS,
   QUALITY_MUSIC_OPTIONS,
@@ -236,7 +237,7 @@ export default function FilterDetails() {
                 max_size: filter.max_size,
                 delay: filter.delay,
                 priority: filter.priority ?? 0,
-                max_downloads: filter.max_downloads,
+                max_downloads: filter.max_downloads ?? 0,
                 max_downloads_unit: filter.max_downloads_unit,
                 use_regex: filter.use_regex || false,
                 shows: filter.shows,
@@ -265,13 +266,15 @@ export default function FilterDetails() {
                 except_tags: filter.except_tags,
                 match_uploaders: filter.match_uploaders,
                 except_uploaders: filter.except_uploaders,
+                match_language: filter.match_language || [],
+                except_language: filter.except_language || [],
                 freeleech: filter.freeleech,
                 freeleech_percent: filter.freeleech_percent,
                 formats: filter.formats || [],
                 quality: filter.quality || [],
                 media: filter.media || [],
                 match_release_types: filter.match_release_types || [],
-                log_score: filter.log_score,
+                log_score: filter.log_score ?? 0,
                 log: filter.log,
                 cue: filter.cue,
                 perfect_flac: filter.perfect_flac,
@@ -348,7 +351,7 @@ export function General() {
           <NumberField name="delay" label="Delay" placeholder="Number of seconds to delay actions" />
           <NumberField name="priority" label="Priority" placeholder="Higher number = higher prio" min={0} required={true} />
 
-          <NumberField name="max_downloads" label="Max downloads" placeholder="Takes any number (0 is infinite)" />
+          <NumberField name="max_downloads" label="Max downloads" placeholder="Takes any number (0 is infinite)" min={0} required={true} />
           <Select name="max_downloads_unit" label="Max downloads per" options={downloadsPerUnitOptions}  optionDefaultText="Select unit" />
         </div>
       </div>
@@ -428,11 +431,11 @@ export function Music({ values }: AdvancedProps) {
 
         <div className="mt-6 grid grid-cols-12 gap-6">
           <MultiSelect name="media" options={SOURCES_MUSIC_OPTIONS} label="Media" columns={6} disabled={values.perfect_flac} />
-          <MultiSelect name="match_release_types" options={RELEASE_TYPE_MUSIC_OPTIONS} label="Type" columns={6} disabled={values.perfect_flac} />
+          <MultiSelect name="match_release_types" options={RELEASE_TYPE_MUSIC_OPTIONS} label="Type" columns={6} />
         </div>
 
         <div className="mt-6 grid grid-cols-12 gap-6">
-          <NumberField name="log_score" label="Log score" placeholder="eg. 100" min={0} max={100} disabled={values.perfect_flac} />
+          <NumberField name="log_score" label="Log score" placeholder="eg. 100" min={0} max={100} required={true} disabled={values.perfect_flac} />
         </div>
 
       </div>
@@ -514,6 +517,11 @@ export function Advanced({ values }: AdvancedProps) {
       <CollapsableSection defaultOpen={true} title="Uploaders" subtitle="Match or ignore uploaders.">
         <TextField name="match_uploaders" label="Match uploaders" columns={6} placeholder="eg. uploader1" />
         <TextField name="except_uploaders" label="Except uploaders" columns={6} placeholder="eg. anonymous" />
+      </CollapsableSection>
+
+      <CollapsableSection defaultOpen={true} title="Language" subtitle="Match or ignore languages.">
+        <MultiSelect name="match_language" options={LANGUAGE_OPTIONS} label="Match Language" columns={6} creatable={true} />
+        <MultiSelect name="except_language" options={LANGUAGE_OPTIONS} label="Except Language" columns={6} creatable={true} />
       </CollapsableSection>
 
       <CollapsableSection defaultOpen={true} title="Origins" subtitle="Match Internals, scene, p2p etc. if announced.">

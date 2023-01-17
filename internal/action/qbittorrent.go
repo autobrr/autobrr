@@ -2,6 +2,7 @@ package action
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/pkg/errors"
@@ -103,6 +104,8 @@ func (s *service) prepareQbitOptions(action *domain.Action) (map[string]string, 
 func (s *service) qbittorrentCheckRulesCanDownload(ctx context.Context, action *domain.Action, client *domain.DownloadClient, qbt *qbittorrent.Client) ([]string, error) {
 	s.log.Trace().Msgf("action qBittorrent: %v check rules", action.Name)
 
+	checked := false
+
 	// check for active downloads and other rules
 	if client.Settings.Rules.Enabled && !action.IgnoreRules {
 		activeDownloads, err := qbt.GetTorrentsActiveDownloadsCtx(ctx)
@@ -116,31 +119,75 @@ func (s *service) qbittorrentCheckRulesCanDownload(ctx context.Context, action *
 			// if max active downloads reached, check speed and if lower than threshold add anyway
 			if len(activeDownloads) >= client.Settings.Rules.MaxActiveDownloads {
 				if client.Settings.Rules.IgnoreSlowTorrents {
-					// check speeds of downloads
-					info, err := qbt.GetTransferInfoCtx(ctx)
-					if err != nil {
-						return nil, errors.Wrap(err, "could not get transfer info")
+					if client.Settings.Rules.IgnoreSlowTorrentsCondition == domain.IgnoreSlowTorrentsModeMaxReached {
+						rejections, err := s.qbittorrentCheckIgnoreSlow(ctx, client, qbt)
+						if err != nil {
+							return rejections, err
+						}
+
+						s.log.Debug().Msg("active downloads are slower than set limit, lets add it")
+
+						checked = true
 					}
-
-					// if current transfer speed is more than threshold return out and skip
-					// DlInfoSpeed is in bytes so lets convert to KB to match DownloadSpeedThreshold
-					if info.DlInfoSpeed/1024 >= client.Settings.Rules.DownloadSpeedThreshold {
-						s.log.Debug().Msg("max active downloads reached, skipping")
-
-						rejections := []string{"max active downloads reached, skipping"}
-						return rejections, nil
-					}
-
-					s.log.Debug().Msg("active downloads are slower than set limit, lets add it")
 				} else {
-					s.log.Debug().Msg("max active downloads reached, skipping")
+					rejection := "max active downloads reached, skipping"
 
-					rejections := []string{"max active downloads reached, skipping"}
-					return rejections, nil
+					s.log.Debug().Msg(rejection)
+
+					return []string{rejection}, nil
 				}
 			}
 		}
+
+		if !checked && client.Settings.Rules.IgnoreSlowTorrentsCondition == domain.IgnoreSlowTorrentsModeAlways {
+			rejections, err := s.qbittorrentCheckIgnoreSlow(ctx, client, qbt)
+			if err != nil {
+				return rejections, err
+			}
+
+			if len(rejections) > 0 {
+				return rejections, nil
+			}
+		}
 	}
+
+	return nil, nil
+}
+
+func (s *service) qbittorrentCheckIgnoreSlow(ctx context.Context, client *domain.DownloadClient, qbt *qbittorrent.Client) ([]string, error) {
+	// get transfer info
+	info, err := qbt.GetTransferInfoCtx(ctx)
+	if err != nil {
+		return nil, errors.Wrap(err, "could not get transfer info")
+	}
+
+	s.log.Debug().Msgf("checking client ignore slow torrent rules: %+v", info)
+
+	if client.Settings.Rules.DownloadSpeedThreshold > 0 {
+		// if current transfer speed is more than threshold return out and skip
+		// DlInfoSpeed is in bytes so lets convert to KB to match DownloadSpeedThreshold
+		if info.DlInfoSpeed/1024 >= client.Settings.Rules.DownloadSpeedThreshold {
+			rejection := fmt.Sprintf("max active downloads reached and total download speed (%d) above threshold: (%d), skipping", info.DlInfoSpeed/1024, client.Settings.Rules.DownloadSpeedThreshold)
+
+			s.log.Debug().Msg(rejection)
+
+			return []string{rejection}, nil
+		}
+	}
+
+	if client.Settings.Rules.UploadSpeedThreshold > 0 {
+		// if current transfer speed is more than threshold return out and skip
+		// UpInfoSpeed is in bytes so lets convert to KB to match UploadSpeedThreshold
+		if info.UpInfoSpeed/1024 >= client.Settings.Rules.UploadSpeedThreshold {
+			rejection := fmt.Sprintf("max active downloads reached and total upload speed (%d) above threshold: (%d), skipping", info.UpInfoSpeed/1024, client.Settings.Rules.UploadSpeedThreshold)
+
+			s.log.Debug().Msg(rejection)
+
+			return []string{rejection}, nil
+		}
+	}
+
+	s.log.Debug().Msg("active downloads are slower than set limit, lets add it")
 
 	return nil, nil
 }

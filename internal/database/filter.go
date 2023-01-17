@@ -217,6 +217,8 @@ func (r *FilterRepo) FindByID(ctx context.Context, filterID int) (*domain.Filter
 			"except_categories",
 			"match_uploaders",
 			"except_uploaders",
+			"match_language",
+			"except_language",
 			"tags",
 			"except_tags",
 			"origins",
@@ -250,7 +252,7 @@ func (r *FilterRepo) FindByID(ctx context.Context, filterID int) (*domain.Filter
 	var useRegex, scene, freeleech, hasLog, hasCue, perfectFlac, extScriptEnabled, extWebhookEnabled sql.NullBool
 	var delay, maxDownloads, logScore, extWebhookStatus, extScriptStatus sql.NullInt32
 
-	if err := row.Scan(&f.ID, &f.Enabled, &f.Name, &minSize, &maxSize, &delay, &f.Priority, &maxDownloads, &maxDownloadsUnit, &matchReleases, &exceptReleases, &useRegex, &matchReleaseGroups, &exceptReleaseGroups, &matchReleaseTags, &exceptReleaseTags, &f.UseRegexReleaseTags, &scene, &freeleech, &freeleechPercent, &f.SmartEpisode, &shows, &seasons, &episodes, pq.Array(&f.Resolutions), pq.Array(&f.Codecs), pq.Array(&f.Sources), pq.Array(&f.Containers), pq.Array(&f.MatchHDR), pq.Array(&f.ExceptHDR), pq.Array(&f.MatchOther), pq.Array(&f.ExceptOther), &years, &artists, &albums, pq.Array(&f.MatchReleaseTypes), pq.Array(&f.Formats), pq.Array(&f.Quality), pq.Array(&f.Media), &logScore, &hasLog, &hasCue, &perfectFlac, &matchCategories, &exceptCategories, &matchUploaders, &exceptUploaders, &tags, &exceptTags, pq.Array(&f.Origins), pq.Array(&f.ExceptOrigins), &extScriptEnabled, &extScriptCmd, &extScriptArgs, &extScriptStatus, &extWebhookEnabled, &extWebhookHost, &extWebhookData, &extWebhookStatus, &f.CreatedAt, &f.UpdatedAt); err != nil {
+	if err := row.Scan(&f.ID, &f.Enabled, &f.Name, &minSize, &maxSize, &delay, &f.Priority, &maxDownloads, &maxDownloadsUnit, &matchReleases, &exceptReleases, &useRegex, &matchReleaseGroups, &exceptReleaseGroups, &matchReleaseTags, &exceptReleaseTags, &f.UseRegexReleaseTags, &scene, &freeleech, &freeleechPercent, &f.SmartEpisode, &shows, &seasons, &episodes, pq.Array(&f.Resolutions), pq.Array(&f.Codecs), pq.Array(&f.Sources), pq.Array(&f.Containers), pq.Array(&f.MatchHDR), pq.Array(&f.ExceptHDR), pq.Array(&f.MatchOther), pq.Array(&f.ExceptOther), &years, &artists, &albums, pq.Array(&f.MatchReleaseTypes), pq.Array(&f.Formats), pq.Array(&f.Quality), pq.Array(&f.Media), &logScore, &hasLog, &hasCue, &perfectFlac, &matchCategories, &exceptCategories, &matchUploaders, &exceptUploaders, pq.Array(&f.MatchLanguage), pq.Array(&f.ExceptLanguage), &tags, &exceptTags, pq.Array(&f.Origins), pq.Array(&f.ExceptOrigins), &extScriptEnabled, &extScriptCmd, &extScriptArgs, &extScriptStatus, &extWebhookEnabled, &extWebhookHost, &extWebhookData, &extWebhookStatus, &f.CreatedAt, &f.UpdatedAt); err != nil {
 		return nil, errors.Wrap(err, "error scanning row")
 	}
 
@@ -378,6 +380,8 @@ func (r *FilterRepo) findByIndexerIdentifier(ctx context.Context, tx *Tx, indexe
 			"f.except_categories",
 			"f.match_uploaders",
 			"f.except_uploaders",
+			"f.match_language",
+			"f.except_language",
 			"f.tags",
 			"f.except_tags",
 			"f.origins",
@@ -421,7 +425,7 @@ func (r *FilterRepo) findByIndexerIdentifier(ctx context.Context, tx *Tx, indexe
 		var useRegex, scene, freeleech, hasLog, hasCue, perfectFlac, extScriptEnabled, extWebhookEnabled sql.NullBool
 		var delay, maxDownloads, logScore, extWebhookStatus, extScriptStatus sql.NullInt32
 
-		if err := rows.Scan(&f.ID, &f.Enabled, &f.Name, &minSize, &maxSize, &delay, &f.Priority, &maxDownloads, &maxDownloadsUnit, &matchReleases, &exceptReleases, &useRegex, &matchReleaseGroups, &exceptReleaseGroups, &matchReleaseTags, &exceptReleaseTags, &f.UseRegexReleaseTags, &scene, &freeleech, &freeleechPercent, &f.SmartEpisode, &shows, &seasons, &episodes, pq.Array(&f.Resolutions), pq.Array(&f.Codecs), pq.Array(&f.Sources), pq.Array(&f.Containers), pq.Array(&f.MatchHDR), pq.Array(&f.ExceptHDR), pq.Array(&f.MatchOther), pq.Array(&f.ExceptOther), &years, &artists, &albums, pq.Array(&f.MatchReleaseTypes), pq.Array(&f.Formats), pq.Array(&f.Quality), pq.Array(&f.Media), &logScore, &hasLog, &hasCue, &perfectFlac, &matchCategories, &exceptCategories, &matchUploaders, &exceptUploaders, &tags, &exceptTags, pq.Array(&f.Origins), pq.Array(&f.ExceptOrigins), &extScriptEnabled, &extScriptCmd, &extScriptArgs, &extScriptStatus, &extWebhookEnabled, &extWebhookHost, &extWebhookData, &extWebhookStatus, &f.CreatedAt, &f.UpdatedAt); err != nil {
+		if err := rows.Scan(&f.ID, &f.Enabled, &f.Name, &minSize, &maxSize, &delay, &f.Priority, &maxDownloads, &maxDownloadsUnit, &matchReleases, &exceptReleases, &useRegex, &matchReleaseGroups, &exceptReleaseGroups, &matchReleaseTags, &exceptReleaseTags, &f.UseRegexReleaseTags, &scene, &freeleech, &freeleechPercent, &f.SmartEpisode, &shows, &seasons, &episodes, pq.Array(&f.Resolutions), pq.Array(&f.Codecs), pq.Array(&f.Sources), pq.Array(&f.Containers), pq.Array(&f.MatchHDR), pq.Array(&f.ExceptHDR), pq.Array(&f.MatchOther), pq.Array(&f.ExceptOther), &years, &artists, &albums, pq.Array(&f.MatchReleaseTypes), pq.Array(&f.Formats), pq.Array(&f.Quality), pq.Array(&f.Media), &logScore, &hasLog, &hasCue, &perfectFlac, &matchCategories, &exceptCategories, &matchUploaders, &exceptUploaders, pq.Array(&f.MatchLanguage), pq.Array(&f.ExceptLanguage), &tags, &exceptTags, pq.Array(&f.Origins), pq.Array(&f.ExceptOrigins), &extScriptEnabled, &extScriptCmd, &extScriptArgs, &extScriptStatus, &extWebhookEnabled, &extWebhookHost, &extWebhookData, &extWebhookStatus, &f.CreatedAt, &f.UpdatedAt); err != nil {
 			return nil, errors.Wrap(err, "error scanning row")
 		}
 
@@ -513,6 +517,8 @@ func (r *FilterRepo) Store(ctx context.Context, filter domain.Filter) (*domain.F
 			"except_categories",
 			"match_uploaders",
 			"except_uploaders",
+			"match_language",
+			"except_language",
 			"tags",
 			"except_tags",
 			"artists",
@@ -573,6 +579,8 @@ func (r *FilterRepo) Store(ctx context.Context, filter domain.Filter) (*domain.F
 			filter.ExceptCategories,
 			filter.MatchUploaders,
 			filter.ExceptUploaders,
+			pq.Array(filter.MatchLanguage),
+			pq.Array(filter.ExceptLanguage),
 			filter.Tags,
 			filter.ExceptTags,
 			filter.Artists,
@@ -652,6 +660,8 @@ func (r *FilterRepo) Update(ctx context.Context, filter domain.Filter) (*domain.
 		Set("except_categories", filter.ExceptCategories).
 		Set("match_uploaders", filter.MatchUploaders).
 		Set("except_uploaders", filter.ExceptUploaders).
+		Set("match_language", pq.Array(filter.MatchLanguage)).
+		Set("except_language", pq.Array(filter.ExceptLanguage)).
 		Set("tags", filter.Tags).
 		Set("except_tags", filter.ExceptTags).
 		Set("artists", filter.Artists).
@@ -802,6 +812,12 @@ func (r *FilterRepo) UpdatePartial(ctx context.Context, filter domain.FilterUpda
 	}
 	if filter.ExceptUploaders != nil {
 		q = q.Set("except_uploaders", filter.ExceptUploaders)
+	}
+	if filter.MatchLanguage != nil {
+		q = q.Set("match_language", pq.Array(filter.MatchLanguage))
+	}
+	if filter.ExceptLanguage != nil {
+		q = q.Set("except_language", pq.Array(filter.ExceptLanguage))
 	}
 	if filter.Tags != nil {
 		q = q.Set("tags", filter.Tags)

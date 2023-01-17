@@ -111,6 +111,8 @@ CREATE TABLE filter
     except_categories              TEXT,
     match_uploaders                TEXT,
     except_uploaders               TEXT,
+    match_language                 TEXT []   DEFAULT '{}',
+    except_language                TEXT []   DEFAULT '{}',
     tags                           TEXT,
     except_tags                    TEXT,
     origins                        TEXT []   DEFAULT '{}',
@@ -966,5 +968,11 @@ ALTER TABLE irc_network_dg_tmp
     `,
 	`ALTER TABLE "filter"
 	ADD COLUMN smart_episode BOOLEAN DEFAULT false;
+	`,
+	`ALTER TABLE "filter"
+		ADD COLUMN match_language TEXT []   DEFAULT '{}';
+
+	ALTER TABLE "filter"
+		ADD COLUMN except_language TEXT []   DEFAULT '{}';
 	`,
 }

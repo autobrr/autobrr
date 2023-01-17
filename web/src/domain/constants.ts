@@ -154,6 +154,61 @@ export const originOptions = [
 
 export const ORIGIN_OPTIONS = originOptions.map(v => ({ value: v, label: v, key: v }));
 
+export const languageOptions = [
+  "BALTIC",
+  "BRAZiLiAN",
+  "BULGARiAN",
+  "CHiNESE",
+  "CHS",
+  "CHT",
+  "CZECH",
+  "DANiSH",
+  "DUBBED",
+  "DKSUBS",
+  "DUTCH",
+  "ENGLiSH",
+  "ESTONiAN",
+  "FLEMiSH",
+  "FiNNiSH",
+  "FRENCH",
+  "GERMAN",
+  "GREEK",
+  "HAiTiAN",
+  "HARDSUB",
+  "Hardcoded",
+  "HEBREW",
+  "HebSub",
+  "HiNDi",
+  "HUNGARiAN",
+  "iCELANDiC",
+  "iTALiAN",
+  "JAPANESE",
+  "KOREAN",
+  "LATiN",
+  "MANDARiN",
+  "MULTi",
+  "MULTILANG",
+  "MULTiSUB",
+  "MULTiSUBS",
+  "NORDiC",
+  "NORWEGiAN",
+  "POLiSH",
+  "PORTUGUESE",
+  "ROMANiAN",
+  "RUSSiAN",
+  "SPANiSH",
+  "SUBBED",
+  "SUBFORCED",
+  "SUBPACK",
+  "SWEDiSH",
+  "SYNCED",
+  "TURKiSH",
+  "UKRAiNiAN",
+  "UNSUBBED"
+];
+
+export const LANGUAGE_OPTIONS = languageOptions.map(v => ({ value: v, label: v, key: v }));
+
 export interface RadioFieldsetOption {
     label: string;
     description: string;
@@ -347,6 +402,18 @@ export const downloadsPerUnitOptions: OptionBasic[] = [
     value: "EVER"
   }
 ];
+
+export const DownloadRuleConditionOptions: OptionBasic[] = [
+  {
+    label: "Always",
+    value: "ALWAYS"
+  },
+  {
+    label: "Max downloads reached",
+    value: "MAX_DOWNLOADS_REACHED"
+  }
+];
+
 
 export interface SelectOption {
     label: string;

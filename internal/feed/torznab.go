@@ -2,6 +2,7 @@ package feed
 
 import (
 	"context"
+	"math"
 	"sort"
 	"strconv"
 	"time"
@@ -88,9 +89,22 @@ func (j *TorznabJob) process(ctx context.Context) error {
 
 		rls.ParseString(item.Title)
 
-		if parseFreeleechTorznab(item) {
-			rls.Freeleech = true
-			rls.Bonus = []string{"Freeleech"}
+		// Get freeleech percentage between 0 - 100. The value is ignored if
+		// an error occurrs
+		freeleechPercentage, err := parseFreeleechTorznab(item)
+		if err != nil {
+			j.Log.Debug().Err(err).Msgf("error parsing torznab freeleech")
+		} else {
+			if freeleechPercentage == 100 {
+				// Release is 100% freeleech
+				rls.Freeleech = true
+				rls.Bonus = []string{"Freeleech"}
+			}
+
+			rls.FreeleechPercent = freeleechPercentage
+			if bonus := mapFreeleechToBonus(freeleechPercentage); bonus != "" {
+				rls.Bonus = append(rls.Bonus, bonus)
+			}
 		}
 
 		// map torznab categories ID and Name into rls.Categories
@@ -108,16 +122,51 @@ func (j *TorznabJob) process(ctx context.Context) error {
 	return nil
 }
 
-func parseFreeleechTorznab(item torznab.FeedItem) bool {
+// Parse the downloadvolumefactor attribute. The returned value is the percentage
+// of downloaded data that does NOT count towards a user's total download amount.
+func parseFreeleechTorznab(item torznab.FeedItem) (int, error) {
 	for _, attr := range item.Attributes {
 		if attr.Name == "downloadvolumefactor" {
-			if attr.Value == "0" {
-				return true
+			// Parse the value as decimal number
+			downloadVolumeFactor, err := strconv.ParseFloat(attr.Value, 64)
+			if err != nil {
+				return 0, err
 			}
+
+			// Values below 0.0 and above 1.0 are rejected
+			if downloadVolumeFactor < 0 || downloadVolumeFactor > 1 {
+				return 0, errors.New("invalid downloadvolumefactor: %s", attr.Value)
+			}
+
+			// Multiply by 100 to convert from ratio to percentage and round it
+			// to the nearest integer value
+			downloadPercentage := math.Round(downloadVolumeFactor * 100)
+
+			// To convert from download percentage to freeleech percentage the
+			// value is inverted
+			freeleechPercentage := 100 - int(downloadPercentage)
+
+			return freeleechPercentage, nil
 		}
 	}
 
-	return false
+	return 0, nil
+}
+
+// Maps a freeleech percentage of 25, 50, 75 or 100 to a bonus.
+func mapFreeleechToBonus(percentage int) string {
+	switch percentage {
+	case 25:
+		return "Freeleech25"
+	case 50:
+		return "Freeleech50"
+	case 75:
+		return "Freeleech75"
+	case 100:
+		return "Freeleech100"
+	default:
+		return ""
+	}
 }
 
 func (j *TorznabJob) getFeed(ctx context.Context) ([]torznab.FeedItem, error) {

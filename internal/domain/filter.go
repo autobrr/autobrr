@@ -109,6 +109,8 @@ type Filter struct {
 	ExceptCategories            string                 `json:"except_categories,omitempty"`
 	MatchUploaders              string                 `json:"match_uploaders,omitempty"`
 	ExceptUploaders             string                 `json:"except_uploaders,omitempty"`
+	MatchLanguage               []string               `json:"match_language,omitempty"`
+	ExceptLanguage              []string               `json:"except_language,omitempty"`
 	Tags                        string                 `json:"tags,omitempty"`
 	ExceptTags                  string                 `json:"except_tags,omitempty"`
 	TagsAny                     string                 `json:"tags_any,omitempty"`
@@ -182,6 +184,8 @@ type FilterUpdate struct {
 	ExceptCategories            *string                 `json:"except_categories,omitempty"`
 	MatchUploaders              *string                 `json:"match_uploaders,omitempty"`
 	ExceptUploaders             *string                 `json:"except_uploaders,omitempty"`
+	MatchLanguage               *[]string               `json:"match_language,omitempty"`
+	ExceptLanguage              *[]string               `json:"except_language,omitempty"`
 	Tags                        *string                 `json:"tags,omitempty"`
 	ExceptTags                  *string                 `json:"except_tags,omitempty"`
 	TagsAny                     *string                 `json:"tags_any,omitempty"`
@@ -297,6 +301,14 @@ func (f Filter) CheckFilter(r *Release) ([]string, bool) {
 		r.addRejectionF("unwanted uploaders. got: %v unwanted: %v", r.Uploader, f.ExceptUploaders)
 	}
 
+	if len(f.MatchLanguage) > 0 && !sliceContainsSlice(r.Language, f.MatchLanguage) {
+		r.addRejectionF("language not matching. got: %v want: %v", r.Language, f.MatchLanguage)
+	}
+
+	if len(f.ExceptLanguage) > 0 && sliceContainsSlice(r.Language, f.ExceptLanguage) {
+		r.addRejectionF("language unwanted. got: %v want: %v", r.Language, f.ExceptLanguage)
+	}
+
 	if len(f.Resolutions) > 0 && !containsSlice(r.Resolution, f.Resolutions) {
 		r.addRejectionF("resolution not matching. got: %v want: %v", r.Resolution, f.Resolutions)
 	}
@@ -375,12 +387,12 @@ func (f Filter) CheckFilter(r *Release) ([]string, bool) {
 		r.addRejectionF("tags unwanted. got: %v want: %v", r.Tags, f.ExceptTags)
 	}
 
-	if len(f.Artists) > 0 && !containsFuzzy(r.TorrentName, f.Artists) {
-		r.addRejectionF("artists not matching. got: %v want: %v", r.TorrentName, f.Artists)
+	if len(f.Artists) > 0 && !contains(r.Artists, f.Artists) {
+		r.addRejectionF("artists not matching. got: %v want: %v", r.Artists, f.Artists)
 	}
 
-	if len(f.Albums) > 0 && !containsFuzzy(r.TorrentName, f.Albums) {
-		r.addRejectionF("albums not matching. got: %v want: %v", r.TorrentName, f.Albums)
+	if len(f.Albums) > 0 && !contains(r.Title, f.Albums) {
+		r.addRejectionF("albums not matching. got: %v want: %v", r.Title, f.Albums)
 	}
 
 	// Perfect flac requires Cue, Log, Log Score 100, FLAC and 24bit Lossless
