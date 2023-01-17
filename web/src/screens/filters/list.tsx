@@ -149,7 +149,7 @@ function FilterList({ toggleCreateFilter }: any) {
           </div>
 
           <div className="flex items-center gap-5">
-            <IndexerSelectFilter dispatch={dispatchFilter} />
+            <div className="hidden sm:flex"><IndexerSelectFilter dispatch={dispatchFilter} /></div>
             <SortSelectFilter dispatch={dispatchFilter} />
           </div>
         </div>
@@ -390,7 +390,7 @@ function FilterListItem({ filter, idx }: FilterListItemProps) {
     <li
       key={filter.id}
       className={classNames(
-        "flex items-center hover:bg-gray-100 dark:hover:bg-[#222225] rounded-b-lg",
+        "flex py-1 items-center hover:bg-gray-100 dark:hover:bg-[#222225] rounded-b-lg",
         idx % 2 === 0 ?
           "bg-white dark:bg-[#2e2e31]" :
           "bg-gray-50 dark:bg-gray-800"
@@ -417,8 +417,8 @@ function FilterListItem({ filter, idx }: FilterListItemProps) {
           />
         </Switch>
       </span>
-      <div className="flex flex-col w-full justify-center">
-        <span className="whitespace-nowrap text-sm font-bold text-gray-900 dark:text-gray-100">
+      <div className="flex flex-col overflow-hidden w-full justify-center">
+        <span className="w-4/5 break-words whitespace-wrap py-1 text-sm font-bold text-gray-900 dark:text-gray-100">
           <Link
             to={filter.id.toString()}
             className="hover:text-black dark:hover:text-gray-300"
@@ -427,7 +427,7 @@ function FilterListItem({ filter, idx }: FilterListItemProps) {
           </Link>
         </span>
         <div className="flex-col">
-          <span className="mr-2 whitespace-nowrap text-xs font-medium text-gray-600 dark:text-gray-400">
+          <span className="mr-2 break-words whitespace-nowrap text-xs font-medium text-gray-600 dark:text-gray-400">
             Priority: {filter.priority}
           </span>
           <span className="whitespace-nowrap text-xs font-medium text-gray-600 dark:text-gray-400">
@@ -440,10 +440,10 @@ function FilterListItem({ filter, idx }: FilterListItemProps) {
           </span>
         </div>
       </div>
-      <span className="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+      <span className="hidden sm:flex px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
         <FilterIndexers indexers={filter.indexers} />
       </span>
-      <span className="px-4 py-4 whitespace-nowrap text-right text-sm font-medium">
+      <span className="min-w-fit px-4 py-4 whitespace-nowrap text-right text-sm font-medium">
         <FilterItemDropdown
           filter={filter}
           onToggle={toggleActive}
@@ -460,7 +460,7 @@ interface IndexerTagProps {
 const IndexerTag: FC<IndexerTagProps> = ({ indexer }) => (
   <span
     key={indexer.id}
-    className="mr-2 inline-flex items-center px-2.5 py-0.5 rounded-md text-sm font-medium bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-400"
+    className="hidden sm:flex mr-2 inline-flex items-center px-2.5 py-0.5 rounded-md text-sm font-medium bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-400"
   >
     {indexer.name}
   </span>
@@ -478,7 +478,7 @@ function FilterIndexers({ indexers }: FilterIndexersProps) {
           ? indexers.map((indexer, idx) => (
             <IndexerTag key={idx} indexer={indexer} />
           ))
-          : <span className="text-red-400 dark:text-red-800 p-1 text-xs tracking-wide rounded border border-red-400 dark:border-red-700 bg-red-100 dark:bg-red-400">NO INDEXERS SELECTED</span>
+          : <span className="hidden sm:flex text-red-400 dark:text-red-800 p-1 text-xs tracking-wide rounded border border-red-400 dark:border-red-700 bg-red-100 dark:bg-red-400">NO INDEXERS SELECTED</span>
         }
       </>
     );
@@ -521,7 +521,7 @@ const ListboxFilter = ({
     onChange={onChange}
   >
     <div className="relative">
-      <Listbox.Button className="relative w-full py-2 pr-5 text-left dark:text-gray-400 sm:text-sm">
+      <Listbox.Button className="relative w-full py-2 pr-5 text-left dark:text-gray-400 text-sm">
         <span className="block truncate">{label}</span>
         <span className="absolute inset-y-0 right-0 flex items-center pointer-events-none">
           <ChevronDownIcon
