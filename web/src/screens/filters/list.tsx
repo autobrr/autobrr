@@ -149,7 +149,7 @@ function FilterList({ toggleCreateFilter }: any) {
           </div>
 
           <div className="flex items-center gap-5">
-            <div className="hidden sm:flex"><IndexerSelectFilter dispatch={dispatchFilter} /></div>
+            <div className="hidden md:flex"><IndexerSelectFilter dispatch={dispatchFilter} /></div>
             <SortSelectFilter dispatch={dispatchFilter} />
           </div>
         </div>
@@ -390,7 +390,7 @@ function FilterListItem({ filter, idx }: FilterListItemProps) {
     <li
       key={filter.id}
       className={classNames(
-        "flex py-1 items-center hover:bg-gray-100 dark:hover:bg-[#222225] rounded-b-lg",
+        "flex items-center hover:bg-gray-100 dark:hover:bg-[#222225] rounded-b-lg",
         idx % 2 === 0 ?
           "bg-white dark:bg-[#2e2e31]" :
           "bg-gray-50 dark:bg-gray-800"
@@ -417,8 +417,8 @@ function FilterListItem({ filter, idx }: FilterListItemProps) {
           />
         </Switch>
       </span>
-      <div className="flex flex-col overflow-hidden w-full justify-center">
-        <span className="w-4/5 break-words whitespace-wrap py-1 text-sm font-bold text-gray-900 dark:text-gray-100">
+      <div className="py-2 flex flex-col overflow-hidden w-full justify-center">
+        <span className="w-full break-words whitespace-wrap text-sm font-bold text-gray-900 dark:text-gray-100">
           <Link
             to={filter.id.toString()}
             className="hover:text-black dark:hover:text-gray-300"
@@ -440,7 +440,7 @@ function FilterListItem({ filter, idx }: FilterListItemProps) {
           </span>
         </div>
       </div>
-      <span className="hidden sm:flex px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+      <span className="hidden md:flex px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
         <FilterIndexers indexers={filter.indexers} />
       </span>
       <span className="min-w-fit px-4 py-4 whitespace-nowrap text-right text-sm font-medium">
@@ -460,7 +460,7 @@ interface IndexerTagProps {
 const IndexerTag: FC<IndexerTagProps> = ({ indexer }) => (
   <span
     key={indexer.id}
-    className="hidden sm:flex mr-2 inline-flex items-center px-2.5 py-0.5 rounded-md text-sm font-medium bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-400"
+    className="hidden sm:inline-flex mr-2 items-center px-2.5 py-0.5 rounded-md text-sm font-medium bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-400"
   >
     {indexer.name}
   </span>
@@ -537,7 +537,7 @@ const ListboxFilter = ({
         leaveTo="opacity-0"
       >
         <Listbox.Options
-          className="w-48 absolute z-10 w-full mt-1 right-0 overflow-auto text-base bg-white dark:bg-gray-800 rounded-md shadow-lg max-h-60 border border-opacity-5 border-black dark:border-gray-700 dark:border-opacity-40 focus:outline-none sm:text-sm"
+          className="w-52 absolute z-10 mt-1 right-0 overflow-auto text-base bg-white dark:bg-gray-800 rounded-md shadow-lg max-h-60 border border-opacity-5 border-black dark:border-gray-700 dark:border-opacity-40 focus:outline-none sm:text-sm"
         >
           {children}
         </Listbox.Options>
@@ -590,7 +590,7 @@ interface FilterOptionProps {
 const FilterOption = ({ label, value }: FilterOptionProps) => (
   <Listbox.Option
     className={({ active }) => classNames(
-      "cursor-pointer select-none relative py-2 pl-10 pr-4",
+      "cursor-pointer select-none relative py-2 px-4",
       active ? "text-black dark:text-gray-200 bg-gray-100 dark:bg-gray-900" : "text-gray-700 dark:text-gray-400"
     )}
     value={value}
