@@ -87,6 +87,7 @@ func (s *service) RunAction(ctx context.Context, action *domain.Action, release 
 		Type:       action.Type,
 		Client:     action.Client.Name,
 		Filter:     release.Filter.Name,
+		FilterID:   int64(release.Filter.ID),
 		Rejections: []string{},
 		Timestamp:  time.Now(),
 	}

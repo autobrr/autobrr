@@ -264,12 +264,14 @@ CREATE TABLE release_action_status
 	type          TEXT NOT NULL,
 	client        TEXT,
 	filter        TEXT,
+	filter_id     INTEGER,
 	rejections    TEXT []   DEFAULT '{}' NOT NULL,
 	timestamp     TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 	raw           TEXT,
 	log           TEXT,
 	release_id    INTEGER NOT NULL,
-	FOREIGN KEY (release_id) REFERENCES "release"(id) ON DELETE CASCADE
+	FOREIGN KEY (release_id) REFERENCES "release"(id) ON DELETE CASCADE,
+	FOREIGN KEY (filter_id) REFERENCES "filter"(id) ON DELETE SET NULL
 );
 
 CREATE INDEX release_action_status_release_id_index
@@ -630,5 +632,19 @@ CREATE INDEX indexer_identifier_index
 
 	ALTER TABLE "filter"
 		ADD COLUMN except_language TEXT []   DEFAULT '{}';
+	`,
+	`ALTER TABLE release_action_status
+    ADD filter_id INTEGER;
+
+CREATE INDEX release_action_status_filter_id_index
+    ON release_action_status (filter_id);
+
+ALTER TABLE release_action_status
+    ADD CONSTRAINT release_action_status_filter_id_fk
+        FOREIGN KEY (filter_id) REFERENCES filter;
+
+UPDATE release_action_status
+SET filter_id = (SELECT f.id
+FROM filter f WHERE f.name = release_action_status.filter);
 	`,
 }
