@@ -77,8 +77,8 @@ func (repo *ReleaseRepo) StoreReleaseActionStatus(ctx context.Context, a *domain
 	} else {
 		queryBuilder := repo.db.squirrel.
 			Insert("release_action_status").
-			Columns("status", "action", "type", "client", "filter", "rejections", "timestamp", "release_id").
-			Values(a.Status, a.Action, a.Type, a.Client, a.Filter, pq.Array(a.Rejections), a.Timestamp, a.ReleaseID).
+			Columns("status", "action", "type", "client", "filter", "filter_id", "rejections", "timestamp", "release_id").
+			Values(a.Status, a.Action, a.Type, a.Client, a.Filter, a.FilterID, pq.Array(a.Rejections), a.Timestamp, a.ReleaseID).
 			Suffix("RETURNING id").RunWith(repo.db.handler)
 
 		// return values
@@ -391,7 +391,7 @@ func (repo *ReleaseRepo) GetActionStatusByReleaseID(ctx context.Context, release
 
 func (repo *ReleaseRepo) attachActionStatus(ctx context.Context, tx *Tx, releaseID int64) ([]domain.ReleaseActionStatus, error) {
 	queryBuilder := repo.db.squirrel.
-		Select("id", "status", "action", "type", "client", "filter", "rejections", "timestamp").
+		Select("id", "status", "action", "type", "client", "filter", "filter_id", "rejections", "timestamp").
 		From("release_action_status").
 		Where(sq.Eq{"release_id": releaseID})
 
@@ -417,13 +417,15 @@ func (repo *ReleaseRepo) attachActionStatus(ctx context.Context, tx *Tx, release
 		var rls domain.ReleaseActionStatus
 
 		var client, filter sql.NullString
+		var filterID sql.NullInt64
 
-		if err := rows.Scan(&rls.ID, &rls.Status, &rls.Action, &rls.Type, &client, &filter, pq.Array(&rls.Rejections), &rls.Timestamp); err != nil {
+		if err := rows.Scan(&rls.ID, &rls.Status, &rls.Action, &rls.Type, &client, &filter, &filterID, pq.Array(&rls.Rejections), &rls.Timestamp); err != nil {
 			return res, errors.Wrap(err, "error scanning row")
 		}
 
 		rls.Client = client.String
 		rls.Filter = filter.String
+		rls.FilterID = filterID.Int64
 
 		res = append(res, rls)
 	}
