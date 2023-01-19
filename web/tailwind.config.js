@@ -27,12 +27,10 @@ module.exports = {
       },
     },
   },
-  plugins: [
-    require("@tailwindcss/forms"),
-    require('tailwind-scrollbar')({ nocompatible: true }),
-  ],
   variants: {
     extend: {},
-    scrollbar: ['rounded']
   },
+  plugins: [
+    require("@tailwindcss/forms"),
+  ],
 }
