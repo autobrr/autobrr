@@ -24,7 +24,7 @@ export default function Base() {
     { name: "Filters", path: "/filters" },
     { name: "Releases", path: "/releases" },
     { name: "Settings", path: "/settings" },
-    { name: "Logs", path: "/logs" },
+    { name: "Logs", path: "/logs" }
   ];
 
   return (
