@@ -3,7 +3,8 @@ import { useMutation, useQuery } from "react-query";
 import { NavLink, Route, Routes, useLocation, useNavigate, useParams } from "react-router-dom";
 import { toast } from "react-hot-toast";
 import { Form, Formik, FormikValues, useFormikContext } from "formik";
-import { ChevronDownIcon, ChevronRightIcon } from "@heroicons/react/24/solid";
+import { InformationCircleIcon, ChevronDownIcon, ChevronRightIcon } from "@heroicons/react/24/solid";
+import { Tooltip } from "react-tooltip";
 
 import {
   CODECS_OPTIONS,
@@ -501,20 +502,30 @@ export function Advanced({ values }: AdvancedProps) {
         </div>
       </CollapsableSection>
 
+
       <CollapsableSection defaultOpen={true} title="Groups" subtitle="Match only certain groups and/or ignore other groups.">
         <TextField name="match_release_groups" label="Match release groups" columns={6} placeholder="eg. group1,group2" />
         <TextField name="except_release_groups" label="Except release groups" columns={6} placeholder="eg. badgroup1,badgroup2" />
       </CollapsableSection>
 
       <CollapsableSection defaultOpen={true} title="Categories and tags" subtitle="Match or ignore categories or tags.">
+        <div className="col-span-12 -mb-20 float-left">
+          <InformationCircleIcon id="categories" className="float-right mr-4 h-6 w-6 text-gray-500" aria-hidden="true" />
+          <Tooltip style= {{ fontSize: "12px", borderRadius: "0.375rem", backgroundColor: "#18181B", color: "#fff" }} place="left" anchorId="categories" data-html={true} clickable={true} html="<div><p>Check the docs for more info:</p><a href='https://autobrr.com/filters/categories' class='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters/categories</a></div>"/>
+        </div>
         <TextField name="match_categories" label="Match categories" columns={6} placeholder="eg. *category*,category1" />
         <TextField name="except_categories" label="Except categories" columns={6} placeholder="eg. *category*" />
+
 
         <TextField name="tags" label="Match tags" columns={6} placeholder="eg. tag1,tag2" />
         <TextField name="except_tags" label="Except tags" columns={6} placeholder="eg. tag1,tag2" />
       </CollapsableSection>
 
       <CollapsableSection defaultOpen={true} title="Uploaders" subtitle="Match or ignore uploaders.">
+        <div className="col-span-12 -mb-20">
+          <InformationCircleIcon id="uploaders" className="float-right mr-4 h-6 w-6 text-gray-500" aria-hidden="true" />
+          <Tooltip style={{ fontSize: "12px", borderRadius: "0.375rem", backgroundColor: "#18181B", color: "#fff" }} place="left" anchorId="uploaders" clickable={true} content="Not all indexers announce uploader."/>
+        </div>
         <TextField name="match_uploaders" label="Match uploaders" columns={6} placeholder="eg. uploader1" />
         <TextField name="except_uploaders" label="Except uploaders" columns={6} placeholder="eg. anonymous" />
       </CollapsableSection>
@@ -542,6 +553,10 @@ export function Advanced({ values }: AdvancedProps) {
       </CollapsableSection>
 
       <CollapsableSection defaultOpen={true} title="Freeleech" subtitle="Match only freeleech and freeleech percent.">
+        <div className="col-span-12 -mb-20">
+          <InformationCircleIcon id="freeleech" className="float-right mr-4 h-6 w-6 text-gray-500" aria-hidden="true" />
+          <Tooltip style={{ fontSize: "12px", borderRadius: "0.375rem", backgroundColor: "#18181B", color: "#fff" }} place="left" anchorId="freeleech" clickable={true} content="Not all indexers announce freeleech."/>
+        </div>
         <div className="col-span-6">
           <SwitchGroup name="freeleech" label="Freeleech" />
         </div>
@@ -608,7 +623,7 @@ export function CollapsableSection({ title, subtitle, children, defaultOpen }: C
         </div>
       </div>
       {isOpen && (
-        <div className="mt-6 grid grid-cols-12 gap-6">
+        <div className="mt-2 grid grid-cols-12 gap-6">
           {children}
         </div>
       )}
