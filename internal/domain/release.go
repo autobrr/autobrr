@@ -193,7 +193,6 @@ func (r *Release) ParseString(title string) {
 	rel := rls.ParseString(title)
 
 	r.TorrentName = title
-	r.Title = rel.Title
 	r.Source = rel.Source
 	r.Resolution = rel.Resolution
 	r.Region = rel.Region
@@ -205,6 +204,10 @@ func (r *Release) ParseString(title string) {
 	r.Other = rel.Other
 	r.Artists = rel.Artist
 	r.Language = rel.Language
+
+	if r.Title == "" {
+		r.Title = rel.Title
+	}
 
 	if r.Season == 0 {
 		r.Season = rel.Series
