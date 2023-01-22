@@ -12,6 +12,7 @@ import (
 	"github.com/autobrr/autobrr/internal/release"
 	"github.com/autobrr/autobrr/pkg/errors"
 
+	"github.com/dustin/go-humanize"
 	"github.com/mmcdole/gofeed"
 	"github.com/rs/zerolog"
 )
@@ -158,7 +159,10 @@ func (j *RSSJob) processItem(item *gofeed.Item) *domain.Release {
 	// Therefore when Custom->Size is defined it should be picked as the size. Otherwise we use Enclosure->Length
 	// This solves the issue of torrent size parsing of trackers like Lat-Team
 	if size, ok := item.Custom["size"]; ok {
-		rls.ParseSizeBytesString(size)
+		s, err := humanize.ParseBytes(size)
+		if err != nil && s > rls.Size {
+			rls.Size = s
+		}
 	}
 
 	// additional size parsing
