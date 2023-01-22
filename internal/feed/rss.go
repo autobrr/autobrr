@@ -12,7 +12,6 @@ import (
 	"github.com/autobrr/autobrr/internal/release"
 	"github.com/autobrr/autobrr/pkg/errors"
 
-	"github.com/dustin/go-humanize"
 	"github.com/mmcdole/gofeed"
 	"github.com/rs/zerolog"
 )
@@ -156,12 +155,9 @@ func (j *RSSJob) processItem(item *gofeed.Item) *domain.Release {
 	}
 
 	
-	// When custom->size and enclosures->size differ, pick the largest one.
+	// When custom->size and enclosures->size differ, `ParseSizeBytesString` will pick the largest one.
 	if size, ok := item.Custom["size"]; ok {
-		s, err := humanize.ParseBytes(size)
-		if err != nil && s > rls.Size {
-			rls.Size = s
-		}
+		rls.ParseSizeBytesString(size)
 	}
 
 	// additional size parsing
