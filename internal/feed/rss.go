@@ -155,9 +155,8 @@ func (j *RSSJob) processItem(item *gofeed.Item) *domain.Release {
 		rls.Uploader += v.Name
 	}
 
-	// Enclosure->length can be 0, a fixed size (see next additional parsing required), or the actual torrent size.
-	// Therefore when Custom->Size is defined it should be picked as the size. Otherwise we use Enclosure->Length
-	// This solves the issue of torrent size parsing of trackers like Lat-Team
+	
+	// When custom->size and enclosures->size differ, pick the largest one.
 	if size, ok := item.Custom["size"]; ok {
 		s, err := humanize.ParseBytes(size)
 		if err != nil && s > rls.Size {
