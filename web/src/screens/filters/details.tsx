@@ -349,7 +349,7 @@ export function General() {
           <TextField name="min_size" label="Min size" columns={6} placeholder="eg. 100MiB, 80GB" />
           <TextField name="max_size" label="Max size" columns={6} placeholder="eg. 100MiB, 80GB" />
           <NumberField name="delay" label="Delay" placeholder="Number of seconds to delay actions" />
-          <NumberField name="priority" label="Priority" placeholder="Higher number = higher prio" min={0} required={true} />
+          <NumberField name="priority" label="Priority" placeholder="Higher number = higher prio" required={true} />
 
           <NumberField name="max_downloads" label="Max downloads" placeholder="Takes any number (0 is infinite)" min={0} required={true} />
           <Select name="max_downloads_unit" label="Max downloads per" options={downloadsPerUnitOptions}  optionDefaultText="Select unit" />
