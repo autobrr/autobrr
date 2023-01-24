@@ -33,9 +33,9 @@ export const Stats = () => {
 
   return (
     <div>
-      <h3 className="text-2xl font-medium leading-6 text-gray-900 dark:text-gray-200">
+      <h1 className="text-3xl font-bold text-black dark:text-white">
         Stats
-      </h3>
+      </h1>
 
       <dl className="grid grid-cols-1 gap-5 mt-5 sm:grid-cols-2 lg:grid-cols-3">
         <StatsItem name="Filtered Releases" value={data?.filtered_count} />

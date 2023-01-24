@@ -66,7 +66,7 @@ irc:
     lines:
       - test:
           - "[new release]-[moviehd]-[that.movie.2017.internal.1080p.bluray.crf.x264-group]-[url]-[ https://alpharatio.cc/torrents.php?id=000000 ]-[ 000000 ]-[ uploaded 2 mins, 59 secs after pre. ]"
-        pattern: \[new release\]-\[(.*)\]-\[(.*)\]-\[url\]-\[ (https?://.+/).+id=\d+ \]-\[ (\d+) \](?:-\[ uploaded (.*) after pre. ])?
+        pattern: '\[.*\]-\[(.*)\]-\[(.*)\]-\[.*\]-\[ (https?://.+/).*]-\[ (\d+) \](?:-\[ \w* (.*) after .* ])?'
         vars:
           - category
           - torrentName
@@ -75,7 +75,7 @@ irc:
           - preTime
       - test:
           - "[AutoDL]-[MovieHD]-[000000]-[ 1 | 10659 | 1 | 1 ]-[That.Movie.2017.INTERNAL.1080p.BluRay.CRF.x264-GROUP]"
-        pattern: \[AutoDL\]-\[.*\]-\[.*\]-\[ ([01]) \| (\d+) \| ([01]) \| ([01]) \]-\[.+\]
+        pattern: '\[.*\]-\[.*\]-\[.*\]-\[ ([01]) \| (\d+) \| ([01]) \| ([01]) \]-\[.*\]'
         vars:
           - scene
           - torrentSize

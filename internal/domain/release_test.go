@@ -260,6 +260,7 @@ func TestRelease_Parse(t *testing.T) {
 				Year:          2022,
 				Group:         "GROUP1",
 				Season:        1,
+				Language:      []string{"ENGLiSH"},
 			},
 		},
 	}
@@ -733,7 +734,7 @@ func TestRelease_DownloadTorrentFile(t *testing.T) {
 		AudioChannels               string
 		Group                       string
 		Region                      string
-		Language                    string
+		Language                    []string
 		Proper                      bool
 		Repack                      bool
 		Website                     string

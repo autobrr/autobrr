@@ -1,0 +1,90 @@
+---
+#id: pixelhd
+name: PixelHD
+identifier: pixelhd
+description: PixelHD is a specialty movie site. Ratio free.
+language: en-us
+urls:
+  - https://pixelhd.me/
+privacy: private
+protocol: torrent
+supports:
+  - irc
+  - rss
+source: subLiME
+settings:
+  - name: authkey
+    type: secret
+    required: true
+    label: Auth key
+    help: Right click DL on a torrent and get the authkey.
+
+  - name: torrent_pass
+    type: secret
+    required: true
+    label: Torrent pass
+    help: Right click DL on a torrent and get the torrent_pass.
+
+irc:
+  network: PixelHD
+  server: irc.pixelhd.me
+  port: 6667
+  tls: false
+  channels:
+    - "#pixelhd-announce"
+  announcers:
+    - LiMEY_
+  settings:
+    - name: nick
+      type: text
+      required: true
+      label: Nick
+      help: Bot nick. Eg. user-autodl
+
+    - name: auth.account
+      type: text
+      required: false
+      label: NickServ Account
+      help: NickServ account. Make sure to group your user and bot.
+
+    - name: auth.password
+      type: secret
+      required: false
+      label: NickServ Password
+      help: NickServ password
+
+    - name: invite_command
+      type: secret
+      default: "LiMEY_ !invite IRCKEY SITEUSERNAME"
+      required: true
+      label: Invite command
+      help: Invite auth with LiMEY_. Replace IRCKEY and SITEUSERNAME.
+
+  parse:
+    type: multi
+    lines:
+      - test:
+          - "New torrent uploaded!"
+        pattern: '^New torrent uploaded!$'
+        ignore: true
+
+      - test:
+          - "Title: Dragons Forever | Year: 1988 | URL: https://pixelhd.me/torrents.php?torrentid=23001"
+        pattern: 'Title: (.*) \| Year: (.*) \| URL: (https?:\/\/.*\/).+id=(.+)'
+        vars:
+          - torrentName
+          - year
+          - baseUrl
+          - torrentId
+
+      - test:
+          - "Uploader: Anon | Release Group: Px4K | Format: MP4 | Genre(s): action,comedy,romance"
+        pattern: 'Uploader: (.*) \| Release Group: (.*) \| Format: (.*) \| Genre\(s\): (.*)'
+        vars:
+          - uploader
+          - releaseGroup
+          - container
+          - tags
+
+    match:
+      torrenturl: "/torrents.php?action=download&id={{ .torrentId }}&authkey={{ .authkey }}&torrent_pass={{ .torrent_pass }}"

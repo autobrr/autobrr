@@ -5,10 +5,11 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"github.com/autobrr/autobrr/internal/domain"
+
 	"github.com/go-chi/chi/v5"
 	"github.com/gorilla/sessions"
-
-	"github.com/autobrr/autobrr/internal/domain"
+	"github.com/rs/zerolog"
 )
 
 type authService interface {
@@ -18,6 +19,7 @@ type authService interface {
 }
 
 type authHandler struct {
+	log     zerolog.Logger
 	encoder encoder
 	config  *domain.Config
 	service authService
@@ -25,8 +27,9 @@ type authHandler struct {
 	cookieStore *sessions.CookieStore
 }
 
-func newAuthHandler(encoder encoder, config *domain.Config, cookieStore *sessions.CookieStore, service authService) *authHandler {
+func newAuthHandler(encoder encoder, log zerolog.Logger, config *domain.Config, cookieStore *sessions.CookieStore, service authService) *authHandler {
 	return &authHandler{
+		log:         log,
 		encoder:     encoder,
 		config:      config,
 		service:     service,
@@ -72,6 +75,7 @@ func (h authHandler) login(w http.ResponseWriter, r *http.Request) {
 
 	_, err := h.service.Login(ctx, data.Username, data.Password)
 	if err != nil {
+		h.log.Error().Err(err).Msgf("Auth: Failed login attempt username: [%s] ip: %s", data.Username, ReadUserIP(r))
 		h.encoder.StatusResponse(ctx, w, nil, http.StatusUnauthorized)
 		return
 	}
@@ -154,4 +158,15 @@ func (h authHandler) validate(w http.ResponseWriter, r *http.Request) {
 
 	// send empty response as ok
 	h.encoder.StatusResponse(ctx, w, nil, http.StatusNoContent)
+}
+
+func ReadUserIP(r *http.Request) string {
+	IPAddress := r.Header.Get("X-Real-Ip")
+	if IPAddress == "" {
+		IPAddress = r.Header.Get("X-Forwarded-For")
+	}
+	if IPAddress == "" {
+		IPAddress = r.RemoteAddr
+	}
+	return IPAddress
 }

@@ -59,7 +59,7 @@ irc:
       - test:
           - "[NEW TORRENT in mp3] Artist name - Album name > 115.63 MiB in 17F > https://ncore.pro/torrents.php?action=details&id=0000000"
           - "[NEW TORRENT in xvidser_hun] Some.Show.S02E67.RTLM.WEB-DL.H264.HUN-GROUP > 269.31 MiB in 2F > https://ncore.pro/torrents.php?action=details&id=0000000"
-        pattern: '\[NEW TORRENT in (.*)\] (.*) > (.*) in .* > (https?://ncore.pro.*action=).*id=(.*)'
+        pattern: '\[NEW TORRENT in (.*)\] (.*) > (.*) in .* > (https?://.*/).*action=.*id=(.*)'
         vars:
           - category
           - torrentName
@@ -69,4 +69,4 @@ irc:
 
     match:
       # https://ncore.pro/torrents.php?action=download&id=0000&key=00000
-      torrenturl: "/download&id={{ .torrentId }}&key={{ .passkey }}"
+      torrenturl: "/torrents.php?action=download&id={{ .torrentId }}&key={{ .passkey }}"

@@ -67,7 +67,7 @@ type Release struct {
 	AudioChannels               string                `json:"-"`
 	Group                       string                `json:"group"`
 	Region                      string                `json:"-"`
-	Language                    string                `json:"-"`
+	Language                    []string              `json:"-"`
 	Proper                      bool                  `json:"proper"`
 	Repack                      bool                  `json:"repack"`
 	Website                     string                `json:"website"`
@@ -98,6 +98,7 @@ type ReleaseActionStatus struct {
 	Type       ActionType        `json:"type"`
 	Client     string            `json:"client"`
 	Filter     string            `json:"filter"`
+	FilterID   int64             `json:"-"`
 	Rejections []string          `json:"rejections"`
 	Timestamp  time.Time         `json:"timestamp"`
 	ReleaseID  int64             `json:"-"`
@@ -204,6 +205,7 @@ func (r *Release) ParseString(title string) {
 	r.HDR = rel.HDR
 	r.Other = rel.Other
 	r.Artists = rel.Artist
+	r.Language = rel.Language
 
 	if r.Season == 0 {
 		r.Season = rel.Series

@@ -44,10 +44,12 @@ type DownloadClientSettings struct {
 }
 
 type DownloadClientRules struct {
-	Enabled                bool  `json:"enabled"`
-	MaxActiveDownloads     int   `json:"max_active_downloads"`
-	IgnoreSlowTorrents     bool  `json:"ignore_slow_torrents"`
-	DownloadSpeedThreshold int64 `json:"download_speed_threshold"`
+	Enabled                     bool                        `json:"enabled"`
+	MaxActiveDownloads          int                         `json:"max_active_downloads"`
+	IgnoreSlowTorrents          bool                        `json:"ignore_slow_torrents"`
+	IgnoreSlowTorrentsCondition IgnoreSlowTorrentsCondition `json:"ignore_slow_torrents_condition,omitempty"`
+	DownloadSpeedThreshold      int64                       `json:"download_speed_threshold"`
+	UploadSpeedThreshold        int64                       `json:"upload_speed_threshold"`
 }
 
 type BasicAuth struct {
@@ -55,6 +57,13 @@ type BasicAuth struct {
 	Username string `json:"username,omitempty"`
 	Password string `json:"password,omitempty"`
 }
+
+type IgnoreSlowTorrentsCondition string
+
+const (
+	IgnoreSlowTorrentsModeAlways     IgnoreSlowTorrentsCondition = "ALWAYS"
+	IgnoreSlowTorrentsModeMaxReached IgnoreSlowTorrentsCondition = "MAX_DOWNLOADS_REACHED"
+)
 
 type DownloadClientType string
 

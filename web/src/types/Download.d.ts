@@ -25,6 +25,7 @@ interface DownloadClientRules {
   max_active_downloads: number;
   ignore_slow_torrents: boolean;
   download_speed_threshold: number;
+  upload_speed_threshold: number;
 }
 
 interface DownloadClientBasicAuth {

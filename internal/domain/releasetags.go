@@ -43,7 +43,7 @@ func init() {
 		{tag: "FLAC", title: "Free Lossless Audio Codec", regexp: "", re: nil},
 		{tag: "LiNE", title: "Line", regexp: "(?-i:L[iI]NE)", re: nil},
 		{tag: "Lossless", title: "", regexp: "(?i:Lossless)", re: nil},
-		{tag: "Log100", title: "", regexp: "(log 100%)", re: nil},
+		{tag: "Log100", title: "", regexp: "(log 100%|log \\(100%\\))", re: nil},
 		{tag: "Log", title: "", regexp: "(?:log)", re: nil},
 		{tag: "LPCM", title: "Linear Pulse-Code Modulation", regexp: "", re: nil},
 		{tag: "MP3", title: "", regexp: "", re: nil},

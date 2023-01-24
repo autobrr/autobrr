@@ -1,8 +1,8 @@
 import { Fragment } from "react";
 import { Link, NavLink, Outlet } from "react-router-dom";
 import { Disclosure, Menu, Transition } from "@headlessui/react";
-import { ArrowTopRightOnSquareIcon } from "@heroicons/react/24/solid";
-import { Bars3Icon, ChevronDownIcon, XMarkIcon } from "@heroicons/react/24/outline";
+import { BookOpenIcon, UserIcon } from "@heroicons/react/24/solid";
+import { Bars3Icon, XMarkIcon } from "@heroicons/react/24/outline";
 
 import { AuthContext } from "../utils/Context";
 
@@ -24,7 +24,7 @@ export default function Base() {
     { name: "Filters", path: "/filters" },
     { name: "Releases", path: "/releases" },
     { name: "Settings", path: "/settings" },
-    { name: "Logs", path: "/logs" }
+    { name: "Logs", path: "/logs" },
   ];
 
   return (
@@ -40,33 +40,39 @@ export default function Base() {
                 <div className="flex items-center justify-between h-16 px-4 sm:px-0">
                   <div className="flex items-center">
                     <div className="flex-shrink-0 flex items-center">
-                      <img
-                        className="block lg:hidden h-10 w-auto"
-                        src={logo}
-                        alt="Logo"
-                      />
-                      <img
-                        className="hidden lg:block h-10 w-auto"
-                        src={logo}
-                        alt="Logo"
-                      />
+                      <Link to="/">
+                        <img
+                          className="block lg:hidden h-10 w-auto"
+                          src={logo}
+                          alt="Logo"
+                        />
+                        <img
+                          className="hidden lg:block h-10 w-auto"
+                          src={logo}
+                          alt="Logo"
+                        />
+                      </Link>
                     </div>
                     <div className="sm:ml-3 hidden sm:block">
                       <div className="flex items-baseline space-x-4">
-                        {nav.map((item, itemIdx) =>
+                        {nav.map((item, itemIdx) => (
                           <NavLink
                             key={item.name + itemIdx}
                             to={item.path}
-                            className={({ isActive }) => classNames(
-                              "hover:bg-gray-200 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white px-3 py-2 rounded-2xl text-sm font-medium",
-                              "transition-colors duration-200",
-                              isActive ? "text-black dark:text-gray-50 font-bold" : "text-gray-600 dark:text-gray-500"
-                            )}
+                            className={({ isActive }) =>
+                              classNames(
+                                "hover:bg-gray-200 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white px-3 py-2 rounded-2xl text-sm font-medium",
+                                "transition-colors duration-200",
+                                isActive
+                                  ? "text-black dark:text-gray-50 font-bold"
+                                  : "text-gray-600 dark:text-gray-500"
+                              )
+                            }
                             end={item.path === "/"}
                           >
                             {item.name}
                           </NavLink>
-                        )}
+                        ))}
                         <a
                           rel="noopener noreferrer"
                           target="_blank"
@@ -77,7 +83,10 @@ export default function Base() {
                           )}
                         >
                           Docs
-                          <ArrowTopRightOnSquareIcon className="inline ml-1 h-5 w-5" aria-hidden="true" />
+                          <BookOpenIcon
+                            className="inline ml-1 h-5 w-5"
+                            aria-hidden="true"
+                          />
                         </a>
                       </div>
                     </div>
@@ -90,17 +99,19 @@ export default function Base() {
                             <Menu.Button
                               className={classNames(
                                 open ? "bg-gray-200 dark:bg-gray-800" : "",
-                                "text-gray-800 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-800",
+                                "text-gray-600 dark:text-gray-500 hover:bg-gray-200 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white px-3 py-2 rounded-2xl text-sm font-medium",
                                 "max-w-xs rounded-full flex items-center text-sm px-3 py-2",
                                 "transition-colors duration-200"
                               )}
                             >
                               <span className="hidden text-sm font-medium sm:block">
-                                <span className="sr-only">Open user menu for </span>
+                                <span className="sr-only">
+                                  Open user menu for{" "}
+                                </span>
                                 {authContext.username}
                               </span>
-                              <ChevronDownIcon
-                                className="hidden flex-shrink-0 ml-1 h-5 w-5 text-gray-800 dark:text-gray-300 sm:block"
+                              <UserIcon
+                                className="inline ml-1 h-5 w-5"
                                 aria-hidden="true"
                               />
                             </Menu.Button>
@@ -123,7 +134,9 @@ export default function Base() {
                                     <Link
                                       to="/settings"
                                       className={classNames(
-                                        active ? "bg-gray-100 dark:bg-gray-600" : "",
+                                        active
+                                          ? "bg-gray-100 dark:bg-gray-600"
+                                          : "",
                                         "block px-4 py-2 text-sm text-gray-900 dark:text-gray-200"
                                       )}
                                     >
@@ -136,7 +149,9 @@ export default function Base() {
                                     <Link
                                       to="/logout"
                                       className={classNames(
-                                        active ? "bg-gray-100 dark:bg-gray-600" : "",
+                                        active
+                                          ? "bg-gray-100 dark:bg-gray-600"
+                                          : "",
                                         "block px-4 py-2 text-sm text-gray-900 dark:text-gray-200"
                                       )}
                                     >
@@ -153,13 +168,18 @@ export default function Base() {
                   </div>
                   <div className="-mr-2 flex sm:hidden">
                     {/* Mobile menu button */}
-                    <Disclosure.Button
-                      className="bg-gray-200 dark:bg-gray-800 inline-flex items-center justify-center p-2 rounded-md text-gray-600 dark:text-gray-400 hover:text-white hover:bg-gray-700">
+                    <Disclosure.Button className="bg-gray-200 dark:bg-gray-800 inline-flex items-center justify-center p-2 rounded-md text-gray-600 dark:text-gray-400 hover:text-white hover:bg-gray-700">
                       <span className="sr-only">Open main menu</span>
                       {open ? (
-                        <XMarkIcon className="block h-6 w-6" aria-hidden="true"/>
+                        <XMarkIcon
+                          className="block h-6 w-6"
+                          aria-hidden="true"
+                        />
                       ) : (
-                        <Bars3Icon className="block h-6 w-6" aria-hidden="true"/>
+                        <Bars3Icon
+                          className="block h-6 w-6"
+                          aria-hidden="true"
+                        />
                       )}
                     </Disclosure.Button>
                   </div>
@@ -169,19 +189,23 @@ export default function Base() {
 
             <Disclosure.Panel className="border-b border-gray-300 dark:border-gray-700 md:hidden">
               <div className="px-2 py-3 space-y-1 sm:px-3">
-                {nav.map((item) =>
+                {nav.map((item) => (
                   <NavLink
                     key={item.path}
                     to={item.path}
-                    className={({ isActive }) => classNames(
-                      "shadow-sm border bg-gray-100 border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-white block px-3 py-2 rounded-md text-base",
-                      isActive ? "underline underline-offset-2 decoration-2 decoration-sky-500 font-bold text-black" : "font-medium"
-                    )}
+                    className={({ isActive }) =>
+                      classNames(
+                        "shadow-sm border bg-gray-100 border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-white block px-3 py-2 rounded-md text-base",
+                        isActive
+                          ? "underline underline-offset-2 decoration-2 decoration-sky-500 font-bold text-black"
+                          : "font-medium"
+                      )
+                    }
                     end={item.path === "/"}
                   >
                     {item.name}
                   </NavLink>
-                )}
+                ))}
                 <Link
                   to="/logout"
                   className="shadow-sm border bg-gray-100 border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-white block px-3 py-2 rounded-md text-base font-medium"
@@ -189,7 +213,6 @@ export default function Base() {
                   Logout
                 </Link>
               </div>
-
             </Disclosure.Panel>
           </>
         )}

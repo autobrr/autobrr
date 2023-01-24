@@ -7,6 +7,8 @@ type Config struct {
 	Port              int    `toml:"port"`
 	LogLevel          string `toml:"logLevel"`
 	LogPath           string `toml:"logPath"`
+	LogMaxSize        int    `toml:"logMaxSize"`
+	LogMaxBackups     int    `toml:"logMaxBackups"`
 	BaseURL           string `toml:"baseUrl"`
 	SessionSecret     string `toml:"sessionSecret"`
 	CustomDefinitions string `toml:"customDefinitions"`

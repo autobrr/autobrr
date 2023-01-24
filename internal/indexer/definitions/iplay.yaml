@@ -53,7 +53,7 @@ irc:
       - test:
           - "New torrent: Artist-Album-2022-GROUP -- [Black Metal] -- https://metal.iplay.ro/details.php?id=000000 -- by Anonymous"
           - "New torrent: Artist-Album -[WEB | FLAC]- RMT -- [FreeLeech!] -- [-Discography/Album Pack] -- https://metal.iplay.ro/details.php?id=000000 -- by Anonymous"
-        pattern: 'New Torrent: (.*?) (?:-- \[(.*)!\] )?-- \[(.*)] -- (https?://.+/).*id=(.*) -- by (.*)'
+        pattern: 'New torrent: (.*?) (?:-- \[(.*)!\] )?-- \[(.*)] -- (https?://.+/).*id=(.*) -- by (.*)'
         vars:
           - torrentName
           - freeleech

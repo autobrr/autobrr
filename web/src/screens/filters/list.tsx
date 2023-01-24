@@ -149,7 +149,7 @@ function FilterList({ toggleCreateFilter }: any) {
           </div>
 
           <div className="flex items-center gap-5">
-            <IndexerSelectFilter dispatch={dispatchFilter} />
+            <div className="hidden md:flex"><IndexerSelectFilter dispatch={dispatchFilter} /></div>
             <SortSelectFilter dispatch={dispatchFilter} />
           </div>
         </div>
@@ -417,8 +417,8 @@ function FilterListItem({ filter, idx }: FilterListItemProps) {
           />
         </Switch>
       </span>
-      <div className="flex flex-col w-full justify-center">
-        <span className="whitespace-nowrap text-sm font-bold text-gray-900 dark:text-gray-100">
+      <div className="py-2 flex flex-col overflow-hidden w-full justify-center">
+        <span className="w-full break-words whitespace-wrap text-sm font-bold text-gray-900 dark:text-gray-100">
           <Link
             to={filter.id.toString()}
             className="hover:text-black dark:hover:text-gray-300"
@@ -427,7 +427,7 @@ function FilterListItem({ filter, idx }: FilterListItemProps) {
           </Link>
         </span>
         <div className="flex-col">
-          <span className="mr-2 whitespace-nowrap text-xs font-medium text-gray-600 dark:text-gray-400">
+          <span className="mr-2 break-words whitespace-nowrap text-xs font-medium text-gray-600 dark:text-gray-400">
             Priority: {filter.priority}
           </span>
           <span className="whitespace-nowrap text-xs font-medium text-gray-600 dark:text-gray-400">
@@ -440,10 +440,10 @@ function FilterListItem({ filter, idx }: FilterListItemProps) {
           </span>
         </div>
       </div>
-      <span className="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+      <span className="hidden md:flex px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
         <FilterIndexers indexers={filter.indexers} />
       </span>
-      <span className="px-4 py-4 whitespace-nowrap text-right text-sm font-medium">
+      <span className="min-w-fit px-4 py-4 whitespace-nowrap text-right text-sm font-medium">
         <FilterItemDropdown
           filter={filter}
           onToggle={toggleActive}
@@ -460,7 +460,7 @@ interface IndexerTagProps {
 const IndexerTag: FC<IndexerTagProps> = ({ indexer }) => (
   <span
     key={indexer.id}
-    className="mr-2 inline-flex items-center px-2.5 py-0.5 rounded-md text-sm font-medium bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-400"
+    className="hidden sm:inline-flex mr-2 items-center px-2.5 py-0.5 rounded-md text-sm font-medium bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-400"
   >
     {indexer.name}
   </span>
@@ -478,7 +478,7 @@ function FilterIndexers({ indexers }: FilterIndexersProps) {
           ? indexers.map((indexer, idx) => (
             <IndexerTag key={idx} indexer={indexer} />
           ))
-          : <span className="text-red-400 dark:text-red-800 p-1 text-xs tracking-wide rounded border border-red-400 dark:border-red-700 bg-red-100 dark:bg-red-400">NO INDEXERS SELECTED</span>
+          : <span className="hidden sm:flex text-red-400 dark:text-red-800 p-1 text-xs tracking-wide rounded border border-red-400 dark:border-red-700 bg-red-100 dark:bg-red-400">NO INDEXERS SELECTED</span>
         }
       </>
     );
@@ -521,7 +521,7 @@ const ListboxFilter = ({
     onChange={onChange}
   >
     <div className="relative">
-      <Listbox.Button className="relative w-full py-2 pr-5 text-left dark:text-gray-400 sm:text-sm">
+      <Listbox.Button className="relative w-full py-2 pr-5 text-left dark:text-gray-400 text-sm">
         <span className="block truncate">{label}</span>
         <span className="absolute inset-y-0 right-0 flex items-center pointer-events-none">
           <ChevronDownIcon
@@ -537,7 +537,7 @@ const ListboxFilter = ({
         leaveTo="opacity-0"
       >
         <Listbox.Options
-          className="w-48 absolute z-10 w-full mt-1 right-0 overflow-auto text-base bg-white dark:bg-gray-800 rounded-md shadow-lg max-h-60 border border-opacity-5 border-black dark:border-gray-700 dark:border-opacity-40 focus:outline-none sm:text-sm"
+          className="w-52 absolute z-10 mt-1 right-0 overflow-auto text-base bg-white dark:bg-gray-800 rounded-md shadow-lg max-h-60 border border-opacity-5 border-black dark:border-gray-700 dark:border-opacity-40 focus:outline-none sm:text-sm"
         >
           {children}
         </Listbox.Options>
@@ -590,7 +590,7 @@ interface FilterOptionProps {
 const FilterOption = ({ label, value }: FilterOptionProps) => (
   <Listbox.Option
     className={({ active }) => classNames(
-      "cursor-pointer select-none relative py-2 pl-10 pr-4",
+      "cursor-pointer select-none relative py-2 px-4",
       active ? "text-black dark:text-gray-200 bg-gray-100 dark:bg-gray-900" : "text-gray-700 dark:text-gray-400"
     )}
     value={value}

@@ -2,6 +2,7 @@ import { Field, FieldProps } from "formik";
 import { classNames } from "../../utils";
 import { EyeIcon, EyeSlashIcon } from "@heroicons/react/24/solid";
 import { useToggle } from "../../hooks/hooks";
+import { log } from "util";
 
 type COL_WIDTHS = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12;
 
@@ -204,6 +205,9 @@ interface NumberFieldProps {
     placeholder?: string;
     step?: number;
     disabled?: boolean;
+    required?: boolean;
+    min?: number;
+    max?: number;
 }
 
 export const NumberField = ({
@@ -211,7 +215,10 @@ export const NumberField = ({
   label,
   placeholder,
   step,
-  disabled
+  min,
+  max,
+  disabled,
+  required
 }: NumberFieldProps) => (
   <div className="col-span-12 sm:col-span-6">
     <label htmlFor={name} className="block text-xs font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wide">
@@ -221,13 +228,18 @@ export const NumberField = ({
     <Field name={name} type="number">
       {({
         field,
-        meta
+        meta,
+        form
       }: FieldProps) => (
         <div className="sm:col-span-2">
           <input
             type="number"
-            step={step}
             {...field}
+            step={step}
+            min={min}
+            max={max}
+            inputMode="numeric"
+            required={required}
             className={classNames(
               meta.touched && meta.error
                 ? "focus:ring-red-500 focus:border-red-500 border-red-500"

@@ -7,7 +7,7 @@ import { Form, Formik, useFormikContext } from "formik";
 import DEBUG from "../../components/debug";
 import { queryClient } from "../../App";
 import { APIClient } from "../../api/APIClient";
-import { DownloadClientTypeOptions } from "../../domain/constants";
+import { DownloadClientTypeOptions, DownloadRuleConditionOptions } from "../../domain/constants";
 
 import { toast } from "react-hot-toast";
 import Toast from "../../components/notifications/Toast";
@@ -21,6 +21,7 @@ import {
   TextFieldWide
 } from "../../components/inputs";
 import DownloadClient from "../../screens/settings/DownloadClient";
+import { SelectFieldWide } from "../../components/inputs/input_wide";
 
 interface InitialValuesSettings {
   basic?: {
@@ -269,12 +270,26 @@ function FormFieldsRules() {
           />
 
           {settings.rules?.ignore_slow_torrents === true && (
-            <NumberFieldWide
-              name="settings.rules.download_speed_threshold"
-              label="Download speed threshold"
-              placeholder="in KB/s"
-              help="If download speed is below this when max active downloads is hit, download anyways. KB/s"
-            />
+            <>
+              <SelectFieldWide
+                name="settings.rules.ignore_slow_torrents_condition"
+                label="Ignore condition"
+                optionDefaultText="Select ignore condition"
+                options={DownloadRuleConditionOptions}
+              />
+              <NumberFieldWide
+                name="settings.rules.download_speed_threshold"
+                label="Download speed threshold"
+                placeholder="in KB/s"
+                help="If download speed is below this when max active downloads is hit, download anyways. KB/s"
+              />
+              <NumberFieldWide
+                name="settings.rules.upload_speed_threshold"
+                label="Upload speed threshold"
+                placeholder="in KB/s"
+                help="If upload speed is below this when max active downloads is hit, download anyways. KB/s"
+              />
+            </>
           )}
         </>
       )}
