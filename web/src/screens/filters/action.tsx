@@ -444,13 +444,6 @@ const TypeForm = ({ action, idx, clients }: TypeFormProps) => {
               />
             </div>
           </div>
-          <div className="col-span-6">
-            <SwitchGroup
-              name={`actions.${idx}.paused`}
-              label="Add paused"
-              description="Add torrent as paused"
-            />
-          </div>
         </CollapsableSection>
       </div>
     );

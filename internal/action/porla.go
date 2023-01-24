@@ -55,8 +55,18 @@ func (s *service) porla(action domain.Action, release domain.Release) ([]string,
 	}
 
 	opts := &porla.TorrentsAddReq{
-		SavePath: action.SavePath,
-		Ti:       base64.StdEncoding.EncodeToString(content),
+		DownloadLimit: -1,
+		SavePath:      action.SavePath,
+		Ti:            base64.StdEncoding.EncodeToString(content),
+		UploadLimit:   -1,
+	}
+
+	if action.LimitDownloadSpeed > 0 {
+		opts.DownloadLimit = action.LimitDownloadSpeed * 1000
+	}
+
+	if action.LimitUploadSpeed > 0 {
+		opts.UploadLimit = action.LimitUploadSpeed * 1000
 	}
 
 	if err = prl.TorrentsAdd(opts); err != nil {

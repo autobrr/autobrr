@@ -10,8 +10,10 @@ type SysVersionsPorla struct {
 }
 
 type TorrentsAddReq struct {
-	Ti       string `json:"ti"`
-	SavePath string `json:"save_path,omitempty"`
+	DownloadLimit int64  `json:"download_limit,omitempty"`
+	SavePath      string `json:"save_path,omitempty"`
+	Ti            string `json:"ti"`
+	UploadLimit   int64  `json:"upload_limit,omitempty"`
 }
 
 type TorrentsAddRes struct {
