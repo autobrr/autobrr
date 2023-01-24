@@ -8,7 +8,6 @@ import (
 	"github.com/autobrr/autobrr/pkg/errors"
 	"github.com/autobrr/autobrr/pkg/lidarr"
 	"github.com/autobrr/autobrr/pkg/porla"
-	"github.com/autobrr/autobrr/pkg/qbittorrent"
 	"github.com/autobrr/autobrr/pkg/radarr"
 	"github.com/autobrr/autobrr/pkg/readarr"
 	"github.com/autobrr/autobrr/pkg/sonarr"
