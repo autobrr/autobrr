@@ -515,8 +515,8 @@ export function Advanced({ values }: AdvancedProps) {
       </CollapsableSection>
 
       <CollapsableSection defaultOpen={true} title="Uploaders" subtitle="Match or ignore uploaders.">
-        <TextField name="match_uploaders" label="Match uploaders" columns={6} placeholder="eg. uploader1" />
-        <TextField name="except_uploaders" label="Except uploaders" columns={6} placeholder="eg. anonymous" />
+        <TextField name="match_uploaders" label="Match uploaders" columns={6} placeholder="eg. uploader1, uploader2" />
+        <TextField name="except_uploaders" label="Except uploaders" columns={6} placeholder="eg. anonymous1, anonymous2" />
       </CollapsableSection>
 
       <CollapsableSection defaultOpen={true} title="Language" subtitle="Match or ignore languages.">
