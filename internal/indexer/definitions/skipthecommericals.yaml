@@ -58,7 +58,7 @@ irc:
           - releaseTags
           - torrentName
           - freeleechPercent
-          - tags
+          - doubleUpload
           - torrentSize
           - uploader
           - baseUrl

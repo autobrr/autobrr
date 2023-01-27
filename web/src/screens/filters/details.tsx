@@ -542,12 +542,15 @@ export function Advanced({ values }: AdvancedProps) {
         </div>
       </CollapsableSection>
 
-      <CollapsableSection defaultOpen={true} title="Freeleech" subtitle="Match only freeleech, freeleech percent and double upload.">
+      <CollapsableSection defaultOpen={true} title="Freeleech" subtitle="Match only freeleech and freeleech percent.">
         <div className="col-span-6">
           <SwitchGroup name="freeleech" label="Freeleech" />
         </div>
 
         <TextField name="freeleech_percent" label="Freeleech percent" columns={6} placeholder="eg. 50,75-100" />
+      </CollapsableSection>
+
+      <CollapsableSection defaultOpen={true} title="Double Upload" subtitle="Match torrents with double upload only.">
         <div className="col-span-6">
           <SwitchGroup name="double_upload" label="Double upload" />
         </div>

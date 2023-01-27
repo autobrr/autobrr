@@ -55,7 +55,7 @@ irc:
           - resolution
           - freeleechPercent
           - internal
-          - tags
+          - doubleUpload
           - torrentSize
           - uploader
           - baseUrl
