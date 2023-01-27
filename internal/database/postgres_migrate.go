@@ -83,7 +83,7 @@ CREATE TABLE filter
     scene                          BOOLEAN,
     freeleech                      BOOLEAN,
     freeleech_percent              TEXT,
-	double_upload                  BOOLEAN,
+    double_upload                  BOOLEAN,
     smart_episode                  BOOLEAN DEFAULT FALSE,
     shows                          TEXT,
     seasons                        TEXT,
@@ -237,7 +237,7 @@ CREATE TABLE "release"
     tags              TEXT []   DEFAULT '{}' NOT NULL,
     freeleech         BOOLEAN,
     freeleech_percent INTEGER,
-	double_upload     BOOLEAN,
+    double_upload     BOOLEAN,
     uploader          TEXT,
 	pre_time          TEXT,
     filter_id         INTEGER
@@ -453,8 +453,8 @@ var postgresMigrations = []string{
 	ALTER TABLE release
 		DROP COLUMN freeleech_percent;
 
-	ALTER TABLE release
-		DROP COLUMN double_upload;
+    ALTER TABLE release
+        DROP COLUMN double_upload;
 
 	ALTER TABLE "filter"
 		ADD COLUMN origins TEXT []   DEFAULT '{}';
