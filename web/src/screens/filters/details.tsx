@@ -39,7 +39,7 @@ import DEBUG from "../../components/debug";
 import Toast from "../../components/notifications/Toast";
 import { DeleteModal } from "../../components/modals";
 import { TitleSubtitle } from "../../components/headings";
-import { TextArea } from "../../components/inputs/input";
+import { TextArea, TextFieldIcon } from "../../components/inputs/input";
 import { FilterActions } from "./action";
 
 interface tabType {
@@ -369,16 +369,19 @@ export function MoviesTv() {
   return (
     <div>
       <div className="mt-6 grid grid-cols-12 gap-6">
-        <TextField name="shows" label="Movies / Shows" columns={8} placeholder="eg. Movie,Show 1,Show?2" />
+        <TextFieldIcon name="shows" label="Movies / Shows" columns={8} placeholder="eg. Movie,Show 1,Show?2" id="shows"/>
+        <Tooltip style= {{ fontSize: "12px", borderRadius: "0.375rem", backgroundColor: "#18181B", color: "#fff" }} place="right" anchorId="shows" data-html={true} clickable={true} html="<div><p>You can use basic filtering like wildcards (*) or replace single characters with <code>?</code>.</p><a href='https://autobrr.com/filters#tvmovies' class='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters#tvmovies</a></div>"/>
+        
         <TextField name="years" label="Years" columns={4} placeholder="eg. 2018,2019-2021" />
       </div>
-
       <div className="mt-6 lg:pb-8">
         <TitleSubtitle title="Seasons and Episodes" subtitle="Set season and episode match constraints." />
 
         <div className="mt-6 grid grid-cols-12 gap-6">
-          <TextField name="seasons" label="Seasons" columns={8} placeholder="eg. 1,3,2-6" />
-          <TextField name="episodes" label="Episodes" columns={4} placeholder="eg. 2,4,10-20" />
+          <TextFieldIcon name="seasons" label="Seasons" columns={8} placeholder="eg. 1,3,2-6" id="season" />
+          <Tooltip style= {{ fontSize: "12px", borderRadius: "0.375rem", backgroundColor: "#18181B", color: "#fff" }} place="right" anchorId="season" data-html={true} clickable={true} html="<div><p>See the docs for information about how to only grab episodes, or to only grab season packs:</p><a href='https://autobrr.com/filters/examples#only-season-packs' class='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters/examples#only-season-packs</a></div>"/>
+
+          <TextField name="episodes" label="Episodes" columns={4} placeholder="eg. 2,4,10-20" id="episodes" />
         </div>
 
         <div className="mt-6">
