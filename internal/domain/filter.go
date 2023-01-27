@@ -67,6 +67,7 @@ type Filter struct {
 	MinSize                     string                 `json:"min_size,omitempty"`
 	MaxSize                     string                 `json:"max_size,omitempty"`
 	Delay                       int                    `json:"delay,omitempty"`
+	DoubleUpload                bool                   `json:"double_upload,omitempty"`
 	Priority                    int32                  `json:"priority"`
 	MaxDownloads                int                    `json:"max_downloads,omitempty"`
 	MaxDownloadsUnit            FilterMaxDownloadsUnit `json:"max_downloads_unit,omitempty"`
@@ -140,6 +141,7 @@ type FilterUpdate struct {
 	MaxSize                     *string                 `json:"max_size,omitempty"`
 	Delay                       *int                    `json:"delay,omitempty"`
 	Priority                    *int32                  `json:"priority,omitempty"`
+	DoubleUpload                *bool                   `json:"double_upload,omitempty"`
 	MaxDownloads                *int                    `json:"max_downloads,omitempty"`
 	MaxDownloadsUnit            *FilterMaxDownloadsUnit `json:"max_downloads_unit,omitempty"`
 	MatchReleases               *string                 `json:"match_releases,omitempty"`
@@ -222,6 +224,10 @@ func (f Filter) CheckFilter(r *Release) ([]string, bool) {
 
 	if f.FreeleechPercent != "" && !checkFreeleechPercent(r.FreeleechPercent, f.FreeleechPercent) {
 		r.addRejectionF("freeleech percent not matching. got: %v want: %v", r.FreeleechPercent, f.FreeleechPercent)
+	}
+
+	if f.DoubleUpload && r.DoubleUpload != f.DoubleUpload {
+		r.addRejection("wanted: double upload")
 	}
 
 	if len(f.Origins) > 0 && !containsSlice(r.Origin, f.Origins) {

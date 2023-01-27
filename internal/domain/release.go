@@ -80,6 +80,7 @@ type Release struct {
 	ReleaseTags                 string                `json:"-"`
 	Freeleech                   bool                  `json:"-"`
 	FreeleechPercent            int                   `json:"-"`
+	DoubleUpload                bool                  `json:"-"`
 	Bonus                       []string              `json:"-"`
 	Uploader                    string                `json:"uploader"`
 	PreTime                     string                `json:"pre_time"`
@@ -423,6 +424,10 @@ func (r *Release) MapVars(def *IndexerDefinition, varMap map[string]string) erro
 
 	if category, err := getStringMapValue(varMap, "category"); err == nil {
 		r.Category = category
+	}
+
+	if doubleUpload, err := getStringMapValue(varMap, "doubleUpload"); err == nil {
+		r.DoubleUpload = StringEqualFoldMulti(doubleUpload, "true", "yes")
 	}
 
 	if freeleech, err := getStringMapValue(varMap, "freeleech"); err == nil {

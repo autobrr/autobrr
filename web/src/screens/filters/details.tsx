@@ -268,6 +268,7 @@ export default function FilterDetails() {
                 except_uploaders: filter.except_uploaders,
                 match_language: filter.match_language || [],
                 except_language: filter.except_language || [],
+                double_upload: filter.double_upload,
                 freeleech: filter.freeleech,
                 freeleech_percent: filter.freeleech_percent,
                 formats: filter.formats || [],
@@ -541,12 +542,16 @@ export function Advanced({ values }: AdvancedProps) {
         </div>
       </CollapsableSection>
 
-      <CollapsableSection defaultOpen={true} title="Freeleech" subtitle="Match only freeleech and freeleech percent.">
+      <CollapsableSection defaultOpen={true} title="Freeleech" subtitle="Match only freeleech, freeleech percent and double upload.">
         <div className="col-span-6">
           <SwitchGroup name="freeleech" label="Freeleech" />
         </div>
 
         <TextField name="freeleech_percent" label="Freeleech percent" columns={6} placeholder="eg. 50,75-100" />
+        <div className="col-span-6">
+          <SwitchGroup name="double_upload" label="Double upload" />
+        </div>
+
       </CollapsableSection>
     </div>
   );

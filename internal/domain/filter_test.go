@@ -1700,6 +1700,7 @@ func TestFilter_CheckFilter1(t *testing.T) {
 				ExceptOrigins:       tt.fields.ExceptOrigins,
 				Freeleech:           tt.fields.Freeleech,
 				FreeleechPercent:    tt.fields.FreeleechPercent,
+				DoubleUpload:        tt.fields.DoubleUpload,
 				Shows:               tt.fields.Shows,
 				Seasons:             tt.fields.Seasons,
 				Episodes:            tt.fields.Episodes,

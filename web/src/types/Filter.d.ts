@@ -23,6 +23,7 @@ interface Filter {
   except_origins: string[];
   freeleech: boolean;
   freeleech_percent: string;
+  double_upload: boolean;
   shows: string;
   seasons: string;
   episodes: string;

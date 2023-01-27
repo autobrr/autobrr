@@ -69,6 +69,7 @@ CREATE TABLE filter
     min_size                       TEXT,
     max_size                       TEXT,
     delay                          INTEGER,
+    double_upload                  BOOLEAN,
     priority                       INTEGER   DEFAULT 0 NOT NULL,
     max_downloads                  INTEGER   DEFAULT 0,
     max_downloads_unit             TEXT,
@@ -384,6 +385,7 @@ var sqliteMigrations = []string{
 		tags              TEXT []   DEFAULT '{}' NOT NULL,
 		freeleech         BOOLEAN,
 		freeleech_percent INTEGER,
+        double_upload     BOOLEAN,
 		uploader          TEXT,
 		pre_time          TEXT
 	);
@@ -708,6 +710,9 @@ ALTER TABLE release_action_status_dg_tmp
 
 	ALTER TABLE "release"
 		DROP COLUMN freeleech_percent;
+
+    ALTER TABLE "release"
+	    DROP COLUMN double_upload;
 
 	ALTER TABLE "filter"
 		ADD COLUMN origins TEXT []   DEFAULT '{}';
