@@ -41,6 +41,8 @@ import { DeleteModal } from "../../components/modals";
 import { TitleSubtitle } from "../../components/headings";
 import { TextArea, TextFieldIcon } from "../../components/inputs/input";
 import { FilterActions } from "./action";
+import { CheckboxFieldIcon } from "../../components/inputs/common";
+import { MultiSelectIcon } from "../../components/inputs/select";
 
 interface tabType {
   name: string;
@@ -385,7 +387,7 @@ export function MoviesTv() {
         </div>
 
         <div className="mt-6">
-          <CheckboxField name="smart_episode" label="Smart Episode" sublabel="Do not match episodes older than the last one matched."/> {/*Do not match older or already existing episodes.*/}
+          <CheckboxFieldIcon name="smart_episode" label="Smart Episode" sublabel="Do not match episodes older than the last one matched."/> {/*Do not match older or already existing episodes.*/}
         </div>
       </div>
 
@@ -393,7 +395,7 @@ export function MoviesTv() {
         <TitleSubtitle title="Quality" subtitle="Set resolution, source, codec and related match constraints." />
 
         <div className="mt-6 grid grid-cols-12 gap-6">
-          <MultiSelect name="resolutions" options={RESOLUTION_OPTIONS} label="resolutions" columns={6} creatable={true} />
+          <MultiSelectIcon name="resolutions" options={RESOLUTION_OPTIONS} label="resolutions" columns={6} creatable={true} />
           <MultiSelect name="sources" options={SOURCES_OPTIONS} label="sources" columns={6} creatable={true} />
         </div>
 
@@ -511,8 +513,6 @@ export function Advanced({ values }: AdvancedProps) {
         <TextField name="except_release_groups" label="Except release groups" columns={6} placeholder="eg. badgroup1,badgroup2" />
       </CollapsableSection>
 
-      <InformationCircleIcon id="categories" className="hidden sm:flex float-right mt-8 ml-2 h-6 w-6 text-gray-500" aria-hidden="true" />
-      <Tooltip style= {{ fontSize: "12px", borderRadius: "0.375rem", backgroundColor: "#18181B", color: "#fff" }} place="bottom" anchorId="categories" data-html={true} clickable={true} html="<div><p>Check the docs for more info:</p><a href='https://autobrr.com/filters/categories' class='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters/categories</a></div>"/>
       <CollapsableSection defaultOpen={true} title="Categories and tags" subtitle="Match or ignore categories or tags.">
         <TextField name="match_categories" label="Match categories" columns={6} placeholder="eg. *category*,category1" />
         <TextField name="except_categories" label="Except categories" columns={6} placeholder="eg. *category*" />
@@ -521,9 +521,6 @@ export function Advanced({ values }: AdvancedProps) {
         <TextField name="except_tags" label="Except tags" columns={6} placeholder="eg. tag1,tag2" />
       </CollapsableSection>
 
-
-      <InformationCircleIcon id="uploaders" className="hidden sm:flex float-right mt-8 ml-2 h-6 w-6 text-gray-500" aria-hidden="true" />
-      <Tooltip style={{ fontSize: "12px", borderRadius: "0.375rem", backgroundColor: "#18181B", color: "#fff" }} place="bottom" anchorId="uploaders" clickable={true} content="Not all indexers announce uploader."/>
       <CollapsableSection defaultOpen={true} title="Uploaders" subtitle="Match or ignore uploaders.">
         <TextField name="match_uploaders" label="Match uploaders" columns={6} placeholder="eg. uploader1" />
         <TextField name="except_uploaders" label="Except uploaders" columns={6} placeholder="eg. anonymous" />
@@ -551,8 +548,6 @@ export function Advanced({ values }: AdvancedProps) {
         </div>
       </CollapsableSection>
 
-      <InformationCircleIcon id="freeleech" className="hidden sm:flex float-right mt-8 ml-2 h-6 w-6 text-gray-500" aria-hidden="true" />
-      <Tooltip style={{ fontSize: "12px", borderRadius: "0.375rem", backgroundColor: "#18181B", color: "#fff" }} place="bottom" anchorId="freeleech" clickable={true} content="Not all indexers announce freeleech."/>
       <CollapsableSection defaultOpen={true} title="Freeleech" subtitle="Match only freeleech and freeleech percent.">
         <div className="col-span-6">
           <SwitchGroup name="freeleech" label="Freeleech" />
