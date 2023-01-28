@@ -2,7 +2,6 @@ import { Field, FieldProps } from "formik";
 import { classNames } from "../../utils";
 import { EyeIcon, EyeSlashIcon } from "@heroicons/react/24/solid";
 import { useToggle } from "../../hooks/hooks";
-import { log } from "util";
 
 type COL_WIDTHS = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12;
 
@@ -228,8 +227,7 @@ export const NumberField = ({
     <Field name={name} type="number">
       {({
         field,
-        meta,
-        form
+        meta
       }: FieldProps) => (
         <div className="sm:col-span-2">
           <input
