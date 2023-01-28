@@ -283,7 +283,8 @@ export const DownloadClientTypeNameMap: Record<DownloadClientType | string, stri
   "SONARR": "Sonarr",
   "LIDARR": "Lidarr",
   "WHISPARR": "Whisparr",
-  "READARR": "Readarr"
+  "READARR": "Readarr",
+  "PORLA": "Porla"
 };
 
 export const ActionTypeOptions: RadioFieldsetOption[] = [
