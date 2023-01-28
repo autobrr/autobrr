@@ -275,7 +275,13 @@ func (s *service) testPorlaConnection(client domain.DownloadClient) error {
 		return errors.Wrap(err, "porla: failed to get version: %v", client.Host)
 	}
 
-	s.log.Debug().Msgf("test client connection for porla: found version %s (commit %s)", version.Version, version.Commitish[:8])
+	commitish := version.Commitish
+
+	if len(commitish) > 8 {
+		commitish = commitish[:8]
+	}
+
+	s.log.Debug().Msgf("test client connection for porla: found version %s (commit %s)", version.Version, commitish)
 
 	return nil
 }
