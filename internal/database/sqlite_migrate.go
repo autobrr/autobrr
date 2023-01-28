@@ -385,7 +385,7 @@ var sqliteMigrations = []string{
 		tags              TEXT []   DEFAULT '{}' NOT NULL,
 		freeleech         BOOLEAN,
 		freeleech_percent INTEGER,
-        double_upload     BOOLEAN,
+		double_upload     BOOLEAN,
 		uploader          TEXT,
 		pre_time          TEXT
 	);
