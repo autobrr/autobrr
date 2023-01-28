@@ -242,6 +242,11 @@ export const DownloadClientTypeOptions: RadioFieldsetOption[] = [
     value: "TRANSMISSION"
   },
   {
+    label: "Porla",
+    description: "Add torrents directly to Porla",
+    value: "PORLA"
+  },
+  {
     label: "Radarr",
     description: "Send to Radarr and let it decide",
     value: "RADARR"
@@ -265,11 +270,6 @@ export const DownloadClientTypeOptions: RadioFieldsetOption[] = [
     label: "Readarr",
     description: "Send to Readarr and let it decide",
     value: "READARR"
-  },
-  {
-    label: "Porla",
-    description: "Add torrents directly to Porla",
-    value: "PORLA"
   }
 ];
 
