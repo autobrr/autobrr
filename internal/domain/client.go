@@ -73,12 +73,12 @@ const (
 	DownloadClientTypeDelugeV2     DownloadClientType = "DELUGE_V2"
 	DownloadClientTypeRTorrent     DownloadClientType = "RTORRENT"
 	DownloadClientTypeTransmission DownloadClientType = "TRANSMISSION"
+	DownloadClientTypePorla        DownloadClientType = "PORLA"
 	DownloadClientTypeRadarr       DownloadClientType = "RADARR"
 	DownloadClientTypeSonarr       DownloadClientType = "SONARR"
 	DownloadClientTypeLidarr       DownloadClientType = "LIDARR"
 	DownloadClientTypeWhisparr     DownloadClientType = "WHISPARR"
 	DownloadClientTypeReadarr      DownloadClientType = "READARR"
-	DownloadClientTypePorla        DownloadClientType = "PORLA"
 )
 
 // Validate basic validation of client

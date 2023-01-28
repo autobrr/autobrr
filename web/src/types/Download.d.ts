@@ -4,12 +4,12 @@ type DownloadClientType =
     "DELUGE_V2" |
     "RTORRENT" |
     "TRANSMISSION" |
+    "PORLA" |
     "RADARR" |
     "SONARR" |
     "LIDARR" |
     "WHISPARR" |
-    "READARR" |
-    "PORLA";
+    "READARR";
 
 // export enum DownloadClientTypeEnum {
 //     QBITTORRENT = "QBITTORRENT",

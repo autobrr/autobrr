@@ -2,6 +2,7 @@ package domain
 
 import (
 	"context"
+
 	"github.com/autobrr/autobrr/pkg/errors"
 )
 
@@ -80,6 +81,7 @@ const (
 	ActionTypeDelugeV2     ActionType = "DELUGE_V2"
 	ActionTypeRTorrent     ActionType = "RTORRENT"
 	ActionTypeTransmission ActionType = "TRANSMISSION"
+	ActionTypePorla        ActionType = "PORLA"
 	ActionTypeWatchFolder  ActionType = "WATCH_FOLDER"
 	ActionTypeWebhook      ActionType = "WEBHOOK"
 	ActionTypeRadarr       ActionType = "RADARR"
@@ -87,7 +89,6 @@ const (
 	ActionTypeLidarr       ActionType = "LIDARR"
 	ActionTypeWhisparr     ActionType = "WHISPARR"
 	ActionTypeReadarr      ActionType = "READARR"
-	ActionTypePorla        ActionType = "PORLA"
 )
 
 type ActionContentLayout string

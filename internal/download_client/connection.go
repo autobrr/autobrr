@@ -33,6 +33,9 @@ func (s *service) testConnection(ctx context.Context, client domain.DownloadClie
 	case domain.DownloadClientTypeTransmission:
 		return s.testTransmissionConnection(ctx, client)
 
+	case domain.DownloadClientTypePorla:
+		return s.testPorlaConnection(client)
+
 	case domain.DownloadClientTypeRadarr:
 		return s.testRadarrConnection(ctx, client)
 
@@ -47,9 +50,6 @@ func (s *service) testConnection(ctx context.Context, client domain.DownloadClie
 
 	case domain.DownloadClientTypeReadarr:
 		return s.testReadarrConnection(ctx, client)
-
-	case domain.DownloadClientTypePorla:
-		return s.testPorlaConnection(client)
 
 	default:
 		return errors.New("unsupported client")

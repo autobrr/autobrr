@@ -60,6 +60,9 @@ func (s *service) RunAction(ctx context.Context, action *domain.Action, release 
 	case domain.ActionTypeTransmission:
 		rejections, err = s.transmission(ctx, action, release)
 
+	case domain.ActionTypePorla:
+		rejections, err = s.porla(*action, release)
+
 	case domain.ActionTypeRadarr:
 		rejections, err = s.radarr(ctx, action, release)
 
@@ -74,9 +77,6 @@ func (s *service) RunAction(ctx context.Context, action *domain.Action, release 
 
 	case domain.ActionTypeReadarr:
 		rejections, err = s.readarr(ctx, action, release)
-
-	case domain.ActionTypePorla:
-		rejections, err = s.porla(*action, release)
 
 	default:
 		s.log.Warn().Msgf("unsupported action type: %v", action.Type)

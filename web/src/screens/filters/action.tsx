@@ -426,7 +426,7 @@ const TypeForm = ({ action, idx, clients }: TypeFormProps) => {
               name={`actions.${idx}.save_path`}
               label="Save path"
               columns={6}
-              placeholder="eg. /full/path/to/watch_folder"
+              placeholder="eg. /full/path/to/torrent/data"
             />
           </div>
         </div>

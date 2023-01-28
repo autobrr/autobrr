@@ -227,12 +227,12 @@ export const componentMap: componentMapType = {
   QBITTORRENT: <FormFieldsQbit/>,
   RTORRENT: <FormFieldsRTorrent />,
   TRANSMISSION: <FormFieldsTransmission/>,
+  PORLA: <FormFieldsPorla />,
   RADARR: <FormFieldsArr/>,
   SONARR: <FormFieldsArr/>,
   LIDARR: <FormFieldsArr/>,
   WHISPARR: <FormFieldsArr/>,
-  READARR: <FormFieldsArr/>,
-  PORLA: <FormFieldsPorla />
+  READARR: <FormFieldsArr/>
 };
 
 function FormFieldsRulesBasic() {
