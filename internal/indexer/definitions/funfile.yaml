@@ -63,18 +63,17 @@ irc:
           - torrentSize
           - freeleech
 
-# Commented out until we make a better fix for optional multi line
-#
-#      - test:
-#          - "[Scene] Uploaded 1 min and 18 secs after pre"
-#          - "[Scene] Uploaded 1 min and 55 secs after pre"
-#        pattern: '?(?:\[(.*)\] Uploaded (.*) after pre)?'
-#        vars:
-#          - origin
-#          - preTime
-
+    # Commented out until we make a better fix for optional multi line
+    #
+    #      - test:
+    #          - "[Scene] Uploaded 1 min and 18 secs after pre"
+    #          - "[Scene] Uploaded 1 min and 55 secs after pre"
+    #        pattern: '?(?:\[(.*)\] Uploaded (.*) after pre)?'
+    #        vars:
+    #          - origin
+    #          - preTime
 
     match:
-      torrenturl: "/download.php?{{ .torrentId }}/{{ .passkey }}/{{ .torrentName }}.torrent"
+      torrenturl: "/download.php/{{ .torrentId }}/{{ .passkey }}/{{ .torrentName }}.torrent"
       encode:
         - torrentName

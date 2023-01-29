@@ -161,6 +161,24 @@ function FormFieldsQbit() {
   );
 }
 
+function FormFieldsPorla() {
+  const {
+    values: {}
+  } = useFormikContext<InitialValues>();
+
+  return (
+    <div className="flex flex-col space-y-4 px-1 py-6 sm:py-0 sm:space-y-0">
+      <TextFieldWide
+        name="host"
+        label="Host"
+        help="Eg. http(s)://client.domain.ltd, http(s)://domain.ltd/porla, http://domain.ltd:port"
+      />
+
+      <PasswordFieldWide name="settings.apikey" label="Auth token" />
+    </div>
+  )
+}
+
 function FormFieldsRTorrent() {
   return (
     <div className="flex flex-col space-y-4 px-1 py-6 sm:py-0 sm:space-y-0">
@@ -215,11 +233,12 @@ export const componentMap: componentMapType = {
   QBITTORRENT: <FormFieldsQbit/>,
   RTORRENT: <FormFieldsRTorrent />,
   TRANSMISSION: <FormFieldsTransmission/>,
+  PORLA: <FormFieldsPorla />,
   RADARR: <FormFieldsArr/>,
   SONARR: <FormFieldsArr/>,
   LIDARR: <FormFieldsArr/>,
   WHISPARR: <FormFieldsArr/>,
-  READARR: <FormFieldsArr/>  
+  READARR: <FormFieldsArr/>
 };
 
 function FormFieldsRulesBasic() {
