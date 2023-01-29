@@ -1,6 +1,6 @@
 import * as React from "react";
 import { useQuery } from "react-query";
-import { Column, useFilters, usePagination, useSortBy, useTable } from "react-table";
+import { CellProps, Column, useFilters, usePagination, useSortBy, useTable } from "react-table";
 import {
   ChevronDoubleLeftIcon,
   ChevronDoubleRightIcon,
@@ -15,6 +15,9 @@ import * as Icons from "../../components/Icons";
 import * as DataTable from "../../components/data-table";
 
 import { IndexerSelectColumnFilter, PushStatusSelectColumnFilter, SearchColumnFilter } from "./Filters";
+import { classNames } from "../../utils";
+import { ArrowTopRightOnSquareIcon } from "@heroicons/react/24/outline";
+import { Tooltip } from "../../components/tooltips/Tooltip";
 
 type TableState = {
     queryPageIndex: number;
@@ -68,7 +71,35 @@ export const ReleaseTable = () => {
     {
       Header: "Release",
       accessor: "torrent_name",
-      Cell: DataTable.TitleCell,
+      Cell: (props: CellProps<Release>) => {
+        return (
+          <div
+            className={classNames(
+              "flex justify-between py-3 text-sm font-medium box-content text-gray-900 dark:text-gray-300",
+              "max-w-[96px] sm:max-w-[216px] md:max-w-[360px] lg:max-w-[640px] xl:max-w-[840px]"
+            )}
+          >
+            <Tooltip
+              label={props.cell.value}
+              maxWidth="max-w-[90vw]"
+            >
+              <span className="whitespace-pre-wrap break-words">
+                {String(props.cell.value)}
+              </span>
+            </Tooltip>
+            {props.row.original.info_url && (
+              <a
+                rel="noopener noreferrer"
+                target="_blank"
+                href={props.row.original.info_url}
+                className="max-w-[90vw] mr-2"
+              >
+                <ArrowTopRightOnSquareIcon className="h-5 w-5 text-blue-400 hover:text-blue-500 dark:text-blue-500 dark:hover:text-blue-600" aria-hidden="true" />
+              </a>
+            )}
+          </div>
+        );
+      },
       Filter: SearchColumnFilter
     },
     {
@@ -80,7 +111,7 @@ export const ReleaseTable = () => {
     {
       Header: "Indexer",
       accessor: "indexer",
-      Cell: DataTable.TitleCell,
+      Cell: DataTable.IndexerCell,
       Filter: IndexerSelectColumnFilter,
       filter: "equal"
     }

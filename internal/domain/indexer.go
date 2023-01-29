@@ -178,10 +178,12 @@ type IndexerIRCParseLine struct {
 type IndexerIRCParseMatch struct {
 	TorrentURL  string   `json:"torrenturl"`
 	TorrentName string   `json:"torrentname"`
+	InfoURL     string   `json:"infourl"`
 	Encode      []string `json:"encode"`
 }
 
 type IndexerIRCParseMatched struct {
+	InfoURL     string
 	TorrentURL  string
 	TorrentName string
 }
@@ -196,6 +198,45 @@ func (p *IndexerIRCParse) ParseMatch(baseURL string, vars map[string]string) (*I
 			t := url.QueryEscape(v)
 			vars[e] = t
 		}
+	}
+
+	if p.Match.InfoURL != "" {
+		// setup text template to inject variables into
+		tmpl, err := template.New("infourl").Funcs(sprig.TxtFuncMap()).Parse(p.Match.InfoURL)
+		if err != nil {
+			return nil, errors.New("could not create info url template")
+		}
+
+		var urlBytes bytes.Buffer
+		if err := tmpl.Execute(&urlBytes, &vars); err != nil {
+			return nil, errors.New("could not write info url template output")
+		}
+
+		templateUrl := urlBytes.String()
+		parsedUrl, err := url.Parse(templateUrl)
+		if err != nil {
+			return nil, err
+		}
+
+		// for backwards compatibility remove Host and Scheme to rebuild url
+		if parsedUrl.Host != "" {
+			parsedUrl.Host = ""
+		}
+		if parsedUrl.Scheme != "" {
+			parsedUrl.Scheme = ""
+		}
+
+		// join baseURL with query
+		baseUrlPath, err := url.JoinPath(baseURL, parsedUrl.Path)
+		if err != nil {
+			return nil, errors.Wrap(err, "could not join info url")
+		}
+
+		// reconstruct url
+		infoUrl, _ := url.Parse(baseUrlPath)
+		infoUrl.RawQuery = parsedUrl.RawQuery
+
+		matched.InfoURL = infoUrl.String()
 	}
 
 	if p.Match.TorrentURL != "" {

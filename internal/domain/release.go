@@ -44,9 +44,10 @@ type Release struct {
 	Protocol                    ReleaseProtocol       `json:"protocol"`
 	Implementation              ReleaseImplementation `json:"implementation"` // irc, rss, api
 	Timestamp                   time.Time             `json:"timestamp"`
+	InfoURL                     string                `json:"info_url"`
+	TorrentURL                  string                `json:"download_url"`
 	GroupID                     string                `json:"group_id"`
 	TorrentID                   string                `json:"torrent_id"`
-	TorrentURL                  string                `json:"-"`
 	TorrentTmpFile              string                `json:"-"`
 	TorrentDataRawBytes         []byte                `json:"-"`
 	TorrentHash                 string                `json:"-"`
