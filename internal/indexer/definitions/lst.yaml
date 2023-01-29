@@ -5,7 +5,7 @@ identifier: lst
 description: LST is an English private tracker for MOVIES / TV / GENERAL
 language: en-us
 urls:
-  - https://lst.gg
+  - https://lst.gg/
 privacy: private
 protocol: torrent
 supports:
@@ -62,4 +62,5 @@ irc:
           - torrentId
 
     match:
+      infourl: "/torrents/{{ .torrentId }}"
       torrenturl: "/torrent/download/{{ .torrentId }}.{{ .rsskey }}"
