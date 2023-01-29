@@ -1,0 +1,65 @@
+---
+#id: lst
+name: LST
+identifier: lst
+description: LST is an English private tracker for MOVIES / TV / GENERAL
+language: en-us
+urls:
+  - https://lst.gg
+privacy: private
+protocol: torrent
+supports:
+  - irc
+  - rss
+source: UNIT3D
+settings:
+  - name: rsskey
+    type: secret
+    required: true
+    label: RSS key (RID)
+    help: "Go to your profile tab, Settings > Security, copy RSS Key (RID)"
+
+irc:
+  network: LST
+  server: irc.lst.gg
+  port: 6697
+  tls: true
+  channels:
+    - "#announce"
+  announcers:
+    - LSTANNOUNCE
+  settings:
+    - name: nick
+      type: text
+      required: true
+      label: Username
+      help: Must be your site username.
+
+    - name: pass
+      type: secret
+      required: false
+      label: IRC key
+      help: Generated IRC key can be found on your profile.
+
+  parse:
+    type: single
+    lines:
+      - test:
+          - "Category [Movies] Type [Remux] Name [Movie1995 1080p BluRay REMUX AVC DTS-HD MA 5.1-Ripper] Resolution [1080p] Freeleech [0%] Internal [No] Double Upload [No] Size [37.81 GiB] Uploader [GRiMM] Url [http://lst.gg/torrents/00000]"
+          - "Category [Movies] Type [Remux] Name [Some Random Movie 1985 1080p BluRay REMUX VC-1 DTS-HD MA 5.1-Ripper] Freeleech [0%] Internal [No] Double Upload [No] Size [25.35 GiB] Uploader [GRiMM] Url [http://lst.gg/torrents/00000]"
+        pattern: 'Category \[(.*)\] Type \[(.*)\] Name \[(.*?)\] ?(?:Resolution \[(.*)\])? Freeleech \[(.*)\] Internal \[(.*)\] Double Upload \[(.*)\] Size \[(.*)\] Uploader \[(.*)\] Url \[(https?://.+/).+/(\d+)\]'
+        vars:
+          - category
+          - releaseTags
+          - torrentName
+          - resolution
+          - freeleechPercent
+          - internal
+          - tags
+          - torrentSize
+          - uploader
+          - baseUrl
+          - torrentId
+
+    match:
+      torrenturl: "/torrent/download/{{ .torrentId }}.{{ .rsskey }}"
