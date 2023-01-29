@@ -194,7 +194,6 @@ func (r *Release) ParseString(title string) {
 	rel := rls.ParseString(title)
 
 	r.TorrentName = title
-	r.Title = rel.Title
 	r.Source = rel.Source
 	r.Resolution = rel.Resolution
 	r.Region = rel.Region
@@ -206,6 +205,10 @@ func (r *Release) ParseString(title string) {
 	r.Other = rel.Other
 	r.Artists = rel.Artist
 	r.Language = rel.Language
+
+	if r.Title == "" {
+		r.Title = rel.Title
+	}
 
 	if r.Season == 0 {
 		r.Season = rel.Series
@@ -234,8 +237,29 @@ func (r *Release) ParseReleaseTagsString(tags string) {
 
 	t := ParseReleaseTagString(cleanTags)
 
+	f := func(target *[]string, source []string) {
+		toappend := make([]string, 0, len(source))
+		for _, t := range *target {
+			found := false
+			norm := rls.MustNormalize(t)
+
+			for _, s := range source {
+				if rls.MustNormalize(s) == norm {
+					found = true
+					break
+				}
+			}
+
+			if !found {
+				toappend = append(toappend, t)
+			}
+		}
+
+		*target = append(*target, toappend...)
+	}
+
 	if len(t.Audio) > 0 {
-		r.Audio = append(r.Audio, t.Audio...)
+		f(&r.Audio, t.Audio)
 	}
 	if len(t.Bonus) > 0 {
 		if sliceContainsSlice([]string{"Freeleech"}, t.Bonus) {
@@ -246,10 +270,10 @@ func (r *Release) ParseReleaseTagsString(tags string) {
 		r.Bonus = append(r.Bonus, t.Bonus...)
 	}
 	if len(t.Codec) > 0 {
-		r.Codec = append(r.Codec, t.Codec)
+		f(&r.Codec, append(make([]string, 0, 1), t.Codec))
 	}
 	if len(t.Other) > 0 {
-		r.Other = append(r.Other, t.Other...)
+		f(&r.Other, t.Other)
 	}
 	if r.Origin == "" && t.Origin != "" {
 		r.Origin = t.Origin

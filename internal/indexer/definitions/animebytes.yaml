@@ -67,9 +67,10 @@ irc:
           - "Best Visual Novel - Visual Novel  [2006] :: Game / PC / Unarchived / Hentai (Censored) || https://animebytes.tv/torrents.php?id=00000&torrentid=00000 || nukige || Uploaded by: Uploader"
           - "Artist Name - Album of awesome Music  [1991] :: MP3 / V0 (VBR) / CD || https://animebytes.tv/torrents2.php?id=00000&torrentid=000000 || ambient, folk || Uploaded by: Uploader"
           - "Awesome Series - TV Series  [2022] :: Web / MKV / h264 / 1080p / AAC 2.0 / Softsubs (Sub Group) / Episode 1 / Freeleech || https://animebytes.tv/torrents.php?id=00000&torrentid=000000 || || Uploaded by: Uploader"
-        pattern: '(.*?)(?: - )?(Visual Novel|Light Novel|TV S.*|Movie|Manga|OVA|ONA|DVD Special|BD Special|Oneshot|Anthology|Manhwa|Manhua|Artbook|Game|Live Action.*|)[\s\p{Zs}]{2,}\[(\d+)\] :: (.*?(?:Hardsubs|RAW|Softsubs|Translated) \((.*?)\).*?|.*?)(?: \/ Episode (\d+).*?)?(?: \/ )?(Freeleech)?(?:.?\|\|.?)(https.+\/)torrents.*\?id=(\d+)&torrentid=(\d+)(?:.?\|\|.?)?([A-Za-z,. ]+\w)?(?:.?\|\|.?)?(?:Uploaded by: (.*))?'
+        pattern: '((.*?)+)(?: - )?(Visual Novel|Light Novel|TV S.*|Movie|Manga|OVA|ONA|DVD Special|BD Special|Oneshot|Anthology|Manhwa|Manhua|Artbook|Game|Live Action.*|)[\s\p{Zs}]{2,}\[(\d+)\] :: (.*?(?:Hardsubs|RAW|Softsubs|Translated) \((.*?)\).*?|.*?)(?: \/ Episode (\d+).*?)?(?: \/ )?(Freeleech)?(?:.?\|\|.?)(https.+\/)torrents.*\?id=(\d+)&torrentid=(\d+)(?:.?\|\|.?)?([A-Za-z,. ]+\w)?(?:.?\|\|.?)?(?:Uploaded by: (.*))?'
         vars:
           - torrentName
+          - title
           - category
           - year
           - releaseTags
