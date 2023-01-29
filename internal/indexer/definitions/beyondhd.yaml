@@ -70,4 +70,5 @@ irc:
           - torrentId
 
     match:
+      infourl: "/details.php?id={{ .torrentId }}"
       torrenturl: "/torrent/download/auto.{{ .torrentId }}.{{ .rsskey }}"

@@ -71,6 +71,7 @@ irc:
           - torrentSize
 
     match:
+      infourl: "/details.php?id={{ .torrentId }}"
       torrenturl: "/download.php/{{ .torrentId }}/{{ .torrentName }}.torrent?torrent_pass={{ .passkey }}"
       encode:
         - torrentName

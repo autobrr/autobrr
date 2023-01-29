@@ -66,6 +66,7 @@ irc:
           - uploader
 
     match:
+      infourl: "/details.php?id={{ .torrentId }}"
       torrenturl: "/download.php?id={{ .torrentId }}&file={{ .torrentName }}.torrent&passkey={{ .passkey }}"
       encode:
         - torrentName

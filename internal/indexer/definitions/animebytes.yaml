@@ -82,5 +82,6 @@ irc:
           - uploader
 
     match:
+      infourl: "/torrents.php?id={{ .torrentId }}"
       torrenturl: "/torrent/{{ .torrentId }}/download/{{ .passkey }}"
       torrentname: "{{ if .releaseGroup }}[{{ .releaseGroup }}] {{ end }}{{ .torrentName }} {{ if .releaseEpisode }}{{ printf \"- %02s \" .releaseEpisode }}{{ end }} {{ if .year }}[{{ .year }}]{{ end }}{{ print \"[\" .releaseTags \"]\" | replace \" / \" \"][\" }}"

@@ -67,6 +67,7 @@ irc:
           - torrentName
 
     match:
+      infourl: "/attachment.php?attachmentid={{ .torrentId }}"
       torrenturl: "/rss/torrent.php/{{ .torrentId }}/{{ .uid }}/{{ .passkey }}/{{ .torrentName }}.torrent"
       encode:
         - torrentName
