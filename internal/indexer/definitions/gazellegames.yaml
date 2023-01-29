@@ -98,4 +98,5 @@ irc:
           - tags
 
     match:
+      infourl: "/torrents.php?torrentid={{ .torrentId }}"
       torrenturl: "/torrents.php?action=download&id={{ .torrentId }}&authkey={{ .authkey }}&torrent_pass={{ .torrent_pass }}"
