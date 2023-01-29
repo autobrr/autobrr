@@ -97,8 +97,10 @@ export const PasswordFieldWide = ({
     <div className="space-y-1 p-4 sm:space-y-0 sm:grid sm:grid-cols-3 sm:gap-4">
       <div>
         <label htmlFor={name} className="flex block text-sm font-medium text-gray-900 dark:text-white sm:mt-px sm:pt-2">
-          {label} {required && <span className="text-gray-500">*</span>}
-          {tooltip}
+          <div id={name} className="flex">
+            {label} {required && <span className="text-gray-500">*</span>}
+            {tooltip}
+          </div>
         </label>
       </div>
       <div className="sm:col-span-2">
