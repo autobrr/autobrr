@@ -3,8 +3,7 @@ import { useMutation, useQuery } from "react-query";
 import { NavLink, Route, Routes, useLocation, useNavigate, useParams } from "react-router-dom";
 import { toast } from "react-hot-toast";
 import { Form, Formik, FormikValues, useFormikContext } from "formik";
-import { InformationCircleIcon, ChevronDownIcon, ChevronRightIcon } from "@heroicons/react/24/solid";
-import { Tooltip } from "react-tooltip";
+import { ChevronDownIcon, ChevronRightIcon } from "@heroicons/react/24/solid";
 
 import {
   CODECS_OPTIONS,
@@ -26,6 +25,8 @@ import { APIClient } from "../../api/APIClient";
 import { useToggle } from "../../hooks/hooks";
 import { classNames } from "../../utils";
 
+import { CustomTooltip } from "../../components/tooltips/CustomTooltip";
+
 import {
   CheckboxField,
   IndexerMultiSelect,
@@ -39,10 +40,8 @@ import DEBUG from "../../components/debug";
 import Toast from "../../components/notifications/Toast";
 import { DeleteModal } from "../../components/modals";
 import { TitleSubtitle } from "../../components/headings";
-import { TextArea, TextFieldIcon } from "../../components/inputs/input";
+import { TextArea } from "../../components/inputs/input";
 import { FilterActions } from "./action";
-import { CheckboxFieldIcon } from "../../components/inputs/common";
-import { MultiSelectIcon } from "../../components/inputs/select";
 
 interface tabType {
   name: string;
@@ -349,13 +348,12 @@ export function General() {
         <TitleSubtitle title="Rules" subtitle="Specify rules on how torrents should be handled/selected." />
 
         <div className="mt-6 grid grid-cols-12 gap-6">
-          <TextField name="min_size" label="Min size" columns={6} placeholder="eg. 100MiB, 80GB" />
-          <TextField name="max_size" label="Max size" columns={6} placeholder="eg. 100MiB, 80GB" />
-          <NumberField name="delay" label="Delay" placeholder="Number of seconds to delay actions" />
-          <NumberField name="priority" label="Priority" placeholder="Higher number = higher prio" min={0} required={true} />
-
-          <NumberField name="max_downloads" label="Max downloads" placeholder="Takes any number (0 is infinite)" min={0} required={true} />
-          <Select name="max_downloads_unit" label="Max downloads per" options={downloadsPerUnitOptions}  optionDefaultText="Select unit" />
+          <TextField name="min_size" label="Min size" columns={6} placeholder="eg. 100MiB, 80GB" tooltip={<CustomTooltip anchorId="min_size" clickable={true}><div><p>Supports units such as MB, MiB, GB, etc.</p><a href='https://autobrr.com/filters#rules' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters#rules</a></div></CustomTooltip>} />
+          <TextField name="max_size" label="Max size" columns={6} placeholder="eg. 100MiB, 80GB"  tooltip={<CustomTooltip anchorId="max_size" clickable={true}><div><p>Supports units such as MB, MiB, GB, etc.</p><a href='https://autobrr.com/filters#rules' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters#rules</a></div></CustomTooltip>} />
+          <NumberField name="delay" label="Delay" placeholder="Number of seconds to delay actions"  tooltip={<CustomTooltip anchorId="delay" clickable={true}><div><p>Number of seconds to wait before running actions.</p><a href='https://autobrr.com/filters#rules' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters#rules</a></div></CustomTooltip>} />
+          <NumberField name="priority" label="Priority" placeholder="Higher number = higher prio" min={0} required={true}  tooltip={<CustomTooltip anchorId="priority" clickable={true}><div><p>Filters are checked in order of priority. Higher number = higher priority.</p><a href='https://autobrr.com/filters#rules' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters#rules</a></div></CustomTooltip>} />
+          <NumberField name="max_downloads" label="Max downloads" placeholder="Takes any number (0 is infinite)" min={0} required={true}  tooltip={<CustomTooltip anchorId="max_downloads" clickable={true}><div><p>Number of max downloads as specified by the respective unit.</p><a href='https://autobrr.com/filters#rules' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters#rules</a></div></CustomTooltip>} />
+          <Select name="max_downloads_unit" label="Max downloads per" options={downloadsPerUnitOptions}  optionDefaultText="Select unit"  tooltip={<CustomTooltip anchorId="max_downloads_unit" clickable={true}><div><p>The unit of time for counting the maximum downloads per filter.</p><a href='https://autobrr.com/filters#rules' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters#rules</a></div></CustomTooltip>} />
         </div>
       </div>
 
@@ -371,23 +369,20 @@ export function MoviesTv() {
   return (
     <div>
       <div className="mt-6 grid grid-cols-12 gap-6">
-        <TextFieldIcon name="shows" label="Movies / Shows" columns={8} placeholder="eg. Movie,Show 1,Show?2" id="shows"/>
-        <Tooltip style= {{ fontSize: "12px", borderRadius: "0.375rem", backgroundColor: "#18181B", color: "#fff" }} place="right" anchorId="shows" data-html={true} clickable={true} html="<div><p>You can use basic filtering like wildcards (*) or replace single characters with <code>?</code>.</p><a href='https://autobrr.com/filters#tvmovies' class='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters#tvmovies</a></div>"/>
+        <TextField name="shows" label="Movies / Shows" columns={8} placeholder="eg. Movie,Show 1,Show?2"  tooltip={<CustomTooltip anchorId="shows" clickable={true}><div><p>You can use basic filtering like wildcards <code>*</code> or replace single characters with <code>?</code>.</p><a href='https://autobrr.com/filters#tvmovies' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters#tvmovies</a></div></CustomTooltip>} />
         
-        <TextField name="years" label="Years" columns={4} placeholder="eg. 2018,2019-2021" />
+        <TextField name="years" label="Years" columns={4} placeholder="eg. 2018,2019-2021"  tooltip={<CustomTooltip anchorId="years" clickable={true}><div><p>This field takes a range of years and/or comma separated single years.</p><a href='https://autobrr.com/filters#tvmovies' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters#tvmovies</a></div></CustomTooltip>} />
       </div>
       <div className="mt-6 lg:pb-8">
         <TitleSubtitle title="Seasons and Episodes" subtitle="Set season and episode match constraints." />
 
         <div className="mt-6 grid grid-cols-12 gap-6">
-          <TextFieldIcon name="seasons" label="Seasons" columns={8} placeholder="eg. 1,3,2-6" id="season" />
-          <Tooltip style= {{ fontSize: "12px", borderRadius: "0.375rem", backgroundColor: "#18181B", color: "#fff" }} place="right" anchorId="season" data-html={true} clickable={true} html="<div><p>See the docs for information about how to only grab episodes, or to only grab season packs:</p><a href='https://autobrr.com/filters/examples#only-season-packs' class='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters/examples#only-season-packs</a></div>"/>
-
-          <TextField name="episodes" label="Episodes" columns={4} placeholder="eg. 2,4,10-20" id="episodes" />
+          <TextField name="seasons" label="Seasons" columns={8} placeholder="eg. 1,3,2-6"  tooltip={<CustomTooltip anchorId="seasons" clickable={true}><div><p>See docs for information about how to <b>only</b> grab season packs:</p><a href='https://autobrr.com/filters/examples#only-season-packs' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters/examples#only-season-packs</a></div></CustomTooltip>} />
+          <TextField name="episodes" label="Episodes" columns={4} placeholder="eg. 2,4,10-20"  tooltip={<CustomTooltip anchorId="episodes" clickable={true}><div><p>See docs for information about how to <b>only</b> grab episodes:</p><a href='https://autobrr.com/filters/examples/#skip-season-packs' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters/examples/#skip-season-packs</a></div></CustomTooltip>} />
         </div>
 
         <div className="mt-6">
-          <CheckboxFieldIcon name="smart_episode" label="Smart Episode" sublabel="Do not match episodes older than the last one matched."/> {/*Do not match older or already existing episodes.*/}
+          <CheckboxField name="smart_episode" label="Smart Episode" sublabel="Do not match episodes older than the last one matched."/> {/*Do not match older or already existing episodes.*/}
         </div>
       </div>
 
@@ -395,23 +390,23 @@ export function MoviesTv() {
         <TitleSubtitle title="Quality" subtitle="Set resolution, source, codec and related match constraints." />
 
         <div className="mt-6 grid grid-cols-12 gap-6">
-          <MultiSelectIcon name="resolutions" options={RESOLUTION_OPTIONS} label="resolutions" columns={6} creatable={true} />
-          <MultiSelect name="sources" options={SOURCES_OPTIONS} label="sources" columns={6} creatable={true} />
+          <MultiSelect name="resolutions" options={RESOLUTION_OPTIONS} label="resolutions" columns={6} creatable={true}  tooltip={<CustomTooltip anchorId="resolutions" clickable={true}><div><p>Will match releases which contain any of the selected resolutions.</p><a href='https://autobrr.com/filters#quality' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters#quality</a></div></CustomTooltip>} />
+          <MultiSelect name="sources" options={SOURCES_OPTIONS} label="sources" columns={6} creatable={true}  tooltip={<CustomTooltip anchorId="sources" clickable={true}><div><p>Will match releases which contain any of the selected sources.</p><a href='https://autobrr.com/filters#quality' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters#quality</a></div></CustomTooltip>} />
         </div>
 
         <div className="mt-6 grid grid-cols-12 gap-6">
-          <MultiSelect name="codecs" options={CODECS_OPTIONS} label="codecs" columns={6} creatable={true} />
-          <MultiSelect name="containers" options={CONTAINER_OPTIONS} label="containers" columns={6} creatable={true} />
+          <MultiSelect name="codecs" options={CODECS_OPTIONS} label="codecs" columns={6} creatable={true}  tooltip={<CustomTooltip anchorId="codecs" clickable={true}><div><p>Will match releases which contain any of the selected codecs.</p><a href='https://autobrr.com/filters#quality' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters#quality</a></div></CustomTooltip>} />
+          <MultiSelect name="containers" options={CONTAINER_OPTIONS} label="containers" columns={6} creatable={true}  tooltip={<CustomTooltip anchorId="containers" clickable={true}><div><p>Will match releases which contain any of the selected containers.</p><a href='https://autobrr.com/filters#quality' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters#quality</a></div></CustomTooltip>} />
         </div>
 
         <div className="mt-6 grid grid-cols-12 gap-6">
-          <MultiSelect name="match_hdr" options={HDR_OPTIONS} label="Match HDR" columns={6} creatable={true} />
-          <MultiSelect name="except_hdr" options={HDR_OPTIONS} label="Except HDR" columns={6} creatable={true} />
+          <MultiSelect name="match_hdr" options={HDR_OPTIONS} label="Match HDR" columns={6} creatable={true}  tooltip={<CustomTooltip anchorId="match_hdr" clickable={true}><div><p>Will match releases which contain any of the selected HDR designations.</p><a href='https://autobrr.com/filters#quality' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters#quality</a></div></CustomTooltip>} />
+          <MultiSelect name="except_hdr" options={HDR_OPTIONS} label="Except HDR" columns={6} creatable={true}  tooltip={<CustomTooltip anchorId="exclude_hdr" clickable={true}><div><p>Won't match releases which contain any of the selected HDR designations (takes priority over Match HDR).</p><a href='https://autobrr.com/filters#quality' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters#quality</a></div></CustomTooltip>} />
         </div>
 
         <div className="mt-6 grid grid-cols-12 gap-6">
-          <MultiSelect name="match_other" options={OTHER_OPTIONS} label="Match Other" columns={6} creatable={true} />
-          <MultiSelect name="except_other" options={OTHER_OPTIONS} label="Except Other" columns={6} creatable={true} />
+          <MultiSelect name="match_other" options={OTHER_OPTIONS} label="Match Other" columns={6} creatable={true}  tooltip={<CustomTooltip anchorId="other" clickable={true}><div><p>Will match releases which contain any of the selected designations.</p><a href='https://autobrr.com/filters#quality' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters#quality</a></div></CustomTooltip>} />
+          <MultiSelect name="except_other" options={OTHER_OPTIONS} label="Except Other" columns={6} creatable={true}  tooltip={<CustomTooltip anchorId="except_other" clickable={true}><div><p>Won't match releases which contain any of the selected Other designations (takes priority over Match Other).</p><a href='https://autobrr.com/filters#quality' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters#quality</a></div></CustomTooltip>} />
         </div>
       </div>
     </div>
@@ -422,26 +417,26 @@ export function Music({ values }: AdvancedProps) {
   return (
     <div>
       <div className="mt-6 grid grid-cols-12 gap-6">
-        <TextField name="artists" label="Artists" columns={4} placeholder="eg. Artist One" />
-        <TextField name="albums" label="Albums" columns={4} placeholder="eg. That Album" />
-        <TextField name="years" label="Years" columns={4} placeholder="eg. 2018,2019-2021" />
+        <TextField name="artists" label="Artists" columns={4} placeholder="eg. Artist One" tooltip={<CustomTooltip anchorId="artists" clickable={true}><div><p>You can use basic filtering like wildcards <code>*</code> or replace single characters with <code>?</code>.</p><a href='https://autobrr.com/filters#music' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters#music</a></div></CustomTooltip>} />
+        <TextField name="albums" label="Albums" columns={4} placeholder="eg. That Album" tooltip={<CustomTooltip anchorId="albums" clickable={true}><div><p>You can use basic filtering like wildcards <code>*</code> or replace single characters with <code>?</code>.</p><a href='https://autobrr.com/filters#music' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters#music</a></div></CustomTooltip>} />
+        <TextField name="years" label="Years" columns={4} placeholder="eg. 2018,2019-2021" tooltip={<CustomTooltip anchorId="years" clickable={true}><div><p>This field takes a range of years and/or comma separated single years.</p><a href='https://autobrr.com/filters#music' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters#music</a></div></CustomTooltip>} />
       </div>
 
       <div className="mt-6 lg:pb-8">
         <TitleSubtitle title="Quality" subtitle="Format, source, log etc." />
 
         <div className="mt-6 grid grid-cols-12 gap-6">
-          <MultiSelect name="formats" options={FORMATS_OPTIONS} label="Format" columns={6} disabled={values.perfect_flac} />
-          <MultiSelect name="quality" options={QUALITY_MUSIC_OPTIONS} label="Quality" columns={6} disabled={values.perfect_flac} />
+          <MultiSelect name="formats" options={FORMATS_OPTIONS} label="Format" columns={6} disabled={values.perfect_flac} tooltip={<CustomTooltip anchorId="formats" clickable={true}><div><p>	Will only match releases with any of the selected formats. <br />This is overridden by Perfect FLAC.</p><a href='https://autobrr.com/filters#quality-1' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters#quality-1</a></div></CustomTooltip>} />
+          <MultiSelect name="quality" options={QUALITY_MUSIC_OPTIONS} label="Quality" columns={6} disabled={values.perfect_flac} tooltip={<CustomTooltip anchorId="quality" clickable={true}><div><p>	Will only match releases with any of the selected qualities. <br />This is overridden by Perfect FLAC.</p><a href='https://autobrr.com/filters#quality-1' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters#quality-1</a></div></CustomTooltip>} />
         </div>
 
         <div className="mt-6 grid grid-cols-12 gap-6">
-          <MultiSelect name="media" options={SOURCES_MUSIC_OPTIONS} label="Media" columns={6} disabled={values.perfect_flac} />
-          <MultiSelect name="match_release_types" options={RELEASE_TYPE_MUSIC_OPTIONS} label="Type" columns={6} />
+          <MultiSelect name="media" options={SOURCES_MUSIC_OPTIONS} label="Media" columns={6} disabled={values.perfect_flac} tooltip={<CustomTooltip anchorId="media" clickable={true}><div><p>	Will only match releases with any of the selected sources. <br />This is overridden by Perfect FLAC.</p><a href='https://autobrr.com/filters#quality-1' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters#quality-1</a></div></CustomTooltip>} />
+          <MultiSelect name="match_release_types" options={RELEASE_TYPE_MUSIC_OPTIONS} label="Type" columns={6} tooltip={<CustomTooltip anchorId="match_release_types" clickable={true}><div><p>	Will only match releases with any of the selected types.</p><a href='https://autobrr.com/filters#quality-1' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters#quality-1</a></div></CustomTooltip>} />
         </div>
 
         <div className="mt-6 grid grid-cols-12 gap-6">
-          <NumberField name="log_score" label="Log score" placeholder="eg. 100" min={0} max={100} required={true} disabled={values.perfect_flac} />
+          <NumberField name="log_score" label="Log score" placeholder="eg. 100" min={0} max={100} required={true} disabled={values.perfect_flac} tooltip={<CustomTooltip anchorId="log_score" clickable={true}><div><p>	Log scores go from 0 to 100.<br />This is overridden by Perfect FLAC.</p><a href='https://autobrr.com/filters#quality-1' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters#quality-1</a></div></CustomTooltip>} />
         </div>
 
       </div>
@@ -451,7 +446,7 @@ export function Music({ values }: AdvancedProps) {
           <div role="group" aria-labelledby="label-email">
             <div className="sm:grid sm:grid-cols-3 sm:gap-4 sm:items-baseline">
               {/* <div>
-                    <div className="text-base font-medium text-gray-900 sm:text-sm sm:text-gray-700" id="label-email">
+                    <div className="text-base font-medium text-gray-900 sm:text-sm sm:text-gray-700" >
                       Extra
                     </div>
                   </div> */}
@@ -459,7 +454,7 @@ export function Music({ values }: AdvancedProps) {
                 <div className="max-w-lg space-y-4">
                   <CheckboxField name="log" label="Log" sublabel="Must include Log." disabled={values.perfect_flac} />
                   <CheckboxField name="cue" label="Cue" sublabel="Must include Cue." disabled={values.perfect_flac} />
-                  <CheckboxField name="perfect_flac" label="Perfect FLAC" sublabel="Override all options about quality, source, format, and cue/log/log score."/>
+                  <CheckboxField name="perfect_flac" label="Perfect FLAC" sublabel="Override all options about quality, source, format, and cue/log/log score." tooltip={<CustomTooltip anchorId="perfect_flac" clickable={true}><div><p>	Log scores go from 0 to 100.<br />This is overridden by Perfect FLAC.</p><a href='https://autobrr.com/filters#quality-1' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters#quality-1</a></div></CustomTooltip>} />
                 </div>
               </div>
             </div>
@@ -481,8 +476,8 @@ export function Advanced({ values }: AdvancedProps) {
         <div className="grid col-span-12 gap-6">
           <WarningAlert text="autobrr has extensive filtering built-in - only use this if nothing else works. If you need help please ask." />
 
-          <TextField name="match_releases" label="Match releases" columns={6} placeholder="eg. *some?movie*,*some?show*s01*" />
-          <TextField name="except_releases" label="Except releases" columns={6} placeholder="eg. *bad?movie*,*bad?show*s03*" />
+          <TextField name="match_releases" label="Match releases" columns={6} placeholder="eg. *some?movie*,*some?show*s01*" tooltip={<CustomTooltip anchorId="match_releases" clickable={true}><div><p>This field has full regex support (Golang flavour).</p><a href='https://autobrr.com/filters#advanced' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters#advanced</a><br/><br/><p>Remember to tick <b>Use Regex</b> below if using more than <code>*</code> and <code>?</code>.</p></div></CustomTooltip>} />
+          <TextField name="except_releases" label="Except releases" columns={6} placeholder="eg. *bad?movie*,*bad?show*s03*" tooltip={<CustomTooltip anchorId="except_releases" clickable={true}><div><p>This field has full regex support (Golang flavour).</p><a href='https://autobrr.com/filters#advanced' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters#advanced</a><br/><br/><p>Remember to tick <b>Use Regex</b> below if using more than <code>*</code> and <code>?</code>.</p></div></CustomTooltip>} />
           {values.match_releases ? (
             <WarningAlert
               alert="Ask yourself:"
@@ -509,21 +504,21 @@ export function Advanced({ values }: AdvancedProps) {
 
 
       <CollapsableSection defaultOpen={true} title="Groups" subtitle="Match only certain groups and/or ignore other groups.">
-        <TextField name="match_release_groups" label="Match release groups" columns={6} placeholder="eg. group1,group2" />
-        <TextField name="except_release_groups" label="Except release groups" columns={6} placeholder="eg. badgroup1,badgroup2" />
+        <TextField name="match_release_groups" label="Match release groups" columns={6} placeholder="eg. group1,group2" tooltip={<CustomTooltip anchorId="match_release_groups" clickable={true}><div><p>Comma separated list of release groups to match.</p><a href='https://autobrr.com/filters#advanced' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters#advanced</a></div></CustomTooltip>} />
+        <TextField name="except_release_groups" label="Except release groups" columns={6} placeholder="eg. badgroup1,badgroup2" tooltip={<CustomTooltip anchorId="except_release_groups" clickable={true}><div><p>Comma separated list of release groups to ignore (takes priority over Match releases).</p><a href='https://autobrr.com/filters#advanced' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters#advanced</a></div></CustomTooltip>} />
       </CollapsableSection>
 
       <CollapsableSection defaultOpen={true} title="Categories and tags" subtitle="Match or ignore categories or tags.">
-        <TextField name="match_categories" label="Match categories" columns={6} placeholder="eg. *category*,category1" />
-        <TextField name="except_categories" label="Except categories" columns={6} placeholder="eg. *category*" />
+        <TextField name="match_categories" label="Match categories" columns={6} placeholder="eg. *category*,category1" tooltip={<CustomTooltip anchorId="match_categories" clickable={true}><div><p>Comma separated list of categories to match.</p><a href='https://autobrr.com/filters/categories' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters/categories</a></div></CustomTooltip>} />
+        <TextField name="except_categories" label="Except categories" columns={6} placeholder="eg. *category*" tooltip={<CustomTooltip anchorId="except_categories" clickable={true}><div><p>Comma separated list of categories to ignore (takes priority over Match releases).</p><a href='https://autobrr.com/filters/categories' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters/categories</a></div></CustomTooltip>} />
 
-        <TextField name="tags" label="Match tags" columns={6} placeholder="eg. tag1,tag2" />
-        <TextField name="except_tags" label="Except tags" columns={6} placeholder="eg. tag1,tag2" />
+        <TextField name="tags" label="Match tags" columns={6} placeholder="eg. tag1,tag2" tooltip={<CustomTooltip anchorId="tags" clickable={true}><div><p>Comma separated list of tags to match.</p><a href='https://autobrr.com/filters#advanced' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters#advanced</a></div></CustomTooltip>} />
+        <TextField name="except_tags" label="Except tags" columns={6} placeholder="eg. tag1,tag2" tooltip={<CustomTooltip anchorId="except_tags" clickable={true}><div><p>Comma separated list of tags to ignore (takes priority over Match releases).</p><a href='https://autobrr.com/filters#advanced' className='text-blue-400 visited:text-blue-400' target='_blank'>hhttps://autobrr.com/filters#advanced</a></div></CustomTooltip>} />
       </CollapsableSection>
 
       <CollapsableSection defaultOpen={true} title="Uploaders" subtitle="Match or ignore uploaders.">
-        <TextField name="match_uploaders" label="Match uploaders" columns={6} placeholder="eg. uploader1" />
-        <TextField name="except_uploaders" label="Except uploaders" columns={6} placeholder="eg. anonymous" />
+        <TextField name="match_uploaders" label="Match uploaders" columns={6} placeholder="eg. uploader1" tooltip={<CustomTooltip anchorId="match_uploaders" clickable={true}><div><p>Comma separated list of uploaders to match.</p><a href='https://autobrr.com/filters#advanced' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters#advanced</a></div></CustomTooltip>} />
+        <TextField name="except_uploaders" label="Except uploaders" columns={6} placeholder="eg. anonymous" tooltip={<CustomTooltip anchorId="except_uploaders" clickable={true}><div><p>Comma separated list of uploaders to ignore (takes priority over Match releases).</p><a href='https://autobrr.com/filters#advanced' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters#advanced</a></div></CustomTooltip>} />
       </CollapsableSection>
 
       <CollapsableSection defaultOpen={true} title="Language" subtitle="Match or ignore languages.">
@@ -550,10 +545,10 @@ export function Advanced({ values }: AdvancedProps) {
 
       <CollapsableSection defaultOpen={true} title="Freeleech" subtitle="Match only freeleech and freeleech percent.">
         <div className="col-span-6">
-          <SwitchGroup name="freeleech" label="Freeleech" />
+          <SwitchGroup name="freeleech" label="Freeleech" description="Enabling freeleech locks freeleech percent to 100. Use either." />
         </div>
 
-        <TextField name="freeleech_percent" label="Freeleech percent" columns={6} placeholder="eg. 50,75-100" />
+        <TextField name="freeleech_percent" label="Freeleech percent" columns={6} placeholder="eg. 50,75-100"/>
       </CollapsableSection>
     </div>
   );

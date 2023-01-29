@@ -22,6 +22,7 @@ import {
 } from "../../components/inputs";
 import DownloadClient from "../../screens/settings/DownloadClient";
 import { SelectFieldWide } from "../../components/inputs/input_wide";
+import { CustomTooltip } from "../../components/tooltips/CustomTooltip";
 
 interface InitialValuesSettings {
   basic?: {
@@ -276,7 +277,7 @@ function FormFieldsRules() {
                 label="Ignore condition"
                 optionDefaultText="Select ignore condition"
                 options={DownloadRuleConditionOptions}
-              />
+                tooltip={<CustomTooltip anchorId="asd" clickable={false}><p>asdasd</p></CustomTooltip>} />
               <NumberFieldWide
                 name="settings.rules.download_speed_threshold"
                 label="Download speed threshold"

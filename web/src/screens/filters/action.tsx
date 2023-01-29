@@ -12,6 +12,7 @@ import { Dialog, Switch as SwitchBasic, Transition } from "@headlessui/react";
 import { ChevronRightIcon } from "@heroicons/react/24/solid";
 import { DeleteModal } from "../../components/modals";
 import { CollapsableSection } from "./details";
+import { CustomTooltip } from "../../components/tooltips/CustomTooltip";
 
 interface FilterActionsProps {
   filter: Filter;
@@ -174,7 +175,7 @@ const TypeForm = ({ action, idx, clients }: TypeFormProps) => {
               label="Save path"
               columns={6}
               placeholder="eg. /full/path/to/watch_folder"
-            />
+              tooltip={<CustomTooltip anchorId={`actions.${idx}.save_path`} clickable={true}><div><p>Select the download client type for this action.</p></div></CustomTooltip>} /> 
           </div>
         </div>
 
@@ -243,8 +244,8 @@ const TypeForm = ({ action, idx, clients }: TypeFormProps) => {
               name={`actions.${idx}.content_layout`}
               label="Content Layout"
               optionDefaultText="Select content layout"
-              options={ActionContentLayoutOptions}
-            />
+              options={ActionContentLayoutOptions}></Select>
+
             <div className="mt-2">
               <SwitchGroup
                 name={`actions.${idx}.skip_hash_check`}
@@ -525,9 +526,10 @@ function FilterActionsItem({ action, clients, idx, initialEdit, remove }: Filter
                 label="Type"
                 optionDefaultText="Select type"
                 options={ActionTypeOptions}
+                tooltip={<CustomTooltip anchorId={`actions.${idx}.type`} clickable={true}><div><p>Select the download client type for this action.</p></div></CustomTooltip>}
               />
 
-              <TextField name={`actions.${idx}.name`} label="Name" columns={6}/>
+              <TextField name={`actions.${idx}.name`} label="Name" columns={6} />
             </div>
 
             <TypeForm action={action} clients={clients} idx={idx}/>

@@ -21,6 +21,7 @@ interface MultiSelectProps {
     columns?: COL_WIDTHS;
     creatable?: boolean;
     disabled?: boolean;
+    tooltip?: JSX.Element;
 }
 
 export const MultiSelect = ({
@@ -29,6 +30,7 @@ export const MultiSelect = ({
   options,
   columns,
   creatable,
+  tooltip,
   disabled
 }: MultiSelectProps) => {
   const settingsContext = SettingsContext.useValue();
@@ -46,82 +48,11 @@ export const MultiSelect = ({
       )}
     >
       <label
-        className="block mb-2 text-xs font-bold tracking-wide text-gray-700 uppercase dark:text-gray-200"
-        htmlFor={label}
-      >
-        {label}
-      </label>
-
-      <Field name={name} type="select" multiple={true}>
-        {({
-          field,
-          form: { setFieldValue }
-        }: FieldProps) => (
-          <RMSC
-            {...field}
-            options={[...[...options, ...field.value.map((i: MultiSelectOption) => ({ value: i.value ?? i, label: i.label ?? i }))].reduce((map, obj) => map.set(obj.value, obj), new Map()).values()]}
-            disabled={disabled}
-            labelledBy={name}
-            isCreatable={creatable}
-            onCreateOption={handleNewField}
-            value={field.value && field.value.map((item: MultiSelectOption) => ({
-              value: item.value ? item.value : item,
-              label: item.label ? item.label : item
-            }))}
-            onChange={(values: Array<MultiSelectOption>) => {
-              const am = values && values.map((i) => i.value);
-
-              setFieldValue(field.name, am);
-            }}
-            className={settingsContext.darkTheme ? "dark" : ""}
-          />
-        )}
-      </Field>
-    </div>
-  );
-};
-
-interface MultiSelectIconProps {
-  name: string;
-  label?: string;
-  options: MultiSelectOption[];
-  columns?: COL_WIDTHS;
-  creatable?: boolean;
-  disabled?: boolean;
-}
-
-export const MultiSelectIcon = ({
-  name,
-  label,
-  options,
-  columns,
-  creatable,
-  disabled
-}: MultiSelectIconProps) => {
-  const settingsContext = SettingsContext.useValue();
-
-  const handleNewField = (value: string) => ({
-    value: value.toUpperCase(),
-    label: value.toUpperCase(),
-    key: value
-  });
-
-  return (
-    <div
-      className={classNames(
-        columns ? `col-span-${columns}` : "col-span-12"
-      )}
-    >
-      <label
-        className="flex mb-2 block text-xs font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wide"
-        htmlFor={label}
-      >
-        {label}
-        <svg className="float-right ml-1 -mt-1 h-5 w-5 text-gray-500" width="800px" height="800px" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
-          <path fill="#333" d="M512 64C264.6 64 64 264.6 64 512s200.6 448 448 448 448-200.6 448-448S759.4 64 512 64zm0 820c-205.4 0-372-166.6-372-372s166.6-372 372-372 372 166.6 372 372-166.6 372-372 372z"/>
-          <path fill="#E6E6E6" d="M512 140c-205.4 0-372 166.6-372 372s166.6 372 372 372 372-166.6 372-372-166.6-372-372-372zm32 588c0 4.4-3.6 8-8 8h-48c-4.4 0-8-3.6-8-8V456c0-4.4 3.6-8 8-8h48c4.4 0 8 3.6 8 8v272zm-32-344a48.01 48.01 0 0 1 0-96 48.01 48.01 0 0 1 0 96z"/>
-          <path fill="#333" d="M464 336a48 48 0 1 0 96 0 48 48 0 1 0-96 0zm72 112h-48c-4.4 0-8 3.6-8 8v272c0 4.4 3.6 8 8 8h48c4.4 0 8-3.6 8-8V456c0-4.4-3.6-8-8-8z"/>
-        </svg>
+        htmlFor={label} className="flex block mb-2 text-xs font-bold tracking-wide text-gray-700 uppercase dark:text-gray-200">
+        <div id={name} className="flex">
+          {label}
+          {tooltip}
+        </div>
       </label>
 
       <Field name={name} type="select" multiple={true}>
@@ -316,11 +247,13 @@ export interface SelectFieldProps {
     label: string;
     optionDefaultText: string;
     options: SelectFieldOption[];
+    tooltip?: JSX.Element;
 }
 
 export const Select = ({
   name,
   label,
+  tooltip,
   optionDefaultText,
   options
 }: SelectFieldProps) => {
@@ -337,8 +270,11 @@ export const Select = ({
           >
             {({ open }) => (
               <>
-                <Listbox.Label className="block text-xs font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wide">
-                  {label}
+                <Listbox.Label className="flex float-left mb-2 block text-xs font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wide">
+                  <div id={name} className="flex">
+                    {label}
+                    {tooltip}
+                  </div>
                 </Listbox.Label>
                 <div className="mt-2 relative">
                   <Listbox.Button className="bg-white dark:bg-gray-800 relative w-full border border-gray-300 dark:border-gray-700 rounded-md shadow-sm pl-3 pr-10 py-2.5 text-left cursor-default focus:outline-none focus:ring-1 focus:ring-blue-500 dark:focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-500 dark:text-gray-200 sm:text-sm">
