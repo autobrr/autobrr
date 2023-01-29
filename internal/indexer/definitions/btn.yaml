@@ -96,11 +96,12 @@ irc:
           - preTime
       - test:
           - "[ https://XXXXXXXXX/torrents.php?id=7338 / https://XXXXXXXXX/torrents.php?action=download&id=9116 ]"
-        pattern: \[ .* \/ (https?:\/\/.*\/).+id=(\d+) \]
+        pattern: \[ (https?:\/\/.*\/).+id=(\d+) \/ https?:\/\/.*\/.+id=(\d+) \]
         vars:
           - baseUrl
+          - groupId
           - torrentId
 
     match:
-      infourl: "/torrents.php?id={{ .torrentId }}"
+      infourl: "/torrents.php?id={{ .groupId }}"
       torrenturl: "/torrents.php?action=download&id={{ .torrentId }}&authkey={{ .authkey }}&torrent_pass={{ .torrent_pass }}"
