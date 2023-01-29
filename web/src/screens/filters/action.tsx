@@ -174,8 +174,8 @@ const TypeForm = ({ action, idx, clients }: TypeFormProps) => {
               name={`actions.${idx}.save_path`}
               label="Save path"
               columns={6}
-              placeholder="eg. /full/path/to/watch_folder"
-              tooltip={<CustomTooltip anchorId={`actions.${idx}.save_path`} clickable={true}><div><p>Select the download client type for this action.</p></div></CustomTooltip>} /> 
+              placeholder="eg. /full/path/to/download_folder"
+              tooltip={<CustomTooltip anchorId={`actions.${idx}.save_path`} clickable={true}><div><p>Set a custom save path for this action. Automatic Torrent Management will take care of this if using qBittorrent with categories.</p><br /><p>The field can use macros to transform/add values from metadata:</p><a href='https://autobrr.com/filters/actions#macros' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters/actions#macros</a></div></CustomTooltip>} /> 
           </div>
         </div>
 
@@ -185,13 +185,13 @@ const TypeForm = ({ action, idx, clients }: TypeFormProps) => {
             label="Category"
             columns={6}
             placeholder="eg. category"
-          />
+            tooltip={<CustomTooltip anchorId={`actions.${idx}.category`} clickable={true}><div><p>The field can use macros to transform/add values from metadata:</p><a href='https://autobrr.com/filters/actions#macros' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters/actions#macros</a></div></CustomTooltip>} /> 
           <TextField
             name={`actions.${idx}.tags`}
             label="Tags"
             columns={6}
             placeholder="eg. tag1,tag2"
-          />
+            tooltip={<CustomTooltip anchorId={`actions.${idx}.tags`} clickable={true}><div><p>The field can use macros to transform/add values from metadata:</p><a href='https://autobrr.com/filters/actions#macros' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters/actions#macros</a></div></CustomTooltip>} /> 
         </div>
 
         <CollapsableSection title="Rules" subtitle="client options">
@@ -236,8 +236,7 @@ const TypeForm = ({ action, idx, clients }: TypeFormProps) => {
             <SwitchGroup
               name={`actions.${idx}.ignore_rules`}
               label="Ignore client rules"
-              description="Download if max active reached"
-            />
+              tooltip={<CustomTooltip anchorId={`actions.${idx}.ignore_rules`} clickable={true}><div><p>Choose to ignore rules set in <a className='text-blue-400 visited:text-blue-400' href="../../settings/clients">Client Settings</a>.</p></div></CustomTooltip>} /> 
           </div>
           <div className="col-span-6">
             <Select
@@ -303,7 +302,7 @@ const TypeForm = ({ action, idx, clients }: TypeFormProps) => {
               name={`actions.${idx}.save_path`}
               label="Save path"
               columns={6}
-              placeholder="eg. /full/path/to/watch_folder"
+              placeholder="eg. /full/path/to/download_folder"
             />
           </div>
         </div>
@@ -362,7 +361,7 @@ const TypeForm = ({ action, idx, clients }: TypeFormProps) => {
               name={`actions.${idx}.save_path`}
               label="Save path"
               columns={6}
-              placeholder="eg. /full/path/to/watch_folder"
+              placeholder="eg. /full/path/to/download_folder"
             />
           </div>
         </div>
@@ -383,7 +382,7 @@ const TypeForm = ({ action, idx, clients }: TypeFormProps) => {
               name={`actions.${idx}.save_path`}
               label="Save path"
               columns={6}
-              placeholder="eg. /full/path/to/watch_folder"
+              placeholder="eg. /full/path/to/download_folder"
             />
           </div>
         </div>
