@@ -69,19 +69,24 @@ interface SwitchGroupProps {
     description?: string;
     className?: string;
     heading?: boolean;
+    tooltip?: JSX.Element;
 }
 
 const SwitchGroup = ({
   name,
   label,
   description,
+  tooltip,
   heading
 }: SwitchGroupProps) => (
   <HeadlessSwitch.Group as="ol" className="py-4 flex items-center justify-between">
     {label && <div className="flex flex-col">
-      <HeadlessSwitch.Label as={heading ? "h2" : "p"} className={classNames("font-medium text-gray-900 dark:text-gray-100", heading ? "text-lg" : "text-sm")}
+      <HeadlessSwitch.Label as={heading ? "h2" : "p"} className={classNames("flex float-left cursor-default mb-2 block text-xs font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wide", heading ? "text-lg" : "text-sm")}
         passive>
-        {label}
+        <div id={name} className="flex">
+          {label}
+          {tooltip}
+        </div>
       </HeadlessSwitch.Label>
       {description && (
         <HeadlessSwitch.Description className="text-sm mt-1 text-gray-500 dark:text-gray-400">
