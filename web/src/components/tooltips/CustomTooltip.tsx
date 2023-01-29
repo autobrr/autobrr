@@ -1,5 +1,6 @@
 import { Tooltip } from "react-tooltip";
 import { InformationCircleIcon } from "@heroicons/react/24/solid";
+import "./CustomTooltip.css";
 
 
 interface CustomTooltipProps {
@@ -8,7 +9,7 @@ interface CustomTooltipProps {
     clickable?: boolean;
     place?: string;
   }
-  
+
 export const CustomTooltip = ({
   anchorId,
   children,
@@ -16,7 +17,7 @@ export const CustomTooltip = ({
 }: CustomTooltipProps) => (
   <div>
     <InformationCircleIcon className="ml-1 h-4 w-4 text-gray-300" aria-hidden="true" />
-    <Tooltip style= {{ fontSize: "12px", textTransform: "none", fontWeight: "normal", borderRadius: "0.375rem", backgroundColor: "#18181B", color: "#fff" }} place="top" anchorId={anchorId} data-html={true} clickable={clickable}>
+    <Tooltip style= {{ maxWidth: "350px", fontSize: "12px", textTransform: "none", fontWeight: "normal", borderRadius: "0.375rem", backgroundColor: "#34343A", color: "#fff", opacity: "1" }} delayShow={100} delayHide={150} positionStrategy="fixed" place="top" anchorId={anchorId} data-html={true} clickable={clickable}>
       {children}
     </Tooltip>
   </div>

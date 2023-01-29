@@ -63,6 +63,7 @@ function FormFieldsDeluge() {
         name="host"
         label="Host"
         help="Eg. client.domain.ltd, domain.ltd/client, domain.ltd:port"
+        tooltip={<CustomTooltip anchorId="host" clickable={true}><div><p>See guides for how to connect to Deluge for various server types in our docs.</p><br /><p>Dedicated servers:</p><a href='https://autobrr.com/configuration/download-clients/dedicated#deluge' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/configuration/download-clients/dedicated#deluge</a><p>Shared seedbox providers:</p><a href='https://autobrr.com/configuration/download-clients/shared-seedboxes#deluge' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/configuration/download-clients/shared-seedboxes#deluge</a></div></CustomTooltip>}
       />
 
       <NumberFieldWide
@@ -97,6 +98,7 @@ function FormFieldsArr() {
         name="host"
         label="Host"
         help="Full url http(s)://domain.ltd and/or subdomain/subfolder"
+        tooltip={<CustomTooltip anchorId="host" clickable={true}><div><p>See guides for how to connect to the *arr suite for various server types in our docs.</p><br /><p>Dedicated servers:</p><a href='https://autobrr.com/configuration/download-clients/dedicated/#sonarr' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/configuration/download-clients/dedicated/</a><p>Shared seedbox providers:</p><a href='https://autobrr.com/configuration/download-clients/shared-seedboxes#sonarr' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/configuration/download-clients/shared-seedboxes</a></div></CustomTooltip>}
       />
 
       <PasswordFieldWide name="settings.apikey" label="API key" />
@@ -124,6 +126,7 @@ function FormFieldsQbit() {
         name="host"
         label="Host"
         help="Eg. http(s)://client.domain.ltd, http(s)://domain.ltd/qbittorrent, http://domain.ltd:port"
+        tooltip={<CustomTooltip anchorId="host" clickable={true}><div><p>See guides for how to connect to qBittorrent for various server types in our docs.</p><br /><p>Dedicated servers:</p><a href='https://autobrr.com/configuration/download-clients/dedicated#qbittorrent' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/configuration/download-clients/dedicated#qbittorrent</a><p>Shared seedbox providers:</p><a href='https://autobrr.com/configuration/download-clients/shared-seedboxes#qbittorrent' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/configuration/download-clients/shared-seedboxes#qbittorrent</a></div></CustomTooltip>}
       />
 
       {port > 0 && (
@@ -165,6 +168,7 @@ function FormFieldsRTorrent() {
         name="host"
         label="Host"
         help="Eg. http(s)://client.domain.ltd/RPC2, http(s)://domain.ltd/client, http(s)://domain.ltd/RPC2"
+        tooltip={<CustomTooltip anchorId="host" clickable={true}><div><p>See guides for how to connect to rTorrent for various server types in our docs.</p><br /><p>Dedicated servers:</p><a href='https://autobrr.com/configuration/download-clients/dedicated#rtorrent--rutorrent' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/configuration/download-clients/dedicated#rtorrent--rutorrent</a><p>Shared seedbox providers:</p><a href='https://autobrr.com/configuration/download-clients/shared-seedboxes#rtorrent' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/configuration/download-clients/shared-seedboxes#rtorrent</a></div></CustomTooltip>}
       />
     </div>
   );
@@ -181,6 +185,7 @@ function FormFieldsTransmission() {
         name="host"
         label="Host"
         help="Eg. client.domain.ltd, domain.ltd/client, domain.ltd"
+        tooltip={<CustomTooltip anchorId="host" clickable={true}><div><p>See guides for how to connect to Transmission for various server types in our docs.</p><br /><p>Dedicated servers:</p><a href='https://autobrr.com/configuration/download-clients/dedicated#transmission' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/configuration/download-clients/dedicated#transmission</a><p>Shared seedbox providers:</p><a href='https://autobrr.com/configuration/download-clients/shared-seedboxes#transmisison' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/configuration/download-clients/shared-seedboxes#transmisison</a></div></CustomTooltip>}
       />
 
       <NumberFieldWide name="port" label="Port" help="Port for Transmission" />
@@ -235,7 +240,7 @@ function FormFieldsRulesBasic() {
       <SwitchGroupWide name="settings.rules.enabled" label="Enabled"/>
 
       {settings && settings.rules?.enabled === true && (
-        <NumberFieldWide name="settings.rules.max_active_downloads" label="Max active downloads"/>
+        <NumberFieldWide name="settings.rules.max_active_downloads" label="Max active downloads" tooltip={<CustomTooltip anchorId="settings.rules.max_active_downloads" clickable={true}><p>Limit the amount of active downloads (0 is unlimited), to give the maximum amount of bandwidth and disk for the downloads.</p><a href='https://autobrr.com/configuration/download-clients/dedicated#deluge-rules' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/configuration/download-clients/dedicated#deluge-rules</a><br /><br /><p>See recommendations for various server types here:</p><a href='https://autobrr.com/filters/examples#build-buffer' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters/examples#build-buffer</a></CustomTooltip>} />
       )}
     </div>
   );
@@ -264,7 +269,7 @@ function FormFieldsRules() {
           <NumberFieldWide
             name="settings.rules.max_active_downloads"
             label="Max active downloads"
-          />
+            tooltip={<CustomTooltip anchorId="settings.rules.max_active_downloads" clickable={true}><p>Limit the amount of active downloads (0 is unlimited), to give the maximum amount of bandwidth and disk for the downloads.</p><a href='https://autobrr.com/configuration/download-clients/dedicated#qbittorrent-rules' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/configuration/download-clients/dedicated#qbittorrent-rules</a><br /><br /><p>See recommendations for various server types here:</p><a href='https://autobrr.com/filters/examples#build-buffer' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters/examples#build-buffer</a></CustomTooltip>} />
           <SwitchGroupWide
             name="settings.rules.ignore_slow_torrents"
             label="Ignore slow torrents"
@@ -277,7 +282,8 @@ function FormFieldsRules() {
                 label="Ignore condition"
                 optionDefaultText="Select ignore condition"
                 options={DownloadRuleConditionOptions}
-                tooltip={<CustomTooltip anchorId="asd" clickable={false}><p>asdasd</p></CustomTooltip>} />
+                tooltip={<CustomTooltip anchorId="settings.rules.ignore_slow_torrents_condition" clickable={true}><p>Choose whether to respect or ignore the <code className="text-blue-400">Max active downloads</code> setting before checking speed thresholds.</p></CustomTooltip>}
+              />
               <NumberFieldWide
                 name="settings.rules.download_speed_threshold"
                 label="Download speed threshold"

@@ -16,6 +16,7 @@ interface TextFieldWideProps {
     defaultValue?: string;
     required?: boolean;
     hidden?: boolean;
+    tooltip?: JSX.Element;
     validate?: FieldValidator;
 }
 
@@ -26,13 +27,17 @@ export const TextFieldWide = ({
   placeholder,
   defaultValue,
   required,
+  tooltip,
   hidden,
   validate
 }: TextFieldWideProps) => (
   <div hidden={hidden} className="space-y-1 p-4 sm:space-y-0 sm:grid sm:grid-cols-3 sm:gap-4">
     <div>
-      <label htmlFor={name} className="block text-sm font-medium text-gray-900 dark:text-white sm:mt-px sm:pt-2">
-        {label} {required && <span className="text-gray-500">*</span>}
+      <label htmlFor={name} className="flex block text-sm font-medium text-gray-900 dark:text-white sm:mt-px sm:pt-2">
+        <div id={name} className="flex">
+          {label} {required && <span className="text-gray-500">*</span>}
+          {tooltip}
+        </div>
       </label>
     </div>
     <div className="sm:col-span-2">
@@ -71,6 +76,7 @@ interface PasswordFieldWideProps {
     help?: string;
     required?: boolean;
     defaultVisible?: boolean;
+    tooltip?: JSX.Element;
     validate?: FieldValidator;
 }
 
@@ -82,6 +88,7 @@ export const PasswordFieldWide = ({
   help,
   required,
   defaultVisible,
+  tooltip,
   validate
 }: PasswordFieldWideProps) => {
   const [isVisible, toggleVisibility] = useToggle(defaultVisible);
@@ -89,8 +96,11 @@ export const PasswordFieldWide = ({
   return (
     <div className="space-y-1 p-4 sm:space-y-0 sm:grid sm:grid-cols-3 sm:gap-4">
       <div>
-        <label htmlFor={name} className="block text-sm font-medium text-gray-900 dark:text-white sm:mt-px sm:pt-2">
-          {label} {required && <span className="text-gray-500">*</span>}
+        <label htmlFor={name} className="flex block text-sm font-medium text-gray-900 dark:text-white sm:mt-px sm:pt-2">
+          <div id={name} className="flex">
+            {label} {required && <span className="text-gray-500">*</span>}
+            {tooltip}
+          </div>
         </label>
       </div>
       <div className="sm:col-span-2">
@@ -132,6 +142,7 @@ interface NumberFieldWideProps {
     placeholder?: string;
     defaultValue?: number;
     required?: boolean;
+    tooltip?: JSX.Element;
 }
 
 export const NumberFieldWide = ({
@@ -140,6 +151,7 @@ export const NumberFieldWide = ({
   placeholder,
   help,
   defaultValue,
+  tooltip,
   required
 }: NumberFieldWideProps) => (
   <div className="px-4 space-y-1 sm:space-y-0 sm:grid sm:grid-cols-3 sm:gap-4 sm:py-4">
@@ -148,7 +160,10 @@ export const NumberFieldWide = ({
         htmlFor={name}
         className="block text-sm font-medium text-gray-900 dark:text-white sm:mt-px sm:pt-2"
       >
-        {label} {required && <span className="text-gray-500">*</span>}
+        <div id={name} className="flex">
+          {label} {required && <span className="text-gray-500">*</span>}
+          {tooltip}
+        </div>
       </label>
     </div>
     <div className="sm:col-span-2">
@@ -187,12 +202,14 @@ interface SwitchGroupWideProps {
     description?: string;
     defaultValue?: boolean;
     className?: string;
+    tooltip?: JSX.Element;
 }
 
 export const SwitchGroupWide = ({
   name,
   label,
   description,
+  tooltip,
   defaultValue
 }: SwitchGroupWideProps) => (
   <ul className="mt-2 px-4 divide-y divide-gray-200 dark:divide-gray-700">
@@ -200,7 +217,10 @@ export const SwitchGroupWide = ({
       <div className="flex flex-col">
         <Switch.Label as="p" className="text-sm font-medium text-gray-900 dark:text-white"
           passive>
-          {label}
+          <div id={name} className="flex">
+            {label}
+            {tooltip}
+          </div>
         </Switch.Label>
         {description && (
           <Switch.Description className="text-sm text-gray-500 dark:text-gray-700">
@@ -350,15 +370,19 @@ export const SelectFieldWide = ({
   name,
   label,
   optionDefaultText,
+  tooltip,
   options
 }: SelectFieldProps) => (
   <div className="flex items-center justify-between space-y-1 px-4 py-4 sm:space-y-0 sm:grid sm:grid-cols-3 sm:gap-4">
     <div>
       <label
         htmlFor={name}
-        className="block text-sm font-medium text-gray-900 dark:text-white"
+        className="flex block text-sm font-medium text-gray-900 dark:text-white"
       >
-        {label}
+        <div id={name} className="flex">
+          {label}
+          {tooltip}
+        </div>
       </label>
     </div>
     <div className="sm:col-span-2">
