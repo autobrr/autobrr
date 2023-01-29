@@ -4,10 +4,11 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"github.com/moistari/rls"
 	"regexp"
 	"strings"
 	"time"
+
+	"github.com/moistari/rls"
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/autobrr/autobrr/internal/domain"
@@ -522,7 +523,8 @@ func (repo *ReleaseRepo) CanDownloadUnique(ctx context.Context, release rls.Rele
 		r := rls.ParseString(title)
 		if r.Day != release.Day ||
 			r.Month != release.Month ||
-			rls.MustNormalize(r.Subtitle) != rls.MustNormalize(release.Subtitle) {
+			rls.MustNormalize(r.Subtitle) != rls.MustNormalize(release.Subtitle) ||
+			rls.MustNormalize(r.Channels) != rls.MustNormalize(release.Channels) {
 			continue
 		}
 
@@ -536,10 +538,16 @@ func (repo *ReleaseRepo) CanDownloadUnique(ctx context.Context, release rls.Rele
 					}
 				}
 			}
+
 			return c == len(source)
 		}
 
-		if !f(r.HDR, release.HDR) || !f(r.Cut, release.Cut) || !f(r.Edition, release.Edition) {
+		if !f(r.Audio, release.Audio) ||
+			!f(r.HDR, release.HDR) ||
+			!f(r.Cut, release.Cut) ||
+			!f(r.Edition, release.Edition) ||
+			!f(r.Language, release.Language) ||
+			!f(r.Other, release.Other) {
 			continue
 		}
 
