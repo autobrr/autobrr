@@ -517,8 +517,8 @@ export function Advanced({ values }: AdvancedProps) {
       </CollapsableSection>
 
       <CollapsableSection defaultOpen={true} title="Uploaders" subtitle="Match or ignore uploaders.">
-        <TextField name="match_uploaders" label="Match uploaders" columns={6} placeholder="eg. uploader1" tooltip={<CustomTooltip anchorId="match_uploaders" clickable={true}><div><p>Comma separated list of uploaders to match.</p><a href='https://autobrr.com/filters#advanced' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters#advanced</a></div></CustomTooltip>} />
-        <TextField name="except_uploaders" label="Except uploaders" columns={6} placeholder="eg. anonymous" tooltip={<CustomTooltip anchorId="except_uploaders" clickable={true}><div><p>Comma separated list of uploaders to ignore (takes priority over Match releases).</p><a href='https://autobrr.com/filters#advanced' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters#advanced</a></div></CustomTooltip>} />
+        <TextField name="match_uploaders" label="Match uploaders" columns={6} placeholder="eg. uploader1,uploader2" tooltip={<CustomTooltip anchorId="match_uploaders" clickable={true}><div><p>Comma separated list of uploaders to match.</p><a href='https://autobrr.com/filters#advanced' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters#advanced</a></div></CustomTooltip>} />
+        <TextField name="except_uploaders" label="Except uploaders" columns={6} placeholder="eg. anonymous1,anonymous2" tooltip={<CustomTooltip anchorId="except_uploaders" clickable={true}><div><p>Comma separated list of uploaders to ignore (takes priority over Match releases).</p><a href='https://autobrr.com/filters#advanced' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters#advanced</a></div></CustomTooltip>} />
       </CollapsableSection>
 
       <CollapsableSection defaultOpen={true} title="Language" subtitle="Match or ignore languages.">

@@ -33,7 +33,7 @@ irc:
   channels:
     - "#nbl-announce"
   announcers:
-    - DRADIS
+    - Muffit
   settings:
     - name: nick
       type: text
