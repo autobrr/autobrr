@@ -83,7 +83,7 @@ const IrcSettingFields = (ind: IndexerDefinition, indexer: string) => {
             {ind.irc.settings.map((f: IndexerSetting, idx: number) => {
               switch (f.type) {
               case "text":
-                return <TextFieldWide name={`irc.${f.name}`} label={f.label} required={f.required} key={idx} help={f.help} validate={validateField(f)} />;
+                return <TextFieldWide name={`irc.${f.name}`} label={f.label} required={f.required} key={idx} help={f.help} validate={validateField(f)} tooltip={<CustomTooltip anchorId={`irc.${f.name}`} clickable={true}><div><p>Please read our IRC guide if you are unfamiliar with IRC.</p><a href='https://autobrr.com/configuration/irc' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/configuration/irc</a></div></CustomTooltip>} />;
               case "secret":
                 if (f.name === "invite_command") {
                   return <PasswordFieldWide name={`irc.${f.name}`} label={f.label} required={f.required} key={idx} help={f.help} defaultVisible={true} defaultValue={f.default} validate={validateField(f)} />;
