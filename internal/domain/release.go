@@ -237,10 +237,10 @@ func (r *Release) ParseReleaseTagsString(tags string) {
 		toappend := make([]string, 0, len(source))
 		for _, t := range *target {
 			found := false
-			t = rls.MustNormalize(t)
+			norm := rls.MustNormalize(t)
 
 			for _, s := range source {
-				if len(s) == 0 || rls.MustNormalize(s) == t {
+				if rls.MustNormalize(s) == norm {
 					found = true
 					break
 				}
