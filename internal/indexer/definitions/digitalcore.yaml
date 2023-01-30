@@ -67,4 +67,5 @@ irc:
           - torrentId
 
     match:
+      infourl: "/torrent/{{ .torrentId }}"
       torrenturl: "/api/v1/torrents/download/{{ .torrentId }}/{{ .passkey }}"

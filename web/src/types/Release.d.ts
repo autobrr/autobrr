@@ -8,6 +8,8 @@ interface Release {
   title: string;
   size: number;
   raw: string;
+  info_url: string;
+  download_url: string;
   timestamp: Date
   action_status: ReleaseActionStatus[]
 }

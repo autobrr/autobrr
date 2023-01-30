@@ -64,4 +64,5 @@ irc:
           - torrentId
 
     match:
+      infourl: "/details.php?id={{ .torrentId }}"
       torrenturl: "/download.php?torrent={{ .torrentId }}&k={{ .rsskey }}&ssl=1"

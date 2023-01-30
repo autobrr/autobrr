@@ -69,4 +69,5 @@ irc:
           - uploader
 
     match:
+      infourl: "/torrents/{{ .torrentId }}"
       torrenturl: "/torrent/download/{{ .torrentId }}.{{ .rsskey }}"
