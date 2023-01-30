@@ -35,8 +35,7 @@ export const TextFieldWide = ({
     <div>
       <label htmlFor={name} className="flex text-sm font-medium text-gray-900 dark:text-white sm:mt-px sm:pt-2">
         <div id={name} className="flex">
-          {label} {required && <span className="text-gray-500">*</span>}
-          {tooltip}
+          {label} {tooltip} {required && <span className="text-gray-500">*</span>}
         </div>
       </label>
     </div>
@@ -98,8 +97,7 @@ export const PasswordFieldWide = ({
       <div>
         <label htmlFor={name} className="flex text-sm font-medium text-gray-900 dark:text-white sm:mt-px sm:pt-2">
           <div id={name} className="flex">
-            {label} {required && <span className="text-gray-500">*</span>}
-            {tooltip}
+            {label} {tooltip} {required && <span className="text-gray-500">*</span>}
           </div>
         </label>
       </div>
@@ -161,8 +159,7 @@ export const NumberFieldWide = ({
         className="block text-sm font-medium text-gray-900 dark:text-white sm:mt-px sm:pt-2"
       >
         <div id={name} className="flex">
-          {label} {required && <span className="text-gray-500">*</span>}
-          {tooltip}
+          {label} {tooltip} {required && <span className="text-gray-500">*</span>}
         </div>
       </label>
     </div>
