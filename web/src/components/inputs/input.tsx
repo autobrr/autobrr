@@ -36,7 +36,7 @@ export const TextField = ({
     )}
   >
     {label && (
-      <label htmlFor={name} className="flex float-left mb-2 block text-xs font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wide">
+      <label htmlFor={name} className="flex float-left mb-2 text-xs font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wide">
         <div id={name} className="flex">
           {label}
           {tooltip}
@@ -228,7 +228,7 @@ export const NumberField = ({
   required
 }: NumberFieldProps) => (
   <div className="col-span-12 sm:col-span-6">
-    <label htmlFor={name} className="flex float-left mb-2 block text-xs font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wide">
+    <label htmlFor={name} className="flex float-left mb-2 text-xs font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wide">
       <div id={name} className="flex">
         {label}
         {tooltip}

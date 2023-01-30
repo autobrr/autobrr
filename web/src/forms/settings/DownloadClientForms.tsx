@@ -176,7 +176,7 @@ function FormFieldsPorla() {
 
       <PasswordFieldWide name="settings.apikey" label="Auth token" />
     </div>
-  )
+  );
 }
 
 function FormFieldsRTorrent() {

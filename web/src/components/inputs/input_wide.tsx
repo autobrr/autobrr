@@ -33,7 +33,7 @@ export const TextFieldWide = ({
 }: TextFieldWideProps) => (
   <div hidden={hidden} className="space-y-1 p-4 sm:space-y-0 sm:grid sm:grid-cols-3 sm:gap-4">
     <div>
-      <label htmlFor={name} className="flex block text-sm font-medium text-gray-900 dark:text-white sm:mt-px sm:pt-2">
+      <label htmlFor={name} className="flex text-sm font-medium text-gray-900 dark:text-white sm:mt-px sm:pt-2">
         <div id={name} className="flex">
           {label} {required && <span className="text-gray-500">*</span>}
           {tooltip}
@@ -96,7 +96,7 @@ export const PasswordFieldWide = ({
   return (
     <div className="space-y-1 p-4 sm:space-y-0 sm:grid sm:grid-cols-3 sm:gap-4">
       <div>
-        <label htmlFor={name} className="flex block text-sm font-medium text-gray-900 dark:text-white sm:mt-px sm:pt-2">
+        <label htmlFor={name} className="flex text-sm font-medium text-gray-900 dark:text-white sm:mt-px sm:pt-2">
           <div id={name} className="flex">
             {label} {required && <span className="text-gray-500">*</span>}
             {tooltip}
@@ -377,7 +377,7 @@ export const SelectFieldWide = ({
     <div>
       <label
         htmlFor={name}
-        className="flex block text-sm font-medium text-gray-900 dark:text-white"
+        className="flex text-sm font-medium text-gray-900 dark:text-white"
       >
         <div id={name} className="flex">
           {label}

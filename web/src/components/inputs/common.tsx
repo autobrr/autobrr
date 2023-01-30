@@ -45,8 +45,8 @@ const  CheckboxField = ({
       />
     </div>
     <div className="ml-3 text-sm">
-      <label htmlFor={name} className="flex mb-2 block text-xs font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wide">
-        <div id={name} className="flex">
+      <label htmlFor={name} className="flex mb-2 text-xs font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wide">
+        <div id={name} className="flex mt-0.5">
           {label}
           {tooltip}
         </div>

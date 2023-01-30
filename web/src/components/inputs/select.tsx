@@ -48,7 +48,7 @@ export const MultiSelect = ({
       )}
     >
       <label
-        htmlFor={label} className="flex block mb-2 text-xs font-bold tracking-wide text-gray-700 uppercase dark:text-gray-200">
+        htmlFor={label} className="flex mb-2 text-xs font-bold tracking-wide text-gray-700 uppercase dark:text-gray-200">
         <div id={name} className="flex">
           {label}
           {tooltip}
@@ -270,7 +270,7 @@ export const Select = ({
           >
             {({ open }) => (
               <>
-                <Listbox.Label className="flex float-left mb-2 block text-xs font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wide">
+                <Listbox.Label className="flex float-left mb-2 text-xs font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wide">
                   <div id={name} className="flex">
                     {label}
                     {tooltip}
