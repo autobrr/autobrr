@@ -1048,4 +1048,7 @@ ADD COLUMN info_url TEXT;
 ALTER TABLE "release"
 ADD COLUMN download_url TEXT;
 	`,
+	`PRAGMA page_size = 65536;
+	VACUUM;
+	`,
 }
