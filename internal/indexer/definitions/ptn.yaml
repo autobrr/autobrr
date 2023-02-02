@@ -6,6 +6,7 @@ description: PTN is a ratioless movie tracker.
 language: en-us
 urls:
   - http://piratethenet.org/
+  - https://piratethenet.org/
 privacy: private
 protocol: torrent
 supports:
