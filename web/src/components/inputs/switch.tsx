@@ -3,6 +3,7 @@ import type { FieldInputProps, FieldMetaProps, FieldProps, FormikProps, FormikVa
 import { Field } from "formik";
 import { Switch as HeadlessSwitch } from "@headlessui/react";
 import { classNames } from "../../utils";
+import { CustomTooltip } from "../tooltips/CustomTooltip";
 
 type SwitchProps<V = unknown> = {
     label?: string
@@ -83,9 +84,11 @@ const SwitchGroup = ({
     {label && <div className="flex flex-col">
       <HeadlessSwitch.Label as={heading ? "h2" : "p"} className={classNames("flex float-left cursor-default mb-2 text-xs font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wide", heading ? "text-lg" : "text-sm")}
         passive>
-        <div id={name} className="flex">
+        <div className="flex">
           {label}
-          {tooltip}
+          {tooltip && (
+            <CustomTooltip anchorId={name}>{tooltip}</CustomTooltip>
+          )}
         </div>
       </HeadlessSwitch.Label>
       {description && (

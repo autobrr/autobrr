@@ -2,6 +2,7 @@ import { Field, FieldProps } from "formik";
 import { classNames } from "../../utils";
 import { EyeIcon, EyeSlashIcon } from "@heroicons/react/24/solid";
 import { useToggle } from "../../hooks/hooks";
+import { CustomTooltip } from "../tooltips/CustomTooltip";
 
 type COL_WIDTHS = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12;
 
@@ -10,7 +11,6 @@ interface TextFieldProps {
     defaultValue?: string;
     label?: string;
     placeholder?: string;
-    id?: string;
     columns?: COL_WIDTHS;
     autoComplete?: string;
     hidden?: boolean;
@@ -37,9 +37,11 @@ export const TextField = ({
   >
     {label && (
       <label htmlFor={name} className="flex float-left mb-2 text-xs font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wide">
-        <div id={name} className="flex">
+        <div className="flex">
           {label}
-          {tooltip}
+          {tooltip && (
+            <CustomTooltip anchorId={name}>{tooltip}</CustomTooltip>
+          )}
         </div>
       </label>
     )}
@@ -229,9 +231,11 @@ export const NumberField = ({
 }: NumberFieldProps) => (
   <div className="col-span-12 sm:col-span-6">
     <label htmlFor={name} className="flex float-left mb-2 text-xs font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wide">
-      <div id={name} className="flex">
+      <div className="flex">
         {label}
-        {tooltip}
+        {tooltip && (
+          <CustomTooltip anchorId={name}>{tooltip}</CustomTooltip>
+        )}
       </div>
     </label>
 
