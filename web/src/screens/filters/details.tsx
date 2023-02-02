@@ -546,7 +546,7 @@ export function Advanced({ values }: AdvancedProps) {
           <SwitchGroup name="freeleech" label="Freeleech" />
         </div>
 
-        <TextField name="freeleech_percent" label="Freeleech percent" columns={6} placeholder="eg. 50,75-100" />
+        <TextField name="freeleech_percent" label="Freeleech percent" columns={6} placeholder="eg. 50,75-100" disabled={values.freeleech}/>
       </CollapsableSection>
     </div>
   );
