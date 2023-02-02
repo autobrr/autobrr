@@ -237,30 +237,10 @@ func (r *Release) ParseReleaseTagsString(tags string) {
 
 	t := ParseReleaseTagString(cleanTags)
 
-	f := func(target *[]string, source []string) {
-		toappend := make([]string, 0, len(source))
-		for _, t := range *target {
-			found := false
-			norm := rls.MustNormalize(t)
-
-			for _, s := range source {
-				if rls.MustNormalize(s) == norm {
-					found = true
-					break
-				}
-			}
-
-			if !found {
-				toappend = append(toappend, t)
-			}
-		}
-
-		*target = append(*target, toappend...)
-	}
-
 	if len(t.Audio) > 0 {
-		f(&r.Audio, t.Audio)
+		r.Audio = getUniqueTags(r.Audio, t.Audio)
 	}
+
 	if len(t.Bonus) > 0 {
 		if sliceContainsSlice([]string{"Freeleech"}, t.Bonus) {
 			r.Freeleech = true
@@ -270,10 +250,10 @@ func (r *Release) ParseReleaseTagsString(tags string) {
 		r.Bonus = append(r.Bonus, t.Bonus...)
 	}
 	if len(t.Codec) > 0 {
-		f(&r.Codec, append(make([]string, 0, 1), t.Codec))
+		r.Codec = getUniqueTags(r.Codec, append(make([]string, 0, 1), t.Codec))
 	}
 	if len(t.Other) > 0 {
-		f(&r.Other, t.Other)
+		r.Other = getUniqueTags(r.Other, t.Other)
 	}
 	if r.Origin == "" && t.Origin != "" {
 		r.Origin = t.Origin
@@ -592,4 +572,28 @@ func StringEqualFoldMulti(s string, values ...string) bool {
 		}
 	}
 	return false
+}
+
+func getUniqueTags(target []string, source []string) []string {
+	toAppend := make([]string, 0, len(source))
+
+	for _, t := range source {
+		found := false
+		norm := rls.MustNormalize(t)
+
+		for _, s := range target {
+			if rls.MustNormalize(s) == norm {
+				found = true
+				break
+			}
+		}
+
+		if !found {
+			toAppend = append(toAppend, t)
+		}
+	}
+
+	target = append(target, toAppend...)
+
+	return target
 }
