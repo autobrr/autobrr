@@ -17,6 +17,8 @@ import { SlideOver } from "../../components/panels";
 import Toast from "../../components/notifications/Toast";
 import { SelectFieldCreatable } from "../../components/inputs/select_wide";
 
+import { CustomTooltip } from "../../components/tooltips/CustomTooltip";
+
 const Input = (props: InputProps) => (
   <components.Input 
     {...props} 
@@ -81,7 +83,7 @@ const IrcSettingFields = (ind: IndexerDefinition, indexer: string) => {
             {ind.irc.settings.map((f: IndexerSetting, idx: number) => {
               switch (f.type) {
               case "text":
-                return <TextFieldWide name={`irc.${f.name}`} label={f.label} required={f.required} key={idx} help={f.help} validate={validateField(f)} />;
+                return <TextFieldWide name={`irc.${f.name}`} label={f.label} required={f.required} key={idx} help={f.help} validate={validateField(f)} tooltip={<div><p>Please read our IRC guide if you are unfamiliar with IRC.</p><a href='https://autobrr.com/configuration/irc' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/configuration/irc</a></div>} />;
               case "secret":
                 if (f.name === "invite_command") {
                   return <PasswordFieldWide name={`irc.${f.name}`} label={f.label} required={f.required} key={idx} help={f.help} defaultVisible={true} defaultValue={f.default} validate={validateField(f)} />;
@@ -171,7 +173,7 @@ const SettingFields = (ind: IndexerDefinition, indexer: string) => {
             );
           case "secret":
             return (
-              <PasswordFieldWide name={`settings.${f.name}`} label={f.label} required={f.required} key={idx} help={f.help} validate={validateField(f)} />
+              <PasswordFieldWide name={`settings.${f.name}`} label={f.label} required={f.required} key={idx} help={f.help} validate={validateField(f)} tooltip={<CustomTooltip anchorId={`settings.${f.name}`} clickable={true}><div><p>This field does not take a full URL. Only use alphanumeric strings like <code>uqcdi67cibkx3an8cmdm</code>.</p><br /><a href='https://autobrr.com/faqs#common-action-rejections' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/faqs#common-action-rejections</a></div></CustomTooltip>} />
             );
           }
           return null;
@@ -548,7 +550,7 @@ export function IndexerUpdateForm({ isOpen, toggle, indexer }: UpdateProps) {
             );
           case "secret":
             return (
-              <PasswordFieldWide name={`settings.${f.name}`} label={f.label} key={idx} help={f.help} />
+              <PasswordFieldWide name={`settings.${f.name}`} label={f.label} key={idx} help={f.help} tooltip={<CustomTooltip anchorId={`settings.${f.name}`} clickable={true}><div><p>This field does not take a full URL. Only use alphanumeric strings like <code>uqcdi67cibkx3an8cmdm</code>.</p><br /><a href='https://autobrr.com/faqs#common-action-rejections' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/faqs#common-action-rejections</a></div></CustomTooltip>} />
             );
           }
           return null;
