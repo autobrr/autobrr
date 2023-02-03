@@ -546,9 +546,9 @@ export function Advanced({ values }: AdvancedProps) {
       <CollapsableSection defaultOpen={true} title="Freeleech" subtitle="Match only freeleech and freeleech percent.">
         <div className="col-span-6">
           <SwitchGroup name="freeleech" label="Freeleech" description="Enabling freeleech locks freeleech percent to 100. Use either." tooltip={<div><p>Comma separated list of uploaders to ignore (takes priority over Match releases).</p><a href='https://autobrr.com/filters#advanced' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters#advanced</a></div>} />
-        </div>        
-        <TextField name="freeleech_percent" label="Freeleech percent" columns={6} placeholder="eg. 50,75-100"/>
+        </div>
 
+        <TextField name="freeleech_percent" label="Freeleech percent" columns={6} placeholder="eg. 50,75-100" disabled={values.freeleech}/>
       </CollapsableSection>
     </div>
   );
