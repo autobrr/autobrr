@@ -39,6 +39,5 @@ func (h updateHandler) getNewUpdates(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	render.Status(r, http.StatusNotFound)
 	render.NoContent(w, r)
 }

@@ -183,6 +183,6 @@ export const APIClient = {
     delete: () => appClient.Delete("api/release/all")
   },
   updates: {
-    updateAvailable: () => appClient.Get<GithubRelease>("api/updates")
+    updateAvailable: () => appClient.Get<GithubRelease|undefined>("api/updates")
   }
 };

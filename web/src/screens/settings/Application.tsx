@@ -34,7 +34,7 @@ const RowItemVersion = ({ label, value, title, newUpdate }: RowItemProps) => {
       <dt className="font-medium text-gray-500 dark:text-white" title={title}>{label}:</dt>
       <dd className="mt-1 text-gray-900 dark:text-white sm:mt-0 sm:col-span-2 break-all">
         {value}
-        {newUpdate && (
+        {newUpdate && newUpdate.html_url && (
           <span>
             <a href={newUpdate.html_url} target="_blank"><span className="ml-2 inline-flex items-center rounded-md bg-green-100 px-2.5 py-0.5 text-sm font-medium text-green-800">{newUpdate.name} available!</span></a>
           </span>
@@ -129,7 +129,7 @@ function ApplicationSettings() {
       <div className="divide-y divide-gray-200 dark:divide-gray-700">
         <div className="px-4 py-5 sm:p-0">
           <dl className="sm:divide-y divide-gray-200 dark:divide-gray-700">
-            <RowItemVersion label="Version" value={data?.version} newUpdate={updateData} />
+            <RowItemVersion label="Version" value={data?.version} newUpdate={updateData ?? undefined} />
             <RowItem label="Commit" value={data?.commit} />
             <RowItem label="Build date" value={data?.date} />
             <RowItem label="Log path" value={data?.log_path} title="Set in config.toml" />
