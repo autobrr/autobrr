@@ -4,6 +4,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/internal/logger"
 	"github.com/autobrr/autobrr/internal/notification"
 	"github.com/autobrr/autobrr/internal/update"
@@ -22,6 +23,7 @@ type Service interface {
 
 type service struct {
 	log             zerolog.Logger
+	config          *domain.Config
 	version         string
 	notificationSvc notification.Service
 	updateSvc       *update.Service
@@ -31,10 +33,10 @@ type service struct {
 	m    sync.RWMutex
 }
 
-func NewService(log logger.Logger, version string, notificationSvc notification.Service, updateSvc *update.Service) Service {
+func NewService(log logger.Logger, config *domain.Config, notificationSvc notification.Service, updateSvc *update.Service) Service {
 	return &service{
 		log:             log.With().Str("module", "scheduler").Logger(),
-		version:         version,
+		config:          config,
 		notificationSvc: notificationSvc,
 		updateSvc:       updateSvc,
 		cron: cron.New(cron.WithChain(
@@ -59,17 +61,19 @@ func (s *service) Start() {
 func (s *service) addAppJobs() {
 	time.Sleep(5 * time.Second)
 
-	checkUpdates := &CheckUpdatesJob{
-		Name:             "app-check-updates",
-		Log:              s.log.With().Str("job", "app-check-updates").Logger(),
-		Version:          s.version,
-		NotifSvc:         s.notificationSvc,
-		updateService:    s.updateSvc,
-		lastCheckVersion: s.version,
-	}
+	if s.config.CheckForUpdates {
+		checkUpdates := &CheckUpdatesJob{
+			Name:             "app-check-updates",
+			Log:              s.log.With().Str("job", "app-check-updates").Logger(),
+			Version:          s.version,
+			NotifSvc:         s.notificationSvc,
+			updateService:    s.updateSvc,
+			lastCheckVersion: s.version,
+		}
 
-	if id, err := s.AddJob(checkUpdates, 2*time.Hour, "app-check-updates"); err != nil {
-		s.log.Error().Err(err).Msgf("scheduler.addAppJobs: error adding job: %v", id)
+		if id, err := s.AddJob(checkUpdates, 2*time.Hour, "app-check-updates"); err != nil {
+			s.log.Error().Err(err).Msgf("scheduler.addAppJobs: error adding job: %v", id)
+		}
 	}
 }
 

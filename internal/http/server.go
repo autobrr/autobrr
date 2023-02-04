@@ -81,6 +81,8 @@ func (s Server) Open() error {
 		Handler: s.Handler(),
 	}
 
+	s.log.Info().Msgf("Starting server. Listening on %s", listener.Addr().String())
+
 	return server.Serve(listener)
 }
 

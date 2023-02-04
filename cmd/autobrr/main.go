@@ -95,8 +95,8 @@ func main() {
 	var (
 		apiService            = api.NewService(log, apikeyRepo)
 		notificationService   = notification.NewService(log, notificationRepo)
-		updateService         = update.NewUpdate(log, version)
-		schedulingService     = scheduler.NewService(log, version, notificationService, updateService)
+		updateService         = update.NewUpdate(log, cfg.Config)
+		schedulingService     = scheduler.NewService(log, cfg.Config, notificationService, updateService)
 		indexerAPIService     = indexer.NewAPIService(log)
 		userService           = user.NewService(userRepo)
 		authService           = auth.NewService(log, userService)
@@ -138,13 +138,10 @@ func main() {
 		errorChannel <- httpServer.Open()
 	}()
 
-	srv := server.NewServer(log, version, ircService, indexerService, feedService, schedulingService, updateService)
-	srv.Hostname = cfg.Config.Host
-	srv.Port = cfg.Config.Port
-
 	sigCh := make(chan os.Signal, 1)
 	signal.Notify(sigCh, syscall.SIGHUP, syscall.SIGINT, syscall.SIGQUIT, syscall.SIGKILL, syscall.SIGTERM)
 
+	srv := server.NewServer(log, cfg.Config, ircService, indexerService, feedService, schedulingService, updateService)
 	if err := srv.Start(); err != nil {
 		log.Fatal().Stack().Err(err).Msg("could not start server")
 		return

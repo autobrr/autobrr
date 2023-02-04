@@ -12,6 +12,7 @@ type Config struct {
 	BaseURL           string `toml:"baseUrl"`
 	SessionSecret     string `toml:"sessionSecret"`
 	CustomDefinitions string `toml:"customDefinitions"`
+	CheckForUpdates   bool   `toml:"checkForUpdates"`
 	DatabaseType      string `toml:"databaseType"`
 	PostgresHost      string `toml:"postgresHost"`
 	PostgresPort      int    `toml:"postgresPort"`

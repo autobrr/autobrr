@@ -72,6 +72,10 @@ logLevel = "DEBUG"
 #
 #logMaxBackups = 3
 
+# Check for updates
+#
+checkForUpdates = true
+
 # Session secret
 #
 sessionSecret = "{{ .sessionSecret }}"
@@ -179,6 +183,7 @@ func (c *AppConfig) defaults() {
 		BaseURL:           "/",
 		SessionSecret:     "secret-session-key",
 		CustomDefinitions: "",
+		CheckForUpdates:   true,
 		DatabaseType:      "sqlite",
 		PostgresHost:      "",
 		PostgresPort:      0,

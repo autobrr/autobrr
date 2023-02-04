@@ -4,6 +4,7 @@ import (
 	"context"
 	"sync"
 
+	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/internal/logger"
 	"github.com/autobrr/autobrr/pkg/version"
 
@@ -11,19 +12,19 @@ import (
 )
 
 type Service struct {
-	log     zerolog.Logger
-	version string
+	log    zerolog.Logger
+	config *domain.Config
 
 	m              sync.RWMutex
 	releaseChecker *version.Checker
 	latestRelease  *version.Release
 }
 
-func NewUpdate(log logger.Logger, currentVersion string) *Service {
+func NewUpdate(log logger.Logger, config *domain.Config) *Service {
 	return &Service{
 		log:            log.With().Str("module", "update").Logger(),
-		version:        currentVersion,
-		releaseChecker: version.NewChecker("autobrr", "autobrr", currentVersion),
+		config:         config,
+		releaseChecker: version.NewChecker("autobrr", "autobrr", config.Version),
 	}
 }
 
@@ -45,7 +46,7 @@ func (s *Service) CheckUpdates(ctx context.Context) {
 func (s *Service) CheckUpdateAvailable(ctx context.Context) (*version.Release, error) {
 	s.log.Trace().Msg("checking for updates...")
 
-	newAvailable, newVersion, err := s.releaseChecker.CheckNewVersion(ctx, s.version)
+	newAvailable, newVersion, err := s.releaseChecker.CheckNewVersion(ctx, s.config.Version)
 	if err != nil {
 		s.log.Error().Err(err).Msg("could not check for new release")
 		return nil, nil
