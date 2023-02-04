@@ -90,6 +90,7 @@ func (s Server) Handler() http.Handler {
 	r.Use(middleware.RequestID)
 	r.Use(middleware.RealIP)
 	r.Use(middleware.Recoverer)
+	r.Use(LoggerMiddleware(&s.log))
 
 	c := cors.New(cors.Options{
 		AllowCredentials:   true,
