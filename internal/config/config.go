@@ -31,7 +31,7 @@ host = "{{ .host }}"
 #
 # Default: 7474
 #
-port = 7474
+#port = 7474
 
 # Base url
 # Set custom baseUrl eg /autobrr/ to serve in subdirectory.
@@ -54,7 +54,7 @@ port = 7474
 #
 # Options: "ERROR", "DEBUG", "INFO", "WARN", "TRACE"
 #
-logLevel = "DEBUG"
+#logLevel = "DEBUG"
 
 # Log Max Size
 #
@@ -186,6 +186,9 @@ func (c *AppConfig) defaults() {
 		PostgresUser:      "",
 		PostgresPass:      "",
 	}
+
+	viper.SetEnvPrefix("autobrr")
+	viper.AutomaticEnv()
 }
 
 func (c *AppConfig) load(configPath string) {
