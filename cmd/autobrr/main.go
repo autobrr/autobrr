@@ -95,7 +95,8 @@ func main() {
 	var (
 		apiService            = api.NewService(log, apikeyRepo)
 		notificationService   = notification.NewService(log, notificationRepo)
-		schedulingService     = scheduler.NewService(log, version, notificationService)
+		updateService         = update.NewUpdate(log, version)
+		schedulingService     = scheduler.NewService(log, version, notificationService, updateService)
 		indexerAPIService     = indexer.NewAPIService(log)
 		userService           = user.NewService(userRepo)
 		authService           = auth.NewService(log, userService)
@@ -106,7 +107,6 @@ func main() {
 		releaseService        = release.NewService(log, releaseRepo, actionService, filterService)
 		ircService            = irc.NewService(log, ircRepo, releaseService, indexerService, notificationService)
 		feedService           = feed.NewService(log, feedRepo, feedCacheRepo, releaseService, schedulingService)
-		updateService         = update.NewUpdate(log, version)
 	)
 
 	// register event subscribers

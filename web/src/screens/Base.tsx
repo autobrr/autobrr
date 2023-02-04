@@ -202,9 +202,9 @@ export default function Base() {
               {data && (
                 <a href={data.html_url} target="_blank">
                   <div className="flex mt-4 py-2 bg-blue-500 rounded justify-center">
-                    <MegaphoneIcon className="mr-2 h-6 w-6 text-blue-100"/>
-                    <span className="text-blue-100 font-medium">New update available!</span>
-                    <span className="ml-2 inline-flex items-center rounded-md bg-blue-100 px-2.5 py-0.5 text-sm font-medium text-blue-800">{data?.name}</span>
+                    <MegaphoneIcon className="h-6 w-6 text-blue-100"/>
+                    <span className="text-blue-100 font-medium mx-3">New update available!</span>
+                    <span className="inline-flex items-center rounded-md bg-blue-100 px-2.5 py-0.5 text-sm font-medium text-blue-800">{data?.name}</span>
                   </div>
                 </a>
               )}

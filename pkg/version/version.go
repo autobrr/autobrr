@@ -71,6 +71,14 @@ type Checker struct {
 	CurrentVersion string
 }
 
+func NewChecker(owner, repo, currentVersion string) *Checker {
+	return &Checker{
+		Owner:          owner,
+		Repo:           repo,
+		CurrentVersion: currentVersion,
+	}
+}
+
 func (c *Checker) get(ctx context.Context) (*Release, error) {
 	url := fmt.Sprintf("https://api.autobrr.com/repos/%s/%s/releases/latest", c.Owner, c.Repo)
 
