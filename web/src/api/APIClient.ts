@@ -1,5 +1,6 @@
 import { baseUrl, sseBaseUrl } from "../utils";
 import { AuthContext } from "../utils/Context";
+import { GithubRelease } from "../types/Update";
 
 interface ConfigType {
   body?: BodyInit | Record<string, unknown> | unknown;
@@ -180,5 +181,8 @@ export const APIClient = {
     indexerOptions: () => appClient.Get<string[]>("api/release/indexers"),
     stats: () => appClient.Get<ReleaseStats>("api/release/stats"),
     delete: () => appClient.Delete("api/release/all")
+  },
+  updates: {
+    updateAvailable: () => appClient.Get<GithubRelease>("api/updates")
   }
 };

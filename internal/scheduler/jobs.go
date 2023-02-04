@@ -22,8 +22,9 @@ type CheckUpdatesJob struct {
 
 func (j *CheckUpdatesJob) Run() {
 	v := version.Checker{
-		Owner: "autobrr",
-		Repo:  "autobrr",
+		Owner:          "autobrr",
+		Repo:           "autobrr",
+		CurrentVersion: j.Version,
 	}
 
 	newAvailable, newVersion, err := v.CheckNewVersion(context.TODO(), j.Version)
@@ -37,15 +38,15 @@ func (j *CheckUpdatesJob) Run() {
 
 		// this is not persisted so this can trigger more than once
 		// lets check if we have different versions between runs
-		if newVersion != j.lastCheckVersion {
+		if newVersion.TagName != j.lastCheckVersion {
 			j.NotifSvc.Send(domain.NotificationEventAppUpdateAvailable, domain.NotificationPayload{
 				Subject:   "New update available!",
-				Message:   newVersion,
+				Message:   newVersion.TagName,
 				Event:     domain.NotificationEventAppUpdateAvailable,
 				Timestamp: time.Now(),
 			})
 		}
 
-		j.lastCheckVersion = newVersion
+		j.lastCheckVersion = newVersion.TagName
 	}
 }

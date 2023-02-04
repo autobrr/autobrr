@@ -2,11 +2,13 @@ import { useQuery } from "react-query";
 import { APIClient } from "../../api/APIClient";
 import { Checkbox } from "../../components/Checkbox";
 import { SettingsContext } from "../../utils/Context";
+import { GithubRelease } from "../../types/Update";
 
 interface RowItemProps {
   label: string;
   value?: string;
   title?: string;
+  newUpdate?: GithubRelease;
 }
 
 const RowItem = ({ label, value, title }: RowItemProps) => {
@@ -23,12 +25,41 @@ const RowItem = ({ label, value, title }: RowItemProps) => {
   );
 };
 
+const RowItemVersion = ({ label, value, title, newUpdate }: RowItemProps) => {
+  if (!value)
+    return null;
+
+  return (
+    <div className="py-4 sm:py-5 sm:grid sm:grid-cols-4 sm:gap-4 sm:px-6">
+      <dt className="font-medium text-gray-500 dark:text-white" title={title}>{label}:</dt>
+      <dd className="mt-1 text-gray-900 dark:text-white sm:mt-0 sm:col-span-2 break-all">
+        {value}
+        {newUpdate && (
+          <span>
+            <a href={newUpdate.html_url} target="_blank"><span className="ml-2 inline-flex items-center rounded-md bg-green-100 px-2.5 py-0.5 text-sm font-medium text-green-800">{newUpdate.name} available!</span></a>
+          </span>
+        )}
+      </dd>
+    </div>
+  );
+};
+
 function ApplicationSettings() {
   const [settings, setSettings] = SettingsContext.use();
 
   const { isLoading, data } = useQuery(
     ["config"],
     () => APIClient.config.get(),
+    {
+      retry: false,
+      refetchOnWindowFocus: false,
+      onError: err => console.log(err)
+    }
+  );
+
+  const { isLoading: updateIsLoading, data: updateData } = useQuery(
+    ["updates"],
+    () => APIClient.updates.updateAvailable(),
     {
       retry: false,
       refetchOnWindowFocus: false,
@@ -98,7 +129,7 @@ function ApplicationSettings() {
       <div className="divide-y divide-gray-200 dark:divide-gray-700">
         <div className="px-4 py-5 sm:p-0">
           <dl className="sm:divide-y divide-gray-200 dark:divide-gray-700">
-            <RowItem label="Version" value={data?.version} />
+            <RowItemVersion label="Version" value={data?.version} newUpdate={updateData} />
             <RowItem label="Commit" value={data?.commit} />
             <RowItem label="Build date" value={data?.date} />
             <RowItem label="Log path" value={data?.log_path} title="Set in config.toml" />
