@@ -467,3 +467,27 @@ export const EventOptions: SelectOption[] = [
     description: "Get notified on updates"
   }
 ];
+
+export const UniqueDownloadOptions: OptionBasic[] = [
+  {
+    label: "Off",
+    value: "OFF"
+  },
+  {
+    label: "Skip release if already downloaded once",
+    value: "SKIP_RELEASE"
+  },
+  {
+    label: "Only download release if already downloaded once",
+    value: "ALREADY_EXISTING"
+  }
+/* TODO
+  {
+    label: "Upgrade release if there is a better version found",
+    value: "UPGRADE"
+  },
+  {
+    label: "Do not upgrade release even if there is a better version found",
+    value: "DO_NOT_UPGRADE"
+  }*/
+];

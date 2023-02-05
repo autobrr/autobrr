@@ -1,6 +1,11 @@
 import { AlertWarning } from "../../components/alerts";
 import { DownloadClientSelect, NumberField, Select, SwitchGroup, TextField } from "../../components/inputs";
-import { ActionContentLayoutOptions, ActionTypeNameMap, ActionTypeOptions } from "../../domain/constants";
+import {
+  ActionContentLayoutOptions,
+  ActionTypeNameMap,
+  ActionTypeOptions,
+  UniqueDownloadOptions
+} from "../../domain/constants";
 import React, { Fragment, useRef } from "react";
 import { useQuery } from "react-query";
 import { APIClient } from "../../api/APIClient";
@@ -228,15 +233,25 @@ const TypeForm = ({ action, idx, clients }: TypeFormProps) => {
             </div>
           </div>
           <div className="col-span-6">
-            <SwitchGroup
-              name={`actions.${idx}.paused`}
-              label="Add paused"
-              description="Add torrent as paused"
+            <Select
+              name={`actions.${idx}.unique_downloads`}
+              label="Unique downloads"
+              optionDefaultText="Off"
+              options={UniqueDownloadOptions}
             />
-            <SwitchGroup
-              name={`actions.${idx}.ignore_rules`}
-              label="Ignore client rules"
-              tooltip={<CustomTooltip anchorId={`actions.${idx}.ignore_rules`} clickable={true}><div><p>Choose to ignore rules set in <a className='text-blue-400 visited:text-blue-400' href="../../settings/clients">Client Settings</a>.</p></div></CustomTooltip>} /> 
+            <div className="mt-4">
+              <SwitchGroup
+                name={`actions.${idx}.paused`}
+                label="Add paused"
+                description="Add torrent as paused"
+              /></div>
+            <div>
+              <SwitchGroup
+                name={`actions.${idx}.skip_hash_check`}
+                label="Skip hash check"
+                description="Add torrent and skip hash check"
+              />
+            </div>
           </div>
           <div className="col-span-6">
             <Select
@@ -244,13 +259,12 @@ const TypeForm = ({ action, idx, clients }: TypeFormProps) => {
               label="Content Layout"
               optionDefaultText="Select content layout"
               options={ActionContentLayoutOptions}></Select>
-
-            <div className="mt-2">
+            <div className="mt-4">
               <SwitchGroup
-                name={`actions.${idx}.skip_hash_check`}
-                label="Skip hash check"
-                description="Add torrent and skip hash check"
-              />
+                name={`actions.${idx}.ignore_rules`}
+                label="Ignore client rules"
+                description="Download if max active reached"
+                tooltip={<CustomTooltip anchorId={`actions.${idx}.ignore_rules`} clickable={true}><div><p>Choose to ignore rules set in <a className='text-blue-400 visited:text-blue-400' href="../../settings/clients">Client Settings</a>.</p></div></CustomTooltip>} />
             </div>
           </div>
         </CollapsableSection>
@@ -296,7 +310,6 @@ const TypeForm = ({ action, idx, clients }: TypeFormProps) => {
             action={action}
             clients={clients}
           />
-
           <div className="col-span-12 sm:col-span-6">
             <TextField
               name={`actions.${idx}.save_path`}
@@ -306,7 +319,6 @@ const TypeForm = ({ action, idx, clients }: TypeFormProps) => {
             />
           </div>
         </div>
-
         <div className="mt-6 col-span-12 sm:col-span-6">
           <TextField
             name={`actions.${idx}.label`}
@@ -329,6 +341,14 @@ const TypeForm = ({ action, idx, clients }: TypeFormProps) => {
 
         <div className="mt-6 grid grid-cols-12 gap-6">
           <div className="col-span-6">
+            <Select
+              name={`actions.${idx}.unique_downloads`}
+              label="Unique downloads"
+              optionDefaultText="Off"
+              options={UniqueDownloadOptions}
+            />
+          </div>
+          <div className="col-span-6">
             <SwitchGroup
               name={`actions.${idx}.paused`}
               label="Add paused"
@@ -346,7 +366,6 @@ const TypeForm = ({ action, idx, clients }: TypeFormProps) => {
             action={action}
             clients={clients}
           />
-
           <div className="col-span-12 sm:col-span-6">
             <TextField
               name={`actions.${idx}.label`}
@@ -362,6 +381,14 @@ const TypeForm = ({ action, idx, clients }: TypeFormProps) => {
               label="Save path"
               columns={6}
               placeholder="eg. /full/path/to/download_folder"
+            />
+          </div>
+          <div className="col-span-12 sm:col-span-6">
+            <Select
+              name={`actions.${idx}.unique_downloads`}
+              label="Unique downloads"
+              optionDefaultText="Off"
+              options={UniqueDownloadOptions}
             />
           </div>
         </div>
@@ -389,26 +416,20 @@ const TypeForm = ({ action, idx, clients }: TypeFormProps) => {
 
         <div className="mt-6 grid grid-cols-12 gap-6">
           <div className="col-span-6">
+            <Select
+              name={`actions.${idx}.unique_downloads`}
+              label="Unique downloads"
+              optionDefaultText="Off"
+              options={UniqueDownloadOptions}
+            />
+          </div>
+          <div className="col-span-6">
             <SwitchGroup
               name={`actions.${idx}.paused`}
               label="Add paused"
             />
           </div>
         </div>
-      </div>
-    );
-  case "RADARR":
-  case "SONARR":
-  case "LIDARR":
-  case "WHISPARR":
-  case "READARR":
-    return (
-      <div className="mt-6 grid grid-cols-12 gap-6">
-        <DownloadClientSelect
-          name={`actions.${idx}.client_id`}
-          action={action}
-          clients={clients}
-        />
       </div>
     );
   case "PORLA":
@@ -443,8 +464,30 @@ const TypeForm = ({ action, idx, clients }: TypeFormProps) => {
                 label="Limit upload speed (KiB/s)"
               />
             </div>
+            <div className="mt-6 grid grid-cols-12 gap-6">
+              <Select
+                name={`actions.${idx}.unique_downloads`}
+                label="Unique downloads"
+                optionDefaultText="Off"
+                options={UniqueDownloadOptions}
+              />
+            </div>
           </div>
         </CollapsableSection>
+      </div>
+    );
+  case "RADARR":
+  case "SONARR":
+  case "LIDARR":
+  case "WHISPARR":
+  case "READARR":
+    return (
+      <div className="mt-6 grid grid-cols-12 gap-6">
+        <DownloadClientSelect
+          name={`actions.${idx}.client_id`}
+          action={action}
+          clients={clients}
+        />
       </div>
     );
 
