@@ -14,7 +14,7 @@ supports:
   - rss
 source: custom
 settings:
-  - name: passkey
+  - name: torrent_pass
     type: secret
     required: true
     label: Passkey
@@ -63,4 +63,4 @@ irc:
 
     match:
       infourl: "/details.php?id={{ .torrentId }}"
-      torrenturl: "/download.php?torrent={{ .torrentId }}&passkey={{ .passkey }}"
+      torrenturl: "/download.php?torrent={{ .torrentId }}&passkey={{ .torrent_pass }}"
