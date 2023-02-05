@@ -185,6 +185,7 @@ func NewRelease(indexer string) *Release {
 		Implementation: ReleaseImplementationIRC,
 		Timestamp:      time.Now(),
 		Tags:           []string{},
+		Size:           0,
 	}
 
 	return r
@@ -272,13 +273,13 @@ func (r *Release) ParseReleaseTagsString(tags string) {
 	}
 }
 
+// ParseSizeBytesString If there are parsing errors, then it keeps the original (or default size 0)
+// Otherwise, it will update the size only if the new size is bigger than the previous one.
 func (r *Release) ParseSizeBytesString(size string) {
 	s, err := humanize.ParseBytes(size)
-	if err != nil {
-		// log could not parse into bytes
-		r.Size = 0
+	if err == nil && s > r.Size {
+		r.Size = s
 	}
-	r.Size = s
 }
 
 func (r *Release) DownloadTorrentFileCtx(ctx context.Context) error {
