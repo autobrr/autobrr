@@ -255,6 +255,7 @@ export default function FilterDetails() {
                 seasons: filter.seasons,
                 episodes: filter.episodes,
                 smart_episode: filter.smart_episode,
+                unique_download: filter.unique_download,
                 match_releases: filter.match_releases,
                 except_releases: filter.except_releases,
                 match_release_groups: filter.match_release_groups,
@@ -354,6 +355,9 @@ export function General() {
           <NumberField name="priority" label="Priority" placeholder="Higher number = higher prio" required={true} tooltip={<div><p>Filters are checked in order of priority. Higher number = higher priority.</p><a href='https://autobrr.com/filters#rules' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters#rules</a></div>} />
           <NumberField name="max_downloads" label="Max downloads" placeholder="Takes any number (0 is infinite)" min={0} required={true}  tooltip={<div><p>Number of max downloads as specified by the respective unit.</p><a href='https://autobrr.com/filters#rules' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters#rules</a></div>} />
           <Select name="max_downloads_unit" label="Max downloads per" options={downloadsPerUnitOptions}  optionDefaultText="Select unit"  tooltip={<div><p>The unit of time for counting the maximum downloads per filter.</p><a href='https://autobrr.com/filters#rules' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters#rules</a></div>} />
+            <div className="col-span-6">
+              <CheckboxField name="unique_download" label="Skip duplicates" sublabel="Skip release if already matched once."/>
+            </div>
         </div>
       </div>
 

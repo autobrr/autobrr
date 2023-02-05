@@ -27,6 +27,7 @@ interface Filter {
   seasons: string;
   episodes: string;
   smart_episode: boolean;
+  unique_download: boolean;
   resolutions: string[];
   codecs: string[];
   sources: string[];
