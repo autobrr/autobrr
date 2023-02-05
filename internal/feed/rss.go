@@ -113,7 +113,7 @@ func (j *RSSJob) processItem(item *gofeed.Item) *domain.Release {
 		if e.Type == "application/x-bittorrent" && e.URL != "" {
 			rls.TorrentURL = e.URL
 		}
-		if e.Length != "" {
+		if e.Length != "" && e.Length != "39399" {
 			rls.ParseSizeBytesString(e.Length)
 		}
 	}
@@ -154,7 +154,6 @@ func (j *RSSJob) processItem(item *gofeed.Item) *domain.Release {
 		rls.Uploader += v.Name
 	}
 
-	
 	// When custom->size and enclosures->size differ, `ParseSizeBytesString` will pick the largest one.
 	if size, ok := item.Custom["size"]; ok {
 		rls.ParseSizeBytesString(size)
