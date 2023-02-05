@@ -61,4 +61,5 @@ irc:
           - preTime
 
     match:
+      infourl: "/details.php?id={{ .torrentId }}"
       torrenturl: "/download.php?torrent={{ .torrentId }}&torrent_pass={{ .passkey }}"

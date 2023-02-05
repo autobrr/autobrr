@@ -1,5 +1,6 @@
 import { Field, FieldProps } from "formik";
 import { classNames } from "../../utils";
+import { CustomTooltip } from "../tooltips/CustomTooltip";
 
 interface ErrorFieldProps {
     name: string;
@@ -16,17 +17,29 @@ const ErrorField = ({ name, classNames }: ErrorFieldProps) => (
   </div>
 );
 
+interface RequiredFieldProps {
+  required?: boolean
+}
+
+const RequiredField = ({ required }: RequiredFieldProps) => (
+  <>
+    {required && <span className="ml-1 text-red-500">*</span>}
+  </>
+);
+
 interface CheckboxFieldProps {
     name: string;
     label: string;
     sublabel?: string;
     disabled?: boolean;
+    tooltip?: JSX.Element;
 }
 
 const CheckboxField = ({
   name,
   label,
   sublabel,
+  tooltip,
   disabled
 }: CheckboxFieldProps) => (
   <div className="relative flex items-start">
@@ -43,12 +56,17 @@ const CheckboxField = ({
       />
     </div>
     <div className="ml-3 text-sm">
-      <label htmlFor={name} className="font-medium text-gray-900 dark:text-gray-100">
-        {label}
+      <label htmlFor={name} className="flex mb-2 text-xs font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wide">
+        <div className="flex">
+          {label}
+          {tooltip && (
+            <CustomTooltip anchorId={name}>{tooltip}</CustomTooltip>
+          )}
+        </div>
       </label>
       <p className="text-gray-500">{sublabel}</p>
     </div>
   </div>
 );
 
-export { ErrorField, CheckboxField };
+export { ErrorField, RequiredField, CheckboxField };

@@ -12,6 +12,7 @@ import { Dialog, Switch as SwitchBasic, Transition } from "@headlessui/react";
 import { ChevronRightIcon } from "@heroicons/react/24/solid";
 import { DeleteModal } from "../../components/modals";
 import { CollapsableSection } from "./details";
+import { CustomTooltip } from "../../components/tooltips/CustomTooltip";
 
 interface FilterActionsProps {
   filter: Filter;
@@ -173,8 +174,8 @@ const TypeForm = ({ action, idx, clients }: TypeFormProps) => {
               name={`actions.${idx}.save_path`}
               label="Save path"
               columns={6}
-              placeholder="eg. /full/path/to/watch_folder"
-            />
+              placeholder="eg. /full/path/to/download_folder"
+              tooltip={<CustomTooltip anchorId={`actions.${idx}.save_path`} clickable={true}><div><p>Set a custom save path for this action. Automatic Torrent Management will take care of this if using qBittorrent with categories.</p><br /><p>The field can use macros to transform/add values from metadata:</p><a href='https://autobrr.com/filters/actions#macros' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters/actions#macros</a></div></CustomTooltip>} /> 
           </div>
         </div>
 
@@ -184,13 +185,13 @@ const TypeForm = ({ action, idx, clients }: TypeFormProps) => {
             label="Category"
             columns={6}
             placeholder="eg. category"
-          />
+            tooltip={<CustomTooltip anchorId={`actions.${idx}.category`} clickable={true}><div><p>The field can use macros to transform/add values from metadata:</p><a href='https://autobrr.com/filters/actions#macros' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters/actions#macros</a></div></CustomTooltip>} /> 
           <TextField
             name={`actions.${idx}.tags`}
             label="Tags"
             columns={6}
             placeholder="eg. tag1,tag2"
-          />
+            tooltip={<CustomTooltip anchorId={`actions.${idx}.tags`} clickable={true}><div><p>The field can use macros to transform/add values from metadata:</p><a href='https://autobrr.com/filters/actions#macros' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters/actions#macros</a></div></CustomTooltip>} /> 
         </div>
 
         <CollapsableSection title="Rules" subtitle="client options">
@@ -235,16 +236,15 @@ const TypeForm = ({ action, idx, clients }: TypeFormProps) => {
             <SwitchGroup
               name={`actions.${idx}.ignore_rules`}
               label="Ignore client rules"
-              description="Download if max active reached"
-            />
+              tooltip={<CustomTooltip anchorId={`actions.${idx}.ignore_rules`} clickable={true}><div><p>Choose to ignore rules set in <a className='text-blue-400 visited:text-blue-400' href="../../settings/clients">Client Settings</a>.</p></div></CustomTooltip>} /> 
           </div>
           <div className="col-span-6">
             <Select
               name={`actions.${idx}.content_layout`}
               label="Content Layout"
               optionDefaultText="Select content layout"
-              options={ActionContentLayoutOptions}
-            />
+              options={ActionContentLayoutOptions}></Select>
+
             <div className="mt-2">
               <SwitchGroup
                 name={`actions.${idx}.skip_hash_check`}
@@ -302,7 +302,7 @@ const TypeForm = ({ action, idx, clients }: TypeFormProps) => {
               name={`actions.${idx}.save_path`}
               label="Save path"
               columns={6}
-              placeholder="eg. /full/path/to/watch_folder"
+              placeholder="eg. /full/path/to/download_folder"
             />
           </div>
         </div>
@@ -361,7 +361,7 @@ const TypeForm = ({ action, idx, clients }: TypeFormProps) => {
               name={`actions.${idx}.save_path`}
               label="Save path"
               columns={6}
-              placeholder="eg. /full/path/to/watch_folder"
+              placeholder="eg. /full/path/to/download_folder"
             />
           </div>
         </div>
@@ -382,7 +382,7 @@ const TypeForm = ({ action, idx, clients }: TypeFormProps) => {
               name={`actions.${idx}.save_path`}
               label="Save path"
               columns={6}
-              placeholder="eg. /full/path/to/watch_folder"
+              placeholder="eg. /full/path/to/download_folder"
             />
           </div>
         </div>
@@ -409,6 +409,42 @@ const TypeForm = ({ action, idx, clients }: TypeFormProps) => {
           action={action}
           clients={clients}
         />
+      </div>
+    );
+  case "PORLA":
+    return (
+      <div className="w-full">
+        <div className="mt-6 grid grid-cols-12 gap-6">
+          <DownloadClientSelect
+            name={`actions.${idx}.client_id`}
+            action={action}
+            clients={clients}
+          />
+
+          <div className="col-span-6 sm:col-span-6">
+            <TextField
+              name={`actions.${idx}.save_path`}
+              label="Save path"
+              columns={6}
+              placeholder="eg. /full/path/to/torrent/data"
+            />
+          </div>
+        </div>
+
+        <CollapsableSection title="Rules" subtitle="client options">
+          <div className="col-span-12">
+            <div className="mt-6 grid grid-cols-12 gap-6">
+              <NumberField
+                name={`actions.${idx}.limit_download_speed`}
+                label="Limit download speed (KiB/s)"
+              />
+              <NumberField
+                name={`actions.${idx}.limit_upload_speed`}
+                label="Limit upload speed (KiB/s)"
+              />
+            </div>
+          </div>
+        </CollapsableSection>
       </div>
     );
 
@@ -525,9 +561,10 @@ function FilterActionsItem({ action, clients, idx, initialEdit, remove }: Filter
                 label="Type"
                 optionDefaultText="Select type"
                 options={ActionTypeOptions}
+                tooltip={<CustomTooltip anchorId={`actions.${idx}.type`} clickable={true}><div><p>Select the download client type for this action.</p></div></CustomTooltip>}
               />
 
-              <TextField name={`actions.${idx}.name`} label="Name" columns={6}/>
+              <TextField name={`actions.${idx}.name`} label="Name" columns={6} />
             </div>
 
             <TypeForm action={action} clients={clients} idx={idx}/>

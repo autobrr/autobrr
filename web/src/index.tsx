@@ -3,6 +3,7 @@ import { createRoot } from "react-dom/client";
 
 import "@fontsource/inter/variable.css";
 import "./index.css";
+import "react-tooltip/dist/react-tooltip.css";
 
 import { App } from "./App";
 import { InitializeGlobalContext } from "./utils/Context";

@@ -66,5 +66,6 @@ irc:
           - freeleech
 
     match:
+      infourl: "/t/{{ .torrentId }}"
       torrenturl: "/tor/download.php?tid={{ .torrentId }}"
       torrentname: "{{ .torrentName }} by {{ .author }} [{{ .language }} / {{ .tags }}]"

@@ -4,6 +4,7 @@ type DownloadClientType =
     "DELUGE_V2" |
     "RTORRENT" |
     "TRANSMISSION" |
+    "PORLA" |
     "RADARR" |
     "SONARR" |
     "LIDARR" |

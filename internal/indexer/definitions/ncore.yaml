@@ -68,5 +68,6 @@ irc:
           - torrentId
 
     match:
+      infourl: "/torrents.php?action=details&id={{ .torrentId }}"
       # https://ncore.pro/torrents.php?action=download&id=0000&key=00000
       torrenturl: "/torrents.php?action=download&id={{ .torrentId }}&key={{ .passkey }}"
