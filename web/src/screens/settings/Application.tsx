@@ -62,11 +62,20 @@ function ApplicationSettings() {
 
   const { data: updateData } = useQuery(
     ["updates"],
-    () => APIClient.updates.updateAvailable(),
+    () => APIClient.updates.getLatestRelease(),
     {
       retry: false,
       refetchOnWindowFocus: false,
       onError: err => console.log(err)
+    }
+  );
+
+  const checkUpdateMutation = useMutation(
+    () => APIClient.updates.check(),
+    {
+      onSuccess: () => {
+        queryClient.invalidateQueries(["updates"]);
+      }
     }
   );
 
@@ -77,6 +86,8 @@ function ApplicationSettings() {
         toast.custom((t) => <Toast type="success" body={"Config successfully updated!"} t={t}/>);
 
         queryClient.invalidateQueries(["config"]);
+
+        checkUpdateMutation.mutate();
       }
     }
   );

@@ -28,7 +28,7 @@ func NewUpdate(log logger.Logger, config *domain.Config) *Service {
 	}
 }
 
-func (s *Service) AvailableRelease(ctx context.Context) *version.Release {
+func (s *Service) GetLatestRelease(ctx context.Context) *version.Release {
 	s.m.RLock()
 	defer s.m.RUnlock()
 	return s.latestRelease

@@ -161,7 +161,7 @@ func (c *Checker) buildUserAgent() string {
 }
 
 func isDevelop(version string) bool {
-	tags := []string{"dev", "develop", "master", "latest"}
+	tags := []string{"dev", "develop", "master", "latest", ""}
 
 	for _, tag := range tags {
 		if version == tag {

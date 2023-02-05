@@ -32,7 +32,7 @@ export default function Base() {
 
   const { data } = useQuery(
     ["updates"],
-    () => APIClient.updates.updateAvailable(),
+    () => APIClient.updates.getLatestRelease(),
     {
       retry: false,
       refetchOnWindowFocus: false,
