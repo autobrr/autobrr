@@ -77,7 +77,7 @@ host = "{{ .host }}"
 sessionSecret = "{{ .sessionSecret }}"
 `
 
-func writeConfig(configPath string, configFile string) error {
+func (c *AppConfig) writeConfig(configPath string, configFile string) error {
 	cfgPath := filepath.Join(configPath, configFile)
 
 	// check if configPath exists, if not create it
@@ -117,9 +117,6 @@ func writeConfig(configPath string, configFile string) error {
 		}
 		defer f.Close()
 
-		// generate default sessionSecret
-		sessionSecret := api.GenerateSecureToken(16)
-
 		// setup text template to inject variables into
 		tmpl, err := template.New("config").Parse(configTemplate)
 		if err != nil {
@@ -128,7 +125,7 @@ func writeConfig(configPath string, configFile string) error {
 
 		tmplVars := map[string]string{
 			"host":          host,
-			"sessionSecret": sessionSecret,
+			"sessionSecret": c.Config.SessionSecret,
 		}
 
 		var buffer bytes.Buffer
@@ -177,7 +174,7 @@ func (c *AppConfig) defaults() {
 		LogMaxSize:        50,
 		LogMaxBackups:     3,
 		BaseURL:           "/",
-		SessionSecret:     "secret-session-key",
+		SessionSecret:     api.GenerateSecureToken(16),
 		CustomDefinitions: "",
 		DatabaseType:      "sqlite",
 		PostgresHost:      "",
@@ -208,7 +205,7 @@ func (c *AppConfig) load(configPath string) {
 
 		// check if path and file exists
 		// if not, create path and file
-		if err := writeConfig(configPath, "config.toml"); err != nil {
+		if err := c.writeConfig(configPath, "config.toml"); err != nil {
 			log.Printf("write error: %q", err)
 		}
 
