@@ -2,11 +2,13 @@ import { Fragment } from "react";
 import { Link, NavLink, Outlet } from "react-router-dom";
 import { Disclosure, Menu, Transition } from "@headlessui/react";
 import { BookOpenIcon, UserIcon } from "@heroicons/react/24/solid";
-import { Bars3Icon, XMarkIcon } from "@heroicons/react/24/outline";
+import { Bars3Icon, XMarkIcon, MegaphoneIcon } from "@heroicons/react/24/outline";
 
 import { AuthContext } from "../utils/Context";
 
 import logo from "../logo.png";
+import { useQuery } from "react-query";
+import { APIClient } from "../api/APIClient";
 
 interface NavItem {
   name: string;
@@ -26,6 +28,17 @@ export default function Base() {
     { name: "Settings", path: "/settings" },
     { name: "Logs", path: "/logs" }
   ];
+
+
+  const { data } = useQuery(
+    ["updates"],
+    () => APIClient.updates.getLatestRelease(),
+    {
+      retry: false,
+      refetchOnWindowFocus: false,
+      onError: err => console.log(err)
+    }
+  );
 
   return (
     <div className="min-h-screen">
@@ -185,6 +198,16 @@ export default function Base() {
                   </div>
                 </div>
               </div>
+
+              {data && data.html_url && (
+                <a href={data.html_url} target="_blank">
+                  <div className="flex mt-4 py-2 bg-blue-500 rounded justify-center">
+                    <MegaphoneIcon className="h-6 w-6 text-blue-100"/>
+                    <span className="text-blue-100 font-medium mx-3">New update available!</span>
+                    <span className="inline-flex items-center rounded-md bg-blue-100 px-2.5 py-0.5 text-sm font-medium text-blue-800">{data?.name}</span>
+                  </div>
+                </a>
+              )}
             </div>
 
             <Disclosure.Panel className="border-b border-gray-300 dark:border-gray-700 md:hidden">
