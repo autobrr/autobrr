@@ -29,7 +29,7 @@ func TestGitHubReleaseChecker_checkNewVersion(t *testing.T) {
 				version: "v0.2.0",
 				release: &Release{
 					TagName:         "v0.3.0",
-					TargetCommitish: nil,
+					TargetCommitish: "",
 				},
 			},
 			wantNew:     true,
@@ -43,7 +43,7 @@ func TestGitHubReleaseChecker_checkNewVersion(t *testing.T) {
 				version: "v0.2.0",
 				release: &Release{
 					TagName:         "v0.2.0",
-					TargetCommitish: nil,
+					TargetCommitish: "",
 				},
 			},
 			wantNew:     false,
@@ -57,7 +57,7 @@ func TestGitHubReleaseChecker_checkNewVersion(t *testing.T) {
 				version: "v0.3.0",
 				release: &Release{
 					TagName:         "v0.2.0",
-					TargetCommitish: nil,
+					TargetCommitish: "",
 				},
 			},
 			wantNew:     false,
@@ -71,7 +71,7 @@ func TestGitHubReleaseChecker_checkNewVersion(t *testing.T) {
 				version: "v0.3.0",
 				release: &Release{
 					TagName:         "v0.3.0-rc1",
-					TargetCommitish: nil,
+					TargetCommitish: "",
 				},
 			},
 			wantNew:     false,
@@ -85,7 +85,7 @@ func TestGitHubReleaseChecker_checkNewVersion(t *testing.T) {
 				version: "v0.3.0-RC1",
 				release: &Release{
 					TagName:         "v0.3.0-RC2",
-					TargetCommitish: nil,
+					TargetCommitish: "",
 				},
 			},
 			wantNew:     true,

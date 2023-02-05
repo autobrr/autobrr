@@ -4,10 +4,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
-
-	"github.com/asaskevich/EventBus"
-	"github.com/r3labs/sse/v2"
-	"github.com/spf13/pflag"
+	_ "time/tzdata"
 
 	"github.com/autobrr/autobrr/internal/action"
 	"github.com/autobrr/autobrr/internal/api"
@@ -26,9 +23,12 @@ import (
 	"github.com/autobrr/autobrr/internal/release"
 	"github.com/autobrr/autobrr/internal/scheduler"
 	"github.com/autobrr/autobrr/internal/server"
+	"github.com/autobrr/autobrr/internal/update"
 	"github.com/autobrr/autobrr/internal/user"
 
-	_ "time/tzdata"
+	"github.com/asaskevich/EventBus"
+	"github.com/r3labs/sse/v2"
+	"github.com/spf13/pflag"
 )
 
 var (
@@ -69,11 +69,11 @@ func main() {
 	}
 
 	log.Info().Msgf("Starting autobrr")
-	log.Info().Msgf("Version: %v", version)
-	log.Info().Msgf("Commit: %v", commit)
-	log.Info().Msgf("Build date: %v", date)
-	log.Info().Msgf("Log-level: %v", cfg.Config.LogLevel)
-	log.Info().Msgf("Using database: %v", db.Driver)
+	log.Info().Msgf("Version: %s", version)
+	log.Info().Msgf("Commit: %s", commit)
+	log.Info().Msgf("Build date: %s", date)
+	log.Info().Msgf("Log-level: %s", cfg.Config.LogLevel)
+	log.Info().Msgf("Using database: %s", db.Driver)
 
 	// setup repos
 	var (
@@ -94,7 +94,8 @@ func main() {
 	var (
 		apiService            = api.NewService(log, apikeyRepo)
 		notificationService   = notification.NewService(log, notificationRepo)
-		schedulingService     = scheduler.NewService(log, version, notificationService)
+		updateService         = update.NewUpdate(log, cfg.Config)
+		schedulingService     = scheduler.NewService(log, cfg.Config, notificationService, updateService)
 		indexerAPIService     = indexer.NewAPIService(log)
 		userService           = user.NewService(userRepo)
 		authService           = auth.NewService(log, userService)
@@ -115,7 +116,7 @@ func main() {
 	go func() {
 		httpServer := http.NewServer(
 			log,
-			cfg.Config,
+			cfg,
 			serverEvents,
 			db,
 			version,
@@ -131,17 +132,15 @@ func main() {
 			ircService,
 			notificationService,
 			releaseService,
+			updateService,
 		)
 		errorChannel <- httpServer.Open()
 	}()
 
-	srv := server.NewServer(log, ircService, indexerService, feedService, schedulingService)
-	srv.Hostname = cfg.Config.Host
-	srv.Port = cfg.Config.Port
-
 	sigCh := make(chan os.Signal, 1)
 	signal.Notify(sigCh, syscall.SIGHUP, syscall.SIGINT, syscall.SIGQUIT, syscall.SIGKILL, syscall.SIGTERM)
 
+	srv := server.NewServer(log, cfg.Config, ircService, indexerService, feedService, schedulingService, updateService)
 	if err := srv.Start(); err != nil {
 		log.Fatal().Stack().Err(err).Msg("could not start server")
 		return

@@ -2,6 +2,7 @@ package config
 
 import (
 	"bytes"
+	"fmt"
 	"log"
 	"os"
 	"path"
@@ -71,6 +72,10 @@ logLevel = "DEBUG"
 # Max amount of old log files
 #
 #logMaxBackups = 3
+
+# Check for updates
+#
+checkForUpdates = true
 
 # Session secret
 #
@@ -148,6 +153,7 @@ func writeConfig(configPath string, configFile string) error {
 }
 
 type Config interface {
+	UpdateConfig() error
 	DynamicReload(log logger.Logger)
 }
 
@@ -179,6 +185,7 @@ func (c *AppConfig) defaults() {
 		BaseURL:           "/",
 		SessionSecret:     "secret-session-key",
 		CustomDefinitions: "",
+		CheckForUpdates:   true,
 		DatabaseType:      "sqlite",
 		PostgresHost:      "",
 		PostgresPort:      0,
@@ -240,6 +247,9 @@ func (c *AppConfig) DynamicReload(log logger.Logger) {
 		logPath := viper.GetString("logPath")
 		c.Config.LogPath = logPath
 
+		checkUpdates := viper.GetBool("checkForUpdates")
+		c.Config.CheckForUpdates = checkUpdates
+
 		log.Debug().Msg("config file reloaded!")
 
 		c.m.Unlock()
@@ -247,4 +257,47 @@ func (c *AppConfig) DynamicReload(log logger.Logger) {
 	viper.WatchConfig()
 
 	return
+}
+
+func (c *AppConfig) UpdateConfig() error {
+	file := path.Join(c.Config.ConfigPath, "config.toml")
+
+	f, err := os.ReadFile(file)
+	if err != nil {
+		return errors.Wrap(err, "could not read config file: %s", file)
+	}
+
+	lines := strings.Split(string(f), "\n")
+	lines = c.processLines(lines)
+
+	output := strings.Join(lines, "\n")
+	if err := os.WriteFile(file, []byte(output), 0644); err != nil {
+		return errors.Wrap(err, "could not write config file: %s", file)
+	}
+
+	return nil
+}
+
+func (c *AppConfig) processLines(lines []string) []string {
+	// keep track of not found values to append at bottom
+	var (
+		foundLineUpdate = false
+	)
+
+	for i, line := range lines {
+		// set checkForUpdates
+		if !foundLineUpdate && strings.Contains(line, "checkForUpdates =") {
+			lines[i] = fmt.Sprintf("checkForUpdates = %t", c.Config.CheckForUpdates)
+			foundLineUpdate = true
+		}
+	}
+
+	// append missing vars to bottom
+	if !foundLineUpdate {
+		lines = append(lines, "# Check for updates")
+		lines = append(lines, "#")
+		lines = append(lines, fmt.Sprintf("checkForUpdates = %t", c.Config.CheckForUpdates))
+	}
+
+	return lines
 }

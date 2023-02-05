@@ -1,12 +1,17 @@
-import { useQuery } from "react-query";
+import { useMutation, useQuery } from "react-query";
 import { APIClient } from "../../api/APIClient";
 import { Checkbox } from "../../components/Checkbox";
 import { SettingsContext } from "../../utils/Context";
+import { GithubRelease } from "../../types/Update";
+import { toast } from "react-hot-toast";
+import Toast from "../../components/notifications/Toast";
+import { queryClient } from "../../App";
 
 interface RowItemProps {
   label: string;
   value?: string;
   title?: string;
+  newUpdate?: GithubRelease;
 }
 
 const RowItem = ({ label, value, title }: RowItemProps) => {
@@ -23,6 +28,25 @@ const RowItem = ({ label, value, title }: RowItemProps) => {
   );
 };
 
+const RowItemVersion = ({ label, value, title, newUpdate }: RowItemProps) => {
+  if (!value)
+    return null;
+
+  return (
+    <div className="py-4 sm:py-5 sm:grid sm:grid-cols-4 sm:gap-4 sm:px-6">
+      <dt className="font-medium text-gray-500 dark:text-white" title={title}>{label}:</dt>
+      <dd className="mt-1 text-gray-900 dark:text-white sm:mt-0 sm:col-span-2 break-all">
+        {value}
+        {newUpdate && newUpdate.html_url && (
+          <span>
+            <a href={newUpdate.html_url} target="_blank"><span className="ml-2 inline-flex items-center rounded-md bg-green-100 px-2.5 py-0.5 text-sm font-medium text-green-800">{newUpdate.name} available!</span></a>
+          </span>
+        )}
+      </dd>
+    </div>
+  );
+};
+
 function ApplicationSettings() {
   const [settings, setSettings] = SettingsContext.use();
 
@@ -33,6 +57,38 @@ function ApplicationSettings() {
       retry: false,
       refetchOnWindowFocus: false,
       onError: err => console.log(err)
+    }
+  );
+
+  const { data: updateData } = useQuery(
+    ["updates"],
+    () => APIClient.updates.getLatestRelease(),
+    {
+      retry: false,
+      refetchOnWindowFocus: false,
+      onError: err => console.log(err)
+    }
+  );
+
+  const checkUpdateMutation = useMutation(
+    () => APIClient.updates.check(),
+    {
+      onSuccess: () => {
+        queryClient.invalidateQueries(["updates"]);
+      }
+    }
+  );
+
+  const toggleCheckUpdateMutation = useMutation(
+    (value: boolean) => APIClient.config.update({ check_for_updates: value }),
+    {
+      onSuccess: () => {
+        toast.custom((t) => <Toast type="success" body={"Config successfully updated!"} t={t}/>);
+
+        queryClient.invalidateQueries(["config"]);
+
+        checkUpdateMutation.mutate();
+      }
     }
   );
 
@@ -98,7 +154,7 @@ function ApplicationSettings() {
       <div className="divide-y divide-gray-200 dark:divide-gray-700">
         <div className="px-4 py-5 sm:p-0">
           <dl className="sm:divide-y divide-gray-200 dark:divide-gray-700">
-            <RowItem label="Version" value={data?.version} />
+            <RowItemVersion label="Version" value={data?.version} newUpdate={updateData ?? undefined} />
             <RowItem label="Commit" value={data?.commit} />
             <RowItem label="Build date" value={data?.date} />
             <RowItem label="Log path" value={data?.log_path} title="Set in config.toml" />
@@ -115,6 +171,16 @@ function ApplicationSettings() {
                 ...settings,
                 debug: newValue
               })}
+            />
+          </div>
+          <div className="px-4 sm:px-6 py-1">
+            <Checkbox
+              label="Check for updates"
+              description="Get notified of new updates."
+              value={data?.check_for_updates ?? true}
+              setValue={(newValue: boolean) => {
+                toggleCheckUpdateMutation.mutate(newValue);
+              }}
             />
           </div>
           <div className="px-4 sm:px-6 py-1">
