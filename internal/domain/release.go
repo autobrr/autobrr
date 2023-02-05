@@ -33,6 +33,7 @@ type ReleaseRepo interface {
 	StoreReleaseActionStatus(ctx context.Context, actionStatus *ReleaseActionStatus) error
 	Delete(ctx context.Context) error
 	CanDownloadShow(ctx context.Context, title string, season int, episode int) (bool, error)
+	CanDownloadUnique(ctx context.Context, release rls.Release) (bool, error)
 }
 
 type Release struct {
@@ -44,9 +45,10 @@ type Release struct {
 	Protocol                    ReleaseProtocol       `json:"protocol"`
 	Implementation              ReleaseImplementation `json:"implementation"` // irc, rss, api
 	Timestamp                   time.Time             `json:"timestamp"`
+	InfoURL                     string                `json:"info_url"`
+	TorrentURL                  string                `json:"download_url"`
 	GroupID                     string                `json:"group_id"`
 	TorrentID                   string                `json:"torrent_id"`
-	TorrentURL                  string                `json:"-"`
 	TorrentTmpFile              string                `json:"-"`
 	TorrentDataRawBytes         []byte                `json:"-"`
 	TorrentHash                 string                `json:"-"`
@@ -193,7 +195,6 @@ func (r *Release) ParseString(title string) {
 	rel := rls.ParseString(title)
 
 	r.TorrentName = title
-	r.Title = rel.Title
 	r.Source = rel.Source
 	r.Resolution = rel.Resolution
 	r.Region = rel.Region
@@ -205,6 +206,10 @@ func (r *Release) ParseString(title string) {
 	r.Other = rel.Other
 	r.Artists = rel.Artist
 	r.Language = rel.Language
+
+	if r.Title == "" {
+		r.Title = rel.Title
+	}
 
 	if r.Season == 0 {
 		r.Season = rel.Series
@@ -234,8 +239,9 @@ func (r *Release) ParseReleaseTagsString(tags string) {
 	t := ParseReleaseTagString(cleanTags)
 
 	if len(t.Audio) > 0 {
-		r.Audio = append(r.Audio, t.Audio...)
+		r.Audio = getUniqueTags(r.Audio, t.Audio)
 	}
+
 	if len(t.Bonus) > 0 {
 		if sliceContainsSlice([]string{"Freeleech"}, t.Bonus) {
 			r.Freeleech = true
@@ -245,10 +251,10 @@ func (r *Release) ParseReleaseTagsString(tags string) {
 		r.Bonus = append(r.Bonus, t.Bonus...)
 	}
 	if len(t.Codec) > 0 {
-		r.Codec = append(r.Codec, t.Codec)
+		r.Codec = getUniqueTags(r.Codec, append(make([]string, 0, 1), t.Codec))
 	}
 	if len(t.Other) > 0 {
-		r.Other = append(r.Other, t.Other...)
+		r.Other = getUniqueTags(r.Other, t.Other)
 	}
 	if r.Origin == "" && t.Origin != "" {
 		r.Origin = t.Origin
@@ -567,4 +573,28 @@ func StringEqualFoldMulti(s string, values ...string) bool {
 		}
 	}
 	return false
+}
+
+func getUniqueTags(target []string, source []string) []string {
+	toAppend := make([]string, 0, len(source))
+
+	for _, t := range source {
+		found := false
+		norm := rls.MustNormalize(t)
+
+		for _, s := range target {
+			if rls.MustNormalize(s) == norm {
+				found = true
+				break
+			}
+		}
+
+		if !found {
+			toAppend = append(toAppend, t)
+		}
+	}
+
+	target = append(target, toAppend...)
+
+	return target
 }

@@ -84,6 +84,7 @@ CREATE TABLE filter
     freeleech                      BOOLEAN,
     freeleech_percent              TEXT,
     smart_episode                  BOOLEAN DEFAULT FALSE,
+    unique_download                BOOLEAN DEFAULT FALSE,
     shows                          TEXT,
     seasons                        TEXT,
     episodes                       TEXT,
@@ -199,6 +200,8 @@ CREATE TABLE "release"
     protocol          TEXT,
     implementation    TEXT,
     timestamp         TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    info_url          TEXT,
+    download_url      TEXT,
     group_id          TEXT,
     torrent_id        TEXT,
     torrent_name      TEXT,
@@ -1039,5 +1042,11 @@ CREATE INDEX release_action_status_status_index
 UPDATE release_action_status
 SET filter_id = (SELECT f.id
 FROM filter f WHERE f.name = release_action_status.filter);
+	`,
+	`ALTER TABLE "release"
+ADD COLUMN info_url TEXT;
+    
+ALTER TABLE "release"
+ADD COLUMN download_url TEXT;
 	`,
 }

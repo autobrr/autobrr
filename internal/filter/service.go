@@ -15,6 +15,7 @@ import (
 	"github.com/autobrr/autobrr/internal/indexer"
 	"github.com/autobrr/autobrr/internal/logger"
 	"github.com/autobrr/autobrr/pkg/errors"
+	"github.com/moistari/rls"
 
 	"github.com/dustin/go-humanize"
 	"github.com/mattn/go-shellwords"
@@ -320,6 +321,20 @@ func (s *service) CheckFilter(ctx context.Context, f domain.Filter, release *dom
 			if !canDownloadShow {
 				s.log.Trace().Msgf("filter.Service.CheckFilter: failed smart episode check: %s", f.Name)
 				release.AddRejectionF("smart episode check: not new: (%s) season: %d ep: %d", release.Title, release.Season, release.Episode)
+				return false, nil
+			}
+		}
+
+		if f.UniqueDownload {
+			canDownloadUnique, err := s.releaseRepo.CanDownloadUnique(ctx, rls.ParseString(release.TorrentName))
+			if err != nil {
+				s.log.Trace().Msgf("filter.Service.CheckFilter: failed unique download check: %s", f.Name)
+				return false, nil
+			}
+
+			if !canDownloadUnique {
+				s.log.Trace().Msgf("filter.Service.CheckFilter: failed unique download  check: %s", f.Name)
+				release.AddRejectionF("unique download check: not new: %s", release.TorrentName)
 				return false, nil
 			}
 		}
