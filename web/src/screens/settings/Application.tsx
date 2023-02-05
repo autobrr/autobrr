@@ -150,6 +150,17 @@ function ApplicationSettings() {
           </div>
           <div className="px-4 sm:px-6 py-1">
             <Checkbox
+              label="Updates"
+              description="Get notified of new updates."
+              value={settings.checkForUpdates}
+              setValue={(newValue: boolean) => setSettings({
+                ...settings,
+                checkForUpdates: newValue
+              })}
+            />
+          </div>
+          <div className="px-4 sm:px-6 py-1">
+            <Checkbox
               label="Dark theme"
               description="Switch between dark and light theme."
               value={settings.darkTheme}
