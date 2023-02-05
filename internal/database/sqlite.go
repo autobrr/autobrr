@@ -65,6 +65,8 @@ func (db *DB) migrateSQLite() error {
 		return errors.New("autobrr (version %d) older than schema (version: %d)", len(sqliteMigrations), version)
 	}
 
+	db.log.Info().Msgf("Beginning database schema upgrade from version %v to version: %v", version, len(sqliteMigrations))
+
 	tx, err := db.handler.Begin()
 	if err != nil {
 		return err
@@ -77,6 +79,7 @@ func (db *DB) migrateSQLite() error {
 		}
 	} else {
 		for i := version; i < len(sqliteMigrations); i++ {
+			db.log.Info().Msgf("Upgrading Database schema to version: %v", i)
 			if _, err := tx.Exec(sqliteMigrations[i]); err != nil {
 				return errors.Wrap(err, "failed to execute migration #%v", i)
 			}
