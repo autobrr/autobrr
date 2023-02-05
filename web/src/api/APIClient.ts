@@ -81,7 +81,8 @@ export const APIClient = {
     delete: (key: string) => appClient.Delete(`api/keys/${key}`)
   },
   config: {
-    get: () => appClient.Get<Config>("api/config")
+    get: () => appClient.Get<Config>("api/config"),
+    update: (config: ConfigUpdate) => appClient.Patch("api/config", config)
   },
   download_clients: {
     getAll: () => appClient.Get<DownloadClient[]>("api/download_clients"),

@@ -1,8 +1,11 @@
-import { useQuery } from "react-query";
+import { useMutation, useQuery } from "react-query";
 import { APIClient } from "../../api/APIClient";
 import { Checkbox } from "../../components/Checkbox";
 import { SettingsContext } from "../../utils/Context";
 import { GithubRelease } from "../../types/Update";
+import { toast } from "react-hot-toast";
+import Toast from "../../components/notifications/Toast";
+import { queryClient } from "../../App";
 
 interface RowItemProps {
   label: string;
@@ -57,13 +60,24 @@ function ApplicationSettings() {
     }
   );
 
-  const { isLoading: updateIsLoading, data: updateData } = useQuery(
+  const { data: updateData } = useQuery(
     ["updates"],
     () => APIClient.updates.updateAvailable(),
     {
       retry: false,
       refetchOnWindowFocus: false,
       onError: err => console.log(err)
+    }
+  );
+
+  const toggleCheckUpdateMutation = useMutation(
+    (value: boolean) => APIClient.config.update({ check_for_updates: value }),
+    {
+      onSuccess: () => {
+        toast.custom((t) => <Toast type="success" body={"Config successfully updated!"} t={t}/>);
+
+        queryClient.invalidateQueries(["config"]);
+      }
     }
   );
 
@@ -150,13 +164,12 @@ function ApplicationSettings() {
           </div>
           <div className="px-4 sm:px-6 py-1">
             <Checkbox
-              label="Updates"
+              label="Check for updates"
               description="Get notified of new updates."
-              value={settings.checkForUpdates}
-              setValue={(newValue: boolean) => setSettings({
-                ...settings,
-                checkForUpdates: newValue
-              })}
+              value={data?.check_for_updates ?? true}
+              setValue={(newValue: boolean) => {
+                toggleCheckUpdateMutation.mutate(newValue);
+              }}
             />
           </div>
           <div className="px-4 sm:px-6 py-1">
