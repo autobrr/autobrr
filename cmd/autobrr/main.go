@@ -4,10 +4,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
-
-	"github.com/asaskevich/EventBus"
-	"github.com/r3labs/sse/v2"
-	"github.com/spf13/pflag"
+	_ "time/tzdata"
 
 	"github.com/autobrr/autobrr/internal/action"
 	"github.com/autobrr/autobrr/internal/api"
@@ -29,7 +26,9 @@ import (
 	"github.com/autobrr/autobrr/internal/update"
 	"github.com/autobrr/autobrr/internal/user"
 
-	_ "time/tzdata"
+	"github.com/asaskevich/EventBus"
+	"github.com/r3labs/sse/v2"
+	"github.com/spf13/pflag"
 )
 
 var (
@@ -117,7 +116,7 @@ func main() {
 	go func() {
 		httpServer := http.NewServer(
 			log,
-			cfg.Config,
+			cfg,
 			serverEvents,
 			db,
 			version,

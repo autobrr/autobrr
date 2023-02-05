@@ -6,8 +6,8 @@ import (
 	"net"
 	"net/http"
 
+	"github.com/autobrr/autobrr/internal/config"
 	"github.com/autobrr/autobrr/internal/database"
-	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/internal/logger"
 	"github.com/autobrr/autobrr/web"
 
@@ -24,7 +24,7 @@ type Server struct {
 	sse *sse.Server
 	db  *database.DB
 
-	config      *domain.Config
+	config      *config.AppConfig
 	cookieStore *sessions.CookieStore
 
 	version string
@@ -44,7 +44,7 @@ type Server struct {
 	updateService         updateService
 }
 
-func NewServer(log logger.Logger, config *domain.Config, sse *sse.Server, db *database.DB, version string, commit string, date string, actionService actionService, apiService apikeyService, authService authService, downloadClientSvc downloadClientService, filterSvc filterService, feedSvc feedService, indexerSvc indexerService, ircSvc ircService, notificationSvc notificationService, releaseSvc releaseService, updateSvc updateService) Server {
+func NewServer(log logger.Logger, config *config.AppConfig, sse *sse.Server, db *database.DB, version string, commit string, date string, actionService actionService, apiService apikeyService, authService authService, downloadClientSvc downloadClientService, filterSvc filterService, feedSvc feedService, indexerSvc indexerService, ircSvc ircService, notificationSvc notificationService, releaseSvc releaseService, updateSvc updateService) Server {
 	return Server{
 		log:     log.With().Str("module", "http").Logger(),
 		config:  config,
@@ -54,7 +54,7 @@ func NewServer(log logger.Logger, config *domain.Config, sse *sse.Server, db *da
 		commit:  commit,
 		date:    date,
 
-		cookieStore: sessions.NewCookieStore([]byte(config.SessionSecret)),
+		cookieStore: sessions.NewCookieStore([]byte(config.Config.SessionSecret)),
 
 		actionService:         actionService,
 		apiService:            apiService,
@@ -71,7 +71,7 @@ func NewServer(log logger.Logger, config *domain.Config, sse *sse.Server, db *da
 }
 
 func (s Server) Open() error {
-	addr := fmt.Sprintf("%v:%v", s.config.Host, s.config.Port)
+	addr := fmt.Sprintf("%v:%v", s.config.Config.Host, s.config.Config.Port)
 	listener, err := net.Listen("tcp", addr)
 	if err != nil {
 		return err
@@ -119,14 +119,14 @@ func (s Server) Handler() http.Handler {
 	})
 
 	r.Route("/api", func(r chi.Router) {
-		r.Route("/auth", newAuthHandler(encoder, s.log, s.config, s.cookieStore, s.authService).Routes)
+		r.Route("/auth", newAuthHandler(encoder, s.log, s.config.Config, s.cookieStore, s.authService).Routes)
 		r.Route("/healthz", newHealthHandler(encoder, s.db).Routes)
 
 		r.Group(func(r chi.Router) {
 			r.Use(s.IsAuthenticated)
 
 			r.Route("/actions", newActionHandler(encoder, s.actionService).Routes)
-			r.Route("/config", newConfigHandler(encoder, s).Routes)
+			r.Route("/config", newConfigHandler(encoder, s, s.config).Routes)
 			r.Route("/download_clients", newDownloadClientHandler(encoder, s.downloadClientService).Routes)
 			r.Route("/filters", newFilterHandler(encoder, s.filterService).Routes)
 			r.Route("/feeds", newFeedHandler(encoder, s.feedService).Routes)
@@ -163,7 +163,7 @@ func (s Server) index(w http.ResponseWriter, r *http.Request) {
 	p := web.IndexParams{
 		Title:   "Dashboard",
 		Version: s.version,
-		BaseUrl: s.config.BaseURL,
+		BaseUrl: s.config.Config.BaseURL,
 	}
 	web.Index(w, p)
 }

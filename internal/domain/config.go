@@ -20,3 +20,12 @@ type Config struct {
 	PostgresUser      string `toml:"postgresUser"`
 	PostgresPass      string `toml:"postgresPass"`
 }
+
+type ConfigUpdate struct {
+	Host            *string `json:"host,omitempty"`
+	Port            *int    `json:"port,omitempty"`
+	LogLevel        *string `json:"log_level,omitempty"`
+	LogPath         *string `json:"log_path,omitempty"`
+	BaseURL         *string `json:"base_url,omitempty"`
+	CheckForUpdates *bool   `json:"check_for_updates,omitempty"`
+}
