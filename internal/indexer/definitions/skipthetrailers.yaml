@@ -1,7 +1,7 @@
 ---
 #id: skipthetrailers
 name: SkipTheTrailers
-identifier: stc
+identifier: stt
 description: SkipTheTrailers (STT) is a Private Torrent Tracker for Movies
 language: en-us
 urls:
