@@ -66,7 +66,7 @@ irc:
     lines:
       - test:
           - "[new release]-[moviehd]-[that.movie.2017.internal.1080p.bluray.crf.x264-group]-[url]-[ https://alpharatio.cc/torrents.php?id=000000 ]-[ 000000 ]-[ uploaded 2 mins, 59 secs after pre. ]"
-        pattern: '\[.*\]-\[(.*)\]-\[(.*)\]-\[.*\]-\[ (https?://.+/).*]-\[ (\d+) \](?:-\[ \w* (.*) after .* ])?'
+        pattern: '\[.*\]-\[(.*)\]-\[(.*)\]-\[.*\]-\[ (https?://.+/).*id=(.*) ]-\[ (\d+) \](?:-\[ \w* (.*) after .* ])?'
         vars:
           - category
           - torrentName
