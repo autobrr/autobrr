@@ -237,7 +237,7 @@ const TypeForm = ({ action, idx, clients }: TypeFormProps) => {
             <SwitchGroup
               name={`actions.${idx}.ignore_rules`}
               label="Ignore client rules"
-              tooltip={<CustomTooltip anchorId={`actions.${idx}.ignore_rules`} clickable={true}><div><p>Choose to ignore rules set in <Link className='text-blue-400 visited:text-blue-400' to="%PUBLIC_URL%/settings/clients">Client Settings</Link>.</p></div></CustomTooltip>} /> 
+              tooltip={<CustomTooltip anchorId={`actions.${idx}.ignore_rules`} clickable={true}><div><p>Choose to ignore rules set in <Link className='text-blue-400 visited:text-blue-400' to="/settings/clients">Client Settings</Link>.</p></div></CustomTooltip>} /> 
           </div>
           <div className="col-span-6">
             <Select
