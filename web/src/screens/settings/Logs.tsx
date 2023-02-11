@@ -40,7 +40,7 @@ const RowItemNumber = ({ label, value, title, unit }: RowItemNumberProps) => {
       <dd className="mt-1 text-gray-900 dark:text-white sm:mt-0 sm:col-span-2 break-all">
         <span className="px-1 py-0.5 bg-gray-200 dark:bg-gray-700 rounded shadow">{value}</span>
         {unit &&
-          <span className="ml-1 text-sm text-gray-700 dark:text-gray-800 dark:text-gray-400">{unit}</span>
+          <span className="ml-1 text-sm text-gray-700 dark:text-gray-400">{unit}</span>
         }
       </dd>
     </div>
