@@ -68,7 +68,7 @@ irc:
 
     match:
       infourl: "/details.php?id={{ .torrentId }}"
-      torrenturl: "/download.php?id={{ .torrentId }}&SSL=1&name={{ .torrentName }}.torrent"
+      torrenturl: "/download.php?id={{ .torrentId }}&name={{ .torrentName }}.torrent"
       cookie: true
       encode:
         - torrentName
