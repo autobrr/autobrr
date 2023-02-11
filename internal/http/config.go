@@ -16,6 +16,8 @@ type configJson struct {
 	Port            int    `json:"port"`
 	LogLevel        string `json:"log_level"`
 	LogPath         string `json:"log_path"`
+	LogMaxSize      int    `json:"log_max_size"`
+	LogMaxBackups   int    `json:"log_max_backups"`
 	BaseURL         string `json:"base_url"`
 	CheckForUpdates bool   `json:"check_for_updates"`
 	Version         string `json:"version"`
@@ -49,6 +51,8 @@ func (h configHandler) getConfig(w http.ResponseWriter, r *http.Request) {
 		Port:            h.cfg.Config.Port,
 		LogLevel:        h.cfg.Config.LogLevel,
 		LogPath:         h.cfg.Config.LogPath,
+		LogMaxSize:      h.cfg.Config.LogMaxSize,
+		LogMaxBackups:   h.cfg.Config.LogMaxBackups,
 		BaseURL:         h.cfg.Config.BaseURL,
 		CheckForUpdates: h.cfg.Config.CheckForUpdates,
 		Version:         h.server.version,
@@ -69,6 +73,14 @@ func (h configHandler) updateConfig(w http.ResponseWriter, r *http.Request) {
 
 	if data.CheckForUpdates != nil {
 		h.cfg.Config.CheckForUpdates = *data.CheckForUpdates
+	}
+
+	if data.LogLevel != nil {
+		h.cfg.Config.LogLevel = *data.LogLevel
+	}
+
+	if data.LogPath != nil {
+		h.cfg.Config.LogPath = *data.LogPath
 	}
 
 	if err := h.cfg.UpdateConfig(); err != nil {

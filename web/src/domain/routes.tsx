@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Route, Routes } from "react-router-dom";
 
 import { Login } from "../screens/auth/login";
 import { Logout } from "../screens/auth/logout";
@@ -9,15 +9,18 @@ import { FilterDetails, Filters } from "../screens/filters";
 import { Logs } from "../screens/Logs";
 import { Releases } from "../screens/releases";
 import Settings from "../screens/Settings";
-import ApplicationSettings from "../screens/settings/Application";
-import DownloadClientSettings from "../screens/settings/DownloadClient";
-import FeedSettings from "../screens/settings/Feed";
-import IndexerSettings from "../screens/settings/Indexer";
-import { IrcSettings } from "../screens/settings/Irc";
-import NotificationSettings from "../screens/settings/Notifications";
+import {
+  APISettings,
+  ApplicationSettings,
+  DownloadClientSettings,
+  FeedSettings,
+  IndexerSettings,
+  IrcSettings,
+  LogSettings,
+  NotificationSettings,
+  ReleaseSettings
+} from "../screens/settings";
 import { RegexPlayground } from "../screens/settings/RegexPlayground";
-import ReleaseSettings from "../screens/settings/Releases";
-import APISettings from "../screens/settings/Api";
 
 import { baseUrl } from "../utils";
 
@@ -36,6 +39,7 @@ export const LocalRouter = ({ isLoggedIn }: { isLoggedIn: boolean }) => (
           </Route>
           <Route path="settings" element={<Settings />}>
             <Route index element={<ApplicationSettings />} />
+            <Route path="logs" element={<LogSettings />} />
             <Route path="api-keys" element={<APISettings />} />
             <Route path="indexers" element={<IndexerSettings />} />
             <Route path="feeds" element={<FeedSettings />} />

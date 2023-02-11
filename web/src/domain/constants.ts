@@ -422,6 +422,9 @@ export const DownloadRuleConditionOptions: OptionBasic[] = [
   }
 ];
 
+const logLevel = ["DEBUG", "INFO", "WARN", "ERROR", "TRACE"] as const;
+
+export const LogLevelOptions = logLevel.map(v => ({ value: v, label: v, key: v }));
 
 export interface SelectOption {
     label: string;

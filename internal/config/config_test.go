@@ -1,9 +1,10 @@
 package config
 
 import (
-	"reflect"
 	"sync"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 
 	"github.com/autobrr/autobrr/internal/domain"
 )
@@ -25,20 +26,20 @@ func TestAppConfig_processLines(t *testing.T) {
 		{
 			name: "append missing",
 			fields: fields{
-				Config: &domain.Config{CheckForUpdates: true},
+				Config: &domain.Config{CheckForUpdates: true, LogLevel: "TRACE"},
 				m:      sync.Mutex{},
 			},
 			args: args{[]string{}},
-			want: []string{"# Check for updates", "#", "checkForUpdates = true"},
+			want: []string{"# Check for updates", "#", "checkForUpdates = true", "# Log level", "#", "# Default: \"DEBUG\"", "#", "# Options: \"ERROR\", \"DEBUG\", \"INFO\", \"WARN\", \"TRACE\"", "#", `logLevel = "TRACE"`, "# Log Path", "#", "# Optional", "#", "#logPath = \"\""},
 		},
 		{
 			name: "update existing",
 			fields: fields{
-				Config: &domain.Config{CheckForUpdates: true},
+				Config: &domain.Config{CheckForUpdates: true, LogLevel: "TRACE"},
 				m:      sync.Mutex{},
 			},
-			args: args{[]string{"# Check for updates", "#", "#checkForUpdates = false"}},
-			want: []string{"# Check for updates", "#", "checkForUpdates = true"},
+			args: args{[]string{"# Check for updates", "#", "checkForUpdates = false", "# Log level", "#", "# Default: \"DEBUG\"", "#", "# Options: \"ERROR\", \"DEBUG\", \"INFO\", \"WARN\", \"TRACE\"", "#", `logLevel = "TRACE"`, "# Log Path", "#", "# Optional", "#", "#logPath = \"\""}},
+			want: []string{"# Check for updates", "#", "checkForUpdates = true", "# Log level", "#", "# Default: \"DEBUG\"", "#", "# Options: \"ERROR\", \"DEBUG\", \"INFO\", \"WARN\", \"TRACE\"", "#", `logLevel = "TRACE"`, "# Log Path", "#", "# Optional", "#", "#logPath = \"\""},
 		},
 	}
 	for _, tt := range tests {
@@ -47,9 +48,8 @@ func TestAppConfig_processLines(t *testing.T) {
 				Config: tt.fields.Config,
 				m:      tt.fields.m,
 			}
-			if got := c.processLines(tt.args.lines); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("processLines() = %v, want %v", got, tt.want)
-			}
+
+			assert.Equalf(t, tt.want, c.processLines(tt.args.lines), tt.name)
 		})
 	}
 }
