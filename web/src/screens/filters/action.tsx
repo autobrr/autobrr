@@ -13,6 +13,7 @@ import { ChevronRightIcon } from "@heroicons/react/24/solid";
 import { DeleteModal } from "../../components/modals";
 import { CollapsableSection } from "./details";
 import { CustomTooltip } from "../../components/tooltips/CustomTooltip";
+import { Link } from "react-router-dom";
 
 interface FilterActionsProps {
   filter: Filter;
@@ -236,7 +237,7 @@ const TypeForm = ({ action, idx, clients }: TypeFormProps) => {
             <SwitchGroup
               name={`actions.${idx}.ignore_rules`}
               label="Ignore client rules"
-              tooltip={<CustomTooltip anchorId={`actions.${idx}.ignore_rules`} clickable={true}><div><p>Choose to ignore rules set in <a className='text-blue-400 visited:text-blue-400' href="../../settings/clients">Client Settings</a>.</p></div></CustomTooltip>} /> 
+              tooltip={<CustomTooltip anchorId={`actions.${idx}.ignore_rules`} clickable={true}><div><p>Choose to ignore rules set in <Link className='text-blue-400 visited:text-blue-400' to="/settings/clients">Client Settings</Link>.</p></div></CustomTooltip>} /> 
           </div>
           <div className="col-span-6">
             <Select
