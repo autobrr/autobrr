@@ -281,7 +281,9 @@ func (c *AppConfig) UpdateConfig() error {
 func (c *AppConfig) processLines(lines []string) []string {
 	// keep track of not found values to append at bottom
 	var (
-		foundLineUpdate = false
+		foundLineUpdate   = false
+		foundLineLogLevel = false
+		foundLineLogPath  = false
 	)
 
 	for i, line := range lines {
@@ -290,6 +292,18 @@ func (c *AppConfig) processLines(lines []string) []string {
 			lines[i] = fmt.Sprintf("checkForUpdates = %t", c.Config.CheckForUpdates)
 			foundLineUpdate = true
 		}
+		if !foundLineLogLevel && strings.Contains(line, "logLevel =") {
+			lines[i] = fmt.Sprintf(`logLevel = "%s"`, c.Config.LogLevel)
+			foundLineLogLevel = true
+		}
+		if !foundLineLogPath && strings.Contains(line, "logPath =") {
+			if c.Config.LogPath == "" {
+				lines[i] = `#logPath = ""`
+			} else {
+				lines[i] = fmt.Sprintf("logPath = \"%s\"", c.Config.LogPath)
+			}
+			foundLineLogPath = true
+		}
 	}
 
 	// append missing vars to bottom
@@ -297,6 +311,28 @@ func (c *AppConfig) processLines(lines []string) []string {
 		lines = append(lines, "# Check for updates")
 		lines = append(lines, "#")
 		lines = append(lines, fmt.Sprintf("checkForUpdates = %t", c.Config.CheckForUpdates))
+	}
+
+	if !foundLineLogLevel {
+		lines = append(lines, "# Log level")
+		lines = append(lines, "#")
+		lines = append(lines, `# Default: "DEBUG"`)
+		lines = append(lines, "#")
+		lines = append(lines, `# Options: "ERROR", "DEBUG", "INFO", "WARN", "TRACE"`)
+		lines = append(lines, "#")
+		lines = append(lines, fmt.Sprintf(`logLevel = "%s"`, c.Config.LogLevel))
+	}
+
+	if !foundLineLogPath {
+		lines = append(lines, "# Log Path")
+		lines = append(lines, "#")
+		lines = append(lines, "# Optional")
+		lines = append(lines, "#")
+		if c.Config.LogPath == "" {
+			lines = append(lines, `#logPath = ""`)
+		} else {
+			lines = append(lines, fmt.Sprintf(`logPath = "%s"`, c.Config.LogPath))
+		}
 	}
 
 	return lines

@@ -11,18 +11,37 @@ interface RowItemProps {
   label: string;
   value?: string;
   title?: string;
+  emptyText?: string;
   newUpdate?: GithubRelease;
 }
 
-const RowItem = ({ label, value, title }: RowItemProps) => {
-  if (!value)
-    return null;
-
+const RowItem = ({ label, value, title, emptyText }: RowItemProps) => {
   return (
     <div className="py-4 sm:py-5 sm:grid sm:grid-cols-4 sm:gap-4 sm:px-6">
       <dt className="font-medium text-gray-500 dark:text-white" title={title}>{label}:</dt>
       <dd className="mt-1 text-gray-900 dark:text-white sm:mt-0 sm:col-span-2 break-all">
-        {value}
+        {value ? value : emptyText}
+      </dd>
+    </div>
+  );
+};
+
+interface RowItemNumberProps {
+  label: string;
+  value?: string | number;
+  title?: string;
+  unit?: string;
+}
+
+const RowItemNumber = ({ label, value, title, unit }: RowItemNumberProps) => {
+  return (
+    <div className="py-4 sm:py-5 sm:grid sm:grid-cols-4 sm:gap-4 sm:px-6">
+      <dt className="font-medium text-gray-500 dark:text-white" title={title}>{label}:</dt>
+      <dd className="mt-1 text-gray-900 dark:text-white sm:mt-0 sm:col-span-2 break-all">
+        <span className="px-1 py-0.5 bg-gray-700 rounded shadow">{value}</span>
+        {unit &&
+          <span className="ml-1 text-sm text-gray-800 dark:text-gray-400">{unit}</span>
+        }
       </dd>
     </div>
   );
@@ -157,8 +176,6 @@ function ApplicationSettings() {
             <RowItemVersion label="Version" value={data?.version} newUpdate={updateData ?? undefined} />
             <RowItem label="Commit" value={data?.commit} />
             <RowItem label="Build date" value={data?.date} />
-            <RowItem label="Log path" value={data?.log_path} title="Set in config.toml" />
-            <RowItem label="Log level" value={data?.log_level} title="Set in config.toml" />
           </dl>
         </div>
         <ul className="divide-y divide-gray-200 dark:divide-gray-700">
@@ -196,6 +213,7 @@ function ApplicationSettings() {
           </div>
         </ul>
       </div>
+
     </div>
   );
 }
