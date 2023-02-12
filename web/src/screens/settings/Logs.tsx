@@ -6,6 +6,7 @@ import Toast from "../../components/notifications/Toast";
 import { queryClient } from "../../App";
 import Select, { components, ControlProps, InputProps, MenuProps, OptionProps } from "react-select";
 import { LogLevelOptions, SelectOption } from "../../domain/constants";
+import { LogFiles } from "../Logs";
 
 interface RowItemProps {
   label: string;
@@ -166,6 +167,10 @@ function LogSettings() {
               </dl>
             )}
           </form>
+        </div>
+
+        <div className="mt-4 flex flex-col py-4 px-4 sm:px-6">
+          <LogFiles />
         </div>
 
         {/*<div className="mt-4 flex justify-end py-4 px-4 sm:px-6">*/}

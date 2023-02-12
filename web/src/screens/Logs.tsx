@@ -145,13 +145,17 @@ export const Logs = () => {
         </div>
       </div>
 
-      <LogFiles />
+      <div className="max-w-screen-xl mx-auto pb-10 px-2 sm:px-4 lg:px-8">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg px-2 sm:px-4 pt-3 sm:pt-4">
+          <LogFiles />
+        </div>
+      </div>
 
     </main>
   );
 };
 
-const LogFiles = () => {
+export const LogFiles = () => {
   const { isLoading, data } = useQuery(
     ["log-files"],
     () => APIClient.logs.files(),
@@ -163,40 +167,38 @@ const LogFiles = () => {
   );
 
   return (
-    <div className="max-w-screen-xl mx-auto pb-10 px-2 sm:px-4 lg:px-8">
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg px-2 sm:px-4 pt-3 sm:pt-4">
-        <div className="mt-2">
-          <h2 className="text-lg leading-6 font-medium text-gray-900 dark:text-white">Log files</h2>
-          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+    <div>
+      <div className="mt-2">
+        <h2 className="text-lg leading-6 font-medium text-gray-900 dark:text-white">Log files</h2>
+        <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
             Download old log files.
-          </p>
-        </div>
-
-        {data && data.files.length > 0 ? (
-          <section className="py-3 light:bg-white dark:bg-gray-800 light:shadow sm:rounded-md">
-            <ol className="min-w-full relative">
-              <li className="hidden sm:grid grid-cols-12 gap-4 mb-2 border-b border-gray-200 dark:border-gray-700">
-                <div className="col-span-5 px-2 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                  Name
-                </div>
-                <div className="col-span-2 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                  Size
-                </div>
-                <div className="col-span-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                  Last modified
-                </div>
-              </li>
-
-              {data && data.files.map((f, idx) => <LogFilesItem key={idx} file={f} />)}
-            </ol>
-          </section>
-        ) : (
-          <EmptySimple
-            title="No old log files"
-            subtitle=""
-          />
-        )}
+        </p>
       </div>
+
+      {data && data.files.length > 0 ? (
+        <section className="py-3 light:bg-white dark:bg-gray-800 light:shadow sm:rounded-md">
+          <ol className="min-w-full relative">
+            <li className="hidden sm:grid grid-cols-12 gap-4 mb-2 border-b border-gray-200 dark:border-gray-700">
+              <div className="col-span-5 px-2 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  Name
+              </div>
+              <div className="col-span-2 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  Size
+              </div>
+              <div className="col-span-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  Last modified
+              </div>
+            </li>
+
+            {data && data.files.map((f, idx) => <LogFilesItem key={idx} file={f} />)}
+          </ol>
+        </section>
+      ) : (
+        <EmptySimple
+          title="No old log files"
+          subtitle=""
+        />
+      )}
     </div>
   );
 };
