@@ -133,6 +133,7 @@ func (s Server) Handler() http.Handler {
 			r.Route("/irc", newIrcHandler(encoder, s.ircService).Routes)
 			r.Route("/indexer", newIndexerHandler(encoder, s.indexerService, s.ircService).Routes)
 			r.Route("/keys", newAPIKeyHandler(encoder, s.apiService).Routes)
+			r.Route("/logs", newLogsHandler(s.config).Routes)
 			r.Route("/notification", newNotificationHandler(encoder, s.notificationService).Routes)
 			r.Route("/release", newReleaseHandler(encoder, s.releaseService).Routes)
 			r.Route("/updates", newUpdateHandler(encoder, s.updateService).Routes)
