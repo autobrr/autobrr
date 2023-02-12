@@ -20,7 +20,7 @@ const RowItem = ({ label, value, title, emptyText }: RowItemProps) => {
     <div className="py-4 sm:py-5 sm:grid sm:grid-cols-4 sm:gap-4 sm:px-6">
       <dt className="font-medium text-gray-500 dark:text-white" title={title}>{label}:</dt>
       <dd className="mt-1 text-gray-900 dark:text-white sm:mt-0 sm:col-span-2 break-all">
-        {value ? value : emptyText}
+        {value ? <span className="px-1 py-0.5 bg-gray-200 dark:bg-gray-700 rounded shadow">{value}</span> : emptyText}
       </dd>
     </div>
   );
@@ -55,7 +55,7 @@ const RowItemVersion = ({ label, value, title, newUpdate }: RowItemProps) => {
     <div className="py-4 sm:py-5 sm:grid sm:grid-cols-4 sm:gap-4 sm:px-6">
       <dt className="font-medium text-gray-500 dark:text-white" title={title}>{label}:</dt>
       <dd className="mt-1 text-gray-900 dark:text-white sm:mt-0 sm:col-span-2 break-all">
-        {value}
+        <span className="px-1 py-0.5 bg-gray-200 dark:bg-gray-700 rounded shadow">{value}</span>
         {newUpdate && newUpdate.html_url && (
           <span>
             <a href={newUpdate.html_url} target="_blank"><span className="ml-2 inline-flex items-center rounded-md bg-green-100 px-2.5 py-0.5 text-sm font-medium text-green-800">{newUpdate.name} available!</span></a>

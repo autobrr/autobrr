@@ -87,7 +87,7 @@ export const Login = () => {
               </button>
               <div>
                 <p className="flex float-right items-center mt-3 text-xs font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wide cursor-pointer" id="forgot">
-                  Forgot?<svg className="ml-1 w-3 h-3" viewBox="0 0 72 72"><path d="M32 2C15.432 2 2 15.432 2 32s13.432 30 30 30s30-13.432 30-30S48.568 2 32 2m5 49.75H27v-24h10v24m-5-29.5a5 5 0 1 1 0-10a5 5 0 0 1 0 10" fill="white"/></svg>
+                  Forgot?<svg className="ml-1 w-3 h-3 text-gray-500 dark:text-gray-400 fill-current" viewBox="0 0 72 72"><path d="M32 2C15.432 2 2 15.432 2 32s13.432 30 30 30s30-13.432 30-30S48.568 2 32 2m5 49.75H27v-24h10v24m-5-29.5a5 5 0 1 1 0-10a5 5 0 0 1 0 10"/></svg>
                   <Tooltip style={{ maxWidth: "350px", fontSize: "12px", textTransform: "none", fontWeight: "normal", borderRadius: "0.375rem", backgroundColor: "#34343A", color: "#fff", opacity: "1" }} place="bottom" delayShow={100} delayHide={150} anchorId="forgot" html="<p style='padding-top: 2px'>If you forget your password you can reset it via the terminal: <code>autobrrctl --config /home/username/.config/autobrr change-password <USERNAME></code></p>" clickable={true}/>
                 </p>
               </div>

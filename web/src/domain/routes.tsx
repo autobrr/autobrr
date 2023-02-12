@@ -19,7 +19,7 @@ import {
   LogSettings,
   NotificationSettings,
   ReleaseSettings
-} from "../screens/settings";
+} from "../screens/settings/";
 import { RegexPlayground } from "../screens/settings/RegexPlayground";
 
 import { baseUrl } from "../utils";
