@@ -1,7 +1,7 @@
 import { Fragment } from "react";
 import { Link, NavLink, Outlet } from "react-router-dom";
 import { Disclosure, Menu, Transition } from "@headlessui/react";
-import { BookOpenIcon, UserIcon } from "@heroicons/react/24/solid";
+import { ArrowTopRightOnSquareIcon, UserIcon } from "@heroicons/react/24/solid";
 import { Bars3Icon, XMarkIcon, MegaphoneIcon } from "@heroicons/react/24/outline";
 
 import { AuthContext } from "../utils/Context";
@@ -96,7 +96,7 @@ export default function Base() {
                           )}
                         >
                           Docs
-                          <BookOpenIcon
+                          <ArrowTopRightOnSquareIcon
                             className="inline ml-1 h-5 w-5"
                             aria-hidden="true"
                           />
