@@ -30,17 +30,17 @@ func (h logsHandler) Routes(r chi.Router) {
 }
 
 func (h logsHandler) files(w http.ResponseWriter, r *http.Request) {
+	response := LogfilesResponse{
+		Files: []logFile{},
+		Count: 0,
+	}
+
 	if h.cfg.Config.LogPath == "" {
-		render.Status(r, http.StatusNoContent)
+		render.JSON(w, r, response)
 		return
 	}
 
 	logsDir := path.Dir(h.cfg.Config.LogPath)
-
-	var response struct {
-		Files []logFile `json:"files"`
-		Count int       `json:"count"`
-	}
 
 	var walk = func(path string, d fs.DirEntry, err error) error {
 		if d.IsDir() {
@@ -80,7 +80,7 @@ func (h logsHandler) files(w http.ResponseWriter, r *http.Request) {
 
 func (h logsHandler) downloadFile(w http.ResponseWriter, r *http.Request) {
 	if h.cfg.Config.LogPath == "" {
-		render.Status(r, http.StatusNoContent)
+		render.Status(r, http.StatusNotFound)
 		return
 	}
 
@@ -115,4 +115,9 @@ type logFile struct {
 	SizeBytes int64     `json:"size_bytes"`
 	Size      string    `json:"size"`
 	UpdatedAt time.Time `json:"updated_at"`
+}
+
+type LogfilesResponse struct {
+	Files []logFile `json:"files"`
+	Count int       `json:"count"`
 }

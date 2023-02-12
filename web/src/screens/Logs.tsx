@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useRef, useState } from "react";
+import { createRef, forwardRef, Fragment, useEffect, useRef, useState } from "react";
 import { ExclamationTriangleIcon } from "@heroicons/react/24/solid";
 import format from "date-fns/format";
 import { DebounceInput } from "react-debounce-input";
@@ -33,7 +33,7 @@ const LogColors: Record<LogLevel, string> = {
 
 export const Logs = () => {
   const [settings] = SettingsContext.use();
-  
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
   
   const [logs, setLogs] = useState<LogEvent[]>([]);
