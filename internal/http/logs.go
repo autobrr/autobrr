@@ -3,6 +3,7 @@ package http
 import (
 	"io/fs"
 	"net/http"
+	"os"
 	"path"
 	"path/filepath"
 	"strconv"
@@ -41,6 +42,12 @@ func (h logsHandler) files(w http.ResponseWriter, r *http.Request) {
 	}
 
 	logsDir := path.Dir(h.cfg.Config.LogPath)
+
+	// check if dir exists before walkDir
+	if _, err := os.Stat(logsDir); os.IsNotExist(err) {
+		render.JSON(w, r, response)
+		return
+	}
 
 	var walk = func(path string, d fs.DirEntry, err error) error {
 		if d.IsDir() {
@@ -84,6 +91,18 @@ func (h logsHandler) downloadFile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	logsDir := path.Dir(h.cfg.Config.LogPath)
+
+	// check if dir exists before walkDir
+	if _, err := os.Stat(logsDir); os.IsNotExist(err) {
+		render.Status(r, http.StatusNotFound)
+		render.JSON(w, r, errorResponse{
+			Message: "log directory not found or inaccessible",
+			Status:  http.StatusNotFound,
+		})
+		return
+	}
+
 	logFile := chi.URLParam(r, "logFile")
 	if logFile == "" {
 		render.Status(r, http.StatusBadRequest)
@@ -104,7 +123,6 @@ func (h logsHandler) downloadFile(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Disposition", "attachment; filename="+strconv.Quote(logFile))
 	w.Header().Set("Content-Type", "application/octet-stream")
 
-	logsDir := path.Dir(h.cfg.Config.LogPath)
 	filePath := filepath.Join(logsDir, logFile)
 
 	http.ServeFile(w, r, filePath)
