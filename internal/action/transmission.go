@@ -2,9 +2,11 @@ package action
 
 import (
 	"context"
+	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/pkg/errors"
+	"github.com/avast/retry-go"
 
 	"github.com/hekmon/transmissionrpc/v2"
 )
@@ -64,6 +66,47 @@ func (s *service) transmission(ctx context.Context, action *domain.Action, relea
 	}
 
 	s.log.Info().Msgf("torrent with hash %v successfully added to client: '%v'", torrent.HashString, client.Name)
+
+	if !action.ReAnnounceSkip {
+		err = retry.Do(func() error {
+			if err := tbt.TorrentReannounceIDs(ctx, []int64{*torrent.ID}); err != nil {
+				return errors.Wrap(err, "failed to reannounce")
+			}
+
+			t, err := tbt.TorrentGet(ctx, []string{"trackerStats"}, []int64{*torrent.ID})
+			if err != nil {
+				return errors.Wrap(err, "reannounced, failed to find torrentid")
+			}
+
+			if len(t) < 1 {
+				return errors.Wrap(err, "reannounced, failed to get torrent from id")
+			}
+
+			seeds := int64(0)
+			for _, trackers := range t[0].TrackerStats {
+				seeds += trackers.SeederCount
+			}
+
+			if seeds != 0 {
+				return nil
+			}
+
+			retry.Delay(time.Second * time.Duration(action.ReAnnounceInterval))
+
+			return errors.New("no seeds yet")
+		},
+			retry.OnRetry(func(n uint, err error) {
+				s.log.Error().Err(err).Msgf("%q: attempt %d - %v\n", err, n, int(action.ReAnnounceMaxAttempts))
+			}),
+			//retry.Delay(time.Second*3),
+			retry.Attempts(uint(action.ReAnnounceMaxAttempts)),
+			retry.MaxJitter(time.Second*1),
+		)
+
+		if err != nil && action.ReAnnounceDelete {
+			tbt.TorrentRemove(ctx, transmissionrpc.TorrentRemovePayload{IDs: []int64{*torrent.ID}})
+		}
+	}
 
 	return rejections, nil
 }
