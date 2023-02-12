@@ -69,16 +69,20 @@ func (s *service) transmission(ctx context.Context, action *domain.Action, relea
 
 	if !action.ReAnnounceSkip {
 		err = retry.Do(func() error {
+			f := func() { retry.Delay(time.Second * time.Duration(action.ReAnnounceInterval)) }
 			if err := tbt.TorrentReannounceIDs(ctx, []int64{*torrent.ID}); err != nil {
+				defer f()
 				return errors.Wrap(err, "failed to reannounce")
 			}
 
 			t, err := tbt.TorrentGet(ctx, []string{"trackerStats"}, []int64{*torrent.ID})
 			if err != nil {
+				defer f()
 				return errors.Wrap(err, "reannounced, failed to find torrentid")
 			}
 
 			if len(t) < 1 {
+				defer f()
 				return errors.Wrap(err, "reannounced, failed to get torrent from id")
 			}
 
@@ -91,8 +95,7 @@ func (s *service) transmission(ctx context.Context, action *domain.Action, relea
 				return nil
 			}
 
-			retry.Delay(time.Second * time.Duration(action.ReAnnounceInterval))
-
+			defer f()
 			return errors.New("no seeds yet")
 		},
 			retry.OnRetry(func(n uint, err error) {
