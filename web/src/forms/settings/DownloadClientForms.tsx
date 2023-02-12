@@ -264,7 +264,7 @@ function FormFieldsRulesBasic() {
   );
 }
 
-function FormFieldsRules() {
+function FormFieldsRulesQbit() {
   const {
     values: { settings }
   } = useFormikContext<InitialValues>();
@@ -325,7 +325,8 @@ function FormFieldsRules() {
 export const rulesComponentMap: componentMapType = {
   DELUGE_V1: <FormFieldsRulesBasic/>,
   DELUGE_V2: <FormFieldsRulesBasic/>,
-  QBITTORRENT: <FormFieldsRules/>
+  QBITTORRENT: <FormFieldsRulesQbit/>,
+  PORLA: <FormFieldsRulesBasic/>
 };
 
 interface formButtonsProps {
