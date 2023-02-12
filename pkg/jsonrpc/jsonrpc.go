@@ -63,11 +63,23 @@ type rpcClient struct {
 	endpoint   string
 	httpClient *http.Client
 	headers    map[string]string
+
+	// HTTP Basic auth username
+	basicUser string
+
+	// HTTP Basic auth password
+	basicPass string
 }
 
 type ClientOpts struct {
 	HTTPClient *http.Client
 	Headers    map[string]string
+
+	// HTTP Basic auth username
+	BasicUser string
+
+	// HTTP Basic auth password
+	BasicPass string
 }
 
 type RPCResponses []*RPCResponse
@@ -96,6 +108,9 @@ func NewClientWithOpts(endpoint string, opts *ClientOpts) Client {
 			c.headers[k] = v
 		}
 	}
+
+	c.basicUser = opts.BasicUser
+	c.basicPass = opts.BasicPass
 
 	return c
 }
@@ -134,6 +149,11 @@ func (c *rpcClient) newRequest(ctx context.Context, req interface{}) (*http.Requ
 	}
 	request.Header.Set("Content-Type", "application/json")
 	request.Header.Set("Accept", "application/json")
+
+	// set basic auth
+	if c.basicUser != "" && c.basicPass != "" {
+		request.SetBasicAuth(c.basicUser, c.basicPass)
+	}
 
 	for k, v := range c.headers {
 		request.Header.Set(k, v)

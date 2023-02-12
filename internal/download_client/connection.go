@@ -264,7 +264,7 @@ func (s *service) testReadarrConnection(ctx context.Context, client domain.Downl
 }
 
 func (s *service) testPorlaConnection(client domain.DownloadClient) error {
-	p := porla.NewClient(porla.Settings{
+	p := porla.NewClient(porla.Config{
 		Hostname:  client.Host,
 		AuthToken: client.Settings.APIKey,
 	})

@@ -162,7 +162,7 @@ function FormFieldsQbit() {
 
 function FormFieldsPorla() {
   const {
-    values: {}
+    values: { tls, settings }
   } = useFormikContext<InitialValues>();
 
   return (
@@ -173,7 +173,25 @@ function FormFieldsPorla() {
         help="Eg. http(s)://client.domain.ltd, http(s)://domain.ltd/porla, http://domain.ltd:port"
       />
 
+      <SwitchGroupWide name="tls" label="TLS" />
+
       <PasswordFieldWide name="settings.apikey" label="Auth token" />
+
+      {tls && (
+        <SwitchGroupWide
+          name="tls_skip_verify"
+          label="Skip TLS verification (insecure)"
+        />
+      )}
+
+      <SwitchGroupWide name="settings.basic.auth" label="Basic auth" />
+
+      {settings.basic?.auth === true && (
+        <>
+          <TextFieldWide name="settings.basic.username" label="Username" />
+          <PasswordFieldWide name="settings.basic.password" label="Password" />
+        </>
+      )}
     </div>
   );
 }

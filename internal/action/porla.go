@@ -27,9 +27,12 @@ func (s *service) porla(ctx context.Context, action *domain.Action, release doma
 		return nil, errors.New("could not find client by id: %d", action.ClientID)
 	}
 
-	porlaSettings := porla.Settings{
-		Hostname:  client.Host,
-		AuthToken: client.Settings.APIKey,
+	porlaSettings := porla.Config{
+		Hostname:      client.Host,
+		AuthToken:     client.Settings.APIKey,
+		TLSSkipVerify: client.TLSSkipVerify,
+		BasicUser:     client.Settings.Basic.Username,
+		BasicPass:     client.Settings.Basic.Password,
 	}
 
 	porlaSettings.Log = zstdlog.NewStdLoggerWithLevel(s.log.With().Str("type", "Porla").Str("client", client.Name).Logger(), zerolog.TraceLevel)
