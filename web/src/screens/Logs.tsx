@@ -4,8 +4,12 @@ import format from "date-fns/format";
 import { DebounceInput } from "react-debounce-input";
 import { APIClient } from "../api/APIClient";
 import { Checkbox } from "../components/Checkbox";
-import { classNames } from "../utils";
+import { baseUrl, classNames, simplifyDate } from "../utils";
 import { SettingsContext } from "../utils/Context";
+import { EmptySimple } from "../components/emptystates";
+import { DocumentArrowDownIcon } from "@heroicons/react/24/outline";
+import { useQuery } from "react-query";
+import { Link } from "react-router-dom";
 
 type LogEvent = {
   time: string;
@@ -157,6 +161,101 @@ export const Logs = () => {
           />
         </div>
       </div>
+
+      <LogFiles />
     </main>
+  );
+};
+
+const LogFiles = () => {
+  const { isLoading, data } = useQuery(
+    ["log-files"],
+    () => APIClient.logs.files(),
+    {
+      retry: false,
+      refetchOnWindowFocus: false,
+      onError: err => console.log(err)
+    }
+  );
+
+  return (
+    <div className="max-w-screen-xl mx-auto pb-12 px-2 sm:px-4 lg:px-8">
+      <div
+        className="bg-white dark:bg-gray-800 rounded-lg shadow-lg px-2 sm:px-4 pt-3 sm:pt-4"
+      >
+        <div className="mt-2">
+          <h2 className="text-lg leading-6 font-medium text-gray-900 dark:text-white">Log files</h2>
+          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+            Download old log files.
+          </p>
+        </div>
+
+        {data && data.files.length > 0 ? (
+          <section className="py-6 light:bg-white dark:bg-gray-800 light:shadow sm:rounded-md">
+            <ol className="min-w-full relative">
+              <li className="hidden sm:grid grid-cols-12 gap-4 mb-2 border-b border-gray-200 dark:border-gray-700">
+                <div className="col-span-5 px-2 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  Name
+                </div>
+                <div className="col-span-2 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  Size
+                </div>
+                <div className="col-span-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  Last modified
+                </div>
+              </li>
+
+              {data && data.files.map((f, idx) => <LogFilesItem key={idx} file={f} />)}
+            </ol>
+          </section>
+        ) : (
+          <EmptySimple
+            title="No old log files"
+            subtitle=""
+          />
+        )}
+      </div>
+    </div>
+  );
+};
+
+interface LogFilesItemProps {
+  file: LogFile;
+}
+
+const LogFilesItem = ({ file }: LogFilesItemProps) => {
+  return (
+
+    <li className="text-gray-500 dark:text-gray-400">
+      <div className="sm:grid grid-cols-12 gap-4 items-center py-2">
+        <div className="col-span-5 px-2 py-2 sm:py-0 truncate block sm:text-sm text-md font-medium text-gray-900 dark:text-gray-200">
+          <div className="flex justify-between">
+            {file.filename}
+          </div>
+        </div>
+        <div className="col-span-2 flex items-center text-sm font-medium text-gray-900 dark:text-gray-200">
+          {file.size}
+        </div>
+
+        <div className="col-span-4 flex items-center text-sm font-medium text-gray-900 dark:text-gray-200" title={file.updated_at}>
+          {simplifyDate(file.updated_at)}
+        </div>
+
+        <div className="col-span-1 hidden sm:flex items-center text-sm font-medium text-gray-900 dark:text-white">
+          <Link
+            className={classNames(
+              "text-gray-900 dark:text-gray-300",
+              "font-medium group flex rounded-md items-center px-2 py-2 text-sm"
+            )}
+            title="Download file"
+            to={`${baseUrl()}api/logs/files/${file.filename}`}
+            target="_blank"
+            download={true}
+          >
+            <DocumentArrowDownIcon className="text-blue-500 w-5 h-5" aria-hidden="true" />
+          </Link>
+        </div>
+      </div>
+    </li>
   );
 };

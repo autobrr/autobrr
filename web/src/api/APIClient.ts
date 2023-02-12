@@ -42,7 +42,7 @@ export async function HttpClient<T>(
       // Resolve immediately since 204 contains no data
       if (response.status === 204)
         return Promise.resolve(response);
-    
+
       return await response.json();
     });
 }
@@ -144,6 +144,10 @@ export const APIClient = {
     deleteNetwork: (id: number) => appClient.Delete(`api/irc/network/${id}`),
     restartNetwork: (id: number) => appClient.Get(`api/irc/network/${id}/restart`)
   },
+  logs: {
+    files: () => appClient.Get<LogFileResponse>("api/logs/files"),
+    getFile: (file: string) => appClient.Get(`api/logs/files/${file}`)
+  },
   events: {
     logs: () => new EventSource(`${sseBaseUrl()}api/events?stream=logs`, { withCredentials: true })
   },
@@ -185,6 +189,6 @@ export const APIClient = {
   },
   updates: {
     check: () => appClient.Get("api/updates/check"),
-    getLatestRelease: () => appClient.Get<GithubRelease|undefined>("api/updates/latest")
+    getLatestRelease: () => appClient.Get<GithubRelease | undefined>("api/updates/latest")
   }
 };
