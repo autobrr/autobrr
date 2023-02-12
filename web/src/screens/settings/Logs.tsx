@@ -20,7 +20,7 @@ const RowItem = ({ label, value, title, emptyText }: RowItemProps) => {
     <div className="py-4 sm:py-5 sm:grid sm:grid-cols-4 sm:gap-4 sm:px-6">
       <dt className="font-medium text-gray-500 dark:text-white" title={title}>{label}:</dt>
       <dd className="mt-1 text-gray-900 dark:text-white sm:mt-0 sm:col-span-2 break-all">
-        {value ? value : emptyText}
+        <span className="px-1 py-0.5 bg-gray-200 dark:bg-gray-700 rounded shadow">{value ? value : emptyText}</span>
       </dd>
     </div>
   );

@@ -9,17 +9,11 @@ import { SettingsContext } from "../utils/Context";
 import { EmptySimple } from "../components/emptystates";
 import {
   Cog6ToothIcon,
-  DocumentArrowDownIcon,
-  EllipsisHorizontalIcon,
-  PencilSquareIcon, TrashIcon
+  DocumentArrowDownIcon
 } from "@heroicons/react/24/outline";
-import { useMutation, useQuery, useQueryClient } from "react-query";
+import { useQuery } from "react-query";
 import { Link } from "react-router-dom";
-import { useToggle } from "../hooks/hooks";
-import { toast } from "react-hot-toast";
-import Toast from "../components/notifications/Toast";
 import { Menu, Transition } from "@headlessui/react";
-import { DeleteModal } from "../components/modals";
 
 type LogEvent = {
   time: string;
@@ -38,7 +32,7 @@ const LogColors: Record<LogLevel, string> = {
 };
 
 export const Logs = () => {
-  const [settings, setSettings] = SettingsContext.use();
+  const [settings] = SettingsContext.use();
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
   
@@ -78,14 +72,6 @@ export const Logs = () => {
 
     setFilteredLogs(newLogs);
   }, [logs, searchFilter]);
-
-  const onSetValue = (
-    key: "scrollOnNewLog" | "indentLogLines" | "hideWrappedText",
-    newValue: boolean
-  ) => setSettings((prevState) => ({
-    ...prevState,
-    [key]: newValue
-  }));
 
   return (
     <main>
