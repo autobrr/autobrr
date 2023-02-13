@@ -232,7 +232,7 @@ const LogFilesItem = ({ file }: LogFilesItemProps) => {
               "font-medium group flex rounded-md items-center px-2 py-2 text-sm"
             )}
             title="Download file"
-            to={`${baseUrl()}api/logs/files/${file.filename}`}
+            to={`/api/logs/files/${file.filename}`}
             target="_blank"
             download={true}
           >
