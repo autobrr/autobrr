@@ -75,7 +75,6 @@ type Release struct {
 	Artists                     string                `json:"-"`
 	Type                        string                `json:"type"` // Album,Single,EP
 	LogScore                    int                   `json:"-"`
-	IsScene                     bool                  `json:"-"`
 	Origin                      string                `json:"origin"` // P2P, Internal
 	Tags                        []string              `json:"-"`
 	ReleaseTags                 string                `json:"-"`
@@ -486,7 +485,6 @@ func (r *Release) MapVars(def *IndexerDefinition, varMap map[string]string) erro
 
 	if scene, err := getStringMapValue(varMap, "scene"); err == nil {
 		if StringEqualFoldMulti(scene, "true", "yes", "1") {
-			r.IsScene = true
 			r.Origin = "SCENE"
 		}
 	}
@@ -494,15 +492,10 @@ func (r *Release) MapVars(def *IndexerDefinition, varMap map[string]string) erro
 	// set origin. P2P, SCENE, O-SCENE and Internal
 	if origin, err := getStringMapValue(varMap, "origin"); err == nil {
 		r.Origin = origin
-
-		if r.IsScene {
-			r.Origin = "SCENE"
-		}
 	}
 
 	if internal, err := getStringMapValue(varMap, "internal"); err == nil {
-		i := StringEqualFoldMulti(internal, "internal", "yes", "1")
-		if i {
+		if StringEqualFoldMulti(internal, "internal", "yes", "1") {
 			r.Origin = "INTERNAL"
 		}
 	}
