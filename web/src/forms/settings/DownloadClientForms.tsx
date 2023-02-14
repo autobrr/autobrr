@@ -501,21 +501,6 @@ export function DownloadClientAddForm({ isOpen, toggle }: formProps) {
     testClientMutation.mutate(data as DownloadClient);
   };
 
-  const validate = (values: FormikValues) => {
-    const errors = {} as FormikErrors<FormikValues>;
-
-    if (!values.name)
-      errors.name = "Required";
-
-    if (!values.host)
-      errors.host = "Required";
-
-    if (!values.settings.apikey)
-      errors.settings = { apikey: "Required" };
-
-    return errors;
-  };
-
   const initialValues: InitialValues = {
     name: "",
     type: "QBITTORRENT",
@@ -555,7 +540,6 @@ export function DownloadClientAddForm({ isOpen, toggle }: formProps) {
                 <Formik
                   initialValues={initialValues}
                   onSubmit={onSubmit}
-                  validate={validate}
                 >
                   {({ handleSubmit, values }) => (
                     <Form
