@@ -753,7 +753,6 @@ export function DownloadClientUpdateForm({ client, isOpen, toggle }: updateFormP
                 <Formik
                   initialValues={initialValues}
                   onSubmit={onSubmit}
-                  validate={validate}
                 >
                   {({ handleSubmit, values }) => {
                     return (
