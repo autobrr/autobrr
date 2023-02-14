@@ -485,7 +485,10 @@ func (r *Release) MapVars(def *IndexerDefinition, varMap map[string]string) erro
 	}
 
 	if scene, err := getStringMapValue(varMap, "scene"); err == nil {
-		r.IsScene = StringEqualFoldMulti(scene, "true", "yes", "1")
+		if StringEqualFoldMulti(scene, "true", "yes", "1") {
+			r.IsScene = true
+			r.Origin = "SCENE"
+		}
 	}
 
 	// set origin. P2P, SCENE, O-SCENE and Internal
