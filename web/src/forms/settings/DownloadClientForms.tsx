@@ -3,7 +3,7 @@ import { useMutation } from "react-query";
 import { Dialog, Transition } from "@headlessui/react";
 import { XMarkIcon } from "@heroicons/react/24/solid";
 import { classNames, sleep } from "../../utils";
-import { Form, Formik, useFormikContext } from "formik";
+import { Form, Formik, FormikErrors, FormikValues, useFormikContext } from "formik";
 import DEBUG from "../../components/debug";
 import { queryClient } from "../../App";
 import { APIClient } from "../../api/APIClient";
@@ -63,6 +63,7 @@ function FormFieldsDeluge() {
         label="Host"
         help="Eg. client.domain.ltd, domain.ltd/client, domain.ltd:port"
         tooltip={<div><p>See guides for how to connect to Deluge for various server types in our docs.</p><br /><p>Dedicated servers:</p><a href='https://autobrr.com/configuration/download-clients/dedicated#deluge' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/configuration/download-clients/dedicated#deluge</a><p>Shared seedbox providers:</p><a href='https://autobrr.com/configuration/download-clients/shared-seedboxes#deluge' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/configuration/download-clients/shared-seedboxes#deluge</a></div>}
+        required={true}
       />
 
       <NumberFieldWide
@@ -98,9 +99,10 @@ function FormFieldsArr() {
         label="Host"
         help="Full url http(s)://domain.ltd and/or subdomain/subfolder"
         tooltip={<div><p>See guides for how to connect to the *arr suite for various server types in our docs.</p><br /><p>Dedicated servers:</p><a href='https://autobrr.com/configuration/download-clients/dedicated/#sonarr' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/configuration/download-clients/dedicated/</a><p>Shared seedbox providers:</p><a href='https://autobrr.com/configuration/download-clients/shared-seedboxes#sonarr' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/configuration/download-clients/shared-seedboxes</a></div>}
+        required={true}
       />
 
-      <PasswordFieldWide name="settings.apikey" label="API key" />
+      <PasswordFieldWide name="settings.apikey" label="API key" required={true}/>
 
       <SwitchGroupWide name="settings.basic.auth" label="Basic auth" />
 
@@ -126,6 +128,7 @@ function FormFieldsQbit() {
         label="Host"
         help="Eg. http(s)://client.domain.ltd, http(s)://domain.ltd/qbittorrent, http://domain.ltd:port"
         tooltip={<div><p>See guides for how to connect to qBittorrent for various server types in our docs.</p><br /><p>Dedicated servers:</p><a href='https://autobrr.com/configuration/download-clients/dedicated#qbittorrent' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/configuration/download-clients/dedicated#qbittorrent</a><p>Shared seedbox providers:</p><a href='https://autobrr.com/configuration/download-clients/shared-seedboxes#qbittorrent' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/configuration/download-clients/shared-seedboxes#qbittorrent</a></div>}
+        required={true}
       />
 
       {port > 0 && (
@@ -171,9 +174,10 @@ function FormFieldsPorla() {
         name="host"
         label="Host"
         help="Eg. http(s)://client.domain.ltd, http(s)://domain.ltd/porla, http://domain.ltd:port"
+        required={true}
       />
 
-      <PasswordFieldWide name="settings.apikey" label="Auth token" />
+      <PasswordFieldWide name="settings.apikey" label="Auth token" required={true}/>
     </div>
   );
 }
@@ -186,6 +190,7 @@ function FormFieldsRTorrent() {
         label="Host"
         help="Eg. http(s)://client.domain.ltd/RPC2, http(s)://domain.ltd/client, http(s)://domain.ltd/RPC2"
         tooltip={<div><p>See guides for how to connect to rTorrent for various server types in our docs.</p><br /><p>Dedicated servers:</p><a href='https://autobrr.com/configuration/download-clients/dedicated#rtorrent--rutorrent' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/configuration/download-clients/dedicated#rtorrent--rutorrent</a><p>Shared seedbox providers:</p><a href='https://autobrr.com/configuration/download-clients/shared-seedboxes#rtorrent' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/configuration/download-clients/shared-seedboxes#rtorrent</a></div>}
+        required={true}
       />
     </div>
   );
@@ -203,6 +208,7 @@ function FormFieldsTransmission() {
         label="Host"
         help="Eg. client.domain.ltd, domain.ltd/client, domain.ltd"
         tooltip={<div><p>See guides for how to connect to Transmission for various server types in our docs.</p><br /><p>Dedicated servers:</p><a href='https://autobrr.com/configuration/download-clients/dedicated#transmission' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/configuration/download-clients/dedicated#transmission</a><p>Shared seedbox providers:</p><a href='https://autobrr.com/configuration/download-clients/shared-seedboxes#transmisison' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/configuration/download-clients/shared-seedboxes#transmisison</a></div>}
+        required={true}
       />
 
       <NumberFieldWide name="port" label="Port" help="Port for Transmission" />
@@ -495,6 +501,21 @@ export function DownloadClientAddForm({ isOpen, toggle }: formProps) {
     testClientMutation.mutate(data as DownloadClient);
   };
 
+  const validate = (values: FormikValues) => {
+    const errors = {} as FormikErrors<FormikValues>;
+
+    if (!values.name)
+      errors.name = "Required";
+
+    if (!values.host)
+      errors.host = "Required";
+
+    if (!values.settings.apikey)
+      errors.settings = { apikey: "Required" };
+
+    return errors;
+  };
+
   const initialValues: InitialValues = {
     name: "",
     type: "QBITTORRENT",
@@ -534,6 +555,7 @@ export function DownloadClientAddForm({ isOpen, toggle }: formProps) {
                 <Formik
                   initialValues={initialValues}
                   onSubmit={onSubmit}
+                  validate={validate}
                 >
                   {({ handleSubmit, values }) => (
                     <Form
@@ -568,7 +590,7 @@ export function DownloadClientAddForm({ isOpen, toggle }: formProps) {
                         </div>
 
                         <div className="flex flex-col space-y-4 px-1 py-6 sm:py-0 sm:space-y-0">
-                          <TextFieldWide name="name" label="Name"/>
+                          <TextFieldWide name="name" label="Name" required={true}/>
                           <SwitchGroupWide name="enabled" label="Enabled"/>
                           <RadioFieldsetWide
                             name="type"
@@ -683,6 +705,21 @@ export function DownloadClientUpdateForm({ client, isOpen, toggle }: updateFormP
     testClientMutation.mutate(data as DownloadClient);
   };
 
+  const validate = (values: FormikValues) => {
+    const errors = {} as FormikErrors<FormikValues>;
+
+    if (!values.name)
+      errors.name = "Required";
+
+    if (!values.host)
+      errors.host = "Required";
+
+    if (!values.settings.apikey)
+      errors.settings = { apikey: "Required" };
+
+    return errors;
+  };
+
   const initialValues = {
     id: client.id,
     name: client.name,
@@ -732,6 +769,7 @@ export function DownloadClientUpdateForm({ client, isOpen, toggle }: updateFormP
                 <Formik
                   initialValues={initialValues}
                   onSubmit={onSubmit}
+                  validate={validate}
                 >
                   {({ handleSubmit, values }) => {
                     return (
@@ -767,7 +805,7 @@ export function DownloadClientUpdateForm({ client, isOpen, toggle }: updateFormP
                           </div>
 
                           <div className="py-6 space-y-6 sm:py-0 sm:space-y-0 sm:divide-y dark:divide-gray-700">
-                            <TextFieldWide name="name" label="Name"/>
+                            <TextFieldWide name="name" label="Name" required={true}/>
                             <SwitchGroupWide name="enabled" label="Enabled"/>
                             <RadioFieldsetWide
                               name="type"
