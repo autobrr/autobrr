@@ -689,21 +689,6 @@ export function DownloadClientUpdateForm({ client, isOpen, toggle }: updateFormP
     testClientMutation.mutate(data as DownloadClient);
   };
 
-  const validate = (values: FormikValues) => {
-    const errors = {} as FormikErrors<FormikValues>;
-
-    if (!values.name)
-      errors.name = "Required";
-
-    if (!values.host)
-      errors.host = "Required";
-
-    if (!values.settings.apikey)
-      errors.settings = { apikey: "Required" };
-
-    return errors;
-  };
-
   const initialValues = {
     id: client.id,
     name: client.name,
