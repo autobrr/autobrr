@@ -4,7 +4,7 @@ import format from "date-fns/format";
 import { DebounceInput } from "react-debounce-input";
 import { APIClient } from "../api/APIClient";
 import { Checkbox } from "../components/Checkbox";
-import { baseUrl, classNames, simplifyDate } from "../utils";
+import { classNames, simplifyDate } from "../utils";
 import { SettingsContext } from "../utils/Context";
 import { EmptySimple } from "../components/emptystates";
 import {
@@ -41,7 +41,7 @@ export const Logs = () => {
   const [filteredLogs, setFilteredLogs] = useState<LogEvent[]>([]);
 
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "auto" });
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end", inline: "end" });
   };
 
   useEffect(() => {
