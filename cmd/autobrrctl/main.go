@@ -3,9 +3,11 @@ package main
 import (
 	"bufio"
 	"context"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"log"
+	"net/http"
 	"os"
 
 	"github.com/autobrr/autobrr/internal/config"
@@ -15,7 +17,7 @@ import (
 	"github.com/autobrr/autobrr/pkg/argon2id"
 	"github.com/autobrr/autobrr/pkg/errors"
 
-	"golang.org/x/crypto/ssh/terminal"
+	"golang.org/x/term"
 	_ "modernc.org/sqlite"
 )
 
@@ -27,17 +29,31 @@ const usage = `usage: autobrrctl --config path <action>
   help						Show this help message
 `
 
-func init() {
-	flag.Usage = func() {
-		fmt.Fprintf(flag.CommandLine.Output(), usage)
-	}
-}
-
 var (
 	version = "dev"
 	commit  = ""
 	date    = ""
+
+	owner = "autobrr"
+	repo  = "autobrr"
 )
+
+func init() {
+	flag.Usage = func() {
+		fmt.Fprint(flag.CommandLine.Output(), usage)
+	}
+	// get the latest release tag from Github
+	resp, err := http.Get(fmt.Sprintf("https://api.github.com/repos/%s/%s/releases/latest", owner, repo))
+	if err == nil && resp.StatusCode == http.StatusOK {
+		defer resp.Body.Close()
+		var rel struct {
+			TagName string `json:"tag_name"`
+		}
+		if err := json.NewDecoder(resp.Body).Decode(&rel); err == nil {
+			version = rel.TagName
+		}
+	}
+}
 
 func main() {
 	var configPath string
@@ -130,9 +146,9 @@ func readPassword() ([]byte, error) {
 	var err error
 	fd := int(os.Stdin.Fd())
 
-	if terminal.IsTerminal(fd) {
+	if term.IsTerminal(fd) {
 		fmt.Printf("Password: ")
-		password, err = terminal.ReadPassword(int(os.Stdin.Fd()))
+		password, err = term.ReadPassword(int(os.Stdin.Fd()))
 		if err != nil {
 			return nil, err
 		}
