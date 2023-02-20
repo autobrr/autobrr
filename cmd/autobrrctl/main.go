@@ -25,8 +25,9 @@ const usage = `usage: autobrrctl --config path <action>
 
   create-user		<username>	Create user
   change-password	<username>	Change password for user
-  version				Run without --config
+  version				Can be run without --config
   help					Show this help message
+
 `
 
 var (
@@ -48,18 +49,6 @@ func main() {
 	var configPath string
 	flag.StringVar(&configPath, "config", "", "path to configuration file")
 	flag.Parse()
-
-	//	// read config
-	//	cfg := config.New(configPath, version)
-	//
-	//	// init new logger
-	//	l := logger.New(cfg.Config)
-	//
-	//	// open database connection
-	//	db, _ := database.NewDB(cfg.Config, l)
-	//	if err := db.Open(); err != nil {
-	//		log.Fatal("could not open db connection")
-	//	}
 
 	switch cmd := flag.Arg(0); cmd {
 	case "version":
