@@ -23,10 +23,10 @@ import (
 
 const usage = `usage: autobrrctl --config path <action>
 
-  create-user		 <username>		Create user
-  change-password	 <username>		Change password for user
-  version					Print version info
-  help						Show this help message
+  create-user		<username>	Create user
+  change-password	<username>	Change password for user
+  version				Run without --config
+  help					Show this help message
 `
 
 var (
@@ -42,17 +42,6 @@ func init() {
 	flag.Usage = func() {
 		fmt.Fprint(flag.CommandLine.Output(), usage)
 	}
-	// get the latest release tag from Github
-	resp, err := http.Get(fmt.Sprintf("https://api.github.com/repos/%s/%s/releases/latest", owner, repo))
-	if err == nil && resp.StatusCode == http.StatusOK {
-		defer resp.Body.Close()
-		var rel struct {
-			TagName string `json:"tag_name"`
-		}
-		if err := json.NewDecoder(resp.Body).Decode(&rel); err == nil {
-			version = rel.TagName
-		}
-	}
 }
 
 func main() {
@@ -60,32 +49,54 @@ func main() {
 	flag.StringVar(&configPath, "config", "", "path to configuration file")
 	flag.Parse()
 
-	if configPath == "" {
-		log.Fatal("--config required")
-	}
-
-	// read config
-	cfg := config.New(configPath, version)
-
-	// init new logger
-	l := logger.New(cfg.Config)
-
-	// open database connection
-	db, _ := database.NewDB(cfg.Config, l)
-	if err := db.Open(); err != nil {
-		log.Fatal("could not open db connection")
-	}
-
-	userRepo := database.NewUserRepo(l, db)
+	//	// read config
+	//	cfg := config.New(configPath, version)
+	//
+	//	// init new logger
+	//	l := logger.New(cfg.Config)
+	//
+	//	// open database connection
+	//	db, _ := database.NewDB(cfg.Config, l)
+	//	if err := db.Open(); err != nil {
+	//		log.Fatal("could not open db connection")
+	//	}
 
 	switch cmd := flag.Arg(0); cmd {
 	case "version":
 		fmt.Fprintf(flag.CommandLine.Output(), "Version: %v\nCommit: %v\nBuild: %v\n", version, commit, date)
-		if version != "dev" {
-			fmt.Fprintf(flag.CommandLine.Output(), "Latest release: %v\n", version)
+
+		// get the latest release tag from Github
+		resp, err := http.Get(fmt.Sprintf("https://api.github.com/repos/%s/%s/releases/latest", owner, repo))
+		if err == nil && resp.StatusCode == http.StatusOK {
+			defer resp.Body.Close()
+			var rel struct {
+				TagName string `json:"tag_name"`
+			}
+			if err := json.NewDecoder(resp.Body).Decode(&rel); err == nil {
+				fmt.Fprintf(flag.CommandLine.Output(), "Latest release: %v\n", rel.TagName)
+			}
 		}
 
 	case "create-user":
+
+		if configPath == "" {
+			log.Fatal("--config required")
+		}
+
+		// read config
+		cfg := config.New(configPath, version)
+
+		// init new logger
+		l := logger.New(cfg.Config)
+
+		// open database connection
+		db, _ := database.NewDB(cfg.Config, l)
+		if err := db.Open(); err != nil {
+			log.Fatal("could not open db connection")
+		}
+
+		userRepo := database.NewUserRepo(l, db)
+
 		username := flag.Arg(1)
 		if username == "" {
 			flag.Usage()
@@ -109,6 +120,25 @@ func main() {
 			log.Fatalf("failed to create user: %v", err)
 		}
 	case "change-password":
+
+		if configPath == "" {
+			log.Fatal("--config required")
+		}
+
+		// read config
+		cfg := config.New(configPath, version)
+
+		// init new logger
+		l := logger.New(cfg.Config)
+
+		// open database connection
+		db, _ := database.NewDB(cfg.Config, l)
+		if err := db.Open(); err != nil {
+			log.Fatal("could not open db connection")
+		}
+
+		userRepo := database.NewUserRepo(l, db)
+
 		username := flag.Arg(1)
 		if username == "" {
 			flag.Usage()
