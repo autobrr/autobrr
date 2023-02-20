@@ -81,6 +81,10 @@ func main() {
 	switch cmd := flag.Arg(0); cmd {
 	case "version":
 		fmt.Fprintf(flag.CommandLine.Output(), "Version: %v\nCommit: %v\nBuild: %v\n", version, commit, date)
+		if version != "dev" {
+			fmt.Fprintf(flag.CommandLine.Output(), "Latest release: %v\n", version)
+		}
+
 	case "create-user":
 		username := flag.Arg(1)
 		if username == "" {
