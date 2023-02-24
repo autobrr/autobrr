@@ -398,20 +398,6 @@ const TypeForm = ({ action, idx, clients }: TypeFormProps) => {
         </div>
       </div>
     );
-  case "RADARR":
-  case "SONARR":
-  case "LIDARR":
-  case "WHISPARR":
-  case "READARR":
-    return (
-      <div className="mt-6 grid grid-cols-12 gap-6">
-        <DownloadClientSelect
-          name={`actions.${idx}.client_id`}
-          action={action}
-          clients={clients}
-        />
-      </div>
-    );
   case "PORLA":
     return (
       <div className="w-full">
@@ -446,6 +432,20 @@ const TypeForm = ({ action, idx, clients }: TypeFormProps) => {
             </div>
           </div>
         </CollapsableSection>
+      </div>
+    );
+  case "RADARR":
+  case "SONARR":
+  case "LIDARR":
+  case "WHISPARR":
+  case "READARR":
+    return (
+      <div className="mt-6 grid grid-cols-12 gap-6">
+        <DownloadClientSelect
+          name={`actions.${idx}.client_id`}
+          action={action}
+          clients={clients}
+        />
       </div>
     );
 
