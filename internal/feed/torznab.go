@@ -89,6 +89,11 @@ func (j *TorznabJob) process(ctx context.Context) error {
 
 		rls.ParseString(item.Title)
 
+		if rls.IsMagnetLink(item.Link) {
+			rls.MagnetURI = item.Link
+			rls.TorrentURL = ""
+		}
+
 		// Get freeleech percentage between 0 - 100. The value is ignored if
 		// an error occurrs
 		freeleechPercentage, err := parseFreeleechTorznab(item)

@@ -108,6 +108,11 @@ func (j *RSSJob) processItem(item *gofeed.Item) *domain.Release {
 
 	rls.ParseString(item.Title)
 
+	if rls.IsMagnetLink(item.Link) {
+		rls.MagnetURI = item.Link
+		rls.TorrentURL = ""
+	}
+
 	if len(item.Enclosures) > 0 {
 		e := item.Enclosures[0]
 		if e.Type == "application/x-bittorrent" && e.URL != "" {

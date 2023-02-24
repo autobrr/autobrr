@@ -2,6 +2,7 @@ package action
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"os/exec"
 	"strings"
@@ -14,11 +15,15 @@ import (
 )
 
 func (s *service) execCmd(ctx context.Context, action *domain.Action, release domain.Release) error {
-	s.log.Debug().Msgf("action exec: %v release: %v", action.Name, release.TorrentName)
+	s.log.Debug().Msgf("action exec: %s release: %s", action.Name, release.TorrentName)
 
 	if release.TorrentTmpFile == "" && strings.Contains(action.ExecArgs, "TorrentPathName") {
+		if release.IsMagnetLink(release.MagnetURI) {
+			return fmt.Errorf("action watch folder does not support magnet links: %s", release.TorrentName)
+		}
+
 		if err := release.DownloadTorrentFileCtx(ctx); err != nil {
-			return errors.Wrap(err, "error downloading torrent file for release: %v", release.TorrentName)
+			return errors.Wrap(err, "error downloading torrent file for release: %s", release.TorrentName)
 		}
 	}
 
@@ -26,7 +31,7 @@ func (s *service) execCmd(ctx context.Context, action *domain.Action, release do
 	if len(release.TorrentDataRawBytes) == 0 && release.TorrentTmpFile != "" {
 		t, err := os.ReadFile(release.TorrentTmpFile)
 		if err != nil {
-			return errors.Wrap(err, "could not read torrent file: %v", release.TorrentTmpFile)
+			return errors.Wrap(err, "could not read torrent file: %s", release.TorrentTmpFile)
 		}
 
 		release.TorrentDataRawBytes = t
@@ -35,14 +40,14 @@ func (s *service) execCmd(ctx context.Context, action *domain.Action, release do
 	// check if program exists
 	cmd, err := exec.LookPath(action.ExecCmd)
 	if err != nil {
-		return errors.Wrap(err, "exec failed, could not find program: %v", action.ExecCmd)
+		return errors.Wrap(err, "exec failed, could not find program: %s", action.ExecCmd)
 	}
 
 	p := shellwords.NewParser()
 	p.ParseBacktick = true
 	args, err := p.Parse(action.ExecArgs)
 	if err != nil {
-		return errors.Wrap(err, "could not parse exec args: %v", action.ExecArgs)
+		return errors.Wrap(err, "could not parse exec args: %s", action.ExecArgs)
 	}
 
 	// we need to split on space into a string slice, so we can spread the args into exec
@@ -56,14 +61,14 @@ func (s *service) execCmd(ctx context.Context, action *domain.Action, release do
 	output, err := command.CombinedOutput()
 	if err != nil {
 		// everything other than exit 0 is considered an error
-		return errors.Wrap(err, "error executing command: %v args: %v", cmd, args)
+		return errors.Wrap(err, "error executing command: %s args: %s", cmd, args)
 	}
 
-	s.log.Trace().Msgf("executed command: '%v'", string(output))
+	s.log.Trace().Msgf("executed command: '%s'", string(output))
 
 	duration := time.Since(start)
 
-	s.log.Info().Msgf("executed command: '%v', args: '%v' %v,%v, total time %v", cmd, args, release.TorrentName, release.Indexer, duration)
+	s.log.Info().Msgf("executed command: '%s', args: '%s' %s,%s, total time %v", cmd, args, release.TorrentName, release.Indexer, duration)
 
 	return nil
 }

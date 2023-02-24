@@ -46,6 +46,7 @@ type Release struct {
 	Timestamp                   time.Time             `json:"timestamp"`
 	InfoURL                     string                `json:"info_url"`
 	TorrentURL                  string                `json:"download_url"`
+	MagnetURI                   string                `json:"-"`
 	GroupID                     string                `json:"group_id"`
 	TorrentID                   string                `json:"torrent_id"`
 	TorrentTmpFile              string                `json:"-"`
@@ -290,6 +291,10 @@ func (r *Release) DownloadTorrentFile() error {
 }
 
 func (r *Release) downloadTorrentFile(ctx context.Context) error {
+	if r.IsMagnetLink(r.MagnetURI) {
+		return fmt.Errorf("error trying to download magnet link: %s", r.MagnetURI)
+	}
+
 	if r.TorrentURL == "" {
 		return errors.New("download_file: url can't be empty")
 	} else if r.TorrentTmpFile != "" {
@@ -387,6 +392,14 @@ func (r *Release) downloadTorrentFile(ctx context.Context) error {
 	)
 
 	return errFunc
+}
+
+func (r *Release) IsMagnetLink(link string) bool {
+	if link != "" {
+		return strings.HasSuffix(link, "magnet:?")
+	}
+
+	return strings.HasSuffix(r.TorrentURL, "magnet:?")
 }
 
 func (r *Release) addRejection(reason string) {

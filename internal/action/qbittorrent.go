@@ -11,48 +11,76 @@ import (
 )
 
 func (s *service) qbittorrent(ctx context.Context, action *domain.Action, release domain.Release) ([]string, error) {
-	s.log.Debug().Msgf("action qBittorrent: %v", action.Name)
+	s.log.Debug().Msgf("action qBittorrent: %s", action.Name)
 
 	c := s.clientSvc.GetCachedClient(ctx, action.ClientID)
 
 	rejections, err := s.qbittorrentCheckRulesCanDownload(ctx, action, c.Dc, c.Qbt)
 	if err != nil {
-		return nil, errors.Wrap(err, "error checking client rules: %v", action.Name)
+		return nil, errors.Wrap(err, "error checking client rules: %s", action.Name)
 	}
 
 	if len(rejections) > 0 {
 		return rejections, nil
 	}
 
-	if release.TorrentTmpFile == "" {
-		if err := release.DownloadTorrentFileCtx(ctx); err != nil {
-			return nil, errors.Wrap(err, "error downloading torrent file for release: %v", release.TorrentName)
+	if release.MagnetURI != "" {
+		options, err := s.prepareQbitOptions(action)
+		if err != nil {
+			return nil, errors.Wrap(err, "could not prepare options")
 		}
-	}
 
-	options, err := s.prepareQbitOptions(action)
-	if err != nil {
-		return nil, errors.Wrap(err, "could not prepare options")
-	}
+		s.log.Trace().Msgf("action qBittorrent options: %+v", options)
 
-	s.log.Trace().Msgf("action qBittorrent options: %+v", options)
-
-	if err = c.Qbt.AddTorrentFromFileCtx(ctx, release.TorrentTmpFile, options); err != nil {
-		return nil, errors.Wrap(err, "could not add torrent %v to client: %v", release.TorrentTmpFile, c.Dc.Name)
-	}
-
-	if !action.Paused && !action.ReAnnounceSkip && release.TorrentHash != "" {
-		opts := qbittorrent.ReannounceOptions{
-			Interval:        int(action.ReAnnounceInterval),
-			MaxAttempts:     int(action.ReAnnounceMaxAttempts),
-			DeleteOnFailure: action.ReAnnounceDelete,
+		if err = c.Qbt.AddTorrentFromUrlCtx(ctx, release.MagnetURI, options); err != nil {
+			return nil, errors.Wrap(err, "could not add torrent %s to client: %s", release.MagnetURI, c.Dc.Name)
 		}
-		if err := c.Qbt.ReannounceTorrentWithRetry(ctx, opts, release.TorrentHash); err != nil {
-			return nil, errors.Wrap(err, "could not reannounce torrent: %v", release.TorrentHash)
-		}
-	}
 
-	s.log.Info().Msgf("torrent with hash %v successfully added to client: '%v'", release.TorrentHash, c.Dc.Name)
+		if !action.Paused && !action.ReAnnounceSkip && release.TorrentHash != "" {
+			opts := qbittorrent.ReannounceOptions{
+				Interval:        int(action.ReAnnounceInterval),
+				MaxAttempts:     int(action.ReAnnounceMaxAttempts),
+				DeleteOnFailure: action.ReAnnounceDelete,
+			}
+			if err := c.Qbt.ReannounceTorrentWithRetry(ctx, opts, release.TorrentHash); err != nil {
+				return nil, errors.Wrap(err, "could not reannounce torrent: %s", release.TorrentHash)
+			}
+		}
+
+		s.log.Info().Msgf("torrent with hash %s successfully added to client: '%s'", release.TorrentHash, c.Dc.Name)
+
+		return nil, nil
+	} else {
+		if release.TorrentTmpFile == "" {
+			if err := release.DownloadTorrentFileCtx(ctx); err != nil {
+				return nil, errors.Wrap(err, "error downloading torrent file for release: %s", release.TorrentName)
+			}
+		}
+
+		options, err := s.prepareQbitOptions(action)
+		if err != nil {
+			return nil, errors.Wrap(err, "could not prepare options")
+		}
+
+		s.log.Trace().Msgf("action qBittorrent options: %+v", options)
+
+		if err = c.Qbt.AddTorrentFromFileCtx(ctx, release.TorrentTmpFile, options); err != nil {
+			return nil, errors.Wrap(err, "could not add torrent %s to client: %s", release.TorrentTmpFile, c.Dc.Name)
+		}
+
+		if !action.Paused && !action.ReAnnounceSkip && release.TorrentHash != "" {
+			opts := qbittorrent.ReannounceOptions{
+				Interval:        int(action.ReAnnounceInterval),
+				MaxAttempts:     int(action.ReAnnounceMaxAttempts),
+				DeleteOnFailure: action.ReAnnounceDelete,
+			}
+			if err := c.Qbt.ReannounceTorrentWithRetry(ctx, opts, release.TorrentHash); err != nil {
+				return nil, errors.Wrap(err, "could not reannounce torrent: %s", release.TorrentHash)
+			}
+		}
+
+		s.log.Info().Msgf("torrent with hash %s successfully added to client: '%s'", release.TorrentHash, c.Dc.Name)
+	}
 
 	return nil, nil
 }

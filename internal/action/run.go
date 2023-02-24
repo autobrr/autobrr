@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/tls"
+	"fmt"
 	"io"
 	"net/http"
 	"os"
@@ -24,8 +25,8 @@ func (s *service) RunAction(ctx context.Context, action *domain.Action, release 
 
 	defer func() {
 		if r := recover(); r != nil {
-			s.log.Error().Msgf("recovering from panic in run action %v error: %v", action.Name, r)
-			err = errors.New("panic in action: %v", action.Name)
+			s.log.Error().Msgf("recovering from panic in run action %s error: %v", action.Name, r)
+			err = errors.New("panic in action: %s", action.Name)
 			return
 		}
 	}()
@@ -147,6 +148,10 @@ func (s *service) test(name string) {
 }
 
 func (s *service) watchFolder(ctx context.Context, action *domain.Action, release domain.Release) error {
+	if release.IsMagnetLink(release.MagnetURI) {
+		return fmt.Errorf("action watch folder does not support magnet links: %s", release.TorrentName)
+	}
+
 	if release.TorrentTmpFile == "" {
 		if err := release.DownloadTorrentFileCtx(ctx); err != nil {
 			return errors.Wrap(err, "watch folder: could not download torrent file for release: %v", release.TorrentName)
