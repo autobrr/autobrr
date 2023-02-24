@@ -74,7 +74,7 @@ func NewClient(cfg Config) *Client {
 
 	c.rpcClient = jsonrpc.NewClientWithOpts(cfg.Hostname+"/api/v1/jsonrpc", &jsonrpc.ClientOpts{
 		Headers: map[string]string{
-			"Authorization": "Bearer " + cfg.AuthToken,
+			"X-Porla-Token": cfg.AuthToken,
 		},
 		HTTPClient: httpClient,
 		BasicUser:  cfg.BasicUser,
