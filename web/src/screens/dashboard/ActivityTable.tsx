@@ -188,10 +188,11 @@ export const ActivityTable = () => {
     return (
       <div className="flex flex-col mt-12">
         <h3 className="text-2xl font-medium leading-6 text-gray-900 dark:text-gray-200">
-        Recent activity
+        &nbsp;
         </h3>
-
-        <Table columns={columns} data={data ?? []} />
+        <div className="animate-pulse text-black dark:text-white">
+          <EmptyListState text="Loading..." />
+        </div>
       </div>
     );
 
