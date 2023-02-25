@@ -40,9 +40,9 @@ export const Stats = () => {
         Stats
         </h1>
         <dl className="animate-pulse grid grid-cols-1 gap-5 mt-5 sm:grid-cols-2 lg:grid-cols-3">
-          <StatsItem name="" placeholder="lkasdj"/>
-          <StatsItem name="" placeholder="lkasdj"/>
-          <StatsItem name="" placeholder="lkasdj"/>
+          <StatsItem name="" placeholder="&nbsp;"/>
+          <StatsItem name="" placeholder="&nbsp;"/>
+          <StatsItem name="" placeholder="&nbsp;"/>
         </dl>
       </div>
     );
