@@ -197,7 +197,7 @@ export const ReleaseTable = () => {
 
   if (isLoading)
     return (
-      <div className="animate-pulse flex flex-col">
+      <div className="flex flex-col animate-pulse">
         <div className="flex mb-6 flex-col sm:flex-row">
           {headerGroups.map((headerGroup) =>
             headerGroup.headers.map((column) => (
@@ -210,42 +210,24 @@ export const ReleaseTable = () => {
         <div className="bg-white shadow-lg dark:bg-gray-800 rounded-md overflow-auto">
           <table {...getTableProps()} className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
             <thead className="bg-gray-50 dark:bg-gray-800">
-              {headerGroups.map((headerGroup) => {
-                const { key: rowKey, ...rowRest } = headerGroup.getHeaderGroupProps();
-                return (
-                  <tr key={rowKey} {...rowRest}>
-                    {headerGroup.headers.map((column) => {
-                      const { key: columnKey, ...columnRest } = column.getHeaderProps(column.getSortByToggleProps());
-                      return (
-                      // Add the sorting props to control sorting. For this example
-                      // we can add them into the header props
-                        <th
-                          key={`${rowKey}-${columnKey}`}
-                          scope="col"
-                          className="first:pl-5 pl-3 pr-3 py-3 first:rounded-tl-md last:rounded-tr-md text-xs font-medium tracking-wider text-left text-gray-500 uppercase group"
-                          {...columnRest}
-                        >
-                          <div className="flex items-center justify-between">
-                            <>{column.render("Header")}</>
-                            {/* Add a sort direction indicator */}
-                            <span>
-                              {column.isSorted ? (
-                                column.isSortedDesc ? (
-                                  <Icons.SortDownIcon className="w-4 h-4 text-gray-400" />
-                                ) : (
-                                  <Icons.SortUpIcon className="w-4 h-4 text-gray-400" />
-                                )
-                              ) : (
-                                <Icons.SortIcon className="w-4 h-4 text-gray-400 opacity-0 group-hover:opacity-100" />
-                              )}
-                            </span>
-                          </div>
-                        </th>
-                      );
-                    })}
-                  </tr>
-                );
-              })}
+              <tr>
+
+                <th
+
+                  scope="col"
+                  className="first:pl-5 pl-3 pr-3 py-3 first:rounded-tl-md last:rounded-tr-md text-xs font-medium tracking-wider text-left text-gray-500 uppercase group"
+
+                >
+                  <div className="flex items-center justify-between">
+                    {/* Add a sort direction indicator */}
+                    <span className="h-4">
+                    </span>
+                  </div>
+                </th>
+
+              </tr>
+
+
             </thead>
             <tbody className=" divide-gray-200 dark:divide-gray-700">
               <tr className="flex justify-between py-4 text-sm font-medium box-content text-gray-900 dark:text-gray-300 max-w-[96px] sm:max-w-[216px] md:max-w-[360px] lg:max-w-[640px] xl:max-w-[840px]">
@@ -365,7 +347,6 @@ export const ReleaseTable = () => {
             </div>
           </div>
         </div>
-        <EmptyListState text="Loading release table..." />
       </div>
     );
 
@@ -452,7 +433,6 @@ export const ReleaseTable = () => {
             })}
           </tbody>
         </table>
-
         {/* Pagination */}
         <div className="flex items-center justify-between px-6 py-3 border-t border-gray-200 dark:border-gray-700">
           <div className="flex justify-between flex-1 sm:hidden">
