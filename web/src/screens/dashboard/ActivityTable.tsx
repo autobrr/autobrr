@@ -185,7 +185,15 @@ export const ActivityTable = () => {
   );
 
   if (isLoading)
-    return null;
+    return (
+      <div className="flex flex-col mt-12">
+        <h3 className="text-2xl font-medium leading-6 text-gray-900 dark:text-gray-200">
+        Recent activity
+        </h3>
+
+        <Table columns={columns} data={data ?? []} />
+      </div>
+    );
 
   return (
     <div className="flex flex-col mt-12">
