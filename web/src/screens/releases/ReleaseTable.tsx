@@ -247,32 +247,57 @@ export const ReleaseTable = () => {
                 );
               })}
             </thead>
-            <tbody
-              {...getTableBodyProps()}
-              className="divide-y divide-gray-200 dark:divide-gray-700"
-            >
-              {page.map((row) => {
-                prepareRow(row);
-
-                const { key: bodyRowKey, ...bodyRowRest } = row.getRowProps();
-                return (
-                  <tr key={bodyRowKey} {...bodyRowRest}>
-                    {row.cells.map((cell) => {
-                      const { key: cellRowKey, ...cellRowRest } = cell.getCellProps();
-                      return (
-                        <td
-                          key={cellRowKey}
-                          className="first:pl-5 pl-3 pr-3 whitespace-nowrap"
-                          role="cell"
-                          {...cellRowRest}
-                        >
-                          <>{cell.render("Cell")}</>
-                        </td>
-                      );
-                    })}
-                  </tr>
-                );
-              })}
+            <tbody className=" divide-gray-200 dark:divide-gray-700">
+              <tr className="flex justify-between py-4 text-sm font-medium box-content text-gray-900 dark:text-gray-300 max-w-[96px] sm:max-w-[216px] md:max-w-[360px] lg:max-w-[640px] xl:max-w-[840px]">
+                <td className="first:pl-5 pl-3 pr-3 whitespace-nowrap ">&nbsp;</td>
+                <td className="first:pl-5 pl-3 pr-3 whitespace-nowrap ">&nbsp;</td>
+                <td className="first:pl-5 pl-3 pr-3 whitespace-nowrap ">&nbsp;</td>
+              </tr>
+              <tr className="flex justify-between py-4 text-sm font-medium box-content text-gray-900 dark:text-gray-300 max-w-[96px] sm:max-w-[216px] md:max-w-[360px] lg:max-w-[640px] xl:max-w-[840px]">
+                <td className="first:pl-5 pl-3 pr-3 whitespace-nowrap ">&nbsp;</td>
+                <td className="first:pl-5 pl-3 pr-3 whitespace-nowrap ">&nbsp;</td>
+                <td className="first:pl-5 pl-3 pr-3 whitespace-nowrap ">&nbsp;</td>
+              </tr>
+              <tr className="flex justify-between py-4 text-sm font-medium box-content text-gray-900 dark:text-gray-300 max-w-[96px] sm:max-w-[216px] md:max-w-[360px] lg:max-w-[640px] xl:max-w-[840px]">
+                <td className="first:pl-5 pl-3 pr-3 whitespace-nowrap ">&nbsp;</td>
+                <td className="first:pl-5 pl-3 pr-3 whitespace-nowrap ">&nbsp;</td>
+                <td className="first:pl-5 pl-3 pr-3 whitespace-nowrap">&nbsp;</td>
+              </tr>
+              <tr className="flex justify-between py-4 text-sm font-medium box-content text-gray-900 dark:text-gray-300 max-w-[96px] sm:max-w-[216px] md:max-w-[360px] lg:max-w-[640px] xl:max-w-[840px]">
+                <td className="first:pl-5 pl-3 pr-3 whitespace-nowrap ">&nbsp;</td>
+                <td className="first:pl-5 pl-3 pr-3 whitespace-nowrap ">&nbsp;</td>
+                <td className="first:pl-5 pl-3 pr-3 whitespace-nowrap ">&nbsp;</td>
+              </tr>
+              <tr className="justify-between py-3 text-sm font-medium box-content text-gray-900 dark:text-gray-300">
+                <td className="first:pl-5 pl-3 pr-3 whitespace-nowrap text-center">
+                  <p className="text-black dark:text-white">Loading release table...</p>
+                </td>
+              </tr>
+              <tr className="flex justify-between py-3 text-sm font-medium box-content text-gray-900 dark:text-gray-300 max-w-[96px] sm:max-w-[216px] md:max-w-[360px] lg:max-w-[640px] xl:max-w-[840px]">
+                <td className="first:pl-5 pl-3 pr-3 whitespace-nowrap">&nbsp;</td>
+                <td className="first:pl-5 pl-3 pr-3 whitespace-nowrap ">&nbsp;</td>
+                <td className="first:pl-5 pl-3 pr-3 whitespace-nowrap ">&nbsp;</td>
+              </tr>
+              <tr className="flex justify-between py-3 text-sm font-medium box-content text-gray-900 dark:text-gray-300 max-w-[96px] sm:max-w-[216px] md:max-w-[360px] lg:max-w-[640px] xl:max-w-[840px]">
+                <td className="first:pl-5 pl-3 pr-3 whitespace-nowrap ">&nbsp;</td>
+                <td className="first:pl-5 pl-3 pr-3 whitespace-nowrap ">&nbsp;</td>
+                <td className="first:pl-5 pl-3 pr-3 whitespace-nowrap ">&nbsp;</td>
+              </tr>
+              <tr className="flex justify-between py-3 text-sm font-medium box-content text-gray-900 dark:text-gray-300 max-w-[96px] sm:max-w-[216px] md:max-w-[360px] lg:max-w-[640px] xl:max-w-[840px]">
+                <td className="first:pl-5 pl-3 pr-3 whitespace-nowrap ">&nbsp;</td>
+                <td className="first:pl-5 pl-3 pr-3 whitespace-nowrap ">&nbsp;</td>
+                <td className="first:pl-5 pl-3 pr-3 whitespace-nowrap ">&nbsp;</td>
+              </tr>
+              <tr className="flex justify-between py-3 text-sm font-medium box-content text-gray-900 dark:text-gray-300 max-w-[96px] sm:max-w-[216px] md:max-w-[360px] lg:max-w-[640px] xl:max-w-[840px]">
+                <td className="first:pl-5 pl-3 pr-3 whitespace-nowrap ">&nbsp;</td>
+                <td className="first:pl-5 pl-3 pr-3 whitespace-nowrap ">&nbsp;</td>
+                <td className="first:pl-5 pl-3 pr-3 whitespace-nowrap ">&nbsp;</td>
+              </tr>
+              <tr className="flex justify-between py-3 text-sm font-medium box-content text-gray-900 dark:text-gray-300 max-w-[96px] sm:max-w-[216px] md:max-w-[360px] lg:max-w-[640px] xl:max-w-[840px]">
+                <td className="first:pl-5 pl-3 pr-3 whitespace-nowrap ">&nbsp;</td>
+                <td className="first:pl-5 pl-3 pr-3 whitespace-nowrap ">&nbsp;</td>
+                <td className="first:pl-5 pl-3 pr-3 whitespace-nowrap ">&nbsp;</td>
+              </tr>
             </tbody>
           </table>
 
