@@ -29,7 +29,7 @@ export const Stats = () => {
   );
 
   if (isLoading)
-    return null;
+    return <p className="animate-pulse text-white">Loading stats...</p>;
 
   return (
     <div>

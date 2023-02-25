@@ -196,7 +196,7 @@ export const ReleaseTable = () => {
     return <p>Error</p>;
 
   if (isLoading)
-    return <p>Loading...</p>;
+    return <p className="animate-pulse text-white">Loading release table...</p>;
 
   if (!data)
     return <EmptyListState text="No recent activity" />;
