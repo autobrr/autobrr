@@ -144,7 +144,7 @@ func (s *service) delugeV1(ctx context.Context, client *domain.DownloadClient, a
 			}
 		}
 
-		s.log.Info().Msgf("torrent with hash %s successfully added to client: '%s'", torrentHash, client.Name)
+		s.log.Info().Msgf("torrent from magnet with hash %s successfully added to client: '%s'", torrentHash, client.Name)
 
 		return nil, nil
 	} else {

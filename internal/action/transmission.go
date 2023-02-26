@@ -52,7 +52,7 @@ func (s *service) transmission(ctx context.Context, action *domain.Action, relea
 			return nil, errors.Wrap(err, "could not add torrent from magnet %s to client: %s", release.MagnetURI, client.Host)
 		}
 
-		s.log.Info().Msgf("torrent with hash %v successfully added to client: '%s'", torrent.HashString, client.Name)
+		s.log.Info().Msgf("torrent from magnet with hash %v successfully added to client: '%s'", torrent.HashString, client.Name)
 
 		return nil, nil
 

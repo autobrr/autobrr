@@ -36,18 +36,7 @@ func (s *service) qbittorrent(ctx context.Context, action *domain.Action, releas
 			return nil, errors.Wrap(err, "could not add torrent %s to client: %s", release.MagnetURI, c.Dc.Name)
 		}
 
-		if !action.Paused && !action.ReAnnounceSkip && release.TorrentHash != "" {
-			opts := qbittorrent.ReannounceOptions{
-				Interval:        int(action.ReAnnounceInterval),
-				MaxAttempts:     int(action.ReAnnounceMaxAttempts),
-				DeleteOnFailure: action.ReAnnounceDelete,
-			}
-			if err := c.Qbt.ReannounceTorrentWithRetry(ctx, opts, release.TorrentHash); err != nil {
-				return nil, errors.Wrap(err, "could not reannounce torrent: %s", release.TorrentHash)
-			}
-		}
-
-		s.log.Info().Msgf("torrent with hash %s successfully added to client: '%s'", release.TorrentHash, c.Dc.Name)
+		s.log.Info().Msgf("torrent from magnet successfully added to client: '%s'", c.Dc.Name)
 
 		return nil, nil
 	} else {
