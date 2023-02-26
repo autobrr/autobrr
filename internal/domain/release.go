@@ -396,10 +396,10 @@ func (r *Release) downloadTorrentFile(ctx context.Context) error {
 
 func (r *Release) IsMagnetLink(link string) bool {
 	if link != "" {
-		return strings.HasSuffix(link, "magnet:?")
+		return strings.HasPrefix(link, "magnet:?")
 	}
 
-	return strings.HasSuffix(r.TorrentURL, "magnet:?")
+	return strings.HasPrefix(r.TorrentURL, "magnet:?")
 }
 
 func (r *Release) addRejection(reason string) {
