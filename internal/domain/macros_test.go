@@ -166,6 +166,24 @@ func TestMacros_Parse(t *testing.T) {
 			want:    "movies-2021",
 			wantErr: false,
 		},
+		{
+			name: "test_size_formating",
+			release: Release{
+				Size: 3834225472,
+			},
+			args:    args{text: "{{printf \"%.2f GB\" (divf .Size 1073741824)}}"},
+			want:    "3.57 GB",
+			wantErr: false,
+		},
+		{
+			name: "test_text_manipulation",
+			release: Release{
+				TorrentName: "Title Name 2 - Keyword [Blu-ray][MKV][h264 10-bit][1080p][FLAC 2.0][Dual Audio][Softsubs (Sub Group)][Freeleech]",
+			},
+			args:    args{text: "{{join \"\" (regexSplit \"^.+- Keyword \" .TorrentName -1)}}"},
+			want:    "[Blu-ray][MKV][h264 10-bit][1080p][FLAC 2.0][Dual Audio][Softsubs (Sub Group)][Freeleech]",
+			wantErr: false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
