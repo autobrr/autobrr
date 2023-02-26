@@ -12,9 +12,17 @@ interface Feed {
   cookie: string;
   last_run: string;
   last_run_data: string;
+  settings: FeedSettings;
   created_at: Date;
   updated_at: Date;
 }
+
+interface FeedSettings {
+  download_type: FeedDownloadType;
+  // download_type: string;
+}
+
+type FeedDownloadType = "MAGNET" | "TORRENT";
 
 type FeedType = "TORZNAB" | "RSS";
 

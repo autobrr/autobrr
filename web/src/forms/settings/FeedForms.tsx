@@ -5,11 +5,13 @@ import { toast } from "react-hot-toast";
 import Toast from "../../components/notifications/Toast";
 import { SlideOver } from "../../components/panels";
 import { NumberFieldWide, PasswordFieldWide, SwitchGroupWide, TextFieldWide } from "../../components/inputs";
+import { SelectFieldBasic } from "../../components/inputs/select_wide";
 import { componentMapType } from "./DownloadClientForms";
 import { sleep } from "../../utils";
 import { useState } from "react";
 import { ImplementationBadges } from "../../screens/settings/Indexer";
 import { useFormikContext } from "formik";
+import { FeedDownloadTypeOptions } from "../../domain/constants";
 
 interface UpdateProps {
   isOpen: boolean;
@@ -29,6 +31,7 @@ interface InitialValues {
   interval: number;
   timeout: number;
   max_age: number;
+  settings: FeedSettings;
 }
 
 export function FeedUpdateForm({ isOpen, toggle, feed }: UpdateProps) {
@@ -110,7 +113,8 @@ export function FeedUpdateForm({ isOpen, toggle, feed }: UpdateProps) {
     cookie: feed.cookie || "",
     interval: feed.interval,
     timeout: feed.timeout,
-    max_age: feed.max_age
+    max_age: feed.max_age,
+    settings: feed.settings
   };
 
   return (
@@ -186,6 +190,8 @@ function FormFieldsTorznab() {
         help="Torznab url"
       />
 
+      <SelectFieldBasic name="settings.download_type" label="Download type" options={FeedDownloadTypeOptions} />
+
       <PasswordFieldWide name="api_key" label="API key" />
 
       {interval < 15 && <WarningLabel />}
@@ -209,6 +215,8 @@ function FormFieldsRSS() {
         label="URL"
         help="RSS url"
       />
+
+      <SelectFieldBasic name="settings.download_type" label="Download type" options={FeedDownloadTypeOptions} />
 
       {interval < 15 && <WarningLabel />}
       <NumberFieldWide name="interval" label="Refresh interval" help="Minutes. Recommended 15-30. Too low and risk ban."/>
