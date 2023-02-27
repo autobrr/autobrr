@@ -233,6 +233,13 @@ func (s *service) webhook(ctx context.Context, action *domain.Action, release do
 		release.TorrentDataRawBytes = t
 	}
 
+	// if webhook data contains MagnetURI make sure to resolve link into magnet
+	if release.HasMagnetUri() && strings.Contains(action.WebhookData, "MagnetURI") {
+		if err := release.ResolveMagnetUri(ctx); err != nil {
+			return errors.Wrap(err, "webhook: could resolve magnet uri from link for torrent: %s", release.TorrentName)
+		}
+	}
+
 	s.log.Trace().Msgf("action WEBHOOK: '%v' file: %v", action.Name, release.TorrentName)
 	s.log.Trace().Msgf("webhook action '%v' - host: %v data: %v", action.Name, action.WebhookHost, action.WebhookData)
 

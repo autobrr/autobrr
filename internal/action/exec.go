@@ -2,7 +2,6 @@ package action
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"os/exec"
 	"strings"
@@ -18,10 +17,6 @@ func (s *service) execCmd(ctx context.Context, action *domain.Action, release do
 	s.log.Debug().Msgf("action exec: %s release: %s", action.Name, release.TorrentName)
 
 	if release.TorrentTmpFile == "" && strings.Contains(action.ExecArgs, "TorrentPathName") {
-		if release.HasMagnetUri() {
-			return fmt.Errorf("action watch folder does not support magnet links: %s", release.TorrentName)
-		}
-
 		if err := release.DownloadTorrentFileCtx(ctx); err != nil {
 			return errors.Wrap(err, "error downloading torrent file for release: %s", release.TorrentName)
 		}
@@ -35,6 +30,13 @@ func (s *service) execCmd(ctx context.Context, action *domain.Action, release do
 		}
 
 		release.TorrentDataRawBytes = t
+	}
+
+	// if args contains MagnetURI make sure to resolve link into magnet
+	if release.HasMagnetUri() && strings.Contains(action.ExecArgs, "MagnetURI") {
+		if err := release.ResolveMagnetUri(ctx); err != nil {
+			return errors.Wrap(err, "exec error: could resolve magnet uri from link for torrent: %s", release.TorrentName)
+		}
 	}
 
 	// check if program exists
