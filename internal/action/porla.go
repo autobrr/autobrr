@@ -48,7 +48,11 @@ func (s *service) porla(ctx context.Context, action *domain.Action, release doma
 		return rejections, nil
 	}
 
-	if release.MagnetURI != "" {
+	if release.HasMagnetUri() {
+		if err := release.ResolveMagnetUri(ctx); err != nil {
+			return nil, err
+		}
+
 		opts := &porla.TorrentsAddReq{
 			DownloadLimit: -1,
 			UploadLimit:   -1,
@@ -73,7 +77,7 @@ func (s *service) porla(ctx context.Context, action *domain.Action, release doma
 		return nil, nil
 	} else {
 		if release.TorrentTmpFile == "" {
-			if err := release.DownloadTorrentFile(); err != nil {
+			if err := release.DownloadTorrentFileCtx(ctx); err != nil {
 				return nil, errors.Wrap(err, "error downloading torrent file for release: %s", release.TorrentName)
 			}
 		}

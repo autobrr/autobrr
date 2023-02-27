@@ -24,7 +24,11 @@ func (s *service) qbittorrent(ctx context.Context, action *domain.Action, releas
 		return rejections, nil
 	}
 
-	if release.MagnetURI != "" {
+	if release.HasMagnetUri() {
+		if err := release.ResolveMagnetUri(ctx); err != nil {
+			return nil, err
+		}
+
 		options, err := s.prepareQbitOptions(action)
 		if err != nil {
 			return nil, errors.Wrap(err, "could not prepare options")

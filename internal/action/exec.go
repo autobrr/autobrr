@@ -18,7 +18,7 @@ func (s *service) execCmd(ctx context.Context, action *domain.Action, release do
 	s.log.Debug().Msgf("action exec: %s release: %s", action.Name, release.TorrentName)
 
 	if release.TorrentTmpFile == "" && strings.Contains(action.ExecArgs, "TorrentPathName") {
-		if release.IsMagnetLink(release.MagnetURI) {
+		if release.HasMagnetUri() {
 			return fmt.Errorf("action watch folder does not support magnet links: %s", release.TorrentName)
 		}
 

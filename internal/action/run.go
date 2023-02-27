@@ -148,7 +148,7 @@ func (s *service) test(name string) {
 }
 
 func (s *service) watchFolder(ctx context.Context, action *domain.Action, release domain.Release) error {
-	if release.IsMagnetLink(release.MagnetURI) {
+	if release.HasMagnetUri() {
 		return fmt.Errorf("action watch folder does not support magnet links: %s", release.TorrentName)
 	}
 

@@ -291,7 +291,7 @@ func (r *Release) DownloadTorrentFile() error {
 }
 
 func (r *Release) downloadTorrentFile(ctx context.Context) error {
-	if r.IsMagnetLink(r.MagnetURI) {
+	if r.HasMagnetUri() {
 		return fmt.Errorf("error trying to download magnet link: %s", r.MagnetURI)
 	}
 
@@ -394,12 +394,77 @@ func (r *Release) downloadTorrentFile(ctx context.Context) error {
 	return errFunc
 }
 
-func (r *Release) IsMagnetLink(link string) bool {
-	if link != "" {
-		return strings.HasPrefix(link, "magnet:?")
+// HasMagnetUri check uf MagnetURI is set or empty
+func (r *Release) HasMagnetUri() bool {
+	return r.MagnetURI != ""
+}
+
+type magnetRoundTripper struct{}
+
+func (rt *magnetRoundTripper) RoundTrip(r *http.Request) (*http.Response, error) {
+	if r.URL.Scheme == "magnet" {
+		responseBody := r.URL.String()
+		respReader := io.NopCloser(strings.NewReader(responseBody))
+
+		resp := &http.Response{
+			Status:        http.StatusText(http.StatusOK),
+			StatusCode:    http.StatusOK,
+			Body:          respReader,
+			ContentLength: int64(len(responseBody)),
+			Header: map[string][]string{
+				"Content-Type": {"text/plain"},
+				"Location":     {responseBody},
+			},
+			Proto:      "HTTP/2.0",
+			ProtoMajor: 2,
+		}
+
+		return resp, nil
 	}
 
-	return strings.HasPrefix(r.TorrentURL, "magnet:?")
+	return http.DefaultTransport.RoundTrip(r)
+}
+
+func (r *Release) ResolveMagnetUri(ctx context.Context) error {
+	if strings.HasPrefix(r.MagnetURI, "magnet:?") {
+		return nil
+	}
+
+	client := http.Client{
+		Transport: &magnetRoundTripper{},
+		Timeout:   time.Second * 60,
+	}
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, r.MagnetURI, nil)
+	if err != nil {
+		return errors.Wrap(err, "could not build request to resolve magnet uri")
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("User-Agent", "autobrr")
+
+	res, err := client.Do(req)
+	if err != nil {
+		return errors.Wrap(err, "could not make request to resolve magnet uri")
+	}
+
+	defer res.Body.Close()
+
+	if res.StatusCode != http.StatusOK {
+		return errors.New("unexpected status code: %d", res.StatusCode)
+	}
+
+	body, err := io.ReadAll(res.Body)
+	if err != nil {
+		return errors.Wrap(err, "could not read response body")
+	}
+
+	magnet := string(body)
+	if magnet != "" {
+		r.MagnetURI = magnet
+	}
+
+	return nil
 }
 
 func (r *Release) addRejection(reason string) {

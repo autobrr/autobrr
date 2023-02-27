@@ -31,7 +31,11 @@ func (s *service) rtorrent(ctx context.Context, action *domain.Action, release d
 	// create client
 	rt := rtorrent.New(client.Host, true)
 
-	if release.MagnetURI != "" {
+	if release.HasMagnetUri() {
+		if err := release.ResolveMagnetUri(ctx); err != nil {
+			return nil, err
+		}
+
 		var args []*rtorrent.FieldValue
 
 		if action.Label != "" {

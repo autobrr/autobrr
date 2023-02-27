@@ -116,7 +116,11 @@ func (s *service) delugeV1(ctx context.Context, client *domain.DownloadClient, a
 		return rejections, nil
 	}
 
-	if release.MagnetURI != "" {
+	if release.HasMagnetUri() {
+		if err := release.ResolveMagnetUri(ctx); err != nil {
+			return nil, err
+		}
+
 		options, err := s.prepareDelugeOptions(action)
 		if err != nil {
 			return nil, errors.Wrap(err, "could not prepare options")
@@ -229,7 +233,11 @@ func (s *service) delugeV2(ctx context.Context, client *domain.DownloadClient, a
 		return rejections, nil
 	}
 
-	if release.IsMagnetLink(release.MagnetURI) {
+	if release.HasMagnetUri() {
+		if err := release.ResolveMagnetUri(ctx); err != nil {
+			return nil, err
+		}
+
 		options, err := s.prepareDelugeOptions(action)
 		if err != nil {
 			return nil, errors.Wrap(err, "could not prepare options")
