@@ -44,9 +44,10 @@ type Release struct {
 	Protocol                    ReleaseProtocol       `json:"protocol"`
 	Implementation              ReleaseImplementation `json:"implementation"` // irc, rss, api
 	Timestamp                   time.Time             `json:"timestamp"`
+	InfoURL                     string                `json:"info_url"`
+	TorrentURL                  string                `json:"download_url"`
 	GroupID                     string                `json:"group_id"`
 	TorrentID                   string                `json:"torrent_id"`
-	TorrentURL                  string                `json:"-"`
 	TorrentTmpFile              string                `json:"-"`
 	TorrentDataRawBytes         []byte                `json:"-"`
 	TorrentHash                 string                `json:"-"`
@@ -74,7 +75,6 @@ type Release struct {
 	Artists                     string                `json:"-"`
 	Type                        string                `json:"type"` // Album,Single,EP
 	LogScore                    int                   `json:"-"`
-	IsScene                     bool                  `json:"-"`
 	Origin                      string                `json:"origin"` // P2P, Internal
 	Tags                        []string              `json:"-"`
 	ReleaseTags                 string                `json:"-"`
@@ -185,6 +185,7 @@ func NewRelease(indexer string) *Release {
 		Implementation: ReleaseImplementationIRC,
 		Timestamp:      time.Now(),
 		Tags:           []string{},
+		Size:           0,
 	}
 
 	return r
@@ -194,7 +195,6 @@ func (r *Release) ParseString(title string) {
 	rel := rls.ParseString(title)
 
 	r.TorrentName = title
-	r.Title = rel.Title
 	r.Source = rel.Source
 	r.Resolution = rel.Resolution
 	r.Region = rel.Region
@@ -206,6 +206,10 @@ func (r *Release) ParseString(title string) {
 	r.Other = rel.Other
 	r.Artists = rel.Artist
 	r.Language = rel.Language
+
+	if r.Title == "" {
+		r.Title = rel.Title
+	}
 
 	if r.Season == 0 {
 		r.Season = rel.Series
@@ -235,8 +239,9 @@ func (r *Release) ParseReleaseTagsString(tags string) {
 	t := ParseReleaseTagString(cleanTags)
 
 	if len(t.Audio) > 0 {
-		r.Audio = append(r.Audio, t.Audio...)
+		r.Audio = getUniqueTags(r.Audio, t.Audio)
 	}
+
 	if len(t.Bonus) > 0 {
 		if sliceContainsSlice([]string{"Freeleech"}, t.Bonus) {
 			r.Freeleech = true
@@ -246,10 +251,10 @@ func (r *Release) ParseReleaseTagsString(tags string) {
 		r.Bonus = append(r.Bonus, t.Bonus...)
 	}
 	if len(t.Codec) > 0 {
-		r.Codec = append(r.Codec, t.Codec)
+		r.Codec = getUniqueTags(r.Codec, append(make([]string, 0, 1), t.Codec))
 	}
 	if len(t.Other) > 0 {
-		r.Other = append(r.Other, t.Other...)
+		r.Other = getUniqueTags(r.Other, t.Other)
 	}
 	if r.Origin == "" && t.Origin != "" {
 		r.Origin = t.Origin
@@ -268,13 +273,13 @@ func (r *Release) ParseReleaseTagsString(tags string) {
 	}
 }
 
+// ParseSizeBytesString If there are parsing errors, then it keeps the original (or default size 0)
+// Otherwise, it will update the size only if the new size is bigger than the previous one.
 func (r *Release) ParseSizeBytesString(size string) {
 	s, err := humanize.ParseBytes(size)
-	if err != nil {
-		// log could not parse into bytes
-		r.Size = 0
+	if err == nil && s > r.Size {
+		r.Size = s
 	}
-	r.Size = s
 }
 
 func (r *Release) DownloadTorrentFileCtx(ctx context.Context) error {
@@ -482,21 +487,18 @@ func (r *Release) MapVars(def *IndexerDefinition, varMap map[string]string) erro
 	}
 
 	if scene, err := getStringMapValue(varMap, "scene"); err == nil {
-		r.IsScene = StringEqualFoldMulti(scene, "true", "yes")
+		if StringEqualFoldMulti(scene, "true", "yes", "1") {
+			r.Origin = "SCENE"
+		}
 	}
 
 	// set origin. P2P, SCENE, O-SCENE and Internal
 	if origin, err := getStringMapValue(varMap, "origin"); err == nil {
 		r.Origin = origin
-
-		if r.IsScene {
-			r.Origin = "SCENE"
-		}
 	}
 
 	if internal, err := getStringMapValue(varMap, "internal"); err == nil {
-		i := StringEqualFoldMulti(internal, "internal", "yes", "1")
-		if i {
+		if StringEqualFoldMulti(internal, "internal", "yes", "1") {
 			r.Origin = "INTERNAL"
 		}
 	}
@@ -570,4 +572,28 @@ func StringEqualFoldMulti(s string, values ...string) bool {
 		}
 	}
 	return false
+}
+
+func getUniqueTags(target []string, source []string) []string {
+	toAppend := make([]string, 0, len(source))
+
+	for _, t := range source {
+		found := false
+		norm := rls.MustNormalize(t)
+
+		for _, s := range target {
+			if rls.MustNormalize(s) == norm {
+				found = true
+				break
+			}
+		}
+
+		if !found {
+			toAppend = append(toAppend, t)
+		}
+	}
+
+	target = append(target, toAppend...)
+
+	return target
 }

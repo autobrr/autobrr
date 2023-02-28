@@ -242,6 +242,11 @@ export const DownloadClientTypeOptions: RadioFieldsetOption[] = [
     value: "TRANSMISSION"
   },
   {
+    label: "Porla",
+    description: "Add torrents directly to Porla",
+    value: "PORLA"
+  },
+  {
     label: "Radarr",
     description: "Send to Radarr and let it decide",
     value: "RADARR"
@@ -274,6 +279,7 @@ export const DownloadClientTypeNameMap: Record<DownloadClientType | string, stri
   "QBITTORRENT": "qBittorrent",
   "RTORRENT": "rTorrent",
   "TRANSMISSION": "Transmission",
+  "PORLA": "Porla",
   "RADARR": "Radarr",
   "SONARR": "Sonarr",
   "LIDARR": "Lidarr",
@@ -291,6 +297,7 @@ export const ActionTypeOptions: RadioFieldsetOption[] = [
   { label: "Deluge v2", description: "Add torrents directly to Deluge 2", value: "DELUGE_V2" },
   { label: "rTorrent", description: "Add torrents directly to rTorrent", value: "RTORRENT" },
   { label: "Transmission", description: "Add torrents directly to Transmission", value: "TRANSMISSION" },
+  { label: "Porla", description: "Add torrents directly to Porla", value: "PORLA" },
   { label: "Radarr", description: "Send to Radarr and let it decide", value: "RADARR" },
   { label: "Sonarr", description: "Send to Sonarr and let it decide", value: "SONARR" },
   { label: "Lidarr", description: "Send to Lidarr and let it decide", value: "LIDARR" },
@@ -308,11 +315,12 @@ export const ActionTypeNameMap = {
   "QBITTORRENT": "qBittorrent",
   "RTORRENT": "rTorrent",
   "TRANSMISSION": "Transmission",
+  "PORLA": "Porla",
   "RADARR": "Radarr",
   "SONARR": "Sonarr",
   "LIDARR": "Lidarr",
   "WHISPARR": "Whisparr",
-  "READARR": "Readarr" 
+  "READARR": "Readarr"
 };
 
 export const ActionContentLayoutOptions: SelectGenericOption<ActionContentLayout>[] = [
@@ -414,6 +422,9 @@ export const DownloadRuleConditionOptions: OptionBasic[] = [
   }
 ];
 
+const logLevel = ["DEBUG", "INFO", "WARN", "ERROR", "TRACE"] as const;
+
+export const LogLevelOptions = logLevel.map(v => ({ value: v, label: v, key: v }));
 
 export interface SelectOption {
     label: string;

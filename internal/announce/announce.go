@@ -224,6 +224,10 @@ func (a *announceProcessor) onLinesMatched(def *domain.IndexerDefinition, vars m
 	if matched != nil {
 		rls.TorrentURL = matched.TorrentURL
 
+		if matched.InfoURL != "" {
+			rls.InfoURL = matched.InfoURL
+		}
+
 		// only used by few indexers
 		if matched.TorrentName != "" {
 			rls.TorrentName = matched.TorrentName

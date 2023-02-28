@@ -33,7 +33,7 @@ irc:
   channels:
     - "#nbl-announce"
   announcers:
-    - DRADIS
+    - Muffit
   settings:
     - name: nick
       type: text
@@ -80,4 +80,5 @@ irc:
           - tags
 
     match:
+      infourl: "/torrents.php?id={{ .torrentId }}"
       torrenturl: "/torrents.php?action=download&id={{ .torrentId }}&authkey={{ .authkey }}&torrent_pass={{ .torrent_pass }}"

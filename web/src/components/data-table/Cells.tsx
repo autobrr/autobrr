@@ -16,6 +16,24 @@ export const AgeCell = ({ value }: CellProps) => (
   </div>
 );
 
+export const IndexerCell = ({ value }: CellProps) => (
+  <div
+    className={classNames(
+      "py-3 text-sm font-medium box-content text-gray-900 dark:text-gray-300",
+      "max-w-[96px] sm:max-w-[216px] md:max-w-[360px] lg:max-w-[640px] xl:max-w-[840px]"
+    )}
+  >
+    <Tooltip
+      label={value}
+      maxWidth="max-w-[90vw]"
+    >
+      <span className="whitespace-pre-wrap break-words">
+        {value}
+      </span>
+    </Tooltip>
+  </div>
+);
+
 export const TitleCell = ({ value }: CellProps) => (
   <div
     className={classNames(

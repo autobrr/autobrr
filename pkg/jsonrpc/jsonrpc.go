@@ -2,6 +2,7 @@ package jsonrpc
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -13,6 +14,7 @@ import (
 
 type Client interface {
 	Call(method string, params ...interface{}) (*RPCResponse, error)
+	CallCtx(ctx context.Context, method string, params ...interface{}) (*RPCResponse, error)
 }
 
 type RPCRequest struct {
@@ -61,11 +63,23 @@ type rpcClient struct {
 	endpoint   string
 	httpClient *http.Client
 	headers    map[string]string
+
+	// HTTP Basic auth username
+	basicUser string
+
+	// HTTP Basic auth password
+	basicPass string
 }
 
 type ClientOpts struct {
 	HTTPClient *http.Client
 	Headers    map[string]string
+
+	// HTTP Basic auth username
+	BasicUser string
+
+	// HTTP Basic auth password
+	BasicPass string
 }
 
 type RPCResponses []*RPCResponse
@@ -95,6 +109,9 @@ func NewClientWithOpts(endpoint string, opts *ClientOpts) Client {
 		}
 	}
 
+	c.basicUser = opts.BasicUser
+	c.basicPass = opts.BasicPass
+
 	return c
 }
 
@@ -106,21 +123,37 @@ func (c *rpcClient) Call(method string, params ...interface{}) (*RPCResponse, er
 		Params:  Params(params...),
 	}
 
-	return c.doCall(request)
+	return c.doCall(context.TODO(), request)
 }
 
-func (c *rpcClient) newRequest(req interface{}) (*http.Request, error) {
+func (c *rpcClient) CallCtx(ctx context.Context, method string, params ...interface{}) (*RPCResponse, error) {
+	request := RPCRequest{
+		ID:      1,
+		JsonRPC: "2.0",
+		Method:  method,
+		Params:  Params(params...),
+	}
+
+	return c.doCall(ctx, request)
+}
+
+func (c *rpcClient) newRequest(ctx context.Context, req interface{}) (*http.Request, error) {
 	body, err := json.Marshal(req)
 	if err != nil {
 		return nil, errors.Wrap(err, "could not marshal request")
 	}
 
-	request, err := http.NewRequest("POST", c.endpoint, bytes.NewReader(body))
+	request, err := http.NewRequestWithContext(ctx, "POST", c.endpoint, bytes.NewReader(body))
 	if err != nil {
 		return nil, errors.Wrap(err, "error creating request")
 	}
 	request.Header.Set("Content-Type", "application/json")
 	request.Header.Set("Accept", "application/json")
+
+	// set basic auth
+	if c.basicUser != "" && c.basicPass != "" {
+		request.SetBasicAuth(c.basicUser, c.basicPass)
+	}
 
 	for k, v := range c.headers {
 		request.Header.Set(k, v)
@@ -129,9 +162,9 @@ func (c *rpcClient) newRequest(req interface{}) (*http.Request, error) {
 	return request, nil
 }
 
-func (c *rpcClient) doCall(request RPCRequest) (*RPCResponse, error) {
+func (c *rpcClient) doCall(ctx context.Context, request RPCRequest) (*RPCResponse, error) {
 
-	httpRequest, err := c.newRequest(request)
+	httpRequest, err := c.newRequest(ctx, request)
 	if err != nil {
 		return nil, errors.Wrap(err, "could not create rpc http request")
 	}
@@ -225,8 +258,7 @@ func (r *RPCResponse) GetObject(toType interface{}) error {
 		return errors.Wrap(err, "could not marshal object")
 	}
 
-	err = json.Unmarshal(js, toType)
-	if err != nil {
+	if err = json.Unmarshal(js, toType); err != nil {
 		return errors.Wrap(err, "could not unmarshal object")
 	}
 

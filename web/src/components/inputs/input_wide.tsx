@@ -4,9 +4,10 @@ import { classNames } from "../../utils";
 import { useToggle } from "../../hooks/hooks";
 import { EyeIcon, EyeSlashIcon } from "@heroicons/react/24/solid";
 import { Switch } from "@headlessui/react";
-import { ErrorField } from "./common";
+import { ErrorField, RequiredField } from "./common";
 import Select, { components, ControlProps, InputProps, MenuProps, OptionProps } from "react-select";
 import { SelectFieldProps } from "./select";
+import { CustomTooltip } from "../tooltips/CustomTooltip";
 
 interface TextFieldWideProps {
     name: string;
@@ -16,6 +17,7 @@ interface TextFieldWideProps {
     defaultValue?: string;
     required?: boolean;
     hidden?: boolean;
+    tooltip?: JSX.Element;
     validate?: FieldValidator;
 }
 
@@ -26,13 +28,17 @@ export const TextFieldWide = ({
   placeholder,
   defaultValue,
   required,
+  tooltip,
   hidden,
   validate
 }: TextFieldWideProps) => (
   <div hidden={hidden} className="space-y-1 p-4 sm:space-y-0 sm:grid sm:grid-cols-3 sm:gap-4">
     <div>
-      <label htmlFor={name} className="block text-sm font-medium text-gray-900 dark:text-white sm:mt-px sm:pt-2">
-        {label} {required && <span className="text-gray-500">*</span>}
+      <label htmlFor={name} className="flex text-sm font-medium text-gray-900 dark:text-white sm:mt-px sm:pt-2">
+        <div className="flex">
+          {label} {tooltip && (<CustomTooltip anchorId={name}>{tooltip}</CustomTooltip>)}
+          <RequiredField required={required} />
+        </div>
       </label>
     </div>
     <div className="sm:col-span-2">
@@ -71,6 +77,7 @@ interface PasswordFieldWideProps {
     help?: string;
     required?: boolean;
     defaultVisible?: boolean;
+    tooltip?: JSX.Element;
     validate?: FieldValidator;
 }
 
@@ -82,6 +89,7 @@ export const PasswordFieldWide = ({
   help,
   required,
   defaultVisible,
+  tooltip,
   validate
 }: PasswordFieldWideProps) => {
   const [isVisible, toggleVisibility] = useToggle(defaultVisible);
@@ -89,8 +97,11 @@ export const PasswordFieldWide = ({
   return (
     <div className="space-y-1 p-4 sm:space-y-0 sm:grid sm:grid-cols-3 sm:gap-4">
       <div>
-        <label htmlFor={name} className="block text-sm font-medium text-gray-900 dark:text-white sm:mt-px sm:pt-2">
-          {label} {required && <span className="text-gray-500">*</span>}
+        <label htmlFor={name} className="flex text-sm font-medium text-gray-900 dark:text-white sm:mt-px sm:pt-2">
+          <div className="flex">
+            {label} {tooltip && (<CustomTooltip anchorId={name}>{tooltip}</CustomTooltip>)}
+            <RequiredField required={required} />
+          </div>
         </label>
       </div>
       <div className="sm:col-span-2">
@@ -132,6 +143,7 @@ interface NumberFieldWideProps {
     placeholder?: string;
     defaultValue?: number;
     required?: boolean;
+    tooltip?: JSX.Element;
 }
 
 export const NumberFieldWide = ({
@@ -140,6 +152,7 @@ export const NumberFieldWide = ({
   placeholder,
   help,
   defaultValue,
+  tooltip,
   required
 }: NumberFieldWideProps) => (
   <div className="px-4 space-y-1 sm:space-y-0 sm:grid sm:grid-cols-3 sm:gap-4 sm:py-4">
@@ -148,7 +161,10 @@ export const NumberFieldWide = ({
         htmlFor={name}
         className="block text-sm font-medium text-gray-900 dark:text-white sm:mt-px sm:pt-2"
       >
-        {label} {required && <span className="text-gray-500">*</span>}
+        <div className="flex">
+          {label} {tooltip && (<CustomTooltip anchorId={name}>{tooltip}</CustomTooltip>)}
+          <RequiredField required={required} />
+        </div>
       </label>
     </div>
     <div className="sm:col-span-2">
@@ -187,12 +203,14 @@ interface SwitchGroupWideProps {
     description?: string;
     defaultValue?: boolean;
     className?: string;
+    tooltip?: JSX.Element;
 }
 
 export const SwitchGroupWide = ({
   name,
   label,
   description,
+  tooltip,
   defaultValue
 }: SwitchGroupWideProps) => (
   <ul className="mt-2 px-4 divide-y divide-gray-200 dark:divide-gray-700">
@@ -200,7 +218,9 @@ export const SwitchGroupWide = ({
       <div className="flex flex-col">
         <Switch.Label as="p" className="text-sm font-medium text-gray-900 dark:text-white"
           passive>
-          {label}
+          <div className="flex">
+            {label} {tooltip && (<CustomTooltip anchorId={name}>{tooltip}</CustomTooltip>)}
+          </div>
         </Switch.Label>
         {description && (
           <Switch.Description className="text-sm text-gray-500 dark:text-gray-700">
@@ -350,15 +370,19 @@ export const SelectFieldWide = ({
   name,
   label,
   optionDefaultText,
+  tooltip,
   options
 }: SelectFieldProps) => (
   <div className="flex items-center justify-between space-y-1 px-4 py-4 sm:space-y-0 sm:grid sm:grid-cols-3 sm:gap-4">
     <div>
       <label
         htmlFor={name}
-        className="block text-sm font-medium text-gray-900 dark:text-white"
+        className="flex text-sm font-medium text-gray-900 dark:text-white"
       >
-        {label}
+        <div className="flex">
+          {label}
+          {tooltip && (<CustomTooltip anchorId={name}>{tooltip}</CustomTooltip>)}
+        </div>
       </label>
     </div>
     <div className="sm:col-span-2">

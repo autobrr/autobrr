@@ -60,6 +60,9 @@ func (s *service) RunAction(ctx context.Context, action *domain.Action, release 
 	case domain.ActionTypeTransmission:
 		rejections, err = s.transmission(ctx, action, release)
 
+	case domain.ActionTypePorla:
+		rejections, err = s.porla(ctx, action, release)
+
 	case domain.ActionTypeRadarr:
 		rejections, err = s.radarr(ctx, action, release)
 
