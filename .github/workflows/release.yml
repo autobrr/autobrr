@@ -159,7 +159,7 @@ jobs:
         uses: docker/build-push-action@v3
         with:
           context: .
-          file: ./Dockerfile.ci
+          file: ./ci.Dockerfile
           platforms: linux/amd64,linux/arm/v7,linux/arm64/v8
           push: ${{ github.repository_owner == 'autobrr' }}
           tags: ${{ steps.meta.outputs.tags }}
