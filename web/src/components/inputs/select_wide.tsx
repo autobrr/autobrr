@@ -1,18 +1,21 @@
 import type { FieldProps } from "formik";
 import { Field } from "formik";
-import { components, ControlProps, InputProps, MenuProps, OptionProps } from "react-select";
+import Select, { components, ControlProps, InputProps, MenuProps, OptionProps } from "react-select";
 import { OptionBasicTyped } from "../../domain/constants";
 import CreatableSelect from "react-select/creatable";
+import { CustomTooltip } from "../tooltips/CustomTooltip";
 
 interface SelectFieldProps<T> {
   name: string;
   label: string;
   help?: string;
   placeholder?: string;
-  options: OptionBasicTyped<T>[]
+  defaultValue?: OptionBasicTyped<T>;
+  tooltip?: JSX.Element;
+  options: OptionBasicTyped<T>[];
 }
 
-export function SelectFieldCreatable<T>({ name, label, help, placeholder, options }: SelectFieldProps<T>) {
+export function SelectFieldCreatable<T>({ name, label, help, placeholder, tooltip, options }: SelectFieldProps<T>) {
   return (
     <div className="space-y-1 p-4 sm:space-y-0 sm:grid sm:grid-cols-3 sm:gap-4">
       <div>
@@ -20,7 +23,9 @@ export function SelectFieldCreatable<T>({ name, label, help, placeholder, option
           htmlFor={name}
           className="block text-sm font-medium text-gray-900 dark:text-white sm:pt-2"
         >
-          {label}
+          <div className="flex">
+            {label} {tooltip && (<CustomTooltip anchorId={name}>{tooltip}</CustomTooltip>)}
+          </div>
         </label>
       </div>
       <div className="sm:col-span-2">
@@ -117,3 +122,131 @@ const Option = (props: OptionProps) => {
     />
   );
 };
+
+export function SelectField<T>({ name, label, help, placeholder, options }: SelectFieldProps<T>) {
+  return (
+    <div className="space-y-1 p-4 sm:space-y-0 sm:grid sm:grid-cols-3 sm:gap-4">
+      <div>
+        <label
+          htmlFor={name}
+          className="block text-sm font-medium text-gray-900 dark:text-white sm:pt-2"
+        >
+          {label}
+        </label>
+      </div>
+      <div className="sm:col-span-2">
+        <Field name={name} type="select">
+          {({
+            field,
+            form: { setFieldValue }
+          }: FieldProps) => (
+            <Select
+              {...field}
+              id={name}
+              components={{
+                Input,
+                Control,
+                Menu,
+                Option
+              }}
+              placeholder={placeholder ?? "Choose an option"}
+              styles={{
+                singleValue: (base) => ({
+                  ...base,
+                  color: "unset"
+                })
+              }}
+              theme={(theme) => ({
+                ...theme,
+                spacing: {
+                  ...theme.spacing,
+                  controlHeight: 30,
+                  baseUnit: 2
+                }
+              })}
+              // value={field?.value ? field.value : options.find(o => o.value == field?.value)}
+              value={field?.value ? { value: field.value, label: field.value  } : field.value}
+              onChange={(option) => {
+                if (option === null) {
+                  setFieldValue(field.name, "");
+                  return;
+                } else {
+                  setFieldValue(field.name, option.value ?? "");
+                }
+              }}
+              options={[...[...options, { value: field.value, label: field.value  }].reduce((map, obj) => map.set(obj.value, obj), new Map()).values()]}
+            />
+          )}
+        </Field>
+        {help && (
+          <p className="mt-2 text-sm text-gray-500" id={`${name}-description`}>{help}</p>
+        )}
+      </div>
+    </div>
+  );
+}
+
+export function SelectFieldBasic<T>({ name, label, help, placeholder, tooltip, defaultValue, options }: SelectFieldProps<T>) {
+  return (
+    <div className="space-y-1 p-4 sm:space-y-0 sm:grid sm:grid-cols-3 sm:gap-4">
+      <div>
+        <label
+          htmlFor={name}
+          className="block text-sm font-medium text-gray-900 dark:text-white sm:pt-2"
+        >
+          <div className="flex">
+            {label} {tooltip && (<CustomTooltip anchorId={name}>{tooltip}</CustomTooltip>)}
+          </div>
+        </label>
+      </div>
+      <div className="sm:col-span-2">
+        <Field name={name} type="select">
+          {({
+            field,
+            form: { setFieldValue }
+          }: FieldProps) => (
+            <Select
+              {...field}
+              id={name}
+              components={{
+                Input,
+                Control,
+                Menu,
+                Option
+              }}
+              placeholder={placeholder ?? "Choose an option"}
+              styles={{
+                singleValue: (base) => ({
+                  ...base,
+                  color: "unset"
+                })
+              }}
+              theme={(theme) => ({
+                ...theme,
+                spacing: {
+                  ...theme.spacing,
+                  controlHeight: 30,
+                  baseUnit: 2
+                }
+              })}
+              defaultValue={defaultValue}
+              value={field?.value && options.find(o => o.value == field?.value)}
+              onChange={(option) => {
+                if (option === null) {
+                  setFieldValue(field.name, "");
+                  return;
+                } else {
+                  setFieldValue(field.name, option.value ?? "");
+                }
+              }}
+              options={options}
+            />
+          )}
+        </Field>
+        {help && (
+          <p className="mt-2 text-sm text-gray-500" id={`${name}-description`}>{help}</p>
+        )}
+      </div>
+    </div>
+  );
+}

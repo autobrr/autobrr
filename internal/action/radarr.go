@@ -44,6 +44,7 @@ func (s *service) radarr(ctx context.Context, action *domain.Action, release dom
 	r := radarr.Release{
 		Title:            release.TorrentName,
 		DownloadUrl:      release.TorrentURL,
+		MagnetUrl:        release.MagnetURI,
 		Size:             int64(release.Size),
 		Indexer:          release.Indexer,
 		DownloadProtocol: "torrent",

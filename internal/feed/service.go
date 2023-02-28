@@ -275,7 +275,7 @@ func (s *service) start() error {
 	for _, feed := range feeds {
 		feed := feed
 		if err := s.startJob(&feed); err != nil {
-			s.log.Error().Err(err).Msg("failed to initialize torznab job")
+			s.log.Error().Err(err).Msgf("failed to initialize feed job: %s", feed.Name)
 			continue
 		}
 	}

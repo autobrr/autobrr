@@ -213,10 +213,10 @@ export const SwitchGroupWide = ({
   tooltip,
   defaultValue
 }: SwitchGroupWideProps) => (
-  <ul className="mt-2 px-4 divide-y divide-gray-200 dark:divide-gray-700">
+  <ul className="px-4 divide-y divide-gray-200 dark:divide-gray-700">
     <Switch.Group as="li" className="py-4 flex items-center justify-between">
       <div className="flex flex-col">
-        <Switch.Label as="p" className="text-sm font-medium text-gray-900 dark:text-white"
+        <Switch.Label as="div" className="text-sm font-medium text-gray-900 dark:text-white"
           passive>
           <div className="flex">
             {label} {tooltip && (<CustomTooltip anchorId={name}>{tooltip}</CustomTooltip>)}
