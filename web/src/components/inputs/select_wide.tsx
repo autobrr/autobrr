@@ -3,16 +3,19 @@ import { Field } from "formik";
 import Select, { components, ControlProps, InputProps, MenuProps, OptionProps } from "react-select";
 import { OptionBasicTyped } from "../../domain/constants";
 import CreatableSelect from "react-select/creatable";
+import { CustomTooltip } from "../tooltips/CustomTooltip";
 
 interface SelectFieldProps<T> {
   name: string;
   label: string;
   help?: string;
   placeholder?: string;
-  options: OptionBasicTyped<T>[]
+  defaultValue?: OptionBasicTyped<T>;
+  tooltip?: JSX.Element;
+  options: OptionBasicTyped<T>[];
 }
 
-export function SelectFieldCreatable<T>({ name, label, help, placeholder, options }: SelectFieldProps<T>) {
+export function SelectFieldCreatable<T>({ name, label, help, placeholder, tooltip, options }: SelectFieldProps<T>) {
   return (
     <div className="space-y-1 p-4 sm:space-y-0 sm:grid sm:grid-cols-3 sm:gap-4">
       <div>
@@ -20,7 +23,9 @@ export function SelectFieldCreatable<T>({ name, label, help, placeholder, option
           htmlFor={name}
           className="block text-sm font-medium text-gray-900 dark:text-white sm:pt-2"
         >
-          {label}
+          <div className="flex">
+            {label} {tooltip && (<CustomTooltip anchorId={name}>{tooltip}</CustomTooltip>)}
+          </div>
         </label>
       </div>
       <div className="sm:col-span-2">
@@ -181,7 +186,7 @@ export function SelectField<T>({ name, label, help, placeholder, options }: Sele
   );
 }
 
-export function SelectFieldBasic<T>({ name, label, help, placeholder, options }: SelectFieldProps<T>) {
+export function SelectFieldBasic<T>({ name, label, help, placeholder, tooltip, defaultValue, options }: SelectFieldProps<T>) {
   return (
     <div className="space-y-1 p-4 sm:space-y-0 sm:grid sm:grid-cols-3 sm:gap-4">
       <div>
@@ -189,7 +194,9 @@ export function SelectFieldBasic<T>({ name, label, help, placeholder, options }:
           htmlFor={name}
           className="block text-sm font-medium text-gray-900 dark:text-white sm:pt-2"
         >
-          {label}
+          <div className="flex">
+            {label} {tooltip && (<CustomTooltip anchorId={name}>{tooltip}</CustomTooltip>)}
+          </div>
         </label>
       </div>
       <div className="sm:col-span-2">
@@ -222,6 +229,7 @@ export function SelectFieldBasic<T>({ name, label, help, placeholder, options }:
                   baseUnit: 2
                 }
               })}
+              defaultValue={defaultValue}
               value={field?.value && options.find(o => o.value == field?.value)}
               onChange={(option) => {
                 if (option === null) {

@@ -35,4 +35,5 @@ interface FeedCreate {
   timeout: number;
   api_key?: string;
   indexer_id: number;
+  settings: FeedSettings;
 }

@@ -15,9 +15,10 @@ import { APIClient } from "../../api/APIClient";
 import { PasswordFieldWide, SwitchGroupWide, TextFieldWide } from "../../components/inputs";
 import { SlideOver } from "../../components/panels";
 import Toast from "../../components/notifications/Toast";
-import { SelectFieldCreatable } from "../../components/inputs/select_wide";
+import { SelectFieldBasic, SelectFieldCreatable } from "../../components/inputs/select_wide";
 
 import { CustomTooltip } from "../../components/tooltips/CustomTooltip";
+import { FeedDownloadTypeOptions } from "../../domain/constants";
 
 const Input = (props: InputProps) => (
   <components.Input 
@@ -123,6 +124,14 @@ const FeedSettingFields = (ind: IndexerDefinition, indexer: string) => {
               }
               return null;
             })}
+
+            <SelectFieldBasic
+              name="feed.settings.download_type"
+              label="Download type"
+              options={FeedDownloadTypeOptions}
+              tooltip={<span>Some feeds needs to force set as Magnet.</span>}
+              help="Set to Torrent or Magnet depending on indexer."
+            />
           </div>
         )}
       </Fragment>
@@ -154,6 +163,14 @@ const RSSFeedSettingFields = (ind: IndexerDefinition, indexer: string) => {
               }
               return null;
             })}
+
+            <SelectFieldBasic
+              name="feed.settings.download_type"
+              label="Download type"
+              options={FeedDownloadTypeOptions}
+              tooltip={<span>Some feeds needs to force set as Magnet.</span>}
+              help="Set to Torrent or Magnet depending on indexer."
+            />
           </div>
         )}
       </Fragment>
@@ -243,7 +260,8 @@ export function IndexerAddForm({ isOpen, toggle }: AddProps) {
         api_key: formData.feed.api_key,
         interval: 30,
         timeout: 60,
-        indexer_id: 0
+        indexer_id: 0,
+        settings: formData.feed.settings
       };
 
       mutation.mutate(formData as Indexer, {
@@ -264,7 +282,8 @@ export function IndexerAddForm({ isOpen, toggle }: AddProps) {
         url: formData.feed.url,
         interval: 30,
         timeout: 60,
-        indexer_id: 0
+        indexer_id: 0,
+        settings: formData.feed.settings
       };
 
       mutation.mutate(formData as Indexer, {
