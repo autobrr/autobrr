@@ -7,6 +7,8 @@ import (
 	"time"
 
 	"github.com/autobrr/autobrr/pkg/errors"
+
+	"github.com/Masterminds/sprig/v3"
 )
 
 type Macro struct {
@@ -72,7 +74,7 @@ func (m Macro) Parse(text string) (string, error) {
 	}
 
 	// setup template
-	tmpl, err := template.New("macro").Parse(text)
+	tmpl, err := template.New("macro").Funcs(sprig.TxtFuncMap()).Parse(text)
 	if err != nil {
 		return "", errors.Wrap(err, "could parse macro template")
 	}
@@ -93,7 +95,7 @@ func (m Macro) MustParse(text string) string {
 	}
 
 	// setup template
-	tmpl, err := template.New("macro").Parse(text)
+	tmpl, err := template.New("macro").Funcs(sprig.TxtFuncMap()).Parse(text)
 	if err != nil {
 		return ""
 	}
