@@ -58,10 +58,11 @@ jobs:
           name: web-build
           path: web/build
 
+#     1.20 is the last version to support Windows < 10, Server < 2016, and MacOS < 1.15.
       - name: Set up Go
         uses: actions/setup-go@v3
         with:
-          go-version: '1.19.2'
+          go-version: '1.20.1'
           cache: true
 
       - name: Run GoReleaser build
@@ -96,10 +97,11 @@ jobs:
           name: web-build
           path: web/build
 
+#     1.20 is the last version to support Windows < 10, Server < 2016, and MacOS < 1.15.
       - name: Set up Go
         uses: actions/setup-go@v3
         with:
-          go-version: '1.19.2'
+          go-version: '1.20.1'
           cache: true
 
       - name: Run GoReleaser build and publish tags
@@ -157,7 +159,7 @@ jobs:
         uses: docker/build-push-action@v3
         with:
           context: .
-          file: ./Dockerfile.ci
+          file: ./ci.Dockerfile
           platforms: linux/amd64,linux/arm/v7,linux/arm64/v8
           push: ${{ github.repository_owner == 'autobrr' }}
           tags: ${{ steps.meta.outputs.tags }}
