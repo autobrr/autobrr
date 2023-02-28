@@ -76,7 +76,6 @@ type Release struct {
 	Artists                     string                `json:"-"`
 	Type                        string                `json:"type"` // Album,Single,EP
 	LogScore                    int                   `json:"-"`
-	IsScene                     bool                  `json:"-"`
 	Origin                      string                `json:"origin"` // P2P, Internal
 	Tags                        []string              `json:"-"`
 	ReleaseTags                 string                `json:"-"`
@@ -186,6 +185,7 @@ func NewRelease(indexer string) *Release {
 		Implementation: ReleaseImplementationIRC,
 		Timestamp:      time.Now(),
 		Tags:           []string{},
+		Size:           0,
 	}
 
 	return r
@@ -273,13 +273,13 @@ func (r *Release) ParseReleaseTagsString(tags string) {
 	}
 }
 
+// ParseSizeBytesString If there are parsing errors, then it keeps the original (or default size 0)
+// Otherwise, it will update the size only if the new size is bigger than the previous one.
 func (r *Release) ParseSizeBytesString(size string) {
 	s, err := humanize.ParseBytes(size)
-	if err != nil {
-		// log could not parse into bytes
-		r.Size = 0
+	if err == nil && s > r.Size {
+		r.Size = s
 	}
-	r.Size = s
 }
 
 func (r *Release) DownloadTorrentFileCtx(ctx context.Context) error {
@@ -485,21 +485,18 @@ func (r *Release) MapVars(def *IndexerDefinition, varMap map[string]string) erro
 	}
 
 	if scene, err := getStringMapValue(varMap, "scene"); err == nil {
-		r.IsScene = StringEqualFoldMulti(scene, "true", "yes", "1")
+		if StringEqualFoldMulti(scene, "true", "yes", "1") {
+			r.Origin = "SCENE"
+		}
 	}
 
 	// set origin. P2P, SCENE, O-SCENE and Internal
 	if origin, err := getStringMapValue(varMap, "origin"); err == nil {
 		r.Origin = origin
-
-		if r.IsScene {
-			r.Origin = "SCENE"
-		}
 	}
 
 	if internal, err := getStringMapValue(varMap, "internal"); err == nil {
-		i := StringEqualFoldMulti(internal, "internal", "yes", "1")
-		if i {
+		if StringEqualFoldMulti(internal, "internal", "yes", "1") {
 			r.Origin = "INTERNAL"
 		}
 	}

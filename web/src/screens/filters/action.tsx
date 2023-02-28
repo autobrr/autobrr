@@ -13,6 +13,7 @@ import { ChevronRightIcon } from "@heroicons/react/24/solid";
 import { DeleteModal } from "../../components/modals";
 import { CollapsableSection } from "./details";
 import { CustomTooltip } from "../../components/tooltips/CustomTooltip";
+import { Link } from "react-router-dom";
 
 interface FilterActionsProps {
   filter: Filter;
@@ -236,7 +237,7 @@ const TypeForm = ({ action, idx, clients }: TypeFormProps) => {
             <SwitchGroup
               name={`actions.${idx}.ignore_rules`}
               label="Ignore client rules"
-              tooltip={<CustomTooltip anchorId={`actions.${idx}.ignore_rules`} clickable={true}><div><p>Choose to ignore rules set in <a className='text-blue-400 visited:text-blue-400' href="../../settings/clients">Client Settings</a>.</p></div></CustomTooltip>} /> 
+              tooltip={<CustomTooltip anchorId={`actions.${idx}.ignore_rules`} clickable={true}><div><p>Choose to ignore rules set in <Link className='text-blue-400 visited:text-blue-400' to="/settings/clients">Client Settings</Link>.</p></div></CustomTooltip>} /> 
           </div>
           <div className="col-span-6">
             <Select
@@ -397,20 +398,6 @@ const TypeForm = ({ action, idx, clients }: TypeFormProps) => {
         </div>
       </div>
     );
-  case "RADARR":
-  case "SONARR":
-  case "LIDARR":
-  case "WHISPARR":
-  case "READARR":
-    return (
-      <div className="mt-6 grid grid-cols-12 gap-6">
-        <DownloadClientSelect
-          name={`actions.${idx}.client_id`}
-          action={action}
-          clients={clients}
-        />
-      </div>
-    );
   case "PORLA":
     return (
       <div className="w-full">
@@ -445,6 +432,20 @@ const TypeForm = ({ action, idx, clients }: TypeFormProps) => {
             </div>
           </div>
         </CollapsableSection>
+      </div>
+    );
+  case "RADARR":
+  case "SONARR":
+  case "LIDARR":
+  case "WHISPARR":
+  case "READARR":
+    return (
+      <div className="mt-6 grid grid-cols-12 gap-6">
+        <DownloadClientSelect
+          name={`actions.${idx}.client_id`}
+          action={action}
+          clients={clients}
+        />
       </div>
     );
 

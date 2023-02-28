@@ -43,7 +43,7 @@ ENV HOME="/config" \
 XDG_CONFIG_HOME="/config" \
 XDG_DATA_HOME="/config"
 
-RUN apk --no-cache add ca-certificates curl tzdata
+RUN apk --no-cache add ca-certificates curl tzdata jq
 
 WORKDIR /app
 

@@ -6,7 +6,8 @@ import {
   FolderArrowDownIcon,
   KeyIcon,
   RectangleStackIcon,
-  RssIcon
+  RssIcon,
+  Square3Stack3DIcon
 } from "@heroicons/react/24/outline";
 
 import { classNames } from "../utils";
@@ -19,6 +20,7 @@ interface NavTabType {
 
 const subNavigation: NavTabType[] = [
   { name: "Application", href: "", icon: CogIcon },
+  { name: "Logs", href: "logs", icon: Square3Stack3DIcon },
   { name: "Indexers", href: "indexers", icon: KeyIcon },
   { name: "IRC", href: "irc", icon: ChatBubbleLeftRightIcon },
   { name: "Feeds", href: "feeds", icon: RssIcon },
