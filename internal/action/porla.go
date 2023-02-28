@@ -49,10 +49,6 @@ func (s *service) porla(ctx context.Context, action *domain.Action, release doma
 	}
 
 	if release.HasMagnetUri() {
-		if err := release.ResolveMagnetUri(ctx); err != nil {
-			return nil, err
-		}
-
 		opts := &porla.TorrentsAddReq{
 			DownloadLimit: -1,
 			UploadLimit:   -1,

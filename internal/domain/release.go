@@ -426,7 +426,9 @@ func (rt *magnetRoundTripper) RoundTrip(r *http.Request) (*http.Response, error)
 }
 
 func (r *Release) ResolveMagnetUri(ctx context.Context) error {
-	if strings.HasPrefix(r.MagnetURI, "magnet:?") {
+	if r.MagnetURI == "" {
+		return nil
+	} else if strings.HasPrefix(r.MagnetURI, "magnet:?") {
 		return nil
 	}
 

@@ -36,10 +36,6 @@ func (s *service) transmission(ctx context.Context, action *domain.Action, relea
 	}
 
 	if release.HasMagnetUri() {
-		if err := release.ResolveMagnetUri(ctx); err != nil {
-			return nil, err
-		}
-
 		payload := transmissionrpc.TorrentAddPayload{
 			Filename: &release.MagnetURI,
 		}

@@ -32,13 +32,6 @@ func (s *service) execCmd(ctx context.Context, action *domain.Action, release do
 		release.TorrentDataRawBytes = t
 	}
 
-	// if args contains MagnetURI make sure to resolve link into magnet
-	if release.HasMagnetUri() && strings.Contains(action.ExecArgs, "MagnetURI") {
-		if err := release.ResolveMagnetUri(ctx); err != nil {
-			return errors.Wrap(err, "exec error: could resolve magnet uri from link for torrent: %s", release.TorrentName)
-		}
-	}
-
 	// check if program exists
 	cmd, err := exec.LookPath(action.ExecCmd)
 	if err != nil {
