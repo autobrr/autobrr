@@ -48,44 +48,69 @@ func (s *service) porla(ctx context.Context, action *domain.Action, release doma
 		return rejections, nil
 	}
 
-	if release.TorrentTmpFile == "" {
-		if err := release.DownloadTorrentFile(); err != nil {
-			return nil, errors.Wrap(err, "error downloading torrent file for release: %s", release.TorrentName)
+	if release.HasMagnetUri() {
+		opts := &porla.TorrentsAddReq{
+			DownloadLimit: -1,
+			UploadLimit:   -1,
+			SavePath:      action.SavePath,
+			MagnetUri:     release.MagnetURI,
 		}
-	}
 
-	file, err := os.Open(release.TorrentTmpFile)
-	if err != nil {
-		return nil, errors.Wrap(err, "error opening file %s", release.TorrentTmpFile)
-	}
-	defer file.Close()
+		if action.LimitDownloadSpeed > 0 {
+			opts.DownloadLimit = action.LimitDownloadSpeed * 1000
+		}
 
-	reader := bufio.NewReader(file)
-	content, err := io.ReadAll(reader)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to read file: %s", release.TorrentTmpFile)
-	}
+		if action.LimitUploadSpeed > 0 {
+			opts.UploadLimit = action.LimitUploadSpeed * 1000
+		}
 
-	opts := &porla.TorrentsAddReq{
-		DownloadLimit: -1,
-		SavePath:      action.SavePath,
-		Ti:            base64.StdEncoding.EncodeToString(content),
-		UploadLimit:   -1,
-	}
+		if err = prl.TorrentsAdd(ctx, opts); err != nil {
+			return nil, errors.Wrap(err, "could not add torrent from magnet %s to client: %s", release.MagnetURI, client.Name)
+		}
 
-	if action.LimitDownloadSpeed > 0 {
-		opts.DownloadLimit = action.LimitDownloadSpeed * 1000
-	}
+		s.log.Info().Msgf("torrent with hash %s successfully added to client: '%s'", release.TorrentHash, client.Name)
 
-	if action.LimitUploadSpeed > 0 {
-		opts.UploadLimit = action.LimitUploadSpeed * 1000
-	}
+		return nil, nil
+	} else {
+		if release.TorrentTmpFile == "" {
+			if err := release.DownloadTorrentFileCtx(ctx); err != nil {
+				return nil, errors.Wrap(err, "error downloading torrent file for release: %s", release.TorrentName)
+			}
+		}
 
-	if err = prl.TorrentsAdd(ctx, opts); err != nil {
-		return nil, errors.Wrap(err, "could not add torrent %v to client: %v", release.TorrentTmpFile, client.Name)
-	}
+		file, err := os.Open(release.TorrentTmpFile)
+		if err != nil {
+			return nil, errors.Wrap(err, "error opening file %s", release.TorrentTmpFile)
+		}
+		defer file.Close()
 
-	s.log.Info().Msgf("torrent with hash %v successfully added to client: '%v'", release.TorrentHash, client.Name)
+		reader := bufio.NewReader(file)
+		content, err := io.ReadAll(reader)
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to read file: %s", release.TorrentTmpFile)
+		}
+
+		opts := &porla.TorrentsAddReq{
+			DownloadLimit: -1,
+			SavePath:      action.SavePath,
+			Ti:            base64.StdEncoding.EncodeToString(content),
+			UploadLimit:   -1,
+		}
+
+		if action.LimitDownloadSpeed > 0 {
+			opts.DownloadLimit = action.LimitDownloadSpeed * 1000
+		}
+
+		if action.LimitUploadSpeed > 0 {
+			opts.UploadLimit = action.LimitUploadSpeed * 1000
+		}
+
+		if err = prl.TorrentsAdd(ctx, opts); err != nil {
+			return nil, errors.Wrap(err, "could not add torrent %s to client: %s", release.TorrentTmpFile, client.Name)
+		}
+
+		s.log.Info().Msgf("torrent with hash %s successfully added to client: '%s'", release.TorrentHash, client.Name)
+	}
 
 	return nil, nil
 }

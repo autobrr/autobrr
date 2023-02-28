@@ -143,7 +143,11 @@ export const releaseTypeMusic = [
   "Unknown"
 ];
 
-export const RELEASE_TYPE_MUSIC_OPTIONS: MultiSelectOption[] = releaseTypeMusic.map(v => ({ value: v, label: v, key: v }));
+export const RELEASE_TYPE_MUSIC_OPTIONS: MultiSelectOption[] = releaseTypeMusic.map(v => ({
+  value: v,
+  label: v,
+  key: v
+}));
 
 export const originOptions = [
   "P2P",
@@ -210,9 +214,9 @@ export const languageOptions = [
 export const LANGUAGE_OPTIONS = languageOptions.map(v => ({ value: v, label: v, key: v }));
 
 export interface RadioFieldsetOption {
-    label: string;
-    description: string;
-    value: ActionType;
+  label: string;
+  description: string;
+  value: ActionType;
 }
 
 export const DownloadClientTypeOptions: RadioFieldsetOption[] = [
@@ -330,8 +334,8 @@ export const ActionContentLayoutOptions: SelectGenericOption<ActionContentLayout
 ];
 
 export interface OptionBasic {
-    label: string;
-    value: string;
+  label: string;
+  value: string;
 }
 
 export interface OptionBasicTyped<T> {
@@ -427,9 +431,9 @@ const logLevel = ["DEBUG", "INFO", "WARN", "ERROR", "TRACE"] as const;
 export const LogLevelOptions = logLevel.map(v => ({ value: v, label: v, key: v }));
 
 export interface SelectOption {
-    label: string;
-    description: string;
-    value: NotificationEvent;
+  label: string;
+  description: string;
+  value: NotificationEvent;
 }
 
 export interface SelectGenericOption<T> {
@@ -468,5 +472,16 @@ export const EventOptions: SelectOption[] = [
     label: "New update",
     value: "APP_UPDATE_AVAILABLE",
     description: "Get notified on updates"
+  }
+];
+
+export const FeedDownloadTypeOptions: OptionBasicTyped<FeedDownloadType>[] = [
+  {
+    label: "Magnet",
+    value: "MAGNET"
+  },
+  {
+    label: "Torrent",
+    value: "TORRENT"
   }
 ];
