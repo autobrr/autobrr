@@ -449,6 +449,19 @@ const TypeForm = ({ action, idx, clients }: TypeFormProps) => {
       </div>
     );
 
+  case "SABNZBD":
+    return (
+      <div>
+        <div className="mt-6 grid grid-cols-12 gap-6">
+          <DownloadClientSelect
+            name={`actions.${idx}.client_id`}
+            action={action}
+            clients={clients}
+          />
+        </div>
+      </div>
+    );
+
   default:
     return null;
   }

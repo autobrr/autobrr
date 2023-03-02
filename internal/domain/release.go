@@ -154,16 +154,43 @@ type ReleaseProtocol string
 
 const (
 	ReleaseProtocolTorrent ReleaseProtocol = "torrent"
-	ReleaseProtocolUsenet ReleaseProtocol = "usenet"
+	ReleaseProtocolNzb     ReleaseProtocol = "nzb"
 )
+
+func (r ReleaseProtocol) String() string {
+	switch r {
+	case ReleaseProtocolTorrent:
+		return "torrent"
+	case ReleaseProtocolNzb:
+		return "nzb"
+	default:
+		return "torrent"
+	}
+}
 
 type ReleaseImplementation string
 
 const (
 	ReleaseImplementationIRC     ReleaseImplementation = "IRC"
 	ReleaseImplementationTorznab ReleaseImplementation = "TORZNAB"
+	ReleaseImplementationNewznab ReleaseImplementation = "NEWZNAB"
 	ReleaseImplementationRSS     ReleaseImplementation = "RSS"
 )
+
+func (r ReleaseImplementation) String() string {
+	switch r {
+	case ReleaseImplementationIRC:
+		return "IRC"
+	case ReleaseImplementationTorznab:
+		return "TORZNAB"
+	case ReleaseImplementationNewznab:
+		return "NEWZNAB"
+	case ReleaseImplementationRSS:
+		return "RSS"
+	default:
+		return "IRC"
+	}
+}
 
 type ReleaseQueryParams struct {
 	Limit   uint64
