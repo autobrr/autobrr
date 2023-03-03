@@ -458,6 +458,13 @@ const TypeForm = ({ action, idx, clients }: TypeFormProps) => {
             action={action}
             clients={clients}
           />
+
+          <TextField
+            name={`actions.${idx}.category`}
+            label="Category"
+            columns={6}
+            placeholder="eg. category"
+            tooltip={<CustomTooltip anchorId={`actions.${idx}.category`} clickable={true}><p>Category must exist already.</p></CustomTooltip>} />
         </div>
       </div>
     );

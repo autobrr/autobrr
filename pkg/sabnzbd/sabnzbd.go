@@ -52,12 +52,17 @@ func New(opts Options) *Client {
 	return c
 }
 
-func (c *Client) AddFromUrl(ctx context.Context, link string) (*AddFileResponse, error) {
+func (c *Client) AddFromUrl(ctx context.Context, r AddNzbRequest) (*AddFileResponse, error) {
 	v := url.Values{}
 	v.Set("mode", "addurl")
-	v.Set("name", link)
+	v.Set("name", r.Url)
 	v.Set("output", "json")
 	v.Set("apikey", c.apiKey)
+	v.Set("cat", "*")
+
+	if r.Category != "" {
+		v.Set("cat", r.Category)
+	}
 
 	addr, err := url.JoinPath(c.addr, "/api")
 	if err != nil {
@@ -160,4 +165,9 @@ type AddFileResponse struct {
 
 type ApiError struct {
 	ErrorMsg string `json:"error,omitempty"`
+}
+
+type AddNzbRequest struct {
+	Url      string
+	Category string
 }
