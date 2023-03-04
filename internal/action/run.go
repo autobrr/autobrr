@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/tls"
+	"fmt"
 	"io"
 	"net/http"
 	"os"
@@ -24,11 +25,17 @@ func (s *service) RunAction(ctx context.Context, action *domain.Action, release 
 
 	defer func() {
 		if r := recover(); r != nil {
-			s.log.Error().Msgf("recovering from panic in run action %v error: %v", action.Name, r)
-			err = errors.New("panic in action: %v", action.Name)
+			s.log.Error().Msgf("recovering from panic in run action %s error: %v", action.Name, r)
+			err = errors.New("panic in action: %s", action.Name)
 			return
 		}
 	}()
+
+	// if set, try to resolve MagnetURI before parsing macros
+	// to allow webhook and exec to get the magnet_uri
+	if err := release.ResolveMagnetUri(ctx); err != nil {
+		return nil, err
+	}
 
 	// parse all macros in one go
 	if err := action.ParseMacros(release); err != nil {
@@ -77,6 +84,9 @@ func (s *service) RunAction(ctx context.Context, action *domain.Action, release 
 
 	case domain.ActionTypeReadarr:
 		rejections, err = s.readarr(ctx, action, release)
+
+	case domain.ActionTypeSabnzbd:
+		rejections, err = s.sabnzbd(ctx, action, release)
 
 	default:
 		s.log.Warn().Msgf("unsupported action type: %v", action.Type)
@@ -147,6 +157,10 @@ func (s *service) test(name string) {
 }
 
 func (s *service) watchFolder(ctx context.Context, action *domain.Action, release domain.Release) error {
+	if release.HasMagnetUri() {
+		return fmt.Errorf("action watch folder does not support magnet links: %s", release.TorrentName)
+	}
+
 	if release.TorrentTmpFile == "" {
 		if err := release.DownloadTorrentFileCtx(ctx); err != nil {
 			return errors.Wrap(err, "watch folder: could not download torrent file for release: %v", release.TorrentName)

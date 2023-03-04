@@ -41,13 +41,17 @@ type Feed struct {
 	Capabilities []string          `json:"capabilities"`
 	ApiKey       string            `json:"api_key"`
 	Cookie       string            `json:"cookie"`
-	Settings     map[string]string `json:"settings"`
+	Settings     *FeedSettingsJSON `json:"settings"`
 	CreatedAt    time.Time         `json:"created_at"`
 	UpdatedAt    time.Time         `json:"updated_at"`
 	IndexerID    int               `json:"indexer_id,omitempty"`
 	Indexerr     FeedIndexer       `json:"-"`
 	LastRun      time.Time         `json:"last_run"`
 	LastRunData  string            `json:"last_run_data"`
+}
+
+type FeedSettingsJSON struct {
+	DownloadType FeedDownloadType `json:"download_type"`
 }
 
 type FeedIndexer struct {
@@ -60,7 +64,15 @@ type FeedType string
 
 const (
 	FeedTypeTorznab FeedType = "TORZNAB"
+	FeedTypeNewznab FeedType = "NEWZNAB"
 	FeedTypeRSS     FeedType = "RSS"
+)
+
+type FeedDownloadType string
+
+const (
+	FeedDownloadTypeMagnet  FeedDownloadType = "MAGNET"
+	FeedDownloadTypeTorrent FeedDownloadType = "TORRENT"
 )
 
 type FeedCacheItem struct {
