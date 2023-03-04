@@ -15,6 +15,8 @@ import (
 	"github.com/autobrr/autobrr/pkg/errors"
 )
 
+const DefaultTimeout = 60
+
 type Client interface {
 	GetFeed(ctx context.Context) (*Feed, error)
 	GetCaps(ctx context.Context) (*Caps, error)
@@ -58,7 +60,11 @@ type Capabilities struct {
 
 func NewClient(config Config) Client {
 	httpClient := &http.Client{
-		Timeout: config.Timeout,
+		Timeout: time.Second * DefaultTimeout,
+	}
+
+	if config.Timeout > 0 {
+		httpClient.Timeout = time.Second * config.Timeout
 	}
 
 	c := &client{
@@ -131,19 +137,29 @@ func (c *client) get(ctx context.Context, endpoint string, queryParams map[strin
 }
 
 func (c *client) getData(ctx context.Context, endpoint string, queryParams map[string]string) (*http.Response, error) {
-	params := url.Values{}
+	u, err := url.Parse(c.Host)
+	if err != nil {
+		return nil, errors.Wrap(err, "could not build request")
+	}
+	u.Path = strings.TrimSuffix(u.Path, "/")
 
-	for k, v := range queryParams {
-		params.Add(k, v)
+	qp, err := url.ParseQuery(u.RawQuery)
+	if err != nil {
+		return nil, errors.Wrap(err, "could not build request")
 	}
 
 	if c.ApiKey != "" {
-		params.Add("apikey", c.ApiKey)
+		qp.Add("apikey", c.ApiKey)
 	}
 
-	u, err := url.Parse(c.Host)
-	u.Path = strings.TrimSuffix(u.Path, "/")
-	u.RawQuery = params.Encode()
+	for k, v := range queryParams {
+		if qp.Has("t") {
+			continue
+		}
+		qp.Add(k, v)
+	}
+
+	u.RawQuery = qp.Encode()
 	reqUrl := u.String()
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, reqUrl, nil)
@@ -199,7 +215,11 @@ func (c *client) GetFeed(ctx context.Context) (*Feed, error) {
 
 	if c.Capabilities != nil {
 		for _, item := range response.Channel.Items {
-			item.MapCategories(c.Capabilities.Categories.Categories)
+			item.MapCustomCategoriesFromAttr(c.Capabilities.Categories.Categories)
+		}
+	} else {
+		for _, item := range response.Channel.Items {
+			item.MapCategoriesFromAttr()
 		}
 	}
 
@@ -232,7 +252,7 @@ func (c *client) GetFeedAndCaps(ctx context.Context) (*Feed, error) {
 	}
 
 	for _, item := range res.Channel.Items {
-		item.MapCategories(c.Capabilities.Categories.Categories)
+		item.MapCustomCategoriesFromAttr(c.Capabilities.Categories.Categories)
 	}
 
 	return res, nil
