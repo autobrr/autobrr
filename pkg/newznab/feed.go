@@ -2,6 +2,7 @@ package newznab
 
 import (
 	"encoding/xml"
+	"strconv"
 	"time"
 
 	"github.com/autobrr/autobrr/pkg/errors"
@@ -39,7 +40,7 @@ type FeedItem struct {
 	Size       string     `xml:"size"`
 	Link       string     `xml:"link"`
 	Enclosure  *Enclosure `xml:"enclosure,omitempty"`
-	Category   []int      `xml:"category,omitempty"`
+	Category   []string   `xml:"category,omitempty"`
 	Categories Categories
 
 	// attributes
@@ -62,22 +63,46 @@ type Enclosure struct {
 	Type   string `xml:"type,attr"`
 }
 
-func (f FeedItem) MapCategories(categories []Category) {
-	for _, category := range f.Category {
-		// less than 10000 it's default categories
-		if category < 10000 {
-			f.Categories = append(f.Categories, ParentCategory(Category{ID: category}))
-			continue
-		}
+func (f FeedItem) MapCategoriesFromAttr() {
+	for _, attr := range f.Attributes {
+		if attr.Name == "category" {
+			catId, err := strconv.Atoi(attr.Value)
+			if err != nil {
+				continue
+			}
 
-		// categories 10000+ are custom indexer specific
-		for _, capCat := range categories {
-			if capCat.ID == category {
-				f.Categories = append(f.Categories, Category{
-					ID:   capCat.ID,
-					Name: capCat.Name,
-				})
-				break
+			if catId > 0 && catId < 10000 {
+				f.Categories = append(f.Categories, ParentCategory(Category{ID: catId}))
+			}
+		} else if attr.Name == "size" {
+			if f.Size == "" && attr.Value != "" {
+				f.Size = attr.Value
+			}
+		}
+	}
+}
+
+func (f FeedItem) MapCustomCategoriesFromAttr(categories []Category) {
+	for _, attr := range f.Attributes {
+		if attr.Name == "category" {
+			catId, err := strconv.Atoi(attr.Value)
+			if err != nil {
+				continue
+			}
+
+			if catId > 0 && catId < 10000 {
+				f.Categories = append(f.Categories, ParentCategory(Category{ID: catId}))
+			} else if catId > 10000 {
+				// categories 10000+ are custom indexer specific
+				for _, capCat := range categories {
+					if capCat.ID == catId {
+						f.Categories = append(f.Categories, Category{
+							ID:   capCat.ID,
+							Name: capCat.Name,
+						})
+						break
+					}
+				}
 			}
 		}
 	}
