@@ -51,6 +51,12 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Download web production build
+        uses: actions/download-artifact@v3
+        with:
+          name: web-build
+          path: web/build
+
       # 1.20 is the last version to support Windows < 10, Server < 2016, and MacOS < 1.15.
       - name: Set up Go
         uses: actions/setup-go@v3
