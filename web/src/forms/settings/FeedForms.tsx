@@ -203,6 +203,30 @@ function FormFieldsTorznab() {
   );
 }
 
+function FormFieldsNewznab() {
+  const {
+    values: { interval }
+  } = useFormikContext<InitialValues>();
+
+  return (
+    <div className="border-t border-gray-200 dark:border-gray-700 py-5">
+      <TextFieldWide
+        name="url"
+        label="URL"
+        help="Newznab url"
+      />
+
+      <PasswordFieldWide name="api_key" label="API key" />
+
+      {interval < 15 && <WarningLabel />}
+      <NumberFieldWide name="interval" label="Refresh interval" help="Minutes. Recommended 15-30. Too low and risk ban."/>
+
+      <NumberFieldWide name="timeout" label="Refresh timeout" help="Seconds to wait before cancelling refresh."/>
+      <NumberFieldWide name="max_age" label="Max age" help="Seconds. Will not grab older than this value."/>
+    </div>
+  );
+}
+
 function FormFieldsRSS() {
   const {
     values: { interval }
@@ -230,5 +254,6 @@ function FormFieldsRSS() {
 
 const componentMap: componentMapType = {
   TORZNAB: <FormFieldsTorznab />,
+  NEWZNAB: <FormFieldsNewznab />,
   RSS: <FormFieldsRSS />
 };

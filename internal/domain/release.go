@@ -154,15 +154,43 @@ type ReleaseProtocol string
 
 const (
 	ReleaseProtocolTorrent ReleaseProtocol = "torrent"
+	ReleaseProtocolNzb     ReleaseProtocol = "nzb"
 )
+
+func (r ReleaseProtocol) String() string {
+	switch r {
+	case ReleaseProtocolTorrent:
+		return "torrent"
+	case ReleaseProtocolNzb:
+		return "nzb"
+	default:
+		return "torrent"
+	}
+}
 
 type ReleaseImplementation string
 
 const (
 	ReleaseImplementationIRC     ReleaseImplementation = "IRC"
 	ReleaseImplementationTorznab ReleaseImplementation = "TORZNAB"
+	ReleaseImplementationNewznab ReleaseImplementation = "NEWZNAB"
 	ReleaseImplementationRSS     ReleaseImplementation = "RSS"
 )
+
+func (r ReleaseImplementation) String() string {
+	switch r {
+	case ReleaseImplementationIRC:
+		return "IRC"
+	case ReleaseImplementationTorznab:
+		return "TORZNAB"
+	case ReleaseImplementationNewznab:
+		return "NEWZNAB"
+	case ReleaseImplementationRSS:
+		return "RSS"
+	default:
+		return "IRC"
+	}
+}
 
 type ReleaseQueryParams struct {
 	Limit   uint64
@@ -291,7 +319,9 @@ func (r *Release) DownloadTorrentFile() error {
 }
 
 func (r *Release) downloadTorrentFile(ctx context.Context) error {
-	if r.HasMagnetUri() {
+	if r.Protocol != ReleaseProtocolTorrent {
+		return errors.New("download_file: protocol is not %s: %s", ReleaseProtocolTorrent, r.Protocol)
+	} else if r.HasMagnetUri() {
 		return fmt.Errorf("error trying to download magnet link: %s", r.MagnetURI)
 	}
 

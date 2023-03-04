@@ -24,7 +24,7 @@ interface FeedSettings {
 
 type FeedDownloadType = "MAGNET" | "TORRENT";
 
-type FeedType = "TORZNAB" | "RSS";
+type FeedType = "TORZNAB" | "NEWZNAB" | "RSS";
 
 interface FeedCreate {
   name: string;

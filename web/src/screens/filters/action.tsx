@@ -449,6 +449,26 @@ const TypeForm = ({ action, idx, clients }: TypeFormProps) => {
       </div>
     );
 
+  case "SABNZBD":
+    return (
+      <div>
+        <div className="mt-6 grid grid-cols-12 gap-6">
+          <DownloadClientSelect
+            name={`actions.${idx}.client_id`}
+            action={action}
+            clients={clients}
+          />
+
+          <TextField
+            name={`actions.${idx}.category`}
+            label="Category"
+            columns={6}
+            placeholder="eg. category"
+            tooltip={<CustomTooltip anchorId={`actions.${idx}.category`} clickable={true}><p>Category must exist already.</p></CustomTooltip>} />
+        </div>
+      </div>
+    );
+
   default:
     return null;
   }
