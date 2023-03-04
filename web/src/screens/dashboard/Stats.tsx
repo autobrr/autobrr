@@ -1,5 +1,6 @@
 import { useQuery } from "react-query";
 import { APIClient } from "../../api/APIClient";
+import { classNames } from "../../utils";
 
 interface StatsItemProps {
     name: string;
@@ -33,30 +34,16 @@ export const Stats = () => {
     { refetchOnWindowFocus: false }
   );
 
-  if (isLoading)
-    return ( 
-      <div>
-        <h1 className="text-3xl font-bold text-black dark:text-white">
-        Stats
-        </h1>
-        <dl className="animate-pulse grid grid-cols-1 gap-5 mt-5 sm:grid-cols-2 lg:grid-cols-3">
-          <StatsItem name="Filtered Releases" placeholder="&nbsp;"/>
-          <StatsItem name="Rejected Pushes" placeholder="&nbsp;"/>
-          <StatsItem name="Approved Pushes" placeholder="&nbsp;"/>
-        </dl>
-      </div>
-    );
-
   return (
     <div>
       <h1 className="text-3xl font-bold text-black dark:text-white">
         Stats
       </h1>
-      <dl className="grid grid-cols-1 gap-5 mt-5 sm:grid-cols-2 lg:grid-cols-3">
-        <StatsItem name="Filtered Releases" value={data?.filtered_count} />
+      <dl className={classNames("grid grid-cols-1 gap-5 mt-5 sm:grid-cols-2 lg:grid-cols-3", isLoading ? "animate-pulse" : "")}>
+        <StatsItem name="Filtered Releases" value={data?.filtered_count ?? 0} />
         {/* <StatsItem name="Filter Rejected Releases" stat={data?.filter_rejected_count} /> */}
-        <StatsItem name="Rejected Pushes" value={data?.push_rejected_count} />
-        <StatsItem name="Approved Pushes" value={data?.push_approved_count} />
+        <StatsItem name="Rejected Pushes" value={data?.push_rejected_count ?? 0 } />
+        <StatsItem name="Approved Pushes" value={data?.push_approved_count ?? 0} />
       </dl>
     </div>
   );
