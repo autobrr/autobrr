@@ -12,7 +12,8 @@ type SysVersionsPorla struct {
 type TorrentsAddReq struct {
 	DownloadLimit int64  `json:"download_limit,omitempty"`
 	SavePath      string `json:"save_path,omitempty"`
-	Ti            string `json:"ti"`
+	Ti            string `json:"ti,omitempty"`
+	MagnetUri     string `json:"magnet_uri,omitempty"`
 	UploadLimit   int64  `json:"upload_limit,omitempty"`
 }
 

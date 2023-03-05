@@ -65,7 +65,7 @@ export const MultiSelect = ({
         }: FieldProps) => (
           <RMSC
             {...field}
-            options={[...[...options, ...field.value.map((i: MultiSelectOption) => ({ value: i.value ?? i, label: i.label ?? i }))].reduce((map, obj) => map.set(obj.value, obj), new Map()).values()]}
+            options={options}
             disabled={disabled}
             labelledBy={name}
             isCreatable={creatable}
@@ -86,6 +86,7 @@ export const MultiSelect = ({
     </div>
   );
 };
+
 
 interface IndexerMultiSelectOption {
     id: number;

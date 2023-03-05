@@ -63,6 +63,7 @@ function FormFieldsDeluge() {
         label="Host"
         help="Eg. client.domain.ltd, domain.ltd/client, domain.ltd:port"
         tooltip={<div><p>See guides for how to connect to Deluge for various server types in our docs.</p><br /><p>Dedicated servers:</p><a href='https://autobrr.com/configuration/download-clients/dedicated#deluge' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/configuration/download-clients/dedicated#deluge</a><p>Shared seedbox providers:</p><a href='https://autobrr.com/configuration/download-clients/shared-seedboxes#deluge' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/configuration/download-clients/shared-seedboxes#deluge</a></div>}
+        required={true}
       />
 
       <NumberFieldWide
@@ -98,9 +99,10 @@ function FormFieldsArr() {
         label="Host"
         help="Full url http(s)://domain.ltd and/or subdomain/subfolder"
         tooltip={<div><p>See guides for how to connect to the *arr suite for various server types in our docs.</p><br /><p>Dedicated servers:</p><a href='https://autobrr.com/configuration/download-clients/dedicated/#sonarr' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/configuration/download-clients/dedicated/</a><p>Shared seedbox providers:</p><a href='https://autobrr.com/configuration/download-clients/shared-seedboxes#sonarr' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/configuration/download-clients/shared-seedboxes</a></div>}
+        required={true}
       />
 
-      <PasswordFieldWide name="settings.apikey" label="API key" />
+      <PasswordFieldWide name="settings.apikey" label="API key" required={true}/>
 
       <SwitchGroupWide name="settings.basic.auth" label="Basic auth" />
 
@@ -126,6 +128,7 @@ function FormFieldsQbit() {
         label="Host"
         help="Eg. http(s)://client.domain.ltd, http(s)://domain.ltd/qbittorrent, http://domain.ltd:port"
         tooltip={<div><p>See guides for how to connect to qBittorrent for various server types in our docs.</p><br /><p>Dedicated servers:</p><a href='https://autobrr.com/configuration/download-clients/dedicated#qbittorrent' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/configuration/download-clients/dedicated#qbittorrent</a><p>Shared seedbox providers:</p><a href='https://autobrr.com/configuration/download-clients/shared-seedboxes#qbittorrent' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/configuration/download-clients/shared-seedboxes#qbittorrent</a></div>}
+        required={true}
       />
 
       {port > 0 && (
@@ -171,11 +174,13 @@ function FormFieldsPorla() {
         name="host"
         label="Host"
         help="Eg. http(s)://client.domain.ltd, http(s)://domain.ltd/porla, http://domain.ltd:port"
+        required={true}
       />
 
+      
       <SwitchGroupWide name="tls" label="TLS" />
 
-      <PasswordFieldWide name="settings.apikey" label="Auth token" />
+      <PasswordFieldWide name="settings.apikey" label="Auth token" required={true}/>
 
       {tls && (
         <SwitchGroupWide
@@ -204,6 +209,7 @@ function FormFieldsRTorrent() {
         label="Host"
         help="Eg. http(s)://client.domain.ltd/RPC2, http(s)://domain.ltd/client, http(s)://domain.ltd/RPC2"
         tooltip={<div><p>See guides for how to connect to rTorrent for various server types in our docs.</p><br /><p>Dedicated servers:</p><a href='https://autobrr.com/configuration/download-clients/dedicated#rtorrent--rutorrent' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/configuration/download-clients/dedicated#rtorrent--rutorrent</a><p>Shared seedbox providers:</p><a href='https://autobrr.com/configuration/download-clients/shared-seedboxes#rtorrent' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/configuration/download-clients/shared-seedboxes#rtorrent</a></div>}
+        required={true}
       />
     </div>
   );
@@ -221,6 +227,7 @@ function FormFieldsTransmission() {
         label="Host"
         help="Eg. client.domain.ltd, domain.ltd/client, domain.ltd"
         tooltip={<div><p>See guides for how to connect to Transmission for various server types in our docs.</p><br /><p>Dedicated servers:</p><a href='https://autobrr.com/configuration/download-clients/dedicated#transmission' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/configuration/download-clients/dedicated#transmission</a><p>Shared seedbox providers:</p><a href='https://autobrr.com/configuration/download-clients/shared-seedboxes#transmisison' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/configuration/download-clients/shared-seedboxes#transmisison</a></div>}
+        required={true}
       />
 
       <NumberFieldWide name="port" label="Port" help="Port for Transmission" />
@@ -240,22 +247,71 @@ function FormFieldsTransmission() {
   );
 }
 
+function FormFieldsSabnzbd() {
+  const {
+    values: { port, tls, settings }
+  } = useFormikContext<InitialValues>();
+
+  return (
+    <div className="flex flex-col space-y-4 px-1 py-6 sm:py-0 sm:space-y-0">
+      <TextFieldWide
+        name="host"
+        label="Host"
+        help="Eg. ip:port"
+        // tooltip={<div><p>See guides for how to connect to qBittorrent for various server types in our docs.</p><br /><p>Dedicated servers:</p><a href='https://autobrr.com/configuration/download-clients/dedicated#qbittorrent' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/configuration/download-clients/dedicated#qbittorrent</a><p>Shared seedbox providers:</p><a href='https://autobrr.com/configuration/download-clients/shared-seedboxes#qbittorrent' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/configuration/download-clients/shared-seedboxes#qbittorrent</a></div>}
+      />
+
+      {port > 0 && (
+        <NumberFieldWide
+          name="port"
+          label="Port"
+          help="port for Sabnzbd"
+        />
+      )}
+
+      <SwitchGroupWide name="tls" label="TLS" />
+
+      {tls && (
+        <SwitchGroupWide
+          name="tls_skip_verify"
+          label="Skip TLS verification (insecure)"
+        />
+      )}
+
+      {/*<TextFieldWide name="username" label="Username" />*/}
+      {/*<PasswordFieldWide name="password" label="Password" />*/}
+
+      <PasswordFieldWide name="settings.apikey" label="API key" />
+
+      <SwitchGroupWide name="settings.basic.auth" label="Basic auth" />
+
+      {settings.basic?.auth === true && (
+        <>
+          <TextFieldWide name="settings.basic.username" label="Username" />
+          <PasswordFieldWide name="settings.basic.password" label="Password" />
+        </>
+      )}
+    </div>
+  );
+}
+
 export interface componentMapType {
   [key: string]: React.ReactElement;
 }
 
 export const componentMap: componentMapType = {
-  DELUGE_V1: <FormFieldsDeluge/>,
-  DELUGE_V2: <FormFieldsDeluge/>,
-  QBITTORRENT: <FormFieldsQbit/>,
+  DELUGE_V1: <FormFieldsDeluge />,
+  DELUGE_V2: <FormFieldsDeluge />,
+  QBITTORRENT: <FormFieldsQbit />,
   RTORRENT: <FormFieldsRTorrent />,
-  TRANSMISSION: <FormFieldsTransmission/>,
+  TRANSMISSION: <FormFieldsTransmission />,
   PORLA: <FormFieldsPorla />,
-  RADARR: <FormFieldsArr/>,
-  SONARR: <FormFieldsArr/>,
-  LIDARR: <FormFieldsArr/>,
-  WHISPARR: <FormFieldsArr/>,
-  READARR: <FormFieldsArr/>
+  RADARR: <FormFieldsArr />,
+  SONARR: <FormFieldsArr />,
+  LIDARR: <FormFieldsArr />,
+  WHISPARR: <FormFieldsArr />,
+  READARR: <FormFieldsArr />,
+  SABNZBD: <FormFieldsSabnzbd />
 };
 
 function FormFieldsRulesBasic() {
@@ -587,7 +643,7 @@ export function DownloadClientAddForm({ isOpen, toggle }: formProps) {
                         </div>
 
                         <div className="flex flex-col space-y-4 px-1 py-6 sm:py-0 sm:space-y-0">
-                          <TextFieldWide name="name" label="Name"/>
+                          <TextFieldWide name="name" label="Name" required={true}/>
                           <SwitchGroupWide name="enabled" label="Enabled"/>
                           <RadioFieldsetWide
                             name="type"
@@ -786,7 +842,7 @@ export function DownloadClientUpdateForm({ client, isOpen, toggle }: updateFormP
                           </div>
 
                           <div className="py-6 space-y-6 sm:py-0 sm:space-y-0 sm:divide-y dark:divide-gray-700">
-                            <TextFieldWide name="name" label="Name"/>
+                            <TextFieldWide name="name" label="Name" required={true}/>
                             <SwitchGroupWide name="enabled" label="Enabled"/>
                             <RadioFieldsetWide
                               name="type"

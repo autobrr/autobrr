@@ -932,6 +932,47 @@ func TestFilter_CheckFilter(t *testing.T) {
 			want: true,
 		},
 		{
+			name: "match_hdr_9",
+			fields: &Release{
+				TorrentName: "Good show shift S02 2160p ATVP WEB-DL DDP 5.1 Atmos DV HDR HEVC-GROUP",
+			},
+			args: args{
+				filter: Filter{
+					Enabled:  true,
+					MatchHDR: []string{"DV HDR"},
+				},
+			},
+			want: true,
+		},
+		{
+			name: "match_hdr_10",
+			fields: &Release{
+				TorrentName: "Good show shift S02 2160p ATVP WEB-DL DDP 5.1 Atmos DV HDR10 HEVC-GROUP",
+			},
+			args: args{
+				filter: Filter{
+					Enabled:  true,
+					MatchHDR: []string{"DV HDR"},
+				},
+				rejections: []string{"hdr not matching. got: [DV HDR10] want: [DV HDR]"},
+			},
+			want: false,
+		},
+		{
+			name: "match_hdr_11",
+			fields: &Release{
+				TorrentName: "Good show shift S02 2160p ATVP WEB-DL DDP 5.1 Atmos HDR10 HEVC-GROUP",
+			},
+			args: args{
+				filter: Filter{
+					Enabled:  true,
+					MatchHDR: []string{"DV", "HDR"},
+				},
+				rejections: []string{"hdr not matching. got: [HDR10] want: [DV HDR]"},
+			},
+			want: false,
+		},
+		{
 			name: "match_music_1",
 			fields: &Release{
 				TorrentName: "Artist - Albumname FLAC CD",

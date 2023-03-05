@@ -89,6 +89,7 @@ const (
 	ActionTypeLidarr       ActionType = "LIDARR"
 	ActionTypeWhisparr     ActionType = "WHISPARR"
 	ActionTypeReadarr      ActionType = "READARR"
+	ActionTypeSabnzbd      ActionType = "SABNZBD"
 )
 
 type ActionContentLayout string

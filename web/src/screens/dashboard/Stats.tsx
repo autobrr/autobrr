@@ -1,12 +1,14 @@
 import { useQuery } from "react-query";
 import { APIClient } from "../../api/APIClient";
+import { classNames } from "../../utils";
 
 interface StatsItemProps {
     name: string;
     value?: number;
+    placeholder?: string;
 }
 
-const StatsItem = ({ name, value }: StatsItemProps) => (
+const StatsItem = ({ name, placeholder, value }: StatsItemProps) => (
   <div
     className="relative px-4 py-5 overflow-hidden bg-white rounded-lg shadow-lg dark:bg-gray-800"
     title="All time"
@@ -14,6 +16,10 @@ const StatsItem = ({ name, value }: StatsItemProps) => (
     <dt>
       <p className="pb-1 text-sm font-medium text-gray-500 truncate">{name}</p>
     </dt>
+
+    <dd className="flex items-baseline">
+      <p className="text-3xl font-extrabold text-gray-900 dark:text-gray-200">{placeholder}</p>
+    </dd>
 
     <dd className="flex items-baseline">
       <p className="text-3xl font-extrabold text-gray-900 dark:text-gray-200">{value}</p>
@@ -28,20 +34,16 @@ export const Stats = () => {
     { refetchOnWindowFocus: false }
   );
 
-  if (isLoading)
-    return null;
-
   return (
     <div>
       <h1 className="text-3xl font-bold text-black dark:text-white">
         Stats
       </h1>
-
-      <dl className="grid grid-cols-1 gap-5 mt-5 sm:grid-cols-2 lg:grid-cols-3">
-        <StatsItem name="Filtered Releases" value={data?.filtered_count} />
+      <dl className={classNames("grid grid-cols-1 gap-5 mt-5 sm:grid-cols-2 lg:grid-cols-3", isLoading ? "animate-pulse" : "")}>
+        <StatsItem name="Filtered Releases" value={data?.filtered_count ?? 0} />
         {/* <StatsItem name="Filter Rejected Releases" stat={data?.filter_rejected_count} /> */}
-        <StatsItem name="Rejected Pushes" value={data?.push_rejected_count} />
-        <StatsItem name="Approved Pushes" value={data?.push_approved_count} />
+        <StatsItem name="Rejected Pushes" value={data?.push_rejected_count ?? 0 } />
+        <StatsItem name="Approved Pushes" value={data?.push_approved_count ?? 0} />
       </dl>
     </div>
   );
