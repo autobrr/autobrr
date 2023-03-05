@@ -99,6 +99,7 @@ func (a *announceProcessor) processQueue(queue chan string) {
 		}
 
 		rls := domain.NewRelease(a.indexer.Identifier)
+		rls.Protocol = domain.ReleaseProtocol(a.indexer.Protocol)
 
 		// on lines matched
 		if err := a.onLinesMatched(a.indexer, tmpVars, rls); err != nil {

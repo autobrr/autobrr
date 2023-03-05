@@ -162,7 +162,7 @@ function FormFieldsQbit() {
 
 function FormFieldsPorla() {
   const {
-    values: {}
+    values: { tls, settings }
   } = useFormikContext<InitialValues>();
 
   return (
@@ -173,7 +173,25 @@ function FormFieldsPorla() {
         help="Eg. http(s)://client.domain.ltd, http(s)://domain.ltd/porla, http://domain.ltd:port"
       />
 
+      <SwitchGroupWide name="tls" label="TLS" />
+
       <PasswordFieldWide name="settings.apikey" label="Auth token" />
+
+      {tls && (
+        <SwitchGroupWide
+          name="tls_skip_verify"
+          label="Skip TLS verification (insecure)"
+        />
+      )}
+
+      <SwitchGroupWide name="settings.basic.auth" label="Basic auth" />
+
+      {settings.basic?.auth === true && (
+        <>
+          <TextFieldWide name="settings.basic.username" label="Username" />
+          <PasswordFieldWide name="settings.basic.password" label="Password" />
+        </>
+      )}
     </div>
   );
 }
@@ -222,22 +240,71 @@ function FormFieldsTransmission() {
   );
 }
 
+function FormFieldsSabnzbd() {
+  const {
+    values: { port, tls, settings }
+  } = useFormikContext<InitialValues>();
+
+  return (
+    <div className="flex flex-col space-y-4 px-1 py-6 sm:py-0 sm:space-y-0">
+      <TextFieldWide
+        name="host"
+        label="Host"
+        help="Eg. ip:port"
+        // tooltip={<div><p>See guides for how to connect to qBittorrent for various server types in our docs.</p><br /><p>Dedicated servers:</p><a href='https://autobrr.com/configuration/download-clients/dedicated#qbittorrent' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/configuration/download-clients/dedicated#qbittorrent</a><p>Shared seedbox providers:</p><a href='https://autobrr.com/configuration/download-clients/shared-seedboxes#qbittorrent' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/configuration/download-clients/shared-seedboxes#qbittorrent</a></div>}
+      />
+
+      {port > 0 && (
+        <NumberFieldWide
+          name="port"
+          label="Port"
+          help="port for Sabnzbd"
+        />
+      )}
+
+      <SwitchGroupWide name="tls" label="TLS" />
+
+      {tls && (
+        <SwitchGroupWide
+          name="tls_skip_verify"
+          label="Skip TLS verification (insecure)"
+        />
+      )}
+
+      {/*<TextFieldWide name="username" label="Username" />*/}
+      {/*<PasswordFieldWide name="password" label="Password" />*/}
+
+      <PasswordFieldWide name="settings.apikey" label="API key" />
+
+      <SwitchGroupWide name="settings.basic.auth" label="Basic auth" />
+
+      {settings.basic?.auth === true && (
+        <>
+          <TextFieldWide name="settings.basic.username" label="Username" />
+          <PasswordFieldWide name="settings.basic.password" label="Password" />
+        </>
+      )}
+    </div>
+  );
+}
+
 export interface componentMapType {
   [key: string]: React.ReactElement;
 }
 
 export const componentMap: componentMapType = {
-  DELUGE_V1: <FormFieldsDeluge/>,
-  DELUGE_V2: <FormFieldsDeluge/>,
-  QBITTORRENT: <FormFieldsQbit/>,
+  DELUGE_V1: <FormFieldsDeluge />,
+  DELUGE_V2: <FormFieldsDeluge />,
+  QBITTORRENT: <FormFieldsQbit />,
   RTORRENT: <FormFieldsRTorrent />,
-  TRANSMISSION: <FormFieldsTransmission/>,
+  TRANSMISSION: <FormFieldsTransmission />,
   PORLA: <FormFieldsPorla />,
-  RADARR: <FormFieldsArr/>,
-  SONARR: <FormFieldsArr/>,
-  LIDARR: <FormFieldsArr/>,
-  WHISPARR: <FormFieldsArr/>,
-  READARR: <FormFieldsArr/>
+  RADARR: <FormFieldsArr />,
+  SONARR: <FormFieldsArr />,
+  LIDARR: <FormFieldsArr />,
+  WHISPARR: <FormFieldsArr />,
+  READARR: <FormFieldsArr />,
+  SABNZBD: <FormFieldsSabnzbd />
 };
 
 function FormFieldsRulesBasic() {
@@ -264,7 +331,7 @@ function FormFieldsRulesBasic() {
   );
 }
 
-function FormFieldsRules() {
+function FormFieldsRulesQbit() {
   const {
     values: { settings }
   } = useFormikContext<InitialValues>();
@@ -325,7 +392,8 @@ function FormFieldsRules() {
 export const rulesComponentMap: componentMapType = {
   DELUGE_V1: <FormFieldsRulesBasic/>,
   DELUGE_V2: <FormFieldsRulesBasic/>,
-  QBITTORRENT: <FormFieldsRules/>
+  QBITTORRENT: <FormFieldsRulesQbit/>,
+  PORLA: <FormFieldsRulesBasic/>
 };
 
 interface formButtonsProps {

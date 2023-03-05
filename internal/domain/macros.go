@@ -7,6 +7,8 @@ import (
 	"time"
 
 	"github.com/autobrr/autobrr/pkg/errors"
+
+	"github.com/Masterminds/sprig/v3"
 )
 
 type Macro struct {
@@ -15,6 +17,7 @@ type Macro struct {
 	TorrentHash         string
 	TorrentUrl          string
 	TorrentDataRawBytes []byte
+	MagnetURI           string
 	Indexer             string
 	Title               string
 	Resolution          string
@@ -42,6 +45,7 @@ func NewMacro(release Release) Macro {
 		TorrentPathName:     release.TorrentTmpFile,
 		TorrentDataRawBytes: release.TorrentDataRawBytes,
 		TorrentHash:         release.TorrentHash,
+		MagnetURI:           release.MagnetURI,
 		Indexer:             release.Indexer,
 		Title:               release.Title,
 		Resolution:          release.Resolution,
@@ -70,7 +74,7 @@ func (m Macro) Parse(text string) (string, error) {
 	}
 
 	// setup template
-	tmpl, err := template.New("macro").Parse(text)
+	tmpl, err := template.New("macro").Funcs(sprig.TxtFuncMap()).Parse(text)
 	if err != nil {
 		return "", errors.Wrap(err, "could parse macro template")
 	}
@@ -91,7 +95,7 @@ func (m Macro) MustParse(text string) string {
 	}
 
 	// setup template
-	tmpl, err := template.New("macro").Parse(text)
+	tmpl, err := template.New("macro").Funcs(sprig.TxtFuncMap()).Parse(text)
 	if err != nil {
 		return ""
 	}
