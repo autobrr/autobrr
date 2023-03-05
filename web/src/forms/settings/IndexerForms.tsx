@@ -15,9 +15,10 @@ import { APIClient } from "../../api/APIClient";
 import { PasswordFieldWide, SwitchGroupWide, TextFieldWide } from "../../components/inputs";
 import { SlideOver } from "../../components/panels";
 import Toast from "../../components/notifications/Toast";
-import { SelectFieldCreatable } from "../../components/inputs/select_wide";
+import { SelectFieldBasic, SelectFieldCreatable } from "../../components/inputs/select_wide";
 
 import { CustomTooltip } from "../../components/tooltips/CustomTooltip";
+import { FeedDownloadTypeOptions } from "../../domain/constants";
 
 const Input = (props: InputProps) => (
   <components.Input 
@@ -99,7 +100,7 @@ const IrcSettingFields = (ind: IndexerDefinition, indexer: string) => {
   }
 };
 
-const FeedSettingFields = (ind: IndexerDefinition, indexer: string) => {
+const TorznabFeedSettingFields = (ind: IndexerDefinition, indexer: string) => {
   if (indexer !== "") {
     return (
       <Fragment>
@@ -115,6 +116,45 @@ const FeedSettingFields = (ind: IndexerDefinition, indexer: string) => {
             <TextFieldWide name="name" label="Name" defaultValue="" />
 
             {ind.torznab.settings.map((f: IndexerSetting, idx: number) => {
+              switch (f.type) {
+              case "text":
+                return <TextFieldWide name={`feed.${f.name}`} label={f.label} required={f.required} key={idx} help={f.help} validate={validateField(f)} />;
+              case "secret":
+                return <PasswordFieldWide name={`feed.${f.name}`} label={f.label} required={f.required} key={idx} help={f.help} defaultValue={f.default} validate={validateField(f)} />;
+              }
+              return null;
+            })}
+
+            <SelectFieldBasic
+              name="feed.settings.download_type"
+              label="Download type"
+              options={FeedDownloadTypeOptions}
+              tooltip={<span>Some feeds needs to force set as Magnet.</span>}
+              help="Set to Torrent or Magnet depending on indexer."
+            />
+          </div>
+        )}
+      </Fragment>
+    );
+  }
+};
+
+const NewznabFeedSettingFields = (ind: IndexerDefinition, indexer: string) => {
+  if (indexer !== "") {
+    return (
+      <Fragment>
+        {ind && ind.newznab && ind.newznab.settings && (
+          <div className="">
+            <div className="px-4 space-y-1">
+              <Dialog.Title className="text-lg font-medium text-gray-900 dark:text-white">Newznab</Dialog.Title>
+              <p className="text-sm text-gray-500 dark:text-gray-200">
+                Newznab feed
+              </p>
+            </div>
+
+            <TextFieldWide name="name" label="Name" defaultValue="" />
+
+            {ind.newznab.settings.map((f: IndexerSetting, idx: number) => {
               switch (f.type) {
               case "text":
                 return <TextFieldWide name={`feed.${f.name}`} label={f.label} required={f.required} key={idx} help={f.help} validate={validateField(f)} />;
@@ -154,6 +194,14 @@ const RSSFeedSettingFields = (ind: IndexerDefinition, indexer: string) => {
               }
               return null;
             })}
+
+            <SelectFieldBasic
+              name="feed.settings.download_type"
+              label="Download type"
+              options={FeedDownloadTypeOptions}
+              tooltip={<span>Some feeds needs to force set as Magnet.</span>}
+              help="Set to Torrent or Magnet depending on indexer."
+            />
           </div>
         )}
       </Fragment>
@@ -243,7 +291,33 @@ export function IndexerAddForm({ isOpen, toggle }: AddProps) {
         api_key: formData.feed.api_key,
         interval: 30,
         timeout: 60,
-        indexer_id: 0
+        indexer_id: 0,
+        settings: formData.feed.settings
+      };
+
+      mutation.mutate(formData as Indexer, {
+        onSuccess: (indexer) => {
+          // @eslint-ignore
+          createFeed.indexer_id = indexer.id;
+
+          feedMutation.mutate(createFeed);
+        }
+      });
+      return;
+
+    } else if (formData.implementation === "newznab") {
+      formData.url = formData.feed.url;
+
+      const createFeed: FeedCreate = {
+        name: formData.name,
+        enabled: false,
+        type: "NEWZNAB",
+        url: formData.feed.newznab_url,
+        api_key: formData.feed.api_key,
+        interval: 30,
+        timeout: 60,
+        indexer_id: 0,
+        settings: formData.feed.settings
       };
 
       mutation.mutate(formData as Indexer, {
@@ -264,7 +338,8 @@ export function IndexerAddForm({ isOpen, toggle }: AddProps) {
         url: formData.feed.url,
         interval: 30,
         timeout: 60,
-        indexer_id: 0
+        indexer_id: 0,
+        settings: formData.feed.settings
       };
 
       mutation.mutate(formData as Indexer, {
@@ -463,7 +538,8 @@ export function IndexerAddForm({ isOpen, toggle }: AddProps) {
                         </div>
 
                         {IrcSettingFields(indexer, values.identifier)}
-                        {FeedSettingFields(indexer, values.identifier)}
+                        {TorznabFeedSettingFields(indexer, values.identifier)}
+                        {NewznabFeedSettingFields(indexer, values.identifier)}
                         {RSSFeedSettingFields(indexer, values.identifier)}
                       </div>
 

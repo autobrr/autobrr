@@ -2,7 +2,6 @@ package feed
 
 import (
 	"context"
-	"math"
 	"sort"
 	"strconv"
 	"time"
@@ -11,18 +10,18 @@ import (
 	"github.com/autobrr/autobrr/internal/release"
 	"github.com/autobrr/autobrr/internal/scheduler"
 	"github.com/autobrr/autobrr/pkg/errors"
-	"github.com/autobrr/autobrr/pkg/torznab"
+	"github.com/autobrr/autobrr/pkg/newznab"
 
 	"github.com/rs/zerolog"
 )
 
-type TorznabJob struct {
+type NewznabJob struct {
 	Feed              *domain.Feed
 	Name              string
 	IndexerIdentifier string
 	Log               zerolog.Logger
 	URL               string
-	Client            torznab.Client
+	Client            newznab.Client
 	Repo              domain.FeedRepo
 	CacheRepo         domain.FeedCacheRepo
 	ReleaseSvc        release.Service
@@ -34,8 +33,8 @@ type TorznabJob struct {
 	JobID int
 }
 
-func NewTorznabJob(feed *domain.Feed, name string, indexerIdentifier string, log zerolog.Logger, url string, client torznab.Client, repo domain.FeedRepo, cacheRepo domain.FeedCacheRepo, releaseSvc release.Service) *TorznabJob {
-	return &TorznabJob{
+func NewNewznabJob(feed *domain.Feed, name string, indexerIdentifier string, log zerolog.Logger, url string, client newznab.Client, repo domain.FeedRepo, cacheRepo domain.FeedCacheRepo, releaseSvc release.Service) *NewznabJob {
+	return &NewznabJob{
 		Feed:              feed,
 		Name:              name,
 		IndexerIdentifier: indexerIdentifier,
@@ -48,11 +47,11 @@ func NewTorznabJob(feed *domain.Feed, name string, indexerIdentifier string, log
 	}
 }
 
-func (j *TorznabJob) Run() {
+func (j *NewznabJob) Run() {
 	ctx := context.Background()
 
 	if err := j.process(ctx); err != nil {
-		j.Log.Err(err).Int("attempts", j.attempts).Msg("torznab process error")
+		j.Log.Err(err).Int("attempts", j.attempts).Msg("newznab process error")
 
 		j.errors = append(j.errors, err)
 	}
@@ -61,7 +60,7 @@ func (j *TorznabJob) Run() {
 	j.errors = j.errors[:0]
 }
 
-func (j *TorznabJob) process(ctx context.Context) error {
+func (j *NewznabJob) process(ctx context.Context) error {
 	// get feed
 	items, err := j.getFeed(ctx)
 	if err != nil {
@@ -81,38 +80,22 @@ func (j *TorznabJob) process(ctx context.Context) error {
 		rls := domain.NewRelease(j.IndexerIdentifier)
 
 		rls.TorrentName = item.Title
-		rls.TorrentURL = item.Link
-		rls.Implementation = domain.ReleaseImplementationTorznab
+		rls.InfoURL = item.GUID
+		rls.Implementation = domain.ReleaseImplementationNewznab
+		rls.Protocol = domain.ReleaseProtocolNzb
 
 		// parse size bytes string
 		rls.ParseSizeBytesString(item.Size)
 
 		rls.ParseString(item.Title)
 
-		if j.Feed.Settings != nil && j.Feed.Settings.DownloadType == domain.FeedDownloadTypeMagnet {
-			rls.MagnetURI = item.Link
-			rls.TorrentURL = ""
-		}
-
-		// Get freeleech percentage between 0 - 100. The value is ignored if
-		// an error occurrs
-		freeleechPercentage, err := parseFreeleechTorznab(item)
-		if err != nil {
-			j.Log.Debug().Err(err).Msgf("error parsing torznab freeleech")
-		} else {
-			if freeleechPercentage == 100 {
-				// Release is 100% freeleech
-				rls.Freeleech = true
-				rls.Bonus = []string{"Freeleech"}
-			}
-
-			rls.FreeleechPercent = freeleechPercentage
-			if bonus := mapFreeleechToBonus(freeleechPercentage); bonus != "" {
-				rls.Bonus = append(rls.Bonus, bonus)
+		if item.Enclosure != nil {
+			if item.Enclosure.Type == "application/x-nzb" {
+				rls.TorrentURL = item.Enclosure.Url
 			}
 		}
 
-		// map torznab categories ID and Name into rls.Categories
+		// map newznab categories ID and Name into rls.Categories
 		// so we can filter on both ID and Name
 		for _, category := range item.Categories {
 			rls.Categories = append(rls.Categories, []string{category.Name, strconv.Itoa(category.ID)}...)
@@ -127,56 +110,9 @@ func (j *TorznabJob) process(ctx context.Context) error {
 	return nil
 }
 
-// Parse the downloadvolumefactor attribute. The returned value is the percentage
-// of downloaded data that does NOT count towards a user's total download amount.
-func parseFreeleechTorznab(item torznab.FeedItem) (int, error) {
-	for _, attr := range item.Attributes {
-		if attr.Name == "downloadvolumefactor" {
-			// Parse the value as decimal number
-			downloadVolumeFactor, err := strconv.ParseFloat(attr.Value, 64)
-			if err != nil {
-				return 0, err
-			}
-
-			// Values below 0.0 and above 1.0 are rejected
-			if downloadVolumeFactor < 0 || downloadVolumeFactor > 1 {
-				return 0, errors.New("invalid downloadvolumefactor: %s", attr.Value)
-			}
-
-			// Multiply by 100 to convert from ratio to percentage and round it
-			// to the nearest integer value
-			downloadPercentage := math.Round(downloadVolumeFactor * 100)
-
-			// To convert from download percentage to freeleech percentage the
-			// value is inverted
-			freeleechPercentage := 100 - int(downloadPercentage)
-
-			return freeleechPercentage, nil
-		}
-	}
-
-	return 0, nil
-}
-
-// Maps a freeleech percentage of 25, 50, 75 or 100 to a bonus.
-func mapFreeleechToBonus(percentage int) string {
-	switch percentage {
-	case 25:
-		return "Freeleech25"
-	case 50:
-		return "Freeleech50"
-	case 75:
-		return "Freeleech75"
-	case 100:
-		return "Freeleech100"
-	default:
-		return ""
-	}
-}
-
-func (j *TorznabJob) getFeed(ctx context.Context) ([]torznab.FeedItem, error) {
+func (j *NewznabJob) getFeed(ctx context.Context) ([]newznab.FeedItem, error) {
 	// get feed
-	feed, err := j.Client.FetchFeed(ctx)
+	feed, err := j.Client.GetFeed(ctx)
 	if err != nil {
 		j.Log.Error().Err(err).Msgf("error fetching feed items")
 		return nil, errors.Wrap(err, "error fetching feed items")
@@ -188,7 +124,7 @@ func (j *TorznabJob) getFeed(ctx context.Context) ([]torznab.FeedItem, error) {
 
 	j.Log.Debug().Msgf("refreshing feed: %v, found (%d) items", j.Name, len(feed.Channel.Items))
 
-	items := make([]torznab.FeedItem, 0)
+	items := make([]newznab.FeedItem, 0)
 	if len(feed.Channel.Items) == 0 {
 		return items, nil
 	}
