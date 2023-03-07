@@ -220,7 +220,7 @@ func TestRelease_Parse(t *testing.T) {
 				ReleaseTags: "FLAC / 24bit Lossless / Log / 100% / Cue / CD",
 				Title:       "Artist",
 				Group:       "Albumname",
-				Audio:       []string{"24BIT Lossless", "Cue", "FLAC", "Lossless", "Log100", "Log"},
+				Audio:       []string{"24BIT Lossless", "Cue", "FLAC", "Log100", "Log"},
 				Source:      "CD",
 			},
 		},
