@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/go-chi/chi"
+	"github.com/go-chi/chi/v5"
 
 	"github.com/autobrr/autobrr/internal/domain"
 )
@@ -17,7 +17,7 @@ type downloadClientService interface {
 	Store(ctx context.Context, client domain.DownloadClient) (*domain.DownloadClient, error)
 	Update(ctx context.Context, client domain.DownloadClient) (*domain.DownloadClient, error)
 	Delete(ctx context.Context, clientID int) error
-	Test(client domain.DownloadClient) error
+	Test(ctx context.Context, client domain.DownloadClient) error
 }
 
 type downloadClientHandler struct {
@@ -77,8 +77,7 @@ func (h downloadClientHandler) test(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err := h.service.Test(data)
-	if err != nil {
+	if err := h.service.Test(r.Context(), data); err != nil {
 		h.encoder.Error(w, err)
 		return
 	}

@@ -1,10 +1,12 @@
 package torznab
 
 import (
+	"context"
 	"encoding/xml"
-	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -22,7 +24,7 @@ import (
 //				return
 //			}
 //		}
-//		payload, err := ioutil.ReadFile("testdata/torznab_response.xml")
+//		payload, err := os.ReadFile("testdata/torznab_response.xml")
 //		if err != nil {
 //			http.Error(w, err.Error(), http.StatusInternalServerError)
 //			return
@@ -71,14 +73,20 @@ func TestClient_GetCaps(t *testing.T) {
 	key := "mock-key"
 
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		apiKey := r.Header.Get("X-API-Key")
-		if apiKey != key {
+		//apiKey := r.Header.Get("X-API-Key")
+		//if apiKey != key {
+		//	w.WriteHeader(http.StatusUnauthorized)
+		//	w.Write(nil)
+		//	return
+		//}
+
+		if !strings.Contains(r.RequestURI, key) {
 			w.WriteHeader(http.StatusUnauthorized)
 			w.Write(nil)
 			return
 		}
 
-		payload, err := ioutil.ReadFile("testdata/caps_response.xml")
+		payload, err := os.ReadFile("testdata/caps_response.xml")
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
@@ -153,27 +161,27 @@ func TestClient_GetCaps(t *testing.T) {
 						SupportedParams: "q",
 					},
 				},
-				Categories: Categories{Category: []Category{
+				Categories: CapCategories{Categories: []Category{
 					{
-						ID:   "2000",
+						ID:   2000,
 						Name: "Movies",
-						Subcat: []SubCategory{
+						SubCategories: []Category{
 							{
-								ID:   "2010",
+								ID:   2010,
 								Name: "Foreign",
 							},
 						},
 					},
 					{
-						ID:   "5000",
+						ID:   5000,
 						Name: "TV",
-						Subcat: []SubCategory{
+						SubCategories: []Category{
 							{
-								ID:   "5040",
+								ID:   5040,
 								Name: "HD",
 							},
 							{
-								ID:   "5070",
+								ID:   5070,
 								Name: "Anime",
 							},
 						},
@@ -225,7 +233,7 @@ func TestClient_GetCaps(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			c := NewClient(Config{Host: tt.fields.Host, ApiKey: tt.fields.ApiKey})
 
-			got, err := c.GetCaps()
+			got, err := c.FetchCaps(context.TODO())
 			if tt.wantErr && assert.Error(t, err) {
 				assert.EqualErrorf(t, err, tt.expectedErr, "Error should be: %v, got: %v", tt.wantErr, err)
 			}

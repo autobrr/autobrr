@@ -1,0 +1,11 @@
+.react-tooltip code {
+    background-color: rgb(63, 71, 94);
+    padding-left: 4px;
+    padding-right: 4px;
+    padding-top: 2px;
+    padding-bottom: 2px;
+}
+
+.react-tooltip a:hover {
+    text-decoration-line: underline;
+}

@@ -1,0 +1,74 @@
+---
+#id: polishtracker
+name: PolishTracker
+identifier: polishtracker
+description: PolishTracker (PT) is a POLISH private torrent tracker for 0DAY / GENERAL.
+language: en-us
+urls:
+  - https://pte.nu/
+privacy: private
+protocol: torrent
+supports:
+  - irc
+  - rss
+source: custom
+settings:
+  - name: rsskey
+    type: secret
+    required: true
+    label: RSS key
+    help: "Go to your profile and copy your RSS key"
+
+irc:
+  network: PolishTracker
+  server: irc.pte.nu
+  port: 6775
+  tls: true
+  channels:
+    - "#pt-announce"
+  announcers:
+    - PT-BOT
+  settings:
+    - name: nick
+      type: text
+      required: true
+      label: Nick
+      help: Bot nick. Eg. user_bot
+
+    - name: auth.account
+      type: text
+      required: true
+      label: NickServ Account
+      help: NickServ account. Make sure to group your user and bot.
+
+    - name: auth.password
+      type: secret
+      required: true
+      label: NickServ Password
+      help: NickServ password
+
+    - name: invite_command
+      type: secret
+      default: "PT-BOT invite IRCKEY"
+      required: true
+      label: Invite command
+      help: Invite auth with PT-BOT. Replace IRCKEY with your IRC key.
+
+  parse:
+    type: single
+    lines:
+      - test:
+          - "::: PolishTracker :::  Torrent ( Some.Movie.2017.PLSUB.1080p.BDRip.x264-GROUP )  ||  Kategoria: ( movies HD )  ||  Rozmiar: ( 2.14 GB )  ||  Link: ( https://pte.nu/torrents/000000 )  ||  Wiecej: ( http://www.filmweb.pl/film?id=000000 )"
+          - "::: PolishTracker :::  Torrent ( Some.Other.Movie.1985.iNTERNAL.BDRip.x264-GROUP )  ||  Kategoria: ( movies SD )  ||  Rozmiar: ( 1.15 GB )  ||  Link: ( https://pte.nu/torrents/000000 )"
+          - "::: PolishTracker :::  Torrent ( Some.Other.Movie.1985.iNTERNAL.720p.BluRay.x264-GROUP )  ||  Kategoria: ( movies HD )  ||  Rozmiar: ( 5.02 GB )  ||  Link: ( https://pte.nu/torrents/000000 )"
+        pattern: '::: PolishTracker :::  Torrent \( (.+) \)  \|\|  Kategoria: \( (.+) \)  \|\|  Rozmiar: \( (.+) \)  \|\|  Link: \( (https:\/\/.+\/)torrents\/(\d+) \)'
+        vars:
+          - torrentName
+          - category
+          - torrentSize
+          - baseUrl
+          - torrentId
+
+    match:
+      infourl: "/torrents/{{ .torrentId }}"
+      torrenturl: "/downrss/{{ .rsskey }}/{{ .torrentId }}"

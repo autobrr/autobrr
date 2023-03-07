@@ -5,9 +5,10 @@ interface IrcNetwork {
   server: string;
   port: number;
   tls: boolean;
+  nick: string;
   pass: string;
+  auth: IrcAuth; // optional
   invite_command: string;
-  nickserv?: NickServ; // optional
   channels: IrcChannel[];
   connected: boolean;
   connected_since: string;
@@ -20,8 +21,9 @@ interface IrcNetworkCreate {
   port: number;
   tls: boolean;
   pass: string;
+  nick: string;
+  auth: IrcAuth; // optional
   invite_command: string;
-  nickserv?: NickServ; // optional
   channels: IrcChannel[];
   connected: boolean;
 }
@@ -48,26 +50,20 @@ interface IrcNetworkWithHealth {
   port: number;
   tls: boolean;
   pass: string;
+  nick: string;
+  auth: IrcAuth; // optional
   invite_command: string;
-  nickserv?: NickServ; // optional
   channels: IrcChannelWithHealth[];
   connected: boolean;
   connected_since: string;
   connection_errors: string[];
+  healthy: boolean;
 }
 
-interface NickServ {
+type IrcAuthMechanism = "NONE" | "SASL_PLAIN" | "NICKSERV";
+
+interface IrcAuth {
+  mechanism: IrcAuthMechanism; // optional
   account?: string; // optional
   password?: string; // optional
-}
-
-interface Config {
-  host: string;
-  port: number;
-  log_level: string;
-  log_path: string;
-  base_url: string;
-  version: string;
-  commit: string;
-  date: string;
 }

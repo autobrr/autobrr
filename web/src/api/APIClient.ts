@@ -1,5 +1,6 @@
 import { baseUrl, sseBaseUrl } from "../utils";
 import { AuthContext } from "../utils/Context";
+import { GithubRelease } from "../types/Update";
 
 interface ConfigType {
   body?: BodyInit | Record<string, unknown> | unknown;
@@ -41,7 +42,7 @@ export async function HttpClient<T>(
       // Resolve immediately since 204 contains no data
       if (response.status === 204)
         return Promise.resolve(response);
-    
+
       return await response.json();
     });
 }
@@ -74,8 +75,14 @@ export const APIClient = {
     delete: (id: number) => appClient.Delete(`api/actions/${id}`),
     toggleEnable: (id: number) => appClient.Patch(`api/actions/${id}/toggleEnabled`)
   },
+  apikeys: {
+    getAll: () => appClient.Get<APIKey[]>("api/keys"),
+    create: (key: APIKey) => appClient.Post("api/keys", key),
+    delete: (key: string) => appClient.Delete(`api/keys/${key}`)
+  },
   config: {
-    get: () => appClient.Get<Config>("api/config")
+    get: () => appClient.Get<Config>("api/config"),
+    update: (config: ConfigUpdate) => appClient.Patch("api/config", config)
   },
   download_clients: {
     getAll: () => appClient.Get<DownloadClient[]>("api/download_clients"),
@@ -86,6 +93,24 @@ export const APIClient = {
   },
   filters: {
     getAll: () => appClient.Get<Filter[]>("api/filters"),
+    find: (indexers: string[], sortOrder: string) => {
+      const params = new URLSearchParams();
+
+      if (sortOrder.length > 0) {
+        params.append("sort", sortOrder);
+      }
+
+      indexers?.forEach((i) => {
+        if (i !== undefined || i !== "") {
+          params.append("indexer", i);
+        }
+      });
+
+      const p = params.toString();
+      const q = p ? `?${p}` : "";
+
+      return appClient.Get<Filter[]>(`api/filters${q}`);
+    },
     getByID: (id: number) => appClient.Get<Filter>(`api/filters/${id}`),
     create: (filter: Filter) => appClient.Post("api/filters", filter),
     update: (filter: Filter) => appClient.Put(`api/filters/${filter.id}`, filter),
@@ -116,7 +141,12 @@ export const APIClient = {
     getNetworks: () => appClient.Get<IrcNetworkWithHealth[]>("api/irc"),
     createNetwork: (network: IrcNetworkCreate) => appClient.Post("api/irc", network),
     updateNetwork: (network: IrcNetwork) => appClient.Put(`api/irc/network/${network.id}`, network),
-    deleteNetwork: (id: number) => appClient.Delete(`api/irc/network/${id}`)
+    deleteNetwork: (id: number) => appClient.Delete(`api/irc/network/${id}`),
+    restartNetwork: (id: number) => appClient.Get(`api/irc/network/${id}/restart`)
+  },
+  logs: {
+    files: () => appClient.Get<LogFileResponse>("api/logs/files"),
+    getFile: (file: string) => appClient.Get(`api/logs/files/${file}`)
   },
   events: {
     logs: () => new EventSource(`${sseBaseUrl()}api/events?stream=logs`, { withCredentials: true })
@@ -156,5 +186,9 @@ export const APIClient = {
     indexerOptions: () => appClient.Get<string[]>("api/release/indexers"),
     stats: () => appClient.Get<ReleaseStats>("api/release/stats"),
     delete: () => appClient.Delete("api/release/all")
+  },
+  updates: {
+    check: () => appClient.Get("api/updates/check"),
+    getLatestRelease: () => appClient.Get<GithubRelease | undefined>("api/updates/latest")
   }
 };

@@ -57,12 +57,12 @@ function ReleaseSettings() {
         <div className="px-4 py-5 sm:p-0">
           <div className="px-4 py-5 sm:p-6">
             <div>
-              <h3 className="text-lg leading-6 font-medium text-gray-900 dark:text-white">
+              <h3 style={{ textAlign: "center" }} className="text-lg leading-6 font-medium text-gray-900 dark:text-white">
                 Danger Zone
               </h3>
+              <p style={{ textAlign: "center" }} className="mt-1 text-sm text-gray-900 dark:text-white">This will clear all release history in your database.</p>
             </div>
-
-            <div className="flex justify-between items-center p-4 mt-6 max-w-sm m-auto">
+            <div className="flex justify-between items-center p-2 mt-2 max-w-sm m-auto">
               <button
                 type="button"
                 onClick={toggleDeleteModal}

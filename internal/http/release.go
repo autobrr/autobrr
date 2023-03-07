@@ -7,7 +7,7 @@ import (
 	"strconv"
 
 	"github.com/autobrr/autobrr/internal/domain"
-	"github.com/go-chi/chi"
+	"github.com/go-chi/chi/v5"
 )
 
 type releaseService interface {
@@ -104,7 +104,10 @@ func (h releaseHandler) findReleases(w http.ResponseWriter, r *http.Request) {
 
 	releases, nextCursor, count, err := h.service.Find(r.Context(), query)
 	if err != nil {
-		h.encoder.StatusNotFound(r.Context(), w)
+		h.encoder.StatusResponse(r.Context(), w, map[string]interface{}{
+			"code":    "INTERNAL_SERVER_ERROR",
+			"message": err.Error(),
+		}, http.StatusInternalServerError)
 		return
 	}
 
@@ -125,7 +128,10 @@ func (h releaseHandler) findRecentReleases(w http.ResponseWriter, r *http.Reques
 
 	releases, err := h.service.FindRecent(r.Context())
 	if err != nil {
-		h.encoder.StatusNotFound(r.Context(), w)
+		h.encoder.StatusResponse(r.Context(), w, map[string]interface{}{
+			"code":    "INTERNAL_SERVER_ERROR",
+			"message": err.Error(),
+		}, http.StatusInternalServerError)
 		return
 	}
 
@@ -141,7 +147,10 @@ func (h releaseHandler) findRecentReleases(w http.ResponseWriter, r *http.Reques
 func (h releaseHandler) getIndexerOptions(w http.ResponseWriter, r *http.Request) {
 	stats, err := h.service.GetIndexerOptions(r.Context())
 	if err != nil {
-		h.encoder.StatusNotFound(r.Context(), w)
+		h.encoder.StatusResponse(r.Context(), w, map[string]interface{}{
+			"code":    "INTERNAL_SERVER_ERROR",
+			"message": err.Error(),
+		}, http.StatusInternalServerError)
 		return
 	}
 
@@ -152,7 +161,10 @@ func (h releaseHandler) getStats(w http.ResponseWriter, r *http.Request) {
 
 	stats, err := h.service.Stats(r.Context())
 	if err != nil {
-		h.encoder.StatusNotFound(r.Context(), w)
+		h.encoder.StatusResponse(r.Context(), w, map[string]interface{}{
+			"code":    "INTERNAL_SERVER_ERROR",
+			"message": err.Error(),
+		}, http.StatusInternalServerError)
 		return
 	}
 
@@ -162,7 +174,10 @@ func (h releaseHandler) getStats(w http.ResponseWriter, r *http.Request) {
 func (h releaseHandler) deleteReleases(w http.ResponseWriter, r *http.Request) {
 	err := h.service.Delete(r.Context())
 	if err != nil {
-		h.encoder.StatusInternalError(w)
+		h.encoder.StatusResponse(r.Context(), w, map[string]interface{}{
+			"code":    "INTERNAL_SERVER_ERROR",
+			"message": err.Error(),
+		}, http.StatusInternalServerError)
 		return
 	}
 

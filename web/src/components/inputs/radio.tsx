@@ -6,6 +6,7 @@ export interface radioFieldsetOption {
     label: string;
     description: string;
     value: string;
+    type?: string;
 }
 
 interface props {
@@ -58,7 +59,7 @@ function RadioFieldsetWide({ name, legend, options }: props) {
                               ? "rounded-bl-md rounded-br-md"
                               : "",
                             checked
-                              ? "border-1 bg-indigo-100 dark:bg-blue-900 border-indigo-400 dark:border-blue-600 z-10"
+                              ? "border-1 bg-blue-100 dark:bg-blue-900 border-blue-400 dark:border-blue-600 z-10"
                               : "border-gray-200 dark:border-gray-700",
                             "relative border p-4 flex cursor-pointer focus:outline-none"
                           )
@@ -69,13 +70,13 @@ function RadioFieldsetWide({ name, legend, options }: props) {
                             <span
                               className={classNames(
                                 checked
-                                  ? "bg-indigo-600 dark:bg-blue-500 border-transparent"
+                                  ? "bg-blue-600 dark:bg-blue-500 border-transparent"
                                   : "bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-300",
                                 "h-6 w-6 mt-1 cursor-pointer rounded-full border flex items-center justify-center"
                               )}
                               aria-hidden="true"
                             />
-                            <div className="ml-3 flex flex-col">
+                            <div className="ml-3 flex flex-col w-full">
                               <RadioGroup.Label
                                 as="span"
                                 className={classNames(
@@ -83,7 +84,10 @@ function RadioFieldsetWide({ name, legend, options }: props) {
                                   checked ? "font-bold" : "font-medium"
                                 )}
                               >
-                                {setting.label}
+                                <div className="flex justify-between">
+                                  {setting.label}
+                                  {setting.type && <span className="rounded bg-orange-500 text-orange-900 px-1 ml-2 text-sm">{setting.type}</span>}
+                                </div>
                               </RadioGroup.Label>
                               <RadioGroup.Description
                                 as="span"

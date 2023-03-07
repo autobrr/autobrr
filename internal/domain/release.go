@@ -17,6 +17,7 @@ import (
 	"github.com/autobrr/autobrr/pkg/errors"
 
 	"github.com/anacrolix/torrent/metainfo"
+	"github.com/avast/retry-go"
 	"github.com/dustin/go-humanize"
 	"github.com/moistari/rls"
 	"golang.org/x/net/publicsuffix"
@@ -31,6 +32,7 @@ type ReleaseRepo interface {
 	Stats(ctx context.Context) (*ReleaseStats, error)
 	StoreReleaseActionStatus(ctx context.Context, actionStatus *ReleaseActionStatus) error
 	Delete(ctx context.Context) error
+	CanDownloadShow(ctx context.Context, title string, season int, episode int) (bool, error)
 }
 
 type Release struct {
@@ -42,15 +44,19 @@ type Release struct {
 	Protocol                    ReleaseProtocol       `json:"protocol"`
 	Implementation              ReleaseImplementation `json:"implementation"` // irc, rss, api
 	Timestamp                   time.Time             `json:"timestamp"`
+	InfoURL                     string                `json:"info_url"`
+	TorrentURL                  string                `json:"download_url"`
+	MagnetURI                   string                `json:"-"`
 	GroupID                     string                `json:"group_id"`
 	TorrentID                   string                `json:"torrent_id"`
-	TorrentURL                  string                `json:"-"`
 	TorrentTmpFile              string                `json:"-"`
+	TorrentDataRawBytes         []byte                `json:"-"`
 	TorrentHash                 string                `json:"-"`
 	TorrentName                 string                `json:"torrent_name"` // full release name
 	Size                        uint64                `json:"size"`
 	Title                       string                `json:"title"` // Parsed title
 	Category                    string                `json:"category"`
+	Categories                  []string              `json:"categories,omitempty"`
 	Season                      int                   `json:"season"`
 	Episode                     int                   `json:"episode"`
 	Year                        int                   `json:"year"`
@@ -63,7 +69,7 @@ type Release struct {
 	AudioChannels               string                `json:"-"`
 	Group                       string                `json:"group"`
 	Region                      string                `json:"-"`
-	Language                    string                `json:"language"`
+	Language                    []string              `json:"-"`
 	Proper                      bool                  `json:"proper"`
 	Repack                      bool                  `json:"repack"`
 	Website                     string                `json:"website"`
@@ -72,7 +78,6 @@ type Release struct {
 	LogScore                    int                   `json:"-"`
 	Creator                     string                `json:"creator"`
 	OtherFormats                []string              `json:"-"` // pdf,epub,m4a,m4b,etc
-	IsScene                     bool                  `json:"-"`
 	Origin                      string                `json:"origin"` // P2P, Internal
 	Tags                        []string              `json:"-"`
 	ReleaseTags                 string                `json:"-"`
@@ -96,6 +101,7 @@ type ReleaseActionStatus struct {
 	Type       ActionType        `json:"type"`
 	Client     string            `json:"client"`
 	Filter     string            `json:"filter"`
+	FilterID   int64             `json:"-"`
 	Rejections []string          `json:"rejections"`
 	Timestamp  time.Time         `json:"timestamp"`
 	ReleaseID  int64             `json:"-"`
@@ -150,14 +156,43 @@ type ReleaseProtocol string
 
 const (
 	ReleaseProtocolTorrent ReleaseProtocol = "torrent"
+	ReleaseProtocolNzb     ReleaseProtocol = "nzb"
 )
+
+func (r ReleaseProtocol) String() string {
+	switch r {
+	case ReleaseProtocolTorrent:
+		return "torrent"
+	case ReleaseProtocolNzb:
+		return "nzb"
+	default:
+		return "torrent"
+	}
+}
 
 type ReleaseImplementation string
 
 const (
 	ReleaseImplementationIRC     ReleaseImplementation = "IRC"
 	ReleaseImplementationTorznab ReleaseImplementation = "TORZNAB"
+	ReleaseImplementationNewznab ReleaseImplementation = "NEWZNAB"
+	ReleaseImplementationRSS     ReleaseImplementation = "RSS"
 )
+
+func (r ReleaseImplementation) String() string {
+	switch r {
+	case ReleaseImplementationIRC:
+		return "IRC"
+	case ReleaseImplementationTorznab:
+		return "TORZNAB"
+	case ReleaseImplementationNewznab:
+		return "NEWZNAB"
+	case ReleaseImplementationRSS:
+		return "RSS"
+	default:
+		return "IRC"
+	}
+}
 
 type ReleaseQueryParams struct {
 	Limit   uint64
@@ -180,6 +215,7 @@ func NewRelease(indexer string) *Release {
 		Implementation: ReleaseImplementationIRC,
 		Timestamp:      time.Now(),
 		Tags:           []string{},
+		Size:           0,
 	}
 
 	return r
@@ -189,11 +225,8 @@ func (r *Release) ParseString(title string) {
 	rel := rls.ParseString(title)
 
 	r.TorrentName = title
-	r.Title = rel.Title
 	r.Source = rel.Source
 	r.Resolution = rel.Resolution
-	r.Season = rel.Series
-	r.Episode = rel.Episode
 	r.Region = rel.Region
 	r.Audio = rel.Audio
 	r.AudioChannels = rel.Channels
@@ -202,6 +235,18 @@ func (r *Release) ParseString(title string) {
 	r.HDR = rel.HDR
 	r.Other = rel.Other
 	r.Artists = rel.Artist
+	r.Language = rel.Language
+
+	if r.Title == "" {
+		r.Title = rel.Title
+	}
+
+	if r.Season == 0 {
+		r.Season = rel.Series
+	}
+	if r.Episode == 0 {
+		r.Episode = rel.Episode
+	}
 
 	if r.Year == 0 {
 		r.Year = rel.Year
@@ -216,6 +261,8 @@ func (r *Release) ParseString(title string) {
 	return
 }
 
+var ErrUnrecoverableError = errors.New("unrecoverable error")
+
 func (r *Release) ParseReleaseTagsString(tags string) {
 	// trim delimiters and closest space
 	re := regexp.MustCompile(`\| |/ |, `)
@@ -224,8 +271,9 @@ func (r *Release) ParseReleaseTagsString(tags string) {
 	t := ParseReleaseTagString(cleanTags)
 
 	if len(t.Audio) > 0 {
-		r.Audio = append(r.Audio, t.Audio...)
+		r.Audio = getUniqueTags(r.Audio, t.Audio)
 	}
+
 	if len(t.Bonus) > 0 {
 		if sliceContainsSlice([]string{"Freeleech"}, t.Bonus) {
 			r.Freeleech = true
@@ -235,13 +283,13 @@ func (r *Release) ParseReleaseTagsString(tags string) {
 		r.Bonus = append(r.Bonus, t.Bonus...)
 	}
 	if len(t.Codec) > 0 {
-		r.Codec = append(r.Codec, t.Codec)
+		r.Codec = getUniqueTags(r.Codec, append(make([]string, 0, 1), t.Codec))
 	}
 	if len(t.Other) > 0 {
-		r.Other = append(r.Other, t.Other...)
+		r.Other = getUniqueTags(r.Other, t.Other)
 	}
-	if len(t.OtherFormats) > 0 {
-		r.OtherFormats = append(r.OtherFormats, t.OtherFormats...)
+	if r.Origin == "" && t.Origin != "" {
+		r.Origin = t.Origin
 	}
 
 	if r.Container == "" && t.Container != "" {
@@ -260,16 +308,30 @@ func (r *Release) ParseReleaseTagsString(tags string) {
 	return
 }
 
+// ParseSizeBytesString If there are parsing errors, then it keeps the original (or default size 0)
+// Otherwise, it will update the size only if the new size is bigger than the previous one.
 func (r *Release) ParseSizeBytesString(size string) {
 	s, err := humanize.ParseBytes(size)
-	if err != nil {
-		// log could not parse into bytes
-		r.Size = 0
+	if err == nil && s > r.Size {
+		r.Size = s
 	}
-	r.Size = s
+}
+
+func (r *Release) DownloadTorrentFileCtx(ctx context.Context) error {
+	return r.downloadTorrentFile(ctx)
 }
 
 func (r *Release) DownloadTorrentFile() error {
+	return r.downloadTorrentFile(context.Background())
+}
+
+func (r *Release) downloadTorrentFile(ctx context.Context) error {
+	if r.Protocol != ReleaseProtocolTorrent {
+		return errors.New("download_file: protocol is not %s: %s", ReleaseProtocolTorrent, r.Protocol)
+	} else if r.HasMagnetUri() {
+		return fmt.Errorf("error trying to download magnet link: %s", r.MagnetURI)
+	}
+
 	if r.TorrentURL == "" {
 		return errors.New("download_file: url can't be empty")
 	} else if r.TorrentTmpFile != "" {
@@ -287,9 +349,10 @@ func (r *Release) DownloadTorrentFile() error {
 	client := &http.Client{
 		Transport: customTransport,
 		Jar:       jar,
+		Timeout:   time.Second * 45,
 	}
 
-	req, err := http.NewRequest("GET", r.TorrentURL, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, r.TorrentURL, nil)
 	if err != nil {
 		return errors.Wrap(err, "error downloading file")
 	}
@@ -300,19 +363,6 @@ func (r *Release) DownloadTorrentFile() error {
 		req.Header.Set("Cookie", r.RawCookie)
 	}
 
-	// Get the data
-	resp, err := client.Do(req)
-	if err != nil {
-		return errors.Wrap(err, "error downloading file")
-	}
-	defer resp.Body.Close()
-
-	// retry logic
-
-	if resp.StatusCode != http.StatusOK {
-		return errors.New("error downloading torrent (%v) file (%v) from '%v' - status code: %d", r.TorrentName, r.TorrentURL, r.Indexer, resp.StatusCode)
-	}
-
 	// Create tmp file
 	tmpFile, err := os.CreateTemp("", "autobrr-")
 	if err != nil {
@@ -320,33 +370,148 @@ func (r *Release) DownloadTorrentFile() error {
 	}
 	defer tmpFile.Close()
 
-	// Write the body to file
-	_, err = io.Copy(tmpFile, resp.Body)
-	if err != nil {
-		return errors.Wrap(err, "error writing downloaded file: %v", tmpFile.Name())
+	errFunc := retry.Do(func() error {
+		// Get the data
+		resp, err := client.Do(req)
+		if err != nil {
+			return errors.Wrap(err, "error downloading file")
+		}
+		defer resp.Body.Close()
+
+		if resp.StatusCode != http.StatusOK {
+			unRecoverableErr := errors.Wrap(ErrUnrecoverableError, "unrecoverable error downloading torrent (%v) file (%v) from '%v' - status code: %d", r.TorrentName, r.TorrentURL, r.Indexer, resp.StatusCode)
+
+			if resp.StatusCode == 401 || resp.StatusCode == 403 || resp.StatusCode == 404 || resp.StatusCode == 405 {
+				return retry.Unrecoverable(unRecoverableErr)
+			}
+
+			return errors.New("unexpected status: %v", resp.StatusCode)
+		}
+
+		resetTmpFile := func() {
+			tmpFile.Seek(0, io.SeekStart)
+			tmpFile.Truncate(0)
+		}
+
+		// Write the body to file
+		if _, err := io.Copy(tmpFile, resp.Body); err != nil {
+			resetTmpFile()
+			return errors.Wrap(err, "error writing downloaded file: %v", tmpFile.Name())
+		}
+
+		meta, err := metainfo.LoadFromFile(tmpFile.Name())
+		if err != nil {
+			resetTmpFile()
+			return errors.Wrap(err, "metainfo could not load file contents: %v", tmpFile.Name())
+		}
+
+		torrentMetaInfo, err := meta.UnmarshalInfo()
+		if err != nil {
+			resetTmpFile()
+			return errors.Wrap(err, "metainfo could not unmarshal info from torrent: %v", tmpFile.Name())
+		}
+
+		hashInfoBytes := meta.HashInfoBytes().Bytes()
+		if len(hashInfoBytes) < 1 {
+			resetTmpFile()
+			return errors.New("could not read infohash")
+		}
+
+		r.TorrentTmpFile = tmpFile.Name()
+		r.TorrentHash = meta.HashInfoBytes().String()
+		r.Size = uint64(torrentMetaInfo.TotalLength())
+
+		return nil
+	},
+		retry.Delay(time.Second*3),
+		retry.Attempts(3),
+		retry.MaxJitter(time.Second*1),
+	)
+
+	return errFunc
+}
+
+// HasMagnetUri check uf MagnetURI is set or empty
+func (r *Release) HasMagnetUri() bool {
+	return r.MagnetURI != ""
+}
+
+type magnetRoundTripper struct{}
+
+func (rt *magnetRoundTripper) RoundTrip(r *http.Request) (*http.Response, error) {
+	if r.URL.Scheme == "magnet" {
+		responseBody := r.URL.String()
+		respReader := io.NopCloser(strings.NewReader(responseBody))
+
+		resp := &http.Response{
+			Status:        http.StatusText(http.StatusOK),
+			StatusCode:    http.StatusOK,
+			Body:          respReader,
+			ContentLength: int64(len(responseBody)),
+			Header: map[string][]string{
+				"Content-Type": {"text/plain"},
+				"Location":     {responseBody},
+			},
+			Proto:      "HTTP/2.0",
+			ProtoMajor: 2,
+		}
+
+		return resp, nil
 	}
 
-	meta, err := metainfo.LoadFromFile(tmpFile.Name())
-	if err != nil {
-		return errors.Wrap(err, "metainfo could not load file contents: %v", tmpFile.Name())
+	return http.DefaultTransport.RoundTrip(r)
+}
+
+func (r *Release) ResolveMagnetUri(ctx context.Context) error {
+	if r.MagnetURI == "" {
+		return nil
+	} else if strings.HasPrefix(r.MagnetURI, "magnet:?") {
+		return nil
 	}
 
-	torrentMetaInfo, err := meta.UnmarshalInfo()
-	if err != nil {
-		return errors.Wrap(err, "metainfo could not unmarshal info from torrent: %v", tmpFile.Name())
+	client := http.Client{
+		Transport: &magnetRoundTripper{},
+		Timeout:   time.Second * 60,
 	}
 
-	r.TorrentTmpFile = tmpFile.Name()
-	r.TorrentHash = meta.HashInfoBytes().String()
-	r.Size = uint64(torrentMetaInfo.TotalLength())
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, r.MagnetURI, nil)
+	if err != nil {
+		return errors.Wrap(err, "could not build request to resolve magnet uri")
+	}
 
-	// remove file if fail
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("User-Agent", "autobrr")
+
+	res, err := client.Do(req)
+	if err != nil {
+		return errors.Wrap(err, "could not make request to resolve magnet uri")
+	}
+
+	defer res.Body.Close()
+
+	if res.StatusCode != http.StatusOK {
+		return errors.New("unexpected status code: %d", res.StatusCode)
+	}
+
+	body, err := io.ReadAll(res.Body)
+	if err != nil {
+		return errors.Wrap(err, "could not read response body")
+	}
+
+	magnet := string(body)
+	if magnet != "" {
+		r.MagnetURI = magnet
+	}
 
 	return nil
 }
 
 func (r *Release) addRejection(reason string) {
 	r.Rejections = append(r.Rejections, reason)
+}
+
+func (r *Release) AddRejectionF(format string, v ...interface{}) {
+	r.addRejectionF(format, v...)
 }
 
 func (r *Release) addRejectionF(format string, v ...interface{}) {
@@ -365,7 +530,7 @@ func (r *Release) RejectionsString() string {
 	return ""
 }
 
-// MapVars better name
+// MapVars map vars from regex captures to fields on release
 func (r *Release) MapVars(def *IndexerDefinition, varMap map[string]string) error {
 
 	if torrentName, err := getStringMapValue(varMap, "torrentName"); err != nil {
@@ -383,7 +548,7 @@ func (r *Release) MapVars(def *IndexerDefinition, varMap map[string]string) erro
 	}
 
 	if freeleech, err := getStringMapValue(varMap, "freeleech"); err == nil {
-		fl := strings.EqualFold(freeleech, "freeleech") || strings.EqualFold(freeleech, "yes") || strings.EqualFold(freeleech, "1")
+		fl := StringEqualFoldMulti(freeleech, "freeleech", "yes", "1", "VIP")
 		if fl {
 			r.Freeleech = true
 			r.Bonus = append(r.Bonus, "Freeleech")
@@ -408,16 +573,12 @@ func (r *Release) MapVars(def *IndexerDefinition, varMap map[string]string) erro
 		switch freeleechPercentInt {
 		case 25:
 			r.Bonus = append(r.Bonus, "Freeleech25")
-			break
 		case 50:
 			r.Bonus = append(r.Bonus, "Freeleech50")
-			break
 		case 75:
 			r.Bonus = append(r.Bonus, "Freeleech75")
-			break
 		case 100:
 			r.Bonus = append(r.Bonus, "Freeleech100")
-			break
 		}
 
 	}
@@ -428,8 +589,8 @@ func (r *Release) MapVars(def *IndexerDefinition, varMap map[string]string) erro
 
 	if torrentSize, err := getStringMapValue(varMap, "torrentSize"); err == nil {
 		// handling for indexer who doesn't explicitly set which size unit is used like (AR)
-		if def.Parse != nil && def.Parse.ForceSizeUnit != "" {
-			torrentSize = fmt.Sprintf("%v %v", torrentSize, def.Parse.ForceSizeUnit)
+		if def.IRC != nil && def.IRC.Parse != nil && def.IRC.Parse.ForceSizeUnit != "" {
+			torrentSize = fmt.Sprintf("%v %v", torrentSize, def.IRC.Parse.ForceSizeUnit)
 		}
 
 		size, err := humanize.ParseBytes(torrentSize)
@@ -440,15 +601,19 @@ func (r *Release) MapVars(def *IndexerDefinition, varMap map[string]string) erro
 	}
 
 	if scene, err := getStringMapValue(varMap, "scene"); err == nil {
-		r.IsScene = strings.EqualFold(scene, "true") || strings.EqualFold(scene, "yes")
+		if StringEqualFoldMulti(scene, "true", "yes", "1") {
+			r.Origin = "SCENE"
+		}
 	}
 
 	// set origin. P2P, SCENE, O-SCENE and Internal
 	if origin, err := getStringMapValue(varMap, "origin"); err == nil {
 		r.Origin = origin
+	}
 
-		if r.IsScene {
-			r.Origin = "SCENE"
+	if internal, err := getStringMapValue(varMap, "internal"); err == nil {
+		if StringEqualFoldMulti(internal, "internal", "yes", "1") {
+			r.Origin = "INTERNAL"
 		}
 	}
 
@@ -461,8 +626,16 @@ func (r *Release) MapVars(def *IndexerDefinition, varMap map[string]string) erro
 	}
 
 	if tags, err := getStringMapValue(varMap, "tags"); err == nil {
-		tagArr := strings.Split(strings.ReplaceAll(tags, " ", ""), ",")
-		r.Tags = tagArr
+		tagsArr := []string{}
+		s := strings.Split(tags, ",")
+		for _, t := range s {
+			tagsArr = append(tagsArr, strings.Trim(t, " "))
+		}
+		r.Tags = tagsArr
+	}
+
+	if title, err := getStringMapValue(varMap, "title"); err == nil {
+		r.Title = title
 	}
 
 	// handle releaseTags. Most of them are redundant but some are useful
@@ -476,6 +649,11 @@ func (r *Release) MapVars(def *IndexerDefinition, varMap map[string]string) erro
 
 	if releaseGroup, err := getStringMapValue(varMap, "releaseGroup"); err == nil {
 		r.Group = releaseGroup
+	}
+
+	if episodeVal, err := getStringMapValue(varMap, "releaseEpisode"); err == nil {
+		episode, _ := strconv.Atoi(episodeVal)
+		r.Episode = episode
 	}
 
 	if language, err := getStringMapValue(varMap, "language"); err == nil {
@@ -507,4 +685,37 @@ func SplitAny(s string, seps string) []string {
 		return strings.ContainsRune(seps, r)
 	}
 	return strings.FieldsFunc(s, splitter)
+}
+
+func StringEqualFoldMulti(s string, values ...string) bool {
+	for _, value := range values {
+		if strings.EqualFold(s, value) {
+			return true
+		}
+	}
+	return false
+}
+
+func getUniqueTags(target []string, source []string) []string {
+	toAppend := make([]string, 0, len(source))
+
+	for _, t := range source {
+		found := false
+		norm := rls.MustNormalize(t)
+
+		for _, s := range target {
+			if rls.MustNormalize(s) == norm {
+				found = true
+				break
+			}
+		}
+
+		if !found {
+			toAppend = append(toAppend, t)
+		}
+	}
+
+	target = append(target, toAppend...)
+
+	return target
 }

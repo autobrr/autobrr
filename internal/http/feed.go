@@ -8,7 +8,7 @@ import (
 
 	"github.com/autobrr/autobrr/internal/domain"
 
-	"github.com/go-chi/chi"
+	"github.com/go-chi/chi/v5"
 )
 
 type feedService interface {
@@ -18,6 +18,7 @@ type feedService interface {
 	Delete(ctx context.Context, id int) error
 	ToggleEnabled(ctx context.Context, id int, enabled bool) error
 	Test(ctx context.Context, feed *domain.Feed) error
+	GetLastRunData(ctx context.Context, id int) (string, error)
 }
 
 type feedHandler struct {
@@ -34,6 +35,7 @@ func newFeedHandler(encoder encoder, service feedService) *feedHandler {
 
 func (h feedHandler) Routes(r chi.Router) {
 	r.Get("/", h.find)
+	r.Get("/{feedID}/latest", h.latestRun)
 	r.Post("/", h.store)
 	r.Post("/test", h.test)
 	r.Put("/{feedID}", h.update)
@@ -159,4 +161,32 @@ func (h feedHandler) delete(w http.ResponseWriter, r *http.Request) {
 	}
 
 	h.encoder.StatusResponse(ctx, w, nil, http.StatusNoContent)
+}
+
+func (h feedHandler) latestRun(w http.ResponseWriter, r *http.Request) {
+	var (
+		ctx      = r.Context()
+		filterID = chi.URLParam(r, "feedID")
+	)
+
+	id, err := strconv.Atoi(filterID)
+	if err != nil {
+		h.encoder.StatusInternalError(w)
+		return
+	}
+
+	feed, err := h.service.GetLastRunData(ctx, id)
+	if err != nil {
+		h.encoder.StatusInternalError(w)
+		return
+	}
+
+	if feed == "" {
+		h.encoder.StatusNotFound(ctx, w)
+		w.Write([]byte("No data found"))
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte(feed))
 }

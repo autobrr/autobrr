@@ -16,14 +16,19 @@ source: gazelle
 settings:
   - name: authkey
     type: secret
+    required: true
     label: Auth key
     help: Right click DL on a torrent and get the authkey.
+
   - name: torrent_pass
     type: secret
+    required: true
     label: Torrent pass
     help: Right click DL on a torrent and get the torrent_pass.
+
   - name: api_key
     type: secret
+    required: true
     label: API Key
     help: Username -> Edit Profile -> API
 
@@ -49,46 +54,54 @@ irc:
   announcers:
     - Barney
   settings:
-    - name: nickserv.account
+    - name: nick
+      type: text
+      required: true
+      label: Nick
+      help: Bot nick. Eg. user|autodl
+
+    - name: auth.account
       type: text
       required: true
       label: NickServ Account
-      help: NickServ account. Make sure to group your user and bot. Eg. user|autodl
-    - name: nickserv.password
+      help: NickServ account. Make sure to group your user and bot.
+
+    - name: auth.password
       type: secret
       required: true
       label: NickServ Password
       help: NickServ password
 
-parse:
-  type: multi
-  lines:
-    - test:
-        - "NOW BROADCASTING! [ The Show S06E07 720p WEB-DL DD 5.1 H.264 - LP ]"
-      pattern: ^NOW BROADCASTING! \[ (.*) \]
-      vars:
-        - torrentName
-    - test:
-        - "[ Title: S06E07 ] [ Series: The Show ]"
-      pattern: '^\[ Title: (.*) \] \[ Series: (.*) \]'
-      vars:
-        - title
-        - name1
-    - test:
-        - "[ 2010 ] [ Episode ] [ MKV | x264 | WEB ] [ Uploader: Uploader1 ]"
-      pattern: '^(?:\[ (\d+) \] )?\[ (.*) \] \[ (.*) \] \[ Uploader: (.*?) \](?: \[ Pretime: (.*) \])?'
-      vars:
-        - year
-        - category
-        - releaseTags
-        - uploader
-        - preTime
-    - test:
-        - "[ https://XXXXXXXXX/torrents.php?id=7338 / https://XXXXXXXXX/torrents.php?action=download&id=9116 ]"
-      pattern: ^\[ .* \/ (https?:\/\/.*id=(\d+)) \]
-      vars:
-        - baseUrl
-        - torrentId
+  parse:
+    type: multi
+    lines:
+      - test:
+          - "NOW BROADCASTING! [ The Show S06E07 720p WEB-DL DD 5.1 H.264 - LP ]"
+        pattern: ^NOW BROADCASTING! \[ (.*) \]
+        vars:
+          - torrentName
+      - test:
+          - "[ Title: S06E07 ] [ Series: The Show ]"
+        pattern: '^\[ Title: .* \] \[ Series: (.*) \]'
+        vars:
+          - title
+      - test:
+          - "[ 2010 ] [ Episode ] [ MKV | x264 | WEB | P2P ] [ Uploader: Uploader1 ]"
+        pattern: '^(?:\[ (\d+) \] )?\[ (.*) \] \[ (.*) \] \[ Uploader: (.*?) \](?: \[ Pretime: (.*) \])?'
+        vars:
+          - year
+          - category
+          - releaseTags
+          - uploader
+          - preTime
+      - test:
+          - "[ https://XXXXXXXXX/torrents.php?id=7338 / https://XXXXXXXXX/torrents.php?action=download&id=9116 ]"
+        pattern: \[ (https?:\/\/.*\/).+id=(\d+) \/ https?:\/\/.*\/.+id=(\d+) \]
+        vars:
+          - baseUrl
+          - groupId
+          - torrentId
 
-  match:
-    torrenturl: "{{ .baseUrl }}&authkey={{ .authkey }}&torrent_pass={{ .torrent_pass }}"
+    match:
+      infourl: "/torrents.php?id={{ .groupId }}&torrentid={{ .torrentId }}"
+      torrenturl: "/torrents.php?action=download&id={{ .torrentId }}&authkey={{ .authkey }}&torrent_pass={{ .torrent_pass }}"

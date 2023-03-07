@@ -51,15 +51,16 @@ func (db *DB) migratePostgres() error {
 	var version int
 	err = tx.QueryRow(`SELECT version FROM schema_migrations`).Scan(&version)
 	if err != nil && !errors.Is(err, sql.ErrNoRows) {
-		return errors.Wrap(err, "no rows")
+		return errors.Wrap(err, "failed to query schema version")
 	}
 
 	if version == len(postgresMigrations) {
 		return nil
+	} else if version > len(postgresMigrations) {
+		return errors.New("autobrr (version %d) older than schema (version: %d)", len(postgresMigrations), version)
 	}
-	if version > len(postgresMigrations) {
-		return errors.New("old")
-	}
+
+	db.log.Info().Msgf("Beginning database schema upgrade from version %v to version: %v", version, len(postgresMigrations))
 
 	if version == 0 {
 		if _, err := tx.Exec(postgresSchema); err != nil {
@@ -67,6 +68,7 @@ func (db *DB) migratePostgres() error {
 		}
 	} else {
 		for i := version; i < len(postgresMigrations); i++ {
+			db.log.Info().Msgf("Upgrading Database schema to version: %v", i)
 			if _, err := tx.Exec(postgresMigrations[i]); err != nil {
 				return errors.Wrap(err, "failed to execute migration #%v", i)
 			}
@@ -77,6 +79,8 @@ func (db *DB) migratePostgres() error {
 	if err != nil {
 		return errors.Wrap(err, "failed to bump schema version")
 	}
+
+	db.log.Info().Msgf("Database schema upgraded to version: %v", len(postgresMigrations))
 
 	return tx.Commit()
 }

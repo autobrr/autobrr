@@ -1,0 +1,22 @@
+---
+#id: rss
+name: Generic RSS
+identifier: rss
+description: Generic RSS
+language: en-us
+urls:
+  - https://domain.com
+privacy: private
+protocol: torrent
+implementation: rss
+supports:
+  - rss
+source: rss
+
+rss:
+  minInterval: 15
+  settings:
+    - name: url
+      type: text
+      required: true
+      label: RSS URL

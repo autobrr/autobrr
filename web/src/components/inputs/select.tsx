@@ -1,11 +1,12 @@
-import { Fragment } from "react";
+import React, { Fragment } from "react";
 import { Field, FieldProps } from "formik";
-import { Transition, Listbox } from "@headlessui/react";
-import { CheckIcon, SelectorIcon } from "@heroicons/react/solid";
-import { MultiSelect as RMSC }  from "react-multi-select-component";
+import { Listbox, Transition } from "@headlessui/react";
+import { CheckIcon, ChevronUpDownIcon } from "@heroicons/react/24/solid";
+import { MultiSelect as RMSC } from "react-multi-select-component";
 
 import { classNames, COL_WIDTHS } from "../../utils";
 import { SettingsContext } from "../../utils/Context";
+import { CustomTooltip } from "../tooltips/CustomTooltip";
 
 export interface MultiSelectOption {
     value: string | number;
@@ -20,6 +21,8 @@ interface MultiSelectProps {
     options: MultiSelectOption[];
     columns?: COL_WIDTHS;
     creatable?: boolean;
+    disabled?: boolean;
+    tooltip?: JSX.Element;
 }
 
 export const MultiSelect = ({
@@ -27,7 +30,9 @@ export const MultiSelect = ({
   label,
   options,
   columns,
-  creatable
+  creatable,
+  tooltip,
+  disabled
 }: MultiSelectProps) => {
   const settingsContext = SettingsContext.useValue();
 
@@ -44,10 +49,13 @@ export const MultiSelect = ({
       )}
     >
       <label
-        className="block mb-2 text-xs font-bold tracking-wide text-gray-700 uppercase dark:text-gray-200"
-        htmlFor={label}
-      >
-        {label}
+        htmlFor={label} className="flex mb-2 text-xs font-bold tracking-wide text-gray-700 uppercase dark:text-gray-200">
+        <div className="flex">
+          {label}
+          {tooltip && (
+            <CustomTooltip anchorId={name}>{tooltip}</CustomTooltip>
+          )}
+        </div>
       </label>
 
       <Field name={name} type="select" multiple={true}>
@@ -57,7 +65,8 @@ export const MultiSelect = ({
         }: FieldProps) => (
           <RMSC
             {...field}
-            options={[...[...options, ...field.value.map((i: MultiSelectOption) => ({ value: i.value ?? i, label: i.label ?? i }))].reduce((map, obj) => map.set(obj.value, obj), new Map()).values()]}
+            options={options}
+            disabled={disabled}
             labelledBy={name}
             isCreatable={creatable}
             onCreateOption={handleNewField}
@@ -77,6 +86,7 @@ export const MultiSelect = ({
     </div>
   );
 };
+
 
 interface IndexerMultiSelectOption {
     id: number;
@@ -152,17 +162,17 @@ export function DownloadClientSelect({
             {({ open }) => (
               <>
                 <Listbox.Label className="block text-xs font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wide">
-                                    Client
+                  Client
                 </Listbox.Label>
                 <div className="mt-2 relative">
-                  <Listbox.Button className="bg-white dark:bg-gray-800 relative w-full border border-gray-300 dark:border-gray-700 rounded-md shadow-sm pl-3 pr-10 py-2 text-left cursor-default focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:focus:ring-blue-500 focus:border-indigo-500 dark:focus:border-blue-500 dark:text-gray-200 sm:text-sm">
+                  <Listbox.Button className="bg-white dark:bg-gray-800 relative w-full border border-gray-300 dark:border-gray-700 rounded-md shadow-sm pl-3 pr-10 py-2 text-left cursor-default focus:outline-none focus:ring-1 focus:ring-blue-500 dark:focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-500 dark:text-gray-200 sm:text-sm">
                     <span className="block truncate">
                       {field.value
                         ? clients.find((c) => c.id === field.value)?.name
                         : "Choose a client"}
                     </span>
                     <span className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
-                      <SelectorIcon
+                      <ChevronUpDownIcon
                         className="h-5 w-5 text-gray-400 dark:text-gray-300"
                         aria-hidden="true" />
                     </span>
@@ -186,7 +196,7 @@ export function DownloadClientSelect({
                             key={client.id}
                             className={({ active }) => classNames(
                               active
-                                ? "text-white dark:text-gray-100 bg-indigo-600 dark:bg-gray-800"
+                                ? "text-white dark:text-gray-100 bg-blue-600 dark:bg-gray-800"
                                 : "text-gray-900 dark:text-gray-300",
                               "cursor-default select-none relative py-2 pl-3 pr-9"
                             )}
@@ -206,7 +216,7 @@ export function DownloadClientSelect({
                                 {selected ? (
                                   <span
                                     className={classNames(
-                                      active ? "text-white dark:text-gray-100" : "text-indigo-600 dark:text-gray-700",
+                                      active ? "text-white dark:text-gray-100" : "text-blue-600 dark:text-gray-700",
                                       "absolute inset-y-0 right-0 flex items-center pr-4"
                                     )}
                                   >
@@ -231,21 +241,23 @@ export function DownloadClientSelect({
   );
 }
 
-interface SelectFieldOption {
+export interface SelectFieldOption {
     label: string;
     value: string;
 }
 
-interface SelectFieldProps {
+export interface SelectFieldProps {
     name: string;
     label: string;
     optionDefaultText: string;
     options: SelectFieldOption[];
+    tooltip?: JSX.Element;
 }
 
 export const Select = ({
   name,
   label,
+  tooltip,
   optionDefaultText,
   options
 }: SelectFieldProps) => {
@@ -262,11 +274,16 @@ export const Select = ({
           >
             {({ open }) => (
               <>
-                <Listbox.Label className="block text-xs font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wide">
-                  {label}
+                <Listbox.Label className="flex float-left mb-2 text-xs font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wide">
+                  <div className="flex">
+                    {label}
+                    {tooltip && (
+                      <CustomTooltip anchorId={name}>{tooltip}</CustomTooltip>
+                    )}
+                  </div>
                 </Listbox.Label>
                 <div className="mt-2 relative">
-                  <Listbox.Button className="bg-white dark:bg-gray-800 relative w-full border border-gray-300 dark:border-gray-700 rounded-md shadow-sm pl-3 pr-10 py-2.5 text-left cursor-default focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:focus:ring-blue-500 focus:border-indigo-500 dark:focus:border-blue-500 dark:text-gray-200 sm:text-sm">
+                  <Listbox.Button className="bg-white dark:bg-gray-800 relative w-full border border-gray-300 dark:border-gray-700 rounded-md shadow-sm pl-3 pr-10 py-2.5 text-left cursor-default focus:outline-none focus:ring-1 focus:ring-blue-500 dark:focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-500 dark:text-gray-200 sm:text-sm">
                     <span className="block truncate">
                       {field.value
                         ? options.find((c) => c.value === field.value)?.label
@@ -274,7 +291,7 @@ export const Select = ({
                       }
                     </span>
                     <span className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
-                      <SelectorIcon
+                      <ChevronUpDownIcon
                         className="h-5 w-5 text-gray-400 dark:text-gray-300"
                         aria-hidden="true"
                       />
@@ -298,7 +315,7 @@ export const Select = ({
                           className={({ active }) =>
                             classNames(
                               active
-                                ? "text-white dark:text-gray-100 bg-indigo-600 dark:bg-gray-800"
+                                ? "text-white dark:text-gray-100 bg-blue-600 dark:bg-gray-800"
                                 : "text-gray-900 dark:text-gray-300",
                               "cursor-default select-none relative py-2 pl-3 pr-9"
                             )
@@ -319,7 +336,7 @@ export const Select = ({
                               {selected ? (
                                 <span
                                   className={classNames(
-                                    active ? "text-white dark:text-gray-100" : "text-indigo-600 dark:text-gray-700",
+                                    active ? "text-white dark:text-gray-100" : "text-blue-600 dark:text-gray-700",
                                     "absolute inset-y-0 right-0 flex items-center pr-4"
                                   )}
                                 >
@@ -371,7 +388,7 @@ export const SelectWide = ({
                     {label}
                   </Listbox.Label>
                   <div className="w-full">
-                    <Listbox.Button className="bg-white dark:bg-gray-800 relative w-full border border-gray-300 dark:border-gray-700 rounded-md shadow-sm pl-3 pr-10 py-2 text-left cursor-default focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:focus:ring-blue-500 focus:border-indigo-500 dark:focus:border-blue-500 dark:text-gray-200 sm:text-sm">
+                    <Listbox.Button className="bg-white dark:bg-gray-800 relative w-full border border-gray-300 dark:border-gray-700 rounded-md shadow-sm pl-3 pr-10 py-2 text-left cursor-default focus:outline-none focus:ring-1 focus:ring-blue-500 dark:focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-500 dark:text-gray-200 sm:text-sm">
                       <span className="block truncate">
                         {field.value
                           ? options.find((c) => c.value === field.value)?.label
@@ -379,7 +396,7 @@ export const SelectWide = ({
                         }
                       </span>
                       <span className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
-                        <SelectorIcon
+                        <ChevronUpDownIcon
                           className="h-5 w-5 text-gray-400 dark:text-gray-300"
                           aria-hidden="true"
                         />
@@ -403,7 +420,7 @@ export const SelectWide = ({
                             className={({ active }) =>
                               classNames(
                                 active
-                                  ? "text-white dark:text-gray-100 bg-indigo-600 dark:bg-gray-800"
+                                  ? "text-white dark:text-gray-100 bg-blue-600 dark:bg-gray-800"
                                   : "text-gray-900 dark:text-gray-300",
                                 "cursor-default select-none relative py-2 pl-3 pr-9"
                               )
@@ -424,7 +441,7 @@ export const SelectWide = ({
                                 {selected ? (
                                   <span
                                     className={classNames(
-                                      active ? "text-white dark:text-gray-100" : "text-indigo-600 dark:text-gray-700",
+                                      active ? "text-white dark:text-gray-100" : "text-blue-600 dark:text-gray-700",
                                       "absolute inset-y-0 right-0 flex items-center pr-4"
                                     )}
                                   >

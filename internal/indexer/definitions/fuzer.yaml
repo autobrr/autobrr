@@ -1,0 +1,73 @@
+---
+name: Fuzer
+identifier: fuzer
+description: Fuzer is a private Israeli tracker
+language: he-il
+urls:
+  - https://fuzer.me/
+privacy: private
+protocol: torrent
+supports:
+  - irc
+source: gazelle
+settings:
+  - name: uid
+    type: text
+    required: true
+    label: User ID
+    help: Create rss link at https://www.fuzer.me/getrss.php and find at &u=11111
+
+  - name: passkey
+    type: secret
+    required: true
+    label: PassKey
+    help: Create rss link at https://www.fuzer.me/getrss.php and find at &torrent_pass=...
+
+irc:
+  network: Fuzer
+  server: irc.fuzer.me
+  port: 6697
+  tls: true
+  channels:
+    - "#AutoDL"
+  announcers:
+    - Fuzer
+  settings:
+    - name: nick
+      type: text
+      required: true
+      label: Nick
+      help: Bot nick. Eg. user_bot
+
+    - name: auth.account
+      type: text
+      required: false
+      label: NickServ Account
+
+    - name: auth.password
+      type: secret
+      required: false
+      label: NickServ Password
+      help: NickServ password
+
+  parse:
+    type: single
+    lines:
+      - test:
+          - "New Torrent: סדרה - עונה 4 פרק 5 | Show S04E05 2160p UHDTV x265-Release-Group Category: סדרות ישראליות HD By: Uploader1 Size: 2.88GB Link: http://fuzer.me/attachment.php?attachmentid=101010 [Show.S04E05.2160p.UHDTV.x265-Release-Group]"
+          - "New Torrent: סדרה אפילו יותר טובה - עונה 1 פרק 7 - תרגום בצד | Even Better Show S01E07 1080p AMZN WEB-DL DDP5.1 H.264 Category: סדרות HD By: EvenBett3rUploader Size: 2.27GB Link: http://fuzer.me/attachment.php?attachmentid=222222 [Even.Better.Show.S01E07.14.45.1080p.AMZN.WEB-DL.DDP5.1.H.264]"
+          - "New Torrent: הכי טובה - עונה 1 פרק 5 - תרגום בצד | The Best S01E05 1080p WEB H264-TEST Category: סדרות HD By: Uploader5 Size: 3.25GB Link: http://fuzer.me/attachment.php?attachmentid=616161 [The.Best.S01E05.1080p.WEB.H264-TEST]"
+        pattern: 'New Torrent:.*\| .* Category:\s?.* (.*) By: (.*) Size: (.*) Link: (https?\:\/\/.*\/).*attachmentid=(\d+) \[(.*)\]'
+        vars:
+          - category
+          - uploader
+          - torrentSize
+          - baseUrl
+          - torrentId
+          - torrentName
+
+    match:
+      infourl: "/attachment.php?attachmentid={{ .torrentId }}"
+      torrenturl: "/rss/torrent.php/{{ .torrentId }}/{{ .uid }}/{{ .passkey }}/{{ .torrentName }}.torrent"
+      encode:
+        - torrentName

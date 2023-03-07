@@ -86,6 +86,8 @@ func (s *service) Process(release *domain.Release) {
 		return
 	}
 
+	ctx := context.Background()
+
 	// TODO check in config for "Save all releases"
 	// TODO cross-seed check
 	// TODO dupe checks
@@ -114,10 +116,8 @@ func (s *service) Process(release *domain.Release) {
 		release.FilterName = f.Name
 		release.FilterID = f.ID
 
-		// TODO filter limit checks
-
 		// test filter
-		match, err := s.filterSvc.CheckFilter(f, release)
+		match, err := s.filterSvc.CheckFilter(ctx, f, release)
 		if err != nil {
 			l.Error().Err(err).Msg("release.Process: error checking filter")
 			return
@@ -135,8 +135,7 @@ func (s *service) Process(release *domain.Release) {
 		// save release here to only save those with rejections from actions instead of all releases
 		if release.ID == 0 {
 			release.FilterStatus = domain.ReleaseStatusFilterApproved
-			err = s.Store(context.Background(), release)
-			if err != nil {
+			if err = s.Store(ctx, release); err != nil {
 				l.Error().Err(err).Msgf("release.Process: error writing release to database: %+v", release)
 				return
 			}
@@ -168,7 +167,7 @@ func (s *service) Process(release *domain.Release) {
 				continue
 			}
 
-			rejections, err = s.actionSvc.RunAction(a, *release)
+			rejections, err = s.actionSvc.RunAction(ctx, a, *release)
 			if err != nil {
 				l.Error().Stack().Err(err).Msgf("release.Process: error running actions for filter: %v", release.Filter.Name)
 				continue
@@ -202,6 +201,7 @@ func (s *service) ProcessMultiple(releases []*domain.Release) {
 	s.log.Debug().Msgf("process (%v) new releases from feed", len(releases))
 
 	for _, rls := range releases {
+		rls := rls
 		if rls == nil {
 			continue
 		}

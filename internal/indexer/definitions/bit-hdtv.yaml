@@ -5,7 +5,7 @@ identifier: bithdtv
 description: Bit-HDTV (BHDTV) is a specialized HD tracker in movies and TV with so many daily uploads.
 language: en-us
 urls:
-  - https://www.bit-hdtv.com
+  - https://www.bit-hdtv.com/
 privacy: private
 protocol: torrent
 supports:
@@ -15,6 +15,7 @@ source: custom
 settings:
   - name: passkey
     type: secret
+    required: true
     label: Pass key
     help: "Your passkey"
     regex: /([\da-z]{32})
@@ -29,30 +30,38 @@ irc:
   announcers:
     - BHD-bot
   settings:
-    - name: nickserv.account
+    - name: nick
+      type: text
+      required: true
+      label: Nick
+      help: Bot nick. Eg. user_bot
+
+    - name: auth.account
       type: text
       required: true
       label: NickServ Account
-      help: NickServ account. Make sure to group your user and bot. Eg. user_bot
-    - name: nickserv.password
+      help: NickServ account. Make sure to group your user and bot.
+
+    - name: auth.password
       type: secret
       required: true
       label: NickServ Password
       help: NickServ password
 
-parse:
-  type: single
-  lines:
-    - test:
-        - "New torrent: Fear.the.walking.bee.s01e01.720p.WEB.h264-lemoncakes | Cat.: TV | WEB-DL | 720p | Uploader: ze0s | https://www.bit-hdtv.com/details.php?id=448412837123"
-        - "New torrent: Y.r.u.there.2022.1080p.BluRay.DDP5.1.x264-egg | Cat.: Movies | Encode x264 | 1080p | Uploader: Anonymous | https://www.bit-hdtv.com/details.php?id=69"
-      pattern: 'New torrent: (.*) \|\s*Cat.: ([^\|]*) \| .* Uploader: (.*) \| (https?\:\/\/[^\/]+).*id=(\d+)'
-      vars:
-        - torrentName
-        - category
-        - uploader
-        - baseUrl
-        - torrentId
+  parse:
+    type: single
+    lines:
+      - test:
+          - "New torrent: Fear.the.walking.bee.s01e01.720p.WEB.h264-lemoncakes | Cat.: TV | WEB-DL | 720p | Uploader: ze0s | https://www.bit-hdtv.com/details.php?id=448412837123"
+          - "New torrent: Y.r.u.there.2022.1080p.BluRay.DDP5.1.x264-egg | Cat.: Movies | Encode x264 | 1080p | Uploader: Anonymous | https://www.bit-hdtv.com/details.php?id=69"
+        pattern: 'New torrent: (.*) \|\s*Cat.: ([^\|]*) \| .* Uploader: (.*) \| (https?\:\/\/[^\/]+\/).*id=(\d+)'
+        vars:
+          - torrentName
+          - category
+          - uploader
+          - baseUrl
+          - torrentId
 
-  match:
-    torrenturl: "{{ .baseUrl }}/rssdownload.php?id={{ .torrentId }}&passkey={{ .passkey }}"
+    match:
+      infourl: "/details.php?id={{ .torrentId }}"
+      torrenturl: "/rssdownload.php?id={{ .torrentId }}&passkey={{ .passkey }}"

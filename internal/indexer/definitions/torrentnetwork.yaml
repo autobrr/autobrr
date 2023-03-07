@@ -15,6 +15,7 @@ source: unknown
 settings:
   - name: passkey
     type: secret
+    required: true
     label: PassKey
     help: "Home -> RSS -> Extract PassKey from URL"
 
@@ -28,34 +29,42 @@ irc:
   announcers:
     - "|TN|"
   settings:
-    - name: nickserv.account
+    - name: nick
+      type: text
+      required: true
+      label: Nick
+      help: Bot nick. Eg. user|bot
+
+    - name: auth.account
       type: text
       required: true
       label: NickServ Account
-      help: NickServ account. Make sure to group your user and bot. E.g. user|bot
-    - name: nickserv.password
+      help: NickServ account. Make sure to group your user and bot.
+
+    - name: auth.password
       type: secret
       required: true
       label: NickServ Password
       help: NickServ password
 
-parse:
-  type: multi
-  lines:
-    - test:
-        - "{New Torrent} Name {Luke_EP--Wildstyle_-_Sump_Ting-(RNR002)-WEB-2016-OMA} Typ {Music|MP3} Pre {14 s}"
-      pattern: '\{New Torrent\} Name \{(.*)\} Typ \{(.*)\}(?: Pre \{(.*)\})?'
-      vars:
-        - torrentName
-        - category
-        - preTime
-    - test:
-        - "{New Torrent} Size {24.629 MiB} Files {5} Link {https://tntracker.org/torrent/000000}"
-      pattern: '\{New Torrent\} Size \{(.*)\} Files \{\d+\} Link \{(https?:\/\/[^\/]+)\/torrent\/(\d+)\}'
-      vars:
-        - torrentSize
-        - baseUrl
-        - torrentId
+  parse:
+    type: multi
+    lines:
+      - test:
+          - "{New Torrent} Name {Luke_EP--Wildstyle_-_Sump_Ting-(RNR002)-WEB-2016-OMA} Typ {Music|MP3} Pre {14 s}"
+        pattern: '\{New Torrent\} Name \{(.*)\} Typ \{(.+?)\}(?: Pre \{(.*)\})?'
+        vars:
+          - torrentName
+          - category
+          - preTime
+      - test:
+          - "{New Torrent} Size {24.629 MiB} Files {5} Link {https://tntracker.org/torrent/000000}"
+        pattern: '\{New Torrent\} Size \{(.*)\} Files \{\d+\} Link \{(https?:\/\/[^\/]+\/)torrent\/(\d+)\}'
+        vars:
+          - torrentSize
+          - baseUrl
+          - torrentId
 
-  match:
-    torrenturl: "{{ .baseUrl }}/download/{{ .torrentId }}/{{ .passkey }}"
+    match:
+      infourl: "/torrent/{{ .torrentId }}"
+      torrenturl: "/download/{{ .torrentId }}/{{ .passkey }}"

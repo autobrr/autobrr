@@ -15,6 +15,7 @@ source: unknown
 settings:
   - name: passkey
     type: secret
+    required: true
     label: Passkey
     help: "Go to https://www.trancetraffic.com/links.php, click on RSS Feed and copy your passkey from the url."
 
@@ -28,46 +29,54 @@ irc:
   announcers:
     - TranceTraffic
   settings:
-    - name: nickserv.account
+    - name: nick
+      type: text
+      required: true
+      label: Nick
+      help: Bot nick. Eg. user|autodl
+
+    - name: auth.account
       type: text
       required: true
       label: NickServ Account
-      help: NickServ account. Make sure to group your user and bot. Eg. user|autodl
-    - name: nickserv.password
+      help: NickServ account. Make sure to group your user and bot.
+
+    - name: auth.password
       type: secret
       required: true
       label: NickServ Password
       help: NickServ password
 
-parse:
-  type: multi
-  lines:
-    - test:
-        - "New Torrent Uploaded:"
-      pattern: '^New Torrent Uploaded:'
-    - test:
-        - "Name....: That Artist - Good Album-SAT-01-30-2021-GROUP"
-      pattern: '^Name\.*:\s*(.*)'
-      vars:
-        - torrentName
-    - test:
-        - "Uploader: anon"
-      pattern: '^Uploader\.*:\s*(.*)'
-      vars:
-        - uploader
-    - test:
-        - "Category: Livesets - House"
-      pattern: '^Category\.*:\s*(.*)'
-      vars:
-        - category
-    - test:
-        - "URL.....: https://www.trancetraffic.com/details.php?id=000000&hit=1"
-      pattern: '^URL\.*:\s*(https?\:\/\/[^\/]+\/).*[&\?]id=(\d+)'
-      vars:
-        - baseUrl
-        - torrentId
+  parse:
+    type: multi
+    lines:
+      - test:
+          - "New Torrent Uploaded:"
+        pattern: '^New Torrent Uploaded:'
+      - test:
+          - "Name....: That Artist - Good Album-SAT-01-30-2021-GROUP"
+        pattern: '^Name\.*:\s*(.*)'
+        vars:
+          - torrentName
+      - test:
+          - "Uploader: anon"
+        pattern: '^Uploader\.*:\s*(.*)'
+        vars:
+          - uploader
+      - test:
+          - "Category: Livesets - House"
+        pattern: '^Category\.*:\s*(.*)'
+        vars:
+          - category
+      - test:
+          - "URL.....: https://www.trancetraffic.com/details.php?id=000000&hit=1"
+        pattern: '^URL\.*:\s*(https?\:\/\/[^\/]+\/).*[&\?]id=(\d+)'
+        vars:
+          - baseUrl
+          - torrentId
 
-  match:
-    torrenturl: "{{ .baseUrl }}download.php/{{ .torrentId }}/{{ .torrentName }}.torrent?passkey={{ .passkey }}"
-    encode:
-      - torrentName
+    match:
+      infourl: "/details.php?id={{ .torrentId }}"
+      torrenturl: "/download.php/{{ .torrentId }}/{{ .torrentName }}.torrent?passkey={{ .passkey }}"
+      encode:
+        - torrentName

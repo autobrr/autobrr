@@ -15,6 +15,7 @@ source: UNIT3D (F3NIX)
 settings:
   - name: rsskey
     type: secret
+    required: true
     label: RSS key
     help: "Go to your profile, My Security, RSS Key and copy RSS key."
 
@@ -29,36 +30,45 @@ irc:
     - Willie
     - Millie
   settings:
-    - name: nickserv.account
+    - name: nick
+      type: text
+      required: true
+      label: Nick
+      help: Bot nick. MUST follow format user|autodl
+
+    - name: auth.account
       type: text
       required: true
       label: NickServ Account
-      help: NickServ account. Make sure to group your user and bot. Eg. user|autodl
-    - name: nickserv.password
+      help: NickServ account. Make sure to group your user and bot.
+
+    - name: auth.password
       type: secret
       required: true
       label: NickServ Password
       help: NickServ password
+
     - name: invite_command
       type: secret
-      default: "Millie announce ircKey"
+      default: "Millie announce IRCKEY"
       required: true
       label: Invite command
-      help: Invite auth with Millie.
+      help: Invite auth with Millie. Replace IRCKEY.
 
-parse:
-  type: single
-  lines:
-    - test:
-        - "New Torrent: That.Show.S01.1080p.Blu-ray.AVC.DTS-HD.MA.5.1-Test Category: TV By: Uploader Size: 137.73 GB Link: https://beyond-hd.me/details.php?id=00000"
-      pattern: 'New Torrent: (.*) Category: (.*) By: (.*) Size: (.*) Link: (https?\:\/\/[^\/]+\/).*[&\?]id=(\d+)'
-      vars:
-        - torrentName
-        - category
-        - uploader
-        - torrentSize
-        - baseUrl
-        - torrentId
+  parse:
+    type: single
+    lines:
+      - test:
+          - "New Torrent: That.Show.S01.1080p.Blu-ray.AVC.DTS-HD.MA.5.1-Test Category: TV By: Uploader Size: 137.73 GB Link: https://beyond-hd.me/torrents/autodl?id=00000"
+        pattern: 'New Torrent: (.*) Category: (.*) By: (.*) Size: (.*) Link: (https?\:\/\/[^\/]+\/).*[&\?]id=(\d+)'
+        vars:
+          - torrentName
+          - category
+          - uploader
+          - torrentSize
+          - baseUrl
+          - torrentId
 
-  match:
-    torrenturl: "{{ .baseUrl }}torrent/download/auto.{{ .torrentId }}.{{ .rsskey }}"
+    match:
+      infourl: "/torrents/autodl?id={{ .torrentId }}"
+      torrenturl: "/torrent/download/auto.{{ .torrentId }}.{{ .rsskey }}"

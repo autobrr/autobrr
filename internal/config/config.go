@@ -1,60 +1,32 @@
 package config
 
 import (
-	"errors"
+	"bytes"
+	"fmt"
 	"log"
 	"os"
 	"path"
 	"path/filepath"
 	"strings"
 	"sync"
+	"text/template"
 
+	"github.com/autobrr/autobrr/internal/api"
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/internal/logger"
+	"github.com/autobrr/autobrr/pkg/errors"
 
 	"github.com/fsnotify/fsnotify"
 	"github.com/spf13/viper"
 )
 
-func writeConfig(configPath string, configFile string) error {
-	path := filepath.Join(configPath, configFile)
-
-	// check if configPath exists, if not create it
-	if _, err := os.Stat(configPath); errors.Is(err, os.ErrNotExist) {
-		err := os.MkdirAll(configPath, os.ModePerm)
-		if err != nil {
-			log.Println(err)
-			return err
-		}
-	}
-
-	// check if config exists, if not create it
-	if _, err := os.Stat(path); errors.Is(err, os.ErrNotExist) {
-		f, err := os.Create(path)
-		if err != nil { // perm 0666
-			// handle failed create
-			log.Printf("error creating file: %q", err)
-			return err
-		}
-
-		host := "127.0.0.1"
-		if pd, _ := os.Open("/proc/1/cgroup"); pd != nil {
-			defer pd.Close()
-			b := make([]byte, 4096, 4096)
-			pd.Read(b)
-			if strings.Contains(string(b), "/docker") || strings.Contains(string(b), "/lxc") {
-				host = "0.0.0.0"
-			}
-		}
-		defer f.Close()
-
-		_, err = f.WriteString(`# config.toml
+var configTemplate = `# config.toml
 
 # Hostname / IP
 #
 # Default: "localhost"
 #
-host = "` + host + `"
+host = "{{ .host }}"
 
 # Port
 #
@@ -85,23 +57,103 @@ port = 7474
 #
 logLevel = "DEBUG"
 
+# Log Max Size
+#
+# Default: 50
+#
+# Max log size in megabytes
+#
+#logMaxSize = 50
+
+# Log Max Backups
+#
+# Default: 3
+#
+# Max amount of old log files
+#
+#logMaxBackups = 3
+
+# Check for updates
+#
+checkForUpdates = true
+
 # Session secret
 #
-sessionSecret = "secret-session-key"`)
+sessionSecret = "{{ .sessionSecret }}"
+`
 
+func writeConfig(configPath string, configFile string) error {
+	cfgPath := filepath.Join(configPath, configFile)
+
+	// check if configPath exists, if not create it
+	if _, err := os.Stat(configPath); errors.Is(err, os.ErrNotExist) {
+		err := os.MkdirAll(configPath, os.ModePerm)
 		if err != nil {
+			log.Println(err)
+			return err
+		}
+	}
+
+	// check if config exists, if not create it
+	if _, err := os.Stat(cfgPath); errors.Is(err, os.ErrNotExist) {
+		// set default host
+		host := "127.0.0.1"
+
+		if _, err := os.Stat("/.dockerenv"); err == nil {
+			// docker creates a .dockerenv file at the root
+			// of the directory tree inside the container.
+			// if this file exists then the viewer is running
+			// from inside a container so return true
+			host = "0.0.0.0"
+		} else if pd, _ := os.Open("/proc/1/cgroup"); pd != nil {
+			defer pd.Close()
+			b := make([]byte, 4096, 4096)
+			pd.Read(b)
+			if strings.Contains(string(b), "/docker") || strings.Contains(string(b), "/lxc") {
+				host = "0.0.0.0"
+			}
+		}
+
+		f, err := os.Create(cfgPath)
+		if err != nil { // perm 0666
+			// handle failed create
+			log.Printf("error creating file: %q", err)
+			return err
+		}
+		defer f.Close()
+
+		// generate default sessionSecret
+		sessionSecret := api.GenerateSecureToken(16)
+
+		// setup text template to inject variables into
+		tmpl, err := template.New("config").Parse(configTemplate)
+		if err != nil {
+			return errors.Wrap(err, "could not create config template")
+		}
+
+		tmplVars := map[string]string{
+			"host":          host,
+			"sessionSecret": sessionSecret,
+		}
+
+		var buffer bytes.Buffer
+		if err = tmpl.Execute(&buffer, &tmplVars); err != nil {
+			return errors.Wrap(err, "could not write torrent url template output")
+		}
+
+		if _, err = f.WriteString(buffer.String()); err != nil {
 			log.Printf("error writing contents to file: %v %q", configPath, err)
 			return err
 		}
 
 		return f.Sync()
-
 	}
 
 	return nil
 }
 
 type Config interface {
+	UpdateConfig() error
 	DynamicReload(log logger.Logger)
 }
 
@@ -128,9 +180,12 @@ func (c *AppConfig) defaults() {
 		Port:              7474,
 		LogLevel:          "TRACE",
 		LogPath:           "",
+		LogMaxSize:        50,
+		LogMaxBackups:     3,
 		BaseURL:           "/",
 		SessionSecret:     "secret-session-key",
 		CustomDefinitions: "",
+		CheckForUpdates:   true,
 		DatabaseType:      "sqlite",
 		PostgresHost:      "",
 		PostgresPort:      0,
@@ -157,8 +212,7 @@ func (c *AppConfig) load(configPath string) {
 
 		// check if path and file exists
 		// if not, create path and file
-		err := writeConfig(configPath, "config.toml")
-		if err != nil {
+		if err := writeConfig(configPath, "config.toml"); err != nil {
 			log.Printf("write error: %q", err)
 		}
 
@@ -193,6 +247,9 @@ func (c *AppConfig) DynamicReload(log logger.Logger) {
 		logPath := viper.GetString("logPath")
 		c.Config.LogPath = logPath
 
+		checkUpdates := viper.GetBool("checkForUpdates")
+		c.Config.CheckForUpdates = checkUpdates
+
 		log.Debug().Msg("config file reloaded!")
 
 		c.m.Unlock()
@@ -200,4 +257,83 @@ func (c *AppConfig) DynamicReload(log logger.Logger) {
 	viper.WatchConfig()
 
 	return
+}
+
+func (c *AppConfig) UpdateConfig() error {
+	file := path.Join(c.Config.ConfigPath, "config.toml")
+
+	f, err := os.ReadFile(file)
+	if err != nil {
+		return errors.Wrap(err, "could not read config file: %s", file)
+	}
+
+	lines := strings.Split(string(f), "\n")
+	lines = c.processLines(lines)
+
+	output := strings.Join(lines, "\n")
+	if err := os.WriteFile(file, []byte(output), 0644); err != nil {
+		return errors.Wrap(err, "could not write config file: %s", file)
+	}
+
+	return nil
+}
+
+func (c *AppConfig) processLines(lines []string) []string {
+	// keep track of not found values to append at bottom
+	var (
+		foundLineUpdate   = false
+		foundLineLogLevel = false
+		foundLineLogPath  = false
+	)
+
+	for i, line := range lines {
+		// set checkForUpdates
+		if !foundLineUpdate && strings.Contains(line, "checkForUpdates =") {
+			lines[i] = fmt.Sprintf("checkForUpdates = %t", c.Config.CheckForUpdates)
+			foundLineUpdate = true
+		}
+		if !foundLineLogLevel && strings.Contains(line, "logLevel =") {
+			lines[i] = fmt.Sprintf(`logLevel = "%s"`, c.Config.LogLevel)
+			foundLineLogLevel = true
+		}
+		if !foundLineLogPath && strings.Contains(line, "logPath =") {
+			if c.Config.LogPath == "" {
+				lines[i] = `#logPath = ""`
+			} else {
+				lines[i] = fmt.Sprintf("logPath = \"%s\"", c.Config.LogPath)
+			}
+			foundLineLogPath = true
+		}
+	}
+
+	// append missing vars to bottom
+	if !foundLineUpdate {
+		lines = append(lines, "# Check for updates")
+		lines = append(lines, "#")
+		lines = append(lines, fmt.Sprintf("checkForUpdates = %t", c.Config.CheckForUpdates))
+	}
+
+	if !foundLineLogLevel {
+		lines = append(lines, "# Log level")
+		lines = append(lines, "#")
+		lines = append(lines, `# Default: "DEBUG"`)
+		lines = append(lines, "#")
+		lines = append(lines, `# Options: "ERROR", "DEBUG", "INFO", "WARN", "TRACE"`)
+		lines = append(lines, "#")
+		lines = append(lines, fmt.Sprintf(`logLevel = "%s"`, c.Config.LogLevel))
+	}
+
+	if !foundLineLogPath {
+		lines = append(lines, "# Log Path")
+		lines = append(lines, "#")
+		lines = append(lines, "# Optional")
+		lines = append(lines, "#")
+		if c.Config.LogPath == "" {
+			lines = append(lines, `#logPath = ""`)
+		} else {
+			lines = append(lines, fmt.Sprintf(`logPath = "%s"`, c.Config.LogPath))
+		}
+	}
+
+	return lines
 }

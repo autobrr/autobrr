@@ -5,7 +5,7 @@ identifier: torrentseeds
 description: TorrentSeeds (TS) is a GENERAL/0-DAY tracker with great pretimes.
 language: en-us
 urls:
-  - https://torrentseeds.org
+  - https://torrentseeds.org/
 privacy: private
 protocol: torrent
 supports:
@@ -15,8 +15,9 @@ source: UNIT3D
 settings:
   - name: rsskey
     type: secret
-    label: Rss key
-    help: "Click on your nick / Go to Security / Copy the RID (RSS Key) and paste it here."
+    required: true
+    label: RSS key
+    help: "Click on your nick / Go to Settings / Security / Copy the RID (RSS Key) and paste it here."
 
 irc:
   network: Torrentseeds.org
@@ -28,36 +29,45 @@ irc:
   announcers:
     - torrentseeds
   settings:
-    - name: nickserv.account
+    - name: nick
       type: text
       required: true
+      label: Nick
+      help: Bot nick. Eg. user_bot
+
+    - name: auth.account
+      type: text
+      required: false
       label: NickServ Account
-      help: NickServ account. Make sure to group your user and bot. Eg. user_bot
-    - name: nickserv.password
+      help: NickServ account. Make sure to group your user and bot.
+
+    - name: auth.password
       type: secret
       required: false
       label: NickServ Password
       help: NickServ password
+
     - name: invite_command
       type: secret
-      default: "Cerberus identify USERNAME IRCKEY"
+      default: "Cerberus identify USERNAME PID"
       required: true
       label: Invite command
-      help: Invite auth with Cerberus. Replace USERNAME and IRCKEY
+      help: Invite auth with Cerberus. Replace USERNAME and PID (passkey).
 
-parse:
-  type: single
-  lines:
-    - test:
-        - "New: This.Is.A.New.show.S00E00.720p.WEB.H264-Test .:. Category: TV/HD .:. Size: 364.82 MB .:. URL:  https://www.torrentseeds.org/details.php?id=000000 .:. Uploaded by: George."
-      pattern: 'New: (.*) \.:\. Category: (.*) \.:\. Size: (.*) \.:\. URL:  (https?\:\/\/[^\/]+).*\/(\d{6,9}) \.:\. Uploaded by: (.*)\.'
-      vars:
-        - torrentName
-        - category
-        - torrentSize
-        - baseUrl
-        - torrentId
-        - uploader
+  parse:
+    type: single
+    lines:
+      - test:
+          - "New: This.Is.A.New.show.S00E00.720p.WEB.H264-Test .:. Category: TV/HD .:. Size: 706.15 MiB .:. URL:  https://www.torrentseeds.org/torrents/0000000 .:. Uploaded by: George."
+        pattern: 'New: (.+) \.:\. Category: (.+) \.:\. Size: (.+) \.:\. URL:  (https?\:\/\/.+\/).+/(\d+) \.:\. Uploaded by: (.*)\.'
+        vars:
+          - torrentName
+          - category
+          - torrentSize
+          - baseUrl
+          - torrentId
+          - uploader
 
-  match:
-    torrenturl: "{{ .baseUrl }}/torrent/download/{{ .torrentId }}.{{ .rsskey }}"
+    match:
+      infourl: "/torrents/{{ .torrentId }}"
+      torrenturl: "/torrent/download/{{ .torrentId }}.{{ .rsskey }}"

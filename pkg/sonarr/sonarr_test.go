@@ -1,10 +1,12 @@
 package sonarr
 
 import (
+	"context"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -35,7 +37,7 @@ func Test_client_Push(t *testing.T) {
 		}
 
 		// read json response
-		jsonPayload, _ := ioutil.ReadFile("testdata/release_push_response.json")
+		jsonPayload, _ := os.ReadFile("testdata/release_push_response.json")
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		w.Write(jsonPayload)
@@ -108,7 +110,7 @@ func Test_client_Push(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			c := New(tt.fields.config)
 
-			rejections, err := c.Push(tt.args.release)
+			rejections, err := c.Push(context.Background(), tt.args.release)
 			assert.Equal(t, tt.rejections, rejections)
 			if tt.wantErr && assert.Error(t, err) {
 				assert.Equal(t, tt.err, err)
@@ -133,7 +135,7 @@ func Test_client_Test(t *testing.T) {
 				return
 			}
 		}
-		jsonPayload, _ := ioutil.ReadFile("testdata/system_status_response.json")
+		jsonPayload, _ := os.ReadFile("testdata/system_status_response.json")
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		w.Write(jsonPayload)
@@ -178,7 +180,7 @@ func Test_client_Test(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			c := New(tt.cfg)
 
-			got, err := c.Test()
+			got, err := c.Test(context.Background())
 			if tt.wantErr && assert.Error(t, err) {
 				assert.EqualErrorf(t, err, tt.expectedErr, "Error should be: %v, got: %v", tt.wantErr, err)
 			}

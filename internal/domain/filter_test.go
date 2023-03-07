@@ -2,7 +2,6 @@ package domain
 
 import (
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -228,6 +227,58 @@ func TestFilter_CheckFilter(t *testing.T) {
 			want: true,
 		},
 		{
+			name: "movie_except_category_1",
+			fields: &Release{
+				TorrentName: "That Movie 2020 2160p BluRay DD5.1 x264-GROUP1",
+				Category:    "Movies",
+				Freeleech:   true,
+				Size:        uint64(30000000001), // 30GB
+			},
+			args: args{
+				filter: Filter{
+					Enabled:            true,
+					ExceptCategories:   "*movies*",
+					Freeleech:          true,
+					MinSize:            "10 GB",
+					MaxSize:            "40GB",
+					Resolutions:        []string{"1080p", "2160p"},
+					Sources:            []string{"BluRay"},
+					Codecs:             []string{"x264"},
+					Years:              "2015,2018-2022",
+					MatchReleaseGroups: "GROUP1,BADGROUP",
+					Shows:              "*Movie*, good story, bad movie",
+				},
+				rejections: []string{"category unwanted. got: Movies unwanted: *movies*"},
+			},
+			want: false,
+		},
+		{
+			name: "movie_except_category_1",
+			fields: &Release{
+				TorrentName: "That Movie 2020 2160p BluRay DD5.1 x264-GROUP1",
+				Category:    "Movies",
+				Freeleech:   true,
+				Size:        uint64(30000000001), // 30GB
+			},
+			args: args{
+				filter: Filter{
+					Enabled:            true,
+					ExceptCategories:   "*tv*",
+					Freeleech:          true,
+					MinSize:            "10 GB",
+					MaxSize:            "40GB",
+					Resolutions:        []string{"1080p", "2160p"},
+					Sources:            []string{"BluRay"},
+					Codecs:             []string{"x264"},
+					Years:              "2015,2018-2022",
+					MatchReleaseGroups: "GROUP1,BADGROUP",
+					Shows:              "*Movie*, good story, bad movie",
+				},
+				rejections: nil,
+			},
+			want: true,
+		},
+		{
 			name: "movie_bad_category",
 			fields: &Release{
 				TorrentName: "That Movie 2020 2160p BluRay DD5.1 x264-GROUP1",
@@ -252,6 +303,111 @@ func TestFilter_CheckFilter(t *testing.T) {
 				rejections: []string{"category not matching. got: Movies want: *tv*"},
 			},
 			want: false,
+		},
+		{
+			name: "movie_bad_category_2",
+			fields: &Release{
+				TorrentName: "That Movie 2020 2160p BluRay DD5.1 x264-GROUP1",
+				//Category:    "Movies",
+				Categories: []string{"Movies/HD", "2040"},
+				Freeleech:  true,
+				Size:       uint64(30000000001), // 30GB
+			},
+			args: args{
+				filter: Filter{
+					Enabled:            true,
+					MatchCategories:    "*tv*",
+					Freeleech:          true,
+					MinSize:            "10 GB",
+					MaxSize:            "40GB",
+					Resolutions:        []string{"1080p", "2160p"},
+					Sources:            []string{"BluRay"},
+					Codecs:             []string{"x264"},
+					Years:              "2015,2018-2022",
+					MatchReleaseGroups: "GROUP1,BADGROUP",
+					Shows:              "*Movie*, good story, bad movie",
+				},
+				rejections: []string{"category not matching. got: Movies/HD,2040 want: *tv*"},
+			},
+			want: false,
+		},
+		{
+			name: "movie_category_2",
+			fields: &Release{
+				TorrentName: "That Movie 2020 2160p BluRay DD5.1 x264-GROUP1",
+				//Category:    "Movies",
+				Categories: []string{"Movies/HD", "2040"},
+				Freeleech:  true,
+				Size:       uint64(30000000001), // 30GB
+			},
+			args: args{
+				filter: Filter{
+					Enabled:            true,
+					MatchCategories:    "*Movies*",
+					Freeleech:          true,
+					MinSize:            "10 GB",
+					MaxSize:            "40GB",
+					Resolutions:        []string{"1080p", "2160p"},
+					Sources:            []string{"BluRay"},
+					Codecs:             []string{"x264"},
+					Years:              "2015,2018-2022",
+					MatchReleaseGroups: "GROUP1,BADGROUP",
+					Shows:              "*Movie*, good story, bad movie",
+				},
+			},
+			want: true,
+		},
+		{
+			name: "movie_category_3",
+			fields: &Release{
+				TorrentName: "That Movie 2020 2160p BluRay DD5.1 x264-GROUP1",
+				//Category:    "Movies",
+				Categories: []string{"Movies/HD", "2040"},
+				Freeleech:  true,
+				Size:       uint64(30000000001), // 30GB
+			},
+			args: args{
+				filter: Filter{
+					Enabled:            true,
+					MatchCategories:    "2040",
+					Freeleech:          true,
+					MinSize:            "10 GB",
+					MaxSize:            "40GB",
+					Resolutions:        []string{"1080p", "2160p"},
+					Sources:            []string{"BluRay"},
+					Codecs:             []string{"x264"},
+					Years:              "2015,2018-2022",
+					MatchReleaseGroups: "GROUP1,BADGROUP",
+					Shows:              "*Movie*, good story, bad movie",
+				},
+			},
+			want: true,
+		},
+		{
+			name: "movie_category_4",
+			fields: &Release{
+				TorrentName: "That Movie 2020 2160p BluRay DD5.1 x264-GROUP1",
+				//Category:    "Movies",
+				Categories: []string{"Movies/HD", "2040"},
+				Freeleech:  true,
+				Size:       uint64(30000000001), // 30GB
+			},
+			args: args{
+				filter: Filter{
+					Enabled:            true,
+					MatchCategories:    "*HD*",
+					Freeleech:          true,
+					MinSize:            "10 GB",
+					MaxSize:            "40GB",
+					Resolutions:        []string{"1080p", "2160p"},
+					Sources:            []string{"BluRay"},
+					Codecs:             []string{"x264"},
+					Years:              "2015,2018-2022",
+					MatchReleaseGroups: "GROUP1,BADGROUP",
+					Shows:              "*Movie*, good story, bad movie",
+				},
+			},
+			want: true,
 		},
 		{
 			name: "tv_match_season_episode",
@@ -776,9 +932,50 @@ func TestFilter_CheckFilter(t *testing.T) {
 			want: true,
 		},
 		{
+			name: "match_hdr_9",
+			fields: &Release{
+				TorrentName: "Good show shift S02 2160p ATVP WEB-DL DDP 5.1 Atmos DV HDR HEVC-GROUP",
+			},
+			args: args{
+				filter: Filter{
+					Enabled:  true,
+					MatchHDR: []string{"DV HDR"},
+				},
+			},
+			want: true,
+		},
+		{
+			name: "match_hdr_10",
+			fields: &Release{
+				TorrentName: "Good show shift S02 2160p ATVP WEB-DL DDP 5.1 Atmos DV HDR10 HEVC-GROUP",
+			},
+			args: args{
+				filter: Filter{
+					Enabled:  true,
+					MatchHDR: []string{"DV HDR"},
+				},
+				rejections: []string{"hdr not matching. got: [DV HDR10] want: [DV HDR]"},
+			},
+			want: false,
+		},
+		{
+			name: "match_hdr_11",
+			fields: &Release{
+				TorrentName: "Good show shift S02 2160p ATVP WEB-DL DDP 5.1 Atmos HDR10 HEVC-GROUP",
+			},
+			args: args{
+				filter: Filter{
+					Enabled:  true,
+					MatchHDR: []string{"DV", "HDR"},
+				},
+				rejections: []string{"hdr not matching. got: [HDR10] want: [DV HDR]"},
+			},
+			want: false,
+		},
+		{
 			name: "match_music_1",
 			fields: &Release{
-				TorrentName: "Artist - Albumname",
+				TorrentName: "Artist - Albumname FLAC CD",
 				ReleaseTags: "FLAC / 24bit Lossless / Log / 100% / Cue / CD",
 				Category:    "Album",
 			},
@@ -800,7 +997,7 @@ func TestFilter_CheckFilter(t *testing.T) {
 		{
 			name: "match_music_2",
 			fields: &Release{
-				TorrentName: "Artist - Albumname",
+				TorrentName: "Artist-Albumname-SINGLE-WEB-2023-GROUP",
 				ReleaseTags: "MP3 / 320 / WEB",
 				Category:    "Album",
 			},
@@ -818,7 +1015,7 @@ func TestFilter_CheckFilter(t *testing.T) {
 		{
 			name: "match_music_3",
 			fields: &Release{
-				TorrentName: "Artist - Albumname",
+				TorrentName: "Artist - Albumname FLAC CD",
 				ReleaseTags: "FLAC / Lossless / Log / 100% / CD",
 				Category:    "Album",
 			},
@@ -836,7 +1033,7 @@ func TestFilter_CheckFilter(t *testing.T) {
 		{
 			name: "match_music_4",
 			fields: &Release{
-				TorrentName: "Artist - Albumname",
+				TorrentName: "Artist - Albumname FLAC CD",
 				ReleaseTags: "FLAC / Lossless / Log / 100% / CD",
 				Category:    "Album",
 			},
@@ -860,7 +1057,7 @@ func TestFilter_CheckFilter(t *testing.T) {
 		{
 			name: "match_music_5",
 			fields: &Release{
-				TorrentName: "Artist - Albumname",
+				TorrentName: "Artist - Albumname FLAC CD",
 				Year:        2022,
 				ReleaseTags: "FLAC / Lossless / Log / 100% / Cue / CD",
 				Category:    "Album",
@@ -885,7 +1082,7 @@ func TestFilter_CheckFilter(t *testing.T) {
 		{
 			name: "match_music_6",
 			fields: &Release{
-				TorrentName: "Artist - Albumname",
+				TorrentName: "Artist - Albumname FLAC CD",
 				ReleaseTags: "FLAC / Lossless / Log / 100% / Cue / CD",
 				Category:    "Album",
 			},
@@ -909,7 +1106,7 @@ func TestFilter_CheckFilter(t *testing.T) {
 		{
 			name: "match_music_7",
 			fields: &Release{
-				TorrentName: "Artist - Albumname",
+				TorrentName: "Artist - Albumname FLAC CD",
 				ReleaseTags: "FLAC / Lossless / Log / 100% / Cue / CD",
 				Category:    "Album",
 			},
@@ -926,14 +1123,14 @@ func TestFilter_CheckFilter(t *testing.T) {
 					LogScore:          100,
 					Cue:               true,
 				},
-				rejections: []string{"artists not matching. got: Artist - Albumname want: Artiiiist", "log score. got: 0 want: 100"},
+				rejections: []string{"artists not matching. got: Artist want: Artiiiist", "log score. got: 0 want: 100"},
 			},
 			want: false,
 		},
 		{
 			name: "match_music_8",
 			fields: &Release{
-				TorrentName: "Artist - Albumname",
+				TorrentName: "Artist - Albumname FLAC CD",
 				ReleaseTags: "FLAC / Lossless / Log / 100% / Cue / CD",
 				Category:    "Album",
 			},
@@ -998,60 +1195,7 @@ func TestFilter_CheckFilter(t *testing.T) {
 }
 
 func TestFilter_CheckFilter1(t *testing.T) {
-	type fields struct {
-		ID                  int
-		Name                string
-		Enabled             bool
-		CreatedAt           time.Time
-		UpdatedAt           time.Time
-		MinSize             string
-		MaxSize             string
-		MaxDownloads        int
-		MaxDownloadsPer     FilterMaxDownloadsUnit
-		Delay               int
-		Priority            int32
-		MatchReleases       string
-		ExceptReleases      string
-		UseRegex            bool
-		MatchReleaseGroups  string
-		ExceptReleaseGroups string
-		Scene               bool
-		Origins             []string
-		Freeleech           bool
-		FreeleechPercent    string
-		Shows               string
-		Seasons             string
-		Episodes            string
-		Resolutions         []string
-		Codecs              []string
-		Sources             []string
-		Containers          []string
-		MatchHDR            []string
-		ExceptHDR           []string
-		Years               string
-		Artists             string
-		Albums              string
-		MatchReleaseTypes   []string
-		ExceptReleaseTypes  string
-		Formats             []string
-		Quality             []string
-		Media               []string
-		PerfectFlac         bool
-		Cue                 bool
-		Log                 bool
-		LogScore            int
-		MatchCategories     string
-		ExceptCategories    string
-		MatchUploaders      string
-		ExceptUploaders     string
-		Tags                string
-		ExceptTags          string
-		TagsAny             string
-		ExceptTagsAny       string
-		Actions             []*Action
-		Indexers            []Indexer
-		State               *FilterDownloads
-	}
+	type fields Filter
 	type args struct {
 		r *Release
 	}
@@ -1204,9 +1348,10 @@ func TestFilter_CheckFilter1(t *testing.T) {
 				Sources:     []string{"BluRay"},
 				Codecs:      []string{"x265", "HEVC"},
 				MatchHDR:    []string{"DV", "HDR"},
+				ExceptOther: []string{"REMUX", "HYBRID"},
 			},
 			args:           args{&Release{TorrentName: "Stranger Things S02 UHD BluRay 2160p DTS-HD MA 5.1 DV HEVC HYBRID REMUX-FraMeSToR"}},
-			wantRejections: []string{"source not matching. got: UHD.BluRay want: [BluRay]"},
+			wantRejections: []string{"source not matching. got: UHD.BluRay want: [BluRay]", "except other unwanted. got: [HYBRiD REMUX] unwanted: [REMUX HYBRID]"},
 			wantMatch:      false,
 		},
 		{
@@ -1216,6 +1361,7 @@ func TestFilter_CheckFilter1(t *testing.T) {
 				Sources:     []string{"UHD.BluRay"},
 				Codecs:      []string{"x265", "HEVC"},
 				MatchHDR:    []string{"DV", "HDR"},
+				MatchOther:  []string{"REMUX", "HYBRID"},
 			},
 			args:           args{&Release{TorrentName: "Stranger Things S02 UHD BluRay 2160p DTS-HD MA 5.1 DV HEVC HYBRID REMUX-FraMeSToR"}},
 			wantRejections: nil,
@@ -1390,8 +1536,8 @@ func TestFilter_CheckFilter1(t *testing.T) {
 				Origins: []string{"SCENE"},
 			},
 			args:           args{&Release{TorrentName: "Gillan - Future Shock", ReleaseTags: "FLAC / Lossless / Log / 100% / Cue / CD / Scene"}},
-			wantRejections: []string{"origin not matching. got:  want: [SCENE]"},
-			wantMatch:      false,
+			wantRejections: nil,
+			wantMatch:      true,
 		},
 		{
 			name: "test_27",
@@ -1446,9 +1592,9 @@ func TestFilter_CheckFilter1(t *testing.T) {
 		{
 			name: "test_32",
 			fields: fields{
-				MaxDownloads:    1,
-				MaxDownloadsPer: FilterMaxDownloadsMonth,
-				State: &FilterDownloads{
+				MaxDownloads:     1,
+				MaxDownloadsUnit: FilterMaxDownloadsMonth,
+				Downloads: &FilterDownloads{
 					MonthCount: 0,
 				},
 			},
@@ -1459,9 +1605,9 @@ func TestFilter_CheckFilter1(t *testing.T) {
 		{
 			name: "test_33",
 			fields: fields{
-				MaxDownloads:    10,
-				MaxDownloadsPer: FilterMaxDownloadsMonth,
-				State: &FilterDownloads{
+				MaxDownloads:     10,
+				MaxDownloadsUnit: FilterMaxDownloadsMonth,
+				Downloads: &FilterDownloads{
 					MonthCount: 10,
 				},
 			},
@@ -1472,9 +1618,9 @@ func TestFilter_CheckFilter1(t *testing.T) {
 		{
 			name: "test_34",
 			fields: fields{
-				MaxDownloads:    10,
-				MaxDownloadsPer: FilterMaxDownloadsMonth,
-				State: &FilterDownloads{
+				MaxDownloads:     10,
+				MaxDownloadsUnit: FilterMaxDownloadsMonth,
+				Downloads: &FilterDownloads{
 					MonthCount: 50,
 				},
 			},
@@ -1485,9 +1631,9 @@ func TestFilter_CheckFilter1(t *testing.T) {
 		{
 			name: "test_35",
 			fields: fields{
-				MaxDownloads:    15,
-				MaxDownloadsPer: FilterMaxDownloadsHour,
-				State: &FilterDownloads{
+				MaxDownloads:     15,
+				MaxDownloadsUnit: FilterMaxDownloadsHour,
+				Downloads: &FilterDownloads{
 					HourCount:  20,
 					MonthCount: 50,
 				},
@@ -1499,9 +1645,9 @@ func TestFilter_CheckFilter1(t *testing.T) {
 		{
 			name: "test_36",
 			fields: fields{
-				MaxDownloads:    15,
-				MaxDownloadsPer: FilterMaxDownloadsHour,
-				State: &FilterDownloads{
+				MaxDownloads:     15,
+				MaxDownloadsUnit: FilterMaxDownloadsHour,
+				Downloads: &FilterDownloads{
 					HourCount:  14,
 					MonthCount: 50,
 				},
@@ -1509,6 +1655,63 @@ func TestFilter_CheckFilter1(t *testing.T) {
 			args:           args{&Release{TorrentName: "Show.Name.S01.DV.2160p.ATVP.WEB-DL.DDPA5.1.x265-GROUP2"}},
 			wantRejections: nil,
 			wantMatch:      true,
+		},
+		{
+			name: "test_37",
+			fields: fields{
+				ExceptOrigins: []string{"Internal"},
+			},
+			args:           args{&Release{TorrentName: "Gillan - Future Shock", Origin: "Internal"}},
+			wantRejections: []string{"except origin not matching. got: Internal unwanted: [Internal]"},
+			wantMatch:      false,
+		},
+		{
+			name: "test_38",
+			fields: fields{
+				ExceptOrigins: []string{"Internal"},
+			},
+			args:           args{&Release{TorrentName: "Gillan - Future Shock", Origin: "Scene"}},
+			wantRejections: nil,
+			wantMatch:      true,
+		},
+		{
+			name: "test_39",
+			fields: fields{
+				UseRegexReleaseTags: true,
+				MatchReleaseTags:    ".*1080p.+(group1|group3)",
+			},
+			args:           args{&Release{TorrentName: "Show.Name.S01.DV.2160p.ATVP.WEB-DL.DDPA5.1.x265-GROUP2", ReleaseTags: "MKV | x264 | WEB | P2P"}},
+			wantRejections: []string{"match release tags regex not matching. got: MKV | x264 | WEB | P2P want: .*1080p.+(group1|group3)"},
+			wantMatch:      false,
+		},
+		{
+			name: "test_40",
+			fields: fields{
+				UseRegexReleaseTags: true,
+				MatchReleaseTags:    "foreign - 16",
+			},
+			args:           args{&Release{TorrentName: "Show.Name.S01.DV.2160p.ATVP.WEB-DL.DDPA5.1.x265-GROUP2", ReleaseTags: "MKV | x264 | WEB | P2P | Foreign - 17"}},
+			wantRejections: []string{"match release tags regex not matching. got: MKV | x264 | WEB | P2P | Foreign - 17 want: foreign - 16"},
+			wantMatch:      false,
+		},
+		{
+			name: "test_41",
+			fields: fields{
+				UseRegexReleaseTags: true,
+				MatchReleaseTags:    "foreign - 17",
+			},
+			args:      args{&Release{TorrentName: "Show.Name.S01.DV.2160p.ATVP.WEB-DL.DDPA5.1.x265-GROUP2", ReleaseTags: "MKV | x264 | WEB | P2P | Foreign - 17"}},
+			wantMatch: true,
+		},
+		{
+			name: "test_42",
+			fields: fields{
+				UseRegexReleaseTags: true,
+				MatchReleaseTags:    "foreign - 17",
+			},
+			args:           args{&Release{TorrentName: "Show.Name.S01.DV.2160p.ATVP.WEB-DL.DDPA5.1.x265-GROUP2", ReleaseTags: ""}},
+			wantRejections: []string{"match release tags regex not matching. got:  want: foreign - 17"},
+			wantMatch:      false,
 		},
 	}
 	for _, tt := range tests {
@@ -1524,14 +1727,18 @@ func TestFilter_CheckFilter1(t *testing.T) {
 				Delay:               tt.fields.Delay,
 				Priority:            tt.fields.Priority,
 				MaxDownloads:        tt.fields.MaxDownloads,
-				MaxDownloadsUnit:    tt.fields.MaxDownloadsPer,
+				MaxDownloadsUnit:    tt.fields.MaxDownloadsUnit,
 				MatchReleases:       tt.fields.MatchReleases,
 				ExceptReleases:      tt.fields.ExceptReleases,
 				UseRegex:            tt.fields.UseRegex,
 				MatchReleaseGroups:  tt.fields.MatchReleaseGroups,
 				ExceptReleaseGroups: tt.fields.ExceptReleaseGroups,
+				MatchReleaseTags:    tt.fields.MatchReleaseTags,
+				ExceptReleaseTags:   tt.fields.ExceptReleaseTags,
+				UseRegexReleaseTags: tt.fields.UseRegexReleaseTags,
 				Scene:               tt.fields.Scene,
 				Origins:             tt.fields.Origins,
+				ExceptOrigins:       tt.fields.ExceptOrigins,
 				Freeleech:           tt.fields.Freeleech,
 				FreeleechPercent:    tt.fields.FreeleechPercent,
 				Shows:               tt.fields.Shows,
@@ -1555,6 +1762,8 @@ func TestFilter_CheckFilter1(t *testing.T) {
 				Cue:                 tt.fields.Cue,
 				Log:                 tt.fields.Log,
 				LogScore:            tt.fields.LogScore,
+				MatchOther:          tt.fields.MatchOther,
+				ExceptOther:         tt.fields.ExceptOther,
 				MatchCategories:     tt.fields.MatchCategories,
 				ExceptCategories:    tt.fields.ExceptCategories,
 				MatchUploaders:      tt.fields.MatchUploaders,
@@ -1565,7 +1774,7 @@ func TestFilter_CheckFilter1(t *testing.T) {
 				ExceptTagsAny:       tt.fields.ExceptTagsAny,
 				Actions:             tt.fields.Actions,
 				Indexers:            tt.fields.Indexers,
-				Downloads:           tt.fields.State,
+				Downloads:           tt.fields.Downloads,
 			}
 			tt.args.r.ParseString(tt.args.r.TorrentName)
 			rejections, match := f.CheckFilter(tt.args.r)

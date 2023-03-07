@@ -1,0 +1,68 @@
+---
+#id: btfiles
+name: BitTorrentFiles
+identifier: btfiles
+description: BitTorrentFiles (BTF) is a GERMAN private torrent tracker for MOVIES / TV / GENERAL.
+language: en-us
+urls:
+  - https://bittorrentfiles.me/
+privacy: private
+protocol: torrent
+supports:
+  - irc
+  - rss
+source: custom
+settings:
+  - name: rsskey
+    type: secret
+    required: true
+    label: RSS key
+    help: "The rsskey in your RSS feed link"
+
+irc:
+  network: BitTorrentFiles
+  server: btf-irc.us.to
+  port: 7001
+  tls: true
+  channels:
+    - "#~Tracer~"
+  announcers:
+    - Tracer
+  settings:
+    - name: nick
+      type: text
+      required: true
+      label: Nick
+      help: Bot nick. Eg. user_bot
+
+    - name: auth.account
+      type: text
+      required: true
+      label: NickServ Account
+      help: NickServ account. Make sure to group your user and bot. Ask staff to unlock it!
+
+    - name: auth.password
+      type: secret
+      required: true
+      label: NickServ Password
+      help: NickServ password
+
+  parse:
+    type: single
+    lines:
+      - test:
+          - "[XXX » HD] Some.Porno.22.08.16.Famous.Actress.XXX.1080p.MP4-GROUP  [ 3,00 GB | Pred 2022-08-16 08:47:31 (GMT) | URL: https://bittorrentfiles.me/details.php?id=0000000 ]"
+          - "[Music » Single] [Dance Hall] Artist-Album-WEB-2021-GROUP  [ 63,09 MB | Pred 2022-08-16 08:58:06 (GMT) | URL: https://bittorrentfiles.me/details.php?id=0000000 ]"
+          - "[Sports » HD] Sports.League.2022.08.15.Team1.vs.Team2.720p.WEB.h264-GROUP  [ 6,26 GB | Pred 2022-08-16 08:46:25 (GMT) | URL: https://bittorrentfiles.me/details.php?id=0000000 ]"
+        pattern: '\[(.*?)\] (?:\[(.*)\] )?(.*)  \[ ([\d\.,]+ \w+) \| Pred .+ \| URL\: (https?\:\/\/[^\/]+\/).*[&\?]id=(\d+) \]'
+        vars:
+          - category
+          - tags
+          - torrentName
+          - torrentSize
+          - baseUrl
+          - torrentId
+
+    match:
+      infourl: "/details.php?id={{ .torrentId }}"
+      torrenturl: "/download.php?torrent={{ .torrentId }}&k={{ .rsskey }}&ssl=1"

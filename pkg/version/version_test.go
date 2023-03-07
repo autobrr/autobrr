@@ -29,7 +29,7 @@ func TestGitHubReleaseChecker_checkNewVersion(t *testing.T) {
 				version: "v0.2.0",
 				release: &Release{
 					TagName:         "v0.3.0",
-					TargetCommitish: nil,
+					TargetCommitish: "",
 				},
 			},
 			wantNew:     true,
@@ -43,7 +43,7 @@ func TestGitHubReleaseChecker_checkNewVersion(t *testing.T) {
 				version: "v0.2.0",
 				release: &Release{
 					TagName:         "v0.2.0",
-					TargetCommitish: nil,
+					TargetCommitish: "",
 				},
 			},
 			wantNew:     false,
@@ -57,7 +57,7 @@ func TestGitHubReleaseChecker_checkNewVersion(t *testing.T) {
 				version: "v0.3.0",
 				release: &Release{
 					TagName:         "v0.2.0",
-					TargetCommitish: nil,
+					TargetCommitish: "",
 				},
 			},
 			wantNew:     false,
@@ -71,7 +71,7 @@ func TestGitHubReleaseChecker_checkNewVersion(t *testing.T) {
 				version: "v0.3.0",
 				release: &Release{
 					TagName:         "v0.3.0-rc1",
-					TargetCommitish: nil,
+					TargetCommitish: "",
 				},
 			},
 			wantNew:     false,
@@ -85,7 +85,7 @@ func TestGitHubReleaseChecker_checkNewVersion(t *testing.T) {
 				version: "v0.3.0-RC1",
 				release: &Release{
 					TagName:         "v0.3.0-RC2",
-					TargetCommitish: nil,
+					TargetCommitish: "",
 				},
 			},
 			wantNew:     true,
@@ -104,6 +104,26 @@ func TestGitHubReleaseChecker_checkNewVersion(t *testing.T) {
 			}
 			assert.Equal(t, tt.wantNew, got)
 			assert.Equal(t, tt.wantVersion, gotVersion)
+		})
+	}
+}
+
+func Test_isDevelop(t *testing.T) {
+	tests := []struct {
+		name    string
+		version string
+		want    bool
+	}{
+		{name: "test_1", version: "dev", want: true},
+		{name: "test_2", version: "develop", want: true},
+		{name: "test_3", version: "master", want: true},
+		{name: "test_4", version: "latest", want: true},
+		{name: "test_5", version: "v1.0.1", want: false},
+		{name: "test_6", version: "1.0.1", want: false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equalf(t, tt.want, isDevelop(tt.version), "isDevelop(%v)", tt.version)
 		})
 	}
 }

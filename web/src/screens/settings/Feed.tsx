@@ -3,21 +3,22 @@ import { useMutation, useQuery, useQueryClient } from "react-query";
 import { APIClient } from "../../api/APIClient";
 import { Menu, Switch, Transition } from "@headlessui/react";
 
-import { classNames } from "../../utils";
+import { baseUrl, classNames, IsEmptyDate, simplifyDate } from "../../utils";
 import { Fragment, useRef, useState } from "react";
 import { toast } from "react-hot-toast";
 import Toast from "../../components/notifications/Toast";
 import { queryClient } from "../../App";
 import { DeleteModal } from "../../components/modals";
 import {
-  DotsHorizontalIcon,
-  PencilAltIcon,
-  SwitchHorizontalIcon,
+  ArrowsRightLeftIcon,
+  DocumentTextIcon,
+  EllipsisHorizontalIcon,
+  PencilSquareIcon,
   TrashIcon
-} from "@heroicons/react/outline";
+} from "@heroicons/react/24/outline";
 import { FeedUpdateForm } from "../../forms/settings/FeedForms";
 import { EmptySimple } from "../../components/emptystates";
-import { componentMapType } from "../../forms/settings/DownloadClientForms";
+import { ImplementationBadges } from "./Indexer";
 
 function FeedSettings() {
   const { data } = useQuery(
@@ -33,7 +34,7 @@ function FeedSettings() {
           <div className="ml-4 mt-4">
             <h3 className="text-lg leading-6 font-medium text-gray-900 dark:text-white">Feeds</h3>
             <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-              Manage Torznab feeds.
+              Manage RSS and Torznab feeds.
             </p>
           </div>
         </div>
@@ -41,19 +42,20 @@ function FeedSettings() {
         {data && data.length > 0 ?
           <section className="mt-6 light:bg-white dark:bg-gray-800 light:shadow sm:rounded-md">
             <ol className="min-w-full relative">
-              <li className="grid grid-cols-12 gap-4 border-b border-gray-200 dark:border-gray-700">
+              <li className="grid grid-cols-12 border-b border-gray-200 dark:border-gray-700">
                 <div
-                  className="col-span-2 px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Enabled
+                  className="col-span-2 sm:col-span-1 px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Enabled
                 </div>
                 <div
-                  className="col-span-6 px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Name
+                  className="col-span-6 pl-12 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Name
                 </div>
                 <div
-                  className="col-span-2 px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Type
+                  className="hidden md:flex col-span-1 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Type
                 </div>
-                {/*<div className="col-span-4 px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Events</div>*/}
+                <div
+                  className="hidden md:flex col-span-3 px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Last run
+                </div>
               </li>
-
               {data && data.map((f) => (
                 <ListItem key={f.id} feed={f}/>
               ))}
@@ -64,18 +66,6 @@ function FeedSettings() {
     </div>
   );
 }
-
-const ImplementationTorznab = () => (
-  <span
-    className="inline-flex items-center px-2.5 py-0.5 rounded-md text-sm font-medium bg-orange-200 dark:bg-orange-400 text-orange-800 dark:text-orange-800"
-  >
-        Torznab
-  </span>
-);
-
-export const ImplementationMap: componentMapType = {
-  "TORZNAB": <ImplementationTorznab/>
-};
 
 interface ListItemProps {
     feed: Feed;
@@ -109,13 +99,13 @@ function ListItem({ feed }: ListItemProps) {
     <li key={feed.id} className="text-gray-500 dark:text-gray-400">
       <FeedUpdateForm isOpen={updateFormIsOpen} toggle={toggleUpdateForm} feed={feed}/>
 
-      <div className="grid grid-cols-12 gap-4 items-center py-4">
-        <div className="col-span-2 flex items-center sm:px-6 ">
+      <div className="grid grid-cols-12 items-center">
+        <div className="col-span-2 sm:col-span-1 px-6 flex items-center">
           <Switch
             checked={feed.enabled}
             onChange={toggleActive}
             className={classNames(
-              feed.enabled ? "bg-teal-500 dark:bg-blue-500" : "bg-gray-200 dark:bg-gray-600",
+              feed.enabled ? "bg-blue-500 dark:bg-blue-500" : "bg-gray-200 dark:bg-gray-600",
               "relative inline-flex flex-shrink-0 h-6 w-11 border-2 border-transparent rounded-full cursor-pointer transition-colors ease-in-out duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
             )}
           >
@@ -129,13 +119,21 @@ function ListItem({ feed }: ListItemProps) {
             />
           </Switch>
         </div>
-        <div className="col-span-6 flex items-center sm:px-6 text-sm font-medium text-gray-900 dark:text-white">
-          {feed.name}
+        <div className="col-span-8 sm:col-span-6 pl-12 py-3 flex flex-col text-sm font-medium text-gray-900 dark:text-white">
+          <span>{feed.name}</span>
+          <span className="text-gray-900 dark:text-gray-500 text-xs">
+            {feed.indexer}
+          </span>
         </div>
-        <div className="col-span-2 flex items-center sm:px-6">
-          {ImplementationMap[feed.type]}
+        <div className="hidden md:flex col-span-1 py-3 items-center">
+          {ImplementationBadges[feed.type.toLowerCase()]}
         </div>
-        <div className="col-span-1 flex items-center sm:px-6">
+        <div className="hidden md:flex col-span-3 py-3 items-center sm:px-6 text-sm font-medium text-gray-900 dark:text-gray-500">
+          <span title={simplifyDate(feed.last_run)}>
+            {IsEmptyDate(feed.last_run)}
+          </span>
+        </div>
+        <div className="col-span-1 flex justify-center items-center sm:px-6">
           <FeedItemDropdown
             feed={feed}
             onToggle={toggleActive}
@@ -189,7 +187,7 @@ const FeedItemDropdown = ({
         text="Are you sure you want to remove this feed? This action cannot be undone."
       />
       <Menu.Button className="px-4 py-2">
-        <DotsHorizontalIcon
+        <EllipsisHorizontalIcon
           className="w-5 h-5 text-gray-700 hover:text-gray-900 dark:text-gray-100 dark:hover:text-gray-400"
           aria-hidden="true"
         />
@@ -216,14 +214,14 @@ const FeedItemDropdown = ({
                   )}
                   onClick={() => toggleUpdate()}
                 >
-                  <PencilAltIcon
+                  <PencilSquareIcon
                     className={classNames(
                       active ? "text-white" : "text-blue-500",
                       "w-5 h-5 mr-2"
                     )}
                     aria-hidden="true"
                   />
-                                    Edit
+                  Edit
                 </button>
               )}
             </Menu.Item>
@@ -236,18 +234,39 @@ const FeedItemDropdown = ({
                   )}
                   onClick={() => onToggle(!feed.enabled)}
                 >
-                  <SwitchHorizontalIcon
+                  <ArrowsRightLeftIcon
                     className={classNames(
                       active ? "text-white" : "text-blue-500",
                       "w-5 h-5 mr-2"
                     )}
                     aria-hidden="true"
                   />
-                                    Toggle
+                  Toggle
                 </button>
               )}
             </Menu.Item>
           </div>
+          <Menu.Item>
+            {({ active }) => (
+              <a
+                href={`${baseUrl()}api/feeds/${feed.id}/latest`}
+                target="_blank"
+                className={classNames(
+                  active ? "bg-blue-600 text-white" : "text-gray-900 dark:text-gray-300",
+                  "font-medium group flex rounded-md items-center w-full px-2 py-2 text-sm"
+                )}
+              >
+                <DocumentTextIcon
+                  className={classNames(
+                    active ? "text-white" : "text-blue-500",
+                    "w-5 h-5 mr-2"
+                  )}
+                  aria-hidden="true"
+                />
+                View latest run
+              </a>
+            )}
+          </Menu.Item>
           <div className="px-1 py-1">
             <Menu.Item>
               {({ active }) => (
@@ -265,7 +284,7 @@ const FeedItemDropdown = ({
                     )}
                     aria-hidden="true"
                   />
-                                    Delete
+                  Delete
                 </button>
               )}
             </Menu.Item>

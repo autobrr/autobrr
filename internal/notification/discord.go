@@ -5,7 +5,7 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"strings"
 	"time"
@@ -89,7 +89,7 @@ func (a *discordSender) Send(event domain.NotificationEvent, payload domain.Noti
 		return errors.Wrap(err, "could not make request: %+v", req)
 	}
 
-	body, err := ioutil.ReadAll(res.Body)
+	body, err := io.ReadAll(res.Body)
 	if err != nil {
 		a.log.Error().Err(err).Msgf("discord client request error: %v", event)
 		return errors.Wrap(err, "could not read data")

@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/go-chi/chi"
+	"github.com/go-chi/chi/v5"
 
 	"github.com/autobrr/autobrr/internal/domain"
 )
@@ -19,6 +19,7 @@ type ircService interface {
 	StoreNetwork(ctx context.Context, network *domain.IrcNetwork) error
 	UpdateNetwork(ctx context.Context, network *domain.IrcNetwork) error
 	StoreChannel(networkID int64, channel *domain.IrcChannel) error
+	RestartNetwork(ctx context.Context, id int64) error
 }
 
 type ircHandler struct {
@@ -38,6 +39,7 @@ func (h ircHandler) Routes(r chi.Router) {
 	r.Post("/", h.storeNetwork)
 	r.Put("/network/{networkID}", h.updateNetwork)
 	r.Post("/network/{networkID}/channel", h.storeChannel)
+	r.Get("/network/{networkID}/restart", h.restartNetwork)
 	r.Get("/network/{networkID}", h.getNetworkByID)
 	r.Delete("/network/{networkID}", h.deleteNetwork)
 }
@@ -67,6 +69,21 @@ func (h ircHandler) getNetworkByID(w http.ResponseWriter, r *http.Request) {
 	}
 
 	h.encoder.StatusResponse(ctx, w, network, http.StatusOK)
+}
+
+func (h ircHandler) restartNetwork(w http.ResponseWriter, r *http.Request) {
+	var (
+		ctx       = r.Context()
+		networkID = chi.URLParam(r, "networkID")
+	)
+
+	id, _ := strconv.Atoi(networkID)
+
+	if err := h.service.RestartNetwork(ctx, int64(id)); err != nil {
+		h.encoder.Error(w, err)
+	}
+
+	h.encoder.NoContent(w)
 }
 
 func (h ircHandler) storeNetwork(w http.ResponseWriter, r *http.Request) {

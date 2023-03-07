@@ -5,7 +5,7 @@ identifier: acidlounge
 description: Small general tracker.
 language: en-us
 urls:
-  - https://www.acid-lounge.org.uk
+  - https://www.acid-lounge.org.uk/
 privacy: private
 protocol: torrent
 supports:
@@ -15,11 +15,14 @@ source: custom
 settings:
   - name: passkey
     type: secret
+    required: true
     label: Pass key
     help: "Your passkey"
     regex: /([\da-z]{32})
+
   - name: uid
     type: secret
+    required: true
     label: User ID
     help: "Your User ID"
     regex: /(\d+)
@@ -34,32 +37,40 @@ irc:
   announcers:
     - ACiD-BaBy
   settings:
-    - name: nickserv.account
+    - name: nick
+      type: text
+      required: true
+      label: Nick
+      help: Bot nick. Eg. user_bot
+
+    - name: auth.account
       type: text
       required: true
       label: NickServ Account
-      help: NickServ account. Make sure to group your user and bot. Eg. user_bot
-    - name: nickserv.password
+      help: NickServ account. Make sure to group your user and bot.
+
+    - name: auth.password
       type: secret
       required: true
       label: NickServ Password
       help: NickServ password
 
-parse:
-  type: single
-  lines:
-    - test:
-        - "(Games/PC)  The.Smallest.Game-ze0s  https://www.acid-lounge.org.uk/details.php?id=3443&hit=1"
-        - "(Music/MP3)  TUNES_4_LYFE_WEB_iNT  https://www.acid-lounge.org.uk/details.php?id=30104&hit=1"
-        - "(XXX/0-Day)  Cute.Stuff.69.XXX.VR180.2700p.MP4-s0ez  https://www.acid-lounge.org.uk/details.php?id=30444221135&hit=1"
-        - "(Movies/HD)  Have.You.Seen.The.Cat.Tonight-WhereThat  https://www.acid-lounge.org.uk/details.php?id=3018979898&hit=1"
-        - "(TV-HD/X264)  The.Eggerton.S01E01.720p.WEB.h264-OTA  https://www.acid-lounge.org.uk/details.php?id=302099&hit=1"
-      pattern: '\((.*)\)  (.*)  (https?\:\/\/[^\/]+).*id=(\d+)'
-      vars:
-        - category
-        - torrentName
-        - baseUrl
-        - torrentId
+  parse:
+    type: single
+    lines:
+      - test:
+          - "(Games/PC)  The.Smallest.Game-ze0s  https://www.acid-lounge.org.uk/details.php?id=3443&hit=1"
+          - "(Music/MP3)  TUNES_4_LYFE_WEB_iNT  https://www.acid-lounge.org.uk/details.php?id=30104&hit=1"
+          - "(XXX/0-Day)  Cute.Stuff.69.XXX.VR180.2700p.MP4-s0ez  https://www.acid-lounge.org.uk/details.php?id=30444221135&hit=1"
+          - "(Movies/HD)  Have.You.Seen.The.Cat.Tonight-WhereThat  https://www.acid-lounge.org.uk/details.php?id=3018979898&hit=1"
+          - "(TV-HD/X264)  The.Eggerton.S01E01.720p.WEB.h264-OTA  https://www.acid-lounge.org.uk/details.php?id=302099&hit=1"
+        pattern: '\((.*)\)  (.*)  (https?\:\/\/[^\/]+\/).*id=(\d+)'
+        vars:
+          - category
+          - torrentName
+          - baseUrl
+          - torrentId
 
-  match:
-    torrenturl: "{{ .baseUrl }}/rssdownload.php?passkey={{ .passkey }}&uid={{ .uid }}&tid={{ .torrentId }}"
+    match:
+      infourl: "/details.php?id={{ .torrentId }}"
+      torrenturl: "/rssdownload.php?passkey={{ .passkey }}&uid={{ .uid }}&tid={{ .torrentId }}"

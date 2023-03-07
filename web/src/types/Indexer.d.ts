@@ -4,6 +4,7 @@ interface Indexer {
   identifier: string;
   enabled: boolean;
   implementation: string;
+  base_url: string;
   settings: Array<IndexerSetting>;
 }
 
@@ -12,6 +13,7 @@ interface IndexerDefinition {
   name: string;
   identifier: string;
   implementation: string;
+  base_url: string;
   enabled?: boolean;
   description: string;
   language: string;
@@ -22,6 +24,8 @@ interface IndexerDefinition {
   settings: IndexerSetting[];
   irc: IndexerIRC;
   torznab: IndexerTorznab;
+  newznab?: IndexerTorznab;
+  rss: IndexerFeed;
   parse: IndexerParse;
 }
 
@@ -49,6 +53,11 @@ interface IndexerIRC {
 }
 
 interface IndexerTorznab {
+  minInterval: number;
+  settings: IndexerSetting[];
+}
+
+interface IndexerFeed {
   minInterval: number;
   settings: IndexerSetting[];
 }

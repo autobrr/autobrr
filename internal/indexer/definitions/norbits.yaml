@@ -5,7 +5,7 @@ identifier: norbits
 description: NorBits is a Norwegian Private site for MOVIES / TV / GENERAL
 language: nb-NO
 urls:
-  - https://www.norbits.net
+  - https://www.norbits.net/
 privacy: private
 protocol: torrent
 supports:
@@ -15,6 +15,7 @@ source: custom
 settings:
   - name: passkey
     type: secret
+    required: true
     label: Passkey
     help: "Copy passkey from a download link"
 
@@ -28,31 +29,39 @@ irc:
   announcers:
     - NB
   settings:
-    - name: nickserv.account
+    - name: nick
+      type: text
+      required: true
+      label: Nick
+      help: Bot nick. Eg. user_bot
+
+    - name: auth.account
       type: text
       required: true
       label: NickServ Account
       help: NickServ account. Use primary nick or ask staff to allow grouped nick.
-    - name: nickserv.password
+
+    - name: auth.password
       type: secret
       required: true
       label: NickServ Password
       help: NickServ password
 
-parse:
-  type: single
-  lines:
-    - test:
-        - "Ny torrent: Movie.2010.1080p.BluRay.x264.DTS-HD MA 5.1-OMEGA :: Kategori: Filmer/H.264/HD-1080p/i/Encode :: Scene: Nei :: St�rrelse: 9.69 GB :: https://norbits.net/details.php?id=000000"
-        - "Ny torrent: Some.TV.Show.s01e01.NORDIC.720p.DSNP.WEBRiP.DD.5.1.h264 :: Kategori: TV/H.264/HD-720p/Encode :: Scene: Nei :: St�rrelse: 891.04 MB :: https://norbits.net/details.php?id=000000"
-      pattern: 'Ny torrent: (.*) :: Kategori: (.*) :: Scene: (.*) :: St.+rrelse: (.*) :: (https?\:\/\/[^\/]+\/).*[\?]id=(\d+)'
-      vars:
-        - torrentName
-        - category
-        - scene
-        - torrentSize
-        - baseUrl
-        - torrentId
+  parse:
+    type: single
+    lines:
+      - test:
+          - "Ny torrent: Movie.2010.1080p.BluRay.x264.DTS-HD MA 5.1-OMEGA :: Kategori: Filmer/H.264/HD-1080p/i/Encode :: Scene: Nei :: St�rrelse: 9.69 GB :: https://norbits.net/details.php?id=000000"
+          - "Ny torrent: Some.TV.Show.s01e01.NORDIC.720p.DSNP.WEBRiP.DD.5.1.h264 :: Kategori: TV/H.264/HD-720p/Encode :: Scene: Nei :: St�rrelse: 891.04 MB :: https://norbits.net/details.php?id=000000"
+        pattern: 'Ny torrent: (.*) :: Kategori: (.*) :: Scene: (.*) :: St.+rrelse: (.*) :: (https?\:\/\/[^\/]+\/).*[\?]id=(\d+)'
+        vars:
+          - torrentName
+          - category
+          - scene
+          - torrentSize
+          - baseUrl
+          - torrentId
 
-  match:
-    torrenturl: "{{ .baseUrl }}download.php?id={{ .torrentId }}&passkey={{ .passkey }}"
+    match:
+      infourl: "/details.php?id={{ .torrentId }}"
+      torrenturl: "/download.php?id={{ .torrentId }}&passkey={{ .passkey }}"

@@ -1,0 +1,88 @@
+---
+name: Hebits
+identifier: hebits
+description: Hebits is a private Israeli tracker
+language: he-il
+urls:
+  - https://hebits.net/
+privacy: private
+protocol: torrent
+supports:
+  - irc
+source: gazelle
+settings:
+  - name: passkey
+    type: secret
+    required: true
+    label: PassKey
+    help: Right click download on a torrent and get the passkey.
+
+  - name: authkey
+    type: secret
+    required: true
+    label: Auth key
+    help: Right click download on a torrent and get the authkey.
+
+irc:
+  network: Hebits
+  server: irc.hebits.net
+  port: 6697
+  tls: true
+  channels:
+    - "#Announce"
+  announcers:
+    - HeBoT
+  settings:
+    - name: nick
+      type: text
+      required: true
+      label: Nick
+      help: "Bot nick. Make sure you follow the naming scheme: username|bot"
+
+    - name: auth.account
+      type: text
+      required: true
+      label: NickServ Account
+      help: NickServ account. Make sure to group your main user and bot.
+
+    - name: auth.password
+      type: secret
+      required: true
+      label: NickServ Password
+      help: NickServ password
+
+    - name: invite_command
+      type: secret
+      default: "HeBoT !invite IRCKEY"
+      required: true
+      label: Invite command
+      help: "Replace IRCKEY with: Edit Profile -> Access Settings -> IRC Key"
+
+  parse:
+    type: multi
+    lines:
+      - test:
+          - "New: (מה שקורה בצללים - עונה 4, פרק 3 / What We Do in the Shadows - S04E03 *היידפנישן*) Category: סדרות - HD Size: 825.43 MiB Seeders: 0 Leechers: 0"
+          - "New: (לגו מלחמת הכוכבים: חופשת קיץ / LEGO Star Wars Summer Vacation *היידפנישן*) Category: סרטים - HD Size: 1.02 GiB Seeders: 0 Leechers: 0"
+          - "New: (תמונות מחיי נישואין - עונה 1 / Scenes from a Marriage (US) - S01 *היידפנישן מלא*) Category: סדרות - HD מלא Size: 18.61 GiB Seeders: 0 Leechers: 0"
+        pattern: '^New: .* Category: .* (.*) Size: (.*) Seeders: .+ Leechers: .+'
+        vars:
+          - category
+          - torrentSize
+      - test:
+          - "Link: https://hebits.net/torrents.php?torrentid=80081"
+        pattern: '^Link: (https://?.*/).*torrentid=(\d+)'
+        vars:
+          - baseUrl
+          - torrentId
+      - test:
+          - "Release: What.We.Do.in.the.Shadows.S04E03.The.Grand.Opening.720p.AMZN.WEB.DL.DDP5.1.H.264-FLUX"
+          - "Release: LEGO.Star.Wars.Summer.Vacation.2022.720p.WEB-DL.H.264.HebDub-iSrael"
+          - "Release: Scenes.From.a.Marriage.US.S01.1080p.AMZN.WEB-DL.DDP5.1.H.264-FLUX"
+        pattern: "^Release: (.*)"
+        vars:
+          - torrentName
+
+    match:
+      infourl: "/torrents.php?id={{ .torrentId }}"
+      torrenturl: "/torrents.php?action=download&id={{ .torrentId }}&authkey={{ .authkey }}&torrent_pass={{ .passkey }}"

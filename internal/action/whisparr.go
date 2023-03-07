@@ -9,13 +9,13 @@ import (
 	"github.com/autobrr/autobrr/pkg/whisparr"
 )
 
-func (s *service) whisparr(action domain.Action, release domain.Release) ([]string, error) {
+func (s *service) whisparr(ctx context.Context, action *domain.Action, release domain.Release) ([]string, error) {
 	s.log.Trace().Msg("action WHISPARR")
 
 	// TODO validate data
 
 	// get client for action
-	client, err := s.clientSvc.FindByID(context.TODO(), action.ClientID)
+	client, err := s.clientSvc.FindByID(ctx, action.ClientID)
 	if err != nil {
 		return nil, errors.Wrap(err, "sonarr could not find client: %v", action.ClientID)
 	}
@@ -44,6 +44,7 @@ func (s *service) whisparr(action domain.Action, release domain.Release) ([]stri
 	r := whisparr.Release{
 		Title:            release.TorrentName,
 		DownloadUrl:      release.TorrentURL,
+		MagnetUrl:        release.MagnetURI,
 		Size:             int64(release.Size),
 		Indexer:          release.Indexer,
 		DownloadProtocol: "torrent",
@@ -51,7 +52,7 @@ func (s *service) whisparr(action domain.Action, release domain.Release) ([]stri
 		PublishDate:      time.Now().Format(time.RFC3339),
 	}
 
-	rejections, err := arr.Push(r)
+	rejections, err := arr.Push(ctx, r)
 	if err != nil {
 		return nil, errors.Wrap(err, "whisparr: failed to push release: %v", r)
 	}

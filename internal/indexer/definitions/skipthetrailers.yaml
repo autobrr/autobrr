@@ -1,0 +1,69 @@
+---
+#id: skipthetrailers
+name: SkipTheTrailers
+identifier: stt
+description: SkipTheTrailers (STT) is a Private Torrent Tracker for Movies
+language: en-us
+urls:
+  - https://skipthetrailers.xyz/
+privacy: private
+protocol: torrent
+supports:
+  - irc
+  - rss
+source: UNIT3D
+settings:
+  - name: rsskey
+    type: secret
+    required: true
+    label: RSS key (RID)
+    help: "Go to your profile tab, Settings > Security, copy RSS Key (RID)"
+
+irc:
+  network: SkipTheCommericals
+  server: irc.skipthecommericals.xyz
+  port: 6697
+  tls: true
+  channels:
+    - "#stt.announce"
+  announcers:
+    - STTBOT
+  settings:
+    - name: nick
+      type: text
+      required: true
+      label: Nick
+      help: Bot nick. Eg. user_bot
+
+    - name: auth.account
+      type: text
+      required: false
+      label: NickServ Account
+      help: NickServ account. Make sure to group your user and bot.
+
+    - name: auth.password
+      type: secret
+      required: false
+      label: NickServ Password
+      help: NickServ password
+
+  parse:
+    type: single
+    lines:
+      - test:
+          - "Category [Movies] Type [Encode] Name [The best movie 2015 1080p BluRay FLAC 5.1 x264-GROUP] Freeleech [100%] Double Upload [Yes] Size [7.22 GB] Uploader [anon] Url [https://skipthetrailers.xyz/torrent/download/00000]"
+        pattern: 'Category \[(.+)\] Type \[(.+)\] Name \[(.+?)\] Freeleech \[(.+)\] Double Upload \[(.+)\] Size \[(.+)\] Uploader \[(.+)\] Url \[(https?\:\/\/.+\/).+\/.+\/(\d+)\]'
+        vars:
+          - category
+          - releaseTags
+          - torrentName
+          - freeleechPercent
+          - tags
+          - torrentSize
+          - uploader
+          - baseUrl
+          - torrentId
+
+    match:
+      infourl: "/torrents/{{ .torrentId }}"
+      torrenturl: "/torrent/download/{{ .torrentId }}.{{ .rsskey }}"

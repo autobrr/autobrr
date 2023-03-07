@@ -35,6 +35,28 @@ port = 7474
 #
 logLevel = "TRACE"
 
+# Log Max Size
+#
+# Default: 50
+#
+# Max log size in megabytes
+#
+#logMaxSize = 50
+
+# Log Max Backups
+#
+# Default: 3
+#
+# Max amount of old log files
+#
+#logMaxBackups = 3
+
+# Check for updates
+#
+# Default: true
+#
+checkForUpdates = true
+
 # Session secret
 #
 sessionSecret = "secret-session-key"

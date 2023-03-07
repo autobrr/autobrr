@@ -15,6 +15,7 @@ source: custom
 settings:
   - name: rsskey
     type: secret
+    required: true
     label: RSS key
     help: "Copy your RSS key from the RSS feed"
     regex: /([\da-fA-F]{32})
@@ -29,31 +30,41 @@ irc:
   announcers:
     - PTMbot
   settings:
-    - name: nickserv.account
+    - name: nick
+      type: text
+      required: true
+      label: Nick
+      help: Bot nick. Eg. user_bot
+
+    - name: auth.account
       type: text
       required: true
       label: NickServ Account
-      help: NickServ account. Make sure to group your user and bot. Eg. user_bot
-    - name: nickserv.password
+      help: NickServ account. Make sure to group your user and bot.
+
+    - name: auth.password
       type: secret
       required: true
       label: NickServ Password
       help: NickServ password
 
-parse:
-  type: single
-  lines:
-    - test:
-        - "tehFire: [Applications|Windows] Chen went to the Mall :: preGAP: 1m and 32s :: https://pretome.info/details.php?id=696969"
-        - "[Movies|x264] Orlando.Bloom.Had.A.Cow-ze0s :: preGAP: P2P source :: https://pretome.info/details.php?id=646321"
-      pattern: '\[([^\]]+)\] ([^:]+) :: [^:]+.*(https?\:\/\/[^\/]+).*id=(\d+)'
-      vars:
-        - category
-        - torrentName
-        - baseUrl
-        - torrentId
+  parse:
+    type: single
+    lines:
+      - test:
+          - "tehFire: [Applications|Windows] Chen went to the Mall :: preGAP: 1m and 32s :: https://pretome.info/details.php?id=696969"
+          - "[Movies|x264] Orlando.Bloom.Had.A.Cow-GROUP :: preGAP: P2P source :: https://pretome.info/details.php?id=646321"
+          - "tehFIRE: [TV|XviD] Royal.Institution.Christmas.Lectures.2009.Part2.WS.PDTV.XviD-WATERS :: preGAP: 1m and 9s :: https://pretome.info/details.php?id=127107"
+          - "tehFIRE: [TV|x264] Newsreaders.S01E05.HDTV.x264-2HD https://pretome.info/details.php?id=333951"
+        pattern: '\[([^\]]+)\] ([^:]+)(?: :: [^:]+:.* :: )?(https?\:\/\/.+\/).*id=(\d+)'
+        vars:
+          - category
+          - torrentName
+          - baseUrl
+          - torrentId
 
-  match:
-    torrenturl: "{{ .baseUrl }}/download.php/{{ .torrentId }}/{{ .rsskey }}/{{ .torrentName }}.torrent"
-    encode:
-      - torrentName
+    match:
+      infourl: "/details.php?id={{ .torrentId }}"
+      torrenturl: "/download.php/{{ .torrentId }}/{{ .rsskey }}/{{ .torrentName }}.torrent"
+      encode:
+        - torrentName

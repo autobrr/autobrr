@@ -1,57 +1,49 @@
-import React, { Fragment, useRef } from "react";
+import React, { useRef } from "react";
 import { useMutation, useQuery } from "react-query";
-import {
-  NavLink,
-  Route,
-  Routes,
-  useLocation,
-  useNavigate,
-  useParams
-} from "react-router-dom";
+import { NavLink, Route, Routes, useLocation, useNavigate, useParams } from "react-router-dom";
 import { toast } from "react-hot-toast";
-import { Field, FieldArray, FieldProps, Form, Formik, FormikValues } from "formik";
-import { Dialog, Transition, Switch as SwitchBasic } from "@headlessui/react";
-import { ChevronDownIcon, ChevronRightIcon } from "@heroicons/react/solid";
+import { Form, Formik, FormikValues, useFormikContext } from "formik";
+import { ChevronDownIcon, ChevronRightIcon } from "@heroicons/react/24/solid";
 
 import {
-  CONTAINER_OPTIONS,
   CODECS_OPTIONS,
-  RESOLUTION_OPTIONS,
-  SOURCES_OPTIONS,
-  ActionTypeNameMap,
-  ActionTypeOptions,
-  HDR_OPTIONS,
+  CONTAINER_OPTIONS,
+  downloadsPerUnitOptions,
   FORMATS_OPTIONS,
-  SOURCES_MUSIC_OPTIONS,
+  HDR_OPTIONS,
+  LANGUAGE_OPTIONS,
+  ORIGIN_OPTIONS,
+  OTHER_OPTIONS,
   QUALITY_MUSIC_OPTIONS,
   RELEASE_TYPE_MUSIC_OPTIONS,
+  RESOLUTION_OPTIONS,
+  SOURCES_MUSIC_OPTIONS,
+  SOURCES_OPTIONS,
   FORMATS_BOOK_OPTIONS,
-  LANGUAGE_OPTIONS,
-  OTHER_OPTIONS,
-  ORIGIN_OPTIONS,
-  downloadsPerUnitOptions
 } from "../../domain/constants";
 import { queryClient } from "../../App";
 import { APIClient } from "../../api/APIClient";
 import { useToggle } from "../../hooks/hooks";
 import { classNames } from "../../utils";
 
+import { CustomTooltip } from "../../components/tooltips/CustomTooltip";
+
 import {
-  NumberField,
-  TextField,
-  SwitchGroup,
-  Select,
-  MultiSelect,
-  DownloadClientSelect,
+  CheckboxField,
   IndexerMultiSelect,
-  CheckboxField
+  MultiSelect,
+  NumberField,
+  Select,
+  SwitchGroup,
+  TextField
 } from "../../components/inputs";
 import DEBUG from "../../components/debug";
 import Toast from "../../components/notifications/Toast";
 import { AlertWarning } from "../../components/alerts";
 import { DeleteModal } from "../../components/modals";
 import { TitleSubtitle } from "../../components/headings";
-import { EmptyListState } from "../../components/emptystates";
+import { TextArea } from "../../components/inputs/input";
+import { FilterActions } from "./action";
 
 interface tabType {
   name: string;
@@ -64,6 +56,7 @@ const tabs: tabType[] = [
   { name: "Music", href: "music" },
   { name: "Books and Audiobooks", href: "books-audiobooks"},
   { name: "Advanced", href: "advanced" },
+  { name: "External", href: "external" },
   { name: "Actions", href: "actions" }
 ];
 
@@ -82,8 +75,8 @@ function TabNavLink({ item }: NavLinkProps) {
       to={item.href}
       end
       className={({ isActive }) => classNames(
-        "text-gray-500 hover:text-purple-600 dark:hover:text-white hover:border-purple-600 dark:hover:border-blue-500 whitespace-nowrap py-4 px-1 font-medium text-sm",
-        isActive ? "border-b-2 border-purple-600 dark:border-blue-500 text-purple-600 dark:text-white" : ""
+        "text-gray-500 hover:text-blue-600 dark:hover:text-white hover:border-blue-600 dark:hover:border-blue-500 whitespace-nowrap py-4 px-1 font-medium text-sm",
+        isActive ? "border-b-2 border-blue-600 dark:border-blue-500 text-blue-600 dark:text-white" : ""
       )}
       aria-current={splitLocation[2] === item.href ? "page" : undefined}
     >
@@ -121,21 +114,26 @@ const FormButtonsGroup = ({ values, deleteAction, reset }: FormButtonsGroupProps
           className="inline-flex items-center justify-center px-4 py-2 rounded-md text-red-700 dark:text-red-500 light:bg-red-100 light:hover:bg-red-200 dark:hover:text-red-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:text-sm"
           onClick={toggleDeleteModal}
         >
-                    Remove
+          Remove
         </button>
 
         <div>
           {/* {dirty && <span className="mr-4 text-sm text-gray-500">Unsaved changes..</span>} */}
           <button
             type="button"
-            className="light:bg-white light:border light:border-gray-300 rounded-md py-2 px-4 inline-flex justify-center text-sm font-medium text-gray-700 dark:text-gray-500 light:hover:bg-gray-50 dark:hover:text-gray-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-            onClick={reset}
+            className="bg-white dark:bg-gray-700 py-2 px-4 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
+            onClick={(e) => {
+              e.preventDefault();
+              reset();
+
+              toast.custom((t) => <Toast type="success" body="Reset all filter values." t={t}/>);
+            }}
           >
-            Cancel
+            Reset form values
           </button>
           <button
             type="submit"
-            className="ml-4 relative inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 dark:bg-blue-600 hover:bg-indigo-700 dark:hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+            className="ml-4 relative inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
           >
             Save
           </button>
@@ -221,7 +219,7 @@ export default function FilterDetails() {
             </NavLink>
           </h1>
           <ChevronRightIcon className="h-6 w-6 text-gray-500" aria-hidden="true" />
-          <h1 className="text-3xl font-bold text-black dark:text-white">{filter.name}</h1>
+          <h1 className="text-3xl font-bold text-black dark:text-white truncate" title={filter.name}>{filter.name}</h1>
         </div>
       </header>
       <div className="max-w-screen-xl mx-auto pb-12 px-4 sm:px-6 lg:px-8">
@@ -243,8 +241,8 @@ export default function FilterDetails() {
                 min_size: filter.min_size,
                 max_size: filter.max_size,
                 delay: filter.delay,
-                priority: filter.priority,
-                max_downloads: filter.max_downloads,
+                priority: filter.priority ?? 0,
+                max_downloads: filter.max_downloads ?? 0,
                 max_downloads_unit: filter.max_downloads_unit,
                 use_regex: filter.use_regex || false,
                 shows: filter.shows,
@@ -259,23 +257,29 @@ export default function FilterDetails() {
                 except_other: filter.except_other || [],
                 seasons: filter.seasons,
                 episodes: filter.episodes,
+                smart_episode: filter.smart_episode,
                 match_releases: filter.match_releases,
                 except_releases: filter.except_releases,
                 match_release_groups: filter.match_release_groups,
                 except_release_groups: filter.except_release_groups,
+                match_release_tags: filter.match_release_tags,
+                except_release_tags: filter.except_release_tags,
+                use_regex_release_tags: filter.use_regex_release_tags,
                 match_categories: filter.match_categories,
                 except_categories: filter.except_categories,
                 tags: filter.tags,
                 except_tags: filter.except_tags,
                 match_uploaders: filter.match_uploaders,
                 except_uploaders: filter.except_uploaders,
+                match_language: filter.match_language || [],
+                except_language: filter.except_language || [],
                 freeleech: filter.freeleech,
                 freeleech_percent: filter.freeleech_percent,
                 formats: filter.formats || [],
                 quality: filter.quality || [],
                 media: filter.media || [],
                 match_release_types: filter.match_release_types || [],
-                log_score: filter.log_score,
+                log_score: filter.log_score ?? 0,
                 log: filter.log,
                 cue: filter.cue,
                 perfect_flac: filter.perfect_flac,
@@ -286,8 +290,17 @@ export default function FilterDetails() {
                 other_formats: filter.other_formats || [],
                 languages: filter.languages || [],
                 origins: filter.origins || [],
+                except_origins: filter.except_origins || [],
                 indexers: filter.indexers || [],
-                actions: filter.actions || []
+                actions: filter.actions || [],
+                external_script_enabled: filter.external_script_enabled || false,
+                external_script_cmd: filter.external_script_cmd || "",
+                external_script_args: filter.external_script_args || "",
+                external_script_expect_status: filter.external_script_expect_status || 0,
+                external_webhook_enabled: filter.external_webhook_enabled || false,
+                external_webhook_host: filter.external_webhook_host || "",
+                external_webhook_data: filter.external_webhook_data ||"",
+                external_webhook_expect_status: filter.external_webhook_expect_status || 0
               } as Filter}
               onSubmit={handleSubmit}
             >
@@ -296,11 +309,11 @@ export default function FilterDetails() {
                   <Routes>
                     <Route index element={<General />} />
                     <Route path="movies-tv" element={<MoviesTv />} />
-                    <Route path="music" element={<Music />} />
+                    <Route path="music" element={<Music values={values} />} />
                     <Route path="books-audiobooks" element={<Books />} />
-                    <Route path="advanced" element={<Advanced />} />
-                    <Route path="actions" element={<FilterActions filter={filter} values={values} />}
-                    />
+                    <Route path="advanced" element={<Advanced values={values} />} />
+                    <Route path="external" element={<External />} />
+                    <Route path="actions" element={<FilterActions filter={filter} values={values} />} />
                   </Routes>
                   <FormButtonsGroup values={values} deleteAction={deleteAction} dirty={dirty} reset={resetForm} />
                   <DEBUG values={values} />
@@ -340,21 +353,20 @@ export function General() {
       </div>
 
       <div className="mt-6 lg:pb-8">
-        <TitleSubtitle title="Rules" subtitle="Specify rules on how torrents should be handled/selected" />
+        <TitleSubtitle title="Rules" subtitle="Specify rules on how torrents should be handled/selected." />
 
         <div className="mt-6 grid grid-cols-12 gap-6">
-          <TextField name="min_size" label="Min size" columns={6} placeholder="" />
-          <TextField name="max_size" label="Max size" columns={6} placeholder="" />
-          <NumberField name="delay" label="Delay" placeholder="" />
-          <NumberField name="priority" label="Priority" placeholder="" />
-
-          <NumberField name="max_downloads" label="Max downloads" placeholder="" />
-          <Select name="max_downloads_unit" label="Max downloads per" options={downloadsPerUnitOptions}  optionDefaultText="Select unit" />
+          <TextField name="min_size" label="Min size" columns={6} placeholder="eg. 100MiB, 80GB" tooltip={<div><p>Supports units such as MB, MiB, GB, etc.</p><a href='https://autobrr.com/filters#rules' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters#rules</a></div>} />
+          <TextField name="max_size" label="Max size" columns={6} placeholder="eg. 100MiB, 80GB"  tooltip={<div><p>Supports units such as MB, MiB, GB, etc.</p><a href='https://autobrr.com/filters#rules' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters#rules</a></div>} />
+          <NumberField name="delay" label="Delay" placeholder="Number of seconds to delay actions"  tooltip={<div><p>Number of seconds to wait before running actions.</p><a href='https://autobrr.com/filters#rules' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters#rules</a></div>} />
+          <NumberField name="priority" label="Priority" placeholder="Higher number = higher prio" required={true} tooltip={<div><p>Filters are checked in order of priority. Higher number = higher priority.</p><a href='https://autobrr.com/filters#rules' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters#rules</a></div>} />
+          <NumberField name="max_downloads" label="Max downloads" placeholder="Takes any number (0 is infinite)" min={0} required={true}  tooltip={<div><p>Number of max downloads as specified by the respective unit.</p><a href='https://autobrr.com/filters#rules' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters#rules</a></div>} />
+          <Select name="max_downloads_unit" label="Max downloads per" options={downloadsPerUnitOptions}  optionDefaultText="Select unit"  tooltip={<div><p>The unit of time for counting the maximum downloads per filter.</p><a href='https://autobrr.com/filters#rules' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters#rules</a></div>} />
         </div>
       </div>
 
       <div className="border-t dark:border-gray-700">
-        <SwitchGroup name="enabled" label="Enabled" description="Enable or disable this filter" />
+        <SwitchGroup name="enabled" label="Enabled" description="Enable or disable this filter." />
       </div>
 
     </div>
@@ -365,70 +377,75 @@ export function MoviesTv() {
   return (
     <div>
       <div className="mt-6 grid grid-cols-12 gap-6">
-        <TextField name="shows" label="Movies / Shows" columns={8} placeholder="eg. Movie,Show 1,Show?2" />
-        <TextField name="years" label="Years" columns={4} placeholder="eg. 2018,2019-2021" />
+        <TextField name="shows" label="Movies / Shows" columns={8} placeholder="eg. Movie,Show 1,Show?2"  tooltip={<div><p>You can use basic filtering like wildcards <code>*</code> or replace single characters with <code>?</code></p><a href='https://autobrr.com/filters#tvmovies' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters#tvmovies</a></div>} />
+        
+        <TextField name="years" label="Years" columns={4} placeholder="eg. 2018,2019-2021"  tooltip={<div><p>This field takes a range of years and/or comma separated single years.</p><a href='https://autobrr.com/filters#tvmovies' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters#tvmovies</a></div>} />
       </div>
 
       <div className="mt-6 lg:pb-8">
-        <TitleSubtitle title="Seasons and Episodes" subtitle="Set season and episode match constraints" />
+        <TitleSubtitle title="Seasons and Episodes" subtitle="Set season and episode match constraints." />
 
         <div className="mt-6 grid grid-cols-12 gap-6">
-          <TextField name="seasons" label="Seasons" columns={8} placeholder="eg. 1,3,2-6" />
-          <TextField name="episodes" label="Episodes" columns={4} placeholder="eg. 2,4,10-20" />
+          <TextField name="seasons" label="Seasons" columns={8} placeholder="eg. 1,3,2-6"  tooltip={<div><p>See docs for information about how to <b>only</b> grab season packs:</p><a href='https://autobrr.com/filters/examples#only-season-packs' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters/examples#only-season-packs</a></div>} />
+          <TextField name="episodes" label="Episodes" columns={4} placeholder="eg. 2,4,10-20"  tooltip={<div><p>See docs for information about how to <b>only</b> grab episodes:</p><a href='https://autobrr.com/filters/examples/#skip-season-packs' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters/examples/#skip-season-packs</a></div>} />
+        </div>
+
+        <div className="mt-6">
+          <CheckboxField name="smart_episode" label="Smart Episode" sublabel="Do not match episodes older than the last one matched."/> {/*Do not match older or already existing episodes.*/}
         </div>
       </div>
 
       <div className="mt-6 lg:pb-8">
-        <TitleSubtitle title="Quality" subtitle="Set resolution, source, codec and related match constraints" />
+        <TitleSubtitle title="Quality" subtitle="Set resolution, source, codec and related match constraints." />
 
         <div className="mt-6 grid grid-cols-12 gap-6">
-          <MultiSelect name="resolutions" options={RESOLUTION_OPTIONS} label="resolutions" columns={6} creatable={true} />
-          <MultiSelect name="sources" options={SOURCES_OPTIONS} label="sources" columns={6} creatable={true} />
+          <MultiSelect name="resolutions" options={RESOLUTION_OPTIONS} label="resolutions" columns={6} creatable={true}  tooltip={<div><p>Will match releases which contain any of the selected resolutions.</p><a href='https://autobrr.com/filters#quality' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters#quality</a></div>} />
+          <MultiSelect name="sources" options={SOURCES_OPTIONS} label="sources" columns={6} creatable={true}  tooltip={<div><p>Will match releases which contain any of the selected sources.</p><a href='https://autobrr.com/filters#quality' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters#quality</a></div>} />
         </div>
 
         <div className="mt-6 grid grid-cols-12 gap-6">
-          <MultiSelect name="codecs" options={CODECS_OPTIONS} label="codecs" columns={6} creatable={true} />
-          <MultiSelect name="containers" options={CONTAINER_OPTIONS} label="containers" columns={6} creatable={true} />
+          <MultiSelect name="codecs" options={CODECS_OPTIONS} label="codecs" columns={6} creatable={true}  tooltip={<div><p>Will match releases which contain any of the selected codecs.</p><a href='https://autobrr.com/filters#quality' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters#quality</a></div>} />
+          <MultiSelect name="containers" options={CONTAINER_OPTIONS} label="containers" columns={6} creatable={true}  tooltip={<div><p>Will match releases which contain any of the selected containers.</p><a href='https://autobrr.com/filters#quality' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters#quality</a></div>} />
         </div>
 
         <div className="mt-6 grid grid-cols-12 gap-6">
-          <MultiSelect name="match_hdr" options={HDR_OPTIONS} label="Match HDR" columns={6} creatable={true} />
-          <MultiSelect name="except_hdr" options={HDR_OPTIONS} label="Except HDR" columns={6} creatable={true} />
+          <MultiSelect name="match_hdr" options={HDR_OPTIONS} label="Match HDR" columns={6} creatable={true}  tooltip={<div><p>Will match releases which contain any of the selected HDR designations.</p><a href='https://autobrr.com/filters#quality' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters#quality</a></div>} />
+          <MultiSelect name="except_hdr" options={HDR_OPTIONS} label="Except HDR" columns={6} creatable={true}  tooltip={<div><p>Won't match releases which contain any of the selected HDR designations (takes priority over Match HDR).</p><a href='https://autobrr.com/filters#quality' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters#quality</a></div>} />
         </div>
 
         <div className="mt-6 grid grid-cols-12 gap-6">
-          <MultiSelect name="match_other" options={OTHER_OPTIONS} label="Match Other" columns={6} creatable={true} />
-          <MultiSelect name="except_other" options={OTHER_OPTIONS} label="Except Other" columns={6} creatable={true} />
+          <MultiSelect name="match_other" options={OTHER_OPTIONS} label="Match Other" columns={6} creatable={true}  tooltip={<div><p>Will match releases which contain any of the selected designations.</p><a href='https://autobrr.com/filters#quality' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters#quality</a></div>} />
+          <MultiSelect name="except_other" options={OTHER_OPTIONS} label="Except Other" columns={6} creatable={true}  tooltip={<div><p>Won't match releases which contain any of the selected Other designations (takes priority over Match Other).</p><a href='https://autobrr.com/filters#quality' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters#quality</a></div>} />
         </div>
       </div>
     </div>
   );
 }
 
-export function Music() {
+export function Music({ values }: AdvancedProps) {
   return (
     <div>
       <div className="mt-6 grid grid-cols-12 gap-6">
-        <TextField name="artists" label="Artists" columns={4} placeholder="eg. Aritst One" />
-        <TextField name="albums" label="Albums" columns={4} placeholder="eg. That Album" />
-        <TextField name="years" label="Years" columns={4} placeholder="eg. 2018,2019-2021" />
+        <TextField name="artists" label="Artists" columns={4} placeholder="eg. Artist One" tooltip={<div><p>You can use basic filtering like wildcards <code>*</code> or replace single characters with <code>?</code></p><a href='https://autobrr.com/filters#music' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters#music</a></div>} />
+        <TextField name="albums" label="Albums" columns={4} placeholder="eg. That Album" tooltip={<div><p>You can use basic filtering like wildcards <code>*</code> or replace single characters with <code>?</code></p><a href='https://autobrr.com/filters#music' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters#music</a></div>} />
+        <TextField name="years" label="Years" columns={4} placeholder="eg. 2018,2019-2021" tooltip={<div><p>This field takes a range of years and/or comma separated single years.</p><a href='https://autobrr.com/filters#music' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters#music</a></div>} />
       </div>
 
       <div className="mt-6 lg:pb-8">
         <TitleSubtitle title="Quality" subtitle="Format, source, log etc." />
 
         <div className="mt-6 grid grid-cols-12 gap-6">
-          <MultiSelect name="formats" options={FORMATS_OPTIONS} label="Format" columns={6} />
-          <MultiSelect name="quality" options={QUALITY_MUSIC_OPTIONS} label="Quality" columns={6} />
+          <MultiSelect name="formats" options={FORMATS_OPTIONS} label="Format" columns={6} disabled={values.perfect_flac} tooltip={<div><p>	Will only match releases with any of the selected formats. This is overridden by Perfect FLAC.</p><a href='https://autobrr.com/filters#quality-1' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters#quality-1</a></div>} />
+          <MultiSelect name="quality" options={QUALITY_MUSIC_OPTIONS} label="Quality" columns={6} disabled={values.perfect_flac} tooltip={<div><p>	Will only match releases with any of the selected qualities. This is overridden by Perfect FLAC.</p><a href='https://autobrr.com/filters#quality-1' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters#quality-1</a></div>} />
         </div>
 
         <div className="mt-6 grid grid-cols-12 gap-6">
-          <MultiSelect name="media" options={SOURCES_MUSIC_OPTIONS} label="Media" columns={6} />
-          <MultiSelect name="match_release_types" options={RELEASE_TYPE_MUSIC_OPTIONS} label="Type" columns={6} />
+          <MultiSelect name="media" options={SOURCES_MUSIC_OPTIONS} label="Media" columns={6} disabled={values.perfect_flac} tooltip={<div><p>	Will only match releases with any of the selected sources. This is overridden by Perfect FLAC.</p><a href='https://autobrr.com/filters#quality-1' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters#quality-1</a></div>} />
+          <MultiSelect name="match_release_types" options={RELEASE_TYPE_MUSIC_OPTIONS} label="Type" columns={6} tooltip={<div><p>	Will only match releases with any of the selected types.</p><a href='https://autobrr.com/filters#quality-1' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters#quality-1</a></div>} />
         </div>
 
         <div className="mt-6 grid grid-cols-12 gap-6">
-          <NumberField name="log_score" label="Log score" placeholder="eg. 100" />
+          <NumberField name="log_score" label="Log score" placeholder="eg. 100" min={0} max={100} required={true} disabled={values.perfect_flac} tooltip={<div><p>	Log scores go from 0 to 100. This is overridden by Perfect FLAC.</p><a href='https://autobrr.com/filters#quality-1' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters#quality-1</a></div>} />
         </div>
 
       </div>
@@ -438,15 +455,15 @@ export function Music() {
           <div role="group" aria-labelledby="label-email">
             <div className="sm:grid sm:grid-cols-3 sm:gap-4 sm:items-baseline">
               {/* <div>
-                    <div className="text-base font-medium text-gray-900 sm:text-sm sm:text-gray-700" id="label-email">
+                    <div className="text-base font-medium text-gray-900 sm:text-sm sm:text-gray-700" >
                       Extra
                     </div>
                   </div> */}
               <div className="mt-4 sm:mt-0 sm:col-span-2">
                 <div className="max-w-lg space-y-4">
-                  <CheckboxField name="log" label="Log" sublabel="Must include Log" />
-                  <CheckboxField name="cue" label="Cue" sublabel="Must include Cue"/>
-                  <CheckboxField name="perfect_flac" label="Perfect FLAC" sublabel="Override all options about quality, source, format, and cue/log/log score"/>
+                  <CheckboxField name="log" label="Log" sublabel="Must include Log." disabled={values.perfect_flac} />
+                  <CheckboxField name="cue" label="Cue" sublabel="Must include Cue." disabled={values.perfect_flac} />
+                  <CheckboxField name="perfect_flac" label="Perfect FLAC" sublabel="Override all options about quality, source, format, and cue/log/log score." tooltip={<div><p>Override all options about quality, source, format, and cue/log/log score.</p><a href='https://autobrr.com/filters#quality-1' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters#quality-1</a></div>} />
                 </div>
               </div>
             </div>
@@ -478,46 +495,131 @@ export function Books() {
   );
 }
 
-export function Advanced() {
+      <div className="mt-6 lg:pb-8">
+        <TitleSubtitle title="Options" subtitle="Format and language." />
+
+        <div className="mt-6 grid grid-cols-12 gap-6">
+          <MultiSelect name="other_formats" options={FORMATS_BOOK_OPTIONS} label="Ebook/Audiobook Format" columns={6} />
+          <MultiSelect name="languages" options={LANGUAGE_OPTIONS} label="Language" columns={6} />
+        </div>
+      </div>
+    </div>
+  );
+}
+interface AdvancedProps {
+  values: FormikValues;
+}
+
+export function Advanced({ values }: AdvancedProps) {
   return (
     <div>
-      <CollapsableSection title="Releases" subtitle="Match only certain release names and/or ignore other release names">
-        <TextField name="match_releases" label="Match releases" columns={6} placeholder="eg. *some?movie*,*some?show*s01*" />
-        <TextField name="except_releases" label="Except releases" columns={6} placeholder="" />
-        <div className="col-span-6">
-          <SwitchGroup name="use_regex" label="Use Regex" />
+      <CollapsableSection defaultOpen={true} title="Releases" subtitle="Match only certain release names and/or ignore other release names.">
+        <div className="grid col-span-12 gap-6">
+          <WarningAlert text="autobrr has extensive filtering built-in - only use this if nothing else works. If you need help please ask." />
+
+          <TextField name="match_releases" label="Match releases" columns={6} placeholder="eg. *some?movie*,*some?show*s01*" tooltip={<div><p>This field has full regex support (Golang flavour).</p><a href='https://autobrr.com/filters#advanced' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters#advanced</a><br/><br/><p>Remember to tick <b>Use Regex</b> below if using more than <code>*</code> and <code>?</code>.</p></div>} />
+          <TextField name="except_releases" label="Except releases" columns={6} placeholder="eg. *bad?movie*,*bad?show*s03*" tooltip={<div><p>This field has full regex support (Golang flavour).</p><a href='https://autobrr.com/filters#advanced' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters#advanced</a><br/><br/><p>Remember to tick <b>Use Regex</b> below if using more than <code>*</code> and <code>?</code>.</p></div>} />
+          {values.match_releases ? (
+            <WarningAlert
+              alert="Ask yourself:"
+              text={
+                <>Do you have a good reason to use <strong>Match releases</strong> instead of one of the other tabs?</>
+              }
+              colors="text-cyan-700 bg-cyan-100 dark:bg-cyan-200 dark:text-cyan-800"
+            />
+          ) : null}
+          {values.except_releases ? (
+            <WarningAlert
+              alert="Ask yourself:"
+              text={
+                <>Do you have a good reason to use <strong>Except releases</strong> instead of one of the other tabs?</>
+              }
+              colors="text-fuchsia-700 bg-fuchsia-100 dark:bg-fuchsia-200 dark:text-fuchsia-800"
+            />
+          ) : null}
+          <div className="col-span-6">
+            <SwitchGroup name="use_regex" label="Use Regex" />
+          </div>
         </div>
       </CollapsableSection>
 
-      <CollapsableSection title="Groups" subtitle="Match only certain groups and/or ignore other groups">
-        <TextField name="match_release_groups" label="Match release groups" columns={6} placeholder="eg. group1,group2" />
-        <TextField name="except_release_groups" label="Except release groups" columns={6} placeholder="eg. badgroup1,badgroup2" />
+
+      <CollapsableSection defaultOpen={true} title="Groups" subtitle="Match only certain groups and/or ignore other groups.">
+        <TextField name="match_release_groups" label="Match release groups" columns={6} placeholder="eg. group1,group2" tooltip={<div><p>Comma separated list of release groups to match.</p><a href='https://autobrr.com/filters#advanced' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters#advanced</a></div>} />
+        <TextField name="except_release_groups" label="Except release groups" columns={6} placeholder="eg. badgroup1,badgroup2" tooltip={<div><p>Comma separated list of release groups to ignore (takes priority over Match releases).</p><a href='https://autobrr.com/filters#advanced' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters#advanced</a></div>} />
       </CollapsableSection>
 
-      <CollapsableSection title="Categories and tags" subtitle="Match or ignore categories or tags">
-        <TextField name="match_categories" label="Match categories" columns={6} placeholder="eg. *category*,category1" />
-        <TextField name="except_categories" label="Except categories" columns={6} placeholder="eg. *category*" />
+      <CollapsableSection defaultOpen={true} title="Categories and tags" subtitle="Match or ignore categories or tags.">
+        <TextField name="match_categories" label="Match categories" columns={6} placeholder="eg. *category*,category1" tooltip={<div><p>Comma separated list of categories to match.</p><a href='https://autobrr.com/filters/categories' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters/categories</a></div>} />
+        <TextField name="except_categories" label="Except categories" columns={6} placeholder="eg. *category*" tooltip={<div><p>Comma separated list of categories to ignore (takes priority over Match releases).</p><a href='https://autobrr.com/filters/categories' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters/categories</a></div>} />
 
-        <TextField name="tags" label="Match tags" columns={6} placeholder="eg. tag1,tag2" />
-        <TextField name="except_tags" label="Except tags" columns={6} placeholder="eg. tag1,tag2" />
+        <TextField name="tags" label="Match tags" columns={6} placeholder="eg. tag1,tag2" tooltip={<div><p>Comma separated list of tags to match.</p><a href='https://autobrr.com/filters#advanced' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters#advanced</a></div>} />
+        <TextField name="except_tags" label="Except tags" columns={6} placeholder="eg. tag1,tag2" tooltip={<div><p>Comma separated list of tags to ignore (takes priority over Match releases).</p><a href='https://autobrr.com/filters#advanced' className='text-blue-400 visited:text-blue-400' target='_blank'>hhttps://autobrr.com/filters#advanced</a></div>} />
       </CollapsableSection>
 
-      <CollapsableSection title="Uploaders" subtitle="Match or ignore uploaders">
-        <TextField name="match_uploaders" label="Match uploaders" columns={6} placeholder="eg. uploader1" />
-        <TextField name="except_uploaders" label="Except uploaders" columns={6} placeholder="eg. anonymous" />
+      <CollapsableSection defaultOpen={true} title="Uploaders" subtitle="Match or ignore uploaders.">
+        <TextField name="match_uploaders" label="Match uploaders" columns={6} placeholder="eg. uploader1,uploader2" tooltip={<div><p>Comma separated list of uploaders to match.</p><a href='https://autobrr.com/filters#advanced' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters#advanced</a></div>} />
+        <TextField name="except_uploaders" label="Except uploaders" columns={6} placeholder="eg. anonymous1,anonymous2" tooltip={<div><p>Comma separated list of uploaders to ignore (takes priority over Match releases).</p><a href='https://autobrr.com/filters#advanced' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters#advanced</a></div>} />
       </CollapsableSection>
 
-      <CollapsableSection title="Origins" subtitle="Match Internals, scene, p2p etc if announced">
-        <MultiSelect name="origins" options={ORIGIN_OPTIONS} label="Origins" columns={6} />
+      <CollapsableSection defaultOpen={true} title="Language" subtitle="Match or ignore languages.">
+        <MultiSelect name="match_language" options={LANGUAGE_OPTIONS} label="Match Language" columns={6} creatable={true} />
+        <MultiSelect name="except_language" options={LANGUAGE_OPTIONS} label="Except Language" columns={6} creatable={true} />
       </CollapsableSection>
 
-      <CollapsableSection title="Freeleech" subtitle="Match only freeleech and freeleech percent">
+      <CollapsableSection defaultOpen={true} title="Origins" subtitle="Match Internals, scene, p2p etc. if announced.">
+        <MultiSelect name="origins" options={ORIGIN_OPTIONS} label="Match Origins" columns={6} creatable={true} />
+        <MultiSelect name="except_origins" options={ORIGIN_OPTIONS} label="Except Origins" columns={6} creatable={true} />
+      </CollapsableSection>
+
+      <CollapsableSection defaultOpen={true} title="Release Tags" subtitle="This is the non-parsed releaseTags string from the announce.">
+        <div className="grid col-span-12 gap-6">
+          <WarningAlert text="These might not be what you think they are. For advanced users who know how things are parsed." />
+
+          <TextField name="match_release_tags" label="Match release tags" columns={6} placeholder="eg. *mkv*,*foreign*" />
+          <TextField name="except_release_tags" label="Except release tags" columns={6} placeholder="eg. *mkv*,*foreign*" />
+          <div className="col-span-6">
+            <SwitchGroup name="use_regex_release_tags" label="Use Regex" />
+          </div>
+        </div>
+      </CollapsableSection>
+
+      <CollapsableSection defaultOpen={true} title="Freeleech" subtitle="Match only freeleech and freeleech percent.">
         <div className="col-span-6">
-          <SwitchGroup name="freeleech" label="Freeleech" />
+          <SwitchGroup name="freeleech" label="Freeleech" description="Enabling freeleech locks freeleech percent to 100. Use either." tooltip={<div><p>Not all indexers announce freeleech on IRC. Check with your indexer before enabling freeleech filtering.</p></div>} />
         </div>
 
-        <TextField name="freeleech_percent" label="Freeleech percent" columns={6} />
+        <TextField name="freeleech_percent" label="Freeleech percent" columns={6} placeholder="eg. 50,75-100" />
       </CollapsableSection>
+    </div>
+  );
+}
+
+interface WarningAlertProps {
+  text: string | JSX.Element;
+  alert?: string;
+  colors?: string;
+}
+
+function WarningAlert({ text, alert, colors }: WarningAlertProps) {
+  return (
+    <div
+      className={classNames(
+        "col-span-12 flex p-4 text-sm rounded-lg",
+        colors ?? "text-yellow-700 bg-yellow-100 dark:bg-yellow-200 dark:text-yellow-800"
+      )}
+      role="alert">
+      <svg aria-hidden="true" className="flex-shrink-0 inline w-5 h-5 mr-3" fill="currentColor"
+        viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+        <path fillRule="evenodd"
+          d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
+          clipRule="evenodd"></path>
+      </svg>
+      <span className="sr-only">Info</span>
+      <div>
+        <span className="font-bold">{alert ?? "Warning!"}</span>
+        {" "}{text}
+      </div>
     </div>
   );
 }
@@ -526,10 +628,11 @@ interface CollapsableSectionProps {
     title: string;
     subtitle: string;
     children: React.ReactNode;
+    defaultOpen?: boolean;
 }
 
-function CollapsableSection({ title, subtitle, children }: CollapsableSectionProps) {
-  const [isOpen, toggleOpen] = useToggle(false);
+export function CollapsableSection({ title, subtitle, children, defaultOpen }: CollapsableSectionProps) {
+  const [isOpen, toggleOpen] = useToggle(defaultOpen ?? false);
 
   return (
     <div className="mt-6 lg:pb-6 border-b border-gray-200 dark:border-gray-700">
@@ -543,12 +646,12 @@ function CollapsableSection({ title, subtitle, children }: CollapsableSectionPro
             type="button"
             className="inline-flex items-center px-4 py-2 border-transparent text-sm font-medium text-white"
           >
-            {isOpen ? <ChevronDownIcon className="h-6 w-6 text-gray-500" aria-hidden="true" /> : <ChevronRightIcon className="h-6 w-6 text-gray-500" aria-hidden="true" />}
+            {isOpen ? <ChevronDownIcon className="-mr-4 h-6 w-6 text-gray-500" aria-hidden="true" /> : <ChevronRightIcon className="-mr-4 h-6 w-6 text-gray-500" aria-hidden="true" />}
           </button>
         </div>
       </div>
       {isOpen && (
-        <div className="mt-6 grid grid-cols-12 gap-6">
+        <div className="mt-2 grid grid-cols-12 gap-6">
           {children}
         </div>
       )}
@@ -556,487 +659,72 @@ function CollapsableSection({ title, subtitle, children }: CollapsableSectionPro
   );
 }
 
-interface FilterActionsProps {
-    filter: Filter;
-    values: FormikValues;
-}
-
-export function FilterActions({ filter, values }: FilterActionsProps) {
-  const { data } = useQuery(
-    ["filters", "download_clients"],
-    () => APIClient.download_clients.getAll(),
-    { refetchOnWindowFocus: false }
-  );
-
-  const newAction = {
-    name: "new action",
-    enabled: true,
-    type: "TEST",
-    watch_folder: "",
-    exec_cmd: "",
-    exec_args: "",
-    category: "",
-    tags: "",
-    label: "",
-    save_path: "",
-    paused: false,
-    ignore_rules: false,
-    limit_upload_speed: 0,
-    limit_download_speed: 0,
-    limit_ratio: 0,
-    limit_seed_time: 0,
-    reannounce_skip: false,
-    reannounce_delete: false,
-    reannounce_interval: 7,
-    reannounce_max_attempts: 25,
-    filter_id: filter.id,
-    webhook_host: "",
-    webhook_type: "",
-    webhook_method: "",
-    webhook_data: "",
-    webhook_headers: []
-    //   client_id: 0,
-  };
+export function External() {
+  const { values } = useFormikContext<Filter>();
 
   return (
-    <div className="mt-10">
-      <FieldArray name="actions">
-        {({ remove, push }) => (
-          <Fragment>
-            <div className="-ml-4 -mt-4 mb-6 flex justify-between items-center flex-wrap sm:flex-nowrap">
-              <div className="ml-4 mt-4">
-                <h3 className="text-lg leading-6 font-medium text-gray-900 dark:text-gray-200">Actions</h3>
-                <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                                    Add to download clients or run custom commands.
-                </p>
-              </div>
-              <div className="ml-4 mt-4 flex-shrink-0">
-                <button
-                  type="button"
-                  className="relative inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 dark:bg-blue-600 hover:bg-indigo-700 dark:hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 dark:focus:ring-blue-500"
-                  onClick={() => push(newAction)}
-                >
-                                    Add new
-                </button>
-              </div>
-            </div>
+    <div>
 
-            <div className="light:bg-white dark:bg-gray-800 light:shadow sm:rounded-md">
-              {values.actions.length > 0 ?
-                <ul className="divide-y divide-gray-200 dark:divide-gray-700">
-                  {values.actions.map((action: Action, index: number) => (
-                    <FilterActionsItem action={action} clients={data ?? []} idx={index} remove={remove} key={index} />
-                  ))}
-                </ul>
-                : <EmptyListState text="No actions yet!" />
-              }
-            </div>
-          </Fragment>
-        )}
-      </FieldArray>
+      <div className="mt-6">
+        <SwitchGroup name="external_script_enabled" heading={true} label="Script" description="Run external script and check status as part of filtering." tooltip={<div><p>For custom commands you should specify the full path to the binary/program you want to run. And you can include your own static variables:</p><a href='https://autobrr.com/filters/actions#custom-commands--exec' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters/actions#custom-commands--exec</a></div>}/>
+
+        <div className="mt-6 grid grid-cols-12 gap-6">
+          <TextField
+            name="external_script_cmd"
+            label="Command"
+            columns={6}
+            placeholder="Path to program eg. /bin/test"
+            disabled={!values.external_script_enabled}
+          />
+          <TextField
+            name="external_script_args"
+            label="Arguments"
+            columns={6}
+            placeholder="Arguments eg. --test"
+            disabled={!values.external_script_enabled}
+          />
+          <NumberField
+            name="external_script_expect_status"
+            label="Expected exit status"
+            placeholder="0"
+            disabled={!values.external_script_enabled}
+          />
+        </div>
+      </div>
+
+      <div className="mt-6">
+        <div className="border-t dark:border-gray-700">
+          <SwitchGroup name="external_webhook_enabled" heading={true} label="Webhook" description="Run external webhook and check status as part of filtering." />
+        </div>
+
+        <div className="mt-6 grid grid-cols-12 gap-6">
+          <div className="grid col-span-6 gap-6">
+            <TextField
+              name="external_webhook_host"
+              label="Host"
+              columns={6}
+              placeholder="Host eg. http://localhost/webhook"
+              disabled={!values.external_webhook_enabled}
+            />
+            <NumberField
+              name="external_webhook_expect_status"
+              label="Expected http status"
+              placeholder="200"
+              disabled={!values.external_webhook_enabled}
+            />
+          </div>
+
+          <TextArea
+            name="external_webhook_data"
+            label="Data (json)"
+            columns={6}
+            rows={5}
+            placeholder={"{ \"key\": \"value\" }"}
+            disabled={!values.external_webhook_enabled}
+          />
+        </div>
+      </div>
     </div>
   );
 }
 
-interface TypeFormProps {
-  action: Action;
-  idx: number;
-  clients: Array<DownloadClient>;
-}
-
-const TypeForm = ({ action, idx, clients }: TypeFormProps) => {
-  switch (action.type) {
-  case "TEST":
-    return (
-      <AlertWarning
-        text="The test action does nothing except to show if the filter works."
-      />
-    );
-  case "EXEC":
-    return (
-      <div>
-        <div className="mt-6 grid grid-cols-12 gap-6">
-          <TextField
-            name={`actions.${idx}.exec_cmd`}
-            label="Command"
-            columns={6}
-            placeholder="Path to program eg. /bin/test"
-          />
-          <TextField
-            name={`actions.${idx}.exec_args`}
-            label="Arguments"
-            columns={6}
-            placeholder="Arguments eg. --test"
-          />
-        </div>
-      </div>
-    );
-  case "WATCH_FOLDER":
-    return (
-      <div className="mt-6 grid grid-cols-12 gap-6">
-        <TextField
-          name={`actions.${idx}.watch_folder`}
-          label="Watch folder"
-          columns={6}
-          placeholder="Watch directory eg. /home/user/rwatch"
-        />
-      </div>
-    );
-  case "WEBHOOK":
-    return (
-      <div className="mt-6 grid grid-cols-12 gap-6">
-        <TextField
-          name={`actions.${idx}.webhook_host`}
-          label="Host"
-          columns={6}
-          placeholder="Host eg. http://localhost/webhook"
-        />
-        <TextField
-          name={`actions.${idx}.webhook_data`}
-          label="Data (json)"
-          columns={6}
-          placeholder={"Request data: { \"key\": \"value\" }"}
-        />
-      </div>
-    );
-  case "QBITTORRENT":
-    return (
-      <div className="w-full">
-        <div className="mt-6 grid grid-cols-12 gap-6">
-          <DownloadClientSelect
-            name={`actions.${idx}.client_id`}
-            action={action}
-            clients={clients}
-          />
-
-          <div className="col-span-6 sm:col-span-6">
-            <TextField
-              name={`actions.${idx}.save_path`}
-              label="Save path"
-              columns={6}
-              placeholder="eg. /full/path/to/watch_folder"
-            />
-          </div>
-        </div>
-
-        <div className="mt-6 grid grid-cols-12 gap-6">
-          <TextField
-            name={`actions.${idx}.category`}
-            label="Category"
-            columns={6}
-            placeholder="eg. category"
-          />
-          <TextField
-            name={`actions.${idx}.tags`}
-            label="Tags"
-            columns={6}
-            placeholder="eg. tag1,tag2"
-          />
-        </div>
-
-        <CollapsableSection title="Rules" subtitle="client options">
-          <div className="col-span-12">
-            <div className="mt-6 grid grid-cols-12 gap-6">
-              <NumberField
-                name={`actions.${idx}.limit_download_speed`}
-                label="Limit download speed (KB/s)"
-              />
-              <NumberField
-                name={`actions.${idx}.limit_upload_speed`}
-                label="Limit upload speed (KB/s)"
-              />
-            </div>
-
-            <div className="mt-6 grid grid-cols-12 gap-6">
-              <NumberField
-                name={`actions.${idx}.limit_ratio`}
-                label="Ratio limit"
-                step={0.5}
-              />
-              <NumberField
-                name={`actions.${idx}.limit_seed_time`}
-                label="Seed time limit (seconds)"
-              />
-            </div>
-          </div>
-          <div className="col-span-6">
-            <SwitchGroup
-              name={`actions.${idx}.paused`}
-              label="Add paused"
-              description="Add torrent as paused"
-            />
-            <SwitchGroup
-              name={`actions.${idx}.ignore_rules`}
-              label="Ignore client rules"
-              description="Download if max active reached"
-            />
-          </div>
-        </CollapsableSection>
-
-        <CollapsableSection title="Advanced" subtitle="Advanced options">
-          <div className="col-span-12">
-            <div className="mt-6 grid grid-cols-12 gap-6">
-              <NumberField
-                name={`actions.${idx}.reannounce_interval`}
-                label="Reannounce interval. Run every X seconds"
-              />
-              <NumberField
-                name={`actions.${idx}.reannounce_max_attempts`}
-                label="Run reannounce Y times"
-              />
-            </div>
-          </div>
-          <div className="col-span-6">
-            <SwitchGroup
-              name={`actions.${idx}.reannounce_skip`}
-              label="Skip reannounce"
-              description="If reannounce is not needed, skip"
-            />
-            <SwitchGroup
-              name={`actions.${idx}.reannounce_delete`}
-              label="Delete stalled"
-              description="Delete stalled torrents after X attempts"
-            />
-          </div>
-        </CollapsableSection>
-      </div>
-    );
-  case "DELUGE_V1":
-  case "DELUGE_V2":
-    return (
-      <div>
-        <div className="mt-6 grid grid-cols-12 gap-6">
-          <DownloadClientSelect
-            name={`actions.${idx}.client_id`}
-            action={action}
-            clients={clients}
-          />
-
-          <div className="col-span-12 sm:col-span-6">
-            <TextField
-              name={`actions.${idx}.save_path`}
-              label="Save path"
-              columns={6}
-            />
-          </div>
-        </div>
-
-        <div className="mt-6 col-span-12 sm:col-span-6">
-          <TextField
-            name={`actions.${idx}.label`}
-            label="Label"
-            columns={6}
-          />
-        </div>
-
-        <div className="mt-6 grid grid-cols-12 gap-6">
-          <NumberField
-            name={`actions.${idx}.limit_download_speed`}
-            label="Limit download speed (KB/s)"
-          />
-          <NumberField
-            name={`actions.${idx}.limit_upload_speed`}
-            label="Limit upload speed (KB/s)"
-          />
-        </div>
-
-        <div className="mt-6 grid grid-cols-12 gap-6">
-          <div className="col-span-6">
-            <SwitchGroup
-              name={`actions.${idx}.paused`}
-              label="Add paused"
-            />
-          </div>
-        </div>
-      </div>
-    );
-  case "TRANSMISSION":
-    return (
-      <div>
-        <div className="mt-6 grid grid-cols-12 gap-6">
-          <DownloadClientSelect
-            name={`actions.${idx}.client_id`}
-            action={action}
-            clients={clients}
-          />
-
-          <div className="col-span-12 sm:col-span-6">
-            <TextField
-              name={`actions.${idx}.save_path`}
-              label="Save path"
-              columns={6}
-            />
-          </div>
-        </div>
-
-        <div className="mt-6 grid grid-cols-12 gap-6">
-          <div className="col-span-6">
-            <SwitchGroup
-              name={`actions.${idx}.paused`}
-              label="Add paused"
-            />
-          </div>
-        </div>
-      </div>
-    );
-  case "RADARR":
-  case "SONARR":
-  case "LIDARR":
-  case "WHISPARR":
-    return (
-      <div className="mt-6 grid grid-cols-12 gap-6">
-        <DownloadClientSelect
-          name={`actions.${idx}.client_id`}
-          action={action}
-          clients={clients}
-        />
-      </div>
-    );
-
-  default:
-    return null;
-  }
-};
-
-interface FilterActionsItemProps {
-    action: Action;
-    clients: DownloadClient[];
-    idx: number;
-    remove: <T>(index: number) => T | undefined;
-}
-
-function FilterActionsItem({ action, clients, idx, remove }: FilterActionsItemProps) {
-  const cancelButtonRef = useRef(null);
-
-  const [deleteModalIsOpen, toggleDeleteModal] = useToggle(false);
-  const [edit, toggleEdit] = useToggle(false);
-
-  return (
-    <li>
-      <div
-        className={classNames(
-          idx % 2 === 0 ? "bg-white dark:bg-gray-800" : "bg-gray-50 dark:bg-gray-700",
-          "flex items-center sm:px-6 hover:bg-gray-50 dark:hover:bg-gray-600"
-        )}
-      >
-        <Field name={`actions.${idx}.enabled`} type="checkbox">
-          {({
-            field,
-            form: { setFieldValue }
-          }: FieldProps) => (
-            <SwitchBasic
-              {...field}
-              type="button"
-              value={field.value}
-              checked={field.checked ?? false}
-              onChange={(value: boolean) => {
-                setFieldValue(field?.name ?? "", value);
-              }}
-              className={classNames(
-                field.value ? "bg-teal-500 dark:bg-blue-500" : "bg-gray-200 dark:bg-gray-600",
-                "relative inline-flex flex-shrink-0 h-6 w-11 border-2 border-transparent rounded-full cursor-pointer transition-colors ease-in-out duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-              )}
-            >
-              <span className="sr-only">toggle enabled</span>
-              <span
-                aria-hidden="true"
-                className={classNames(
-                  field.value ? "translate-x-5" : "translate-x-0",
-                  "inline-block h-5 w-5 rounded-full bg-white shadow transform ring-0 transition ease-in-out duration-200"
-                )}
-              />
-            </SwitchBasic>
-          )}
-        </Field>
-
-        <button className="px-4 py-4 w-full flex" type="button" onClick={toggleEdit}>
-          <div className="min-w-0 flex-1 sm:flex sm:items-center sm:justify-between">
-            <div className="truncate">
-              <div className="flex text-sm">
-                <p className="ml-4 font-medium text-indigo-600 dark:text-gray-100 truncate">
-                  {action.name}
-                </p>
-              </div>
-            </div>
-            <div className="mt-4 flex-shrink-0 sm:mt-0 sm:ml-5">
-              <div className="flex overflow-hidden -space-x-1">
-                <span className="text-sm font-normal text-gray-500 dark:text-gray-400">
-                  {ActionTypeNameMap[action.type]}
-                </span>
-              </div>
-            </div>
-          </div>
-          <div className="ml-5 flex-shrink-0">
-            <ChevronRightIcon
-              className="h-5 w-5 text-gray-400"
-              aria-hidden="true"
-            />
-          </div>
-        </button>
-
-      </div>
-      {edit && (
-        <div className="px-4 py-4 flex items-center sm:px-6 border dark:border-gray-600">
-          <Transition.Root show={deleteModalIsOpen} as={Fragment}>
-            <Dialog
-              as="div"
-              static
-              className="fixed inset-0 overflow-y-auto"
-              initialFocus={cancelButtonRef}
-              open={deleteModalIsOpen}
-              onClose={toggleDeleteModal}
-            >
-              <DeleteModal
-                isOpen={deleteModalIsOpen}
-                buttonRef={cancelButtonRef}
-                toggle={toggleDeleteModal}
-                deleteAction={() => remove(idx)}
-                title="Remove filter action"
-                text="Are you sure you want to remove this action? This action cannot be undone."
-              />
-            </Dialog>
-          </Transition.Root>
-
-          <div className="w-full">
-
-            <div className="mt-6 grid grid-cols-12 gap-6">
-              <Select
-                name={`actions.${idx}.type`}
-                label="Type"
-                optionDefaultText="Select type"
-                options={ActionTypeOptions}
-              />
-
-              <TextField name={`actions.${idx}.name`} label="Name" columns={6} />
-            </div>
-
-            <TypeForm action={action} clients={clients} idx={idx} />
-
-            <div className="pt-6 divide-y divide-gray-200">
-              <div className="mt-4 pt-4 flex justify-between">
-                <button
-                  type="button"
-                  className="inline-flex items-center justify-center py-2 border border-transparent font-medium rounded-md text-red-700 dark:text-red-500 hover:text-red-500 dark:hover:text-red-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:text-sm"
-                  onClick={toggleDeleteModal}
-                >
-                  Remove
-                </button>
-
-                <div>
-                  <button
-                    type="button"
-                    className="light:bg-white light:border light:border-gray-300 rounded-md shadow-sm py-2 px-4 inline-flex justify-center text-sm font-medium text-gray-700 dark:text-gray-500 light:hover:bg-gray-50 dark:hover:text-gray-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                    onClick={toggleEdit}
-                  >
-                    Close
-                  </button>
-                </div>
-              </div>
-            </div>
-
-          </div>
-        </div>
-      )}
-    </li>
-  );
-}

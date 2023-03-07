@@ -32,7 +32,7 @@ function NotificationSettings() {
             <button
               type="button"
               onClick={toggleAddNotifications}
-              className="relative inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 dark:bg-blue-600 hover:bg-indigo-700 dark:hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+              className="relative inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
             >
               Add new
             </button>
@@ -42,11 +42,11 @@ function NotificationSettings() {
         {data && data.length > 0 ?
           <section className="mt-6 light:bg-white dark:bg-gray-800 light:shadow sm:rounded-md">
             <ol className="min-w-full">
-              <li className="grid grid-cols-12 gap-4 border-b border-gray-200 dark:border-gray-700">
-                <div className="col-span-2 px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Enabled</div>
-                <div className="col-span-4 px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Name</div>
-                <div className="col-span-2 px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Type</div>
-                <div className="col-span-3 px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Events</div>
+              <li className="grid grid-cols-12 border-b border-gray-200 dark:border-gray-700">
+                <div className="col-span-2 sm:col-span-1 pl-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Enabled</div>
+                <div className="col-span-6 pl-10 md:pl-12 pr-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Name</div>
+                <div className="hidden md:flex col-span-2 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Type</div>
+                <div className="hidden md:flex col-span-3 px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Events</div>
               </li>
 
               {data && data.map((n: Notification) => (
@@ -54,7 +54,7 @@ function NotificationSettings() {
               ))}
             </ol>
           </section>
-          : <EmptySimple title="No notifications setup" subtitle="Add a new notification" buttonText="New notification" buttonAction={toggleAddNotifications} />}
+          : <EmptySimple title="No notifications" subtitle="" buttonText="Create new notification" buttonAction={toggleAddNotifications} />}
       </div>
     </div>
   );
@@ -80,6 +80,7 @@ const TelegramIcon = () => (
 
 const iconComponentMap: componentMapType = {
   DISCORD: <span className="flex items-center px-2 py-0.5 rounded bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-400"><DiscordIcon /> Discord</span>,
+  NOTIFIARR: <span className="flex items-center px-2 py-0.5 rounded bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-400"><DiscordIcon /> Notifiarr</span>,
   TELEGRAM: <span className="flex items-center px-2 py-0.5 rounded bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-400"><TelegramIcon /> Telegram</span>
 };
 
@@ -94,13 +95,13 @@ function ListItem({ notification }: ListItemProps) {
     <li key={notification.id} className="text-gray-500 dark:text-gray-400">
       <NotificationUpdateForm isOpen={updateFormIsOpen} toggle={toggleUpdateForm} notification={notification} />
 
-      <div className="grid grid-cols-12 gap-4 items-center py-3">
-        <div className="col-span-2 flex items-center sm:px-6">
+      <div className="grid grid-cols-12 items-center py-4">
+        <div className="col-span-2 sm:col-span-1 px-6 flex items-center ">
           <Switch
             checked={notification.enabled}
             onChange={toggleUpdateForm}
             className={classNames(
-              notification.enabled ? "bg-teal-500 dark:bg-blue-500" : "bg-gray-200 dark:bg-gray-600",
+              notification.enabled ? "bg-blue-500" : "bg-gray-200 dark:bg-gray-600",
               "relative inline-flex flex-shrink-0 h-6 w-11 border-2 border-transparent rounded-full cursor-pointer transition-colors ease-in-out duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
             )}
           >
@@ -114,13 +115,13 @@ function ListItem({ notification }: ListItemProps) {
             />
           </Switch>
         </div>
-        <div className="col-span-4 flex items-center sm:px-6">
+        <div className="col-span-8 md:col-span-6 pl-10 md:pl-12 pr-2 sm:pr-6 truncate block items-center text-sm font-medium text-gray-900 dark:text-white" title={notification.name}>
           {notification.name}
         </div>
-        <div className="col-span-2 flex items-center sm:px-6">
+        <div className="hidden md:flex col-span-2 items-center">
           {iconComponentMap[notification.type]}
         </div>
-        <div className="col-span-3 flex items-center sm:px-6">
+        <div className="hidden md:flex col-span-2 px-6 items-center sm:px-6">
           <span
             className="mr-2 inline-flex items-center px-2.5 py-1 rounded-md text-sm font-medium bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-400"
             title={notification.events.join(", ")}
@@ -128,11 +129,15 @@ function ListItem({ notification }: ListItemProps) {
             {notification.events.length}
           </span>
         </div>
-        <div className="col-span-1 flex items-center">
-          <span className="text-indigo-600 dark:text-gray-300 hover:text-indigo-900 cursor-pointer" onClick={toggleUpdateForm}>
+        <div className="col-span-1 flex first-letter:px-6 whitespace-nowrap text-right text-sm font-medium">
+          <span
+            className="col-span-1 px-6 text-blue-600 dark:text-gray-300 hover:text-blue-900 dark:hover:text-blue-500 cursor-pointer"
+            onClick={toggleUpdateForm}
+          >
             Edit
           </span>
         </div>
+
       </div>
     </li>
   );

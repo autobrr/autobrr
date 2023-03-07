@@ -3,6 +3,8 @@ package database
 import (
 	"context"
 	"database/sql"
+	"fmt"
+	"strings"
 	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
@@ -26,19 +28,115 @@ func NewFilterRepo(log logger.Logger, db *DB) domain.FilterRepo {
 	}
 }
 
-func (r *FilterRepo) ListFilters(ctx context.Context) ([]domain.Filter, error) {
+func (r *FilterRepo) Find(ctx context.Context, params domain.FilterQueryParams) ([]domain.Filter, error) {
+	tx, err := r.db.BeginTx(ctx, &sql.TxOptions{Isolation: sql.LevelReadCommitted})
+	if err != nil {
+		return nil, errors.Wrap(err, "error begin transaction")
+	}
+	defer tx.Rollback()
+
+	filters, err := r.find(ctx, tx, params)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := tx.Commit(); err != nil {
+		return nil, errors.Wrap(err, "error commit transaction find releases")
+	}
+
+	return filters, nil
+}
+
+func (r *FilterRepo) find(ctx context.Context, tx *Tx, params domain.FilterQueryParams) ([]domain.Filter, error) {
+
+	actionCountQuery := r.db.squirrel.
+		Select("COUNT(*)").
+		From("action a").
+		Where("a.filter_id = f.id")
+
 	queryBuilder := r.db.squirrel.
 		Select(
-			"id",
-			"enabled",
-			"name",
-			"match_releases",
-			"except_releases",
-			"created_at",
-			"updated_at",
+			"f.id",
+			"f.enabled",
+			"f.name",
+			"f.priority",
+			"f.created_at",
+			"f.updated_at",
 		).
-		From("filter").
-		OrderBy("name ASC")
+		Distinct().
+		Column(sq.Alias(actionCountQuery, "action_count")).
+		LeftJoin("filter_indexer fi ON f.id = fi.filter_id").
+		LeftJoin("indexer i ON i.id = fi.indexer_id").
+		From("filter f")
+
+	if params.Search != "" {
+		queryBuilder = queryBuilder.Where(sq.Like{"f.name": params.Search + "%"})
+	}
+
+	if len(params.Sort) > 0 {
+		for field, order := range params.Sort {
+			queryBuilder = queryBuilder.OrderBy(fmt.Sprintf("f.%v %v", field, strings.ToUpper(order)))
+		}
+	} else {
+		queryBuilder = queryBuilder.OrderBy("f.name ASC")
+	}
+
+	if params.Filters.Indexers != nil {
+		filter := sq.And{}
+		for _, v := range params.Filters.Indexers {
+			filter = append(filter, sq.Eq{"i.identifier": v})
+		}
+
+		queryBuilder = queryBuilder.Where(filter)
+	}
+
+	query, args, err := queryBuilder.ToSql()
+	if err != nil {
+		return nil, errors.Wrap(err, "error building query")
+	}
+
+	rows, err := tx.QueryContext(ctx, query, args...)
+	if err != nil {
+		return nil, errors.Wrap(err, "error executing query")
+	}
+
+	defer rows.Close()
+
+	var filters []domain.Filter
+	for rows.Next() {
+		var f domain.Filter
+
+		if err := rows.Scan(&f.ID, &f.Enabled, &f.Name, &f.Priority, &f.CreatedAt, &f.UpdatedAt, &f.ActionsCount); err != nil {
+			return nil, errors.Wrap(err, "error scanning row")
+		}
+
+		filters = append(filters, f)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, errors.Wrap(err, "row error")
+	}
+
+	return filters, nil
+}
+
+func (r *FilterRepo) ListFilters(ctx context.Context) ([]domain.Filter, error) {
+	actionCountQuery := r.db.squirrel.
+		Select("COUNT(*)").
+		From("action a").
+		Where("a.filter_id = f.id")
+
+	queryBuilder := r.db.squirrel.
+		Select(
+			"f.id",
+			"f.enabled",
+			"f.name",
+			"f.priority",
+			"f.created_at",
+			"f.updated_at",
+		).
+		Column(sq.Alias(actionCountQuery, "action_count")).
+		From("filter f").
+		OrderBy("f.name ASC")
 
 	query, args, err := queryBuilder.ToSql()
 	if err != nil {
@@ -56,9 +154,7 @@ func (r *FilterRepo) ListFilters(ctx context.Context) ([]domain.Filter, error) {
 	for rows.Next() {
 		var f domain.Filter
 
-		var matchReleases, exceptReleases sql.NullString
-
-		if err := rows.Scan(&f.ID, &f.Enabled, &f.Name, &matchReleases, &exceptReleases, &f.CreatedAt, &f.UpdatedAt); err != nil {
+		if err := rows.Scan(&f.ID, &f.Enabled, &f.Name, &f.Priority, &f.CreatedAt, &f.UpdatedAt, &f.ActionsCount); err != nil {
 			return nil, errors.Wrap(err, "error scanning row")
 		}
 
@@ -91,9 +187,13 @@ func (r *FilterRepo) FindByID(ctx context.Context, filterID int) (*domain.Filter
 			"use_regex",
 			"match_release_groups",
 			"except_release_groups",
+			"match_release_tags",
+			"except_release_tags",
+			"use_regex_release_tags",
 			"scene",
 			"freeleech",
 			"freeleech_percent",
+			"smart_episode",
 			"shows",
 			"seasons",
 			"episodes",
@@ -124,14 +224,25 @@ func (r *FilterRepo) FindByID(ctx context.Context, filterID int) (*domain.Filter
 			"except_categories",
 			"match_uploaders",
 			"except_uploaders",
+			"match_language",
+			"except_language",
 			"tags",
 			"except_tags",
 			"origins",
+			"except_origins",
+			"external_script_enabled",
+			"external_script_cmd",
+			"external_script_args",
+			"external_script_expect_status",
+			"external_webhook_enabled",
+			"external_webhook_host",
+			"external_webhook_data",
+			"external_webhook_expect_status",
 			"created_at",
 			"updated_at",
 		).
 		From("filter").
-		Where("id = ?", filterID)
+		Where(sq.Eq{"id": filterID})
 
 	query, args, err := queryBuilder.ToSql()
 	if err != nil {
@@ -144,11 +255,11 @@ func (r *FilterRepo) FindByID(ctx context.Context, filterID int) (*domain.Filter
 	}
 
 	var f domain.Filter
-	var minSize, maxSize, maxDownloadsUnit, matchReleases, exceptReleases, matchReleaseGroups, exceptReleaseGroups, freeleechPercent, shows, seasons, episodes, years, artists, albums, titles, creators, matchCategories, exceptCategories, matchUploaders, exceptUploaders, tags, exceptTags sql.NullString
-	var useRegex, scene, freeleech, hasLog, hasCue, perfectFlac sql.NullBool
-	var delay, maxDownloads, logScore sql.NullInt32
+	var minSize, maxSize, maxDownloadsUnit, matchReleases, exceptReleases, matchReleaseGroups, exceptReleaseGroups, matchReleaseTags, exceptReleaseTags, freeleechPercent, shows, seasons, episodes, years, artists, albums, titles, creators, matchCategories, exceptCategories, matchUploaders, exceptUploaders, tags, exceptTags, extScriptCmd, extScriptArgs, extWebhookHost, extWebhookData sql.NullString
+	var useRegex, scene, freeleech, hasLog, hasCue, perfectFlac, extScriptEnabled, extWebhookEnabled sql.NullBool
+	var delay, maxDownloads, logScore, extWebhookStatus, extScriptStatus sql.NullInt32
 
-	if err := row.Scan(&f.ID, &f.Enabled, &f.Name, &minSize, &maxSize, &delay, &f.Priority, &maxDownloads, &maxDownloadsUnit, &matchReleases, &exceptReleases, &useRegex, &matchReleaseGroups, &exceptReleaseGroups, &scene, &freeleech, &freeleechPercent, &shows, &seasons, &episodes, pq.Array(&f.Resolutions), pq.Array(&f.Codecs), pq.Array(&f.Sources), pq.Array(&f.Containers), pq.Array(&f.MatchHDR), pq.Array(&f.ExceptHDR), pq.Array(&f.MatchOther), pq.Array(&f.ExceptOther), &years, &artists, &albums, pq.Array(&f.MatchReleaseTypes), pq.Array(&f.Formats), pq.Array(&f.Quality), pq.Array(&f.Media), &logScore, &hasLog, &hasCue, &perfectFlac, &titles, &creators, pq.Array(&f.OtherFormats), pq.Array(&f.Languages), &matchCategories, &exceptCategories, &matchUploaders, &exceptUploaders, &tags, &exceptTags, pq.Array(&f.Origins), &f.CreatedAt, &f.UpdatedAt); err != nil {
+	if err := row.Scan(&f.ID, &f.Enabled, &f.Name, &minSize, &maxSize, &delay, &f.Priority, &maxDownloads, &maxDownloadsUnit, &matchReleases, &exceptReleases, &useRegex, &matchReleaseGroups, &exceptReleaseGroups, &matchReleaseTags, &exceptReleaseTags, &f.UseRegexReleaseTags, &scene, &freeleech, &freeleechPercent, &f.SmartEpisode, &shows, &seasons, &episodes, pq.Array(&f.Resolutions), pq.Array(&f.Codecs), pq.Array(&f.Sources), pq.Array(&f.Containers), pq.Array(&f.MatchHDR), pq.Array(&f.ExceptHDR), pq.Array(&f.MatchOther), pq.Array(&f.ExceptOther), &years, &artists, &albums, pq.Array(&f.MatchReleaseTypes), pq.Array(&f.Formats), pq.Array(&f.Quality), pq.Array(&f.Media), &logScore, &hasLog, &hasCue, &perfectFlac, &titles, &creators, pq.Array(&f.OtherFormats), pq.Array(&f.Languages), &matchCategories, &exceptCategories, &matchUploaders, &exceptUploaders, pq.Array(&f.MatchLanguage), pq.Array(&f.ExceptLanguage), &tags, &exceptTags, pq.Array(&f.Origins), pq.Array(&f.ExceptOrigins), &extScriptEnabled, &extScriptCmd, &extScriptArgs, &extScriptStatus, &extWebhookEnabled, &extWebhookHost, &extWebhookData, &extWebhookStatus, &f.CreatedAt, &f.UpdatedAt); err != nil {
 		return nil, errors.Wrap(err, "error scanning row")
 	}
 
@@ -161,6 +272,8 @@ func (r *FilterRepo) FindByID(ctx context.Context, filterID int) (*domain.Filter
 	f.ExceptReleases = exceptReleases.String
 	f.MatchReleaseGroups = matchReleaseGroups.String
 	f.ExceptReleaseGroups = exceptReleaseGroups.String
+	f.MatchReleaseTags = matchReleaseTags.String
+	f.ExceptReleaseTags = exceptReleaseTags.String
 	f.FreeleechPercent = freeleechPercent.String
 	f.Shows = shows.String
 	f.Seasons = seasons.String
@@ -183,6 +296,16 @@ func (r *FilterRepo) FindByID(ctx context.Context, filterID int) (*domain.Filter
 	f.UseRegex = useRegex.Bool
 	f.Scene = scene.Bool
 	f.Freeleech = freeleech.Bool
+
+	f.ExternalScriptEnabled = extScriptEnabled.Bool
+	f.ExternalScriptCmd = extScriptCmd.String
+	f.ExternalScriptArgs = extScriptArgs.String
+	f.ExternalScriptExpectStatus = int(extScriptStatus.Int32)
+
+	f.ExternalWebhookEnabled = extWebhookEnabled.Bool
+	f.ExternalWebhookHost = extWebhookHost.String
+	f.ExternalWebhookData = extWebhookData.String
+	f.ExternalWebhookExpectStatus = int(extWebhookStatus.Int32)
 
 	return &f, nil
 }
@@ -209,6 +332,10 @@ func (r *FilterRepo) FindByIndexerIdentifier(indexer string) ([]domain.Filter, e
 		filters[i].Downloads = downloads
 	}
 
+	if err := tx.Commit(); err != nil {
+		return nil, errors.Wrap(err, "error finding filter by identifier")
+	}
+
 	return filters, nil
 }
 
@@ -229,9 +356,13 @@ func (r *FilterRepo) findByIndexerIdentifier(ctx context.Context, tx *Tx, indexe
 			"f.use_regex",
 			"f.match_release_groups",
 			"f.except_release_groups",
+			"f.match_release_tags",
+			"f.except_release_tags",
+			"f.use_regex_release_tags",
 			"f.scene",
 			"f.freeleech",
 			"f.freeleech_percent",
+			"f.smart_episode",
 			"f.shows",
 			"f.seasons",
 			"f.episodes",
@@ -262,18 +393,29 @@ func (r *FilterRepo) findByIndexerIdentifier(ctx context.Context, tx *Tx, indexe
 			"f.except_categories",
 			"f.match_uploaders",
 			"f.except_uploaders",
+			"f.match_language",
+			"f.except_language",
 			"f.tags",
 			"f.except_tags",
 			"f.origins",
+			"f.except_origins",
+			"f.external_script_enabled",
+			"f.external_script_cmd",
+			"f.external_script_args",
+			"f.external_script_expect_status",
+			"f.external_webhook_enabled",
+			"f.external_webhook_host",
+			"f.external_webhook_data",
+			"f.external_webhook_expect_status",
 			"f.created_at",
 			"f.updated_at",
 		).
 		From("filter f").
 		Join("filter_indexer fi ON f.id = fi.filter_id").
 		Join("indexer i ON i.id = fi.indexer_id").
-		Where("i.identifier = ?", indexer).
-		Where("i.enabled = ?", true).
-		Where("f.enabled = ?", true).
+		Where(sq.Eq{"i.identifier": indexer}).
+		Where(sq.Eq{"i.enabled": true}).
+		Where(sq.Eq{"f.enabled": true}).
 		OrderBy("f.priority DESC")
 
 	query, args, err := queryBuilder.ToSql()
@@ -292,11 +434,11 @@ func (r *FilterRepo) findByIndexerIdentifier(ctx context.Context, tx *Tx, indexe
 	for rows.Next() {
 		var f domain.Filter
 
-		var minSize, maxSize, maxDownloadsUnit, matchReleases, exceptReleases, matchReleaseGroups, exceptReleaseGroups, freeleechPercent, shows, seasons, episodes, years, artists, albums, titles, creators, matchCategories, exceptCategories, matchUploaders, exceptUploaders, tags, exceptTags sql.NullString
-		var useRegex, scene, freeleech, hasLog, hasCue, perfectFlac sql.NullBool
-		var delay, maxDownloads, logScore sql.NullInt32
+		var minSize, maxSize, maxDownloadsUnit, matchReleases, exceptReleases, matchReleaseGroups, exceptReleaseGroups, matchReleaseTags, exceptReleaseTags, freeleechPercent, shows, seasons, episodes, years, artists, albums, titles, creators, matchCategories, exceptCategories, matchUploaders, exceptUploaders, tags, exceptTags, extScriptCmd, extScriptArgs, extWebhookHost, extWebhookData sql.NullString
+		var useRegex, scene, freeleech, hasLog, hasCue, perfectFlac, extScriptEnabled, extWebhookEnabled sql.NullBool
+		var delay, maxDownloads, logScore, extWebhookStatus, extScriptStatus sql.NullInt32
 
-		if err := rows.Scan(&f.ID, &f.Enabled, &f.Name, &minSize, &maxSize, &delay, &f.Priority, &maxDownloads, &maxDownloadsUnit, &matchReleases, &exceptReleases, &useRegex, &matchReleaseGroups, &exceptReleaseGroups, &scene, &freeleech, &freeleechPercent, &shows, &seasons, &episodes, pq.Array(&f.Resolutions), pq.Array(&f.Codecs), pq.Array(&f.Sources), pq.Array(&f.Containers), pq.Array(&f.MatchHDR), pq.Array(&f.ExceptHDR), pq.Array(&f.MatchOther), pq.Array(&f.ExceptOther), &years, &artists, &albums, pq.Array(&f.MatchReleaseTypes), pq.Array(&f.Formats), pq.Array(&f.Quality), pq.Array(&f.Media), &logScore, &hasLog, &hasCue, &perfectFlac, &titles, &creators, pq.Array(&f.OtherFormats), pq.Array(&f.Languages), &matchCategories, &exceptCategories, &matchUploaders, &exceptUploaders, &tags, &exceptTags, pq.Array(&f.Origins), &f.CreatedAt, &f.UpdatedAt); err != nil {
+		if err := rows.Scan(&f.ID, &f.Enabled, &f.Name, &minSize, &maxSize, &delay, &f.Priority, &maxDownloads, &maxDownloadsUnit, &matchReleases, &exceptReleases, &useRegex, &matchReleaseGroups, &exceptReleaseGroups, &matchReleaseTags, &exceptReleaseTags, &f.UseRegexReleaseTags, &scene, &freeleech, &freeleechPercent, &f.SmartEpisode, &shows, &seasons, &episodes, pq.Array(&f.Resolutions), pq.Array(&f.Codecs), pq.Array(&f.Sources), pq.Array(&f.Containers), pq.Array(&f.MatchHDR), pq.Array(&f.ExceptHDR), pq.Array(&f.MatchOther), pq.Array(&f.ExceptOther), &years, &artists, &albums, pq.Array(&f.MatchReleaseTypes), pq.Array(&f.Formats), pq.Array(&f.Quality), pq.Array(&f.Media), &logScore, &hasLog, &hasCue, &perfectFlac, &titles, &creators, &matchCategories, &exceptCategories, &matchUploaders, &exceptUploaders, pq.Array(&f.MatchLanguage), pq.Array(&f.ExceptLanguage), &tags, &exceptTags, pq.Array(&f.Origins), pq.Array(&f.ExceptOrigins), &extScriptEnabled, &extScriptCmd, &extScriptArgs, &extScriptStatus, &extWebhookEnabled, &extWebhookHost, &extWebhookData, &extWebhookStatus, &f.CreatedAt, &f.UpdatedAt); err != nil {
 			return nil, errors.Wrap(err, "error scanning row")
 		}
 
@@ -309,6 +451,8 @@ func (r *FilterRepo) findByIndexerIdentifier(ctx context.Context, tx *Tx, indexe
 		f.ExceptReleases = exceptReleases.String
 		f.MatchReleaseGroups = matchReleaseGroups.String
 		f.ExceptReleaseGroups = exceptReleaseGroups.String
+		f.MatchReleaseTags = matchReleaseTags.String
+		f.ExceptReleaseTags = exceptReleaseTags.String
 		f.FreeleechPercent = freeleechPercent.String
 		f.Shows = shows.String
 		f.Seasons = seasons.String
@@ -331,6 +475,16 @@ func (r *FilterRepo) findByIndexerIdentifier(ctx context.Context, tx *Tx, indexe
 		f.UseRegex = useRegex.Bool
 		f.Scene = scene.Bool
 		f.Freeleech = freeleech.Bool
+
+		f.ExternalScriptEnabled = extScriptEnabled.Bool
+		f.ExternalScriptCmd = extScriptCmd.String
+		f.ExternalScriptArgs = extScriptArgs.String
+		f.ExternalScriptExpectStatus = int(extScriptStatus.Int32)
+
+		f.ExternalWebhookEnabled = extWebhookEnabled.Bool
+		f.ExternalWebhookHost = extWebhookHost.String
+		f.ExternalWebhookData = extWebhookData.String
+		f.ExternalWebhookExpectStatus = int(extWebhookStatus.Int32)
 
 		filters = append(filters, f)
 	}
@@ -355,9 +509,13 @@ func (r *FilterRepo) Store(ctx context.Context, filter domain.Filter) (*domain.F
 			"use_regex",
 			"match_release_groups",
 			"except_release_groups",
+			"match_release_tags",
+			"except_release_tags",
+			"use_regex_release_tags",
 			"scene",
 			"freeleech",
 			"freeleech_percent",
+			"smart_episode",
 			"shows",
 			"seasons",
 			"episodes",
@@ -374,6 +532,8 @@ func (r *FilterRepo) Store(ctx context.Context, filter domain.Filter) (*domain.F
 			"except_categories",
 			"match_uploaders",
 			"except_uploaders",
+			"match_language",
+			"except_language",
 			"tags",
 			"except_tags",
 			"artists",
@@ -391,6 +551,15 @@ func (r *FilterRepo) Store(ctx context.Context, filter domain.Filter) (*domain.F
 			"other_formats",
 			"languages",
 			"origins",
+			"except_origins",
+			"external_script_enabled",
+			"external_script_cmd",
+			"external_script_args",
+			"external_script_expect_status",
+			"external_webhook_enabled",
+			"external_webhook_host",
+			"external_webhook_data",
+			"external_webhook_expect_status",
 		).
 		Values(
 			filter.Name,
@@ -406,9 +575,13 @@ func (r *FilterRepo) Store(ctx context.Context, filter domain.Filter) (*domain.F
 			filter.UseRegex,
 			filter.MatchReleaseGroups,
 			filter.ExceptReleaseGroups,
+			filter.MatchReleaseTags,
+			filter.ExceptReleaseTags,
+			filter.UseRegexReleaseTags,
 			filter.Scene,
 			filter.Freeleech,
 			filter.FreeleechPercent,
+			filter.SmartEpisode,
 			filter.Shows,
 			filter.Seasons,
 			filter.Episodes,
@@ -425,6 +598,8 @@ func (r *FilterRepo) Store(ctx context.Context, filter domain.Filter) (*domain.F
 			filter.ExceptCategories,
 			filter.MatchUploaders,
 			filter.ExceptUploaders,
+			pq.Array(filter.MatchLanguage),
+			pq.Array(filter.ExceptLanguage),
 			filter.Tags,
 			filter.ExceptTags,
 			filter.Artists,
@@ -442,6 +617,15 @@ func (r *FilterRepo) Store(ctx context.Context, filter domain.Filter) (*domain.F
 			pq.Array(filter.OtherFormats),
 			pq.Array(filter.Languages),
 			pq.Array(filter.Origins),
+			pq.Array(filter.ExceptOrigins),
+			filter.ExternalScriptEnabled,
+			filter.ExternalScriptCmd,
+			filter.ExternalScriptArgs,
+			filter.ExternalScriptExpectStatus,
+			filter.ExternalWebhookEnabled,
+			filter.ExternalWebhookHost,
+			filter.ExternalWebhookData,
+			filter.ExternalWebhookExpectStatus,
 		).
 		Suffix("RETURNING id").RunWith(r.db.handler)
 
@@ -476,9 +660,13 @@ func (r *FilterRepo) Update(ctx context.Context, filter domain.Filter) (*domain.
 		Set("except_releases", filter.ExceptReleases).
 		Set("match_release_groups", filter.MatchReleaseGroups).
 		Set("except_release_groups", filter.ExceptReleaseGroups).
+		Set("match_release_tags", filter.MatchReleaseTags).
+		Set("except_release_tags", filter.ExceptReleaseTags).
+		Set("use_regex_release_tags", filter.UseRegexReleaseTags).
 		Set("scene", filter.Scene).
 		Set("freeleech", filter.Freeleech).
 		Set("freeleech_percent", filter.FreeleechPercent).
+		Set("smart_episode", filter.SmartEpisode).
 		Set("shows", filter.Shows).
 		Set("seasons", filter.Seasons).
 		Set("episodes", filter.Episodes).
@@ -495,6 +683,8 @@ func (r *FilterRepo) Update(ctx context.Context, filter domain.Filter) (*domain.
 		Set("except_categories", filter.ExceptCategories).
 		Set("match_uploaders", filter.MatchUploaders).
 		Set("except_uploaders", filter.ExceptUploaders).
+		Set("match_language", pq.Array(filter.MatchLanguage)).
+		Set("except_language", pq.Array(filter.ExceptLanguage)).
 		Set("tags", filter.Tags).
 		Set("except_tags", filter.ExceptTags).
 		Set("artists", filter.Artists).
@@ -512,8 +702,17 @@ func (r *FilterRepo) Update(ctx context.Context, filter domain.Filter) (*domain.
 		Set("other_formats", pq.Array(filter.OtherFormats)).
 		Set("languages", pq.Array(filter.Languages)).
 		Set("origins", pq.Array(filter.Origins)).
+		Set("except_origins", pq.Array(filter.ExceptOrigins)).
+		Set("external_script_enabled", filter.ExternalScriptEnabled).
+		Set("external_script_cmd", filter.ExternalScriptCmd).
+		Set("external_script_args", filter.ExternalScriptArgs).
+		Set("external_script_expect_status", filter.ExternalScriptExpectStatus).
+		Set("external_webhook_enabled", filter.ExternalWebhookEnabled).
+		Set("external_webhook_host", filter.ExternalWebhookHost).
+		Set("external_webhook_data", filter.ExternalWebhookData).
+		Set("external_webhook_expect_status", filter.ExternalWebhookExpectStatus).
 		Set("updated_at", time.Now().Format(time.RFC3339)).
-		Where("id = ?", filter.ID)
+		Where(sq.Eq{"id": filter.ID})
 
 	query, args, err := queryBuilder.ToSql()
 	if err != nil {
@@ -528,6 +727,216 @@ func (r *FilterRepo) Update(ctx context.Context, filter domain.Filter) (*domain.
 	return &filter, nil
 }
 
+func (r *FilterRepo) UpdatePartial(ctx context.Context, filter domain.FilterUpdate) error {
+	var err error
+
+	q := r.db.squirrel.Update("filter")
+
+	if filter.Name != nil {
+		q = q.Set("name", filter.Name)
+	}
+	if filter.Enabled != nil {
+		q = q.Set("enabled", filter.Enabled)
+	}
+	if filter.MinSize != nil {
+		q = q.Set("min_size", filter.MinSize)
+	}
+	if filter.MaxSize != nil {
+		q = q.Set("max_size", filter.MaxSize)
+	}
+	if filter.Delay != nil {
+		q = q.Set("delay", filter.Delay)
+	}
+	if filter.Priority != nil {
+		q = q.Set("priority", filter.Priority)
+	}
+	if filter.MaxDownloads != nil {
+		q = q.Set("max_downloads", filter.MaxDownloads)
+	}
+	if filter.MaxDownloadsUnit != nil {
+		q = q.Set("max_downloads_unit", filter.MaxDownloadsUnit)
+	}
+	if filter.UseRegex != nil {
+		q = q.Set("use_regex", filter.UseRegex)
+	}
+	if filter.MatchReleases != nil {
+		q = q.Set("match_releases", filter.MatchReleases)
+	}
+	if filter.ExceptReleases != nil {
+		q = q.Set("except_releases", filter.ExceptReleases)
+	}
+	if filter.MatchReleaseGroups != nil {
+		q = q.Set("match_release_groups", filter.MatchReleaseGroups)
+	}
+	if filter.ExceptReleaseGroups != nil {
+		q = q.Set("except_release_groups", filter.ExceptReleaseGroups)
+	}
+	if filter.MatchReleaseTags != nil {
+		q = q.Set("match_release_tags", filter.MatchReleaseTags)
+	}
+	if filter.ExceptReleaseTags != nil {
+		q = q.Set("except_release_tags", filter.ExceptReleaseTags)
+	}
+	if filter.UseRegexReleaseTags != nil {
+		q = q.Set("use_regex_release_tags", filter.UseRegexReleaseTags)
+	}
+	if filter.Scene != nil {
+		q = q.Set("scene", filter.Scene)
+	}
+	if filter.Freeleech != nil {
+		q = q.Set("freeleech", filter.Freeleech)
+	}
+	if filter.FreeleechPercent != nil {
+		q = q.Set("freeleech_percent", filter.FreeleechPercent)
+	}
+	if filter.SmartEpisode != nil {
+		q = q.Set("smart_episode", filter.SmartEpisode)
+	}
+	if filter.Shows != nil {
+		q = q.Set("shows", filter.Shows)
+	}
+	if filter.Seasons != nil {
+		q = q.Set("seasons", filter.Seasons)
+	}
+	if filter.Episodes != nil {
+		q = q.Set("episodes", filter.Episodes)
+	}
+	if filter.Resolutions != nil {
+		q = q.Set("resolutions", pq.Array(filter.Resolutions))
+	}
+	if filter.Codecs != nil {
+		q = q.Set("codecs", pq.Array(filter.Codecs))
+	}
+	if filter.Sources != nil {
+		q = q.Set("sources", pq.Array(filter.Sources))
+	}
+	if filter.Containers != nil {
+		q = q.Set("containers", pq.Array(filter.Containers))
+	}
+	if filter.MatchHDR != nil {
+		q = q.Set("match_hdr", pq.Array(filter.MatchHDR))
+	}
+	if filter.ExceptHDR != nil {
+		q = q.Set("except_hdr", pq.Array(filter.ExceptHDR))
+	}
+	if filter.MatchOther != nil {
+		q = q.Set("match_other", pq.Array(filter.MatchOther))
+	}
+	if filter.ExceptOther != nil {
+		q = q.Set("except_other", pq.Array(filter.ExceptOther))
+	}
+	if filter.Years != nil {
+		q = q.Set("years", filter.Years)
+	}
+	if filter.MatchCategories != nil {
+		q = q.Set("match_categories", filter.MatchCategories)
+	}
+	if filter.ExceptCategories != nil {
+		q = q.Set("except_categories", filter.ExceptCategories)
+	}
+	if filter.MatchUploaders != nil {
+		q = q.Set("match_uploaders", filter.MatchUploaders)
+	}
+	if filter.ExceptUploaders != nil {
+		q = q.Set("except_uploaders", filter.ExceptUploaders)
+	}
+	if filter.MatchLanguage != nil {
+		q = q.Set("match_language", pq.Array(filter.MatchLanguage))
+	}
+	if filter.ExceptLanguage != nil {
+		q = q.Set("except_language", pq.Array(filter.ExceptLanguage))
+	}
+	if filter.Tags != nil {
+		q = q.Set("tags", filter.Tags)
+	}
+	if filter.ExceptTags != nil {
+		q = q.Set("except_tags", filter.ExceptTags)
+	}
+	if filter.Artists != nil {
+		q = q.Set("artists", filter.Artists)
+	}
+	if filter.Albums != nil {
+		q = q.Set("albums", filter.Albums)
+	}
+	if filter.MatchReleaseTypes != nil {
+		q = q.Set("release_types_match", pq.Array(filter.MatchReleaseTypes))
+	}
+	if filter.Formats != nil {
+		q = q.Set("formats", pq.Array(filter.Formats))
+	}
+	if filter.Quality != nil {
+		q = q.Set("quality", pq.Array(filter.Quality))
+	}
+	if filter.Media != nil {
+		q = q.Set("media", pq.Array(filter.Media))
+	}
+	if filter.LogScore != nil {
+		q = q.Set("log_score", filter.LogScore)
+	}
+	if filter.Log != nil {
+		q = q.Set("has_log", filter.Log)
+	}
+	if filter.Cue != nil {
+		q = q.Set("has_cue", filter.Cue)
+	}
+	if filter.PerfectFlac != nil {
+		q = q.Set("perfect_flac", filter.PerfectFlac)
+	}
+	if filter.Origins != nil {
+		q = q.Set("origins", pq.Array(filter.Origins))
+	}
+	if filter.ExceptOrigins != nil {
+		q = q.Set("except_origins", pq.Array(filter.ExceptOrigins))
+	}
+	if filter.ExternalScriptEnabled != nil {
+		q = q.Set("external_script_enabled", filter.ExternalScriptEnabled)
+	}
+	if filter.ExternalScriptCmd != nil {
+		q = q.Set("external_script_cmd", filter.ExternalScriptCmd)
+	}
+	if filter.ExternalScriptArgs != nil {
+		q = q.Set("external_script_args", filter.ExternalScriptArgs)
+	}
+	if filter.ExternalScriptExpectStatus != nil {
+		q = q.Set("external_script_expect_status", filter.ExternalScriptExpectStatus)
+	}
+	if filter.ExternalWebhookEnabled != nil {
+		q = q.Set("external_webhook_enabled", filter.ExternalWebhookEnabled)
+	}
+	if filter.ExternalWebhookHost != nil {
+		q = q.Set("external_webhook_host", filter.ExternalWebhookHost)
+	}
+	if filter.ExternalWebhookData != nil {
+		q = q.Set("external_webhook_data", filter.ExternalWebhookData)
+	}
+	if filter.ExternalWebhookExpectStatus != nil {
+		q = q.Set("external_webhook_expect_status", filter.ExternalWebhookExpectStatus)
+	}
+
+	q = q.Where(sq.Eq{"id": filter.ID})
+
+	query, args, err := q.ToSql()
+	if err != nil {
+		return errors.Wrap(err, "error building query")
+	}
+
+	result, err := r.db.handler.ExecContext(ctx, query, args...)
+	if err != nil {
+		return errors.Wrap(err, "error executing query")
+	}
+
+	count, err := result.RowsAffected()
+	if err != nil {
+		return errors.Wrap(err, "error executing query")
+	}
+
+	if count == 0 {
+		return errors.New("no rows affected")
+	}
+
+	return nil
+}
+
 func (r *FilterRepo) ToggleEnabled(ctx context.Context, filterID int, enabled bool) error {
 	var err error
 
@@ -535,7 +944,7 @@ func (r *FilterRepo) ToggleEnabled(ctx context.Context, filterID int, enabled bo
 		Update("filter").
 		Set("enabled", enabled).
 		Set("updated_at", sq.Expr("CURRENT_TIMESTAMP")).
-		Where("id = ?", filterID)
+		Where(sq.Eq{"id": filterID})
 
 	query, args, err := queryBuilder.ToSql()
 	if err != nil {
@@ -559,7 +968,7 @@ func (r *FilterRepo) StoreIndexerConnections(ctx context.Context, filterID int, 
 
 	deleteQueryBuilder := r.db.squirrel.
 		Delete("filter_indexer").
-		Where("filter_id = ?", filterID)
+		Where(sq.Eq{"filter_id": filterID})
 
 	deleteQuery, deleteArgs, err := deleteQueryBuilder.ToSql()
 	if err != nil {
@@ -587,8 +996,7 @@ func (r *FilterRepo) StoreIndexerConnections(ctx context.Context, filterID int, 
 		r.log.Debug().Msgf("filter.StoreIndexerConnections: store '%v' on filter: %v", indexer.Name, filterID)
 	}
 
-	err = tx.Commit()
-	if err != nil {
+	if err := tx.Commit(); err != nil {
 		return errors.Wrap(err, "error store indexers for filter: %v", filterID)
 	}
 
@@ -616,7 +1024,7 @@ func (r *FilterRepo) StoreIndexerConnection(ctx context.Context, filterID int, i
 func (r *FilterRepo) DeleteIndexerConnections(ctx context.Context, filterID int) error {
 	queryBuilder := r.db.squirrel.
 		Delete("filter_indexer").
-		Where("filter_id = ?", filterID)
+		Where(sq.Eq{"filter_id": filterID})
 
 	query, args, err := queryBuilder.ToSql()
 	if err != nil {
@@ -634,7 +1042,7 @@ func (r *FilterRepo) DeleteIndexerConnections(ctx context.Context, filterID int)
 func (r *FilterRepo) Delete(ctx context.Context, filterID int) error {
 	queryBuilder := r.db.squirrel.
 		Delete("filter").
-		Where("id = ?", filterID)
+		Where(sq.Eq{"id": filterID})
 
 	query, args, err := queryBuilder.ToSql()
 	if err != nil {
@@ -661,13 +1069,13 @@ func (r *FilterRepo) attachDownloadsByFilter(ctx context.Context, tx *Tx, filter
 
 func (r *FilterRepo) downloadsByFilterSqlite(ctx context.Context, tx *Tx, filterID int) (*domain.FilterDownloads, error) {
 	query := `SELECT
-    IFNULL(SUM(CASE WHEN "release".timestamp >= datetime('now', '-1 hour') THEN 1 ELSE 0 END),0) as "hour_count",
-    IFNULL(SUM(CASE WHEN "release".timestamp >= datetime('now', 'start of day') THEN 1 ELSE 0 END),0) as "day_count",
-    IFNULL(SUM(CASE WHEN "release".timestamp >= datetime('now', 'weekday 0', '-7 days') THEN 1 ELSE 0 END),0) as "week_count",
-    IFNULL(SUM(CASE WHEN "release".timestamp >= datetime('now', 'start of month') THEN 1 ELSE 0 END),0) as "month_count",
+    IFNULL(SUM(CASE WHEN release_action_status.timestamp >= strftime('%Y-%m-%d %H:00:00', datetime('now','localtime')) THEN 1 ELSE 0 END),0) as "hour_count",
+    IFNULL(SUM(CASE WHEN release_action_status.timestamp >= datetime('now', 'localtime', 'start of day') THEN 1 ELSE 0 END),0) as "day_count",
+    IFNULL(SUM(CASE WHEN release_action_status.timestamp >= datetime('now', 'localtime', 'weekday 0', '-7 days') THEN 1 ELSE 0 END),0) as "week_count",
+    IFNULL(SUM(CASE WHEN release_action_status.timestamp >= datetime('now', 'localtime', 'start of month') THEN 1 ELSE 0 END),0) as "month_count",
     count(*) as "total_count"
-FROM "release"
-WHERE "release".filter_id = ?;`
+FROM release_action_status
+WHERE release_action_status.status = 'PUSH_APPROVED' AND release_action_status.filter_id = ?;`
 
 	row := tx.QueryRowContext(ctx, query, filterID)
 	if err := row.Err(); err != nil {
@@ -680,18 +1088,20 @@ WHERE "release".filter_id = ?;`
 		return nil, errors.Wrap(err, "error scanning stats data sqlite")
 	}
 
+	r.log.Trace().Msgf("filter %v downloads: %+v", filterID, &f)
+
 	return &f, nil
 }
 
 func (r *FilterRepo) downloadsByFilterPostgres(ctx context.Context, tx *Tx, filterID int) (*domain.FilterDownloads, error) {
 	query := `SELECT
-    COALESCE(SUM(CASE WHEN "release".timestamp >= date_trunc('hour', CURRENT_TIMESTAMP) THEN 1 ELSE 0 END),0) as "hour_count",
-    COALESCE(SUM(CASE WHEN "release".timestamp >= date_trunc('day', CURRENT_DATE) THEN 1 ELSE 0 END),0) as "day_count",
-    COALESCE(SUM(CASE WHEN "release".timestamp >= date_trunc('week', CURRENT_DATE) THEN 1 ELSE 0 END),0) as "week_count",
-    COALESCE(SUM(CASE WHEN "release".timestamp >= date_trunc('month', CURRENT_DATE) THEN 1 ELSE 0 END),0) as "month_count",
+    COALESCE(SUM(CASE WHEN release_action_status.timestamp >= date_trunc('hour', CURRENT_TIMESTAMP) THEN 1 ELSE 0 END),0) as "hour_count",
+    COALESCE(SUM(CASE WHEN release_action_status.timestamp >= date_trunc('day', CURRENT_DATE) THEN 1 ELSE 0 END),0) as "day_count",
+    COALESCE(SUM(CASE WHEN release_action_status.timestamp >= date_trunc('week', CURRENT_DATE) THEN 1 ELSE 0 END),0) as "week_count",
+    COALESCE(SUM(CASE WHEN release_action_status.timestamp >= date_trunc('month', CURRENT_DATE) THEN 1 ELSE 0 END),0) as "month_count",
     count(*) as "total_count"
-FROM "release"
-WHERE "release".filter_id = $1;`
+FROM release_action_status
+WHERE release_action_status.status = 'PUSH_APPROVED' AND release_action_status.filter_id = $1;`
 
 	row := tx.QueryRowContext(ctx, query, filterID)
 	if err := row.Err(); err != nil {

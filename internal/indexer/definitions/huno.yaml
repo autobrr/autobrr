@@ -1,0 +1,69 @@
+---
+#id: huno
+name: Hawke-UNO
+identifier: huno
+description: Hawke-UNO (HUNO) is a private torrent tracker for MOVIES / TV.
+language: en-us
+urls:
+  - https://hawke.uno/
+privacy: private
+protocol: torrent
+supports:
+  - irc
+  - rss
+source: UNIT3D
+settings:
+  - name: rsskey
+    type: secret
+    required: true
+    label: RSS key (RID)
+    help: "Go to your profile, My Security / RSS Key (RID) and copy your Current RID"
+
+irc:
+  network: Hawke-UNO
+  server: irc.hawke.uno
+  port: 6697
+  tls: true
+  channels:
+    - "#huno_announce"
+  announcers:
+    - Luwin
+  settings:
+    - name: nick
+      type: text
+      required: true
+      label: Nick
+      help: Bot nick. Eg. user_bot
+
+    - name: auth.account
+      type: text
+      required: true
+      label: NickServ Account
+      help: NickServ account. Make sure to group your user and bot.
+
+    - name: auth.password
+      type: secret
+      required: true
+      label: NickServ Password
+      help: NickServ password
+
+  parse:
+    type: single
+    lines:
+      - test:
+          - "New in [Movie]: Old Movie (1981) (1080p BluRay x265 SDR DD 2.0 English - group1) [4.5 GiB] [FL: No] [INTERNAL: Yes] [https://hawke.uno/torrents/0000] by: [anon]"
+          - "New in [TV]: Popular show (2022) S01E09 (1080p DSNP WEB-DL x265 SDR DDP Atmos 5.1 English - GROUP)[REPACK] [955.97 MiB] [FL: Yes] [INTERNAL: Yes] [https://hawke.uno/torrents/0000] by: [uploader]"
+        pattern: 'New in \[(.+)\]: (.+)(?:\[(?:REPACK\d?|PROPER)\])? \[(.+)\] \[FL: (Yes|No)\] \[INTERNAL: (Yes|No)\] \[(https:\/\/.+\/)torrents\/(\d+)\] by: \[(.+)\]'
+        vars:
+          - category
+          - torrentName
+          - torrentSize
+          - freeleech
+          - internal
+          - baseUrl
+          - torrentId
+          - uploader
+
+    match:
+      infourl: "/torrents/{{ .torrentId }}"
+      torrenturl: "/torrent/download/{{ .torrentId }}.{{ .rsskey }}"

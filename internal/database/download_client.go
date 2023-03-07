@@ -2,6 +2,7 @@ package database
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
 	"sync"
 
@@ -9,6 +10,7 @@ import (
 	"github.com/autobrr/autobrr/internal/logger"
 	"github.com/autobrr/autobrr/pkg/errors"
 
+	sq "github.com/Masterminds/squirrel"
 	"github.com/rs/zerolog"
 )
 
@@ -135,7 +137,7 @@ func (r *DownloadClientRepo) FindByID(ctx context.Context, id int32) (*domain.Do
 			"settings",
 		).
 		From("client").
-		Where("id = ?", id)
+		Where(sq.Eq{"id": id})
 
 	query, args, err := queryBuilder.ToSql()
 	if err != nil {
@@ -151,6 +153,10 @@ func (r *DownloadClientRepo) FindByID(ctx context.Context, id int32) (*domain.Do
 	var settingsJsonStr string
 
 	if err := row.Scan(&client.ID, &client.Name, &client.Type, &client.Enabled, &client.Host, &client.Port, &client.TLS, &client.TLSSkipVerify, &client.Username, &client.Password, &settingsJsonStr); err != nil {
+		if err == sql.ErrNoRows {
+			return nil, errors.New("no client configured")
+		}
+
 		return nil, errors.Wrap(err, "error scanning row")
 	}
 
@@ -227,7 +233,7 @@ func (r *DownloadClientRepo) Update(ctx context.Context, client domain.DownloadC
 		Set("username", client.Username).
 		Set("password", client.Password).
 		Set("settings", string(settingsJson)).
-		Where("id = ?", client.ID)
+		Where(sq.Eq{"id": client.ID})
 
 	query, args, err := queryBuilder.ToSql()
 	if err != nil {
@@ -250,7 +256,7 @@ func (r *DownloadClientRepo) Update(ctx context.Context, client domain.DownloadC
 func (r *DownloadClientRepo) Delete(ctx context.Context, clientID int) error {
 	queryBuilder := r.db.squirrel.
 		Delete("client").
-		Where("id = ?", clientID)
+		Where(sq.Eq{"id": clientID})
 
 	query, args, err := queryBuilder.ToSql()
 	if err != nil {

@@ -5,7 +5,7 @@ identifier: ptp
 description: PassThePopcorn (PTP) is a private torrent tracker for MOVIES
 language: en-us
 urls:
-  - https://passthepopcorn.me
+  - https://passthepopcorn.me/
 privacy: private
 protocol: torrent
 supports:
@@ -16,18 +16,25 @@ source: gazelle
 settings:
   - name: authkey
     type: secret
+    required: true
     label: Auth key
     help: Right click DL on a torrent and get the authkey.
+
   - name: torrent_pass
     type: secret
+    required: true
     label: Torrent pass
     help: Right click DL on a torrent and get the torrent_pass.
+
   - name: api_user
     type: secret
+    required: true
     label: API User
     help: Edit profile -> Security -> Generate new api keys
+
   - name: api_key
     type: secret
+    required: true
     label: API Key
     help: Edit profile -> Security -> Generate new api keys
 
@@ -57,36 +64,45 @@ irc:
   announcers:
     - Hummingbird
   settings:
-    - name: nickserv.account
+    - name: nick
+      type: text
+      required: true
+      label: Nick
+      help: Bot nick. Eg. user|autodl
+
+    - name: auth.account
       type: text
       required: true
       label: NickServ Account
-      help: NickServ account. Make sure to group your user and bot. Eg. user|autodl
-    - name: nickserv.password
+      help: NickServ account. Make sure to group your user and bot.
+
+    - name: auth.password
       type: secret
       required: true
       label: NickServ Password
       help: NickServ password
+
     - name: invite_command
       type: secret
-      default: "Hummingbird ENTER USERNAME IRCKey #ptp-announce-dev"
+      default: "Hummingbird ENTER USERNAME IRCKEY #ptp-announce-dev"
       required: true
       label: Invite command
-      help: Invite auth with Hummingbird.
+      help: Invite auth with Hummingbird. Replace USERNAME and IRCKEY.
 
-parse:
-  type: single
-  lines:
-    - test:
-        - "That Movie [1972] by Some Director | x264 / Blu-ray / MKV / 1080p | 204371 | 964303 | That.Movie.1972.1080p.BluRay.FLAC.x264-GROUP | comedy, drama, romance"
-        - "That Other Movie [1972] | x264 / Blu-ray / MKV / 1080p | 204371 | 964303 | That.Other.Movie.1972.1080p.BluRay.FLAC.x264-GROUP | comedy, drama, romance"
-      pattern: '.* \[(.*)\] (?:by .*)?\| (.*) \| .* \| (.*) \| (.*) \| (.*)'
-      vars:
-        - year
-        - releaseTags
-        - torrentId
-        - torrentName
-        - tags
+  parse:
+    type: single
+    lines:
+      - test:
+          - "That Movie [1972] by Some Director | x264 / Blu-ray / MKV / 1080p | 204371 | 964303 | That.Movie.1972.1080p.BluRay.FLAC.x264-GROUP | comedy, drama, romance"
+          - "That Other Movie [1972] | x264 / Blu-ray / MKV / 1080p | 204371 | 964303 | That.Other.Movie.1972.1080p.BluRay.FLAC.x264-GROUP | comedy, drama, romance"
+        pattern: '.* \[(.*)\] (?:by .*)?\| (.*) \| .* \| (.*) \| (.*) \| (.*)'
+        vars:
+          - year
+          - releaseTags
+          - torrentId
+          - torrentName
+          - tags
 
-  match:
-    torrenturl: "https://passthepopcorn.me/torrents.php?action=download&id={{ .torrentId }}&authkey={{ .authkey }}&torrent_pass={{ .torrent_pass }}"
+    match:
+      infourl: "/torrents.php?torrentid={{ .torrentId }}"
+      torrenturl: "/torrents.php?action=download&id={{ .torrentId }}&authkey={{ .authkey }}&torrent_pass={{ .torrent_pass }}"

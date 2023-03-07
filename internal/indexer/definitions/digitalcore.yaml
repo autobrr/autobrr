@@ -5,7 +5,7 @@ identifier: digitalcore
 description: DigitalCore (DC) is a private torrent tracker for General / 0 Day.
 language: en-us
 urls:
-  - https://digitalcore.club
+  - https://digitalcore.club/
 privacy: private
 protocol: torrent
 supports:
@@ -15,6 +15,7 @@ source: gazelle
 settings:
   - name: passkey
     type: secret
+    required: true
     label: PassKey
     help: Settings -> Security -> Passkey.
 
@@ -28,16 +29,24 @@ irc:
   announcers:
     - ENDOR
   settings:
-    - name: nickserv.account
+    - name: nick
       type: text
       required: true
+      label: Nick
+      help: Bot nick. Eg. user|autodl
+
+    - name: auth.account
+      type: text
+      required: false
       label: NickServ Account
-      help: NickServ account. Make sure to group your user and bot. Eg. user|autodl
-    - name: nickserv.password
+      help: NickServ account. Make sure to group your user and bot.
+
+    - name: auth.password
       type: secret
       required: false
       label: NickServ Password
       help: NickServ password
+
     - name: invite_command
       type: secret
       default: "ENDOR !invite USERNAME IRCKEY"
@@ -45,17 +54,18 @@ irc:
       label: Invite command
       help: Invite auth with Endor. Replace USERNAME and IRCKEY
 
-parse:
-  type: single
-  lines:
-    - test:
-        - "NEW TORRENT in Movies/XviD :: This.is.my.Movie.2019.BRRip.XviD.AC3-iND :: https://digitalcore.club/api/v1/torrents/download/00000"
-      pattern: '^NEW.TORRENT.in.(.*?).::.(.*?).::.(.*)\/([0-9a-zA-Z]+)'
-      vars:
-        - category
-        - torrentName
-        - baseUrl
-        - torrentId
+  parse:
+    type: single
+    lines:
+      - test:
+          - "NEW TORRENT in Movies/XviD :: This.is.my.Movie.2019.BRRip.XviD.AC3-iND :: https://digitalcore.club/api/v1/torrents/download/00000"
+        pattern: 'NEW TORRENT in (.+) :: (.+) :: (https:\/\/.+\/).+\/([0-9a-zA-Z]+)'
+        vars:
+          - category
+          - torrentName
+          - baseUrl
+          - torrentId
 
-  match:
-    torrenturl: "{{ .baseUrl }}/{{ .torrentId }}/{{ .passkey }}"
+    match:
+      infourl: "/torrent/{{ .torrentId }}"
+      torrenturl: "/api/v1/torrents/download/{{ .torrentId }}/{{ .passkey }}"

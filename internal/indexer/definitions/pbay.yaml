@@ -5,7 +5,7 @@ identifier: pornbay
 description: Pornbay (PB) is a private torrent tracker for XXX
 language: en-us
 urls:
-  - https://pornbay.org
+  - https://pornbay.org/
 privacy: private
 protocol: torrent
 supports:
@@ -15,10 +15,13 @@ source: gazelle
 settings:
   - name: authkey
     type: secret
+    required: true
     label: Auth key
     help: Right click DL on a torrent and get the authkey.
+
   - name: torrent_pass
     type: secret
+    required: true
     label: Torrent pass
     help: Right click DL on a torrent and get the torrent_pass.
 
@@ -32,31 +35,39 @@ irc:
   announcers:
     - "PB-Announcer"
   settings:
-    - name: nickserv.account
+    - name: nick
+      type: text
+      required: true
+      label: Nick
+      help: Bot nick. Eg. user_bot
+
+    - name: auth.account
       type: text
       required: true
       label: NickServ Account
-      help: NickServ account. Make sure to group your user and bot. Eg. user_bot.
-    - name: nickserv.password
+      help: NickServ account. Make sure to group your user and bot.
+
+    - name: auth.password
       type: secret
       required: true
       label: NickServ Password
       help: NickServ password
 
-parse:
-  type: single
-  lines:
-    - test:
-        - "[XXX-Cateogry] [SomeXXXSite] Wow So Much Come [2015-05-30, 3K, 1500p] [4.77 GB - Uploader: Tester] - https://pornbay.org/torrents.php?id=000000"
-        - "[XXX-Category-2] SomeXXXSite - Some Name [1.35 GB - Uploader: someUploader] - https://pornbay.org/torrents.php?id=000000"
-      pattern: '^\[(.*?)\] (.*) \[([0-9]+?.*?) - Uploader: (.*?)\] - (https://.*torrents.php\?)id=(.*)$'
-      vars:
-        - category
-        - torrentName
-        - torrentSize
-        - uploader
-        - baseUrl
-        - torrentId
+  parse:
+    type: single
+    lines:
+      - test:
+          - "[XXX-Cateogry] [SomeXXXSite] Wow So Much Come [2015-05-30, 3K, 1500p] [4.77 GB - Uploader: Tester] - https://pornbay.org/torrents.php?id=000000"
+          - "[XXX-Category-2] SomeXXXSite - Some Name [1.35 GB - Uploader: someUploader] - https://pornbay.org/torrents.php?id=000000"
+        pattern: '\[(.+)\] (.*) \[([0-9]+?.*?) - Uploader: (.+)\] - (https:\/\/.+\/)torrents.php\?id=(\d+)'
+        vars:
+          - category
+          - torrentName
+          - torrentSize
+          - uploader
+          - baseUrl
+          - torrentId
 
-  match:
-    torrenturl: "{{ .baseUrl }}action=download&id={{ .torrentId }}&authkey={{ .authkey }}&torrent_pass={{ .torrent_pass }}"
+    match:
+      infourl: "/torrents.php?id={{ .torrentId }}"
+      torrenturl: "/torrents.php?action=download&id={{ .torrentId }}&authkey={{ .authkey }}&torrent_pass={{ .torrent_pass }}"

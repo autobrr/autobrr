@@ -1,0 +1,67 @@
+---
+#id: romanianmetaltorrents
+name: Romanian Metal Torrents
+identifier: romanianmetaltorrents
+description: Romanian Metal Torrents (RMT) is a private torrent tracker for METAL MUSIC.
+language: en-us
+urls:
+  - https://metal.iplay.ro/
+privacy: private
+protocol: torrent
+supports:
+  - irc
+  - rss
+source: custom
+settings:
+  - name: passkey
+    type: secret
+    required: true
+    label: Passkey
+    help: "Go to your profile and copy your passkey"
+
+irc:
+  network: iPLAY
+  server: irc.iplay.ro
+  port: 6667
+  tls: false
+  channels:
+    - "#metal"
+  announcers:
+    - Metal
+  settings:
+    - name: nick
+      type: text
+      required: true
+      label: Nick
+      help: Bot nick. Eg. user_bot
+
+    - name: auth.account
+      type: text
+      required: true
+      label: NickServ Account
+      help: NickServ account. Make sure to group your user and bot.
+
+    - name: auth.password
+      type: secret
+      required: true
+      label: NickServ Password
+      help: NickServ password
+
+  parse:
+    type: single
+    lines:
+      - test:
+          - "New torrent: Artist-Album-2022-GROUP -- [Black Metal] -- https://metal.iplay.ro/details.php?id=000000 -- by Anonymous"
+          - "New torrent: Artist-Album -[WEB | FLAC]- RMT -- [FreeLeech!] -- [-Discography/Album Pack] -- https://metal.iplay.ro/details.php?id=000000 -- by Anonymous"
+        pattern: 'New torrent: (.*?) (?:-- \[(.*)!\] )?-- \[(.*)] -- (https?://.+/).*id=(.*) -- by (.*)'
+        vars:
+          - torrentName
+          - freeleech
+          - category
+          - baseUrl
+          - torrentId
+          - uploader
+
+    match:
+      infourl: "/details.php?id={{ .torrentId }}"
+      torrenturl: "/download2.php?id={{ .torrentId }}&passkey={{ .passkey }}"

@@ -6,7 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"html"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"strings"
 	"time"
@@ -73,7 +73,7 @@ func (s *telegramSender) Send(event domain.NotificationEvent, payload domain.Not
 		return errors.Wrap(err, "could not make request: %+v", req)
 	}
 
-	body, err := ioutil.ReadAll(res.Body)
+	body, err := io.ReadAll(res.Body)
 	if err != nil {
 		s.log.Error().Err(err).Msgf("telegram client request error: %v", event)
 		return errors.Wrap(err, "could not read data")

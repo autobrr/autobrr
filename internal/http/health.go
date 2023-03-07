@@ -5,7 +5,7 @@ import (
 
 	"github.com/autobrr/autobrr/internal/database"
 
-	"github.com/go-chi/chi"
+	"github.com/go-chi/chi/v5"
 )
 
 type healthHandler struct {

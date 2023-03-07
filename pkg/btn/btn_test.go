@@ -1,9 +1,10 @@
 package btn
 
 import (
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"strings"
 	"testing"
 
@@ -34,7 +35,7 @@ func TestAPI(t *testing.T) {
 		//}
 
 		// read json response
-		jsonPayload, _ := ioutil.ReadFile("testdata/btn_get_user_info.json")
+		jsonPayload, _ := os.ReadFile("testdata/btn_get_user_info.json")
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		w.Write(jsonPayload)
@@ -90,7 +91,7 @@ func TestClient_GetTorrentByID(t *testing.T) {
 		}
 
 		defer r.Body.Close()
-		data, err := ioutil.ReadAll(r.Body)
+		data, err := io.ReadAll(r.Body)
 		if err != nil {
 			t.Errorf("expected error to be nil got %v", err)
 		}
@@ -105,7 +106,7 @@ func TestClient_GetTorrentByID(t *testing.T) {
 		}
 
 		if !strings.Contains(string(data), key) {
-			jsonPayload, _ := ioutil.ReadFile("testdata/btn_bad_creds.json")
+			jsonPayload, _ := os.ReadFile("testdata/btn_bad_creds.json")
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusUnauthorized)
 			w.Write(jsonPayload)
@@ -113,7 +114,7 @@ func TestClient_GetTorrentByID(t *testing.T) {
 		}
 
 		// read json response
-		jsonPayload, _ := ioutil.ReadFile("testdata/btn_get_torrent_by_id.json")
+		jsonPayload, _ := os.ReadFile("testdata/btn_get_torrent_by_id.json")
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		w.Write(jsonPayload)

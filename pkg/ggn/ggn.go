@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -58,39 +58,41 @@ type Group struct {
 	CategoryName string   `json:"categoryName"`
 	MasterGroup  int      `json:"masterGroup"`
 	Time         string   `json:"time"`
-	GameInfo     struct {
-		Screenshots []string `json:"screenshots"`
-		Trailer     string   `json:"trailer"`
-		Rating      string   `json:"rating"`
-		MetaRating  struct {
-			Score   string `json:"score"`
-			Percent string `json:"percent"`
-			Link    string `json:"link"`
-		} `json:"metaRating"`
-		IgnRating struct {
-			Score   string `json:"score"`
-			Percent string `json:"percent"`
-			Link    string `json:"link"`
-		} `json:"ignRating"`
-		GamespotRating struct {
-			Score   string `json:"score"`
-			Percent string `json:"percent"`
-			Link    string `json:"link"`
-		} `json:"gamespotRating"`
-		Weblinks struct {
-			GamesWebsite  string `json:"GamesWebsite"`
-			Wikipedia     string `json:"Wikipedia"`
-			Giantbomb     string `json:"Giantbomb"`
-			GameFAQs      string `json:"GameFAQs"`
-			PCGamingWiki  string `json:"PCGamingWiki"`
-			Steam         string `json:"Steam"`
-			Amazon        string `json:"Amazon"`
-			GOG           string `json:"GOG"`
-			HowLongToBeat string `json:"HowLongToBeat"`
-		} `json:"weblinks"`
-	} `json:"gameInfo"`
-	Tags     []string `json:"tags"`
-	Platform string   `json:"platform"`
+	Tags         []string `json:"tags"`
+	Platform     string   `json:"platform"`
+}
+
+type GameInfo struct {
+	Screenshots []string `json:"screenshots"`
+	Trailer     string   `json:"trailer"`
+	Rating      string   `json:"rating"`
+	MetaRating  struct {
+		Score   string `json:"score"`
+		Percent string `json:"percent"`
+		Link    string `json:"link"`
+	} `json:"metaRating"`
+	IgnRating struct {
+		Score   string `json:"score"`
+		Percent string `json:"percent"`
+		Link    string `json:"link"`
+	} `json:"ignRating"`
+	GamespotRating struct {
+		Score   string `json:"score"`
+		Percent string `json:"percent"`
+		Link    string `json:"link"`
+	} `json:"gamespotRating"`
+	Weblinks struct {
+		GamesWebsite  string `json:"GamesWebsite"`
+		Wikipedia     string `json:"Wikipedia"`
+		Giantbomb     string `json:"Giantbomb"`
+		GameFAQs      string `json:"GameFAQs"`
+		PCGamingWiki  string `json:"PCGamingWiki"`
+		Steam         string `json:"Steam"`
+		Amazon        string `json:"Amazon"`
+		GOG           string `json:"GOG"`
+		HowLongToBeat string `json:"HowLongToBeat"`
+	} `json:"weblinks"`
+	//`json:"gameInfo"`
 }
 
 type Torrent struct {
@@ -201,7 +203,7 @@ func (c *client) GetTorrentByID(torrentID string) (*domain.TorrentBasic, error) 
 
 	defer resp.Body.Close()
 
-	body, readErr := ioutil.ReadAll(resp.Body)
+	body, readErr := io.ReadAll(resp.Body)
 	if readErr != nil {
 		return nil, errors.Wrap(readErr, "error reading body")
 	}

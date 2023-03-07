@@ -9,13 +9,13 @@ import (
 	"github.com/autobrr/autobrr/pkg/radarr"
 )
 
-func (s *service) radarr(action domain.Action, release domain.Release) ([]string, error) {
+func (s *service) radarr(ctx context.Context, action *domain.Action, release domain.Release) ([]string, error) {
 	s.log.Trace().Msg("action RADARR")
 
 	// TODO validate data
 
 	// get client for action
-	client, err := s.clientSvc.FindByID(context.TODO(), action.ClientID)
+	client, err := s.clientSvc.FindByID(ctx, action.ClientID)
 	if err != nil {
 		return nil, errors.Wrap(err, "error finding client: %v", action.ClientID)
 	}
@@ -44,14 +44,15 @@ func (s *service) radarr(action domain.Action, release domain.Release) ([]string
 	r := radarr.Release{
 		Title:            release.TorrentName,
 		DownloadUrl:      release.TorrentURL,
+		MagnetUrl:        release.MagnetURI,
 		Size:             int64(release.Size),
 		Indexer:          release.Indexer,
-		DownloadProtocol: "torrent",
-		Protocol:         "torrent",
+		DownloadProtocol: string(release.Protocol),
+		Protocol:         string(release.Protocol),
 		PublishDate:      time.Now().Format(time.RFC3339),
 	}
 
-	rejections, err := arr.Push(r)
+	rejections, err := arr.Push(ctx, r)
 	if err != nil {
 		return nil, errors.Wrap(err, "radarr failed to push release: %v", r)
 	}

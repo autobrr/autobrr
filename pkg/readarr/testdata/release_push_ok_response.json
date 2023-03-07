@@ -1,0 +1,37 @@
+{
+  "guid": "PUSH-https://www.mock-indexer.test/tor/download.php?tid=000000",
+  "quality": {
+    "quality": {
+      "id": 3,
+      "name": "EPUB"
+    },
+    "revision": {
+      "version": 1,
+      "real": 0,
+      "isRepack": false
+    }
+  },
+  "qualityWeight": 301,
+  "age": 0,
+  "ageHours": 0.00138141025,
+  "ageMinutes": 0.08288463833333333,
+  "size": 1048576,
+  "indexerId": 0,
+  "indexer": "mock-indexer",
+  "releaseHash": "",
+  "title": "The Best Book by Famous Author [English / epub, mobi]",
+  "discography": false,
+  "sceneSource": false,
+  "authorName": "Famous Author",
+  "bookTitle": "The best book",
+  "approved": true,
+  "temporarilyRejected": false,
+  "rejected": false,
+  "rejections": [],
+  "publishDate": "2022-10-14T17:36:15Z",
+  "downloadUrl": "https://www.mock-indexer.test/tor/download.php?tid=000000",
+  "downloadAllowed": true,
+  "releaseWeight": 0,
+  "preferredWordScore": 0,
+  "protocol": "torrent"
+}

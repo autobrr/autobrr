@@ -2,6 +2,7 @@ package torznab
 
 import (
 	"bytes"
+	"context"
 	"encoding/xml"
 	"io"
 	"log"
@@ -15,8 +16,9 @@ import (
 )
 
 type Client interface {
-	GetFeed() ([]FeedItem, error)
-	GetCaps() (*Caps, error)
+	FetchFeed(ctx context.Context) (*Feed, error)
+	FetchCaps(ctx context.Context) (*Caps, error)
+	GetCaps() *Caps
 }
 
 type client struct {
@@ -28,6 +30,8 @@ type client struct {
 	UseBasicAuth bool
 	BasicAuth    BasicAuth
 
+	Capabilities *Caps
+
 	Log *log.Logger
 }
 
@@ -37,8 +41,9 @@ type BasicAuth struct {
 }
 
 type Config struct {
-	Host   string
-	ApiKey string
+	Host    string
+	ApiKey  string
+	Timeout time.Duration
 
 	UseBasicAuth bool
 	BasicAuth    BasicAuth
@@ -46,9 +51,14 @@ type Config struct {
 	Log *log.Logger
 }
 
+type Capabilities struct {
+	Search     Searching
+	Categories Categories
+}
+
 func NewClient(config Config) Client {
 	httpClient := &http.Client{
-		Timeout: time.Second * 20,
+		Timeout: config.Timeout,
 	}
 
 	c := &client{
@@ -65,17 +75,21 @@ func NewClient(config Config) Client {
 	return c
 }
 
-func (c *client) get(endpoint string, opts map[string]string) (int, *Response, error) {
+func (c *client) get(ctx context.Context, endpoint string, opts map[string]string) (int, *Feed, error) {
 	params := url.Values{
 		"t": {"search"},
 	}
 
+	if c.ApiKey != "" {
+		params.Add("apikey", c.ApiKey)
+	}
+
 	u, err := url.Parse(c.Host)
 	u.Path = strings.TrimSuffix(u.Path, "/")
 	u.RawQuery = params.Encode()
 	reqUrl := u.String()
 
-	req, err := http.NewRequest("GET", reqUrl, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, reqUrl, nil)
 	if err != nil {
 		return 0, nil, errors.Wrap(err, "could not build request")
 	}
@@ -84,65 +98,10 @@ func (c *client) get(endpoint string, opts map[string]string) (int, *Response, e
 		req.SetBasicAuth(c.BasicAuth.Username, c.BasicAuth.Password)
 	}
 
-	if c.ApiKey != "" {
-		req.Header.Add("X-API-Key", c.ApiKey)
-	}
-
-	resp, err := c.http.Do(req)
-	if err != nil {
-		return 0, nil, errors.Wrap(err, "could not make request. %+v", req)
-	}
-
-	defer resp.Body.Close()
-
-	var buf bytes.Buffer
-	if _, err = io.Copy(&buf, resp.Body); err != nil {
-		return resp.StatusCode, nil, errors.Wrap(err, "torznab.io.Copy")
-	}
-
-	var response Response
-	if err := xml.Unmarshal(buf.Bytes(), &response); err != nil {
-		return resp.StatusCode, nil, errors.Wrap(err, "torznab: could not decode feed")
-	}
-
-	return resp.StatusCode, &response, nil
-}
-
-func (c *client) GetFeed() ([]FeedItem, error) {
-	status, res, err := c.get("", nil)
-	if err != nil {
-		return nil, errors.Wrap(err, "could not get feed")
-	}
-
-	if status != http.StatusOK {
-		return nil, errors.New("could not get feed")
-	}
-
-	return res.Channel.Items, nil
-}
-
-func (c *client) getCaps(endpoint string, opts map[string]string) (int, *Caps, error) {
-	params := url.Values{
-		"t": {"caps"},
-	}
-
-	u, err := url.Parse(c.Host)
-	u.Path = strings.TrimSuffix(u.Path, "/")
-	u.RawQuery = params.Encode()
-	reqUrl := u.String()
-
-	req, err := http.NewRequest("GET", reqUrl, nil)
-	if err != nil {
-		return 0, nil, errors.Wrap(err, "could not build request")
-	}
-
-	if c.UseBasicAuth {
-		req.SetBasicAuth(c.BasicAuth.Username, c.BasicAuth.Password)
-	}
-
-	if c.ApiKey != "" {
-		req.Header.Add("X-API-Key", c.ApiKey)
-	}
+	// Jackett only supports api key via url param while Prowlarr does that and via header
+	//if c.ApiKey != "" {
+	//	req.Header.Add("X-API-Key", c.ApiKey)
+	//}
 
 	resp, err := c.http.Do(req)
 	if err != nil {
@@ -156,7 +115,94 @@ func (c *client) getCaps(endpoint string, opts map[string]string) (int, *Caps, e
 		return 0, nil, errors.Wrap(err, "could not dump response")
 	}
 
-	c.Log.Printf("get torrent trackers response dump: %q", dump)
+	c.Log.Printf("torznab get feed response dump: %q", dump)
+
+	var buf bytes.Buffer
+	if _, err = io.Copy(&buf, resp.Body); err != nil {
+		return resp.StatusCode, nil, errors.Wrap(err, "torznab.io.Copy")
+	}
+
+	var response Feed
+	if err := xml.Unmarshal(buf.Bytes(), &response); err != nil {
+		return resp.StatusCode, nil, errors.Wrap(err, "torznab: could not decode feed")
+	}
+
+	response.Raw = buf.String()
+
+	return resp.StatusCode, &response, nil
+}
+
+func (c *client) FetchFeed(ctx context.Context) (*Feed, error) {
+	if c.Capabilities == nil {
+		status, caps, err := c.getCaps(ctx, "?t=caps", nil)
+		if err != nil {
+			return nil, errors.Wrap(err, "could not get caps for feed")
+		}
+
+		if status != http.StatusOK {
+			return nil, errors.Wrap(err, "could not get caps for feed")
+		}
+
+		c.Capabilities = caps
+	}
+
+	status, res, err := c.get(ctx, "", nil)
+	if err != nil {
+		return nil, errors.Wrap(err, "could not get feed")
+	}
+
+	if status != http.StatusOK {
+		return nil, errors.New("could not get feed")
+	}
+
+	for _, item := range res.Channel.Items {
+		item.MapCategories(c.Capabilities.Categories.Categories)
+	}
+
+	return res, nil
+}
+
+func (c *client) getCaps(ctx context.Context, endpoint string, opts map[string]string) (int, *Caps, error) {
+	params := url.Values{
+		"t": {"caps"},
+	}
+
+	if c.ApiKey != "" {
+		params.Add("apikey", c.ApiKey)
+	}
+
+	u, err := url.Parse(c.Host)
+	u.Path = strings.TrimSuffix(u.Path, "/")
+	u.RawQuery = params.Encode()
+	reqUrl := u.String()
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, reqUrl, nil)
+	if err != nil {
+		return 0, nil, errors.Wrap(err, "could not build request")
+	}
+
+	if c.UseBasicAuth {
+		req.SetBasicAuth(c.BasicAuth.Username, c.BasicAuth.Password)
+	}
+
+	// Jackett only supports api key via url param while Prowlarr does that and via header
+	//if c.ApiKey != "" {
+	//	req.Header.Add("X-API-Key", c.ApiKey)
+	//}
+
+	resp, err := c.http.Do(req)
+	if err != nil {
+		return 0, nil, errors.Wrap(err, "could not make request. %+v", req)
+	}
+
+	defer resp.Body.Close()
+
+	dump, err := httputil.DumpResponse(resp, true)
+	if err != nil {
+		return 0, nil, errors.Wrap(err, "could not dump response")
+	}
+
+	c.Log.Printf("torznab get caps response dump: %q", dump)
 
 	if resp.StatusCode == http.StatusUnauthorized {
 		return resp.StatusCode, nil, errors.New("unauthorized")
@@ -177,9 +223,9 @@ func (c *client) getCaps(endpoint string, opts map[string]string) (int, *Caps, e
 	return resp.StatusCode, &response, nil
 }
 
-func (c *client) GetCaps() (*Caps, error) {
+func (c *client) FetchCaps(ctx context.Context) (*Caps, error) {
 
-	status, res, err := c.getCaps("?t=caps", nil)
+	status, res, err := c.getCaps(ctx, "?t=caps", nil)
 	if err != nil {
 		return nil, errors.Wrap(err, "could not get caps for feed")
 	}
@@ -191,12 +237,16 @@ func (c *client) GetCaps() (*Caps, error) {
 	return res, nil
 }
 
-func (c *client) Search(query string) ([]FeedItem, error) {
+func (c *client) GetCaps() *Caps {
+	return c.Capabilities
+}
+
+func (c *client) Search(ctx context.Context, query string) ([]FeedItem, error) {
 	v := url.Values{}
 	v.Add("q", query)
 	params := v.Encode()
 
-	status, res, err := c.get("&t=search&"+params, nil)
+	status, res, err := c.get(ctx, "&t=search&"+params, nil)
 	if err != nil {
 		return nil, errors.Wrap(err, "could not search feed")
 	}

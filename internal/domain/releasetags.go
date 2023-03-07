@@ -43,7 +43,7 @@ func init() {
 		{tag: "FLAC", title: "Free Lossless Audio Codec", regexp: "", re: nil},
 		{tag: "LiNE", title: "Line", regexp: "(?-i:L[iI]NE)", re: nil},
 		{tag: "Lossless", title: "", regexp: "(?i:Lossless)", re: nil},
-		{tag: "Log100", title: "", regexp: "(log 100%)", re: nil},
+		{tag: "Log100", title: "", regexp: "(log 100%|log \\(100%\\))", re: nil},
 		{tag: "Log", title: "", regexp: "(?:log)", re: nil},
 		{tag: "LPCM", title: "Linear Pulse-Code Modulation", regexp: "", re: nil},
 		{tag: "MP3", title: "", regexp: "", re: nil},
@@ -127,6 +127,15 @@ func init() {
 		{tag: "REREPACK", title: "Rerepack", regexp: "rerepack(?:ed)?", re: nil},
 	}
 	types["other"] = other
+
+	origin := []*TagInfo{
+		{tag: "P2P", title: "P2P", regexp: "", re: nil},
+		{tag: "Scene", title: "Scene", regexp: "", re: nil},
+		{tag: "O-Scene", title: "O-Scene", regexp: "", re: nil},
+		{tag: "Internal", title: "Internal", regexp: "", re: nil},
+		{tag: "User", title: "User", regexp: "", re: nil},
+	}
+	types["origin"] = origin
 
 	source := []*TagInfo{
 		{tag: "Cassette", title: "Cassette", regexp: "", re: nil},
@@ -299,15 +308,16 @@ func Find(infos ...*TagInfo) FindFunc {
 }
 
 type ReleaseTags struct {
-	Audio        []string
-	Channels     string
-	Source       string
-	Resolution   string
-	Container    string
-	Codec        string
-	HDR          []string
-	Other        []string
-	Bonus        []string
+	Audio      []string
+	Bonus      []string
+	Channels   string
+	Codec      string
+	Container  string
+	HDR        []string
+	Origin     string
+	Other      []string
+	Resolution string
+	Source     string
 	OtherFormats []string
 }
 
@@ -342,6 +352,9 @@ func ParseReleaseTags(tags []string) ReleaseTags {
 					case "hdr":
 						releaseTags.HDR = append(releaseTags.HDR, info.Tag())
 						continue
+					case "origin":
+						releaseTags.Origin = info.Tag()
+						break
 					case "other":
 						releaseTags.Other = append(releaseTags.Other, info.Tag())
 						continue
@@ -396,6 +409,9 @@ func ParseReleaseTagString(tags string) ReleaseTags {
 			case "hdr":
 				releaseTags.HDR = append(releaseTags.HDR, info.Tag())
 				continue
+			case "origin":
+				releaseTags.Origin = info.Tag()
+				break
 			case "other":
 				releaseTags.Other = append(releaseTags.Other, info.Tag())
 				continue

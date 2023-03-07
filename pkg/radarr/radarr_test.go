@@ -1,9 +1,11 @@
 package radarr
 
 import (
-	"io/ioutil"
+	"context"
+	"io"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"strings"
 	"testing"
 
@@ -34,13 +36,13 @@ func Test_client_Push(t *testing.T) {
 		}
 
 		defer r.Body.Close()
-		data, err := ioutil.ReadAll(r.Body)
+		data, err := io.ReadAll(r.Body)
 		if err != nil {
 			t.Errorf("expected error to be nil got %v", err)
 		}
 
 		if strings.Contains(string(data), "Minx 1 epi 9 2160p") {
-			jsonPayload, _ := ioutil.ReadFile("testdata/release_push_parse_error.json")
+			jsonPayload, _ := os.ReadFile("testdata/release_push_parse_error.json")
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusBadRequest)
 			w.Write(jsonPayload)
@@ -48,7 +50,7 @@ func Test_client_Push(t *testing.T) {
 		}
 
 		// read json response
-		jsonPayload, _ := ioutil.ReadFile("testdata/release_push_response.json")
+		jsonPayload, _ := os.ReadFile("testdata/release_push_response.json")
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		w.Write(jsonPayload)
@@ -132,7 +134,7 @@ func Test_client_Push(t *testing.T) {
 				Protocol:         "torrent",
 				PublishDate:      "2021-08-21T15:36:00Z",
 			}},
-			rejections: []string{"unable to parse: Minx 1 epi 9 2160p"},
+			rejections: []string{"[error: ] Title: Unable to parse - got value: Minx 1 epi 9 2160p"},
 			wantErr:    false,
 		},
 	}
@@ -140,7 +142,7 @@ func Test_client_Push(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			c := New(tt.fields.config)
 
-			rejections, err := c.Push(tt.args.release)
+			rejections, err := c.Push(context.Background(), tt.args.release)
 			assert.Equal(t, tt.rejections, rejections)
 			if tt.wantErr && assert.Error(t, err) {
 				assert.Equal(t, tt.err, err)
@@ -164,7 +166,7 @@ func Test_client_Test(t *testing.T) {
 				return
 			}
 		}
-		jsonPayload, _ := ioutil.ReadFile("testdata/system_status_response.json")
+		jsonPayload, _ := os.ReadFile("testdata/system_status_response.json")
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		w.Write(jsonPayload)
@@ -222,7 +224,7 @@ func Test_client_Test(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			c := New(tt.cfg)
 
-			got, err := c.Test()
+			got, err := c.Test(context.Background())
 			if tt.wantErr && assert.Error(t, err) {
 				assert.EqualErrorf(t, err, tt.expectedErr, "Error should be: %v, got: %v", tt.wantErr, err)
 			}

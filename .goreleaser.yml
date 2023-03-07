@@ -4,9 +4,13 @@ before:
 
 builds:
   - id: autobrr
+    env:
+      - CGO_ENABLED=0
     goos:
       - linux
       - windows
+      - darwin
+      - freebsd
     goarch:
       - amd64
       - arm
@@ -18,12 +22,22 @@ builds:
         goarch: arm
       - goos: windows
         goarch: arm64
+      - goos: darwin
+        goarch: arm
+      - goos: freebsd
+        goarch: arm
+      - goos: freebsd
+        goarch: arm64
     main: ./cmd/autobrr/main.go
     binary: autobrr
   - id: autobrrctl
+    env:
+      - CGO_ENABLED=0
     goos:
       - linux
       - windows
+      - darwin
+      - freebsd
     goarch:
       - amd64
       - arm
@@ -34,6 +48,12 @@ builds:
       - goos: windows
         goarch: arm
       - goos: windows
+        goarch: arm64
+      - goos: darwin
+        goarch: arm
+      - goos: freebsd
+        goarch: arm
+      - goos: freebsd
         goarch: arm64
     main: ./cmd/autobrrctl/main.go
     binary: autobrrctl

@@ -1,14 +1,10 @@
 import { Dialog, Transition } from "@headlessui/react";
 import { Fragment } from "react";
-import { Field, Form, Formik, FormikErrors, FormikValues } from "formik";
 import type { FieldProps } from "formik";
-import { XIcon } from "@heroicons/react/solid";
+import { Field, Form, Formik, FormikErrors, FormikValues } from "formik";
+import { XMarkIcon } from "@heroicons/react/24/solid";
 import Select, { components, ControlProps, InputProps, MenuProps, OptionProps } from "react-select";
-import {
-  PasswordFieldWide,
-  SwitchGroupWide,
-  TextFieldWide
-} from "../../components/inputs";
+import { PasswordFieldWide, SwitchGroupWide, TextFieldWide } from "../../components/inputs";
 import DEBUG from "../../components/debug";
 import { EventOptions, NotificationTypeOptions, SelectOption } from "../../domain/constants";
 import { useMutation } from "react-query";
@@ -80,6 +76,25 @@ function FormFieldsDiscord() {
   );
 }
 
+function FormFieldsNotifiarr() {
+  return (
+    <div className="border-t border-gray-200 dark:border-gray-700 py-4">
+      <div className="px-4 space-y-1">
+        <Dialog.Title className="text-lg font-medium text-gray-900 dark:text-white">Settings</Dialog.Title>
+        <p className="text-sm text-gray-500 dark:text-gray-400">
+          Enable the autobrr integration and optionally create a new API Key.
+        </p>
+      </div>
+
+      <PasswordFieldWide
+        name="api_key"
+        label="API Key"
+        help="Notifiarr API Key"
+      />
+    </div>
+  );
+}
+
 function FormFieldsTelegram() {
   return (
     <div className="border-t border-gray-200 dark:border-gray-700 py-4">
@@ -105,8 +120,9 @@ function FormFieldsTelegram() {
 }
 
 const componentMap: componentMapType = {
-  DISCORD: <FormFieldsDiscord/>,
-  TELEGRAM: <FormFieldsTelegram/>
+  DISCORD: <FormFieldsDiscord />,
+  NOTIFIARR: <FormFieldsNotifiarr />,
+  TELEGRAM: <FormFieldsTelegram />
 };
 
 interface NotificationAddFormValues {
@@ -210,11 +226,11 @@ export function NotificationAddForm({ isOpen, toggle }: AddProps) {
                             <div className="h-7 flex items-center">
                               <button
                                 type="button"
-                                className="bg-white dark:bg-gray-700 rounded-md text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                className="bg-white dark:bg-gray-700 rounded-md text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
                                 onClick={toggle}
                               >
                                 <span className="sr-only">Close panel</span>
-                                <XIcon className="h-6 w-6" aria-hidden="true" />
+                                <XMarkIcon className="h-6 w-6" aria-hidden="true" />
                               </button>
                             </div>
                           </div>
@@ -309,21 +325,21 @@ export function NotificationAddForm({ isOpen, toggle }: AddProps) {
                         <div className="space-x-3 flex justify-end">
                           <button
                             type="button"
-                            className="bg-white dark:bg-gray-700 py-2 px-4 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 dark:focus:ring-blue-500"
+                            className="bg-white dark:bg-gray-700 py-2 px-4 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
                             onClick={() => testNotification(values)}
                           >
                             Test
                           </button>
                           <button
                             type="button"
-                            className="bg-white dark:bg-gray-700 py-2 px-4 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 dark:focus:ring-blue-500"
+                            className="bg-white dark:bg-gray-700 py-2 px-4 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
                             onClick={toggle}
                           >
                             Cancel
                           </button>
                           <button
                             type="submit"
-                            className="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 dark:bg-blue-600 hover:bg-indigo-700 dark:hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 dark:focus:ring-blue-500"
+                            className="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
                           >
                             Save
                           </button>
@@ -378,6 +394,18 @@ interface UpdateProps {
     notification: Notification;
 }
 
+interface InitialValues {
+  id: number;
+  enabled: boolean;
+  type: NotificationType;
+  name: string;
+  webhook?: string;
+  token?: string;
+  api_key?: string;
+  channel?: string;
+  events: NotificationEvent[];
+}
+
 export function NotificationUpdateForm({ isOpen, toggle, notification }: UpdateProps) {
   const mutation = useMutation(
     (notification: Notification) => APIClient.notifications.update(notification),
@@ -421,19 +449,20 @@ export function NotificationUpdateForm({ isOpen, toggle, notification }: UpdateP
     testMutation.mutate(data as Notification);
   };
 
-  const initialValues = {
+  const initialValues: InitialValues = {
     id: notification.id,
     enabled: notification.enabled,
     type: notification.type,
     name: notification.name,
     webhook: notification.webhook,
     token: notification.token,
+    api_key: notification.api_key,
     channel: notification.channel,
     events: notification.events || []
   };
 
   return (
-    <SlideOver
+    <SlideOver<InitialValues>
       type="UPDATE"
       title="Notification"
       isOpen={isOpen}

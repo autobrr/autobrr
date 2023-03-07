@@ -15,13 +15,18 @@ interface Filter {
   use_regex: boolean;
   match_release_groups: string;
   except_release_groups: string;
+  match_release_tags: string;
+  except_release_tags: string;
+  use_regex_release_tags: boolean;
   scene: boolean;
   origins: string[];
+  except_origins: string[];
   freeleech: boolean;
   freeleech_percent: string;
   shows: string;
   seasons: string;
   episodes: string;
+  smart_episode: boolean;
   resolutions: string[];
   codecs: string[];
   sources: string[];
@@ -50,12 +55,23 @@ interface Filter {
   except_categories: string;
   match_uploaders: string;
   except_uploaders: string;
+  match_language: string[];
+  except_language: string[];
   tags: string;
   except_tags: string;
   tags_any: string;
   except_tags_any: string;
+  actions_count: number;
   actions: Action[];
   indexers: Indexer[];
+  external_script_enabled: boolean;
+  external_script_cmd: string;
+  external_script_args: string;
+  external_script_expect_status: number;
+  external_webhook_enabled: boolean;
+  external_webhook_host: string;
+  external_webhook_data: string;
+  external_webhook_expect_status: number;
 }
 
 interface Action {
@@ -72,6 +88,8 @@ interface Action {
   save_path?: string;
   paused?: boolean;
   ignore_rules?: boolean;
+  skip_hash_check: boolean;
+  content_layout?: ActionContentLayout;
   limit_upload_speed?: number;
   limit_download_speed?: number;
   limit_ratio?: number;
@@ -88,5 +106,7 @@ interface Action {
   filter_id?: number;
   client_id?: number;
 }
+
+type ActionContentLayout = "ORIGINAL" | "SUBFOLDER_CREATE" | "SUBFOLDER_NONE";
 
 type ActionType = "TEST" | "EXEC" | "WATCH_FOLDER" | "WEBHOOK" | DownloadClientType;

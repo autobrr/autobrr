@@ -1,0 +1,71 @@
+---
+#id: scenehd
+name: SceneHD
+identifier: scenehd
+description: SceneHD (SCHD) is a private torrent tracker for HD MOVIES / TV.
+language: en-us
+urls:
+  - https://scenehd.org/
+privacy: private
+protocol: torrent
+supports:
+  - irc
+  - rss
+source: custom
+settings:
+  - name: passkey
+    type: secret
+    required: true
+    label: Passkey
+    help: "Go to https://scenehd.org/getrss.php and extract your Passkey"
+
+irc:
+  network: SceneHD
+  server: irc.scenehd.eu
+  port: 6697
+  tls: true
+  channels:
+    - "#announce"
+  announcers:
+    - SceneHD
+  settings:
+    - name: nick
+      type: text
+      required: true
+      label: Nick
+      help: Bot nick. Eg. user_bot
+
+    - name: auth.account
+      type: text
+      required: false
+      label: NickServ Account
+      help: NickServ account. Make sure to group your user and bot.
+
+    - name: auth.password
+      type: secret
+      required: false
+      label: NickServ Password
+      help: NickServ password
+
+    - name: invite_command
+      type: secret
+      default: "SceneHD .invite IRCKEY #announce"
+      required: true
+      label: Invite command
+      help: Invite auth with SceneHD. Replace IRCKEY with your IRC key
+
+  parse:
+    type: single
+    lines:
+      - test:
+          - "[NEW] Some.Show.S08E20.EXTENDED.720p.BluRay.X264-GROUP [TV/720] https://scenehd.org/details.php?id=00000"
+        pattern: '\[NEW] (.+) \[(.+)] (https?\:\/\/.+\/).*id=(\d+)'
+        vars:
+          - torrentName
+          - category
+          - baseUrl
+          - torrentId
+
+    match:
+      infourl: "/details.php?id={{ .torrentId }}"
+      torrenturl: "/download.php?id={{ .torrentId }}&passkey={{ .passkey }}"

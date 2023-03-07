@@ -1,14 +1,9 @@
 import React from "react";
+import type { FieldInputProps, FieldMetaProps, FieldProps, FormikProps, FormikValues } from "formik";
 import { Field } from "formik";
-import type {
-  FieldInputProps,
-  FieldMetaProps,
-  FieldProps,
-  FormikProps,
-  FormikValues
-} from "formik";
 import { Switch as HeadlessSwitch } from "@headlessui/react";
 import { classNames } from "../../utils";
+import { CustomTooltip } from "../tooltips/CustomTooltip";
 
 type SwitchProps<V = unknown> = {
     label?: string
@@ -47,7 +42,7 @@ export const Switch = ({
         }}
 
         className={classNames(
-          checked ? "bg-teal-500 dark:bg-blue-500" : "bg-gray-200 dark:bg-gray-600",
+          checked ? "bg-blue-500" : "bg-gray-200 dark:bg-gray-600",
           "ml-4 relative inline-flex flex-shrink-0 h-6 w-11 border-2 border-transparent rounded-full cursor-pointer transition-colors ease-in-out duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
         )}
       >
@@ -74,18 +69,27 @@ interface SwitchGroupProps {
     label?: string;
     description?: string;
     className?: string;
+    heading?: boolean;
+    tooltip?: JSX.Element;
 }
 
 const SwitchGroup = ({
   name,
   label,
-  description
+  description,
+  tooltip,
+  heading
 }: SwitchGroupProps) => (
   <HeadlessSwitch.Group as="ol" className="py-4 flex items-center justify-between">
     {label && <div className="flex flex-col">
-      <HeadlessSwitch.Label as="p" className="text-sm font-medium text-gray-900 dark:text-gray-100"
+      <HeadlessSwitch.Label as={heading ? "h2" : "p"} className={classNames("flex float-left cursor-default mb-2 text-xs font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wide", heading ? "text-lg" : "text-sm")}
         passive>
-        {label}
+        <div className="flex">
+          {label}
+          {tooltip && (
+            <CustomTooltip anchorId={name}>{tooltip}</CustomTooltip>
+          )}
+        </div>
       </HeadlessSwitch.Label>
       {description && (
         <HeadlessSwitch.Description className="text-sm mt-1 text-gray-500 dark:text-gray-400">
@@ -109,7 +113,7 @@ const SwitchGroup = ({
             setFieldValue(field?.name ?? "", value);
           }}
           className={classNames(
-            field.value ? "bg-teal-500 dark:bg-blue-500" : "bg-gray-200",
+            field.value ? "bg-blue-500" : "bg-gray-200",
             "ml-4 relative inline-flex flex-shrink-0 h-6 w-11 border-2 border-transparent rounded-full cursor-pointer transition-colors ease-in-out duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
           )}
         >

@@ -1,18 +1,10 @@
-import React, {
-  FC,
-  forwardRef,
-  ReactNode
-} from "react";
-import {
-  FieldError,
-  UseFormRegister,
-  Path,
-  RegisterOptions, DeepMap
-} from "react-hook-form";
+import React, { FC, forwardRef, ReactNode } from "react";
+import { DeepMap, FieldError, Path, RegisterOptions, UseFormRegister } from "react-hook-form";
 import { classNames, get } from "../../utils";
 import { useToggle } from "../../hooks/hooks";
-import { EyeIcon, EyeOffIcon } from "@heroicons/react/solid";
+import { EyeIcon, EyeSlashIcon } from "@heroicons/react/24/solid";
 import { ErrorMessage } from "@hookform/error-message";
+import type { FieldValues } from "react-hook-form";
 
 export type FormErrorMessageProps = {
   className?: string;
@@ -90,7 +82,7 @@ export const Input: FC<InputProps> = forwardRef<HTMLInputElement, InputProps>(
 export type FormInputProps<TFormValues> = {
   name: Path<TFormValues>;
   rules?: RegisterOptions;
-  register?: UseFormRegister<TFormValues>;
+  register?: UseFormRegister<TFormValues & FieldValues>;
   errors?: Partial<DeepMap<TFormValues, FieldError>>;
 } & Omit<InputProps, "name">;
 
@@ -125,7 +117,7 @@ export const TextInput = <TFormValues extends Record<string, unknown>>({
           aria-invalid={hasError}
           className={classNames(
             "mt-2 block w-full dark:bg-gray-800 dark:text-gray-100 rounded-md",
-            hasError ? "focus:ring-red-500 focus:border-red-500 border-red-500" : "focus:ring-indigo-500 dark:focus:ring-blue-500 focus:border-indigo-500 dark:focus:border-blue-500 border-gray-300 dark:border-gray-700"
+            hasError ? "focus:ring-red-500 focus:border-red-500 border-red-500" : "focus:ring-blue-500 dark:focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-500 border-gray-300 dark:border-gray-700"
           )}
           {...props}
           {...(register && register(name, rules))}
@@ -177,13 +169,13 @@ export const PasswordInput = <TFormValues extends Record<string, unknown>>({
             type={isVisible ? "text" : "password"}
             className={classNames(
               "mt-2 block w-full dark:bg-gray-800 dark:text-gray-100 rounded-md",
-              hasError ? "focus:ring-red-500 focus:border-red-500 border-red-500" : "focus:ring-indigo-500 dark:focus:ring-blue-500 focus:border-indigo-500 dark:focus:border-blue-500 border-gray-300 dark:border-gray-700"
+              hasError ? "focus:ring-red-500 focus:border-red-500 border-red-500" : "focus:ring-blue-500 dark:focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-500 border-gray-300 dark:border-gray-700"
             )}
             {...props}
             {...(register && register(name, rules))}
           />
           <div className="absolute inset-y-0 right-0 px-3 flex items-center" onClick={toggleVisibility}>
-            {!isVisible ? <EyeIcon className="h-5 w-5 text-gray-400 hover:text-gray-500" aria-hidden="true" /> : <EyeOffIcon className="h-5 w-5 text-gray-400 hover:text-gray-500" aria-hidden="true" />}
+            {!isVisible ? <EyeIcon className="h-5 w-5 text-gray-400 hover:text-gray-500" aria-hidden="true" /> : <EyeSlashIcon className="h-5 w-5 text-gray-400 hover:text-gray-500" aria-hidden="true" />}
           </div>
         </div>
         <ErrorMessage
