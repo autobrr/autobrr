@@ -257,7 +257,7 @@ function FormFieldsSabnzbd() {
       <TextFieldWide
         name="host"
         label="Host"
-        help="Eg. http://ip:port"
+        help="Eg. http://ip:port or https://url.com/sabnzbd"
         // tooltip={<div><p>See guides for how to connect to qBittorrent for various server types in our docs.</p><br /><p>Dedicated servers:</p><a href='https://autobrr.com/configuration/download-clients/dedicated#qbittorrent' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/configuration/download-clients/dedicated#qbittorrent</a><p>Shared seedbox providers:</p><a href='https://autobrr.com/configuration/download-clients/shared-seedboxes#qbittorrent' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/configuration/download-clients/shared-seedboxes#qbittorrent</a></div>}
       />
 
