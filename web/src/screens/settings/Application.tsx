@@ -181,8 +181,7 @@ function ApplicationSettings() {
         <ul className="divide-y divide-gray-200 dark:divide-gray-700">
           <div className="px-4 sm:px-6 py-1">
             <Checkbox
-              label="Debug mode"
-              description="Frontend only. To change log level for backend, update config.toml"
+              label="WebUI Debug mode"
               value={settings.debug}
               setValue={(newValue: boolean) => setSettings({
                 ...settings,
