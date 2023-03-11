@@ -55,7 +55,7 @@ func main() {
 		fmt.Fprintf(flag.CommandLine.Output(), "Version: %v\nCommit: %v\nBuild: %v\n", version, commit, date)
 
 		// get the latest release tag from Github
-		resp, err := http.Get(fmt.Sprintf("https://api.github.com/repos/%s/%s/releases/latest", owner, repo))
+		resp, err := http.Get(fmt.Sprintf("https://api.autobrr.com/repos/%s/%s/releases/latest", owner, repo))
 		if err == nil && resp.StatusCode == http.StatusOK {
 			defer resp.Body.Close()
 			var rel struct {
