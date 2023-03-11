@@ -54,7 +54,7 @@ func main() {
 	case "version":
 		fmt.Fprintf(flag.CommandLine.Output(), "Version: %v\nCommit: %v\nBuild: %v\n", version, commit, date)
 
-		// get the latest release tag from Github
+		// get the latest release tag from brr-api
 		resp, err := http.Get(fmt.Sprintf("https://api.autobrr.com/repos/%s/%s/releases/latest", owner, repo))
 		if err == nil && resp.StatusCode == http.StatusOK {
 			defer resp.Body.Close()
