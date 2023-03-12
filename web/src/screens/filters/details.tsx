@@ -321,39 +321,98 @@ export default function FilterDetails() {
 export function General({ values }: AdvancedProps){
 
   const handleExportJson = () => {
-    const filteredValues = { ...values };
-    delete filteredValues.id;
-    delete filteredValues.name;
-    delete filteredValues.indexers;
-    delete filteredValues.actions;
-    delete filteredValues.external_script_enabled;
-    delete filteredValues.external_script_cmd;
-    delete filteredValues.external_script_args;
-    delete filteredValues.external_script_expect_status;
-    delete filteredValues.external_webhook_enabled;
-    delete filteredValues.external_webhook_host;
-    delete filteredValues.external_webhook_data;
-    delete filteredValues.external_webhook_expect_status;
+    const filteredValues = {
+      enabled: values.enabled,
+      min_size: values.min_size,
+      max_size: values.max_size,
+      delay: values.delay,
+      priority: values.priority,
+      max_downloads: values.max_downloads,
+      max_downloads_unit: values.max_downloads_unit,
+      use_regex: values.use_regex,
+      shows: values.shows,
+      years: values.years,
+      resolutions: values.resolutions,
+      sources: values.sources,
+      codecs: values.codecs,
+      containers: values.containers,
+      match_hdr: values.match_hdr,
+      except_hdr: values.except_hdr,
+      match_other: values.match_other,
+      except_other: values.except_other,
+      seasons: values.seasons,
+      episodes: values.episodes,
+      smart_episode: values.smart_episode,
+      match_releases: values.match_releases,
+      except_releases: values.except_releases,
+      match_release_groups: values.match_release_groups,
+      except_release_groups: values.except_release_groups,
+      match_release_tags: values.match_release_tags,
+      except_release_tags: values.except_release_tags,
+      use_regex_release_tags: values.use_regex_release_tags,
+      match_categories: values.match_categories,
+      except_categories: values.except_categories,
+      tags: values.tags,
+      except_tags: values.except_tags,
+      match_uploaders: values.match_uploaders,
+      except_uploaders: values.except_uploaders,
+      match_language: values.match_language,
+      except_language: values.except_language,
+      freeleech: values.freeleech,
+      freeleech_percent: values.freeleech_percent,
+      formats: values.formats,
+      quality: values.quality,
+      media: values.media,
+      match_release_types: values.match_release_types,
+      log_score: values.log_score,
+      log: values.log,
+      cue: values.cue,
+      perfect_flac: values.perfect_flac,
+      artists: values.artists,
+      albums: values.albums,
+      origins: values.origins,
+      except_origins: values.except_origins,
+      indexers: values.indexers,
+      actions: values.actions,
+      external_script_enabled: values.external_script_enabled,
+      external_script_cmd: values.external_script_cmd,
+      external_script_args: values.external_script_args,
+      external_script_expect_status: values.external_script_expect_status,
+      external_webhook_enabled: values.external_webhook_enabled,
+      external_webhook_host: values.external_webhook_host,
+      external_webhook_data: values.external_webhook_data,
+      external_webhook_expect_status: values.external_webhook_expect_status
+    };
     
-    const json = JSON.stringify(filteredValues);
-    
+    const mergedValues = Object.assign({}, values, filteredValues);
+    const json = JSON.stringify(mergedValues);
+  
     navigator.clipboard.writeText(json).then(() => {
       toast.custom((t) => <Toast type="success" body="Filter copied to clipboard." t={t}/>);
     }, () => {
       toast.custom((t) => <Toast type="error" body="Failed to copy JSON to clipboard." t={t}/>);
     });
   };
+  
+
+  const formik = useFormikContext();
 
   const handleImportJson = async () => {
     try {
       const clipboardData = await navigator.clipboard.readText();
       const importedData = JSON.parse(clipboardData);
-
+  
+      console.log(importedData); // Add this line to inspect the imported data
+  
+      formik.setValues(importedData);
+  
       toast.custom((t) => <Toast type="success" body="JSON data imported successfully." t={t}/>);
     } catch (error) {
       toast.custom((t) => <Toast type="error" body="Failed to import JSON data. Please check your input." t={t}/>);
     }
   };
+  
+  
 
   const { isLoading, data: indexers } = useQuery(
     ["filters", "indexer_list"],
