@@ -56,15 +56,25 @@ func main() {
 
 		// get the latest release tag from brr-api
 		resp, err := http.Get(fmt.Sprintf("https://api.autobrr.com/repos/%s/%s/releases/latest", owner, repo))
-		if err == nil && resp.StatusCode == http.StatusOK {
-			defer resp.Body.Close()
-			var rel struct {
-				TagName string `json:"tag_name"`
-			}
-			if err := json.NewDecoder(resp.Body).Decode(&rel); err == nil {
-				fmt.Fprintf(flag.CommandLine.Output(), "Latest release: %v\n", rel.TagName)
-			}
+		if err != nil {
+			fmt.Fprintf(flag.CommandLine.Output(), "Failed to fetch latest release from api: %v\n", err)
+			return
 		}
+		defer resp.Body.Close()
+
+		if resp.StatusCode == http.StatusNotFound {
+			fmt.Fprintf(flag.CommandLine.Output(), "No release found for %s/%s\n", owner, repo)
+			return
+		}
+
+		var rel struct {
+			TagName string `json:"tag_name"`
+		}
+		if err := json.NewDecoder(resp.Body).Decode(&rel); err != nil {
+			fmt.Fprintf(flag.CommandLine.Output(), "Failed to decode response from api: %v\n", err)
+			return
+		}
+		fmt.Fprintf(flag.CommandLine.Output(), "Latest release: %v\n", rel.TagName)
 
 	case "create-user":
 
