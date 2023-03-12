@@ -1,4 +1,4 @@
-import React, { useRef } from "react";
+import React, { useRef, useState } from "react";
 import { useMutation, useQuery } from "react-query";
 import { NavLink, Route, Routes, useLocation, useNavigate, useParams } from "react-router-dom";
 import { toast } from "react-hot-toast";
@@ -345,24 +345,23 @@ export function General({ values }: AdvancedProps){
   };
 
   const formik = useFormikContext();
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [importJson, setImportJson] = useState("");
 
-  const handleImportJson = async () => {
+  const handleImportJson = () => {
     try {
-      const clipboardData = await navigator.clipboard.readText();
-      const importedData = JSON.parse(clipboardData);
+      const importedData = JSON.parse(importJson);
   
       // Update the Formik values to match the imported data
       const updatedValues = { ...values, ...importedData };
       formik.setValues(updatedValues);
   
       toast.custom((t) => <Toast type="success" body="JSON data imported successfully." t={t}/>);
+      setShowImportModal(false); // Hide the modal after importing the data
     } catch (error) {
       toast.custom((t) => <Toast type="error" body="Failed to import JSON data. Please check your input." t={t}/>);
     }
   };
-  
-  
-  
 
   const { isLoading, data: indexers } = useQuery(
     ["filters", "indexer_list"],
@@ -411,13 +410,44 @@ export function General({ values }: AdvancedProps){
         >
   Export Filter JSON
         </button>
-        <button
-          type="button"
-          className="bg-white dark:bg-gray-700 py-2 px-4 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
-          onClick={handleImportJson}
-        >
-  Import Filter JSON
-        </button>
+        <div>
+          <button
+            type="button"
+            className="bg-white dark:bg-gray-700 py-2 px-4 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
+            onClick={() => setShowImportModal(true)}
+          >
+        Import Filter JSON
+          </button>
+          {showImportModal && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+              <div className="w-5/12 md:w-5/12 bg-white dark:bg-gray-700 p-6 rounded-md shadow-lg">
+                <h2 className="text-lg font-medium mb-4 text-white">Import Filter JSON</h2>
+                <textarea
+                  className="h-96 form-input block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm text-sm font-medium text-gray-700 dark:text-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500 mb-4"
+                  placeholder="Paste JSON data here"
+                  value={importJson}
+                  onChange={(event) => setImportJson(event.target.value)}
+                />
+                <div className="flex justify-end">
+                  <button
+                    type="button"
+                    className="bg-white dark:bg-gray-700 py-2 px-4 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500 mr-2"
+                    onClick={() => setShowImportModal(false)}
+                  >
+                Cancel
+                  </button>
+                  <button
+                    type="button"
+                    className="bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded-md shadow-sm text-sm font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                    onClick={handleImportJson}
+                  >
+                Import
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
