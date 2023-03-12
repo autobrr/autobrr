@@ -25,7 +25,6 @@ import { APIClient } from "../../api/APIClient";
 import { useToggle } from "../../hooks/hooks";
 import { classNames } from "../../utils";
 
-import { CustomTooltip } from "../../components/tooltips/CustomTooltip";
 
 import {
   CheckboxField,
@@ -300,8 +299,8 @@ export default function FilterDetails() {
               {({ values, dirty, resetForm }) => (
                 <Form>
                   <Routes>
-                    <Route index element={<General />} />
-                    <Route path="movies-tv" element={<MoviesTv />} />
+                    <Route index element={<General values={values}/>} />
+                    <Route path="movies-tv" element={<MoviesTv/>} />
                     <Route path="music" element={<Music values={values} />} />
                     <Route path="advanced" element={<Advanced values={values} />} />
                     <Route path="external" element={<External />} />
@@ -319,7 +318,43 @@ export default function FilterDetails() {
   );
 }
 
-export function General() {
+export function General({ values }: AdvancedProps){
+
+  const handleExportJson = () => {
+    const filteredValues = { ...values };
+    delete filteredValues.id;
+    delete filteredValues.name;
+    delete filteredValues.indexers;
+    delete filteredValues.actions;
+    delete filteredValues.external_script_enabled;
+    delete filteredValues.external_script_cmd;
+    delete filteredValues.external_script_args;
+    delete filteredValues.external_script_expect_status;
+    delete filteredValues.external_webhook_enabled;
+    delete filteredValues.external_webhook_host;
+    delete filteredValues.external_webhook_data;
+    delete filteredValues.external_webhook_expect_status;
+    
+    const json = JSON.stringify(filteredValues);
+    
+    navigator.clipboard.writeText(json).then(() => {
+      toast.custom((t) => <Toast type="success" body="Filter copied to clipboard." t={t}/>);
+    }, () => {
+      toast.custom((t) => <Toast type="error" body="Failed to copy JSON to clipboard." t={t}/>);
+    });
+  };
+
+  const handleImportJson = async () => {
+    try {
+      const clipboardData = await navigator.clipboard.readText();
+      const importedData = JSON.parse(clipboardData);
+
+      toast.custom((t) => <Toast type="success" body="JSON data imported successfully." t={t}/>);
+    } catch (error) {
+      toast.custom((t) => <Toast type="error" body="Failed to import JSON data. Please check your input." t={t}/>);
+    }
+  };
+
   const { isLoading, data: indexers } = useQuery(
     ["filters", "indexer_list"],
     () => APIClient.indexers.getOptions(),
@@ -334,7 +369,6 @@ export function General() {
   return (
     <div>
       <div className="mt-6 lg:pb-8">
-
         <div className="mt-6 grid grid-cols-12 gap-6">
           <TextField name="name" label="Filter name" columns={6} placeholder="eg. Filter 1" />
 
@@ -360,7 +394,22 @@ export function General() {
       <div className="border-t dark:border-gray-700">
         <SwitchGroup name="enabled" label="Enabled" description="Enable or disable this filter." />
       </div>
-
+      <div className="flex space-x-4 float-right">
+        <button
+          type="button"
+          className="bg-white dark:bg-gray-700 py-2 px-4 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
+          onClick={handleExportJson}
+        >
+  Export Filter JSON
+        </button>
+        <button
+          type="button"
+          className="bg-white dark:bg-gray-700 py-2 px-4 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
+          onClick={handleImportJson}
+        >
+  Import Filter JSON
+        </button>
+      </div>
     </div>
   );
 }
