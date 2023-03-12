@@ -371,20 +371,13 @@ export function General({ values }: AdvancedProps){
       artists: values.artists,
       albums: values.albums,
       origins: values.origins,
-      except_origins: values.except_origins,
-      indexers: values.indexers,
-      actions: values.actions,
-      external_script_enabled: values.external_script_enabled,
-      external_script_cmd: values.external_script_cmd,
-      external_script_args: values.external_script_args,
-      external_script_expect_status: values.external_script_expect_status,
-      external_webhook_enabled: values.external_webhook_enabled,
-      external_webhook_host: values.external_webhook_host,
-      external_webhook_data: values.external_webhook_data,
-      external_webhook_expect_status: values.external_webhook_expect_status
+      except_origins: values.except_origins
     };
     
     const mergedValues = Object.assign({}, values, filteredValues);
+    delete mergedValues.id;
+    delete mergedValues.name;
+    
     const json = JSON.stringify(mergedValues);
   
     navigator.clipboard.writeText(json).then(() => {
@@ -394,6 +387,7 @@ export function General({ values }: AdvancedProps){
     });
   };
   
+  
 
   const formik = useFormikContext();
 
@@ -402,7 +396,7 @@ export function General({ values }: AdvancedProps){
       const clipboardData = await navigator.clipboard.readText();
       const importedData = JSON.parse(clipboardData);
   
-      console.log(importedData); // Add this line to inspect the imported data
+      console.log(importedData);
   
       formik.setValues(importedData);
   
