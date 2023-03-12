@@ -335,7 +335,7 @@ export function General({ values }: AdvancedProps){
     delete filteredValues.external_webhook_data;
     delete filteredValues.external_webhook_expect_status;
   
-    const json = JSON.stringify(filteredValues);
+    const json = JSON.stringify(filteredValues, null, 2);
   
     navigator.clipboard.writeText(json).then(() => {
       toast.custom((t) => <Toast type="success" body="Filter copied to clipboard." t={t}/>);
