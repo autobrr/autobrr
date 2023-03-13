@@ -338,7 +338,7 @@ export function General({ values }: AdvancedProps){
   
     const json = JSON.stringify(
       {
-        "autobrr filter title": title,
+        "autobrr_filter_title": title,
         data: filteredValues
       },
       null,
