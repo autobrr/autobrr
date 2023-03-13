@@ -322,6 +322,7 @@ export function General({ values }: AdvancedProps){
 
   const handleExportJson = () => {
     const filteredValues = { ...values };
+    const title = filteredValues.name;
     delete filteredValues.id;
     delete filteredValues.name;
     delete filteredValues.indexers;
@@ -335,7 +336,14 @@ export function General({ values }: AdvancedProps){
     delete filteredValues.external_webhook_data;
     delete filteredValues.external_webhook_expect_status;
   
-    const json = JSON.stringify(filteredValues, null, 2);
+    const json = JSON.stringify(
+      {
+        "autobrr filter title": title,
+        data: filteredValues
+      },
+      null,
+      4
+    );
   
     navigator.clipboard.writeText(json).then(() => {
       toast.custom((t) => <Toast type="success" body="Filter copied to clipboard." t={t}/>);
@@ -343,6 +351,7 @@ export function General({ values }: AdvancedProps){
       toast.custom((t) => <Toast type="error" body="Failed to copy JSON to clipboard." t={t}/>);
     });
   };
+  
 
   const formik = useFormikContext();
   const [showImportModal, setShowImportModal] = useState(false);
@@ -352,8 +361,11 @@ export function General({ values }: AdvancedProps){
     try {
       const importedData = JSON.parse(importJson);
   
+      // Extract the filter data from the imported object
+      const importedFilter = importedData.data;
+  
       // Update the Formik values to match the imported data
-      const updatedValues = { ...values, ...importedData };
+      const updatedValues = { ...values, ...importedFilter };
       formik.setValues(updatedValues);
   
       toast.custom((t) => <Toast type="success" body="JSON data imported successfully." t={t}/>);
@@ -362,6 +374,7 @@ export function General({ values }: AdvancedProps){
       toast.custom((t) => <Toast type="error" body="Failed to import JSON data. Please check your input." t={t}/>);
     }
   };
+  
 
   const { isLoading, data: indexers } = useQuery(
     ["filters", "indexer_list"],
