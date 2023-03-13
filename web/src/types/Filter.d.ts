@@ -101,7 +101,6 @@ interface Action {
   webhook_headers: string[];
   filter_id?: number;
   client_id?: number;
-  rtorrent_rename: boolean;
 }
 
 type ActionContentLayout = "ORIGINAL" | "SUBFOLDER_CREATE" | "SUBFOLDER_NONE";

@@ -48,7 +48,6 @@ type Action struct {
 	FilterID              int                 `json:"filter_id,omitempty"`
 	ClientID              int32               `json:"client_id,omitempty"`
 	Client                DownloadClient      `json:"client,omitempty"`
-	RtorrentRename        bool                `json:"rtorrent_rename,omitempty"`
 }
 
 // ParseMacros parse all macros on action

@@ -185,7 +185,6 @@ CREATE TABLE action
     webhook_headers         TEXT[] DEFAULT '{}',
     client_id               INTEGER,
     filter_id               INTEGER,
-    rtorrent_rename         BOOLEAN DEFAULT false,
     FOREIGN KEY (filter_id) REFERENCES filter (id),
     FOREIGN KEY (client_id) REFERENCES client (id) ON DELETE SET NULL
 );
@@ -514,12 +513,11 @@ CREATE TABLE action_dg_tmp
     webhook_method       TEXT,
     webhook_type         TEXT,
     webhook_headers      TEXT [] default '{}'
-    rtorrent_rename      BOOLEAN DEFAULT false
 );
 
 INSERT INTO action_dg_tmp(id, name, type, enabled, exec_cmd, exec_args, watch_folder, category, tags, label, save_path,
                           paused, ignore_rules, limit_upload_speed, limit_download_speed, client_id, filter_id,
-                          webhook_host, webhook_data, webhook_method, webhook_type, webhook_headers, rtorrent_rename)
+                          webhook_host, webhook_data, webhook_method, webhook_type, webhook_headers)
 SELECT id,
        name,
        type,
@@ -541,8 +539,7 @@ SELECT id,
        webhook_data,
        webhook_method,
        webhook_type,
-       webhook_headers,
-       rtorrent_rename
+       webhook_headers
 FROM action;
 
 DROP TABLE action;
@@ -1051,7 +1048,4 @@ ADD COLUMN info_url TEXT;
 ALTER TABLE "release"
 ADD COLUMN download_url TEXT;
 	`,
-	`ALTER TABLE action
-    ADD COLUMN rtorrent_rename BOOLEAN DEFAULT FALSE;
-    `,
 }

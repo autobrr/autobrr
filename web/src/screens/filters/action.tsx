@@ -1,6 +1,6 @@
 import { AlertWarning } from "../../components/alerts";
 import { DownloadClientSelect, NumberField, Select, SwitchGroup, TextField } from "../../components/inputs";
-import { ActionContentLayoutOptions, ActionTypeNameMap, ActionTypeOptions } from "../../domain/constants";
+import { ActionContentLayoutOptions, ActionRtorrentRenameOptions, ActionTypeNameMap, ActionTypeOptions } from "../../domain/constants";
 import React, { Fragment, useRef } from "react";
 import { useQuery } from "react-query";
 import { APIClient } from "../../api/APIClient";
@@ -55,8 +55,7 @@ export function FilterActions({ filter, values }: FilterActionsProps) {
     webhook_type: "",
     webhook_method: "",
     webhook_data: "",
-    webhook_headers: [],
-    rtorrent_rename: false
+    webhook_headers: []
     //   client_id: 0,
   };
 
@@ -368,10 +367,11 @@ const TypeForm = ({ action, idx, clients }: TypeFormProps) => {
           </div>
           <div className="col-span-12 sm:col-span-6">
             <div className="col-span-6">
-              <SwitchGroup
-                name={`actions.${idx}.rtorrent_rename`}
-                label="Rename folder"
-                description="Don't add torrent's name to path"
+              <Select
+                name={`actions.${idx}.content_layout`}
+                label="Don't add torrent's name to path"
+                optionDefaultText="No"
+                options={ActionRtorrentRenameOptions}
               />
             </div>
           </div>

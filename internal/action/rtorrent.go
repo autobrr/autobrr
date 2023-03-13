@@ -41,7 +41,7 @@ func (s *service) rtorrent(ctx context.Context, action *domain.Action, release d
 			})
 		}
 		if action.SavePath != "" {
-			if action.RtorrentRename {
+			if action.ContentLayout == domain.ActionContentLayoutSubfolderNone {
 				args = append(args, &rtorrent.FieldValue{
 					Field: "d.directory_base",
 					Value: action.SavePath,
@@ -84,7 +84,7 @@ func (s *service) rtorrent(ctx context.Context, action *domain.Action, release d
 			})
 		}
 		if action.SavePath != "" {
-			if action.RtorrentRename {
+			if action.ContentLayout == domain.ActionContentLayoutSubfolderNone {
 				args = append(args, &rtorrent.FieldValue{
 					Field: "d.directory_base",
 					Value: action.SavePath,

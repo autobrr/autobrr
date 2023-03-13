@@ -84,7 +84,6 @@ func (r *ActionRepo) findByFilterID(ctx context.Context, tx *Tx, filterID int) (
 			"webhook_method",
 			"webhook_data",
 			"client_id",
-			"rtorrent_rename",
 		).
 		From("action").
 		Where(sq.Eq{"filter_id": filterID})
@@ -113,7 +112,7 @@ func (r *ActionRepo) findByFilterID(ctx context.Context, tx *Tx, filterID int) (
 		// filterID
 		var paused, ignoreRules sql.NullBool
 
-		if err := rows.Scan(&a.ID, &a.Name, &a.Type, &a.Enabled, &execCmd, &execArgs, &watchFolder, &category, &tags, &label, &savePath, &paused, &ignoreRules, &a.SkipHashCheck, &contentLayout, &limitDl, &limitUl, &limitRatio, &limitSeedTime, &a.ReAnnounceSkip, &a.ReAnnounceDelete, &a.ReAnnounceInterval, &a.ReAnnounceMaxAttempts, &webhookHost, &webhookType, &webhookMethod, &webhookData, &clientID, &a.RtorrentRename); err != nil {
+		if err := rows.Scan(&a.ID, &a.Name, &a.Type, &a.Enabled, &execCmd, &execArgs, &watchFolder, &category, &tags, &label, &savePath, &paused, &ignoreRules, &a.SkipHashCheck, &contentLayout, &limitDl, &limitUl, &limitRatio, &limitSeedTime, &a.ReAnnounceSkip, &a.ReAnnounceDelete, &a.ReAnnounceInterval, &a.ReAnnounceMaxAttempts, &webhookHost, &webhookType, &webhookMethod, &webhookData, &clientID); err != nil {
 			return nil, errors.Wrap(err, "error scanning row")
 		}
 
@@ -222,7 +221,6 @@ func (r *ActionRepo) List(ctx context.Context) ([]domain.Action, error) {
 			"webhook_method",
 			"webhook_data",
 			"client_id",
-			"rtorrent_rename",
 		).
 		From("action")
 
@@ -248,7 +246,7 @@ func (r *ActionRepo) List(ctx context.Context) ([]domain.Action, error) {
 		var clientID sql.NullInt32
 		var paused, ignoreRules sql.NullBool
 
-		if err := rows.Scan(&a.ID, &a.Name, &a.Type, &a.Enabled, &execCmd, &execArgs, &watchFolder, &category, &tags, &label, &savePath, &paused, &ignoreRules, &limitDl, &limitUl, &limitRatio, &limitSeedTime, &a.ReAnnounceSkip, &a.ReAnnounceDelete, &a.ReAnnounceInterval, &a.ReAnnounceMaxAttempts, &webhookHost, &webhookType, &webhookMethod, &webhookData, &clientID, &a.RtorrentRename); err != nil {
+		if err := rows.Scan(&a.ID, &a.Name, &a.Type, &a.Enabled, &execCmd, &execArgs, &watchFolder, &category, &tags, &label, &savePath, &paused, &ignoreRules, &limitDl, &limitUl, &limitRatio, &limitSeedTime, &a.ReAnnounceSkip, &a.ReAnnounceDelete, &a.ReAnnounceInterval, &a.ReAnnounceMaxAttempts, &webhookHost, &webhookType, &webhookMethod, &webhookData, &clientID); err != nil {
 			return nil, errors.Wrap(err, "error scanning row")
 		}
 
@@ -372,7 +370,6 @@ func (r *ActionRepo) Store(ctx context.Context, action domain.Action) (*domain.A
 			"webhook_data",
 			"client_id",
 			"filter_id",
-			"rtorrent_rename",
 		).
 		Values(
 			action.Name,
@@ -403,7 +400,6 @@ func (r *ActionRepo) Store(ctx context.Context, action domain.Action) (*domain.A
 			webhookData,
 			clientID,
 			filterID,
-			action.RtorrentRename,
 		).
 		Suffix("RETURNING id").RunWith(r.db.handler)
 
@@ -475,7 +471,6 @@ func (r *ActionRepo) Update(ctx context.Context, action domain.Action) (*domain.
 		Set("webhook_data", webhookData).
 		Set("client_id", clientID).
 		Set("filter_id", filterID).
-		Set("rtorrent_rename", action.RtorrentRename).
 		Where(sq.Eq{"id": action.ID})
 
 	query, args, err := queryBuilder.ToSql()
@@ -565,7 +560,6 @@ func (r *ActionRepo) StoreFilterActions(ctx context.Context, actions []*domain.A
 				"webhook_data",
 				"client_id",
 				"filter_id",
-				"rtorrent_rename",
 			).
 			Values(
 				action.Name,
@@ -596,7 +590,6 @@ func (r *ActionRepo) StoreFilterActions(ctx context.Context, actions []*domain.A
 				webhookData,
 				clientID,
 				filterID,
-				action.RtorrentRename,
 			).
 			Suffix("RETURNING id").RunWith(tx)
 
