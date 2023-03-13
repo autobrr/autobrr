@@ -41,10 +41,17 @@ func (s *service) rtorrent(ctx context.Context, action *domain.Action, release d
 			})
 		}
 		if action.SavePath != "" {
-			args = append(args, &rtorrent.FieldValue{
-				Field: rtorrent.DDirectory,
-				Value: action.SavePath,
-			})
+			if action.RtorrentRename {
+				args = append(args, &rtorrent.FieldValue{
+					Field: "d.directory_base",
+					Value: action.SavePath,
+				})
+			} else {
+				args = append(args, &rtorrent.FieldValue{
+					Field: rtorrent.DDirectory,
+					Value: action.SavePath,
+				})
+			}
 		}
 
 		if err := rt.Add(release.MagnetURI, args...); err != nil {
@@ -77,10 +84,17 @@ func (s *service) rtorrent(ctx context.Context, action *domain.Action, release d
 			})
 		}
 		if action.SavePath != "" {
-			args = append(args, &rtorrent.FieldValue{
-				Field: rtorrent.DDirectory,
-				Value: action.SavePath,
-			})
+			if action.RtorrentRename {
+				args = append(args, &rtorrent.FieldValue{
+					Field: "d.directory_base",
+					Value: action.SavePath,
+				})
+			} else {
+				args = append(args, &rtorrent.FieldValue{
+					Field: rtorrent.DDirectory,
+					Value: action.SavePath,
+				})
+			}
 		}
 
 		if err := rt.AddTorrent(tmpFile, args...); err != nil {

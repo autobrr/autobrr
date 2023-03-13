@@ -185,6 +185,7 @@ CREATE TABLE action
     webhook_headers         TEXT[] DEFAULT '{}',
     client_id               INTEGER,
     filter_id               INTEGER,
+	rtorrent_rename         BOOLEAN DEFAULT false,
     FOREIGN KEY (filter_id) REFERENCES filter (id),
     FOREIGN KEY (client_id) REFERENCES client (id) ON DELETE SET NULL
 );
@@ -654,5 +655,8 @@ ADD COLUMN info_url TEXT;
     
 ALTER TABLE "release"
 ADD COLUMN download_url TEXT;
+	`,
+	`ALTER TABLE action
+		ADD COLUMN rtorrent_rename BOOLEAN DEFAULT FALSE;
 	`,
 }

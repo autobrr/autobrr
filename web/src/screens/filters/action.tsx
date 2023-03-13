@@ -55,7 +55,8 @@ export function FilterActions({ filter, values }: FilterActionsProps) {
     webhook_type: "",
     webhook_method: "",
     webhook_data: "",
-    webhook_headers: []
+    webhook_headers: [],
+    rtorrent_rename: false
     //   client_id: 0,
   };
 
@@ -364,6 +365,15 @@ const TypeForm = ({ action, idx, clients }: TypeFormProps) => {
               columns={6}
               placeholder="eg. /full/path/to/download_folder"
             />
+          </div>
+          <div className="col-span-12 sm:col-span-6">
+            <div className="col-span-6">
+              <SwitchGroup
+                name={`actions.${idx}.rtorrent_rename`}
+                label="Rename folder"
+                description="Don't add torrent's name to path"
+              />
+            </div>
           </div>
         </div>
       </div>
