@@ -1,4 +1,4 @@
-import { Fragment } from "react";
+import React, { Fragment } from "react";
 import { Field, FieldProps } from "formik";
 import { Listbox, Transition } from "@headlessui/react";
 import { CheckIcon, ChevronUpDownIcon } from "@heroicons/react/24/solid";
@@ -6,6 +6,7 @@ import { MultiSelect as RMSC } from "react-multi-select-component";
 
 import { classNames, COL_WIDTHS } from "../../utils";
 import { SettingsContext } from "../../utils/Context";
+import { CustomTooltip } from "../tooltips/CustomTooltip";
 
 export interface MultiSelectOption {
     value: string | number;
@@ -21,6 +22,7 @@ interface MultiSelectProps {
     columns?: COL_WIDTHS;
     creatable?: boolean;
     disabled?: boolean;
+    tooltip?: JSX.Element;
 }
 
 export const MultiSelect = ({
@@ -29,6 +31,7 @@ export const MultiSelect = ({
   options,
   columns,
   creatable,
+  tooltip,
   disabled
 }: MultiSelectProps) => {
   const settingsContext = SettingsContext.useValue();
@@ -46,10 +49,13 @@ export const MultiSelect = ({
       )}
     >
       <label
-        className="block mb-2 text-xs font-bold tracking-wide text-gray-700 uppercase dark:text-gray-200"
-        htmlFor={label}
-      >
-        {label}
+        htmlFor={label} className="flex mb-2 text-xs font-bold tracking-wide text-gray-700 uppercase dark:text-gray-200">
+        <div className="flex">
+          {label}
+          {tooltip && (
+            <CustomTooltip anchorId={name}>{tooltip}</CustomTooltip>
+          )}
+        </div>
       </label>
 
       <Field name={name} type="select" multiple={true}>
@@ -59,7 +65,7 @@ export const MultiSelect = ({
         }: FieldProps) => (
           <RMSC
             {...field}
-            options={[...[...options, ...field.value.map((i: MultiSelectOption) => ({ value: i.value ?? i, label: i.label ?? i }))].reduce((map, obj) => map.set(obj.value, obj), new Map()).values()]}
+            options={options}
             disabled={disabled}
             labelledBy={name}
             isCreatable={creatable}
@@ -80,6 +86,7 @@ export const MultiSelect = ({
     </div>
   );
 };
+
 
 interface IndexerMultiSelectOption {
     id: number;
@@ -155,7 +162,7 @@ export function DownloadClientSelect({
             {({ open }) => (
               <>
                 <Listbox.Label className="block text-xs font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wide">
-                                    Client
+                  Client
                 </Listbox.Label>
                 <div className="mt-2 relative">
                   <Listbox.Button className="bg-white dark:bg-gray-800 relative w-full border border-gray-300 dark:border-gray-700 rounded-md shadow-sm pl-3 pr-10 py-2 text-left cursor-default focus:outline-none focus:ring-1 focus:ring-blue-500 dark:focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-500 dark:text-gray-200 sm:text-sm">
@@ -244,11 +251,13 @@ export interface SelectFieldProps {
     label: string;
     optionDefaultText: string;
     options: SelectFieldOption[];
+    tooltip?: JSX.Element;
 }
 
 export const Select = ({
   name,
   label,
+  tooltip,
   optionDefaultText,
   options
 }: SelectFieldProps) => {
@@ -265,8 +274,13 @@ export const Select = ({
           >
             {({ open }) => (
               <>
-                <Listbox.Label className="block text-xs font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wide">
-                  {label}
+                <Listbox.Label className="flex float-left mb-2 text-xs font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wide">
+                  <div className="flex">
+                    {label}
+                    {tooltip && (
+                      <CustomTooltip anchorId={name}>{tooltip}</CustomTooltip>
+                    )}
+                  </div>
                 </Listbox.Label>
                 <div className="mt-2 relative">
                   <Listbox.Button className="bg-white dark:bg-gray-800 relative w-full border border-gray-300 dark:border-gray-700 rounded-md shadow-sm pl-3 pr-10 py-2.5 text-left cursor-default focus:outline-none focus:ring-1 focus:ring-blue-500 dark:focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-500 dark:text-gray-200 sm:text-sm">

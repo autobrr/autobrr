@@ -3,6 +3,7 @@ package database
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/internal/logger"
@@ -38,6 +39,7 @@ func (r *FeedRepo) FindByID(ctx context.Context, id int) (*domain.Feed, error) {
 			"f.max_age",
 			"f.api_key",
 			"f.cookie",
+			"f.settings",
 			"f.created_at",
 			"f.updated_at",
 		).
@@ -57,15 +59,21 @@ func (r *FeedRepo) FindByID(ctx context.Context, id int) (*domain.Feed, error) {
 
 	var f domain.Feed
 
-	var apiKey, cookie sql.NullString
+	var apiKey, cookie, settings sql.NullString
 
-	if err := row.Scan(&f.ID, &f.Indexer, &f.Name, &f.Type, &f.Enabled, &f.URL, &f.Interval, &f.Timeout, &f.MaxAge, &apiKey, &cookie, &f.CreatedAt, &f.UpdatedAt); err != nil {
+	if err := row.Scan(&f.ID, &f.Indexer, &f.Name, &f.Type, &f.Enabled, &f.URL, &f.Interval, &f.Timeout, &f.MaxAge, &apiKey, &cookie, &settings, &f.CreatedAt, &f.UpdatedAt); err != nil {
 		return nil, errors.Wrap(err, "error scanning row")
-
 	}
 
 	f.ApiKey = apiKey.String
 	f.Cookie = cookie.String
+
+	var settingsJson domain.FeedSettingsJSON
+	if err = json.Unmarshal([]byte(settings.String), &settingsJson); err != nil {
+		return nil, errors.Wrap(err, "error unmarshal settings")
+	}
+
+	f.Settings = &settingsJson
 
 	return &f, nil
 }
@@ -84,6 +92,7 @@ func (r *FeedRepo) FindByIndexerIdentifier(ctx context.Context, indexer string) 
 			"f.max_age",
 			"f.api_key",
 			"f.cookie",
+			"f.settings",
 			"f.created_at",
 			"f.updated_at",
 		).
@@ -103,14 +112,21 @@ func (r *FeedRepo) FindByIndexerIdentifier(ctx context.Context, indexer string) 
 
 	var f domain.Feed
 
-	var apiKey, cookie sql.NullString
+	var apiKey, cookie, settings sql.NullString
 
-	if err := row.Scan(&f.ID, &f.Indexer, &f.Name, &f.Type, &f.Enabled, &f.URL, &f.Interval, &f.Timeout, &f.MaxAge, &apiKey, &cookie, &f.CreatedAt, &f.UpdatedAt); err != nil {
+	if err := row.Scan(&f.ID, &f.Indexer, &f.Name, &f.Type, &f.Enabled, &f.URL, &f.Interval, &f.Timeout, &f.MaxAge, &apiKey, &cookie, &settings, &f.CreatedAt, &f.UpdatedAt); err != nil {
 		return nil, errors.Wrap(err, "error scanning row")
 	}
 
 	f.ApiKey = apiKey.String
 	f.Cookie = cookie.String
+
+	var settingsJson domain.FeedSettingsJSON
+	if err = json.Unmarshal([]byte(settings.String), &settingsJson); err != nil {
+		return nil, errors.Wrap(err, "error unmarshal settings")
+	}
+
+	f.Settings = &settingsJson
 
 	return &f, nil
 }
@@ -131,6 +147,7 @@ func (r *FeedRepo) Find(ctx context.Context) ([]domain.Feed, error) {
 			"f.cookie",
 			"f.last_run",
 			"f.last_run_data",
+			"f.settings",
 			"f.created_at",
 			"f.updated_at",
 		).
@@ -154,10 +171,10 @@ func (r *FeedRepo) Find(ctx context.Context) ([]domain.Feed, error) {
 	for rows.Next() {
 		var f domain.Feed
 
-		var apiKey, cookie, lastRunData sql.NullString
+		var apiKey, cookie, lastRunData, settings sql.NullString
 		var lastRun sql.NullTime
 
-		if err := rows.Scan(&f.ID, &f.Indexer, &f.Name, &f.Type, &f.Enabled, &f.URL, &f.Interval, &f.Timeout, &f.MaxAge, &apiKey, &cookie, &lastRun, &lastRunData, &f.CreatedAt, &f.UpdatedAt); err != nil {
+		if err := rows.Scan(&f.ID, &f.Indexer, &f.Name, &f.Type, &f.Enabled, &f.URL, &f.Interval, &f.Timeout, &f.MaxAge, &apiKey, &cookie, &lastRun, &lastRunData, &settings, &f.CreatedAt, &f.UpdatedAt); err != nil {
 			return nil, errors.Wrap(err, "error scanning row")
 		}
 
@@ -165,6 +182,19 @@ func (r *FeedRepo) Find(ctx context.Context) ([]domain.Feed, error) {
 		f.LastRunData = lastRunData.String
 		f.ApiKey = apiKey.String
 		f.Cookie = cookie.String
+
+		f.Settings = &domain.FeedSettingsJSON{
+			DownloadType: domain.FeedDownloadTypeTorrent,
+		}
+
+		if settings.Valid {
+			var settingsJson domain.FeedSettingsJSON
+			if err = json.Unmarshal([]byte(settings.String), &settingsJson); err != nil {
+				return nil, errors.Wrap(err, "error unmarshal settings")
+			}
+
+			f.Settings = &settingsJson
+		}
 
 		feeds = append(feeds, f)
 	}
@@ -200,6 +230,11 @@ func (r *FeedRepo) GetLastRunDataByID(ctx context.Context, id int) (string, erro
 }
 
 func (r *FeedRepo) Store(ctx context.Context, feed *domain.Feed) error {
+	settings, err := json.Marshal(feed.Settings)
+	if err != nil {
+		return errors.Wrap(err, "error marshaling feed settings json data")
+	}
+
 	queryBuilder := r.db.squirrel.
 		Insert("feed").
 		Columns(
@@ -211,6 +246,7 @@ func (r *FeedRepo) Store(ctx context.Context, feed *domain.Feed) error {
 			"timeout",
 			"api_key",
 			"indexer_id",
+			"settings",
 		).
 		Values(
 			feed.Name,
@@ -221,6 +257,7 @@ func (r *FeedRepo) Store(ctx context.Context, feed *domain.Feed) error {
 			feed.Timeout,
 			feed.ApiKey,
 			feed.IndexerID,
+			settings,
 		).
 		Suffix("RETURNING id").RunWith(r.db.handler)
 
@@ -236,6 +273,11 @@ func (r *FeedRepo) Store(ctx context.Context, feed *domain.Feed) error {
 }
 
 func (r *FeedRepo) Update(ctx context.Context, feed *domain.Feed) error {
+	settings, err := json.Marshal(feed.Settings)
+	if err != nil {
+		return errors.Wrap(err, "error marshaling feed settings json data")
+	}
+
 	queryBuilder := r.db.squirrel.
 		Update("feed").
 		Set("name", feed.Name).
@@ -247,6 +289,7 @@ func (r *FeedRepo) Update(ctx context.Context, feed *domain.Feed) error {
 		Set("max_age", feed.MaxAge).
 		Set("api_key", feed.ApiKey).
 		Set("cookie", feed.Cookie).
+		Set("settings", settings).
 		Set("updated_at", sq.Expr("CURRENT_TIMESTAMP")).
 		Where(sq.Eq{"id": feed.ID})
 

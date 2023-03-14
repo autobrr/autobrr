@@ -108,12 +108,17 @@ func (j *RSSJob) processItem(item *gofeed.Item) *domain.Release {
 
 	rls.ParseString(item.Title)
 
+	if j.Feed.Settings != nil && j.Feed.Settings.DownloadType == domain.FeedDownloadTypeMagnet {
+		rls.MagnetURI = item.Link
+		rls.TorrentURL = ""
+	}
+
 	if len(item.Enclosures) > 0 {
 		e := item.Enclosures[0]
 		if e.Type == "application/x-bittorrent" && e.URL != "" {
 			rls.TorrentURL = e.URL
 		}
-		if e.Length != "" {
+		if e.Length != "" && e.Length != "39399" {
 			rls.ParseSizeBytesString(e.Length)
 		}
 	}
@@ -154,11 +159,9 @@ func (j *RSSJob) processItem(item *gofeed.Item) *domain.Release {
 		rls.Uploader += v.Name
 	}
 
-	if rls.Size == 0 {
-		// parse size bytes string
-		if sz, ok := item.Custom["size"]; ok {
-			rls.ParseSizeBytesString(sz)
-		}
+	// When custom->size and enclosures->size differ, `ParseSizeBytesString` will pick the largest one.
+	if size, ok := item.Custom["size"]; ok {
+		rls.ParseSizeBytesString(size)
 	}
 
 	// additional size parsing

@@ -143,7 +143,11 @@ export const releaseTypeMusic = [
   "Unknown"
 ];
 
-export const RELEASE_TYPE_MUSIC_OPTIONS: MultiSelectOption[] = releaseTypeMusic.map(v => ({ value: v, label: v, key: v }));
+export const RELEASE_TYPE_MUSIC_OPTIONS: MultiSelectOption[] = releaseTypeMusic.map(v => ({
+  value: v,
+  label: v,
+  key: v
+}));
 
 export const originOptions = [
   "P2P",
@@ -210,9 +214,10 @@ export const languageOptions = [
 export const LANGUAGE_OPTIONS = languageOptions.map(v => ({ value: v, label: v, key: v }));
 
 export interface RadioFieldsetOption {
-    label: string;
-    description: string;
-    value: ActionType;
+  label: string;
+  description: string;
+  value: ActionType;
+  type?: string;
 }
 
 export const DownloadClientTypeOptions: RadioFieldsetOption[] = [
@@ -270,6 +275,12 @@ export const DownloadClientTypeOptions: RadioFieldsetOption[] = [
     label: "Readarr",
     description: "Send to Readarr and let it decide",
     value: "READARR"
+  },
+  {
+    label: "Sabnzbd",
+    description: "Add nzbs directly to Sabnzbd",
+    value: "SABNZBD",
+    type: "nzb"
   }
 ];
 
@@ -284,7 +295,8 @@ export const DownloadClientTypeNameMap: Record<DownloadClientType | string, stri
   "SONARR": "Sonarr",
   "LIDARR": "Lidarr",
   "WHISPARR": "Whisparr",
-  "READARR": "Readarr"
+  "READARR": "Readarr",
+  "SABNZBD": "Sabnzbd"
 };
 
 export const ActionTypeOptions: RadioFieldsetOption[] = [
@@ -302,7 +314,8 @@ export const ActionTypeOptions: RadioFieldsetOption[] = [
   { label: "Sonarr", description: "Send to Sonarr and let it decide", value: "SONARR" },
   { label: "Lidarr", description: "Send to Lidarr and let it decide", value: "LIDARR" },
   { label: "Whisparr", description: "Send to Whisparr and let it decide", value: "WHISPARR" },
-  { label: "Readarr", description: "Send to Readarr and let it decide", value: "READARR" }
+  { label: "Readarr", description: "Send to Readarr and let it decide", value: "READARR" },
+  { label: "Sabnzbd", description: "Add to Sabnzbd", value: "SABNZBD" }
 ];
 
 export const ActionTypeNameMap = {
@@ -320,7 +333,8 @@ export const ActionTypeNameMap = {
   "SONARR": "Sonarr",
   "LIDARR": "Lidarr",
   "WHISPARR": "Whisparr",
-  "READARR": "Readarr"
+  "READARR": "Readarr",
+  "SABNZBD": "Sabnzbd"
 };
 
 export const ActionContentLayoutOptions: SelectGenericOption<ActionContentLayout>[] = [
@@ -330,8 +344,8 @@ export const ActionContentLayoutOptions: SelectGenericOption<ActionContentLayout
 ];
 
 export interface OptionBasic {
-    label: string;
-    value: string;
+  label: string;
+  value: string;
 }
 
 export interface OptionBasicTyped<T> {
@@ -422,11 +436,14 @@ export const DownloadRuleConditionOptions: OptionBasic[] = [
   }
 ];
 
+const logLevel = ["DEBUG", "INFO", "WARN", "ERROR", "TRACE"] as const;
+
+export const LogLevelOptions = logLevel.map(v => ({ value: v, label: v, key: v }));
 
 export interface SelectOption {
-    label: string;
-    description: string;
-    value: NotificationEvent;
+  label: string;
+  description: string;
+  value: NotificationEvent;
 }
 
 export interface SelectGenericOption<T> {
@@ -465,5 +482,16 @@ export const EventOptions: SelectOption[] = [
     label: "New update",
     value: "APP_UPDATE_AVAILABLE",
     description: "Get notified on updates"
+  }
+];
+
+export const FeedDownloadTypeOptions: OptionBasicTyped<FeedDownloadType>[] = [
+  {
+    label: "Magnet",
+    value: "MAGNET"
+  },
+  {
+    label: "Torrent",
+    value: "TORRENT"
   }
 ];

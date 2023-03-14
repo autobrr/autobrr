@@ -67,14 +67,3 @@ interface IrcAuth {
   account?: string; // optional
   password?: string; // optional
 }
-
-interface Config {
-  host: string;
-  port: number;
-  log_level: string;
-  log_path: string;
-  base_url: string;
-  version: string;
-  commit: string;
-  date: string;
-}
