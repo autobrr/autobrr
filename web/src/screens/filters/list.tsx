@@ -6,10 +6,12 @@ import { useMutation, useQuery, useQueryClient } from "react-query";
 import { FormikValues } from "formik";
 import { useCallback } from "react";
 
+
 import {
   ArrowsRightLeftIcon,
   CheckIcon,
   ChevronDownIcon,
+  PlusIcon,
   DocumentDuplicateIcon,
   EllipsisHorizontalIcon,
   PencilSquareIcon,
@@ -74,8 +76,47 @@ const FilterListReducer = (state: FilterListState, action: Actions): FilterListS
   }
 };
 
-export default function Filters() {
+interface FilterProps {
+  values?: FormikValues;
+}
+
+export default function Filters({}: FilterProps){
+
+  const queryClient = useQueryClient();
+
   const [createFilterIsOpen, toggleCreateFilter] = useToggle(false);
+
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [importJson, setImportJson] = useState("");
+
+  const handleImportJson = async () => {
+    try {
+      const importedData = JSON.parse(importJson);
+  
+      // Extract the filter data from the imported object
+      const importedFilter = importedData.data;
+      const filterTitle = importedData.autobrr_filter_title;
+  
+      // Create a new filter object with the imported data
+      const newFilter: Filter = {
+        ...importedFilter,
+        name: filterTitle
+      };
+  
+      // Create a new filter using the API
+      await APIClient.filters.create(newFilter);
+  
+      // Invalidate the filters query to update the filter list
+      queryClient.invalidateQueries("filters");
+  
+      toast.custom((t) => <Toast type="success" body="Filter imported successfully." t={t} />);
+      setShowImportModal(false); // Hide the modal after importing the data
+    } catch (error) {
+      toast.custom((t) => <Toast type="error" body="Failed to import JSON data. Please check your input." t={t} />);
+    }
+  };
+  
+  const [showDropdown, setShowDropdown] = useState(false);
 
   return (
     <main>
@@ -84,19 +125,78 @@ export default function Filters() {
       <header className="py-10">
         <div className="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8 flex justify-between">
           <h1 className="text-3xl font-bold text-black dark:text-white">
-            Filters
+      Filters
           </h1>
-          <div className="flex-shrink-0">
+          <div className="relative">
             <button
               type="button"
-              className="relative inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
+              className="relative inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-l-md text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
               onClick={toggleCreateFilter}
             >
-              Add new
+              <PlusIcon className="h-5 w-5 mr-1" />
+        Add Filter
             </button>
+            <button
+              type="button"
+              className="relative inline-flex items-center px-2 py-2 border border-transparent shadow-sm text-sm font-medium rounded-r-md text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
+              onClick={() => setShowDropdown(!showDropdown)}
+            >
+              <ChevronDownIcon className="h-5 w-5" />
+            </button>
+            {showDropdown && (
+              <div className="absolute left-0 mt-2 w-46 bg-white dark:bg-gray-700 rounded-md shadow-lg">
+                <button
+                  type="button"
+                  className="w-full text-left py-2 px-4 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
+                  onClick={() => setShowImportModal(true)}
+                >
+            Import Filter
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </header>
+
+      <div className="fixed bottom-10 right-10">
+        <button
+          type="button"
+          className="relative inline-flex items-center justify-center p-4 border-2 border-transparent text-white bg-blue-600 dark:bg-blue-600 rounded-full shadow-lg hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
+          onClick={toggleCreateFilter}
+        >
+          <PlusIcon className="h-8 w-8" />
+        </button>
+      </div>
+
+      {showImportModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="w-5/12 md:w-5/12 bg-white dark:bg-gray-800 p-6 rounded-md shadow-lg">
+            <h2 className="text-lg font-medium mb-4 text-black dark:text-white">Import Filter JSON</h2>
+            <textarea
+              className="h-96 form-input block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm text-sm font-medium text-gray-700 dark:text-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500 mb-4"
+              placeholder="Paste JSON data here"
+              value={importJson}
+              onChange={(event) => setImportJson(event.target.value)}
+            />
+            <div className="flex justify-end">
+              <button
+                type="button"
+                className="bg-white dark:bg-gray-700 py-2 px-4 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
+                onClick={() => setShowImportModal(false)}
+              >
+          Cancel
+              </button>
+              <button
+                type="button"
+                className="ml-4 relative inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                onClick={handleImportJson}
+              >
+          Import
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <FilterList toggleCreateFilter={toggleCreateFilter} />
     </main>
