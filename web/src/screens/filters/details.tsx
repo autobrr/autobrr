@@ -238,8 +238,8 @@ export default function FilterDetails() {
                 min_size: filter.min_size,
                 max_size: filter.max_size,
                 delay: filter.delay,
-                priority: filter.priority ?? 0,
-                max_downloads: filter.max_downloads ?? 0,
+                priority: filter.priority,
+                max_downloads: filter.max_downloads,
                 max_downloads_unit: filter.max_downloads_unit,
                 use_regex: filter.use_regex || false,
                 shows: filter.shows,
@@ -276,7 +276,7 @@ export default function FilterDetails() {
                 quality: filter.quality || [],
                 media: filter.media || [],
                 match_release_types: filter.match_release_types || [],
-                log_score: filter.log_score ?? 0,
+                log_score: filter.log_score,
                 log: filter.log,
                 cue: filter.cue,
                 perfect_flac: filter.perfect_flac,
@@ -351,8 +351,8 @@ export function General() {
           <TextField name="min_size" label="Min size" columns={6} placeholder="eg. 100MiB, 80GB" tooltip={<div><p>Supports units such as MB, MiB, GB, etc.</p><a href='https://autobrr.com/filters#rules' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters#rules</a></div>} />
           <TextField name="max_size" label="Max size" columns={6} placeholder="eg. 100MiB, 80GB"  tooltip={<div><p>Supports units such as MB, MiB, GB, etc.</p><a href='https://autobrr.com/filters#rules' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters#rules</a></div>} />
           <NumberField name="delay" label="Delay" placeholder="Number of seconds to delay actions"  tooltip={<div><p>Number of seconds to wait before running actions.</p><a href='https://autobrr.com/filters#rules' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters#rules</a></div>} />
-          <NumberField name="priority" label="Priority" placeholder="Higher number = higher prio" required={true} tooltip={<div><p>Filters are checked in order of priority. Higher number = higher priority.</p><a href='https://autobrr.com/filters#rules' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters#rules</a></div>} />
-          <NumberField name="max_downloads" label="Max downloads" placeholder="Takes any number (0 is infinite)" min={0} required={true}  tooltip={<div><p>Number of max downloads as specified by the respective unit.</p><a href='https://autobrr.com/filters#rules' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters#rules</a></div>} />
+          <NumberField name="priority" label="Priority" placeholder="Higher number = higher prio" tooltip={<div><p>Filters are checked in order of priority. Higher number = higher priority.</p><a href='https://autobrr.com/filters#rules' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters#rules</a></div>} />
+          <NumberField name="max_downloads" label="Max downloads" placeholder="Takes any number (0 is infinite)" tooltip={<div><p>Number of max downloads as specified by the respective unit.</p><a href='https://autobrr.com/filters#rules' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters#rules</a></div>} />
           <Select name="max_downloads_unit" label="Max downloads per" options={downloadsPerUnitOptions}  optionDefaultText="Select unit"  tooltip={<div><p>The unit of time for counting the maximum downloads per filter.</p><a href='https://autobrr.com/filters#rules' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters#rules</a></div>} />
         </div>
       </div>
