@@ -368,6 +368,9 @@ export function General({ values }: AdvancedProps){
       const updatedValues = { ...values, ...importedFilter };
       formik.setValues(updatedValues);
   
+      // If we want to submit/save on import
+      //formik.submitForm();
+  
       toast.custom((t) => <Toast type="success" body="Filter imported successfully." t={t}/>);
       setShowImportModal(false); // Hide the modal after importing the data
     } catch (error) {

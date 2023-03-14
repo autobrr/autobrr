@@ -3,6 +3,8 @@ import { Link } from "react-router-dom";
 import { toast } from "react-hot-toast";
 import { Listbox, Menu, Switch, Transition } from "@headlessui/react";
 import { useMutation, useQuery, useQueryClient } from "react-query";
+import { FormikValues } from "formik";
+import { useCallback } from "react";
 
 import {
   ArrowsRightLeftIcon,
@@ -22,6 +24,7 @@ import { APIClient } from "../../api/APIClient";
 import Toast from "../../components/notifications/Toast";
 import { EmptyListState } from "../../components/emptystates";
 import { DeleteModal } from "../../components/modals";
+import { ArrowDownTrayIcon } from "@heroicons/react/24/solid";
 
 type FilterListState = {
   indexerFilter: string[],
@@ -157,7 +160,7 @@ function FilterList({ toggleCreateFilter }: any) {
         {data && data.length > 0 ? (
           <ol className="min-w-full">
             {filtered.filtered.map((filter: Filter, idx) => (
-              <FilterListItem filter={filter} key={filter.id} idx={idx} />
+              <FilterListItem filter={filter} values={filter} key={filter.id} idx={idx} />
             ))}
           </ol>
         ) : (
@@ -201,14 +204,75 @@ const StatusButton = ({ data, label, value, currentValue, dispatch }: StatusButt
 };
 
 interface FilterItemDropdownProps {
+  values: FormikValues;
   filter: Filter;
   onToggle: (newState: boolean) => void;
 }
 
-const FilterItemDropdown = ({
-  filter,
-  onToggle
-}: FilterItemDropdownProps) => {
+const FilterItemDropdown = ({ filter, onToggle }: FilterItemDropdownProps) => {
+
+  const handleExportJson = useCallback(async () => {
+    try {
+
+      type CompleteFilterType = {
+        id: number;
+        name: string;
+        created_at: Date;
+        updated_at: Date;
+        indexers: any;
+        actions: any;
+        actions_count: any;
+        external_script_enabled: any;
+        external_script_cmd: any;
+        external_script_args: any;
+        external_script_expect_status: any;
+        external_webhook_enabled: any;
+        external_webhook_host: any;
+        external_webhook_data: any;
+        external_webhook_expect_status: any;
+      };
+      
+      const completeFilter = await APIClient.filters.getByID(filter.id) as Partial<CompleteFilterType>;
+
+      const filteredValues = { ...completeFilter };
+      const title = filteredValues.name;
+      delete filteredValues.name;
+      delete filteredValues.id;
+      delete filteredValues.created_at;
+      delete filteredValues.updated_at;
+      delete filteredValues.actions_count;
+      delete filteredValues.indexers;
+      delete filteredValues.actions;
+      delete filteredValues.external_script_enabled;
+      delete filteredValues.external_script_cmd;
+      delete filteredValues.external_script_args;
+      delete filteredValues.external_script_expect_status;
+      delete filteredValues.external_webhook_enabled;
+      delete filteredValues.external_webhook_host;
+      delete filteredValues.external_webhook_data;
+      delete filteredValues.external_webhook_expect_status;      
+      
+      const json = JSON.stringify(
+        {
+          "autobrr_filter_title": title,
+          data: filteredValues
+        },
+        null,
+        4
+      );
+  
+      navigator.clipboard.writeText(json).then(() => {
+        toast.custom((t) => <Toast type="success" body="Filter copied to clipboard." t={t}/>);
+      }, () => {
+        toast.custom((t) => <Toast type="error" body="Failed to copy JSON to clipboard." t={t}/>);
+      });
+    } catch (error) {
+      console.error(error);
+      toast.custom((t) => <Toast type="error" body="Failed to get filter data." t={t}/>);
+    }
+  }, [filter]);
+  
+
   const cancelModalButtonRef = useRef(null);
 
   const queryClient = useQueryClient();
@@ -296,6 +360,26 @@ const FilterItemDropdown = ({
                     active ? "bg-blue-600 text-white" : "text-gray-900 dark:text-gray-300",
                     "font-medium group flex rounded-md items-center w-full px-2 py-2 text-sm"
                   )}
+                  onClick={handleExportJson}
+                >
+                  <ArrowDownTrayIcon
+                    className={classNames(
+                      active ? "text-white" : "text-blue-500",
+                      "w-5 h-5 mr-2"
+                    )}
+                    aria-hidden="true"
+                  />
+                  Export JSON
+                </button>
+              )}
+            </Menu.Item>
+            <Menu.Item>
+              {({ active }) => (
+                <button
+                  className={classNames(
+                    active ? "bg-blue-600 text-white" : "text-gray-900 dark:text-gray-300",
+                    "font-medium group flex rounded-md items-center w-full px-2 py-2 text-sm"
+                  )}
                   onClick={() => onToggle(!filter.enabled)}
                 >
                   <ArrowsRightLeftIcon
@@ -360,10 +444,11 @@ const FilterItemDropdown = ({
 
 interface FilterListItemProps {
   filter: Filter;
+  values: FormikValues;
   idx: number;
 }
 
-function FilterListItem({ filter, idx }: FilterListItemProps) {
+function FilterListItem({ filter, values, idx }: FilterListItemProps) {
   const [enabled, setEnabled] = useState(filter.enabled);
 
   const updateMutation = useMutation(
@@ -445,6 +530,7 @@ function FilterListItem({ filter, idx }: FilterListItemProps) {
       </span>
       <span className="min-w-fit px-4 py-4 whitespace-nowrap text-right text-sm font-medium">
         <FilterItemDropdown
+          values={values}
           filter={filter}
           onToggle={toggleActive}
         />
