@@ -267,7 +267,7 @@ export const NumberField = ({
                 form.setFieldValue(field.name, 0);
                 return;
               }
-              form.setFieldValue(field.name, parseInt(event.target.value));
+              form.setFieldValue(field.name, parseInt(event.target.value)); // Convert the input value to an integer using parseInt() to ensure that the backend can properly parse the numberfield as an integer.
             }}
           />
           {meta.touched && meta.error && (
@@ -276,7 +276,5 @@ export const NumberField = ({
         </div>
       )}
     </Field>
-
-
   </div>
 );
