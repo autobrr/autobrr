@@ -62,7 +62,7 @@ func Test_service_parseMacros(t *testing.T) {
 				clientSvc: nil,
 				bus:       nil,
 			}
-			_ = s.parseMacros(tt.args.action, tt.args.release)
+			_ = tt.args.action.ParseMacros(&tt.args.release)
 			assert.Equalf(t, tt.want, tt.args.action.ExecArgs, "parseMacros(%v, %v)", tt.args.action, tt.args.release)
 		})
 	}
