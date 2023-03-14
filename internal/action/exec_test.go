@@ -56,12 +56,6 @@ func Test_service_parseMacros(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			s := &service{
-				log:       logger.Mock().With().Logger(),
-				repo:      nil,
-				clientSvc: nil,
-				bus:       nil,
-			}
 			_ = tt.args.action.ParseMacros(&tt.args.release)
 			assert.Equalf(t, tt.want, tt.args.action.ExecArgs, "parseMacros(%v, %v)", tt.args.action, tt.args.release)
 		})
