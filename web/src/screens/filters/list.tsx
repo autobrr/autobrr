@@ -6,6 +6,8 @@ import { useMutation, useQuery, useQueryClient } from "react-query";
 import { FormikValues } from "formik";
 import { useCallback } from "react";
 
+import { Tooltip } from "react-tooltip";
+
 
 import {
   ArrowsRightLeftIcon,
@@ -15,7 +17,8 @@ import {
   DocumentDuplicateIcon,
   EllipsisHorizontalIcon,
   PencilSquareIcon,
-  TrashIcon
+  TrashIcon,
+  ExclamationTriangleIcon
 } from "@heroicons/react/24/outline";
 
 import { queryClient } from "../../App";
@@ -633,7 +636,7 @@ function FilterListItem({ filter, values, idx }: FilterListItemProps) {
             {filter.name}
           </Link>
         </span>
-        <div className="flex-col">
+        <div className="flex items-center">
           <span className="mr-2 break-words whitespace-nowrap text-xs font-medium text-gray-600 dark:text-gray-400">
             Priority: {filter.priority}
           </span>
@@ -642,7 +645,19 @@ function FilterListItem({ filter, values, idx }: FilterListItemProps) {
               to={`${filter.id.toString()}/actions`}
               className="hover:text-black dark:hover:text-gray-300"
             >
-              <span className={classNames(filter.actions_count == 0 ? "text-red-500" : "")}>Actions: {filter.actions_count}</span>
+              <span className="flex items-center">
+                <span className={classNames(filter.actions_count == 0 ? "text-red-500" : "")}>Actions: {filter.actions_count}</span>
+                {filter.actions_count === 0 && (
+                  <>
+                    <span className="ml-1 flex" id="0actions" data-tip="No actions found">
+                      <ExclamationTriangleIcon
+                        className="w-5 h-5 text-red-500 cursor-pointer"
+                      />
+                    </span>
+                    <Tooltip style={{ width: "350px", fontSize: "12px", textTransform: "none", fontWeight: "normal", borderRadius: "0.375rem", backgroundColor: "#34343A", color: "#fff", opacity: "1", whiteSpace: "pre-wrap", overflow: "hidden", textOverflow: "ellipsis" }} delayShow={100} delayHide={150} data-html={true} place="bottom" anchorId="0actions" html="<p>You need to setup an action in the filter otherwise you will not get any snatches.</p>" />
+                  </>
+                )}
+              </span>
             </Link>
           </span>
         </div>
