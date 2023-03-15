@@ -240,7 +240,11 @@ func (s *service) webhook(ctx context.Context, action *domain.Action, release do
 
 	defer res.Body.Close()
 
-	s.log.Info().Msgf("successfully ran webhook action: '%v' to: %v payload: %v", action.Name, action.WebhookHost, action.WebhookData)
+	if len(action.WebhookData) > 256 {
+		s.log.Info().Msgf("successfully ran webhook action: '%v' to: %v payload: %v", action.Name, action.WebhookHost, action.WebhookData[:256])
+	} else {
+		s.log.Info().Msgf("successfully ran webhook action: '%v' to: %v payload: %v", action.Name, action.WebhookHost, action.WebhookData)
+	}
 
 	return nil
 }
