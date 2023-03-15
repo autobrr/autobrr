@@ -327,28 +327,10 @@ const FilterItemDropdown = ({ filter, onToggle }: FilterItemDropdownProps) => {
       const completeFilter = await APIClient.filters.getByID(filter.id) as Partial<CompleteFilterType>;
   
       const defaultFilter = {
-        enabled: false,
-        priority: 0,
-        max_downloads: 0,
-        use_regex: false,
         resolutions: [],
         sources: [],
         codecs: [],
-        containers: [],
-        match_hdr: [],
-        except_hdr: [],
-        match_other: [],
-        except_other: [],
-        smart_episode: false,
-        match_language: [],
-        except_language: [],
-        formats: [],
-        quality: [],
-        media: [],
-        match_release_types: [],
-        log_score: 0,
-        origins: [],
-        except_origins: []
+        containers: []
       };
       
   
