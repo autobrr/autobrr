@@ -88,14 +88,14 @@ export default function Filters({}: FilterProps){
 
   const [showImportModal, setShowImportModal] = useState(false);
   const [importJson, setImportJson] = useState(""); 
-
+  
   const handleImportJson = async () => {
     try {
       const importedData = JSON.parse(importJson);
   
-      // Extract the filter data from the imported object
+      // Extract the filter data and name from the imported object
       const importedFilter = importedData.data;
-      const filterTitle = importedData.autobrr_filter_title;
+      const filterName = importedData.name;
   
       // Check if the required properties are present and add them with default values if they are missing
       const requiredProperties = ["resolutions", "sources", "codecs", "containers"];
@@ -105,26 +105,36 @@ export default function Filters({}: FilterProps){
         }
       });
   
-      // Create a new filter object with the imported data
-      const newFilter: Filter = {
-        ...importedFilter,
-        name: filterTitle
-      };
+      // Fetch existing filters from the API
+      const existingFilters = await APIClient.filters.getAll();
+  
+      // Find a unique filter name by appending an incremental number
+      let nameCounter = 0;
+      let uniqueFilterName = filterName;
+      while (existingFilters.some((filter) => filter.name === uniqueFilterName)) {
+        nameCounter++;
+        uniqueFilterName = `${filterName}-${nameCounter}`;
+      }
   
       // Create a new filter using the API
+      const newFilter: Filter = {
+        ...importedFilter,
+        name: uniqueFilterName
+      };
+  
       await APIClient.filters.create(newFilter);
   
-      // Invalidate the filters query to update the filter list
+      // Update the filter list
       queryClient.invalidateQueries("filters");
   
       toast.custom((t) => <Toast type="success" body="Filter imported successfully." t={t} />);
-      setShowImportModal(false); // Hide the modal after importing the data
+      setShowImportModal(false);
     } catch (error) {
+      // Log the error and show an error toast message
+      console.error("Error:", error);
       toast.custom((t) => <Toast type="error" body="Failed to import JSON data. Please check your input." t={t} />);
     }
   };
-  
-  
   
   const [showDropdown, setShowDropdown] = useState(false);
 
