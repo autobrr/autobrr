@@ -130,7 +130,7 @@ export default function Filters({}: FilterProps){
           <div className="relative">
             <button
               type="button"
-              className="relative inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-l-md text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
+              className="relative inline-flex items-center px-4 py-2 shadow-sm text-sm font-medium rounded-l-md text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
               onClick={toggleCreateFilter}
             >
               <PlusIcon className="h-5 w-5 mr-1" />
@@ -138,19 +138,19 @@ export default function Filters({}: FilterProps){
             </button>
             <button
               type="button"
-              className="relative inline-flex items-center px-2 py-2 border border-transparent shadow-sm text-sm font-medium rounded-r-md text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
+              className="relative inline-flex items-center px-2 py-2 border-l border-spacing-1 dark:border-black shadow-sm text-sm font-medium rounded-r-md text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
               onClick={() => setShowDropdown(!showDropdown)}
             >
               <ChevronDownIcon className="h-5 w-5" />
             </button>
             {showDropdown && (
-              <div className="absolute left-0 mt-2 w-46 bg-white dark:bg-gray-700 rounded-md shadow-lg">
+              <div className="absolute right-0 mt-2 w-46 bg-white dark:bg-gray-700 rounded-md shadow-lg z-50">
                 <button
                   type="button"
-                  className="w-full text-left py-2 px-4 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
+                  className="w-full text-left py-2 px-4 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
                   onClick={() => setShowImportModal(true)}
                 >
-            Import Filter
+  Import Filter
                 </button>
               </div>
             )}
@@ -158,15 +158,7 @@ export default function Filters({}: FilterProps){
         </div>
       </header>
 
-      <div className="fixed bottom-10 right-10">
-        <button
-          type="button"
-          className="relative inline-flex items-center justify-center p-4 border-2 border-transparent text-white bg-blue-600 dark:bg-blue-600 rounded-full shadow-lg hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
-          onClick={toggleCreateFilter}
-        >
-          <PlusIcon className="h-8 w-8" />
-        </button>
-      </div>
+
 
       {showImportModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
