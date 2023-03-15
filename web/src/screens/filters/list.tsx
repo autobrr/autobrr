@@ -89,6 +89,7 @@ export default function Filters({}: FilterProps){
   const [showImportModal, setShowImportModal] = useState(false);
   const [importJson, setImportJson] = useState(""); 
   
+  // This function handles the import of a filter from a JSON string
   const handleImportJson = async () => {
     try {
       const importedData = JSON.parse(importJson);
@@ -108,7 +109,7 @@ export default function Filters({}: FilterProps){
       // Fetch existing filters from the API
       const existingFilters = await APIClient.filters.getAll();
   
-      // Find a unique filter name by appending an incremental number
+      // Create a unique filter title by appending an incremental number if title is taken by another filter
       let nameCounter = 0;
       let uniqueFilterName = filterName;
       while (existingFilters.some((filter) => filter.name === uniqueFilterName)) {
@@ -321,6 +322,7 @@ interface FilterItemDropdownProps {
 
 const FilterItemDropdown = ({ filter, onToggle }: FilterItemDropdownProps) => {
 
+  // This function handles the export of a filter to a JSON string
   const handleExportJson = useCallback(async () => {
     try {
       type CompleteFilterType = {
@@ -343,6 +345,7 @@ const FilterItemDropdown = ({ filter, onToggle }: FilterItemDropdownProps) => {
   
       const completeFilter = await APIClient.filters.getByID(filter.id) as Partial<CompleteFilterType>;
   
+      // Extract the filter name and remove unwanted properties
       const title = completeFilter.name;
       delete completeFilter.name;
       delete completeFilter.id;
@@ -360,16 +363,17 @@ const FilterItemDropdown = ({ filter, onToggle }: FilterItemDropdownProps) => {
       delete completeFilter.external_webhook_data;
       delete completeFilter.external_webhook_expect_status;
   
+      // Remove properties with default values from the exported filter to minimize the size of the JSON string
       ["enabled", "priority", "smart_episode", "resolutions", "sources", "codecs", "containers"].forEach((key) => {
         const value = completeFilter[key as keyof CompleteFilterType];
-        
         if (["enabled", "priority", "smart_episode"].includes(key) && (value === false || value === 0)) {
           delete completeFilter[key as keyof CompleteFilterType];
         } else if (["resolutions", "sources", "codecs", "containers"].includes(key) && Array.isArray(value) && value.length === 0) {
           delete completeFilter[key as keyof CompleteFilterType];
         }
       });      
-      
+
+      // Create a JSON string from the filter data, including a name and version
       const json = JSON.stringify(
         {
           "name": title,
