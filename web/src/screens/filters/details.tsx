@@ -1,4 +1,4 @@
-import React, { useRef, useState } from "react";
+import React, { useRef } from "react";
 import { useMutation, useQuery } from "react-query";
 import { NavLink, Route, Routes, useLocation, useNavigate, useParams } from "react-router-dom";
 import { toast } from "react-hot-toast";
@@ -24,7 +24,6 @@ import { queryClient } from "../../App";
 import { APIClient } from "../../api/APIClient";
 import { useToggle } from "../../hooks/hooks";
 import { classNames } from "../../utils";
-
 
 import {
   CheckboxField,
@@ -299,8 +298,8 @@ export default function FilterDetails() {
               {({ values, dirty, resetForm }) => (
                 <Form>
                   <Routes>
-                    <Route index element={<General values={values}/>} />
-                    <Route path="movies-tv" element={<MoviesTv/>} />
+                    <Route index element={<General />} />
+                    <Route path="movies-tv" element={<MoviesTv />} />
                     <Route path="music" element={<Music values={values} />} />
                     <Route path="advanced" element={<Advanced values={values} />} />
                     <Route path="external" element={<External />} />
@@ -318,67 +317,7 @@ export default function FilterDetails() {
   );
 }
 
-export function General({ values }: AdvancedProps){
-
-  const handleExportJson = () => {
-    const filteredValues = { ...values };
-    const title = filteredValues.name;
-    delete filteredValues.id;
-    delete filteredValues.name;
-    delete filteredValues.indexers;
-    delete filteredValues.actions;
-    delete filteredValues.external_script_enabled;
-    delete filteredValues.external_script_cmd;
-    delete filteredValues.external_script_args;
-    delete filteredValues.external_script_expect_status;
-    delete filteredValues.external_webhook_enabled;
-    delete filteredValues.external_webhook_host;
-    delete filteredValues.external_webhook_data;
-    delete filteredValues.external_webhook_expect_status;
-  
-    const json = JSON.stringify(
-      {
-        "autobrr_filter_title": title,
-        data: filteredValues
-      },
-      null,
-      4
-    );
-  
-    navigator.clipboard.writeText(json).then(() => {
-      toast.custom((t) => <Toast type="success" body="Filter copied to clipboard." t={t}/>);
-    }, () => {
-      toast.custom((t) => <Toast type="error" body="Failed to copy JSON to clipboard." t={t}/>);
-    });
-  };
-  
-
-  const formik = useFormikContext();
-  const [showImportModal, setShowImportModal] = useState(false);
-  const [importJson, setImportJson] = useState("");
-
-  const handleImportJson = () => {
-    try {
-      const importedData = JSON.parse(importJson);
-  
-      // Extract the filter data from the imported object
-      const importedFilter = importedData.data;
-  
-      // Update the Formik values to match the imported data
-      const updatedValues = { ...values, ...importedFilter };
-      formik.setValues(updatedValues);
-  
-      // If we want to submit/save on import
-      //formik.submitForm();
-  
-      toast.custom((t) => <Toast type="success" body="Filter imported successfully." t={t}/>);
-      setShowImportModal(false); // Hide the modal after importing the data
-    } catch (error) {
-      toast.custom((t) => <Toast type="error" body="Failed to import JSON data. Please check your input." t={t}/>);
-    }
-  };
-  
-
+export function General(){
   const { isLoading, data: indexers } = useQuery(
     ["filters", "indexer_list"],
     () => APIClient.indexers.getOptions(),
@@ -417,53 +356,6 @@ export function General({ values }: AdvancedProps){
 
       <div className="border-t dark:border-gray-700">
         <SwitchGroup name="enabled" label="Enabled" description="Enable or disable this filter." />
-      </div>
-      <div className="flex space-x-4 float-right">
-        <button
-          type="button"
-          className="bg-white dark:bg-gray-700 py-2 px-4 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
-          onClick={handleExportJson}
-        >
-  Export Filter JSON
-        </button>
-        <div>
-          <button
-            type="button"
-            className="bg-white dark:bg-gray-700 py-2 px-4 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
-            onClick={() => setShowImportModal(true)}
-          >
-        Import Filter JSON
-          </button>
-          {showImportModal && (
-            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-              <div className="w-5/12 md:w-5/12 bg-white dark:bg-gray-800 p-6 rounded-md shadow-lg">
-                <h2 className="text-lg font-medium mb-4 text-black dark:text-white">Import Filter JSON</h2>
-                <textarea
-                  className="h-96 form-input block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm text-sm font-medium text-gray-700 dark:text-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500 mb-4"
-                  placeholder="Paste JSON data here"
-                  value={importJson}
-                  onChange={(event) => setImportJson(event.target.value)}
-                />
-                <div className="flex justify-end">
-                  <button
-                    type="button"
-                    className="bg-white dark:bg-gray-700 py-2 px-4 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
-                    onClick={() => setShowImportModal(false)}
-                  >
-                Cancel
-                  </button>
-                  <button
-                    type="button"
-                    className="ml-4 relative inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                    onClick={handleImportJson}
-                  >
-                Import
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
       </div>
     </div>
   );
