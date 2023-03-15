@@ -167,18 +167,16 @@ export default function Filters({}: FilterProps){
           </div>
         </div>
       </header>
-
-
-
       {showImportModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="w-5/12 md:w-5/12 bg-white dark:bg-gray-800 p-6 rounded-md shadow-lg">
+          <div className="w-1/2 md:w-1/2 bg-white dark:bg-gray-800 p-6 rounded-md shadow-lg">
             <h2 className="text-lg font-medium mb-4 text-black dark:text-white">Import Filter JSON</h2>
             <textarea
-              className="h-96 form-input block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm text-sm font-medium text-gray-700 dark:text-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500 mb-4"
+              className="form-input block w-full resize-y rounded-md border-gray-300 dark:border-gray-600 shadow-sm text-sm font-medium text-gray-700 dark:text-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500 mb-4"
               placeholder="Paste JSON data here"
               value={importJson}
               onChange={(event) => setImportJson(event.target.value)}
+              style={{ minHeight: "30vh", maxHeight: "50vh" }}
             />
             <div className="flex justify-end">
               <button
