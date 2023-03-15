@@ -364,7 +364,7 @@ const FilterItemDropdown = ({ filter, onToggle }: FilterItemDropdownProps) => {
       
       const json = JSON.stringify(
         {
-          "autobrr_filter_title": title,
+          "name": title,
           "version": "1.0",
           data: completeFilter
         },
