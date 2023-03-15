@@ -313,7 +313,7 @@ const FilterItemDropdown = ({ filter, onToggle }: FilterItemDropdownProps) => {
 
   const handleExportJson = useCallback(async () => {
     try {
-
+  
       type CompleteFilterType = {
         id: number;
         name: string;
@@ -331,10 +331,63 @@ const FilterItemDropdown = ({ filter, onToggle }: FilterItemDropdownProps) => {
         external_webhook_data: any;
         external_webhook_expect_status: any;
       };
-      
+  
       const completeFilter = await APIClient.filters.getByID(filter.id) as Partial<CompleteFilterType>;
-
-      const filteredValues = { ...completeFilter };
+  
+      const defaultFilter = {
+        enabled: false,
+        min_size: "",
+        max_size: "",
+        delay: 0,
+        priority: 0,
+        max_downloads: 0,
+        max_downloads_unit: "",
+        use_regex: false,
+        shows: "",
+        years: "",
+        resolutions: [],
+        sources: [],
+        codecs: [],
+        containers: [],
+        match_hdr: [],
+        except_hdr: [],
+        match_other: [],
+        except_other: [],
+        seasons: "",
+        episodes: "",
+        smart_episode: false,
+        match_releases: "",
+        except_releases: "",
+        match_release_groups: "",
+        except_release_groups: "",
+        match_release_tags: "",
+        except_release_tags: "",
+        use_regex_release_tags: false,
+        match_categories: "",
+        except_categories: "",
+        tags: "",
+        except_tags: "",
+        match_uploaders: "",
+        except_uploaders: "",
+        match_language: [],
+        except_language: [],
+        freeleech: false,
+        freeleech_percent: "",
+        formats: [],
+        quality: [],
+        media: [],
+        match_release_types: [],
+        log_score: 0,
+        log: false,
+        cue: false,
+        perfect_flac: false,
+        artists: "",
+        albums: "",
+        origins: [],
+        except_origins: []
+      };
+  
+      const filteredValues = { ...defaultFilter, ...completeFilter };
       const title = filteredValues.name;
       delete filteredValues.name;
       delete filteredValues.id;
@@ -350,8 +403,8 @@ const FilterItemDropdown = ({ filter, onToggle }: FilterItemDropdownProps) => {
       delete filteredValues.external_webhook_enabled;
       delete filteredValues.external_webhook_host;
       delete filteredValues.external_webhook_data;
-      delete filteredValues.external_webhook_expect_status;      
-      
+      delete filteredValues.external_webhook_expect_status;
+  
       const json = JSON.stringify(
         {
           "autobrr_filter_title": title,
@@ -362,13 +415,13 @@ const FilterItemDropdown = ({ filter, onToggle }: FilterItemDropdownProps) => {
       );
   
       navigator.clipboard.writeText(json).then(() => {
-        toast.custom((t) => <Toast type="success" body="Filter copied to clipboard." t={t}/>);
+        toast.custom((t) => <Toast type="success" body="Filter copied to clipboard." t={t} />);
       }, () => {
-        toast.custom((t) => <Toast type="error" body="Failed to copy JSON to clipboard." t={t}/>);
+        toast.custom((t) => <Toast type="error" body="Failed to copy JSON to clipboard." t={t} />);
       });
     } catch (error) {
       console.error(error);
-      toast.custom((t) => <Toast type="error" body="Failed to get filter data." t={t}/>);
+      toast.custom((t) => <Toast type="error" body="Failed to get filter data." t={t} />);
     }
   }, [filter]);
   
