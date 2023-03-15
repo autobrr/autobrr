@@ -87,7 +87,7 @@ export default function Filters({}: FilterProps){
   const [createFilterIsOpen, toggleCreateFilter] = useToggle(false);
 
   const [showImportModal, setShowImportModal] = useState(false);
-  const [importJson, setImportJson] = useState("");
+  const [importJson, setImportJson] = useState(""); 
 
   const handleImportJson = async () => {
     try {
@@ -96,6 +96,14 @@ export default function Filters({}: FilterProps){
       // Extract the filter data from the imported object
       const importedFilter = importedData.data;
       const filterTitle = importedData.autobrr_filter_title;
+  
+      // Check if the required properties are present and add them with default values if they are missing
+      const requiredProperties = ["resolutions", "sources", "codecs", "containers"];
+      requiredProperties.forEach((property) => {
+        if (!importedFilter.hasOwnProperty(property)) {
+          importedFilter[property] = [];
+        }
+      });
   
       // Create a new filter object with the imported data
       const newFilter: Filter = {
@@ -115,6 +123,8 @@ export default function Filters({}: FilterProps){
       toast.custom((t) => <Toast type="error" body="Failed to import JSON data. Please check your input." t={t} />);
     }
   };
+  
+  
   
   const [showDropdown, setShowDropdown] = useState(false);
 
@@ -305,7 +315,6 @@ const FilterItemDropdown = ({ filter, onToggle }: FilterItemDropdownProps) => {
 
   const handleExportJson = useCallback(async () => {
     try {
-  
       type CompleteFilterType = {
         id: number;
         name: string;
@@ -326,36 +335,38 @@ const FilterItemDropdown = ({ filter, onToggle }: FilterItemDropdownProps) => {
   
       const completeFilter = await APIClient.filters.getByID(filter.id) as Partial<CompleteFilterType>;
   
-      const defaultFilter = {
-        resolutions: [],
-        sources: [],
-        codecs: [],
-        containers: []
-      };
+      const title = completeFilter.name;
+      delete completeFilter.name;
+      delete completeFilter.id;
+      delete completeFilter.created_at;
+      delete completeFilter.updated_at;
+      delete completeFilter.actions_count;
+      delete completeFilter.indexers;
+      delete completeFilter.actions;
+      delete completeFilter.external_script_enabled;
+      delete completeFilter.external_script_cmd;
+      delete completeFilter.external_script_args;
+      delete completeFilter.external_script_expect_status;
+      delete completeFilter.external_webhook_enabled;
+      delete completeFilter.external_webhook_host;
+      delete completeFilter.external_webhook_data;
+      delete completeFilter.external_webhook_expect_status;
+  
+      ["enabled", "priority", "smart_episode", "resolutions", "sources", "codecs", "containers"].forEach((key) => {
+        const value = completeFilter[key as keyof CompleteFilterType];
+        
+        if (["enabled", "priority", "smart_episode"].includes(key) && (value === false || value === 0)) {
+          delete completeFilter[key as keyof CompleteFilterType];
+        } else if (["resolutions", "sources", "codecs", "containers"].includes(key) && Array.isArray(value) && value.length === 0) {
+          delete completeFilter[key as keyof CompleteFilterType];
+        }
+      });      
       
-  
-      const filteredValues = { ...defaultFilter, ...completeFilter };
-      const title = filteredValues.name;
-      delete filteredValues.name;
-      delete filteredValues.id;
-      delete filteredValues.created_at;
-      delete filteredValues.updated_at;
-      delete filteredValues.actions_count;
-      delete filteredValues.indexers;
-      delete filteredValues.actions;
-      delete filteredValues.external_script_enabled;
-      delete filteredValues.external_script_cmd;
-      delete filteredValues.external_script_args;
-      delete filteredValues.external_script_expect_status;
-      delete filteredValues.external_webhook_enabled;
-      delete filteredValues.external_webhook_host;
-      delete filteredValues.external_webhook_data;
-      delete filteredValues.external_webhook_expect_status;
-  
       const json = JSON.stringify(
         {
           "autobrr_filter_title": title,
-          data: filteredValues
+          "version": "1.0",
+          data: completeFilter
         },
         null,
         4
@@ -371,7 +382,6 @@ const FilterItemDropdown = ({ filter, onToggle }: FilterItemDropdownProps) => {
       toast.custom((t) => <Toast type="error" body="Failed to get filter data." t={t} />);
     }
   }, [filter]);
-  
 
   const cancelModalButtonRef = useRef(null);
 
