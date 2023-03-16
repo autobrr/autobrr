@@ -20,4 +20,4 @@ jobs:
         fetch-depth: 0
 
     - name: Format code
-      uses: iamnotaturtle/auto-gofmt@v1.0
+      uses: iamnotaturtle/auto-gofmt@v2.1.0
