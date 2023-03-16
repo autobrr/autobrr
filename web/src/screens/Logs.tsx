@@ -14,6 +14,8 @@ import {
 import { useQuery } from "react-query";
 import { Link } from "react-router-dom";
 import { Menu, Transition } from "@headlessui/react";
+import { ComputerDesktopIcon } from "@heroicons/react/24/solid";
+
 
 type LogEvent = {
   time: string;
@@ -208,6 +210,22 @@ interface LogFilesItemProps {
 }
 
 const LogFilesItem = ({ file }: LogFilesItemProps) => {
+  const [isDownloading, setIsDownloading] = useState(false);
+
+  const handleDownload = async () => {
+    setIsDownloading(true);
+    const response = await fetch(`/api/logs/files/${file.filename}`);
+    const blob = await response.blob();
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = file.filename;
+    link.click();
+    URL.revokeObjectURL(url);
+    setIsDownloading(false);
+  };
+  
+
   return (
 
     <li className="text-gray-500 dark:text-gray-400">
@@ -224,21 +242,31 @@ const LogFilesItem = ({ file }: LogFilesItemProps) => {
         <div className="col-span-4 flex items-center text-sm font-medium text-gray-900 dark:text-gray-200" title={file.updated_at}>
           {simplifyDate(file.updated_at)}
         </div>
-
         <div className="col-span-1 hidden sm:flex items-center justify-center text-sm font-medium text-gray-900 dark:text-white">
-          <Link
-            className={classNames(
-              "text-gray-900 dark:text-gray-300",
-              "font-medium group flex rounded-md items-center px-2 py-2 text-sm"
-            )}
-            title="Download file"
-            to={`/api/logs/files/${file.filename}`}
-            target="_blank"
-            download={true}
-          >
-            <DocumentArrowDownIcon className="text-blue-500 w-5 h-5" aria-hidden="true" />
-          </Link>
+          <div className="logFilesItem">
+            <button
+              className={classNames(
+                "text-gray-900 dark:text-gray-300",
+                "font-medium group flex rounded-md items-center px-2 py-2 text-sm"
+              )}
+              title="Download file"
+              onClick={handleDownload}
+            >
+              {!isDownloading ? (
+                <DocumentArrowDownIcon
+                  className="text-blue-500 w-5 h-5 iconHeight"
+                  aria-hidden="true"
+                />
+              ) : (
+                <>
+                  <span className="sanitizing-text">Sanitizing log</span>
+                  <div className="loader iconHeight"></div>
+                </>
+              )}
+            </button>
+          </div>
         </div>
+
       </div>
     </li>
   );
