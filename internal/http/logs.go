@@ -87,22 +87,21 @@ func (h logsHandler) files(w http.ResponseWriter, r *http.Request) {
 	render.JSON(w, r, response)
 }
 
-func (h logsHandler) sanitizeLogFile(filePath string) (string, error) {
+func SanitizeLogFile(filePath string) (string, error) {
 	data, err := ioutil.ReadFile(filePath)
 	if err != nil {
 		return "", err
 	}
 
 	keyValueRegex := regexp.MustCompile(`(torrent_pass|passkey|authkey|secret_key|apikey)=([a-zA-Z0-9]+)`)
-	rssKeyRegex := regexp.MustCompile(`(https?://[^\s]+/rss/download/[a-zA-Z0-9]+/)([a-zA-Z0-9]+)(/.+)|(https?://[^\s]+/torrent/download(/auto)?/[a-zA-Z0-9]+\.)([a-zA-Z0-9]+)`)
+	rssKeyRegexRssDownload := regexp.MustCompile(`(https?://[^\s]+/rss/download/[a-zA-Z0-9]+/)([a-zA-Z0-9]+)(/.+)`)
+	rssKeyRegexAuto := regexp.MustCompile(`(https?://[^\s]+/torrent/download/auto\.[a-zA-Z0-9]+?)(\.[a-zA-Z0-9]+)`)
+	rssKeyRegex := regexp.MustCompile(`(https?://[^\s]+/torrent/download/)(([a-zA-Z0-9]+)\.)([a-zA-Z0-9]+)`)
 
 	sanitizedData := keyValueRegex.ReplaceAllString(string(data), "${1}=REDACTED")
-	sanitizedData = rssKeyRegex.ReplaceAllStringFunc(sanitizedData, func(s string) string {
-		if strings.Contains(s, "/rss/download/") {
-			return regexp.MustCompile(`(https?://[^\s]+/rss/download/[0-9]+/)([0-9]+)(/.+)`).ReplaceAllString(s, "${1}REDACTED${3}")
-		}
-		return regexp.MustCompile(`(https?://[^\s]+/torrent/download(/auto)?/[a-zA-Z0-9]+\.)([a-zA-Z0-9]+)`).ReplaceAllString(s, "${1}REDACTED")
-	})
+	sanitizedData = rssKeyRegexRssDownload.ReplaceAllString(sanitizedData, "${1}REDACTED${3}")
+	sanitizedData = rssKeyRegexAuto.ReplaceAllString(sanitizedData, "${1}REDACTED")
+	sanitizedData = rssKeyRegex.ReplaceAllString(sanitizedData, "${1}${3}REDACTED")
 
 	tmpFile, err := ioutil.TempFile("", "sanitized-log-*.log")
 	if err != nil {
@@ -161,7 +160,7 @@ func (h logsHandler) downloadFile(w http.ResponseWriter, r *http.Request) {
 	filePath := filepath.Join(logsDir, logFile)
 
 	// Sanitize the log file
-	sanitizedFilePath, err := h.sanitizeLogFile(filePath)
+	sanitizedFilePath, err := SanitizeLogFile(filePath)
 	if err != nil {
 		render.Status(r, http.StatusInternalServerError)
 		render.JSON(w, r, errorResponse{
