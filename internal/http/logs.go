@@ -97,11 +97,13 @@ func (h logsHandler) sanitizeLogFile(filePath string) (string, error) {
 	passkeyRegex := regexp.MustCompile(`passkey=([a-zA-Z0-9]+)`)
 	authkeyRegex := regexp.MustCompile(`authkey=([a-zA-Z0-9]+)`)
 	apiKeyRegex := regexp.MustCompile(`apikey=([a-zA-Z0-9]+)`)
+	numericIDRegex := regexp.MustCompile(`(https?://[^\s]+/rss/download/[0-9]+/)([0-9]+)(/.+)`)
 
 	sanitizedData := torrentPassRegex.ReplaceAllString(string(data), "torrent_pass=REDACTED_TORRENT_PASS")
 	sanitizedData = passkeyRegex.ReplaceAllString(sanitizedData, "passkey=REDACTED_PASSKEY")
 	sanitizedData = authkeyRegex.ReplaceAllString(sanitizedData, "authkey=REDACTED_AUTHKEY")
 	sanitizedData = apiKeyRegex.ReplaceAllString(sanitizedData, "apikey=REDACTED_APIKEY")
+	sanitizedData = numericIDRegex.ReplaceAllString(sanitizedData, "${1}REDACTED_NUMERIC_ID${3}")
 
 	tmpFile, err := ioutil.TempFile("", "sanitized-log-*.log")
 	if err != nil {
