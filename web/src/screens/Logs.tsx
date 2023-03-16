@@ -12,9 +12,7 @@ import {
   DocumentArrowDownIcon
 } from "@heroicons/react/24/outline";
 import { useQuery } from "react-query";
-import { Link } from "react-router-dom";
 import { Menu, Transition } from "@headlessui/react";
-import { ComputerDesktopIcon } from "@heroicons/react/24/solid";
 
 
 type LogEvent = {
