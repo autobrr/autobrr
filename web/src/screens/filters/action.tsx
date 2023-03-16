@@ -134,12 +134,24 @@ const TypeForm = ({ action, idx, clients }: TypeFormProps) => {
   
   switch (action.type) {
   case "TEST":
+    useEffect(() => {
+      if (prevActionType !== null) {
+        resetClientField(action, idx, prevActionType);
+      }
+      setPrevActionType(action.type);
+    }, [action.type, idx, setFieldValue]); 
     return (
       <AlertWarning
         text="The test action does nothing except to show if the filter works."
       />
     );
   case "EXEC":
+    useEffect(() => {
+      if (prevActionType !== null) {
+        resetClientField(action, idx, prevActionType);
+      }
+      setPrevActionType(action.type);
+    }, [action.type, idx, setFieldValue]); 
     return (
       <div>
         <div className="mt-6 grid grid-cols-12 gap-6">
@@ -159,6 +171,12 @@ const TypeForm = ({ action, idx, clients }: TypeFormProps) => {
       </div>
     );
   case "WATCH_FOLDER":
+    useEffect(() => {
+      if (prevActionType !== null) {
+        resetClientField(action, idx, prevActionType);
+      }
+      setPrevActionType(action.type);
+    }, [action.type, idx, setFieldValue]); 
     return (
       <div className="mt-6 grid grid-cols-12 gap-6">
         <TextField
@@ -170,6 +188,12 @@ const TypeForm = ({ action, idx, clients }: TypeFormProps) => {
       </div>
     );
   case "WEBHOOK":
+    useEffect(() => {
+      if (prevActionType !== null) {
+        resetClientField(action, idx, prevActionType);
+      }
+      setPrevActionType(action.type);
+    }, [action.type, idx, setFieldValue]); 
     return (
       <div className="mt-6 grid grid-cols-12 gap-6">
         <TextField
