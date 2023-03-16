@@ -2,10 +2,12 @@ package http
 
 import (
 	"io/fs"
+	"io/ioutil"
 	"net/http"
 	"os"
 	"path"
 	"path/filepath"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -85,6 +87,41 @@ func (h logsHandler) files(w http.ResponseWriter, r *http.Request) {
 	render.JSON(w, r, response)
 }
 
+func (h logsHandler) sanitizeLogFile(filePath string) (string, error) {
+	data, err := ioutil.ReadFile(filePath)
+	if err != nil {
+		return "", err
+	}
+
+	torrentPassRegex := regexp.MustCompile(`torrent_pass=([a-zA-Z0-9]+)`)
+	passkeyRegex := regexp.MustCompile(`passkey=([a-zA-Z0-9]+)`)
+	authkeyRegex := regexp.MustCompile(`authkey=([a-zA-Z0-9]+)`)
+	apiKeyRegex := regexp.MustCompile(`apikey=([a-zA-Z0-9]+)`)
+
+	sanitizedData := torrentPassRegex.ReplaceAllString(string(data), "torrent_pass=REDACTED_TORRENT_PASS")
+	sanitizedData = passkeyRegex.ReplaceAllString(sanitizedData, "passkey=REDACTED_PASSKEY")
+	sanitizedData = authkeyRegex.ReplaceAllString(sanitizedData, "authkey=REDACTED_AUTHKEY")
+	sanitizedData = apiKeyRegex.ReplaceAllString(sanitizedData, "apikey=REDACTED_APIKEY")
+
+	tmpFile, err := ioutil.TempFile("", "sanitized-log-*.log")
+	if err != nil {
+		return "", err
+	}
+
+	_, err = tmpFile.WriteString(sanitizedData)
+	if err != nil {
+		tmpFile.Close()
+		return "", err
+	}
+
+	err = tmpFile.Close()
+	if err != nil {
+		return "", err
+	}
+
+	return tmpFile.Name(), nil
+}
+
 func (h logsHandler) downloadFile(w http.ResponseWriter, r *http.Request) {
 	if h.cfg.Config.LogPath == "" {
 		render.Status(r, http.StatusNotFound)
@@ -120,12 +157,24 @@ func (h logsHandler) downloadFile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	filePath := filepath.Join(logsDir, logFile)
+
+	// Sanitize the log file
+	sanitizedFilePath, err := h.sanitizeLogFile(filePath)
+	if err != nil {
+		render.Status(r, http.StatusInternalServerError)
+		render.JSON(w, r, errorResponse{
+			Message: err.Error(),
+			Status:  http.StatusInternalServerError,
+		})
+		return
+	}
+	defer os.Remove(sanitizedFilePath)
+
 	w.Header().Set("Content-Disposition", "attachment; filename="+strconv.Quote(logFile))
 	w.Header().Set("Content-Type", "application/octet-stream")
 
-	filePath := filepath.Join(logsDir, logFile)
-
-	http.ServeFile(w, r, filePath)
+	http.ServeFile(w, r, sanitizedFilePath)
 }
 
 type logFile struct {
