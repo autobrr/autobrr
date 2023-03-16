@@ -93,17 +93,16 @@ func (h logsHandler) sanitizeLogFile(filePath string) (string, error) {
 		return "", err
 	}
 
-	torrentPassRegex := regexp.MustCompile(`torrent_pass=([a-zA-Z0-9]+)`)
-	passkeyRegex := regexp.MustCompile(`passkey=([a-zA-Z0-9]+)`)
-	authkeyRegex := regexp.MustCompile(`authkey=([a-zA-Z0-9]+)`)
-	apiKeyRegex := regexp.MustCompile(`apikey=([a-zA-Z0-9]+)`)
-	numericIDRegex := regexp.MustCompile(`(https?://[^\s]+/rss/download/[0-9]+/)([0-9]+)(/.+)`)
+	keyValueRegex := regexp.MustCompile(`(torrent_pass|passkey|authkey|secret_key|apikey)=([a-zA-Z0-9]+)`)
+	rssKeyRegex := regexp.MustCompile(`(https?://[^\s]+/rss/download/[a-zA-Z0-9]+/)([a-zA-Z0-9]+)(/.+)|(https?://[^\s]+/torrent/download(/auto)?/[a-zA-Z0-9]+\.)([a-zA-Z0-9]+)`)
 
-	sanitizedData := torrentPassRegex.ReplaceAllString(string(data), "torrent_pass=REDACTED_TORRENT_PASS")
-	sanitizedData = passkeyRegex.ReplaceAllString(sanitizedData, "passkey=REDACTED_PASSKEY")
-	sanitizedData = authkeyRegex.ReplaceAllString(sanitizedData, "authkey=REDACTED_AUTHKEY")
-	sanitizedData = apiKeyRegex.ReplaceAllString(sanitizedData, "apikey=REDACTED_APIKEY")
-	sanitizedData = numericIDRegex.ReplaceAllString(sanitizedData, "${1}REDACTED_NUMERIC_ID${3}")
+	sanitizedData := keyValueRegex.ReplaceAllString(string(data), "${1}=REDACTED")
+	sanitizedData = rssKeyRegex.ReplaceAllStringFunc(sanitizedData, func(s string) string {
+		if strings.Contains(s, "/rss/download/") {
+			return regexp.MustCompile(`(https?://[^\s]+/rss/download/[0-9]+/)([0-9]+)(/.+)`).ReplaceAllString(s, "${1}REDACTED${3}")
+		}
+		return regexp.MustCompile(`(https?://[^\s]+/torrent/download(/auto)?/[a-zA-Z0-9]+\.)([a-zA-Z0-9]+)`).ReplaceAllString(s, "${1}REDACTED")
+	})
 
 	tmpFile, err := ioutil.TempFile("", "sanitized-log-*.log")
 	if err != nil {
