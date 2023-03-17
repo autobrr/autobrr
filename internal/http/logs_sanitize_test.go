@@ -124,7 +124,7 @@ func TestSanitizeLogFile(t *testing.T) {
 			expected: "NickServ IDENTIFY REDACTED",
 		},
 		{
-			input:    "--> AUTHENTICATE poasd!232kljasdj!%",
+			input:    "--> AUTHENTICATE poasd!232kljøasdj!%",
 			expected: "--> AUTHENTICATE REDACTED",
 		},
 	}
