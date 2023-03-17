@@ -94,14 +94,10 @@ func SanitizeLogFile(filePath string) (string, error) {
 	}
 
 	keyValueRegex := regexp.MustCompile(`(torrent_pass|passkey|authkey|secret_key|apikey)=([a-zA-Z0-9]+)`)
-	rssKeyRegexRssDownload := regexp.MustCompile(`(https?://[^\s]+/rss/download/[a-zA-Z0-9]+/)([a-zA-Z0-9]+)(/.+)`)
-	rssKeyRegexAuto := regexp.MustCompile(`(https?://[^\s]+/torrent/download/auto\.[a-zA-Z0-9]+?)(\.[a-zA-Z0-9]+)`)
-	rssKeyRegex := regexp.MustCompile(`(https?://[^\s]+/torrent/download/)(([a-zA-Z0-9]+)\.)([a-zA-Z0-9]+)`)
+	combinedRegex := regexp.MustCompile(`(https?://[^\s]+/((rss/download/[a-zA-Z0-9]+/)|torrent/download/((auto\.[a-zA-Z0-9]+\.|[a-zA-Z0-9]+\.))))([a-zA-Z0-9]+)`)
 
 	sanitizedData := keyValueRegex.ReplaceAllString(string(data), "${1}=REDACTED")
-	sanitizedData = rssKeyRegexRssDownload.ReplaceAllString(sanitizedData, "${1}REDACTED${3}")
-	sanitizedData = rssKeyRegexAuto.ReplaceAllString(sanitizedData, "${1}REDACTED")
-	sanitizedData = rssKeyRegex.ReplaceAllString(sanitizedData, "${1}${3}REDACTED")
+	sanitizedData = combinedRegex.ReplaceAllString(sanitizedData, "${1}REDACTED")
 
 	tmpFile, err := ioutil.TempFile("", "sanitized-log-*.log")
 	if err != nil {
