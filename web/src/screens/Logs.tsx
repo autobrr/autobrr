@@ -13,6 +13,7 @@ import {
 } from "@heroicons/react/24/outline";
 import { useQuery } from "react-query";
 import { Menu, Transition } from "@headlessui/react";
+import { baseUrl } from "../utils";
 
 
 type LogEvent = {
@@ -212,7 +213,7 @@ const LogFilesItem = ({ file }: LogFilesItemProps) => {
 
   const handleDownload = async () => {
     setIsDownloading(true);
-    const response = await fetch(`/api/logs/files/${file.filename}`);
+    const response = await fetch(`${baseUrl()}api/logs/files/${file.filename}`);
     const blob = await response.blob();
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
