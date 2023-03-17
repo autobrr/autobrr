@@ -274,30 +274,30 @@ const LogFilesItem = ({ file }: LogFilesItemProps) => {
           {simplifyDate(file.updated_at)}
         </div>
         <div className="col-span-1 hidden sm:flex items-center justify-center text-sm font-medium text-gray-900 dark:text-white">
-      <div className="logFilesItem">
-        <button
-          className={classNames(
-            "text-gray-900 dark:text-gray-300",
-            "font-medium group flex rounded-md items-center px-2 py-2 text-sm"
-          )}
-          title="Download file"
-          onClick={handleDownload}
-        >
-          {!isDownloading ? (
-            <DocumentArrowDownIcon
-              className="text-blue-500 w-5 h-5 iconHeight"
-              aria-hidden="true"
-            />
-          ) : (
-            <div className="h-5 flex items-center">
-              <span className="sanitizing-text">Sanitizing log</span>
-              <Dots />
-            </div>
-          )}
-        </button>
+          <div className="logFilesItem">
+            <button
+              className={classNames(
+                "text-gray-900 dark:text-gray-300",
+                "font-medium group flex rounded-md items-center px-2 py-2 text-sm"
+              )}
+              title="Download file"
+              onClick={handleDownload}
+            >
+              {!isDownloading ? (
+                <DocumentArrowDownIcon
+                  className="text-blue-500 w-5 h-5 iconHeight"
+                  aria-hidden="true"
+                />
+              ) : (
+                <div className="h-5 flex items-center">
+                  <span className="sanitizing-text">Sanitizing log</span>
+                  <Dots />
+                </div>
+              )}
+            </button>
+          </div>
+        </div>
       </div>
-    </div>
-    </div>
     </li>
   );
 };
