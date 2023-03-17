@@ -645,16 +645,32 @@ function FilterListItem({ filter, values, idx }: FilterListItemProps) {
               to={`${filter.id.toString()}/actions`}
               className="hover:text-black dark:hover:text-gray-300"
             >
-              <span className="flex items-center">
-                <span className={classNames(filter.actions_count == 0 ? "text-red-500" : "")}>Actions: {filter.actions_count}</span>
+              <span
+                id={`tooltip-actions-${filter.id}`}
+                className="flex items-center hover:cursor-pointer"
+              >
+                <span className={classNames(filter.actions_count == 0 ? "text-red-500" : "")}>
+                  <span
+                    className={
+                      classNames(
+                        filter.actions_count == 0 ? "hover:text-red-400 dark:hover:text-red-400" : ""
+                      )
+                    }
+                  >
+        Actions: {filter.actions_count}
+                  </span>
+                </span>
                 {filter.actions_count === 0 && (
                   <>
-                    <span className="ml-1 flex" id="0actions" data-tip="No actions found">
-                      <ExclamationTriangleIcon
-                        className="w-5 h-5 text-red-500 cursor-pointer"
+                    <span className="mr-2 ml-2 flex h-3 w-3 relative">
+                      <span className="animate-ping inline-flex h-full w-full rounded-full dark:bg-red-500 bg-red-400 opacity-75" />
+                      <span
+                        className="inline-flex absolute rounded-full h-3 w-3 dark:bg-red-500 bg-red-400"
                       />
                     </span>
-                    <Tooltip style={{ width: "350px", fontSize: "12px", textTransform: "none", fontWeight: "normal", borderRadius: "0.375rem", backgroundColor: "#34343A", color: "#fff", opacity: "1", whiteSpace: "pre-wrap", overflow: "hidden", textOverflow: "ellipsis" }} delayShow={100} delayHide={150} data-html={true} place="bottom" anchorId="0actions" html="<p>You need to setup an action in the filter otherwise you will not get any snatches.</p>" />
+                    <span className="text-sm text-gray-800 dark:text-gray-500">
+                      <Tooltip style={{ width: "350px", fontSize: "12px", textTransform: "none", fontWeight: "normal", borderRadius: "0.375rem", backgroundColor: "#34343A", color: "#fff", opacity: "1", whiteSpace: "pre-wrap", overflow: "hidden", textOverflow: "ellipsis" }} delayShow={100} delayHide={150} data-html={true} place="right" anchorId={`tooltip-actions-${filter.id}`} html="<p>You need to setup an action in the filter otherwise you will not get any snatches.</p>" />
+                    </span>
                   </>
                 )}
               </span>
