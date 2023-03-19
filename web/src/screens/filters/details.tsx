@@ -25,8 +25,6 @@ import { APIClient } from "../../api/APIClient";
 import { useToggle } from "../../hooks/hooks";
 import { classNames } from "../../utils";
 
-import { CustomTooltip } from "../../components/tooltips/CustomTooltip";
-
 import {
   CheckboxField,
   IndexerMultiSelect,
@@ -319,7 +317,7 @@ export default function FilterDetails() {
   );
 }
 
-export function General() {
+export function General(){
   const { isLoading, data: indexers } = useQuery(
     ["filters", "indexer_list"],
     () => APIClient.indexers.getOptions(),
@@ -334,7 +332,6 @@ export function General() {
   return (
     <div>
       <div className="mt-6 lg:pb-8">
-
         <div className="mt-6 grid grid-cols-12 gap-6">
           <TextField name="name" label="Filter name" columns={6} placeholder="eg. Filter 1" />
 
@@ -360,7 +357,6 @@ export function General() {
       <div className="border-t dark:border-gray-700">
         <SwitchGroup name="enabled" label="Enabled" description="Enable or disable this filter." />
       </div>
-
     </div>
   );
 }
