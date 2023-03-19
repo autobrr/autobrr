@@ -17,13 +17,13 @@ func (f Feed) Len() int {
 }
 
 type Channel struct {
-	Title string     `xml:"title"`
-	Items []FeedItem `xml:"item"`
+	Title string      `xml:"title"`
+	Items []*FeedItem `xml:"item"`
 }
 
 type Response struct {
 	Channel struct {
-		Items []FeedItem `xml:"item"`
+		Items []*FeedItem `xml:"item"`
 	} `xml:"channel"`
 }
 
@@ -55,7 +55,7 @@ type ItemAttr struct {
 	Value string `xml:"value,attr"`
 }
 
-func (f FeedItem) MapCategories(categories []Category) {
+func (f *FeedItem) MapCategories(categories []Category) {
 	for _, category := range f.Category {
 		// less than 10000 it's default categories
 		if category < 10000 {
