@@ -16,6 +16,7 @@ interface TextFieldProps {
   onChange?: (event: React.ChangeEvent<HTMLInputElement>) => void;
   isValidRegex?: (inputValue: string) => boolean;
   useRegex?: boolean;
+  useRegexReleaseTags?: boolean;
   hidden?: boolean;
   disabled?: boolean;
   tooltip?: JSX.Element;
@@ -31,6 +32,7 @@ export const TextField = ({
   onChange,
   isValidRegex,
   useRegex,
+  useRegexReleaseTags,
   hidden,
   tooltip,
   disabled
@@ -46,7 +48,7 @@ export const TextField = ({
         htmlFor={name}
         className="flex float-left mb-2 text-xs font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wide"
       >
-        <div className="flex">
+        <div className="flex z-10">
           {label}
           {tooltip && <CustomTooltip anchorId={name}>{tooltip}</CustomTooltip>}
         </div>
@@ -84,13 +86,13 @@ export const TextField = ({
               disabled={disabled}
               placeholder={placeholder}
             />
-            {isValid !== undefined && useRegex && (
+            {isValid !== undefined && (useRegex || useRegexReleaseTags) && (
               <div className="relative">
                 <div className="flex float-right items-center">
                   {isValid ? (
-                    <CheckCircleIcon className="dark:bg-gray-800 bg-white h-8 w-8 mb-2.5 pl-1 text-green-500 right-2 absolute transform -translate-y-1/2 z-10" aria-hidden="true" style={{ overflow: "hidden" }} />
+                    <CheckCircleIcon className="dark:bg-gray-800 bg-white h-8 w-8 mb-2.5 pl-1 text-green-500 right-2 absolute transform -translate-y-1/2" aria-hidden="true" style={{ overflow: "hidden" }} />
                   ) : (
-                    <XCircleIcon className="dark:bg-gray-800 bg-white h-8 w-8 mb-2.5 pl-1 text-red-500 right-2 absolute transform -translate-y-1/2 z-10" aria-hidden="true" style={{ overflow: "hidden" }} />
+                    <XCircleIcon className="dark:bg-gray-800 bg-white h-8 w-8 mb-2.5 pl-1 text-red-500 right-2 absolute transform -translate-y-1/2" aria-hidden="true" style={{ overflow: "hidden" }} />
                   )}
                 </div>
               </div>
