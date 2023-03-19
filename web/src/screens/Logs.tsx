@@ -12,8 +12,9 @@ import {
   DocumentArrowDownIcon
 } from "@heroicons/react/24/outline";
 import { useQuery } from "react-query";
-import { Link } from "react-router-dom";
 import { Menu, Transition } from "@headlessui/react";
+import { baseUrl } from "../utils";
+
 
 type LogEvent = {
   time: string;
@@ -207,7 +208,55 @@ interface LogFilesItemProps {
   file: LogFile;
 }
 
+const Dots = () => {
+  const [step, setStep] = useState(1);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setStep((prevStep) => (prevStep % 3) + 1);
+    }, 300);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  return (
+    <div className="flex">
+      <div
+        className={`h-2 w-2 bg-blue-500 rounded-full mx-1 ${
+          step === 1 ? "opacity-100" : "opacity-30"
+        }`}
+      />
+      <div
+        className={`h-2 w-2 bg-blue-500 rounded-full mx-1 ${
+          step === 2 ? "opacity-100" : "opacity-30"
+        }`}
+      />
+      <div
+        className={`h-2 w-2 bg-blue-500 rounded-full mx-1 ${
+          step === 3 ? "opacity-100" : "opacity-30"
+        }`}
+      />
+    </div>
+  );
+};
+
 const LogFilesItem = ({ file }: LogFilesItemProps) => {
+  const [isDownloading, setIsDownloading] = useState(false);
+
+  const handleDownload = async () => {
+    setIsDownloading(true);
+    const response = await fetch(`${baseUrl()}api/logs/files/${file.filename}`);
+    const blob = await response.blob();
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = file.filename;
+    link.click();
+    URL.revokeObjectURL(url);
+    setIsDownloading(false);
+  };
+  
+
   return (
 
     <li className="text-gray-500 dark:text-gray-400">
@@ -224,20 +273,29 @@ const LogFilesItem = ({ file }: LogFilesItemProps) => {
         <div className="col-span-4 flex items-center text-sm font-medium text-gray-900 dark:text-gray-200" title={file.updated_at}>
           {simplifyDate(file.updated_at)}
         </div>
-
         <div className="col-span-1 hidden sm:flex items-center justify-center text-sm font-medium text-gray-900 dark:text-white">
-          <Link
-            className={classNames(
-              "text-gray-900 dark:text-gray-300",
-              "font-medium group flex rounded-md items-center px-2 py-2 text-sm"
-            )}
-            title="Download file"
-            to={`/api/logs/files/${file.filename}`}
-            target="_blank"
-            download={true}
-          >
-            <DocumentArrowDownIcon className="text-blue-500 w-5 h-5" aria-hidden="true" />
-          </Link>
+          <div className="logFilesItem">
+            <button
+              className={classNames(
+                "text-gray-900 dark:text-gray-300",
+                "font-medium group flex rounded-md items-center px-2 py-2 text-sm"
+              )}
+              title="Download file"
+              onClick={handleDownload}
+            >
+              {!isDownloading ? (
+                <DocumentArrowDownIcon
+                  className="text-blue-500 w-5 h-5 iconHeight"
+                  aria-hidden="true"
+                />
+              ) : (
+                <div className="h-5 flex items-center">
+                  <span className="sanitizing-text">Sanitizing log</span>
+                  <Dots />
+                </div>
+              )}
+            </button>
+          </div>
         </div>
       </div>
     </li>
