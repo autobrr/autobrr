@@ -88,14 +88,13 @@ export const TextField = ({
               <div className="relative">
                 <div className="flex float-right items-center">
                   {isValid ? (
-                    <CheckCircleIcon className="dark:bg-gray-800 bg-white h-6 w-6 mb-4 text-green-500 right-2 absolute transform -translate-y-2/4 z-10" aria-hidden="true" style={{ overflow: "hidden" }} />
+                    <CheckCircleIcon className="dark:bg-gray-800 bg-white h-8 w-8 mb-2.5 pl-1 text-green-500 right-2 absolute transform -translate-y-1/2 z-10" aria-hidden="true" style={{ overflow: "hidden" }} />
                   ) : (
-                    <XCircleIcon className="dark:bg-gray-800 bg-white h-6 w-6 mb-4 text-red-500 right-2 absolute transform -translate-y-2/4 z-10" aria-hidden="true" style={{ overflow: "hidden" }} />
+                    <XCircleIcon className="dark:bg-gray-800 bg-white h-8 w-8 mb-2.5 pl-1 text-red-500 right-2 absolute transform -translate-y-1/2 z-10" aria-hidden="true" style={{ overflow: "hidden" }} />
                   )}
                 </div>
               </div>
             )}
-
             {meta.touched && meta.error && (
               <p className="error text-sm text-red-600 mt-1">* {meta.error}</p>
             )}
