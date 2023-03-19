@@ -167,7 +167,7 @@ func (s *service) Process(release *domain.Release) {
 				continue
 			}
 
-			rejections, err = s.actionSvc.RunAction(ctx, a, *release)
+			rejections, err = s.actionSvc.RunAction(ctx, a, release)
 			if err != nil {
 				l.Error().Stack().Err(err).Msgf("release.Process: error running actions for filter: %v", release.Filter.Name)
 				continue
