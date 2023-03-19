@@ -20,7 +20,7 @@ settings:
     help: "Go to your profile tab, Settings > Security, copy RSS Key (RID)"
 
 irc:
-  network: aither.cc
+  network: Aither.cc
   server: irc.aither.cc
   port: 6697
   tls: true

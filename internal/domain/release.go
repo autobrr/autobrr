@@ -154,7 +154,7 @@ type ReleaseProtocol string
 
 const (
 	ReleaseProtocolTorrent ReleaseProtocol = "torrent"
-	ReleaseProtocolNzb     ReleaseProtocol = "nzb"
+	ReleaseProtocolNzb     ReleaseProtocol = "usenet"
 )
 
 func (r ReleaseProtocol) String() string {
@@ -162,7 +162,7 @@ func (r ReleaseProtocol) String() string {
 	case ReleaseProtocolTorrent:
 		return "torrent"
 	case ReleaseProtocolNzb:
-		return "nzb"
+		return "usenet"
 	default:
 		return "torrent"
 	}

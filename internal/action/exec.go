@@ -2,9 +2,7 @@ package action
 
 import (
 	"context"
-	"os"
 	"os/exec"
-	"strings"
 	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
@@ -15,22 +13,6 @@ import (
 
 func (s *service) execCmd(ctx context.Context, action *domain.Action, release domain.Release) error {
 	s.log.Debug().Msgf("action exec: %s release: %s", action.Name, release.TorrentName)
-
-	if release.TorrentTmpFile == "" && strings.Contains(action.ExecArgs, "TorrentPathName") {
-		if err := release.DownloadTorrentFileCtx(ctx); err != nil {
-			return errors.Wrap(err, "error downloading torrent file for release: %s", release.TorrentName)
-		}
-	}
-
-	// read the file into bytes we can then use in the macro
-	if len(release.TorrentDataRawBytes) == 0 && release.TorrentTmpFile != "" {
-		t, err := os.ReadFile(release.TorrentTmpFile)
-		if err != nil {
-			return errors.Wrap(err, "could not read torrent file: %s", release.TorrentTmpFile)
-		}
-
-		release.TorrentDataRawBytes = t
-	}
 
 	// check if program exists
 	cmd, err := exec.LookPath(action.ExecCmd)
