@@ -232,7 +232,7 @@ func (j *TorznabJob) getFeed(ctx context.Context) ([]torznab.FeedItem, error) {
 		}
 
 		// only append if we successfully added to cache
-		items = append(items, i)
+		items = append(items, *i)
 	}
 
 	// send to filters
