@@ -2,10 +2,12 @@ package http
 
 import (
 	"io/fs"
+	"io/ioutil"
 	"net/http"
 	"os"
 	"path"
 	"path/filepath"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -85,6 +87,50 @@ func (h logsHandler) files(w http.ResponseWriter, r *http.Request) {
 	render.JSON(w, r, response)
 }
 
+var ( // regexes for sanitizing log files
+	keyValueRegex = regexp.MustCompile(`(torrent_pass|passkey|authkey|secret_key|apikey)=([a-zA-Z0-9]+)`)
+	combinedRegex = regexp.MustCompile(`(https?://[^\s]+/((rss/download/[a-zA-Z0-9]+/)|torrent/download/((auto\.[a-zA-Z0-9]+\.|[a-zA-Z0-9]+\.))))([a-zA-Z0-9]+)`)
+	inviteRegex   = regexp.MustCompile(`(Voyager autobot [\p{L}0-9]+ |Satsuki enter #announce [\p{L}0-9]+ |Millie announce |DBBot announce |ENDOR !invite [\p{L}0-9]+ |Vertigo ENTER #GGn-Announce [\p{L}0-9]+ |midgards announce |HeBoT !invite |NBOT !invite |Muffit bot #nbl-announce [\p{L}0-9]+ |hermes enter #announce [\p{L}0-9]+ |LiMEY_ !invite |PS-Info pass |PT-BOT invite |Hummingbird ENTER [\p{L}0-9]+ |Drone enter #red-announce [\p{L}0-9]+ |SceneHD \.invite |erica letmeinannounce [\p{L}0-9]+ |Synd1c4t3 invite |UHDBot invite |Sauron bot #ant-announce [\p{L}0-9]+ |RevoTT !invite [\p{L}0-9]+ |Cerberus identify [\p{L}0-9]+ )([\p{L}0-9]+)`)
+	nickservRegex = regexp.MustCompile(`(NickServ IDENTIFY )([\p{L}0-9!#%&*+/:;<=>?@^_` + "`" + `{|}~]+)`)
+	saslRegex     = regexp.MustCompile(`(--> AUTHENTICATE )([\p{L}0-9!#%&*+/:;<=>?@^_` + "`" + `{|}~]+)`)
+)
+
+func SanitizeLogFile(filePath string) (string, error) {
+	data, err := ioutil.ReadFile(filePath)
+	if err != nil {
+		return "", err
+	}
+
+	sanitizedData := string(data)
+
+	// torrent_pass, passkey, authkey, secret_key, apikey, rsskey
+	sanitizedData = keyValueRegex.ReplaceAllString(sanitizedData, "${1}=REDACTED")
+	sanitizedData = combinedRegex.ReplaceAllString(sanitizedData, "${1}REDACTED")
+
+	// irc related
+	sanitizedData = inviteRegex.ReplaceAllString(sanitizedData, "${1}REDACTED")
+	sanitizedData = nickservRegex.ReplaceAllString(sanitizedData, "${1}REDACTED")
+	sanitizedData = saslRegex.ReplaceAllString(sanitizedData, "${1}REDACTED")
+
+	tmpFile, err := ioutil.TempFile("", "sanitized-log-*.log")
+	if err != nil {
+		return "", err
+	}
+
+	_, err = tmpFile.WriteString(sanitizedData)
+	if err != nil {
+		tmpFile.Close()
+		return "", err
+	}
+
+	err = tmpFile.Close()
+	if err != nil {
+		return "", err
+	}
+
+	return tmpFile.Name(), nil
+}
+
 func (h logsHandler) downloadFile(w http.ResponseWriter, r *http.Request) {
 	if h.cfg.Config.LogPath == "" {
 		render.Status(r, http.StatusNotFound)
@@ -120,12 +166,24 @@ func (h logsHandler) downloadFile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	filePath := filepath.Join(logsDir, logFile)
+
+	// Sanitize the log file
+	sanitizedFilePath, err := SanitizeLogFile(filePath)
+	if err != nil {
+		render.Status(r, http.StatusInternalServerError)
+		render.JSON(w, r, errorResponse{
+			Message: err.Error(),
+			Status:  http.StatusInternalServerError,
+		})
+		return
+	}
+	defer os.Remove(sanitizedFilePath)
+
 	w.Header().Set("Content-Disposition", "attachment; filename="+strconv.Quote(logFile))
 	w.Header().Set("Content-Type", "application/octet-stream")
 
-	filePath := filepath.Join(logsDir, logFile)
-
-	http.ServeFile(w, r, filePath)
+	http.ServeFile(w, r, sanitizedFilePath)
 }
 
 type logFile struct {

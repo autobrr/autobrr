@@ -1,7 +1,7 @@
 import { AlertWarning } from "../../components/alerts";
 import { DownloadClientSelect, NumberField, Select, SwitchGroup, TextField } from "../../components/inputs";
 import { ActionContentLayoutOptions, ActionRtorrentRenameOptions, ActionTypeNameMap, ActionTypeOptions } from "../../domain/constants";
-import React, { Fragment, useRef } from "react";
+import React, { Fragment, useRef, useEffect, useState } from "react";
 import { useQuery } from "react-query";
 import { APIClient } from "../../api/APIClient";
 import { Field, FieldArray, FieldProps, FormikValues } from "formik";
@@ -14,6 +14,7 @@ import { DeleteModal } from "../../components/modals";
 import { CollapsableSection } from "./details";
 import { CustomTooltip } from "../../components/tooltips/CustomTooltip";
 import { Link } from "react-router-dom";
+import { useFormikContext } from "formik";
 
 interface FilterActionsProps {
   filter: Filter;
@@ -106,6 +107,36 @@ interface TypeFormProps {
 }
 
 const TypeForm = ({ action, idx, clients }: TypeFormProps) => {
+  const { setFieldValue } = useFormikContext();
+  
+  const resetClientField = (action: Action, idx: number, prevActionType: string): void => {
+    const fieldName = `actions.${idx}.client_id`;
+
+    if (prevActionType !== action.type && (
+      action.type === "QBITTORRENT" ||
+      action.type === "DELUGE_V1" ||
+      action.type === "DELUGE_V2" ||
+      action.type === "RTORRENT" ||
+      action.type === "TRANSMISSION" ||
+      action.type === "PORLA" ||
+      action.type === "RADARR" ||
+      action.type === "SONARR" ||
+      action.type === "LIDARR" ||
+      action.type === "WHISPARR" ||
+      action.type === "READARR" ||
+      action.type === "SABNZBD"
+    )) {
+      setFieldValue(fieldName, ""); // Reset the client_id field value
+    }
+  };
+
+  const [prevActionType, setPrevActionType] = useState<string | null>(null);
+  useEffect(() => {
+    if (prevActionType !== null) {
+      resetClientField(action, idx, prevActionType);
+    }
+    setPrevActionType(action.type);
+  }, [action.type, idx, setFieldValue]); 
   switch (action.type) {
   case "TEST":
     return (
@@ -452,7 +483,6 @@ const TypeForm = ({ action, idx, clients }: TypeFormProps) => {
         />
       </div>
     );
-
   case "SABNZBD":
     return (
       <div>
