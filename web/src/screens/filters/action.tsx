@@ -1,6 +1,6 @@
 import { AlertWarning } from "../../components/alerts";
 import { DownloadClientSelect, NumberField, Select, SwitchGroup, TextField } from "../../components/inputs";
-import { ActionContentLayoutOptions, ActionTypeNameMap, ActionTypeOptions } from "../../domain/constants";
+import { ActionContentLayoutOptions, ActionRtorrentRenameOptions, ActionTypeNameMap, ActionTypeOptions } from "../../domain/constants";
 import React, { Fragment, useRef } from "react";
 import { useQuery } from "react-query";
 import { APIClient } from "../../api/APIClient";
@@ -358,6 +358,16 @@ const TypeForm = ({ action, idx, clients }: TypeFormProps) => {
               columns={6}
               placeholder="eg. /full/path/to/download_folder"
             />
+          </div>
+          <div className="col-span-12 sm:col-span-6">
+            <div className="col-span-6">
+              <Select
+                name={`actions.${idx}.content_layout`}
+                label="Don't add torrent's name to path"
+                optionDefaultText="No"
+                options={ActionRtorrentRenameOptions}
+              />
+            </div>
           </div>
         </div>
       </div>
