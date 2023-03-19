@@ -1,4 +1,4 @@
-import React, { useRef } from "react";
+import React, { useRef, useState } from "react";
 import { useMutation, useQuery } from "react-query";
 import { NavLink, Route, Routes, useLocation, useNavigate, useParams } from "react-router-dom";
 import { toast } from "react-hot-toast";
@@ -24,8 +24,6 @@ import { queryClient } from "../../App";
 import { APIClient } from "../../api/APIClient";
 import { useToggle } from "../../hooks/hooks";
 import { classNames } from "../../utils";
-
-import { CustomTooltip } from "../../components/tooltips/CustomTooltip";
 
 import {
   CheckboxField,
@@ -470,14 +468,53 @@ interface AdvancedProps {
 }
 
 export function Advanced({ values }: AdvancedProps) {
+  const validateRegex = (pattern: string) => {
+    try {
+      new RegExp(pattern);
+      return true;
+    } catch (e) {
+      return false;
+    }
+  };
+
+  const initializeIsValidRegex = () => {
+    return {
+      match: values.use_regex ? validateRegex(values.match_releases) : true,
+      except: values.use_regex ? validateRegex(values.except_releases) : true
+    };
+  };
+
+  const [isValidRegex, setIsValidRegex] = useState(initializeIsValidRegex);
+
+  const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setIsValidRegex({ ...isValidRegex, match: validateRegex(event.target.value) });
+  };
+
+  const handleChangeExcept = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setIsValidRegex({ ...isValidRegex, except: validateRegex(event.target.value) });
+  };
+
+  const validationState = (isValid: boolean) => {
+    return (inputValue: string) => {
+      if (values.use_regex) {
+        return (inputValue === "") ? true : (isValid && inputValue !== "");
+      }
+      return inputValue === "" || true;
+    };
+  };
+  
+  
+  
   return (
     <div>
       <CollapsableSection defaultOpen={true} title="Releases" subtitle="Match only certain release names and/or ignore other release names.">
         <div className="grid col-span-12 gap-6">
           <WarningAlert text="autobrr has extensive filtering built-in - only use this if nothing else works. If you need help please ask." />
 
-          <TextField name="match_releases" label="Match releases" columns={6} placeholder="eg. *some?movie*,*some?show*s01*" tooltip={<div><p>This field has full regex support (Golang flavour).</p><a href='https://autobrr.com/filters#advanced' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters#advanced</a><br/><br/><p>Remember to tick <b>Use Regex</b> below if using more than <code>*</code> and <code>?</code>.</p></div>} />
-          <TextField name="except_releases" label="Except releases" columns={6} placeholder="eg. *bad?movie*,*bad?show*s03*" tooltip={<div><p>This field has full regex support (Golang flavour).</p><a href='https://autobrr.com/filters#advanced' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters#advanced</a><br/><br/><p>Remember to tick <b>Use Regex</b> below if using more than <code>*</code> and <code>?</code>.</p></div>} />
+          <TextField name="match_releases" label="Match releases" onChange={handleChange} isValidRegex={validationState(isValidRegex.match)} columns={6} placeholder="eg. *some?movie*,*some?show*s01*" useRegex={values.use_regex} tooltip={<div><p>This field has full regex support (Golang flavour).</p><a href='https://autobrr.com/filters#advanced' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters#advanced</a><br/><br/><p>Remember to tick <b>Use Regex</b> below if using more than <code>*</code> and <code>?</code>.</p></div>} />
+
+          <TextField name="except_releases" label="Except releases" onChange={handleChangeExcept} isValidRegex={validationState(isValidRegex.except)} columns={6} placeholder="eg. *bad?movie*,*bad?show*s03*" useRegex={values.use_regex} tooltip={<div><p>This field has full regex support (Golang flavour).</p><a href='https://autobrr.com/filters#advanced' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters#advanced</a><br/><br/><p>Remember to tick <b>Use Regex</b> below if using more than <code>*</code> and <code>?</code>.</p></div>} />
+
           {values.match_releases ? (
             <WarningAlert
               alert="Ask yourself:"

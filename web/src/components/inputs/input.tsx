@@ -1,21 +1,24 @@
 import { Field, FieldProps } from "formik";
 import { classNames } from "../../utils";
-import { EyeIcon, EyeSlashIcon } from "@heroicons/react/24/solid";
+import { EyeIcon, EyeSlashIcon, CheckCircleIcon, XCircleIcon } from "@heroicons/react/24/solid";
 import { useToggle } from "../../hooks/hooks";
 import { CustomTooltip } from "../tooltips/CustomTooltip";
 
 type COL_WIDTHS = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12;
 
 interface TextFieldProps {
-    name: string;
-    defaultValue?: string;
-    label?: string;
-    placeholder?: string;
-    columns?: COL_WIDTHS;
-    autoComplete?: string;
-    hidden?: boolean;
-    disabled?: boolean;
-    tooltip?: JSX.Element;
+  name: string;
+  defaultValue?: string;
+  label?: string;
+  placeholder?: string;
+  columns?: COL_WIDTHS;
+  autoComplete?: string;
+  onChange?: (event: React.ChangeEvent<HTMLInputElement>) => void;
+  isValidRegex?: (inputValue: string) => boolean;
+  useRegex?: boolean;
+  hidden?: boolean;
+  disabled?: boolean;
+  tooltip?: JSX.Element;
 }
 
 export const TextField = ({
@@ -25,6 +28,9 @@ export const TextField = ({
   placeholder,
   columns,
   autoComplete,
+  onChange,
+  isValidRegex,
+  useRegex,
   hidden,
   tooltip,
   disabled
@@ -36,12 +42,13 @@ export const TextField = ({
     )}
   >
     {label && (
-      <label htmlFor={name} className="flex float-left mb-2 text-xs font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wide">
+      <label
+        htmlFor={name}
+        className="flex float-left mb-2 text-xs font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wide"
+      >
         <div className="flex">
           {label}
-          {tooltip && (
-            <CustomTooltip anchorId={name}>{tooltip}</CustomTooltip>
-          )}
+          {tooltip && <CustomTooltip anchorId={name}>{tooltip}</CustomTooltip>}
         </div>
       </label>
     )}
@@ -49,29 +56,54 @@ export const TextField = ({
       {({
         field,
         meta
-      }: FieldProps) => (
-        <div>
-          <input
-            {...field}
-            name={name}
-            type="text"
-            defaultValue={defaultValue}
-            autoComplete={autoComplete}
-            className={classNames(
-              meta.touched && meta.error ? "focus:ring-red-500 focus:border-red-500 border-red-500" : "focus:ring-blue-500 dark:focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-500 border-gray-300 dark:border-gray-700",
-              disabled ? "bg-gray-100 dark:bg-gray-700 cursor-not-allowed" : "dark:bg-gray-800",
-              "mt-2 block w-full dark:text-gray-100 rounded-md"
+      }: FieldProps) => {
+        const isValid = isValidRegex ? isValidRegex(field.value) : undefined;
+        return (
+          <div className="relative">
+            <input
+              {...field}
+              name={name}
+              type="text"
+              defaultValue={defaultValue}
+              autoComplete={autoComplete}
+              onChange={(event) => {
+                field.onChange(event);
+                if (onChange) {
+                  onChange(event);
+                }
+              }}            
+              className={classNames(
+                meta.touched && meta.error
+                  ? "focus:ring-red-500 focus:border-red-500 border-red-500"
+                  : "focus:ring-blue-500 dark:focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-500 border-gray-300 dark:border-gray-700",
+                disabled
+                  ? "bg-gray-100 dark:bg-gray-700 cursor-not-allowed"
+                  : "dark:bg-gray-800",
+                "mt-2 block w-full dark:text-gray-100 rounded-md"
+              )}
+              disabled={disabled}
+              placeholder={placeholder}
+            />
+            {isValid !== undefined && useRegex && (
+              <div className="relative">
+                <div className="flex float-right items-center">
+                  {isValid ? (
+                    <CheckCircleIcon className="dark:bg-gray-800 bg-white h-6 w-6 mb-4 text-green-500 right-2 absolute transform -translate-y-2/4 z-10" aria-hidden="true" style={{ overflow: "hidden" }} />
+                  ) : (
+                    <XCircleIcon className="dark:bg-gray-800 bg-white h-6 w-6 mb-4 text-red-500 right-2 absolute transform -translate-y-2/4 z-10" aria-hidden="true" style={{ overflow: "hidden" }} />
+                  )}
+                </div>
+              </div>
             )}
-            disabled={disabled}
-            placeholder={placeholder}
-          />
 
-          {meta.touched && meta.error && (
-            <p className="error text-sm text-red-600 mt-1">* {meta.error}</p>
-          )}
-        </div>
-      )}
+            {meta.touched && meta.error && (
+              <p className="error text-sm text-red-600 mt-1">* {meta.error}</p>
+            )}
+          </div>
+        );}
+      }
     </Field>
+
   </div>
 );
 
