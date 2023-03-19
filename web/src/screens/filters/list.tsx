@@ -1,4 +1,4 @@
-import { Dispatch, FC, Fragment, MouseEventHandler, useReducer, useRef, useState } from "react";
+import { Dispatch, FC, Fragment, MouseEventHandler, useReducer, useRef, useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { toast } from "react-hot-toast";
 import { Listbox, Menu, Switch, Transition } from "@headlessui/react";
@@ -122,15 +122,30 @@ function filteredData(data: Filter[], status: string) {
   };
 }
 
+function getStoredSortOrder() {
+  return localStorage.getItem("sortOrder") || "default";
+}
+
+function setStoredSortOrder(sortOrder: string) {
+  localStorage.setItem("sortOrder", sortOrder);
+}
+
 function FilterList({ toggleCreateFilter }: any) {
   const [{ indexerFilter, sortOrder, status }, dispatchFilter] =
-    useReducer(FilterListReducer, initialState);
+    useReducer(FilterListReducer, {
+      ...initialState,
+      sortOrder: getStoredSortOrder()
+    });
 
   const { error, data } = useQuery(
     ["filters", indexerFilter, sortOrder],
     () => APIClient.filters.find(indexerFilter, sortOrder),
     { refetchOnWindowFocus: false }
   );
+
+  useEffect(() => {
+    setStoredSortOrder(sortOrder);
+  }, [sortOrder]);
 
   if (error) {
     return (<p>An error has occurred: </p>);
