@@ -13,6 +13,75 @@ interface TextFieldProps {
   placeholder?: string;
   columns?: COL_WIDTHS;
   autoComplete?: string;
+  hidden?: boolean;
+  disabled?: boolean;
+  tooltip?: JSX.Element;
+}
+
+export const TextField = ({
+  name,
+  defaultValue,
+  label,
+  placeholder,
+  columns,
+  autoComplete,
+  hidden,
+  tooltip,
+  disabled
+}: TextFieldProps) => (
+  <div
+    className={classNames(
+      hidden ? "hidden" : "",
+      columns ? `col-span-${columns}` : "col-span-12"
+    )}
+  >
+    {label && (
+      <label htmlFor={name} className="flex float-left mb-2 text-xs font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wide">
+        <div className="flex">
+          {label}
+          {tooltip && (
+            <CustomTooltip anchorId={name}>{tooltip}</CustomTooltip>
+          )}
+        </div>
+      </label>
+    )}
+    <Field name={name}>
+      {({
+        field,
+        meta
+      }: FieldProps) => (
+        <div>
+          <input
+            {...field}
+            name={name}
+            type="text"
+            defaultValue={defaultValue}
+            autoComplete={autoComplete}
+            className={classNames(
+              meta.touched && meta.error ? "focus:ring-red-500 focus:border-red-500 border-red-500" : "focus:ring-blue-500 dark:focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-500 border-gray-300 dark:border-gray-700",
+              disabled ? "bg-gray-100 dark:bg-gray-700 cursor-not-allowed" : "dark:bg-gray-800",
+              "mt-2 block w-full dark:text-gray-100 rounded-md"
+            )}
+            disabled={disabled}
+            placeholder={placeholder}
+          />
+
+          {meta.touched && meta.error && (
+            <p className="error text-sm text-red-600 mt-1">* {meta.error}</p>
+          )}
+        </div>
+      )}
+    </Field>
+  </div>
+);
+
+interface RegexFieldProps {
+  name: string;
+  defaultValue?: string;
+  label?: string;
+  placeholder?: string;
+  columns?: COL_WIDTHS;
+  autoComplete?: string;
   onChange?: (event: React.ChangeEvent<HTMLInputElement>) => void;
   isValidRegex?: (inputValue: string) => boolean;
   useRegex?: boolean;
@@ -22,7 +91,7 @@ interface TextFieldProps {
   tooltip?: JSX.Element;
 }
 
-export const TextField = ({
+export const RegexField = ({
   name,
   defaultValue,
   label,
@@ -36,7 +105,7 @@ export const TextField = ({
   hidden,
   tooltip,
   disabled
-}: TextFieldProps) => (
+}: RegexFieldProps) => (
   <div
     className={classNames(
       hidden ? "hidden" : "",
