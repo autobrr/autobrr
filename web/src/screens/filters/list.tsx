@@ -186,7 +186,7 @@ export default function Filters({}: FilterProps){
           <div className="w-1/2 md:w-1/2 bg-white dark:bg-gray-800 p-6 rounded-md shadow-lg">
             <h2 className="text-lg font-medium mb-4 text-black dark:text-white">Import Filter JSON</h2>
             <textarea
-              className="form-input block w-full resize-y rounded-md border-gray-300 dark:border-gray-600 shadow-sm text-sm font-medium text-gray-700 dark:text-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500 mb-4"
+              className="form-input block w-full resize-y rounded-md border-gray-300 dark:bg-gray-800 dark:border-gray-600 shadow-sm text-sm font-medium text-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-offset-0 focus:ring-blue-500 dark:focus:ring-blue-500 mb-4"
               placeholder="Paste JSON data here"
               value={importJson}
               onChange={(event) => setImportJson(event.target.value)}
