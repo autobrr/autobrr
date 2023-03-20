@@ -86,10 +86,14 @@ export default function Filters({}: FilterProps){
 
   const queryClient = useQueryClient();
 
-  const [createFilterIsOpen, toggleCreateFilter] = useToggle(false);
+  const [createFilterIsOpen, setCreateFilterIsOpen] = useState(false);
+  const toggleCreateFilter = () => {
+    setCreateFilterIsOpen(!createFilterIsOpen);
+    setShowDropdown(false);
+  };
 
   const [showImportModal, setShowImportModal] = useState(false);
-  const [importJson, setImportJson] = useState(""); 
+  const [importJson, setImportJson] = useState("");
   
   // This function handles the import of a filter from a JSON string
   const handleImportJson = async () => {
@@ -140,30 +144,27 @@ export default function Filters({}: FilterProps){
   };
   
   const [showDropdown, setShowDropdown] = useState(false);
-  const dropdownRef = useRef<HTMLDivElement>(null);
+  const dropdownRef = useRef(null);
+  const addFilterRef = useRef(null);
 
   useEffect(() => {
-    function handleClickOutside(event: { target: any; }) {
+    function handleClickOutside(event: { target: any }) {
       if (
         dropdownRef.current &&
         !(dropdownRef.current as any).contains(event.target) &&
-        event.target.parentElement.className !== "relative" &&
-        event.target.className !== "relative inline-flex items-center px-4 py-2 shadow-sm text-sm font-medium rounded-l-md text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
-      ) {
-        setShowDropdown(false);
-      } else if (
-        event.target.className === "relative inline-flex items-center px-4 py-2 shadow-sm text-sm font-medium rounded-l-md text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
+        !(addFilterRef.current as any).contains(event.target)
       ) {
         setShowDropdown(false);
       }
-    }    
-  
+    }
+
     document.addEventListener("click", handleClickOutside);
-  
-    // return () => {
-    //   document.removeEventListener("click", handleClickOutside);
-    // };
-  }, [dropdownRef]);
+
+    return () => {
+      document.removeEventListener("click", handleClickOutside);
+    };
+  }, [dropdownRef, addFilterRef]);
+
   
 
   return (
@@ -180,6 +181,7 @@ export default function Filters({}: FilterProps){
               type="button"
               className="relative inline-flex items-center px-4 py-2 shadow-sm text-sm font-medium rounded-l-md text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
               onClick={toggleCreateFilter}
+              ref={addFilterRef}
             >
               <PlusIcon className="h-5 w-5 mr-1" />
             Add Filter
