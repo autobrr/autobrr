@@ -4,7 +4,7 @@ import { toast } from "react-hot-toast";
 import { Listbox, Menu, Switch, Transition } from "@headlessui/react";
 import { useMutation, useQuery, useQueryClient } from "react-query";
 import { FormikValues } from "formik";
-import { useCallback } from "react";
+import { useCallback, useEffect } from "react";
 
 import { Tooltip } from "react-tooltip";
 
@@ -17,8 +17,7 @@ import {
   DocumentDuplicateIcon,
   EllipsisHorizontalIcon,
   PencilSquareIcon,
-  TrashIcon,
-  ExclamationTriangleIcon
+  TrashIcon
 } from "@heroicons/react/24/outline";
 
 import { queryClient } from "../../App";
@@ -141,24 +140,49 @@ export default function Filters({}: FilterProps){
   };
   
   const [showDropdown, setShowDropdown] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(event: { target: any; }) {
+      if (
+        dropdownRef.current &&
+        !(dropdownRef.current as any).contains(event.target) &&
+        event.target.parentElement.className !== "relative" &&
+        event.target.className !== "relative inline-flex items-center px-4 py-2 shadow-sm text-sm font-medium rounded-l-md text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
+      ) {
+        setShowDropdown(false);
+      } else if (
+        event.target.className === "relative inline-flex items-center px-4 py-2 shadow-sm text-sm font-medium rounded-l-md text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
+      ) {
+        setShowDropdown(false);
+      }
+    }    
+  
+    document.addEventListener("click", handleClickOutside);
+  
+    // return () => {
+    //   document.removeEventListener("click", handleClickOutside);
+    // };
+  }, [dropdownRef]);
+  
 
   return (
     <main>
       <FilterAddForm isOpen={createFilterIsOpen} toggle={toggleCreateFilter} />
 
       <header className="py-10">
-        <div className="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8 flex justify-between">
+        <div className="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8 flex justify-between z-10">
           <h1 className="text-3xl font-bold text-black dark:text-white">
-      Filters
+          Filters
           </h1>
-          <div className="relative">
+          <div className="relative" ref={dropdownRef}>
             <button
               type="button"
               className="relative inline-flex items-center px-4 py-2 shadow-sm text-sm font-medium rounded-l-md text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
               onClick={toggleCreateFilter}
             >
               <PlusIcon className="h-5 w-5 mr-1" />
-        Add Filter
+            Add Filter
             </button>
             <button
               type="button"
@@ -171,10 +195,10 @@ export default function Filters({}: FilterProps){
               <div className="absolute right-0 mt-2 w-46 bg-white dark:bg-gray-700 rounded-md shadow-lg z-50">
                 <button
                   type="button"
-                  className="w-full text-left py-2 px-4 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
+                  className="w-full text-left py-2 px-2 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
                   onClick={() => setShowImportModal(true)}
                 >
-  Import Filter
+                Import Filter
                 </button>
               </div>
             )}
@@ -182,31 +206,33 @@ export default function Filters({}: FilterProps){
         </div>
       </header>
       {showImportModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="w-1/2 md:w-1/2 bg-white dark:bg-gray-800 p-6 rounded-md shadow-lg">
-            <h2 className="text-lg font-medium mb-4 text-black dark:text-white">Import Filter JSON</h2>
-            <textarea
-              className="form-input block w-full resize-y rounded-md border-gray-300 dark:bg-gray-800 dark:border-gray-600 shadow-sm text-sm font-medium text-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-offset-0 focus:ring-blue-500 dark:focus:ring-blue-500 mb-4"
-              placeholder="Paste JSON data here"
-              value={importJson}
-              onChange={(event) => setImportJson(event.target.value)}
-              style={{ minHeight: "30vh", maxHeight: "50vh" }}
-            />
-            <div className="flex justify-end">
-              <button
-                type="button"
-                className="bg-white dark:bg-gray-700 py-2 px-4 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
-                onClick={() => setShowImportModal(false)}
-              >
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 import-modal">
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="w-1/2 md:w-1/2 bg-white dark:bg-gray-800 p-6 rounded-md shadow-lg">
+              <h2 className="text-lg font-medium mb-4 text-black dark:text-white">Import Filter JSON</h2>
+              <textarea
+                className="form-input block w-full resize-y rounded-md border-gray-300 dark:border-gray-600 shadow-sm text-sm font-medium text-gray-700 dark:text-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500 mb-4"
+                placeholder="Paste JSON data here"
+                value={importJson}
+                onChange={(event) => setImportJson(event.target.value)}
+                style={{ minHeight: "30vh", maxHeight: "50vh" }}
+              />
+              <div className="flex justify-end">
+                <button
+                  type="button"
+                  className="bg-white dark:bg-gray-700 py-2 px-4 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
+                  onClick={() => setShowImportModal(false)}
+                >
           Cancel
-              </button>
-              <button
-                type="button"
-                className="ml-4 relative inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                onClick={handleImportJson}
-              >
+                </button>
+                <button
+                  type="button"
+                  className="ml-4 relative inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                  onClick={handleImportJson}
+                >
           Import
-              </button>
+                </button>
+              </div>
             </div>
           </div>
         </div>
