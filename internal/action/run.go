@@ -163,12 +163,9 @@ func (s *service) watchFolder(ctx context.Context, action *domain.Action, releas
 
 	s.log.Trace().Msgf("action WATCH_FOLDER: %v file: %v", action.WatchFolder, release.TorrentTmpFile)
 
-	// Open original file
-	original, err := os.Open(release.TorrentTmpFile)
-	if err != nil {
-		return errors.Wrap(err, "could not open temp file: %v", release.TorrentTmpFile)
+	if len(release.TorrentDataRawBytes) < 1 {
+		return fmt.Errorf("watch_folder: missing torrent %s", release.TorrentName)
 	}
-	defer original.Close()
 
 	// default dir to watch folder
 	//  /mnt/watch/{{.Indexer}}
