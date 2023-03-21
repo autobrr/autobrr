@@ -2,7 +2,6 @@ package http
 
 import (
 	"bufio"
-	"io"
 	"io/fs"
 	"io/ioutil"
 	"log"
@@ -128,7 +127,10 @@ func SanitizeLogFile(filePath string) (string, error) {
 	}
 	defer inFile.Close()
 
-	reader := bufio.NewReader(inFile)
+	// Increase the maximum token size for the scanner
+	scanner := bufio.NewScanner(inFile)
+	buf := make([]byte, 0, 1024*1024) // 1 MB buffer size
+	scanner.Buffer(buf, 10*1024*1024) // Set the maximum token size to 10 MB
 
 	outFile, err := ioutil.TempFile("", "sanitized-log-*.log")
 	if err != nil {
@@ -141,8 +143,8 @@ func SanitizeLogFile(filePath string) (string, error) {
 	// Define the number of worker goroutines
 	numWorkers := runtime.NumCPU()
 
-	// Create a channel to communicate between workers and the main goroutine
-	linesCh := make(chan string, numWorkers)
+	// Mutex to ensure only one worker reads a line and writes the sanitized line at a time
+	fileMutex := sync.Mutex{}
 
 	// Create a WaitGroup to wait for all workers to finish
 	wg := sync.WaitGroup{}
@@ -153,7 +155,20 @@ func SanitizeLogFile(filePath string) (string, error) {
 		go func() {
 			defer wg.Done()
 
-			for line := range linesCh {
+			for {
+				// Read the next line from the file
+				fileMutex.Lock()
+				if !scanner.Scan() {
+					err := scanner.Err()
+					fileMutex.Unlock()
+					if err != nil {
+						log.Printf("Error reading line from input file: %v", err)
+					}
+					return
+				}
+				line := scanner.Text()
+				fileMutex.Unlock()
+
 				// Sanitize the line using regular expressions
 				line = keyValueRegex.ReplaceAllString(line, "${1}=REDACTED")
 				line = combinedRegex.ReplaceAllString(line, "${1}REDACTED")
@@ -162,7 +177,9 @@ func SanitizeLogFile(filePath string) (string, error) {
 				line = saslRegex.ReplaceAllString(line, "${1}REDACTED")
 
 				// Write the sanitized line to the output file
-				_, err := writer.WriteString(line)
+				fileMutex.Lock()
+				_, err := writer.WriteString(line + "\n")
+				fileMutex.Unlock()
 				if err != nil {
 					log.Printf("Error writing line to output file: %v", err)
 					return
@@ -170,22 +187,6 @@ func SanitizeLogFile(filePath string) (string, error) {
 			}
 		}()
 	}
-
-	for {
-		line, err := reader.ReadString('\n')
-		if err != nil && err != io.EOF {
-			return "", err
-		}
-		if len(line) == 0 {
-			break
-		}
-
-		// Send the line to the channel for processing by a worker
-		linesCh <- line
-	}
-
-	// Close the channel to signal to the workers that all lines have been sent
-	close(linesCh)
 
 	// Wait for all workers to finish
 	wg.Wait()

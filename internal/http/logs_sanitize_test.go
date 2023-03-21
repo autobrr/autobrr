@@ -3,6 +3,8 @@ package http
 import (
 	"io/ioutil"
 	"os"
+	"sort"
+	"strings"
 	"testing"
 )
 
@@ -129,41 +131,58 @@ func TestSanitizeLogFile(t *testing.T) {
 		},
 	}
 
-	for _, testCase := range testCases {
-		// Create a temporary file with sample log data
-		tmpFile, err := ioutil.TempFile("", "test-log-*.log")
-		if err != nil {
-			t.Fatal(err)
-		}
-		defer os.Remove(tmpFile.Name())
+	// Create a temporary file with sample log data
+	tmpFile, err := ioutil.TempFile("", "test-log-*.log")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.Remove(tmpFile.Name())
 
+	for _, testCase := range testCases {
 		// Write sample log data to the temporary file
-		_, err = tmpFile.WriteString(testCase.input)
+		_, err = tmpFile.WriteString(testCase.input + "\n")
 		if err != nil {
 			tmpFile.Close()
 			t.Fatal(err)
 		}
-		err = tmpFile.Close()
-		if err != nil {
-			t.Fatal(err)
-		}
+	}
+	err = tmpFile.Close()
+	if err != nil {
+		t.Fatal(err)
+	}
 
-		// Call SanitizeLogFile on the temporary file
-		sanitizedTmpFilePath, err := SanitizeLogFile(tmpFile.Name())
-		if err != nil {
-			t.Fatal(err)
-		}
-		defer os.Remove(sanitizedTmpFilePath)
+	// Call SanitizeLogFile on the temporary file
+	sanitizedTmpFilePath, err := SanitizeLogFile(tmpFile.Name())
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.Remove(sanitizedTmpFilePath)
 
-		// Read the content of the sanitized temporary file
-		sanitizedData, err := ioutil.ReadFile(sanitizedTmpFilePath)
-		if err != nil {
-			t.Fatal(err)
-		}
+	// Read the content of the sanitized temporary file
+	sanitizedData, err := ioutil.ReadFile(sanitizedTmpFilePath)
+	if err != nil {
+		t.Fatal(err)
+	}
 
-		// Check if the sanitized data matches the expected content
-		if string(sanitizedData) != testCase.expected {
-			t.Errorf("Sanitized data does not match expected data for input: %s\nExpected:\n%s\nActual:\n%s", testCase.input, testCase.expected, sanitizedData)
-		}
+	// Combine the expected sanitized lines
+	expectedSanitizedData := ""
+	for _, testCase := range testCases {
+		expectedSanitizedData += testCase.expected + "\n"
+	}
+
+	// Split and sort the sanitized data and expected data
+	sanitizedLines := strings.Split(string(sanitizedData), "\n")
+	expectedLines := strings.Split(expectedSanitizedData, "\n")
+
+	sort.Strings(sanitizedLines)
+	sort.Strings(expectedLines)
+
+	// Join the sorted lines back together
+	sortedSanitizedData := strings.Join(sanitizedLines, "\n")
+	sortedExpectedData := strings.Join(expectedLines, "\n")
+
+	// Check if the sanitized data matches the expected content
+	if sortedSanitizedData != sortedExpectedData {
+		t.Errorf("Sanitized data does not match expected data\nExpected:\n%s\nActual:\n%s", sortedExpectedData, sortedSanitizedData)
 	}
 }
