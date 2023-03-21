@@ -162,34 +162,45 @@ export default function Filters({}: FilterProps){
                     }}
                   >
                     <PlusIcon className="h-5 w-5 mr-1" />
-                    Add Filter
+              Add Filter
                   </button>
                   <Menu.Button className="relative inline-flex items-center px-2 py-2 border-l border-spacing-1 dark:border-black shadow-sm text-sm font-medium rounded-r-md text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500">
                     <ChevronDownIcon className="h-5 w-5" />
                   </Menu.Button>
-                  <Menu.Items className="absolute right-0 mt-0.5 w-46 bg-white dark:bg-gray-700 rounded-md shadow-lg">
-                    <Menu.Item>
-                      {({ active }) => (
-                        <button
-                          type="button"
-                          className={`${
-                            active
-                              ? "bg-gray-50 dark:bg-gray-600"
-                              : ""
-                          } w-full text-left py-2 px-4 text-sm font-medium text-gray-700 dark:text-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500`}
-                          onClick={() => setShowImportModal(true)}
-                        >
-                          Import Filter
-                        </button>
-                      )}
-                    </Menu.Item>
-                  </Menu.Items>
+                  <Transition
+                    show={open}
+                    enter="transition ease-out duration-100 transform"
+                    enterFrom="opacity-0 scale-95"
+                    enterTo="opacity-100 scale-100"
+                    leave="transition ease-in duration-75 transform"
+                    leaveFrom="opacity-100 scale-100"
+                    leaveTo="opacity-0 scale-95"
+                  >
+                    <Menu.Items className="absolute right-0 mt-0.5 w-46 bg-white dark:bg-gray-700 rounded-md shadow-lg">
+                      <Menu.Item>
+                        {({ active }) => (
+                          <button
+                            type="button"
+                            className={`${
+                              active
+                                ? "bg-gray-50 dark:bg-gray-600"
+                                : ""
+                            } w-full text-left py-2 px-4 text-sm font-medium text-gray-700 dark:text-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500`}
+                            onClick={() => setShowImportModal(true)}
+                          >
+                      Import Filter
+                          </button>
+                        )}
+                      </Menu.Item>
+                    </Menu.Items>
+                  </Transition>
                 </>
               )}
             </Menu>
           </div>
         </div>
       </header>
+
       {showImportModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="w-1/2 md:w-1/2 bg-white dark:bg-gray-800 p-6 rounded-md shadow-lg">
