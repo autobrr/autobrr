@@ -2,8 +2,9 @@ package http
 
 import (
 	"bufio"
+	"bytes"
+	"io"
 	"io/fs"
-	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
@@ -120,25 +121,16 @@ func ProcessLines(lines []string) []string {
 
 // SanitizeLogFile reads a log file line by line and sanitizes each line using regular expressions.
 // It uses a worker pool to process multiple lines concurrently.
-func SanitizeLogFile(filePath string) (string, error) {
+func SanitizeLogFile(filePath string) (io.Reader, error) {
 	inFile, err := os.Open(filePath)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 	defer inFile.Close()
 
-	// Increase the maximum token size for the scanner
-	scanner := bufio.NewScanner(inFile)
-	buf := make([]byte, 0, 1024*1024) // 1 MB buffer size
-	scanner.Buffer(buf, 10*1024*1024) // Set the maximum token size to 10 MB
+	reader := bufio.NewReader(inFile)
 
-	outFile, err := ioutil.TempFile("", "sanitized-log-*.log")
-	if err != nil {
-		return "", err
-	}
-	defer outFile.Close()
-
-	writer := bufio.NewWriterSize(outFile, 2*1024*1024)
+	sanitizedContent := &bytes.Buffer{}
 
 	// Define the number of worker goroutines
 	numWorkers := runtime.NumCPU()
@@ -158,16 +150,15 @@ func SanitizeLogFile(filePath string) (string, error) {
 			for {
 				// Read the next line from the file
 				fileMutex.Lock()
-				if !scanner.Scan() {
-					err := scanner.Err()
-					fileMutex.Unlock()
-					if err != nil {
+				line, err := reader.ReadString('\n')
+				fileMutex.Unlock()
+
+				if err != nil {
+					if err != io.EOF {
 						log.Printf("Error reading line from input file: %v", err)
 					}
 					return
 				}
-				line := scanner.Text()
-				fileMutex.Unlock()
 
 				// Sanitize the line using regular expressions
 				line = keyValueRegex.ReplaceAllString(line, "${1}=REDACTED")
@@ -176,12 +167,13 @@ func SanitizeLogFile(filePath string) (string, error) {
 				line = nickservRegex.ReplaceAllString(line, "${1}REDACTED")
 				line = saslRegex.ReplaceAllString(line, "${1}REDACTED")
 
-				// Write the sanitized line to the output file
+				// Write the sanitized line to the sanitizedContent buffer
 				fileMutex.Lock()
-				_, err := writer.WriteString(line + "\n")
+				_, err = sanitizedContent.WriteString(line)
 				fileMutex.Unlock()
+
 				if err != nil {
-					log.Printf("Error writing line to output file: %v", err)
+					log.Printf("Error writing line to sanitizedContent buffer: %v", err)
 					return
 				}
 			}
@@ -191,13 +183,7 @@ func SanitizeLogFile(filePath string) (string, error) {
 	// Wait for all workers to finish
 	wg.Wait()
 
-	// Flush the buffer to write any remaining data to the output file
-	err = writer.Flush()
-	if err != nil {
-		return "", err
-	}
-
-	return outFile.Name(), nil
+	return sanitizedContent, nil
 }
 
 func (h logsHandler) downloadFile(w http.ResponseWriter, r *http.Request) {
@@ -238,7 +224,7 @@ func (h logsHandler) downloadFile(w http.ResponseWriter, r *http.Request) {
 	filePath := filepath.Join(logsDir, logFile)
 
 	// Sanitize the log file
-	sanitizedFilePath, err := SanitizeLogFile(filePath)
+	sanitizedContent, err := SanitizeLogFile(filePath)
 	if err != nil {
 		render.Status(r, http.StatusInternalServerError)
 		render.JSON(w, r, errorResponse{
@@ -247,12 +233,11 @@ func (h logsHandler) downloadFile(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
-	defer os.Remove(sanitizedFilePath)
 
 	w.Header().Set("Content-Disposition", "attachment; filename="+strconv.Quote(logFile))
 	w.Header().Set("Content-Type", "application/octet-stream")
 
-	http.ServeFile(w, r, sanitizedFilePath)
+	io.Copy(w, sanitizedContent)
 }
 
 type logFile struct {

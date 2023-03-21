@@ -1,6 +1,7 @@
 package http
 
 import (
+	"bytes"
 	"io/ioutil"
 	"os"
 	"sort"
@@ -152,17 +153,19 @@ func TestSanitizeLogFile(t *testing.T) {
 	}
 
 	// Call SanitizeLogFile on the temporary file
-	sanitizedTmpFilePath, err := SanitizeLogFile(tmpFile.Name())
+	sanitizedContent, err := SanitizeLogFile(tmpFile.Name())
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer os.Remove(sanitizedTmpFilePath)
 
-	// Read the content of the sanitized temporary file
-	sanitizedData, err := ioutil.ReadFile(sanitizedTmpFilePath)
+	// Read the content of the sanitized content
+	buf := new(bytes.Buffer)
+	_, err = buf.ReadFrom(sanitizedContent)
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	sanitizedData := buf.String()
 
 	// Combine the expected sanitized lines
 	expectedSanitizedData := ""
@@ -171,7 +174,7 @@ func TestSanitizeLogFile(t *testing.T) {
 	}
 
 	// Split and sort the sanitized data and expected data
-	sanitizedLines := strings.Split(string(sanitizedData), "\n")
+	sanitizedLines := strings.Split(sanitizedData, "\n")
 	expectedLines := strings.Split(expectedSanitizedData, "\n")
 
 	sort.Strings(sanitizedLines)
