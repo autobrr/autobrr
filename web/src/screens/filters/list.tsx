@@ -4,7 +4,7 @@ import { toast } from "react-hot-toast";
 import { Listbox, Menu, Switch, Transition } from "@headlessui/react";
 import { useMutation, useQuery, useQueryClient } from "react-query";
 import { FormikValues } from "formik";
-import { useCallback, useEffect } from "react";
+import { useCallback } from "react";
 
 import { Tooltip } from "react-tooltip";
 
@@ -89,8 +89,7 @@ export default function Filters({}: FilterProps){
   const [createFilterIsOpen, setCreateFilterIsOpen] = useState(false);
   const toggleCreateFilter = () => {
     setCreateFilterIsOpen(!createFilterIsOpen);
-    setShowDropdown(false);
-  };
+  };  
 
   const [showImportModal, setShowImportModal] = useState(false);
   const [importJson, setImportJson] = useState("");
@@ -143,67 +142,51 @@ export default function Filters({}: FilterProps){
     }
   };
   
-  const [showDropdown, setShowDropdown] = useState(false);
-  const dropdownRef = useRef(null);
-  const addFilterRef = useRef(null);
-
-  useEffect(() => {
-    function handleClickOutside(event: { target: any }) {
-      if (
-        dropdownRef.current &&
-        !(dropdownRef.current as any).contains(event.target) &&
-        !(addFilterRef.current as any).contains(event.target)
-      ) {
-        setShowDropdown(false);
-      }
-    }
-
-    document.addEventListener("click", handleClickOutside);
-
-    return () => {
-      document.removeEventListener("click", handleClickOutside);
-    };
-  }, [dropdownRef, addFilterRef]);
-
-  
-
   return (
     <main>
       <FilterAddForm isOpen={createFilterIsOpen} toggle={toggleCreateFilter} />
-
       <header className="py-10">
         <div className="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8 flex justify-between">
-          <h1 className="text-3xl font-bold text-black dark:text-white">
-          Filters
-          </h1>
-          <div className="relative" ref={dropdownRef}>
-            <button
-              type="button"
-              className="relative inline-flex items-center px-4 py-2 shadow-sm text-sm font-medium rounded-l-md text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
-              onClick={toggleCreateFilter}
-              ref={addFilterRef}
-            >
-              <PlusIcon className="h-5 w-5 mr-1" />
-            Add Filter
-            </button>
-            <button
-              type="button"
-              className="relative inline-flex items-center px-2 py-2 border-l border-spacing-1 dark:border-black shadow-sm text-sm font-medium rounded-r-md text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
-              onClick={() => setShowDropdown(!showDropdown)}
-            >
-              <ChevronDownIcon className="h-5 w-5" />
-            </button>
-            {showDropdown && (
-              <div className="absolute right-0 mt-0.5 w-46 bg-white dark:bg-gray-700 rounded-md shadow-lg">
-                <button
-                  type="button"
-                  className="w-full text-left py-2 px-4 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
-                  onClick={() => setShowImportModal(true)}
-                >
-                Import Filter
-                </button>
-              </div>
-            )}
+          <h1 className="text-3xl font-bold text-black dark:text-white">Filters</h1>
+          <div className="relative">
+            <Menu>
+              {({ open }) => (
+                <>
+                  <button
+                    className="relative inline-flex items-center px-4 py-2 shadow-sm text-sm font-medium rounded-l-md text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
+                    onClick={(e: { stopPropagation: () => void; }) => {
+                      if (!open) {
+                        e.stopPropagation();
+                        toggleCreateFilter();
+                      }
+                    }}
+                  >
+                    <PlusIcon className="h-5 w-5 mr-1" />
+                    Add Filter
+                  </button>
+                  <Menu.Button className="relative inline-flex items-center px-2 py-2 border-l border-spacing-1 dark:border-black shadow-sm text-sm font-medium rounded-r-md text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500">
+                    <ChevronDownIcon className="h-5 w-5" />
+                  </Menu.Button>
+                  <Menu.Items className="absolute right-0 mt-0.5 w-46 bg-white dark:bg-gray-700 rounded-md shadow-lg">
+                    <Menu.Item>
+                      {({ active }) => (
+                        <button
+                          type="button"
+                          className={`${
+                            active
+                              ? "bg-gray-50 dark:bg-gray-600"
+                              : ""
+                          } w-full text-left py-2 px-4 text-sm font-medium text-gray-700 dark:text-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500`}
+                          onClick={() => setShowImportModal(true)}
+                        >
+                          Import Filter
+                        </button>
+                      )}
+                    </Menu.Item>
+                  </Menu.Items>
+                </>
+              )}
+            </Menu>
           </div>
         </div>
       </header>
@@ -237,7 +220,6 @@ export default function Filters({}: FilterProps){
           </div>
         </div>
       )}
-
       <FilterList toggleCreateFilter={toggleCreateFilter} />
     </main>
   );
