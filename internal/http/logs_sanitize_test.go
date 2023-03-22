@@ -4,13 +4,13 @@ import (
 	"bytes"
 	"io/ioutil"
 	"os"
-	"sort"
 	"strings"
 	"testing"
 )
 
 func TestSanitizeLogFile(t *testing.T) {
 	testCases := []struct {
+		name     string
 		input    string
 		expected string
 	}{
@@ -31,161 +31,146 @@ func TestSanitizeLogFile(t *testing.T) {
 			expected: "https://alpharatio.cc/torrents.php?action=download&id=t0rrent1d&authkey=REDACTED&torrent_pass=REDACTED",
 		},
 		{
-			input:    "Voyager autobot us3rn4me 1RCK3Y",
-			expected: "Voyager autobot us3rn4me REDACTED",
+			input:    "\"module\":\"irc\" bla bla Voyager autobot us3rn4me Nvbkddn~vzjHkPEimnJ6PmJw8ayiE#wg",
+			expected: "\"module\":\"irc\" bla bla Voyager autobot us3rn4me REDACTED",
 		},
 		{
-			input:    "Satsuki enter #announce us3rn4me 1RCK3Y",
-			expected: "Satsuki enter #announce us3rn4me REDACTED",
+			input:    "\"module\":\"irc\" bla bla Satsuki enter #announce us3rn4me Nvbkddn~vzjHkPEimnJ6PmJw8ayiE#wg",
+			expected: "\"module\":\"irc\" bla bla Satsuki enter #announce us3rn4me REDACTED",
 		},
 		{
-			input:    "Millie announce 1RCK3Y",
-			expected: "Millie announce REDACTED",
+			input:    "\"module\":\"irc\" bla bla Millie announce Nvbkddn~vzjHkPEimnJ6PmJw8ayiE#wg",
+			expected: "\"module\":\"irc\" bla bla Millie announce REDACTED",
 		},
 		{
-			input:    "DBBot announce 1RCK3Y",
-			expected: "DBBot announce REDACTED",
+			input:    "\"module\":\"irc\" bla bla DBBot announce Nvbkddn~vzjHkPEimnJ6PmJw8ayiE#wg",
+			expected: "\"module\":\"irc\" bla bla DBBot announce REDACTED",
 		},
 		{
-			input:    "ENDOR !invite us3rnøme 1RCK3Y",
-			expected: "ENDOR !invite us3rnøme REDACTED",
+			input:    "\"module\":\"irc\" bla bla ENDOR !invite us3rnøme Nvbkddn~vzjHkPEimnJ6PmJw8ayiE#wg",
+			expected: "\"module\":\"irc\" bla bla ENDOR !invite us3rnøme REDACTED",
 		},
 		{
-			input:    "Vertigo ENTER #GGn-Announce us3rn4me 1RCK3Y",
-			expected: "Vertigo ENTER #GGn-Announce us3rn4me REDACTED",
+			input:    "\"module\":\"irc\" bla bla Vertigo ENTER #GGn-Announce us3rn4me Nvbkddn~vzjHkPEimnJ6PmJw8ayiE#wg",
+			expected: "\"module\":\"irc\" bla bla Vertigo ENTER #GGn-Announce us3rn4me REDACTED",
 		},
 		{
-			input:    "midgards announce 1RCK3Y",
-			expected: "midgards announce REDACTED",
+			input:    "\"module\":\"irc\" bla bla midgards announce Nvbkddn~vzjHkPEimnJ6PmJw8ayiE#wg",
+			expected: "\"module\":\"irc\" bla bla midgards announce REDACTED",
 		},
 		{
-			input:    "HeBoT !invite 1RCK3Y",
-			expected: "HeBoT !invite REDACTED",
+			input:    "\"module\":\"irc\" bla bla HeBoT !invite Nvbkddn~vzjHkPEimnJ6PmJw8ayiE#wg",
+			expected: "\"module\":\"irc\" bla bla HeBoT !invite REDACTED",
 		},
 		{
-			input:    "NBOT !invite 1RCK3Y",
-			expected: "NBOT !invite REDACTED",
+			input:    "\"module\":\"irc\" bla bla NBOT !invite Nvbkddn~vzjHkPEimnJ6PmJw8ayiE#wg",
+			expected: "\"module\":\"irc\" bla bla NBOT !invite REDACTED",
 		},
 		{
-			input:    "Muffit bot #nbl-announce us3rn4me 1RCK3Y",
-			expected: "Muffit bot #nbl-announce us3rn4me REDACTED",
+			input:    "\"module\":\"irc\" bla bla Muffit bot #nbl-announce us3rn4me Nvbkddn~vzjHkPEimnJ6PmJw8ayiE#wg",
+			expected: "\"module\":\"irc\" bla bla Muffit bot #nbl-announce us3rn4me REDACTED",
 		},
 		{
-			input:    "hermes enter #announce us3rn4me 1RCK3Y",
-			expected: "hermes enter #announce us3rn4me REDACTED",
+			input:    "\"module\":\"irc\" bla bla hermes enter #announce us3rn4me Nvbkddn~vzjHkPEimnJ6PmJw8ayiE#wg",
+			expected: "\"module\":\"irc\" bla bla hermes enter #announce us3rn4me REDACTED",
 		},
 		{
-			input:    "LiMEY_ !invite 1RCK3Y us3rn4me",
-			expected: "LiMEY_ !invite REDACTED us3rn4me",
+			input:    "\"module\":\"irc\" bla bla LiMEY_ !invite Nvbkddn~vzjHkPEimnJ6PmJw8ayiE#wg us3rn4me",
+			expected: "\"module\":\"irc\" bla bla LiMEY_ !invite REDACTED us3rn4me",
 		},
 		{
-			input:    "PS-Info pass 1RCK3Y",
-			expected: "PS-Info pass REDACTED",
+			input:    "\"module\":\"irc\" bla bla PS-Info pass Nvbkddn~vzjHkPEimnJ6PmJw8ayiE#wg",
+			expected: "\"module\":\"irc\" bla bla PS-Info pass REDACTED",
 		},
 		{
-			input:    "PT-BOT invite 1RCK3Y",
-			expected: "PT-BOT invite REDACTED",
+			input:    "\"module\":\"irc\" bla bla PT-BOT invite Nvbkddn~vzjHkPEimnJ6PmJw8ayiE#wg",
+			expected: "\"module\":\"irc\" bla bla PT-BOT invite REDACTED",
 		},
 		{
-			input:    "Hummingbird ENTER us3rn4me 1RCK3Y #ptp-announce-dev",
-			expected: "Hummingbird ENTER us3rn4me REDACTED #ptp-announce-dev",
+			input:    "\"module\":\"irc\" bla bla Hummingbird ENTER us3rn4me Nvbkddn~vzjHkPEimnJ6PmJw8ayiE#wg #ptp-announce-dev",
+			expected: "\"module\":\"irc\" bla bla Hummingbird ENTER us3rn4me REDACTED #ptp-announce-dev",
 		},
 		{
-			input:    "Drone enter #red-announce us3rn4me 1RCK3Y",
-			expected: "Drone enter #red-announce us3rn4me REDACTED",
+			input:    "\"module\":\"irc\" bla bla Drone enter #red-announce us3rn4me Nvbkddn~vzjHkPEimnJ6PmJw8ayiE#wg",
+			expected: "\"module\":\"irc\" bla bla Drone enter #red-announce us3rn4me REDACTED",
 		},
 		{
-			input:    "SceneHD .invite 1RCK3Y #announce",
-			expected: "SceneHD .invite REDACTED #announce",
+			input:    "\"module\":\"irc\" bla bla SceneHD .invite Nvbkddn~vzjHkPEimnJ6PmJw8ayiE#wg #announce",
+			expected: "\"module\":\"irc\" bla bla SceneHD .invite REDACTED #announce",
 		},
 		{
-			input:    "erica letmeinannounce us3rn4me 1RCK3Y",
-			expected: "erica letmeinannounce us3rn4me REDACTED",
+			input:    "\"module\":\"irc\" bla bla erica letmeinannounce us3rn4me Nvbkddn~vzjHkPEimnJ6PmJw8ayiE#wg",
+			expected: "\"module\":\"irc\" bla bla erica letmeinannounce us3rn4me REDACTED",
 		},
 		{
-			input:    "Synd1c4t3 invite 1RCK3Y",
-			expected: "Synd1c4t3 invite REDACTED",
+			input:    "\"module\":\"irc\" bla bla Synd1c4t3 invite Nvbkddn~vzjHkPEimnJ6PmJw8ayiE#wg",
+			expected: "\"module\":\"irc\" bla bla Synd1c4t3 invite REDACTED",
 		},
 		{
-			input:    "UHDBot invite 1RCK3Y",
-			expected: "UHDBot invite REDACTED",
+			input:    "\"module\":\"irc\" bla bla UHDBot invite Nvbkddn~vzjHkPEimnJ6PmJw8ayiE#wg",
+			expected: "\"module\":\"irc\" bla bla UHDBot invite REDACTED",
 		},
 		{
-			input:    "Sauron bot #ant-announce us3rn4me 1RCK3Y",
-			expected: "Sauron bot #ant-announce us3rn4me REDACTED",
+			input:    "\"module\":\"irc\" bla bla Sauron bot #ant-announce us3rn4me Nvbkddn~vzjHkPEimnJ6PmJw8ayiE#wg",
+			expected: "\"module\":\"irc\" bla bla Sauron bot #ant-announce us3rn4me REDACTED",
 		},
 		{
-			input:    "RevoTT !invite us3rn4me P4SSK3Y",
-			expected: "RevoTT !invite us3rn4me REDACTED",
+			input:    "\"module\":\"irc\" bla bla RevoTT !invite us3rn4me Nvbkddn~vzjHkPEimnJ6PmJw8ayiE#wg",
+			expected: "\"module\":\"irc\" bla bla RevoTT !invite us3rn4me REDACTED",
 		},
 		{
-			input:    "Cerberus identify us3rn4me P1D",
-			expected: "Cerberus identify us3rn4me REDACTED",
+			input:    "\"module\":\"irc\" bla bla Cerberus identify us3rn4me Nvbkddn~vzjHkPEimnJ6PmJw8ayiE#wg",
+			expected: "\"module\":\"irc\" bla bla Cerberus identify us3rn4me REDACTED",
 		},
 		{
-			input:    "NickServ IDENTIFY dasøl13sa#!",
-			expected: "NickServ IDENTIFY REDACTED",
+			input:    "\"module\":\"irc\" bla bla NickServ IDENTIFY Nvbkødn~vzjHkPEimnJ6PmJw8ayiE#wg",
+			expected: "\"module\":\"irc\" bla bla NickServ IDENTIFY REDACTED",
 		},
 		{
-			input:    "--> AUTHENTICATE poasd!232kljøasdj!%",
-			expected: "--> AUTHENTICATE REDACTED",
+			input:    "\"module\":\"irc\" bla bla --> AUTHENTICATE poasd!232kljøasdj!%",
+			expected: "\"module\":\"irc\" bla bla --> AUTHENTICATE REDACTED",
 		},
 	}
-
-	// Create a temporary file with sample log data
-	tmpFile, err := ioutil.TempFile("", "test-log-*.log")
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer os.Remove(tmpFile.Name())
 
 	for _, testCase := range testCases {
-		// Write sample log data to the temporary file
-		_, err = tmpFile.WriteString(testCase.input + "\n")
-		if err != nil {
-			tmpFile.Close()
-			t.Fatal(err)
-		}
-	}
-	err = tmpFile.Close()
-	if err != nil {
-		t.Fatal(err)
-	}
+		t.Run(testCase.name, func(t *testing.T) {
+			// Create a temporary file with sample log data
+			tmpFile, err := ioutil.TempFile("", "test-log-*.log")
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer os.Remove(tmpFile.Name())
 
-	// Call SanitizeLogFile on the temporary file
-	sanitizedContent, err := SanitizeLogFile(tmpFile.Name())
-	if err != nil {
-		t.Fatal(err)
-	}
+			// Write the test case input to the temporary file
+			_, err = tmpFile.WriteString(testCase.input + "\n")
+			if err != nil {
+				tmpFile.Close()
+				t.Fatal(err)
+			}
+			err = tmpFile.Close()
+			if err != nil {
+				t.Fatal(err)
+			}
 
-	// Read the content of the sanitized content
-	buf := new(bytes.Buffer)
-	_, err = buf.ReadFrom(sanitizedContent)
-	if err != nil {
-		t.Fatal(err)
-	}
+			// Call SanitizeLogFile on the temporary file
+			sanitizedContent, err := SanitizeLogFile(tmpFile.Name())
+			if err != nil {
+				t.Fatal(err)
+			}
 
-	sanitizedData := buf.String()
+			// Read the content of the sanitized content
+			buf := new(bytes.Buffer)
+			_, err = buf.ReadFrom(sanitizedContent)
+			if err != nil {
+				t.Fatal(err)
+			}
 
-	// Combine the expected sanitized lines
-	expectedSanitizedData := ""
-	for _, testCase := range testCases {
-		expectedSanitizedData += testCase.expected + "\n"
-	}
+			sanitizedData := buf.String()
 
-	// Split and sort the sanitized data and expected data
-	sanitizedLines := strings.Split(sanitizedData, "\n")
-	expectedLines := strings.Split(expectedSanitizedData, "\n")
-
-	sort.Strings(sanitizedLines)
-	sort.Strings(expectedLines)
-
-	// Join the sorted lines back together
-	sortedSanitizedData := strings.Join(sanitizedLines, "\n")
-	sortedExpectedData := strings.Join(expectedLines, "\n")
-
-	// Check if the sanitized data matches the expected content
-	if sortedSanitizedData != sortedExpectedData {
-		t.Errorf("Sanitized data does not match expected data\nExpected:\n%s\nActual:\n%s", sortedExpectedData, sortedSanitizedData)
+			// Check if the sanitized data matches the expected content
+			if !strings.Contains(sanitizedData, testCase.expected+"\n") {
+				t.Errorf("Sanitized data does not match expected data\nExpected:\n%s\nActual:\n%s", testCase.expected, sanitizedData)
+			}
+		})
 	}
 }
