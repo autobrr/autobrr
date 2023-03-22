@@ -31,8 +31,8 @@ func TestSanitizeLogFile(t *testing.T) {
 			expected: "https://alpharatio.cc/torrents.php?action=download&id=t0rrent1d&authkey=REDACTED&torrent_pass=REDACTED",
 		},
 		{
-			input:    "asd {\"level\":\"trace\",\"module\":\"irc\",\"network\":\"irc.digitalirc.org\",\"time\":\"2023-03-22T06:51:02Z\",\"message\":\" bla bla Voyager autobot us3rn4me Nvbkddn~vzjHkPEimnJ6PmJw8ayiE#wg",
-			expected: "asd {\"level\":\"trace\",\"module\":\"irc\",\"network\":\"irc.digitalirc.org\",\"time\":\"2023-03-22T06:51:02Z\",\"message\":\" bla bla Voyager autobot us3rn4me REDACTED",
+			input:    "{\"level\":\"trace\",\"module\":\"irc\",\"network\":\"irc.digitalirc.org\",\"time\":\"2023-03-22T06:51:02Z\",\"message\":\" bla bla Voyager autobot us3rn4me Nvbkddn~vzjHkPEimnJ6PmJw8ayiE#wg",
+			expected: "{\"level\":\"trace\",\"module\":\"irc\",\"network\":\"irc.digitalirc.org\",\"time\":\"2023-03-22T06:51:02Z\",\"message\":\" bla bla Voyager autobot us3rn4me REDACTED",
 		},
 		{
 			input:    "{\"level\":\"trace\",\"module\":\"irc\",\"network\":\"irc.digitalirc.org\",\"time\":\"2023-03-22T06:51:02Z\",\"message\":\" bla bla Satsuki enter #announce us3rn4me Nvbkddn~vzjHkPEimnJ6PmJw8ayiE#wg",
