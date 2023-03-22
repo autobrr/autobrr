@@ -123,12 +123,16 @@ func TestSanitizeLogFile(t *testing.T) {
 			expected: "{\"level\":\"trace\",\"module\":\"irc\",\"network\":\"irc.digitalirc.org\",\"time\":\"2023-03-22T06:51:02Z\",\"message\":\" bla bla Cerberus identify us3rn4me REDACTED",
 		},
 		{
-			input:    "{\"level\":\"trace\",\"module\":\"irc\",\"network\":\"irc.digitalirc.org\",\"time\":\"2023-03-22T06:51:02Z\",\"message\":\" bla bla NickServ IDENTIFY Nvbkødn~vzjHkPEimnJ6PmJw8ayiE#wg",
-			expected: "{\"level\":\"trace\",\"module\":\"irc\",\"network\":\"irc.digitalirc.org\",\"time\":\"2023-03-22T06:51:02Z\",\"message\":\" bla bla NickServ IDENTIFY REDACTED",
-		},
-		{
 			input:    "{\"level\":\"trace\",\"module\":\"irc\",\"network\":\"irc.digitalirc.org\",\"time\":\"2023-03-22T06:51:02Z\",\"message\":\" --> AUTHENTICATE poasd!232kljøasdj!%",
 			expected: "{\"level\":\"trace\",\"module\":\"irc\",\"network\":\"irc.digitalirc.org\",\"time\":\"2023-03-22T06:51:02Z\",\"message\":\" --> AUTHENTICATE REDACTED",
+		},
+		{
+			input:    "{\"level\":\"trace\",\"module\":\"irc\",\"network\":\"irc.digitalirc.org\",\"time\":\"2023-03-22T06:51:02Z\",\"message\":\" NickServ IDENTIFY Nvbkødn~vzjHkPEimnJ6PmJw8ayiE#wg",
+			expected: "{\"level\":\"trace\",\"module\":\"irc\",\"network\":\"irc.digitalirc.org\",\"time\":\"2023-03-22T06:51:02Z\",\"message\":\" NickServ IDENTIFY REDACTED",
+		},
+		{
+			input:    "{\"level\":\"debug\",\"module\":\"irc\",\"network\":\"irc.digitalirc.org\",\"time\":\"2023-03-22T10:40:08Z\",\"message\":\"--> PRIVMSG NickServ IDENTIFY zAPEJEA8ryYnpj3AiE3KJ",
+			expected: "{\"level\":\"debug\",\"module\":\"irc\",\"network\":\"irc.digitalirc.org\",\"time\":\"2023-03-22T10:40:08Z\",\"message\":\"--> PRIVMSG NickServ IDENTIFY REDACTED",
 		},
 	}
 
