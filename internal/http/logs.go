@@ -3,7 +3,6 @@ package http
 import (
 	"bufio"
 	"bytes"
-	"fmt"
 	"io"
 	"io/fs"
 	"log"
@@ -97,10 +96,28 @@ var (
 	// regexes for sanitizing log files
 	keyValueRegex = regexp.MustCompile(`(torrent_pass|passkey|authkey|secret_key|apikey)=([a-zA-Z0-9]+)`)
 	combinedRegex = regexp.MustCompile(`(https?://[^\s]+/((rss/download/[a-zA-Z0-9]+/)|torrent/download/((auto\.[a-zA-Z0-9]+\.|[a-zA-Z0-9]+\.))))([a-zA-Z0-9]+)`)
-	inviteRegex   = regexp.MustCompile(`("module":"irc"[^{]*(\{[^}]*\})?)?(Voyager autobot|Satsuki enter #announce|Millie announce|DBBot announce|ENDOR !invite|Vertigo ENTER #GGn-Announce|midgards announce|HeBoT !invite|NBOT !invite|Muffit bot #nbl-announce|hermes enter #announce|LiMEY_ !invite|PS-Info pass|PT-BOT invite|Hummingbird ENTER|Drone enter #red-announce|SceneHD \.invite|erica letmeinannounce|Synd1c4t3 invite|UHDBot invite|Sauron bot #ant-announce|RevoTT !invite|Cerberus identify)\s+([\p{L}0-9]+)`)
-	nickservRegex = regexp.MustCompile(`(?i)("module":"irc".*?NickServ IDENTIFY\s*)\S+`)
-	saslRegex     = regexp.MustCompile(`(?i)("module":"irc".*?--> AUTHENTICATE\s*)\S+`)
+	inviteRegex   = regexp.MustCompile(`(Voyager autobot [\p{L}0-9]+ |Satsuki enter #announce [\p{L}0-9]+ |Millie announce |DBBot announce |ENDOR !invite [\p{L}0-9]+ |Vertigo ENTER #GGn-Announce [\p{L}0-9]+ |midgards announce |HeBoT !invite |NBOT !invite |Muffit bot #nbl-announce [\p{L}0-9]+ |hermes enter #announce [\p{L}0-9]+ |LiMEY_ !invite |PS-Info pass |PT-BOT invite |Hummingbird ENTER [\p{L}0-9]+ |Drone enter #red-announce [\p{L}0-9]+ |SceneHD \.invite |erica letmeinannounce [\p{L}0-9]+ |Synd1c4t3 invite |UHDBot invite |Sauron bot #ant-announce [\p{L}0-9]+ |RevoTT !invite [\p{L}0-9]+ |Cerberus identify [\p{L}0-9]+ )([\p{L}0-9]+)`)
+	nickservRegex = regexp.MustCompile(`(NickServ IDENTIFY )([\p{L}0-9!#%&*+/:;<=>?@^_` + "`" + `{|}~]+)`)
+	saslRegex     = regexp.MustCompile(`(--> AUTHENTICATE )([\p{L}0-9!#%&*+/:;<=>?@^_` + "`" + `{|}~]+)`)
 )
+
+// ProcessLines is a worker function that processes a batch of lines using regular expressions.
+func ProcessLines(lines []string) []string {
+	var result []string
+
+	for _, line := range lines {
+		// Sanitize the line using regular expressions
+		line = keyValueRegex.ReplaceAllString(line, "${1}=REDACTED")
+		line = combinedRegex.ReplaceAllString(line, "${1}REDACTED")
+		line = inviteRegex.ReplaceAllString(line, "${1}REDACTED")
+		line = nickservRegex.ReplaceAllString(line, "${1}REDACTED")
+		line = saslRegex.ReplaceAllString(line, "${1}REDACTED")
+
+		result = append(result, line)
+	}
+
+	return result
+}
 
 // SanitizeLogFile reads a log file line by line and sanitizes each line using regular expressions.
 // It uses a worker pool to process multiple lines concurrently.
@@ -146,13 +163,7 @@ func SanitizeLogFile(filePath string) (io.Reader, error) {
 				// Sanitize the line using regular expressions
 				line = keyValueRegex.ReplaceAllString(line, "${1}=REDACTED")
 				line = combinedRegex.ReplaceAllString(line, "${1}REDACTED")
-
-				// Process inviteRegex
-				match := inviteRegex.FindStringSubmatch(line)
-				if len(match) > 0 {
-					line = fmt.Sprintf("%s%s %s REDACTED", match[1], match[3], match[4])
-				}
-
+				line = inviteRegex.ReplaceAllString(line, "${1}REDACTED")
 				line = nickservRegex.ReplaceAllString(line, "${1}REDACTED")
 				line = saslRegex.ReplaceAllString(line, "${1}REDACTED")
 
