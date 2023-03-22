@@ -17,6 +17,7 @@ import {
   DocumentDuplicateIcon,
   EllipsisHorizontalIcon,
   PencilSquareIcon,
+  ChatBubbleBottomCenterTextIcon,
   TrashIcon
 } from "@heroicons/react/24/outline";
 
@@ -345,8 +346,7 @@ interface FilterItemDropdownProps {
 const FilterItemDropdown = ({ filter, onToggle }: FilterItemDropdownProps) => {
 
   // This function handles the export of a filter to a JSON string
-  const handleExportJson = useCallback(async () => {
-    try {
+  const handleExportJson = useCallback(async (discordFormat = false) => {    try {
       type CompleteFilterType = {
         id: number;
         name: string;
@@ -405,16 +405,20 @@ const FilterItemDropdown = ({ filter, onToggle }: FilterItemDropdownProps) => {
         null,
         4
       );
+      
+      const finalJson = discordFormat ? "```JSON\n" + json + "\n```" : json;
+      
   
-      navigator.clipboard.writeText(json).then(() => {
+      navigator.clipboard.writeText(finalJson).then(() => {
         toast.custom((t) => <Toast type="success" body="Filter copied to clipboard." t={t} />);
       }, () => {
         toast.custom((t) => <Toast type="error" body="Failed to copy JSON to clipboard." t={t} />);
       });
-    } catch (error) {
-      console.error(error);
-      toast.custom((t) => <Toast type="error" body="Failed to get filter data." t={t} />);
-    }
+      
+  } catch (error) {
+    console.error(error);
+    toast.custom((t) => <Toast type="error" body="Failed to get filter data." t={t} />);
+  }
   }, [filter]);
 
   const cancelModalButtonRef = useRef(null);
@@ -504,8 +508,7 @@ const FilterItemDropdown = ({ filter, onToggle }: FilterItemDropdownProps) => {
                     active ? "bg-blue-600 text-white" : "text-gray-900 dark:text-gray-300",
                     "font-medium group flex rounded-md items-center w-full px-2 py-2 text-sm"
                   )}
-                  onClick={handleExportJson}
-                >
+                  onClick={() => handleExportJson(false)}                >
                   <ArrowDownTrayIcon
                     className={classNames(
                       active ? "text-white" : "text-blue-500",
@@ -514,6 +517,26 @@ const FilterItemDropdown = ({ filter, onToggle }: FilterItemDropdownProps) => {
                     aria-hidden="true"
                   />
                   Export JSON
+                </button>
+              )}
+            </Menu.Item>
+            <Menu.Item>
+              {({ active }) => (
+                <button
+                  className={classNames(
+                    active ? "bg-blue-600 text-white" : "text-gray-900 dark:text-gray-300",
+                    "font-medium group flex rounded-md items-center w-full px-2 py-2 text-sm"
+                  )}
+                  onClick={() => handleExportJson(true)}
+                >
+                  <ChatBubbleBottomCenterTextIcon
+                    className={classNames(
+                      active ? "text-white" : "text-blue-500",
+                      "w-5 h-5 mr-2"
+                    )}
+                    aria-hidden="true"
+                  />
+      Export JSON to Discord
                 </button>
               )}
             </Menu.Item>
