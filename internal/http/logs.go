@@ -160,7 +160,11 @@ func SanitizeLogFile(filePath string) (io.Reader, error) {
 	sanitizedContent := &bytes.Buffer{}
 
 	// Define the number of worker goroutines
-	numWorkers := runtime.NumCPU()
+	numCPUs := runtime.NumCPU()
+	numWorkers := numCPUs
+	if numCPUs <= 2 {
+		numWorkers = 1
+	}
 
 	// Mutex to ensure only one worker reads a line and writes the sanitized line at a time
 	fileMutex := sync.Mutex{}
