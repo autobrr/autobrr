@@ -96,28 +96,55 @@ var (
 	// regexes for sanitizing log files
 	keyValueRegex = regexp.MustCompile(`(torrent_pass|passkey|authkey|secret_key|apikey)=([a-zA-Z0-9]+)`)
 	combinedRegex = regexp.MustCompile(`(https?://[^\s]+/((rss/download/[a-zA-Z0-9]+/)|torrent/download/((auto\.[a-zA-Z0-9]+\.|[a-zA-Z0-9]+\.))))([a-zA-Z0-9]+)`)
-	inviteRegex   = regexp.MustCompile(`("module":"irc"[^>]*(?:Voyager autobot [\p{L}0-9]+ |Satsuki enter #announce [\p{L}0-9]+ |Millie announce |DBBot announce |ENDOR !invite [\p{L}0-9]+ |Vertigo ENTER #GGn-Announce [\p{L}0-9]+ |midgards announce |HeBoT !invite |NBOT !invite |Muffit bot #nbl-announce [\p{L}0-9]+ |hermes enter #announce [\p{L}0-9]+ |LiMEY_ !invite |PS-Info pass |PT-BOT invite |Hummingbird ENTER [\p{L}0-9]+ |Drone enter #red-announce [\p{L}0-9]+ |SceneHD \.invite |erica letmeinannounce [\p{L}0-9]+ |Synd1c4t3 invite |UHDBot invite |Sauron bot #ant-announce [\p{L}0-9]+ |RevoTT !invite [\p{L}0-9]+ |Cerberus identify [\p{L}0-9]+ ))([\S]+)`)
-	nickservRegex = regexp.MustCompile(`("module":"irc"[^>]*(?:> PRIVMSG )?NickServ IDENTIFY )([\p{L}0-9!#%&*+/:;<=>?@^_` + "`" + `{|}~]+)`)
-	saslRegex     = regexp.MustCompile(`("module":"irc"[^>]*> AUTHENTICATE )([\p{L}0-9!#%&*+/:;<=>?@^_` + "`" + `{|}~]+)`)
+	nickservRegex = regexp.MustCompile(`(NickServ IDENTIFY )([\p{L}0-9!#%&*+/:;<=>?@^_` + "`" + `{|}~]+)`)
+	saslRegex     = regexp.MustCompile(`(AUTHENTICATE )([\p{L}0-9!#%&*+/:;<=>?@^_` + "`" + `{|}~]+)`)
+
+	limeyInviteRegex       = regexp.MustCompile(`(LiMEY_ !invite\s+)([a-zA-Z0-9]+)(\s+\w+)`)
+	voyagerInviteRegex     = regexp.MustCompile(`(Voyager autobot\s+\w+)(\s+[a-zA-Z0-9]+)`)
+	satsukiInviteRegex     = regexp.MustCompile(`(enter #announce\s+\w+)(\s+[a-zA-Z0-9]+)`)
+	sauronInviteRegex      = regexp.MustCompile(`(Sauron bot #ant-announce\s+\w+)(\s+[a-zA-Z0-9]+)`)
+	millieInviteRegex      = regexp.MustCompile(`(Millie announce)(\s+)([a-zA-Z0-9]+)`)
+	dbbotInviteRegex       = regexp.MustCompile(`(DBBot announce)(\s+)([a-zA-Z0-9]+)`)
+	ptBotInviteRegex       = regexp.MustCompile(`(PT-BOT invite)(\s+)([a-zA-Z0-9]+)`)
+	midgardsInviteRegex    = regexp.MustCompile(`(midgards announce)(\s+)([a-zA-Z0-9]+)`)
+	hebotInviteRegex       = regexp.MustCompile(`(HeBoT !invite)(\s+)([a-zA-Z0-9]+)`)
+	nbotInviteRegex        = regexp.MustCompile(`(NBOT !invite)(\s+)([a-zA-Z0-9]+)`)
+	psInfoInviteRegex      = regexp.MustCompile(`(PS-Info pass).([a-zA-Z0-9]+)`)
+	synd1c4t3InviteRegex   = regexp.MustCompile(`(Synd1c4t3 invite)(\s+)([a-zA-Z0-9]+)`)
+	uhdbotInviteRegex      = regexp.MustCompile(`(UHDBot invite)(\s+)([a-zA-Z0-9]+)`)
+	endorInviteRegex       = regexp.MustCompile(`(ENDOR !invite(\s+)\w+).([a-zA-Z0-9]+)`)
+	vertigoInviteRegex     = regexp.MustCompile(`(Vertigo ENTER #GGn-Announce\s+)(\w+).([a-zA-Z0-9]+)`)
+	immortalInviteRegex    = regexp.MustCompile(`(immortal invite(\s+)\w+).([a-zA-Z0-9]+)`)
+	muffitInviteRegex      = regexp.MustCompile(`(Muffit bot #nbl-announce\s+\w+)(\s+[a-zA-Z0-9]+)`)
+	hermesInviteRegex      = regexp.MustCompile(`(hermes enter #announce\s+\w+).([a-zA-Z0-9]+)`)
+	hummingbirdInviteRegex = regexp.MustCompile(`(Hummingbird ENTER\s+\w+).([a-zA-Z0-9]+)(\s+#ptp-announce-dev)`)
+	droneInviteRegex       = regexp.MustCompile(`(Drone enter #red-announce\s+\w+).([a-zA-Z0-9]+)`)
+	revottInviteRegex      = regexp.MustCompile(`(RevoTT !invite\s+\w+).([a-zA-Z0-9]+)`)
+	scenehdInviteRegex     = regexp.MustCompile(`(SceneHD..invite).([a-zA-Z0-9]+)(\s+#announce)`)
+	ericaInviteRegex       = regexp.MustCompile(`(erica letmeinannounce\s+\w+).([a-zA-Z0-9]+)`)
+	cerberusInviteRegex    = regexp.MustCompile(`(Cerberus identify\s+\w+).([a-zA-Z0-9]+)`)
 )
 
-// ProcessLines is a worker function that processes a batch of lines using regular expressions.
-func ProcessLines(lines []string) []string {
-	var result []string
-
-	for _, line := range lines {
-		// Sanitize the line using regular expressions
-		line = keyValueRegex.ReplaceAllString(line, "${1}=REDACTED")
-		line = combinedRegex.ReplaceAllString(line, "${1}REDACTED")
-		line = inviteRegex.ReplaceAllString(line, "${1}REDACTED")
-		line = nickservRegex.ReplaceAllString(line, "${1}REDACTED")
-		line = saslRegex.ReplaceAllString(line, "${1}REDACTED")
-
-		result = append(result, line)
-	}
-
-	return result
-}
+// // ProcessLines is a worker function that processes a batch of lines using regular expressions.
+//func ProcessLines(lines []string) []string {
+//	var result []string
+//
+//	for _, line := range lines {
+//		// Sanitize the line using regular expressions
+//		line = keyValueRegex.ReplaceAllString(line, "${1}=REDACTED")
+//		line = combinedRegex.ReplaceAllString(line, "${1}REDACTED")
+//		//line = inviteRegex.ReplaceAllString(line, "${1}REDACTED")
+//		line = nickservRegex.ReplaceAllString(line, "${1}REDACTED")
+//		line = saslRegex.ReplaceAllString(line, "${1}REDACTED")
+//
+//		line = limeyInviteRegex.ReplaceAllString(line, "${1}REDACTED${3}")
+//		line = voyagerInviteRegex.ReplaceAllString(line, "${1}REDACTED")
+//
+//		result = append(result, line)
+//	}
+//
+//	return result
+//}
 
 // SanitizeLogFile reads a log file line by line and sanitizes each line using regular expressions.
 // It uses a worker pool to process multiple lines concurrently.
@@ -163,9 +190,41 @@ func SanitizeLogFile(filePath string) (io.Reader, error) {
 				// Sanitize the line using regular expressions
 				line = keyValueRegex.ReplaceAllString(line, "${1}=REDACTED")
 				line = combinedRegex.ReplaceAllString(line, "${1}REDACTED")
-				line = inviteRegex.ReplaceAllString(line, "${1}REDACTED")
-				line = nickservRegex.ReplaceAllString(line, "${1}REDACTED")
-				line = saslRegex.ReplaceAllString(line, "${1}REDACTED")
+				//line = inviteRegex.ReplaceAllString(line, "${1}REDACTED")
+
+				// Check if the line contains "module\":"irc" with quotes
+				if strings.Contains(line, `"module":"irc"`) {
+					line = nickservRegex.ReplaceAllString(line, "${1}REDACTED")
+					line = saslRegex.ReplaceAllString(line, "${1}REDACTED")
+					line = limeyInviteRegex.ReplaceAllString(line, "${1}REDACTED${3}")
+					line = voyagerInviteRegex.ReplaceAllString(line, "$1 REDACTED")
+					line = satsukiInviteRegex.ReplaceAllString(line, "$1 REDACTED")
+					line = sauronInviteRegex.ReplaceAllString(line, "$1 REDACTED")
+					line = millieInviteRegex.ReplaceAllString(line, "$1 REDACTED")
+					line = dbbotInviteRegex.ReplaceAllString(line, "$1 REDACTED")
+					line = ptBotInviteRegex.ReplaceAllString(line, "$1 REDACTED")
+					line = midgardsInviteRegex.ReplaceAllString(line, "$1 REDACTED")
+					line = hebotInviteRegex.ReplaceAllString(line, "$1 REDACTED")
+					line = nbotInviteRegex.ReplaceAllString(line, "$1 REDACTED")
+					line = psInfoInviteRegex.ReplaceAllString(line, "$1 REDACTED")
+					line = synd1c4t3InviteRegex.ReplaceAllString(line, "$1 REDACTED")
+					line = uhdbotInviteRegex.ReplaceAllString(line, "$1 REDACTED")
+					line = endorInviteRegex.ReplaceAllString(line, "$1 REDACTED")
+					line = vertigoInviteRegex.ReplaceAllString(line, "$1$2 REDACTED")
+					line = immortalInviteRegex.ReplaceAllString(line, "$1 REDACTED")
+					line = muffitInviteRegex.ReplaceAllString(line, "$1 REDACTED")
+					line = hermesInviteRegex.ReplaceAllString(line, "$1 REDACTED")
+					line = psInfoInviteRegex.ReplaceAllString(line, "$1 REDACTED")
+					line = ptBotInviteRegex.ReplaceAllString(line, "$1 REDACTED")
+					line = hummingbirdInviteRegex.ReplaceAllString(line, "$1 REDACTED$3")
+					line = droneInviteRegex.ReplaceAllString(line, "$1 REDACTED")
+					line = revottInviteRegex.ReplaceAllString(line, "$1 REDACTED")
+					line = scenehdInviteRegex.ReplaceAllString(line, "$1 REDACTED$3")
+					line = ericaInviteRegex.ReplaceAllString(line, "$1 REDACTED")
+					line = cerberusInviteRegex.ReplaceAllString(line, "$1 REDACTED")
+					line = synd1c4t3InviteRegex.ReplaceAllString(line, "$1 REDACTED")
+					line = uhdbotInviteRegex.ReplaceAllString(line, "$1 REDACTED")
+				}
 
 				// Write the sanitized line to the sanitizedContent buffer
 				fileMutex.Lock()
