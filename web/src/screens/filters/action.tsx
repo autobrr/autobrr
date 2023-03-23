@@ -400,6 +400,14 @@ const TypeForm = ({ action, idx, clients }: TypeFormProps) => {
               />
             </div>
           </div>
+          <div className="col-span-12 sm:col-span-6">
+            <div className="col-span-6">
+              <SwitchGroup
+                name={`actions.${idx}.paused`}
+                label="Don't start download automatically"
+              />
+            </div>
+          </div>
         </div>
       </div>
     );
