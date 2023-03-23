@@ -125,27 +125,6 @@ var (
 	cerberusInviteRegex    = regexp.MustCompile(`(Cerberus identify\s+\w+).([a-zA-Z0-9]+)`)
 )
 
-// // ProcessLines is a worker function that processes a batch of lines using regular expressions.
-//func ProcessLines(lines []string) []string {
-//	var result []string
-//
-//	for _, line := range lines {
-//		// Sanitize the line using regular expressions
-//		line = keyValueRegex.ReplaceAllString(line, "${1}=REDACTED")
-//		line = combinedRegex.ReplaceAllString(line, "${1}REDACTED")
-//		//line = inviteRegex.ReplaceAllString(line, "${1}REDACTED")
-//		line = nickservRegex.ReplaceAllString(line, "${1}REDACTED")
-//		line = saslRegex.ReplaceAllString(line, "${1}REDACTED")
-//
-//		line = limeyInviteRegex.ReplaceAllString(line, "${1}REDACTED${3}")
-//		line = voyagerInviteRegex.ReplaceAllString(line, "${1}REDACTED")
-//
-//		result = append(result, line)
-//	}
-//
-//	return result
-//}
-
 // SanitizeLogFile reads a log file line by line and sanitizes each line using regular expressions.
 // It uses a worker pool to process multiple lines concurrently.
 func SanitizeLogFile(filePath string) (io.Reader, error) {
@@ -194,7 +173,6 @@ func SanitizeLogFile(filePath string) (io.Reader, error) {
 				// Sanitize the line using regular expressions
 				line = keyValueRegex.ReplaceAllString(line, "${1}=REDACTED")
 				line = combinedRegex.ReplaceAllString(line, "${1}REDACTED")
-				//line = inviteRegex.ReplaceAllString(line, "${1}REDACTED")
 
 				// Check if the line contains "module\":"irc" with quotes
 				if strings.Contains(line, `"module":"irc"`) {
