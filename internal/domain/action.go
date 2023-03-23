@@ -59,7 +59,7 @@ func (a *Action) ParseMacros(release *Release) error {
 	if release.TorrentTmpFile == "" &&
 		(strings.Contains(a.ExecArgs, "TorrentPathName") || strings.Contains(a.ExecArgs, "TorrentDataRawBytes") ||
 			strings.Contains(a.WebhookData, "TorrentPathName") || strings.Contains(a.WebhookData, "TorrentDataRawBytes") ||
-			strings.Contains(a.SavePath, "TorrentPathName")) {
+			strings.Contains(a.SavePath, "TorrentPathName") || a.Type == ActionTypeWatchFolder) {
 		if err := release.DownloadTorrentFile(); err != nil {
 			return errors.Wrap(err, "webhook: could not download torrent file for release: %v", release.TorrentName)
 		}
@@ -67,7 +67,8 @@ func (a *Action) ParseMacros(release *Release) error {
 
 	// if webhook data contains TorrentDataRawBytes, lets read the file into bytes we can then use in the macro
 	if len(release.TorrentDataRawBytes) == 0 &&
-		(strings.Contains(a.ExecArgs, "TorrentDataRawBytes") || strings.Contains(a.WebhookData, "TorrentDataRawBytes")) {
+		(strings.Contains(a.ExecArgs, "TorrentDataRawBytes") || strings.Contains(a.WebhookData, "TorrentDataRawBytes") ||
+			a.Type == ActionTypeWatchFolder) {
 		t, err := os.ReadFile(release.TorrentTmpFile)
 		if err != nil {
 			return errors.Wrap(err, "could not read torrent file: %v", release.TorrentTmpFile)
