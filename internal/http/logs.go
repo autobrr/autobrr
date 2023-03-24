@@ -151,9 +151,11 @@ func SanitizeLogFile(filePath string, output io.Writer) error {
 		// Read the next line from the file
 		line, err := reader.ReadString('\n')
 
-		if err != nil && err != io.EOF {
-			log.Printf("Error reading line from input file: %v", err)
-			return err
+		if err != nil {
+			if err != io.EOF {
+				log.Printf("Error reading line from input file: %v", err)
+			}
+			break
 		}
 
 		// Sanitize the line using regexReplacements array
@@ -179,11 +181,6 @@ func SanitizeLogFile(filePath string, output io.Writer) error {
 		if _, err = writer.WriteString(line); err != nil {
 			log.Printf("Error writing line to output: %v", err)
 			return err
-		}
-
-		// Break the loop if we reached the end of the file
-		if err == io.EOF {
-			break
 		}
 	}
 
