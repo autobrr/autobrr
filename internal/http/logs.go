@@ -159,28 +159,24 @@ func SanitizeLogFile(filePath string, output io.Writer) error {
 		}
 
 		// Sanitize the line using regexReplacements array
+		bIRC := strings.Contains(line, `"module":"irc"`)
 		for i := 0; i < len(regexReplacements); i++ {
 			// Apply the first two patterns without checking for "module":"irc"
 			if i < 2 {
 				line = regexReplacements[i].pattern.ReplaceAllString(line, regexReplacements[i].repl)
-			} else {
+			} else if bIRC {
 				// Check for "module":"irc" before applying other patterns
-				if strings.Contains(line, `"module":"irc"`) {
-					line = regexReplacements[i].pattern.ReplaceAllString(line, regexReplacements[i].repl)
-				}
+				line = regexReplacements[i].pattern.ReplaceAllString(line, regexReplacements[i].repl)
 			}
 		}
 
 		// Write the sanitized line to the writer
-		_, err = writer.WriteString(line)
-
-		if err != nil {
+		if _, err = writer.WriteString(line); err != nil {
 			log.Printf("Error writing line to output: %v", err)
 			return err
 		}
 	}
 
-	writer.Flush()
 	return nil
 }
 
@@ -225,8 +221,7 @@ func (h logsHandler) downloadFile(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/octet-stream")
 
 	// Sanitize the log file and directly write the output to the HTTP socket
-	err := SanitizeLogFile(filePath, w)
-	if err != nil {
+	if err := SanitizeLogFile(filePath, w); err != nil {
 		render.Status(r, http.StatusInternalServerError)
 		render.JSON(w, r, errorResponse{
 			Message: err.Error(),
