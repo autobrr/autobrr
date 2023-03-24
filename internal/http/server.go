@@ -105,6 +105,7 @@ func (s Server) Handler() http.Handler {
 	r.Use(c.Handler)
 
 	encoder := encoder{}
+	web.RegisterHandler(r)
 
 	r.Route("/api", func(r chi.Router) {
 		r.Route("/auth", newAuthHandler(encoder, s.log, s.config.Config, s.cookieStore, s.authService).Routes)
@@ -140,9 +141,9 @@ func (s Server) Handler() http.Handler {
 			})
 		})
 	})
-
-	handler := web.AssetHandler("/", "dist")
-	r.HandleFunc("/*", handler.ServeHTTP)
+	// Need to fix the baseUrl for the frontend currently when going to log route it will throw cors error :()
+	// r.Get("/", s.index)
+	// r.Get("/*", s.index)
 
 	return r
 }
