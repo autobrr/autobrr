@@ -151,19 +151,24 @@ func SanitizeLogFile(filePath string, output io.Writer) error {
 		// Read the next line from the file
 		line, err := reader.ReadString('\n')
 
-		if err != nil {
-			if err != io.EOF {
-				log.Printf("Error reading line from input file: %v", err)
-			}
-			break
+		if err != nil && err != io.EOF {
+			log.Printf("Error reading line from input file: %v", err)
+			return err
 		}
 
 		// Sanitize the line using regexReplacements array
 		bIRC := strings.Contains(line, `"module":"irc"`)
+		bFilter := strings.Contains(line, "CheckFilter") ||
+			strings.Contains(line, `"repo":"release"`) ||
+			strings.Contains(line, `"module":"action"`)
+
 		for i := 0; i < len(regexReplacements); i++ {
-			// Apply the first two patterns without checking for "module":"irc"
+			// Apply the first two patterns only if the line contains "CheckFilter",
+			// "repo":"release", or "module":"action"
 			if i < 2 {
-				line = regexReplacements[i].pattern.ReplaceAllString(line, regexReplacements[i].repl)
+				if bFilter {
+					line = regexReplacements[i].pattern.ReplaceAllString(line, regexReplacements[i].repl)
+				}
 			} else if bIRC {
 				// Check for "module":"irc" before applying other patterns
 				line = regexReplacements[i].pattern.ReplaceAllString(line, regexReplacements[i].repl)
@@ -174,6 +179,11 @@ func SanitizeLogFile(filePath string, output io.Writer) error {
 		if _, err = writer.WriteString(line); err != nil {
 			log.Printf("Error writing line to output: %v", err)
 			return err
+		}
+
+		// Break the loop if we reached the end of the file
+		if err == io.EOF {
+			break
 		}
 	}
 
