@@ -30,7 +30,7 @@
     "stacktracey": "^2.1.8"
   },
   "scripts": {
-    "start": "vite",
+    "start": "tsc && vite build --watch",
     "build": "tsc && vite build",
     "serve": "vite preview",
     "lint": "eslint src/ --ext .js,.jsx,.ts,.tsx --color",
