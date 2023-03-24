@@ -86,6 +86,7 @@ interface TextAreaProps {
   autoComplete?: string;
   hidden?: boolean;
   disabled?: boolean;
+  tooltip?: JSX.Element;
 }
 
 export const TextArea = ({
@@ -97,6 +98,7 @@ export const TextArea = ({
   rows,
   autoComplete,
   hidden,
+  tooltip,
   disabled
 }: TextAreaProps) => (
   <div
@@ -106,8 +108,13 @@ export const TextArea = ({
     )}
   >
     {label && (
-      <label htmlFor={name} className="block text-xs font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wide">
-        {label}
+      <label htmlFor={name} className="flex float-left mb-2 text-xs font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wide">
+        <div className="flex">
+          {label}
+          {tooltip && (
+            <CustomTooltip anchorId={name}>{tooltip}</CustomTooltip>
+          )}
+        </div>
       </label>
     )}
     <Field name={name}>
@@ -150,6 +157,8 @@ interface TextAreaAutoResizeProps {
   autoComplete?: string;
   hidden?: boolean;
   disabled?: boolean;
+  tooltip?: JSX.Element;
+
 }
 
 export const TextAreaAutoResize = ({
@@ -161,6 +170,7 @@ export const TextAreaAutoResize = ({
   rows,
   autoComplete,
   hidden,
+  tooltip,
   disabled
 }: TextAreaAutoResizeProps) => (
   <div
@@ -170,8 +180,13 @@ export const TextAreaAutoResize = ({
     )}
   >
     {label && (
-      <label htmlFor={name} className="block text-xs font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wide">
-        {label}
+      <label htmlFor={name} className="flex float-left mb-2 text-xs font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wide">
+        <div className="flex">
+          {label}
+          {tooltip && (
+            <CustomTooltip anchorId={name}>{tooltip}</CustomTooltip>
+          )}
+        </div>
       </label>
     )}
     <Field name={name}>
