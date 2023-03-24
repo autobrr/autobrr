@@ -15,18 +15,22 @@ func TestSanitizeLogFile(t *testing.T) {
 		expected string
 	}{
 		{
+			name:     "BHD_URL",
 			input:    "https://beyond-hd.me/torrent/download/auto.t0rrent1d.rssk3y",
 			expected: "https://beyond-hd.me/torrent/download/auto.t0rrent1d.REDACTED",
 		},
 		{
+			name:     "Standard_UNIT3D_URL",
 			input:    "https://aither.cc/torrent/download/t0rrent1d.rssk3y",
 			expected: "https://aither.cc/torrent/download/t0rrent1d.REDACTED",
 		},
 		{
+			name:     "TL_URL",
 			input:    "https://www.torrentleech.org/rss/download/t0rrent1d/rssk3y/Dark+Places+1974+1080p+BluRay+x264-GAZER.torrent",
 			expected: "https://www.torrentleech.org/rss/download/t0rrent1d/REDACTED/Dark+Places+1974+1080p+BluRay+x264-GAZER.torrent",
 		},
 		{
+			name:     "auth_key_torrent_pass",
 			input:    "https://alpharatio.cc/torrents.php?action=download&id=t0rrent1d&authkey=4uthk3y&torrent_pass=t0rrentp4ss",
 			expected: "https://alpharatio.cc/torrents.php?action=download&id=t0rrent1d&authkey=REDACTED&torrent_pass=REDACTED",
 		},
@@ -156,20 +160,17 @@ func TestSanitizeLogFile(t *testing.T) {
 				t.Fatal(err)
 			}
 
+			// Create a bytes.Buffer to store the sanitized content
+			sanitizedContent := &bytes.Buffer{}
+
 			// Call SanitizeLogFile on the temporary file
-			sanitizedContent, err := SanitizeLogFile(tmpFile.Name())
+			err = SanitizeLogFile(tmpFile.Name(), sanitizedContent)
 			if err != nil {
 				t.Fatal(err)
 			}
 
 			// Read the content of the sanitized content
-			buf := new(bytes.Buffer)
-			_, err = buf.ReadFrom(sanitizedContent)
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			sanitizedData := buf.String()
+			sanitizedData := sanitizedContent.String()
 
 			// Check if the sanitized data matches the expected content
 			if !strings.Contains(sanitizedData, testCase.expected+"\n") {

@@ -2,7 +2,6 @@ package http
 
 import (
 	"bufio"
-	"bytes"
 	"io"
 	"io/fs"
 	"log"
@@ -11,10 +10,8 @@ import (
 	"path"
 	"path/filepath"
 	"regexp"
-	"runtime"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/autobrr/autobrr/internal/config"
@@ -93,138 +90,98 @@ func (h logsHandler) files(w http.ResponseWriter, r *http.Request) {
 }
 
 var (
-	// regexes for sanitizing log files
-	keyValueRegex = regexp.MustCompile(`(torrent_pass|passkey|authkey|secret_key|apikey)=([a-zA-Z0-9]+)`)
-	combinedRegex = regexp.MustCompile(`(https?://[^\s]+/((rss/download/[a-zA-Z0-9]+/)|torrent/download/((auto\.[a-zA-Z0-9]+\.|[a-zA-Z0-9]+\.))))([a-zA-Z0-9]+)`)
-	nickservRegex = regexp.MustCompile(`(NickServ IDENTIFY )([\p{L}0-9!#%&*+/:;<=>?@^_` + "`" + `{|}~]+)`)
-	saslRegex     = regexp.MustCompile(`(AUTHENTICATE )([\p{L}0-9!#%&*+/:;<=>?@^_` + "`" + `{|}~]+)`)
-
-	limeyInviteRegex       = regexp.MustCompile(`(LiMEY_ !invite\s+)([a-zA-Z0-9]+)(\s+\w+)`)
-	voyagerInviteRegex     = regexp.MustCompile(`(Voyager autobot\s+\w+)(\s+[a-zA-Z0-9]+)`)
-	satsukiInviteRegex     = regexp.MustCompile(`(enter #announce\s+\w+)(\s+[a-zA-Z0-9]+)`)
-	sauronInviteRegex      = regexp.MustCompile(`(Sauron bot #ant-announce\s+\w+)(\s+[a-zA-Z0-9]+)`)
-	millieInviteRegex      = regexp.MustCompile(`(Millie announce)(\s+)([a-zA-Z0-9]+)`)
-	dbbotInviteRegex       = regexp.MustCompile(`(DBBot announce)(\s+)([a-zA-Z0-9]+)`)
-	ptBotInviteRegex       = regexp.MustCompile(`(PT-BOT invite)(\s+)([a-zA-Z0-9]+)`)
-	midgardsInviteRegex    = regexp.MustCompile(`(midgards announce)(\s+)([a-zA-Z0-9]+)`)
-	hebotInviteRegex       = regexp.MustCompile(`(HeBoT !invite)(\s+)([a-zA-Z0-9]+)`)
-	nbotInviteRegex        = regexp.MustCompile(`(NBOT !invite)(\s+)([a-zA-Z0-9]+)`)
-	psInfoInviteRegex      = regexp.MustCompile(`(PS-Info pass).([a-zA-Z0-9]+)`)
-	synd1c4t3InviteRegex   = regexp.MustCompile(`(Synd1c4t3 invite)(\s+)([a-zA-Z0-9]+)`)
-	uhdbotInviteRegex      = regexp.MustCompile(`(UHDBot invite)(\s+)([a-zA-Z0-9]+)`)
-	endorInviteRegex       = regexp.MustCompile(`(ENDOR !invite(\s+)\w+).([a-zA-Z0-9]+)`)
-	vertigoInviteRegex     = regexp.MustCompile(`(Vertigo ENTER #GGn-Announce\s+)(\w+).([a-zA-Z0-9]+)`)
-	immortalInviteRegex    = regexp.MustCompile(`(immortal invite(\s+)\w+).([a-zA-Z0-9]+)`)
-	muffitInviteRegex      = regexp.MustCompile(`(Muffit bot #nbl-announce\s+\w+)(\s+[a-zA-Z0-9]+)`)
-	hermesInviteRegex      = regexp.MustCompile(`(hermes enter #announce\s+\w+).([a-zA-Z0-9]+)`)
-	hummingbirdInviteRegex = regexp.MustCompile(`(Hummingbird ENTER\s+\w+).([a-zA-Z0-9]+)(\s+#ptp-announce-dev)`)
-	droneInviteRegex       = regexp.MustCompile(`(Drone enter #red-announce\s+\w+).([a-zA-Z0-9]+)`)
-	revottInviteRegex      = regexp.MustCompile(`(RevoTT !invite\s+\w+).([a-zA-Z0-9]+)`)
-	scenehdInviteRegex     = regexp.MustCompile(`(SceneHD..invite).([a-zA-Z0-9]+)(\s+#announce)`)
-	ericaInviteRegex       = regexp.MustCompile(`(erica letmeinannounce\s+\w+).([a-zA-Z0-9]+)`)
-	cerberusInviteRegex    = regexp.MustCompile(`(Cerberus identify\s+\w+).([a-zA-Z0-9]+)`)
+	regexReplacements = []struct {
+		pattern *regexp.Regexp
+		repl    string
+	}{
+		{
+			pattern: regexp.MustCompile(`(torrent_pass|passkey|authkey|secret_key|apikey)=([a-zA-Z0-9]+)`),
+			repl:    "${1}=REDACTED",
+		},
+		{
+			pattern: regexp.MustCompile(`(https?://[^\s]+/((rss/download/[a-zA-Z0-9]+/)|torrent/download/((auto\.[a-zA-Z0-9]+\.|[a-zA-Z0-9]+\.))))([a-zA-Z0-9]+)`),
+			repl:    "${1}REDACTED",
+		},
+		{
+			pattern: regexp.MustCompile(`(NickServ IDENTIFY )([\p{L}0-9!#%&*+/:;<=>?@^_` + "`" + `{|}~]+)`),
+			repl:    "${1}REDACTED",
+		},
+		{
+			pattern: regexp.MustCompile(`(AUTHENTICATE )([\p{L}0-9!#%&*+/:;<=>?@^_` + "`" + `{|}~]+)`),
+			repl:    "${1}REDACTED",
+		},
+		{
+			pattern: regexp.MustCompile(
+				`(?m)(` +
+					`(?:Voyager autobot\s+\w+|Satsuki enter #announce\s+\w+|Sauron bot #ant-announce\s+\w+|Millie announce|DBBot announce|PT-BOT invite|midgards announce|HeBoT !invite|NBOT !invite|PS-Info pass|Synd1c4t3 invite|UHDBot invite|ENDOR !invite(\s+)\w+|immortal invite(\s+)\w+|Muffit bot #nbl-announce\s+\w+|hermes enter #announce\s+\w+|Drone enter #red-announce\s+\w+|RevoTT !invite\s+\w+|erica letmeinannounce\s+\w+|Cerberus identify\s+\w+)` +
+					`)(?:\s+[a-zA-Z0-9]+)`),
+			repl: "$1 REDACTED",
+		},
+		{
+			pattern: regexp.MustCompile(`(LiMEY_ !invite\s+)([a-zA-Z0-9]+)(\s+\w+)`),
+			repl:    "${1}REDACTED${3}",
+		},
+		{
+			pattern: regexp.MustCompile(`(Vertigo ENTER #GGn-Announce\s+)(\w+).([a-zA-Z0-9]+)`),
+			repl:    "$1$2 REDACTED",
+		},
+		{
+			pattern: regexp.MustCompile(`(Hummingbird ENTER\s+\w+).([a-zA-Z0-9]+)(\s+#ptp-announce-dev)`),
+			repl:    "$1 REDACTED$3",
+		},
+		{
+			pattern: regexp.MustCompile(`(SceneHD..invite).([a-zA-Z0-9]+)(\s+#announce)`),
+			repl:    "$1 REDACTED$3",
+		},
+	}
 )
 
-// SanitizeLogFile reads a log file line by line and sanitizes each line using regular expressions.
-// It uses a worker pool to process multiple lines concurrently.
-func SanitizeLogFile(filePath string) (io.Reader, error) {
+func SanitizeLogFile(filePath string, output io.Writer) error {
 	inFile, err := os.Open(filePath)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	defer inFile.Close()
 
 	reader := bufio.NewReader(inFile)
+	writer := bufio.NewWriter(output)
+	defer writer.Flush()
 
-	sanitizedContent := &bytes.Buffer{}
+	for {
+		// Read the next line from the file
+		line, err := reader.ReadString('\n')
 
-	// Define the number of worker goroutines
-	numCPUs := runtime.NumCPU()
-	numWorkers := numCPUs
-	if numCPUs <= 2 {
-		numWorkers = 1
-	}
+		if err != nil {
+			if err != io.EOF {
+				log.Printf("Error reading line from input file: %v", err)
+			}
+			break
+		}
 
-	// Mutex to ensure only one worker reads a line and writes the sanitized line at a time
-	fileMutex := sync.Mutex{}
-
-	// Create a WaitGroup to wait for all workers to finish
-	wg := sync.WaitGroup{}
-
-	// Start the worker goroutines
-	for i := 0; i < numWorkers; i++ {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-
-			for {
-				// Read the next line from the file
-				fileMutex.Lock()
-				line, err := reader.ReadString('\n')
-				fileMutex.Unlock()
-
-				if err != nil {
-					if err != io.EOF {
-						log.Printf("Error reading line from input file: %v", err)
-					}
-					return
-				}
-
-				// Sanitize the line using regular expressions
-				line = keyValueRegex.ReplaceAllString(line, "${1}=REDACTED")
-				line = combinedRegex.ReplaceAllString(line, "${1}REDACTED")
-
-				// Check if the line contains "module\":"irc" with quotes
+		// Sanitize the line using regexReplacements array
+		for i := 0; i < len(regexReplacements); i++ {
+			// Apply the first two patterns without checking for "module":"irc"
+			if i < 2 {
+				line = regexReplacements[i].pattern.ReplaceAllString(line, regexReplacements[i].repl)
+			} else {
+				// Check for "module":"irc" before applying other patterns
 				if strings.Contains(line, `"module":"irc"`) {
-					line = nickservRegex.ReplaceAllString(line, "${1}REDACTED")
-					line = saslRegex.ReplaceAllString(line, "${1}REDACTED")
-					line = limeyInviteRegex.ReplaceAllString(line, "${1}REDACTED${3}")
-					line = voyagerInviteRegex.ReplaceAllString(line, "$1 REDACTED")
-					line = satsukiInviteRegex.ReplaceAllString(line, "$1 REDACTED")
-					line = sauronInviteRegex.ReplaceAllString(line, "$1 REDACTED")
-					line = millieInviteRegex.ReplaceAllString(line, "$1 REDACTED")
-					line = dbbotInviteRegex.ReplaceAllString(line, "$1 REDACTED")
-					line = ptBotInviteRegex.ReplaceAllString(line, "$1 REDACTED")
-					line = midgardsInviteRegex.ReplaceAllString(line, "$1 REDACTED")
-					line = hebotInviteRegex.ReplaceAllString(line, "$1 REDACTED")
-					line = nbotInviteRegex.ReplaceAllString(line, "$1 REDACTED")
-					line = psInfoInviteRegex.ReplaceAllString(line, "$1 REDACTED")
-					line = synd1c4t3InviteRegex.ReplaceAllString(line, "$1 REDACTED")
-					line = uhdbotInviteRegex.ReplaceAllString(line, "$1 REDACTED")
-					line = endorInviteRegex.ReplaceAllString(line, "$1 REDACTED")
-					line = vertigoInviteRegex.ReplaceAllString(line, "$1$2 REDACTED")
-					line = immortalInviteRegex.ReplaceAllString(line, "$1 REDACTED")
-					line = muffitInviteRegex.ReplaceAllString(line, "$1 REDACTED")
-					line = hermesInviteRegex.ReplaceAllString(line, "$1 REDACTED")
-					line = psInfoInviteRegex.ReplaceAllString(line, "$1 REDACTED")
-					line = ptBotInviteRegex.ReplaceAllString(line, "$1 REDACTED")
-					line = hummingbirdInviteRegex.ReplaceAllString(line, "$1 REDACTED$3")
-					line = droneInviteRegex.ReplaceAllString(line, "$1 REDACTED")
-					line = revottInviteRegex.ReplaceAllString(line, "$1 REDACTED")
-					line = scenehdInviteRegex.ReplaceAllString(line, "$1 REDACTED$3")
-					line = ericaInviteRegex.ReplaceAllString(line, "$1 REDACTED")
-					line = cerberusInviteRegex.ReplaceAllString(line, "$1 REDACTED")
-					line = synd1c4t3InviteRegex.ReplaceAllString(line, "$1 REDACTED")
-					line = uhdbotInviteRegex.ReplaceAllString(line, "$1 REDACTED")
-				}
-
-				// Write the sanitized line to the sanitizedContent buffer
-				fileMutex.Lock()
-				_, err = sanitizedContent.WriteString(line)
-				fileMutex.Unlock()
-
-				if err != nil {
-					log.Printf("Error writing line to sanitizedContent buffer: %v", err)
-					return
+					line = regexReplacements[i].pattern.ReplaceAllString(line, regexReplacements[i].repl)
 				}
 			}
-		}()
+		}
+
+		// Write the sanitized line to the writer
+		_, err = writer.WriteString(line)
+
+		if err != nil {
+			log.Printf("Error writing line to output: %v", err)
+			return err
+		}
 	}
 
-	// Wait for all workers to finish
-	wg.Wait()
-
-	return sanitizedContent, nil
+	writer.Flush()
+	return nil
 }
 
 func (h logsHandler) downloadFile(w http.ResponseWriter, r *http.Request) {
@@ -264,8 +221,11 @@ func (h logsHandler) downloadFile(w http.ResponseWriter, r *http.Request) {
 
 	filePath := filepath.Join(logsDir, logFile)
 
-	// Sanitize the log file
-	sanitizedContent, err := SanitizeLogFile(filePath)
+	w.Header().Set("Content-Disposition", "attachment; filename="+strconv.Quote(logFile))
+	w.Header().Set("Content-Type", "application/octet-stream")
+
+	// Sanitize the log file and directly write the output to the HTTP socket
+	err := SanitizeLogFile(filePath, w)
 	if err != nil {
 		render.Status(r, http.StatusInternalServerError)
 		render.JSON(w, r, errorResponse{
@@ -274,11 +234,6 @@ func (h logsHandler) downloadFile(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
-
-	w.Header().Set("Content-Disposition", "attachment; filename="+strconv.Quote(logFile))
-	w.Header().Set("Content-Type", "application/octet-stream")
-
-	io.Copy(w, sanitizedContent)
 }
 
 type logFile struct {
