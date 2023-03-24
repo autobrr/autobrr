@@ -9,9 +9,10 @@ import (
 	"net/http"
 	"os"
 	"path"
+	"strings"
 )
 
-//go:embed build
+//go:embed dist/*
 var Assets embed.FS
 
 // fsFunc is short-hand for constructing a http.FileSystem
@@ -34,7 +35,11 @@ func AssetHandler(prefix, root string) http.Handler {
 		// content
 		f, err := Assets.Open(assetPath)
 		if os.IsNotExist(err) {
-			return Assets.Open("build/index.html")
+			if strings.HasPrefix(name, "/assets") || strings.HasPrefix(name, "/static") {
+				return Assets.Open("dist" + name)
+			} else {
+				return Assets.Open("dist/index.html")
+			}
 		}
 
 		// Otherwise, assume this is a legitimate request routed
@@ -57,5 +62,5 @@ func Index(w io.Writer, p IndexParams) error {
 
 func parseIndex() *template.Template {
 	return template.Must(
-		template.New("index.html").ParseFS(Assets, "build/index.html"))
+		template.New("index.html").ParseFS(Assets, "dist/index.html"))
 }
