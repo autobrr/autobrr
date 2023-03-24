@@ -33,7 +33,7 @@ irc:
   channels:
     - "#pornbay-announce"
   announcers:
-    - "PB-Announcer"
+    - "Llamab1t"
   settings:
     - name: nick
       type: text
