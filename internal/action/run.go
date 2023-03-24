@@ -163,12 +163,9 @@ func (s *service) watchFolder(ctx context.Context, action *domain.Action, releas
 
 	s.log.Trace().Msgf("action WATCH_FOLDER: %v file: %v", action.WatchFolder, release.TorrentTmpFile)
 
-	// Open original file
-	original, err := os.Open(release.TorrentTmpFile)
-	if err != nil {
-		return errors.Wrap(err, "could not open temp file: %v", release.TorrentTmpFile)
+	if len(release.TorrentDataRawBytes) < 1 {
+		return fmt.Errorf("watch_folder: missing torrent %s", release.TorrentName)
 	}
-	defer original.Close()
 
 	// default dir to watch folder
 	//  /mnt/watch/{{.Indexer}}
@@ -188,7 +185,7 @@ func (s *service) watchFolder(ctx context.Context, action *domain.Action, releas
 	}
 
 	// Create folder
-	if err = os.MkdirAll(dir, os.ModePerm); err != nil {
+	if err := os.MkdirAll(dir, os.ModePerm); err != nil {
 		return errors.Wrap(err, "could not create new folders %v", dir)
 	}
 
@@ -200,7 +197,7 @@ func (s *service) watchFolder(ctx context.Context, action *domain.Action, releas
 	defer newFile.Close()
 
 	// Copy file
-	if _, err := io.Copy(newFile, original); err != nil {
+	if _, err := io.Copy(newFile, bytes.NewReader(release.TorrentDataRawBytes)); err != nil {
 		return errors.Wrap(err, "could not copy file %v to watch folder", newFileName)
 	}
 

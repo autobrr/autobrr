@@ -18,13 +18,13 @@ func (f Feed) Len() int {
 }
 
 type Channel struct {
-	Title string     `xml:"title"`
-	Items []FeedItem `xml:"item"`
+	Title string      `xml:"title"`
+	Items []*FeedItem `xml:"item"`
 }
 
 type Response struct {
 	Channel struct {
-		Items []FeedItem `xml:"item"`
+		Items []*FeedItem `xml:"item"`
 	} `xml:"channel"`
 }
 
@@ -63,7 +63,7 @@ type Enclosure struct {
 	Type   string `xml:"type,attr"`
 }
 
-func (f FeedItem) MapCategoriesFromAttr() {
+func (f *FeedItem) MapCategoriesFromAttr() {
 	for _, attr := range f.Attributes {
 		if attr.Name == "category" {
 			catId, err := strconv.Atoi(attr.Value)
@@ -82,7 +82,7 @@ func (f FeedItem) MapCategoriesFromAttr() {
 	}
 }
 
-func (f FeedItem) MapCustomCategoriesFromAttr(categories []Category) {
+func (f *FeedItem) MapCustomCategoriesFromAttr(categories []Category) {
 	for _, attr := range f.Attributes {
 		if attr.Name == "category" {
 			catId, err := strconv.Atoi(attr.Value)
