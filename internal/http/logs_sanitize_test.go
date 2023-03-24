@@ -16,23 +16,23 @@ func TestSanitizeLogFile(t *testing.T) {
 	}{
 		{
 			name:     "BHD_URL",
-			input:    "CheckFilter https://beyond-hd.me/torrent/download/auto.t0rrent1d.rssk3y",
-			expected: "CheckFilter https://beyond-hd.me/torrent/download/auto.t0rrent1d.REDACTED",
+			input:    "\"module\":\"filter\" https://beyond-hd.me/torrent/download/auto.t0rrent1d.rssk3y",
+			expected: "\"module\":\"filter\" https://beyond-hd.me/torrent/download/auto.t0rrent1d.REDACTED",
 		},
 		{
 			name:     "Standard_UNIT3D_URL",
-			input:    "CheckFilter https://aither.cc/torrent/download/t0rrent1d.rssk3y",
-			expected: "CheckFilter https://aither.cc/torrent/download/t0rrent1d.REDACTED",
+			input:    "\"module\":\"filter\" https://aither.cc/torrent/download/t0rrent1d.rssk3y",
+			expected: "\"module\":\"filter\" https://aither.cc/torrent/download/t0rrent1d.REDACTED",
 		},
 		{
 			name:     "TL_URL",
-			input:    "CheckFilter https://www.torrentleech.org/rss/download/t0rrent1d/rssk3y/Dark+Places+1974+1080p+BluRay+x264-GAZER.torrent",
-			expected: "CheckFilter https://www.torrentleech.org/rss/download/t0rrent1d/REDACTED/Dark+Places+1974+1080p+BluRay+x264-GAZER.torrent",
+			input:    "\"module\":\"filter\" https://www.torrentleech.org/rss/download/t0rrent1d/rssk3y/Dark+Places+1974+1080p+BluRay+x264-GAZER.torrent",
+			expected: "\"module\":\"filter\" https://www.torrentleech.org/rss/download/t0rrent1d/REDACTED/Dark+Places+1974+1080p+BluRay+x264-GAZER.torrent",
 		},
 		{
 			name:     "auth_key_torrent_pass",
-			input:    "CheckFilter https://alpharatio.cc/torrents.php?action=download&id=t0rrent1d&authkey=4uthk3y&torrent_pass=t0rrentp4ss",
-			expected: "CheckFilter https://alpharatio.cc/torrents.php?action=download&id=t0rrent1d&authkey=REDACTED&torrent_pass=REDACTED",
+			input:    "\"module\":\"filter\" https://alpharatio.cc/torrents.php?action=download&id=t0rrent1d&authkey=4uthk3y&torrent_pass=t0rrentp4ss",
+			expected: "\"module\":\"filter\" https://alpharatio.cc/torrents.php?action=download&id=t0rrent1d&authkey=REDACTED&torrent_pass=REDACTED",
 		},
 		{
 			input:    "\"module\":\"irc\" LiMEY_ !invite 1irck3y us3rn4me",

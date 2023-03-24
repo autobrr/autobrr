@@ -95,7 +95,7 @@ var (
 		repl    string
 	}{
 		{
-			pattern: regexp.MustCompile(`(torrent_pass|passkey|authkey|secret_key|apikey)=([a-zA-Z0-9]+)`),
+			pattern: regexp.MustCompile(`(torrent_pass|passkey|authkey|auth|secret_key|api|apikey)=([a-zA-Z0-9]+)`),
 			repl:    "${1}=REDACTED",
 		},
 		{
@@ -160,13 +160,14 @@ func SanitizeLogFile(filePath string, output io.Writer) error {
 
 		// Sanitize the line using regexReplacements array
 		bIRC := strings.Contains(line, `"module":"irc"`)
-		bFilter := strings.Contains(line, "CheckFilter") ||
+		bFilter := (strings.Contains(line, `"module":"feed"`) ||
+			strings.Contains(line, `"module":"filter"`)) ||
 			strings.Contains(line, `"repo":"release"`) ||
 			strings.Contains(line, `"module":"action"`)
 
 		for i := 0; i < len(regexReplacements); i++ {
-			// Apply the first two patterns only if the line contains "CheckFilter",
-			// "repo":"release", or "module":"action"
+			// Apply the first two patterns only if the line contains "module":"feed",
+			// "module":"filter", "repo":"release", or "module":"action"
 			if i < 2 {
 				if bFilter {
 					line = regexReplacements[i].pattern.ReplaceAllString(line, regexReplacements[i].repl)
