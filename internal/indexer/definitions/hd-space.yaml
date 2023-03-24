@@ -5,7 +5,7 @@ identifier: hd-space
 description: HD-Space (HDS) is a Private Torrent Tracker for HD MOVIES / TV
 language: en-us
 urls:
-  - https://hd-space.org
+  - https://hd-space.org/
 privacy: private
 protocol: torrent
 supports:
@@ -47,22 +47,23 @@ irc:
       label: NickServ Password
       help: NickServ password
 
-parse:
-  type: single
-  lines:
-    - test:
-        - "New Torrent in category [HDTV 1080] Show S03E06 2160p PMTP WEB-DL DDP5 1 DV HEVC-GROUP1 (4.52 GB) uploaded! Download: https://hd-space.org/download.php?id=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
-        - "New Torrent in category [Blu-Ray] The Movie 2022 1080p Blu-ray AVC DTS-HD MA 5.1-GROUP2 (23.21 GB) uploaded! Download: https://hd-space.org/download.php?id=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
-        - "New Torrent in category [Blu-Ray] Other movie with long tittle 2013 2160 UHD EXTENDED Blu-ray HEVC TrueHD 7.1-GROUP3@HDSpace (88.20 GB) uploaded! Download: https://hd-space.org/download.php?id=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
-      pattern: 'New Torrent in category \[([^\]]*)\] (.*) \(([^\)]*)\) uploaded! Download\: (https?\:\/\/[^\/]+\/).*[&\?]id=([a-f0-9]+)'
-      vars:
-        - category
-        - torrentName
-        - torrentSize
-        - baseUrl
-        - torrentId
+  parse:
+    type: single
+    lines:
+      - test:
+          - "New Torrent in category [HDTV 1080] Show S03E06 2160p PMTP WEB-DL DDP5 1 DV HEVC-GROUP1 (4.52 GB) uploaded! Download: https://hd-space.org/download.php?id=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          - "New Torrent in category [Blu-Ray] The Movie 2022 1080p Blu-ray AVC DTS-HD MA 5.1-GROUP2 (23.21 GB) uploaded! Download: https://hd-space.org/download.php?id=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          - "New Torrent in category [Blu-Ray] Other movie with long tittle 2013 2160 UHD EXTENDED Blu-ray HEVC TrueHD 7.1-GROUP3@HDSpace (88.20 GB) uploaded! Download: https://hd-space.org/download.php?id=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        pattern: 'New Torrent in category \[([^\]]*)\] (.*) \(([^\)]*)\) uploaded! Download\: (https?\:\/\/[^\/]+\/).*[&\?]id=([a-f0-9]+)'
+        vars:
+          - category
+          - torrentName
+          - torrentSize
+          - baseUrl
+          - torrentId
 
-  match:
-    torrenturl: "{{ .baseUrl }}download.php?id={{ .torrentId }}&f={{ .torrentName }}.torrent&rsspid={{ .rsskey }}"
-    encode:
-      - torrentName
+    match:
+      infourl: "/index.php?page=torrent-details&id={{ .torrentId }}"
+      torrenturl: "/download.php?id={{ .torrentId }}&f={{ .torrentName }}.torrent&rsspid={{ .rsskey }}"
+      encode:
+        - torrentName

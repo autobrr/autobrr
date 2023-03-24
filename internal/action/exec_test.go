@@ -1,6 +1,7 @@
 package action
 
 import (
+	"context"
 	"testing"
 
 	"github.com/autobrr/autobrr/internal/domain"
@@ -9,68 +10,55 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func Test_service_parseExecArgs(t *testing.T) {
+func Test_service_parseMacros(t *testing.T) {
 	type args struct {
-		release  domain.Release
-		execArgs string
+		release domain.Release
+		action  *domain.Action
 	}
 	tests := []struct {
 		name    string
 		args    args
-		want    []string
+		want    string
 		wantErr bool
 	}{
 		{
 			name: "test_1",
 			args: args{
-				release:  domain.Release{TorrentName: "Sally Goes to the Mall S04E29"},
-				execArgs: `echo "{{ .TorrentName }}"`,
+				release: domain.Release{TorrentName: "Sally Goes to the Mall S04E29"},
+				action: &domain.Action{
+					ExecArgs: `echo "{{ .TorrentName }}"`,
+				},
 			},
-			want: []string{
-				"echo",
-				"Sally Goes to the Mall S04E29",
-			},
+			want:    `echo "Sally Goes to the Mall S04E29"`,
 			wantErr: false,
 		},
 		{
 			name: "test_2",
 			args: args{
-				release:  domain.Release{TorrentName: "Sally Goes to the Mall S04E29"},
-				execArgs: `"{{ .TorrentName }}"`,
+				release: domain.Release{TorrentName: "Sally Goes to the Mall S04E29"},
+				action: &domain.Action{
+					ExecArgs: `"{{ .TorrentName }}"`,
+				},
 			},
-			want: []string{
-				"Sally Goes to the Mall S04E29",
-			},
+			want:    `"Sally Goes to the Mall S04E29"`,
 			wantErr: false,
 		},
 		{
 			name: "test_3",
 			args: args{
-				release:  domain.Release{TorrentName: "Sally Goes to the Mall S04E29"},
-				execArgs: `--header "Content-Type: application/json" --request POST --data '{"release":"{{ .TorrentName }}"}' http://localhost:3000/api/release`,
+				release: domain.Release{TorrentName: "Sally Goes to the Mall S04E29"},
+				action: &domain.Action{
+					ExecArgs: `--header "Content-Type: application/json" --request POST --data '{"release":"{{ .TorrentName }}"}' http://localhost:3000/api/release`,
+				},
 			},
-			want: []string{
-				"--header",
-				"Content-Type: application/json",
-				"--request",
-				"POST",
-				"--data",
-				`{"release":"Sally Goes to the Mall S04E29"}`,
-				"http://localhost:3000/api/release",
-			},
+			want:    `--header "Content-Type: application/json" --request POST --data '{"release":"Sally Goes to the Mall S04E29"}' http://localhost:3000/api/release`,
 			wantErr: false,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			s := &service{
-				log:       logger.Mock().With().Logger(),
-				repo:      nil,
-				clientSvc: nil,
-				bus:       nil,
-			}
-			got, _ := s.parseExecArgs(tt.args.release, tt.args.execArgs)
-			assert.Equalf(t, tt.want, got, "parseExecArgs(%v, %v)", tt.args.release, tt.args.execArgs)
+			_ = tt.args.action.ParseMacros(&tt.args.release)
+			assert.Equalf(t, tt.want, tt.args.action.ExecArgs, "parseMacros(%v, %v)", tt.args.action, tt.args.release)
 		})
 	}
 }
@@ -78,7 +66,7 @@ func Test_service_parseExecArgs(t *testing.T) {
 func Test_service_execCmd(t *testing.T) {
 	type args struct {
 		release domain.Release
-		action  domain.Action
+		action  *domain.Action
 	}
 	tests := []struct {
 		name string
@@ -92,7 +80,7 @@ func Test_service_execCmd(t *testing.T) {
 					TorrentTmpFile: "tmp-10000",
 					Indexer:        "mock",
 				},
-				action: domain.Action{
+				action: &domain.Action{
 					Name:     "echo",
 					ExecCmd:  "echo",
 					ExecArgs: "hello",
@@ -108,7 +96,7 @@ func Test_service_execCmd(t *testing.T) {
 				clientSvc: nil,
 				bus:       nil,
 			}
-			s.execCmd(tt.args.action, tt.args.release)
+			s.execCmd(context.TODO(), tt.args.action, tt.args.release)
 		})
 	}
 }

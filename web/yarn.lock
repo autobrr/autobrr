@@ -1997,6 +1997,22 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@floating-ui/core@npm:^1.0.5":
+  version: 1.1.0
+  resolution: "@floating-ui/core@npm:1.1.0"
+  checksum: ac48969915247320e52d173480c224e2ded94d557ba4cc504547bb314d126348dcc0aeef05686673e1b289596e6ce15118edc84900dd310c613d805f83b4e27d
+  languageName: node
+  linkType: hard
+
+"@floating-ui/dom@npm:^1.0.4":
+  version: 1.1.0
+  resolution: "@floating-ui/dom@npm:1.1.0"
+  dependencies:
+    "@floating-ui/core": ^1.0.5
+  checksum: 717551da6f470101cd1de0edc449b229fade7f94c2ff98d09e14ced041e27092aac94bd78756c4247a42b57129f187292f145f0001a81ece399a89b20b4be60b
+  languageName: node
+  linkType: hard
+
 "@fontsource/inter@npm:^4.5.11":
   version: 4.5.11
   resolution: "@fontsource/inter@npm:4.5.11"
@@ -4678,6 +4694,13 @@ __metadata:
   version: 1.2.2
   resolution: "cjs-module-lexer@npm:1.2.2"
   checksum: 977f3f042bd4f08e368c890d91eecfbc4f91da0bc009a3c557bc4dfbf32022ad1141244ac1178d44de70fc9f3dea7add7cd9a658a34b9fae98a55d8f92331ce5
+  languageName: node
+  linkType: hard
+
+"classnames@npm:^2.3.2":
+  version: 2.3.2
+  resolution: "classnames@npm:2.3.2"
+  checksum: 2c62199789618d95545c872787137262e741f9db13328e216b093eea91c85ef2bfb152c1f9e63027204e2559a006a92eb74147d46c800a9f96297ae1d9f96f4e
   languageName: node
   linkType: hard
 
@@ -11133,6 +11156,19 @@ __metadata:
   languageName: node
   linkType: hard
 
+"react-tooltip@npm:^5.5.2":
+  version: 5.5.2
+  resolution: "react-tooltip@npm:5.5.2"
+  dependencies:
+    "@floating-ui/dom": ^1.0.4
+    classnames: ^2.3.2
+  peerDependencies:
+    react: ">=16.14.0"
+    react-dom: ">=16.14.0"
+  checksum: 2858744531317ce491bd234bdf80dd3412ea0b147a7d88bba55cebb9c42787acc5420a9b63c6134e0b1f5ab9477b8ac7bff3961c4738aaf8bff90c6c9dc0a649
+  languageName: node
+  linkType: hard
+
 "react-transition-group@npm:^4.3.0":
   version: 4.4.2
   resolution: "react-transition-group@npm:4.4.2"
@@ -13029,6 +13065,7 @@ __metadata:
     react-select: ^5.3.2
     react-table: ^7.8.0
     react-textarea-autosize: ^8.3.4
+    react-tooltip: ^5.5.2
     stacktracey: ^2.1.8
     tailwindcss: ^3.1.3
     typescript: ^4.7.3

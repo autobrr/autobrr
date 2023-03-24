@@ -1,0 +1,69 @@
+---
+#id: ptf
+name: PTFiles
+identifier: ptf
+description: PTFiles (PTF) is a Private site for TV / MOVIES / GENERAL
+language: en-us
+urls:
+  - https://ptfiles.net/
+privacy: private
+protocol: torrent
+supports:
+  - irc
+  - rss
+source: Other
+settings:
+  - name: passkey
+    type: secret
+    required: true
+    label: Pass key
+    help: Grab your passkey from your RSS feed.
+
+irc:
+  network: P2P-Network
+  server: irc.p2p-network.net
+  port: 6697
+  tls: true
+  channels:
+    - "#PTF-Announce"
+  announcers:
+    - PTF
+  settings:
+    - name: nick
+      type: text
+      required: true
+      label: Username
+      help: Set your own username.
+
+    - name: auth.account
+      type: text
+      required: false
+      label: NickServ Account
+      help: NickServ account. Make sure to group your user and bot.
+
+    - name: auth.password
+      type: secret
+      required: false
+      label: NickServ Password
+      help: NickServ password
+
+  parse:
+    type: single
+    lines:
+      - test:
+          - "[New TV/HD Episodes Torrent] Ancient.Aliens.S19E06.720p.HEVC.x265-MeGusta - 408.52 MiB - https://ptfiles.net/details.php?id=475999"
+          - "[FREE][New Movies/1080p HD Torrent] Dead.for.a.Dollar.2022.1080p.BluRay.REMUX.AVC.DTS-HD.MA.5.1-xwMaRio - 26.32 GiB - https://ptfiles.net/details.php?id=476519"
+        pattern: '^\s*(?:\[([^\]]*)])?\s*\[New ([^\]]*) Torrent] (.*) - (.*) -\s*(https?\:\/\/[^\/]+\/).*[&amp;\?]id=(\d+)$'
+        vars:
+          - freeleech
+          - category
+          - torrentName
+          - torrentSize
+          - baseUrl
+          - torrentId
+
+    match:
+      infourl: "/details.php?id={{ .torrentId }}"
+      torrenturl: "/dl.php/{{ .torrentId }}/{{ .passkey }}/{{ .torrentName }}.torrent"
+      encode:
+        - torrentName

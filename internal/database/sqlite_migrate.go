@@ -16,6 +16,7 @@ CREATE TABLE indexer
     id             INTEGER PRIMARY KEY,
     identifier     TEXT,
 	implementation TEXT,
+	base_url       TEXT,
     enabled        BOOLEAN,
     name           TEXT NOT NULL,
     settings       TEXT,
@@ -82,6 +83,7 @@ CREATE TABLE filter
     scene                          BOOLEAN,
     freeleech                      BOOLEAN,
     freeleech_percent              TEXT,
+    smart_episode                  BOOLEAN DEFAULT FALSE,
     shows                          TEXT,
     seasons                        TEXT,
     episodes                       TEXT,
@@ -109,6 +111,8 @@ CREATE TABLE filter
     except_categories              TEXT,
     match_uploaders                TEXT,
     except_uploaders               TEXT,
+    match_language                 TEXT []   DEFAULT '{}',
+    except_language                TEXT []   DEFAULT '{}',
     tags                           TEXT,
     except_tags                    TEXT,
     origins                        TEXT []   DEFAULT '{}',
@@ -195,6 +199,8 @@ CREATE TABLE "release"
     protocol          TEXT,
     implementation    TEXT,
     timestamp         TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    info_url          TEXT,
+    download_url      TEXT,
     group_id          TEXT,
     torrent_id        TEXT,
     torrent_name      TEXT,
@@ -243,16 +249,27 @@ CREATE TABLE release_action_status
 	type          TEXT NOT NULL,
 	client        TEXT,
 	filter        TEXT,
+    filter_id     INTEGER
+        CONSTRAINT release_action_status_filter_id_fk
+            REFERENCES filter,
 	rejections    TEXT []   DEFAULT '{}' NOT NULL,
 	timestamp     TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 	raw           TEXT,
 	log           TEXT,
-	release_id    INTEGER NOT NULL,
-	FOREIGN KEY (release_id) REFERENCES "release"(id) ON DELETE CASCADE
+    release_id    INTEGER NOT NULL
+        CONSTRAINT release_action_status_release_id_fkey
+            REFERENCES "release"
+            ON DELETE CASCADE
 );
+
+CREATE INDEX release_action_status_status_index
+    ON release_action_status (status);
 
 CREATE INDEX release_action_status_release_id_index
     ON release_action_status (release_id);
+
+CREATE INDEX release_action_status_filter_id_index
+    ON release_action_status (filter_id);
 
 CREATE TABLE notification
 (
@@ -958,5 +975,77 @@ DROP TABLE irc_network;
 
 ALTER TABLE irc_network_dg_tmp
     RENAME TO irc_network;
+	`,
+	`ALTER TABLE indexer
+     	ADD COLUMN base_url TEXT;
+    `,
+	`ALTER TABLE "filter"
+	ADD COLUMN smart_episode BOOLEAN DEFAULT false;
+	`,
+	`ALTER TABLE "filter"
+		ADD COLUMN match_language TEXT []   DEFAULT '{}';
+
+	ALTER TABLE "filter"
+		ADD COLUMN except_language TEXT []   DEFAULT '{}';
+	`,
+	`CREATE TABLE release_action_status_dg_tmp
+(
+    id         INTEGER
+        PRIMARY KEY,
+    status     TEXT,
+    action     TEXT                   NOT NULL,
+    type       TEXT                   NOT NULL,
+    rejections TEXT      DEFAULT '{}' NOT NULL,
+    timestamp  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    raw        TEXT,
+    log        TEXT,
+    release_id INTEGER                NOT NULL
+        constraint release_action_status_release_id_fkey
+            references "release"
+            on delete cascade,
+    client     TEXT,
+    filter     TEXT,
+    filter_id  INTEGER
+        CONSTRAINT release_action_status_filter_id_fk
+            REFERENCES filter
+);
+
+INSERT INTO release_action_status_dg_tmp(id, status, action, type, rejections, timestamp, raw, log, release_id, client, filter)
+SELECT id,
+       status,
+       action,
+       type,
+       rejections,
+       timestamp,
+       raw,
+       log,
+       release_id,
+       client,
+       filter
+FROM release_action_status;
+
+DROP TABLE release_action_status;
+
+ALTER TABLE release_action_status_dg_tmp
+    RENAME TO release_action_status;
+
+CREATE INDEX release_action_status_filter_id_index
+    ON release_action_status (filter_id);
+
+CREATE INDEX release_action_status_release_id_index
+    ON release_action_status (release_id);
+
+CREATE INDEX release_action_status_status_index
+    ON release_action_status (status);
+
+UPDATE release_action_status
+SET filter_id = (SELECT f.id
+FROM filter f WHERE f.name = release_action_status.filter);
+	`,
+	`ALTER TABLE "release"
+ADD COLUMN info_url TEXT;
+    
+ALTER TABLE "release"
+ADD COLUMN download_url TEXT;
 	`,
 }

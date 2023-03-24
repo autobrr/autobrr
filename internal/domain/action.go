@@ -1,6 +1,12 @@
 package domain
 
-import "context"
+import (
+	"context"
+	"os"
+	"strings"
+
+	"github.com/autobrr/autobrr/pkg/errors"
+)
 
 type ActionRepo interface {
 	Store(ctx context.Context, action Action) (*Action, error)
@@ -46,6 +52,47 @@ type Action struct {
 	Client                DownloadClient      `json:"client,omitempty"`
 }
 
+// ParseMacros parse all macros on action
+func (a *Action) ParseMacros(release *Release) error {
+	var err error
+
+	if release.TorrentTmpFile == "" &&
+		(strings.Contains(a.ExecArgs, "TorrentPathName") || strings.Contains(a.ExecArgs, "TorrentDataRawBytes") ||
+			strings.Contains(a.WebhookData, "TorrentPathName") || strings.Contains(a.WebhookData, "TorrentDataRawBytes") ||
+			strings.Contains(a.SavePath, "TorrentPathName")) {
+		if err := release.DownloadTorrentFile(); err != nil {
+			return errors.Wrap(err, "webhook: could not download torrent file for release: %v", release.TorrentName)
+		}
+	}
+
+	// if webhook data contains TorrentDataRawBytes, lets read the file into bytes we can then use in the macro
+	if len(release.TorrentDataRawBytes) == 0 &&
+		(strings.Contains(a.ExecArgs, "TorrentDataRawBytes") || strings.Contains(a.WebhookData, "TorrentDataRawBytes")) {
+		t, err := os.ReadFile(release.TorrentTmpFile)
+		if err != nil {
+			return errors.Wrap(err, "could not read torrent file: %v", release.TorrentTmpFile)
+		}
+
+		release.TorrentDataRawBytes = t
+	}
+
+	m := NewMacro(*release)
+
+	a.ExecArgs, err = m.Parse(a.ExecArgs)
+	a.WatchFolder, err = m.Parse(a.WatchFolder)
+	a.Category, err = m.Parse(a.Category)
+	a.Tags, err = m.Parse(a.Tags)
+	a.Label, err = m.Parse(a.Label)
+	a.SavePath, err = m.Parse(a.SavePath)
+	a.WebhookData, err = m.Parse(a.WebhookData)
+
+	if err != nil {
+		return errors.Wrap(err, "could not parse macros for action: %v", a.Name)
+	}
+
+	return nil
+}
+
 type ActionType string
 
 const (
@@ -56,6 +103,7 @@ const (
 	ActionTypeDelugeV2     ActionType = "DELUGE_V2"
 	ActionTypeRTorrent     ActionType = "RTORRENT"
 	ActionTypeTransmission ActionType = "TRANSMISSION"
+	ActionTypePorla        ActionType = "PORLA"
 	ActionTypeWatchFolder  ActionType = "WATCH_FOLDER"
 	ActionTypeWebhook      ActionType = "WEBHOOK"
 	ActionTypeRadarr       ActionType = "RADARR"
@@ -63,6 +111,7 @@ const (
 	ActionTypeLidarr       ActionType = "LIDARR"
 	ActionTypeWhisparr     ActionType = "WHISPARR"
 	ActionTypeReadarr      ActionType = "READARR"
+	ActionTypeSabnzbd      ActionType = "SABNZBD"
 )
 
 type ActionContentLayout string

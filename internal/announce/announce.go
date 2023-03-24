@@ -69,19 +69,19 @@ func (a *announceProcessor) processQueue(queue chan string) {
 		parseFailed := false
 		//patternParsed := false
 
-		for _, pattern := range a.indexer.Parse.Lines {
+		for _, parseLine := range a.indexer.IRC.Parse.Lines {
 			line, err := a.getNextLine(queue)
 			if err != nil {
-				a.log.Error().Stack().Err(err).Msg("could not get line from queue")
+				a.log.Error().Err(err).Msg("could not get line from queue")
 				return
 			}
 			a.log.Trace().Msgf("announce: process line: %v", line)
 
 			// check should ignore
 
-			match, err := a.parseExtract(pattern.Pattern, pattern.Vars, tmpVars, line)
+			match, err := a.parseLine(parseLine.Pattern, parseLine.Vars, tmpVars, line, parseLine.Ignore)
 			if err != nil {
-				a.log.Debug().Msgf("error parsing extract: %v", line)
+				a.log.Error().Err(err).Msgf("error parsing extract for line: %v", line)
 
 				parseFailed = true
 				break
@@ -95,15 +95,15 @@ func (a *announceProcessor) processQueue(queue chan string) {
 		}
 
 		if parseFailed {
-			a.log.Trace().Msg("announce: parse failed")
 			continue
 		}
 
 		rls := domain.NewRelease(a.indexer.Identifier)
+		rls.Protocol = domain.ReleaseProtocol(a.indexer.Protocol)
 
 		// on lines matched
 		if err := a.onLinesMatched(a.indexer, tmpVars, rls); err != nil {
-			a.log.Debug().Msgf("error match line: %v", "")
+			a.log.Error().Err(err).Msg("error match line")
 			continue
 		}
 
@@ -136,6 +136,14 @@ func (a *announceProcessor) AddLineToQueue(channel string, line string) error {
 	return nil
 }
 
+func (a *announceProcessor) parseLine(pattern string, vars []string, tmpVars map[string]string, line string, ignore bool) (bool, error) {
+	if len(vars) > 0 {
+		return a.parseExtract(pattern, vars, tmpVars, line)
+	}
+
+	return a.parseMatchRegexp(pattern, tmpVars, line, ignore)
+}
+
 func (a *announceProcessor) parseExtract(pattern string, vars []string, tmpVars map[string]string, line string) (bool, error) {
 
 	rxp, err := regExMatch(pattern, line)
@@ -161,11 +169,33 @@ func (a *announceProcessor) parseExtract(pattern string, vars []string, tmpVars 
 	return true, nil
 }
 
+func (a *announceProcessor) parseMatchRegexp(pattern string, tmpVars map[string]string, line string, ignore bool) (bool, error) {
+	var re = regexp.MustCompile(`(?mi)` + pattern)
+
+	groupNames := re.SubexpNames()
+	for _, match := range re.FindAllStringSubmatch(line, -1) {
+		for groupIdx, group := range match {
+			// if line should be ignored then lets return
+			if ignore {
+				return true, nil
+			}
+
+			name := groupNames[groupIdx]
+			if name == "" {
+				name = "raw"
+			}
+			tmpVars[name] = group
+		}
+	}
+
+	return true, nil
+}
+
 // onLinesMatched process vars into release
 func (a *announceProcessor) onLinesMatched(def *domain.IndexerDefinition, vars map[string]string, rls *domain.Release) error {
-
+	// map variables from regex capture onto release struct
 	if err := rls.MapVars(def, vars); err != nil {
-		a.log.Error().Stack().Err(err).Msg("announce: could not map vars for release")
+		a.log.Error().Err(err).Msg("announce: could not map vars for release")
 		return err
 	}
 
@@ -173,10 +203,40 @@ func (a *announceProcessor) onLinesMatched(def *domain.IndexerDefinition, vars m
 	// run before ParseMatch to not potentially use a reconstructed TorrentName
 	rls.ParseString(rls.TorrentName)
 
+	// set baseUrl to default domain
+	baseUrl := def.URLS[0]
+
+	// override baseUrl
+	if def.BaseURL != "" {
+		baseUrl = def.BaseURL
+	}
+
+	// merge vars from regex captures on announce and vars from settings
+	mergedVars := mergeVars(vars, def.SettingsMap)
+
 	// parse torrentUrl
-	if err := def.Parse.ParseMatch(vars, def.SettingsMap, rls); err != nil {
-		a.log.Error().Stack().Err(err).Msgf("announce: %v", err)
+	matched, err := def.IRC.Parse.ParseMatch(baseUrl, mergedVars)
+	if err != nil {
+		a.log.Error().Err(err).Msgf("announce: %v", err)
 		return err
+	}
+
+	if matched != nil {
+		rls.TorrentURL = matched.TorrentURL
+
+		if matched.InfoURL != "" {
+			rls.InfoURL = matched.InfoURL
+		}
+
+		// only used by few indexers
+		if matched.TorrentName != "" {
+			rls.TorrentName = matched.TorrentName
+		}
+	}
+
+	// handle optional cookies
+	if v, ok := def.SettingsMap["cookie"]; ok {
+		rls.RawCookie = v
 	}
 
 	return nil
@@ -191,20 +251,16 @@ func (a *announceProcessor) processTorrentUrl(match string, vars map[string]stri
 	}
 
 	// merge extra vars with vars
-	if extraVars != nil {
-		for k, v := range extraVars {
-			tmpVars[k] = v
-		}
+	for k, v := range extraVars {
+		tmpVars[k] = v
 	}
 
 	// handle url encode of values
-	if encode != nil {
-		for _, e := range encode {
-			if v, ok := tmpVars[e]; ok {
-				// url encode  value
-				t := url.QueryEscape(v)
-				tmpVars[e] = t
-			}
+	for _, e := range encode {
+		if v, ok := tmpVars[e]; ok {
+			// url encode  value
+			t := url.QueryEscape(v)
+			tmpVars[e] = t
 		}
 	}
 
@@ -224,6 +280,19 @@ func (a *announceProcessor) processTorrentUrl(match string, vars map[string]stri
 	a.log.Trace().Msg("torrenturl processed")
 
 	return b.String(), nil
+}
+
+// mergeVars merge maps
+func mergeVars(data ...map[string]string) map[string]string {
+	tmpVars := map[string]string{}
+
+	for _, vars := range data {
+		// copy vars to new tmp map
+		for k, v := range vars {
+			tmpVars[k] = v
+		}
+	}
+	return tmpVars
 }
 
 func removeElement(s []string, i int) ([]string, error) {
@@ -246,7 +315,6 @@ func regExMatch(pattern string, value string) ([]string, error) {
 	rxp, err := regexp.Compile(pattern)
 	if err != nil {
 		return nil, err
-		//return errors.Wrapf(err, "invalid regex: %s", value)
 	}
 
 	matches := rxp.FindStringSubmatch(value)

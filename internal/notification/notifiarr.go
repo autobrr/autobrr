@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"crypto/tls"
 	"encoding/json"
-	"fmt"
 	"io"
 	"net/http"
 	"time"
@@ -34,7 +33,7 @@ type notifiarrMessageData struct {
 	ActionType     *domain.ActionType            `json:"action_type,omitempty"`
 	ActionClient   *string                       `json:"action_client,omitempty"`
 	Rejections     []string                      `json:"rejections,omitempty"`
-	Protocol       *domain.ReleaseProtocol       `json:"protocol,omitempty"`       // torrent
+	Protocol       *domain.ReleaseProtocol       `json:"protocol,omitempty"`       // torrent, usenet
 	Implementation *domain.ReleaseImplementation `json:"implementation,omitempty"` // irc, rss, api
 	Timestamp      time.Time                     `json:"timestamp"`
 }
@@ -42,12 +41,14 @@ type notifiarrMessageData struct {
 type notifiarrSender struct {
 	log      zerolog.Logger
 	Settings domain.Notification
+	baseUrl  string
 }
 
 func NewNotifiarrSender(log zerolog.Logger, settings domain.Notification) domain.NotificationSender {
 	return &notifiarrSender{
 		log:      log.With().Str("sender", "notifiarr").Logger(),
 		Settings: settings,
+		baseUrl:  "https://notifiarr.com/api/v1/notification/autobrr",
 	}
 }
 
@@ -63,9 +64,7 @@ func (s *notifiarrSender) Send(event domain.NotificationEvent, payload domain.No
 		return errors.Wrap(err, "could not marshal data: %+v", m)
 	}
 
-	url := fmt.Sprintf("https://notifiarr.com/api/v1/notification/autobrr/%v", s.Settings.APIKey)
-
-	req, err := http.NewRequest(http.MethodPost, url, bytes.NewBuffer(jsonData))
+	req, err := http.NewRequest(http.MethodPost, s.baseUrl, bytes.NewBuffer(jsonData))
 	if err != nil {
 		s.log.Error().Err(err).Msgf("notifiarr client request error: %v", event)
 		return errors.Wrap(err, "could not create request")
@@ -73,6 +72,7 @@ func (s *notifiarrSender) Send(event domain.NotificationEvent, payload domain.No
 
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("User-Agent", "autobrr")
+	req.Header.Set("X-API-Key", s.Settings.APIKey)
 
 	t := &http.Transport{
 		TLSClientConfig: &tls.Config{

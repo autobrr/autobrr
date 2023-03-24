@@ -9,6 +9,7 @@ import (
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/internal/logger"
 	"github.com/autobrr/autobrr/pkg/errors"
+	sq "github.com/Masterminds/squirrel"
 
 	"github.com/rs/zerolog"
 )
@@ -32,15 +33,14 @@ func (r *IndexerRepo) Store(ctx context.Context, indexer domain.Indexer) (*domai
 	}
 
 	queryBuilder := r.db.squirrel.
-		Insert("indexer").Columns("enabled", "name", "identifier", "implementation", "settings").
-		Values(indexer.Enabled, indexer.Name, indexer.Identifier, indexer.Implementation, settings).
+		Insert("indexer").Columns("enabled", "name", "identifier", "implementation", "base_url", "settings").
+		Values(indexer.Enabled, indexer.Name, indexer.Identifier, indexer.Implementation, indexer.BaseURL, settings).
 		Suffix("RETURNING id").RunWith(r.db.handler)
 
 	// return values
 	var retID int64
 
-	err = queryBuilder.QueryRowContext(ctx).Scan(&retID)
-	if err != nil {
+	if err = queryBuilder.QueryRowContext(ctx).Scan(&retID); err != nil {
 		return nil, errors.Wrap(err, "error executing query")
 	}
 
@@ -59,17 +59,17 @@ func (r *IndexerRepo) Update(ctx context.Context, indexer domain.Indexer) (*doma
 		Update("indexer").
 		Set("enabled", indexer.Enabled).
 		Set("name", indexer.Name).
+		Set("base_url", indexer.BaseURL).
 		Set("settings", settings).
 		Set("updated_at", time.Now().Format(time.RFC3339)).
-		Where("id = ?", indexer.ID)
+		Where(sq.Eq{"id": indexer.ID})
 
 	query, args, err := queryBuilder.ToSql()
 	if err != nil {
 		return nil, errors.Wrap(err, "error building query")
 	}
 
-	_, err = r.db.handler.ExecContext(ctx, query, args...)
-	if err != nil {
+	if _, err = r.db.handler.ExecContext(ctx, query, args...); err != nil {
 		return nil, errors.Wrap(err, "error executing query")
 	}
 
@@ -77,7 +77,7 @@ func (r *IndexerRepo) Update(ctx context.Context, indexer domain.Indexer) (*doma
 }
 
 func (r *IndexerRepo) List(ctx context.Context) ([]domain.Indexer, error) {
-	rows, err := r.db.handler.QueryContext(ctx, "SELECT id, enabled, name, identifier, implementation, settings FROM indexer ORDER BY name ASC")
+	rows, err := r.db.handler.QueryContext(ctx, "SELECT id, enabled, name, identifier, implementation, base_url, settings FROM indexer ORDER BY name ASC")
 	if err != nil {
 		return nil, errors.Wrap(err, "error executing query")
 	}
@@ -88,18 +88,18 @@ func (r *IndexerRepo) List(ctx context.Context) ([]domain.Indexer, error) {
 	for rows.Next() {
 		var f domain.Indexer
 
-		var implementation sql.NullString
+		var implementation, baseURL sql.NullString
 		var settings string
 		var settingsMap map[string]string
 
-		if err := rows.Scan(&f.ID, &f.Enabled, &f.Name, &f.Identifier, &implementation, &settings); err != nil {
+		if err := rows.Scan(&f.ID, &f.Enabled, &f.Name, &f.Identifier, &implementation, &baseURL, &settings); err != nil {
 			return nil, errors.Wrap(err, "error scanning row")
 		}
 
 		f.Implementation = implementation.String
+		f.BaseURL = baseURL.String
 
-		err = json.Unmarshal([]byte(settings), &settingsMap)
-		if err != nil {
+		if err = json.Unmarshal([]byte(settings), &settingsMap); err != nil {
 			return nil, errors.Wrap(err, "error unmarshal settings")
 		}
 
@@ -116,9 +116,9 @@ func (r *IndexerRepo) List(ctx context.Context) ([]domain.Indexer, error) {
 
 func (r *IndexerRepo) FindByID(ctx context.Context, id int) (*domain.Indexer, error) {
 	queryBuilder := r.db.squirrel.
-		Select("id", "enabled", "name", "identifier", "implementation", "settings").
+		Select("id", "enabled", "name", "identifier", "implementation", "base_url", "settings").
 		From("indexer").
-		Where("id = ?", id)
+		Where(sq.Eq{"id": id})
 
 	query, args, err := queryBuilder.ToSql()
 	if err != nil {
@@ -132,13 +132,14 @@ func (r *IndexerRepo) FindByID(ctx context.Context, id int) (*domain.Indexer, er
 
 	var i domain.Indexer
 
-	var implementation, settings sql.NullString
+	var implementation, baseURL, settings sql.NullString
 
-	if err := row.Scan(&i.ID, &i.Enabled, &i.Name, &i.Identifier, &implementation, &settings); err != nil {
+	if err := row.Scan(&i.ID, &i.Enabled, &i.Name, &i.Identifier, &implementation, &baseURL, &settings); err != nil {
 		return nil, errors.Wrap(err, "error scanning row")
 	}
 
 	i.Implementation = implementation.String
+	i.BaseURL = baseURL.String
 
 	var settingsMap map[string]string
 	if err = json.Unmarshal([]byte(settings.String), &settingsMap); err != nil {
@@ -153,10 +154,10 @@ func (r *IndexerRepo) FindByID(ctx context.Context, id int) (*domain.Indexer, er
 
 func (r *IndexerRepo) FindByFilterID(ctx context.Context, id int) ([]domain.Indexer, error) {
 	queryBuilder := r.db.squirrel.
-		Select("id", "enabled", "name", "identifier", "settings").
+		Select("id", "enabled", "name", "identifier", "base_url", "settings").
 		From("indexer").
 		Join("filter_indexer ON indexer.id = filter_indexer.indexer_id").
-		Where("filter_indexer.filter_id = ?", id)
+		Where(sq.Eq{"filter_indexer.filter_id": id})
 
 	query, args, err := queryBuilder.ToSql()
 	if err != nil {
@@ -176,16 +177,17 @@ func (r *IndexerRepo) FindByFilterID(ctx context.Context, id int) ([]domain.Inde
 
 		var settings string
 		var settingsMap map[string]string
+		var baseURL sql.NullString
 
-		if err := rows.Scan(&f.ID, &f.Enabled, &f.Name, &f.Identifier, &settings); err != nil {
+		if err := rows.Scan(&f.ID, &f.Enabled, &f.Name, &f.Identifier, &baseURL, &settings); err != nil {
 			return nil, errors.Wrap(err, "error scanning row")
 		}
 
-		err = json.Unmarshal([]byte(settings), &settingsMap)
-		if err != nil {
+		if err = json.Unmarshal([]byte(settings), &settingsMap); err != nil {
 			return nil, errors.Wrap(err, "error unmarshal settings")
 		}
 
+		f.BaseURL = baseURL.String
 		f.Settings = settingsMap
 
 		indexers = append(indexers, f)
@@ -201,7 +203,7 @@ func (r *IndexerRepo) FindByFilterID(ctx context.Context, id int) ([]domain.Inde
 func (r *IndexerRepo) Delete(ctx context.Context, id int) error {
 	queryBuilder := r.db.squirrel.
 		Delete("indexer").
-		Where("id = ?", id)
+		Where(sq.Eq{"id": id})
 
 	query, args, err := queryBuilder.ToSql()
 	if err != nil {

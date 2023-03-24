@@ -16,6 +16,7 @@ CREATE TABLE indexer
     id             SERIAL PRIMARY KEY,
     identifier     TEXT,
 	implementation TEXT,
+	base_url       TEXT,
     enabled        BOOLEAN,
     name           TEXT NOT NULL,
     settings       TEXT,
@@ -82,6 +83,7 @@ CREATE TABLE filter
     scene                          BOOLEAN,
     freeleech                      BOOLEAN,
     freeleech_percent              TEXT,
+    smart_episode                  BOOLEAN DEFAULT FALSE,
     shows                          TEXT,
     seasons                        TEXT,
     episodes                       TEXT,
@@ -109,6 +111,8 @@ CREATE TABLE filter
     except_categories              TEXT,
     match_uploaders                TEXT,
     except_uploaders               TEXT,
+    match_language                 TEXT []   DEFAULT '{}',
+    except_language                TEXT []   DEFAULT '{}',
     tags                           TEXT,
     except_tags                    TEXT,
     origins                        TEXT []   DEFAULT '{}',
@@ -195,6 +199,8 @@ CREATE TABLE "release"
     protocol          TEXT,
     implementation    TEXT,
     timestamp         TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    info_url          TEXT,
+    download_url      TEXT,
     group_id          TEXT,
     torrent_id        TEXT,
     torrent_name      TEXT,
@@ -260,12 +266,14 @@ CREATE TABLE release_action_status
 	type          TEXT NOT NULL,
 	client        TEXT,
 	filter        TEXT,
+	filter_id     INTEGER,
 	rejections    TEXT []   DEFAULT '{}' NOT NULL,
 	timestamp     TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 	raw           TEXT,
 	log           TEXT,
 	release_id    INTEGER NOT NULL,
-	FOREIGN KEY (release_id) REFERENCES "release"(id) ON DELETE CASCADE
+	FOREIGN KEY (release_id) REFERENCES "release"(id) ON DELETE CASCADE,
+	FOREIGN KEY (filter_id) REFERENCES "filter"(id) ON DELETE SET NULL
 );
 
 CREATE INDEX release_action_status_release_id_index
@@ -615,4 +623,36 @@ CREATE INDEX indexer_identifier_index
 
 	UPDATE irc_network
 		SET auth_mechanism = 'SASL_PLAIN';`,
+	`ALTER TABLE indexer
+     	ADD COLUMN base_url TEXT;
+    `,
+	`ALTER TABLE "filter"
+	ADD COLUMN smart_episode BOOLEAN DEFAULT false;
+	`,
+	`ALTER TABLE "filter"
+		ADD COLUMN match_language TEXT []   DEFAULT '{}';
+
+	ALTER TABLE "filter"
+		ADD COLUMN except_language TEXT []   DEFAULT '{}';
+	`,
+	`ALTER TABLE release_action_status
+    ADD filter_id INTEGER;
+
+CREATE INDEX release_action_status_filter_id_index
+    ON release_action_status (filter_id);
+
+ALTER TABLE release_action_status
+    ADD CONSTRAINT release_action_status_filter_id_fk
+        FOREIGN KEY (filter_id) REFERENCES filter;
+
+UPDATE release_action_status
+SET filter_id = (SELECT f.id
+FROM filter f WHERE f.name = release_action_status.filter);
+	`,
+	`ALTER TABLE "release"
+ADD COLUMN info_url TEXT;
+    
+ALTER TABLE "release"
+ADD COLUMN download_url TEXT;
+	`,
 }

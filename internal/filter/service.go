@@ -25,7 +25,7 @@ type Service interface {
 	FindByID(ctx context.Context, filterID int) (*domain.Filter, error)
 	FindByIndexerIdentifier(indexer string) ([]domain.Filter, error)
 	Find(ctx context.Context, params domain.FilterQueryParams) ([]domain.Filter, error)
-	CheckFilter(f domain.Filter, release *domain.Release) (bool, error)
+	CheckFilter(ctx context.Context, f domain.Filter, release *domain.Release) (bool, error)
 	ListFilters(ctx context.Context) ([]domain.Filter, error)
 	Store(ctx context.Context, filter domain.Filter) (*domain.Filter, error)
 	Update(ctx context.Context, filter domain.Filter) (*domain.Filter, error)
@@ -33,23 +33,27 @@ type Service interface {
 	Duplicate(ctx context.Context, filterID int) (*domain.Filter, error)
 	ToggleEnabled(ctx context.Context, filterID int, enabled bool) error
 	Delete(ctx context.Context, filterID int) error
+	AdditionalSizeCheck(ctx context.Context, f domain.Filter, release *domain.Release) (bool, error)
+	CanDownloadShow(ctx context.Context, release *domain.Release) (bool, error)
 }
 
 type service struct {
-	log        zerolog.Logger
-	repo       domain.FilterRepo
-	actionRepo domain.ActionRepo
-	indexerSvc indexer.Service
-	apiService indexer.APIService
+	log         zerolog.Logger
+	repo        domain.FilterRepo
+	actionRepo  domain.ActionRepo
+	releaseRepo domain.ReleaseRepo
+	indexerSvc  indexer.Service
+	apiService  indexer.APIService
 }
 
-func NewService(log logger.Logger, repo domain.FilterRepo, actionRepo domain.ActionRepo, apiService indexer.APIService, indexerSvc indexer.Service) Service {
+func NewService(log logger.Logger, repo domain.FilterRepo, actionRepo domain.ActionRepo, releaseRepo domain.ReleaseRepo, apiService indexer.APIService, indexerSvc indexer.Service) Service {
 	return &service{
-		log:        log.With().Str("module", "filter").Logger(),
-		repo:       repo,
-		actionRepo: actionRepo,
-		apiService: apiService,
-		indexerSvc: indexerSvc,
+		log:         log.With().Str("module", "filter").Logger(),
+		repo:        repo,
+		actionRepo:  actionRepo,
+		releaseRepo: releaseRepo,
+		apiService:  apiService,
+		indexerSvc:  indexerSvc,
 	}
 }
 
@@ -293,7 +297,7 @@ func (s *service) Delete(ctx context.Context, filterID int) error {
 	return nil
 }
 
-func (s *service) CheckFilter(f domain.Filter, release *domain.Release) (bool, error) {
+func (s *service) CheckFilter(ctx context.Context, f domain.Filter, release *domain.Release) (bool, error) {
 
 	s.log.Trace().Msgf("filter.Service.CheckFilter: checking filter: %v %+v", f.Name, f)
 	s.log.Trace().Msgf("filter.Service.CheckFilter: checking filter: %v for release: %+v", f.Name, release)
@@ -305,6 +309,21 @@ func (s *service) CheckFilter(f domain.Filter, release *domain.Release) (bool, e
 	}
 
 	if matchedFilter {
+		// smartEpisode check
+		if f.SmartEpisode {
+			canDownloadShow, err := s.CanDownloadShow(ctx, release)
+			if err != nil {
+				s.log.Trace().Msgf("filter.Service.CheckFilter: failed smart episode check: %s", f.Name)
+				return false, nil
+			}
+
+			if !canDownloadShow {
+				s.log.Trace().Msgf("filter.Service.CheckFilter: failed smart episode check: %s", f.Name)
+				release.AddRejectionF("smart episode check: not new: (%s) season: %d ep: %d", release.Title, release.Season, release.Episode)
+				return false, nil
+			}
+		}
+
 		// if matched, do additional size check if needed, attach actions and return the filter
 
 		s.log.Debug().Msgf("filter.Service.CheckFilter: found and matched filter: %+v", f.Name)
@@ -317,7 +336,7 @@ func (s *service) CheckFilter(f domain.Filter, release *domain.Release) (bool, e
 		if release.AdditionalSizeCheckRequired {
 			s.log.Debug().Msgf("filter.Service.CheckFilter: (%v) additional size check required", f.Name)
 
-			ok, err := s.AdditionalSizeCheck(f, release)
+			ok, err := s.AdditionalSizeCheck(ctx, f, release)
 			if err != nil {
 				s.log.Error().Stack().Err(err).Msgf("filter.Service.CheckFilter: (%v) additional size check error", f.Name)
 				return false, err
@@ -331,7 +350,7 @@ func (s *service) CheckFilter(f domain.Filter, release *domain.Release) (bool, e
 
 		// run external script
 		if f.ExternalScriptEnabled && f.ExternalScriptCmd != "" {
-			exitCode, err := s.execCmd(release, f.ExternalScriptCmd, f.ExternalScriptArgs)
+			exitCode, err := s.execCmd(ctx, release, f.ExternalScriptCmd, f.ExternalScriptArgs)
 			if err != nil {
 				s.log.Error().Err(err).Msgf("filter.Service.CheckFilter: error executing external command for filter: %+v", f.Name)
 				return false, err
@@ -347,7 +366,7 @@ func (s *service) CheckFilter(f domain.Filter, release *domain.Release) (bool, e
 		// run external webhook
 		if f.ExternalWebhookEnabled && f.ExternalWebhookHost != "" && f.ExternalWebhookData != "" {
 			// run external scripts
-			statusCode, err := s.webhook(release, f.ExternalWebhookHost, f.ExternalWebhookData)
+			statusCode, err := s.webhook(ctx, release, f.ExternalWebhookHost, f.ExternalWebhookData)
 			if err != nil {
 				s.log.Error().Err(err).Msgf("filter.Service.CheckFilter: error executing external webhook for filter: %v", f.Name)
 				return false, err
@@ -385,7 +404,7 @@ func (s *service) CheckFilter(f domain.Filter, release *domain.Release) (bool, e
 // Some indexers do not announce the size and if size (min,max) is set in a filter then it will need
 // additional size check. Some indexers have api implemented to fetch this data and for the others
 // it will download the torrent file to parse and make the size check. This is all to minimize the amount of downloads.
-func (s *service) AdditionalSizeCheck(f domain.Filter, release *domain.Release) (bool, error) {
+func (s *service) AdditionalSizeCheck(ctx context.Context, f domain.Filter, release *domain.Release) (bool, error) {
 
 	// do additional size check against indexer api or torrent for size
 	s.log.Debug().Msgf("filter.Service.AdditionalSizeCheck: (%v) additional size check required", f.Name)
@@ -409,7 +428,7 @@ func (s *service) AdditionalSizeCheck(f domain.Filter, release *domain.Release) 
 		s.log.Trace().Msgf("filter.Service.AdditionalSizeCheck: (%v) preparing to download torrent metafile", f.Name)
 
 		// if indexer doesn't have api, download torrent and add to tmpPath
-		if err := release.DownloadTorrentFile(); err != nil {
+		if err := release.DownloadTorrentFileCtx(ctx); err != nil {
 			s.log.Error().Stack().Err(err).Msgf("filter.Service.AdditionalSizeCheck: (%v) could not download torrent file with id: '%v' from: %v", f.Name, release.TorrentID, release.Indexer)
 			return false, err
 		}
@@ -462,11 +481,15 @@ func checkSizeFilter(minSize string, maxSize string, releaseSize uint64) (bool, 
 	return true, nil
 }
 
-func (s *service) execCmd(release *domain.Release, cmd string, args string) (int, error) {
+func (s *service) CanDownloadShow(ctx context.Context, release *domain.Release) (bool, error) {
+	return s.releaseRepo.CanDownloadShow(ctx, release.Title, release.Season, release.Episode)
+}
+
+func (s *service) execCmd(ctx context.Context, release *domain.Release, cmd string, args string) (int, error) {
 	s.log.Debug().Msgf("filter exec release: %v", release.TorrentName)
 
 	if release.TorrentTmpFile == "" && strings.Contains(args, "TorrentPathName") {
-		if err := release.DownloadTorrentFile(); err != nil {
+		if err := release.DownloadTorrentFileCtx(ctx); err != nil {
 			return 0, errors.Wrap(err, "error downloading torrent file for release: %v", release.TorrentName)
 		}
 	}
@@ -523,10 +546,10 @@ func (s *service) execCmd(release *domain.Release, cmd string, args string) (int
 	return 0, nil
 }
 
-func (s *service) webhook(release *domain.Release, url string, data string) (int, error) {
+func (s *service) webhook(ctx context.Context, release *domain.Release, url string, data string) (int, error) {
 	// if webhook data contains TorrentPathName or TorrentDataRawBytes, lets download the torrent file
 	if release.TorrentTmpFile == "" && (strings.Contains(data, "TorrentPathName") || strings.Contains(data, "TorrentDataRawBytes")) {
-		if err := release.DownloadTorrentFile(); err != nil {
+		if err := release.DownloadTorrentFileCtx(ctx); err != nil {
 			return 0, errors.Wrap(err, "webhook: could not download torrent file for release: %v", release.TorrentName)
 		}
 	}
@@ -557,7 +580,7 @@ func (s *service) webhook(release *domain.Release, url string, data string) (int
 
 	client := http.Client{Transport: t, Timeout: 15 * time.Second}
 
-	req, err := http.NewRequest(http.MethodPost, url, bytes.NewBufferString(dataArgs))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewBufferString(dataArgs))
 	if err != nil {
 		return 0, errors.Wrap(err, "could not build request for webhook")
 	}

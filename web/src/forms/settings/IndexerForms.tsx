@@ -2,19 +2,23 @@ import { Fragment, useState } from "react";
 import { toast } from "react-hot-toast";
 import { useMutation, useQuery } from "react-query";
 import Select, { components, ControlProps, InputProps, MenuProps, OptionProps } from "react-select";
-import type { FieldProps, FormikErrors } from "formik";
+import type { FieldProps } from "formik";
 import { Field, Form, Formik, FormikValues } from "formik";
 
 import { XMarkIcon } from "@heroicons/react/24/solid";
 import { Dialog, Transition } from "@headlessui/react";
 
-import { sleep, slugify } from "../../utils";
+import { sleep } from "../../utils";
 import { queryClient } from "../../App";
 import DEBUG from "../../components/debug";
 import { APIClient } from "../../api/APIClient";
 import { PasswordFieldWide, SwitchGroupWide, TextFieldWide } from "../../components/inputs";
 import { SlideOver } from "../../components/panels";
 import Toast from "../../components/notifications/Toast";
+import { SelectFieldBasic, SelectFieldCreatable } from "../../components/inputs/select_wide";
+
+import { CustomTooltip } from "../../components/tooltips/CustomTooltip";
+import { FeedDownloadTypeOptions } from "../../domain/constants";
 
 const Input = (props: InputProps) => (
   <components.Input 
@@ -80,7 +84,7 @@ const IrcSettingFields = (ind: IndexerDefinition, indexer: string) => {
             {ind.irc.settings.map((f: IndexerSetting, idx: number) => {
               switch (f.type) {
               case "text":
-                return <TextFieldWide name={`irc.${f.name}`} label={f.label} required={f.required} key={idx} help={f.help} validate={validateField(f)} />;
+                return <TextFieldWide name={`irc.${f.name}`} label={f.label} required={f.required} key={idx} help={f.help} validate={validateField(f)} tooltip={<div><p>Please read our IRC guide if you are unfamiliar with IRC.</p><a href='https://autobrr.com/configuration/irc' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/configuration/irc</a></div>} />;
               case "secret":
                 if (f.name === "invite_command") {
                   return <PasswordFieldWide name={`irc.${f.name}`} label={f.label} required={f.required} key={idx} help={f.help} defaultVisible={true} defaultValue={f.default} validate={validateField(f)} />;
@@ -96,7 +100,7 @@ const IrcSettingFields = (ind: IndexerDefinition, indexer: string) => {
   }
 };
 
-const FeedSettingFields = (ind: IndexerDefinition, indexer: string) => {
+const TorznabFeedSettingFields = (ind: IndexerDefinition, indexer: string) => {
   if (indexer !== "") {
     return (
       <Fragment>
@@ -112,6 +116,45 @@ const FeedSettingFields = (ind: IndexerDefinition, indexer: string) => {
             <TextFieldWide name="name" label="Name" defaultValue="" />
 
             {ind.torznab.settings.map((f: IndexerSetting, idx: number) => {
+              switch (f.type) {
+              case "text":
+                return <TextFieldWide name={`feed.${f.name}`} label={f.label} required={f.required} key={idx} help={f.help} validate={validateField(f)} />;
+              case "secret":
+                return <PasswordFieldWide name={`feed.${f.name}`} label={f.label} required={f.required} key={idx} help={f.help} defaultValue={f.default} validate={validateField(f)} />;
+              }
+              return null;
+            })}
+
+            <SelectFieldBasic
+              name="feed.settings.download_type"
+              label="Download type"
+              options={FeedDownloadTypeOptions}
+              tooltip={<span>Some feeds needs to force set as Magnet.</span>}
+              help="Set to Torrent or Magnet depending on indexer."
+            />
+          </div>
+        )}
+      </Fragment>
+    );
+  }
+};
+
+const NewznabFeedSettingFields = (ind: IndexerDefinition, indexer: string) => {
+  if (indexer !== "") {
+    return (
+      <Fragment>
+        {ind && ind.newznab && ind.newznab.settings && (
+          <div className="">
+            <div className="px-4 space-y-1">
+              <Dialog.Title className="text-lg font-medium text-gray-900 dark:text-white">Newznab</Dialog.Title>
+              <p className="text-sm text-gray-500 dark:text-gray-200">
+                Newznab feed
+              </p>
+            </div>
+
+            <TextFieldWide name="name" label="Name" defaultValue="" />
+
+            {ind.newznab.settings.map((f: IndexerSetting, idx: number) => {
               switch (f.type) {
               case "text":
                 return <TextFieldWide name={`feed.${f.name}`} label={f.label} required={f.required} key={idx} help={f.help} validate={validateField(f)} />;
@@ -151,6 +194,14 @@ const RSSFeedSettingFields = (ind: IndexerDefinition, indexer: string) => {
               }
               return null;
             })}
+
+            <SelectFieldBasic
+              name="feed.settings.download_type"
+              label="Download type"
+              options={FeedDownloadTypeOptions}
+              tooltip={<span>Some feeds needs to force set as Magnet.</span>}
+              help="Set to Torrent or Magnet depending on indexer."
+            />
           </div>
         )}
       </Fragment>
@@ -170,7 +221,7 @@ const SettingFields = (ind: IndexerDefinition, indexer: string) => {
             );
           case "secret":
             return (
-              <PasswordFieldWide name={`settings.${f.name}`} label={f.label} required={f.required} key={idx} help={f.help} validate={validateField(f)} />
+              <PasswordFieldWide name={`settings.${f.name}`} label={f.label} required={f.required} key={idx} help={f.help} validate={validateField(f)} tooltip={<CustomTooltip anchorId={`settings.${f.name}`} clickable={true}><div><p>This field does not take a full URL. Only use alphanumeric strings like <code>uqcdi67cibkx3an8cmdm</code>.</p><br /><a href='https://autobrr.com/faqs#common-action-rejections' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/faqs#common-action-rejections</a></div></CustomTooltip>} />
             );
           }
           return null;
@@ -182,15 +233,6 @@ const SettingFields = (ind: IndexerDefinition, indexer: string) => {
     );
   }
 };
-
-function slugIdentifier(name: string, prefix?: string) {
-  const l = name.toLowerCase();
-  if (prefix && prefix !== "") {
-    const r = l.replaceAll(prefix, "");
-    return slugify(`${prefix}-${r}`);
-  }
-  return slugify(l);
-}
 
 type SelectValue = {
   label: string;
@@ -236,15 +278,11 @@ export function IndexerAddForm({ isOpen, toggle }: AddProps) {
   );
 
   const onSubmit = (formData: FormikValues) => {
-    console.log("form: ", formData);
     const ind = data && data.find(i => i.identifier === formData.identifier);
     if (!ind)
       return;
 
     if (formData.implementation === "torznab") {
-      // create slug for indexer identifier as "torznab-indexer_name"
-      const name = slugIdentifier(formData.name, "torznab");
-
       const createFeed: FeedCreate = {
         name: formData.name,
         enabled: false,
@@ -253,8 +291,8 @@ export function IndexerAddForm({ isOpen, toggle }: AddProps) {
         api_key: formData.feed.api_key,
         interval: 30,
         timeout: 60,
-        indexer: name,
-        indexer_id: 0
+        indexer_id: 0,
+        settings: formData.feed.settings
       };
 
       mutation.mutate(formData as Indexer, {
@@ -266,12 +304,33 @@ export function IndexerAddForm({ isOpen, toggle }: AddProps) {
         }
       });
       return;
-    }
 
-    if (formData.implementation === "rss") {
-      // create slug for indexer identifier as "torznab-indexer_name"
-      const name = slugIdentifier(formData.name, "rss");
+    } else if (formData.implementation === "newznab") {
+      formData.url = formData.feed.url;
 
+      const createFeed: FeedCreate = {
+        name: formData.name,
+        enabled: false,
+        type: "NEWZNAB",
+        url: formData.feed.newznab_url,
+        api_key: formData.feed.api_key,
+        interval: 30,
+        timeout: 60,
+        indexer_id: 0,
+        settings: formData.feed.settings
+      };
+
+      mutation.mutate(formData as Indexer, {
+        onSuccess: (indexer) => {
+          // @eslint-ignore
+          createFeed.indexer_id = indexer.id;
+
+          feedMutation.mutate(createFeed);
+        }
+      });
+      return;
+
+    } else if (formData.implementation === "rss") {
       const createFeed: FeedCreate = {
         name: formData.name,
         enabled: false,
@@ -279,8 +338,8 @@ export function IndexerAddForm({ isOpen, toggle }: AddProps) {
         url: formData.feed.url,
         interval: 30,
         timeout: 60,
-        indexer: name,
-        indexer_id: 0
+        indexer_id: 0,
+        settings: formData.feed.settings
       };
 
       mutation.mutate(formData as Indexer, {
@@ -292,10 +351,8 @@ export function IndexerAddForm({ isOpen, toggle }: AddProps) {
         }
       });
       return;
-    }
 
-    if (formData.implementation === "irc") {
-
+    } else if (formData.implementation === "irc") {
       const channels: IrcChannel[] = [];
       if (ind.irc?.channels.length) {
         ind.irc.channels.forEach(element => {
@@ -312,7 +369,7 @@ export function IndexerAddForm({ isOpen, toggle }: AddProps) {
 
       const network: IrcNetworkCreate = {
         name: ind.irc.network,
-        pass: "",
+        pass: formData.irc.pass || "",
         enabled: false,
         connected: false,
         server: ind.irc.server,
@@ -328,10 +385,12 @@ export function IndexerAddForm({ isOpen, toggle }: AddProps) {
         channels: channels
       };
 
-      if (formData.irc.auth.account !== "" && formData.irc.auth.password !== "") {
-        network.auth.mechanism = "SASL_PLAIN";
-        network.auth.account = formData.irc.auth.account;
-        network.auth.password = formData.irc.auth.password;
+      if (formData.irc.auth) {
+        if (formData.irc.auth.account !== "" && formData.irc.auth.password !== "") {
+          network.auth.mechanism = "SASL_PLAIN";
+          network.auth.account = formData.irc.auth.account;
+          network.auth.password = formData.irc.auth.password;
+        }
       }
 
       mutation.mutate(formData as Indexer, {
@@ -444,6 +503,7 @@ export function IndexerAddForm({ isOpen, toggle }: AddProps) {
                                           setFieldValue("implementation", ind.implementation);
 
                                           if (ind.irc && ind.irc.settings) {
+                                            setFieldValue("base_url", ind.urls[0]);
                                             ind.irc.settings.forEach((s) => {
                                               setFieldValue(`irc.${s.name}`, s.default ?? "");
                                             });
@@ -464,12 +524,22 @@ export function IndexerAddForm({ isOpen, toggle }: AddProps) {
 
                           <SwitchGroupWide name="enabled" label="Enabled" />
 
+                          {indexer.implementation == "irc" && (
+                            <SelectFieldCreatable
+                              name="base_url"
+                              label="Base URL"
+                              help="Override baseurl if it's blocked by your ISP."
+                              options={indexer.urls.map(u => ({ value: u, label: u, key: u })) }
+                            />
+                          )}
+
                           {SettingFields(indexer, values.identifier)}
 
                         </div>
 
                         {IrcSettingFields(indexer, values.identifier)}
-                        {FeedSettingFields(indexer, values.identifier)}
+                        {TorznabFeedSettingFields(indexer, values.identifier)}
+                        {NewznabFeedSettingFields(indexer, values.identifier)}
                         {RSSFeedSettingFields(indexer, values.identifier)}
                       </div>
 
@@ -556,7 +626,7 @@ export function IndexerUpdateForm({ isOpen, toggle, indexer }: UpdateProps) {
             );
           case "secret":
             return (
-              <PasswordFieldWide name={`settings.${f.name}`} label={f.label} key={idx} help={f.help} />
+              <PasswordFieldWide name={`settings.${f.name}`} label={f.label} key={idx} help={f.help} tooltip={<CustomTooltip anchorId={`settings.${f.name}`} clickable={true}><div><p>This field does not take a full URL. Only use alphanumeric strings like <code>uqcdi67cibkx3an8cmdm</code>.</p><br /><a href='https://autobrr.com/faqs#common-action-rejections' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/faqs#common-action-rejections</a></div></CustomTooltip>} />
             );
           }
           return null;
@@ -571,6 +641,7 @@ export function IndexerUpdateForm({ isOpen, toggle, indexer }: UpdateProps) {
     enabled: indexer.enabled,
     identifier: indexer.identifier,
     implementation: indexer.implementation,
+    base_url: indexer.base_url,
     settings: indexer.settings?.reduce(
       (o: Record<string, string>, obj: IndexerSetting) => ({
         ...o,
@@ -613,6 +684,16 @@ export function IndexerUpdateForm({ isOpen, toggle, indexer }: UpdateProps) {
             </Field>
           </div>
           <SwitchGroupWide name="enabled" label="Enabled" />
+
+          {indexer.implementation == "irc" && (
+            <SelectFieldCreatable
+              name="base_url"
+              label="Base URL"
+              help="Override baseurl if it's blocked by your ISP."
+              options={indexer.urls.map(u => ({ value: u, label: u, key: u })) }
+            />
+          )}
+
           {renderSettingFields(indexer.settings)}
         </div>
       )}

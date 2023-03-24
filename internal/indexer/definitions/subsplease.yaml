@@ -5,7 +5,7 @@ identifier: subsplease
 description: SubsPlease is an indexer for Anime.
 language: en-us
 urls:
-  - https://subsplease.org
+  - https://nyaa.si/
 privacy: public
 protocol: torrent
 supports:
@@ -41,16 +41,16 @@ irc:
       label: NickServ Password
       help: NickServ password
 
-parse:
-  type: single
-  lines:
-    - pattern: '\[Release\] (.*(SubsPlease).*.(mkv)) \((.*)\) - .* - (.*)'
-      vars:
-        - torrentName
-        - releaseGroup
-        - releaseTags
-        - torrentSize
-        - torrentUrl
+  parse:
+    type: single
+    lines:
+      - pattern: '\[Release\] (.*(SubsPlease).*?)\.?(mkv)? \((\d+.?\d*[KMGTP]?B)\) - .* - (.*)'
+        vars:
+          - torrentName
+          - releaseGroup
+          - releaseTags
+          - torrentSize
+          - torrentUrl
 
-  match:
-    torrenturl: "{{.torrentUrl}}"
+    match:
+      torrenturl: "{{ .torrentUrl }}"

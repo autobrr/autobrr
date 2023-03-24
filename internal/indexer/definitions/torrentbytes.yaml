@@ -54,20 +54,21 @@ irc:
       label: Invite command
       help: Invite auth with Erica, please replace USERNAME and IRCKEY.
 
-parse:
-  type: single
-  lines:
-    - test:
-        - "[TB-RLS] .:. [ The.New.Game-GROUP ] .:. [ https://www.torrentbytes.net/download.php?id=0000000 ] .:. [ https://www.torrentbytes.net/details.php?id=0000000 ] .:. [ Uploaded 2 minutes, 12 seconds after pre ]"
-      pattern: '^\[TB-RLS\] \.:\. \[ (.*) \] \.:\. \[ https?\:\/\/([^\/]+\/).*id=(\d+).*https?\:\/\/(?:.*\[ Uploaded (.*)\])?'
-      vars:
-        - torrentName
-        - baseUrl
-        - torrentId
-        - preTime
+  parse:
+    type: single
+    lines:
+      - test:
+          - "[TB-RLS] .:. [ The.New.Game-GROUP ] .:. [ https://www.torrentbytes.net/download.php?id=0000000 ] .:. [ https://www.torrentbytes.net/details.php?id=0000000 ] .:. [ Uploaded 2 minutes, 12 seconds after pre ]"
+        pattern: '^\[TB-RLS\] \.:\. \[ (.*) \] \.:\. \[ (https?\:\/\/.*\/).*id=(\d+).*https?\:\/\/(?:.*\[ Uploaded (.*)\])?'
+        vars:
+          - torrentName
+          - baseUrl
+          - torrentId
+          - preTime
 
-  match:
-    torrenturl: "{{ .baseUrl }}download.php?id={{ .torrentId }}&SSL=1&name={{ .torrentName }}.torrent"
-    cookie: true
-    encode:
-      - torrentName
+    match:
+      infourl: "/details.php?id={{ .torrentId }}"
+      torrenturl: "/download.php?id={{ .torrentId }}&name={{ .torrentName }}.torrent"
+      cookie: true
+      encode:
+        - torrentName

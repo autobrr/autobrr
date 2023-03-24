@@ -14,6 +14,8 @@ import (
 	"github.com/rs/zerolog"
 )
 
+var databaseDriver = "sqlite"
+
 type DB struct {
 	log     zerolog.Logger
 	handler *sql.DB
@@ -37,6 +39,7 @@ func NewDB(cfg *domain.Config, log logger.Logger) (*DB, error) {
 
 	switch cfg.DatabaseType {
 	case "sqlite":
+		databaseDriver = "sqlite"
 		db.Driver = "sqlite"
 		db.DSN = dataSourceName(cfg.ConfigPath, "autobrr.db")
 	case "postgres":
@@ -45,6 +48,7 @@ func NewDB(cfg *domain.Config, log logger.Logger) (*DB, error) {
 		}
 		db.DSN = fmt.Sprintf("postgres://%v:%v@%v:%d/%v?sslmode=disable", cfg.PostgresUser, cfg.PostgresPass, cfg.PostgresHost, cfg.PostgresPort, cfg.PostgresDatabase)
 		db.Driver = "postgres"
+		databaseDriver = "postgres"
 	default:
 		return nil, errors.New("unsupported database: %v", cfg.DatabaseType)
 	}
@@ -105,4 +109,18 @@ func (db *DB) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) {
 type Tx struct {
 	*sql.Tx
 	handler *DB
+}
+
+type ILikeDynamic interface {
+	ToSql() (sql string, args []interface{}, err error)
+}
+
+// ILike is a wrapper for sq.Like and sq.ILike
+// SQLite does not support ILike but postgres does so this checks what database is being used
+func ILike(col string, val string) ILikeDynamic {
+	if databaseDriver == "sqlite" {
+		return sq.Like{col: val}
+	}
+
+	return sq.ILike{col: val}
 }

@@ -60,27 +60,29 @@ irc:
       label: Invite command
       help: Invite auth with Voyager. Replace USERNAME with site nick and set IRCKEY.
 
-parse:
-  type: multi
-  forcesizeunit: MB
-  lines:
-    - test:
-        - "[New Release]-[MovieHD]-[That.Movie.2017.INTERNAL.1080p.BluRay.CRF.x264-GROUP]-[URL]-[ https://alpharatio.cc/torrents.php?id=000000 ]-[ 000000 ]-[ Uploaded 2 Mins, 59 Secs after pre. ]"
-      pattern: \[New Release\]-\[(.*)\]-\[(.*)\]-\[URL\]-\[ (https?://.*)id=\d+ \]-\[ (\d+) \](?:-\[ Uploaded (.*) after pre. ])?
-      vars:
-        - category
-        - torrentName
-        - baseUrl
-        - torrentId
-        - preTime
-    - test:
-        - "[AutoDL]-[MovieHD]-[000000]-[ 1 | 10659 | 1 | 1 ]-[That.Movie.2017.INTERNAL.1080p.BluRay.CRF.x264-GROUP]"
-      pattern: \[AutoDL\]-\[.*\]-\[.*\]-\[ ([01]) \| (\d+) \| ([01]) \| ([01]) \]-\[.+\]
-      vars:
-        - scene
-        - torrentSize
-        - freeleech
-        - auto
+  parse:
+    type: multi
+    forcesizeunit: MB
+    lines:
+      - test:
+          - "[new release]-[moviehd]-[that.movie.2017.internal.1080p.bluray.crf.x264-group]-[url]-[ https://alpharatio.cc/torrents.php?id=000000 ]-[ 000000 ]-[ uploaded 2 mins, 59 secs after pre. ]"
+        pattern: '\[.*\]-\[(.*)\]-\[(.*)\]-\[.*\]-\[ (https?://.+/).*id=(.*) ]-\[ (\d+) \](?:-\[ \w* (.*) after .* ])?'
+        vars:
+          - category
+          - torrentName
+          - baseUrl
+          - groupId
+          - torrentId
+          - preTime
+      - test:
+          - "[AutoDL]-[MovieHD]-[000000]-[ 1 | 10659 | 1 | 1 ]-[That.Movie.2017.INTERNAL.1080p.BluRay.CRF.x264-GROUP]"
+        pattern: '\[.*\]-\[.*\]-\[.*\]-\[ ([01]) \| (\d+) \| ([01]) \| ([01]) \]-\[.*\]'
+        vars:
+          - scene
+          - torrentSize
+          - freeleech
+          - auto
 
-  match:
-    torrenturl: "{{ .baseUrl }}action=download&id={{ .torrentId }}&authkey={{ .authkey }}&torrent_pass={{ .torrent_pass }}"
+    match:
+      infourl: "/torrents.php?id={{ .groupId }}&torrentid={{ .torrentId }}"
+      torrenturl: "/torrents.php?action=download&id={{ .torrentId }}&authkey={{ .authkey }}&torrent_pass={{ .torrent_pass }}"

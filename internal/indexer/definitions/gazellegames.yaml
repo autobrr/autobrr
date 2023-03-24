@@ -79,23 +79,24 @@ irc:
       label: Invite command
       help: Invite auth with Vertigo. Replace USERNAME and IRCKEY.
 
-parse:
-  type: single
-  lines:
-    - test:
-        - "Uploader :-: Nintendo 3DS :-: Cool.Game.KOR.3DS-BigBlueBox in Cool Game [2013] ::Korean, Multi-Region, Scene:: https://gazellegames.net/torrents.php?torrentid=00000 - adventure, role_playing_game, nintendo;"
-        - "Uploader :-: Windows :-: Other.Game-HI2U in Other Game [2016] ::English, Scene:: FREELEECH! :: https://gazellegames.net/torrents.php?torrentid=00000 - action, adventure, casual, indie, role.playing.game;"
-      pattern: '^(.+) :-: (.+) :-: (.+) \[(\d+)?\] ::(.+?)?:: ?(.+?)?(?:! ::)? (https?:\/\/[^\/]+\/)torrents.php\?torrentid=(\d+)(?: - )?([a-zA-Z0-9, _\.]+)?;?(?:[ :]*(?:[NSFW]*)?[! :]*)?$'
-      vars:
-        - uploader
-        - category
-        - torrentName
-        - year
-        - releaseTags
-        - freeleech
-        - baseUrl
-        - torrentId
-        - tags
+  parse:
+    type: single
+    lines:
+      - test:
+          - "Uploader :-: Nintendo 3DS :-: Cool.Game.KOR.3DS-BigBlueBox in Cool Game [2013] ::Korean, Multi-Region, Scene:: https://gazellegames.net/torrents.php?torrentid=00000 - adventure, role_playing_game, nintendo;"
+          - "Uploader :-: Windows :-: Other.Game-HI2U in Other Game [2016] ::English, Scene:: FREELEECH! :: https://gazellegames.net/torrents.php?torrentid=00000 - action, adventure, casual, indie, role.playing.game;"
+        pattern: '^(.+) :-: (.+) :-: (.+) \[(\d+)?\] ::(.+?)?:: ?(.+?)?(?:! ::)? (https?:\/\/[^\/]+\/)torrents.php\?torrentid=(\d+)(?: - )?([a-zA-Z0-9, _\.]+)?;?(?:[ :]*(?:[NSFW]*)?[! :]*)?$'
+        vars:
+          - uploader
+          - category
+          - torrentName
+          - year
+          - releaseTags
+          - freeleech
+          - baseUrl
+          - torrentId
+          - tags
 
-  match:
-    torrenturl: "{{ .baseUrl }}torrents.php?action=download&id={{ .torrentId }}&authkey={{ .authkey }}&torrent_pass={{ .torrent_pass }}"
+    match:
+      infourl: "/torrents.php?torrentid={{ .torrentId }}"
+      torrenturl: "/torrents.php?action=download&id={{ .torrentId }}&authkey={{ .authkey }}&torrent_pass={{ .torrent_pass }}"

@@ -6,7 +6,7 @@ import { useToggle } from "../../hooks/hooks";
 import { APIClient } from "../../api/APIClient";
 import { EmptySimple } from "../../components/emptystates";
 import { LockClosedIcon, LockOpenIcon } from "@heroicons/react/24/solid";
-import { Menu, Transition } from "@headlessui/react";
+import { Menu, Switch, Transition } from "@headlessui/react";
 import { Fragment, useRef } from "react";
 import { DeleteModal } from "../../components/modals";
 
@@ -21,7 +21,7 @@ import {
   TrashIcon
 } from "@heroicons/react/24/outline";
 
-export const IrcSettings = () => {
+const IrcSettings = () => {
   const [expandNetworks, toggleExpand] = useToggle(false);
   const [addNetworkIsOpen, toggleAddNetwork] = useToggle(false);
 
@@ -35,8 +35,8 @@ export const IrcSettings = () => {
     <div className="lg:col-span-9">
       <IrcNetworkAddForm isOpen={addNetworkIsOpen} toggle={toggleAddNetwork} />
 
-      <div className="py-6 px-4 sm:p-6 lg:pb-8">
-        <div className="-ml-4 -mt-4 flex justify-between items-center flex-wrap sm:flex-nowrap">
+      <div className="py-6 px-4 md:p-6 lg:pb-8">
+        <div className="-ml-4 -mt-4 flex justify-between items-center flex-wrap md:flex-nowrap">
           <div className="ml-4 mt-4">
             <h3 className="text-lg leading-6 font-medium text-gray-900 dark:text-white">
               IRC
@@ -57,8 +57,8 @@ export const IrcSettings = () => {
           </div>
         </div>
 
-        <div className="flex justify-between flex-col sm:flex-row mt-10 px-1">
-          <ol className="flex flex-col sm:flex-row sm:gap-2 pb-4 sm:pb-0 sm:divide-x sm:divide-gray-200 sm:dark:divide-gray-700">
+        <div className="flex justify-between flex-col md:flex-row mt-10 px-1">
+          <ol className="flex flex-col md:flex-row md:gap-2 pb-4 md:pb-0 md:divide-x md:divide-gray-200 md:dark:divide-gray-700">
             <li className="flex items-center">
               <span
                 className="mr-2 flex h-4 w-4 relative"
@@ -70,7 +70,7 @@ export const IrcSettings = () => {
               <span className="text-sm text-gray-800 dark:text-gray-500">Network healthy</span>
             </li>
 
-            <li className="flex items-center sm:pl-2">
+            <li className="flex items-center md:pl-2">
               <span
                 className="mr-2 flex h-4 w-4 rounded-full opacity-75 bg-yellow-400 over:text-yellow-600"
                 title="Network unhealthy"
@@ -78,7 +78,7 @@ export const IrcSettings = () => {
               <span className="text-sm text-gray-800 dark:text-gray-500">Network unhealthy</span>
             </li>
 
-            <li className="flex items-center sm:pl-2">
+            <li className="flex items-center md:pl-2">
               <span
                 className="mr-2 flex h-4 w-4 rounded-full opacity-75 bg-gray-500"
                 title="Network disabled"
@@ -97,16 +97,19 @@ export const IrcSettings = () => {
         </div>
 
         {data && data.length > 0 ? (
-          <section className="mt-6 light:bg-white dark:bg-gray-800 light:shadow sm:rounded-md">
+          <section className="mt-6 light:bg-white dark:bg-gray-800 light:shadow md:rounded-md">
             <ol className="min-w-full relative">
               <li className="grid grid-cols-12 gap-4 border-b border-gray-200 dark:border-gray-700">
-                <div className="col-span-3 px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                <div className="col-span-2 md:col-span-1 px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  Enabled
+                </div>
+                <div className="col-span-10 md:col-span-3 px-8 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                   Network
                 </div>
-                <div className="hidden sm:flex col-span-5 px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                <div className="hidden md:flex col-span-4 px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                   Server
                 </div>
-                <div className="hidden sm:flex col-span-3 px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                <div className="hidden md:flex col-span-3 px-5 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                   Nick
                 </div>
               </li>
@@ -119,8 +122,8 @@ export const IrcSettings = () => {
         ) : (
           <EmptySimple
             title="No networks"
-            subtitle="Add a new network"
-            buttonText="New network"
+            subtitle="Normally set up via Indexers"
+            buttonText="Add new network"
             buttonAction={toggleAddNetwork}
           />
         )}
@@ -139,6 +142,24 @@ const ListItem = ({ idx, network, expanded }: ListItemProps) => {
   const [updateIsOpen, toggleUpdate] = useToggle(false);
   const [edit, toggleEdit] = useToggle(false);
 
+  const queryClient = useQueryClient();
+  const mutation = useMutation(
+    (network: IrcNetwork) => APIClient.irc.updateNetwork(network),
+    {
+      onSuccess: () => {
+        queryClient.invalidateQueries(["networks"]);
+        toast.custom((t) => <Toast type="success" body={`${network.name} was updated successfully`} t={t}/>);
+      }
+    }
+  );
+
+  const onToggleMutation = (newState: boolean) => {
+    mutation.mutate({
+      ...network,
+      enabled: newState
+    });
+  };
+
   return (
     <li key={idx}>
       <div className={classNames("grid grid-cols-12 gap-2 lg:gap-4 items-center py-2", network.enabled && !network.healthy ? "bg-red-50 dark:bg-red-900 hover:bg-red-100 dark:hover:bg-red-800" : "hover:bg-gray-50 dark:hover:bg-gray-700 ")}>
@@ -147,9 +168,27 @@ const ListItem = ({ idx, network, expanded }: ListItemProps) => {
           toggle={toggleUpdate}
           network={network}
         />
-
+        <div className="col-span-2 md:col-span-1 flex pl-5 text-sm text-gray-500 dark:text-gray-400 cursor-pointer">
+          <Switch
+            checked={network.enabled}
+            onChange={onToggleMutation}
+            className={classNames(
+              network.enabled ? "bg-blue-500" : "bg-gray-200 dark:bg-gray-600",
+              "items-center relative inline-flex flex-shrink-0 h-6 w-11 border-2 border-transparent rounded-full cursor-pointer transition-colors ease-in-out duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+            )}
+          >
+            <span className="sr-only">Enable</span>
+            <span
+              aria-hidden="true"
+              className={classNames(
+                network.enabled ? "translate-x-5" : "translate-x-0",
+                "inline-block h-5 w-5 rounded-full bg-white shadow transform ring-0 transition ease-in-out duration-200"
+              )}
+            />
+          </Switch>
+        </div>
         <div
-          className="col-span-10 xs:col-span-3 sm:col-span-3 items-center sm:px-6 text-sm font-medium text-gray-900 dark:text-white cursor-pointer"
+          className="col-span-8 xs:col-span-3 md:col-span-3 items-center pl-8 text-sm font-medium text-gray-900 dark:text-white cursor-pointer"
           onClick={toggleEdit}
         >
           <div className="flex">
@@ -175,13 +214,13 @@ const ListItem = ({ idx, network, expanded }: ListItemProps) => {
                 <span className="mr-3 flex h-3 w-3 rounded-full opacity-75 bg-gray-500" />
               )}
             </span>
-            <div className="overflow-x-auto flex">
+            <div className="block truncate">
               {network.name}
             </div>
           </div>
         </div>
         <div
-          className="hidden sm:flex col-span-5 sm:px-6 text-sm text-gray-500 dark:text-gray-400 cursor-pointer"
+          className="hidden md:flex col-span-4 md:pl-6 text-sm text-gray-500 dark:text-gray-400 cursor-pointer"
           onClick={toggleEdit}
         >
           <div
@@ -203,16 +242,16 @@ const ListItem = ({ idx, network, expanded }: ListItemProps) => {
                 )} />
               )}
             </div>
-            <p className="break-all">
+            <p className="block truncate">
               {network.server}:{network.port}
             </p>
           </div>
         </div>
         <div
-          className="hidden sm:flex col-span-3 items-center sm:px-6 text-sm text-gray-500 dark:text-gray-400 cursor-pointer"
+          className="hidden md:flex col-span-3 items-center md:pl-6 text-sm text-gray-500 dark:text-gray-400 cursor-pointer"
           onClick={toggleEdit}
         >
-          <div className="overflow-x-auto flex">
+          <div className="block truncate">
             {network.nick}
           </div>
         </div>
@@ -239,7 +278,7 @@ const ListItem = ({ idx, network, expanded }: ListItemProps) => {
                 {network.channels.map((c) => (
                   <li key={c.id} className="text-gray-500 dark:text-gray-400">
                     <div className="grid grid-cols-12 gap-4 items-center py-4">
-                      <div className="col-span-4 flex items-center sm:px-6 ">
+                      <div className="col-span-4 flex items-center md:px-6 ">
                         <span className="relative inline-flex items-center">
                           {network.enabled ? (
                             c.monitoring ? (
@@ -259,12 +298,12 @@ const ListItem = ({ idx, network, expanded }: ListItemProps) => {
                           {c.name}
                         </span>
                       </div>
-                      <div className="col-span-4 flex items-center sm:px-6 ">
+                      <div className="col-span-4 flex items-center md:px-6 ">
                         <span title={simplifyDate(c.monitoring_since)}>
                           {IsEmptyDate(c.monitoring_since)}
                         </span>
                       </div>
-                      <div className="col-span-4 flex items-center sm:px-6 ">
+                      <div className="col-span-4 flex items-center md:px-6 ">
                         <span title={simplifyDate(c.last_announce)}>
                           {IsEmptyDate(c.last_announce)}
                         </span>
@@ -360,7 +399,7 @@ const ListItemDropdown = ({
         leaveTo="transform opacity-0 scale-95"
       >
         <Menu.Items
-          className="absolute right-0 w-32 sm:w-56 mt-2 origin-top-right bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700 rounded-md shadow-lg ring-1 ring-black ring-opacity-10 focus:outline-none"
+          className="absolute right-0 w-32 md:w-56 mt-2 origin-top-right bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700 rounded-md shadow-lg ring-1 ring-black ring-opacity-10 focus:outline-none"
         >
           <div className="px-1 py-1">
             <Menu.Item>
@@ -451,3 +490,5 @@ const ListItemDropdown = ({
     </Menu>
   );
 };
+
+export default IrcSettings;

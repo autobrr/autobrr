@@ -5,7 +5,7 @@ identifier: torrentseeds
 description: TorrentSeeds (TS) is a GENERAL/0-DAY tracker with great pretimes.
 language: en-us
 urls:
-  - https://torrentseeds.org
+  - https://torrentseeds.org/
 privacy: private
 protocol: torrent
 supports:
@@ -54,19 +54,20 @@ irc:
       label: Invite command
       help: Invite auth with Cerberus. Replace USERNAME and PID (passkey).
 
-parse:
-  type: single
-  lines:
-    - test:
-        - "New: This.Is.A.New.show.S00E00.720p.WEB.H264-Test .:. Category: TV/HD .:. Size: 364.82 MB .:. URL:  https://www.torrentseeds.org/details.php?id=000000 .:. Uploaded by: George."
-      pattern: 'New: (.*) \.:\. Category: (.*) \.:\. Size: (.*) \.:\. URL:  (https?\:\/\/[^\/]+).*\/(\d{6,9}) \.:\. Uploaded by: (.*)\.'
-      vars:
-        - torrentName
-        - category
-        - torrentSize
-        - baseUrl
-        - torrentId
-        - uploader
+  parse:
+    type: single
+    lines:
+      - test:
+          - "New: This.Is.A.New.show.S00E00.720p.WEB.H264-Test .:. Category: TV/HD .:. Size: 706.15 MiB .:. URL:  https://www.torrentseeds.org/torrents/0000000 .:. Uploaded by: George."
+        pattern: 'New: (.+) \.:\. Category: (.+) \.:\. Size: (.+) \.:\. URL:  (https?\:\/\/.+\/).+/(\d+) \.:\. Uploaded by: (.*)\.'
+        vars:
+          - torrentName
+          - category
+          - torrentSize
+          - baseUrl
+          - torrentId
+          - uploader
 
-  match:
-    torrenturl: "{{ .baseUrl }}/torrent/download/{{ .torrentId }}.{{ .rsskey }}"
+    match:
+      infourl: "/torrents/{{ .torrentId }}"
+      torrenturl: "/torrent/download/{{ .torrentId }}.{{ .rsskey }}"

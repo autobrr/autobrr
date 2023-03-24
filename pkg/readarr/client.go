@@ -2,6 +2,7 @@ package readarr
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"io"
 	"net/http"
@@ -11,12 +12,12 @@ import (
 	"github.com/autobrr/autobrr/pkg/errors"
 )
 
-func (c *client) get(endpoint string) (int, []byte, error) {
+func (c *client) get(ctx context.Context, endpoint string) (int, []byte, error) {
 	u, err := url.Parse(c.config.Hostname)
 	u.Path = path.Join(u.Path, "/api/v1/", endpoint)
 	reqUrl := u.String()
 
-	req, err := http.NewRequest(http.MethodGet, reqUrl, http.NoBody)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, reqUrl, http.NoBody)
 	if err != nil {
 		return 0, nil, errors.Wrap(err, "could not build request")
 	}
@@ -42,7 +43,7 @@ func (c *client) get(endpoint string) (int, []byte, error) {
 	return resp.StatusCode, buf.Bytes(), nil
 }
 
-func (c *client) post(endpoint string, data interface{}) (*http.Response, error) {
+func (c *client) post(ctx context.Context, endpoint string, data interface{}) (*http.Response, error) {
 	u, err := url.Parse(c.config.Hostname)
 	u.Path = path.Join(u.Path, "/api/v1/", endpoint)
 	reqUrl := u.String()
@@ -52,7 +53,7 @@ func (c *client) post(endpoint string, data interface{}) (*http.Response, error)
 		return nil, errors.Wrap(err, "could not marshal data: %+v", data)
 	}
 
-	req, err := http.NewRequest(http.MethodPost, reqUrl, bytes.NewBuffer(jsonData))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, reqUrl, bytes.NewBuffer(jsonData))
 	if err != nil {
 		return nil, errors.Wrap(err, "could not build request")
 	}
@@ -81,7 +82,7 @@ func (c *client) post(endpoint string, data interface{}) (*http.Response, error)
 	return res, nil
 }
 
-func (c *client) postBody(endpoint string, data interface{}) (int, []byte, error) {
+func (c *client) postBody(ctx context.Context, endpoint string, data interface{}) (int, []byte, error) {
 	u, err := url.Parse(c.config.Hostname)
 	u.Path = path.Join(u.Path, "/api/v1/", endpoint)
 	reqUrl := u.String()
@@ -93,7 +94,7 @@ func (c *client) postBody(endpoint string, data interface{}) (int, []byte, error
 
 	c.Log.Printf("readarr push JSON: %s\n", string(jsonData))
 
-	req, err := http.NewRequest(http.MethodPost, reqUrl, bytes.NewBuffer(jsonData))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, reqUrl, bytes.NewBuffer(jsonData))
 	if err != nil {
 		return 0, nil, errors.Wrap(err, "could not build request")
 	}

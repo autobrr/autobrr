@@ -1,6 +1,7 @@
 package radarr
 
 import (
+	"context"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -133,7 +134,7 @@ func Test_client_Push(t *testing.T) {
 				Protocol:         "torrent",
 				PublishDate:      "2021-08-21T15:36:00Z",
 			}},
-			rejections: []string{"unable to parse: Minx 1 epi 9 2160p"},
+			rejections: []string{"[error: ] Title: Unable to parse - got value: Minx 1 epi 9 2160p"},
 			wantErr:    false,
 		},
 	}
@@ -141,7 +142,7 @@ func Test_client_Push(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			c := New(tt.fields.config)
 
-			rejections, err := c.Push(tt.args.release)
+			rejections, err := c.Push(context.Background(), tt.args.release)
 			assert.Equal(t, tt.rejections, rejections)
 			if tt.wantErr && assert.Error(t, err) {
 				assert.Equal(t, tt.err, err)
@@ -223,7 +224,7 @@ func Test_client_Test(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			c := New(tt.cfg)
 
-			got, err := c.Test()
+			got, err := c.Test(context.Background())
 			if tt.wantErr && assert.Error(t, err) {
 				assert.EqualErrorf(t, err, tt.expectedErr, "Error should be: %v, got: %v", tt.wantErr, err)
 			}

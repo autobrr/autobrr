@@ -6,7 +6,7 @@ description: HD-Torrents (HD-T) is a private torrent tracker for HD MOVIES / TV
 language: en-us
 urls:
   - https://hd-torrents.org/
-  - https://hdts.ru
+  - https://hdts.ru/
 privacy: private
 protocol: torrent
 supports:
@@ -53,20 +53,21 @@ irc:
       label: NickServ Password
       help: NickServ password
 
-parse:
-  type: single
-  lines:
-    - test:
-        - "New Torrent in category [Movies/Remux] That Movie (2008) Blu-ray 1080p REMUX AVC DTS-HD MA 7 1 (14.60 GB) uploaded! Download: https://hd-torrents.org/download.php?id=AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
-      pattern: 'New Torrent in category \[([^\]]*)\] (.*) \(([^\)]*)\) uploaded! Download\: (https?\:\/\/[^\/]+\/).+id=(.+)'
-      vars:
-        - category
-        - torrentName
-        - torrentSize
-        - baseUrl
-        - torrentId
+  parse:
+    type: single
+    lines:
+      - test:
+          - "New Torrent in category [Movies/Remux] That Movie (2008) Blu-ray 1080p REMUX AVC DTS-HD MA 7 1 (14.60 GB) uploaded! Download: https://hd-torrents.org/download.php?id=AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+        pattern: 'New Torrent in category \[([^\]]*)\] (.*) \(([^\)]*)\) uploaded! Download\: (https?\:\/\/[^\/]+\/).+id=(.+)'
+        vars:
+          - category
+          - torrentName
+          - torrentSize
+          - baseUrl
+          - torrentId
 
-  match:
-    torrenturl: "{{ .baseUrl }}rss/?action=download&key={{ .key }}&token={{ .token }}&hash={{ .torrentId }}&title={{ .torrentName }}"
-    encode:
-      - torrentName
+    match:
+      infourl: "/details.php?id={{ .torrentId }}"
+      torrenturl: "/rss/?action=download&key={{ .key }}&token={{ .token }}&hash={{ .torrentId }}&title={{ .torrentName }}"
+      encode:
+        - torrentName

@@ -54,21 +54,22 @@ irc:
       label: Invite command
       help: Invite auth with Synd1c4t3. Replace IRCKEY
 
-parse:
-  type: single
-  lines:
-    - test:
-        - "NEU Welcome.to.the.N.H.K.S01E15.German.DL.AC3.720p.BluRay.x264-ABJ [Serien/720p] [P2P] [678.68 MB] -- https://torrent-syndikat.org/details.php?id=000000 | Animation, Anime, Comedy, Drama, Romance, Thriller, Encode, AVC, DL, PID:00000, tt0857297"
-        - "NEU KLIM_Beats-FireFlies-WEB-2016-KNOWN [Audio/Musik/MP3] [O-SCENE] [59.82 MB] -- https://torrent-syndikat.org/details.php?id=000000 | Hip-Hop"
-        - "NEU DarkSpar-DARKZER0 [Spiele/Windows] [O-SCENE] [54.46 MB] -- https://torrent-syndikat.org/details.php?id=000000 | "
-      pattern: '^NEU (.*) \[(.*)\] \[(.*)\] \[(.*)\] -- (https?\:\/\/[^\/]+)\/.*\?id=(\d+) \| (.*)'
-      vars:
-        - torrentName
-        - category
-        - origin
-        - torrentSize
-        - baseUrl
-        - torrentId
-        - tags
-  match:
-    torrenturl: "{{ .baseUrl }}/download.php?id={{ .torrentId }}&apikey={{ .api_key }}"
+  parse:
+    type: single
+    lines:
+      - test:
+          - "NEU Welcome.to.the.N.H.K.S01E15.German.DL.AC3.720p.BluRay.x264-ABJ [Serien/720p] [P2P] [678.68 MB] -- https://torrent-syndikat.org/details.php?id=000000 | Animation, Anime, Comedy, Drama, Romance, Thriller, Encode, AVC, DL, PID:00000, tt0857297"
+          - "NEU KLIM_Beats-FireFlies-WEB-2016-KNOWN [Audio/Musik/MP3] [O-SCENE] [59.82 MB] -- https://torrent-syndikat.org/details.php?id=000000 | Hip-Hop"
+          - "NEU DarkSpar-DARKZER0 [Spiele/Windows] [O-SCENE] [54.46 MB] -- https://torrent-syndikat.org/details.php?id=000000 | "
+        pattern: 'NEU (.*) \[(.*)\] \[(.*)\] \[(.*)\] -- (https?\:\/\/.*\/).*id=(\d+) \| (.*)'
+        vars:
+          - torrentName
+          - category
+          - origin
+          - torrentSize
+          - baseUrl
+          - torrentId
+          - tags
+    match:
+      infourl: "/details.php?id={{ .torrentId }}"
+      torrenturl: "/download.php?id={{ .torrentId }}&apikey={{ .api_key }}"

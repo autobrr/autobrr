@@ -1,5 +1,5 @@
 # build app
-FROM golang:1.19-alpine3.16 AS app-builder
+FROM golang:1.20-alpine3.16 AS app-builder
 
 ARG VERSION=dev
 ARG REVISION=dev
@@ -31,7 +31,7 @@ ENV HOME="/config" \
 XDG_CONFIG_HOME="/config" \
 XDG_DATA_HOME="/config"
 
-RUN apk --no-cache add ca-certificates curl tzdata
+RUN apk --no-cache add ca-certificates curl tzdata jq
 
 WORKDIR /app
 

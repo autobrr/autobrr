@@ -10,7 +10,13 @@ import Toast from "./components/notifications/Toast";
 
 export const queryClient = new QueryClient({
   defaultOptions: {
-    queries: { useErrorBoundary: true },
+    queries: {
+      // The retries will have exponential delay.
+      // See https://tanstack.com/query/v4/docs/guides/query-retries#retry-delay
+      // delay = Math.min(1000 * 2 ** attemptIndex, 30000)
+      retry: true,
+      useErrorBoundary: true
+    },
     mutations: {
       onError: (error) => {
         // Use a format string to convert the error object to a proper string without much hassle.
