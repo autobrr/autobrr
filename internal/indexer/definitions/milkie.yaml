@@ -64,6 +64,7 @@ irc:
           - torrentId
 
     match:
+      infourl: "/browse/{{ .torrentId }}"
       torrenturl: "/api/v1/torrents/{{ .torrentId }}/torrent?key={{ .apikey }}"
       encode:
         - apikey

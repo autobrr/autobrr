@@ -45,6 +45,7 @@ export const AuthContext = newRidgeState<AuthInfo>(
 
 interface SettingsType {
   debug: boolean;
+  checkForUpdates: boolean;
   darkTheme: boolean;
   scrollOnNewLog: boolean;
   indentLogLines: boolean;
@@ -54,6 +55,7 @@ interface SettingsType {
 export const SettingsContext = newRidgeState<SettingsType>(
   {
     debug: false,
+    checkForUpdates: true,
     darkTheme: true,
     scrollOnNewLog: false,
     indentLogLines: false,

@@ -326,12 +326,12 @@ func (f Filter) CheckFilter(r *Release) ([]string, bool) {
 	}
 
 	// HDR is parsed into the Codec slice from rls
-	if len(f.MatchHDR) > 0 && !sliceContainsSlice(r.HDR, f.MatchHDR) {
+	if len(f.MatchHDR) > 0 && !matchHDR(r.HDR, f.MatchHDR) {
 		r.addRejectionF("hdr not matching. got: %v want: %v", r.HDR, f.MatchHDR)
 	}
 
 	// HDR is parsed into the Codec slice from rls
-	if len(f.ExceptHDR) > 0 && sliceContainsSlice(r.HDR, f.ExceptHDR) {
+	if len(f.ExceptHDR) > 0 && matchHDR(r.HDR, f.ExceptHDR) {
 		r.addRejectionF("hdr unwanted. got: %v want: %v", r.HDR, f.ExceptHDR)
 	}
 
@@ -777,6 +777,48 @@ func checkFreeleechPercent(announcePercent int, filterPercent string) bool {
 
 		if int(filterPercentInt) == announcePercent {
 			return true
+		}
+	}
+
+	return false
+}
+
+func matchHDR(releaseValues []string, filterValues []string) bool {
+
+	for _, filter := range filterValues {
+		if filter == "" {
+			continue
+		}
+		filter = strings.ToLower(filter)
+		filter = strings.Trim(filter, " ")
+
+		parts := strings.Split(filter, " ")
+		if len(parts) == 2 {
+			partsMatched := 0
+			for _, part := range parts {
+				for _, tag := range releaseValues {
+					if tag == "" {
+						continue
+					}
+					tag = strings.ToLower(tag)
+					if tag == part {
+						partsMatched++
+					}
+					if len(parts) == partsMatched {
+						return true
+					}
+				}
+			}
+		} else {
+			for _, tag := range releaseValues {
+				if tag == "" {
+					continue
+				}
+				tag = strings.ToLower(tag)
+				if tag == filter {
+					return true
+				}
+			}
 		}
 	}
 

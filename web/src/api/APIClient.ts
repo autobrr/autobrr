@@ -1,5 +1,6 @@
 import { baseUrl, sseBaseUrl } from "../utils";
 import { AuthContext } from "../utils/Context";
+import { GithubRelease } from "../types/Update";
 
 interface ConfigType {
   body?: BodyInit | Record<string, unknown> | unknown;
@@ -41,7 +42,7 @@ export async function HttpClient<T>(
       // Resolve immediately since 204 contains no data
       if (response.status === 204)
         return Promise.resolve(response);
-    
+
       return await response.json();
     });
 }
@@ -80,7 +81,8 @@ export const APIClient = {
     delete: (key: string) => appClient.Delete(`api/keys/${key}`)
   },
   config: {
-    get: () => appClient.Get<Config>("api/config")
+    get: () => appClient.Get<Config>("api/config"),
+    update: (config: ConfigUpdate) => appClient.Patch("api/config", config)
   },
   download_clients: {
     getAll: () => appClient.Get<DownloadClient[]>("api/download_clients"),
@@ -110,7 +112,7 @@ export const APIClient = {
       return appClient.Get<Filter[]>(`api/filters${q}`);
     },
     getByID: (id: number) => appClient.Get<Filter>(`api/filters/${id}`),
-    create: (filter: Filter) => appClient.Post("api/filters", filter),
+    create: (filter: Filter) => appClient.Post<Filter>("api/filters", filter),
     update: (filter: Filter) => appClient.Put(`api/filters/${filter.id}`, filter),
     duplicate: (id: number) => appClient.Get<Filter>(`api/filters/${id}/duplicate`),
     toggleEnable: (id: number, enabled: boolean) => appClient.Put(`api/filters/${id}/enabled`, { enabled }),
@@ -141,6 +143,10 @@ export const APIClient = {
     updateNetwork: (network: IrcNetwork) => appClient.Put(`api/irc/network/${network.id}`, network),
     deleteNetwork: (id: number) => appClient.Delete(`api/irc/network/${id}`),
     restartNetwork: (id: number) => appClient.Get(`api/irc/network/${id}/restart`)
+  },
+  logs: {
+    files: () => appClient.Get<LogFileResponse>("api/logs/files"),
+    getFile: (file: string) => appClient.Get(`api/logs/files/${file}`)
   },
   events: {
     logs: () => new EventSource(`${sseBaseUrl()}api/events?stream=logs`, { withCredentials: true })
@@ -180,5 +186,9 @@ export const APIClient = {
     indexerOptions: () => appClient.Get<string[]>("api/release/indexers"),
     stats: () => appClient.Get<ReleaseStats>("api/release/stats"),
     delete: () => appClient.Delete("api/release/all")
+  },
+  updates: {
+    check: () => appClient.Get("api/updates/check"),
+    getLatestRelease: () => appClient.Get<GithubRelease | undefined>("api/updates/latest")
   }
 };

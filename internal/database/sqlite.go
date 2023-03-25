@@ -34,6 +34,16 @@ func (db *DB) openSQLite() error {
 		return errors.Wrap(err, "enable wal")
 	}
 
+	// When Autobrr does not cleanly shutdown, the WAL will still be present and not committed.
+	// This is a no-op if the WAL is empty, and a commit when the WAL is not to start fresh.
+	// When commits hit 1000, PRAGMA wal_checkpoint(PASSIVE); is invoked which tries its best
+	// to commit from the WAL (and can fail to commit all pending operations).
+	// Forcing a PRAGMA wal_checkpoint(RESTART); in the future on a "quiet period" could be
+	// considered.
+	if _, err = db.handler.Exec(`PRAGMA wal_checkpoint(TRUNCATE);`); err != nil {
+		return errors.Wrap(err, "commit wal")
+	}
+
 	// Enable foreign key checks. For historical reasons, SQLite does not check
 	// foreign key constraints by default. There's some overhead on inserts to
 	// verify foreign key integrity, but it's definitely worth it.
@@ -65,6 +75,8 @@ func (db *DB) migrateSQLite() error {
 		return errors.New("autobrr (version %d) older than schema (version: %d)", len(sqliteMigrations), version)
 	}
 
+	db.log.Info().Msgf("Beginning database schema upgrade from version %v to version: %v", version, len(sqliteMigrations))
+
 	tx, err := db.handler.Begin()
 	if err != nil {
 		return err
@@ -77,6 +89,7 @@ func (db *DB) migrateSQLite() error {
 		}
 	} else {
 		for i := version; i < len(sqliteMigrations); i++ {
+			db.log.Info().Msgf("Upgrading Database schema to version: %v", i)
 			if _, err := tx.Exec(sqliteMigrations[i]); err != nil {
 				return errors.Wrap(err, "failed to execute migration #%v", i)
 			}

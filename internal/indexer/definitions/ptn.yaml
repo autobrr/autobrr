@@ -6,6 +6,7 @@ description: PTN is a ratioless movie tracker.
 language: en-us
 urls:
   - https://piratethenet.org/
+  - http://piratethenet.org/
 privacy: private
 protocol: torrent
 supports:
@@ -16,7 +17,7 @@ settings:
   - name: torrent_pass
     type: secret
     required: true
-    label: Torrent pass
+    label: Passkey
     help: Check the RSS feed for your passkey.
 
 irc:
@@ -61,4 +62,5 @@ irc:
           - torrentId
 
     match:
-      torrenturl: "/download.php?torrent={{ .torrentId }}&torrent_pass={{ .torrent_pass }}"
+      infourl: "/details.php?id={{ .torrentId }}"
+      torrenturl: "/download.php?torrent={{ .torrentId }}&passkey={{ .torrent_pass }}"

@@ -11,48 +11,65 @@ import (
 )
 
 func (s *service) qbittorrent(ctx context.Context, action *domain.Action, release domain.Release) ([]string, error) {
-	s.log.Debug().Msgf("action qBittorrent: %v", action.Name)
+	s.log.Debug().Msgf("action qBittorrent: %s", action.Name)
 
 	c := s.clientSvc.GetCachedClient(ctx, action.ClientID)
 
 	rejections, err := s.qbittorrentCheckRulesCanDownload(ctx, action, c.Dc, c.Qbt)
 	if err != nil {
-		return nil, errors.Wrap(err, "error checking client rules: %v", action.Name)
+		return nil, errors.Wrap(err, "error checking client rules: %s", action.Name)
 	}
 
 	if len(rejections) > 0 {
 		return rejections, nil
 	}
 
-	if release.TorrentTmpFile == "" {
-		if err := release.DownloadTorrentFileCtx(ctx); err != nil {
-			return nil, errors.Wrap(err, "error downloading torrent file for release: %v", release.TorrentName)
+	if release.HasMagnetUri() {
+		options, err := s.prepareQbitOptions(action)
+		if err != nil {
+			return nil, errors.Wrap(err, "could not prepare options")
 		}
-	}
 
-	options, err := s.prepareQbitOptions(action)
-	if err != nil {
-		return nil, errors.Wrap(err, "could not prepare options")
-	}
+		s.log.Trace().Msgf("action qBittorrent options: %+v", options)
 
-	s.log.Trace().Msgf("action qBittorrent options: %+v", options)
-
-	if err = c.Qbt.AddTorrentFromFileCtx(ctx, release.TorrentTmpFile, options); err != nil {
-		return nil, errors.Wrap(err, "could not add torrent %v to client: %v", release.TorrentTmpFile, c.Dc.Name)
-	}
-
-	if !action.Paused && !action.ReAnnounceSkip && release.TorrentHash != "" {
-		opts := qbittorrent.ReannounceOptions{
-			Interval:        int(action.ReAnnounceInterval),
-			MaxAttempts:     int(action.ReAnnounceMaxAttempts),
-			DeleteOnFailure: action.ReAnnounceDelete,
+		if err = c.Qbt.AddTorrentFromUrlCtx(ctx, release.MagnetURI, options); err != nil {
+			return nil, errors.Wrap(err, "could not add torrent %s to client: %s", release.MagnetURI, c.Dc.Name)
 		}
-		if err := c.Qbt.ReannounceTorrentWithRetry(ctx, opts, release.TorrentHash); err != nil {
-			return nil, errors.Wrap(err, "could not reannounce torrent: %v", release.TorrentHash)
-		}
-	}
 
-	s.log.Info().Msgf("torrent with hash %v successfully added to client: '%v'", release.TorrentHash, c.Dc.Name)
+		s.log.Info().Msgf("torrent from magnet successfully added to client: '%s'", c.Dc.Name)
+
+		return nil, nil
+	} else {
+		if release.TorrentTmpFile == "" {
+			if err := release.DownloadTorrentFileCtx(ctx); err != nil {
+				return nil, errors.Wrap(err, "error downloading torrent file for release: %s", release.TorrentName)
+			}
+		}
+
+		options, err := s.prepareQbitOptions(action)
+		if err != nil {
+			return nil, errors.Wrap(err, "could not prepare options")
+		}
+
+		s.log.Trace().Msgf("action qBittorrent options: %+v", options)
+
+		if err = c.Qbt.AddTorrentFromFileCtx(ctx, release.TorrentTmpFile, options); err != nil {
+			return nil, errors.Wrap(err, "could not add torrent %s to client: %s", release.TorrentTmpFile, c.Dc.Name)
+		}
+
+		if !action.Paused && !action.ReAnnounceSkip && release.TorrentHash != "" {
+			opts := qbittorrent.ReannounceOptions{
+				Interval:        int(action.ReAnnounceInterval),
+				MaxAttempts:     int(action.ReAnnounceMaxAttempts),
+				DeleteOnFailure: action.ReAnnounceDelete,
+			}
+			if err := c.Qbt.ReannounceTorrentWithRetry(ctx, opts, release.TorrentHash); err != nil {
+				return nil, errors.Wrap(err, "could not reannounce torrent: %s", release.TorrentHash)
+			}
+		}
+
+		s.log.Info().Msgf("torrent with hash %s successfully added to client: '%s'", release.TorrentHash, c.Dc.Name)
+	}
 
 	return nil, nil
 }
@@ -104,6 +121,8 @@ func (s *service) prepareQbitOptions(action *domain.Action) (map[string]string, 
 func (s *service) qbittorrentCheckRulesCanDownload(ctx context.Context, action *domain.Action, client *domain.DownloadClient, qbt *qbittorrent.Client) ([]string, error) {
 	s.log.Trace().Msgf("action qBittorrent: %v check rules", action.Name)
 
+	checked := false
+
 	// check for active downloads and other rules
 	if client.Settings.Rules.Enabled && !action.IgnoreRules {
 		activeDownloads, err := qbt.GetTorrentsActiveDownloadsCtx(ctx)
@@ -117,33 +136,16 @@ func (s *service) qbittorrentCheckRulesCanDownload(ctx context.Context, action *
 			// if max active downloads reached, check speed and if lower than threshold add anyway
 			if len(activeDownloads) >= client.Settings.Rules.MaxActiveDownloads {
 				if client.Settings.Rules.IgnoreSlowTorrents {
-					// check speeds of downloads
-					info, err := qbt.GetTransferInfoCtx(ctx)
-					if err != nil {
-						return nil, errors.Wrap(err, "could not get transfer info")
+					if client.Settings.Rules.IgnoreSlowTorrentsCondition == domain.IgnoreSlowTorrentsModeMaxReached {
+						rejections, err := s.qbittorrentCheckIgnoreSlow(ctx, client, qbt)
+						if err != nil {
+							return rejections, err
+						}
+
+						s.log.Debug().Msg("active downloads are slower than set limit, lets add it")
+
+						checked = true
 					}
-
-					// if current transfer speed is more than threshold return out and skip
-					// DlInfoSpeed is in bytes so lets convert to KB to match DownloadSpeedThreshold
-					if info.DlInfoSpeed/1024 >= client.Settings.Rules.DownloadSpeedThreshold {
-						rejection := fmt.Sprintf("max active downloads reached and total download speed above threshold: %d, skipping", client.Settings.Rules.DownloadSpeedThreshold)
-
-						s.log.Debug().Msg(rejection)
-
-						return []string{rejection}, nil
-					}
-
-					// if current transfer speed is more than threshold return out and skip
-					// UpInfoSpeed is in bytes so lets convert to KB to match UploadSpeedThreshold
-					if info.UpInfoSpeed/1024 >= client.Settings.Rules.UploadSpeedThreshold {
-						rejection := fmt.Sprintf("max active downloads reached and total upload speed above threshold: %d, skipping", client.Settings.Rules.UploadSpeedThreshold)
-
-						s.log.Debug().Msg(rejection)
-
-						return []string{rejection}, nil
-					}
-
-					s.log.Debug().Msg("active downloads are slower than set limit, lets add it")
 				} else {
 					rejection := "max active downloads reached, skipping"
 
@@ -153,7 +155,56 @@ func (s *service) qbittorrentCheckRulesCanDownload(ctx context.Context, action *
 				}
 			}
 		}
+
+		if !checked && client.Settings.Rules.IgnoreSlowTorrentsCondition == domain.IgnoreSlowTorrentsModeAlways {
+			rejections, err := s.qbittorrentCheckIgnoreSlow(ctx, client, qbt)
+			if err != nil {
+				return rejections, err
+			}
+
+			if len(rejections) > 0 {
+				return rejections, nil
+			}
+		}
 	}
+
+	return nil, nil
+}
+
+func (s *service) qbittorrentCheckIgnoreSlow(ctx context.Context, client *domain.DownloadClient, qbt *qbittorrent.Client) ([]string, error) {
+	// get transfer info
+	info, err := qbt.GetTransferInfoCtx(ctx)
+	if err != nil {
+		return nil, errors.Wrap(err, "could not get transfer info")
+	}
+
+	s.log.Debug().Msgf("checking client ignore slow torrent rules: %+v", info)
+
+	if client.Settings.Rules.DownloadSpeedThreshold > 0 {
+		// if current transfer speed is more than threshold return out and skip
+		// DlInfoSpeed is in bytes so lets convert to KB to match DownloadSpeedThreshold
+		if info.DlInfoSpeed/1024 >= client.Settings.Rules.DownloadSpeedThreshold {
+			rejection := fmt.Sprintf("max active downloads reached and total download speed (%d) above threshold: (%d), skipping", info.DlInfoSpeed/1024, client.Settings.Rules.DownloadSpeedThreshold)
+
+			s.log.Debug().Msg(rejection)
+
+			return []string{rejection}, nil
+		}
+	}
+
+	if client.Settings.Rules.UploadSpeedThreshold > 0 {
+		// if current transfer speed is more than threshold return out and skip
+		// UpInfoSpeed is in bytes so lets convert to KB to match UploadSpeedThreshold
+		if info.UpInfoSpeed/1024 >= client.Settings.Rules.UploadSpeedThreshold {
+			rejection := fmt.Sprintf("max active downloads reached and total upload speed (%d) above threshold: (%d), skipping", info.UpInfoSpeed/1024, client.Settings.Rules.UploadSpeedThreshold)
+
+			s.log.Debug().Msg(rejection)
+
+			return []string{rejection}, nil
+		}
+	}
+
+	s.log.Debug().Msg("active downloads are slower than set limit, lets add it")
 
 	return nil, nil
 }

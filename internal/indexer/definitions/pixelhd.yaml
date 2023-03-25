@@ -64,6 +64,11 @@ irc:
     type: multi
     lines:
       - test:
+          - "New torrent uploaded!"
+        pattern: '^New torrent uploaded!$'
+        ignore: true
+
+      - test:
           - "Title: Dragons Forever | Year: 1988 | URL: https://pixelhd.me/torrents.php?torrentid=23001"
         pattern: 'Title: (.*) \| Year: (.*) \| URL: (https?:\/\/.*\/).+id=(.+)'
         vars:
@@ -71,6 +76,7 @@ irc:
           - year
           - baseUrl
           - torrentId
+
       - test:
           - "Uploader: Anon | Release Group: Px4K | Format: MP4 | Genre(s): action,comedy,romance"
         pattern: 'Uploader: (.*) \| Release Group: (.*) \| Format: (.*) \| Genre\(s\): (.*)'
@@ -81,4 +87,5 @@ irc:
           - tags
 
     match:
+      infourl: "/torrents.php?torrentid={{ .torrentId }}"
       torrenturl: "/torrents.php?action=download&id={{ .torrentId }}&authkey={{ .authkey }}&torrent_pass={{ .torrent_pass }}"

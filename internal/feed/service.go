@@ -12,6 +12,7 @@ import (
 	"github.com/autobrr/autobrr/internal/release"
 	"github.com/autobrr/autobrr/internal/scheduler"
 	"github.com/autobrr/autobrr/pkg/errors"
+	"github.com/autobrr/autobrr/pkg/newznab"
 	"github.com/autobrr/autobrr/pkg/torznab"
 
 	"github.com/dcarbone/zadapters/zstdlog"
@@ -222,17 +223,27 @@ func (s *service) test(ctx context.Context, feed *domain.Feed) error {
 	subLogger := zstdlog.NewStdLoggerWithLevel(s.log.With().Logger(), zerolog.DebugLevel)
 
 	// test feeds
-	if feed.Type == string(domain.FeedTypeTorznab) {
+	switch feed.Type {
+	case string(domain.FeedTypeTorznab):
 		if err := s.testTorznab(ctx, feed, subLogger); err != nil {
 			return err
 		}
-	} else if feed.Type == string(domain.FeedTypeRSS) {
+
+	case string(domain.FeedTypeNewznab):
+		if err := s.testNewznab(ctx, feed, subLogger); err != nil {
+			return err
+		}
+
+	case string(domain.FeedTypeRSS):
 		if err := s.testRSS(ctx, feed); err != nil {
 			return err
 		}
+
+	default:
+		return errors.New("unsupported feed type: %s", feed.Type)
 	}
 
-	s.log.Info().Msgf("feed test successful - connected to feed: %v", feed.URL)
+	s.log.Info().Msgf("feed test successful - connected to feed: %s", feed.URL)
 
 	return nil
 }
@@ -264,6 +275,21 @@ func (s *service) testTorznab(ctx context.Context, feed *domain.Feed, subLogger 
 	return nil
 }
 
+func (s *service) testNewznab(ctx context.Context, feed *domain.Feed, subLogger *log.Logger) error {
+	// setup newznab Client
+	c := newznab.NewClient(newznab.Config{Host: feed.URL, ApiKey: feed.ApiKey, Log: subLogger})
+
+	items, err := c.GetFeed(ctx)
+	if err != nil {
+		s.log.Error().Err(err).Msg("error getting newznab feed")
+		return err
+	}
+
+	s.log.Info().Msgf("refreshing newznab feed: %v, found (%d) items", feed.Name, len(items.Channel.Items))
+
+	return nil
+}
+
 func (s *service) start() error {
 	// get all torznab indexer definitions
 	feeds, err := s.repo.Find(context.TODO())
@@ -275,7 +301,7 @@ func (s *service) start() error {
 	for _, feed := range feeds {
 		feed := feed
 		if err := s.startJob(&feed); err != nil {
-			s.log.Error().Err(err).Msg("failed to initialize torznab job")
+			s.log.Error().Err(err).Msgf("failed to initialize feed job: %s", feed.Name)
 			continue
 		}
 	}
@@ -335,6 +361,13 @@ func (s *service) startJob(f *domain.Feed) error {
 			s.log.Error().Err(err).Msg("failed to initialize torznab feed")
 			return err
 		}
+
+	case string(domain.FeedTypeNewznab):
+		if err := s.addNewznabJob(fi); err != nil {
+			s.log.Error().Err(err).Msg("failed to initialize newznab feed")
+			return err
+		}
+
 	case string(domain.FeedTypeRSS):
 		if err := s.addRSSJob(fi); err != nil {
 			s.log.Error().Err(err).Msg("failed to initialize rss feed")
@@ -376,6 +409,37 @@ func (s *service) addTorznabJob(f feedInstance) error {
 	s.jobs[identifierKey] = id
 
 	s.log.Debug().Msgf("add torznab job: %v", f.Name)
+
+	return nil
+}
+
+func (s *service) addNewznabJob(f feedInstance) error {
+	if f.URL == "" {
+		return errors.New("newznab feed requires URL")
+	}
+
+	// setup logger
+	l := s.log.With().Str("feed", f.Name).Logger()
+
+	// setup newznab Client
+	c := newznab.NewClient(newznab.Config{Host: f.URL, ApiKey: f.ApiKey, Timeout: f.Timeout})
+
+	// create job
+	job := NewNewznabJob(f.Feed, f.Name, f.IndexerIdentifier, l, f.URL, c, s.repo, s.cacheRepo, s.releaseSvc)
+
+	identifierKey := feedKey{f.Feed.ID, f.Feed.Indexer, f.Feed.Name}.ToString()
+
+	// schedule job
+	id, err := s.scheduler.AddJob(job, f.CronSchedule, identifierKey)
+	if err != nil {
+		return errors.Wrap(err, "feed.AddNewznabJob: add job failed")
+	}
+	job.JobID = id
+
+	// add to job map
+	s.jobs[identifierKey] = id
+
+	s.log.Debug().Msgf("add newznab job: %v", f.Name)
 
 	return nil
 }

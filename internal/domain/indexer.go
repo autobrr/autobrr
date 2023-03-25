@@ -48,7 +48,35 @@ type IndexerDefinition struct {
 	SettingsMap    map[string]string `json:"-"`
 	IRC            *IndexerIRC       `json:"irc,omitempty"`
 	Torznab        *Torznab          `json:"torznab,omitempty"`
+	Newznab        *Newznab          `json:"newznab,omitempty"`
 	RSS            *FeedSettings     `json:"rss,omitempty"`
+}
+
+type IndexerImplementation string
+
+const (
+	IndexerImplementationIRC     IndexerImplementation = "irc"
+	IndexerImplementationTorznab IndexerImplementation = "torznab"
+	IndexerImplementationNewznab IndexerImplementation = "newznab"
+	IndexerImplementationRSS     IndexerImplementation = "rss"
+	IndexerImplementationLegacy  IndexerImplementation = ""
+)
+
+func (i IndexerImplementation) String() string {
+	switch i {
+	case IndexerImplementationIRC:
+		return "irc"
+	case IndexerImplementationTorznab:
+		return "torznab"
+	case IndexerImplementationNewznab:
+		return "newznab"
+	case IndexerImplementationRSS:
+		return "rss"
+	case IndexerImplementationLegacy:
+		return ""
+	}
+
+	return ""
 }
 
 func (i IndexerDefinition) HasApi() bool {
@@ -77,6 +105,7 @@ type IndexerDefinitionCustom struct {
 	SettingsMap    map[string]string `json:"-"`
 	IRC            *IndexerIRC       `json:"irc,omitempty"`
 	Torznab        *Torznab          `json:"torznab,omitempty"`
+	Newznab        *Newznab          `json:"newznab,omitempty"`
 	RSS            *FeedSettings     `json:"rss,omitempty"`
 	Parse          *IndexerIRCParse  `json:"parse,omitempty"`
 }
@@ -99,6 +128,7 @@ func (i *IndexerDefinitionCustom) ToIndexerDefinition() *IndexerDefinition {
 		SettingsMap:    i.SettingsMap,
 		IRC:            i.IRC,
 		Torznab:        i.Torznab,
+		Newznab:        i.Newznab,
 		RSS:            i.RSS,
 	}
 
@@ -122,6 +152,11 @@ type IndexerSetting struct {
 }
 
 type Torznab struct {
+	MinInterval int              `json:"minInterval"`
+	Settings    []IndexerSetting `json:"settings"`
+}
+
+type Newznab struct {
 	MinInterval int              `json:"minInterval"`
 	Settings    []IndexerSetting `json:"settings"`
 }
@@ -172,15 +207,18 @@ type IndexerIRCParseLine struct {
 	Test    []string `json:"test"`
 	Pattern string   `json:"pattern"`
 	Vars    []string `json:"vars"`
+	Ignore  bool     `json:"ignore"`
 }
 
 type IndexerIRCParseMatch struct {
 	TorrentURL  string   `json:"torrenturl"`
 	TorrentName string   `json:"torrentname"`
+	InfoURL     string   `json:"infourl"`
 	Encode      []string `json:"encode"`
 }
 
 type IndexerIRCParseMatched struct {
+	InfoURL     string
 	TorrentURL  string
 	TorrentName string
 }
@@ -195,6 +233,45 @@ func (p *IndexerIRCParse) ParseMatch(baseURL string, vars map[string]string) (*I
 			t := url.QueryEscape(v)
 			vars[e] = t
 		}
+	}
+
+	if p.Match.InfoURL != "" {
+		// setup text template to inject variables into
+		tmpl, err := template.New("infourl").Funcs(sprig.TxtFuncMap()).Parse(p.Match.InfoURL)
+		if err != nil {
+			return nil, errors.New("could not create info url template")
+		}
+
+		var urlBytes bytes.Buffer
+		if err := tmpl.Execute(&urlBytes, &vars); err != nil {
+			return nil, errors.New("could not write info url template output")
+		}
+
+		templateUrl := urlBytes.String()
+		parsedUrl, err := url.Parse(templateUrl)
+		if err != nil {
+			return nil, err
+		}
+
+		// for backwards compatibility remove Host and Scheme to rebuild url
+		if parsedUrl.Host != "" {
+			parsedUrl.Host = ""
+		}
+		if parsedUrl.Scheme != "" {
+			parsedUrl.Scheme = ""
+		}
+
+		// join baseURL with query
+		baseUrlPath, err := url.JoinPath(baseURL, parsedUrl.Path)
+		if err != nil {
+			return nil, errors.Wrap(err, "could not join info url")
+		}
+
+		// reconstruct url
+		infoUrl, _ := url.Parse(baseUrlPath)
+		infoUrl.RawQuery = parsedUrl.RawQuery
+
+		matched.InfoURL = infoUrl.String()
 	}
 
 	if p.Match.TorrentURL != "" {

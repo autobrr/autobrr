@@ -65,14 +65,13 @@ irc:
           - "New: (מה שקורה בצללים - עונה 4, פרק 3 / What We Do in the Shadows - S04E03 *היידפנישן*) Category: סדרות - HD Size: 825.43 MiB Seeders: 0 Leechers: 0"
           - "New: (לגו מלחמת הכוכבים: חופשת קיץ / LEGO Star Wars Summer Vacation *היידפנישן*) Category: סרטים - HD Size: 1.02 GiB Seeders: 0 Leechers: 0"
           - "New: (תמונות מחיי נישואין - עונה 1 / Scenes from a Marriage (US) - S01 *היידפנישן מלא*) Category: סדרות - HD מלא Size: 18.61 GiB Seeders: 0 Leechers: 0"
-        pattern: '^New: \((.*)\) Category: (.*) Size: ([\d\.,]+ \w+) Seeders: .+ Leechers: .+'
+        pattern: '^New: .* Category: .* (.*) Size: (.*) Seeders: .+ Leechers: .+'
         vars:
-          - name1
           - category
           - torrentSize
       - test:
           - "Link: https://hebits.net/torrents.php?torrentid=80081"
-        pattern: '^Link: (https?\:\/\/?[w{3}.]*[^\/]+\/).+torrentid=(\d+)'
+        pattern: '^Link: (https://?.*/).*torrentid=(\d+)'
         vars:
           - baseUrl
           - torrentId
@@ -85,4 +84,5 @@ irc:
           - torrentName
 
     match:
+      infourl: "/torrents.php?id={{ .torrentId }}"
       torrenturl: "/torrents.php?action=download&id={{ .torrentId }}&authkey={{ .authkey }}&torrent_pass={{ .passkey }}"

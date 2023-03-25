@@ -4,6 +4,8 @@ before:
 
 builds:
   - id: autobrr
+    env:
+      - CGO_ENABLED=0
     goos:
       - linux
       - windows
@@ -29,6 +31,8 @@ builds:
     main: ./cmd/autobrr/main.go
     binary: autobrr
   - id: autobrrctl
+    env:
+      - CGO_ENABLED=0
     goos:
       - linux
       - windows

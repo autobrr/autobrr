@@ -15,24 +15,22 @@ import { EmptySimple } from "../../components/emptystates";
 function APISettings() {
   const [addFormIsOpen, toggleAddForm] = useToggle(false);
 
-  const { data } = useQuery(
-    ["apikeys"],
-    () => APIClient.apikeys.getAll(),
-    {
-      retry: false,
-      refetchOnWindowFocus: false,
-      onError: err => console.log(err)
-    }
-  );
+  const { data } = useQuery(["apikeys"], () => APIClient.apikeys.getAll(), {
+    retry: false,
+    refetchOnWindowFocus: false,
+    onError: (err) => console.log(err)
+  });
 
   return (
     <div className="divide-y divide-gray-200 dark:divide-gray-700 lg:col-span-9">
       <div className="pb-6 py-6 px-4 sm:p-6 lg:pb-8">
-        <APIKeyAddForm isOpen={addFormIsOpen} toggle={toggleAddForm}/>
+        <APIKeyAddForm isOpen={addFormIsOpen} toggle={toggleAddForm} />
 
         <div className="-ml-4 -mt-4 flex justify-between items-center flex-wrap sm:flex-nowrap">
           <div className="ml-4 mt-4">
-            <h3 className="text-lg leading-6 font-medium text-gray-900 dark:text-white">API keys</h3>
+            <h3 className="text-lg leading-6 font-medium text-gray-900 dark:text-white">
+              API keys
+            </h3>
             <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
               Manage API keys.
             </p>
@@ -48,32 +46,36 @@ function APISettings() {
           </div>
         </div>
 
-        {data && data.length > 0 ?
+        {data && data.length > 0 ? (
           <section className="mt-6 light:bg-white dark:bg-gray-800 light:shadow sm:rounded-md">
             <ol className="min-w-full relative">
-              <li className="grid grid-cols-12 gap-4 mb-2 border-b border-gray-200 dark:border-gray-700">
-                <div
-                  className="col-span-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Name
+              <li className="hidden sm:grid grid-cols-12 gap-4 mb-2 border-b border-gray-200 dark:border-gray-700">
+                <div className="col-span-5 px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  Name
                 </div>
-                <div
-                  className="col-span-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Key
+                <div className="col-span-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  Key
                 </div>
               </li>
 
-              {data && data.map((k) => (
-                <APIListItem key={k.key} apikey={k}/>
-              ))}
+              {data && data.map((k) => <APIListItem key={k.key} apikey={k} />)}
             </ol>
           </section>
-          : <EmptySimple title="No API keys" subtitle="" buttonAction={toggleAddForm}
-            buttonText="Create API key"/>}
+        ) : (
+          <EmptySimple
+            title="No API keys"
+            subtitle=""
+            buttonAction={toggleAddForm}
+            buttonText="Create API key"
+          />
+        )}
       </div>
     </div>
   );
 }
 
 interface ApiKeyItemProps {
-  apikey: APIKey
+  apikey: APIKey;
 }
 
 function APIListItem({ apikey }: ApiKeyItemProps) {
@@ -87,7 +89,13 @@ function APIListItem({ apikey }: ApiKeyItemProps) {
         queryClient.invalidateQueries(["apikeys"]);
         queryClient.invalidateQueries(["apikeys", apikey.key]);
 
-        toast.custom((t) => <Toast type="success" body={`API key ${apikey?.name} was deleted`} t={t}/>);
+        toast.custom((t) => (
+          <Toast
+            type="success"
+            body={`API key ${apikey?.name} was deleted`}
+            t={t}
+          />
+        ));
       }
     }
   );
@@ -106,15 +114,32 @@ function APIListItem({ apikey }: ApiKeyItemProps) {
         text="Are you sure you want to remove this API key? This action cannot be undone."
       />
 
-      <div className="grid grid-cols-12 gap-4 items-center py-2">
-        <div className="col-span-4 overflow-auto flex items-center text-sm font-medium text-gray-900 dark:text-white">
-          {apikey.name}
+      <div className="sm:grid grid-cols-12 gap-4 items-center py-2">
+        <div className="col-span-5 px-2 sm:px-6 py-2 sm:py-0 truncate block sm:text-sm text-md font-medium text-gray-900 dark:text-white">
+          <div className="flex justify-between">
+            <div className="pl-1 py-2">{apikey.name}</div>
+            <div>
+              <button
+                className={classNames(
+                  "text-gray-900 dark:text-gray-300",
+                  "sm:hidden font-medium group rounded-md items-center px-2 py-2 text-sm"
+                )}
+                onClick={toggleDeleteModal}
+                title="Delete key"
+              >
+                <TrashIcon
+                  className="text-red-500 w-5 h-5"
+                  aria-hidden="true"
+                />
+              </button>
+            </div>
+          </div>
         </div>
         <div className="col-span-6 flex items-center text-sm font-medium text-gray-900 dark:text-white">
-          <KeyField value={apikey.key}/>
+          <KeyField value={apikey.key} />
         </div>
 
-        <div className="col-span-2 flex items-center justify-end text-sm font-medium text-gray-900 dark:text-white">
+        <div className="col-span-1 hidden sm:flex items-center text-sm font-medium text-gray-900 dark:text-white">
           <button
             className={classNames(
               "text-gray-900 dark:text-gray-300",
@@ -123,10 +148,7 @@ function APIListItem({ apikey }: ApiKeyItemProps) {
             onClick={toggleDeleteModal}
             title="Delete key"
           >
-            <TrashIcon
-              className="text-red-500 w-5 h-5"
-              aria-hidden="true"
-            />
+            <TrashIcon className="text-red-500 w-5 h-5" aria-hidden="true" />
           </button>
         </div>
       </div>
