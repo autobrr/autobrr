@@ -191,7 +191,7 @@ function IndexerSettings() {
               <ol className="min-w-full relative">
                 <li className="grid grid-cols-12 border-b border-gray-200 dark:border-gray-700">
                   <div
-                    className="col-span-2 sm:col-span-1 px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer"
+                    className="flex col-span-2 sm:col-span-1 px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer"
                     onClick={() => sortedIndexers.requestSort("enabled")}
                   >
   Enabled <span className="sort-indicator">{sortedIndexers.getSortIndicator("enabled")}</span>
