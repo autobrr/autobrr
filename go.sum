@@ -318,8 +318,8 @@ github.com/modern-go/reflect2 v0.0.0-20180701023420-4b7aa43c6742/go.mod h1:bx2lN
 github.com/modern-go/reflect2 v1.0.1/go.mod h1:bx2lNnkwVCuqBIxFjflWJWanXIb3RllmbCylyMrvgv0=
 github.com/modern-go/reflect2 v1.0.2 h1:xBagoLtFs94CBntxluKeaWgTMpvLxC4ur3nMaC9Gz0M=
 github.com/modern-go/reflect2 v1.0.2/go.mod h1:yWuevngMOJpCy52FWWMvUC8ws7m/LJsjYzDa0/r8luk=
-github.com/moistari/rls v0.5.6 h1:fiKytdrlBfiXQomYLY/nuAyzzvz0zbY93FfO1CYJk30=
-github.com/moistari/rls v0.5.6/go.mod h1:+VmEKlV6nBXzhGxyO9NoHIp8ywSQlm89UUGPNi8vZVc=
+github.com/moistari/rls v0.5.9 h1:peRGW+1/HJDUZ76s0v2ukcBLCBUs4/Qf3TKOzRjOOco=
+github.com/moistari/rls v0.5.9/go.mod h1:/3P63JjNkaf1MNBoS2tSXqGeqee6l4je+Krakp4ob7c=
 github.com/mrobinsn/go-rtorrent v1.8.0 h1:+61aDIP0asy57lRD/uZtmxfE0/gjkHnt3uddOhMKUJ8=
 github.com/mrobinsn/go-rtorrent v1.8.0/go.mod h1:CdVq2IwM+JU9D6TnWiQSg9lqZWu6zUfK67YXET2LqIM=
 github.com/mschoch/smat v0.0.0-20160514031455-90eadee771ae/go.mod h1:qAyveg+e4CE+eKJXWVjKXM4ck2QobLqTDytGJbLLhJg=
