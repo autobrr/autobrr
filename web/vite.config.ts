@@ -25,8 +25,8 @@ export default ({ mode }: { mode: any }) => {
         name: "autobrr",
         short_name: "autobrr",
         description: "Automation for downloads.",
-        theme_color: "#19191A",
-        background_color: "#ffffff",
+        theme_color: "#141415",
+        background_color: "#141415",
         icons: [
           {
             src: "logo192.png",
