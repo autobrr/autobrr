@@ -162,19 +162,19 @@ const IrcSettings = () => {
           <section className="mt-6 light:bg-white dark:bg-gray-800 light:shadow md:rounded-md">
             <ol className="min-w-full relative">
               <li className="grid grid-cols-12 gap-4 border-b border-gray-200 dark:border-gray-700">
-                <div className="flex col-span-2 md:col-span-1 px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
+                <div className="flex col-span-2 md:col-span-1 px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer"
                   onClick={() => sortedNetworks.requestSort("enabled")}>
                     Enabled <span className="sort-indicator">{sortedNetworks.getSortIndicator("enabled")}</span>
                 </div>
-                <div className="col-span-10 md:col-span-3 px-8 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
+                <div className="col-span-10 md:col-span-3 px-8 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer"
                   onClick={() => sortedNetworks.requestSort("name")}>
                   Network <span className="sort-indicator">{sortedNetworks.getSortIndicator("name")}</span>
                 </div>
-                <div className="hidden md:flex col-span-4 px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
+                <div className="hidden md:flex col-span-4 px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer"
                   onClick={() => sortedNetworks.requestSort("server")}>
                   Server <span className="sort-indicator">{sortedNetworks.getSortIndicator("server")}</span>
                 </div>
-                <div className="hidden md:flex col-span-3 px-5 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
+                <div className="hidden md:flex col-span-3 px-5 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer"
                   onClick={() => sortedNetworks.requestSort("nick")}>
                 Nick <span className="sort-indicator">{sortedNetworks.getSortIndicator("nick")}</span>
                 </div>

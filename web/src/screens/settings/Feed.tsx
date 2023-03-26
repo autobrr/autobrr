@@ -102,20 +102,24 @@ function FeedSettings() {
             <ol className="min-w-full relative">
               <li className="grid grid-cols-12 border-b border-gray-200 dark:border-gray-700">
                 <div
-                  className="col-span-2 sm:col-span-1 px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
+                  className="flex col-span-2 sm:col-span-1 px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer"
                   onClick={() => sortedFeeds.requestSort("enabled")}>
-                  Enabled
+                  Enabled <span className="sort-indicator">{sortedFeeds.getSortIndicator("enabled")}</span>
                 </div>
                 <div
-                  className="col-span-6 pl-12 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
+                  className="col-span-6 pl-12 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer"
                   onClick={() => sortedFeeds.requestSort("name")}>
-                    Name
+                  Name <span className="sort-indicator">{sortedFeeds.getSortIndicator("name")}</span>
                 </div>
                 <div
-                  className="hidden md:flex col-span-1 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Type
+                  className="hidden md:flex col-span-1 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer"
+                  onClick={() => sortedFeeds.requestSort("type")}>
+                  Type <span className="sort-indicator">{sortedFeeds.getSortIndicator("type")}</span>
                 </div>
                 <div
-                  className="hidden md:flex col-span-3 px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Last run
+                  className="hidden md:flex col-span-3 px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer"
+                  onClick={() => sortedFeeds.requestSort("last_run")}>
+                  Last run <span className="sort-indicator">{sortedFeeds.getSortIndicator("last_run")}</span>
                 </div>
               </li>
               {sortedFeeds.items.map((feed, idx) => (

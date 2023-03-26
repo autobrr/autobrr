@@ -182,23 +182,23 @@ function DownloadClientSettings() {
             <section className="light:bg-white dark:bg-gray-800 light:shadow sm:rounded-sm">
               <ol className="min-w-full relative">
                 <li className="grid grid-cols-12 border-b border-gray-200 dark:border-gray-700">
-                  <div className="flex col-span-2 sm:col-span-1 px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
+                  <div className="flex col-span-2 sm:col-span-1 px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer"
                     onClick={() => sortedClients.requestSort("enabled")}>
                     Enabled <span className="sort-indicator">{sortedClients.getSortIndicator("enabled")}</span>
                   </div>
                   <div 
-                    className="col-span-6 sm:col-span-4 lg:col-span-4 pl-12 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
+                    className="col-span-6 sm:col-span-4 lg:col-span-4 pl-12 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer"
                     onClick={() => sortedClients.requestSort("name")}
                   >
                     Name <span className="sort-indicator">{sortedClients.getSortIndicator("name")}</span>
                   </div>
                   <div
-                    className="hidden sm:flex col-span-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
+                    className="hidden sm:flex col-span-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer"
                     onClick={() => sortedClients.requestSort("host")}
                   >
                     Host <span className="sort-indicator">{sortedClients.getSortIndicator("host")}</span>
                   </div>
-                  <div className="hidden sm:flex col-span-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
+                  <div className="hidden sm:flex col-span-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer"
                     onClick={() => sortedClients.requestSort("type")}
                   >
                     Type <span className="sort-indicator">{sortedClients.getSortIndicator("type")}</span>
