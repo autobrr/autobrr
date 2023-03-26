@@ -44,6 +44,7 @@ port = 7474
 
 # autobrr logs file
 # If not defined, logs to stdout
+# Make sure to use forward slashes and include the filename with extension. eg: "log/autobrr.log", "C:/autobrr/log/autobrr.log"
 #
 # Optional
 #
