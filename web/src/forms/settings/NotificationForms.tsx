@@ -135,7 +135,7 @@ function FormFieldsPushover() {
         help="API Token"
       />
       <PasswordFieldWide
-        name="user_key"
+        name="token"
         label="User Key"
         help="User Key"
       />
@@ -433,7 +433,6 @@ interface InitialValues {
   webhook?: string;
   token?: string;
   api_key?: string;
-  user_key?: string;
   priority?: number;
   channel?: string;
   events: NotificationEvent[];
@@ -490,7 +489,6 @@ export function NotificationUpdateForm({ isOpen, toggle, notification }: UpdateP
     webhook: notification.webhook,
     token: notification.token,
     api_key: notification.api_key,
-    user_key: notification.user_key,
     priority: notification.priority,
     channel: notification.channel,
     events: notification.events || []

@@ -11,6 +11,5 @@ interface Notification {
   token?: string;
   api_key?: string;
   channel?: string;
-  user_key?: string;
   priority?: number;
 }

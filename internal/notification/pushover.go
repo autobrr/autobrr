@@ -17,7 +17,7 @@ import (
 
 type pushoverMessage struct {
 	Token     string    `json:"api_key"`
-	User      string    `json:"user_key"`
+	User      string    `json:"token"`
 	Message   string    `json:"message"`
 	Priority  string    `json:"priority"`
 	Title     string    `json:"title"`
@@ -42,7 +42,7 @@ func NewPushoverSender(log zerolog.Logger, settings domain.Notification) domain.
 func (s *pushoverSender) Send(event domain.NotificationEvent, payload domain.NotificationPayload) error {
 	m := pushoverMessage{
 		Token:     s.Settings.APIKey,
-		User:      s.Settings.UserKey,
+		User:      s.Settings.Token,
 		Priority:  s.Settings.Priority,
 		Message:   s.buildMessage(payload),
 		Title:     s.buildTitle(event),
@@ -109,7 +109,7 @@ func (s *pushoverSender) isEnabled() bool {
 			return false
 		}
 
-		if s.Settings.UserKey == "" {
+		if s.Settings.Token == "" {
 			s.log.Warn().Msg("pushover missing user key")
 			return false
 		}
