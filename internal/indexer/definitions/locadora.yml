@@ -1,7 +1,7 @@
 ---
 #id: Locadora 
 name: Locadora
-identifier: Locadora
+identifier: locadora
 description: Locadora is a Brazilian tracker for Movies, TV Shows and Animes.
 language: pt-BR
 urls:
