@@ -1,14 +1,16 @@
 type DownloadClientType =
-    "QBITTORRENT" |
-    "DELUGE_V1" |
-    "DELUGE_V2" |
-    "RTORRENT" |
-    "TRANSMISSION" |
-    "RADARR" |
-    "SONARR" |
-    "LIDARR" |
-    "WHISPARR" |
-    "READARR";
+  "QBITTORRENT" |
+  "DELUGE_V1" |
+  "DELUGE_V2" |
+  "RTORRENT" |
+  "TRANSMISSION" |
+  "PORLA" |
+  "RADARR" |
+  "SONARR" |
+  "LIDARR" |
+  "WHISPARR" |
+  "READARR" |
+  "SABNZBD";
 
 // export enum DownloadClientTypeEnum {
 //     QBITTORRENT = "QBITTORRENT",
@@ -25,6 +27,7 @@ interface DownloadClientRules {
   max_active_downloads: number;
   ignore_slow_torrents: boolean;
   download_speed_threshold: number;
+  upload_speed_threshold: number;
 }
 
 interface DownloadClientBasicAuth {

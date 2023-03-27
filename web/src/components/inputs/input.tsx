@@ -2,6 +2,7 @@ import { Field, FieldProps } from "formik";
 import { classNames } from "../../utils";
 import { EyeIcon, EyeSlashIcon } from "@heroicons/react/24/solid";
 import { useToggle } from "../../hooks/hooks";
+import { CustomTooltip } from "../tooltips/CustomTooltip";
 
 type COL_WIDTHS = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12;
 
@@ -14,6 +15,7 @@ interface TextFieldProps {
     autoComplete?: string;
     hidden?: boolean;
     disabled?: boolean;
+    tooltip?: JSX.Element;
 }
 
 export const TextField = ({
@@ -24,6 +26,7 @@ export const TextField = ({
   columns,
   autoComplete,
   hidden,
+  tooltip,
   disabled
 }: TextFieldProps) => (
   <div
@@ -33,8 +36,13 @@ export const TextField = ({
     )}
   >
     {label && (
-      <label htmlFor={name} className="block text-xs font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wide">
-        {label}
+      <label htmlFor={name} className="flex float-left mb-2 text-xs font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wide">
+        <div className="flex">
+          {label}
+          {tooltip && (
+            <CustomTooltip anchorId={name}>{tooltip}</CustomTooltip>
+          )}
+        </div>
       </label>
     )}
     <Field name={name}>
@@ -45,7 +53,7 @@ export const TextField = ({
         <div>
           <input
             {...field}
-            id={name}
+            name={name}
             type="text"
             defaultValue={defaultValue}
             autoComplete={autoComplete}
@@ -199,11 +207,15 @@ export const PasswordField = ({
 };
 
 interface NumberFieldProps {
-    name: string;
-    label?: string;
-    placeholder?: string;
-    step?: number;
-    disabled?: boolean;
+  name: string;
+  label?: string;
+  placeholder?: string;
+  step?: number;
+  disabled?: boolean;
+  required?: boolean;
+  min?: number;
+  max?: number;
+  tooltip?: JSX.Element;
 }
 
 export const NumberField = ({
@@ -211,23 +223,34 @@ export const NumberField = ({
   label,
   placeholder,
   step,
-  disabled
+  min,
+  max,
+  tooltip,
+  disabled,
+  required
 }: NumberFieldProps) => (
   <div className="col-span-12 sm:col-span-6">
-    <label htmlFor={name} className="block text-xs font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wide">
-      {label}
+    <label
+      htmlFor={name}
+      className="flex float-left mb-2 text-xs font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wide"
+    >
+      <div className="flex">
+        {label}
+        {tooltip && <CustomTooltip anchorId={name}>{tooltip}</CustomTooltip>}
+      </div>
     </label>
 
     <Field name={name} type="number">
-      {({
-        field,
-        meta
-      }: FieldProps) => (
+      {({ field, meta, form }: FieldProps<number>) => (
         <div className="sm:col-span-2">
           <input
             type="number"
-            step={step}
             {...field}
+            step={step}
+            min={min}
+            max={max}
+            inputMode="numeric"
+            required={required}
             className={classNames(
               meta.touched && meta.error
                 ? "focus:ring-red-500 focus:border-red-500 border-red-500"
@@ -237,12 +260,20 @@ export const NumberField = ({
             )}
             placeholder={placeholder}
             disabled={disabled}
+            onChange={event => {
+              // safeguard and validation if user removes the number
+              // it will then set 0 by default. Formik can't handle this properly
+              if (event.target.value == "") {
+                form.setFieldValue(field.name, 0);
+                return;
+              }
+              form.setFieldValue(field.name, parseInt(event.target.value)); // Convert the input value to an integer using parseInt() to ensure that the backend can properly parse the numberfield as an integer.
+            }}
           />
           {meta.touched && meta.error && (
             <div className="error">{meta.error}</div>
           )}
         </div>
-
       )}
     </Field>
   </div>

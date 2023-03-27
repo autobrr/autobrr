@@ -3,14 +3,21 @@ import { Link } from "react-router-dom";
 import { toast } from "react-hot-toast";
 import { Listbox, Menu, Switch, Transition } from "@headlessui/react";
 import { useMutation, useQuery, useQueryClient } from "react-query";
+import { FormikValues } from "formik";
+import { useCallback } from "react";
+
+import { Tooltip } from "react-tooltip";
+
 
 import {
   ArrowsRightLeftIcon,
   CheckIcon,
   ChevronDownIcon,
+  PlusIcon,
   DocumentDuplicateIcon,
   EllipsisHorizontalIcon,
   PencilSquareIcon,
+  ChatBubbleBottomCenterTextIcon,
   TrashIcon
 } from "@heroicons/react/24/outline";
 
@@ -22,6 +29,7 @@ import { APIClient } from "../../api/APIClient";
 import Toast from "../../components/notifications/Toast";
 import { EmptyListState } from "../../components/emptystates";
 import { DeleteModal } from "../../components/modals";
+import { ArrowDownTrayIcon } from "@heroicons/react/24/solid";
 
 type FilterListState = {
   indexerFilter: string[],
@@ -71,30 +79,159 @@ const FilterListReducer = (state: FilterListState, action: Actions): FilterListS
   }
 };
 
-export default function Filters() {
-  const [createFilterIsOpen, toggleCreateFilter] = useToggle(false);
+interface FilterProps {
+  values?: FormikValues;
+}
 
+export default function Filters({}: FilterProps){
+
+  const queryClient = useQueryClient();
+
+  const [createFilterIsOpen, setCreateFilterIsOpen] = useState(false);
+  const toggleCreateFilter = () => {
+    setCreateFilterIsOpen(!createFilterIsOpen);
+  };  
+
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [importJson, setImportJson] = useState("");
+  
+  // This function handles the import of a filter from a JSON string
+  const handleImportJson = async () => {
+    try {
+      const importedData = JSON.parse(importJson);
+  
+      // Extract the filter data and name from the imported object
+      const importedFilter = importedData.data;
+      const filterName = importedData.name;
+  
+      // Check if the required properties are present and add them with default values if they are missing
+      const requiredProperties = ["resolutions", "sources", "codecs", "containers"];
+      requiredProperties.forEach((property) => {
+        if (!importedFilter.hasOwnProperty(property)) {
+          importedFilter[property] = [];
+        }
+      });
+  
+      // Fetch existing filters from the API
+      const existingFilters = await APIClient.filters.getAll();
+  
+      // Create a unique filter title by appending an incremental number if title is taken by another filter
+      let nameCounter = 0;
+      let uniqueFilterName = filterName;
+      while (existingFilters.some((filter) => filter.name === uniqueFilterName)) {
+        nameCounter++;
+        uniqueFilterName = `${filterName}-${nameCounter}`;
+      }
+  
+      // Create a new filter using the API
+      const newFilter: Filter = {
+        ...importedFilter,
+        name: uniqueFilterName
+      };
+  
+      await APIClient.filters.create(newFilter);
+  
+      // Update the filter list
+      queryClient.invalidateQueries("filters");
+  
+      toast.custom((t) => <Toast type="success" body="Filter imported successfully." t={t} />);
+      setShowImportModal(false);
+    } catch (error) {
+      // Log the error and show an error toast message
+      console.error("Error:", error);
+      toast.custom((t) => <Toast type="error" body="Failed to import JSON data. Please check your input." t={t} />);
+    }
+  };
+  
   return (
     <main>
       <FilterAddForm isOpen={createFilterIsOpen} toggle={toggleCreateFilter} />
-
       <header className="py-10">
         <div className="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8 flex justify-between">
-          <h1 className="text-3xl font-bold text-black dark:text-white">
-            Filters
-          </h1>
-          <div className="flex-shrink-0">
-            <button
-              type="button"
-              className="relative inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
-              onClick={toggleCreateFilter}
-            >
-              Add new
-            </button>
+          <h1 className="text-3xl font-bold text-black dark:text-white">Filters</h1>
+          <div className="relative">
+            <Menu>
+              {({ open }) => (
+                <>
+                  <button
+                    className="relative inline-flex items-center px-4 py-2 shadow-sm text-sm font-medium rounded-l-md text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
+                    onClick={(e: { stopPropagation: () => void; }) => {
+                      if (!open) {
+                        e.stopPropagation();
+                        toggleCreateFilter();
+                      }
+                    }}
+                  >
+                    <PlusIcon className="h-5 w-5 mr-1" />
+              Add Filter
+                  </button>
+                  <Menu.Button className="relative inline-flex items-center px-2 py-2 border-l border-spacing-1 dark:border-black shadow-sm text-sm font-medium rounded-r-md text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500">
+                    <ChevronDownIcon className="h-5 w-5" />
+                  </Menu.Button>
+                  <Transition
+                    show={open}
+                    enter="transition ease-out duration-100 transform"
+                    enterFrom="opacity-0 scale-95"
+                    enterTo="opacity-100 scale-100"
+                    leave="transition ease-in duration-75 transform"
+                    leaveFrom="opacity-100 scale-100"
+                    leaveTo="opacity-0 scale-95"
+                  >
+                    <Menu.Items className="absolute right-0 mt-0.5 w-46 bg-white dark:bg-gray-700 rounded-md shadow-lg">
+                      <Menu.Item>
+                        {({ active }) => (
+                          <button
+                            type="button"
+                            className={`${
+                              active
+                                ? "bg-gray-50 dark:bg-gray-600"
+                                : ""
+                            } w-full text-left py-2 px-4 text-sm font-medium text-gray-700 dark:text-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500`}
+                            onClick={() => setShowImportModal(true)}
+                          >
+                      Import Filter
+                          </button>
+                        )}
+                      </Menu.Item>
+                    </Menu.Items>
+                  </Transition>
+                </>
+              )}
+            </Menu>
           </div>
         </div>
       </header>
 
+      {showImportModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="w-1/2 md:w-1/2 bg-white dark:bg-gray-800 p-6 rounded-md shadow-lg">
+            <h2 className="text-lg font-medium mb-4 text-black dark:text-white">Import Filter JSON</h2>
+            <textarea
+              className="form-input block w-full resize-y rounded-md border-gray-300 dark:bg-gray-800 dark:border-gray-600 shadow-sm text-sm font-medium text-gray-700 dark:text-white focus:outline-none focus:ring-2  focus:ring-blue-500 dark:focus:ring-blue-500 mb-4"
+              placeholder="Paste JSON data here"
+              value={importJson}
+              onChange={(event) => setImportJson(event.target.value)}
+              style={{ minHeight: "30vh", maxHeight: "50vh" }}
+            />
+            <div className="flex justify-end">
+              <button
+                type="button"
+                className="bg-white dark:bg-gray-700 py-2 px-4 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
+                onClick={() => setShowImportModal(false)}
+              >
+              Cancel
+              </button>
+              <button
+                type="button"
+                className="ml-4 relative inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                onClick={handleImportJson}
+              >
+              Import
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       <FilterList toggleCreateFilter={toggleCreateFilter} />
     </main>
   );
@@ -149,7 +286,7 @@ function FilterList({ toggleCreateFilter }: any) {
           </div>
 
           <div className="flex items-center gap-5">
-            <IndexerSelectFilter dispatch={dispatchFilter} />
+            <div className="hidden md:flex"><IndexerSelectFilter dispatch={dispatchFilter} /></div>
             <SortSelectFilter dispatch={dispatchFilter} />
           </div>
         </div>
@@ -157,7 +294,7 @@ function FilterList({ toggleCreateFilter }: any) {
         {data && data.length > 0 ? (
           <ol className="min-w-full">
             {filtered.filtered.map((filter: Filter, idx) => (
-              <FilterListItem filter={filter} key={filter.id} idx={idx} />
+              <FilterListItem filter={filter} values={filter} key={filter.id} idx={idx} />
             ))}
           </ol>
         ) : (
@@ -201,14 +338,89 @@ const StatusButton = ({ data, label, value, currentValue, dispatch }: StatusButt
 };
 
 interface FilterItemDropdownProps {
+  values: FormikValues;
   filter: Filter;
   onToggle: (newState: boolean) => void;
 }
 
-const FilterItemDropdown = ({
-  filter,
-  onToggle
-}: FilterItemDropdownProps) => {
+const FilterItemDropdown = ({ filter, onToggle }: FilterItemDropdownProps) => {
+
+  // This function handles the export of a filter to a JSON string
+  const handleExportJson = useCallback(async (discordFormat = false) => {    try {
+      type CompleteFilterType = {
+        id: number;
+        name: string;
+        created_at: Date;
+        updated_at: Date;
+        indexers: any;
+        actions: any;
+        actions_count: any;
+        external_script_enabled: any;
+        external_script_cmd: any;
+        external_script_args: any;
+        external_script_expect_status: any;
+        external_webhook_enabled: any;
+        external_webhook_host: any;
+        external_webhook_data: any;
+        external_webhook_expect_status: any;
+      };
+  
+      const completeFilter = await APIClient.filters.getByID(filter.id) as Partial<CompleteFilterType>;
+  
+      // Extract the filter name and remove unwanted properties
+      const title = completeFilter.name;
+      delete completeFilter.name;
+      delete completeFilter.id;
+      delete completeFilter.created_at;
+      delete completeFilter.updated_at;
+      delete completeFilter.actions_count;
+      delete completeFilter.indexers;
+      delete completeFilter.actions;
+      delete completeFilter.external_script_enabled;
+      delete completeFilter.external_script_cmd;
+      delete completeFilter.external_script_args;
+      delete completeFilter.external_script_expect_status;
+      delete completeFilter.external_webhook_enabled;
+      delete completeFilter.external_webhook_host;
+      delete completeFilter.external_webhook_data;
+      delete completeFilter.external_webhook_expect_status;
+  
+      // Remove properties with default values from the exported filter to minimize the size of the JSON string
+      ["enabled", "priority", "smart_episode", "resolutions", "sources", "codecs", "containers"].forEach((key) => {
+        const value = completeFilter[key as keyof CompleteFilterType];
+        if (["enabled", "priority", "smart_episode"].includes(key) && (value === false || value === 0)) {
+          delete completeFilter[key as keyof CompleteFilterType];
+        } else if (["resolutions", "sources", "codecs", "containers"].includes(key) && Array.isArray(value) && value.length === 0) {
+          delete completeFilter[key as keyof CompleteFilterType];
+        }
+      });      
+
+      // Create a JSON string from the filter data, including a name and version
+      const json = JSON.stringify(
+        {
+          "name": title,
+          "version": "1.0",
+          data: completeFilter
+        },
+        null,
+        4
+      );
+      
+      const finalJson = discordFormat ? "```JSON\n" + json + "\n```" : json;
+      
+  
+      navigator.clipboard.writeText(finalJson).then(() => {
+        toast.custom((t) => <Toast type="success" body="Filter copied to clipboard." t={t} />);
+      }, () => {
+        toast.custom((t) => <Toast type="error" body="Failed to copy JSON to clipboard." t={t} />);
+      });
+      
+  } catch (error) {
+    console.error(error);
+    toast.custom((t) => <Toast type="error" body="Failed to get filter data." t={t} />);
+  }
+  }, [filter]);
+
   const cancelModalButtonRef = useRef(null);
 
   const queryClient = useQueryClient();
@@ -266,7 +478,7 @@ const FilterItemDropdown = ({
         leaveTo="transform opacity-0 scale-95"
       >
         <Menu.Items
-          className="absolute right-0 w-56 mt-2 origin-top-right bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700 rounded-md shadow-lg ring-1 ring-black ring-opacity-10 focus:outline-none"
+          className="absolute right-0 w-56 mt-2 origin-top-right bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700 rounded-md shadow-lg ring-1 ring-black ring-opacity-10 focus:outline-none z-10"
         >
           <div className="px-1 py-1">
             <Menu.Item>
@@ -287,6 +499,45 @@ const FilterItemDropdown = ({
                   />
                   Edit
                 </Link>
+              )}
+            </Menu.Item>
+            <Menu.Item>
+              {({ active }) => (
+                <button
+                  className={classNames(
+                    active ? "bg-blue-600 text-white" : "text-gray-900 dark:text-gray-300",
+                    "font-medium group flex rounded-md items-center w-full px-2 py-2 text-sm"
+                  )}
+                  onClick={() => handleExportJson(false)}                >
+                  <ArrowDownTrayIcon
+                    className={classNames(
+                      active ? "text-white" : "text-blue-500",
+                      "w-5 h-5 mr-2"
+                    )}
+                    aria-hidden="true"
+                  />
+                  Export JSON
+                </button>
+              )}
+            </Menu.Item>
+            <Menu.Item>
+              {({ active }) => (
+                <button
+                  className={classNames(
+                    active ? "bg-blue-600 text-white" : "text-gray-900 dark:text-gray-300",
+                    "font-medium group flex rounded-md items-center w-full px-2 py-2 text-sm"
+                  )}
+                  onClick={() => handleExportJson(true)}
+                >
+                  <ChatBubbleBottomCenterTextIcon
+                    className={classNames(
+                      active ? "text-white" : "text-blue-500",
+                      "w-5 h-5 mr-2"
+                    )}
+                    aria-hidden="true"
+                  />
+      Export JSON to Discord
+                </button>
               )}
             </Menu.Item>
             <Menu.Item>
@@ -360,10 +611,11 @@ const FilterItemDropdown = ({
 
 interface FilterListItemProps {
   filter: Filter;
+  values: FormikValues;
   idx: number;
 }
 
-function FilterListItem({ filter, idx }: FilterListItemProps) {
+function FilterListItem({ filter, values, idx }: FilterListItemProps) {
   const [enabled, setEnabled] = useState(filter.enabled);
 
   const updateMutation = useMutation(
@@ -417,8 +669,8 @@ function FilterListItem({ filter, idx }: FilterListItemProps) {
           />
         </Switch>
       </span>
-      <div className="flex flex-col w-full justify-center">
-        <span className="whitespace-nowrap text-sm font-bold text-gray-900 dark:text-gray-100">
+      <div className="py-2 flex flex-col overflow-hidden w-full justify-center">
+        <span className="w-full break-words whitespace-wrap text-sm font-bold text-gray-900 dark:text-gray-100">
           <Link
             to={filter.id.toString()}
             className="hover:text-black dark:hover:text-gray-300"
@@ -426,8 +678,8 @@ function FilterListItem({ filter, idx }: FilterListItemProps) {
             {filter.name}
           </Link>
         </span>
-        <div className="flex-col">
-          <span className="mr-2 whitespace-nowrap text-xs font-medium text-gray-600 dark:text-gray-400">
+        <div className="flex items-center">
+          <span className="mr-2 break-words whitespace-nowrap text-xs font-medium text-gray-600 dark:text-gray-400">
             Priority: {filter.priority}
           </span>
           <span className="whitespace-nowrap text-xs font-medium text-gray-600 dark:text-gray-400">
@@ -435,16 +687,45 @@ function FilterListItem({ filter, idx }: FilterListItemProps) {
               to={`${filter.id.toString()}/actions`}
               className="hover:text-black dark:hover:text-gray-300"
             >
-              <span className={classNames(filter.actions_count == 0 ? "text-red-500" : "")}>Actions: {filter.actions_count}</span>
+              <span
+                id={`tooltip-actions-${filter.id}`}
+                className="flex items-center hover:cursor-pointer"
+              >
+                <span className={classNames(filter.actions_count == 0 ? "text-red-500" : "")}>
+                  <span
+                    className={
+                      classNames(
+                        filter.actions_count == 0 ? "hover:text-red-400 dark:hover:text-red-400" : ""
+                      )
+                    }
+                  >
+        Actions: {filter.actions_count}
+                  </span>
+                </span>
+                {filter.actions_count === 0 && (
+                  <>
+                    <span className="mr-2 ml-2 flex h-3 w-3 relative">
+                      <span className="animate-ping inline-flex h-full w-full rounded-full dark:bg-red-500 bg-red-400 opacity-75" />
+                      <span
+                        className="inline-flex absolute rounded-full h-3 w-3 dark:bg-red-500 bg-red-400"
+                      />
+                    </span>
+                    <span className="text-sm text-gray-800 dark:text-gray-500">
+                      <Tooltip style={{ width: "350px", fontSize: "12px", textTransform: "none", fontWeight: "normal", borderRadius: "0.375rem", backgroundColor: "#34343A", color: "#fff", opacity: "1", whiteSpace: "pre-wrap", overflow: "hidden", textOverflow: "ellipsis" }} delayShow={100} delayHide={150} data-html={true} place="right" anchorId={`tooltip-actions-${filter.id}`} html="<p>You need to setup an action in the filter otherwise you will not get any snatches.</p>" />
+                    </span>
+                  </>
+                )}
+              </span>
             </Link>
           </span>
         </div>
       </div>
-      <span className="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+      <span className="hidden md:flex px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
         <FilterIndexers indexers={filter.indexers} />
       </span>
-      <span className="px-4 py-4 whitespace-nowrap text-right text-sm font-medium">
+      <span className="min-w-fit px-4 py-4 whitespace-nowrap text-right text-sm font-medium">
         <FilterItemDropdown
+          values={values}
           filter={filter}
           onToggle={toggleActive}
         />
@@ -460,7 +741,7 @@ interface IndexerTagProps {
 const IndexerTag: FC<IndexerTagProps> = ({ indexer }) => (
   <span
     key={indexer.id}
-    className="mr-2 inline-flex items-center px-2.5 py-0.5 rounded-md text-sm font-medium bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-400"
+    className="hidden sm:inline-flex mr-2 items-center px-2.5 py-0.5 rounded-md text-sm font-medium bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-400"
   >
     {indexer.name}
   </span>
@@ -478,7 +759,7 @@ function FilterIndexers({ indexers }: FilterIndexersProps) {
           ? indexers.map((indexer, idx) => (
             <IndexerTag key={idx} indexer={indexer} />
           ))
-          : <span className="text-red-400 dark:text-red-800 p-1 text-xs tracking-wide rounded border border-red-400 dark:border-red-700 bg-red-100 dark:bg-red-400">NO INDEXERS SELECTED</span>
+          : <span className="hidden sm:flex text-red-400 dark:text-red-800 p-1 text-xs tracking-wide rounded border border-red-400 dark:border-red-700 bg-red-100 dark:bg-red-400">NO INDEXERS SELECTED</span>
         }
       </>
     );
@@ -521,7 +802,7 @@ const ListboxFilter = ({
     onChange={onChange}
   >
     <div className="relative">
-      <Listbox.Button className="relative w-full py-2 pr-5 text-left dark:text-gray-400 sm:text-sm">
+      <Listbox.Button className="relative w-full py-2 pr-5 text-left dark:text-gray-400 text-sm">
         <span className="block truncate">{label}</span>
         <span className="absolute inset-y-0 right-0 flex items-center pointer-events-none">
           <ChevronDownIcon
@@ -537,7 +818,7 @@ const ListboxFilter = ({
         leaveTo="opacity-0"
       >
         <Listbox.Options
-          className="w-48 absolute z-10 w-full mt-1 right-0 overflow-auto text-base bg-white dark:bg-gray-800 rounded-md shadow-lg max-h-60 border border-opacity-5 border-black dark:border-gray-700 dark:border-opacity-40 focus:outline-none sm:text-sm"
+          className="w-52 absolute z-10 mt-1 right-0 overflow-auto text-base bg-white dark:bg-gray-800 rounded-md shadow-lg max-h-60 border border-opacity-5 border-black dark:border-gray-700 dark:border-opacity-40 focus:outline-none sm:text-sm"
         >
           {children}
         </Listbox.Options>
@@ -590,7 +871,7 @@ interface FilterOptionProps {
 const FilterOption = ({ label, value }: FilterOptionProps) => (
   <Listbox.Option
     className={({ active }) => classNames(
-      "cursor-pointer select-none relative py-2 pl-10 pr-4",
+      "cursor-pointer select-none relative py-2 px-4",
       active ? "text-black dark:text-gray-200 bg-gray-100 dark:bg-gray-900" : "text-gray-700 dark:text-gray-400"
     )}
     value={value}

@@ -6,7 +6,7 @@ node_modules/
 config.toml
 .goreleaser.yml
 Dockerfile
-Dockerfile.ci
+ci.Dockerfile
 docker-compose.yml
 README.md
 bin

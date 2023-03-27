@@ -44,6 +44,7 @@ func (s *service) whisparr(ctx context.Context, action *domain.Action, release d
 	r := whisparr.Release{
 		Title:            release.TorrentName,
 		DownloadUrl:      release.TorrentURL,
+		MagnetUrl:        release.MagnetURI,
 		Size:             int64(release.Size),
 		Indexer:          release.Indexer,
 		DownloadProtocol: "torrent",

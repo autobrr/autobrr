@@ -24,6 +24,7 @@ interface IndexerDefinition {
   settings: IndexerSetting[];
   irc: IndexerIRC;
   torznab: IndexerTorznab;
+  newznab?: IndexerTorznab;
   rss: IndexerFeed;
   parse: IndexerParse;
 }

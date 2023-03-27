@@ -2,6 +2,7 @@ package config
 
 import (
 	"bytes"
+	"fmt"
 	"log"
 	"os"
 	"path"
@@ -43,6 +44,7 @@ port = 7474
 
 # autobrr logs file
 # If not defined, logs to stdout
+# Make sure to use forward slashes and include the filename with extension. eg: "log/autobrr.log", "C:/autobrr/log/autobrr.log"
 #
 # Optional
 #
@@ -55,6 +57,26 @@ port = 7474
 # Options: "ERROR", "DEBUG", "INFO", "WARN", "TRACE"
 #
 logLevel = "DEBUG"
+
+# Log Max Size
+#
+# Default: 50
+#
+# Max log size in megabytes
+#
+#logMaxSize = 50
+
+# Log Max Backups
+#
+# Default: 3
+#
+# Max amount of old log files
+#
+#logMaxBackups = 3
+
+# Check for updates
+#
+checkForUpdates = true
 
 # Session secret
 #
@@ -132,6 +154,7 @@ func writeConfig(configPath string, configFile string) error {
 }
 
 type Config interface {
+	UpdateConfig() error
 	DynamicReload(log logger.Logger)
 }
 
@@ -158,9 +181,12 @@ func (c *AppConfig) defaults() {
 		Port:              7474,
 		LogLevel:          "TRACE",
 		LogPath:           "",
+		LogMaxSize:        50,
+		LogMaxBackups:     3,
 		BaseURL:           "/",
 		SessionSecret:     "secret-session-key",
 		CustomDefinitions: "",
+		CheckForUpdates:   true,
 		DatabaseType:      "sqlite",
 		PostgresHost:      "",
 		PostgresPort:      0,
@@ -222,6 +248,9 @@ func (c *AppConfig) DynamicReload(log logger.Logger) {
 		logPath := viper.GetString("logPath")
 		c.Config.LogPath = logPath
 
+		checkUpdates := viper.GetBool("checkForUpdates")
+		c.Config.CheckForUpdates = checkUpdates
+
 		log.Debug().Msg("config file reloaded!")
 
 		c.m.Unlock()
@@ -229,4 +258,83 @@ func (c *AppConfig) DynamicReload(log logger.Logger) {
 	viper.WatchConfig()
 
 	return
+}
+
+func (c *AppConfig) UpdateConfig() error {
+	file := path.Join(c.Config.ConfigPath, "config.toml")
+
+	f, err := os.ReadFile(file)
+	if err != nil {
+		return errors.Wrap(err, "could not read config file: %s", file)
+	}
+
+	lines := strings.Split(string(f), "\n")
+	lines = c.processLines(lines)
+
+	output := strings.Join(lines, "\n")
+	if err := os.WriteFile(file, []byte(output), 0644); err != nil {
+		return errors.Wrap(err, "could not write config file: %s", file)
+	}
+
+	return nil
+}
+
+func (c *AppConfig) processLines(lines []string) []string {
+	// keep track of not found values to append at bottom
+	var (
+		foundLineUpdate   = false
+		foundLineLogLevel = false
+		foundLineLogPath  = false
+	)
+
+	for i, line := range lines {
+		// set checkForUpdates
+		if !foundLineUpdate && strings.Contains(line, "checkForUpdates =") {
+			lines[i] = fmt.Sprintf("checkForUpdates = %t", c.Config.CheckForUpdates)
+			foundLineUpdate = true
+		}
+		if !foundLineLogLevel && strings.Contains(line, "logLevel =") {
+			lines[i] = fmt.Sprintf(`logLevel = "%s"`, c.Config.LogLevel)
+			foundLineLogLevel = true
+		}
+		if !foundLineLogPath && strings.Contains(line, "logPath =") {
+			if c.Config.LogPath == "" {
+				lines[i] = `#logPath = ""`
+			} else {
+				lines[i] = fmt.Sprintf("logPath = \"%s\"", c.Config.LogPath)
+			}
+			foundLineLogPath = true
+		}
+	}
+
+	// append missing vars to bottom
+	if !foundLineUpdate {
+		lines = append(lines, "# Check for updates")
+		lines = append(lines, "#")
+		lines = append(lines, fmt.Sprintf("checkForUpdates = %t", c.Config.CheckForUpdates))
+	}
+
+	if !foundLineLogLevel {
+		lines = append(lines, "# Log level")
+		lines = append(lines, "#")
+		lines = append(lines, `# Default: "DEBUG"`)
+		lines = append(lines, "#")
+		lines = append(lines, `# Options: "ERROR", "DEBUG", "INFO", "WARN", "TRACE"`)
+		lines = append(lines, "#")
+		lines = append(lines, fmt.Sprintf(`logLevel = "%s"`, c.Config.LogLevel))
+	}
+
+	if !foundLineLogPath {
+		lines = append(lines, "# Log Path")
+		lines = append(lines, "#")
+		lines = append(lines, "# Optional")
+		lines = append(lines, "#")
+		if c.Config.LogPath == "" {
+			lines = append(lines, `#logPath = ""`)
+		} else {
+			lines = append(lines, fmt.Sprintf(`logPath = "%s"`, c.Config.LogPath))
+		}
+	}
+
+	return lines
 }

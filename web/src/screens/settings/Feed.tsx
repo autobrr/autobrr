@@ -3,13 +3,19 @@ import { useMutation, useQuery, useQueryClient } from "react-query";
 import { APIClient } from "../../api/APIClient";
 import { Menu, Switch, Transition } from "@headlessui/react";
 
-import { classNames, IsEmptyDate, simplifyDate } from "../../utils";
+import { baseUrl, classNames, IsEmptyDate, simplifyDate } from "../../utils";
 import { Fragment, useRef, useState } from "react";
 import { toast } from "react-hot-toast";
 import Toast from "../../components/notifications/Toast";
 import { queryClient } from "../../App";
 import { DeleteModal } from "../../components/modals";
-import { ArrowsRightLeftIcon, EllipsisHorizontalIcon, PencilSquareIcon, TrashIcon } from "@heroicons/react/24/outline";
+import {
+  ArrowsRightLeftIcon,
+  DocumentTextIcon,
+  EllipsisHorizontalIcon,
+  PencilSquareIcon,
+  TrashIcon
+} from "@heroicons/react/24/outline";
 import { FeedUpdateForm } from "../../forms/settings/FeedForms";
 import { EmptySimple } from "../../components/emptystates";
 import { ImplementationBadges } from "./Indexer";
@@ -28,7 +34,7 @@ function FeedSettings() {
           <div className="ml-4 mt-4">
             <h3 className="text-lg leading-6 font-medium text-gray-900 dark:text-white">Feeds</h3>
             <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-              Manage Torznab feeds.
+              Manage RSS and Torznab feeds.
             </p>
           </div>
         </div>
@@ -36,22 +42,20 @@ function FeedSettings() {
         {data && data.length > 0 ?
           <section className="mt-6 light:bg-white dark:bg-gray-800 light:shadow sm:rounded-md">
             <ol className="min-w-full relative">
-              <li className="grid grid-cols-12 gap-4 border-b border-gray-200 dark:border-gray-700">
+              <li className="grid grid-cols-12 border-b border-gray-200 dark:border-gray-700">
                 <div
-                  className="col-span-2 px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Enabled
+                  className="col-span-2 sm:col-span-1 px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Enabled
                 </div>
                 <div
-                  className="col-span-4 px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Name
+                  className="col-span-6 pl-12 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Name
                 </div>
                 <div
-                  className="col-span-2 px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Type
+                  className="hidden md:flex col-span-1 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Type
                 </div>
                 <div
-                  className="col-span-3 px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Last run
+                  className="hidden md:flex col-span-3 px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Last run
                 </div>
-                {/*<div className="col-span-4 px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Events</div>*/}
               </li>
-
               {data && data.map((f) => (
                 <ListItem key={f.id} feed={f}/>
               ))}
@@ -95,8 +99,8 @@ function ListItem({ feed }: ListItemProps) {
     <li key={feed.id} className="text-gray-500 dark:text-gray-400">
       <FeedUpdateForm isOpen={updateFormIsOpen} toggle={toggleUpdateForm} feed={feed}/>
 
-      <div className="grid grid-cols-12 gap-4 items-center py-4">
-        <div className="col-span-2 flex items-center sm:px-6 ">
+      <div className="grid grid-cols-12 items-center">
+        <div className="col-span-2 sm:col-span-1 px-6 flex items-center">
           <Switch
             checked={feed.enabled}
             onChange={toggleActive}
@@ -115,16 +119,16 @@ function ListItem({ feed }: ListItemProps) {
             />
           </Switch>
         </div>
-        <div className="col-span-4 flex flex-col sm:px-6 text-sm font-medium text-gray-900 dark:text-white">
+        <div className="col-span-8 sm:col-span-6 pl-12 py-3 flex flex-col text-sm font-medium text-gray-900 dark:text-white">
           <span>{feed.name}</span>
           <span className="text-gray-900 dark:text-gray-500 text-xs">
             {feed.indexer}
           </span>
         </div>
-        <div className="col-span-2 flex items-center sm:px-6">
+        <div className="hidden md:flex col-span-1 py-3 items-center">
           {ImplementationBadges[feed.type.toLowerCase()]}
         </div>
-        <div className="col-span-3 flex items-center sm:px-6 text-sm font-medium text-gray-900 dark:text-gray-500">
+        <div className="hidden md:flex col-span-3 py-3 items-center sm:px-6 text-sm font-medium text-gray-900 dark:text-gray-500">
           <span title={simplifyDate(feed.last_run)}>
             {IsEmptyDate(feed.last_run)}
           </span>
@@ -242,6 +246,27 @@ const FeedItemDropdown = ({
               )}
             </Menu.Item>
           </div>
+          <Menu.Item>
+            {({ active }) => (
+              <a
+                href={`${baseUrl()}api/feeds/${feed.id}/latest`}
+                target="_blank"
+                className={classNames(
+                  active ? "bg-blue-600 text-white" : "text-gray-900 dark:text-gray-300",
+                  "font-medium group flex rounded-md items-center w-full px-2 py-2 text-sm"
+                )}
+              >
+                <DocumentTextIcon
+                  className={classNames(
+                    active ? "text-white" : "text-blue-500",
+                    "w-5 h-5 mr-2"
+                  )}
+                  aria-hidden="true"
+                />
+                View latest run
+              </a>
+            )}
+          </Menu.Item>
           <div className="px-1 py-1">
             <Menu.Item>
               {({ active }) => (

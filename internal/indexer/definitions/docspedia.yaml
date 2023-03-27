@@ -1,0 +1,65 @@
+---
+#id: docspedia
+name: DocsPedia
+identifier: docspedia
+description: DocsPedia.world private torrent tracker for EDUCATION
+language: en-us
+urls:
+  - https://www.docspedia.world/
+privacy: private
+protocol: torrent
+supports:
+  - irc
+  - rss
+source: custom
+settings:
+  - name: passkey
+    type: secret
+    required: true
+    label: Passkey
+    help: "The passkey in your profile."
+
+irc:
+  network: DocsPedia IRC
+  server: irc.docspedia.world
+  port: 6697
+  tls: true
+  channels:
+    - "#announce"
+  announcers:
+    - Alebert
+  settings:
+    - name: nick
+      type: text
+      required: true
+      label: Nick
+      help: Bot nick. Eg. user_dl
+
+    - name: auth.account
+      type: text
+      required: false
+      label: NickServ Account
+      help: NickServ account. Make sure to group your user and bot.
+
+    - name: auth.password
+      type: secret
+      required: false
+      label: NickServ Password
+      help: NickServ password
+
+  parse:
+    type: single
+    lines:
+      - test:
+          - '[NEW] A Nice Self-Help Book (Books) https://www.docspedia.world/details.php?id=1234'
+        pattern: '\[NEW] (.*) \(([^)]*)\) (https:\/\/.+)\/details\.php\?id=(\d+)\s*(?:\[PRED ([^\]]*)\])?'
+        vars:
+          - torrentName
+          - category
+          - baseUrl
+          - torrentId
+          - preTime
+
+    match:
+      infourl: "/details.php?id={{ .torrentId }}"
+      torrenturl: "/download.php?torrent={{ .torrentId }}&torrent_pass={{ .passkey }}"

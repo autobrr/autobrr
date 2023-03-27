@@ -4,8 +4,10 @@ import (
 	"sync"
 	"time"
 
+	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/internal/logger"
 	"github.com/autobrr/autobrr/internal/notification"
+	"github.com/autobrr/autobrr/internal/update"
 
 	"github.com/robfig/cron/v3"
 	"github.com/rs/zerolog"
@@ -16,23 +18,27 @@ type Service interface {
 	Stop()
 	AddJob(job cron.Job, interval time.Duration, identifier string) (int, error)
 	RemoveJobByIdentifier(id string) error
+	GetNextRun(id string) (time.Time, error)
 }
 
 type service struct {
 	log             zerolog.Logger
+	config          *domain.Config
 	version         string
 	notificationSvc notification.Service
+	updateSvc       *update.Service
 
 	cron *cron.Cron
 	jobs map[string]cron.EntryID
 	m    sync.RWMutex
 }
 
-func NewService(log logger.Logger, version string, notificationSvc notification.Service) Service {
+func NewService(log logger.Logger, config *domain.Config, notificationSvc notification.Service, updateSvc *update.Service) Service {
 	return &service{
 		log:             log.With().Str("module", "scheduler").Logger(),
-		version:         version,
+		config:          config,
 		notificationSvc: notificationSvc,
+		updateSvc:       updateSvc,
 		cron: cron.New(cron.WithChain(
 			cron.Recover(cron.DefaultLogger),
 		)),
@@ -55,16 +61,19 @@ func (s *service) Start() {
 func (s *service) addAppJobs() {
 	time.Sleep(5 * time.Second)
 
-	checkUpdates := &CheckUpdatesJob{
-		Name:             "app-check-updates",
-		Log:              s.log.With().Str("job", "app-check-updates").Logger(),
-		Version:          s.version,
-		NotifSvc:         s.notificationSvc,
-		lastCheckVersion: "",
-	}
+	if s.config.CheckForUpdates {
+		checkUpdates := &CheckUpdatesJob{
+			Name:             "app-check-updates",
+			Log:              s.log.With().Str("job", "app-check-updates").Logger(),
+			Version:          s.version,
+			NotifSvc:         s.notificationSvc,
+			updateService:    s.updateSvc,
+			lastCheckVersion: s.version,
+		}
 
-	if id, err := s.AddJob(checkUpdates, time.Duration(36*time.Hour), "app-check-updates"); err != nil {
-		s.log.Error().Err(err).Msgf("scheduler.addAppJobs: error adding job: %v", id)
+		if id, err := s.AddJob(checkUpdates, 2*time.Hour, "app-check-updates"); err != nil {
+			s.log.Error().Err(err).Msgf("scheduler.addAppJobs: error adding job: %v", id)
+		}
 	}
 }
 
@@ -80,7 +89,7 @@ func (s *service) AddJob(job cron.Job, interval time.Duration, identifier string
 		cron.SkipIfStillRunning(cron.DiscardLogger)).Then(job),
 	)
 
-	s.log.Debug().Msgf("scheduler.AddJob: job successfully added: %v", id)
+	s.log.Debug().Msgf("scheduler.AddJob: job successfully added: %s id %d", identifier, id)
 
 	s.m.Lock()
 	// add to job map
@@ -108,6 +117,30 @@ func (s *service) RemoveJobByIdentifier(id string) error {
 	delete(s.jobs, id)
 
 	return nil
+}
+
+func (s *service) GetNextRun(id string) (time.Time, error) {
+	entry := s.getEntryById(id)
+
+	if !entry.Valid() {
+		return time.Time{}, nil
+	}
+
+	s.log.Debug().Msgf("scheduler.GetNextRun: %s next run: %s", id, entry.Next)
+
+	return entry.Next, nil
+}
+
+func (s *service) getEntryById(id string) cron.Entry {
+	s.m.Lock()
+	defer s.m.Unlock()
+
+	v, ok := s.jobs[id]
+	if !ok {
+		return cron.Entry{}
+	}
+
+	return s.cron.Entry(v)
 }
 
 type GenericJob struct {

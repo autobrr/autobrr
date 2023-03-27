@@ -220,7 +220,7 @@ func TestRelease_Parse(t *testing.T) {
 				ReleaseTags: "FLAC / 24bit Lossless / Log / 100% / Cue / CD",
 				Title:       "Artist",
 				Group:       "Albumname",
-				Audio:       []string{"24BIT Lossless", "Cue", "FLAC", "Lossless", "Log100", "Log"},
+				Audio:       []string{"24BIT Lossless", "Cue", "FLAC", "Log100", "Log"},
 				Source:      "CD",
 			},
 		},
@@ -260,6 +260,7 @@ func TestRelease_Parse(t *testing.T) {
 				Year:          2022,
 				Group:         "GROUP1",
 				Season:        1,
+				Language:      []string{"ENGLiSH"},
 			},
 		},
 	}
@@ -638,7 +639,6 @@ func TestRelease_ParseString(t *testing.T) {
 				Artists:                     tt.fields.Artists,
 				Type:                        tt.fields.Type,
 				LogScore:                    tt.fields.LogScore,
-				IsScene:                     tt.fields.IsScene,
 				Origin:                      tt.fields.Origin,
 				Tags:                        tt.fields.Tags,
 				ReleaseTags:                 tt.fields.ReleaseTags,
@@ -733,14 +733,13 @@ func TestRelease_DownloadTorrentFile(t *testing.T) {
 		AudioChannels               string
 		Group                       string
 		Region                      string
-		Language                    string
+		Language                    []string
 		Proper                      bool
 		Repack                      bool
 		Website                     string
 		Artists                     string
 		Type                        string
 		LogScore                    int
-		IsScene                     bool
 		Origin                      string
 		Tags                        []string
 		ReleaseTags                 string
@@ -837,7 +836,6 @@ func TestRelease_DownloadTorrentFile(t *testing.T) {
 				Artists:                     tt.fields.Artists,
 				Type:                        tt.fields.Type,
 				LogScore:                    tt.fields.LogScore,
-				IsScene:                     tt.fields.IsScene,
 				Origin:                      tt.fields.Origin,
 				Tags:                        tt.fields.Tags,
 				ReleaseTags:                 tt.fields.ReleaseTags,
@@ -854,6 +852,56 @@ func TestRelease_DownloadTorrentFile(t *testing.T) {
 				ActionStatus:                tt.fields.ActionStatus,
 			}
 			tt.wantErr(t, r.DownloadTorrentFile(), "DownloadTorrentFile()")
+		})
+	}
+}
+
+func Test_getUniqueTags(t *testing.T) {
+	type args struct {
+		target []string
+		source []string
+	}
+	tests := []struct {
+		name string
+		args args
+		want []string
+	}{
+		{
+			name: "1",
+			args: args{
+				target: []string{},
+				source: []string{"mp4"},
+			},
+			want: []string{"mp4"},
+		},
+		{
+			name: "2",
+			args: args{
+				target: []string{"mp4"},
+				source: []string{"mp4"},
+			},
+			want: []string{"mp4"},
+		},
+		{
+			name: "3",
+			args: args{
+				target: []string{"mp4"},
+				source: []string{"mp4", "dv"},
+			},
+			want: []string{"mp4", "dv"},
+		},
+		{
+			name: "4",
+			args: args{
+				target: []string{"dv"},
+				source: []string{"mp4", "dv"},
+			},
+			want: []string{"dv", "mp4"},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equalf(t, tt.want, getUniqueTags(tt.args.target, tt.args.source), "getUniqueTags(%v, %v)", tt.args.target, tt.args.source)
 		})
 	}
 }

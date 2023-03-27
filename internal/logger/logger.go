@@ -59,8 +59,8 @@ func New(cfg *domain.Config) Logger {
 		l.writers = append(l.writers,
 			&lumberjack.Logger{
 				Filename:   cfg.LogPath,
-				MaxSize:    50, // megabytes
-				MaxBackups: 3,
+				MaxSize:    cfg.LogMaxSize, // megabytes
+				MaxBackups: cfg.LogMaxBackups,
 			},
 		)
 	}

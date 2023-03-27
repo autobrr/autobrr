@@ -111,6 +111,8 @@ CREATE TABLE filter
     except_categories              TEXT,
     match_uploaders                TEXT,
     except_uploaders               TEXT,
+    match_language                 TEXT []   DEFAULT '{}',
+    except_language                TEXT []   DEFAULT '{}',
     tags                           TEXT,
     except_tags                    TEXT,
     origins                        TEXT []   DEFAULT '{}',
@@ -197,6 +199,8 @@ CREATE TABLE "release"
     protocol          TEXT,
     implementation    TEXT,
     timestamp         TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    info_url          TEXT,
+    download_url      TEXT,
     group_id          TEXT,
     torrent_id        TEXT,
     torrent_name      TEXT,
@@ -245,16 +249,27 @@ CREATE TABLE release_action_status
 	type          TEXT NOT NULL,
 	client        TEXT,
 	filter        TEXT,
+    filter_id     INTEGER
+        CONSTRAINT release_action_status_filter_id_fk
+            REFERENCES filter,
 	rejections    TEXT []   DEFAULT '{}' NOT NULL,
 	timestamp     TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 	raw           TEXT,
 	log           TEXT,
-	release_id    INTEGER NOT NULL,
-	FOREIGN KEY (release_id) REFERENCES "release"(id) ON DELETE CASCADE
+    release_id    INTEGER NOT NULL
+        CONSTRAINT release_action_status_release_id_fkey
+            REFERENCES "release"
+            ON DELETE CASCADE
 );
+
+CREATE INDEX release_action_status_status_index
+    ON release_action_status (status);
 
 CREATE INDEX release_action_status_release_id_index
     ON release_action_status (release_id);
+
+CREATE INDEX release_action_status_filter_id_index
+    ON release_action_status (filter_id);
 
 CREATE TABLE notification
 (

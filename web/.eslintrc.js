@@ -65,6 +65,9 @@ module.exports = {
         "@typescript-eslint/keyword-spacing": ["error"],
         "object-curly-spacing": "off",
         "@typescript-eslint/object-curly-spacing": ["warn", "always"],
+        // We have quite some "Unexpected any. Specify a different type" warnings.
+        // This disables these warnings since they are false positives afaict.
+        "@typescript-eslint/no-explicit-any": "off"
       },
     },
   ],

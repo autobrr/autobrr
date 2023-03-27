@@ -143,7 +143,11 @@ export const releaseTypeMusic = [
   "Unknown"
 ];
 
-export const RELEASE_TYPE_MUSIC_OPTIONS: MultiSelectOption[] = releaseTypeMusic.map(v => ({ value: v, label: v, key: v }));
+export const RELEASE_TYPE_MUSIC_OPTIONS: MultiSelectOption[] = releaseTypeMusic.map(v => ({
+  value: v,
+  label: v,
+  key: v
+}));
 
 export const originOptions = [
   "P2P",
@@ -154,10 +158,66 @@ export const originOptions = [
 
 export const ORIGIN_OPTIONS = originOptions.map(v => ({ value: v, label: v, key: v }));
 
+export const languageOptions = [
+  "BALTIC",
+  "BRAZiLiAN",
+  "BULGARiAN",
+  "CHiNESE",
+  "CHS",
+  "CHT",
+  "CZECH",
+  "DANiSH",
+  "DUBBED",
+  "DKSUBS",
+  "DUTCH",
+  "ENGLiSH",
+  "ESTONiAN",
+  "FLEMiSH",
+  "FiNNiSH",
+  "FRENCH",
+  "GERMAN",
+  "GREEK",
+  "HAiTiAN",
+  "HARDSUB",
+  "Hardcoded",
+  "HEBREW",
+  "HebSub",
+  "HiNDi",
+  "HUNGARiAN",
+  "iCELANDiC",
+  "iTALiAN",
+  "JAPANESE",
+  "KOREAN",
+  "LATiN",
+  "MANDARiN",
+  "MULTi",
+  "MULTILANG",
+  "MULTiSUB",
+  "MULTiSUBS",
+  "NORDiC",
+  "NORWEGiAN",
+  "POLiSH",
+  "PORTUGUESE",
+  "ROMANiAN",
+  "RUSSiAN",
+  "SPANiSH",
+  "SUBBED",
+  "SUBFORCED",
+  "SUBPACK",
+  "SWEDiSH",
+  "SYNCED",
+  "TURKiSH",
+  "UKRAiNiAN",
+  "UNSUBBED"
+];
+
+export const LANGUAGE_OPTIONS = languageOptions.map(v => ({ value: v, label: v, key: v }));
+
 export interface RadioFieldsetOption {
-    label: string;
-    description: string;
-    value: ActionType;
+  label: string;
+  description: string;
+  value: ActionType;
+  type?: string;
 }
 
 export const DownloadClientTypeOptions: RadioFieldsetOption[] = [
@@ -187,6 +247,11 @@ export const DownloadClientTypeOptions: RadioFieldsetOption[] = [
     value: "TRANSMISSION"
   },
   {
+    label: "Porla",
+    description: "Add torrents directly to Porla",
+    value: "PORLA"
+  },
+  {
     label: "Radarr",
     description: "Send to Radarr and let it decide",
     value: "RADARR"
@@ -210,6 +275,12 @@ export const DownloadClientTypeOptions: RadioFieldsetOption[] = [
     label: "Readarr",
     description: "Send to Readarr and let it decide",
     value: "READARR"
+  },
+  {
+    label: "Sabnzbd",
+    description: "Add nzbs directly to Sabnzbd",
+    value: "SABNZBD",
+    type: "nzb"
   }
 ];
 
@@ -219,11 +290,13 @@ export const DownloadClientTypeNameMap: Record<DownloadClientType | string, stri
   "QBITTORRENT": "qBittorrent",
   "RTORRENT": "rTorrent",
   "TRANSMISSION": "Transmission",
+  "PORLA": "Porla",
   "RADARR": "Radarr",
   "SONARR": "Sonarr",
   "LIDARR": "Lidarr",
   "WHISPARR": "Whisparr",
-  "READARR": "Readarr"
+  "READARR": "Readarr",
+  "SABNZBD": "Sabnzbd"
 };
 
 export const ActionTypeOptions: RadioFieldsetOption[] = [
@@ -236,11 +309,13 @@ export const ActionTypeOptions: RadioFieldsetOption[] = [
   { label: "Deluge v2", description: "Add torrents directly to Deluge 2", value: "DELUGE_V2" },
   { label: "rTorrent", description: "Add torrents directly to rTorrent", value: "RTORRENT" },
   { label: "Transmission", description: "Add torrents directly to Transmission", value: "TRANSMISSION" },
+  { label: "Porla", description: "Add torrents directly to Porla", value: "PORLA" },
   { label: "Radarr", description: "Send to Radarr and let it decide", value: "RADARR" },
   { label: "Sonarr", description: "Send to Sonarr and let it decide", value: "SONARR" },
   { label: "Lidarr", description: "Send to Lidarr and let it decide", value: "LIDARR" },
   { label: "Whisparr", description: "Send to Whisparr and let it decide", value: "WHISPARR" },
-  { label: "Readarr", description: "Send to Readarr and let it decide", value: "READARR" }
+  { label: "Readarr", description: "Send to Readarr and let it decide", value: "READARR" },
+  { label: "Sabnzbd", description: "Add to Sabnzbd", value: "SABNZBD" }
 ];
 
 export const ActionTypeNameMap = {
@@ -253,11 +328,13 @@ export const ActionTypeNameMap = {
   "QBITTORRENT": "qBittorrent",
   "RTORRENT": "rTorrent",
   "TRANSMISSION": "Transmission",
+  "PORLA": "Porla",
   "RADARR": "Radarr",
   "SONARR": "Sonarr",
   "LIDARR": "Lidarr",
   "WHISPARR": "Whisparr",
-  "READARR": "Readarr"
+  "READARR": "Readarr",
+  "SABNZBD": "Sabnzbd"
 };
 
 export const ActionContentLayoutOptions: SelectGenericOption<ActionContentLayout>[] = [
@@ -266,9 +343,14 @@ export const ActionContentLayoutOptions: SelectGenericOption<ActionContentLayout
   { label: "Don't create subfolder", description: "Don't create subfolder", value: "SUBFOLDER_NONE" }
 ];
 
+export const ActionRtorrentRenameOptions: SelectGenericOption<ActionContentLayout>[] = [
+  { label: "No", description: "No", value: "ORIGINAL" },
+  { label: "Yes", description: "Yes", value: "SUBFOLDER_NONE" }
+];
+
 export interface OptionBasic {
-    label: string;
-    value: string;
+  label: string;
+  value: string;
 }
 
 export interface OptionBasicTyped<T> {
@@ -352,10 +434,25 @@ export const downloadsPerUnitOptions: OptionBasic[] = [
   }
 ];
 
+export const DownloadRuleConditionOptions: OptionBasic[] = [
+  {
+    label: "Always",
+    value: "ALWAYS"
+  },
+  {
+    label: "Max downloads reached",
+    value: "MAX_DOWNLOADS_REACHED"
+  }
+];
+
+const logLevel = ["DEBUG", "INFO", "WARN", "ERROR", "TRACE"] as const;
+
+export const LogLevelOptions = logLevel.map(v => ({ value: v, label: v, key: v }));
+
 export interface SelectOption {
-    label: string;
-    description: string;
-    value: NotificationEvent;
+  label: string;
+  description: string;
+  value: NotificationEvent;
 }
 
 export interface SelectGenericOption<T> {
@@ -394,5 +491,16 @@ export const EventOptions: SelectOption[] = [
     label: "New update",
     value: "APP_UPDATE_AVAILABLE",
     description: "Get notified on updates"
+  }
+];
+
+export const FeedDownloadTypeOptions: OptionBasicTyped<FeedDownloadType>[] = [
+  {
+    label: "Magnet",
+    value: "MAGNET"
+  },
+  {
+    label: "Torrent",
+    value: "TORRENT"
   }
 ];

@@ -150,7 +150,7 @@ func (r *NotificationRepo) FindByID(ctx context.Context, id int) (*domain.Notifi
 			"updated_at",
 		).
 		From("notification").
-		Where("id = ?", id)
+		Where(sq.Eq{"id": id})
 
 	query, args, err := queryBuilder.ToSql()
 	if err != nil {
@@ -258,7 +258,7 @@ func (r *NotificationRepo) Update(ctx context.Context, notification domain.Notif
 		Set("priority", priority).
 		Set("channel", channel).
 		Set("updated_at", sq.Expr("CURRENT_TIMESTAMP")).
-		Where("id = ?", notification.ID)
+		Where(sq.Eq{"id": notification.ID})
 
 	query, args, err := queryBuilder.ToSql()
 	if err != nil {
@@ -278,7 +278,7 @@ func (r *NotificationRepo) Update(ctx context.Context, notification domain.Notif
 func (r *NotificationRepo) Delete(ctx context.Context, notificationID int) error {
 	queryBuilder := r.db.squirrel.
 		Delete("notification").
-		Where("id = ?", notificationID)
+		Where(sq.Eq{"id": notificationID})
 
 	query, args, err := queryBuilder.ToSql()
 	if err != nil {

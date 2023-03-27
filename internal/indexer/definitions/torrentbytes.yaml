@@ -59,7 +59,7 @@ irc:
     lines:
       - test:
           - "[TB-RLS] .:. [ The.New.Game-GROUP ] .:. [ https://www.torrentbytes.net/download.php?id=0000000 ] .:. [ https://www.torrentbytes.net/details.php?id=0000000 ] .:. [ Uploaded 2 minutes, 12 seconds after pre ]"
-        pattern: '^\[TB-RLS\] \.:\. \[ (.*) \] \.:\. \[ https?\:\/\/([^\/]+\/).*id=(\d+).*https?\:\/\/(?:.*\[ Uploaded (.*)\])?'
+        pattern: '^\[TB-RLS\] \.:\. \[ (.*) \] \.:\. \[ (https?\:\/\/.*\/).*id=(\d+).*https?\:\/\/(?:.*\[ Uploaded (.*)\])?'
         vars:
           - torrentName
           - baseUrl
@@ -67,7 +67,8 @@ irc:
           - preTime
 
     match:
-      torrenturl: "/download.php?id={{ .torrentId }}&SSL=1&name={{ .torrentName }}.torrent"
+      infourl: "/details.php?id={{ .torrentId }}"
+      torrenturl: "/download.php?id={{ .torrentId }}&name={{ .torrentName }}.torrent"
       cookie: true
       encode:
         - torrentName

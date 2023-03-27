@@ -34,6 +34,7 @@ irc:
     - "#pornbay-announce"
   announcers:
     - "PB-Announcer"
+    - "Llamab1t"
   settings:
     - name: nick
       type: text
@@ -69,4 +70,5 @@ irc:
           - torrentId
 
     match:
+      infourl: "/torrents.php?id={{ .torrentId }}"
       torrenturl: "/torrents.php?action=download&id={{ .torrentId }}&authkey={{ .authkey }}&torrent_pass={{ .torrent_pass }}"

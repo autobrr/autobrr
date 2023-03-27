@@ -48,7 +48,9 @@ func NewRSSJob(feed *domain.Feed, name string, indexerIdentifier string, log zer
 }
 
 func (j *RSSJob) Run() {
-	if err := j.process(); err != nil {
+	ctx := context.Background()
+
+	if err := j.process(ctx); err != nil {
 		j.Log.Error().Err(err).Int("attempts", j.attempts).Msg("rss feed process error")
 
 		j.errors = append(j.errors, err)
@@ -57,12 +59,10 @@ func (j *RSSJob) Run() {
 
 	j.attempts = 0
 	j.errors = []error{}
-
-	return
 }
 
-func (j *RSSJob) process() error {
-	items, err := j.getFeed()
+func (j *RSSJob) process(ctx context.Context) error {
+	items, err := j.getFeed(ctx)
 	if err != nil {
 		j.Log.Error().Err(err).Msgf("error fetching rss feed items")
 		return errors.Wrap(err, "error getting rss feed items")
@@ -108,12 +108,17 @@ func (j *RSSJob) processItem(item *gofeed.Item) *domain.Release {
 
 	rls.ParseString(item.Title)
 
+	if j.Feed.Settings != nil && j.Feed.Settings.DownloadType == domain.FeedDownloadTypeMagnet {
+		rls.MagnetURI = item.Link
+		rls.TorrentURL = ""
+	}
+
 	if len(item.Enclosures) > 0 {
 		e := item.Enclosures[0]
 		if e.Type == "application/x-bittorrent" && e.URL != "" {
 			rls.TorrentURL = e.URL
 		}
-		if e.Length != "" {
+		if e.Length != "" && e.Length != "39399" {
 			rls.ParseSizeBytesString(e.Length)
 		}
 	}
@@ -154,11 +159,9 @@ func (j *RSSJob) processItem(item *gofeed.Item) *domain.Release {
 		rls.Uploader += v.Name
 	}
 
-	if rls.Size == 0 {
-		// parse size bytes string
-		if sz, ok := item.Custom["size"]; ok {
-			rls.ParseSizeBytesString(sz)
-		}
+	// When custom->size and enclosures->size differ, `ParseSizeBytesString` will pick the largest one.
+	if size, ok := item.Custom["size"]; ok {
+		rls.ParseSizeBytesString(size)
 	}
 
 	// additional size parsing
@@ -195,8 +198,8 @@ func (j *RSSJob) processItem(item *gofeed.Item) *domain.Release {
 	return rls
 }
 
-func (j *RSSJob) getFeed() (items []*gofeed.Item, err error) {
-	ctx, cancel := context.WithTimeout(context.Background(), j.Timeout)
+func (j *RSSJob) getFeed(ctx context.Context) (items []*gofeed.Item, err error) {
+	ctx, cancel := context.WithTimeout(ctx, j.Timeout)
 	defer cancel()
 
 	feed, err := NewFeedParser(j.Timeout, j.Feed.Cookie).ParseURLWithContext(ctx, j.URL)
@@ -207,7 +210,7 @@ func (j *RSSJob) getFeed() (items []*gofeed.Item, err error) {
 	// get feed as JSON string
 	feedData := feed.String()
 
-	if err := j.Repo.UpdateLastRunWithData(context.Background(), j.Feed.ID, feedData); err != nil {
+	if err := j.Repo.UpdateLastRunWithData(ctx, j.Feed.ID, feedData); err != nil {
 		j.Log.Error().Err(err).Msgf("error updating last run for feed id: %v", j.Feed.ID)
 	}
 
@@ -247,9 +250,11 @@ func (j *RSSJob) getFeed() (items []*gofeed.Item, err error) {
 			continue
 		}
 		if exists {
-			j.Log.Trace().Msgf("cache item exists, skipping release: %v", item.Title)
+			j.Log.Trace().Msgf("cache item exists, skipping release: %s", item.Title)
 			continue
 		}
+
+		j.Log.Debug().Msgf("found new release: %s", i.Title)
 
 		if err := j.CacheRepo.Put(bucketKey, key, []byte(item.Title), ttl); err != nil {
 			j.Log.Error().Err(err).Str("entry", key).Msg("cache.Put: error storing item in cache")

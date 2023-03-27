@@ -1,6 +1,7 @@
 package torznab
 
 import (
+	"context"
 	"encoding/xml"
 	"net/http"
 	"net/http/httptest"
@@ -232,7 +233,7 @@ func TestClient_GetCaps(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			c := NewClient(Config{Host: tt.fields.Host, ApiKey: tt.fields.ApiKey})
 
-			got, err := c.FetchCaps()
+			got, err := c.FetchCaps(context.TODO())
 			if tt.wantErr && assert.Error(t, err) {
 				assert.EqualErrorf(t, err, tt.expectedErr, "Error should be: %v, got: %v", tt.wantErr, err)
 			}

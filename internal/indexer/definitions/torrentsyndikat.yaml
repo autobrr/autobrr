@@ -71,4 +71,5 @@ irc:
           - torrentId
           - tags
     match:
+      infourl: "/details.php?id={{ .torrentId }}"
       torrenturl: "/download.php?id={{ .torrentId }}&apikey={{ .api_key }}"
