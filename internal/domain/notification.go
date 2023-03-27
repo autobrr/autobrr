@@ -39,6 +39,8 @@ type Notification struct {
 	Devices   string           `json:"devices"`
 	CreatedAt time.Time        `json:"created_at"`
 	UpdatedAt time.Time        `json:"updated_at"`
+	UserKey   string           `json:"user_key"`
+	Priority  string           `json:"priority"`
 }
 
 type NotificationPayload struct {

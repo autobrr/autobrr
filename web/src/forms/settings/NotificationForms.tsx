@@ -434,7 +434,7 @@ interface InitialValues {
   token?: string;
   api_key?: string;
   user_key?: string;
-  priority?: string;
+  priority?: number;
   channel?: string;
   events: NotificationEvent[];
 }
@@ -491,7 +491,7 @@ export function NotificationUpdateForm({ isOpen, toggle, notification }: UpdateP
     token: notification.token,
     api_key: notification.api_key,
     user_key: notification.user_key,
-    priority: notification.priority || "0",
+    priority: notification.priority,
     channel: notification.channel,
     events: notification.events || []
   };

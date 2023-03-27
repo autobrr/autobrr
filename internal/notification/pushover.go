@@ -1,11 +1,12 @@
 package notification
 
 import (
-	"bytes"
-	"crypto/tls"
-	"encoding/json"
+	"fmt"
+	"html"
 	"io"
 	"net/http"
+	"net/url"
+	"strings"
 	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
@@ -15,17 +16,19 @@ import (
 )
 
 type pushoverMessage struct {
-	Token 		string  	`json:"api_key"`
-	User  		string 		`json:"user_key"`
-	Message 	string 		`json:"message"`
-	Priority 	string 		`json:"priority"`
-	Title 		string 		`json:"title"`
-	Timestamp time.Time	`json:"timestamp"`
+	Token     string    `json:"api_key"`
+	User      string    `json:"user_key"`
+	Message   string    `json:"message"`
+	Priority  string    `json:"priority"`
+	Title     string    `json:"title"`
+	Timestamp time.Time `json:"timestamp"`
+	Html      int       `json:"html,omitempty"`
 }
 
 type pushoverSender struct {
 	log      zerolog.Logger
 	Settings domain.Notification
+	baseUrl  string
 }
 
 func NewPushoverSender(log zerolog.Logger, settings domain.Notification) domain.NotificationSender {
@@ -38,37 +41,34 @@ func NewPushoverSender(log zerolog.Logger, settings domain.Notification) domain.
 
 func (s *pushoverSender) Send(event domain.NotificationEvent, payload domain.NotificationPayload) error {
 	m := pushoverMessage{
-		Token: s.Settings.APIKey,
-		User: s.Settings.UserKey,
-		Priority: s.Settings.Priority,
-		Message: s.buildMessage(payload),
-		Title: s.buildTitle(event),
+		Token:     s.Settings.APIKey,
+		User:      s.Settings.UserKey,
+		Priority:  s.Settings.Priority,
+		Message:   s.buildMessage(payload),
+		Title:     s.buildTitle(event),
 		Timestamp: time.Now(),
-		Html: "1"
+		Html:      1,
 	}
 
-	jsonData, err := json.Marshal(m)
-	if err != nil {
-		s.log.Error().Err(err).Msgf("pushover client could not marshal data: %v", m)
-		return errors.Wrap(err, "could not marshal data: %+v", m)
-	}
+	data := url.Values{}
+	data.Set("token", m.Token)
+	data.Set("user", m.User)
+	data.Set("message", m.Message)
+	data.Set("priority", m.Priority)
+	data.Set("title", m.Title)
+	data.Set("timestamp", fmt.Sprintf("%v", m.Timestamp.Unix()))
+	data.Set("html", fmt.Sprintf("%v", m.Html))
 
-	req, err := http.NewRequest(http.MethodPost, s.baseUrl, bytes.NewBuffer(jsonData))
+	req, err := http.NewRequest(http.MethodPost, s.baseUrl, strings.NewReader(data.Encode()))
 	if err != nil {
 		s.log.Error().Err(err).Msgf("pushover client request error: %v", event)
 		return errors.Wrap(err, "could not create request")
 	}
 
-	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	req.Header.Set("User-Agent", "autobrr")
 
-	t := &http.Transport{
-		TLSClientConfig: &tls.Config{
-			InsecureSkipVerify: true,
-		},
-	}
-
-	client := http.Client{Transport: t, Timeout: 30 * time.Second}
+	client := http.Client{Timeout: 30 * time.Second}
 	res, err := client.Do(req)
 	if err != nil {
 		s.log.Error().Err(err).Msgf("pushover client request error: %v", event)
@@ -134,7 +134,7 @@ func (s *pushoverSender) isEnabledEvent(event domain.NotificationEvent) bool {
 	return false
 }
 
-func (s *pushoverSender) buildMessage(payload domain.NotificationPayload) pushoverMessageData {
+func (s *pushoverSender) buildMessage(payload domain.NotificationPayload) string {
 	msg := ""
 
 	if payload.Subject != "" && payload.Message != "" {
@@ -166,11 +166,11 @@ func (s *pushoverSender) buildMessage(payload domain.NotificationPayload) pushov
 	return msg
 }
 
-func (s *pushoverSender) builtTitle(event domain.NotificationEvent) string {
+func (s *pushoverSender) buildTitle(event domain.NotificationEvent) string {
 	title := ""
 
 	switch event {
-	case NotificationEventAppUpdateAvailable:
+	case domain.NotificationEventAppUpdateAvailable:
 		title = "Autobrr update available"
 	case domain.NotificationEventPushApproved:
 		title = "Push Approved"
