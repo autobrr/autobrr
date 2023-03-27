@@ -655,4 +655,10 @@ ADD COLUMN info_url TEXT;
 ALTER TABLE "release"
 ADD COLUMN download_url TEXT;
 	`,
+	`ALTER TABLE notification
+ADD COLUMN user_key TEXT;
+
+ALTER TABLE notification
+    ADD COLUMN priority TEXT DEFAULT '0';
+    `,
 }
