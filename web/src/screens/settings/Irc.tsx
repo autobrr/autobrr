@@ -21,7 +21,7 @@ import {
   TrashIcon
 } from "@heroicons/react/24/outline";
 
-export const IrcSettings = () => {
+const IrcSettings = () => {
   const [expandNetworks, toggleExpand] = useToggle(false);
   const [addNetworkIsOpen, toggleAddNetwork] = useToggle(false);
 
@@ -490,3 +490,5 @@ const ListItemDropdown = ({
     </Menu>
   );
 };
+
+export default IrcSettings;

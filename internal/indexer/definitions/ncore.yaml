@@ -19,8 +19,8 @@ settings:
     help: "Check a torrent download link. key='value' is your passkey."
 
 irc:
-  network: nCore
-  server: irc.ncore.pro
+  network: P2P-Network
+  server: irc.p2p-network.net
   port: 6697
   tls: true
   channels:
@@ -46,12 +46,12 @@ irc:
       label: NickServ Password
       help: NickServ password
 
-    - name: invite_command
-      type: secret
-      default: "NBOT !invite IRCKEY"
-      required: true
-      label: Invite command
-      help: Invite auth with the key from https://ncore.pro/irc.php. Replace IRCKEY
+    #- name: invite_command
+    #  type: secret
+    #  default: "NBOT !invite IRCKEY"
+    #  required: true
+    #  label: Invite command
+    #  help: Invite auth with the key from https://ncore.pro/irc.php. Replace IRCKEY
 
   parse:
     type: single

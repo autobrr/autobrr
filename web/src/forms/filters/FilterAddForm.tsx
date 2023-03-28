@@ -10,6 +10,7 @@ import { queryClient } from "../../App";
 import { APIClient } from "../../api/APIClient";
 import DEBUG from "../../components/debug";
 import Toast from "../../components/notifications/Toast";
+import { useNavigate } from "react-router-dom";
 
 interface filterAddFormProps {
     isOpen: boolean;
@@ -17,14 +18,18 @@ interface filterAddFormProps {
 }
 
 function FilterAddForm({ isOpen, toggle }: filterAddFormProps) {
+  const navigate = useNavigate();
   const mutation = useMutation(
     (filter: Filter) => APIClient.filters.create(filter),
     {
-      onSuccess: (_, filter) => {
+      onSuccess: (filter) => {
         queryClient.invalidateQueries("filters");
         toast.custom((t) => <Toast type="success" body={`Filter ${filter.name} was added`} t={t} />);
 
         toggle();
+        if (filter.id) {
+          navigate(filter.id.toString());
+        }
       }
     }
   );

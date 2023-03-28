@@ -48,7 +48,35 @@ type IndexerDefinition struct {
 	SettingsMap    map[string]string `json:"-"`
 	IRC            *IndexerIRC       `json:"irc,omitempty"`
 	Torznab        *Torznab          `json:"torznab,omitempty"`
+	Newznab        *Newznab          `json:"newznab,omitempty"`
 	RSS            *FeedSettings     `json:"rss,omitempty"`
+}
+
+type IndexerImplementation string
+
+const (
+	IndexerImplementationIRC     IndexerImplementation = "irc"
+	IndexerImplementationTorznab IndexerImplementation = "torznab"
+	IndexerImplementationNewznab IndexerImplementation = "newznab"
+	IndexerImplementationRSS     IndexerImplementation = "rss"
+	IndexerImplementationLegacy  IndexerImplementation = ""
+)
+
+func (i IndexerImplementation) String() string {
+	switch i {
+	case IndexerImplementationIRC:
+		return "irc"
+	case IndexerImplementationTorznab:
+		return "torznab"
+	case IndexerImplementationNewznab:
+		return "newznab"
+	case IndexerImplementationRSS:
+		return "rss"
+	case IndexerImplementationLegacy:
+		return ""
+	}
+
+	return ""
 }
 
 func (i IndexerDefinition) HasApi() bool {
@@ -77,6 +105,7 @@ type IndexerDefinitionCustom struct {
 	SettingsMap    map[string]string `json:"-"`
 	IRC            *IndexerIRC       `json:"irc,omitempty"`
 	Torznab        *Torznab          `json:"torznab,omitempty"`
+	Newznab        *Newznab          `json:"newznab,omitempty"`
 	RSS            *FeedSettings     `json:"rss,omitempty"`
 	Parse          *IndexerIRCParse  `json:"parse,omitempty"`
 }
@@ -99,6 +128,7 @@ func (i *IndexerDefinitionCustom) ToIndexerDefinition() *IndexerDefinition {
 		SettingsMap:    i.SettingsMap,
 		IRC:            i.IRC,
 		Torznab:        i.Torznab,
+		Newznab:        i.Newznab,
 		RSS:            i.RSS,
 	}
 
@@ -122,6 +152,11 @@ type IndexerSetting struct {
 }
 
 type Torznab struct {
+	MinInterval int              `json:"minInterval"`
+	Settings    []IndexerSetting `json:"settings"`
+}
+
+type Newznab struct {
 	MinInterval int              `json:"minInterval"`
 	Settings    []IndexerSetting `json:"settings"`
 }

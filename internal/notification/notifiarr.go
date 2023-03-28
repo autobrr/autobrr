@@ -33,7 +33,7 @@ type notifiarrMessageData struct {
 	ActionType     *domain.ActionType            `json:"action_type,omitempty"`
 	ActionClient   *string                       `json:"action_client,omitempty"`
 	Rejections     []string                      `json:"rejections,omitempty"`
-	Protocol       *domain.ReleaseProtocol       `json:"protocol,omitempty"`       // torrent
+	Protocol       *domain.ReleaseProtocol       `json:"protocol,omitempty"`       // torrent, usenet
 	Implementation *domain.ReleaseImplementation `json:"implementation,omitempty"` // irc, rss, api
 	Timestamp      time.Time                     `json:"timestamp"`
 }

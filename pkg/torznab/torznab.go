@@ -241,7 +241,7 @@ func (c *client) GetCaps() *Caps {
 	return c.Capabilities
 }
 
-func (c *client) Search(ctx context.Context, query string) ([]FeedItem, error) {
+func (c *client) Search(ctx context.Context, query string) ([]*FeedItem, error) {
 	v := url.Values{}
 	v.Add("q", query)
 	params := v.Encode()

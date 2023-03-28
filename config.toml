@@ -51,6 +51,12 @@ logLevel = "TRACE"
 #
 #logMaxBackups = 3
 
+# Check for updates
+#
+# Default: true
+#
+checkForUpdates = true
+
 # Session secret
 #
 sessionSecret = "secret-session-key"

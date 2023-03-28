@@ -1,0 +1,31 @@
+---
+#id: newznab
+name: Generic Newznab
+identifier: newznab
+description: Newznab is an API search specification for Usenet
+language: en-us
+urls:
+  - https://domain.com
+privacy: private
+protocol: nzb
+implementation: newznab
+supports:
+  - newznab
+source: newznab
+
+newznab:
+  minInterval: 15
+  settings:
+    - name: url
+      type: text
+      required: true
+      label: Indexer URL
+    - name: newznab_url
+      type: text
+      required: true
+      label: Newznab URL
+    - name: api_key
+      type: secret
+      required: false
+      label: API key
+      help: API key

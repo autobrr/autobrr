@@ -61,7 +61,8 @@ func New(config Config) Client {
 
 type Release struct {
 	Title            string `json:"title"`
-	DownloadUrl      string `json:"downloadUrl"`
+	DownloadUrl      string `json:"downloadUrl,omitempty"`
+	MagnetUrl        string `json:"magnetUrl,omitempty"`
 	Size             int64  `json:"size"`
 	Indexer          string `json:"indexer"`
 	DownloadProtocol string `json:"downloadProtocol"`

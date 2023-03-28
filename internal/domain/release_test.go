@@ -220,7 +220,7 @@ func TestRelease_Parse(t *testing.T) {
 				ReleaseTags: "FLAC / 24bit Lossless / Log / 100% / Cue / CD",
 				Title:       "Artist",
 				Group:       "Albumname",
-				Audio:       []string{"24BIT Lossless", "Cue", "FLAC", "Lossless", "Log100", "Log"},
+				Audio:       []string{"24BIT Lossless", "Cue", "FLAC", "Log100", "Log"},
 				Source:      "CD",
 			},
 		},
@@ -639,7 +639,6 @@ func TestRelease_ParseString(t *testing.T) {
 				Artists:                     tt.fields.Artists,
 				Type:                        tt.fields.Type,
 				LogScore:                    tt.fields.LogScore,
-				IsScene:                     tt.fields.IsScene,
 				Origin:                      tt.fields.Origin,
 				Tags:                        tt.fields.Tags,
 				ReleaseTags:                 tt.fields.ReleaseTags,
@@ -741,7 +740,6 @@ func TestRelease_DownloadTorrentFile(t *testing.T) {
 		Artists                     string
 		Type                        string
 		LogScore                    int
-		IsScene                     bool
 		Origin                      string
 		Tags                        []string
 		ReleaseTags                 string
@@ -838,7 +836,6 @@ func TestRelease_DownloadTorrentFile(t *testing.T) {
 				Artists:                     tt.fields.Artists,
 				Type:                        tt.fields.Type,
 				LogScore:                    tt.fields.LogScore,
-				IsScene:                     tt.fields.IsScene,
 				Origin:                      tt.fields.Origin,
 				Tags:                        tt.fields.Tags,
 				ReleaseTags:                 tt.fields.ReleaseTags,

@@ -74,5 +74,5 @@ irc:
           - tags
 
     match:
-      infourl: "/torrents.php?id={{ .torrentId }}"
+      infourl: "/torrents.php?torrentid={{ .torrentId }}"
       torrenturl: "/torrents.php?action=download&id={{ .torrentId }}&torrent_pass={{ .torrent_pass }}"

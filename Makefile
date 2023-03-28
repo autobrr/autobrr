@@ -3,7 +3,7 @@
 .SUFFIXES:
 
 GIT_COMMIT := $(shell git rev-parse HEAD 2> /dev/null)
-GIT_TAG := $(shell git tag --points-at HEAD 2> /dev/null | head -n 1)
+GIT_TAG := $(shell git describe --abbrev=0 --tags)
 
 SERVICE = autobrr
 GO = go
