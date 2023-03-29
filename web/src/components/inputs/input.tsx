@@ -3,7 +3,6 @@ import { classNames } from "../../utils";
 import { EyeIcon, EyeSlashIcon, CheckCircleIcon, XCircleIcon } from "@heroicons/react/24/solid";
 import { useToggle } from "../../hooks/hooks";
 import { CustomTooltip } from "../tooltips/CustomTooltip";
-import * as Yup from "yup";
 import { useEffect } from "react";
 
 type COL_WIDTHS = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12;
@@ -86,7 +85,6 @@ interface RegexFieldProps {
   autoComplete?: string;
   onChange?: (event: React.ChangeEvent<HTMLInputElement>) => void;
   isValidRegex?: (inputValue: string) => boolean;
-  validationSchema?: Yup.Schema<any>;
   useRegex?: boolean;
   useRegexReleaseTags?: boolean;
   hidden?: boolean;
