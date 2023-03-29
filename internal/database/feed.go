@@ -68,12 +68,14 @@ func (r *FeedRepo) FindByID(ctx context.Context, id int) (*domain.Feed, error) {
 	f.ApiKey = apiKey.String
 	f.Cookie = cookie.String
 
-	var settingsJson domain.FeedSettingsJSON
-	if err = json.Unmarshal([]byte(settings.String), &settingsJson); err != nil {
-		return nil, errors.Wrap(err, "error unmarshal settings")
-	}
+	if settings.Valid {
+		var settingsJson domain.FeedSettingsJSON
+		if err = json.Unmarshal([]byte(settings.String), &settingsJson); err != nil {
+			return nil, errors.Wrap(err, "error unmarshal settings")
+		}
 
-	f.Settings = &settingsJson
+		f.Settings = &settingsJson
+	}
 
 	return &f, nil
 }
