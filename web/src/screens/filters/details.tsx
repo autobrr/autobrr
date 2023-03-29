@@ -1,4 +1,4 @@
-import React, { useRef, useState } from "react";
+import React, { useRef, useState, useEffect } from "react";
 import { useMutation, useQuery } from "react-query";
 import { NavLink, Route, Routes, useLocation, useNavigate, useParams } from "react-router-dom";
 import { toast } from "react-hot-toast";
@@ -467,8 +467,9 @@ interface AdvancedProps {
 }
 
 export function Advanced({ values }: AdvancedProps) {
-  
-  const golangRegex = /^((\\\*|\\\?|\\[^\s\\])+|\(\?i\))(\|((\\\*|\\\?|\\[^\s\\])+|\(\?i\)))*$/; // start of regex validation
+
+  // start of regex validation
+  const golangRegex = /^((\\\*|\\\?|\\[^\s\\])+|\(\?i\))(\|((\\\*|\\\?|\\[^\s\\])+|\(\?i\)))*$/;
 
   const validateRegex = (pattern: string) => {
     try {
@@ -477,7 +478,7 @@ export function Advanced({ values }: AdvancedProps) {
     } catch (e) {
       return false;
     }
-  };  
+  };
 
   const initializeIsValidRegex = () => {
     const matchIsValid = values.use_regex ? validateRegex(values.match_releases) : true;
@@ -493,21 +494,25 @@ export function Advanced({ values }: AdvancedProps) {
     };
   };
 
-  const [isValidRegex, setIsValidRegex] = useState(initializeIsValidRegex);
+  const [isValidRegex, setIsValidRegex] = useState(initializeIsValidRegex());
+
+  useEffect(() => {
+    setIsValidRegex(initializeIsValidRegex());
+  }, [values.use_regex, values.use_regex_release_tags]);
   
-  const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => { // for matchRelease
+  const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     setIsValidRegex({ ...isValidRegex, match: validateRegex(event.target.value) });
   };
 
-  const handleChangeExcept = (event: React.ChangeEvent<HTMLInputElement>) => { // for exceptRelease
+  const handleChangeExcept = (event: React.ChangeEvent<HTMLInputElement>) => {
     setIsValidRegex({ ...isValidRegex, except: validateRegex(event.target.value) });
   };
 
-  const handleReleaseTags = (event: React.ChangeEvent<HTMLInputElement>) => {  // for matchReleaseTags
+  const handleReleaseTags = (event: React.ChangeEvent<HTMLInputElement>) => {
     setIsValidRegex({ ...isValidRegex, matchreleasetags: validateRegex(event.target.value) });
   };
 
-  const handleExceptReleaseTags = (event: React.ChangeEvent<HTMLInputElement>) => { // for exceptReleaseTags
+  const handleExceptReleaseTags = (event: React.ChangeEvent<HTMLInputElement>) => {
     setIsValidRegex({ ...isValidRegex, exceptreleasetags: validateRegex(event.target.value) });
   };
 

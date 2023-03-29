@@ -118,7 +118,7 @@ export const RegexField = ({
         htmlFor={name}
         className="flex float-left mb-2 text-xs font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wide"
       >
-        <div className="flex z-10">
+        <div className="flex">
           {label}
           {tooltip && <CustomTooltip anchorId={name}>{tooltip}</CustomTooltip>}
         </div>
