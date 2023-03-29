@@ -513,8 +513,11 @@ export function Advanced({ values }: AdvancedProps) {
 
   const validationState = (isValid: boolean) => {
     return (inputValue: string) => {
+      if (values.use_regex_release_tags) {
+        return inputValue === "" || (isValid && inputValue !== "");
+      }
       if (values.use_regex) {
-        return (inputValue === "") ? true : (isValid && inputValue !== "");
+        return inputValue === "" || (isValid && inputValue !== "");
       }
       return inputValue === "" || true;
     };

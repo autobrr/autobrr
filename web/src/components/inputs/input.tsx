@@ -3,6 +3,8 @@ import { classNames } from "../../utils";
 import { EyeIcon, EyeSlashIcon, CheckCircleIcon, XCircleIcon } from "@heroicons/react/24/solid";
 import { useToggle } from "../../hooks/hooks";
 import { CustomTooltip } from "../tooltips/CustomTooltip";
+import * as Yup from "yup";
+import { useEffect } from "react";
 
 type COL_WIDTHS = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12;
 
@@ -84,6 +86,7 @@ interface RegexFieldProps {
   autoComplete?: string;
   onChange?: (event: React.ChangeEvent<HTMLInputElement>) => void;
   isValidRegex?: (inputValue: string) => boolean;
+  validationSchema?: Yup.Schema<any>;
   useRegex?: boolean;
   useRegexReleaseTags?: boolean;
   hidden?: boolean;
@@ -123,12 +126,33 @@ export const RegexField = ({
         </div>
       </label>
     )}
-    <Field name={name}>
-      {({
-        field,
-        meta
-      }: FieldProps) => {
+    <Field
+      name={name}
+      validate={(value: string) => {
+        // Validate only if useRegex or useRegexReleaseTags is enabled
+        if ((useRegex || useRegexReleaseTags) && isValidRegex && !isValidRegex(value)) {
+          return "Invalid regex";
+        }
+      }}
+    >
+      {({ field, meta, form }: FieldProps) => {
         const isValid = isValidRegex ? isValidRegex(field.value) : undefined;
+
+        useEffect(() => {
+          form.validateField(name);
+        }, [field.value, form]);
+
+        const handleInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+          field.onChange(event);
+          if (onChange) {
+            onChange(event);
+          }
+          // Trigger validation on change
+          if (form.touched[name] || event.target.value.length > 0) {
+            form.setFieldTouched(name, true, false);
+            form.validateField(name);
+          }
+        };
         return (
           <div className="relative">
             <input
@@ -137,12 +161,7 @@ export const RegexField = ({
               type="text"
               defaultValue={defaultValue}
               autoComplete={autoComplete}
-              onChange={(event) => {
-                field.onChange(event);
-                if (onChange) {
-                  onChange(event);
-                }
-              }}            
+              onChange={handleInputChange}
               className={classNames(
                 meta.touched && meta.error
                   ? "focus:ring-red-500 focus:border-red-500 border-red-500"
@@ -167,7 +186,7 @@ export const RegexField = ({
               </div>
             )}
             {meta.touched && meta.error && (
-              <p className="error text-sm text-red-600 mt-1">* {meta.error}</p>
+              <p className="error text-sm text-red-500 mt-1">* {meta.error}</p>
             )}
           </div>
         );}
