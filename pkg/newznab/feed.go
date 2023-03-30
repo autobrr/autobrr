@@ -31,7 +31,7 @@ type Response struct {
 type FeedItem struct {
 	Title           string `xml:"title,omitempty"`
 	GUID            string `xml:"guid,omitempty"`
-	PubDate         Time   `xml:"pub_date,omitempty"`
+	PubDate         Time   `xml:"pubDate,omitempty"`
 	Prowlarrindexer struct {
 		Text string `xml:",chardata"`
 		ID   string `xml:"id,attr"`
