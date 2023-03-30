@@ -9,6 +9,7 @@ import { LockClosedIcon, LockOpenIcon } from "@heroicons/react/24/solid";
 import { Menu, Switch, Transition } from "@headlessui/react";
 import { Fragment, useRef } from "react";
 import { DeleteModal } from "../../components/modals";
+import { useState, useMemo } from "react";
 
 import { toast } from "react-hot-toast";
 import Toast from "../../components/notifications/Toast";
@@ -21,6 +22,64 @@ import {
   TrashIcon
 } from "@heroicons/react/24/outline";
 
+interface SortConfig {
+  key: keyof ListItemProps["network"] | "enabled";
+  direction: "ascending" | "descending";
+}
+
+function useSort(items: ListItemProps["network"][], config?: SortConfig) {
+  const [sortConfig, setSortConfig] = useState(config);
+
+
+  
+  const sortedItems = useMemo(() => {
+    if (!sortConfig) {
+      return items;
+    }
+
+    const sortableItems = [...items];
+
+    sortableItems.sort((a, b) => {
+      const aValue = sortConfig.key === "enabled" ? (a[sortConfig.key] ?? false) as number | boolean | string : a[sortConfig.key] as number | boolean | string;
+      const bValue = sortConfig.key === "enabled" ? (b[sortConfig.key] ?? false) as number | boolean | string : b[sortConfig.key] as number | boolean | string;
+  
+      if (aValue < bValue) {
+        return sortConfig.direction === "ascending" ? -1 : 1;
+      }
+      if (aValue > bValue) {
+        return sortConfig.direction === "ascending" ? 1 : -1;
+      }
+      return 0;
+    });    
+
+    return sortableItems;
+  }, [items, sortConfig]);
+
+  const requestSort = (key: keyof ListItemProps["network"]) => {
+    let direction: "ascending" | "descending" = "ascending";
+    if (
+      sortConfig &&
+      sortConfig.key === key &&
+      sortConfig.direction === "ascending"
+    ) {
+      direction = "descending";
+    }
+    setSortConfig({ key, direction });
+  };
+  
+
+  const getSortIndicator = (key: keyof ListItemProps["network"]) => {
+    if (!sortConfig || sortConfig.key !== key) {
+      return "";
+    }
+    
+    return sortConfig.direction === "ascending" ? "↑" : "↓";
+  };
+
+  return { items: sortedItems, requestSort, sortConfig, getSortIndicator };
+}
+
+
 const IrcSettings = () => {
   const [expandNetworks, toggleExpand] = useToggle(false);
   const [addNetworkIsOpen, toggleAddNetwork] = useToggle(false);
@@ -30,6 +89,9 @@ const IrcSettings = () => {
     // Refetch every 3 seconds
     refetchInterval: 3000
   });
+
+  const sortedNetworks = useSort(data || []);
+
 
   return (
     <div className="lg:col-span-9">
@@ -100,21 +162,25 @@ const IrcSettings = () => {
           <section className="mt-6 light:bg-white dark:bg-gray-800 light:shadow md:rounded-md">
             <ol className="min-w-full relative">
               <li className="grid grid-cols-12 gap-4 border-b border-gray-200 dark:border-gray-700">
-                <div className="col-span-2 md:col-span-1 px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                  Enabled
+                <div className="flex col-span-2 md:col-span-1 px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer"
+                  onClick={() => sortedNetworks.requestSort("enabled")}>
+                    Enabled <span className="sort-indicator">{sortedNetworks.getSortIndicator("enabled")}</span>
                 </div>
-                <div className="col-span-10 md:col-span-3 px-8 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                  Network
+                <div className="col-span-10 md:col-span-3 px-8 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer"
+                  onClick={() => sortedNetworks.requestSort("name")}>
+                  Network <span className="sort-indicator">{sortedNetworks.getSortIndicator("name")}</span>
                 </div>
-                <div className="hidden md:flex col-span-4 px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                  Server
+                <div className="hidden md:flex col-span-4 px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer"
+                  onClick={() => sortedNetworks.requestSort("server")}>
+                  Server <span className="sort-indicator">{sortedNetworks.getSortIndicator("server")}</span>
                 </div>
-                <div className="hidden md:flex col-span-3 px-5 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                  Nick
+                <div className="hidden md:flex col-span-3 px-5 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer"
+                  onClick={() => sortedNetworks.requestSort("nick")}>
+                Nick <span className="sort-indicator">{sortedNetworks.getSortIndicator("nick")}</span>
                 </div>
               </li>
               {data &&
-                data.map((network, idx) => (
+                sortedNetworks.items.map((network, idx) => (
                   <ListItem key={idx} idx={idx} expanded={expandNetworks} network={network} />
                 ))}
             </ol>
