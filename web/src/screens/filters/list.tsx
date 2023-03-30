@@ -1,4 +1,4 @@
-import { Dispatch, FC, Fragment, MouseEventHandler, useReducer, useRef, useState } from "react";
+import { Dispatch, FC, Fragment, MouseEventHandler, useReducer, useRef, useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { toast } from "react-hot-toast";
 import { Listbox, Menu, Switch, Transition } from "@headlessui/react";
@@ -8,6 +8,8 @@ import { useCallback } from "react";
 
 import { Tooltip } from "react-tooltip";
 
+
+import { FilterListContext, FilterListState } from "../../utils/Context";
 
 import {
   ArrowsRightLeftIcon,
@@ -30,18 +32,6 @@ import Toast from "../../components/notifications/Toast";
 import { EmptyListState } from "../../components/emptystates";
 import { DeleteModal } from "../../components/modals";
 import { ArrowDownTrayIcon } from "@heroicons/react/24/solid";
-
-type FilterListState = {
-  indexerFilter: string[],
-  sortOrder: string;
-  status: string;
-};
-
-const initialState: FilterListState = {
-  indexerFilter: [],
-  sortOrder: "",
-  status: ""
-};
 
 enum ActionType {
   INDEXER_FILTER_CHANGE = "INDEXER_FILTER_CHANGE",
@@ -260,8 +250,12 @@ function filteredData(data: Filter[], status: string) {
 }
 
 function FilterList({ toggleCreateFilter }: any) {
-  const [{ indexerFilter, sortOrder, status }, dispatchFilter] =
-    useReducer(FilterListReducer, initialState);
+  const filterListState = FilterListContext.useValue();
+
+  const [{ indexerFilter, sortOrder, status }, dispatchFilter] = useReducer(
+    FilterListReducer,
+    filterListState
+  );
 
   const { error, data } = useQuery(
     ["filters", indexerFilter, sortOrder],
@@ -269,8 +263,12 @@ function FilterList({ toggleCreateFilter }: any) {
     { refetchOnWindowFocus: false }
   );
 
+  useEffect(() => {
+    FilterListContext.set({ indexerFilter, sortOrder, status });
+  }, [indexerFilter, sortOrder, status]);
+
   if (error) {
-    return (<p>An error has occurred: </p>);
+    return <p>An error has occurred:</p>;
   }
 
   const filtered = filteredData(data ?? [], status);
