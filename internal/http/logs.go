@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"io"
 	"io/fs"
-	"log"
 	"net/http"
 	"os"
 	"path"
@@ -19,6 +18,7 @@ import (
 	"github.com/dustin/go-humanize"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/render"
+	"github.com/rs/zerolog/log"
 )
 
 type logsHandler struct {
@@ -153,7 +153,7 @@ func SanitizeLogFile(filePath string, output io.Writer) error {
 
 		if err != nil {
 			if err != io.EOF {
-				log.Printf("Error reading line from input file: %v", err)
+				log.Error().Msgf("Error reading line from input file: %v", err)
 			}
 			break
 		}
@@ -180,7 +180,7 @@ func SanitizeLogFile(filePath string, output io.Writer) error {
 
 		// Write the sanitized line to the writer
 		if _, err = writer.WriteString(line); err != nil {
-			log.Printf("Error writing line to output: %v", err)
+			log.Error().Msgf("Error writing line to output: %v", err)
 			return err
 		}
 	}
