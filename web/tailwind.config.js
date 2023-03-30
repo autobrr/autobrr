@@ -25,6 +25,9 @@ module.exports = {
       colors: {
         gray: colors.zinc,
       },
+      margin: { // for the checkmarks used for regex validation in Filters/Advanced
+        "2.5": "0.625rem", // 10px, between mb-2 (8px) and mb-3 (12px)
+      },
     },
   },
   variants: {
