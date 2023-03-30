@@ -4,6 +4,8 @@ import { toast } from "react-hot-toast";
 import { Listbox, Menu, Switch, Transition } from "@headlessui/react";
 import { useMutation, useQuery, useQueryClient } from "react-query";
 
+import { FilterListContext, FilterListState } from "../../utils/Context";
+
 import {
   ArrowsRightLeftIcon,
   CheckIcon,
@@ -22,18 +24,6 @@ import { APIClient } from "../../api/APIClient";
 import Toast from "../../components/notifications/Toast";
 import { EmptyListState } from "../../components/emptystates";
 import { DeleteModal } from "../../components/modals";
-
-type FilterListState = {
-  indexerFilter: string[],
-  sortOrder: string;
-  status: string;
-};
-
-const initialState: FilterListState = {
-  indexerFilter: [],
-  sortOrder: "",
-  status: ""
-};
 
 enum ActionType {
   INDEXER_FILTER_CHANGE = "INDEXER_FILTER_CHANGE",
@@ -122,20 +112,13 @@ function filteredData(data: Filter[], status: string) {
   };
 }
 
-function getStoredSortOrder() {
-  return localStorage.getItem("sortOrder") || "default";
-}
-
-function setStoredSortOrder(sortOrder: string) {
-  localStorage.setItem("sortOrder", sortOrder);
-}
-
 function FilterList({ toggleCreateFilter }: any) {
-  const [{ indexerFilter, sortOrder, status }, dispatchFilter] =
-    useReducer(FilterListReducer, {
-      ...initialState,
-      sortOrder: getStoredSortOrder()
-    });
+  const filterListState = FilterListContext.useValue();
+
+  const [{ indexerFilter, sortOrder, status }, dispatchFilter] = useReducer(
+    FilterListReducer,
+    filterListState
+  );
 
   const { error, data } = useQuery(
     ["filters", indexerFilter, sortOrder],
@@ -144,11 +127,11 @@ function FilterList({ toggleCreateFilter }: any) {
   );
 
   useEffect(() => {
-    setStoredSortOrder(sortOrder);
-  }, [sortOrder]);
+    FilterListContext.set({ indexerFilter, sortOrder, status });
+  }, [indexerFilter, sortOrder, status]);
 
   if (error) {
-    return (<p>An error has occurred: </p>);
+    return <p>An error has occurred:</p>;
   }
 
   const filtered = filteredData(data ?? [], status);
