@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect } from "react";
+import React, { useRef } from "react";
 import { useMutation, useQuery } from "react-query";
 import { NavLink, Route, Routes, useLocation, useNavigate, useParams } from "react-router-dom";
 import { toast } from "react-hot-toast";
@@ -467,75 +467,14 @@ interface AdvancedProps {
 }
 
 export function Advanced({ values }: AdvancedProps) {
-
-  // start of regex validation
-  const golangRegex = /^((\\\*|\\\?|\\[^\s\\])+|\(\?i\))(\|((\\\*|\\\?|\\[^\s\\])+|\(\?i\)))*$/;
-
-  const validateRegex = (pattern: string) => {
-    try {
-      new RegExp(golangRegex.source + pattern);
-      return true;
-    } catch (e) {
-      return false;
-    }
-  };
-
-  const initializeIsValidRegex = () => {
-    const matchIsValid = values.use_regex ? validateRegex(values.match_releases) : true;
-    const exceptIsValid = values.use_regex ? validateRegex(values.except_releases) : true;
-    const matchTagsIsValid = values.use_regex_release_tags ? validateRegex(values.match_release_tags) : true;
-    const exceptTagsIsValid = values.use_regex_release_tags ? validateRegex(values.except_release_tags) : true;
-  
-    return {
-      match: matchIsValid,
-      except: exceptIsValid,
-      matchreleasetags: matchTagsIsValid,
-      exceptreleasetags: exceptTagsIsValid
-    };
-  };
-
-  const [isValidRegex, setIsValidRegex] = useState(initializeIsValidRegex());
-
-  useEffect(() => {
-    setIsValidRegex(initializeIsValidRegex());
-  }, [values.use_regex, values.use_regex_release_tags]);
-  
-  const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setIsValidRegex({ ...isValidRegex, match: validateRegex(event.target.value) });
-  };
-
-  const handleChangeExcept = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setIsValidRegex({ ...isValidRegex, except: validateRegex(event.target.value) });
-  };
-
-  const handleReleaseTags = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setIsValidRegex({ ...isValidRegex, matchreleasetags: validateRegex(event.target.value) });
-  };
-
-  const handleExceptReleaseTags = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setIsValidRegex({ ...isValidRegex, exceptreleasetags: validateRegex(event.target.value) });
-  };
-
-  const validationState = (isValid: boolean) => {
-    return (inputValue: string) => {
-      if (values.use_regex_release_tags) {
-        return inputValue === "" || (isValid && inputValue !== "");
-      }
-      if (values.use_regex) {
-        return inputValue === "" || (isValid && inputValue !== "");
-      }
-      return inputValue === "" || true;
-    };
-  }; // end of regex validation
-  
   return (
     <div>
       <CollapsableSection defaultOpen={true} title="Releases" subtitle="Match only certain release names and/or ignore other release names.">
         <div className="grid col-span-12 gap-6">
           <WarningAlert text="autobrr has extensive filtering built-in - only use this if nothing else works. If you need help please ask." />
 
-          <RegexField name="match_releases" label="Match releases" onChange={handleChange} isValidRegex={validationState(isValidRegex.match)} useRegex={values.use_regex} columns={6} placeholder="eg. *some?movie*,*some?show*s01*" tooltip={<div><p>This field has full regex support (Golang flavour).</p><a href='https://autobrr.com/filters#advanced' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters#advanced</a><br/><br/><p>Remember to tick <b>Use Regex</b> below if using more than <code>*</code> and <code>?</code>.</p></div>} />
-          <RegexField name="except_releases" label="Except releases" onChange={handleChangeExcept} isValidRegex={validationState(isValidRegex.except)} useRegex={values.use_regex} columns={6} placeholder="eg. *bad?movie*,*bad?show*s03*" tooltip={<div><p>This field has full regex support (Golang flavour).</p><a href='https://autobrr.com/filters#advanced' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters#advanced</a><br/><br/><p>Remember to tick <b>Use Regex</b> below if using more than <code>*</code> and <code>?</code>.</p></div>} />
+          <RegexField name="match_releases" label="Match releases"  useRegex={values.use_regex} columns={6} placeholder="eg. *some?movie*,*some?show*s01*" tooltip={<div><p>This field has full regex support (Golang flavour).</p><a href='https://autobrr.com/filters#advanced' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters#advanced</a><br/><br/><p>Remember to tick <b>Use Regex</b> below if using more than <code>*</code> and <code>?</code>.</p></div>} />
+          <RegexField name="except_releases" label="Except releases" useRegex={values.use_regex} columns={6} placeholder="eg. *bad?movie*,*bad?show*s03*" tooltip={<div><p>This field has full regex support (Golang flavour).</p><a href='https://autobrr.com/filters#advanced' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters#advanced</a><br/><br/><p>Remember to tick <b>Use Regex</b> below if using more than <code>*</code> and <code>?</code>.</p></div>} />
 
           {values.match_releases ? (
             <WarningAlert
@@ -592,8 +531,10 @@ export function Advanced({ values }: AdvancedProps) {
       <CollapsableSection defaultOpen={true} title="Release Tags" subtitle="This is the non-parsed releaseTags string from the announce.">
         <div className="grid col-span-12 gap-6">
           <WarningAlert text="These might not be what you think they are. For advanced users who know how things are parsed." />
-          <RegexField name="match_release_tags" label="Match release tags" onChange={handleReleaseTags} isValidRegex={validationState(isValidRegex.matchreleasetags)} useRegexReleaseTags={values.use_regex_release_tags} columns={6} placeholder="eg. *mkv*,*foreign*" />
-          <RegexField name="except_release_tags" label="Except release tags" onChange={handleExceptReleaseTags} isValidRegex={validationState(isValidRegex.exceptreleasetags)}  useRegexReleaseTags={values.use_regex_release_tags} columns={6} placeholder="eg. *mkv*,*foreign*" />
+
+          <RegexField name="match_release_tags" label="Match release tags" useRegex={values.use_regex_release_tags} columns={6} placeholder="eg. *mkv*,*foreign*" />
+          <RegexField name="except_release_tags" label="Except release tags" useRegex={values.use_regex_release_tags} columns={6} placeholder="eg. *mkv*,*foreign*" />
+
           <div className="col-span-6">
             <SwitchGroup name="use_regex_release_tags" label="Use Regex" />
           </div>

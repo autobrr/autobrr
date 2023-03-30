@@ -3,7 +3,6 @@ import { classNames } from "../../utils";
 import { EyeIcon, EyeSlashIcon, CheckCircleIcon, XCircleIcon } from "@heroicons/react/24/solid";
 import { useToggle } from "../../hooks/hooks";
 import { CustomTooltip } from "../tooltips/CustomTooltip";
-import { useEffect } from "react";
 
 type COL_WIDTHS = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12;
 
@@ -83,10 +82,7 @@ interface RegexFieldProps {
   placeholder?: string;
   columns?: COL_WIDTHS;
   autoComplete?: string;
-  onChange?: (event: React.ChangeEvent<HTMLInputElement>) => void;
-  isValidRegex?: (inputValue: string) => boolean;
   useRegex?: boolean;
-  useRegexReleaseTags?: boolean;
   hidden?: boolean;
   disabled?: boolean;
   tooltip?: JSX.Element;
@@ -99,59 +95,55 @@ export const RegexField = ({
   placeholder,
   columns,
   autoComplete,
-  onChange,
-  isValidRegex,
   useRegex,
-  useRegexReleaseTags,
   hidden,
   tooltip,
   disabled
-}: RegexFieldProps) => (
-  <div
-    className={classNames(
-      hidden ? "hidden" : "",
-      columns ? `col-span-${columns}` : "col-span-12"
-    )}
-  >
-    {label && (
-      <label
-        htmlFor={name}
-        className="flex float-left mb-2 text-xs font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wide"
-      >
-        <div className="flex">
-          {label}
-          {tooltip && <CustomTooltip anchorId={name}>{tooltip}</CustomTooltip>}
-        </div>
-      </label>
-    )}
-    <Field
-      name={name}
-      validate={(value: string) => {
-        // Validate only if useRegex or useRegexReleaseTags is enabled
-        if ((useRegex || useRegexReleaseTags) && isValidRegex && !isValidRegex(value)) {
-          return "Invalid regex";
-        }
-      }}
+}: RegexFieldProps) => {
+  const golangRegex = /^((\\\*|\\\?|\\[^\s\\])+|\(\?i\))(\|((\\\*|\\\?|\\[^\s\\])+|\(\?i\)))*$/;
+
+  const validRegex = (pattern: string) => {
+    try {
+      new RegExp(golangRegex.source + pattern);
+      return true;
+    } catch (e) {
+      return false;
+    }
+  };
+
+  const validateRegexp = (val: string) => {
+    let error = "";
+
+    if (!validRegex(val)) {
+      error = "Invalid regex";
+    }
+
+    return error;
+  };
+
+  return (
+    <div
+      className={classNames(
+        hidden ? "hidden" : "",
+        columns ? `col-span-${columns}` : "col-span-12"
+      )}
     >
-      {({ field, meta, form }: FieldProps) => {
-        const isValid = isValidRegex ? isValidRegex(field.value) : undefined;
-
-        useEffect(() => {
-          form.validateField(name);
-        }, [field.value, form]);
-
-        const handleInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-          field.onChange(event);
-          if (onChange) {
-            onChange(event);
-          }
-          // Trigger validation on change
-          if (form.touched[name] || event.target.value.length > 0) {
-            form.setFieldTouched(name, true, false);
-            form.validateField(name);
-          }
-        };
-        return (
+      {label && (
+        <label
+          htmlFor={name}
+          className="flex float-left mb-2 text-xs font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wide"
+        >
+          <div className="flex">
+            {label}
+            {tooltip && <CustomTooltip anchorId={name}>{tooltip}</CustomTooltip>}
+          </div>
+        </label>
+      )}
+      <Field
+        name={name}
+        validate={useRegex && validateRegexp}
+      >
+        {({ field, meta }: FieldProps) => (
           <div className="relative">
             <input
               {...field}
@@ -159,7 +151,6 @@ export const RegexField = ({
               type="text"
               defaultValue={defaultValue}
               autoComplete={autoComplete}
-              onChange={handleInputChange}
               className={classNames(
                 meta.touched && meta.error
                   ? "focus:ring-red-500 focus:border-red-500 border-red-500"
@@ -172,10 +163,10 @@ export const RegexField = ({
               disabled={disabled}
               placeholder={placeholder}
             />
-            {isValid !== undefined && (useRegex || useRegexReleaseTags) && (
+            {useRegex && (
               <div className="relative">
                 <div className="flex float-right items-center">
-                  {isValid ? (
+                  {meta.touched && !meta.error ? (
                     <CheckCircleIcon className="dark:bg-gray-800 bg-white h-8 w-8 mb-2.5 pl-1 text-green-500 right-2 absolute transform -translate-y-1/2" aria-hidden="true" style={{ overflow: "hidden" }} />
                   ) : (
                     <XCircleIcon className="dark:bg-gray-800 bg-white h-8 w-8 mb-2.5 pl-1 text-red-500 right-2 absolute transform -translate-y-1/2" aria-hidden="true" style={{ overflow: "hidden" }} />
@@ -183,16 +174,13 @@ export const RegexField = ({
                 </div>
               </div>
             )}
-            {meta.touched && meta.error && (
-              <p className="error text-sm text-red-500 mt-1">* {meta.error}</p>
-            )}
           </div>
-        );}
-      }
-    </Field>
+        )}
+      </Field>
 
-  </div>
-);
+    </div>
+  );
+};
 
 interface TextAreaProps {
   name: string;
