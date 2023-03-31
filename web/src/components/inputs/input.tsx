@@ -143,7 +143,7 @@ export const RegexField = ({
         >
           <div className="flex">
             {label}
-            {tooltip && <CustomTooltip anchorId={name}>{tooltip}</CustomTooltip>}
+            <span className="z-10">{tooltip && <CustomTooltip anchorId={name}>{tooltip}</CustomTooltip>}</span>
           </div>
         </label>
       )}
