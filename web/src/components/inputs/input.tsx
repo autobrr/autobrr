@@ -160,7 +160,7 @@ export const RegexField = ({
               defaultValue={defaultValue}
               autoComplete={autoComplete}
               className={classNames(
-                meta.touched && meta.error
+                useRegex && meta.error
                   ? "focus:ring-red-500 focus:border-red-500 border-red-500"
                   : "focus:ring-blue-500 dark:focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-500 border-gray-300 dark:border-gray-700",
                 disabled
