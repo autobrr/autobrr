@@ -1,8 +1,9 @@
-import { Field, FieldProps } from "formik";
+import { Field, FieldProps, useFormikContext } from "formik";
 import { classNames } from "../../utils";
 import { EyeIcon, EyeSlashIcon, CheckCircleIcon, XCircleIcon } from "@heroicons/react/24/solid";
 import { useToggle } from "../../hooks/hooks";
 import { CustomTooltip } from "../tooltips/CustomTooltip";
+import { useEffect } from "react";
 
 type COL_WIDTHS = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12;
 
@@ -121,6 +122,13 @@ export const RegexField = ({
     return error;
   };
 
+  const { validateForm } = useFormikContext();
+  useEffect(() => {
+    if (useRegex) {
+      validateForm();
+    }
+  }, [useRegex]);  
+
   return (
     <div
       className={classNames(
@@ -166,7 +174,7 @@ export const RegexField = ({
             {useRegex && (
               <div className="relative">
                 <div className="flex float-right items-center">
-                  {meta.touched && !meta.error ? (
+                  {!meta.error ? (
                     <CheckCircleIcon className="dark:bg-gray-800 bg-white h-8 w-8 mb-2.5 pl-1 text-green-500 right-2 absolute transform -translate-y-1/2" aria-hidden="true" style={{ overflow: "hidden" }} />
                   ) : (
                     <XCircleIcon className="dark:bg-gray-800 bg-white h-8 w-8 mb-2.5 pl-1 text-red-500 right-2 absolute transform -translate-y-1/2" aria-hidden="true" style={{ overflow: "hidden" }} />
