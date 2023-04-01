@@ -405,14 +405,41 @@ const FilterItemDropdown = ({ filter, onToggle }: FilterItemDropdownProps) => {
       );
       
       const finalJson = discordFormat ? "```JSON\n" + json + "\n```" : json;
-      
+
+      const copyTextToClipboard = (text: string) => {
+        const textarea = document.createElement("textarea");
+        textarea.style.position = "fixed";
+        textarea.style.opacity = "0";
+        textarea.value = text;
+        document.body.appendChild(textarea);
+        textarea.focus();
+        textarea.select();
   
-      navigator.clipboard.writeText(finalJson).then(() => {
-        toast.custom((t) => <Toast type="success" body="Filter copied to clipboard." t={t} />);
-      }, () => {
-        toast.custom((t) => <Toast type="error" body="Failed to copy JSON to clipboard." t={t} />);
-      });
-      
+        try {
+          const successful = document.execCommand("copy");
+          if (successful) {
+            toast.custom((t) => <Toast type="success" body="Filter copied to clipboard." t={t} />);
+          } else {
+            toast.custom((t) => <Toast type="error" body="Failed to copy JSON to clipboard." t={t} />);
+          }
+        } catch (err) {
+          console.error("Unable to copy text", err);
+          toast.custom((t) => <Toast type="error" body="Failed to copy JSON to clipboard." t={t} />);
+        }
+  
+        document.body.removeChild(textarea);
+      };
+  
+      if (navigator.clipboard) {
+        navigator.clipboard.writeText(finalJson).then(() => {
+          toast.custom((t) => <Toast type="success" body="Filter copied to clipboard." t={t} />);
+        }, () => {
+          toast.custom((t) => <Toast type="error" body="Failed to copy JSON to clipboard." t={t} />);
+        });
+      } else {
+        copyTextToClipboard(finalJson);
+      }
+  
   } catch (error) {
     console.error(error);
     toast.custom((t) => <Toast type="error" body="Failed to get filter data." t={t} />);
