@@ -68,6 +68,7 @@ func (a *announceProcessor) processQueue(queue chan string) {
 		tmpVars := map[string]string{}
 		parseFailed := false
 		//patternParsed := false
+		announceLines := []string{}
 
 		for _, parseLine := range a.indexer.IRC.Parse.Lines {
 			line, err := a.getNextLine(queue)
@@ -92,6 +93,8 @@ func (a *announceProcessor) processQueue(queue chan string) {
 				parseFailed = true
 				break
 			}
+
+			announceLines = append(announceLines, line)
 		}
 
 		if parseFailed {
@@ -100,6 +103,7 @@ func (a *announceProcessor) processQueue(queue chan string) {
 
 		rls := domain.NewRelease(a.indexer.Identifier)
 		rls.Protocol = domain.ReleaseProtocol(a.indexer.Protocol)
+		rls.RawAnnounce = strings.Join(announceLines, " ")
 
 		// on lines matched
 		if err := a.onLinesMatched(a.indexer, tmpVars, rls); err != nil {

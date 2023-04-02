@@ -118,6 +118,9 @@ type Filter struct {
 	MatchReleaseTags            string                 `json:"match_release_tags,omitempty"`
 	ExceptReleaseTags           string                 `json:"except_release_tags,omitempty"`
 	UseRegexReleaseTags         bool                   `json:"use_regex_release_tags,omitempty"`
+	MatchRawAnnounce            string                 `json:"match_raw_announce,omitempty"`
+	ExceptRawAnnounce           string                 `json:"except_raw_announce,omitempty"`
+	UseRegexRawAnnounce         bool                   `json:"use_regex_raw_announce,omitempty"`
 	ExternalScriptEnabled       bool                   `json:"external_script_enabled,omitempty"`
 	ExternalScriptCmd           string                 `json:"external_script_cmd,omitempty"`
 	ExternalScriptArgs          string                 `json:"external_script_args,omitempty"`
@@ -150,6 +153,9 @@ type FilterUpdate struct {
 	MatchReleaseTags            *string                 `json:"match_release_tags,omitempty"`
 	ExceptReleaseTags           *string                 `json:"except_release_tags,omitempty"`
 	UseRegexReleaseTags         *bool                   `json:"use_regex_release_tags,omitempty"`
+	MatchRawAnnounce            *string                 `json:"match_raw_announce,omitempty"`
+	ExceptRawAnnounce           *string                 `json:"except_raw_announce,omitempty"`
+	UseRegexRawAnnounce         *bool                   `json:"use_regex_raw_announce,omitempty"`
 	Scene                       *bool                   `json:"scene,omitempty"`
 	Origins                     *[]string               `json:"origins,omitempty"`
 	ExceptOrigins               *[]string               `json:"except_origins,omitempty"`

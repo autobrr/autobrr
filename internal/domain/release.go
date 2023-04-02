@@ -90,6 +90,7 @@ type Release struct {
 	FilterID                    int                   `json:"-"`
 	Filter                      *Filter               `json:"-"`
 	ActionStatus                []ReleaseActionStatus `json:"action_status"`
+	RawAnnounce                 string                `json:"-"`
 }
 
 type ReleaseActionStatus struct {

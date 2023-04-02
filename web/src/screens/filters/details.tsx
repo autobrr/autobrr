@@ -541,6 +541,19 @@ export function Advanced({ values }: AdvancedProps) {
         </div>
       </CollapsableSection>
 
+      <CollapsableSection defaultOpen={true} title="Raw announce" subtitle="This is the non-parsed raw announce string(s). Multiline strings are combined into single line with a space as separator.">
+        <div className="grid col-span-12 gap-6">
+          <WarningAlert text="These might not be what you think they are. For advanced users who know how things are parsed." />
+
+          <RegexField name="match_raw_announce" label="Match raw announce" useRegex={values.use_regex_raw_announce} columns={6} placeholder="" />
+          <RegexField name="except_raw_announce" label="Except raw announce" useRegex={values.use_regex_raw_announce} columns={6} placeholder="" />
+
+          <div className="col-span-6">
+            <SwitchGroup name="use_regex_raw_announce" label="Use Regex" />
+          </div>
+        </div>
+      </CollapsableSection>
+
       <CollapsableSection defaultOpen={true} title="Freeleech" subtitle="Match only freeleech and freeleech percent.">
         <div className="col-span-6">
           <SwitchGroup name="freeleech" label="Freeleech" description="Enabling freeleech locks freeleech percent to 100. Use either." tooltip={<div><p>Not all indexers announce freeleech on IRC. Check with your indexer before enabling freeleech filtering.</p></div>} />

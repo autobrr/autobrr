@@ -80,6 +80,9 @@ CREATE TABLE filter
     match_release_tags             TEXT,
     except_release_tags            TEXT,
     use_regex_release_tags         BOOLEAN DEFAULT FALSE,
+    match_raw_announce             TEXT,
+    except_raw_announce            TEXT,
+    use_regex_raw_announce         BOOLEAN DEFAULT FALSE,
     scene                          BOOLEAN,
     freeleech                      BOOLEAN,
     freeleech_percent              TEXT,
@@ -1047,5 +1050,14 @@ ADD COLUMN info_url TEXT;
     
 ALTER TABLE "release"
 ADD COLUMN download_url TEXT;
+	`,
+	`ALTER TABLE filter
+		ADD COLUMN match_raw_announce TEXT;
+
+	ALTER TABLE filter
+		ADD COLUMN except_raw_announce TEXT;
+
+	ALTER TABLE filter
+		ADD COLUMN use_regex_raw_announce BOOLEAN DEFAULT FALSE;
 	`,
 }

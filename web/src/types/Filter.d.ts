@@ -18,6 +18,9 @@ interface Filter {
   match_release_tags: string;
   except_release_tags: string;
   use_regex_release_tags: boolean;
+  match_raw_announce: string;
+  except_raw_announce: string;
+  use_regex_raw_announce: boolean;
   scene: boolean;
   origins: string[];
   except_origins: string[];
