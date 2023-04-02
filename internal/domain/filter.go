@@ -299,6 +299,26 @@ func (f Filter) CheckFilter(r *Release) ([]string, bool) {
 		}
 	}
 
+	// check raw announce string
+	if f.UseRegexRawAnnounce {
+		if f.MatchRawAnnounce != "" && !matchRegex(r.RawAnnounce, f.MatchRawAnnounce) {
+			r.addRejectionF("match raw announce regex not matching. got: %v want: %v", r.RawAnnounce, f.MatchRawAnnounce)
+		}
+
+		if f.ExceptRawAnnounce != "" && matchRegex(r.RawAnnounce, f.ExceptRawAnnounce) {
+			r.addRejectionF("except raw announce regex: unwanted announce. got: %v want: %v", r.RawAnnounce, f.ExceptRawAnnounce)
+		}
+
+	} else {
+		if f.MatchRawAnnounce != "" && !containsFuzzy(r.RawAnnounce, f.MatchRawAnnounce) {
+			r.addRejectionF("match raw announce not matching. got: %v want: %v", r.RawAnnounce, f.MatchRawAnnounce)
+		}
+
+		if f.ExceptRawAnnounce != "" && containsFuzzy(r.RawAnnounce, f.ExceptRawAnnounce) {
+			r.addRejectionF("except raw announce: unwanted announce. got: %v want: %v", r.RawAnnounce, f.ExceptRawAnnounce)
+		}
+	}
+
 	if f.MatchUploaders != "" && !contains(r.Uploader, f.MatchUploaders) {
 		r.addRejectionF("uploaders not matching. got: %v want: %v", r.Uploader, f.MatchUploaders)
 	}
