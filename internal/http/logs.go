@@ -95,8 +95,8 @@ var (
 		repl    string
 	}{
 		{
-			pattern: regexp.MustCompile(`("password":")[\p{L}0-9!#%&*+/:;<=>?@^_` + "`" + `{|}~]+`),
-			repl:    "${1}REDACTED",
+			pattern: regexp.MustCompile(`("host\\":\\"|"password\\":\\"|"user\\":\\"|ExternalWebhookHost:)(\S+)(\\"|\sExternalWebhookData:)`),
+			repl:    "${1}REDACTED${3}",
 		},
 		{
 			pattern: regexp.MustCompile(`(torrent_pass|passkey|authkey|auth|secret_key|api|apikey)=([a-zA-Z0-9]+)`),

@@ -139,9 +139,12 @@ func TestSanitizeLogFile(t *testing.T) {
 			expected: "\"module\":\"irc\" PRIVMSG NickServ IDENTIFY REDACTED",
 		},
 		{
-			name:     "json_passwords",
-			input:    "\"module\":\"action\" \"password\":\"p4s#sw0r!d",
-			expected: "\"module\":\"action\" \"password\":\"REDACTED",
+			input:    "\"module\":\"action\" \\\"host\\\":\\\"subdomain.domain.com:42069/subfolder\\\", \\n   \\\"user\\\":\\\"AUserName\\\", \\n   \\\"password\\\":\\\"p4ssw0!rd\\\", \\n",
+			expected: "\"module\":\"action\" \\\"host\\\":\\\"REDACTED\\\", \\n   \\\"user\\\":\\\"REDACTED\\\", \\n   \\\"password\\\":\\\"REDACTED\\\", \\n",
+		},
+		{
+			input:    "\"module\":\"action\" ExternalWebhookHost:http://127.0.0.1:6940/api/upgrade ExternalWebhookData:",
+			expected: "\"module\":\"action\" ExternalWebhookHost:REDACTED ExternalWebhookData:",
 		},
 	}
 
