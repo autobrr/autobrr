@@ -170,7 +170,7 @@ func SanitizeLogFile(filePath string, output io.Writer) error {
 			strings.Contains(line, `"module":"action"`)
 
 		for i := 0; i < len(regexReplacements); i++ {
-			// Apply the first two patterns only if the line contains "module":"feed",
+			// Apply the first three patterns only if the line contains "module":"feed",
 			// "module":"filter", "repo":"release", or "module":"action"
 			if i < 3 {
 				if bFilter {
