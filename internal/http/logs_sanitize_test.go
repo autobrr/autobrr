@@ -138,6 +138,11 @@ func TestSanitizeLogFile(t *testing.T) {
 			input:    "\"module\":\"irc\" PRIVMSG NickServ IDENTIFY zAPEJEA8ryYnpj3AiE3KJ",
 			expected: "\"module\":\"irc\" PRIVMSG NickServ IDENTIFY REDACTED",
 		},
+		{
+			name:     "json_passwords",
+			input:    "\"module\":\"action\" \"password\":\"p4s#sw0r!d",
+			expected: "\"module\":\"action\" \"password\":\"REDACTED",
+		},
 	}
 
 	for _, testCase := range testCases {

@@ -95,6 +95,10 @@ var (
 		repl    string
 	}{
 		{
+			pattern: regexp.MustCompile(`("password":")[\p{L}0-9!#%&*+/:;<=>?@^_` + "`" + `{|}~]+`),
+			repl:    "${1}REDACTED",
+		},
+		{
 			pattern: regexp.MustCompile(`(torrent_pass|passkey|authkey|auth|secret_key|api|apikey)=([a-zA-Z0-9]+)`),
 			repl:    "${1}=REDACTED",
 		},
@@ -168,7 +172,7 @@ func SanitizeLogFile(filePath string, output io.Writer) error {
 		for i := 0; i < len(regexReplacements); i++ {
 			// Apply the first two patterns only if the line contains "module":"feed",
 			// "module":"filter", "repo":"release", or "module":"action"
-			if i < 2 {
+			if i < 3 {
 				if bFilter {
 					line = regexReplacements[i].pattern.ReplaceAllString(line, regexReplacements[i].repl)
 				}
