@@ -158,6 +158,9 @@ export const RegexField = ({
                 disabled
                   ? "bg-gray-100 dark:bg-gray-700 cursor-not-allowed"
                   : "dark:bg-gray-800",
+                useRegex
+                  ? "pr-10"
+                  : "",
                 "mt-2 block w-full dark:text-gray-100 rounded-md"
               )}
               disabled={disabled}
