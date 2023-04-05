@@ -717,14 +717,14 @@ func containsAllMatch(tags []string, filters []string) bool {
 			}
 			tag = strings.ToLower(tag)
 
-			a := strings.ContainsAny(filter, "?|*")
-			if a {
-				match := wildcard.Match(filter, tag)
-				if match {
-					found = true
-				}
-			} else if tag == filter {
+			if tag == filter {
 				found = true
+				break
+			} else if strings.ContainsAny(filter, "?|*") {
+				if wildcard.Match(filter, tag) {
+					found = true
+					break
+				}
 			}
 		}
 		if !found {
