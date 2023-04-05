@@ -101,11 +101,46 @@ export const RegexField = ({
   tooltip,
   disabled
 }: RegexFieldProps) => {
-  const golangRegex = /^((\\\*|\\\?|\\[^\s\\])+|\(\?i\))(\|((\\\*|\\\?|\\[^\s\\])+|\(\?i\)))*$/;
-
   const validRegex = (pattern: string) => {
+    
+    // Check for unsupported lookahead and lookbehind assertions
+    if (/\(\?<=|\(\?<!|\(\?=|\(\?!/.test(pattern)) {
+      return false;
+    }
+  
+    // Check for unsupported atomic groups
+    if (/\(\?>/.test(pattern)) {
+      return false;
+    }
+  
+    // Check for unsupported recursive patterns
+    if (/\(\?(R|0)\)/.test(pattern)) {
+      return false;
+    }
+  
+    // Check for unsupported possessive quantifiers
+    if (/[*+?]{1}\+|\{[0-9]+,[0-9]*\}\+/.test(pattern)) {
+      return false;
+    }
+  
+    // Check for unsupported control verbs
+    if (/\\g</.test(pattern)) {
+      return false;
+    }
+  
+    // Check for unsupported conditionals
+    if (/\(\?\([=!][^)]+\)(\|[^)]+)?\|?\)/.test(pattern)) {
+      return false;
+    }
+  
+    // Check for unsupported backreferences
+    if (/\\k</.test(pattern)) {
+      return false;
+    }
+  
+    // Check if the pattern is a valid regex
     try {
-      new RegExp(golangRegex.source + pattern);
+      new RegExp(pattern);
       return true;
     } catch (e) {
       return false;
