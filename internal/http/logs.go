@@ -95,7 +95,7 @@ var (
 		repl    string
 	}{
 		{
-			pattern: regexp.MustCompile(`("host\\":\\"|"password\\":\\"|"user\\":\\"|ExternalWebhookHost:)(\S+)(\\"|\sExternalWebhookData:)`),
+			pattern: regexp.MustCompile(`("apikey\\":\s\\"|"host\\":\\"|"password\\":\\"|"user\\":\\"|ExternalWebhookHost:)(\S+)(\\"|\sExternalWebhookData:)`),
 			repl:    "${1}REDACTED${3}",
 		},
 		{

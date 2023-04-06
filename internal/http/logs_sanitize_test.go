@@ -146,6 +146,10 @@ func TestSanitizeLogFile(t *testing.T) {
 			input:    "\"module\":\"action\" ExternalWebhookHost:http://127.0.0.1:6940/api/upgrade ExternalWebhookData:",
 			expected: "\"module\":\"action\" ExternalWebhookHost:REDACTED ExternalWebhookData:",
 		},
+		{
+			input:    "\"module\":\"filter\" \\\"id\\\": 3855,\\n  \\\"apikey\\\": \\\"ad789a9s8d.asdpoiasdpojads09sad809\\\",\\n  \\\"minratio\\\": 10.0\\n",
+			expected: "\"module\":\"filter\" \\\"id\\\": 3855,\\n  \\\"apikey\\\": \\\"REDACTED\\\",\\n  \\\"minratio\\\": 10.0\\n",
+		},
 	}
 
 	for _, testCase := range testCases {
