@@ -102,7 +102,7 @@ export const RegexField = ({
   disabled
 }: RegexFieldProps) => {
   const validRegex = (pattern: string) => {
-    
+  
     // Check for unsupported lookahead and lookbehind assertions
     if (/\(\?<=|\(\?<!|\(\?=|\(\?!/.test(pattern)) {
       return false;
@@ -129,7 +129,7 @@ export const RegexField = ({
     }
   
     // Check for unsupported conditionals
-    if (/\(\?\([=!][^)]+\)(\|[^)]+)?\|?\)/.test(pattern)) {
+    if (/\(\?\((\?[=!][^)]*)\)[^)]*\|?[^)]*\)/.test(pattern)) {
       return false;
     }
   
@@ -146,6 +146,7 @@ export const RegexField = ({
       return false;
     }
   };
+  
 
   const validateRegexp = (val: string) => {
     let error = "";
