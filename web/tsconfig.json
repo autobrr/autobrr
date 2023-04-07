@@ -6,9 +6,9 @@
       "DOM.Iterable",
       "ESNext"
     ],
-    "types": ["vite/client"],
+    "types": [],
     "allowJs": false,
-    "skipLibCheck": true,
+    "skipLibCheck": false,
     "esModuleInterop": false,
     "allowSyntheticDefaultImports": true,
     "strict": true,
@@ -19,14 +19,10 @@
     "isolatedModules": true,
     "noEmit": true,
     "jsx": "react-jsx",
-    "noFallthroughCasesInSwitch": true,
-    "paths": {
-      "@/*": ["./src/*"]
-    }
+    "noFallthroughCasesInSwitch": true
   },
   "include": [
     "./src",
-    "./types",
-    "vite.config.ts"
-  ],
+    "./types"
+  ]
 }
