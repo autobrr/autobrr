@@ -142,8 +142,9 @@ func (s Server) Handler() http.Handler {
 		})
 	})
 
-	// serve the parsed index.html, we don't need the catch-all route.
+	// serve the parsed index.html
 	r.Get("/", s.index)
+	r.Get("/*", s.index)
 
 	return r
 }
