@@ -15,6 +15,7 @@ import { CollapsableSection } from "./details";
 import { CustomTooltip } from "../../components/tooltips/CustomTooltip";
 import { Link } from "react-router-dom";
 import { useFormikContext } from "formik";
+import { TextArea } from "../../components/inputs/input";
 
 interface FilterActionsProps {
   filter: Filter;
@@ -183,10 +184,11 @@ const TypeForm = ({ action, idx, clients }: TypeFormProps) => {
           columns={6}
           placeholder="Host eg. http://localhost/webhook"
         />
-        <TextField
+        <TextArea
           name={`actions.${idx}.webhook_data`}
           label="Data (json)"
           columns={6}
+          rows={5}
           placeholder={"Request data: { \"key\": \"value\" }"}
         />
       </div>
@@ -397,6 +399,14 @@ const TypeForm = ({ action, idx, clients }: TypeFormProps) => {
                 label="Don't add torrent's name to path"
                 optionDefaultText="No"
                 options={ActionRtorrentRenameOptions}
+              />
+            </div>
+          </div>
+          <div className="col-span-12 sm:col-span-6">
+            <div className="col-span-6">
+              <SwitchGroup
+                name={`actions.${idx}.paused`}
+                label="Don't start download automatically"
               />
             </div>
           </div>

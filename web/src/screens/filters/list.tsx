@@ -1,4 +1,4 @@
-import { Dispatch, FC, Fragment, MouseEventHandler, useReducer, useRef, useState } from "react";
+import { Dispatch, FC, Fragment, MouseEventHandler, useReducer, useRef, useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { toast } from "react-hot-toast";
 import { Listbox, Menu, Switch, Transition } from "@headlessui/react";
@@ -8,6 +8,8 @@ import { useCallback } from "react";
 
 import { Tooltip } from "react-tooltip";
 
+
+import { FilterListContext, FilterListState } from "../../utils/Context";
 
 import {
   ArrowsRightLeftIcon,
@@ -30,18 +32,6 @@ import Toast from "../../components/notifications/Toast";
 import { EmptyListState } from "../../components/emptystates";
 import { DeleteModal } from "../../components/modals";
 import { ArrowDownTrayIcon } from "@heroicons/react/24/solid";
-
-type FilterListState = {
-  indexerFilter: string[],
-  sortOrder: string;
-  status: string;
-};
-
-const initialState: FilterListState = {
-  indexerFilter: [],
-  sortOrder: "",
-  status: ""
-};
 
 enum ActionType {
   INDEXER_FILTER_CHANGE = "INDEXER_FILTER_CHANGE",
@@ -260,8 +250,12 @@ function filteredData(data: Filter[], status: string) {
 }
 
 function FilterList({ toggleCreateFilter }: any) {
-  const [{ indexerFilter, sortOrder, status }, dispatchFilter] =
-    useReducer(FilterListReducer, initialState);
+  const filterListState = FilterListContext.useValue();
+
+  const [{ indexerFilter, sortOrder, status }, dispatchFilter] = useReducer(
+    FilterListReducer,
+    filterListState
+  );
 
   const { error, data } = useQuery(
     ["filters", indexerFilter, sortOrder],
@@ -269,8 +263,12 @@ function FilterList({ toggleCreateFilter }: any) {
     { refetchOnWindowFocus: false }
   );
 
+  useEffect(() => {
+    FilterListContext.set({ indexerFilter, sortOrder, status });
+  }, [indexerFilter, sortOrder, status]);
+
   if (error) {
-    return (<p>An error has occurred: </p>);
+    return <p>An error has occurred:</p>;
   }
 
   const filtered = filteredData(data ?? [], status);
@@ -407,14 +405,41 @@ const FilterItemDropdown = ({ filter, onToggle }: FilterItemDropdownProps) => {
       );
       
       const finalJson = discordFormat ? "```JSON\n" + json + "\n```" : json;
-      
+
+      const copyTextToClipboard = (text: string) => {
+        const textarea = document.createElement("textarea");
+        textarea.style.position = "fixed";
+        textarea.style.opacity = "0";
+        textarea.value = text;
+        document.body.appendChild(textarea);
+        textarea.focus();
+        textarea.select();
   
-      navigator.clipboard.writeText(finalJson).then(() => {
-        toast.custom((t) => <Toast type="success" body="Filter copied to clipboard." t={t} />);
-      }, () => {
-        toast.custom((t) => <Toast type="error" body="Failed to copy JSON to clipboard." t={t} />);
-      });
-      
+        try {
+          const successful = document.execCommand("copy");
+          if (successful) {
+            toast.custom((t) => <Toast type="success" body="Filter copied to clipboard." t={t} />);
+          } else {
+            toast.custom((t) => <Toast type="error" body="Failed to copy JSON to clipboard." t={t} />);
+          }
+        } catch (err) {
+          console.error("Unable to copy text", err);
+          toast.custom((t) => <Toast type="error" body="Failed to copy JSON to clipboard." t={t} />);
+        }
+  
+        document.body.removeChild(textarea);
+      };
+  
+      if (navigator.clipboard) {
+        navigator.clipboard.writeText(finalJson).then(() => {
+          toast.custom((t) => <Toast type="success" body="Filter copied to clipboard." t={t} />);
+        }, () => {
+          toast.custom((t) => <Toast type="error" body="Failed to copy JSON to clipboard." t={t} />);
+        });
+      } else {
+        copyTextToClipboard(finalJson);
+      }
+  
   } catch (error) {
     console.error(error);
     toast.custom((t) => <Toast type="error" body="Failed to get filter data." t={t} />);
@@ -478,7 +503,7 @@ const FilterItemDropdown = ({ filter, onToggle }: FilterItemDropdownProps) => {
         leaveTo="transform opacity-0 scale-95"
       >
         <Menu.Items
-          className="absolute right-0 w-56 mt-2 origin-top-right bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700 rounded-md shadow-lg ring-1 ring-black ring-opacity-10 focus:outline-none"
+          className="absolute right-0 w-56 mt-2 origin-top-right bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700 rounded-md shadow-lg ring-1 ring-black ring-opacity-10 focus:outline-none z-10"
         >
           <div className="px-1 py-1">
             <Menu.Item>

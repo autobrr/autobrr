@@ -32,7 +32,8 @@ import {
   NumberField,
   Select,
   SwitchGroup,
-  TextField
+  TextField,
+  RegexField
 } from "../../components/inputs";
 import DEBUG from "../../components/debug";
 import Toast from "../../components/notifications/Toast";
@@ -472,8 +473,9 @@ export function Advanced({ values }: AdvancedProps) {
         <div className="grid col-span-12 gap-6">
           <WarningAlert text="autobrr has extensive filtering built-in - only use this if nothing else works. If you need help please ask." />
 
-          <TextField name="match_releases" label="Match releases" columns={6} placeholder="eg. *some?movie*,*some?show*s01*" tooltip={<div><p>This field has full regex support (Golang flavour).</p><a href='https://autobrr.com/filters#advanced' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters#advanced</a><br/><br/><p>Remember to tick <b>Use Regex</b> below if using more than <code>*</code> and <code>?</code>.</p></div>} />
-          <TextField name="except_releases" label="Except releases" columns={6} placeholder="eg. *bad?movie*,*bad?show*s03*" tooltip={<div><p>This field has full regex support (Golang flavour).</p><a href='https://autobrr.com/filters#advanced' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters#advanced</a><br/><br/><p>Remember to tick <b>Use Regex</b> below if using more than <code>*</code> and <code>?</code>.</p></div>} />
+          <RegexField name="match_releases" label="Match releases"  useRegex={values.use_regex} columns={6} placeholder="eg. *some?movie*,*some?show*s01*" tooltip={<div><p>This field has full regex support (Golang flavour).</p><a href='https://autobrr.com/filters#advanced' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters#advanced</a><br/><br/><p>Remember to tick <b>Use Regex</b> below if using more than <code>*</code> and <code>?</code>.</p></div>} />
+          <RegexField name="except_releases" label="Except releases" useRegex={values.use_regex} columns={6} placeholder="eg. *bad?movie*,*bad?show*s03*" tooltip={<div><p>This field has full regex support (Golang flavour).</p><a href='https://autobrr.com/filters#advanced' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters#advanced</a><br/><br/><p>Remember to tick <b>Use Regex</b> below if using more than <code>*</code> and <code>?</code>.</p></div>} />
+
           {values.match_releases ? (
             <WarningAlert
               alert="Ask yourself:"
@@ -497,7 +499,6 @@ export function Advanced({ values }: AdvancedProps) {
           </div>
         </div>
       </CollapsableSection>
-
 
       <CollapsableSection defaultOpen={true} title="Groups" subtitle="Match only certain groups and/or ignore other groups.">
         <TextField name="match_release_groups" label="Match release groups" columns={6} placeholder="eg. group1,group2" tooltip={<div><p>Comma separated list of release groups to match.</p><a href='https://autobrr.com/filters#advanced' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters#advanced</a></div>} />
@@ -531,8 +532,9 @@ export function Advanced({ values }: AdvancedProps) {
         <div className="grid col-span-12 gap-6">
           <WarningAlert text="These might not be what you think they are. For advanced users who know how things are parsed." />
 
-          <TextField name="match_release_tags" label="Match release tags" columns={6} placeholder="eg. *mkv*,*foreign*" />
-          <TextField name="except_release_tags" label="Except release tags" columns={6} placeholder="eg. *mkv*,*foreign*" />
+          <RegexField name="match_release_tags" label="Match release tags" useRegex={values.use_regex_release_tags} columns={6} placeholder="eg. *mkv*,*foreign*" />
+          <RegexField name="except_release_tags" label="Except release tags" useRegex={values.use_regex_release_tags} columns={6} placeholder="eg. *mkv*,*foreign*" />
+
           <div className="col-span-6">
             <SwitchGroup name="use_regex_release_tags" label="Use Regex" />
           </div>

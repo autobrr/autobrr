@@ -1,8 +1,9 @@
 package http
 
 import (
+	"bufio"
+	"io"
 	"io/fs"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"path"
@@ -17,6 +18,7 @@ import (
 	"github.com/dustin/go-humanize"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/render"
+	"github.com/rs/zerolog/log"
 )
 
 type logsHandler struct {
@@ -87,48 +89,103 @@ func (h logsHandler) files(w http.ResponseWriter, r *http.Request) {
 	render.JSON(w, r, response)
 }
 
-var ( // regexes for sanitizing log files
-	keyValueRegex = regexp.MustCompile(`(torrent_pass|passkey|authkey|secret_key|apikey)=([a-zA-Z0-9]+)`)
-	combinedRegex = regexp.MustCompile(`(https?://[^\s]+/((rss/download/[a-zA-Z0-9]+/)|torrent/download/((auto\.[a-zA-Z0-9]+\.|[a-zA-Z0-9]+\.))))([a-zA-Z0-9]+)`)
-	inviteRegex   = regexp.MustCompile(`(Voyager autobot [\p{L}0-9]+ |Satsuki enter #announce [\p{L}0-9]+ |Millie announce |DBBot announce |ENDOR !invite [\p{L}0-9]+ |Vertigo ENTER #GGn-Announce [\p{L}0-9]+ |midgards announce |HeBoT !invite |NBOT !invite |Muffit bot #nbl-announce [\p{L}0-9]+ |hermes enter #announce [\p{L}0-9]+ |LiMEY_ !invite |PS-Info pass |PT-BOT invite |Hummingbird ENTER [\p{L}0-9]+ |Drone enter #red-announce [\p{L}0-9]+ |SceneHD \.invite |erica letmeinannounce [\p{L}0-9]+ |Synd1c4t3 invite |UHDBot invite |Sauron bot #ant-announce [\p{L}0-9]+ |RevoTT !invite [\p{L}0-9]+ |Cerberus identify [\p{L}0-9]+ )([\p{L}0-9]+)`)
-	nickservRegex = regexp.MustCompile(`(NickServ IDENTIFY )([\p{L}0-9!#%&*+/:;<=>?@^_` + "`" + `{|}~]+)`)
-	saslRegex     = regexp.MustCompile(`(--> AUTHENTICATE )([\p{L}0-9!#%&*+/:;<=>?@^_` + "`" + `{|}~]+)`)
+var (
+	regexReplacements = []struct {
+		pattern *regexp.Regexp
+		repl    string
+	}{
+		{
+			pattern: regexp.MustCompile(`(torrent_pass|passkey|authkey|auth|secret_key|api|apikey)=([a-zA-Z0-9]+)`),
+			repl:    "${1}=REDACTED",
+		},
+		{
+			pattern: regexp.MustCompile(`(https?://[^\s]+/((rss/download/[a-zA-Z0-9]+/)|torrent/download/((auto\.[a-zA-Z0-9]+\.|[a-zA-Z0-9]+\.))))([a-zA-Z0-9]+)`),
+			repl:    "${1}REDACTED",
+		},
+		{
+			pattern: regexp.MustCompile(`(NickServ IDENTIFY )([\p{L}0-9!#%&*+/:;<=>?@^_` + "`" + `{|}~]+)`),
+			repl:    "${1}REDACTED",
+		},
+		{
+			pattern: regexp.MustCompile(`(AUTHENTICATE )([\p{L}0-9!#%&*+/:;<=>?@^_` + "`" + `{|}~]+)`),
+			repl:    "${1}REDACTED",
+		},
+		{
+			pattern: regexp.MustCompile(
+				`(?m)(` +
+					`(?:Voyager autobot\s+\w+|Satsuki enter #announce\s+\w+|Sauron bot #ant-announce\s+\w+|Millie announce|DBBot announce|PT-BOT invite|midgards announce|HeBoT !invite|NBOT !invite|PS-Info pass|Synd1c4t3 invite|UHDBot invite|ENDOR !invite(\s+)\w+|immortal invite(\s+)\w+|Muffit bot #nbl-announce\s+\w+|hermes enter #announce\s+\w+|Drone enter #red-announce\s+\w+|RevoTT !invite\s+\w+|erica letmeinannounce\s+\w+|Cerberus identify\s+\w+)` +
+					`)(?:\s+[a-zA-Z0-9]+)`),
+			repl: "$1 REDACTED",
+		},
+		{
+			pattern: regexp.MustCompile(`(LiMEY_ !invite\s+)([a-zA-Z0-9]+)(\s+\w+)`),
+			repl:    "${1}REDACTED${3}",
+		},
+		{
+			pattern: regexp.MustCompile(`(Vertigo ENTER #GGn-Announce\s+)(\w+).([a-zA-Z0-9]+)`),
+			repl:    "$1$2 REDACTED",
+		},
+		{
+			pattern: regexp.MustCompile(`(Hummingbird ENTER\s+\w+).([a-zA-Z0-9]+)(\s+#ptp-announce-dev)`),
+			repl:    "$1 REDACTED$3",
+		},
+		{
+			pattern: regexp.MustCompile(`(SceneHD..invite).([a-zA-Z0-9]+)(\s+#announce)`),
+			repl:    "$1 REDACTED$3",
+		},
+	}
 )
 
-func SanitizeLogFile(filePath string) (string, error) {
-	data, err := ioutil.ReadFile(filePath)
+func SanitizeLogFile(filePath string, output io.Writer) error {
+	inFile, err := os.Open(filePath)
 	if err != nil {
-		return "", err
+		return err
+	}
+	defer inFile.Close()
+
+	reader := bufio.NewReader(inFile)
+	writer := bufio.NewWriter(output)
+	defer writer.Flush()
+
+	for {
+		// Read the next line from the file
+		line, err := reader.ReadString('\n')
+
+		if err != nil {
+			if err != io.EOF {
+				log.Error().Msgf("Error reading line from input file: %v", err)
+			}
+			break
+		}
+
+		// Sanitize the line using regexReplacements array
+		bIRC := strings.Contains(line, `"module":"irc"`)
+		bFilter := (strings.Contains(line, `"module":"feed"`) ||
+			strings.Contains(line, `"module":"filter"`)) ||
+			strings.Contains(line, `"repo":"release"`) ||
+			strings.Contains(line, `"module":"action"`)
+
+		for i := 0; i < len(regexReplacements); i++ {
+			// Apply the first two patterns only if the line contains "module":"feed",
+			// "module":"filter", "repo":"release", or "module":"action"
+			if i < 2 {
+				if bFilter {
+					line = regexReplacements[i].pattern.ReplaceAllString(line, regexReplacements[i].repl)
+				}
+			} else if bIRC {
+				// Check for "module":"irc" before applying other patterns
+				line = regexReplacements[i].pattern.ReplaceAllString(line, regexReplacements[i].repl)
+			}
+		}
+
+		// Write the sanitized line to the writer
+		if _, err = writer.WriteString(line); err != nil {
+			log.Error().Msgf("Error writing line to output: %v", err)
+			return err
+		}
 	}
 
-	sanitizedData := string(data)
-
-	// torrent_pass, passkey, authkey, secret_key, apikey, rsskey
-	sanitizedData = keyValueRegex.ReplaceAllString(sanitizedData, "${1}=REDACTED")
-	sanitizedData = combinedRegex.ReplaceAllString(sanitizedData, "${1}REDACTED")
-
-	// irc related
-	sanitizedData = inviteRegex.ReplaceAllString(sanitizedData, "${1}REDACTED")
-	sanitizedData = nickservRegex.ReplaceAllString(sanitizedData, "${1}REDACTED")
-	sanitizedData = saslRegex.ReplaceAllString(sanitizedData, "${1}REDACTED")
-
-	tmpFile, err := ioutil.TempFile("", "sanitized-log-*.log")
-	if err != nil {
-		return "", err
-	}
-
-	_, err = tmpFile.WriteString(sanitizedData)
-	if err != nil {
-		tmpFile.Close()
-		return "", err
-	}
-
-	err = tmpFile.Close()
-	if err != nil {
-		return "", err
-	}
-
-	return tmpFile.Name(), nil
+	return nil
 }
 
 func (h logsHandler) downloadFile(w http.ResponseWriter, r *http.Request) {
@@ -168,9 +225,11 @@ func (h logsHandler) downloadFile(w http.ResponseWriter, r *http.Request) {
 
 	filePath := filepath.Join(logsDir, logFile)
 
-	// Sanitize the log file
-	sanitizedFilePath, err := SanitizeLogFile(filePath)
-	if err != nil {
+	w.Header().Set("Content-Disposition", "attachment; filename="+strconv.Quote(logFile))
+	w.Header().Set("Content-Type", "application/octet-stream")
+
+	// Sanitize the log file and directly write the output to the HTTP socket
+	if err := SanitizeLogFile(filePath, w); err != nil {
 		render.Status(r, http.StatusInternalServerError)
 		render.JSON(w, r, errorResponse{
 			Message: err.Error(),
@@ -178,12 +237,6 @@ func (h logsHandler) downloadFile(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
-	defer os.Remove(sanitizedFilePath)
-
-	w.Header().Set("Content-Disposition", "attachment; filename="+strconv.Quote(logFile))
-	w.Header().Set("Content-Type", "application/octet-stream")
-
-	http.ServeFile(w, r, sanitizedFilePath)
 }
 
 type logFile struct {

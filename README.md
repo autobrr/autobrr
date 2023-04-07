@@ -3,7 +3,7 @@
   autobrr
 </h1>
 
-<p align="center">autobrr is the modern download automation tool for torrents.
+<p align="center">autobrr is the modern download automation tool for torrents and usenet.
 With inspiration and ideas from tools like trackarr, autodl-irssi and flexget we built one tool that can do it all, and then some.</p>
 
 <p align="center"><img alt="GitHub release (latest by date)" src="https://img.shields.io/github/v/release/autobrr/autobrr?style=for-the-badge">&nbsp;<img alt="GitHub all releases" src="https://img.shields.io/github/downloads/autobrr/autobrr/total?style=for-the-badge">&nbsp;<img alt="GitHub Workflow Status" src="https://img.shields.io/github/actions/workflow/status/autobrr/autobrr/release.yml?style=for-the-badge"></p>
@@ -17,15 +17,17 @@ Installation guide and documentation can be found at https://autobrr.com
 
 ## Key features
 
-- Support for 60+ trackers with IRC announces
-- Torznab/RSS support via Prowlarr to easily get access to hundreds of trackers
+- Torrents and usenet support
+- Support for 70+ torrent trackers with IRC announces
+- Newznab, Torznab and RSS support to easily get access to hundreds of torrent and usenet indexers
+- Torrent Magnet support 
 - Powerful but simple filtering with RegEx support (like in autodl-irssi)
 - Easy to use and mobile friendly web UI (with dark mode!) to manage everything
 - Built on Go and React making autobrr lightweight and perfect for supporting multiple platforms (Linux, FreeBSD, Windows, macOS) on different architectures (e.g. x86, ARM)
 - Great container support (Docker, k8s/Kubernetes)
 - Database engine supporting both PostgreSQL and SQLite
 - Notifications (Discord, Telegram, Notifiarr)
-- One autobrr instance can communicate with multiple clients (both torrent and \*arr) on remote servers
+- One autobrr instance can communicate with multiple clients (torrent, usenet and \*arr) on remote servers
 - Base path / Subfolder (and subdomain) support for convenient reverse-proxy support
 
 Available download clients and actions
@@ -35,6 +37,7 @@ Available download clients and actions
 - rTorrent
 - Transmission
 - Sonarr, Radarr, Lidarr, Whisparr and Readarr (pushes releases directly to them and gets in the early swarm, instead of getting them via RSS when it's already over)
+- SABnzbd (usenet)
 - Watch folder
 - Exec custom scripts
 - Webhook
@@ -56,6 +59,12 @@ autobrr can also send matches (torrent files that meets your filter's criteria) 
 A lot of indexers do not announce new torrents in an IRC channel. You can still make use of these indexers with autobrr since it has built in support for feeds as well. Both torznab and regular RSS is supported. RSS indexers are treated the same way as regular indexers within autobrr.
 
 This isn't needed if your usecase is feeding the *arrs only. Since they have RSS support already.
+
+### Usenet support
+
+Usenet support via Newzbab feeds allows you to easily manage everything in a single application. While there is a lot of applications that handles RSS well, we think autobrr offers very easy to use filtering to help you get the content you want.
+
+You can use Usenet feeds and send to arrs or send directly to SABnzbd.
 
 ## Installation
 

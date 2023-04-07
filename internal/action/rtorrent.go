@@ -54,7 +54,14 @@ func (s *service) rtorrent(ctx context.Context, action *domain.Action, release d
 			}
 		}
 
-		if err := rt.Add(release.MagnetURI, args...); err != nil {
+		var addTorrentMagnet func(string, ...*rtorrent.FieldValue) error
+		if action.Paused {
+			addTorrentMagnet = rt.AddStopped
+		} else {
+			addTorrentMagnet = rt.Add
+		}
+
+		if err := addTorrentMagnet(release.MagnetURI, args...); err != nil {
 			return nil, errors.Wrap(err, "could not add torrent from magnet: %s", release.MagnetURI)
 		}
 
@@ -97,7 +104,14 @@ func (s *service) rtorrent(ctx context.Context, action *domain.Action, release d
 			}
 		}
 
-		if err := rt.AddTorrent(tmpFile, args...); err != nil {
+		var addTorrentFile func([]byte, ...*rtorrent.FieldValue) error
+		if action.Paused {
+			addTorrentFile = rt.AddTorrentStopped
+		} else {
+			addTorrentFile = rt.AddTorrent
+		}
+
+		if err := addTorrentFile(tmpFile, args...); err != nil {
 			return nil, errors.Wrap(err, "could not add torrent file: %s", release.TorrentTmpFile)
 		}
 
