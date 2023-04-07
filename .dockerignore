@@ -15,7 +15,7 @@ test
 web/*
 !web/public
 !web/src
-!web/build*
+!web/dist*
 !web/package.json
 !web/yarn.lock
 !web/.yarnrc.yml
@@ -24,3 +24,6 @@ web/*
 !web/postcss.config.js
 !web/tailwind.config.js
 !web/tsconfig.json
+!web/index.html
+!web/vite.config.ts
+!web/build.go
