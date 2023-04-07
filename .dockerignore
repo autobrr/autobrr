@@ -24,3 +24,6 @@ web/*
 !web/postcss.config.js
 !web/tailwind.config.js
 !web/tsconfig.json
+!web/index.html
+!web/vite.config.ts
+!web/build.go
