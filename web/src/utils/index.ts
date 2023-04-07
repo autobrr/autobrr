@@ -9,17 +9,12 @@ export function sleep(ms: number) {
 export function baseUrl() {
   let baseUrl = "";
   if (window.APP.baseUrl) {
-    if (window.APP.baseUrl === "/") {
-      baseUrl = "/";
-    } else if (window.APP.baseUrl === "{{.BaseUrl}}") {
-      baseUrl = "/";
-    } else if (window.APP.baseUrl === "/autobrr/") {
-      baseUrl = "/autobrr/";
+    if (window.APP.baseUrl === "{{.BaseUrl}}") {
+      baseUrl = ""; // Use an empty string for local development
     } else {
       baseUrl = window.APP.baseUrl;
     }
   }
-
   return baseUrl;
 }
 
