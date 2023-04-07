@@ -38,8 +38,8 @@ jobs:
       - name: Upload web production build
         uses: actions/upload-artifact@v3
         with:
-          name: web-dist
-          path: web/dist
+          name: web-build
+          path: web/build
 
   test:
     name: Test
@@ -54,8 +54,8 @@ jobs:
       - name: Download web production build
         uses: actions/download-artifact@v3
         with:
-          name: web-dist
-          path: web/dist
+          name: web-build
+          path: web/build
 
       # 1.20 is the last version to support Windows < 10, Server < 2016, and MacOS < 1.15.
       - name: Set up Go
@@ -81,8 +81,8 @@ jobs:
       - name: Download web production build
         uses: actions/download-artifact@v3
         with:
-          name: web-dist
-          path: web/dist
+          name: web-build
+          path: web/build
 
 #     1.20 is the last version to support Windows < 10, Server < 2016, and MacOS < 1.15.
       - name: Set up Go
@@ -120,8 +120,8 @@ jobs:
       - name: Download web production build
         uses: actions/download-artifact@v3
         with:
-          name: web-dist
-          path: web/dist
+          name: web-build
+          path: web/build
 
 #     1.20 is the last version to support Windows < 10, Server < 2016, and MacOS < 1.15.
       - name: Set up Go
@@ -158,8 +158,8 @@ jobs:
       - name: Download web production build
         uses: actions/download-artifact@v3
         with:
-          name: web-dist
-          path: web/dist
+          name: web-build
+          path: web/build
 
       - name: Login to GitHub Container Registry
         uses: docker/login-action@v2
