@@ -9,10 +9,15 @@ export function sleep(ms: number) {
 export function baseUrl() {
   let baseUrl = "";
   if (window.APP.baseUrl) {
-    baseUrl = window.APP.baseUrl;
+    if (window.APP.baseUrl === "{{.BaseUrl}}") {
+      baseUrl = ""; // Use an empty string for local development
+    } else {
+      baseUrl = window.APP.baseUrl;
+    }
   }
   return baseUrl;
 }
+
 
 // get sseBaseUrl for SSE
 export function sseBaseUrl() {
