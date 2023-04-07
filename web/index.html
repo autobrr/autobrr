@@ -12,19 +12,11 @@
     <link rel="apple-touch-icon" href="/static/logo192.png" />
     <link crossorigin="use-credentials" rel="manifest" href="/static/manifest.json" />
     <title>autobrr</title>
-    <!-- {{if eq .BaseUrl "/" }}
-    <base href="/">
-    <script>
-      window.APP = {}
-      window.APP.baseUrl = "/"
-    </script>
-    {{else}} -->
     <base href="{{.BaseUrl}}">
     <script>
       window.APP = {}
       window.APP.baseUrl = "{{.BaseUrl}}"
     </script>
-    <!-- {{end}} -->
   </head>
   <body class="bg-color">
     <noscript>You need to enable JavaScript to run this app.</noscript>
