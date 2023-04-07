@@ -295,7 +295,7 @@ export const PasswordField = ({
               placeholder={placeholder}
             />
 
-            <div className="absolute inset-y-0 right-0 px-3 flex items-center" onClick={toggleVisibility}>
+            <div className="absolute inset-y-0 right-0 px-3 py-2.5 flex" onClick={toggleVisibility}>
               {!isVisible ? <EyeIcon className="h-5 w-5 text-gray-400 hover:text-gray-500" aria-hidden="true" /> : <EyeSlashIcon className="h-5 w-5 text-gray-400 hover:text-gray-500" aria-hidden="true" />}
             </div>
 
