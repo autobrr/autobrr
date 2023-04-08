@@ -25,7 +25,7 @@ RUN go mod download
 
 COPY . ./
 
-COPY --from=web-builder /web/dist ./web/dist
+COPY --from=web-builder /web/build ./web/build
 COPY --from=web-builder /web/build.go ./web
 
 #ENV GOOS=linux
