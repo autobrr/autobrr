@@ -280,7 +280,7 @@ export const PasswordField = ({
           {label} {required && <span className="text-gray-500">*</span>}
         </label>
       )}
-      <div className="relative">
+      <div>
         <Field name={name} defaultValue={defaultValue}>
           {({
             field,
