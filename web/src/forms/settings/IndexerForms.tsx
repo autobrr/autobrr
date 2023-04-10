@@ -84,7 +84,7 @@ const IrcSettingFields = (ind: IndexerDefinition, indexer: string) => {
             {ind.irc.settings.map((f: IndexerSetting, idx: number) => {
               switch (f.type) {
               case "text":
-                return <TextFieldWide name={`irc.${f.name}`} label={f.label} required={f.required} key={idx} help={f.help} validate={validateField(f)} tooltip={<div><p>Please read our IRC guide if you are unfamiliar with IRC.</p><a href='https://autobrr.com/configuration/irc' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/configuration/irc</a></div>} />;
+                return <TextFieldWide name={`irc.${f.name}`} label={f.label} required={f.required} key={idx} help={f.help} autoComplete="off" validate={validateField(f)} tooltip={<div><p>Please read our IRC guide if you are unfamiliar with IRC.</p><a href='https://autobrr.com/configuration/irc' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/configuration/irc</a></div>} />;
               case "secret":
                 if (f.name === "invite_command") {
                   return <PasswordFieldWide name={`irc.${f.name}`} label={f.label} required={f.required} key={idx} help={f.help} defaultVisible={true} defaultValue={f.default} validate={validateField(f)} />;
@@ -118,7 +118,7 @@ const TorznabFeedSettingFields = (ind: IndexerDefinition, indexer: string) => {
             {ind.torznab.settings.map((f: IndexerSetting, idx: number) => {
               switch (f.type) {
               case "text":
-                return <TextFieldWide name={`feed.${f.name}`} label={f.label} required={f.required} key={idx} help={f.help} validate={validateField(f)} />;
+                return <TextFieldWide name={`feed.${f.name}`} label={f.label} required={f.required} key={idx} help={f.help} autoComplete="off" validate={validateField(f)} />;
               case "secret":
                 return <PasswordFieldWide name={`feed.${f.name}`} label={f.label} required={f.required} key={idx} help={f.help} defaultValue={f.default} validate={validateField(f)} />;
               }
@@ -157,7 +157,7 @@ const NewznabFeedSettingFields = (ind: IndexerDefinition, indexer: string) => {
             {ind.newznab.settings.map((f: IndexerSetting, idx: number) => {
               switch (f.type) {
               case "text":
-                return <TextFieldWide name={`feed.${f.name}`} label={f.label} required={f.required} key={idx} help={f.help} validate={validateField(f)} />;
+                return <TextFieldWide name={`feed.${f.name}`} label={f.label} required={f.required} key={idx} help={f.help} autoComplete="off" validate={validateField(f)} />;
               case "secret":
                 return <PasswordFieldWide name={`feed.${f.name}`} label={f.label} required={f.required} key={idx} help={f.help} defaultValue={f.default} validate={validateField(f)} />;
               }
@@ -188,7 +188,7 @@ const RSSFeedSettingFields = (ind: IndexerDefinition, indexer: string) => {
             {ind.rss.settings.map((f: IndexerSetting, idx: number) => {
               switch (f.type) {
               case "text":
-                return <TextFieldWide name={`feed.${f.name}`} label={f.label} required={f.required} key={idx} help={f.help} validate={validateField(f)} />;
+                return <TextFieldWide name={`feed.${f.name}`} label={f.label} required={f.required} key={idx} help={f.help} autoComplete="off" validate={validateField(f)} />;
               case "secret":
                 return <PasswordFieldWide name={`feed.${f.name}`} label={f.label} required={f.required} key={idx} help={f.help} defaultValue={f.default} validate={validateField(f)} />;
               }
@@ -217,7 +217,7 @@ const SettingFields = (ind: IndexerDefinition, indexer: string) => {
           switch (f.type) {
           case "text":
             return (
-              <TextFieldWide name={`settings.${f.name}`} label={f.label} required={f.required} key={idx} help={f.help} validate={validateField(f)} />
+              <TextFieldWide name={`settings.${f.name}`} label={f.label} required={f.required} key={idx} help={f.help} autoComplete="off" validate={validateField(f)} />
             );
           case "secret":
             return (

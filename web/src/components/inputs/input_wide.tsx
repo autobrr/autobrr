@@ -10,15 +10,16 @@ import { SelectFieldProps } from "./select";
 import { CustomTooltip } from "../tooltips/CustomTooltip";
 
 interface TextFieldWideProps {
-    name: string;
-    label?: string;
-    help?: string;
-    placeholder?: string;
-    defaultValue?: string;
-    required?: boolean;
-    hidden?: boolean;
-    tooltip?: JSX.Element;
-    validate?: FieldValidator;
+  name: string;
+  label?: string;
+  help?: string;
+  placeholder?: string;
+  defaultValue?: string;
+  required?: boolean;
+  autoComplete?: string;
+  hidden?: boolean;
+  tooltip?: JSX.Element;
+  validate?: FieldValidator;
 }
 
 export const TextFieldWide = ({
@@ -28,6 +29,7 @@ export const TextFieldWide = ({
   placeholder,
   defaultValue,
   required,
+  autoComplete,
   tooltip,
   hidden,
   validate
@@ -59,6 +61,7 @@ export const TextFieldWide = ({
             placeholder={placeholder}
             hidden={hidden}
             required={required}
+            autoComplete={autoComplete}
           />
         )}
       </Field>
