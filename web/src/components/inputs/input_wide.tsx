@@ -187,6 +187,12 @@ export const NumberFieldWide = ({
                 : "focus:ring-blue-500 dark:focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-500 border-gray-300 dark:border-gray-700",
               "block w-full shadow-sm dark:bg-gray-800 sm:text-sm dark:text-white rounded-md"
             )}
+            onWheel={(event) => {
+              if (event.currentTarget === document.activeElement) {
+                event.currentTarget.blur();
+                setTimeout(() => event.currentTarget.focus(), 0);
+              }
+            }}
             placeholder={placeholder}
           />
         )}

@@ -429,6 +429,12 @@ export const NumberField = ({
               }
               form.setFieldValue(field.name, parseInt(event.target.value)); // Convert the input value to an integer using parseInt() to ensure that the backend can properly parse the numberfield as an integer.
             }}
+            onWheel={(event) => {
+              if (event.currentTarget === document.activeElement) {
+                event.currentTarget.blur();
+                setTimeout(() => event.currentTarget.focus(), 0);
+              }
+            }}
           />
           {meta.touched && meta.error && (
             <div className="error">{meta.error}</div>
