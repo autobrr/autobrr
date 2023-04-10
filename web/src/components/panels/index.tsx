@@ -22,6 +22,7 @@ interface SlideOverProps<DataType> {
   isTesting?: boolean;
   isTestSuccessful?: boolean;
   isTestError?: boolean;
+  extraButtons?: React.ReactNode[];
 }
 
 function SlideOver<DataType>({
@@ -37,7 +38,8 @@ function SlideOver<DataType>({
   testFn,
   isTesting,
   isTestSuccessful,
-  isTestError
+  isTestError,
+  extraButtons
 }: SlideOverProps<DataType>): React.ReactElement {
   const cancelModalButtonRef = useRef<HTMLInputElement | null>(null);
   const [deleteModalIsOpen, toggleDeleteModal] = useToggle(false);
@@ -125,6 +127,12 @@ function SlideOver<DataType>({
                             </button>
                           )}
                           <div>
+                            {extraButtons?.map((component, index) => (
+                              <React.Fragment key={index}>
+                                { component }
+                              </React.Fragment>
+                            ))}
+
                             {testFn && (
                               <button
                                 type="button"

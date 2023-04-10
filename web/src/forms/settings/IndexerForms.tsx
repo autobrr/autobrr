@@ -1,4 +1,4 @@
-import { Fragment, useState } from "react";
+import React, { Fragment, useState } from "react";
 import { toast } from "react-hot-toast";
 import { useMutation, useQuery } from "react-query";
 import Select, { components, ControlProps, InputProps, MenuProps, OptionProps } from "react-select";
@@ -8,7 +8,7 @@ import { Field, Form, Formik, FormikValues } from "formik";
 import { XMarkIcon } from "@heroicons/react/24/solid";
 import { Dialog, Transition } from "@headlessui/react";
 
-import { sleep } from "../../utils";
+import { classNames, sleep } from "../../utils";
 import { queryClient } from "../../App";
 import DEBUG from "../../components/debug";
 import { APIClient } from "../../api/APIClient";
@@ -576,6 +576,102 @@ export function IndexerAddForm({ isOpen, toggle }: AddProps) {
   );
 }
 
+interface TestApiButtonProps {
+  indexer: IndexerDefinition;
+}
+
+function TestApiButton({ indexer }: TestApiButtonProps) {
+  const [isTesting, setIsTesting] = useState(false);
+  const [isSuccessfulTest, setIsSuccessfulTest] = useState(false);
+  const [isErrorTest, setIsErrorTest] = useState(false);
+
+  const testApiMutation = useMutation(
+    (id: number) => APIClient.indexers.testApi(id),
+    {
+      onMutate: () => {
+        setIsTesting(true);
+        setIsErrorTest(false);
+        setIsSuccessfulTest(false);
+      },
+      onSuccess: () => {
+        sleep(1000)
+          .then(() => {
+            setIsTesting(false);
+            setIsSuccessfulTest(true);
+          })
+          .then(() => {
+            sleep(2500).then(() => {
+              setIsSuccessfulTest(false);
+            });
+          });
+      },
+      onError: () => {
+        setIsTesting(false);
+        setIsErrorTest(true);
+        sleep(2500).then(() => {
+          setIsErrorTest(false);
+        });
+      }
+    }
+  );
+
+  const testApi = (data: unknown) => {
+    const d = data as Indexer;
+    testApiMutation.mutate(d.id);
+  };
+
+  if (!indexer.supports.includes("api")) {
+    return null;
+  }
+
+  return (
+    <button
+      type="button"
+      className={classNames(
+        isSuccessfulTest
+          ? "text-green-500 border-green-500 bg-green-50"
+          : isErrorTest
+            ? "text-red-500 border-red-500 bg-red-50"
+            : "border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-400 bg-white dark:bg-gray-700 hover:bg-gray-50 focus:border-rose-700 active:bg-rose-700",
+        isTesting ? "cursor-not-allowed" : "",
+        "mr-2 inline-flex items-center px-4 py-2 border font-medium rounded-md shadow-sm text-sm transition ease-in-out duration-150 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
+      )}
+      disabled={isTesting}
+      onClick={() => testApi(indexer)}
+      // onClick={testApi}
+    >
+      {isTesting ? (
+        <svg
+          className="animate-spin h-5 w-5 text-green-500"
+          xmlns="http://www.w3.org/2000/svg"
+          fill="none"
+          viewBox="0 0 24 24"
+        >
+          <circle
+            className="opacity-25"
+            cx="12"
+            cy="12"
+            r="10"
+            stroke="currentColor"
+            strokeWidth="4"
+          ></circle>
+          <path
+            className="opacity-75"
+            fill="currentColor"
+            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+          ></path>
+        </svg>
+      ) : isSuccessfulTest ? (
+        "OK!"
+      ) : isErrorTest ? (
+        "ERROR"
+      ) : (
+        "Test API"
+      )}
+    </button>
+  );
+}
+
 interface UpdateProps {
     isOpen: boolean;
     toggle: () => void;
@@ -660,6 +756,7 @@ export function IndexerUpdateForm({ isOpen, toggle, indexer }: UpdateProps) {
       deleteAction={deleteAction}
       onSubmit={onSubmit}
       initialValues={initialValues}
+      extraButtons={[<TestApiButton indexer={indexer} />]}
     >
       {() => (
         <div className="py-2 space-y-6 sm:py-0 sm:space-y-0 divide-y divide-gray-200 dark:divide-gray-700">
