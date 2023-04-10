@@ -1,8 +1,9 @@
-import { Field, FieldProps } from "formik";
+import { Field, FieldProps, useFormikContext } from "formik";
 import { classNames } from "../../utils";
 import { EyeIcon, EyeSlashIcon, CheckCircleIcon, XCircleIcon } from "@heroicons/react/24/solid";
 import { useToggle } from "../../hooks/hooks";
 import { CustomTooltip } from "../tooltips/CustomTooltip";
+import { useEffect } from "react";
 
 type COL_WIDTHS = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12;
 
@@ -100,16 +101,52 @@ export const RegexField = ({
   tooltip,
   disabled
 }: RegexFieldProps) => {
-  const golangRegex = /^((\\\*|\\\?|\\[^\s\\])+|\(\?i\))(\|((\\\*|\\\?|\\[^\s\\])+|\(\?i\)))*$/;
-
   const validRegex = (pattern: string) => {
+  
+    // Check for unsupported lookahead and lookbehind assertions
+    if (/\(\?<=|\(\?<!|\(\?=|\(\?!/.test(pattern)) {
+      return false;
+    }
+  
+    // Check for unsupported atomic groups
+    if (/\(\?>/.test(pattern)) {
+      return false;
+    }
+  
+    // Check for unsupported recursive patterns
+    if (/\(\?(R|0)\)/.test(pattern)) {
+      return false;
+    }
+  
+    // Check for unsupported possessive quantifiers
+    if (/[*+?]{1}\+|\{[0-9]+,[0-9]*\}\+/.test(pattern)) {
+      return false;
+    }
+  
+    // Check for unsupported control verbs
+    if (/\\g</.test(pattern)) {
+      return false;
+    }
+  
+    // Check for unsupported conditionals
+    if (/\(\?\((\?[=!][^)]*)\)[^)]*\|?[^)]*\)/.test(pattern)) {
+      return false;
+    }
+  
+    // Check for unsupported backreferences
+    if (/\\k</.test(pattern)) {
+      return false;
+    }
+  
+    // Check if the pattern is a valid regex
     try {
-      new RegExp(golangRegex.source + pattern);
+      new RegExp(pattern);
       return true;
     } catch (e) {
       return false;
     }
   };
+  
 
   const validateRegexp = (val: string) => {
     let error = "";
@@ -120,6 +157,13 @@ export const RegexField = ({
 
     return error;
   };
+
+  const { validateForm } = useFormikContext();
+  useEffect(() => {
+    if (useRegex) {
+      validateForm();
+    }
+  }, [useRegex]);  
 
   return (
     <div
@@ -135,7 +179,7 @@ export const RegexField = ({
         >
           <div className="flex">
             {label}
-            {tooltip && <CustomTooltip anchorId={name}>{tooltip}</CustomTooltip>}
+            <span className="z-10">{tooltip && <CustomTooltip anchorId={name}>{tooltip}</CustomTooltip>}</span>
           </div>
         </label>
       )}
@@ -152,7 +196,7 @@ export const RegexField = ({
               defaultValue={defaultValue}
               autoComplete={autoComplete}
               className={classNames(
-                meta.touched && meta.error
+                useRegex && meta.error
                   ? "focus:ring-red-500 focus:border-red-500 border-red-500"
                   : "focus:ring-blue-500 dark:focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-500 border-gray-300 dark:border-gray-700",
                 disabled
@@ -166,7 +210,7 @@ export const RegexField = ({
             {useRegex && (
               <div className="relative">
                 <div className="flex float-right items-center">
-                  {meta.touched && !meta.error ? (
+                  {!meta.error ? (
                     <CheckCircleIcon className="dark:bg-gray-800 bg-white h-8 w-8 mb-2.5 pl-1 text-green-500 right-2 absolute transform -translate-y-1/2" aria-hidden="true" style={{ overflow: "hidden" }} />
                   ) : (
                     <XCircleIcon className="dark:bg-gray-800 bg-white h-8 w-8 mb-2.5 pl-1 text-red-500 right-2 absolute transform -translate-y-1/2" aria-hidden="true" style={{ overflow: "hidden" }} />
