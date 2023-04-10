@@ -17,8 +17,8 @@ import (
 )
 
 type Client interface {
-	GetTorrentByID(torrentID string) (*domain.TorrentBasic, error)
-	TestAPI() (bool, error)
+	GetTorrentByID(ctx context.Context, torrentID string) (*domain.TorrentBasic, error)
+	TestAPI(ctx context.Context) (bool, error)
 }
 
 type client struct {
@@ -158,8 +158,8 @@ func (c *client) Do(req *http.Request) (*http.Response, error) {
 	return resp, nil
 }
 
-func (c *client) get(url string) (*http.Response, error) {
-	req, err := http.NewRequest(http.MethodGet, url, http.NoBody)
+func (c *client) get(ctx context.Context, url string) (*http.Response, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, http.NoBody)
 	if err != nil {
 		return nil, errors.Wrap(err, "ggn client request error : %v", url)
 	}
@@ -183,7 +183,7 @@ func (c *client) get(url string) (*http.Response, error) {
 	return res, nil
 }
 
-func (c *client) GetTorrentByID(torrentID string) (*domain.TorrentBasic, error) {
+func (c *client) GetTorrentByID(ctx context.Context, torrentID string) (*domain.TorrentBasic, error) {
 	if torrentID == "" {
 		return nil, errors.New("ggn client: must have torrentID")
 	}
@@ -196,7 +196,7 @@ func (c *client) GetTorrentByID(torrentID string) (*domain.TorrentBasic, error) 
 
 	reqUrl := fmt.Sprintf("%v?%v&%v", c.Url, "request=torrent", params)
 
-	resp, err := c.get(reqUrl)
+	resp, err := c.get(ctx, reqUrl)
 	if err != nil {
 		return nil, errors.Wrap(err, "error getting data")
 	}
@@ -228,8 +228,8 @@ func (c *client) GetTorrentByID(torrentID string) (*domain.TorrentBasic, error) 
 }
 
 // TestAPI try api access against torrents page
-func (c *client) TestAPI() (bool, error) {
-	resp, err := c.get(c.Url)
+func (c *client) TestAPI(ctx context.Context) (bool, error) {
+	resp, err := c.get(ctx, c.Url)
 	if err != nil {
 		return false, errors.Wrap(err, "error getting data")
 	}

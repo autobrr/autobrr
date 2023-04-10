@@ -15,8 +15,8 @@ import (
 )
 
 type BTNClient interface {
-	GetTorrentByID(torrentID string) (*domain.TorrentBasic, error)
-	TestAPI() (bool, error)
+	GetTorrentByID(ctx context.Context, torrentID string) (*domain.TorrentBasic, error)
+	TestAPI(ctx context.Context) (bool, error)
 }
 
 type Client struct {

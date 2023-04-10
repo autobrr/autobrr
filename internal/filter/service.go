@@ -413,7 +413,7 @@ func (s *service) AdditionalSizeCheck(ctx context.Context, f domain.Filter, rele
 	case "ptp", "btn", "ggn", "redacted", "mock":
 		if release.Size == 0 {
 			s.log.Trace().Msgf("filter.Service.AdditionalSizeCheck: (%v) preparing to check via api", f.Name)
-			torrentInfo, err := s.apiService.GetTorrentByID(release.Indexer, release.TorrentID)
+			torrentInfo, err := s.apiService.GetTorrentByID(ctx, release.Indexer, release.TorrentID)
 			if err != nil || torrentInfo == nil {
 				s.log.Error().Stack().Err(err).Msgf("filter.Service.AdditionalSizeCheck: (%v) could not get torrent info from api: '%v' from: %v", f.Name, release.TorrentID, release.Indexer)
 				return false, err

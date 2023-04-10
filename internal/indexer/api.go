@@ -1,6 +1,8 @@
 package indexer
 
 import (
+	"context"
+
 	"github.com/rs/zerolog"
 
 	"github.com/autobrr/autobrr/internal/domain"
@@ -14,15 +16,15 @@ import (
 )
 
 type APIService interface {
-	TestConnection(indexer string) (bool, error)
-	GetTorrentByID(indexer string, torrentID string) (*domain.TorrentBasic, error)
+	TestConnection(ctx context.Context, indexer string) (bool, error)
+	GetTorrentByID(ctx context.Context, indexer string, torrentID string) (*domain.TorrentBasic, error)
 	AddClient(indexer string, settings map[string]string) error
 	RemoveClient(indexer string) error
 }
 
 type apiClient interface {
-	GetTorrentByID(torrentID string) (*domain.TorrentBasic, error)
-	TestAPI() (bool, error)
+	GetTorrentByID(ctx context.Context, torrentID string) (*domain.TorrentBasic, error)
+	TestAPI(ctx context.Context) (bool, error)
 }
 
 type apiService struct {
@@ -37,7 +39,7 @@ func NewAPIService(log logger.Logger) APIService {
 	}
 }
 
-func (s *apiService) GetTorrentByID(indexer string, torrentID string) (*domain.TorrentBasic, error) {
+func (s *apiService) GetTorrentByID(ctx context.Context, indexer string, torrentID string) (*domain.TorrentBasic, error) {
 	v, ok := s.apiClients[indexer]
 	if !ok {
 		return nil, nil
@@ -45,7 +47,7 @@ func (s *apiService) GetTorrentByID(indexer string, torrentID string) (*domain.T
 
 	s.log.Trace().Str("method", "GetTorrentByID").Msgf("'%v' trying to fetch torrent from api", indexer)
 
-	t, err := v.GetTorrentByID(torrentID)
+	t, err := v.GetTorrentByID(ctx, torrentID)
 	if err != nil {
 		s.log.Error().Stack().Err(err).Msgf("could not get torrent: '%v' from: %v", torrentID, indexer)
 		return nil, err
@@ -56,15 +58,15 @@ func (s *apiService) GetTorrentByID(indexer string, torrentID string) (*domain.T
 	return t, nil
 }
 
-func (s *apiService) TestConnection(indexer string) (bool, error) {
+func (s *apiService) TestConnection(ctx context.Context, indexer string) (bool, error) {
 	v, ok := s.apiClients[indexer]
 	if !ok {
 		return false, nil
 	}
 
-	t, err := v.TestAPI()
+	t, err := v.TestAPI(ctx)
 	if err != nil {
-		s.log.Error().Err(err).Msgf("error testing connection for api: %v", indexer)
+		s.log.Error().Err(err).Msgf("error testing connection for api: %s", indexer)
 		return false, err
 	}
 
@@ -79,7 +81,7 @@ func (s *apiService) AddClient(indexer string, settings map[string]string) error
 		return errors.New("api.Service.AddClient: validation falied: settings can't be empty")
 	}
 
-	s.log.Trace().Msgf("api.Service.AddClient: init api client for '%v'", indexer)
+	s.log.Trace().Msgf("api.Service.AddClient: init api client for: %s", indexer)
 
 	// init client
 	switch indexer {
@@ -120,7 +122,7 @@ func (s *apiService) AddClient(indexer string, settings map[string]string) error
 		s.apiClients[indexer] = mock.NewMockClient("", "mock")
 
 	default:
-		return errors.New("api.Service.AddClient: could not initialize client: unsupported indexer '%v'", indexer)
+		return errors.New("api.Service.AddClient: could not initialize client: unsupported indexer: %s", indexer)
 
 	}
 	return nil
