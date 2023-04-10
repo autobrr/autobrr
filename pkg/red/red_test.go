@@ -1,6 +1,7 @@
 package red
 
 import (
+	"context"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -96,7 +97,7 @@ func TestREDClient_GetTorrentByID(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			c := NewClient(tt.fields.Url, tt.fields.APIKey)
 
-			got, err := c.GetTorrentByID(tt.args.torrentID)
+			got, err := c.GetTorrentByID(context.Background(), tt.args.torrentID)
 			if tt.wantErr != "" && assert.Error(t, err) {
 				assert.EqualErrorf(t, err, tt.wantErr, "Error should be: %v, got: %v", tt.wantErr, err)
 			}
