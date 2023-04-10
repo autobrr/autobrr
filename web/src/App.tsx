@@ -7,6 +7,7 @@ import { LocalRouter } from "./domain/routes";
 import { AuthContext, SettingsContext } from "./utils/Context";
 import { ErrorPage } from "./components/alerts";
 import Toast from "./components/notifications/Toast";
+import { Portal } from "react-portal";
 
 export const queryClient = new QueryClient({
   defaultOptions: {
@@ -43,7 +44,9 @@ export function App() {
       fallbackRender={ErrorPage}
     >
       <QueryClientProvider client={queryClient}>
-        <Toaster position="top-right" />
+        <Portal>
+          <Toaster position="top-right" />
+        </Portal>
         <LocalRouter isLoggedIn={authContext.isLoggedIn} />
         {settings.debug ? (
           <ReactQueryDevtools initialIsOpen={false} />
