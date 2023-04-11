@@ -49,9 +49,8 @@ irc:
           - torrentName
       - test:
           - "Torrent: https://example.com/torrents/sha123/torrentname-007.torrent"
-        pattern: '^Torrent: (https:\/\/)(.*\.torrent)'
+        pattern: '^Torrent: https:\/\/(.*)'
         vars:
-          - baseUrl
           - torrentId
       - test:
           - "Size: 7.21GB | Comment: A comment on the torrent left by the author"
