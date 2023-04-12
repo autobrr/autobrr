@@ -548,10 +548,10 @@ export function Advanced({ values }: AdvancedProps) {
 
       <CollapsableSection defaultOpen={true} title="Freeleech" subtitle="Match only freeleech and freeleech percent.">
         <div className="col-span-6">
-          <SwitchGroup name="freeleech" label="Freeleech" description="Enabling freeleech locks freeleech percent to 100. Use either." tooltip={<div><p>Not all indexers announce freeleech on IRC. Check with your indexer before enabling freeleech filtering.</p></div>} />
+          <SwitchGroup name="freeleech" label="Freeleech" tooltip={<div><p>Freeleech may be announced as a binary true/false value or as a percentage, depending on the indexer. Use either or both, depending on the indexers you use.</p><br /><p>See who uses what in the documentation: <a href='https://autobrr.com/filters/freeleech' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters/freeleech</a></p></div>} />
         </div>
 
-        <TextField name="freeleech_percent" label="Freeleech percent" columns={6} placeholder="eg. 50,75-100" />
+        <TextField name="freeleech_percent" label="Freeleech percent" tooltip={<div><p>Freeleech may be announced as a binary true/false value or as a percentage, depending on the indexer. Use either or both, depending on the indexers you use.</p><br /><p>See who uses what in the documentation: <a href='https://autobrr.com/filters/freeleech' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters/freeleech</a></p></div>} columns={6} placeholder="eg. 50,75-100" />
       </CollapsableSection>
     </div>
   );
