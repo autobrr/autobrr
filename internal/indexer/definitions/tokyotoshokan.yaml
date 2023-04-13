@@ -1,0 +1,62 @@
+---
+#id: tokyotosho
+name: Tokyo Toshokan
+identifier: tokyotosho
+description: A BitTorrent Library for Japanese Media
+language: en-us
+urls:
+  - https://
+privacy: public
+protocol: torrent
+supports:
+  - irc
+
+irc:
+  network: Rizon
+  server: irc.rizon.net
+  port: 6697
+  tls: true
+  channels:
+    - "#tokyotosho"
+  announcers:
+    - "TokyoTosho"
+  settings:
+    - name: nick
+      type: text
+      required: true
+      label: Nick
+      help: Bot nick. Eg. user_bot
+
+    - name: auth.account
+      type: text
+      required: false
+      label: NickServ Account
+      help: NickServ account. Make sure to group your main user and bot.
+
+    - name: auth.password
+      type: secret
+      required: false
+      label: NickServ Password
+      help: NickServ password
+  parse:
+    type: multi
+    lines:
+      - test:
+          - "Release 1748839: [Anime] SOMETITLE-007"
+        pattern: '^Release [0-9]*: \[(.*?)\] (.*)'
+        vars:
+          - category
+          - torrentName
+      - test:
+          - "Torrent: https://example.com/torrents/sha123/torrentname-007.torrent"
+        pattern: '^Torrent: https:\/\/(.*)'
+        vars:
+          - torrentId
+      - test:
+          - "Size: 7.21GB | Comment: A comment on the torrent left by the author"
+        pattern: '^Size: (\d+.?\d*[KMGTP]?B)( \| Comment: (.*))?'
+        vars:
+          - size
+
+    match:
+      torrenturl: "{{ .torrentId }}"
