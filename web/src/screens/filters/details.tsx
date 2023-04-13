@@ -18,7 +18,8 @@ import {
   RELEASE_TYPE_MUSIC_OPTIONS,
   RESOLUTION_OPTIONS,
   SOURCES_MUSIC_OPTIONS,
-  SOURCES_OPTIONS
+  SOURCES_OPTIONS,
+  tagsMatchLogicOptions
 } from "../../domain/constants";
 import { queryClient } from "../../App";
 import { APIClient } from "../../api/APIClient";
@@ -265,6 +266,8 @@ export default function FilterDetails() {
                 except_categories: filter.except_categories,
                 tags: filter.tags,
                 except_tags: filter.except_tags,
+                tags_match_logic: filter.tags_match_logic,
+                except_tags_match_logic: filter.except_tags_match_logic,
                 match_uploaders: filter.match_uploaders,
                 except_uploaders: filter.except_uploaders,
                 match_language: filter.match_language || [],
@@ -509,8 +512,10 @@ export function Advanced({ values }: AdvancedProps) {
         <TextField name="match_categories" label="Match categories" columns={6} placeholder="eg. *category*,category1" tooltip={<div><p>Comma separated list of categories to match.</p><a href='https://autobrr.com/filters/categories' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters/categories</a></div>} />
         <TextField name="except_categories" label="Except categories" columns={6} placeholder="eg. *category*" tooltip={<div><p>Comma separated list of categories to ignore (takes priority over Match releases).</p><a href='https://autobrr.com/filters/categories' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters/categories</a></div>} />
 
-        <TextField name="tags" label="Match tags" columns={6} placeholder="eg. tag1,tag2" tooltip={<div><p>Comma separated list of tags to match.</p><a href='https://autobrr.com/filters#advanced' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters#advanced</a></div>} />
-        <TextField name="except_tags" label="Except tags" columns={6} placeholder="eg. tag1,tag2" tooltip={<div><p>Comma separated list of tags to ignore (takes priority over Match releases).</p><a href='https://autobrr.com/filters#advanced' className='text-blue-400 visited:text-blue-400' target='_blank'>hhttps://autobrr.com/filters#advanced</a></div>} />
+        <TextField name="tags" label="Match tags" columns={4} placeholder="eg. tag1,tag2" tooltip={<div><p>Comma separated list of tags to match.</p><a href='https://autobrr.com/filters#advanced' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters#advanced</a></div>} />
+        <Select name="tags_match_logic" label="Tags logic" columns={2} options={tagsMatchLogicOptions}  optionDefaultText="any"  tooltip={<div><p>Logic used to match filter tags.</p><a href='https://autobrr.com/filters#advanced' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters#advanced</a></div>} />
+        <TextField name="except_tags" label="Except tags" columns={4} placeholder="eg. tag1,tag2" tooltip={<div><p>Comma separated list of tags to ignore (takes priority over Match releases).</p><a href='https://autobrr.com/filters#advanced' className='text-blue-400 visited:text-blue-400' target='_blank'>hhttps://autobrr.com/filters#advanced</a></div>} />
+        <Select name="except_tags_match_logic" label="Except tags logic" columns={2} options={tagsMatchLogicOptions}  optionDefaultText="any"  tooltip={<div><p>Logic used to match except tags.</p><a href='https://autobrr.com/filters#advanced' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters#advanced</a></div>} />
       </CollapsableSection>
 
       <CollapsableSection defaultOpen={true} title="Uploaders" subtitle="Match or ignore uploaders.">
@@ -543,10 +548,10 @@ export function Advanced({ values }: AdvancedProps) {
 
       <CollapsableSection defaultOpen={true} title="Freeleech" subtitle="Match only freeleech and freeleech percent.">
         <div className="col-span-6">
-          <SwitchGroup name="freeleech" label="Freeleech" description="Enabling freeleech locks freeleech percent to 100. Use either." tooltip={<div><p>Not all indexers announce freeleech on IRC. Check with your indexer before enabling freeleech filtering.</p></div>} />
+          <SwitchGroup name="freeleech" label="Freeleech" tooltip={<div><p>Freeleech may be announced as a binary true/false value or as a percentage, depending on the indexer. Use either or both, depending on the indexers you use.</p><br /><p>See who uses what in the documentation: <a href='https://autobrr.com/filters/freeleech' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters/freeleech</a></p></div>} />
         </div>
 
-        <TextField name="freeleech_percent" label="Freeleech percent" columns={6} placeholder="eg. 50,75-100" />
+        <TextField name="freeleech_percent" label="Freeleech percent" tooltip={<div><p>Freeleech may be announced as a binary true/false value or as a percentage, depending on the indexer. Use either or both, depending on the indexers you use.</p><br /><p>See who uses what in the documentation: <a href='https://autobrr.com/filters/freeleech' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters/freeleech</a></p></div>} columns={6} placeholder="eg. 50,75-100" />
       </CollapsableSection>
     </div>
   );

@@ -31,7 +31,7 @@ node_modules/
 web/build
 bin/
 log/
-dist/
+#dist/
 .run/
 tmp/
 # If needed, package-lock.json shall be added

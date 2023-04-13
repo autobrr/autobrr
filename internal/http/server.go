@@ -141,9 +141,10 @@ func (s Server) Handler() http.Handler {
 			})
 		})
 	})
-	// Need to fix the baseUrl for the frontend currently when going to log route it will throw cors error :()
-	// r.Get("/", s.index)
-	// r.Get("/*", s.index)
+
+	// serve the parsed index.html
+	r.Get("/", s.index)
+	r.Get("/*", s.index)
 
 	return r
 }

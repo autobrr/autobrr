@@ -1,8 +1,9 @@
-import { Field, FieldProps } from "formik";
+import { Field, FieldProps, useFormikContext } from "formik";
 import { classNames } from "../../utils";
 import { EyeIcon, EyeSlashIcon, CheckCircleIcon, XCircleIcon } from "@heroicons/react/24/solid";
 import { useToggle } from "../../hooks/hooks";
 import { CustomTooltip } from "../tooltips/CustomTooltip";
+import { useEffect } from "react";
 
 type COL_WIDTHS = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12;
 
@@ -100,16 +101,52 @@ export const RegexField = ({
   tooltip,
   disabled
 }: RegexFieldProps) => {
-  const golangRegex = /^((\\\*|\\\?|\\[^\s\\])+|\(\?i\))(\|((\\\*|\\\?|\\[^\s\\])+|\(\?i\)))*$/;
-
   const validRegex = (pattern: string) => {
+  
+    // Check for unsupported lookahead and lookbehind assertions
+    if (/\(\?<=|\(\?<!|\(\?=|\(\?!/.test(pattern)) {
+      return false;
+    }
+  
+    // Check for unsupported atomic groups
+    if (/\(\?>/.test(pattern)) {
+      return false;
+    }
+  
+    // Check for unsupported recursive patterns
+    if (/\(\?(R|0)\)/.test(pattern)) {
+      return false;
+    }
+  
+    // Check for unsupported possessive quantifiers
+    if (/[*+?]{1}\+|\{[0-9]+,[0-9]*\}\+/.test(pattern)) {
+      return false;
+    }
+  
+    // Check for unsupported control verbs
+    if (/\\g</.test(pattern)) {
+      return false;
+    }
+  
+    // Check for unsupported conditionals
+    if (/\(\?\((\?[=!][^)]*)\)[^)]*\|?[^)]*\)/.test(pattern)) {
+      return false;
+    }
+  
+    // Check for unsupported backreferences
+    if (/\\k</.test(pattern)) {
+      return false;
+    }
+  
+    // Check if the pattern is a valid regex
     try {
-      new RegExp(golangRegex.source + pattern);
+      new RegExp(pattern);
       return true;
     } catch (e) {
       return false;
     }
   };
+  
 
   const validateRegexp = (val: string) => {
     let error = "";
@@ -120,6 +157,13 @@ export const RegexField = ({
 
     return error;
   };
+
+  const { validateForm } = useFormikContext();
+  useEffect(() => {
+    if (useRegex) {
+      validateForm();
+    }
+  }, [useRegex]);  
 
   return (
     <div
@@ -135,7 +179,7 @@ export const RegexField = ({
         >
           <div className="flex">
             {label}
-            {tooltip && <CustomTooltip anchorId={name}>{tooltip}</CustomTooltip>}
+            <span className="z-10">{tooltip && <CustomTooltip anchorId={name}>{tooltip}</CustomTooltip>}</span>
           </div>
         </label>
       )}
@@ -152,12 +196,15 @@ export const RegexField = ({
               defaultValue={defaultValue}
               autoComplete={autoComplete}
               className={classNames(
-                meta.touched && meta.error
+                useRegex && meta.error
                   ? "focus:ring-red-500 focus:border-red-500 border-red-500"
                   : "focus:ring-blue-500 dark:focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-500 border-gray-300 dark:border-gray-700",
                 disabled
                   ? "bg-gray-100 dark:bg-gray-700 cursor-not-allowed"
                   : "dark:bg-gray-800",
+                useRegex
+                  ? "pr-10"
+                  : "",
                 "mt-2 block w-full dark:text-gray-100 rounded-md"
               )}
               disabled={disabled}
@@ -166,7 +213,7 @@ export const RegexField = ({
             {useRegex && (
               <div className="relative">
                 <div className="flex float-right items-center">
-                  {meta.touched && !meta.error ? (
+                  {!meta.error ? (
                     <CheckCircleIcon className="dark:bg-gray-800 bg-white h-8 w-8 mb-2.5 pl-1 text-green-500 right-2 absolute transform -translate-y-1/2" aria-hidden="true" style={{ overflow: "hidden" }} />
                   ) : (
                     <XCircleIcon className="dark:bg-gray-800 bg-white h-8 w-8 mb-2.5 pl-1 text-red-500 right-2 absolute transform -translate-y-1/2" aria-hidden="true" style={{ overflow: "hidden" }} />
@@ -247,14 +294,14 @@ export const TextArea = ({
 );
 
 interface PasswordFieldProps {
-    name: string;
-    label?: string;
-    placeholder?: string;
-    columns?: COL_WIDTHS;
-    autoComplete?: string;
-    defaultValue?: string;
-    help?: string;
-    required?: boolean;
+  name: string;
+  label?: string;
+  placeholder?: string;
+  columns?: COL_WIDTHS;
+  autoComplete?: string;
+  defaultValue?: string;
+  help?: string;
+  required?: boolean;
 }
 
 export const PasswordField = ({
@@ -280,35 +327,44 @@ export const PasswordField = ({
           {label} {required && <span className="text-gray-500">*</span>}
         </label>
       )}
-      <Field name={name} defaultValue={defaultValue}>
-        {({
-          field,
-          meta
-        }: FieldProps) => (
-          <div className="sm:col-span-2 relative">
-            <input
-              {...field}
-              id={name}
-              type={isVisible ? "text" : "password"}
-              autoComplete={autoComplete}
-              className={classNames(meta.touched && meta.error ? "focus:ring-red-500 focus:border-red-500 border-red-500" : "focus:ring-blue-500 dark:focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-500 border-gray-300 dark:border-gray-700", "mt-2 block w-full dark:bg-gray-800 dark:text-gray-100 rounded-md")}
-              placeholder={placeholder}
-            />
+      <div>
+        <Field name={name} defaultValue={defaultValue}>
+          {({
+            field,
+            meta
+          }: FieldProps) => (
+            <>
+              <div className="sm:col-span-2 relative">
+                <input
+                  {...field}
+                  id={name}
+                  type={isVisible ? "text" : "password"}
+                  autoComplete={autoComplete}
+                  className={classNames(
+                    meta.touched && meta.error
+                      ? "focus:ring-red-500 focus:border-red-500 border-red-500"
+                      : "focus:ring-blue-500 dark:focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-500 border-gray-300 dark:border-gray-700",
+                    "mt-2 block w-full dark:bg-gray-800 dark:text-gray-100 rounded-md"
+                  )}
+                  placeholder={placeholder}
+                />
 
-            <div className="absolute inset-y-0 right-0 px-3 flex items-center" onClick={toggleVisibility}>
-              {!isVisible ? <EyeIcon className="h-5 w-5 text-gray-400 hover:text-gray-500" aria-hidden="true" /> : <EyeSlashIcon className="h-5 w-5 text-gray-400 hover:text-gray-500" aria-hidden="true" />}
-            </div>
+                <div className="absolute inset-y-0 right-0 px-3 flex items-center" onClick={toggleVisibility}>
+                  {!isVisible ? <EyeIcon className="h-5 w-5 text-gray-400 hover:text-gray-500" aria-hidden="true" />
+                    : <EyeSlashIcon className="h-5 w-5 text-gray-400 hover:text-gray-500" aria-hidden="true" />}
+                </div>
+              </div>
+              {help && (
+                <p className="mt-2 text-sm text-gray-500" id="email-description">{help}</p>
+              )}
 
-            {help && (
-              <p className="mt-2 text-sm text-gray-500" id="email-description">{help}</p>
-            )}
-
-            {meta.touched && meta.error && (
-              <p className="error text-sm text-red-600 mt-1">* {meta.error}</p>
-            )}
-          </div>
-        )}
-      </Field>
+              {meta.touched && meta.error && (
+                <p className="error text-sm text-red-600 mt-1">* {meta.error}</p>
+              )}
+            </>
+          )}
+        </Field>
+      </div>
     </div>
   );
 };
@@ -375,6 +431,12 @@ export const NumberField = ({
                 return;
               }
               form.setFieldValue(field.name, parseInt(event.target.value)); // Convert the input value to an integer using parseInt() to ensure that the backend can properly parse the numberfield as an integer.
+            }}
+            onWheel={(event) => {
+              if (event.currentTarget === document.activeElement) {
+                event.currentTarget.blur();
+                setTimeout(() => event.currentTarget.focus(), 0);
+              }
             }}
           />
           {meta.touched && meta.error && (
