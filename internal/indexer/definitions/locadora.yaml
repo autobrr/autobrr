@@ -1,0 +1,68 @@
+---
+#id: Locadora 
+name: Locadora
+identifier: locadora
+description: Locadora is a Brazilian tracker for Movies, TV Shows and Animes.
+language: pt-BR
+urls:
+  - https://locadora.cc/
+privacy: private
+protocol: torrent
+supports:
+  - irc
+    #  - rss
+source: UNIT3D
+settings:
+  - name: rsskey
+    type: secret
+    required: true
+    label: RSS key (RID)
+    help: "Go to your profile tab, Settings > Security, copy RSS Key (RID)"
+
+irc:
+  network: locadora.cc
+  server: irc.locadora.cc
+  port: 6667
+  tls: false
+  channels:
+    - "#announce"
+  announcers:
+    - LCD
+  settings:
+    - name: nick
+      type: text
+      required: true
+      label: Nick
+      help: Bot nick. Eg. user_bot
+      
+    - name: auth.account
+      type: text
+      required: false
+      label: NickServ Account
+      help: NickServ account. Make sure to group your user and bot.
+
+    - name: auth.password
+      type: secret
+      required: false
+      label: NickServ Password
+      help: NickServ password
+
+  parse:
+    type: single
+    lines:
+      - test:
+          - "[Filmes] [WEB-DL] [1080p] [Journey to the Center of the Earth 2008 1080p HMAX WEB-DL DD5.1 x264 pt-BR ENG-LCD] [https://locadora.cc/torrents/16896] [5.82 GiB] [100%]"
+        pattern: '\[(.+)\] \[(.+)\] \[(.+)\] \[(.+?)\] \[(https?\:\/\/.+\/).+\/(\d+)\] \[(.+?)\] \[(.+?)\]'
+        vars:
+          - category
+          - releaseTags
+          - resolution
+          - torrentName
+          - baseUrl
+          - torrentId
+          - torrentSize
+          - freeleechPercent
+
+    match:
+      infourl: "/torrents/{{ .torrentId }}"
+      torrenturl: "/torrent/download/{{ .torrentId }}.{{ .rsskey }}"

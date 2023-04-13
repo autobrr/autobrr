@@ -50,19 +50,11 @@
     <link rel="apple-touch-startup-image" media="screen and (device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 3) and (orientation: landscape)" href="/iPhone_11_Pro_Max__iPhone_XS_Max_landscape.png">
     <link crossorigin="use-credentials" rel="manifest" href="/manifest.json" />
     <title>autobrr</title>
-    <!-- {{if eq .BaseUrl "/" }}
-    <base href="/">
-    <script>
-      window.APP = {}
-      window.APP.baseUrl = "/"
-    </script>
-    {{else}} -->
     <base href="{{.BaseUrl}}">
     <script>
       window.APP = {}
       window.APP.baseUrl = "{{.BaseUrl}}"
     </script>
-    <!-- {{end}} -->
   </head>
   <body class="bg-color">
     <noscript>You need to enable JavaScript to run this app.</noscript>

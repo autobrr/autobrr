@@ -500,3 +500,14 @@ export const FeedDownloadTypeOptions: OptionBasicTyped<FeedDownloadType>[] = [
     value: "TORRENT"
   }
 ];
+
+export const tagsMatchLogicOptions: OptionBasic[] = [
+  {
+    label: "any",
+    value: "ANY"
+  },
+  {
+    label: "all",
+    value: "ALL"
+  }
+];

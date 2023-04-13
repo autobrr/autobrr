@@ -10,6 +10,7 @@ export default ({ mode }: { mode: any }) => {
   // import.meta.env.VITE_NAME available here with: process.env.VITE_NAME
 
   return defineConfig({
+    base: "",
     plugins: [react(), VitePWA({
       registerType: "autoUpdate",
       injectRegister: "auto",
@@ -61,6 +62,7 @@ export default ({ mode }: { mode: any }) => {
       }
     },
     server: {
+      port: 3000,
       hmr: {
         overlay: true
       },
