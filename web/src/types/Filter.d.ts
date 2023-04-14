@@ -57,6 +57,8 @@ interface Filter {
   except_tags: string;
   tags_any: string;
   except_tags_any: string;
+  tags_match_logic: string;
+  except_tags_match_logic: string;
   actions_count: number;
   actions: Action[];
   indexers: Indexer[];

@@ -1,7 +1,7 @@
 import { AlertWarning } from "../../components/alerts";
 import { DownloadClientSelect, NumberField, Select, SwitchGroup, TextField } from "../../components/inputs";
-import { ActionContentLayoutOptions, ActionTypeNameMap, ActionTypeOptions } from "../../domain/constants";
-import React, { Fragment, useRef } from "react";
+import { ActionContentLayoutOptions, ActionRtorrentRenameOptions, ActionTypeNameMap, ActionTypeOptions } from "../../domain/constants";
+import React, { Fragment, useRef, useEffect, useState } from "react";
 import { useQuery } from "react-query";
 import { APIClient } from "../../api/APIClient";
 import { Field, FieldArray, FieldProps, FormikValues } from "formik";
@@ -14,6 +14,8 @@ import { DeleteModal } from "../../components/modals";
 import { CollapsableSection } from "./details";
 import { CustomTooltip } from "../../components/tooltips/CustomTooltip";
 import { Link } from "react-router-dom";
+import { useFormikContext } from "formik";
+import { TextArea } from "../../components/inputs/input";
 
 interface FilterActionsProps {
   filter: Filter;
@@ -106,6 +108,36 @@ interface TypeFormProps {
 }
 
 const TypeForm = ({ action, idx, clients }: TypeFormProps) => {
+  const { setFieldValue } = useFormikContext();
+  
+  const resetClientField = (action: Action, idx: number, prevActionType: string): void => {
+    const fieldName = `actions.${idx}.client_id`;
+
+    if (prevActionType !== action.type && (
+      action.type === "QBITTORRENT" ||
+      action.type === "DELUGE_V1" ||
+      action.type === "DELUGE_V2" ||
+      action.type === "RTORRENT" ||
+      action.type === "TRANSMISSION" ||
+      action.type === "PORLA" ||
+      action.type === "RADARR" ||
+      action.type === "SONARR" ||
+      action.type === "LIDARR" ||
+      action.type === "WHISPARR" ||
+      action.type === "READARR" ||
+      action.type === "SABNZBD"
+    )) {
+      setFieldValue(fieldName, ""); // Reset the client_id field value
+    }
+  };
+
+  const [prevActionType, setPrevActionType] = useState<string | null>(null);
+  useEffect(() => {
+    if (prevActionType !== null) {
+      resetClientField(action, idx, prevActionType);
+    }
+    setPrevActionType(action.type);
+  }, [action.type, idx, setFieldValue]); 
   switch (action.type) {
   case "TEST":
     return (
@@ -152,10 +184,11 @@ const TypeForm = ({ action, idx, clients }: TypeFormProps) => {
           columns={6}
           placeholder="Host eg. http://localhost/webhook"
         />
-        <TextField
+        <TextArea
           name={`actions.${idx}.webhook_data`}
           label="Data (json)"
           columns={6}
+          rows={5}
           placeholder={"Request data: { \"key\": \"value\" }"}
         />
       </div>
@@ -202,13 +235,11 @@ const TypeForm = ({ action, idx, clients }: TypeFormProps) => {
                 name={`actions.${idx}.limit_download_speed`}
                 label="Limit download speed (KiB/s)"
                 placeholder="Takes any number (0 is no limit)"
-                min={0} required={true}
               />
               <NumberField
                 name={`actions.${idx}.limit_upload_speed`}
                 label="Limit upload speed (KiB/s)"
                 placeholder="Takes any number (0 is no limit)"
-                min={0} required={true}
               />
             </div>
 
@@ -217,14 +248,12 @@ const TypeForm = ({ action, idx, clients }: TypeFormProps) => {
                 name={`actions.${idx}.limit_ratio`}
                 label="Ratio limit"
                 placeholder="Takes any number (0 is no limit)"
-                min={0} required={true}
-                step={0.5}
+                step={1} // 0.5 does not work
               />
               <NumberField
                 name={`actions.${idx}.limit_seed_time`}
                 label="Seed time limit (minutes)"
                 placeholder="Takes any number (0 is no limit)"
-                min={0} required={true}
               />
             </div>
           </div>
@@ -263,12 +292,10 @@ const TypeForm = ({ action, idx, clients }: TypeFormProps) => {
                 name={`actions.${idx}.reannounce_interval`}
                 label="Reannounce interval. Run every X seconds"
                 placeholder="7 is default and recommended"
-                min={1} required={true}
               />
               <NumberField
                 name={`actions.${idx}.reannounce_max_attempts`}
                 label="Run reannounce Y times"
-                min={1} required={true}
               />
             </div>
           </div>
@@ -365,6 +392,24 @@ const TypeForm = ({ action, idx, clients }: TypeFormProps) => {
               placeholder="eg. /full/path/to/download_folder"
             />
           </div>
+          <div className="col-span-12 sm:col-span-6">
+            <div className="col-span-6">
+              <Select
+                name={`actions.${idx}.content_layout`}
+                label="Don't add torrent's name to path"
+                optionDefaultText="No"
+                options={ActionRtorrentRenameOptions}
+              />
+            </div>
+          </div>
+          <div className="col-span-12 sm:col-span-6">
+            <div className="col-span-6">
+              <SwitchGroup
+                name={`actions.${idx}.paused`}
+                label="Don't start download automatically"
+              />
+            </div>
+          </div>
         </div>
       </div>
     );
@@ -396,20 +441,6 @@ const TypeForm = ({ action, idx, clients }: TypeFormProps) => {
             />
           </div>
         </div>
-      </div>
-    );
-  case "RADARR":
-  case "SONARR":
-  case "LIDARR":
-  case "WHISPARR":
-  case "READARR":
-    return (
-      <div className="mt-6 grid grid-cols-12 gap-6">
-        <DownloadClientSelect
-          name={`actions.${idx}.client_id`}
-          action={action}
-          clients={clients}
-        />
       </div>
     );
   case "PORLA":
@@ -446,6 +477,39 @@ const TypeForm = ({ action, idx, clients }: TypeFormProps) => {
             </div>
           </div>
         </CollapsableSection>
+      </div>
+    );
+  case "RADARR":
+  case "SONARR":
+  case "LIDARR":
+  case "WHISPARR":
+  case "READARR":
+    return (
+      <div className="mt-6 grid grid-cols-12 gap-6">
+        <DownloadClientSelect
+          name={`actions.${idx}.client_id`}
+          action={action}
+          clients={clients}
+        />
+      </div>
+    );
+  case "SABNZBD":
+    return (
+      <div>
+        <div className="mt-6 grid grid-cols-12 gap-6">
+          <DownloadClientSelect
+            name={`actions.${idx}.client_id`}
+            action={action}
+            clients={clients}
+          />
+
+          <TextField
+            name={`actions.${idx}.category`}
+            label="Category"
+            columns={6}
+            placeholder="eg. category"
+            tooltip={<CustomTooltip anchorId={`actions.${idx}.category`} clickable={true}><p>Category must exist already.</p></CustomTooltip>} />
+        </div>
       </div>
     );
 

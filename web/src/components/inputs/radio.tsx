@@ -6,6 +6,7 @@ export interface radioFieldsetOption {
     label: string;
     description: string;
     value: string;
+    type?: string;
 }
 
 interface props {
@@ -75,7 +76,7 @@ function RadioFieldsetWide({ name, legend, options }: props) {
                               )}
                               aria-hidden="true"
                             />
-                            <div className="ml-3 flex flex-col">
+                            <div className="ml-3 flex flex-col w-full">
                               <RadioGroup.Label
                                 as="span"
                                 className={classNames(
@@ -83,7 +84,10 @@ function RadioFieldsetWide({ name, legend, options }: props) {
                                   checked ? "font-bold" : "font-medium"
                                 )}
                               >
-                                {setting.label}
+                                <div className="flex justify-between">
+                                  {setting.label}
+                                  {setting.type && <span className="rounded bg-orange-500 text-orange-900 px-1 ml-2 text-sm">{setting.type}</span>}
+                                </div>
                               </RadioGroup.Label>
                               <RadioGroup.Description
                                 as="span"

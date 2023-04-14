@@ -79,6 +79,7 @@ const (
 	DownloadClientTypeLidarr       DownloadClientType = "LIDARR"
 	DownloadClientTypeWhisparr     DownloadClientType = "WHISPARR"
 	DownloadClientTypeReadarr      DownloadClientType = "READARR"
+	DownloadClientTypeSabnzbd      DownloadClientType = "SABNZBD"
 )
 
 // Validate basic validation of client

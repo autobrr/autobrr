@@ -8,7 +8,7 @@ COPY web .
 RUN yarn build
 
 # build app
-FROM golang:1.19-alpine3.16 AS app-builder
+FROM golang:1.20-alpine3.16 AS app-builder
 
 ARG VERSION=dev
 ARG REVISION=dev
@@ -25,7 +25,7 @@ RUN go mod download
 
 COPY . ./
 
-COPY --from=web-builder /web/build ./web/build
+COPY --from=web-builder /web/dist ./web/dist
 COPY --from=web-builder /web/build.go ./web
 
 #ENV GOOS=linux

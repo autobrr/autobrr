@@ -10,15 +10,16 @@ import { SelectFieldProps } from "./select";
 import { CustomTooltip } from "../tooltips/CustomTooltip";
 
 interface TextFieldWideProps {
-    name: string;
-    label?: string;
-    help?: string;
-    placeholder?: string;
-    defaultValue?: string;
-    required?: boolean;
-    hidden?: boolean;
-    tooltip?: JSX.Element;
-    validate?: FieldValidator;
+  name: string;
+  label?: string;
+  help?: string;
+  placeholder?: string;
+  defaultValue?: string;
+  required?: boolean;
+  autoComplete?: string;
+  hidden?: boolean;
+  tooltip?: JSX.Element;
+  validate?: FieldValidator;
 }
 
 export const TextFieldWide = ({
@@ -28,6 +29,7 @@ export const TextFieldWide = ({
   placeholder,
   defaultValue,
   required,
+  autoComplete,
   tooltip,
   hidden,
   validate
@@ -58,6 +60,8 @@ export const TextFieldWide = ({
             className={classNames(meta.touched && meta.error ? "focus:ring-red-500 focus:border-red-500 border-red-500" : "focus:ring-blue-500 dark:focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-500 border-gray-300 dark:border-gray-700", "block w-full shadow-sm dark:bg-gray-800 sm:text-sm dark:text-white rounded-md")}
             placeholder={placeholder}
             hidden={hidden}
+            required={required}
+            autoComplete={autoComplete}
           />
         )}
       </Field>
@@ -120,6 +124,7 @@ export const PasswordFieldWide = ({
                 type={isVisible ? "text" : "password"}
                 className={classNames(meta.touched && meta.error ? "focus:ring-red-500 focus:border-red-500 border-red-500" : "focus:ring-blue-500 dark:focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-500 border-gray-300 dark:border-gray-700", "block w-full pr-10 dark:bg-gray-800 shadow-sm dark:text-gray-100 sm:text-sm rounded-md")}
                 placeholder={placeholder}
+                required={required}
               />
               <div className="absolute inset-y-0 right-0 px-3 flex items-center" onClick={toggleVisibility}>
                 {!isVisible ? <EyeIcon className="h-5 w-5 text-gray-400 hover:text-gray-500" aria-hidden="true" /> : <EyeSlashIcon className="h-5 w-5 text-gray-400 hover:text-gray-500" aria-hidden="true" />}
@@ -185,6 +190,12 @@ export const NumberFieldWide = ({
                 : "focus:ring-blue-500 dark:focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-500 border-gray-300 dark:border-gray-700",
               "block w-full shadow-sm dark:bg-gray-800 sm:text-sm dark:text-white rounded-md"
             )}
+            onWheel={(event) => {
+              if (event.currentTarget === document.activeElement) {
+                event.currentTarget.blur();
+                setTimeout(() => event.currentTarget.focus(), 0);
+              }
+            }}
             placeholder={placeholder}
           />
         )}
@@ -213,10 +224,10 @@ export const SwitchGroupWide = ({
   tooltip,
   defaultValue
 }: SwitchGroupWideProps) => (
-  <ul className="mt-2 px-4 divide-y divide-gray-200 dark:divide-gray-700">
+  <ul className="px-4 divide-y divide-gray-200 dark:divide-gray-700">
     <Switch.Group as="li" className="py-4 flex items-center justify-between">
       <div className="flex flex-col">
-        <Switch.Label as="p" className="text-sm font-medium text-gray-900 dark:text-white"
+        <Switch.Label as="div" className="text-sm font-medium text-gray-900 dark:text-white"
           passive>
           <div className="flex">
             {label} {tooltip && (<CustomTooltip anchorId={name}>{tooltip}</CustomTooltip>)}

@@ -10,6 +10,7 @@ import (
 	"github.com/autobrr/autobrr/pkg/porla"
 	"github.com/autobrr/autobrr/pkg/radarr"
 	"github.com/autobrr/autobrr/pkg/readarr"
+	"github.com/autobrr/autobrr/pkg/sabnzbd"
 	"github.com/autobrr/autobrr/pkg/sonarr"
 	"github.com/autobrr/autobrr/pkg/whisparr"
 	"github.com/autobrr/go-qbittorrent"
@@ -50,6 +51,9 @@ func (s *service) testConnection(ctx context.Context, client domain.DownloadClie
 
 	case domain.DownloadClientTypeReadarr:
 		return s.testReadarrConnection(ctx, client)
+
+	case domain.DownloadClientTypeSabnzbd:
+		return s.testSabnzbdConnection(ctx, client)
 
 	default:
 		return errors.New("unsupported client")
@@ -264,7 +268,7 @@ func (s *service) testReadarrConnection(ctx context.Context, client domain.Downl
 }
 
 func (s *service) testPorlaConnection(client domain.DownloadClient) error {
-	p := porla.NewClient(porla.Settings{
+	p := porla.NewClient(porla.Config{
 		Hostname:  client.Host,
 		AuthToken: client.Settings.APIKey,
 	})
@@ -282,6 +286,26 @@ func (s *service) testPorlaConnection(client domain.DownloadClient) error {
 	}
 
 	s.log.Debug().Msgf("test client connection for porla: found version %s (commit %s)", version.Version, commitish)
+
+	return nil
+}
+
+func (s *service) testSabnzbdConnection(ctx context.Context, client domain.DownloadClient) error {
+	opts := sabnzbd.Options{
+		Addr:      client.Host,
+		ApiKey:    client.Settings.APIKey,
+		BasicUser: client.Settings.Basic.Username,
+		BasicPass: client.Settings.Basic.Password,
+		Log:       nil,
+	}
+
+	sab := sabnzbd.New(opts)
+	version, err := sab.Version(ctx)
+	if err != nil {
+		return errors.Wrap(err, "error getting version from sabnzbd")
+	}
+
+	s.log.Debug().Msgf("test client connection for sabnzbd: success got version: %s", version.Version)
 
 	return nil
 }

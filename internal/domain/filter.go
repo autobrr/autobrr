@@ -115,6 +115,8 @@ type Filter struct {
 	ExceptTags                  string                 `json:"except_tags,omitempty"`
 	TagsAny                     string                 `json:"tags_any,omitempty"`
 	ExceptTagsAny               string                 `json:"except_tags_any,omitempty"`
+	TagsMatchLogic              string                 `json:"tags_match_logic,omitempty"`
+	ExceptTagsMatchLogic        string                 `json:"except_tags_match_logic,omitempty"`
 	MatchReleaseTags            string                 `json:"match_release_tags,omitempty"`
 	ExceptReleaseTags           string                 `json:"except_release_tags,omitempty"`
 	UseRegexReleaseTags         bool                   `json:"use_regex_release_tags,omitempty"`
@@ -190,6 +192,8 @@ type FilterUpdate struct {
 	ExceptTags                  *string                 `json:"except_tags,omitempty"`
 	TagsAny                     *string                 `json:"tags_any,omitempty"`
 	ExceptTagsAny               *string                 `json:"except_tags_any,omitempty"`
+	TagsMatchLogic              *string                 `json:"tags_match_logic,omitempty"`
+	ExceptTagsMatchLogic        *string                 `json:"except_tags_match_logic,omitempty"`
 	ExternalScriptEnabled       *bool                   `json:"external_script_enabled,omitempty"`
 	ExternalScriptCmd           *string                 `json:"external_script_cmd,omitempty"`
 	ExternalScriptArgs          *string                 `json:"external_script_args,omitempty"`
@@ -326,12 +330,12 @@ func (f Filter) CheckFilter(r *Release) ([]string, bool) {
 	}
 
 	// HDR is parsed into the Codec slice from rls
-	if len(f.MatchHDR) > 0 && !sliceContainsSlice(r.HDR, f.MatchHDR) {
+	if len(f.MatchHDR) > 0 && !matchHDR(r.HDR, f.MatchHDR) {
 		r.addRejectionF("hdr not matching. got: %v want: %v", r.HDR, f.MatchHDR)
 	}
 
 	// HDR is parsed into the Codec slice from rls
-	if len(f.ExceptHDR) > 0 && sliceContainsSlice(r.HDR, f.ExceptHDR) {
+	if len(f.ExceptHDR) > 0 && matchHDR(r.HDR, f.ExceptHDR) {
 		r.addRejectionF("hdr unwanted. got: %v want: %v", r.HDR, f.ExceptHDR)
 	}
 
@@ -379,12 +383,20 @@ func (f Filter) CheckFilter(r *Release) ([]string, bool) {
 		r.addRejectionF("size not matching. got: %v want min: %v max: %v", r.Size, f.MinSize, f.MaxSize)
 	}
 
-	if f.Tags != "" && !containsAny(r.Tags, f.Tags) {
-		r.addRejectionF("tags not matching. got: %v want: %v", r.Tags, f.Tags)
+	if f.Tags != "" {
+		if f.TagsMatchLogic == "ANY" && !containsAny(r.Tags, f.Tags) {
+			r.addRejectionF("tags not matching. got: %v want: %v", r.Tags, f.Tags)
+		} else if f.TagsMatchLogic == "ALL" && !containsAll(r.Tags, f.Tags) {
+			r.addRejectionF("tags not matching. got: %v want(all): %v", r.Tags, f.Tags)
+		}
 	}
 
-	if f.ExceptTags != "" && containsAny(r.Tags, f.ExceptTags) {
-		r.addRejectionF("tags unwanted. got: %v want: %v", r.Tags, f.ExceptTags)
+	if f.ExceptTags != "" {
+		if f.ExceptTagsMatchLogic == "ANY" && containsAny(r.Tags, f.ExceptTags) {
+			r.addRejectionF("tags unwanted. got: %v want: %v", r.Tags, f.ExceptTags)
+		} else if f.ExceptTagsMatchLogic == "ALL" && containsAll(r.Tags, f.ExceptTags) {
+			r.addRejectionF("tags unwanted. got: %v want(all): %v", r.Tags, f.ExceptTags)
+		}
 	}
 
 	if len(f.Artists) > 0 && !contains(r.Artists, f.Artists) {
@@ -620,6 +632,10 @@ func containsAny(tags []string, filter string) bool {
 	return containsMatch(tags, strings.Split(filter, ","))
 }
 
+func containsAll(tags []string, filter string) bool {
+	return containsAllMatch(tags, strings.Split(filter, ","))
+}
+
 func containsAnyOther(filter string, tags ...string) bool {
 	return containsMatch(tags, strings.Split(filter, ","))
 }
@@ -684,6 +700,39 @@ func containsMatch(tags []string, filters []string) bool {
 	}
 
 	return false
+}
+
+func containsAllMatch(tags []string, filters []string) bool {
+	for _, filter := range filters {
+		if filter == "" {
+			continue
+		}
+		filter = strings.ToLower(filter)
+		filter = strings.Trim(filter, " ")
+		found := false
+
+		for _, tag := range tags {
+			if tag == "" {
+				continue
+			}
+			tag = strings.ToLower(tag)
+
+			if tag == filter {
+				found = true
+				break
+			} else if strings.ContainsAny(filter, "?|*") {
+				if wildcard.Match(filter, tag) {
+					found = true
+					break
+				}
+			}
+		}
+		if !found {
+			return false
+		}
+	}
+
+	return true
 }
 
 func containsMatchBasic(tags []string, filters []string) bool {
@@ -777,6 +826,48 @@ func checkFreeleechPercent(announcePercent int, filterPercent string) bool {
 
 		if int(filterPercentInt) == announcePercent {
 			return true
+		}
+	}
+
+	return false
+}
+
+func matchHDR(releaseValues []string, filterValues []string) bool {
+
+	for _, filter := range filterValues {
+		if filter == "" {
+			continue
+		}
+		filter = strings.ToLower(filter)
+		filter = strings.Trim(filter, " ")
+
+		parts := strings.Split(filter, " ")
+		if len(parts) == 2 {
+			partsMatched := 0
+			for _, part := range parts {
+				for _, tag := range releaseValues {
+					if tag == "" {
+						continue
+					}
+					tag = strings.ToLower(tag)
+					if tag == part {
+						partsMatched++
+					}
+					if len(parts) == partsMatched {
+						return true
+					}
+				}
+			}
+		} else {
+			for _, tag := range releaseValues {
+				if tag == "" {
+					continue
+				}
+				tag = strings.ToLower(tag)
+				if tag == filter {
+					return true
+				}
+			}
 		}
 	}
 
