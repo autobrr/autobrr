@@ -179,14 +179,14 @@ export const LogFiles = () => {
       {data && data.files.length > 0 ? (
         <section className="py-3 light:bg-white dark:bg-gray-800 light:shadow sm:rounded-md">
           <ol className="min-w-full relative">
-            <li className="hidden sm:grid grid-cols-12 mb-2 border-b border-gray-200 dark:border-gray-700">
-              <div className="col-span-5 px-2 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+            <li className="grid grid-cols-12 mb-2 border-b border-gray-200 dark:border-gray-700">
+              <div className="hidden sm:block col-span-5 px-2 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                   Name
               </div>
-              <div className="col-span-4 px-2 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+              <div className="col-span-8 sm:col-span-4 px-1 sm:px-2 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                 Last modified
               </div>
-              <div className="col-span-2 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+              <div className="col-span-3 sm:col-span-2 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                   Size
               </div>
             </li>
