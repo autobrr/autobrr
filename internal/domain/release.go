@@ -8,7 +8,6 @@ import (
 	"io"
 	"net/http"
 	"net/http/cookiejar"
-	"net/http/httputil"
 	"os"
 	"regexp"
 	"strconv"
@@ -359,13 +358,6 @@ func (r *Release) downloadTorrentFile(ctx context.Context) error {
 		req.Header.Set("Cookie", r.RawCookie)
 	}
 
-	dumpReq, err := httputil.DumpRequest(req, true)
-	if err != nil {
-		return errors.Wrap(err, "error dumping request")
-	}
-
-	fmt.Println(string(dumpReq))
-
 	// Create tmp file
 	tmpFile, err := os.CreateTemp("", "autobrr-")
 	if err != nil {
@@ -380,13 +372,6 @@ func (r *Release) downloadTorrentFile(ctx context.Context) error {
 			return errors.Wrap(err, "error downloading file")
 		}
 		defer resp.Body.Close()
-
-		dumpRes, err := httputil.DumpResponse(resp, true)
-		if err != nil {
-			return errors.Wrap(err, "error dumping response")
-		}
-
-		fmt.Println(string(dumpRes))
 
 		if resp.StatusCode != http.StatusOK {
 			unRecoverableErr := errors.Wrap(ErrUnrecoverableError, "unrecoverable error downloading torrent (%v) file (%v) from '%v' - status code: %d", r.TorrentName, r.TorrentURL, r.Indexer, resp.StatusCode)
