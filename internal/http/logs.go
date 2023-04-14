@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"io"
 	"io/fs"
-	"log"
 	"net/http"
 	"os"
 	"path"
@@ -19,6 +18,7 @@ import (
 	"github.com/dustin/go-humanize"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/render"
+	"github.com/rs/zerolog/log"
 )
 
 type logsHandler struct {
@@ -95,6 +95,10 @@ var (
 		repl    string
 	}{
 		{
+			pattern: regexp.MustCompile(`("apikey\\":\s?\\"|"host\\":\s?\\"|"password\\":\s?\\"|"user\\":\s?\\"|ExternalWebhookHost:)(\S+)(\\"|\sExternalWebhookData:)`),
+			repl:    "${1}REDACTED${3}",
+		},
+		{
 			pattern: regexp.MustCompile(`(torrent_pass|passkey|authkey|auth|secret_key|api|apikey)=([a-zA-Z0-9]+)`),
 			repl:    "${1}=REDACTED",
 		},
@@ -153,7 +157,7 @@ func SanitizeLogFile(filePath string, output io.Writer) error {
 
 		if err != nil {
 			if err != io.EOF {
-				log.Printf("Error reading line from input file: %v", err)
+				log.Error().Msgf("Error reading line from input file: %v", err)
 			}
 			break
 		}
@@ -166,9 +170,9 @@ func SanitizeLogFile(filePath string, output io.Writer) error {
 			strings.Contains(line, `"module":"action"`)
 
 		for i := 0; i < len(regexReplacements); i++ {
-			// Apply the first two patterns only if the line contains "module":"feed",
+			// Apply the first three patterns only if the line contains "module":"feed",
 			// "module":"filter", "repo":"release", or "module":"action"
-			if i < 2 {
+			if i < 3 {
 				if bFilter {
 					line = regexReplacements[i].pattern.ReplaceAllString(line, regexReplacements[i].repl)
 				}
@@ -180,7 +184,7 @@ func SanitizeLogFile(filePath string, output io.Writer) error {
 
 		// Write the sanitized line to the writer
 		if _, err = writer.WriteString(line); err != nil {
-			log.Printf("Error writing line to output: %v", err)
+			log.Error().Msgf("Error writing line to output: %v", err)
 			return err
 		}
 	}
