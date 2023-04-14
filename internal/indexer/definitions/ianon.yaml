@@ -59,7 +59,7 @@ irc:
     lines:
       - test:
           - "TORRENT: TheBestMacApp.X.4.10.6.macOS  - utility - https://ianon.app/torrents.php?id=1323 / https://ianon.app/torrents.php?action=download&id=1323"
-        pattern: 'TORRENT: (.*)  - (.*) - (https:\/\/.*\/).*id=(.+) \/ https:\/\/.*\/.*action=download&id=(.+)'
+        pattern: 'TORRENT: (.*)  - (.*) - https:\/\/.*\/.*id=\d+ \/ (https:\/\/.*\/).*action=download&id=(.+)'
         vars:
           - torrentName
           - tags
