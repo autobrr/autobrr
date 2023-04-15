@@ -80,7 +80,7 @@ func TestREDClient_GetTorrentByID(t *testing.T) {
 			},
 			args:    args{torrentID: "100002"},
 			want:    nil,
-			wantErr: "could not get torrent by id: 100002: bad id parameter",
+			wantErr: "could not get torrent by id: 100002: status code: 400 status: failure error: bad id parameter",
 		},
 		{
 			name: "get_by_id_3",
@@ -90,7 +90,7 @@ func TestREDClient_GetTorrentByID(t *testing.T) {
 			},
 			args:    args{torrentID: "100002"},
 			want:    nil,
-			wantErr: "could not get torrent by id: 100002: unauthorized: bad credentials",
+			wantErr: "could not get torrent by id: 100002: RED client missing API key!",
 		},
 	}
 	for _, tt := range tests {
