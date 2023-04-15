@@ -405,31 +405,36 @@ func (s *service) CheckFilter(ctx context.Context, f domain.Filter, release *dom
 // additional size check. Some indexers have api implemented to fetch this data and for the others
 // it will download the torrent file to parse and make the size check. This is all to minimize the amount of downloads.
 func (s *service) AdditionalSizeCheck(ctx context.Context, f domain.Filter, release *domain.Release) (bool, error) {
+	var err error
+	defer func() {
+		// try recover panic if anything went wrong with API or size checks
+		errors.RecoverPanic(recover(), &err)
+	}()
 
 	// do additional size check against indexer api or torrent for size
-	s.log.Debug().Msgf("filter.Service.AdditionalSizeCheck: (%v) additional size check required", f.Name)
+	s.log.Debug().Msgf("filter.Service.AdditionalSizeCheck: (%s) additional size check required", f.Name)
 
 	switch release.Indexer {
 	case "ptp", "btn", "ggn", "redacted", "mock":
 		if release.Size == 0 {
-			s.log.Trace().Msgf("filter.Service.AdditionalSizeCheck: (%v) preparing to check via api", f.Name)
-			torrentInfo, err := s.apiService.GetTorrentByID(release.Indexer, release.TorrentID)
+			s.log.Trace().Msgf("filter.Service.AdditionalSizeCheck: (%s) preparing to check via api", f.Name)
+			torrentInfo, err := s.apiService.GetTorrentByID(ctx, release.Indexer, release.TorrentID)
 			if err != nil || torrentInfo == nil {
-				s.log.Error().Stack().Err(err).Msgf("filter.Service.AdditionalSizeCheck: (%v) could not get torrent info from api: '%v' from: %v", f.Name, release.TorrentID, release.Indexer)
+				s.log.Error().Stack().Err(err).Msgf("filter.Service.AdditionalSizeCheck: (%s) could not get torrent info from api: '%s' from: %s", f.Name, release.TorrentID, release.Indexer)
 				return false, err
 			}
 
-			s.log.Debug().Msgf("filter.Service.AdditionalSizeCheck: (%v) got torrent info from api: %+v", f.Name, torrentInfo)
+			s.log.Debug().Msgf("filter.Service.AdditionalSizeCheck: (%s) got torrent info from api: %+v", f.Name, torrentInfo)
 
 			release.Size = torrentInfo.ReleaseSizeBytes()
 		}
 
 	default:
-		s.log.Trace().Msgf("filter.Service.AdditionalSizeCheck: (%v) preparing to download torrent metafile", f.Name)
+		s.log.Trace().Msgf("filter.Service.AdditionalSizeCheck: (%s) preparing to download torrent metafile", f.Name)
 
 		// if indexer doesn't have api, download torrent and add to tmpPath
 		if err := release.DownloadTorrentFileCtx(ctx); err != nil {
-			s.log.Error().Stack().Err(err).Msgf("filter.Service.AdditionalSizeCheck: (%v) could not download torrent file with id: '%v' from: %v", f.Name, release.TorrentID, release.Indexer)
+			s.log.Error().Stack().Err(err).Msgf("filter.Service.AdditionalSizeCheck: (%s) could not download torrent file with id: '%s' from: %s", f.Name, release.TorrentID, release.Indexer)
 			return false, err
 		}
 	}
@@ -437,12 +442,12 @@ func (s *service) AdditionalSizeCheck(ctx context.Context, f domain.Filter, rele
 	// compare size against filter
 	match, err := checkSizeFilter(f.MinSize, f.MaxSize, release.Size)
 	if err != nil {
-		s.log.Error().Stack().Err(err).Msgf("filter.Service.AdditionalSizeCheck: (%v) error checking extra size filter", f.Name)
+		s.log.Error().Stack().Err(err).Msgf("filter.Service.AdditionalSizeCheck: (%s) error checking extra size filter", f.Name)
 		return false, err
 	}
 	//no match, lets continue to next filter
 	if !match {
-		s.log.Debug().Msgf("filter.Service.AdditionalSizeCheck: (%v) filter did not match after additional size check, trying next", f.Name)
+		s.log.Debug().Msgf("filter.Service.AdditionalSizeCheck: (%s) filter did not match after additional size check, trying next", f.Name)
 		return false, nil
 	}
 

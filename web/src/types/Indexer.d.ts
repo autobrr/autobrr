@@ -78,3 +78,10 @@ interface IndexerParseMatch {
   torrentUrl: string;
   encode: string[];
 }
+
+interface IndexerTestApiReq {
+  id?: number;
+  identifier?: string;
+  api_user?: string;
+  api_key: string;
+}

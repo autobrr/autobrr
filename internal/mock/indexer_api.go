@@ -1,13 +1,15 @@
 package mock
 
 import (
+	"context"
+
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/pkg/errors"
 )
 
 type IndexerApiClient interface {
-	GetTorrentByID(torrentID string) (*domain.TorrentBasic, error)
-	TestAPI() (bool, error)
+	GetTorrentByID(ctx context.Context, torrentID string) (*domain.TorrentBasic, error)
+	TestAPI(ctx context.Context) (bool, error)
 }
 
 type IndexerClient struct {
@@ -24,7 +26,7 @@ func NewMockClient(url string, apiKey string) IndexerApiClient {
 	return c
 }
 
-func (c *IndexerClient) GetTorrentByID(torrentID string) (*domain.TorrentBasic, error) {
+func (c *IndexerClient) GetTorrentByID(ctx context.Context, torrentID string) (*domain.TorrentBasic, error) {
 	if torrentID == "" {
 		return nil, errors.New("mock client: must have torrentID")
 	}
@@ -40,6 +42,6 @@ func (c *IndexerClient) GetTorrentByID(torrentID string) (*domain.TorrentBasic, 
 }
 
 // TestAPI try api access against torrents page
-func (c *IndexerClient) TestAPI() (bool, error) {
+func (c *IndexerClient) TestAPI(ctx context.Context) (bool, error) {
 	return true, nil
 }
