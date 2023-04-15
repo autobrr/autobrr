@@ -22,7 +22,7 @@ interface SlideOverProps<DataType> {
   isTesting?: boolean;
   isTestSuccessful?: boolean;
   isTestError?: boolean;
-  extraButtons?: React.ReactNode[];
+  extraButtons?: (values: DataType) => React.ReactNode;
 }
 
 function SlideOver<DataType>({
@@ -127,11 +127,9 @@ function SlideOver<DataType>({
                             </button>
                           )}
                           <div>
-                            {extraButtons?.map((component, index) => (
-                              <React.Fragment key={index}>
-                                { component }
-                              </React.Fragment>
-                            ))}
+                            {!!values && extraButtons !== undefined && (
+                              extraButtons(values)
+                            )}
 
                             {testFn && (
                               <button

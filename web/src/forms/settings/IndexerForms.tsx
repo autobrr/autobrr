@@ -577,16 +577,20 @@ export function IndexerAddForm({ isOpen, toggle }: AddProps) {
 }
 
 interface TestApiButtonProps {
-  indexer: IndexerDefinition;
+  values: FormikValues;
 }
 
-function TestApiButton({ indexer }: TestApiButtonProps) {
+function TestApiButton({ values }: TestApiButtonProps) {
   const [isTesting, setIsTesting] = useState(false);
   const [isSuccessfulTest, setIsSuccessfulTest] = useState(false);
   const [isErrorTest, setIsErrorTest] = useState(false);
 
+  if (!values.settings.api_key) {
+    return null;
+  }
+
   const testApiMutation = useMutation(
-    (id: number) => APIClient.indexers.testApi(id),
+    (req: IndexerTestApiReq) => APIClient.indexers.testApi(req),
     {
       onMutate: () => {
         setIsTesting(true);
@@ -615,14 +619,19 @@ function TestApiButton({ indexer }: TestApiButtonProps) {
     }
   );
 
-  const testApi = (data: unknown) => {
-    const d = data as Indexer;
-    testApiMutation.mutate(d.id);
+  const testApi = () => {
+    const req: IndexerTestApiReq = {
+      id: values.id,
+      api_key: values.settings.api_key
+    };
+    
+    if (values.settings.api_user) {
+      req.api_user = values.settings.api_user;
+    }
+
+    testApiMutation.mutate(req);
   };
 
-  if (!indexer.supports.includes("api")) {
-    return null;
-  }
 
   return (
     <button
@@ -632,13 +641,12 @@ function TestApiButton({ indexer }: TestApiButtonProps) {
           ? "text-green-500 border-green-500 bg-green-50"
           : isErrorTest
             ? "text-red-500 border-red-500 bg-red-50"
-            : "border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-400 bg-white dark:bg-gray-700 hover:bg-gray-50 focus:border-rose-700 active:bg-rose-700",
+            : "border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 hover:bg-gray-50 focus:border-rose-700 active:bg-rose-700",
         isTesting ? "cursor-not-allowed" : "",
-        "mr-2 inline-flex items-center px-4 py-2 border font-medium rounded-md shadow-sm text-sm transition ease-in-out duration-150 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
+        "mr-2 float-left items-center px-4 py-2 border font-medium rounded-md shadow-sm text-sm transition ease-in-out duration-150 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
       )}
       disabled={isTesting}
-      onClick={() => testApi(indexer)}
-      // onClick={testApi}
+      onClick={testApi}
     >
       {isTesting ? (
         <svg
@@ -670,6 +678,21 @@ function TestApiButton({ indexer }: TestApiButtonProps) {
       )}
     </button>
   );
+}
+
+interface IndexerUpdateInitialValues {
+  id: number;
+  name: string;
+  enabled: boolean;
+  identifier: string;
+  implementation: string;
+  base_url: string;
+  settings: {
+    api_key?: string;
+    api_user?: string;
+    authkey?: string;
+    torrent_pass?: string;
+  }
 }
 
 interface UpdateProps {
@@ -731,10 +754,10 @@ export function IndexerUpdateForm({ isOpen, toggle, indexer }: UpdateProps) {
     );
   };
 
-  const initialValues = {
+  const initialValues: IndexerUpdateInitialValues = {
     id: indexer.id,
     name: indexer.name,
-    enabled: indexer.enabled,
+    enabled: indexer.enabled || false,
     identifier: indexer.identifier,
     implementation: indexer.implementation,
     base_url: indexer.base_url,
@@ -756,7 +779,7 @@ export function IndexerUpdateForm({ isOpen, toggle, indexer }: UpdateProps) {
       deleteAction={deleteAction}
       onSubmit={onSubmit}
       initialValues={initialValues}
-      extraButtons={[<TestApiButton indexer={indexer} />]}
+      extraButtons={(values) => <TestApiButton values={values as FormikValues} />}
     >
       {() => (
         <div className="py-2 space-y-6 sm:py-0 sm:space-y-0 divide-y divide-gray-200 dark:divide-gray-700">

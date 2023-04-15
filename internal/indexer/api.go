@@ -16,7 +16,7 @@ import (
 )
 
 type APIService interface {
-	TestConnection(ctx context.Context, indexer string) (bool, error)
+	TestConnection(ctx context.Context, req domain.IndexerTestApiRequest) (bool, error)
 	GetTorrentByID(ctx context.Context, indexer string, torrentID string) (*domain.TorrentBasic, error)
 	AddClient(indexer string, settings map[string]string) error
 	RemoveClient(indexer string) error
@@ -40,47 +40,41 @@ func NewAPIService(log logger.Logger) APIService {
 }
 
 func (s *apiService) GetTorrentByID(ctx context.Context, indexer string, torrentID string) (*domain.TorrentBasic, error) {
-	v, ok := s.apiClients[indexer]
-	if !ok {
-		return nil, nil
+	client, err := s.getApiClient(indexer)
+	if err != nil {
+		s.log.Error().Stack().Err(err).Msgf("could not get api client for: %s", indexer)
+		return nil, errors.Wrap(err, "could not get torrent via api for indexer: %s", indexer)
 	}
 
-	s.log.Trace().Str("method", "GetTorrentByID").Msgf("'%v' trying to fetch torrent from api", indexer)
+	s.log.Trace().Str("method", "GetTorrentByID").Msgf("%s fetching torrent from api...", indexer)
 
-	t, err := v.GetTorrentByID(ctx, torrentID)
+	torrent, err := client.GetTorrentByID(ctx, torrentID)
 	if err != nil {
-		s.log.Error().Stack().Err(err).Msgf("could not get torrent: '%v' from: %v", torrentID, indexer)
+		s.log.Error().Stack().Err(err).Msgf("could not get torrent: %s from: %s", torrentID, indexer)
 		return nil, err
 	}
 
-	s.log.Trace().Str("method", "GetTorrentByID").Msgf("'%v' successfully fetched torrent from api: %+v", indexer, t)
+	s.log.Trace().Str("method", "GetTorrentByID").Msgf("%s api successfully fetched torrent: %+v", indexer, torrent)
 
-	return t, nil
+	return torrent, nil
 }
 
-func (s *apiService) TestConnection(ctx context.Context, indexer string) (bool, error) {
-	v, ok := s.apiClients[indexer]
-	if !ok {
-		return false, nil
+func (s *apiService) TestConnection(ctx context.Context, req domain.IndexerTestApiRequest) (bool, error) {
+	client, err := s.getClientForTest(req)
+	if err != nil {
+		return false, errors.New("could not init api client: %s", req.Identifier)
 	}
 
-	t, err := v.TestAPI(ctx)
+	success, err := client.TestAPI(ctx)
 	if err != nil {
-		s.log.Error().Err(err).Msgf("error testing connection for api: %s", indexer)
+		s.log.Error().Err(err).Msgf("error testing connection for api: %s", req.Identifier)
 		return false, err
 	}
 
-	return t, nil
+	return success, nil
 }
 
 func (s *apiService) AddClient(indexer string, settings map[string]string) error {
-	// basic validation
-	if indexer == "" {
-		return errors.New("api.Service.AddClient: validation falied: indexer can't be empty")
-	} else if len(settings) == 0 {
-		return errors.New("api.Service.AddClient: validation falied: settings can't be empty")
-	}
-
 	s.log.Trace().Msgf("api.Service.AddClient: init api client for: %s", indexer)
 
 	// init client
@@ -102,21 +96,21 @@ func (s *apiService) AddClient(indexer string, settings map[string]string) error
 		if !ok || key == "" {
 			return errors.New("api.Service.AddClient: could not initialize ptp client: missing var 'api_key'")
 		}
-		s.apiClients[indexer] = ptp.NewClient("", user, key)
+		s.apiClients[indexer] = ptp.NewClient(user, key)
 
 	case "ggn":
 		key, ok := settings["api_key"]
 		if !ok || key == "" {
 			return errors.New("api.Service.AddClient: could not initialize ggn client: missing var 'api_key'")
 		}
-		s.apiClients[indexer] = ggn.NewClient("", key)
+		s.apiClients[indexer] = ggn.NewClient(key)
 
 	case "redacted":
 		key, ok := settings["api_key"]
 		if !ok || key == "" {
 			return errors.New("api.Service.AddClient: could not initialize red client: missing var 'api_key'")
 		}
-		s.apiClients[indexer] = red.NewClient("", key)
+		s.apiClients[indexer] = red.NewClient(key)
 
 	case "mock":
 		s.apiClients[indexer] = mock.NewMockClient("", "mock")
@@ -125,7 +119,57 @@ func (s *apiService) AddClient(indexer string, settings map[string]string) error
 		return errors.New("api.Service.AddClient: could not initialize client: unsupported indexer: %s", indexer)
 
 	}
+
 	return nil
+}
+
+func (s *apiService) getApiClient(indexer string) (apiClient, error) {
+	client, ok := s.apiClients[indexer]
+	if !ok {
+		return nil, errors.New("could not find api client for: %s", indexer)
+	}
+
+	return client, nil
+}
+
+func (s *apiService) getClientForTest(req domain.IndexerTestApiRequest) (apiClient, error) {
+	// init client
+	switch req.Identifier {
+	case "btn":
+		if req.ApiKey == "" {
+			return nil, errors.New("api.Service.AddClient: could not initialize btn client: missing var 'api_key'")
+		}
+		return btn.NewClient("", req.ApiKey), nil
+
+	case "ptp":
+		if req.ApiUser == "" {
+			return nil, errors.New("api.Service.AddClient: could not initialize ptp client: missing var 'api_user'")
+		}
+
+		if req.ApiKey == "" {
+			return nil, errors.New("api.Service.AddClient: could not initialize ptp client: missing var 'api_key'")
+		}
+		return ptp.NewClient(req.ApiUser, req.ApiKey), nil
+
+	case "ggn":
+		if req.ApiKey == "" {
+			return nil, errors.New("api.Service.AddClient: could not initialize ggn client: missing var 'api_key'")
+		}
+		return ggn.NewClient(req.ApiKey), nil
+
+	case "redacted":
+		if req.ApiKey == "" {
+			return nil, errors.New("api.Service.AddClient: could not initialize red client: missing var 'api_key'")
+		}
+		return red.NewClient(req.ApiKey), nil
+
+	case "mock":
+		return mock.NewMockClient("", "mock"), nil
+
+	default:
+		return nil, errors.New("api.Service.AddClient: could not initialize client: unsupported indexer: %s", req.Identifier)
+
+	}
 }
 
 func (s *apiService) RemoveClient(indexer string) error {

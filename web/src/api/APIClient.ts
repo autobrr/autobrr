@@ -136,7 +136,7 @@ export const APIClient = {
     create: (indexer: Indexer) => appClient.Post<Indexer>("api/indexer", indexer),
     update: (indexer: Indexer) => appClient.Put("api/indexer", indexer),
     delete: (id: number) => appClient.Delete(`api/indexer/${id}`),
-    testApi: (id: number) => appClient.Get(`api/indexer/${id}/api/test`)
+    testApi: (req: IndexerTestApiReq) => appClient.Post<IndexerTestApiReq>(`api/indexer/${req.id}/api/test`, req)
   },
   irc: {
     getNetworks: () => appClient.Get<IrcNetworkWithHealth[]>("api/irc"),

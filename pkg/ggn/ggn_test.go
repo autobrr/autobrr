@@ -87,7 +87,8 @@ func Test_client_GetTorrentByID(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 
-			c := NewClient(tt.fields.Url, tt.fields.APIKey)
+			c := NewClient(tt.fields.APIKey)
+			c.UseURL(tt.fields.Url)
 
 			got, err := c.GetTorrentByID(context.Background(), tt.args.torrentID)
 			if tt.wantErr && assert.Error(t, err) {

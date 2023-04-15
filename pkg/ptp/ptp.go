@@ -15,36 +15,36 @@ import (
 	"golang.org/x/time/rate"
 )
 
-type PTPClient interface {
+type ApiClient interface {
 	GetTorrentByID(ctx context.Context, torrentID string) (*domain.TorrentBasic, error)
 	TestAPI(ctx context.Context) (bool, error)
+	UseURL(url string)
 }
 
 type Client struct {
 	Url         string
-	Timeout     int
 	client      *http.Client
 	Ratelimiter *rate.Limiter
 	APIUser     string
 	APIKey      string
-	Headers     http.Header
 }
 
-func NewClient(url string, apiUser string, apiKey string) PTPClient {
-	// set default url
-	if url == "" {
-		url = "https://passthepopcorn.me/torrents.php"
-	}
-
+func NewClient(apiUser, apiKey string) ApiClient {
 	c := &Client{
+		Url: "https://passthepopcorn.me/torrents.php",
+		client: &http.Client{
+			Timeout: time.Second * 30,
+		},
+		Ratelimiter: rate.NewLimiter(rate.Every(1*time.Second), 1), // 10 request every 10 seconds
 		APIUser:     apiUser,
 		APIKey:      apiKey,
-		client:      http.DefaultClient,
-		Url:         url,
-		Ratelimiter: rate.NewLimiter(rate.Every(1*time.Second), 1), // 10 request every 10 seconds
 	}
 
 	return c
+}
+
+func (c *Client) UseURL(url string) {
+	c.Url = url
 }
 
 type TorrentResponse struct {
@@ -147,8 +147,7 @@ func (c *Client) GetTorrentByID(ctx context.Context, torrentID string) (*domain.
 		return nil, errors.Wrap(readErr, "could not read body")
 	}
 
-	err = json.Unmarshal(body, &r)
-	if err != nil {
+	if err = json.Unmarshal(body, &r); err != nil {
 		return nil, errors.Wrap(readErr, "could not unmarshal body")
 	}
 
