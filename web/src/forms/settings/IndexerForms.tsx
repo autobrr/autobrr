@@ -598,6 +598,8 @@ function TestApiButton({ values }: TestApiButtonProps) {
         setIsSuccessfulTest(false);
       },
       onSuccess: () => {
+        toast.custom((t) => <Toast type="success" body="API test successful!" t={t} />);
+
         sleep(1000)
           .then(() => {
             setIsTesting(false);
@@ -609,7 +611,9 @@ function TestApiButton({ values }: TestApiButtonProps) {
             });
           });
       },
-      onError: () => {
+      onError: (error: Error) => {
+        toast.custom((t) => <Toast type="error" body={error.message} t={t} />);
+
         setIsTesting(false);
         setIsErrorTest(true);
         sleep(2500).then(() => {
