@@ -1,5 +1,4 @@
 import { useMutation, useQuery, useQueryClient } from "react-query";
-
 import { classNames, IsEmptyDate, simplifyDate } from "../../utils";
 import { IrcNetworkAddForm, IrcNetworkUpdateForm } from "../../forms";
 import { useToggle } from "../../hooks/hooks";
@@ -10,7 +9,6 @@ import { Menu, Switch, Transition } from "@headlessui/react";
 import { Fragment, useRef } from "react";
 import { DeleteModal } from "../../components/modals";
 import { useState, useMemo } from "react";
-
 import { toast } from "react-hot-toast";
 import Toast from "../../components/notifications/Toast";
 import {
@@ -30,8 +28,6 @@ interface SortConfig {
 function useSort(items: ListItemProps["network"][], config?: SortConfig) {
   const [sortConfig, setSortConfig] = useState(config);
 
-
-  
   const sortedItems = useMemo(() => {
     if (!sortConfig) {
       return items;
@@ -79,7 +75,6 @@ function useSort(items: ListItemProps["network"][], config?: SortConfig) {
   return { items: sortedItems, requestSort, sortConfig, getSortIndicator };
 }
 
-
 const IrcSettings = () => {
   const [expandNetworks, toggleExpand] = useToggle(false);
   const [addNetworkIsOpen, toggleAddNetwork] = useToggle(false);
@@ -91,7 +86,6 @@ const IrcSettings = () => {
   });
 
   const sortedNetworks = useSort(data || []);
-
 
   return (
     <div className="lg:col-span-9">
@@ -209,6 +203,7 @@ const ListItem = ({ idx, network, expanded }: ListItemProps) => {
   const [edit, toggleEdit] = useToggle(false);
 
   const queryClient = useQueryClient();
+
   const mutation = useMutation(
     (network: IrcNetwork) => APIClient.irc.updateNetwork(network),
     {

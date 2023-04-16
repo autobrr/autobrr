@@ -1,6 +1,5 @@
-import { useMutation } from "react-query";
+import { useMutation, useQueryClient } from "react-query";
 import { APIClient } from "../../api/APIClient";
-import { queryClient } from "../../App";
 import { toast } from "react-hot-toast";
 import Toast from "../../components/notifications/Toast";
 import { SlideOver } from "../../components/panels";
@@ -38,6 +37,8 @@ export function FeedUpdateForm({ isOpen, toggle, feed }: UpdateProps) {
   const [isTesting, setIsTesting] = useState(false);
   const [isTestSuccessful, setIsSuccessfulTest] = useState(false);
   const [isTestError, setIsErrorTest] = useState(false);
+
+  const queryClient = useQueryClient();
 
   const mutation = useMutation(
     (feed: Feed) => APIClient.feeds.update(feed),

@@ -9,7 +9,7 @@ import { ErrorPage } from "./components/alerts";
 import Toast from "./components/notifications/Toast";
 import { Portal } from "react-portal";
 
-export const queryClient = new QueryClient({
+const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       // The retries will have exponential delay.

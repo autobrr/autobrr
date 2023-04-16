@@ -1,12 +1,11 @@
 import { Fragment } from "react";
-import { useMutation } from "react-query";
+import { useMutation, useQueryClient } from "react-query";
 import { toast } from "react-hot-toast";
 import { XMarkIcon } from "@heroicons/react/24/solid";
 import { Dialog, Transition } from "@headlessui/react";
 import type { FieldProps } from "formik";
 import { Field, Form, Formik, FormikErrors, FormikValues } from "formik";
 
-import { queryClient } from "../../App";
 import { APIClient } from "../../api/APIClient";
 import DEBUG from "../../components/debug";
 import Toast from "../../components/notifications/Toast";
@@ -18,6 +17,7 @@ interface filterAddFormProps {
 }
 
 function FilterAddForm({ isOpen, toggle }: filterAddFormProps) {
+  const queryClient = useQueryClient();
   const navigate = useNavigate();
   const mutation = useMutation(
     (filter: Filter) => APIClient.filters.create(filter),

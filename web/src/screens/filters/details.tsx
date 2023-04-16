@@ -1,5 +1,5 @@
 import React, { useRef } from "react";
-import { useMutation, useQuery } from "react-query";
+import { useMutation, useQuery, useQueryClient } from "react-query";
 import { NavLink, Route, Routes, useLocation, useNavigate, useParams } from "react-router-dom";
 import { toast } from "react-hot-toast";
 import { Form, Formik, FormikValues, useFormikContext } from "formik";
@@ -21,7 +21,6 @@ import {
   SOURCES_OPTIONS,
   tagsMatchLogicOptions
 } from "../../domain/constants";
-import { queryClient } from "../../App";
 import { APIClient } from "../../api/APIClient";
 import { useToggle } from "../../hooks/hooks";
 import { classNames } from "../../utils";
@@ -141,6 +140,7 @@ const FormButtonsGroup = ({ values, deleteAction, reset }: FormButtonsGroupProps
 };
 
 export default function FilterDetails() {
+  const queryClient = useQueryClient();
   const navigate = useNavigate();
   const { filterId } = useParams<{ filterId: string }>();
 
