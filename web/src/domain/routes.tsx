@@ -1,7 +1,6 @@
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 
 import { Login } from "../screens/auth/login";
-import { Logout } from "../screens/auth/logout";
 import { Onboarding } from "../screens/auth/onboarding";
 import Base from "../screens/Base";
 import { Dashboard } from "../screens/dashboard";
@@ -28,7 +27,6 @@ export const LocalRouter = ({ isLoggedIn }: { isLoggedIn: boolean }) => (
   <BrowserRouter basename={baseUrl()}>
     {isLoggedIn ? (
       <Routes>
-        <Route path="/logout" element={<Logout />} />
         <Route element={<Base />}>
           <Route index element={<Dashboard />} />
           <Route path="logs" element={<Logs />} />
