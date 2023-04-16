@@ -8,6 +8,8 @@ import { APIClient } from "../../api/APIClient";
 import { AuthContext } from "../../utils/Context";
 import { PasswordInput, TextInput } from "../../components/inputs/text";
 import { Tooltip } from "react-tooltip";
+import Toast from "@/components/notifications/Toast";
+import toast from "react-hot-toast";
 
 type LoginFormFields = {
   username: string;
@@ -23,6 +25,12 @@ export const Login = () => {
   const [, setAuthContext] = AuthContext.use();
 
   useEffect(() => {
+    // remove user session when visiting login page'
+    APIClient.auth.logout()
+      .then(() => {
+        AuthContext.reset();
+      });
+
     // Check if onboarding is available for this instance
     // and redirect if needed
     APIClient.auth.canOnboard()
@@ -39,6 +47,11 @@ export const Login = () => {
           isLoggedIn: true
         });
         navigate("/");
+      },
+      onError: () => {
+        toast.custom((t) => (
+          <Toast type="error" body="Wrong password or username!" t={t} />
+        ));
       }
     }
   );
