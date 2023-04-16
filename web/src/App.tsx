@@ -8,7 +8,7 @@ import { AuthContext, SettingsContext } from "./utils/Context";
 import { ErrorPage } from "./components/alerts";
 import Toast from "./components/notifications/Toast";
 
-export const queryClient = new QueryClient({
+const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       // The retries will have exponential delay.

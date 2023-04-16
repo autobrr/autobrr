@@ -7,7 +7,6 @@ import { baseUrl, classNames, IsEmptyDate, simplifyDate } from "../../utils";
 import { Fragment, useRef, useState, useMemo } from "react";
 import { toast } from "react-hot-toast";
 import Toast from "../../components/notifications/Toast";
-import { queryClient } from "../../App";
 import { DeleteModal } from "../../components/modals";
 import {
   ArrowsRightLeftIcon,
@@ -141,6 +140,7 @@ function ListItem({ feed }: ListItemProps) {
   const [updateFormIsOpen, toggleUpdateForm] = useToggle(false);
 
   const [enabled, setEnabled] = useState(feed.enabled);
+  const queryClient = useQueryClient();
 
   const updateMutation = useMutation(
     (status: boolean) => APIClient.feeds.toggleEnable(feed.id, status),
