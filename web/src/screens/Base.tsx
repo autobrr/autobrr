@@ -9,6 +9,8 @@ import { AuthContext } from "../utils/Context";
 import logo from "../logo.png";
 import { useQuery } from "react-query";
 import { APIClient } from "../api/APIClient";
+import toast from "react-hot-toast";
+import Toast from "@/components/notifications/Toast";
 
 interface NavItem {
   name: string;
@@ -39,6 +41,16 @@ export default function Base() {
       onError: err => console.log(err)
     }
   );
+
+  const LogOutUser = () => {
+    APIClient.auth.logout()
+      .then(() => {
+        AuthContext.reset();
+        toast.custom((t) => (
+          <Toast type="success" body="You have been logged out. Goodbye!" t={t} />
+        ));
+      });
+  };
 
   return (
     <div className="min-h-screen">
@@ -159,17 +171,17 @@ export default function Base() {
                                 </Menu.Item>
                                 <Menu.Item>
                                   {({ active }) => (
-                                    <Link
-                                      to="/logout"
+                                    <button
+                                      onClick={LogOutUser}
                                       className={classNames(
                                         active
                                           ? "bg-gray-100 dark:bg-gray-600"
                                           : "",
-                                        "block px-4 py-2 text-sm text-gray-900 dark:text-gray-200"
+                                        "block w-full px-4 py-2 text-sm text-gray-900 dark:text-gray-200"
                                       )}
                                     >
-                                      Logout
-                                    </Link>
+                                      Log out
+                                    </button>
                                   )}
                                 </Menu.Item>
                               </Menu.Items>
