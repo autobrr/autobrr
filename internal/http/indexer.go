@@ -18,6 +18,7 @@ type indexerService interface {
 	GetAll() ([]*domain.IndexerDefinition, error)
 	GetTemplates() ([]domain.IndexerDefinition, error)
 	Delete(ctx context.Context, id int) error
+	TestApi(ctx context.Context, req domain.IndexerTestApiRequest) error
 }
 
 type indexerHandler struct {
@@ -41,6 +42,7 @@ func (h indexerHandler) Routes(r chi.Router) {
 	r.Get("/", h.getAll)
 	r.Get("/options", h.list)
 	r.Delete("/{indexerID}", h.delete)
+	r.Post("/{id}/api/test", h.testApi)
 }
 
 func (h indexerHandler) getSchema(w http.ResponseWriter, r *http.Request) {
@@ -62,6 +64,7 @@ func (h indexerHandler) store(w http.ResponseWriter, r *http.Request) {
 	)
 
 	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
+		h.encoder.Error(w, err)
 		return
 	}
 
@@ -81,6 +84,7 @@ func (h indexerHandler) update(w http.ResponseWriter, r *http.Request) {
 	)
 
 	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
+		h.encoder.Error(w, err)
 		return
 	}
 
@@ -131,4 +135,40 @@ func (h indexerHandler) list(w http.ResponseWriter, r *http.Request) {
 	}
 
 	h.encoder.StatusResponse(ctx, w, indexers, http.StatusOK)
+}
+
+func (h indexerHandler) testApi(w http.ResponseWriter, r *http.Request) {
+	var (
+		ctx     = r.Context()
+		idParam = chi.URLParam(r, "id")
+		req     domain.IndexerTestApiRequest
+	)
+
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		h.encoder.Error(w, err)
+		return
+	}
+
+	id, err := strconv.Atoi(idParam)
+	if err != nil {
+		h.encoder.Error(w, err)
+		return
+	}
+
+	if req.IndexerId == 0 {
+		req.IndexerId = id
+	}
+
+	if err := h.service.TestApi(ctx, req); err != nil {
+		h.encoder.Error(w, err)
+		return
+	}
+
+	res := struct {
+		Message string `json:"message"`
+	}{
+		Message: "Indexer api test OK",
+	}
+
+	h.encoder.StatusResponse(ctx, w, res, http.StatusOK)
 }

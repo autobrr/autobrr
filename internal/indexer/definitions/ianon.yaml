@@ -1,0 +1,71 @@
+---
+#id: ianon
+name: iAnon
+identifier: ianon
+description: iAnon is a Private Torrent Tracker for macOS
+language: en-us
+urls:
+  - https://ianon.app/
+privacy: private
+protocol: torrent
+supports:
+  - irc
+  - rss
+source: gazelle
+settings:
+  - name: torrent_pass
+    type: text
+    required: true
+    label: Torrent pass
+    help: Right click DL on a torrent and get the torrent_pass.
+
+irc:
+  network: iAnon
+  server: irc.ianon.app
+  port: 6697
+  tls: true
+  channels:
+    - "#announce"
+  announcers:
+    - anon
+  settings:
+    - name: nick
+      type: text
+      required: true
+      label: Nick
+      help: Bot nick. Eg. user-bot
+
+    - name: auth.account
+      type: text
+      required: true
+      label: NickServ Account
+      help: NickServ account. Make sure to group your user and bot.
+
+    - name: auth.password
+      type: secret
+      required: true
+      label: NickServ Password
+      help: NickServ password
+
+    - name: invite_command
+      type: secret
+      default: "anon enter #announce USERNAME IRCKEY"
+      required: true
+      label: Invite command
+      help: Invite auth with anon. Replace USERNAME and IRCKEY.
+
+  parse:
+    type: single
+    lines:
+      - test:
+          - "TORRENT: TheBestMacApp.X.4.10.6.macOS  - utility - https://ianon.app/torrents.php?id=1323 / https://ianon.app/torrents.php?action=download&id=1323"
+        pattern: 'TORRENT: (.*)  - (.*) - https:\/\/.*\/.*id=\d+ \/ (https:\/\/.*\/).*action=download&id=(.+)'
+        vars:
+          - torrentName
+          - tags
+          - baseUrl
+          - torrentId
+
+    match:
+      infourl: "/torrents.php?id={{ .torrentId }}"
+      torrenturl: "/torrents.php?action=download&id={{ .torrentId }}&torrent_pass={{ .torrent_pass }}"
