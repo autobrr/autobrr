@@ -236,14 +236,12 @@ func (s *service) Test(ctx context.Context, notification domain.Notification) er
 		agent = NewNotifiarrSender(s.log, notification)
 	case domain.NotificationTypeTelegram:
 		agent = NewTelegramSender(s.log, notification)
-	}
-
-	g, _ := errgroup.WithContext(ctx)
-
-	if agent == nil {
+	default:
 		s.log.Error().Msgf("unsupported notification type: %v", notification.Type)
 		return errors.New("unsupported notification type")
 	}
+
+	g, _ := errgroup.WithContext(ctx)
 
 	for _, event := range events {
 		e := event
