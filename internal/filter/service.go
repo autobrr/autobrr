@@ -541,17 +541,18 @@ func (s *service) execCmd(ctx context.Context, release *domain.Release, cmd stri
 }
 
 func (s *service) webhook(ctx context.Context, release *domain.Release, url string, data string) (int, error) {
-	// if webhook data contains TorrentPathName or TorrentDataRawBytes, lets download the torrent file
-	if len(release.TorrentDataRawBytes) == 0 &&
-		(strings.Contains(data, "TorrentPathName") || strings.Contains(data, "TorrentDataRawBytes")) {
-		if err := release.DownloadTorrentFileCtx(ctx); err != nil {
-			return 0, errors.Wrap(err, "webhook: could not download torrent file for release: %v", release.TorrentName)
-		}
-	}
-
 	if strings.Contains(data, "TorrentPathName") {
 		if err := release.WriteTemporaryFile(); err != nil {
 			return 0, errors.Wrap(err, "webhook: could not write torrent file for release: %v", release.TorrentName)
+		}
+	}
+
+	if len(release.TorrentDataRawBytes) == 0 &&
+		(strings.Contains(data, "TorrentPathName") ||
+			strings.Contains(data, "TorrentDataRawBytes") ||
+			strings.Contains(data, "TorrentHash")) {
+		if err := release.DownloadTorrentFileCtx(ctx); err != nil {
+			return 0, errors.Wrap(err, "webhook: could not download torrent file for release: %v", release.TorrentName)
 		}
 	}
 
