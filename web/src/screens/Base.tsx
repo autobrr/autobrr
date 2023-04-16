@@ -241,12 +241,12 @@ export default function Base() {
                     {item.name}
                   </NavLink>
                 ))}
-                <Link
-                  to="/logout"
-                  className="shadow-sm border bg-gray-100 border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-white block px-3 py-2 rounded-md text-base font-medium"
+                <button
+                  onClick={LogOutUser}
+                  className="w-full shadow-sm border bg-gray-100 border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-white block px-3 py-2 rounded-md text-base font-medium text-left"
                 >
                   Logout
-                </Link>
+                </button>
               </div>
             </Disclosure.Panel>
           </>
