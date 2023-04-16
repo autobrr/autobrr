@@ -177,7 +177,7 @@ export default function Base() {
                                         active
                                           ? "bg-gray-100 dark:bg-gray-600"
                                           : "",
-                                        "block w-full px-4 py-2 text-sm text-gray-900 dark:text-gray-200"
+                                        "block w-full px-4 py-2 text-sm text-gray-900 dark:text-gray-200 text-left"
                                       )}
                                     >
                                       Log out
