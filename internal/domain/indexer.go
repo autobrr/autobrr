@@ -350,3 +350,10 @@ func (t TorrentBasic) ReleaseSizeBytes() uint64 {
 	}
 	return releaseSizeBytes
 }
+
+type IndexerTestApiRequest struct {
+	IndexerId  int    `json:"id,omitempty"`
+	Identifier string `json:"identifier,omitempty"`
+	ApiUser    string `json:"api_user,omitempty"`
+	ApiKey     string `json:"api_key"`
+}
