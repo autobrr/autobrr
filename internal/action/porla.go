@@ -1,11 +1,8 @@
 package action
 
 import (
-	"bufio"
 	"context"
 	"encoding/base64"
-	"io"
-	"os"
 
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/pkg/errors"
@@ -72,28 +69,14 @@ func (s *service) porla(ctx context.Context, action *domain.Action, release doma
 
 		return nil, nil
 	} else {
-		if release.TorrentTmpFile == "" {
-			if err := release.DownloadTorrentFileCtx(ctx); err != nil {
-				return nil, errors.Wrap(err, "error downloading torrent file for release: %s", release.TorrentName)
-			}
-		}
-
-		file, err := os.Open(release.TorrentTmpFile)
-		if err != nil {
-			return nil, errors.Wrap(err, "error opening file %s", release.TorrentTmpFile)
-		}
-		defer file.Close()
-
-		reader := bufio.NewReader(file)
-		content, err := io.ReadAll(reader)
-		if err != nil {
-			return nil, errors.Wrap(err, "failed to read file: %s", release.TorrentTmpFile)
+		if err := release.DownloadTorrentFileCtx(ctx); err != nil {
+			return nil, errors.Wrap(err, "error downloading torrent file for release: %s", release.TorrentName)
 		}
 
 		opts := &porla.TorrentsAddReq{
 			DownloadLimit: -1,
 			SavePath:      action.SavePath,
-			Ti:            base64.StdEncoding.EncodeToString(content),
+			Ti:            base64.StdEncoding.EncodeToString(release.TorrentDataRawBytes),
 			UploadLimit:   -1,
 		}
 
@@ -106,7 +89,7 @@ func (s *service) porla(ctx context.Context, action *domain.Action, release doma
 		}
 
 		if err = prl.TorrentsAdd(ctx, opts); err != nil {
-			return nil, errors.Wrap(err, "could not add torrent %s to client: %s", release.TorrentTmpFile, client.Name)
+			return nil, errors.Wrap(err, "could not add torrent %s to client: %s", release.TorrentName, client.Name)
 		}
 
 		s.log.Info().Msgf("torrent with hash %s successfully added to client: '%s'", release.TorrentHash, client.Name)

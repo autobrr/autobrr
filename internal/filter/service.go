@@ -6,7 +6,6 @@ import (
 	"crypto/tls"
 	"fmt"
 	"net/http"
-	"os"
 	"os/exec"
 	"strings"
 	"time"
@@ -493,20 +492,10 @@ func (s *service) CanDownloadShow(ctx context.Context, release *domain.Release) 
 func (s *service) execCmd(ctx context.Context, release *domain.Release, cmd string, args string) (int, error) {
 	s.log.Debug().Msgf("filter exec release: %v", release.TorrentName)
 
-	if release.TorrentTmpFile == "" && strings.Contains(args, "TorrentPathName") {
+	if len(release.TorrentDataRawBytes) == 0 && strings.Contains(args, "TorrentPathName") {
 		if err := release.DownloadTorrentFileCtx(ctx); err != nil {
 			return 0, errors.Wrap(err, "error downloading torrent file for release: %v", release.TorrentName)
 		}
-	}
-
-	// read the file into bytes we can then use in the macro
-	if len(release.TorrentDataRawBytes) == 0 && release.TorrentTmpFile != "" {
-		t, err := os.ReadFile(release.TorrentTmpFile)
-		if err != nil {
-			return 0, errors.Wrap(err, "could not read torrent file: %v", release.TorrentTmpFile)
-		}
-
-		release.TorrentDataRawBytes = t
 	}
 
 	// check if program exists
@@ -553,20 +542,17 @@ func (s *service) execCmd(ctx context.Context, release *domain.Release, cmd stri
 
 func (s *service) webhook(ctx context.Context, release *domain.Release, url string, data string) (int, error) {
 	// if webhook data contains TorrentPathName or TorrentDataRawBytes, lets download the torrent file
-	if release.TorrentTmpFile == "" && (strings.Contains(data, "TorrentPathName") || strings.Contains(data, "TorrentDataRawBytes")) {
+	if len(release.TorrentDataRawBytes) == 0 &&
+		(strings.Contains(data, "TorrentPathName") || strings.Contains(data, "TorrentDataRawBytes")) {
 		if err := release.DownloadTorrentFileCtx(ctx); err != nil {
 			return 0, errors.Wrap(err, "webhook: could not download torrent file for release: %v", release.TorrentName)
 		}
 	}
 
-	// if webhook data contains TorrentDataRawBytes, lets read the file into bytes we can then use in the macro
-	if len(release.TorrentDataRawBytes) == 0 && strings.Contains(data, "TorrentDataRawBytes") {
-		t, err := os.ReadFile(release.TorrentTmpFile)
-		if err != nil {
-			return 0, errors.Wrap(err, "could not read torrent file: %v", release.TorrentTmpFile)
+	if strings.Contains(data, "TorrentPathName") {
+		if err := release.WriteTemporaryFile(); err != nil {
+			return 0, errors.Wrap(err, "webhook: could not write torrent file for release: %v", release.TorrentName)
 		}
-
-		release.TorrentDataRawBytes = t
 	}
 
 	m := domain.NewMacro(*release)

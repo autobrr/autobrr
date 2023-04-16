@@ -2,7 +2,6 @@ package domain
 
 import (
 	"context"
-	"os"
 	"strings"
 
 	"github.com/autobrr/autobrr/pkg/errors"
@@ -56,25 +55,21 @@ type Action struct {
 func (a *Action) ParseMacros(release *Release) error {
 	var err error
 
-	if release.TorrentTmpFile == "" &&
+	if len(release.TorrentDataRawBytes) == 0 &&
 		(strings.Contains(a.ExecArgs, "TorrentPathName") || strings.Contains(a.ExecArgs, "TorrentDataRawBytes") ||
 			strings.Contains(a.WebhookData, "TorrentPathName") || strings.Contains(a.WebhookData, "TorrentDataRawBytes") ||
 			strings.Contains(a.SavePath, "TorrentPathName") || a.Type == ActionTypeWatchFolder) {
 		if err := release.DownloadTorrentFile(); err != nil {
-			return errors.Wrap(err, "webhook: could not download torrent file for release: %v", release.TorrentName)
+			return errors.Wrap(err, "could not download torrent file for release: %v", release.TorrentName)
 		}
 	}
 
-	// if webhook data contains TorrentDataRawBytes, lets read the file into bytes we can then use in the macro
-	if len(release.TorrentDataRawBytes) == 0 &&
-		(strings.Contains(a.ExecArgs, "TorrentDataRawBytes") || strings.Contains(a.WebhookData, "TorrentDataRawBytes") ||
-			a.Type == ActionTypeWatchFolder) {
-		t, err := os.ReadFile(release.TorrentTmpFile)
-		if err != nil {
-			return errors.Wrap(err, "could not read torrent file: %v", release.TorrentTmpFile)
+	if strings.Contains(a.ExecArgs, "TorrentPathName") ||
+		strings.Contains(a.WebhookData, "TorrentPathName") ||
+		strings.Contains(a.SavePath, "TorrentPathName") {
+		if err := release.WriteTemporaryFile(); err != nil {
+			return errors.Wrap(err, "could not write torrent file for release: %v", release.TorrentName)
 		}
-
-		release.TorrentDataRawBytes = t
 	}
 
 	m := NewMacro(*release)

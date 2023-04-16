@@ -2,6 +2,7 @@ package action
 
 import (
 	"context"
+	"encoding/base64"
 
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/pkg/errors"
@@ -57,18 +58,12 @@ func (s *service) transmission(ctx context.Context, action *domain.Action, relea
 		return nil, nil
 
 	} else {
-		if release.TorrentTmpFile == "" {
-			if err := release.DownloadTorrentFileCtx(ctx); err != nil {
-				s.log.Error().Err(err).Msgf("could not download torrent file for release: %s", release.TorrentName)
-				return nil, err
-			}
+		if err := release.DownloadTorrentFileCtx(ctx); err != nil {
+			s.log.Error().Err(err).Msgf("could not download torrent file for release: %s", release.TorrentName)
+			return nil, err
 		}
 
-		b64, err := transmissionrpc.File2Base64(release.TorrentTmpFile)
-		if err != nil {
-			return nil, errors.Wrap(err, "cant encode file %s into base64", release.TorrentTmpFile)
-		}
-
+		b64 := base64.StdEncoding.EncodeToString(release.TorrentDataRawBytes)
 		payload := transmissionrpc.TorrentAddPayload{
 			MetaInfo: &b64,
 		}
@@ -82,7 +77,7 @@ func (s *service) transmission(ctx context.Context, action *domain.Action, relea
 		// Prepare and send payload
 		torrent, err := tbt.TorrentAdd(ctx, payload)
 		if err != nil {
-			return nil, errors.Wrap(err, "could not add torrent %v to client: %v", release.TorrentTmpFile, client.Host)
+			return nil, errors.Wrap(err, "could not add torrent %v to client: %v", release.TorrentName, client.Host)
 		}
 
 		s.log.Info().Msgf("torrent with hash %v successfully added to client: '%s'", torrent.HashString, client.Name)

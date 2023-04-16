@@ -40,10 +40,8 @@ func (s *service) qbittorrent(ctx context.Context, action *domain.Action, releas
 
 		return nil, nil
 	} else {
-		if release.TorrentTmpFile == "" {
-			if err := release.DownloadTorrentFileCtx(ctx); err != nil {
-				return nil, errors.Wrap(err, "error downloading torrent file for release: %s", release.TorrentName)
-			}
+		if err := release.DownloadTorrentFileCtx(ctx); err != nil {
+			return nil, errors.Wrap(err, "error downloading torrent file for release: %s", release.TorrentName)
 		}
 
 		options, err := s.prepareQbitOptions(action)
@@ -53,8 +51,8 @@ func (s *service) qbittorrent(ctx context.Context, action *domain.Action, releas
 
 		s.log.Trace().Msgf("action qBittorrent options: %+v", options)
 
-		if err = c.Qbt.AddTorrentFromFileCtx(ctx, release.TorrentTmpFile, options); err != nil {
-			return nil, errors.Wrap(err, "could not add torrent %s to client: %s", release.TorrentTmpFile, c.Dc.Name)
+		if err = c.Qbt.AddTorrentFromMemoryCtx(ctx, release.TorrentDataRawBytes, options); err != nil {
+			return nil, errors.Wrap(err, "could not add torrent %s to client: %s", release.TorrentName, c.Dc.Name)
 		}
 
 		if !action.Paused && !action.ReAnnounceSkip && release.TorrentHash != "" {

@@ -1,6 +1,8 @@
 package domain
 
 import (
+	"bufio"
+	"bytes"
 	"context"
 	"crypto/tls"
 	"fmt"
@@ -318,6 +320,28 @@ func (r *Release) DownloadTorrentFile() error {
 	return r.downloadTorrentFile(context.Background())
 }
 
+func (r *Release) WriteTemporaryFile() error {
+	if len(r.TorrentDataRawBytes) == 0 {
+		if err := r.DownloadTorrentFile(); err != nil {
+			return err
+		}
+	}
+
+	// Create tmp file
+	tmpFile, err := os.CreateTemp("", "autobrr-")
+	if err != nil {
+		return errors.Wrap(err, "error creating tmp file")
+	}
+	defer tmpFile.Close()
+
+	if _, err := io.Copy(bufio.NewWriter(tmpFile), bytes.NewReader((r.TorrentDataRawBytes))); err != nil {
+		return errors.Wrap(err, "unable to write tmp file")
+	}
+
+	r.TorrentTmpFile = tmpFile.Name()
+	return nil
+}
+
 func (r *Release) downloadTorrentFile(ctx context.Context) error {
 	if r.Protocol != ReleaseProtocolTorrent {
 		return errors.New("download_file: protocol is not %s: %s", ReleaseProtocolTorrent, r.Protocol)
@@ -327,7 +351,7 @@ func (r *Release) downloadTorrentFile(ctx context.Context) error {
 
 	if r.TorrentURL == "" {
 		return errors.New("download_file: url can't be empty")
-	} else if r.TorrentTmpFile != "" {
+	} else if len(r.TorrentDataRawBytes) != 0 {
 		// already downloaded
 		return nil
 	}
@@ -358,13 +382,6 @@ func (r *Release) downloadTorrentFile(ctx context.Context) error {
 		req.Header.Set("Cookie", r.RawCookie)
 	}
 
-	// Create tmp file
-	tmpFile, err := os.CreateTemp("", "autobrr-")
-	if err != nil {
-		return errors.Wrap(err, "error creating tmp file")
-	}
-	defer tmpFile.Close()
-
 	errFunc := retry.Do(func() error {
 		// Get the data
 		resp, err := client.Do(req)
@@ -383,36 +400,28 @@ func (r *Release) downloadTorrentFile(ctx context.Context) error {
 			return errors.New("unexpected status: %v", resp.StatusCode)
 		}
 
-		resetTmpFile := func() {
-			tmpFile.Seek(0, io.SeekStart)
-			tmpFile.Truncate(0)
-		}
-
+		var b *bytes.Buffer
 		// Write the body to file
-		if _, err := io.Copy(tmpFile, resp.Body); err != nil {
-			resetTmpFile()
-			return errors.Wrap(err, "error writing downloaded file: %v", tmpFile.Name())
+		if _, err := io.Copy(b, resp.Body); err != nil {
+			return errors.Wrap(err, "error downloading file")
 		}
 
-		meta, err := metainfo.LoadFromFile(tmpFile.Name())
+		meta, err := metainfo.Load(bytes.NewReader(b.Bytes()))
 		if err != nil {
-			resetTmpFile()
-			return errors.Wrap(err, "metainfo could not load file contents: %v", tmpFile.Name())
+			return errors.Wrap(err, "metainfo could not read torrent")
 		}
 
 		torrentMetaInfo, err := meta.UnmarshalInfo()
 		if err != nil {
-			resetTmpFile()
-			return errors.Wrap(err, "metainfo could not unmarshal info from torrent: %v", tmpFile.Name())
+			return errors.Wrap(err, "metainfo could not unmarshal info from torrent")
 		}
 
 		hashInfoBytes := meta.HashInfoBytes().Bytes()
 		if len(hashInfoBytes) < 1 {
-			resetTmpFile()
 			return errors.New("could not read infohash")
 		}
 
-		r.TorrentTmpFile = tmpFile.Name()
+		r.TorrentDataRawBytes = b.Bytes()
 		r.TorrentHash = meta.HashInfoBytes().String()
 		r.Size = uint64(torrentMetaInfo.TotalLength())
 
