@@ -7,9 +7,8 @@ import Select, { components, ControlProps, InputProps, MenuProps, OptionProps } 
 import { PasswordFieldWide, SwitchGroupWide, TextFieldWide } from "../../components/inputs";
 import DEBUG from "../../components/debug";
 import { EventOptions, NotificationTypeOptions, SelectOption } from "../../domain/constants";
-import { useMutation } from "react-query";
+import { useMutation, useQueryClient } from "react-query";
 import { APIClient } from "../../api/APIClient";
-import { queryClient } from "../../App";
 import { toast } from "react-hot-toast";
 import Toast from "../../components/notifications/Toast";
 import { SlideOver } from "../../components/panels";
@@ -136,6 +135,8 @@ interface AddProps {
 }
 
 export function NotificationAddForm({ isOpen, toggle }: AddProps) {
+  const queryClient = useQueryClient();
+
   const mutation = useMutation(
     (notification: Notification) => APIClient.notifications.create(notification),
     {
@@ -407,6 +408,8 @@ interface InitialValues {
 }
 
 export function NotificationUpdateForm({ isOpen, toggle, notification }: UpdateProps) {
+  const queryClient = useQueryClient();
+
   const mutation = useMutation(
     (notification: Notification) => APIClient.notifications.update(notification),
     {

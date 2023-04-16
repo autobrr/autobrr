@@ -27,8 +27,6 @@ interface SortConfig {
 function useSort(items: ListItemProps["clients"][], config?: SortConfig) {
   const [sortConfig, setSortConfig] = useState(config);
 
-
-  
   const sortedItems = useMemo(() => {
     if (!sortConfig) {
       return items;
@@ -80,6 +78,7 @@ function DownloadClientSettingsListItem({ client }: DLSettingsItemProps) {
   const [updateClientIsOpen, toggleUpdateClient] = useToggle(false);
 
   const queryClient = useQueryClient();
+
   const mutation = useMutation(
     (client: DownloadClient) => APIClient.download_clients.update(client),
     {

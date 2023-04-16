@@ -19,16 +19,16 @@ function classNames(...classes: string[]) {
   return classes.filter(Boolean).join(" ");
 }
 
+const nav: Array<NavItem> = [
+  { name: "Dashboard", path: "/" },
+  { name: "Filters", path: "/filters" },
+  { name: "Releases", path: "/releases" },
+  { name: "Settings", path: "/settings" },
+  { name: "Logs", path: "/logs" }
+];
+
 export default function Base() {
   const authContext = AuthContext.useValue();
-  const nav: Array<NavItem> = [
-    { name: "Dashboard", path: "/" },
-    { name: "Filters", path: "/filters" },
-    { name: "Releases", path: "/releases" },
-    { name: "Settings", path: "/settings" },
-    { name: "Logs", path: "/logs" }
-  ];
-
 
   const { data } = useQuery(
     ["updates"],
