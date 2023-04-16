@@ -8,6 +8,7 @@ import (
 
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/internal/logger"
+	"github.com/autobrr/autobrr/pkg/errors"
 
 	"github.com/rs/zerolog"
 )
@@ -237,11 +238,15 @@ func (s *service) Test(ctx context.Context, notification domain.Notification) er
 		agent = NewTelegramSender(s.log, notification)
 	}
 
-	g, ctx := errgroup.WithContext(ctx)
+	g, _ := errgroup.WithContext(ctx)
 
 	for _, event := range events {
 		e := event
 		g.Go(func() error {
+			if agent == nil {
+				s.log.Error().Msgf("unsupported notification type: %v", notification.Type)
+				return errors.New("unsupported notification type")
+			}
 			return agent.Send(e.Event, e)
 		})
 
