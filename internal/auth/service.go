@@ -15,7 +15,7 @@ import (
 type Service interface {
 	GetUserCount(ctx context.Context) (int, error)
 	Login(ctx context.Context, username, password string) (*domain.User, error)
-	CreateUser(ctx context.Context, username, password string) error
+	CreateUser(ctx context.Context, req domain.CreateUserRequest) error
 }
 
 type service struct {
@@ -64,9 +64,11 @@ func (s *service) Login(ctx context.Context, username, password string) (*domain
 	return u, nil
 }
 
-func (s *service) CreateUser(ctx context.Context, username, password string) error {
-	if username == "" || password == "" {
-		return errors.New("empty credentials supplied")
+func (s *service) CreateUser(ctx context.Context, req domain.CreateUserRequest) error {
+	if req.Username == "" {
+		return errors.New("validation error: empty username supplied")
+	} else if req.Password == "" {
+		return errors.New("validation error: empty password supplied")
 	}
 
 	userCount, err := s.userSvc.GetUserCount(ctx)
@@ -78,17 +80,15 @@ func (s *service) CreateUser(ctx context.Context, username, password string) err
 		return errors.New("only 1 user account is supported at the moment")
 	}
 
-	hashed, err := argon2id.CreateHash(password, argon2id.DefaultParams)
+	hashed, err := argon2id.CreateHash(req.Password, argon2id.DefaultParams)
 	if err != nil {
 		return errors.New("failed to hash password")
 	}
 
-	newUser := domain.User{
-		Username: username,
-		Password: hashed,
-	}
-	if err := s.userSvc.CreateUser(context.Background(), newUser); err != nil {
-		s.log.Error().Err(err).Msgf("could not create user: %v", username)
+	req.Password = hashed
+
+	if err := s.userSvc.CreateUser(ctx, req); err != nil {
+		s.log.Error().Err(err).Msgf("could not create user: %s", req.Username)
 		return errors.New("failed to create new user")
 	}
 
