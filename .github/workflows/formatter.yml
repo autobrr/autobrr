@@ -18,5 +18,7 @@ jobs:
         fetch-depth: 0
         set-safe-directory: /github/workspace
 
-    - name: Format code
-      uses: iamnotaturtle/auto-gofmt@v2.1.0
+    - name: Golang Formatter
+      uses: sladyn98/auto-go-format@v0.0.1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
