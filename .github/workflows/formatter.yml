@@ -17,6 +17,8 @@ jobs:
         ref: ${{ github.head_ref }}
         fetch-depth: 0
         set-safe-directory: /github/workspace
+    - name: Fix git safe.directory in container  # https://github.com/actions/runner/issues/2033
+      run: mkdir -p /home/runner/work/_temp/_github_home && printf "[safe]\n\tdirectory = /github/workspace" > /home/runner/work/_temp/_github_home/.gitconfig
 
     - name: Golang Formatter
       uses: sladyn98/auto-go-format@v0.0.1
