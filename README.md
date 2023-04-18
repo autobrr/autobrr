@@ -232,7 +232,7 @@ Start the service. Enable will make it startup on reboot.
 systemctl enable -q --now --user autobrr@$USER
 ```
 
-By default it the config is set to listen on only `127.0.0.1`.  It's highly advised to put it behind a reverse-proxy like nginx or traefik etc.
+By default, the configuration is set to listen on `127.0.0.1`. It is highly recommended to use a reverse proxy like [nginx](https://www.nginx.com/), [caddy](https://caddyserver.com/v2) or [traefik](https://doc.traefik.io/traefik/getting-started/quick-start/).
 
 If you are not running a reverse proxy change `host` in the `config.toml` to `0.0.0.0`.
 
