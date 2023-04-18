@@ -20,7 +20,5 @@ jobs:
     - name: Fix git safe.directory in container  # https://github.com/actions/runner/issues/2033
       run: mkdir -p /home/runner/work/_temp/_github_home && printf "[safe]\n\tdirectory = /github/workspace" > /home/runner/work/_temp/_github_home/.gitconfig
 
-    - name: Golang Formatter
-      uses: sladyn98/auto-go-format@v0.0.1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    - name: Format code
+      uses: iamnotaturtle/auto-gofmt@v2.1.0
