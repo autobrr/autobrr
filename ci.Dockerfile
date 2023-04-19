@@ -10,13 +10,13 @@ RUN apk add --no-cache git make build-base tzdata
 
 ENV SERVICE=autobrr
 
+WORKDIR /src
 COPY go.mod go.sum ./
 RUN --mount=type=cache,target=$GOMODCACHE \
     go mod download
 
 COPY . ./
 
-WORKDIR /src
 RUN --mount=target=. \
     --mount=type=cache,target=$GOMODCACHE \
     --mount=type=cache,target=$GOCACHE \
