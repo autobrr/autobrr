@@ -18,6 +18,8 @@ ENV SERVICE=autobrr
 #ENV GOOS=linux
 #ENV CGO_ENABLED=0
 
+RUN echo MY CACHE IS: $GOMODCACHE | $GOCACHE
+
 RUN --mount=target=. \
     --mount=type=cache,target=/root/.cache/go-build \
     --mount=type=cache,target=/go/pkg \
