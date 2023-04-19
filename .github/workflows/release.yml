@@ -59,9 +59,9 @@ jobs:
 
       # 1.20 is the last version to support Windows < 10, Server < 2016, and MacOS < 1.15.
       - name: Set up Go
-        uses: actions/setup-go@v3
+        uses: actions/setup-go@v4
         with:
-          go-version: '1.20.1'
+          go-version: '1.20.3'
           cache: true
 
       - name: Test
@@ -86,9 +86,9 @@ jobs:
 
 #     1.20 is the last version to support Windows < 10, Server < 2016, and MacOS < 1.15.
       - name: Set up Go
-        uses: actions/setup-go@v3
+        uses: actions/setup-go@v4
         with:
-          go-version: '1.20.1'
+          go-version: '1.20.3'
           cache: true
 
       - name: Run GoReleaser build
@@ -125,9 +125,9 @@ jobs:
 
 #     1.20 is the last version to support Windows < 10, Server < 2016, and MacOS < 1.15.
       - name: Set up Go
-        uses: actions/setup-go@v3
+        uses: actions/setup-go@v4
         with:
-          go-version: '1.20.1'
+          go-version: '1.20.3'
           cache: true
 
       - name: Run GoReleaser build and publish tags
@@ -160,6 +160,12 @@ jobs:
         with:
           name: web-dist
           path: web/dist
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.20.3'
+          cache: true
 
       - name: Login to GitHub Container Registry
         uses: docker/login-action@v2
