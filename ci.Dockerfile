@@ -14,12 +14,12 @@ COPY $GOCACHE $GOCACHE
 
 WORKDIR /src
 RUN --mount=target=. \
-    --mount=type=cache,target=$GOMODCACHE \
-    --mount=type=cache,target=$GOCACHE \
+    --mount=type=bind,rw,source=$GOMODCACHE,target=$GOMODCACHE \
+    --mount=type=bind,rw,source=$GOCACHE,target=$GOCACHE \
     GOOS=$TARGETOS GOARCH=$TARGETARCH go build -ldflags "-s -w -X main.version=${VERSION} -X main.commit=${REVISION} -X main.date=${BUILDTIME}" -o /out/bin/autobrr cmd/autobrr/main.go
 RUN --mount=target=. \
-    --mount=type=cache,target=$GOMODCACHE \
-    --mount=type=cache,target=$GOCACHE \
+    --mount=type=bind,rw,source=$GOMODCACHE,target=$GOMODCACHE \
+    --mount=type=bind,rw,source=$GOCACHE,target=$GOCACHE \
     GOOS=$TARGETOS GOARCH=$TARGETARCH go build -ldflags "-s -w -X main.version=${VERSION} -X main.commit=${REVISION} -X main.date=${BUILDTIME}" -o /out/bin/autobrrctl cmd/autobrrctl/main.go
 
 # build runner
