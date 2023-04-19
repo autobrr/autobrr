@@ -1,26 +1,25 @@
 # build app
-FROM golang:1.20-alpine3.16 AS app-builder
+FROM --platform=$BUILDPLATFORM golang:1.20-alpine3.16 AS app-builder
 
 ARG VERSION=dev
 ARG REVISION=dev
 ARG BUILDTIME
+ARG TARGETOS TARGETARCH
+
+WORKDIR /src
+COPY go.mod go.sum ./
+RUN go mod download
+COPY . ./
 
 RUN apk add --no-cache git make build-base tzdata
 
 ENV SERVICE=autobrr
 
-WORKDIR /src
-
-COPY go.mod go.sum ./
-RUN go mod download
-
-COPY . ./
-
 #ENV GOOS=linux
 #ENV CGO_ENABLED=0
 
-RUN go build -ldflags "-s -w -X main.version=${VERSION} -X main.commit=${REVISION} -X main.date=${BUILDTIME}" -o bin/autobrr cmd/autobrr/main.go
-RUN go build -ldflags "-s -w -X main.version=${VERSION} -X main.commit=${REVISION} -X main.date=${BUILDTIME}" -o bin/autobrrctl cmd/autobrrctl/main.go
+RUN GOOS=$TARGETOS GOARCH=$TARGETARCH go build -ldflags "-s -w -X main.version=${VERSION} -X main.commit=${REVISION} -X main.date=${BUILDTIME}" -o bin/autobrr cmd/autobrr/main.go
+RUN GOOS=$TARGETOS GOARCH=$TARGETARCH go build -ldflags "-s -w -X main.version=${VERSION} -X main.commit=${REVISION} -X main.date=${BUILDTIME}" -o bin/autobrrctl cmd/autobrrctl/main.go
 
 # build runner
 FROM alpine:latest
