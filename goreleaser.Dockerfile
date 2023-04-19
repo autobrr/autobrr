@@ -1,4 +1,4 @@
-FROM alpine:latest
+FROM --platform=$BUILDPLATFORM alpine:latest
 
 LABEL org.opencontainers.image.source = "https://github.com/autobrr/autobrr"
 
