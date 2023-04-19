@@ -9,8 +9,6 @@ ARG TARGETOS TARGETARCH GOMODCACHE GOCACHE
 RUN apk add --no-cache git make build-base tzdata
 
 ENV SERVICE=autobrr
-ENV GOMODCACHE=$GOMODCACHE
-ENV GOCACHE=$GOCACHE
 
 WORKDIR /src
 RUN --mount=target=. \
