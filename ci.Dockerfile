@@ -13,6 +13,10 @@ ENV SERVICE=autobrr
 WORKDIR /src
 COPY . ./
 
+RUN  --mount=target=. \
+    --mount=type=cache,target=$GOMODCACHE \
+    --mount=type=cache,target=$GOCACHE \
+    go env -w GOMODCACHE="$GOMODCACHE"
 RUN --mount=target=. \
     --mount=type=cache,target=$GOMODCACHE \
     --mount=type=cache,target=$GOCACHE \
