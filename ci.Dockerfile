@@ -14,16 +14,12 @@ ENV GOCACHE=$GOCACHE
 
 WORKDIR /src
 RUN --mount=target=. \
-    --mount=type=cache,target=/root/.cache/go-build \
-    --mount=type=cache,target=/go/pkg \
-    --mount=type=bind,rw,source=$GOMODCACHE,target=$GOMODCACHE \
-    --mount=type=bind,rw,source=$GOCACHE,target=$GOCACHE \
+    --mount=type=cache,source=$GOCACHE,target=/root/.cache/go-build \
+    --mount=type=cache,source=$GONODCACHE,target=/root/go/pkg \
     GOOS=$TARGETOS GOARCH=$TARGETARCH go build -ldflags "-s -w -X main.version=${VERSION} -X main.commit=${REVISION} -X main.date=${BUILDTIME}" -o /out/bin/autobrr cmd/autobrr/main.go
 RUN --mount=target=. \
-    --mount=type=cache,target=/root/.cache/go-build \
-    --mount=type=cache,target=/go/pkg \
-    --mount=type=bind,rw,source=$GOMODCACHE,target=$GOMODCACHE \
-    --mount=type=bind,rw,source=$GOCACHE,target=$GOCACHE \
+    --mount=type=cache,source=$GOCACHE,target=/root/.cache/go-build \
+    --mount=type=cache,source=$GONODCACHE,target=/root/go/pkg \
     GOOS=$TARGETOS GOARCH=$TARGETARCH go build -ldflags "-s -w -X main.version=${VERSION} -X main.commit=${REVISION} -X main.date=${BUILDTIME}" -o /out/bin/autobrrctl cmd/autobrrctl/main.go
 
 # build runner
