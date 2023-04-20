@@ -5,10 +5,10 @@ import (
 	"database/sql"
 	"time"
 
+	sq "github.com/Masterminds/squirrel"
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/internal/logger"
 	"github.com/autobrr/autobrr/pkg/errors"
-	sq "github.com/Masterminds/squirrel"
 
 	"github.com/rs/zerolog"
 )
@@ -542,7 +542,6 @@ func (r *IrcRepo) UpdateChannel(channel *domain.IrcChannel) error {
 }
 
 func (r *IrcRepo) UpdateInviteCommand(networkID int64, invite string) error {
-
 	// update record
 	channelQueryBuilder := r.db.squirrel.
 		Update("irc_network").

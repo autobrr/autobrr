@@ -5,11 +5,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"strings"
 	"time"
-
-	"log"
 
 	"github.com/autobrr/autobrr/pkg/errors"
 )
@@ -40,7 +39,6 @@ type client struct {
 
 // New create new sonarr client
 func New(config Config) Client {
-
 	httpClient := &http.Client{
 		Timeout: time.Second * 30,
 	}

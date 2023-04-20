@@ -61,8 +61,8 @@ type TorrentDetailsResponse struct {
 }
 
 type Group struct {
-	//WikiBody        string `json:"wikiBody"`
-	//WikiImage       string `json:"wikiImage"`
+	// WikiBody        string `json:"wikiBody"`
+	// WikiImage       string `json:"wikiImage"`
 	Id              int    `json:"id"`
 	Name            string `json:"name"`
 	Year            int    `json:"year"`
@@ -122,7 +122,7 @@ type Torrent struct {
 }
 
 func (c *Client) Do(req *http.Request) (*http.Response, error) {
-	//ctx := context.Background()
+	// ctx := context.Background()
 	err := c.RateLimiter.Wait(req.Context()) // This is a blocking call. Honors the rate limit
 	if err != nil {
 		return nil, err
@@ -207,7 +207,6 @@ func (c *Client) GetTorrentByID(ctx context.Context, torrentID string) (*domain.
 		InfoHash: r.Response.Torrent.InfoHash,
 		Size:     strconv.Itoa(r.Response.Torrent.Size),
 	}, nil
-
 }
 
 // TestAPI try api access against torrents page

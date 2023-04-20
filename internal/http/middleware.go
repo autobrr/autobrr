@@ -18,7 +18,6 @@ func (s Server) IsAuthenticated(next http.Handler) http.Handler {
 				http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
 				return
 			}
-
 		} else if key := r.URL.Query().Get("apikey"); key != "" {
 			// check query param lke ?apikey=TOKEN
 			if !s.apiService.ValidateAPIKey(r.Context(), key) {

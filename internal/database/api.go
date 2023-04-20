@@ -103,7 +103,6 @@ func (r *APIRepo) GetKeys(ctx context.Context) ([]domain.APIKey, error) {
 
 		if err := rows.Scan(&name, &a.Key, pq.Array(&a.Scopes), &a.CreatedAt); err != nil {
 			return nil, errors.Wrap(err, "error scanning row")
-
 		}
 
 		a.Name = name.String

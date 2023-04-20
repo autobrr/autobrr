@@ -17,7 +17,7 @@ func (c Category) String() string {
 }
 
 func (c Category) FromString(str string) {
-	var re = regexp.MustCompile(`(?m)(.+)\[(.+)\]`)
+	re := regexp.MustCompile(`(?m)(.+)\[(.+)\]`)
 	match := re.FindAllString(str, -1)
 
 	c.Name = match[1]

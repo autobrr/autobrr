@@ -184,7 +184,6 @@ func (s *service) Update(ctx context.Context, filter domain.Filter) (*domain.Fil
 }
 
 func (s *service) UpdatePartial(ctx context.Context, filter domain.FilterUpdate) error {
-
 	// update
 	if err := s.repo.UpdatePartial(ctx, filter); err != nil {
 		s.log.Error().Err(err).Msgf("could not update partial filter: %v", filter.ID)
@@ -298,7 +297,6 @@ func (s *service) Delete(ctx context.Context, filterID int) error {
 }
 
 func (s *service) CheckFilter(ctx context.Context, f domain.Filter, release *domain.Release) (bool, error) {
-
 	s.log.Trace().Msgf("filter.Service.CheckFilter: checking filter: %v %+v", f.Name, f)
 	s.log.Trace().Msgf("filter.Service.CheckFilter: checking filter: %v for release: %+v", f.Name, release)
 
@@ -445,7 +443,7 @@ func (s *service) AdditionalSizeCheck(ctx context.Context, f domain.Filter, rele
 		s.log.Error().Stack().Err(err).Msgf("filter.Service.AdditionalSizeCheck: (%s) error checking extra size filter", f.Name)
 		return false, err
 	}
-	//no match, lets continue to next filter
+	// no match, lets continue to next filter
 	if !match {
 		s.log.Debug().Msgf("filter.Service.AdditionalSizeCheck: (%s) filter did not match after additional size check, trying next", f.Name)
 		return false, nil
@@ -464,7 +462,7 @@ func checkSizeFilter(minSize string, maxSize string, releaseSize uint64) (bool, 
 		}
 
 		if releaseSize <= minSizeBytes {
-			//r.addRejection("size: smaller than min size")
+			// r.addRejection("size: smaller than min size")
 			return false, nil
 		}
 
@@ -478,7 +476,7 @@ func checkSizeFilter(minSize string, maxSize string, releaseSize uint64) (bool, 
 		}
 
 		if releaseSize >= maxSizeBytes {
-			//r.addRejection("size: larger than max size")
+			// r.addRejection("size: larger than max size")
 			return false, nil
 		}
 	}

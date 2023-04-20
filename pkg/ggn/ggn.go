@@ -223,7 +223,6 @@ func (c *Client) GetTorrentByID(ctx context.Context, torrentID string) (*domain.
 	}
 
 	return t, nil
-
 }
 
 // TestAPI try api access against torrents page

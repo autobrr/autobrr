@@ -132,7 +132,6 @@ func (s *service) qbittorrentCheckRulesCanDownload(ctx context.Context, action *
 
 		// make sure it's not set to 0 by default
 		if client.Settings.Rules.MaxActiveDownloads > 0 {
-
 			// if max active downloads reached, check speed and if lower than threshold add anyway
 			if len(activeDownloads) >= client.Settings.Rules.MaxActiveDownloads {
 				if client.Settings.Rules.IgnoreSlowTorrents {

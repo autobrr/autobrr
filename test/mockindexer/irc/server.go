@@ -19,7 +19,6 @@ type ServerOptions struct {
 
 func NewServer(options *ServerOptions) (*Server, error) {
 	listener, err := net.Listen("tcp", "localhost:6697")
-
 	if err != nil {
 		return nil, err
 	}
@@ -33,7 +32,6 @@ func NewServer(options *ServerOptions) (*Server, error) {
 func (s *Server) Run() {
 	for {
 		conn, err := s.listener.Accept()
-
 		if err != nil {
 			log.Printf("Failed accept: %v", err)
 			continue

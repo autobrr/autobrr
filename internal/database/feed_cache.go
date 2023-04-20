@@ -5,10 +5,10 @@ import (
 	"database/sql"
 	"time"
 
+	sq "github.com/Masterminds/squirrel"
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/internal/logger"
 	"github.com/autobrr/autobrr/pkg/errors"
-	sq "github.com/Masterminds/squirrel"
 
 	"github.com/rs/zerolog"
 )
@@ -99,7 +99,6 @@ func (r *FeedCacheRepo) GetByBucket(ctx context.Context, bucket string) ([]domai
 }
 
 func (r *FeedCacheRepo) GetCountByBucket(ctx context.Context, bucket string) (int, error) {
-
 	queryBuilder := r.db.squirrel.
 		Select("COUNT(*)").
 		From("feed_cache").
@@ -115,7 +114,7 @@ func (r *FeedCacheRepo) GetCountByBucket(ctx context.Context, bucket string) (in
 		return 0, errors.Wrap(err, "error executing query")
 	}
 
-	var count = 0
+	count := 0
 
 	if err := row.Scan(&count); err != nil {
 		return 0, errors.Wrap(err, "error scanning row")

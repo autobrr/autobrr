@@ -134,7 +134,6 @@ func (s *service) Test(ctx context.Context, client domain.DownloadClient) error 
 }
 
 func (s *service) GetCachedClient(ctx context.Context, clientId int32) *domain.DownloadClientCached {
-
 	// check if client exists in cache
 	s.m.RLock()
 	cached, ok := s.qbitClients[clientId]

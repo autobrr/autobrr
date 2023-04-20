@@ -67,7 +67,7 @@ func (a *announceProcessor) processQueue(queue chan string) {
 	for {
 		tmpVars := map[string]string{}
 		parseFailed := false
-		//patternParsed := false
+		// patternParsed := false
 
 		for _, parseLine := range a.indexer.IRC.Parse.Lines {
 			line, err := a.getNextLine(queue)
@@ -145,7 +145,6 @@ func (a *announceProcessor) parseLine(pattern string, vars []string, tmpVars map
 }
 
 func (a *announceProcessor) parseExtract(pattern string, vars []string, tmpVars map[string]string, line string) (bool, error) {
-
 	rxp, err := regExMatch(pattern, line)
 	if err != nil {
 		a.log.Debug().Msgf("did not match expected line: %v", line)
@@ -170,7 +169,7 @@ func (a *announceProcessor) parseExtract(pattern string, vars []string, tmpVars 
 }
 
 func (a *announceProcessor) parseMatchRegexp(pattern string, tmpVars map[string]string, line string, ignore bool) (bool, error) {
-	var re = regexp.MustCompile(`(?mi)` + pattern)
+	re := regexp.MustCompile(`(?mi)` + pattern)
 
 	groupNames := re.SubexpNames()
 	for _, match := range re.FindAllStringSubmatch(line, -1) {
@@ -311,7 +310,6 @@ func removeElement(s []string, i int) ([]string, error) {
 }
 
 func regExMatch(pattern string, value string) ([]string, error) {
-
 	rxp, err := regexp.Compile(pattern)
 	if err != nil {
 		return nil, err

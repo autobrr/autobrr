@@ -45,7 +45,7 @@ type FeedItem struct {
 
 	// attributes
 	TvdbId string `xml:"tvdb,omitempty"`
-	//TvMazeId string
+	// TvMazeId string
 	ImdbId string `xml:"imdb,omitempty"`
 	TmdbId string `xml:"tmdb,omitempty"`
 

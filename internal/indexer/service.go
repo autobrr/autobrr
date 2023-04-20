@@ -73,7 +73,6 @@ func NewService(log logger.Logger, config *domain.Config, repo domain.IndexerRep
 }
 
 func (s *service) Store(ctx context.Context, indexer domain.Indexer) (*domain.Indexer, error) {
-
 	// if indexer is rss or torznab do additional cleanup for identifier
 	switch indexer.Implementation {
 	case "torznab", "newznab", "rss":
@@ -175,7 +174,7 @@ func (s *service) List(ctx context.Context) ([]domain.Indexer, error) {
 }
 
 func (s *service) GetAll() ([]*domain.IndexerDefinition, error) {
-	var res = make([]*domain.IndexerDefinition, 0)
+	res := make([]*domain.IndexerDefinition, 0)
 
 	for _, indexer := range s.mappedDefinitions {
 		if indexer == nil {

@@ -17,8 +17,7 @@ type TorrentsAddReq struct {
 	UploadLimit   int64  `json:"upload_limit,omitempty"`
 }
 
-type TorrentsAddRes struct {
-}
+type TorrentsAddRes struct{}
 
 type TorrentsListReq struct {
 	Filters *TorrentsListFilters `json:"filters"`

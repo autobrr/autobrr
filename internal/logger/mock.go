@@ -1,8 +1,9 @@
 package logger
 
 import (
-	"github.com/rs/zerolog"
 	"io"
+
+	"github.com/rs/zerolog"
 )
 
 func Mock() Logger {

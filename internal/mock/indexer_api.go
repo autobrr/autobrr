@@ -38,7 +38,6 @@ func (c *IndexerClient) GetTorrentByID(ctx context.Context, torrentID string) (*
 	}
 
 	return r, nil
-
 }
 
 // TestAPI try api access against torrents page

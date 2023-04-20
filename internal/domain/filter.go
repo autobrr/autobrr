@@ -506,7 +506,6 @@ func (f Filter) isPerfectFLAC(r *Release) bool {
 // implement API for ptp,btn,ggn to check for size if needed
 // for others pull down torrent and do check
 func (f Filter) checkSizeFilter(r *Release, minSize string, maxSize string) bool {
-
 	if r.Size == 0 {
 		r.AdditionalSizeCheckRequired = true
 
@@ -833,7 +832,6 @@ func checkFreeleechPercent(announcePercent int, filterPercent string) bool {
 }
 
 func matchHDR(releaseValues []string, filterValues []string) bool {
-
 	for _, filter := range filterValues {
 		if filter == "" {
 			continue

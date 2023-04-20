@@ -128,7 +128,6 @@ func (s Server) Handler() http.Handler {
 			r.Route("/updates", newUpdateHandler(encoder, s.updateService).Routes)
 
 			r.HandleFunc("/events", func(w http.ResponseWriter, r *http.Request) {
-
 				// inject CORS headers to bypass checks
 				s.sse.Headers = map[string]string{
 					"Content-Type":      "text/event-stream",

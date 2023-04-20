@@ -224,7 +224,6 @@ func (c *client) getCaps(ctx context.Context, endpoint string, opts map[string]s
 }
 
 func (c *client) FetchCaps(ctx context.Context) (*Caps, error) {
-
 	status, res, err := c.getCaps(ctx, "?t=caps", nil)
 	if err != nil {
 		return nil, errors.Wrap(err, "could not get caps for feed")

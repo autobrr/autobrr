@@ -74,8 +74,7 @@ type Params struct {
 // the Argon2 reference C implementation and contains the base64-encoded Argon2id d
 // derived key prefixed by the salt and parameters. It looks like this:
 //
-//		$argon2id$v=19$m=65536,t=3,p=2$c29tZXNhbHQ$RdescudvJCsgt3ub+b+dWRWJTmaaJObG
-//
+//	$argon2id$v=19$m=65536,t=3,p=2$c29tZXNhbHQ$RdescudvJCsgt3ub+b+dWRWJTmaaJObG
 func CreateHash(password string, params *Params) (hash string, err error) {
 	salt, err := generateRandomBytes(params.SaltLength)
 	if err != nil {

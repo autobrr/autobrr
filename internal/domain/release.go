@@ -125,7 +125,7 @@ const (
 	ReleasePushStatusRejected ReleasePushStatus = "PUSH_REJECTED"
 	ReleasePushStatusErr      ReleasePushStatus = "PUSH_ERROR"
 
-	//ReleasePushStatusPending  ReleasePushStatus = "PENDING" // Initial status
+	// ReleasePushStatusPending  ReleasePushStatus = "PENDING" // Initial status
 )
 
 func (r ReleasePushStatus) String() string {
@@ -147,7 +147,7 @@ const (
 	ReleaseStatusFilterApproved ReleaseFilterStatus = "FILTER_APPROVED"
 	ReleaseStatusFilterPending  ReleaseFilterStatus = "PENDING"
 
-	//ReleaseStatusFilterRejected ReleaseFilterStatus = "FILTER_REJECTED"
+	// ReleaseStatusFilterRejected ReleaseFilterStatus = "FILTER_REJECTED"
 )
 
 type ReleaseProtocol string
@@ -527,7 +527,6 @@ func (r *Release) RejectionsString() string {
 
 // MapVars map vars from regex captures to fields on release
 func (r *Release) MapVars(def *IndexerDefinition, varMap map[string]string) error {
-
 	if torrentName, err := getStringMapValue(varMap, "torrentName"); err != nil {
 		return errors.Wrap(err, "failed parsing required field")
 	} else {
@@ -557,7 +556,7 @@ func (r *Release) MapVars(def *IndexerDefinition, varMap map[string]string) erro
 
 		freeleechPercentInt, err := strconv.Atoi(freeleechPercent)
 		if err != nil {
-			//log.Debug().Msgf("bad freeleechPercent var: %v", year)
+			// log.Debug().Msgf("bad freeleechPercent var: %v", year)
 		}
 
 		r.Freeleech = true
@@ -615,7 +614,7 @@ func (r *Release) MapVars(def *IndexerDefinition, varMap map[string]string) erro
 	if yearVal, err := getStringMapValue(varMap, "year"); err == nil {
 		year, err := strconv.Atoi(yearVal)
 		if err != nil {
-			//log.Debug().Msgf("bad year var: %v", year)
+			// log.Debug().Msgf("bad year var: %v", year)
 		}
 		r.Year = year
 	}

@@ -39,7 +39,6 @@ type client struct {
 
 // New create new lidarr client
 func New(config Config) Client {
-
 	httpClient := &http.Client{
 		Timeout: time.Second * 30,
 	}

@@ -36,7 +36,7 @@ func TestRelease_Parse(t *testing.T) {
 				AudioChannels: "5.1",
 				HDR:           []string{"DV"},
 				Group:         "FLUX",
-				//Website: "ATVP",
+				// Website: "ATVP",
 			},
 		},
 		{

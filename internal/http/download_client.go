@@ -103,7 +103,7 @@ func (h downloadClientHandler) update(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h downloadClientHandler) delete(w http.ResponseWriter, r *http.Request) {
-	var clientID = chi.URLParam(r, "clientID")
+	clientID := chi.URLParam(r, "clientID")
 
 	if clientID == "" {
 		h.encoder.Error(w, errors.New("no clientID given"))

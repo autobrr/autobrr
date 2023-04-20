@@ -78,8 +78,8 @@ func Test_client_Push(t *testing.T) {
 				PublishDate:      "2021-08-21T15:36:00Z",
 			}},
 			rejections: []string{"Unknown Series"},
-			//err:     errors.New("sonarr push rejected Unknown Series"),
-			//wantErr: true,
+			// err:     errors.New("sonarr push rejected Unknown Series"),
+			// wantErr: true,
 		},
 		{
 			name: "push_error",
@@ -102,8 +102,8 @@ func Test_client_Push(t *testing.T) {
 				PublishDate:      "2021-08-21T15:36:00Z",
 			}},
 			rejections: []string{"Unknown Series"},
-			//err:     errors.New("sonarr push rejected Unknown Series"),
-			//wantErr: true,
+			// err:     errors.New("sonarr push rejected Unknown Series"),
+			// wantErr: true,
 		},
 	}
 	for _, tt := range tests {

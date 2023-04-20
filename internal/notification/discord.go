@@ -74,7 +74,7 @@ func (a *discordSender) Send(event domain.NotificationEvent, payload domain.Noti
 	}
 
 	req.Header.Set("Content-Type", "application/json")
-	//req.Header.Set("User-Agent", "autobrr")
+	// req.Header.Set("User-Agent", "autobrr")
 
 	t := &http.Transport{
 		TLSClientConfig: &tls.Config{
@@ -135,7 +135,6 @@ func (a *discordSender) isEnabledEvent(event domain.NotificationEvent) bool {
 }
 
 func (a *discordSender) buildEmbed(event domain.NotificationEvent, payload domain.NotificationPayload) DiscordEmbeds {
-
 	color := LIGHT_BLUE
 	switch event {
 	case domain.NotificationEventPushApproved:

@@ -6,10 +6,10 @@ import (
 	"encoding/json"
 	"time"
 
+	sq "github.com/Masterminds/squirrel"
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/internal/logger"
 	"github.com/autobrr/autobrr/pkg/errors"
-	sq "github.com/Masterminds/squirrel"
 
 	"github.com/rs/zerolog"
 )
@@ -149,7 +149,6 @@ func (r *IndexerRepo) FindByID(ctx context.Context, id int) (*domain.Indexer, er
 	i.Settings = settingsMap
 
 	return &i, nil
-
 }
 
 func (r *IndexerRepo) FindByFilterID(ctx context.Context, id int) ([]domain.Indexer, error) {
@@ -197,7 +196,6 @@ func (r *IndexerRepo) FindByFilterID(ctx context.Context, id int) ([]domain.Inde
 	}
 
 	return indexers, nil
-
 }
 
 func (r *IndexerRepo) Delete(ctx context.Context, id int) error {

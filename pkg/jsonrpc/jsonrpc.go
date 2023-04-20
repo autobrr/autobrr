@@ -163,7 +163,6 @@ func (c *rpcClient) newRequest(ctx context.Context, req interface{}) (*http.Requ
 }
 
 func (c *rpcClient) doCall(ctx context.Context, request RPCRequest) (*RPCResponse, error) {
-
 	httpRequest, err := c.newRequest(ctx, request)
 	if err != nil {
 		return nil, errors.Wrap(err, "could not create rpc http request")

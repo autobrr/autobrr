@@ -274,7 +274,6 @@ func (s *service) testPorlaConnection(client domain.DownloadClient) error {
 	})
 
 	version, err := p.Version()
-
 	if err != nil {
 		return errors.Wrap(err, "porla: failed to get version: %v", client.Host)
 	}

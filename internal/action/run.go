@@ -17,7 +17,6 @@ import (
 )
 
 func (s *service) RunAction(ctx context.Context, action *domain.Action, release *domain.Release) ([]string, error) {
-
 	var (
 		err        error
 		rejections []string

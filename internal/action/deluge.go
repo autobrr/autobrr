@@ -53,7 +53,6 @@ func (s *service) delugeCheckRulesCanDownload(deluge delugeClient.DelugeClient, 
 
 		// make sure it's not set to 0 by default
 		if client.Settings.Rules.MaxActiveDownloads > 0 {
-
 			// if max active downloads reached, check speed and if lower than threshold add anyway
 			if len(activeDownloads) >= client.Settings.Rules.MaxActiveDownloads {
 				s.log.Debug().Msg("max active downloads reached, skipping")
@@ -314,7 +313,6 @@ func (s *service) delugeV2(ctx context.Context, client *domain.DownloadClient, a
 }
 
 func (s *service) prepareDelugeOptions(action *domain.Action) (delugeClient.Options, error) {
-
 	// set options
 	options := delugeClient.Options{}
 

@@ -39,7 +39,6 @@ func (h releaseHandler) Routes(r chi.Router) {
 }
 
 func (h releaseHandler) findReleases(w http.ResponseWriter, r *http.Request) {
-
 	limitP := r.URL.Query().Get("limit")
 	limit, err := strconv.Atoi(limitP)
 	if err != nil && limitP != "" {
@@ -125,7 +124,6 @@ func (h releaseHandler) findReleases(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h releaseHandler) findRecentReleases(w http.ResponseWriter, r *http.Request) {
-
 	releases, err := h.service.FindRecent(r.Context())
 	if err != nil {
 		h.encoder.StatusResponse(w, http.StatusInternalServerError, map[string]interface{}{
@@ -158,7 +156,6 @@ func (h releaseHandler) getIndexerOptions(w http.ResponseWriter, r *http.Request
 }
 
 func (h releaseHandler) getStats(w http.ResponseWriter, r *http.Request) {
-
 	stats, err := h.service.Stats(r.Context())
 	if err != nil {
 		h.encoder.StatusResponse(w, http.StatusInternalServerError, map[string]interface{}{

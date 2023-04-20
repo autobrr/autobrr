@@ -117,11 +117,11 @@ func callers(skip int) []uintptr {
 //
 // Example:
 //
-// func Do() (err error) {
-//   defer func() {
-//     errors.RecoverPanic(recover(), &err)
-//   }()
-// }
+//	func Do() (err error) {
+//	  defer func() {
+//	    errors.RecoverPanic(recover(), &err)
+//	  }()
+//	}
 func RecoverPanic(r interface{}, errPtr *error) {
 	var err error
 	if r != nil {

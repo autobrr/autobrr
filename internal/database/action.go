@@ -147,8 +147,8 @@ func (r *ActionRepo) findByFilterID(ctx context.Context, tx *Tx, filterID int) (
 
 	return actions, nil
 }
-func (r *ActionRepo) attachDownloadClient(ctx context.Context, tx *Tx, clientID int32) (*domain.DownloadClient, error) {
 
+func (r *ActionRepo) attachDownloadClient(ctx context.Context, tx *Tx, clientID int32) (*domain.DownloadClient, error) {
 	queryBuilder := r.db.squirrel.
 		Select(
 			"id",
@@ -608,7 +608,6 @@ func (r *ActionRepo) StoreFilterActions(ctx context.Context, actions []*domain.A
 
 	if err := tx.Commit(); err != nil {
 		return nil, errors.Wrap(err, "error updating filter actions")
-
 	}
 
 	return actions, nil

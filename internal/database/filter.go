@@ -48,7 +48,6 @@ func (r *FilterRepo) Find(ctx context.Context, params domain.FilterQueryParams) 
 }
 
 func (r *FilterRepo) find(ctx context.Context, tx *Tx, params domain.FilterQueryParams) ([]domain.Filter, error) {
-
 	actionCountQuery := r.db.squirrel.
 		Select("COUNT(*)").
 		From("action a").

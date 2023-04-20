@@ -40,7 +40,7 @@ func (s *telegramSender) Send(event domain.NotificationEvent, payload domain.Not
 		ChatID:    s.Settings.Channel,
 		Text:      s.buildMessage(event, payload),
 		ParseMode: "HTML",
-		//ParseMode: "MarkdownV2",
+		// ParseMode: "MarkdownV2",
 	}
 
 	jsonData, err := json.Marshal(m)
@@ -58,7 +58,7 @@ func (s *telegramSender) Send(event domain.NotificationEvent, payload domain.Not
 	}
 
 	req.Header.Set("Content-Type", "application/json")
-	//req.Header.Set("User-Agent", "autobrr")
+	// req.Header.Set("User-Agent", "autobrr")
 
 	t := &http.Transport{
 		TLSClientConfig: &tls.Config{

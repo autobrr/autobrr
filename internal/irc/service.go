@@ -71,7 +71,7 @@ func (s *service) StartHandlers() {
 		}
 
 		// check if already in handlers
-		//v, ok := s.handlers[network.Name]
+		// v, ok := s.handlers[network.Name]
 
 		s.lock.Lock()
 		channels, err := s.repo.ListChannels(network.ID)
@@ -208,10 +208,10 @@ func (s *service) checkIfNetworkRestartNeeded(network *domain.IrcNetwork) error 
 
 			// join or leave channels
 			// loop over handler channels,
-			var expectedChannels = make(map[string]struct{}, 0)
-			var handlerChannels = make(map[string]struct{}, 0)
-			var channelsToLeave = make([]string, 0)
-			var channelsToJoin = make([]domain.IrcChannel, 0)
+			expectedChannels := make(map[string]struct{}, 0)
+			handlerChannels := make(map[string]struct{}, 0)
+			channelsToLeave := make([]string, 0)
+			channelsToJoin := make([]domain.IrcChannel, 0)
 
 			// create map of expected channels
 			for _, channel := range network.Channels {
@@ -442,9 +442,9 @@ func (s *service) GetNetworksWithHealth(ctx context.Context) ([]domain.IrcNetwor
 				Name:     channel.Name,
 				Password: channel.Password,
 				Detached: channel.Detached,
-				//Monitoring:      false,
-				//MonitoringSince: time.Time{},
-				//LastAnnounce:    time.Time{},
+				// Monitoring:      false,
+				// MonitoringSince: time.Time{},
+				// LastAnnounce:    time.Time{},
 			}
 
 			// only check if we have a handler
@@ -484,7 +484,7 @@ func (s *service) DeleteNetwork(ctx context.Context, id int64) error {
 	s.log.Debug().Msgf("delete network: %v", id)
 
 	// Remove network and handler
-	//if err = s.StopNetwork(network.Server); err != nil {
+	// if err = s.StopNetwork(network.Server); err != nil {
 	if err = s.StopAndRemoveNetwork(handlerKey{network.Server, network.Nick}); err != nil {
 		s.log.Error().Stack().Err(err).Msgf("could not stop and delete network: %v", network.Name)
 		return err
@@ -499,7 +499,6 @@ func (s *service) DeleteNetwork(ctx context.Context, id int64) error {
 }
 
 func (s *service) UpdateNetwork(ctx context.Context, network *domain.IrcNetwork) error {
-
 	if network.Channels != nil {
 		if err := s.repo.StoreNetworkChannels(ctx, network.ID, network.Channels); err != nil {
 			return err
@@ -553,7 +552,7 @@ func (s *service) StoreNetwork(ctx context.Context, network *domain.IrcNetwork) 
 				if err := s.repo.StoreChannel(network.ID, &channel); err != nil {
 					s.log.Error().Stack().Err(err).Msg("irc.storeChannel: error executing query")
 					return errors.Wrap(err, "error storing channel on network")
-					//return err
+					// return err
 				}
 			}
 		}

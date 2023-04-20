@@ -98,7 +98,7 @@ func (c *HttpClient) DownloadTorrentFile(url string, opts map[string]string) (*D
 		log.Debug().Msgf("successfully downloaded file: %v", tmpFile.Name())
 		return nil
 	},
-		//retry.OnRetry(func(n uint, err error) { c.log.Printf("%q: attempt %d - %v\n", err, n, url) }),
+		// retry.OnRetry(func(n uint, err error) { c.log.Printf("%q: attempt %d - %v\n", err, n, url) }),
 		retry.Delay(time.Second*5),
 		retry.Attempts(3),
 		retry.MaxJitter(time.Second*1))

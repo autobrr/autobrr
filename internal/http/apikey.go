@@ -48,7 +48,6 @@ func (h apikeyHandler) list(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h apikeyHandler) store(w http.ResponseWriter, r *http.Request) {
-
 	var (
 		ctx  = r.Context()
 		data domain.APIKey

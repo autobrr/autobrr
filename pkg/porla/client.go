@@ -10,9 +10,7 @@ import (
 	"github.com/autobrr/autobrr/pkg/jsonrpc"
 )
 
-var (
-	DefaultTimeout = 60 * time.Second
-)
+var DefaultTimeout = 60 * time.Second
 
 type Client struct {
 	Name      string

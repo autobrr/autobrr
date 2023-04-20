@@ -222,7 +222,7 @@ func (j *RSSJob) getFeed(ctx context.Context) (items []*gofeed.Item, err error) 
 
 	bucketKey := fmt.Sprintf("%v+%v", j.IndexerIdentifier, j.Name)
 
-	//sort.Sort(feed)
+	// sort.Sort(feed)
 
 	bucketCount, err := j.CacheRepo.GetCountByBucket(ctx, bucketKey)
 	if err != nil {
@@ -286,7 +286,7 @@ func isNewerThanMaxAge(maxAge int, item, now time.Time) bool {
 // isFreeleech basic freeleech parsing
 func isFreeleech(str []string) bool {
 	for _, s := range str {
-		var re = regexp.MustCompile(`(?mi)(\bfreeleech\b)`)
+		re := regexp.MustCompile(`(?mi)(\bfreeleech\b)`)
 
 		match := re.FindAllString(s, -1)
 

@@ -19,7 +19,7 @@ type RSSParser struct {
 
 // NewFeedParser wraps the gofeed.Parser using our own http client for full control
 func NewFeedParser(timeout time.Duration, cookie string) *RSSParser {
-	//store cookies in jar
+	// store cookies in jar
 	jarOptions := &cookiejar.Options{PublicSuffixList: publicsuffix.List}
 	jar, _ := cookiejar.New(jarOptions)
 

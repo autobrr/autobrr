@@ -17,7 +17,6 @@ func main() {
 		BotName: "_AnnounceBot_",
 		Channel: "#announces",
 	})
-
 	if err != nil {
 		log.Fatalf("Err: %v", err)
 	}

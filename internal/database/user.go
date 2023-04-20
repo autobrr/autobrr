@@ -46,7 +46,6 @@ func (r *UserRepo) GetUserCount(ctx context.Context) (int, error) {
 }
 
 func (r *UserRepo) FindByUsername(ctx context.Context, username string) (*domain.User, error) {
-
 	queryBuilder := r.db.squirrel.
 		Select("id", "username", "password").
 		From("users").
@@ -76,7 +75,6 @@ func (r *UserRepo) FindByUsername(ctx context.Context, username string) (*domain
 }
 
 func (r *UserRepo) Store(ctx context.Context, req domain.CreateUserRequest) error {
-
 	var err error
 
 	queryBuilder := r.db.squirrel.
@@ -98,7 +96,6 @@ func (r *UserRepo) Store(ctx context.Context, req domain.CreateUserRequest) erro
 }
 
 func (r *UserRepo) Update(ctx context.Context, user domain.User) error {
-
 	var err error
 
 	queryBuilder := r.db.squirrel.

@@ -201,7 +201,7 @@ func init() {
 	for s, infos := range types {
 		for _, info := range infos {
 			var err error
-			//if info.re, err = regexp.Compile(`(?i)^(?:` + info.RE() + `)$`); err != nil {
+			// if info.re, err = regexp.Compile(`(?i)^(?:` + info.RE() + `)$`); err != nil {
 			if info.re, err = regexp.Compile(`(?i)(?:` + info.RE() + `)`); err != nil {
 				errors.Wrap(err, "tag %q has invalid regexp %q\n", s, info.re)
 			}
@@ -292,9 +292,7 @@ func ParseReleaseTags(tags []string) ReleaseTags {
 	releaseTags := ReleaseTags{}
 
 	for _, tag := range tags {
-
 		for tagType, tagInfos := range types {
-
 			for _, info := range tagInfos {
 				// check tag
 				match := info.Match(tag)
@@ -340,11 +338,12 @@ func ParseReleaseTags(tags []string) ReleaseTags {
 
 	return releaseTags
 }
+
 func ParseReleaseTagString(tags string) ReleaseTags {
 	releaseTags := ReleaseTags{}
 
 	for tagType, tagInfos := range types {
-		//fmt.Printf("tagType: %v\n", tagType)
+		// fmt.Printf("tagType: %v\n", tagType)
 
 		for _, info := range tagInfos {
 			// check tag
@@ -353,7 +352,7 @@ func ParseReleaseTagString(tags string) ReleaseTags {
 				continue
 			}
 
-			//fmt.Printf("match: info: %v\n", info.Tag())
+			// fmt.Printf("match: info: %v\n", info.Tag())
 			switch tagType {
 			case "audio":
 				releaseTags.Audio = append(releaseTags.Audio, info.Tag())
@@ -388,7 +387,6 @@ func ParseReleaseTagString(tags string) ReleaseTags {
 			}
 			break
 		}
-
 	}
 
 	return releaseTags

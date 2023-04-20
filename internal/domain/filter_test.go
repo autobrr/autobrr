@@ -308,7 +308,7 @@ func TestFilter_CheckFilter(t *testing.T) {
 			name: "movie_bad_category_2",
 			fields: &Release{
 				TorrentName: "That Movie 2020 2160p BluRay DD5.1 x264-GROUP1",
-				//Category:    "Movies",
+				// Category:    "Movies",
 				Categories: []string{"Movies/HD", "2040"},
 				Freeleech:  true,
 				Size:       uint64(30000000001), // 30GB
@@ -335,7 +335,7 @@ func TestFilter_CheckFilter(t *testing.T) {
 			name: "movie_category_2",
 			fields: &Release{
 				TorrentName: "That Movie 2020 2160p BluRay DD5.1 x264-GROUP1",
-				//Category:    "Movies",
+				// Category:    "Movies",
 				Categories: []string{"Movies/HD", "2040"},
 				Freeleech:  true,
 				Size:       uint64(30000000001), // 30GB
@@ -361,7 +361,7 @@ func TestFilter_CheckFilter(t *testing.T) {
 			name: "movie_category_3",
 			fields: &Release{
 				TorrentName: "That Movie 2020 2160p BluRay DD5.1 x264-GROUP1",
-				//Category:    "Movies",
+				// Category:    "Movies",
 				Categories: []string{"Movies/HD", "2040"},
 				Freeleech:  true,
 				Size:       uint64(30000000001), // 30GB
@@ -387,7 +387,7 @@ func TestFilter_CheckFilter(t *testing.T) {
 			name: "movie_category_4",
 			fields: &Release{
 				TorrentName: "That Movie 2020 2160p BluRay DD5.1 x264-GROUP1",
-				//Category:    "Movies",
+				// Category:    "Movies",
 				Categories: []string{"Movies/HD", "2040"},
 				Freeleech:  true,
 				Size:       uint64(30000000001), // 30GB
@@ -1079,7 +1079,7 @@ func TestFilter_CheckFilter(t *testing.T) {
 					Quality:         []string{"24bit Lossless"},
 					Log:             true,
 					Cue:             true,
-					//LogScore:        100,
+					// LogScore:        100,
 				},
 			},
 			want: true,
@@ -1135,7 +1135,7 @@ func TestFilter_CheckFilter(t *testing.T) {
 					Media:           []string{"CD"},
 					Formats:         []string{"FLAC"},
 					Quality:         []string{"24bit Lossless"},
-					//PerfectFlac: true,
+					// PerfectFlac: true,
 					Log:      true,
 					LogScore: 100,
 					Cue:      true,
@@ -1163,7 +1163,7 @@ func TestFilter_CheckFilter(t *testing.T) {
 					Quality:           []string{"24bit Lossless", "Lossless"},
 					PerfectFlac:       true,
 					Log:               true,
-					//LogScore:          100,
+					// LogScore:          100,
 					Cue: true,
 				},
 			},
@@ -1235,7 +1235,7 @@ func TestFilter_CheckFilter(t *testing.T) {
 					Quality:           []string{"24bit Lossless", "Lossless"},
 					PerfectFlac:       true,
 					Log:               true,
-					//LogScore:          100,
+					// LogScore:          100,
 					Cue: true,
 				},
 			},
@@ -1463,7 +1463,7 @@ func TestFilter_CheckFilter1(t *testing.T) {
 				Resolutions: []string{"1080p"},
 				Sources:     []string{"BluRay"},
 				Codecs:      []string{"HEVC"},
-				//MatchHDR:    []string{"DV", "HDR"},
+				// MatchHDR:    []string{"DV", "HDR"},
 			},
 			args:           args{&Release{TorrentName: "Food Wars!: Shokugeki no Soma S05 2020 1080p BluRay HEVC 10-Bit DD2.0 Dual Audio -ZR-"}},
 			wantRejections: nil,
@@ -1568,7 +1568,7 @@ func TestFilter_CheckFilter1(t *testing.T) {
 				Quality: []string{"Lossless"},
 				Media:   []string{"CD"},
 				Log:     true,
-				//LogScore: 100,
+				// LogScore: 100,
 				Cue: true,
 			},
 			args:           args{&Release{TorrentName: "Gillan - Future Shock", ReleaseTags: "FLAC / Lossless / Log / 100% / Cue / CD / Scene"}},

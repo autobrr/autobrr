@@ -198,10 +198,10 @@ func (c *AppConfig) defaults() {
 
 func (c *AppConfig) load(configPath string) {
 	// or use viper.SetDefault(val, def)
-	//viper.SetDefault("host", config.Host)
-	//viper.SetDefault("port", config.Port)
-	//viper.SetDefault("logLevel", config.LogLevel)
-	//viper.SetDefault("logPath", config.LogPath)
+	// viper.SetDefault("host", config.Host)
+	// viper.SetDefault("port", config.Port)
+	// viper.SetDefault("logLevel", config.LogLevel)
+	// viper.SetDefault("logPath", config.LogPath)
 
 	viper.SetConfigType("toml")
 
@@ -209,7 +209,7 @@ func (c *AppConfig) load(configPath string) {
 	configPath = path.Clean(configPath)
 
 	if configPath != "" {
-		//viper.SetConfigName("config")
+		// viper.SetConfigName("config")
 
 		// check if path and file exists
 		// if not, create path and file
@@ -272,7 +272,7 @@ func (c *AppConfig) UpdateConfig() error {
 	lines = c.processLines(lines)
 
 	output := strings.Join(lines, "\n")
-	if err := os.WriteFile(file, []byte(output), 0644); err != nil {
+	if err := os.WriteFile(file, []byte(output), 0o644); err != nil {
 		return errors.Wrap(err, "could not write config file: %s", file)
 	}
 

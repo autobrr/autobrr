@@ -192,7 +192,7 @@ func (h *Handler) Run() error {
 	h.client.AddCallback("NICK", h.onNick)
 	h.client.AddCallback("903", h.handleSASLSuccess)
 
-	//h.setConnectionStatus()
+	// h.setConnectionStatus()
 	h.saslauthed = false
 
 	if err := func() error {
@@ -686,7 +686,6 @@ func (h *Handler) handleJoined(msg ircmsg.Message) {
 
 			h.log.Trace().Msgf("set monitoring: %v", v.name)
 		}
-
 	} else {
 		h.channelHealth[channel] = &channelHealth{
 			name:            channel,
