@@ -199,6 +199,9 @@ func (a *announceProcessor) onLinesMatched(def *domain.IndexerDefinition, vars m
 		return err
 	}
 
+	// replace all – with - in torrentName var (needed for proper parsing with rls)
+	rls.TorrentName = strings.ReplaceAll(rls.TorrentName, "–", "-")
+
 	// parse fields
 	// run before ParseMatch to not potentially use a reconstructed TorrentName
 	rls.ParseString(rls.TorrentName)
