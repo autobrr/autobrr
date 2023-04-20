@@ -13,7 +13,7 @@ type EventsReleasePushed struct {
 	ActionType     ActionType
 	ActionClient   string
 	Rejections     []string
-	Protocol       ReleaseProtocol       // torrent
+	Protocol       ReleaseProtocol       // torrent, usenet
 	Implementation ReleaseImplementation // irc, rss, api
 	Timestamp      time.Time
 }

@@ -1,15 +1,15 @@
 import { useRef } from "react";
-import { useMutation } from "react-query";
+import { useMutation, useQueryClient } from "react-query";
 import { toast } from "react-hot-toast";
-
 import { APIClient } from "../../api/APIClient";
 import Toast from "../../components/notifications/Toast";
-import { queryClient } from "../../App";
 import { useToggle } from "../../hooks/hooks";
 import { DeleteModal } from "../../components/modals";
 
 function ReleaseSettings() {
   const [deleteModalIsOpen, toggleDeleteModal] = useToggle(false);
+  const queryClient = useQueryClient();
+
   const deleteMutation = useMutation(() => APIClient.release.delete(), {
     onSuccess: () => {
       toast.custom((t) => (

@@ -343,6 +343,11 @@ export const ActionContentLayoutOptions: SelectGenericOption<ActionContentLayout
   { label: "Don't create subfolder", description: "Don't create subfolder", value: "SUBFOLDER_NONE" }
 ];
 
+export const ActionRtorrentRenameOptions: SelectGenericOption<ActionContentLayout>[] = [
+  { label: "No", description: "No", value: "ORIGINAL" },
+  { label: "Yes", description: "Yes", value: "SUBFOLDER_NONE" }
+];
+
 export interface OptionBasic {
   label: string;
   value: string;
@@ -493,5 +498,16 @@ export const FeedDownloadTypeOptions: OptionBasicTyped<FeedDownloadType>[] = [
   {
     label: "Torrent",
     value: "TORRENT"
+  }
+];
+
+export const tagsMatchLogicOptions: OptionBasic[] = [
+  {
+    label: "any",
+    value: "ANY"
+  },
+  {
+    label: "all",
+    value: "ALL"
   }
 ];

@@ -33,7 +33,7 @@ export async function HttpClient<T>(
           AuthContext.reset();
 
           // Show an error toast to notify the user what occurred
-          return Promise.resolve(response);
+          return Promise.reject(new Error("Unauthorized"));
         }
 
         return Promise.reject(new Error(await response.text()));
@@ -112,7 +112,7 @@ export const APIClient = {
       return appClient.Get<Filter[]>(`api/filters${q}`);
     },
     getByID: (id: number) => appClient.Get<Filter>(`api/filters/${id}`),
-    create: (filter: Filter) => appClient.Post("api/filters", filter),
+    create: (filter: Filter) => appClient.Post<Filter>("api/filters", filter),
     update: (filter: Filter) => appClient.Put(`api/filters/${filter.id}`, filter),
     duplicate: (id: number) => appClient.Get<Filter>(`api/filters/${id}/duplicate`),
     toggleEnable: (id: number, enabled: boolean) => appClient.Put(`api/filters/${id}/enabled`, { enabled }),
@@ -135,7 +135,8 @@ export const APIClient = {
     getSchema: () => appClient.Get<IndexerDefinition[]>("api/indexer/schema"),
     create: (indexer: Indexer) => appClient.Post<Indexer>("api/indexer", indexer),
     update: (indexer: Indexer) => appClient.Put("api/indexer", indexer),
-    delete: (id: number) => appClient.Delete(`api/indexer/${id}`)
+    delete: (id: number) => appClient.Delete(`api/indexer/${id}`),
+    testApi: (req: IndexerTestApiReq) => appClient.Post<IndexerTestApiReq>(`api/indexer/${req.id}/api/test`, req)
   },
   irc: {
     getNetworks: () => appClient.Get<IrcNetworkWithHealth[]>("api/irc"),

@@ -1,6 +1,5 @@
-import { queryClient } from "../../App";
 import { useRef } from "react";
-import { useMutation, useQuery } from "react-query";
+import { useMutation, useQuery, useQueryClient } from "react-query";
 import { KeyField } from "../../components/fields/text";
 import { DeleteModal } from "../../components/modals";
 import APIKeyAddForm from "../../forms/settings/APIKeyAddForm";
@@ -81,6 +80,8 @@ interface ApiKeyItemProps {
 function APIListItem({ apikey }: ApiKeyItemProps) {
   const cancelModalButtonRef = useRef(null);
   const [deleteModalIsOpen, toggleDeleteModal] = useToggle(false);
+
+  const queryClient = useQueryClient();
 
   const deleteMutation = useMutation(
     (key: string) => APIClient.apikeys.delete(key),

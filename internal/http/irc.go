@@ -52,7 +52,7 @@ func (h ircHandler) listNetworks(w http.ResponseWriter, r *http.Request) {
 		h.encoder.Error(w, err)
 	}
 
-	h.encoder.StatusResponse(ctx, w, networks, http.StatusOK)
+	h.encoder.StatusResponse(w, http.StatusOK, networks)
 }
 
 func (h ircHandler) getNetworkByID(w http.ResponseWriter, r *http.Request) {
@@ -68,7 +68,7 @@ func (h ircHandler) getNetworkByID(w http.ResponseWriter, r *http.Request) {
 		h.encoder.Error(w, err)
 	}
 
-	h.encoder.StatusResponse(ctx, w, network, http.StatusOK)
+	h.encoder.StatusResponse(w, http.StatusOK, network)
 }
 
 func (h ircHandler) restartNetwork(w http.ResponseWriter, r *http.Request) {

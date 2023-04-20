@@ -1,9 +1,8 @@
-import { useMutation, useQuery } from "react-query";
+import { useMutation, useQuery, useQueryClient } from "react-query";
 import { APIClient } from "../../api/APIClient";
 import { GithubRelease } from "../../types/Update";
 import { toast } from "react-hot-toast";
 import Toast from "../../components/notifications/Toast";
-import { queryClient } from "../../App";
 import Select, { components, ControlProps, InputProps, MenuProps, OptionProps } from "react-select";
 import { LogLevelOptions, SelectOption } from "../../domain/constants";
 import { LogFiles } from "../Logs";
@@ -131,6 +130,8 @@ function LogSettings() {
       onError: err => console.log(err)
     }
   );
+
+  const queryClient = useQueryClient();
 
   const setLogLevelUpdateMutation = useMutation(
     (value: string) => APIClient.config.update({ log_level: value }),

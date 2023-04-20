@@ -154,7 +154,7 @@ type ReleaseProtocol string
 
 const (
 	ReleaseProtocolTorrent ReleaseProtocol = "torrent"
-	ReleaseProtocolNzb     ReleaseProtocol = "nzb"
+	ReleaseProtocolNzb     ReleaseProtocol = "usenet"
 )
 
 func (r ReleaseProtocol) String() string {
@@ -162,7 +162,7 @@ func (r ReleaseProtocol) String() string {
 	case ReleaseProtocolTorrent:
 		return "torrent"
 	case ReleaseProtocolNzb:
-		return "nzb"
+		return "usenet"
 	default:
 		return "torrent"
 	}
@@ -332,16 +332,10 @@ func (r *Release) downloadTorrentFile(ctx context.Context) error {
 		return nil
 	}
 
-	jar, err := cookiejar.New(&cookiejar.Options{PublicSuffixList: publicsuffix.List})
-	if err != nil {
-		return errors.Wrap(err, "could not create cookiejar")
-	}
-
 	customTransport := http.DefaultTransport.(*http.Transport).Clone()
 	customTransport.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
 	client := &http.Client{
 		Transport: customTransport,
-		Jar:       jar,
 		Timeout:   time.Second * 45,
 	}
 
@@ -350,7 +344,15 @@ func (r *Release) downloadTorrentFile(ctx context.Context) error {
 		return errors.Wrap(err, "error downloading file")
 	}
 
+	req.Header.Set("User-Agent", "autobrr")
+
 	if r.RawCookie != "" {
+		jar, err := cookiejar.New(&cookiejar.Options{PublicSuffixList: publicsuffix.List})
+		if err != nil {
+			return errors.Wrap(err, "could not create cookiejar")
+		}
+		client.Jar = jar
+
 		// set the cookie on the header instead of req.AddCookie
 		// since we have a raw cookie like "uid=10; pass=000"
 		req.Header.Set("Cookie", r.RawCookie)

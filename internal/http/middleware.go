@@ -3,6 +3,7 @@ package http
 import (
 	"net/http"
 	"runtime/debug"
+	"strings"
 	"time"
 
 	"github.com/go-chi/chi/v5/middleware"
@@ -61,22 +62,24 @@ func LoggerMiddleware(logger *zerolog.Logger) func(next http.Handler) http.Handl
 					http.Error(ww, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 				}
 
-				// log end request
-				log.Info().
-					Str("type", "access").
-					Timestamp().
-					Fields(map[string]interface{}{
-						"remote_ip":  r.RemoteAddr,
-						"url":        r.URL.Path,
-						"proto":      r.Proto,
-						"method":     r.Method,
-						"user_agent": r.Header.Get("User-Agent"),
-						"status":     ww.Status(),
-						"latency_ms": float64(t2.Sub(t1).Nanoseconds()) / 1000000.0,
-						"bytes_in":   r.Header.Get("Content-Length"),
-						"bytes_out":  ww.BytesWritten(),
-					}).
-					Msg("incoming_request")
+				if !strings.Contains("/api/healthz/liveness|/api/healthz/readiness", r.URL.Path) {
+					// log end request
+					log.Trace().
+						Str("type", "access").
+						Timestamp().
+						Fields(map[string]interface{}{
+							"remote_ip":  r.RemoteAddr,
+							"url":        r.URL.Path,
+							"proto":      r.Proto,
+							"method":     r.Method,
+							"user_agent": r.Header.Get("User-Agent"),
+							"status":     ww.Status(),
+							"latency_ms": float64(t2.Sub(t1).Nanoseconds()) / 1000000.0,
+							"bytes_in":   r.Header.Get("Content-Length"),
+							"bytes_out":  ww.BytesWritten(),
+						}).
+						Msg("incoming_request")
+				}
 			}()
 
 			next.ServeHTTP(ww, r)
