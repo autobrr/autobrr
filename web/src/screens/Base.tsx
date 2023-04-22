@@ -3,16 +3,14 @@ import { Link, NavLink, Outlet } from "react-router-dom";
 import { Disclosure, Menu, Transition } from "@headlessui/react";
 import { ArrowTopRightOnSquareIcon, UserIcon } from "@heroicons/react/24/solid";
 import { Bars3Icon, XMarkIcon, MegaphoneIcon } from "@heroicons/react/24/outline";
+import { useMutation, useQuery } from "@tanstack/react-query";
 
 import { AuthContext } from "../utils/Context";
-
 import logo from "../logo.png";
-import { useMutation, useQuery } from "@tanstack/react-query";
 import { APIClient } from "../api/APIClient";
 import toast from "react-hot-toast";
-import Toast from "@/components/notifications/Toast";
-import { classNames } from "@utils";
-import { filterKeys } from "@screens/filters/list";
+import Toast from "../components/notifications/Toast";
+import { classNames } from "../utils";
 
 interface NavItem {
   name: string;
