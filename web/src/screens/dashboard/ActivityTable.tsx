@@ -1,5 +1,5 @@
 import * as React from "react";
-import { useQuery } from "react-query";
+import { useQuery } from "@tanstack/react-query";
 import {
   useTable,
   useFilters,
@@ -10,7 +10,6 @@ import {
 
 import { APIClient } from "../../api/APIClient";
 import { EmptyListState } from "../../components/emptystates";
-
 import * as Icons from "../../components/Icons";
 import * as DataTable from "../../components/data-table";
 
@@ -74,8 +73,9 @@ function Table({ columns, data }: TableProps) {
     usePagination
   );
 
-  if (!page.length)
+  if (!page.length) {
     return <EmptyListState text="No recent activity" />;
+  }
 
   // Render the UI for your table
   return (
@@ -178,24 +178,25 @@ export const ActivityTable = () => {
     }
   ], []);
 
-  const { isLoading, data } = useQuery(
-    "dash_recent_releases",
-    () => APIClient.release.findRecent(),
-    { refetchOnWindowFocus: false }
-  );
+  const { isLoading, data } = useQuery({
+    queryKey: ["dash_recent_releases"],
+    queryFn: APIClient.release.findRecent,
+    refetchOnWindowFocus: false
+  });
 
-  if (isLoading)
+  if (isLoading) {
     return (
       <div className="flex flex-col mt-12">
         <h3 className="text-2xl font-medium leading-6 text-gray-900 dark:text-gray-200">
-        &nbsp;
+          &nbsp;
         </h3>
         <div className="animate-pulse text-black dark:text-white">
-          <EmptyListState text="Loading..." />
+          <EmptyListState text="Loading..."/>
         </div>
       </div>
     );
-
+  }
+  
   return (
     <div className="flex flex-col mt-12">
       <h3 className="text-2xl font-medium leading-6 text-gray-900 dark:text-gray-200">
