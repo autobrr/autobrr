@@ -1,29 +1,30 @@
 import { useRef } from "react";
-import { useMutation, useQueryClient } from "react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "react-hot-toast";
+
 import { APIClient } from "../../api/APIClient";
 import Toast from "../../components/notifications/Toast";
 import { useToggle } from "../../hooks/hooks";
 import { DeleteModal } from "../../components/modals";
+import { releaseKeys } from "../../screens/releases/ReleaseTable";
 
 function ReleaseSettings() {
   const [deleteModalIsOpen, toggleDeleteModal] = useToggle(false);
   const queryClient = useQueryClient();
 
-  const deleteMutation = useMutation(() => APIClient.release.delete(), {
+  const deleteMutation = useMutation({
+    mutationFn:  APIClient.release.delete,
     onSuccess: () => {
       toast.custom((t) => (
         <Toast type="success" body={"All releases were deleted"} t={t}/>
       ));
 
       // Invalidate filters just in case, most likely not necessary but can't hurt.
-      queryClient.invalidateQueries("releases");
+      queryClient.invalidateQueries(releaseKeys.lists());
     }
   });
 
-  const deleteAction = () => {
-    deleteMutation.mutate();
-  };
+  const deleteAction = () => deleteMutation.mutate();
 
   const cancelModalButtonRef = useRef(null);
 

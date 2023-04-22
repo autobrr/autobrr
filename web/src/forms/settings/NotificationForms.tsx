@@ -4,15 +4,17 @@ import type { FieldProps } from "formik";
 import { Field, Form, Formik, FormikErrors, FormikValues } from "formik";
 import { XMarkIcon } from "@heroicons/react/24/solid";
 import Select, { components, ControlProps, InputProps, MenuProps, OptionProps } from "react-select";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { toast } from "react-hot-toast";
+
 import { PasswordFieldWide, SwitchGroupWide, TextFieldWide } from "../../components/inputs";
 import DEBUG from "../../components/debug";
 import { EventOptions, NotificationTypeOptions, SelectOption } from "../../domain/constants";
-import { useMutation, useQueryClient } from "react-query";
 import { APIClient } from "../../api/APIClient";
-import { toast } from "react-hot-toast";
 import Toast from "../../components/notifications/Toast";
 import { SlideOver } from "../../components/panels";
 import { componentMapType } from "./DownloadClientForms";
+import { notificationKeys } from "@screens/settings/Notifications";
 
 const Input = (props: InputProps) => {
   return (
@@ -137,36 +139,29 @@ interface AddProps {
 export function NotificationAddForm({ isOpen, toggle }: AddProps) {
   const queryClient = useQueryClient();
 
-  const mutation = useMutation(
-    (notification: Notification) => APIClient.notifications.create(notification),
-    {
-      onSuccess: () => {
-        queryClient.invalidateQueries(["notifications"]);
-        toast.custom((t) => <Toast type="success" body="Notification added!" t={t} />);
-        toggle();
-      },
-      onError: () => {
-        toast.custom((t) => <Toast type="error" body="Notification could not be added" t={t} />);
-      }
+  const createMutation = useMutation({
+    mutationFn: (notification: Notification) => APIClient.notifications.create(notification),
+    onSuccess: () => {
+      queryClient.invalidateQueries(notificationKeys.lists());
+
+      toast.custom((t) => <Toast type="success" body="Notification added!" t={t} />);
+      toggle();
+    },
+    onError: () => {
+      toast.custom((t) => <Toast type="error" body="Notification could not be added" t={t} />);
     }
-  );
+  });
 
-  const onSubmit = (formData: unknown) => {
-    mutation.mutate(formData as Notification);
-  };
+  const onSubmit = (formData: unknown) => createMutation.mutate(formData as Notification);
 
-  const testMutation = useMutation(
-    (n: Notification) => APIClient.notifications.test(n),
-    {
-      onError: (err) => {
-        console.error(err);
-      }
+  const testMutation = useMutation({
+    mutationFn: (n: Notification) => APIClient.notifications.test(n),
+    onError: (err) => {
+      console.error(err);
     }
-  );
+  });
 
-  const testNotification = (data: unknown) => {
-    testMutation.mutate(data as Notification);
-  };
+  const testNotification = (data: unknown) => testMutation.mutate(data as Notification);
 
   const validate = (values: NotificationAddFormValues) => {
     const errors = {} as FormikErrors<FormikValues>;
@@ -410,34 +405,28 @@ interface InitialValues {
 export function NotificationUpdateForm({ isOpen, toggle, notification }: UpdateProps) {
   const queryClient = useQueryClient();
 
-  const mutation = useMutation(
-    (notification: Notification) => APIClient.notifications.update(notification),
-    {
-      onSuccess: () => {
-        queryClient.invalidateQueries(["notifications"]);
-        toast.custom((t) => <Toast type="success" body={`${notification.name} was updated successfully`} t={t}/>);
-        toggle();
-      }
+  const mutation = useMutation({
+    mutationFn: (notification: Notification) => APIClient.notifications.update(notification),
+    onSuccess: () => {
+      queryClient.invalidateQueries(notificationKeys.lists());
+
+      toast.custom((t) => <Toast type="success" body={`${notification.name} was updated successfully`} t={t}/>);
+      toggle();
     }
-  );
+  });
 
-  const deleteMutation = useMutation(
-    (notificationID: number) => APIClient.notifications.delete(notificationID),
-    {
-      onSuccess: () => {
-        queryClient.invalidateQueries(["notifications"]);
-        toast.custom((t) => <Toast type="success" body={`${notification.name} was deleted.`} t={t}/>);
-      }
+  const onSubmit = (formData: unknown) => mutation.mutate(formData as Notification);
+
+  const deleteMutation = useMutation({
+    mutationFn: (notificationID: number) => APIClient.notifications.delete(notificationID),
+    onSuccess: () => {
+      queryClient.invalidateQueries(notificationKeys.lists());
+
+      toast.custom((t) => <Toast type="success" body={`${notification.name} was deleted.`} t={t}/>);
     }
-  );
+  });
 
-  const onSubmit = (formData: unknown) => {
-    mutation.mutate(formData as Notification);
-  };
-
-  const deleteAction = () => {
-    deleteMutation.mutate(notification.id);
-  };
+  const deleteAction = () => deleteMutation.mutate(notification.id);
 
   const testMutation = useMutation(
     (n: Notification) => APIClient.notifications.test(n),
@@ -448,9 +437,7 @@ export function NotificationUpdateForm({ isOpen, toggle, notification }: UpdateP
     }
   );
 
-  const testNotification = (data: unknown) => {
-    testMutation.mutate(data as Notification);
-  };
+  const testNotification = (data: unknown) => testMutation.mutate(data as Notification);
 
   const initialValues: InitialValues = {
     id: notification.id,

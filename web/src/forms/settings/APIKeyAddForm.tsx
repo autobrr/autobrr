@@ -1,5 +1,5 @@
 import { Fragment } from "react";
-import { useMutation, useQueryClient } from "react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "react-hot-toast";
 import { XMarkIcon } from "@heroicons/react/24/solid";
 import { Dialog, Transition } from "@headlessui/react";
@@ -9,6 +9,7 @@ import { Field, Form, Formik, FormikErrors, FormikValues } from "formik";
 import { APIClient } from "../../api/APIClient";
 import DEBUG from "../../components/debug";
 import Toast from "../../components/notifications/Toast";
+import { apiKeys } from "../../screens/settings/Api";
 
 interface apiKeyAddFormProps {
   isOpen: boolean;
@@ -18,17 +19,16 @@ interface apiKeyAddFormProps {
 function APIKeyAddForm({ isOpen, toggle }: apiKeyAddFormProps) {
   const queryClient = useQueryClient();
 
-  const mutation = useMutation(
-    (apikey: APIKey) => APIClient.apikeys.create(apikey),
-    {
-      onSuccess: (_, key) => {
-        queryClient.invalidateQueries("apikeys");
-        toast.custom((t) => <Toast type="success" body={`API key ${key.name} was added`} t={t}/>);
+  const mutation = useMutation({
+    mutationFn: (apikey: APIKey) => APIClient.apikeys.create(apikey),
+    onSuccess: (_, key) => {
+      queryClient.invalidateQueries(apiKeys.lists());
+      
+      toast.custom((t) => <Toast type="success" body={`API key ${key.name} was added`} t={t}/>);
 
-        toggle();
-      }
+      toggle();
     }
-  );
+  });
   
   const handleSubmit = (data: unknown) => mutation.mutate(data as APIKey);
   const validate = (values: FormikValues) => {
@@ -56,7 +56,6 @@ function APIKeyAddForm({ isOpen, toggle }: apiKeyAddFormProps) {
               leaveTo="translate-x-full"
             >
               <div className="w-screen max-w-2xl border-l dark:border-gray-700">
-
                 <Formik
                   initialValues={{
                     name: "",
@@ -114,10 +113,7 @@ function APIKeyAddForm({ isOpen, toggle }: apiKeyAddFormProps) {
                                     type="text"
                                     className="block w-full shadow-sm dark:bg-gray-800 border-gray-300 dark:border-gray-700 sm:text-sm dark:text-white focus:ring-blue-500 dark:focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-500 rounded-md"
                                   />
-
-                                  {meta.touched && meta.error &&
-                                      <span className="block mt-2 text-red-500">{meta.error}</span>}
-
+                                  {meta.touched && meta.error && <span className="block mt-2 text-red-500">{meta.error}</span>}
                                 </div>
                               )}
                             </Field>

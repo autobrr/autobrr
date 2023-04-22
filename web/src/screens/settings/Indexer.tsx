@@ -1,12 +1,21 @@
-import { useToggle } from "../../hooks/hooks";
-import { useQuery } from "react-query";
-import { IndexerAddForm, IndexerUpdateForm } from "../../forms";
+import { useState, useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Switch } from "@headlessui/react";
+
+import { IndexerAddForm, IndexerUpdateForm } from "../../forms";
+import { useToggle } from "../../hooks/hooks";
 import { classNames } from "../../utils";
 import { EmptySimple } from "../../components/emptystates";
 import { APIClient } from "../../api/APIClient";
 import { componentMapType } from "../../forms/settings/DownloadClientForms";
-import { useState, useMemo } from "react";
+
+export const indexerKeys = {
+  all: ["indexers"] as const,
+  lists: () => [...indexerKeys.all, "list"] as const,
+  // list: (indexers: string[], sortOrder: string) => [...indexerKeys.lists(), { indexers, sortOrder }] as const,
+  details: () => [...indexerKeys.all, "detail"] as const,
+  detail: (id: number) => [...indexerKeys.details(), id] as const
+};
 
 interface SortConfig {
   key: keyof ListItemProps["indexer"] | "enabled";
@@ -149,16 +158,17 @@ const ListItem = ({ indexer }: ListItemProps) => {
 function IndexerSettings() {
   const [addIndexerIsOpen, toggleAddIndexer] = useToggle(false);
 
-  const { error, data } = useQuery(
-    "indexer",
-    () => APIClient.indexers.getAll(),
-    { refetchOnWindowFocus: false }
-  );
+  const { error, data } = useQuery({
+    queryKey: indexerKeys.lists(),
+    queryFn: APIClient.indexers.getAll,
+    refetchOnWindowFocus: false
+  });
 
   const sortedIndexers = useSort(data || []);
 
-  if (error)
+  if (error) {
     return (<p>An error has occurred</p>);
+  }
 
   return (
     <div className="lg:col-span-9">

@@ -20,7 +20,7 @@ import {
   ReleaseSettings
 } from "../screens/settings/index";
 import { RegexPlayground } from "../screens/settings/RegexPlayground";
-import { NotFound } from "@/components/alerts/NotFound";
+import { NotFound } from "../components/alerts/NotFound";
 
 import { baseUrl } from "../utils";
 
