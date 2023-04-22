@@ -2,7 +2,7 @@ import { AlertWarning } from "../../components/alerts";
 import { DownloadClientSelect, NumberField, Select, SwitchGroup, TextField } from "../../components/inputs";
 import { ActionContentLayoutOptions, ActionRtorrentRenameOptions, ActionTypeNameMap, ActionTypeOptions } from "../../domain/constants";
 import React, { Fragment, useRef, useEffect, useState } from "react";
-import { useQuery } from "react-query";
+import { useQuery } from "@tanstack/react-query";
 import { APIClient } from "../../api/APIClient";
 import { Field, FieldArray, FieldProps, FormikValues } from "formik";
 import { EmptyListState } from "../../components/emptystates";
