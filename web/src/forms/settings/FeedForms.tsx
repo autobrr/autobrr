@@ -3,16 +3,16 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "react-hot-toast";
 import { useFormikContext } from "formik";
 
-import { APIClient } from "../../api/APIClient";
-import Toast from "../../components/notifications/Toast";
-import { SlideOver } from "../../components/panels";
-import { NumberFieldWide, PasswordFieldWide, SwitchGroupWide, TextFieldWide } from "../../components/inputs";
-import { SelectFieldBasic } from "../../components/inputs/select_wide";
+import { APIClient } from "@api/APIClient";
+import Toast from "@components/notifications/Toast";
+import { SlideOver } from "@components/panels";
+import { NumberFieldWide, PasswordFieldWide, SwitchGroupWide, TextFieldWide } from "@components/inputs";
+import { SelectFieldBasic } from "@components/inputs/select_wide";
 import { componentMapType } from "./DownloadClientForms";
-import { sleep } from "../../utils";
-import { ImplementationBadges } from "../../screens/settings/Indexer";
-import { FeedDownloadTypeOptions } from "../../domain/constants";
-import { feedKeys } from "../../screens/settings/Feed";
+import { sleep } from "@utils";
+import { ImplementationBadges } from "@screens/settings/Indexer";
+import { FeedDownloadTypeOptions } from "@domain/constants";
+import { feedKeys } from "@screens/settings/Feed";
 
 interface UpdateProps {
   isOpen: boolean;

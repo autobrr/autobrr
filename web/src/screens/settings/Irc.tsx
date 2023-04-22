@@ -12,13 +12,13 @@ import {
   TrashIcon
 } from "@heroicons/react/24/outline";
 
-import { classNames, IsEmptyDate, simplifyDate } from "../../utils";
-import { IrcNetworkAddForm, IrcNetworkUpdateForm } from "../../forms";
-import { useToggle } from "../../hooks/hooks";
-import { APIClient } from "../../api/APIClient";
-import { EmptySimple } from "../../components/emptystates";
-import { DeleteModal } from "../../components/modals";
-import Toast from "../../components/notifications/Toast";
+import { classNames, IsEmptyDate, simplifyDate } from "@utils";
+import { IrcNetworkAddForm, IrcNetworkUpdateForm } from "@forms";
+import { useToggle } from "@hooks/hooks";
+import { APIClient } from "@api/APIClient";
+import { EmptySimple } from "@components/emptystates";
+import { DeleteModal } from "@components/modals";
+import Toast from "@components/notifications/Toast";
 
 export const ircKeys = {
   all: ["irc_networks"] as const,

@@ -6,10 +6,10 @@ import { Dialog, Transition } from "@headlessui/react";
 import type { FieldProps } from "formik";
 import { Field, Form, Formik, FormikErrors, FormikValues } from "formik";
 
-import { APIClient } from "../../api/APIClient";
-import DEBUG from "../../components/debug";
-import Toast from "../../components/notifications/Toast";
-import { apiKeys } from "../../screens/settings/Api";
+import { APIClient } from "@api/APIClient";
+import DEBUG from "@components/debug";
+import Toast from "@components/notifications/Toast";
+import { apiKeys } from "@screens/settings/Api";
 
 interface apiKeyAddFormProps {
   isOpen: boolean;

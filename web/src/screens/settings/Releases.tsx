@@ -2,11 +2,11 @@ import { useRef } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "react-hot-toast";
 
-import { APIClient } from "../../api/APIClient";
-import Toast from "../../components/notifications/Toast";
-import { useToggle } from "../../hooks/hooks";
-import { DeleteModal } from "../../components/modals";
-import { releaseKeys } from "../../screens/releases/ReleaseTable";
+import { APIClient } from "@api/APIClient";
+import Toast from "@components/notifications/Toast";
+import { useToggle } from "@hooks/hooks";
+import { DeleteModal } from "@components/modals";
+import { releaseKeys } from "@screens/releases/ReleaseTable";
 
 function ReleaseSettings() {
   const [deleteModalIsOpen, toggleDeleteModal] = useToggle(false);

@@ -1,12 +1,12 @@
 import { useQuery } from "@tanstack/react-query";
 import { Switch } from "@headlessui/react";
 
-import { APIClient } from "../../api/APIClient";
-import { EmptySimple } from "../../components/emptystates";
-import { useToggle } from "../../hooks/hooks";
-import { NotificationAddForm, NotificationUpdateForm } from "../../forms/settings/NotificationForms";
-import { classNames } from "../../utils";
-import { componentMapType } from "../../forms/settings/DownloadClientForms";
+import { APIClient } from "@api/APIClient";
+import { EmptySimple } from "@components/emptystates";
+import { useToggle } from "@hooks/hooks";
+import { NotificationAddForm, NotificationUpdateForm } from "@forms/settings/NotificationForms";
+import { classNames } from "@utils";
+import { componentMapType } from "@forms/settings/DownloadClientForms";
 
 export const notificationKeys = {
   all: ["notifications"] as const,

@@ -20,10 +20,10 @@ import {
   SOURCES_MUSIC_OPTIONS,
   SOURCES_OPTIONS,
   tagsMatchLogicOptions
-} from "../../domain/constants";
-import { APIClient } from "../../api/APIClient";
-import { useToggle } from "../../hooks/hooks";
-import { classNames } from "../../utils";
+} from "@app/domain/constants";
+import { APIClient } from "@api/APIClient";
+import { useToggle } from "@hooks/hooks";
+import { classNames } from "@utils";
 
 import {
   CheckboxField,
@@ -34,12 +34,12 @@ import {
   SwitchGroup,
   TextField,
   RegexField
-} from "../../components/inputs";
-import DEBUG from "../../components/debug";
-import Toast from "../../components/notifications/Toast";
-import { DeleteModal } from "../../components/modals";
-import { TitleSubtitle } from "../../components/headings";
-import { TextArea } from "../../components/inputs/input";
+} from "@components/inputs";
+import DEBUG from "@components/debug";
+import Toast from "@components/notifications/Toast";
+import { DeleteModal } from "@components/modals";
+import { TitleSubtitle } from "@components/headings";
+import { TextArea } from "@components/inputs/input";
 import { FilterActions } from "./action";
 import { filterKeys } from "./list";
 

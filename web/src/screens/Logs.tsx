@@ -2,19 +2,20 @@ import { Fragment, useEffect, useRef, useState } from "react";
 import { ExclamationTriangleIcon } from "@heroicons/react/24/solid";
 import format from "date-fns/format";
 import { DebounceInput } from "react-debounce-input";
-import { APIClient } from "../api/APIClient";
-import { Checkbox } from "../components/Checkbox";
-import { classNames, simplifyDate } from "../utils";
-import { SettingsContext } from "../utils/Context";
-import { EmptySimple } from "../components/emptystates";
 import {
   Cog6ToothIcon,
   DocumentArrowDownIcon
 } from "@heroicons/react/24/outline";
 import { useQuery } from "@tanstack/react-query";
 import { Menu, Transition } from "@headlessui/react";
-import { baseUrl } from "../utils";
-import { RingResizeSpinner } from "@/components/Icons";
+
+import { APIClient } from "@api/APIClient";
+import { Checkbox } from "@components/Checkbox";
+import { classNames, simplifyDate } from "@utils";
+import { SettingsContext } from "@utils/Context";
+import { EmptySimple } from "@components/emptystates";
+import { baseUrl } from "@utils";
+import { RingResizeSpinner } from "@components/Icons";
 
 type LogEvent = {
   time: string;

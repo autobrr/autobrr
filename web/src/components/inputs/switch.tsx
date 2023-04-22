@@ -3,7 +3,7 @@ import type { FieldInputProps, FieldMetaProps, FieldProps, FormikProps, FormikVa
 import { Field } from "formik";
 import { Switch as HeadlessSwitch } from "@headlessui/react";
 
-import { classNames } from "../../utils";
+import { classNames } from "@utils";
 import { CustomTooltip } from "../tooltips/CustomTooltip";
 
 type SwitchProps<V = unknown> = {

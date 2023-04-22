@@ -1,13 +1,13 @@
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 
-import { Login } from "../screens/auth/login";
-import { Onboarding } from "../screens/auth/onboarding";
-import Base from "../screens/Base";
-import { Dashboard } from "../screens/dashboard";
-import { FilterDetails, Filters } from "../screens/filters";
-import { Logs } from "../screens/Logs";
-import { Releases } from "../screens/releases";
-import Settings from "../screens/Settings";
+import { Login } from "@screens/auth/login";
+import { Onboarding } from "@screens/auth/onboarding";
+import Base from "@screens/Base";
+import { Dashboard } from "@screens/dashboard";
+import { FilterDetails, Filters } from "@screens/filters";
+import { Logs } from "@screens/Logs";
+import { Releases } from "@screens/releases";
+import Settings from "@screens/Settings";
 import {
   APISettings,
   ApplicationSettings,
@@ -18,11 +18,11 @@ import {
   LogSettings,
   NotificationSettings,
   ReleaseSettings
-} from "../screens/settings/index";
-import { RegexPlayground } from "../screens/settings/RegexPlayground";
-import { NotFound } from "../components/alerts/NotFound";
+} from "@screens/settings/index";
+import { RegexPlayground } from "@screens/settings/RegexPlayground";
+import { NotFound } from "@components/alerts/NotFound";
 
-import { baseUrl } from "../utils";
+import { baseUrl } from "@utils";
 
 export const LocalRouter = ({ isLoggedIn }: { isLoggedIn: boolean }) => (
   <BrowserRouter basename={baseUrl()}>

@@ -2,12 +2,12 @@ import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Switch } from "@headlessui/react";
 
-import { IndexerAddForm, IndexerUpdateForm } from "../../forms";
-import { useToggle } from "../../hooks/hooks";
-import { classNames } from "../../utils";
-import { EmptySimple } from "../../components/emptystates";
-import { APIClient } from "../../api/APIClient";
-import { componentMapType } from "../../forms/settings/DownloadClientForms";
+import { IndexerAddForm, IndexerUpdateForm } from "@forms";
+import { useToggle } from "@hooks/hooks";
+import { classNames } from "@utils";
+import { EmptySimple } from "@components/emptystates";
+import { APIClient } from "@api/APIClient";
+import { componentMapType } from "@forms/settings/DownloadClientForms";
 
 export const indexerKeys = {
   all: ["indexers"] as const,

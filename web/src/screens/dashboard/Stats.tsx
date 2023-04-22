@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
-import { APIClient } from "../../api/APIClient";
-import { classNames } from "../../utils";
+import { APIClient } from "@api/APIClient";
+import { classNames } from "@utils";
 
 interface StatsItemProps {
     name: string;

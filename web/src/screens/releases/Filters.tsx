@@ -3,9 +3,9 @@ import { useQuery } from "@tanstack/react-query";
 import { Listbox, Transition } from "@headlessui/react";
 import { CheckIcon, ChevronDownIcon } from "@heroicons/react/24/solid";
 
-import { APIClient } from "../../api/APIClient";
-import { classNames } from "../../utils";
-import { PushStatusOptions } from "../../domain/constants";
+import { APIClient } from "@api/APIClient";
+import { classNames } from "@utils";
+import { PushStatusOptions } from "@domain/constants";
 import { FilterProps } from "react-table";
 import { DebounceInput } from "react-debounce-input";
 

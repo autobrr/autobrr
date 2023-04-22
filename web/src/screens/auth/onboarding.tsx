@@ -2,9 +2,9 @@ import { Form, Formik } from "formik";
 import { useMutation } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 
-import { APIClient } from "../../api/APIClient";
-import { TextField, PasswordField } from "../../components/inputs";
-import logo from "../../logo.png";
+import { APIClient } from "@api/APIClient";
+import { TextField, PasswordField } from "@components/inputs";
+import logo from "@app/logo.png";
 
 interface InputValues {
   username: string;

@@ -5,11 +5,11 @@ import { useMutation } from "@tanstack/react-query";
 import toast from "react-hot-toast";
 import { Tooltip } from "react-tooltip";
 
-import logo from "../../logo.png";
-import { APIClient } from "../../api/APIClient";
-import { AuthContext } from "../../utils/Context";
-import { PasswordInput, TextInput } from "../../components/inputs/text";
-import Toast from "../../components/notifications/Toast";
+import logo from "@app/logo.png";
+import { APIClient } from "@api/APIClient";
+import { AuthContext } from "@utils/Context";
+import { PasswordInput, TextInput } from "@components/inputs/text";
+import Toast from "@components/notifications/Toast";
 
 type LoginFormFields = {
   username: string;

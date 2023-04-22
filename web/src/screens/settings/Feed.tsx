@@ -10,13 +10,13 @@ import {
   TrashIcon
 } from "@heroicons/react/24/outline";
 
-import { APIClient } from "../../api/APIClient";
-import { useToggle } from "../../hooks/hooks";
-import { baseUrl, classNames, IsEmptyDate, simplifyDate } from "../../utils";
-import Toast from "../../components/notifications/Toast";
-import { DeleteModal } from "../../components/modals";
-import { FeedUpdateForm } from "../../forms/settings/FeedForms";
-import { EmptySimple } from "../../components/emptystates";
+import { APIClient } from "@api/APIClient";
+import { useToggle } from "@hooks/hooks";
+import { baseUrl, classNames, IsEmptyDate, simplifyDate } from "@utils";
+import Toast from "@components/notifications/Toast";
+import { DeleteModal } from "@components/modals";
+import { FeedUpdateForm } from "@forms/settings/FeedForms";
+import { EmptySimple } from "@components/emptystates";
 import { ImplementationBadges } from "./Indexer";
 
 export const feedKeys = {

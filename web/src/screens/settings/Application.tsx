@@ -1,11 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "react-hot-toast";
 
-import { APIClient } from "../../api/APIClient";
-import { Checkbox } from "../../components/Checkbox";
-import { SettingsContext } from "../../utils/Context";
-import { GithubRelease } from "../../types/Update";
-import Toast from "../../components/notifications/Toast";
+import { APIClient } from "@api/APIClient";
+import { Checkbox } from "@components/Checkbox";
+import { SettingsContext } from "@utils/Context";
+import { GithubRelease } from "@app/types/Update";
+import Toast from "@components/notifications/Toast";
 
 interface RowItemProps {
   label: string;

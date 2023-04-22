@@ -19,8 +19,8 @@ import {
 } from "@heroicons/react/24/outline";
 import { ArrowDownTrayIcon } from "@heroicons/react/24/solid";
 
-import { FilterListContext, FilterListState } from "../../utils/Context";
-import { classNames } from "../../utils";
+import { FilterListContext, FilterListState } from "@utils/Context";
+import { classNames } from "@utils";
 import { FilterAddForm } from "@forms";
 import { useToggle } from "@hooks/hooks";
 import { APIClient } from "@api/APIClient";

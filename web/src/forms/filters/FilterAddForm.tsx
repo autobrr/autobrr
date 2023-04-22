@@ -7,10 +7,10 @@ import type { FieldProps } from "formik";
 import { Field, Form, Formik, FormikErrors, FormikValues } from "formik";
 import { useNavigate } from "react-router-dom";
 
-import { APIClient } from "../../api/APIClient";
-import DEBUG from "../../components/debug";
-import Toast from "../../components/notifications/Toast";
-import { filterKeys } from "../../screens/filters/list";
+import { APIClient } from "@api/APIClient";
+import DEBUG from "@components/debug";
+import Toast from "@components/notifications/Toast";
+import { filterKeys } from "@screens/filters/list";
 
 interface filterAddFormProps {
     isOpen: boolean;

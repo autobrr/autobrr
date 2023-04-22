@@ -7,12 +7,12 @@ import Select, { components, ControlProps, InputProps, MenuProps, OptionProps } 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "react-hot-toast";
 
-import { PasswordFieldWide, SwitchGroupWide, TextFieldWide } from "../../components/inputs";
-import DEBUG from "../../components/debug";
-import { EventOptions, NotificationTypeOptions, SelectOption } from "../../domain/constants";
-import { APIClient } from "../../api/APIClient";
-import Toast from "../../components/notifications/Toast";
-import { SlideOver } from "../../components/panels";
+import { PasswordFieldWide, SwitchGroupWide, TextFieldWide } from "@components/inputs";
+import DEBUG from "@components/debug";
+import { EventOptions, NotificationTypeOptions, SelectOption } from "@domain/constants";
+import { APIClient } from "@api/APIClient";
+import Toast from "@components/notifications/Toast";
+import { SlideOver } from "@components/panels";
 import { componentMapType } from "./DownloadClientForms";
 import { notificationKeys } from "@screens/settings/Notifications";
 

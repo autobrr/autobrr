@@ -8,16 +8,16 @@ import {
   ChevronRightIcon
 } from "@heroicons/react/24/solid";
 
-import { APIClient } from "../../api/APIClient";
-import { EmptyListState } from "../../components/emptystates";
+import { APIClient } from "@api/APIClient";
+import { EmptyListState } from "@components/emptystates";
 
-import * as Icons from "../../components/Icons";
-import * as DataTable from "../../components/data-table";
+import * as Icons from "@components/Icons";
+import * as DataTable from "@components/data-table";
 
 import { IndexerSelectColumnFilter, PushStatusSelectColumnFilter, SearchColumnFilter } from "./Filters";
-import { classNames } from "../../utils";
+import { classNames } from "@utils";
 import { ArrowTopRightOnSquareIcon } from "@heroicons/react/24/outline";
-import { Tooltip } from "../../components/tooltips/Tooltip";
+import { Tooltip } from "@components/tooltips/Tooltip";
 
 export const releaseKeys = {
   all: ["releases"] as const,

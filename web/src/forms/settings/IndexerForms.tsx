@@ -7,15 +7,15 @@ import { Field, Form, Formik, FormikValues } from "formik";
 import { XMarkIcon } from "@heroicons/react/24/solid";
 import { Dialog, Transition } from "@headlessui/react";
 
-import { classNames, sleep } from "../../utils";
-import DEBUG from "../../components/debug";
-import { APIClient } from "../../api/APIClient";
-import { PasswordFieldWide, SwitchGroupWide, TextFieldWide } from "../../components/inputs";
-import { SlideOver } from "../../components/panels";
-import Toast from "../../components/notifications/Toast";
-import { SelectFieldBasic, SelectFieldCreatable } from "../../components/inputs/select_wide";
-import { CustomTooltip } from "../../components/tooltips/CustomTooltip";
-import { FeedDownloadTypeOptions } from "../../domain/constants";
+import { classNames, sleep } from "@utils";
+import DEBUG from "@components/debug";
+import { APIClient } from "@api/APIClient";
+import { PasswordFieldWide, SwitchGroupWide, TextFieldWide } from "@components/inputs";
+import { SlideOver } from "@components/panels";
+import Toast from "@components/notifications/Toast";
+import { SelectFieldBasic, SelectFieldCreatable } from "@components/inputs/select_wide";
+import { CustomTooltip } from "@components/tooltips/CustomTooltip";
+import { FeedDownloadTypeOptions } from "@domain/constants";
 import { feedKeys } from "@screens/settings/Feed";
 import { indexerKeys } from "@screens/settings/Indexer";
 

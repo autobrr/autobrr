@@ -3,14 +3,14 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "react-hot-toast";
 import { TrashIcon } from "@heroicons/react/24/outline";
 
-import { KeyField } from "../../components/fields/text";
-import { DeleteModal } from "../../components/modals";
-import APIKeyAddForm from "../../forms/settings/APIKeyAddForm";
-import Toast from "../../components/notifications/Toast";
-import { APIClient } from "../../api/APIClient";
-import { useToggle } from "../../hooks/hooks";
-import { classNames } from "../../utils";
-import { EmptySimple } from "../../components/emptystates";
+import { KeyField } from "@components/fields/text";
+import { DeleteModal } from "@components/modals";
+import APIKeyAddForm from "@forms/settings/APIKeyAddForm";
+import Toast from "@components/notifications/Toast";
+import { APIClient } from "@api/APIClient";
+import { useToggle } from "@hooks/hooks";
+import { classNames } from "@utils";
+import { EmptySimple } from "@components/emptystates";
 
 export const apiKeys = {
   all: ["feeds"] as const,

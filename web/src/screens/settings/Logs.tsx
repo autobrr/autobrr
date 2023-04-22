@@ -2,10 +2,10 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "react-hot-toast";
 import Select, { components, ControlProps, InputProps, MenuProps, OptionProps } from "react-select";
 
-import { APIClient } from "../../api/APIClient";
-import { GithubRelease } from "../../types/Update";
-import Toast from "../../components/notifications/Toast";
-import { LogLevelOptions, SelectOption } from "../../domain/constants";
+import { APIClient } from "@api/APIClient";
+import { GithubRelease } from "@app/types/Update";
+import Toast from "@components/notifications/Toast";
+import { LogLevelOptions, SelectOption } from "@domain/constants";
 import { LogFiles } from "../Logs";
 
 interface RowItemProps {

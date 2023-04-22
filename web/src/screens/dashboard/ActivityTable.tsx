@@ -8,10 +8,10 @@ import {
   usePagination, FilterProps, Column
 } from "react-table";
 
-import { APIClient } from "../../api/APIClient";
-import { EmptyListState } from "../../components/emptystates";
-import * as Icons from "../../components/Icons";
-import * as DataTable from "../../components/data-table";
+import { APIClient } from "@api/APIClient";
+import { EmptyListState } from "@components/emptystates";
+import * as Icons from "@components/Icons";
+import * as DataTable from "@components/data-table";
 
 // This is a custom filter UI for selecting
 // a unique option from a list

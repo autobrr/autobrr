@@ -5,22 +5,22 @@ import { XMarkIcon } from "@heroicons/react/24/solid";
 import { Form, Formik, useFormikContext } from "formik";
 import { toast } from "react-hot-toast";
 
-import { classNames, sleep } from "../../utils";
-import DEBUG from "../../components/debug";
-import { APIClient } from "../../api/APIClient";
-import { DownloadClientTypeOptions, DownloadRuleConditionOptions } from "../../domain/constants";
-import Toast from "../../components/notifications/Toast";
-import { useToggle } from "../../hooks/hooks";
-import { DeleteModal } from "../../components/modals";
+import { classNames, sleep } from "@utils";
+import DEBUG from "@components/debug";
+import { APIClient } from "@api/APIClient";
+import { DownloadClientTypeOptions, DownloadRuleConditionOptions } from "@domain/constants";
+import Toast from "@components/notifications/Toast";
+import { useToggle } from "@hooks/hooks";
+import { DeleteModal } from "@components/modals";
 import {
   NumberFieldWide,
   PasswordFieldWide,
   RadioFieldsetWide,
   SwitchGroupWide,
   TextFieldWide
-} from "../../components/inputs";
-import DownloadClient, { clientKeys } from "../../screens/settings/DownloadClient";
-import { SelectFieldWide } from "../../components/inputs/input_wide";
+} from "@components/inputs";
+import DownloadClient, { clientKeys } from "@screens/settings/DownloadClient";
+import { SelectFieldWide } from "@components/inputs/input_wide";
 
 interface InitialValuesSettings {
   basic?: {
