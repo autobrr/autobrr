@@ -1,5 +1,5 @@
 import * as React from "react";
-import { useQuery } from "react-query";
+import { useQuery } from "@tanstack/react-query";
 import { Listbox, Transition } from "@headlessui/react";
 import { CheckIcon, ChevronDownIcon } from "@heroicons/react/24/solid";
 
@@ -62,14 +62,12 @@ const ListboxFilter = ({
 export const IndexerSelectColumnFilter = ({
   column: { filterValue, setFilter, id }
 }: FilterProps<object>) => {
-  const { data, isSuccess } = useQuery(
-    "indexer_options",
-    () => APIClient.release.indexerOptions(),
-    {
-      keepPreviousData: true,
-      staleTime: Infinity
-    }
-  );
+  const { data, isSuccess } = useQuery({
+    queryKey: ["indexer_options"],
+    queryFn: () => APIClient.release.indexerOptions(),
+    keepPreviousData: true,
+    staleTime: Infinity
+  });
 
   // Render a multi-select box
   return (
