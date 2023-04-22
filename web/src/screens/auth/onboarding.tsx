@@ -1,8 +1,8 @@
 import { Form, Formik } from "formik";
-import { useMutation } from "react-query";
+import { useMutation } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
-import { APIClient } from "../../api/APIClient";
 
+import { APIClient } from "../../api/APIClient";
 import { TextField, PasswordField } from "../../components/inputs";
 import logo from "../../logo.png";
 
@@ -33,10 +33,10 @@ export const Onboarding = () => {
 
   const navigate = useNavigate();
 
-  const mutation = useMutation(
-    (data: InputValues) => APIClient.auth.onboard(data.username, data.password1),
-    { onSuccess: () => navigate("/") }
-  );
+  const mutation = useMutation({
+    mutationFn: (data: InputValues) => APIClient.auth.onboard(data.username, data.password1),
+    onSuccess: () => navigate("/")
+  });
 
   return (
     <div className="min-h-screen flex flex-col justify-center py-12 sm:px-6 lg:px-8">

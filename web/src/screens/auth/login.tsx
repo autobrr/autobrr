@@ -1,14 +1,15 @@
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { useNavigate } from "react-router-dom";
-import { useMutation } from "react-query";
+import { useMutation } from "@tanstack/react-query";
+import toast from "react-hot-toast";
+import { Tooltip } from "react-tooltip";
+
 import logo from "../../logo.png";
 import { APIClient } from "../../api/APIClient";
 import { AuthContext } from "../../utils/Context";
 import { PasswordInput, TextInput } from "../../components/inputs/text";
-import { Tooltip } from "react-tooltip";
-import Toast from "@/components/notifications/Toast";
-import toast from "react-hot-toast";
+import Toast from "../../components/notifications/Toast";
 
 type LoginFormFields = {
   username: string;
@@ -37,23 +38,21 @@ export const Login = () => {
       .catch(() => { /*don't log to console PAHLLEEEASSSE*/ });
   }, []);
 
-  const loginMutation = useMutation(
-    (data: LoginFormFields) => APIClient.auth.login(data.username, data.password),
-    {
-      onSuccess: (_, variables: LoginFormFields) => {
-        setAuthContext({
-          username: variables.username,
-          isLoggedIn: true
-        });
-        navigate("/");
-      },
-      onError: () => {
-        toast.custom((t) => (
-          <Toast type="error" body="Wrong password or username!" t={t} />
-        ));
-      }
+  const loginMutation = useMutation({
+    mutationFn: (data: LoginFormFields) => APIClient.auth.login(data.username, data.password),
+    onSuccess: (_, variables: LoginFormFields) => {
+      setAuthContext({
+        username: variables.username,
+        isLoggedIn: true
+      });
+      navigate("/");
+    },
+    onError: () => {
+      toast.custom((t) => (
+        <Toast type="error" body="Wrong password or username!" t={t} />
+      ));
     }
-  );
+  });
 
   const onSubmit = (data: LoginFormFields) => loginMutation.mutate(data);
 
