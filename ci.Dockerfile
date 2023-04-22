@@ -16,12 +16,8 @@ COPY . ./
 RUN go env -w GOMODCACHE="$GOMODCACHE" && go env -w GOCACHE="$GOCACHE"
 
 RUN --mount=target=. \
-    --mount=type=cache,target=$GOMODCACHE \
-    --mount=type=cache,target=$GOCACHE \
     GOOS=$TARGETOS GOARCH=$TARGETARCH go build -ldflags "-s -w -X main.version=${VERSION} -X main.commit=${REVISION} -X main.date=${BUILDTIME}" -o /out/bin/autobrr cmd/autobrr/main.go
 RUN --mount=target=. \
-    --mount=type=cache,target=$GOMODCACHE \
-    --mount=type=cache,target=$GOCACHE \
     GOOS=$TARGETOS GOARCH=$TARGETARCH go build -ldflags "-s -w -X main.version=${VERSION} -X main.commit=${REVISION} -X main.date=${BUILDTIME}" -o /out/bin/autobrrctl cmd/autobrrctl/main.go
 
 # build runner
