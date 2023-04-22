@@ -335,11 +335,11 @@ export default function FilterDetails() {
 }
 
 export function General(){
-  const { isLoading, data: indexers } = useQuery(
-    ["filters", "indexer_list"],
-    () => APIClient.indexers.getOptions(),
-    { refetchOnWindowFocus: false }
-  );
+  const { isLoading, data: indexers } = useQuery({
+    queryKey: ["filters", "indexer_list"],
+    queryFn: APIClient.indexers.getOptions,
+    refetchOnWindowFocus: false
+  });
 
   const opts = indexers && indexers.length > 0 ? indexers.map(v => ({
     label: v.name,

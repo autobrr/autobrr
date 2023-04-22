@@ -45,7 +45,7 @@ export function FeedUpdateForm({ isOpen, toggle, feed }: UpdateProps) {
   const mutation = useMutation({
     mutationFn: (feed: Feed) => APIClient.feeds.update(feed),
     onSuccess: () => {
-      queryClient.invalidateQueries(feedKeys.lists());
+      queryClient.invalidateQueries({ queryKey: feedKeys.lists() });
       
       toast.custom((t) => <Toast type="success" body={`${feed.name} was updated successfully`} t={t} />);
       toggle();
@@ -57,7 +57,7 @@ export function FeedUpdateForm({ isOpen, toggle, feed }: UpdateProps) {
   const deleteMutation = useMutation({
     mutationFn: (feedID: number) => APIClient.feeds.delete(feedID),
     onSuccess: () => {
-      queryClient.invalidateQueries(feedKeys.lists());
+      queryClient.invalidateQueries({ queryKey: feedKeys.lists() });
 
       toast.custom((t) => <Toast type="success" body={`${feed.name} was deleted.`} t={t} />);
     }

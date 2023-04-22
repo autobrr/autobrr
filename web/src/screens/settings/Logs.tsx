@@ -137,7 +137,7 @@ function LogSettings() {
     onSuccess: () => {
       toast.custom((t) => <Toast type="success" body={"Config successfully updated!"} t={t}/>);
 
-      queryClient.invalidateQueries(["config"]);
+      queryClient.invalidateQueries({ queryKey: ["config"] });
     }
   });
 

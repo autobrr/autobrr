@@ -91,7 +91,7 @@ function ApplicationSettings() {
   const checkUpdateMutation = useMutation({
     mutationFn: APIClient.updates.check,
     onSuccess: () => {
-      queryClient.invalidateQueries(["updates"]);
+      queryClient.invalidateQueries({ queryKey: ["updates"] });
     }
   });
 
@@ -100,7 +100,7 @@ function ApplicationSettings() {
     onSuccess: () => {
       toast.custom((t) => <Toast type="success" body={"Config successfully updated!"} t={t}/>);
 
-      queryClient.invalidateQueries(["config"]);
+      queryClient.invalidateQueries({ queryKey: ["config"] });
 
       checkUpdateMutation.mutate();
     }

@@ -20,7 +20,7 @@ function ReleaseSettings() {
       ));
 
       // Invalidate filters just in case, most likely not necessary but can't hurt.
-      queryClient.invalidateQueries(releaseKeys.lists());
+      queryClient.invalidateQueries({ queryKey: releaseKeys.lists() });
     }
   });
 

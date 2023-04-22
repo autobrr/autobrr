@@ -142,7 +142,7 @@ export function NotificationAddForm({ isOpen, toggle }: AddProps) {
   const createMutation = useMutation({
     mutationFn: (notification: Notification) => APIClient.notifications.create(notification),
     onSuccess: () => {
-      queryClient.invalidateQueries(notificationKeys.lists());
+      queryClient.invalidateQueries({ queryKey: notificationKeys.lists() });
 
       toast.custom((t) => <Toast type="success" body="Notification added!" t={t} />);
       toggle();
@@ -408,7 +408,7 @@ export function NotificationUpdateForm({ isOpen, toggle, notification }: UpdateP
   const mutation = useMutation({
     mutationFn: (notification: Notification) => APIClient.notifications.update(notification),
     onSuccess: () => {
-      queryClient.invalidateQueries(notificationKeys.lists());
+      queryClient.invalidateQueries({ queryKey: notificationKeys.lists() });
 
       toast.custom((t) => <Toast type="success" body={`${notification.name} was updated successfully`} t={t}/>);
       toggle();
@@ -420,7 +420,7 @@ export function NotificationUpdateForm({ isOpen, toggle, notification }: UpdateP
   const deleteMutation = useMutation({
     mutationFn: (notificationID: number) => APIClient.notifications.delete(notificationID),
     onSuccess: () => {
-      queryClient.invalidateQueries(notificationKeys.lists());
+      queryClient.invalidateQueries({ queryKey: notificationKeys.lists() });
 
       toast.custom((t) => <Toast type="success" body={`${notification.name} was deleted.`} t={t}/>);
     }

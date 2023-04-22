@@ -97,8 +97,8 @@ function APIListItem({ apikey }: ApiKeyItemProps) {
   const deleteMutation = useMutation({
     mutationFn: (key: string) => APIClient.apikeys.delete(key),
     onSuccess: () => {
-      queryClient.invalidateQueries(apiKeys.lists());
-      queryClient.invalidateQueries(apiKeys.detail(apikey.key));
+      queryClient.invalidateQueries({ queryKey: apiKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: apiKeys.detail(apikey.key) });
 
       toast.custom((t) => (
         <Toast

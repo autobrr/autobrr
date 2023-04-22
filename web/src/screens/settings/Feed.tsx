@@ -151,10 +151,10 @@ function ListItem({ feed }: ListItemProps) {
   const updateMutation = useMutation({
     mutationFn: (status: boolean) => APIClient.feeds.toggleEnable(feed.id, status),
     onSuccess: () => {
-      toast.custom((t) => <Toast type="success" body={`${feed.name} was ${enabled ? "disabled" : "enabled"} successfully`} t={t}/>);
+      queryClient.invalidateQueries({ queryKey: feedKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: feedKeys.detail(feed.id) });
 
-      queryClient.invalidateQueries(feedKeys.lists());
-      queryClient.invalidateQueries(feedKeys.detail(feed.id));
+      toast.custom((t) => <Toast type="success" body={`${feed.name} was ${enabled ? "disabled" : "enabled"} successfully`} t={t}/>);
     }
   });
 
@@ -232,11 +232,10 @@ const FeedItemDropdown = ({
   const deleteMutation = useMutation({
     mutationFn: (id: number) => APIClient.feeds.delete(id),
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: feedKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: feedKeys.detail(feed.id) });
+
       toast.custom((t) => <Toast type="success" body={`Feed ${feed?.name} was deleted`} t={t}/>);
-
-      queryClient.invalidateQueries(feedKeys.lists());
-      queryClient.invalidateQueries(feedKeys.detail(feed.id));
-
     }
   });
 

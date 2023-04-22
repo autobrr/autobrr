@@ -22,7 +22,7 @@ function APIKeyAddForm({ isOpen, toggle }: apiKeyAddFormProps) {
   const mutation = useMutation({
     mutationFn: (apikey: APIKey) => APIClient.apikeys.create(apikey),
     onSuccess: (_, key) => {
-      queryClient.invalidateQueries(apiKeys.lists());
+      queryClient.invalidateQueries({ queryKey: apiKeys.lists() });
       
       toast.custom((t) => <Toast type="success" body={`API key ${key.name} was added`} t={t}/>);
 

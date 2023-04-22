@@ -105,7 +105,7 @@ export function IrcNetworkAddForm({ isOpen, toggle }: AddFormProps) {
   const mutation = useMutation({
     mutationFn: (network: IrcNetwork) => APIClient.irc.createNetwork(network),
     onSuccess: () => {
-      queryClient.invalidateQueries(ircKeys.lists());
+      queryClient.invalidateQueries({ queryKey: ircKeys.lists() });
 
       toast.custom((t) => <Toast type="success" body="IRC Network added. Please allow up to 30 seconds for the network to come online." t={t} />);
       toggle();
@@ -249,7 +249,7 @@ export function IrcNetworkUpdateForm({
   const updateMutation = useMutation({
     mutationFn: (network: IrcNetwork) => APIClient.irc.updateNetwork(network),
     onSuccess: () => {
-      queryClient.invalidateQueries(ircKeys.lists());
+      queryClient.invalidateQueries({ queryKey: ircKeys.lists() });
 
       toast.custom((t) => <Toast type="success" body={`${network.name} was updated successfully`} t={t} />);
 
@@ -262,7 +262,7 @@ export function IrcNetworkUpdateForm({
   const deleteMutation = useMutation({
     mutationFn: (id: number) => APIClient.irc.deleteNetwork(id),
     onSuccess: () => {
-      queryClient.invalidateQueries(ircKeys.lists());
+      queryClient.invalidateQueries({ queryKey: ircKeys.lists() });
 
       toast.custom((t) => <Toast type="success" body={`${network.name} was deleted.`} t={t} />);
 

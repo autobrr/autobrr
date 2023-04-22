@@ -520,7 +520,7 @@ export function DownloadClientAddForm({ isOpen, toggle }: formProps) {
   const addMutation = useMutation({
     mutationFn: (client: DownloadClient) => APIClient.download_clients.create(client),
     onSuccess: () => {
-      queryClient.invalidateQueries(clientKeys.lists());
+      queryClient.invalidateQueries({ queryKey: clientKeys.lists() });
       toast.custom((t) => <Toast type="success" body="Client was added" t={t}/>);
 
       toggle();
@@ -692,8 +692,8 @@ export function DownloadClientUpdateForm({ client, isOpen, toggle }: updateFormP
   const mutation = useMutation({
     mutationFn: (client: DownloadClient) => APIClient.download_clients.update(client),
     onSuccess: () => {
-      queryClient.invalidateQueries(clientKeys.lists());
-      queryClient.invalidateQueries(clientKeys.detail(client.id));
+      queryClient.invalidateQueries({ queryKey: clientKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: clientKeys.detail(client.id) });
 
       toast.custom((t) => <Toast type="success" body={`${client.name} was updated successfully`} t={t}/>);
       toggle();
@@ -705,8 +705,8 @@ export function DownloadClientUpdateForm({ client, isOpen, toggle }: updateFormP
   const deleteMutation = useMutation({
     mutationFn: (clientID: number) => APIClient.download_clients.delete(clientID),
     onSuccess: () => {
-      queryClient.invalidateQueries(clientKeys.lists());
-      queryClient.invalidateQueries(clientKeys.detail(client.id));
+      queryClient.invalidateQueries({ queryKey: clientKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: clientKeys.detail(client.id) });
 
       toast.custom((t) => <Toast type="success" body={`${client.name} was deleted.`} t={t}/>);
       toggleDeleteModal();

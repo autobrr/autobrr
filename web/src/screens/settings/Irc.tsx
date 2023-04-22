@@ -216,7 +216,8 @@ const ListItem = ({ idx, network, expanded }: ListItemProps) => {
   const updateMutation = useMutation({
     mutationFn: (network: IrcNetwork) => APIClient.irc.updateNetwork(network),
     onSuccess: () => {
-      queryClient.invalidateQueries(ircKeys.lists());
+      queryClient.invalidateQueries({ queryKey: ircKeys.lists() });
+
       toast.custom((t) => <Toast type="success" body={`${network.name} was updated successfully`} t={t}/>);
     }
   });
@@ -410,8 +411,8 @@ const ListItemDropdown = ({
   const deleteMutation = useMutation({
     mutationFn: (id: number) => APIClient.irc.deleteNetwork(id),
     onSuccess: () => {
-      queryClient.invalidateQueries(ircKeys.lists());
-      queryClient.invalidateQueries(ircKeys.detail(network.id));
+      queryClient.invalidateQueries({ queryKey: ircKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: ircKeys.detail(network.id) });
 
       toast.custom((t) => <Toast type="success" body={`Network ${network.name} was deleted`} t={t}/>);
 
@@ -422,8 +423,8 @@ const ListItemDropdown = ({
   const restartMutation = useMutation({
     mutationFn: (id: number) => APIClient.irc.restartNetwork(id),
     onSuccess: () => {
-      queryClient.invalidateQueries(ircKeys.lists());
-      queryClient.invalidateQueries(ircKeys.detail(network.id));
+      queryClient.invalidateQueries({ queryKey: ircKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: ircKeys.detail(network.id) });
 
       toast.custom((t) => <Toast type="success" body={`${network.name} was successfully restarted`} t={t}/>);
     }

@@ -92,7 +92,7 @@ function DownloadClientSettingsListItem({ client }: DLSettingsItemProps) {
     onSuccess: () => {
       toast.custom((t) => <Toast type="success" body={`${client.name} was updated successfully`} t={t}/>);
 
-      queryClient.invalidateQueries(clientKeys.lists());
+      queryClient.invalidateQueries({ queryKey: clientKeys.lists() });
     }
   });
 

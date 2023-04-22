@@ -23,7 +23,7 @@ function FilterAddForm({ isOpen, toggle }: filterAddFormProps) {
   const mutation = useMutation({
     mutationFn: (filter: Filter) => APIClient.filters.create(filter),
     onSuccess: (filter) => {
-      queryClient.invalidateQueries(filterKeys.lists());
+      queryClient.invalidateQueries({ queryKey: filterKeys.lists() });
 
       toast.custom((t) => <Toast type="success" body={`Filter ${filter.name} was added`} t={t} />);
 

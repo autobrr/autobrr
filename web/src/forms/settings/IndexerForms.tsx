@@ -257,7 +257,8 @@ export function IndexerAddForm({ isOpen, toggle }: AddProps) {
   const mutation = useMutation({
     mutationFn: (indexer: Indexer) => APIClient.indexers.create(indexer),
     onSuccess: () => {
-      queryClient.invalidateQueries(["indexer"]);
+      queryClient.invalidateQueries({ queryKey: indexerKeys.lists() });
+
       toast.custom((t) => <Toast type="success" body="Indexer was added" t={t} />);
       sleep(1500);
       toggle();
@@ -274,7 +275,7 @@ export function IndexerAddForm({ isOpen, toggle }: AddProps) {
   const feedMutation = useMutation({
     mutationFn: (feed: FeedCreate) => APIClient.feeds.create(feed),
     onSuccess: () => {
-      queryClient.invalidateQueries(feedKeys.lists());
+      queryClient.invalidateQueries({ queryKey: feedKeys.lists() });
     }
   });
 
@@ -711,8 +712,8 @@ export function IndexerUpdateForm({ isOpen, toggle, indexer }: UpdateProps) {
   const mutation = useMutation({
     mutationFn: (indexer: Indexer) => APIClient.indexers.update(indexer),
     onSuccess: () => {
-      queryClient.invalidateQueries(indexerKeys.lists());
-      
+      queryClient.invalidateQueries({ queryKey: indexerKeys.lists() });
+
       toast.custom((t) => <Toast type="success" body={`${indexer.name} was updated successfully`} t={t} />);
       sleep(1500);
 
@@ -728,7 +729,7 @@ export function IndexerUpdateForm({ isOpen, toggle, indexer }: UpdateProps) {
   const deleteMutation = useMutation({
     mutationFn: (id: number) => APIClient.indexers.delete(id),
     onSuccess: () => {
-      queryClient.invalidateQueries(indexerKeys.lists());
+      queryClient.invalidateQueries({ queryKey: indexerKeys.lists() });
 
       toast.custom((t) => <Toast type="success" body={`${indexer.name} was deleted.`} t={t} />);
 
