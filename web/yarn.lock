@@ -703,6 +703,56 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@tanstack/match-sorter-utils@npm:^8.7.0":
+  version: 8.8.4
+  resolution: "@tanstack/match-sorter-utils@npm:8.8.4"
+  dependencies:
+    remove-accents: 0.4.2
+  checksum: d005f500754f52ef94966cbbe4217f26e7e3c07291faa2578b06bca9a5abe01689569994c37a1d01c6e783addf5ffbb28fa82eba7961d36eabf43ec43d1e496b
+  languageName: node
+  linkType: hard
+
+"@tanstack/query-core@npm:4.29.1":
+  version: 4.29.1
+  resolution: "@tanstack/query-core@npm:4.29.1"
+  checksum: e7a5a73e5e743411e39348bee3ded4b6c5dd3a70009e72e067e257d5f3d612bfe8df0998cddff6ad7a078e0bcf7a3c92ded669758ca697055472ce910e23a368
+  languageName: node
+  linkType: hard
+
+"@tanstack/react-query-devtools@npm:^4.29.3":
+  version: 4.29.3
+  resolution: "@tanstack/react-query-devtools@npm:4.29.3"
+  dependencies:
+    "@tanstack/match-sorter-utils": ^8.7.0
+    superjson: ^1.10.0
+    use-sync-external-store: ^1.2.0
+  peerDependencies:
+    "@tanstack/react-query": 4.29.3
+    react: ^16.8.0 || ^17.0.0 || ^18.0.0
+    react-dom: ^16.8.0 || ^17.0.0 || ^18.0.0
+  checksum: fd52531b4ef8776fdb7f6957216a1a933f3507d7e6b20ca63d6a2fe78e25658b6d1a712a71cca04cd29715bc66c2952312434190faedab1b3702cb71527460ee
+  languageName: node
+  linkType: hard
+
+"@tanstack/react-query@npm:^4.29.3":
+  version: 4.29.3
+  resolution: "@tanstack/react-query@npm:4.29.3"
+  dependencies:
+    "@tanstack/query-core": 4.29.1
+    use-sync-external-store: ^1.2.0
+  peerDependencies:
+    react: ^16.8.0 || ^17.0.0 || ^18.0.0
+    react-dom: ^16.8.0 || ^17.0.0 || ^18.0.0
+    react-native: "*"
+  peerDependenciesMeta:
+    react-dom:
+      optional: true
+    react-native:
+      optional: true
+  checksum: 7d33fe001ba6ec2332c28749312e5268e6bc060ea0e7c3faa37a28a12fd4b4fddd3803fdfb4e6551997f06d4cd32568e39d9cc9a26c19f40cfef276fad1eaaee
+  languageName: node
+  linkType: hard
+
 "@tootallnate/once@npm:2":
   version: 2.0.0
   resolution: "@tootallnate/once@npm:2.0.0"
@@ -1497,6 +1547,15 @@ __metadata:
   version: 1.9.0
   resolution: "convert-source-map@npm:1.9.0"
   checksum: dc55a1f28ddd0e9485ef13565f8f756b342f9a46c4ae18b843fe3c30c675d058d6a4823eff86d472f187b176f0adf51ea7b69ea38be34be4a63cbbf91b0593c8
+  languageName: node
+  linkType: hard
+
+"copy-anything@npm:^3.0.2":
+  version: 3.0.3
+  resolution: "copy-anything@npm:3.0.3"
+  dependencies:
+    is-what: ^4.1.8
+  checksum: d456dc5ec98dee7c7cf87d809eac30dc2ac942acd4cf970fab394e280ceb6dd7a8a7a5a44fcbcc50e0206658de3cc20b92863562f5797930bb2619f164f4c182
   languageName: node
   linkType: hard
 
@@ -2953,6 +3012,13 @@ __metadata:
   dependencies:
     call-bind: ^1.0.2
   checksum: 95bd9a57cdcb58c63b1c401c60a474b0f45b94719c30f548c891860f051bc2231575c290a6b420c6bc6e7ed99459d424c652bd5bf9a1d5259505dc35b4bf83de
+  languageName: node
+  linkType: hard
+
+"is-what@npm:^4.1.8":
+  version: 4.1.8
+  resolution: "is-what@npm:4.1.8"
+  checksum: b9bec3acff102d14ad467f4c74c9886af310fa160e07a63292c8c181e6768c7c4c1054644e13d67185b963644e4a513bce8c6b8ce3d3ca6f9488a69fccad5f97
   languageName: node
   linkType: hard
 
@@ -4588,6 +4654,15 @@ __metadata:
   languageName: node
   linkType: hard
 
+"superjson@npm:^1.10.0":
+  version: 1.12.3
+  resolution: "superjson@npm:1.12.3"
+  dependencies:
+    copy-anything: ^3.0.2
+  checksum: 3549cc1d03e93745632d8114f91ed1668d81a0cf4c618f8f89a1b06f426a9cd1a2879f0e79469a6a193fd19dcea9a8fecff6215d12527b98c40c67cd98f185d3
+  languageName: node
+  linkType: hard
+
 "supports-color@npm:^5.3.0":
   version: 5.5.0
   resolution: "supports-color@npm:5.5.0"
@@ -4871,6 +4946,15 @@ __metadata:
   languageName: node
   linkType: hard
 
+"use-sync-external-store@npm:^1.2.0":
+  version: 1.2.0
+  resolution: "use-sync-external-store@npm:1.2.0"
+  peerDependencies:
+    react: ^16.8.0 || ^17.0.0 || ^18.0.0
+  checksum: 5c639e0f8da3521d605f59ce5be9e094ca772bd44a4ce7322b055a6f58eeed8dda3c94cabd90c7a41fb6fa852210092008afe48f7038792fd47501f33299116a
+  languageName: node
+  linkType: hard
+
 "util-deprecate@npm:^1.0.1, util-deprecate@npm:^1.0.2":
   version: 1.0.2
   resolution: "util-deprecate@npm:1.0.2"
@@ -4934,6 +5018,8 @@ __metadata:
     "@heroicons/react": ^2.0.11
     "@hookform/error-message": ^2.0.0
     "@tailwindcss/forms": ^0.5.2
+    "@tanstack/react-query": ^4.29.3
+    "@tanstack/react-query-devtools": ^4.29.3
     "@types/node": ^18.0.0
     "@types/react": ^18.0.12
     "@types/react-dom": ^18.0.5
