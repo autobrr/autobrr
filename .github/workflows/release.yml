@@ -161,24 +161,6 @@ jobs:
           name: web-dist
           path: web/dist
 
-      - name: Set up Go
-        uses: actions/setup-go@v4
-        with:
-          go-version: '1.20.3'
-          cache: true
-       
-      - id: go-cache-paths
-        run: |
-          go env -w GOMODCACHE="$PWD/.mod"
-          go env -w GOCACHE="$PWD/.go"
-          echo "::set-output name=go-build::$(go env GOCACHE)"
-          echo "::set-output name=go-mod::$(go env GOMODCACHE)"
-          mkdir -p $(go env GOCACHE) || true
-          mkdir -p $(go env GOMODCACHE) || true
-
-      - name: Download Go depencencies
-        run: go mod download
-
       - name: Login to GitHub Container Registry
         uses: docker/login-action@v2
         with:
@@ -212,7 +194,5 @@ jobs:
             BUILDTIME=${{ fromJSON(steps.meta.outputs.json).labels['org.opencontainers.image.created'] }}
             VERSION=${{ fromJSON(steps.meta.outputs.json).labels['org.opencontainers.image.version'] }}
             REVISION=${{ github.event.pull_request.head.sha }}
-            GOCACHE=${{ steps.go-cache-paths.outputs.go-build }}
-            GOMODCACHE=${{ steps.go-cache-paths.outputs.go-mod }}
       - name: Image digest
         run: echo ${{ steps.docker_build.outputs.digest }}
