@@ -68,7 +68,7 @@ function APISettings() {
                 </div>
               </li>
 
-              {data && data.map((k) => <APIListItem key={k.key} apikey={k} />)}
+              {data && data.map((k, idx) => <APIListItem key={idx} apikey={k} />)}
             </ol>
           </section>
         ) : (

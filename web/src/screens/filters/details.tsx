@@ -177,15 +177,17 @@ export default function FilterDetails() {
     }
   });
 
-  const deleteMutation = useMutation((id: number) => APIClient.filters.delete(id), {
+  const deleteMutation = useMutation({
+    mutationFn: (id: number) => APIClient.filters.delete(id),
     onSuccess: () => {
+      // Invalidate filters just in case, most likely not necessary but can't hurt.
+      queryClient.invalidateQueries({ queryKey: filterKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: filterKeys.detail(id) });
+
       toast.custom((t) => (
         <Toast type="success" body={`${filter?.name} was deleted`} t={t} />
       ));
 
-      // Invalidate filters just in case, most likely not necessary but can't hurt.
-      queryClient.invalidateQueries({ queryKey: filterKeys.lists() });
-      queryClient.invalidateQueries({ queryKey: filterKeys.detail(id) });
 
       // redirect
       navigate("/filters");

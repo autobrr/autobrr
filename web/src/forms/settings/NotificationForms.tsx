@@ -428,14 +428,12 @@ export function NotificationUpdateForm({ isOpen, toggle, notification }: UpdateP
 
   const deleteAction = () => deleteMutation.mutate(notification.id);
 
-  const testMutation = useMutation(
-    (n: Notification) => APIClient.notifications.test(n),
-    {
-      onError: (err) => {
-        console.error(err);
-      }
+  const testMutation = useMutation({
+    mutationFn: (n: Notification) => APIClient.notifications.test(n),
+    onError: (err) => {
+      console.error(err);
     }
-  );
+  });
 
   const testNotification = (data: unknown) => testMutation.mutate(data as Notification);
 
