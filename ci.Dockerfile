@@ -1,7 +1,7 @@
 # build app
 FROM --platform=$BUILDPLATFORM golang:1.20-alpine3.16 AS app-builder
 
-RUN apk add --no-cache git make build-base tzdata
+RUN apk add --no-cache git tzdata
 
 ENV SERVICE=autobrr
 
