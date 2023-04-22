@@ -1,23 +1,33 @@
 # build app
 FROM --platform=$BUILDPLATFORM golang:1.20-alpine3.16 AS app-builder
 
-ARG VERSION=dev
-ARG REVISION=dev
-ARG BUILDTIME
-ARG TARGETOS TARGETARCH GOMODCACHE GOCACHE
+ARG GOMODCACHE GOCACHE
 
 RUN apk add --no-cache git make build-base tzdata
+RUN go env -w GOMODCACHE="$GOMODCACHE" && go env -w GOCACHE="$GOCACHE"
 
-ENV SERVICE=autobrr GOMODCACHE=$GOMODCACHE GOCACHE=$GOCACHE
+ENV SERVICE=autobrr
 
 WORKDIR /src
 COPY . ./
 
-RUN go env -w GOMODCACHE="$GOMODCACHE" && go env -w GOCACHE="$GOCACHE"
+RUN --mount=target=. \
+    --mount=type=cache,target=$GOMODCACHE \
+    --mount=type=cache,target=$GOCACHE \
+    go mod download
+
+ARG VERSION=dev
+ARG REVISION=dev
+ARG BUILDTIME
+ARG TARGETOS TARGETARCH
 
 RUN --mount=target=. \
+    --mount=type=cache,target=$GOMODCACHE \
+    --mount=type=cache,target=$GOCACHE \
     GOOS=$TARGETOS GOARCH=$TARGETARCH go build -ldflags "-s -w -X main.version=${VERSION} -X main.commit=${REVISION} -X main.date=${BUILDTIME}" -o /out/bin/autobrr cmd/autobrr/main.go
 RUN --mount=target=. \
+    --mount=type=cache,target=$GOMODCACHE \
+    --mount=type=cache,target=$GOCACHE \
     GOOS=$TARGETOS GOARCH=$TARGETARCH go build -ldflags "-s -w -X main.version=${VERSION} -X main.commit=${REVISION} -X main.date=${BUILDTIME}" -o /out/bin/autobrrctl cmd/autobrrctl/main.go
 
 # build runner
