@@ -26,7 +26,7 @@ const Toast: FC<Props> = ({ type, body, t }) => (
             {type === "error" && "Error"}
             {type === "warning" && "Warning"}
           </p>
-          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">{body}</p>
+          <span className="mt-1 text-sm text-gray-500 dark:text-gray-400">{body}</span>
         </div>
         <div className="ml-4 flex-shrink-0 flex">
           <button

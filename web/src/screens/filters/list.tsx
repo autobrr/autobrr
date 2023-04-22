@@ -2,7 +2,7 @@ import { Dispatch, FC, Fragment, MouseEventHandler, useReducer, useRef, useState
 import { Link } from "react-router-dom";
 import { toast } from "react-hot-toast";
 import { Listbox, Menu, Switch, Transition } from "@headlessui/react";
-import { useMutation, useQuery, useQueryClient } from "react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { FormikValues } from "formik";
 import { useCallback } from "react";
 import { Tooltip } from "react-tooltip";
@@ -26,6 +26,14 @@ import Toast from "../../components/notifications/Toast";
 import { EmptyListState } from "../../components/emptystates";
 import { DeleteModal } from "../../components/modals";
 import { ArrowDownTrayIcon } from "@heroicons/react/24/solid";
+
+export const filterKeys = {
+  all: ["filters"] as const,
+  lists: () => [...filterKeys.all, "list"] as const,
+  list: (indexers: string[], sortOrder: string) => [...filterKeys.lists(), { indexers, sortOrder }] as const,
+  details: () => [...filterKeys.all, "detail"] as const,
+  detail: (id: number) => [...filterKeys.details(), id] as const
+};
 
 enum ActionType {
   INDEXER_FILTER_CHANGE = "INDEXER_FILTER_CHANGE",

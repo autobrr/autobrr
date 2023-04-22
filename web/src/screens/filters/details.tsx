@@ -1,5 +1,5 @@
 import React, { useRef } from "react";
-import { useMutation, useQuery, useQueryClient } from "react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { NavLink, Route, Routes, useLocation, useNavigate, useParams } from "react-router-dom";
 import { toast } from "react-hot-toast";
 import { Form, Formik, FormikValues, useFormikContext } from "formik";
@@ -41,6 +41,7 @@ import { DeleteModal } from "../../components/modals";
 import { TitleSubtitle } from "../../components/headings";
 import { TextArea } from "../../components/inputs/input";
 import { FilterActions } from "./action";
+import { filterKeys } from "./list";
 
 interface tabType {
   name: string;
@@ -144,28 +145,37 @@ export default function FilterDetails() {
   const navigate = useNavigate();
   const { filterId } = useParams<{ filterId: string }>();
 
-  const { isLoading, data: filter } = useQuery(
-    ["filters", filterId],
-    () => APIClient.filters.getByID(parseInt(filterId ?? "0")),
-    {
-      retry: false,
-      refetchOnWindowFocus: false,
-      onError: () => navigate("./")
-    }
-  );
+  if (filterId === "0" || undefined) {
+    navigate("/filters");
+  }
 
-  const updateMutation = useMutation(
-    (filter: Filter) => APIClient.filters.update(filter),
-    {
-      onSuccess: (_, currentFilter) => {
-        toast.custom((t) => (
-          <Toast type="success" body={`${currentFilter.name} was updated successfully`} t={t} />
-        ));
-        queryClient.refetchQueries(["filters"]);
-        // queryClient.invalidateQueries(["filters", currentFilter.id]);
-      }
+  const id = parseInt(filterId!);
+
+  const { isLoading, data: filter } = useQuery({
+    queryKey: filterKeys.detail(id),
+    queryFn: ({ queryKey }) => APIClient.filters.getByID(queryKey[2]),
+    refetchOnWindowFocus: false,
+    onError: () => {
+      navigate("/filters");
     }
-  );
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: (filter: Filter) => APIClient.filters.update(filter),
+    onSuccess: (newFilter, variables) => {
+      queryClient.setQueryData(filterKeys.detail(variables.id), newFilter);
+
+      queryClient.setQueryData<Filter[]>(filterKeys.lists(), (previous) => {
+        if (previous) {
+          return previous.map((filter: Filter) => (filter.id === variables.id ? newFilter : filter));
+        }
+      });
+
+      toast.custom((t) => (
+        <Toast type="success" body={`${newFilter.name} was updated successfully`} t={t}/>
+      ));
+    }
+  });
 
   const deleteMutation = useMutation((id: number) => APIClient.filters.delete(id), {
     onSuccess: () => {
@@ -174,7 +184,8 @@ export default function FilterDetails() {
       ));
 
       // Invalidate filters just in case, most likely not necessary but can't hurt.
-      queryClient.invalidateQueries(["filters"]);
+      queryClient.invalidateQueries({ queryKey: filterKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: filterKeys.detail(id) });
 
       // redirect
       navigate("/filters");
@@ -234,7 +245,7 @@ export default function FilterDetails() {
               initialValues={{
                 id: filter.id,
                 name: filter.name,
-                enabled: filter.enabled || false,
+                enabled: filter.enabled,
                 min_size: filter.min_size,
                 max_size: filter.max_size,
                 delay: filter.delay,
