@@ -33,13 +33,9 @@ XDG_DATA_HOME="/config"
 RUN apk --no-cache add ca-certificates curl tzdata jq
 
 WORKDIR /app
-
 VOLUME /config
+EXPOSE 7474
+ENTRYPOINT ["/usr/local/bin/autobrr", "--config", "/config"]
 
 COPY --from=app-builder /out/bin/autobrr /usr/local/bin/
 COPY --from=app-builder /out/bin/autobrrctl /usr/local/bin/
-
-EXPOSE 7474
-
-ENTRYPOINT ["/usr/local/bin/autobrr", "--config", "/config"]
-#CMD ["--config", "/config"]
