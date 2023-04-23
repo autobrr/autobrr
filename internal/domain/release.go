@@ -562,20 +562,22 @@ func (r *Release) MapVars(def *IndexerDefinition, varMap map[string]string) erro
 			//log.Debug().Msgf("bad freeleechPercent var: %v", year)
 		}
 
-		r.Freeleech = true
-		r.FreeleechPercent = freeleechPercentInt
-
-		r.Bonus = append(r.Bonus, "Freeleech")
-
-		switch freeleechPercentInt {
-		case 25:
-			r.Bonus = append(r.Bonus, "Freeleech25")
-		case 50:
-			r.Bonus = append(r.Bonus, "Freeleech50")
-		case 75:
-			r.Bonus = append(r.Bonus, "Freeleech75")
-		case 100:
-			r.Bonus = append(r.Bonus, "Freeleech100")
+		if (freeleechPercentInt > 0) {
+			r.Freeleech = true
+			r.FreeleechPercent = freeleechPercentInt
+	
+			r.Bonus = append(r.Bonus, "Freeleech")
+	
+			switch freeleechPercentInt {
+			case 25:
+				r.Bonus = append(r.Bonus, "Freeleech25")
+			case 50:
+				r.Bonus = append(r.Bonus, "Freeleech50")
+			case 75:
+				r.Bonus = append(r.Bonus, "Freeleech75")
+			case 100:
+				r.Bonus = append(r.Bonus, "Freeleech100")
+			}
 		}
 	}
 
