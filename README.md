@@ -232,7 +232,7 @@ Start the service. Enable will make it startup on reboot.
 systemctl enable -q --now --user autobrr@$USER
 ```
 
-By default, the configuration is set to listen on `127.0.0.1`. It is highly recommended to use a reverse proxy like [nginx](https://autobrr.com/installation/linux#nginx), [caddy](https://autobrr.com/installation/linux#caddy) or [traefik](https://autobrr.com/installation/docker#traefik).
+By default, the configuration is set to listen on `127.0.0.1`. While autobrr works fine as is exposed to the internet, it is recommended to use a reverse proxy like [nginx](https://autobrr.com/installation/linux#nginx), [caddy](https://autobrr.com/installation/linux#caddy) or [traefik](https://autobrr.com/installation/docker#traefik).
 
 If you are not running a reverse proxy change `host` in the `config.toml` to `0.0.0.0`.
 
