@@ -200,7 +200,7 @@ jobs:
           context: .
           file: ./ci.Dockerfile
           platforms: linux/amd64,linux/arm/v7,linux/arm64/v8
-          push: ${{ contains(github.event.pull_request.base.repo.full_name, 'autobrr') }}
+          push: ${{ contains(github.event.pull_request.head.repo.full_name, 'autobrr') }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
