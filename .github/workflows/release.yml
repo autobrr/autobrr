@@ -195,7 +195,7 @@ jobs:
           context: .
           file: ./ci.Dockerfile
           platforms: linux/amd64,linux/arm/v7,linux/arm64/v8
-          push: ${{ steps.check.outputs.has-permission }}
+          push: "${{ steps.check.outputs.has-permission }}"
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
