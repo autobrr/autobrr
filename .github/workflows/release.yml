@@ -187,6 +187,11 @@ jobs:
           required-permission: write
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          
+      - name: Dump Permissions
+        env:
+          PERMISSIONS: ${{ steps.check.outputs.has-permission }}
+        run: echo "$PERMISSIONS"
 
       - name: Build and publish image
         id: docker_build
