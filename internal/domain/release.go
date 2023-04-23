@@ -546,6 +546,8 @@ func (r *Release) MapVars(def *IndexerDefinition, varMap map[string]string) erro
 		fl := StringEqualFoldMulti(freeleech, "freeleech", "yes", "1", "VIP")
 		if fl {
 			r.Freeleech = true
+			// default to 100 and override if freeleechPercent is present in next function
+			r.FreeleechPercent = 100
 			r.Bonus = append(r.Bonus, "Freeleech")
 		}
 	}
@@ -575,7 +577,6 @@ func (r *Release) MapVars(def *IndexerDefinition, varMap map[string]string) erro
 		case 100:
 			r.Bonus = append(r.Bonus, "Freeleech100")
 		}
-
 	}
 
 	if uploader, err := getStringMapValue(varMap, "uploader"); err == nil {
