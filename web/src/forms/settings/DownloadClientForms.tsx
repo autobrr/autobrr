@@ -1,11 +1,10 @@
 import React, { Fragment, useRef, useState } from "react";
-import { useMutation } from "react-query";
+import { useMutation, useQueryClient } from "react-query";
 import { Dialog, Transition } from "@headlessui/react";
 import { XMarkIcon } from "@heroicons/react/24/solid";
 import { classNames, sleep } from "../../utils";
 import { Form, Formik, useFormikContext } from "formik";
 import DEBUG from "../../components/debug";
-import { queryClient } from "../../App";
 import { APIClient } from "../../api/APIClient";
 import { DownloadClientTypeOptions, DownloadRuleConditionOptions } from "../../domain/constants";
 
@@ -516,6 +515,8 @@ export function DownloadClientAddForm({ isOpen, toggle }: formProps) {
   const [isSuccessfulTest, setIsSuccessfulTest] = useState(false);
   const [isErrorTest, setIsErrorTest] = useState(false);
 
+  const queryClient = useQueryClient();
+
   const mutation = useMutation(
     (client: DownloadClient) => APIClient.download_clients.create(client),
     {
@@ -690,6 +691,8 @@ export function DownloadClientUpdateForm({ client, isOpen, toggle }: updateFormP
   const [isSuccessfulTest, setIsSuccessfulTest] = useState(false);
   const [isErrorTest, setIsErrorTest] = useState(false);
   const [deleteModalIsOpen, toggleDeleteModal] = useToggle(false);
+
+  const queryClient = useQueryClient();
 
   const mutation = useMutation(
     (client: DownloadClient) => APIClient.download_clients.update(client),

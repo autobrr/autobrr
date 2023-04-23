@@ -46,15 +46,13 @@ func (h indexerHandler) Routes(r chi.Router) {
 }
 
 func (h indexerHandler) getSchema(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-
 	indexers, err := h.service.GetTemplates()
 	if err != nil {
 		h.encoder.Error(w, err)
 		return
 	}
 
-	h.encoder.StatusResponse(ctx, w, indexers, http.StatusOK)
+	h.encoder.StatusResponse(w, http.StatusOK, indexers)
 }
 
 func (h indexerHandler) store(w http.ResponseWriter, r *http.Request) {
@@ -74,7 +72,7 @@ func (h indexerHandler) store(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.encoder.StatusResponse(ctx, w, indexer, http.StatusCreated)
+	h.encoder.StatusResponse(w, http.StatusCreated, indexer)
 }
 
 func (h indexerHandler) update(w http.ResponseWriter, r *http.Request) {
@@ -94,7 +92,7 @@ func (h indexerHandler) update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.encoder.StatusResponse(ctx, w, indexer, http.StatusOK)
+	h.encoder.StatusResponse(w, http.StatusOK, indexer)
 }
 
 func (h indexerHandler) delete(w http.ResponseWriter, r *http.Request) {
@@ -110,19 +108,17 @@ func (h indexerHandler) delete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.encoder.StatusResponse(ctx, w, nil, http.StatusNoContent)
+	h.encoder.StatusResponse(w, http.StatusNoContent, nil)
 }
 
 func (h indexerHandler) getAll(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-
 	indexers, err := h.service.GetAll()
 	if err != nil {
 		h.encoder.Error(w, err)
 		return
 	}
 
-	h.encoder.StatusResponse(ctx, w, indexers, http.StatusOK)
+	h.encoder.StatusResponse(w, http.StatusOK, indexers)
 }
 
 func (h indexerHandler) list(w http.ResponseWriter, r *http.Request) {
@@ -134,7 +130,7 @@ func (h indexerHandler) list(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.encoder.StatusResponse(ctx, w, indexers, http.StatusOK)
+	h.encoder.StatusResponse(w, http.StatusOK, indexers)
 }
 
 func (h indexerHandler) testApi(w http.ResponseWriter, r *http.Request) {
@@ -170,5 +166,5 @@ func (h indexerHandler) testApi(w http.ResponseWriter, r *http.Request) {
 		Message: "Indexer api test OK",
 	}
 
-	h.encoder.StatusResponse(ctx, w, res, http.StatusOK)
+	h.encoder.StatusResponse(w, http.StatusOK, res)
 }

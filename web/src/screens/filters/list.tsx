@@ -5,12 +5,8 @@ import { Listbox, Menu, Switch, Transition } from "@headlessui/react";
 import { useMutation, useQuery, useQueryClient } from "react-query";
 import { FormikValues } from "formik";
 import { useCallback } from "react";
-
 import { Tooltip } from "react-tooltip";
-
-
 import { FilterListContext, FilterListState } from "../../utils/Context";
-
 import {
   ArrowsRightLeftIcon,
   CheckIcon,
@@ -22,8 +18,6 @@ import {
   ChatBubbleBottomCenterTextIcon,
   TrashIcon
 } from "@heroicons/react/24/outline";
-
-import { queryClient } from "../../App";
 import { classNames } from "../../utils";
 import { FilterAddForm } from "../../forms";
 import { useToggle } from "../../hooks/hooks";
@@ -74,7 +68,6 @@ interface FilterProps {
 }
 
 export default function Filters({}: FilterProps){
-
   const queryClient = useQueryClient();
 
   const [createFilterIsOpen, setCreateFilterIsOpen] = useState(false);
@@ -642,6 +635,7 @@ interface FilterListItemProps {
 
 function FilterListItem({ filter, values, idx }: FilterListItemProps) {
   const [enabled, setEnabled] = useState(filter.enabled);
+  const queryClient = useQueryClient();
 
   const updateMutation = useMutation(
     (status: boolean) => APIClient.filters.toggleEnable(filter.id, status),

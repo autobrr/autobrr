@@ -7,8 +7,8 @@ import (
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/internal/logger"
 	"github.com/autobrr/autobrr/pkg/errors"
-	sq "github.com/Masterminds/squirrel"
 
+	sq "github.com/Masterminds/squirrel"
 	"github.com/rs/zerolog"
 )
 
@@ -75,14 +75,14 @@ func (r *UserRepo) FindByUsername(ctx context.Context, username string) (*domain
 	return &user, nil
 }
 
-func (r *UserRepo) Store(ctx context.Context, user domain.User) error {
+func (r *UserRepo) Store(ctx context.Context, req domain.CreateUserRequest) error {
 
 	var err error
 
 	queryBuilder := r.db.squirrel.
 		Insert("users").
 		Columns("username", "password").
-		Values(user.Username, user.Password)
+		Values(req.Username, req.Password)
 
 	query, args, err := queryBuilder.ToSql()
 	if err != nil {
