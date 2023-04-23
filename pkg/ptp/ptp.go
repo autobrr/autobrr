@@ -15,36 +15,36 @@ import (
 	"golang.org/x/time/rate"
 )
 
-type PTPClient interface {
-	GetTorrentByID(torrentID string) (*domain.TorrentBasic, error)
-	TestAPI() (bool, error)
+type ApiClient interface {
+	GetTorrentByID(ctx context.Context, torrentID string) (*domain.TorrentBasic, error)
+	TestAPI(ctx context.Context) (bool, error)
+	UseURL(url string)
 }
 
 type Client struct {
 	Url         string
-	Timeout     int
 	client      *http.Client
 	Ratelimiter *rate.Limiter
 	APIUser     string
 	APIKey      string
-	Headers     http.Header
 }
 
-func NewClient(url string, apiUser string, apiKey string) PTPClient {
-	// set default url
-	if url == "" {
-		url = "https://passthepopcorn.me/torrents.php"
-	}
-
+func NewClient(apiUser, apiKey string) ApiClient {
 	c := &Client{
+		Url: "https://passthepopcorn.me/torrents.php",
+		client: &http.Client{
+			Timeout: time.Second * 30,
+		},
+		Ratelimiter: rate.NewLimiter(rate.Every(1*time.Second), 1), // 10 request every 10 seconds
 		APIUser:     apiUser,
 		APIKey:      apiKey,
-		client:      http.DefaultClient,
-		Url:         url,
-		Ratelimiter: rate.NewLimiter(rate.Every(1*time.Second), 1), // 10 request every 10 seconds
 	}
 
 	return c
+}
+
+func (c *Client) UseURL(url string) {
+	c.Url = url
 }
 
 type TorrentResponse struct {
@@ -96,8 +96,8 @@ func (c *Client) Do(req *http.Request) (*http.Response, error) {
 	return resp, nil
 }
 
-func (c *Client) get(url string) (*http.Response, error) {
-	req, err := http.NewRequest(http.MethodGet, url, http.NoBody)
+func (c *Client) get(ctx context.Context, url string) (*http.Response, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, http.NoBody)
 	if err != nil {
 		return nil, errors.Wrap(err, "ptp client request error : %v", url)
 	}
@@ -122,7 +122,7 @@ func (c *Client) get(url string) (*http.Response, error) {
 	return res, nil
 }
 
-func (c *Client) GetTorrentByID(torrentID string) (*domain.TorrentBasic, error) {
+func (c *Client) GetTorrentByID(ctx context.Context, torrentID string) (*domain.TorrentBasic, error) {
 	if torrentID == "" {
 		return nil, errors.New("ptp client: must have torrentID")
 	}
@@ -135,7 +135,7 @@ func (c *Client) GetTorrentByID(torrentID string) (*domain.TorrentBasic, error) 
 
 	reqUrl := fmt.Sprintf("%v?%v", c.Url, params)
 
-	resp, err := c.get(reqUrl)
+	resp, err := c.get(ctx, reqUrl)
 	if err != nil {
 		return nil, errors.Wrap(err, "error requesting data")
 	}
@@ -147,8 +147,7 @@ func (c *Client) GetTorrentByID(torrentID string) (*domain.TorrentBasic, error) 
 		return nil, errors.Wrap(readErr, "could not read body")
 	}
 
-	err = json.Unmarshal(body, &r)
-	if err != nil {
+	if err = json.Unmarshal(body, &r); err != nil {
 		return nil, errors.Wrap(readErr, "could not unmarshal body")
 	}
 
@@ -166,17 +165,17 @@ func (c *Client) GetTorrentByID(torrentID string) (*domain.TorrentBasic, error) 
 }
 
 // TestAPI try api access against torrents page
-func (c *Client) TestAPI() (bool, error) {
-	resp, err := c.get(c.Url)
+func (c *Client) TestAPI(ctx context.Context) (bool, error) {
+	resp, err := c.get(ctx, c.Url)
 	if err != nil {
 		return false, errors.Wrap(err, "error requesting data")
 	}
 
 	defer resp.Body.Close()
 
-	if resp.StatusCode == http.StatusOK {
-		return true, nil
+	if resp.StatusCode != http.StatusOK {
+		return false, nil
 	}
 
-	return false, nil
+	return true, nil
 }

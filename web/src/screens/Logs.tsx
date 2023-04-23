@@ -14,6 +14,7 @@ import {
 import { useQuery } from "react-query";
 import { Menu, Transition } from "@headlessui/react";
 import { baseUrl } from "../utils";
+import { RingResizeSpinner } from "@/components/Icons";
 
 
 type LogEvent = {
@@ -148,7 +149,7 @@ export const Logs = () => {
 
       <div className="max-w-screen-xl mx-auto pb-10 px-2 sm:px-4 lg:px-8">
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg px-4 sm:px-6 pt-3 sm:pt-4">
-            <LogFiles />
+          <LogFiles />
         </div>
       </div>
 
@@ -208,38 +209,6 @@ interface LogFilesItemProps {
   file: LogFile;
 }
 
-const Dots = () => {
-  const [step, setStep] = useState(1);
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setStep((prevStep) => (prevStep % 3) + 1);
-    }, 300);
-
-    return () => clearInterval(interval);
-  }, []);
-
-  return (
-    <div className="flex">
-      <div
-        className={`h-2 w-2 bg-blue-500 rounded-full mx-1 ${
-          step === 1 ? "opacity-100" : "opacity-30"
-        }`}
-      />
-      <div
-        className={`h-2 w-2 bg-blue-500 rounded-full mx-1 ${
-          step === 2 ? "opacity-100" : "opacity-30"
-        }`}
-      />
-      <div
-        className={`h-2 w-2 bg-blue-500 rounded-full mx-1 ${
-          step === 3 ? "opacity-100" : "opacity-30"
-        }`}
-      />
-    </div>
-  );
-};
-
 const LogFilesItem = ({ file }: LogFilesItemProps) => {
   const [isDownloading, setIsDownloading] = useState(false);
 
@@ -279,7 +248,7 @@ const LogFilesItem = ({ file }: LogFilesItemProps) => {
                 "text-gray-900 dark:text-gray-300",
                 "font-medium group flex rounded-md items-center px-2 py-2 text-sm"
               )}
-              title="Download file"
+              title={!isDownloading ? "Download file" : "Sanitizing log..."}
               onClick={handleDownload}
             >
               {!isDownloading ? (
@@ -288,10 +257,10 @@ const LogFilesItem = ({ file }: LogFilesItemProps) => {
                   aria-hidden="true"
                 />
               ) : (
-                <div className="h-5 flex items-center">
-                  <span className="sanitizing-text">Sanitizing log</span>
-                  <Dots />
-                </div>
+                <RingResizeSpinner
+                  className="text-blue-500 w-5 h-5 iconHeight"
+                  aria-hidden="true"
+                />
               )}
             </button>
           </div>

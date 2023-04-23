@@ -1,12 +1,9 @@
-import { useMutation } from "react-query";
+import { useMutation, useQueryClient } from "react-query";
 import { toast } from "react-hot-toast";
 import { XMarkIcon } from "@heroicons/react/24/solid";
 import type { FieldProps } from "formik";
 import { Field, FieldArray, FormikErrors, FormikValues } from "formik";
-
-import { queryClient } from "../../App";
 import { APIClient } from "../../api/APIClient";
-
 import { NumberFieldWide, PasswordFieldWide, SwitchGroupWide, SwitchGroupWideRed, TextFieldWide } from "../../components/inputs";
 import { SlideOver } from "../../components/panels";
 import Toast from "../../components/notifications/Toast";
@@ -98,6 +95,7 @@ interface AddFormProps {
 }
 
 export function IrcNetworkAddForm({ isOpen, toggle }: AddFormProps) {
+  const queryClient = useQueryClient();
   const mutation = useMutation(
     (network: IrcNetwork) => APIClient.irc.createNetwork(network),
     {
@@ -241,6 +239,8 @@ export function IrcNetworkUpdateForm({
   toggle,
   network
 }: IrcNetworkUpdateFormProps) {
+  const queryClient = useQueryClient();
+
   const mutation = useMutation((network: IrcNetwork) => APIClient.irc.updateNetwork(network), {
     onSuccess: () => {
       queryClient.invalidateQueries(["networks"]);

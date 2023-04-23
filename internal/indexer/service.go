@@ -32,13 +32,14 @@ type Service interface {
 	GetIndexersByIRCNetwork(server string) []*domain.IndexerDefinition
 	GetTorznabIndexers() []domain.IndexerDefinition
 	Start() error
+	TestApi(ctx context.Context, req domain.IndexerTestApiRequest) error
 }
 
 type service struct {
 	log        zerolog.Logger
 	config     *domain.Config
 	repo       domain.IndexerRepo
-	apiService APIService
+	ApiService APIService
 	scheduler  scheduler.Service
 
 	// contains all raw indexer definitions
@@ -60,7 +61,7 @@ func NewService(log logger.Logger, config *domain.Config, repo domain.IndexerRep
 		log:                       log.With().Str("module", "indexer").Logger(),
 		config:                    config,
 		repo:                      repo,
-		apiService:                apiService,
+		ApiService:                apiService,
 		scheduler:                 scheduler,
 		lookupIRCServerDefinition: make(map[string]map[string]*domain.IndexerDefinition),
 		torznabIndexers:           make(map[string]*domain.IndexerDefinition),
@@ -106,8 +107,7 @@ func (s *service) Update(ctx context.Context, indexer domain.Indexer) (*domain.I
 	}
 
 	// add to indexerInstances
-	err = s.updateIndexer(*i)
-	if err != nil {
+	if err = s.updateIndexer(*i); err != nil {
 		s.log.Error().Err(err).Msgf("failed to add indexer: %v", indexer.Name)
 		return nil, err
 	}
@@ -136,6 +136,10 @@ func (s *service) Delete(ctx context.Context, id int) error {
 
 	// remove from lookup tables
 	s.removeIndexer(*indexer)
+
+	if err := s.ApiService.RemoveClient(indexer.Identifier); err != nil {
+		s.log.Error().Err(err).Msgf("could not delete indexer api client: %s", indexer.Identifier)
+	}
 
 	return nil
 }
@@ -332,7 +336,7 @@ func (s *service) Start() error {
 
 			// check if it has api and add to api service
 			if indexer.Enabled && indexer.HasApi() {
-				if err := s.apiService.AddClient(indexer.Identifier, indexer.SettingsMap); err != nil {
+				if err := s.ApiService.AddClient(indexer.Identifier, indexer.SettingsMap); err != nil {
 					s.log.Error().Stack().Err(err).Msgf("indexer.start: could not init api client for: '%v'", indexer.Identifier)
 				}
 			}
@@ -382,8 +386,8 @@ func (s *service) addIndexer(indexer domain.Indexer) error {
 		s.mapIRCServerDefinitionLookup(indexerDefinition.IRC.Server, indexerDefinition)
 
 		// check if it has api and add to api service
-		if indexerDefinition.Enabled && indexerDefinition.HasApi() {
-			if err := s.apiService.AddClient(indexerDefinition.Identifier, indexerDefinition.SettingsMap); err != nil {
+		if indexerDefinition.HasApi() {
+			if err := s.ApiService.AddClient(indexerDefinition.Identifier, indexerDefinition.SettingsMap); err != nil {
 				s.log.Error().Stack().Err(err).Msgf("indexer.start: could not init api client for: '%v'", indexer.Identifier)
 			}
 		}
@@ -418,9 +422,9 @@ func (s *service) updateIndexer(indexer domain.Indexer) error {
 		s.mapIRCServerDefinitionLookup(indexerDefinition.IRC.Server, indexerDefinition)
 
 		// check if it has api and add to api service
-		if indexerDefinition.Enabled && indexerDefinition.HasApi() {
-			if err := s.apiService.AddClient(indexerDefinition.Identifier, indexerDefinition.SettingsMap); err != nil {
-				s.log.Error().Stack().Err(err).Msgf("indexer.start: could not init api client for: '%v'", indexer.Identifier)
+		if indexerDefinition.HasApi() {
+			if err := s.ApiService.AddClient(indexerDefinition.Identifier, indexerDefinition.SettingsMap); err != nil {
+				s.log.Error().Stack().Err(err).Msgf("indexer.start: could not init api client for: '%s'", indexer.Identifier)
 			}
 		}
 	}
@@ -616,6 +620,14 @@ func (s *service) getDefinitionByName(name string) *domain.IndexerDefinition {
 	return nil
 }
 
+func (s *service) getMappedDefinitionByName(name string) *domain.IndexerDefinition {
+	if v, ok := s.mappedDefinitions[name]; ok {
+		return v
+	}
+
+	return nil
+}
+
 func (s *service) stopFeed(indexer string) {
 	// verify indexer is torznab indexer
 	_, ok := s.torznabIndexers[indexer]
@@ -630,4 +642,31 @@ func (s *service) stopFeed(indexer string) {
 	if err := s.scheduler.RemoveJobByIdentifier(indexer); err != nil {
 		return
 	}
+}
+
+func (s *service) TestApi(ctx context.Context, req domain.IndexerTestApiRequest) error {
+	indexer, err := s.FindByID(ctx, req.IndexerId)
+	if err != nil {
+		return err
+	}
+
+	def := s.getMappedDefinitionByName(indexer.Identifier)
+	if def == nil {
+		return errors.New("could not find definition: %s", indexer.Identifier)
+	}
+
+	if !def.HasApi() {
+		return errors.New("indexer (%s) does not support api", indexer.Identifier)
+	}
+
+	req.Identifier = def.Identifier
+
+	if _, err = s.ApiService.TestConnection(ctx, req); err != nil {
+		s.log.Error().Err(err).Msgf("error testing api for: %s", indexer.Identifier)
+		return err
+	}
+
+	s.log.Info().Msgf("successful api test for: %s", indexer.Identifier)
+
+	return nil
 }

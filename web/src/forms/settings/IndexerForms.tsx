@@ -1,22 +1,18 @@
-import { Fragment, useState } from "react";
+import React, { Fragment, useState } from "react";
 import { toast } from "react-hot-toast";
-import { useMutation, useQuery } from "react-query";
+import { useMutation, useQuery, useQueryClient } from "react-query";
 import Select, { components, ControlProps, InputProps, MenuProps, OptionProps } from "react-select";
 import type { FieldProps } from "formik";
 import { Field, Form, Formik, FormikValues } from "formik";
-
 import { XMarkIcon } from "@heroicons/react/24/solid";
 import { Dialog, Transition } from "@headlessui/react";
-
-import { sleep } from "../../utils";
-import { queryClient } from "../../App";
+import { classNames, sleep } from "../../utils";
 import DEBUG from "../../components/debug";
 import { APIClient } from "../../api/APIClient";
 import { PasswordFieldWide, SwitchGroupWide, TextFieldWide } from "../../components/inputs";
 import { SlideOver } from "../../components/panels";
 import Toast from "../../components/notifications/Toast";
 import { SelectFieldBasic, SelectFieldCreatable } from "../../components/inputs/select_wide";
-
 import { CustomTooltip } from "../../components/tooltips/CustomTooltip";
 import { FeedDownloadTypeOptions } from "../../domain/constants";
 
@@ -247,6 +243,7 @@ interface AddProps {
 export function IndexerAddForm({ isOpen, toggle }: AddProps) {
   const [indexer, setIndexer] = useState<IndexerDefinition>({} as IndexerDefinition);
 
+  const queryClient = useQueryClient();
   const { data } = useQuery(
     "indexerDefinition",
     () => APIClient.indexers.getSchema(),
@@ -576,6 +573,130 @@ export function IndexerAddForm({ isOpen, toggle }: AddProps) {
   );
 }
 
+interface TestApiButtonProps {
+  values: FormikValues;
+  show: boolean;
+}
+
+function TestApiButton({ values, show }: TestApiButtonProps) {
+  const [isTesting, setIsTesting] = useState(false);
+  const [isSuccessfulTest, setIsSuccessfulTest] = useState(false);
+  const [isErrorTest, setIsErrorTest] = useState(false);
+
+  if (!show) {
+    return null;
+  }
+
+  const testApiMutation = useMutation(
+    (req: IndexerTestApiReq) => APIClient.indexers.testApi(req),
+    {
+      onMutate: () => {
+        setIsTesting(true);
+        setIsErrorTest(false);
+        setIsSuccessfulTest(false);
+      },
+      onSuccess: () => {
+        toast.custom((t) => <Toast type="success" body="API test successful!" t={t} />);
+
+        sleep(1000)
+          .then(() => {
+            setIsTesting(false);
+            setIsSuccessfulTest(true);
+          })
+          .then(() => {
+            sleep(2500).then(() => {
+              setIsSuccessfulTest(false);
+            });
+          });
+      },
+      onError: (error: Error) => {
+        toast.custom((t) => <Toast type="error" body={error.message} t={t} />);
+
+        setIsTesting(false);
+        setIsErrorTest(true);
+        sleep(2500).then(() => {
+          setIsErrorTest(false);
+        });
+      }
+    }
+  );
+
+  const testApi = () => {
+    const req: IndexerTestApiReq = {
+      id: values.id,
+      api_key: values.settings.api_key
+    };
+    
+    if (values.settings.api_user) {
+      req.api_user = values.settings.api_user;
+    }
+
+    testApiMutation.mutate(req);
+  };
+
+
+  return (
+    <button
+      type="button"
+      className={classNames(
+        isSuccessfulTest
+          ? "text-green-500 border-green-500 bg-green-50"
+          : isErrorTest
+            ? "text-red-500 border-red-500 bg-red-50"
+            : "border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 hover:bg-gray-50 focus:border-rose-700 active:bg-rose-700",
+        isTesting ? "cursor-not-allowed" : "",
+        "mr-2 float-left items-center px-4 py-2 border font-medium rounded-md shadow-sm text-sm transition ease-in-out duration-150 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
+      )}
+      disabled={isTesting}
+      onClick={testApi}
+    >
+      {isTesting ? (
+        <svg
+          className="animate-spin h-5 w-5 text-green-500"
+          xmlns="http://www.w3.org/2000/svg"
+          fill="none"
+          viewBox="0 0 24 24"
+        >
+          <circle
+            className="opacity-25"
+            cx="12"
+            cy="12"
+            r="10"
+            stroke="currentColor"
+            strokeWidth="4"
+          ></circle>
+          <path
+            className="opacity-75"
+            fill="currentColor"
+            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+          ></path>
+        </svg>
+      ) : isSuccessfulTest ? (
+        "OK!"
+      ) : isErrorTest ? (
+        "ERROR"
+      ) : (
+        "Test API"
+      )}
+    </button>
+  );
+}
+
+interface IndexerUpdateInitialValues {
+  id: number;
+  name: string;
+  enabled: boolean;
+  identifier: string;
+  implementation: string;
+  base_url: string;
+  settings: {
+    api_key?: string;
+    api_user?: string;
+    authkey?: string;
+    torrent_pass?: string;
+  }
+}
+
 interface UpdateProps {
     isOpen: boolean;
     toggle: () => void;
@@ -583,6 +704,8 @@ interface UpdateProps {
 }
 
 export function IndexerUpdateForm({ isOpen, toggle, indexer }: UpdateProps) {
+  const queryClient = useQueryClient();
+
   const mutation = useMutation((indexer: Indexer) => APIClient.indexers.update(indexer), {
     onSuccess: () => {
       queryClient.invalidateQueries(["indexer"]);
@@ -635,10 +758,10 @@ export function IndexerUpdateForm({ isOpen, toggle, indexer }: UpdateProps) {
     );
   };
 
-  const initialValues = {
+  const initialValues: IndexerUpdateInitialValues = {
     id: indexer.id,
     name: indexer.name,
-    enabled: indexer.enabled,
+    enabled: indexer.enabled || false,
     identifier: indexer.identifier,
     implementation: indexer.implementation,
     base_url: indexer.base_url,
@@ -660,6 +783,7 @@ export function IndexerUpdateForm({ isOpen, toggle, indexer }: UpdateProps) {
       deleteAction={deleteAction}
       onSubmit={onSubmit}
       initialValues={initialValues}
+      extraButtons={(values) => <TestApiButton values={values as FormikValues} show={indexer.implementation === "irc" && indexer.supports.includes("api")} />}
     >
       {() => (
         <div className="py-2 space-y-6 sm:py-0 sm:space-y-0 divide-y divide-gray-200 dark:divide-gray-700">
