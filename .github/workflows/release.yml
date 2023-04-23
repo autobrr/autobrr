@@ -187,7 +187,7 @@ jobs:
           context: .
           file: ./ci.Dockerfile
           platforms: linux/amd64,linux/arm/v7,linux/arm64/v8
-          push: ${{ github.event.pull_request.head.repo.full_name == 'autobrr/autobrr' }}
+          push: ${{ github.event.pull_request.head.repo.full_name == 'autobrr/autobrr' }} || github.event_name != 'pull_request'
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
