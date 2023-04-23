@@ -311,6 +311,7 @@ export default function FilterDetails() {
                 external_webhook_expect_status: filter.external_webhook_expect_status || 0
               } as Filter}
               onSubmit={handleSubmit}
+              enableReinitialize={true}
             >
               {({ values, dirty, resetForm }) => (
                 <Form>
