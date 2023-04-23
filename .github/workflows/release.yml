@@ -187,7 +187,7 @@ jobs:
           context: .
           file: ./ci.Dockerfile
           platforms: linux/amd64,linux/arm/v7,linux/arm64/v8
-          push: ${{ startsWith('autobrr/autobrr', github.workflow_ref }}
+          push: ${{ startsWith('autobrr/autobrr', github.workflow_ref) }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
