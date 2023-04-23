@@ -121,7 +121,7 @@ func main() {
 			log.Fatalf("failed to hash password: %v", err)
 		}
 
-		user := domain.User{
+		user := domain.CreateUserRequest{
 			Username: username,
 			Password: hashed,
 		}

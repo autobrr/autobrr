@@ -1,22 +1,18 @@
 import React, { Fragment, useState } from "react";
 import { toast } from "react-hot-toast";
-import { useMutation, useQuery } from "react-query";
+import { useMutation, useQuery, useQueryClient } from "react-query";
 import Select, { components, ControlProps, InputProps, MenuProps, OptionProps } from "react-select";
 import type { FieldProps } from "formik";
 import { Field, Form, Formik, FormikValues } from "formik";
-
 import { XMarkIcon } from "@heroicons/react/24/solid";
 import { Dialog, Transition } from "@headlessui/react";
-
 import { classNames, sleep } from "../../utils";
-import { queryClient } from "../../App";
 import DEBUG from "../../components/debug";
 import { APIClient } from "../../api/APIClient";
 import { PasswordFieldWide, SwitchGroupWide, TextFieldWide } from "../../components/inputs";
 import { SlideOver } from "../../components/panels";
 import Toast from "../../components/notifications/Toast";
 import { SelectFieldBasic, SelectFieldCreatable } from "../../components/inputs/select_wide";
-
 import { CustomTooltip } from "../../components/tooltips/CustomTooltip";
 import { FeedDownloadTypeOptions } from "../../domain/constants";
 
@@ -247,6 +243,7 @@ interface AddProps {
 export function IndexerAddForm({ isOpen, toggle }: AddProps) {
   const [indexer, setIndexer] = useState<IndexerDefinition>({} as IndexerDefinition);
 
+  const queryClient = useQueryClient();
   const { data } = useQuery(
     "indexerDefinition",
     () => APIClient.indexers.getSchema(),
@@ -578,14 +575,15 @@ export function IndexerAddForm({ isOpen, toggle }: AddProps) {
 
 interface TestApiButtonProps {
   values: FormikValues;
+  show: boolean;
 }
 
-function TestApiButton({ values }: TestApiButtonProps) {
+function TestApiButton({ values, show }: TestApiButtonProps) {
   const [isTesting, setIsTesting] = useState(false);
   const [isSuccessfulTest, setIsSuccessfulTest] = useState(false);
   const [isErrorTest, setIsErrorTest] = useState(false);
 
-  if (!values.settings.api_key) {
+  if (!show) {
     return null;
   }
 
@@ -706,6 +704,8 @@ interface UpdateProps {
 }
 
 export function IndexerUpdateForm({ isOpen, toggle, indexer }: UpdateProps) {
+  const queryClient = useQueryClient();
+
   const mutation = useMutation((indexer: Indexer) => APIClient.indexers.update(indexer), {
     onSuccess: () => {
       queryClient.invalidateQueries(["indexer"]);
@@ -783,7 +783,7 @@ export function IndexerUpdateForm({ isOpen, toggle, indexer }: UpdateProps) {
       deleteAction={deleteAction}
       onSubmit={onSubmit}
       initialValues={initialValues}
-      extraButtons={(values) => <TestApiButton values={values as FormikValues} />}
+      extraButtons={(values) => <TestApiButton values={values as FormikValues} show={indexer.implementation === "irc" && indexer.supports.includes("api")} />}
     >
       {() => (
         <div className="py-2 space-y-6 sm:py-0 sm:space-y-0 divide-y divide-gray-200 dark:divide-gray-700">

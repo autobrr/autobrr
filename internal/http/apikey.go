@@ -66,7 +66,7 @@ func (h apikeyHandler) store(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.encoder.StatusResponse(ctx, w, data, http.StatusCreated)
+	h.encoder.StatusResponse(w, http.StatusCreated, data)
 }
 
 func (h apikeyHandler) delete(w http.ResponseWriter, r *http.Request) {

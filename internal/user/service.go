@@ -10,7 +10,7 @@ import (
 type Service interface {
 	GetUserCount(ctx context.Context) (int, error)
 	FindByUsername(ctx context.Context, username string) (*domain.User, error)
-	CreateUser(ctx context.Context, user domain.User) error
+	CreateUser(ctx context.Context, req domain.CreateUserRequest) error
 }
 
 type service struct {
@@ -36,7 +36,7 @@ func (s *service) FindByUsername(ctx context.Context, username string) (*domain.
 	return user, nil
 }
 
-func (s *service) CreateUser(ctx context.Context, newUser domain.User) error {
+func (s *service) CreateUser(ctx context.Context, req domain.CreateUserRequest) error {
 	userCount, err := s.repo.GetUserCount(ctx)
 	if err != nil {
 		return err
@@ -46,5 +46,5 @@ func (s *service) CreateUser(ctx context.Context, newUser domain.User) error {
 		return errors.New("only 1 user account is supported at the moment")
 	}
 
-	return s.repo.Store(ctx, newUser)
+	return s.repo.Store(ctx, req)
 }

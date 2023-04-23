@@ -1,11 +1,10 @@
-import { useMutation, useQuery } from "react-query";
+import { useMutation, useQuery, useQueryClient } from "react-query";
 import { APIClient } from "../../api/APIClient";
 import { Checkbox } from "../../components/Checkbox";
 import { SettingsContext } from "../../utils/Context";
 import { GithubRelease } from "../../types/Update";
 import { toast } from "react-hot-toast";
 import Toast from "../../components/notifications/Toast";
-import { queryClient } from "../../App";
 
 interface RowItemProps {
   label: string;
@@ -88,6 +87,8 @@ function ApplicationSettings() {
       onError: err => console.log(err)
     }
   );
+
+  const queryClient = useQueryClient();
 
   const checkUpdateMutation = useMutation(
     () => APIClient.updates.check(),
