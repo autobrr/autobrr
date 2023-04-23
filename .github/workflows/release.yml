@@ -180,6 +180,14 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
 
+      - name: Get user permissions
+        id: check
+        uses: scherermichael-oss/action-has-permission@1.0.6
+        with:
+          required-permission: write
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Build and publish image
         id: docker_build
         uses: docker/build-push-action@v3
@@ -187,7 +195,7 @@ jobs:
           context: .
           file: ./ci.Dockerfile
           platforms: linux/amd64,linux/arm/v7,linux/arm64/v8
-          push: ${{ startsWith(github.workflow_ref, 'autobrr/autobrr') }}
+          push: ${{ steps.check.outputs.has-permission }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
