@@ -375,8 +375,8 @@ func (r *Release) downloadTorrentFile(ctx context.Context) error {
 
 		// Check if the Content-Type header is correct
 		contentType := resp.Header.Get("Content-Type")
-		if contentType != "application/x-bittorrent" {
-			return errors.New("unexpected content type: %s", contentType)
+		if contentType == "text/html" {
+			return errors.New("unexpected content type %s: check indexer keys", contentType)
 		}
 
 		if resp.StatusCode != http.StatusOK {
@@ -568,12 +568,12 @@ func (r *Release) MapVars(def *IndexerDefinition, varMap map[string]string) erro
 			//log.Debug().Msgf("bad freeleechPercent var: %v", year)
 		}
 
-		if (freeleechPercentInt > 0) {
+		if freeleechPercentInt > 0 {
 			r.Freeleech = true
 			r.FreeleechPercent = freeleechPercentInt
-	
+
 			r.Bonus = append(r.Bonus, "Freeleech")
-	
+
 			switch freeleechPercentInt {
 			case 25:
 				r.Bonus = append(r.Bonus, "Freeleech25")
