@@ -373,25 +373,23 @@ func (r *Release) downloadTorrentFile(ctx context.Context) error {
 		}
 		defer resp.Body.Close()
 
-		// Check if the status code is higher than 300
-		if resp.StatusCode > 308 {
-			return errors.New("unexpected status code %d: check indexer keys", resp.StatusCode)
+		// Check server response
+		if resp.StatusCode != http.StatusOK {
+			unRecoverableErr := errors.Wrap(ErrUnrecoverableError, "unrecoverable error downloading torrent (%v) file (%v) from '%v' - status code: %d", r.TorrentName, r.TorrentURL, r.Indexer, resp.StatusCode)
+
+			if resp.StatusCode == 401 || resp.StatusCode == 403 || resp.StatusCode == 404 || resp.StatusCode == 405 {
+				return retry.Unrecoverable(unRecoverableErr)
+			} else if resp.StatusCode < 499 && resp.StatusCode > 405 {
+				return errors.New("unexpected status code %d: : check indexer keys", resp.StatusCode)
+			}
+
+			return errors.New("unexpected status: %v", resp.StatusCode)
 		}
 
 		// Check if the Content-Type header is correct
 		contentType := resp.Header.Get("Content-Type")
 		if contentType == "text/html" {
 			return errors.New("unexpected content type %s: check indexer keys", contentType)
-		}
-
-		if resp.StatusCode != http.StatusOK {
-			unRecoverableErr := errors.Wrap(ErrUnrecoverableError, "unrecoverable error downloading torrent (%v) file (%v) from '%v' - status code: %d", r.TorrentName, r.TorrentURL, r.Indexer, resp.StatusCode)
-
-			if resp.StatusCode == 401 || resp.StatusCode == 403 || resp.StatusCode == 404 || resp.StatusCode == 405 {
-				return retry.Unrecoverable(unRecoverableErr)
-			}
-
-			return errors.New("unexpected status: %v", resp.StatusCode)
 		}
 
 		resetTmpFile := func() {
