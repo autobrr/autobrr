@@ -382,8 +382,6 @@ func (r *Release) downloadTorrentFile(ctx context.Context) error {
 			} else if resp.StatusCode < 499 && resp.StatusCode > 405 {
 				return errors.New("unexpected status code %d: : check indexer keys", resp.StatusCode)
 			}
-
-			return errors.New("unexpected status: %v", resp.StatusCode)
 		}
 
 		// Check if the Content-Type header is correct
