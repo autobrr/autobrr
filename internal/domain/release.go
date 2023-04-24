@@ -373,6 +373,12 @@ func (r *Release) downloadTorrentFile(ctx context.Context) error {
 		}
 		defer resp.Body.Close()
 
+		// Check if the Content-Type header is correct
+		contentType := resp.Header.Get("Content-Type")
+		if contentType != "application/x-bittorrent" {
+			return errors.New("unexpected content type: %s", contentType)
+		}
+
 		if resp.StatusCode != http.StatusOK {
 			unRecoverableErr := errors.Wrap(ErrUnrecoverableError, "unrecoverable error downloading torrent (%v) file (%v) from '%v' - status code: %d", r.TorrentName, r.TorrentURL, r.Indexer, resp.StatusCode)
 
