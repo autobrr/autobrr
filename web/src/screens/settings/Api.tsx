@@ -13,7 +13,7 @@ import { classNames } from "@utils";
 import { EmptySimple } from "@components/emptystates";
 
 export const apiKeys = {
-  all: ["feeds"] as const,
+  all: ["api_keys"] as const,
   lists: () => [...apiKeys.all, "list"] as const,
   details: () => [...apiKeys.all, "detail"] as const,
   // detail: (id: number) => [...apiKeys.details(), id] as const
