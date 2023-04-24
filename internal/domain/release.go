@@ -373,6 +373,11 @@ func (r *Release) downloadTorrentFile(ctx context.Context) error {
 		}
 		defer resp.Body.Close()
 
+		// Check if the status code is higher than 300
+		if resp.StatusCode > 308 {
+			return errors.New("unexpected status code %d: check indexer keys", resp.StatusCode)
+		}
+
 		// Check if the Content-Type header is correct
 		contentType := resp.Header.Get("Content-Type")
 		if contentType == "text/html" {
