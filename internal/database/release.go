@@ -60,7 +60,7 @@ func (repo *ReleaseRepo) StoreReleaseActionStatus(ctx context.Context, a *domain
 			Update("release_action_status").
 			Set("status", a.Status).
 			Set("rejections", pq.Array(a.Rejections)).
-			Set("timestamp", a.Timestamp).
+			Set("timestamp", a.Timestamp.Format(time.RFC3339)).
 			Where(sq.Eq{"id": a.ID}).
 			Where(sq.Eq{"release_id": a.ReleaseID})
 
@@ -78,7 +78,7 @@ func (repo *ReleaseRepo) StoreReleaseActionStatus(ctx context.Context, a *domain
 		queryBuilder := repo.db.squirrel.
 			Insert("release_action_status").
 			Columns("status", "action", "type", "client", "filter", "filter_id", "rejections", "timestamp", "release_id").
-			Values(a.Status, a.Action, a.Type, a.Client, a.Filter, a.FilterID, pq.Array(a.Rejections), a.Timestamp, a.ReleaseID).
+			Values(a.Status, a.Action, a.Type, a.Client, a.Filter, a.FilterID, pq.Array(a.Rejections), a.Timestamp.Format(time.RFC3339), a.ReleaseID).
 			Suffix("RETURNING id").RunWith(repo.db.handler)
 
 		// return values
