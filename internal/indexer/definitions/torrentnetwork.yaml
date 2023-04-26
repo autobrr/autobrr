@@ -8,7 +8,7 @@ urls:
   - https://tntracker.org/
 privacy: private
 protocol: torrent
-suppports:
+supports:
   - irc
   - rss
 source: unknown
