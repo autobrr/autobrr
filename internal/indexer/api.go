@@ -3,16 +3,17 @@ package indexer
 import (
 	"context"
 
-	"github.com/rs/zerolog"
-
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/internal/logger"
 	"github.com/autobrr/autobrr/internal/mock"
 	"github.com/autobrr/autobrr/pkg/btn"
 	"github.com/autobrr/autobrr/pkg/errors"
 	"github.com/autobrr/autobrr/pkg/ggn"
+	"github.com/autobrr/autobrr/pkg/ops"
 	"github.com/autobrr/autobrr/pkg/ptp"
 	"github.com/autobrr/autobrr/pkg/red"
+
+	"github.com/rs/zerolog"
 )
 
 type APIService interface {
@@ -112,6 +113,13 @@ func (s *apiService) AddClient(indexer string, settings map[string]string) error
 		}
 		s.apiClients[indexer] = red.NewClient(key)
 
+	case "ops":
+		key, ok := settings["api_key"]
+		if !ok || key == "" {
+			return errors.New("api.Service.AddClient: could not initialize orpheus client: missing var 'api_key'")
+		}
+		s.apiClients[indexer] = ops.NewClient(key)
+
 	case "mock":
 		s.apiClients[indexer] = mock.NewMockClient("", "mock")
 
@@ -162,6 +170,12 @@ func (s *apiService) getClientForTest(req domain.IndexerTestApiRequest) (apiClie
 			return nil, errors.New("api.Service.AddClient: could not initialize red client: missing var 'api_key'")
 		}
 		return red.NewClient(req.ApiKey), nil
+
+	case "ops":
+		if req.ApiKey == "" {
+			return nil, errors.New("api.Service.AddClient: could not initialize orpheus client: missing var 'api_key'")
+		}
+		return ops.NewClient(req.ApiKey), nil
 
 	case "mock":
 		return mock.NewMockClient("", "mock"), nil
