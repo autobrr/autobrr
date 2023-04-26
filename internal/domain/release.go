@@ -381,9 +381,9 @@ func (r *Release) downloadTorrentFile(ctx context.Context) error {
 			if resp.StatusCode == 401 || resp.StatusCode == 403 || resp.StatusCode == 405 {
 				return retry.Unrecoverable(unRecoverableErr)
 			} else if resp.StatusCode == 404 {
-				return errors.New("torrent not found (404) - retrying")
+				return errors.New("torrent %s not found on %s (%d) - retrying", r.TorrentName, r.Indexer, resp.StatusCode)
 			} else if resp.StatusCode < 499 && resp.StatusCode > 405 {
-				return errors.New("unexpected status code %d: : check indexer keys", resp.StatusCode)
+				return retry.Unrecoverable(errors.New("unexpected status code %d: : check indexer keys for %s", resp.StatusCode, r.Indexer))
 			}
 		}
 
@@ -395,7 +395,7 @@ func (r *Release) downloadTorrentFile(ctx context.Context) error {
 		}
 
 		if mediaType == "text/html" {
-			return retry.Unrecoverable(errors.New("unexpected content type %s: check indexer keys", mediaType))
+			return retry.Unrecoverable(errors.New("unexpected content type %s: check indexer keys for %s", mediaType, r.Indexer))
 		}
 
 		resetTmpFile := func() {
