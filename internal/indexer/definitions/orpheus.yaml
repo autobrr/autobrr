@@ -61,7 +61,7 @@ irc:
           - "TORRENT: Dirty Dike – Bogies & Alcohol – [2008] [Album] CD/MP3/320 – hip.hop,uk.hip.hop,united.kingdom – https://orpheus.network/torrents.php?id=0000000 – https://orpheus.network/torrents.php?id=0000000&torrentid=0000000&action=download"
           - "TORRENT: Various Artists – Bicycle Day: 85 Yrs of LSD Special – [2023] [Compilation] WEB/FLAC/Lossless – ambient,electronic – https://orpheus.network/torrents.php?id=0000000 – https://orpheus.network/torrents.php?id=0000000&torrentid=0000000&action=download"
           - "TORRENT: Snoop Dogg – Untitled – [2001] [Sampler] Vinyl/MP3/320 –  – https://orpheus.network/torrents.php?id=0000000 – https://orpheus.network/torrents.php?id=0000000&torrentid=0000000&action=download"
-        pattern: 'TORRENT: (.* – \[(.*?)\] \[(.*?)\] (.*)) – \s*(.*) – https?:\/\/.* – (https?:\/\/.*\/).*torrentid=(\d+).*'
+        pattern: 'TORRENT: (.* . \[(.*?)\] \[(.*?)\] (.*)) . \s*(.*) . https?:\/\/.* . (https?:\/\/.*\/).*torrentid=(\d+).*'
         vars:
           - torrentName
           - year
