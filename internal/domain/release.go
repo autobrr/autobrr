@@ -381,7 +381,7 @@ func (r *Release) downloadTorrentFile(ctx context.Context) error {
 			if resp.StatusCode == 401 || resp.StatusCode == 403 || resp.StatusCode == 405 {
 				return retry.Unrecoverable(unRecoverableErr)
 			} else if resp.StatusCode == 404 {
-				return errors.Wrap(unRecoverableErr, "torrent not found (404) - retrying")
+				return errors.New("torrent not found (404) - retrying")
 			} else if resp.StatusCode < 499 && resp.StatusCode > 405 {
 				return errors.New("unexpected status code %d: : check indexer keys", resp.StatusCode)
 			}
