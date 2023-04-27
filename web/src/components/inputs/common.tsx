@@ -1,6 +1,6 @@
 import { Field, FieldProps } from "formik";
-import { classNames } from "../../utils";
-import { CustomTooltip } from "../tooltips/CustomTooltip";
+import { classNames } from "@utils";
+import { CustomTooltip } from "@components/tooltips/CustomTooltip";
 
 interface ErrorFieldProps {
     name: string;

@@ -2,20 +2,20 @@ import { Fragment, useEffect, useRef, useState } from "react";
 import { ExclamationTriangleIcon } from "@heroicons/react/24/solid";
 import format from "date-fns/format";
 import { DebounceInput } from "react-debounce-input";
-import { APIClient } from "../api/APIClient";
-import { Checkbox } from "../components/Checkbox";
-import { classNames, simplifyDate } from "../utils";
-import { SettingsContext } from "../utils/Context";
-import { EmptySimple } from "../components/emptystates";
 import {
   Cog6ToothIcon,
   DocumentArrowDownIcon
 } from "@heroicons/react/24/outline";
-import { useQuery } from "react-query";
+import { useQuery } from "@tanstack/react-query";
 import { Menu, Transition } from "@headlessui/react";
-import { baseUrl } from "../utils";
-import { RingResizeSpinner } from "@/components/Icons";
 
+import { APIClient } from "@api/APIClient";
+import { Checkbox } from "@components/Checkbox";
+import { classNames, simplifyDate } from "@utils";
+import { SettingsContext } from "@utils/Context";
+import { EmptySimple } from "@components/emptystates";
+import { baseUrl } from "@utils";
+import { RingResizeSpinner } from "@components/Icons";
 
 type LogEvent = {
   time: string;
@@ -82,7 +82,6 @@ export const Logs = () => {
           <h1 className="text-3xl font-bold text-black dark:text-white">Logs</h1>
         </div>
       </header>
-
 
       <div className="max-w-screen-xl mx-auto pb-12 px-2 sm:px-4 lg:px-8">
         <div className="flex justify-center py-4">
@@ -158,15 +157,13 @@ export const Logs = () => {
 };
 
 export const LogFiles = () => {
-  const { isLoading, data } = useQuery(
-    ["log-files"],
-    () => APIClient.logs.files(),
-    {
-      retry: false,
-      refetchOnWindowFocus: false,
-      onError: err => console.log(err)
-    }
-  );
+  const { isLoading, data } = useQuery({
+    queryKey: ["log-files"],
+    queryFn: () => APIClient.logs.files(),
+    retry: false,
+    refetchOnWindowFocus: false,
+    onError: err => console.log(err)
+  });
 
   return (
     <div>
@@ -224,10 +221,8 @@ const LogFilesItem = ({ file }: LogFilesItemProps) => {
     URL.revokeObjectURL(url);
     setIsDownloading(false);
   };
-  
 
   return (
-
     <li className="text-gray-500 dark:text-gray-400">
       <div className="grid grid-cols-12 items-center py-2">
         <div className="col-span-4 sm:col-span-5 px-2 py-0 truncate hidden sm:block sm:text-sm text-md font-medium text-gray-900 dark:text-gray-200">

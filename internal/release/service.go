@@ -94,6 +94,8 @@ func (s *service) Process(release *domain.Release) {
 		}
 	}()
 
+	defer release.CleanupTemporaryFiles()
+
 	ctx := context.Background()
 
 	// TODO check in config for "Save all releases"

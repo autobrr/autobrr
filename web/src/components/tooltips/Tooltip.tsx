@@ -1,7 +1,7 @@
 import * as React from "react";
 import type { ReactNode } from "react";
 import { usePopperTooltip } from "react-popper-tooltip";
-import { classNames } from "../../utils";
+import { classNames } from "@utils";
 
 interface TooltipProps {
   label: ReactNode;

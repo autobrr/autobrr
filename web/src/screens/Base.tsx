@@ -1,24 +1,20 @@
-import { Fragment } from "react";
+import React, { Fragment } from "react";
 import { Link, NavLink, Outlet } from "react-router-dom";
 import { Disclosure, Menu, Transition } from "@headlessui/react";
 import { ArrowTopRightOnSquareIcon, UserIcon } from "@heroicons/react/24/solid";
 import { Bars3Icon, XMarkIcon, MegaphoneIcon } from "@heroicons/react/24/outline";
-
-import { AuthContext } from "../utils/Context";
-
-import logo from "../logo.png";
-import { useQuery } from "react-query";
-import { APIClient } from "../api/APIClient";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import toast from "react-hot-toast";
-import Toast from "@/components/notifications/Toast";
+
+import { AuthContext } from "@utils/Context";
+import logo from "@app/logo.png";
+import { APIClient } from "@api/APIClient";
+import Toast from "@components/notifications/Toast";
+import { classNames } from "@utils";
 
 interface NavItem {
   name: string;
   path: string;
-}
-
-function classNames(...classes: string[]) {
-  return classes.filter(Boolean).join(" ");
 }
 
 const nav: Array<NavItem> = [
@@ -32,24 +28,27 @@ const nav: Array<NavItem> = [
 export default function Base() {
   const authContext = AuthContext.useValue();
 
-  const { data } = useQuery(
-    ["updates"],
-    () => APIClient.updates.getLatestRelease(),
-    {
-      retry: false,
-      refetchOnWindowFocus: false,
-      onError: err => console.log(err)
-    }
-  );
+  const { data } = useQuery({
+    queryKey: ["updates"],
+    queryFn: () => APIClient.updates.getLatestRelease(),
+    retry: false,
+    refetchOnWindowFocus: false,
+    onError: err => console.log(err)
+  });
 
-  const LogOutUser = () => {
-    APIClient.auth.logout()
-      .then(() => {
-        AuthContext.reset();
-        toast.custom((t) => (
-          <Toast type="success" body="You have been logged out. Goodbye!" t={t} />
-        ));
-      });
+  const logoutMutation = useMutation( {
+    mutationFn: APIClient.auth.logout,
+    onSuccess: () => {
+      AuthContext.reset();
+
+      toast.custom((t) => (
+        <Toast type="success" body="You have been logged out. Goodbye!" t={t} />
+      ));
+    }
+  });
+
+  const logoutAction = () => {
+    logoutMutation.mutate();
   };
 
   return (
@@ -172,7 +171,7 @@ export default function Base() {
                                 <Menu.Item>
                                   {({ active }) => (
                                     <button
-                                      onClick={LogOutUser}
+                                      onClick={logoutAction}
                                       className={classNames(
                                         active
                                           ? "bg-gray-100 dark:bg-gray-600"
@@ -242,7 +241,7 @@ export default function Base() {
                   </NavLink>
                 ))}
                 <button
-                  onClick={LogOutUser}
+                  onClick={logoutAction}
                   className="w-full shadow-sm border bg-gray-100 border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-white block px-3 py-2 rounded-md text-base font-medium text-left"
                 >
                   Logout

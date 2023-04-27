@@ -1,6 +1,6 @@
 import { Field, useFormikContext } from "formik";
 import { RadioGroup } from "@headlessui/react";
-import { classNames } from "../../utils";
+import { classNames } from "@utils";
 
 export interface radioFieldsetOption {
     label: string;

@@ -1,10 +1,11 @@
-import { useMutation, useQuery, useQueryClient } from "react-query";
-import { APIClient } from "../../api/APIClient";
-import { Checkbox } from "../../components/Checkbox";
-import { SettingsContext } from "../../utils/Context";
-import { GithubRelease } from "../../types/Update";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "react-hot-toast";
-import Toast from "../../components/notifications/Toast";
+
+import { APIClient } from "@api/APIClient";
+import { Checkbox } from "@components/Checkbox";
+import { SettingsContext } from "@utils/Context";
+import { GithubRelease } from "@app/types/Update";
+import Toast from "@components/notifications/Toast";
 
 interface RowItemProps {
   label: string;
@@ -47,8 +48,9 @@ const RowItemNumber = ({ label, value, title, unit }: RowItemNumberProps) => {
 };
 
 const RowItemVersion = ({ label, value, title, newUpdate }: RowItemProps) => {
-  if (!value)
+  if (!value) {
     return null;
+  }
 
   return (
     <div className="py-4 sm:py-5 sm:grid sm:grid-cols-4 sm:gap-4 sm:px-6">
@@ -68,49 +70,41 @@ const RowItemVersion = ({ label, value, title, newUpdate }: RowItemProps) => {
 function ApplicationSettings() {
   const [settings, setSettings] = SettingsContext.use();
 
-  const { isLoading, data } = useQuery(
-    ["config"],
-    () => APIClient.config.get(),
-    {
-      retry: false,
-      refetchOnWindowFocus: false,
-      onError: err => console.log(err)
-    }
-  );
+  const { isLoading, data } = useQuery({
+    queryKey: ["config"],
+    queryFn: APIClient.config.get,
+    retry: false,
+    refetchOnWindowFocus: false,
+    onError: err => console.log(err)
+  });
 
-  const { data: updateData } = useQuery(
-    ["updates"],
-    () => APIClient.updates.getLatestRelease(),
-    {
-      retry: false,
-      refetchOnWindowFocus: false,
-      onError: err => console.log(err)
-    }
-  );
+  const { data: updateData } = useQuery({
+    queryKey: ["updates"],
+    queryFn: APIClient.updates.getLatestRelease,
+    retry: false,
+    refetchOnWindowFocus: false,
+    onError: err => console.log(err)
+  });
 
   const queryClient = useQueryClient();
 
-  const checkUpdateMutation = useMutation(
-    () => APIClient.updates.check(),
-    {
-      onSuccess: () => {
-        queryClient.invalidateQueries(["updates"]);
-      }
+  const checkUpdateMutation = useMutation({
+    mutationFn: APIClient.updates.check,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["updates"] });
     }
-  );
+  });
 
-  const toggleCheckUpdateMutation = useMutation(
-    (value: boolean) => APIClient.config.update({ check_for_updates: value }),
-    {
-      onSuccess: () => {
-        toast.custom((t) => <Toast type="success" body={"Config successfully updated!"} t={t}/>);
+  const toggleCheckUpdateMutation = useMutation({
+    mutationFn: (value: boolean) => APIClient.config.update({ check_for_updates: value }),
+    onSuccess: () => {
+      toast.custom((t) => <Toast type="success" body={"Config successfully updated!"} t={t}/>);
 
-        queryClient.invalidateQueries(["config"]);
+      queryClient.invalidateQueries({ queryKey: ["config"] });
 
-        checkUpdateMutation.mutate();
-      }
+      checkUpdateMutation.mutate();
     }
-  );
+  });
 
   return (
     <div className="divide-y divide-gray-200 dark:divide-gray-700 lg:col-span-9">

@@ -1,16 +1,18 @@
-import { useMutation, useQueryClient } from "react-query";
-import { APIClient } from "../../api/APIClient";
-import { toast } from "react-hot-toast";
-import Toast from "../../components/notifications/Toast";
-import { SlideOver } from "../../components/panels";
-import { NumberFieldWide, PasswordFieldWide, SwitchGroupWide, TextFieldWide } from "../../components/inputs";
-import { SelectFieldBasic } from "../../components/inputs/select_wide";
-import { componentMapType } from "./DownloadClientForms";
-import { sleep } from "../../utils";
 import { useState } from "react";
-import { ImplementationBadges } from "../../screens/settings/Indexer";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { toast } from "react-hot-toast";
 import { useFormikContext } from "formik";
-import { FeedDownloadTypeOptions } from "../../domain/constants";
+
+import { APIClient } from "@api/APIClient";
+import Toast from "@components/notifications/Toast";
+import { SlideOver } from "@components/panels";
+import { NumberFieldWide, PasswordFieldWide, SwitchGroupWide, TextFieldWide } from "@components/inputs";
+import { SelectFieldBasic } from "@components/inputs/select_wide";
+import { componentMapType } from "./DownloadClientForms";
+import { sleep } from "@utils";
+import { ImplementationBadges } from "@screens/settings/Indexer";
+import { FeedDownloadTypeOptions } from "@domain/constants";
+import { feedKeys } from "@screens/settings/Feed";
 
 interface UpdateProps {
   isOpen: boolean;
@@ -40,68 +42,58 @@ export function FeedUpdateForm({ isOpen, toggle, feed }: UpdateProps) {
 
   const queryClient = useQueryClient();
 
-  const mutation = useMutation(
-    (feed: Feed) => APIClient.feeds.update(feed),
-    {
-      onSuccess: () => {
-        queryClient.invalidateQueries(["feeds"]);
-        toast.custom((t) => <Toast type="success" body={`${feed.name} was updated successfully`} t={t} />);
-        toggle();
-      }
+  const mutation = useMutation({
+    mutationFn: (feed: Feed) => APIClient.feeds.update(feed),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: feedKeys.lists() });
+      
+      toast.custom((t) => <Toast type="success" body={`${feed.name} was updated successfully`} t={t} />);
+      toggle();
     }
-  );
+  });
 
-  const onSubmit = (formData: unknown) => {
-    mutation.mutate(formData as Feed);
-  };
+  const onSubmit = (formData: unknown) => mutation.mutate(formData as Feed);
 
-  const deleteMutation = useMutation(
-    (feedID: number) => APIClient.feeds.delete(feedID),
-    {
-      onSuccess: () => {
-        queryClient.invalidateQueries(["feeds"]);
-        toast.custom((t) => <Toast type="success" body={`${feed.name} was deleted.`} t={t} />);
-      }
+  const deleteMutation = useMutation({
+    mutationFn: (feedID: number) => APIClient.feeds.delete(feedID),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: feedKeys.lists() });
+
+      toast.custom((t) => <Toast type="success" body={`${feed.name} was deleted.`} t={t} />);
     }
-  );
+  });
 
-  const deleteAction = () => {
-    deleteMutation.mutate(feed.id);
-  };
+  const deleteAction = () => deleteMutation.mutate(feed.id);
 
-  const testFeedMutation = useMutation(
-    (feed: Feed) => APIClient.feeds.test(feed),
-    {
-      onMutate: () => {
-        setIsTesting(true);
-        setIsErrorTest(false);
-        setIsSuccessfulTest(false);
-      },
-      onSuccess: () => {
-        sleep(1000)
-          .then(() => {
-            setIsTesting(false);
-            setIsSuccessfulTest(true);
-          })
-          .then(() => {
-            sleep(2500).then(() => {
-              setIsSuccessfulTest(false);
-            });
+  const testFeedMutation = useMutation({
+    mutationFn: (feed: Feed) => APIClient.feeds.test(feed),
+    onMutate: () => {
+      setIsTesting(true);
+      setIsErrorTest(false);
+      setIsSuccessfulTest(false);
+    },
+    onSuccess: () => {
+      sleep(1000)
+        .then(() => {
+          setIsTesting(false);
+          setIsSuccessfulTest(true);
+        })
+        .then(() => {
+          sleep(2500).then(() => {
+            setIsSuccessfulTest(false);
           });
-      },
-      onError: () => {
-        setIsTesting(false);
-        setIsErrorTest(true);
-        sleep(2500).then(() => {
-          setIsErrorTest(false);
         });
-      }
+    },
+    onError: () => {
+      setIsTesting(false);
+      setIsErrorTest(true);
+      sleep(2500).then(() => {
+        setIsErrorTest(false);
+      });
     }
-  );
+  });
 
-  const testFeed = (data: unknown) => {
-    testFeedMutation.mutate(data as Feed);
-  };
+  const testFeed = (data: unknown) => testFeedMutation.mutate(data as Feed);
 
   const initialValues: InitialValues = {
     id: feed.id,

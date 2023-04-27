@@ -1,5 +1,5 @@
 import { FC } from "react";
-import { SettingsContext } from "../utils/Context";
+import { SettingsContext } from "@utils/Context";
 
 interface DebugProps {
     values: unknown;
