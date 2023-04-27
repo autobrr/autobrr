@@ -37,6 +37,7 @@ func (r *FeedRepo) FindByID(ctx context.Context, id int) (*domain.Feed, error) {
 			"f.interval",
 			"f.timeout",
 			"f.max_age",
+			"f.allow_empty",
 			"f.api_key",
 			"f.cookie",
 			"f.settings",
@@ -61,7 +62,7 @@ func (r *FeedRepo) FindByID(ctx context.Context, id int) (*domain.Feed, error) {
 
 	var apiKey, cookie, settings sql.NullString
 
-	if err := row.Scan(&f.ID, &f.Indexer, &f.Name, &f.Type, &f.Enabled, &f.URL, &f.Interval, &f.Timeout, &f.MaxAge, &apiKey, &cookie, &settings, &f.CreatedAt, &f.UpdatedAt); err != nil {
+	if err := row.Scan(&f.ID, &f.Indexer, &f.Name, &f.Type, &f.Enabled, &f.URL, &f.Interval, &f.Timeout, &f.MaxAge, &f.AllowEmpty, &apiKey, &cookie, &settings, &f.CreatedAt, &f.UpdatedAt); err != nil {
 		return nil, errors.Wrap(err, "error scanning row")
 	}
 
@@ -92,6 +93,7 @@ func (r *FeedRepo) FindByIndexerIdentifier(ctx context.Context, indexer string) 
 			"f.interval",
 			"f.timeout",
 			"f.max_age",
+			"f.allow_empty",
 			"f.api_key",
 			"f.cookie",
 			"f.settings",
@@ -116,7 +118,7 @@ func (r *FeedRepo) FindByIndexerIdentifier(ctx context.Context, indexer string) 
 
 	var apiKey, cookie, settings sql.NullString
 
-	if err := row.Scan(&f.ID, &f.Indexer, &f.Name, &f.Type, &f.Enabled, &f.URL, &f.Interval, &f.Timeout, &f.MaxAge, &apiKey, &cookie, &settings, &f.CreatedAt, &f.UpdatedAt); err != nil {
+	if err := row.Scan(&f.ID, &f.Indexer, &f.Name, &f.Type, &f.Enabled, &f.URL, &f.Interval, &f.Timeout, &f.MaxAge, &f.AllowEmpty, &apiKey, &cookie, &settings, &f.CreatedAt, &f.UpdatedAt); err != nil {
 		return nil, errors.Wrap(err, "error scanning row")
 	}
 
@@ -145,6 +147,7 @@ func (r *FeedRepo) Find(ctx context.Context) ([]domain.Feed, error) {
 			"f.interval",
 			"f.timeout",
 			"f.max_age",
+			"f.allow_empty",
 			"f.api_key",
 			"f.cookie",
 			"f.last_run",
@@ -176,7 +179,7 @@ func (r *FeedRepo) Find(ctx context.Context) ([]domain.Feed, error) {
 		var apiKey, cookie, lastRunData, settings sql.NullString
 		var lastRun sql.NullTime
 
-		if err := rows.Scan(&f.ID, &f.Indexer, &f.Name, &f.Type, &f.Enabled, &f.URL, &f.Interval, &f.Timeout, &f.MaxAge, &apiKey, &cookie, &lastRun, &lastRunData, &settings, &f.CreatedAt, &f.UpdatedAt); err != nil {
+		if err := rows.Scan(&f.ID, &f.Indexer, &f.Name, &f.Type, &f.Enabled, &f.URL, &f.Interval, &f.Timeout, &f.MaxAge, &f.AllowEmpty, &apiKey, &cookie, &lastRun, &lastRunData, &settings, &f.CreatedAt, &f.UpdatedAt); err != nil {
 			return nil, errors.Wrap(err, "error scanning row")
 		}
 
@@ -289,6 +292,7 @@ func (r *FeedRepo) Update(ctx context.Context, feed *domain.Feed) error {
 		Set("interval", feed.Interval).
 		Set("timeout", feed.Timeout).
 		Set("max_age", feed.MaxAge).
+		Set("allow_empty", feed.AllowEmpty).
 		Set("api_key", feed.ApiKey).
 		Set("cookie", feed.Cookie).
 		Set("settings", settings).

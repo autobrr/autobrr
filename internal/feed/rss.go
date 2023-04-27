@@ -263,7 +263,7 @@ func (j *RSSJob) getFeed(ctx context.Context) (items []*gofeed.Item, err error) 
 
 		// first time we fetch the feed the cached bucket count will be 0
 		// only append to items if it's bigger than 0, so we get new items only
-		if bucketCount > 0 {
+		if bucketCount > 0 || j.Feed.AllowEmpty {
 			items = append(items, item)
 		}
 	}

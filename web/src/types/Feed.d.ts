@@ -8,6 +8,7 @@ interface Feed {
   interval: number;
   timeout: number;
   max_age: number;
+  allow_empty: boolean;
   api_key: string;
   cookie: string;
   last_run: string;

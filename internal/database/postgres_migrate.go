@@ -671,4 +671,7 @@ ADD COLUMN download_url TEXT;
 	SET except_tags_match_logic = 'ANY'
 	WHERE except_tags IS NOT NULL;
 	`,
+	`ALTER TABLE feed
+			ADD COLUMN allow_empty BOOLEAN DEFAULT FALSE;
+	`,
 }
