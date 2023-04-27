@@ -127,19 +127,20 @@ export const QUALITY_MUSIC_OPTIONS: MultiSelectOption[] = qualityMusic.map(v => 
 
 export const releaseTypeMusic = [
   "Album",
-  "Single",
-  "EP",
-  "Soundtrack",
   "Anthology",
-  "Compilation",
-  "Live album",
-  "Remix",
   "Bootleg",
-  "Interview",
-  "Mixtape",
-  "Demo",
+  "Compilation",
   "Concert Recording",
+  "Demo",
   "DJ Mix",
+  "EP",
+  "Interview",
+  "Live album",
+  "Mixtape",
+  "Remix",
+  "Sampler",
+  "Single",
+  "Soundtrack",
   "Unknown"
 ];
 
