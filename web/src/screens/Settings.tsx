@@ -10,7 +10,7 @@ import {
   Square3Stack3DIcon
 } from "@heroicons/react/24/outline";
 
-import { classNames } from "../utils";
+import { classNames } from "@utils";
 
 interface NavTabType {
   name: string;

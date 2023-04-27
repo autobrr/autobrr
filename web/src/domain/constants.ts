@@ -1,4 +1,4 @@
-import { MultiSelectOption } from "@/components/inputs/select";
+import { MultiSelectOption } from "@components/inputs/select";
 
 export const resolutions = [
   "2160p",
