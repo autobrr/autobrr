@@ -426,6 +426,15 @@ func (r *Release) downloadTorrentFile(ctx context.Context) error {
 	return errFunc
 }
 
+func (r *Release) CleanupTemporaryFiles() {
+	if len(r.TorrentTmpFile) == 0 {
+		return
+	}
+
+	os.Remove(r.TorrentTmpFile)
+	r.TorrentTmpFile = ""
+}
+
 // HasMagnetUri check uf MagnetURI is set or empty
 func (r *Release) HasMagnetUri() bool {
 	return r.MagnetURI != ""
