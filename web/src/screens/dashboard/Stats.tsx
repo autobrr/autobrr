@@ -1,6 +1,6 @@
-import { useQuery } from "react-query";
-import { APIClient } from "../../api/APIClient";
-import { classNames } from "../../utils";
+import { useQuery } from "@tanstack/react-query";
+import { APIClient } from "@api/APIClient";
+import { classNames } from "@utils";
 
 interface StatsItemProps {
     name: string;
@@ -28,17 +28,18 @@ const StatsItem = ({ name, placeholder, value }: StatsItemProps) => (
 );
 
 export const Stats = () => {
-  const { isLoading, data } = useQuery(
-    "dash_release_stats",
-    () => APIClient.release.stats(),
-    { refetchOnWindowFocus: false }
-  );
+  const { isLoading, data } = useQuery({
+    queryKey: ["dash_release_stats"],
+    queryFn: APIClient.release.stats,
+    refetchOnWindowFocus: false
+  });
 
   return (
     <div>
       <h1 className="text-3xl font-bold text-black dark:text-white">
         Stats
       </h1>
+
       <dl className={classNames("grid grid-cols-1 gap-5 mt-5 sm:grid-cols-2 lg:grid-cols-3", isLoading ? "animate-pulse" : "")}>
         <StatsItem name="Filtered Releases" value={data?.filtered_count ?? 0} />
         {/* <StatsItem name="Filter Rejected Releases" stat={data?.filter_rejected_count} /> */}

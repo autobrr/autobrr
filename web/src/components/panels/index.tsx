@@ -3,10 +3,11 @@ import { XMarkIcon } from "@heroicons/react/24/solid";
 import { Dialog, Transition } from "@headlessui/react";
 import { Form, Formik } from "formik";
 import type { FormikValues } from "formik";
+
 import DEBUG from "../debug";
-import { useToggle } from "../../hooks/hooks";
+import { useToggle } from "@hooks/hooks";
 import { DeleteModal } from "../modals";
-import { classNames } from "../../utils";
+import { classNames } from "@utils";
 
 interface SlideOverProps<DataType> {
   title: string;

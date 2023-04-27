@@ -1,8 +1,8 @@
 import { Field, FieldProps, useFormikContext } from "formik";
-import { classNames } from "../../utils";
+import { classNames } from "@utils";
 import { EyeIcon, EyeSlashIcon, CheckCircleIcon, XCircleIcon } from "@heroicons/react/24/solid";
-import { useToggle } from "../../hooks/hooks";
-import { CustomTooltip } from "../tooltips/CustomTooltip";
+import { useToggle } from "@hooks/hooks";
+import { CustomTooltip } from "@components/tooltips/CustomTooltip";
 import { useEffect } from "react";
 
 type COL_WIDTHS = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12;
