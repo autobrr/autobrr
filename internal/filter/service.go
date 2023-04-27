@@ -23,7 +23,7 @@ import (
 
 type Service interface {
 	FindByID(ctx context.Context, filterID int) (*domain.Filter, error)
-	FindByIndexerIdentifier(indexer string) ([]domain.Filter, error)
+	FindByIndexerIdentifier(ctx context.Context, indexer string) ([]domain.Filter, error)
 	Find(ctx context.Context, params domain.FilterQueryParams) ([]domain.Filter, error)
 	CheckFilter(ctx context.Context, f domain.Filter, release *domain.Release) (bool, error)
 	ListFilters(ctx context.Context) ([]domain.Filter, error)
@@ -35,6 +35,7 @@ type Service interface {
 	Delete(ctx context.Context, filterID int) error
 	AdditionalSizeCheck(ctx context.Context, f domain.Filter, release *domain.Release) (bool, error)
 	CanDownloadShow(ctx context.Context, release *domain.Release) (bool, error)
+	GetDownloadsByFilterId(ctx context.Context, filterID int) (*domain.FilterDownloads, error)
 }
 
 type service struct {
@@ -128,15 +129,19 @@ func (s *service) FindByID(ctx context.Context, filterID int) (*domain.Filter, e
 	return filter, nil
 }
 
-func (s *service) FindByIndexerIdentifier(indexer string) ([]domain.Filter, error) {
+func (s *service) FindByIndexerIdentifier(ctx context.Context, indexer string) ([]domain.Filter, error) {
 	// get filters for indexer
-	filters, err := s.repo.FindByIndexerIdentifier(indexer)
+	filters, err := s.repo.FindByIndexerIdentifier(ctx, indexer)
 	if err != nil {
 		s.log.Error().Err(err).Msgf("could not find filters for indexer: %v", indexer)
 		return nil, err
 	}
 
 	return filters, nil
+}
+
+func (s *service) GetDownloadsByFilterId(ctx context.Context, filterID int) (*domain.FilterDownloads, error) {
+	return s.GetDownloadsByFilterId(ctx, filterID)
 }
 
 func (s *service) Store(ctx context.Context, filter domain.Filter) (*domain.Filter, error) {
@@ -302,6 +307,16 @@ func (s *service) CheckFilter(ctx context.Context, f domain.Filter, release *dom
 	s.log.Trace().Msgf("filter.Service.CheckFilter: checking filter: %v %+v", f.Name, f)
 	s.log.Trace().Msgf("filter.Service.CheckFilter: checking filter: %v for release: %+v", f.Name, release)
 
+	// do additional fetch to get download counts for filter
+	if f.MaxDownloads > 0 {
+		downloadCounts, err := s.repo.GetDownloadsByFilterId(ctx, f.ID)
+		if err != nil {
+			s.log.Error().Err(err).Msg("filter.Service.CheckFilter: error getting download counters for filter")
+			return false, nil
+		}
+		f.Downloads = downloadCounts
+	}
+
 	rejections, matchedFilter := f.CheckFilter(release)
 	if len(rejections) > 0 {
 		s.log.Debug().Msgf("filter.Service.CheckFilter: (%v) for release: %v rejections: (%v)", f.Name, release.TorrentName, release.RejectionsString())
@@ -380,7 +395,7 @@ func (s *service) CheckFilter(ctx context.Context, f domain.Filter, release *dom
 		}
 
 		// found matching filter, lets find the filter actions and attach
-		actions, err := s.actionRepo.FindByFilterID(context.TODO(), f.ID)
+		actions, err := s.actionRepo.FindByFilterID(ctx, f.ID)
 		if err != nil {
 			s.log.Error().Err(err).Msgf("filter.Service.CheckFilter: error finding actions for filter: %+v", f.Name)
 			return false, err
