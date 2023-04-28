@@ -1040,7 +1040,7 @@ func (r *FilterRepo) downloadsByFilterSqlite(ctx context.Context, filterID int) 
 	query := `SELECT
     IFNULL(SUM(CASE WHEN datetime(release_action_status.timestamp, 'localtime') >= datetime(strftime('%Y-%m-%dT%H:00:00', datetime('now','localtime'))) THEN 1 ELSE 0 END),0) as "hour_count",
     IFNULL(SUM(CASE WHEN datetime(release_action_status.timestamp, 'localtime') >= datetime('now', 'localtime', 'start of day') THEN 1 ELSE 0 END),0) as "day_count",
-    IFNULL(SUM(CASE WHEN datetime(release_action_status.timestamp, 'localtime') >= datetime('now', 'localtime', 'weekday 0', '-7 days') THEN 1 ELSE 0 END),0) as "week_count",
+    IFNULL(SUM(CASE WHEN datetime(release_action_status.timestamp, 'localtime') >= datetime('now', 'localtime', 'weekday 0', '-7 days', 'start of day') THEN 1 ELSE 0 END),0) as "week_count",
     IFNULL(SUM(CASE WHEN datetime(release_action_status.timestamp, 'localtime') >= datetime('now', 'localtime', 'start of month') THEN 1 ELSE 0 END),0) as "month_count",
     count(*) as "total_count"
 FROM release_action_status
