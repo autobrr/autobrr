@@ -58,10 +58,13 @@ irc:
     type: single
     lines:
       - test:
-          - "TORRENT: TheBestMacApp.X.4.10.6.macOS  - utility - https://ianon.app/torrents.php?id=1323 / https://ianon.app/torrents.php?action=download&id=1323"
-        pattern: 'TORRENT: (.*)  - (.*) - https:\/\/.*\/.*id=\d+ \/ (https:\/\/.*\/).*action=download&id=(.+)'
+          - "TORRENT: TheBestMacApp.X.4.10.6.macOS (Applications)  - utility - https://ianon.app/torrents.php?id=1323 / https://ianon.app/torrents.php?action=download&id=1323"
+          - "TORRENT: MasterClass - Issa Rae Teaches Creating Outside the Lines (Tutorials)  - freeleech,learning,tutorials,video - https://ianon.app/torrents.php?id=2414 / https://ianon.app/torrents.php?action=download&id=2423"
+        pattern: 'TORRENT: (.*) \((.*)\)\s? - ((freeleech)?.*) - https:\/\/.*\/.*id=\d+ \/ (https:\/\/.*\/).*action=download&id=(.+)'
         vars:
           - torrentName
+          - category
+          - freeleech
           - tags
           - baseUrl
           - torrentId
