@@ -7,7 +7,7 @@ import Select, { components, ControlProps, InputProps, MenuProps, OptionProps } 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "react-hot-toast";
 
-import { PasswordFieldWide, SwitchGroupWide, TextFieldWide } from "@components/inputs";
+import { NumberFieldWide, PasswordFieldWide, SwitchGroupWide, TextFieldWide } from "@components/inputs";
 import DEBUG from "@components/debug";
 import { EventOptions, NotificationTypeOptions, SelectOption } from "@domain/constants";
 import { APIClient } from "@api/APIClient";
@@ -140,7 +140,7 @@ function FormFieldsPushover() {
         label="User Key"
         help="User Key"
       />
-      <TextFieldWide
+      <NumberFieldWide
         name="priority"
         label="Priority"
         help="-2, -1, 0 (default), 1, or 2"

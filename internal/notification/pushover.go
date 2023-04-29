@@ -19,7 +19,7 @@ type pushoverMessage struct {
 	Token     string    `json:"api_key"`
 	User      string    `json:"token"`
 	Message   string    `json:"message"`
-	Priority  string    `json:"priority"`
+	Priority  int32     `json:"priority"`
 	Title     string    `json:"title"`
 	Timestamp time.Time `json:"timestamp"`
 	Html      int       `json:"html,omitempty"`
@@ -54,7 +54,7 @@ func (s *pushoverSender) Send(event domain.NotificationEvent, payload domain.Not
 	data.Set("token", m.Token)
 	data.Set("user", m.User)
 	data.Set("message", m.Message)
-	data.Set("priority", m.Priority)
+	data.Set("priority", string(m.Priority))
 	data.Set("title", m.Title)
 	data.Set("timestamp", fmt.Sprintf("%v", m.Timestamp.Unix()))
 	data.Set("html", fmt.Sprintf("%v", m.Html))
@@ -114,13 +114,9 @@ func (s *pushoverSender) isEnabled() bool {
 			return false
 		}
 
-		if s.Settings.Priority == "" {
-			s.log.Warn().Msg("pushover missing priority")
-			return false
-		}
-
 		return true
 	}
+
 	return false
 }
 
