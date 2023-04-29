@@ -19,7 +19,7 @@ https://autodl-community.github.io/autodl-irssi/configuration/filter/
 
 type FilterRepo interface {
 	FindByID(ctx context.Context, filterID int) (*Filter, error)
-	FindByIndexerIdentifier(indexer string) ([]Filter, error)
+	FindByIndexerIdentifier(ctx context.Context, indexer string) ([]Filter, error)
 	Find(ctx context.Context, params FilterQueryParams) ([]Filter, error)
 	ListFilters(ctx context.Context) ([]Filter, error)
 	Store(ctx context.Context, filter Filter) (*Filter, error)
@@ -30,6 +30,7 @@ type FilterRepo interface {
 	StoreIndexerConnection(ctx context.Context, filterID int, indexerID int) error
 	StoreIndexerConnections(ctx context.Context, filterID int, indexers []Indexer) error
 	DeleteIndexerConnections(ctx context.Context, filterID int) error
+	GetDownloadsByFilterId(ctx context.Context, filterID int) (*FilterDownloads, error)
 }
 
 type FilterDownloads struct {

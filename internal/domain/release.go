@@ -30,7 +30,7 @@ type ReleaseRepo interface {
 	GetIndexerOptions(ctx context.Context) ([]string, error)
 	GetActionStatusByReleaseID(ctx context.Context, releaseID int64) ([]ReleaseActionStatus, error)
 	Stats(ctx context.Context) (*ReleaseStats, error)
-	StoreReleaseActionStatus(ctx context.Context, actionStatus *ReleaseActionStatus) error
+	StoreReleaseActionStatus(ctx context.Context, status *ReleaseActionStatus) error
 	Delete(ctx context.Context) error
 	CanDownloadShow(ctx context.Context, title string, season int, episode int) (bool, error)
 }
@@ -105,6 +105,21 @@ type ReleaseActionStatus struct {
 	ReleaseID  int64             `json:"-"`
 }
 
+func NewReleaseActionStatus(action *Action, release *Release) *ReleaseActionStatus {
+	return &ReleaseActionStatus{
+		ID:         0,
+		Status:     ReleasePushStatusPending,
+		Action:     action.Name,
+		Type:       action.Type,
+		Client:     action.Client.Name,
+		Filter:     release.Filter.Name,
+		FilterID:   int64(release.Filter.ID),
+		Rejections: []string{},
+		Timestamp:  time.Now(),
+		ReleaseID:  release.ID,
+	}
+}
+
 type DownloadTorrentFileResponse struct {
 	MetaInfo    *metainfo.MetaInfo
 	TmpFileName string
@@ -121,11 +136,10 @@ type ReleaseStats struct {
 type ReleasePushStatus string
 
 const (
+	ReleasePushStatusPending  ReleasePushStatus = "PENDING" // Initial status
 	ReleasePushStatusApproved ReleasePushStatus = "PUSH_APPROVED"
 	ReleasePushStatusRejected ReleasePushStatus = "PUSH_REJECTED"
 	ReleasePushStatusErr      ReleasePushStatus = "PUSH_ERROR"
-
-	//ReleasePushStatusPending  ReleasePushStatus = "PENDING" // Initial status
 )
 
 func (r ReleasePushStatus) String() string {
@@ -571,12 +585,12 @@ func (r *Release) MapVars(def *IndexerDefinition, varMap map[string]string) erro
 			//log.Debug().Msgf("bad freeleechPercent var: %v", year)
 		}
 
-		if (freeleechPercentInt > 0) {
+		if freeleechPercentInt > 0 {
 			r.Freeleech = true
 			r.FreeleechPercent = freeleechPercentInt
-	
+
 			r.Bonus = append(r.Bonus, "Freeleech")
-	
+
 			switch freeleechPercentInt {
 			case 25:
 				r.Bonus = append(r.Bonus, "Freeleech25")
