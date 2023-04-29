@@ -2,19 +2,20 @@ import { Fragment, useEffect, useRef, useState } from "react";
 import { ExclamationTriangleIcon } from "@heroicons/react/24/solid";
 import format from "date-fns/format";
 import { DebounceInput } from "react-debounce-input";
-import { APIClient } from "../api/APIClient";
-import { Checkbox } from "../components/Checkbox";
-import { classNames, simplifyDate } from "../utils";
-import { SettingsContext } from "../utils/Context";
-import { EmptySimple } from "../components/emptystates";
 import {
   Cog6ToothIcon,
   DocumentArrowDownIcon
 } from "@heroicons/react/24/outline";
-import { useQuery } from "react-query";
+import { useQuery } from "@tanstack/react-query";
 import { Menu, Transition } from "@headlessui/react";
-import { baseUrl } from "../utils";
 
+import { APIClient } from "@api/APIClient";
+import { Checkbox } from "@components/Checkbox";
+import { classNames, simplifyDate } from "@utils";
+import { SettingsContext } from "@utils/Context";
+import { EmptySimple } from "@components/emptystates";
+import { baseUrl } from "@utils";
+import { RingResizeSpinner } from "@components/Icons";
 
 type LogEvent = {
   time: string;
@@ -82,7 +83,6 @@ export const Logs = () => {
         </div>
       </header>
 
-
       <div className="max-w-screen-xl mx-auto pb-12 px-2 sm:px-4 lg:px-8">
         <div className="flex justify-center py-4">
           <ExclamationTriangleIcon
@@ -147,7 +147,7 @@ export const Logs = () => {
       </div>
 
       <div className="max-w-screen-xl mx-auto pb-10 px-2 sm:px-4 lg:px-8">
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg px-2 sm:px-4 pt-3 sm:pt-4">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg px-4 sm:px-6 pt-3 sm:pt-4">
           <LogFiles />
         </div>
       </div>
@@ -157,15 +157,13 @@ export const Logs = () => {
 };
 
 export const LogFiles = () => {
-  const { isLoading, data } = useQuery(
-    ["log-files"],
-    () => APIClient.logs.files(),
-    {
-      retry: false,
-      refetchOnWindowFocus: false,
-      onError: err => console.log(err)
-    }
-  );
+  const { isLoading, data } = useQuery({
+    queryKey: ["log-files"],
+    queryFn: () => APIClient.logs.files(),
+    retry: false,
+    refetchOnWindowFocus: false,
+    onError: err => console.log(err)
+  });
 
   return (
     <div>
@@ -179,15 +177,15 @@ export const LogFiles = () => {
       {data && data.files.length > 0 ? (
         <section className="py-3 light:bg-white dark:bg-gray-800 light:shadow sm:rounded-md">
           <ol className="min-w-full relative">
-            <li className="hidden sm:grid grid-cols-12 gap-4 mb-2 border-b border-gray-200 dark:border-gray-700">
-              <div className="col-span-5 px-2 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+            <li className="grid grid-cols-12 mb-2 border-b border-gray-200 dark:border-gray-700">
+              <div className="hidden sm:block col-span-5 px-2 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                   Name
               </div>
-              <div className="col-span-2 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                  Size
+              <div className="col-span-8 sm:col-span-4 px-1 sm:px-2 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                Last modified
               </div>
-              <div className="col-span-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                  Last modified
+              <div className="col-span-3 sm:col-span-2 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  Size
               </div>
             </li>
 
@@ -208,38 +206,6 @@ interface LogFilesItemProps {
   file: LogFile;
 }
 
-const Dots = () => {
-  const [step, setStep] = useState(1);
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setStep((prevStep) => (prevStep % 3) + 1);
-    }, 300);
-
-    return () => clearInterval(interval);
-  }, []);
-
-  return (
-    <div className="flex">
-      <div
-        className={`h-2 w-2 bg-blue-500 rounded-full mx-1 ${
-          step === 1 ? "opacity-100" : "opacity-30"
-        }`}
-      />
-      <div
-        className={`h-2 w-2 bg-blue-500 rounded-full mx-1 ${
-          step === 2 ? "opacity-100" : "opacity-30"
-        }`}
-      />
-      <div
-        className={`h-2 w-2 bg-blue-500 rounded-full mx-1 ${
-          step === 3 ? "opacity-100" : "opacity-30"
-        }`}
-      />
-    </div>
-  );
-};
-
 const LogFilesItem = ({ file }: LogFilesItemProps) => {
   const [isDownloading, setIsDownloading] = useState(false);
 
@@ -255,32 +221,29 @@ const LogFilesItem = ({ file }: LogFilesItemProps) => {
     URL.revokeObjectURL(url);
     setIsDownloading(false);
   };
-  
 
   return (
-
     <li className="text-gray-500 dark:text-gray-400">
-      <div className="sm:grid grid-cols-12 gap-4 items-center py-2">
-        <div className="col-span-5 px-2 py-2 sm:py-0 truncate block sm:text-sm text-md font-medium text-gray-900 dark:text-gray-200">
-          <div className="flex justify-between">
+      <div className="grid grid-cols-12 items-center py-2">
+        <div className="col-span-4 sm:col-span-5 px-2 py-0 truncate hidden sm:block sm:text-sm text-md font-medium text-gray-900 dark:text-gray-200">
+          <div className="block truncate justify-between">
             {file.filename}
           </div>
         </div>
-        <div className="col-span-2 flex items-center text-sm font-medium text-gray-900 dark:text-gray-200">
-          {file.size}
-        </div>
-
-        <div className="col-span-4 flex items-center text-sm font-medium text-gray-900 dark:text-gray-200" title={file.updated_at}>
+        <div className="col-span-8 sm:col-span-4 block truncate px-1 sm:px-2 items-center text-sm font-medium text-gray-900 dark:text-gray-200" title={file.updated_at}>
           {simplifyDate(file.updated_at)}
         </div>
-        <div className="col-span-1 hidden sm:flex items-center justify-center text-sm font-medium text-gray-900 dark:text-white">
+        <div className="col-span-3 sm:col-span-2 flex items-center text-sm font-small sm:font-medium text-gray-900 dark:text-gray-200">
+          {file.size}
+        </div>
+        <div className="col-span-1 sm:col-span-1 pl-0 flex items-center justify-center text-sm font-medium text-gray-900 dark:text-white">
           <div className="logFilesItem">
             <button
               className={classNames(
                 "text-gray-900 dark:text-gray-300",
                 "font-medium group flex rounded-md items-center px-2 py-2 text-sm"
               )}
-              title="Download file"
+              title={!isDownloading ? "Download file" : "Sanitizing log..."}
               onClick={handleDownload}
             >
               {!isDownloading ? (
@@ -289,10 +252,10 @@ const LogFilesItem = ({ file }: LogFilesItemProps) => {
                   aria-hidden="true"
                 />
               ) : (
-                <div className="h-5 flex items-center">
-                  <span className="sanitizing-text">Sanitizing log</span>
-                  <Dots />
-                </div>
+                <RingResizeSpinner
+                  className="text-blue-500 w-5 h-5 iconHeight"
+                  aria-hidden="true"
+                />
               )}
             </button>
           </div>

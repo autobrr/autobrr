@@ -1,5 +1,5 @@
 import React, { useRef } from "react";
-import { useMutation, useQuery } from "react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { NavLink, Route, Routes, useLocation, useNavigate, useParams } from "react-router-dom";
 import { toast } from "react-hot-toast";
 import { Form, Formik, FormikValues, useFormikContext } from "formik";
@@ -20,11 +20,10 @@ import {
   SOURCES_MUSIC_OPTIONS,
   SOURCES_OPTIONS,
   tagsMatchLogicOptions
-} from "../../domain/constants";
-import { queryClient } from "../../App";
-import { APIClient } from "../../api/APIClient";
-import { useToggle } from "../../hooks/hooks";
-import { classNames } from "../../utils";
+} from "@app/domain/constants";
+import { APIClient } from "@api/APIClient";
+import { useToggle } from "@hooks/hooks";
+import { classNames } from "@utils";
 
 import {
   CheckboxField,
@@ -35,13 +34,14 @@ import {
   SwitchGroup,
   TextField,
   RegexField
-} from "../../components/inputs";
-import DEBUG from "../../components/debug";
-import Toast from "../../components/notifications/Toast";
-import { DeleteModal } from "../../components/modals";
-import { TitleSubtitle } from "../../components/headings";
-import { TextArea } from "../../components/inputs/input";
+} from "@components/inputs";
+import DEBUG from "@components/debug";
+import Toast from "@components/notifications/Toast";
+import { DeleteModal } from "@components/modals";
+import { TitleSubtitle } from "@components/headings";
+import { TextArea } from "@components/inputs/input";
 import { FilterActions } from "./action";
+import { filterKeys } from "./list";
 
 interface tabType {
   name: string;
@@ -141,40 +141,53 @@ const FormButtonsGroup = ({ values, deleteAction, reset }: FormButtonsGroupProps
 };
 
 export default function FilterDetails() {
+  const queryClient = useQueryClient();
   const navigate = useNavigate();
   const { filterId } = useParams<{ filterId: string }>();
 
-  const { isLoading, data: filter } = useQuery(
-    ["filters", filterId],
-    () => APIClient.filters.getByID(parseInt(filterId ?? "0")),
-    {
-      retry: false,
-      refetchOnWindowFocus: false,
-      onError: () => navigate("./")
-    }
-  );
+  if (filterId === "0" || undefined) {
+    navigate("/filters");
+  }
 
-  const updateMutation = useMutation(
-    (filter: Filter) => APIClient.filters.update(filter),
-    {
-      onSuccess: (_, currentFilter) => {
-        toast.custom((t) => (
-          <Toast type="success" body={`${currentFilter.name} was updated successfully`} t={t} />
-        ));
-        queryClient.refetchQueries(["filters"]);
-        // queryClient.invalidateQueries(["filters", currentFilter.id]);
-      }
-    }
-  );
+  const id = parseInt(filterId!);
 
-  const deleteMutation = useMutation((id: number) => APIClient.filters.delete(id), {
+  const { isLoading, data: filter } = useQuery({
+    queryKey: filterKeys.detail(id),
+    queryFn: ({ queryKey }) => APIClient.filters.getByID(queryKey[2]),
+    refetchOnWindowFocus: false,
+    onError: () => {
+      navigate("/filters");
+    }
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: (filter: Filter) => APIClient.filters.update(filter),
+    onSuccess: (newFilter, variables) => {
+      queryClient.setQueryData(filterKeys.detail(variables.id), newFilter);
+
+      queryClient.setQueryData<Filter[]>(filterKeys.lists(), (previous) => {
+        if (previous) {
+          return previous.map((filter: Filter) => (filter.id === variables.id ? newFilter : filter));
+        }
+      });
+
+      toast.custom((t) => (
+        <Toast type="success" body={`${newFilter.name} was updated successfully`} t={t}/>
+      ));
+    }
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: number) => APIClient.filters.delete(id),
     onSuccess: () => {
+      // Invalidate filters just in case, most likely not necessary but can't hurt.
+      queryClient.invalidateQueries({ queryKey: filterKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: filterKeys.detail(id) });
+
       toast.custom((t) => (
         <Toast type="success" body={`${filter?.name} was deleted`} t={t} />
       ));
 
-      // Invalidate filters just in case, most likely not necessary but can't hurt.
-      queryClient.invalidateQueries(["filters"]);
 
       // redirect
       navigate("/filters");
@@ -234,7 +247,7 @@ export default function FilterDetails() {
               initialValues={{
                 id: filter.id,
                 name: filter.name,
-                enabled: filter.enabled || false,
+                enabled: filter.enabled,
                 min_size: filter.min_size,
                 max_size: filter.max_size,
                 delay: filter.delay,
@@ -298,6 +311,7 @@ export default function FilterDetails() {
                 external_webhook_expect_status: filter.external_webhook_expect_status || 0
               } as Filter}
               onSubmit={handleSubmit}
+              enableReinitialize={true}
             >
               {({ values, dirty, resetForm }) => (
                 <Form>
@@ -322,11 +336,11 @@ export default function FilterDetails() {
 }
 
 export function General(){
-  const { isLoading, data: indexers } = useQuery(
-    ["filters", "indexer_list"],
-    () => APIClient.indexers.getOptions(),
-    { refetchOnWindowFocus: false }
-  );
+  const { isLoading, data: indexers } = useQuery({
+    queryKey: ["filters", "indexer_list"],
+    queryFn: APIClient.indexers.getOptions,
+    refetchOnWindowFocus: false
+  });
 
   const opts = indexers && indexers.length > 0 ? indexers.map(v => ({
     label: v.name,

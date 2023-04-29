@@ -93,18 +93,6 @@ func (s *service) RunAction(ctx context.Context, action *domain.Action, release 
 		return rejections, err
 	}
 
-	rlsActionStatus := &domain.ReleaseActionStatus{
-		ReleaseID:  release.ID,
-		Status:     domain.ReleasePushStatusApproved,
-		Action:     action.Name,
-		Type:       action.Type,
-		Client:     action.Client.Name,
-		Filter:     release.Filter.Name,
-		FilterID:   int64(release.Filter.ID),
-		Rejections: []string{},
-		Timestamp:  time.Now(),
-	}
-
 	payload := &domain.NotificationPayload{
 		Event:       domain.NotificationEventPushApproved,
 		ReleaseName: release.TorrentName,
@@ -126,25 +114,16 @@ func (s *service) RunAction(ctx context.Context, action *domain.Action, release 
 	if err != nil {
 		s.log.Error().Err(err).Msgf("process action failed: %v for '%v'", action.Name, release.TorrentName)
 
-		rlsActionStatus.Status = domain.ReleasePushStatusErr
-		rlsActionStatus.Rejections = []string{err.Error()}
-
 		payload.Event = domain.NotificationEventPushError
 		payload.Status = domain.ReleasePushStatusErr
 		payload.Rejections = []string{err.Error()}
 	}
 
 	if rejections != nil {
-		rlsActionStatus.Status = domain.ReleasePushStatusRejected
-		rlsActionStatus.Rejections = rejections
-
 		payload.Event = domain.NotificationEventPushRejected
 		payload.Status = domain.ReleasePushStatusRejected
 		payload.Rejections = rejections
 	}
-
-	// send event for actions
-	s.bus.Publish("release:push", rlsActionStatus)
 
 	// send separate event for notifications
 	s.bus.Publish("events:notification", &payload.Event, payload)

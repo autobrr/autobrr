@@ -26,7 +26,7 @@ Installation guide and documentation can be found at https://autobrr.com
 - Built on Go and React making autobrr lightweight and perfect for supporting multiple platforms (Linux, FreeBSD, Windows, macOS) on different architectures (e.g. x86, ARM)
 - Great container support (Docker, k8s/Kubernetes)
 - Database engine supporting both PostgreSQL and SQLite
-- Notifications (Discord, Telegram, Notifiarr)
+- Notifications (Discord, Telegram, Notifiarr, Pushover)
 - One autobrr instance can communicate with multiple clients (torrent, usenet and \*arr) on remote servers
 - Base path / Subfolder (and subdomain) support for convenient reverse-proxy support
 
@@ -232,7 +232,7 @@ Start the service. Enable will make it startup on reboot.
 systemctl enable -q --now --user autobrr@$USER
 ```
 
-By default it the config is set to listen on only `127.0.0.1`.  It's highly advised to put it behind a reverse-proxy like nginx or traefik etc.
+By default, the configuration is set to listen on `127.0.0.1`. While autobrr works fine as is exposed to the internet, it is recommended to use a reverse proxy like [nginx](https://autobrr.com/installation/linux#nginx), [caddy](https://autobrr.com/installation/linux#caddy) or [traefik](https://autobrr.com/installation/docker#traefik).
 
 If you are not running a reverse proxy change `host` in the `config.toml` to `0.0.0.0`.
 

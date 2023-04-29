@@ -1,6 +1,5 @@
 import { newRidgeState } from "react-ridge-state";
 
-
 export const InitializeGlobalContext = () => {
   const auth_ctx = localStorage.getItem("auth");
   if (auth_ctx)
