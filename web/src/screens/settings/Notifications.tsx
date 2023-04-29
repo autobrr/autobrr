@@ -1,19 +1,27 @@
-import { useQuery } from "react-query";
-import { APIClient } from "../../api/APIClient";
-import { EmptySimple } from "../../components/emptystates";
-import { useToggle } from "../../hooks/hooks";
-import { NotificationAddForm, NotificationUpdateForm } from "../../forms/settings/NotificationForms";
+import { useQuery } from "@tanstack/react-query";
 import { Switch } from "@headlessui/react";
-import { classNames } from "../../utils";
-import { componentMapType } from "../../forms/settings/DownloadClientForms";
+
+import { APIClient } from "@api/APIClient";
+import { EmptySimple } from "@components/emptystates";
+import { useToggle } from "@hooks/hooks";
+import { NotificationAddForm, NotificationUpdateForm } from "@forms/settings/NotificationForms";
+import { classNames } from "@utils";
+import { componentMapType } from "@forms/settings/DownloadClientForms";
+
+export const notificationKeys = {
+  all: ["notifications"] as const,
+  lists: () => [...notificationKeys.all, "list"] as const,
+  details: () => [...notificationKeys.all, "detail"] as const,
+  detail: (id: number) => [...notificationKeys.details(), id] as const
+};
 
 function NotificationSettings() {
   const [addNotificationsIsOpen, toggleAddNotifications] = useToggle(false);
 
-  const { data } = useQuery(
-    "notifications",
-    () => APIClient.notifications.getAll(),
-    { refetchOnWindowFocus: false }
+  const { data } = useQuery({
+    queryKey: notificationKeys.lists(),
+    queryFn: APIClient.notifications.getAll,
+    refetchOnWindowFocus: false }
   );
 
   return (

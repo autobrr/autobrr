@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import logo from "@/logo.png";
+import logo from "@app/logo.png";
 
 export const NotFound = () => {
   return (

@@ -426,6 +426,15 @@ func (r *Release) downloadTorrentFile(ctx context.Context) error {
 	return errFunc
 }
 
+func (r *Release) CleanupTemporaryFiles() {
+	if len(r.TorrentTmpFile) == 0 {
+		return
+	}
+
+	os.Remove(r.TorrentTmpFile)
+	r.TorrentTmpFile = ""
+}
+
 // HasMagnetUri check uf MagnetURI is set or empty
 func (r *Release) HasMagnetUri() bool {
 	return r.MagnetURI != ""
@@ -546,6 +555,8 @@ func (r *Release) MapVars(def *IndexerDefinition, varMap map[string]string) erro
 		fl := StringEqualFoldMulti(freeleech, "freeleech", "yes", "1", "VIP")
 		if fl {
 			r.Freeleech = true
+			// default to 100 and override if freeleechPercent is present in next function
+			r.FreeleechPercent = 100
 			r.Bonus = append(r.Bonus, "Freeleech")
 		}
 	}
@@ -560,22 +571,23 @@ func (r *Release) MapVars(def *IndexerDefinition, varMap map[string]string) erro
 			//log.Debug().Msgf("bad freeleechPercent var: %v", year)
 		}
 
-		r.Freeleech = true
-		r.FreeleechPercent = freeleechPercentInt
-
-		r.Bonus = append(r.Bonus, "Freeleech")
-
-		switch freeleechPercentInt {
-		case 25:
-			r.Bonus = append(r.Bonus, "Freeleech25")
-		case 50:
-			r.Bonus = append(r.Bonus, "Freeleech50")
-		case 75:
-			r.Bonus = append(r.Bonus, "Freeleech75")
-		case 100:
-			r.Bonus = append(r.Bonus, "Freeleech100")
+		if (freeleechPercentInt > 0) {
+			r.Freeleech = true
+			r.FreeleechPercent = freeleechPercentInt
+	
+			r.Bonus = append(r.Bonus, "Freeleech")
+	
+			switch freeleechPercentInt {
+			case 25:
+				r.Bonus = append(r.Bonus, "Freeleech25")
+			case 50:
+				r.Bonus = append(r.Bonus, "Freeleech50")
+			case 75:
+				r.Bonus = append(r.Bonus, "Freeleech75")
+			case 100:
+				r.Bonus = append(r.Bonus, "Freeleech100")
+			}
 		}
-
 	}
 
 	if uploader, err := getStringMapValue(varMap, "uploader"); err == nil {

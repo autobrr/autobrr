@@ -199,6 +199,12 @@ func (a *announceProcessor) onLinesMatched(def *domain.IndexerDefinition, vars m
 		return err
 	}
 
+	// since OPS uses en-dashes as separators, which causes moistari/rls to not the torrentName properly,
+	// we replace the en-dashes with hyphens here
+	if def.Identifier == "ops" {
+		rls.TorrentName = strings.ReplaceAll(rls.TorrentName, "–", "-")
+	}
+
 	// parse fields
 	// run before ParseMatch to not potentially use a reconstructed TorrentName
 	rls.ParseString(rls.TorrentName)

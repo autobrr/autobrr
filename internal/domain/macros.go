@@ -22,6 +22,8 @@ type Macro struct {
 	GroupID             string
 	Indexer             string
 	Title               string
+	Category	    string
+	Categories	    []string
 	Resolution          string
 	Source              string
 	HDR                 string
@@ -52,6 +54,8 @@ func NewMacro(release Release) Macro {
 		GroupID:             release.GroupID,
 		Indexer:             release.Indexer,
 		Title:               release.Title,
+		Category:            release.Category,
+		Categories:          release.Categories,
 		Resolution:          release.Resolution,
 		Source:              release.Source,
 		HDR:                 strings.Join(release.HDR, ", "),
