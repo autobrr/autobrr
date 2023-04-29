@@ -38,6 +38,10 @@ export async function HttpClient<T>(
           return Promise.reject(new Error("Not found"));
         }
 
+        if (JSON.stringify(await response.json()) === JSON.stringify({ message: "json: cannot unmarshal string into Go struct field Action.actions.client_id of type int32" })) {
+          return Promise.reject(new Error("Please select a client from the dropdown menu before saving."));
+        }
+
         return Promise.reject(new Error(await response.text()));
       }
 
