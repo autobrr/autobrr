@@ -249,9 +249,15 @@ func (s *service) Test(ctx context.Context, notification domain.Notification) er
 
 	for _, event := range events {
 		e := event
-		g.Go(func() error {
-			return agent.Send(e.Event, e)
-		})
+
+		if !enabledEvent(notification.Events, e.Event) {
+			continue
+		}
+
+		if err := agent.Send(e.Event, e); err != nil {
+			s.log.Error().Err(err).Msgf("error sending test notification: %#v", notification)
+			return err
+		}
 
 		time.Sleep(1 * time.Second)
 	}
@@ -262,4 +268,14 @@ func (s *service) Test(ctx context.Context, notification domain.Notification) er
 	}
 
 	return nil
+}
+
+func enabledEvent(events []string, e domain.NotificationEvent) bool {
+	for _, v := range events {
+		if v == string(e) {
+			return true
+		}
+	}
+
+	return false
 }

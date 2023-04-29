@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 	"time"
 
@@ -54,10 +55,15 @@ func (s *pushoverSender) Send(event domain.NotificationEvent, payload domain.Not
 	data.Set("token", m.Token)
 	data.Set("user", m.User)
 	data.Set("message", m.Message)
-	data.Set("priority", string(m.Priority))
+	data.Set("priority", strconv.Itoa(int(m.Priority)))
 	data.Set("title", m.Title)
 	data.Set("timestamp", fmt.Sprintf("%v", m.Timestamp.Unix()))
 	data.Set("html", fmt.Sprintf("%v", m.Html))
+
+	if m.Priority == 2 {
+		data.Set("expire", "3600")
+		data.Set("retry", "60")
+	}
 
 	req, err := http.NewRequest(http.MethodPost, s.baseUrl, strings.NewReader(data.Encode()))
 	if err != nil {
