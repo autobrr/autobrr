@@ -253,6 +253,7 @@ export interface SelectFieldProps {
     options: SelectFieldOption[];
     columns?: COL_WIDTHS;
     tooltip?: JSX.Element;
+    required?: boolean;
 }
 
 export const Select = ({

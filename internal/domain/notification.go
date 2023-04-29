@@ -20,26 +20,29 @@ type NotificationSender interface {
 }
 
 type Notification struct {
-	ID        int              `json:"id"`
-	Name      string           `json:"name"`
-	Type      NotificationType `json:"type"`
-	Enabled   bool             `json:"enabled"`
-	Events    []string         `json:"events"`
-	Token     string           `json:"token"`
-	APIKey    string           `json:"api_key"`
-	Webhook   string           `json:"webhook"`
-	Title     string           `json:"title"`
-	Icon      string           `json:"icon"`
-	Username  string           `json:"username"`
-	Host      string           `json:"host"`
-	Password  string           `json:"password"`
-	Channel   string           `json:"channel"`
-	Rooms     string           `json:"rooms"`
-	Targets   string           `json:"targets"`
-	Devices   string           `json:"devices"`
-	Priority  int32            `json:"priority"`
-	CreatedAt time.Time        `json:"created_at"`
-	UpdatedAt time.Time        `json:"updated_at"`
+	ID          int               `json:"id"`
+	Name        string            `json:"name"`
+	Type        NotificationType  `json:"type"`
+	Enabled     bool              `json:"enabled"`
+	Events      []string          `json:"events"`
+	Token       string            `json:"token"`
+	APIKey      string            `json:"api_key"`
+	Webhook     string            `json:"webhook"`
+	Title       string            `json:"title"`
+	Icon        string            `json:"icon"`
+	Username    string            `json:"username"`
+	Host        string            `json:"host"`
+	ContentType string            `json:"content_type"`
+	Method      string            `json:"method"`
+	Headers     map[string]string `json:"headers"`
+	Password    string            `json:"password"`
+	Channel     string            `json:"channel"`
+	Rooms       string            `json:"rooms"`
+	Targets     string            `json:"targets"`
+	Devices     string            `json:"devices"`
+	Priority    int32             `json:"priority"`
+	CreatedAt   time.Time         `json:"created_at"`
+	UpdatedAt   time.Time         `json:"updated_at"`
 }
 
 type NotificationPayload struct {
@@ -75,6 +78,7 @@ const (
 	NotificationTypeRocketChat NotificationType = "ROCKETCHAT"
 	NotificationTypeSlack      NotificationType = "SLACK"
 	NotificationTypeTelegram   NotificationType = "TELEGRAM"
+	NotificationTypeWebhook    NotificationType = "WEBHOOK"
 )
 
 type NotificationEvent string

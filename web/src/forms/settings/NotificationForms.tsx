@@ -7,14 +7,21 @@ import Select, { components, ControlProps, InputProps, MenuProps, OptionProps } 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "react-hot-toast";
 
-import { NumberFieldWide, PasswordFieldWide, SwitchGroupWide, TextFieldWide } from "@components/inputs";
+import { NumberFieldWide, PasswordFieldWide, SwitchGroupWide, TextAreaWide, TextFieldWide } from "@components/inputs";
 import DEBUG from "@components/debug";
-import { EventOptions, NotificationTypeOptions, SelectOption } from "@domain/constants";
+import {
+  EventOptions,
+  NotificationTypeOptions,
+  NotificationWebhookDataOptions,
+  NotificationWebhookMethodOptions,
+  SelectOption
+} from "@domain/constants";
 import { APIClient } from "@api/APIClient";
 import Toast from "@components/notifications/Toast";
 import { SlideOver } from "@components/panels";
 import { componentMapType } from "./DownloadClientForms";
 import { notificationKeys } from "@screens/settings/Notifications";
+import { SelectFieldWide } from "@components/inputs/input_wide";
 
 const Input = (props: InputProps) => {
   return (
@@ -150,11 +157,60 @@ function FormFieldsPushover() {
   );
 }
 
+function FormFieldsWebhook() {
+  return (
+    <div className="border-t border-gray-200 dark:border-gray-700 py-4">
+      <div className="px-4 space-y-1">
+        <Dialog.Title className="text-lg font-medium text-gray-900 dark:text-white">Settings</Dialog.Title>
+        <p className="text-sm text-gray-500 dark:text-gray-400">
+          Custom webhook.
+        </p>
+      </div>
+
+      <TextFieldWide
+        name="url"
+        label="URL"
+        help="URL"
+        required={true}
+      />
+
+      <SelectFieldWide
+        name="webhook_http_method"
+        label="HTTP Method"
+        optionDefaultText="Select method"
+        options={NotificationWebhookMethodOptions}
+        required={true}
+      />
+
+      <SelectFieldWide
+        name="webhook_content_type"
+        label="Content-type"
+        optionDefaultText="Select content-type"
+        options={NotificationWebhookDataOptions}
+        required={true}
+      />
+
+      <TextAreaWide
+        name="data"
+        label="Body"
+        help="Body"
+      />
+
+      <PasswordFieldWide
+        name="headers"
+        label="Headers"
+        help="Headers: Key=value,key2=value2"
+      />
+    </div>
+  );
+}
+
 const componentMap: componentMapType = {
   DISCORD: <FormFieldsDiscord />,
   NOTIFIARR: <FormFieldsNotifiarr />,
   TELEGRAM: <FormFieldsTelegram />,
-  PUSHOVER: <FormFieldsPushover />
+  PUSHOVER: <FormFieldsPushover />,
+  WEBHOOK: <FormFieldsWebhook />
 };
 
 interface NotificationAddFormValues {

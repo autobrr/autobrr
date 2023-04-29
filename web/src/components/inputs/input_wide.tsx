@@ -1,6 +1,6 @@
 import type { FieldProps, FieldValidator } from "formik";
 import { Field } from "formik";
-import { classNames } from "@utils";
+import { classNames, COL_WIDTHS } from "@utils";
 import { useToggle } from "@hooks/hooks";
 import { EyeIcon, EyeSlashIcon } from "@heroicons/react/24/solid";
 import { Switch } from "@headlessui/react";
@@ -73,6 +73,73 @@ export const TextFieldWide = ({
   </div>
 );
 
+interface TextAreaWideProps {
+  name: string;
+  defaultValue?: string;
+  label?: string;
+  placeholder?: string;
+  help?: string;
+  columns?: COL_WIDTHS;
+  rows?: number;
+  autoComplete?: string;
+  hidden?: boolean;
+  required?: boolean;
+  tooltip?: JSX.Element;
+  validate?: FieldValidator;
+}
+
+export const TextAreaWide = ({
+  name,
+  defaultValue,
+  label,
+  placeholder,
+  columns,
+  rows,
+  required,
+  autoComplete,
+  hidden,
+  tooltip,
+  validate,
+  help
+}: TextAreaWideProps) => (
+  <div hidden={hidden} className="space-y-1 p-4 sm:space-y-0 sm:grid sm:grid-cols-3 sm:gap-4">
+    <div>
+      <label htmlFor={name} className="flex text-sm font-medium text-gray-900 dark:text-white sm:mt-px sm:pt-2">
+        <div className="flex">
+          {label} {tooltip && (<CustomTooltip anchorId={name}>{tooltip}</CustomTooltip>)}
+          <RequiredField required={required} />
+        </div>
+      </label>
+    </div>
+    <div className="sm:col-span-2">
+      <Field
+        name={name}
+        value={defaultValue}
+        required={required}
+        validate={validate}
+      >
+        {({ field, meta }: FieldProps) => (
+          <textarea
+            {...field}
+            id={name}
+            // type="text"
+            value={field.value ? field.value : defaultValue ?? ""}
+            onChange={field.onChange}
+            className={classNames(meta.touched && meta.error ? "focus:ring-red-500 focus:border-red-500 border-red-500" : "focus:ring-blue-500 dark:focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-500 border-gray-300 dark:border-gray-700", "block w-full shadow-sm dark:bg-gray-800 sm:text-sm dark:text-white rounded-md")}
+            placeholder={placeholder}
+            hidden={hidden}
+            required={required}
+            autoComplete={autoComplete}
+          />
+        )}
+      </Field>
+      {help && (
+        <p className="mt-2 text-sm text-gray-500" id={`${name}-description`}>{help}</p>
+      )}
+      <ErrorField name={name} classNames="block text-red-500 mt-2" />
+    </div>
+  </div>
+);
 interface PasswordFieldWideProps {
     name: string;
     label?: string;
@@ -382,7 +449,8 @@ export const SelectFieldWide = ({
   label,
   optionDefaultText,
   tooltip,
-  options
+  options,
+  required
 }: SelectFieldProps) => (
   <div className="flex items-center justify-between space-y-1 px-4 py-4 sm:space-y-0 sm:grid sm:grid-cols-3 sm:gap-4">
     <div>
@@ -391,8 +459,8 @@ export const SelectFieldWide = ({
         className="flex text-sm font-medium text-gray-900 dark:text-white"
       >
         <div className="flex">
-          {label}
-          {tooltip && (<CustomTooltip anchorId={name}>{tooltip}</CustomTooltip>)}
+          {label} {tooltip && (<CustomTooltip anchorId={name}>{tooltip}</CustomTooltip>)}
+          <RequiredField required={required} />
         </div>
       </label>
     </div>
@@ -407,6 +475,7 @@ export const SelectFieldWide = ({
             id={name}
             isClearable={true}
             isSearchable={true}
+            required={required}
             components={{
               Input,
               Control,

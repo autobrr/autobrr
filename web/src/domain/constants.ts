@@ -390,6 +390,36 @@ export const NotificationTypeOptions: OptionBasicTyped<NotificationType>[] = [
   {
     label: "Pushover",
     value: "PUSHOVER"
+  },
+  {
+    label: "Webhook",
+    value: "WEBHOOK"
+  }
+];
+
+export const NotificationWebhookMethodOptions: OptionBasicTyped<NotificationWebhookMethodType>[] = [
+  {
+    label: "POST",
+    value: "POST"
+  },
+  {
+    label: "PUT",
+    value: "PUT"
+  },
+  {
+    label: "GET",
+    value: "GET"
+  }
+];
+
+export const NotificationWebhookDataOptions: OptionBasicTyped<NotificationWebhookDataType>[] = [
+  {
+    label: "application/json",
+    value: "application/json"
+  },
+  {
+    label: "application/x-www-form-urlencoded",
+    value: "application/x-www-form-urlencoded"
   }
 ];
 
