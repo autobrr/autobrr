@@ -114,13 +114,11 @@ func (h notificationHandler) test(w http.ResponseWriter, r *http.Request) {
 	)
 
 	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
-		// encode error
 		h.encoder.Error(w, err)
 		return
 	}
 
-	err := h.service.Test(ctx, data)
-	if err != nil {
+	if err := h.service.Test(ctx, data); err != nil {
 		h.encoder.Error(w, err)
 		return
 	}

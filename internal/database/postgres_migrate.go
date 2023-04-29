@@ -300,6 +300,7 @@ CREATE TABLE notification
 	rooms      TEXT,
 	targets    TEXT,
 	devices    TEXT,
+	priority   INTEGER DEFAULT 0,
 	created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 	updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -671,4 +672,6 @@ ADD COLUMN download_url TEXT;
 	SET except_tags_match_logic = 'ANY'
 	WHERE except_tags IS NOT NULL;
 	`,
+	`ALTER TABLE notification
+ADD COLUMN priority INTEGER DEFAULT 0;`,
 }

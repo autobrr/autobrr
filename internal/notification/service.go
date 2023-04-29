@@ -125,6 +125,8 @@ func (s *service) registerSenders() {
 				s.senders = append(s.senders, NewNotifiarrSender(s.log, n))
 			case domain.NotificationTypeTelegram:
 				s.senders = append(s.senders, NewTelegramSender(s.log, n))
+			case domain.NotificationTypePushover:
+				s.senders = append(s.senders, NewPushoverSender(s.log, n))
 			}
 		}
 	}
@@ -236,6 +238,8 @@ func (s *service) Test(ctx context.Context, notification domain.Notification) er
 		agent = NewNotifiarrSender(s.log, notification)
 	case domain.NotificationTypeTelegram:
 		agent = NewTelegramSender(s.log, notification)
+	case domain.NotificationTypePushover:
+		agent = NewPushoverSender(s.log, notification)
 	default:
 		s.log.Error().Msgf("unsupported notification type: %v", notification.Type)
 		return errors.New("unsupported notification type")
@@ -245,9 +249,15 @@ func (s *service) Test(ctx context.Context, notification domain.Notification) er
 
 	for _, event := range events {
 		e := event
-		g.Go(func() error {
-			return agent.Send(e.Event, e)
-		})
+
+		if !enabledEvent(notification.Events, e.Event) {
+			continue
+		}
+
+		if err := agent.Send(e.Event, e); err != nil {
+			s.log.Error().Err(err).Msgf("error sending test notification: %#v", notification)
+			return err
+		}
 
 		time.Sleep(1 * time.Second)
 	}
@@ -258,4 +268,14 @@ func (s *service) Test(ctx context.Context, notification domain.Notification) er
 	}
 
 	return nil
+}
+
+func enabledEvent(events []string, e domain.NotificationEvent) bool {
+	for _, v := range events {
+		if v == string(e) {
+			return true
+		}
+	}
+
+	return false
 }

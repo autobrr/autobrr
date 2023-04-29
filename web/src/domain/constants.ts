@@ -386,6 +386,10 @@ export const NotificationTypeOptions: OptionBasicTyped<NotificationType>[] = [
   {
     label: "Telegram",
     value: "TELEGRAM"
+  },
+  {
+    label: "Pushover",
+    value: "PUSHOVER"
   }
 ];
 

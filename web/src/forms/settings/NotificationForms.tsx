@@ -7,7 +7,7 @@ import Select, { components, ControlProps, InputProps, MenuProps, OptionProps } 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "react-hot-toast";
 
-import { PasswordFieldWide, SwitchGroupWide, TextFieldWide } from "@components/inputs";
+import { NumberFieldWide, PasswordFieldWide, SwitchGroupWide, TextFieldWide } from "@components/inputs";
 import DEBUG from "@components/debug";
 import { EventOptions, NotificationTypeOptions, SelectOption } from "@domain/constants";
 import { APIClient } from "@api/APIClient";
@@ -120,10 +120,41 @@ function FormFieldsTelegram() {
   );
 }
 
+function FormFieldsPushover() {
+  return (
+    <div className="border-t border-gray-200 dark:border-gray-700 py-4">
+      <div className="px-4 space-y-1">
+        <Dialog.Title className="text-lg font-medium text-gray-900 dark:text-white">Settings</Dialog.Title>
+        <p className="text-sm text-gray-500 dark:text-gray-400">
+          Register a new <a href="https://support.pushover.net/i175-how-do-i-get-an-api-or-application-token" rel="noopener noreferrer" target="_blank" className="font-medium text-blue-500 underline underline-offset-1 hover:text-blue-400">application</a> and add its API Token here.
+        </p>
+      </div>
+
+      <PasswordFieldWide
+        name="api_key"
+        label="API Token"
+        help="API Token"
+      />
+      <PasswordFieldWide
+        name="token"
+        label="User Key"
+        help="User Key"
+      />
+      <NumberFieldWide
+        name="priority"
+        label="Priority"
+        help="-2, -1, 0 (default), 1, or 2"
+        required={true}
+      />
+    </div>
+  );
+}
+
 const componentMap: componentMapType = {
   DISCORD: <FormFieldsDiscord />,
   NOTIFIARR: <FormFieldsNotifiarr />,
-  TELEGRAM: <FormFieldsTelegram />
+  TELEGRAM: <FormFieldsTelegram />,
+  PUSHOVER: <FormFieldsPushover />
 };
 
 interface NotificationAddFormValues {
@@ -398,6 +429,7 @@ interface InitialValues {
   webhook?: string;
   token?: string;
   api_key?: string;
+  priority?: number;
   channel?: string;
   events: NotificationEvent[];
 }
@@ -445,6 +477,7 @@ export function NotificationUpdateForm({ isOpen, toggle, notification }: UpdateP
     webhook: notification.webhook,
     token: notification.token,
     api_key: notification.api_key,
+    priority: notification.priority,
     channel: notification.channel,
     events: notification.events || []
   };
