@@ -181,7 +181,8 @@ function IndexerSettings() {
               Indexers
             </h3>
             <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-              Indexer settings.
+              Indexer settings for IRC, RSS, Newznab, and Torznab based indexers.<br>
+              Generic feeds can be added here by selecting the Generic indexer.
             </p>
           </div>
           <div className="ml-4 mt-4 flex-shrink-0">
