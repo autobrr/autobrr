@@ -1,4 +1,4 @@
-import React, { useRef } from "react";
+import React, { useEffect, useRef } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { NavLink, Route, Routes, useLocation, useNavigate, useParams } from "react-router-dom";
 import { toast } from "react-hot-toast";
@@ -140,6 +140,19 @@ const FormButtonsGroup = ({ values, deleteAction, reset }: FormButtonsGroupProps
       </div>
     </div>
   );
+};
+
+const FormErrorNotification = () => {
+  const { isValid, isValidating, isSubmitting, errors } = useFormikContext();
+
+  useEffect(() => {
+    if (!isValid && !isValidating && isSubmitting) {
+      console.log("validation errors: ", errors);
+      toast.custom((t) => <Toast type="error" body={`Validation error. Check fields: ${Object.keys(errors)}`} t={t}/>);
+    }
+  }, [isSubmitting, isValid, isValidating]);
+
+  return null;
 };
 
 const allowedClientType = ["QBITTORRENT", "DELUGE_V1", "DELUGE_V2", "RTORRENT", "TRANSMISSION","PORLA", "RADARR", "SONARR", "LIDARR", "WHISPARR", "READARR", "SABNZBD"];
@@ -373,6 +386,7 @@ export default function FilterDetails() {
             >
               {({ values, dirty, resetForm }) => (
                 <Form>
+                  <FormErrorNotification />
                   <Routes>
                     <Route index element={<General />} />
                     <Route path="movies-tv" element={<MoviesTv />} />
