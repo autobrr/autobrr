@@ -49,7 +49,7 @@ type Action struct {
 	WebhookHeaders        []string            `json:"webhook_headers,omitempty"`
 	FilterID              int                 `json:"filter_id,omitempty"`
 	ClientID              int32               `json:"client_id,omitempty"`
-	Client                DownloadClient      `json:"client,omitempty"`
+	Client                *DownloadClient     `json:"client,omitempty"`
 }
 
 // ParseMacros parse all macros on action
