@@ -116,21 +116,27 @@ export const IndexerMultiSelect = ({
       <Field name={name} type="select" multiple={true}>
         {({
           field,
+          meta,
           form: { setFieldValue }
         }: FieldProps) => (
-          <RMSC
-            {...field}
-            options={options}
-            labelledBy={name}
-            value={field.value && field.value.map((item: IndexerMultiSelectOption) => ({
-              value: item.id, label: item.name
-            }))}
-            onChange={(values: MultiSelectOption[]) => {
-              const item = values && values.map((i) => ({ id: i.value, name: i.label }));
-              setFieldValue(field.name, item);
-            }}
-            className={settingsContext.darkTheme ? "dark" : ""}
-          />
+          <>
+            <RMSC
+              {...field}
+              options={options}
+              labelledBy={name}
+              value={field.value && field.value.map((item: IndexerMultiSelectOption) => ({
+                value: item.id, label: item.name
+              }))}
+              onChange={(values: MultiSelectOption[]) => {
+                const item = values && values.map((i) => ({ id: i.value, name: i.label }));
+                setFieldValue(field.name, item);
+              }}
+              className={settingsContext.darkTheme ? "dark" : ""}
+            />
+            {meta.touched && meta.error && (
+              <p className="error text-sm text-red-600 mt-1">* {meta.error}</p>
+            )}
+          </>
         )}
       </Field>
     </div>
@@ -153,6 +159,7 @@ export function DownloadClientSelect({
       <Field name={name} type="select">
         {({
           field,
+          meta,
           form: { setFieldValue }
         }: FieldProps) => (
           <Listbox
@@ -231,6 +238,9 @@ export function DownloadClientSelect({
                         ))}
                     </Listbox.Options>
                   </Transition>
+                  {meta.touched && meta.error && (
+                    <p className="error text-sm text-red-600 mt-1">* {meta.error}</p>
+                  )}
                 </div>
               </>
             )}
