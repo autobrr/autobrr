@@ -41,12 +41,15 @@ func (r *ActionRepo) FindByFilterID(ctx context.Context, filterID int) ([]*domai
 	}
 
 	for _, action := range actions {
-		if action.ClientID != 0 {
+		if action.ClientID > 0 {
 			client, err := r.attachDownloadClient(ctx, tx, action.ClientID)
 			if err != nil {
 				return nil, err
 			}
-			action.Client = *client
+
+			if client != nil {
+				action.Client = client
+			}
 		}
 	}
 
@@ -180,6 +183,10 @@ func (r *ActionRepo) attachDownloadClient(ctx context.Context, tx *Tx, clientID 
 	var settingsJsonStr string
 
 	if err := row.Scan(&client.ID, &client.Name, &client.Type, &client.Enabled, &client.Host, &client.Port, &client.TLS, &client.TLSSkipVerify, &client.Username, &client.Password, &settingsJsonStr); err != nil {
+		if err == sql.ErrNoRows {
+			r.log.Warn().Msgf("no download client with id %d", clientID)
+			return nil, nil
+		}
 		return nil, errors.Wrap(err, "error scanning row")
 	}
 
@@ -608,7 +615,6 @@ func (r *ActionRepo) StoreFilterActions(ctx context.Context, actions []*domain.A
 
 	if err := tx.Commit(); err != nil {
 		return nil, errors.Wrap(err, "error updating filter actions")
-
 	}
 
 	return actions, nil

@@ -78,10 +78,10 @@ func (h filterHandler) getFilters(w http.ResponseWriter, r *http.Request) {
 
 	u, err := url.Parse(r.URL.String())
 	if err != nil {
-		h.encoder.StatusResponse(r.Context(), w, map[string]interface{}{
+		h.encoder.StatusResponse(w, http.StatusBadRequest, map[string]interface{}{
 			"code":    "BAD_REQUEST_PARAMS",
 			"message": "indexer parameter is invalid",
-		}, http.StatusBadRequest)
+		})
 		return
 	}
 	vals := u.Query()
@@ -94,7 +94,7 @@ func (h filterHandler) getFilters(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.encoder.StatusResponse(ctx, w, trackers, http.StatusOK)
+	h.encoder.StatusResponse(w, http.StatusOK, trackers)
 }
 
 func (h filterHandler) getByID(w http.ResponseWriter, r *http.Request) {
@@ -111,11 +111,11 @@ func (h filterHandler) getByID(w http.ResponseWriter, r *http.Request) {
 
 	filter, err := h.service.FindByID(ctx, id)
 	if err != nil {
-		h.encoder.StatusNotFound(ctx, w)
+		h.encoder.StatusNotFound(w)
 		return
 	}
 
-	h.encoder.StatusResponse(ctx, w, filter, http.StatusOK)
+	h.encoder.StatusResponse(w, http.StatusOK, filter)
 }
 
 func (h filterHandler) duplicate(w http.ResponseWriter, r *http.Request) {
@@ -132,11 +132,11 @@ func (h filterHandler) duplicate(w http.ResponseWriter, r *http.Request) {
 
 	filter, err := h.service.Duplicate(ctx, id)
 	if err != nil {
-		h.encoder.StatusNotFound(ctx, w)
+		h.encoder.StatusNotFound(w)
 		return
 	}
 
-	h.encoder.StatusResponse(ctx, w, filter, http.StatusOK)
+	h.encoder.StatusResponse(w, http.StatusOK, filter)
 }
 
 func (h filterHandler) store(w http.ResponseWriter, r *http.Request) {
@@ -180,7 +180,7 @@ func (h filterHandler) update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.encoder.StatusResponse(ctx, w, filter, http.StatusOK)
+	h.encoder.StatusResponse(w, http.StatusOK, filter)
 }
 
 func (h filterHandler) updatePartial(w http.ResponseWriter, r *http.Request) {
@@ -260,5 +260,5 @@ func (h filterHandler) delete(w http.ResponseWriter, r *http.Request) {
 		h.encoder.Error(w, err)
 	}
 
-	h.encoder.StatusResponse(ctx, w, nil, http.StatusNoContent)
+	h.encoder.StatusResponse(w, http.StatusNoContent, nil)
 }

@@ -3,7 +3,7 @@ import { formatDistanceToNowStrict } from "date-fns";
 import { CheckIcon } from "@heroicons/react/24/solid";
 import { ClockIcon, ExclamationCircleIcon, NoSymbolIcon } from "@heroicons/react/24/outline";
 
-import { classNames, simplifyDate } from "../../utils";
+import { classNames, simplifyDate } from "@utils";
 import { Tooltip } from "../tooltips/Tooltip";
 
 interface CellProps {
@@ -11,7 +11,7 @@ interface CellProps {
 }
 
 export const AgeCell = ({ value }: CellProps) => (
-  <div className="text-sm text-gray-500" title={value}>
+  <div className="text-sm text-gray-500" title={simplifyDate(value)}>
     {formatDistanceToNowStrict(new Date(value), { addSuffix: false })}
   </div>
 );

@@ -9,6 +9,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/autobrr/autobrr/internal/config"
 	"github.com/autobrr/autobrr/internal/database"
@@ -52,19 +53,38 @@ func main() {
 
 	switch cmd := flag.Arg(0); cmd {
 	case "version":
-		fmt.Fprintf(flag.CommandLine.Output(), "Version: %v\nCommit: %v\nBuild: %v\n", version, commit, date)
+		fmt.Printf("Version: %v\nCommit: %v\nBuild: %v\n", version, commit, date)
 
-		// get the latest release tag from Github
-		resp, err := http.Get(fmt.Sprintf("https://api.github.com/repos/%s/%s/releases/latest", owner, repo))
-		if err == nil && resp.StatusCode == http.StatusOK {
-			defer resp.Body.Close()
-			var rel struct {
-				TagName string `json:"tag_name"`
-			}
-			if err := json.NewDecoder(resp.Body).Decode(&rel); err == nil {
-				fmt.Fprintf(flag.CommandLine.Output(), "Latest release: %v\n", rel.TagName)
-			}
+		// get the latest release tag from brr-api
+		client := &http.Client{
+			Timeout: 10 * time.Second,
 		}
+
+		resp, err := client.Get(fmt.Sprintf("https://api.autobrr.com/repos/%s/%s/releases/latest", owner, repo))
+		if err != nil {
+			if errors.Is(err, http.ErrHandlerTimeout) {
+				fmt.Println("Server timed out while fetching latest release from api")
+			} else {
+				fmt.Printf("Failed to fetch latest release from api: %v\n", err)
+			}
+			os.Exit(1)
+		}
+		defer resp.Body.Close()
+
+		// brr-api returns 500 instead of 404 here
+		if resp.StatusCode == http.StatusNotFound || resp.StatusCode == http.StatusInternalServerError {
+			fmt.Printf("No release found for %s/%s\n", owner, repo)
+			os.Exit(1)
+		}
+
+		var rel struct {
+			TagName string `json:"tag_name"`
+		}
+		if err := json.NewDecoder(resp.Body).Decode(&rel); err != nil {
+			fmt.Printf("Failed to decode response from api: %v\n", err)
+			os.Exit(1)
+		}
+		fmt.Printf("Latest release: %v\n", rel.TagName)
 
 	case "create-user":
 
@@ -101,7 +121,7 @@ func main() {
 			log.Fatalf("failed to hash password: %v", err)
 		}
 
-		user := domain.User{
+		user := domain.CreateUserRequest{
 			Username: username,
 			Password: hashed,
 		}

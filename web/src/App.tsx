@@ -1,5 +1,5 @@
-import { QueryClient, QueryClientProvider, useQueryErrorResetBoundary } from "react-query";
-import { ReactQueryDevtools } from "react-query/devtools";
+import { QueryClient, QueryClientProvider, useQueryErrorResetBoundary } from "@tanstack/react-query";
+import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { ErrorBoundary } from "react-error-boundary";
 import { toast, Toaster } from "react-hot-toast";
 
@@ -7,8 +7,9 @@ import { LocalRouter } from "./domain/routes";
 import { AuthContext, SettingsContext } from "./utils/Context";
 import { ErrorPage } from "./components/alerts";
 import Toast from "./components/notifications/Toast";
+import { Portal } from "react-portal";
 
-export const queryClient = new QueryClient({
+const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       // The retries will have exponential delay.
@@ -43,7 +44,9 @@ export function App() {
       fallbackRender={ErrorPage}
     >
       <QueryClientProvider client={queryClient}>
-        <Toaster position="top-right" />
+        <Portal>
+          <Toaster position="top-right" />
+        </Portal>
         <LocalRouter isLoggedIn={authContext.isLoggedIn} />
         {settings.debug ? (
           <ReactQueryDevtools initialIsOpen={false} />

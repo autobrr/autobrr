@@ -37,6 +37,7 @@ type Notification struct {
 	Rooms     string           `json:"rooms"`
 	Targets   string           `json:"targets"`
 	Devices   string           `json:"devices"`
+	Priority  int32            `json:"priority"`
 	CreatedAt time.Time        `json:"created_at"`
 	UpdatedAt time.Time        `json:"updated_at"`
 }
@@ -55,7 +56,7 @@ type NotificationPayload struct {
 	ActionType     ActionType
 	ActionClient   string
 	Rejections     []string
-	Protocol       ReleaseProtocol       // torrent
+	Protocol       ReleaseProtocol       // torrent, usenet
 	Implementation ReleaseImplementation // irc, rss, api
 	Timestamp      time.Time
 }

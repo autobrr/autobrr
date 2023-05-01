@@ -1,6 +1,5 @@
 import { newRidgeState } from "react-ridge-state";
 
-
 export const InitializeGlobalContext = () => {
   const auth_ctx = localStorage.getItem("auth");
   if (auth_ctx)
@@ -19,8 +18,11 @@ export const InitializeGlobalContext = () => {
       )
     }));
   }
+  const filterList_ctx = localStorage.getItem("filterList");
+  if (filterList_ctx) {
+    FilterListContext.set(JSON.parse(filterList_ctx));
+  }
 };
-
 interface AuthInfo {
   username: string;
   isLoggedIn: boolean;
@@ -73,6 +75,30 @@ export const SettingsContext = newRidgeState<SettingsType>(
         localStorage.setItem("settings", JSON.stringify(new_state));
       } catch (e) {
         console.log("An error occurred while trying to modify the local settings context state.");
+        console.log("Error:", e);
+      }
+    }
+  }
+);
+
+export type FilterListState = {
+  indexerFilter: string[],
+  sortOrder: string;
+  status: string;
+};
+
+export const FilterListContext = newRidgeState<FilterListState>(
+  {
+    indexerFilter: [],
+    sortOrder: "",
+    status: ""
+  },
+  {
+    onSet: (new_state) => {
+      try {
+        localStorage.setItem("filterList", JSON.stringify(new_state));
+      } catch (e) {
+        console.log("An error occurred while trying to modify the local filter list context state.");
         console.log("Error:", e);
       }
     }

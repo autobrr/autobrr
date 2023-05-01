@@ -1,11 +1,11 @@
-import { useMutation, useQuery } from "react-query";
-import { APIClient } from "../../api/APIClient";
-import { GithubRelease } from "../../types/Update";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "react-hot-toast";
-import Toast from "../../components/notifications/Toast";
-import { queryClient } from "../../App";
 import Select, { components, ControlProps, InputProps, MenuProps, OptionProps } from "react-select";
-import { LogLevelOptions, SelectOption } from "../../domain/constants";
+
+import { APIClient } from "@api/APIClient";
+import { GithubRelease } from "@app/types/Update";
+import Toast from "@components/notifications/Toast";
+import { LogLevelOptions, SelectOption } from "@domain/constants";
 import { LogFiles } from "../Logs";
 
 interface RowItemProps {
@@ -122,26 +122,24 @@ const RowItemSelect = ({ id, title, label, value, options, onChange }: any) => {
 };
 
 function LogSettings() {
-  const { isLoading, data } = useQuery(
-    ["config"],
-    () => APIClient.config.get(),
-    {
-      retry: false,
-      refetchOnWindowFocus: false,
-      onError: err => console.log(err)
-    }
-  );
+  const { isLoading, data } = useQuery({
+    queryKey: ["config"],
+    queryFn: APIClient.config.get,
+    retry: false,
+    refetchOnWindowFocus: false,
+    onError: err => console.log(err)
+  });
 
-  const setLogLevelUpdateMutation = useMutation(
-    (value: string) => APIClient.config.update({ log_level: value }),
-    {
-      onSuccess: () => {
-        toast.custom((t) => <Toast type="success" body={"Config successfully updated!"} t={t}/>);
+  const queryClient = useQueryClient();
 
-        queryClient.invalidateQueries(["config"]);
-      }
+  const setLogLevelUpdateMutation = useMutation({
+    mutationFn: (value: string) => APIClient.config.update({ log_level: value }),
+    onSuccess: () => {
+      toast.custom((t) => <Toast type="success" body={"Config successfully updated!"} t={t}/>);
+
+      queryClient.invalidateQueries({ queryKey: ["config"] });
     }
-  );
+  });
 
   return (
     <div className="divide-y divide-gray-200 dark:divide-gray-700 lg:col-span-9">

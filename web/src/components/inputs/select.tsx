@@ -4,9 +4,9 @@ import { Listbox, Transition } from "@headlessui/react";
 import { CheckIcon, ChevronUpDownIcon } from "@heroicons/react/24/solid";
 import { MultiSelect as RMSC } from "react-multi-select-component";
 
-import { classNames, COL_WIDTHS } from "../../utils";
-import { SettingsContext } from "../../utils/Context";
-import { CustomTooltip } from "../tooltips/CustomTooltip";
+import { classNames, COL_WIDTHS } from "@utils";
+import { SettingsContext } from "@utils/Context";
+import { CustomTooltip } from "@components/tooltips/CustomTooltip";
 
 export interface MultiSelectOption {
     value: string | number;
@@ -251,6 +251,7 @@ export interface SelectFieldProps {
     label: string;
     optionDefaultText: string;
     options: SelectFieldOption[];
+    columns?: COL_WIDTHS;
     tooltip?: JSX.Element;
 }
 
@@ -259,10 +260,15 @@ export const Select = ({
   label,
   tooltip,
   optionDefaultText,
-  options
+  options,
+  columns
 }: SelectFieldProps) => {
   return (
-    <div className="col-span-6">
+    <div
+      className={classNames(
+        columns ? `col-span-${columns}` : "col-span-6"
+      )}
+    >
       <Field name={name} type="select">
         {({
           field,

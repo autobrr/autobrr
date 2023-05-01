@@ -76,8 +76,16 @@ func (j *TorznabJob) process(ctx context.Context) error {
 	}
 
 	releases := make([]*domain.Release, 0)
-
+	now := time.Now()
 	for _, item := range items {
+		if j.Feed.MaxAge > 0 {
+			if item.PubDate.After(time.Date(1970, time.April, 1, 0, 0, 0, 0, time.UTC)) {
+				if !isNewerThanMaxAge(j.Feed.MaxAge, item.PubDate.Time, now) {
+					continue
+				}
+			}
+		}
+
 		rls := domain.NewRelease(j.IndexerIdentifier)
 
 		rls.TorrentName = item.Title
@@ -224,7 +232,7 @@ func (j *TorznabJob) getFeed(ctx context.Context) ([]torznab.FeedItem, error) {
 		}
 
 		// only append if we successfully added to cache
-		items = append(items, i)
+		items = append(items, *i)
 	}
 
 	// send to filters

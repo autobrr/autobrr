@@ -1,4 +1,4 @@
-import { MultiSelectOption } from "../components/inputs/select";
+import { MultiSelectOption } from "@components/inputs/select";
 
 export const resolutions = [
   "2160p",
@@ -127,19 +127,20 @@ export const QUALITY_MUSIC_OPTIONS: MultiSelectOption[] = qualityMusic.map(v => 
 
 export const releaseTypeMusic = [
   "Album",
-  "Single",
-  "EP",
-  "Soundtrack",
   "Anthology",
-  "Compilation",
-  "Live album",
-  "Remix",
   "Bootleg",
-  "Interview",
-  "Mixtape",
-  "Demo",
+  "Compilation",
   "Concert Recording",
+  "Demo",
   "DJ Mix",
+  "EP",
+  "Interview",
+  "Live album",
+  "Mixtape",
+  "Remix",
+  "Sampler",
+  "Single",
+  "Soundtrack",
   "Unknown"
 ];
 
@@ -343,6 +344,11 @@ export const ActionContentLayoutOptions: SelectGenericOption<ActionContentLayout
   { label: "Don't create subfolder", description: "Don't create subfolder", value: "SUBFOLDER_NONE" }
 ];
 
+export const ActionRtorrentRenameOptions: SelectGenericOption<ActionContentLayout>[] = [
+  { label: "No", description: "No", value: "ORIGINAL" },
+  { label: "Yes", description: "Yes", value: "SUBFOLDER_NONE" }
+];
+
 export interface OptionBasic {
   label: string;
   value: string;
@@ -380,6 +386,10 @@ export const NotificationTypeOptions: OptionBasicTyped<NotificationType>[] = [
   {
     label: "Telegram",
     value: "TELEGRAM"
+  },
+  {
+    label: "Pushover",
+    value: "PUSHOVER"
   }
 ];
 
@@ -493,5 +503,16 @@ export const FeedDownloadTypeOptions: OptionBasicTyped<FeedDownloadType>[] = [
   {
     label: "Torrent",
     value: "TORRENT"
+  }
+];
+
+export const tagsMatchLogicOptions: OptionBasic[] = [
+  {
+    label: "any",
+    value: "ANY"
+  },
+  {
+    label: "all",
+    value: "ALL"
   }
 ];

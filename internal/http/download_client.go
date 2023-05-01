@@ -49,7 +49,7 @@ func (h downloadClientHandler) listDownloadClients(w http.ResponseWriter, r *htt
 		return
 	}
 
-	h.encoder.StatusResponse(ctx, w, clients, http.StatusOK)
+	h.encoder.StatusResponse(w, http.StatusOK, clients)
 }
 
 func (h downloadClientHandler) store(w http.ResponseWriter, r *http.Request) {
@@ -66,7 +66,7 @@ func (h downloadClientHandler) store(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.encoder.StatusResponse(r.Context(), w, client, http.StatusCreated)
+	h.encoder.StatusResponse(w, http.StatusCreated, client)
 }
 
 func (h downloadClientHandler) test(w http.ResponseWriter, r *http.Request) {
@@ -99,7 +99,7 @@ func (h downloadClientHandler) update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.encoder.StatusResponse(r.Context(), w, client, http.StatusCreated)
+	h.encoder.StatusResponse(w, http.StatusCreated, client)
 }
 
 func (h downloadClientHandler) delete(w http.ResponseWriter, r *http.Request) {
