@@ -152,6 +152,13 @@ func RegisterHandler(c *chi.Mux, version, baseUrl string) {
 	c.Get("/*", func(w http.ResponseWriter, r *http.Request) {
 		file := strings.TrimPrefix(r.RequestURI, baseUrl)
 
+		fmt.Printf("\nfile: %s\n", file)
+
+		// ensure
+		//if !strings.HasSuffix(file, "/") {
+		//	file = fmt.Sprintf("/%s", file)
+		//}
+
 		// if valid web route then serve html
 		if validRoute(file) {
 			Index(w, p)
