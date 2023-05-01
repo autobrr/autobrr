@@ -49,7 +49,6 @@ export default ({ mode }: { mode: any }) => {
         ],
         start_url: "/",
         display: "standalone"
-        
       },
       workbox: {
         globPatterns: ["**/*.{js,css,html,svg}"],
