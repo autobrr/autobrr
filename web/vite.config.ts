@@ -47,7 +47,7 @@ export default ({ mode }: { mode: any }) => {
             purpose: "any maskable"
           }
         ],
-        start_url: ".",
+        start_url: "/",
         display: "standalone"
       },
       workbox: {
