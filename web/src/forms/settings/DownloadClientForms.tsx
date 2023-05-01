@@ -264,7 +264,7 @@ function FormFieldsSabnzbd() {
         <NumberFieldWide
           name="port"
           label="Port"
-          help="port for Sabnzbd"
+          help="port for SABnzbd"
         />
       )}
 
