@@ -1,3 +1,6 @@
+// Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+// SPDX-License-Identifier: GPL-2.0-or-later
+
 package errors
 
 import (
@@ -117,11 +120,11 @@ func callers(skip int) []uintptr {
 //
 // Example:
 //
-// func Do() (err error) {
-//   defer func() {
-//     errors.RecoverPanic(recover(), &err)
-//   }()
-// }
+//	func Do() (err error) {
+//	  defer func() {
+//	    errors.RecoverPanic(recover(), &err)
+//	  }()
+//	}
 func RecoverPanic(r interface{}, errPtr *error) {
 	var err error
 	if r != nil {
