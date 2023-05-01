@@ -31,29 +31,30 @@ type TelegramMessage struct {
 type telegramSender struct {
 	log      zerolog.Logger
 	Settings domain.Notification
+	ThreadID int
 }
 
 func NewTelegramSender(log zerolog.Logger, settings domain.Notification) domain.NotificationSender {
+	threadID := 0
+	if t := settings.Topic; t != "" {
+		var err error
+		threadID, err = strconv.Atoi(t)
+		if err != nil {
+			log.Error().Err(err).Msgf("could not parse specified topic %q as an integer", t)
+		}
+	}
 	return &telegramSender{
 		log:      log.With().Str("sender", "telegram").Logger(),
 		Settings: settings,
+		ThreadID: threadID,
 	}
 }
 
 func (s *telegramSender) Send(event domain.NotificationEvent, payload domain.NotificationPayload) error {
-	threadID := 0
-	if t := s.Settings.Topic; t != "" {
-		var err error
-		threadID, err = strconv.Atoi(t)
-		if err != nil {
-			s.log.Error().Err(err).Msgf("could not parse specified topic %q as an integer", t)
-			return errors.Wrap(err, "could not parse specified topic %q as an integer", t)
-		}
-	}
 	m := TelegramMessage{
 		ChatID:          s.Settings.Channel,
 		Text:            s.buildMessage(event, payload),
-		MessageThreadID: threadID,
+		MessageThreadID: s.ThreadID,
 		ParseMode:       "HTML",
 		//ParseMode: "MarkdownV2",
 	}
