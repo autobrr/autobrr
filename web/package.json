@@ -32,6 +32,8 @@
     "stacktracey": "^2.1.8",
     "zod": "^3.21.4",
     "zod-formik-adapter": "^1.2.0"
+    "vite-plugin-pwa": "^0.14.6",
+    "workbox-window": "^6.5.4"
   },
   "scripts": {
     "start": "vite",

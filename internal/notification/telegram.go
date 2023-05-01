@@ -2,7 +2,6 @@ package notification
 
 import (
 	"bytes"
-	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"html"
@@ -60,13 +59,7 @@ func (s *telegramSender) Send(event domain.NotificationEvent, payload domain.Not
 	req.Header.Set("Content-Type", "application/json")
 	//req.Header.Set("User-Agent", "autobrr")
 
-	t := &http.Transport{
-		TLSClientConfig: &tls.Config{
-			InsecureSkipVerify: true,
-		},
-	}
-
-	client := http.Client{Transport: t, Timeout: 30 * time.Second}
+	client := http.Client{Timeout: 30 * time.Second}
 	res, err := client.Do(req)
 	if err != nil {
 		s.log.Error().Err(err).Msgf("telegram client request error: %v", event)
