@@ -43,6 +43,7 @@ type Notification struct {
 	Priority  int32            `json:"priority"`
 	CreatedAt time.Time        `json:"created_at"`
 	UpdatedAt time.Time        `json:"updated_at"`
+	Topic     string           `json:"topic"`
 }
 
 type NotificationPayload struct {

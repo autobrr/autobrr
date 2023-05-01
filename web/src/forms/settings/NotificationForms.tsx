@@ -121,6 +121,11 @@ function FormFieldsTelegram() {
         label="Chat ID"
         help="Chat ID"
       />
+      <PasswordFieldWide
+        name="topic"
+        label="Message Thread ID"
+        help="Message Thread (topic) of a Supergroup"
+      />
     </div>
   );
 }
