@@ -5,7 +5,6 @@ package action
 
 import (
 	"context"
-	"os"
 
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/pkg/errors"
@@ -73,16 +72,9 @@ func (s *service) rtorrent(ctx context.Context, action *domain.Action, release d
 		return nil, nil
 
 	} else {
-		if release.TorrentTmpFile == "" {
-			if err := release.DownloadTorrentFileCtx(ctx); err != nil {
-				s.log.Error().Err(err).Msgf("could not download torrent file for release: %s", release.TorrentName)
-				return nil, err
-			}
-		}
-
-		tmpFile, err := os.ReadFile(release.TorrentTmpFile)
-		if err != nil {
-			return nil, errors.Wrap(err, "could not read torrent file: %s", release.TorrentTmpFile)
+		if err := release.DownloadTorrentFileCtx(ctx); err != nil {
+			s.log.Error().Err(err).Msgf("could not download torrent file for release: %s", release.TorrentName)
+			return nil, err
 		}
 
 		var args []*rtorrent.FieldValue
@@ -114,8 +106,8 @@ func (s *service) rtorrent(ctx context.Context, action *domain.Action, release d
 			addTorrentFile = rt.AddTorrent
 		}
 
-		if err := addTorrentFile(tmpFile, args...); err != nil {
-			return nil, errors.Wrap(err, "could not add torrent file: %s", release.TorrentTmpFile)
+		if err := addTorrentFile(release.TorrentDataRawBytes, args...); err != nil {
+			return nil, errors.Wrap(err, "could not add torrent file: %s", release.TorrentName)
 		}
 
 		s.log.Info().Msgf("torrent successfully added to client: '%s'", client.Name)

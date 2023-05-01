@@ -143,7 +143,7 @@ func (s *service) watchFolder(ctx context.Context, action *domain.Action, releas
 		return fmt.Errorf("action watch folder does not support magnet links: %s", release.TorrentName)
 	}
 
-	s.log.Trace().Msgf("action WATCH_FOLDER: %v file: %v", action.WatchFolder, release.TorrentTmpFile)
+	s.log.Trace().Msgf("action WATCH_FOLDER: %v torrent: %v", action.WatchFolder, release.TorrentName)
 
 	if len(release.TorrentDataRawBytes) < 1 {
 		return fmt.Errorf("watch_folder: missing torrent %s", release.TorrentName)
@@ -159,8 +159,7 @@ func (s *service) watchFolder(ctx context.Context, action *domain.Action, releas
 
 	// if watchFolderArgs does not contain .torrent, create
 	if !strings.HasSuffix(action.WatchFolder, ".torrent") {
-		_, tmpFileName := filepath.Split(release.TorrentTmpFile)
-
+		tmpFileName := release.TorrentHash
 		newFileName = filepath.Join(action.WatchFolder, tmpFileName+".torrent")
 	} else {
 		dir, _ = filepath.Split(action.WatchFolder)
