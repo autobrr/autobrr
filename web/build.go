@@ -93,7 +93,7 @@ func StaticFS(r *chi.Mux, pathPrefix string, filesystem fs.FS) {
 
 // fsFile is a helper function to serve a file from the provided file system.
 func fsFile(w http.ResponseWriter, r *http.Request, file string, filesystem fs.FS) {
-	fmt.Printf("file: %s\n", file)
+	//fmt.Printf("file: %s\n", file)
 	f, err := filesystem.Open(file)
 	if err != nil {
 		http.Error(w, "File not found", http.StatusNotFound)
@@ -150,7 +150,7 @@ func RegisterHandler(c *chi.Mux, version, baseUrl string) {
 
 	// handle all other routes
 	c.Get("/*", func(w http.ResponseWriter, r *http.Request) {
-		file := strings.TrimPrefix(r.RequestURI, "/")
+		file := strings.TrimPrefix(r.RequestURI, baseUrl)
 
 		// if valid web route then serve html
 		if validRoute(file) {
