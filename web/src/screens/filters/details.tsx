@@ -1,8 +1,10 @@
-import React, { useRef } from "react";
+import React, { useEffect, useRef } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { NavLink, Route, Routes, useLocation, useNavigate, useParams } from "react-router-dom";
 import { toast } from "react-hot-toast";
 import { Form, Formik, FormikValues, useFormikContext } from "formik";
+import { z } from "zod";
+import { toFormikValidationSchema } from "zod-formik-adapter";
 import { ChevronDownIcon, ChevronRightIcon } from "@heroicons/react/24/solid";
 
 import {
@@ -140,6 +142,71 @@ const FormButtonsGroup = ({ values, deleteAction, reset }: FormButtonsGroupProps
   );
 };
 
+const FormErrorNotification = () => {
+  const { isValid, isValidating, isSubmitting, errors } = useFormikContext();
+
+  useEffect(() => {
+    if (!isValid && !isValidating && isSubmitting) {
+      console.log("validation errors: ", errors);
+      toast.custom((t) => <Toast type="error" body={`Validation error. Check fields: ${Object.keys(errors)}`} t={t}/>);
+    }
+  }, [isSubmitting, isValid, isValidating]);
+
+  return null;
+};
+
+const allowedClientType = ["QBITTORRENT", "DELUGE_V1", "DELUGE_V2", "RTORRENT", "TRANSMISSION","PORLA", "RADARR", "SONARR", "LIDARR", "WHISPARR", "READARR", "SABNZBD"];
+
+const actionSchema = z.object({
+  enabled: z.boolean(),
+  name: z.string(),
+  type: z.enum(["QBITTORRENT", "DELUGE_V1", "DELUGE_V2", "RTORRENT", "TRANSMISSION","PORLA", "RADARR", "SONARR", "LIDARR", "WHISPARR", "READARR", "SABNZBD", "TEST", "EXEC", "WATCH_FOLDER", "WEBHOOK"]),
+  client_id: z.number().optional(),
+  exec_cmd: z.string().optional(),
+  exec_args: z.string().optional(),
+  watch_folder: z.string().optional(),
+  category: z.string().optional(),
+  tags: z.string().optional(),
+  label: z.string().optional(),
+  save_path: z.string().optional(),
+  paused: z.boolean().optional(),
+  ignore_rules: z.boolean().optional(),
+  limit_upload_speed: z.number().optional(),
+  limit_download_speed: z.number().optional(),
+  limit_ratio: z.number().optional(),
+  limit_seed_time: z.number().optional(),
+  reannounce_skip: z.boolean().optional(),
+  reannounce_delete: z.boolean().optional(),
+  reannounce_interval: z.number().optional(),
+  reannounce_max_attempts: z.number().optional(),
+  webhook_host: z.string().optional(),
+  webhook_type: z.string().optional(),
+  webhook_method: z.string().optional(),
+  webhook_data: z.string().optional()
+}).superRefine((value, ctx) => {
+  if (allowedClientType.includes(value.type)) {
+    if (value.client_id === 0) {
+      ctx.addIssue({
+        message: "Must select client",
+        code: z.ZodIssueCode.custom,
+        path: ["client_id"]
+      });
+    }
+  }
+});
+
+const indexerSchema = z.object({
+  id: z.number(),
+  name: z.string().optional()
+});
+
+// Define the schema for the entire object
+const schema = z.object({
+  name: z.string(),
+  indexers: z.array(indexerSchema).min(1, { message: "Must select at least one indexer" }),
+  actions: z.array(actionSchema)
+});
+
 export default function FilterDetails() {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
@@ -209,6 +276,9 @@ export default function FilterDetails() {
       if (a.type === "WEBHOOK") {
         a.webhook_method = "POST";
         a.webhook_type = "JSON";
+      } else {
+        a.webhook_method = "";
+        a.webhook_type = "";
       }
     });
 
@@ -312,9 +382,11 @@ export default function FilterDetails() {
               } as Filter}
               onSubmit={handleSubmit}
               enableReinitialize={true}
+              validationSchema={toFormikValidationSchema(schema)}
             >
               {({ values, dirty, resetForm }) => (
                 <Form>
+                  <FormErrorNotification />
                   <Routes>
                     <Route index element={<General />} />
                     <Route path="movies-tv" element={<MoviesTv />} />

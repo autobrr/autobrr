@@ -31,7 +31,9 @@
     "react-tooltip": "^5.5.2",
     "stacktracey": "^2.1.8",
     "vite-plugin-pwa": "^0.14.6",
-    "workbox-window": "^6.5.4"
+    "workbox-window": "^6.5.4",
+    "zod": "^3.21.4",
+    "zod-formik-adapter": "^1.2.0"
   },
   "scripts": {
     "start": "vite",

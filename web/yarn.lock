@@ -6973,6 +6973,8 @@ __metadata:
     vite: ^4.2.1
     vite-plugin-pwa: ^0.14.6
     workbox-window: ^6.5.4
+    zod: ^3.21.4
+    zod-formik-adapter: ^1.2.0
   languageName: unknown
   linkType: soft
 
@@ -7270,5 +7272,22 @@ __metadata:
   version: 0.1.0
   resolution: "yocto-queue@npm:0.1.0"
   checksum: f77b3d8d00310def622123df93d4ee654fc6a0096182af8bd60679ddcdfb3474c56c6c7190817c84a2785648cdee9d721c0154eb45698c62176c322fb46fc700
+  languageName: node
+  linkType: hard
+
+"zod-formik-adapter@npm:^1.2.0":
+  version: 1.2.0
+  resolution: "zod-formik-adapter@npm:1.2.0"
+  peerDependencies:
+    formik: ^2.2.9
+    zod: ^3.14.4
+  checksum: 41f9dc4550fb529bdeb9de2711a7e307140c44c5b65c28f7349da9b030276c3747962b15fbbc50b6fda1959b3a3fdcaff707f1cdfef0b0b6a3e745d017c8f73a
+  languageName: node
+  linkType: hard
+
+"zod@npm:^3.21.4":
+  version: 3.21.4
+  resolution: "zod@npm:3.21.4"
+  checksum: f185ba87342ff16f7a06686767c2b2a7af41110c7edf7c1974095d8db7a73792696bcb4a00853de0d2edeb34a5b2ea6a55871bc864227dace682a0a28de33e1f
   languageName: node
   linkType: hard
