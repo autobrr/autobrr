@@ -14,6 +14,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/go-chi/chi/v5"
 )
@@ -92,6 +93,7 @@ func StaticFS(r *chi.Mux, pathPrefix string, filesystem fs.FS) {
 
 // fsFile is a helper function to serve a file from the provided file system.
 func fsFile(w http.ResponseWriter, r *http.Request, file string, filesystem fs.FS) {
+	//fmt.Printf("file: %s\n", file)
 	f, err := filesystem.Open(file)
 	if err != nil {
 		http.Error(w, "File not found", http.StatusNotFound)
@@ -115,16 +117,74 @@ func fsFile(w http.ResponseWriter, r *http.Request, file string, filesystem fs.F
 	http.ServeContent(w, r, file, stat.ModTime(), reader)
 }
 
-func RegisterHandler(c *chi.Mux) {
+var validRoutes = []string{"/", "filters", "releases", "settings", "logs", "onboard", "login", "logout"}
+
+func validRoute(route string) bool {
+	for _, valid := range validRoutes {
+		if strings.Contains(route, valid) {
+			return true
+		}
+	}
+
+	return false
+}
+
+// RegisterHandler register web routes and file serving
+func RegisterHandler(c *chi.Mux, version, baseUrl string) {
 	// Serve static files without a prefix
 	assets, _ := fs.Sub(DistDirFS, "assets")
 	static, _ := fs.Sub(DistDirFS, "static")
 	StaticFS(c, "/assets", assets)
 	StaticFS(c, "/static", static)
 
+	p := IndexParams{
+		Title:   "Dashboard",
+		Version: version,
+		BaseUrl: baseUrl,
+	}
+
+	// serve on base route
+	c.Get("/", func(w http.ResponseWriter, r *http.Request) {
+		Index(w, p)
+	})
+
+	// handle all other routes
 	c.Get("/*", func(w http.ResponseWriter, r *http.Request) {
-		// Serve index.html for unmatched routes
-		fsFile(w, r, "dist/index.html", Dist)
+		file := strings.TrimPrefix(r.RequestURI, "/")
+
+		// if valid web route then serve html
+		if validRoute(file) || file == "index.html" {
+			Index(w, p)
+			return
+		}
+
+		if strings.Contains(file, "manifest.webmanifest") {
+			Manifest(w, p)
+			return
+		}
+
+		// if not valid web route then try and serve files
+		f, err := DistDirFS.Open(file)
+		if err != nil {
+			http.Error(w, "File not found", http.StatusNotFound)
+			return
+		}
+		defer f.Close()
+
+		stat, err := f.Stat()
+		if err != nil {
+			http.Error(w, "File not found", http.StatusNotFound)
+			return
+		}
+
+		data, err := io.ReadAll(f)
+		if err != nil {
+			http.Error(w, "Failed to read the file", http.StatusInternalServerError)
+			return
+		}
+
+		reader := bytes.NewReader(data)
+		http.ServeContent(w, r, file, stat.ModTime(), reader)
 	})
 }
 
@@ -134,4 +194,12 @@ func Index(w io.Writer, p IndexParams) error {
 
 func parseIndex() *template.Template {
 	return template.Must(template.New("index.html").ParseFS(Dist, "dist/index.html"))
+}
+
+func Manifest(w io.Writer, p IndexParams) error {
+	return parseManifest().Execute(w, p)
+}
+
+func parseManifest() *template.Template {
+	return template.Must(template.New("manifest.webmanifest").ParseFS(Dist, "dist/manifest.webmanifest"))
 }
