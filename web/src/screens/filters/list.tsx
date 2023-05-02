@@ -71,7 +71,7 @@ const FilterListReducer = (state: FilterListState, action: Actions): FilterListS
   case ActionType.STATUS_CHANGE:
     return { ...state, status: action.payload };
   case ActionType.STATUS_RESET:
-    return { ...state };
+    return { ...state, status: "" };
   default:
     throw new Error(`Unhandled action type: ${action}`);
   }
