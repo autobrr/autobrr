@@ -152,11 +152,14 @@ func RegisterHandler(c *chi.Mux, version, baseUrl string) {
 	c.Get("/*", func(w http.ResponseWriter, r *http.Request) {
 		file := strings.TrimPrefix(r.RequestURI, "/")
 
-		fmt.Printf("\nfile: %s\n", file)
-
 		// if valid web route then serve html
-		if validRoute(file) {
+		if validRoute(file) || file == "index.html" {
 			Index(w, p)
+			return
+		}
+
+		if strings.Contains(file, "manifest.webmanifest") {
+			Manifest(w, p)
 			return
 		}
 
@@ -191,4 +194,12 @@ func Index(w io.Writer, p IndexParams) error {
 
 func parseIndex() *template.Template {
 	return template.Must(template.New("index.html").ParseFS(Dist, "dist/index.html"))
+}
+
+func Manifest(w io.Writer, p IndexParams) error {
+	return parseManifest().Execute(w, p)
+}
+
+func parseManifest() *template.Template {
+	return template.Must(template.New("manifest.webmanifest").ParseFS(Dist, "dist/manifest.webmanifest"))
 }
