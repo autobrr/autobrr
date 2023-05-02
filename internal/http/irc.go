@@ -1,3 +1,6 @@
+// Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+// SPDX-License-Identifier: GPL-2.0-or-later
+
 package http
 
 import (
@@ -52,7 +55,7 @@ func (h ircHandler) listNetworks(w http.ResponseWriter, r *http.Request) {
 		h.encoder.Error(w, err)
 	}
 
-	h.encoder.StatusResponse(ctx, w, networks, http.StatusOK)
+	h.encoder.StatusResponse(w, http.StatusOK, networks)
 }
 
 func (h ircHandler) getNetworkByID(w http.ResponseWriter, r *http.Request) {
@@ -68,7 +71,7 @@ func (h ircHandler) getNetworkByID(w http.ResponseWriter, r *http.Request) {
 		h.encoder.Error(w, err)
 	}
 
-	h.encoder.StatusResponse(ctx, w, network, http.StatusOK)
+	h.encoder.StatusResponse(w, http.StatusOK, network)
 }
 
 func (h ircHandler) restartNetwork(w http.ResponseWriter, r *http.Request) {

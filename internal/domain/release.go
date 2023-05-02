@@ -1,3 +1,6 @@
+// Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+// SPDX-License-Identifier: GPL-2.0-or-later
+
 package domain
 
 import (
@@ -30,7 +33,7 @@ type ReleaseRepo interface {
 	GetIndexerOptions(ctx context.Context) ([]string, error)
 	GetActionStatusByReleaseID(ctx context.Context, releaseID int64) ([]ReleaseActionStatus, error)
 	Stats(ctx context.Context) (*ReleaseStats, error)
-	StoreReleaseActionStatus(ctx context.Context, actionStatus *ReleaseActionStatus) error
+	StoreReleaseActionStatus(ctx context.Context, status *ReleaseActionStatus) error
 	Delete(ctx context.Context) error
 	CanDownloadShow(ctx context.Context, title string, season int, episode int) (bool, error)
 }
@@ -105,6 +108,21 @@ type ReleaseActionStatus struct {
 	ReleaseID  int64             `json:"-"`
 }
 
+func NewReleaseActionStatus(action *Action, release *Release) *ReleaseActionStatus {
+	return &ReleaseActionStatus{
+		ID:         0,
+		Status:     ReleasePushStatusPending,
+		Action:     action.Name,
+		Type:       action.Type,
+		Client:     action.Client.Name,
+		Filter:     release.Filter.Name,
+		FilterID:   int64(release.Filter.ID),
+		Rejections: []string{},
+		Timestamp:  time.Now(),
+		ReleaseID:  release.ID,
+	}
+}
+
 type DownloadTorrentFileResponse struct {
 	MetaInfo    *metainfo.MetaInfo
 	TmpFileName string
@@ -121,11 +139,10 @@ type ReleaseStats struct {
 type ReleasePushStatus string
 
 const (
+	ReleasePushStatusPending  ReleasePushStatus = "PENDING" // Initial status
 	ReleasePushStatusApproved ReleasePushStatus = "PUSH_APPROVED"
 	ReleasePushStatusRejected ReleasePushStatus = "PUSH_REJECTED"
 	ReleasePushStatusErr      ReleasePushStatus = "PUSH_ERROR"
-
-	//ReleasePushStatusPending  ReleasePushStatus = "PENDING" // Initial status
 )
 
 func (r ReleasePushStatus) String() string {
@@ -332,16 +349,10 @@ func (r *Release) downloadTorrentFile(ctx context.Context) error {
 		return nil
 	}
 
-	jar, err := cookiejar.New(&cookiejar.Options{PublicSuffixList: publicsuffix.List})
-	if err != nil {
-		return errors.Wrap(err, "could not create cookiejar")
-	}
-
 	customTransport := http.DefaultTransport.(*http.Transport).Clone()
 	customTransport.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
 	client := &http.Client{
 		Transport: customTransport,
-		Jar:       jar,
 		Timeout:   time.Second * 45,
 	}
 
@@ -350,7 +361,15 @@ func (r *Release) downloadTorrentFile(ctx context.Context) error {
 		return errors.Wrap(err, "error downloading file")
 	}
 
+	req.Header.Set("User-Agent", "autobrr")
+
 	if r.RawCookie != "" {
+		jar, err := cookiejar.New(&cookiejar.Options{PublicSuffixList: publicsuffix.List})
+		if err != nil {
+			return errors.Wrap(err, "could not create cookiejar")
+		}
+		client.Jar = jar
+
 		// set the cookie on the header instead of req.AddCookie
 		// since we have a raw cookie like "uid=10; pass=000"
 		req.Header.Set("Cookie", r.RawCookie)
@@ -422,6 +441,15 @@ func (r *Release) downloadTorrentFile(ctx context.Context) error {
 	)
 
 	return errFunc
+}
+
+func (r *Release) CleanupTemporaryFiles() {
+	if len(r.TorrentTmpFile) == 0 {
+		return
+	}
+
+	os.Remove(r.TorrentTmpFile)
+	r.TorrentTmpFile = ""
 }
 
 // HasMagnetUri check uf MagnetURI is set or empty
@@ -544,6 +572,8 @@ func (r *Release) MapVars(def *IndexerDefinition, varMap map[string]string) erro
 		fl := StringEqualFoldMulti(freeleech, "freeleech", "yes", "1", "VIP")
 		if fl {
 			r.Freeleech = true
+			// default to 100 and override if freeleechPercent is present in next function
+			r.FreeleechPercent = 100
 			r.Bonus = append(r.Bonus, "Freeleech")
 		}
 	}
@@ -558,22 +588,23 @@ func (r *Release) MapVars(def *IndexerDefinition, varMap map[string]string) erro
 			//log.Debug().Msgf("bad freeleechPercent var: %v", year)
 		}
 
-		r.Freeleech = true
-		r.FreeleechPercent = freeleechPercentInt
+		if freeleechPercentInt > 0 {
+			r.Freeleech = true
+			r.FreeleechPercent = freeleechPercentInt
 
-		r.Bonus = append(r.Bonus, "Freeleech")
+			r.Bonus = append(r.Bonus, "Freeleech")
 
-		switch freeleechPercentInt {
-		case 25:
-			r.Bonus = append(r.Bonus, "Freeleech25")
-		case 50:
-			r.Bonus = append(r.Bonus, "Freeleech50")
-		case 75:
-			r.Bonus = append(r.Bonus, "Freeleech75")
-		case 100:
-			r.Bonus = append(r.Bonus, "Freeleech100")
+			switch freeleechPercentInt {
+			case 25:
+				r.Bonus = append(r.Bonus, "Freeleech25")
+			case 50:
+				r.Bonus = append(r.Bonus, "Freeleech50")
+			case 75:
+				r.Bonus = append(r.Bonus, "Freeleech75")
+			case 100:
+				r.Bonus = append(r.Bonus, "Freeleech100")
+			}
 		}
-
 	}
 
 	if uploader, err := getStringMapValue(varMap, "uploader"); err == nil {

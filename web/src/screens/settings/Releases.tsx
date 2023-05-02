@@ -1,29 +1,35 @@
+/*
+ * Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ */
+
 import { useRef } from "react";
-import { useMutation } from "react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "react-hot-toast";
 
-import { APIClient } from "../../api/APIClient";
-import Toast from "../../components/notifications/Toast";
-import { queryClient } from "../../App";
-import { useToggle } from "../../hooks/hooks";
-import { DeleteModal } from "../../components/modals";
+import { APIClient } from "@api/APIClient";
+import Toast from "@components/notifications/Toast";
+import { useToggle } from "@hooks/hooks";
+import { DeleteModal } from "@components/modals";
+import { releaseKeys } from "@screens/releases/ReleaseTable";
 
 function ReleaseSettings() {
   const [deleteModalIsOpen, toggleDeleteModal] = useToggle(false);
-  const deleteMutation = useMutation(() => APIClient.release.delete(), {
+  const queryClient = useQueryClient();
+
+  const deleteMutation = useMutation({
+    mutationFn:  APIClient.release.delete,
     onSuccess: () => {
       toast.custom((t) => (
         <Toast type="success" body={"All releases were deleted"} t={t}/>
       ));
 
       // Invalidate filters just in case, most likely not necessary but can't hurt.
-      queryClient.invalidateQueries("releases");
+      queryClient.invalidateQueries({ queryKey: releaseKeys.lists() });
     }
   });
 
-  const deleteAction = () => {
-    deleteMutation.mutate();
-  };
+  const deleteAction = () => deleteMutation.mutate();
 
   const cancelModalButtonRef = useRef(null);
 

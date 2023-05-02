@@ -1,27 +1,31 @@
+/*
+ * Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ */
+
 import React, { Fragment, useRef, useState } from "react";
-import { useMutation } from "react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Dialog, Transition } from "@headlessui/react";
 import { XMarkIcon } from "@heroicons/react/24/solid";
-import { classNames, sleep } from "../../utils";
 import { Form, Formik, useFormikContext } from "formik";
-import DEBUG from "../../components/debug";
-import { queryClient } from "../../App";
-import { APIClient } from "../../api/APIClient";
-import { DownloadClientTypeOptions, DownloadRuleConditionOptions } from "../../domain/constants";
-
 import { toast } from "react-hot-toast";
-import Toast from "../../components/notifications/Toast";
-import { useToggle } from "../../hooks/hooks";
-import { DeleteModal } from "../../components/modals";
+
+import { classNames, sleep } from "@utils";
+import DEBUG from "@components/debug";
+import { APIClient } from "@api/APIClient";
+import { DownloadClientTypeOptions, DownloadRuleConditionOptions } from "@domain/constants";
+import Toast from "@components/notifications/Toast";
+import { useToggle } from "@hooks/hooks";
+import { DeleteModal } from "@components/modals";
 import {
   NumberFieldWide,
   PasswordFieldWide,
   RadioFieldsetWide,
   SwitchGroupWide,
   TextFieldWide
-} from "../../components/inputs";
-import DownloadClient from "../../screens/settings/DownloadClient";
-import { SelectFieldWide } from "../../components/inputs/input_wide";
+} from "@components/inputs";
+import DownloadClient, { clientKeys } from "@screens/settings/DownloadClient";
+import { SelectFieldWide } from "@components/inputs/input_wide";
 
 interface InitialValuesSettings {
   basic?: {
@@ -265,7 +269,7 @@ function FormFieldsSabnzbd() {
         <NumberFieldWide
           name="port"
           label="Port"
-          help="port for Sabnzbd"
+          help="port for SABnzbd"
         />
       )}
 
@@ -516,59 +520,53 @@ export function DownloadClientAddForm({ isOpen, toggle }: formProps) {
   const [isSuccessfulTest, setIsSuccessfulTest] = useState(false);
   const [isErrorTest, setIsErrorTest] = useState(false);
 
-  const mutation = useMutation(
-    (client: DownloadClient) => APIClient.download_clients.create(client),
-    {
-      onSuccess: () => {
-        queryClient.invalidateQueries(["downloadClients"]);
-        toast.custom((t) => <Toast type="success" body="Client was added" t={t}/>);
+  const queryClient = useQueryClient();
 
-        toggle();
-      },
-      onError: () => {
-        toast.custom((t) => <Toast type="error" body="Client could not be added" t={t}/>);
-      }
+  const addMutation = useMutation({
+    mutationFn: (client: DownloadClient) => APIClient.download_clients.create(client),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: clientKeys.lists() });
+      toast.custom((t) => <Toast type="success" body="Client was added" t={t}/>);
+
+      toggle();
+    },
+    onError: () => {
+      toast.custom((t) => <Toast type="error" body="Client could not be added" t={t}/>);
     }
-  );
+  });
 
-  const testClientMutation = useMutation(
-    (client: DownloadClient) => APIClient.download_clients.test(client),
-    {
-      onMutate: () => {
-        setIsTesting(true);
-        setIsErrorTest(false);
-        setIsSuccessfulTest(false);
-      },
-      onSuccess: () => {
-        sleep(1000)
-          .then(() => {
-            setIsTesting(false);
-            setIsSuccessfulTest(true);
-          })
-          .then(() => {
-            sleep(2500).then(() => {
-              setIsSuccessfulTest(false);
-            });
+  const onSubmit = (data: unknown) => addMutation.mutate(data as DownloadClient);
+
+  const testClientMutation = useMutation({
+    mutationFn: (client: DownloadClient) => APIClient.download_clients.test(client),
+    onMutate: () => {
+      setIsTesting(true);
+      setIsErrorTest(false);
+      setIsSuccessfulTest(false);
+    },
+    onSuccess: () => {
+      sleep(1000)
+        .then(() => {
+          setIsTesting(false);
+          setIsSuccessfulTest(true);
+        })
+        .then(() => {
+          sleep(2500).then(() => {
+            setIsSuccessfulTest(false);
           });
-      },
-      onError: () => {
-        console.log("not added");
-        setIsTesting(false);
-        setIsErrorTest(true);
-        sleep(2500).then(() => {
-          setIsErrorTest(false);
         });
-      }
+    },
+    onError: () => {
+      console.log("not added");
+      setIsTesting(false);
+      setIsErrorTest(true);
+      sleep(2500).then(() => {
+        setIsErrorTest(false);
+      });
     }
-  );
+  });
 
-  const onSubmit = (data: unknown) => {
-    mutation.mutate(data as DownloadClient);
-  };
-
-  const testClient = (data: unknown) => {
-    testClientMutation.mutate(data as DownloadClient);
-  };
+  const testClient = (data: unknown) => testClientMutation.mutate(data as DownloadClient);
 
   const initialValues: InitialValues = {
     name: "",
@@ -691,72 +689,67 @@ export function DownloadClientUpdateForm({ client, isOpen, toggle }: updateFormP
   const [isErrorTest, setIsErrorTest] = useState(false);
   const [deleteModalIsOpen, toggleDeleteModal] = useToggle(false);
 
-  const mutation = useMutation(
-    (client: DownloadClient) => APIClient.download_clients.update(client),
-    {
-      onSuccess: () => {
-        queryClient.invalidateQueries(["downloadClients"]);
-        toast.custom((t) => <Toast type="success" body={`${client.name} was updated successfully`} t={t}/>);
-        toggle();
-      }
-    }
-  );
-
-  const deleteMutation = useMutation(
-    (clientID: number) => APIClient.download_clients.delete(clientID),
-    {
-      onSuccess: () => {
-        queryClient.invalidateQueries();
-        toast.custom((t) => <Toast type="success" body={`${client.name} was deleted.`} t={t}/>);
-        toggleDeleteModal();
-      }
-    }
-  );
-
-  const testClientMutation = useMutation(
-    (client: DownloadClient) => APIClient.download_clients.test(client),
-    {
-      onMutate: () => {
-        setIsTesting(true);
-        setIsErrorTest(false);
-        setIsSuccessfulTest(false);
-      },
-      onSuccess: () => {
-        sleep(1000)
-          .then(() => {
-            setIsTesting(false);
-            setIsSuccessfulTest(true);
-          })
-          .then(() => {
-            sleep(2500).then(() => {
-              setIsSuccessfulTest(false);
-            });
-          });
-      },
-      onError: () => {
-        setIsTesting(false);
-        setIsErrorTest(true);
-        sleep(2500).then(() => {
-          setIsErrorTest(false);
-        });
-      }
-    }
-  );
-
-  const onSubmit = (data: unknown) => {
-    mutation.mutate(data as DownloadClient);
-  };
-
   const cancelButtonRef = useRef(null);
   const cancelModalButtonRef = useRef(null);
 
-  const deleteAction = () => {
-    deleteMutation.mutate(client.id);
-  };
+  const queryClient = useQueryClient();
 
-  const testClient = (data: unknown) => {
-    testClientMutation.mutate(data as DownloadClient);
-  };
+  const mutation = useMutation({
+    mutationFn: (client: DownloadClient) => APIClient.download_clients.update(client),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: clientKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: clientKeys.detail(client.id) });
+
+      toast.custom((t) => <Toast type="success" body={`${client.name} was updated successfully`} t={t}/>);
+      toggle();
+    }
+  });
+
+  const onSubmit = (data: unknown) => mutation.mutate(data as DownloadClient);
+
+  const deleteMutation = useMutation({
+    mutationFn: (clientID: number) => APIClient.download_clients.delete(clientID),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: clientKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: clientKeys.detail(client.id) });
+
+      toast.custom((t) => <Toast type="success" body={`${client.name} was deleted.`} t={t}/>);
+      toggleDeleteModal();
+    }
+  });
+
+  const deleteAction = () => deleteMutation.mutate(client.id);
+
+
+  const testClientMutation = useMutation({
+    mutationFn: (client: DownloadClient) => APIClient.download_clients.test(client),
+    onMutate: () => {
+      setIsTesting(true);
+      setIsErrorTest(false);
+      setIsSuccessfulTest(false);
+    },
+    onSuccess: () => {
+      sleep(1000)
+        .then(() => {
+          setIsTesting(false);
+          setIsSuccessfulTest(true);
+        })
+        .then(() => {
+          sleep(2500).then(() => {
+            setIsSuccessfulTest(false);
+          });
+        });
+    },
+    onError: () => {
+      setIsTesting(false);
+      setIsErrorTest(true);
+      sleep(2500).then(() => {
+        setIsErrorTest(false);
+      });
+    }
+  });
+
+  const testClient = (data: unknown) => testClientMutation.mutate(data as DownloadClient);
 
   const initialValues = {
     id: client.id,

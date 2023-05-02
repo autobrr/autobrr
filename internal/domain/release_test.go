@@ -1,3 +1,6 @@
+// Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+// SPDX-License-Identifier: GPL-2.0-or-later
+
 package domain
 
 import (
@@ -297,12 +300,13 @@ func TestRelease_MapVars(t *testing.T) {
 			name:   "2",
 			fields: &Release{},
 			want: &Release{
-				TorrentName: "Good show S02 2160p ATVP WEB-DL DDP 5.1 Atmos DV HEVC-GROUP2",
-				Category:    "tv",
-				Freeleech:   true,
-				Bonus:       []string{"Freeleech"},
-				Uploader:    "Anon",
-				Size:        uint64(10000000000),
+				TorrentName:      "Good show S02 2160p ATVP WEB-DL DDP 5.1 Atmos DV HEVC-GROUP2",
+				Category:         "tv",
+				Freeleech:        true,
+				FreeleechPercent: 100,
+				Bonus:            []string{"Freeleech"},
+				Uploader:         "Anon",
+				Size:             uint64(10000000000),
 			},
 			args: args{
 				varMap: map[string]string{
@@ -475,13 +479,14 @@ func TestRelease_MapVars(t *testing.T) {
 			name:   "10",
 			fields: &Release{},
 			want: &Release{
-				TorrentName: "Greatest Anime Ever",
-				Year:        2022,
-				Group:       "GROUP1",
-				Tags:        []string{"comedy", "fantasy", "school.life", "shounen", "slice.of.life"},
-				Uploader:    "Tester",
-				Freeleech:   true,
-				Bonus:       []string{"Freeleech"},
+				TorrentName:      "Greatest Anime Ever",
+				Year:             2022,
+				Group:            "GROUP1",
+				Tags:             []string{"comedy", "fantasy", "school.life", "shounen", "slice.of.life"},
+				Uploader:         "Tester",
+				Freeleech:        true,
+				FreeleechPercent: 100,
+				Bonus:            []string{"Freeleech"},
 			},
 			args: args{varMap: map[string]string{
 				"torrentName":  "Greatest Anime Ever",
@@ -496,13 +501,14 @@ func TestRelease_MapVars(t *testing.T) {
 			name:   "11",
 			fields: &Release{},
 			want: &Release{
-				TorrentName: "Good show S02 2160p ATVP WEB-DL DDP 5.1 Atmos DV HEVC-GROUP2",
-				Category:    "tv",
-				Freeleech:   true,
-				Bonus:       []string{"Freeleech"},
-				Uploader:    "Anon",
-				Size:        uint64(10000000000),
-				Tags:        []string{"comedy", "science fiction", "fantasy", "school.life", "shounen", "slice.of.life"},
+				TorrentName:      "Good show S02 2160p ATVP WEB-DL DDP 5.1 Atmos DV HEVC-GROUP2",
+				Category:         "tv",
+				Freeleech:        true,
+				FreeleechPercent: 100,
+				Bonus:            []string{"Freeleech"},
+				Uploader:         "Anon",
+				Size:             uint64(10000000000),
+				Tags:             []string{"comedy", "science fiction", "fantasy", "school.life", "shounen", "slice.of.life"},
 			},
 			args: args{
 				varMap: map[string]string{

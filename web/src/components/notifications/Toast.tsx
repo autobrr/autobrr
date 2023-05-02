@@ -1,7 +1,12 @@
+/*
+ * Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ */
+
 import { FC } from "react";
 import { CheckCircleIcon, ExclamationCircleIcon, ExclamationTriangleIcon, XMarkIcon } from "@heroicons/react/24/solid";
 import { toast, Toast as Tooast } from "react-hot-toast";
-import { classNames } from "../../utils";
+import { classNames } from "@utils";
 
 type Props = {
   type: "error" | "success" | "warning"
@@ -26,7 +31,7 @@ const Toast: FC<Props> = ({ type, body, t }) => (
             {type === "error" && "Error"}
             {type === "warning" && "Warning"}
           </p>
-          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">{body}</p>
+          <span className="mt-1 text-sm text-gray-500 dark:text-gray-400">{body}</span>
         </div>
         <div className="ml-4 flex-shrink-0 flex">
           <button

@@ -1,3 +1,6 @@
+// Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+// SPDX-License-Identifier: GPL-2.0-or-later
+
 package ggn
 
 import (
@@ -16,34 +19,34 @@ import (
 	"golang.org/x/time/rate"
 )
 
-type Client interface {
-	GetTorrentByID(torrentID string) (*domain.TorrentBasic, error)
-	TestAPI() (bool, error)
+type ApiClient interface {
+	GetTorrentByID(ctx context.Context, torrentID string) (*domain.TorrentBasic, error)
+	TestAPI(ctx context.Context) (bool, error)
+	UseURL(url string)
 }
 
-type client struct {
+type Client struct {
 	Url         string
-	Timeout     int
 	client      *http.Client
 	Ratelimiter *rate.Limiter
 	APIKey      string
-	Headers     http.Header
 }
 
-func NewClient(url string, apiKey string) Client {
-	// set default url
-	if url == "" {
-		url = "https://gazellegames.net/api.php"
-	}
-
-	c := &client{
-		APIKey:      apiKey,
-		client:      http.DefaultClient,
-		Url:         url,
+func NewClient(apiKey string) ApiClient {
+	c := &Client{
+		Url: "https://gazellegames.net/api.php",
+		client: &http.Client{
+			Timeout: time.Second * 30,
+		},
 		Ratelimiter: rate.NewLimiter(rate.Every(5*time.Second), 1), // 5 request every 10 seconds
+		APIKey:      apiKey,
 	}
 
 	return c
+}
+
+func (c *Client) UseURL(url string) {
+	c.Url = url
 }
 
 type Group struct {
@@ -145,7 +148,7 @@ type Response struct {
 	Error    string          `json:"error,omitempty"`
 }
 
-func (c *client) Do(req *http.Request) (*http.Response, error) {
+func (c *Client) Do(req *http.Request) (*http.Response, error) {
 	ctx := context.Background()
 	err := c.Ratelimiter.Wait(ctx) // This is a blocking call. Honors the rate limit
 	if err != nil {
@@ -158,10 +161,10 @@ func (c *client) Do(req *http.Request) (*http.Response, error) {
 	return resp, nil
 }
 
-func (c *client) get(url string) (*http.Response, error) {
-	req, err := http.NewRequest(http.MethodGet, url, http.NoBody)
+func (c *Client) get(ctx context.Context, url string) (*http.Response, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, http.NoBody)
 	if err != nil {
-		return nil, errors.Wrap(err, "ggn client request error : %v", url)
+		return nil, errors.Wrap(err, "ggn client request error : %s", url)
 	}
 
 	req.Header.Add("X-API-Key", c.APIKey)
@@ -169,7 +172,7 @@ func (c *client) get(url string) (*http.Response, error) {
 
 	res, err := c.Do(req)
 	if err != nil {
-		return nil, errors.Wrap(err, "ggn client request error : %v", url)
+		return nil, errors.Wrap(err, "ggn client request error : %s", url)
 	}
 
 	if res.StatusCode == http.StatusUnauthorized {
@@ -183,7 +186,7 @@ func (c *client) get(url string) (*http.Response, error) {
 	return res, nil
 }
 
-func (c *client) GetTorrentByID(torrentID string) (*domain.TorrentBasic, error) {
+func (c *Client) GetTorrentByID(ctx context.Context, torrentID string) (*domain.TorrentBasic, error) {
 	if torrentID == "" {
 		return nil, errors.New("ggn client: must have torrentID")
 	}
@@ -194,9 +197,9 @@ func (c *client) GetTorrentByID(torrentID string) (*domain.TorrentBasic, error) 
 	v.Add("id", torrentID)
 	params := v.Encode()
 
-	reqUrl := fmt.Sprintf("%v?%v&%v", c.Url, "request=torrent", params)
+	reqUrl := fmt.Sprintf("%s?%s&%s", c.Url, "request=torrent", params)
 
-	resp, err := c.get(reqUrl)
+	resp, err := c.get(ctx, reqUrl)
 	if err != nil {
 		return nil, errors.Wrap(err, "error getting data")
 	}
@@ -208,13 +211,12 @@ func (c *client) GetTorrentByID(torrentID string) (*domain.TorrentBasic, error) 
 		return nil, errors.Wrap(readErr, "error reading body")
 	}
 
-	err = json.Unmarshal(body, &r)
-	if err != nil {
+	if err = json.Unmarshal(body, &r); err != nil {
 		return nil, errors.Wrap(err, "error unmarshal body")
 	}
 
 	if r.Status != "success" {
-		return nil, errors.New("bad status: %v", r.Status)
+		return nil, errors.New("bad status: %s", r.Status)
 	}
 
 	t := &domain.TorrentBasic{
@@ -228,8 +230,8 @@ func (c *client) GetTorrentByID(torrentID string) (*domain.TorrentBasic, error) 
 }
 
 // TestAPI try api access against torrents page
-func (c *client) TestAPI() (bool, error) {
-	resp, err := c.get(c.Url)
+func (c *Client) TestAPI(ctx context.Context) (bool, error) {
+	resp, err := c.get(ctx, c.Url)
 	if err != nil {
 		return false, errors.Wrap(err, "error getting data")
 	}

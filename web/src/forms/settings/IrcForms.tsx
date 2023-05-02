@@ -1,16 +1,23 @@
-import { useMutation } from "react-query";
+/*
+ * Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ */
+
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "react-hot-toast";
 import { XMarkIcon } from "@heroicons/react/24/solid";
 import type { FieldProps } from "formik";
 import { Field, FieldArray, FormikErrors, FormikValues } from "formik";
-
-import { queryClient } from "../../App";
-import { APIClient } from "../../api/APIClient";
-
-import { NumberFieldWide, PasswordFieldWide, SwitchGroupWide, SwitchGroupWideRed, TextFieldWide } from "../../components/inputs";
-import { SlideOver } from "../../components/panels";
-import Toast from "../../components/notifications/Toast";
 import { ExclamationTriangleIcon } from "@heroicons/react/24/outline";
+import Select, { components, ControlProps, InputProps, MenuProps, OptionProps } from "react-select";
+import { Dialog } from "@headlessui/react";
+
+import { IrcAuthMechanismTypeOptions, OptionBasicTyped } from "@domain/constants";
+import { ircKeys } from "@screens/settings/Irc";
+import { APIClient } from "@api/APIClient";
+import { NumberFieldWide, PasswordFieldWide, SwitchGroupWide, SwitchGroupWideRed, TextFieldWide } from "@components/inputs";
+import { SlideOver } from "@components/panels";
+import Toast from "@components/notifications/Toast";
 
 interface ChannelsFieldArrayProps {
   channels: IrcChannel[];
@@ -98,43 +105,22 @@ interface AddFormProps {
 }
 
 export function IrcNetworkAddForm({ isOpen, toggle }: AddFormProps) {
-  const mutation = useMutation(
-    (network: IrcNetwork) => APIClient.irc.createNetwork(network),
-    {
-      onSuccess: () => {
-        queryClient.invalidateQueries(["networks"]);
-        toast.custom((t) => <Toast type="success" body="IRC Network added. Please allow up to 30 seconds for the network to come online." t={t} />);
-        toggle();
-      },
-      onError: () => {
-        toast.custom((t) => <Toast type="error" body="IRC Network could not be added" t={t} />);
-      }
+  const queryClient = useQueryClient();
+
+  const mutation = useMutation({
+    mutationFn: (network: IrcNetwork) => APIClient.irc.createNetwork(network),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ircKeys.lists() });
+
+      toast.custom((t) => <Toast type="success" body="IRC Network added. Please allow up to 30 seconds for the network to come online." t={t} />);
+      toggle();
+    },
+    onError: () => {
+      toast.custom((t) => <Toast type="error" body="IRC Network could not be added" t={t} />);
     }
-  );
+  });
 
-  const onSubmit = (data: unknown) => {
-    mutation.mutate(data as IrcNetwork);
-  };
-
-  const validate = (values: FormikValues) => {
-    const errors = {} as FormikErrors<FormikValues>;
-    if (!values.name)
-      errors.name = "Required";
-
-    if (!values.port)
-      errors.port = "Required";
-
-    if (!values.server)
-      errors.server = "Required";
-
-    if (!values.nick)
-      errors.nick = "Required";
-
-    // if (!values.auth || !values.auth.account)
-    //   errors.auth = { account: "Required" };
-
-    return errors;
-  };
+  const onSubmit = (data: unknown) => mutation.mutate(data as IrcNetwork);
 
   const initialValues: IrcNetworkAddFormValues = {
     name: "",
@@ -159,7 +145,7 @@ export function IrcNetworkAddForm({ isOpen, toggle }: AddFormProps) {
       toggle={toggle}
       onSubmit={onSubmit}
       initialValues={initialValues}
-      validate={validate}
+      validate={validateNetwork}
     >
       {(values) => (
         <div className="flex flex-col space-y-4 px-1 py-6 sm:py-0 sm:space-y-0">
@@ -216,6 +202,28 @@ export function IrcNetworkAddForm({ isOpen, toggle }: AddFormProps) {
   );
 }
 
+const validateNetwork = (values: FormikValues) => {
+  const errors = {} as FormikErrors<FormikValues>;
+
+  if (!values.name) {
+    errors.name = "Required";
+  }
+
+  if (!values.server) {
+    errors.server = "Required";
+  }
+
+  if (!values.port) {
+    errors.port = "Required";
+  }
+
+  if (!values.nick) {
+    errors.nick = "Required";
+  }
+
+  return errors;
+};
+
 interface IrcNetworkUpdateFormValues {
     id: number;
     name: string;
@@ -241,53 +249,33 @@ export function IrcNetworkUpdateForm({
   toggle,
   network
 }: IrcNetworkUpdateFormProps) {
-  const mutation = useMutation((network: IrcNetwork) => APIClient.irc.updateNetwork(network), {
+  const queryClient = useQueryClient();
+
+  const updateMutation = useMutation({
+    mutationFn: (network: IrcNetwork) => APIClient.irc.updateNetwork(network),
     onSuccess: () => {
-      queryClient.invalidateQueries(["networks"]);
+      queryClient.invalidateQueries({ queryKey: ircKeys.lists() });
+
       toast.custom((t) => <Toast type="success" body={`${network.name} was updated successfully`} t={t} />);
+
       toggle();
     }
   });
 
-  const deleteMutation = useMutation((id: number) => APIClient.irc.deleteNetwork(id), {
+  const onSubmit = (data: unknown) => updateMutation.mutate(data as IrcNetwork);
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: number) => APIClient.irc.deleteNetwork(id),
     onSuccess: () => {
-      queryClient.invalidateQueries(["networks"]);
+      queryClient.invalidateQueries({ queryKey: ircKeys.lists() });
+
       toast.custom((t) => <Toast type="success" body={`${network.name} was deleted.`} t={t} />);
 
       toggle();
     }
   });
 
-  const onSubmit = (data: unknown) => {
-    console.log("submit: ", data);
-    mutation.mutate(data as IrcNetwork);
-  };
-
-  const validate = (values: FormikValues) => {
-    const errors = {} as FormikErrors<FormikValues>;
-
-    if (!values.name) {
-      errors.name = "Required";
-    }
-
-    if (!values.server) {
-      errors.server = "Required";
-    }
-
-    if (!values.port) {
-      errors.port = "Required";
-    }
-
-    if (!values.nick) {
-      errors.nick = "Required";
-    }
-
-    return errors;
-  };
-
-  const deleteAction = () => {
-    deleteMutation.mutate(network.id);
-  };
+  const deleteAction = () => deleteMutation.mutate(network.id);
 
   const initialValues: IrcNetworkUpdateFormValues = {
     id: network.id,
@@ -312,7 +300,7 @@ export function IrcNetworkUpdateForm({
       onSubmit={onSubmit}
       deleteAction={deleteAction}
       initialValues={initialValues}
-      validate={validate}
+      validate={validateNetwork}
     >
       {(values) => (
         <div className="flex flex-col space-y-4 px-1 py-6 sm:py-0 sm:space-y-0">
@@ -458,10 +446,6 @@ function SelectField<T>({ name, label, options }: SelectFieldProps<T>) {
     </div>
   );
 }
-
-import Select, { components, ControlProps, InputProps, MenuProps, OptionProps } from "react-select";
-import { IrcAuthMechanismTypeOptions, OptionBasicTyped } from "../../domain/constants";
-import { Dialog } from "@headlessui/react";
 
 const Input = (props: InputProps) => {
   return (

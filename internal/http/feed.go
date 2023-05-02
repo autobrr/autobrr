@@ -1,3 +1,6 @@
+// Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+// SPDX-License-Identifier: GPL-2.0-or-later
+
 package http
 
 import (
@@ -48,11 +51,11 @@ func (h feedHandler) find(w http.ResponseWriter, r *http.Request) {
 
 	feeds, err := h.service.Find(ctx)
 	if err != nil {
-		h.encoder.StatusNotFound(ctx, w)
+		h.encoder.StatusNotFound(w)
 		return
 	}
 
-	h.encoder.StatusResponse(ctx, w, feeds, http.StatusOK)
+	h.encoder.StatusResponse(w, http.StatusOK, feeds)
 }
 
 func (h feedHandler) store(w http.ResponseWriter, r *http.Request) {
@@ -63,7 +66,7 @@ func (h feedHandler) store(w http.ResponseWriter, r *http.Request) {
 
 	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
 		// encode error
-		h.encoder.StatusNotFound(ctx, w)
+		h.encoder.StatusNotFound(w)
 		return
 	}
 
@@ -74,7 +77,7 @@ func (h feedHandler) store(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.encoder.StatusResponse(ctx, w, data, http.StatusCreated)
+	h.encoder.StatusResponse(w, http.StatusCreated, data)
 }
 
 func (h feedHandler) test(w http.ResponseWriter, r *http.Request) {
@@ -117,7 +120,7 @@ func (h feedHandler) update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.encoder.StatusResponse(ctx, w, data, http.StatusCreated)
+	h.encoder.StatusResponse(w, http.StatusCreated, data)
 }
 
 func (h feedHandler) toggleEnabled(w http.ResponseWriter, r *http.Request) {
@@ -144,7 +147,7 @@ func (h feedHandler) toggleEnabled(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.encoder.StatusResponse(ctx, w, nil, http.StatusNoContent)
+	h.encoder.StatusResponse(w, http.StatusNoContent, nil)
 }
 
 func (h feedHandler) delete(w http.ResponseWriter, r *http.Request) {
@@ -160,7 +163,7 @@ func (h feedHandler) delete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.encoder.StatusResponse(ctx, w, nil, http.StatusNoContent)
+	h.encoder.StatusResponse(w, http.StatusNoContent, nil)
 }
 
 func (h feedHandler) latestRun(w http.ResponseWriter, r *http.Request) {
@@ -182,7 +185,7 @@ func (h feedHandler) latestRun(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if feed == "" {
-		h.encoder.StatusNotFound(ctx, w)
+		h.encoder.StatusNotFound(w)
 		w.Write([]byte("No data found"))
 		return
 	}

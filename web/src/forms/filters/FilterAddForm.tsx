@@ -1,16 +1,21 @@
+/*
+ * Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ */
+
 import { Fragment } from "react";
-import { useMutation } from "react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "react-hot-toast";
 import { XMarkIcon } from "@heroicons/react/24/solid";
 import { Dialog, Transition } from "@headlessui/react";
 import type { FieldProps } from "formik";
 import { Field, Form, Formik, FormikErrors, FormikValues } from "formik";
-
-import { queryClient } from "../../App";
-import { APIClient } from "../../api/APIClient";
-import DEBUG from "../../components/debug";
-import Toast from "../../components/notifications/Toast";
 import { useNavigate } from "react-router-dom";
+
+import { APIClient } from "@api/APIClient";
+import DEBUG from "@components/debug";
+import Toast from "@components/notifications/Toast";
+import { filterKeys } from "@screens/filters/list";
 
 interface filterAddFormProps {
     isOpen: boolean;
@@ -18,23 +23,24 @@ interface filterAddFormProps {
 }
 
 function FilterAddForm({ isOpen, toggle }: filterAddFormProps) {
+  const queryClient = useQueryClient();
   const navigate = useNavigate();
-  const mutation = useMutation(
-    (filter: Filter) => APIClient.filters.create(filter),
-    {
-      onSuccess: (filter) => {
-        queryClient.invalidateQueries("filters");
-        toast.custom((t) => <Toast type="success" body={`Filter ${filter.name} was added`} t={t} />);
+  const mutation = useMutation({
+    mutationFn: (filter: Filter) => APIClient.filters.create(filter),
+    onSuccess: (filter) => {
+      queryClient.invalidateQueries({ queryKey: filterKeys.lists() });
 
-        toggle();
-        if (filter.id) {
-          navigate(filter.id.toString());
-        }
+      toast.custom((t) => <Toast type="success" body={`Filter ${filter.name} was added`} t={t} />);
+
+      toggle();
+      if (filter.id) {
+        navigate(filter.id.toString());
       }
     }
-  );
+  });
 
   const handleSubmit = (data: unknown) => mutation.mutate(data as Filter);
+
   const validate = (values: FormikValues) => {
     const errors = {} as FormikErrors<FormikValues>;
     if (!values.name) {

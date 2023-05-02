@@ -1,3 +1,6 @@
+// Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+// SPDX-License-Identifier: GPL-2.0-or-later
+
 package http
 
 import (
@@ -137,6 +140,18 @@ func TestSanitizeLogFile(t *testing.T) {
 		{
 			input:    "\"module\":\"irc\" PRIVMSG NickServ IDENTIFY zAPEJEA8ryYnpj3AiE3KJ",
 			expected: "\"module\":\"irc\" PRIVMSG NickServ IDENTIFY REDACTED",
+		},
+		{
+			input:    "\"module\":\"action\" \\\"host\\\":\\\"subdomain.domain.com:42069/subfolder\\\", \\n   \\\"user\\\":\\\"AUserName\\\", \\n   \\\"password\\\":\\\"p4ssw0!rd\\\", \\n",
+			expected: "\"module\":\"action\" \\\"host\\\":\\\"REDACTED\\\", \\n   \\\"user\\\":\\\"REDACTED\\\", \\n   \\\"password\\\":\\\"REDACTED\\\", \\n",
+		},
+		{
+			input:    "\"module\":\"action\" ExternalWebhookHost:http://127.0.0.1:6940/api/upgrade ExternalWebhookData:",
+			expected: "\"module\":\"action\" ExternalWebhookHost:REDACTED ExternalWebhookData:",
+		},
+		{
+			input:    "\"module\":\"filter\" \\\"id\\\": 3855,\\n  \\\"apikey\\\": \\\"ad789a9s8d.asdpoiasdpojads09sad809\\\",\\n  \\\"minratio\\\": 10.0\\n",
+			expected: "\"module\":\"filter\" \\\"id\\\": 3855,\\n  \\\"apikey\\\": \\\"REDACTED\\\",\\n  \\\"minratio\\\": 10.0\\n",
 		},
 	}
 

@@ -1,14 +1,16 @@
-import { Dispatch, FC, Fragment, MouseEventHandler, useReducer, useRef, useState } from "react";
+/*
+ * Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ */
+
+import { Dispatch, FC, Fragment, MouseEventHandler, useReducer, useRef, useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { toast } from "react-hot-toast";
 import { Listbox, Menu, Switch, Transition } from "@headlessui/react";
-import { useMutation, useQuery, useQueryClient } from "react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { FormikValues } from "formik";
 import { useCallback } from "react";
-
 import { Tooltip } from "react-tooltip";
-
-
 import {
   ArrowsRightLeftIcon,
   CheckIcon,
@@ -20,27 +22,23 @@ import {
   ChatBubbleBottomCenterTextIcon,
   TrashIcon
 } from "@heroicons/react/24/outline";
-
-import { queryClient } from "../../App";
-import { classNames } from "../../utils";
-import { FilterAddForm } from "../../forms";
-import { useToggle } from "../../hooks/hooks";
-import { APIClient } from "../../api/APIClient";
-import Toast from "../../components/notifications/Toast";
-import { EmptyListState } from "../../components/emptystates";
-import { DeleteModal } from "../../components/modals";
 import { ArrowDownTrayIcon } from "@heroicons/react/24/solid";
 
-type FilterListState = {
-  indexerFilter: string[],
-  sortOrder: string;
-  status: string;
-};
+import { FilterListContext, FilterListState } from "@utils/Context";
+import { classNames } from "@utils";
+import { FilterAddForm } from "@forms";
+import { useToggle } from "@hooks/hooks";
+import { APIClient } from "@api/APIClient";
+import Toast from "@components/notifications/Toast";
+import { EmptyListState } from "@components/emptystates";
+import { DeleteModal } from "@components/modals";
 
-const initialState: FilterListState = {
-  indexerFilter: [],
-  sortOrder: "",
-  status: ""
+export const filterKeys = {
+  all: ["filters"] as const,
+  lists: () => [...filterKeys.all, "list"] as const,
+  list: (indexers: string[], sortOrder: string) => [...filterKeys.lists(), { indexers, sortOrder }] as const,
+  details: () => [...filterKeys.all, "detail"] as const,
+  detail: (id: number) => [...filterKeys.details(), id] as const
 };
 
 enum ActionType {
@@ -79,12 +77,7 @@ const FilterListReducer = (state: FilterListState, action: Actions): FilterListS
   }
 };
 
-interface FilterProps {
-  values?: FormikValues;
-}
-
-export default function Filters({}: FilterProps){
-
+export default function Filters() {
   const queryClient = useQueryClient();
 
   const [createFilterIsOpen, setCreateFilterIsOpen] = useState(false);
@@ -132,7 +125,7 @@ export default function Filters({}: FilterProps){
       await APIClient.filters.create(newFilter);
   
       // Update the filter list
-      queryClient.invalidateQueries("filters");
+      queryClient.invalidateQueries({ queryKey: filterKeys.lists() });
   
       toast.custom((t) => <Toast type="success" body="Filter imported successfully." t={t} />);
       setShowImportModal(false);
@@ -163,7 +156,7 @@ export default function Filters({}: FilterProps){
                     }}
                   >
                     <PlusIcon className="h-5 w-5 mr-1" />
-              Add Filter
+                    Add Filter
                   </button>
                   <Menu.Button className="relative inline-flex items-center px-2 py-2 border-l border-spacing-1 dark:border-black shadow-sm text-sm font-medium rounded-r-md text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500">
                     <ChevronDownIcon className="h-5 w-5" />
@@ -189,7 +182,7 @@ export default function Filters({}: FilterProps){
                             } w-full text-left py-2 px-4 text-sm font-medium text-gray-700 dark:text-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500`}
                             onClick={() => setShowImportModal(true)}
                           >
-                      Import Filter
+                            Import Filter
                           </button>
                         )}
                       </Menu.Item>
@@ -260,17 +253,25 @@ function filteredData(data: Filter[], status: string) {
 }
 
 function FilterList({ toggleCreateFilter }: any) {
-  const [{ indexerFilter, sortOrder, status }, dispatchFilter] =
-    useReducer(FilterListReducer, initialState);
+  const filterListState = FilterListContext.useValue();
 
-  const { error, data } = useQuery(
-    ["filters", indexerFilter, sortOrder],
-    () => APIClient.filters.find(indexerFilter, sortOrder),
-    { refetchOnWindowFocus: false }
+  const [{ indexerFilter, sortOrder, status }, dispatchFilter] = useReducer(
+    FilterListReducer,
+    filterListState
   );
 
+  const { data, error } = useQuery({
+    queryKey: filterKeys.list(indexerFilter, sortOrder),
+    queryFn: ({ queryKey }) => APIClient.filters.find(queryKey[2].indexers, queryKey[2].sortOrder),
+    refetchOnWindowFocus: false
+  });
+
+  useEffect(() => {
+    FilterListContext.set({ indexerFilter, sortOrder, status });
+  }, [indexerFilter, sortOrder, status]);
+
   if (error) {
-    return (<p>An error has occurred: </p>);
+    return <p>An error has occurred:</p>;
   }
 
   const filtered = filteredData(data ?? [], status);
@@ -293,9 +294,13 @@ function FilterList({ toggleCreateFilter }: any) {
 
         {data && data.length > 0 ? (
           <ol className="min-w-full">
-            {filtered.filtered.map((filter: Filter, idx) => (
-              <FilterListItem filter={filter} values={filter} key={filter.id} idx={idx} />
-            ))}
+            {filtered.filtered.length > 0
+              ? filtered.filtered.map((filter: Filter, idx) => (
+                <FilterListItem filter={filter} values={filter} key={filter.id} idx={idx} />
+              ))
+
+              : <EmptyListState text={`No ${status} filters`} />
+            }
           </ol>
         ) : (
           <EmptyListState text="No filters here.." buttonText="Add new" buttonOnClick={toggleCreateFilter} />
@@ -407,14 +412,41 @@ const FilterItemDropdown = ({ filter, onToggle }: FilterItemDropdownProps) => {
       );
       
       const finalJson = discordFormat ? "```JSON\n" + json + "\n```" : json;
-      
+
+      const copyTextToClipboard = (text: string) => {
+        const textarea = document.createElement("textarea");
+        textarea.style.position = "fixed";
+        textarea.style.opacity = "0";
+        textarea.value = text;
+        document.body.appendChild(textarea);
+        textarea.focus();
+        textarea.select();
   
-      navigator.clipboard.writeText(finalJson).then(() => {
-        toast.custom((t) => <Toast type="success" body="Filter copied to clipboard." t={t} />);
-      }, () => {
-        toast.custom((t) => <Toast type="error" body="Failed to copy JSON to clipboard." t={t} />);
-      });
-      
+        try {
+          const successful = document.execCommand("copy");
+          if (successful) {
+            toast.custom((t) => <Toast type="success" body="Filter copied to clipboard." t={t} />);
+          } else {
+            toast.custom((t) => <Toast type="error" body="Failed to copy JSON to clipboard." t={t} />);
+          }
+        } catch (err) {
+          console.error("Unable to copy text", err);
+          toast.custom((t) => <Toast type="error" body="Failed to copy JSON to clipboard." t={t} />);
+        }
+  
+        document.body.removeChild(textarea);
+      };
+  
+      if (navigator.clipboard) {
+        navigator.clipboard.writeText(finalJson).then(() => {
+          toast.custom((t) => <Toast type="success" body="Filter copied to clipboard." t={t} />);
+        }, () => {
+          toast.custom((t) => <Toast type="error" body="Failed to copy JSON to clipboard." t={t} />);
+        });
+      } else {
+        copyTextToClipboard(finalJson);
+      }
+  
   } catch (error) {
     console.error(error);
     toast.custom((t) => <Toast type="error" body="Failed to get filter data." t={t} />);
@@ -426,28 +458,25 @@ const FilterItemDropdown = ({ filter, onToggle }: FilterItemDropdownProps) => {
   const queryClient = useQueryClient();
 
   const [deleteModalIsOpen, toggleDeleteModal] = useToggle(false);
-  const deleteMutation = useMutation(
-    (id: number) => APIClient.filters.delete(id),
-    {
-      onSuccess: () => {
-        queryClient.invalidateQueries(["filters"]);
-        queryClient.invalidateQueries(["filters", filter.id]);
 
-        toast.custom((t) => <Toast type="success" body={`Filter ${filter?.name} was deleted`} t={t} />);
-      }
+  const deleteMutation = useMutation({
+    mutationFn: (id: number) => APIClient.filters.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: filterKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: filterKeys.detail(filter.id) });
+
+      toast.custom((t) => <Toast type="success" body={`Filter ${filter?.name} was deleted`} t={t} />);
     }
-  );
+  });
 
-  const duplicateMutation = useMutation(
-    (id: number) => APIClient.filters.duplicate(id),
-    {
-      onSuccess: () => {
-        queryClient.invalidateQueries(["filters"]);
+  const duplicateMutation = useMutation({
+    mutationFn: (id: number) => APIClient.filters.duplicate(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: filterKeys.lists() });
 
-        toast.custom((t) => <Toast type="success" body={`Filter ${filter?.name} duplicated`} t={t} />);
-      }
+      toast.custom((t) => <Toast type="success" body={`Filter ${filter?.name} duplicated`} t={t} />);
     }
-  );
+  });
 
   return (
     <Menu as="div">
@@ -616,25 +645,22 @@ interface FilterListItemProps {
 }
 
 function FilterListItem({ filter, values, idx }: FilterListItemProps) {
-  const [enabled, setEnabled] = useState(filter.enabled);
+  const queryClient = useQueryClient();
 
-  const updateMutation = useMutation(
-    (status: boolean) => APIClient.filters.toggleEnable(filter.id, status),
-    {
-      onSuccess: () => {
-        toast.custom((t) => <Toast type="success" body={`${filter.name} was ${enabled ? "disabled" : "enabled"} successfully`} t={t} />);
+  const updateMutation = useMutation({
+    mutationFn: (status: boolean) => APIClient.filters.toggleEnable(filter.id, status),
+    onSuccess: () => {
+      toast.custom((t) => <Toast type="success" body={`${filter.name} was ${!filter.enabled ? "disabled" : "enabled"} successfully`} t={t} />);
 
-        // We need to invalidate both keys here.
-        // The filters key is used on the /filters page,
-        // while the ["filter", filter.id] key is used on the details page.
-        queryClient.invalidateQueries(["filters"]);
-        queryClient.invalidateQueries(["filters", filter?.id]);
-      }
+      // We need to invalidate both keys here.
+      // The filters key is used on the /filters page,
+      // while the ["filter", filter.id] key is used on the details page.
+      queryClient.invalidateQueries({ queryKey: filterKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: filterKeys.detail(filter.id) });
     }
-  );
+  });
 
   const toggleActive = (status: boolean) => {
-    setEnabled(status);
     updateMutation.mutate(status);
   };
 
@@ -652,10 +678,10 @@ function FilterListItem({ filter, values, idx }: FilterListItemProps) {
         className="px-4 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-100"
       >
         <Switch
-          checked={enabled}
+          checked={filter.enabled}
           onChange={toggleActive}
           className={classNames(
-            enabled ? "bg-blue-500 dark:bg-blue-500" : "bg-gray-200 dark:bg-gray-700",
+            filter.enabled ? "bg-blue-500 dark:bg-blue-500" : "bg-gray-200 dark:bg-gray-700",
             "relative inline-flex flex-shrink-0 h-6 w-11 border-2 border-transparent rounded-full cursor-pointer transition-colors ease-in-out duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
           )}
         >
@@ -663,7 +689,7 @@ function FilterListItem({ filter, values, idx }: FilterListItemProps) {
           <span
             aria-hidden="true"
             className={classNames(
-              enabled ? "translate-x-5" : "translate-x-0",
+              filter.enabled ? "translate-x-5" : "translate-x-0",
               "inline-block h-5 w-5 rounded-full bg-white dark:bg-gray-200 shadow transform ring-0 transition ease-in-out duration-200"
             )}
           />
@@ -711,7 +737,7 @@ function FilterListItem({ filter, values, idx }: FilterListItemProps) {
                       />
                     </span>
                     <span className="text-sm text-gray-800 dark:text-gray-500">
-                      <Tooltip style={{ width: "350px", fontSize: "12px", textTransform: "none", fontWeight: "normal", borderRadius: "0.375rem", backgroundColor: "#34343A", color: "#fff", opacity: "1", whiteSpace: "pre-wrap", overflow: "hidden", textOverflow: "ellipsis" }} delayShow={100} delayHide={150} data-html={true} place="right" anchorId={`tooltip-actions-${filter.id}`} html="<p>You need to setup an action in the filter otherwise you will not get any snatches.</p>" />
+                      <Tooltip style={{ width: "350px", fontSize: "12px", textTransform: "none", fontWeight: "normal", borderRadius: "0.375rem", backgroundColor: "#34343A", color: "#fff", opacity: "1", whiteSpace: "pre-wrap", overflow: "hidden", textOverflow: "ellipsis" }} delayShow={100} delayHide={150} data-html={true} place="right" data-tooltip-id={`tooltip-actions-${filter.id}`} html="<p>You need to setup an action in the filter otherwise you will not get any snatches.</p>" />
                     </span>
                   </>
                 )}
@@ -829,14 +855,12 @@ const ListboxFilter = ({
 
 // a unique option from a list
 const IndexerSelectFilter = ({ dispatch }: any) => {
-  const { data, isSuccess } = useQuery(
-    "indexers_options",
-    () => APIClient.indexers.getOptions(),
-    {
-      keepPreviousData: true,
-      staleTime: Infinity
-    }
-  );
+  const { data, isSuccess } = useQuery({
+    queryKey: ["filters","indexers_options"],
+    queryFn: () => APIClient.indexers.getOptions(),
+    keepPreviousData: true,
+    staleTime: Infinity
+  });
 
   const setFilter = (value: string) => {
     if (value == undefined || value == "") {

@@ -1,3 +1,6 @@
+// Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+// SPDX-License-Identifier: GPL-2.0-or-later
+
 package http
 
 import (
@@ -6,6 +9,7 @@ import (
 	"net/http"
 
 	"github.com/autobrr/autobrr/internal/domain"
+	"github.com/autobrr/autobrr/pkg/errors"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/gorilla/sessions"
@@ -15,7 +19,7 @@ import (
 type authService interface {
 	GetUserCount(ctx context.Context) (int, error)
 	Login(ctx context.Context, username, password string) (*domain.User, error)
-	CreateUser(ctx context.Context, username, password string) error
+	CreateUser(ctx context.Context, req domain.CreateUserRequest) error
 }
 
 type authHandler struct {
@@ -52,8 +56,7 @@ func (h authHandler) login(w http.ResponseWriter, r *http.Request) {
 	)
 
 	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
-		// encode error
-		h.encoder.StatusResponse(ctx, w, nil, http.StatusBadRequest)
+		h.encoder.StatusError(w, http.StatusBadRequest, errors.Wrap(err, "could not decode json"))
 		return
 	}
 
@@ -71,59 +74,82 @@ func (h authHandler) login(w http.ResponseWriter, r *http.Request) {
 		h.cookieStore.Options.SameSite = http.SameSiteStrictMode
 	}
 
-	session, _ := h.cookieStore.Get(r, "user_session")
-
-	_, err := h.service.Login(ctx, data.Username, data.Password)
+	session, err := h.cookieStore.Get(r, "user_session")
 	if err != nil {
+		h.encoder.StatusError(w, http.StatusInternalServerError, errors.New("could not get session"))
+		return
+	}
+
+	if _, err = h.service.Login(ctx, data.Username, data.Password); err != nil {
 		h.log.Error().Err(err).Msgf("Auth: Failed login attempt username: [%s] ip: %s", data.Username, ReadUserIP(r))
-		h.encoder.StatusResponse(ctx, w, nil, http.StatusUnauthorized)
+		h.encoder.StatusError(w, http.StatusUnauthorized, errors.New("could not login: bad credentials"))
 		return
 	}
 
 	// Set user as authenticated
 	session.Values["authenticated"] = true
-	session.Save(r, w)
+	if err := session.Save(r, w); err != nil {
+		h.encoder.StatusError(w, http.StatusInternalServerError, errors.Wrap(err, "could not save session"))
+		return
+	}
 
-	h.encoder.StatusResponse(ctx, w, nil, http.StatusNoContent)
+	h.encoder.StatusResponse(w, http.StatusNoContent, nil)
 }
 
 func (h authHandler) logout(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
+	session, err := h.cookieStore.Get(r, "user_session")
+	if err != nil {
+		h.log.Error().Err(err).Msg("could not get session")
+		h.encoder.StatusError(w, http.StatusInternalServerError, errors.New("could not get session"))
+		return
+	}
 
-	session, _ := h.cookieStore.Get(r, "user_session")
+	if session.IsNew {
+		h.encoder.StatusResponse(w, http.StatusNoContent, nil)
+		return
+	}
 
 	// Revoke users authentication
 	session.Values["authenticated"] = false
-	session.Save(r, w)
+	session.Options.MaxAge = -1
+	if err := session.Save(r, w); err != nil {
+		h.encoder.StatusError(w, http.StatusInternalServerError, errors.Wrap(err, "could not save session"))
+		return
+	}
 
-	h.encoder.StatusResponse(ctx, w, nil, http.StatusNoContent)
+	h.encoder.StatusResponse(w, http.StatusNoContent, nil)
 }
 
 func (h authHandler) onboard(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
+
 	session, _ := h.cookieStore.Get(r, "user_session")
 
 	// Don't proceed if user is authenticated
-	if _, ok := session.Values["authenticated"].(bool); ok {
-		http.Error(w, "Forbidden", http.StatusForbidden)
+	if authenticated, ok := session.Values["authenticated"].(bool); ok {
+		if ok && authenticated {
+			session.Values["authenticated"] = false
+			session.Options.MaxAge = -1
+			session.Save(r, w)
+
+			h.encoder.StatusError(w, http.StatusForbidden, errors.New("active session found"))
+			return
+		}
+	}
+
+	var req domain.CreateUserRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		h.encoder.StatusError(w, http.StatusBadRequest, errors.Wrap(err, "could not decode json"))
 		return
 	}
 
-	var data domain.User
-	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
-		// encode error
-		h.encoder.StatusResponse(ctx, w, nil, http.StatusBadRequest)
+	if err := h.service.CreateUser(ctx, req); err != nil {
+		h.encoder.StatusError(w, http.StatusForbidden, err)
 		return
 	}
 
-	err := h.service.CreateUser(ctx, data.Username, data.Password)
-	if err != nil {
-		http.Error(w, "Forbidden", http.StatusForbidden)
-		return
-	}
-
-	// send empty response as ok
-	h.encoder.StatusResponse(ctx, w, nil, http.StatusNoContent)
+	// send response as ok
+	h.encoder.StatusResponseMessage(w, http.StatusOK, "user successfully created")
 }
 
 func (h authHandler) canOnboard(w http.ResponseWriter, r *http.Request) {
@@ -131,33 +157,38 @@ func (h authHandler) canOnboard(w http.ResponseWriter, r *http.Request) {
 
 	userCount, err := h.service.GetUserCount(ctx)
 	if err != nil {
-		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		h.encoder.StatusError(w, http.StatusInternalServerError, errors.New("could not get user count"))
 		return
 	}
 
 	if userCount > 0 {
-		// send 503 service onboarding unavailable
-		http.Error(w, "Onboarding unavailable", http.StatusForbidden)
+		h.encoder.StatusError(w, http.StatusForbidden, errors.New("onboarding unavailable"))
 		return
 	}
 
 	// send empty response as ok
 	// (client can proceed with redirection to onboarding page)
-	h.encoder.StatusResponse(ctx, w, nil, http.StatusNoContent)
+	h.encoder.NoContent(w)
 }
 
 func (h authHandler) validate(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-	session, _ := h.cookieStore.Get(r, "user_session")
+	session, err := h.cookieStore.Get(r, "user_session")
+	if err != nil {
+		h.encoder.StatusError(w, http.StatusInternalServerError, errors.New("could not get session"))
+		return
+	}
 
 	// Check if user is authenticated
 	if auth, ok := session.Values["authenticated"].(bool); !ok || !auth {
-		http.Error(w, "Forbidden", http.StatusUnauthorized)
+		session.Values["authenticated"] = false
+		session.Options.MaxAge = -1
+		session.Save(r, w)
+		h.encoder.StatusError(w, http.StatusUnauthorized, errors.New("forbidden: invalid session"))
 		return
 	}
 
 	// send empty response as ok
-	h.encoder.StatusResponse(ctx, w, nil, http.StatusNoContent)
+	h.encoder.NoContent(w)
 }
 
 func ReadUserIP(r *http.Request) string {

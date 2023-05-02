@@ -1,3 +1,6 @@
+// Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+// SPDX-License-Identifier: GPL-2.0-or-later
+
 package http
 
 import (
@@ -44,7 +47,7 @@ func (h actionHandler) getActions(w http.ResponseWriter, r *http.Request) {
 		// encode error
 	}
 
-	h.encoder.StatusResponse(r.Context(), w, actions, http.StatusOK)
+	h.encoder.StatusResponse(w, http.StatusOK, actions)
 }
 
 func (h actionHandler) storeAction(w http.ResponseWriter, r *http.Request) {
@@ -63,7 +66,7 @@ func (h actionHandler) storeAction(w http.ResponseWriter, r *http.Request) {
 		// encode error
 	}
 
-	h.encoder.StatusResponse(ctx, w, action, http.StatusCreated)
+	h.encoder.StatusResponse(w, http.StatusCreated, action)
 }
 
 func (h actionHandler) updateAction(w http.ResponseWriter, r *http.Request) {
@@ -82,37 +85,33 @@ func (h actionHandler) updateAction(w http.ResponseWriter, r *http.Request) {
 		// encode error
 	}
 
-	h.encoder.StatusResponse(ctx, w, action, http.StatusCreated)
+	h.encoder.StatusResponse(w, http.StatusCreated, action)
 }
 
 func (h actionHandler) deleteAction(w http.ResponseWriter, r *http.Request) {
-	var ctx = r.Context()
-
 	actionID, err := parseInt(chi.URLParam(r, "id"))
 	if err != nil {
-		h.encoder.StatusResponse(ctx, w, errors.New("bad param id"), http.StatusBadRequest)
+		h.encoder.StatusResponse(w, http.StatusBadRequest, errors.New("bad param id"))
 	}
 
 	if err := h.service.Delete(actionID); err != nil {
 		// encode error
 	}
 
-	h.encoder.StatusResponse(ctx, w, nil, http.StatusNoContent)
+	h.encoder.StatusResponse(w, http.StatusNoContent, nil)
 }
 
 func (h actionHandler) toggleActionEnabled(w http.ResponseWriter, r *http.Request) {
-	var ctx = r.Context()
-
 	actionID, err := parseInt(chi.URLParam(r, "id"))
 	if err != nil {
-		h.encoder.StatusResponse(ctx, w, errors.New("bad param id"), http.StatusBadRequest)
+		h.encoder.StatusResponse(w, http.StatusBadRequest, errors.New("bad param id"))
 	}
 
 	if err := h.service.ToggleEnabled(actionID); err != nil {
 		// encode error
 	}
 
-	h.encoder.StatusResponse(ctx, w, nil, http.StatusCreated)
+	h.encoder.StatusResponse(w, http.StatusCreated, nil)
 }
 
 func parseInt(s string) (int, error) {

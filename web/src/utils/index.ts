@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ */
+
 import { formatDistanceToNowStrict, formatISO9075 } from "date-fns";
 
 // sleep for x ms
@@ -9,17 +14,12 @@ export function sleep(ms: number) {
 export function baseUrl() {
   let baseUrl = "";
   if (window.APP.baseUrl) {
-    if (window.APP.baseUrl === "/") {
+    if (window.APP.baseUrl === "{{.BaseUrl}}") {
       baseUrl = "/";
-    } else if (window.APP.baseUrl === "{{.BaseUrl}}") {
-      baseUrl = "/";
-    } else if (window.APP.baseUrl === "/autobrr/") {
-      baseUrl = "/autobrr/";
     } else {
       baseUrl = window.APP.baseUrl;
     }
   }
-
   return baseUrl;
 }
 

@@ -1,8 +1,15 @@
-import React, { useRef } from "react";
-import { useMutation, useQuery } from "react-query";
+/*
+ * Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ */
+
+import React, { useEffect, useRef } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { NavLink, Route, Routes, useLocation, useNavigate, useParams } from "react-router-dom";
 import { toast } from "react-hot-toast";
 import { Form, Formik, FormikValues, useFormikContext } from "formik";
+import { z } from "zod";
+import { toFormikValidationSchema } from "zod-formik-adapter";
 import { ChevronDownIcon, ChevronRightIcon } from "@heroicons/react/24/solid";
 
 import {
@@ -18,12 +25,12 @@ import {
   RELEASE_TYPE_MUSIC_OPTIONS,
   RESOLUTION_OPTIONS,
   SOURCES_MUSIC_OPTIONS,
-  SOURCES_OPTIONS
-} from "../../domain/constants";
-import { queryClient } from "../../App";
-import { APIClient } from "../../api/APIClient";
-import { useToggle } from "../../hooks/hooks";
-import { classNames } from "../../utils";
+  SOURCES_OPTIONS,
+  tagsMatchLogicOptions
+} from "@app/domain/constants";
+import { APIClient } from "@api/APIClient";
+import { useToggle } from "@hooks/hooks";
+import { classNames } from "@utils";
 
 import {
   CheckboxField,
@@ -32,14 +39,16 @@ import {
   NumberField,
   Select,
   SwitchGroup,
-  TextField
-} from "../../components/inputs";
-import DEBUG from "../../components/debug";
-import Toast from "../../components/notifications/Toast";
-import { DeleteModal } from "../../components/modals";
-import { TitleSubtitle } from "../../components/headings";
-import { TextArea } from "../../components/inputs/input";
+  TextField,
+  RegexField
+} from "@components/inputs";
+import DEBUG from "@components/debug";
+import Toast from "@components/notifications/Toast";
+import { DeleteModal } from "@components/modals";
+import { TitleSubtitle } from "@components/headings";
+import { TextArea } from "@components/inputs/input";
 import { FilterActions } from "./action";
+import { filterKeys } from "./list";
 
 interface tabType {
   name: string;
@@ -138,41 +147,119 @@ const FormButtonsGroup = ({ values, deleteAction, reset }: FormButtonsGroupProps
   );
 };
 
+const FormErrorNotification = () => {
+  const { isValid, isValidating, isSubmitting, errors } = useFormikContext();
+
+  useEffect(() => {
+    if (!isValid && !isValidating && isSubmitting) {
+      console.log("validation errors: ", errors);
+      toast.custom((t) => <Toast type="error" body={`Validation error. Check fields: ${Object.keys(errors)}`} t={t}/>);
+    }
+  }, [isSubmitting, isValid, isValidating]);
+
+  return null;
+};
+
+const allowedClientType = ["QBITTORRENT", "DELUGE_V1", "DELUGE_V2", "RTORRENT", "TRANSMISSION","PORLA", "RADARR", "SONARR", "LIDARR", "WHISPARR", "READARR", "SABNZBD"];
+
+const actionSchema = z.object({
+  enabled: z.boolean(),
+  name: z.string(),
+  type: z.enum(["QBITTORRENT", "DELUGE_V1", "DELUGE_V2", "RTORRENT", "TRANSMISSION","PORLA", "RADARR", "SONARR", "LIDARR", "WHISPARR", "READARR", "SABNZBD", "TEST", "EXEC", "WATCH_FOLDER", "WEBHOOK"]),
+  client_id: z.number().optional(),
+  exec_cmd: z.string().optional(),
+  exec_args: z.string().optional(),
+  watch_folder: z.string().optional(),
+  category: z.string().optional(),
+  tags: z.string().optional(),
+  label: z.string().optional(),
+  save_path: z.string().optional(),
+  paused: z.boolean().optional(),
+  ignore_rules: z.boolean().optional(),
+  limit_upload_speed: z.number().optional(),
+  limit_download_speed: z.number().optional(),
+  limit_ratio: z.number().optional(),
+  limit_seed_time: z.number().optional(),
+  reannounce_skip: z.boolean().optional(),
+  reannounce_delete: z.boolean().optional(),
+  reannounce_interval: z.number().optional(),
+  reannounce_max_attempts: z.number().optional(),
+  webhook_host: z.string().optional(),
+  webhook_type: z.string().optional(),
+  webhook_method: z.string().optional(),
+  webhook_data: z.string().optional()
+}).superRefine((value, ctx) => {
+  if (allowedClientType.includes(value.type)) {
+    if (value.client_id === 0) {
+      ctx.addIssue({
+        message: "Must select client",
+        code: z.ZodIssueCode.custom,
+        path: ["client_id"]
+      });
+    }
+  }
+});
+
+const indexerSchema = z.object({
+  id: z.number(),
+  name: z.string().optional()
+});
+
+// Define the schema for the entire object
+const schema = z.object({
+  name: z.string(),
+  indexers: z.array(indexerSchema).min(1, { message: "Must select at least one indexer" }),
+  actions: z.array(actionSchema)
+});
+
 export default function FilterDetails() {
+  const queryClient = useQueryClient();
   const navigate = useNavigate();
   const { filterId } = useParams<{ filterId: string }>();
 
-  const { isLoading, data: filter } = useQuery(
-    ["filters", filterId],
-    () => APIClient.filters.getByID(parseInt(filterId ?? "0")),
-    {
-      retry: false,
-      refetchOnWindowFocus: false,
-      onError: () => navigate("./")
-    }
-  );
+  if (filterId === "0" || undefined) {
+    navigate("/filters");
+  }
 
-  const updateMutation = useMutation(
-    (filter: Filter) => APIClient.filters.update(filter),
-    {
-      onSuccess: (_, currentFilter) => {
-        toast.custom((t) => (
-          <Toast type="success" body={`${currentFilter.name} was updated successfully`} t={t} />
-        ));
-        queryClient.refetchQueries(["filters"]);
-        // queryClient.invalidateQueries(["filters", currentFilter.id]);
-      }
-    }
-  );
+  const id = parseInt(filterId!);
 
-  const deleteMutation = useMutation((id: number) => APIClient.filters.delete(id), {
+  const { isLoading, data: filter } = useQuery({
+    queryKey: filterKeys.detail(id),
+    queryFn: ({ queryKey }) => APIClient.filters.getByID(queryKey[2]),
+    refetchOnWindowFocus: false,
+    onError: () => {
+      navigate("/filters");
+    }
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: (filter: Filter) => APIClient.filters.update(filter),
+    onSuccess: (newFilter, variables) => {
+      queryClient.setQueryData(filterKeys.detail(variables.id), newFilter);
+
+      queryClient.setQueryData<Filter[]>(filterKeys.lists(), (previous) => {
+        if (previous) {
+          return previous.map((filter: Filter) => (filter.id === variables.id ? newFilter : filter));
+        }
+      });
+
+      toast.custom((t) => (
+        <Toast type="success" body={`${newFilter.name} was updated successfully`} t={t}/>
+      ));
+    }
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: number) => APIClient.filters.delete(id),
     onSuccess: () => {
+      // Invalidate filters just in case, most likely not necessary but can't hurt.
+      queryClient.invalidateQueries({ queryKey: filterKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: filterKeys.detail(id) });
+
       toast.custom((t) => (
         <Toast type="success" body={`${filter?.name} was deleted`} t={t} />
       ));
 
-      // Invalidate filters just in case, most likely not necessary but can't hurt.
-      queryClient.invalidateQueries(["filters"]);
 
       // redirect
       navigate("/filters");
@@ -194,6 +281,9 @@ export default function FilterDetails() {
       if (a.type === "WEBHOOK") {
         a.webhook_method = "POST";
         a.webhook_type = "JSON";
+      } else {
+        a.webhook_method = "";
+        a.webhook_type = "";
       }
     });
 
@@ -232,7 +322,7 @@ export default function FilterDetails() {
               initialValues={{
                 id: filter.id,
                 name: filter.name,
-                enabled: filter.enabled || false,
+                enabled: filter.enabled,
                 min_size: filter.min_size,
                 max_size: filter.max_size,
                 delay: filter.delay,
@@ -264,6 +354,8 @@ export default function FilterDetails() {
                 except_categories: filter.except_categories,
                 tags: filter.tags,
                 except_tags: filter.except_tags,
+                tags_match_logic: filter.tags_match_logic,
+                except_tags_match_logic: filter.except_tags_match_logic,
                 match_uploaders: filter.match_uploaders,
                 except_uploaders: filter.except_uploaders,
                 match_language: filter.match_language || [],
@@ -294,9 +386,12 @@ export default function FilterDetails() {
                 external_webhook_expect_status: filter.external_webhook_expect_status || 0
               } as Filter}
               onSubmit={handleSubmit}
+              enableReinitialize={true}
+              validationSchema={toFormikValidationSchema(schema)}
             >
               {({ values, dirty, resetForm }) => (
                 <Form>
+                  <FormErrorNotification />
                   <Routes>
                     <Route index element={<General />} />
                     <Route path="movies-tv" element={<MoviesTv />} />
@@ -318,11 +413,11 @@ export default function FilterDetails() {
 }
 
 export function General(){
-  const { isLoading, data: indexers } = useQuery(
-    ["filters", "indexer_list"],
-    () => APIClient.indexers.getOptions(),
-    { refetchOnWindowFocus: false }
-  );
+  const { isLoading, data: indexers } = useQuery({
+    queryKey: ["filters", "indexer_list"],
+    queryFn: APIClient.indexers.getOptions,
+    refetchOnWindowFocus: false
+  });
 
   const opts = indexers && indexers.length > 0 ? indexers.map(v => ({
     label: v.name,
@@ -472,8 +567,9 @@ export function Advanced({ values }: AdvancedProps) {
         <div className="grid col-span-12 gap-6">
           <WarningAlert text="autobrr has extensive filtering built-in - only use this if nothing else works. If you need help please ask." />
 
-          <TextField name="match_releases" label="Match releases" columns={6} placeholder="eg. *some?movie*,*some?show*s01*" tooltip={<div><p>This field has full regex support (Golang flavour).</p><a href='https://autobrr.com/filters#advanced' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters#advanced</a><br/><br/><p>Remember to tick <b>Use Regex</b> below if using more than <code>*</code> and <code>?</code>.</p></div>} />
-          <TextField name="except_releases" label="Except releases" columns={6} placeholder="eg. *bad?movie*,*bad?show*s03*" tooltip={<div><p>This field has full regex support (Golang flavour).</p><a href='https://autobrr.com/filters#advanced' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters#advanced</a><br/><br/><p>Remember to tick <b>Use Regex</b> below if using more than <code>*</code> and <code>?</code>.</p></div>} />
+          <RegexField name="match_releases" label="Match releases"  useRegex={values.use_regex} columns={6} placeholder="eg. *some?movie*,*some?show*s01*" tooltip={<div><p>This field has full regex support (Golang flavour).</p><a href='https://autobrr.com/filters#advanced' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters#advanced</a><br/><br/><p>Remember to tick <b>Use Regex</b> below if using more than <code>*</code> and <code>?</code>.</p></div>} />
+          <RegexField name="except_releases" label="Except releases" useRegex={values.use_regex} columns={6} placeholder="eg. *bad?movie*,*bad?show*s03*" tooltip={<div><p>This field has full regex support (Golang flavour).</p><a href='https://autobrr.com/filters#advanced' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters#advanced</a><br/><br/><p>Remember to tick <b>Use Regex</b> below if using more than <code>*</code> and <code>?</code>.</p></div>} />
+
           {values.match_releases ? (
             <WarningAlert
               alert="Ask yourself:"
@@ -498,7 +594,6 @@ export function Advanced({ values }: AdvancedProps) {
         </div>
       </CollapsableSection>
 
-
       <CollapsableSection defaultOpen={true} title="Groups" subtitle="Match only certain groups and/or ignore other groups.">
         <TextField name="match_release_groups" label="Match release groups" columns={6} placeholder="eg. group1,group2" tooltip={<div><p>Comma separated list of release groups to match.</p><a href='https://autobrr.com/filters#advanced' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters#advanced</a></div>} />
         <TextField name="except_release_groups" label="Except release groups" columns={6} placeholder="eg. badgroup1,badgroup2" tooltip={<div><p>Comma separated list of release groups to ignore (takes priority over Match releases).</p><a href='https://autobrr.com/filters#advanced' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters#advanced</a></div>} />
@@ -508,8 +603,10 @@ export function Advanced({ values }: AdvancedProps) {
         <TextField name="match_categories" label="Match categories" columns={6} placeholder="eg. *category*,category1" tooltip={<div><p>Comma separated list of categories to match.</p><a href='https://autobrr.com/filters/categories' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters/categories</a></div>} />
         <TextField name="except_categories" label="Except categories" columns={6} placeholder="eg. *category*" tooltip={<div><p>Comma separated list of categories to ignore (takes priority over Match releases).</p><a href='https://autobrr.com/filters/categories' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters/categories</a></div>} />
 
-        <TextField name="tags" label="Match tags" columns={6} placeholder="eg. tag1,tag2" tooltip={<div><p>Comma separated list of tags to match.</p><a href='https://autobrr.com/filters#advanced' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters#advanced</a></div>} />
-        <TextField name="except_tags" label="Except tags" columns={6} placeholder="eg. tag1,tag2" tooltip={<div><p>Comma separated list of tags to ignore (takes priority over Match releases).</p><a href='https://autobrr.com/filters#advanced' className='text-blue-400 visited:text-blue-400' target='_blank'>hhttps://autobrr.com/filters#advanced</a></div>} />
+        <TextField name="tags" label="Match tags" columns={4} placeholder="eg. tag1,tag2" tooltip={<div><p>Comma separated list of tags to match.</p><a href='https://autobrr.com/filters#advanced' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters#advanced</a></div>} />
+        <Select name="tags_match_logic" label="Tags logic" columns={2} options={tagsMatchLogicOptions}  optionDefaultText="any"  tooltip={<div><p>Logic used to match filter tags.</p><a href='https://autobrr.com/filters#advanced' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters#advanced</a></div>} />
+        <TextField name="except_tags" label="Except tags" columns={4} placeholder="eg. tag1,tag2" tooltip={<div><p>Comma separated list of tags to ignore (takes priority over Match releases).</p><a href='https://autobrr.com/filters#advanced' className='text-blue-400 visited:text-blue-400' target='_blank'>hhttps://autobrr.com/filters#advanced</a></div>} />
+        <Select name="except_tags_match_logic" label="Except tags logic" columns={2} options={tagsMatchLogicOptions}  optionDefaultText="any"  tooltip={<div><p>Logic used to match except tags.</p><a href='https://autobrr.com/filters#advanced' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters#advanced</a></div>} />
       </CollapsableSection>
 
       <CollapsableSection defaultOpen={true} title="Uploaders" subtitle="Match or ignore uploaders.">
@@ -531,8 +628,9 @@ export function Advanced({ values }: AdvancedProps) {
         <div className="grid col-span-12 gap-6">
           <WarningAlert text="These might not be what you think they are. For advanced users who know how things are parsed." />
 
-          <TextField name="match_release_tags" label="Match release tags" columns={6} placeholder="eg. *mkv*,*foreign*" />
-          <TextField name="except_release_tags" label="Except release tags" columns={6} placeholder="eg. *mkv*,*foreign*" />
+          <RegexField name="match_release_tags" label="Match release tags" useRegex={values.use_regex_release_tags} columns={6} placeholder="eg. *mkv*,*foreign*" />
+          <RegexField name="except_release_tags" label="Except release tags" useRegex={values.use_regex_release_tags} columns={6} placeholder="eg. *mkv*,*foreign*" />
+
           <div className="col-span-6">
             <SwitchGroup name="use_regex_release_tags" label="Use Regex" />
           </div>
@@ -541,10 +639,10 @@ export function Advanced({ values }: AdvancedProps) {
 
       <CollapsableSection defaultOpen={true} title="Freeleech" subtitle="Match only freeleech and freeleech percent.">
         <div className="col-span-6">
-          <SwitchGroup name="freeleech" label="Freeleech" description="Enabling freeleech locks freeleech percent to 100. Use either." tooltip={<div><p>Not all indexers announce freeleech on IRC. Check with your indexer before enabling freeleech filtering.</p></div>} />
+          <SwitchGroup name="freeleech" label="Freeleech" tooltip={<div><p>Freeleech may be announced as a binary true/false value or as a percentage, depending on the indexer. Use either or both, depending on the indexers you use.</p><br /><p>See who uses what in the documentation: <a href='https://autobrr.com/filters/freeleech' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters/freeleech</a></p></div>} />
         </div>
 
-        <TextField name="freeleech_percent" label="Freeleech percent" columns={6} placeholder="eg. 50,75-100" />
+        <TextField name="freeleech_percent" label="Freeleech percent" tooltip={<div><p>Freeleech may be announced as a binary true/false value or as a percentage, depending on the indexer. Use either or both, depending on the indexers you use.</p><br /><p>See who uses what in the documentation: <a href='https://autobrr.com/filters/freeleech' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters/freeleech</a></p></div>} columns={6} placeholder="eg. 50,75-100" />
       </CollapsableSection>
     </div>
   );

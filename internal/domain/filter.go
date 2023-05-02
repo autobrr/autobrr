@@ -1,3 +1,6 @@
+// Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+// SPDX-License-Identifier: GPL-2.0-or-later
+
 package domain
 
 import (
@@ -19,7 +22,7 @@ https://autodl-community.github.io/autodl-irssi/configuration/filter/
 
 type FilterRepo interface {
 	FindByID(ctx context.Context, filterID int) (*Filter, error)
-	FindByIndexerIdentifier(indexer string) ([]Filter, error)
+	FindByIndexerIdentifier(ctx context.Context, indexer string) ([]Filter, error)
 	Find(ctx context.Context, params FilterQueryParams) ([]Filter, error)
 	ListFilters(ctx context.Context) ([]Filter, error)
 	Store(ctx context.Context, filter Filter) (*Filter, error)
@@ -30,6 +33,7 @@ type FilterRepo interface {
 	StoreIndexerConnection(ctx context.Context, filterID int, indexerID int) error
 	StoreIndexerConnections(ctx context.Context, filterID int, indexers []Indexer) error
 	DeleteIndexerConnections(ctx context.Context, filterID int) error
+	GetDownloadsByFilterId(ctx context.Context, filterID int) (*FilterDownloads, error)
 }
 
 type FilterDownloads struct {
@@ -115,6 +119,8 @@ type Filter struct {
 	ExceptTags                  string                 `json:"except_tags,omitempty"`
 	TagsAny                     string                 `json:"tags_any,omitempty"`
 	ExceptTagsAny               string                 `json:"except_tags_any,omitempty"`
+	TagsMatchLogic              string                 `json:"tags_match_logic,omitempty"`
+	ExceptTagsMatchLogic        string                 `json:"except_tags_match_logic,omitempty"`
 	MatchReleaseTags            string                 `json:"match_release_tags,omitempty"`
 	ExceptReleaseTags           string                 `json:"except_release_tags,omitempty"`
 	UseRegexReleaseTags         bool                   `json:"use_regex_release_tags,omitempty"`
@@ -190,6 +196,8 @@ type FilterUpdate struct {
 	ExceptTags                  *string                 `json:"except_tags,omitempty"`
 	TagsAny                     *string                 `json:"tags_any,omitempty"`
 	ExceptTagsAny               *string                 `json:"except_tags_any,omitempty"`
+	TagsMatchLogic              *string                 `json:"tags_match_logic,omitempty"`
+	ExceptTagsMatchLogic        *string                 `json:"except_tags_match_logic,omitempty"`
 	ExternalScriptEnabled       *bool                   `json:"external_script_enabled,omitempty"`
 	ExternalScriptCmd           *string                 `json:"external_script_cmd,omitempty"`
 	ExternalScriptArgs          *string                 `json:"external_script_args,omitempty"`
@@ -379,12 +387,20 @@ func (f Filter) CheckFilter(r *Release) ([]string, bool) {
 		r.addRejectionF("size not matching. got: %v want min: %v max: %v", r.Size, f.MinSize, f.MaxSize)
 	}
 
-	if f.Tags != "" && !containsAny(r.Tags, f.Tags) {
-		r.addRejectionF("tags not matching. got: %v want: %v", r.Tags, f.Tags)
+	if f.Tags != "" {
+		if f.TagsMatchLogic == "ANY" && !containsAny(r.Tags, f.Tags) {
+			r.addRejectionF("tags not matching. got: %v want: %v", r.Tags, f.Tags)
+		} else if f.TagsMatchLogic == "ALL" && !containsAll(r.Tags, f.Tags) {
+			r.addRejectionF("tags not matching. got: %v want(all): %v", r.Tags, f.Tags)
+		}
 	}
 
-	if f.ExceptTags != "" && containsAny(r.Tags, f.ExceptTags) {
-		r.addRejectionF("tags unwanted. got: %v want: %v", r.Tags, f.ExceptTags)
+	if f.ExceptTags != "" {
+		if f.ExceptTagsMatchLogic == "ANY" && containsAny(r.Tags, f.ExceptTags) {
+			r.addRejectionF("tags unwanted. got: %v want: %v", r.Tags, f.ExceptTags)
+		} else if f.ExceptTagsMatchLogic == "ALL" && containsAll(r.Tags, f.ExceptTags) {
+			r.addRejectionF("tags unwanted. got: %v want(all): %v", r.Tags, f.ExceptTags)
+		}
 	}
 
 	if len(f.Artists) > 0 && !contains(r.Artists, f.Artists) {
@@ -620,6 +636,10 @@ func containsAny(tags []string, filter string) bool {
 	return containsMatch(tags, strings.Split(filter, ","))
 }
 
+func containsAll(tags []string, filter string) bool {
+	return containsAllMatch(tags, strings.Split(filter, ","))
+}
+
 func containsAnyOther(filter string, tags ...string) bool {
 	return containsMatch(tags, strings.Split(filter, ","))
 }
@@ -684,6 +704,39 @@ func containsMatch(tags []string, filters []string) bool {
 	}
 
 	return false
+}
+
+func containsAllMatch(tags []string, filters []string) bool {
+	for _, filter := range filters {
+		if filter == "" {
+			continue
+		}
+		filter = strings.ToLower(filter)
+		filter = strings.Trim(filter, " ")
+		found := false
+
+		for _, tag := range tags {
+			if tag == "" {
+				continue
+			}
+			tag = strings.ToLower(tag)
+
+			if tag == filter {
+				found = true
+				break
+			} else if strings.ContainsAny(filter, "?|*") {
+				if wildcard.Match(filter, tag) {
+					found = true
+					break
+				}
+			}
+		}
+		if !found {
+			return false
+		}
+	}
+
+	return true
 }
 
 func containsMatchBasic(tags []string, filters []string) bool {
