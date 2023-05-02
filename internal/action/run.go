@@ -97,21 +97,23 @@ func (s *service) RunAction(ctx context.Context, action *domain.Action, release 
 	}
 
 	payload := &domain.NotificationPayload{
-		Event:       domain.NotificationEventPushApproved,
-		ReleaseName: release.TorrentName,
-		Filter:      release.Filter.Name,
-		Indexer:     release.Indexer,
-		InfoHash:    release.TorrentHash,
-
+		Event:          domain.NotificationEventPushApproved,
+		ReleaseName:    release.TorrentName,
+		Filter:         release.Filter.Name,
+		Indexer:        release.Indexer,
+		InfoHash:       release.TorrentHash,
 		Size:           release.Size,
 		Status:         domain.ReleasePushStatusApproved,
 		Action:         action.Name,
 		ActionType:     action.Type,
-		ActionClient:   action.Client.Name,
 		Rejections:     []string{},
-		Protocol:       domain.ReleaseProtocolTorrent,
+		Protocol:       release.Protocol,
 		Implementation: release.Implementation,
 		Timestamp:      time.Now(),
+	}
+
+	if action.Client != nil {
+		payload.ActionClient = action.Client.Name
 	}
 
 	if err != nil {
