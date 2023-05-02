@@ -109,18 +109,23 @@ type ReleaseActionStatus struct {
 }
 
 func NewReleaseActionStatus(action *Action, release *Release) *ReleaseActionStatus {
-	return &ReleaseActionStatus{
+	s := &ReleaseActionStatus{
 		ID:         0,
 		Status:     ReleasePushStatusPending,
 		Action:     action.Name,
 		Type:       action.Type,
-		Client:     action.Client.Name,
 		Filter:     release.Filter.Name,
 		FilterID:   int64(release.Filter.ID),
 		Rejections: []string{},
 		Timestamp:  time.Now(),
 		ReleaseID:  release.ID,
 	}
+
+	if action.Client != nil {
+		s.Client = action.Client.Name
+	}
+
+	return s
 }
 
 type DownloadTorrentFileResponse struct {
