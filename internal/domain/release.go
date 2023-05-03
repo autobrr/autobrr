@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"html"
 	"io"
-	"mime"
 	"net/http"
 	"net/http/cookiejar"
 	"os"
@@ -422,13 +421,9 @@ func (r *Release) downloadTorrentFile(ctx context.Context) error {
 
 		// Check if the Content-Type header is correct
 		contentType := resp.Header.Get("Content-Type")
-		mediaType, _, err := mime.ParseMediaType(contentType) // used mime to handle charsets
-		if err != nil {
-			return errors.Wrap(err, "error parsing content type: %s", contentType)
-		}
 
-		if mediaType == "text/html" {
-			return retry.Unrecoverable(errors.New("unexpected content type %s: check indexer keys for %s", mediaType, r.Indexer))
+		if strings.Contains(contentType, "text/html") {
+			return retry.Unrecoverable(errors.New("unexpected content type '%s': check indexer keys for %s", contentType, r.Indexer))
 		}
 
 		resetTmpFile := func() {
