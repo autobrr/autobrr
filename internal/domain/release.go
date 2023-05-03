@@ -404,7 +404,7 @@ func (r *Release) downloadTorrentFile(ctx context.Context) error {
 			return retry.Unrecoverable(errors.New("redirect encountered for torrent (%v) file (%v) from '%v' - status code: %d. Check indexer keys.", r.TorrentName, r.TorrentURL, r.Indexer, resp.StatusCode))
 
 		case http.StatusUnauthorized, http.StatusForbidden:
-			return retry.Unrecoverable(errors.New("unrecoverable error downloading torrent (%v) file (%v) from '%v' - status code: %d. Check your authentication credentials", r.TorrentName, r.TorrentURL, r.Indexer, resp.StatusCode))
+			return retry.Unrecoverable(errors.New("unrecoverable error downloading torrent (%v) file (%v) from '%v' - status code: %d. Check indexer keys", r.TorrentName, r.TorrentURL, r.Indexer, resp.StatusCode))
 
 		case http.StatusMethodNotAllowed:
 			return retry.Unrecoverable(errors.New("unrecoverable error downloading torrent (%v) file (%v) from '%v' - status code: %d. Check if the request method is correct", r.TorrentName, r.TorrentURL, r.Indexer, resp.StatusCode))
