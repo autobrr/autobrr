@@ -397,16 +397,27 @@ func (r *Release) downloadTorrentFile(ctx context.Context) error {
 		defer resp.Body.Close()
 
 		// Check server response
-		if resp.StatusCode != http.StatusOK {
-			unRecoverableErr := errors.Wrap(ErrUnrecoverableError, "unrecoverable error downloading torrent (%v) file (%v) from '%v' - status code: %d", r.TorrentName, r.TorrentURL, r.Indexer, resp.StatusCode)
+		switch resp.StatusCode {
+		case http.StatusOK:
+			// Continue processing the response
+		case http.StatusMovedPermanently, http.StatusFound, http.StatusSeeOther, http.StatusTemporaryRedirect, http.StatusPermanentRedirect:
+			// Handle redirect
+			return retry.Unrecoverable(errors.New("redirect encountered for torrent (%v) file (%v) from '%v' - status code: %d. Check indexer keys.", r.TorrentName, r.TorrentURL, r.Indexer, resp.StatusCode))
 
-			if resp.StatusCode == 401 || resp.StatusCode == 403 || resp.StatusCode == 405 {
-				return retry.Unrecoverable(unRecoverableErr)
-			} else if resp.StatusCode == 404 {
-				return errors.New("torrent %s not found on %s (%d) - retrying", r.TorrentName, r.Indexer, resp.StatusCode)
-			} else if resp.StatusCode < 499 && resp.StatusCode > 405 {
-				return retry.Unrecoverable(errors.New("unexpected status code %d: : check indexer keys for %s", resp.StatusCode, r.Indexer))
-			}
+		case http.StatusUnauthorized, http.StatusForbidden:
+			return retry.Unrecoverable(errors.New("unrecoverable error downloading torrent (%v) file (%v) from '%v' - status code: %d. Check your authentication credentials", r.TorrentName, r.TorrentURL, r.Indexer, resp.StatusCode))
+
+		case http.StatusMethodNotAllowed:
+			return retry.Unrecoverable(errors.New("unrecoverable error downloading torrent (%v) file (%v) from '%v' - status code: %d. Check if the request method is correct", r.TorrentName, r.TorrentURL, r.Indexer, resp.StatusCode))
+
+		case http.StatusNotFound:
+			return errors.New("torrent %s not found on %s (%d) - retrying", r.TorrentName, r.Indexer, resp.StatusCode)
+
+		case http.StatusInternalServerError, http.StatusBadGateway, http.StatusServiceUnavailable, http.StatusGatewayTimeout:
+			return errors.New("server error (%d) encountered while downloading torrent (%v) file (%v) from '%v' - retrying", resp.StatusCode, r.TorrentName, r.TorrentURL, r.Indexer)
+
+		default:
+			return retry.Unrecoverable(errors.New("unexpected status code %d: check indexer keys for %s", resp.StatusCode, r.Indexer))
 		}
 
 		// Check if the Content-Type header is correct
