@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ */
+
 import { Dispatch, FC, Fragment, MouseEventHandler, useReducer, useRef, useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { toast } from "react-hot-toast";
@@ -41,7 +46,7 @@ enum ActionType {
   INDEXER_FILTER_RESET = "INDEXER_FILTER_RESET",
   SORT_ORDER_CHANGE = "SORT_ORDER_CHANGE",
   SORT_ORDER_RESET = "SORT_ORDER_RESET",
-  STATUS_CHANGE = "STATUS_RESET",
+  STATUS_CHANGE = "STATUS_CHANGE",
   STATUS_RESET = "STATUS_RESET"
 }
 
@@ -66,7 +71,7 @@ const FilterListReducer = (state: FilterListState, action: Actions): FilterListS
   case ActionType.STATUS_CHANGE:
     return { ...state, status: action.payload };
   case ActionType.STATUS_RESET:
-    return { ...state };
+    return { ...state, status: "" };
   default:
     throw new Error(`Unhandled action type: ${action}`);
   }

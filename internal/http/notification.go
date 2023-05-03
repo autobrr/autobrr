@@ -1,3 +1,6 @@
+// Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+// SPDX-License-Identifier: GPL-2.0-or-later
+
 package http
 
 import (
@@ -114,13 +117,11 @@ func (h notificationHandler) test(w http.ResponseWriter, r *http.Request) {
 	)
 
 	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
-		// encode error
 		h.encoder.Error(w, err)
 		return
 	}
 
-	err := h.service.Test(ctx, data)
-	if err != nil {
+	if err := h.service.Test(ctx, data); err != nil {
 		h.encoder.Error(w, err)
 		return
 	}

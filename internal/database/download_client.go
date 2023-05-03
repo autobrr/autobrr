@@ -1,3 +1,6 @@
+// Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+// SPDX-License-Identifier: GPL-2.0-or-later
+
 package database
 
 import (
@@ -254,6 +257,31 @@ func (r *DownloadClientRepo) Update(ctx context.Context, client domain.DownloadC
 }
 
 func (r *DownloadClientRepo) Delete(ctx context.Context, clientID int) error {
+	tx, err := r.db.BeginTx(ctx, &sql.TxOptions{Isolation: sql.LevelWriteCommitted})
+	if err != nil {
+		return err
+	}
+
+	defer tx.Rollback()
+
+	if err := r.delete(ctx, tx, clientID); err != nil {
+		return errors.Wrap(err, "error deleting download client: %d", clientID)
+	}
+
+	if err := r.deleteClientFromAction(ctx, tx, clientID); err != nil {
+		return errors.Wrap(err, "error deleting download client: %d", clientID)
+	}
+
+	if err := tx.Commit(); err != nil {
+		return errors.Wrap(err, "error deleting download client: %d", clientID)
+	}
+
+	r.log.Info().Msgf("delete download client: %d", clientID)
+
+	return nil
+}
+
+func (r *DownloadClientRepo) delete(ctx context.Context, tx *Tx, clientID int) error {
 	queryBuilder := r.db.squirrel.
 		Delete("client").
 		Where(sq.Eq{"id": clientID})
@@ -263,7 +291,7 @@ func (r *DownloadClientRepo) Delete(ctx context.Context, clientID int) error {
 		return errors.Wrap(err, "error building query")
 	}
 
-	res, err := r.db.handler.ExecContext(ctx, query, args...)
+	res, err := tx.ExecContext(ctx, query, args...)
 	if err != nil {
 		return errors.Wrap(err, "error executing query")
 	}
@@ -276,7 +304,29 @@ func (r *DownloadClientRepo) Delete(ctx context.Context, clientID int) error {
 		return errors.New("no rows affected")
 	}
 
-	r.log.Info().Msgf("delete download client: %d", clientID)
+	r.log.Debug().Msgf("delete download client: %d", clientID)
+
+	return nil
+}
+
+func (r *DownloadClientRepo) deleteClientFromAction(ctx context.Context, tx *Tx, clientID int) error {
+	var err error
+
+	queryBuilder := r.db.squirrel.
+		Update("action").
+		Set("enabled", false).
+		Set("client_id", 0).
+		Where(sq.Eq{"client_id": clientID}).
+		Suffix("RETURNING filter_id").RunWith(tx)
+
+	// return values
+	var filterID int
+
+	if err = queryBuilder.QueryRowContext(ctx).Scan(&filterID); err != nil {
+		return errors.Wrap(err, "error executing query")
+	}
+
+	r.log.Debug().Msgf("deleting download client %d from action for filter %d", clientID, filterID)
 
 	return nil
 }

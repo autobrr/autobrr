@@ -32,7 +32,7 @@ jobs:
 
       - name: Build web
         run: |
-          cd web && yarn install
+          cd web && yarn install --frozen-lockfile
           CI= yarn build
 
       - name: Upload web production build
@@ -89,7 +89,7 @@ jobs:
         with:
           distribution: goreleaser
           version: latest
-          args: release --rm-dist --skip-publish
+          args: release --clean --skip-publish
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -97,7 +97,7 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: autobrr
-          path: dist/*
+          path: dist/*.tar.gz
 
   goreleaser:
     name: Build and publish binaries
@@ -128,7 +128,7 @@ jobs:
         with:
           distribution: goreleaser
           version: latest
-          args: release --rm-dist
+          args: release --clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -136,7 +136,7 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: autobrr
-          path: dist/*
+          path: dist/*.tar.gz
 
   docker:
     name: Build and publish Docker images
@@ -187,5 +187,6 @@ jobs:
             BUILDTIME=${{ fromJSON(steps.meta.outputs.json).labels['org.opencontainers.image.created'] }}
             VERSION=${{ fromJSON(steps.meta.outputs.json).labels['org.opencontainers.image.version'] }}
             REVISION=${{ github.event.pull_request.head.sha }}
+
       - name: Image digest
         run: echo ${{ steps.docker_build.outputs.digest }}

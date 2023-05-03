@@ -1,3 +1,6 @@
+// Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+// SPDX-License-Identifier: GPL-2.0-or-later
+
 package main
 
 import (
@@ -6,6 +9,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/autobrr/autobrr/test/mockindexer/irc"
 	"github.com/go-chi/chi/v5"
@@ -28,6 +32,11 @@ func main() {
 
 	r := chi.NewRouter()
 	r.Use(middleware.Logger)
+
+	r.Post("/webhook", func(w http.ResponseWriter, r *http.Request) {
+		time.Sleep(30 * time.Second)
+		w.WriteHeader(http.StatusOK)
+	})
 
 	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("<html><form method=\"POST\" action=\"/send\">Send an announce line to the channel<br><input style=\"width: 100%; margin-top: 5px; margin-bottom: 5px;\" name=\"line\" type=\"text\"><br><button type=\"submit\">Send to channel</button></form></html>"))

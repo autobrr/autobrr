@@ -1,3 +1,6 @@
+// Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+// SPDX-License-Identifier: GPL-2.0-or-later
+
 package http
 
 import (
@@ -108,6 +111,7 @@ func (h authHandler) logout(w http.ResponseWriter, r *http.Request) {
 
 	// Revoke users authentication
 	session.Values["authenticated"] = false
+	session.Options.MaxAge = -1
 	if err := session.Save(r, w); err != nil {
 		h.encoder.StatusError(w, http.StatusInternalServerError, errors.Wrap(err, "could not save session"))
 		return
@@ -119,16 +123,15 @@ func (h authHandler) logout(w http.ResponseWriter, r *http.Request) {
 func (h authHandler) onboard(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
-	session, err := h.cookieStore.Get(r, "user_session")
-	if err != nil {
-		h.log.Error().Err(err).Msg("could not get session")
-		h.encoder.StatusError(w, http.StatusInternalServerError, errors.New("could not get session"))
-		return
-	}
+	session, _ := h.cookieStore.Get(r, "user_session")
 
 	// Don't proceed if user is authenticated
 	if authenticated, ok := session.Values["authenticated"].(bool); ok {
 		if ok && authenticated {
+			session.Values["authenticated"] = false
+			session.Options.MaxAge = -1
+			session.Save(r, w)
+
 			h.encoder.StatusError(w, http.StatusForbidden, errors.New("active session found"))
 			return
 		}
@@ -177,6 +180,9 @@ func (h authHandler) validate(w http.ResponseWriter, r *http.Request) {
 
 	// Check if user is authenticated
 	if auth, ok := session.Values["authenticated"].(bool); !ok || !auth {
+		session.Values["authenticated"] = false
+		session.Options.MaxAge = -1
+		session.Save(r, w)
 		h.encoder.StatusError(w, http.StatusUnauthorized, errors.New("forbidden: invalid session"))
 		return
 	}

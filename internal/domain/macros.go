@@ -1,3 +1,6 @@
+// Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+// SPDX-License-Identifier: GPL-2.0-or-later
+
 package domain
 
 import (
@@ -22,8 +25,8 @@ type Macro struct {
 	GroupID             string
 	Indexer             string
 	Title               string
-	Category	    string
-	Categories	    []string
+	Category            string
+	Categories          []string
 	Resolution          string
 	Source              string
 	HDR                 string

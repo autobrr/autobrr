@@ -1,3 +1,6 @@
+// Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+// SPDX-License-Identifier: GPL-2.0-or-later
+
 package database
 
 import (
@@ -54,23 +57,22 @@ func (repo *ReleaseRepo) Store(ctx context.Context, r *domain.Release) (*domain.
 	return r, nil
 }
 
-func (repo *ReleaseRepo) StoreReleaseActionStatus(ctx context.Context, a *domain.ReleaseActionStatus) error {
-	if a.ID != 0 {
+func (repo *ReleaseRepo) StoreReleaseActionStatus(ctx context.Context, status *domain.ReleaseActionStatus) error {
+	if status.ID != 0 {
 		queryBuilder := repo.db.squirrel.
 			Update("release_action_status").
-			Set("status", a.Status).
-			Set("rejections", pq.Array(a.Rejections)).
-			Set("timestamp", a.Timestamp).
-			Where(sq.Eq{"id": a.ID}).
-			Where(sq.Eq{"release_id": a.ReleaseID})
+			Set("status", status.Status).
+			Set("rejections", pq.Array(status.Rejections)).
+			Set("timestamp", status.Timestamp.Format(time.RFC3339)).
+			Where(sq.Eq{"id": status.ID}).
+			Where(sq.Eq{"release_id": status.ReleaseID})
 
 		query, args, err := queryBuilder.ToSql()
 		if err != nil {
 			return errors.Wrap(err, "error building query")
 		}
 
-		_, err = repo.db.handler.ExecContext(ctx, query, args...)
-		if err != nil {
+		if _, err = repo.db.handler.ExecContext(ctx, query, args...); err != nil {
 			return errors.Wrap(err, "error executing query")
 		}
 
@@ -78,21 +80,20 @@ func (repo *ReleaseRepo) StoreReleaseActionStatus(ctx context.Context, a *domain
 		queryBuilder := repo.db.squirrel.
 			Insert("release_action_status").
 			Columns("status", "action", "type", "client", "filter", "filter_id", "rejections", "timestamp", "release_id").
-			Values(a.Status, a.Action, a.Type, a.Client, a.Filter, a.FilterID, pq.Array(a.Rejections), a.Timestamp, a.ReleaseID).
+			Values(status.Status, status.Action, status.Type, status.Client, status.Filter, status.FilterID, pq.Array(status.Rejections), status.Timestamp.Format(time.RFC3339), status.ReleaseID).
 			Suffix("RETURNING id").RunWith(repo.db.handler)
 
 		// return values
 		var retID int64
 
-		err := queryBuilder.QueryRowContext(ctx).Scan(&retID)
-		if err != nil {
+		if err := queryBuilder.QueryRowContext(ctx).Scan(&retID); err != nil {
 			return errors.Wrap(err, "error executing query")
 		}
 
-		a.ID = retID
+		status.ID = retID
 	}
 
-	repo.log.Trace().Msgf("release.store_release_action_status: %+v", a)
+	repo.log.Trace().Msgf("release.store_release_action_status: %+v", status)
 
 	return nil
 }
