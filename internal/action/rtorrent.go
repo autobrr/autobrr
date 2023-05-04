@@ -5,7 +5,10 @@ package action
 
 import (
 	"context"
+	"crypto/tls"
+	"net/http"
 	"os"
+	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/pkg/errors"
@@ -30,6 +33,25 @@ func (s *service) rtorrent(ctx context.Context, action *domain.Action, release d
 	}
 
 	var rejections []string
+
+	httpClient := http.Client{
+		Timeout: 60 * time.Second,
+		//Transport: &http.Transport{
+		//	TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+		//},
+		Transport: &authRoundTripper{
+			BasicUser: client.Settings.Basic.Username,
+			BasicPass: client.Settings.Basic.Password,
+		},
+	}
+
+	// only set basic auth if enabled
+	if client.Settings.Basic.Auth {
+		httpClient.Transport = &authRoundTripper{
+			BasicUser: client.Settings.Basic.Username,
+			BasicPass: client.Settings.Basic.Password,
+		}
+	}
 
 	// create client
 	rt := rtorrent.New(client.Host, true)
@@ -122,4 +144,20 @@ func (s *service) rtorrent(ctx context.Context, action *domain.Action, release d
 	}
 
 	return rejections, nil
+}
+
+type authRoundTripper struct {
+	http.Transport
+	BasicUser string
+	BasicPass string
+}
+
+func (rt *authRoundTripper) RoundTrip(r *http.Request) (*http.Response, error) {
+	rt.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+
+	if rt.BasicUser != "" && rt.BasicPass != "" {
+		r.SetBasicAuth(rt.BasicUser, rt.BasicPass)
+	}
+
+	return rt.Transport.RoundTrip(r)
 }
