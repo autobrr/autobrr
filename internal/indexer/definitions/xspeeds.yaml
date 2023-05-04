@@ -17,7 +17,7 @@ settings:
     type: secret
     required: true
     label: Passkey
-    help: "Go to your profile and copy your Passkey"
+    help: "The long alphanumeric string found in any torrent URL from the tracker. Not including slashes. View in your torrent client, not on the site."
 
 irc:
   network: XSpeeds
