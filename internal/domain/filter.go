@@ -397,9 +397,9 @@ func (f Filter) CheckFilter(r *Release) ([]string, bool) {
 
 	if f.ExceptTags != "" {
 		if f.ExceptTagsMatchLogic == "ALL" && containsAll(r.Tags, f.ExceptTags) {
-			r.addRejectionF("tags unwanted. got: %v want(all): %v", r.Tags, f.ExceptTags)
+			r.addRejectionF("tags unwanted. got: %v don't want: %v", r.Tags, f.ExceptTags)
 		} else if containsAny(r.Tags, f.ExceptTags) { // ExceptTagsMatchLogic is set to "" by default, this makes sure that "" and "ANY" are treated the same way.
-			r.addRejectionF("tags unwanted. got: %v want: %v", r.Tags, f.ExceptTags)
+			r.addRejectionF("tags unwanted. got: %v don't want: %v", r.Tags, f.ExceptTags)
 		}
 	}
 
