@@ -388,18 +388,18 @@ func (f Filter) CheckFilter(r *Release) ([]string, bool) {
 	}
 
 	if f.Tags != "" {
-		if f.TagsMatchLogic == "ANY" && !containsAny(r.Tags, f.Tags) {
-			r.addRejectionF("tags not matching. got: %v want: %v", r.Tags, f.Tags)
-		} else if f.TagsMatchLogic == "ALL" && !containsAll(r.Tags, f.Tags) {
+		if f.TagsMatchLogic == "ALL" && !containsAll(r.Tags, f.Tags) {
 			r.addRejectionF("tags not matching. got: %v want(all): %v", r.Tags, f.Tags)
+		} else if !containsAny(r.Tags, f.Tags) { // TagsMatchLogic is set to "" by default, this makes sure that "" and "ANY" are treated the same way.
+			r.addRejectionF("tags not matching. got: %v want: %v", r.Tags, f.Tags)
 		}
 	}
 
 	if f.ExceptTags != "" {
-		if f.ExceptTagsMatchLogic == "ANY" && containsAny(r.Tags, f.ExceptTags) {
-			r.addRejectionF("tags unwanted. got: %v want: %v", r.Tags, f.ExceptTags)
-		} else if f.ExceptTagsMatchLogic == "ALL" && containsAll(r.Tags, f.ExceptTags) {
+		if f.ExceptTagsMatchLogic == "ALL" && containsAll(r.Tags, f.ExceptTags) {
 			r.addRejectionF("tags unwanted. got: %v want(all): %v", r.Tags, f.ExceptTags)
+		} else if containsAny(r.Tags, f.ExceptTags) { // ExceptTagsMatchLogic is set to "" by default, this makes sure that "" and "ANY" are treated the same way.
+			r.addRejectionF("tags unwanted. got: %v want: %v", r.Tags, f.ExceptTags)
 		}
 	}
 
@@ -633,13 +633,7 @@ func containsSlice(tag string, filters []string) bool {
 }
 
 func containsAny(tags []string, filter string) bool {
-	filterTags := strings.Split(filter, ",")
-	for _, f := range filterTags {
-		if containsMatch(tags, []string{f}) {
-			return true
-		}
-	}
-	return false
+	return containsMatch(tags, strings.Split(filter, ","))
 }
 
 func containsAll(tags []string, filter string) bool {
