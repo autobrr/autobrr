@@ -97,7 +97,7 @@ sudo box install autobrr
 
 ### Saltbox
 
-[Saltbox](https://saltbox.dev/) users can simply run:
+[Saltbox](https://docs.saltbox.dev/) users can simply run:
 
 ```
 sb install sandbox-autobrr
