@@ -683,6 +683,7 @@ func containsMatch(tags []string, filters []string) bool {
 			continue
 		}
 		tag = strings.ToLower(tag)
+		tag = strings.Trim(tag, " ")
 
 		for _, filter := range filters {
 			if filter == "" {
@@ -720,6 +721,7 @@ func containsAllMatch(tags []string, filters []string) bool {
 				continue
 			}
 			tag = strings.ToLower(tag)
+			tag = strings.Trim(tag, " ")
 
 			if tag == filter {
 				found = true
