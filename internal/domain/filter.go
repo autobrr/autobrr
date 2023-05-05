@@ -633,7 +633,13 @@ func containsSlice(tag string, filters []string) bool {
 }
 
 func containsAny(tags []string, filter string) bool {
-	return containsMatch(tags, strings.Split(filter, ","))
+	filterTags := strings.Split(filter, ",")
+	for _, f := range filterTags {
+		if containsMatch(tags, []string{f}) {
+			return true
+		}
+	}
+	return false
 }
 
 func containsAll(tags []string, filter string) bool {
