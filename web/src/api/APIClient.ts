@@ -198,5 +198,5 @@ export const APIClient = {
   updates: {
     check: () => appClient.Get("api/updates/check"),
     getLatestRelease: () => appClient.Get<GithubRelease | undefined>("api/updates/latest")
-  }  
+  }
 };
