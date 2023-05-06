@@ -21,6 +21,9 @@ import { SettingsContext } from "@utils/Context";
 import { EmptySimple } from "@components/emptystates";
 import { baseUrl } from "@utils";
 import { RingResizeSpinner } from "@components/Icons";
+import { toast } from "react-hot-toast";
+import Toast from "@components/notifications/Toast";
+
 
 type LogEvent = {
   time: string;
@@ -216,6 +219,12 @@ const LogFilesItem = ({ file }: LogFilesItemProps) => {
 
   const handleDownload = async () => {
     setIsDownloading(true);
+  
+    // Add a custom toast before the download starts
+    const toastId = toast.custom((t) => (
+      <Toast type="info" body="Log file is being sanitized. Please wait..." t={t} />
+    ));
+  
     const response = await fetch(`${baseUrl()}api/logs/files/${file.filename}`);
     const blob = await response.blob();
     const url = URL.createObjectURL(blob);
@@ -224,6 +233,10 @@ const LogFilesItem = ({ file }: LogFilesItemProps) => {
     link.download = file.filename;
     link.click();
     URL.revokeObjectURL(url);
+  
+    // Dismiss the custom toast after the download is complete
+    toast.dismiss(toastId);
+  
     setIsDownloading(false);
   };
 
