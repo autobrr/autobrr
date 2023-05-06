@@ -219,11 +219,10 @@ const ListItem = ({ idx, network, expanded }: ListItemProps) => {
   const queryClient = useQueryClient();
 
   const updateMutation = useMutation({
-    mutationFn: (network: IrcNetwork) => APIClient.irc.updateNetwork(network),
-    onSuccess: () => {
+    mutationFn: (network: IrcNetwork) => APIClient.irc.updateNetwork(network).then(() => network),
+    onSuccess: (network: IrcNetwork) => {
       queryClient.invalidateQueries({ queryKey: ircKeys.lists() });
-
-      toast.custom((t) => <Toast type="success" body={`${network.name} was updated successfully`} t={t}/>);
+      toast.custom(t => <Toast type="success" body={`${network.name} was ${network.enabled ? "enabled" : "disabled"} successfully.`} t={t} />);
     }
   });
 

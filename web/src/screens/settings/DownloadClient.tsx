@@ -93,10 +93,9 @@ function DownloadClientSettingsListItem({ client }: DLSettingsItemProps) {
   const queryClient = useQueryClient();
 
   const mutation = useMutation({
-    mutationFn: (client: DownloadClient) => APIClient.download_clients.update(client),
-    onSuccess: () => {
-      toast.custom((t) => <Toast type="success" body={`${client.name} was updated successfully`} t={t}/>);
-
+    mutationFn: (client: DownloadClient) => APIClient.download_clients.update(client).then(() => client),
+    onSuccess: (client: DownloadClient) => {
+      toast.custom(t => <Toast type="success" body={`${client.name} was ${client.enabled ? "enabled" : "disabled"} successfully.`} t={t} />);
       queryClient.invalidateQueries({ queryKey: clientKeys.lists() });
     }
   });

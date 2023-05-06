@@ -100,13 +100,10 @@ function ApplicationSettings() {
     }
   });
 
-  const toggleCheckUpdateMutation = useMutation({
-    mutationFn: (value: boolean) => APIClient.config.update({ check_for_updates: value }),
-    onSuccess: () => {
-      toast.custom((t) => <Toast type="success" body={"Config successfully updated!"} t={t}/>);
-
+  const toggleCheckUpdateMutation = useMutation((value: boolean) => APIClient.config.update({ check_for_updates: value }).then(() => value), {
+    onSuccess: (value: boolean) => {
+      toast.custom(t => <Toast type="success" body={`${value ? "You will now be notified of new updates." : "You will no longer be notified of new updates."}`} t={t} />);
       queryClient.invalidateQueries({ queryKey: ["config"] });
-
       checkUpdateMutation.mutate();
     }
   });

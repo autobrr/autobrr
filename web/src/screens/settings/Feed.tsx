@@ -159,7 +159,7 @@ function ListItem({ feed }: ListItemProps) {
       queryClient.invalidateQueries({ queryKey: feedKeys.lists() });
       queryClient.invalidateQueries({ queryKey: feedKeys.detail(feed.id) });
 
-      toast.custom((t) => <Toast type="success" body={`${feed.name} was ${!enabled ? "disabled" : "enabled"} successfully`} t={t}/>);
+      toast.custom((t) => <Toast type="success" body={`${feed.name} was ${!enabled ? "disabled" : "enabled"} successfully.`} t={t}/>);
     }
   });
 
