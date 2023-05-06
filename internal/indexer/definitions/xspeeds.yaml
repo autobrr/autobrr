@@ -16,8 +16,8 @@ settings:
   - name: passkey
     type: secret
     required: true
-    label: Passkey
-    help: "The long alphanumeric string found in any torrent URL from the tracker. Not including slashes. View in your torrent client, not on the site."
+    label: Secret key
+    help: "Go to https://www.xspeeds.eu/getrss.php and select Feed Type: Download Link, then Generate Feed. Copy the VALUE between secret_key=VALUE&feedtype."
 
 irc:
   network: XSpeeds
