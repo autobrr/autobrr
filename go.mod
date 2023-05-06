@@ -7,6 +7,7 @@ require (
 	github.com/Masterminds/squirrel v1.5.3
 	github.com/anacrolix/torrent v1.46.0
 	github.com/asaskevich/EventBus v0.0.0-20200907212545-49d423059eef
+	github.com/autobrr/go-deluge v1.0.0
 	github.com/autobrr/go-qbittorrent v1.3.1
 	github.com/autobrr/go-rtorrent v1.0.1
 	github.com/avast/retry-go v3.0.0+incompatible
@@ -14,7 +15,6 @@ require (
 	github.com/dustin/go-humanize v1.0.0
 	github.com/ergochat/irc-go v0.2.0
 	github.com/fsnotify/fsnotify v1.5.4
-	github.com/gdm85/go-libdeluge v0.5.6
 	github.com/go-chi/chi/v5 v5.0.7
 	github.com/go-chi/render v1.0.2
 	github.com/gorilla/sessions v1.2.1
