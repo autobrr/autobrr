@@ -16,11 +16,11 @@ import (
 	"github.com/autobrr/autobrr/pkg/sabnzbd"
 	"github.com/autobrr/autobrr/pkg/sonarr"
 	"github.com/autobrr/autobrr/pkg/whisparr"
-	"github.com/autobrr/go-qbittorrent"
 
+	"github.com/autobrr/go-qbittorrent"
+	"github.com/autobrr/go-rtorrent"
 	delugeClient "github.com/gdm85/go-libdeluge"
 	"github.com/hekmon/transmissionrpc/v2"
-	"github.com/mrobinsn/go-rtorrent/rtorrent"
 )
 
 func (s *service) testConnection(ctx context.Context, client domain.DownloadClient) error {
@@ -32,7 +32,7 @@ func (s *service) testConnection(ctx context.Context, client domain.DownloadClie
 		return s.testDelugeConnection(client)
 
 	case domain.DownloadClientTypeRTorrent:
-		return s.testRTorrentConnection(client)
+		return s.testRTorrentConnection(ctx, client)
 
 	case domain.DownloadClientTypeTransmission:
 		return s.testTransmissionConnection(ctx, client)
@@ -135,17 +135,24 @@ func (s *service) testDelugeConnection(client domain.DownloadClient) error {
 	return nil
 }
 
-func (s *service) testRTorrentConnection(client domain.DownloadClient) error {
+func (s *service) testRTorrentConnection(ctx context.Context, client domain.DownloadClient) error {
 	// create client
-	rt := rtorrent.New(client.Host, true)
-	name, err := rt.Name()
+	rt := rtorrent.NewClient(rtorrent.Config{
+		Addr:          client.Host,
+		TLSSkipVerify: client.TLSSkipVerify,
+		BasicUser:     client.Settings.Basic.Username,
+		BasicPass:     client.Settings.Basic.Password,
+		Log:           nil,
+	})
+
+	name, err := rt.Name(ctx)
 	if err != nil {
-		return errors.Wrap(err, "error logging into client: %v", client.Host)
+		return errors.Wrap(err, "error logging into client: %s", client.Host)
 	}
 
-	s.log.Trace().Msgf("test client connection for rTorrent: got client: %v", name)
+	s.log.Trace().Msgf("test client connection for rTorrent: got client: %s", name)
 
-	s.log.Debug().Msgf("test client connection for rTorrent: success")
+	s.log.Debug().Msg("test client connection for rTorrent: success")
 
 	return nil
 }
