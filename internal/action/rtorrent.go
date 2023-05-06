@@ -5,15 +5,12 @@ package action
 
 import (
 	"context"
-	"crypto/tls"
-	"net/http"
 	"os"
-	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/pkg/errors"
 
-	"github.com/mrobinsn/go-rtorrent/rtorrent"
+	"github.com/autobrr/go-rtorrent"
 )
 
 func (s *service) rtorrent(ctx context.Context, action *domain.Action, release domain.Release) ([]string, error) {
@@ -34,27 +31,16 @@ func (s *service) rtorrent(ctx context.Context, action *domain.Action, release d
 
 	var rejections []string
 
-	httpClient := http.Client{
-		Timeout: 60 * time.Second,
-		//Transport: &http.Transport{
-		//	TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-		//},
-		Transport: &authRoundTripper{
-			BasicUser: client.Settings.Basic.Username,
-			BasicPass: client.Settings.Basic.Password,
-		},
-	}
-
-	// only set basic auth if enabled
-	if client.Settings.Basic.Auth {
-		httpClient.Transport = &authRoundTripper{
-			BasicUser: client.Settings.Basic.Username,
-			BasicPass: client.Settings.Basic.Password,
-		}
+	// create config
+	cfg := rtorrent.Config{
+		Addr:          client.Host,
+		TLSSkipVerify: true,
+		BasicUser:     client.Settings.Basic.Username,
+		BasicPass:     client.Settings.Basic.Password,
 	}
 
 	// create client
-	rt := rtorrent.New(client.Host, true)
+	rt := rtorrent.NewClient(cfg)
 
 	if release.HasMagnetUri() {
 		var args []*rtorrent.FieldValue
@@ -79,14 +65,14 @@ func (s *service) rtorrent(ctx context.Context, action *domain.Action, release d
 			}
 		}
 
-		var addTorrentMagnet func(string, ...*rtorrent.FieldValue) error
+		var addTorrentMagnet func(context.Context, string, ...*rtorrent.FieldValue) error
 		if action.Paused {
 			addTorrentMagnet = rt.AddStopped
 		} else {
 			addTorrentMagnet = rt.Add
 		}
 
-		if err := addTorrentMagnet(release.MagnetURI, args...); err != nil {
+		if err := addTorrentMagnet(ctx, release.MagnetURI, args...); err != nil {
 			return nil, errors.Wrap(err, "could not add torrent from magnet: %s", release.MagnetURI)
 		}
 
@@ -129,14 +115,14 @@ func (s *service) rtorrent(ctx context.Context, action *domain.Action, release d
 			}
 		}
 
-		var addTorrentFile func([]byte, ...*rtorrent.FieldValue) error
+		var addTorrentFile func(context.Context, []byte, ...*rtorrent.FieldValue) error
 		if action.Paused {
 			addTorrentFile = rt.AddTorrentStopped
 		} else {
 			addTorrentFile = rt.AddTorrent
 		}
 
-		if err := addTorrentFile(tmpFile, args...); err != nil {
+		if err := addTorrentFile(ctx, tmpFile, args...); err != nil {
 			return nil, errors.Wrap(err, "could not add torrent file: %s", release.TorrentTmpFile)
 		}
 
@@ -144,20 +130,4 @@ func (s *service) rtorrent(ctx context.Context, action *domain.Action, release d
 	}
 
 	return rejections, nil
-}
-
-type authRoundTripper struct {
-	http.Transport
-	BasicUser string
-	BasicPass string
-}
-
-func (rt *authRoundTripper) RoundTrip(r *http.Request) (*http.Response, error) {
-	rt.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
-
-	if rt.BasicUser != "" && rt.BasicPass != "" {
-		r.SetBasicAuth(rt.BasicUser, rt.BasicPass)
-	}
-
-	return rt.Transport.RoundTrip(r)
 }
