@@ -395,14 +395,35 @@ func (r *Release) downloadTorrentFile(ctx context.Context) error {
 		}
 		defer resp.Body.Close()
 
-		if resp.StatusCode != http.StatusOK {
-			unRecoverableErr := errors.Wrap(ErrUnrecoverableError, "unrecoverable error downloading torrent (%v) file (%v) from '%v' - status code: %d", r.TorrentName, r.TorrentURL, r.Indexer, resp.StatusCode)
+		// Check server response
+		switch resp.StatusCode {
+		case http.StatusOK:
+			// Continue processing the response
+		case http.StatusMovedPermanently, http.StatusFound, http.StatusSeeOther, http.StatusTemporaryRedirect, http.StatusPermanentRedirect:
+			// Handle redirect
+			return retry.Unrecoverable(errors.New("redirect encountered for torrent (%v) file (%v) from '%v' - status code: %d. Check indexer keys.", r.TorrentName, r.TorrentURL, r.Indexer, resp.StatusCode))
 
-			if resp.StatusCode == 401 || resp.StatusCode == 403 || resp.StatusCode == 404 || resp.StatusCode == 405 {
-				return retry.Unrecoverable(unRecoverableErr)
-			}
+		case http.StatusUnauthorized, http.StatusForbidden:
+			return retry.Unrecoverable(errors.New("unrecoverable error downloading torrent (%v) file (%v) from '%v' - status code: %d. Check indexer keys", r.TorrentName, r.TorrentURL, r.Indexer, resp.StatusCode))
 
-			return errors.New("unexpected status: %v", resp.StatusCode)
+		case http.StatusMethodNotAllowed:
+			return retry.Unrecoverable(errors.New("unrecoverable error downloading torrent (%v) file (%v) from '%v' - status code: %d. Check if the request method is correct", r.TorrentName, r.TorrentURL, r.Indexer, resp.StatusCode))
+
+		case http.StatusNotFound:
+			return errors.New("torrent %s not found on %s (%d) - retrying", r.TorrentName, r.Indexer, resp.StatusCode)
+
+		case http.StatusInternalServerError, http.StatusBadGateway, http.StatusServiceUnavailable, http.StatusGatewayTimeout:
+			return errors.New("server error (%d) encountered while downloading torrent (%v) file (%v) from '%v' - retrying", resp.StatusCode, r.TorrentName, r.TorrentURL, r.Indexer)
+
+		default:
+			return retry.Unrecoverable(errors.New("unexpected status code %d: check indexer keys for %s", resp.StatusCode, r.Indexer))
+		}
+
+		// Check if the Content-Type header is correct
+		contentType := resp.Header.Get("Content-Type")
+
+		if strings.Contains(contentType, "text/html") {
+			return retry.Unrecoverable(errors.New("unexpected content type '%s': check indexer keys for %s", contentType, r.Indexer))
 		}
 
 		resetTmpFile := func() {
