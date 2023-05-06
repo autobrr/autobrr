@@ -650,8 +650,7 @@ function FilterListItem({ filter, values, idx }: FilterListItemProps) {
   const updateMutation = useMutation({
     mutationFn: (status: boolean) => APIClient.filters.toggleEnable(filter.id, status),
     onSuccess: () => {
-      toast.custom((t) => <Toast type="success" body={`${filter.name} was ${!filter.enabled ? "disabled" : "enabled"} successfully`} t={t} />);
-
+      toast.custom((t) => <Toast type="success" body={`${filter.name} was ${filter.enabled ? "disabled" : "enabled"} successfully`} t={t} />);
       // We need to invalidate both keys here.
       // The filters key is used on the /filters page,
       // while the ["filter", filter.id] key is used on the details page.
