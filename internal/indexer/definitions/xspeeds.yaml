@@ -16,8 +16,8 @@ settings:
   - name: passkey
     type: secret
     required: true
-    label: Passkey
-    help: "Go to your profile and copy your Passkey"
+    label: Secret key
+    help: "Go to https://www.xspeeds.eu/getrss.php and select Feed Type: Download Link, then Generate Feed. Copy the VALUE between secret_key=VALUE&feedtype."
 
 irc:
   network: XSpeeds

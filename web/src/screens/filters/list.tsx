@@ -391,14 +391,16 @@ const FilterItemDropdown = ({ filter, onToggle }: FilterItemDropdownProps) => {
       delete completeFilter.external_webhook_expect_status;
   
       // Remove properties with default values from the exported filter to minimize the size of the JSON string
-      ["enabled", "priority", "smart_episode", "resolutions", "sources", "codecs", "containers"].forEach((key) => {
+      ["enabled", "priority", "smart_episode", "resolutions", "sources", "codecs", "containers", "tags_match_logic", "except_tags_match_logic"].forEach((key) => {
         const value = completeFilter[key as keyof CompleteFilterType];
         if (["enabled", "priority", "smart_episode"].includes(key) && (value === false || value === 0)) {
           delete completeFilter[key as keyof CompleteFilterType];
         } else if (["resolutions", "sources", "codecs", "containers"].includes(key) && Array.isArray(value) && value.length === 0) {
           delete completeFilter[key as keyof CompleteFilterType];
+        } else if (["tags_match_logic", "except_tags_match_logic"].includes(key) && value === "ANY") {
+          delete completeFilter[key as keyof CompleteFilterType];
         }
-      });      
+      });   
 
       // Create a JSON string from the filter data, including a name and version
       const json = JSON.stringify(
@@ -650,8 +652,7 @@ function FilterListItem({ filter, values, idx }: FilterListItemProps) {
   const updateMutation = useMutation({
     mutationFn: (status: boolean) => APIClient.filters.toggleEnable(filter.id, status),
     onSuccess: () => {
-      toast.custom((t) => <Toast type="success" body={`${filter.name} was ${!filter.enabled ? "disabled" : "enabled"} successfully`} t={t} />);
-
+      toast.custom((t) => <Toast type="success" body={`${filter.name} was ${filter.enabled ? "disabled" : "enabled"} successfully`} t={t} />);
       // We need to invalidate both keys here.
       // The filters key is used on the /filters page,
       // while the ["filter", filter.id] key is used on the details page.
