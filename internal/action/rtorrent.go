@@ -34,7 +34,7 @@ func (s *service) rtorrent(ctx context.Context, action *domain.Action, release d
 	// create config
 	cfg := rtorrent.Config{
 		Addr:          client.Host,
-		TLSSkipVerify: true,
+		TLSSkipVerify: client.TLSSkipVerify,
 		BasicUser:     client.Settings.Basic.Username,
 		BasicPass:     client.Settings.Basic.Password,
 	}

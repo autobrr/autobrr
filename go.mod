@@ -8,7 +8,7 @@ require (
 	github.com/anacrolix/torrent v1.46.0
 	github.com/asaskevich/EventBus v0.0.0-20200907212545-49d423059eef
 	github.com/autobrr/go-qbittorrent v1.3.1
-	github.com/autobrr/go-rtorrent v1.0.0
+	github.com/autobrr/go-rtorrent v1.0.1
 	github.com/avast/retry-go v3.0.0+incompatible
 	github.com/dcarbone/zadapters/zstdlog v0.3.1
 	github.com/dustin/go-humanize v1.0.0
@@ -25,7 +25,6 @@ require (
 	github.com/mattn/go-shellwords v1.0.12
 	github.com/mmcdole/gofeed v1.1.3
 	github.com/moistari/rls v0.5.9
-	github.com/mrobinsn/go-rtorrent v1.8.0
 	github.com/pkg/errors v0.9.1
 	github.com/r3labs/sse/v2 v2.8.1
 	github.com/robfig/cron/v3 v3.0.1
