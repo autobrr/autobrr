@@ -3,12 +3,14 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+import { useEffect } from "react";
 import { Field, FieldProps, useFormikContext } from "formik";
-import { classNames } from "@utils";
 import { EyeIcon, EyeSlashIcon, CheckCircleIcon, XCircleIcon } from "@heroicons/react/24/solid";
+import TextareaAutosize from "react-textarea-autosize";
+
 import { useToggle } from "@hooks/hooks";
 import { CustomTooltip } from "@components/tooltips/CustomTooltip";
-import { useEffect } from "react";
+import { classNames } from "@utils";
 
 type COL_WIDTHS = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12;
 
@@ -234,6 +236,147 @@ export const RegexField = ({
   );
 };
 
+export const RegexTextAreaField = ({
+  name,
+  defaultValue,
+  label,
+  placeholder,
+  columns,
+  autoComplete = "off",
+  useRegex,
+  hidden,
+  tooltip,
+  disabled
+}: RegexFieldProps) => {
+  const validRegex = (pattern: string) => {
+
+    // Check for unsupported lookahead and lookbehind assertions
+    if (/\(\?<=|\(\?<!|\(\?=|\(\?!/.test(pattern)) {
+      return false;
+    }
+
+    // Check for unsupported atomic groups
+    if (/\(\?>/.test(pattern)) {
+      return false;
+    }
+
+    // Check for unsupported recursive patterns
+    if (/\(\?(R|0)\)/.test(pattern)) {
+      return false;
+    }
+
+    // Check for unsupported possessive quantifiers
+    if (/[*+?]{1}\+|\{[0-9]+,[0-9]*\}\+/.test(pattern)) {
+      return false;
+    }
+
+    // Check for unsupported control verbs
+    if (/\\g</.test(pattern)) {
+      return false;
+    }
+
+    // Check for unsupported conditionals
+    if (/\(\?\((\?[=!][^)]*)\)[^)]*\|?[^)]*\)/.test(pattern)) {
+      return false;
+    }
+
+    // Check for unsupported backreferences
+    if (/\\k</.test(pattern)) {
+      return false;
+    }
+
+    // Check if the pattern is a valid regex
+    try {
+      new RegExp(pattern);
+      return true;
+    } catch (e) {
+      return false;
+    }
+  };
+
+
+  const validateRegexp = (val: string) => {
+    let error = "";
+
+    if (!validRegex(val)) {
+      error = "Invalid regex";
+    }
+
+    return error;
+  };
+
+  const { validateForm } = useFormikContext();
+  useEffect(() => {
+    if (useRegex) {
+      validateForm();
+    }
+  }, [useRegex]);
+
+  return (
+    <div
+      className={classNames(
+        hidden ? "hidden" : "",
+        columns ? `col-span-${columns}` : "col-span-12"
+      )}
+    >
+      {label && (
+        <label
+          htmlFor={name}
+          className="flex float-left mb-2 text-xs font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wide"
+        >
+          <div className="flex">
+            {label}
+            <span className="z-10">{tooltip && <CustomTooltip anchorId={name}>{tooltip}</CustomTooltip>}</span>
+          </div>
+        </label>
+      )}
+      <Field
+        name={name}
+        validate={useRegex && validateRegexp}
+      >
+        {({ field, meta }: FieldProps) => (
+          <div className="relative">
+
+            <TextareaAutosize
+              {...field}
+              id={name}
+              defaultValue={defaultValue}
+              autoComplete={autoComplete}
+              className={classNames(
+                useRegex && meta.error
+                  ? "focus:ring-red-500 focus:border-red-500 border-red-500"
+                  : "focus:ring-blue-500 dark:focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-500 border-gray-300 dark:border-gray-700",
+                disabled
+                  ? "bg-gray-100 dark:bg-gray-700 cursor-not-allowed"
+                  : "dark:bg-gray-800",
+                useRegex
+                  ? "pr-10"
+                  : "",
+                "mt-2 block w-full dark:text-gray-100 rounded-md"
+              )}
+              placeholder={placeholder}
+              disabled={disabled}
+            />
+
+            {useRegex && (
+              <div className="relative">
+                <div className="flex float-right items-center">
+                  {!meta.error ? (
+                    <CheckCircleIcon className="dark:bg-gray-800 bg-white h-8 w-8 mb-2.5 pl-1 text-green-500 right-2 absolute transform -translate-y-1/2" aria-hidden="true" style={{ overflow: "hidden" }} />
+                  ) : (
+                    <XCircleIcon className="dark:bg-gray-800 bg-white h-8 w-8 mb-2.5 pl-1 text-red-500 right-2 absolute transform -translate-y-1/2" aria-hidden="true" style={{ overflow: "hidden" }} />
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </Field>
+
+    </div>
+  );
+};
+
 interface TextAreaProps {
   name: string;
   defaultValue?: string;
@@ -244,6 +387,7 @@ interface TextAreaProps {
   autoComplete?: string;
   hidden?: boolean;
   disabled?: boolean;
+  tooltip?: JSX.Element;
 }
 
 export const TextArea = ({
@@ -255,6 +399,7 @@ export const TextArea = ({
   rows,
   autoComplete,
   hidden,
+  tooltip,
   disabled
 }: TextAreaProps) => (
   <div
@@ -264,8 +409,13 @@ export const TextArea = ({
     )}
   >
     {label && (
-      <label htmlFor={name} className="block text-xs font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wide">
-        {label}
+      <label htmlFor={name} className="flex float-left mb-2 text-xs font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wide">
+        <div className="flex">
+          {label}
+          {tooltip && (
+            <CustomTooltip anchorId={name}>{tooltip}</CustomTooltip>
+          )}
+        </div>
       </label>
     )}
     <Field name={name}>
@@ -297,6 +447,79 @@ export const TextArea = ({
     </Field>
   </div>
 );
+
+interface TextAreaAutoResizeProps {
+  name: string;
+  defaultValue?: string;
+  label?: string;
+  placeholder?: string;
+  columns?: COL_WIDTHS;
+  rows?: number;
+  autoComplete?: string;
+  hidden?: boolean;
+  disabled?: boolean;
+  tooltip?: JSX.Element;
+
+}
+
+export const TextAreaAutoResize = ({
+  name,
+  defaultValue,
+  label,
+  placeholder,
+  columns,
+  rows,
+  autoComplete,
+  hidden,
+  tooltip,
+  disabled
+}: TextAreaAutoResizeProps) => (
+  <div
+    className={classNames(
+      hidden ? "hidden" : "",
+      columns ? `col-span-${columns}` : "col-span-12"
+    )}
+  >
+    {label && (
+      <label htmlFor={name} className="flex float-left mb-2 text-xs font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wide">
+        <div className="flex">
+          {label}
+          {tooltip && (
+            <CustomTooltip anchorId={name}>{tooltip}</CustomTooltip>
+          )}
+        </div>
+      </label>
+    )}
+    <Field name={name}>
+      {({
+        field,
+        meta
+      }: FieldProps) => (
+        <div>
+          <TextareaAutosize
+            {...field}
+            id={name}
+            rows={rows}
+            defaultValue={defaultValue}
+            autoComplete={autoComplete}
+            className={classNames(
+              meta.touched && meta.error ? "focus:ring-red-500 focus:border-red-500 border-red-500" : "focus:ring-blue-500 dark:focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-500 border-gray-300 dark:border-gray-700",
+              disabled ? "bg-gray-100 dark:bg-gray-700 cursor-not-allowed" : "dark:bg-gray-800",
+              "overflow-hidden mt-2 block w-full dark:text-gray-100 rounded-md"
+            )}
+            placeholder={placeholder}
+            disabled={disabled}
+          />
+
+          {meta.touched && meta.error && (
+            <p className="error text-sm text-red-600 mt-1">* {meta.error}</p>
+          )}
+        </div>
+      )}
+    </Field>
+  </div>
+);
+
 
 interface PasswordFieldProps {
   name: string;
