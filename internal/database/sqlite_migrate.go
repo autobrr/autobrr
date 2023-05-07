@@ -295,6 +295,7 @@ CREATE TABLE notification
 	rooms      TEXT,
 	targets    TEXT,
 	devices    TEXT,
+	topic      TEXT,
 	priority   INTEGER DEFAULT 0,
 	created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 	updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -1070,4 +1071,6 @@ ADD COLUMN download_url TEXT;
 	`,
 	`ALTER TABLE notification
 ADD COLUMN priority INTEGER DEFAULT 0;`,
+	`ALTER TABLE notification
+ADD COLUMN topic text;`,
 }

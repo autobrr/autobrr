@@ -4,7 +4,13 @@
  */
 
 type NotificationType = "DISCORD" | "NOTIFIARR" | "TELEGRAM" | "PUSHOVER";
-type NotificationEvent = "PUSH_APPROVED" | "PUSH_REJECTED" | "PUSH_ERROR" | "IRC_DISCONNECTED" | "IRC_RECONNECTED" | "APP_UPDATE_AVAILABLE";
+type NotificationEvent =
+  "PUSH_APPROVED"
+  | "PUSH_REJECTED"
+  | "PUSH_ERROR"
+  | "IRC_DISCONNECTED"
+  | "IRC_RECONNECTED"
+  | "APP_UPDATE_AVAILABLE";
 
 interface Notification {
   id: number;
@@ -17,4 +23,5 @@ interface Notification {
   api_key?: string;
   channel?: string;
   priority?: number;
+  topic?: string;
 }
