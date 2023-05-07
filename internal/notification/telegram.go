@@ -10,6 +10,7 @@ import (
 	"html"
 	"io"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -19,29 +20,42 @@ import (
 	"github.com/rs/zerolog"
 )
 
+// Reference: https://core.telegram.org/bots/api#sendmessage
 type TelegramMessage struct {
-	ChatID    string `json:"chat_id"`
-	Text      string `json:"text"`
-	ParseMode string `json:"parse_mode"`
+	ChatID          string `json:"chat_id"`
+	Text            string `json:"text"`
+	ParseMode       string `json:"parse_mode"`
+	MessageThreadID int    `json:"message_thread_id,omitempty"`
 }
 
 type telegramSender struct {
 	log      zerolog.Logger
 	Settings domain.Notification
+	ThreadID int
 }
 
 func NewTelegramSender(log zerolog.Logger, settings domain.Notification) domain.NotificationSender {
+	threadID := 0
+	if t := settings.Topic; t != "" {
+		var err error
+		threadID, err = strconv.Atoi(t)
+		if err != nil {
+			log.Error().Err(err).Msgf("could not parse specified topic %q as an integer", t)
+		}
+	}
 	return &telegramSender{
 		log:      log.With().Str("sender", "telegram").Logger(),
 		Settings: settings,
+		ThreadID: threadID,
 	}
 }
 
 func (s *telegramSender) Send(event domain.NotificationEvent, payload domain.NotificationPayload) error {
 	m := TelegramMessage{
-		ChatID:    s.Settings.Channel,
-		Text:      s.buildMessage(event, payload),
-		ParseMode: "HTML",
+		ChatID:          s.Settings.Channel,
+		Text:            s.buildMessage(event, payload),
+		MessageThreadID: s.ThreadID,
+		ParseMode:       "HTML",
 		//ParseMode: "MarkdownV2",
 	}
 

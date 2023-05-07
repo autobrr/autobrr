@@ -1073,7 +1073,7 @@ func (r *FilterRepo) downloadsByFilterPostgres(ctx context.Context, filterID int
     COALESCE(SUM(CASE WHEN release_action_status.timestamp >= date_trunc('month', CURRENT_DATE) THEN 1 ELSE 0 END),0) as "month_count",
     count(*) as "total_count"
 FROM release_action_status
-WHERE release_action_status.status = 'PUSH_APPROVED' AND release_action_status.filter_id = $1;`
+WHERE (release_action_status.status = 'PUSH_APPROVED' OR release_action_status.status = 'PENDING') AND release_action_status.filter_id = $1;`
 
 	row := r.db.handler.QueryRowContext(ctx, query, filterID)
 	if err := row.Err(); err != nil {

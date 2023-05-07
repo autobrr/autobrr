@@ -97,21 +97,23 @@ func (s *service) RunAction(ctx context.Context, action *domain.Action, release 
 	}
 
 	payload := &domain.NotificationPayload{
-		Event:       domain.NotificationEventPushApproved,
-		ReleaseName: release.TorrentName,
-		Filter:      release.Filter.Name,
-		Indexer:     release.Indexer,
-		InfoHash:    release.TorrentHash,
-
+		Event:          domain.NotificationEventPushApproved,
+		ReleaseName:    release.TorrentName,
+		Filter:         release.Filter.Name,
+		Indexer:        release.Indexer,
+		InfoHash:       release.TorrentHash,
 		Size:           release.Size,
 		Status:         domain.ReleasePushStatusApproved,
 		Action:         action.Name,
 		ActionType:     action.Type,
-		ActionClient:   action.Client.Name,
 		Rejections:     []string{},
-		Protocol:       domain.ReleaseProtocolTorrent,
+		Protocol:       release.Protocol,
 		Implementation: release.Implementation,
 		Timestamp:      time.Now(),
+	}
+
+	if action.Client != nil {
+		payload.ActionClient = action.Client.Name
 	}
 
 	if err != nil {
@@ -189,11 +191,11 @@ func (s *service) watchFolder(ctx context.Context, action *domain.Action, releas
 }
 
 func (s *service) webhook(ctx context.Context, action *domain.Action, release domain.Release) error {
-	s.log.Trace().Msgf("action WEBHOOK: '%v' file: %v", action.Name, release.TorrentName)
+	s.log.Trace().Msgf("action WEBHOOK: '%s' file: %s", action.Name, release.TorrentName)
 	if len(action.WebhookData) > 1024 {
-		s.log.Trace().Msgf("webhook action '%v' - host: %v data: %v", action.Name, action.WebhookHost, action.WebhookData[:1024])
+		s.log.Trace().Msgf("webhook action '%s' - host: %s data: %s", action.Name, action.WebhookHost, action.WebhookData[:1024])
 	} else {
-		s.log.Trace().Msgf("webhook action '%v' - host: %v data: %v", action.Name, action.WebhookHost, action.WebhookData)
+		s.log.Trace().Msgf("webhook action '%s' - host: %s data: %s", action.Name, action.WebhookHost, action.WebhookData)
 	}
 
 	t := &http.Transport{
@@ -202,7 +204,7 @@ func (s *service) webhook(ctx context.Context, action *domain.Action, release do
 		},
 	}
 
-	client := http.Client{Transport: t, Timeout: 15 * time.Second}
+	client := http.Client{Transport: t, Timeout: 120 * time.Second}
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, action.WebhookHost, bytes.NewBufferString(action.WebhookData))
 	if err != nil {
@@ -212,6 +214,8 @@ func (s *service) webhook(ctx context.Context, action *domain.Action, release do
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("User-Agent", "autobrr")
 
+	start := time.Now()
+
 	res, err := client.Do(req)
 	if err != nil {
 		return errors.Wrap(err, "could not make request for webhook")
@@ -220,9 +224,9 @@ func (s *service) webhook(ctx context.Context, action *domain.Action, release do
 	defer res.Body.Close()
 
 	if len(action.WebhookData) > 256 {
-		s.log.Info().Msgf("successfully ran webhook action: '%v' to: %v payload: %v", action.Name, action.WebhookHost, action.WebhookData[:256])
+		s.log.Info().Msgf("successfully ran webhook action: '%s' to: %s payload: %s finished in %s", action.Name, action.WebhookHost, action.WebhookData[:256], time.Since(start))
 	} else {
-		s.log.Info().Msgf("successfully ran webhook action: '%v' to: %v payload: %v", action.Name, action.WebhookHost, action.WebhookData)
+		s.log.Info().Msgf("successfully ran webhook action: '%s' to: %s payload: %s finished in %s", action.Name, action.WebhookHost, action.WebhookData, time.Since(start))
 	}
 
 	return nil

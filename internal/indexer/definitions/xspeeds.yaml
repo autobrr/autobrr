@@ -16,8 +16,8 @@ settings:
   - name: passkey
     type: secret
     required: true
-    label: Passkey
-    help: "Go to your profile and copy your Passkey"
+    label: Secret key
+    help: "Go to https://www.xspeeds.eu/getrss.php and select Feed Type: Download Link, then Generate Feed. Copy the VALUE between secret_key=VALUE&feedtype."
 
 irc:
   network: XSpeeds
@@ -77,6 +77,7 @@ irc:
     - Sports / Olympics
     - Sports / UK Football
     - TOTM
+    - TOTW (x2 upload)
     - TV Boxsets
     - TV Boxsets / HD Boxsets
     - TV Boxsets / HEVC Boxsets
@@ -94,7 +95,8 @@ irc:
           - "xspeeds.eu - New Torrent: ( The.Best.Show.S03E07.720p.BluRay.x264-GROUP ) Size: ( 1.96 GB )  Category: ( TV-HD ) Uploader: ( uploader1 ) Link: ( https://www.xspeeds.eu/details.php?id=0000000 )"
           - "xspeeds.eu - New Torrent: ( Some.Show.S21E06.1080p.HEVC.x265-GROUP1 ) Size: ( 1.04 GB )  Category: ( HEVC ) Uploader: ( uploader2 ) Link: ( https://www.xspeeds.eu/details.php?id=0000000 )"
           - "xspeeds.eu - New Torrent: ( Some.Show.S21E06.XviD-GROUP2 ) Size: ( 861.32 MB )  Category: ( TV-SD ) Uploader: ( uploader2 ) Link: ( https://www.xspeeds.eu/details.php?id=0000000 )"
-        pattern: '\s*xspeeds.eu - New Torrent: \( (.*) \) Size: \( ([^)]*) \)\s*Category: \( ([^)]*) \) Uploader: \( ([^)]*) \) Link: \( (https?\:\/\/[^\/]+\/).*[&\?]id=(\d+) \)'
+          - "xspeeds.eu - New Torrent: ( TOTW.Show.1-6.Boxset.iNTERNAL.1080P.BluRay.H265-GRP3 ) Size: ( 46.03 GB )  Category: ( TOTW (x2 upload) ) Uploader: ( uploader3 ) Link: ( https://www.xspeeds.eu/details.php?id=0000000 )"
+        pattern: '\s*xspeeds.eu - New Torrent: \( (.*) \) Size: \( (.*) \)\s*Category: \( (.*) \) Uploader: \( (.*) \) Link: \( (https?\:\/\/[^\/]+\/).*[&\?]id=(\d+) \)'
         vars:
           - torrentName
           - torrentSize

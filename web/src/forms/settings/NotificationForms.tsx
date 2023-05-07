@@ -121,6 +121,11 @@ function FormFieldsTelegram() {
         label="Chat ID"
         help="Chat ID"
       />
+      <PasswordFieldWide
+        name="topic"
+        label="Message Thread ID"
+        help="Message Thread (topic) of a Supergroup"
+      />
     </div>
   );
 }
@@ -436,6 +441,7 @@ interface InitialValues {
   api_key?: string;
   priority?: number;
   channel?: string;
+  topic?: string;
   events: NotificationEvent[];
 }
 
@@ -484,6 +490,7 @@ export function NotificationUpdateForm({ isOpen, toggle, notification }: UpdateP
     api_key: notification.api_key,
     priority: notification.priority,
     channel: notification.channel,
+    topic: notification.topic,
     events: notification.events || []
   };
 

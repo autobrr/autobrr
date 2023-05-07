@@ -107,7 +107,13 @@ func (c *AppConfig) writeConfig(configPath string, configFile string) error {
 			// docker creates a .dockerenv file at the root
 			// of the directory tree inside the container.
 			// if this file exists then the viewer is running
-			// from inside a container so return true
+			// from inside a docker container so return true
+			host = "0.0.0.0"
+		} else if _, err := os.Stat("/dev/.lxc-boot-id"); err == nil {
+			// lxc creates this file containing the uuid
+			// of the container in every boot.
+			// if this file exists then the viewer is running
+			// from inside a lxc container so return true
 			host = "0.0.0.0"
 		} else if pd, _ := os.Open("/proc/1/cgroup"); pd != nil {
 			defer pd.Close()

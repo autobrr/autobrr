@@ -21,7 +21,7 @@ import * as DataTable from "@components/data-table";
 
 import { IndexerSelectColumnFilter, PushStatusSelectColumnFilter, SearchColumnFilter } from "./Filters";
 import { classNames } from "@utils";
-import { ArrowTopRightOnSquareIcon } from "@heroicons/react/24/outline";
+import { ArrowTopRightOnSquareIcon, ArrowDownTrayIcon } from "@heroicons/react/24/outline";
 import { Tooltip } from "@components/tooltips/Tooltip";
 
 export const releaseKeys = {
@@ -101,16 +101,28 @@ export const ReleaseTable = () => {
                 {String(props.cell.value)}
               </span>
             </Tooltip>
-            {props.row.original.info_url && (
-              <a
-                rel="noopener noreferrer"
-                target="_blank"
-                href={props.row.original.info_url}
-                className="max-w-[90vw] mr-2"
-              >
-                <ArrowTopRightOnSquareIcon className="h-5 w-5 text-blue-400 hover:text-blue-500 dark:text-blue-500 dark:hover:text-blue-600" aria-hidden="true" />
-              </a>
-            )}
+            <div className="flex mr-0">
+              {props.row.original.download_url && (
+                <a
+                  rel="noopener noreferrer"
+                  target="_blank"
+                  href={props.row.original.download_url}
+                  className="max-w-[90vw] px-2"
+                >
+                  <ArrowDownTrayIcon className="h-5 w-5 text-blue-400 hover:text-blue-500 dark:text-blue-500 dark:hover:text-blue-600" aria-hidden="true" />
+                </a>
+              )}
+              {props.row.original.info_url && (
+                <a
+                  rel="noopener noreferrer"
+                  target="_blank"
+                  href={props.row.original.info_url}
+                  className="max-w-[90vw]"
+                >
+                  <ArrowTopRightOnSquareIcon className="h-5 w-5 text-blue-400 hover:text-blue-500 dark:text-blue-500 dark:hover:text-blue-600" aria-hidden="true" />
+                </a>
+              )}
+            </div>
           </div>
         );
       },
