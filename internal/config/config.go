@@ -184,7 +184,7 @@ func (c *AppConfig) defaults() {
 	c.Config = &domain.Config{
 		Version:           "dev",
 		Host:              "localhost",
-		Port:              7475,
+		Port:              7474,
 		LogLevel:          "TRACE",
 		LogPath:           "",
 		LogMaxSize:        50,
