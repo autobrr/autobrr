@@ -35,7 +35,7 @@ host = "{{ .host }}"
 #
 # Default: 7474
 #
-#port = 7474
+port = 7474
 
 # Base url
 # Set custom baseUrl eg /autobrr/ to serve in subdirectory.
@@ -59,7 +59,7 @@ host = "{{ .host }}"
 #
 # Options: "ERROR", "DEBUG", "INFO", "WARN", "TRACE"
 #
-#logLevel = "DEBUG"
+logLevel = "DEBUG"
 
 # Log Max Size
 #
