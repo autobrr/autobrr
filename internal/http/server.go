@@ -1,8 +1,10 @@
+// Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+// SPDX-License-Identifier: GPL-2.0-or-later
+
 package http
 
 import (
 	"fmt"
-	"io/fs"
 	"net"
 	"net/http"
 
@@ -105,18 +107,7 @@ func (s Server) Handler() http.Handler {
 
 	r.Use(c.Handler)
 
-	//r.Get("/", index)
-	//r.Get("/dashboard", dashboard)
-
-	//handler := web.AssetHandler("/", "build")
-
 	encoder := encoder{}
-
-	assets, _ := fs.Sub(web.Assets, "build/static")
-	r.HandleFunc("/static/*", func(w http.ResponseWriter, r *http.Request) {
-		fileSystem := http.StripPrefix("/static/", http.FileServer(http.FS(assets)))
-		fileSystem.ServeHTTP(w, r)
-	})
 
 	r.Route("/api", func(r chi.Router) {
 		r.Route("/auth", newAuthHandler(encoder, s.log, s.config.Config, s.cookieStore, s.authService).Routes)
@@ -153,9 +144,8 @@ func (s Server) Handler() http.Handler {
 		})
 	})
 
-	//r.HandleFunc("/*", handler.ServeHTTP)
-	r.Get("/", s.index)
-	r.Get("/*", s.index)
+	// serve the web
+	web.RegisterHandler(r, s.version, s.config.Config.BaseURL)
 
 	return r
 }

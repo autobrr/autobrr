@@ -1,8 +1,14 @@
+/*
+ * Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ */
+
 import React from "react";
 import type { FieldInputProps, FieldMetaProps, FieldProps, FormikProps, FormikValues } from "formik";
 import { Field } from "formik";
 import { Switch as HeadlessSwitch } from "@headlessui/react";
-import { classNames } from "../../utils";
+
+import { classNames } from "@utils";
 import { CustomTooltip } from "../tooltips/CustomTooltip";
 
 type SwitchProps<V = unknown> = {
@@ -82,7 +88,7 @@ const SwitchGroup = ({
 }: SwitchGroupProps) => (
   <HeadlessSwitch.Group as="ol" className="py-4 flex items-center justify-between">
     {label && <div className="flex flex-col">
-      <HeadlessSwitch.Label as={heading ? "h2" : "p"} className={classNames("flex float-left cursor-default mb-2 text-xs font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wide", heading ? "text-lg" : "text-sm")}
+      <HeadlessSwitch.Label as={heading ? "h2" : "span"} className={classNames("flex float-left cursor-default mb-2 text-xs font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wide", heading ? "text-lg" : "text-sm")}
         passive>
         <div className="flex">
           {label}

@@ -1,14 +1,12 @@
-import { useToggle } from "../../hooks/hooks";
-import { useMutation, useQuery, useQueryClient } from "react-query";
-import { APIClient } from "../../api/APIClient";
-import { Menu, Switch, Transition } from "@headlessui/react";
+/*
+ * Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ */
 
-import { baseUrl, classNames, IsEmptyDate, simplifyDate } from "../../utils";
-import { Fragment, useRef, useState } from "react";
+import { Fragment, useRef, useState, useMemo } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Menu, Switch, Transition } from "@headlessui/react";
 import { toast } from "react-hot-toast";
-import Toast from "../../components/notifications/Toast";
-import { queryClient } from "../../App";
-import { DeleteModal } from "../../components/modals";
 import {
   ArrowsRightLeftIcon,
   DocumentTextIcon,
@@ -16,16 +14,86 @@ import {
   PencilSquareIcon,
   TrashIcon
 } from "@heroicons/react/24/outline";
-import { FeedUpdateForm } from "../../forms/settings/FeedForms";
-import { EmptySimple } from "../../components/emptystates";
+
+import { APIClient } from "@api/APIClient";
+import { useToggle } from "@hooks/hooks";
+import { baseUrl, classNames, IsEmptyDate, simplifyDate } from "@utils";
+import Toast from "@components/notifications/Toast";
+import { DeleteModal } from "@components/modals";
+import { FeedUpdateForm } from "@forms/settings/FeedForms";
+import { EmptySimple } from "@components/emptystates";
 import { ImplementationBadges } from "./Indexer";
 
+export const feedKeys = {
+  all: ["feeds"] as const,
+  lists: () => [...feedKeys.all, "list"] as const,
+  // list: (indexers: string[], sortOrder: string) => [...feedKeys.lists(), { indexers, sortOrder }] as const,
+  details: () => [...feedKeys.all, "detail"] as const,
+  detail: (id: number) => [...feedKeys.details(), id] as const
+};
+
+interface SortConfig {
+  key: keyof ListItemProps["feed"] | "enabled";
+  direction: "ascending" | "descending";
+}
+
+function useSort(items: ListItemProps["feed"][], config?: SortConfig) {
+  const [sortConfig, setSortConfig] = useState(config);
+
+  const sortedItems = useMemo(() => {
+    if (!sortConfig) {
+      return items;
+    }
+
+    const sortableItems = [...items];
+
+    sortableItems.sort((a, b) => {
+      const aValue = sortConfig.key === "enabled" ? (a[sortConfig.key] ?? false) as number | boolean | string : a[sortConfig.key] as number | boolean | string;
+      const bValue = sortConfig.key === "enabled" ? (b[sortConfig.key] ?? false) as number | boolean | string : b[sortConfig.key] as number | boolean | string;
+  
+      if (aValue < bValue) {
+        return sortConfig.direction === "ascending" ? -1 : 1;
+      }
+      if (aValue > bValue) {
+        return sortConfig.direction === "ascending" ? 1 : -1;
+      }
+      return 0;
+    });    
+
+    return sortableItems;
+  }, [items, sortConfig]);
+
+  const requestSort = (key: keyof ListItemProps["feed"] | "enabled") => {    let direction: "ascending" | "descending" = "ascending";
+    if (
+      sortConfig &&
+      sortConfig.key === key &&
+      sortConfig.direction === "ascending"
+    ) {
+      direction = "descending";
+    }
+    setSortConfig({ key, direction });
+  };
+  
+
+  const getSortIndicator = (key: keyof ListItemProps["feed"]) => {
+    if (!sortConfig || sortConfig.key !== key) {
+      return "";
+    }
+    
+    return sortConfig.direction === "ascending" ? "↑" : "↓";
+  };
+
+  return { items: sortedItems, requestSort, sortConfig, getSortIndicator };
+}
+
 function FeedSettings() {
-  const { data } = useQuery(
-    "feeds",
-    () => APIClient.feeds.find(),
-    { refetchOnWindowFocus: false }
-  );
+  const { data } = useQuery({
+    queryKey: feedKeys.lists(),
+    queryFn: APIClient.feeds.find,
+    refetchOnWindowFocus: false
+  });
+
+  const sortedFeeds = useSort(data || []);
 
   return (
     <div className="lg:col-span-9">
@@ -34,7 +102,7 @@ function FeedSettings() {
           <div className="ml-4 mt-4">
             <h3 className="text-lg leading-6 font-medium text-gray-900 dark:text-white">Feeds</h3>
             <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-              Manage RSS and Torznab feeds.
+              Manage RSS, Newznab, and Torznab feeds.
             </p>
           </div>
         </div>
@@ -44,20 +112,28 @@ function FeedSettings() {
             <ol className="min-w-full relative">
               <li className="grid grid-cols-12 border-b border-gray-200 dark:border-gray-700">
                 <div
-                  className="col-span-2 sm:col-span-1 px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Enabled
+                  className="flex col-span-2 sm:col-span-1 px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer"
+                  onClick={() => sortedFeeds.requestSort("enabled")}>
+                  Enabled <span className="sort-indicator">{sortedFeeds.getSortIndicator("enabled")}</span>
                 </div>
                 <div
-                  className="col-span-6 pl-12 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Name
+                  className="col-span-6 pl-12 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer"
+                  onClick={() => sortedFeeds.requestSort("name")}>
+                  Name <span className="sort-indicator">{sortedFeeds.getSortIndicator("name")}</span>
                 </div>
                 <div
-                  className="hidden md:flex col-span-1 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Type
+                  className="hidden md:flex col-span-1 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer"
+                  onClick={() => sortedFeeds.requestSort("type")}>
+                  Type <span className="sort-indicator">{sortedFeeds.getSortIndicator("type")}</span>
                 </div>
                 <div
-                  className="hidden md:flex col-span-3 px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Last run
+                  className="hidden md:flex col-span-3 px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer"
+                  onClick={() => sortedFeeds.requestSort("last_run")}>
+                  Last run <span className="sort-indicator">{sortedFeeds.getSortIndicator("last_run")}</span>
                 </div>
               </li>
-              {data && data.map((f) => (
-                <ListItem key={f.id} feed={f}/>
+              {sortedFeeds.items.map((feed, idx) => (
+                <ListItem key={feed.id} feed={feed}/>
               ))}
             </ol>
           </section>
@@ -75,20 +151,17 @@ function ListItem({ feed }: ListItemProps) {
   const [updateFormIsOpen, toggleUpdateForm] = useToggle(false);
 
   const [enabled, setEnabled] = useState(feed.enabled);
+  const queryClient = useQueryClient();
 
-  const updateMutation = useMutation(
-    (status: boolean) => APIClient.feeds.toggleEnable(feed.id, status),
-    {
-      onSuccess: () => {
-        toast.custom((t) => <Toast type="success"
-          body={`${feed.name} was ${enabled ? "disabled" : "enabled"} successfully`}
-          t={t}/>);
+  const updateMutation = useMutation({
+    mutationFn: (status: boolean) => APIClient.feeds.toggleEnable(feed.id, status),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: feedKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: feedKeys.detail(feed.id) });
 
-        queryClient.invalidateQueries(["feeds"]);
-        queryClient.invalidateQueries(["feeds", feed?.id]);
-      }
+      toast.custom((t) => <Toast type="success" body={`${feed.name} was ${!enabled ? "disabled" : "enabled"} successfully.`} t={t}/>);
     }
-  );
+  });
 
   const toggleActive = (status: boolean) => {
     setEnabled(status);
@@ -161,17 +234,15 @@ const FeedItemDropdown = ({
   const queryClient = useQueryClient();
 
   const [deleteModalIsOpen, toggleDeleteModal] = useToggle(false);
-  const deleteMutation = useMutation(
-    (id: number) => APIClient.feeds.delete(id),
-    {
-      onSuccess: () => {
-        queryClient.invalidateQueries(["feeds"]);
-        queryClient.invalidateQueries(["feeds", feed.id]);
+  const deleteMutation = useMutation({
+    mutationFn: (id: number) => APIClient.feeds.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: feedKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: feedKeys.detail(feed.id) });
 
-        toast.custom((t) => <Toast type="success" body={`Feed ${feed?.name} was deleted`} t={t}/>);
-      }
+      toast.custom((t) => <Toast type="success" body={`Feed ${feed?.name} was deleted`} t={t}/>);
     }
-  );
+  });
 
   return (
     <Menu as="div">

@@ -1,12 +1,17 @@
+// Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+// SPDX-License-Identifier: GPL-2.0-or-later
+
 package btn
 
 import (
+	"context"
+
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/pkg/errors"
 )
 
-func (c *Client) TestAPI() (bool, error) {
-	res, err := c.rpcClient.Call("userInfo", [2]string{c.APIKey})
+func (c *Client) TestAPI(ctx context.Context) (bool, error) {
+	res, err := c.rpcClient.CallCtx(ctx, "userInfo", [2]string{c.APIKey})
 	if err != nil {
 		return false, errors.Wrap(err, "test api userInfo failed")
 	}
@@ -24,12 +29,12 @@ func (c *Client) TestAPI() (bool, error) {
 	return false, nil
 }
 
-func (c *Client) GetTorrentByID(torrentID string) (*domain.TorrentBasic, error) {
+func (c *Client) GetTorrentByID(ctx context.Context, torrentID string) (*domain.TorrentBasic, error) {
 	if torrentID == "" {
 		return nil, errors.New("btn client: must have torrentID")
 	}
 
-	res, err := c.rpcClient.Call("getTorrentById", [2]string{c.APIKey, torrentID})
+	res, err := c.rpcClient.CallCtx(ctx, "getTorrentById", [2]string{c.APIKey, torrentID})
 	if err != nil {
 		return nil, errors.Wrap(err, "call getTorrentById failed")
 	}

@@ -1,4 +1,9 @@
-import { MultiSelectOption } from "../components/inputs/select";
+/*
+ * Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ */
+
+import { MultiSelectOption } from "@components/inputs/select";
 
 export const resolutions = [
   "2160p",
@@ -127,19 +132,20 @@ export const QUALITY_MUSIC_OPTIONS: MultiSelectOption[] = qualityMusic.map(v => 
 
 export const releaseTypeMusic = [
   "Album",
-  "Single",
-  "EP",
-  "Soundtrack",
   "Anthology",
-  "Compilation",
-  "Live album",
-  "Remix",
   "Bootleg",
-  "Interview",
-  "Mixtape",
-  "Demo",
+  "Compilation",
   "Concert Recording",
+  "Demo",
   "DJ Mix",
+  "EP",
+  "Interview",
+  "Live album",
+  "Mixtape",
+  "Remix",
+  "Sampler",
+  "Single",
+  "Soundtrack",
   "Unknown"
 ];
 
@@ -277,8 +283,8 @@ export const DownloadClientTypeOptions: RadioFieldsetOption[] = [
     value: "READARR"
   },
   {
-    label: "Sabnzbd",
-    description: "Add nzbs directly to Sabnzbd",
+    label: "SABnzbd",
+    description: "Add nzbs directly to SABnzbd",
     value: "SABNZBD",
     type: "nzb"
   }
@@ -296,7 +302,7 @@ export const DownloadClientTypeNameMap: Record<DownloadClientType | string, stri
   "LIDARR": "Lidarr",
   "WHISPARR": "Whisparr",
   "READARR": "Readarr",
-  "SABNZBD": "Sabnzbd"
+  "SABNZBD": "SABnzbd"
 };
 
 export const ActionTypeOptions: RadioFieldsetOption[] = [
@@ -315,7 +321,7 @@ export const ActionTypeOptions: RadioFieldsetOption[] = [
   { label: "Lidarr", description: "Send to Lidarr and let it decide", value: "LIDARR" },
   { label: "Whisparr", description: "Send to Whisparr and let it decide", value: "WHISPARR" },
   { label: "Readarr", description: "Send to Readarr and let it decide", value: "READARR" },
-  { label: "Sabnzbd", description: "Add to Sabnzbd", value: "SABNZBD" }
+  { label: "SABnzbd", description: "Add to SABnzbd", value: "SABNZBD" }
 ];
 
 export const ActionTypeNameMap = {
@@ -334,7 +340,7 @@ export const ActionTypeNameMap = {
   "LIDARR": "Lidarr",
   "WHISPARR": "Whisparr",
   "READARR": "Readarr",
-  "SABNZBD": "Sabnzbd"
+  "SABNZBD": "SABnzbd"
 };
 
 export const ActionContentLayoutOptions: SelectGenericOption<ActionContentLayout>[] = [
@@ -385,6 +391,10 @@ export const NotificationTypeOptions: OptionBasicTyped<NotificationType>[] = [
   {
     label: "Telegram",
     value: "TELEGRAM"
+  },
+  {
+    label: "Pushover",
+    value: "PUSHOVER"
   }
 ];
 
@@ -498,5 +508,16 @@ export const FeedDownloadTypeOptions: OptionBasicTyped<FeedDownloadType>[] = [
   {
     label: "Torrent",
     value: "TORRENT"
+  }
+];
+
+export const tagsMatchLogicOptions: OptionBasic[] = [
+  {
+    label: "any",
+    value: "ANY"
+  },
+  {
+    label: "all",
+    value: "ALL"
   }
 ];

@@ -1,3 +1,6 @@
+// Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+// SPDX-License-Identifier: GPL-2.0-or-later
+
 package announce
 
 import (
@@ -197,6 +200,12 @@ func (a *announceProcessor) onLinesMatched(def *domain.IndexerDefinition, vars m
 	if err := rls.MapVars(def, vars); err != nil {
 		a.log.Error().Err(err).Msg("announce: could not map vars for release")
 		return err
+	}
+
+	// since OPS uses en-dashes as separators, which causes moistari/rls to not the torrentName properly,
+	// we replace the en-dashes with hyphens here
+	if def.Identifier == "ops" {
+		rls.TorrentName = strings.ReplaceAll(rls.TorrentName, "–", "-")
 	}
 
 	// parse fields

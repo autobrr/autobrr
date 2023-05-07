@@ -1,11 +1,80 @@
-import { useToggle } from "../../hooks/hooks";
-import { useQuery } from "react-query";
-import { IndexerAddForm, IndexerUpdateForm } from "../../forms";
+/*
+ * Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ */
+
+import { useState, useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Switch } from "@headlessui/react";
-import { classNames } from "../../utils";
-import { EmptySimple } from "../../components/emptystates";
-import { APIClient } from "../../api/APIClient";
-import { componentMapType } from "../../forms/settings/DownloadClientForms";
+
+import { IndexerAddForm, IndexerUpdateForm } from "@forms";
+import { useToggle } from "@hooks/hooks";
+import { classNames } from "@utils";
+import { EmptySimple } from "@components/emptystates";
+import { APIClient } from "@api/APIClient";
+import { componentMapType } from "@forms/settings/DownloadClientForms";
+
+export const indexerKeys = {
+  all: ["indexers"] as const,
+  lists: () => [...indexerKeys.all, "list"] as const,
+  // list: (indexers: string[], sortOrder: string) => [...indexerKeys.lists(), { indexers, sortOrder }] as const,
+  details: () => [...indexerKeys.all, "detail"] as const,
+  detail: (id: number) => [...indexerKeys.details(), id] as const
+};
+
+interface SortConfig {
+  key: keyof ListItemProps["indexer"] | "enabled";
+  direction: "ascending" | "descending";
+}
+
+function useSort(items: ListItemProps["indexer"][], config?: SortConfig) {
+  const [sortConfig, setSortConfig] = useState(config);
+
+  const sortedItems = useMemo(() => {
+    if (!sortConfig) {
+      return items;
+    }
+
+    const sortableItems = [...items];
+
+    sortableItems.sort((a, b) => {
+      const aValue = sortConfig.key === "enabled" ? (a[sortConfig.key] ?? false) as number | boolean | string : a[sortConfig.key] as number | boolean | string;
+      const bValue = sortConfig.key === "enabled" ? (b[sortConfig.key] ?? false) as number | boolean | string : b[sortConfig.key] as number | boolean | string;
+  
+      if (aValue < bValue) {
+        return sortConfig.direction === "ascending" ? -1 : 1;
+      }
+      if (aValue > bValue) {
+        return sortConfig.direction === "ascending" ? 1 : -1;
+      }
+      return 0;
+    });    
+
+    return sortableItems;
+  }, [items, sortConfig]);
+
+  const requestSort = (key: keyof ListItemProps["indexer"]) => {
+    let direction: "ascending" | "descending" = "ascending";
+    if (
+      sortConfig &&
+      sortConfig.key === key &&
+      sortConfig.direction === "ascending"
+    ) {
+      direction = "descending";
+    }
+    setSortConfig({ key, direction });
+  };
+
+  const getSortIndicator = (key: keyof ListItemProps["indexer"]) => {
+    if (!sortConfig || sortConfig.key !== key) {
+      return "";
+    }
+    
+    return sortConfig.direction === "ascending" ? "↑" : "↓";
+  };
+
+  return { items: sortedItems, requestSort, sortConfig, getSortIndicator };
+}
 
 const ImplementationBadgeIRC = () => (
   <span className="mr-2 inline-flex items-center px-2.5 py-0.5 rounded-md text-sm font-medium bg-green-200 dark:bg-green-400 text-green-800 dark:text-green-800">
@@ -94,14 +163,17 @@ const ListItem = ({ indexer }: ListItemProps) => {
 function IndexerSettings() {
   const [addIndexerIsOpen, toggleAddIndexer] = useToggle(false);
 
-  const { error, data } = useQuery(
-    "indexer",
-    () => APIClient.indexers.getAll(),
-    { refetchOnWindowFocus: false }
-  );
+  const { error, data } = useQuery({
+    queryKey: indexerKeys.lists(),
+    queryFn: APIClient.indexers.getAll,
+    refetchOnWindowFocus: false
+  });
 
-  if (error)
+  const sortedIndexers = useSort(data || []);
+
+  if (error) {
     return (<p>An error has occurred</p>);
+  }
 
   return (
     <div className="lg:col-span-9">
@@ -114,7 +186,8 @@ function IndexerSettings() {
               Indexers
             </h3>
             <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-              Indexer settings.
+              Indexer settings for IRC, RSS, Newznab, and Torznab based indexers.<br />
+              Generic feeds can be added here by selecting the Generic indexer.
             </p>
           </div>
           <div className="ml-4 mt-4 flex-shrink-0">
@@ -133,17 +206,26 @@ function IndexerSettings() {
             <section className="light:bg-white dark:bg-gray-800 light:shadow sm:rounded-md">
               <ol className="min-w-full relative">
                 <li className="grid grid-cols-12 border-b border-gray-200 dark:border-gray-700">
-                  <div className="col-span-2 sm:col-span-1 px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                    Enabled
+                  <div
+                    className="flex col-span-2 sm:col-span-1 px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer"
+                    onClick={() => sortedIndexers.requestSort("enabled")}
+                  >
+  Enabled <span className="sort-indicator">{sortedIndexers.getSortIndicator("enabled")}</span>
                   </div>
-                  <div className="col-span-7 sm:col-span-8 pl-12 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                    Name
+                  <div
+                    className="col-span-7 sm:col-span-8 pl-12 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer"
+                    onClick={() => sortedIndexers.requestSort("name")}
+                  >
+  Name <span className="sort-indicator">{sortedIndexers.getSortIndicator("name")}</span>
                   </div>
-                  <div className="hidden md:flex col-span-1 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                    Implementation
+                  <div
+                    className="hidden md:flex col-span-1 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer"
+                    onClick={() => sortedIndexers.requestSort("implementation")}
+                  >
+  Implementation <span className="sort-indicator">{sortedIndexers.getSortIndicator("implementation")}</span>
                   </div>
                 </li>
-                {data.map((indexer, idx) => (
+                {sortedIndexers.items.map((indexer, idx) => (
                   <ListItem indexer={indexer} key={idx} />
                 ))}
               </ol>

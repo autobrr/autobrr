@@ -1,8 +1,12 @@
+// Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+// SPDX-License-Identifier: GPL-2.0-or-later
+
 package action
 
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/pkg/errors"
@@ -93,14 +97,27 @@ func (s *service) prepareQbitOptions(action *domain.Action) (map[string]string, 
 		// if ORIGINAL then leave empty
 	}
 	if action.SavePath != "" {
-		opts.SavePath = action.SavePath
+		opts.SavePath = strings.TrimSpace(action.SavePath)
 		opts.AutoTMM = false
 	}
 	if action.Category != "" {
-		opts.Category = action.Category
+		opts.Category = strings.TrimSpace(action.Category)
 	}
 	if action.Tags != "" {
-		opts.Tags = action.Tags
+		// Split the action.Tags string by comma
+		tags := strings.Split(action.Tags, ",")
+
+		// Create a new slice to store the trimmed tags
+		trimmedTags := make([]string, 0, len(tags))
+
+		// Iterate over the tags and trim each one
+		for _, tag := range tags {
+			trimmedTag := strings.TrimSpace(tag)
+			trimmedTags = append(trimmedTags, trimmedTag)
+		}
+
+		// Join the trimmed tags back together with commas
+		opts.Tags = strings.Join(trimmedTags, ",")
 	}
 	if action.LimitUploadSpeed > 0 {
 		opts.LimitUploadSpeed = action.LimitUploadSpeed

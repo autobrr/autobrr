@@ -1,3 +1,6 @@
+// Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+// SPDX-License-Identifier: GPL-2.0-or-later
+
 package http
 
 import (
@@ -43,10 +46,10 @@ func (h releaseHandler) findReleases(w http.ResponseWriter, r *http.Request) {
 	limitP := r.URL.Query().Get("limit")
 	limit, err := strconv.Atoi(limitP)
 	if err != nil && limitP != "" {
-		h.encoder.StatusResponse(r.Context(), w, map[string]interface{}{
+		h.encoder.StatusResponse(w, http.StatusBadRequest, map[string]interface{}{
 			"code":    "BAD_REQUEST_PARAMS",
 			"message": "limit parameter is invalid",
-		}, http.StatusBadRequest)
+		})
 		return
 	}
 	if limit == 0 {
@@ -56,10 +59,10 @@ func (h releaseHandler) findReleases(w http.ResponseWriter, r *http.Request) {
 	offsetP := r.URL.Query().Get("offset")
 	offset, err := strconv.Atoi(offsetP)
 	if err != nil && offsetP != "" {
-		h.encoder.StatusResponse(r.Context(), w, map[string]interface{}{
+		h.encoder.StatusResponse(w, http.StatusBadRequest, map[string]interface{}{
 			"code":    "BAD_REQUEST_PARAMS",
 			"message": "offset parameter is invalid",
-		}, http.StatusBadRequest)
+		})
 		return
 	}
 
@@ -68,20 +71,20 @@ func (h releaseHandler) findReleases(w http.ResponseWriter, r *http.Request) {
 	if cursorP != "" {
 		cursor, err = strconv.Atoi(cursorP)
 		if err != nil && cursorP != "" {
-			h.encoder.StatusResponse(r.Context(), w, map[string]interface{}{
+			h.encoder.StatusResponse(w, http.StatusBadRequest, map[string]interface{}{
 				"code":    "BAD_REQUEST_PARAMS",
 				"message": "cursor parameter is invalid",
-			}, http.StatusBadRequest)
+			})
 		}
 		return
 	}
 
 	u, err := url.Parse(r.URL.String())
 	if err != nil {
-		h.encoder.StatusResponse(r.Context(), w, map[string]interface{}{
+		h.encoder.StatusResponse(w, http.StatusBadRequest, map[string]interface{}{
 			"code":    "BAD_REQUEST_PARAMS",
 			"message": "indexer parameter is invalid",
-		}, http.StatusBadRequest)
+		})
 		return
 	}
 	vals := u.Query()
@@ -104,10 +107,10 @@ func (h releaseHandler) findReleases(w http.ResponseWriter, r *http.Request) {
 
 	releases, nextCursor, count, err := h.service.Find(r.Context(), query)
 	if err != nil {
-		h.encoder.StatusResponse(r.Context(), w, map[string]interface{}{
+		h.encoder.StatusResponse(w, http.StatusInternalServerError, map[string]interface{}{
 			"code":    "INTERNAL_SERVER_ERROR",
 			"message": err.Error(),
-		}, http.StatusInternalServerError)
+		})
 		return
 	}
 
@@ -121,17 +124,17 @@ func (h releaseHandler) findReleases(w http.ResponseWriter, r *http.Request) {
 		Count:      count,
 	}
 
-	h.encoder.StatusResponse(r.Context(), w, ret, http.StatusOK)
+	h.encoder.StatusResponse(w, http.StatusOK, ret)
 }
 
 func (h releaseHandler) findRecentReleases(w http.ResponseWriter, r *http.Request) {
 
 	releases, err := h.service.FindRecent(r.Context())
 	if err != nil {
-		h.encoder.StatusResponse(r.Context(), w, map[string]interface{}{
+		h.encoder.StatusResponse(w, http.StatusInternalServerError, map[string]interface{}{
 			"code":    "INTERNAL_SERVER_ERROR",
 			"message": err.Error(),
-		}, http.StatusInternalServerError)
+		})
 		return
 	}
 
@@ -141,43 +144,43 @@ func (h releaseHandler) findRecentReleases(w http.ResponseWriter, r *http.Reques
 		Data: releases,
 	}
 
-	h.encoder.StatusResponse(r.Context(), w, ret, http.StatusOK)
+	h.encoder.StatusResponse(w, http.StatusOK, ret)
 }
 
 func (h releaseHandler) getIndexerOptions(w http.ResponseWriter, r *http.Request) {
 	stats, err := h.service.GetIndexerOptions(r.Context())
 	if err != nil {
-		h.encoder.StatusResponse(r.Context(), w, map[string]interface{}{
+		h.encoder.StatusResponse(w, http.StatusInternalServerError, map[string]interface{}{
 			"code":    "INTERNAL_SERVER_ERROR",
 			"message": err.Error(),
-		}, http.StatusInternalServerError)
+		})
 		return
 	}
 
-	h.encoder.StatusResponse(r.Context(), w, stats, http.StatusOK)
+	h.encoder.StatusResponse(w, http.StatusOK, stats)
 }
 
 func (h releaseHandler) getStats(w http.ResponseWriter, r *http.Request) {
 
 	stats, err := h.service.Stats(r.Context())
 	if err != nil {
-		h.encoder.StatusResponse(r.Context(), w, map[string]interface{}{
+		h.encoder.StatusResponse(w, http.StatusInternalServerError, map[string]interface{}{
 			"code":    "INTERNAL_SERVER_ERROR",
 			"message": err.Error(),
-		}, http.StatusInternalServerError)
+		})
 		return
 	}
 
-	h.encoder.StatusResponse(r.Context(), w, stats, http.StatusOK)
+	h.encoder.StatusResponse(w, http.StatusOK, stats)
 }
 
 func (h releaseHandler) deleteReleases(w http.ResponseWriter, r *http.Request) {
 	err := h.service.Delete(r.Context())
 	if err != nil {
-		h.encoder.StatusResponse(r.Context(), w, map[string]interface{}{
+		h.encoder.StatusResponse(w, http.StatusInternalServerError, map[string]interface{}{
 			"code":    "INTERNAL_SERVER_ERROR",
 			"message": err.Error(),
-		}, http.StatusInternalServerError)
+		})
 		return
 	}
 

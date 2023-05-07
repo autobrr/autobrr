@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ */
+
 interface Filter {
   id: number;
   name: string;
@@ -57,6 +62,8 @@ interface Filter {
   except_tags: string;
   tags_any: string;
   except_tags_any: string;
+  tags_match_logic: string;
+  except_tags_match_logic: string;
   actions_count: number;
   actions: Action[];
   indexers: Indexer[];

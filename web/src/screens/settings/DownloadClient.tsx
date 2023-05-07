@@ -1,32 +1,104 @@
-import { useToggle } from "../../hooks/hooks";
+/*
+ * Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ */
+
+import { useState, useMemo } from "react";
 import { Switch } from "@headlessui/react";
-import { useMutation, useQuery, useQueryClient } from "react-query";
-import { classNames } from "../../utils";
-import { DownloadClientAddForm, DownloadClientUpdateForm } from "../../forms";
-import { EmptySimple } from "../../components/emptystates";
-import { APIClient } from "../../api/APIClient";
-import { DownloadClientTypeNameMap } from "../../domain/constants";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import toast from "react-hot-toast";
-import Toast from "../../components/notifications/Toast";
+
+import { useToggle } from "@hooks/hooks";
+import { classNames } from "@utils";
+import { DownloadClientAddForm, DownloadClientUpdateForm } from "@forms";
+import { EmptySimple } from "@components/emptystates";
+import { APIClient } from "@api/APIClient";
+import { DownloadClientTypeNameMap } from "@domain/constants";
+import Toast from "@components/notifications/Toast";
+
+export const clientKeys = {
+  all: ["download_clients"] as const,
+  lists: () => [...clientKeys.all, "list"] as const,
+  // list: (indexers: string[], sortOrder: string) => [...clientKeys.lists(), { indexers, sortOrder }] as const,
+  details: () => [...clientKeys.all, "detail"] as const,
+  detail: (id: number) => [...clientKeys.details(), id] as const
+};
 
 interface DLSettingsItemProps {
     client: DownloadClient;
     idx: number;
 }
 
+interface ListItemProps {
+  clients: DownloadClient;
+}
+
+interface SortConfig {
+  key: keyof ListItemProps["clients"] | "enabled";
+  direction: "ascending" | "descending";
+}
+
+function useSort(items: ListItemProps["clients"][], config?: SortConfig) {
+  const [sortConfig, setSortConfig] = useState(config);
+
+  const sortedItems = useMemo(() => {
+    if (!sortConfig) {
+      return items;
+    }
+
+    const sortableItems = [...items];
+
+    sortableItems.sort((a, b) => {
+      const aValue = sortConfig.key === "enabled" ? (a[sortConfig.key] ?? false) as number | boolean | string : a[sortConfig.key] as number | boolean | string;
+      const bValue = sortConfig.key === "enabled" ? (b[sortConfig.key] ?? false) as number | boolean | string : b[sortConfig.key] as number | boolean | string;
+  
+      if (aValue < bValue) {
+        return sortConfig.direction === "ascending" ? -1 : 1;
+      }
+      if (aValue > bValue) {
+        return sortConfig.direction === "ascending" ? 1 : -1;
+      }
+      return 0;
+    });    
+
+    return sortableItems;
+  }, [items, sortConfig]);
+
+  const requestSort = (key: keyof ListItemProps["clients"]) => {
+    let direction: "ascending" | "descending" = "ascending";
+    if (
+      sortConfig &&
+      sortConfig.key === key &&
+      sortConfig.direction === "ascending"
+    ) {
+      direction = "descending";
+    }
+    setSortConfig({ key, direction });
+  };
+
+  const getSortIndicator = (key: keyof ListItemProps["clients"]) => {
+    if (!sortConfig || sortConfig.key !== key) {
+      return "";
+    }
+    
+    return sortConfig.direction === "ascending" ? "↑" : "↓";
+  };
+
+  return { items: sortedItems, requestSort, sortConfig, getSortIndicator };
+}
+
 function DownloadClientSettingsListItem({ client }: DLSettingsItemProps) {
   const [updateClientIsOpen, toggleUpdateClient] = useToggle(false);
 
   const queryClient = useQueryClient();
-  const mutation = useMutation(
-    (client: DownloadClient) => APIClient.download_clients.update(client),
-    {
-      onSuccess: () => {
-        queryClient.invalidateQueries(["downloadClients"]);
-        toast.custom((t) => <Toast type="success" body={`${client.name} was updated successfully`} t={t}/>);
-      }
+
+  const mutation = useMutation({
+    mutationFn: (client: DownloadClient) => APIClient.download_clients.update(client).then(() => client),
+    onSuccess: (client: DownloadClient) => {
+      toast.custom(t => <Toast type="success" body={`${client.name} was ${client.enabled ? "enabled" : "disabled"} successfully.`} t={t} />);
+      queryClient.invalidateQueries({ queryKey: clientKeys.lists() });
     }
-  );
+  });
 
   const onToggleMutation = (newState: boolean) => {
     mutation.mutate({
@@ -78,11 +150,13 @@ function DownloadClientSettingsListItem({ client }: DLSettingsItemProps) {
 function DownloadClientSettings() {
   const [addClientIsOpen, toggleAddClient] = useToggle(false);
 
-  const { error, data } = useQuery(
-    "downloadClients",
-    () => APIClient.download_clients.getAll(),
-    { refetchOnWindowFocus: false }
-  );
+  const { error, data } = useQuery({
+    queryKey: clientKeys.lists(),
+    queryFn: APIClient.download_clients.getAll,
+    refetchOnWindowFocus: false
+  });
+
+  const sortedClients = useSort(data || []);
 
   if (error) {
     return <p>Failed to fetch download clients</p>;
@@ -90,7 +164,6 @@ function DownloadClientSettings() {
 
   return (
     <div className="lg:col-span-9">
-
       <DownloadClientAddForm isOpen={addClientIsOpen} toggle={toggleAddClient} />
 
       <div className="py-6 px-2 lg:pb-8">
@@ -113,24 +186,33 @@ function DownloadClientSettings() {
         </div>
 
         <div className="flex flex-col mt-6 px-4">
-          {data && data.length > 0 ?
-            <section className="light:bg-white dark:bg-gray-800 light:shadow sm:rounded-sm">
+          {sortedClients.items.length > 0
+            ? <section className="light:bg-white dark:bg-gray-800 light:shadow sm:rounded-sm">
               <ol className="min-w-full relative">
                 <li className="grid grid-cols-12 border-b border-gray-200 dark:border-gray-700">
-                  <div className="col-span-2 sm:col-span-1 px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                    Enabled
+                  <div className="flex col-span-2 sm:col-span-1 px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer"
+                    onClick={() => sortedClients.requestSort("enabled")}>
+                    Enabled <span className="sort-indicator">{sortedClients.getSortIndicator("enabled")}</span>
                   </div>
-                  <div className="col-span-6 sm:col-span-4 lg:col-span-4 pl-12 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                    Name
+                  <div 
+                    className="col-span-6 sm:col-span-4 lg:col-span-4 pl-12 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer"
+                    onClick={() => sortedClients.requestSort("name")}
+                  >
+                    Name <span className="sort-indicator">{sortedClients.getSortIndicator("name")}</span>
                   </div>
-                  <div className="hidden sm:flex col-span-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                    Host
+                  <div
+                    className="hidden sm:flex col-span-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer"
+                    onClick={() => sortedClients.requestSort("host")}
+                  >
+                    Host <span className="sort-indicator">{sortedClients.getSortIndicator("host")}</span>
                   </div>
-                  <div className="hidden sm:flex col-span-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                    Type
+                  <div className="hidden sm:flex col-span-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer"
+                    onClick={() => sortedClients.requestSort("type")}
+                  >
+                    Type <span className="sort-indicator">{sortedClients.getSortIndicator("type")}</span>
                   </div>
                 </li>
-                {data && data.map((client, idx) => (
+                {sortedClients.items.map((client, idx) => (
                   <DownloadClientSettingsListItem client={client} idx={idx} key={idx} />
                 ))}
               </ol>
@@ -140,7 +222,6 @@ function DownloadClientSettings() {
         </div>
       </div>
     </div>
-
   );
 }
 

@@ -1,6 +1,10 @@
+// Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+// SPDX-License-Identifier: GPL-2.0-or-later
+
 package red
 
 import (
+	"context"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -79,7 +83,7 @@ func TestREDClient_GetTorrentByID(t *testing.T) {
 			},
 			args:    args{torrentID: "100002"},
 			want:    nil,
-			wantErr: "could not get torrent by id: 100002: bad id parameter",
+			wantErr: "could not get torrent by id: 100002: status code: 400 status: failure error: bad id parameter",
 		},
 		{
 			name: "get_by_id_3",
@@ -89,14 +93,15 @@ func TestREDClient_GetTorrentByID(t *testing.T) {
 			},
 			args:    args{torrentID: "100002"},
 			want:    nil,
-			wantErr: "could not get torrent by id: 100002: unauthorized: bad credentials",
+			wantErr: "could not get torrent by id: 100002: RED client missing API key!",
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			c := NewClient(tt.fields.Url, tt.fields.APIKey)
+			c := NewClient(tt.fields.APIKey)
+			c.UseURL(tt.fields.Url)
 
-			got, err := c.GetTorrentByID(tt.args.torrentID)
+			got, err := c.GetTorrentByID(context.Background(), tt.args.torrentID)
 			if tt.wantErr != "" && assert.Error(t, err) {
 				assert.EqualErrorf(t, err, tt.wantErr, "Error should be: %v, got: %v", tt.wantErr, err)
 			}

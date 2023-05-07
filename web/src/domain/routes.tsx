@@ -1,14 +1,18 @@
+/*
+ * Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ */
+
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 
-import { Login } from "../screens/auth/login";
-import { Logout } from "../screens/auth/logout";
-import { Onboarding } from "../screens/auth/onboarding";
-import Base from "../screens/Base";
-import { Dashboard } from "../screens/dashboard";
-import { FilterDetails, Filters } from "../screens/filters";
-import { Logs } from "../screens/Logs";
-import { Releases } from "../screens/releases";
-import Settings from "../screens/Settings";
+import { Login } from "@screens/auth/login";
+import { Onboarding } from "@screens/auth/onboarding";
+import Base from "@screens/Base";
+import { Dashboard } from "@screens/dashboard";
+import { FilterDetails, Filters } from "@screens/filters";
+import { Logs } from "@screens/Logs";
+import { Releases } from "@screens/releases";
+import Settings from "@screens/Settings";
 import {
   APISettings,
   ApplicationSettings,
@@ -19,16 +23,17 @@ import {
   LogSettings,
   NotificationSettings,
   ReleaseSettings
-} from "../screens/settings/";
-import { RegexPlayground } from "../screens/settings/RegexPlayground";
+} from "@screens/settings/index";
+import { RegexPlayground } from "@screens/settings/RegexPlayground";
+import { NotFound } from "@components/alerts/NotFound";
 
-import { baseUrl } from "../utils";
+import { baseUrl } from "@utils";
 
 export const LocalRouter = ({ isLoggedIn }: { isLoggedIn: boolean }) => (
   <BrowserRouter basename={baseUrl()}>
     {isLoggedIn ? (
       <Routes>
-        <Route path="/logout" element={<Logout />} />
+        <Route path="*" element={<NotFound />} />
         <Route element={<Base />}>
           <Route index element={<Dashboard />} />
           <Route path="logs" element={<Logs />} />

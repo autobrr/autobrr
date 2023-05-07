@@ -1,6 +1,13 @@
-import { useToggle } from "../../hooks/hooks";
+/*
+ * Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ */
+
+import { useToggle } from "@hooks/hooks";
 import { CheckIcon, DocumentDuplicateIcon, EyeIcon, EyeSlashIcon } from "@heroicons/react/24/outline";
 import { useState } from "react";
+import { toast } from "react-hot-toast";
+import Toast from "@components/notifications/Toast";
 
 interface KeyFieldProps {
   value: string;
@@ -25,12 +32,29 @@ export const KeyField = ({ value }: KeyFieldProps) => {
       .then(() => {
         // If successful, update the isCopied state value
         setIsCopied(true);
+
+        toast.custom(t => (
+          <Toast
+            type="success"
+            body="API key copied to clipboard!"
+            t={t}
+          />
+        ));
+
         setTimeout(() => {
           setIsCopied(false);
         }, 1500);
       })
       .catch((err) => {
         console.error(err);
+
+        toast.custom(t => (
+          <Toast
+            type="error"
+            body="Failed to copy API key."
+            t={t}
+          />
+        ));
       });
   };
 

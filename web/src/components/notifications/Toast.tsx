@@ -1,10 +1,15 @@
+/*
+ * Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ */
+
 import { FC } from "react";
-import { CheckCircleIcon, ExclamationCircleIcon, ExclamationTriangleIcon, XMarkIcon } from "@heroicons/react/24/solid";
+import { CheckCircleIcon, ExclamationCircleIcon, ExclamationTriangleIcon, InformationCircleIcon, XMarkIcon } from "@heroicons/react/24/solid";
 import { toast, Toast as Tooast } from "react-hot-toast";
-import { classNames } from "../../utils";
+import { classNames } from "@utils";
 
 type Props = {
-  type: "error" | "success" | "warning"
+  type: "error" | "success" | "warning" | "info";
   body?: string
   t?: Tooast;
 };
@@ -19,14 +24,16 @@ const Toast: FC<Props> = ({ type, body, t }) => (
           {type === "success" && <CheckCircleIcon className="h-6 w-6 text-green-400" aria-hidden="true" />}
           {type === "error" && <ExclamationCircleIcon className="h-6 w-6 text-red-400" aria-hidden="true" />}
           {type === "warning" && <ExclamationTriangleIcon className="h-6 w-6 text-yellow-400" aria-hidden="true" />}
+          {type === "info" && <InformationCircleIcon className="h-6 w-6 text-blue-400" aria-hidden="true" />}
         </div>
         <div className="ml-3 w-0 flex-1 pt-0.5">
           <p className="text-sm font-medium text-gray-900 dark:text-gray-200">
             {type === "success" && "Success"}
             {type === "error" && "Error"}
             {type === "warning" && "Warning"}
+            {type === "info" && "Info"}
           </p>
-          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">{body}</p>
+          <span className="mt-1 text-sm text-gray-500 dark:text-gray-400">{body}</span>
         </div>
         <div className="ml-4 flex-shrink-0 flex">
           <button

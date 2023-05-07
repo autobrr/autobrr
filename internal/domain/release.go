@@ -1,3 +1,6 @@
+// Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+// SPDX-License-Identifier: GPL-2.0-or-later
+
 package domain
 
 import (
@@ -30,7 +33,7 @@ type ReleaseRepo interface {
 	GetIndexerOptions(ctx context.Context) ([]string, error)
 	GetActionStatusByReleaseID(ctx context.Context, releaseID int64) ([]ReleaseActionStatus, error)
 	Stats(ctx context.Context) (*ReleaseStats, error)
-	StoreReleaseActionStatus(ctx context.Context, actionStatus *ReleaseActionStatus) error
+	StoreReleaseActionStatus(ctx context.Context, status *ReleaseActionStatus) error
 	Delete(ctx context.Context) error
 	CanDownloadShow(ctx context.Context, title string, season int, episode int) (bool, error)
 }
@@ -105,6 +108,26 @@ type ReleaseActionStatus struct {
 	ReleaseID  int64             `json:"-"`
 }
 
+func NewReleaseActionStatus(action *Action, release *Release) *ReleaseActionStatus {
+	s := &ReleaseActionStatus{
+		ID:         0,
+		Status:     ReleasePushStatusPending,
+		Action:     action.Name,
+		Type:       action.Type,
+		Filter:     release.Filter.Name,
+		FilterID:   int64(release.Filter.ID),
+		Rejections: []string{},
+		Timestamp:  time.Now(),
+		ReleaseID:  release.ID,
+	}
+
+	if action.Client != nil {
+		s.Client = action.Client.Name
+	}
+
+	return s
+}
+
 type DownloadTorrentFileResponse struct {
 	MetaInfo    *metainfo.MetaInfo
 	TmpFileName string
@@ -121,11 +144,10 @@ type ReleaseStats struct {
 type ReleasePushStatus string
 
 const (
+	ReleasePushStatusPending  ReleasePushStatus = "PENDING" // Initial status
 	ReleasePushStatusApproved ReleasePushStatus = "PUSH_APPROVED"
 	ReleasePushStatusRejected ReleasePushStatus = "PUSH_REJECTED"
 	ReleasePushStatusErr      ReleasePushStatus = "PUSH_ERROR"
-
-	//ReleasePushStatusPending  ReleasePushStatus = "PENDING" // Initial status
 )
 
 func (r ReleasePushStatus) String() string {
@@ -332,16 +354,10 @@ func (r *Release) downloadTorrentFile(ctx context.Context) error {
 		return nil
 	}
 
-	jar, err := cookiejar.New(&cookiejar.Options{PublicSuffixList: publicsuffix.List})
-	if err != nil {
-		return errors.Wrap(err, "could not create cookiejar")
-	}
-
 	customTransport := http.DefaultTransport.(*http.Transport).Clone()
 	customTransport.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
 	client := &http.Client{
 		Transport: customTransport,
-		Jar:       jar,
 		Timeout:   time.Second * 45,
 	}
 
@@ -350,7 +366,15 @@ func (r *Release) downloadTorrentFile(ctx context.Context) error {
 		return errors.Wrap(err, "error downloading file")
 	}
 
+	req.Header.Set("User-Agent", "autobrr")
+
 	if r.RawCookie != "" {
+		jar, err := cookiejar.New(&cookiejar.Options{PublicSuffixList: publicsuffix.List})
+		if err != nil {
+			return errors.Wrap(err, "could not create cookiejar")
+		}
+		client.Jar = jar
+
 		// set the cookie on the header instead of req.AddCookie
 		// since we have a raw cookie like "uid=10; pass=000"
 		req.Header.Set("Cookie", r.RawCookie)
@@ -371,14 +395,35 @@ func (r *Release) downloadTorrentFile(ctx context.Context) error {
 		}
 		defer resp.Body.Close()
 
-		if resp.StatusCode != http.StatusOK {
-			unRecoverableErr := errors.Wrap(ErrUnrecoverableError, "unrecoverable error downloading torrent (%v) file (%v) from '%v' - status code: %d", r.TorrentName, r.TorrentURL, r.Indexer, resp.StatusCode)
+		// Check server response
+		switch resp.StatusCode {
+		case http.StatusOK:
+			// Continue processing the response
+		case http.StatusMovedPermanently, http.StatusFound, http.StatusSeeOther, http.StatusTemporaryRedirect, http.StatusPermanentRedirect:
+			// Handle redirect
+			return retry.Unrecoverable(errors.New("redirect encountered for torrent (%v) file (%v) from '%v' - status code: %d. Check indexer keys.", r.TorrentName, r.TorrentURL, r.Indexer, resp.StatusCode))
 
-			if resp.StatusCode == 401 || resp.StatusCode == 403 || resp.StatusCode == 404 || resp.StatusCode == 405 {
-				return retry.Unrecoverable(unRecoverableErr)
-			}
+		case http.StatusUnauthorized, http.StatusForbidden:
+			return retry.Unrecoverable(errors.New("unrecoverable error downloading torrent (%v) file (%v) from '%v' - status code: %d. Check indexer keys", r.TorrentName, r.TorrentURL, r.Indexer, resp.StatusCode))
 
-			return errors.New("unexpected status: %v", resp.StatusCode)
+		case http.StatusMethodNotAllowed:
+			return retry.Unrecoverable(errors.New("unrecoverable error downloading torrent (%v) file (%v) from '%v' - status code: %d. Check if the request method is correct", r.TorrentName, r.TorrentURL, r.Indexer, resp.StatusCode))
+
+		case http.StatusNotFound:
+			return errors.New("torrent %s not found on %s (%d) - retrying", r.TorrentName, r.Indexer, resp.StatusCode)
+
+		case http.StatusInternalServerError, http.StatusBadGateway, http.StatusServiceUnavailable, http.StatusGatewayTimeout:
+			return errors.New("server error (%d) encountered while downloading torrent (%v) file (%v) from '%v' - retrying", resp.StatusCode, r.TorrentName, r.TorrentURL, r.Indexer)
+
+		default:
+			return retry.Unrecoverable(errors.New("unexpected status code %d: check indexer keys for %s", resp.StatusCode, r.Indexer))
+		}
+
+		// Check if the Content-Type header is correct
+		contentType := resp.Header.Get("Content-Type")
+
+		if strings.Contains(contentType, "text/html") {
+			return retry.Unrecoverable(errors.New("unexpected content type '%s': check indexer keys for %s", contentType, r.Indexer))
 		}
 
 		resetTmpFile := func() {
@@ -422,6 +467,15 @@ func (r *Release) downloadTorrentFile(ctx context.Context) error {
 	)
 
 	return errFunc
+}
+
+func (r *Release) CleanupTemporaryFiles() {
+	if len(r.TorrentTmpFile) == 0 {
+		return
+	}
+
+	os.Remove(r.TorrentTmpFile)
+	r.TorrentTmpFile = ""
 }
 
 // HasMagnetUri check uf MagnetURI is set or empty
@@ -544,6 +598,8 @@ func (r *Release) MapVars(def *IndexerDefinition, varMap map[string]string) erro
 		fl := StringEqualFoldMulti(freeleech, "freeleech", "yes", "1", "VIP")
 		if fl {
 			r.Freeleech = true
+			// default to 100 and override if freeleechPercent is present in next function
+			r.FreeleechPercent = 100
 			r.Bonus = append(r.Bonus, "Freeleech")
 		}
 	}
@@ -558,22 +614,23 @@ func (r *Release) MapVars(def *IndexerDefinition, varMap map[string]string) erro
 			//log.Debug().Msgf("bad freeleechPercent var: %v", year)
 		}
 
-		r.Freeleech = true
-		r.FreeleechPercent = freeleechPercentInt
+		if freeleechPercentInt > 0 {
+			r.Freeleech = true
+			r.FreeleechPercent = freeleechPercentInt
 
-		r.Bonus = append(r.Bonus, "Freeleech")
+			r.Bonus = append(r.Bonus, "Freeleech")
 
-		switch freeleechPercentInt {
-		case 25:
-			r.Bonus = append(r.Bonus, "Freeleech25")
-		case 50:
-			r.Bonus = append(r.Bonus, "Freeleech50")
-		case 75:
-			r.Bonus = append(r.Bonus, "Freeleech75")
-		case 100:
-			r.Bonus = append(r.Bonus, "Freeleech100")
+			switch freeleechPercentInt {
+			case 25:
+				r.Bonus = append(r.Bonus, "Freeleech25")
+			case 50:
+				r.Bonus = append(r.Bonus, "Freeleech50")
+			case 75:
+				r.Bonus = append(r.Bonus, "Freeleech75")
+			case 100:
+				r.Bonus = append(r.Bonus, "Freeleech100")
+			}
 		}
-
 	}
 
 	if uploader, err := getStringMapValue(varMap, "uploader"); err == nil {

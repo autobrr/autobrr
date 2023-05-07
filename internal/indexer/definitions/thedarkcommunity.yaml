@@ -1,0 +1,69 @@
+---
+#id: tdc
+name: TheDarkCommunity
+identifier: tdc
+description: TheDarkCommunity (TDC) is a private torrent tracker for MOVIES / TV
+language: en-US
+urls:
+  - https://thedarkcommunity.cc/
+privacy: private
+protocol: torrent
+supports:
+  - irc
+  - rss
+source: UNIT3D
+settings:
+  - name: rsskey
+    type: secret
+    required: true
+    label: RSS key (RID)
+    help: "Go to your profile tab, Settings > Security, copy RSS Key (RID)"
+
+irc:
+  network: TheDarkCommunity
+  server: irc.thedarkcommunity.cc
+  port: 6697
+  tls: true
+  channels:
+    - "#Announce"
+  announcers:
+    - TDCBOT
+  settings:
+    - name: nick
+      type: text
+      required: true
+      label: Nick
+      help: Bot nick. Eg. user_bot
+
+    - name: auth.account
+      type: text
+      required: false
+      label: NickServ Account
+      help: NickServ account. Make sure to group your user and bot.
+
+    - name: auth.password
+      type: secret
+      required: false
+      label: NickServ Password
+      help: NickServ password
+
+  parse:
+    type: single
+    lines:
+      - test:
+          - "Category [TV] Type [WEB-DL] Name [The Cars That Made the World S01 1080p WEB-DL AAC 2.0 H.264-EDITH] Freeleech [0%] Double Upload [No] Size [6.57 GB] Uploader [User] Url [https://thedarkcommunity.cc/torrents/download/8483]"
+          - "Category [TV] Type [WEB-DL] Name [Ax Men S09 1080p WEB-DL AAC 2.0 H.264-TURBO] Freeleech [0%] Double Upload [No] Size [26.87 GB] Uploader [User] Url [https://thedarkcommunity.cc/torrents/download/8484]"
+        pattern: '.*\[(.*)\].*\[(.*)\].*\[(.*)\].*\[(.*)\].*\[(?:.*)\].*\[(.*)\].*\[(.*)\].*(https?\:\/\/.*?\/).*\/(\d+).*'
+        vars:
+          - category
+          - releaseTags
+          - torrentName
+          - freeleechPercent
+          - torrentSize
+          - uploader
+          - baseUrl
+          - torrentId
+
+    match:
+      infourl: "/torrents/{{ .torrentId }}"
+      torrenturl: "/torrent/download/{{ .torrentId }}.{{ .rsskey }}"

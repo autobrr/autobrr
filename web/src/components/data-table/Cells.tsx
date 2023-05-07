@@ -1,9 +1,14 @@
+/*
+ * Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ */
+
 import * as React from "react";
 import { formatDistanceToNowStrict } from "date-fns";
 import { CheckIcon } from "@heroicons/react/24/solid";
 import { ClockIcon, ExclamationCircleIcon, NoSymbolIcon } from "@heroicons/react/24/outline";
 
-import { classNames, simplifyDate } from "../../utils";
+import { classNames, simplifyDate } from "@utils";
 import { Tooltip } from "../tooltips/Tooltip";
 
 interface CellProps {

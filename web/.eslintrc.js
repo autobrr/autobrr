@@ -42,7 +42,7 @@ module.exports = {
         //"plugin:@typescript-eslint/recommended-requiring-type-checking",
       ],
       parserOptions: {
-        project: "tsconfig.json",
+        // project: "tsconfig.json",
         // This is needed so we can always point to the tsconfig.json
         // file relative to the current .eslintrc.js file.
         // Generally, a problem occurrs when "npm run lint"

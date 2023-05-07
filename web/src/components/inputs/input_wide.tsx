@@ -1,24 +1,30 @@
+/*
+ * Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ */
+
 import type { FieldProps, FieldValidator } from "formik";
 import { Field } from "formik";
-import { classNames } from "../../utils";
-import { useToggle } from "../../hooks/hooks";
+import { classNames } from "@utils";
+import { useToggle } from "@hooks/hooks";
 import { EyeIcon, EyeSlashIcon } from "@heroicons/react/24/solid";
 import { Switch } from "@headlessui/react";
 import { ErrorField, RequiredField } from "./common";
 import Select, { components, ControlProps, InputProps, MenuProps, OptionProps } from "react-select";
 import { SelectFieldProps } from "./select";
-import { CustomTooltip } from "../tooltips/CustomTooltip";
+import { CustomTooltip } from "@components/tooltips/CustomTooltip";
 
 interface TextFieldWideProps {
-    name: string;
-    label?: string;
-    help?: string;
-    placeholder?: string;
-    defaultValue?: string;
-    required?: boolean;
-    hidden?: boolean;
-    tooltip?: JSX.Element;
-    validate?: FieldValidator;
+  name: string;
+  label?: string;
+  help?: string;
+  placeholder?: string;
+  defaultValue?: string;
+  required?: boolean;
+  autoComplete?: string;
+  hidden?: boolean;
+  tooltip?: JSX.Element;
+  validate?: FieldValidator;
 }
 
 export const TextFieldWide = ({
@@ -28,6 +34,7 @@ export const TextFieldWide = ({
   placeholder,
   defaultValue,
   required,
+  autoComplete,
   tooltip,
   hidden,
   validate
@@ -59,6 +66,7 @@ export const TextFieldWide = ({
             placeholder={placeholder}
             hidden={hidden}
             required={required}
+            autoComplete={autoComplete}
           />
         )}
       </Field>
@@ -187,6 +195,12 @@ export const NumberFieldWide = ({
                 : "focus:ring-blue-500 dark:focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-500 border-gray-300 dark:border-gray-700",
               "block w-full shadow-sm dark:bg-gray-800 sm:text-sm dark:text-white rounded-md"
             )}
+            onWheel={(event) => {
+              if (event.currentTarget === document.activeElement) {
+                event.currentTarget.blur();
+                setTimeout(() => event.currentTarget.focus(), 0);
+              }
+            }}
             placeholder={placeholder}
           />
         )}

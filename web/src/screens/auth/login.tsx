@@ -1,13 +1,20 @@
+/*
+ * Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ */
+
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { useNavigate } from "react-router-dom";
-import { useMutation } from "react-query";
-
-import logo from "../../logo.png";
-import { APIClient } from "../../api/APIClient";
-import { AuthContext } from "../../utils/Context";
-import { PasswordInput, TextInput } from "../../components/inputs/text";
+import { useMutation } from "@tanstack/react-query";
+import toast from "react-hot-toast";
 import { Tooltip } from "react-tooltip";
+
+import logo from "@app/logo.png";
+import { APIClient } from "@api/APIClient";
+import { AuthContext } from "@utils/Context";
+import { PasswordInput, TextInput } from "@components/inputs/text";
+import Toast from "@components/notifications/Toast";
 
 type LoginFormFields = {
   username: string;
@@ -23,6 +30,12 @@ export const Login = () => {
   const [, setAuthContext] = AuthContext.use();
 
   useEffect(() => {
+    // remove user session when visiting login page'
+    APIClient.auth.logout()
+      .then(() => {
+        AuthContext.reset();
+      });
+
     // Check if onboarding is available for this instance
     // and redirect if needed
     APIClient.auth.canOnboard()
@@ -30,18 +43,21 @@ export const Login = () => {
       .catch(() => { /*don't log to console PAHLLEEEASSSE*/ });
   }, []);
 
-  const loginMutation = useMutation(
-    (data: LoginFormFields) => APIClient.auth.login(data.username, data.password),
-    {
-      onSuccess: (_, variables: LoginFormFields) => {
-        setAuthContext({
-          username: variables.username,
-          isLoggedIn: true
-        });
-        navigate("/");
-      }
+  const loginMutation = useMutation({
+    mutationFn: (data: LoginFormFields) => APIClient.auth.login(data.username, data.password),
+    onSuccess: (_, variables: LoginFormFields) => {
+      setAuthContext({
+        username: variables.username,
+        isLoggedIn: true
+      });
+      navigate("/");
+    },
+    onError: () => {
+      toast.custom((t) => (
+        <Toast type="error" body="Wrong password or username!" t={t} />
+      ));
     }
-  );
+  });
 
   const onSubmit = (data: LoginFormFields) => loginMutation.mutate(data);
 
@@ -86,10 +102,10 @@ export const Login = () => {
                 Sign in
               </button>
               <div>
-                <p className="flex float-right items-center mt-3 text-xs font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wide cursor-pointer" id="forgot">
+                <span className="flex float-right items-center mt-3 text-xs font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wide cursor-pointer" id="forgot">
                   Forgot?<svg className="ml-1 w-3 h-3 text-gray-500 dark:text-gray-400 fill-current" viewBox="0 0 72 72"><path d="M32 2C15.432 2 2 15.432 2 32s13.432 30 30 30s30-13.432 30-30S48.568 2 32 2m5 49.75H27v-24h10v24m-5-29.5a5 5 0 1 1 0-10a5 5 0 0 1 0 10"/></svg>
                   <Tooltip style={{ maxWidth: "350px", fontSize: "12px", textTransform: "none", fontWeight: "normal", borderRadius: "0.375rem", backgroundColor: "#34343A", color: "#fff", opacity: "1" }} place="bottom" delayShow={100} delayHide={150} anchorId="forgot" html="<p style='padding-top: 2px'>If you forget your password you can reset it via the terminal: <code>autobrrctl --config /home/username/.config/autobrr change-password <USERNAME></code></p>" clickable={true}/>
-                </p>
+                </span>
               </div>
             </div>
           </form>

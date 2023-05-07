@@ -1,6 +1,10 @@
+// Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+// SPDX-License-Identifier: GPL-2.0-or-later
+
 package ptp
 
 import (
+	"context"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -87,9 +91,10 @@ func TestPTPClient_GetTorrentByID(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			c := NewClient(tt.fields.Url, tt.fields.APIUser, tt.fields.APIKey)
+			c := NewClient(tt.fields.APIUser, tt.fields.APIKey)
+			c.UseURL(tt.fields.Url)
 
-			got, err := c.GetTorrentByID(tt.args.torrentID)
+			got, err := c.GetTorrentByID(context.Background(), tt.args.torrentID)
 			if tt.wantErr && assert.Error(t, err) {
 				assert.Equal(t, tt.wantErr, err)
 			}
@@ -163,9 +168,10 @@ func Test(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			c := NewClient(tt.fields.Url, tt.fields.APIUser, tt.fields.APIKey)
+			c := NewClient(tt.fields.APIUser, tt.fields.APIKey)
+			c.UseURL(tt.fields.Url)
 
-			got, err := c.TestAPI()
+			got, err := c.TestAPI(context.Background())
 
 			if tt.wantErr && assert.Error(t, err) {
 				assert.Equal(t, tt.wantErr, err)

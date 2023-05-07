@@ -1,3 +1,6 @@
+// Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+// SPDX-License-Identifier: GPL-2.0-or-later
+
 package http
 
 import (
@@ -66,7 +69,7 @@ func (h apikeyHandler) store(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.encoder.StatusResponse(ctx, w, data, http.StatusCreated)
+	h.encoder.StatusResponse(w, http.StatusCreated, data)
 }
 
 func (h apikeyHandler) delete(w http.ResponseWriter, r *http.Request) {
