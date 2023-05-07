@@ -184,7 +184,7 @@ func (c *AppConfig) defaults() {
 	c.Config = &domain.Config{
 		Version:           "dev",
 		Host:              "localhost",
-		Port:              7474,
+		Port:              7475,
 		LogLevel:          "TRACE",
 		LogPath:           "",
 		LogMaxSize:        50,
@@ -201,8 +201,6 @@ func (c *AppConfig) defaults() {
 		PostgresPass:      "",
 	}
 
-	viper.SetEnvPrefix("autobrr")
-	viper.AutomaticEnv()
 }
 
 func (c *AppConfig) load(configPath string) {
@@ -236,12 +234,22 @@ func (c *AppConfig) load(configPath string) {
 		viper.AddConfigPath("$HOME/.autobrr")
 	}
 
+	viper.SetEnvPrefix("AUTOBRR")
+
 	// read config
 	if err := viper.ReadInConfig(); err != nil {
 		log.Printf("config read error: %q", err)
 	}
 
-	if err := viper.Unmarshal(&c.Config); err != nil {
+	for _, key := range viper.AllKeys() {
+		envKey := strings.ToUpper(strings.ReplaceAll(key, ".", "_"))
+		err := viper.BindEnv(key, "AUTOBRR_"+envKey)
+		if err != nil {
+			log.Fatal("config: unable to bind env: " + err.Error())
+		}
+	}
+
+	if err := viper.Unmarshal(c.Config); err != nil {
 		log.Fatalf("Could not unmarshal config file: %v", viper.ConfigFileUsed())
 	}
 }
