@@ -47,7 +47,7 @@ import DEBUG from "@components/debug";
 import Toast from "@components/notifications/Toast";
 import { DeleteModal } from "@components/modals";
 import { TitleSubtitle } from "@components/headings";
-import { TextArea } from "@components/inputs/input";
+import { RegexTextAreaField, TextArea } from "@components/inputs/input";
 import { TextAreaAutoResize } from "../../components/inputs/input";
 import { FilterActions } from "./action";
 import { filterKeys } from "./list";
@@ -509,8 +509,8 @@ export function Music({ values }: AdvancedProps) {
   return (
     <div>
       <div className="mt-6 grid grid-cols-12 gap-6">
-        <TextField name="artists" label="Artists" columns={4} placeholder="eg. Artist One" tooltip={<div><p>You can use basic filtering like wildcards <code>*</code> or replace single characters with <code>?</code></p><a href='https://autobrr.com/filters#music' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters#music</a></div>} />
-        <TextField name="albums" label="Albums" columns={4} placeholder="eg. That Album" tooltip={<div><p>You can use basic filtering like wildcards <code>*</code> or replace single characters with <code>?</code></p><a href='https://autobrr.com/filters#music' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters#music</a></div>} />
+        <TextAreaAutoResize name="artists" label="Artists" columns={4} placeholder="eg. Artist One" tooltip={<div><p>You can use basic filtering like wildcards <code>*</code> or replace single characters with <code>?</code></p><a href='https://autobrr.com/filters#music' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters#music</a></div>} />
+        <TextAreaAutoResize name="albums" label="Albums" columns={4} placeholder="eg. That Album" tooltip={<div><p>You can use basic filtering like wildcards <code>*</code> or replace single characters with <code>?</code></p><a href='https://autobrr.com/filters#music' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters#music</a></div>} />
         <TextField name="years" label="Years" columns={4} placeholder="eg. 2018,2019-2021" tooltip={<div><p>This field takes a range of years and/or comma separated single years.</p><a href='https://autobrr.com/filters#music' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters#music</a></div>} />
       </div>
 
@@ -568,12 +568,8 @@ export function Advanced({ values }: AdvancedProps) {
         <div className="grid col-span-12 gap-6">
           <WarningAlert text="autobrr has extensive filtering built-in - only use this if nothing else works. If you need help please ask." />
 
-
-          <TextAreaAutoResize name="match_releases" label="Match releases" columns={6} placeholder="eg. *some?movie*,*some?show*s01*" tooltip={<div><p>This field has full regex support (Golang flavour).</p><a href='https://autobrr.com/filters#advanced' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters#advanced</a><br/><br/><p>Remember to tick <b>Use Regex</b> below if using more than <code>*</code> and <code>?</code>.</p></div>} />
-          <TextAreaAutoResize name="except_releases" label="Except releases" columns={6} placeholder="eg. *bad?movie*,*bad?show*s03*" tooltip={<div><p>This field has full regex support (Golang flavour).</p><a href='https://autobrr.com/filters#advanced' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters#advanced</a><br/><br/><p>Remember to tick <b>Use Regex</b> below if using more than <code>*</code> and <code>?</code>.</p></div>} />
-
-          <RegexField name="match_releases" label="Match releases"  useRegex={values.use_regex} columns={6} placeholder="eg. *some?movie*,*some?show*s01*" tooltip={<div><p>This field has full regex support (Golang flavour).</p><a href='https://autobrr.com/filters#advanced' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters#advanced</a><br/><br/><p>Remember to tick <b>Use Regex</b> below if using more than <code>*</code> and <code>?</code>.</p></div>} />
-          <RegexField name="except_releases" label="Except releases" useRegex={values.use_regex} columns={6} placeholder="eg. *bad?movie*,*bad?show*s03*" tooltip={<div><p>This field has full regex support (Golang flavour).</p><a href='https://autobrr.com/filters#advanced' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters#advanced</a><br/><br/><p>Remember to tick <b>Use Regex</b> below if using more than <code>*</code> and <code>?</code>.</p></div>} />
+          <RegexTextAreaField name="match_releases" label="Match releases"  useRegex={values.use_regex} columns={6} placeholder="eg. *some?movie*,*some?show*s01*" tooltip={<div><p>This field has full regex support (Golang flavour).</p><a href='https://autobrr.com/filters#advanced' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters#advanced</a><br/><br/><p>Remember to tick <b>Use Regex</b> below if using more than <code>*</code> and <code>?</code>.</p></div>} />
+          <RegexTextAreaField name="except_releases" label="Except releases" useRegex={values.use_regex} columns={6} placeholder="eg. *bad?movie*,*bad?show*s03*" tooltip={<div><p>This field has full regex support (Golang flavour).</p><a href='https://autobrr.com/filters#advanced' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters#advanced</a><br/><br/><p>Remember to tick <b>Use Regex</b> below if using more than <code>*</code> and <code>?</code>.</p></div>} />
 
           {values.match_releases ? (
             <WarningAlert
@@ -600,23 +596,23 @@ export function Advanced({ values }: AdvancedProps) {
       </CollapsableSection>
 
       <CollapsableSection defaultOpen={true} title="Groups" subtitle="Match only certain groups and/or ignore other groups.">
-        <TextField name="match_release_groups" label="Match release groups" columns={6} placeholder="eg. group1,group2" tooltip={<div><p>Comma separated list of release groups to match.</p><a href='https://autobrr.com/filters#advanced' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters#advanced</a></div>} />
-        <TextField name="except_release_groups" label="Except release groups" columns={6} placeholder="eg. badgroup1,badgroup2" tooltip={<div><p>Comma separated list of release groups to ignore (takes priority over Match releases).</p><a href='https://autobrr.com/filters#advanced' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters#advanced</a></div>} />
+        <TextAreaAutoResize name="match_release_groups" label="Match release groups" columns={6} placeholder="eg. group1,group2" tooltip={<div><p>Comma separated list of release groups to match.</p><a href='https://autobrr.com/filters#advanced' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters#advanced</a></div>} />
+        <TextAreaAutoResize name="except_release_groups" label="Except release groups" columns={6} placeholder="eg. badgroup1,badgroup2" tooltip={<div><p>Comma separated list of release groups to ignore (takes priority over Match releases).</p><a href='https://autobrr.com/filters#advanced' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters#advanced</a></div>} />
       </CollapsableSection>
 
       <CollapsableSection defaultOpen={true} title="Categories and tags" subtitle="Match or ignore categories or tags.">
-        <TextField name="match_categories" label="Match categories" columns={6} placeholder="eg. *category*,category1" tooltip={<div><p>Comma separated list of categories to match.</p><a href='https://autobrr.com/filters/categories' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters/categories</a></div>} />
-        <TextField name="except_categories" label="Except categories" columns={6} placeholder="eg. *category*" tooltip={<div><p>Comma separated list of categories to ignore (takes priority over Match releases).</p><a href='https://autobrr.com/filters/categories' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters/categories</a></div>} />
+        <TextAreaAutoResize name="match_categories" label="Match categories" columns={6} placeholder="eg. *category*,category1" tooltip={<div><p>Comma separated list of categories to match.</p><a href='https://autobrr.com/filters/categories' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters/categories</a></div>} />
+        <TextAreaAutoResize name="except_categories" label="Except categories" columns={6} placeholder="eg. *category*" tooltip={<div><p>Comma separated list of categories to ignore (takes priority over Match releases).</p><a href='https://autobrr.com/filters/categories' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters/categories</a></div>} />
 
-        <TextField name="tags" label="Match tags" columns={4} placeholder="eg. tag1,tag2" tooltip={<div><p>Comma separated list of tags to match.</p><a href='https://autobrr.com/filters#advanced' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters#advanced</a></div>} />
+        <TextAreaAutoResize name="tags" label="Match tags" columns={4} placeholder="eg. tag1,tag2" tooltip={<div><p>Comma separated list of tags to match.</p><a href='https://autobrr.com/filters#advanced' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters#advanced</a></div>} />
         <Select name="tags_match_logic" label="Tags logic" columns={2} options={tagsMatchLogicOptions}  optionDefaultText="any"  tooltip={<div><p>Logic used to match filter tags.</p><a href='https://autobrr.com/filters#advanced' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters#advanced</a></div>} />
-        <TextField name="except_tags" label="Except tags" columns={4} placeholder="eg. tag1,tag2" tooltip={<div><p>Comma separated list of tags to ignore (takes priority over Match releases).</p><a href='https://autobrr.com/filters#advanced' className='text-blue-400 visited:text-blue-400' target='_blank'>hhttps://autobrr.com/filters#advanced</a></div>} />
+        <TextAreaAutoResize name="except_tags" label="Except tags" columns={4} placeholder="eg. tag1,tag2" tooltip={<div><p>Comma separated list of tags to ignore (takes priority over Match releases).</p><a href='https://autobrr.com/filters#advanced' className='text-blue-400 visited:text-blue-400' target='_blank'>hhttps://autobrr.com/filters#advanced</a></div>} />
         <Select name="except_tags_match_logic" label="Except tags logic" columns={2} options={tagsMatchLogicOptions}  optionDefaultText="any"  tooltip={<div><p>Logic used to match except tags.</p><a href='https://autobrr.com/filters#advanced' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters#advanced</a></div>} />
       </CollapsableSection>
 
       <CollapsableSection defaultOpen={true} title="Uploaders" subtitle="Match or ignore uploaders.">
-        <TextField name="match_uploaders" label="Match uploaders" columns={6} placeholder="eg. uploader1,uploader2" tooltip={<div><p>Comma separated list of uploaders to match.</p><a href='https://autobrr.com/filters#advanced' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters#advanced</a></div>} />
-        <TextField name="except_uploaders" label="Except uploaders" columns={6} placeholder="eg. anonymous1,anonymous2" tooltip={<div><p>Comma separated list of uploaders to ignore (takes priority over Match releases).</p><a href='https://autobrr.com/filters#advanced' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters#advanced</a></div>} />
+        <TextAreaAutoResize name="match_uploaders" label="Match uploaders" columns={6} placeholder="eg. uploader1,uploader2" tooltip={<div><p>Comma separated list of uploaders to match.</p><a href='https://autobrr.com/filters#advanced' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters#advanced</a></div>} />
+        <TextAreaAutoResize name="except_uploaders" label="Except uploaders" columns={6} placeholder="eg. anonymous1,anonymous2" tooltip={<div><p>Comma separated list of uploaders to ignore (takes priority over Match releases).</p><a href='https://autobrr.com/filters#advanced' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters#advanced</a></div>} />
       </CollapsableSection>
 
       <CollapsableSection defaultOpen={true} title="Language" subtitle="Match or ignore languages.">

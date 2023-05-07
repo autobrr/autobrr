@@ -236,6 +236,147 @@ export const RegexField = ({
   );
 };
 
+export const RegexTextAreaField = ({
+  name,
+  defaultValue,
+  label,
+  placeholder,
+  columns,
+  autoComplete = "off",
+  useRegex,
+  hidden,
+  tooltip,
+  disabled
+}: RegexFieldProps) => {
+  const validRegex = (pattern: string) => {
+
+    // Check for unsupported lookahead and lookbehind assertions
+    if (/\(\?<=|\(\?<!|\(\?=|\(\?!/.test(pattern)) {
+      return false;
+    }
+
+    // Check for unsupported atomic groups
+    if (/\(\?>/.test(pattern)) {
+      return false;
+    }
+
+    // Check for unsupported recursive patterns
+    if (/\(\?(R|0)\)/.test(pattern)) {
+      return false;
+    }
+
+    // Check for unsupported possessive quantifiers
+    if (/[*+?]{1}\+|\{[0-9]+,[0-9]*\}\+/.test(pattern)) {
+      return false;
+    }
+
+    // Check for unsupported control verbs
+    if (/\\g</.test(pattern)) {
+      return false;
+    }
+
+    // Check for unsupported conditionals
+    if (/\(\?\((\?[=!][^)]*)\)[^)]*\|?[^)]*\)/.test(pattern)) {
+      return false;
+    }
+
+    // Check for unsupported backreferences
+    if (/\\k</.test(pattern)) {
+      return false;
+    }
+
+    // Check if the pattern is a valid regex
+    try {
+      new RegExp(pattern);
+      return true;
+    } catch (e) {
+      return false;
+    }
+  };
+
+
+  const validateRegexp = (val: string) => {
+    let error = "";
+
+    if (!validRegex(val)) {
+      error = "Invalid regex";
+    }
+
+    return error;
+  };
+
+  const { validateForm } = useFormikContext();
+  useEffect(() => {
+    if (useRegex) {
+      validateForm();
+    }
+  }, [useRegex]);
+
+  return (
+    <div
+      className={classNames(
+        hidden ? "hidden" : "",
+        columns ? `col-span-${columns}` : "col-span-12"
+      )}
+    >
+      {label && (
+        <label
+          htmlFor={name}
+          className="flex float-left mb-2 text-xs font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wide"
+        >
+          <div className="flex">
+            {label}
+            <span className="z-10">{tooltip && <CustomTooltip anchorId={name}>{tooltip}</CustomTooltip>}</span>
+          </div>
+        </label>
+      )}
+      <Field
+        name={name}
+        validate={useRegex && validateRegexp}
+      >
+        {({ field, meta }: FieldProps) => (
+          <div className="relative">
+
+            <TextareaAutosize
+              {...field}
+              id={name}
+              defaultValue={defaultValue}
+              autoComplete={autoComplete}
+              className={classNames(
+                useRegex && meta.error
+                  ? "focus:ring-red-500 focus:border-red-500 border-red-500"
+                  : "focus:ring-blue-500 dark:focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-500 border-gray-300 dark:border-gray-700",
+                disabled
+                  ? "bg-gray-100 dark:bg-gray-700 cursor-not-allowed"
+                  : "dark:bg-gray-800",
+                useRegex
+                  ? "pr-10"
+                  : "",
+                "mt-2 block w-full dark:text-gray-100 rounded-md"
+              )}
+              placeholder={placeholder}
+              disabled={disabled}
+            />
+
+            {useRegex && (
+              <div className="relative">
+                <div className="flex float-right items-center">
+                  {!meta.error ? (
+                    <CheckCircleIcon className="dark:bg-gray-800 bg-white h-8 w-8 mb-2.5 pl-1 text-green-500 right-2 absolute transform -translate-y-1/2" aria-hidden="true" style={{ overflow: "hidden" }} />
+                  ) : (
+                    <XCircleIcon className="dark:bg-gray-800 bg-white h-8 w-8 mb-2.5 pl-1 text-red-500 right-2 absolute transform -translate-y-1/2" aria-hidden="true" style={{ overflow: "hidden" }} />
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </Field>
+
+    </div>
+  );
+};
+
 interface TextAreaProps {
   name: string;
   defaultValue?: string;
