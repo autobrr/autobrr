@@ -23,6 +23,7 @@ import { baseUrl } from "@utils";
 import { RingResizeSpinner } from "@components/Icons";
 import { toast } from "react-hot-toast";
 import Toast from "@components/notifications/Toast";
+import { ExclamationCircleIcon } from "@heroicons/react/24/solid";
 
 
 type LogEvent = {
@@ -50,6 +51,7 @@ export const Logs = () => {
   const [searchFilter, setSearchFilter] = useState("");
   const [regexPattern, setRegexPattern] = useState<RegExp | null>(null);
   const [filteredLogs, setFilteredLogs] = useState<LogEvent[]>([]);
+  const [isInvalidRegex, setIsInvalidRegex] = useState(false);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end", inline: "end" });
@@ -72,6 +74,7 @@ export const Logs = () => {
   useEffect(() => {
     if (!searchFilter.length) {
       setFilteredLogs(logs);
+      setIsInvalidRegex(false);
       return;
     }
 
@@ -80,9 +83,11 @@ export const Logs = () => {
       setRegexPattern(pattern);
       const newLogs = logs.filter(log => pattern.test(log.message));
       setFilteredLogs(newLogs);
+      setIsInvalidRegex(false);
     } catch (error) {
       // Handle regex errors by showing nothing when the regex pattern is invalid
       setFilteredLogs([]);
+      setIsInvalidRegex(true);
     }
   }, [logs, searchFilter]);
 
@@ -117,7 +122,11 @@ export const Logs = () => {
               )}
               placeholder="Enter a regex pattern to filter logs by..."
             />
-
+            {isInvalidRegex && (
+              <div className="absolute mt-1.5 right-14 items-center text-xs text-red-500">
+                <ExclamationCircleIcon className="h-6 w-6 inline mr-1" />
+              </div>
+            )}
             <LogsDropdown />
           </div>
 
