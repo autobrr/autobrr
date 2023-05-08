@@ -92,7 +92,7 @@ jobs:
           cache: true
 
       - name: Run GoReleaser build
-        uses: goreleaser/goreleaser-action@v2
+        uses: goreleaser/goreleaser-action@v4
         with:
           distribution: goreleaser
           version: latest
@@ -131,7 +131,7 @@ jobs:
           cache: true
 
       - name: Run GoReleaser build and publish tags
-        uses: goreleaser/goreleaser-action@v3
+        uses: goreleaser/goreleaser-action@v4
         with:
           distribution: goreleaser
           version: latest
