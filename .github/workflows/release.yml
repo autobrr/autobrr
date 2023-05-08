@@ -33,7 +33,7 @@ jobs:
       - name: Build web
         run: |
           cd web && npm install --frozen-lockfile
-          CI= npm build
+          CI= npm run build
 
       - name: Upload web production build
         uses: actions/upload-artifact@v3
