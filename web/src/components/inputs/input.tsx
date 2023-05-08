@@ -340,6 +340,7 @@ export const RegexTextAreaField = ({
             <TextareaAutosize
               {...field}
               id={name}
+              maxRows={10}
               defaultValue={defaultValue}
               autoComplete={autoComplete}
               className={classNames(
@@ -500,12 +501,13 @@ export const TextAreaAutoResize = ({
             {...field}
             id={name}
             rows={rows}
+            maxRows={10}
             defaultValue={defaultValue}
             autoComplete={autoComplete}
             className={classNames(
               meta.touched && meta.error ? "focus:ring-red-500 focus:border-red-500 border-red-500" : "focus:ring-blue-500 dark:focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-500 border-gray-300 dark:border-gray-700",
               disabled ? "bg-gray-100 dark:bg-gray-700 cursor-not-allowed" : "dark:bg-gray-800",
-              "overflow-hidden mt-2 block w-full dark:text-gray-100 rounded-md"
+              "mt-2 block w-full dark:text-gray-100 rounded-md"
             )}
             placeholder={placeholder}
             disabled={disabled}
