@@ -27,13 +27,13 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: 18
-          cache: 'yarn'
+          cache: 'pnpm'
           cache-dependency-path: web/yarn.lock
 
       - name: Build web
         run: |
-          cd web && yarn install --frozen-lockfile
-          CI= yarn build
+          cd web && pnpm install --frozen-lockfile
+          CI= pnpm build
 
       - name: Upload web production build
         uses: actions/upload-artifact@v3
