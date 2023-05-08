@@ -48,6 +48,7 @@ export const Logs = () => {
   
   const [logs, setLogs] = useState<LogEvent[]>([]);
   const [searchFilter, setSearchFilter] = useState("");
+  const [regexPattern, setRegexPattern] = useState<RegExp | null>(null);
   const [filteredLogs, setFilteredLogs] = useState<LogEvent[]>([]);
 
   const scrollToBottom = () => {
@@ -74,13 +75,16 @@ export const Logs = () => {
       return;
     }
     
-    const newLogs: LogEvent[] = [];
-    logs.forEach((log) => {
-      if (log.message.indexOf(searchFilter) !== -1)
-        newLogs.push(log);
-    });
-
-    setFilteredLogs(newLogs);
+    try {
+      const pattern = new RegExp(searchFilter, 'i');
+      setRegexPattern(pattern);
+      const newLogs = logs.filter(log => pattern.test(log.message));
+      setFilteredLogs(newLogs);
+    } catch (error) {
+      // Handle regex errors if needed, e.g., setRegexPattern(null)
+      // For now, we just reset the filtered logs to show all logs
+      setFilteredLogs(logs);
+    }
   }, [logs, searchFilter]);
 
   return (
@@ -101,19 +105,19 @@ export const Logs = () => {
         </div>
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg px-2 sm:px-4 pt-3 sm:pt-4 pb-3 sm:pb-4">
           <div className="flex relative mb-3">
-            <DebounceInput
-              minLength={2}
-              debounceTimeout={200}
-              onChange={(event) => setSearchFilter(event.target.value.toLowerCase().trim())}
-              id="filter"
-              type="text"
-              autoComplete="off"
-              className={classNames(
-                "focus:ring-blue-500 dark:focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-500 border-gray-300 dark:border-gray-700",
-                "block w-full dark:bg-gray-900 shadow-sm dark:text-gray-100 sm:text-sm rounded-md"
-              )}
-              placeholder="Enter a string to filter logs by..."
-            />
+          <DebounceInput
+      minLength={2}
+      debounceTimeout={200}
+      onChange={(event) => {
+        const inputValue = event.target.value.toLowerCase().trim();
+        setSearchFilter(inputValue);
+      }}
+      className={classNames(
+        "focus:ring-blue-500 dark:focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-500 border-gray-300 dark:border-gray-700",
+        "block w-full dark:bg-gray-900 shadow-sm dark:text-gray-100 sm:text-sm rounded-md"
+      )}
+      placeholder="Enter a regex pattern to filter logs by..."
+    />
 
             <LogsDropdown />
           </div>
