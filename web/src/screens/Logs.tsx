@@ -45,7 +45,7 @@ export const Logs = () => {
   const [settings] = SettingsContext.use();
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  
+
   const [logs, setLogs] = useState<LogEvent[]>([]);
   const [searchFilter, setSearchFilter] = useState("");
   const [regexPattern, setRegexPattern] = useState<RegExp | null>(null);
@@ -74,16 +74,15 @@ export const Logs = () => {
       setFilteredLogs(logs);
       return;
     }
-    
+
     try {
-      const pattern = new RegExp(searchFilter, 'i');
+      const pattern = new RegExp(searchFilter, "i");
       setRegexPattern(pattern);
       const newLogs = logs.filter(log => pattern.test(log.message));
       setFilteredLogs(newLogs);
     } catch (error) {
-      // Handle regex errors if needed, e.g., setRegexPattern(null)
-      // For now, we just reset the filtered logs to show all logs
-      setFilteredLogs(logs);
+      // Handle regex errors by showing nothing when the regex pattern is invalid
+      setFilteredLogs([]);
     }
   }, [logs, searchFilter]);
 
@@ -105,19 +104,19 @@ export const Logs = () => {
         </div>
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg px-2 sm:px-4 pt-3 sm:pt-4 pb-3 sm:pb-4">
           <div className="flex relative mb-3">
-          <DebounceInput
-      minLength={2}
-      debounceTimeout={200}
-      onChange={(event) => {
-        const inputValue = event.target.value.toLowerCase().trim();
-        setSearchFilter(inputValue);
-      }}
-      className={classNames(
-        "focus:ring-blue-500 dark:focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-500 border-gray-300 dark:border-gray-700",
-        "block w-full dark:bg-gray-900 shadow-sm dark:text-gray-100 sm:text-sm rounded-md"
-      )}
-      placeholder="Enter a regex pattern to filter logs by..."
-    />
+            <DebounceInput
+              minLength={2}
+              debounceTimeout={200}
+              onChange={(event) => {
+                const inputValue = event.target.value.toLowerCase().trim();
+                setSearchFilter(inputValue);
+              }}
+              className={classNames(
+                "focus:ring-blue-500 dark:focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-500 border-gray-300 dark:border-gray-700",
+                "block w-full dark:bg-gray-900 shadow-sm dark:text-gray-100 sm:text-sm rounded-md"
+              )}
+              placeholder="Enter a regex pattern to filter logs by..."
+            />
 
             <LogsDropdown />
           </div>
@@ -182,7 +181,7 @@ export const LogFiles = () => {
       <div className="mt-2">
         <h2 className="text-lg leading-6 font-medium text-gray-900 dark:text-white">Log files</h2>
         <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-            Download old log files.
+          Download old log files.
         </p>
       </div>
 
@@ -191,13 +190,13 @@ export const LogFiles = () => {
           <ol className="min-w-full relative">
             <li className="grid grid-cols-12 mb-2 border-b border-gray-200 dark:border-gray-700">
               <div className="hidden sm:block col-span-5 px-2 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                  Name
+                Name
               </div>
               <div className="col-span-8 sm:col-span-4 px-1 sm:px-2 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                 Last modified
               </div>
               <div className="col-span-3 sm:col-span-2 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                  Size
+                Size
               </div>
             </li>
 
@@ -223,12 +222,12 @@ const LogFilesItem = ({ file }: LogFilesItemProps) => {
 
   const handleDownload = async () => {
     setIsDownloading(true);
-  
+
     // Add a custom toast before the download starts
     const toastId = toast.custom((t) => (
       <Toast type="info" body="Log file is being sanitized. Please wait..." t={t} />
     ));
-  
+
     const response = await fetch(`${baseUrl()}api/logs/files/${file.filename}`);
     const blob = await response.blob();
     const url = URL.createObjectURL(blob);
@@ -237,10 +236,10 @@ const LogFilesItem = ({ file }: LogFilesItemProps) => {
     link.download = file.filename;
     link.click();
     URL.revokeObjectURL(url);
-  
+
     // Dismiss the custom toast after the download is complete
     toast.dismiss(toastId);
-  
+
     setIsDownloading(false);
   };
 
