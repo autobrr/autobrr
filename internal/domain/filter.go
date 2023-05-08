@@ -127,6 +127,8 @@ type Filter struct {
 	MatchDescription            string                 `json:"match_description,omitempty"`
 	ExceptDescription           string                 `json:"except_description,omitempty"`
 	UseRegexDescription         bool                   `json:"use_regex_description,omitempty"`
+	MatchDescriptionLogic       string                 `json:"match_description_logic,omitempty"`
+	ExceptDescriptionLogic      string                 `json:"except_description_logic,omitempty"`
 	ExternalScriptEnabled       bool                   `json:"external_script_enabled,omitempty"`
 	ExternalScriptCmd           string                 `json:"external_script_cmd,omitempty"`
 	ExternalScriptArgs          string                 `json:"external_script_args,omitempty"`
@@ -159,6 +161,11 @@ type FilterUpdate struct {
 	MatchReleaseTags            *string                 `json:"match_release_tags,omitempty"`
 	ExceptReleaseTags           *string                 `json:"except_release_tags,omitempty"`
 	UseRegexReleaseTags         *bool                   `json:"use_regex_release_tags,omitempty"`
+	MatchDescription            *string                 `json:"match_description,omitempty"`
+	ExceptDescription           *string                 `json:"except_description,omitempty"`
+	UseRegexDescription         *bool                   `json:"use_regex_description,omitempty"`
+	MatchDescriptionLogic       *string                 `json:"match_description_logic,omitempty"`
+	ExceptDescriptionLogic      *string                 `json:"except_description_logic,omitempty"`
 	Scene                       *bool                   `json:"scene,omitempty"`
 	Origins                     *[]string               `json:"origins,omitempty"`
 	ExceptOrigins               *[]string               `json:"except_origins,omitempty"`

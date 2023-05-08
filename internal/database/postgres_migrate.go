@@ -83,6 +83,11 @@ CREATE TABLE filter
     match_release_tags             TEXT,
     except_release_tags            TEXT,
     use_regex_release_tags         BOOLEAN DEFAULT FALSE,
+    match_description              TEXT,
+    except_description             TEXT,
+    use_regex_description          BOOLEAN DEFAULT FALSE,
+    match_description_logic        TEXT,
+    except_description_logic       TEXT,
     scene                          BOOLEAN,
     freeleech                      BOOLEAN,
     freeleech_percent              TEXT,
@@ -680,4 +685,26 @@ ADD COLUMN download_url TEXT;
 ADD COLUMN priority INTEGER DEFAULT 0;`,
 	`ALTER TABLE notification
 ADD COLUMN topic text;`,
+	`ALTER TABLE filter
+		ADD COLUMN match_description TEXT;
+
+	ALTER TABLE filter
+		ADD COLUMN except_description TEXT;
+
+	ALTER TABLE filter
+		ADD COLUMN use_regex_description BOOLEAN DEFAULT FALSE;
+
+	ALTER TABLE filter
+		ADD COLUMN match_description_logic TEXT;
+
+	ALTER TABLE filter
+		ADD COLUMN except_description_logic TEXT;
+
+    UPDATE filter
+    SET match_description_logic = 'ANY'
+    WHERE match_description IS NOT NULL;
+
+    UPDATE filter
+    SET except_description_logic = 'ANY'
+    WHERE except_description IS NOT NULL;`,
 }
