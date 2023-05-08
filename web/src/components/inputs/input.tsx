@@ -340,6 +340,7 @@ export const RegexTextAreaField = ({
             <TextareaAutosize
               {...field}
               id={name}
+              maxRows={10}
               defaultValue={defaultValue}
               autoComplete={autoComplete}
               className={classNames(
@@ -500,6 +501,7 @@ export const TextAreaAutoResize = ({
             {...field}
             id={name}
             rows={rows}
+            maxRows={10}
             defaultValue={defaultValue}
             autoComplete={autoComplete}
             className={classNames(
