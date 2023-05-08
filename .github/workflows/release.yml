@@ -23,20 +23,24 @@ jobs:
         with:
           fetch-depth: 0
 
+      - uses: pnpm/action-setup@v2
+        with:
+          version: 8
+
       - name: Set up Node
         uses: actions/setup-node@v3
         with:
           node-version: 18
-          cache: 'npm'
+          cache: 'pnpm'
           cache-dependency-path: web/yarn.lock
 
       - name: Fetch web dependencies
         working-directory: web
-        run: npm install --frozen-lockfile
+        run: pnpm install --frozen-lockfile
 
       - name: Build web frontend
         working-directory: web
-        run: CI= npm run build
+        run: CI= pnpm run build
 
       - name: Upload web production build
         uses: actions/upload-artifact@v3
