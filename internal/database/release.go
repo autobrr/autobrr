@@ -492,6 +492,33 @@ func (repo *ReleaseRepo) Delete(ctx context.Context) error {
 	return nil
 }
 
+func (repo *ReleaseRepo) DeleteOlder(ctx context.Context, duration int) error {
+	tx, err := repo.db.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+
+	defer tx.Rollback()
+
+	olderThanTimestamp := time.Now().AddDate(0, 0, -duration)
+
+	_, err = tx.ExecContext(ctx, `DELETE FROM "release" WHERE created_at < $1`, olderThanTimestamp)
+	if err != nil {
+		return errors.Wrap(err, "error executing query")
+	}
+
+	_, err = tx.ExecContext(ctx, `DELETE FROM release_action_status WHERE release_id NOT IN (SELECT id FROM "release")`)
+	if err != nil {
+		return errors.Wrap(err, "error executing query")
+	}
+
+	if err := tx.Commit(); err != nil {
+		return errors.Wrap(err, "error commit transaction delete")
+	}
+
+	return nil
+}
+
 func (repo *ReleaseRepo) CanDownloadShow(ctx context.Context, title string, season int, episode int) (bool, error) {
 	// TODO support non season episode shows
 	// if rls.Day > 0 {

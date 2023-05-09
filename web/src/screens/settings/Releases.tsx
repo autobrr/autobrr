@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "react-hot-toast";
 
@@ -16,12 +16,13 @@ import { releaseKeys } from "@screens/releases/ReleaseTable";
 function ReleaseSettings() {
   const [deleteModalIsOpen, toggleDeleteModal] = useToggle(false);
   const queryClient = useQueryClient();
+  const [duration, setDuration] = useState("");
 
   const deleteMutation = useMutation({
-    mutationFn:  APIClient.release.delete,
+    mutationFn: APIClient.release.delete,
     onSuccess: () => {
       toast.custom((t) => (
-        <Toast type="success" body={"All releases were deleted"} t={t}/>
+        <Toast type="success" body={"All releases were deleted"} t={t} />
       ));
 
       // Invalidate filters just in case, most likely not necessary but can't hurt.
@@ -32,6 +33,26 @@ function ReleaseSettings() {
   const deleteAction = () => deleteMutation.mutate();
 
   const cancelModalButtonRef = useRef(null);
+
+  const deleteOlderMutation = useMutation({
+    mutationFn: APIClient.release.deleteOlder,
+    onSuccess: () => {
+      toast.custom((t) => (
+        <Toast type="success" body={`Releases older than ${duration} days were deleted`} t={t} />
+      ));
+  
+      // Invalidate filters just in case, most likely not necessary but can't hurt.
+      queryClient.invalidateQueries({ queryKey: releaseKeys.lists() });
+    }
+  });
+  
+  const deleteOlderReleases = () => {
+    if (duration !== "") {
+      deleteOlderMutation.mutate(parseInt(duration, 10));
+    } else {
+      toast.error("Please enter a valid duration in days.");
+    }
+  };  
 
   return (
     <form
@@ -67,6 +88,29 @@ function ReleaseSettings() {
                 Danger Zone
               </h3>
               <p style={{ textAlign: "center" }} className="mt-1 text-sm text-gray-900 dark:text-white">This will clear all release history in your database.</p>
+            </div>
+            <div className="mt-6">
+              <label htmlFor="duration" className="block text-sm font-medium text-gray-700 dark:text-white">
+                Delete releases older than (in days)
+              </label>
+              <div className="mt-1 flex rounded-md shadow-sm">
+                <input
+                  type="number"
+                  name="duration"
+                  id="duration"
+                  className="focus:ring-indigo-500 focus:border-indigo-500 flex-1 block w-full rounded-none rounded-r-md sm:text-sm border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
+                  placeholder="Enter days"
+                  value={duration}
+                  onChange={(e) => setDuration(e.target.value)}
+                />
+                <button
+                  type="button"
+                  onClick={deleteOlderReleases}
+                  className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                >
+                  Delete
+                </button>
+              </div>
             </div>
             <div className="flex justify-between items-center p-2 mt-2 max-w-sm m-auto">
               <button

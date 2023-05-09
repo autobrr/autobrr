@@ -19,6 +19,7 @@ type releaseService interface {
 	GetIndexerOptions(ctx context.Context) ([]string, error)
 	Stats(ctx context.Context) (*domain.ReleaseStats, error)
 	Delete(ctx context.Context) error
+	DeleteOlder(ctx context.Context, duration int) error
 }
 
 type releaseHandler struct {
@@ -39,6 +40,7 @@ func (h releaseHandler) Routes(r chi.Router) {
 	r.Get("/stats", h.getStats)
 	r.Get("/indexers", h.getIndexerOptions)
 	r.Delete("/all", h.deleteReleases)
+	r.Delete("/older-than/{duration}", h.deleteOlder) // Add this line
 }
 
 func (h releaseHandler) findReleases(w http.ResponseWriter, r *http.Request) {
@@ -177,6 +179,28 @@ func (h releaseHandler) getStats(w http.ResponseWriter, r *http.Request) {
 func (h releaseHandler) deleteReleases(w http.ResponseWriter, r *http.Request) {
 	err := h.service.Delete(r.Context())
 	if err != nil {
+		h.encoder.StatusResponse(w, http.StatusInternalServerError, map[string]interface{}{
+			"code":    "INTERNAL_SERVER_ERROR",
+			"message": err.Error(),
+		})
+		return
+	}
+
+	h.encoder.NoContent(w)
+}
+
+func (h releaseHandler) deleteOlder(w http.ResponseWriter, r *http.Request) {
+	durationStr := chi.URLParam(r, "duration")
+	duration, err := strconv.Atoi(durationStr)
+	if err != nil {
+		h.encoder.StatusResponse(w, http.StatusBadRequest, map[string]interface{}{
+			"code":    "BAD_REQUEST_PARAMS",
+			"message": "Invalid duration",
+		})
+		return
+	}
+
+	if err := h.service.DeleteOlder(r.Context(), duration); err != nil {
 		h.encoder.StatusResponse(w, http.StatusInternalServerError, map[string]interface{}{
 			"code":    "INTERNAL_SERVER_ERROR",
 			"message": err.Error(),

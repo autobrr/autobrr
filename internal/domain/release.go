@@ -35,6 +35,7 @@ type ReleaseRepo interface {
 	Stats(ctx context.Context) (*ReleaseStats, error)
 	StoreReleaseActionStatus(ctx context.Context, status *ReleaseActionStatus) error
 	Delete(ctx context.Context) error
+	DeleteOlder(ctx context.Context, duration int) error
 	CanDownloadShow(ctx context.Context, title string, season int, episode int) (bool, error)
 }
 

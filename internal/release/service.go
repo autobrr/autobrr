@@ -24,7 +24,7 @@ type Service interface {
 	Store(ctx context.Context, release *domain.Release) error
 	StoreReleaseActionStatus(ctx context.Context, actionStatus *domain.ReleaseActionStatus) error
 	Delete(ctx context.Context) error
-
+	DeleteOlder(ctx context.Context, duration int) error
 	Process(release *domain.Release)
 	ProcessMultiple(releases []*domain.Release)
 }
@@ -82,6 +82,10 @@ func (s *service) StoreReleaseActionStatus(ctx context.Context, status *domain.R
 
 func (s *service) Delete(ctx context.Context) error {
 	return s.repo.Delete(ctx)
+}
+
+func (s *service) DeleteOlder(ctx context.Context, duration int) error {
+	return s.repo.DeleteOlder(ctx, duration)
 }
 
 func (s *service) Process(release *domain.Release) {
