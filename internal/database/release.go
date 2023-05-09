@@ -500,9 +500,9 @@ func (repo *ReleaseRepo) DeleteOlder(ctx context.Context, duration int) error {
 
 	defer tx.Rollback()
 
-	olderThanTimestamp := time.Now().AddDate(0, 0, -duration)
+	olderThanTimestamp := time.Now().Add(-time.Duration(duration) * time.Hour)
 
-	_, err = tx.ExecContext(ctx, `DELETE FROM "release" WHERE created_at < $1`, olderThanTimestamp)
+	_, err = tx.ExecContext(ctx, `DELETE FROM "release" WHERE timestamp < $1`, olderThanTimestamp)
 	if err != nil {
 		return errors.Wrap(err, "error executing query")
 	}
