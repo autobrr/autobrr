@@ -504,7 +504,7 @@ func (repo *ReleaseRepo) DeleteOlder(ctx context.Context, duration int) error {
 	olderThanTimestamp := time.Now().UTC().Add(-time.Duration(duration) * time.Hour)
 	log.Debug().Msgf("Deleting releases older than: %v", olderThanTimestamp)
 
-	result, err := tx.ExecContext(ctx, `DELETE FROM "release" WHERE strftime('%Y-%m-%d %H:%M:%S', timestamp) < $1`, olderThanTimestamp)
+	result, err := tx.ExecContext(ctx, `DELETE FROM "release" WHERE timestamp < $1`, olderThanTimestamp)
 	if err != nil {
 		return errors.Wrap(err, "error executing query")
 	}
