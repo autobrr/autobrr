@@ -32,7 +32,7 @@ Installation guide and documentation can be found at https://autobrr.com
 
 Available download clients and actions
 
-- qBittorrent (with built in re-announce, categories, rules, max active downloads, etc)
+- qBittorrent (with built-in re-announce, categories, rules, max active downloads, etc.)
 - Deluge v1+ and v2+
 - rTorrent
 - Transmission
@@ -50,7 +50,7 @@ to maintain a ratio with most indexers. Ratio is built by seeding your torrents.
 the more peers you make yourself available to on that torrent.
 
 Software like Radarr and Sonarr utilizes RSS to look for new torrents. RSS feeds are updated regularly, but too slow to
-let you be a part of what we call the initial swarm of a torrent. This is were autobrr comes into play.
+let you be a part of what we call the initial swarm of a torrent. This is where autobrr comes into play.
 
 Many indexers announce new torrents on their IRC channels the second it is uploaded to the site. autobrr monitors such
 channels in real time and grabs the torrent file as soon as it's uploaded based on certain conditions (hereby referred
@@ -70,11 +70,11 @@ A lot of indexers do not announce new torrents in an IRC channel. You can still 
 since it has built in support for feeds as well. Both torznab and regular RSS is supported. RSS indexers are treated the
 same way as regular indexers within autobrr.
 
-This isn't needed if your usecase is feeding the *arrs only. Since they have RSS support already.
+This isn't needed if your use case is feeding the *arrs only. Since they have RSS support already.
 
 ### Usenet support
 
-Usenet support via Newzbab feeds allows you to easily manage everything in a single application. While there is a lot of
+Usenet support via Newznab feeds allows you to easily manage everything in a single application. While there is a lot of
 applications that handles RSS well, we think autobrr offers very easy to use filtering to help you get the content you
 want.
 
@@ -118,8 +118,8 @@ the [docs](https://quickbox.io/knowledge-base/v3/applications-v3/autobrr-applica
 
 ### Shared seedbox
 
-We have support for a couple of providers out of the box and if yours are missing then please write on Discord so we add
-support.
+We have support for a couple of providers out of the box.
+In case your provider is missing then please contact us on Discord, so we add support.
 
 The scripts require some input but does most of the work.
 
@@ -170,7 +170,7 @@ docker-compose for autobrr. Modify accordingly if running with unRAID or setting
 * Change `BASE_DOCKER_DATA_PATH` to match your setup. Can be simply `./data`
 * Set custom network if needed
 
-Create `docker-compose.yml` and add the following. If you have a existing setup change to fit that.
+Create `docker-compose.yml` and add the following. If you have an existing setup change to fit that.
 
 ```yml
 version: "3.7"
@@ -220,7 +220,7 @@ Note: If the command fails, prefix it with `sudo ` and re-run again.
 
 #### Systemd (Recommended)
 
-On Linux-based systems, it is recommended to run autobrr as sort of a service with auto-restarting capabilities, in
+On Linux-based systems, it is recommended to run autobrr as a sort of service with auto-restarting capabilities, in
 order to account for potential downtime. The most common way is to do it via systemd.
 
 You will need to create a service file in `/etc/systemd/system/` called `autobrr.service`.
