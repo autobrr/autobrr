@@ -18,6 +18,7 @@ import (
 	sq "github.com/Masterminds/squirrel"
 	"github.com/lib/pq"
 	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 )
 
 type ReleaseRepo struct {
@@ -500,12 +501,19 @@ func (repo *ReleaseRepo) DeleteOlder(ctx context.Context, duration int) error {
 
 	defer tx.Rollback()
 
-	olderThanTimestamp := time.Now().Add(-time.Duration(duration) * time.Hour)
+	olderThanTimestamp := time.Now().UTC().Add(-time.Duration(duration) * time.Hour)
+	log.Debug().Msgf("Deleting releases older than: %v", olderThanTimestamp)
 
-	_, err = tx.ExecContext(ctx, `DELETE FROM "release" WHERE timestamp < $1`, olderThanTimestamp)
+	result, err := tx.ExecContext(ctx, `DELETE FROM "release" WHERE strftime('%Y-%m-%d %H:%M:%S', timestamp) < $1`, olderThanTimestamp)
 	if err != nil {
 		return errors.Wrap(err, "error executing query")
 	}
+
+	deletedRows, err := result.RowsAffected()
+	if err != nil {
+		return errors.Wrap(err, "error fetching rows affected")
+	}
+	log.Debug().Msgf("Deleted %d rows from release table", deletedRows)
 
 	_, err = tx.ExecContext(ctx, `DELETE FROM release_action_status WHERE release_id NOT IN (SELECT id FROM "release")`)
 	if err != nil {

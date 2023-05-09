@@ -16,7 +16,6 @@ import { releaseKeys } from "@screens/releases/ReleaseTable";
 function ReleaseSettings() {
   const [deleteModalIsOpen, toggleDeleteModal] = useToggle(false);
   const queryClient = useQueryClient();
-  const [duration, setDuration] = useState("");
 
   const deleteMutation = useMutation({
     mutationFn: APIClient.release.delete,
@@ -34,11 +33,29 @@ function ReleaseSettings() {
 
   const cancelModalButtonRef = useRef(null);
 
+  const getDurationLabel = (durationValue: number): string => {
+    const durationOptions: Record<number, string> = {
+      1: "1 hour",
+      12: "12 hours",
+      24: "1 day",
+      168: "1 week",
+      720: "1 month",
+      2160: "3 months",
+      4320: "6 months",
+      8760: "1 year"
+    };
+
+    return durationOptions[durationValue] || "Invalid duration";
+  };
+
+  const [duration, setDuration] = useState<string>("0");
+
   const deleteOlderMutation = useMutation({
     mutationFn: APIClient.release.deleteOlder,
     onSuccess: () => {
+      const parsedDuration = parseInt(duration, 10);
       toast.custom((t) => (
-        <Toast type="success" body={`Releases older than ${duration} days were deleted`} t={t} />
+        <Toast type="success" body={`Releases older than ${getDurationLabel(parsedDuration)} were deleted`} t={t} />
       ));
 
       // Invalidate filters just in case, most likely not necessary but can't hurt.
@@ -47,10 +64,11 @@ function ReleaseSettings() {
   });
 
   const deleteOlderReleases = () => {
-    if (duration !== "") {
-      deleteOlderMutation.mutate(parseInt(duration, 10));
+    const parsedDuration = parseInt(duration, 10);
+    if (parsedDuration > 0) {
+      deleteOlderMutation.mutate(parsedDuration);
     } else {
-      toast.error("Please enter a valid duration in days.");
+      toast.error("Please select a valid duration.");
     }
   };
 
@@ -91,18 +109,26 @@ function ReleaseSettings() {
             </div>
             <div className="mt-6">
               <label htmlFor="duration" className="items-center block text-sm font-medium text-gray-700 dark:text-white text-center">
-                Delete releases older than (in days):
+                Delete releases older than:
               </label>
               <div className="flex justify-between items-center p-2 mt-2 max-w-sm m-auto mt-1 rounded-md shadow-sm">
-                <input
-                  type="number"
+                <select
                   name="duration"
                   id="duration"
                   className="focus:outline-none focus:ring-2 focus:ring-offset-0 focus:ring-blue-500 dark:focus:ring-blue-500 flex-1 block w-full rounded-none rounded-r-md sm:text-sm border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
-                  placeholder="Enter days"
                   value={duration}
                   onChange={(e) => setDuration(e.target.value)}
-                />
+                >
+                  <option value="0">Select duration</option>
+                  <option value="1">1 hour</option>
+                  <option value="12">12 hours</option>
+                  <option value="24">1 day</option>
+                  <option value="168">1 week</option>
+                  <option value="720">1 month</option>
+                  <option value="2160">3 months</option>
+                  <option value="4320">6 months</option>
+                  <option value="8760">1 year</option>
+                </select>
                 <button
                   type="button"
                   onClick={deleteOlderReleases}
