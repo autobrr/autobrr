@@ -81,10 +81,12 @@ function ReleaseSettings() {
         <div className="px-4 py-5 sm:p-0">
           <div className="px-4 py-5 sm:p-6">
             <div>
-              <h3 style={{ textAlign: "center" }} className="text-lg leading-6 font-medium text-gray-900 dark:text-white">
+              <h3 className="text-center text-lg leading-6 font-medium text-gray-900 dark:text-white">
                 Danger Zone
               </h3>
-              <p style={{ textAlign: "center" }} className="mt-1 text-sm text-gray-900 dark:text-white">This will clear release history in your database.</p>
+              <p className="text-center mt-1 text-sm text-gray-900 dark:text-white">
+                This will clear release history in your database
+              </p>
             </div>
             <div className="mt-6">
               <label htmlFor="duration" className="items-center block text-sm font-medium text-gray-700 dark:text-white text-center">
