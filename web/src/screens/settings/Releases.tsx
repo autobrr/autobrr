@@ -3,35 +3,18 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "react-hot-toast";
 
 import { APIClient } from "@api/APIClient";
 import Toast from "@components/notifications/Toast";
-import { useToggle } from "@hooks/hooks";
-import { DeleteModal } from "@components/modals";
 import { releaseKeys } from "@screens/releases/ReleaseTable";
 
 function ReleaseSettings() {
-  const [deleteModalIsOpen, toggleDeleteModal] = useToggle(false);
+
   const queryClient = useQueryClient();
-
-  const deleteMutation = useMutation({
-    mutationFn: APIClient.release.delete,
-    onSuccess: () => {
-      toast.custom((t) => (
-        <Toast type="success" body={"All releases were deleted"} t={t} />
-      ));
-
-      // Invalidate filters just in case, most likely not necessary but can't hurt.
-      queryClient.invalidateQueries({ queryKey: releaseKeys.lists() });
-    }
-  });
-
-  const deleteAction = () => deleteMutation.mutate();
-
-  const cancelModalButtonRef = useRef(null);
+  const [duration, setDuration] = useState<string>("");
 
   const getDurationLabel = (durationValue: number): string => {
     const durationOptions: Record<number, string> = {
@@ -48,29 +31,34 @@ function ReleaseSettings() {
     return durationOptions[durationValue] || "Invalid duration";
   };
 
-  const [duration, setDuration] = useState<string>("0");
-
   const deleteOlderMutation = useMutation({
-    mutationFn: APIClient.release.deleteOlder,
+    mutationFn: (duration: number) => APIClient.release.deleteOlder(duration),
     onSuccess: () => {
       const parsedDuration = parseInt(duration, 10);
-      toast.custom((t) => (
-        <Toast type="success" body={`Releases older than ${getDurationLabel(parsedDuration)} were deleted`} t={t} />
-      ));
-
+      if (parsedDuration === 0) {
+        toast.custom((t) => (
+          <Toast type="success" body={"All releases were deleted."} t={t} />
+        ));
+      } else {
+        toast.custom((t) => (
+          <Toast type="success" body={`Releases older than ${getDurationLabel(parsedDuration)} were deleted.`} t={t} />
+        ));
+      }
+  
       // Invalidate filters just in case, most likely not necessary but can't hurt.
       queryClient.invalidateQueries({ queryKey: releaseKeys.lists() });
     }
-  });
-
+  });  
+  
   const deleteOlderReleases = () => {
     const parsedDuration = parseInt(duration, 10);
-    if (parsedDuration > 0) {
-      deleteOlderMutation.mutate(parsedDuration);
+    
+    if (isNaN(parsedDuration) || parsedDuration < 0) {
+      toast.custom((t) => <Toast type="error" body={"Please select a valid duration."} t={t} />);
     } else {
-      toast.error("Please select a valid duration.");
+      deleteOlderMutation.mutate(parsedDuration);
     }
-  };
+  };  
 
   return (
     <form
@@ -78,15 +66,6 @@ function ReleaseSettings() {
       action="#"
       method="POST"
     >
-      <DeleteModal
-        isOpen={deleteModalIsOpen}
-        toggle={toggleDeleteModal}
-        buttonRef={cancelModalButtonRef}
-        deleteAction={deleteAction}
-        title={"Delete all releases"}
-        text="Are you sure you want to delete all releases? This action cannot be undone."
-      />
-
       <div className="py-6 px-4 sm:p-6 lg:pb-8">
         <div>
           <h2 className="text-lg leading-6 font-medium text-gray-900 dark:text-white">
@@ -111,7 +90,7 @@ function ReleaseSettings() {
               <label htmlFor="duration" className="items-center block text-sm font-medium text-gray-700 dark:text-white text-center">
                 Delete releases older than:
               </label>
-              <div className="flex justify-between items-center p-2 mt-2 max-w-sm m-auto mt-1 rounded-md shadow-sm">
+              <div className="flex justify-between items-center p-2 mt-2 max-w-sm m-auto rounded-md shadow-sm">
                 <select
                   name="duration"
                   id="duration"
@@ -119,7 +98,7 @@ function ReleaseSettings() {
                   value={duration}
                   onChange={(e) => setDuration(e.target.value)}
                 >
-                  <option value="0">Select duration</option>
+                  <option value="">Select duration</option>
                   <option value="1">1 hour</option>
                   <option value="12">12 hours</option>
                   <option value="24">1 day</option>
@@ -128,6 +107,7 @@ function ReleaseSettings() {
                   <option value="2160">3 months</option>
                   <option value="4320">6 months</option>
                   <option value="8760">1 year</option>
+                  <option value="0">Delete everything</option>
                 </select>
                 <button
                   type="button"
@@ -137,15 +117,6 @@ function ReleaseSettings() {
                   Delete
                 </button>
               </div>
-            </div>
-            <div className="flex justify-between items-center p-2 mt-2 max-w-sm m-auto">
-              <button
-                type="button"
-                onClick={toggleDeleteModal}
-                className="w-full inline-flex items-center justify-center px-4 py-2 border border-transparent font-medium rounded-md text-red-700 hover:text-red-900 dark:text-white bg-red-100 dark:bg-red-800 hover:bg-red-200 dark:hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:text-sm"
-              >
-                Delete all releases
-              </button>
             </div>
           </div>
         </div>
