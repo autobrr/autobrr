@@ -26,8 +26,6 @@ interface Filter {
   match_description: string;
   except_description: string;
   use_regex_description: boolean;
-  match_description_logic: string;
-  except_description_logic: string;
   scene: boolean;
   origins: string[];
   except_origins: string[];
