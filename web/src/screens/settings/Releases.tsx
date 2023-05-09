@@ -40,19 +40,19 @@ function ReleaseSettings() {
       toast.custom((t) => (
         <Toast type="success" body={`Releases older than ${duration} days were deleted`} t={t} />
       ));
-  
+
       // Invalidate filters just in case, most likely not necessary but can't hurt.
       queryClient.invalidateQueries({ queryKey: releaseKeys.lists() });
     }
   });
-  
+
   const deleteOlderReleases = () => {
     if (duration !== "") {
       deleteOlderMutation.mutate(parseInt(duration, 10));
     } else {
       toast.error("Please enter a valid duration in days.");
     }
-  };  
+  };
 
   return (
     <form
@@ -87,18 +87,18 @@ function ReleaseSettings() {
               <h3 style={{ textAlign: "center" }} className="text-lg leading-6 font-medium text-gray-900 dark:text-white">
                 Danger Zone
               </h3>
-              <p style={{ textAlign: "center" }} className="mt-1 text-sm text-gray-900 dark:text-white">This will clear all release history in your database.</p>
+              <p style={{ textAlign: "center" }} className="mt-1 text-sm text-gray-900 dark:text-white">This will clear release history in your database.</p>
             </div>
             <div className="mt-6">
-              <label htmlFor="duration" className="block text-sm font-medium text-gray-700 dark:text-white">
-                Delete releases older than (in days)
+              <label htmlFor="duration" className="items-center block text-sm font-medium text-gray-700 dark:text-white text-center">
+                Delete releases older than (in days):
               </label>
-              <div className="mt-1 flex rounded-md shadow-sm">
+              <div className="flex justify-between items-center p-2 mt-2 max-w-sm m-auto mt-1 rounded-md shadow-sm">
                 <input
                   type="number"
                   name="duration"
                   id="duration"
-                  className="focus:ring-indigo-500 focus:border-indigo-500 flex-1 block w-full rounded-none rounded-r-md sm:text-sm border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
+                  className="focus:outline-none focus:ring-2 focus:ring-offset-0 focus:ring-blue-500 dark:focus:ring-blue-500 flex-1 block w-full rounded-none rounded-r-md sm:text-sm border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
                   placeholder="Enter days"
                   value={duration}
                   onChange={(e) => setDuration(e.target.value)}
@@ -106,7 +106,7 @@ function ReleaseSettings() {
                 <button
                   type="button"
                   onClick={deleteOlderReleases}
-                  className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                  className="ml-2 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-red-700 hover:text-red-900 dark:text-white bg-red-100 dark:bg-red-800 hover:bg-red-200 dark:hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
                 >
                   Delete
                 </button>
