@@ -40,7 +40,7 @@ func (h releaseHandler) Routes(r chi.Router) {
 	r.Get("/stats", h.getStats)
 	r.Get("/indexers", h.getIndexerOptions)
 	r.Delete("/all", h.deleteReleases)
-	r.Delete("/older-than/{duration}", h.deleteOlder) // Add this line
+	r.Delete("/older-than/{duration}", h.deleteOlder)
 }
 
 func (h releaseHandler) findReleases(w http.ResponseWriter, r *http.Request) {
