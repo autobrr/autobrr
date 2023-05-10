@@ -44,21 +44,21 @@ function ReleaseSettings() {
           <Toast type="success" body={`Releases older than ${getDurationLabel(parsedDuration)} were deleted.`} t={t} />
         ));
       }
-  
+
       // Invalidate filters just in case, most likely not necessary but can't hurt.
       queryClient.invalidateQueries({ queryKey: releaseKeys.lists() });
     }
-  });  
-  
+  });
+
   const deleteOlderReleases = () => {
     const parsedDuration = parseInt(duration, 10);
-    
+
     if (isNaN(parsedDuration) || parsedDuration < 0) {
       toast.custom((t) => <Toast type="error" body={"Please select a valid duration."} t={t} />);
     } else {
       deleteOlderMutation.mutate(parsedDuration);
     }
-  };  
+  };
 
   return (
     <form
@@ -72,7 +72,7 @@ function ReleaseSettings() {
             Releases
           </h2>
           <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-            Release settings. Reset state.
+            Manage release history.
           </p>
         </div>
       </div>
@@ -89,35 +89,37 @@ function ReleaseSettings() {
               </p>
             </div>
             <div className="mt-6">
-              <label htmlFor="duration" className="items-center block text-sm font-medium text-gray-700 dark:text-white text-center">
-                Delete releases older than:
-              </label>
-              <div className="flex justify-between items-center p-2 mt-2 max-w-sm m-auto rounded-md shadow-sm">
-                <select
-                  name="duration"
-                  id="duration"
-                  className="focus:outline-none focus:ring-2 focus:ring-offset-0 focus:ring-blue-500 dark:focus:ring-blue-500 flex-1 block w-full rounded-md sm:text-sm border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
-                  value={duration}
-                  onChange={(e) => setDuration(e.target.value)}
-                >
-                  <option value="">Select duration</option>
-                  <option value="1">1 hour</option>
-                  <option value="12">12 hours</option>
-                  <option value="24">1 day</option>
-                  <option value="168">1 week</option>
-                  <option value="720">1 month</option>
-                  <option value="2160">3 months</option>
-                  <option value="4320">6 months</option>
-                  <option value="8760">1 year</option>
-                  <option value="0">Delete everything</option>
-                </select>
-                <button
-                  type="button"
-                  onClick={deleteOlderReleases}
-                  className="ml-2 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-red-700 hover:text-red-900 dark:text-white bg-red-100 dark:bg-red-800 hover:bg-red-200 dark:hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
-                >
-                  Delete
-                </button>
+              <div className="max-w-sm mx-auto">
+                <label htmlFor="duration" className="block text-sm font-medium text-gray-700 dark:text-white">
+                  Delete releases older than:
+                </label>
+                <div className="flex items-center mt-2 rounded-md shadow-sm">
+                  <select
+                    name="duration"
+                    id="duration"
+                    className="focus:outline-none focus:ring-1 focus:ring-offset-0 focus:ring-blue-500 dark:focus:ring-blue-500 flex-1 block w-full rounded-md sm:text-sm border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
+                    value={duration}
+                    onChange={(e) => setDuration(e.target.value)}
+                  >
+                    <option value="">Select duration</option>
+                    <option value="1">1 hour</option>
+                    <option value="12">12 hours</option>
+                    <option value="24">1 day</option>
+                    <option value="168">1 week</option>
+                    <option value="720">1 month</option>
+                    <option value="2160">3 months</option>
+                    <option value="4320">6 months</option>
+                    <option value="8760">1 year</option>
+                    <option value="0">Delete everything</option>
+                  </select>
+                  <button
+                    type="button"
+                    onClick={deleteOlderReleases}
+                    className="ml-2 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-red-700 hover:text-red-900 dark:text-white bg-red-100 dark:bg-red-800 hover:bg-red-200 dark:hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                  >
+                    Delete
+                  </button>
+                </div>
               </div>
             </div>
           </div>
