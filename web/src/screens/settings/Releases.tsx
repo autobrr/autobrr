@@ -78,49 +78,45 @@ function ReleaseSettings() {
       </div>
 
       <div className="pb-6 divide-y divide-gray-200 dark:divide-gray-700">
-        <div className="px-4">
-          <div className="px-4 py-5">
-            <div>
-              <h3 className="text-center sm:text-lg leading-6 font-medium text-gray-900 dark:text-white">
-                Danger Zone
-              </h3>
-              <p className="text-center mt-1 text-sm text-gray-900 dark:text-white">
-                This will clear release history in your database
-              </p>
-            </div>
-            <div className="mt-8">
-              <div className="max-w-sm mx-auto">
-                <label htmlFor="duration" className="block text-sm text-gray-700 dark:text-white">
-                  Delete releases older than:
-                </label>
-                <div className="flex items-center mt-2 rounded-md shadow-sm">
-                  <select
-                    name="duration"
-                    id="duration"
-                    className="focus:outline-none focus:ring-1 focus:ring-offset-0 focus:ring-blue-500 dark:focus:ring-blue-500 flex-1 block w-full rounded-md sm:text-sm border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
-                    value={duration}
-                    onChange={(e) => setDuration(e.target.value)}
-                  >
-                    <option value="">Select duration</option>
-                    <option value="1">1 hour</option>
-                    <option value="12">12 hours</option>
-                    <option value="24">1 day</option>
-                    <option value="168">1 week</option>
-                    <option value="720">1 month</option>
-                    <option value="2160">3 months</option>
-                    <option value="4320">6 months</option>
-                    <option value="8760">1 year</option>
-                    <option value="0">Delete everything</option>
-                  </select>
-                  <button
-                    type="button"
-                    onClick={deleteOlderReleases}
-                    className="ml-2 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-red-700 hover:text-red-900 dark:text-white bg-red-100 dark:bg-red-800 hover:bg-red-200 dark:hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
-                  >
-                    Delete
-                  </button>
-                </div>
-              </div>
+        <div className="px-4 py-5">
+          <div className="text-center">
+            <h3 className="sm:text-lg leading-6 font-medium text-gray-900 dark:text-white">
+              Danger Zone
+            </h3>
+            <p className="mt-1 text-sm text-gray-900 dark:text-white">
+              This will clear release history in your database
+            </p>
+          </div>
+          <div className="mt-8 max-w-sm mx-auto">
+            <label htmlFor="duration" className="block text-sm text-gray-700 dark:text-white">
+              Delete releases older than:
+            </label>
+            <div className="flex items-center mt-2 rounded-md shadow-sm">
+              <select
+                name="duration"
+                id="duration"
+                className="focus:outline-none focus:ring-1 focus:ring-offset-0 focus:ring-blue-500 dark:focus:ring-blue-500 flex-1 block w-full rounded-md sm:text-sm border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
+                value={duration}
+                onChange={(e) => setDuration(e.target.value)}
+              >
+                <option value="">Select duration</option>
+                <option value="1">1 hour</option>
+                <option value="12">12 hours</option>
+                <option value="24">1 day</option>
+                <option value="168">1 week</option>
+                <option value="720">1 month</option>
+                <option value="2160">3 months</option>
+                <option value="4320">6 months</option>
+                <option value="8760">1 year</option>
+                <option value="0">Delete everything</option>
+              </select>
+              <button
+                type="button"
+                onClick={deleteOlderReleases}
+                className="ml-2 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-red-700 hover:text-red-900 dark:text-white bg-red-100 dark:bg-red-700 hover:bg-red-200 dark:hover:bg-red-800 focus:outline-none focus:ring-1 focus:ring-inset focus:ring-red-600"
+              >
+                Delete
+              </button>
             </div>
           </div>
         </div>
