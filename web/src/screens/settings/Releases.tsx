@@ -79,7 +79,7 @@ function ReleaseSettings() {
 
       <div className="pb-6 divide-y divide-gray-200 dark:divide-gray-700">
         <div className="px-4">
-          <div className="px-4">
+          <div className="px-4 py-5">
             <div>
               <h3 className="text-center sm:text-lg leading-6 font-medium text-gray-900 dark:text-white">
                 Danger Zone
