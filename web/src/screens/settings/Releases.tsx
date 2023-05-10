@@ -78,17 +78,17 @@ function ReleaseSettings() {
       </div>
 
       <div className="pb-6 divide-y divide-gray-200 dark:divide-gray-700">
-        <div className="px-4 py-5 sm:p-0">
-          <div className="px-4 py-5 sm:p-6">
+        <div className="px-4">
+          <div className="px-4">
             <div>
-              <h3 className="text-center text-lg leading-6 font-medium text-gray-900 dark:text-white">
+              <h3 className="text-center sm:text-lg leading-6 font-medium text-gray-900 dark:text-white">
                 Danger Zone
               </h3>
               <p className="text-center mt-1 text-sm text-gray-900 dark:text-white">
                 This will clear release history in your database
               </p>
             </div>
-            <div className="mt-6">
+            <div className="mt-8">
               <div className="max-w-sm mx-auto">
                 <label htmlFor="duration" className="block text-sm text-gray-700 dark:text-white">
                   Delete releases older than:
