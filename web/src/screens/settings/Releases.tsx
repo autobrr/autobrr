@@ -90,7 +90,7 @@ function ReleaseSettings() {
             </div>
             <div className="mt-6">
               <div className="max-w-sm mx-auto">
-                <label htmlFor="duration" className="block text-sm font-medium text-gray-700 dark:text-white">
+                <label htmlFor="duration" className="block text-sm text-gray-700 dark:text-white">
                   Delete releases older than:
                 </label>
                 <div className="flex items-center mt-2 rounded-md shadow-sm">
