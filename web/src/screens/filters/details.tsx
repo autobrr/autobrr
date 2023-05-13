@@ -352,6 +352,9 @@ export default function FilterDetails() {
                 match_release_tags: filter.match_release_tags,
                 except_release_tags: filter.except_release_tags,
                 use_regex_release_tags: filter.use_regex_release_tags,
+                match_description: filter.match_description,
+                except_description: filter.except_description,
+                use_regex_description: filter.use_regex_description,
                 match_categories: filter.match_categories,
                 except_categories: filter.except_categories,
                 tags: filter.tags,
@@ -635,6 +638,17 @@ export function Advanced({ values }: AdvancedProps) {
           <div className="col-span-6">
             <SwitchGroup name="use_regex_release_tags" label="Use Regex" />
           </div>
+        </div>
+      </CollapsableSection>
+
+      <CollapsableSection defaultOpen={true} title="Feeds" subtitle="These options are only for Feeds such as RSS, Torznab and Newznab">
+        {/*<div className="grid col-span-12 gap-6">*/}
+        <RegexTextAreaField name="match_description" label="Match description"  useRegex={values.use_regex_description} columns={6} placeholder="eg. *some?movie*,*some?show*s01*" tooltip={<div><p>This field has full regex support (Golang flavour).</p><a href='https://autobrr.com/filters#advanced' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters#advanced</a><br/><br/><p>Remember to tick <b>Use Regex</b> below if using more than <code>*</code> and <code>?</code>.</p></div>} />
+        <RegexTextAreaField name="except_description" label="Except description" useRegex={values.use_regex_description} columns={6} placeholder="eg. *bad?movie*,*bad?show*s03*" tooltip={<div><p>This field has full regex support (Golang flavour).</p><a href='https://autobrr.com/filters#advanced' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters#advanced</a><br/><br/><p>Remember to tick <b>Use Regex</b> below if using more than <code>*</code> and <code>?</code>.</p></div>} />
+        {/*</div>*/}
+
+        <div className="col-span-6">
+          <SwitchGroup name="use_regex_description" label="Use Regex" />
         </div>
       </CollapsableSection>
 

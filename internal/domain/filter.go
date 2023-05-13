@@ -124,6 +124,9 @@ type Filter struct {
 	MatchReleaseTags            string                 `json:"match_release_tags,omitempty"`
 	ExceptReleaseTags           string                 `json:"except_release_tags,omitempty"`
 	UseRegexReleaseTags         bool                   `json:"use_regex_release_tags,omitempty"`
+	MatchDescription            string                 `json:"match_description,omitempty"`
+	ExceptDescription           string                 `json:"except_description,omitempty"`
+	UseRegexDescription         bool                   `json:"use_regex_description,omitempty"`
 	ExternalScriptEnabled       bool                   `json:"external_script_enabled,omitempty"`
 	ExternalScriptCmd           string                 `json:"external_script_cmd,omitempty"`
 	ExternalScriptArgs          string                 `json:"external_script_args,omitempty"`
@@ -156,6 +159,9 @@ type FilterUpdate struct {
 	MatchReleaseTags            *string                 `json:"match_release_tags,omitempty"`
 	ExceptReleaseTags           *string                 `json:"except_release_tags,omitempty"`
 	UseRegexReleaseTags         *bool                   `json:"use_regex_release_tags,omitempty"`
+	MatchDescription            *string                 `json:"match_description,omitempty"`
+	ExceptDescription           *string                 `json:"except_description,omitempty"`
+	UseRegexDescription         *bool                   `json:"use_regex_description,omitempty"`
 	Scene                       *bool                   `json:"scene,omitempty"`
 	Origins                     *[]string               `json:"origins,omitempty"`
 	ExceptOrigins               *[]string               `json:"except_origins,omitempty"`
@@ -438,6 +444,26 @@ func (f Filter) CheckFilter(r *Release) ([]string, bool) {
 
 	if f.Log && f.LogScore != 0 && r.LogScore != f.LogScore {
 		r.addRejectionF("log score. got: %v want: %v", r.LogScore, f.LogScore)
+	}
+
+	// check description string
+	if f.UseRegexDescription {
+		if f.MatchDescription != "" && !matchRegex(r.Description, f.MatchDescription) {
+			r.addRejectionF("match description regex not matching. got: %v want: %v", r.Description, f.MatchDescription)
+		}
+
+		if f.ExceptDescription != "" && matchRegex(r.Description, f.ExceptDescription) {
+			r.addRejectionF("except description regex: unwanted release. got: %v want: %v", r.Description, f.ExceptDescription)
+		}
+
+	} else {
+		if f.MatchDescription != "" && !containsFuzzy(r.Description, f.MatchDescription) {
+			r.addRejectionF("match description not matching. got: %v want: %v", r.Description, f.MatchDescription)
+		}
+
+		if f.ExceptDescription != "" && containsFuzzy(r.Description, f.ExceptDescription) {
+			r.addRejectionF("except description: unwanted release. got: %v want: %v", r.Description, f.ExceptDescription)
+		}
 	}
 
 	if len(r.Rejections) > 0 {
