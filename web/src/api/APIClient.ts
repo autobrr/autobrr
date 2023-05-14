@@ -193,7 +193,8 @@ export const APIClient = {
     },
     indexerOptions: () => appClient.Get<string[]>("api/release/indexers"),
     stats: () => appClient.Get<ReleaseStats>("api/release/stats"),
-    delete: () => appClient.Delete("api/release/all")
+    delete: () => appClient.Delete("api/release/all"),
+    replayAction: (releaseId: number, actionId: number) => appClient.Post(`api/release/${releaseId}/actions/${actionId}/retry`)
   },
   updates: {
     check: () => appClient.Get("api/updates/check"),

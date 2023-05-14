@@ -23,9 +23,12 @@ interface ReleaseActionStatus {
   id: number;
   status: string;
   action: string;
+  action_id: number;
   type: string;
   client: string;
   filter: string;
+  filter_id: number;
+  release_id: number;
   rejections: string[];
   timestamp: string
 }

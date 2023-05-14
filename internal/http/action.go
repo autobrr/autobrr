@@ -36,9 +36,12 @@ func newActionHandler(encoder encoder, service actionService) *actionHandler {
 func (h actionHandler) Routes(r chi.Router) {
 	r.Get("/", h.getActions)
 	r.Post("/", h.storeAction)
-	r.Delete("/{id}", h.deleteAction)
-	r.Put("/{id}", h.updateAction)
-	r.Patch("/{id}/toggleEnabled", h.toggleActionEnabled)
+
+	r.Route("/{id}", func(r chi.Router) {
+		r.Delete("/{id}", h.deleteAction)
+		r.Put("/{id}", h.updateAction)
+		r.Patch("/{id}/toggleEnabled", h.toggleActionEnabled)
+	})
 }
 
 func (h actionHandler) getActions(w http.ResponseWriter, r *http.Request) {

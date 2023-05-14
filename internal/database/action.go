@@ -280,12 +280,100 @@ func (r *ActionRepo) List(ctx context.Context) ([]domain.Action, error) {
 		a.ClientID = clientID.Int32
 
 		actions = append(actions, a)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, errors.Wrap(err, "rows error")
+
+		if err := rows.Err(); err != nil {
+			return nil, errors.Wrap(err, "rows error")
+		}
 	}
 
 	return actions, nil
+}
+
+func (r *ActionRepo) Get(ctx context.Context, req *domain.GetActionRequest) (*domain.Action, error) {
+	queryBuilder := r.db.squirrel.
+		Select(
+			"id",
+			"name",
+			"type",
+			"enabled",
+			"exec_cmd",
+			"exec_args",
+			"watch_folder",
+			"category",
+			"tags",
+			"label",
+			"save_path",
+			"paused",
+			"ignore_rules",
+			"limit_download_speed",
+			"limit_upload_speed",
+			"limit_ratio",
+			"limit_seed_time",
+			"reannounce_skip",
+			"reannounce_delete",
+			"reannounce_interval",
+			"reannounce_max_attempts",
+			"webhook_host",
+			"webhook_type",
+			"webhook_method",
+			"webhook_data",
+			"client_id",
+			"filter_id",
+		).
+		From("action").
+		Where(sq.Eq{"id": req.Id})
+
+	query, args, err := queryBuilder.ToSql()
+	if err != nil {
+		return nil, errors.Wrap(err, "error building query")
+	}
+
+	row := r.db.handler.QueryRowContext(ctx, query, args...)
+	if err != nil {
+		return nil, errors.Wrap(err, "error executing query")
+	}
+
+	if err := row.Err(); err != nil {
+		return nil, errors.Wrap(err, "rows error")
+	}
+
+	var a domain.Action
+
+	var execCmd, execArgs, watchFolder, category, tags, label, savePath, webhookHost, webhookType, webhookMethod, webhookData sql.NullString
+	var limitUl, limitDl, limitSeedTime sql.NullInt64
+	var limitRatio sql.NullFloat64
+	var clientID, filterID sql.NullInt32
+	var paused, ignoreRules sql.NullBool
+
+	if err := row.Scan(&a.ID, &a.Name, &a.Type, &a.Enabled, &execCmd, &execArgs, &watchFolder, &category, &tags, &label, &savePath, &paused, &ignoreRules, &limitDl, &limitUl, &limitRatio, &limitSeedTime, &a.ReAnnounceSkip, &a.ReAnnounceDelete, &a.ReAnnounceInterval, &a.ReAnnounceMaxAttempts, &webhookHost, &webhookType, &webhookMethod, &webhookData, &clientID, &filterID); err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+
+		return nil, errors.Wrap(err, "error scanning row")
+	}
+
+	a.Category = category.String
+	a.Tags = tags.String
+	a.Label = label.String
+	a.SavePath = savePath.String
+	a.Paused = paused.Bool
+	a.IgnoreRules = ignoreRules.Bool
+
+	a.LimitDownloadSpeed = limitDl.Int64
+	a.LimitUploadSpeed = limitUl.Int64
+	a.LimitRatio = limitRatio.Float64
+	a.LimitSeedTime = limitSeedTime.Int64
+
+	a.WebhookHost = webhookHost.String
+	a.WebhookType = webhookType.String
+	a.WebhookMethod = webhookMethod.String
+	a.WebhookData = webhookData.String
+
+	a.ClientID = clientID.Int32
+	a.FilterID = int(filterID.Int32)
+
+	return &a, nil
 }
 
 func (r *ActionRepo) Delete(actionID int) error {
