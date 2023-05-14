@@ -6,12 +6,16 @@ package main
 import (
 	"bufio"
 	"context"
+	"database/sql"
 	"encoding/json"
 	"flag"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
+	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/autobrr/autobrr/internal/config"
@@ -49,12 +53,107 @@ func init() {
 	}
 }
 
+func resetDB(configPath string) {
+	// Open the existing SQLite database
+	dbPath := filepath.Join(filepath.Dir(configPath), "autobrr.db")
+	db, err := sql.Open("sqlite", dbPath)
+	if err != nil {
+		log.Fatalf("failed to open database: %v", err)
+	}
+	defer db.Close()
+
+	// Update the tables list with the provided table names
+	tables := []string{
+		"action",
+		"api_key",
+		"client",
+		"feed",
+		"feed_cache",
+		"filter",
+		"filter_indexer",
+		"indexer",
+		"irc_channel",
+		"irc_network",
+		"notification",
+		"release",
+		"release_action_status",
+		"users",
+	}
+
+	// Execute SQL commands to remove all rows and reset primary key sequences
+	for _, table := range tables {
+		_, err = db.Exec(fmt.Sprintf("DELETE FROM %s", table))
+		if err != nil {
+			log.Printf("failed to delete rows from table %s: %v", table, err)
+		}
+
+		// Attempt to update sqlite_sequence, ignore errors caused by missing sqlite_sequence entry
+		_, err = db.Exec(fmt.Sprintf("UPDATE sqlite_sequence SET seq = 0 WHERE name = '%s'", table))
+		if err != nil && !strings.Contains(err.Error(), "no such table") {
+			log.Printf("failed to reset primary key sequence for table %s: %v", table, err)
+		}
+	}
+}
+
+func seedDB(seedDBPath string, configPath string) {
+	// Read SQL file
+	sqlFile, err := ioutil.ReadFile(seedDBPath)
+	if err != nil {
+		log.Fatalf("failed to read SQL file: %v", err)
+	}
+
+	// Create a new SQLite database
+	dbPath := filepath.Join(filepath.Dir(configPath), "autobrr.db")
+	db, err := sql.Open("sqlite", dbPath)
+	if err != nil {
+		log.Fatalf("failed to create database: %v", err)
+	}
+	defer db.Close()
+
+	// Execute SQL commands from the file
+	sqlCommands := strings.Split(string(sqlFile), ";")
+	for _, cmd := range sqlCommands {
+		_, err = db.Exec(cmd)
+		if err != nil {
+			log.Printf("failed to execute SQL command: %v", err)
+		}
+	}
+}
+
 func main() {
+	var seedDBPath string
+	flag.StringVar(&seedDBPath, "seed-db", "", "path to SQL seed file")
+
 	var configPath string
 	flag.StringVar(&configPath, "config", "", "path to configuration file")
 	flag.Parse()
 
 	switch cmd := flag.Arg(0); cmd {
+
+	case "db:seed":
+		seedDBPath := flag.Arg(1)
+		if seedDBPath == "" {
+			fmt.Println("Error: missing path to SQL seed file")
+			flag.Usage()
+			os.Exit(1)
+		}
+		seedDB(seedDBPath, configPath)
+		fmt.Println("Database seeding completed successfully!")
+
+	case "db:reset":
+		if configPath == "" {
+			log.Fatal("--config required")
+		}
+		seedDBPath := flag.Arg(1)
+		if seedDBPath == "" {
+			fmt.Println("Error: missing path to SQL seed file")
+			flag.Usage()
+			os.Exit(1)
+		}
+		resetDB(configPath)
+		seedDB(seedDBPath, configPath)
+		fmt.Println("Database reset completed successfully!")
+
 	case "version":
 		fmt.Printf("Version: %v\nCommit: %v\nBuild: %v\n", version, commit, date)
 
