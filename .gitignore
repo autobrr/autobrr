@@ -39,4 +39,5 @@ tmp/
 package-lock.json
 # Ditto for yarn, except we're using npm.
 yarn.lock
-dist/
+dist/*
+!dist/.gitkeep
