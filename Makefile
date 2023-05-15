@@ -15,7 +15,7 @@ BINDIR = bin
 all: clean build
 
 deps:
-	cd web && pnpm install --frozen-lockfile
+	pnpm --dir web install --frozen-lockfile
 	go mod download
 
 test:
@@ -30,7 +30,7 @@ build/ctl:
 	go build -ldflags $(GOFLAGS) -o bin/autobrrctl cmd/autobrrctl/main.go
 
 build/web:
-	cd web && pnpm run build
+	pnpm --dir web run build
 
 build/docker:
 	docker build -t autobrr:dev -f Dockerfile . --build-arg GIT_TAG=$(GIT_TAG) --build-arg GIT_COMMIT=$(GIT_COMMIT)
