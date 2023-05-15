@@ -23,6 +23,7 @@ require (
 	github.com/hekmon/transmissionrpc/v2 v2.0.1
 	github.com/lib/pq v1.10.7
 	github.com/mattn/go-shellwords v1.0.12
+	github.com/mattn/go-sqlite3 v1.14.16
 	github.com/mmcdole/gofeed v1.1.3
 	github.com/moistari/rls v0.5.9
 	github.com/pkg/errors v0.9.1
