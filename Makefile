@@ -15,7 +15,7 @@ BINDIR = bin
 all: clean build
 
 deps:
-	cd web && pnpm install
+	cd web && pnpm install --frozen-lockfile
 	go mod download
 
 test:
