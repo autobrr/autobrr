@@ -243,7 +243,7 @@ func (c *AppConfig) load(configPath string) {
 
 	for _, key := range viper.AllKeys() {
 		envKey := strings.ToUpper(strings.ReplaceAll(key, ".", "_"))
-		err := viper.BindEnv(key, "AUTOBRR_"+envKey)
+		err := viper.BindEnv(key, "AUTOBRR__"+envKey)
 		if err != nil {
 			log.Fatal("config: unable to bind env: " + err.Error())
 		}
