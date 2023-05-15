@@ -30,8 +30,8 @@ jobs:
       - name: Set up Node
         uses: actions/setup-node@v3
         with:
-          node-version: 18
-          cache: 'pnpm'
+          node-version: '18.7.0'
+          cache: pnpm
           cache-dependency-path: web/pnpm-lock.yaml
 
       - name: Fetch web dependencies
