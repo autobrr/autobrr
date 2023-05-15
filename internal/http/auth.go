@@ -74,17 +74,14 @@ func (h authHandler) login(w http.ResponseWriter, r *http.Request) {
 		h.cookieStore.Options.SameSite = http.SameSiteStrictMode
 	}
 
-	session, err := h.cookieStore.Get(r, "user_session")
-	if err != nil {
-		h.encoder.StatusError(w, http.StatusInternalServerError, errors.New("could not get session"))
-		return
-	}
-
-	if _, err = h.service.Login(ctx, data.Username, data.Password); err != nil {
+	if _, err := h.service.Login(ctx, data.Username, data.Password); err != nil {
 		h.log.Error().Err(err).Msgf("Auth: Failed login attempt username: [%s] ip: %s", data.Username, ReadUserIP(r))
 		h.encoder.StatusError(w, http.StatusUnauthorized, errors.New("could not login: bad credentials"))
 		return
 	}
+
+	// create new session
+	session, _ := h.cookieStore.Get(r, "user_session")
 
 	// Set user as authenticated
 	session.Values["authenticated"] = true
@@ -97,13 +94,10 @@ func (h authHandler) login(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h authHandler) logout(w http.ResponseWriter, r *http.Request) {
-	session, err := h.cookieStore.Get(r, "user_session")
-	if err != nil {
-		h.log.Error().Err(err).Msg("could not get session")
-		h.encoder.StatusError(w, http.StatusInternalServerError, errors.New("could not get session"))
-		return
-	}
+	session, _ := h.cookieStore.Get(r, "user_session")
 
+	// cookieStore.Get will create a new session if it does not exist
+	// so if it created a new then lets just return without saving it
 	if session.IsNew {
 		h.encoder.StatusResponse(w, http.StatusNoContent, nil)
 		return
@@ -128,10 +122,6 @@ func (h authHandler) onboard(w http.ResponseWriter, r *http.Request) {
 	// Don't proceed if user is authenticated
 	if authenticated, ok := session.Values["authenticated"].(bool); ok {
 		if ok && authenticated {
-			session.Values["authenticated"] = false
-			session.Options.MaxAge = -1
-			session.Save(r, w)
-
 			h.encoder.StatusError(w, http.StatusForbidden, errors.New("active session found"))
 			return
 		}
@@ -172,11 +162,7 @@ func (h authHandler) canOnboard(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h authHandler) validate(w http.ResponseWriter, r *http.Request) {
-	session, err := h.cookieStore.Get(r, "user_session")
-	if err != nil {
-		h.encoder.StatusError(w, http.StatusInternalServerError, errors.New("could not get session"))
-		return
-	}
+	session, _ := h.cookieStore.Get(r, "user_session")
 
 	// Check if user is authenticated
 	if auth, ok := session.Values["authenticated"].(bool); !ok || !auth {
