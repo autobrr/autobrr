@@ -207,7 +207,7 @@ func (repo *ReleaseRepo) findReleases(ctx context.Context, tx *Tx, params domain
 
 	queryBuilder := repo.db.squirrel.
 		Select("r.id", "r.filter_status", "r.rejections", "r.indexer", "r.filter", "r.protocol", "r.info_url", "r.download_url", "r.title", "r.torrent_name", "r.size", "r.timestamp",
-			"ras.id", "ras.status", "ras.action", "ras.action_id", "ras.type", "ras.client", "ras.filter", "ras.release_id", "ras.rejections", "ras.timestamp").
+			"ras.id", "ras.status", "ras.action", "ras.action_id", "ras.type", "ras.client", "ras.filter", "ras.filter_id", "ras.release_id", "ras.rejections", "ras.timestamp").
 		Column(sq.Alias(countQuery, "page_total")).
 		From("release r").
 		OrderBy("r.id DESC").
@@ -242,12 +242,12 @@ func (repo *ReleaseRepo) findReleases(ctx context.Context, tx *Tx, params domain
 
 		var rlsindexer, rlsfilter, infoUrl, downloadUrl sql.NullString
 
-		var rasId, rasReleaseId, rasActionId sql.NullInt64
+		var rasId, rasFilterId, rasReleaseId, rasActionId sql.NullInt64
 		var rasStatus, rasAction, rasType, rasClient, rasFilter sql.NullString
 		var rasRejections []sql.NullString
 		var rasTimestamp sql.NullTime
 
-		if err := rows.Scan(&rls.ID, &rls.FilterStatus, pq.Array(&rls.Rejections), &rlsindexer, &rlsfilter, &rls.Protocol, &infoUrl, &downloadUrl, &rls.Title, &rls.TorrentName, &rls.Size, &rls.Timestamp, &rasId, &rasStatus, &rasAction, &rasActionId, &rasType, &rasClient, &rasFilter, &rasReleaseId, pq.Array(&rasRejections), &rasTimestamp, &countItems); err != nil {
+		if err := rows.Scan(&rls.ID, &rls.FilterStatus, pq.Array(&rls.Rejections), &rlsindexer, &rlsfilter, &rls.Protocol, &infoUrl, &downloadUrl, &rls.Title, &rls.TorrentName, &rls.Size, &rls.Timestamp, &rasId, &rasStatus, &rasAction, &rasActionId, &rasType, &rasClient, &rasFilter, &rasFilterId, &rasReleaseId, pq.Array(&rasRejections), &rasTimestamp, &countItems); err != nil {
 			return res, 0, 0, errors.Wrap(err, "error scanning row")
 		}
 
@@ -258,6 +258,7 @@ func (repo *ReleaseRepo) findReleases(ctx context.Context, tx *Tx, params domain
 		ras.Type = domain.ActionType(rasType.String)
 		ras.Client = rasClient.String
 		ras.Filter = rasFilter.String
+		ras.FilterID = rasFilterId.Int64
 		ras.Timestamp = rasTimestamp.Time
 		ras.ReleaseID = rasReleaseId.Int64
 		ras.Rejections = []string{}
