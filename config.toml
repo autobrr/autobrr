@@ -4,7 +4,7 @@
 #
 # Default: "localhost"
 #
-host = "0.0.0.0"
+host = "127.0.0.1"
 
 # Port
 #
@@ -25,7 +25,7 @@ port = 7474
 #
 # Optional
 #
-#logPath = ""
+#logPath = "log/autobrr.log"
 
 # Log level
 #
@@ -55,7 +55,7 @@ logLevel = "TRACE"
 #
 # Default: true
 #
-checkForUpdates = false
+checkForUpdates = true
 
 # Session secret
 #
@@ -63,13 +63,4 @@ sessionSecret = "secret-session-key"
 
 # Custom definitions
 #
-customDefinitions = "test/definitions"
-
-# Database config
-#
-databaseType = "postgres"
-postgresHost = "localhost"
-postgresPort = 5432
-postgresDatabase = "autobrr3"
-postgresUser = "autobrr"
-postgresPass = "postgres"
+#customDefinitions = "test/definitions"
