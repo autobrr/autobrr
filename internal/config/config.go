@@ -250,7 +250,7 @@ func (c *AppConfig) load(configPath string) {
 	}
 
 	if err := viper.Unmarshal(c.Config); err != nil {
-		log.Fatalf("Could not unmarshal config file: %v", viper.ConfigFileUsed())
+		log.Fatalf("Could not unmarshal config file: %v: err %q", viper.ConfigFileUsed(), err)
 	}
 }
 
