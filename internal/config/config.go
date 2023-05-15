@@ -232,8 +232,10 @@ func (c *AppConfig) load(configPath string) {
 		log.Printf("config read error: %q", err)
 	}
 
+	log.Printf("config used: %s", viper.ConfigFileUsed())
+
 	if err := viper.Unmarshal(&c.Config); err != nil {
-		log.Fatalf("Could not unmarshal config file: %v", viper.ConfigFileUsed())
+		log.Fatalf("Could not unmarshal config file: %v: %q", viper.ConfigFileUsed(), err)
 	}
 }
 
