@@ -17,7 +17,7 @@ type ActionRepo interface {
 	FindByFilterID(ctx context.Context, filterID int) ([]*Action, error)
 	List(ctx context.Context) ([]Action, error)
 	Get(ctx context.Context, req *GetActionRequest) (*Action, error)
-	Delete(actionID int) error
+	Delete(ctx context.Context, req *DeleteActionRequest) error
 	DeleteByFilterID(ctx context.Context, filterID int) error
 	ToggleEnabled(actionID int) error
 }
@@ -129,4 +129,8 @@ const (
 
 type GetActionRequest struct {
 	Id int
+}
+
+type DeleteActionRequest struct {
+	ActionId int
 }

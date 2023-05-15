@@ -11,13 +11,14 @@ import (
 	"strconv"
 
 	"github.com/autobrr/autobrr/internal/domain"
+
 	"github.com/go-chi/chi/v5"
 )
 
 type actionService interface {
 	List(ctx context.Context) ([]domain.Action, error)
 	Store(ctx context.Context, action domain.Action) (*domain.Action, error)
-	Delete(actionID int) error
+	Delete(ctx context.Context, req *domain.DeleteActionRequest) error
 	ToggleEnabled(actionID int) error
 }
 
@@ -38,16 +39,17 @@ func (h actionHandler) Routes(r chi.Router) {
 	r.Post("/", h.storeAction)
 
 	r.Route("/{id}", func(r chi.Router) {
-		r.Delete("/{id}", h.deleteAction)
-		r.Put("/{id}", h.updateAction)
-		r.Patch("/{id}/toggleEnabled", h.toggleActionEnabled)
+		r.Delete("/", h.deleteAction)
+		r.Put("/", h.updateAction)
+		r.Patch("/toggleEnabled", h.toggleActionEnabled)
 	})
 }
 
 func (h actionHandler) getActions(w http.ResponseWriter, r *http.Request) {
 	actions, err := h.service.List(r.Context())
 	if err != nil {
-		// encode error
+		h.encoder.Error(w, err)
+		return
 	}
 
 	h.encoder.StatusResponse(w, http.StatusOK, actions)
@@ -60,13 +62,14 @@ func (h actionHandler) storeAction(w http.ResponseWriter, r *http.Request) {
 	)
 
 	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
-		// encode error
+		h.encoder.Error(w, err)
 		return
 	}
 
 	action, err := h.service.Store(ctx, data)
 	if err != nil {
-		// encode error
+		h.encoder.Error(w, err)
+		return
 	}
 
 	h.encoder.StatusResponse(w, http.StatusCreated, action)
@@ -79,13 +82,14 @@ func (h actionHandler) updateAction(w http.ResponseWriter, r *http.Request) {
 	)
 
 	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
-		// encode error
+		h.encoder.Error(w, err)
 		return
 	}
 
 	action, err := h.service.Store(ctx, data)
 	if err != nil {
-		// encode error
+		h.encoder.Error(w, err)
+		return
 	}
 
 	h.encoder.StatusResponse(w, http.StatusCreated, action)
@@ -94,11 +98,13 @@ func (h actionHandler) updateAction(w http.ResponseWriter, r *http.Request) {
 func (h actionHandler) deleteAction(w http.ResponseWriter, r *http.Request) {
 	actionID, err := parseInt(chi.URLParam(r, "id"))
 	if err != nil {
-		h.encoder.StatusResponse(w, http.StatusBadRequest, errors.New("bad param id"))
+		h.encoder.StatusError(w, http.StatusBadRequest, errors.New("bad param id"))
+		return
 	}
 
-	if err := h.service.Delete(actionID); err != nil {
-		// encode error
+	if err := h.service.Delete(r.Context(), &domain.DeleteActionRequest{ActionId: actionID}); err != nil {
+		h.encoder.Error(w, err)
+		return
 	}
 
 	h.encoder.StatusResponse(w, http.StatusNoContent, nil)
@@ -107,11 +113,13 @@ func (h actionHandler) deleteAction(w http.ResponseWriter, r *http.Request) {
 func (h actionHandler) toggleActionEnabled(w http.ResponseWriter, r *http.Request) {
 	actionID, err := parseInt(chi.URLParam(r, "id"))
 	if err != nil {
-		h.encoder.StatusResponse(w, http.StatusBadRequest, errors.New("bad param id"))
+		h.encoder.StatusError(w, http.StatusBadRequest, errors.New("bad param id"))
+		return
 	}
 
 	if err := h.service.ToggleEnabled(actionID); err != nil {
-		// encode error
+		h.encoder.Error(w, err)
+		return
 	}
 
 	h.encoder.StatusResponse(w, http.StatusCreated, nil)
