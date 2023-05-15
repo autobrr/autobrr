@@ -4,11 +4,12 @@
  */
 
 import React, { Fragment, useEffect, useRef, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { Field, FieldArray, FieldProps, FormikValues, useFormikContext } from "formik";
 import { Dialog, Switch as SwitchBasic, Transition } from "@headlessui/react";
 import { ChevronRightIcon } from "@heroicons/react/24/solid";
 import { Link } from "react-router-dom";
+import { toast } from "react-hot-toast";
 
 import {
   ActionContentLayoutOptions,
@@ -25,6 +26,7 @@ import { classNames } from "@utils";
 import { DeleteModal } from "@components/modals";
 import { CollapsableSection } from "./details";
 import { TextArea } from "@components/inputs/input";
+import Toast from "@components/notifications/Toast";
 
 interface FilterActionsProps {
   filter: Filter;
@@ -543,6 +545,23 @@ function FilterActionsItem({ action, clients, idx, initialEdit, remove }: Filter
   const [deleteModalIsOpen, toggleDeleteModal] = useToggle(false);
   const [edit, toggleEdit] = useToggle(initialEdit);
 
+  const removeMutation = useMutation({
+    mutationFn: (id: number) => APIClient.actions.delete(id),
+    onSuccess: () => {
+      remove(idx);
+      // Invalidate filters just in case, most likely not necessary but can't hurt.
+      // queryClient.invalidateQueries({ queryKey: filterKeys.detail(id) });
+
+      toast.custom((t) => (
+        <Toast type="success" body={`Action ${action?.name} was deleted`} t={t} />
+      ));
+    }
+  });
+
+  const removeAction = (id: number) => {
+    removeMutation.mutate(id);
+  };
+
   return (
     <li>
       <div
@@ -622,7 +641,7 @@ function FilterActionsItem({ action, clients, idx, initialEdit, remove }: Filter
                 isOpen={deleteModalIsOpen}
                 buttonRef={cancelButtonRef}
                 toggle={toggleDeleteModal}
-                deleteAction={() => remove(idx)}
+                deleteAction={() => removeAction(action.id)}
                 title="Remove filter action"
                 text="Are you sure you want to remove this action? This action cannot be undone."
               />

@@ -99,7 +99,7 @@ func (s *service) RunAction(ctx context.Context, action *domain.Action, release 
 	payload := &domain.NotificationPayload{
 		Event:          domain.NotificationEventPushApproved,
 		ReleaseName:    release.TorrentName,
-		Filter:         release.Filter.Name,
+		Filter:         release.FilterName,
 		Indexer:        release.Indexer,
 		InfoHash:       release.TorrentHash,
 		Size:           release.Size,
