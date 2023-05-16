@@ -8,7 +8,7 @@ require (
 	github.com/anacrolix/torrent v1.46.0
 	github.com/asaskevich/EventBus v0.0.0-20200907212545-49d423059eef
 	github.com/autobrr/go-deluge v1.0.0
-	github.com/autobrr/go-qbittorrent v1.3.1-0.20230320220008-1f3c0f9b227f
+	github.com/autobrr/go-qbittorrent v1.3.2-0.20230516104948-af0f0d7efbb6
 	github.com/autobrr/go-rtorrent v1.0.1
 	github.com/avast/retry-go v3.0.0+incompatible
 	github.com/dcarbone/zadapters/zstdlog v0.3.1
