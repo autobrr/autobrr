@@ -14,6 +14,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -43,8 +44,8 @@ Actions:
 Examples:
   autobrrctl --config /config.toml create-user john
   autobrrctl --config /config.toml change-password john
-  autobrrctl db:reset /path/to/sqlite.db /path/to/seed
-  autobrrctl db:seed /path/to/sqlite.db /path/to/seed
+  autobrrctl --config /config.toml db:reset /path/to/sqlite.db /path/to/seed
+  autobrrctl --config /config.toml db:seed /path/to/sqlite.db /path/to/seed
   autobrrctl db:migrate /path/to/sqlite.db postgresql://localhost/mydb
   autobrrctl version
   autobrrctl help
@@ -227,19 +228,14 @@ func indexOf(s string, slice []string) int {
 	return -1
 }
 
-func resetDB(dbPath string) {
+func resetDB(configPath string) error {
 	// Open the existing SQLite database
+	dbPath := filepath.Join(filepath.Dir(configPath), "autobrr.db")
 	db, err := sql.Open("sqlite", dbPath)
 	if err != nil {
-		log.Fatalf("failed to open database: %v", err)
+		return fmt.Errorf("failed to open database: %v", err)
 	}
 	defer db.Close()
-
-	// Start a new transaction
-	tx, err := db.Begin()
-	if err != nil {
-		log.Fatalf("failed to begin transaction: %v", err)
-	}
 
 	// Update the tables list with the provided table names
 	tables := []string{
@@ -261,65 +257,48 @@ func resetDB(dbPath string) {
 
 	// Execute SQL commands to remove all rows and reset primary key sequences
 	for _, table := range tables {
-		_, err = tx.Exec(fmt.Sprintf("DELETE FROM %s", table))
+		_, err = db.Exec(fmt.Sprintf("DELETE FROM %s", table))
 		if err != nil {
-			log.Printf("failed to delete rows from table %s: %v", table, err)
-			tx.Rollback()
-			return
+			return fmt.Errorf("failed to delete rows from table %s: %v", table, err)
 		}
 
 		// Attempt to update sqlite_sequence, ignore errors caused by missing sqlite_sequence entry
-		_, err = tx.Exec(fmt.Sprintf("UPDATE sqlite_sequence SET seq = 0 WHERE name = '%s'", table))
+		_, err = db.Exec(fmt.Sprintf("UPDATE sqlite_sequence SET seq = 0 WHERE name = '%s'", table))
 		if err != nil && !strings.Contains(err.Error(), "no such table") {
-			log.Printf("failed to reset primary key sequence for table %s: %v", table, err)
-			tx.Rollback()
-			return
+			return fmt.Errorf("failed to reset primary key sequence for table %s: %v", table, err)
 		}
 	}
 
-	// Commit the transaction
-	err = tx.Commit()
-	if err != nil {
-		log.Fatalf("failed to commit transaction: %v", err)
-	}
+	// If no error occurred, return nil
+	return nil
 }
 
-func seedDB(seedDBPath, dbPath string) {
+func seedDB(seedDBPath string, configPath string) error {
 	// Read SQL file
 	sqlFile, err := ioutil.ReadFile(seedDBPath)
 	if err != nil {
-		log.Fatalf("failed to read SQL file: %v", err)
+		return fmt.Errorf("failed to read SQL file: %v", err)
 	}
 
-	// Open the SQLite database
+	// Create a new SQLite database
+	dbPath := filepath.Join(filepath.Dir(configPath), "autobrr.db")
 	db, err := sql.Open("sqlite", dbPath)
 	if err != nil {
-		log.Fatalf("failed to open database: %v", err)
+		return fmt.Errorf("failed to create database: %v", err)
 	}
 	defer db.Close()
-
-	// Start a new transaction
-	tx, err := db.Begin()
-	if err != nil {
-		log.Fatalf("failed to begin transaction: %v", err)
-	}
 
 	// Execute SQL commands from the file
 	sqlCommands := strings.Split(string(sqlFile), ";")
 	for _, cmd := range sqlCommands {
-		_, err = tx.Exec(cmd)
+		_, err = db.Exec(cmd)
 		if err != nil {
-			log.Printf("failed to execute SQL command: %v", err)
-			tx.Rollback()
-			return
+			return fmt.Errorf("failed to execute SQL command: %v", err)
 		}
 	}
 
-	// Commit the transaction
-	err = tx.Commit()
-	if err != nil {
-		log.Fatalf("failed to commit transaction: %v", err)
-	}
+	// If no error occurred, return nil
+	return nil
 }
 
 func main() {
@@ -350,15 +329,11 @@ func main() {
 			flag.Usage()
 			os.Exit(1)
 		}
-
-		dbPath := flag.Arg(2)
-		if dbPath == "" {
-			fmt.Println("Error: missing path to SQLite database file")
-			flag.Usage()
+		err := seedDB(seedDBPath, configPath)
+		if err != nil {
+			fmt.Println("Error seeding the database:", err)
 			os.Exit(1)
 		}
-
-		seedDB(seedDBPath, dbPath)
 		fmt.Println("Database seeding completed successfully!")
 
 	case "db:reset":
@@ -368,16 +343,16 @@ func main() {
 			flag.Usage()
 			os.Exit(1)
 		}
-
-		dbPath := flag.Arg(2)
-		if dbPath == "" {
-			fmt.Println("Error: missing path to SQLite database file")
-			flag.Usage()
+		err := resetDB(configPath)
+		if err != nil {
+			fmt.Println("Error resetting the database:", err)
 			os.Exit(1)
 		}
-
-		resetDB(dbPath)
-		seedDB(seedDBPath, dbPath)
+		err = seedDB(seedDBPath, configPath)
+		if err != nil {
+			fmt.Println("Error seeding the database:", err)
+			os.Exit(1)
+		}
 		fmt.Println("Database reset completed successfully!")
 
 	case "version":
