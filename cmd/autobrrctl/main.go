@@ -80,15 +80,8 @@ func migrate(sqliteDBPath, postgresDBURL string) {
 	}
 	defer postgresDB.Close()
 
-	// Start a new transaction
-	tx, err := postgresDB.Begin()
-	if err != nil {
-		log.Fatalf("Failed to begin a transaction: %v", err)
-	}
-
-	// List of table names to migrate
 	tables := []string{
-		"users", "indexer", "irc_network", "irc_channel", "filter", "client", "action", "release", "release_action_status", "notification", "feed", "feed_cache", "api_key", "filter_indexer",
+		"users", "indexer", "irc_network", "irc_channel", "client", "filter", "action", "notification", "filter_indexer", "release", "release_action_status", "feed", "feed_cache", "api_key",
 	}
 
 	for _, table := range tables {
@@ -115,10 +108,18 @@ func migrate(sqliteDBPath, postgresDBURL string) {
 				colPlaceholders += ", "
 			}
 		}
-		insertStmt, err := tx.Prepare(fmt.Sprintf("INSERT INTO %s (%s) VALUES (%s)", table, colNames, colPlaceholders))
+
+		// Start a new transaction before the insert operation
+		tx, err := postgresDB.Begin()
 		if err != nil {
-			log.Fatalf("Failed to prepare INSERT statement for table '%s': %v", table, err)
+			log.Fatalf("Failed to begin a transaction: %v", err)
 		}
+
+		defer func() {
+			if err := tx.Rollback(); err != nil && err != sql.ErrTxDone {
+				log.Fatalf("Failed to rollback: %v", err)
+			}
+		}()
 
 		// Iterate through SQLite rows and insert them into the PostgreSQL table
 		for rows.Next() {
@@ -133,21 +134,36 @@ func migrate(sqliteDBPath, postgresDBURL string) {
 				log.Fatalf("Failed to scan row from SQLite table '%s': %v", table, err)
 			}
 
+			insertStmt, err := tx.Prepare(fmt.Sprintf("INSERT INTO %s (%s) VALUES (%s)", table, colNames, colPlaceholders))
+			if err != nil {
+				log.Fatalf("Failed to prepare INSERT statement for table '%s': %v", table, err)
+			}
+
 			_, err = insertStmt.Exec(values...)
 			if err != nil {
-				// Rollback the transaction in case of error
-				tx.Rollback()
-				log.Fatalf("Failed to insert row into PostgreSQL table '%s': %v", table, err)
+				if strings.Contains(err.Error(), "violates foreign key constraint") {
+					log.Printf("Failed to insert the following values into PostgreSQL table '%s': %v", table, values)
+					log.Printf("Skipping row due to foreign key constraint violation: %v", err)
+					tx.Rollback() // rollback the current transaction
+
+					// Start a new transaction
+					tx, err = postgresDB.Begin()
+					if err != nil {
+						log.Fatalf("Failed to begin a transaction: %v", err)
+					}
+				} else {
+					log.Fatalf("Failed to insert row into PostgreSQL table '%s': %v", table, err)
+				}
 			}
+
+		}
+		// Commit the transaction after the insert operations
+		err = tx.Commit()
+		if err != nil {
+			log.Fatalf("Failed to commit the transaction: %v", err)
 		}
 
 		fmt.Printf("Migrated table '%s' from SQLite to PostgreSQL\n", table)
-	}
-
-	// If no errors, commit the transaction
-	err = tx.Commit()
-	if err != nil {
-		log.Fatalf("Failed to commit the transaction: %v", err)
 	}
 
 	fmt.Println("Migration completed successfully!")
