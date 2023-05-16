@@ -36,7 +36,7 @@ Actions:
   change-password     <username>                      Change the password
   db:seed             <path-to-database> <seed-path>  Seed the sqlite database
   db:reset            <path-to-database> <seed-path>  Reset the sqlite database
-  migrate             <sqliteDBPath> <postgresDBURL>  Migrate sqlite to postgres
+  db:migrate             <sqliteDBPath> <postgresDBURL>  Migrate sqlite to postgres
   version                                             Display the version of autobrrctl
   help                                                Show this help message
 
@@ -45,7 +45,7 @@ Examples:
   autobrrctl --config /config.toml change-password john
   autobrrctl db:reset /path/to/sqlite.db /path/to/seed
   autobrrctl db:seed /path/to/sqlite.db /path/to/seed
-  autobrrctl migrate /path/to/sqlite.db postgresql://localhost/mydb
+  autobrrctl db:migrate /path/to/sqlite.db postgresql://localhost/mydb
   autobrrctl version
   autobrrctl help
 `
@@ -81,7 +81,7 @@ func migrate(sqliteDBPath, postgresDBURL string) {
 	defer postgresDB.Close()
 
 	tables := []string{
-		"users", "indexer", "irc_network", "irc_channel", "client", "filter", "action", "notification", "filter_indexer", "release", "release_action_status", "feed", "feed_cache", "api_key",
+		"users", "indexer", "irc_network", "irc_channel", "client", "filter", "action", "notification", "filter_indexer", "release", "release_action_status", "feed", "api_key",
 	}
 
 	for _, table := range tables {
