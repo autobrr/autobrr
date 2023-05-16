@@ -318,6 +318,7 @@ CREATE TABLE release_action_status
 	id            SERIAL PRIMARY KEY,
 	status        TEXT,
 	action        TEXT NOT NULL,
+	action_id     INTEGER,
 	type          TEXT NOT NULL,
 	client        TEXT,
 	filter        TEXT,
@@ -327,6 +328,7 @@ CREATE TABLE release_action_status
 	raw           TEXT,
 	log           TEXT,
 	release_id    INTEGER NOT NULL,
+	FOREIGN KEY (action_id) REFERENCES "action"(id),
 	FOREIGN KEY (release_id) REFERENCES "release"(id) ON DELETE CASCADE,
 	FOREIGN KEY (filter_id) REFERENCES "filter"(id) ON DELETE SET NULL
 );
