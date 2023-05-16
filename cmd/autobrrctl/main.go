@@ -14,7 +14,6 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"path/filepath"
 	"strings"
 	"time"
 
@@ -30,13 +29,25 @@ import (
 	"golang.org/x/term"
 )
 
-const usage = `usage: autobrrctl --config path <action>
+const usage = `usage: autobrrctl <action> [arguments]
 
-  create-user		<username>	Create user
-  change-password	<username>	Change password for user
-  version				Can be run without --config
-  help					Show this help message
+Actions:
+  create-user         <username>                      Create a new user
+  change-password     <username>                      Change the password
+  db:seed             <path-to-database> <seed-path>  Seed the sqlite database
+  db:reset            <path-to-database> <seed-path>  Reset the sqlite database
+  migrate             <sqliteDBPath> <postgresDBURL>  Migrate sqlite to postgres
+  version                                             Display the version of autobrrctl
+  help                                                Show this help message
 
+Examples:
+  autobrrctl --config /config.toml create-user john
+  autobrrctl --config /config.toml change-password john
+  autobrrctl db:reset /path/to/sqlite.db /path/to/seed
+  autobrrctl db:seed /path/to/sqlite.db /path/to/seed
+  autobrrctl migrate /path/to/sqlite.db postgresql://localhost/mydb
+  autobrrctl version
+  autobrrctl help
 `
 
 var (
@@ -142,14 +153,19 @@ func migrate(sqliteDBPath, postgresDBURL string) {
 	fmt.Println("Migration completed successfully!")
 }
 
-func resetDB(configPath string) {
+func resetDB(dbPath string) {
 	// Open the existing SQLite database
-	dbPath := filepath.Join(filepath.Dir(configPath), "autobrr.db")
 	db, err := sql.Open("sqlite", dbPath)
 	if err != nil {
 		log.Fatalf("failed to open database: %v", err)
 	}
 	defer db.Close()
+
+	// Start a new transaction
+	tx, err := db.Begin()
+	if err != nil {
+		log.Fatalf("failed to begin transaction: %v", err)
+	}
 
 	// Update the tables list with the provided table names
 	tables := []string{
@@ -171,41 +187,64 @@ func resetDB(configPath string) {
 
 	// Execute SQL commands to remove all rows and reset primary key sequences
 	for _, table := range tables {
-		_, err = db.Exec(fmt.Sprintf("DELETE FROM %s", table))
+		_, err = tx.Exec(fmt.Sprintf("DELETE FROM %s", table))
 		if err != nil {
 			log.Printf("failed to delete rows from table %s: %v", table, err)
+			tx.Rollback()
+			return
 		}
 
 		// Attempt to update sqlite_sequence, ignore errors caused by missing sqlite_sequence entry
-		_, err = db.Exec(fmt.Sprintf("UPDATE sqlite_sequence SET seq = 0 WHERE name = '%s'", table))
+		_, err = tx.Exec(fmt.Sprintf("UPDATE sqlite_sequence SET seq = 0 WHERE name = '%s'", table))
 		if err != nil && !strings.Contains(err.Error(), "no such table") {
 			log.Printf("failed to reset primary key sequence for table %s: %v", table, err)
+			tx.Rollback()
+			return
 		}
+	}
+
+	// Commit the transaction
+	err = tx.Commit()
+	if err != nil {
+		log.Fatalf("failed to commit transaction: %v", err)
 	}
 }
 
-func seedDB(seedDBPath string, configPath string) {
+func seedDB(seedDBPath, dbPath string) {
 	// Read SQL file
 	sqlFile, err := ioutil.ReadFile(seedDBPath)
 	if err != nil {
 		log.Fatalf("failed to read SQL file: %v", err)
 	}
 
-	// Create a new SQLite database
-	dbPath := filepath.Join(filepath.Dir(configPath), "autobrr.db")
+	// Open the SQLite database
 	db, err := sql.Open("sqlite", dbPath)
 	if err != nil {
-		log.Fatalf("failed to create database: %v", err)
+		log.Fatalf("failed to open database: %v", err)
 	}
 	defer db.Close()
+
+	// Start a new transaction
+	tx, err := db.Begin()
+	if err != nil {
+		log.Fatalf("failed to begin transaction: %v", err)
+	}
 
 	// Execute SQL commands from the file
 	sqlCommands := strings.Split(string(sqlFile), ";")
 	for _, cmd := range sqlCommands {
-		_, err = db.Exec(cmd)
+		_, err = tx.Exec(cmd)
 		if err != nil {
 			log.Printf("failed to execute SQL command: %v", err)
+			tx.Rollback()
+			return
 		}
+	}
+
+	// Commit the transaction
+	err = tx.Commit()
+	if err != nil {
+		log.Fatalf("failed to commit transaction: %v", err)
 	}
 }
 
@@ -237,21 +276,34 @@ func main() {
 			flag.Usage()
 			os.Exit(1)
 		}
-		seedDB(seedDBPath, configPath)
+
+		dbPath := flag.Arg(2)
+		if dbPath == "" {
+			fmt.Println("Error: missing path to SQLite database file")
+			flag.Usage()
+			os.Exit(1)
+		}
+
+		seedDB(seedDBPath, dbPath)
 		fmt.Println("Database seeding completed successfully!")
 
 	case "db:reset":
-		if configPath == "" {
-			log.Fatal("--config required")
-		}
 		seedDBPath := flag.Arg(1)
 		if seedDBPath == "" {
 			fmt.Println("Error: missing path to SQL seed file")
 			flag.Usage()
 			os.Exit(1)
 		}
-		resetDB(configPath)
-		seedDB(seedDBPath, configPath)
+
+		dbPath := flag.Arg(2)
+		if dbPath == "" {
+			fmt.Println("Error: missing path to SQLite database file")
+			flag.Usage()
+			os.Exit(1)
+		}
+
+		resetDB(dbPath)
+		seedDB(seedDBPath, dbPath)
 		fmt.Println("Database reset completed successfully!")
 
 	case "version":
