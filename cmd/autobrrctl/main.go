@@ -423,12 +423,6 @@ func migrate(sqliteDBPath, postgresDBURL string) {
 	}
 	defer postgresDB.Close()
 
-	// Create PostgreSQL schema
-	_, err = postgresDB.Exec(postgresSchema)
-	if err != nil {
-		log.Fatalf("Failed to create PostgreSQL schema: %v", err)
-	}
-
 	// List of table names to migrate
 	tables := []string{
 		"users", "indexer", "irc_network", "irc_channel", "filter", "filter_indexer", "client", "action", "release", "release_action_status", "notification", "feed", "feed_cache", "api_key",
