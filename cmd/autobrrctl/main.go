@@ -35,15 +35,15 @@ Actions:
   change-password     <username>                      Change the password
   db:seed             <path-to-database> <seed-path>  Seed the sqlite database
   db:reset            <path-to-database> <seed-path>  Reset the sqlite database
-  db:migrate             <sqliteDBPath> <postgresDBURL>  Migrate sqlite to postgres
+  db:migrate          <sqliteDBPath> <postgresDBURL>  Migrate sqlite to postgres
   version                                             Display the version of autobrrctl
   help                                                Show this help message
 
 Examples:
   autobrrctl --config /config.toml create-user john
   autobrrctl --config /config.toml change-password john
-  autobrrctl --config /config.toml db:reset /path/to/sqlite.db /path/to/seed
-  autobrrctl --config /config.toml db:seed /path/to/sqlite.db /path/to/seed
+  autobrrctl db:reset /path/to/sqlite.db /path/to/seed
+  autobrrctl db:seed /path/to/sqlite.db /path/to/seed
   autobrrctl db:migrate /path/to/sqlite.db postgresql://localhost/mydb
   autobrrctl version
   autobrrctl help
