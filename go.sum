@@ -91,6 +91,8 @@ github.com/asaskevich/EventBus v0.0.0-20200907212545-49d423059eef h1:2JGTg6JapxP
 github.com/asaskevich/EventBus v0.0.0-20200907212545-49d423059eef/go.mod h1:JS7hed4L1fj0hXcyEejnW57/7LCetXggd+vwrRnYeII=
 github.com/autobrr/go-deluge v1.0.0 h1:dGpA3elktcH8eQ5ctzpU5dTjzR0eOBOnrhTZEGPVv6E=
 github.com/autobrr/go-deluge v1.0.0/go.mod h1:ndiXT1eHWv/ATNk9TpE8GHIs8OSSUnsImt4Syk+y5LM=
+github.com/autobrr/go-deluge v1.0.1 h1:JH2RJnWWaYvN/29KuajtRXS/HxQhAxOk4yq54pjnn68=
+github.com/autobrr/go-deluge v1.0.1/go.mod h1:ndiXT1eHWv/ATNk9TpE8GHIs8OSSUnsImt4Syk+y5LM=
 github.com/autobrr/go-qbittorrent v1.3.2 h1:Jk6W4bGUAlmFmSefiK1jwAvITy6sGe6GG3zIP8gOJVg=
 github.com/autobrr/go-qbittorrent v1.3.2/go.mod h1:z88B3+O/1/3doQABErvIOOxE4hjpmIpulu6XzDG/q78=
 github.com/autobrr/go-rtorrent v1.0.1 h1:KbSBGcgsThYs4qHBYyFlgSOhDhfRXkJoAxVkB0atIzg=
