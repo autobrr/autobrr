@@ -66,6 +66,8 @@ func init() {
 }
 
 func migrate(sqliteDBPath, postgresDBURL string) {
+	startTime := time.Now() // Start the timer
+
 	sqliteDB, err := sql.Open("sqlite3", sqliteDBPath)
 	if err != nil {
 		log.Fatalf("Failed to connect to SQLite database: %v", err)
@@ -137,7 +139,7 @@ func migrate(sqliteDBPath, postgresDBURL string) {
 						fieldIndex := -1
 						field := "filter_id"
 						if table == "release_action_status" {
-							field = "release_id"
+							field = "filter_id"
 						}
 
 						// Find the index of the field in columns
@@ -150,7 +152,7 @@ func migrate(sqliteDBPath, postgresDBURL string) {
 
 						// If the field was found in columns, set the corresponding value to NULL and retry the INSERT
 						if fieldIndex != -1 {
-							log.Printf("Setting %s to NULL for the %s with id: %v due to foreign key violation", field, table, values[0])
+							//log.Printf("Setting %s to NULL for the %s with id: %v due to foreign key violation", field, table, values[0])
 							values[fieldIndex] = nil
 							_, err = insertStmt.Exec(values...)
 							if err != nil {
@@ -162,12 +164,13 @@ func migrate(sqliteDBPath, postgresDBURL string) {
 					log.Printf("Failed to insert row into PostgreSQL table '%s': %v", table, err)
 				}
 			}
-
 		}
 		fmt.Printf("Migrated table '%s' from SQLite to PostgreSQL\n", table)
 	}
 
+	elapsedTime := time.Since(startTime) // Calculate the elapsed time
 	fmt.Println("Migration completed successfully!")
+	fmt.Printf("Elapsed time: %s\n", elapsedTime)
 }
 
 func resetDB(configPath string) error {
