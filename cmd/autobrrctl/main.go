@@ -13,7 +13,6 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"path/filepath"
 	"strings"
 	"time"
 
@@ -173,9 +172,8 @@ func migrate(sqliteDBPath, postgresDBURL string) {
 	fmt.Printf("Elapsed time: %s\n", elapsedTime)
 }
 
-func resetDB(configPath string) error {
+func resetDB(dbPath string) error {
 	// Open the existing SQLite database
-	dbPath := filepath.Join(filepath.Dir(configPath), "autobrr.db")
 	db, err := sql.Open("sqlite", dbPath)
 	if err != nil {
 		return fmt.Errorf("failed to open database: %v", err)
@@ -218,18 +216,17 @@ func resetDB(configPath string) error {
 	return nil
 }
 
-func seedDB(seedDBPath string, configPath string) error {
+func seedDB(dbPath string, seedDBPath string) error {
 	// Read SQL file
 	sqlFile, err := os.ReadFile(seedDBPath)
 	if err != nil {
 		return fmt.Errorf("failed to read SQL file: %v", err)
 	}
 
-	// Create a new SQLite database
-	dbPath := filepath.Join(filepath.Dir(configPath), "autobrr.db")
+	// Open the SQLite database
 	db, err := sql.Open("sqlite", dbPath)
 	if err != nil {
-		return fmt.Errorf("failed to create database: %v", err)
+		return fmt.Errorf("failed to open database: %v", err)
 	}
 	defer db.Close()
 
@@ -268,13 +265,14 @@ func main() {
 		migrate(sqliteDBPath, postgresDBURL)
 
 	case "db:seed":
-		seedDBPath := flag.Arg(1)
-		if seedDBPath == "" {
-			fmt.Println("Error: missing path to SQL seed file")
+		dbPath := flag.Arg(1)
+		seedDBPath := flag.Arg(2)
+		if dbPath == "" || seedDBPath == "" {
+			fmt.Println("Error: missing path to database file or SQL seed file")
 			flag.Usage()
 			os.Exit(1)
 		}
-		err := seedDB(seedDBPath, configPath)
+		err := seedDB(dbPath, seedDBPath)
 		if err != nil {
 			fmt.Println("Error seeding the database:", err)
 			os.Exit(1)
@@ -282,23 +280,24 @@ func main() {
 		fmt.Println("Database seeding completed successfully!")
 
 	case "db:reset":
-		seedDBPath := flag.Arg(1)
-		if seedDBPath == "" {
-			fmt.Println("Error: missing path to SQL seed file")
+		dbPath := flag.Arg(1)
+		seedDBPath := flag.Arg(2)
+		if dbPath == "" || seedDBPath == "" {
+			fmt.Println("Error: missing path to database file or SQL seed file")
 			flag.Usage()
 			os.Exit(1)
 		}
-		err := resetDB(configPath)
+		err := resetDB(dbPath)
 		if err != nil {
 			fmt.Println("Error resetting the database:", err)
 			os.Exit(1)
 		}
-		err = seedDB(seedDBPath, configPath)
+		err = seedDB(dbPath, seedDBPath)
 		if err != nil {
 			fmt.Println("Error seeding the database:", err)
 			os.Exit(1)
 		}
-		fmt.Println("Database reset completed successfully!")
+		fmt.Println("Database reset and reseed completed successfully!")
 
 	case "version":
 		fmt.Printf("Version: %v\nCommit: %v\nBuild: %v\n", version, commit, date)
