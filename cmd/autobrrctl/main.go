@@ -10,7 +10,6 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
@@ -67,50 +66,37 @@ func init() {
 }
 
 func migrate(sqliteDBPath, postgresDBURL string) {
-	// Connect to SQLite database
 	sqliteDB, err := sql.Open("sqlite3", sqliteDBPath)
 	if err != nil {
 		log.Fatalf("Failed to connect to SQLite database: %v", err)
 	}
 	defer sqliteDB.Close()
 
-	// Connect to PostgreSQL database
 	postgresDB, err := sql.Open("postgres", postgresDBURL)
 	if err != nil {
 		log.Fatalf("Failed to connect to PostgreSQL database: %v", err)
 	}
 	defer postgresDB.Close()
 
+	// List of tables to migrate
 	tables := []string{
 		"users", "indexer", "irc_network", "irc_channel", "client", "filter", "action", "notification", "filter_indexer", "release", "release_action_status", "feed", "api_key",
 	}
 
-	// Start a new transaction before the insert operation
-	tx, err := postgresDB.Begin()
-	if err != nil {
-		log.Fatalf("Failed to begin a transaction: %v", err)
-	}
-
-	defer func() {
-		if err := tx.Rollback(); err != nil && err != sql.ErrTxDone {
-			log.Fatalf("Failed to rollback: %v", err)
-		}
-	}()
-
+	// Iterate over each table
 	for _, table := range tables {
-		// Get all rows from the SQLite table
 		rows, err := sqliteDB.Query(fmt.Sprintf("SELECT * FROM %s", table))
 		if err != nil {
 			log.Fatalf("Failed to query SQLite table '%s': %v", table, err)
 		}
 
-		// Get column names and types
+		// Get the column types of the SQLite table
 		columns, err := rows.ColumnTypes()
 		if err != nil {
 			log.Fatalf("Failed to get column types for table '%s': %v", table, err)
 		}
 
-		// Prepare an INSERT statement for the PostgreSQL table
+		// Prepare the column names and placeholders for the INSERT statement
 		colNames := ""
 		colPlaceholders := ""
 		for i, col := range columns {
@@ -122,110 +108,66 @@ func migrate(sqliteDBPath, postgresDBURL string) {
 			}
 		}
 
-		// Iterate through SQLite rows and insert them into the PostgreSQL table
+		// Prepare the INSERT statement for the PostgreSQL table
+		insertStmt, err := postgresDB.Prepare(fmt.Sprintf("INSERT INTO %s (%s) VALUES (%s)", table, colNames, colPlaceholders))
+		if err != nil {
+			log.Fatalf("Failed to prepare INSERT statement for table '%s': %v", table, err)
+		}
+
+		// Iterate over each row from the SQLite table
 		for rows.Next() {
+			// Prepare the values for the INSERT statement
 			values := make([]interface{}, len(columns))
 			valuePtrs := make([]interface{}, len(columns))
 			for i := range values {
 				valuePtrs[i] = &values[i]
 			}
 
+			// Scan the values from the SQLite row
 			err = rows.Scan(valuePtrs...)
 			if err != nil {
 				log.Fatalf("Failed to scan row from SQLite table '%s': %v", table, err)
 			}
 
-			insertStmt, err := tx.Prepare(fmt.Sprintf("INSERT INTO %s (%s) VALUES (%s)", table, colNames, colPlaceholders))
-			if err != nil {
-				log.Fatalf("Failed to prepare INSERT statement for table '%s': %v", table, err)
-			}
-
+			// Execute the INSERT statement on the PostgreSQL table
 			_, err = insertStmt.Exec(values...)
 			if err != nil {
 				if strings.Contains(err.Error(), "violates foreign key constraint") {
-					log.Printf("Failed to insert the following values into PostgreSQL table '%s': %+v", table, values)
-					//log.Printf("Skipping row due to foreign key constraint violation: %v", err)
-					log.Printf("colnames: %v colplaceholders: %v", colNames, colPlaceholders)
-
-					// Rollback the aborted transaction
-					err = tx.Rollback()
-					if err != nil && err != sql.ErrTxDone {
-						log.Fatalf("Failed to rollback: %v", err)
-					}
-
-					// Start a new transaction for handling the constraint violation
-					tx, err = postgresDB.Begin()
-					if err != nil {
-						log.Fatalf("Failed to begin a new transaction: %v", err)
-					}
-
-					if table == "release" {
-						log.Printf("Resetting filter_id to NULL for the release with id: %v", values[0])
-						updateStmt, err := tx.Prepare("UPDATE release SET filter_id = NULL WHERE id = $1")
-						if err != nil {
-							log.Fatalf("Failed to prepare UPDATE statement for table 'release': %v", err)
+					if table == "release" || table == "release_action_status" {
+						fieldIndex := -1
+						field := "filter_id"
+						if table == "release_action_status" {
+							field = "release_id"
 						}
-						_, err = updateStmt.Exec(values[0])
-						if err != nil {
-							log.Fatalf("Failed to update filter_id to NULL for release with id %v: %v", values[0], err)
-						}
-					} else if table == "release_action_status" {
-						log.Printf("Resetting release_id to NULL for the release_action_status with id: %v", values[0])
-						updateStmt, err := tx.Prepare("UPDATE release_action_status SET release_id = NULL WHERE id = $1")
-						if err != nil {
-							log.Fatalf("Failed to prepare UPDATE statement for table 'release_action_status': %v", err)
-						}
-						_, err = updateStmt.Exec(values[0])
-						if err != nil {
-							log.Fatalf("Failed to update release_id to NULL for release_action_status with id %v: %v", values[0], err)
-						}
-					}
 
-					// Commit the transaction after handling the constraint violation
-					err = tx.Commit()
-					if err != nil {
-						log.Fatalf("Failed to commit the transaction: %v", err)
-					}
+						// Find the index of the field in columns
+						for i, col := range columns {
+							if col.Name() == field {
+								fieldIndex = i
+								break
+							}
+						}
 
-					// Start a new transaction for the remaining insert operations
-					tx, err = postgresDB.Begin()
-					if err != nil {
-						log.Fatalf("Failed to begin a new transaction: %v", err)
+						// If the field was found in columns, set the corresponding value to NULL and retry the INSERT
+						if fieldIndex != -1 {
+							log.Printf("Setting %s to NULL for the %s with id: %v due to foreign key violation", field, table, values[0])
+							values[fieldIndex] = nil
+							_, err = insertStmt.Exec(values...)
+							if err != nil {
+								log.Printf("Failed to insert row into PostgreSQL table '%s' after setting %s to NULL: %v", table, field, err)
+							}
+						}
 					}
 				} else {
 					log.Printf("Failed to insert row into PostgreSQL table '%s': %v", table, err)
 				}
 			}
-		}
 
+		}
 		fmt.Printf("Migrated table '%s' from SQLite to PostgreSQL\n", table)
-
-		// Commit the transaction after the insert operations for the current table
-		err = tx.Commit()
-		if err != nil {
-			log.Fatalf("Failed to commit the transaction: %v", err)
-		}
-
-		// Start a new transaction for the next table, if there is one
-		if i := indexOf(table, tables); i < len(tables)-1 {
-			tx, err = postgresDB.Begin()
-			if err != nil {
-				log.Fatalf("Failed to begin a new transaction: %v", err)
-			}
-		}
 	}
 
 	fmt.Println("Migration completed successfully!")
-}
-
-func indexOf(s string, slice []string) int {
-	for i, v := range slice {
-		if v == s {
-			return i
-		}
-	}
-
-	return -1
 }
 
 func resetDB(configPath string) error {
@@ -275,7 +217,7 @@ func resetDB(configPath string) error {
 
 func seedDB(seedDBPath string, configPath string) error {
 	// Read SQL file
-	sqlFile, err := ioutil.ReadFile(seedDBPath)
+	sqlFile, err := os.ReadFile(seedDBPath)
 	if err != nil {
 		return fmt.Errorf("failed to read SQL file: %v", err)
 	}
