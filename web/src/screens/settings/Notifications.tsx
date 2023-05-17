@@ -1,4 +1,9 @@
-import { useQuery } from "@tanstack/react-query";
+/*
+ * Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ */
+
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Switch } from "@headlessui/react";
 
 import { APIClient } from "@api/APIClient";
@@ -7,6 +12,8 @@ import { useToggle } from "@hooks/hooks";
 import { NotificationAddForm, NotificationUpdateForm } from "@forms/settings/NotificationForms";
 import { classNames } from "@utils";
 import { componentMapType } from "@forms/settings/DownloadClientForms";
+import Toast from "@components/notifications/Toast";
+import toast from "react-hot-toast";
 
 export const notificationKeys = {
   all: ["notifications"] as const,
@@ -101,11 +108,28 @@ const iconComponentMap: componentMapType = {
 };
 
 interface ListItemProps {
-    notification: Notification;
+  notification: Notification;
 }
 
 function ListItem({ notification }: ListItemProps) {
   const [updateFormIsOpen, toggleUpdateForm] = useToggle(false);
+
+  const queryClient = useQueryClient();
+
+  const mutation = useMutation({
+    mutationFn: (notification: Notification) => APIClient.notifications.update(notification).then(() => notification),
+    onSuccess: (notification: Notification) => {
+      toast.custom(t => <Toast type="success" body={`${notification.name} was ${notification.enabled ? "enabled" : "disabled"} successfully.`} t={t} />);
+      queryClient.invalidateQueries({ queryKey: notificationKeys.lists() });
+    }
+  });
+  
+  const onToggleMutation = (newState: boolean) => {
+    mutation.mutate({
+      ...notification,
+      enabled: newState
+    });
+  };  
 
   return (
     <li key={notification.id} className="text-gray-500 dark:text-gray-400">
@@ -115,7 +139,7 @@ function ListItem({ notification }: ListItemProps) {
         <div className="col-span-2 sm:col-span-1 px-6 flex items-center ">
           <Switch
             checked={notification.enabled}
-            onChange={toggleUpdateForm}
+            onChange={onToggleMutation}
             className={classNames(
               notification.enabled ? "bg-blue-500" : "bg-gray-200 dark:bg-gray-600",
               "relative inline-flex flex-shrink-0 h-6 w-11 border-2 border-transparent rounded-full cursor-pointer transition-colors ease-in-out duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"

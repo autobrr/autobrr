@@ -1,3 +1,6 @@
+// Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+// SPDX-License-Identifier: GPL-2.0-or-later
+
 package domain
 
 import (
@@ -520,6 +523,27 @@ func TestFilter_CheckFilter(t *testing.T) {
 			want: true,
 		},
 		{
+			name: "match_tags_empty",
+			fields: &Release{
+				TorrentName: "Good show S02 2160p ATVP WEB-DL DDP 5.1 Atmos DV HEVC-GROUP2",
+				Category:    "TV",
+				Uploader:    "Uploader1",
+				Tags:        []string{"tv"},
+			},
+			args: args{
+				filter: Filter{
+					Enabled:         true,
+					MatchCategories: "*tv*",
+					MatchUploaders:  "Uploader1,Uploader2",
+					ExceptUploaders: "Anonymous",
+					Shows:           "Good show",
+					Tags:            "tv",
+					TagsMatchLogic:  "",
+				},
+			},
+			want: true,
+		},
+		{
 			name: "match_tags_any",
 			fields: &Release{
 				TorrentName: "Good show S02 2160p ATVP WEB-DL DDP 5.1 Atmos DV HEVC-GROUP2",
@@ -644,8 +668,9 @@ func TestFilter_CheckFilter(t *testing.T) {
 					ExceptTags:      "tv,foreign",
 					TagsMatchLogic:  "ALL",
 				},
+				rejections: []string{"tags unwanted. got: [foreign] don't want: tv,foreign"},
 			},
-			want: true,
+			want: false,
 		},
 		{
 			name: "match_except_tags_any_2",
@@ -665,7 +690,7 @@ func TestFilter_CheckFilter(t *testing.T) {
 					ExceptTags:           "foreign",
 					ExceptTagsMatchLogic: "ANY",
 				},
-				rejections: []string{"tags unwanted. got: [foreign] want: foreign"},
+				rejections: []string{"tags unwanted. got: [foreign] don't want: foreign"},
 			},
 			want: false,
 		},
@@ -687,7 +712,7 @@ func TestFilter_CheckFilter(t *testing.T) {
 					ExceptTags:           "foreign,tv",
 					ExceptTagsMatchLogic: "ALL",
 				},
-				rejections: []string{"tags unwanted. got: [tv foreign] want(all): foreign,tv"},
+				rejections: []string{"tags unwanted. got: [tv foreign] don't want: foreign,tv"},
 			},
 			want: false,
 		},

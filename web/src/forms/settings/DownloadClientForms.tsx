@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ */
+
 import React, { Fragment, useRef, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Dialog, Transition } from "@headlessui/react";
@@ -201,6 +206,10 @@ function FormFieldsPorla() {
 }
 
 function FormFieldsRTorrent() {
+  const {
+    values: { tls, settings }
+  } = useFormikContext<InitialValues>();
+
   return (
     <div className="flex flex-col space-y-4 px-1 py-6 sm:py-0 sm:space-y-0">
       <TextFieldWide
@@ -210,6 +219,24 @@ function FormFieldsRTorrent() {
         tooltip={<div><p>See guides for how to connect to rTorrent for various server types in our docs.</p><br /><p>Dedicated servers:</p><a href='https://autobrr.com/configuration/download-clients/dedicated#rtorrent--rutorrent' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/configuration/download-clients/dedicated#rtorrent--rutorrent</a><p>Shared seedbox providers:</p><a href='https://autobrr.com/configuration/download-clients/shared-seedboxes#rtorrent' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/configuration/download-clients/shared-seedboxes#rtorrent</a></div>}
         required={true}
       />
+
+      <SwitchGroupWide name="tls" label="TLS" />
+
+      {tls && (
+        <SwitchGroupWide
+          name="tls_skip_verify"
+          label="Skip TLS verification (insecure)"
+        />
+      )}
+
+      <SwitchGroupWide name="settings.basic.auth" label="Basic auth" />
+
+      {settings.basic?.auth === true && (
+        <>
+          <TextFieldWide name="settings.basic.username" label="Username" />
+          <PasswordFieldWide name="settings.basic.password" label="Password" />
+        </>
+      )}
     </div>
   );
 }
@@ -264,7 +291,7 @@ function FormFieldsSabnzbd() {
         <NumberFieldWide
           name="port"
           label="Port"
-          help="port for Sabnzbd"
+          help="port for SABnzbd"
         />
       )}
 

@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ */
+
 import { Form, Formik } from "formik";
 import { useMutation } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";

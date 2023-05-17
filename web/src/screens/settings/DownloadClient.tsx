@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ */
+
 import { useState, useMemo } from "react";
 import { Switch } from "@headlessui/react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -88,10 +93,9 @@ function DownloadClientSettingsListItem({ client }: DLSettingsItemProps) {
   const queryClient = useQueryClient();
 
   const mutation = useMutation({
-    mutationFn: (client: DownloadClient) => APIClient.download_clients.update(client),
-    onSuccess: () => {
-      toast.custom((t) => <Toast type="success" body={`${client.name} was updated successfully`} t={t}/>);
-
+    mutationFn: (client: DownloadClient) => APIClient.download_clients.update(client).then(() => client),
+    onSuccess: (client: DownloadClient) => {
+      toast.custom(t => <Toast type="success" body={`${client.name} was ${client.enabled ? "enabled" : "disabled"} successfully.`} t={t} />);
       queryClient.invalidateQueries({ queryKey: clientKeys.lists() });
     }
   });

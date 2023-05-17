@@ -1,3 +1,6 @@
+// Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+// SPDX-License-Identifier: GPL-2.0-or-later
+
 package database
 
 import (
@@ -187,6 +190,9 @@ func (r *FilterRepo) FindByID(ctx context.Context, filterID int) (*domain.Filter
 			"match_release_tags",
 			"except_release_tags",
 			"use_regex_release_tags",
+			"match_description",
+			"except_description",
+			"use_regex_description",
 			"scene",
 			"freeleech",
 			"freeleech_percent",
@@ -251,11 +257,11 @@ func (r *FilterRepo) FindByID(ctx context.Context, filterID int) (*domain.Filter
 	}
 
 	var f domain.Filter
-	var minSize, maxSize, maxDownloadsUnit, matchReleases, exceptReleases, matchReleaseGroups, exceptReleaseGroups, matchReleaseTags, exceptReleaseTags, freeleechPercent, shows, seasons, episodes, years, artists, albums, matchCategories, exceptCategories, matchUploaders, exceptUploaders, tags, exceptTags, tagsMatchLogic, exceptTagsMatchLogic, extScriptCmd, extScriptArgs, extWebhookHost, extWebhookData sql.NullString
+	var minSize, maxSize, maxDownloadsUnit, matchReleases, exceptReleases, matchReleaseGroups, exceptReleaseGroups, matchReleaseTags, exceptReleaseTags, matchDescription, exceptDescription, freeleechPercent, shows, seasons, episodes, years, artists, albums, matchCategories, exceptCategories, matchUploaders, exceptUploaders, tags, exceptTags, tagsMatchLogic, exceptTagsMatchLogic, extScriptCmd, extScriptArgs, extWebhookHost, extWebhookData sql.NullString
 	var useRegex, scene, freeleech, hasLog, hasCue, perfectFlac, extScriptEnabled, extWebhookEnabled sql.NullBool
 	var delay, maxDownloads, logScore, extWebhookStatus, extScriptStatus sql.NullInt32
 
-	if err := row.Scan(&f.ID, &f.Enabled, &f.Name, &minSize, &maxSize, &delay, &f.Priority, &maxDownloads, &maxDownloadsUnit, &matchReleases, &exceptReleases, &useRegex, &matchReleaseGroups, &exceptReleaseGroups, &matchReleaseTags, &exceptReleaseTags, &f.UseRegexReleaseTags, &scene, &freeleech, &freeleechPercent, &f.SmartEpisode, &f.UniqueDownload, &shows, &seasons, &episodes, pq.Array(&f.Resolutions), pq.Array(&f.Codecs), pq.Array(&f.Sources), pq.Array(&f.Containers), pq.Array(&f.MatchHDR), pq.Array(&f.ExceptHDR), pq.Array(&f.MatchOther), pq.Array(&f.ExceptOther), &years, &artists, &albums, pq.Array(&f.MatchReleaseTypes), pq.Array(&f.Formats), pq.Array(&f.Quality), pq.Array(&f.Media), &logScore, &hasLog, &hasCue, &perfectFlac, &matchCategories, &exceptCategories, &matchUploaders, &exceptUploaders, pq.Array(&f.MatchLanguage), pq.Array(&f.ExceptLanguage), &tags, &exceptTags, &tagsMatchLogic, &exceptTagsMatchLogic, pq.Array(&f.Origins), pq.Array(&f.ExceptOrigins), &extScriptEnabled, &extScriptCmd, &extScriptArgs, &extScriptStatus, &extWebhookEnabled, &extWebhookHost, &extWebhookData, &extWebhookStatus, &f.CreatedAt, &f.UpdatedAt); err != nil {
+	if err := row.Scan(&f.ID, &f.Enabled, &f.Name, &minSize, &maxSize, &delay, &f.Priority, &maxDownloads, &maxDownloadsUnit, &matchReleases, &exceptReleases, &useRegex, &matchReleaseGroups, &exceptReleaseGroups, &matchReleaseTags, &exceptReleaseTags, &f.UseRegexReleaseTags, &matchDescription, &exceptDescription, &f.UseRegexDescription, &scene, &freeleech, &freeleechPercent, &f.SmartEpisode, &f.UniqueDownload, &shows, &seasons, &episodes, pq.Array(&f.Resolutions), pq.Array(&f.Codecs), pq.Array(&f.Sources), pq.Array(&f.Containers), pq.Array(&f.MatchHDR), pq.Array(&f.ExceptHDR), pq.Array(&f.MatchOther), pq.Array(&f.ExceptOther), &years, &artists, &albums, pq.Array(&f.MatchReleaseTypes), pq.Array(&f.Formats), pq.Array(&f.Quality), pq.Array(&f.Media), &logScore, &hasLog, &hasCue, &perfectFlac, &matchCategories, &exceptCategories, &matchUploaders, &exceptUploaders, pq.Array(&f.MatchLanguage), pq.Array(&f.ExceptLanguage), &tags, &exceptTags, &tagsMatchLogic, &exceptTagsMatchLogic, pq.Array(&f.Origins), pq.Array(&f.ExceptOrigins), &extScriptEnabled, &extScriptCmd, &extScriptArgs, &extScriptStatus, &extWebhookEnabled, &extWebhookHost, &extWebhookData, &extWebhookStatus, &f.CreatedAt, &f.UpdatedAt); err != nil {
 		return nil, errors.Wrap(err, "error scanning row")
 	}
 
@@ -270,6 +276,8 @@ func (r *FilterRepo) FindByID(ctx context.Context, filterID int) (*domain.Filter
 	f.ExceptReleaseGroups = exceptReleaseGroups.String
 	f.MatchReleaseTags = matchReleaseTags.String
 	f.ExceptReleaseTags = exceptReleaseTags.String
+	f.MatchDescription = matchDescription.String
+	f.ExceptDescription = exceptDescription.String
 	f.FreeleechPercent = freeleechPercent.String
 	f.Shows = shows.String
 	f.Seasons = seasons.String
@@ -331,6 +339,9 @@ func (r *FilterRepo) findByIndexerIdentifier(ctx context.Context, indexer string
 			"f.match_release_tags",
 			"f.except_release_tags",
 			"f.use_regex_release_tags",
+			"f.match_description",
+			"f.except_description",
+			"f.use_regex_description",
 			"f.scene",
 			"f.freeleech",
 			"f.freeleech_percent",
@@ -405,11 +416,11 @@ func (r *FilterRepo) findByIndexerIdentifier(ctx context.Context, indexer string
 	for rows.Next() {
 		var f domain.Filter
 
-		var minSize, maxSize, maxDownloadsUnit, matchReleases, exceptReleases, matchReleaseGroups, exceptReleaseGroups, matchReleaseTags, exceptReleaseTags, freeleechPercent, shows, seasons, episodes, years, artists, albums, matchCategories, exceptCategories, matchUploaders, exceptUploaders, tags, exceptTags, tagsMatchLogic, exceptTagsMatchLogic, extScriptCmd, extScriptArgs, extWebhookHost, extWebhookData sql.NullString
+		var minSize, maxSize, maxDownloadsUnit, matchReleases, exceptReleases, matchReleaseGroups, exceptReleaseGroups, matchReleaseTags, exceptReleaseTags, matchDescription, exceptDescription, freeleechPercent, shows, seasons, episodes, years, artists, albums, matchCategories, exceptCategories, matchUploaders, exceptUploaders, tags, exceptTags, tagsMatchLogic, exceptTagsMatchLogic, extScriptCmd, extScriptArgs, extWebhookHost, extWebhookData sql.NullString
 		var useRegex, scene, freeleech, hasLog, hasCue, perfectFlac, extScriptEnabled, extWebhookEnabled sql.NullBool
 		var delay, maxDownloads, logScore, extWebhookStatus, extScriptStatus sql.NullInt32
 
-		if err := rows.Scan(&f.ID, &f.Enabled, &f.Name, &minSize, &maxSize, &delay, &f.Priority, &maxDownloads, &maxDownloadsUnit, &matchReleases, &exceptReleases, &useRegex, &matchReleaseGroups, &exceptReleaseGroups, &matchReleaseTags, &exceptReleaseTags, &f.UseRegexReleaseTags, &scene, &freeleech, &freeleechPercent, &f.SmartEpisode, &f.UniqueDownload, &shows, &seasons, &episodes, pq.Array(&f.Resolutions), pq.Array(&f.Codecs), pq.Array(&f.Sources), pq.Array(&f.Containers), pq.Array(&f.MatchHDR), pq.Array(&f.ExceptHDR), pq.Array(&f.MatchOther), pq.Array(&f.ExceptOther), &years, &artists, &albums, pq.Array(&f.MatchReleaseTypes), pq.Array(&f.Formats), pq.Array(&f.Quality), pq.Array(&f.Media), &logScore, &hasLog, &hasCue, &perfectFlac, &matchCategories, &exceptCategories, &matchUploaders, &exceptUploaders, pq.Array(&f.MatchLanguage), pq.Array(&f.ExceptLanguage), &tags, &exceptTags, &tagsMatchLogic, &exceptTagsMatchLogic, pq.Array(&f.Origins), pq.Array(&f.ExceptOrigins), &extScriptEnabled, &extScriptCmd, &extScriptArgs, &extScriptStatus, &extWebhookEnabled, &extWebhookHost, &extWebhookData, &extWebhookStatus, &f.CreatedAt, &f.UpdatedAt); err != nil {
+		if err := rows.Scan(&f.ID, &f.Enabled, &f.Name, &minSize, &maxSize, &delay, &f.Priority, &maxDownloads, &maxDownloadsUnit, &matchReleases, &exceptReleases, &useRegex, &matchReleaseGroups, &exceptReleaseGroups, &matchReleaseTags, &exceptReleaseTags, &f.UseRegexReleaseTags, &matchDescription, &exceptDescription, &f.UseRegexDescription, &scene, &freeleech, &freeleechPercent, &f.SmartEpisode, &f.UniqueDownload, &shows, &seasons, &episodes, pq.Array(&f.Resolutions), pq.Array(&f.Codecs), pq.Array(&f.Sources), pq.Array(&f.Containers), pq.Array(&f.MatchHDR), pq.Array(&f.ExceptHDR), pq.Array(&f.MatchOther), pq.Array(&f.ExceptOther), &years, &artists, &albums, pq.Array(&f.MatchReleaseTypes), pq.Array(&f.Formats), pq.Array(&f.Quality), pq.Array(&f.Media), &logScore, &hasLog, &hasCue, &perfectFlac, &matchCategories, &exceptCategories, &matchUploaders, &exceptUploaders, pq.Array(&f.MatchLanguage), pq.Array(&f.ExceptLanguage), &tags, &exceptTags, &tagsMatchLogic, &exceptTagsMatchLogic, pq.Array(&f.Origins), pq.Array(&f.ExceptOrigins), &extScriptEnabled, &extScriptCmd, &extScriptArgs, &extScriptStatus, &extWebhookEnabled, &extWebhookHost, &extWebhookData, &extWebhookStatus, &f.CreatedAt, &f.UpdatedAt); err != nil {
 			return nil, errors.Wrap(err, "error scanning row")
 		}
 
@@ -424,6 +435,8 @@ func (r *FilterRepo) findByIndexerIdentifier(ctx context.Context, indexer string
 		f.ExceptReleaseGroups = exceptReleaseGroups.String
 		f.MatchReleaseTags = matchReleaseTags.String
 		f.ExceptReleaseTags = exceptReleaseTags.String
+		f.MatchDescription = matchDescription.String
+		f.ExceptDescription = exceptDescription.String
 		f.FreeleechPercent = freeleechPercent.String
 		f.Shows = shows.String
 		f.Seasons = seasons.String
@@ -483,6 +496,9 @@ func (r *FilterRepo) Store(ctx context.Context, filter domain.Filter) (*domain.F
 			"match_release_tags",
 			"except_release_tags",
 			"use_regex_release_tags",
+			"match_description",
+			"except_description",
+			"use_regex_description",
 			"scene",
 			"freeleech",
 			"freeleech_percent",
@@ -548,6 +564,9 @@ func (r *FilterRepo) Store(ctx context.Context, filter domain.Filter) (*domain.F
 			filter.MatchReleaseTags,
 			filter.ExceptReleaseTags,
 			filter.UseRegexReleaseTags,
+			filter.MatchDescription,
+			filter.ExceptDescription,
+			filter.UseRegexDescription,
 			filter.Scene,
 			filter.Freeleech,
 			filter.FreeleechPercent,
@@ -632,6 +651,9 @@ func (r *FilterRepo) Update(ctx context.Context, filter domain.Filter) (*domain.
 		Set("match_release_tags", filter.MatchReleaseTags).
 		Set("except_release_tags", filter.ExceptReleaseTags).
 		Set("use_regex_release_tags", filter.UseRegexReleaseTags).
+		Set("match_description", filter.MatchDescription).
+		Set("except_description", filter.ExceptDescription).
+		Set("use_regex_description", filter.UseRegexDescription).
 		Set("scene", filter.Scene).
 		Set("freeleech", filter.Freeleech).
 		Set("freeleech_percent", filter.FreeleechPercent).
@@ -747,6 +769,15 @@ func (r *FilterRepo) UpdatePartial(ctx context.Context, filter domain.FilterUpda
 	}
 	if filter.UseRegexReleaseTags != nil {
 		q = q.Set("use_regex_release_tags", filter.UseRegexReleaseTags)
+	}
+	if filter.MatchDescription != nil {
+		q = q.Set("match_description", filter.MatchDescription)
+	}
+	if filter.ExceptDescription != nil {
+		q = q.Set("except_description", filter.ExceptDescription)
+	}
+	if filter.UseRegexDescription != nil {
+		q = q.Set("use_regex_description", filter.UseRegexDescription)
 	}
 	if filter.Scene != nil {
 		q = q.Set("scene", filter.Scene)
@@ -1078,7 +1109,7 @@ func (r *FilterRepo) downloadsByFilterPostgres(ctx context.Context, filterID int
     COALESCE(SUM(CASE WHEN release_action_status.timestamp >= date_trunc('month', CURRENT_DATE) THEN 1 ELSE 0 END),0) as "month_count",
     count(*) as "total_count"
 FROM release_action_status
-WHERE release_action_status.status = 'PUSH_APPROVED' AND release_action_status.filter_id = $1;`
+WHERE (release_action_status.status = 'PUSH_APPROVED' OR release_action_status.status = 'PENDING') AND release_action_status.filter_id = $1;`
 
 	row := r.db.handler.QueryRowContext(ctx, query, filterID)
 	if err := row.Err(); err != nil {

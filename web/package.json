@@ -28,17 +28,20 @@
     "react-router-dom": "^6.3.0",
     "react-select": "^5.3.2",
     "react-table": "^7.8.0",
+    "react-textarea-autosize": "^8.3.4",
     "react-tooltip": "^5.5.2",
     "stacktracey": "^2.1.8",
     "vite-plugin-pwa": "^0.14.6",
-    "workbox-window": "^6.5.4"
+    "workbox-window": "^6.5.4",
+    "zod": "^3.21.4",
+    "zod-formik-adapter": "^1.2.0"
   },
   "scripts": {
     "start": "vite",
     "build": "tsc && vite build",
     "serve": "vite preview",
     "lint": "eslint src/ --ext .js,.jsx,.ts,.tsx --color",
-    "lint:watch": "npm run lint -- --watch"
+    "lint:watch": "pnpm run lint -- --watch"
   },
   "browserslist": {
     "production": [
@@ -74,6 +77,5 @@
     "tailwindcss": "^3.1.3",
     "typescript": "^4.7.3",
     "vite": "^4.2.1"
-  },
-  "packageManager": "yarn@3.2.2"
+  }
 }

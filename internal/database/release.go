@@ -1,3 +1,6 @@
+// Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+// SPDX-License-Identifier: GPL-2.0-or-later
+
 package database
 
 import (
@@ -77,8 +80,8 @@ func (repo *ReleaseRepo) StoreReleaseActionStatus(ctx context.Context, status *d
 	} else {
 		queryBuilder := repo.db.squirrel.
 			Insert("release_action_status").
-			Columns("status", "action", "type", "client", "filter", "filter_id", "rejections", "timestamp", "release_id").
-			Values(status.Status, status.Action, status.Type, status.Client, status.Filter, status.FilterID, pq.Array(status.Rejections), status.Timestamp.Format(time.RFC3339), status.ReleaseID).
+			Columns("status", "action", "action_id", "type", "client", "filter", "filter_id", "rejections", "timestamp", "release_id").
+			Values(status.Status, status.Action, status.ActionID, status.Type, status.Client, status.Filter, status.FilterID, pq.Array(status.Rejections), status.Timestamp.Format(time.RFC3339), status.ReleaseID).
 			Suffix("RETURNING id").RunWith(repo.db.handler)
 
 		// return values
@@ -205,7 +208,7 @@ func (repo *ReleaseRepo) findReleases(ctx context.Context, tx *Tx, params domain
 
 	queryBuilder := repo.db.squirrel.
 		Select("r.id", "r.filter_status", "r.rejections", "r.indexer", "r.filter", "r.protocol", "r.info_url", "r.download_url", "r.title", "r.torrent_name", "r.size", "r.timestamp",
-			"ras.id", "ras.status", "ras.action", "ras.type", "ras.client", "ras.filter", "ras.rejections", "ras.timestamp").
+			"ras.id", "ras.status", "ras.action", "ras.action_id", "ras.type", "ras.client", "ras.filter", "ras.filter_id", "ras.release_id", "ras.rejections", "ras.timestamp").
 		Column(sq.Alias(countQuery, "page_total")).
 		From("release r").
 		OrderBy("r.id DESC").
@@ -240,22 +243,25 @@ func (repo *ReleaseRepo) findReleases(ctx context.Context, tx *Tx, params domain
 
 		var rlsindexer, rlsfilter, infoUrl, downloadUrl sql.NullString
 
-		var rasId sql.NullInt64
+		var rasId, rasFilterId, rasReleaseId, rasActionId sql.NullInt64
 		var rasStatus, rasAction, rasType, rasClient, rasFilter sql.NullString
 		var rasRejections []sql.NullString
 		var rasTimestamp sql.NullTime
 
-		if err := rows.Scan(&rls.ID, &rls.FilterStatus, pq.Array(&rls.Rejections), &rlsindexer, &rlsfilter, &rls.Protocol, &infoUrl, &downloadUrl, &rls.Title, &rls.TorrentName, &rls.Size, &rls.Timestamp, &rasId, &rasStatus, &rasAction, &rasType, &rasClient, &rasFilter, pq.Array(&rasRejections), &rasTimestamp, &countItems); err != nil {
+		if err := rows.Scan(&rls.ID, &rls.FilterStatus, pq.Array(&rls.Rejections), &rlsindexer, &rlsfilter, &rls.Protocol, &infoUrl, &downloadUrl, &rls.Title, &rls.TorrentName, &rls.Size, &rls.Timestamp, &rasId, &rasStatus, &rasAction, &rasActionId, &rasType, &rasClient, &rasFilter, &rasFilterId, &rasReleaseId, pq.Array(&rasRejections), &rasTimestamp, &countItems); err != nil {
 			return res, 0, 0, errors.Wrap(err, "error scanning row")
 		}
 
 		ras.ID = rasId.Int64
 		ras.Status = domain.ReleasePushStatus(rasStatus.String)
 		ras.Action = rasAction.String
+		ras.ActionID = rasActionId.Int64
 		ras.Type = domain.ActionType(rasType.String)
 		ras.Client = rasClient.String
 		ras.Filter = rasFilter.String
+		ras.FilterID = rasFilterId.Int64
 		ras.Timestamp = rasTimestamp.Time
+		ras.ReleaseID = rasReleaseId.Int64
 		ras.Rejections = []string{}
 
 		for _, rejection := range rasRejections {
@@ -349,7 +355,7 @@ func (repo *ReleaseRepo) GetIndexerOptions(ctx context.Context) ([]string, error
 func (repo *ReleaseRepo) GetActionStatusByReleaseID(ctx context.Context, releaseID int64) ([]domain.ReleaseActionStatus, error) {
 
 	queryBuilder := repo.db.squirrel.
-		Select("id", "status", "action", "type", "client", "filter", "rejections", "timestamp").
+		Select("id", "status", "action", "action_id", "type", "client", "filter", "release_id", "rejections", "timestamp").
 		From("release_action_status").
 		Where(sq.Eq{"release_id": releaseID})
 
@@ -376,11 +382,13 @@ func (repo *ReleaseRepo) GetActionStatusByReleaseID(ctx context.Context, release
 		var rls domain.ReleaseActionStatus
 
 		var client, filter sql.NullString
+		var actionId sql.NullInt64
 
-		if err := rows.Scan(&rls.ID, &rls.Status, &rls.Action, &rls.Type, &client, &filter, pq.Array(&rls.Rejections), &rls.Timestamp); err != nil {
+		if err := rows.Scan(&rls.ID, &rls.Status, &rls.Action, &actionId, &rls.Type, &client, &filter, &rls.ReleaseID, pq.Array(&rls.Rejections), &rls.Timestamp); err != nil {
 			return res, errors.Wrap(err, "error scanning row")
 		}
 
+		rls.ActionID = actionId.Int64
 		rls.Client = client.String
 		rls.Filter = filter.String
 
@@ -390,9 +398,96 @@ func (repo *ReleaseRepo) GetActionStatusByReleaseID(ctx context.Context, release
 	return res, nil
 }
 
+func (repo *ReleaseRepo) Get(ctx context.Context, req *domain.GetReleaseRequest) (*domain.Release, error) {
+	queryBuilder := repo.db.squirrel.
+		Select("r.id", "r.filter_status", "r.rejections", "r.indexer", "r.filter", "r.filter_id", "r.protocol", "r.info_url", "r.download_url", "r.title", "r.torrent_name", "r.size", "r.timestamp").
+		From("release r").
+		OrderBy("r.id DESC").
+		Where(sq.Eq{"r.id": req.Id})
+
+	query, args, err := queryBuilder.ToSql()
+	if err != nil {
+		return nil, errors.Wrap(err, "error building query")
+	}
+
+	repo.log.Trace().Str("database", "release.find").Msgf("query: '%v', args: '%v'", query, args)
+
+	row := repo.db.handler.QueryRowContext(ctx, query, args...)
+	if err != nil {
+		return nil, errors.Wrap(err, "error executing query")
+	}
+
+	if err := row.Err(); err != nil {
+		return nil, errors.Wrap(err, "error rows find release")
+	}
+
+	var rls domain.Release
+
+	var indexerName, filterName, infoUrl, downloadUrl sql.NullString
+	var filterId sql.NullInt64
+
+	if err := row.Scan(&rls.ID, &rls.FilterStatus, pq.Array(&rls.Rejections), &indexerName, &filterName, &filterId, &rls.Protocol, &infoUrl, &downloadUrl, &rls.Title, &rls.TorrentName, &rls.Size, &rls.Timestamp); err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, errors.Wrap(err, "error scanning row")
+	}
+
+	rls.Indexer = indexerName.String
+	rls.FilterName = filterName.String
+	rls.FilterID = int(filterId.Int64)
+	rls.ActionStatus = make([]domain.ReleaseActionStatus, 0)
+	rls.InfoURL = infoUrl.String
+	rls.TorrentURL = downloadUrl.String
+
+	return &rls, nil
+}
+
+func (repo *ReleaseRepo) GetActionStatus(ctx context.Context, req *domain.GetReleaseActionStatusRequest) (*domain.ReleaseActionStatus, error) {
+	queryBuilder := repo.db.squirrel.
+		Select("id", "status", "action", "action_id", "type", "client", "filter", "filter_id", "release_id", "rejections", "timestamp").
+		From("release_action_status").
+		Where(sq.Eq{"id": req.Id})
+
+	query, args, err := queryBuilder.ToSql()
+	if err != nil {
+		return nil, errors.Wrap(err, "error building query")
+	}
+
+	row := repo.db.handler.QueryRowContext(ctx, query, args...)
+	if err != nil {
+		return nil, errors.Wrap(err, "error executing query")
+	}
+
+	if err := row.Err(); err != nil {
+		repo.log.Error().Stack().Err(err)
+		return nil, err
+	}
+
+	var rls domain.ReleaseActionStatus
+
+	var client, filter sql.NullString
+	var actionId, filterId sql.NullInt64
+
+	if err := row.Scan(&rls.ID, &rls.Status, &rls.Action, &actionId, &rls.Type, &client, &filter, &filterId, &rls.ReleaseID, pq.Array(&rls.Rejections), &rls.Timestamp); err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+
+		return nil, errors.Wrap(err, "error scanning row")
+	}
+
+	rls.ActionID = actionId.Int64
+	rls.Client = client.String
+	rls.Filter = filter.String
+	rls.FilterID = filterId.Int64
+
+	return &rls, nil
+}
+
 func (repo *ReleaseRepo) attachActionStatus(ctx context.Context, tx *Tx, releaseID int64) ([]domain.ReleaseActionStatus, error) {
 	queryBuilder := repo.db.squirrel.
-		Select("id", "status", "action", "type", "client", "filter", "filter_id", "rejections", "timestamp").
+		Select("id", "status", "action", "action_id", "type", "client", "filter", "filter_id", "release_id", "rejections", "timestamp").
 		From("release_action_status").
 		Where(sq.Eq{"release_id": releaseID})
 
@@ -418,12 +513,13 @@ func (repo *ReleaseRepo) attachActionStatus(ctx context.Context, tx *Tx, release
 		var rls domain.ReleaseActionStatus
 
 		var client, filter sql.NullString
-		var filterID sql.NullInt64
+		var actionId, filterID sql.NullInt64
 
-		if err := rows.Scan(&rls.ID, &rls.Status, &rls.Action, &rls.Type, &client, &filter, &filterID, pq.Array(&rls.Rejections), &rls.Timestamp); err != nil {
+		if err := rows.Scan(&rls.ID, &rls.Status, &rls.Action, &actionId, &rls.Type, &client, &filter, &filterID, &rls.ReleaseID, pq.Array(&rls.Rejections), &rls.Timestamp); err != nil {
 			return res, errors.Wrap(err, "error scanning row")
 		}
 
+		rls.ActionID = actionId.Int64
 		rls.Client = client.String
 		rls.Filter = filter.String
 		rls.FilterID = filterID.Int64

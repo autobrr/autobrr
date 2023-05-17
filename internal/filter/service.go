@@ -1,3 +1,6 @@
+// Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+// SPDX-License-Identifier: GPL-2.0-or-later
+
 package filter
 
 import (
@@ -582,10 +585,12 @@ func (s *service) execCmd(ctx context.Context, release *domain.Release, cmd stri
 }
 
 func (s *service) webhook(ctx context.Context, release *domain.Release, url string, data string) (int, error) {
+	s.log.Debug().Msgf("preparing to run external webhook filter to: (%s) payload: (%s)", url, data)
+
 	// if webhook data contains TorrentPathName or TorrentDataRawBytes, lets download the torrent file
 	if release.TorrentTmpFile == "" && (strings.Contains(data, "TorrentPathName") || strings.Contains(data, "TorrentDataRawBytes")) {
 		if err := release.DownloadTorrentFileCtx(ctx); err != nil {
-			return 0, errors.Wrap(err, "webhook: could not download torrent file for release: %v", release.TorrentName)
+			return 0, errors.Wrap(err, "webhook: could not download torrent file for release: %s", release.TorrentName)
 		}
 	}
 
@@ -593,7 +598,7 @@ func (s *service) webhook(ctx context.Context, release *domain.Release, url stri
 	if len(release.TorrentDataRawBytes) == 0 && strings.Contains(data, "TorrentDataRawBytes") {
 		t, err := os.ReadFile(release.TorrentTmpFile)
 		if err != nil {
-			return 0, errors.Wrap(err, "could not read torrent file: %v", release.TorrentTmpFile)
+			return 0, errors.Wrap(err, "could not read torrent file: %s", release.TorrentTmpFile)
 		}
 
 		release.TorrentDataRawBytes = t
@@ -604,8 +609,10 @@ func (s *service) webhook(ctx context.Context, release *domain.Release, url stri
 	// parse and replace values in argument string before continuing
 	dataArgs, err := m.Parse(data)
 	if err != nil {
-		return 0, errors.Wrap(err, "could not parse webhook data macro: %v", data)
+		return 0, errors.Wrap(err, "could not parse webhook data macro: %s", data)
 	}
+
+	s.log.Debug().Msgf("sending POST to external webhook filter: (%s) payload: (%s)", url, data)
 
 	t := &http.Transport{
 		TLSClientConfig: &tls.Config{
@@ -613,7 +620,7 @@ func (s *service) webhook(ctx context.Context, release *domain.Release, url stri
 		},
 	}
 
-	client := http.Client{Transport: t, Timeout: 15 * time.Second}
+	client := http.Client{Transport: t, Timeout: 120 * time.Second}
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewBufferString(dataArgs))
 	if err != nil {
@@ -622,6 +629,8 @@ func (s *service) webhook(ctx context.Context, release *domain.Release, url stri
 
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("User-Agent", "autobrr")
+
+	start := time.Now()
 
 	res, err := client.Do(req)
 	if err != nil {
@@ -634,7 +643,7 @@ func (s *service) webhook(ctx context.Context, release *domain.Release, url stri
 		return res.StatusCode, nil
 	}
 
-	s.log.Debug().Msgf("successfully ran external webhook filter to: (%v) payload: (%v)", url, dataArgs)
+	s.log.Debug().Msgf("successfully ran external webhook filter to: (%s) payload: (%s) finished in %s", url, dataArgs, time.Since(start))
 
 	return res.StatusCode, nil
 }

@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ */
+
 import { Fragment, useRef, useState, useMemo } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Menu, Switch, Transition } from "@headlessui/react";
@@ -154,7 +159,7 @@ function ListItem({ feed }: ListItemProps) {
       queryClient.invalidateQueries({ queryKey: feedKeys.lists() });
       queryClient.invalidateQueries({ queryKey: feedKeys.detail(feed.id) });
 
-      toast.custom((t) => <Toast type="success" body={`${feed.name} was ${!enabled ? "disabled" : "enabled"} successfully`} t={t}/>);
+      toast.custom((t) => <Toast type="success" body={`${feed.name} was ${!enabled ? "disabled" : "enabled"} successfully.`} t={t}/>);
     }
   });
 

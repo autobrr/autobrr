@@ -1,3 +1,6 @@
+// Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+// SPDX-License-Identifier: GPL-2.0-or-later
+
 package domain
 
 import (
@@ -122,6 +125,9 @@ type Filter struct {
 	MatchReleaseTags            string                 `json:"match_release_tags,omitempty"`
 	ExceptReleaseTags           string                 `json:"except_release_tags,omitempty"`
 	UseRegexReleaseTags         bool                   `json:"use_regex_release_tags,omitempty"`
+	MatchDescription            string                 `json:"match_description,omitempty"`
+	ExceptDescription           string                 `json:"except_description,omitempty"`
+	UseRegexDescription         bool                   `json:"use_regex_description,omitempty"`
 	ExternalScriptEnabled       bool                   `json:"external_script_enabled,omitempty"`
 	ExternalScriptCmd           string                 `json:"external_script_cmd,omitempty"`
 	ExternalScriptArgs          string                 `json:"external_script_args,omitempty"`
@@ -154,6 +160,9 @@ type FilterUpdate struct {
 	MatchReleaseTags            *string                 `json:"match_release_tags,omitempty"`
 	ExceptReleaseTags           *string                 `json:"except_release_tags,omitempty"`
 	UseRegexReleaseTags         *bool                   `json:"use_regex_release_tags,omitempty"`
+	MatchDescription            *string                 `json:"match_description,omitempty"`
+	ExceptDescription           *string                 `json:"except_description,omitempty"`
+	UseRegexDescription         *bool                   `json:"use_regex_description,omitempty"`
 	Scene                       *bool                   `json:"scene,omitempty"`
 	Origins                     *[]string               `json:"origins,omitempty"`
 	ExceptOrigins               *[]string               `json:"except_origins,omitempty"`
@@ -387,18 +396,18 @@ func (f Filter) CheckFilter(r *Release) ([]string, bool) {
 	}
 
 	if f.Tags != "" {
-		if f.TagsMatchLogic == "ANY" && !containsAny(r.Tags, f.Tags) {
-			r.addRejectionF("tags not matching. got: %v want: %v", r.Tags, f.Tags)
-		} else if f.TagsMatchLogic == "ALL" && !containsAll(r.Tags, f.Tags) {
+		if f.TagsMatchLogic == "ALL" && !containsAll(r.Tags, f.Tags) {
 			r.addRejectionF("tags not matching. got: %v want(all): %v", r.Tags, f.Tags)
+		} else if !containsAny(r.Tags, f.Tags) { // TagsMatchLogic is set to "" by default, this makes sure that "" and "ANY" are treated the same way.
+			r.addRejectionF("tags not matching. got: %v want: %v", r.Tags, f.Tags)
 		}
 	}
 
 	if f.ExceptTags != "" {
-		if f.ExceptTagsMatchLogic == "ANY" && containsAny(r.Tags, f.ExceptTags) {
-			r.addRejectionF("tags unwanted. got: %v want: %v", r.Tags, f.ExceptTags)
-		} else if f.ExceptTagsMatchLogic == "ALL" && containsAll(r.Tags, f.ExceptTags) {
-			r.addRejectionF("tags unwanted. got: %v want(all): %v", r.Tags, f.ExceptTags)
+		if f.ExceptTagsMatchLogic == "ALL" && containsAll(r.Tags, f.ExceptTags) {
+			r.addRejectionF("tags unwanted. got: %v don't want: %v", r.Tags, f.ExceptTags)
+		} else if containsAny(r.Tags, f.ExceptTags) { // ExceptTagsMatchLogic is set to "" by default, this makes sure that "" and "ANY" are treated the same way.
+			r.addRejectionF("tags unwanted. got: %v don't want: %v", r.Tags, f.ExceptTags)
 		}
 	}
 
@@ -437,6 +446,26 @@ func (f Filter) CheckFilter(r *Release) ([]string, bool) {
 
 	if f.Log && f.LogScore != 0 && r.LogScore != f.LogScore {
 		r.addRejectionF("log score. got: %v want: %v", r.LogScore, f.LogScore)
+	}
+
+	// check description string
+	if f.UseRegexDescription {
+		if f.MatchDescription != "" && !matchRegex(r.Description, f.MatchDescription) {
+			r.addRejectionF("match description regex not matching. got: %v want: %v", r.Description, f.MatchDescription)
+		}
+
+		if f.ExceptDescription != "" && matchRegex(r.Description, f.ExceptDescription) {
+			r.addRejectionF("except description regex: unwanted release. got: %v want: %v", r.Description, f.ExceptDescription)
+		}
+
+	} else {
+		if f.MatchDescription != "" && !containsFuzzy(r.Description, f.MatchDescription) {
+			r.addRejectionF("match description not matching. got: %v want: %v", r.Description, f.MatchDescription)
+		}
+
+		if f.ExceptDescription != "" && containsFuzzy(r.Description, f.ExceptDescription) {
+			r.addRejectionF("except description: unwanted release. got: %v want: %v", r.Description, f.ExceptDescription)
+		}
 	}
 
 	if len(r.Rejections) > 0 {
@@ -682,6 +711,7 @@ func containsMatch(tags []string, filters []string) bool {
 			continue
 		}
 		tag = strings.ToLower(tag)
+		tag = strings.Trim(tag, " ")
 
 		for _, filter := range filters {
 			if filter == "" {
@@ -719,6 +749,7 @@ func containsAllMatch(tags []string, filters []string) bool {
 				continue
 			}
 			tag = strings.ToLower(tag)
+			tag = strings.Trim(tag, " ")
 
 			if tag == filter {
 				found = true

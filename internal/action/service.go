@@ -1,3 +1,6 @@
+// Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+// SPDX-License-Identifier: GPL-2.0-or-later
+
 package action
 
 import (
@@ -16,7 +19,8 @@ import (
 type Service interface {
 	Store(ctx context.Context, action domain.Action) (*domain.Action, error)
 	List(ctx context.Context) ([]domain.Action, error)
-	Delete(actionID int) error
+	Get(ctx context.Context, req *domain.GetActionRequest) (*domain.Action, error)
+	Delete(ctx context.Context, req *domain.DeleteActionRequest) error
 	DeleteByFilterID(ctx context.Context, filterID int) error
 	ToggleEnabled(actionID int) error
 
@@ -48,16 +52,35 @@ func (s *service) Store(ctx context.Context, action domain.Action) (*domain.Acti
 	return s.repo.Store(ctx, action)
 }
 
-func (s *service) Delete(actionID int) error {
-	return s.repo.Delete(actionID)
+func (s *service) List(ctx context.Context) ([]domain.Action, error) {
+	return s.repo.List(ctx)
+}
+
+func (s *service) Get(ctx context.Context, req *domain.GetActionRequest) (*domain.Action, error) {
+	a, err := s.repo.Get(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+
+	// optionally attach download client to action
+	if a.ClientID > 0 {
+		client, err := s.clientSvc.FindByID(ctx, a.ClientID)
+		if err != nil {
+			return nil, err
+		}
+
+		a.Client = client
+	}
+
+	return a, nil
+}
+
+func (s *service) Delete(ctx context.Context, req *domain.DeleteActionRequest) error {
+	return s.repo.Delete(ctx, req)
 }
 
 func (s *service) DeleteByFilterID(ctx context.Context, filterID int) error {
 	return s.repo.DeleteByFilterID(ctx, filterID)
-}
-
-func (s *service) List(ctx context.Context) ([]domain.Action, error) {
-	return s.repo.List(ctx)
 }
 
 func (s *service) ToggleEnabled(actionID int) error {

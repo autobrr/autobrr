@@ -23,17 +23,24 @@ jobs:
         with:
           fetch-depth: 0
 
+      - uses: pnpm/action-setup@v2
+        with:
+          version: 8
+
       - name: Set up Node
         uses: actions/setup-node@v3
         with:
           node-version: 18
-          cache: 'yarn'
-          cache-dependency-path: web/yarn.lock
+          cache: 'pnpm'
+          cache-dependency-path: web/pnpm-lock.yaml
 
-      - name: Build web
-        run: |
-          cd web && yarn install
-          CI= yarn build
+      - name: Fetch web dependencies
+        working-directory: web
+        run: pnpm install --frozen-lockfile
+
+      - name: Build web frontend
+        working-directory: web
+        run: CI= pnpm run build
 
       - name: Upload web production build
         uses: actions/upload-artifact@v3
@@ -85,11 +92,11 @@ jobs:
           cache: true
 
       - name: Run GoReleaser build
-        uses: goreleaser/goreleaser-action@v2
+        uses: goreleaser/goreleaser-action@v4
         with:
           distribution: goreleaser
           version: latest
-          args: release --rm-dist --skip-publish
+          args: release --clean --skip-validate --skip-publish
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -97,7 +104,7 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: autobrr
-          path: dist/*
+          path: dist/*.tar.gz
 
   goreleaser:
     name: Build and publish binaries
@@ -124,11 +131,11 @@ jobs:
           cache: true
 
       - name: Run GoReleaser build and publish tags
-        uses: goreleaser/goreleaser-action@v3
+        uses: goreleaser/goreleaser-action@v4
         with:
           distribution: goreleaser
           version: latest
-          args: release --rm-dist
+          args: release --clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -136,7 +143,7 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: autobrr
-          path: dist/*
+          path: dist/*.tar.gz
 
   docker:
     name: Build and publish Docker images
@@ -187,5 +194,6 @@ jobs:
             BUILDTIME=${{ fromJSON(steps.meta.outputs.json).labels['org.opencontainers.image.created'] }}
             VERSION=${{ fromJSON(steps.meta.outputs.json).labels['org.opencontainers.image.version'] }}
             REVISION=${{ github.event.pull_request.head.sha }}
+
       - name: Image digest
         run: echo ${{ steps.docker_build.outputs.digest }}

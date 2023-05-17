@@ -1,3 +1,6 @@
+// Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+// SPDX-License-Identifier: GPL-2.0-or-later
+
 package domain
 
 import (
@@ -38,6 +41,7 @@ type Notification struct {
 	Targets   string           `json:"targets"`
 	Devices   string           `json:"devices"`
 	Priority  int32            `json:"priority"`
+	Topic     string           `json:"topic"`
 	CreatedAt time.Time        `json:"created_at"`
 	UpdatedAt time.Time        `json:"updated_at"`
 }

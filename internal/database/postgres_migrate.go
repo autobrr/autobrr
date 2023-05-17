@@ -1,3 +1,6 @@
+// Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+// SPDX-License-Identifier: GPL-2.0-or-later
+
 package database
 
 const postgresSchema = `
@@ -80,6 +83,9 @@ CREATE TABLE filter
     match_release_tags             TEXT,
     except_release_tags            TEXT,
     use_regex_release_tags         BOOLEAN DEFAULT FALSE,
+    match_description              TEXT,
+    except_description             TEXT,
+    use_regex_description          BOOLEAN DEFAULT FALSE,
     scene                          BOOLEAN,
     freeleech                      BOOLEAN,
     freeleech_percent              TEXT,
@@ -266,6 +272,7 @@ CREATE TABLE release_action_status
 	id            SERIAL PRIMARY KEY,
 	status        TEXT,
 	action        TEXT NOT NULL,
+	action_id     INTEGER,
 	type          TEXT NOT NULL,
 	client        TEXT,
 	filter        TEXT,
@@ -275,6 +282,7 @@ CREATE TABLE release_action_status
 	raw           TEXT,
 	log           TEXT,
 	release_id    INTEGER NOT NULL,
+	FOREIGN KEY (action_id) REFERENCES "action"(id),
 	FOREIGN KEY (release_id) REFERENCES "release"(id) ON DELETE CASCADE,
 	FOREIGN KEY (filter_id) REFERENCES "filter"(id) ON DELETE SET NULL
 );
@@ -301,6 +309,7 @@ CREATE TABLE notification
 	rooms      TEXT,
 	targets    TEXT,
 	devices    TEXT,
+	topic      TEXT,
 	priority   INTEGER DEFAULT 0,
 	created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 	updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -675,6 +684,22 @@ ADD COLUMN download_url TEXT;
 	`,
 	`ALTER TABLE notification
 ADD COLUMN priority INTEGER DEFAULT 0;`,
+	`ALTER TABLE notification
+ADD COLUMN topic text;`,
+	`ALTER TABLE filter
+		ADD COLUMN match_description TEXT;
+
+	ALTER TABLE filter
+		ADD COLUMN except_description TEXT;
+
+	ALTER TABLE filter
+		ADD COLUMN use_regex_description BOOLEAN DEFAULT FALSE;`,
+	`ALTER TABLE release_action_status
+    ADD action_id INTEGER;
+
+ALTER TABLE release_action_status
+    ADD CONSTRAINT release_action_status_action_id_fk
+        FOREIGN KEY (action_id) REFERENCES action;`,
 	`ALTER TABLE "filter"
 	ADD COLUMN unique_download BOOLEAN DEFAULT false;
 	`,

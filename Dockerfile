@@ -1,11 +1,10 @@
 # build web
 FROM node:18.7.0-alpine3.16 AS web-builder
+COPY . ./
 WORKDIR /web
-COPY web/package.json web/yarn.lock web/.yarnrc.yml ./
-COPY web/.yarn/releases/ ./.yarn/releases/
-RUN yarn install --network-timeout 120000
-COPY web .
-RUN yarn build
+RUN npm install -g pnpm && \
+pnpm install --frozen-lockfile && \
+pnpm run build
 
 # build app
 FROM golang:1.20-alpine3.16 AS app-builder

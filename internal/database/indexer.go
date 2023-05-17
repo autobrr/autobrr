@@ -1,3 +1,6 @@
+// Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+// SPDX-License-Identifier: GPL-2.0-or-later
+
 package database
 
 import (
@@ -9,8 +12,8 @@ import (
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/internal/logger"
 	"github.com/autobrr/autobrr/pkg/errors"
-	sq "github.com/Masterminds/squirrel"
 
+	sq "github.com/Masterminds/squirrel"
 	"github.com/rs/zerolog"
 )
 

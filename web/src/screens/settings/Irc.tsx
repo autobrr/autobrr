@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ */
+
 import { Fragment, useRef, useState, useMemo } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { LockClosedIcon, LockOpenIcon } from "@heroicons/react/24/solid";
@@ -214,11 +219,10 @@ const ListItem = ({ idx, network, expanded }: ListItemProps) => {
   const queryClient = useQueryClient();
 
   const updateMutation = useMutation({
-    mutationFn: (network: IrcNetwork) => APIClient.irc.updateNetwork(network),
-    onSuccess: () => {
+    mutationFn: (network: IrcNetwork) => APIClient.irc.updateNetwork(network).then(() => network),
+    onSuccess: (network: IrcNetwork) => {
       queryClient.invalidateQueries({ queryKey: ircKeys.lists() });
-
-      toast.custom((t) => <Toast type="success" body={`${network.name} was updated successfully`} t={t}/>);
+      toast.custom(t => <Toast type="success" body={`${network.name} was ${network.enabled ? "enabled" : "disabled"} successfully.`} t={t} />);
     }
   });
 

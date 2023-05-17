@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ */
+
 import { Fragment, useEffect, useRef, useState } from "react";
 import { ExclamationTriangleIcon } from "@heroicons/react/24/solid";
 import format from "date-fns/format";
@@ -16,6 +21,10 @@ import { SettingsContext } from "@utils/Context";
 import { EmptySimple } from "@components/emptystates";
 import { baseUrl } from "@utils";
 import { RingResizeSpinner } from "@components/Icons";
+import { toast } from "react-hot-toast";
+import Toast from "@components/notifications/Toast";
+import { ExclamationCircleIcon } from "@heroicons/react/24/solid";
+
 
 type LogEvent = {
   time: string;
@@ -37,10 +46,12 @@ export const Logs = () => {
   const [settings] = SettingsContext.use();
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  
+
   const [logs, setLogs] = useState<LogEvent[]>([]);
   const [searchFilter, setSearchFilter] = useState("");
+  const [regexPattern, setRegexPattern] = useState<RegExp | null>(null);
   const [filteredLogs, setFilteredLogs] = useState<LogEvent[]>([]);
+  const [isInvalidRegex, setIsInvalidRegex] = useState(false);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end", inline: "end" });
@@ -63,16 +74,21 @@ export const Logs = () => {
   useEffect(() => {
     if (!searchFilter.length) {
       setFilteredLogs(logs);
+      setIsInvalidRegex(false);
       return;
     }
-    
-    const newLogs: LogEvent[] = [];
-    logs.forEach((log) => {
-      if (log.message.indexOf(searchFilter) !== -1)
-        newLogs.push(log);
-    });
 
-    setFilteredLogs(newLogs);
+    try {
+      const pattern = new RegExp(searchFilter, "i");
+      setRegexPattern(pattern);
+      const newLogs = logs.filter(log => pattern.test(log.message));
+      setFilteredLogs(newLogs);
+      setIsInvalidRegex(false);
+    } catch (error) {
+      // Handle regex errors by showing nothing when the regex pattern is invalid
+      setFilteredLogs([]);
+      setIsInvalidRegex(true);
+    }
   }, [logs, searchFilter]);
 
   return (
@@ -96,17 +112,21 @@ export const Logs = () => {
             <DebounceInput
               minLength={2}
               debounceTimeout={200}
-              onChange={(event) => setSearchFilter(event.target.value.toLowerCase().trim())}
-              id="filter"
-              type="text"
-              autoComplete="off"
+              onChange={(event) => {
+                const inputValue = event.target.value.toLowerCase().trim();
+                setSearchFilter(inputValue);
+              }}
               className={classNames(
                 "focus:ring-blue-500 dark:focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-500 border-gray-300 dark:border-gray-700",
                 "block w-full dark:bg-gray-900 shadow-sm dark:text-gray-100 sm:text-sm rounded-md"
               )}
-              placeholder="Enter a string to filter logs by..."
+              placeholder="Enter a regex pattern to filter logs by..."
             />
-
+            {isInvalidRegex && (
+              <div className="absolute mt-1.5 right-14 items-center text-xs text-red-500">
+                <ExclamationCircleIcon className="h-6 w-6 inline mr-1" />
+              </div>
+            )}
             <LogsDropdown />
           </div>
 
@@ -170,7 +190,7 @@ export const LogFiles = () => {
       <div className="mt-2">
         <h2 className="text-lg leading-6 font-medium text-gray-900 dark:text-white">Log files</h2>
         <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-            Download old log files.
+          Download old log files.
         </p>
       </div>
 
@@ -179,13 +199,13 @@ export const LogFiles = () => {
           <ol className="min-w-full relative">
             <li className="grid grid-cols-12 mb-2 border-b border-gray-200 dark:border-gray-700">
               <div className="hidden sm:block col-span-5 px-2 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                  Name
+                Name
               </div>
               <div className="col-span-8 sm:col-span-4 px-1 sm:px-2 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                 Last modified
               </div>
               <div className="col-span-3 sm:col-span-2 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                  Size
+                Size
               </div>
             </li>
 
@@ -211,6 +231,12 @@ const LogFilesItem = ({ file }: LogFilesItemProps) => {
 
   const handleDownload = async () => {
     setIsDownloading(true);
+
+    // Add a custom toast before the download starts
+    const toastId = toast.custom((t) => (
+      <Toast type="info" body="Log file is being sanitized. Please wait..." t={t} />
+    ));
+
     const response = await fetch(`${baseUrl()}api/logs/files/${file.filename}`);
     const blob = await response.blob();
     const url = URL.createObjectURL(blob);
@@ -219,6 +245,10 @@ const LogFilesItem = ({ file }: LogFilesItemProps) => {
     link.download = file.filename;
     link.click();
     URL.revokeObjectURL(url);
+
+    // Dismiss the custom toast after the download is complete
+    toast.dismiss(toastId);
+
     setIsDownloading(false);
   };
 

@@ -1,3 +1,6 @@
+// Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+// SPDX-License-Identifier: GPL-2.0-or-later
+
 package domain
 
 import (
@@ -11,10 +14,11 @@ import (
 type ActionRepo interface {
 	Store(ctx context.Context, action Action) (*Action, error)
 	StoreFilterActions(ctx context.Context, actions []*Action, filterID int64) ([]*Action, error)
-	DeleteByFilterID(ctx context.Context, filterID int) error
 	FindByFilterID(ctx context.Context, filterID int) ([]*Action, error)
 	List(ctx context.Context) ([]Action, error)
-	Delete(actionID int) error
+	Get(ctx context.Context, req *GetActionRequest) (*Action, error)
+	Delete(ctx context.Context, req *DeleteActionRequest) error
+	DeleteByFilterID(ctx context.Context, filterID int) error
 	ToggleEnabled(actionID int) error
 }
 
@@ -122,3 +126,11 @@ const (
 	ActionContentLayoutSubfolderNone   ActionContentLayout = "SUBFOLDER_NONE"
 	ActionContentLayoutSubfolderCreate ActionContentLayout = "SUBFOLDER_CREATE"
 )
+
+type GetActionRequest struct {
+	Id int
+}
+
+type DeleteActionRequest struct {
+	ActionId int
+}
