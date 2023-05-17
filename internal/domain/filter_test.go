@@ -1883,6 +1883,8 @@ func TestFilter_CheckFilter1(t *testing.T) {
 				ExceptCategories:     tt.fields.ExceptCategories,
 				MatchUploaders:       tt.fields.MatchUploaders,
 				ExceptUploaders:      tt.fields.ExceptUploaders,
+				SmartEpisode:	      tt.fields.SmartEpisode,
+				UniqueDownload:       tt.fields.UniqueDownload,
 				Tags:                 tt.fields.Tags,
 				ExceptTags:           tt.fields.ExceptTags,
 				TagsMatchLogic:       tt.fields.TagsMatchLogic,
