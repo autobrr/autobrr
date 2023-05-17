@@ -16,6 +16,7 @@ import (
 	"github.com/autobrr/autobrr/internal/release"
 	"github.com/autobrr/autobrr/pkg/errors"
 
+	"github.com/r3labs/sse/v2"
 	"github.com/rs/zerolog"
 )
 
@@ -34,21 +35,24 @@ type Service interface {
 }
 
 type service struct {
-	stopWG sync.WaitGroup
-	lock   sync.RWMutex
+	log zerolog.Logger
+	sse *sse.Server
 
-	log                 zerolog.Logger
 	repo                domain.IrcRepo
 	releaseService      release.Service
 	indexerService      indexer.Service
 	notificationService notification.Service
 	indexerMap          map[string]string
 	handlers            map[handlerKey]*Handler
+
+	stopWG sync.WaitGroup
+	lock   sync.RWMutex
 }
 
-func NewService(log logger.Logger, repo domain.IrcRepo, releaseSvc release.Service, indexerSvc indexer.Service, notificationSvc notification.Service) Service {
+func NewService(log logger.Logger, sse *sse.Server, repo domain.IrcRepo, releaseSvc release.Service, indexerSvc indexer.Service, notificationSvc notification.Service) Service {
 	return &service{
 		log:                 log.With().Str("module", "irc").Logger(),
+		sse:                 sse,
 		repo:                repo,
 		releaseService:      releaseSvc,
 		indexerService:      indexerSvc,
@@ -69,6 +73,8 @@ func (s *service) StartHandlers() {
 	}
 
 	for _, network := range networks {
+		s.sse.CreateStream(network.Server)
+
 		if !network.Enabled {
 			continue
 		}
@@ -87,7 +93,7 @@ func (s *service) StartHandlers() {
 		definitions := s.indexerService.GetIndexersByIRCNetwork(network.Server)
 
 		// init new irc handler
-		handler := NewHandler(s.log, network, definitions, s.releaseService, s.notificationService)
+		handler := NewHandler(s.log, s.sse, network, definitions, s.releaseService, s.notificationService)
 
 		// use network.Server + nick to use multiple indexers with different nick per network
 		// this allows for multiple handlers to one network
@@ -127,6 +133,7 @@ func (s *service) startNetwork(network domain.IrcNetwork) error {
 		}
 	} else {
 		// if not found in handlers, lets add it and run it
+		s.sse.CreateStream(network.Server)
 
 		s.lock.Lock()
 		channels, err := s.repo.ListChannels(network.ID)
@@ -139,7 +146,7 @@ func (s *service) startNetwork(network domain.IrcNetwork) error {
 		definitions := s.indexerService.GetIndexersByIRCNetwork(network.Server)
 
 		// init new irc handler
-		handler := NewHandler(s.log, network, definitions, s.releaseService, s.notificationService)
+		handler := NewHandler(s.log, s.sse, network, definitions, s.releaseService, s.notificationService)
 
 		s.handlers[handlerKey{network.Server, network.Nick}] = handler
 		s.lock.Unlock()

@@ -40,11 +40,15 @@ func newIrcHandler(encoder encoder, service ircService) *ircHandler {
 func (h ircHandler) Routes(r chi.Router) {
 	r.Get("/", h.listNetworks)
 	r.Post("/", h.storeNetwork)
-	r.Put("/network/{networkID}", h.updateNetwork)
-	r.Post("/network/{networkID}/channel", h.storeChannel)
-	r.Get("/network/{networkID}/restart", h.restartNetwork)
-	r.Get("/network/{networkID}", h.getNetworkByID)
-	r.Delete("/network/{networkID}", h.deleteNetwork)
+
+	r.Route("/network/{networkID}", func(r chi.Router) {
+		r.Put("/", h.updateNetwork)
+		r.Get("/", h.getNetworkByID)
+		r.Delete("/", h.deleteNetwork)
+
+		r.Post("/channel", h.storeChannel)
+		r.Get("/restart", h.restartNetwork)
+	})
 }
 
 func (h ircHandler) listNetworks(w http.ResponseWriter, r *http.Request) {

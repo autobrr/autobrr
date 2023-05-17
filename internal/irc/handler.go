@@ -20,6 +20,7 @@ import (
 	"github.com/ergochat/irc-go/ircevent"
 	"github.com/ergochat/irc-go/ircfmt"
 	"github.com/ergochat/irc-go/ircmsg"
+	"github.com/r3labs/sse/v2"
 	"github.com/rs/zerolog"
 	"github.com/sasha-s/go-deadlock"
 )
@@ -59,6 +60,7 @@ func (ch *channelHealth) resetMonitoring() {
 
 type Handler struct {
 	log                 zerolog.Logger
+	sse                 *sse.Server
 	network             *domain.IrcNetwork
 	releaseSvc          release.Service
 	notificationService notification.Service
@@ -83,9 +85,10 @@ type Handler struct {
 	saslauthed    bool
 }
 
-func NewHandler(log zerolog.Logger, network domain.IrcNetwork, definitions []*domain.IndexerDefinition, releaseSvc release.Service, notificationSvc notification.Service) *Handler {
+func NewHandler(log zerolog.Logger, sse *sse.Server, network domain.IrcNetwork, definitions []*domain.IndexerDefinition, releaseSvc release.Service, notificationSvc notification.Service) *Handler {
 	h := &Handler{
 		log:                 log.With().Str("network", network.Server).Logger(),
+		sse:                 sse,
 		client:              nil,
 		network:             &network,
 		releaseSvc:          releaseSvc,
@@ -186,6 +189,7 @@ func (h *Handler) Run() error {
 
 	h.client.AddConnectCallback(h.onConnect)
 	h.client.AddDisconnectCallback(h.onDisconnect)
+
 	h.client.AddCallback("MODE", h.handleMode)
 	h.client.AddCallback("INVITE", h.handleInvite)
 	h.client.AddCallback("366", h.handleJoined)
@@ -194,6 +198,7 @@ func (h *Handler) Run() error {
 	h.client.AddCallback("NOTICE", h.onNotice)
 	h.client.AddCallback("NICK", h.onNick)
 	h.client.AddCallback("903", h.handleSASLSuccess)
+	h.client.AddCallback("*", h.handleMsg)
 
 	//h.setConnectionStatus()
 	h.saslauthed = false
@@ -540,6 +545,9 @@ func (h *Handler) onNick(msg ircmsg.Message) {
 
 // onMessage handles PRIVMSG events
 func (h *Handler) onMessage(msg ircmsg.Message) {
+	h.sse.Publish(h.network.Server, &sse.Event{
+		Data: []byte(msg.Params[1]),
+	})
 	if len(msg.Params) < 2 {
 		return
 	}
@@ -801,6 +809,14 @@ func (h *Handler) CurrentNick() string {
 // PreferredNick returns our preferred nick from settings
 func (h *Handler) PreferredNick() string {
 	return h.client.PreferredNick()
+}
+
+func (h *Handler) handleMsg(msg ircmsg.Message) {
+	h.log.Trace().Msgf("msg: %v", msg)
+
+	h.sse.Publish(h.network.Server, &sse.Event{
+		Data: []byte(msg.Params[1]),
+	})
 }
 
 // listens for MODE events
