@@ -1,3 +1,6 @@
+// Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+// SPDX-License-Identifier: GPL-2.0-or-later
+
 package database
 
 import (
@@ -187,6 +190,9 @@ func (r *FilterRepo) FindByID(ctx context.Context, filterID int) (*domain.Filter
 			"match_release_tags",
 			"except_release_tags",
 			"use_regex_release_tags",
+			"match_description",
+			"except_description",
+			"use_regex_description",
 			"scene",
 			"freeleech",
 			"freeleech_percent",
@@ -250,11 +256,11 @@ func (r *FilterRepo) FindByID(ctx context.Context, filterID int) (*domain.Filter
 	}
 
 	var f domain.Filter
-	var minSize, maxSize, maxDownloadsUnit, matchReleases, exceptReleases, matchReleaseGroups, exceptReleaseGroups, matchReleaseTags, exceptReleaseTags, freeleechPercent, shows, seasons, episodes, years, artists, albums, matchCategories, exceptCategories, matchUploaders, exceptUploaders, tags, exceptTags, tagsMatchLogic, exceptTagsMatchLogic, extScriptCmd, extScriptArgs, extWebhookHost, extWebhookData sql.NullString
+	var minSize, maxSize, maxDownloadsUnit, matchReleases, exceptReleases, matchReleaseGroups, exceptReleaseGroups, matchReleaseTags, exceptReleaseTags, matchDescription, exceptDescription, freeleechPercent, shows, seasons, episodes, years, artists, albums, matchCategories, exceptCategories, matchUploaders, exceptUploaders, tags, exceptTags, tagsMatchLogic, exceptTagsMatchLogic, extScriptCmd, extScriptArgs, extWebhookHost, extWebhookData sql.NullString
 	var useRegex, scene, freeleech, hasLog, hasCue, perfectFlac, extScriptEnabled, extWebhookEnabled sql.NullBool
 	var delay, maxDownloads, logScore, extWebhookStatus, extScriptStatus sql.NullInt32
 
-	if err := row.Scan(&f.ID, &f.Enabled, &f.Name, &minSize, &maxSize, &delay, &f.Priority, &maxDownloads, &maxDownloadsUnit, &matchReleases, &exceptReleases, &useRegex, &matchReleaseGroups, &exceptReleaseGroups, &matchReleaseTags, &exceptReleaseTags, &f.UseRegexReleaseTags, &scene, &freeleech, &freeleechPercent, &f.SmartEpisode, &shows, &seasons, &episodes, pq.Array(&f.Resolutions), pq.Array(&f.Codecs), pq.Array(&f.Sources), pq.Array(&f.Containers), pq.Array(&f.MatchHDR), pq.Array(&f.ExceptHDR), pq.Array(&f.MatchOther), pq.Array(&f.ExceptOther), &years, &artists, &albums, pq.Array(&f.MatchReleaseTypes), pq.Array(&f.Formats), pq.Array(&f.Quality), pq.Array(&f.Media), &logScore, &hasLog, &hasCue, &perfectFlac, &matchCategories, &exceptCategories, &matchUploaders, &exceptUploaders, pq.Array(&f.MatchLanguage), pq.Array(&f.ExceptLanguage), &tags, &exceptTags, &tagsMatchLogic, &exceptTagsMatchLogic, pq.Array(&f.Origins), pq.Array(&f.ExceptOrigins), &extScriptEnabled, &extScriptCmd, &extScriptArgs, &extScriptStatus, &extWebhookEnabled, &extWebhookHost, &extWebhookData, &extWebhookStatus, &f.CreatedAt, &f.UpdatedAt); err != nil {
+	if err := row.Scan(&f.ID, &f.Enabled, &f.Name, &minSize, &maxSize, &delay, &f.Priority, &maxDownloads, &maxDownloadsUnit, &matchReleases, &exceptReleases, &useRegex, &matchReleaseGroups, &exceptReleaseGroups, &matchReleaseTags, &exceptReleaseTags, &f.UseRegexReleaseTags, &matchDescription, &exceptDescription, &f.UseRegexDescription, &scene, &freeleech, &freeleechPercent, &f.SmartEpisode, &shows, &seasons, &episodes, pq.Array(&f.Resolutions), pq.Array(&f.Codecs), pq.Array(&f.Sources), pq.Array(&f.Containers), pq.Array(&f.MatchHDR), pq.Array(&f.ExceptHDR), pq.Array(&f.MatchOther), pq.Array(&f.ExceptOther), &years, &artists, &albums, pq.Array(&f.MatchReleaseTypes), pq.Array(&f.Formats), pq.Array(&f.Quality), pq.Array(&f.Media), &logScore, &hasLog, &hasCue, &perfectFlac, &matchCategories, &exceptCategories, &matchUploaders, &exceptUploaders, pq.Array(&f.MatchLanguage), pq.Array(&f.ExceptLanguage), &tags, &exceptTags, &tagsMatchLogic, &exceptTagsMatchLogic, pq.Array(&f.Origins), pq.Array(&f.ExceptOrigins), &extScriptEnabled, &extScriptCmd, &extScriptArgs, &extScriptStatus, &extWebhookEnabled, &extWebhookHost, &extWebhookData, &extWebhookStatus, &f.CreatedAt, &f.UpdatedAt); err != nil {
 		return nil, errors.Wrap(err, "error scanning row")
 	}
 
@@ -269,6 +275,8 @@ func (r *FilterRepo) FindByID(ctx context.Context, filterID int) (*domain.Filter
 	f.ExceptReleaseGroups = exceptReleaseGroups.String
 	f.MatchReleaseTags = matchReleaseTags.String
 	f.ExceptReleaseTags = exceptReleaseTags.String
+	f.MatchDescription = matchDescription.String
+	f.ExceptDescription = exceptDescription.String
 	f.FreeleechPercent = freeleechPercent.String
 	f.Shows = shows.String
 	f.Seasons = seasons.String
@@ -306,35 +314,11 @@ func (r *FilterRepo) FindByID(ctx context.Context, filterID int) (*domain.Filter
 }
 
 // FindByIndexerIdentifier find active filters with active indexer only
-func (r *FilterRepo) FindByIndexerIdentifier(indexer string) ([]domain.Filter, error) {
-	ctx := context.TODO()
-	tx, err := r.db.BeginTx(ctx, nil)
-	if err != nil {
-		return nil, errors.Wrap(err, "error begin transaction")
-	}
-	defer tx.Rollback()
-
-	filters, err := r.findByIndexerIdentifier(ctx, tx, indexer)
-	if err != nil {
-		return nil, err
-	}
-
-	for i, filter := range filters {
-		downloads, err := r.attachDownloadsByFilter(ctx, tx, filter.ID)
-		if err != nil {
-			continue
-		}
-		filters[i].Downloads = downloads
-	}
-
-	if err := tx.Commit(); err != nil {
-		return nil, errors.Wrap(err, "error finding filter by identifier")
-	}
-
-	return filters, nil
+func (r *FilterRepo) FindByIndexerIdentifier(ctx context.Context, indexer string) ([]domain.Filter, error) {
+	return r.findByIndexerIdentifier(ctx, indexer)
 }
 
-func (r *FilterRepo) findByIndexerIdentifier(ctx context.Context, tx *Tx, indexer string) ([]domain.Filter, error) {
+func (r *FilterRepo) findByIndexerIdentifier(ctx context.Context, indexer string) ([]domain.Filter, error) {
 	queryBuilder := r.db.squirrel.
 		Select(
 			"f.id",
@@ -354,6 +338,9 @@ func (r *FilterRepo) findByIndexerIdentifier(ctx context.Context, tx *Tx, indexe
 			"f.match_release_tags",
 			"f.except_release_tags",
 			"f.use_regex_release_tags",
+			"f.match_description",
+			"f.except_description",
+			"f.use_regex_description",
 			"f.scene",
 			"f.freeleech",
 			"f.freeleech_percent",
@@ -416,7 +403,7 @@ func (r *FilterRepo) findByIndexerIdentifier(ctx context.Context, tx *Tx, indexe
 		return nil, errors.Wrap(err, "error building query")
 	}
 
-	rows, err := tx.QueryContext(ctx, query, args...)
+	rows, err := r.db.handler.QueryContext(ctx, query, args...)
 	if err != nil {
 		return nil, errors.Wrap(err, "error executing query")
 	}
@@ -427,11 +414,11 @@ func (r *FilterRepo) findByIndexerIdentifier(ctx context.Context, tx *Tx, indexe
 	for rows.Next() {
 		var f domain.Filter
 
-		var minSize, maxSize, maxDownloadsUnit, matchReleases, exceptReleases, matchReleaseGroups, exceptReleaseGroups, matchReleaseTags, exceptReleaseTags, freeleechPercent, shows, seasons, episodes, years, artists, albums, matchCategories, exceptCategories, matchUploaders, exceptUploaders, tags, exceptTags, tagsMatchLogic, exceptTagsMatchLogic, extScriptCmd, extScriptArgs, extWebhookHost, extWebhookData sql.NullString
+		var minSize, maxSize, maxDownloadsUnit, matchReleases, exceptReleases, matchReleaseGroups, exceptReleaseGroups, matchReleaseTags, exceptReleaseTags, matchDescription, exceptDescription, freeleechPercent, shows, seasons, episodes, years, artists, albums, matchCategories, exceptCategories, matchUploaders, exceptUploaders, tags, exceptTags, tagsMatchLogic, exceptTagsMatchLogic, extScriptCmd, extScriptArgs, extWebhookHost, extWebhookData sql.NullString
 		var useRegex, scene, freeleech, hasLog, hasCue, perfectFlac, extScriptEnabled, extWebhookEnabled sql.NullBool
 		var delay, maxDownloads, logScore, extWebhookStatus, extScriptStatus sql.NullInt32
 
-		if err := rows.Scan(&f.ID, &f.Enabled, &f.Name, &minSize, &maxSize, &delay, &f.Priority, &maxDownloads, &maxDownloadsUnit, &matchReleases, &exceptReleases, &useRegex, &matchReleaseGroups, &exceptReleaseGroups, &matchReleaseTags, &exceptReleaseTags, &f.UseRegexReleaseTags, &scene, &freeleech, &freeleechPercent, &f.SmartEpisode, &shows, &seasons, &episodes, pq.Array(&f.Resolutions), pq.Array(&f.Codecs), pq.Array(&f.Sources), pq.Array(&f.Containers), pq.Array(&f.MatchHDR), pq.Array(&f.ExceptHDR), pq.Array(&f.MatchOther), pq.Array(&f.ExceptOther), &years, &artists, &albums, pq.Array(&f.MatchReleaseTypes), pq.Array(&f.Formats), pq.Array(&f.Quality), pq.Array(&f.Media), &logScore, &hasLog, &hasCue, &perfectFlac, &matchCategories, &exceptCategories, &matchUploaders, &exceptUploaders, pq.Array(&f.MatchLanguage), pq.Array(&f.ExceptLanguage), &tags, &exceptTags, &tagsMatchLogic, &exceptTagsMatchLogic, pq.Array(&f.Origins), pq.Array(&f.ExceptOrigins), &extScriptEnabled, &extScriptCmd, &extScriptArgs, &extScriptStatus, &extWebhookEnabled, &extWebhookHost, &extWebhookData, &extWebhookStatus, &f.CreatedAt, &f.UpdatedAt); err != nil {
+		if err := rows.Scan(&f.ID, &f.Enabled, &f.Name, &minSize, &maxSize, &delay, &f.Priority, &maxDownloads, &maxDownloadsUnit, &matchReleases, &exceptReleases, &useRegex, &matchReleaseGroups, &exceptReleaseGroups, &matchReleaseTags, &exceptReleaseTags, &f.UseRegexReleaseTags, &matchDescription, &exceptDescription, &f.UseRegexDescription, &scene, &freeleech, &freeleechPercent, &f.SmartEpisode, &shows, &seasons, &episodes, pq.Array(&f.Resolutions), pq.Array(&f.Codecs), pq.Array(&f.Sources), pq.Array(&f.Containers), pq.Array(&f.MatchHDR), pq.Array(&f.ExceptHDR), pq.Array(&f.MatchOther), pq.Array(&f.ExceptOther), &years, &artists, &albums, pq.Array(&f.MatchReleaseTypes), pq.Array(&f.Formats), pq.Array(&f.Quality), pq.Array(&f.Media), &logScore, &hasLog, &hasCue, &perfectFlac, &matchCategories, &exceptCategories, &matchUploaders, &exceptUploaders, pq.Array(&f.MatchLanguage), pq.Array(&f.ExceptLanguage), &tags, &exceptTags, &tagsMatchLogic, &exceptTagsMatchLogic, pq.Array(&f.Origins), pq.Array(&f.ExceptOrigins), &extScriptEnabled, &extScriptCmd, &extScriptArgs, &extScriptStatus, &extWebhookEnabled, &extWebhookHost, &extWebhookData, &extWebhookStatus, &f.CreatedAt, &f.UpdatedAt); err != nil {
 			return nil, errors.Wrap(err, "error scanning row")
 		}
 
@@ -446,6 +433,8 @@ func (r *FilterRepo) findByIndexerIdentifier(ctx context.Context, tx *Tx, indexe
 		f.ExceptReleaseGroups = exceptReleaseGroups.String
 		f.MatchReleaseTags = matchReleaseTags.String
 		f.ExceptReleaseTags = exceptReleaseTags.String
+		f.MatchDescription = matchDescription.String
+		f.ExceptDescription = exceptDescription.String
 		f.FreeleechPercent = freeleechPercent.String
 		f.Shows = shows.String
 		f.Seasons = seasons.String
@@ -505,6 +494,9 @@ func (r *FilterRepo) Store(ctx context.Context, filter domain.Filter) (*domain.F
 			"match_release_tags",
 			"except_release_tags",
 			"use_regex_release_tags",
+			"match_description",
+			"except_description",
+			"use_regex_description",
 			"scene",
 			"freeleech",
 			"freeleech_percent",
@@ -569,6 +561,9 @@ func (r *FilterRepo) Store(ctx context.Context, filter domain.Filter) (*domain.F
 			filter.MatchReleaseTags,
 			filter.ExceptReleaseTags,
 			filter.UseRegexReleaseTags,
+			filter.MatchDescription,
+			filter.ExceptDescription,
+			filter.UseRegexDescription,
 			filter.Scene,
 			filter.Freeleech,
 			filter.FreeleechPercent,
@@ -652,6 +647,9 @@ func (r *FilterRepo) Update(ctx context.Context, filter domain.Filter) (*domain.
 		Set("match_release_tags", filter.MatchReleaseTags).
 		Set("except_release_tags", filter.ExceptReleaseTags).
 		Set("use_regex_release_tags", filter.UseRegexReleaseTags).
+		Set("match_description", filter.MatchDescription).
+		Set("except_description", filter.ExceptDescription).
+		Set("use_regex_description", filter.UseRegexDescription).
 		Set("scene", filter.Scene).
 		Set("freeleech", filter.Freeleech).
 		Set("freeleech_percent", filter.FreeleechPercent).
@@ -766,6 +764,15 @@ func (r *FilterRepo) UpdatePartial(ctx context.Context, filter domain.FilterUpda
 	}
 	if filter.UseRegexReleaseTags != nil {
 		q = q.Set("use_regex_release_tags", filter.UseRegexReleaseTags)
+	}
+	if filter.MatchDescription != nil {
+		q = q.Set("match_description", filter.MatchDescription)
+	}
+	if filter.ExceptDescription != nil {
+		q = q.Set("except_description", filter.ExceptDescription)
+	}
+	if filter.UseRegexDescription != nil {
+		q = q.Set("use_regex_description", filter.UseRegexDescription)
 	}
 	if filter.Scene != nil {
 		q = q.Set("scene", filter.Scene)
@@ -1052,25 +1059,25 @@ func (r *FilterRepo) Delete(ctx context.Context, filterID int) error {
 	return nil
 }
 
-func (r *FilterRepo) attachDownloadsByFilter(ctx context.Context, tx *Tx, filterID int) (*domain.FilterDownloads, error) {
+func (r *FilterRepo) GetDownloadsByFilterId(ctx context.Context, filterID int) (*domain.FilterDownloads, error) {
 	if r.db.Driver == "sqlite" {
-		return r.downloadsByFilterSqlite(ctx, tx, filterID)
+		return r.downloadsByFilterSqlite(ctx, filterID)
 	}
 
-	return r.downloadsByFilterPostgres(ctx, tx, filterID)
+	return r.downloadsByFilterPostgres(ctx, filterID)
 }
 
-func (r *FilterRepo) downloadsByFilterSqlite(ctx context.Context, tx *Tx, filterID int) (*domain.FilterDownloads, error) {
+func (r *FilterRepo) downloadsByFilterSqlite(ctx context.Context, filterID int) (*domain.FilterDownloads, error) {
 	query := `SELECT
-    IFNULL(SUM(CASE WHEN release_action_status.timestamp >= strftime('%Y-%m-%d %H:00:00', datetime('now','localtime')) THEN 1 ELSE 0 END),0) as "hour_count",
-    IFNULL(SUM(CASE WHEN release_action_status.timestamp >= datetime('now', 'localtime', 'start of day') THEN 1 ELSE 0 END),0) as "day_count",
-    IFNULL(SUM(CASE WHEN release_action_status.timestamp >= datetime('now', 'localtime', 'weekday 0', '-7 days') THEN 1 ELSE 0 END),0) as "week_count",
-    IFNULL(SUM(CASE WHEN release_action_status.timestamp >= datetime('now', 'localtime', 'start of month') THEN 1 ELSE 0 END),0) as "month_count",
-    count(*) as "total_count"
+	COUNT(CASE WHEN CAST(strftime('%s', datetime(release_action_status.timestamp, 'localtime')) AS INTEGER) >= CAST(strftime('%s', strftime('%Y-%m-%dT%H:00:00', datetime('now','localtime'))) AS INTEGER) THEN 1 END) as "hour_count",
+	COUNT(CASE WHEN CAST(strftime('%s', datetime(release_action_status.timestamp, 'localtime')) AS INTEGER) >= CAST(strftime('%s', datetime('now', 'localtime', 'start of day')) AS INTEGER) THEN 1 END) as "day_count",
+	COUNT(CASE WHEN CAST(strftime('%s', datetime(release_action_status.timestamp, 'localtime')) AS INTEGER) >= CAST(strftime('%s', datetime('now', 'localtime', 'weekday 0', '-7 days', 'start of day')) AS INTEGER) THEN 1 END) as "week_count",
+	COUNT(CASE WHEN CAST(strftime('%s', datetime(release_action_status.timestamp, 'localtime')) AS INTEGER) >= CAST(strftime('%s', datetime('now', 'localtime', 'start of month')) AS INTEGER) THEN 1 END) as "month_count",
+	COUNT(*) as "total_count"
 FROM release_action_status
-WHERE release_action_status.status = 'PUSH_APPROVED' AND release_action_status.filter_id = ?;`
+WHERE (release_action_status.status = 'PUSH_APPROVED' OR release_action_status.status = 'PENDING') AND release_action_status.filter_id = ?;`
 
-	row := tx.QueryRowContext(ctx, query, filterID)
+	row := r.db.handler.QueryRowContext(ctx, query, filterID)
 	if err := row.Err(); err != nil {
 		return nil, errors.Wrap(err, "error executing query")
 	}
@@ -1086,7 +1093,7 @@ WHERE release_action_status.status = 'PUSH_APPROVED' AND release_action_status.f
 	return &f, nil
 }
 
-func (r *FilterRepo) downloadsByFilterPostgres(ctx context.Context, tx *Tx, filterID int) (*domain.FilterDownloads, error) {
+func (r *FilterRepo) downloadsByFilterPostgres(ctx context.Context, filterID int) (*domain.FilterDownloads, error) {
 	query := `SELECT
     COALESCE(SUM(CASE WHEN release_action_status.timestamp >= date_trunc('hour', CURRENT_TIMESTAMP) THEN 1 ELSE 0 END),0) as "hour_count",
     COALESCE(SUM(CASE WHEN release_action_status.timestamp >= date_trunc('day', CURRENT_DATE) THEN 1 ELSE 0 END),0) as "day_count",
@@ -1094,9 +1101,9 @@ func (r *FilterRepo) downloadsByFilterPostgres(ctx context.Context, tx *Tx, filt
     COALESCE(SUM(CASE WHEN release_action_status.timestamp >= date_trunc('month', CURRENT_DATE) THEN 1 ELSE 0 END),0) as "month_count",
     count(*) as "total_count"
 FROM release_action_status
-WHERE release_action_status.status = 'PUSH_APPROVED' AND release_action_status.filter_id = $1;`
+WHERE (release_action_status.status = 'PUSH_APPROVED' OR release_action_status.status = 'PENDING') AND release_action_status.filter_id = $1;`
 
-	row := tx.QueryRowContext(ctx, query, filterID)
+	row := r.db.handler.QueryRowContext(ctx, query, filterID)
 	if err := row.Err(); err != nil {
 		return nil, errors.Wrap(err, "error executing query")
 	}

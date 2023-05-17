@@ -1,13 +1,18 @@
+/*
+ * Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ */
+
 import type { FieldProps, FieldValidator } from "formik";
 import { Field } from "formik";
-import { classNames } from "../../utils";
-import { useToggle } from "../../hooks/hooks";
+import { classNames } from "@utils";
+import { useToggle } from "@hooks/hooks";
 import { EyeIcon, EyeSlashIcon } from "@heroicons/react/24/solid";
 import { Switch } from "@headlessui/react";
 import { ErrorField, RequiredField } from "./common";
 import Select, { components, ControlProps, InputProps, MenuProps, OptionProps } from "react-select";
 import { SelectFieldProps } from "./select";
-import { CustomTooltip } from "../tooltips/CustomTooltip";
+import { CustomTooltip } from "@components/tooltips/CustomTooltip";
 
 interface TextFieldWideProps {
   name: string;

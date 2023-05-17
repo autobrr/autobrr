@@ -1,5 +1,10 @@
+/*
+ * Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ */
+
 import * as React from "react";
-import { useQuery } from "react-query";
+import { useQuery } from "@tanstack/react-query";
 import { CellProps, Column, useFilters, usePagination, useSortBy, useTable } from "react-table";
 import {
   ChevronDoubleLeftIcon,
@@ -8,16 +13,25 @@ import {
   ChevronRightIcon
 } from "@heroicons/react/24/solid";
 
-import { APIClient } from "../../api/APIClient";
-import { EmptyListState } from "../../components/emptystates";
+import { APIClient } from "@api/APIClient";
+import { EmptyListState } from "@components/emptystates";
 
-import * as Icons from "../../components/Icons";
-import * as DataTable from "../../components/data-table";
+import * as Icons from "@components/Icons";
+import * as DataTable from "@components/data-table";
 
 import { IndexerSelectColumnFilter, PushStatusSelectColumnFilter, SearchColumnFilter } from "./Filters";
-import { classNames } from "../../utils";
-import { ArrowTopRightOnSquareIcon } from "@heroicons/react/24/outline";
-import { Tooltip } from "../../components/tooltips/Tooltip";
+import { classNames } from "@utils";
+import { ArrowTopRightOnSquareIcon, ArrowDownTrayIcon } from "@heroicons/react/24/outline";
+import { Tooltip } from "@components/tooltips/Tooltip";
+
+export const releaseKeys = {
+  all: ["releases"] as const,
+  lists: () => [...releaseKeys.all, "list"] as const,
+  list: (pageIndex: number, pageSize: number, filters: ReleaseFilter[]) => [...releaseKeys.lists(), { pageIndex, pageSize, filters }] as const,
+  details: () => [...releaseKeys.all, "detail"] as const,
+  detail: (id: number) => [...releaseKeys.details(), id] as const
+};
+
 
 type TableState = {
     queryPageIndex: number;
@@ -87,16 +101,28 @@ export const ReleaseTable = () => {
                 {String(props.cell.value)}
               </span>
             </Tooltip>
-            {props.row.original.info_url && (
-              <a
-                rel="noopener noreferrer"
-                target="_blank"
-                href={props.row.original.info_url}
-                className="max-w-[90vw] mr-2"
-              >
-                <ArrowTopRightOnSquareIcon className="h-5 w-5 text-blue-400 hover:text-blue-500 dark:text-blue-500 dark:hover:text-blue-600" aria-hidden="true" />
-              </a>
-            )}
+            <div className="flex mr-0">
+              {props.row.original.download_url && (
+                <a
+                  rel="noopener noreferrer"
+                  target="_blank"
+                  href={props.row.original.download_url}
+                  className="max-w-[90vw] px-2"
+                >
+                  <ArrowDownTrayIcon className="h-5 w-5 text-blue-400 hover:text-blue-500 dark:text-blue-500 dark:hover:text-blue-600" aria-hidden="true" />
+                </a>
+              )}
+              {props.row.original.info_url && (
+                <a
+                  rel="noopener noreferrer"
+                  target="_blank"
+                  href={props.row.original.info_url}
+                  className="max-w-[90vw]"
+                >
+                  <ArrowTopRightOnSquareIcon className="h-5 w-5 text-blue-400 hover:text-blue-500 dark:text-blue-500 dark:hover:text-blue-600" aria-hidden="true" />
+                </a>
+              )}
+            </div>
           </div>
         );
       },
@@ -120,14 +146,12 @@ export const ReleaseTable = () => {
   const [{ queryPageIndex, queryPageSize, totalCount, queryFilters }, dispatch] =
         React.useReducer(TableReducer, initialState);
 
-  const { isLoading, error, data, isSuccess } = useQuery(
-    ["releases", queryPageIndex, queryPageSize, queryFilters],
-    () => APIClient.release.findQuery(queryPageIndex * queryPageSize, queryPageSize, queryFilters),
-    {
-      keepPreviousData: true,
-      staleTime: 5000
-    }
-  );
+  const { isLoading, error, data, isSuccess } = useQuery({
+    queryKey: releaseKeys.list(queryPageIndex, queryPageSize, queryFilters),
+    queryFn: () => APIClient.release.findQuery(queryPageIndex * queryPageSize, queryPageSize, queryFilters),
+    keepPreviousData: true,
+    staleTime: 5000
+  });
 
   // Use the state and functions returned from useTable to build your UI
   const {
@@ -192,10 +216,11 @@ export const ReleaseTable = () => {
     dispatch({ type: ActionType.FILTER_CHANGED, payload: filters });
   }, [filters]);
 
-  if (error)
+  if (error) {
     return <p>Error</p>;
+  }
 
-  if (isLoading)
+  if (isLoading) {
     return (
       <div className="flex flex-col animate-pulse">
         <div className="flex mb-6 flex-col sm:flex-row">
@@ -211,9 +236,7 @@ export const ReleaseTable = () => {
           <table {...getTableProps()} className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
             <thead className="bg-gray-50 dark:bg-gray-800">
               <tr>
-
                 <th
-
                   scope="col"
                   className="first:pl-5 pl-3 pr-3 py-3 first:rounded-tl-md last:rounded-tr-md text-xs font-medium tracking-wider text-left text-gray-500 uppercase group"
 
@@ -224,28 +247,30 @@ export const ReleaseTable = () => {
                     </span>
                   </div>
                 </th>
-
               </tr>
-
 
             </thead>
             <tbody className=" divide-gray-200 dark:divide-gray-700">
-              <tr className="flex justify-between py-4 text-sm font-medium box-content text-gray-900 dark:text-gray-300 max-w-[96px] sm:max-w-[216px] md:max-w-[360px] lg:max-w-[640px] xl:max-w-[840px]">
+              <tr
+                className="flex justify-between py-4 text-sm font-medium box-content text-gray-900 dark:text-gray-300 max-w-[96px] sm:max-w-[216px] md:max-w-[360px] lg:max-w-[640px] xl:max-w-[840px]">
                 <td className="first:pl-5 pl-3 pr-3 whitespace-nowrap ">&nbsp;</td>
                 <td className="first:pl-5 pl-3 pr-3 whitespace-nowrap ">&nbsp;</td>
                 <td className="first:pl-5 pl-3 pr-3 whitespace-nowrap ">&nbsp;</td>
               </tr>
-              <tr className="flex justify-between py-4 text-sm font-medium box-content text-gray-900 dark:text-gray-300 max-w-[96px] sm:max-w-[216px] md:max-w-[360px] lg:max-w-[640px] xl:max-w-[840px]">
+              <tr
+                className="flex justify-between py-4 text-sm font-medium box-content text-gray-900 dark:text-gray-300 max-w-[96px] sm:max-w-[216px] md:max-w-[360px] lg:max-w-[640px] xl:max-w-[840px]">
                 <td className="first:pl-5 pl-3 pr-3 whitespace-nowrap ">&nbsp;</td>
                 <td className="first:pl-5 pl-3 pr-3 whitespace-nowrap ">&nbsp;</td>
                 <td className="first:pl-5 pl-3 pr-3 whitespace-nowrap ">&nbsp;</td>
               </tr>
-              <tr className="flex justify-between py-4 text-sm font-medium box-content text-gray-900 dark:text-gray-300 max-w-[96px] sm:max-w-[216px] md:max-w-[360px] lg:max-w-[640px] xl:max-w-[840px]">
+              <tr
+                className="flex justify-between py-4 text-sm font-medium box-content text-gray-900 dark:text-gray-300 max-w-[96px] sm:max-w-[216px] md:max-w-[360px] lg:max-w-[640px] xl:max-w-[840px]">
                 <td className="first:pl-5 pl-3 pr-3 whitespace-nowrap ">&nbsp;</td>
                 <td className="first:pl-5 pl-3 pr-3 whitespace-nowrap ">&nbsp;</td>
                 <td className="first:pl-5 pl-3 pr-3 whitespace-nowrap">&nbsp;</td>
               </tr>
-              <tr className="flex justify-between py-4 text-sm font-medium box-content text-gray-900 dark:text-gray-300 max-w-[96px] sm:max-w-[216px] md:max-w-[360px] lg:max-w-[640px] xl:max-w-[840px]">
+              <tr
+                className="flex justify-between py-4 text-sm font-medium box-content text-gray-900 dark:text-gray-300 max-w-[96px] sm:max-w-[216px] md:max-w-[360px] lg:max-w-[640px] xl:max-w-[840px]">
                 <td className="first:pl-5 pl-3 pr-3 whitespace-nowrap ">&nbsp;</td>
                 <td className="first:pl-5 pl-3 pr-3 whitespace-nowrap ">&nbsp;</td>
                 <td className="first:pl-5 pl-3 pr-3 whitespace-nowrap ">&nbsp;</td>
@@ -255,27 +280,32 @@ export const ReleaseTable = () => {
                   <p className="text-black dark:text-white">Loading release table...</p>
                 </td>
               </tr>
-              <tr className="flex justify-between py-3 text-sm font-medium box-content text-gray-900 dark:text-gray-300 max-w-[96px] sm:max-w-[216px] md:max-w-[360px] lg:max-w-[640px] xl:max-w-[840px]">
+              <tr
+                className="flex justify-between py-3 text-sm font-medium box-content text-gray-900 dark:text-gray-300 max-w-[96px] sm:max-w-[216px] md:max-w-[360px] lg:max-w-[640px] xl:max-w-[840px]">
                 <td className="first:pl-5 pl-3 pr-3 whitespace-nowrap">&nbsp;</td>
                 <td className="first:pl-5 pl-3 pr-3 whitespace-nowrap ">&nbsp;</td>
                 <td className="first:pl-5 pl-3 pr-3 whitespace-nowrap ">&nbsp;</td>
               </tr>
-              <tr className="flex justify-between py-3 text-sm font-medium box-content text-gray-900 dark:text-gray-300 max-w-[96px] sm:max-w-[216px] md:max-w-[360px] lg:max-w-[640px] xl:max-w-[840px]">
+              <tr
+                className="flex justify-between py-3 text-sm font-medium box-content text-gray-900 dark:text-gray-300 max-w-[96px] sm:max-w-[216px] md:max-w-[360px] lg:max-w-[640px] xl:max-w-[840px]">
                 <td className="first:pl-5 pl-3 pr-3 whitespace-nowrap ">&nbsp;</td>
                 <td className="first:pl-5 pl-3 pr-3 whitespace-nowrap ">&nbsp;</td>
                 <td className="first:pl-5 pl-3 pr-3 whitespace-nowrap ">&nbsp;</td>
               </tr>
-              <tr className="flex justify-between py-3 text-sm font-medium box-content text-gray-900 dark:text-gray-300 max-w-[96px] sm:max-w-[216px] md:max-w-[360px] lg:max-w-[640px] xl:max-w-[840px]">
+              <tr
+                className="flex justify-between py-3 text-sm font-medium box-content text-gray-900 dark:text-gray-300 max-w-[96px] sm:max-w-[216px] md:max-w-[360px] lg:max-w-[640px] xl:max-w-[840px]">
                 <td className="first:pl-5 pl-3 pr-3 whitespace-nowrap ">&nbsp;</td>
                 <td className="first:pl-5 pl-3 pr-3 whitespace-nowrap ">&nbsp;</td>
                 <td className="first:pl-5 pl-3 pr-3 whitespace-nowrap ">&nbsp;</td>
               </tr>
-              <tr className="flex justify-between py-3 text-sm font-medium box-content text-gray-900 dark:text-gray-300 max-w-[96px] sm:max-w-[216px] md:max-w-[360px] lg:max-w-[640px] xl:max-w-[840px]">
+              <tr
+                className="flex justify-between py-3 text-sm font-medium box-content text-gray-900 dark:text-gray-300 max-w-[96px] sm:max-w-[216px] md:max-w-[360px] lg:max-w-[640px] xl:max-w-[840px]">
                 <td className="first:pl-5 pl-3 pr-3 whitespace-nowrap ">&nbsp;</td>
                 <td className="first:pl-5 pl-3 pr-3 whitespace-nowrap ">&nbsp;</td>
                 <td className="first:pl-5 pl-3 pr-3 whitespace-nowrap ">&nbsp;</td>
               </tr>
-              <tr className="flex justify-between py-3 text-sm font-medium box-content text-gray-900 dark:text-gray-300 max-w-[96px] sm:max-w-[216px] md:max-w-[360px] lg:max-w-[640px] xl:max-w-[840px]">
+              <tr
+                className="flex justify-between py-3 text-sm font-medium box-content text-gray-900 dark:text-gray-300 max-w-[96px] sm:max-w-[216px] md:max-w-[360px] lg:max-w-[640px] xl:max-w-[840px]">
                 <td className="first:pl-5 pl-3 pr-3 whitespace-nowrap ">&nbsp;</td>
                 <td className="first:pl-5 pl-3 pr-3 whitespace-nowrap ">&nbsp;</td>
                 <td className="first:pl-5 pl-3 pr-3 whitespace-nowrap ">&nbsp;</td>
@@ -292,7 +322,8 @@ export const ReleaseTable = () => {
             <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
               <div className="flex items-baseline gap-x-2">
                 <span className="text-sm text-gray-700 dark:text-gray-500">
-                Page <span className="font-medium">{pageIndex + 1}</span> of <span className="font-medium">{pageOptions.length}</span>
+                Page <span className="font-medium">{pageIndex + 1}</span> of <span
+                    className="font-medium">{pageOptions.length}</span>
                 </span>
                 <label>
                   <span className="sr-only bg-gray-700">Items Per Page</span>
@@ -305,7 +336,7 @@ export const ReleaseTable = () => {
                   >
                     {[5, 10, 20, 50].map(pageSize => (
                       <option key={pageSize} value={pageSize}>
-                      Show {pageSize}
+                        Show {pageSize}
                       </option>
                     ))}
                   </select>
@@ -319,20 +350,20 @@ export const ReleaseTable = () => {
                     disabled={!canPreviousPage}
                   >
                     <span className="sr-only text-gray-400 dark:text-gray-500 dark:bg-gray-700">First</span>
-                    <ChevronDoubleLeftIcon className="w-4 h-4 text-gray-400 dark:text-gray-500" aria-hidden="true" />
+                    <ChevronDoubleLeftIcon className="w-4 h-4 text-gray-400 dark:text-gray-500" aria-hidden="true"/>
                   </DataTable.PageButton>
                   <DataTable.PageButton
                     onClick={() => previousPage()}
                     disabled={!canPreviousPage}
                   >
                     <span className="sr-only text-gray-400 dark:text-gray-500 dark:bg-gray-700">Previous</span>
-                    <ChevronLeftIcon className="w-4 h-4 text-gray-400 dark:text-gray-500" aria-hidden="true" />
+                    <ChevronLeftIcon className="w-4 h-4 text-gray-400 dark:text-gray-500" aria-hidden="true"/>
                   </DataTable.PageButton>
                   <DataTable.PageButton
                     onClick={() => nextPage()}
                     disabled={!canNextPage}>
                     <span className="sr-only text-gray-400 dark:text-gray-500 dark:bg-gray-700">Next</span>
-                    <ChevronRightIcon className="w-4 h-4 text-gray-400 dark:text-gray-500" aria-hidden="true" />
+                    <ChevronRightIcon className="w-4 h-4 text-gray-400 dark:text-gray-500" aria-hidden="true"/>
                   </DataTable.PageButton>
                   <DataTable.PageButton
                     className="rounded-r-md"
@@ -340,7 +371,7 @@ export const ReleaseTable = () => {
                     disabled={!canNextPage}
                   >
                     <span className="sr-only text-gray-400 dark:text-gray-500 dark:bg-gray-700">Last</span>
-                    <ChevronDoubleRightIcon className="w-4 h-4 text-gray-400 dark:text-gray-500" aria-hidden="true" />
+                    <ChevronDoubleRightIcon className="w-4 h-4 text-gray-400 dark:text-gray-500" aria-hidden="true"/>
                   </DataTable.PageButton>
                 </nav>
               </div>
@@ -349,9 +380,11 @@ export const ReleaseTable = () => {
         </div>
       </div>
     );
+  }
 
-  if (!data)
+  if (!data) {
     return <EmptyListState text="No recent activity" />;
+  }
 
   // Render the UI for your table
   return (

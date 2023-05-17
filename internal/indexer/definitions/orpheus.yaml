@@ -77,12 +77,14 @@ irc:
     type: single
     lines:
       - test:
-          - "TORRENT: Amarok – Quentadharkën – CD/FLAC/Lossless – folk.rock,progressive.rock – https://orpheus.network/torrents.php?id=000000 – https://orpheus.network/torrents.php?id=000000&torrentid=000000&action=download"
-          - "TORRENT: Signal Lost – Simulacrum – WEB/FLAC/24bit Lossless – 2020s,alternative.rock,freely.available,post.rock,rock – https://orpheus.network/torrents.php?id=000000 – https://orpheus.network/torrents.php?id=0000000&torrentid=0000000&action=download"
-          - "TORRENT: Anne Sila – Fruit défendu – CD/FLAC/Lossless –  – https://orpheus.network/torrents.php?id=000000 – https://orpheus.network/torrents.php?id=000000&torrentid=0000000&action=download"
-        pattern: 'TORRENT: (.*) . (.*) . (.*) . .* (https:\/\/.*\/).*&torrentid=(.+)&action=download'
+          - "TORRENT: Dirty Dike – Bogies & Alcohol – [2008] [Album] CD/MP3/320 – hip.hop,uk.hip.hop,united.kingdom – https://orpheus.network/torrents.php?id=0000000 – https://orpheus.network/torrents.php?id=0000000&torrentid=0000000&action=download"
+          - "TORRENT: Various Artists – Bicycle Day: 85 Yrs of LSD Special – [2023] [Compilation] WEB/FLAC/Lossless – ambient,electronic – https://orpheus.network/torrents.php?id=0000000 – https://orpheus.network/torrents.php?id=0000000&torrentid=0000000&action=download"
+          - "TORRENT: Snoop Dogg – Untitled – [2001] [Sampler] Vinyl/MP3/320 –  – https://orpheus.network/torrents.php?id=0000000 – https://orpheus.network/torrents.php?id=0000000&torrentid=0000000&action=download"
+        pattern: 'TORRENT: (.* . \[(.*?)\] \[(.*?)\] (.*)) . \s*(.*) . https?:\/\/.* . (https?:\/\/.*\/).*torrentid=(\d+).*'
         vars:
           - torrentName
+          - year
+          - category
           - releaseTags
           - tags
           - baseUrl

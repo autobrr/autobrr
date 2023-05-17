@@ -1,3 +1,6 @@
+// Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+// SPDX-License-Identifier: GPL-2.0-or-later
+
 package irc
 
 import (
@@ -291,21 +294,12 @@ func (s *service) RestartNetwork(ctx context.Context, id int64) error {
 
 func (s *service) restartNetwork(network domain.IrcNetwork) error {
 	// look if we have the network in handlers, if so restart it
-	if existingHandler, found := s.handlers[handlerKey{network.Server, network.Nick}]; found {
-		s.log.Info().Msgf("restarting network: %v", network.Name)
-
-		if existingHandler.client.Connected() {
-			go func() {
-				if err := existingHandler.Restart(); err != nil {
-					s.log.Error().Err(err).Msgf("failed to restart network %q", existingHandler.network.Name)
-				}
-			}()
-		}
+	hk := handlerKey{network.Server, network.Nick}
+	if err := s.StopNetworkIfRunning(hk); err != nil {
+		return err
 	}
 
-	// TODO handle full restart
-
-	return nil
+	return s.startNetwork(network)
 }
 
 func (s *service) StopNetwork(key handlerKey) error {

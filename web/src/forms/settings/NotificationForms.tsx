@@ -1,18 +1,25 @@
+/*
+ * Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ */
+
 import { Dialog, Transition } from "@headlessui/react";
 import { Fragment } from "react";
 import type { FieldProps } from "formik";
 import { Field, Form, Formik, FormikErrors, FormikValues } from "formik";
 import { XMarkIcon } from "@heroicons/react/24/solid";
 import Select, { components, ControlProps, InputProps, MenuProps, OptionProps } from "react-select";
-import { PasswordFieldWide, SwitchGroupWide, TextFieldWide } from "../../components/inputs";
-import DEBUG from "../../components/debug";
-import { EventOptions, NotificationTypeOptions, SelectOption } from "../../domain/constants";
-import { useMutation, useQueryClient } from "react-query";
-import { APIClient } from "../../api/APIClient";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "react-hot-toast";
-import Toast from "../../components/notifications/Toast";
-import { SlideOver } from "../../components/panels";
+
+import { NumberFieldWide, PasswordFieldWide, SwitchGroupWide, TextFieldWide } from "@components/inputs";
+import DEBUG from "@components/debug";
+import { EventOptions, NotificationTypeOptions, SelectOption } from "@domain/constants";
+import { APIClient } from "@api/APIClient";
+import Toast from "@components/notifications/Toast";
+import { SlideOver } from "@components/panels";
 import { componentMapType } from "./DownloadClientForms";
+import { notificationKeys } from "@screens/settings/Notifications";
 
 const Input = (props: InputProps) => {
   return (
@@ -114,6 +121,41 @@ function FormFieldsTelegram() {
         label="Chat ID"
         help="Chat ID"
       />
+      <PasswordFieldWide
+        name="topic"
+        label="Message Thread ID"
+        help="Message Thread (topic) of a Supergroup"
+      />
+    </div>
+  );
+}
+
+function FormFieldsPushover() {
+  return (
+    <div className="border-t border-gray-200 dark:border-gray-700 py-4">
+      <div className="px-4 space-y-1">
+        <Dialog.Title className="text-lg font-medium text-gray-900 dark:text-white">Settings</Dialog.Title>
+        <p className="text-sm text-gray-500 dark:text-gray-400">
+          Register a new <a href="https://support.pushover.net/i175-how-do-i-get-an-api-or-application-token" rel="noopener noreferrer" target="_blank" className="font-medium text-blue-500 underline underline-offset-1 hover:text-blue-400">application</a> and add its API Token here.
+        </p>
+      </div>
+
+      <PasswordFieldWide
+        name="api_key"
+        label="API Token"
+        help="API Token"
+      />
+      <PasswordFieldWide
+        name="token"
+        label="User Key"
+        help="User Key"
+      />
+      <NumberFieldWide
+        name="priority"
+        label="Priority"
+        help="-2, -1, 0 (default), 1, or 2"
+        required={true}
+      />
     </div>
   );
 }
@@ -121,7 +163,8 @@ function FormFieldsTelegram() {
 const componentMap: componentMapType = {
   DISCORD: <FormFieldsDiscord />,
   NOTIFIARR: <FormFieldsNotifiarr />,
-  TELEGRAM: <FormFieldsTelegram />
+  TELEGRAM: <FormFieldsTelegram />,
+  PUSHOVER: <FormFieldsPushover />
 };
 
 interface NotificationAddFormValues {
@@ -137,36 +180,29 @@ interface AddProps {
 export function NotificationAddForm({ isOpen, toggle }: AddProps) {
   const queryClient = useQueryClient();
 
-  const mutation = useMutation(
-    (notification: Notification) => APIClient.notifications.create(notification),
-    {
-      onSuccess: () => {
-        queryClient.invalidateQueries(["notifications"]);
-        toast.custom((t) => <Toast type="success" body="Notification added!" t={t} />);
-        toggle();
-      },
-      onError: () => {
-        toast.custom((t) => <Toast type="error" body="Notification could not be added" t={t} />);
-      }
+  const createMutation = useMutation({
+    mutationFn: (notification: Notification) => APIClient.notifications.create(notification),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: notificationKeys.lists() });
+
+      toast.custom((t) => <Toast type="success" body="Notification added!" t={t} />);
+      toggle();
+    },
+    onError: () => {
+      toast.custom((t) => <Toast type="error" body="Notification could not be added" t={t} />);
     }
-  );
+  });
 
-  const onSubmit = (formData: unknown) => {
-    mutation.mutate(formData as Notification);
-  };
+  const onSubmit = (formData: unknown) => createMutation.mutate(formData as Notification);
 
-  const testMutation = useMutation(
-    (n: Notification) => APIClient.notifications.test(n),
-    {
-      onError: (err) => {
-        console.error(err);
-      }
+  const testMutation = useMutation({
+    mutationFn: (n: Notification) => APIClient.notifications.test(n),
+    onError: (err) => {
+      console.error(err);
     }
-  );
+  });
 
-  const testNotification = (data: unknown) => {
-    testMutation.mutate(data as Notification);
-  };
+  const testNotification = (data: unknown) => testMutation.mutate(data as Notification);
 
   const validate = (values: NotificationAddFormValues) => {
     const errors = {} as FormikErrors<FormikValues>;
@@ -403,54 +439,46 @@ interface InitialValues {
   webhook?: string;
   token?: string;
   api_key?: string;
+  priority?: number;
   channel?: string;
+  topic?: string;
   events: NotificationEvent[];
 }
 
 export function NotificationUpdateForm({ isOpen, toggle, notification }: UpdateProps) {
   const queryClient = useQueryClient();
 
-  const mutation = useMutation(
-    (notification: Notification) => APIClient.notifications.update(notification),
-    {
-      onSuccess: () => {
-        queryClient.invalidateQueries(["notifications"]);
-        toast.custom((t) => <Toast type="success" body={`${notification.name} was updated successfully`} t={t}/>);
-        toggle();
-      }
+  const mutation = useMutation({
+    mutationFn: (notification: Notification) => APIClient.notifications.update(notification),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: notificationKeys.lists() });
+
+      toast.custom((t) => <Toast type="success" body={`${notification.name} was updated successfully`} t={t}/>);
+      toggle();
     }
-  );
+  });
 
-  const deleteMutation = useMutation(
-    (notificationID: number) => APIClient.notifications.delete(notificationID),
-    {
-      onSuccess: () => {
-        queryClient.invalidateQueries(["notifications"]);
-        toast.custom((t) => <Toast type="success" body={`${notification.name} was deleted.`} t={t}/>);
-      }
+  const onSubmit = (formData: unknown) => mutation.mutate(formData as Notification);
+
+  const deleteMutation = useMutation({
+    mutationFn: (notificationID: number) => APIClient.notifications.delete(notificationID),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: notificationKeys.lists() });
+
+      toast.custom((t) => <Toast type="success" body={`${notification.name} was deleted.`} t={t}/>);
     }
-  );
+  });
 
-  const onSubmit = (formData: unknown) => {
-    mutation.mutate(formData as Notification);
-  };
+  const deleteAction = () => deleteMutation.mutate(notification.id);
 
-  const deleteAction = () => {
-    deleteMutation.mutate(notification.id);
-  };
-
-  const testMutation = useMutation(
-    (n: Notification) => APIClient.notifications.test(n),
-    {
-      onError: (err) => {
-        console.error(err);
-      }
+  const testMutation = useMutation({
+    mutationFn: (n: Notification) => APIClient.notifications.test(n),
+    onError: (err) => {
+      console.error(err);
     }
-  );
+  });
 
-  const testNotification = (data: unknown) => {
-    testMutation.mutate(data as Notification);
-  };
+  const testNotification = (data: unknown) => testMutation.mutate(data as Notification);
 
   const initialValues: InitialValues = {
     id: notification.id,
@@ -460,7 +488,9 @@ export function NotificationUpdateForm({ isOpen, toggle, notification }: UpdateP
     webhook: notification.webhook,
     token: notification.token,
     api_key: notification.api_key,
+    priority: notification.priority,
     channel: notification.channel,
+    topic: notification.topic,
     events: notification.events || []
   };
 

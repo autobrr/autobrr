@@ -1,16 +1,13 @@
-import { useMutation, useQuery, useQueryClient } from "react-query";
-import { classNames, IsEmptyDate, simplifyDate } from "../../utils";
-import { IrcNetworkAddForm, IrcNetworkUpdateForm } from "../../forms";
-import { useToggle } from "../../hooks/hooks";
-import { APIClient } from "../../api/APIClient";
-import { EmptySimple } from "../../components/emptystates";
+/*
+ * Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ */
+
+import { Fragment, useRef, useState, useMemo } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { LockClosedIcon, LockOpenIcon } from "@heroicons/react/24/solid";
 import { Menu, Switch, Transition } from "@headlessui/react";
-import { Fragment, useRef } from "react";
-import { DeleteModal } from "../../components/modals";
-import { useState, useMemo } from "react";
 import { toast } from "react-hot-toast";
-import Toast from "../../components/notifications/Toast";
 import {
   ArrowsPointingInIcon,
   ArrowsPointingOutIcon,
@@ -19,6 +16,22 @@ import {
   PencilSquareIcon,
   TrashIcon
 } from "@heroicons/react/24/outline";
+
+import { classNames, IsEmptyDate, simplifyDate } from "@utils";
+import { IrcNetworkAddForm, IrcNetworkUpdateForm } from "@forms";
+import { useToggle } from "@hooks/hooks";
+import { APIClient } from "@api/APIClient";
+import { EmptySimple } from "@components/emptystates";
+import { DeleteModal } from "@components/modals";
+import Toast from "@components/notifications/Toast";
+
+export const ircKeys = {
+  all: ["irc_networks"] as const,
+  lists: () => [...ircKeys.all, "list"] as const,
+  // list: (indexers: string[], sortOrder: string) => [...ircKeys.lists(), { indexers, sortOrder }] as const,
+  details: () => [...ircKeys.all, "detail"] as const,
+  detail: (id: number) => [...ircKeys.details(), id] as const
+};
 
 interface SortConfig {
   key: keyof ListItemProps["network"] | "enabled";
@@ -79,10 +92,11 @@ const IrcSettings = () => {
   const [expandNetworks, toggleExpand] = useToggle(false);
   const [addNetworkIsOpen, toggleAddNetwork] = useToggle(false);
 
-  const { data } = useQuery("networks", () => APIClient.irc.getNetworks(), {
+  const { data } = useQuery({
+    queryKey: ircKeys.lists(),
+    queryFn: APIClient.irc.getNetworks,
     refetchOnWindowFocus: false,
-    // Refetch every 3 seconds
-    refetchInterval: 3000
+    refetchInterval: 3000 // Refetch every 3 seconds
   });
 
   const sortedNetworks = useSort(data || []);
@@ -204,18 +218,16 @@ const ListItem = ({ idx, network, expanded }: ListItemProps) => {
 
   const queryClient = useQueryClient();
 
-  const mutation = useMutation(
-    (network: IrcNetwork) => APIClient.irc.updateNetwork(network),
-    {
-      onSuccess: () => {
-        queryClient.invalidateQueries(["networks"]);
-        toast.custom((t) => <Toast type="success" body={`${network.name} was updated successfully`} t={t}/>);
-      }
+  const updateMutation = useMutation({
+    mutationFn: (network: IrcNetwork) => APIClient.irc.updateNetwork(network).then(() => network),
+    onSuccess: (network: IrcNetwork) => {
+      queryClient.invalidateQueries({ queryKey: ircKeys.lists() });
+      toast.custom(t => <Toast type="success" body={`${network.name} was ${network.enabled ? "enabled" : "disabled"} successfully.`} t={t} />);
     }
-  );
+  });
 
   const onToggleMutation = (newState: boolean) => {
-    mutation.mutate({
+    updateMutation.mutate({
       ...network,
       enabled: newState
     });
@@ -399,37 +411,30 @@ const ListItemDropdown = ({
   const queryClient = useQueryClient();
 
   const [deleteModalIsOpen, toggleDeleteModal] = useToggle(false);
-  const deleteMutation = useMutation(
-    (id: number) => APIClient.irc.deleteNetwork(id),
-    {
-      onSuccess: () => {
-        queryClient.invalidateQueries(["networks"]);
-        queryClient.invalidateQueries(["networks", network.id]);
 
-        toast.custom((t) => <Toast type="success" body={`Network ${network.name} was deleted`} t={t}/>);
+  const deleteMutation = useMutation({
+    mutationFn: (id: number) => APIClient.irc.deleteNetwork(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ircKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: ircKeys.detail(network.id) });
 
-        toggleDeleteModal();
-      }
+      toast.custom((t) => <Toast type="success" body={`Network ${network.name} was deleted`} t={t}/>);
+
+      toggleDeleteModal();
     }
-  );
+  });
 
-  const restartMutation = useMutation(
-    (id: number) => APIClient.irc.restartNetwork(id),
-    {
-      onSuccess: () => {
-        toast.custom((t) => <Toast type="success"
-          body={`${network.name} was successfully restarted`}
-          t={t}/>);
+  const restartMutation = useMutation({
+    mutationFn: (id: number) => APIClient.irc.restartNetwork(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ircKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: ircKeys.detail(network.id) });
 
-        queryClient.invalidateQueries(["networks"]);
-        queryClient.invalidateQueries(["networks", network.id]);
-      }
+      toast.custom((t) => <Toast type="success" body={`${network.name} was successfully restarted`} t={t}/>);
     }
-  );
+  });
 
-  const restart = (id: number) => {
-    restartMutation.mutate(id);
-  };
+  const restart = (id: number) => restartMutation.mutate(id);
 
   return (
     <Menu as="div">

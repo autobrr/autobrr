@@ -71,7 +71,7 @@ irc:
           - torrentSize
       - test:
           - "Link: https://hebits.net/torrents.php?torrentid=80081"
-        pattern: '^Link: (https://?.*/).*torrentid=(\d+)'
+        pattern: '^Link: (https:\/\/.*\/).*torrentid=(\d+)'
         vars:
           - baseUrl
           - torrentId
@@ -84,5 +84,5 @@ irc:
           - torrentName
 
     match:
-      infourl: "/torrents.php?id={{ .torrentId }}"
+      infourl: "/torrents.php?torrentid={{ .torrentId }}"
       torrenturl: "/torrents.php?action=download&id={{ .torrentId }}&authkey={{ .authkey }}&torrent_pass={{ .passkey }}"

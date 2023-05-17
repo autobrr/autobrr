@@ -1,3 +1,6 @@
+// Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+// SPDX-License-Identifier: GPL-2.0-or-later
+
 package config
 
 import (
@@ -83,7 +86,7 @@ checkForUpdates = true
 sessionSecret = "{{ .sessionSecret }}"
 `
 
-func writeConfig(configPath string, configFile string) error {
+func (c *AppConfig) writeConfig(configPath string, configFile string) error {
 	cfgPath := filepath.Join(configPath, configFile)
 
 	// check if configPath exists, if not create it
@@ -104,7 +107,13 @@ func writeConfig(configPath string, configFile string) error {
 			// docker creates a .dockerenv file at the root
 			// of the directory tree inside the container.
 			// if this file exists then the viewer is running
-			// from inside a container so return true
+			// from inside a docker container so return true
+			host = "0.0.0.0"
+		} else if _, err := os.Stat("/dev/.lxc-boot-id"); err == nil {
+			// lxc creates this file containing the uuid
+			// of the container in every boot.
+			// if this file exists then the viewer is running
+			// from inside a lxc container so return true
 			host = "0.0.0.0"
 		} else if pd, _ := os.Open("/proc/1/cgroup"); pd != nil {
 			defer pd.Close()
@@ -123,9 +132,6 @@ func writeConfig(configPath string, configFile string) error {
 		}
 		defer f.Close()
 
-		// generate default sessionSecret
-		sessionSecret := api.GenerateSecureToken(16)
-
 		// setup text template to inject variables into
 		tmpl, err := template.New("config").Parse(configTemplate)
 		if err != nil {
@@ -134,7 +140,7 @@ func writeConfig(configPath string, configFile string) error {
 
 		tmplVars := map[string]string{
 			"host":          host,
-			"sessionSecret": sessionSecret,
+			"sessionSecret": c.Config.SessionSecret,
 		}
 
 		var buffer bytes.Buffer
@@ -184,7 +190,7 @@ func (c *AppConfig) defaults() {
 		LogMaxSize:        50,
 		LogMaxBackups:     3,
 		BaseURL:           "/",
-		SessionSecret:     "secret-session-key",
+		SessionSecret:     api.GenerateSecureToken(16),
 		CustomDefinitions: "",
 		CheckForUpdates:   true,
 		DatabaseType:      "sqlite",
@@ -194,6 +200,7 @@ func (c *AppConfig) defaults() {
 		PostgresUser:      "",
 		PostgresPass:      "",
 	}
+
 }
 
 func (c *AppConfig) load(configPath string) {
@@ -213,7 +220,7 @@ func (c *AppConfig) load(configPath string) {
 
 		// check if path and file exists
 		// if not, create path and file
-		if err := writeConfig(configPath, "config.toml"); err != nil {
+		if err := c.writeConfig(configPath, "config.toml"); err != nil {
 			log.Printf("write error: %q", err)
 		}
 
@@ -227,13 +234,23 @@ func (c *AppConfig) load(configPath string) {
 		viper.AddConfigPath("$HOME/.autobrr")
 	}
 
+	viper.SetEnvPrefix("AUTOBRR")
+
 	// read config
 	if err := viper.ReadInConfig(); err != nil {
 		log.Printf("config read error: %q", err)
 	}
 
-	if err := viper.Unmarshal(&c.Config); err != nil {
-		log.Fatalf("Could not unmarshal config file: %v", viper.ConfigFileUsed())
+	for _, key := range viper.AllKeys() {
+		envKey := strings.ToUpper(strings.ReplaceAll(key, ".", "_"))
+		err := viper.BindEnv(key, "AUTOBRR__"+envKey)
+		if err != nil {
+			log.Fatal("config: unable to bind env: " + err.Error())
+		}
+	}
+
+	if err := viper.Unmarshal(c.Config); err != nil {
+		log.Fatalf("Could not unmarshal config file: %v: err %q", viper.ConfigFileUsed(), err)
 	}
 }
 

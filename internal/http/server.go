@@ -1,3 +1,6 @@
+// Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+// SPDX-License-Identifier: GPL-2.0-or-later
+
 package http
 
 import (
@@ -105,7 +108,6 @@ func (s Server) Handler() http.Handler {
 	r.Use(c.Handler)
 
 	encoder := encoder{}
-	web.RegisterHandler(r)
 
 	r.Route("/api", func(r chi.Router) {
 		r.Route("/auth", newAuthHandler(encoder, s.log, s.config.Config, s.cookieStore, s.authService).Routes)
@@ -142,9 +144,8 @@ func (s Server) Handler() http.Handler {
 		})
 	})
 
-	// serve the parsed index.html
-	r.Get("/", s.index)
-	r.Get("/*", s.index)
+	// serve the web
+	web.RegisterHandler(r, s.version, s.config.Config.BaseURL)
 
 	return r
 }

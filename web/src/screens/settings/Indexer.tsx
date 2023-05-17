@@ -1,12 +1,26 @@
-import { useToggle } from "../../hooks/hooks";
-import { useQuery } from "react-query";
-import { IndexerAddForm, IndexerUpdateForm } from "../../forms";
-import { Switch } from "@headlessui/react";
-import { classNames } from "../../utils";
-import { EmptySimple } from "../../components/emptystates";
-import { APIClient } from "../../api/APIClient";
-import { componentMapType } from "../../forms/settings/DownloadClientForms";
+/*
+ * Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ */
+
 import { useState, useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { Switch } from "@headlessui/react";
+
+import { IndexerAddForm, IndexerUpdateForm } from "@forms";
+import { useToggle } from "@hooks/hooks";
+import { classNames } from "@utils";
+import { EmptySimple } from "@components/emptystates";
+import { APIClient } from "@api/APIClient";
+import { componentMapType } from "@forms/settings/DownloadClientForms";
+
+export const indexerKeys = {
+  all: ["indexers"] as const,
+  lists: () => [...indexerKeys.all, "list"] as const,
+  // list: (indexers: string[], sortOrder: string) => [...indexerKeys.lists(), { indexers, sortOrder }] as const,
+  details: () => [...indexerKeys.all, "detail"] as const,
+  detail: (id: number) => [...indexerKeys.details(), id] as const
+};
 
 interface SortConfig {
   key: keyof ListItemProps["indexer"] | "enabled";
@@ -149,16 +163,17 @@ const ListItem = ({ indexer }: ListItemProps) => {
 function IndexerSettings() {
   const [addIndexerIsOpen, toggleAddIndexer] = useToggle(false);
 
-  const { error, data } = useQuery(
-    "indexer",
-    () => APIClient.indexers.getAll(),
-    { refetchOnWindowFocus: false }
-  );
+  const { error, data } = useQuery({
+    queryKey: indexerKeys.lists(),
+    queryFn: APIClient.indexers.getAll,
+    refetchOnWindowFocus: false
+  });
 
   const sortedIndexers = useSort(data || []);
 
-  if (error)
+  if (error) {
     return (<p>An error has occurred</p>);
+  }
 
   return (
     <div className="lg:col-span-9">
@@ -171,7 +186,8 @@ function IndexerSettings() {
               Indexers
             </h3>
             <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-              Indexer settings.
+              Indexer settings for IRC, RSS, Newznab, and Torznab based indexers.<br />
+              Generic feeds can be added here by selecting the Generic indexer.
             </p>
           </div>
           <div className="ml-4 mt-4 flex-shrink-0">

@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ */
+
 import { NavLink, Outlet, useLocation } from "react-router-dom";
 import {
   BellIcon,
@@ -10,7 +15,7 @@ import {
   Square3Stack3DIcon
 } from "@heroicons/react/24/outline";
 
-import { classNames } from "../utils";
+import { classNames } from "@utils";
 
 interface NavTabType {
   name: string;

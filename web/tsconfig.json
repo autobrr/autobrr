@@ -21,7 +21,8 @@
     "jsx": "react-jsx",
     "noFallthroughCasesInSwitch": true,
     "paths": {
-      "@/*": ["./src/*"]
+      "@*": ["./src/*"],
+      "@app*": ["./src/*"]
     }
   },
   "include": [

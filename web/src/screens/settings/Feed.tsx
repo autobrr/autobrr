@@ -1,13 +1,12 @@
-import { useToggle } from "../../hooks/hooks";
-import { useMutation, useQuery, useQueryClient } from "react-query";
-import { APIClient } from "../../api/APIClient";
-import { Menu, Switch, Transition } from "@headlessui/react";
+/*
+ * Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ */
 
-import { baseUrl, classNames, IsEmptyDate, simplifyDate } from "../../utils";
 import { Fragment, useRef, useState, useMemo } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Menu, Switch, Transition } from "@headlessui/react";
 import { toast } from "react-hot-toast";
-import Toast from "../../components/notifications/Toast";
-import { DeleteModal } from "../../components/modals";
 import {
   ArrowsRightLeftIcon,
   DocumentTextIcon,
@@ -15,9 +14,23 @@ import {
   PencilSquareIcon,
   TrashIcon
 } from "@heroicons/react/24/outline";
-import { FeedUpdateForm } from "../../forms/settings/FeedForms";
-import { EmptySimple } from "../../components/emptystates";
+
+import { APIClient } from "@api/APIClient";
+import { useToggle } from "@hooks/hooks";
+import { baseUrl, classNames, IsEmptyDate, simplifyDate } from "@utils";
+import Toast from "@components/notifications/Toast";
+import { DeleteModal } from "@components/modals";
+import { FeedUpdateForm } from "@forms/settings/FeedForms";
+import { EmptySimple } from "@components/emptystates";
 import { ImplementationBadges } from "./Indexer";
+
+export const feedKeys = {
+  all: ["feeds"] as const,
+  lists: () => [...feedKeys.all, "list"] as const,
+  // list: (indexers: string[], sortOrder: string) => [...feedKeys.lists(), { indexers, sortOrder }] as const,
+  details: () => [...feedKeys.all, "detail"] as const,
+  detail: (id: number) => [...feedKeys.details(), id] as const
+};
 
 interface SortConfig {
   key: keyof ListItemProps["feed"] | "enabled";
@@ -27,8 +40,6 @@ interface SortConfig {
 function useSort(items: ListItemProps["feed"][], config?: SortConfig) {
   const [sortConfig, setSortConfig] = useState(config);
 
-
-  
   const sortedItems = useMemo(() => {
     if (!sortConfig) {
       return items;
@@ -76,11 +87,11 @@ function useSort(items: ListItemProps["feed"][], config?: SortConfig) {
 }
 
 function FeedSettings() {
-  const { data } = useQuery(
-    "feeds",
-    () => APIClient.feeds.find(),
-    { refetchOnWindowFocus: false }
-  );
+  const { data } = useQuery({
+    queryKey: feedKeys.lists(),
+    queryFn: APIClient.feeds.find,
+    refetchOnWindowFocus: false
+  });
 
   const sortedFeeds = useSort(data || []);
 
@@ -91,7 +102,7 @@ function FeedSettings() {
           <div className="ml-4 mt-4">
             <h3 className="text-lg leading-6 font-medium text-gray-900 dark:text-white">Feeds</h3>
             <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-              Manage RSS and Torznab feeds.
+              Manage RSS, Newznab, and Torznab feeds.
             </p>
           </div>
         </div>
@@ -142,19 +153,15 @@ function ListItem({ feed }: ListItemProps) {
   const [enabled, setEnabled] = useState(feed.enabled);
   const queryClient = useQueryClient();
 
-  const updateMutation = useMutation(
-    (status: boolean) => APIClient.feeds.toggleEnable(feed.id, status),
-    {
-      onSuccess: () => {
-        toast.custom((t) => <Toast type="success"
-          body={`${feed.name} was ${enabled ? "disabled" : "enabled"} successfully`}
-          t={t}/>);
+  const updateMutation = useMutation({
+    mutationFn: (status: boolean) => APIClient.feeds.toggleEnable(feed.id, status),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: feedKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: feedKeys.detail(feed.id) });
 
-        queryClient.invalidateQueries(["feeds"]);
-        queryClient.invalidateQueries(["feeds", feed?.id]);
-      }
+      toast.custom((t) => <Toast type="success" body={`${feed.name} was ${!enabled ? "disabled" : "enabled"} successfully.`} t={t}/>);
     }
-  );
+  });
 
   const toggleActive = (status: boolean) => {
     setEnabled(status);
@@ -227,17 +234,15 @@ const FeedItemDropdown = ({
   const queryClient = useQueryClient();
 
   const [deleteModalIsOpen, toggleDeleteModal] = useToggle(false);
-  const deleteMutation = useMutation(
-    (id: number) => APIClient.feeds.delete(id),
-    {
-      onSuccess: () => {
-        queryClient.invalidateQueries(["feeds"]);
-        queryClient.invalidateQueries(["feeds", feed.id]);
+  const deleteMutation = useMutation({
+    mutationFn: (id: number) => APIClient.feeds.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: feedKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: feedKeys.detail(feed.id) });
 
-        toast.custom((t) => <Toast type="success" body={`Feed ${feed?.name} was deleted`} t={t}/>);
-      }
+      toast.custom((t) => <Toast type="success" body={`Feed ${feed?.name} was deleted`} t={t}/>);
     }
-  );
+  });
 
   return (
     <Menu as="div">

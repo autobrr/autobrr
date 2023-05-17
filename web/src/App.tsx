@@ -1,5 +1,10 @@
-import { QueryClient, QueryClientProvider, useQueryErrorResetBoundary } from "react-query";
-import { ReactQueryDevtools } from "react-query/devtools";
+/*
+ * Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ */
+
+import { QueryClient, QueryClientProvider, useQueryErrorResetBoundary } from "@tanstack/react-query";
+import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { ErrorBoundary } from "react-error-boundary";
 import { toast, Toaster } from "react-hot-toast";
 

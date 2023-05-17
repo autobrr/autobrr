@@ -1,12 +1,18 @@
+/*
+ * Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ */
+
 import React, { Fragment, useRef } from "react";
 import { XMarkIcon } from "@heroicons/react/24/solid";
 import { Dialog, Transition } from "@headlessui/react";
 import { Form, Formik } from "formik";
 import type { FormikValues } from "formik";
+
 import DEBUG from "../debug";
-import { useToggle } from "../../hooks/hooks";
+import { useToggle } from "@hooks/hooks";
 import { DeleteModal } from "../modals";
-import { classNames } from "../../utils";
+import { classNames } from "@utils";
 
 interface SlideOverProps<DataType> {
   title: string;
