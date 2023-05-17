@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-import { Fragment, useRef, useState, useMemo } from "react";
+import { Fragment, useRef, useState, useMemo, useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { LockClosedIcon, LockOpenIcon } from "@heroicons/react/24/solid";
 import { Menu, Switch, Transition } from "@headlessui/react";
@@ -24,6 +24,8 @@ import { APIClient } from "@api/APIClient";
 import { EmptySimple } from "@components/emptystates";
 import { DeleteModal } from "@components/modals";
 import Toast from "@components/notifications/Toast";
+import { SettingsContext } from "@utils/Context";
+import { useForm } from "react-hook-form";
 
 export const ircKeys = {
   all: ["irc_networks"] as const,
@@ -390,6 +392,7 @@ const ListItem = ({ idx, network, expanded }: ListItemProps) => {
                 <p>No channels!</p>
               </div>
             )}
+            <Events network={network} />
           </div>
         </div>
       )}
@@ -554,6 +557,109 @@ const ListItemDropdown = ({
         </Menu.Items>
       </Transition>
     </Menu>
+  );
+};
+
+type IrcEvent = {
+  channel: string;
+  nick: string;
+  msg: string;
+};
+
+type IrcMsg = {
+  msg: string;
+};
+
+interface EventsProps {
+  network: IrcNetwork;
+}
+
+export const Events = ({ network }: EventsProps) => {
+  const [settings] = SettingsContext.use();
+
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  const [logs, setLogs] = useState<IrcEvent[]>([]);
+
+  // const scrollToBottom = () => {
+  //   messagesEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end", inline: "end" });
+  // };
+
+  const { handleSubmit, register , resetField } = useForm<IrcMsg>({
+    defaultValues: { msg: ""  },
+    mode: "onBlur"
+  });
+
+  const cmdMutation = useMutation({
+    mutationFn: (data: SendIrcCmdRequest) => APIClient.irc.sendCmd(data),
+    onSuccess: (_, variables) => {
+      console.log("vars", variables);
+      resetField("msg");
+    },
+    onError: () => {
+      toast.custom((t) => (
+        <Toast type="error" body="Error sending IRC cmd" t={t} />
+      ));
+    }
+  });
+
+  const onSubmit = (msg: IrcMsg) => {
+    const payload = { id: network.id, nick: network.nick, server: network.server, channel: "#announces", msg: msg.msg };
+    console.log("payload", payload);
+    cmdMutation.mutate(payload);
+  };
+
+  useEffect(() => {
+    const es = APIClient.irc.events(network.server);
+
+    es.onmessage = (event) => {
+      console.log(event.data);
+
+      const newData = JSON.parse(event.data) as IrcEvent;
+      setLogs((prevState) => [...prevState, newData]);
+
+      // if (settings.scrollOnNewLog)
+      //   scrollToBottom();
+    };
+
+    return () => es.close();
+  }, [settings]);
+
+  return (
+    <div className="dark:bg-gray-800 rounded-lg shadow-lg p-1">
+      <div className="flex relative">
+      </div>
+
+      <div className="overflow-y-auto px-2 rounded-lg h-[60vh] min-w-full bg-gray-100 dark:bg-gray-900 overflow-auto">
+        {logs.map((entry, idx) => (
+          <div
+            key={idx}
+            className={classNames(
+              settings.indentLogLines ? "grid justify-start grid-flow-col" : "",
+              settings.hideWrappedText ? "truncate hover:text-ellipsis hover:whitespace-normal" : ""
+            )}
+          >
+            <span className="font-mono text-gray-500 dark:text-gray-500 mr-1"><span className="dark:text-gray-600">{entry.nick}:</span> {entry.msg}</span>
+          </div>
+        ))}
+        <div className="mt-6" ref={messagesEndRef} />
+      </div>
+
+      <div>
+        <form onSubmit={handleSubmit(onSubmit)}>
+          <input
+            id="msg"
+            {...(register && register("msg"))}
+            type="text"
+            minLength={2}
+            className={classNames(
+              "focus:ring-blue-500 dark:focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-500 border-gray-300 dark:border-gray-700",
+              "block w-full dark:bg-gray-900 shadow-sm dark:text-gray-100 sm:text-sm rounded-md"
+            )}
+          />
+        </form>
+      </div>
+    </div>
   );
 };
 

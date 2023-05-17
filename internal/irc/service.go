@@ -32,6 +32,7 @@ type Service interface {
 	StoreNetwork(ctx context.Context, network *domain.IrcNetwork) error
 	UpdateNetwork(ctx context.Context, network *domain.IrcNetwork) error
 	StoreChannel(networkID int64, channel *domain.IrcChannel) error
+	SendCmd(ctx context.Context, req *domain.SendIrcCmdRequest) error
 }
 
 type service struct {
@@ -607,6 +608,16 @@ func (s *service) StoreNetwork(ctx context.Context, network *domain.IrcNetwork) 
 func (s *service) StoreChannel(networkID int64, channel *domain.IrcChannel) error {
 	if err := s.repo.StoreChannel(networkID, channel); err != nil {
 		return err
+	}
+
+	return nil
+}
+
+func (s *service) SendCmd(ctx context.Context, req *domain.SendIrcCmdRequest) error {
+	if handler, found := s.handlers[handlerKey{req.Server, req.Nick}]; found {
+		if err := handler.SendMsg(req.Channel, req.Message); err != nil {
+			s.log.Error().Err(err).Msgf("could not send message to channel: %s %s", req.Channel, req.Message)
+		}
 	}
 
 	return nil

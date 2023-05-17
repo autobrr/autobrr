@@ -546,8 +546,9 @@ func (h *Handler) onNick(msg ircmsg.Message) {
 // onMessage handles PRIVMSG events
 func (h *Handler) onMessage(msg ircmsg.Message) {
 	h.sse.Publish(h.network.Server, &sse.Event{
-		Data: []byte(msg.Params[1]),
+		Data: domain.IrcMessage{Nick: msg.Nick(), Channel: msg.Params[0], Message: msg.Params[1]}.Bytes(),
 	})
+
 	if len(msg.Params) < 2 {
 		return
 	}
@@ -833,6 +834,17 @@ func (h *Handler) handleMode(msg ircmsg.Message) {
 	}
 
 	return
+}
+
+func (h *Handler) SendMsg(channel, msg string) error {
+	h.log.Debug().Msgf("sending msg command: %s", msg)
+
+	if err := h.client.Privmsg(channel, msg); err != nil {
+		h.log.Error().Stack().Err(err).Msgf("error sending msg: %v", msg)
+		return err
+	}
+
+	return nil
 }
 
 // check if announcer is one from the list in the definition

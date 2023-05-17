@@ -121,7 +121,7 @@ func (s Server) Handler() http.Handler {
 			r.Route("/download_clients", newDownloadClientHandler(encoder, s.downloadClientService).Routes)
 			r.Route("/filters", newFilterHandler(encoder, s.filterService).Routes)
 			r.Route("/feeds", newFeedHandler(encoder, s.feedService).Routes)
-			r.Route("/irc", newIrcHandler(encoder, s.ircService).Routes)
+			r.Route("/irc", newIrcHandler(encoder, s.sse, s.ircService).Routes)
 			r.Route("/indexer", newIndexerHandler(encoder, s.indexerService, s.ircService).Routes)
 			r.Route("/keys", newAPIKeyHandler(encoder, s.apiService).Routes)
 			r.Route("/logs", newLogsHandler(s.config).Routes)

@@ -5,6 +5,7 @@ package domain
 
 import (
 	"context"
+	"encoding/json"
 	"time"
 )
 
@@ -83,6 +84,36 @@ type ChannelHealth struct {
 	Monitoring      bool      `json:"monitoring"`
 	MonitoringSince time.Time `json:"monitoring_since"`
 	LastAnnounce    time.Time `json:"last_announce"`
+}
+
+type SendIrcCmdRequest struct {
+	Id      int    `json:"id"`
+	Server  string `json:"server"`
+	Channel string `json:"channel"`
+	Nick    string `json:"nick"`
+	Message string `json:"msg"`
+}
+
+type IrcMessage struct {
+	Channel string `json:"channel"`
+	Nick    string `json:"nick"`
+	Message string `json:"msg"`
+}
+
+func (m IrcMessage) ToJsonString() string {
+	j, err := json.Marshal(m)
+	if err != nil {
+		return ""
+	}
+	return string(j)
+}
+
+func (m IrcMessage) Bytes() []byte {
+	j, err := json.Marshal(m)
+	if err != nil {
+		return nil
+	}
+	return j
 }
 
 type IrcRepo interface {
