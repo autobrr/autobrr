@@ -87,11 +87,11 @@ type ChannelHealth struct {
 }
 
 type SendIrcCmdRequest struct {
-	Id      int    `json:"id"`
-	Server  string `json:"server"`
-	Channel string `json:"channel"`
-	Nick    string `json:"nick"`
-	Message string `json:"msg"`
+	NetworkId int64  `json:"network_id"`
+	Server    string `json:"server"`
+	Channel   string `json:"channel"`
+	Nick      string `json:"nick"`
+	Message   string `json:"msg"`
 }
 
 type IrcMessage struct {
@@ -119,7 +119,7 @@ func (m IrcMessage) Bytes() []byte {
 type IrcRepo interface {
 	StoreNetwork(network *IrcNetwork) error
 	UpdateNetwork(ctx context.Context, network *IrcNetwork) error
-	StoreChannel(networkID int64, channel *IrcChannel) error
+	StoreChannel(ctx context.Context, networkID int64, channel *IrcChannel) error
 	UpdateChannel(channel *IrcChannel) error
 	UpdateInviteCommand(networkID int64, invite string) error
 	StoreNetworkChannels(ctx context.Context, networkID int64, channels []IrcChannel) error

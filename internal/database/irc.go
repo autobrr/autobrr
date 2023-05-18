@@ -447,7 +447,7 @@ func (r *IrcRepo) StoreNetworkChannels(ctx context.Context, networkID int64, cha
 	return nil
 }
 
-func (r *IrcRepo) StoreChannel(networkID int64, channel *domain.IrcChannel) error {
+func (r *IrcRepo) StoreChannel(ctx context.Context, networkID int64, channel *domain.IrcChannel) error {
 	pass := toNullString(channel.Password)
 
 	var err error

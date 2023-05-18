@@ -604,7 +604,7 @@ export const Events = ({ network }: EventsProps) => {
   });
 
   const onSubmit = (msg: IrcMsg) => {
-    const payload = { id: network.id, nick: network.nick, server: network.server, channel: "#announces", msg: msg.msg };
+    const payload = { network_id: network.id, nick: network.nick, server: network.server, channel: "#announces", msg: msg.msg };
     console.log("payload", payload);
     cmdMutation.mutate(payload);
   };

@@ -22,7 +22,7 @@ type ircService interface {
 	GetNetworkByID(ctx context.Context, id int64) (*domain.IrcNetwork, error)
 	StoreNetwork(ctx context.Context, network *domain.IrcNetwork) error
 	UpdateNetwork(ctx context.Context, network *domain.IrcNetwork) error
-	StoreChannel(networkID int64, channel *domain.IrcChannel) error
+	StoreChannel(ctx context.Context, networkID int64, channel *domain.IrcChannel) error
 	RestartNetwork(ctx context.Context, id int64) error
 	SendCmd(ctx context.Context, req *domain.SendIrcCmdRequest) error
 }
@@ -120,8 +120,7 @@ func (h ircHandler) storeNetwork(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err := h.service.StoreNetwork(r.Context(), &data)
-	if err != nil {
+	if err := h.service.StoreNetwork(r.Context(), &data); err != nil {
 		h.encoder.Error(w, err)
 		return
 	}
@@ -140,8 +139,7 @@ func (h ircHandler) updateNetwork(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err := h.service.UpdateNetwork(ctx, &data)
-	if err != nil {
+	if err := h.service.UpdateNetwork(ctx, &data); err != nil {
 		h.encoder.Error(w, err)
 		return
 	}
@@ -151,8 +149,9 @@ func (h ircHandler) updateNetwork(w http.ResponseWriter, r *http.Request) {
 
 func (h ircHandler) sendCmd(w http.ResponseWriter, r *http.Request) {
 	var (
-		data      domain.SendIrcCmdRequest
+		ctx       = r.Context()
 		networkID = chi.URLParam(r, "networkID")
+		data      domain.SendIrcCmdRequest
 	)
 
 	id, _ := strconv.Atoi(networkID)
@@ -162,9 +161,9 @@ func (h ircHandler) sendCmd(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	data.Id = id
+	data.NetworkId = int64(id)
 
-	if err := h.service.SendCmd(r.Context(), &data); err != nil {
+	if err := h.service.SendCmd(ctx, &data); err != nil {
 		h.encoder.Error(w, err)
 		return
 	}
@@ -174,8 +173,9 @@ func (h ircHandler) sendCmd(w http.ResponseWriter, r *http.Request) {
 
 func (h ircHandler) storeChannel(w http.ResponseWriter, r *http.Request) {
 	var (
-		data      domain.IrcChannel
+		ctx       = r.Context()
 		networkID = chi.URLParam(r, "networkID")
+		data      domain.IrcChannel
 	)
 
 	id, _ := strconv.Atoi(networkID)
@@ -185,8 +185,7 @@ func (h ircHandler) storeChannel(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err := h.service.StoreChannel(int64(id), &data)
-	if err != nil {
+	if err := h.service.StoreChannel(ctx, int64(id), &data); err != nil {
 		h.encoder.Error(w, err)
 		return
 	}
@@ -202,8 +201,7 @@ func (h ircHandler) deleteNetwork(w http.ResponseWriter, r *http.Request) {
 
 	id, _ := strconv.Atoi(networkID)
 
-	err := h.service.DeleteNetwork(ctx, int64(id))
-	if err != nil {
+	if err := h.service.DeleteNetwork(ctx, int64(id)); err != nil {
 		h.encoder.Error(w, err)
 		return
 	}

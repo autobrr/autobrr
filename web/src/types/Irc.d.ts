@@ -74,7 +74,7 @@ interface IrcAuth {
 }
 
 interface SendIrcCmdRequest {
-  id: number;
+  network_id: number;
   server: string;
   channel: string;
   nick: string;
