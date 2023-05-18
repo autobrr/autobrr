@@ -256,6 +256,12 @@ func (s *service) Duplicate(ctx context.Context, filterID int) (*domain.Filter, 
 	}
 	filter.Indexers = filterIndexers
 
+	// reset action id to 0
+	for i, a := range filterActions {
+		a.ID = 0
+		filterActions[i] = a
+	}
+
 	// take care of filter actions
 	actions, err := s.actionRepo.StoreFilterActions(ctx, filterActions, int64(filter.ID))
 	if err != nil {
