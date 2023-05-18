@@ -28,6 +28,7 @@ export const InitializeGlobalContext = () => {
     FilterListContext.set(JSON.parse(filterList_ctx));
   }
 };
+
 interface AuthInfo {
   username: string;
   isLoggedIn: boolean;
@@ -104,6 +105,41 @@ export const FilterListContext = newRidgeState<FilterListState>(
         localStorage.setItem("filterList", JSON.stringify(new_state));
       } catch (e) {
         console.log("An error occurred while trying to modify the local filter list context state.");
+        console.log("Error:", e);
+      }
+    }
+  }
+);
+
+export type IrcNetworkState = {
+  id: number;
+  name: string;
+  status: string;
+};
+
+export type IrcBufferType = "NICK" | "CHANNEL" | "SERVER";
+
+export type IrcBufferState = {
+  id: number;
+  name: string;
+  type: IrcBufferType;
+  messages: string[];
+};
+
+export type IrcState = {
+  networks: Map<string, IrcNetworkState>;
+  buffers: Map<string, IrcBufferState>
+};
+export const IrcContext = newRidgeState<IrcState>(
+  {
+    networks: new Map,
+    buffers: new Map
+  },
+  {
+    onSet: (new_state) => {
+      try {
+        console.log("set irc state", new_state);
+      } catch (e) {
         console.log("Error:", e);
       }
     }
