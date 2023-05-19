@@ -198,7 +198,6 @@ func (h *Handler) Run() error {
 	h.client.AddCallback("NOTICE", h.onNotice)
 	h.client.AddCallback("NICK", h.onNick)
 	h.client.AddCallback("903", h.handleSASLSuccess)
-	h.client.AddCallback("*", h.handleMsg)
 
 	//h.setConnectionStatus()
 	h.saslauthed = false
@@ -814,12 +813,6 @@ func (h *Handler) CurrentNick() string {
 // PreferredNick returns our preferred nick from settings
 func (h *Handler) PreferredNick() string {
 	return h.client.PreferredNick()
-}
-
-func (h *Handler) handleMsg(msg ircmsg.Message) {
-	h.log.Trace().Msgf("msg: %v", msg)
-
-	h.publishMsg(msg)
 }
 
 // listens for MODE events
