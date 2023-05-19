@@ -351,40 +351,7 @@ const ListItem = ({ idx, network, expanded }: ListItemProps) => {
                   </div>
                 </li>
                 {network.channels.map((c) => (
-                  <li key={c.id} className="text-gray-500 dark:text-gray-400">
-                    <div className="grid grid-cols-12 gap-4 items-center py-4">
-                      <div className="col-span-4 flex items-center md:px-6 ">
-                        <span className="relative inline-flex items-center">
-                          {network.enabled ? (
-                            c.monitoring ? (
-                              <span
-                                className="mr-3 flex h-3 w-3 relative"
-                                title="monitoring"
-                              >
-                                <span className="animate-ping inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
-                                <span className="inline-flex absolute rounded-full h-3 w-3 bg-green-500" />
-                              </span>
-                            ) : (
-                              <span className="mr-3 flex h-3 w-3 rounded-full opacity-75 bg-red-400" />
-                            )
-                          ) : (
-                            <span className="mr-3 flex h-3 w-3 rounded-full opacity-75 bg-gray-500" />
-                          )}
-                          {c.name}
-                        </span>
-                      </div>
-                      <div className="col-span-4 flex items-center md:px-6 ">
-                        <span title={simplifyDate(c.monitoring_since)}>
-                          {IsEmptyDate(c.monitoring_since)}
-                        </span>
-                      </div>
-                      <div className="col-span-4 flex items-center md:px-6 ">
-                        <span title={simplifyDate(c.last_announce)}>
-                          {IsEmptyDate(c.last_announce)}
-                        </span>
-                      </div>
-                    </div>
-                  </li>
+                  <ChannelItem network={network} channel={c} />
                 ))}
               </ol>
             ) : (
@@ -392,9 +359,58 @@ const ListItem = ({ idx, network, expanded }: ListItemProps) => {
                 <p>No channels!</p>
               </div>
             )}
-            <Events network={network} />
           </div>
         </div>
+      )}
+    </li>
+  );
+};
+
+interface ChannelItemProps {
+  network: IrcNetwork;
+  channel: IrcChannelWithHealth;
+}
+
+const ChannelItem = ({ network, channel }: ChannelItemProps) => {
+  const [viewChannel, toggleView] = useToggle(false);
+
+  return (
+    <li key={channel.id} className={classNames("mb-2 text-gray-500 dark:text-gray-400 hover:bg-gray-300 dark:hover:bg-gray-800 hover:cursor-pointer rounded", viewChannel ? "bg-gray-200 dark:bg-gray-800" : "")} onClick={toggleView}>
+      <div className="grid grid-cols-12 gap-4 items-center py-4">
+        <div className="col-span-4 flex items-center md:px-6 ">
+          <span className="relative inline-flex items-center">
+            {network.enabled ? (
+              channel.monitoring ? (
+                <span
+                  className="mr-3 flex h-3 w-3 relative"
+                  title="monitoring"
+                >
+                  <span
+                    className="animate-ping inline-flex h-full w-full rounded-full bg-green-400 opacity-75"/>
+                  <span className="inline-flex absolute rounded-full h-3 w-3 bg-green-500"/>
+                </span>
+              ) : (
+                <span className="mr-3 flex h-3 w-3 rounded-full opacity-75 bg-red-400"/>
+              )
+            ) : (
+              <span className="mr-3 flex h-3 w-3 rounded-full opacity-75 bg-gray-500"/>
+            )}
+            {channel.name}
+          </span>
+        </div>
+        <div className="col-span-4 flex items-center md:px-6 ">
+          <span title={simplifyDate(channel.monitoring_since)}>
+            {IsEmptyDate(channel.monitoring_since)}
+          </span>
+        </div>
+        <div className="col-span-4 flex items-center md:px-6 ">
+          <span title={simplifyDate(channel.last_announce)}>
+            {IsEmptyDate(channel.last_announce)}
+          </span>
+        </div>
+      </div>
+      {viewChannel && (
+        <Events network={network} channel={channel.name}/>
       )}
     </li>
   );
@@ -572,9 +588,10 @@ type IrcMsg = {
 
 interface EventsProps {
   network: IrcNetwork;
+  channel: string;
 }
 
-export const Events = ({ network }: EventsProps) => {
+export const Events = ({ network, channel }: EventsProps) => {
   const [settings] = SettingsContext.use();
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -593,7 +610,6 @@ export const Events = ({ network }: EventsProps) => {
   const cmdMutation = useMutation({
     mutationFn: (data: SendIrcCmdRequest) => APIClient.irc.sendCmd(data),
     onSuccess: (_, variables) => {
-      console.log("vars", variables);
       resetField("msg");
     },
     onError: () => {
@@ -604,17 +620,15 @@ export const Events = ({ network }: EventsProps) => {
   });
 
   const onSubmit = (msg: IrcMsg) => {
-    const payload = { network_id: network.id, nick: network.nick, server: network.server, channel: "#announces", msg: msg.msg };
-    console.log("payload", payload);
+    const payload = { network_id: network.id, nick: network.nick, server: network.server, channel: channel, msg: msg.msg };
     cmdMutation.mutate(payload);
   };
 
   useEffect(() => {
-    const es = APIClient.irc.events(network.server);
+    const key = `${network.id}${channel.replace("#", "")}`;
+    const es = APIClient.irc.events(key);
 
     es.onmessage = (event) => {
-      console.log(event.data);
-
       const newData = JSON.parse(event.data) as IrcEvent;
       setLogs((prevState) => [...prevState, newData]);
 
@@ -645,20 +659,20 @@ export const Events = ({ network }: EventsProps) => {
         <div className="mt-6" ref={messagesEndRef} />
       </div>
 
-      <div>
-        <form onSubmit={handleSubmit(onSubmit)}>
-          <input
-            id="msg"
-            {...(register && register("msg"))}
-            type="text"
-            minLength={2}
-            className={classNames(
-              "focus:ring-blue-500 dark:focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-500 border-gray-300 dark:border-gray-700",
-              "block w-full dark:bg-gray-900 shadow-sm dark:text-gray-100 sm:text-sm rounded-md"
-            )}
-          />
-        </form>
-      </div>
+      {/*<div>*/}
+      {/*  <form onSubmit={handleSubmit(onSubmit)}>*/}
+      {/*    <input*/}
+      {/*      id="msg"*/}
+      {/*      {...(register && register("msg"))}*/}
+      {/*      type="text"*/}
+      {/*      minLength={2}*/}
+      {/*      className={classNames(*/}
+      {/*        "focus:ring-blue-500 dark:focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-500 border-gray-300 dark:border-gray-700",*/}
+      {/*        "block w-full dark:bg-gray-900 shadow-sm dark:text-gray-100 sm:text-sm rounded-md"*/}
+      {/*      )}*/}
+      {/*    />*/}
+      {/*  </form>*/}
+      {/*</div>*/}
     </div>
   );
 };

@@ -543,11 +543,15 @@ func (h *Handler) onNick(msg ircmsg.Message) {
 	}
 }
 
-// onMessage handles PRIVMSG events
-func (h *Handler) onMessage(msg ircmsg.Message) {
-	h.sse.Publish(h.network.Server, &sse.Event{
+func (h *Handler) publishMsg(msg ircmsg.Message) {
+	h.sse.Publish(fmt.Sprintf("%d%s", h.network.ID, strings.TrimPrefix(msg.Params[0], "#")), &sse.Event{
 		Data: domain.IrcMessage{Nick: msg.Nick(), Channel: msg.Params[0], Message: msg.Params[1]}.Bytes(),
 	})
+}
+
+// onMessage handles PRIVMSG events
+func (h *Handler) onMessage(msg ircmsg.Message) {
+	h.publishMsg(msg)
 
 	if len(msg.Params) < 2 {
 		return
@@ -815,9 +819,7 @@ func (h *Handler) PreferredNick() string {
 func (h *Handler) handleMsg(msg ircmsg.Message) {
 	h.log.Trace().Msgf("msg: %v", msg)
 
-	h.sse.Publish(h.network.Server, &sse.Event{
-		Data: []byte(msg.Params[1]),
-	})
+	h.publishMsg(msg)
 }
 
 // listens for MODE events

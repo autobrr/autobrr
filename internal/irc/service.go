@@ -5,6 +5,7 @@ package irc
 
 import (
 	"context"
+	"fmt"
 	"strings"
 	"sync"
 	"time"
@@ -71,7 +72,6 @@ func (s *service) StartHandlers() {
 	}
 
 	for _, network := range networks {
-		s.sse.CreateStream(network.Server)
 
 		if !network.Enabled {
 			continue
@@ -86,6 +86,11 @@ func (s *service) StartHandlers() {
 			s.log.Error().Err(err).Msgf("failed to list channels for network %q", network.Server)
 		}
 		network.Channels = channels
+
+		for _, channel := range channels {
+			streamKey := fmt.Sprintf("%d%s", network.ID, strings.TrimPrefix(channel.Name, "#"))
+			s.sse.CreateStream(streamKey)
+		}
 
 		// find indexer definitions for network and add
 		definitions := s.indexerService.GetIndexersByIRCNetwork(network.Server)
@@ -131,14 +136,17 @@ func (s *service) startNetwork(network domain.IrcNetwork) error {
 		}
 	} else {
 		// if not found in handlers, lets add it and run it
-		s.sse.CreateStream(network.Server)
-
 		s.lock.Lock()
 		channels, err := s.repo.ListChannels(network.ID)
 		if err != nil {
 			s.log.Error().Err(err).Msgf("failed to list channels for network %q", network.Server)
 		}
 		network.Channels = channels
+
+		for _, channel := range channels {
+			streamKey := fmt.Sprintf("%d%s", network.ID, strings.TrimPrefix(channel.Name, "#"))
+			s.sse.CreateStream(streamKey)
+		}
 
 		// find indexer definitions for network and add
 		definitions := s.indexerService.GetIndexersByIRCNetwork(network.Server)
