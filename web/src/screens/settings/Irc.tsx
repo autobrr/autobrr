@@ -237,7 +237,7 @@ const ListItem = ({ idx, network, expanded }: ListItemProps) => {
 
   return (
     <li key={idx}>
-      <div className={classNames("grid grid-cols-12 gap-2 lg:gap-4 items-center py-2", network.enabled && !network.healthy ? "bg-red-50 dark:bg-red-900 hover:bg-red-100 dark:hover:bg-red-800" : "hover:bg-gray-50 dark:hover:bg-gray-700 ")}>
+      <div className={classNames("grid grid-cols-12 gap-2 lg:gap-4 items-center py-2", network.enabled && !network.healthy ? "bg-red-50 dark:bg-red-900 hover:bg-red-100 dark:hover:bg-red-800" : "hover:bg-gray-50 dark:hover:bg-gray-700")}>
         <IrcNetworkUpdateForm
           isOpen={updateIsOpen}
           toggle={toggleUpdate}
@@ -375,8 +375,8 @@ const ChannelItem = ({ network, channel }: ChannelItemProps) => {
   const [viewChannel, toggleView] = useToggle(false);
 
   return (
-    <li key={channel.id} className={classNames("mb-2 text-gray-500 dark:text-gray-400", viewChannel ? "bg-gray-200 dark:bg-gray-800" : "")}>
-      <div className="grid grid-cols-12 gap-4 items-center py-4 hover:bg-gray-300 dark:hover:bg-gray-800 hover:cursor-pointer rounded" onClick={toggleView}>
+    <li key={channel.id} className={classNames("mb-2 text-gray-500 dark:text-gray-400", viewChannel ? "bg-gray-200 dark:bg-gray-800 rounded-md" : "")}>
+      <div className="grid grid-cols-12 gap-4 items-center py-4 hover:bg-gray-300 dark:hover:bg-gray-800 hover:cursor-pointer rounded-md" onClick={toggleView}>
         <div className="col-span-4 flex items-center md:px-6 ">
           <span className="relative inline-flex items-center">
             {network.enabled ? (
@@ -643,7 +643,7 @@ export const Events = ({ network, channel }: EventsProps) => {
   }, [settings]);
 
   return (
-    <div className="dark:bg-gray-800 rounded-lg shadow-lg p-1">
+    <div className="dark:bg-gray-800 rounded-lg shadow-lg p-1.5">
       <div className="flex relative">
       </div>
 
