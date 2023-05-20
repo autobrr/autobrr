@@ -375,8 +375,8 @@ const ChannelItem = ({ network, channel }: ChannelItemProps) => {
   const [viewChannel, toggleView] = useToggle(false);
 
   return (
-    <li key={channel.id} className={classNames("mb-2 text-gray-500 dark:text-gray-400 hover:bg-gray-300 dark:hover:bg-gray-800 hover:cursor-pointer rounded", viewChannel ? "bg-gray-200 dark:bg-gray-800" : "")} onClick={toggleView}>
-      <div className="grid grid-cols-12 gap-4 items-center py-4">
+    <li key={channel.id} className={classNames("mb-2 text-gray-500 dark:text-gray-400", viewChannel ? "bg-gray-200 dark:bg-gray-800" : "")}>
+      <div className="grid grid-cols-12 gap-4 items-center py-4 hover:bg-gray-300 dark:hover:bg-gray-800 hover:cursor-pointer rounded" onClick={toggleView}>
         <div className="col-span-4 flex items-center md:px-6 ">
           <span className="relative inline-flex items-center">
             {network.enabled ? (

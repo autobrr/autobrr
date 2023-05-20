@@ -132,8 +132,8 @@ export type IrcState = {
 };
 export const IrcContext = newRidgeState<IrcState>(
   {
-    networks: new Map,
-    buffers: new Map
+    networks: new Map(),
+    buffers: new Map()
   },
   {
     onSet: (new_state) => {

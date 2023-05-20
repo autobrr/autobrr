@@ -542,23 +542,30 @@ func (h *Handler) onNick(msg ircmsg.Message) {
 	}
 }
 
-func (h *Handler) publishMsg(msg ircmsg.Message) {
-	h.sse.Publish(fmt.Sprintf("%d%s", h.network.ID, strings.TrimPrefix(msg.Params[0], "#")), &sse.Event{
-		Data: domain.IrcMessage{Nick: msg.Nick(), Channel: msg.Params[0], Message: msg.Params[1]}.Bytes(),
+func (h *Handler) publishSSEMsg(msg domain.IrcMessage) {
+	h.sse.Publish(fmt.Sprintf("%d%s", h.network.ID, strings.TrimPrefix(msg.Channel, "#")), &sse.Event{
+		Data: msg.Bytes(),
 	})
 }
 
 // onMessage handles PRIVMSG events
 func (h *Handler) onMessage(msg ircmsg.Message) {
-	h.publishMsg(msg)
 
 	if len(msg.Params) < 2 {
 		return
 	}
 	// parse announce
-	announcer := msg.Nick()
+	nick := msg.Nick()
 	channel := msg.Params[0]
 	message := msg.Params[1]
+
+	// clean message
+	cleanedMsg := h.cleanMessage(message)
+
+	h.log.Debug().Str("channel", channel).Str("nick", nick).Msg(cleanedMsg)
+
+	// publish to SSE stream
+	h.publishSSEMsg(domain.IrcMessage{Channel: channel, Nick: nick, Message: cleanedMsg})
 
 	// check if message is from a valid channel, if not return
 	if validChannel := h.isValidChannel(channel); !validChannel {
@@ -566,13 +573,9 @@ func (h *Handler) onMessage(msg ircmsg.Message) {
 	}
 
 	// check if message is from announce bot, if not return
-	if validAnnouncer := h.isValidAnnouncer(announcer); !validAnnouncer {
+	if validAnnouncer := h.isValidAnnouncer(nick); !validAnnouncer {
 		return
 	}
-
-	// clean message
-	cleanedMsg := h.cleanMessage(message)
-	h.log.Debug().Str("channel", channel).Str("user", announcer).Msgf("%v", cleanedMsg)
 
 	if err := h.sendToAnnounceProcessor(channel, cleanedMsg); err != nil {
 		h.log.Error().Stack().Err(err).Msgf("could not queue line: %v", cleanedMsg)
