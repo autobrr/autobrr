@@ -56,8 +56,7 @@ func main() {
 
 	// setup server-sent-events
 	serverEvents := sse.New()
-	serverEvents.AutoReplay = false
-	serverEvents.CreateStream("logs")
+	serverEvents.CreateStreamWithOpts("logs", sse.StreamOpts{MaxEntries: 1000, AutoReplay: true})
 
 	// register SSE hook on logger
 	log.RegisterSSEHook(serverEvents)

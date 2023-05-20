@@ -53,6 +53,8 @@ type service struct {
 	lock   sync.RWMutex
 }
 
+const sseMaxEntries = 1000
+
 func NewService(log logger.Logger, sse *sse.Server, repo domain.IrcRepo, releaseSvc release.Service, indexerSvc indexer.Service, notificationSvc notification.Service) Service {
 	return &service{
 		log:                 log.With().Str("module", "irc").Logger(),
@@ -72,28 +74,25 @@ func (s *service) StartHandlers() {
 	}
 
 	for _, network := range networks {
-
 		if !network.Enabled {
 			continue
 		}
 
-		// check if already in handlers
-		//v, ok := s.handlers[network.Name]
-
-		s.lock.Lock()
 		channels, err := s.repo.ListChannels(network.ID)
 		if err != nil {
 			s.log.Error().Err(err).Msgf("failed to list channels for network %q", network.Server)
 		}
-		network.Channels = channels
 
 		for _, channel := range channels {
-			streamKey := fmt.Sprintf("%d%s", network.ID, strings.TrimPrefix(channel.Name, "#"))
-			s.sse.CreateStream(streamKey)
+			// setup SSE stream per channel
+			s.createSSEStream(network.ID, channel.Name)
 		}
 
 		// find indexer definitions for network and add
 		definitions := s.indexerService.GetIndexersByIRCNetwork(network.Server)
+
+		s.lock.Lock()
+		network.Channels = channels
 
 		// init new irc handler
 		handler := NewHandler(s.log, s.sse, network, definitions, s.releaseService, s.notificationService)
@@ -136,20 +135,21 @@ func (s *service) startNetwork(network domain.IrcNetwork) error {
 		}
 	} else {
 		// if not found in handlers, lets add it and run it
-		s.lock.Lock()
 		channels, err := s.repo.ListChannels(network.ID)
 		if err != nil {
 			s.log.Error().Err(err).Msgf("failed to list channels for network %q", network.Server)
 		}
-		network.Channels = channels
 
 		for _, channel := range channels {
-			streamKey := fmt.Sprintf("%d%s", network.ID, strings.TrimPrefix(channel.Name, "#"))
-			s.sse.CreateStream(streamKey)
+			// setup SSE stream per channel
+			s.createSSEStream(network.ID, channel.Name)
 		}
 
 		// find indexer definitions for network and add
 		definitions := s.indexerService.GetIndexersByIRCNetwork(network.Server)
+
+		s.lock.Lock()
+		network.Channels = channels
 
 		// init new irc handler
 		handler := NewHandler(s.log, s.sse, network, definitions, s.releaseService, s.notificationService)
@@ -267,6 +267,9 @@ func (s *service) checkIfNetworkRestartNeeded(network *domain.IrcNetwork) error 
 				if err := existingHandler.PartChannel(leaveChannel); err != nil {
 					s.log.Error().Stack().Err(err).Msgf("failed to leave channel: %q", leaveChannel)
 				}
+
+				// create SSE stream for new channel
+				s.removeSSEStream(network.ID, leaveChannel)
 			}
 
 			// join channels
@@ -276,6 +279,9 @@ func (s *service) checkIfNetworkRestartNeeded(network *domain.IrcNetwork) error 
 				if err := existingHandler.JoinChannel(joinChannel.Name, joinChannel.Password); err != nil {
 					s.log.Error().Stack().Err(err).Msgf("failed to join channel: %q", joinChannel.Name)
 				}
+
+				// create SSE stream for new channel
+				s.createSSEStream(network.ID, joinChannel.Name)
 			}
 
 			// update network for handler
@@ -325,6 +331,11 @@ func (s *service) StopNetwork(id int64) error {
 
 func (s *service) StopAndRemoveNetwork(id int64) error {
 	if handler, found := s.handlers[id]; found {
+		// remove SSE streams
+		for _, channel := range handler.network.Channels {
+			s.removeSSEStream(handler.network.ID, channel.Name)
+		}
+
 		handler.Stop()
 
 		// remove from handlers
@@ -624,4 +635,19 @@ func (s *service) SendCmd(ctx context.Context, req *domain.SendIrcCmdRequest) er
 	}
 
 	return nil
+}
+
+func (s *service) createSSEStream(networkId int64, channel string) {
+	key := fmt.Sprintf("%d%s", networkId, strings.TrimPrefix(channel, "#"))
+
+	s.sse.CreateStreamWithOpts(key, sse.StreamOpts{
+		MaxEntries: sseMaxEntries,
+		AutoReplay: true,
+	})
+}
+
+func (s *service) removeSSEStream(networkId int64, channel string) {
+	key := fmt.Sprintf("%d%s", networkId, strings.TrimPrefix(channel, "#"))
+
+	s.sse.RemoveStream(key)
 }
