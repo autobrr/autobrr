@@ -15,7 +15,7 @@ require (
 	github.com/avast/retry-go v3.0.0+incompatible
 	github.com/dcarbone/zadapters/zstdlog v0.3.1
 	github.com/dustin/go-humanize v1.0.0
-	github.com/ergochat/irc-go v0.2.0
+	github.com/ergochat/irc-go v0.3.0
 	github.com/fsnotify/fsnotify v1.6.0
 	github.com/go-chi/chi/v5 v5.0.7
 	github.com/go-chi/render v1.0.2
