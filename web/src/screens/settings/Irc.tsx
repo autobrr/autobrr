@@ -346,7 +346,7 @@ const ListItem = ({ idx, network, expanded }: ListItemProps) => {
                   <div className="col-span-4 px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                     Monitoring since
                   </div>
-                  <div className="col-span-4 px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  <div className="col-span-3 px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                     Last announce
                   </div>
                 </li>
@@ -403,10 +403,13 @@ const ChannelItem = ({ network, channel }: ChannelItemProps) => {
             {IsEmptyDate(channel.monitoring_since)}
           </span>
         </div>
-        <div className="col-span-4 flex items-center md:px-6 ">
+        <div className="col-span-3 flex items-center md:px-6 ">
           <span title={simplifyDate(channel.last_announce)}>
             {IsEmptyDate(channel.last_announce)}
           </span>
+        </div>
+        <div className="col-span-1 flex items-center">
+          <button className="hover:text-gray-500 px-2 py-1 dark:bg-gray-800 rounded dark:border-gray-900">{viewChannel ? "Hide" : "View"}</button>
         </div>
       </div>
       {viewChannel && (
