@@ -583,6 +583,7 @@ type IrcEvent = {
   channel: string;
   nick: string;
   msg: string;
+  time: string;
 };
 
 type IrcMsg = {
@@ -656,7 +657,7 @@ export const Events = ({ network, channel }: EventsProps) => {
               settings.hideWrappedText ? "truncate hover:text-ellipsis hover:whitespace-normal" : ""
             )}
           >
-            <span className="font-mono text-gray-500 dark:text-gray-500 mr-1"><span className="dark:text-gray-600">{entry.nick}:</span> {entry.msg}</span>
+            <span className="font-mono text-gray-500 dark:text-gray-500 mr-1"><span className="dark:text-gray-600" title={simplifyDate(entry.time)}>{entry.nick}:</span> {entry.msg}</span>
           </div>
         ))}
         <div className="mt-6" ref={messagesEndRef} />

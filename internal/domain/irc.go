@@ -95,9 +95,10 @@ type SendIrcCmdRequest struct {
 }
 
 type IrcMessage struct {
-	Channel string `json:"channel"`
-	Nick    string `json:"nick"`
-	Message string `json:"msg"`
+	Channel string    `json:"channel"`
+	Nick    string    `json:"nick"`
+	Message string    `json:"msg"`
+	Time    time.Time `json:"time"`
 }
 
 func (m IrcMessage) ToJsonString() string {

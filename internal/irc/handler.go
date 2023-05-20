@@ -565,7 +565,7 @@ func (h *Handler) onMessage(msg ircmsg.Message) {
 	h.log.Debug().Str("channel", channel).Str("nick", nick).Msg(cleanedMsg)
 
 	// publish to SSE stream
-	h.publishSSEMsg(domain.IrcMessage{Channel: channel, Nick: nick, Message: cleanedMsg})
+	h.publishSSEMsg(domain.IrcMessage{Channel: channel, Nick: nick, Message: cleanedMsg, Time: time.Now()})
 
 	// check if message is from a valid channel, if not return
 	if validChannel := h.isValidChannel(channel); !validChannel {
