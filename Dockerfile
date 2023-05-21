@@ -2,8 +2,8 @@
 FROM node:18.7.0-alpine3.16 AS web-builder
 COPY . ./
 WORKDIR /web
-RUN npm install -g pnpm && \
-pnpm install --frozen-lockfile && \
+RUN corepack enable &&
+pnpm install --frozen-lockfile &&
 pnpm run build
 
 # build app
