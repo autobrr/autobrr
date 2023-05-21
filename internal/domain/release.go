@@ -4,6 +4,7 @@
 package domain
 
 import (
+	"bytes"
 	"context"
 	"crypto/tls"
 	"fmt"
@@ -445,31 +446,34 @@ func (r *Release) downloadTorrentFile(ctx context.Context) error {
 			tmpFile.Truncate(0)
 		}
 
-		// Write the body to file
-		if _, err := io.Copy(tmpFile, resp.Body); err != nil {
-			resetTmpFile()
-			return errors.Wrap(err, "error writing downloaded file: %v", tmpFile.Name())
+		// Read the body into bytes
+		bodyBytes, err := io.ReadAll(resp.Body)
+		if err != nil {
+			return errors.Wrap(err, "error reading response body")
 		}
 
 		// Check if the Content-Type header is correct
 		contentType := resp.Header.Get("Content-Type")
 		if strings.Contains(contentType, "text/html") {
-			// Attempt to decode as torrent file
-			_, err = metainfo.LoadFromFile(tmpFile.Name())
-			if err != nil {
-				resetTmpFile()
-				return retry.Unrecoverable(errors.New("unexpected content type '%s': check indexer keys for %s", contentType, r.Indexer))
-			}
-		} else {
-			// Try to decode as torrent file
-			_, err = metainfo.LoadFromFile(tmpFile.Name())
-			if err != nil {
-				resetTmpFile()
-				return errors.Wrap(err, "metainfo could not load file contents: %v", tmpFile.Name())
+			// Detect the content type of the body
+			mimeType := http.DetectContentType(bodyBytes)
+			if mimeType != "application/x-bittorrent" {
+				return retry.Unrecoverable(fmt.Errorf("unexpected content type '%s': check indexer keys for %s", contentType, r.Indexer))
 			}
 		}
 
-		meta, err := metainfo.LoadFromFile(tmpFile.Name())
+		// Write the body to file
+		tmpFile.Write(bodyBytes)
+		if err != nil {
+			resetTmpFile()
+			return errors.Wrap(err, "error writing downloaded file: %v", tmpFile.Name())
+		}
+
+		// Create a new reader for bodyBytes
+		bodyReader := bytes.NewReader(bodyBytes)
+
+		// Try to decode as torrent file
+		meta, err := metainfo.Load(bodyReader)
 		if err != nil {
 			resetTmpFile()
 			return errors.Wrap(err, "metainfo could not load file contents: %v", tmpFile.Name())
