@@ -440,13 +440,6 @@ func (r *Release) downloadTorrentFile(ctx context.Context) error {
 			return retry.Unrecoverable(errors.New("unexpected status code %d: check indexer keys for %s", resp.StatusCode, r.Indexer))
 		}
 
-		// Check if the Content-Type header is correct
-		contentType := resp.Header.Get("Content-Type")
-
-		if strings.Contains(contentType, "text/html") {
-			return retry.Unrecoverable(errors.New("unexpected content type '%s': check indexer keys for %s", contentType, r.Indexer))
-		}
-
 		resetTmpFile := func() {
 			tmpFile.Seek(0, io.SeekStart)
 			tmpFile.Truncate(0)
@@ -456,6 +449,24 @@ func (r *Release) downloadTorrentFile(ctx context.Context) error {
 		if _, err := io.Copy(tmpFile, resp.Body); err != nil {
 			resetTmpFile()
 			return errors.Wrap(err, "error writing downloaded file: %v", tmpFile.Name())
+		}
+
+		// Check if the Content-Type header is correct
+		contentType := resp.Header.Get("Content-Type")
+		if strings.Contains(contentType, "text/html") {
+			// Attempt to decode as torrent file
+			_, err = metainfo.LoadFromFile(tmpFile.Name())
+			if err != nil {
+				resetTmpFile()
+				return retry.Unrecoverable(errors.New("unexpected content type '%s': check indexer keys for %s", contentType, r.Indexer))
+			}
+		} else {
+			// Try to decode as torrent file
+			_, err = metainfo.LoadFromFile(tmpFile.Name())
+			if err != nil {
+				resetTmpFile()
+				return errors.Wrap(err, "metainfo could not load file contents: %v", tmpFile.Name())
+			}
 		}
 
 		meta, err := metainfo.LoadFromFile(tmpFile.Name())
