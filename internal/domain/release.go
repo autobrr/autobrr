@@ -423,10 +423,10 @@ func (r *Release) downloadTorrentFile(ctx context.Context) error {
 			// Continue processing the response
 		case http.StatusMovedPermanently, http.StatusFound, http.StatusSeeOther, http.StatusTemporaryRedirect, http.StatusPermanentRedirect:
 			// Handle redirect
-			return retry.Unrecoverable(errors.New("redirect encountered for torrent (%v) file (%v) from '%v' - status code: %d. Check indexer keys.", r.TorrentName, r.TorrentURL, r.Indexer, resp.StatusCode))
+			return retry.Unrecoverable(errors.New("redirect encountered for torrent (%v) file (%v) - status code: %d - check indexer keys for %s", r.TorrentName, r.TorrentURL, resp.StatusCode, r.Indexer))
 
 		case http.StatusUnauthorized, http.StatusForbidden:
-			return retry.Unrecoverable(errors.New("unrecoverable error downloading torrent (%v) file (%v) from '%v' - status code: %d. Check indexer keys", r.TorrentName, r.TorrentURL, r.Indexer, resp.StatusCode))
+			return retry.Unrecoverable(errors.New("unrecoverable error downloading torrent (%v) file (%v) - status code: %d - check indexer keys for %s", r.TorrentName, r.TorrentURL, resp.StatusCode, r.Indexer))
 
 		case http.StatusMethodNotAllowed:
 			return retry.Unrecoverable(errors.New("unrecoverable error downloading torrent (%v) file (%v) from '%v' - status code: %d. Check if the request method is correct", r.TorrentName, r.TorrentURL, r.Indexer, resp.StatusCode))
@@ -434,8 +434,11 @@ func (r *Release) downloadTorrentFile(ctx context.Context) error {
 		case http.StatusNotFound:
 			return errors.New("torrent %s not found on %s (%d) - retrying", r.TorrentName, r.Indexer, resp.StatusCode)
 
-		case http.StatusInternalServerError, http.StatusBadGateway, http.StatusServiceUnavailable, http.StatusGatewayTimeout:
+		case http.StatusBadGateway, http.StatusServiceUnavailable, http.StatusGatewayTimeout:
 			return errors.New("server error (%d) encountered while downloading torrent (%v) file (%v) from '%v' - retrying", resp.StatusCode, r.TorrentName, r.TorrentURL, r.Indexer)
+
+		case http.StatusInternalServerError:
+			return errors.New("server error (%d) encountered while downloading torrent (%v) file (%v) - check indexer keys for %s", resp.StatusCode, r.TorrentName, r.TorrentURL, r.Indexer)
 
 		default:
 			return retry.Unrecoverable(errors.New("unexpected status code %d: check indexer keys for %s", resp.StatusCode, r.Indexer))
@@ -458,7 +461,7 @@ func (r *Release) downloadTorrentFile(ctx context.Context) error {
 			// Detect the content type of the body
 			mimeType := http.DetectContentType(bodyBytes)
 			if mimeType != "application/x-bittorrent" {
-				return retry.Unrecoverable(fmt.Errorf("unexpected content type '%s': check indexer keys for %s", contentType, r.Indexer))
+				return retry.Unrecoverable(fmt.Errorf("unexpected content type '%s' for file %s: check indexer keys for %s", contentType, r.TorrentURL, r.Indexer))
 			}
 		}
 
