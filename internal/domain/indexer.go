@@ -339,6 +339,7 @@ type TorrentBasic struct {
 	TorrentId string `json:"TorrentId,omitempty"`
 	InfoHash  string `json:"InfoHash"`
 	Size      string `json:"Size"`
+	Uploader  string `json:"Uploader"`
 }
 
 func (t TorrentBasic) ReleaseSizeBytes() uint64 {
