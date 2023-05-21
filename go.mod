@@ -2,18 +2,20 @@ module github.com/autobrr/autobrr
 
 go 1.20
 
+replace github.com/r3labs/sse/v2 => github.com/autobrr/sse/v2 v2.0.0-20230520125637-530e06346d7d
+
 require (
 	github.com/Masterminds/sprig/v3 v3.2.2
 	github.com/Masterminds/squirrel v1.5.3
 	github.com/anacrolix/torrent v1.46.0
 	github.com/asaskevich/EventBus v0.0.0-20200907212545-49d423059eef
-	github.com/autobrr/go-deluge v1.0.0
-	github.com/autobrr/go-qbittorrent v1.3.1
+	github.com/autobrr/go-deluge v1.0.1
+	github.com/autobrr/go-qbittorrent v1.3.2
 	github.com/autobrr/go-rtorrent v1.0.1
 	github.com/avast/retry-go v3.0.0+incompatible
 	github.com/dcarbone/zadapters/zstdlog v0.3.1
 	github.com/dustin/go-humanize v1.0.0
-	github.com/ergochat/irc-go v0.2.0
+	github.com/ergochat/irc-go v0.3.0
 	github.com/fsnotify/fsnotify v1.6.0
 	github.com/go-chi/chi/v5 v5.0.7
 	github.com/go-chi/render v1.0.2

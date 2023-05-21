@@ -256,6 +256,12 @@ func (s *service) Duplicate(ctx context.Context, filterID int) (*domain.Filter, 
 	}
 	filter.Indexers = filterIndexers
 
+	// reset action id to 0
+	for i, a := range filterActions {
+		a.ID = 0
+		filterActions[i] = a
+	}
+
 	// take care of filter actions
 	actions, err := s.actionRepo.StoreFilterActions(ctx, filterActions, int64(filter.ID))
 	if err != nil {
@@ -433,9 +439,10 @@ func (s *service) AdditionalSizeCheck(ctx context.Context, f domain.Filter, rele
 	s.log.Debug().Msgf("filter.Service.AdditionalSizeCheck: (%s) additional size check required", f.Name)
 
 	switch release.Indexer {
-	case "ptp", "btn", "ggn", "redacted", "mock":
+	case "ptp", "btn", "ggn", "redacted", "ops", "mock":
 		if release.Size == 0 {
 			s.log.Trace().Msgf("filter.Service.AdditionalSizeCheck: (%s) preparing to check via api", f.Name)
+
 			torrentInfo, err := s.apiService.GetTorrentByID(ctx, release.Indexer, release.TorrentID)
 			if err != nil || torrentInfo == nil {
 				s.log.Error().Stack().Err(err).Msgf("filter.Service.AdditionalSizeCheck: (%s) could not get torrent info from api: '%s' from: %s", f.Name, release.TorrentID, release.Indexer)

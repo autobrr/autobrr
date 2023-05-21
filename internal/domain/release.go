@@ -30,13 +30,15 @@ type ReleaseRepo interface {
 	Store(ctx context.Context, release *Release) (*Release, error)
 	Find(ctx context.Context, params ReleaseQueryParams) (res []*Release, nextCursor int64, count int64, err error)
 	FindRecent(ctx context.Context) ([]*Release, error)
+	Get(ctx context.Context, req *GetReleaseRequest) (*Release, error)
 	GetIndexerOptions(ctx context.Context) ([]string, error)
-	GetActionStatusByReleaseID(ctx context.Context, releaseID int64) ([]ReleaseActionStatus, error)
 	Stats(ctx context.Context) (*ReleaseStats, error)
-	StoreReleaseActionStatus(ctx context.Context, status *ReleaseActionStatus) error
 	Delete(ctx context.Context) error
 	DeleteOlder(ctx context.Context, duration int) error
 	CanDownloadShow(ctx context.Context, title string, season int, episode int) (bool, error)
+
+	GetActionStatus(ctx context.Context, req *GetReleaseActionStatusRequest) (*ReleaseActionStatus, error)
+	StoreReleaseActionStatus(ctx context.Context, status *ReleaseActionStatus) error
 }
 
 type Release struct {
@@ -59,6 +61,7 @@ type Release struct {
 	TorrentName                 string                `json:"torrent_name"` // full release name
 	Size                        uint64                `json:"size"`
 	Title                       string                `json:"title"` // Parsed title
+	Description                 string                `json:"-"`
 	Category                    string                `json:"category"`
 	Categories                  []string              `json:"categories,omitempty"`
 	Season                      int                   `json:"season"`
@@ -100,13 +103,14 @@ type ReleaseActionStatus struct {
 	ID         int64             `json:"id"`
 	Status     ReleasePushStatus `json:"status"`
 	Action     string            `json:"action"`
+	ActionID   int64             `json:"action_id"`
 	Type       ActionType        `json:"type"`
 	Client     string            `json:"client"`
 	Filter     string            `json:"filter"`
-	FilterID   int64             `json:"-"`
+	FilterID   int64             `json:"filter_id"`
 	Rejections []string          `json:"rejections"`
+	ReleaseID  int64             `json:"release_id"`
 	Timestamp  time.Time         `json:"timestamp"`
-	ReleaseID  int64             `json:"-"`
 }
 
 func NewReleaseActionStatus(action *Action, release *Release) *ReleaseActionStatus {
@@ -114,9 +118,10 @@ func NewReleaseActionStatus(action *Action, release *Release) *ReleaseActionStat
 		ID:         0,
 		Status:     ReleasePushStatusPending,
 		Action:     action.Name,
+		ActionID:   int64(action.ID),
 		Type:       action.Type,
-		Filter:     release.Filter.Name,
-		FilterID:   int64(release.Filter.ID),
+		Filter:     release.FilterName,
+		FilterID:   int64(release.FilterID),
 		Rejections: []string{},
 		Timestamp:  time.Now(),
 		ReleaseID:  release.ID,
@@ -153,6 +158,8 @@ const (
 
 func (r ReleasePushStatus) String() string {
 	switch r {
+	case ReleasePushStatusPending:
+		return "Pending"
 	case ReleasePushStatusApproved:
 		return "Approved"
 	case ReleasePushStatusRejected:
@@ -225,6 +232,20 @@ type ReleaseQueryParams struct {
 		PushStatus string
 	}
 	Search string
+}
+
+type ReleaseActionRetryReq struct {
+	ReleaseId      int
+	ActionStatusId int
+	ActionId       int
+}
+
+type GetReleaseRequest struct {
+	Id int
+}
+
+type GetReleaseActionStatusRequest struct {
+	Id int
 }
 
 func NewRelease(indexer string) *Release {

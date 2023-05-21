@@ -10,6 +10,7 @@ import (
 	"strconv"
 
 	"github.com/autobrr/autobrr/internal/domain"
+
 	"github.com/go-chi/chi/v5"
 )
 
@@ -20,6 +21,7 @@ type releaseService interface {
 	Stats(ctx context.Context) (*domain.ReleaseStats, error)
 	Delete(ctx context.Context) error
 	DeleteOlder(ctx context.Context, duration int) error
+	Retry(ctx context.Context, req *domain.ReleaseActionRetryReq) error
 }
 
 type releaseHandler struct {
@@ -41,6 +43,10 @@ func (h releaseHandler) Routes(r chi.Router) {
 	r.Get("/indexers", h.getIndexerOptions)
 	r.Delete("/all", h.deleteReleases)
 	r.Delete("/older-than/{duration}", h.deleteOlder)
+
+	r.Route("/{releaseId}", func(r chi.Router) {
+		r.Post("/actions/{actionStatusId}/retry", h.retryAction)
+	})
 }
 
 func (h releaseHandler) findReleases(w http.ResponseWriter, r *http.Request) {
@@ -205,6 +211,49 @@ func (h releaseHandler) deleteOlder(w http.ResponseWriter, r *http.Request) {
 			"code":    "INTERNAL_SERVER_ERROR",
 			"message": err.Error(),
 		})
+    return
+	}
+
+	h.encoder.NoContent(w)
+}
+
+func (h releaseHandler) retryAction(w http.ResponseWriter, r *http.Request) {
+	var (
+		req *domain.ReleaseActionRetryReq
+		err error
+	)
+
+	releaseIdParam := chi.URLParam(r, "releaseId")
+	if releaseIdParam == "" {
+		h.encoder.StatusError(w, http.StatusBadRequest, err)
+		return
+	}
+
+	releaseId, err := strconv.Atoi(releaseIdParam)
+	if err != nil {
+		h.encoder.StatusError(w, http.StatusBadRequest, err)
+		return
+	}
+
+	actionStatusIdParam := chi.URLParam(r, "actionStatusId")
+	if actionStatusIdParam == "" {
+		h.encoder.StatusError(w, http.StatusBadRequest, err)
+		return
+	}
+
+	actionStatusId, err := strconv.Atoi(actionStatusIdParam)
+	if err != nil {
+		h.encoder.StatusError(w, http.StatusBadRequest, err)
+		return
+	}
+
+	req = &domain.ReleaseActionRetryReq{
+		ReleaseId:      releaseId,
+		ActionStatusId: actionStatusId,
+	}
+
+	if err := h.service.Retry(r.Context(), req); err != nil {
+		h.encoder.Error(w, err)
 		return
 	}
 

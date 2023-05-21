@@ -150,7 +150,9 @@ export const APIClient = {
     createNetwork: (network: IrcNetworkCreate) => appClient.Post("api/irc", network),
     updateNetwork: (network: IrcNetwork) => appClient.Put(`api/irc/network/${network.id}`, network),
     deleteNetwork: (id: number) => appClient.Delete(`api/irc/network/${id}`),
-    restartNetwork: (id: number) => appClient.Get(`api/irc/network/${id}/restart`)
+    restartNetwork: (id: number) => appClient.Get(`api/irc/network/${id}/restart`),
+    sendCmd: (cmd: SendIrcCmdRequest) => appClient.Post(`api/irc/network/${cmd.network_id}/cmd`, cmd),
+    events: (network: string) => new EventSource(`${sseBaseUrl()}api/irc/events?stream=${network}`, { withCredentials: true })
   },
   logs: {
     files: () => appClient.Get<LogFileResponse>("api/logs/files"),
@@ -194,7 +196,8 @@ export const APIClient = {
     indexerOptions: () => appClient.Get<string[]>("api/release/indexers"),
     stats: () => appClient.Get<ReleaseStats>("api/release/stats"),
     delete: () => appClient.Delete("api/release/all"),
-    deleteOlder: (duration: number) => appClient.Delete(`api/release/older-than/${duration}`)
+    deleteOlder: (duration: number) => appClient.Delete(`api/release/older-than/${duration}`),
+    replayAction: (releaseId: number, actionId: number) => appClient.Post(`api/release/${releaseId}/actions/${actionId}/retry`)
   },
   updates: {
     check: () => appClient.Get("api/updates/check"),

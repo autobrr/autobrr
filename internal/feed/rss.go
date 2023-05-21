@@ -193,6 +193,10 @@ func (j *RSSJob) processItem(item *gofeed.Item) *domain.Release {
 		rls.Bonus = []string{"Freeleech"}
 	}
 
+	if item.Description != "" {
+		rls.Description = item.Description
+	}
+
 	// add cookie to release for download if needed
 	if j.Feed.Cookie != "" {
 		rls.RawCookie = j.Feed.Cookie

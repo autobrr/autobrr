@@ -72,3 +72,11 @@ interface IrcAuth {
   account?: string; // optional
   password?: string; // optional
 }
+
+interface SendIrcCmdRequest {
+  network_id: number;
+  server: string;
+  channel: string;
+  nick: string;
+  msg: string;
+}

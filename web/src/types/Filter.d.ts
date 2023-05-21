@@ -23,6 +23,9 @@ interface Filter {
   match_release_tags: string;
   except_release_tags: string;
   use_regex_release_tags: boolean;
+  match_description: string;
+  except_description: string;
+  use_regex_description: boolean;
   scene: boolean;
   origins: string[];
   except_origins: string[];
