@@ -31,8 +31,8 @@ interface IrcNetworkCreate {
   nick: string;
   auth: IrcAuth; // optional
   invite_command: string;
-  use_bouncer: boolean;
-  bouncer_addr: string;
+  use_bouncer?: boolean;
+  bouncer_addr?: string;
   channels: IrcChannel[];
   connected: boolean;
 }
