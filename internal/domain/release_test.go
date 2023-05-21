@@ -673,6 +673,20 @@ func TestRelease_DownloadTorrentFile(t *testing.T) {
 	ts := httptest.NewServer(mux)
 	defer ts.Close()
 
+	mux.HandleFunc("/valid_torrent_as_html", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		w.Header().Set("Content-Type", "text/html")
+		payload, _ := os.ReadFile("testdata/archlinux-2011.08.19-netinstall-i686.iso.torrent")
+		w.Write(payload)
+	})
+
+	mux.HandleFunc("/invalid_torrent_as_html", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		w.Header().Set("Content-Type", "text/html")
+		payload := []byte("This is not a valid torrent file.")
+		w.Write(payload)
+	})
+
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		if strings.Contains(r.RequestURI, "401") {
 			w.WriteHeader(http.StatusUnauthorized)
@@ -798,6 +812,26 @@ func TestRelease_DownloadTorrentFile(t *testing.T) {
 			wantErr: func(t assert.TestingT, err error, i ...interface{}) bool {
 				return err != nil
 			},
+		},
+		{
+			name: "valid_torrent_with_text-html_header",
+			fields: fields{
+				Indexer:     "mock-indexer",
+				TorrentName: "Test.Release-GROUP",
+				TorrentURL:  fmt.Sprintf("%v/%v", ts.URL, "file.torrent-text-html"),
+			},
+			wantErr: func(t assert.TestingT, err error, i ...interface{}) bool {
+				return err == nil
+			},
+		},
+		{
+			name: "invalid_torrent_with_text-html_header",
+			fields: fields{
+				Indexer:     "mock-indexer",
+				TorrentName: "Test.Release-GROUP",
+				TorrentURL:  fmt.Sprintf("%v/%v", ts.URL, "invalid_torrent_as_html"),
+			},
+			wantErr: assert.Error,
 		},
 	}
 
