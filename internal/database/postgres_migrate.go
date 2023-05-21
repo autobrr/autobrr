@@ -90,6 +90,7 @@ CREATE TABLE filter
     freeleech                      BOOLEAN,
     freeleech_percent              TEXT,
     smart_episode                  BOOLEAN DEFAULT FALSE,
+	unique_download                BOOLEAN DEFAULT FALSE,
     shows                          TEXT,
     seasons                        TEXT,
     episodes                       TEXT,
@@ -699,4 +700,7 @@ ADD COLUMN topic text;`,
 ALTER TABLE release_action_status
     ADD CONSTRAINT release_action_status_action_id_fk
         FOREIGN KEY (action_id) REFERENCES action;`,
+	`ALTER TABLE "filter"
+	ADD COLUMN unique_download BOOLEAN DEFAULT false;
+	`,
 }

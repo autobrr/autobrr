@@ -90,6 +90,7 @@ CREATE TABLE filter
     freeleech                      BOOLEAN,
     freeleech_percent              TEXT,
     smart_episode                  BOOLEAN DEFAULT FALSE,
+    unique_download                BOOLEAN DEFAULT FALSE,
     shows                          TEXT,
     seasons                        TEXT,
     episodes                       TEXT,

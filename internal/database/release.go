@@ -14,6 +14,7 @@ import (
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/internal/logger"
 	"github.com/autobrr/autobrr/pkg/errors"
+	"github.com/moistari/rls"
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/lib/pq"
@@ -583,6 +584,74 @@ func (repo *ReleaseRepo) Delete(ctx context.Context) error {
 	}
 
 	return nil
+}
+
+func (repo *ReleaseRepo) CanDownloadUnique(ctx context.Context, release rls.Release) (bool, error) {
+	queryBuilder := repo.db.squirrel.
+		Select("torrent_name").
+		From("release").
+		Where(sq.Eq{"season": release.Series},
+			sq.Eq{"episode": release.Episode},
+			sq.Eq{"year": release.Year},
+			ILike("title", rls.MustNormalize(release.Title)),
+			ILike("release_group", rls.MustNormalize(release.Group)),
+			ILike("resolution", rls.MustNormalize(release.Resolution)),
+			ILike("source", rls.MustNormalize(release.Source)))
+
+	query, args, err := queryBuilder.ToSql()
+	if err != nil {
+		return false, errors.Wrap(err, "error building query")
+	}
+
+	rows, err := repo.db.handler.QueryContext(ctx, query, args...)
+	if err != nil {
+		return false, errors.Wrap(err, "error unique title query")
+	}
+
+	defer rows.Close()
+
+	for rows.Next() {
+		var title string
+		if err := rows.Scan(&title); err != nil {
+			return false, errors.Wrap(err, "error scanning row")
+		}
+
+		r := rls.ParseString(title)
+		if r.Day != release.Day ||
+			r.Month != release.Month ||
+			rls.MustNormalize(r.Subtitle) != rls.MustNormalize(release.Subtitle) ||
+			rls.MustNormalize(r.Channels) != rls.MustNormalize(release.Channels) {
+			continue
+		}
+
+		f := func(source, target []string) bool {
+			c := 0
+			for _, s := range source {
+				z := rls.MustNormalize(s)
+				for _, t := range target {
+					if z == rls.MustNormalize(t) {
+						c++
+						break
+					}
+				}
+			}
+
+			return c == len(source)
+		}
+
+		if !f(r.Audio, release.Audio) ||
+			!f(r.HDR, release.HDR) ||
+			!f(r.Cut, release.Cut) ||
+			!f(r.Edition, release.Edition) ||
+			!f(r.Language, release.Language) ||
+			!f(r.Other, release.Other) {
+			continue
+		}
+
+		return false, nil
+	}
+
+	return true, nil
 }
 
 func (repo *ReleaseRepo) CanDownloadShow(ctx context.Context, title string, season int, episode int) (bool, error) {
