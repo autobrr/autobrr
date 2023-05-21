@@ -5,6 +5,7 @@ package domain
 
 import (
 	"context"
+	"encoding/json"
 	"time"
 )
 
@@ -85,10 +86,41 @@ type ChannelHealth struct {
 	LastAnnounce    time.Time `json:"last_announce"`
 }
 
+type SendIrcCmdRequest struct {
+	NetworkId int64  `json:"network_id"`
+	Server    string `json:"server"`
+	Channel   string `json:"channel"`
+	Nick      string `json:"nick"`
+	Message   string `json:"msg"`
+}
+
+type IrcMessage struct {
+	Channel string    `json:"channel"`
+	Nick    string    `json:"nick"`
+	Message string    `json:"msg"`
+	Time    time.Time `json:"time"`
+}
+
+func (m IrcMessage) ToJsonString() string {
+	j, err := json.Marshal(m)
+	if err != nil {
+		return ""
+	}
+	return string(j)
+}
+
+func (m IrcMessage) Bytes() []byte {
+	j, err := json.Marshal(m)
+	if err != nil {
+		return nil
+	}
+	return j
+}
+
 type IrcRepo interface {
 	StoreNetwork(network *IrcNetwork) error
 	UpdateNetwork(ctx context.Context, network *IrcNetwork) error
-	StoreChannel(networkID int64, channel *IrcChannel) error
+	StoreChannel(ctx context.Context, networkID int64, channel *IrcChannel) error
 	UpdateChannel(channel *IrcChannel) error
 	UpdateInviteCommand(networkID int64, invite string) error
 	StoreNetworkChannels(ctx context.Context, networkID int64, channels []IrcChannel) error
