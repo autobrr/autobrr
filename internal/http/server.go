@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"time"
 
 	"github.com/autobrr/autobrr/internal/config"
 	"github.com/autobrr/autobrr/internal/database"
@@ -81,6 +82,7 @@ func (s Server) Open() error {
 
 	server := http.Server{
 		Handler: s.Handler(),
+		ReadHeaderTimeout: time.Second * 15,
 	}
 
 	s.log.Info().Msgf("Starting server. Listening on %s", listener.Addr().String())
