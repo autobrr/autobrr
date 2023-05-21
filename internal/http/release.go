@@ -211,7 +211,7 @@ func (h releaseHandler) deleteOlder(w http.ResponseWriter, r *http.Request) {
 			"code":    "INTERNAL_SERVER_ERROR",
 			"message": err.Error(),
 		})
-    return
+		return
 	}
 
 	h.encoder.NoContent(w)
