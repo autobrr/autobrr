@@ -40,8 +40,8 @@ Actions:
   help                                                Show this help message
 
 Examples:
-  autobrrctl --config /config.toml create-user john
-  autobrrctl --config /config.toml change-password john
+  autobrrctl --config /path/to/config/dir create-user john
+  autobrrctl --config /path/to/config/dir change-password john
   autobrrctl db:reset /path/to/sqlite.db /path/to/seed
   autobrrctl db:seed /path/to/sqlite.db /path/to/seed
   autobrrctl db:migrate /path/to/sqlite.db postgresql://localhost/mydb
