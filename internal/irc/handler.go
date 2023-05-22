@@ -562,8 +562,6 @@ func (h *Handler) onMessage(msg ircmsg.Message) {
 	// clean message
 	cleanedMsg := h.cleanMessage(message)
 
-	h.log.Trace().Str("channel", channel).Str("nick", nick).Msg(cleanedMsg)
-
 	// publish to SSE stream
 	h.publishSSEMsg(domain.IrcMessage{Channel: channel, Nick: nick, Message: cleanedMsg, Time: time.Now()})
 
