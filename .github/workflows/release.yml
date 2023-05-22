@@ -106,7 +106,7 @@ jobs:
           args: release --clean --skip-validate --skip-publish -p99
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GGOOS: ${{ matrix.os }}
+          GGOOS: windows
 
       - name: Upload assets
         uses: actions/upload-artifact@v3
