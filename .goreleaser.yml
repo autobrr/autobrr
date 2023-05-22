@@ -63,6 +63,8 @@ archives:
     builds:
       - autobrr
       - autobrrctl
+    files:
+      - none*
     replacements:
       amd64: x86_64
     format_overrides:
