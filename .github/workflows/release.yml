@@ -74,7 +74,7 @@ jobs:
   goreleaserbuild:
     name: Build Go binaries
     if: github.event_name == 'pull_request'
-    runs-on: windows-latest
+    runs-on: macos-latest
     needs: [web, test]
     steps:
       - name: Checkout
