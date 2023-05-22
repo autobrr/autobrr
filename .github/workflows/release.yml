@@ -100,7 +100,7 @@ jobs:
         with:
           distribution: goreleaser
           version: latest
-          args: release --clean --skip-validate --skip-publish -p99
+          args: release --clean --skip-validate --skip-publish --parallelism 99
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
