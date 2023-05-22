@@ -98,15 +98,6 @@ export const Logs = () => {
           <h1 className="text-3xl font-bold text-black dark:text-white">Logs</h1>
         </div>
       </header>
-
-      <div className="max-w-screen-xl mx-auto pb-12 px-2 sm:px-4 lg:px-8">
-        <div className="flex justify-center py-4">
-          <ExclamationTriangleIcon
-            className="h-5 w-5 text-yellow-400"
-            aria-hidden="true"
-          />
-          <p className="ml-2 text-sm text-black dark:text-gray-400">This page shows only new logs, i.e. no history.</p>
-        </div>
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg px-2 sm:px-4 pt-3 sm:pt-4 pb-3 sm:pb-4">
           <div className="flex relative mb-3">
             <DebounceInput
