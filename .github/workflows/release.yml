@@ -72,8 +72,9 @@ jobs:
         run: go test -v ./...
 
   goreleaserbuild:
-    matrix:
-      os: [macos-latest, windows-latest, ubuntu-latest]
+    strategy:
+      matrix:
+        os: [macos-latest, windows-latest, ubuntu-latest]
     name: Build Go binaries ${{ matrix.os }}
     if: github.event_name == 'pull_request'
     runs-on: ${{ matrix.os }}
