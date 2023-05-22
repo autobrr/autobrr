@@ -9,6 +9,7 @@ urls:
 privacy: private
 protocol: torrent
 supports:
+  - api
   - irc
   - rss
 source: gazelle
@@ -18,6 +19,24 @@ settings:
     required: true
     label: Torrent pass
     help: Right click DL on a torrent and get the torrent_pass.
+
+  - name: api_key
+    type: secret
+    required: true
+    label: API Key
+    help: Settings -> Access Settings -> API Keys - Create a new api token.
+
+api:
+  url: https://orpheus.network/ajax.php
+  type: json
+  limits:
+    max: 5
+    per: 10 seconds
+  settings:
+    - name: api_key
+      type: secret
+      label: API Key
+      help: Settings -> Access Settings -> API Keys - Create a new api token.
 
 irc:
   network: Orpheus
