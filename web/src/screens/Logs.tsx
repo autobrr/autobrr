@@ -98,6 +98,8 @@ export const Logs = () => {
           <h1 className="text-3xl font-bold text-black dark:text-white">Logs</h1>
         </div>
       </header>
+
+      <div className="max-w-screen-xl mx-auto pb-12 px-2 sm:px-4 lg:px-8">      
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg px-2 sm:px-4 pt-3 sm:pt-4 pb-3 sm:pb-4">
           <div className="flex relative mb-3">
             <DebounceInput
