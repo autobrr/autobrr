@@ -72,10 +72,7 @@ jobs:
         run: go test -v ./...
 
   goreleaserbuild:
-    strategy:
-      matrix:
-        os: [macos-latest, windows-latest, ubuntu-latest]
-    name: Build Go binaries ${{ matrix.os }}
+    name: Build Go binaries
     if: github.event_name == 'pull_request'
     runs-on: ${{ matrix.os }}
     needs: [web, test]
@@ -106,7 +103,6 @@ jobs:
           args: release --clean --skip-validate --skip-publish -p99
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GGOOS: windows
 
       - name: Upload assets
         uses: actions/upload-artifact@v3
