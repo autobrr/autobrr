@@ -108,7 +108,9 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: autobrr
-          path: dist/*.tar.gz
+          path: |
+            dist/*.tar.gz
+            dist/*.zip
 
   goreleaser:
     name: Build and publish binaries
@@ -147,7 +149,9 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: autobrr
-          path: dist/*.tar.gz
+          path: |
+            dist/*.tar.gz
+            dist/*.zip
 
   docker:
     name: Build and publish Docker images
