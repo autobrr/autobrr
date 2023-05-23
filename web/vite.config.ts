@@ -90,6 +90,13 @@ export default ({ mode }: { mode: any }) => {
         overlay: true
       },
     },
+    proxy: {
+      "/api": {
+        target: "http://127.0.0.1:7474/",
+        changeOrigin: true,
+        secure: false
+      }
+    }
     build: {
       manifest: true,
       sourcemap: true
