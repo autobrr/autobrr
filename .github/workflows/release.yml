@@ -74,7 +74,7 @@ jobs:
   goreleaserbuild:
     name: Build Go binaries
     if: github.event_name == 'pull_request'
-    runs-on: ubuntu-latest
+    runs-on: macos-latest
     needs: [web, test]
     steps:
       - name: Checkout
@@ -100,7 +100,7 @@ jobs:
         with:
           distribution: goreleaser
           version: latest
-          args: release --clean --skip-validate --skip-publish
+          args: release --clean --skip-validate --skip-publish --parallelism 99
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -108,7 +108,9 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: autobrr
-          path: dist/*.tar.gz
+          path: |
+            dist/*.tar.gz
+            dist/*.zip
 
   goreleaser:
     name: Build and publish binaries
@@ -147,7 +149,9 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: autobrr
-          path: dist/*.tar.gz
+          path: |
+            dist/*.tar.gz
+            dist/*.zip
 
   docker:
     name: Build and publish Docker images
