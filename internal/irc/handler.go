@@ -562,8 +562,6 @@ func (h *Handler) onMessage(msg ircmsg.Message) {
 	// clean message
 	cleanedMsg := h.cleanMessage(message)
 
-	h.log.Debug().Str("channel", channel).Str("nick", nick).Msg(cleanedMsg)
-
 	// publish to SSE stream
 	h.publishSSEMsg(domain.IrcMessage{Channel: channel, Nick: nick, Message: cleanedMsg, Time: time.Now()})
 
@@ -576,6 +574,8 @@ func (h *Handler) onMessage(msg ircmsg.Message) {
 	if validAnnouncer := h.isValidAnnouncer(nick); !validAnnouncer {
 		return
 	}
+
+	h.log.Debug().Str("channel", channel).Str("nick", nick).Msg(cleanedMsg)
 
 	if err := h.sendToAnnounceProcessor(channel, cleanedMsg); err != nil {
 		h.log.Error().Stack().Err(err).Msgf("could not queue line: %v", cleanedMsg)
