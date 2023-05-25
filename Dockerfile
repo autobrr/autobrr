@@ -2,9 +2,9 @@
 FROM node:18.7.0-alpine3.16 AS web-builder
 COPY . ./
 WORKDIR /web
-RUN corepack enable &&
-pnpm install --frozen-lockfile &&
-pnpm run build
+RUN corepack enable && \
+    pnpm install --frozen-lockfile && \
+    pnpm run build
 
 # build app
 FROM golang:1.20-alpine3.16 AS app-builder
@@ -39,8 +39,8 @@ FROM alpine:latest
 LABEL org.opencontainers.image.source = "https://github.com/autobrr/autobrr"
 
 ENV HOME="/config" \
-XDG_CONFIG_HOME="/config" \
-XDG_DATA_HOME="/config"
+    XDG_CONFIG_HOME="/config" \
+    XDG_DATA_HOME="/config"
 
 RUN apk --no-cache add ca-certificates curl tzdata jq
 

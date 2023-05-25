@@ -67,6 +67,9 @@ archives:
       - none*
     replacements:
       amd64: x86_64
+    format_overrides:
+      - goos: windows
+        format: zip
 
 release:
   prerelease: auto
