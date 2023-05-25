@@ -196,6 +196,7 @@ export const APIClient = {
     indexerOptions: () => appClient.Get<string[]>("api/release/indexers"),
     stats: () => appClient.Get<ReleaseStats>("api/release/stats"),
     delete: () => appClient.Delete("api/release/all"),
+    deleteOlder: (duration: number) => appClient.Delete(`api/release/older-than/${duration}`),
     replayAction: (releaseId: number, actionId: number) => appClient.Post(`api/release/${releaseId}/actions/${actionId}/retry`)
   },
   updates: {

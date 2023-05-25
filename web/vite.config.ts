@@ -66,7 +66,8 @@ export default ({ mode }: { mode: any }) => {
       },
       workbox: {
         globPatterns: ["**/*.{js,css,html,svg}"],
-        sourcemap: true
+        sourcemap: true,
+        navigateFallbackDenylist: [/^\/api/]
       }
     })],
     resolve: {

@@ -35,6 +35,7 @@ type ReleaseRepo interface {
 	GetIndexerOptions(ctx context.Context) ([]string, error)
 	Stats(ctx context.Context) (*ReleaseStats, error)
 	Delete(ctx context.Context) error
+	DeleteOlder(ctx context.Context, duration int) error
 	CanDownloadShow(ctx context.Context, title string, season int, episode int) (bool, error)
 
 	GetActionStatus(ctx context.Context, req *GetReleaseActionStatusRequest) (*ReleaseActionStatus, error)
