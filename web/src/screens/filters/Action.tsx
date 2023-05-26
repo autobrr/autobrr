@@ -24,7 +24,7 @@ import { EmptyListState } from "@components/emptystates";
 import { useToggle } from "@hooks/hooks";
 import { classNames } from "@utils";
 import { DeleteModal } from "@components/modals";
-import { CollapsableSection } from "./details";
+import { CollapsableSection } from "./Details";
 import { TextArea } from "@components/inputs/input";
 import Toast from "@components/notifications/Toast";
 
@@ -121,7 +121,7 @@ interface TypeFormProps {
 
 const TypeForm = ({ action, idx, clients }: TypeFormProps) => {
   const { setFieldValue  } = useFormikContext();
-  
+
   const resetClientField = (action: Action, idx: number, prevActionType: string): void => {
     const fieldName = `actions.${idx}.client_id`;
 

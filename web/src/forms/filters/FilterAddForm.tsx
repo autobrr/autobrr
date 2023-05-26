@@ -15,7 +15,7 @@ import { useNavigate } from "react-router-dom";
 import { APIClient } from "@api/APIClient";
 import DEBUG from "@components/debug";
 import Toast from "@components/notifications/Toast";
-import { filterKeys } from "@screens/filters/list";
+import { filterKeys } from "@screens/filters/List";
 
 interface filterAddFormProps {
     isOpen: boolean;

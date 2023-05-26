@@ -12,7 +12,7 @@ import { classNames, simplifyDate } from "@utils";
 import { Tooltip } from "../tooltips/Tooltip";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { APIClient } from "@api/APIClient";
-import { filterKeys } from "@screens/filters/list";
+import { filterKeys } from "@screens/filters/List";
 import { toast } from "react-hot-toast";
 import Toast from "@components/notifications/Toast";
 import { RingResizeSpinner } from "@components/Icons";

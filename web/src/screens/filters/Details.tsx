@@ -49,8 +49,8 @@ import { DeleteModal } from "@components/modals";
 import { TitleSubtitle } from "@components/headings";
 import { RegexTextAreaField, TextArea } from "@components/inputs/input";
 import { TextAreaAutoResize } from "../../components/inputs/input";
-import { FilterActions } from "./action";
-import { filterKeys } from "./list";
+import { FilterActions } from "./Action";
+import { filterKeys } from "./List";
 
 interface tabType {
   name: string;
@@ -795,4 +795,3 @@ export function External() {
     </div>
   );
 }
-
