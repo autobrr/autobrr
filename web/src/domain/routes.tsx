@@ -7,7 +7,7 @@ import { BrowserRouter, Route, Routes } from "react-router-dom";
 
 import { Login } from "@screens/auth/Login";
 import { Onboarding } from "@screens/auth/Onboarding";
-import Base from "@screens/Base";
+import { Base } from "@screens/Base";
 import { Dashboard } from "@screens/dashboard";
 import { FilterDetails, Filters } from "@screens/filters";
 import { Logs } from "@screens/Logs";

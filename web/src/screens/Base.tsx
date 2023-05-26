@@ -30,7 +30,7 @@ const nav: Array<NavItem> = [
   { name: "Logs", path: "/logs" }
 ];
 
-export default function Base() {
+export const Base = () => {
   const authContext = AuthContext.useValue();
 
   const { data } = useQuery({
@@ -250,4 +250,4 @@ export default function Base() {
       <Outlet />
     </div>
   );
-}
+};
