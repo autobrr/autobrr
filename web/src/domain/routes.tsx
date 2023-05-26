@@ -4,6 +4,7 @@
  */
 
 import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { baseUrl } from "@utils";
 
 import { Login } from "@screens/auth/Login";
 import { Onboarding } from "@screens/auth/Onboarding";
@@ -22,12 +23,10 @@ import {
   IrcSettings,
   LogSettings,
   NotificationSettings,
-  ReleaseSettings
+  ReleaseSettings,
+  RegexPlayground
 } from "@screens/settings/index";
-import { RegexPlayground } from "@screens/settings/RegexPlayground";
 import { NotFound } from "@components/alerts/NotFound";
-
-import { baseUrl } from "@utils";
 
 export const LocalRouter = ({ isLoggedIn }: { isLoggedIn: boolean }) => (
   <BrowserRouter basename={baseUrl()}>

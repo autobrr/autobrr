@@ -12,3 +12,4 @@ export { default as IrcSettings } from "./Irc";
 export { default as LogSettings } from "./Logs";
 export { default as NotificationSettings } from "./Notifications";
 export { default as ReleaseSettings } from "./Releases";
+export { default as RegexPlayground } from "./RegexPlayground";
