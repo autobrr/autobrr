@@ -47,8 +47,7 @@ import DEBUG from "@components/debug";
 import Toast from "@components/notifications/Toast";
 import { DeleteModal } from "@components/modals";
 import { TitleSubtitle } from "@components/headings";
-import { RegexTextAreaField, TextArea } from "@components/inputs/input";
-import { TextAreaAutoResize } from "../../components/inputs/input";
+import { RegexTextAreaField, TextArea, TextAreaAutoResize } from "@components/inputs/input";
 import { FilterActions } from "./Action";
 import { filterKeys } from "./List";
 

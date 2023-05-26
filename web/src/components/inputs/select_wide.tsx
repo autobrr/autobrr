@@ -8,7 +8,7 @@ import { Field } from "formik";
 import Select, { components, ControlProps, InputProps, MenuProps, OptionProps } from "react-select";
 import { OptionBasicTyped } from "@domain/constants";
 import CreatableSelect from "react-select/creatable";
-import { CustomTooltip } from "../tooltips/CustomTooltip";
+import { CustomTooltip } from "@components/tooltips/CustomTooltip";
 
 interface SelectFieldProps<T> {
   name: string;

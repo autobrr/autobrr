@@ -3,9 +3,9 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-import { baseUrl, sseBaseUrl } from "../utils";
-import { AuthContext } from "../utils/Context";
-import { GithubRelease } from "../types/Update";
+import { baseUrl, sseBaseUrl } from "@utils";
+import { AuthContext } from "@utils/Context";
+import { GithubRelease } from "@app/types/Update";
 
 interface ConfigType {
   body?: BodyInit | Record<string, unknown> | unknown;

@@ -9,7 +9,7 @@ import { ArrowPathIcon, CheckIcon } from "@heroicons/react/24/solid";
 import { ClockIcon, ExclamationCircleIcon, NoSymbolIcon } from "@heroicons/react/24/outline";
 
 import { classNames, simplifyDate } from "@utils";
-import { Tooltip } from "../tooltips/Tooltip";
+import { Tooltip } from "@components/tooltips/Tooltip";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { APIClient } from "@api/APIClient";
 import { filterKeys } from "@screens/filters/List";

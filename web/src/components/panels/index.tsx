@@ -9,9 +9,9 @@ import { Dialog, Transition } from "@headlessui/react";
 import { Form, Formik } from "formik";
 import type { FormikValues } from "formik";
 
-import DEBUG from "../debug";
+import DEBUG from "@components/debug";
 import { useToggle } from "@hooks/hooks";
-import { DeleteModal } from "../modals";
+import { DeleteModal } from "@components/modals";
 import { classNames } from "@utils";
 
 interface SlideOverProps<DataType> {
