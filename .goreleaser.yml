@@ -113,5 +113,7 @@ nfpms:
     description: |-
             autobrr is the modern download automation tool for torrents and usenet.
     formats:
-      - rpm
+      - apk
       - deb
+      - rpm
+      - archlinux
