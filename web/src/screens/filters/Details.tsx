@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-import React, { useEffect, useRef } from "react";
+import { useEffect, useRef, ReactNode } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { NavLink, Route, Routes, useLocation, useNavigate, useParams } from "react-router-dom";
 import { toast } from "react-hot-toast";
@@ -11,7 +11,6 @@ import { Form, Formik, FormikValues, useFormikContext } from "formik";
 import { z } from "zod";
 import { toFormikValidationSchema } from "zod-formik-adapter";
 import { ChevronDownIcon, ChevronRightIcon } from "@heroicons/react/24/solid";
-import TextareaAutosize from "react-textarea-autosize";
 
 import {
   CODECS_OPTIONS,
@@ -694,7 +693,7 @@ function WarningAlert({ text, alert, colors }: WarningAlertProps) {
 interface CollapsableSectionProps {
     title: string;
     subtitle: string;
-    children: React.ReactNode;
+    children: ReactNode;
     defaultOpen?: boolean;
 }
 

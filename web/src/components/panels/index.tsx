@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-import React, { Fragment, useRef } from "react";
+import { Fragment, useRef, ReactNode, ReactElement } from "react";
 import { XMarkIcon } from "@heroicons/react/24/solid";
 import { Dialog, Transition } from "@headlessui/react";
 import { Form, Formik } from "formik";
@@ -21,14 +21,14 @@ interface SlideOverProps<DataType> {
   onSubmit: (values?: DataType) => void;
   isOpen: boolean;
   toggle: () => void;
-  children?: (values: DataType) => React.ReactNode;
+  children?: (values: DataType) => ReactNode;
   deleteAction?: () => void;
   type: "CREATE" | "UPDATE";
   testFn?: (data: unknown) => void;
   isTesting?: boolean;
   isTestSuccessful?: boolean;
   isTestError?: boolean;
-  extraButtons?: (values: DataType) => React.ReactNode;
+  extraButtons?: (values: DataType) => ReactNode;
 }
 
 function SlideOver<DataType>({
@@ -46,7 +46,7 @@ function SlideOver<DataType>({
   isTestSuccessful,
   isTestError,
   extraButtons
-}: SlideOverProps<DataType>): React.ReactElement {
+}: SlideOverProps<DataType>): ReactElement {
   const cancelModalButtonRef = useRef<HTMLInputElement | null>(null);
   const [deleteModalIsOpen, toggleDeleteModal] = useToggle(false);
 

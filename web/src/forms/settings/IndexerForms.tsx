@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-import React, { Fragment, useState } from "react";
+import { Fragment, useState } from "react";
 import { toast } from "react-hot-toast";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Select, { components, ControlProps, InputProps, MenuProps, OptionProps } from "react-select";
@@ -25,8 +25,8 @@ import { feedKeys } from "@screens/settings/Feed";
 import { indexerKeys } from "@screens/settings/Indexer";
 
 const Input = (props: InputProps) => (
-  <components.Input 
-    {...props} 
+  <components.Input
+    {...props}
     inputClassName="outline-none border-none shadow-none focus:ring-transparent"
     className="text-gray-400 dark:text-gray-100"
     children={props.children}
@@ -34,15 +34,15 @@ const Input = (props: InputProps) => (
 );
 
 const Control = (props: ControlProps) => (
-  <components.Control 
-    {...props} 
+  <components.Control
+    {...props}
     className="p-1 block w-full dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:text-gray-100 sm:text-sm"
     children={props.children}
   />
 );
 
 const Menu = (props: MenuProps) => (
-  <components.Menu 
+  <components.Menu
     {...props}
     className="dark:bg-gray-800 border border-gray-300 dark:border-gray-700 dark:text-gray-400 rounded-md shadow-sm cursor-pointer"
     children={props.children}
@@ -50,7 +50,7 @@ const Menu = (props: MenuProps) => (
 );
 
 const Option = (props: OptionProps) => (
-  <components.Option 
+  <components.Option
     {...props}
     className="dark:text-gray-400 dark:bg-gray-800 dark:hover:bg-gray-900 dark:focus:bg-gray-900 cursor-pointer"
     children={props.children}
@@ -521,7 +521,7 @@ export function IndexerAddForm({ isOpen, toggle }: AddProps) {
                                     options={data && data.sort((a, b) => a.name.localeCompare(b.name)).map(v => ({
                                       label: v.name,
                                       value: v.identifier
-                                    }))} 
+                                    }))}
                                   />
                                 )}
                               </Field>
@@ -634,7 +634,7 @@ function TestApiButton({ values, show }: TestApiButtonProps) {
       id: values.id,
       api_key: values.settings.api_key
     };
-    
+
     if (values.settings.api_user) {
       req.api_user = values.settings.api_user;
     }

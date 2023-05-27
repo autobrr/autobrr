@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-import React, { Fragment, useRef, useState } from "react";
+import { Fragment, useRef, useState, ReactElement } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Dialog, Transition } from "@headlessui/react";
 import { XMarkIcon } from "@heroicons/react/24/solid";
@@ -24,7 +24,7 @@ import {
   SwitchGroupWide,
   TextFieldWide
 } from "@components/inputs";
-import DownloadClient, { clientKeys } from "@screens/settings/DownloadClient";
+import { clientKeys } from "@screens/settings/DownloadClient";
 import { SelectFieldWide } from "@components/inputs/input_wide";
 
 interface InitialValuesSettings {
@@ -181,7 +181,7 @@ function FormFieldsPorla() {
         required={true}
       />
 
-      
+
       <SwitchGroupWide name="tls" label="TLS" />
 
       <PasswordFieldWide name="settings.apikey" label="Auth token" required={true}/>
@@ -322,7 +322,7 @@ function FormFieldsSabnzbd() {
 }
 
 export interface componentMapType {
-  [key: string]: React.ReactElement;
+  [key: string]: ReactElement;
 }
 
 export const componentMap: componentMapType = {
