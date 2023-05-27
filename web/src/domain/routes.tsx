@@ -9,10 +9,10 @@ import { baseUrl } from "@utils";
 import { Login } from "@screens/auth/Login";
 import { Onboarding } from "@screens/auth/Onboarding";
 import { Base } from "@screens/Base";
-import { Dashboard } from "@screens/dashboard";
+import { Dashboard } from "@screens/Dashboard";
 import { FilterDetails, Filters } from "@screens/filters";
 import { Logs } from "@screens/Logs";
-import { Releases } from "@screens/releases";
+import { Releases } from "@screens/Releases";
 import Settings from "@screens/Settings";
 import {
   APISettings,

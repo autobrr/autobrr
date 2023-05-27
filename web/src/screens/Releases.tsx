@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-import { ReleaseTable } from "./ReleaseTable";
+import { ReleaseTable } from "./releases/ReleaseTable";
 
 export const Releases = () => (
   <main>
@@ -17,3 +17,5 @@ export const Releases = () => (
     </div>
   </main>
 );
+
+export default Releases;
