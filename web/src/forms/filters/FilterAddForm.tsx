@@ -22,7 +22,7 @@ interface filterAddFormProps {
     toggle: () => void;
 }
 
-function FilterAddForm({ isOpen, toggle }: filterAddFormProps) {
+export function FilterAddForm({ isOpen, toggle }: filterAddFormProps) {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const mutation = useMutation({
@@ -169,5 +169,3 @@ function FilterAddForm({ isOpen, toggle }: filterAddFormProps) {
     </Transition.Root>
   );
 }
-
-export default FilterAddForm;
