@@ -83,7 +83,7 @@ function SidebarNav({ subNavigation }: SidebarNavProps) {
   );
 }
 
-export default function Settings() {
+export function Settings() {
   return (
     <main>
       <header className="py-10">
@@ -103,4 +103,3 @@ export default function Settings() {
     </main>
   );
 }
-

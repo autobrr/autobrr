@@ -6,27 +6,15 @@
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { baseUrl } from "@utils";
 
-import { Login } from "@screens/auth/Login";
-import { Onboarding } from "@screens/auth/Onboarding";
+import { NotFound } from "@components/alerts/NotFound";
 import { Base } from "@screens/Base";
 import { Dashboard } from "@screens/Dashboard";
-import { FilterDetails, Filters } from "@screens/filters";
 import { Logs } from "@screens/Logs";
+import { Filters, FilterDetails } from "@screens/filters";
 import { Releases } from "@screens/Releases";
-import Settings from "@screens/Settings";
-import {
-  APISettings,
-  ApplicationSettings,
-  DownloadClientSettings,
-  FeedSettings,
-  IndexerSettings,
-  IrcSettings,
-  LogSettings,
-  NotificationSettings,
-  ReleaseSettings,
-  RegexPlayground
-} from "@screens/settings/index";
-import { NotFound } from "@components/alerts/NotFound";
+import { Settings } from "@screens/Settings";
+import * as SettingsSubPage from "@screens/settings/index";
+import { Login, Onboarding } from "@screens/auth";
 
 export const LocalRouter = ({ isLoggedIn }: { isLoggedIn: boolean }) => (
   <BrowserRouter basename={baseUrl()}>
@@ -42,16 +30,16 @@ export const LocalRouter = ({ isLoggedIn }: { isLoggedIn: boolean }) => (
             <Route path=":filterId/*" element={<FilterDetails />} />
           </Route>
           <Route path="settings" element={<Settings />}>
-            <Route index element={<ApplicationSettings />} />
-            <Route path="logs" element={<LogSettings />} />
-            <Route path="api-keys" element={<APISettings />} />
-            <Route path="indexers" element={<IndexerSettings />} />
-            <Route path="feeds" element={<FeedSettings />} />
-            <Route path="irc" element={<IrcSettings />} />
-            <Route path="clients" element={<DownloadClientSettings />} />
-            <Route path="notifications" element={<NotificationSettings />} />
-            <Route path="releases" element={<ReleaseSettings />} />
-            <Route path="regex-playground" element={<RegexPlayground />} />
+            <Route index element={<SettingsSubPage.Application />} />
+            <Route path="logs" element={<SettingsSubPage.Logs />} />
+            <Route path="api-keys" element={<SettingsSubPage.Api />} />
+            <Route path="indexers" element={<SettingsSubPage.Indexer />} />
+            <Route path="feeds" element={<SettingsSubPage.Feed />} />
+            <Route path="irc" element={<SettingsSubPage.Irc />} />
+            <Route path="clients" element={<SettingsSubPage.DownloadClient />} />
+            <Route path="notifications" element={<SettingsSubPage.Notification />} />
+            <Route path="releases" element={<SettingsSubPage.Release />} />
+            <Route path="regex-playground" element={<SettingsSubPage.RegexPlayground />} />
           </Route>
         </Route>
       </Routes>

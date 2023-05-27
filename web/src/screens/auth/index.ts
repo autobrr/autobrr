@@ -3,5 +3,5 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-export { Filters } from "./List";
-export { FilterDetails } from "./Details";
+export { Login } from "./Login";
+export { Onboarding } from "./Onboarding";

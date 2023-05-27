@@ -23,7 +23,7 @@ export const Onboarding = () => {
 
     if (!values.username)
       obj.username = "Required";
-    
+
     if (!values.password1)
       obj.password1 = "Required";
 
@@ -32,7 +32,7 @@ export const Onboarding = () => {
 
     if (values.password1 !== values.password2)
       obj.password2 = "Passwords don't match!";
-    
+
     return obj;
   };
 
@@ -83,4 +83,3 @@ export const Onboarding = () => {
     </div>
   );
 };
-

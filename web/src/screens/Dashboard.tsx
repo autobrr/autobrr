@@ -14,5 +14,3 @@ export const Dashboard = () => (
     </div>
   </main>
 );
-
-export default Dashboard;

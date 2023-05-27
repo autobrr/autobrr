@@ -123,13 +123,13 @@ function ListItem({ notification }: ListItemProps) {
       queryClient.invalidateQueries({ queryKey: notificationKeys.lists() });
     }
   });
-  
+
   const onToggleMutation = (newState: boolean) => {
     mutation.mutate({
       ...notification,
       enabled: newState
     });
-  };  
+  };
 
   return (
     <li key={notification.id} className="text-gray-500 dark:text-gray-400">

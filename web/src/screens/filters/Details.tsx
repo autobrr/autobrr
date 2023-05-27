@@ -212,7 +212,7 @@ const schema = z.object({
   actions: z.array(actionSchema)
 });
 
-export default function FilterDetails() {
+export function FilterDetails() {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const { filterId } = useParams<{ filterId: string }>();

@@ -17,5 +17,3 @@ export const Releases = () => (
     </div>
   </main>
 );
-
-export default Releases;
