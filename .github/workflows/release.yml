@@ -111,6 +111,9 @@ jobs:
           path: |
             dist/*.tar.gz
             dist/*.zip
+            dist/*.apk
+            dist/*.deb
+            dist/*.rpm
 
   goreleaser:
     name: Build and publish binaries
