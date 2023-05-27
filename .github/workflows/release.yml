@@ -152,6 +152,9 @@ jobs:
           path: |
             dist/*.tar.gz
             dist/*.zip
+            dist/*.apk
+            dist/*.deb
+            dist/*.rpm
 
   docker:
     name: Build and publish Docker images
