@@ -1,0 +1,69 @@
+---
+name: Sharewood
+identifier: sharewood
+description: Sharewood (Sw) is a Private French Torrent Tracker for MOVIES / TV / GENERAL
+language: fr-fr
+urls:
+  - https://www.sharewood.tv/
+privacy: private
+protocol: torrent
+supports:
+  - irc
+  - rss
+source: custom
+settings:
+  - name: passkey
+    type: secret
+    required: true
+    label: Passkey
+    help: "Aller sur Mon Profil, puis cliquer sur Afficher Passkey"
+
+irc:
+  network: HiddenForest
+  server: irc.hiddenforest.ml
+  port: 7000
+  tls: true
+  channels:
+    - "#rss"
+  announcers:
+    - Lana
+  settings:
+    - name: nick
+      type: text
+      required: true
+      label: Nick
+      help: Bot nick. Eg. user_bot
+
+    - name: auth.account
+      type: text
+      required: false
+      label: NickServ Account
+      help: NickServ account. Make sure to group your user and bot.
+
+    - name: auth.password
+      type: secret
+      required: false
+      label: NickServ Password
+      help: NickServ password
+
+  parse:
+    type: single
+    lines:
+      - test:
+          - "Vidéos | La Brea S02E08 MULTi 1080p WEB x264-FW | 1.27 GiB | 1080p/i <https://sharewood.tv/torrents/la-brea-s02e08-multi-1080p-web-x264-fw.66870>"
+          - "Vidéos | Le Griffon S01 FRENCH 2160p WEBRip AMZ HDR x265 10bits EAC3 5.1-Amen | 11.08 GiB | 2160p <https://sharewood.tv/torrents/le-griffon-s01-french-2160p-webrip-amz-hdr-x265-10bits-eac3-51-amen.66881>"
+          - "Audios | Molly Hatchet - Southern Rock Masters (2008) - Flac 16-44 | 402.07 MiB | <https://sharewood.tv/torrents/molly-hatchet-southern-rock-masters-2008-flac-16-44.66882>"
+          - "Ebooks | Edgar Allan Poe - Nouvelles integrales - 2018-2019 - FRENCH - EPUB | 2.39 MiB | <https://sharewood.tv/torrents/edgar-allan-poe-nouvelles-integrales-2018-2019-french-epub.66884>"
+        pattern: '(.+) \| (.+) \| (.+) \| (.*?) ?<(https?:\/\/.+\/)(.+)\.(\d+)>'
+        vars:
+          - category
+          - torrentName
+          - torrentSize
+          - resolution
+          - baseUrl
+          - torrentSlug
+          - torrentId
+
+    match:
+      infourl: "/torrents/{{ .torrentSlug }}.{{ .torrentId }}"
+      torrenturl: "/api/{{ .passkey }}/{{ .torrentId }}/download"
