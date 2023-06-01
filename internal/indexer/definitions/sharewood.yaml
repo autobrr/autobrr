@@ -38,7 +38,7 @@ irc:
       type: text
       required: false
       label: NickServ Account
-      help: NickServ account. Make sure to group your user and bot.
+      help: NickServ account. Make sure to group your user and bot. Change Mechanism from SASL to NickServ in IRC settings.
 
     - name: auth.password
       type: secret
