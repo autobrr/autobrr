@@ -65,7 +65,8 @@ export default ({ mode }: { mode: any }) => {
         display: "standalone"
       },
       workbox: {
-        globPatterns: ["**/*.{js,css,html,svg}"],
+        // looks inside "dist" folder
+        globPatterns: ["**/*.{js,css,html,svg,woff2}"],
         sourcemap: true,
         navigateFallbackDenylist: [/^\/api/]
       }
