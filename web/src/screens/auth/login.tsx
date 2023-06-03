@@ -10,7 +10,7 @@ import { useMutation } from "@tanstack/react-query";
 import toast from "react-hot-toast";
 import { Tooltip } from "react-tooltip";
 
-import logo from "@app/logo.png";
+import { ReactComponent as Logo } from "@app/logo.svg";
 import { APIClient } from "@api/APIClient";
 import { AuthContext } from "@utils/Context";
 import { PasswordInput, TextInput } from "@components/inputs/text";
@@ -64,7 +64,7 @@ export const Login = () => {
   return (
     <div className="min-h-screen flex flex-col justify-center py-12 sm:px-6 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-md mb-6">
-        <img className="mx-auto h-12 w-auto" src={logo} alt="logo"/>
+        <Logo className="mx-auto h-12" />
         <h1 className="text-center text-gray-900 dark:text-gray-200 font-bold pt-2 text-2xl">
           autobrr
         </h1>
