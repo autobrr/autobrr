@@ -26,7 +26,7 @@ settings:
     help: Right click DL on a torrent and get the torrent_pass.
 
 irc:
-  network: digitalirc.org
+  network: DigitalIRC
   server: irc.digitalirc.org
   port: 6697
   tls: true
