@@ -20,6 +20,7 @@ import (
 
 	"github.com/autobrr/autobrr/pkg/errors"
 
+	"github.com/anacrolix/torrent/bencode"
 	"github.com/anacrolix/torrent/metainfo"
 	"github.com/avast/retry-go"
 	"github.com/dustin/go-humanize"
@@ -364,10 +365,10 @@ func (r *Release) DownloadTorrentFile() error {
 }
 
 func (r *Release) downloadTorrentFile(ctx context.Context) error {
-	if r.Protocol != ReleaseProtocolTorrent {
-		return errors.New("download_file: protocol is not %s: %s", ReleaseProtocolTorrent, r.Protocol)
-	} else if r.HasMagnetUri() {
-		return fmt.Errorf("error trying to download magnet link: %s", r.MagnetURI)
+	if r.HasMagnetUri() {
+		return errors.New("downloading magnet links are not supported: %s", r.MagnetURI)
+	} else if r.Protocol != ReleaseProtocolTorrent {
+		return errors.New("could not download file: protocol %s is not supported", r.Protocol)
 	}
 
 	if r.TorrentURL == "" {
@@ -456,23 +457,6 @@ func (r *Release) downloadTorrentFile(ctx context.Context) error {
 			return errors.Wrap(err, "error reading response body")
 		}
 
-		// Check if the Content-Type header is correct
-		contentType := resp.Header.Get("Content-Type")
-		if strings.Contains(contentType, "text/html") {
-			// Detect the content type of the body
-			mimeType := http.DetectContentType(bodyBytes)
-			if mimeType != "application/x-bittorrent" {
-				return retry.Unrecoverable(fmt.Errorf("unexpected content type '%s' for file %s: check indexer keys for %s", contentType, r.TorrentURL, r.Indexer))
-			}
-		}
-
-		// Write the body to file
-		tmpFile.Write(bodyBytes)
-		if err != nil {
-			resetTmpFile()
-			return errors.Wrap(err, "error writing downloaded file: %v", tmpFile.Name())
-		}
-
 		// Create a new reader for bodyBytes
 		bodyReader := bytes.NewReader(bodyBytes)
 
@@ -480,19 +464,33 @@ func (r *Release) downloadTorrentFile(ctx context.Context) error {
 		meta, err := metainfo.Load(bodyReader)
 		if err != nil {
 			resetTmpFile()
-			return errors.Wrap(err, "metainfo could not load file contents: %v", tmpFile.Name())
+
+			// explicitly check for unexpected content type that match html
+			var bse *bencode.SyntaxError
+			if errors.As(err, &bse) {
+				// regular error so we can retry if we receive html first run
+				return errors.Wrap(err, "metainfo unexpected content type, got HTML expected a bencoded torrent. check indexer keys for %s - %s", r.Indexer, r.TorrentName)
+			}
+
+			return retry.Unrecoverable(errors.Wrap(err, "metainfo unexpected content type. check indexer keys for %s - %s", r.Indexer, r.TorrentName))
+		}
+
+		// Write the body to file
+		if _, err := tmpFile.Write(bodyBytes); err != nil {
+			resetTmpFile()
+			return errors.Wrap(err, "error writing downloaded file: %s", tmpFile.Name())
 		}
 
 		torrentMetaInfo, err := meta.UnmarshalInfo()
 		if err != nil {
 			resetTmpFile()
-			return errors.Wrap(err, "metainfo could not unmarshal info from torrent: %v", tmpFile.Name())
+			return retry.Unrecoverable(errors.Wrap(err, "metainfo could not unmarshal info from torrent: %s", tmpFile.Name()))
 		}
 
 		hashInfoBytes := meta.HashInfoBytes().Bytes()
 		if len(hashInfoBytes) < 1 {
 			resetTmpFile()
-			return errors.New("could not read infohash")
+			return retry.Unrecoverable(errors.New("could not read infohash"))
 		}
 
 		r.TorrentTmpFile = tmpFile.Name()
