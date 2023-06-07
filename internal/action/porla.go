@@ -51,20 +51,25 @@ func (s *service) porla(ctx context.Context, action *domain.Action, release doma
 		return rejections, nil
 	}
 
+	var downloadLimit *int64 = nil
+	var uploadLimit *int64 = nil
+
+	if action.LimitDownloadSpeed > 0 {
+		dlValue := action.LimitDownloadSpeed * 1000
+		downloadLimit = &dlValue
+	}
+
+	if action.LimitUploadSpeed > 0 {
+		ulValue := action.LimitUploadSpeed * 1000
+		uploadLimit = &ulValue
+	}
+
 	if release.HasMagnetUri() {
 		opts := &porla.TorrentsAddReq{
-			DownloadLimit: -1,
-			UploadLimit:   -1,
-			SavePath:      action.SavePath,
+			DownloadLimit: downloadLimit,
 			MagnetUri:     release.MagnetURI,
-		}
-
-		if action.LimitDownloadSpeed > 0 {
-			opts.DownloadLimit = action.LimitDownloadSpeed * 1000
-		}
-
-		if action.LimitUploadSpeed > 0 {
-			opts.UploadLimit = action.LimitUploadSpeed * 1000
+			SavePath:      action.SavePath,
+			UploadLimit:   uploadLimit,
 		}
 
 		if err = prl.TorrentsAdd(ctx, opts); err != nil {
@@ -94,18 +99,10 @@ func (s *service) porla(ctx context.Context, action *domain.Action, release doma
 		}
 
 		opts := &porla.TorrentsAddReq{
-			DownloadLimit: -1,
+			DownloadLimit: downloadLimit,
 			SavePath:      action.SavePath,
 			Ti:            base64.StdEncoding.EncodeToString(content),
-			UploadLimit:   -1,
-		}
-
-		if action.LimitDownloadSpeed > 0 {
-			opts.DownloadLimit = action.LimitDownloadSpeed * 1000
-		}
-
-		if action.LimitUploadSpeed > 0 {
-			opts.UploadLimit = action.LimitUploadSpeed * 1000
+			UploadLimit:   uploadLimit,
 		}
 
 		if err = prl.TorrentsAdd(ctx, opts); err != nil {
