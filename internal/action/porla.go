@@ -64,12 +64,19 @@ func (s *service) porla(ctx context.Context, action *domain.Action, release doma
 		uploadLimit = &ulValue
 	}
 
+	var preset *string = nil
+
+	if action.Label != "" {
+		preset = &action.Label
+	}
+
 	if release.HasMagnetUri() {
 		opts := &porla.TorrentsAddReq{
 			DownloadLimit: downloadLimit,
 			MagnetUri:     release.MagnetURI,
 			SavePath:      action.SavePath,
 			UploadLimit:   uploadLimit,
+			Preset:        preset,
 		}
 
 		if err = prl.TorrentsAdd(ctx, opts); err != nil {
@@ -103,6 +110,7 @@ func (s *service) porla(ctx context.Context, action *domain.Action, release doma
 			SavePath:      action.SavePath,
 			Ti:            base64.StdEncoding.EncodeToString(content),
 			UploadLimit:   uploadLimit,
+			Preset:        preset,
 		}
 
 		if err = prl.TorrentsAdd(ctx, opts); err != nil {
