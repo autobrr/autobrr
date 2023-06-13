@@ -17,7 +17,7 @@ settings:
     type: secret
     required: true
     label: API key
-    help: "Copy string from wget link behind the torrent name. https://tsctracker.org/x/x/x/<APIKEY>/*.torrent"
+    help: "Copy string from wget link behind the torrent name. https://tsctracker.org/x/x/x/<APIKEY>/torrentname.torrent"
 
   - name: uid
     type: secret
