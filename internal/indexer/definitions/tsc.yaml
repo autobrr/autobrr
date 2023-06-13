@@ -10,7 +10,7 @@ privacy: private
 protocol: torrent
 supports:
   - irc
-  # - rss
+  - rss
 source: custom
 settings:
   - name: api_key
