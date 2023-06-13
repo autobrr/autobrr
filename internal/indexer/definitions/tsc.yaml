@@ -16,14 +16,14 @@ settings:
   - name: api_key
     type: secret
     required: true
-    label: Api-Key
-    help: "At the end of the wget link. Eg. https://www.tsctracker.org/ddownload_ssl.php/xxx/APIKEY"
+    label: API key
+    help: "Copy string from wget link behind the torrent name. https://tsctracker.org/x/x/x/<APIKEY>/*.torrent"
 
   - name: uid
     type: secret
     required: true
-    label: UserId
-    help: "Url of MyProfile. Eg. https://www.tsctracker.org/userdetails.php?id=USERID"
+    label: User ID
+    help: "Copy the ID in the URL of your profile page. https://tsctracker.org/userdetails.php?id=<USERID>"
 
 irc:
   network: TorrentSectorCrew
@@ -57,11 +57,11 @@ irc:
     type: single
     lines:
       - test:
-          - "[Games/PC] The.Smallest.Game-ze0s (Größe: 31,53 MB) https://tsctracker.org/details.php?id=3443"
-          - "[Music/MP3] TUNES_4_LYFE_WEB_iNT (Größe: 31,53 GB) https://tsctracker.org/details.php?id=30104"
-          - "[XXX/0-Day] Cute.Stuff.69.XXX.VR180.2700p.MP4-s0ez (Größe: 2,3 TB) https://tsctracker.org/details.php?id=30444221135"
-          - "[Movies/HD] Have.You.Seen.The.Cat.Tonight-WhereThat (Größe: 1,0 MB) https://tsctracker.org/details.php?id=3018979898"
-          - "[TV-HD/X264] The.Eggerton.S01E01.720p.WEB.h264-OTA (Größe: 131,94 GB) https://tsctracker.org/details.php?id=302099"
+          - "[Games/PC] The.Smallest.Game-ze0s (Größe: 31,53 MB) https://tsctracker.org/details.php?id=0000000"
+          - "[Music/MP3] TUNES_4_LYFE_WEB_iNT (Größe: 31,53 GB) https://tsctracker.org/details.php?id=0000000"
+          - "[XXX/0-Day] Cute.Stuff.69.XXX.VR180.2700p.MP4-s0ez (Größe: 2,3 TB) https://tsctracker.org/details.php?id=0000000"
+          - "[Movies/HD] Have.You.Seen.The.Cat.Tonight-WhereThat (Größe: 1,0 MB) https://tsctracker.org/details.php?id=0000000"
+          - "[TV-HD/X264] The.Eggerton.S01E01.720p.WEB.h264-OTA (Größe: 131,94 GB) https://tsctracker.org/details.php?id=0000000"
         pattern: '\[(.*)\].(.*?).\(Größe:.(.*?)\).*id=(\d+)'
         vars:
           - category
