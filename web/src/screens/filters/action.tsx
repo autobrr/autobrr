@@ -476,6 +476,15 @@ const TypeForm = ({ action, idx, clients }: TypeFormProps) => {
           </div>
         </div>
 
+        <div className="mt-6 grid grid-cols-12 gap-6">
+          <TextField
+            name={`actions.${idx}.label`}
+            label="Preset"
+            columns={6}
+            placeholder="eg. default"
+            tooltip={<div>A case-sensitive preset name as configured in Porla.</div>} />
+        </div>
+
         <CollapsableSection title="Rules" subtitle="client options">
           <div className="col-span-12">
             <div className="mt-6 grid grid-cols-12 gap-6">
