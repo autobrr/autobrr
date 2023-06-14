@@ -366,7 +366,7 @@ func (r *Release) DownloadTorrentFile() error {
 
 func (r *Release) downloadTorrentFile(ctx context.Context) error {
 	if r.HasMagnetUri() {
-		return errors.New("downloading magnet links are not supported: %s", r.MagnetURI)
+		return errors.New("downloading magnet links is not supported: %s", r.MagnetURI)
 	} else if r.Protocol != ReleaseProtocolTorrent {
 		return errors.New("could not download file: protocol %s is not supported", r.Protocol)
 	}
@@ -423,9 +423,9 @@ func (r *Release) downloadTorrentFile(ctx context.Context) error {
 		switch resp.StatusCode {
 		case http.StatusOK:
 			// Continue processing the response
-		case http.StatusMovedPermanently, http.StatusFound, http.StatusSeeOther, http.StatusTemporaryRedirect, http.StatusPermanentRedirect:
-			// Handle redirect
-			return retry.Unrecoverable(errors.New("redirect encountered for torrent (%v) file (%v) - status code: %d - check indexer keys for %s", r.TorrentName, r.TorrentURL, resp.StatusCode, r.Indexer))
+		//case http.StatusMovedPermanently, http.StatusFound, http.StatusSeeOther, http.StatusTemporaryRedirect, http.StatusPermanentRedirect:
+		//	// Handle redirect
+		//	return retry.Unrecoverable(errors.New("redirect encountered for torrent (%v) file (%v) - status code: %d - check indexer keys for %s", r.TorrentName, r.TorrentURL, resp.StatusCode, r.Indexer))
 
 		case http.StatusUnauthorized, http.StatusForbidden:
 			return retry.Unrecoverable(errors.New("unrecoverable error downloading torrent (%v) file (%v) - status code: %d - check indexer keys for %s", r.TorrentName, r.TorrentURL, resp.StatusCode, r.Indexer))
