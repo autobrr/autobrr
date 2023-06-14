@@ -45,6 +45,8 @@ CREATE TABLE irc_network
     auth_account        TEXT,
     auth_password       TEXT,
     invite_command      TEXT,
+    use_bouncer         BOOLEAN,
+    bouncer_addr        TEXT,
     connected           BOOLEAN,
     connected_since     TIMESTAMP,
     created_at          TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -699,4 +701,9 @@ ADD COLUMN topic text;`,
 ALTER TABLE release_action_status
     ADD CONSTRAINT release_action_status_action_id_fk
         FOREIGN KEY (action_id) REFERENCES action;`,
+	`ALTER TABLE irc_network
+ADD COLUMN use_bouncer BOOLEAN DEFAULT FALSE;
+
+ALTER TABLE irc_network
+ADD COLUMN bouncer_addr TEXT;`,
 }

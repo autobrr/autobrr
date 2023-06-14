@@ -416,6 +416,8 @@ func (s *service) GetNetworksWithHealth(ctx context.Context) ([]domain.IrcNetwor
 			Nick:             n.Nick,
 			Auth:             n.Auth,
 			InviteCommand:    n.InviteCommand,
+			BouncerAddr:      n.BouncerAddr,
+			UseBouncer:       n.UseBouncer,
 			Connected:        false,
 			Channels:         []domain.ChannelWithHealth{},
 			ConnectionErrors: []string{},

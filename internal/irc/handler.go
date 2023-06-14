@@ -156,6 +156,10 @@ func (h *Handler) Run() error {
 
 	addr := fmt.Sprintf("%v:%d", h.network.Server, h.network.Port)
 
+	if h.network.UseBouncer && h.network.BouncerAddr != "" {
+		addr = h.network.BouncerAddr
+	}
+
 	subLogger := zstdlog.NewStdLoggerWithLevel(h.log.With().Logger(), zerolog.TraceLevel)
 
 	h.client = &ircevent.Connection{
