@@ -141,7 +141,7 @@ dependencies:
     specifier: ^4.7.3
     version: 4.7.3
   vite:
-    specifier: ^4.2.1
+    specifier: ^4.3.9
     version: 4.3.9(@types/node@18.0.0)
   vite-plugin-pwa:
     specifier: ^0.14.6
