@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-import { Fragment, useRef, useState, useMemo, useEffect } from "react";
+import { Fragment, useRef, useState, useMemo, useEffect, MouseEvent } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { LockClosedIcon, LockOpenIcon } from "@heroicons/react/24/solid";
 import { Menu, Switch, Transition } from "@headlessui/react";
@@ -53,7 +53,7 @@ function useSort(items: ListItemProps["network"][], config?: SortConfig) {
     sortableItems.sort((a, b) => {
       const aValue = sortConfig.key === "enabled" ? (a[sortConfig.key] ?? false) as number | boolean | string : a[sortConfig.key] as number | boolean | string;
       const bValue = sortConfig.key === "enabled" ? (b[sortConfig.key] ?? false) as number | boolean | string : b[sortConfig.key] as number | boolean | string;
-  
+
       if (aValue < bValue) {
         return sortConfig.direction === "ascending" ? -1 : 1;
       }
@@ -61,7 +61,7 @@ function useSort(items: ListItemProps["network"][], config?: SortConfig) {
         return sortConfig.direction === "ascending" ? 1 : -1;
       }
       return 0;
-    });    
+    });
 
     return sortableItems;
   }, [items, sortConfig]);
@@ -77,13 +77,13 @@ function useSort(items: ListItemProps["network"][], config?: SortConfig) {
     }
     setSortConfig({ key, direction });
   };
-  
+
 
   const getSortIndicator = (key: keyof ListItemProps["network"]) => {
     if (!sortConfig || sortConfig.key !== key) {
       return "";
     }
-    
+
     return sortConfig.direction === "ascending" ? "↑" : "↓";
   };
 
@@ -160,7 +160,7 @@ const IrcSettings = () => {
             </li>
           </ol>
           <div className="flex gap-x-2">
-            <button 
+            <button
               className="flex items-center text-gray-800 dark:text-gray-400 p-1 px-2 rounded shadow bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600"
               onClick={toggleExpand}
               title={expandNetworks ? "collapse" : "expand"}
@@ -241,19 +241,26 @@ const ListItem = ({ idx, network, expanded }: ListItemProps) => {
 
   return (
     <li key={idx}>
-      <div className={classNames("grid grid-cols-12 gap-2 lg:gap-4 items-center py-2", network.enabled && !network.healthy ? "bg-red-50 dark:bg-red-900 hover:bg-red-100 dark:hover:bg-red-800" : "hover:bg-gray-50 dark:hover:bg-gray-700")}>
+      <div
+        className={classNames(
+          "grid grid-cols-12 gap-2 lg:gap-4 items-center py-2 cursor-pointer",
+          network.enabled && !network.healthy ? "bg-red-50 dark:bg-red-900 hover:bg-red-100 dark:hover:bg-red-800" : "hover:bg-gray-50 dark:hover:bg-gray-700"
+        )}
+        onClick={toggleEdit}
+      >
         <IrcNetworkUpdateForm
           isOpen={updateIsOpen}
           toggle={toggleUpdate}
           network={network}
         />
-        <div className="col-span-2 md:col-span-1 flex pl-5 text-gray-500 dark:text-gray-400 cursor-pointer">
+        <div className="col-span-2 md:col-span-1 flex pl-5 text-gray-500 dark:text-gray-400">
           <Switch
+            onClick={(e: MouseEvent) => e.stopPropagation()}
             checked={network.enabled}
             onChange={onToggleMutation}
             className={classNames(
               network.enabled ? "bg-blue-500" : "bg-gray-200 dark:bg-gray-600",
-              "items-center relative inline-flex flex-shrink-0 h-6 w-11 border-2 border-transparent rounded-full cursor-pointer transition-colors ease-in-out duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              "items-center relative inline-flex flex-shrink-0 h-6 w-11 border-2 border-transparent rounded-full transition-colors ease-in-out duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
             )}
           >
             <span className="sr-only">Enable</span>
@@ -266,9 +273,7 @@ const ListItem = ({ idx, network, expanded }: ListItemProps) => {
             />
           </Switch>
         </div>
-        <div className="col-span-8 xs:col-span-3 md:col-span-3 items-center pl-8 font-medium text-gray-900 dark:text-white cursor-pointer"
-          onClick={toggleEdit}
-        >
+        <div className="col-span-8 xs:col-span-3 md:col-span-3 items-center pl-8 font-medium text-gray-900 dark:text-white cursor-pointer">
           <div className="flex">
             <span className="relative inline-flex items-center ml-1">
               {network.enabled ? (
@@ -297,10 +302,7 @@ const ListItem = ({ idx, network, expanded }: ListItemProps) => {
             </div>
           </div>
         </div>
-        <div
-          className="hidden md:flex col-span-4 md:pl-6 text-gray-500 dark:text-gray-400 cursor-pointer"
-          onClick={toggleEdit}
-        >
+        <div className="hidden md:flex col-span-4 md:pl-6 text-gray-500 dark:text-gray-400">
           <div
             className="overflow-x-auto flex items-center"
             title={network.tls ? "Secured using TLS" : "Insecure, not using TLS"}
@@ -325,10 +327,7 @@ const ListItem = ({ idx, network, expanded }: ListItemProps) => {
             </p>
           </div>
         </div>
-        <div
-          className="hidden md:flex col-span-3 items-center md:pl-6 text-gray-500 dark:text-gray-400 cursor-pointer"
-          onClick={toggleEdit}
-        >
+        <div className="hidden md:flex col-span-3 items-center md:pl-6 text-gray-500 dark:text-gray-400">
           <div className="block truncate">
             {network.nick}
           </div>
@@ -462,7 +461,10 @@ const ListItemDropdown = ({
   const restart = (id: number) => restartMutation.mutate(id);
 
   return (
-    <Menu as="div">
+    <Menu 
+      as="div"
+      onClick={(e: MouseEvent) => e.stopPropagation()}
+    >
       <DeleteModal
         isOpen={deleteModalIsOpen}
         toggle={toggleDeleteModal}
