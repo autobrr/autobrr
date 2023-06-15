@@ -104,7 +104,7 @@ const IrcSettings = () => {
   const sortedNetworks = useSort(data || []);
 
   return (
-    <div className="lg:col-span-9">
+    <div className="text-sm lg:col-span-9">
       <IrcNetworkAddForm isOpen={addNetworkIsOpen} toggle={toggleAddNetwork} />
 
       <div className="py-6 px-4 md:p-6 lg:pb-8">
@@ -113,7 +113,7 @@ const IrcSettings = () => {
             <h3 className="text-lg leading-6 font-medium text-gray-900 dark:text-white">
               IRC
             </h3>
-            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+            <p className="mt-1 text-gray-500 dark:text-gray-400">
               IRC networks and channels. Click on a network to view channel
               status.
             </p>
@@ -122,7 +122,7 @@ const IrcSettings = () => {
             <button
               type="button"
               onClick={toggleAddNetwork}
-              className="relative inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              className="relative inline-flex items-center px-4 py-2 border border-transparent shadow-sm font-medium rounded-md text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
             >
               Add new
             </button>
@@ -139,7 +139,7 @@ const IrcSettings = () => {
                 <span className="animate-ping inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
                 <span className="inline-flex absolute rounded-full h-4 w-4 bg-green-500" />
               </span>
-              <span className="text-sm text-gray-800 dark:text-gray-500">Network healthy</span>
+              <span className="text-gray-800 dark:text-gray-500">Network healthy</span>
             </li>
 
             <li className="flex items-center md:pl-2">
@@ -147,7 +147,7 @@ const IrcSettings = () => {
                 className="mr-2 flex h-4 w-4 rounded-full opacity-75 bg-yellow-400 over:text-yellow-600"
                 title="Network unhealthy"
               />
-              <span className="text-sm text-gray-800 dark:text-gray-500">Network unhealthy</span>
+              <span className="text-gray-800 dark:text-gray-500">Network unhealthy</span>
             </li>
 
             <li className="flex items-center md:pl-2">
@@ -156,11 +156,15 @@ const IrcSettings = () => {
                 title="Network disabled"
               >
               </span>
-              <span className="text-sm text-gray-800 dark:text-gray-500">Network disabled</span>
+              <span className="text-gray-800 dark:text-gray-500">Network disabled</span>
             </li>
           </ol>
           <div className="flex gap-x-2">
-            <button className="flex items-center text-sm text-gray-800 dark:text-gray-400 p-1 px-2 rounded shadow bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600" onClick={toggleExpand} title={expandNetworks ? "collapse" : "expand"}>
+            <button 
+              className="flex items-center text-gray-800 dark:text-gray-400 p-1 px-2 rounded shadow bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600"
+              onClick={toggleExpand}
+              title={expandNetworks ? "collapse" : "expand"}
+            >
               {expandNetworks
                 ? <span className="flex items-center">Collapse <ArrowsPointingInIcon className="ml-1 w-4 h-4"/></span>
                 : <span className="flex items-center">Expand <ArrowsPointingOutIcon className="ml-1 w-4 h-4"/></span>
@@ -243,7 +247,7 @@ const ListItem = ({ idx, network, expanded }: ListItemProps) => {
           toggle={toggleUpdate}
           network={network}
         />
-        <div className="col-span-2 md:col-span-1 flex pl-5 text-sm text-gray-500 dark:text-gray-400 cursor-pointer">
+        <div className="col-span-2 md:col-span-1 flex pl-5 text-gray-500 dark:text-gray-400 cursor-pointer">
           <Switch
             checked={network.enabled}
             onChange={onToggleMutation}
@@ -262,8 +266,7 @@ const ListItem = ({ idx, network, expanded }: ListItemProps) => {
             />
           </Switch>
         </div>
-        <div
-          className="col-span-8 xs:col-span-3 md:col-span-3 items-center pl-8 text-sm font-medium text-gray-900 dark:text-white cursor-pointer"
+        <div className="col-span-8 xs:col-span-3 md:col-span-3 items-center pl-8 font-medium text-gray-900 dark:text-white cursor-pointer"
           onClick={toggleEdit}
         >
           <div className="flex">
@@ -295,7 +298,7 @@ const ListItem = ({ idx, network, expanded }: ListItemProps) => {
           </div>
         </div>
         <div
-          className="hidden md:flex col-span-4 md:pl-6 text-sm text-gray-500 dark:text-gray-400 cursor-pointer"
+          className="hidden md:flex col-span-4 md:pl-6 text-gray-500 dark:text-gray-400 cursor-pointer"
           onClick={toggleEdit}
         >
           <div
@@ -323,14 +326,14 @@ const ListItem = ({ idx, network, expanded }: ListItemProps) => {
           </div>
         </div>
         <div
-          className="hidden md:flex col-span-3 items-center md:pl-6 text-sm text-gray-500 dark:text-gray-400 cursor-pointer"
+          className="hidden md:flex col-span-3 items-center md:pl-6 text-gray-500 dark:text-gray-400 cursor-pointer"
           onClick={toggleEdit}
         >
           <div className="block truncate">
             {network.nick}
           </div>
         </div>
-        <div className="col-span-1 text-sm text-gray-500 dark:text-gray-400">
+        <div className="col-span-1 text-gray-500 dark:text-gray-400">
           <ListItemDropdown network={network} toggleUpdate={toggleUpdate} />
         </div>
       </div>
