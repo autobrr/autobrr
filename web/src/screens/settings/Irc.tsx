@@ -194,8 +194,8 @@ const IrcSettings = () => {
                 </div>
               </li>
               {data &&
-                sortedNetworks.items.map((network, idx) => (
-                  <ListItem key={idx} idx={idx} expanded={expandNetworks} network={network} />
+                sortedNetworks.items.map((network) => (
+                  <ListItem key={network.id} expanded={expandNetworks} network={network} />
                 ))}
             </ol>
           </section>
@@ -213,12 +213,11 @@ const IrcSettings = () => {
 };
 
 interface ListItemProps {
-  idx: number;
   network: IrcNetworkWithHealth;
   expanded: boolean;
 }
 
-const ListItem = ({ idx, network, expanded }: ListItemProps) => {
+const ListItem = ({ network, expanded }: ListItemProps) => {
   const [updateIsOpen, toggleUpdate] = useToggle(false);
   const [edit, toggleEdit] = useToggle(false);
 
@@ -240,7 +239,7 @@ const ListItem = ({ idx, network, expanded }: ListItemProps) => {
   };
 
   return (
-    <li key={idx}>
+    <li>
       <div
         className={classNames(
           "grid grid-cols-12 gap-2 lg:gap-4 items-center py-2 cursor-pointer",
@@ -353,7 +352,7 @@ const ListItem = ({ idx, network, expanded }: ListItemProps) => {
                   </div>
                 </li>
                 {network.channels.map((c) => (
-                  <ChannelItem network={network} channel={c} />
+                  <ChannelItem key={`${network.id}.${c.id}`} network={network} channel={c} />
                 ))}
               </ol>
             ) : (
@@ -377,9 +376,17 @@ const ChannelItem = ({ network, channel }: ChannelItemProps) => {
   const [viewChannel, toggleView] = useToggle(false);
 
   return (
-    <li key={channel.id} className={classNames("mb-2 text-gray-500 dark:text-gray-400", viewChannel ? "bg-gray-200 dark:bg-gray-800 rounded-md" : "")}>
-      <div className="grid grid-cols-12 gap-4 items-center py-4 hover:bg-gray-300 dark:hover:bg-gray-800 hover:cursor-pointer rounded-md" onClick={toggleView}>
-        <div className="col-span-4 flex items-center md:px-6 ">
+    <li
+      className={classNames(
+        "mb-2 text-gray-500 dark:text-gray-400",
+        viewChannel ? "bg-gray-200 dark:bg-gray-800 rounded-md" : ""
+      )}
+    >
+      <div
+        className="grid grid-cols-12 gap-4 items-center py-4 hover:bg-gray-300 dark:hover:bg-gray-800 hover:cursor-pointer rounded-md"
+        onClick={toggleView}
+      >
+        <div className="col-span-4 flex items-center md:px-6">
           <span className="relative inline-flex items-center">
             {network.enabled ? (
               channel.monitoring ? (
@@ -387,8 +394,7 @@ const ChannelItem = ({ network, channel }: ChannelItemProps) => {
                   className="mr-3 flex h-3 w-3 relative"
                   title="monitoring"
                 >
-                  <span
-                    className="animate-ping inline-flex h-full w-full rounded-full bg-green-400 opacity-75"/>
+                  <span className="animate-ping inline-flex h-full w-full rounded-full bg-green-400 opacity-75"/>
                   <span className="inline-flex absolute rounded-full h-3 w-3 bg-green-500"/>
                 </span>
               ) : (
@@ -400,18 +406,20 @@ const ChannelItem = ({ network, channel }: ChannelItemProps) => {
             {channel.name}
           </span>
         </div>
-        <div className="col-span-4 flex items-center md:px-6 ">
+        <div className="col-span-4 flex items-center md:px-6">
           <span title={simplifyDate(channel.monitoring_since)}>
             {IsEmptyDate(channel.monitoring_since)}
           </span>
         </div>
-        <div className="col-span-3 flex items-center md:px-6 ">
+        <div className="col-span-3 flex items-center md:px-6">
           <span title={simplifyDate(channel.last_announce)}>
             {IsEmptyDate(channel.last_announce)}
           </span>
         </div>
         <div className="col-span-1 flex items-center">
-          <button className="hover:text-gray-500 px-2 py-1 dark:bg-gray-800 rounded dark:border-gray-900">{viewChannel ? "Hide" : "View"}</button>
+          <button className="hover:text-gray-500 px-2 py-1 dark:bg-gray-800 rounded dark:border-gray-900">
+            {viewChannel ? "Hide" : "View"}
+          </button>
         </div>
       </div>
       {viewChannel && (
