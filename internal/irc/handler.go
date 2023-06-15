@@ -547,7 +547,9 @@ func (h *Handler) onNick(msg ircmsg.Message) {
 }
 
 func (h *Handler) publishSSEMsg(msg domain.IrcMessage) {
-	h.sse.Publish(fmt.Sprintf("%d%s", h.network.ID, strings.TrimPrefix(msg.Channel, "#")), &sse.Event{
+	key := genSSEKey(h.network.ID, msg.Channel)
+
+	h.sse.Publish(key, &sse.Event{
 		Data: msg.Bytes(),
 	})
 }
