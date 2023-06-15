@@ -3,6 +3,7 @@
   "version": "0.2.0",
   "private": true,
   "homepage": ".",
+  "packageManager": "pnpm@8.6.2",
   "overrides": {
     "react": "$react"
   },

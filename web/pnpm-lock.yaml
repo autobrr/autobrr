@@ -1,5 +1,12 @@
 lockfileVersion: '6.0'
 
+settings:
+  autoInstallPeers: true
+  excludeLinksFromLockfile: false
+
+overrides:
+  react: ^18.2.0
+
 dependencies:
   '@fontsource/inter':
     specifier: ^4.5.11
