@@ -279,7 +279,7 @@ func (r *IrcRepo) CheckExistingNetwork(ctx context.Context, network *domain.IrcN
 	return &net, nil
 }
 
-func (r *IrcRepo) StoreNetwork(network *domain.IrcNetwork) error {
+func (r *IrcRepo) StoreNetwork(ctx context.Context, network *domain.IrcNetwork) error {
 	netName := toNullString(network.Name)
 	pass := toNullString(network.Pass)
 	nick := toNullString(network.Nick)
@@ -289,7 +289,6 @@ func (r *IrcRepo) StoreNetwork(network *domain.IrcNetwork) error {
 	account := toNullString(network.Auth.Account)
 	password := toNullString(network.Auth.Password)
 
-	var err error
 	var retID int64
 
 	queryBuilder := r.db.squirrel.
@@ -327,13 +326,13 @@ func (r *IrcRepo) StoreNetwork(network *domain.IrcNetwork) error {
 		Suffix("RETURNING id").
 		RunWith(r.db.handler)
 
-	if err = queryBuilder.QueryRow().Scan(&retID); err != nil {
+	if err := queryBuilder.QueryRowContext(ctx).Scan(&retID); err != nil {
 		return errors.Wrap(err, "error executing query")
 	}
 
 	network.ID = retID
 
-	return err
+	return nil
 }
 
 func (r *IrcRepo) UpdateNetwork(ctx context.Context, network *domain.IrcNetwork) error {
@@ -459,7 +458,6 @@ func (r *IrcRepo) StoreNetworkChannels(ctx context.Context, networkID int64, cha
 func (r *IrcRepo) StoreChannel(ctx context.Context, networkID int64, channel *domain.IrcChannel) error {
 	pass := toNullString(channel.Password)
 
-	var err error
 	if channel.ID != 0 {
 		// update record
 		channelQueryBuilder := r.db.squirrel.
@@ -475,7 +473,7 @@ func (r *IrcRepo) StoreChannel(ctx context.Context, networkID int64, channel *do
 			return errors.Wrap(err, "error building query")
 		}
 
-		if _, err = r.db.handler.ExecContext(ctx, query, args...); err != nil {
+		if _, err := r.db.handler.ExecContext(ctx, query, args...); err != nil {
 			return errors.Wrap(err, "error executing query")
 		}
 	} else {
@@ -501,7 +499,7 @@ func (r *IrcRepo) StoreChannel(ctx context.Context, networkID int64, channel *do
 		// returning
 		var retID int64
 
-		if err = queryBuilder.QueryRowContext(ctx).Scan(&retID); err != nil {
+		if err := queryBuilder.QueryRowContext(ctx).Scan(&retID); err != nil {
 			return errors.Wrap(err, "error executing query")
 		}
 
@@ -523,7 +521,7 @@ func (r *IrcRepo) StoreChannel(ctx context.Context, networkID int64, channel *do
 		//channel.ID, err = res.LastInsertId()
 	}
 
-	return err
+	return nil
 }
 
 func (r *IrcRepo) UpdateChannel(channel *domain.IrcChannel) error {
