@@ -5,6 +5,7 @@ package irc
 
 import (
 	"context"
+	"encoding/base64"
 	"fmt"
 	"strings"
 	"sync"
@@ -638,7 +639,7 @@ func (s *service) SendCmd(ctx context.Context, req *domain.SendIrcCmdRequest) er
 }
 
 func (s *service) createSSEStream(networkId int64, channel string) {
-	key := fmt.Sprintf("%d%s", networkId, strings.TrimPrefix(channel, "#"))
+	key := genSSEKey(networkId, channel)
 
 	s.sse.CreateStreamWithOpts(key, sse.StreamOpts{
 		MaxEntries: sseMaxEntries,
@@ -647,7 +648,11 @@ func (s *service) createSSEStream(networkId int64, channel string) {
 }
 
 func (s *service) removeSSEStream(networkId int64, channel string) {
-	key := fmt.Sprintf("%d%s", networkId, strings.TrimPrefix(channel, "#"))
+	key := genSSEKey(networkId, channel)
 
 	s.sse.RemoveStream(key)
+}
+
+func genSSEKey(networkId int64, channel string) string {
+	return base64.URLEncoding.EncodeToString([]byte(fmt.Sprintf("%d%s", networkId, strings.ToLower(channel))))
 }

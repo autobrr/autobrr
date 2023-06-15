@@ -629,7 +629,7 @@ export const Events = ({ network, channel }: EventsProps) => {
   };
 
   useEffect(() => {
-    const key = `${network.id}${channel.replace("#", "")}`;
+    const key = btoa(`${network.id}${channel.toLowerCase()}`);
     const es = APIClient.irc.events(key);
 
     es.onmessage = (event) => {
