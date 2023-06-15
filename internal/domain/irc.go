@@ -122,7 +122,7 @@ func (m IrcMessage) Bytes() []byte {
 }
 
 type IrcRepo interface {
-	StoreNetwork(network *IrcNetwork) error
+	StoreNetwork(ctx context.Context, network *IrcNetwork) error
 	UpdateNetwork(ctx context.Context, network *IrcNetwork) error
 	StoreChannel(ctx context.Context, networkID int64, channel *IrcChannel) error
 	UpdateChannel(channel *IrcChannel) error
