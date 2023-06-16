@@ -125,6 +125,9 @@ code {
 
 /* Style scrollbars for webkit enabled browsers i.e. Chrome, Edge, and Safari */
 @layer base {
+  *::-webkit-scrollbar-corner {
+    background-color: transparent;
+  }
   *::-webkit-scrollbar {
     height: 8px;
     width: 8px;
