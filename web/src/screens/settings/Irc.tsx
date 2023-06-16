@@ -629,7 +629,11 @@ export const Events = ({ network, channel }: EventsProps) => {
   };
 
   useEffect(() => {
-    const key = btoa(`${network.id}${channel.toLowerCase()}`);
+    // Following RFC4648
+    const key = window.btoa(`${network.id}${channel.toLowerCase()}`)
+      .replaceAll("+", "-")
+      .replaceAll("/", "_")
+      .replaceAll("=", "");
     const es = APIClient.irc.events(key);
 
     es.onmessage = (event) => {
