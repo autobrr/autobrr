@@ -661,7 +661,7 @@ export const Events = ({ network, channel }: EventsProps) => {
       <div className="flex relative">
       </div>
 
-      <div className="overflow-y-auto px-2 rounded-lg h-[60vh] min-w-full bg-gray-100 dark:bg-gray-900 overflow-auto">
+      <div className="overflow-y-auto px-2 rounded-lg min-w-full aspect-[2/1] bg-gray-100 dark:bg-gray-900 overflow-auto">
         {logs.map((entry, idx) => (
           <div
             key={idx}
