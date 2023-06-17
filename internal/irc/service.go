@@ -654,5 +654,5 @@ func (s *service) removeSSEStream(networkId int64, channel string) {
 }
 
 func genSSEKey(networkId int64, channel string) string {
-	return base64.URLEncoding.EncodeToString([]byte(fmt.Sprintf("%d%s", networkId, strings.ToLower(channel))))
+	return base64.RawURLEncoding.EncodeToString([]byte(fmt.Sprintf("%d%s", networkId, strings.ToLower(channel))))
 }
