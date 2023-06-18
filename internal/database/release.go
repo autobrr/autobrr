@@ -594,7 +594,14 @@ func (repo *ReleaseRepo) DeleteOlder(ctx context.Context, duration int) error {
 
 	defer tx.Rollback()
 
-	olderThanTimestamp := time.Now().UTC().Add(-time.Duration(duration) * time.Hour)
+	var olderThanTimestamp time.Time
+
+	if duration == 0 {
+		olderThanTimestamp = time.Now().UTC().AddDate(100, 0, 0) // set future date to delete everything
+	} else {
+		olderThanTimestamp = time.Now().UTC().Add(-time.Duration(duration) * time.Hour)
+	}
+
 	log.Debug().Msgf("Deleting releases older than: %v", olderThanTimestamp)
 
 	result, err := tx.ExecContext(ctx, `DELETE FROM "release" WHERE timestamp < $1`, olderThanTimestamp)
