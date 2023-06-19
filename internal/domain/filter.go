@@ -551,7 +551,8 @@ func (f Filter) checkSizeFilter(r *Release, minSize string, maxSize string) bool
 		// string to bytes
 		minSizeBytes, err := humanize.ParseBytes(minSize)
 		if err != nil {
-			// log could not parse into bytes
+			r.addRejectionF("size: invalid minSize set: %s err: %q", minSize, err)
+			return false
 		}
 
 		if r.Size <= minSizeBytes {
@@ -565,7 +566,8 @@ func (f Filter) checkSizeFilter(r *Release, minSize string, maxSize string) bool
 		// string to bytes
 		maxSizeBytes, err := humanize.ParseBytes(maxSize)
 		if err != nil {
-			// log could not parse into bytes
+			r.addRejectionF("size: invalid maxSize set: %s err: %q", maxSize, err)
+			return false
 		}
 
 		if r.Size >= maxSizeBytes {
