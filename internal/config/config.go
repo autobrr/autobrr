@@ -15,10 +15,6 @@ import (
 	"sync"
 	"text/template"
 
-	"github.com/knadh/koanf/parsers/toml"
-	"github.com/knadh/koanf/providers/env"
-	"github.com/knadh/koanf/providers/file"
-
 	"github.com/autobrr/autobrr/internal/api"
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/internal/logger"
