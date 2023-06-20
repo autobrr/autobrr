@@ -659,17 +659,30 @@ export const Events = ({ network, channel }: EventsProps) => {
   }, [settings]);
 
   return (
-    <div className={classNames("dark:bg-gray-800 rounded-lg shadow-lg p-2", isFullscreen ? "fixed top-0 left-0 w-screen h-screen z-50" : "")}>
+    <div
+      className={classNames(
+        "dark:bg-gray-800 rounded-lg shadow-lg p-2",
+        isFullscreen ? "fixed top-0 left-0 w-screen h-screen z-50" : ""
+      )}
+    >
       <div className="flex relative">
         <button
-          className={classNames("dark:bg-gray-800 p-2 absolute top-2 right-2 bg-gray-200 hover:bg-gray-300 dark:hover:bg-gray-700 hover:cursor-pointer rounded-md", isFullscreen ? "mt-2 mr-4" : "mr-2")}
+          className={classNames(
+            "dark:bg-gray-800 p-2 absolute top-2 right-2 mr-2 bg-gray-200 hover:bg-gray-300 dark:hover:bg-gray-700 hover:cursor-pointer rounded-md"
+          )}
           onClick={toggleFullscreen}
-        >          {isFullscreen
+        >
+          {isFullscreen
             ? <span className="flex items-center"><ArrowsPointingInIcon className="w-5 h-5"/></span>
             : <span className="flex items-center"><ArrowsPointingOutIcon className="w-5 h-5"/></span>}
         </button>
       </div>
-      <div className={classNames("overflow-y-auto rounded-lg min-w-full bg-gray-100 dark:bg-gray-900 overflow-auto", isFullscreen ? "max-w-full h-full border-8 p-2 border-gray-300 dark:border-gray-700" : "px-2 py-1 aspect-[2/1]")}>
+      <div
+        className={classNames(
+          "overflow-y-auto rounded-lg min-w-full bg-gray-100 dark:bg-gray-900 overflow-auto",
+          isFullscreen ? "max-w-full h-full p-2 border-gray-300 dark:border-gray-700" : "px-2 py-1 aspect-[2/1]"
+        )}
+      >
         {logs.map((entry, idx) => (
           <div
             key={idx}
