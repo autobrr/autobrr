@@ -1,3 +1,6 @@
+// Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+// SPDX-License-Identifier: GPL-2.0-or-later
+
 package http
 
 import (
@@ -45,11 +48,11 @@ func (h notificationHandler) list(w http.ResponseWriter, r *http.Request) {
 
 	list, _, err := h.service.Find(ctx, domain.NotificationQueryParams{})
 	if err != nil {
-		h.encoder.StatusNotFound(ctx, w)
+		h.encoder.StatusNotFound(w)
 		return
 	}
 
-	h.encoder.StatusResponse(ctx, w, list, http.StatusOK)
+	h.encoder.StatusResponse(w, http.StatusOK, list)
 }
 
 func (h notificationHandler) store(w http.ResponseWriter, r *http.Request) {
@@ -69,7 +72,7 @@ func (h notificationHandler) store(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.encoder.StatusResponse(ctx, w, filter, http.StatusCreated)
+	h.encoder.StatusResponse(w, http.StatusCreated, filter)
 }
 
 func (h notificationHandler) update(w http.ResponseWriter, r *http.Request) {
@@ -89,7 +92,7 @@ func (h notificationHandler) update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.encoder.StatusResponse(ctx, w, filter, http.StatusOK)
+	h.encoder.StatusResponse(w, http.StatusOK, filter)
 }
 
 func (h notificationHandler) delete(w http.ResponseWriter, r *http.Request) {
@@ -104,7 +107,7 @@ func (h notificationHandler) delete(w http.ResponseWriter, r *http.Request) {
 		// return err
 	}
 
-	h.encoder.StatusResponse(ctx, w, nil, http.StatusNoContent)
+	h.encoder.StatusResponse(w, http.StatusNoContent, nil)
 }
 
 func (h notificationHandler) test(w http.ResponseWriter, r *http.Request) {
@@ -114,13 +117,11 @@ func (h notificationHandler) test(w http.ResponseWriter, r *http.Request) {
 	)
 
 	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
-		// encode error
 		h.encoder.Error(w, err)
 		return
 	}
 
-	err := h.service.Test(ctx, data)
-	if err != nil {
+	if err := h.service.Test(ctx, data); err != nil {
 		h.encoder.Error(w, err)
 		return
 	}

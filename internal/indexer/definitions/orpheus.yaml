@@ -9,6 +9,7 @@ urls:
 privacy: private
 protocol: torrent
 supports:
+  - api
   - irc
   - rss
 source: gazelle
@@ -18,6 +19,24 @@ settings:
     required: true
     label: Torrent pass
     help: Right click DL on a torrent and get the torrent_pass.
+
+  - name: api_key
+    type: secret
+    required: true
+    label: API Key
+    help: Settings -> Access Settings -> API Keys - Create a new api token.
+
+api:
+  url: https://orpheus.network/ajax.php
+  type: json
+  limits:
+    max: 5
+    per: 10 seconds
+  settings:
+    - name: api_key
+      type: secret
+      label: API Key
+      help: Settings -> Access Settings -> API Keys - Create a new api token.
 
 irc:
   network: Orpheus
@@ -58,12 +77,14 @@ irc:
     type: single
     lines:
       - test:
-          - "TORRENT: Amarok – Quentadharkën – CD/FLAC/Lossless – folk.rock,progressive.rock – https://orpheus.network/torrents.php?id=000000 – https://orpheus.network/torrents.php?id=000000&torrentid=000000&action=download"
-          - "TORRENT: Signal Lost – Simulacrum – WEB/FLAC/24bit Lossless – 2020s,alternative.rock,freely.available,post.rock,rock – https://orpheus.network/torrents.php?id=000000 – https://orpheus.network/torrents.php?id=0000000&torrentid=0000000&action=download"
-          - "TORRENT: Anne Sila – Fruit défendu – CD/FLAC/Lossless –  – https://orpheus.network/torrents.php?id=000000 – https://orpheus.network/torrents.php?id=000000&torrentid=0000000&action=download"
-        pattern: 'TORRENT: (.*) . (.*) . (.*) . .* (https:\/\/.*\/).*&torrentid=(.+)&action=download'
+          - "TORRENT: Dirty Dike – Bogies & Alcohol – [2008] [Album] CD/MP3/320 – hip.hop,uk.hip.hop,united.kingdom – https://orpheus.network/torrents.php?id=0000000 – https://orpheus.network/torrents.php?id=0000000&torrentid=0000000&action=download"
+          - "TORRENT: Various Artists – Bicycle Day: 85 Yrs of LSD Special – [2023] [Compilation] WEB/FLAC/Lossless – ambient,electronic – https://orpheus.network/torrents.php?id=0000000 – https://orpheus.network/torrents.php?id=0000000&torrentid=0000000&action=download"
+          - "TORRENT: Snoop Dogg – Untitled – [2001] [Sampler] Vinyl/MP3/320 –  – https://orpheus.network/torrents.php?id=0000000 – https://orpheus.network/torrents.php?id=0000000&torrentid=0000000&action=download"
+        pattern: 'TORRENT: (.* . \[(.*?)\] \[(.*?)\] (.*)) . \s*(.*) . https?:\/\/.* . (https?:\/\/.*\/).*torrentid=(\d+).*'
         vars:
           - torrentName
+          - year
+          - category
           - releaseTags
           - tags
           - baseUrl

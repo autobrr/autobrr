@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ */
+
 import { baseUrl, sseBaseUrl } from "../utils";
 import { AuthContext } from "../utils/Context";
 import { GithubRelease } from "../types/Update";
@@ -34,6 +39,8 @@ export async function HttpClient<T>(
 
           // Show an error toast to notify the user what occurred
           return Promise.reject(new Error("Unauthorized"));
+        } else if (response.status === 404) {
+          return Promise.reject(new Error("Not found"));
         }
 
         return Promise.reject(new Error(await response.text()));
@@ -50,7 +57,7 @@ export async function HttpClient<T>(
 const appClient = {
   Get: <T>(endpoint: string) => HttpClient<T>(endpoint, "GET"),
   Post: <T = void>(endpoint: string, data: PostBody = undefined) => HttpClient<T>(endpoint, "POST", { body: data }),
-  Put: (endpoint: string, data: PostBody) => HttpClient<void>(endpoint, "PUT", { body: data }),
+  Put: <T = void>(endpoint: string, data: PostBody) => HttpClient<T>(endpoint, "PUT", { body: data }),
   Patch: (endpoint: string, data: PostBody = undefined) => HttpClient<void>(endpoint, "PATCH", { body: data }),
   Delete: (endpoint: string) => HttpClient<void>(endpoint, "DELETE")
 };
@@ -113,7 +120,7 @@ export const APIClient = {
     },
     getByID: (id: number) => appClient.Get<Filter>(`api/filters/${id}`),
     create: (filter: Filter) => appClient.Post<Filter>("api/filters", filter),
-    update: (filter: Filter) => appClient.Put(`api/filters/${filter.id}`, filter),
+    update: (filter: Filter) => appClient.Put<Filter>(`api/filters/${filter.id}`, filter),
     duplicate: (id: number) => appClient.Get<Filter>(`api/filters/${id}/duplicate`),
     toggleEnable: (id: number, enabled: boolean) => appClient.Put(`api/filters/${id}/enabled`, { enabled }),
     delete: (id: number) => appClient.Delete(`api/filters/${id}`)
@@ -135,14 +142,17 @@ export const APIClient = {
     getSchema: () => appClient.Get<IndexerDefinition[]>("api/indexer/schema"),
     create: (indexer: Indexer) => appClient.Post<Indexer>("api/indexer", indexer),
     update: (indexer: Indexer) => appClient.Put("api/indexer", indexer),
-    delete: (id: number) => appClient.Delete(`api/indexer/${id}`)
+    delete: (id: number) => appClient.Delete(`api/indexer/${id}`),
+    testApi: (req: IndexerTestApiReq) => appClient.Post<IndexerTestApiReq>(`api/indexer/${req.id}/api/test`, req)
   },
   irc: {
     getNetworks: () => appClient.Get<IrcNetworkWithHealth[]>("api/irc"),
     createNetwork: (network: IrcNetworkCreate) => appClient.Post("api/irc", network),
     updateNetwork: (network: IrcNetwork) => appClient.Put(`api/irc/network/${network.id}`, network),
     deleteNetwork: (id: number) => appClient.Delete(`api/irc/network/${id}`),
-    restartNetwork: (id: number) => appClient.Get(`api/irc/network/${id}/restart`)
+    restartNetwork: (id: number) => appClient.Get(`api/irc/network/${id}/restart`),
+    sendCmd: (cmd: SendIrcCmdRequest) => appClient.Post(`api/irc/network/${cmd.network_id}/cmd`, cmd),
+    events: (network: string) => new EventSource(`${sseBaseUrl()}api/irc/events?stream=${network}`, { withCredentials: true })
   },
   logs: {
     files: () => appClient.Get<LogFileResponse>("api/logs/files"),
@@ -185,7 +195,9 @@ export const APIClient = {
     },
     indexerOptions: () => appClient.Get<string[]>("api/release/indexers"),
     stats: () => appClient.Get<ReleaseStats>("api/release/stats"),
-    delete: () => appClient.Delete("api/release/all")
+    delete: () => appClient.Delete("api/release/all"),
+    deleteOlder: (duration: number) => appClient.Delete(`api/release/older-than/${duration}`),
+    replayAction: (releaseId: number, actionId: number) => appClient.Post(`api/release/${releaseId}/actions/${actionId}/retry`)
   },
   updates: {
     check: () => appClient.Get("api/updates/check"),

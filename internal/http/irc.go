@@ -1,3 +1,6 @@
+// Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+// SPDX-License-Identifier: GPL-2.0-or-later
+
 package http
 
 import (
@@ -6,9 +9,10 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/go-chi/chi/v5"
-
 	"github.com/autobrr/autobrr/internal/domain"
+
+	"github.com/go-chi/chi/v5"
+	"github.com/r3labs/sse/v2"
 )
 
 type ircService interface {
@@ -18,18 +22,22 @@ type ircService interface {
 	GetNetworkByID(ctx context.Context, id int64) (*domain.IrcNetwork, error)
 	StoreNetwork(ctx context.Context, network *domain.IrcNetwork) error
 	UpdateNetwork(ctx context.Context, network *domain.IrcNetwork) error
-	StoreChannel(networkID int64, channel *domain.IrcChannel) error
+	StoreChannel(ctx context.Context, networkID int64, channel *domain.IrcChannel) error
 	RestartNetwork(ctx context.Context, id int64) error
+	SendCmd(ctx context.Context, req *domain.SendIrcCmdRequest) error
 }
 
 type ircHandler struct {
 	encoder encoder
+	sse     *sse.Server
+
 	service ircService
 }
 
-func newIrcHandler(encoder encoder, service ircService) *ircHandler {
+func newIrcHandler(encoder encoder, sse *sse.Server, service ircService) *ircHandler {
 	return &ircHandler{
 		encoder: encoder,
+		sse:     sse,
 		service: service,
 	}
 }
@@ -37,11 +45,29 @@ func newIrcHandler(encoder encoder, service ircService) *ircHandler {
 func (h ircHandler) Routes(r chi.Router) {
 	r.Get("/", h.listNetworks)
 	r.Post("/", h.storeNetwork)
-	r.Put("/network/{networkID}", h.updateNetwork)
-	r.Post("/network/{networkID}/channel", h.storeChannel)
-	r.Get("/network/{networkID}/restart", h.restartNetwork)
-	r.Get("/network/{networkID}", h.getNetworkByID)
-	r.Delete("/network/{networkID}", h.deleteNetwork)
+
+	r.Route("/network/{networkID}", func(r chi.Router) {
+		r.Put("/", h.updateNetwork)
+		r.Get("/", h.getNetworkByID)
+		r.Delete("/", h.deleteNetwork)
+
+		r.Post("/cmd", h.sendCmd)
+		r.Post("/channel", h.storeChannel)
+		r.Get("/restart", h.restartNetwork)
+	})
+
+	r.HandleFunc("/events", func(w http.ResponseWriter, r *http.Request) {
+
+		// inject CORS headers to bypass checks
+		h.sse.Headers = map[string]string{
+			"Content-Type":      "text/event-stream",
+			"Cache-Control":     "no-cache",
+			"Connection":        "keep-alive",
+			"X-Accel-Buffering": "no",
+		}
+
+		h.sse.ServeHTTP(w, r)
+	})
 }
 
 func (h ircHandler) listNetworks(w http.ResponseWriter, r *http.Request) {
@@ -52,7 +78,7 @@ func (h ircHandler) listNetworks(w http.ResponseWriter, r *http.Request) {
 		h.encoder.Error(w, err)
 	}
 
-	h.encoder.StatusResponse(ctx, w, networks, http.StatusOK)
+	h.encoder.StatusResponse(w, http.StatusOK, networks)
 }
 
 func (h ircHandler) getNetworkByID(w http.ResponseWriter, r *http.Request) {
@@ -68,7 +94,7 @@ func (h ircHandler) getNetworkByID(w http.ResponseWriter, r *http.Request) {
 		h.encoder.Error(w, err)
 	}
 
-	h.encoder.StatusResponse(ctx, w, network, http.StatusOK)
+	h.encoder.StatusResponse(w, http.StatusOK, network)
 }
 
 func (h ircHandler) restartNetwork(w http.ResponseWriter, r *http.Request) {
@@ -94,8 +120,7 @@ func (h ircHandler) storeNetwork(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err := h.service.StoreNetwork(r.Context(), &data)
-	if err != nil {
+	if err := h.service.StoreNetwork(r.Context(), &data); err != nil {
 		h.encoder.Error(w, err)
 		return
 	}
@@ -114,8 +139,7 @@ func (h ircHandler) updateNetwork(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err := h.service.UpdateNetwork(ctx, &data)
-	if err != nil {
+	if err := h.service.UpdateNetwork(ctx, &data); err != nil {
 		h.encoder.Error(w, err)
 		return
 	}
@@ -123,10 +147,11 @@ func (h ircHandler) updateNetwork(w http.ResponseWriter, r *http.Request) {
 	h.encoder.NoContent(w)
 }
 
-func (h ircHandler) storeChannel(w http.ResponseWriter, r *http.Request) {
+func (h ircHandler) sendCmd(w http.ResponseWriter, r *http.Request) {
 	var (
-		data      domain.IrcChannel
+		ctx       = r.Context()
 		networkID = chi.URLParam(r, "networkID")
+		data      domain.SendIrcCmdRequest
 	)
 
 	id, _ := strconv.Atoi(networkID)
@@ -136,8 +161,31 @@ func (h ircHandler) storeChannel(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err := h.service.StoreChannel(int64(id), &data)
-	if err != nil {
+	data.NetworkId = int64(id)
+
+	if err := h.service.SendCmd(ctx, &data); err != nil {
+		h.encoder.Error(w, err)
+		return
+	}
+
+	h.encoder.NoContent(w)
+}
+
+func (h ircHandler) storeChannel(w http.ResponseWriter, r *http.Request) {
+	var (
+		ctx       = r.Context()
+		networkID = chi.URLParam(r, "networkID")
+		data      domain.IrcChannel
+	)
+
+	id, _ := strconv.Atoi(networkID)
+
+	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
+		h.encoder.Error(w, err)
+		return
+	}
+
+	if err := h.service.StoreChannel(ctx, int64(id), &data); err != nil {
 		h.encoder.Error(w, err)
 		return
 	}
@@ -153,8 +201,7 @@ func (h ircHandler) deleteNetwork(w http.ResponseWriter, r *http.Request) {
 
 	id, _ := strconv.Atoi(networkID)
 
-	err := h.service.DeleteNetwork(ctx, int64(id))
-	if err != nil {
+	if err := h.service.DeleteNetwork(ctx, int64(id)); err != nil {
 		h.encoder.Error(w, err)
 		return
 	}

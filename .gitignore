@@ -33,8 +33,11 @@ bin/
 log/
 #dist/
 .run/
+tmp/
 # If needed, package-lock.json shall be added
 # manually using an explicit git add command.
 package-lock.json
 # Ditto for yarn, except we're using npm.
 yarn.lock
+dist/*
+!dist/.gitkeep

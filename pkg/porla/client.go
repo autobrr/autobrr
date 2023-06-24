@@ -1,3 +1,6 @@
+// Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+// SPDX-License-Identifier: GPL-2.0-or-later
+
 package porla
 
 import (
@@ -5,6 +8,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/autobrr/autobrr/pkg/jsonrpc"
@@ -72,9 +76,15 @@ func NewClient(cfg Config) *Client {
 		Transport: customTransport,
 	}
 
+	token := cfg.AuthToken
+
+	if !strings.HasPrefix(token, "Bearer ") {
+		token = "Bearer " + token
+	}
+
 	c.rpcClient = jsonrpc.NewClientWithOpts(cfg.Hostname+"/api/v1/jsonrpc", &jsonrpc.ClientOpts{
 		Headers: map[string]string{
-			"X-Porla-Token": cfg.AuthToken,
+			"X-Porla-Token": token,
 		},
 		HTTPClient: httpClient,
 		BasicUser:  cfg.BasicUser,

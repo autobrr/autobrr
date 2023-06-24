@@ -1,3 +1,6 @@
+// Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+// SPDX-License-Identifier: GPL-2.0-or-later
+
 package filter
 
 import (
@@ -23,7 +26,7 @@ import (
 
 type Service interface {
 	FindByID(ctx context.Context, filterID int) (*domain.Filter, error)
-	FindByIndexerIdentifier(indexer string) ([]domain.Filter, error)
+	FindByIndexerIdentifier(ctx context.Context, indexer string) ([]domain.Filter, error)
 	Find(ctx context.Context, params domain.FilterQueryParams) ([]domain.Filter, error)
 	CheckFilter(ctx context.Context, f domain.Filter, release *domain.Release) (bool, error)
 	ListFilters(ctx context.Context) ([]domain.Filter, error)
@@ -35,6 +38,7 @@ type Service interface {
 	Delete(ctx context.Context, filterID int) error
 	AdditionalSizeCheck(ctx context.Context, f domain.Filter, release *domain.Release) (bool, error)
 	CanDownloadShow(ctx context.Context, release *domain.Release) (bool, error)
+	GetDownloadsByFilterId(ctx context.Context, filterID int) (*domain.FilterDownloads, error)
 }
 
 type service struct {
@@ -128,15 +132,19 @@ func (s *service) FindByID(ctx context.Context, filterID int) (*domain.Filter, e
 	return filter, nil
 }
 
-func (s *service) FindByIndexerIdentifier(indexer string) ([]domain.Filter, error) {
+func (s *service) FindByIndexerIdentifier(ctx context.Context, indexer string) ([]domain.Filter, error) {
 	// get filters for indexer
-	filters, err := s.repo.FindByIndexerIdentifier(indexer)
+	filters, err := s.repo.FindByIndexerIdentifier(ctx, indexer)
 	if err != nil {
 		s.log.Error().Err(err).Msgf("could not find filters for indexer: %v", indexer)
 		return nil, err
 	}
 
 	return filters, nil
+}
+
+func (s *service) GetDownloadsByFilterId(ctx context.Context, filterID int) (*domain.FilterDownloads, error) {
+	return s.GetDownloadsByFilterId(ctx, filterID)
 }
 
 func (s *service) Store(ctx context.Context, filter domain.Filter) (*domain.Filter, error) {
@@ -248,6 +256,12 @@ func (s *service) Duplicate(ctx context.Context, filterID int) (*domain.Filter, 
 	}
 	filter.Indexers = filterIndexers
 
+	// reset action id to 0
+	for i, a := range filterActions {
+		a.ID = 0
+		filterActions[i] = a
+	}
+
 	// take care of filter actions
 	actions, err := s.actionRepo.StoreFilterActions(ctx, filterActions, int64(filter.ID))
 	if err != nil {
@@ -301,6 +315,16 @@ func (s *service) CheckFilter(ctx context.Context, f domain.Filter, release *dom
 
 	s.log.Trace().Msgf("filter.Service.CheckFilter: checking filter: %v %+v", f.Name, f)
 	s.log.Trace().Msgf("filter.Service.CheckFilter: checking filter: %v for release: %+v", f.Name, release)
+
+	// do additional fetch to get download counts for filter
+	if f.MaxDownloads > 0 {
+		downloadCounts, err := s.repo.GetDownloadsByFilterId(ctx, f.ID)
+		if err != nil {
+			s.log.Error().Err(err).Msg("filter.Service.CheckFilter: error getting download counters for filter")
+			return false, nil
+		}
+		f.Downloads = downloadCounts
+	}
 
 	rejections, matchedFilter := f.CheckFilter(release)
 	if len(rejections) > 0 {
@@ -380,7 +404,7 @@ func (s *service) CheckFilter(ctx context.Context, f domain.Filter, release *dom
 		}
 
 		// found matching filter, lets find the filter actions and attach
-		actions, err := s.actionRepo.FindByFilterID(context.TODO(), f.ID)
+		actions, err := s.actionRepo.FindByFilterID(ctx, f.ID)
 		if err != nil {
 			s.log.Error().Err(err).Msgf("filter.Service.CheckFilter: error finding actions for filter: %+v", f.Name)
 			return false, err
@@ -405,31 +429,37 @@ func (s *service) CheckFilter(ctx context.Context, f domain.Filter, release *dom
 // additional size check. Some indexers have api implemented to fetch this data and for the others
 // it will download the torrent file to parse and make the size check. This is all to minimize the amount of downloads.
 func (s *service) AdditionalSizeCheck(ctx context.Context, f domain.Filter, release *domain.Release) (bool, error) {
+	var err error
+	defer func() {
+		// try recover panic if anything went wrong with API or size checks
+		errors.RecoverPanic(recover(), &err)
+	}()
 
 	// do additional size check against indexer api or torrent for size
-	s.log.Debug().Msgf("filter.Service.AdditionalSizeCheck: (%v) additional size check required", f.Name)
+	s.log.Debug().Msgf("filter.Service.AdditionalSizeCheck: (%s) additional size check required", f.Name)
 
 	switch release.Indexer {
-	case "ptp", "btn", "ggn", "redacted", "mock":
+	case "ptp", "btn", "ggn", "redacted", "ops", "mock":
 		if release.Size == 0 {
-			s.log.Trace().Msgf("filter.Service.AdditionalSizeCheck: (%v) preparing to check via api", f.Name)
-			torrentInfo, err := s.apiService.GetTorrentByID(release.Indexer, release.TorrentID)
+			s.log.Trace().Msgf("filter.Service.AdditionalSizeCheck: (%s) preparing to check via api", f.Name)
+
+			torrentInfo, err := s.apiService.GetTorrentByID(ctx, release.Indexer, release.TorrentID)
 			if err != nil || torrentInfo == nil {
-				s.log.Error().Stack().Err(err).Msgf("filter.Service.AdditionalSizeCheck: (%v) could not get torrent info from api: '%v' from: %v", f.Name, release.TorrentID, release.Indexer)
+				s.log.Error().Stack().Err(err).Msgf("filter.Service.AdditionalSizeCheck: (%s) could not get torrent info from api: '%s' from: %s", f.Name, release.TorrentID, release.Indexer)
 				return false, err
 			}
 
-			s.log.Debug().Msgf("filter.Service.AdditionalSizeCheck: (%v) got torrent info from api: %+v", f.Name, torrentInfo)
+			s.log.Debug().Msgf("filter.Service.AdditionalSizeCheck: (%s) got torrent info from api: %+v", f.Name, torrentInfo)
 
 			release.Size = torrentInfo.ReleaseSizeBytes()
 		}
 
 	default:
-		s.log.Trace().Msgf("filter.Service.AdditionalSizeCheck: (%v) preparing to download torrent metafile", f.Name)
+		s.log.Trace().Msgf("filter.Service.AdditionalSizeCheck: (%s) preparing to download torrent metafile", f.Name)
 
 		// if indexer doesn't have api, download torrent and add to tmpPath
 		if err := release.DownloadTorrentFileCtx(ctx); err != nil {
-			s.log.Error().Stack().Err(err).Msgf("filter.Service.AdditionalSizeCheck: (%v) could not download torrent file with id: '%v' from: %v", f.Name, release.TorrentID, release.Indexer)
+			s.log.Error().Stack().Err(err).Msgf("filter.Service.AdditionalSizeCheck: (%s) could not download torrent file with id: '%s' from: %s", f.Name, release.TorrentID, release.Indexer)
 			return false, err
 		}
 	}
@@ -437,12 +467,12 @@ func (s *service) AdditionalSizeCheck(ctx context.Context, f domain.Filter, rele
 	// compare size against filter
 	match, err := checkSizeFilter(f.MinSize, f.MaxSize, release.Size)
 	if err != nil {
-		s.log.Error().Stack().Err(err).Msgf("filter.Service.AdditionalSizeCheck: (%v) error checking extra size filter", f.Name)
+		s.log.Error().Stack().Err(err).Msgf("filter.Service.AdditionalSizeCheck: (%s) error checking extra size filter", f.Name)
 		return false, err
 	}
 	//no match, lets continue to next filter
 	if !match {
-		s.log.Debug().Msgf("filter.Service.AdditionalSizeCheck: (%v) filter did not match after additional size check, trying next", f.Name)
+		s.log.Debug().Msgf("filter.Service.AdditionalSizeCheck: (%s) filter did not match after additional size check, trying next", f.Name)
 		return false, nil
 	}
 
@@ -547,10 +577,12 @@ func (s *service) execCmd(ctx context.Context, release *domain.Release, cmd stri
 }
 
 func (s *service) webhook(ctx context.Context, release *domain.Release, url string, data string) (int, error) {
+	s.log.Debug().Msgf("preparing to run external webhook filter to: (%s) payload: (%s)", url, data)
+
 	// if webhook data contains TorrentPathName or TorrentDataRawBytes, lets download the torrent file
 	if release.TorrentTmpFile == "" && (strings.Contains(data, "TorrentPathName") || strings.Contains(data, "TorrentDataRawBytes")) {
 		if err := release.DownloadTorrentFileCtx(ctx); err != nil {
-			return 0, errors.Wrap(err, "webhook: could not download torrent file for release: %v", release.TorrentName)
+			return 0, errors.Wrap(err, "webhook: could not download torrent file for release: %s", release.TorrentName)
 		}
 	}
 
@@ -558,7 +590,7 @@ func (s *service) webhook(ctx context.Context, release *domain.Release, url stri
 	if len(release.TorrentDataRawBytes) == 0 && strings.Contains(data, "TorrentDataRawBytes") {
 		t, err := os.ReadFile(release.TorrentTmpFile)
 		if err != nil {
-			return 0, errors.Wrap(err, "could not read torrent file: %v", release.TorrentTmpFile)
+			return 0, errors.Wrap(err, "could not read torrent file: %s", release.TorrentTmpFile)
 		}
 
 		release.TorrentDataRawBytes = t
@@ -569,8 +601,10 @@ func (s *service) webhook(ctx context.Context, release *domain.Release, url stri
 	// parse and replace values in argument string before continuing
 	dataArgs, err := m.Parse(data)
 	if err != nil {
-		return 0, errors.Wrap(err, "could not parse webhook data macro: %v", data)
+		return 0, errors.Wrap(err, "could not parse webhook data macro: %s", data)
 	}
+
+	s.log.Debug().Msgf("sending POST to external webhook filter: (%s) payload: (%s)", url, data)
 
 	t := &http.Transport{
 		TLSClientConfig: &tls.Config{
@@ -578,7 +612,7 @@ func (s *service) webhook(ctx context.Context, release *domain.Release, url stri
 		},
 	}
 
-	client := http.Client{Transport: t, Timeout: 15 * time.Second}
+	client := http.Client{Transport: t, Timeout: 120 * time.Second}
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewBufferString(dataArgs))
 	if err != nil {
@@ -587,6 +621,8 @@ func (s *service) webhook(ctx context.Context, release *domain.Release, url stri
 
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("User-Agent", "autobrr")
+
+	start := time.Now()
 
 	res, err := client.Do(req)
 	if err != nil {
@@ -599,7 +635,7 @@ func (s *service) webhook(ctx context.Context, release *domain.Release, url stri
 		return res.StatusCode, nil
 	}
 
-	s.log.Debug().Msgf("successfully ran external webhook filter to: (%v) payload: (%v)", url, dataArgs)
+	s.log.Debug().Msgf("successfully ran external webhook filter to: (%s) payload: (%s) finished in %s", url, dataArgs, time.Since(start))
 
 	return res.StatusCode, nil
 }

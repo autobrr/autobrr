@@ -1,21 +1,32 @@
-import { AlertWarning } from "../../components/alerts";
-import { DownloadClientSelect, NumberField, Select, SwitchGroup, TextField } from "../../components/inputs";
-import { ActionContentLayoutOptions, ActionRtorrentRenameOptions, ActionTypeNameMap, ActionTypeOptions } from "../../domain/constants";
-import React, { Fragment, useRef, useEffect, useState } from "react";
-import { useQuery } from "react-query";
-import { APIClient } from "../../api/APIClient";
-import { Field, FieldArray, FieldProps, FormikValues } from "formik";
-import { EmptyListState } from "../../components/emptystates";
-import { useToggle } from "../../hooks/hooks";
-import { classNames } from "../../utils";
+/*
+ * Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ */
+
+import React, { Fragment, useEffect, useRef, useState } from "react";
+import { useMutation, useQuery } from "@tanstack/react-query";
+import { Field, FieldArray, FieldProps, FormikValues, useFormikContext } from "formik";
 import { Dialog, Switch as SwitchBasic, Transition } from "@headlessui/react";
 import { ChevronRightIcon } from "@heroicons/react/24/solid";
-import { DeleteModal } from "../../components/modals";
-import { CollapsableSection } from "./details";
-import { CustomTooltip } from "../../components/tooltips/CustomTooltip";
 import { Link } from "react-router-dom";
-import { useFormikContext } from "formik";
-import { TextArea } from "../../components/inputs/input";
+import { toast } from "react-hot-toast";
+
+import {
+  ActionContentLayoutOptions,
+  ActionRtorrentRenameOptions,
+  ActionTypeNameMap,
+  ActionTypeOptions
+} from "@domain/constants";
+import { AlertWarning } from "@components/alerts";
+import { DownloadClientSelect, NumberField, Select, SwitchGroup, TextField } from "@components/inputs";
+import { APIClient } from "@api/APIClient";
+import { EmptyListState } from "@components/emptystates";
+import { useToggle } from "@hooks/hooks";
+import { classNames } from "@utils";
+import { DeleteModal } from "@components/modals";
+import { CollapsableSection } from "./details";
+import { TextArea } from "@components/inputs/input";
+import Toast from "@components/notifications/Toast";
 
 interface FilterActionsProps {
   filter: Filter;
@@ -29,7 +40,8 @@ export function FilterActions({ filter, values }: FilterActionsProps) {
     { refetchOnWindowFocus: false }
   );
 
-  const newAction = {
+  const newAction: Action = {
+    id: 0,
     name: "new action",
     enabled: true,
     type: "TEST",
@@ -43,7 +55,7 @@ export function FilterActions({ filter, values }: FilterActionsProps) {
     paused: false,
     ignore_rules: false,
     skip_hash_check: false,
-    content_layout: "",
+    content_layout: "" || undefined,
     limit_upload_speed: 0,
     limit_download_speed: 0,
     limit_ratio: 0,
@@ -57,8 +69,8 @@ export function FilterActions({ filter, values }: FilterActionsProps) {
     webhook_type: "",
     webhook_method: "",
     webhook_data: "",
-    webhook_headers: []
-    //   client_id: 0,
+    webhook_headers: [],
+    client_id: 0
   };
 
   return (
@@ -108,7 +120,7 @@ interface TypeFormProps {
 }
 
 const TypeForm = ({ action, idx, clients }: TypeFormProps) => {
-  const { setFieldValue } = useFormikContext();
+  const { setFieldValue  } = useFormikContext();
   
   const resetClientField = (action: Action, idx: number, prevActionType: string): void => {
     const fieldName = `actions.${idx}.client_id`;
@@ -127,7 +139,7 @@ const TypeForm = ({ action, idx, clients }: TypeFormProps) => {
       action.type === "READARR" ||
       action.type === "SABNZBD"
     )) {
-      setFieldValue(fieldName, ""); // Reset the client_id field value
+      setFieldValue(fieldName, 0); // Reset the client_id field value
     }
   };
 
@@ -137,7 +149,8 @@ const TypeForm = ({ action, idx, clients }: TypeFormProps) => {
       resetClientField(action, idx, prevActionType);
     }
     setPrevActionType(action.type);
-  }, [action.type, idx, setFieldValue]); 
+  }, [action.type, idx, setFieldValue]);
+
   switch (action.type) {
   case "TEST":
     return (
@@ -209,7 +222,7 @@ const TypeForm = ({ action, idx, clients }: TypeFormProps) => {
               label="Save path"
               columns={6}
               placeholder="eg. /full/path/to/download_folder"
-              tooltip={<CustomTooltip anchorId={`actions.${idx}.save_path`} clickable={true}><div><p>Set a custom save path for this action. Automatic Torrent Management will take care of this if using qBittorrent with categories.</p><br /><p>The field can use macros to transform/add values from metadata:</p><a href='https://autobrr.com/filters/actions#macros' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters/actions#macros</a></div></CustomTooltip>} /> 
+              tooltip={<div><p>Set a custom save path for this action. Automatic Torrent Management will take care of this if using qBittorrent with categories.</p><br /><p>The field can use macros to transform/add values from metadata:</p><a href='https://autobrr.com/filters/actions#macros' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters/actions#macros</a></div>} />
           </div>
         </div>
 
@@ -219,13 +232,13 @@ const TypeForm = ({ action, idx, clients }: TypeFormProps) => {
             label="Category"
             columns={6}
             placeholder="eg. category"
-            tooltip={<CustomTooltip anchorId={`actions.${idx}.category`} clickable={true}><div><p>The field can use macros to transform/add values from metadata:</p><a href='https://autobrr.com/filters/actions#macros' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters/actions#macros</a></div></CustomTooltip>} /> 
+            tooltip={<div><p>The field can use macros to transform/add values from metadata:</p><a href='https://autobrr.com/filters/actions#macros' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters/actions#macros</a></div>} />
           <TextField
             name={`actions.${idx}.tags`}
             label="Tags"
             columns={6}
             placeholder="eg. tag1,tag2"
-            tooltip={<CustomTooltip anchorId={`actions.${idx}.tags`} clickable={true}><div><p>The field can use macros to transform/add values from metadata:</p><a href='https://autobrr.com/filters/actions#macros' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters/actions#macros</a></div></CustomTooltip>} /> 
+            tooltip={<div><p>The field can use macros to transform/add values from metadata:</p><a href='https://autobrr.com/filters/actions#macros' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters/actions#macros</a></div>} />
         </div>
 
         <CollapsableSection title="Rules" subtitle="client options">
@@ -266,7 +279,7 @@ const TypeForm = ({ action, idx, clients }: TypeFormProps) => {
             <SwitchGroup
               name={`actions.${idx}.ignore_rules`}
               label="Ignore client rules"
-              tooltip={<CustomTooltip anchorId={`actions.${idx}.ignore_rules`} clickable={true}><div><p>Choose to ignore rules set in <Link className='text-blue-400 visited:text-blue-400' to="/settings/clients">Client Settings</Link>.</p></div></CustomTooltip>} /> 
+              tooltip={<div><p>Choose to ignore rules set in <Link className='text-blue-400 visited:text-blue-400' to="/settings/clients">Client Settings</Link>.</p></div>} />
           </div>
           <div className="col-span-6">
             <Select
@@ -463,6 +476,15 @@ const TypeForm = ({ action, idx, clients }: TypeFormProps) => {
           </div>
         </div>
 
+        <div className="mt-6 grid grid-cols-12 gap-6">
+          <TextField
+            name={`actions.${idx}.label`}
+            label="Preset"
+            columns={6}
+            placeholder="eg. default"
+            tooltip={<div>A case-sensitive preset name as configured in Porla.</div>} />
+        </div>
+
         <CollapsableSection title="Rules" subtitle="client options">
           <div className="col-span-12">
             <div className="mt-6 grid grid-cols-12 gap-6">
@@ -508,7 +530,7 @@ const TypeForm = ({ action, idx, clients }: TypeFormProps) => {
             label="Category"
             columns={6}
             placeholder="eg. category"
-            tooltip={<CustomTooltip anchorId={`actions.${idx}.category`} clickable={true}><p>Category must exist already.</p></CustomTooltip>} />
+            tooltip={<p>Category must exist already.</p>} />
         </div>
       </div>
     );
@@ -531,6 +553,23 @@ function FilterActionsItem({ action, clients, idx, initialEdit, remove }: Filter
 
   const [deleteModalIsOpen, toggleDeleteModal] = useToggle(false);
   const [edit, toggleEdit] = useToggle(initialEdit);
+
+  const removeMutation = useMutation({
+    mutationFn: (id: number) => APIClient.actions.delete(id),
+    onSuccess: () => {
+      remove(idx);
+      // Invalidate filters just in case, most likely not necessary but can't hurt.
+      // queryClient.invalidateQueries({ queryKey: filterKeys.detail(id) });
+
+      toast.custom((t) => (
+        <Toast type="success" body={`Action ${action?.name} was deleted`} t={t} />
+      ));
+    }
+  });
+
+  const removeAction = (id: number) => {
+    removeMutation.mutate(id);
+  };
 
   return (
     <li>
@@ -611,7 +650,7 @@ function FilterActionsItem({ action, clients, idx, initialEdit, remove }: Filter
                 isOpen={deleteModalIsOpen}
                 buttonRef={cancelButtonRef}
                 toggle={toggleDeleteModal}
-                deleteAction={() => remove(idx)}
+                deleteAction={() => removeAction(action.id)}
                 title="Remove filter action"
                 text="Are you sure you want to remove this action? This action cannot be undone."
               />
@@ -626,7 +665,7 @@ function FilterActionsItem({ action, clients, idx, initialEdit, remove }: Filter
                 label="Type"
                 optionDefaultText="Select type"
                 options={ActionTypeOptions}
-                tooltip={<CustomTooltip anchorId={`actions.${idx}.type`} clickable={true}><div><p>Select the download client type for this action.</p></div></CustomTooltip>}
+                tooltip={<div><p>Select the download client type for this action.</p></div>}
               />
 
               <TextField name={`actions.${idx}.name`} label="Name" columns={6} />

@@ -1,7 +1,12 @@
+/*
+ * Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ */
+
 import * as React from "react";
 import type { ReactNode } from "react";
 import { usePopperTooltip } from "react-popper-tooltip";
-import { classNames } from "../../utils";
+import { classNames } from "@utils";
 
 interface TooltipProps {
   label: ReactNode;
@@ -43,7 +48,7 @@ export const Tooltip = ({
           })}
         >
           {title ? (
-            <div className="p-2 border-b border-gray-300 bg-gray-100 dark:border-gray-700 dark:bg-gray-800 rounded-t-md">
+            <div className="flex justify-between items-center p-2 border-b border-gray-300 bg-gray-100 dark:border-gray-700 dark:bg-gray-800 rounded-t-md">
               {title}
             </div>
           ) : null}

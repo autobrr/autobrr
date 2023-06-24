@@ -1,3 +1,6 @@
+// Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+// SPDX-License-Identifier: GPL-2.0-or-later
+
 package main
 
 import (
@@ -53,8 +56,7 @@ func main() {
 
 	// setup server-sent-events
 	serverEvents := sse.New()
-	serverEvents.AutoReplay = false
-	serverEvents.CreateStream("logs")
+	serverEvents.CreateStreamWithOpts("logs", sse.StreamOpts{MaxEntries: 1000, AutoReplay: true})
 
 	// register SSE hook on logger
 	log.RegisterSSEHook(serverEvents)
@@ -104,7 +106,7 @@ func main() {
 		indexerService        = indexer.NewService(log, cfg.Config, indexerRepo, indexerAPIService, schedulingService)
 		filterService         = filter.NewService(log, filterRepo, actionRepo, releaseRepo, indexerAPIService, indexerService)
 		releaseService        = release.NewService(log, releaseRepo, actionService, filterService)
-		ircService            = irc.NewService(log, ircRepo, releaseService, indexerService, notificationService)
+		ircService            = irc.NewService(log, serverEvents, ircRepo, releaseService, indexerService, notificationService)
 		feedService           = feed.NewService(log, feedRepo, feedCacheRepo, releaseService, schedulingService)
 	)
 

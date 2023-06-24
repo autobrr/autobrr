@@ -10,7 +10,6 @@ With inspiration and ideas from tools like trackarr, autodl-irssi and flexget we
 
 <img alt="autobrr ui" src=".github/images/autobrr-front.png"/><br/>
 
-
 ## Documentation
 
 Installation guide and documentation can be found at https://autobrr.com
@@ -20,23 +19,25 @@ Installation guide and documentation can be found at https://autobrr.com
 - Torrents and usenet support
 - Support for 70+ torrent trackers with IRC announces
 - Newznab, Torznab and RSS support to easily get access to hundreds of torrent and usenet indexers
-- Torrent Magnet support 
+- Torrent Magnet support
 - Powerful but simple filtering with RegEx support (like in autodl-irssi)
 - Easy to use and mobile friendly web UI (with dark mode!) to manage everything
-- Built on Go and React making autobrr lightweight and perfect for supporting multiple platforms (Linux, FreeBSD, Windows, macOS) on different architectures (e.g. x86, ARM)
+- Built on Go and React making autobrr lightweight and perfect for supporting multiple platforms (Linux, FreeBSD,
+  Windows, macOS) on different architectures (e.g. x86, ARM)
 - Great container support (Docker, k8s/Kubernetes)
 - Database engine supporting both PostgreSQL and SQLite
-- Notifications (Discord, Telegram, Notifiarr)
+- Notifications (Discord, Telegram, Notifiarr, Pushover)
 - One autobrr instance can communicate with multiple clients (torrent, usenet and \*arr) on remote servers
 - Base path / Subfolder (and subdomain) support for convenient reverse-proxy support
 
 Available download clients and actions
 
-- qBittorrent (with built in re-announce, categories, rules, max active downloads, etc)
+- qBittorrent (with built-in re-announce, categories, rules, max active downloads, etc.)
 - Deluge v1+ and v2+
 - rTorrent
 - Transmission
-- Sonarr, Radarr, Lidarr, Whisparr and Readarr (pushes releases directly to them and gets in the early swarm, instead of getting them via RSS when it's already over)
+- Sonarr, Radarr, Lidarr, Whisparr and Readarr (pushes releases directly to them and gets in the early swarm, instead of
+  getting them via RSS when it's already over)
 - SABnzbd (usenet)
 - Watch folder
 - Exec custom scripts
@@ -44,25 +45,38 @@ Available download clients and actions
 
 ## What is autobrr and how does it fit into the ecosystem?
 
-We can start by talking about torrent trackers (hereby referred to as indexers) and maintaining ratio. You are required to maintain a ratio with most indexers. Ratio is built by seeding your torrents. The earlier you're seeding a torrent, the more peers you make yourself available to on that torrent.
+We can start by talking about torrent trackers (hereby referred to as indexers) and maintaining ratio. You are required
+to maintain a ratio with most indexers. Ratio is built by seeding your torrents. The earlier you're seeding a torrent,
+the more peers you make yourself available to on that torrent.
 
-Software like Radarr and Sonarr utilizes RSS to look for new torrents. RSS feeds are updated regularly, but too slow to let you be a part of what we call the initial swarm of a torrent. This is were autobrr comes into play.
+Software like Radarr and Sonarr utilizes RSS to look for new torrents. RSS feeds are updated regularly, but too slow to
+let you be a part of what we call the initial swarm of a torrent. This is where autobrr comes into play.
 
-Many indexers announce new torrents on their IRC channels the second it is uploaded to the site. autobrr monitors such channels in real time and grabs the torrent file as soon as it's uploaded based on certain conditions (hereby referred to as filters) that you set up within autobrr. It then sends that torrent file to a download client of your choice via an action set within the filter. A download client can be anything from qBittorrent and Deluge, to Radarr and Sonarr, or a watch folder.
+Many indexers announce new torrents on their IRC channels the second it is uploaded to the site. autobrr monitors such
+channels in real time and grabs the torrent file as soon as it's uploaded based on certain conditions (hereby referred
+to as filters) that you set up within autobrr. It then sends that torrent file to a download client of your choice via
+an action set within the filter. A download client can be anything from qBittorrent and Deluge, to Radarr and Sonarr, or
+a watch folder.
 
-When your autobrr filter is set to send the torrent files to Radarr and Sonarr, they will decide if it's something they want, and then forward it to the torrent client they are set up with.
+When your autobrr filter is set to send the torrent files to Radarr and Sonarr, they will decide if it's something they
+want, and then forward it to the torrent client they are set up with.
 
-autobrr can also send matches (torrent files that meets your filter's criteria) directly to torrent clients like qBittorrent, Deluge, r(u)Torrent and Transmission. You don't need to use the *arr suite to make use of autobrr.
+autobrr can also send matches (torrent files that meets your filter's criteria) directly to torrent clients like
+qBittorrent, Deluge, r(u)Torrent and Transmission. You don't need to use the *arr suite to make use of autobrr.
 
 ### RSS support for indexers without an IRC announcer
 
-A lot of indexers do not announce new torrents in an IRC channel. You can still make use of these indexers with autobrr since it has built in support for feeds as well. Both torznab and regular RSS is supported. RSS indexers are treated the same way as regular indexers within autobrr.
+A lot of indexers do not announce new torrents in an IRC channel. You can still make use of these indexers with autobrr
+since it has built in support for feeds as well. Both torznab and regular RSS is supported. RSS indexers are treated the
+same way as regular indexers within autobrr.
 
-This isn't needed if your usecase is feeding the *arrs only. Since they have RSS support already.
+This isn't needed if your use case is feeding the *arrs only. Since they have RSS support already.
 
 ### Usenet support
 
-Usenet support via Newzbab feeds allows you to easily manage everything in a single application. While there is a lot of applications that handles RSS well, we think autobrr offers very easy to use filtering to help you get the content you want.
+Usenet support via Newznab feeds allows you to easily manage everything in a single application. While there is a lot of
+applications that handles RSS well, we think autobrr offers very easy to use filtering to help you get the content you
+want.
 
 You can use Usenet feeds and send to arrs or send directly to SABnzbd.
 
@@ -70,7 +84,8 @@ You can use Usenet feeds and send to arrs or send directly to SABnzbd.
 
 Full installation guide and documentation can be found at https://autobrr.com
 
-Remember to head over to our [Configuration Guide](https://autobrr.com/configuration/autobrr) to learn how to set up your indexers, IRC, and download clients after you're done installing.
+Remember to head over to our [Configuration Guide](https://autobrr.com/configuration/autobrr) to learn how to set up
+your indexers, IRC, and download clients after you're done installing.
 
 ### Swizzin
 
@@ -82,7 +97,7 @@ sudo box install autobrr
 
 ### Saltbox
 
-[Saltbox](https://saltbox.dev/) users can simply run:
+[Saltbox](https://docs.saltbox.dev/) users can simply run:
 
 ```
 sb install sandbox-autobrr
@@ -98,11 +113,13 @@ For more info check the [docs](https://docs.saltbox.dev/sandbox/apps/autobrr/)
 qb install autobrr -u ${username}
 ```
 
-For more info check the [docs](https://quickbox.io/knowledge-base/v3/applications-v3/autobrr-applications-v3/autobrr-quick-reference/)
+For more info check
+the [docs](https://quickbox.io/knowledge-base/v3/applications-v3/autobrr-applications-v3/autobrr-quick-reference/)
 
 ### Shared seedbox
 
-We have support for a couple of providers out of the box and if yours are missing then please write on Discord so we add support.
+We have support for a couple of providers out of the box.
+In case your provider is missing then please contact us on Discord, so we add support.
 
 The scripts require some input but does most of the work.
 
@@ -134,7 +151,8 @@ Use their official one-click installer or ours:
 
 #### Other providers
 
-For other providers the Seedbox.io installer should work. If not, open an issue or contact us on [Discord](https://discord.gg/WQ2eUycxyT)
+For other providers the Seedbox.io installer should work. If not, open an issue or contact us
+on [Discord](https://discord.gg/WQ2eUycxyT)
 
     wget https://gobrr.sh/install_sbio && bash install_sbio
 
@@ -152,7 +170,7 @@ docker-compose for autobrr. Modify accordingly if running with unRAID or setting
 * Change `BASE_DOCKER_DATA_PATH` to match your setup. Can be simply `./data`
 * Set custom network if needed
 
-Create `docker-compose.yml` and add the following. If you have a existing setup change to fit that.
+Create `docker-compose.yml` and add the following. If you have an existing setup change to fit that.
 
 ```yml
 version: "3.7"
@@ -181,8 +199,8 @@ Check the windows setup guide [here](https://autobrr.com/installation/windows)
 
 ### Linux generic
 
-
-Download the latest release, or download the [source code](https://github.com/autobrr/autobrr/releases/latest) and build it yourself using `make build`.
+Download the latest release, or download the [source code](https://github.com/autobrr/autobrr/releases/latest) and build
+it yourself using `make build`.
 
 ```bash
 wget $(curl -s https://api.github.com/repos/autobrr/autobrr/releases/latest | grep download | grep linux_x86_64 | cut -d\" -f4)
@@ -190,7 +208,8 @@ wget $(curl -s https://api.github.com/repos/autobrr/autobrr/releases/latest | gr
 
 #### Unpack
 
-Run with `root` or `sudo`. If you do not have root, or are on a shared system, place the binaries somewhere in your home directory like `~/.bin`.
+Run with `root` or `sudo`. If you do not have root, or are on a shared system, place the binaries somewhere in your home
+directory like `~/.bin`.
 
 ```bash
 tar -C /usr/local/bin -xzf autobrr*.tar.gz
@@ -201,7 +220,8 @@ Note: If the command fails, prefix it with `sudo ` and re-run again.
 
 #### Systemd (Recommended)
 
-On Linux-based systems, it is recommended to run autobrr as sort of a service with auto-restarting capabilities, in order to account for potential downtime. The most common way is to do it via systemd.
+On Linux-based systems, it is recommended to run autobrr as a sort of service with auto-restarting capabilities, in
+order to account for potential downtime. The most common way is to do it via systemd.
 
 You will need to create a service file in `/etc/systemd/system/` called `autobrr.service`.
 
@@ -232,10 +252,18 @@ Start the service. Enable will make it startup on reboot.
 systemctl enable -q --now --user autobrr@$USER
 ```
 
-By default it the config is set to listen on only `127.0.0.1`.  It's highly advised to put it behind a reverse-proxy like nginx or traefik etc.
+By default, the configuration is set to listen on `127.0.0.1`. While autobrr works fine as is exposed to the internet,
+it is recommended to use a reverse proxy
+like [nginx](https://autobrr.com/installation/linux#nginx), [caddy](https://autobrr.com/installation/linux#caddy)
+or [traefik](https://autobrr.com/installation/docker#traefik).
 
 If you are not running a reverse proxy change `host` in the `config.toml` to `0.0.0.0`.
 
 ## Community
 
 Come join us on [Discord](https://discord.gg/WQ2eUycxyT)!
+
+## License
+
+* [GNU GPL v2 or later](https://www.gnu.org/licenses/old-licenses/gpl-2.0-standalone.html)
+* Copyright 2021-2023

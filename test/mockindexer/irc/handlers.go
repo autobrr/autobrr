@@ -1,3 +1,6 @@
+// Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+// SPDX-License-Identifier: GPL-2.0-or-later
+
 package irc
 
 import (
@@ -34,5 +37,7 @@ func CommandHandler(c *Client, cmd []string) {
 		c.writer <- fmt.Sprintf("366 %s %s :End", c.nick, c.channelName)
 	case "PING":
 		c.writer <- fmt.Sprintf("PONG n %s", strings.Join(cmd[1:], " "))
+	case "PRIVMSG":
+		c.writer <- fmt.Sprintf("%s PRIVMSG %s %s", fmt.Sprintf(":%s", c.nick), cmd[1], fmt.Sprintf("%s", strings.Join(cmd[2:], " ")))
 	}
 }

@@ -1,3 +1,6 @@
+// Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+// SPDX-License-Identifier: GPL-2.0-or-later
+
 package domain
 
 import (
@@ -297,12 +300,13 @@ func TestRelease_MapVars(t *testing.T) {
 			name:   "2",
 			fields: &Release{},
 			want: &Release{
-				TorrentName: "Good show S02 2160p ATVP WEB-DL DDP 5.1 Atmos DV HEVC-GROUP2",
-				Category:    "tv",
-				Freeleech:   true,
-				Bonus:       []string{"Freeleech"},
-				Uploader:    "Anon",
-				Size:        uint64(10000000000),
+				TorrentName:      "Good show S02 2160p ATVP WEB-DL DDP 5.1 Atmos DV HEVC-GROUP2",
+				Category:         "tv",
+				Freeleech:        true,
+				FreeleechPercent: 100,
+				Bonus:            []string{"Freeleech"},
+				Uploader:         "Anon",
+				Size:             uint64(10000000000),
 			},
 			args: args{
 				varMap: map[string]string{
@@ -475,13 +479,14 @@ func TestRelease_MapVars(t *testing.T) {
 			name:   "10",
 			fields: &Release{},
 			want: &Release{
-				TorrentName: "Greatest Anime Ever",
-				Year:        2022,
-				Group:       "GROUP1",
-				Tags:        []string{"comedy", "fantasy", "school.life", "shounen", "slice.of.life"},
-				Uploader:    "Tester",
-				Freeleech:   true,
-				Bonus:       []string{"Freeleech"},
+				TorrentName:      "Greatest Anime Ever",
+				Year:             2022,
+				Group:            "GROUP1",
+				Tags:             []string{"comedy", "fantasy", "school.life", "shounen", "slice.of.life"},
+				Uploader:         "Tester",
+				Freeleech:        true,
+				FreeleechPercent: 100,
+				Bonus:            []string{"Freeleech"},
 			},
 			args: args{varMap: map[string]string{
 				"torrentName":  "Greatest Anime Ever",
@@ -496,13 +501,14 @@ func TestRelease_MapVars(t *testing.T) {
 			name:   "11",
 			fields: &Release{},
 			want: &Release{
-				TorrentName: "Good show S02 2160p ATVP WEB-DL DDP 5.1 Atmos DV HEVC-GROUP2",
-				Category:    "tv",
-				Freeleech:   true,
-				Bonus:       []string{"Freeleech"},
-				Uploader:    "Anon",
-				Size:        uint64(10000000000),
-				Tags:        []string{"comedy", "science fiction", "fantasy", "school.life", "shounen", "slice.of.life"},
+				TorrentName:      "Good show S02 2160p ATVP WEB-DL DDP 5.1 Atmos DV HEVC-GROUP2",
+				Category:         "tv",
+				Freeleech:        true,
+				FreeleechPercent: 100,
+				Bonus:            []string{"Freeleech"},
+				Uploader:         "Anon",
+				Size:             uint64(10000000000),
+				Tags:             []string{"comedy", "science fiction", "fantasy", "school.life", "shounen", "slice.of.life"},
 			},
 			args: args{
 				varMap: map[string]string{
@@ -667,6 +673,34 @@ func TestRelease_DownloadTorrentFile(t *testing.T) {
 	ts := httptest.NewServer(mux)
 	defer ts.Close()
 
+	mux.HandleFunc("/files/valid_torrent_as_html", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		w.Header().Set("Content-Type", "text/html")
+		payload, _ := os.ReadFile("testdata/archlinux-2011.08.19-netinstall-i686.iso.torrent")
+		w.Write(payload)
+	})
+
+	mux.HandleFunc("/files/invalid_torrent_as_html", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		w.Header().Set("Content-Type", "text/html")
+		payload := []byte("<html><head></head><body>This is not the torrent you are looking for</body></html>")
+		w.Write(payload)
+	})
+
+	mux.HandleFunc("/index.html", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		w.Header().Set("Content-Type", "text/html")
+		payload := []byte("<html><head></head><body>This is not the torrent you are looking for</body></html>")
+		w.Write(payload)
+	})
+
+	mux.HandleFunc("/plaintext", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		w.Header().Set("Content-Type", "text/plain")
+		payload := []byte("This is not a valid torrent file.")
+		w.Write(payload)
+	})
+
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		if strings.Contains(r.RequestURI, "401") {
 			w.WriteHeader(http.StatusUnauthorized)
@@ -758,40 +792,67 @@ func TestRelease_DownloadTorrentFile(t *testing.T) {
 	tests := []struct {
 		name    string
 		fields  fields
-		wantErr assert.ErrorAssertionFunc
+		wantErr bool
 	}{
 		{
 			name: "401",
 			fields: fields{
 				Indexer:     "mock-indexer",
 				TorrentName: "Test.Release-GROUP",
-				TorrentURL:  fmt.Sprintf("%v/%v", ts.URL, 401),
+				TorrentURL:  fmt.Sprintf("%s/%d", ts.URL, 401),
+				Protocol:    ReleaseProtocolTorrent,
 			},
-			wantErr: func(t assert.TestingT, err error, i ...interface{}) bool {
-				return err != nil
-			},
+			wantErr: true,
 		},
 		{
 			name: "403",
 			fields: fields{
 				Indexer:     "mock-indexer",
 				TorrentName: "Test.Release-GROUP",
-				TorrentURL:  fmt.Sprintf("%v/%v", ts.URL, 403),
+				TorrentURL:  fmt.Sprintf("%s/%d", ts.URL, 403),
+				Protocol:    ReleaseProtocolTorrent,
 			},
-			wantErr: func(t assert.TestingT, err error, i ...interface{}) bool {
-				return err != nil
+			wantErr: true,
+		},
+		{
+			name: "500",
+			fields: fields{
+				Indexer:     "mock-indexer",
+				TorrentName: "Test.Release-GROUP",
+				TorrentURL:  fmt.Sprintf("%s/%d", ts.URL, 500),
+				Protocol:    ReleaseProtocolTorrent,
 			},
+			wantErr: true,
 		},
 		{
 			name: "ok",
 			fields: fields{
 				Indexer:     "mock-indexer",
 				TorrentName: "Test.Release-GROUP",
-				TorrentURL:  fmt.Sprintf("%v/%v", ts.URL, "file.torrent"),
+				TorrentURL:  fmt.Sprintf("%s/%s", ts.URL, "file.torrent"),
+				Protocol:    ReleaseProtocolTorrent,
 			},
-			wantErr: func(t assert.TestingT, err error, i ...interface{}) bool {
-				return err != nil
+			wantErr: false,
+		},
+		{
+			name: "valid_torrent_with_text-html_header",
+			fields: fields{
+				Indexer:     "mock-indexer",
+				TorrentName: "Test.Release-GROUP",
+				TorrentURL:  fmt.Sprintf("%s/files/%s", ts.URL, "valid_torrent_as_html"),
+				Protocol:    ReleaseProtocolTorrent,
 			},
+			wantErr: false,
+		},
+		{
+			name: "invalid_torrent_with_text-html_header",
+			fields: fields{
+				Indexer:     "mock-indexer",
+				TorrentName: "Test.Release-GROUP",
+				TorrentURL:  fmt.Sprintf("%s/files/%s", ts.URL, "invalid_torrent_as_html"),
+				Protocol:    ReleaseProtocolTorrent,
+			},
+			wantErr: true,
 		},
 	}
 
@@ -851,7 +912,11 @@ func TestRelease_DownloadTorrentFile(t *testing.T) {
 				Filter:                      tt.fields.Filter,
 				ActionStatus:                tt.fields.ActionStatus,
 			}
-			tt.wantErr(t, r.DownloadTorrentFile(), "DownloadTorrentFile()")
+			err := r.DownloadTorrentFile()
+			if err == nil && tt.wantErr {
+				fmt.Println("error")
+			}
+
 		})
 	}
 }

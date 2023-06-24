@@ -1,3 +1,6 @@
+// Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+// SPDX-License-Identifier: GPL-2.0-or-later
+
 package download_client
 
 import (
@@ -13,11 +16,13 @@ import (
 	"github.com/autobrr/autobrr/pkg/sabnzbd"
 	"github.com/autobrr/autobrr/pkg/sonarr"
 	"github.com/autobrr/autobrr/pkg/whisparr"
-	"github.com/autobrr/go-qbittorrent"
 
-	delugeClient "github.com/gdm85/go-libdeluge"
+	"github.com/autobrr/go-deluge"
+	"github.com/autobrr/go-qbittorrent"
+	"github.com/autobrr/go-rtorrent"
+	"github.com/dcarbone/zadapters/zstdlog"
 	"github.com/hekmon/transmissionrpc/v2"
-	"github.com/mrobinsn/go-rtorrent/rtorrent"
+	"github.com/rs/zerolog"
 )
 
 func (s *service) testConnection(ctx context.Context, client domain.DownloadClient) error {
@@ -26,10 +31,10 @@ func (s *service) testConnection(ctx context.Context, client domain.DownloadClie
 		return s.testQbittorrentConnection(ctx, client)
 
 	case domain.DownloadClientTypeDelugeV1, domain.DownloadClientTypeDelugeV2:
-		return s.testDelugeConnection(client)
+		return s.testDelugeConnection(ctx, client)
 
 	case domain.DownloadClientTypeRTorrent:
-		return s.testRTorrentConnection(client)
+		return s.testRTorrentConnection(ctx, client)
 
 	case domain.DownloadClientTypeTransmission:
 		return s.testTransmissionConnection(ctx, client)
@@ -56,7 +61,7 @@ func (s *service) testConnection(ctx context.Context, client domain.DownloadClie
 		return s.testSabnzbdConnection(ctx, client)
 
 	default:
-		return errors.New("unsupported client")
+		return errors.New("unsupported client: %s", client.Type)
 	}
 }
 
@@ -90,59 +95,81 @@ func (s *service) testQbittorrentConnection(ctx context.Context, client domain.D
 	return nil
 }
 
-func (s *service) testDelugeConnection(client domain.DownloadClient) error {
-	var deluge delugeClient.DelugeClient
-
-	settings := delugeClient.Settings{
+func (s *service) testDelugeConnection(ctx context.Context, client domain.DownloadClient) error {
+	settings := deluge.Settings{
 		Hostname:             client.Host,
 		Port:                 uint(client.Port),
 		Login:                client.Username,
 		Password:             client.Password,
 		DebugServerResponses: true,
-		ReadWriteTimeout:     time.Second * 10,
+		ReadWriteTimeout:     30 * time.Second,
 	}
+
+	settings.Logger = zstdlog.NewStdLoggerWithLevel(s.log.With().Logger(), zerolog.TraceLevel)
+
+	var err error
+	var version string
 
 	switch client.Type {
 	case "DELUGE_V1":
-		deluge = delugeClient.NewV1(settings)
+		del := deluge.NewV1(settings)
+
+		// perform connection to Deluge server
+		if err := del.Connect(ctx); err != nil {
+			return errors.Wrap(err, "error logging into client: %v", client.Host)
+		}
+
+		defer del.Close()
+
+		// print daemon version
+		version, err = del.DaemonVersion(ctx)
+		if err != nil {
+			return errors.Wrap(err, "could not get daemon version: %v", client.Host)
+		}
 
 	case "DELUGE_V2":
-		deluge = delugeClient.NewV2(settings)
+		del := deluge.NewV2(settings)
+
+		// perform connection to Deluge server
+		if err := del.Connect(ctx); err != nil {
+			return errors.Wrap(err, "error logging into client: %v", client.Host)
+		}
+
+		defer del.Close()
+
+		// print daemon version
+		version, err = del.DaemonVersion(ctx)
+		if err != nil {
+			return errors.Wrap(err, "could not get daemon version: %v", client.Host)
+		}
 
 	default:
-		deluge = delugeClient.NewV2(settings)
+		return errors.New("unsupported deluge client version: %s", client.Type)
 	}
 
-	// perform connection to Deluge server
-	err := deluge.Connect()
-	if err != nil {
-		return errors.Wrap(err, "error logging into client: %v", client.Host)
-	}
-
-	defer deluge.Close()
-
-	// print daemon version
-	ver, err := deluge.DaemonVersion()
-	if err != nil {
-		return errors.Wrap(err, "could not get daemon version: %v", client.Host)
-	}
-
-	s.log.Debug().Msgf("test client connection for Deluge: success - daemon version: %v", ver)
+	s.log.Debug().Msgf("test client connection for Deluge: success - daemon version: %v", version)
 
 	return nil
 }
 
-func (s *service) testRTorrentConnection(client domain.DownloadClient) error {
+func (s *service) testRTorrentConnection(ctx context.Context, client domain.DownloadClient) error {
 	// create client
-	rt := rtorrent.New(client.Host, true)
-	name, err := rt.Name()
+	rt := rtorrent.NewClient(rtorrent.Config{
+		Addr:          client.Host,
+		TLSSkipVerify: client.TLSSkipVerify,
+		BasicUser:     client.Settings.Basic.Username,
+		BasicPass:     client.Settings.Basic.Password,
+		Log:           nil,
+	})
+
+	name, err := rt.Name(ctx)
 	if err != nil {
-		return errors.Wrap(err, "error logging into client: %v", client.Host)
+		return errors.Wrap(err, "error logging into client: %s", client.Host)
 	}
 
-	s.log.Trace().Msgf("test client connection for rTorrent: got client: %v", name)
+	s.log.Trace().Msgf("test client connection for rTorrent: got client: %s", name)
 
-	s.log.Debug().Msgf("test client connection for rTorrent: success")
+	s.log.Debug().Msg("test client connection for rTorrent: success")
 
 	return nil
 }

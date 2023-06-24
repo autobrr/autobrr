@@ -1,3 +1,6 @@
+// Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+// SPDX-License-Identifier: GPL-2.0-or-later
+
 package domain
 
 import (
@@ -22,6 +25,8 @@ type Macro struct {
 	GroupID             string
 	Indexer             string
 	Title               string
+	Category            string
+	Categories          []string
 	Resolution          string
 	Source              string
 	HDR                 string
@@ -52,6 +57,8 @@ func NewMacro(release Release) Macro {
 		GroupID:             release.GroupID,
 		Indexer:             release.Indexer,
 		Title:               release.Title,
+		Category:            release.Category,
+		Categories:          release.Categories,
 		Resolution:          release.Resolution,
 		Source:              release.Source,
 		HDR:                 strings.Join(release.HDR, ", "),

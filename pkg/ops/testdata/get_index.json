@@ -1,0 +1,29 @@
+{
+  "status": "success",
+  "response": {
+    "username": "username",
+    "id": 1,
+    "authkey": "redacted",
+    "passkey": "redacted",
+    "notifications": {
+      "messages": 0,
+      "notifications": 0,
+      "newAnnouncement": false,
+      "newBlog": false,
+      "newSubscriptions": false
+    },
+    "userstats": {
+      "uploaded": 0,
+      "downloaded": 0,
+      "ratio": -1,
+      "requiredratio": 0,
+      "bonusPoints": 0,
+      "bonusPointsPerHour": 0.0,
+      "class": "User"
+    }
+  },
+  "info": {
+    "source": "Orpheus",
+    "version": 1
+  }
+}

@@ -1,0 +1,74 @@
+---
+#id: TSC
+name: TorrentSectorCrew
+identifier: tsc
+description: Torrent Sector Crew (TSC) is a GERMAN Private Torrent Tracker for MOVIES / TV / GENERAL.
+language: de-de
+urls:
+  - https://www.tsctracker.org
+privacy: private
+protocol: torrent
+supports:
+  - irc
+  - rss
+source: custom
+settings:
+  - name: api_key
+    type: secret
+    required: true
+    label: API key
+    help: "Copy string from wget link behind the torrent name. https://tsctracker.org/x/x/x/<APIKEY>/torrentname.torrent"
+
+  - name: uid
+    type: secret
+    required: true
+    label: User ID
+    help: "Copy the ID in the URL of your profile page. https://tsctracker.org/userdetails.php?id=<USERID>"
+
+irc:
+  network: TorrentSectorCrew
+  server: irc.tsctracker.org
+  port: 7000
+  tls: true
+  channels:
+    - "#T.S.C-Announce"
+  announcers:
+    - bl0w
+  settings:
+    - name: nick
+      type: text
+      required: true
+      label: Nick
+      help: Bot nick. Eg. user_bot
+
+    - name: auth.account
+      type: text
+      required: true
+      label: NickServ Account
+      help: NickServ account. Make sure to group your user and bot.
+
+    - name: auth.password
+      type: secret
+      required: true
+      label: NickServ Password
+      help: NickServ password
+
+  parse:
+    type: single
+    lines:
+      - test:
+          - "[Games/PC] The.Smallest.Game-ze0s (Größe: 31,53 MB) https://tsctracker.org/details.php?id=0000000"
+          - "[Music/MP3] TUNES_4_LYFE_WEB_iNT (Größe: 31,53 GB) https://tsctracker.org/details.php?id=0000000"
+          - "[XXX/0-Day] Cute.Stuff.69.XXX.VR180.2700p.MP4-s0ez (Größe: 2,3 TB) https://tsctracker.org/details.php?id=0000000"
+          - "[Movies/HD] Have.You.Seen.The.Cat.Tonight-WhereThat (Größe: 1,0 MB) https://tsctracker.org/details.php?id=0000000"
+          - "[TV-HD/X264] The.Eggerton.S01E01.720p.WEB.h264-OTA (Größe: 131,94 GB) https://tsctracker.org/details.php?id=0000000"
+        pattern: '\[(.*)\].(.*?).\(Größe:.(.*?)\).*id=(\d+)'
+        vars:
+          - category
+          - torrentName
+          - size
+          - torrentId
+
+    match:
+      infourl: "/details.php?id={{ .torrentId }}"
+      torrenturl: "/ddownload_ssl.php/{{ .torrentId }}/{{ .uid }}/{{ .api_key }}/{{ .torrentName }}.torrent"

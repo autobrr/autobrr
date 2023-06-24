@@ -1,3 +1,6 @@
+// Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+// SPDX-License-Identifier: GPL-2.0-or-later
+
 package feed
 
 import (
@@ -190,6 +193,10 @@ func (j *RSSJob) processItem(item *gofeed.Item) *domain.Release {
 		rls.Bonus = []string{"Freeleech"}
 	}
 
+	if item.Description != "" {
+		rls.Description = item.Description
+	}
+
 	// add cookie to release for download if needed
 	if j.Feed.Cookie != "" {
 		rls.RawCookie = j.Feed.Cookie
@@ -224,12 +231,6 @@ func (j *RSSJob) getFeed(ctx context.Context) (items []*gofeed.Item, err error) 
 
 	//sort.Sort(feed)
 
-	bucketCount, err := j.CacheRepo.GetCountByBucket(ctx, bucketKey)
-	if err != nil {
-		j.Log.Error().Err(err).Msg("could not check if item exists")
-		return nil, err
-	}
-
 	// set ttl to 1 month
 	ttl := time.Now().AddDate(0, 1, 0)
 
@@ -261,11 +262,8 @@ func (j *RSSJob) getFeed(ctx context.Context) (items []*gofeed.Item, err error) 
 			continue
 		}
 
-		// first time we fetch the feed the cached bucket count will be 0
-		// only append to items if it's bigger than 0, so we get new items only
-		if bucketCount > 0 {
-			items = append(items, item)
-		}
+		// only append if we successfully added to cache
+		items = append(items, item)
 	}
 
 	// send to filters

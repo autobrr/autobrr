@@ -1,6 +1,10 @@
+// Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+// SPDX-License-Identifier: GPL-2.0-or-later
+
 package domain
 
 import (
+	"bytes"
 	"context"
 	"crypto/tls"
 	"fmt"
@@ -16,6 +20,7 @@ import (
 
 	"github.com/autobrr/autobrr/pkg/errors"
 
+	"github.com/anacrolix/torrent/bencode"
 	"github.com/anacrolix/torrent/metainfo"
 	"github.com/avast/retry-go"
 	"github.com/dustin/go-humanize"
@@ -27,12 +32,15 @@ type ReleaseRepo interface {
 	Store(ctx context.Context, release *Release) (*Release, error)
 	Find(ctx context.Context, params ReleaseQueryParams) (res []*Release, nextCursor int64, count int64, err error)
 	FindRecent(ctx context.Context) ([]*Release, error)
+	Get(ctx context.Context, req *GetReleaseRequest) (*Release, error)
 	GetIndexerOptions(ctx context.Context) ([]string, error)
-	GetActionStatusByReleaseID(ctx context.Context, releaseID int64) ([]ReleaseActionStatus, error)
 	Stats(ctx context.Context) (*ReleaseStats, error)
-	StoreReleaseActionStatus(ctx context.Context, actionStatus *ReleaseActionStatus) error
 	Delete(ctx context.Context) error
+	DeleteOlder(ctx context.Context, duration int) error
 	CanDownloadShow(ctx context.Context, title string, season int, episode int) (bool, error)
+
+	GetActionStatus(ctx context.Context, req *GetReleaseActionStatusRequest) (*ReleaseActionStatus, error)
+	StoreReleaseActionStatus(ctx context.Context, status *ReleaseActionStatus) error
 }
 
 type Release struct {
@@ -55,6 +63,7 @@ type Release struct {
 	TorrentName                 string                `json:"torrent_name"` // full release name
 	Size                        uint64                `json:"size"`
 	Title                       string                `json:"title"` // Parsed title
+	Description                 string                `json:"-"`
 	Category                    string                `json:"category"`
 	Categories                  []string              `json:"categories,omitempty"`
 	Season                      int                   `json:"season"`
@@ -96,13 +105,35 @@ type ReleaseActionStatus struct {
 	ID         int64             `json:"id"`
 	Status     ReleasePushStatus `json:"status"`
 	Action     string            `json:"action"`
+	ActionID   int64             `json:"action_id"`
 	Type       ActionType        `json:"type"`
 	Client     string            `json:"client"`
 	Filter     string            `json:"filter"`
-	FilterID   int64             `json:"-"`
+	FilterID   int64             `json:"filter_id"`
 	Rejections []string          `json:"rejections"`
+	ReleaseID  int64             `json:"release_id"`
 	Timestamp  time.Time         `json:"timestamp"`
-	ReleaseID  int64             `json:"-"`
+}
+
+func NewReleaseActionStatus(action *Action, release *Release) *ReleaseActionStatus {
+	s := &ReleaseActionStatus{
+		ID:         0,
+		Status:     ReleasePushStatusPending,
+		Action:     action.Name,
+		ActionID:   int64(action.ID),
+		Type:       action.Type,
+		Filter:     release.FilterName,
+		FilterID:   int64(release.FilterID),
+		Rejections: []string{},
+		Timestamp:  time.Now(),
+		ReleaseID:  release.ID,
+	}
+
+	if action.Client != nil {
+		s.Client = action.Client.Name
+	}
+
+	return s
 }
 
 type DownloadTorrentFileResponse struct {
@@ -121,15 +152,16 @@ type ReleaseStats struct {
 type ReleasePushStatus string
 
 const (
+	ReleasePushStatusPending  ReleasePushStatus = "PENDING" // Initial status
 	ReleasePushStatusApproved ReleasePushStatus = "PUSH_APPROVED"
 	ReleasePushStatusRejected ReleasePushStatus = "PUSH_REJECTED"
 	ReleasePushStatusErr      ReleasePushStatus = "PUSH_ERROR"
-
-	//ReleasePushStatusPending  ReleasePushStatus = "PENDING" // Initial status
 )
 
 func (r ReleasePushStatus) String() string {
 	switch r {
+	case ReleasePushStatusPending:
+		return "Pending"
 	case ReleasePushStatusApproved:
 		return "Approved"
 	case ReleasePushStatusRejected:
@@ -202,6 +234,20 @@ type ReleaseQueryParams struct {
 		PushStatus string
 	}
 	Search string
+}
+
+type ReleaseActionRetryReq struct {
+	ReleaseId      int
+	ActionStatusId int
+	ActionId       int
+}
+
+type GetReleaseRequest struct {
+	Id int
+}
+
+type GetReleaseActionStatusRequest struct {
+	Id int
 }
 
 func NewRelease(indexer string) *Release {
@@ -319,10 +365,10 @@ func (r *Release) DownloadTorrentFile() error {
 }
 
 func (r *Release) downloadTorrentFile(ctx context.Context) error {
-	if r.Protocol != ReleaseProtocolTorrent {
-		return errors.New("download_file: protocol is not %s: %s", ReleaseProtocolTorrent, r.Protocol)
-	} else if r.HasMagnetUri() {
-		return fmt.Errorf("error trying to download magnet link: %s", r.MagnetURI)
+	if r.HasMagnetUri() {
+		return errors.New("downloading magnet links is not supported: %s", r.MagnetURI)
+	} else if r.Protocol != ReleaseProtocolTorrent {
+		return errors.New("could not download file: protocol %s is not supported", r.Protocol)
 	}
 
 	if r.TorrentURL == "" {
@@ -332,16 +378,10 @@ func (r *Release) downloadTorrentFile(ctx context.Context) error {
 		return nil
 	}
 
-	jar, err := cookiejar.New(&cookiejar.Options{PublicSuffixList: publicsuffix.List})
-	if err != nil {
-		return errors.Wrap(err, "could not create cookiejar")
-	}
-
 	customTransport := http.DefaultTransport.(*http.Transport).Clone()
 	customTransport.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
 	client := &http.Client{
 		Transport: customTransport,
-		Jar:       jar,
 		Timeout:   time.Second * 45,
 	}
 
@@ -350,7 +390,15 @@ func (r *Release) downloadTorrentFile(ctx context.Context) error {
 		return errors.Wrap(err, "error downloading file")
 	}
 
+	req.Header.Set("User-Agent", "autobrr")
+
 	if r.RawCookie != "" {
+		jar, err := cookiejar.New(&cookiejar.Options{PublicSuffixList: publicsuffix.List})
+		if err != nil {
+			return errors.Wrap(err, "could not create cookiejar")
+		}
+		client.Jar = jar
+
 		// set the cookie on the header instead of req.AddCookie
 		// since we have a raw cookie like "uid=10; pass=000"
 		req.Header.Set("Cookie", r.RawCookie)
@@ -371,14 +419,31 @@ func (r *Release) downloadTorrentFile(ctx context.Context) error {
 		}
 		defer resp.Body.Close()
 
-		if resp.StatusCode != http.StatusOK {
-			unRecoverableErr := errors.Wrap(ErrUnrecoverableError, "unrecoverable error downloading torrent (%v) file (%v) from '%v' - status code: %d", r.TorrentName, r.TorrentURL, r.Indexer, resp.StatusCode)
+		// Check server response
+		switch resp.StatusCode {
+		case http.StatusOK:
+			// Continue processing the response
+		//case http.StatusMovedPermanently, http.StatusFound, http.StatusSeeOther, http.StatusTemporaryRedirect, http.StatusPermanentRedirect:
+		//	// Handle redirect
+		//	return retry.Unrecoverable(errors.New("redirect encountered for torrent (%v) file (%v) - status code: %d - check indexer keys for %s", r.TorrentName, r.TorrentURL, resp.StatusCode, r.Indexer))
 
-			if resp.StatusCode == 401 || resp.StatusCode == 403 || resp.StatusCode == 404 || resp.StatusCode == 405 {
-				return retry.Unrecoverable(unRecoverableErr)
-			}
+		case http.StatusUnauthorized, http.StatusForbidden:
+			return retry.Unrecoverable(errors.New("unrecoverable error downloading torrent (%v) file (%v) - status code: %d - check indexer keys for %s", r.TorrentName, r.TorrentURL, resp.StatusCode, r.Indexer))
 
-			return errors.New("unexpected status: %v", resp.StatusCode)
+		case http.StatusMethodNotAllowed:
+			return retry.Unrecoverable(errors.New("unrecoverable error downloading torrent (%v) file (%v) from '%v' - status code: %d. Check if the request method is correct", r.TorrentName, r.TorrentURL, r.Indexer, resp.StatusCode))
+
+		case http.StatusNotFound:
+			return errors.New("torrent %s not found on %s (%d) - retrying", r.TorrentName, r.Indexer, resp.StatusCode)
+
+		case http.StatusBadGateway, http.StatusServiceUnavailable, http.StatusGatewayTimeout:
+			return errors.New("server error (%d) encountered while downloading torrent (%v) file (%v) from '%v' - retrying", resp.StatusCode, r.TorrentName, r.TorrentURL, r.Indexer)
+
+		case http.StatusInternalServerError:
+			return errors.New("server error (%d) encountered while downloading torrent (%v) file (%v) - check indexer keys for %s", resp.StatusCode, r.TorrentName, r.TorrentURL, r.Indexer)
+
+		default:
+			return retry.Unrecoverable(errors.New("unexpected status code %d: check indexer keys for %s", resp.StatusCode, r.Indexer))
 		}
 
 		resetTmpFile := func() {
@@ -386,28 +451,46 @@ func (r *Release) downloadTorrentFile(ctx context.Context) error {
 			tmpFile.Truncate(0)
 		}
 
-		// Write the body to file
-		if _, err := io.Copy(tmpFile, resp.Body); err != nil {
-			resetTmpFile()
-			return errors.Wrap(err, "error writing downloaded file: %v", tmpFile.Name())
+		// Read the body into bytes
+		bodyBytes, err := io.ReadAll(resp.Body)
+		if err != nil {
+			return errors.Wrap(err, "error reading response body")
 		}
 
-		meta, err := metainfo.LoadFromFile(tmpFile.Name())
+		// Create a new reader for bodyBytes
+		bodyReader := bytes.NewReader(bodyBytes)
+
+		// Try to decode as torrent file
+		meta, err := metainfo.Load(bodyReader)
 		if err != nil {
 			resetTmpFile()
-			return errors.Wrap(err, "metainfo could not load file contents: %v", tmpFile.Name())
+
+			// explicitly check for unexpected content type that match html
+			var bse *bencode.SyntaxError
+			if errors.As(err, &bse) {
+				// regular error so we can retry if we receive html first run
+				return errors.Wrap(err, "metainfo unexpected content type, got HTML expected a bencoded torrent. check indexer keys for %s - %s", r.Indexer, r.TorrentName)
+			}
+
+			return retry.Unrecoverable(errors.Wrap(err, "metainfo unexpected content type. check indexer keys for %s - %s", r.Indexer, r.TorrentName))
+		}
+
+		// Write the body to file
+		if _, err := tmpFile.Write(bodyBytes); err != nil {
+			resetTmpFile()
+			return errors.Wrap(err, "error writing downloaded file: %s", tmpFile.Name())
 		}
 
 		torrentMetaInfo, err := meta.UnmarshalInfo()
 		if err != nil {
 			resetTmpFile()
-			return errors.Wrap(err, "metainfo could not unmarshal info from torrent: %v", tmpFile.Name())
+			return retry.Unrecoverable(errors.Wrap(err, "metainfo could not unmarshal info from torrent: %s", tmpFile.Name()))
 		}
 
 		hashInfoBytes := meta.HashInfoBytes().Bytes()
 		if len(hashInfoBytes) < 1 {
 			resetTmpFile()
-			return errors.New("could not read infohash")
+			return retry.Unrecoverable(errors.New("could not read infohash"))
 		}
 
 		r.TorrentTmpFile = tmpFile.Name()
@@ -422,6 +505,15 @@ func (r *Release) downloadTorrentFile(ctx context.Context) error {
 	)
 
 	return errFunc
+}
+
+func (r *Release) CleanupTemporaryFiles() {
+	if len(r.TorrentTmpFile) == 0 {
+		return
+	}
+
+	os.Remove(r.TorrentTmpFile)
+	r.TorrentTmpFile = ""
 }
 
 // HasMagnetUri check uf MagnetURI is set or empty
@@ -544,6 +636,8 @@ func (r *Release) MapVars(def *IndexerDefinition, varMap map[string]string) erro
 		fl := StringEqualFoldMulti(freeleech, "freeleech", "yes", "1", "VIP")
 		if fl {
 			r.Freeleech = true
+			// default to 100 and override if freeleechPercent is present in next function
+			r.FreeleechPercent = 100
 			r.Bonus = append(r.Bonus, "Freeleech")
 		}
 	}
@@ -558,22 +652,23 @@ func (r *Release) MapVars(def *IndexerDefinition, varMap map[string]string) erro
 			//log.Debug().Msgf("bad freeleechPercent var: %v", year)
 		}
 
-		r.Freeleech = true
-		r.FreeleechPercent = freeleechPercentInt
+		if freeleechPercentInt > 0 {
+			r.Freeleech = true
+			r.FreeleechPercent = freeleechPercentInt
 
-		r.Bonus = append(r.Bonus, "Freeleech")
+			r.Bonus = append(r.Bonus, "Freeleech")
 
-		switch freeleechPercentInt {
-		case 25:
-			r.Bonus = append(r.Bonus, "Freeleech25")
-		case 50:
-			r.Bonus = append(r.Bonus, "Freeleech50")
-		case 75:
-			r.Bonus = append(r.Bonus, "Freeleech75")
-		case 100:
-			r.Bonus = append(r.Bonus, "Freeleech100")
+			switch freeleechPercentInt {
+			case 25:
+				r.Bonus = append(r.Bonus, "Freeleech25")
+			case 50:
+				r.Bonus = append(r.Bonus, "Freeleech50")
+			case 75:
+				r.Bonus = append(r.Bonus, "Freeleech75")
+			case 100:
+				r.Bonus = append(r.Bonus, "Freeleech100")
+			}
 		}
-
 	}
 
 	if uploader, err := getStringMapValue(varMap, "uploader"); err == nil {

@@ -27,7 +27,7 @@ settings:
 
 irc:
   network: DigitalIRC
-  server: irc.enthralled.me
+  server: irc.digitalirc.org
   port: 6697
   tls: true
   channels:

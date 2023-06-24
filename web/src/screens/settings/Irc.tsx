@@ -1,18 +1,13 @@
-import { useMutation, useQuery, useQueryClient } from "react-query";
+/*
+ * Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ */
 
-import { classNames, IsEmptyDate, simplifyDate } from "../../utils";
-import { IrcNetworkAddForm, IrcNetworkUpdateForm } from "../../forms";
-import { useToggle } from "../../hooks/hooks";
-import { APIClient } from "../../api/APIClient";
-import { EmptySimple } from "../../components/emptystates";
+import { Fragment, useRef, useState, useMemo, useEffect } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { LockClosedIcon, LockOpenIcon } from "@heroicons/react/24/solid";
 import { Menu, Switch, Transition } from "@headlessui/react";
-import { Fragment, useRef } from "react";
-import { DeleteModal } from "../../components/modals";
-import { useState, useMemo } from "react";
-
 import { toast } from "react-hot-toast";
-import Toast from "../../components/notifications/Toast";
 import {
   ArrowsPointingInIcon,
   ArrowsPointingOutIcon,
@@ -22,6 +17,24 @@ import {
   TrashIcon
 } from "@heroicons/react/24/outline";
 
+import { classNames, IsEmptyDate, simplifyDate } from "@utils";
+import { IrcNetworkAddForm, IrcNetworkUpdateForm } from "@forms";
+import { useToggle } from "@hooks/hooks";
+import { APIClient } from "@api/APIClient";
+import { EmptySimple } from "@components/emptystates";
+import { DeleteModal } from "@components/modals";
+import Toast from "@components/notifications/Toast";
+import { SettingsContext } from "@utils/Context";
+import { useForm } from "react-hook-form";
+
+export const ircKeys = {
+  all: ["irc_networks"] as const,
+  lists: () => [...ircKeys.all, "list"] as const,
+  // list: (indexers: string[], sortOrder: string) => [...ircKeys.lists(), { indexers, sortOrder }] as const,
+  details: () => [...ircKeys.all, "detail"] as const,
+  detail: (id: number) => [...ircKeys.details(), id] as const
+};
+
 interface SortConfig {
   key: keyof ListItemProps["network"] | "enabled";
   direction: "ascending" | "descending";
@@ -30,8 +43,6 @@ interface SortConfig {
 function useSort(items: ListItemProps["network"][], config?: SortConfig) {
   const [sortConfig, setSortConfig] = useState(config);
 
-
-  
   const sortedItems = useMemo(() => {
     if (!sortConfig) {
       return items;
@@ -79,19 +90,18 @@ function useSort(items: ListItemProps["network"][], config?: SortConfig) {
   return { items: sortedItems, requestSort, sortConfig, getSortIndicator };
 }
 
-
 const IrcSettings = () => {
   const [expandNetworks, toggleExpand] = useToggle(false);
   const [addNetworkIsOpen, toggleAddNetwork] = useToggle(false);
 
-  const { data } = useQuery("networks", () => APIClient.irc.getNetworks(), {
+  const { data } = useQuery({
+    queryKey: ircKeys.lists(),
+    queryFn: APIClient.irc.getNetworks,
     refetchOnWindowFocus: false,
-    // Refetch every 3 seconds
-    refetchInterval: 3000
+    refetchInterval: 3000 // Refetch every 3 seconds
   });
 
   const sortedNetworks = useSort(data || []);
-
 
   return (
     <div className="lg:col-span-9">
@@ -209,18 +219,17 @@ const ListItem = ({ idx, network, expanded }: ListItemProps) => {
   const [edit, toggleEdit] = useToggle(false);
 
   const queryClient = useQueryClient();
-  const mutation = useMutation(
-    (network: IrcNetwork) => APIClient.irc.updateNetwork(network),
-    {
-      onSuccess: () => {
-        queryClient.invalidateQueries(["networks"]);
-        toast.custom((t) => <Toast type="success" body={`${network.name} was updated successfully`} t={t}/>);
-      }
+
+  const updateMutation = useMutation({
+    mutationFn: (network: IrcNetwork) => APIClient.irc.updateNetwork(network).then(() => network),
+    onSuccess: (network: IrcNetwork) => {
+      queryClient.invalidateQueries({ queryKey: ircKeys.lists() });
+      toast.custom(t => <Toast type="success" body={`${network.name} was ${network.enabled ? "enabled" : "disabled"} successfully.`} t={t} />);
     }
-  );
+  });
 
   const onToggleMutation = (newState: boolean) => {
-    mutation.mutate({
+    updateMutation.mutate({
       ...network,
       enabled: newState
     });
@@ -228,7 +237,7 @@ const ListItem = ({ idx, network, expanded }: ListItemProps) => {
 
   return (
     <li key={idx}>
-      <div className={classNames("grid grid-cols-12 gap-2 lg:gap-4 items-center py-2", network.enabled && !network.healthy ? "bg-red-50 dark:bg-red-900 hover:bg-red-100 dark:hover:bg-red-800" : "hover:bg-gray-50 dark:hover:bg-gray-700 ")}>
+      <div className={classNames("grid grid-cols-12 gap-2 lg:gap-4 items-center py-2", network.enabled && !network.healthy ? "bg-red-50 dark:bg-red-900 hover:bg-red-100 dark:hover:bg-red-800" : "hover:bg-gray-50 dark:hover:bg-gray-700")}>
         <IrcNetworkUpdateForm
           isOpen={updateIsOpen}
           toggle={toggleUpdate}
@@ -337,45 +346,12 @@ const ListItem = ({ idx, network, expanded }: ListItemProps) => {
                   <div className="col-span-4 px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                     Monitoring since
                   </div>
-                  <div className="col-span-4 px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  <div className="col-span-3 px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                     Last announce
                   </div>
                 </li>
                 {network.channels.map((c) => (
-                  <li key={c.id} className="text-gray-500 dark:text-gray-400">
-                    <div className="grid grid-cols-12 gap-4 items-center py-4">
-                      <div className="col-span-4 flex items-center md:px-6 ">
-                        <span className="relative inline-flex items-center">
-                          {network.enabled ? (
-                            c.monitoring ? (
-                              <span
-                                className="mr-3 flex h-3 w-3 relative"
-                                title="monitoring"
-                              >
-                                <span className="animate-ping inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
-                                <span className="inline-flex absolute rounded-full h-3 w-3 bg-green-500" />
-                              </span>
-                            ) : (
-                              <span className="mr-3 flex h-3 w-3 rounded-full opacity-75 bg-red-400" />
-                            )
-                          ) : (
-                            <span className="mr-3 flex h-3 w-3 rounded-full opacity-75 bg-gray-500" />
-                          )}
-                          {c.name}
-                        </span>
-                      </div>
-                      <div className="col-span-4 flex items-center md:px-6 ">
-                        <span title={simplifyDate(c.monitoring_since)}>
-                          {IsEmptyDate(c.monitoring_since)}
-                        </span>
-                      </div>
-                      <div className="col-span-4 flex items-center md:px-6 ">
-                        <span title={simplifyDate(c.last_announce)}>
-                          {IsEmptyDate(c.last_announce)}
-                        </span>
-                      </div>
-                    </div>
-                  </li>
+                  <ChannelItem network={network} channel={c} />
                 ))}
               </ol>
             ) : (
@@ -385,6 +361,59 @@ const ListItem = ({ idx, network, expanded }: ListItemProps) => {
             )}
           </div>
         </div>
+      )}
+    </li>
+  );
+};
+
+interface ChannelItemProps {
+  network: IrcNetwork;
+  channel: IrcChannelWithHealth;
+}
+
+const ChannelItem = ({ network, channel }: ChannelItemProps) => {
+  const [viewChannel, toggleView] = useToggle(false);
+
+  return (
+    <li key={channel.id} className={classNames("mb-2 text-gray-500 dark:text-gray-400", viewChannel ? "bg-gray-200 dark:bg-gray-800 rounded-md" : "")}>
+      <div className="grid grid-cols-12 gap-4 items-center py-4 hover:bg-gray-300 dark:hover:bg-gray-800 hover:cursor-pointer rounded-md" onClick={toggleView}>
+        <div className="col-span-4 flex items-center md:px-6 ">
+          <span className="relative inline-flex items-center">
+            {network.enabled ? (
+              channel.monitoring ? (
+                <span
+                  className="mr-3 flex h-3 w-3 relative"
+                  title="monitoring"
+                >
+                  <span
+                    className="animate-ping inline-flex h-full w-full rounded-full bg-green-400 opacity-75"/>
+                  <span className="inline-flex absolute rounded-full h-3 w-3 bg-green-500"/>
+                </span>
+              ) : (
+                <span className="mr-3 flex h-3 w-3 rounded-full opacity-75 bg-red-400"/>
+              )
+            ) : (
+              <span className="mr-3 flex h-3 w-3 rounded-full opacity-75 bg-gray-500"/>
+            )}
+            {channel.name}
+          </span>
+        </div>
+        <div className="col-span-4 flex items-center md:px-6 ">
+          <span title={simplifyDate(channel.monitoring_since)}>
+            {IsEmptyDate(channel.monitoring_since)}
+          </span>
+        </div>
+        <div className="col-span-3 flex items-center md:px-6 ">
+          <span title={simplifyDate(channel.last_announce)}>
+            {IsEmptyDate(channel.last_announce)}
+          </span>
+        </div>
+        <div className="col-span-1 flex items-center">
+          <button className="hover:text-gray-500 px-2 py-1 dark:bg-gray-800 rounded dark:border-gray-900">{viewChannel ? "Hide" : "View"}</button>
+        </div>
+      </div>
+      {viewChannel && (
+        <Events network={network} channel={channel.name}/>
       )}
     </li>
   );
@@ -404,37 +433,30 @@ const ListItemDropdown = ({
   const queryClient = useQueryClient();
 
   const [deleteModalIsOpen, toggleDeleteModal] = useToggle(false);
-  const deleteMutation = useMutation(
-    (id: number) => APIClient.irc.deleteNetwork(id),
-    {
-      onSuccess: () => {
-        queryClient.invalidateQueries(["networks"]);
-        queryClient.invalidateQueries(["networks", network.id]);
 
-        toast.custom((t) => <Toast type="success" body={`Network ${network.name} was deleted`} t={t}/>);
+  const deleteMutation = useMutation({
+    mutationFn: (id: number) => APIClient.irc.deleteNetwork(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ircKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: ircKeys.detail(network.id) });
 
-        toggleDeleteModal();
-      }
+      toast.custom((t) => <Toast type="success" body={`Network ${network.name} was deleted`} t={t}/>);
+
+      toggleDeleteModal();
     }
-  );
+  });
 
-  const restartMutation = useMutation(
-    (id: number) => APIClient.irc.restartNetwork(id),
-    {
-      onSuccess: () => {
-        toast.custom((t) => <Toast type="success"
-          body={`${network.name} was successfully restarted`}
-          t={t}/>);
+  const restartMutation = useMutation({
+    mutationFn: (id: number) => APIClient.irc.restartNetwork(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ircKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: ircKeys.detail(network.id) });
 
-        queryClient.invalidateQueries(["networks"]);
-        queryClient.invalidateQueries(["networks", network.id]);
-      }
+      toast.custom((t) => <Toast type="success" body={`${network.name} was successfully restarted`} t={t}/>);
     }
-  );
+  });
 
-  const restart = (id: number) => {
-    restartMutation.mutate(id);
-  };
+  const restart = (id: number) => restartMutation.mutate(id);
 
   return (
     <Menu as="div">
@@ -554,6 +576,112 @@ const ListItemDropdown = ({
         </Menu.Items>
       </Transition>
     </Menu>
+  );
+};
+
+type IrcEvent = {
+  channel: string;
+  nick: string;
+  msg: string;
+  time: string;
+};
+
+type IrcMsg = {
+  msg: string;
+};
+
+interface EventsProps {
+  network: IrcNetwork;
+  channel: string;
+}
+
+export const Events = ({ network, channel }: EventsProps) => {
+  const [settings] = SettingsContext.use();
+
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  const [logs, setLogs] = useState<IrcEvent[]>([]);
+
+  // const scrollToBottom = () => {
+  //   messagesEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end", inline: "end" });
+  // };
+
+  const { handleSubmit, register , resetField } = useForm<IrcMsg>({
+    defaultValues: { msg: ""  },
+    mode: "onBlur"
+  });
+
+  const cmdMutation = useMutation({
+    mutationFn: (data: SendIrcCmdRequest) => APIClient.irc.sendCmd(data),
+    onSuccess: (_, variables) => {
+      resetField("msg");
+    },
+    onError: () => {
+      toast.custom((t) => (
+        <Toast type="error" body="Error sending IRC cmd" t={t} />
+      ));
+    }
+  });
+
+  const onSubmit = (msg: IrcMsg) => {
+    const payload = { network_id: network.id, nick: network.nick, server: network.server, channel: channel, msg: msg.msg };
+    cmdMutation.mutate(payload);
+  };
+
+  useEffect(() => {
+    // Following RFC4648
+    const key = window.btoa(`${network.id}${channel.toLowerCase()}`)
+      .replaceAll("+", "-")
+      .replaceAll("/", "_")
+      .replaceAll("=", "");
+    const es = APIClient.irc.events(key);
+
+    es.onmessage = (event) => {
+      const newData = JSON.parse(event.data) as IrcEvent;
+      setLogs((prevState) => [...prevState, newData]);
+
+      // if (settings.scrollOnNewLog)
+      //   scrollToBottom();
+    };
+
+    return () => es.close();
+  }, [settings]);
+
+  return (
+    <div className="dark:bg-gray-800 rounded-lg shadow-lg p-1.5">
+      <div className="flex relative">
+      </div>
+
+      <div className="overflow-y-auto px-2 rounded-lg h-[60vh] min-w-full bg-gray-100 dark:bg-gray-900 overflow-auto">
+        {logs.map((entry, idx) => (
+          <div
+            key={idx}
+            className={classNames(
+              settings.indentLogLines ? "grid justify-start grid-flow-col" : "",
+              settings.hideWrappedText ? "truncate hover:text-ellipsis hover:whitespace-normal" : ""
+            )}
+          >
+            <span className="font-mono text-gray-500 dark:text-gray-500 mr-1"><span className="dark:text-gray-600" title={simplifyDate(entry.time)}>{entry.nick}:</span> {entry.msg}</span>
+          </div>
+        ))}
+        <div className="mt-6" ref={messagesEndRef} />
+      </div>
+
+      {/*<div>*/}
+      {/*  <form onSubmit={handleSubmit(onSubmit)}>*/}
+      {/*    <input*/}
+      {/*      id="msg"*/}
+      {/*      {...(register && register("msg"))}*/}
+      {/*      type="text"*/}
+      {/*      minLength={2}*/}
+      {/*      className={classNames(*/}
+      {/*        "focus:ring-blue-500 dark:focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-500 border-gray-300 dark:border-gray-700",*/}
+      {/*        "block w-full dark:bg-gray-900 shadow-sm dark:text-gray-100 sm:text-sm rounded-md"*/}
+      {/*      )}*/}
+      {/*    />*/}
+      {/*  </form>*/}
+      {/*</div>*/}
+    </div>
   );
 };
 

@@ -1,6 +1,10 @@
+// Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+// SPDX-License-Identifier: GPL-2.0-or-later
+
 package btn
 
 import (
+	"context"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -65,7 +69,7 @@ func TestAPI(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			c := NewClient(tt.fields.Url, tt.fields.APIKey)
 
-			got, err := c.TestAPI()
+			got, err := c.TestAPI(context.Background())
 			if tt.wantErr && assert.Error(t, err) {
 				assert.Equal(t, tt.wantErr, err)
 			}
@@ -165,7 +169,7 @@ func TestClient_GetTorrentByID(t *testing.T) {
 
 			c := NewClient(tt.fields.Url, tt.fields.APIKey)
 
-			got, err := c.GetTorrentByID(tt.args.torrentID)
+			got, err := c.GetTorrentByID(context.Background(), tt.args.torrentID)
 			if tt.wantErr && assert.Error(t, err) {
 				assert.Equal(t, tt.wantErr, err)
 			}

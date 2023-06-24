@@ -1,3 +1,6 @@
+// Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+// SPDX-License-Identifier: GPL-2.0-or-later
+
 package irc
 
 import (
@@ -17,6 +20,7 @@ import (
 	"github.com/ergochat/irc-go/ircevent"
 	"github.com/ergochat/irc-go/ircfmt"
 	"github.com/ergochat/irc-go/ircmsg"
+	"github.com/r3labs/sse/v2"
 	"github.com/rs/zerolog"
 	"github.com/sasha-s/go-deadlock"
 )
@@ -56,6 +60,7 @@ func (ch *channelHealth) resetMonitoring() {
 
 type Handler struct {
 	log                 zerolog.Logger
+	sse                 *sse.Server
 	network             *domain.IrcNetwork
 	releaseSvc          release.Service
 	notificationService notification.Service
@@ -80,9 +85,10 @@ type Handler struct {
 	saslauthed    bool
 }
 
-func NewHandler(log zerolog.Logger, network domain.IrcNetwork, definitions []*domain.IndexerDefinition, releaseSvc release.Service, notificationSvc notification.Service) *Handler {
+func NewHandler(log zerolog.Logger, sse *sse.Server, network domain.IrcNetwork, definitions []*domain.IndexerDefinition, releaseSvc release.Service, notificationSvc notification.Service) *Handler {
 	h := &Handler{
 		log:                 log.With().Str("network", network.Server).Logger(),
+		sse:                 sse,
 		client:              nil,
 		network:             &network,
 		releaseSvc:          releaseSvc,
@@ -150,6 +156,10 @@ func (h *Handler) Run() error {
 
 	addr := fmt.Sprintf("%v:%d", h.network.Server, h.network.Port)
 
+	if h.network.UseBouncer && h.network.BouncerAddr != "" {
+		addr = h.network.BouncerAddr
+	}
+
 	subLogger := zstdlog.NewStdLoggerWithLevel(h.log.With().Logger(), zerolog.TraceLevel)
 
 	h.client = &ircevent.Connection{
@@ -183,6 +193,7 @@ func (h *Handler) Run() error {
 
 	h.client.AddConnectCallback(h.onConnect)
 	h.client.AddDisconnectCallback(h.onDisconnect)
+
 	h.client.AddCallback("MODE", h.handleMode)
 	h.client.AddCallback("INVITE", h.handleInvite)
 	h.client.AddCallback("366", h.handleJoined)
@@ -535,15 +546,30 @@ func (h *Handler) onNick(msg ircmsg.Message) {
 	}
 }
 
+func (h *Handler) publishSSEMsg(msg domain.IrcMessage) {
+	key := genSSEKey(h.network.ID, msg.Channel)
+
+	h.sse.Publish(key, &sse.Event{
+		Data: msg.Bytes(),
+	})
+}
+
 // onMessage handles PRIVMSG events
 func (h *Handler) onMessage(msg ircmsg.Message) {
+
 	if len(msg.Params) < 2 {
 		return
 	}
 	// parse announce
-	announcer := msg.Nick()
+	nick := msg.Nick()
 	channel := msg.Params[0]
 	message := msg.Params[1]
+
+	// clean message
+	cleanedMsg := h.cleanMessage(message)
+
+	// publish to SSE stream
+	h.publishSSEMsg(domain.IrcMessage{Channel: channel, Nick: nick, Message: cleanedMsg, Time: time.Now()})
 
 	// check if message is from a valid channel, if not return
 	if validChannel := h.isValidChannel(channel); !validChannel {
@@ -551,13 +577,11 @@ func (h *Handler) onMessage(msg ircmsg.Message) {
 	}
 
 	// check if message is from announce bot, if not return
-	if validAnnouncer := h.isValidAnnouncer(announcer); !validAnnouncer {
+	if validAnnouncer := h.isValidAnnouncer(nick); !validAnnouncer {
 		return
 	}
 
-	// clean message
-	cleanedMsg := h.cleanMessage(message)
-	h.log.Debug().Str("channel", channel).Str("user", announcer).Msgf("%v", cleanedMsg)
+	h.log.Debug().Str("channel", channel).Str("nick", nick).Msg(cleanedMsg)
 
 	if err := h.sendToAnnounceProcessor(channel, cleanedMsg); err != nil {
 		h.log.Error().Stack().Err(err).Msgf("could not queue line: %v", cleanedMsg)
@@ -814,6 +838,17 @@ func (h *Handler) handleMode(msg ircmsg.Message) {
 	}
 
 	return
+}
+
+func (h *Handler) SendMsg(channel, msg string) error {
+	h.log.Debug().Msgf("sending msg command: %s", msg)
+
+	if err := h.client.Privmsg(channel, msg); err != nil {
+		h.log.Error().Stack().Err(err).Msgf("error sending msg: %v", msg)
+		return err
+	}
+
+	return nil
 }
 
 // check if announcer is one from the list in the definition

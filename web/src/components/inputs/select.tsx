@@ -1,12 +1,17 @@
+/*
+ * Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ */
+
 import React, { Fragment } from "react";
 import { Field, FieldProps } from "formik";
 import { Listbox, Transition } from "@headlessui/react";
 import { CheckIcon, ChevronUpDownIcon } from "@heroicons/react/24/solid";
 import { MultiSelect as RMSC } from "react-multi-select-component";
 
-import { classNames, COL_WIDTHS } from "../../utils";
-import { SettingsContext } from "../../utils/Context";
-import { CustomTooltip } from "../tooltips/CustomTooltip";
+import { classNames, COL_WIDTHS } from "@utils";
+import { SettingsContext } from "@utils/Context";
+import { CustomTooltip } from "@components/tooltips/CustomTooltip";
 
 export interface MultiSelectOption {
     value: string | number;
@@ -116,21 +121,27 @@ export const IndexerMultiSelect = ({
       <Field name={name} type="select" multiple={true}>
         {({
           field,
+          meta,
           form: { setFieldValue }
         }: FieldProps) => (
-          <RMSC
-            {...field}
-            options={options}
-            labelledBy={name}
-            value={field.value && field.value.map((item: IndexerMultiSelectOption) => ({
-              value: item.id, label: item.name
-            }))}
-            onChange={(values: MultiSelectOption[]) => {
-              const item = values && values.map((i) => ({ id: i.value, name: i.label }));
-              setFieldValue(field.name, item);
-            }}
-            className={settingsContext.darkTheme ? "dark" : ""}
-          />
+          <>
+            <RMSC
+              {...field}
+              options={options}
+              labelledBy={name}
+              value={field.value && field.value.map((item: IndexerMultiSelectOption) => ({
+                value: item.id, label: item.name
+              }))}
+              onChange={(values: MultiSelectOption[]) => {
+                const item = values && values.map((i) => ({ id: i.value, name: i.label }));
+                setFieldValue(field.name, item);
+              }}
+              className={settingsContext.darkTheme ? "dark" : ""}
+            />
+            {meta.touched && meta.error && (
+              <p className="error text-sm text-red-600 mt-1">* {meta.error}</p>
+            )}
+          </>
         )}
       </Field>
     </div>
@@ -153,6 +164,7 @@ export function DownloadClientSelect({
       <Field name={name} type="select">
         {({
           field,
+          meta,
           form: { setFieldValue }
         }: FieldProps) => (
           <Listbox
@@ -231,6 +243,9 @@ export function DownloadClientSelect({
                         ))}
                     </Listbox.Options>
                   </Transition>
+                  {meta.touched && meta.error && (
+                    <p className="error text-sm text-red-600 mt-1">* {meta.error}</p>
+                  )}
                 </div>
               </>
             )}
@@ -265,8 +280,8 @@ export const Select = ({
 }: SelectFieldProps) => {
   return (
     <div
-    className={classNames(
-      columns ? `col-span-${columns}` : "col-span-6"
+      className={classNames(
+        columns ? `col-span-${columns}` : "col-span-6"
       )}
     >
       <Field name={name} type="select">

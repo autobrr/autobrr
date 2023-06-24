@@ -1,21 +1,36 @@
-import { queryClient } from "../../App";
+/*
+ * Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ */
+
 import { useRef } from "react";
-import { useMutation, useQuery } from "react-query";
-import { KeyField } from "../../components/fields/text";
-import { DeleteModal } from "../../components/modals";
-import APIKeyAddForm from "../../forms/settings/APIKeyAddForm";
-import Toast from "../../components/notifications/Toast";
-import { APIClient } from "../../api/APIClient";
-import { useToggle } from "../../hooks/hooks";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "react-hot-toast";
-import { classNames } from "../../utils";
 import { TrashIcon } from "@heroicons/react/24/outline";
-import { EmptySimple } from "../../components/emptystates";
+
+import { KeyField } from "@components/fields/text";
+import { DeleteModal } from "@components/modals";
+import APIKeyAddForm from "@forms/settings/APIKeyAddForm";
+import Toast from "@components/notifications/Toast";
+import { APIClient } from "@api/APIClient";
+import { useToggle } from "@hooks/hooks";
+import { classNames } from "@utils";
+import { EmptySimple } from "@components/emptystates";
+
+export const apiKeys = {
+  all: ["api_keys"] as const,
+  lists: () => [...apiKeys.all, "list"] as const,
+  details: () => [...apiKeys.all, "detail"] as const,
+  // detail: (id: number) => [...apiKeys.details(), id] as const
+  detail: (id: string) => [...apiKeys.details(), id] as const
+};
 
 function APISettings() {
   const [addFormIsOpen, toggleAddForm] = useToggle(false);
 
-  const { data } = useQuery(["apikeys"], () => APIClient.apikeys.getAll(), {
+  const { data } = useQuery({
+    queryKey: apiKeys.lists(),
+    queryFn: APIClient.apikeys.getAll,
     retry: false,
     refetchOnWindowFocus: false,
     onError: (err) => console.log(err)
@@ -58,7 +73,7 @@ function APISettings() {
                 </div>
               </li>
 
-              {data && data.map((k) => <APIListItem key={k.key} apikey={k} />)}
+              {data && data.map((k, idx) => <APIListItem key={idx} apikey={k} />)}
             </ol>
           </section>
         ) : (
@@ -82,23 +97,23 @@ function APIListItem({ apikey }: ApiKeyItemProps) {
   const cancelModalButtonRef = useRef(null);
   const [deleteModalIsOpen, toggleDeleteModal] = useToggle(false);
 
-  const deleteMutation = useMutation(
-    (key: string) => APIClient.apikeys.delete(key),
-    {
-      onSuccess: () => {
-        queryClient.invalidateQueries(["apikeys"]);
-        queryClient.invalidateQueries(["apikeys", apikey.key]);
+  const queryClient = useQueryClient();
 
-        toast.custom((t) => (
-          <Toast
-            type="success"
-            body={`API key ${apikey?.name} was deleted`}
-            t={t}
-          />
-        ));
-      }
+  const deleteMutation = useMutation({
+    mutationFn: (key: string) => APIClient.apikeys.delete(key),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: apiKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: apiKeys.detail(apikey.key) });
+
+      toast.custom((t) => (
+        <Toast
+          type="success"
+          body={`API key ${apikey?.name} was deleted`}
+          t={t}
+        />
+      ));
     }
-  );
+  });
 
   return (
     <li className="text-gray-500 dark:text-gray-400">
