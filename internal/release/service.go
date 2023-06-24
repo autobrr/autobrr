@@ -155,7 +155,12 @@ func (s *service) Process(release *domain.Release) {
 		if !match {
 			l.Trace().Msgf("release.Process: indexer: %s, filter: %s release: %s, no match. rejections: %s", release.Indexer, release.FilterName, release.TorrentName, release.RejectionsString())
 
-			l.Debug().Msgf("release rejected: %s", release.RejectionsString())
+			trim := 1024
+			if len(release.RejectionsString()) < trim {
+				trim = len(release.RejectionsString())
+			}
+
+			l.Debug().Msgf("release rejected: %s", release.RejectionsString()[:trim])
 			continue
 		}
 
