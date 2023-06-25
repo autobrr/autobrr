@@ -472,7 +472,7 @@ func (r *Release) downloadTorrentFile(ctx context.Context) error {
 				return errors.Wrap(err, "metainfo unexpected content type, got HTML expected a bencoded torrent. check indexer keys for %s - %s", r.Indexer, r.TorrentName)
 			}
 
-			return retry.Unrecoverable(errors.Wrap(err, "metainfo unexpected content type. check indexer keys for %s - %s", r.Indexer, r.TorrentName))
+			return errors.Wrap(err, "metainfo unexpected content type. check indexer keys for %s - %s", r.Indexer, r.TorrentName)
 		}
 
 		// Write the body to file
