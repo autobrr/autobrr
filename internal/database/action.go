@@ -353,6 +353,9 @@ func (r *ActionRepo) Get(ctx context.Context, req *domain.GetActionRequest) (*do
 		return nil, errors.Wrap(err, "error scanning row")
 	}
 
+	a.ExecCmd = execCmd.String
+	a.ExecArgs = execArgs.String
+	a.WatchFolder = watchFolder.String
 	a.Category = category.String
 	a.Tags = tags.String
 	a.Label = label.String
