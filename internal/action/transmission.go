@@ -5,6 +5,7 @@ package action
 
 import (
 	"context"
+	"strings"
 	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
@@ -12,6 +13,11 @@ import (
 	"github.com/avast/retry-go"
 
 	"github.com/hekmon/transmissionrpc/v2"
+)
+
+const (
+	ReannounceMaxAttempts = 50
+	ReannounceInterval    = 7000
 )
 
 func (s *service) transmission(ctx context.Context, action *domain.Action, release domain.Release) ([]string, error) {
@@ -40,16 +46,17 @@ func (s *service) transmission(ctx context.Context, action *domain.Action, relea
 		return nil, errors.Wrap(err, "error logging into client: %s", client.Host)
 	}
 
+	payload := transmissionrpc.TorrentAddPayload{}
+
+	if action.SavePath != "" {
+		payload.DownloadDir = &action.SavePath
+	}
+	if action.Paused {
+		payload.Paused = &action.Paused
+	}
+
 	if release.HasMagnetUri() {
-		payload := transmissionrpc.TorrentAddPayload{
-			Filename: &release.MagnetURI,
-		}
-		if action.SavePath != "" {
-			payload.DownloadDir = &action.SavePath
-		}
-		if action.Paused {
-			payload.Paused = &action.Paused
-		}
+		payload.Filename = &release.MagnetURI
 
 		// Prepare and send payload
 		torrent, err := tbt.TorrentAdd(ctx, payload)
@@ -74,15 +81,7 @@ func (s *service) transmission(ctx context.Context, action *domain.Action, relea
 			return nil, errors.Wrap(err, "cant encode file %s into base64", release.TorrentTmpFile)
 		}
 
-		payload := transmissionrpc.TorrentAddPayload{
-			MetaInfo: &b64,
-		}
-		if action.SavePath != "" {
-			payload.DownloadDir = &action.SavePath
-		}
-		if action.Paused {
-			payload.Paused = &action.Paused
-		}
+		payload.MetaInfo = &b64
 
 		// Prepare and send payload
 		torrent, err := tbt.TorrentAdd(ctx, payload)
@@ -90,52 +89,93 @@ func (s *service) transmission(ctx context.Context, action *domain.Action, relea
 			return nil, errors.Wrap(err, "could not add torrent %v to client: %v", release.TorrentTmpFile, client.Host)
 		}
 
-		s.log.Info().Msgf("torrent with hash %v successfully added to client: '%s'", torrent.HashString, client.Name)
-	}
+		if !action.Paused && !action.ReAnnounceSkip {
+			interval := ReannounceInterval
+			if action.ReAnnounceInterval > 0 {
+				interval = int(action.ReAnnounceInterval)
+			}
 
-	if !action.ReAnnounceSkip {
-		err = retry.Do(func() error {
-			f := func() { retry.Delay(time.Second * time.Duration(action.ReAnnounceInterval)) }
-			if err := tbt.TorrentReannounceIDs(ctx, []int64{*torrent.ID}); err != nil {
+			maxAttempts := ReannounceMaxAttempts
+			if action.ReAnnounceMaxAttempts > 0 {
+				maxAttempts = int(action.ReAnnounceMaxAttempts)
+			}
+
+			err = retry.Do(func() error {
+				f := func() { retry.Delay(time.Second * time.Duration(interval)) }
+
+				if err := tbt.TorrentReannounceIDs(ctx, []int64{*torrent.ID}); err != nil {
+					defer f()
+					return errors.Wrap(err, "failed to reannounce")
+				}
+
+				t, err := tbt.TorrentGet(ctx, []string{"trackerStats"}, []int64{*torrent.ID})
+				if err != nil {
+					defer f()
+					return errors.Wrap(err, "reannounced, failed to find torrentid")
+				}
+
+				if len(t) < 1 {
+					defer f()
+					return errors.Wrap(err, "reannounced, failed to get torrent from id")
+				}
+
+				for _, tracker := range t[0].TrackerStats {
+					s.log.Trace().Msgf("transmission tracker: %+v", tracker)
+
+					if tracker.IsBackup {
+						continue
+					}
+
+					if isUnregistered(tracker.LastAnnounceResult) {
+						return errors.New("unregistered torrent: %s", tracker.LastAnnounceResult)
+					}
+
+					if tracker.SeederCount > 0 {
+						return nil
+					} else if tracker.LeecherCount > 0 {
+						return nil
+					}
+				}
+
 				defer f()
-				return errors.Wrap(err, "failed to reannounce")
+				return errors.New("transmission: reannounce for %s no seeds yet", *torrent.HashString)
+			},
+				retry.OnRetry(func(n uint, err error) {
+					s.log.Error().Err(err).Msgf("%q: attempt %d - %v\n", err, n, int(action.ReAnnounceMaxAttempts))
+					s.log.Debug().Msgf("re-announce for %s attempt: %d/%d", *torrent.HashString, n, maxAttempts)
+				}),
+				//retry.Delay(time.Second*3),
+				retry.Attempts(uint(maxAttempts)),
+				retry.MaxJitter(time.Second*1),
+			)
+
+			if err != nil && action.ReAnnounceDelete {
+				s.log.Info().Msgf("re-announce for %s took too long, deleting torrent", *torrent.HashString)
+
+				if err := tbt.TorrentRemove(ctx, transmissionrpc.TorrentRemovePayload{IDs: []int64{*torrent.ID}}); err != nil {
+					return nil, errors.Wrap(err, "could not delete torrent: %v from client after max re-announce attempts reached", *torrent.ID)
+				}
+
+				return nil, nil
 			}
-
-			t, err := tbt.TorrentGet(ctx, []string{"trackerStats"}, []int64{*torrent.ID})
-			if err != nil {
-				defer f()
-				return errors.Wrap(err, "reannounced, failed to find torrentid")
-			}
-
-			if len(t) < 1 {
-				defer f()
-				return errors.Wrap(err, "reannounced, failed to get torrent from id")
-			}
-
-			seeds := int64(0)
-			for _, trackers := range t[0].TrackerStats {
-				seeds += trackers.SeederCount
-			}
-
-			if seeds != 0 {
-				return nil
-			}
-
-			defer f()
-			return errors.New("no seeds yet")
-		},
-			retry.OnRetry(func(n uint, err error) {
-				s.log.Error().Err(err).Msgf("%q: attempt %d - %v\n", err, n, int(action.ReAnnounceMaxAttempts))
-			}),
-			//retry.Delay(time.Second*3),
-			retry.Attempts(uint(action.ReAnnounceMaxAttempts)),
-			retry.MaxJitter(time.Second*1),
-		)
-
-		if err != nil && action.ReAnnounceDelete {
-			tbt.TorrentRemove(ctx, transmissionrpc.TorrentRemovePayload{IDs: []int64{*torrent.ID}})
 		}
+
+		s.log.Info().Msgf("torrent with hash %s successfully added to client: '%s'", *torrent.HashString, client.Name)
 	}
 
 	return rejections, nil
+}
+
+func isUnregistered(msg string) bool {
+	words := []string{"unregistered", "not registered", "not found", "not exist"}
+
+	msg = strings.ToLower(msg)
+
+	for _, v := range words {
+		if strings.Contains(msg, v) {
+			return true
+		}
+	}
+
+	return false
 }
