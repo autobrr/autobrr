@@ -454,6 +454,34 @@ const TypeForm = ({ action, idx, clients }: TypeFormProps) => {
             />
           </div>
         </div>
+
+        <CollapsableSection title="Re-announce" subtitle="Re-announce options">
+          <div className="col-span-12">
+            <div className="mt-6 grid grid-cols-12 gap-6">
+              <NumberField
+                name={`actions.${idx}.reannounce_interval`}
+                label="Reannounce interval. Run every X seconds"
+                placeholder="7 is default and recommended"
+              />
+              <NumberField
+                name={`actions.${idx}.reannounce_max_attempts`}
+                label="Run reannounce Y times"
+              />
+            </div>
+          </div>
+          <div className="col-span-6">
+            <SwitchGroup
+              name={`actions.${idx}.reannounce_skip`}
+              label="Disable reannounce"
+              description="Reannounce is enabled by default. Disable if needed."
+            />
+            <SwitchGroup
+              name={`actions.${idx}.reannounce_delete`}
+              label="Delete stalled"
+              description="Delete stalled torrents after X attempts"
+            />
+          </div>
+        </CollapsableSection>
       </div>
     );
   case "PORLA":
