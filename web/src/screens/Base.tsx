@@ -12,7 +12,7 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import toast from "react-hot-toast";
 
 import { AuthContext } from "@utils/Context";
-import logo from "@app/logo.png";
+import { ReactComponent as Logo } from "@app/logo.svg";
 import { APIClient } from "@api/APIClient";
 import Toast from "@components/notifications/Toast";
 import { classNames } from "@utils";
@@ -70,16 +70,7 @@ export default function Base() {
                   <div className="flex items-center">
                     <div className="flex-shrink-0 flex items-center">
                       <Link to="/">
-                        <img
-                          className="block lg:hidden h-10 w-auto"
-                          src={logo}
-                          alt="Logo"
-                        />
-                        <img
-                          className="hidden lg:block h-10 w-auto"
-                          src={logo}
-                          alt="Logo"
-                        />
+                        <Logo className="h-10" />
                       </Link>
                     </div>
                     <div className="sm:ml-3 hidden sm:block">
