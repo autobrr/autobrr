@@ -426,7 +426,8 @@ func (f Filter) CheckFilter(r *Release) ([]string, bool) {
 		r.addRejectionF("formats not matching. got: %v want: %v", r.Audio, f.Formats)
 	}
 
-	if len(f.Quality) > 0 && !sliceContainsSlice(r.Audio, f.Quality) {
+	//if len(f.Quality) > 0 && !containsMatchBasic(r.Audio, f.Quality) {
+	if len(f.Quality) > 0 && !containsMatchBasic(r.Audio, f.Quality) {
 		r.addRejectionF("quality not matching. got: %v want: %v", r.Audio, f.Quality)
 	}
 

@@ -104,9 +104,14 @@ func (a *announceProcessor) processQueue(queue chan string) {
 		rls := domain.NewRelease(a.indexer.Identifier)
 		rls.Protocol = domain.ReleaseProtocol(a.indexer.Protocol)
 
-		// on lines matched
-		if err := a.onLinesMatched(a.indexer, tmpVars, rls); err != nil {
-			a.log.Error().Err(err).Msg("error match line")
+		//// on lines matched
+		//if err := a.onLinesMatched(a.indexer, tmpVars, rls); err != nil {
+		//	a.log.Error().Err(err).Msg("error match line")
+		//	continue
+		//}
+
+		if err := a.indexer.IRC.Parse.Parse(a.indexer, tmpVars, rls); err != nil {
+			a.log.Error().Err(err).Msg("announce: could not parse announce for release")
 			continue
 		}
 
@@ -196,6 +201,12 @@ func (a *announceProcessor) parseMatchRegexp(pattern string, tmpVars map[string]
 
 // onLinesMatched process vars into release
 func (a *announceProcessor) onLinesMatched(def *domain.IndexerDefinition, vars map[string]string, rls *domain.Release) error {
+
+	if err := def.IRC.Parse.Parse(def, vars, rls); err != nil {
+		a.log.Error().Err(err).Msg("announce: could not parse announce for release")
+		return err
+	}
+
 	// map variables from regex capture onto release struct
 	if err := rls.MapVars(def, vars); err != nil {
 		a.log.Error().Err(err).Msg("announce: could not map vars for release")

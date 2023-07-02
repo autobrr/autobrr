@@ -6,7 +6,10 @@ package domain
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"net/url"
+	"regexp"
+	"strings"
 	"text/template"
 
 	"github.com/autobrr/autobrr/pkg/errors"
@@ -201,6 +204,16 @@ func (i IndexerIRC) ValidChannel(channel string) bool {
 
 type IndexerIRCParse struct {
 	Type          string                `json:"type"`
+	Parser        string                `json:"parser"`
+	ForceSizeUnit string                `json:"forcesizeunit"`
+	Lines         []IndexerIRCParseLine `json:"lines"`
+	Match         IndexerIRCParseMatch  `json:"match"`
+}
+
+type IndexerIRCParseChannel struct {
+	Name          string                `json:"name"`
+	Parser        string                `json:"parser"`
+	Type          string                `json:"type"`
 	ForceSizeUnit string                `json:"forcesizeunit"`
 	Lines         []IndexerIRCParseLine `json:"lines"`
 	Match         IndexerIRCParseMatch  `json:"match"`
@@ -334,6 +347,167 @@ func (p *IndexerIRCParse) ParseMatch(baseURL string, vars map[string]string) (*I
 	return matched, nil
 }
 
+// Helper function
+func parseTemplateUrl(baseUrl, sourceUrl string, vars map[string]string, basename string) (string, error) {
+	tmpl, err := template.New(basename).Funcs(sprig.TxtFuncMap()).Parse(sourceUrl)
+	if err != nil {
+		return "", fmt.Errorf("could not create %s template", basename)
+	}
+
+	var urlBytes bytes.Buffer
+	if err := tmpl.Execute(&urlBytes, &vars); err != nil {
+		return "", fmt.Errorf("could not write %s template output", basename)
+	}
+
+	templateUrl := urlBytes.String()
+	parsedUrl, err := url.Parse(templateUrl)
+	if err != nil {
+		return "", err
+	}
+
+	// for backwards compatibility remove Host and Scheme to rebuild url
+	if parsedUrl.Host != "" {
+		parsedUrl.Host = ""
+	}
+	if parsedUrl.Scheme != "" {
+		parsedUrl.Scheme = ""
+	}
+
+	// join baseURL with query
+	baseUrlPath, err := url.JoinPath(baseUrl, parsedUrl.Path)
+	if err != nil {
+		return "", errors.Wrap(err, fmt.Sprintf("could not join %s url", basename))
+	}
+
+	// reconstruct url
+	finalUrl, _ := url.Parse(baseUrlPath)
+	finalUrl.RawQuery = parsedUrl.RawQuery
+
+	return finalUrl.String(), nil
+}
+
+func (p *IndexerIRCParseMatch) ParseUrls(baseURL string, vars map[string]string, rls *Release) error {
+	// handle url encode of values
+	for _, e := range p.Encode {
+		if v, ok := vars[e]; ok {
+			// url encode  value
+			t := url.QueryEscape(v)
+			vars[e] = t
+		}
+	}
+
+	if p.InfoURL != "" {
+		infoUrl, err := parseTemplateUrl(baseURL, p.InfoURL, vars, "infourl")
+		if err != nil {
+			return err
+		}
+
+		rls.InfoURL = infoUrl
+	}
+
+	if p.TorrentURL != "" {
+		downloadUrl, err := parseTemplateUrl(baseURL, p.TorrentURL, vars, "torrenturl")
+		if err != nil {
+			return err
+		}
+
+		rls.TorrentURL = downloadUrl
+	}
+
+	//if p.TorrentName != "" {
+	//	// setup text template to inject variables into
+	//	tmplName, err := template.New("torrentname").Funcs(sprig.TxtFuncMap()).Parse(p.TorrentName)
+	//	if err != nil {
+	//		return err
+	//	}
+	//
+	//	var nameBytes bytes.Buffer
+	//	if err := tmplName.Execute(&nameBytes, &vars); err != nil {
+	//		return errors.New("could not write torrent name template output")
+	//	}
+	//
+	//	rls.TorrentName = nameBytes.String()
+	//}
+
+	return nil
+}
+
+func (p *IndexerIRCParseMatch) ParseTorrentName(vars map[string]string, rls *Release) error {
+	if p.TorrentName != "" {
+		// setup text template to inject variables into
+		tmplName, err := template.New("torrentname").Funcs(sprig.TxtFuncMap()).Parse(p.TorrentName)
+		if err != nil {
+			return err
+		}
+
+		var nameBytes bytes.Buffer
+		if err := tmplName.Execute(&nameBytes, &vars); err != nil {
+			return errors.New("could not write torrent name template output")
+		}
+
+		rls.TorrentName = nameBytes.String()
+	}
+
+	return nil
+}
+
+func (p *IndexerIRCParse) Parse(def *IndexerDefinition, vars map[string]string, rls *Release) error {
+	// map variables from regex capture onto release struct
+	if err := rls.MapVars(def, vars); err != nil {
+		//a.log.Error().Err(err).Msg("announce: could not map vars for release")
+		return err
+	}
+
+	// set baseUrl to default domain
+	baseUrl := def.URLS[0]
+
+	// override baseUrl
+	if def.BaseURL != "" {
+		baseUrl = def.BaseURL
+	}
+
+	// merge vars from regex captures on announce and vars from settings
+	mergedVars := mergeVars(vars, def.SettingsMap)
+
+	// parse urls
+	if err := def.IRC.Parse.Match.ParseUrls(baseUrl, mergedVars, rls); err != nil {
+		return err
+	}
+
+	// parse torrentName (AB)
+	// TODO place in IRCParser?
+	if err := def.IRC.Parse.Match.ParseTorrentName(mergedVars, rls); err != nil {
+		return err
+	}
+
+	var parser IRCParser
+
+	switch p.Parser {
+	case "redacted":
+		parser = IRCParserRedacted{}
+
+	case "orpheus":
+		parser = IRCParserOrpheus{}
+
+	case "gazellegames":
+		parser = IRCParserGazelleGames{}
+
+	default:
+		parser = IRCParserDefault{}
+	}
+
+	if err := parser.Parse(rls, vars); err != nil {
+		return err
+	}
+
+	// handle optional cookies
+	if v, ok := def.SettingsMap["cookie"]; ok {
+		rls.RawCookie = v
+	}
+
+	return nil
+}
+
 type TorrentBasic struct {
 	Id        string `json:"Id"`
 	TorrentId string `json:"TorrentId,omitempty"`
@@ -360,4 +534,90 @@ type IndexerTestApiRequest struct {
 	Identifier string `json:"identifier,omitempty"`
 	ApiUser    string `json:"api_user,omitempty"`
 	ApiKey     string `json:"api_key"`
+}
+
+type IRCParser interface {
+	Parse(rls *Release, vars map[string]string) error
+}
+
+type IRCParserDefault struct{}
+
+func (p IRCParserDefault) Parse(rls *Release, _ map[string]string) error {
+	// parse fields
+	// run before ParseMatch to not potentially use a reconstructed TorrentName
+	rls.ParseString(rls.TorrentName)
+
+	return nil
+}
+
+// IRCParserRedacted parser for Redacted announces
+type IRCParserRedacted struct{}
+
+func (p IRCParserRedacted) Parse(rls *Release, vars map[string]string) error {
+	// create new torrentName
+	title := vars["title"]
+	year := vars["year"]
+	category := vars["category"]
+	releaseTags := vars["releaseTags"]
+
+	re := regexp.MustCompile(`\| |/ |, `)
+	cleanTags := re.ReplaceAllString(releaseTags, "")
+
+	t := ParseReleaseTagString(cleanTags)
+
+	audio := []string{}
+	if t.AudioFormat != "" {
+		audio = append(audio, t.AudioFormat)
+	}
+	if t.AudioBitrate != "" {
+		audio = append(audio, t.AudioBitrate)
+	}
+	if t.Source != "" {
+		audio = append(audio, t.Source)
+	}
+
+	// Name YEAR CD FLAC Lossless
+	n := fmt.Sprintf("%s [%s] [%s] (%s)", title, year, category, strings.Join(audio, " "))
+
+	//rls.TorrentName = n
+
+	rls.ParseString(n)
+	//rls.Title = title
+
+	return nil
+}
+
+type IRCParserOrpheus struct{}
+
+func (p IRCParserOrpheus) Parse(rls *Release, vars map[string]string) error {
+	// since OPS uses en-dashes as separators, which causes moistari/rls to not the torrentName properly,
+	// we replace the en-dashes with hyphens here
+	rls.TorrentName = strings.ReplaceAll(rls.TorrentName, "–", "-")
+
+	rls.ParseString(rls.TorrentName)
+
+	return nil
+}
+
+type IRCParserGazelleGames struct{}
+
+func (p IRCParserGazelleGames) Parse(rls *Release, vars map[string]string) error {
+	// TODO do some magic and split "this.game in this game"
+
+	rls.ParseString(rls.TorrentName)
+
+	return nil
+}
+
+// mergeVars merge maps
+func mergeVars(data ...map[string]string) map[string]string {
+	tmpVars := map[string]string{}
+
+	for _, vars := range data {
+		// copy vars to new tmp map
+		for k, v := range vars {
+			tmpVars[k] = v
+		}
+	}
+	return tmpVars
 }
