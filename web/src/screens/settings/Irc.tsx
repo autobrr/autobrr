@@ -25,7 +25,7 @@ import { EmptySimple } from "@components/emptystates";
 import { DeleteModal } from "@components/modals";
 import Toast from "@components/notifications/Toast";
 import { SettingsContext } from "@utils/Context";
-import { useForm } from "react-hook-form";
+// import { useForm } from "react-hook-form";
 
 export const ircKeys = {
   all: ["irc_networks"] as const,
@@ -586,9 +586,9 @@ type IrcEvent = {
   time: string;
 };
 
-type IrcMsg = {
-  msg: string;
-};
+// type IrcMsg = {
+//   msg: string;
+// };
 
 interface EventsProps {
   network: IrcNetwork;
@@ -606,27 +606,27 @@ export const Events = ({ network, channel }: EventsProps) => {
   //   messagesEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end", inline: "end" });
   // };
 
-  const { handleSubmit, register , resetField } = useForm<IrcMsg>({
-    defaultValues: { msg: ""  },
-    mode: "onBlur"
-  });
+  // const { handleSubmit, register , resetField } = useForm<IrcMsg>({
+  //   defaultValues: { msg: ""  },
+  //   mode: "onBlur"
+  // });
 
-  const cmdMutation = useMutation({
-    mutationFn: (data: SendIrcCmdRequest) => APIClient.irc.sendCmd(data),
-    onSuccess: (_, variables) => {
-      resetField("msg");
-    },
-    onError: () => {
-      toast.custom((t) => (
-        <Toast type="error" body="Error sending IRC cmd" t={t} />
-      ));
-    }
-  });
+  // const cmdMutation = useMutation({
+  //   mutationFn: (data: SendIrcCmdRequest) => APIClient.irc.sendCmd(data),
+  //   onSuccess: (_, _variables) => {
+  //     resetField("msg");
+  //   },
+  //   onError: () => {
+  //     toast.custom((t) => (
+  //       <Toast type="error" body="Error sending IRC cmd" t={t} />
+  //     ));
+  //   }
+  // });
 
-  const onSubmit = (msg: IrcMsg) => {
-    const payload = { network_id: network.id, nick: network.nick, server: network.server, channel: channel, msg: msg.msg };
-    cmdMutation.mutate(payload);
-  };
+  // const onSubmit = (msg: IrcMsg) => {
+  //   const payload = { network_id: network.id, nick: network.nick, server: network.server, channel: channel, msg: msg.msg };
+  //   cmdMutation.mutate(payload);
+  // };
 
   useEffect(() => {
     // Following RFC4648
