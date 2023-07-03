@@ -221,6 +221,7 @@ export function FilterDetails() {
     navigate("/filters");
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
   const id = parseInt(filterId!);
 
   const { isLoading, data: filter } = useQuery({
