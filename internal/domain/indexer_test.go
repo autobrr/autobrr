@@ -261,3 +261,81 @@ func TestIndexerIRCParse_ParseMatch(t *testing.T) {
 		})
 	}
 }
+
+func TestIRCParserGazelleGames_Parse(t *testing.T) {
+	type args struct {
+		rls  *Release
+		vars map[string]string
+	}
+	type want struct {
+		title   string
+		release string
+	}
+	tests := []struct {
+		name string
+		args args
+		want want
+	}{
+		{
+			name: "",
+			args: args{
+				rls: NewRelease("gazellegames"),
+				vars: map[string]string{
+					"torrentName": "Trouble.in.Paradise-GROUP in Trouble in Paradise",
+				},
+			},
+			want: want{
+				title:   "Trouble in Paradise",
+				release: "Trouble.in.Paradise-GROUP",
+			},
+		},
+		{
+			name: "",
+			args: args{
+				rls: NewRelease("gazellegames"),
+				vars: map[string]string{
+					"torrentName": "F.I.L.F. Game Walkthrough v.0.18 in F.I.L.F.",
+				},
+			},
+			want: want{
+				title:   "F.I.L.F.",
+				release: "F.I.L.F. Game Walkthrough v.0.18",
+			},
+		},
+		{
+			name: "",
+			args: args{
+				rls: NewRelease("gazellegames"),
+				vars: map[string]string{
+					"torrentName": "Ni no Kuni: Dominion of the Dark Djinn in Ni no Kuni: Dominion of the Dark Djinn",
+				},
+			},
+			want: want{
+				title:   "Ni no Kuni: Dominion of the Dark Djinn",
+				release: "Ni no Kuni: Dominion of the Dark Djinn",
+			},
+		},
+		{
+			name: "",
+			args: args{
+				rls: NewRelease("gazellegames"),
+				vars: map[string]string{
+					"torrentName": "Year 2 Remastered by Insaneintherainmusic",
+					"category":    "OST",
+				},
+			},
+			want: want{
+				title:   "Year 2 Remastered by Insaneintherainmusic",
+				release: "Year 2 Remastered by Insaneintherainmusic",
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			p := IRCParserGazelleGames{}
+			p.Parse(tt.args.rls, tt.args.vars)
+			assert.Equal(t, tt.want.release, tt.args.rls.TorrentName)
+			assert.Equal(t, tt.want.title, tt.args.rls.Title)
+		})
+	}
+}

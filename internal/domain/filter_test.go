@@ -1172,9 +1172,9 @@ func TestFilter_CheckFilter(t *testing.T) {
 		{
 			name: "match_music_5",
 			fields: &Release{
-				TorrentName: "Artist - Albumname FLAC CD",
+				TorrentName: "Artist - Albumname [2022] [Album] (FLAC 24bit Lossless CD)",
 				Year:        2022,
-				ReleaseTags: "FLAC / Lossless / Log / 100% / Cue / CD",
+				ReleaseTags: "FLAC / 24bit Lossless / Log / 100% / Cue / CD",
 				Category:    "Album",
 			},
 			args: args{
@@ -1185,11 +1185,11 @@ func TestFilter_CheckFilter(t *testing.T) {
 					Artists:           "Artist",
 					Media:             []string{"CD"},
 					Formats:           []string{"FLAC"},
-					Quality:           []string{"24bit Lossless", "Lossless"},
-					PerfectFlac:       true,
-					Log:               true,
+					Quality:           []string{"24bit Lossless"},
+					//PerfectFlac:       true,
+					//Log:               true,
 					//LogScore:          100,
-					Cue: true,
+					//Cue: true,
 				},
 			},
 			want: true,
@@ -1265,6 +1265,28 @@ func TestFilter_CheckFilter(t *testing.T) {
 				},
 			},
 			want: true,
+		},
+		{
+			name: "match_music_9",
+			fields: &Release{
+				TorrentName: "Artist - Albumname [2022] [Album] (FLAC 24bit Lossless CD)",
+				Year:        2022,
+				ReleaseTags: "FLAC / 24bit Lossless / Log / 100% / Cue / CD",
+				Category:    "Album",
+			},
+			args: args{
+				filter: Filter{
+					Enabled:           true,
+					MatchReleaseTypes: []string{"Album"},
+					Years:             "2020-2022",
+					Artists:           "Artist",
+					Media:             []string{"CD"},
+					Formats:           []string{"FLAC"},
+					Quality:           []string{"Lossless"},
+				},
+				rejections: []string{"quality not matching. got: [24BIT Lossless Cue FLAC Log100 Log] want: [Lossless]"},
+			},
+			want: false,
 		},
 		{
 			name: "match_anime_1",

@@ -602,9 +602,29 @@ func (p IRCParserOrpheus) Parse(rls *Release, vars map[string]string) error {
 type IRCParserGazelleGames struct{}
 
 func (p IRCParserGazelleGames) Parse(rls *Release, vars map[string]string) error {
-	// TODO do some magic and split "this.game in this game"
+	torrentName := vars["torrentName"]
+	category := vars["category"]
 
-	rls.ParseString(rls.TorrentName)
+	releaseName := ""
+	title := ""
+
+	switch category {
+	case "OST":
+		// OST does not have the Title in Group naming convention
+		releaseName = torrentName
+	default:
+		releaseName, title = splitInMiddle(torrentName, " in ")
+
+		if releaseName == "" && title != "" {
+			releaseName = torrentName
+		}
+	}
+
+	rls.ParseString(releaseName)
+
+	if title != "" {
+		rls.Title = title
+	}
 
 	return nil
 }
@@ -620,4 +640,10 @@ func mergeVars(data ...map[string]string) map[string]string {
 		}
 	}
 	return tmpVars
+}
+
+func splitInMiddle(s, sep string) (string, string) {
+	parts := strings.Split(s, sep)
+	l := len(parts)
+	return strings.Join(parts[:l/2], sep), strings.Join(parts[l/2:], sep)
 }
