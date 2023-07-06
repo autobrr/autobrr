@@ -1,5 +1,5 @@
 # build web
-FROM node:18.7.0-alpine3.16 AS web-builder
+FROM node:18.16.1-alpine3.16 AS web-builder
 COPY . ./
 WORKDIR /web
 RUN corepack enable && \
