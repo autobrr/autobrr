@@ -233,120 +233,6 @@ type IndexerIRCParseMatch struct {
 	Encode      []string `json:"encode"`
 }
 
-type IndexerIRCParseMatched struct {
-	InfoURL     string
-	TorrentURL  string
-	TorrentName string
-}
-
-func (p *IndexerIRCParse) ParseMatch(baseURL string, vars map[string]string) (*IndexerIRCParseMatched, error) {
-	matched := &IndexerIRCParseMatched{}
-
-	// handle url encode of values
-	for _, e := range p.Match.Encode {
-		if v, ok := vars[e]; ok {
-			// url encode  value
-			t := url.QueryEscape(v)
-			vars[e] = t
-		}
-	}
-
-	if p.Match.InfoURL != "" {
-		// setup text template to inject variables into
-		tmpl, err := template.New("infourl").Funcs(sprig.TxtFuncMap()).Parse(p.Match.InfoURL)
-		if err != nil {
-			return nil, errors.New("could not create info url template")
-		}
-
-		var urlBytes bytes.Buffer
-		if err := tmpl.Execute(&urlBytes, &vars); err != nil {
-			return nil, errors.New("could not write info url template output")
-		}
-
-		templateUrl := urlBytes.String()
-		parsedUrl, err := url.Parse(templateUrl)
-		if err != nil {
-			return nil, err
-		}
-
-		// for backwards compatibility remove Host and Scheme to rebuild url
-		if parsedUrl.Host != "" {
-			parsedUrl.Host = ""
-		}
-		if parsedUrl.Scheme != "" {
-			parsedUrl.Scheme = ""
-		}
-
-		// join baseURL with query
-		baseUrlPath, err := url.JoinPath(baseURL, parsedUrl.Path)
-		if err != nil {
-			return nil, errors.Wrap(err, "could not join info url")
-		}
-
-		// reconstruct url
-		infoUrl, _ := url.Parse(baseUrlPath)
-		infoUrl.RawQuery = parsedUrl.RawQuery
-
-		matched.InfoURL = infoUrl.String()
-	}
-
-	if p.Match.TorrentURL != "" {
-		// setup text template to inject variables into
-		tmpl, err := template.New("torrenturl").Funcs(sprig.TxtFuncMap()).Parse(p.Match.TorrentURL)
-		if err != nil {
-			return nil, errors.New("could not create torrent url template")
-		}
-
-		var urlBytes bytes.Buffer
-		if err := tmpl.Execute(&urlBytes, &vars); err != nil {
-			return nil, errors.New("could not write torrent url template output")
-		}
-
-		templateUrl := urlBytes.String()
-		parsedUrl, err := url.Parse(templateUrl)
-		if err != nil {
-			return nil, err
-		}
-
-		// for backwards compatibility remove Host and Scheme to rebuild url
-		if parsedUrl.Host != "" {
-			parsedUrl.Host = ""
-		}
-		if parsedUrl.Scheme != "" {
-			parsedUrl.Scheme = ""
-		}
-
-		// join baseURL with query
-		baseUrlPath, err := url.JoinPath(baseURL, parsedUrl.Path)
-		if err != nil {
-			return nil, errors.Wrap(err, "could not join torrent url")
-		}
-
-		// reconstruct url
-		torrentUrl, _ := url.Parse(baseUrlPath)
-		torrentUrl.RawQuery = parsedUrl.RawQuery
-
-		matched.TorrentURL = torrentUrl.String()
-	}
-
-	if p.Match.TorrentName != "" {
-		// setup text template to inject variables into
-		tmplName, err := template.New("torrentname").Funcs(sprig.TxtFuncMap()).Parse(p.Match.TorrentName)
-		if err != nil {
-			return nil, err
-		}
-
-		var nameBytes bytes.Buffer
-		if err := tmplName.Execute(&nameBytes, &vars); err != nil {
-			return nil, errors.New("could not write torrent name template output")
-		}
-
-		matched.TorrentName = nameBytes.String()
-	}
-
-	return matched, nil
-}
-
 // Helper function
 func parseTemplateUrl(baseUrl, sourceUrl string, vars map[string]string, basename string) (string, error) {
 	tmpl, err := template.New(basename).Funcs(sprig.TxtFuncMap()).Parse(sourceUrl)
@@ -414,21 +300,6 @@ func (p *IndexerIRCParseMatch) ParseUrls(baseURL string, vars map[string]string,
 		rls.TorrentURL = downloadUrl
 	}
 
-	//if p.TorrentName != "" {
-	//	// setup text template to inject variables into
-	//	tmplName, err := template.New("torrentname").Funcs(sprig.TxtFuncMap()).Parse(p.TorrentName)
-	//	if err != nil {
-	//		return err
-	//	}
-	//
-	//	var nameBytes bytes.Buffer
-	//	if err := tmplName.Execute(&nameBytes, &vars); err != nil {
-	//		return errors.New("could not write torrent name template output")
-	//	}
-	//
-	//	rls.TorrentName = nameBytes.String()
-	//}
-
 	return nil
 }
 
@@ -454,8 +325,7 @@ func (p *IndexerIRCParseMatch) ParseTorrentName(vars map[string]string, rls *Rel
 func (p *IndexerIRCParse) Parse(def *IndexerDefinition, vars map[string]string, rls *Release) error {
 	// map variables from regex capture onto release struct
 	if err := rls.MapVars(def, vars); err != nil {
-		//a.log.Error().Err(err).Msg("announce: could not map vars for release")
-		return err
+		return errors.Wrap(err, "could not map vars for release")
 	}
 
 	// set baseUrl to default domain
@@ -471,25 +341,24 @@ func (p *IndexerIRCParse) Parse(def *IndexerDefinition, vars map[string]string, 
 
 	// parse urls
 	if err := def.IRC.Parse.Match.ParseUrls(baseUrl, mergedVars, rls); err != nil {
-		return err
+		return errors.Wrap(err, "could not parse urls for release")
 	}
 
-	// parse torrentName (AB)
-	// TODO place in IRCParser?
+	// parse torrentName (AB,MAM)
 	if err := def.IRC.Parse.Match.ParseTorrentName(mergedVars, rls); err != nil {
-		return err
+		return errors.Wrap(err, "could not parse torrentName for release")
 	}
 
 	var parser IRCParser
 
-	switch p.Parser {
+	switch def.Identifier {
 	case "redacted":
 		parser = IRCParserRedacted{}
 
-	case "orpheus":
+	case "ops":
 		parser = IRCParserOrpheus{}
 
-	case "gazellegames":
+	case "ggn":
 		parser = IRCParserGazelleGames{}
 
 	default:
@@ -497,7 +366,7 @@ func (p *IndexerIRCParse) Parse(def *IndexerDefinition, vars map[string]string, 
 	}
 
 	if err := parser.Parse(rls, vars); err != nil {
-		return err
+		return errors.Wrap(err, "could not parse release")
 	}
 
 	// handle optional cookies
@@ -592,7 +461,8 @@ type IRCParserOrpheus struct{}
 func (p IRCParserOrpheus) Parse(rls *Release, vars map[string]string) error {
 	// since OPS uses en-dashes as separators, which causes moistari/rls to not the torrentName properly,
 	// we replace the en-dashes with hyphens here
-	rls.TorrentName = strings.ReplaceAll(rls.TorrentName, "–", "-")
+	torrentName := vars["torrentName"]
+	rls.TorrentName = strings.ReplaceAll(torrentName, "–", "-")
 
 	rls.ParseString(rls.TorrentName)
 
