@@ -22,6 +22,13 @@ module.exports = {
     indent: ["warn", 2],
     // Don't enforce any particular brace style
     curly: "off",
+    // Allow only vars starting with _ to be ununsed vars
+    "no-unused-vars": ["warn", {
+      "varsIgnorePattern": "^_",
+      "argsIgnorePattern": "^_",
+      "caughtErrorsIgnorePattern": "^_",
+      "ignoreRestSiblings": true
+    }],
     // Let's keep these off for now and
     // maybe turn these back on sometime in the future
     "import/prefer-default-export": "off",
@@ -57,7 +64,6 @@ module.exports = {
         "@typescript-eslint/quotes": ["error", "double"],
         semi: "off",
         "@typescript-eslint/semi": ["warn", "always"],
-        // indent: "off",
         indent: ["warn", 2],
         "@typescript-eslint/indent": "off",
         "@typescript-eslint/comma-dangle": "warn",
@@ -65,6 +71,13 @@ module.exports = {
         "@typescript-eslint/keyword-spacing": ["error"],
         "object-curly-spacing": "off",
         "@typescript-eslint/object-curly-spacing": ["warn", "always"],
+        // Allow only vars starting with _ to be ununsed vars
+        "@typescript-eslint/no-unused-vars": ["warn", {
+          "varsIgnorePattern": "^_",
+          "argsIgnorePattern": "^_",
+          "caughtErrorsIgnorePattern": "^_",
+          "ignoreRestSiblings": true
+        }],
         // We have quite some "Unexpected any. Specify a different type" warnings.
         // This disables these warnings since they are false positives afaict.
         "@typescript-eslint/no-explicit-any": "off"

@@ -132,7 +132,7 @@ function FeedSettings() {
                   Last run <span className="sort-indicator">{sortedFeeds.getSortIndicator("last_run")}</span>
                 </div>
               </li>
-              {sortedFeeds.items.map((feed, idx) => (
+              {sortedFeeds.items.map((feed) => (
                 <ListItem key={feed.id} feed={feed}/>
               ))}
             </ol>

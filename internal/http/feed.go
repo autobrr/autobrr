@@ -38,12 +38,15 @@ func newFeedHandler(encoder encoder, service feedService) *feedHandler {
 
 func (h feedHandler) Routes(r chi.Router) {
 	r.Get("/", h.find)
-	r.Get("/{feedID}/latest", h.latestRun)
 	r.Post("/", h.store)
 	r.Post("/test", h.test)
-	r.Put("/{feedID}", h.update)
-	r.Patch("/{feedID}/enabled", h.toggleEnabled)
-	r.Delete("/{feedID}", h.delete)
+
+	r.Route("/{feedID}", func(r chi.Router) {
+		r.Put("/", h.update)
+		r.Delete("/", h.delete)
+		r.Patch("/enabled", h.toggleEnabled)
+		r.Get("/latest", h.latestRun)
+	})
 }
 
 func (h feedHandler) find(w http.ResponseWriter, r *http.Request) {
@@ -65,15 +68,13 @@ func (h feedHandler) store(w http.ResponseWriter, r *http.Request) {
 	)
 
 	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
-		// encode error
-		h.encoder.StatusNotFound(w)
+		h.encoder.Error(w, err)
 		return
 	}
 
 	err := h.service.Store(ctx, data)
 	if err != nil {
-		// encode error
-		h.encoder.StatusInternalError(w)
+		h.encoder.Error(w, err)
 		return
 	}
 
@@ -87,14 +88,12 @@ func (h feedHandler) test(w http.ResponseWriter, r *http.Request) {
 	)
 
 	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
-		// encode error
-		h.encoder.StatusInternalError(w)
+		h.encoder.Error(w, err)
 		return
 	}
 
 	if err := h.service.Test(ctx, data); err != nil {
-		// encode error
-		h.encoder.StatusInternalError(w)
+		h.encoder.Error(w, err)
 		return
 	}
 
@@ -108,15 +107,13 @@ func (h feedHandler) update(w http.ResponseWriter, r *http.Request) {
 	)
 
 	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
-		// encode error
-		h.encoder.StatusInternalError(w)
+		h.encoder.Error(w, err)
 		return
 	}
 
 	err := h.service.Update(ctx, data)
 	if err != nil {
-		// encode error
-		h.encoder.StatusInternalError(w)
+		h.encoder.Error(w, err)
 		return
 	}
 
@@ -132,18 +129,19 @@ func (h feedHandler) toggleEnabled(w http.ResponseWriter, r *http.Request) {
 		}
 	)
 
-	id, _ := strconv.Atoi(filterID)
-
-	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
-		// encode error
-		h.encoder.StatusInternalError(w)
+	id, err := strconv.Atoi(filterID)
+	if err != nil {
+		h.encoder.Error(w, err)
 		return
 	}
 
-	err := h.service.ToggleEnabled(ctx, id, data.Enabled)
-	if err != nil {
-		// encode error
-		h.encoder.StatusInternalError(w)
+	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
+		h.encoder.Error(w, err)
+		return
+	}
+
+	if err := h.service.ToggleEnabled(ctx, id, data.Enabled); err != nil {
+		h.encoder.Error(w, err)
 		return
 	}
 
@@ -156,10 +154,14 @@ func (h feedHandler) delete(w http.ResponseWriter, r *http.Request) {
 		filterID = chi.URLParam(r, "feedID")
 	)
 
-	id, _ := strconv.Atoi(filterID)
+	id, err := strconv.Atoi(filterID)
+	if err != nil {
+		h.encoder.Error(w, err)
+		return
+	}
 
 	if err := h.service.Delete(ctx, id); err != nil {
-		h.encoder.StatusInternalError(w)
+		h.encoder.Error(w, err)
 		return
 	}
 
@@ -174,13 +176,13 @@ func (h feedHandler) latestRun(w http.ResponseWriter, r *http.Request) {
 
 	id, err := strconv.Atoi(filterID)
 	if err != nil {
-		h.encoder.StatusInternalError(w)
+		h.encoder.Error(w, err)
 		return
 	}
 
 	feed, err := h.service.GetLastRunData(ctx, id)
 	if err != nil {
-		h.encoder.StatusInternalError(w)
+		h.encoder.Error(w, err)
 		return
 	}
 
