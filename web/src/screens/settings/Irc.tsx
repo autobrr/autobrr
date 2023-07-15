@@ -416,7 +416,7 @@ const ChannelItem = ({ network, channel }: ChannelItemProps) => {
             {IsEmptyDate(channel.last_announce)}
           </span>
         </div>
-        <div className="col-span-1 flex items-center">
+        <div className="col-span-1 flex items-center justify-end">
           <button className="hover:text-gray-500 px-2 py-1 dark:bg-gray-800 rounded dark:border-gray-900">
             {viewChannel ? "Hide" : "View"}
           </button>
