@@ -15,14 +15,14 @@ import { useNavigate } from "react-router-dom";
 import { APIClient } from "@api/APIClient";
 import DEBUG from "@components/debug";
 import Toast from "@components/notifications/Toast";
-import { filterKeys } from "@screens/filters/list";
+import { filterKeys } from "@screens/filters/List";
 
 interface filterAddFormProps {
     isOpen: boolean;
     toggle: () => void;
 }
 
-function FilterAddForm({ isOpen, toggle }: filterAddFormProps) {
+export function FilterAddForm({ isOpen, toggle }: filterAddFormProps) {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const mutation = useMutation({
@@ -169,5 +169,3 @@ function FilterAddForm({ isOpen, toggle }: filterAddFormProps) {
     </Transition.Root>
   );
 }
-
-export default FilterAddForm;

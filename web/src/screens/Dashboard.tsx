@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-import { Stats } from "./Stats";
-import { ActivityTable } from "./ActivityTable";
+import { Stats } from "./dashboard/Stats";
+import { ActivityTable } from "./dashboard/ActivityTable";
 
 export const Dashboard = () => (
   <main className="py-10">

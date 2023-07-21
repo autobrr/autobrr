@@ -40,7 +40,7 @@ function useSort(items: ListItemProps["indexer"][], config?: SortConfig) {
     sortableItems.sort((a, b) => {
       const aValue = sortConfig.key === "enabled" ? (a[sortConfig.key] ?? false) as number | boolean | string : a[sortConfig.key] as number | boolean | string;
       const bValue = sortConfig.key === "enabled" ? (b[sortConfig.key] ?? false) as number | boolean | string : b[sortConfig.key] as number | boolean | string;
-  
+
       if (aValue < bValue) {
         return sortConfig.direction === "ascending" ? -1 : 1;
       }
@@ -48,7 +48,7 @@ function useSort(items: ListItemProps["indexer"][], config?: SortConfig) {
         return sortConfig.direction === "ascending" ? 1 : -1;
       }
       return 0;
-    });    
+    });
 
     return sortableItems;
   }, [items, sortConfig]);
@@ -69,7 +69,7 @@ function useSort(items: ListItemProps["indexer"][], config?: SortConfig) {
     if (!sortConfig || sortConfig.key !== key) {
       return "";
     }
-    
+
     return sortConfig.direction === "ascending" ? "↑" : "↓";
   };
 
