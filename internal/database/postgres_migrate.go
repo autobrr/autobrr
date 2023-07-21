@@ -283,7 +283,7 @@ CREATE TABLE release_action_status
 	raw           TEXT,
 	log           TEXT,
 	release_id    INTEGER NOT NULL,
-	FOREIGN KEY (action_id) REFERENCES "action"(id),
+	FOREIGN KEY (action_id) REFERENCES "action"(id) ON DELETE SET NULL,
 	FOREIGN KEY (release_id) REFERENCES "release"(id) ON DELETE CASCADE,
 	FOREIGN KEY (filter_id) REFERENCES "filter"(id) ON DELETE SET NULL
 );
