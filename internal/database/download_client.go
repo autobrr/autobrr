@@ -257,7 +257,7 @@ func (r *DownloadClientRepo) Update(ctx context.Context, client domain.DownloadC
 }
 
 func (r *DownloadClientRepo) Delete(ctx context.Context, clientID int) error {
-	tx, err := r.db.BeginTx(ctx, &sql.TxOptions{Isolation: sql.LevelWriteCommitted})
+	tx, err := r.db.BeginTx(ctx, &sql.TxOptions{})
 	if err != nil {
 		return err
 	}
