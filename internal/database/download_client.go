@@ -323,6 +323,11 @@ func (r *DownloadClientRepo) deleteClientFromAction(ctx context.Context, tx *Tx,
 	var filterID int
 
 	if err = queryBuilder.QueryRowContext(ctx).Scan(&filterID); err != nil {
+		// this will throw when the client is not connected to any actions
+		// it is not an error in this case
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil
+		}
 		return errors.Wrap(err, "error executing query")
 	}
 
