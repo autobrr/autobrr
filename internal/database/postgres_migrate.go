@@ -706,4 +706,11 @@ ADD COLUMN use_bouncer BOOLEAN DEFAULT FALSE;
 
 ALTER TABLE irc_network
 ADD COLUMN bouncer_addr TEXT;`,
+	`ALTER TABLE release_action_status
+    DROP CONSTRAINT release_action_status_action_id_fkey;
+
+ALTER TABLE release_action_status
+    ADD FOREIGN KEY (action_id) REFERENCES action
+        ON DELETE SET NULL;
+	`,
 }
