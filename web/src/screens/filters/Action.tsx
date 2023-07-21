@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-import React, { Fragment, useEffect, useRef, useState } from "react";
+import { Fragment, useEffect, useRef, useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Field, FieldArray, FieldProps, FormikValues, useFormikContext } from "formik";
 import { Dialog, Switch as SwitchBasic, Transition } from "@headlessui/react";
@@ -24,7 +24,7 @@ import { EmptyListState } from "@components/emptystates";
 import { useToggle } from "@hooks/hooks";
 import { classNames } from "@utils";
 import { DeleteModal } from "@components/modals";
-import { CollapsableSection } from "./details";
+import { CollapsableSection } from "./Details";
 import { TextArea } from "@components/inputs/input";
 import Toast from "@components/notifications/Toast";
 
@@ -121,7 +121,7 @@ interface TypeFormProps {
 
 const TypeForm = ({ action, idx, clients }: TypeFormProps) => {
   const { setFieldValue  } = useFormikContext();
-  
+
   const resetClientField = (action: Action, idx: number, prevActionType: string): void => {
     const fieldName = `actions.${idx}.client_id`;
 
@@ -454,6 +454,34 @@ const TypeForm = ({ action, idx, clients }: TypeFormProps) => {
             />
           </div>
         </div>
+
+        <CollapsableSection title="Re-announce" subtitle="Re-announce options">
+          <div className="col-span-12">
+            <div className="mt-6 grid grid-cols-12 gap-6">
+              <NumberField
+                name={`actions.${idx}.reannounce_interval`}
+                label="Reannounce interval. Run every X seconds"
+                placeholder="7 is default and recommended"
+              />
+              <NumberField
+                name={`actions.${idx}.reannounce_max_attempts`}
+                label="Run reannounce Y times"
+              />
+            </div>
+          </div>
+          <div className="col-span-6">
+            <SwitchGroup
+              name={`actions.${idx}.reannounce_skip`}
+              label="Disable reannounce"
+              description="Reannounce is enabled by default. Disable if needed."
+            />
+            <SwitchGroup
+              name={`actions.${idx}.reannounce_delete`}
+              label="Delete stalled"
+              description="Delete stalled torrents after X attempts"
+            />
+          </div>
+        </CollapsableSection>
       </div>
     );
   case "PORLA":

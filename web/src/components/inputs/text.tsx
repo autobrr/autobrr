@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-import React, { FC, forwardRef, ReactNode } from "react";
+import { FC, forwardRef, ReactNode } from "react";
 import { DeepMap, FieldError, Path, RegisterOptions, UseFormRegister } from "react-hook-form";
 import { classNames, get } from "@utils";
 import { useToggle } from "@hooks/hooks";
@@ -194,4 +194,3 @@ export const PasswordInput = <TFormValues extends Record<string, unknown>>({
     </div>
   );
 };
-

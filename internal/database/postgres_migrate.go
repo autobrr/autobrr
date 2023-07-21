@@ -283,7 +283,7 @@ CREATE TABLE release_action_status
 	raw           TEXT,
 	log           TEXT,
 	release_id    INTEGER NOT NULL,
-	FOREIGN KEY (action_id) REFERENCES "action"(id),
+	FOREIGN KEY (action_id) REFERENCES "action"(id) ON DELETE SET NULL,
 	FOREIGN KEY (release_id) REFERENCES "release"(id) ON DELETE CASCADE,
 	FOREIGN KEY (filter_id) REFERENCES "filter"(id) ON DELETE SET NULL
 );
@@ -706,4 +706,11 @@ ADD COLUMN use_bouncer BOOLEAN DEFAULT FALSE;
 
 ALTER TABLE irc_network
 ADD COLUMN bouncer_addr TEXT;`,
+	`ALTER TABLE release_action_status
+    DROP CONSTRAINT release_action_status_action_id_fkey;
+
+ALTER TABLE release_action_status
+    ADD FOREIGN KEY (action_id) REFERENCES action
+        ON DELETE SET NULL;
+	`,
 }

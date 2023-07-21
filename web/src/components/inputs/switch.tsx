@@ -9,7 +9,7 @@ import { Field } from "formik";
 import { Switch as HeadlessSwitch } from "@headlessui/react";
 
 import { classNames } from "@utils";
-import { CustomTooltip } from "../tooltips/CustomTooltip";
+import { CustomTooltip } from "@components/tooltips/CustomTooltip";
 
 type SwitchProps<V = unknown> = {
     label?: string

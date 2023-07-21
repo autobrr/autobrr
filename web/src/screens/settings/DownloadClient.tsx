@@ -51,7 +51,7 @@ function useSort(items: ListItemProps["clients"][], config?: SortConfig) {
     sortableItems.sort((a, b) => {
       const aValue = sortConfig.key === "enabled" ? (a[sortConfig.key] ?? false) as number | boolean | string : a[sortConfig.key] as number | boolean | string;
       const bValue = sortConfig.key === "enabled" ? (b[sortConfig.key] ?? false) as number | boolean | string : b[sortConfig.key] as number | boolean | string;
-  
+
       if (aValue < bValue) {
         return sortConfig.direction === "ascending" ? -1 : 1;
       }
@@ -59,7 +59,7 @@ function useSort(items: ListItemProps["clients"][], config?: SortConfig) {
         return sortConfig.direction === "ascending" ? 1 : -1;
       }
       return 0;
-    });    
+    });
 
     return sortableItems;
   }, [items, sortConfig]);
@@ -80,7 +80,7 @@ function useSort(items: ListItemProps["clients"][], config?: SortConfig) {
     if (!sortConfig || sortConfig.key !== key) {
       return "";
     }
-    
+
     return sortConfig.direction === "ascending" ? "↑" : "↓";
   };
 
@@ -194,7 +194,7 @@ function DownloadClientSettings() {
                     onClick={() => sortedClients.requestSort("enabled")}>
                     Enabled <span className="sort-indicator">{sortedClients.getSortIndicator("enabled")}</span>
                   </div>
-                  <div 
+                  <div
                     className="col-span-6 sm:col-span-4 lg:col-span-4 pl-12 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer"
                     onClick={() => sortedClients.requestSort("name")}
                   >

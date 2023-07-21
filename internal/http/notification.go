@@ -39,8 +39,11 @@ func (h notificationHandler) Routes(r chi.Router) {
 	r.Get("/", h.list)
 	r.Post("/", h.store)
 	r.Post("/test", h.test)
-	r.Put("/{notificationID}", h.update)
-	r.Delete("/{notificationID}", h.delete)
+
+	r.Route("/{notificationID}", func(r chi.Router) {
+		r.Put("/", h.update)
+		r.Delete("/", h.delete)
+	})
 }
 
 func (h notificationHandler) list(w http.ResponseWriter, r *http.Request) {
@@ -62,13 +65,13 @@ func (h notificationHandler) store(w http.ResponseWriter, r *http.Request) {
 	)
 
 	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
-		// encode error
+		h.encoder.Error(w, err)
 		return
 	}
 
 	filter, err := h.service.Store(ctx, data)
 	if err != nil {
-		// encode error
+		h.encoder.Error(w, err)
 		return
 	}
 
@@ -82,13 +85,13 @@ func (h notificationHandler) update(w http.ResponseWriter, r *http.Request) {
 	)
 
 	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
-		// encode error
+		h.encoder.Error(w, err)
 		return
 	}
 
 	filter, err := h.service.Update(ctx, data)
 	if err != nil {
-		// encode error
+		h.encoder.Error(w, err)
 		return
 	}
 
@@ -104,7 +107,8 @@ func (h notificationHandler) delete(w http.ResponseWriter, r *http.Request) {
 	id, _ := strconv.Atoi(notificationID)
 
 	if err := h.service.Delete(ctx, id); err != nil {
-		// return err
+		h.encoder.Error(w, err)
+		return
 	}
 
 	h.encoder.StatusResponse(w, http.StatusNoContent, nil)

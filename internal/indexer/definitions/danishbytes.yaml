@@ -6,6 +6,9 @@ description: DanishBytes is a private torrent tracker for HD MOVIES / TV
 language: en-us
 urls:
   - https://danishbytes.club/
+  - https://danishbytes2.org/
+  - https://dbytes.org/
+  - https://danishbytes.art/
 privacy: private
 protocol: torrent
 supports:
@@ -23,7 +26,7 @@ irc:
   network: DanishBytes
   server: irc.danishbytes.club
   port: 6697
-  tls: false
+  tls: true
   channels:
     - "#Announce"
   announcers:
@@ -46,13 +49,6 @@ irc:
       required: false
       label: NickServ Password
       help: NickServ password
-
-    - name: invite_command
-      type: secret
-      default: "DBBot announce IRCKEY"
-      required: true
-      label: Invite command
-      help: Invite auth with DBBot. Replace IRCKEY with your key.
 
   parse:
     type: single

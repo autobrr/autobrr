@@ -4,7 +4,6 @@
  */
 
 import { Fragment, useEffect, useRef, useState } from "react";
-import { ExclamationTriangleIcon } from "@heroicons/react/24/solid";
 import format from "date-fns/format";
 import { DebounceInput } from "react-debounce-input";
 import {
@@ -49,7 +48,7 @@ export const Logs = () => {
 
   const [logs, setLogs] = useState<LogEvent[]>([]);
   const [searchFilter, setSearchFilter] = useState("");
-  const [regexPattern, setRegexPattern] = useState<RegExp | null>(null);
+  const [_regexPattern, setRegexPattern] = useState<RegExp | null>(null);
   const [filteredLogs, setFilteredLogs] = useState<LogEvent[]>([]);
   const [isInvalidRegex, setIsInvalidRegex] = useState(false);
 
@@ -170,7 +169,7 @@ export const Logs = () => {
 };
 
 export const LogFiles = () => {
-  const { isLoading, data } = useQuery({
+  const { data } = useQuery({
     queryKey: ["log-files"],
     queryFn: () => APIClient.logs.files(),
     retry: false,
@@ -323,7 +322,7 @@ const LogsDropdown = () => {
         >
           <div className="p-3">
             <Menu.Item>
-              {({ active }) => (
+              {() => (
                 <Checkbox
                   label="Scroll to bottom on new message"
                   value={settings.scrollOnNewLog}
@@ -332,7 +331,7 @@ const LogsDropdown = () => {
               )}
             </Menu.Item>
             <Menu.Item>
-              {({ active }) => (
+              {() => (
                 <Checkbox
                   label="Indent log lines"
                   description="Indent each log line according to their respective starting position."
@@ -342,7 +341,7 @@ const LogsDropdown = () => {
               )}
             </Menu.Item>
             <Menu.Item>
-              {({ active }) => (
+              {() => (
                 <Checkbox
                   label="Hide wrapped text"
                   description="Hides text that is meant to be wrapped."
