@@ -257,7 +257,7 @@ func (r *DownloadClientRepo) Update(ctx context.Context, client domain.DownloadC
 }
 
 func (r *DownloadClientRepo) Delete(ctx context.Context, clientID int) error {
-	tx, err := r.db.BeginTx(ctx, &sql.TxOptions{Isolation: sql.LevelWriteCommitted})
+	tx, err := r.db.BeginTx(ctx, &sql.TxOptions{})
 	if err != nil {
 		return err
 	}
@@ -323,6 +323,11 @@ func (r *DownloadClientRepo) deleteClientFromAction(ctx context.Context, tx *Tx,
 	var filterID int
 
 	if err = queryBuilder.QueryRowContext(ctx).Scan(&filterID); err != nil {
+		// this will throw when the client is not connected to any actions
+		// it is not an error in this case
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil
+		}
 		return errors.Wrap(err, "error executing query")
 	}
 
