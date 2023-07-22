@@ -35,8 +35,7 @@ type ReleaseRepo interface {
 	Get(ctx context.Context, req *GetReleaseRequest) (*Release, error)
 	GetIndexerOptions(ctx context.Context) ([]string, error)
 	Stats(ctx context.Context) (*ReleaseStats, error)
-	Delete(ctx context.Context) error
-	DeleteOlder(ctx context.Context, duration int) error
+	Delete(ctx context.Context, req *DeleteReleaseRequest) error
 	CanDownloadShow(ctx context.Context, title string, season int, episode int) (bool, error)
 
 	GetActionStatus(ctx context.Context, req *GetReleaseActionStatusRequest) (*ReleaseActionStatus, error)
@@ -113,6 +112,10 @@ type ReleaseActionStatus struct {
 	Rejections []string          `json:"rejections"`
 	ReleaseID  int64             `json:"release_id"`
 	Timestamp  time.Time         `json:"timestamp"`
+}
+
+type DeleteReleaseRequest struct {
+	OlderThan int
 }
 
 func NewReleaseActionStatus(action *Action, release *Release) *ReleaseActionStatus {

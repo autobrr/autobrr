@@ -18,7 +18,6 @@ import (
 	sq "github.com/Masterminds/squirrel"
 	"github.com/lib/pq"
 	"github.com/rs/zerolog"
-	"github.com/rs/zerolog/log"
 )
 
 type ReleaseRepo struct {
@@ -561,50 +560,37 @@ CROSS JOIN (
 	return &rls, nil
 }
 
-func (repo *ReleaseRepo) Delete(ctx context.Context) error {
+func (repo *ReleaseRepo) Delete(ctx context.Context, req *domain.DeleteReleaseRequest) error {
 	tx, err := repo.db.BeginTx(ctx, nil)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "could not start transaction")
 	}
 
 	defer tx.Rollback()
 
-	_, err = tx.ExecContext(ctx, `DELETE FROM "release"`)
+	qb := repo.db.squirrel.Delete("release")
+
+	if req.OlderThan > 0 {
+		if repo.db.Driver == "sqlite" {
+			qb = qb.Where(fmt.Sprintf("timestamp < strftime('%%Y-%%m-%%dT%%H:00:00', datetime('now','-%d hours'))", req.OlderThan))
+		} else {
+			// postgres compatible
+			thresholdTime := time.Now().Add(time.Duration(-req.OlderThan) * time.Hour)
+			qb = qb.Where(sq.Lt{
+				//"timestamp": fmt.Sprintf("(now() - interval '%d hours')", req.OlderThan),
+				"timestamp": thresholdTime,
+			})
+		}
+	}
+
+	query, args, err := qb.ToSql()
 	if err != nil {
 		return errors.Wrap(err, "error executing query")
 	}
 
-	_, err = tx.ExecContext(ctx, `DELETE FROM release_action_status`)
-	if err != nil {
-		return errors.Wrap(err, "error executing query")
-	}
+	repo.log.Debug().Str("repo", "release").Str("query", query).Msgf("release.delete: args: %v", args)
 
-	if err := tx.Commit(); err != nil {
-		return errors.Wrap(err, "error commit transaction delete")
-	}
-
-	return nil
-}
-
-func (repo *ReleaseRepo) DeleteOlder(ctx context.Context, duration int) error {
-	tx, err := repo.db.BeginTx(ctx, nil)
-	if err != nil {
-		return err
-	}
-
-	defer tx.Rollback()
-
-	var olderThanTimestamp time.Time
-
-	if duration == 0 {
-		olderThanTimestamp = time.Now().UTC().AddDate(100, 0, 0) // set future date to delete everything
-	} else {
-		olderThanTimestamp = time.Now().UTC().Add(-time.Duration(duration) * time.Hour)
-	}
-
-	log.Debug().Msgf("Deleting releases older than: %v", olderThanTimestamp)
-
-	result, err := tx.ExecContext(ctx, `DELETE FROM "release" WHERE timestamp < $1`, olderThanTimestamp)
+	result, err := tx.ExecContext(ctx, query, args...)
 	if err != nil {
 		return errors.Wrap(err, "error executing query")
 	}
@@ -613,7 +599,6 @@ func (repo *ReleaseRepo) DeleteOlder(ctx context.Context, duration int) error {
 	if err != nil {
 		return errors.Wrap(err, "error fetching rows affected")
 	}
-	log.Debug().Msgf("Deleted %d rows from release table", deletedRows)
 
 	_, err = tx.ExecContext(ctx, `DELETE FROM release_action_status WHERE release_id NOT IN (SELECT id FROM "release")`)
 	if err != nil {
@@ -623,6 +608,8 @@ func (repo *ReleaseRepo) DeleteOlder(ctx context.Context, duration int) error {
 	if err := tx.Commit(); err != nil {
 		return errors.Wrap(err, "error commit transaction delete")
 	}
+
+	repo.log.Debug().Msgf("deleted %d rows from release table", deletedRows)
 
 	return nil
 }
