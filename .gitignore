@@ -1,25 +1,25 @@
-# Logs and databases #
-######################
+# Logs and databases
 *.log
 *.sql
 *.sqlite
-*.db
-*.db-shm
-*.db-wal
 *.db*
+log/
+logs/
 
-# OS generated files #
-######################
-.DS_Store
-.DS_Store?
+# OS generated files
+.DS_Store*
 ._*
 .Spotlight-V100
 .Trashes
 ehthumbs.db
 Thumbs.db
 
-# Other
+# IDE
 .idea
+.vscode
+
+# Package manager
+node_modules/
 .pnp.*
 .yarn/*
 !.yarn/patches
@@ -27,17 +27,17 @@ Thumbs.db
 !.yarn/releases
 !.yarn/sdks
 !.yarn/versions
-node_modules/
+# Ditto for yarn, except we're using pnpm
+yarn.lock
+# If needed, package-lock.json shall be added manually using an explicit git add command
+package-lock.json
+
+# Others
 web/build
 bin/
-log/
-#dist/
+dist/
 .run/
 tmp/
-# If needed, package-lock.json shall be added
-# manually using an explicit git add command.
-package-lock.json
-# Ditto for yarn, except we're using npm.
-yarn.lock
-dist/*
-!dist/.gitkeep
+
+# Preserve files
+!.gitkeep

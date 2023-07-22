@@ -9,7 +9,7 @@ import { useNavigate } from "react-router-dom";
 
 import { APIClient } from "@api/APIClient";
 import { TextField, PasswordField } from "@components/inputs";
-import logo from "@app/logo.png";
+import { ReactComponent as Logo } from "@app/logo.svg";
 
 interface InputValues {
   username: string;
@@ -23,7 +23,7 @@ export const Onboarding = () => {
 
     if (!values.username)
       obj.username = "Required";
-    
+
     if (!values.password1)
       obj.password1 = "Required";
 
@@ -32,7 +32,7 @@ export const Onboarding = () => {
 
     if (values.password1 !== values.password2)
       obj.password2 = "Passwords don't match!";
-    
+
     return obj;
   };
 
@@ -46,7 +46,7 @@ export const Onboarding = () => {
   return (
     <div className="min-h-screen flex flex-col justify-center py-12 sm:px-6 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-md mb-6">
-        <img className="mx-auto h-12 w-auto" src={logo} alt="logo"/>
+        <Logo className="mx-auto h-12" />
         <h1 className="text-center text-gray-900 dark:text-gray-200 font-bold pt-2 text-2xl">
           autobrr
         </h1>
@@ -83,4 +83,3 @@ export const Onboarding = () => {
     </div>
   );
 };
-

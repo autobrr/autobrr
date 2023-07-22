@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-import React, { useEffect, useRef } from "react";
+import { useEffect, useRef, ReactNode } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { NavLink, Route, Routes, useLocation, useNavigate, useParams } from "react-router-dom";
 import { toast } from "react-hot-toast";
@@ -11,7 +11,6 @@ import { Form, Formik, FormikValues, useFormikContext } from "formik";
 import { z } from "zod";
 import { toFormikValidationSchema } from "zod-formik-adapter";
 import { ChevronDownIcon, ChevronRightIcon } from "@heroicons/react/24/solid";
-import TextareaAutosize from "react-textarea-autosize";
 
 import {
   CODECS_OPTIONS,
@@ -47,10 +46,9 @@ import DEBUG from "@components/debug";
 import Toast from "@components/notifications/Toast";
 import { DeleteModal } from "@components/modals";
 import { TitleSubtitle } from "@components/headings";
-import { RegexTextAreaField, TextArea } from "@components/inputs/input";
-import { TextAreaAutoResize } from "../../components/inputs/input";
-import { FilterActions } from "./action";
-import { filterKeys } from "./list";
+import { RegexTextAreaField, TextArea, TextAreaAutoResize } from "@components/inputs/input";
+import { FilterActions } from "./Action";
+import { filterKeys } from "./List";
 
 interface tabType {
   name: string;
@@ -214,7 +212,7 @@ const schema = z.object({
   actions: z.array(actionSchema)
 });
 
-export default function FilterDetails() {
+export function FilterDetails() {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const { filterId } = useParams<{ filterId: string }>();
@@ -223,6 +221,7 @@ export default function FilterDetails() {
     navigate("/filters");
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
   const id = parseInt(filterId!);
 
   const { isLoading, data: filter } = useQuery({
@@ -695,7 +694,7 @@ function WarningAlert({ text, alert, colors }: WarningAlertProps) {
 interface CollapsableSectionProps {
     title: string;
     subtitle: string;
-    children: React.ReactNode;
+    children: ReactNode;
     defaultOpen?: boolean;
 }
 
@@ -795,4 +794,3 @@ export function External() {
     </div>
   );
 }
-

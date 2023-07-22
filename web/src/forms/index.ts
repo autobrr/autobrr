@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-export { default as FilterAddForm } from "./filters/FilterAddForm";
+export { FilterAddForm } from "./filters/FilterAddForm";
 
 export { DownloadClientAddForm, DownloadClientUpdateForm } from "./settings/DownloadClientForms";
 export { IndexerAddForm, IndexerUpdateForm } from "./settings/IndexerForms";

@@ -50,7 +50,7 @@ function useSort(items: ListItemProps["feed"][], config?: SortConfig) {
     sortableItems.sort((a, b) => {
       const aValue = sortConfig.key === "enabled" ? (a[sortConfig.key] ?? false) as number | boolean | string : a[sortConfig.key] as number | boolean | string;
       const bValue = sortConfig.key === "enabled" ? (b[sortConfig.key] ?? false) as number | boolean | string : b[sortConfig.key] as number | boolean | string;
-  
+
       if (aValue < bValue) {
         return sortConfig.direction === "ascending" ? -1 : 1;
       }
@@ -58,7 +58,7 @@ function useSort(items: ListItemProps["feed"][], config?: SortConfig) {
         return sortConfig.direction === "ascending" ? 1 : -1;
       }
       return 0;
-    });    
+    });
 
     return sortableItems;
   }, [items, sortConfig]);
@@ -73,13 +73,13 @@ function useSort(items: ListItemProps["feed"][], config?: SortConfig) {
     }
     setSortConfig({ key, direction });
   };
-  
+
 
   const getSortIndicator = (key: keyof ListItemProps["feed"]) => {
     if (!sortConfig || sortConfig.key !== key) {
       return "";
     }
-    
+
     return sortConfig.direction === "ascending" ? "↑" : "↓";
   };
 
@@ -132,7 +132,7 @@ function FeedSettings() {
                   Last run <span className="sort-indicator">{sortedFeeds.getSortIndicator("last_run")}</span>
                 </div>
               </li>
-              {sortedFeeds.items.map((feed, idx) => (
+              {sortedFeeds.items.map((feed) => (
                 <ListItem key={feed.id} feed={feed}/>
               ))}
             </ol>

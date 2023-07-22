@@ -11,7 +11,7 @@ import { APIClient } from "@api/APIClient";
 import { GithubRelease } from "@app/types/Update";
 import Toast from "@components/notifications/Toast";
 import { LogLevelOptions, SelectOption } from "@domain/constants";
-import { LogFiles } from "../Logs";
+import { LogFiles } from "@screens/Logs";
 
 interface RowItemProps {
   label: string;

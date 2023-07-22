@@ -72,12 +72,7 @@ export const SettingsContext = newRidgeState<SettingsType>(
   {
     onSet: (new_state) => {
       try {
-        if (new_state.darkTheme) {
-          document.documentElement.classList.add("dark");
-        } else {
-          document.documentElement.classList.remove("dark");
-        }
-
+        document.documentElement.classList.toggle("dark", new_state.darkTheme);
         localStorage.setItem("settings", JSON.stringify(new_state));
       } catch (e) {
         console.log("An error occurred while trying to modify the local settings context state.");

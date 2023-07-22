@@ -3,13 +3,13 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-import React, { FC, Fragment } from "react";
+import { FC, Fragment, MutableRefObject } from "react";
 import { Dialog, Transition } from "@headlessui/react";
 import { ExclamationTriangleIcon } from "@heroicons/react/24/solid";
 
 interface DeleteModalProps {
     isOpen: boolean;
-    buttonRef: React.MutableRefObject<HTMLElement | null> | undefined;
+    buttonRef: MutableRefObject<HTMLElement | null> | undefined;
     toggle: () => void;
     deleteAction: () => void;
     title: string;
