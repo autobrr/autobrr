@@ -195,8 +195,14 @@ export const APIClient = {
     },
     indexerOptions: () => appClient.Get<string[]>("api/release/indexers"),
     stats: () => appClient.Get<ReleaseStats>("api/release/stats"),
-    delete: () => appClient.Delete("api/release/all"),
-    deleteOlder: (duration: number) => appClient.Delete(`api/release/older-than/${duration}`),
+    delete: (olderThan: number) => {
+      const params = new URLSearchParams();
+      if (olderThan !== undefined && olderThan > 0) {
+        params.append("olderThan", olderThan.toString());
+      }
+
+      return appClient.Delete(`api/release?${params.toString()}`)
+    },
     replayAction: (releaseId: number, actionId: number) => appClient.Post(`api/release/${releaseId}/actions/${actionId}/retry`)
   },
   updates: {
