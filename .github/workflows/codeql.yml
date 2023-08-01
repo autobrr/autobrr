@@ -48,6 +48,21 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v3
 
+    - name: Set up Node
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18.17.0'
+
+    - name: Set up corepack
+      run: corepack enable
+
+      # It can not be done before enable corepack
+    - name: Set up cache
+      uses: actions/setup-node@v3
+      with:
+        cache: pnpm
+        cache-dependency-path: web/pnpm-lock.yaml
+
     # Initializes the CodeQL tools for scanning.
     - name: Initialize CodeQL
       uses: github/codeql-action/init@v2
