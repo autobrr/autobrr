@@ -43,6 +43,8 @@ type IrcNetwork struct {
 	Nick           string       `json:"nick"`
 	Auth           IRCAuth      `json:"auth,omitempty"`
 	InviteCommand  string       `json:"invite_command"`
+	UseBouncer     bool         `json:"use_bouncer"`
+	BouncerAddr    string       `json:"bouncer_addr"`
 	Channels       []IrcChannel `json:"channels"`
 	Connected      bool         `json:"connected"`
 	ConnectedSince *time.Time   `json:"connected_since"`
@@ -59,6 +61,8 @@ type IrcNetworkWithHealth struct {
 	Nick             string              `json:"nick"`
 	Auth             IRCAuth             `json:"auth,omitempty"`
 	InviteCommand    string              `json:"invite_command"`
+	UseBouncer       bool                `json:"use_bouncer"`
+	BouncerAddr      string              `json:"bouncer_addr"`
 	CurrentNick      string              `json:"current_nick"`
 	PreferredNick    string              `json:"preferred_nick"`
 	Channels         []ChannelWithHealth `json:"channels"`
@@ -118,7 +122,7 @@ func (m IrcMessage) Bytes() []byte {
 }
 
 type IrcRepo interface {
-	StoreNetwork(network *IrcNetwork) error
+	StoreNetwork(ctx context.Context, network *IrcNetwork) error
 	UpdateNetwork(ctx context.Context, network *IrcNetwork) error
 	StoreChannel(ctx context.Context, networkID int64, channel *IrcChannel) error
 	UpdateChannel(channel *IrcChannel) error

@@ -328,7 +328,7 @@ func (s *service) CheckFilter(ctx context.Context, f domain.Filter, release *dom
 
 	rejections, matchedFilter := f.CheckFilter(release)
 	if len(rejections) > 0 {
-		s.log.Debug().Msgf("filter.Service.CheckFilter: (%v) for release: %v rejections: (%v)", f.Name, release.TorrentName, release.RejectionsString())
+		s.log.Debug().Msgf("filter.Service.CheckFilter: (%v) for release: %v rejections: (%v)", f.Name, release.TorrentName, release.RejectionsString(true))
 		return false, nil
 	}
 

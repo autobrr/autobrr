@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-import React, { Fragment, useRef, useState } from "react";
+import { Fragment, useRef, useState, ReactElement } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Dialog, Transition } from "@headlessui/react";
 import { XMarkIcon } from "@heroicons/react/24/solid";
@@ -24,7 +24,7 @@ import {
   SwitchGroupWide,
   TextFieldWide
 } from "@components/inputs";
-import DownloadClient, { clientKeys } from "@screens/settings/DownloadClient";
+import { clientKeys } from "@screens/settings/DownloadClient";
 import { SelectFieldWide } from "@components/inputs/input_wide";
 
 interface InitialValuesSettings {
@@ -181,7 +181,7 @@ function FormFieldsPorla() {
         required={true}
       />
 
-      
+
       <SwitchGroupWide name="tls" label="TLS" />
 
       <PasswordFieldWide name="settings.apikey" label="Auth token" required={true}/>
@@ -322,7 +322,7 @@ function FormFieldsSabnzbd() {
 }
 
 export interface componentMapType {
-  [key: string]: React.ReactElement;
+  [key: string]: ReactElement;
 }
 
 export const componentMap: componentMapType = {
@@ -422,11 +422,43 @@ function FormFieldsRulesQbit() {
   );
 }
 
+function FormFieldsRulesTransmission() {
+  const {
+    values: { settings }
+  } = useFormikContext<InitialValues>();
+
+  return (
+    <div className="border-t border-gray-200 dark:border-gray-700 py-5 px-2">
+      <div className="px-4 space-y-1">
+        <Dialog.Title className="text-lg font-medium text-gray-900 dark:text-white">
+          Rules
+        </Dialog.Title>
+        <p className="text-sm text-gray-500 dark:text-gray-400">
+          Manage max downloads etc.
+        </p>
+      </div>
+
+      <SwitchGroupWide name="settings.rules.enabled" label="Enabled" />
+
+      {settings.rules?.enabled === true && (
+        <>
+          <NumberFieldWide
+            name="settings.rules.max_active_downloads"
+            label="Max active downloads"
+            tooltip={<><p>Limit the amount of active downloads (0 is unlimited), to give the maximum amount of bandwidth and disk for the downloads.</p><a href='https://autobrr.com/configuration/download-clients/dedicated#transmission-rules' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/configuration/download-clients/dedicated#transmission-rules</a><br /><br /><p>See recommendations for various server types here:</p><a href='https://autobrr.com/filters/examples#build-buffer' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters/examples#build-buffer</a></>}
+          />
+        </>
+      )}
+    </div>
+  );
+}
+
 export const rulesComponentMap: componentMapType = {
   DELUGE_V1: <FormFieldsRulesBasic/>,
   DELUGE_V2: <FormFieldsRulesBasic/>,
   QBITTORRENT: <FormFieldsRulesQbit/>,
-  PORLA: <FormFieldsRulesBasic/>
+  PORLA: <FormFieldsRulesBasic/>,
+  TRANSMISSION: <FormFieldsRulesTransmission/>
 };
 
 interface formButtonsProps {

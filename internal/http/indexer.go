@@ -44,8 +44,11 @@ func (h indexerHandler) Routes(r chi.Router) {
 	r.Put("/", h.update)
 	r.Get("/", h.getAll)
 	r.Get("/options", h.list)
-	r.Delete("/{indexerID}", h.delete)
-	r.Post("/{id}/api/test", h.testApi)
+
+	r.Route("/{indexerID}", func(r chi.Router) {
+		r.Delete("/", h.delete)
+		r.Post("/api/test", h.testApi)
+	})
 }
 
 func (h indexerHandler) getSchema(w http.ResponseWriter, r *http.Request) {
@@ -104,7 +107,11 @@ func (h indexerHandler) delete(w http.ResponseWriter, r *http.Request) {
 		idParam = chi.URLParam(r, "indexerID")
 	)
 
-	id, _ := strconv.Atoi(idParam)
+	id, err := strconv.Atoi(idParam)
+	if err != nil {
+		h.encoder.Error(w, err)
+		return
+	}
 
 	if err := h.service.Delete(ctx, id); err != nil {
 		h.encoder.Error(w, err)
@@ -139,7 +146,7 @@ func (h indexerHandler) list(w http.ResponseWriter, r *http.Request) {
 func (h indexerHandler) testApi(w http.ResponseWriter, r *http.Request) {
 	var (
 		ctx     = r.Context()
-		idParam = chi.URLParam(r, "id")
+		idParam = chi.URLParam(r, "indexerID")
 		req     domain.IndexerTestApiRequest
 	)
 

@@ -156,6 +156,10 @@ func (h *Handler) Run() error {
 
 	addr := fmt.Sprintf("%v:%d", h.network.Server, h.network.Port)
 
+	if h.network.UseBouncer && h.network.BouncerAddr != "" {
+		addr = h.network.BouncerAddr
+	}
+
 	subLogger := zstdlog.NewStdLoggerWithLevel(h.log.With().Logger(), zerolog.TraceLevel)
 
 	h.client = &ircevent.Connection{
@@ -543,7 +547,9 @@ func (h *Handler) onNick(msg ircmsg.Message) {
 }
 
 func (h *Handler) publishSSEMsg(msg domain.IrcMessage) {
-	h.sse.Publish(fmt.Sprintf("%d%s", h.network.ID, strings.TrimPrefix(msg.Channel, "#")), &sse.Event{
+	key := genSSEKey(h.network.ID, msg.Channel)
+
+	h.sse.Publish(key, &sse.Event{
 		Data: msg.Bytes(),
 	})
 }

@@ -235,6 +235,8 @@ interface IrcNetworkUpdateFormValues {
     nick: string;
     auth?: IrcAuth;
     invite_command: string;
+    use_bouncer: boolean;
+    bouncer_addr: string;
     channels: Array<IrcChannel>;
 }
 
@@ -288,6 +290,8 @@ export function IrcNetworkUpdateForm({
     pass: network.pass,
     auth: network.auth,
     invite_command: network.invite_command,
+    use_bouncer: network.use_bouncer,
+    bouncer_addr: network.bouncer_addr,
     channels: network.channels
   };
 
@@ -339,6 +343,15 @@ export function IrcNetworkUpdateForm({
             placeholder="nick"
             required={true}
           />
+
+          <SwitchGroupWide name="use_bouncer" label="Bouncer (BNC)" />
+          {values.use_bouncer && (
+            <TextFieldWide
+              name="bouncer_addr"
+              label="Bouncer address"
+              help="Address: Eg bouncer.server.net:6697"
+            />
+          )}
 
           <div className="border-t border-gray-200 dark:border-gray-700 py-5">
             <div className="px-4 space-y-1 mb-8">

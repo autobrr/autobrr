@@ -58,14 +58,12 @@ func (h apikeyHandler) store(w http.ResponseWriter, r *http.Request) {
 	)
 
 	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
-		// encode error
-		h.encoder.StatusInternalError(w)
+		h.encoder.Error(w, err)
 		return
 	}
 
 	if err := h.service.Store(ctx, &data); err != nil {
-		// encode error
-		h.encoder.StatusInternalError(w)
+		h.encoder.Error(w, err)
 		return
 	}
 
@@ -74,8 +72,9 @@ func (h apikeyHandler) store(w http.ResponseWriter, r *http.Request) {
 
 func (h apikeyHandler) delete(w http.ResponseWriter, r *http.Request) {
 	if err := h.service.Delete(r.Context(), chi.URLParam(r, "apikey")); err != nil {
-		h.encoder.StatusInternalError(w)
+		h.encoder.Error(w, err)
 		return
 	}
+
 	h.encoder.NoContent(w)
 }

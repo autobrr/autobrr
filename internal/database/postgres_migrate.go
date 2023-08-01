@@ -45,6 +45,8 @@ CREATE TABLE irc_network
     auth_account        TEXT,
     auth_password       TEXT,
     invite_command      TEXT,
+    use_bouncer         BOOLEAN,
+    bouncer_addr        TEXT,
     connected           BOOLEAN,
     connected_since     TIMESTAMP,
     created_at          TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -281,7 +283,7 @@ CREATE TABLE release_action_status
 	raw           TEXT,
 	log           TEXT,
 	release_id    INTEGER NOT NULL,
-	FOREIGN KEY (action_id) REFERENCES "action"(id),
+	FOREIGN KEY (action_id) REFERENCES "action"(id) ON DELETE SET NULL,
 	FOREIGN KEY (release_id) REFERENCES "release"(id) ON DELETE CASCADE,
 	FOREIGN KEY (filter_id) REFERENCES "filter"(id) ON DELETE SET NULL
 );
@@ -699,4 +701,19 @@ ADD COLUMN topic text;`,
 ALTER TABLE release_action_status
     ADD CONSTRAINT release_action_status_action_id_fk
         FOREIGN KEY (action_id) REFERENCES action;`,
+	`ALTER TABLE irc_network
+ADD COLUMN use_bouncer BOOLEAN DEFAULT FALSE;
+
+ALTER TABLE irc_network
+ADD COLUMN bouncer_addr TEXT;`,
+	`ALTER TABLE release_action_status
+    DROP CONSTRAINT IF EXISTS release_action_status_action_id_fkey;
+         
+ALTER TABLE release_action_status
+    DROP CONSTRAINT IF EXISTS release_action_status_action_id_fk;
+
+ALTER TABLE release_action_status
+    ADD FOREIGN KEY (action_id) REFERENCES action
+        ON DELETE SET NULL;
+	`,
 }

@@ -10,7 +10,7 @@ import { TrashIcon } from "@heroicons/react/24/outline";
 
 import { KeyField } from "@components/fields/text";
 import { DeleteModal } from "@components/modals";
-import APIKeyAddForm from "@forms/settings/APIKeyAddForm";
+import { APIKeyAddForm } from "@forms/settings/APIKeyAddForm";
 import Toast from "@components/notifications/Toast";
 import { APIClient } from "@api/APIClient";
 import { useToggle } from "@hooks/hooks";

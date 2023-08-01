@@ -25,8 +25,7 @@ type Service interface {
 	Stats(ctx context.Context) (*domain.ReleaseStats, error)
 	Store(ctx context.Context, release *domain.Release) error
 	StoreReleaseActionStatus(ctx context.Context, actionStatus *domain.ReleaseActionStatus) error
-	Delete(ctx context.Context) error
-	DeleteOlder(ctx context.Context, duration int) error
+	Delete(ctx context.Context, req *domain.DeleteReleaseRequest) error
 	Process(release *domain.Release)
 	ProcessMultiple(releases []*domain.Release)
 	Retry(ctx context.Context, req *domain.ReleaseActionRetryReq) error
@@ -91,12 +90,8 @@ func (s *service) StoreReleaseActionStatus(ctx context.Context, status *domain.R
 	return s.repo.StoreReleaseActionStatus(ctx, status)
 }
 
-func (s *service) Delete(ctx context.Context) error {
-	return s.repo.Delete(ctx)
-}
-
-func (s *service) DeleteOlder(ctx context.Context, duration int) error {
-	return s.repo.DeleteOlder(ctx, duration)
+func (s *service) Delete(ctx context.Context, req *domain.DeleteReleaseRequest) error {
+	return s.repo.Delete(ctx, req)
 }
 
 func (s *service) Process(release *domain.Release) {
@@ -153,9 +148,9 @@ func (s *service) Process(release *domain.Release) {
 		}
 
 		if !match {
-			l.Trace().Msgf("release.Process: indexer: %s, filter: %s release: %s, no match. rejections: %s", release.Indexer, release.FilterName, release.TorrentName, release.RejectionsString())
+			l.Trace().Msgf("release.Process: indexer: %s, filter: %s release: %s, no match. rejections: %s", release.Indexer, release.FilterName, release.TorrentName, release.RejectionsString(false))
 
-			l.Debug().Msgf("release rejected: %s", release.RejectionsString())
+			l.Debug().Msgf("release rejected: %s", release.RejectionsString(true))
 			continue
 		}
 

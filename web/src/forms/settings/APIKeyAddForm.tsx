@@ -21,20 +21,20 @@ interface apiKeyAddFormProps {
   toggle: () => void;
 }
 
-function APIKeyAddForm({ isOpen, toggle }: apiKeyAddFormProps) {
+export function APIKeyAddForm({ isOpen, toggle }: apiKeyAddFormProps) {
   const queryClient = useQueryClient();
 
   const mutation = useMutation({
     mutationFn: (apikey: APIKey) => APIClient.apikeys.create(apikey),
     onSuccess: (_, key) => {
       queryClient.invalidateQueries({ queryKey: apiKeys.lists() });
-      
+
       toast.custom((t) => <Toast type="success" body={`API key ${key.name} was added`} t={t}/>);
 
       toggle();
     }
   });
-  
+
   const handleSubmit = (data: unknown) => mutation.mutate(data as APIKey);
   const validate = (values: FormikValues) => {
     const errors = {} as FormikErrors<FormikValues>;
@@ -156,5 +156,3 @@ function APIKeyAddForm({ isOpen, toggle }: apiKeyAddFormProps) {
     </Transition.Root>
   );
 }
-
-export default APIKeyAddForm;

@@ -5,6 +5,7 @@ package irc
 
 import (
 	"context"
+	"encoding/base64"
 	"fmt"
 	"strings"
 	"sync"
@@ -416,6 +417,8 @@ func (s *service) GetNetworksWithHealth(ctx context.Context) ([]domain.IrcNetwor
 			Nick:             n.Nick,
 			Auth:             n.Auth,
 			InviteCommand:    n.InviteCommand,
+			BouncerAddr:      n.BouncerAddr,
+			UseBouncer:       n.UseBouncer,
 			Connected:        false,
 			Channels:         []domain.ChannelWithHealth{},
 			ConnectionErrors: []string{},
@@ -559,17 +562,16 @@ func (s *service) StoreNetwork(ctx context.Context, network *domain.IrcNetwork) 
 	}
 
 	if existingNetwork == nil {
-		if err := s.repo.StoreNetwork(network); err != nil {
+		if err := s.repo.StoreNetwork(ctx, network); err != nil {
 			return err
 		}
 		s.log.Debug().Msgf("store network: %+v", network)
 
 		if network.Channels != nil {
 			for _, channel := range network.Channels {
-				if err := s.repo.StoreChannel(nil, network.ID, &channel); err != nil {
+				if err := s.repo.StoreChannel(ctx, network.ID, &channel); err != nil {
 					s.log.Error().Stack().Err(err).Msg("irc.storeChannel: error executing query")
 					return errors.Wrap(err, "error storing channel on network")
-					//return err
 				}
 			}
 		}
@@ -580,14 +582,14 @@ func (s *service) StoreNetwork(ctx context.Context, network *domain.IrcNetwork) 
 	// get channels for existing network
 	existingChannels, err := s.repo.ListChannels(existingNetwork.ID)
 	if err != nil {
-		s.log.Error().Err(err).Msgf("failed to list channels for network %q", existingNetwork.Server)
+		s.log.Error().Err(err).Msgf("failed to list channels for network %s", existingNetwork.Server)
 	}
 	existingNetwork.Channels = existingChannels
 
 	if network.Channels != nil {
 		for _, channel := range network.Channels {
 			// add channels. Make sure it doesn't delete before
-			if err := s.repo.StoreChannel(nil, existingNetwork.ID, &channel); err != nil {
+			if err := s.repo.StoreChannel(ctx, existingNetwork.ID, &channel); err != nil {
 				return err
 			}
 		}
@@ -609,10 +611,9 @@ func (s *service) StoreNetwork(ctx context.Context, network *domain.IrcNetwork) 
 		// if nickserv account, nickserv password : changed - stay connected, and change those
 		// if channels len : changes - join or leave
 
-		err := s.checkIfNetworkRestartNeeded(existingNetwork)
-		if err != nil {
-			s.log.Error().Err(err).Msgf("could not restart network: %+v", existingNetwork.Name)
-			return errors.New("could not restart network: %v", existingNetwork.Name)
+		if err := s.checkIfNetworkRestartNeeded(existingNetwork); err != nil {
+			s.log.Error().Err(err).Msgf("could not restart network: %s", existingNetwork.Name)
+			return errors.New("could not restart network: %s", existingNetwork.Name)
 		}
 	}
 
@@ -638,7 +639,7 @@ func (s *service) SendCmd(ctx context.Context, req *domain.SendIrcCmdRequest) er
 }
 
 func (s *service) createSSEStream(networkId int64, channel string) {
-	key := fmt.Sprintf("%d%s", networkId, strings.TrimPrefix(channel, "#"))
+	key := genSSEKey(networkId, channel)
 
 	s.sse.CreateStreamWithOpts(key, sse.StreamOpts{
 		MaxEntries: sseMaxEntries,
@@ -647,7 +648,11 @@ func (s *service) createSSEStream(networkId int64, channel string) {
 }
 
 func (s *service) removeSSEStream(networkId int64, channel string) {
-	key := fmt.Sprintf("%d%s", networkId, strings.TrimPrefix(channel, "#"))
+	key := genSSEKey(networkId, channel)
 
 	s.sse.RemoveStream(key)
+}
+
+func genSSEKey(networkId int64, channel string) string {
+	return base64.RawURLEncoding.EncodeToString([]byte(fmt.Sprintf("%d%s", networkId, strings.ToLower(channel))))
 }

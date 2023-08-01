@@ -87,11 +87,16 @@ func (h ircHandler) getNetworkByID(w http.ResponseWriter, r *http.Request) {
 		networkID = chi.URLParam(r, "networkID")
 	)
 
-	id, _ := strconv.Atoi(networkID)
+	id, err := strconv.Atoi(networkID)
+	if err != nil {
+		h.encoder.Error(w, err)
+		return
+	}
 
 	network, err := h.service.GetNetworkByID(ctx, int64(id))
 	if err != nil {
 		h.encoder.Error(w, err)
+		return
 	}
 
 	h.encoder.StatusResponse(w, http.StatusOK, network)
@@ -103,10 +108,15 @@ func (h ircHandler) restartNetwork(w http.ResponseWriter, r *http.Request) {
 		networkID = chi.URLParam(r, "networkID")
 	)
 
-	id, _ := strconv.Atoi(networkID)
+	id, err := strconv.Atoi(networkID)
+	if err != nil {
+		h.encoder.Error(w, err)
+		return
+	}
 
 	if err := h.service.RestartNetwork(ctx, int64(id)); err != nil {
 		h.encoder.Error(w, err)
+		return
 	}
 
 	h.encoder.NoContent(w)
@@ -154,7 +164,11 @@ func (h ircHandler) sendCmd(w http.ResponseWriter, r *http.Request) {
 		data      domain.SendIrcCmdRequest
 	)
 
-	id, _ := strconv.Atoi(networkID)
+	id, err := strconv.Atoi(networkID)
+	if err != nil {
+		h.encoder.Error(w, err)
+		return
+	}
 
 	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
 		h.encoder.Error(w, err)
@@ -178,7 +192,11 @@ func (h ircHandler) storeChannel(w http.ResponseWriter, r *http.Request) {
 		data      domain.IrcChannel
 	)
 
-	id, _ := strconv.Atoi(networkID)
+	id, err := strconv.Atoi(networkID)
+	if err != nil {
+		h.encoder.Error(w, err)
+		return
+	}
 
 	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
 		h.encoder.Error(w, err)
@@ -199,7 +217,11 @@ func (h ircHandler) deleteNetwork(w http.ResponseWriter, r *http.Request) {
 		networkID = chi.URLParam(r, "networkID")
 	)
 
-	id, _ := strconv.Atoi(networkID)
+	id, err := strconv.Atoi(networkID)
+	if err != nil {
+		h.encoder.Error(w, err)
+		return
+	}
 
 	if err := h.service.DeleteNetwork(ctx, int64(id)); err != nil {
 		h.encoder.Error(w, err)

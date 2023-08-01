@@ -5,11 +5,18 @@ package action
 
 import (
 	"context"
+	"strings"
+	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/pkg/errors"
 
 	"github.com/hekmon/transmissionrpc/v2"
+)
+
+const (
+	ReannounceMaxAttempts = 50
+	ReannounceInterval    = 7000
 )
 
 func (s *service) transmission(ctx context.Context, action *domain.Action, release domain.Release) ([]string, error) {
@@ -28,8 +35,6 @@ func (s *service) transmission(ctx context.Context, action *domain.Action, relea
 		return nil, errors.New("could not find client by id: %d", action.ClientID)
 	}
 
-	var rejections []string
-
 	tbt, err := transmissionrpc.New(client.Host, client.Username, client.Password, &transmissionrpc.AdvancedConfig{
 		HTTPS: client.TLS,
 		Port:  uint16(client.Port),
@@ -38,16 +43,26 @@ func (s *service) transmission(ctx context.Context, action *domain.Action, relea
 		return nil, errors.Wrap(err, "error logging into client: %s", client.Host)
 	}
 
+	rejections, err := s.transmissionCheckRulesCanDownload(ctx, action, client, tbt)
+	if err != nil {
+		return nil, errors.Wrap(err, "error checking client rules: %s", action.Name)
+	}
+
+	if len(rejections) > 0 {
+		return rejections, nil
+	}
+
+	payload := transmissionrpc.TorrentAddPayload{}
+
+	if action.SavePath != "" {
+		payload.DownloadDir = &action.SavePath
+	}
+	if action.Paused {
+		payload.Paused = &action.Paused
+	}
+
 	if release.HasMagnetUri() {
-		payload := transmissionrpc.TorrentAddPayload{
-			Filename: &release.MagnetURI,
-		}
-		if action.SavePath != "" {
-			payload.DownloadDir = &action.SavePath
-		}
-		if action.Paused {
-			payload.Paused = &action.Paused
-		}
+		payload.Filename = &release.MagnetURI
 
 		// Prepare and send payload
 		torrent, err := tbt.TorrentAdd(ctx, payload)
@@ -72,15 +87,7 @@ func (s *service) transmission(ctx context.Context, action *domain.Action, relea
 			return nil, errors.Wrap(err, "cant encode file %s into base64", release.TorrentTmpFile)
 		}
 
-		payload := transmissionrpc.TorrentAddPayload{
-			MetaInfo: &b64,
-		}
-		if action.SavePath != "" {
-			payload.DownloadDir = &action.SavePath
-		}
-		if action.Paused {
-			payload.Paused = &action.Paused
-		}
+		payload.MetaInfo = &b64
 
 		// Prepare and send payload
 		torrent, err := tbt.TorrentAdd(ctx, payload)
@@ -88,8 +95,136 @@ func (s *service) transmission(ctx context.Context, action *domain.Action, relea
 			return nil, errors.Wrap(err, "could not add torrent %v to client: %v", release.TorrentTmpFile, client.Host)
 		}
 
-		s.log.Info().Msgf("torrent with hash %v successfully added to client: '%s'", torrent.HashString, client.Name)
+		if !action.Paused && !action.ReAnnounceSkip {
+			if err := s.transmissionReannounce(ctx, action, tbt, *torrent.ID); err != nil {
+				return nil, errors.Wrap(err, "could not reannounce torrent: %s", *torrent.HashString)
+			}
+
+			return nil, nil
+		}
+
+		s.log.Info().Msgf("torrent with hash %s successfully added to client: '%s'", *torrent.HashString, client.Name)
 	}
 
 	return rejections, nil
+}
+
+func (s *service) transmissionReannounce(ctx context.Context, action *domain.Action, tbt *transmissionrpc.Client, torrentId int64) error {
+	interval := ReannounceInterval
+	if action.ReAnnounceInterval > 0 {
+		interval = int(action.ReAnnounceInterval)
+	}
+
+	maxAttempts := ReannounceMaxAttempts
+	if action.ReAnnounceMaxAttempts > 0 {
+		maxAttempts = int(action.ReAnnounceMaxAttempts)
+	}
+
+	attempts := 0
+
+	for attempts <= maxAttempts {
+		s.log.Debug().Msgf("re-announce %v attempt: %d/%d", torrentId, attempts, maxAttempts)
+
+		// add delay for next run
+		time.Sleep(time.Duration(interval) * time.Second)
+
+		t, err := tbt.TorrentGet(ctx, []string{"trackerStats"}, []int64{torrentId})
+		if err != nil {
+			return errors.Wrap(err, "reannounced, failed to find torrentid")
+		}
+
+		if len(t) < 1 {
+			return errors.Wrap(err, "reannounced, failed to get torrent from id")
+		}
+
+		for _, tracker := range t[0].TrackerStats {
+			tracker := tracker
+
+			s.log.Trace().Msgf("transmission tracker: %+v", tracker)
+
+			if tracker.IsBackup {
+				continue
+			}
+
+			if isUnregistered(tracker.LastAnnounceResult) {
+				continue
+			}
+
+			if tracker.SeederCount > 0 {
+				return nil
+			} else if tracker.LeecherCount > 0 {
+				return nil
+			}
+		}
+
+		s.log.Debug().Msgf("transmission re-announce not working yet, lets re-announce %v again attempt: %d/%d", torrentId, attempts, maxAttempts)
+
+		if err := tbt.TorrentReannounceIDs(ctx, []int64{torrentId}); err != nil {
+			return errors.Wrap(err, "failed to reannounce")
+		}
+
+		attempts++
+	}
+
+	if attempts == maxAttempts && action.ReAnnounceDelete {
+		s.log.Info().Msgf("re-announce for %v took too long, deleting torrent", torrentId)
+
+		if err := tbt.TorrentRemove(ctx, transmissionrpc.TorrentRemovePayload{IDs: []int64{torrentId}}); err != nil {
+			return errors.Wrap(err, "could not delete torrent: %v from client after max re-announce attempts reached", torrentId)
+		}
+
+		return errors.New("transmission re-announce took too long, deleted torrent %v", torrentId)
+	}
+
+	return nil
+}
+
+func (s *service) transmissionCheckRulesCanDownload(ctx context.Context, action *domain.Action, client *domain.DownloadClient, tbt *transmissionrpc.Client) ([]string, error) {
+	s.log.Trace().Msgf("action transmission: %s check rules", action.Name)
+
+	// check for active downloads and other rules
+	if client.Settings.Rules.Enabled && !action.IgnoreRules {
+		torrents, err := tbt.TorrentGet(ctx, []string{"status"}, []int64{})
+		if err != nil {
+			return nil, errors.Wrap(err, "could not fetch active downloads")
+		}
+
+		var activeDownloads []transmissionrpc.Torrent
+
+		// there is no way to get torrents by status, so we need to filter ourselves
+		for _, torrent := range torrents {
+			if *torrent.Status == transmissionrpc.TorrentStatusDownload {
+				activeDownloads = append(activeDownloads, torrent)
+			}
+		}
+
+		// make sure it's not set to 0 by default
+		if client.Settings.Rules.MaxActiveDownloads > 0 {
+
+			// if max active downloads reached, check speed and if lower than threshold add anyway
+			if len(activeDownloads) >= client.Settings.Rules.MaxActiveDownloads {
+				rejection := "max active downloads reached, skipping"
+
+				s.log.Debug().Msg(rejection)
+
+				return []string{rejection}, nil
+			}
+		}
+	}
+
+	return nil, nil
+}
+
+func isUnregistered(msg string) bool {
+	words := []string{"unregistered", "not registered", "not found", "not exist"}
+
+	msg = strings.ToLower(msg)
+
+	for _, v := range words {
+		if strings.Contains(msg, v) {
+			return true
+		}
+	}
+
+	return false
 }

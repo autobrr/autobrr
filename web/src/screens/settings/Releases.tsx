@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-import React, { useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "react-hot-toast";
 
@@ -71,7 +71,7 @@ function DeleteReleases() {
   const [deleteModalIsOpen, toggleDeleteModal] = useToggle(false);
 
   const deleteOlderMutation = useMutation({
-    mutationFn: (duration: number) => APIClient.release.deleteOlder(duration),
+    mutationFn: (olderThan: number) => APIClient.release.delete(olderThan),
     onSuccess: () => {
       if (parsedDuration === 0) {
         toast.custom((t) => (

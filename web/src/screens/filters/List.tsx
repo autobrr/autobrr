@@ -77,26 +77,26 @@ const FilterListReducer = (state: FilterListState, action: Actions): FilterListS
   }
 };
 
-export default function Filters() {
+export function Filters() {
   const queryClient = useQueryClient();
 
   const [createFilterIsOpen, setCreateFilterIsOpen] = useState(false);
   const toggleCreateFilter = () => {
     setCreateFilterIsOpen(!createFilterIsOpen);
-  };  
+  };
 
   const [showImportModal, setShowImportModal] = useState(false);
   const [importJson, setImportJson] = useState("");
-  
+
   // This function handles the import of a filter from a JSON string
   const handleImportJson = async () => {
     try {
       const importedData = JSON.parse(importJson);
-  
+
       // Extract the filter data and name from the imported object
       const importedFilter = importedData.data;
       const filterName = importedData.name;
-  
+
       // Check if the required properties are present and add them with default values if they are missing
       const requiredProperties = ["resolutions", "sources", "codecs", "containers"];
       requiredProperties.forEach((property) => {
@@ -104,10 +104,10 @@ export default function Filters() {
           importedFilter[property] = [];
         }
       });
-  
+
       // Fetch existing filters from the API
       const existingFilters = await APIClient.filters.getAll();
-  
+
       // Create a unique filter title by appending an incremental number if title is taken by another filter
       let nameCounter = 0;
       let uniqueFilterName = filterName;
@@ -115,18 +115,18 @@ export default function Filters() {
         nameCounter++;
         uniqueFilterName = `${filterName}-${nameCounter}`;
       }
-  
+
       // Create a new filter using the API
       const newFilter: Filter = {
         ...importedFilter,
         name: uniqueFilterName
       };
-  
+
       await APIClient.filters.create(newFilter);
-  
+
       // Update the filter list
       queryClient.invalidateQueries({ queryKey: filterKeys.lists() });
-  
+
       toast.custom((t) => <Toast type="success" body="Filter imported successfully." t={t} />);
       setShowImportModal(false);
     } catch (error) {
@@ -135,7 +135,7 @@ export default function Filters() {
       toast.custom((t) => <Toast type="error" body="Failed to import JSON data. Please check your input." t={t} />);
     }
   };
-  
+
   return (
     <main>
       <FilterAddForm isOpen={createFilterIsOpen} toggle={toggleCreateFilter} />
@@ -369,9 +369,9 @@ const FilterItemDropdown = ({ filter, onToggle }: FilterItemDropdownProps) => {
         external_webhook_data: any;
         external_webhook_expect_status: any;
       };
-  
+
       const completeFilter = await APIClient.filters.getByID(filter.id) as Partial<CompleteFilterType>;
-  
+
       // Extract the filter name and remove unwanted properties
       const title = completeFilter.name;
       delete completeFilter.name;
@@ -389,7 +389,7 @@ const FilterItemDropdown = ({ filter, onToggle }: FilterItemDropdownProps) => {
       delete completeFilter.external_webhook_host;
       delete completeFilter.external_webhook_data;
       delete completeFilter.external_webhook_expect_status;
-  
+
       // Remove properties with default values from the exported filter to minimize the size of the JSON string
       ["enabled", "priority", "smart_episode", "resolutions", "sources", "codecs", "containers", "tags_match_logic", "except_tags_match_logic"].forEach((key) => {
         const value = completeFilter[key as keyof CompleteFilterType];
@@ -400,7 +400,7 @@ const FilterItemDropdown = ({ filter, onToggle }: FilterItemDropdownProps) => {
         } else if (["tags_match_logic", "except_tags_match_logic"].includes(key) && value === "ANY") {
           delete completeFilter[key as keyof CompleteFilterType];
         }
-      });   
+      });
 
       // Create a JSON string from the filter data, including a name and version
       const json = JSON.stringify(
@@ -412,7 +412,7 @@ const FilterItemDropdown = ({ filter, onToggle }: FilterItemDropdownProps) => {
         null,
         4
       );
-      
+
       const finalJson = discordFormat ? "```JSON\n" + json + "\n```" : json;
 
       const copyTextToClipboard = (text: string) => {
@@ -423,7 +423,7 @@ const FilterItemDropdown = ({ filter, onToggle }: FilterItemDropdownProps) => {
         document.body.appendChild(textarea);
         textarea.focus();
         textarea.select();
-  
+
         try {
           const successful = document.execCommand("copy");
           if (successful) {
@@ -435,10 +435,10 @@ const FilterItemDropdown = ({ filter, onToggle }: FilterItemDropdownProps) => {
           console.error("Unable to copy text", err);
           toast.custom((t) => <Toast type="error" body="Failed to copy JSON to clipboard." t={t} />);
         }
-  
+
         document.body.removeChild(textarea);
       };
-  
+
       if (navigator.clipboard) {
         navigator.clipboard.writeText(finalJson).then(() => {
           toast.custom((t) => <Toast type="success" body="Filter copied to clipboard." t={t} />);
@@ -448,7 +448,7 @@ const FilterItemDropdown = ({ filter, onToggle }: FilterItemDropdownProps) => {
       } else {
         copyTextToClipboard(finalJson);
       }
-  
+
   } catch (error) {
     console.error(error);
     toast.custom((t) => <Toast type="error" body="Failed to get filter data." t={t} />);
@@ -567,7 +567,7 @@ const FilterItemDropdown = ({ filter, onToggle }: FilterItemDropdownProps) => {
                     )}
                     aria-hidden="true"
                   />
-      Export JSON to Discord
+                  Export JSON to Discord
                 </button>
               )}
             </Menu.Item>
@@ -726,7 +726,7 @@ function FilterListItem({ filter, values, idx }: FilterListItemProps) {
                       )
                     }
                   >
-        Actions: {filter.actions_count}
+                    Actions: {filter.actions_count}
                   </span>
                 </span>
                 {filter.actions_count === 0 && (
@@ -802,7 +802,7 @@ function FilterIndexers({ indexers }: FilterIndexersProps) {
         className="mr-2 inline-flex items-center px-2.5 py-0.5 rounded-md text-sm font-medium bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-400"
         title={res.map(v => v.name).toString()}
       >
-          +{indexers.length - 2}
+        +{indexers.length - 2}
       </span>
     </>
   );
