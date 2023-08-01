@@ -207,7 +207,7 @@ export const Base = () => {
               </div>
 
               {data && data.html_url && (
-                <a href={data.html_url} target="_blank" rel="noreferrer">
+                <a href={data.html_url} target="_blank" rel="noopener noreferrer">
                   <div className="flex mt-4 py-2 bg-blue-500 rounded justify-center">
                     <MegaphoneIcon className="h-6 w-6 text-blue-100"/>
                     <span className="text-blue-100 font-medium mx-3">New update available!</span>

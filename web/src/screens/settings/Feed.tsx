@@ -322,7 +322,7 @@ const FeedItemDropdown = ({
               <a
                 href={`${baseUrl()}api/feeds/${feed.id}/latest`}
                 target="_blank"
-                rel="noreferrer"
+                rel="noopener noreferrer"
                 className={classNames(
                   active ? "bg-blue-600 text-white" : "text-gray-900 dark:text-gray-300",
                   "font-medium group flex rounded-md items-center w-full px-2 py-2 text-sm"
