@@ -1,6 +1,5 @@
 version: 2
 updates:
-
   - package-ecosystem: github-actions
     directory: /
     schedule:
@@ -8,12 +7,14 @@ updates:
       interval: weekly
       day: saturday
       time: "07:00"
+
   - package-ecosystem: gomod
     directory: /
     schedule:
       interval: weekly
       day: saturday
       time: "07:00"
+
   - package-ecosystem: npm
     directory: /web
     schedule:
