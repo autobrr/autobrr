@@ -6,3 +6,5 @@ updates:
     schedule:
       # Check for updates to GitHub Actions every week
       interval: "weekly"
+      day: "saturday"
+      time: "07:00"
