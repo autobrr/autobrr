@@ -14,3 +14,9 @@ updates:
       interval: weekly
       day: saturday
       time: "07:00"
+  - package-ecosystem: pnpm
+    directory: /web
+    schedule:
+      interval: weekly
+      day: saturday
+      time: "07:00"
