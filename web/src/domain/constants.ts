@@ -521,3 +521,21 @@ export const tagsMatchLogicOptions: OptionBasic[] = [
     value: "ALL"
   }
 ];
+
+export const ExternalFilterTypeOptions: RadioFieldsetOption[] = [
+  { label: "Exec", description: "Run a custom command", value: "EXEC" },
+  { label: "Webhook", description: "Run webhook", value: "WEBHOOK" },
+];
+
+export const ExternalFilterTypeNameMap = {
+  "EXEC": "Exec",
+  "WEBHOOK": "Webhook",
+};
+
+export const ExternalFilterWebhookMethodOptions: OptionBasicTyped<WebhookMethod>[] = [
+  { label: "GET", value: "GET" },
+  { label: "POST", value: "POST" },
+  { label: "PUT", value: "PUT" },
+  { label: "PATCH", value: "PATCH" },
+  { label: "DELETE", value: "DELETE" },
+];

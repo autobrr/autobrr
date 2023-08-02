@@ -3,52 +3,53 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-import { useEffect, useRef, ReactNode } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { NavLink, Route, Routes, useLocation, useNavigate, useParams } from "react-router-dom";
-import { toast } from "react-hot-toast";
-import { Form, Formik, FormikValues, useFormikContext } from "formik";
-import { z } from "zod";
-import { toFormikValidationSchema } from "zod-formik-adapter";
-import { ChevronDownIcon, ChevronRightIcon } from "@heroicons/react/24/solid";
+import {ReactNode, useEffect, useRef} from "react";
+import {useMutation, useQuery, useQueryClient} from "@tanstack/react-query";
+import {NavLink, Route, Routes, useLocation, useNavigate, useParams} from "react-router-dom";
+import {toast} from "react-hot-toast";
+import {Form, Formik, FormikValues, useFormikContext} from "formik";
+import {z} from "zod";
+import {toFormikValidationSchema} from "zod-formik-adapter";
+import {ChevronDownIcon, ChevronRightIcon} from "@heroicons/react/24/solid";
 
 import {
-  CODECS_OPTIONS,
-  CONTAINER_OPTIONS,
-  downloadsPerUnitOptions,
-  FORMATS_OPTIONS,
-  HDR_OPTIONS,
-  LANGUAGE_OPTIONS,
-  ORIGIN_OPTIONS,
-  OTHER_OPTIONS,
-  QUALITY_MUSIC_OPTIONS,
-  RELEASE_TYPE_MUSIC_OPTIONS,
-  RESOLUTION_OPTIONS,
-  SOURCES_MUSIC_OPTIONS,
-  SOURCES_OPTIONS,
-  tagsMatchLogicOptions
+    CODECS_OPTIONS,
+    CONTAINER_OPTIONS,
+    downloadsPerUnitOptions,
+    FORMATS_OPTIONS,
+    HDR_OPTIONS,
+    LANGUAGE_OPTIONS,
+    ORIGIN_OPTIONS,
+    OTHER_OPTIONS,
+    QUALITY_MUSIC_OPTIONS,
+    RELEASE_TYPE_MUSIC_OPTIONS,
+    RESOLUTION_OPTIONS,
+    SOURCES_MUSIC_OPTIONS,
+    SOURCES_OPTIONS,
+    tagsMatchLogicOptions
 } from "@app/domain/constants";
-import { APIClient } from "@api/APIClient";
-import { useToggle } from "@hooks/hooks";
-import { classNames } from "@utils";
+import {APIClient} from "@api/APIClient";
+import {useToggle} from "@hooks/hooks";
+import {classNames} from "@utils";
 
 import {
-  CheckboxField,
-  IndexerMultiSelect,
-  MultiSelect,
-  NumberField,
-  Select,
-  SwitchGroup,
-  TextField,
-  RegexField
+    CheckboxField,
+    IndexerMultiSelect,
+    MultiSelect,
+    NumberField,
+    RegexField,
+    Select,
+    SwitchGroup,
+    TextField
 } from "@components/inputs";
 import DEBUG from "@components/debug";
 import Toast from "@components/notifications/Toast";
-import { DeleteModal } from "@components/modals";
-import { TitleSubtitle } from "@components/headings";
-import { RegexTextAreaField, TextArea, TextAreaAutoResize } from "@components/inputs/input";
-import { FilterActions } from "./Action";
-import { filterKeys } from "./List";
+import {DeleteModal} from "@components/modals";
+import {TitleSubtitle} from "@components/headings";
+import {RegexTextAreaField, TextAreaAutoResize} from "@components/inputs/input";
+import {FilterActions} from "./Action";
+import {filterKeys} from "./List";
+import {External} from "@screens/filters/External";
 
 interface tabType {
   name: string;
@@ -200,6 +201,21 @@ const actionSchema = z.object({
   }
 });
 
+const externalFilterSchema = z.object({
+    enabled: z.boolean(),
+    index: z.number(),
+    name: z.string(),
+    type: z.enum(["EXEC", "WEBHOOK"]),
+    exec_cmd: z.string().optional(),
+    exec_args: z.string().optional(),
+    exec_expect_status: z.number().optional(),
+    webhook_host: z.string().optional(),
+    webhook_type: z.string().optional(),
+    webhook_method: z.string().optional(),
+    webhook_data: z.string().optional(),
+    webhook_expect_status: z.number().optional(),
+});
+
 const indexerSchema = z.object({
   id: z.number(),
   name: z.string().optional()
@@ -209,7 +225,8 @@ const indexerSchema = z.object({
 const schema = z.object({
   name: z.string(),
   indexers: z.array(indexerSchema).min(1, { message: "Must select at least one indexer" }),
-  actions: z.array(actionSchema)
+  actions: z.array(actionSchema),
+    external: z.array(externalFilterSchema)
 });
 
 export function FilterDetails() {
@@ -380,6 +397,7 @@ export function FilterDetails() {
                 except_origins: filter.except_origins || [],
                 indexers: filter.indexers || [],
                 actions: filter.actions || [],
+                external: filter.external || [],
                 external_script_enabled: filter.external_script_enabled || false,
                 external_script_cmd: filter.external_script_cmd || "",
                 external_script_args: filter.external_script_args || "",
@@ -726,71 +744,3 @@ export function CollapsableSection({ title, subtitle, children, defaultOpen }: C
   );
 }
 
-export function External() {
-  const { values } = useFormikContext<Filter>();
-
-  return (
-    <div>
-
-      <div className="mt-6">
-        <SwitchGroup name="external_script_enabled" heading={true} label="Script" description="Run external script and check status as part of filtering." tooltip={<div><p>For custom commands you should specify the full path to the binary/program you want to run. And you can include your own static variables:</p><a href='https://autobrr.com/filters/actions#custom-commands--exec' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters/actions#custom-commands--exec</a></div>}/>
-
-        <div className="mt-6 grid grid-cols-12 gap-6">
-          <TextField
-            name="external_script_cmd"
-            label="Command"
-            columns={6}
-            placeholder="Path to program eg. /bin/test"
-            disabled={!values.external_script_enabled}
-          />
-          <TextField
-            name="external_script_args"
-            label="Arguments"
-            columns={6}
-            placeholder="Arguments eg. --test"
-            disabled={!values.external_script_enabled}
-          />
-          <NumberField
-            name="external_script_expect_status"
-            label="Expected exit status"
-            placeholder="0"
-            disabled={!values.external_script_enabled}
-          />
-        </div>
-      </div>
-
-      <div className="mt-6">
-        <div className="border-t dark:border-gray-700">
-          <SwitchGroup name="external_webhook_enabled" heading={true} label="Webhook" description="Run external webhook and check status as part of filtering." />
-        </div>
-
-        <div className="mt-6 grid grid-cols-12 gap-6">
-          <div className="grid col-span-6 gap-6">
-            <TextField
-              name="external_webhook_host"
-              label="Host"
-              columns={6}
-              placeholder="Host eg. http://localhost/webhook"
-              disabled={!values.external_webhook_enabled}
-            />
-            <NumberField
-              name="external_webhook_expect_status"
-              label="Expected http status"
-              placeholder="200"
-              disabled={!values.external_webhook_enabled}
-            />
-          </div>
-
-          <TextArea
-            name="external_webhook_data"
-            label="Data (json)"
-            columns={6}
-            rows={5}
-            placeholder={"{ \"key\": \"value\" }"}
-            disabled={!values.external_webhook_enabled}
-          />
-        </div>
-      </div>
-    </div>
-  );
-}
