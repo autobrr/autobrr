@@ -8,9 +8,9 @@ updates:
       day: saturday
       time: "07:00"
     groups:
-       dependabot-github:
-          patterns:
-            - "*"
+      dependabot-github:
+        patterns:
+          - "*"
 
   - package-ecosystem: gomod
     directory: /
@@ -19,9 +19,9 @@ updates:
       day: saturday
       time: "07:00"
     groups:
-       dependabot-golang:
-          patterns:
-            - "*"
+      dependabot-golang:
+        patterns:
+          - "*"
 
   - package-ecosystem: npm
     directory: /web
@@ -30,6 +30,6 @@ updates:
       day: saturday
       time: "07:00"
     groups:
-       dependabot-npm:
-          patterns:
-            - "*"
+      dependabot-npm:
+        patterns:
+          - "*"
