@@ -1,0 +1,35 @@
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      # Check for updates to GitHub Actions every week
+      interval: weekly
+      day: saturday
+      time: "07:00"
+    groups:
+      chore/dependabot/github:
+        patterns:
+          - "*"
+
+  - package-ecosystem: gomod
+    directory: /
+    schedule:
+      interval: weekly
+      day: saturday
+      time: "07:00"
+    groups:
+      chore/dependabot/golang:
+        patterns:
+          - "*"
+
+  - package-ecosystem: npm
+    directory: /web
+    schedule:
+      interval: weekly
+      day: saturday
+      time: "07:00"
+    groups:
+      chore/dependabot/npm:
+        patterns:
+          - "*"
