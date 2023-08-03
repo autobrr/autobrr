@@ -8,7 +8,7 @@ updates:
       day: saturday
       time: "07:00"
     groups:
-      dependabot-github:
+      chore/dependabot/github:
         patterns:
           - "*"
 
@@ -19,7 +19,7 @@ updates:
       day: saturday
       time: "07:00"
     groups:
-      dependabot-golang:
+      chore/dependabot/golang:
         patterns:
           - "*"
 
@@ -30,6 +30,6 @@ updates:
       day: saturday
       time: "07:00"
     groups:
-      dependabot-npm:
+      chore/dependabot/npm:
         patterns:
           - "*"
