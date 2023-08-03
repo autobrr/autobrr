@@ -7,6 +7,10 @@ updates:
       interval: weekly
       day: saturday
       time: "07:00"
+    groups:
+       github-dependencies:
+          patterns:
+            - "*"
 
   - package-ecosystem: gomod
     directory: /
@@ -14,6 +18,10 @@ updates:
       interval: weekly
       day: saturday
       time: "07:00"
+    groups:
+       go-dependencies:
+          patterns:
+            - "*"
 
   - package-ecosystem: npm
     directory: /web
@@ -21,3 +29,7 @@ updates:
       interval: weekly
       day: saturday
       time: "07:00"
+    groups:
+       npm-dependencies:
+          patterns:
+            - "*"
