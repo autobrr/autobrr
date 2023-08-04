@@ -20,7 +20,7 @@ settings:
 
 irc:
   network: HiddenForest
-  server: irc.hiddenforest.ml
+  server: hiddenforest.joe.dj
   port: 7000
   tls: true
   channels:
