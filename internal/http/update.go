@@ -7,6 +7,7 @@ import (
 	"context"
 	"net/http"
 
+	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/pkg/version"
 
 	"github.com/go-chi/chi/v5"
@@ -21,12 +22,14 @@ type updateService interface {
 type updateHandler struct {
 	encoder encoder
 	service updateService
+	config  *domain.Config
 }
 
-func newUpdateHandler(encoder encoder, service updateService) *updateHandler {
+func newUpdateHandler(encoder encoder, service updateService, config *domain.Config) *updateHandler {
 	return &updateHandler{
 		encoder: encoder,
 		service: service,
+		config:  config,
 	}
 }
 
@@ -36,14 +39,18 @@ func (h updateHandler) Routes(r chi.Router) {
 }
 
 func (h updateHandler) getLatest(w http.ResponseWriter, r *http.Request) {
-	latest := h.service.GetLatestRelease(r.Context())
-	if latest != nil {
-		render.Status(r, http.StatusOK)
-		render.JSON(w, r, latest)
+	if !h.config.CheckForUpdates {
+		render.NoContent(w, r)
 		return
 	}
 
-	render.NoContent(w, r)
+	latest := h.service.GetLatestRelease(r.Context())
+	if latest == nil {
+		return
+	}
+
+	render.Status(r, http.StatusOK)
+	render.JSON(w, r, latest)
 }
 
 func (h updateHandler) checkUpdates(w http.ResponseWriter, r *http.Request) {
