@@ -27,8 +27,8 @@ export function External() {
     const {values} = useFormikContext<Filter>();
 
   const newItem: ExternalFilter = {
-      id: values.external.length+1,
-    index: values.external.length+1,
+    id: values.external.length+1,
+    index: values.external.length,
     name: `External ${values.external.length+1}`,
     enabled: false,
     type: "EXEC",
@@ -83,7 +83,7 @@ interface FilterExternalItemProps {
 }
 
 function FilterExternalItem({ external, idx, initialEdit, remove, move }: FilterExternalItemProps) {
-  const {values} = useFormikContext<Filter>();
+  const {values, setFieldValue} = useFormikContext<Filter>();
   const cancelButtonRef = useRef(null);
 
   const [deleteModalIsOpen, toggleDeleteModal] = useToggle(false);
@@ -103,7 +103,7 @@ function FilterExternalItem({ external, idx, initialEdit, remove, move }: Filter
   });
 
   const removeAction = (id: number) => {
-    removeMutation.mutate(id);
+    // removeMutation.mutate(id);
   };
 
   return (
@@ -116,7 +116,10 @@ function FilterExternalItem({ external, idx, initialEdit, remove, move }: Filter
         >
           <div className="flex flex-col pr-2 justify-between">
           {idx > 0 && (
-              <button type="button" className="bg-gray-600 hover:bg-gray-700" onClick={() => move(idx, idx - 1)}>
+              <button type="button" className="bg-gray-600 hover:bg-gray-700" onClick={() => {
+                  move(idx, idx - 1)
+                  setFieldValue(`external.${idx}.index`, idx-1)
+              }}>
                 <ArrowUpIcon
                     className="p-0.5 h-4 w-4 text-gray-400"
                     aria-hidden="true"
@@ -125,7 +128,10 @@ function FilterExternalItem({ external, idx, initialEdit, remove, move }: Filter
           )}
 
           {idx < values.external.length - 1 && (
-              <button type="button" className="bg-gray-600 hover:bg-gray-700" onClick={() => move(idx, idx + 1)}>
+              <button type="button" className="bg-gray-600 hover:bg-gray-700" onClick={() => {
+                  move(idx, idx + 1)
+                  setFieldValue(`external.${idx}.index`, idx+1)
+              }}>
                 <ArrowDownIcon
                     className="p-0.5 h-4 w-4 text-gray-400"
                     aria-hidden="true"

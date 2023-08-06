@@ -14,6 +14,7 @@ import (
 	"github.com/go-chi/chi/v5"
 
 	"github.com/autobrr/autobrr/internal/domain"
+	"github.com/autobrr/autobrr/pkg/errors"
 )
 
 type filterService interface {
@@ -117,7 +118,12 @@ func (h filterHandler) getByID(w http.ResponseWriter, r *http.Request) {
 
 	filter, err := h.service.FindByID(ctx, id)
 	if err != nil {
-		h.encoder.StatusNotFound(w)
+		if errors.Is(err, domain.ErrRecordNotFound) {
+			h.encoder.StatusNotFound(w)
+			return
+		}
+
+		h.encoder.StatusInternalError(w)
 		return
 	}
 

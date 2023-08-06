@@ -32,7 +32,7 @@ func NewReleaseRepo(log logger.Logger, db *DB) domain.ReleaseRepo {
 	}
 }
 
-func (repo *ReleaseRepo) Store(ctx context.Context, r *domain.Release) (*domain.Release, error) {
+func (repo *ReleaseRepo) Store(ctx context.Context, r *domain.Release) error {
 	codecStr := strings.Join(r.Codec, ",")
 	hdrStr := strings.Join(r.HDR, ",")
 
@@ -45,16 +45,15 @@ func (repo *ReleaseRepo) Store(ctx context.Context, r *domain.Release) (*domain.
 	// return values
 	var retID int64
 
-	err := queryBuilder.QueryRowContext(ctx).Scan(&retID)
-	if err != nil {
-		return nil, errors.Wrap(err, "error executing query")
+	if err := queryBuilder.QueryRowContext(ctx).Scan(&retID); err != nil {
+		return errors.Wrap(err, "error executing query")
 	}
 
 	r.ID = retID
 
 	repo.log.Debug().Msgf("release.store: %+v", r)
 
-	return r, nil
+	return nil
 }
 
 func (repo *ReleaseRepo) StoreReleaseActionStatus(ctx context.Context, status *domain.ReleaseActionStatus) error {
