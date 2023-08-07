@@ -96,7 +96,7 @@ export default ({ mode }: ConfigEnv) => {
     },
     build: {
       manifest: true,
-      sourcemap: true
+      sourcemap: true,
     }
   });
 };

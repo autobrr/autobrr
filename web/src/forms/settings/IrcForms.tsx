@@ -26,7 +26,7 @@ interface ChannelsFieldArrayProps {
 const ChannelsFieldArray = ({ channels }: ChannelsFieldArrayProps) => (
   <div className="p-6">
     <FieldArray name="channels">
-      {({ remove, push }) => (
+      {({ remove, push } : {remove:any, push:any}) => (
         <div className="flex flex-col space-y-2 border-2 border-dashed dark:border-gray-700 p-4">
           {channels && channels.length > 0 ? (
             channels.map((_channel: IrcChannel, index: number) => (
