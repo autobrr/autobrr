@@ -3,12 +3,11 @@ updates:
   - package-ecosystem: github-actions
     directory: /
     schedule:
-      # Check for updates to GitHub Actions every week
       interval: weekly
       day: saturday
       time: "07:00"
     groups:
-      chore/dependabot/github:
+      github:
         patterns:
           - "*"
 
@@ -17,9 +16,9 @@ updates:
     schedule:
       interval: weekly
       day: saturday
-      time: "07:00"
+      time: "07:30"
     groups:
-      chore/dependabot/golang:
+      golang:
         patterns:
           - "*"
 
@@ -28,8 +27,8 @@ updates:
     schedule:
       interval: weekly
       day: saturday
-      time: "07:00"
+      time: "08:00"
     groups:
-      chore/dependabot/npm:
+      npm:
         patterns:
           - "*"
