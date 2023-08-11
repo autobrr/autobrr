@@ -6,6 +6,7 @@
 import { Fragment, useEffect, useRef, useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Field, FieldArray, FieldProps, FormikValues, useFormikContext } from "formik";
+import type { FieldArrayRenderProps } from "formik";
 import { Dialog, Switch as SwitchBasic, Transition } from "@headlessui/react";
 import { ChevronRightIcon } from "@heroicons/react/24/solid";
 import { Link } from "react-router-dom";
@@ -76,7 +77,7 @@ export function FilterActions({ filter, values }: FilterActionsProps) {
   return (
     <div className="mt-10">
       <FieldArray name="actions">
-        {({ remove, push } : {remove:any, push:any}) => (
+        {({ remove, push }: FieldArrayRenderProps) => (
           <Fragment>
             <div className="-ml-4 -mt-4 mb-6 flex justify-between items-center flex-wrap sm:flex-nowrap">
               <div className="ml-4 mt-4">
