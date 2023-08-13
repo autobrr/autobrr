@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-import {Field, FieldArray, FieldProps, useFormikContext} from "formik";
-import {NumberField, Select, SwitchGroup, TextField} from "@components/inputs";
+import {Field, FieldArray, FieldArrayRenderProps, FieldProps, useFormikContext} from "formik";
+import {NumberField, Select, TextField} from "@components/inputs";
 import {TextArea} from "@components/inputs/input";
 import {Fragment, useEffect, useRef, useState} from "react";
 import {EmptyListState} from "@components/emptystates";
@@ -37,7 +37,7 @@ export function External() {
     return (
         <div className="mt-10">
           <FieldArray name="external">
-            {({ remove, push, move }) => (
+            {({ remove, push, move }: FieldArrayRenderProps) => (
                 <Fragment>
                   <div className="-ml-4 -mt-4 mb-6 flex justify-between items-center flex-wrap sm:flex-nowrap">
                     <div className="ml-4 mt-4">
@@ -58,14 +58,14 @@ export function External() {
                   </div>
 
                   <div className="light:bg-white dark:bg-gray-800 light:shadow sm:rounded-md">
-                    {/*{externalFilters.length > 0 ?*/}
-                        <ul className="divide-y divide-gray-200 dark:divide-gray-700">
+                    {values.external.length > 0
+                        ? <ul className="divide-y divide-gray-200 dark:divide-gray-700">
                           {values.external.map((f, index: number) => (
                               <FilterExternalItem external={f} idx={index} key={index} remove={remove} move={move} initialEdit={true} />
                           ))}
                         </ul>
-                    {/*    : <EmptyListState text="No external filters yet!"/>*/}
-                    {/*}*/}
+                        : <EmptyListState text="No external filters yet!"/>
+                    }
                   </div>
                 </Fragment>
             )}
