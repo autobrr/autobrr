@@ -127,16 +127,27 @@ CREATE TABLE filter
     except_tags_match_logic        TEXT,
     origins                        TEXT []   DEFAULT '{}',
     except_origins                 TEXT []   DEFAULT '{}',
-    external_script_enabled        BOOLEAN   DEFAULT FALSE,
-    external_script_cmd            TEXT,
-    external_script_args           TEXT,
-    external_script_expect_status  INTEGER,
-    external_webhook_enabled       BOOLEAN   DEFAULT FALSE,
-    external_webhook_host          TEXT,
-    external_webhook_data          TEXT,
-    external_webhook_expect_status INTEGER,
     created_at                     TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at                     TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE filter_external
+(
+    id                      INTEGER PRIMARY KEY,
+    name                    TEXT     NOT NULL,
+    idx                     INTEGER,
+    type                    TEXT,
+    enabled                 BOOLEAN,
+    exec_cmd                TEXT,
+    exec_args               TEXT,
+    exec_expect_status      INTEGER,
+    webhook_host            TEXT,
+    webhook_method          TEXT,
+    webhook_data            TEXT,
+    webhook_headers         TEXT,
+    webhook_expect_status   INTEGER,
+    filter_id               INTEGER NOT NULL,
+    FOREIGN KEY (filter_id) REFERENCES filter(id) ON DELETE CASCADE
 );
 
 CREATE TABLE filter_indexer
@@ -1148,11 +1159,10 @@ ADD COLUMN use_bouncer BOOLEAN DEFAULT FALSE;
 
 ALTER TABLE irc_network
 ADD COLUMN bouncer_addr TEXT;`,
-	`
-create table filter_external
+	`CREATE TABLE filter_external
 (
-    id                      INTEGER primary key,
-    name                    TEXT     not null,
+    id                      INTEGER PRIMARY KEY,
+    name                    TEXT     NOT NULL,
     idx                     INTEGER,
     type                    TEXT,
     enabled                 BOOLEAN,
