@@ -196,7 +196,7 @@ function FilterExternalItem({ idx, external, initialEdit, remove, move }: Filter
                 isOpen={deleteModalIsOpen}
                 buttonRef={cancelButtonRef}
                 toggle={toggleDeleteModal}
-                deleteAction={() => removeAction(external.id)}
+                deleteAction={removeAction}
                 title="Remove external filter"
                 text="Are you sure you want to remove this external filter? This action cannot be undone."
               />
