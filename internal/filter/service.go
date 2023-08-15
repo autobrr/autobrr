@@ -8,6 +8,7 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
+	"io"
 	"net/http"
 	"os"
 	"os/exec"
@@ -540,7 +541,7 @@ func (s *service) RunExternalFilters(ctx context.Context, externalFilters []doma
 }
 
 func (s *service) execCmd(ctx context.Context, external domain.FilterExternal, release *domain.Release) (int, error) {
-	s.log.Debug().Msgf("filter exec release: %s", release.TorrentName)
+	s.log.Trace().Msgf("filter exec release: %s", release.TorrentName)
 
 	if release.TorrentTmpFile == "" && strings.Contains(external.ExecArgs, "TorrentPathName") {
 		if err := release.DownloadTorrentFileCtx(ctx); err != nil {
@@ -601,7 +602,7 @@ func (s *service) execCmd(ctx context.Context, external domain.FilterExternal, r
 }
 
 func (s *service) webhook(ctx context.Context, external domain.FilterExternal, release *domain.Release) (int, error) {
-	s.log.Debug().Msgf("preparing to run external webhook filter to: (%s) payload: (%s)", external.WebhookHost, external.WebhookData)
+	s.log.Trace().Msgf("preparing to run external webhook filter to: (%s) payload: (%s)", external.WebhookHost, external.WebhookData)
 
 	if external.WebhookHost == "" {
 		return 0, errors.New("external filter: missing host for webhook")
@@ -632,7 +633,7 @@ func (s *service) webhook(ctx context.Context, external domain.FilterExternal, r
 		return 0, errors.Wrap(err, "could not parse webhook data macro: %s", external.WebhookData)
 	}
 
-	s.log.Debug().Msgf("sending %s to external webhook filter: (%s) payload: (%s)", external.WebhookMethod, external.WebhookHost, external.WebhookData)
+	s.log.Trace().Msgf("sending %s to external webhook filter: (%s) payload: (%s)", external.WebhookMethod, external.WebhookHost, external.WebhookData)
 
 	t := &http.Transport{
 		TLSClientConfig: &tls.Config{
@@ -685,6 +686,15 @@ func (s *service) webhook(ctx context.Context, external domain.FilterExternal, r
 	}
 
 	defer res.Body.Close()
+
+	body, err := io.ReadAll(res.Body)
+	if err != nil {
+		return 0, errors.Wrap(err, "could not read request body")
+	}
+
+	if len(body) > 0 {
+		s.log.Debug().Msgf("filter external webhook response status: %d body: %s", res.StatusCode, body)
+	}
 
 	s.log.Debug().Msgf("successfully ran external webhook filter to: (%s) payload: (%s) finished in %s", external.WebhookHost, dataArgs, time.Since(start))
 
