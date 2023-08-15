@@ -70,6 +70,7 @@ interface Filter {
   actions_count: number;
   actions: Action[];
   indexers: Indexer[];
+  external: ExternalFilter[];
   external_script_enabled: boolean;
   external_script_cmd: string;
   external_script_args: string;
@@ -116,3 +117,23 @@ interface Action {
 type ActionContentLayout = "ORIGINAL" | "SUBFOLDER_CREATE" | "SUBFOLDER_NONE";
 
 type ActionType = "TEST" | "EXEC" | "WATCH_FOLDER" | "WEBHOOK" | DownloadClientType;
+
+type ExternalType = "EXEC" |  "WEBHOOK";
+
+type WebhookMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
+
+interface ExternalFilter {
+  id: number;
+  index: number;
+  name: string;
+  type: ExternalType;
+  enabled: boolean;
+  exec_cmd?: string;
+  exec_args?: string;
+  webhook_host?: string,
+  webhook_type?: string;
+  webhook_method?: WebhookMethod;
+  webhook_data?: string,
+  webhook_headers?: string;
+  filter_id?: number;
+}

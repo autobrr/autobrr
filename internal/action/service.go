@@ -20,6 +20,7 @@ type Service interface {
 	Store(ctx context.Context, action domain.Action) (*domain.Action, error)
 	List(ctx context.Context) ([]domain.Action, error)
 	Get(ctx context.Context, req *domain.GetActionRequest) (*domain.Action, error)
+	FindByFilterID(ctx context.Context, filterID int) ([]*domain.Action, error)
 	Delete(ctx context.Context, req *domain.DeleteActionRequest) error
 	DeleteByFilterID(ctx context.Context, filterID int) error
 	ToggleEnabled(actionID int) error
@@ -73,6 +74,10 @@ func (s *service) Get(ctx context.Context, req *domain.GetActionRequest) (*domai
 	}
 
 	return a, nil
+}
+
+func (s *service) FindByFilterID(ctx context.Context, filterID int) ([]*domain.Action, error) {
+	return s.repo.FindByFilterID(ctx, filterID)
 }
 
 func (s *service) Delete(ctx context.Context, req *domain.DeleteActionRequest) error {
