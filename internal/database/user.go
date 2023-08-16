@@ -68,8 +68,8 @@ func (r *UserRepo) FindByUsername(ctx context.Context, username string) (*domain
 	var user domain.User
 
 	if err := row.Scan(&user.ID, &user.Username, &user.Password); err != nil {
-		if err == sql.ErrNoRows {
-			return nil, nil
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, domain.ErrRecordNotFound
 		}
 
 		return nil, errors.Wrap(err, "error scanning row")

@@ -32,8 +32,8 @@ type Service interface {
 	Find(ctx context.Context, params domain.FilterQueryParams) ([]domain.Filter, error)
 	CheckFilter(ctx context.Context, f domain.Filter, release *domain.Release) (bool, error)
 	ListFilters(ctx context.Context) ([]domain.Filter, error)
-	Store(ctx context.Context, filter domain.Filter) (*domain.Filter, error)
-	Update(ctx context.Context, filter domain.Filter) (*domain.Filter, error)
+	Store(ctx context.Context, filter *domain.Filter) error
+	Update(ctx context.Context, filter *domain.Filter) error
 	UpdatePartial(ctx context.Context, filter domain.FilterUpdate) error
 	Duplicate(ctx context.Context, filterID int) (*domain.Filter, error)
 	ToggleEnabled(ctx context.Context, filterID int, enabled bool) error
@@ -145,54 +145,53 @@ func (s *service) GetDownloadsByFilterId(ctx context.Context, filterID int) (*do
 	return s.GetDownloadsByFilterId(ctx, filterID)
 }
 
-func (s *service) Store(ctx context.Context, filter domain.Filter) (*domain.Filter, error) {
+func (s *service) Store(ctx context.Context, filter *domain.Filter) error {
 	// validate data
 
 	// store
-	f, err := s.repo.Store(ctx, filter)
+	err := s.repo.Store(ctx, filter)
 	if err != nil {
 		s.log.Error().Err(err).Msgf("could not store filter: %v", filter)
-		return nil, err
+		return err
 	}
 
-	return f, nil
+	return nil
 }
 
-func (s *service) Update(ctx context.Context, filter domain.Filter) (*domain.Filter, error) {
+func (s *service) Update(ctx context.Context, filter *domain.Filter) error {
 	// validate data
 	if filter.Name == "" {
-		return nil, errors.New("validation: name can't be empty")
+		return errors.New("validation: name can't be empty")
 	}
 
 	// update
-	f, err := s.repo.Update(ctx, filter)
-	if err != nil {
+	if err := s.repo.Update(ctx, filter); err != nil {
 		s.log.Error().Err(err).Msgf("could not update filter: %s", filter.Name)
-		return nil, err
+		return err
 	}
 
 	// take care of connected indexers
-	if err = s.repo.StoreIndexerConnections(ctx, f.ID, filter.Indexers); err != nil {
+	if err := s.repo.StoreIndexerConnections(ctx, filter.ID, filter.Indexers); err != nil {
 		s.log.Error().Err(err).Msgf("could not store filter indexer connections: %s", filter.Name)
-		return nil, err
+		return err
 	}
 
 	// take care of connected external filters
-	if err = s.repo.StoreFilterExternal(ctx, f.ID, filter.External); err != nil {
+	if err := s.repo.StoreFilterExternal(ctx, filter.ID, filter.External); err != nil {
 		s.log.Error().Err(err).Msgf("could not store external filters: %s", filter.Name)
-		return nil, err
+		return err
 	}
 
 	// take care of filter actions
-	actions, err := s.actionRepo.StoreFilterActions(ctx, filter.Actions, int64(filter.ID))
+	actions, err := s.actionRepo.StoreFilterActions(ctx, int64(filter.ID), filter.Actions)
 	if err != nil {
 		s.log.Error().Err(err).Msgf("could not store filter actions: %s", filter.Name)
-		return nil, err
+		return err
 	}
 
-	f.Actions = actions
+	filter.Actions = actions
 
-	return f, nil
+	return nil
 }
 
 func (s *service) UpdatePartial(ctx context.Context, filter domain.FilterUpdate) error {
@@ -211,9 +210,17 @@ func (s *service) UpdatePartial(ctx context.Context, filter domain.FilterUpdate)
 		}
 	}
 
+	if filter.External != nil {
+		// take care of connected external filters
+		if err := s.repo.StoreFilterExternal(ctx, filter.ID, filter.External); err != nil {
+			s.log.Error().Err(err).Msgf("could not store external filters: %s", filter.Name)
+			return err
+		}
+	}
+
 	if filter.Actions != nil {
 		// take care of filter actions
-		if _, err := s.actionRepo.StoreFilterActions(ctx, filter.Actions, int64(filter.ID)); err != nil {
+		if _, err := s.actionRepo.StoreFilterActions(ctx, int64(filter.ID), filter.Actions); err != nil {
 			s.log.Error().Err(err).Msgf("could not store filter actions: %v", filter.ID)
 			return err
 		}
@@ -223,57 +230,48 @@ func (s *service) UpdatePartial(ctx context.Context, filter domain.FilterUpdate)
 }
 
 func (s *service) Duplicate(ctx context.Context, filterID int) (*domain.Filter, error) {
-	// find filter
-	baseFilter, err := s.repo.FindByID(ctx, filterID)
+	// find filter with actions, indexers and external filters
+	filter, err := s.FindByID(ctx, filterID)
 	if err != nil {
 		return nil, err
 	}
-	baseFilter.ID = 0
-	baseFilter.Name = fmt.Sprintf("%v Copy", baseFilter.Name)
-	baseFilter.Enabled = false
 
-	// find actions and attach
-	filterActions, err := s.actionRepo.FindByFilterID(ctx, filterID)
-	if err != nil {
-		s.log.Error().Msgf("could not find filter actions: %+v", &filterID)
-		return nil, err
-	}
+	// reset id and name
+	filter.ID = 0
+	filter.Name = fmt.Sprintf("%s Copy", filter.Name)
+	filter.Enabled = false
 
-	// find indexers and attach
-	filterIndexers, err := s.indexerSvc.FindByFilterID(ctx, filterID)
-	if err != nil {
-		s.log.Error().Err(err).Msgf("could not find indexers for filter: %+v", &baseFilter.Name)
-		return nil, err
-	}
-
-	// update
-	filter, err := s.repo.Store(ctx, *baseFilter)
-	if err != nil {
-		s.log.Error().Err(err).Msgf("could not update filter: %v", baseFilter.Name)
+	// store new filter
+	if err := s.repo.Store(ctx, filter); err != nil {
+		s.log.Error().Err(err).Msgf("could not update filter: %s", filter.Name)
 		return nil, err
 	}
 
 	// take care of connected indexers
-	if err = s.repo.StoreIndexerConnections(ctx, filter.ID, filterIndexers); err != nil {
-		s.log.Error().Err(err).Msgf("could not store filter indexer connections: %v", filter.Name)
+	if err := s.repo.StoreIndexerConnections(ctx, filter.ID, filter.Indexers); err != nil {
+		s.log.Error().Err(err).Msgf("could not store filter indexer connections: %s", filter.Name)
 		return nil, err
 	}
-	filter.Indexers = filterIndexers
 
 	// reset action id to 0
-	for i, a := range filterActions {
+	for i, a := range filter.Actions {
+		a := a
 		a.ID = 0
-		filterActions[i] = a
+		filter.Actions[i] = a
 	}
 
 	// take care of filter actions
-	actions, err := s.actionRepo.StoreFilterActions(ctx, filterActions, int64(filter.ID))
-	if err != nil {
-		s.log.Error().Err(err).Msgf("could not store filter actions: %v", filter.Name)
+	if _, err := s.actionRepo.StoreFilterActions(ctx, int64(filter.ID), filter.Actions); err != nil {
+		s.log.Error().Err(err).Msgf("could not store filter actions: %s", filter.Name)
 		return nil, err
 	}
 
-	filter.Actions = actions
+	// take care of connected external filters
+	// the external filters are fetched with FindByID
+	if err := s.repo.StoreFilterExternal(ctx, filter.ID, filter.External); err != nil {
+		s.log.Error().Err(err).Msgf("could not store external filters: %s", filter.Name)
+		return nil, err
+	}
 
 	return filter, nil
 }
@@ -303,6 +301,12 @@ func (s *service) Delete(ctx context.Context, filterID int) error {
 	// take care of filter indexers
 	if err := s.repo.DeleteIndexerConnections(ctx, filterID); err != nil {
 		s.log.Error().Err(err).Msg("could not delete filter indexers")
+		return err
+	}
+
+	// delete filter external
+	if err := s.repo.DeleteFilterExternal(ctx, filterID); err != nil {
+		s.log.Error().Err(err).Msgf("could not delete filter external: %v", filterID)
 		return err
 	}
 

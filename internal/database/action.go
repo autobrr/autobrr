@@ -186,10 +186,11 @@ func (r *ActionRepo) attachDownloadClient(ctx context.Context, tx *Tx, clientID 
 	var settingsJsonStr string
 
 	if err := row.Scan(&client.ID, &client.Name, &client.Type, &client.Enabled, &client.Host, &client.Port, &client.TLS, &client.TLSSkipVerify, &client.Username, &client.Password, &settingsJsonStr); err != nil {
-		if err == sql.ErrNoRows {
+		if errors.Is(err, sql.ErrNoRows) {
 			r.log.Warn().Msgf("no download client with id %d", clientID)
-			return nil, nil
+			return nil, domain.ErrRecordNotFound
 		}
+
 		return nil, errors.Wrap(err, "error scanning row")
 	}
 
@@ -346,8 +347,8 @@ func (r *ActionRepo) Get(ctx context.Context, req *domain.GetActionRequest) (*do
 	var paused, ignoreRules sql.NullBool
 
 	if err := row.Scan(&a.ID, &a.Name, &a.Type, &a.Enabled, &execCmd, &execArgs, &watchFolder, &category, &tags, &label, &savePath, &paused, &ignoreRules, &limitDl, &limitUl, &limitRatio, &limitSeedTime, &a.ReAnnounceSkip, &a.ReAnnounceDelete, &a.ReAnnounceInterval, &a.ReAnnounceMaxAttempts, &webhookHost, &webhookType, &webhookMethod, &webhookData, &clientID, &filterID); err != nil {
-		if err == sql.ErrNoRows {
-			return nil, nil
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, domain.ErrRecordNotFound
 		}
 
 		return nil, errors.Wrap(err, "error scanning row")
@@ -506,13 +507,13 @@ func (r *ActionRepo) Store(ctx context.Context, action domain.Action) (*domain.A
 	// return values
 	var retID int64
 
-	err := queryBuilder.QueryRowContext(ctx).Scan(&retID)
-	if err != nil {
+	if err := queryBuilder.QueryRowContext(ctx).Scan(&retID); err != nil {
 		return nil, errors.Wrap(err, "error executing query")
 	}
 
-	r.log.Debug().Msgf("action.store: added new %v", retID)
 	action.ID = int(retID)
+
+	r.log.Debug().Msgf("action.store: added new %d", retID)
 
 	return &action, nil
 }
@@ -588,7 +589,7 @@ func (r *ActionRepo) Update(ctx context.Context, action domain.Action) (*domain.
 	return &action, nil
 }
 
-func (r *ActionRepo) StoreFilterActions(ctx context.Context, actions []*domain.Action, filterID int64) ([]*domain.Action, error) {
+func (r *ActionRepo) StoreFilterActions(ctx context.Context, filterID int64, actions []*domain.Action) ([]*domain.Action, error) {
 	tx, err := r.db.handler.BeginTx(ctx, nil)
 	if err != nil {
 		return nil, errors.Wrap(err, "error begin transaction")
