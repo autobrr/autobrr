@@ -213,7 +213,7 @@ func (s *service) UpdatePartial(ctx context.Context, filter domain.FilterUpdate)
 	if filter.External != nil {
 		// take care of connected external filters
 		if err := s.repo.StoreFilterExternal(ctx, filter.ID, filter.External); err != nil {
-			s.log.Error().Err(err).Msgf("could not store external filters: %s", filter.Name)
+			s.log.Error().Err(err).Msgf("could not store external filters: %v", filter.Name)
 			return err
 		}
 	}
