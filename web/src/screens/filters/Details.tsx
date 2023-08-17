@@ -226,7 +226,7 @@ const schema = z.object({
   name: z.string(),
   indexers: z.array(indexerSchema).min(1, { message: "Must select at least one indexer" }),
   actions: z.array(actionSchema),
-    external: z.array(externalFilterSchema)
+  external: z.array(externalFilterSchema),
 });
 
 export function FilterDetails() {
@@ -398,14 +398,6 @@ export function FilterDetails() {
                 indexers: filter.indexers || [],
                 actions: filter.actions || [],
                 external: filter.external || [],
-                external_script_enabled: filter.external_script_enabled || false,
-                external_script_cmd: filter.external_script_cmd || "",
-                external_script_args: filter.external_script_args || "",
-                external_script_expect_status: filter.external_script_expect_status || 0,
-                external_webhook_enabled: filter.external_webhook_enabled || false,
-                external_webhook_host: filter.external_webhook_host || "",
-                external_webhook_data: filter.external_webhook_data ||"",
-                external_webhook_expect_status: filter.external_webhook_expect_status || 0
               } as Filter}
               onSubmit={handleSubmit}
               enableReinitialize={true}
