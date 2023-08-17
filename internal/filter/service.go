@@ -164,6 +164,10 @@ func (s *service) Update(ctx context.Context, filter *domain.Filter) error {
 		return errors.New("validation: name can't be empty")
 	}
 
+	// replace newline with comma
+	filter.Shows = strings.ReplaceAll(filter.Shows, "\n", ",")
+	filter.Shows = strings.ReplaceAll(filter.Shows, ",,", ",")
+
 	// update
 	if err := s.repo.Update(ctx, filter); err != nil {
 		s.log.Error().Err(err).Msgf("could not update filter: %s", filter.Name)
@@ -195,6 +199,14 @@ func (s *service) Update(ctx context.Context, filter *domain.Filter) error {
 }
 
 func (s *service) UpdatePartial(ctx context.Context, filter domain.FilterUpdate) error {
+	// cleanup
+	if filter.Shows != nil {
+		// replace newline with comma
+		clean := strings.ReplaceAll(*filter.Shows, "\n", ",")
+		clean = strings.ReplaceAll(clean, ",,", ",")
+
+		filter.Shows = &clean
+	}
 
 	// update
 	if err := s.repo.UpdatePartial(ctx, filter); err != nil {
