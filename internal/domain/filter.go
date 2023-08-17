@@ -26,8 +26,8 @@ type FilterRepo interface {
 	FindByID(ctx context.Context, filterID int) (*Filter, error)
 	FindByIndexerIdentifier(ctx context.Context, indexer string) ([]Filter, error)
 	FindExternalFiltersByID(ctx context.Context, filterId int) ([]FilterExternal, error)
-	Store(ctx context.Context, filter Filter) (*Filter, error)
-	Update(ctx context.Context, filter Filter) (*Filter, error)
+	Store(ctx context.Context, filter *Filter) error
+	Update(ctx context.Context, filter *Filter) error
 	UpdatePartial(ctx context.Context, filter FilterUpdate) error
 	ToggleEnabled(ctx context.Context, filterID int, enabled bool) error
 	Delete(ctx context.Context, filterID int) error
@@ -35,6 +35,7 @@ type FilterRepo interface {
 	StoreIndexerConnections(ctx context.Context, filterID int, indexers []Indexer) error
 	StoreFilterExternal(ctx context.Context, filterID int, externalFilters []FilterExternal) error
 	DeleteIndexerConnections(ctx context.Context, filterID int) error
+	DeleteFilterExternal(ctx context.Context, filterID int) error
 	GetDownloadsByFilterId(ctx context.Context, filterID int) (*FilterDownloads, error)
 }
 
@@ -129,19 +130,11 @@ type Filter struct {
 	MatchDescription     string                 `json:"match_description,omitempty"`
 	ExceptDescription    string                 `json:"except_description,omitempty"`
 	UseRegexDescription  bool                   `json:"use_regex_description,omitempty"`
-	//ExternalScriptEnabled       bool                   `json:"external_script_enabled,omitempty"`
-	//ExternalScriptCmd           string                 `json:"external_script_cmd,omitempty"`
-	//ExternalScriptArgs          string                 `json:"external_script_args,omitempty"`
-	//ExternalScriptExpectStatus  int                    `json:"external_script_expect_status,omitempty"`
-	//ExternalWebhookEnabled      bool                   `json:"external_webhook_enabled,omitempty"`
-	//ExternalWebhookHost         string                 `json:"external_webhook_host,omitempty"`
-	//ExternalWebhookData         string                 `json:"external_webhook_data,omitempty"`
-	//ExternalWebhookExpectStatus int                    `json:"external_webhook_expect_status,omitempty"`
-	ActionsCount int              `json:"actions_count"`
-	Actions      []*Action        `json:"actions,omitempty"`
-	External     []FilterExternal `json:"external,omitempty"`
-	Indexers     []Indexer        `json:"indexers"`
-	Downloads    *FilterDownloads `json:"-"`
+	ActionsCount         int                    `json:"actions_count"`
+	Actions              []*Action              `json:"actions,omitempty"`
+	External             []FilterExternal       `json:"external,omitempty"`
+	Indexers             []Indexer              `json:"indexers"`
+	Downloads            *FilterDownloads       `json:"-"`
 }
 
 type FilterExternal struct {
@@ -240,6 +233,7 @@ type FilterUpdate struct {
 	ExternalWebhookData         *string                 `json:"external_webhook_data,omitempty"`
 	ExternalWebhookExpectStatus *int                    `json:"external_webhook_expect_status,omitempty"`
 	Actions                     []*Action               `json:"actions,omitempty"`
+	External                    []FilterExternal        `json:"external,omitempty"`
 	Indexers                    []Indexer               `json:"indexers,omitempty"`
 }
 

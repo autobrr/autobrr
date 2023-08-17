@@ -71,14 +71,6 @@ interface Filter {
   actions: Action[];
   indexers: Indexer[];
   external: ExternalFilter[];
-  external_script_enabled: boolean;
-  external_script_cmd: string;
-  external_script_args: string;
-  external_script_expect_status: number;
-  external_webhook_enabled: boolean;
-  external_webhook_host: string;
-  external_webhook_data: string;
-  external_webhook_expect_status: number;
 }
 
 interface Action {
@@ -130,10 +122,12 @@ interface ExternalFilter {
   enabled: boolean;
   exec_cmd?: string;
   exec_args?: string;
+  exec_expect_status?: number;
   webhook_host?: string,
   webhook_type?: string;
   webhook_method?: WebhookMethod;
   webhook_data?: string,
   webhook_headers?: string;
+  webhook_expect_status?: number;
   filter_id?: number;
 }
