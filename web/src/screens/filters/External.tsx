@@ -280,10 +280,9 @@ const TypeForm = ({external, idx}: TypeFormProps) => {
           </div>
           <div className="mt-6 grid grid-cols-12 gap-6">
             <NumberField
-              name={`external.${idx}.script_expected_status`}
+              name={`external.${idx}.exec_expect_status`}
               label="Expected exit status"
               placeholder="0"
-
             />
           </div>
         </div>
@@ -320,7 +319,7 @@ const TypeForm = ({external, idx}: TypeFormProps) => {
           />
 
           <NumberField
-            name={`external.${idx}.webhook_expected_status`}
+            name={`external.${idx}.webhook_expect_status`}
             label="Expected http status"
             placeholder="200"
           />
