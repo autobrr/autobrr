@@ -398,7 +398,7 @@ func (repo *ReleaseRepo) GetActionStatusByReleaseID(ctx context.Context, release
 
 func (repo *ReleaseRepo) Get(ctx context.Context, req *domain.GetReleaseRequest) (*domain.Release, error) {
 	queryBuilder := repo.db.squirrel.
-		Select("r.id", "r.filter_status", "r.rejections", "r.indexer", "r.filter", "r.filter_id", "r.protocol", "r.info_url", "r.download_url", "r.title", "r.torrent_name", "r.size", "r.timestamp").
+		Select("r.id", "r.filter_status", "r.rejections", "r.indexer", "r.filter", "r.filter_id", "r.protocol", "r.implementation", "r.info_url", "r.download_url", "r.title", "r.torrent_name", "r.category", "r.size", "r.group_id", "r.torrent_id", "r.uploader", "r.timestamp").
 		From("release r").
 		OrderBy("r.id DESC").
 		Where(sq.Eq{"r.id": req.Id})
@@ -408,7 +408,7 @@ func (repo *ReleaseRepo) Get(ctx context.Context, req *domain.GetReleaseRequest)
 		return nil, errors.Wrap(err, "error building query")
 	}
 
-	repo.log.Trace().Str("database", "release.find").Msgf("query: '%v', args: '%v'", query, args)
+	repo.log.Trace().Str("database", "release.find").Msgf("query: '%s', args: '%v'", query, args)
 
 	row := repo.db.handler.QueryRowContext(ctx, query, args...)
 	if err != nil {
@@ -421,10 +421,10 @@ func (repo *ReleaseRepo) Get(ctx context.Context, req *domain.GetReleaseRequest)
 
 	var rls domain.Release
 
-	var indexerName, filterName, infoUrl, downloadUrl sql.NullString
+	var indexerName, filterName, infoUrl, downloadUrl, groupId, torrentId, category, uploader sql.NullString
 	var filterId sql.NullInt64
 
-	if err := row.Scan(&rls.ID, &rls.FilterStatus, pq.Array(&rls.Rejections), &indexerName, &filterName, &filterId, &rls.Protocol, &infoUrl, &downloadUrl, &rls.Title, &rls.TorrentName, &rls.Size, &rls.Timestamp); err != nil {
+	if err := row.Scan(&rls.ID, &rls.FilterStatus, pq.Array(&rls.Rejections), &indexerName, &filterName, &filterId, &rls.Protocol, &rls.Implementation, &infoUrl, &downloadUrl, &rls.Title, &rls.TorrentName, &category, &rls.Size, &groupId, &torrentId, &uploader, &rls.Timestamp); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, nil
 		}
@@ -437,6 +437,10 @@ func (repo *ReleaseRepo) Get(ctx context.Context, req *domain.GetReleaseRequest)
 	rls.ActionStatus = make([]domain.ReleaseActionStatus, 0)
 	rls.InfoURL = infoUrl.String
 	rls.TorrentURL = downloadUrl.String
+	rls.Category = category.String
+	rls.GroupID = groupId.String
+	rls.TorrentID = torrentId.String
+	rls.Uploader = uploader.String
 
 	return &rls, nil
 }
