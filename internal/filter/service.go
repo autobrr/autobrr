@@ -541,7 +541,7 @@ func (s *service) RunExternalFilters(ctx context.Context, externalFilters []doma
 		}
 	}
 
-	return false, nil
+	return true, nil
 }
 
 func (s *service) execCmd(ctx context.Context, external domain.FilterExternal, release *domain.Release) (int, error) {
