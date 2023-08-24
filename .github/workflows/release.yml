@@ -26,13 +26,6 @@ jobs:
       - uses: oven-sh/setup-bun@v1
         with:
           bun-version: latest
-  
-      # It can not be done before enable corepack
-      - name: Set up cache
-        uses: actions/setup-node@v3
-        with:
-          cache: pnpm
-          cache-dependency-path: web/pnpm-lock.yaml
 
       - name: Fetch web dependencies
         working-directory: web
