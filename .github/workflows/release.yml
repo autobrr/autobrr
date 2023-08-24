@@ -23,14 +23,10 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Set up Node
-        uses: actions/setup-node@v3
+      - uses: oven-sh/setup-bun@v1
         with:
-          node-version: '18.17.0'
-
-      - name: Set up corepack
-        run: corepack enable
-
+          bun-version: latest
+  
       # It can not be done before enable corepack
       - name: Set up cache
         uses: actions/setup-node@v3
@@ -40,11 +36,11 @@ jobs:
 
       - name: Fetch web dependencies
         working-directory: web
-        run: pnpm install --frozen-lockfile
+        run: bun install --frozen-lockfile
 
       - name: Build web frontend
         working-directory: web
-        run: CI= pnpm run build
+        run: CI= bun run build
 
       - name: Upload web production build
         uses: actions/upload-artifact@v3
