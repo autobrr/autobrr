@@ -29,7 +29,7 @@ jobs:
 
       - name: Fetch web dependencies
         working-directory: web
-        run: bun install --frozen-lockfile
+        run: bun install
 
       - name: Build web frontend
         working-directory: web
