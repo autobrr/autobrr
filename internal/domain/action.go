@@ -13,7 +13,7 @@ import (
 
 type ActionRepo interface {
 	Store(ctx context.Context, action Action) (*Action, error)
-	StoreFilterActions(ctx context.Context, actions []*Action, filterID int64) ([]*Action, error)
+	StoreFilterActions(ctx context.Context, filterID int64, actions []*Action) ([]*Action, error)
 	FindByFilterID(ctx context.Context, filterID int) ([]*Action, error)
 	List(ctx context.Context) ([]Action, error)
 	Get(ctx context.Context, req *GetActionRequest) (*Action, error)
