@@ -260,12 +260,12 @@ func (r *IrcRepo) CheckExistingNetwork(ctx context.Context, network *domain.IrcN
 	var tls sql.NullBool
 
 	if err = row.Scan(&net.ID, &net.Enabled, &net.Name, &net.Server, &net.Port, &tls, &pass, &nick, &net.Auth.Mechanism, &account, &password, &inviteCmd, &bouncerAddr, &net.UseBouncer); err != nil {
-		if err == sql.ErrNoRows {
+		if errors.Is(err, sql.ErrNoRows) {
 			// no result is not an error in our case
 			return nil, nil
-		} else {
-			return nil, errors.Wrap(err, "error scanning row")
 		}
+
+		return nil, errors.Wrap(err, "error scanning row")
 	}
 
 	net.TLS = tls.Bool

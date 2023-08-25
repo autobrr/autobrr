@@ -29,7 +29,7 @@ import (
 )
 
 type ReleaseRepo interface {
-	Store(ctx context.Context, release *Release) (*Release, error)
+	Store(ctx context.Context, release *Release) error
 	Find(ctx context.Context, params ReleaseQueryParams) (res []*Release, nextCursor int64, count int64, err error)
 	FindRecent(ctx context.Context) ([]*Release, error)
 	Get(ctx context.Context, req *GetReleaseRequest) (*Release, error)

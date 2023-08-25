@@ -52,7 +52,11 @@ func (r *FeedCacheRepo) Get(bucket string, key string) ([]byte, error) {
 	var value []byte
 	var ttl time.Duration
 
-	if err := row.Scan(&value, &ttl); err != nil && err != sql.ErrNoRows {
+	if err := row.Scan(&value, &ttl); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, nil
+		}
+
 		return nil, errors.Wrap(err, "error scanning row")
 	}
 
@@ -143,7 +147,11 @@ func (r *FeedCacheRepo) Exists(bucket string, key string) (bool, error) {
 
 	var exists bool
 	err = r.db.handler.QueryRow(query, args...).Scan(&exists)
-	if err != nil && err != sql.ErrNoRows {
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return false, domain.ErrRecordNotFound
+		}
+
 		return false, errors.Wrap(err, "error query")
 	}
 
