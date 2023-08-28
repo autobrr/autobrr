@@ -7,6 +7,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "react-hot-toast";
 import { XMarkIcon } from "@heroicons/react/24/solid";
 import type { FieldProps } from "formik";
+import type { FieldArrayRenderProps } from "formik";
 import { Field, FieldArray, FormikErrors, FormikValues } from "formik";
 import { ExclamationTriangleIcon } from "@heroicons/react/24/outline";
 import Select, { components, ControlProps, InputProps, MenuProps, OptionProps } from "react-select";
@@ -26,7 +27,7 @@ interface ChannelsFieldArrayProps {
 const ChannelsFieldArray = ({ channels }: ChannelsFieldArrayProps) => (
   <div className="p-6">
     <FieldArray name="channels">
-      {({ remove, push }) => (
+      {({ remove, push }: FieldArrayRenderProps) => (
         <div className="flex flex-col space-y-2 border-2 border-dashed dark:border-gray-700 p-4">
           {channels && channels.length > 0 ? (
             channels.map((_channel: IrcChannel, index: number) => (
