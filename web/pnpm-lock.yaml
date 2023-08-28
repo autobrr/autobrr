@@ -86,6 +86,9 @@ dependencies:
   postcss:
     specifier: ^8.4.27
     version: 8.4.27
+  postcss-import:
+    specifier: ^15.1.0
+    version: 15.1.0(postcss@8.4.27)
   react:
     specifier: ^18.2.0
     version: 18.2.0
