@@ -603,16 +603,52 @@ func (s *service) execCmd(ctx context.Context, external domain.FilterExternal, r
 	// setup command and args
 	command := exec.Command(cmd, commandArgs...)
 
-	err = command.Run()
-	var exitErr *exec.ExitError
-	if errors.As(err, &exitErr) {
-		s.log.Debug().Msgf("filter script command exited with non zero code: %d", exitErr.ExitCode())
-		return exitErr.ExitCode(), nil
+	s.log.Debug().Msgf("script: %s args: %s", cmd, strings.Join(commandArgs, " "))
+
+	// Create a pipe to capture the standard output of the command
+	cmdOutput, err := command.StdoutPipe()
+	if err != nil {
+		s.log.Error().Err(err).Msg("could not create stdout pipe")
+		return 0, err
 	}
 
 	duration := time.Since(start)
 
-	s.log.Debug().Msgf("executed external script: (%s), args: (%s) for release: (%s) indexer: (%s) total time (%s)", cmd, external.ExecArgs, release.TorrentName, release.Indexer, duration)
+	// Start the command
+	if err := command.Start(); err != nil {
+		s.log.Error().Err(err).Msg("error starting command")
+		return 0, err
+	}
+
+	// Create a buffer to store the output
+	outputBuffer := make([]byte, 4096)
+
+	execLogger := s.log.With().Str("release", release.TorrentName).Str("filter", release.FilterName).Logger()
+
+	for {
+		// Read the output into the buffer
+		n, err := cmdOutput.Read(outputBuffer)
+		if err != nil {
+			break
+		}
+
+		// Write the output to the logger
+		execLogger.Trace().Msg(string(outputBuffer[:n]))
+	}
+
+	// Wait for the command to finish and check for any errors
+	if err := command.Wait(); err != nil {
+		var exitErr *exec.ExitError
+		if errors.As(err, &exitErr) {
+			s.log.Debug().Msgf("filter script command exited with non zero code: %v", exitErr.ExitCode())
+			return exitErr.ExitCode(), nil
+		}
+
+		s.log.Error().Err(err).Msg("error waiting for command")
+		return 0, err
+	}
+
+	s.log.Debug().Msgf("executed external script: (%s), args: (%s) for release: (%s) indexer: (%s) total time (%s)", cmd, parsedArgs, release.TorrentName, release.Indexer, duration)
 
 	return 0, nil
 }
