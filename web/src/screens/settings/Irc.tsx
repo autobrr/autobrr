@@ -417,7 +417,7 @@ const ChannelItem = ({ network, channel }: ChannelItemProps) => {
           </span>
         </div>
         <div className="col-span-1 flex items-center justify-end">
-          <button className="hover:text-gray-500 px-2 py-1 dark:bg-gray-800 rounded dark:border-gray-900">
+          <button className="hover:text-gray-500 px-2 mx-2 py-1 dark:bg-gray-800 rounded dark:border-gray-900">
             {viewChannel ? "Hide" : "View"}
           </button>
         </div>
@@ -700,7 +700,7 @@ export const Events = ({ network, channel }: EventsProps) => {
           isFullscreen ? "max-w-full h-full p-2 border-gray-300 dark:border-gray-700" : "px-2 py-1 aspect-[2/1]"
         )}
       >
-        {logs.map((entry, idx) => (
+        {logs.slice().reverse().map((entry, idx) => (
           <div
             key={idx}
             className={classNames(
@@ -708,7 +708,7 @@ export const Events = ({ network, channel }: EventsProps) => {
               settings.hideWrappedText ? "truncate hover:text-ellipsis hover:whitespace-normal" : ""
             )}
           >
-            <span className="font-mono text-gray-500 dark:text-gray-500 mr-1"><span className="dark:text-gray-600" title={simplifyDate(entry.time)}>{entry.nick}:</span> {entry.msg}</span>
+            <span className="font-mono text-gray-500 dark:text-gray-500 mr-1"><span className="dark:text-gray-600"><span className="dark:text-gray-700">[{simplifyDate(entry.time)}]</span> {entry.nick}:</span> {entry.msg}</span>
           </div>
         ))}
         <div className="mt-6" ref={messagesEndRef} />
