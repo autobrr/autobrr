@@ -16,7 +16,7 @@ export const NotFound = () => {
         Oops, looks like there was a little too much brr!
       </h1>
       <h3 className="text-xl text-center text-gray-700 dark:text-gray-400 mb-1 px-2">
-        In case you think this a bug rather than too much brr,
+        In case you think this is a bug rather than too much brr,
       </h3>
       <h3 className="text-xl text-center text-gray-700 dark:text-gray-400 mb-1 px-2">
         feel free to report this to our
