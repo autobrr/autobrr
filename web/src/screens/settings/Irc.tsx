@@ -10,7 +10,8 @@ import { Menu, Switch, Transition } from "@headlessui/react";
 import { toast } from "react-hot-toast";
 import {
   ArrowsPointingInIcon,
-  ArrowsPointingOutIcon, Cog6ToothIcon,
+  ArrowsPointingOutIcon,
+  Cog6ToothIcon,
   EllipsisHorizontalIcon,
   ExclamationCircleIcon,
   PencilSquareIcon,
