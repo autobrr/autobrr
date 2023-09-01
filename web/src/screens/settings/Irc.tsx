@@ -630,9 +630,13 @@ export const Events = ({ network, channel }: EventsProps) => {
 
   const [logs, setLogs] = useState<IrcEvent[]>([]);
 
-  // const scrollToBottom = () => {
-  //   messagesEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end", inline: "end" });
-  // };
+  const scrollToBottom = () => {
+    setTimeout(() => {
+      if (messagesEndRef.current) {
+        messagesEndRef.current.scrollTop = messagesEndRef.current.scrollHeight;
+      }
+    }, 0);
+  };
 
   // const { handleSubmit, register , resetField } = useForm<IrcMsg>({
   //   defaultValues: { msg: ""  },
@@ -669,7 +673,7 @@ export const Events = ({ network, channel }: EventsProps) => {
       setLogs((prevState) => [...prevState, newData]);
 
       // if (settings.scrollOnNewLog)
-      //   scrollToBottom();
+      scrollToBottom();
     };
 
     return () => es.close();
@@ -699,8 +703,9 @@ export const Events = ({ network, channel }: EventsProps) => {
           "overflow-y-auto rounded-lg min-w-full bg-gray-100 dark:bg-gray-900 overflow-auto",
           isFullscreen ? "max-w-full h-full p-2 border-gray-300 dark:border-gray-700" : "px-2 py-1 aspect-[2/1]"
         )}
+        ref={messagesEndRef}
       >
-        {logs.slice().reverse().map((entry, idx) => (
+        {logs.map((entry, idx) => (
           <div
             key={idx}
             className={classNames(
@@ -711,7 +716,6 @@ export const Events = ({ network, channel }: EventsProps) => {
             <span className="font-mono text-gray-500 dark:text-gray-500 mr-1"><span className="dark:text-gray-600"><span className="dark:text-gray-700">[{simplifyDate(entry.time)}]</span> {entry.nick}:</span> {entry.msg}</span>
           </div>
         ))}
-        <div className="mt-6" ref={messagesEndRef} />
       </div>
 
       {/*<div>*/}
