@@ -52,13 +52,20 @@ export const Logs = () => {
   const [filteredLogs, setFilteredLogs] = useState<LogEvent[]>([]);
   const [isInvalidRegex, setIsInvalidRegex] = useState(false);
 
-  const scrollToBottom = () => {
-    setTimeout(() => {
+  useEffect(() => {
+    const scrollToBottom = () => {
       if (messagesEndRef.current) {
         messagesEndRef.current.scrollTop = messagesEndRef.current.scrollHeight;
       }
-    }, 10);
-  };
+    };
+    if (settings.scrollOnNewLog)
+      scrollToBottom();
+  }, [filteredLogs]);
+
+  // Add a useEffect to clear logs div when settings.scrollOnNewLog changes to prevent duplicate entries.
+  useEffect(() => {
+    setLogs([]);
+  }, [settings.scrollOnNewLog]);
 
   useEffect(() => {
     const es = APIClient.events.logs();
@@ -66,9 +73,6 @@ export const Logs = () => {
     es.onmessage = (event) => {
       const newData = JSON.parse(event.data) as LogEvent;
       setLogs((prevState) => [...prevState, newData]);
-
-      if (settings.scrollOnNewLog)
-        scrollToBottom();
     };
 
     return () => es.close();
