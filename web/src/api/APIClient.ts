@@ -131,6 +131,7 @@ export const APIClient = {
     toggleEnable: (id: number, enabled: boolean) => appClient.Patch(`api/feeds/${id}/enabled`, { enabled }),
     update: (feed: Feed) => appClient.Put(`api/feeds/${feed.id}`, feed),
     delete: (id: number) => appClient.Delete(`api/feeds/${id}`),
+    deleteCache: (id: number) => appClient.Delete(`api/feeds/${id}/cache`),
     test: (feed: Feed) => appClient.Post("api/feeds/test", feed)
   },
   indexers: {
