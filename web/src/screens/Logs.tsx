@@ -53,7 +53,11 @@ export const Logs = () => {
   const [isInvalidRegex, setIsInvalidRegex] = useState(false);
 
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end", inline: "end" });
+    setTimeout(() => {
+      if (messagesEndRef.current) {
+        messagesEndRef.current.scrollTop = messagesEndRef.current.scrollHeight;
+      }
+    }, 10);
   };
 
   useEffect(() => {
@@ -122,7 +126,7 @@ export const Logs = () => {
             <LogsDropdown />
           </div>
 
-          <div className="overflow-y-auto px-2 rounded-lg h-[60vh] min-w-full bg-gray-100 dark:bg-gray-900 overflow-auto">
+          <div className="overflow-y-auto px-2 rounded-lg h-[60vh] min-w-full bg-gray-100 dark:bg-gray-900 overflow-auto" ref={messagesEndRef}>
             {filteredLogs.map((entry, idx) => (
               <div
                 key={idx}
@@ -153,7 +157,6 @@ export const Logs = () => {
                 </span>
               </div>
             ))}
-            <div className="mt-6" ref={messagesEndRef} />
           </div>
         </div>
       </div>
