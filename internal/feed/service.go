@@ -33,6 +33,7 @@ type Service interface {
 	Test(ctx context.Context, feed *domain.Feed) error
 	ToggleEnabled(ctx context.Context, id int, enabled bool) error
 	Delete(ctx context.Context, id int) error
+	DeleteFeedCache(ctx context.Context, id int) error
 	GetLastRunData(ctx context.Context, id int) (string, error)
 
 	Start() error
@@ -120,6 +121,21 @@ func (s *service) Update(ctx context.Context, feed *domain.Feed) error {
 
 func (s *service) Delete(ctx context.Context, id int) error {
 	return s.delete(ctx, id)
+}
+
+func (s *service) DeleteFeedCache(ctx context.Context, id int) error {
+	feed, err := s.repo.FindByID(ctx, id)
+	if err != nil {
+		s.log.Error().Err(err).Msgf("could not find feed by id: %d", id)
+		return err
+	}
+
+	if err := s.cacheRepo.DeleteBucket(ctx, feed.Name); err != nil {
+		s.log.Error().Err(err).Msgf("could not clear feed cache: %d", id)
+		return err
+	}
+
+	return nil
 }
 
 func (s *service) ToggleEnabled(ctx context.Context, id int, enabled bool) error {

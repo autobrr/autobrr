@@ -216,7 +216,7 @@ func (r *FeedCacheRepo) DeleteBucket(ctx context.Context, bucket string) error {
 	}
 
 	if rows == 0 {
-		return errors.Wrap(err, "error no rows affected")
+		r.log.Warn().Msgf("no rows affected for delete of bucket: %s", bucket)
 	}
 
 	return nil
