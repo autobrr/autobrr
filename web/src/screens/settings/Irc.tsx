@@ -10,7 +10,7 @@ import { Menu, Switch, Transition } from "@headlessui/react";
 import { toast } from "react-hot-toast";
 import {
   ArrowsPointingInIcon,
-  ArrowsPointingOutIcon,
+  ArrowsPointingOutIcon, Cog6ToothIcon,
   EllipsisHorizontalIcon,
   ExclamationCircleIcon,
   PencilSquareIcon,
@@ -25,6 +25,7 @@ import { EmptySimple } from "@components/emptystates";
 import { DeleteModal } from "@components/modals";
 import Toast from "@components/notifications/Toast";
 import { SettingsContext } from "@utils/Context";
+import { Checkbox } from "@components/Checkbox";
 // import { useForm } from "react-hook-form";
 
 export const ircKeys = {
@@ -169,6 +170,7 @@ const IrcSettings = () => {
                 ? <span className="flex items-center">Collapse <ArrowsPointingInIcon className="ml-1 w-4 h-4"/></span>
                 : <span className="flex items-center">Expand <ArrowsPointingOutIcon className="ml-1 w-4 h-4"/></span>
               }</button>
+            <div className="relative z-10"><IRCLogsDropdown/></div>
           </div>
         </div>
 
@@ -609,9 +611,26 @@ interface EventsProps {
 }
 
 export const Events = ({ network, channel }: EventsProps) => {
+
+  const [logs, setLogs] = useState<IrcEvent[]>([]);
   const [settings] = SettingsContext.use();
 
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    // Following RFC4648
+    const key = window.btoa(`${network.id}${channel.toLowerCase()}`)
+      .replaceAll("+", "-")
+      .replaceAll("/", "_")
+      .replaceAll("=", "");
+    const es = APIClient.irc.events(key);
+
+    es.onmessage = (event) => {
+      const newData = JSON.parse(event.data) as IrcEvent;
+      setLogs((prevState) => [...prevState, newData]);
+    };
+
+    return () => es.close();
+  }, [settings]);
+
   const [isFullscreen, toggleFullscreen] = useToggle(false);
 
   useEffect(() => {
@@ -628,15 +647,22 @@ export const Events = ({ network, channel }: EventsProps) => {
     };
   }, [isFullscreen, toggleFullscreen]);
 
-  const [logs, setLogs] = useState<IrcEvent[]>([]);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const scrollToBottom = () => {
-    setTimeout(() => {
+  useEffect(() => {
+    const scrollToBottom = () => {
       if (messagesEndRef.current) {
         messagesEndRef.current.scrollTop = messagesEndRef.current.scrollHeight;
       }
-    }, 0);
-  };
+    };
+    if (settings.scrollOnNewLog)
+      scrollToBottom();
+  }, [logs]);
+
+  // Add a useEffect to clear logs div when settings.scrollOnNewLog changes to prevent duplicate entries.
+  useEffect(() => {
+    setLogs([]);
+  }, [settings.scrollOnNewLog]);
 
   // const { handleSubmit, register , resetField } = useForm<IrcMsg>({
   //   defaultValues: { msg: ""  },
@@ -659,25 +685,6 @@ export const Events = ({ network, channel }: EventsProps) => {
   //   const payload = { network_id: network.id, nick: network.nick, server: network.server, channel: channel, msg: msg.msg };
   //   cmdMutation.mutate(payload);
   // };
-
-  useEffect(() => {
-    // Following RFC4648
-    const key = window.btoa(`${network.id}${channel.toLowerCase()}`)
-      .replaceAll("+", "-")
-      .replaceAll("/", "_")
-      .replaceAll("=", "");
-    const es = APIClient.irc.events(key);
-
-    es.onmessage = (event) => {
-      const newData = JSON.parse(event.data) as IrcEvent;
-      setLogs((prevState) => [...prevState, newData]);
-
-      // if (settings.scrollOnNewLog)
-      scrollToBottom();
-    };
-
-    return () => es.close();
-  }, [settings]);
 
   return (
     <div
@@ -737,3 +744,51 @@ export const Events = ({ network, channel }: EventsProps) => {
 };
 
 export default IrcSettings;
+
+const IRCLogsDropdown = () => {
+  const [settings, setSettings] = SettingsContext.use();
+
+  const onSetValue = (
+    key: "scrollOnNewLog",
+    newValue: boolean
+  ) => setSettings((prevState) => ({
+    ...prevState,
+    [key]: newValue
+  }));
+
+  return (
+    <Menu as="div">
+      <Menu.Button>
+        <button className="flex items-center text-gray-800 dark:text-gray-400 p-1 px-2 rounded shadow bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600">
+          <span className="flex items-center">Options <Cog6ToothIcon className="ml-1 w-4 h-4"/></span>
+        </button>
+      </Menu.Button>
+      <Transition
+        as={Fragment}
+        enter="transition ease-out duration-100"
+        enterFrom="transform opacity-0 scale-95"
+        enterTo="transform opacity-100 scale-100"
+        leave="transition ease-in duration-75"
+        leaveFrom="transform opacity-100 scale-100"
+        leaveTo="transform opacity-0 scale-95"
+      >
+        <Menu.Items
+          className="absolute right-0 mt-2 bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700 rounded-md shadow-lg ring-1 ring-black ring-opacity-10 focus:outline-none"
+        >
+          <div className="p-3">
+            <Menu.Item>
+              {() => (
+                <Checkbox
+                  label="Scroll to bottom on new message"
+                  value={settings.scrollOnNewLog}
+                  setValue={(newValue) => onSetValue("scrollOnNewLog", newValue)}
+                />
+              )}
+            </Menu.Item>
+
+          </div>
+        </Menu.Items>
+      </Transition>
+    </Menu>
+  );
+};
