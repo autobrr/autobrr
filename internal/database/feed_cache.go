@@ -212,7 +212,7 @@ func (r *FeedCacheRepo) DeleteByFeed(ctx context.Context, feedId int) error {
 		return errors.Wrap(err, "error exec result")
 	}
 
-	r.log.Debug().Msgf("deleted %d rows from feed cache: %s", rows, feedId)
+	r.log.Debug().Msgf("deleted %d rows from feed cache: %d", rows, feedId)
 
 	return nil
 }
