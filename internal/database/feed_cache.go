@@ -218,7 +218,13 @@ func (r *FeedCacheRepo) DeleteByFeed(ctx context.Context, feedId int) error {
 }
 
 func (r *FeedCacheRepo) DeleteStale(ctx context.Context) error {
-	queryBuilder := r.db.squirrel.Delete("feed_cache").Where(sq.Eq{"ttl": ""})
+	queryBuilder := r.db.squirrel.Delete("feed_cache")
+
+	if r.db.Driver == "sqlite" {
+		queryBuilder = queryBuilder.Where(sq.Expr("ttl < datetime('now', 'localtime', '-30 days')"))
+	} else {
+		queryBuilder = queryBuilder.Where(sq.Lt{"ttl": time.Now().AddDate(0, 0, -30)})
+	}
 
 	query, args, err := queryBuilder.ToSql()
 	if err != nil {

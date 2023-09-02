@@ -115,7 +115,7 @@ func (s *service) DeleteFeedCache(ctx context.Context, id int) error {
 }
 
 func (s *service) DeleteFeedCacheStale(ctx context.Context) error {
-	return nil
+	return s.cacheRepo.DeleteStale(ctx)
 }
 
 func (s *service) ToggleEnabled(ctx context.Context, id int, enabled bool) error {
@@ -282,6 +282,11 @@ func (s *service) testNewznab(ctx context.Context, feed *domain.Feed, subLogger 
 }
 
 func (s *service) start() error {
+	// always run feed cache maintenance job
+	if err := s.createCleanupJob(); err != nil {
+		s.log.Error().Err(err).Msg("could not start feed cache cleanup job")
+	}
+
 	// get all feeds
 	feeds, err := s.repo.Find(context.TODO())
 	if err != nil {
@@ -369,7 +374,7 @@ func (s *service) startJob(f *domain.Feed) error {
 	identifierKey := feedKey{f.ID}.ToString()
 
 	// schedule job
-	id, err := s.scheduler.AddJob(job, fi.CronSchedule, identifierKey)
+	id, err := s.scheduler.ScheduleJob(job, fi.CronSchedule, identifierKey)
 	if err != nil {
 		return errors.Wrap(err, "add job %s failed", identifierKey)
 	}
@@ -442,6 +447,27 @@ func (s *service) createRSSJob(f feedInstance) (cron.Job, error) {
 	job := NewRSSJob(f.Feed, f.Name, f.IndexerIdentifier, l, f.URL, s.repo, s.cacheRepo, s.releaseSvc, f.Timeout)
 
 	return job, nil
+}
+
+func (s *service) createCleanupJob() error {
+	// setup logger
+	l := s.log.With().Str("job", "feed-cache-cleanup").Logger()
+
+	// create job
+	job := NewCleanupJob(l, s.cacheRepo)
+
+	identifierKey := "feed-cache-cleanup"
+
+	// schedule job for every day at 03:05
+	id, err := s.scheduler.AddJob(job, "5 3 * * *", identifierKey)
+	if err != nil {
+		return errors.Wrap(err, "add job %s failed", identifierKey)
+	}
+
+	// add to job map
+	s.jobs[identifierKey] = id
+
+	return nil
 }
 
 func (s *service) stopFeedJob(id int) error {
