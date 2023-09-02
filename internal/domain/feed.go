@@ -9,13 +9,14 @@ import (
 )
 
 type FeedCacheRepo interface {
-	Get(bucket string, key string) ([]byte, error)
-	GetByBucket(ctx context.Context, bucket string) ([]FeedCacheItem, error)
-	GetCountByBucket(ctx context.Context, bucket string) (int, error)
-	Exists(bucket string, key string) (bool, error)
-	Put(bucket string, key string, val []byte, ttl time.Time) error
-	Delete(ctx context.Context, bucket string, key string) error
-	DeleteBucket(ctx context.Context, bucket string) error
+	Get(feedId int, key string) ([]byte, error)
+	GetByFeed(ctx context.Context, feedId int) ([]FeedCacheItem, error)
+	GetCountByFeed(ctx context.Context, feedId int) (int, error)
+	Exists(feedId int, key string) (bool, error)
+	Put(feedId int, key string, val []byte, ttl time.Time) error
+	Delete(ctx context.Context, feedId int, key string) error
+	DeleteByFeed(ctx context.Context, feedId int) error
+	DeleteStale(ctx context.Context) error
 }
 
 type FeedRepo interface {
@@ -79,7 +80,7 @@ const (
 )
 
 type FeedCacheItem struct {
-	Bucket string    `json:"bucket"`
+	FeedId string    `json:"feed_id"`
 	Key    string    `json:"key"`
 	Value  []byte    `json:"value"`
 	TTL    time.Time `json:"ttl"`
