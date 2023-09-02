@@ -52,6 +52,7 @@ type Feed struct {
 	Indexerr     FeedIndexer       `json:"-"`
 	LastRun      time.Time         `json:"last_run"`
 	LastRunData  string            `json:"last_run_data"`
+	NextRun      time.Time         `json:"next_run"`
 }
 
 type FeedSettingsJSON struct {
