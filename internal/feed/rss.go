@@ -6,7 +6,6 @@ package feed
 import (
 	"context"
 	"encoding/xml"
-	"fmt"
 	"net/url"
 	"regexp"
 	"time"
@@ -227,8 +226,6 @@ func (j *RSSJob) getFeed(ctx context.Context) (items []*gofeed.Item, err error) 
 		return
 	}
 
-	bucketKey := fmt.Sprintf("%v+%v", j.IndexerIdentifier, j.Name)
-
 	//sort.Sort(feed)
 
 	// set ttl to 1 month
@@ -245,7 +242,7 @@ func (j *RSSJob) getFeed(ctx context.Context) (items []*gofeed.Item, err error) 
 			}
 		}
 
-		exists, err := j.CacheRepo.Exists(bucketKey, key)
+		exists, err := j.CacheRepo.Exists(j.Feed.ID, key)
 		if err != nil {
 			j.Log.Error().Err(err).Msg("could not check if item exists")
 			continue
@@ -257,7 +254,7 @@ func (j *RSSJob) getFeed(ctx context.Context) (items []*gofeed.Item, err error) 
 
 		j.Log.Debug().Msgf("found new release: %s", i.Title)
 
-		if err := j.CacheRepo.Put(bucketKey, key, []byte(item.Title), ttl); err != nil {
+		if err := j.CacheRepo.Put(j.Feed.ID, key, []byte(item.Title), ttl); err != nil {
 			j.Log.Error().Err(err).Str("entry", key).Msg("cache.Put: error storing item in cache")
 			continue
 		}
