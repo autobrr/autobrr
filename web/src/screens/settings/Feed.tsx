@@ -118,7 +118,7 @@ function FeedSettings() {
                   Enabled <span className="sort-indicator">{sortedFeeds.getSortIndicator("enabled")}</span>
                 </div>
                 <div
-                  className="col-span-6 pl-12 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer"
+                  className="col-span-5 pl-12 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer"
                   onClick={() => sortedFeeds.requestSort("name")}>
                   Name <span className="sort-indicator">{sortedFeeds.getSortIndicator("name")}</span>
                 </div>
@@ -128,9 +128,14 @@ function FeedSettings() {
                   Type <span className="sort-indicator">{sortedFeeds.getSortIndicator("type")}</span>
                 </div>
                 <div
-                  className="hidden md:flex col-span-3 px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer"
+                  className="hidden md:flex col-span-2 px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer"
                   onClick={() => sortedFeeds.requestSort("last_run")}>
                   Last run <span className="sort-indicator">{sortedFeeds.getSortIndicator("last_run")}</span>
+                </div>
+                <div
+                    className="hidden md:flex col-span-2 px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer"
+                    onClick={() => sortedFeeds.requestSort("next_run")}>
+                  Next run <span className="sort-indicator">{sortedFeeds.getSortIndicator("next_run")}</span>
                 </div>
               </li>
               {sortedFeeds.items.map((feed) => (
@@ -193,7 +198,7 @@ function ListItem({ feed }: ListItemProps) {
             />
           </Switch>
         </div>
-        <div className="col-span-8 sm:col-span-6 pl-12 py-3 flex flex-col text-sm font-medium text-gray-900 dark:text-white">
+        <div className="col-span-8 sm:col-span-5 pl-12 py-3 flex flex-col text-sm font-medium text-gray-900 dark:text-white">
           <span>{feed.name}</span>
           <span className="text-gray-900 dark:text-gray-500 text-xs">
             {feed.indexer}
@@ -202,9 +207,14 @@ function ListItem({ feed }: ListItemProps) {
         <div className="hidden md:flex col-span-1 py-3 items-center">
           {ImplementationBadges[feed.type.toLowerCase()]}
         </div>
-        <div className="hidden md:flex col-span-3 py-3 items-center sm:px-6 text-sm font-medium text-gray-900 dark:text-gray-500">
+        <div className="hidden md:flex col-span-2 py-3 items-center sm:px-4 text-sm font-medium text-gray-900 dark:text-gray-500">
           <span title={simplifyDate(feed.last_run)}>
             {IsEmptyDate(feed.last_run)}
+          </span>
+        </div>
+        <div className="hidden md:flex col-span-2 py-3 items-center sm:px-4 text-sm font-medium text-gray-900 dark:text-gray-500">
+          <span title={simplifyDate(feed.next_run)}>
+            {IsEmptyDate(feed.next_run)}
           </span>
         </div>
         <div className="col-span-1 flex justify-center items-center sm:px-6">

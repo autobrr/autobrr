@@ -91,7 +91,21 @@ func (s *service) FindByIndexerIdentifier(ctx context.Context, indexer string) (
 }
 
 func (s *service) Find(ctx context.Context) ([]domain.Feed, error) {
-	return s.repo.Find(ctx)
+	feeds, err := s.repo.Find(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	for i, feed := range feeds {
+		t, err := s.scheduler.GetNextRun(feedKey{id: feed.ID}.ToString())
+		if err != nil {
+			continue
+		}
+		feed.NextRun = t
+		feeds[i] = feed
+	}
+
+	return feeds, nil
 }
 
 func (s *service) GetCacheByID(ctx context.Context, feedId int) ([]domain.FeedCacheItem, error) {
