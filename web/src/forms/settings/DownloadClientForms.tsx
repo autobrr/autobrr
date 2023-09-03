@@ -116,6 +116,8 @@ function FormFieldsArr() {
           <PasswordFieldWide name="settings.basic.password" label="Password" />
         </>
       )}
+
+      <NumberFieldWide name="settings.external_download_client_id" label="Download Client ID" tooltip={<div><p>Specify what client the arr should use by default. Can be overridden per filter action. You can find the id in the arr by looking at the network responses for download clients.</p></div>} />
     </div>
   );
 }

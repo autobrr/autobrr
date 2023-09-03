@@ -62,6 +62,7 @@ func New(config Config) Client {
 
 type Release struct {
 	Title            string `json:"title"`
+	InfoUrl          string `json:"infoUrl,omitempty"`
 	DownloadUrl      string `json:"downloadUrl,omitempty"`
 	MagnetUrl        string `json:"magnetUrl,omitempty"`
 	Size             int64  `json:"size"`
@@ -69,6 +70,7 @@ type Release struct {
 	DownloadProtocol string `json:"downloadProtocol"`
 	Protocol         string `json:"protocol"`
 	PublishDate      string `json:"publishDate"`
+	DownloadClientId int    `json:"downloadClientId,omitempty"`
 }
 
 type PushResponse struct {
@@ -87,7 +89,7 @@ type BadRequestResponse struct {
 }
 
 func (r BadRequestResponse) String() string {
-	return fmt.Sprintf("[%v: %v] %v: %v - got value: %v", r.Severity, r.ErrorCode, r.PropertyName, r.ErrorMessage, r.AttemptedValue)
+	return fmt.Sprintf("[%s: %s] %s: %s - got value: %s", r.Severity, r.ErrorCode, r.PropertyName, r.ErrorMessage, r.AttemptedValue)
 }
 
 type SystemStatusResponse struct {

@@ -214,7 +214,7 @@ func (s *service) processFilters(ctx context.Context, filters []domain.Filter, r
 			// run action
 			status, err := s.runAction(ctx, act, release)
 			if err != nil {
-				l.Error().Stack().Err(err).Msgf("release.Process: error running actions for filter: %s", release.FilterName)
+				l.Error().Err(err).Msgf("release.Process: error running actions for filter: %s", release.FilterName)
 				//continue
 			}
 
@@ -270,7 +270,7 @@ func (s *service) runAction(ctx context.Context, action *domain.Action, release 
 
 	rejections, err := s.actionSvc.RunAction(ctx, action, release)
 	if err != nil {
-		s.log.Error().Stack().Err(err).Msgf("release.runAction: error running actions for filter: %s", release.FilterName)
+		s.log.Error().Err(err).Msgf("release.runAction: error running actions for filter: %s", release.FilterName)
 
 		status.Status = domain.ReleasePushStatusErr
 		status.Rejections = []string{err.Error()}
