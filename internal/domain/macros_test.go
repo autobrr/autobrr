@@ -179,12 +179,39 @@ func TestMacros_Parse(t *testing.T) {
 			wantErr: false,
 		},
 		{
+			name: "test_size_string",
+			release: Release{
+				Size: 3834225472,
+			},
+			args:    args{text: "Size: {{ .SizeString }}"},
+			want:    "Size: 3.8 GB",
+			wantErr: false,
+		},
+		{
 			name: "test_text_manipulation",
 			release: Release{
 				TorrentName: "Title Name 2 - Keyword [Blu-ray][MKV][h264 10-bit][1080p][FLAC 2.0][Dual Audio][Softsubs (Sub Group)][Freeleech]",
 			},
 			args:    args{text: "{{join \"\" (regexSplit \"^.+- Keyword \" .TorrentName -1)}}"},
 			want:    "[Blu-ray][MKV][h264 10-bit][1080p][FLAC 2.0][Dual Audio][Softsubs (Sub Group)][Freeleech]",
+			wantErr: false,
+		},
+		{
+			name: "test_info_url",
+			release: Release{
+				InfoURL: "https://test.local/this/page",
+			},
+			args:    args{text: "InfoUrl: {{ .InfoUrl }}"},
+			want:    "InfoUrl: https://test.local/this/page",
+			wantErr: false,
+		},
+		{
+			name: "test_download_url",
+			release: Release{
+				DownloadURL: "https://test.local/this/page/1001",
+			},
+			args:    args{text: "DownloadUrl: {{ .DownloadUrl }}"},
+			want:    "DownloadUrl: https://test.local/this/page/1001",
 			wantErr: false,
 		},
 	}
