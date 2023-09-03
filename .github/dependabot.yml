@@ -14,9 +14,7 @@ updates:
   - package-ecosystem: gomod
     directory: /
     schedule:
-      interval: weekly
-      day: saturday
-      time: "07:30"
+      interval: monthly
     groups:
       golang:
         patterns:
@@ -25,9 +23,7 @@ updates:
   - package-ecosystem: npm
     directory: /web
     schedule:
-      interval: weekly
-      day: saturday
-      time: "08:00"
+      interval: monthly
     groups:
       npm:
         patterns:
