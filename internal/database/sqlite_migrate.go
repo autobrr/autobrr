@@ -204,6 +204,7 @@ CREATE TABLE action
     webhook_type            TEXT,
     webhook_data            TEXT,
     webhook_headers         TEXT[] DEFAULT '{}',
+    external_client_id      INTEGER,
     client_id               INTEGER,
     filter_id               INTEGER,
     FOREIGN KEY (filter_id) REFERENCES filter (id),
@@ -1344,5 +1345,8 @@ CREATE TABLE feed_cache
 
 CREATE INDEX feed_cache_feed_id_key_index
     ON feed_cache (feed_id, key);
+`,
+	`ALTER TABLE action
+ADD COLUMN external_client_id INTEGER;
 `,
 }

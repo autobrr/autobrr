@@ -41,9 +41,10 @@ type DownloadClientCached struct {
 }
 
 type DownloadClientSettings struct {
-	APIKey string              `json:"apikey,omitempty"`
-	Basic  BasicAuth           `json:"basic,omitempty"`
-	Rules  DownloadClientRules `json:"rules,omitempty"`
+	APIKey                   string              `json:"apikey,omitempty"`
+	Basic                    BasicAuth           `json:"basic,omitempty"`
+	Rules                    DownloadClientRules `json:"rules,omitempty"`
+	ExternalDownloadClientId int                 `json:"external_download_client_id,omitempty"`
 }
 
 type DownloadClientRules struct {
