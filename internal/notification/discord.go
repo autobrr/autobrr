@@ -214,6 +214,22 @@ func (a *discordSender) buildEmbed(event domain.NotificationEvent, payload domai
 		}
 		fields = append(fields, f)
 	}
+	if len(payload.Protocol) != 0 {
+		f := DiscordEmbedsFields{
+			Name:   "Protocol",
+			Value:  payload.Protocol.String(),
+			Inline: true,
+		}
+		fields = append(fields, f)
+	}
+	if len(payload.Implementation) != 0 {
+		f := DiscordEmbedsFields{
+			Name:   "Implementation",
+			Value:  payload.Implementation.String(),
+			Inline: true,
+		}
+		fields = append(fields, f)
+	}
 	if len(payload.Rejections) > 0 {
 		f := DiscordEmbedsFields{
 			Name:   "Reasons",
