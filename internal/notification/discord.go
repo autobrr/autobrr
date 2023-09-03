@@ -16,6 +16,7 @@ import (
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/pkg/errors"
 
+	"github.com/dustin/go-humanize"
 	"github.com/rs/zerolog"
 )
 
@@ -213,7 +214,14 @@ func (a *discordSender) buildEmbed(event domain.NotificationEvent, payload domai
 		}
 		fields = append(fields, f)
 	}
-
+	if payload.Size > 0 {
+		f := DiscordEmbedsFields{
+			Name:   "Size",
+			Value:  humanize.Bytes(payload.Size),
+			Inline: false,
+		}
+		fields = append(fields, f)
+	}
 	embed := DiscordEmbeds{
 		Title:       payload.ReleaseName,
 		Description: "New release!",
