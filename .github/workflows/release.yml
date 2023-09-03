@@ -42,6 +42,11 @@ jobs:
         working-directory: web
         run: pnpm install --frozen-lockfile
 
+      - name: ESLint
+        working-directory: web
+        continue-on-error: true
+        run: CI= pnpm run lint
+
       - name: Build web frontend
         working-directory: web
         run: CI= pnpm run build
