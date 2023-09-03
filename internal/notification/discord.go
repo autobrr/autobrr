@@ -206,6 +206,14 @@ func (a *discordSender) buildEmbed(event domain.NotificationEvent, payload domai
 		}
 		fields = append(fields, f)
 	}
+	if payload.Size > 0 {
+		f := DiscordEmbedsFields{
+			Name:   "Size",
+			Value:  humanize.Bytes(payload.Size),
+			Inline: true,
+		}
+		fields = append(fields, f)
+	}
 	if len(payload.Rejections) > 0 {
 		f := DiscordEmbedsFields{
 			Name:   "Reasons",
@@ -214,14 +222,7 @@ func (a *discordSender) buildEmbed(event domain.NotificationEvent, payload domai
 		}
 		fields = append(fields, f)
 	}
-	if payload.Size > 0 {
-		f := DiscordEmbedsFields{
-			Name:   "Size",
-			Value:  humanize.Bytes(payload.Size),
-			Inline: false,
-		}
-		fields = append(fields, f)
-	}
+
 	embed := DiscordEmbeds{
 		Title:       payload.ReleaseName,
 		Description: "New release!",
