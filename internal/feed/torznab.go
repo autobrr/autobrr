@@ -92,7 +92,7 @@ func (j *TorznabJob) process(ctx context.Context) error {
 		rls := domain.NewRelease(j.IndexerIdentifier)
 
 		rls.TorrentName = item.Title
-		rls.TorrentURL = item.Link
+		rls.DownloadURL = item.Link
 		rls.Implementation = domain.ReleaseImplementationTorznab
 
 		// parse size bytes string
@@ -102,7 +102,7 @@ func (j *TorznabJob) process(ctx context.Context) error {
 
 		if j.Feed.Settings != nil && j.Feed.Settings.DownloadType == domain.FeedDownloadTypeMagnet {
 			rls.MagnetURI = item.Link
-			rls.TorrentURL = ""
+			rls.DownloadURL = ""
 		}
 
 		// Get freeleech percentage between 0 - 100. The value is ignored if

@@ -102,7 +102,7 @@ func (j *NewznabJob) process(ctx context.Context) error {
 
 		if item.Enclosure != nil {
 			if item.Enclosure.Type == "application/x-nzb" {
-				rls.TorrentURL = item.Enclosure.Url
+				rls.DownloadURL = item.Enclosure.Url
 			}
 		}
 

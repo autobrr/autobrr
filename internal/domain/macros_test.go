@@ -89,7 +89,7 @@ func TestMacros_Parse(t *testing.T) {
 			name: "test_args_long",
 			release: Release{
 				TorrentName: "This movie 2021",
-				TorrentURL:  "https://some.site/download/fakeid",
+				DownloadURL: "https://some.site/download/fakeid",
 				Indexer:     "mock1",
 			},
 			args:    args{text: "{{.TorrentName}} {{.TorrentUrl}} SOME_LONG_TOKEN"},
@@ -100,7 +100,7 @@ func TestMacros_Parse(t *testing.T) {
 			name: "test_args_long_1",
 			release: Release{
 				TorrentName: "This movie 2021",
-				TorrentURL:  "https://some.site/download/fakeid",
+				DownloadURL: "https://some.site/download/fakeid",
 				Indexer:     "mock1",
 			},
 			args:    args{text: "{{.Indexer}} {{.TorrentName}} {{.TorrentUrl}} SOME_LONG_TOKEN"},
@@ -111,7 +111,7 @@ func TestMacros_Parse(t *testing.T) {
 			name: "test_args_category",
 			release: Release{
 				TorrentName: "This movie 2021",
-				TorrentURL:  "https://some.site/download/fakeid",
+				DownloadURL: "https://some.site/download/fakeid",
 				Indexer:     "mock1",
 			},
 			args:    args{text: "{{.Indexer}}-race"},
@@ -122,7 +122,7 @@ func TestMacros_Parse(t *testing.T) {
 			name: "test_args_category_year",
 			release: Release{
 				TorrentName: "This movie 2021",
-				TorrentURL:  "https://some.site/download/fakeid",
+				DownloadURL: "https://some.site/download/fakeid",
 				Indexer:     "mock1",
 			},
 			args:    args{text: "{{.Indexer}}-{{.CurrentYear}}-race"},
@@ -133,7 +133,7 @@ func TestMacros_Parse(t *testing.T) {
 			name: "test_args_category_year",
 			release: Release{
 				TorrentName: "This movie 2021",
-				TorrentURL:  "https://some.site/download/fakeid",
+				DownloadURL: "https://some.site/download/fakeid",
 				Indexer:     "mock1",
 				Resolution:  "2160p",
 				HDR:         []string{"DV"},
@@ -146,7 +146,7 @@ func TestMacros_Parse(t *testing.T) {
 			name: "test_args_category_and_if",
 			release: Release{
 				TorrentName: "This movie 2021",
-				TorrentURL:  "https://some.site/download/fakeid",
+				DownloadURL: "https://some.site/download/fakeid",
 				Indexer:     "mock1",
 				Resolution:  "2160p",
 				HDR:         []string{"HDR"},
@@ -159,7 +159,7 @@ func TestMacros_Parse(t *testing.T) {
 			name: "test_release_year_1",
 			release: Release{
 				TorrentName: "This movie 2021",
-				TorrentURL:  "https://some.site/download/fakeid",
+				DownloadURL: "https://some.site/download/fakeid",
 				Indexer:     "mock1",
 				Resolution:  "2160p",
 				HDR:         []string{"HDR"},

@@ -112,33 +112,33 @@ func (j *RSSJob) processItem(item *gofeed.Item) *domain.Release {
 
 	if j.Feed.Settings != nil && j.Feed.Settings.DownloadType == domain.FeedDownloadTypeMagnet {
 		rls.MagnetURI = item.Link
-		rls.TorrentURL = ""
+		rls.DownloadURL = ""
 	}
 
 	if len(item.Enclosures) > 0 {
 		e := item.Enclosures[0]
 		if e.Type == "application/x-bittorrent" && e.URL != "" {
-			rls.TorrentURL = e.URL
+			rls.DownloadURL = e.URL
 		}
 		if e.Length != "" && e.Length != "39399" {
 			rls.ParseSizeBytesString(e.Length)
 		}
 	}
 
-	if rls.TorrentURL == "" && item.Link != "" {
-		rls.TorrentURL = item.Link
+	if rls.DownloadURL == "" && item.Link != "" {
+		rls.DownloadURL = item.Link
 	}
 
-	if rls.TorrentURL != "" {
+	if rls.DownloadURL != "" {
 		// handle no baseurl with only relative url
 		// grab url from feed url and create full url
-		if parsedURL, _ := url.Parse(rls.TorrentURL); parsedURL != nil && len(parsedURL.Hostname()) == 0 {
+		if parsedURL, _ := url.Parse(rls.DownloadURL); parsedURL != nil && len(parsedURL.Hostname()) == 0 {
 			if parentURL, _ := url.Parse(j.URL); parentURL != nil {
 				parentURL.Path, parentURL.RawPath = "", ""
 
 				// unescape the query params for max compatibility
-				escapedUrl, _ := url.QueryUnescape(parentURL.JoinPath(rls.TorrentURL).String())
-				rls.TorrentURL = escapedUrl
+				escapedUrl, _ := url.QueryUnescape(parentURL.JoinPath(rls.DownloadURL).String())
+				rls.DownloadURL = escapedUrl
 			}
 		}
 	}
