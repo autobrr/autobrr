@@ -47,7 +47,7 @@ func (s *service) lidarr(ctx context.Context, action *domain.Action, release dom
 
 	r := lidarr.Release{
 		Title:            release.TorrentName,
-		DownloadUrl:      release.TorrentURL,
+		DownloadUrl:      release.DownloadURL,
 		MagnetUrl:        release.MagnetURI,
 		Size:             int64(release.Size),
 		Indexer:          release.Indexer,

@@ -46,7 +46,7 @@ func (s *service) readarr(ctx context.Context, action *domain.Action, release do
 
 	r := readarr.Release{
 		Title:            release.TorrentName,
-		DownloadUrl:      release.TorrentURL,
+		DownloadUrl:      release.DownloadURL,
 		MagnetUrl:        release.MagnetURI,
 		Size:             int64(release.Size),
 		Indexer:          release.Indexer,

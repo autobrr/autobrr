@@ -42,7 +42,7 @@ func (s *service) sabnzbd(ctx context.Context, action *domain.Action, release do
 
 	sab := sabnzbd.New(opts)
 
-	ids, err := sab.AddFromUrl(ctx, sabnzbd.AddNzbRequest{Url: release.TorrentURL, Category: action.Category})
+	ids, err := sab.AddFromUrl(ctx, sabnzbd.AddNzbRequest{Url: release.DownloadURL, Category: action.Category})
 	if err != nil {
 		return nil, errors.Wrap(err, "could not add nzb to sabnzbd")
 	}

@@ -46,7 +46,7 @@ func (s *service) sonarr(ctx context.Context, action *domain.Action, release dom
 
 	r := sonarr.Release{
 		Title:            release.TorrentName,
-		DownloadUrl:      release.TorrentURL,
+		DownloadUrl:      release.DownloadURL,
 		MagnetUrl:        release.MagnetURI,
 		Size:             int64(release.Size),
 		Indexer:          release.Indexer,

@@ -231,7 +231,7 @@ func (a *announceProcessor) onLinesMatched(def *domain.IndexerDefinition, vars m
 	}
 
 	if matched != nil {
-		rls.TorrentURL = matched.TorrentURL
+		rls.DownloadURL = matched.TorrentURL
 
 		if matched.InfoURL != "" {
 			rls.InfoURL = matched.InfoURL
