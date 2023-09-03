@@ -620,7 +620,7 @@ func TestRelease_ParseString(t *testing.T) {
 				Timestamp:                   tt.fields.Timestamp,
 				GroupID:                     tt.fields.GroupID,
 				TorrentID:                   tt.fields.TorrentID,
-				TorrentURL:                  tt.fields.TorrentURL,
+				DownloadURL:                 tt.fields.DownloadURL,
 				TorrentTmpFile:              tt.fields.TorrentTmpFile,
 				TorrentHash:                 tt.fields.TorrentHash,
 				TorrentName:                 tt.fields.TorrentName,
@@ -746,7 +746,7 @@ func TestRelease_DownloadTorrentFile(t *testing.T) {
 		Timestamp                   time.Time
 		GroupID                     string
 		TorrentID                   string
-		TorrentURL                  string
+		DownloadURL                 string
 		TorrentTmpFile              string
 		TorrentDataRawBytes         []byte
 		TorrentHash                 string
@@ -799,7 +799,7 @@ func TestRelease_DownloadTorrentFile(t *testing.T) {
 			fields: fields{
 				Indexer:     "mock-indexer",
 				TorrentName: "Test.Release-GROUP",
-				TorrentURL:  fmt.Sprintf("%s/%d", ts.URL, 401),
+				DownloadURL: fmt.Sprintf("%s/%d", ts.URL, 401),
 				Protocol:    ReleaseProtocolTorrent,
 			},
 			wantErr: true,
@@ -809,7 +809,7 @@ func TestRelease_DownloadTorrentFile(t *testing.T) {
 			fields: fields{
 				Indexer:     "mock-indexer",
 				TorrentName: "Test.Release-GROUP",
-				TorrentURL:  fmt.Sprintf("%s/%d", ts.URL, 403),
+				DownloadURL: fmt.Sprintf("%s/%d", ts.URL, 403),
 				Protocol:    ReleaseProtocolTorrent,
 			},
 			wantErr: true,
@@ -819,7 +819,7 @@ func TestRelease_DownloadTorrentFile(t *testing.T) {
 			fields: fields{
 				Indexer:     "mock-indexer",
 				TorrentName: "Test.Release-GROUP",
-				TorrentURL:  fmt.Sprintf("%s/%d", ts.URL, 500),
+				DownloadURL: fmt.Sprintf("%s/%d", ts.URL, 500),
 				Protocol:    ReleaseProtocolTorrent,
 			},
 			wantErr: true,
@@ -829,7 +829,7 @@ func TestRelease_DownloadTorrentFile(t *testing.T) {
 			fields: fields{
 				Indexer:     "mock-indexer",
 				TorrentName: "Test.Release-GROUP",
-				TorrentURL:  fmt.Sprintf("%s/%s", ts.URL, "file.torrent"),
+				DownloadURL: fmt.Sprintf("%s/%s", ts.URL, "file.torrent"),
 				Protocol:    ReleaseProtocolTorrent,
 			},
 			wantErr: false,
@@ -839,7 +839,7 @@ func TestRelease_DownloadTorrentFile(t *testing.T) {
 			fields: fields{
 				Indexer:     "mock-indexer",
 				TorrentName: "Test.Release-GROUP",
-				TorrentURL:  fmt.Sprintf("%s/files/%s", ts.URL, "valid_torrent_as_html"),
+				DownloadURL: fmt.Sprintf("%s/files/%s", ts.URL, "valid_torrent_as_html"),
 				Protocol:    ReleaseProtocolTorrent,
 			},
 			wantErr: false,
@@ -849,7 +849,7 @@ func TestRelease_DownloadTorrentFile(t *testing.T) {
 			fields: fields{
 				Indexer:     "mock-indexer",
 				TorrentName: "Test.Release-GROUP",
-				TorrentURL:  fmt.Sprintf("%s/files/%s", ts.URL, "invalid_torrent_as_html"),
+				DownloadURL: fmt.Sprintf("%s/files/%s", ts.URL, "invalid_torrent_as_html"),
 				Protocol:    ReleaseProtocolTorrent,
 			},
 			wantErr: true,
@@ -869,7 +869,7 @@ func TestRelease_DownloadTorrentFile(t *testing.T) {
 				Timestamp:                   tt.fields.Timestamp,
 				GroupID:                     tt.fields.GroupID,
 				TorrentID:                   tt.fields.TorrentID,
-				TorrentURL:                  tt.fields.TorrentURL,
+				DownloadURL:                 tt.fields.DownloadURL,
 				TorrentTmpFile:              tt.fields.TorrentTmpFile,
 				TorrentDataRawBytes:         tt.fields.TorrentDataRawBytes,
 				TorrentHash:                 tt.fields.TorrentHash,

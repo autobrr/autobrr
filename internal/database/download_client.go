@@ -176,9 +176,10 @@ func (r *DownloadClientRepo) Store(ctx context.Context, client domain.DownloadCl
 	var err error
 
 	settings := domain.DownloadClientSettings{
-		APIKey: client.Settings.APIKey,
-		Basic:  client.Settings.Basic,
-		Rules:  client.Settings.Rules,
+		APIKey:                   client.Settings.APIKey,
+		Basic:                    client.Settings.Basic,
+		Rules:                    client.Settings.Rules,
+		ExternalDownloadClientId: client.Settings.ExternalDownloadClientId,
 	}
 
 	settingsJson, err := json.Marshal(&settings)
@@ -214,9 +215,10 @@ func (r *DownloadClientRepo) Update(ctx context.Context, client domain.DownloadC
 	var err error
 
 	settings := domain.DownloadClientSettings{
-		APIKey: client.Settings.APIKey,
-		Basic:  client.Settings.Basic,
-		Rules:  client.Settings.Rules,
+		APIKey:                   client.Settings.APIKey,
+		Basic:                    client.Settings.Basic,
+		Rules:                    client.Settings.Rules,
+		ExternalDownloadClientId: client.Settings.ExternalDownloadClientId,
 	}
 
 	settingsJson, err := json.Marshal(&settings)
