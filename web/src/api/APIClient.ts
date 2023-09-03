@@ -43,12 +43,23 @@ export async function HttpClient<T>(
           return Promise.reject(new Error("Not found"));
         }
 
+        // 500 is a generic "catch-all" response
+        // Usually this indicates the server cannot find a better 5xx error code to response
+        // check agains the health endpoint to decide if autobrr api is offline or inaccessible
+        if (response.status === 500) {
+          const health = await window.fetch(`${baseUrl()}api/healthz/liveness`);
+          if (!health.ok) {
+            return Promise.reject(new Error("Offline"));
+          }
+        }
+
         return Promise.reject(new Error(await response.text()));
       }
 
       // Resolve immediately since 204 contains no data
-      if (response.status === 204)
+      if (response.status === 204) {
         return Promise.resolve(response);
+      }
 
       return await response.json();
     });
@@ -202,7 +213,7 @@ export const APIClient = {
         params.append("olderThan", olderThan.toString());
       }
 
-      return appClient.Delete(`api/release?${params.toString()}`)
+      return appClient.Delete(`api/release?${params.toString()}`);
     },
     replayAction: (releaseId: number, actionId: number) => appClient.Post(`api/release/${releaseId}/actions/${actionId}/retry`)
   },
