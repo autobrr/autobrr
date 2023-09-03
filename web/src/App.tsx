@@ -46,7 +46,7 @@ export function App() {
   return (
     <ErrorBoundary
       onReset={reset}
-      fallbackRender={ErrorPage}
+      FallbackComponent={ErrorPage}
     >
       <QueryClientProvider client={queryClient}>
         <Portal>
