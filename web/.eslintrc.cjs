@@ -1,13 +1,14 @@
 module.exports = {
   root: true,
   parser: "@typescript-eslint/parser",
-  plugins: ["@typescript-eslint"],
+  plugins: ["@typescript-eslint", "prettier"],
   extends: [
     "eslint:recommended",
     "plugin:@typescript-eslint/recommended",
     "prettier",
   ],
   rules: {
+    "prettier/prettier": "error",
     // Turn off ESLint rules that conflict with Prettier
     semi: "off",
     quotes: "off",
