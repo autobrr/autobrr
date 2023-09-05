@@ -130,6 +130,8 @@ func (s *service) registerSenders() {
 				s.senders = append(s.senders, NewTelegramSender(s.log, n))
 			case domain.NotificationTypePushover:
 				s.senders = append(s.senders, NewPushoverSender(s.log, n))
+			case domain.NotificationTypeEmail:
+				s.senders = append(s.senders, NewEmailSender(s.log, n))
 			}
 		}
 	}
@@ -243,6 +245,8 @@ func (s *service) Test(ctx context.Context, notification domain.Notification) er
 		agent = NewTelegramSender(s.log, notification)
 	case domain.NotificationTypePushover:
 		agent = NewPushoverSender(s.log, notification)
+	case domain.NotificationTypeEmail:
+		agent = NewEmailSender(s.log, notification)
 	default:
 		s.log.Error().Msgf("unsupported notification type: %v", notification.Type)
 		return errors.New("unsupported notification type")
