@@ -12,7 +12,7 @@ import Select, { components, ControlProps, InputProps, MenuProps, OptionProps } 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "react-hot-toast";
 
-import { NumberFieldWide, PasswordFieldWide, SwitchGroupWide, TextFieldWide } from "@components/inputs";
+import { CheckboxField, NumberFieldWide, PasswordFieldWide, SwitchGroupWide, TextFieldWide } from "@components/inputs";
 import DEBUG from "@components/debug";
 import { EventOptions, NotificationTypeOptions, SelectOption } from "@domain/constants";
 import { APIClient } from "@api/APIClient";
@@ -68,7 +68,16 @@ function FormFieldsDiscord() {
       <div className="px-4 space-y-1">
         <Dialog.Title className="text-lg font-medium text-gray-900 dark:text-white">Settings</Dialog.Title>
         <p className="text-sm text-gray-500 dark:text-gray-400">
-          Create a <a href="https://support.discord.com/hc/en-us/articles/228383668-Intro-to-Webhooks" rel="noopener noreferrer" target="_blank" className="font-medium text-blue-500 underline underline-offset-1 hover:text-blue-400">webhook integration</a> in your server.
+          Create a{" "}
+          <a
+            href="https://support.discord.com/hc/en-us/articles/228383668-Intro-to-Webhooks"
+            rel="noopener noreferrer"
+            target="_blank"
+            className="font-medium text-blue-500 underline underline-offset-1 hover:text-blue-400"
+          >
+            webhook integration
+          </a>{" "}
+          in your server.
         </p>
       </div>
 
@@ -87,16 +96,10 @@ function FormFieldsNotifiarr() {
     <div className="border-t border-gray-200 dark:border-gray-700 py-4">
       <div className="px-4 space-y-1">
         <Dialog.Title className="text-lg font-medium text-gray-900 dark:text-white">Settings</Dialog.Title>
-        <p className="text-sm text-gray-500 dark:text-gray-400">
-          Enable the autobrr integration and optionally create a new API Key.
-        </p>
+        <p className="text-sm text-gray-500 dark:text-gray-400">Enable the autobrr integration and optionally create a new API Key.</p>
       </div>
 
-      <PasswordFieldWide
-        name="api_key"
-        label="API Key"
-        help="Notifiarr API Key"
-      />
+      <PasswordFieldWide name="api_key" label="API Key" help="Notifiarr API Key" />
     </div>
   );
 }
@@ -107,25 +110,22 @@ function FormFieldsTelegram() {
       <div className="px-4 space-y-1">
         <Dialog.Title className="text-lg font-medium text-gray-900 dark:text-white">Settings</Dialog.Title>
         <p className="text-sm text-gray-500 dark:text-gray-400">
-          Read how to <a href="https://core.telegram.org/bots#3-how-do-i-create-a-bot" rel="noopener noreferrer" target="_blank" className="font-medium text-blue-500 underline underline-offset-1 hover:text-blue-400">create a bot</a>.
+          Read how to{" "}
+          <a
+            href="https://core.telegram.org/bots#3-how-do-i-create-a-bot"
+            rel="noopener noreferrer"
+            target="_blank"
+            className="font-medium text-blue-500 underline underline-offset-1 hover:text-blue-400"
+          >
+            create a bot
+          </a>
+          .
         </p>
       </div>
 
-      <PasswordFieldWide
-        name="token"
-        label="Bot token"
-        help="Bot token"
-      />
-      <PasswordFieldWide
-        name="channel"
-        label="Chat ID"
-        help="Chat ID"
-      />
-      <PasswordFieldWide
-        name="topic"
-        label="Message Thread ID"
-        help="Message Thread (topic) of a Supergroup"
-      />
+      <PasswordFieldWide name="token" label="Bot token" help="Bot token" />
+      <PasswordFieldWide name="channel" label="Chat ID" help="Chat ID" />
+      <PasswordFieldWide name="topic" label="Message Thread ID" help="Message Thread (topic) of a Supergroup" />
     </div>
   );
 }
@@ -136,26 +136,57 @@ function FormFieldsPushover() {
       <div className="px-4 space-y-1">
         <Dialog.Title className="text-lg font-medium text-gray-900 dark:text-white">Settings</Dialog.Title>
         <p className="text-sm text-gray-500 dark:text-gray-400">
-          Register a new <a href="https://support.pushover.net/i175-how-do-i-get-an-api-or-application-token" rel="noopener noreferrer" target="_blank" className="font-medium text-blue-500 underline underline-offset-1 hover:text-blue-400">application</a> and add its API Token here.
+          Register a new{" "}
+          <a
+            href="https://support.pushover.net/i175-how-do-i-get-an-api-or-application-token"
+            rel="noopener noreferrer"
+            target="_blank"
+            className="font-medium text-blue-500 underline underline-offset-1 hover:text-blue-400"
+          >
+            application
+          </a>{" "}
+          and add its API Token here.
         </p>
       </div>
 
-      <PasswordFieldWide
-        name="api_key"
-        label="API Token"
-        help="API Token"
-      />
-      <PasswordFieldWide
-        name="token"
-        label="User Key"
-        help="User Key"
-      />
-      <NumberFieldWide
-        name="priority"
-        label="Priority"
-        help="-2, -1, 0 (default), 1, or 2"
-        required={true}
-      />
+      <PasswordFieldWide name="api_key" label="API Token" help="API Token" />
+      <PasswordFieldWide name="token" label="User Key" help="User Key" />
+      <NumberFieldWide name="priority" label="Priority" help="-2, -1, 0 (default), 1, or 2" required={true} />
+    </div>
+  );
+}
+
+function FormFieldsEmail() {
+  return (
+    <div className="border-t border-gray-200 dark:border-gray-700 py-4">
+      <div className="px-4 space-y-1">
+        <Dialog.Title className="text-lg font-medium text-gray-900 dark:text-white">Settings</Dialog.Title>
+        <p className="text-sm text-gray-500 dark:text-gray-400">
+          To set up your own mail server, follow this{" "}
+          <a
+            href="https://docker-mailserver.github.io/docker-mailserver/latest/"
+            rel="noopener noreferrer"
+            target="_blank"
+            className="font-medium text-blue-500 underline underline-offset-1 hover:text-blue-400"
+          >
+            Docker Mail Server guide
+          </a>
+          .
+        </p>
+      </div>
+      <TextFieldWide name="host" label="Server" help="Host name or IP of Email server" required={true} />
+      <NumberFieldWide name="smtp_port" label="Port" help="Port number of Email server" required={true} defaultValue={587} />
+      <TextFieldWide name="username" label="Username" help="Username" />
+      <PasswordFieldWide name="password" label="Password" help="Password" />
+      <TextFieldWide name="from_address" label="From Address" required={true} />
+      <TextFieldWide name="recipient_addresses" label="Recipient Address(es)" help="Comma separated list of email recipients" />
+      <div className="space-y-1 p-4 sm:space-y-0 sm:grid sm:grid-cols-3 sm:gap-4">
+        <CheckboxField
+          name="require_encryption"
+          label="Require Encryption"
+          sublabel="Require SSL (Port 465 only) or StartTLS(any other port)"
+        />
+      </div>
     </div>
   );
 }
@@ -164,17 +195,18 @@ const componentMap: componentMapType = {
   DISCORD: <FormFieldsDiscord />,
   NOTIFIARR: <FormFieldsNotifiarr />,
   TELEGRAM: <FormFieldsTelegram />,
-  PUSHOVER: <FormFieldsPushover />
+  PUSHOVER: <FormFieldsPushover />,
+  EMAIL: <FormFieldsEmail />
 };
 
 interface NotificationAddFormValues {
-    name: string;
-    enabled: boolean;
+  name: string;
+  enabled: boolean;
 }
 
 interface AddProps {
-    isOpen: boolean;
-    toggle: () => void;
+  isOpen: boolean;
+  toggle: () => void;
 }
 
 export function NotificationAddForm({ isOpen, toggle }: AddProps) {
@@ -185,19 +217,27 @@ export function NotificationAddForm({ isOpen, toggle }: AddProps) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: notificationKeys.lists() });
 
-      toast.custom((t) => <Toast type="success" body="Notification added!" t={t} />);
+      toast.custom(t => <Toast type="success" body="Notification added!" t={t} />);
       toggle();
     },
     onError: () => {
-      toast.custom((t) => <Toast type="error" body="Notification could not be added" t={t} />);
+      toast.custom(t => <Toast type="error" body="Notification could not be added" t={t} />);
     }
   });
 
-  const onSubmit = (formData: unknown) => createMutation.mutate(formData as Notification);
+  const onSubmit = (formData: unknown) => {
+    const form = formData as Notification;
+    if (form.type === "EMAIL") {
+      if (typeof form.recipient_addresses === "string") {
+        form.recipient_addresses = form.recipient_addresses.split(",").map((email: string) => email.trim());
+      }
+    }
+    createMutation.mutate(form);
+  };
 
   const testMutation = useMutation({
     mutationFn: (n: Notification) => APIClient.notifications.test(n),
-    onError: (err) => {
+    onError: err => {
       console.error(err);
     }
   });
@@ -206,21 +246,14 @@ export function NotificationAddForm({ isOpen, toggle }: AddProps) {
 
   const validate = (values: NotificationAddFormValues) => {
     const errors = {} as FormikErrors<FormikValues>;
-    if (!values.name)
-      errors.name = "Required";
+    if (!values.name) errors.name = "Required";
 
     return errors;
   };
 
   return (
     <Transition.Root show={isOpen} as={Fragment}>
-      <Dialog
-        as="div"
-        static
-        className="fixed inset-0 overflow-hidden"
-        open={isOpen}
-        onClose={toggle}
-      >
+      <Dialog as="div" static className="fixed inset-0 overflow-hidden" open={isOpen} onClose={toggle}>
         <div className="absolute inset-0 overflow-hidden">
           <Dialog.Overlay className="absolute inset-0" />
 
@@ -253,12 +286,8 @@ export function NotificationAddForm({ isOpen, toggle }: AddProps) {
                         <div className="px-4 py-6 bg-gray-50 dark:bg-gray-900 sm:px-6">
                           <div className="flex items-start justify-between space-x-3">
                             <div className="space-y-1">
-                              <Dialog.Title className="text-lg font-medium text-gray-900 dark:text-white">
-                                Add Notifications
-                              </Dialog.Title>
-                              <p className="text-sm text-gray-500 dark:text-gray-200">
-                                Trigger notifications on different events.
-                              </p>
+                              <Dialog.Title className="text-lg font-medium text-gray-900 dark:text-white">Add Notifications</Dialog.Title>
+                              <p className="text-sm text-gray-500 dark:text-gray-200">Trigger notifications on different events.</p>
                             </div>
                             <div className="h-7 flex items-center">
                               <button
@@ -274,27 +303,17 @@ export function NotificationAddForm({ isOpen, toggle }: AddProps) {
                         </div>
 
                         <div className="flex flex-col space-y-4 px-1 py-6 sm:py-0 sm:space-y-0">
-                          <TextFieldWide
-                            name="name"
-                            label="Name"
-                            required={true}
-                          />
+                          <TextFieldWide name="name" label="Name" required={true} />
 
                           <div className="flex items-center justify-between space-y-1 px-4 sm:space-y-0 sm:grid sm:grid-cols-3 sm:gap-4">
                             <div>
-                              <label
-                                htmlFor="type"
-                                className="block text-sm font-medium text-gray-900 dark:text-white"
-                              >
+                              <label htmlFor="type" className="block text-sm font-medium text-gray-900 dark:text-white">
                                 Type
                               </label>
                             </div>
                             <div className="sm:col-span-2">
                               <Field name="type" type="select">
-                                {({
-                                  field,
-                                  form: { setFieldValue, resetForm }
-                                }: FieldProps) => (
+                                {({ field, form: { setFieldValue, resetForm } }: FieldProps) => (
                                   <Select
                                     {...field}
                                     isClearable={true}
@@ -307,12 +326,12 @@ export function NotificationAddForm({ isOpen, toggle }: AddProps) {
                                     }}
                                     placeholder="Choose a type"
                                     styles={{
-                                      singleValue: (base) => ({
+                                      singleValue: base => ({
                                         ...base,
                                         color: "unset"
                                       })
                                     }}
-                                    theme={(theme) => ({
+                                    theme={theme => ({
                                       ...theme,
                                       spacing: {
                                         ...theme.spacing,
@@ -326,10 +345,7 @@ export function NotificationAddForm({ isOpen, toggle }: AddProps) {
 
                                       const opt = option as SelectOption;
                                       // setFieldValue("name", option?.label ?? "")
-                                      setFieldValue(
-                                        field.name,
-                                        opt.value ?? ""
-                                      );
+                                      setFieldValue(field.name, opt.value ?? "");
                                     }}
                                     options={NotificationTypeOptions}
                                   />
@@ -342,12 +358,8 @@ export function NotificationAddForm({ isOpen, toggle }: AddProps) {
 
                           <div className="border-t mt-2 border-gray-200 dark:border-gray-700 py-4">
                             <div className="px-4 space-y-1">
-                              <Dialog.Title className="text-lg font-medium text-gray-900 dark:text-white">
-                                Events
-                              </Dialog.Title>
-                              <p className="text-sm text-gray-500 dark:text-gray-400">
-                                Select what events to trigger on
-                              </p>
+                              <Dialog.Title className="text-lg font-medium text-gray-900 dark:text-white">Events</Dialog.Title>
+                              <p className="text-sm text-gray-500 dark:text-gray-400">Select what events to trigger on</p>
                             </div>
 
                             <div className="space-y-1 px-4 sm:space-y-0 sm:grid sm:gap-4 sm:py-4">
@@ -412,13 +424,10 @@ const EventCheckBoxes = () => (
           />
         </div>
         <div className="ml-3 text-sm">
-          <label htmlFor={`events-${e.value}`}
-            className="font-medium text-gray-900 dark:text-gray-100">
+          <label htmlFor={`events-${e.value}`} className="font-medium text-gray-900 dark:text-gray-100">
             {e.label}
           </label>
-          {e.description && (
-            <p className="text-gray-500">{e.description}</p>
-          )}
+          {e.description && <p className="text-gray-500">{e.description}</p>}
         </div>
       </div>
     ))}
@@ -426,9 +435,9 @@ const EventCheckBoxes = () => (
 );
 
 interface UpdateProps {
-    isOpen: boolean;
-    toggle: () => void;
-    notification: Notification;
+  isOpen: boolean;
+  toggle: () => void;
+  notification: Notification;
 }
 
 interface InitialValues {
@@ -443,6 +452,13 @@ interface InitialValues {
   channel?: string;
   topic?: string;
   events: NotificationEvent[];
+  host: string;
+  smtp_port: number;
+  username?: string;
+  password?: string;
+  from_address: string;
+  recipient_addresses: string[];
+  require_encryption: boolean;
 }
 
 export function NotificationUpdateForm({ isOpen, toggle, notification }: UpdateProps) {
@@ -453,19 +469,27 @@ export function NotificationUpdateForm({ isOpen, toggle, notification }: UpdateP
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: notificationKeys.lists() });
 
-      toast.custom((t) => <Toast type="success" body={`${notification.name} was updated successfully`} t={t}/>);
+      toast.custom(t => <Toast type="success" body={`${notification.name} was updated successfully`} t={t} />);
       toggle();
     }
   });
 
-  const onSubmit = (formData: unknown) => mutation.mutate(formData as Notification);
+  const onSubmit = (formData: unknown) => {
+    const form = formData as Notification;
+    if (form.type === "EMAIL") {
+      if (typeof form.recipient_addresses === "string") {
+        form.recipient_addresses = form.recipient_addresses.split(",").map((email: string) => email.trim());
+      }
+    }
+    mutation.mutate(form);
+  };
 
   const deleteMutation = useMutation({
     mutationFn: (notificationID: number) => APIClient.notifications.delete(notificationID),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: notificationKeys.lists() });
 
-      toast.custom((t) => <Toast type="success" body={`${notification.name} was deleted.`} t={t}/>);
+      toast.custom(t => <Toast type="success" body={`${notification.name} was deleted.`} t={t} />);
     }
   });
 
@@ -473,7 +497,7 @@ export function NotificationUpdateForm({ isOpen, toggle, notification }: UpdateP
 
   const testMutation = useMutation({
     mutationFn: (n: Notification) => APIClient.notifications.test(n),
-    onError: (err) => {
+    onError: err => {
       console.error(err);
     }
   });
@@ -491,7 +515,18 @@ export function NotificationUpdateForm({ isOpen, toggle, notification }: UpdateP
     priority: notification.priority,
     channel: notification.channel,
     topic: notification.topic,
-    events: notification.events || []
+    events: notification.events || [],
+    host: notification.host,
+    smtp_port: notification.smtp_port,
+    username: notification.username,
+    password: notification.password,
+    from_address: notification.from_address,
+    recipient_addresses: Array.isArray(notification.recipient_addresses)
+      ? notification.recipient_addresses
+      : notification.recipient_addresses
+      ? notification.recipient_addresses.split(",").map(email => email.trim())
+      : [],
+    require_encryption: notification.require_encryption
   };
 
   return (
@@ -505,36 +540,33 @@ export function NotificationUpdateForm({ isOpen, toggle, notification }: UpdateP
       initialValues={initialValues}
       testFn={testNotification}
     >
-      {(values) => (
+      {values => (
         <div>
-          <TextFieldWide name="name" label="Name" required={true}/>
+          <TextFieldWide name="name" label="Name" required={true} />
 
           <div className="space-y-2 divide-y divide-gray-200 dark:divide-gray-700">
             <div className="py-4 flex items-center justify-between space-y-1 px-4 sm:space-y-0 sm:grid sm:grid-cols-3 sm:gap-4 sm:py-4">
               <div>
-                <label
-                  htmlFor="type"
-                  className="block text-sm font-medium text-gray-900 dark:text-white"
-                >
+                <label htmlFor="type" className="block text-sm font-medium text-gray-900 dark:text-white">
                   Type
                 </label>
               </div>
               <div className="sm:col-span-2">
                 <Field name="type" type="select">
                   {({ field, form: { setFieldValue, resetForm } }: FieldProps) => (
-                    <Select {...field}
+                    <Select
+                      {...field}
                       isClearable={true}
                       isSearchable={true}
                       components={{ Input, Control, Menu, Option }}
-
                       placeholder="Choose a type"
                       styles={{
-                        singleValue: (base) => ({
+                        singleValue: base => ({
                           ...base,
                           color: "unset"
                         })
                       }}
-                      theme={(theme) => ({
+                      theme={theme => ({
                         ...theme,
                         spacing: {
                           ...theme.spacing,
@@ -554,14 +586,11 @@ export function NotificationUpdateForm({ isOpen, toggle, notification }: UpdateP
                 </Field>
               </div>
             </div>
-            <SwitchGroupWide name="enabled" label="Enabled"/>
+            <SwitchGroupWide name="enabled" label="Enabled" />
             <div className="border-t border-gray-200 dark:border-gray-700 py-4">
               <div className="px-4 space-y-1">
-                <Dialog.Title
-                  className="text-lg font-medium text-gray-900 dark:text-white">Events</Dialog.Title>
-                <p className="text-sm text-gray-500 dark:text-gray-400">
-                  Select what events to trigger on
-                </p>
+                <Dialog.Title className="text-lg font-medium text-gray-900 dark:text-white">Events</Dialog.Title>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Select what events to trigger on</p>
               </div>
 
               <div className="space-y-1 px-4 sm:space-y-0 sm:grid sm:gap-4 sm:py-2">
