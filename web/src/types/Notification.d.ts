@@ -3,14 +3,8 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-type NotificationType = "DISCORD" | "NOTIFIARR" | "TELEGRAM" | "PUSHOVER";
-type NotificationEvent =
-  "PUSH_APPROVED"
-  | "PUSH_REJECTED"
-  | "PUSH_ERROR"
-  | "IRC_DISCONNECTED"
-  | "IRC_RECONNECTED"
-  | "APP_UPDATE_AVAILABLE";
+type NotificationType = "DISCORD" | "NOTIFIARR" | "TELEGRAM" | "PUSHOVER" | "EMAIL";
+type NotificationEvent = "PUSH_APPROVED" | "PUSH_REJECTED" | "PUSH_ERROR" | "IRC_DISCONNECTED" | "IRC_RECONNECTED" | "APP_UPDATE_AVAILABLE";
 
 interface Notification {
   id: number;
@@ -24,4 +18,11 @@ interface Notification {
   channel?: string;
   priority?: number;
   topic?: string;
+  username?: string;
+  password?: string;
+  host: string;
+  smtp_port: number;
+  require_encryption: boolean;
+  from_address: string;
+  recipient_addresses: string[] | string | undefined;
 }
