@@ -5,30 +5,11 @@
 
 import { MultiSelectOption } from "@components/inputs/select";
 
-export const resolutions = [
-  "2160p",
-  "1080p",
-  "1080i",
-  "810p",
-  "720p",
-  "576p",
-  "480p",
-  "480i"
-];
+export const resolutions = ["2160p", "1080p", "1080i", "810p", "720p", "576p", "480p", "480i"];
 
 export const RESOLUTION_OPTIONS: MultiSelectOption[] = resolutions.map(r => ({ value: r, label: r, key: r }));
 
-export const codecs = [
-  "HEVC",
-  "H.264",
-  "H.265",
-  "x264",
-  "x265",
-  "AVC",
-  "VC-1",
-  "AV1",
-  "XviD"
-];
+export const codecs = ["HEVC", "H.264", "H.265", "x264", "x265", "AVC", "VC-1", "AV1", "XviD"];
 
 export const CODECS_OPTIONS: MultiSelectOption[] = codecs.map(v => ({ value: v, label: v, key: v }));
 
@@ -58,60 +39,23 @@ export const sources = [
 
 export const SOURCES_OPTIONS: MultiSelectOption[] = sources.map(v => ({ value: v, label: v, key: v }));
 
-export const containers = [
-  "avi",
-  "mp4",
-  "mkv"
-];
+export const containers = ["avi", "mp4", "mkv"];
 
 export const CONTAINER_OPTIONS: MultiSelectOption[] = containers.map(v => ({ value: v, label: v, key: v }));
 
-export const hdr = [
-  "HDR",
-  "HDR10",
-  "HDR10+",
-  "HLG",
-  "DV",
-  "DV HDR",
-  "DV HDR10",
-  "DV HDR10+",
-  "DoVi",
-  "Dolby Vision"
-];
+export const hdr = ["HDR", "HDR10", "HDR10+", "HLG", "DV", "DV HDR", "DV HDR10", "DV HDR10+", "DoVi", "Dolby Vision"];
 
 export const HDR_OPTIONS: MultiSelectOption[] = hdr.map(v => ({ value: v, label: v, key: v }));
 
-export const quality_other = [
-  "REMUX",
-  "HYBRID",
-  "REPACK"
-];
+export const quality_other = ["REMUX", "HYBRID", "REPACK"];
 
 export const OTHER_OPTIONS = quality_other.map(v => ({ value: v, label: v, key: v }));
 
-export const formatMusic = [
-  "MP3",
-  "FLAC",
-  "Ogg Vorbis",
-  "Ogg",
-  "AAC",
-  "AC3",
-  "DTS"
-];
+export const formatMusic = ["MP3", "FLAC", "Ogg Vorbis", "Ogg", "AAC", "AC3", "DTS"];
 
 export const FORMATS_OPTIONS: MultiSelectOption[] = formatMusic.map(r => ({ value: r, label: r, key: r }));
 
-export const sourcesMusic = [
-  "CD",
-  "WEB",
-  "DVD",
-  "Vinyl",
-  "Soundboard",
-  "DAT",
-  "Cassette",
-  "Blu-Ray",
-  "SACD"
-];
+export const sourcesMusic = ["CD", "WEB", "DVD", "Vinyl", "Soundboard", "DAT", "Cassette", "Blu-Ray", "SACD"];
 
 export const SOURCES_MUSIC_OPTIONS: MultiSelectOption[] = sourcesMusic.map(v => ({ value: v, label: v, key: v }));
 
@@ -155,12 +99,7 @@ export const RELEASE_TYPE_MUSIC_OPTIONS: MultiSelectOption[] = releaseTypeMusic.
   key: v
 }));
 
-export const originOptions = [
-  "P2P",
-  "Internal",
-  "SCENE",
-  "O-SCENE"
-];
+export const originOptions = ["P2P", "Internal", "SCENE", "O-SCENE"];
 
 export const ORIGIN_OPTIONS = originOptions.map(v => ({ value: v, label: v, key: v }));
 
@@ -291,18 +230,18 @@ export const DownloadClientTypeOptions: RadioFieldsetOption[] = [
 ];
 
 export const DownloadClientTypeNameMap: Record<DownloadClientType | string, string> = {
-  "DELUGE_V1": "Deluge v1",
-  "DELUGE_V2": "Deluge v2",
-  "QBITTORRENT": "qBittorrent",
-  "RTORRENT": "rTorrent",
-  "TRANSMISSION": "Transmission",
-  "PORLA": "Porla",
-  "RADARR": "Radarr",
-  "SONARR": "Sonarr",
-  "LIDARR": "Lidarr",
-  "WHISPARR": "Whisparr",
-  "READARR": "Readarr",
-  "SABNZBD": "SABnzbd"
+  DELUGE_V1: "Deluge v1",
+  DELUGE_V2: "Deluge v2",
+  QBITTORRENT: "qBittorrent",
+  RTORRENT: "rTorrent",
+  TRANSMISSION: "Transmission",
+  PORLA: "Porla",
+  RADARR: "Radarr",
+  SONARR: "Sonarr",
+  LIDARR: "Lidarr",
+  WHISPARR: "Whisparr",
+  READARR: "Readarr",
+  SABNZBD: "SABnzbd"
 };
 
 export const ActionTypeOptions: RadioFieldsetOption[] = [
@@ -325,22 +264,22 @@ export const ActionTypeOptions: RadioFieldsetOption[] = [
 ];
 
 export const ActionTypeNameMap = {
-  "TEST": "Test",
-  "WATCH_FOLDER": "Watch folder",
-  "WEBHOOK": "Webhook",
-  "EXEC": "Exec",
-  "DELUGE_V1": "Deluge v1",
-  "DELUGE_V2": "Deluge v2",
-  "QBITTORRENT": "qBittorrent",
-  "RTORRENT": "rTorrent",
-  "TRANSMISSION": "Transmission",
-  "PORLA": "Porla",
-  "RADARR": "Radarr",
-  "SONARR": "Sonarr",
-  "LIDARR": "Lidarr",
-  "WHISPARR": "Whisparr",
-  "READARR": "Readarr",
-  "SABNZBD": "SABnzbd"
+  TEST: "Test",
+  WATCH_FOLDER: "Watch folder",
+  WEBHOOK: "Webhook",
+  EXEC: "Exec",
+  DELUGE_V1: "Deluge v1",
+  DELUGE_V2: "Deluge v2",
+  QBITTORRENT: "qBittorrent",
+  RTORRENT: "rTorrent",
+  TRANSMISSION: "Transmission",
+  PORLA: "Porla",
+  RADARR: "Radarr",
+  SONARR: "Sonarr",
+  LIDARR: "Lidarr",
+  WHISPARR: "Whisparr",
+  READARR: "Readarr",
+  SABNZBD: "SABnzbd"
 };
 
 export const ActionContentLayoutOptions: SelectGenericOption<ActionContentLayout>[] = [
@@ -395,6 +334,10 @@ export const NotificationTypeOptions: OptionBasicTyped<NotificationType>[] = [
   {
     label: "Pushover",
     value: "PUSHOVER"
+  },
+  {
+    label: "Email",
+    value: "EMAIL"
   }
 ];
 
@@ -524,12 +467,12 @@ export const tagsMatchLogicOptions: OptionBasic[] = [
 
 export const ExternalFilterTypeOptions: RadioFieldsetOption[] = [
   { label: "Exec", description: "Run a custom command", value: "EXEC" },
-  { label: "Webhook", description: "Run webhook", value: "WEBHOOK" },
+  { label: "Webhook", description: "Run webhook", value: "WEBHOOK" }
 ];
 
 export const ExternalFilterTypeNameMap = {
-  "EXEC": "Exec",
-  "WEBHOOK": "Webhook",
+  EXEC: "Exec",
+  WEBHOOK: "Webhook"
 };
 
 export const ExternalFilterWebhookMethodOptions: OptionBasicTyped<WebhookMethod>[] = [
@@ -537,5 +480,5 @@ export const ExternalFilterWebhookMethodOptions: OptionBasicTyped<WebhookMethod>
   { label: "POST", value: "POST" },
   { label: "PUT", value: "PUT" },
   { label: "PATCH", value: "PATCH" },
-  { label: "DELETE", value: "DELETE" },
+  { label: "DELETE", value: "DELETE" }
 ];
