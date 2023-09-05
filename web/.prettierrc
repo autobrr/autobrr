@@ -3,5 +3,26 @@
   "tabWidth": 2,
   "printWidth": 140,
   "semi": true,
-  "trailingComma": "none"
+  "trailingComma": "none",
+  "arrowParens": "avoid",
+  "jsxSingleQuote": false,
+  "jsxBracketSameLine": false,
+  "bracketSpacing": true,
+  "parser": "typescript",
+  "endOfLine": "auto",
+  "quoteProps": "as-needed",
+  "overrides": [
+    {
+      "files": "*.ts",
+      "options": {
+        "parser": "typescript"
+      }
+    },
+    {
+      "files": "*.tsx",
+      "options": {
+        "parser": "typescript"
+      }
+    }
+  ]
 }
