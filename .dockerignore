@@ -21,7 +21,7 @@ test
 #!web/yarn.lock
 #!web/.yarnrc.yml
 #!web/.yarn/releases
-#!web/.eslintrc.js
+#!web/.eslintrc.cjs
 #!web/postcss.config.js
 #!web/tailwind.config.js
 #!web/tsconfig.json
