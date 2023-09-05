@@ -8,7 +8,9 @@
     "start": "vite",
     "build": "tsc && vite build",
     "serve": "vite preview",
-    "lint": "eslint src/ --ext .js,.jsx,.ts,.tsx --color",
+    "format": "prettier --write \"src/**/*.{ts,tsx,js,jsx}\"",
+    "lint": "eslint \"src/**/*.{ts,tsx,js,jsx}\" --ext .js,.jsx,.ts,.tsx --color",
+    "lint:fix": "eslint --fix \"src/**/*.{ts,tsx,js,jsx}\" --ext .js,.jsx,.ts,.tsx",
     "lint:watch": "pnpm run lint -- --watch"
   },
   "browserslist": {
@@ -80,5 +82,10 @@
     "workbox-window": "^7.0.0",
     "zod": "^3.22.2",
     "zod-formik-adapter": "^1.2.0"
+  },
+  "devDependencies": {
+    "eslint-config-prettier": "^9.0.0",
+    "eslint-plugin-prettier": "^5.0.0",
+    "prettier": "^3.0.3"
   }
 }
