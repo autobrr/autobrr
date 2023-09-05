@@ -317,6 +317,10 @@ CREATE TABLE notification
 	devices    TEXT,
 	topic      TEXT,
 	priority   INTEGER DEFAULT 0,
+	require_encryption BOOLEAN DEFAULT FALSE,
+	smtp_port  INTEGER DEFAULT 0,
+	from_address TEXT,
+	recipient_addresses TEXT []   DEFAULT '{}',
 	created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 	updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -1349,4 +1353,12 @@ CREATE INDEX feed_cache_feed_id_key_index
 	`ALTER TABLE action
 ADD COLUMN external_client_id INTEGER;
 `,
+	`ALTER TABLE notification
+ADD COLUMN require_encryption BOOLEAN DEFAULT FALSE;`,
+	`ALTER TABLE notification
+ADD COLUMN smtp_port INTEGER DEFAULT 0;`,
+	`ALTER TABLE notification
+ADD COLUMN from_address TEXT;`,
+	`ALTER TABLE notification
+ADD COLUMN recipient_addresses TEXT []   DEFAULT '{}';`,
 }
