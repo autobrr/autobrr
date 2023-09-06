@@ -152,9 +152,9 @@ func (h *Handler) removeIndexer() {
 func (h *Handler) Run() error {
 	// TODO validate
 	// check if network requires nickserv
-	// chech if network or channels requires invite command
+	// check if network or channels requires invite command
 
-	addr := fmt.Sprintf("%v:%d", h.network.Server, h.network.Port)
+	addr := fmt.Sprintf("%s:%d", h.network.Server, h.network.Port)
 
 	if h.network.UseBouncer && h.network.BouncerAddr != "" {
 		addr = h.network.BouncerAddr
@@ -209,6 +209,7 @@ func (h *Handler) Run() error {
 	if err := func() error {
 		// count connect attempts
 		connectAttempts := 0
+		disconnectTime := time.Now()
 
 		// retry initial connect if network is down
 		// using exponential backoff of 15 seconds
@@ -221,10 +222,18 @@ func (h *Handler) Run() error {
 					return err
 				}
 
-				h.log.Debug().Msgf("connected at attempt %d", connectAttempts)
+				if connectAttempts > 0 {
+					h.log.Debug().Msgf("connected at attempt (%d) offline for %s", connectAttempts, time.Since(disconnectTime))
+					return nil
+				}
 
 				return nil
 			},
+			retry.OnRetry(func(n uint, err error) {
+				if n > 0 {
+					h.log.Debug().Msgf("%s connect attempt %d", h.network.Name, n)
+				}
+			}),
 			retry.Delay(time.Second*15),
 			retry.Attempts(25),
 			retry.DelayType(func(n uint, err error, config *retry.Config) time.Duration {
