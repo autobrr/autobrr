@@ -303,7 +303,7 @@ func (s *service) checkIfNetworkRestartNeeded(network *domain.IrcNetwork) error 
 
 			// join channels
 			for _, joinChannel := range channelsToJoin {
-				s.log.Debug().Msgf("%s: join new channel %s", network.Server, joinChannel)
+				s.log.Debug().Msgf("%s: join new channel %s", network.Server, joinChannel.Name)
 
 				if err := existingHandler.JoinChannel(joinChannel.Name, joinChannel.Password); err != nil {
 					s.log.Error().Err(err).Msgf("failed to join channel: %s", joinChannel.Name)
@@ -554,7 +554,7 @@ func (s *service) UpdateNetwork(ctx context.Context, network *domain.IrcNetwork)
 	if err := s.repo.UpdateNetwork(ctx, network); err != nil {
 		return err
 	}
-	s.log.Debug().Msgf("irc.service: update network: %s", network)
+	s.log.Debug().Msgf("irc.service: update network: %s", network.Name)
 
 	// stop or start network
 	// TODO get current state to see if enabled or not?
@@ -596,7 +596,7 @@ func (s *service) StoreNetwork(ctx context.Context, network *domain.IrcNetwork) 
 		if network.Channels != nil {
 			for _, channel := range network.Channels {
 				if err := s.repo.StoreChannel(ctx, network.ID, &channel); err != nil {
-					s.log.Error().Stack().Err(err).Msg("irc.storeChannel: error executing query")
+					s.log.Error().Err(err).Msg("irc.storeChannel: error executing query")
 					return errors.Wrap(err, "error storing channel on network")
 				}
 			}
@@ -608,7 +608,7 @@ func (s *service) StoreNetwork(ctx context.Context, network *domain.IrcNetwork) 
 	// get channels for existing network
 	existingChannels, err := s.repo.ListChannels(existingNetwork.ID)
 	if err != nil {
-		s.log.Error().Err(err).Msgf("failed to list channels for network %s", existingNetwork.Server)
+		s.log.Error().Err(err).Msgf("failed to list channels for network: %s", existingNetwork.Server)
 	}
 	existingNetwork.Channels = existingChannels
 
