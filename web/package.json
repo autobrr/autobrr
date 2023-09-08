@@ -29,7 +29,6 @@
     }
   },
   "dependencies": {
-    "@fontsource-variable/inter": "^5.0.8",
     "@headlessui/react": "^1.7.17",
     "@heroicons/react": "^2.0.18",
     "@hookform/error-message": "^2.0.1",
@@ -55,7 +54,6 @@
     "formik": "^2.4.3",
     "http-proxy-middleware": "^2.0.6",
     "postcss": "^8.4.29",
-    "postcss-import": "^15.1.0",
     "react": "^18.2.0",
     "react-debounce-input": "^3.3.0",
     "react-dom": "^18.2.0",
