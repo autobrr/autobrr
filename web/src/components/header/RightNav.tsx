@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ */
+
 import { Fragment } from "react";
 import { Link } from "react-router-dom";
 import { UserIcon } from "@heroicons/react/24/solid";
