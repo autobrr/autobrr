@@ -5,9 +5,9 @@ import react from "@vitejs/plugin-react-swc";
 import svgr from "vite-plugin-svgr";
 
 interface PreRenderedAsset {
-	name: string | undefined;
-	source: string | Uint8Array;
-	type: 'asset';
+  name: string | undefined;
+  source: string | Uint8Array;
+  type: 'asset';
 }
 
 // https://vitejs.dev/config/
