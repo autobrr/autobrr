@@ -171,7 +171,7 @@ const IrcSettings = () => {
                 ? <span className="flex items-center">Collapse <ArrowsPointingInIcon className="ml-1 w-4 h-4"/></span>
                 : <span className="flex items-center">Expand <ArrowsPointingOutIcon className="ml-1 w-4 h-4"/></span>
               }</button>
-            <div className="relative z-10"><IRCLogsDropdown/></div>
+            <IRCLogsDropdown/>
           </div>
         </div>
 
@@ -738,7 +738,7 @@ const IRCLogsDropdown = () => {
         leaveTo="transform opacity-0 scale-95"
       >
         <Menu.Items
-          className="absolute right-0 mt-2 bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700 rounded-md shadow-lg ring-1 ring-black ring-opacity-10 focus:outline-none"
+          className="absolute z-10 right-0 mt-2 bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700 rounded-md shadow-lg ring-1 ring-black ring-opacity-10 focus:outline-none"
         >
           <div className="p-3">
             <Menu.Item>
@@ -750,7 +750,6 @@ const IRCLogsDropdown = () => {
                 />
               )}
             </Menu.Item>
-
           </div>
         </Menu.Items>
       </Transition>
