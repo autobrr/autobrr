@@ -119,6 +119,7 @@ function APIListItem({ apikey }: ApiKeyItemProps) {
     <li className="text-gray-500 dark:text-gray-400">
       <DeleteModal
         isOpen={deleteModalIsOpen}
+        isLoading={deleteMutation.isLoading}
         toggle={toggleDeleteModal}
         buttonRef={cancelModalButtonRef}
         deleteAction={() => {

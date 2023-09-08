@@ -171,7 +171,7 @@ const IrcSettings = () => {
                 ? <span className="flex items-center">Collapse <ArrowsPointingInIcon className="ml-1 w-4 h-4"/></span>
                 : <span className="flex items-center">Expand <ArrowsPointingOutIcon className="ml-1 w-4 h-4"/></span>
               }</button>
-            <div className="relative z-10"><IRCLogsDropdown/></div>
+            <IRCLogsDropdown/>
           </div>
         </div>
 
@@ -478,6 +478,7 @@ const ListItemDropdown = ({
     >
       <DeleteModal
         isOpen={deleteModalIsOpen}
+        isLoading={deleteMutation.isLoading}
         toggle={toggleDeleteModal}
         buttonRef={cancelModalButtonRef}
         deleteAction={() => {
@@ -691,55 +692,45 @@ export const Events = ({ network, channel }: EventsProps) => {
     <div
       className={classNames(
         "dark:bg-gray-800 rounded-lg shadow-lg p-2",
-        isFullscreen ? "fixed top-0 left-0 w-screen h-screen z-50" : ""
+        isFullscreen ? "fixed top-0 left-0 right-0 bottom-0 w-screen h-screen z-50" : ""
       )}
     >
-      <div className="flex relative">
+      <div className="flex flex-row max-h-screen overflow-y-auto min-h-full">
+        <div
+          className={classNames(
+            "w-full overflow-auto mb-4 rounded-lg bg-gray-100 dark:bg-gray-900",
+            isFullscreen ? "p-2 border-4 border-gray-300 dark:border-gray-700" : "px-2 py-1 aspect-[2/1]"
+          )}
+        >
+          {logs.map((entry, idx) => (
+            <div
+              key={idx}
+              className={classNames(
+                settings.indentLogLines ? "grid justify-start grid-flow-col" : "",
+                settings.hideWrappedText ? "truncate hover:text-ellipsis hover:whitespace-normal" : ""
+              )}
+            >
+              <span className="mr-1 text-gray-700 dark:text-gray-500">
+                <span className="font-bold text-gray-500 dark:text-gray-600" title={simplifyDate(entry.time)}>{entry.nick}: </span>
+                <span className="font-mono">{entry.msg}</span>
+              </span>
+            </div>
+          ))}
+        </div>
+        <div className="display-none" ref={messagesEndRef} />
         <button
           className={classNames(
-            "dark:bg-gray-800 p-2 absolute top-2 right-2 mr-2 bg-gray-200 hover:bg-gray-300 dark:hover:bg-gray-700 hover:cursor-pointer rounded-md"
+            "h-fit max-h-full p-2 ml-2 mb-2 bg-gray-200 rounded-md hover:bg-gray-300 dark:bg-gray-800 dark:hover:bg-gray-700 hover:cursor-pointer"
           )}
           onClick={toggleFullscreen}
         >
-          {isFullscreen
-            ? <span className="flex items-center"><ArrowsPointingInIcon className="w-5 h-5"/></span>
-            : <span className="flex items-center"><ArrowsPointingOutIcon className="w-5 h-5"/></span>}
+          <span className="flex items-center">
+            {isFullscreen
+              ? <ArrowsPointingInIcon className="w-5 h-5"/>
+              : <ArrowsPointingOutIcon className="w-5 h-5"/>}
+          </span>
         </button>
       </div>
-      <div
-        className={classNames(
-          "overflow-y-auto rounded-lg min-w-full bg-gray-100 dark:bg-gray-900 overflow-auto",
-          isFullscreen ? "max-w-full h-full p-2 border-gray-300 dark:border-gray-700" : "px-2 py-1 aspect-[2/1]"
-        )}
-        ref={messagesEndRef}
-      >
-        {logs.map((entry, idx) => (
-          <div
-            key={idx}
-            className={classNames(
-              settings.indentLogLines ? "grid justify-start grid-flow-col" : "",
-              settings.hideWrappedText ? "truncate hover:text-ellipsis hover:whitespace-normal" : ""
-            )}
-          >
-            <span className="font-mono text-gray-500 dark:text-gray-500 mr-1"><span className="dark:text-gray-600"><span className="dark:text-gray-700">[{simplifyDate(entry.time)}]</span> {entry.nick}:</span> {entry.msg}</span>
-          </div>
-        ))}
-      </div>
-
-      {/*<div>*/}
-      {/*  <form onSubmit={handleSubmit(onSubmit)}>*/}
-      {/*    <input*/}
-      {/*      id="msg"*/}
-      {/*      {...(register && register("msg"))}*/}
-      {/*      type="text"*/}
-      {/*      minLength={2}*/}
-      {/*      className={classNames(*/}
-      {/*        "focus:ring-blue-500 dark:focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-500 border-gray-300 dark:border-gray-700",*/}
-      {/*        "block w-full dark:bg-gray-900 shadow-sm dark:text-gray-100 sm:text-sm rounded-md"*/}
-      {/*      )}*/}
-      {/*    />*/}
-      {/*  </form>*/}
-      {/*</div>*/}
     </div>
   );
 };
@@ -758,7 +749,7 @@ const IRCLogsDropdown = () => {
   }));
 
   return (
-    <Menu as="div">
+    <Menu as="div" className="relative">
       <Menu.Button>
         <button className="flex items-center text-gray-800 dark:text-gray-400 p-1 px-2 rounded shadow bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600">
           <span className="flex items-center">Options <Cog6ToothIcon className="ml-1 w-4 h-4"/></span>
@@ -774,7 +765,7 @@ const IRCLogsDropdown = () => {
         leaveTo="transform opacity-0 scale-95"
       >
         <Menu.Items
-          className="absolute right-0 mt-2 bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700 rounded-md shadow-lg ring-1 ring-black ring-opacity-10 focus:outline-none"
+          className="absolute z-10 right-0 mt-2 bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700 rounded-md shadow-lg ring-1 ring-black ring-opacity-10 focus:outline-none"
         >
           <div className="p-3">
             <Menu.Item>
