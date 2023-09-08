@@ -722,7 +722,7 @@ const IRCLogsDropdown = () => {
   }));
 
   return (
-    <Menu as="div">
+    <Menu as="div" className="relative">
       <Menu.Button>
         <button className="flex items-center text-gray-800 dark:text-gray-400 p-1 px-2 rounded shadow bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600">
           <span className="flex items-center">Options <Cog6ToothIcon className="ml-1 w-4 h-4"/></span>
