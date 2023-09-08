@@ -6,6 +6,7 @@
 import { Fragment, useEffect, useRef, useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Field, FieldArray, FieldProps, FormikValues, useFormikContext } from "formik";
+import type { FieldArrayRenderProps } from "formik";
 import { Dialog, Switch as SwitchBasic, Transition } from "@headlessui/react";
 import { ChevronRightIcon } from "@heroicons/react/24/solid";
 import { Link } from "react-router-dom";
@@ -70,13 +71,14 @@ export function FilterActions({ filter, values }: FilterActionsProps) {
     webhook_method: "",
     webhook_data: "",
     webhook_headers: [],
+    external_download_client_id: 0,
     client_id: 0
   };
 
   return (
     <div className="mt-10">
       <FieldArray name="actions">
-        {({ remove, push }) => (
+        {({ remove, push }: FieldArrayRenderProps) => (
           <Fragment>
             <div className="-ml-4 -mt-4 mb-6 flex justify-between items-center flex-wrap sm:flex-nowrap">
               <div className="ml-4 mt-4">
@@ -540,6 +542,11 @@ const TypeForm = ({ action, idx, clients }: TypeFormProps) => {
           name={`actions.${idx}.client_id`}
           action={action}
           clients={clients}
+        />
+        <NumberField
+            name={`actions.${idx}.external_download_client_id`}
+            label="Override download client id for arr"
+            tooltip={<p>Override Download client Id from the one set in Clients. Useful if you have multiple clients inside the arr.</p>}
         />
       </div>
     );

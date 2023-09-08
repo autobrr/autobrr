@@ -45,6 +45,7 @@ interface DownloadClientSettings {
   apikey?: string;
   basic?: DownloadClientBasicAuth;
   rules?: DownloadClientRules;
+  external_download_client_id?: number;
 }
 
 interface DownloadClient {

@@ -102,7 +102,7 @@ func (j *NewznabJob) process(ctx context.Context) error {
 
 		if item.Enclosure != nil {
 			if item.Enclosure.Type == "application/x-nzb" {
-				rls.TorrentURL = item.Enclosure.Url
+				rls.DownloadURL = item.Enclosure.Url
 			}
 		}
 
@@ -133,7 +133,7 @@ func (j *NewznabJob) getFeed(ctx context.Context) ([]newznab.FeedItem, error) {
 		j.Log.Error().Err(err).Msgf("error updating last run for feed id: %v", j.Feed.ID)
 	}
 
-	j.Log.Debug().Msgf("refreshing feed: %v, found (%d) items", j.Name, len(feed.Channel.Items))
+	j.Log.Debug().Msgf("refreshing feed: %s, found (%d) items", j.Name, len(feed.Channel.Items))
 
 	items := make([]newznab.FeedItem, 0)
 	if len(feed.Channel.Items) == 0 {
@@ -146,15 +146,16 @@ func (j *NewznabJob) getFeed(ctx context.Context) ([]newznab.FeedItem, error) {
 
 	for _, i := range feed.Channel.Items {
 		if i.GUID == "" {
-			j.Log.Error().Err(err).Msgf("missing GUID from feed: %s", j.Feed.Name)
+			j.Log.Error().Msgf("missing GUID from feed: %s", j.Feed.Name)
 			continue
 		}
 
-		exists, err := j.CacheRepo.Exists(j.Name, i.GUID)
+		exists, err := j.CacheRepo.Exists(j.Feed.ID, i.GUID)
 		if err != nil {
 			j.Log.Error().Err(err).Msg("could not check if item exists")
 			continue
 		}
+
 		if exists {
 			j.Log.Trace().Msgf("cache item exists, skipping release: %s", i.Title)
 			continue
@@ -165,7 +166,7 @@ func (j *NewznabJob) getFeed(ctx context.Context) ([]newznab.FeedItem, error) {
 		// set ttl to 1 month
 		ttl := time.Now().AddDate(0, 1, 0)
 
-		if err := j.CacheRepo.Put(j.Name, i.GUID, []byte(i.Title), ttl); err != nil {
+		if err := j.CacheRepo.Put(j.Feed.ID, i.GUID, []byte(i.Title), ttl); err != nil {
 			j.Log.Error().Stack().Err(err).Str("guid", i.GUID).Msg("cache.Put: error storing item in cache")
 			continue
 		}

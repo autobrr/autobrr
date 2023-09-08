@@ -7,9 +7,9 @@ replace github.com/r3labs/sse/v2 => github.com/autobrr/sse/v2 v2.0.0-20230520125
 require (
 	github.com/Masterminds/sprig/v3 v3.2.3
 	github.com/Masterminds/squirrel v1.5.4
-	github.com/anacrolix/torrent v1.52.4
+	github.com/anacrolix/torrent v1.52.5
 	github.com/asaskevich/EventBus v0.0.0-20200907212545-49d423059eef
-	github.com/autobrr/go-deluge v1.0.1
+	github.com/autobrr/go-deluge v1.1.0
 	github.com/autobrr/go-qbittorrent v1.3.3
 	github.com/autobrr/go-rtorrent v1.10.0
 	github.com/avast/retry-go v3.0.0+incompatible

@@ -64,7 +64,7 @@ const RowItemVersion = ({ label, value, title, newUpdate }: RowItemProps) => {
         <span className="px-1 py-0.5 bg-gray-200 dark:bg-gray-700 rounded shadow">{value}</span>
         {newUpdate && newUpdate.html_url && (
           <span>
-            <a href={newUpdate.html_url} target="_blank"><span className="ml-2 inline-flex items-center rounded-md bg-green-100 px-2.5 py-0.5 text-sm font-medium text-green-800">{newUpdate.name} available!</span></a>
+            <a href={newUpdate.html_url} target="_blank" rel="noopener noreferrer"><span className="ml-2 inline-flex items-center rounded-md bg-green-100 px-2.5 py-0.5 text-sm font-medium text-green-800">{newUpdate.name} available!</span></a>
           </span>
         )}
       </dd>
