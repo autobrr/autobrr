@@ -6,6 +6,7 @@ package database
 import (
 	"database/sql"
 	"fmt"
+	"os"
 
 	"github.com/autobrr/autobrr/pkg/errors"
 
@@ -50,6 +51,14 @@ func (db *DB) openSQLite() error {
 	// Enable foreign key checks. For historical reasons, SQLite does not check
 	// foreign key constraints by default. There's some overhead on inserts to
 	// verify foreign key integrity, but it's definitely worth it.
+
+	// Enable it for testing for consistency with postgres.
+	if os.Getenv("IS_TEST_ENV") == "true" {
+		if _, err = db.handler.Exec(`PRAGMA foreign_keys = ON;`); err != nil {
+			return errors.New("foreign keys pragma")
+		}
+	}
+
 	//if _, err = db.handler.Exec(`PRAGMA foreign_keys = ON;`); err != nil {
 	//	return errors.New("foreign keys pragma: %w", err)
 	//}
