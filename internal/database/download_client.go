@@ -278,7 +278,7 @@ func (r *DownloadClientRepo) Delete(ctx context.Context, clientID int) error {
 		return errors.Wrap(err, "error deleting download client: %d", clientID)
 	}
 
-	r.log.Info().Msgf("delete download client: %d", clientID)
+	r.log.Debug().Msgf("delete download client: %d", clientID)
 
 	return nil
 }
