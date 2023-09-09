@@ -278,27 +278,37 @@ func (r *DownloadClientRepo) Delete(ctx context.Context, clientID int) error {
 		return err
 	}
 
-	defer func(tx *Tx) {
-		err := tx.Rollback()
-		if err != nil {
-			r.log.Error().Err(err).Msg("error rolling back transaction")
+	defer func() {
+		var txErr error
+		if p := recover(); p != nil {
+			txErr = tx.Rollback()
+			if txErr != nil {
+				r.log.Error().Err(txErr).Msg("error rolling back transaction")
+			}
+			r.log.Error().Msgf("something went terribly wrong panic: %v", p)
+		} else if err != nil {
+			txErr = tx.Rollback()
+			if txErr != nil {
+				r.log.Error().Err(txErr).Msg("error rolling back transaction")
+			}
+		} else {
+			// All good, commit
+			txErr = tx.Commit()
+			if txErr != nil {
+				r.log.Error().Err(txErr).Msg("error committing transaction")
+			}
 		}
-	}(tx)
+	}()
 
-	if err := r.delete(ctx, tx, clientID); err != nil {
+	if err = r.delete(ctx, tx, clientID); err != nil {
 		return errors.Wrap(err, "error deleting download client: %d", clientID)
 	}
 
-	if err := r.deleteClientFromAction(ctx, tx, clientID); err != nil {
-		return errors.Wrap(err, "error deleting download client: %d", clientID)
-	}
-
-	if err := tx.Commit(); err != nil {
+	if err = r.deleteClientFromAction(ctx, tx, clientID); err != nil {
 		return errors.Wrap(err, "error deleting download client: %d", clientID)
 	}
 
 	r.log.Debug().Msgf("delete download client: %d", clientID)
-
 	return nil
 }
 
