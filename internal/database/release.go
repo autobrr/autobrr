@@ -152,7 +152,11 @@ func (repo *ReleaseRepo) findReleases(ctx context.Context, tx *Tx, params domain
 		}
 
 		if len(search) != 0 {
-			whereQueryBuilder = append(whereQueryBuilder, sq.Like{"r.torrent_name": search + "%"})
+			if len(whereQueryBuilder) > 1 {
+				whereQueryBuilder = append(whereQueryBuilder, ILike{"r.torrent_name": "%" + search + "%"})
+			} else {
+				whereQueryBuilder = append(whereQueryBuilder, ILike{"r.torrent_name": search + "%"})
+			}
 		}
 	}
 
