@@ -7,6 +7,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"os"
 	"sync"
 
 	"github.com/autobrr/autobrr/internal/domain"
@@ -44,7 +45,11 @@ func NewDB(cfg *domain.Config, log logger.Logger) (*DB, error) {
 	case "sqlite":
 		databaseDriver = "sqlite"
 		db.Driver = "sqlite"
-		db.DSN = dataSourceName(cfg.ConfigPath, "autobrr.db")
+		if os.Getenv("IS_TEST_ENV") == "true" {
+			db.DSN = ":memory:"
+		} else {
+			db.DSN = dataSourceName(cfg.ConfigPath, "autobrr.db")
+		}
 	case "postgres":
 		if cfg.PostgresHost == "" || cfg.PostgresPort == 0 || cfg.PostgresDatabase == "" {
 			return nil, errors.New("postgres: bad variables")
