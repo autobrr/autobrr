@@ -59,7 +59,7 @@ func main() {
 	serverEvents.CreateStreamWithOpts("logs", sse.StreamOpts{MaxEntries: 1000, AutoReplay: true})
 
 	// register SSE hook on logger
-	log.RegisterSSEHook(serverEvents)
+	log.RegisterSSEWriter(serverEvents)
 
 	// setup internal eventbus
 	bus := EventBus.New()
