@@ -42,7 +42,7 @@ export const Base = () => {
   });
 
 
-  const { data: updateData } = useQuery({
+  const { data } = useQuery({
     queryKey: ["updates"],
     queryFn: () => APIClient.updates.getLatestRelease(),
     retry: false,
@@ -216,12 +216,12 @@ export const Base = () => {
                 </div>
               </div>
 
-              {updateData?.html_url && (
-                <a href={updateData.html_url} target="_blank" rel="noopener noreferrer">
+              {data && data?.html_url && (
+                <a href={data.html_url} target="_blank" rel="noopener noreferrer">
                   <div className="flex mt-4 py-2 bg-blue-500 rounded justify-center">
                     <MegaphoneIcon className="h-6 w-6 text-blue-100"/>
                     <span className="text-blue-100 font-medium mx-3">New update available!</span>
-                    <span className="inline-flex items-center rounded-md bg-blue-100 px-2.5 py-0.5 text-sm font-medium text-blue-800">{updateData?.name}</span>
+                    <span className="inline-flex items-center rounded-md bg-blue-100 px-2.5 py-0.5 text-sm font-medium text-blue-800">{data?.name}</span>
                   </div>
                 </a>
               )}
