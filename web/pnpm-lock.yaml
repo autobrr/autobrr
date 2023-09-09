@@ -8,9 +8,6 @@ overrides:
   react: ^18.2.0
 
 dependencies:
-  '@fontsource-variable/inter':
-    specifier: ^5.0.8
-    version: 5.0.8
   '@headlessui/react':
     specifier: ^1.7.17
     version: 1.7.17(react-dom@18.2.0)(react@18.2.0)
@@ -89,9 +86,6 @@ dependencies:
   postcss:
     specifier: ^8.4.29
     version: 8.4.29
-  postcss-import:
-    specifier: ^15.1.0
-    version: 15.1.0(postcss@8.4.29)
   react:
     specifier: ^18.2.0
     version: 18.2.0
@@ -1797,10 +1791,6 @@ packages:
 
   /@floating-ui/utils@0.1.1:
     resolution: {integrity: sha512-m0G6wlnhm/AX0H12IOWtK8gASEMffnX08RtKkCgTdHb9JpHKGloI7icFfLg9ZmQeavcvR0PKmzxClyuFPSjKWw==}
-    dev: false
-
-  /@fontsource-variable/inter@5.0.8:
-    resolution: {integrity: sha512-WkYfFNccmEIeL2fNg0mYeLWqOoB7xD8MFxFRc4IwbSP2o8ZaBt36v5aW4by4MyrgGRMNk7uNi5LbvYKq6clPjw==}
     dev: false
 
   /@headlessui/react@1.7.17(react-dom@18.2.0)(react@18.2.0):
