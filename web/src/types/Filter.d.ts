@@ -102,8 +102,9 @@ interface Action {
   webhook_method: string;
   webhook_data: string,
   webhook_headers: string[];
-  filter_id?: number;
+  external_download_client_id?: number;
   client_id?: number;
+  filter_id?: number;
 }
 
 type ActionContentLayout = "ORIGINAL" | "SUBFOLDER_CREATE" | "SUBFOLDER_NONE";

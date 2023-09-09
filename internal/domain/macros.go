@@ -12,6 +12,7 @@ import (
 	"github.com/autobrr/autobrr/pkg/errors"
 
 	"github.com/Masterminds/sprig/v3"
+	"github.com/dustin/go-humanize"
 )
 
 type Macro struct {
@@ -23,6 +24,8 @@ type Macro struct {
 	TorrentDataRawBytes []byte
 	MagnetURI           string
 	GroupID             string
+	DownloadUrl         string
+	InfoUrl             string
 	Indexer             string
 	Title               string
 	Category            string
@@ -32,6 +35,7 @@ type Macro struct {
 	HDR                 string
 	FilterName          string
 	Size                uint64
+	SizeString          string
 	Season              int
 	Episode             int
 	Year                int
@@ -48,13 +52,15 @@ func NewMacro(release Release) Macro {
 
 	ma := Macro{
 		TorrentName:         release.TorrentName,
-		TorrentUrl:          release.TorrentURL,
+		TorrentUrl:          release.DownloadURL,
 		TorrentPathName:     release.TorrentTmpFile,
 		TorrentDataRawBytes: release.TorrentDataRawBytes,
 		TorrentHash:         release.TorrentHash,
 		TorrentID:           release.TorrentID,
 		MagnetURI:           release.MagnetURI,
 		GroupID:             release.GroupID,
+		InfoUrl:             release.InfoURL,
+		DownloadUrl:         release.DownloadURL,
 		Indexer:             release.Indexer,
 		Title:               release.Title,
 		Category:            release.Category,
@@ -64,6 +70,7 @@ func NewMacro(release Release) Macro {
 		HDR:                 strings.Join(release.HDR, ", "),
 		FilterName:          release.FilterName,
 		Size:                release.Size,
+		SizeString:          humanize.Bytes(release.Size),
 		Season:              release.Season,
 		Episode:             release.Episode,
 		Year:                release.Year,

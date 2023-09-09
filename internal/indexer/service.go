@@ -76,7 +76,6 @@ func NewService(log logger.Logger, config *domain.Config, repo domain.IndexerRep
 }
 
 func (s *service) Store(ctx context.Context, indexer domain.Indexer) (*domain.Indexer, error) {
-
 	// if indexer is rss or torznab do additional cleanup for identifier
 	switch indexer.Implementation {
 	case "torznab", "newznab", "rss":
@@ -84,18 +83,18 @@ func (s *service) Store(ctx context.Context, indexer domain.Indexer) (*domain.In
 		cleanName := strings.ToLower(indexer.Name)
 
 		// torznab-name OR rss-name
-		indexer.Identifier = slug.Make(fmt.Sprintf("%v-%v", indexer.Implementation, cleanName))
+		indexer.Identifier = slug.Make(fmt.Sprintf("%s-%s", indexer.Implementation, cleanName))
 	}
 
 	i, err := s.repo.Store(ctx, indexer)
 	if err != nil {
-		s.log.Error().Stack().Err(err).Msgf("failed to store indexer: %v", indexer.Name)
+		s.log.Error().Err(err).Msgf("failed to store indexer: %s", indexer.Name)
 		return nil, err
 	}
 
 	// add to indexerInstances
 	if err = s.addIndexer(*i); err != nil {
-		s.log.Error().Stack().Err(err).Msgf("failed to add indexer: %v", indexer.Name)
+		s.log.Error().Err(err).Msgf("failed to add indexer: %s", indexer.Name)
 		return nil, err
 	}
 
@@ -111,7 +110,7 @@ func (s *service) Update(ctx context.Context, indexer domain.Indexer) (*domain.I
 
 	// add to indexerInstances
 	if err = s.updateIndexer(*i); err != nil {
-		s.log.Error().Err(err).Msgf("failed to add indexer: %v", indexer.Name)
+		s.log.Error().Err(err).Msgf("failed to add indexer: %s", indexer.Name)
 		return nil, err
 	}
 
@@ -121,7 +120,7 @@ func (s *service) Update(ctx context.Context, indexer domain.Indexer) (*domain.I
 		}
 	}
 
-	s.log.Debug().Msgf("successfully updated indexer: %v", indexer.Name)
+	s.log.Debug().Msgf("successfully updated indexer: %s", indexer.Name)
 
 	return i, nil
 }
@@ -133,7 +132,7 @@ func (s *service) Delete(ctx context.Context, id int) error {
 	}
 
 	if err := s.repo.Delete(ctx, id); err != nil {
-		s.log.Error().Err(err).Msgf("could not delete indexer by id: %v", id)
+		s.log.Error().Err(err).Msgf("could not delete indexer by id: %d", id)
 		return err
 	}
 
@@ -150,7 +149,7 @@ func (s *service) Delete(ctx context.Context, id int) error {
 func (s *service) FindByFilterID(ctx context.Context, id int) ([]domain.Indexer, error) {
 	indexers, err := s.repo.FindByFilterID(ctx, id)
 	if err != nil {
-		s.log.Error().Err(err).Msgf("could not find indexers by filter id: %v", id)
+		s.log.Error().Err(err).Msgf("could not find indexers by filter id: %d", id)
 		return nil, err
 	}
 
@@ -160,7 +159,7 @@ func (s *service) FindByFilterID(ctx context.Context, id int) ([]domain.Indexer,
 func (s *service) FindByID(ctx context.Context, id int) (*domain.Indexer, error) {
 	indexers, err := s.repo.FindByID(ctx, id)
 	if err != nil {
-		s.log.Error().Err(err).Msgf("could not find indexer by id: %v", id)
+		s.log.Error().Err(err).Msgf("could not find indexer by id: %d", id)
 		return nil, err
 	}
 
@@ -340,7 +339,7 @@ func (s *service) Start() error {
 			// check if it has api and add to api service
 			if indexer.Enabled && indexer.HasApi() {
 				if err := s.ApiService.AddClient(indexer.Identifier, indexer.SettingsMap); err != nil {
-					s.log.Error().Stack().Err(err).Msgf("indexer.start: could not init api client for: '%v'", indexer.Identifier)
+					s.log.Error().Stack().Err(err).Msgf("indexer.start: could not init api client for: '%s'", indexer.Identifier)
 				}
 			}
 		}
@@ -391,7 +390,7 @@ func (s *service) addIndexer(indexer domain.Indexer) error {
 		// check if it has api and add to api service
 		if indexerDefinition.HasApi() {
 			if err := s.ApiService.AddClient(indexerDefinition.Identifier, indexerDefinition.SettingsMap); err != nil {
-				s.log.Error().Stack().Err(err).Msgf("indexer.start: could not init api client for: '%v'", indexer.Identifier)
+				s.log.Error().Stack().Err(err).Msgf("indexer.start: could not init api client for: '%s'", indexer.Identifier)
 			}
 		}
 	}
@@ -481,18 +480,18 @@ func (s *service) LoadIndexerDefinitions() error {
 
 		file := "definitions/" + f.Name()
 
-		s.log.Trace().Msgf("parsing: %v", file)
+		s.log.Trace().Msgf("parsing: %s", file)
 
 		data, err := fs.ReadFile(Definitions, file)
 		if err != nil {
-			s.log.Error().Stack().Err(err).Msgf("failed reading file: %v", file)
-			return errors.Wrap(err, "could not read file: %v", file)
+			s.log.Error().Stack().Err(err).Msgf("failed reading file: %s", file)
+			return errors.Wrap(err, "could not read file: %s", file)
 		}
 
 		var d domain.IndexerDefinition
 		if err = yaml.Unmarshal(data, &d); err != nil {
-			s.log.Error().Stack().Err(err).Msgf("failed unmarshal file: %v", file)
-			return errors.Wrap(err, "could not unmarshal file: %v", file)
+			s.log.Error().Stack().Err(err).Msgf("failed unmarshal file: %s", file)
+			return errors.Wrap(err, "could not unmarshal file: %s", file)
 		}
 
 		if d.Implementation == "" {
@@ -515,7 +514,7 @@ func (s *service) LoadCustomIndexerDefinitions() error {
 
 	outputDirRead, err := os.Open(s.config.CustomDefinitions)
 	if err != nil {
-		s.log.Warn().Stack().Msgf("failed opening custom definitions directory %q: %s", s.config.CustomDefinitions, err)
+		s.log.Error().Err(err).Msgf("failed opening custom definitions directory %s", s.config.CustomDefinitions)
 		return nil
 	}
 
@@ -538,22 +537,22 @@ func (s *service) LoadCustomIndexerDefinitions() error {
 
 		file := filepath.Join(s.config.CustomDefinitions, f.Name())
 
-		s.log.Trace().Msgf("parsing custom: %v", file)
+		s.log.Trace().Msgf("parsing custom: %s", file)
 
 		data, err := os.ReadFile(file)
 		if err != nil {
-			s.log.Error().Stack().Err(err).Msgf("failed reading file: %v", file)
-			return errors.Wrap(err, "could not read file: %v", file)
+			s.log.Error().Stack().Err(err).Msgf("failed reading file: %s", file)
+			return errors.Wrap(err, "could not read file: %s", file)
 		}
 
 		var d *domain.IndexerDefinitionCustom
 		if err = yaml.Unmarshal(data, &d); err != nil {
-			s.log.Error().Stack().Err(err).Msgf("failed unmarshal file: %v", file)
-			return errors.Wrap(err, "could not unmarshal file: %v", file)
+			s.log.Error().Stack().Err(err).Msgf("failed unmarshal file: %s", file)
+			return errors.Wrap(err, "could not unmarshal file: %s", file)
 		}
 
 		if d == nil {
-			s.log.Warn().Stack().Err(err).Msgf("skipping empty file: %v", file)
+			s.log.Warn().Stack().Err(err).Msgf("skipping empty file: %s", file)
 			continue
 		}
 
@@ -563,7 +562,7 @@ func (s *service) LoadCustomIndexerDefinitions() error {
 
 		// to prevent crashing from non-updated definitions lets skip
 		if d.Implementation == "irc" && d.IRC.Parse == nil {
-			s.log.Warn().Msgf("DEPRECATED: indexer definition version: %v", file)
+			s.log.Warn().Msgf("DEPRECATED: indexer definition version: %s", file)
 		}
 
 		s.definitions[d.Identifier] = *d.ToIndexerDefinition()

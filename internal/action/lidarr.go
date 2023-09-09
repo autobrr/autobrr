@@ -43,18 +43,27 @@ func (s *service) lidarr(ctx context.Context, action *domain.Action, release dom
 		cfg.Password = client.Settings.Basic.Password
 	}
 
-	arr := lidarr.New(cfg)
+	externalId := 0
+	if client.Settings.ExternalDownloadClientId > 0 {
+		externalId = client.Settings.ExternalDownloadClientId
+	} else if action.ExternalDownloadClientID > 0 {
+		externalId = int(action.ExternalDownloadClientID)
+	}
 
 	r := lidarr.Release{
 		Title:            release.TorrentName,
-		DownloadUrl:      release.TorrentURL,
+		InfoUrl:          release.InfoURL,
+		DownloadUrl:      release.DownloadURL,
 		MagnetUrl:        release.MagnetURI,
 		Size:             int64(release.Size),
 		Indexer:          release.Indexer,
-		DownloadProtocol: "torrent",
-		Protocol:         "torrent",
+		DownloadClientId: externalId,
+		DownloadProtocol: string(release.Protocol),
+		Protocol:         string(release.Protocol),
 		PublishDate:      time.Now().Format(time.RFC3339),
 	}
+
+	arr := lidarr.New(cfg)
 
 	rejections, err := arr.Push(ctx, r)
 	if err != nil {

@@ -22,7 +22,7 @@ settings:
 irc:
   network: iPLAY
   server: irc.iplay.ro
-  port: 6667
+  port: 6668
   tls: false
   channels:
     - "#metal"

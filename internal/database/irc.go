@@ -38,7 +38,7 @@ func (r *IrcRepo) GetNetworkByID(ctx context.Context, id int64) (*domain.IrcNetw
 	if err != nil {
 		return nil, errors.Wrap(err, "error building query")
 	}
-	r.log.Trace().Str("database", "irc.check_existing_network").Msgf("query: '%v', args: '%v'", query, args)
+	r.log.Trace().Str("database", "irc.check_existing_network").Msgf("query: '%s', args: '%v'", query, args)
 
 	var n domain.IrcNetwork
 
@@ -243,13 +243,14 @@ func (r *IrcRepo) CheckExistingNetwork(ctx context.Context, network *domain.IrcN
 		Select("id", "enabled", "name", "server", "port", "tls", "pass", "nick", "auth_mechanism", "auth_account", "auth_password", "invite_command", "bouncer_addr", "use_bouncer").
 		From("irc_network").
 		Where(sq.Eq{"server": network.Server}).
-		Where(sq.Eq{"auth_account": network.Auth.Account})
+		Where(sq.Eq{"port": network.Port}).
+		Where(sq.Eq{"nick": network.Nick})
 
 	query, args, err := queryBuilder.ToSql()
 	if err != nil {
 		return nil, errors.Wrap(err, "error building query")
 	}
-	r.log.Trace().Str("database", "irc.checkExistingNetwork").Msgf("query: '%v', args: '%v'", query, args)
+	r.log.Trace().Str("database", "irc.checkExistingNetwork").Msgf("query: '%s', args: '%v'", query, args)
 
 	row := r.db.handler.QueryRowContext(ctx, query, args...)
 

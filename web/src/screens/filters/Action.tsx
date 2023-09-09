@@ -71,6 +71,7 @@ export function FilterActions({ filter, values }: FilterActionsProps) {
     webhook_method: "",
     webhook_data: "",
     webhook_headers: [],
+    external_download_client_id: 0,
     client_id: 0
   };
 
@@ -541,6 +542,11 @@ const TypeForm = ({ action, idx, clients }: TypeFormProps) => {
           name={`actions.${idx}.client_id`}
           action={action}
           clients={clients}
+        />
+        <NumberField
+            name={`actions.${idx}.external_download_client_id`}
+            label="Override download client id for arr"
+            tooltip={<p>Override Download client Id from the one set in Clients. Useful if you have multiple clients inside the arr.</p>}
         />
       </div>
     );

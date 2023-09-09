@@ -204,6 +204,7 @@ CREATE TABLE action
     webhook_type            TEXT,
     webhook_data            TEXT,
     webhook_headers         TEXT[] DEFAULT '{}',
+    external_client_id      INTEGER,
     client_id               INTEGER,
     filter_id               INTEGER,
     FOREIGN KEY (filter_id) REFERENCES filter (id),
@@ -346,11 +347,15 @@ CREATE TABLE feed
 
 CREATE TABLE feed_cache
 (
-	bucket TEXT,
-	key    TEXT,
-	value  TEXT,
-	ttl    TIMESTAMP
+	feed_id INTEGER NOT NULL,
+	key     TEXT,
+	value   TEXT,
+	ttl     TIMESTAMP,
+	FOREIGN KEY (feed_id) REFERENCES feed (id) ON DELETE cascade
 );
+
+CREATE INDEX feed_cache_feed_id_key_index
+    ON feed_cache (feed_id, key);
 
 CREATE TABLE api_key
 (
@@ -1326,5 +1331,22 @@ drop table filter;
 
 alter table filter_dg_tmp
     rename to filter;
+`,
+	`DROP TABLE IF EXISTS feed_cache;
+
+CREATE TABLE feed_cache
+(
+	feed_id INTEGER NOT NULL,
+	key     TEXT,
+	value   TEXT,
+	ttl     TIMESTAMP,
+	FOREIGN KEY (feed_id) REFERENCES feed (id) ON DELETE cascade
+);
+
+CREATE INDEX feed_cache_feed_id_key_index
+    ON feed_cache (feed_id, key);
+`,
+	`ALTER TABLE action
+ADD COLUMN external_client_id INTEGER;
 `,
 }
