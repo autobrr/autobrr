@@ -93,7 +93,12 @@ func (r *DownloadClientRepo) List(ctx context.Context) ([]domain.DownloadClient,
 		return nil, errors.Wrap(err, "error executing query")
 	}
 
-	defer rows.Close()
+	defer func(rows *sql.Rows) {
+		err := rows.Close()
+		if err != nil {
+			r.log.Error().Err(err).Msg("error closing rows")
+		}
+	}(rows)
 
 	for rows.Next() {
 		var f domain.DownloadClient
@@ -273,7 +278,12 @@ func (r *DownloadClientRepo) Delete(ctx context.Context, clientID int) error {
 		return err
 	}
 
-	defer tx.Rollback()
+	defer func(tx *Tx) {
+		err := tx.Rollback()
+		if err != nil {
+			r.log.Error().Err(err).Msg("error rolling back transaction")
+		}
+	}(tx)
 
 	if err := r.delete(ctx, tx, clientID); err != nil {
 		return errors.Wrap(err, "error deleting download client: %d", clientID)
