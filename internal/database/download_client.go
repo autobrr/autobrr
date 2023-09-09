@@ -245,9 +245,18 @@ func (r *DownloadClientRepo) Update(ctx context.Context, client domain.DownloadC
 		return nil, errors.Wrap(err, "error building query")
 	}
 
-	_, err = r.db.handler.ExecContext(ctx, query, args...)
+	result, err := r.db.handler.ExecContext(ctx, query, args...)
 	if err != nil {
 		return nil, errors.Wrap(err, "error executing query")
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return nil, errors.Wrap(err, "error getting rows affected")
+	}
+
+	if rowsAffected == 0 {
+		return nil, errors.New("no rows updated")
 	}
 
 	r.log.Debug().Msgf("download_client.update: %d", client.ID)
