@@ -1354,7 +1354,7 @@ func (r *FilterRepo) Delete(ctx context.Context, filterID int) error {
 		return errors.Wrap(err, "error executing query")
 	}
 
-	r.log.Info().Msgf("filter.delete: successfully deleted: %v", filterID)
+	r.log.Debug().Msgf("filter.delete: successfully deleted: %v", filterID)
 
 	return nil
 }
