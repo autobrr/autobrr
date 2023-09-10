@@ -17,11 +17,20 @@ import { RightNav } from "./RightNav";
 import { MobileNav } from "./MobileNav";
 
 export const Header = () => {
+  const { data: config } = useQuery({
+    queryKey: ["config"],
+    queryFn: () => APIClient.config.get(),
+    retry: false,
+    refetchOnWindowFocus: false,
+    onError: err => console.log(err)
+  });
+
   const { data } = useQuery({
     queryKey: ["updates"],
     queryFn: () => APIClient.updates.getLatestRelease(),
     retry: false,
     refetchOnWindowFocus: false,
+    enabled: config?.check_for_updates === true,
     onError: err => console.log(err)
   });
 
@@ -67,7 +76,7 @@ export const Header = () => {
               </div>
             </div>
 
-            {data && data.html_url && (
+            {data?.html_url && (
               <a href={data.html_url} target="_blank" rel="noopener noreferrer">
                 <div className="flex mt-4 py-2 bg-blue-500 rounded justify-center">
                   <MegaphoneIcon className="h-6 w-6 text-blue-100" />
@@ -82,5 +91,5 @@ export const Header = () => {
         </>
       )}
     </Disclosure>
-  )
-}
+  );
+};
