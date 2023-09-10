@@ -53,33 +53,23 @@ function ContextMerger<T extends {}>(
   defaults: T,
   ctxState: StateWithValue<T>
 ) {
+  let values = defaults;
+
   const storage = localStorage.getItem(key);
-  if (!storage) {
-    // Nothing to do. We already have a value thanks to react-ridge-state.
-    return;
-  }
-
-  try {
-    const json = JSON.parse(storage);
-    if (json === null) {
-      console.warn(`JSON localStorage value for '${key}' context state is null`);
-      return;
-    }
-  
-    Object.keys(defaults).forEach((key) => {
-      const propName = key as unknown as keyof T;
-
-      // Check if JSON in localStorage is missing newly added key
-      if (!Object.prototype.hasOwnProperty.call(json, key)) {
-        // ... and default-initialize it.
-        json[propName] = defaults[propName];
+  if (storage) {
+    try {
+      const json = JSON.parse(storage);
+      if (json === null) {
+        console.warn(`JSON localStorage value for '${key}' context state is null`);
+      } else {
+        values = { ...defaults, ...json };
       }
-    });
-
-    ctxState.set(json);
-  } catch (e) {
-    console.error(`Failed to merge ${key} context state: ${e}`);
+    } catch (e) {
+      console.error(`Failed to merge ${key} context state: ${e}`);
+    }
   }
+  
+  ctxState.set(values);
 }
 
 export const InitializeGlobalContext = () => {
