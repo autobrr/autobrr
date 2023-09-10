@@ -5,8 +5,8 @@
 
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
+import { Buffer } from "buffer";
 
-import "@fontsource-variable/inter";
 import "./index.css";
 import "react-tooltip/dist/react-tooltip.css";
 
@@ -18,6 +18,9 @@ declare global {
 }
 
 window.APP = window.APP || {};
+// Apparently Stacktracey requires this for some weird reason
+// (at least in local dev env)
+window.Buffer = Buffer;
 
 // Initializes auth and theme contexts
 InitializeGlobalContext();
