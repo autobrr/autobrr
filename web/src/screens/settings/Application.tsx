@@ -88,6 +88,7 @@ function ApplicationSettings() {
     queryFn: APIClient.updates.getLatestRelease,
     retry: false,
     refetchOnWindowFocus: false,
+    enabled: data?.check_for_updates === true,
     onError: err => console.log(err)
   });
 

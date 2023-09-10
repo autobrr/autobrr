@@ -64,7 +64,7 @@ function NotificationSettings() {
                 <div className="hidden md:flex col-span-3 px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Events</div>
               </li>
 
-              {data && data.map((n: Notification) => (
+              {data && data.map((n: ServiceNotification) => (
                 <ListItem key={n.id} notification={n} />
               ))}
             </ol>
@@ -108,7 +108,7 @@ const iconComponentMap: componentMapType = {
 };
 
 interface ListItemProps {
-  notification: Notification;
+  notification: ServiceNotification;
 }
 
 function ListItem({ notification }: ListItemProps) {
@@ -117,8 +117,8 @@ function ListItem({ notification }: ListItemProps) {
   const queryClient = useQueryClient();
 
   const mutation = useMutation({
-    mutationFn: (notification: Notification) => APIClient.notifications.update(notification).then(() => notification),
-    onSuccess: (notification: Notification) => {
+    mutationFn: (notification: ServiceNotification) => APIClient.notifications.update(notification).then(() => notification),
+    onSuccess: (notification: ServiceNotification) => {
       toast.custom(t => <Toast type="success" body={`${notification.name} was ${notification.enabled ? "enabled" : "disabled"} successfully.`} t={t} />);
       queryClient.invalidateQueries({ queryKey: notificationKeys.lists() });
     }
