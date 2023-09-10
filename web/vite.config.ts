@@ -19,8 +19,8 @@ export default ({ mode }: ConfigEnv) => {
   return defineConfig({
     base: "",
     plugins: [react(), svgr(), VitePWA({
-      registerType: "autoUpdate",
-      injectRegister: "inline",
+      injectRegister: null,
+      selfDestroying: true,
       scope: "{{.BaseUrl}}",
       // strategies: "injectManifest",
       useCredentials: true,
