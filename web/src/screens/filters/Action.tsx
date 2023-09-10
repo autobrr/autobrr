@@ -102,10 +102,10 @@ export function FilterActions({ filter, values }: FilterActionsProps) {
               {values.actions.length > 0 ?
                 <ul className="divide-y divide-gray-200 dark:divide-gray-700">
                   {values.actions.map((action: Action, index: number) => (
-                    <FilterActionsItem action={action} clients={data ?? []} idx={index} initialEdit={values.actions.length === 1} remove={remove} key={index}/>
+                    <FilterActionsItem action={action} clients={data ?? []} idx={index} initialEdit={values.actions.length === 1} remove={remove} key={index} />
                   ))}
                 </ul>
-                : <EmptyListState text="No actions yet!"/>
+                : <EmptyListState text="No actions yet!" />
               }
             </div>
           </Fragment>
@@ -122,7 +122,7 @@ interface TypeFormProps {
 }
 
 const TypeForm = ({ action, idx, clients }: TypeFormProps) => {
-  const { setFieldValue  } = useFormikContext();
+  const { setFieldValue } = useFormikContext();
 
   const resetClientField = (action: Action, idx: number, prevActionType: string): void => {
     const fieldName = `actions.${idx}.client_id`;
@@ -544,9 +544,9 @@ const TypeForm = ({ action, idx, clients }: TypeFormProps) => {
           clients={clients}
         />
         <NumberField
-            name={`actions.${idx}.external_download_client_id`}
-            label="Override download client id for arr"
-            tooltip={<p>Override Download client Id from the one set in Clients. Useful if you have multiple clients inside the arr.</p>}
+          name={`actions.${idx}.external_download_client_id`}
+          label="Override download client id for arr"
+          tooltip={<p>Override Download client Id from the one set in Clients. Useful if you have multiple clients inside the arr.</p>}
         />
       </div>
     );
@@ -648,7 +648,7 @@ function FilterActionsItem({ action, clients, idx, initialEdit, remove }: Filter
           <div className="min-w-0 flex-1 sm:flex sm:items-center sm:justify-between">
             <div className="truncate">
               <div className="flex text-sm">
-                <p className="ml-4 font-medium text-blue-600 dark:text-gray-100 truncate">
+                <p className="ml-4 font-medium text-dark-600 dark:text-gray-100 truncate">
                   {action.name}
                 </p>
               </div>
@@ -683,6 +683,7 @@ function FilterActionsItem({ action, clients, idx, initialEdit, remove }: Filter
             >
               <DeleteModal
                 isOpen={deleteModalIsOpen}
+                isLoading={removeMutation.isLoading}
                 buttonRef={cancelButtonRef}
                 toggle={toggleDeleteModal}
                 deleteAction={() => removeAction(action.id)}
@@ -706,13 +707,13 @@ function FilterActionsItem({ action, clients, idx, initialEdit, remove }: Filter
               <TextField name={`actions.${idx}.name`} label="Name" columns={6} />
             </div>
 
-            <TypeForm action={action} clients={clients} idx={idx}/>
+            <TypeForm action={action} clients={clients} idx={idx} />
 
             <div className="pt-6 divide-y divide-gray-200">
               <div className="mt-4 pt-4 flex justify-between">
                 <button
                   type="button"
-                  className="inline-flex items-center justify-center py-2 border border-transparent font-medium rounded-md text-red-700 dark:text-red-500 hover:text-red-500 dark:hover:text-red-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:text-sm"
+                  className="inline-flex items-center justify-center px-4 py-2 rounded-md sm:text-sm bg-red-700 dark:bg-red-900 hover:dark:bg-red-700 hover:bg-red-800 text-white focus:outline-none"
                   onClick={toggleDeleteModal}
                 >
                   Remove

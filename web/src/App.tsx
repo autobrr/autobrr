@@ -21,7 +21,8 @@ const queryClient = new QueryClient({
       // See https://tanstack.com/query/v4/docs/guides/query-retries#retry-delay
       // delay = Math.min(1000 * 2 ** attemptIndex, 30000)
       retry: true,
-      useErrorBoundary: true
+      useErrorBoundary: true,
+      suspense: true,
     },
     mutations: {
       onError: (error) => {
