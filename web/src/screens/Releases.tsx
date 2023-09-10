@@ -48,9 +48,9 @@ export const Releases = () => {
             <div className={"rounded-t-md py-1 px-2 rounded-b-md bg-white dark:bg-gray-900"}>
               You can use <b>2</b> special <span className="underline decoration-2 underline-offset-2 decoration-amber-500">wildcard characters</span> for the purpose of pattern matching.
               <br />
-              - Percent (<Code>%</Code>) - for matching any sequence of characters (equivalent to <kbd>*</kbd> in Regex)
+              - Percent (<Code>%</Code>) - for matching any <i>sequence</i> of characters (equivalent to <Code>*</Code> in Regex)
               <br />
-              - Underscore (<Code>_</Code>) - for matching any <i>single</i> character
+              - Underscore (<Code>_</Code>) - for matching any <i>single</i> character (equivalent to <Code>.</Code> in Regex)
               <br /><br />
 
               Additionally, autobrr supports <span className="underline decoration-2 underline-offset-2 decoration-lime-500">keyword faceting</span>.
@@ -69,9 +69,9 @@ export const Releases = () => {
               <br />
               <Code>The Show season:05 episode:03</Code> (all releases starting with "The Show" related to S05E03)
               <br />
-              <Code>%collection hd%</Code> (all releases containing "collection hd" - in the same order of words - and with a space!)
+              <Code>%collection hd%</Code> (all releases containing "collection hd" - in the same order - and with a space!)
               <br />
-              <Code>%collection_hd%</Code> (all releases containing "collection" and "hd" - in the same order of words - but with a wildcard character in between, e.g. a space <b>OR</b> a dot <b>OR</b> any other character)
+              <Code>%collection_hd%</Code> (all releases containing "collection" <b>AND</b> "hd" - in the same order - but with a wildcard character in between, e.g. a space <b>OR</b> a dot <b>OR</b> any other character)
 
               <br /><br />
 
