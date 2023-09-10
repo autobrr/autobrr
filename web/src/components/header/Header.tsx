@@ -19,7 +19,7 @@ import { MobileNav } from "./MobileNav";
 export const Header = () => {
   const { data: config } = useQuery({
     queryKey: ["config"],
-    queryFn: APIClient.config.get,
+    queryFn: () => APIClient.config.get(),
     retry: false,
     refetchOnWindowFocus: false,
     onError: err => console.log(err)
