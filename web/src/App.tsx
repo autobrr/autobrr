@@ -22,7 +22,7 @@ const queryClient = new QueryClient({
       // delay = Math.min(1000 * 2 ** attemptIndex, 30000)
       retry: true,
       useErrorBoundary: true,
-      suspense: true,
+      suspense: true
     },
     mutations: {
       onError: (error) => {

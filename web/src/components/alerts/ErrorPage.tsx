@@ -18,8 +18,8 @@ export const ErrorPage = ({ error, resetErrorBoundary }: FallbackProps) => {
   });
 
   const parseTitle = () => {
-    switch (error.toString()) {
-      case "Error: Offline":
+    switch (error?.cause) {
+      case "OFFLINE":
         return "Connection to Autobrr failed! Check the application state and verify your connectivity.";
       default:
         return "We caught an unrecoverable error!";
