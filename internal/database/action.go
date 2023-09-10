@@ -428,8 +428,15 @@ func (r *ActionRepo) DeleteByFilterID(ctx context.Context, filterID int) error {
 		return errors.Wrap(err, "error building query")
 	}
 
-	if _, err := r.db.handler.ExecContext(ctx, query, args...); err != nil {
+	result, err := r.db.handler.ExecContext(ctx, query, args...)
+	if err != nil {
 		return errors.Wrap(err, "error executing query")
+	}
+
+	if rowsAffected, err := result.RowsAffected(); err != nil {
+		return errors.Wrap(err, "error getting rows affected")
+	} else if rowsAffected == 0 {
+		return domain.ErrRecordNotFound
 	}
 
 	r.log.Debug().Msgf("action.deleteByFilterID: %v", filterID)
