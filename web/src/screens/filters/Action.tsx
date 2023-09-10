@@ -263,7 +263,8 @@ const TypeForm = ({ action, idx, clients }: TypeFormProps) => {
                 name={`actions.${idx}.limit_ratio`}
                 label="Ratio limit"
                 placeholder="Takes any number (0 is no limit)"
-                step={1} // 0.5 does not work
+                step={0.25}
+                isDecimal
               />
               <NumberField
                 name={`actions.${idx}.limit_seed_time`}
