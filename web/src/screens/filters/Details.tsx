@@ -312,17 +312,15 @@ export function FilterDetails() {
 
   return (
     <main>
-      <header className="py-10">
-        <div className="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center">
-          <h1 className="text-3xl font-bold text-black dark:text-white">
-            <NavLink to="/filters">
-              Filters
-            </NavLink>
-          </h1>
-          <ChevronRightIcon className="h-6 w-6 text-gray-500" aria-hidden="true" />
-          <h1 className="text-3xl font-bold text-black dark:text-white truncate" title={filter.name}>{filter.name}</h1>
-        </div>
-      </header>
+      <div className="my-6 max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center">
+        <h1 className="text-3xl font-bold text-black dark:text-white">
+          <NavLink to="/filters">
+            Filters
+          </NavLink>
+        </h1>
+        <ChevronRightIcon className="h-6 w-6 text-gray-500" aria-hidden="true" />
+        <h1 className="text-3xl font-bold text-black dark:text-white truncate" title={filter.name}>{filter.name}</h1>
+      </div>
       <div className="max-w-screen-xl mx-auto pb-12 px-4 sm:px-6 lg:px-8">
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow">
           <div className="pt-1 px-4 pb-6 block">
@@ -584,7 +582,7 @@ export function Advanced({ values }: AdvancedProps) {
     <div>
       <CollapsableSection defaultOpen={true} title="Releases" subtitle="Match only certain release names and/or ignore other release names.">
         <div className="grid col-span-12 gap-6">
-          <WarningAlert text="autobrr has extensive filtering built-in - only use this if nothing else works. If you need help please ask." />
+          <WarningAlert text="autobrr has extensive filtering built-in - only use this if nothing else works. If you need help, please ask." />
 
           <RegexTextAreaField name="match_releases" label="Match releases" useRegex={values.use_regex} columns={6} placeholder="eg. *some?movie*,*some?show*s01*" tooltip={<div><p>This field has full regex support (Golang flavour).</p><a href='https://autobrr.com/filters#advanced' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters#advanced</a><br /><br /><p>Remember to tick <b>Use Regex</b> below if using more than <code>*</code> and <code>?</code>.</p></div>} />
           <RegexTextAreaField name="except_releases" label="Except releases" useRegex={values.use_regex} columns={6} placeholder="eg. *bad?movie*,*bad?show*s03*" tooltip={<div><p>This field has full regex support (Golang flavour).</p><a href='https://autobrr.com/filters#advanced' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters#advanced</a><br /><br /><p>Remember to tick <b>Use Regex</b> below if using more than <code>*</code> and <code>?</code>.</p></div>} />
@@ -688,8 +686,8 @@ function WarningAlert({ text, alert, colors }: WarningAlertProps) {
   return (
     <div
       className={classNames(
-        "col-span-12 flex p-4 text-sm rounded-lg",
-        colors ?? "text-yellow-700 bg-yellow-100 dark:bg-yellow-200 dark:text-yellow-800"
+        "col-span-12 flex items-center px-4 py-3 text-md font-medium rounded-lg",
+        colors ?? "text-amber-800 bg-amber-100 border border-amber-700 dark:border-none dark:bg-amber-200 dark:text-amber-800"
       )}
       role="alert">
       <svg aria-hidden="true" className="flex-shrink-0 inline w-5 h-5 mr-3" fill="currentColor"
@@ -700,7 +698,7 @@ function WarningAlert({ text, alert, colors }: WarningAlertProps) {
       </svg>
       <span className="sr-only">Info</span>
       <div>
-        <span className="font-bold">{alert ?? "Warning!"}</span>
+        <span className="font-extrabold">{alert ?? "Warning!"}</span>
         {" "}{text}
       </div>
     </div>

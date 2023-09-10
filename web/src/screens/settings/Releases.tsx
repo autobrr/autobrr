@@ -98,7 +98,7 @@ function DeleteReleases() {
   };
 
   return (
-    <div className="flex justify-between items-center rounded-md shadow-sm">
+    <div className="flex justify-between items-center rounded-md">
       <DeleteModal
         isOpen={deleteModalIsOpen}
         isLoading={deleteOlderMutation.isLoading}

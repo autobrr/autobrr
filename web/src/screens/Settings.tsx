@@ -78,7 +78,7 @@ function SidebarNav({ subNavigation }: SidebarNavProps) {
     <aside className="py-2 lg:col-span-3">
       <nav className="space-y-1">
         {subNavigation.map((item) => (
-          <SubNavLink item={item} key={item.href}/>
+          <SubNavLink item={item} key={item.href} />
         ))}
       </nav>
     </aside>
@@ -88,11 +88,9 @@ function SidebarNav({ subNavigation }: SidebarNavProps) {
 export function Settings() {
   return (
     <main>
-      <header className="py-10">
-        <div className="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h1 className="text-3xl font-bold text-black dark:text-white">Settings</h1>
-        </div>
-      </header>
+      <div className="my-6 max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8">
+        <h1 className="text-3xl font-bold text-black dark:text-white">Settings</h1>
+      </div>
 
       <div className="max-w-screen-xl mx-auto pb-6 px-4 sm:px-6 lg:pb-16 lg:px-8">
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg">

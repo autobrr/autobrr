@@ -139,61 +139,58 @@ export function Filters() {
   return (
     <main>
       <FilterAddForm isOpen={createFilterIsOpen} toggle={toggleCreateFilter} />
-      <header className="py-10">
-        <div className="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8 flex justify-between">
-          <h1 className="text-3xl font-bold text-black dark:text-white">Filters</h1>
-          <div className="relative">
-            <Menu>
-              {({ open }) => (
-                <>
-                  <button
-                    className="relative inline-flex items-center px-4 py-2 shadow-sm text-sm font-medium rounded-l-md text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
-                    onClick={(e: { stopPropagation: () => void; }) => {
-                      if (!open) {
-                        e.stopPropagation();
-                        toggleCreateFilter();
-                      }
-                    }}
-                  >
-                    <PlusIcon className="h-5 w-5 mr-1" />
-                    Add Filter
-                  </button>
-                  <Menu.Button className="relative inline-flex items-center px-2 py-2 border-l border-spacing-1 dark:border-black shadow-sm text-sm font-medium rounded-r-md text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500">
-                    <ChevronDownIcon className="h-5 w-5" />
-                  </Menu.Button>
-                  <Transition
-                    show={open}
-                    enter="transition ease-out duration-100 transform"
-                    enterFrom="opacity-0 scale-95"
-                    enterTo="opacity-100 scale-100"
-                    leave="transition ease-in duration-75 transform"
-                    leaveFrom="opacity-100 scale-100"
-                    leaveTo="opacity-0 scale-95"
-                  >
-                    <Menu.Items className="absolute right-0 mt-0.5 w-46 bg-white dark:bg-gray-700 rounded-md shadow-lg">
-                      <Menu.Item>
-                        {({ active }) => (
-                          <button
-                            type="button"
-                            className={`${
-                              active
-                                ? "bg-gray-50 dark:bg-gray-600"
-                                : ""
+      <div className="my-6 max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8 flex justify-between">
+        <h1 className="text-3xl font-bold text-black dark:text-white">Filters</h1>
+        <div className="relative">
+          <Menu>
+            {({ open }) => (
+              <>
+                <button
+                  className="relative inline-flex items-center px-4 py-2 shadow-sm text-sm font-medium rounded-l-md text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
+                  onClick={(e: { stopPropagation: () => void; }) => {
+                    if (!open) {
+                      e.stopPropagation();
+                      toggleCreateFilter();
+                    }
+                  }}
+                >
+                  <PlusIcon className="h-5 w-5 mr-1" />
+                  Add Filter
+                </button>
+                <Menu.Button className="relative inline-flex items-center px-2 py-2 border-l border-spacing-1 dark:border-black shadow-sm text-sm font-medium rounded-r-md text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500">
+                  <ChevronDownIcon className="h-5 w-5" />
+                </Menu.Button>
+                <Transition
+                  show={open}
+                  enter="transition ease-out duration-100 transform"
+                  enterFrom="opacity-0 scale-95"
+                  enterTo="opacity-100 scale-100"
+                  leave="transition ease-in duration-75 transform"
+                  leaveFrom="opacity-100 scale-100"
+                  leaveTo="opacity-0 scale-95"
+                >
+                  <Menu.Items className="absolute right-0 mt-0.5 w-46 bg-white dark:bg-gray-700 rounded-md shadow-lg">
+                    <Menu.Item>
+                      {({ active }) => (
+                        <button
+                          type="button"
+                          className={`${active
+                              ? "bg-gray-50 dark:bg-gray-600"
+                              : ""
                             } w-full text-left py-2 px-4 text-sm font-medium text-gray-700 dark:text-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500`}
-                            onClick={() => setShowImportModal(true)}
-                          >
-                            Import Filter
-                          </button>
-                        )}
-                      </Menu.Item>
-                    </Menu.Items>
-                  </Transition>
-                </>
-              )}
-            </Menu>
-          </div>
+                          onClick={() => setShowImportModal(true)}
+                        >
+                          Import Filter
+                        </button>
+                      )}
+                    </Menu.Item>
+                  </Menu.Items>
+                </Transition>
+              </>
+            )}
+          </Menu>
         </div>
-      </header>
+      </div>
 
       {showImportModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -212,14 +209,14 @@ export function Filters() {
                 className="bg-white dark:bg-gray-700 py-2 px-4 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
                 onClick={() => setShowImportModal(false)}
               >
-              Cancel
+                Cancel
               </button>
               <button
                 type="button"
                 className="ml-4 relative inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                 onClick={handleImportJson}
               >
-              Import
+                Import
               </button>
             </div>
           </div>
@@ -351,7 +348,8 @@ interface FilterItemDropdownProps {
 const FilterItemDropdown = ({ filter, onToggle }: FilterItemDropdownProps) => {
 
   // This function handles the export of a filter to a JSON string
-  const handleExportJson = useCallback(async (discordFormat = false) => {    try {
+  const handleExportJson = useCallback(async (discordFormat = false) => {
+    try {
       type CompleteFilterType = {
         id: number;
         name: string;
@@ -449,10 +447,10 @@ const FilterItemDropdown = ({ filter, onToggle }: FilterItemDropdownProps) => {
         copyTextToClipboard(finalJson);
       }
 
-  } catch (error) {
-    console.error(error);
-    toast.custom((t) => <Toast type="error" body="Failed to get filter data." t={t} />);
-  }
+    } catch (error) {
+      console.error(error);
+      toast.custom((t) => <Toast type="error" body="Failed to get filter data." t={t} />);
+    }
   }, [filter]);
 
   const cancelModalButtonRef = useRef(null);
@@ -858,7 +856,7 @@ const ListboxFilter = ({
 // a unique option from a list
 const IndexerSelectFilter = ({ dispatch }: any) => {
   const { data, isSuccess } = useQuery({
-    queryKey: ["filters","indexers_options"],
+    queryKey: ["filters", "indexers_options"],
     queryFn: () => APIClient.indexers.getOptions(),
     keepPreviousData: true,
     staleTime: Infinity

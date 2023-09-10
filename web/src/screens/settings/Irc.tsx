@@ -721,12 +721,26 @@ const IRCLogsDropdown = () => {
     [key]: newValue
   }));
 
+  //
+  // FIXME: Warning: Function components cannot be given refs. Attempts to access this ref will fail.
+  //        Did you mean to use React.forwardRef()?
+  //
+  // Check the render method of `Pe2`.
+  //  at Checkbox (http://localhost:3000/src/components/Checkbox.tsx:14:28)
+  //  at Pe2 (http://localhost:3000/node_modules/.vite/deps/@headlessui_react.js?v=e8629745:2164:12)
+  //  at div
+  //  at Ee (http://localhost:3000/node_modules/.vite/deps/@headlessui_react.js?v=e8629745:2106:12)
+  //  at c5 (http://localhost:3000/node_modules/.vite/deps/@headlessui_react.js?v=e8629745:592:22)
+  //  at De4 (http://localhost:3000/node_modules/.vite/deps/@headlessui_react.js?v=e8629745:3016:22)
+  //  at He5 (http://localhost:3000/node_modules/.vite/deps/@headlessui_react.js?v=e8629745:3053:15)
+  //  at div
+  //  at c5 (http://localhost:3000/node_modules/.vite/deps/@headlessui_react.js?v=e8629745:592:22)
+  //  at Me2 (http://localhost:3000/node_modules/.vite/deps/@headlessui_react.js?v=e8629745:2062:21)
+  //  at IRCLogsDropdown (http://localhost:3000/src/screens/settings/Irc.tsx?t=1694269937935:1354:53)
   return (
     <Menu as="div" className="relative">
-      <Menu.Button>
-        <button className="flex items-center text-gray-800 dark:text-gray-400 p-1 px-2 rounded shadow bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600">
-          <span className="flex items-center">Options <Cog6ToothIcon className="ml-1 w-4 h-4"/></span>
-        </button>
+      <Menu.Button className="flex items-center text-gray-800 dark:text-gray-400 p-1 px-2 rounded shadow bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600">
+        <span className="flex items-center">Options <Cog6ToothIcon className="ml-1 w-4 h-4"/></span>
       </Menu.Button>
       <Transition
         as={Fragment}
@@ -738,21 +752,20 @@ const IRCLogsDropdown = () => {
         leaveTo="transform opacity-0 scale-95"
       >
         <Menu.Items
-          className="absolute z-10 right-0 mt-2 bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700 rounded-md shadow-lg ring-1 ring-black ring-opacity-10 focus:outline-none"
+          className="absolute z-10 right-0 mt-2 px-3 py-2 bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700 rounded-md shadow-lg ring-1 ring-black ring-opacity-10 focus:outline-none"
         >
-          <div className="p-3">
-            <Menu.Item>
-              {() => (
-                <Checkbox
-                  label="Scroll to bottom on new message"
-                  value={settings.scrollOnNewLog}
-                  setValue={(newValue) => onSetValue("scrollOnNewLog", newValue)}
-                />
-              )}
-            </Menu.Item>
-          </div>
+          <Menu.Item>
+            {() => (
+              <Checkbox
+                label="Scroll to bottom on new message"
+                value={settings.scrollOnNewLog}
+                setValue={(newValue) => onSetValue("scrollOnNewLog", newValue)}
+              />
+            )}
+          </Menu.Item>
         </Menu.Items>
       </Transition>
     </Menu>
   );
 };
+
