@@ -31,14 +31,16 @@ type LogEvent = {
   message: string;
 };
 
-type LogLevel = "TRACE" | "DEBUG" | "INFO" | "ERROR" | "WARN";
+type LogLevel = "TRC" | "DBG" | "INF" | "ERR" | "WRN" | "FTL" | "PNC";
 
 const LogColors: Record<LogLevel, string> = {
-  "TRACE": "text-purple-300",
-  "DEBUG": "text-yellow-500",
-  "INFO": "text-green-500",
-  "ERROR": "text-red-500",
-  "WARN": "text-yellow-500"
+  "TRC": "text-purple-300",
+  "DBG": "text-yellow-500",
+  "INF": "text-green-500",
+  "ERR": "text-red-500",
+  "WRN": "text-yellow-500",
+  "FTL": "text-red-500",
+  "PNC": "text-red-600",
 };
 
 export const Logs = () => {
@@ -143,7 +145,7 @@ export const Logs = () => {
                   title={entry.time}
                   className="font-mono text-gray-500 dark:text-gray-600 mr-2 h-full"
                 >
-                  {format(new Date(entry.time), "HH:mm:ss.SSS")}
+                  {format(new Date(entry.time), "HH:mm:ss")}
                 </span>
                 {entry.level in LogColors ? (
                   <span
@@ -153,7 +155,6 @@ export const Logs = () => {
                     )}
                   >
                     {entry.level}
-                    {" "}
                   </span>
                 ) : null}
                 <span className="ml-2 text-black dark:text-gray-300">
