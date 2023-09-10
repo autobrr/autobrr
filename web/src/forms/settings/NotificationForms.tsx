@@ -181,7 +181,7 @@ export function NotificationAddForm({ isOpen, toggle }: AddProps) {
   const queryClient = useQueryClient();
 
   const createMutation = useMutation({
-    mutationFn: (notification: Notification) => APIClient.notifications.create(notification),
+    mutationFn: (notification: ServiceNotification) => APIClient.notifications.create(notification),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: notificationKeys.lists() });
 
@@ -193,16 +193,16 @@ export function NotificationAddForm({ isOpen, toggle }: AddProps) {
     }
   });
 
-  const onSubmit = (formData: unknown) => createMutation.mutate(formData as Notification);
+  const onSubmit = (formData: unknown) => createMutation.mutate(formData as ServiceNotification);
 
   const testMutation = useMutation({
-    mutationFn: (n: Notification) => APIClient.notifications.test(n),
+    mutationFn: (n: ServiceNotification) => APIClient.notifications.test(n),
     onError: (err) => {
       console.error(err);
     }
   });
 
-  const testNotification = (data: unknown) => testMutation.mutate(data as Notification);
+  const testNotification = (data: unknown) => testMutation.mutate(data as ServiceNotification);
 
   const validate = (values: NotificationAddFormValues) => {
     const errors = {} as FormikErrors<FormikValues>;
@@ -428,7 +428,7 @@ const EventCheckBoxes = () => (
 interface UpdateProps {
     isOpen: boolean;
     toggle: () => void;
-    notification: Notification;
+    notification: ServiceNotification;
 }
 
 interface InitialValues {
@@ -449,7 +449,7 @@ export function NotificationUpdateForm({ isOpen, toggle, notification }: UpdateP
   const queryClient = useQueryClient();
 
   const mutation = useMutation({
-    mutationFn: (notification: Notification) => APIClient.notifications.update(notification),
+    mutationFn: (notification: ServiceNotification) => APIClient.notifications.update(notification),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: notificationKeys.lists() });
 
@@ -458,7 +458,7 @@ export function NotificationUpdateForm({ isOpen, toggle, notification }: UpdateP
     }
   });
 
-  const onSubmit = (formData: unknown) => mutation.mutate(formData as Notification);
+  const onSubmit = (formData: unknown) => mutation.mutate(formData as ServiceNotification);
 
   const deleteMutation = useMutation({
     mutationFn: (notificationID: number) => APIClient.notifications.delete(notificationID),
@@ -472,13 +472,13 @@ export function NotificationUpdateForm({ isOpen, toggle, notification }: UpdateP
   const deleteAction = () => deleteMutation.mutate(notification.id);
 
   const testMutation = useMutation({
-    mutationFn: (n: Notification) => APIClient.notifications.test(n),
+    mutationFn: (n: ServiceNotification) => APIClient.notifications.test(n),
     onError: (err) => {
       console.error(err);
     }
   });
 
-  const testNotification = (data: unknown) => testMutation.mutate(data as Notification);
+  const testNotification = (data: unknown) => testMutation.mutate(data as ServiceNotification);
 
   const initialValues: InitialValues = {
     id: notification.id,

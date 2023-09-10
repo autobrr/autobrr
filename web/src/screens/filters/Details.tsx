@@ -3,53 +3,54 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-import {ReactNode, useEffect, useRef} from "react";
-import {useMutation, useQuery, useQueryClient} from "@tanstack/react-query";
-import {NavLink, Route, Routes, useLocation, useNavigate, useParams} from "react-router-dom";
-import {toast} from "react-hot-toast";
-import {Form, Formik, FormikValues, useFormikContext} from "formik";
-import {z} from "zod";
-import {toFormikValidationSchema} from "zod-formik-adapter";
-import {ChevronDownIcon, ChevronRightIcon} from "@heroicons/react/24/solid";
+import { ReactNode, Suspense, useEffect, useRef } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { NavLink, Route, Routes, useLocation, useNavigate, useParams } from "react-router-dom";
+import { toast } from "react-hot-toast";
+import { Form, Formik, FormikValues, useFormikContext } from "formik";
+import { z } from "zod";
+import { toFormikValidationSchema } from "zod-formik-adapter";
+import { ChevronDownIcon, ChevronRightIcon } from "@heroicons/react/24/solid";
 
 import {
-    CODECS_OPTIONS,
-    CONTAINER_OPTIONS,
-    downloadsPerUnitOptions,
-    FORMATS_OPTIONS,
-    HDR_OPTIONS,
-    LANGUAGE_OPTIONS,
-    ORIGIN_OPTIONS,
-    OTHER_OPTIONS,
-    QUALITY_MUSIC_OPTIONS,
-    RELEASE_TYPE_MUSIC_OPTIONS,
-    RESOLUTION_OPTIONS,
-    SOURCES_MUSIC_OPTIONS,
-    SOURCES_OPTIONS,
-    tagsMatchLogicOptions
+  CODECS_OPTIONS,
+  CONTAINER_OPTIONS,
+  downloadsPerUnitOptions,
+  FORMATS_OPTIONS,
+  HDR_OPTIONS,
+  LANGUAGE_OPTIONS,
+  ORIGIN_OPTIONS,
+  OTHER_OPTIONS,
+  QUALITY_MUSIC_OPTIONS,
+  RELEASE_TYPE_MUSIC_OPTIONS,
+  RESOLUTION_OPTIONS,
+  SOURCES_MUSIC_OPTIONS,
+  SOURCES_OPTIONS,
+  tagsMatchLogicOptions
 } from "@app/domain/constants";
-import {APIClient} from "@api/APIClient";
-import {useToggle} from "@hooks/hooks";
-import {classNames} from "@utils";
+import { APIClient } from "@api/APIClient";
+import { useToggle } from "@hooks/hooks";
+import { classNames } from "@utils";
 
 import {
-    CheckboxField,
-    IndexerMultiSelect,
-    MultiSelect,
-    NumberField,
-    RegexField,
-    Select,
-    SwitchGroup,
-    TextField
+  CheckboxField,
+  IndexerMultiSelect,
+  MultiSelect,
+  NumberField,
+  RegexField,
+  Select,
+  SwitchGroup,
+  TextField
 } from "@components/inputs";
 import DEBUG from "@components/debug";
 import Toast from "@components/notifications/Toast";
-import {DeleteModal} from "@components/modals";
-import {TitleSubtitle} from "@components/headings";
-import {RegexTextAreaField, TextAreaAutoResize} from "@components/inputs/input";
-import {FilterActions} from "./Action";
-import {filterKeys} from "./List";
-import {External} from "@screens/filters/External";
+import { DeleteModal } from "@components/modals";
+import { TitleSubtitle } from "@components/headings";
+import { RegexTextAreaField, TextAreaAutoResize } from "@components/inputs/input";
+import { FilterActions } from "./Action";
+import { filterKeys } from "./List";
+import { External } from "@screens/filters/External";
+import { SectionLoader } from "@components/SectionLoader";
 
 interface tabType {
   name: string;
@@ -80,8 +81,8 @@ function TabNavLink({ item }: NavLinkProps) {
       to={item.href}
       end
       className={({ isActive }) => classNames(
-        "text-gray-500 hover:text-blue-600 dark:hover:text-white hover:border-blue-600 dark:hover:border-blue-500 whitespace-nowrap py-4 px-1 font-medium text-sm",
-        isActive ? "border-b-2 border-blue-600 dark:border-blue-500 text-blue-600 dark:text-white" : ""
+        "hover:text-blue-600 dark:hover:text-white hover:border-blue-600 dark:hover:border-blue-500 whitespace-nowrap py-4 px-1 font-medium text-sm",
+        isActive ? "border-b-2 border-blue-600 dark:border-blue-500 text-blue-600 dark:text-white" : "text-gray-500"
       )}
       aria-current={splitLocation[2] === item.href ? "page" : undefined}
     >
@@ -95,17 +96,19 @@ interface FormButtonsGroupProps {
   deleteAction: () => void;
   reset: () => void;
   dirty?: boolean;
+  isLoading: boolean;
 }
 
-const FormButtonsGroup = ({ values, deleteAction, reset }: FormButtonsGroupProps) => {
+const FormButtonsGroup = ({ values, deleteAction, reset, isLoading }: FormButtonsGroupProps) => {
   const [deleteModalIsOpen, toggleDeleteModal] = useToggle(false);
 
   const cancelModalButtonRef = useRef(null);
 
   return (
-    <div className="pt-6 divide-y divide-gray-200 dark:divide-gray-700">
+    <div className="mt-12 border-t border-gray-200 dark:border-gray-700">
       <DeleteModal
         isOpen={deleteModalIsOpen}
+        isLoading={isLoading}
         toggle={toggleDeleteModal}
         buttonRef={cancelModalButtonRef}
         deleteAction={deleteAction}
@@ -116,7 +119,7 @@ const FormButtonsGroup = ({ values, deleteAction, reset }: FormButtonsGroupProps
       <div className="mt-4 pt-4 flex justify-between">
         <button
           type="button"
-          className="inline-flex items-center justify-center px-4 py-2 rounded-md text-red-700 dark:text-red-500 light:bg-red-100 light:hover:bg-red-200 dark:hover:text-red-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:text-sm"
+          className="inline-flex items-center justify-center px-4 py-2 rounded-md sm:text-sm bg-red-700 dark:bg-red-900 hover:dark:bg-red-700 hover:bg-red-800 text-white focus:outline-none"
           onClick={toggleDeleteModal}
         >
           Remove
@@ -131,7 +134,7 @@ const FormButtonsGroup = ({ values, deleteAction, reset }: FormButtonsGroupProps
               e.preventDefault();
               reset();
 
-              toast.custom((t) => <Toast type="success" body="Reset all filter values." t={t}/>);
+              toast.custom((t) => <Toast type="success" body="Reset all filter values." t={t} />);
             }}
           >
             Reset form values
@@ -154,19 +157,19 @@ const FormErrorNotification = () => {
   useEffect(() => {
     if (!isValid && !isValidating && isSubmitting) {
       console.log("validation errors: ", errors);
-      toast.custom((t) => <Toast type="error" body={`Validation error. Check fields: ${Object.keys(errors)}`} t={t}/>);
+      toast.custom((t) => <Toast type="error" body={`Validation error. Check fields: ${Object.keys(errors)}`} t={t} />);
     }
   }, [isSubmitting, isValid, isValidating]);
 
   return null;
 };
 
-const allowedClientType = ["QBITTORRENT", "DELUGE_V1", "DELUGE_V2", "RTORRENT", "TRANSMISSION","PORLA", "RADARR", "SONARR", "LIDARR", "WHISPARR", "READARR", "SABNZBD"];
+const allowedClientType = ["QBITTORRENT", "DELUGE_V1", "DELUGE_V2", "RTORRENT", "TRANSMISSION", "PORLA", "RADARR", "SONARR", "LIDARR", "WHISPARR", "READARR", "SABNZBD"];
 
 const actionSchema = z.object({
   enabled: z.boolean(),
   name: z.string(),
-  type: z.enum(["QBITTORRENT", "DELUGE_V1", "DELUGE_V2", "RTORRENT", "TRANSMISSION","PORLA", "RADARR", "SONARR", "LIDARR", "WHISPARR", "READARR", "SABNZBD", "TEST", "EXEC", "WATCH_FOLDER", "WEBHOOK"]),
+  type: z.enum(["QBITTORRENT", "DELUGE_V1", "DELUGE_V2", "RTORRENT", "TRANSMISSION", "PORLA", "RADARR", "SONARR", "LIDARR", "WHISPARR", "READARR", "SABNZBD", "TEST", "EXEC", "WATCH_FOLDER", "WEBHOOK"]),
   client_id: z.number().optional(),
   exec_cmd: z.string().optional(),
   exec_args: z.string().optional(),
@@ -202,18 +205,18 @@ const actionSchema = z.object({
 });
 
 const externalFilterSchema = z.object({
-    enabled: z.boolean(),
-    index: z.number(),
-    name: z.string(),
-    type: z.enum(["EXEC", "WEBHOOK"]),
-    exec_cmd: z.string().optional(),
-    exec_args: z.string().optional(),
-    exec_expect_status: z.number().optional(),
-    webhook_host: z.string().optional(),
-    webhook_type: z.string().optional(),
-    webhook_method: z.string().optional(),
-    webhook_data: z.string().optional(),
-    webhook_expect_status: z.number().optional(),
+  enabled: z.boolean(),
+  index: z.number(),
+  name: z.string(),
+  type: z.enum(["EXEC", "WEBHOOK"]),
+  exec_cmd: z.string().optional(),
+  exec_args: z.string().optional(),
+  exec_expect_status: z.number().optional(),
+  webhook_host: z.string().optional(),
+  webhook_type: z.string().optional(),
+  webhook_method: z.string().optional(),
+  webhook_data: z.string().optional(),
+  webhook_expect_status: z.number().optional(),
 });
 
 const indexerSchema = z.object({
@@ -262,7 +265,7 @@ export function FilterDetails() {
       });
 
       toast.custom((t) => (
-        <Toast type="success" body={`${newFilter.name} was updated successfully`} t={t}/>
+        <Toast type="success" body={`${newFilter.name} was updated successfully`} t={t} />
       ));
     }
   });
@@ -278,15 +281,10 @@ export function FilterDetails() {
         <Toast type="success" body={`${filter?.name} was deleted`} t={t} />
       ));
 
-
       // redirect
       navigate("/filters");
     }
   });
-
-  if (isLoading) {
-    return null;
-  }
 
   if (!filter) {
     return null;
@@ -406,15 +404,23 @@ export function FilterDetails() {
               {({ values, dirty, resetForm }) => (
                 <Form>
                   <FormErrorNotification />
-                  <Routes>
-                    <Route index element={<General />} />
-                    <Route path="movies-tv" element={<MoviesTv />} />
-                    <Route path="music" element={<Music values={values} />} />
-                    <Route path="advanced" element={<Advanced values={values} />} />
-                    <Route path="external" element={<External />} />
-                    <Route path="actions" element={<FilterActions filter={filter} values={values} />} />
-                  </Routes>
-                  <FormButtonsGroup values={values} deleteAction={deleteAction} dirty={dirty} reset={resetForm} />
+                  <Suspense fallback={<SectionLoader $size="large" />}>
+                    <Routes>
+                      <Route index element={<General />} />
+                      <Route path="movies-tv" element={<MoviesTv />} />
+                      <Route path="music" element={<Music values={values} />} />
+                      <Route path="advanced" element={<Advanced values={values} />} />
+                      <Route path="external" element={<External />} />
+                      <Route path="actions" element={<FilterActions filter={filter} values={values} />} />
+                    </Routes>
+                  </Suspense>
+                  <FormButtonsGroup
+                    values={values}
+                    deleteAction={deleteAction}
+                    dirty={dirty}
+                    reset={resetForm}
+                    isLoading={isLoading}
+                  />
                   <DEBUG values={values} />
                 </Form>
               )}
@@ -426,7 +432,7 @@ export function FilterDetails() {
   );
 }
 
-export function General(){
+export function General() {
   const { isLoading, data: indexers } = useQuery({
     queryKey: ["filters", "indexer_list"],
     queryFn: APIClient.indexers.getOptions,
@@ -455,11 +461,11 @@ export function General(){
 
         <div className="mt-6 grid grid-cols-12 gap-6">
           <TextField name="min_size" label="Min size" columns={6} placeholder="eg. 100MiB, 80GB" tooltip={<div><p>Supports units such as MB, MiB, GB, etc.</p><a href='https://autobrr.com/filters#rules' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters#rules</a></div>} />
-          <TextField name="max_size" label="Max size" columns={6} placeholder="eg. 100MiB, 80GB"  tooltip={<div><p>Supports units such as MB, MiB, GB, etc.</p><a href='https://autobrr.com/filters#rules' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters#rules</a></div>} />
-          <NumberField name="delay" label="Delay" placeholder="Number of seconds to delay actions"  tooltip={<div><p>Number of seconds to wait before running actions.</p><a href='https://autobrr.com/filters#rules' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters#rules</a></div>} />
+          <TextField name="max_size" label="Max size" columns={6} placeholder="eg. 100MiB, 80GB" tooltip={<div><p>Supports units such as MB, MiB, GB, etc.</p><a href='https://autobrr.com/filters#rules' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters#rules</a></div>} />
+          <NumberField name="delay" label="Delay" placeholder="Number of seconds to delay actions" tooltip={<div><p>Number of seconds to wait before running actions.</p><a href='https://autobrr.com/filters#rules' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters#rules</a></div>} />
           <NumberField name="priority" label="Priority" placeholder="Higher number = higher prio" tooltip={<div><p>Filters are checked in order of priority. Higher number = higher priority.</p><a href='https://autobrr.com/filters#rules' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters#rules</a></div>} />
           <NumberField name="max_downloads" label="Max downloads" placeholder="Takes any number (0 is infinite)" tooltip={<div><p>Number of max downloads as specified by the respective unit.</p><a href='https://autobrr.com/filters#rules' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters#rules</a></div>} />
-          <Select name="max_downloads_unit" label="Max downloads per" options={downloadsPerUnitOptions}  optionDefaultText="Select unit"  tooltip={<div><p>The unit of time for counting the maximum downloads per filter.</p><a href='https://autobrr.com/filters#rules' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters#rules</a></div>} />
+          <Select name="max_downloads_unit" label="Max downloads per" options={downloadsPerUnitOptions} optionDefaultText="Select unit" tooltip={<div><p>The unit of time for counting the maximum downloads per filter.</p><a href='https://autobrr.com/filters#rules' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters#rules</a></div>} />
         </div>
       </div>
 
@@ -474,19 +480,19 @@ export function MoviesTv() {
   return (
     <div>
       <div className="mt-6 grid grid-cols-12 gap-6">
-        <TextAreaAutoResize name="shows" label="Movies / Shows" columns={8} placeholder="eg. Movie,Show 1,Show?2"  tooltip={<div><p>You can use basic filtering like wildcards <code>*</code> or replace single characters with <code>?</code></p><a href='https://autobrr.com/filters#tvmovies' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters#tvmovies</a></div>} />
-        <TextField name="years" label="Years" columns={4} placeholder="eg. 2018,2019-2021"  tooltip={<div><p>This field takes a range of years and/or comma separated single years.</p><a href='https://autobrr.com/filters#tvmovies' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters#tvmovies</a></div>} />
+        <TextAreaAutoResize name="shows" label="Movies / Shows" columns={8} placeholder="eg. Movie,Show 1,Show?2" tooltip={<div><p>You can use basic filtering like wildcards <code>*</code> or replace single characters with <code>?</code></p><a href='https://autobrr.com/filters#tvmovies' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters#tvmovies</a></div>} />
+        <TextField name="years" label="Years" columns={4} placeholder="eg. 2018,2019-2021" tooltip={<div><p>This field takes a range of years and/or comma separated single years.</p><a href='https://autobrr.com/filters#tvmovies' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters#tvmovies</a></div>} />
       </div>
       <div className="mt-6 lg:pb-8">
         <TitleSubtitle title="Seasons and Episodes" subtitle="Set season and episode match constraints." />
 
         <div className="mt-6 grid grid-cols-12 gap-6">
-          <TextField name="seasons" label="Seasons" columns={8} placeholder="eg. 1,3,2-6"  tooltip={<div><p>See docs for information about how to <b>only</b> grab season packs:</p><a href='https://autobrr.com/filters/examples#only-season-packs' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters/examples#only-season-packs</a></div>} />
-          <TextField name="episodes" label="Episodes" columns={4} placeholder="eg. 2,4,10-20"  tooltip={<div><p>See docs for information about how to <b>only</b> grab episodes:</p><a href='https://autobrr.com/filters/examples/#skip-season-packs' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters/examples/#skip-season-packs</a></div>} />
+          <TextField name="seasons" label="Seasons" columns={8} placeholder="eg. 1,3,2-6" tooltip={<div><p>See docs for information about how to <b>only</b> grab season packs:</p><a href='https://autobrr.com/filters/examples#only-season-packs' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters/examples#only-season-packs</a></div>} />
+          <TextField name="episodes" label="Episodes" columns={4} placeholder="eg. 2,4,10-20" tooltip={<div><p>See docs for information about how to <b>only</b> grab episodes:</p><a href='https://autobrr.com/filters/examples/#skip-season-packs' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters/examples/#skip-season-packs</a></div>} />
         </div>
 
         <div className="mt-6">
-          <CheckboxField name="smart_episode" label="Smart Episode" sublabel="Do not match episodes older than the last one matched."/> {/*Do not match older or already existing episodes.*/}
+          <CheckboxField name="smart_episode" label="Smart Episode" sublabel="Do not match episodes older than the last one matched." /> {/*Do not match older or already existing episodes.*/}
         </div>
       </div>
 
@@ -494,23 +500,23 @@ export function MoviesTv() {
         <TitleSubtitle title="Quality" subtitle="Set resolution, source, codec and related match constraints." />
 
         <div className="mt-6 grid grid-cols-12 gap-6">
-          <MultiSelect name="resolutions" options={RESOLUTION_OPTIONS} label="resolutions" columns={6} creatable={true}  tooltip={<div><p>Will match releases which contain any of the selected resolutions.</p><a href='https://autobrr.com/filters#quality' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters#quality</a></div>} />
-          <MultiSelect name="sources" options={SOURCES_OPTIONS} label="sources" columns={6} creatable={true}  tooltip={<div><p>Will match releases which contain any of the selected sources.</p><a href='https://autobrr.com/filters#quality' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters#quality</a></div>} />
+          <MultiSelect name="resolutions" options={RESOLUTION_OPTIONS} label="resolutions" columns={6} creatable={true} tooltip={<div><p>Will match releases which contain any of the selected resolutions.</p><a href='https://autobrr.com/filters#quality' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters#quality</a></div>} />
+          <MultiSelect name="sources" options={SOURCES_OPTIONS} label="sources" columns={6} creatable={true} tooltip={<div><p>Will match releases which contain any of the selected sources.</p><a href='https://autobrr.com/filters#quality' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters#quality</a></div>} />
         </div>
 
         <div className="mt-6 grid grid-cols-12 gap-6">
-          <MultiSelect name="codecs" options={CODECS_OPTIONS} label="codecs" columns={6} creatable={true}  tooltip={<div><p>Will match releases which contain any of the selected codecs.</p><a href='https://autobrr.com/filters#quality' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters#quality</a></div>} />
-          <MultiSelect name="containers" options={CONTAINER_OPTIONS} label="containers" columns={6} creatable={true}  tooltip={<div><p>Will match releases which contain any of the selected containers.</p><a href='https://autobrr.com/filters#quality' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters#quality</a></div>} />
+          <MultiSelect name="codecs" options={CODECS_OPTIONS} label="codecs" columns={6} creatable={true} tooltip={<div><p>Will match releases which contain any of the selected codecs.</p><a href='https://autobrr.com/filters#quality' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters#quality</a></div>} />
+          <MultiSelect name="containers" options={CONTAINER_OPTIONS} label="containers" columns={6} creatable={true} tooltip={<div><p>Will match releases which contain any of the selected containers.</p><a href='https://autobrr.com/filters#quality' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters#quality</a></div>} />
         </div>
 
         <div className="mt-6 grid grid-cols-12 gap-6">
-          <MultiSelect name="match_hdr" options={HDR_OPTIONS} label="Match HDR" columns={6} creatable={true}  tooltip={<div><p>Will match releases which contain any of the selected HDR designations.</p><a href='https://autobrr.com/filters#quality' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters#quality</a></div>} />
-          <MultiSelect name="except_hdr" options={HDR_OPTIONS} label="Except HDR" columns={6} creatable={true}  tooltip={<div><p>Won't match releases which contain any of the selected HDR designations (takes priority over Match HDR).</p><a href='https://autobrr.com/filters#quality' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters#quality</a></div>} />
+          <MultiSelect name="match_hdr" options={HDR_OPTIONS} label="Match HDR" columns={6} creatable={true} tooltip={<div><p>Will match releases which contain any of the selected HDR designations.</p><a href='https://autobrr.com/filters#quality' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters#quality</a></div>} />
+          <MultiSelect name="except_hdr" options={HDR_OPTIONS} label="Except HDR" columns={6} creatable={true} tooltip={<div><p>Won't match releases which contain any of the selected HDR designations (takes priority over Match HDR).</p><a href='https://autobrr.com/filters#quality' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters#quality</a></div>} />
         </div>
 
         <div className="mt-6 grid grid-cols-12 gap-6">
-          <MultiSelect name="match_other" options={OTHER_OPTIONS} label="Match Other" columns={6} creatable={true}  tooltip={<div><p>Will match releases which contain any of the selected designations.</p><a href='https://autobrr.com/filters#quality' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters#quality</a></div>} />
-          <MultiSelect name="except_other" options={OTHER_OPTIONS} label="Except Other" columns={6} creatable={true}  tooltip={<div><p>Won't match releases which contain any of the selected Other designations (takes priority over Match Other).</p><a href='https://autobrr.com/filters#quality' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters#quality</a></div>} />
+          <MultiSelect name="match_other" options={OTHER_OPTIONS} label="Match Other" columns={6} creatable={true} tooltip={<div><p>Will match releases which contain any of the selected designations.</p><a href='https://autobrr.com/filters#quality' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters#quality</a></div>} />
+          <MultiSelect name="except_other" options={OTHER_OPTIONS} label="Except Other" columns={6} creatable={true} tooltip={<div><p>Won't match releases which contain any of the selected Other designations (takes priority over Match Other).</p><a href='https://autobrr.com/filters#quality' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters#quality</a></div>} />
         </div>
       </div>
     </div>
@@ -580,8 +586,8 @@ export function Advanced({ values }: AdvancedProps) {
         <div className="grid col-span-12 gap-6">
           <WarningAlert text="autobrr has extensive filtering built-in - only use this if nothing else works. If you need help please ask." />
 
-          <RegexTextAreaField name="match_releases" label="Match releases"  useRegex={values.use_regex} columns={6} placeholder="eg. *some?movie*,*some?show*s01*" tooltip={<div><p>This field has full regex support (Golang flavour).</p><a href='https://autobrr.com/filters#advanced' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters#advanced</a><br/><br/><p>Remember to tick <b>Use Regex</b> below if using more than <code>*</code> and <code>?</code>.</p></div>} />
-          <RegexTextAreaField name="except_releases" label="Except releases" useRegex={values.use_regex} columns={6} placeholder="eg. *bad?movie*,*bad?show*s03*" tooltip={<div><p>This field has full regex support (Golang flavour).</p><a href='https://autobrr.com/filters#advanced' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters#advanced</a><br/><br/><p>Remember to tick <b>Use Regex</b> below if using more than <code>*</code> and <code>?</code>.</p></div>} />
+          <RegexTextAreaField name="match_releases" label="Match releases" useRegex={values.use_regex} columns={6} placeholder="eg. *some?movie*,*some?show*s01*" tooltip={<div><p>This field has full regex support (Golang flavour).</p><a href='https://autobrr.com/filters#advanced' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters#advanced</a><br /><br /><p>Remember to tick <b>Use Regex</b> below if using more than <code>*</code> and <code>?</code>.</p></div>} />
+          <RegexTextAreaField name="except_releases" label="Except releases" useRegex={values.use_regex} columns={6} placeholder="eg. *bad?movie*,*bad?show*s03*" tooltip={<div><p>This field has full regex support (Golang flavour).</p><a href='https://autobrr.com/filters#advanced' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters#advanced</a><br /><br /><p>Remember to tick <b>Use Regex</b> below if using more than <code>*</code> and <code>?</code>.</p></div>} />
 
           {values.match_releases ? (
             <WarningAlert
@@ -617,9 +623,9 @@ export function Advanced({ values }: AdvancedProps) {
         <TextAreaAutoResize name="except_categories" label="Except categories" columns={6} placeholder="eg. *category*" tooltip={<div><p>Comma separated list of categories to ignore (takes priority over Match releases).</p><a href='https://autobrr.com/filters/categories' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters/categories</a></div>} />
 
         <TextAreaAutoResize name="tags" label="Match tags" columns={4} placeholder="eg. tag1,tag2" tooltip={<div><p>Comma separated list of tags to match.</p><a href='https://autobrr.com/filters#advanced' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters#advanced</a></div>} />
-        <Select name="tags_match_logic" label="Tags logic" columns={2} options={tagsMatchLogicOptions}  optionDefaultText="any"  tooltip={<div><p>Logic used to match filter tags.</p><a href='https://autobrr.com/filters#advanced' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters#advanced</a></div>} />
+        <Select name="tags_match_logic" label="Tags logic" columns={2} options={tagsMatchLogicOptions} optionDefaultText="any" tooltip={<div><p>Logic used to match filter tags.</p><a href='https://autobrr.com/filters#advanced' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters#advanced</a></div>} />
         <TextAreaAutoResize name="except_tags" label="Except tags" columns={4} placeholder="eg. tag1,tag2" tooltip={<div><p>Comma separated list of tags to ignore (takes priority over Match releases).</p><a href='https://autobrr.com/filters#advanced' className='text-blue-400 visited:text-blue-400' target='_blank'>hhttps://autobrr.com/filters#advanced</a></div>} />
-        <Select name="except_tags_match_logic" label="Except tags logic" columns={2} options={tagsMatchLogicOptions}  optionDefaultText="any"  tooltip={<div><p>Logic used to match except tags.</p><a href='https://autobrr.com/filters#advanced' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters#advanced</a></div>} />
+        <Select name="except_tags_match_logic" label="Except tags logic" columns={2} options={tagsMatchLogicOptions} optionDefaultText="any" tooltip={<div><p>Logic used to match except tags.</p><a href='https://autobrr.com/filters#advanced' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters#advanced</a></div>} />
       </CollapsableSection>
 
       <CollapsableSection defaultOpen={true} title="Uploaders" subtitle="Match or ignore uploaders.">
@@ -652,8 +658,8 @@ export function Advanced({ values }: AdvancedProps) {
 
       <CollapsableSection defaultOpen={true} title="Feeds" subtitle="These options are only for Feeds such as RSS, Torznab and Newznab">
         {/*<div className="grid col-span-12 gap-6">*/}
-        <RegexTextAreaField name="match_description" label="Match description"  useRegex={values.use_regex_description} columns={6} placeholder="eg. *some?movie*,*some?show*s01*" tooltip={<div><p>This field has full regex support (Golang flavour).</p><a href='https://autobrr.com/filters#advanced' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters#advanced</a><br/><br/><p>Remember to tick <b>Use Regex</b> below if using more than <code>*</code> and <code>?</code>.</p></div>} />
-        <RegexTextAreaField name="except_description" label="Except description" useRegex={values.use_regex_description} columns={6} placeholder="eg. *bad?movie*,*bad?show*s03*" tooltip={<div><p>This field has full regex support (Golang flavour).</p><a href='https://autobrr.com/filters#advanced' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters#advanced</a><br/><br/><p>Remember to tick <b>Use Regex</b> below if using more than <code>*</code> and <code>?</code>.</p></div>} />
+        <RegexTextAreaField name="match_description" label="Match description" useRegex={values.use_regex_description} columns={6} placeholder="eg. *some?movie*,*some?show*s01*" tooltip={<div><p>This field has full regex support (Golang flavour).</p><a href='https://autobrr.com/filters#advanced' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters#advanced</a><br /><br /><p>Remember to tick <b>Use Regex</b> below if using more than <code>*</code> and <code>?</code>.</p></div>} />
+        <RegexTextAreaField name="except_description" label="Except description" useRegex={values.use_regex_description} columns={6} placeholder="eg. *bad?movie*,*bad?show*s03*" tooltip={<div><p>This field has full regex support (Golang flavour).</p><a href='https://autobrr.com/filters#advanced' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters#advanced</a><br /><br /><p>Remember to tick <b>Use Regex</b> below if using more than <code>*</code> and <code>?</code>.</p></div>} />
         {/*</div>*/}
 
         <div className="col-span-6">
@@ -702,10 +708,10 @@ function WarningAlert({ text, alert, colors }: WarningAlertProps) {
 }
 
 interface CollapsableSectionProps {
-    title: string;
-    subtitle: string;
-    children: ReactNode;
-    defaultOpen?: boolean;
+  title: string;
+  subtitle: string;
+  children: ReactNode;
+  defaultOpen?: boolean;
 }
 
 export function CollapsableSection({ title, subtitle, children, defaultOpen }: CollapsableSectionProps) {

@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+import { Suspense } from "react";
 import { NavLink, Outlet, useLocation } from "react-router-dom";
 import {
   BellIcon,
@@ -16,6 +17,7 @@ import {
 } from "@heroicons/react/24/outline";
 
 import { classNames } from "@utils";
+import { SectionLoader } from "@components/SectionLoader";
 
 interface NavTabType {
   name: string;
@@ -96,7 +98,15 @@ export function Settings() {
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg">
           <div className="divide-y divide-gray-200 dark:divide-gray-700 lg:grid lg:grid-cols-12 lg:divide-y-0 lg:divide-x">
             <SidebarNav subNavigation={subNavigation}/>
-            <Outlet />
+            <Suspense
+              fallback={
+                <div className="flex items-center justify-center lg:col-span-9">
+                  <SectionLoader $size="large" />
+                </div>
+              }
+            >
+              <Outlet />
+            </Suspense>
           </div>
         </div>
       </div>
