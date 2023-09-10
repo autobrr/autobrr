@@ -28,6 +28,7 @@ require (
 	github.com/mmcdole/gofeed v1.2.1
 	github.com/moistari/rls v0.5.9
 	github.com/pkg/errors v0.9.1
+	github.com/playwright-community/playwright-go v0.3700.0
 	github.com/r3labs/sse/v2 v2.10.0
 	github.com/robfig/cron/v3 v3.0.1
 	github.com/rs/cors v1.9.0
@@ -56,8 +57,11 @@ require (
 	github.com/anacrolix/missinggo/v2 v2.7.2 // indirect
 	github.com/andybalholm/cascadia v1.3.2 // indirect
 	github.com/bradfitz/iter v0.0.0-20191230175014-e8f45d346db8 // indirect
+	github.com/danwakefield/fnmatch v0.0.0-20160403171240-cbb64ac3d964 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/gdm85/go-rencode v0.1.8 // indirect
+	github.com/go-jose/go-jose/v3 v3.0.0 // indirect
+	github.com/go-stack/stack v1.8.1 // indirect
 	github.com/google/uuid v1.3.0 // indirect
 	github.com/gorilla/securecookie v1.1.1 // indirect
 	github.com/gosimple/unidecode v1.0.1 // indirect
@@ -88,6 +92,7 @@ require (
 	github.com/spf13/cast v1.5.1 // indirect
 	github.com/spf13/jwalterweatherman v1.1.0 // indirect
 	github.com/subosito/gotenv v1.4.2 // indirect
+	go.uber.org/multierr v1.11.0 // indirect
 	golang.org/x/exp v0.0.0-20230522175609-2e198f4a06a1 // indirect
 	golang.org/x/mod v0.12.0 // indirect
 	golang.org/x/sys v0.11.0 // indirect
