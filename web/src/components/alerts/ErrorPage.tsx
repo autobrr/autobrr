@@ -17,11 +17,20 @@ export const ErrorPage = ({ error, resetErrorBoundary }: FallbackProps) => {
     }
   });
 
+  const parseTitle = () => {
+    switch (error?.cause) {
+      case "OFFLINE":
+        return "Connection to Autobrr failed! Check the application state and verify your connectivity.";
+      default:
+        return "We caught an unrecoverable error!";
+    }
+  };
+
   return (
     <div className="min-h-screen flex flex-col justify-center py-12 px-2 sm:px-6 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-screen-md md:max-w-screen-lg lg:max-w-screen-xl">
         <h1 className="text-3xl font-bold leading-6 text-gray-900 dark:text-gray-200 mt-4 mb-3">
-          We caught an unrecoverable error!
+          {parseTitle()}
         </h1>
         <h3 className="text-xl leading-6 text-gray-700 dark:text-gray-400 mb-4">
           Please consider reporting this error to our
@@ -67,7 +76,7 @@ export const ErrorPage = ({ error, resetErrorBoundary }: FallbackProps) => {
             </pre>
           ) : null}
           <span className="block text-gray-800 mb-2 text-md">
-            You can try resetting the page state using the button provided below.
+            You can try resetting the page state using the button provided below or restarting your autobrr application.
             However, this is not guaranteed to fix the error.
           </span>
           <button
