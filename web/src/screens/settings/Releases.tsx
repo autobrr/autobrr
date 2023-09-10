@@ -101,6 +101,7 @@ function DeleteReleases() {
     <div className="flex justify-between items-center rounded-md">
       <DeleteModal
         isOpen={deleteModalIsOpen}
+        isLoading={deleteOlderMutation.isLoading}
         toggle={toggleDeleteModal}
         buttonRef={cancelModalButtonRef}
         deleteAction={deleteOlderReleases}

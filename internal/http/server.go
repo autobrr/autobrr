@@ -81,7 +81,7 @@ func (s Server) Open() error {
 	}
 
 	server := http.Server{
-		Handler: s.Handler(),
+		Handler:           s.Handler(),
 		ReadHeaderTimeout: time.Second * 15,
 	}
 

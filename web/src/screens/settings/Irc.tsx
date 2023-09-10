@@ -171,7 +171,7 @@ const IrcSettings = () => {
                 ? <span className="flex items-center">Collapse <ArrowsPointingInIcon className="ml-1 w-4 h-4"/></span>
                 : <span className="flex items-center">Expand <ArrowsPointingOutIcon className="ml-1 w-4 h-4"/></span>
               }</button>
-            <div className="relative z-10"><IRCLogsDropdown/></div>
+            <IRCLogsDropdown/>
           </div>
         </div>
 
@@ -478,6 +478,7 @@ const ListItemDropdown = ({
     >
       <DeleteModal
         isOpen={deleteModalIsOpen}
+        isLoading={deleteMutation.isLoading}
         toggle={toggleDeleteModal}
         buttonRef={cancelModalButtonRef}
         deleteAction={() => {
@@ -665,33 +666,11 @@ export const Events = ({ network, channel }: EventsProps) => {
     setLogs([]);
   }, [settings.scrollOnNewLog]);
 
-  // const { handleSubmit, register , resetField } = useForm<IrcMsg>({
-  //   defaultValues: { msg: ""  },
-  //   mode: "onBlur"
-  // });
-
-  // const cmdMutation = useMutation({
-  //   mutationFn: (data: SendIrcCmdRequest) => APIClient.irc.sendCmd(data),
-  //   onSuccess: (_, _variables) => {
-  //     resetField("msg");
-  //   },
-  //   onError: () => {
-  //     toast.custom((t) => (
-  //       <Toast type="error" body="Error sending IRC cmd" t={t} />
-  //     ));
-  //   }
-  // });
-
-  // const onSubmit = (msg: IrcMsg) => {
-  //   const payload = { network_id: network.id, nick: network.nick, server: network.server, channel: channel, msg: msg.msg };
-  //   cmdMutation.mutate(payload);
-  // };
-
   return (
     <div
       className={classNames(
         "dark:bg-gray-800 rounded-lg shadow-lg p-2",
-        isFullscreen ? "fixed top-0 left-0 w-screen h-screen z-50" : ""
+        isFullscreen ? "fixed top-0 left-0 right-0 bottom-0 w-screen h-screen z-50" : ""
       )}
     >
       <div className="flex relative">
@@ -725,21 +704,6 @@ export const Events = ({ network, channel }: EventsProps) => {
           </div>
         ))}
       </div>
-
-      {/*<div>*/}
-      {/*  <form onSubmit={handleSubmit(onSubmit)}>*/}
-      {/*    <input*/}
-      {/*      id="msg"*/}
-      {/*      {...(register && register("msg"))}*/}
-      {/*      type="text"*/}
-      {/*      minLength={2}*/}
-      {/*      className={classNames(*/}
-      {/*        "focus:ring-blue-500 dark:focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-500 border-gray-300 dark:border-gray-700",*/}
-      {/*        "block w-full dark:bg-gray-900 shadow-sm dark:text-gray-100 sm:text-sm rounded-md"*/}
-      {/*      )}*/}
-      {/*    />*/}
-      {/*  </form>*/}
-      {/*</div>*/}
     </div>
   );
 };
@@ -774,7 +738,7 @@ const IRCLogsDropdown = () => {
   //  at Me2 (http://localhost:3000/node_modules/.vite/deps/@headlessui_react.js?v=e8629745:2062:21)
   //  at IRCLogsDropdown (http://localhost:3000/src/screens/settings/Irc.tsx?t=1694269937935:1354:53)
   return (
-    <Menu as="div">
+    <Menu as="div" className="relative">
       <Menu.Button className="flex items-center text-gray-800 dark:text-gray-400 p-1 px-2 rounded shadow bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600">
         <span className="flex items-center">Options <Cog6ToothIcon className="ml-1 w-4 h-4"/></span>
       </Menu.Button>
@@ -788,17 +752,19 @@ const IRCLogsDropdown = () => {
         leaveTo="transform opacity-0 scale-95"
       >
         <Menu.Items
-          className="absolute right-0 mt-2 px-3 py-2 bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700 rounded-md shadow-lg ring-1 ring-black ring-opacity-10 focus:outline-none"
+          className="absolute z-10 right-0 mt-2 bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700 rounded-md shadow-lg ring-1 ring-black ring-opacity-10 focus:outline-none"
         >
-          <Menu.Item>
-            {() => (
-              <Checkbox
-                label="Scroll to bottom on new message"
-                value={settings.scrollOnNewLog}
-                setValue={(newValue) => onSetValue("scrollOnNewLog", newValue)}
-              />
-            )}
-          </Menu.Item>
+          <div className="p-3">
+            <Menu.Item>
+              {() => (
+                <Checkbox
+                  label="Scroll to bottom on new message"
+                  value={settings.scrollOnNewLog}
+                  setValue={(newValue) => onSetValue("scrollOnNewLog", newValue)}
+                />
+              )}
+            </Menu.Item>
+          </div>
         </Menu.Items>
       </Transition>
     </Menu>

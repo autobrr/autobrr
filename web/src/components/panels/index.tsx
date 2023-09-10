@@ -62,6 +62,7 @@ function SlideOver<DataType>({
         {deleteAction && (
           <DeleteModal
             isOpen={deleteModalIsOpen}
+            isLoading={isTesting || false}
             toggle={toggleDeleteModal}
             buttonRef={cancelModalButtonRef}
             deleteAction={deleteAction}

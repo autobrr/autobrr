@@ -833,6 +833,7 @@ export function DownloadClientUpdateForm({ client, isOpen, toggle }: updateFormP
       >
         <DeleteModal
           isOpen={deleteModalIsOpen}
+          isLoading={deleteMutation.isLoading}
           toggle={toggleDeleteModal}
           buttonRef={cancelModalButtonRef}
           deleteAction={deleteAction}
