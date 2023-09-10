@@ -55,8 +55,8 @@ function ContextMerger<T extends {}>(
 ) {
   const storage = localStorage.getItem(key);
   if (!storage) {
-    // Nothing to do. We already have a value thanks to react-ridge-state.
-    return;
+    // We need to call .set with defaults here to apply darkTheme artifacts on initial load
+    return ctxState.set(defaults);
   }
 
   try {
