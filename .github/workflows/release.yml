@@ -182,7 +182,7 @@ jobs:
         with:
           images: ghcr.io/autobrr/autobrr
           tags: |
-            type=semver,pattern={{version}}
+            type=semver,pattern={{raw}}
             type=ref,event=branch
             type=ref,event=pr
 
