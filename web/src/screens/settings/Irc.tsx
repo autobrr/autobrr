@@ -248,7 +248,13 @@ const ListItem = ({ network, expanded }: ListItemProps) => {
           "grid grid-cols-12 gap-2 lg:gap-4 items-center py-2 cursor-pointer",
           network.enabled && !network.healthy ? "bg-red-50 dark:bg-red-900 hover:bg-red-100 dark:hover:bg-red-800" : "hover:bg-gray-50 dark:hover:bg-gray-700"
         )}
-        onClick={toggleEdit}
+        onClick={(e) => {
+          if (e.defaultPrevented)
+            return;
+
+          e.preventDefault();
+          toggleEdit();
+        }}
       >
         <IrcNetworkUpdateForm
           isOpen={updateIsOpen}
@@ -474,7 +480,11 @@ const ListItemDropdown = ({
   return (
     <Menu 
       as="div"
-      onClick={(e: MouseEvent) => e.stopPropagation()}
+      onClick={(e: MouseEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        e.nativeEvent.stopImmediatePropagation();
+      }}
     >
       <DeleteModal
         isOpen={deleteModalIsOpen}
