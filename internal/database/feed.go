@@ -386,7 +386,7 @@ func (r *FeedRepo) Delete(ctx context.Context, id int) error {
 		return errors.Wrap(err, "error executing query")
 	}
 
-	r.log.Info().Msgf("feed.delete: successfully deleted: %v", id)
+	r.log.Debug().Msgf("feed.delete: successfully deleted: %v", id)
 
 	return nil
 }
