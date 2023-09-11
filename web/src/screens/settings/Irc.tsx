@@ -667,20 +667,7 @@ export const Events = ({ network, channel }: EventsProps) => {
   }, [settings.scrollOnNewLog]);
 
   useEffect(() => {
-    const disableBackgroundScroll = () => {
-      if (isFullscreen) {
-        document.body.classList.add("overflow-hidden");
-      } else {
-        document.body.classList.remove("overflow-hidden");
-      }
-    };
-
-    disableBackgroundScroll(); // Set initial state when component mounts
-
-    return () => {
-      // Clean up by removing the class when the component unmounts
-      document.body.classList.remove("overflow-hidden");
-    };
+    document.body.classList.toggle("overflow-hidden", isFullscreen);
   }, [isFullscreen]);
 
   return (
