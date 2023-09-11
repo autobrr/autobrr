@@ -676,6 +676,15 @@ export const Events = ({ network, channel }: EventsProps) => {
     setLogs([]);
   }, [settings.scrollOnNewLog]);
 
+  useEffect(() => {
+    document.body.classList.toggle("overflow-hidden", isFullscreen);
+
+    return () => {
+      // Clean up by removing the class when the component unmounts
+      document.body.classList.remove("overflow-hidden");
+    };
+  }, [isFullscreen]);
+
   return (
     <div
       className={classNames(
