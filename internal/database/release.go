@@ -135,7 +135,7 @@ func (repo *ReleaseRepo) findReleases(ctx context.Context, tx *Tx, params domain
 
 		search := strings.TrimSpace(params.Search)
 		for k, v := range reserved {
-			r := regexp.MustCompile(fmt.Sprintf(`(?:%s:)(?P<value>'.*?'|".*?"|\S+)`, k))
+			r := regexp.MustCompile(fmt.Sprintf(`(?i)(?:%s:)(?P<value>'.*?'|".*?"|\S+)`, k))
 			if reskey := r.FindAllStringSubmatch(search, -1); len(reskey) != 0 {
 				filter := sq.Or{}
 				for _, found := range reskey {
@@ -152,7 +152,11 @@ func (repo *ReleaseRepo) findReleases(ctx context.Context, tx *Tx, params domain
 		}
 
 		if len(search) != 0 {
-			whereQueryBuilder = append(whereQueryBuilder, sq.Like{"r.torrent_name": search + "%"})
+			if len(whereQueryBuilder) > 1 {
+				whereQueryBuilder = append(whereQueryBuilder, ILike("r.torrent_name", "%"+search+"%"))
+			} else {
+				whereQueryBuilder = append(whereQueryBuilder, ILike("r.torrent_name", search+"%"))
+			}
 		}
 	}
 

@@ -42,7 +42,7 @@ type client struct {
 func New(config Config) Client {
 
 	httpClient := &http.Client{
-		Timeout: time.Second * 30,
+		Timeout: time.Second * 120,
 	}
 
 	c := &client{

@@ -12,7 +12,7 @@ type NotificationEvent =
   | "IRC_RECONNECTED"
   | "APP_UPDATE_AVAILABLE";
 
-interface Notification {
+interface ServiceNotification {
   id: number;
   name: string;
   enabled: boolean;
