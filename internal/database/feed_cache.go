@@ -50,7 +50,7 @@ func (r *FeedCacheRepo) Get(feedId int, key string) ([]byte, error) {
 	}
 
 	var value []byte
-	var ttl time.Duration
+	var ttl time.Time
 
 	if err := row.Scan(&value, &ttl); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
