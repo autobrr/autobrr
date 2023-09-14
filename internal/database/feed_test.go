@@ -133,5 +133,46 @@ func TestFeedRepo_Update(t *testing.T) {
 }
 
 func TestFeedRepo_Delete(t *testing.T) {
+	for _, dbType := range getDbs() {
+		db := SetupDatabase(t, dbType)
+		defer func(db *DB) {
+			err := db.Close()
+			if err != nil {
+				t.Fatalf("Could not close db connection: %v", err)
+			}
+		}(db)
+		log := SetupLogger()
+		repo := NewFeedRepo(log, db)
+		indexerRepo := NewIndexerRepo(log, db)
+		mockData := getMockFeed()
+		indexerMockData := getMockIndexer()
 
+		t.Run(fmt.Sprintf("Delete_Succeeds [%s]", dbType), func(t *testing.T) {
+			// Setup
+			indexer, err := indexerRepo.Store(context.Background(), indexerMockData)
+			assert.NoError(t, err)
+			mockData.IndexerID = int(indexer.ID)
+			err = repo.Store(context.Background(), mockData)
+			assert.NoError(t, err)
+
+			// Execute
+			err = repo.Delete(context.Background(), mockData.ID)
+			assert.NoError(t, err)
+
+			// Verify
+			_, err = repo.FindByID(context.Background(), mockData.ID)
+			assert.Error(t, err)
+
+			// Cleanup
+			_ = indexerRepo.Delete(context.Background(), int(indexer.ID))
+		})
+
+		t.Run(fmt.Sprintf("Delete_Fails_Non_Existing_Feed [%s]", dbType), func(t *testing.T) {
+			// Execute
+			err := repo.Delete(context.Background(), 9999)
+			assert.Error(t, err)
+			assert.Contains(t, err.Error(), "sql: no rows in result set")
+		})
+
+	}
 }
