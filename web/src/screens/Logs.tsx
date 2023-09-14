@@ -34,11 +34,11 @@ type LogEvent = {
 type LogLevel = "TRC" | "DBG" | "INF" | "ERR" | "WRN" | "FTL" | "PNC";
 
 const LogColors: Record<LogLevel, string> = {
-  "TRC": "text-purple-300",
+  "TRC": "text-fuchsia-500 dark:text-purple-300",
   "DBG": "text-yellow-500",
   "INF": "text-green-500",
   "ERR": "text-red-500",
-  "WRN": "text-yellow-500",
+  "WRN": "text-amber-600 dark:text-yellow-500",
   "FTL": "text-red-500",
   "PNC": "text-red-600",
 };

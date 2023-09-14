@@ -17,5 +17,6 @@ export const NAV_ROUTES: Array<NavItem> = [
   { name: "Filters", path: "/filters" },
   { name: "Releases", path: "/releases" },
   { name: "Settings", path: "/settings" },
-  { name: "Logs", path: "/logs" }
+  { name: "Logs", path: "/logs" },
+  { name: "IRC", path: "/irc" },
 ];

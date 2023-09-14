@@ -13,6 +13,7 @@ import { SectionLoader } from "@components/SectionLoader";
 import { NotFound } from "@components/alerts/NotFound";
 
 import { Logs } from "@screens/Logs";
+import { Irc } from "@screens/irc/Irc";
 import { Releases } from "@screens/Releases";
 import { Settings } from "@screens/Settings";
 import { Dashboard } from "@screens/Dashboard";
@@ -37,6 +38,7 @@ export const LocalRouter = ({ isLoggedIn }: { isLoggedIn: boolean }) => (
         <Route element={<BaseLayout />}>
           <Route index element={<Dashboard />} />
           <Route path="logs" element={<Logs />} />
+          <Route path="irc" element={<Irc />} />
           <Route path="releases" element={<Releases />} />
           <Route path="filters">
             <Route index element={<Filters />} />

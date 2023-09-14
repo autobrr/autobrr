@@ -40,7 +40,7 @@ export type COL_WIDTHS = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12;
 
 // simplify date
 export function simplifyDate(date?: string) {
-  if (typeof(date) === "string" && date !== "0001-01-01T00:00:00Z") {
+  if (typeof(date) === "string" && date.length && date !== "0001-01-01T00:00:00Z") {
     return formatISO9075(new Date(date));
   }
   return "n/a";
@@ -48,7 +48,7 @@ export function simplifyDate(date?: string) {
 
 // if empty date show as n/a
 export function IsEmptyDate(date?: string) {
-  if (typeof(date) === "string" && date !== "0001-01-01T00:00:00Z") {
+  if (typeof(date) === "string" && date.length && date !== "0001-01-01T00:00:00Z") {
     return formatDistanceToNowStrict(
       new Date(date),
       { addSuffix: true }
