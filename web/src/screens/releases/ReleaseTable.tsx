@@ -408,8 +408,8 @@ export const ReleaseTable = () => {
                   {headerGroup.headers.map((column) => {
                     const { key: columnKey, ...columnRest } = column.getHeaderProps(column.getSortByToggleProps());
                     return (
-                    // Add the sorting props to control sorting. For this example
-                    // we can add them into the header props
+                      // Add the sorting props to control sorting. For this example
+                      // we can add them into the header props
                       <th
                         key={`${rowKey}-${columnKey}`}
                         scope="col"

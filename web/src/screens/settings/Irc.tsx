@@ -171,7 +171,7 @@ const IrcSettings = () => {
                 ? <span className="flex items-center">Collapse <ArrowsPointingInIcon className="ml-1 w-4 h-4"/></span>
                 : <span className="flex items-center">Expand <ArrowsPointingOutIcon className="ml-1 w-4 h-4"/></span>
               }</button>
-            <div className="relative z-10"><IRCLogsDropdown/></div>
+            <IRCLogsDropdown/>
           </div>
         </div>
 
@@ -248,7 +248,13 @@ const ListItem = ({ network, expanded }: ListItemProps) => {
           "grid grid-cols-12 gap-2 lg:gap-4 items-center py-2 cursor-pointer",
           network.enabled && !network.healthy ? "bg-red-50 dark:bg-red-900 hover:bg-red-100 dark:hover:bg-red-800" : "hover:bg-gray-50 dark:hover:bg-gray-700"
         )}
-        onClick={toggleEdit}
+        onClick={(e) => {
+          if (e.defaultPrevented)
+            return;
+
+          e.preventDefault();
+          toggleEdit();
+        }}
       >
         <IrcNetworkUpdateForm
           isOpen={updateIsOpen}
@@ -474,10 +480,15 @@ const ListItemDropdown = ({
   return (
     <Menu 
       as="div"
-      onClick={(e: MouseEvent) => e.stopPropagation()}
+      onClick={(e: MouseEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        e.nativeEvent.stopImmediatePropagation();
+      }}
     >
       <DeleteModal
         isOpen={deleteModalIsOpen}
+        isLoading={deleteMutation.isLoading}
         toggle={toggleDeleteModal}
         buttonRef={cancelModalButtonRef}
         deleteAction={() => {
@@ -665,33 +676,20 @@ export const Events = ({ network, channel }: EventsProps) => {
     setLogs([]);
   }, [settings.scrollOnNewLog]);
 
-  // const { handleSubmit, register , resetField } = useForm<IrcMsg>({
-  //   defaultValues: { msg: ""  },
-  //   mode: "onBlur"
-  // });
+  useEffect(() => {
+    document.body.classList.toggle("overflow-hidden", isFullscreen);
 
-  // const cmdMutation = useMutation({
-  //   mutationFn: (data: SendIrcCmdRequest) => APIClient.irc.sendCmd(data),
-  //   onSuccess: (_, _variables) => {
-  //     resetField("msg");
-  //   },
-  //   onError: () => {
-  //     toast.custom((t) => (
-  //       <Toast type="error" body="Error sending IRC cmd" t={t} />
-  //     ));
-  //   }
-  // });
-
-  // const onSubmit = (msg: IrcMsg) => {
-  //   const payload = { network_id: network.id, nick: network.nick, server: network.server, channel: channel, msg: msg.msg };
-  //   cmdMutation.mutate(payload);
-  // };
+    return () => {
+      // Clean up by removing the class when the component unmounts
+      document.body.classList.remove("overflow-hidden");
+    };
+  }, [isFullscreen]);
 
   return (
     <div
       className={classNames(
         "dark:bg-gray-800 rounded-lg shadow-lg p-2",
-        isFullscreen ? "fixed top-0 left-0 w-screen h-screen z-50" : ""
+        isFullscreen ? "fixed top-0 left-0 right-0 bottom-0 w-screen h-screen z-50" : ""
       )}
     >
       <div className="flex relative">
@@ -725,21 +723,6 @@ export const Events = ({ network, channel }: EventsProps) => {
           </div>
         ))}
       </div>
-
-      {/*<div>*/}
-      {/*  <form onSubmit={handleSubmit(onSubmit)}>*/}
-      {/*    <input*/}
-      {/*      id="msg"*/}
-      {/*      {...(register && register("msg"))}*/}
-      {/*      type="text"*/}
-      {/*      minLength={2}*/}
-      {/*      className={classNames(*/}
-      {/*        "focus:ring-blue-500 dark:focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-500 border-gray-300 dark:border-gray-700",*/}
-      {/*        "block w-full dark:bg-gray-900 shadow-sm dark:text-gray-100 sm:text-sm rounded-md"*/}
-      {/*      )}*/}
-      {/*    />*/}
-      {/*  </form>*/}
-      {/*</div>*/}
     </div>
   );
 };
@@ -757,12 +740,26 @@ const IRCLogsDropdown = () => {
     [key]: newValue
   }));
 
+  //
+  // FIXME: Warning: Function components cannot be given refs. Attempts to access this ref will fail.
+  //        Did you mean to use React.forwardRef()?
+  //
+  // Check the render method of `Pe2`.
+  //  at Checkbox (http://localhost:3000/src/components/Checkbox.tsx:14:28)
+  //  at Pe2 (http://localhost:3000/node_modules/.vite/deps/@headlessui_react.js?v=e8629745:2164:12)
+  //  at div
+  //  at Ee (http://localhost:3000/node_modules/.vite/deps/@headlessui_react.js?v=e8629745:2106:12)
+  //  at c5 (http://localhost:3000/node_modules/.vite/deps/@headlessui_react.js?v=e8629745:592:22)
+  //  at De4 (http://localhost:3000/node_modules/.vite/deps/@headlessui_react.js?v=e8629745:3016:22)
+  //  at He5 (http://localhost:3000/node_modules/.vite/deps/@headlessui_react.js?v=e8629745:3053:15)
+  //  at div
+  //  at c5 (http://localhost:3000/node_modules/.vite/deps/@headlessui_react.js?v=e8629745:592:22)
+  //  at Me2 (http://localhost:3000/node_modules/.vite/deps/@headlessui_react.js?v=e8629745:2062:21)
+  //  at IRCLogsDropdown (http://localhost:3000/src/screens/settings/Irc.tsx?t=1694269937935:1354:53)
   return (
-    <Menu as="div">
-      <Menu.Button>
-        <button className="flex items-center text-gray-800 dark:text-gray-400 p-1 px-2 rounded shadow bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600">
-          <span className="flex items-center">Options <Cog6ToothIcon className="ml-1 w-4 h-4"/></span>
-        </button>
+    <Menu as="div" className="relative">
+      <Menu.Button className="flex items-center text-gray-800 dark:text-gray-400 p-1 px-2 rounded shadow bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600">
+        <span className="flex items-center">Options <Cog6ToothIcon className="ml-1 w-4 h-4"/></span>
       </Menu.Button>
       <Transition
         as={Fragment}
@@ -774,22 +771,20 @@ const IRCLogsDropdown = () => {
         leaveTo="transform opacity-0 scale-95"
       >
         <Menu.Items
-          className="absolute right-0 mt-2 bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700 rounded-md shadow-lg ring-1 ring-black ring-opacity-10 focus:outline-none"
+          className="absolute z-10 right-0 mt-2 px-3 py-2 bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700 rounded-md shadow-lg ring-1 ring-black ring-opacity-10 focus:outline-none"
         >
-          <div className="p-3">
-            <Menu.Item>
-              {() => (
-                <Checkbox
-                  label="Scroll to bottom on new message"
-                  value={settings.scrollOnNewLog}
-                  setValue={(newValue) => onSetValue("scrollOnNewLog", newValue)}
-                />
-              )}
-            </Menu.Item>
-
-          </div>
+          <Menu.Item>
+            {() => (
+              <Checkbox
+                label="Scroll to bottom on new message"
+                value={settings.scrollOnNewLog}
+                setValue={(newValue) => onSetValue("scrollOnNewLog", newValue)}
+              />
+            )}
+          </Menu.Item>
         </Menu.Items>
       </Transition>
     </Menu>
   );
 };
+

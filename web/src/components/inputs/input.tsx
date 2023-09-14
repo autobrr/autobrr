@@ -609,6 +609,7 @@ interface NumberFieldProps {
   min?: number;
   max?: number;
   tooltip?: JSX.Element;
+  isDecimal?: boolean;
 }
 
 export const NumberField = ({
@@ -620,7 +621,8 @@ export const NumberField = ({
   max,
   tooltip,
   disabled,
-  required
+  required,
+  isDecimal
 }: NumberFieldProps) => (
   <div className="col-span-12 sm:col-span-6">
     <label
@@ -642,7 +644,7 @@ export const NumberField = ({
             step={step}
             min={min}
             max={max}
-            inputMode="numeric"
+            inputMode={isDecimal ? "decimal" : "numeric"}
             required={required}
             className={classNames(
               meta.touched && meta.error
@@ -660,7 +662,11 @@ export const NumberField = ({
                 form.setFieldValue(field.name, 0);
                 return;
               }
-              form.setFieldValue(field.name, parseInt(event.target.value)); // Convert the input value to an integer using parseInt() to ensure that the backend can properly parse the numberfield as an integer.
+              if (isDecimal) {
+                form.setFieldValue(field.name, parseFloat(event.target.value));
+              } else {
+                form.setFieldValue(field.name, parseInt(event.target.value));
+              }
             }}
             onWheel={(event) => {
               if (event.currentTarget === document.activeElement) {

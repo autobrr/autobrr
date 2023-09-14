@@ -4,6 +4,12 @@ import { VitePWA } from "vite-plugin-pwa";
 import react from "@vitejs/plugin-react-swc";
 import svgr from "vite-plugin-svgr";
 
+interface PreRenderedAsset {
+  name: string | undefined;
+  source: string | Uint8Array;
+  type: 'asset';
+}
+
 // https://vitejs.dev/config/
 export default ({ mode }: ConfigEnv) => {
   // early load .env file
@@ -13,8 +19,8 @@ export default ({ mode }: ConfigEnv) => {
   return defineConfig({
     base: "",
     plugins: [react(), svgr(), VitePWA({
-      registerType: "autoUpdate",
-      injectRegister: "inline",
+      injectRegister: null,
+      selfDestroying: true,
       scope: "{{.BaseUrl}}",
       // strategies: "injectManifest",
       useCredentials: true,
@@ -97,6 +103,16 @@ export default ({ mode }: ConfigEnv) => {
     build: {
       manifest: true,
       sourcemap: true,
+      rollupOptions: {
+        output: {
+          assetFileNames: (chunkInfo: PreRenderedAsset) => {
+            if (chunkInfo.name === "Inter.var.woff2") {
+              return "assets/[name][extname]";
+            }
+            return "assets/[name]-[hash][extname]";
+          }
+        }
+      }
     }
   });
 };
