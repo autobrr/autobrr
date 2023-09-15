@@ -26,11 +26,11 @@ export const LeftNav = () => (
             to={item.path}
             className={({ isActive }) =>
               classNames(
-                "hover:bg-gray-200 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white px-3 py-2 rounded-2xl text-sm font-medium",
+                "hover:bg-gray-200 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white px-3 py-2 rounded-2xl text-sm",
                 "transition-colors duration-200",
                 isActive
-                  ? "text-black dark:text-gray-50 font-bold"
-                  : "text-gray-600 dark:text-gray-500"
+                  ? "font-bold text-black dark:text-gray-50"
+                  : "font-medium text-gray-600 dark:text-gray-500"
               )
             }
             end={item.path === "/"}

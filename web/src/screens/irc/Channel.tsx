@@ -33,7 +33,7 @@ export const Channel = ({
         network.enabled && channel.enabled ? (
           isSelected ? "text-white" : "text-gray-700 dark:text-gray-400"
         ) : (
-          "text-gray-500 line-through"
+          "text-gray-700 dark:text-gray-400 line-through"
         )
       )}>
         {channel.name}

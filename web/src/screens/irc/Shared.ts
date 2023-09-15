@@ -20,3 +20,9 @@ export const GetChannelKey = (channel: IrcChannelWithHealth, network: IrcNetwork
       .replaceAll("/", "_")
       .replaceAll("=", "");
 
+export const IRC_KEYS = {
+  all: ["irc_networks"] as const,
+  lists: () => [...IRC_KEYS.all, "list"] as const,
+  details: () => [...IRC_KEYS.all, "detail"] as const,
+  detail: (id: number) => [...IRC_KEYS.details(), id] as const
+};

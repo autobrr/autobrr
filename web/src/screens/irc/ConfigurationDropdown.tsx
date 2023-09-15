@@ -34,9 +34,9 @@ export const ConfigurationDropdown = () => {
   //  at Me2 (http://localhost:3000/node_modules/.vite/deps/@headlessui_react.js?v=e8629745:2062:21)
   //  at IRCLogsDropdown (http://localhost:3000/src/screens/settings/Irc.tsx?t=1694269937935:1354:53)
   return (
-    <Menu as="div" className="relative">
-      <Menu.Button className="flex items-center text-gray-800 dark:text-gray-400 p-2 rounded border transition border-gray-400 dark:border-gray-800 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600">
-        <Cog6ToothIcon className="w-5 h-5" title="Configure behavior" />
+    <Menu as="div" className="relative" title="Configure behavior">
+      <Menu.Button className="flex items-center text-gray-800 dark:text-gray-400 p-2 rounded-md border transition border-gray-400 dark:border-gray-600 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600">
+        <Cog6ToothIcon className="w-4 h-4" />
       </Menu.Button>
       <Transition
         as={Fragment}
