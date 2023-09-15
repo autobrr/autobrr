@@ -112,7 +112,22 @@ export default ({ mode }: ConfigEnv) => {
             return "assets/[name]-[hash][extname]";
           }
         }
-      }
+      },
+      //
+      // NOTE(stacksmash76):
+      // There isn't a nice way to pass browserslist to esbuild.
+      //
+      // One option is to use browserslist-to-esbuild package,
+      // but so far this seems to give incorrect results which leads
+      // to the transpiler erroring on unsupported features.
+      //
+      // Instead, the simplest thing to do is just flat out define
+      // relatively modern and recent minimally supported browser versions
+      // and use that as a pivotal point. This list can later be refreshed
+      // if there is ever such a need, but for the next year or so, it should suffice.
+      //
+      target: ["chrome79", "edge114", "firefox114", "ios13"],
+      cssTarget: ["chrome79", "edge114", "firefox114", "ios13"]
     }
   });
 };
