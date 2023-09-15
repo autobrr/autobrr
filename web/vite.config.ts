@@ -1,8 +1,13 @@
 import { fileURLToPath, URL } from "node:url";
 import { defineConfig, loadEnv, ConfigEnv } from "vite";
+
+// Plugins
 import { VitePWA } from "vite-plugin-pwa";
 import react from "@vitejs/plugin-react-swc";
 import svgr from "vite-plugin-svgr";
+import legacy from "@vitejs/plugin-legacy";
+
+import PackageJSON from "./package.json";
 
 interface PreRenderedAsset {
   name: string | undefined;
@@ -15,10 +20,11 @@ export default ({ mode }: ConfigEnv) => {
   // early load .env file
   // import.meta.env.VITE_NAME available here with: process.env.VITE_NAME
   process.env = { ...process.env, ...loadEnv(mode, process.cwd()) };
-
-  return defineConfig({
-    base: "",
-    plugins: [react(), svgr(), VitePWA({
+  
+  const plugins = [
+    react(),
+    svgr(),
+    VitePWA({
       injectRegister: null,
       selfDestroying: true,
       scope: "{{.BaseUrl}}",
@@ -72,7 +78,18 @@ export default ({ mode }: ConfigEnv) => {
         sourcemap: true,
         navigateFallbackDenylist: [/^\/api/]
       }
-    })],
+    })
+  ];
+
+  if (mode === "production") {
+    plugins.push(
+      legacy({ targets: PackageJSON.browserslist.production })
+    );
+  }
+
+  return defineConfig({
+    base: "",
+    plugins: plugins,
     resolve: {
       alias: [
         { find: "@", replacement: fileURLToPath(new URL("./src/", import.meta.url)) },
@@ -113,21 +130,6 @@ export default ({ mode }: ConfigEnv) => {
           }
         }
       },
-      //
-      // NOTE(stacksmash76):
-      // There isn't a nice way to pass browserslist to esbuild.
-      //
-      // One option is to use browserslist-to-esbuild package,
-      // but so far this seems to give incorrect results which leads
-      // to the transpiler erroring on unsupported features.
-      //
-      // Instead, the simplest thing to do is just flat out define
-      // relatively modern and recent minimally supported browser versions
-      // and use that as a pivotal point. This list can later be refreshed
-      // if there is ever such a need, but for the next year or so, it should suffice.
-      //
-      target: ["chrome79", "edge114", "firefox114", "ios13"],
-      cssTarget: ["chrome79", "edge114", "firefox114", "ios13"]
     }
   });
 };
