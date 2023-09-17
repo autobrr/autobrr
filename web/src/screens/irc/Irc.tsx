@@ -16,19 +16,16 @@ const Legend = () => (
     <div className="flex flex-col text-gray-800 dark:text-gray-400">
       <ol className="flex flex-col md:flex-row md:gap-2 md:pb-0 md:divide-x md:divide-gray-400 md:dark:divide-gray-600">
         <li className="flex items-center">
-          <span
-            className="mr-2 flex h-4 w-4 relative"
-            title="Channel healthy"
-          >
-            <span className="animate-ping inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
-            <span className="inline-flex absolute rounded-full h-4 w-4 bg-green-500" />
-          </span>
+        <span
+            className="mr-2 flex h-4 w-4 rounded-full opacity-75 bg-green-400"
+            title="Channel unhealthy"
+          />
           <span>Channel healthy</span>
         </li>
 
         <li className="flex items-center md:pl-2">
           <span
-            className="mr-2 flex h-4 w-4 rounded-full opacity-75 bg-yellow-400 over:text-yellow-600"
+            className="mr-2 flex h-4 w-4 rounded-full opacity-75 bg-yellow-400"
             title="Channel unhealthy"
           />
           <span>Channel unhealthy</span>
