@@ -110,7 +110,7 @@ export async function HttpClient<T = unknown>(
 
   // Resolve on success
   if (response.status >= 200 && response.status < 300) {
-    if (json) {
+    if (isJson) {
       return Promise.resolve<T>(json as T);
     } else {
       return Promise.resolve<T>(response as T);
