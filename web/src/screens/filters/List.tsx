@@ -100,15 +100,6 @@ export function Filters() {
         <h1 className="text-3xl font-bold text-black dark:text-white">Filters</h1>
         <div className="flex gap-2 h-fit">
           <button
-            className="flex items-center text-sm text-gray-800 dark:text-gray-200 p-1 px-2 rounded shadow transition border border-sky-500 dark:border-sky-600 bg-sky-300 dark:bg-sky-800 hover:bg-sky-400 dark:hover:bg-sky-700"
-            onClick={(e) => {
-              e.preventDefault();
-              toggleCreateFilter();
-            }}
-          >
-            <span className="flex items-center"><PlusIcon className="mr-2 w-4 h-4" />Create filter</span>
-          </button>
-          <button
             className="flex items-center text-sm text-gray-800 dark:text-gray-300 p-1 px-2 rounded shadow transition border border-gray-500 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600"
             onClick={(e) => {
               e.preventDefault();
@@ -116,6 +107,15 @@ export function Filters() {
             }}
           >
             <span className="flex items-center"><ArrowUpOnSquareIcon className="mr-2 w-4 h-4" />Import filter snippet</span>
+          </button>
+          <button
+            className="flex items-center text-sm text-white dark:text-gray-200 p-1 px-2 rounded shadow transition border border-blue-700 dark:border-blue-600 bg-blue-600 dark:bg-blue-700 hover:bg-blue-700 dark:hover:bg-blue-600"
+            onClick={(e) => {
+              e.preventDefault();
+              toggleCreateFilter();
+            }}
+          >
+            <span className="flex items-center"><PlusIcon className="mr-2 w-4 h-4" />Create filter</span>
           </button>
         </div>
 
