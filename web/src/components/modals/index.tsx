@@ -29,7 +29,7 @@ const ModalUpper = ({ title, text }: ModalUpperProps) => (
   <div className="bg-white dark:bg-gray-800 px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
     <div className="sm:flex sm:items-start">
       <ExclamationTriangleIcon className="h-16 w-16 text-red-500 dark:text-red-500" aria-hidden="true" />
-      <div className="mt-3 text-center sm:mt-0 sm:ml-4 sm:pr-8 sm:text-left max-w-full">
+      <div className="mt-3 text-left sm:mt-0 sm:ml-4 sm:pr-8 max-w-full">
         <Dialog.Title as="h3" className="text-lg leading-6 font-medium text-gray-900 dark:text-white break-words">
           {title}
         </Dialog.Title>
