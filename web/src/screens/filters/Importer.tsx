@@ -176,7 +176,7 @@ export const Importer = ({
       return setParserWarnings([]);
     } else {
       const parser = new AutodlIrssiConfigParser();
-      parser.Parse(inputFilterText);
+      parser.Parse(inputText);
 
       setParserWarnings(parser.GetWarnings());
     }
