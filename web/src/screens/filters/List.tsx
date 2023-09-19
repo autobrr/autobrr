@@ -98,27 +98,54 @@ export function Filters() {
 
       <div className="flex justify-between items-center flex-col sm:flex-row my-6 max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8">
         <h1 className="text-3xl font-bold text-black dark:text-white">Filters</h1>
-        <div className="flex gap-2 h-fit">
-          <button
-            className="flex items-center text-sm text-gray-800 dark:text-gray-300 p-1 px-2 rounded shadow transition border border-gray-500 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600"
-            onClick={(e) => {
-              e.preventDefault();
-              setShowImportModal(true);
-            }}
-          >
-            <span className="flex items-center"><ArrowUpOnSquareIcon className="mr-2 w-4 h-4" />Import filter snippet</span>
-          </button>
-          <button
-            className="flex items-center text-sm text-white dark:text-gray-200 p-1 px-2 rounded shadow transition border border-blue-700 dark:border-blue-600 bg-blue-600 dark:bg-blue-700 hover:bg-blue-700 dark:hover:bg-blue-600"
-            onClick={(e) => {
-              e.preventDefault();
-              toggleCreateFilter();
-            }}
-          >
-            <span className="flex items-center"><PlusIcon className="mr-2 w-4 h-4" />Create filter</span>
-          </button>
-        </div>
-
+        <Menu as="div" className="relative">
+          {({ open }) => (
+            <>
+              <button
+                className="relative inline-flex items-center px-4 py-2 shadow-sm text-sm font-medium rounded-l-md text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
+                onClick={(e: { stopPropagation: () => void; }) => {
+                  if (!open) {
+                    e.stopPropagation();
+                    toggleCreateFilter();
+                  }
+                }}
+              >
+                <PlusIcon className="h-5 w-5 mr-1" />
+                Create Filter
+              </button>
+              <Menu.Button className="relative inline-flex items-center px-2 py-2 border-l border-spacing-1 dark:border-black shadow-sm text-sm font-medium rounded-r-md text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500">
+                <ChevronDownIcon className="h-5 w-5" />
+              </Menu.Button>
+              <Transition
+                show={open}
+                as={Fragment}
+                enter="transition ease-out duration-100 transform"
+                enterFrom="opacity-0 scale-95"
+                enterTo="opacity-100 scale-100"
+                leave="transition ease-in duration-75 transform"
+                leaveFrom="opacity-100 scale-100"
+                leaveTo="opacity-0 scale-95"
+              >
+                <Menu.Items className="absolute z-10 right-0 mt-0.5 bg-white dark:bg-gray-700 rounded-md shadow-lg">
+                  <Menu.Item>
+                    {({ active }) => (
+                      <button
+                        type="button"
+                        className={classNames(
+                          active ? "bg-gray-50 dark:bg-gray-600" : "",
+                          "flex items-center w-full text-left py-2 px-4 text-sm font-medium text-gray-700 dark:text-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
+                        )}
+                        onClick={() => setShowImportModal(true)}
+                      >
+                        <ArrowUpOnSquareIcon className="mr-1 w-4 h-4" />Import filter
+                      </button>
+                    )}
+                  </Menu.Item>
+                </Menu.Items>
+              </Transition>
+            </>
+          )}
+        </Menu>
       </div>
 
       <FilterList toggleCreateFilter={toggleCreateFilter} />
