@@ -1,0 +1,53 @@
+---
+#id: bemaniso
+name: Bemaniso
+identifier: bemaniso
+description: Bemaniso is a private tracker for Bemani which is a series of music and rhythm games by Konami
+language: en-us
+urls:
+  - https://bemaniso.ws/
+privacy: private
+protocol: torrent
+supports:
+  - irc
+source: gazelle
+settings:
+  - name: torrent_pass
+    type: secret
+    required: true
+    label: Torrent pass
+    help: Right click DL on a torrent and get the torrent_pass.
+
+
+irc:
+  network: Bemaniso
+  server: irc.bemaniso.ws
+  port: 6667
+  tls: false
+  channels:
+    - "#bemaniso"
+  announcers:
+    - "cindy"
+  settings:
+    - name: nick
+      type: text
+      required: true
+      label: Nick
+      help: Bot nick. Eg. user_bot
+
+  parse:
+    type: single
+    lines:
+      - test:
+          - "Torrent Name Here  - https://bemaniso.ws/torrents.php?id=00000 / https://bemaniso.ws/torrents.php?action=download&id=00000 - ps2, ddr"
+        pattern: '(.*)  - .*?id=(\d+) \/ .* - (.*)'
+        vars:
+          - torrentName
+          - torrentId
+          - category
+
+    match:
+      infourl: "/torrents.php?torrentid={{ .torrentId }}"
+      torrenturl: "/torrents.php?action=download&id={{ .torrentId }}&torrent_pass={{ .torrent_pass }}"
+      encode:
+        - torrentName
