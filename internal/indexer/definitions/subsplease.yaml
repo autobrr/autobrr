@@ -10,7 +10,6 @@ privacy: public
 protocol: torrent
 supports:
   - irc
-  - rss
 source: custom
 
 irc:
@@ -21,6 +20,7 @@ irc:
   channels:
     - "#subsplease"
   announcers:
+    - "NekoNeko"
     - "Katou"
   settings:
     - name: nick
@@ -29,28 +29,20 @@ irc:
       label: Nick
       help: Bot nick. Eg. user_bot
 
-    - name: auth.account
-      type: text
-      required: true
-      label: NickServ Account
-      help: NickServ account. Make sure to group your main user and bot.
-
-    - name: auth.password
-      type: secret
-      required: true
-      label: NickServ Password
-      help: NickServ password
-
   parse:
     type: single
     lines:
-      - pattern: '\[Release\] (.*(SubsPlease).*?)\.?(mkv)? \((\d+.?\d*[KMGTP]?B)\) - .* - (.*)'
+      - test: 
+          - "[Release] [SubsPlease] Title - 01 (480p) [636F636B].mkv (420.69MB) - https://nyaa.si/view/0000000 - https://nyaa.si/view/0000000/torrent"
+      - pattern: '\[Release\] (.*(SubsPlease).*?)\.?(mkv)? \((\d+.?\d*[KMGTP]?B)\) - (.*) - (.*)'
         vars:
           - torrentName
           - releaseGroup
           - releaseTags
           - torrentSize
+          - infoUrl
           - torrentUrl
 
     match:
+      infourl: "{{ .infoUrl }}"
       torrenturl: "{{ .torrentUrl }}"
