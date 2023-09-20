@@ -47,7 +47,7 @@ irc:
           - category
 
     match:
-      infourl: "/torrents.php?torrentid={{ .torrentId }}"
+      infourl: "/torrents.php?id={{ .torrentId }}"
       torrenturl: "/torrents.php?action=download&id={{ .torrentId }}&torrent_pass={{ .torrent_pass }}"
       encode:
         - torrentName
