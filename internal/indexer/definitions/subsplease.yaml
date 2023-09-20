@@ -10,6 +10,7 @@ privacy: public
 protocol: torrent
 supports:
   - irc
+  - rss
 source: custom
 
 irc:
