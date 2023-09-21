@@ -48,7 +48,7 @@ irc:
           - "Torrent Name Here  - https://bemaniso.ws/torrents.php?id=00000 / https://bemaniso.ws/torrents.php?action=download&id=00001 - ps2, ddr"
           - "Big Vs. 2 Small  - https://bemaniso.ws/torrents.php?id=00000 / https://bemaniso.ws/torrents.php?action=download&id=00001 - arcade, gundam, exvs"
           - "Cool title [2000] [DJ Mix] - FLAC / Lossless / Log / 100% / Cue / CD - https://bemaniso.ws/torrents.php?id=00000 / https://bemaniso.ws/torrents.php?action=download&id=00001 - eurobeat"
-        pattern: '(.*) -? (.*)? (?:.*id=(\d+)) / (?:.*id=(\d+)) - (.*)'
+        pattern: '(.*) -? (.*) (?:.*id=(\d+)) / (?:.*id=(\d+)) - (.*)'
         vars:
           - torrentName
           - releaseTags
