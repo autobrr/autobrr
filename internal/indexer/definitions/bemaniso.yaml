@@ -46,15 +46,18 @@ irc:
     lines:
       - test:
           - "Torrent Name Here  - https://bemaniso.ws/torrents.php?id=00000 / https://bemaniso.ws/torrents.php?action=download&id=00001 - ps2, ddr"
-        pattern: '(.*)  - .*id=(\d+) \/ .*id=(\d+) - (.*)'
+          - "Big Vs. 2 Small  - https://bemaniso.ws/torrents.php?id=00000 / https://bemaniso.ws/torrents.php?action=download&id=00001 - arcade, gundam, exvs"
+          - "Cool title [2000] [DJ Mix] - FLAC / Lossless / Log / 100% / Cue / CD - https://bemaniso.ws/torrents.php?id=00000 / https://bemaniso.ws/torrents.php?action=download&id=00001 - eurobeat"
+        pattern: '(.*) -? (.*)? (?:.*id=(\d+)) / (?:.*id=(\d+)) - (.*)'
         vars:
           - torrentName
+          - releaseTags
           - torrentInfoId
           - torrentId
-          - category
+          - tags
 
     match:
       infourl: "/torrents.php?id={{ .torrentInfoId }}"
-      torrenturl: "/torrents.php?action=download&id={{ .torrentId }}&torrent_pass={{ .torrent_pass }}&authkey={{ .authkey }}"
+      torrenturl: "/torrents.php?action=download&id={{ .torrentId }}&authkey={{ .authkey }}&torrent_pass={{ .torrent_pass }}"
       encode:
         - torrentName
