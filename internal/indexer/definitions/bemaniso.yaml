@@ -18,6 +18,12 @@ settings:
     label: Torrent pass
     help: Right click DL on a torrent and get the torrent_pass.
 
+  - name: authkey
+    type: secret
+    required: true
+    label: Auth key
+    help: Right click DL on a torrent and get the authkey.
+
 
 irc:
   network: Bemaniso
@@ -39,15 +45,16 @@ irc:
     type: single
     lines:
       - test:
-          - "Torrent Name Here  - https://bemaniso.ws/torrents.php?id=00000 / https://bemaniso.ws/torrents.php?action=download&id=00000 - ps2, ddr"
-        pattern: '(.*)  - .*?id=(\d+) \/ .* - (.*)'
+          - "Torrent Name Here  - https://bemaniso.ws/torrents.php?id=00000 / https://bemaniso.ws/torrents.php?action=download&id=00001 - ps2, ddr"
+        pattern: '(.*)  - .*id=(\d+) \/ .*id=(\d+) - (.*)'
         vars:
           - torrentName
+          - torrentInfoId
           - torrentId
           - category
 
     match:
-      infourl: "/torrents.php?id={{ .torrentId }}"
-      torrenturl: "/torrents.php?action=download&id={{ .torrentId }}&torrent_pass={{ .torrent_pass }}"
+      infourl: "/torrents.php?id={{ .torrentInfoId }}"
+      torrenturl: "/torrents.php?action=download&id={{ .torrentId }}&torrent_pass={{ .torrent_pass }}&authkey={{ .auth_key }}"
       encode:
         - torrentName
