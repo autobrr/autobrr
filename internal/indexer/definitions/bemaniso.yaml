@@ -59,5 +59,3 @@ irc:
     match:
       infourl: "/torrents.php?id={{ .torrentInfoId }}"
       torrenturl: "/torrents.php?action=download&id={{ .torrentId }}&authkey={{ .authkey }}&torrent_pass={{ .torrent_pass }}"
-      encode:
-        - torrentName
