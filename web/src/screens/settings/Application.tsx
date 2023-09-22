@@ -24,7 +24,7 @@ const RowItem = ({ label, value, title, emptyText }: RowItemProps) => {
   return (
     <div className="py-4 sm:py-5 sm:grid sm:grid-cols-4 sm:gap-4 sm:px-6">
       <dt className="font-medium text-gray-900 dark:text-white text-sm" title={title}>{label}</dt>
-      <dd className="mt-1 text-gray-900 dark:text-gray-300 text-sm sm:mt-0 sm:col-span-3 break-all">
+      <dd className="mt-1 text-gray-900 dark:text-gray-300 text-sm sm:mt-0 sm:col-span-3 break-all truncate">
         {value ? <span className="px-1.5 py-1 bg-gray-200 dark:bg-gray-700 rounded shadow">{value}</span> : emptyText}
       </dd>
     </div>
@@ -60,7 +60,7 @@ const RowItemVersion = ({ label, value, title, newUpdate }: RowItemProps) => {
   return (
     <div className="py-4 sm:py-5 sm:grid sm:grid-cols-4 sm:gap-4 sm:px-6">
       <dt className="font-medium text-gray-900 dark:text-white text-sm" title={title}>{label}</dt>
-      <dd className="mt-1 text-gray-900 dark:text-gray-300 text-sm sm:mt-0 sm:col-span-2 break-all">
+      <dd className="mt-1 text-gray-900 dark:text-gray-300 text-sm sm:mt-0 sm:col-span-2 break-all truncate">
         <span className="px-1.5 py-1 bg-gray-200 dark:bg-gray-700 rounded shadow">{value}</span>
         {newUpdate && newUpdate.html_url && (
           <span>
