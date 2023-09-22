@@ -1,11 +1,11 @@
 ---
-#id: torrentshr
+#id: torrenthr
 name: TorrentHR
 identifier: thr
 description: TorrentHR (THR) is private croatian tracker
 language: hr
 urls:
-  - http://www.torrenthr.org/
+  - https://www.torrenthr.org/
 privacy: private
 protocol: torrent
 supports:
@@ -42,6 +42,17 @@ irc:
       label: Invite command
       help: Invite auth with THR. Replace IRCKEY.
 
+    - name: auth.account
+      type: text
+      required: false
+      label: NickServ Account. Make sure to group your user and bot.
+      help: NickServ account
+
+    - name: auth.password
+      type: secret
+      required: false
+      label: NickServ Password
+      help: NickServ password
 
   parse:
     type: single
