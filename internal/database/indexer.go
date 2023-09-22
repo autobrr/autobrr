@@ -87,7 +87,8 @@ func (r *IndexerRepo) List(ctx context.Context) ([]domain.Indexer, error) {
 
 	defer rows.Close()
 
-	var indexers []domain.Indexer
+	indexers := make([]domain.Indexer, 0)
+
 	for rows.Next() {
 		var f domain.Indexer
 
