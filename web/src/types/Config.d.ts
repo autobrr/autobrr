@@ -6,6 +6,9 @@
 type LogLevel = "DEBUG" | "INFO" | "WARN" | "ERROR" | "TRACE";
 
 interface Config {
+  config_dir: string;
+  application: string;
+  database: string;
   host: string;
   port: number;
   log_level: LogLevel;
