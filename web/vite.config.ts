@@ -106,7 +106,7 @@ export default ({ mode }: ConfigEnv) => {
       rollupOptions: {
         output: {
           assetFileNames: (chunkInfo: PreRenderedAsset) => {
-            if (chunkInfo.name === "Inter.var.woff2") {
+            if (chunkInfo.name === "Inter-Variable.woff2") {
               return "assets/[name][extname]";
             }
             return "assets/[name]-[hash][extname]";

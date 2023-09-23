@@ -38,6 +38,7 @@ irc:
       required: false
       label: NickServ Password
       help: NickServ password
+
   parse:
     type: multi
     lines:
