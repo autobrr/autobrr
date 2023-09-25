@@ -408,7 +408,7 @@ func (s *service) ListNetworks(ctx context.Context) ([]domain.IrcNetwork, error)
 		return nil, err
 	}
 
-	var ret []domain.IrcNetwork
+	ret := make([]domain.IrcNetwork, 0)
 
 	for _, n := range networks {
 		channels, err := s.repo.ListChannels(n.ID)
@@ -431,7 +431,7 @@ func (s *service) GetNetworksWithHealth(ctx context.Context) ([]domain.IrcNetwor
 		return nil, err
 	}
 
-	var ret []domain.IrcNetworkWithHealth
+	ret := make([]domain.IrcNetworkWithHealth, 0)
 
 	for _, n := range networks {
 		netw := domain.IrcNetworkWithHealth{
