@@ -50,7 +50,7 @@ export async function HttpClient<T = unknown>(
     for (const [key, value] of Object.entries(config.queryString)) {
       const serializedKey = encodeRFC3986URIComponent(key);
 
-      if (typeof(value) === undefined) {
+      if (typeof(value) === "undefined") {
         // Skip case when the value is undefined.
         // The solution in this case is to use the request body instead with JSON
         continue;
@@ -59,7 +59,7 @@ export async function HttpClient<T = unknown>(
         // e.g. ?a=1&a=2&a=3
         value.forEach((child) => {
           // Skip undefined member values
-          const v = typeof(child) !== undefined ? String(child) : "";
+          const v = typeof(child) !== "undefined" ? String(child) : "";
           if (v.length) {
             params.push(`${serializedKey}=${encodeRFC3986URIComponent(v)}`);
           }
