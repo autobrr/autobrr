@@ -29,7 +29,9 @@ export function SelectFieldCreatable<T>({ name, label, help, placeholder, toolti
           className="block text-sm font-medium text-gray-900 dark:text-white sm:pt-2"
         >
           <div className="flex">
-            {label} {tooltip && (<DocsTooltip>{tooltip}</DocsTooltip>)}
+            {tooltip ? (
+              <DocsTooltip label={label}>{tooltip}</DocsTooltip>
+            ) : label}
           </div>
         </label>
       </div>
@@ -200,7 +202,9 @@ export function SelectFieldBasic<T>({ name, label, help, placeholder, tooltip, d
           className="block text-sm font-medium text-gray-900 dark:text-white sm:pt-2"
         >
           <div className="flex">
-            {label} {tooltip && (<DocsTooltip>{tooltip}</DocsTooltip>)}
+            {tooltip ? (
+              <DocsTooltip label={label}>{tooltip}</DocsTooltip>
+            ) : label}
           </div>
         </label>
       </div>

@@ -88,13 +88,18 @@ const SwitchGroup = ({
 }: SwitchGroupProps) => (
   <HeadlessSwitch.Group as="ol" className="py-4 flex items-center justify-between">
     {label && <div className="flex flex-col">
-      <HeadlessSwitch.Label as={heading ? "h2" : "span"} className={classNames("flex float-left cursor-default mb-2 text-xs font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wide", heading ? "text-lg" : "text-sm")}
-        passive>
+      <HeadlessSwitch.Label
+        passive
+        as={heading ? "h2" : "span"}
+        className={classNames(
+          "flex float-left cursor-default mb-2 text-xs font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wide",
+          heading ? "text-lg" : "text-sm"
+        )}
+      >
         <div className="flex">
-          {label}
-          {tooltip && (
-            <DocsTooltip>{tooltip}</DocsTooltip>
-          )}
+          {tooltip ? (
+            <DocsTooltip label={label}>{tooltip}</DocsTooltip>
+          ) : label}
         </div>
       </HeadlessSwitch.Label>
       {description && (

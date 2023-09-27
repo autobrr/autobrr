@@ -7,6 +7,7 @@ import { useState } from "react";
 import { ChevronUpIcon, ChevronDownIcon } from "@heroicons/react/24/solid";
 
 import { ReleaseTable } from "./releases/ReleaseTable";
+import { ExternalLink } from "@components/ExternalLink";
 
 const Code = ({ children }: { children: React.ReactNode }) => (
   <code className="rounded-md inline-block mb-1 px-1 py-0.5 border bg-gray-100 border-gray-300 dark:bg-gray-800 dark:border-gray-700">
@@ -75,14 +76,14 @@ export const Releases = () => {
 
               <br /><br />
 
-              As always, please refer to our <a
-                rel="noopener noreferrer"
-                target="_blank"
+              {"As always, please refer to our "}
+              <ExternalLink
                 href="https://autobrr.com/usage/search/"
                 className="text-gray-700 dark:text-gray-200 underline font-semibold underline-offset-2 decoration-purple-500 decoration-2 hover:text-black hover:dark:text-gray-100"
               >
                 Search function usage
-              </a> documentation page to keep up with the latest examples and information.
+              </ExternalLink>
+              {" documentation page to keep up with the latest examples and information."}
             </div>
           </div>
         ) : null}

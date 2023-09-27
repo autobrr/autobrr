@@ -11,6 +11,7 @@ import { Checkbox } from "@components/Checkbox";
 import { SettingsContext } from "@utils/Context";
 import { GithubRelease } from "@app/types/Update";
 import Toast from "@components/notifications/Toast";
+import { ExternalLink } from "@components/ExternalLink";
 
 interface RowItemProps {
   label: string;
@@ -63,9 +64,12 @@ const RowItemVersion = ({ label, value, title, newUpdate }: RowItemProps) => {
       <dd className="mt-1 text-gray-900 dark:text-gray-300 text-sm sm:mt-0 sm:col-span-2 break-all truncate">
         <span className="px-1.5 py-1 bg-gray-200 dark:bg-gray-700 rounded shadow">{value}</span>
         {newUpdate && newUpdate.html_url && (
-          <span>
-            <a href={newUpdate.html_url} target="_blank" rel="noopener noreferrer"><span className="ml-2 inline-flex items-center rounded-md bg-green-100 px-2.5 py-0.5 text-sm font-medium text-green-800">{newUpdate.name} available!</span></a>
-          </span>
+          <ExternalLink
+            href={newUpdate.html_url}
+            className="ml-2 inline-flex items-center rounded-md bg-green-100 px-2.5 py-0.5 text-sm font-medium text-green-800"
+          >
+            {newUpdate.name} available!
+          </ExternalLink>
         )}
       </dd>
     </div>
@@ -184,10 +188,12 @@ function ApplicationSettings() {
             <Checkbox
               label="WebUI Debug mode"
               value={settings.debug}
-              setValue={(newValue: boolean) => setSettings({
-                ...settings,
-                debug: newValue
-              })}
+              setValue={
+                (newValue: boolean) => setSettings((prevState) => ({
+                  ...prevState,
+                  debug: newValue
+                }))
+              }
             />
           </div>
           <div className="px-4 sm:px-6 py-1">
@@ -205,15 +211,16 @@ function ApplicationSettings() {
               label="Dark theme"
               description="Switch between dark and light theme."
               value={settings.darkTheme}
-              setValue={(newValue: boolean) => setSettings({
-                ...settings,
-                darkTheme: newValue
-              })}
+              setValue={
+                (newValue: boolean) => setSettings((prevState) => ({
+                  ...prevState,
+                  darkTheme: newValue
+                }))
+              }
             />
           </div>
         </ul>
       </div>
-
     </div>
   );
 }

@@ -10,6 +10,7 @@ import { classNames } from "@utils";
 import { ReactComponent as Logo } from "@app/logo.svg";
 
 import { NAV_ROUTES } from "./_shared";
+import { ExternalLink } from "@components/ExternalLink";
 
 export const LeftNav = () => (
   <div className="flex items-center">
@@ -38,9 +39,7 @@ export const LeftNav = () => (
             {item.name}
           </NavLink>
         ))}
-        <a
-          rel="noopener noreferrer"
-          target="_blank"
+        <ExternalLink
           href="https://autobrr.com"
           className={classNames(
             "text-gray-600 dark:text-gray-500 hover:bg-gray-200 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white px-3 py-2 rounded-2xl text-sm font-medium",
@@ -52,7 +51,7 @@ export const LeftNav = () => (
             className="inline ml-1 h-5 w-5"
             aria-hidden="true"
           />
-        </a>
+        </ExternalLink>
       </div>
     </div>
   </div>

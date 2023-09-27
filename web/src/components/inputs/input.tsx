@@ -46,10 +46,9 @@ export const TextField = ({
     {label && (
       <label htmlFor={name} className="flex float-left mb-2 text-xs font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wide">
         <div className="flex">
-          {label}
-          {tooltip && (
-            <DocsTooltip>{tooltip}</DocsTooltip>
-          )}
+          {tooltip ? (
+            <DocsTooltip label={label}>{tooltip}</DocsTooltip>
+          ) : label}
         </div>
       </label>
     )}
@@ -185,8 +184,9 @@ export const RegexField = ({
           className="flex float-left mb-2 text-xs font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wide"
         >
           <div className="flex">
-            {label}
-            <span className="z-10">{tooltip && <DocsTooltip>{tooltip}</DocsTooltip>}</span>
+            {tooltip ? (
+              <DocsTooltip label={label}>{tooltip}</DocsTooltip>
+            ) : label}
           </div>
         </label>
       )}
@@ -324,9 +324,10 @@ export const RegexTextAreaField = ({
           htmlFor={name}
           className="flex float-left mb-2 text-xs font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wide"
         >
-          <div className="flex">
-            {label}
-            <span className="z-10">{tooltip && <DocsTooltip>{tooltip}</DocsTooltip>}</span>
+          <div className="flex z-10">
+            {tooltip ? (
+              <DocsTooltip label={label}>{tooltip}</DocsTooltip>
+            ) : label}
           </div>
         </label>
       )}
@@ -412,9 +413,9 @@ export const TextArea = ({
     {label && (
       <label htmlFor={name} className="flex float-left mb-2 text-xs font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wide">
         <div className="flex">
-          {label} {tooltip && (
-            <DocsTooltip>{tooltip}</DocsTooltip>
-          )}
+          {tooltip ? (
+            <DocsTooltip label={label}>{tooltip}</DocsTooltip>
+          ) : label}
         </div>
       </label>
     )}
@@ -483,10 +484,9 @@ export const TextAreaAutoResize = ({
     {label && (
       <label htmlFor={name} className="flex float-left mb-2 text-xs font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wide">
         <div className="flex">
-          {label}
-          {tooltip && (
-            <DocsTooltip>{tooltip}</DocsTooltip>
-          )}
+          {tooltip ? (
+            <DocsTooltip label={label}>{tooltip}</DocsTooltip>
+          ) : label}
         </div>
       </label>
     )}
@@ -629,8 +629,9 @@ export const NumberField = ({
       className="flex float-left mb-2 text-xs font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wide"
     >
       <div className="flex">
-        {label}
-        {tooltip && <DocsTooltip>{tooltip}</DocsTooltip>}
+        {tooltip ? (
+          <DocsTooltip label={label}>{tooltip}</DocsTooltip>
+        ) : label}
       </div>
     </label>
 
