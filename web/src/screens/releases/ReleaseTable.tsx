@@ -12,17 +12,17 @@ import {
   ChevronLeftIcon,
   ChevronRightIcon
 } from "@heroicons/react/24/solid";
+import { ArrowTopRightOnSquareIcon, ArrowDownTrayIcon } from "@heroicons/react/24/outline";
 
+import { classNames } from "@utils";
 import { APIClient } from "@api/APIClient";
-import { EmptyListState } from "@components/emptystates";
 
 import * as Icons from "@components/Icons";
 import * as DataTable from "@components/data-table";
+import { Tooltip } from "@components/tooltips/Tooltip";
+import { EmptyListState } from "@components/emptystates";
 
 import { IndexerSelectColumnFilter, PushStatusSelectColumnFilter, SearchColumnFilter } from "./Filters";
-import { classNames } from "@utils";
-import { ArrowTopRightOnSquareIcon, ArrowDownTrayIcon } from "@heroicons/react/24/outline";
-import { Tooltip } from "@components/tooltips/Tooltip";
 
 export const releaseKeys = {
   all: ["releases"] as const,
@@ -94,6 +94,7 @@ export const ReleaseTable = () => {
             )}
           >
             <Tooltip
+              requiresClick
               label={props.cell.value}
               maxWidth="max-w-[90vw]"
             >

@@ -9,7 +9,7 @@ import { EyeIcon, EyeSlashIcon, CheckCircleIcon, XCircleIcon } from "@heroicons/
 import TextareaAutosize from "react-textarea-autosize";
 
 import { useToggle } from "@hooks/hooks";
-import { CustomTooltip } from "@components/tooltips/CustomTooltip";
+import { DocsTooltip } from "@components/tooltips/DocsTooltip";
 import { classNames } from "@utils";
 
 type COL_WIDTHS = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12;
@@ -48,7 +48,7 @@ export const TextField = ({
         <div className="flex">
           {label}
           {tooltip && (
-            <CustomTooltip anchorId={name}>{tooltip}</CustomTooltip>
+            <DocsTooltip>{tooltip}</DocsTooltip>
           )}
         </div>
       </label>
@@ -186,7 +186,7 @@ export const RegexField = ({
         >
           <div className="flex">
             {label}
-            <span className="z-10">{tooltip && <CustomTooltip anchorId={name}>{tooltip}</CustomTooltip>}</span>
+            <span className="z-10">{tooltip && <DocsTooltip>{tooltip}</DocsTooltip>}</span>
           </div>
         </label>
       )}
@@ -326,7 +326,7 @@ export const RegexTextAreaField = ({
         >
           <div className="flex">
             {label}
-            <span className="z-10">{tooltip && <CustomTooltip anchorId={name}>{tooltip}</CustomTooltip>}</span>
+            <span className="z-10">{tooltip && <DocsTooltip>{tooltip}</DocsTooltip>}</span>
           </div>
         </label>
       )}
@@ -412,9 +412,8 @@ export const TextArea = ({
     {label && (
       <label htmlFor={name} className="flex float-left mb-2 text-xs font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wide">
         <div className="flex">
-          {label}
-          {tooltip && (
-            <CustomTooltip anchorId={name}>{tooltip}</CustomTooltip>
+          {label} {tooltip && (
+            <DocsTooltip>{tooltip}</DocsTooltip>
           )}
         </div>
       </label>
@@ -486,7 +485,7 @@ export const TextAreaAutoResize = ({
         <div className="flex">
           {label}
           {tooltip && (
-            <CustomTooltip anchorId={name}>{tooltip}</CustomTooltip>
+            <DocsTooltip>{tooltip}</DocsTooltip>
           )}
         </div>
       </label>
@@ -631,7 +630,7 @@ export const NumberField = ({
     >
       <div className="flex">
         {label}
-        {tooltip && <CustomTooltip anchorId={name}>{tooltip}</CustomTooltip>}
+        {tooltip && <DocsTooltip>{tooltip}</DocsTooltip>}
       </div>
     </label>
 

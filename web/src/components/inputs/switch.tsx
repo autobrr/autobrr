@@ -9,7 +9,7 @@ import { Field } from "formik";
 import { Switch as HeadlessSwitch } from "@headlessui/react";
 
 import { classNames } from "@utils";
-import { CustomTooltip } from "@components/tooltips/CustomTooltip";
+import { DocsTooltip } from "@components/tooltips/DocsTooltip";
 
 type SwitchProps<V = unknown> = {
     label?: string
@@ -93,7 +93,7 @@ const SwitchGroup = ({
         <div className="flex">
           {label}
           {tooltip && (
-            <CustomTooltip anchorId={name}>{tooltip}</CustomTooltip>
+            <DocsTooltip>{tooltip}</DocsTooltip>
           )}
         </div>
       </HeadlessSwitch.Label>
