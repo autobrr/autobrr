@@ -51,7 +51,7 @@ import { FilterActions } from "./Action";
 import { filterKeys } from "./List";
 import { External } from "@screens/filters/External";
 import { SectionLoader } from "@components/SectionLoader";
-import { DocsLink, ExternalLink } from "@components/ExternalLink";
+import { DocsLink } from "@components/ExternalLink";
 
 interface tabType {
   name: string;
