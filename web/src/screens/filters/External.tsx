@@ -19,7 +19,7 @@ import {
 import { ChevronRightIcon } from "@heroicons/react/24/solid";
 import { DeleteModal } from "@components/modals";
 import { ArrowDownIcon, ArrowUpIcon } from "@heroicons/react/24/outline";
-import { ExternalLink } from "@components/ExternalLink";
+import { DocsLink } from "@components/ExternalLink";
 
 export function External() {
   const { values } = useFormikContext<Filter>();
