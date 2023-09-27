@@ -32,7 +32,8 @@ export const Tooltip = ({
     visible
   } = usePopperTooltip({
     trigger: requiresClick ? ["click"] : undefined,
-    interactive: !requiresClick
+    interactive: !requiresClick,
+    delayHide: 200  // Extend the fade-out duration to 3000 milliseconds
   });
 
   if (!children || Array.isArray(children) && !children.length) {
@@ -50,7 +51,7 @@ export const Tooltip = ({
         enter="transition duration-200 ease-out"
         enterFrom="opacity-0"
         enterTo="opacity-100"
-        leave="transition duration-150 ease-in"
+        leave="transition duration-200 ease-in"
         leaveFrom="opacity-100"
         leaveTo="opacity-0"
       >
