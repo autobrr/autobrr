@@ -33,7 +33,7 @@ export const Tooltip = ({
   } = usePopperTooltip({
     trigger: requiresClick ? ["click"] : undefined,
     interactive: !requiresClick,
-    delayHide: 200  // Extend the fade-out duration to 3000 milliseconds
+    delayHide: 200
   });
 
   if (!children || Array.isArray(children) && !children.length) {
