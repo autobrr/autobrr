@@ -11,14 +11,19 @@ import { classNames } from "@utils";
 
 interface TooltipProps {
   label: ReactNode;
+  onLabelClick?: (e: React.MouseEvent<HTMLDivElement>) => void;
   title?: ReactNode;
   maxWidth?: string;
   requiresClick?: boolean;
   children: ReactNode;
 }
 
+// NOTE(stacksmash76): onClick is not propagated
+// to the label (always-visible) component, so you will have
+// to use the `onLabelClick` prop in this case.
 export const Tooltip = ({
   label,
+  onLabelClick,
   title,
   children,
   requiresClick,
@@ -49,6 +54,8 @@ export const Tooltip = ({
           e.preventDefault();
           e.stopPropagation();
           e.nativeEvent.stopImmediatePropagation();
+
+          onLabelClick?.(e);
         }}
       >
         {label}
