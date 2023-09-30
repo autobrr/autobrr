@@ -42,7 +42,15 @@ export const Tooltip = ({
 
   return (
     <>
-      <div ref={setTriggerRef} className="truncate">
+      <div
+        ref={setTriggerRef}
+        className="truncate"
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          e.nativeEvent.stopImmediatePropagation();
+        }}
+      >
         {label}
       </div>
       <Transition
