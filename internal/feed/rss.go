@@ -299,7 +299,7 @@ func isFreeleech(str []string) bool {
 }
 
 func readSizeFromDesription(str string) string {
-	var re = regexp.MustCompile(`[sS]ize[^:]*:[^\d]*([\d]+[.,]*[\d]*[^\w]+[\w]*)`)
+	var re = regexp.MustCompile(`[sS]ize[^:]*:[^\d]*([\d]+[.,]*[\d]*[^\w]*[\w]*)`)
 	matches := re.FindStringSubmatch(str)
 	if matches == nil {
 		return ""
