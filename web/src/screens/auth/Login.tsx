@@ -8,13 +8,13 @@ import { useForm } from "react-hook-form";
 import { useNavigate } from "react-router-dom";
 import { useMutation } from "@tanstack/react-query";
 import toast from "react-hot-toast";
-import { Tooltip } from "react-tooltip";
 
 import { ReactComponent as Logo } from "@app/logo.svg";
 import { APIClient } from "@api/APIClient";
 import { AuthContext } from "@utils/Context";
-import { PasswordInput, TextInput } from "@components/inputs/text";
 import Toast from "@components/notifications/Toast";
+import { Tooltip } from "@components/tooltips/Tooltip";
+import { PasswordInput, TextInput } from "@components/inputs/text";
 
 type LoginFormFields = {
   username: string;
@@ -103,8 +103,15 @@ export const Login = () => {
               </button>
               <div>
                 <span className="flex float-right items-center mt-3 text-xs font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wide cursor-pointer" id="forgot">
-                  Forgot?<svg className="ml-1 w-3 h-3 text-gray-500 dark:text-gray-400 fill-current" viewBox="0 0 72 72"><path d="M32 2C15.432 2 2 15.432 2 32s13.432 30 30 30s30-13.432 30-30S48.568 2 32 2m5 49.75H27v-24h10v24m-5-29.5a5 5 0 1 1 0-10a5 5 0 0 1 0 10"/></svg>
-                  <Tooltip style={{ maxWidth: "350px", fontSize: "12px", textTransform: "none", fontWeight: "normal", borderRadius: "0.375rem", backgroundColor: "#34343A", color: "#fff", opacity: "1" }} place="bottom" delayShow={100} delayHide={150} anchorId="forgot" html="<p style='padding-top: 2px'>If you forget your password you can reset it via the terminal: <code>autobrrctl --config /home/username/.config/autobrr change-password <USERNAME></code></p>" clickable={true}/>
+                  <Tooltip
+                    label={
+                      <div className="flex flex-row items-center">
+                        Forgot? <svg className="ml-1 w-3 h-3 text-gray-500 dark:text-gray-400 fill-current" viewBox="0 0 72 72"><path d="M32 2C15.432 2 2 15.432 2 32s13.432 30 30 30s30-13.432 30-30S48.568 2 32 2m5 49.75H27v-24h10v24m-5-29.5a5 5 0 1 1 0-10a5 5 0 0 1 0 10"/></svg>
+                      </div>
+                    }
+                  >
+                    <p className="py-1">If you forget your password you can reset it via the terminal: <code>autobrrctl --config /home/username/.config/autobrr change-password $USERNAME</code></p>
+                  </Tooltip>
                 </span>
               </div>
             </div>

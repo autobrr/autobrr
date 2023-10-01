@@ -12,7 +12,7 @@ import { Switch } from "@headlessui/react";
 import { ErrorField, RequiredField } from "./common";
 import Select, { components, ControlProps, InputProps, MenuProps, OptionProps } from "react-select";
 import { SelectFieldProps } from "./select";
-import { CustomTooltip } from "@components/tooltips/CustomTooltip";
+import { DocsTooltip } from "@components/tooltips/DocsTooltip";
 
 interface TextFieldWideProps {
   name: string;
@@ -43,7 +43,9 @@ export const TextFieldWide = ({
     <div>
       <label htmlFor={name} className="flex text-sm font-medium text-gray-900 dark:text-white sm:mt-px sm:pt-2">
         <div className="flex">
-          {label} {tooltip && (<CustomTooltip anchorId={name}>{tooltip}</CustomTooltip>)}
+          {tooltip ? (
+            <DocsTooltip label={label}>{tooltip}</DocsTooltip>
+          ) : label}
           <RequiredField required={required} />
         </div>
       </label>
@@ -108,7 +110,9 @@ export const PasswordFieldWide = ({
       <div>
         <label htmlFor={name} className="flex text-sm font-medium text-gray-900 dark:text-white sm:mt-px sm:pt-2">
           <div className="flex">
-            {label} {tooltip && (<CustomTooltip anchorId={name}>{tooltip}</CustomTooltip>)}
+            {tooltip ? (
+              <DocsTooltip label={label}>{tooltip}</DocsTooltip>
+            ) : label}
             <RequiredField required={required} />
           </div>
         </label>
@@ -172,7 +176,9 @@ export const NumberFieldWide = ({
         className="block text-sm font-medium text-gray-900 dark:text-white sm:mt-px sm:pt-2"
       >
         <div className="flex">
-          {label} {tooltip && (<CustomTooltip anchorId={name}>{tooltip}</CustomTooltip>)}
+          {tooltip ? (
+            <DocsTooltip label={label}>{tooltip}</DocsTooltip>
+          ) : label}
           <RequiredField required={required} />
         </div>
       </label>
@@ -232,10 +238,11 @@ export const SwitchGroupWide = ({
   <ul className="px-4 divide-y divide-gray-200 dark:divide-gray-700">
     <Switch.Group as="li" className="py-4 flex items-center justify-between">
       <div className="flex flex-col">
-        <Switch.Label as="div" className="text-sm font-medium text-gray-900 dark:text-white"
-          passive>
+        <Switch.Label as="div" passive className="text-sm font-medium text-gray-900 dark:text-white">
           <div className="flex">
-            {label} {tooltip && (<CustomTooltip anchorId={name}>{tooltip}</CustomTooltip>)}
+            {tooltip ? (
+              <DocsTooltip label={label}>{tooltip}</DocsTooltip>
+            ) : label}
           </div>
         </Switch.Label>
         {description && (
@@ -396,8 +403,9 @@ export const SelectFieldWide = ({
         className="flex text-sm font-medium text-gray-900 dark:text-white"
       >
         <div className="flex">
-          {label}
-          {tooltip && (<CustomTooltip anchorId={name}>{tooltip}</CustomTooltip>)}
+          {tooltip ? (
+            <DocsTooltip label={label}>{tooltip}</DocsTooltip>
+          ) : label}
         </div>
       </label>
     </div>

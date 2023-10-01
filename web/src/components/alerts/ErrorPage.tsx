@@ -6,6 +6,7 @@
 import StackTracey from "stacktracey";
 import type { FallbackProps } from "react-error-boundary";
 import { ArrowPathIcon } from "@heroicons/react/24/solid";
+import { ExternalLink } from "@components/ExternalLink";
 
 export const ErrorPage = ({ error, resetErrorBoundary }: FallbackProps) => {
   const stack = new StackTracey(error);
@@ -35,23 +36,19 @@ export const ErrorPage = ({ error, resetErrorBoundary }: FallbackProps) => {
         <h3 className="text-xl leading-6 text-gray-700 dark:text-gray-400 mb-4">
           Please consider reporting this error to our
           {" "}
-          <a
-            rel="noopener noreferrer"
-            target="_blank"
+          <ExternalLink
             href="https://github.com/autobrr/autobrr"
             className="text-gray-700 dark:text-gray-200 underline font-semibold underline-offset-2 decoration-sky-500 hover:decoration-2 hover:text-black hover:dark:text-gray-100"
           >
             GitHub page
-          </a>
+          </ExternalLink>
           {" or to "}
-          <a
-            rel="noopener noreferrer"
-            target="_blank"
+          <ExternalLink
             href="https://discord.gg/WQ2eUycxyT"
             className="text-gray-700 dark:text-gray-200 underline font-semibold underline-offset-2 decoration-purple-500 hover:decoration-2 hover:text-black hover:dark:text-gray-100"
           >
             our official Discord channel
-          </a>
+          </ExternalLink>
           .
         </h3>
         <div

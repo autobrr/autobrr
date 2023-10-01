@@ -8,7 +8,7 @@ import { Field } from "formik";
 import Select, { components, ControlProps, InputProps, MenuProps, OptionProps } from "react-select";
 import { OptionBasicTyped } from "@domain/constants";
 import CreatableSelect from "react-select/creatable";
-import { CustomTooltip } from "@components/tooltips/CustomTooltip";
+import { DocsTooltip } from "@components/tooltips/DocsTooltip";
 
 interface SelectFieldProps<T> {
   name: string;
@@ -29,7 +29,9 @@ export function SelectFieldCreatable<T>({ name, label, help, placeholder, toolti
           className="block text-sm font-medium text-gray-900 dark:text-white sm:pt-2"
         >
           <div className="flex">
-            {label} {tooltip && (<CustomTooltip anchorId={name}>{tooltip}</CustomTooltip>)}
+            {tooltip ? (
+              <DocsTooltip label={label}>{tooltip}</DocsTooltip>
+            ) : label}
           </div>
         </label>
       </div>
@@ -200,7 +202,9 @@ export function SelectFieldBasic<T>({ name, label, help, placeholder, tooltip, d
           className="block text-sm font-medium text-gray-900 dark:text-white sm:pt-2"
         >
           <div className="flex">
-            {label} {tooltip && (<CustomTooltip anchorId={name}>{tooltip}</CustomTooltip>)}
+            {tooltip ? (
+              <DocsTooltip label={label}>{tooltip}</DocsTooltip>
+            ) : label}
           </div>
         </label>
       </div>

@@ -5,6 +5,7 @@
 
 import { Link } from "react-router-dom";
 import { ReactComponent as Logo } from "@app/logo.svg";
+import { ExternalLink } from "@components/ExternalLink";
 
 export const NotFound = () => {
   return (
@@ -21,23 +22,19 @@ export const NotFound = () => {
       <h3 className="text-xl text-center text-gray-700 dark:text-gray-400 mb-1 px-2">
         feel free to report this to our
         {" "}
-        <a
-          rel="noopener noreferrer"
-          target="_blank"
+        <ExternalLink
           href="https://github.com/autobrr/autobrr"
           className="text-gray-700 dark:text-gray-200 underline font-semibold underline-offset-2 decoration-sky-500 hover:decoration-2 hover:text-black hover:dark:text-gray-100"
         >
           GitHub page
-        </a>
+        </ExternalLink>
         {" or to "}
-        <a
-          rel="noopener noreferrer"
-          target="_blank"
+        <ExternalLink
           href="https://discord.gg/WQ2eUycxyT"
           className="text-gray-700 dark:text-gray-200 underline font-semibold underline-offset-2 decoration-purple-500 hover:decoration-2 hover:text-black hover:dark:text-gray-100"
         >
           our official Discord channel
-        </a>
+        </ExternalLink>
         .
       </h3>
       <h3 className="text-xl text-center leading-6 text-gray-700 dark:text-gray-400 mb-8 px-2">
