@@ -219,3 +219,27 @@ func Test_isMaxAge(t *testing.T) {
 		})
 	}
 }
+
+func Test_readSizeFromDescription(t *testing.T) {
+	type args struct {
+		str string
+	}
+	tests := []struct {
+		name string
+		args args
+		want string
+	}{
+		{name: "size", args: args{"Size: 12GB"}, want: "12GB"},
+		{name: "size_1", args: args{"Size: 12 GB"}, want: "12 GB"},
+		{name: "size_2", args: args{"Size: 12 GiB"}, want: "12 GiB"},
+		{name: "size_3", args: args{"Size: 537 MiB"}, want: "537 MiB"},
+		{name: "size_4", args: args{"<strong>Size</strong>: 20.48 GiB<br>"}, want: "20.48 GiB"},
+		{name: "size_5", args: args{"file.name-GROUP / 20.48 GiB / x265"}, want: "20.48 GiB"},
+		{name: "size_6", args: args{"<strong>Uploaded</strong>: 38 minutes ago<br>"}, want: ""},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equalf(t, tt.want, readSizeFromDescription(tt.args.str), "readSizeFromDescription(%v)", tt.args.str)
+		})
+	}
+}
