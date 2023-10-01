@@ -707,13 +707,16 @@ func (h *Handler) handleJoined(msg ircmsg.Message) {
 
 	h.log.Debug().Msgf("JOINED: %s", channel)
 
-	// check if channel is valid and if not lets part
-	if valid := h.isValidHandlerChannel(channel); !valid {
-		if err := h.PartChannel(msg.Params[1]); err != nil {
-			h.log.Error().Err(err).Msgf("error handling part for unwanted channel: %s", msg.Params[1])
+	// auto part channels if not using a bouncer
+	if !h.network.UseBouncer {
+		// check if channel is valid and if not lets part
+		if valid := h.isValidHandlerChannel(channel); !valid {
+			if err := h.PartChannel(msg.Params[1]); err != nil {
+				h.log.Error().Err(err).Msgf("error handling part for unwanted channel: %s", msg.Params[1])
+				return
+			}
 			return
 		}
-		return
 	}
 
 	h.m.Lock()
@@ -791,9 +794,12 @@ func (h *Handler) handleInvite(msg ircmsg.Message) {
 
 	h.log.Trace().Msgf("INVITE from %s to join: %s", msg.Nick(), channel)
 
-	if validChannel := h.isValidHandlerChannel(channel); !validChannel {
-		h.log.Trace().Msgf("invite from %s to join: %s - invalid channel, skip joining", msg.Nick(), channel)
-		return
+	// only check valid channels if not using a bouncer
+	if !h.network.UseBouncer {
+		if validChannel := h.isValidHandlerChannel(channel); !validChannel {
+			h.log.Trace().Msgf("invite from %s to join: %s - invalid channel, skip joining", msg.Nick(), channel)
+			return
+		}
 	}
 
 	h.log.Debug().Msgf("INVITE from %s, joining %s", msg.Nick(), channel)
