@@ -194,6 +194,11 @@ func (j *RSSJob) processItem(item *gofeed.Item) *domain.Release {
 
 	if item.Description != "" {
 		rls.Description = item.Description
+		if rls.Size == 0 {
+			hrSize := readSizeFromDesription(item.Description)
+			rls.ParseSizeBytesString(readSizeFromDesription(item.Description))
+			j.Log.Debug().Msgf("Set new size %d from description %s", rls.Size, hrSize)
+		}
 	}
 
 	// add cookie to release for download if needed
@@ -291,6 +296,15 @@ func isFreeleech(str []string) bool {
 	}
 
 	return false
+}
+
+func readSizeFromDesription(str string) string {
+	var re = regexp.MustCompile(`[sS]ize[^:]*:[^\d]*([\d]+[.,]*[\d]*[^\w]+[\w]*)`)
+	matches := re.FindStringSubmatch(str)
+	if matches == nil {
+		return ""
+	}
+	return matches[1]
 }
 
 // itemCustomElement
