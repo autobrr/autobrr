@@ -18,6 +18,11 @@ import (
 	"github.com/rs/zerolog"
 )
 
+var (
+	rxpSize      = regexp.MustCompile(`(?mi)(([0-9.]+)\s*(b|kb|kib|kilobyte|mb|mib|megabyte|gb|gib|gigabyte|tb|tib|terabyte))`)
+	rxpFreeleech = regexp.MustCompile(`(?mi)(\bfreeleech\b)`)
+)
+
 type RSSJob struct {
 	Feed              *domain.Feed
 	Name              string
@@ -194,6 +199,13 @@ func (j *RSSJob) processItem(item *gofeed.Item) *domain.Release {
 
 	if item.Description != "" {
 		rls.Description = item.Description
+
+		if rls.Size == 0 {
+			hrSize := readSizeFromDescription(item.Description)
+			rls.ParseSizeBytesString(hrSize)
+
+			j.Log.Trace().Msgf("Set new size %d from description %s", rls.Size, hrSize)
+		}
 	}
 
 	// add cookie to release for download if needed
@@ -281,9 +293,7 @@ func isNewerThanMaxAge(maxAge int, item, now time.Time) bool {
 // isFreeleech basic freeleech parsing
 func isFreeleech(str []string) bool {
 	for _, s := range str {
-		var re = regexp.MustCompile(`(?mi)(\bfreeleech\b)`)
-
-		match := re.FindAllString(s, -1)
+		match := rxpFreeleech.FindAllString(s, -1)
 
 		if len(match) > 0 {
 			return true
@@ -291,6 +301,16 @@ func isFreeleech(str []string) bool {
 	}
 
 	return false
+}
+
+// readSizeFromDescription get size from description
+func readSizeFromDescription(str string) string {
+	matches := rxpSize.FindStringSubmatch(str)
+	if matches == nil {
+		return ""
+	}
+
+	return matches[1]
 }
 
 // itemCustomElement
