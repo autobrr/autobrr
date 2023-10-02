@@ -115,7 +115,7 @@ const ListItem = ({ indexer }: ListItemProps) => {
   const [updateIsOpen, toggleUpdate] = useToggle(false);
 
   return (
-    <li key={indexer.name}>
+    <li>
       <div className="grid grid-cols-12 items-center py-1.5">
         <IndexerUpdateForm
           isOpen={updateIsOpen}
@@ -225,8 +225,8 @@ function IndexerSettings() {
   Implementation <span className="sort-indicator">{sortedIndexers.getSortIndicator("implementation")}</span>
                   </div>
                 </li>
-                {sortedIndexers.items.map((indexer, idx) => (
-                  <ListItem indexer={indexer} key={idx} />
+                {sortedIndexers.items.map((indexer) => (
+                  <ListItem indexer={indexer} key={indexer.id} />
                 ))}
               </ol>
             </section>
