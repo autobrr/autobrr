@@ -119,7 +119,7 @@ const ListItem = ({ indexer }: ListItemProps) => {
   const queryClient = useQueryClient();
 
   const updateMutation = useMutation({
-    mutationFn: (indexer: Indexer) => APIClient.indexers.update(indexer),
+    mutationFn: (enabled: boolean) => APIClient.indexers.toggleEnable(indexer.id, enabled),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: indexerKeys.lists() });
       toast.custom((t) => <Toast type="success" body={`${indexer.name} was updated successfully`} t={t} />);
@@ -128,13 +128,7 @@ const ListItem = ({ indexer }: ListItemProps) => {
 
   const onToggleMutation = (newState: boolean) => {
     // backend is rejecting when ending the whole object
-    updateMutation.mutate({
-      enabled: newState,
-      id: indexer.id,
-      identifier: indexer.identifier,
-      implementation: indexer.implementation,
-      name: indexer.name
-    } as Indexer);
+    updateMutation.mutate(newState);
   };
 
   return (

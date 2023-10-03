@@ -240,13 +240,16 @@ export const APIClient = {
     create: (indexer: Indexer) => appClient.Post<Indexer>("api/indexer", {
       body: indexer
     }),
-    update: (indexer: Indexer) => appClient.Put("api/indexer", {
+    update: (indexer: Indexer) => appClient.Put(`api/indexer/${indexer.id}`, {
       body: indexer
     }),
     delete: (id: number) => appClient.Delete(`api/indexer/${id}`),
     testApi: (req: IndexerTestApiReq) => appClient.Post<IndexerTestApiReq>(`api/indexer/${req.id}/api/test`, {
       body: req
-    })
+    }),
+    toggleEnable: (id: number, enabled: boolean) => appClient.Patch(`api/indexer/${id}/enabled`, {
+      body: { enabled }
+    }),
   },
   irc: {
     getNetworks: () => appClient.Get<IrcNetworkWithHealth[]>("api/irc"),
