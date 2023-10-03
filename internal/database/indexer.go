@@ -232,3 +232,25 @@ func (r *IndexerRepo) Delete(ctx context.Context, id int) error {
 
 	return nil
 }
+
+func (r *IndexerRepo) ToggleEnabled(ctx context.Context, indexerID int, enabled bool) error {
+	var err error
+
+	queryBuilder := r.db.squirrel.
+		Update("indexer").
+		Set("enabled", enabled).
+		Set("updated_at", sq.Expr("CURRENT_TIMESTAMP")).
+		Where(sq.Eq{"id": indexerID})
+
+	query, args, err := queryBuilder.ToSql()
+	if err != nil {
+		return errors.Wrap(err, "error building query")
+	}
+
+	_, err = r.db.handler.ExecContext(ctx, query, args...)
+	if err != nil {
+		return errors.Wrap(err, "error executing query")
+	}
+
+	return nil
+}
