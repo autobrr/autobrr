@@ -72,7 +72,11 @@ func (db *DB) openSQLite() error {
 	return nil
 }
 
-func (db *DB) Close() error {
+func (db *DB) closingSQLite() error {
+	if db.handler == nil {
+		return nil
+	}
+
 	// SQLite has a query planner that uses lifecycle stats to fund optimizations.
 	// Based on the limit defined at connection time, run optimize to
 	// help tweak the performance of the database on the next run.
@@ -80,14 +84,7 @@ func (db *DB) Close() error {
 		return errors.Wrap(err, "query planner optimization")
 	}
 
-	var err error
-	// close database
-	if db.handler != nil {
-		err = db.handler.Close()
-		db.handler = nil
-	}
-
-	return err
+	return nil
 }
 
 func (db *DB) migrateSQLite() error {
