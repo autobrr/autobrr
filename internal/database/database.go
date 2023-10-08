@@ -83,6 +83,14 @@ func (db *DB) Open() error {
 }
 
 func (db *DB) Close() error {
+	switch cfg.DatabaseType {
+	case "sqlite":
+		if err := db.closingSQLite(); err != nil {
+			db.log.Fatal().Err(err).Msg("could not run sqlite shutdown tasks")
+		}
+	case "postgres":
+	}
+	
 	// cancel background context
 	db.cancel()
 
