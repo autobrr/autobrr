@@ -80,7 +80,7 @@ func (db *DB) closingSQLite() error {
 	// SQLite has a query planner that uses lifecycle stats to fund optimizations.
 	// Based on the limit defined at connection time, run optimize to
 	// help tweak the performance of the database on the next run.
-	if _, err = db.handler.Exec(`PRAGMA optimize;`); err != nil {
+	if _, err := db.handler.Exec(`PRAGMA optimize;`); err != nil {
 		return errors.Wrap(err, "query planner optimization")
 	}
 
