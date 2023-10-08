@@ -46,11 +46,12 @@ irc:
     type: single
     lines:
       - test: 
-          - "[Release] [SubsPlease] Title - 01 (480p) [636F636B].mkv (420.69MB) - https://nyaa.si/view/0000000 - https://nyaa.si/view/0000000/torrent"
-        pattern: '\[Release\] (.*(SubsPlease).*?)\.?(mkv)? \((\d+.?\d*[KMGTP]?B)\) - (.*) - (.*)'
+          - "[Release] [SubsPlease] Multiple Word Title - 01 (480p) [636F636B].mkv (420.69MB) - https://nyaa.si/view/0000000 - https://nyaa.si/view/0000000/torrent"
+        pattern: '\[Release\] (.*(SubsPlease).*? (.*?) -\s*\d+.*?\[.+?\]\.(mkv))? \((\d+.?\d*[KMGTP]?B)\) - (.*) - (.*)'
         vars:
           - torrentName
           - releaseGroup
+          - title
           - releaseTags
           - torrentSize
           - infoUrl
