@@ -43,7 +43,7 @@ func (db *DB) openSQLite() error {
 	// The SQLite documentation is inconsistent in this regard,
 	// suggestions of 400 and 1000 are both "recommended", so lets use the lower bound.
 	if _, err = db.handler.Exec(`PRAGMA analysis_limit = 400;`); err != nil {
-		return errors.Wrap(err, "commit wal")
+		return errors.Wrap(err, "analysis_limit")
 	}
 
 	// When Autobrr does not cleanly shutdown, the WAL will still be present and not committed.
@@ -70,6 +70,24 @@ func (db *DB) openSQLite() error {
 	}
 
 	return nil
+}
+
+func (db *DB) Close() error {
+	// SQLite has a query planner that uses lifecycle stats to fund optimizations.
+	// Based on the limit defined at connection time, run optimize to
+	// help tweak the performance of the database on the next run.
+	if _, err = db.handler.Exec(`PRAGMA optimize;`); err != nil {
+		return errors.Wrap(err, "query planner optimization")
+	}
+
+	var err error
+	// close database
+	if db.handler != nil {
+		err = db.handler.Close()
+		db.handler = nil
+	}
+
+	return err
 }
 
 func (db *DB) migrateSQLite() error {
