@@ -47,9 +47,11 @@ irc:
     lines:
       - test: 
           - "[Release] [SubsPlease] Multiple Word Title - 01 (480p) [636F636B].mkv (420.69MB) - https://nyaa.si/view/0000000 - https://nyaa.si/view/0000000/torrent"
-          - "[Release] [SubsPlease] Multiple Word Title (01-12) (1080p) [Batch] (420.69GB) - https://nyaa.si/view/0000000 - https://nyaa.si/view/0000000/torrent"
+          - "[Release] [SubsPlease] Multiple Word Title (01-12) (1080p) [Batch] (420GB) - https://nyaa.si/view/0000000 - https://nyaa.si/view/0000000/torrent"
           - "[Release] [SubsPlease] Dashes - In-Title - 01 (480p) [636F636B].mkv (420.69MB) - https://nyaa.si/view/0000000 - https://nyaa.si/view/0000000/torrent"
-        pattern: '\[Release\] (.*(SubsPlease)] (.+?) (?:-\s\d+|\(\d+).*?\.?)(mkv)? \((\d+.?\d*[KMGTP]?B)\) - (.*) - (.*)'
+          - "[Release] [SubsPlease] Title - 1st Season (01-04) (1080p) [Batch] (420GB) - https://nyaa.si/view/0000000 - https://nyaa.si/view/0000000/torrent"
+          - "[Release] [SubsPlease] Special Title - 08.5 (480p) [5353245D].mkv (420.69MB) - https://nyaa.si/view/0000000 - https://nyaa.si/view/0000000/torrent"
+        pattern: '\[Release\] (.*(SubsPlease)] (.+?) (?:-\s\d{2,}|\(\d{2,}).*?\.?)(mkv)? \((\d+.?\d*[KMGTP]?B)\) - (.*) - (.*)'
         vars:
           - torrentName
           - releaseGroup
