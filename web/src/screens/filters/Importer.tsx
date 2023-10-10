@@ -111,6 +111,17 @@ const ImportAutodlIrssi = async (inputText: string) => {
   const parser = new AutodlIrssiConfigParser();
   parser.Parse(inputText);
 
+  if (!parser.releaseFilters) {
+    toast.custom((t) =>
+      <Toast
+        type="warning"
+        body="Cannot import given filter -- it is neither in JSON or autodl-irssi format."
+        t={t}
+      />
+    );
+    return;
+  }
+
   let numSuccess = 0;
   for (const filter of parser.releaseFilters) {
     try {

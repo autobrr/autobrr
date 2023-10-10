@@ -9,7 +9,7 @@ type ValueObject = Record<string, Primitive>;
 class ParserFilter {
   public values: ValueObject = {};
   public warnings: string[] = [];
-  
+
   public name: string;
 
   constructor(name: string) {
@@ -21,14 +21,14 @@ class ParserFilter {
 
   public OnParseLine(key: string, value: string) {
     if (key in CONST.FILTER_SUBSTITUTION_MAP) {
-      key = CONST.FILTER_SUBSTITUTION_MAP[key]
+      key = CONST.FILTER_SUBSTITUTION_MAP[key];
     }
 
     switch (key) {
     case "log_score":
       // In this case we need to set 2 properties in autobrr instead of only 1
       this.values["log"] = true;
-      
+
       // log_score is an integer
       const delim = value.indexOf("-");
       if (delim !== -1) {
@@ -202,8 +202,9 @@ class ParserIrcChannel {
 }
 
 // erm.. todo?
-const TRACKER = "tracker" as const;
-const OPTIONS = "options" as const;
+// const TRACKER = "tracker" as const;
+// const OPTIONS = "options" as const;
+
 // *cough* later dude, trust me *cough*
 const FILTER = "filter" as const;
 const SERVER = "server" as const;

@@ -20,6 +20,7 @@ import Toast from "@components/notifications/Toast";
 import { SlideOver } from "@components/panels";
 import { componentMapType } from "./DownloadClientForms";
 import { notificationKeys } from "@screens/settings/Notifications";
+import { ExternalLink } from "@components/ExternalLink";
 
 const Input = (props: InputProps) => {
   return (
@@ -68,7 +69,14 @@ function FormFieldsDiscord() {
       <div className="px-4 space-y-1">
         <Dialog.Title className="text-lg font-medium text-gray-900 dark:text-white">Settings</Dialog.Title>
         <p className="text-sm text-gray-500 dark:text-gray-400">
-          Create a <a href="https://support.discord.com/hc/en-us/articles/228383668-Intro-to-Webhooks" rel="noopener noreferrer" target="_blank" className="font-medium text-blue-500 underline underline-offset-1 hover:text-blue-400">webhook integration</a> in your server.
+          {"Create a "}
+          <ExternalLink
+            href="https://support.discord.com/hc/en-us/articles/228383668-Intro-to-Webhooks"
+            className="font-medium text-blue-500 underline underline-offset-1 hover:text-blue-400"
+          >
+            webhook integration
+          </ExternalLink>
+          {" in your server."}
         </p>
       </div>
 
@@ -107,7 +115,14 @@ function FormFieldsTelegram() {
       <div className="px-4 space-y-1">
         <Dialog.Title className="text-lg font-medium text-gray-900 dark:text-white">Settings</Dialog.Title>
         <p className="text-sm text-gray-500 dark:text-gray-400">
-          Read how to <a href="https://core.telegram.org/bots#3-how-do-i-create-a-bot" rel="noopener noreferrer" target="_blank" className="font-medium text-blue-500 underline underline-offset-1 hover:text-blue-400">create a bot</a>.
+          {"Read how to "}
+          <ExternalLink
+            href="https://core.telegram.org/bots#3-how-do-i-create-a-bot"
+            className="font-medium text-blue-500 underline underline-offset-1 hover:text-blue-400"
+          >
+            create a bot
+          </ExternalLink>
+          {"."}
         </p>
       </div>
 
@@ -136,7 +151,14 @@ function FormFieldsPushover() {
       <div className="px-4 space-y-1">
         <Dialog.Title className="text-lg font-medium text-gray-900 dark:text-white">Settings</Dialog.Title>
         <p className="text-sm text-gray-500 dark:text-gray-400">
-          Register a new <a href="https://support.pushover.net/i175-how-do-i-get-an-api-or-application-token" rel="noopener noreferrer" target="_blank" className="font-medium text-blue-500 underline underline-offset-1 hover:text-blue-400">application</a> and add its API Token here.
+          {"Register a new "}
+          <ExternalLink
+            href="https://support.pushover.net/i175-how-do-i-get-an-api-or-application-token"
+            className="font-medium text-blue-500 underline underline-offset-1 hover:text-blue-400"
+          >
+            application
+          </ExternalLink>
+          {" and add its API Token here."}
         </p>
       </div>
 

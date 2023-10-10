@@ -47,7 +47,7 @@ irc:
     lines:
       - test: 
           - "[Release] [SubsPlease] Title - 01 (480p) [636F636B].mkv (420.69MB) - https://nyaa.si/view/0000000 - https://nyaa.si/view/0000000/torrent"
-      - pattern: '\[Release\] (.*(SubsPlease).*?)\.?(mkv)? \((\d+.?\d*[KMGTP]?B)\) - (.*) - (.*)'
+        pattern: '\[Release\] (.*(SubsPlease).*?)\.?(mkv)? \((\d+.?\d*[KMGTP]?B)\) - (.*) - (.*)'
         vars:
           - torrentName
           - releaseGroup

@@ -7,6 +7,7 @@ import { useState } from "react";
 import { ChevronUpIcon, ChevronDownIcon } from "@heroicons/react/24/solid";
 
 import { ReleaseTable } from "./releases/ReleaseTable";
+import { ExternalLink } from "@components/ExternalLink";
 
 const Code = ({ children }: { children: React.ReactNode }) => (
   <code className="rounded-md inline-block mb-1 px-1 py-0.5 border bg-gray-100 border-gray-300 dark:bg-gray-800 dark:border-gray-700">
@@ -45,7 +46,7 @@ export const Releases = () => {
             <div className="flex justify-between items-center text-base font-medium pl-2 py-1 border-b border-gray-300 bg-gray-100 dark:border-gray-700 dark:bg-gray-800 rounded-t-md">
               Search tips
             </div>
-            <div className={"rounded-t-md py-1 px-2 rounded-b-md bg-white dark:bg-gray-900"}>
+            <div className="rounded-t-md py-1 px-2 rounded-b-md bg-white dark:bg-gray-900">
               You can use <b>2</b> special <span className="underline decoration-2 underline-offset-2 decoration-amber-500">wildcard characters</span> for the purpose of pattern matching.
               <br />
               - Percent (<Code>%</Code>) - for matching any <i>sequence</i> of characters (equivalent to <Code>*</Code> in Regex)
@@ -75,14 +76,14 @@ export const Releases = () => {
 
               <br /><br />
 
-              As always, please refer to our <a
-                rel="noopener noreferrer"
-                target="_blank"
+              {"As always, please refer to our "}
+              <ExternalLink
                 href="https://autobrr.com/usage/search/"
                 className="text-gray-700 dark:text-gray-200 underline font-semibold underline-offset-2 decoration-purple-500 decoration-2 hover:text-black hover:dark:text-gray-100"
               >
                 Search function usage
-              </a> documentation page to keep up with the latest examples and information.
+              </ExternalLink>
+              {" documentation page to keep up with the latest examples and information."}
             </div>
           </div>
         ) : null}

@@ -10,7 +10,6 @@ import { Listbox, Menu, Switch, Transition } from "@headlessui/react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { FormikValues } from "formik";
 import { useCallback } from "react";
-import { Tooltip } from "react-tooltip";
 import {
   ArrowsRightLeftIcon,
   CheckIcon,
@@ -35,6 +34,7 @@ import { EmptyListState } from "@components/emptystates";
 import { DeleteModal } from "@components/modals";
 
 import { Importer } from "./Importer";
+import { Tooltip } from "@components/tooltips/Tooltip";
 
 export const filterKeys = {
   all: ["filters"] as const,
@@ -96,7 +96,7 @@ export function Filters() {
         setIsOpen={setShowImportModal}
       />
 
-      <div className="flex justify-between items-center flex-col sm:flex-row my-6 max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="flex justify-between items-center flex-row flex-wrap my-6 max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8">
         <h1 className="text-3xl font-bold text-black dark:text-white">Filters</h1>
         <Menu as="div" className="relative">
           {({ open }) => (
@@ -635,49 +635,30 @@ function FilterListItem({ filter, values, idx }: FilterListItemProps) {
             Priority: {filter.priority}
           </span>
           <span className="whitespace-nowrap text-xs font-medium text-gray-600 dark:text-gray-400">
-            <Link
-              to={`${filter.id.toString()}/actions`}
-              className="hover:text-black dark:hover:text-gray-300"
-            >
-              <span
-                id={`tooltip-actions-${filter.id}`}
-                className="flex items-center hover:cursor-pointer"
-              >
-                <span className={classNames(filter.actions_count == 0 ? "text-red-500" : "")}>
-                  <span
-                    className={
-                      classNames(
-                        filter.actions_count == 0 ? "hover:text-red-400 dark:hover:text-red-400" : ""
-                      )
-                    }
-                  >
+            <Tooltip
+              label={
+                <Link
+                  to={`${filter.id.toString()}/actions`}
+                  className="flex items-center cursor-pointer hover:text-black dark:hover:text-gray-300"
+                >
+                  <span className={classNames(!filter.actions_count ? "text-red-500 hover:text-red-400 dark:hover:text-red-400" : "")}>
                     Actions: {filter.actions_count}
                   </span>
-                </span>
-                {filter.actions_count === 0 && (
-                  <>
+                  {!filter.actions_count && (
                     <span className="mr-2 ml-2 flex h-3 w-3 relative">
                       <span className="animate-ping inline-flex h-full w-full rounded-full dark:bg-red-500 bg-red-400 opacity-75" />
                       <span
                         className="inline-flex absolute rounded-full h-3 w-3 dark:bg-red-500 bg-red-400"
                       />
                     </span>
-                    <span className="text-sm text-gray-800 dark:text-gray-500">
-                      <Tooltip
-                        style={{ width: "350px", fontSize: "12px", textTransform: "none", fontWeight: "normal", borderRadius: "0.375rem", backgroundColor: "#34343A", color: "#fff", whiteSpace: "pre-wrap", overflow: "hidden", textOverflow: "ellipsis" }}
-                        delayShow={100}
-                        delayHide={150}
-                        data-html={true}
-                        place="right"
-                        data-tooltip-id={`tooltip-actions-${filter.id}`}
-                      >
-                        <p>You need to setup an action in the filter otherwise you will not get any snatches.</p>
-                      </Tooltip>
-                    </span>
-                  </>
-                )}
-              </span>
-            </Link>
+                  )}
+                </Link>
+              }
+            >
+              {!filter.actions_count ? (
+                <>{"You need to setup an action in the filter otherwise you will not get any snatches."}</>
+              ) : null}
+            </Tooltip>
           </span>
         </div>
       </div>

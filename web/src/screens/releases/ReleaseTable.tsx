@@ -23,6 +23,7 @@ import { IndexerSelectColumnFilter, PushStatusSelectColumnFilter, SearchColumnFi
 import { classNames } from "@utils";
 import { ArrowTopRightOnSquareIcon, ArrowDownTrayIcon } from "@heroicons/react/24/outline";
 import { Tooltip } from "@components/tooltips/Tooltip";
+import { ExternalLink } from "@components/ExternalLink";
 
 export const releaseKeys = {
   all: ["releases"] as const,
@@ -103,24 +104,17 @@ export const ReleaseTable = () => {
             </Tooltip>
             <div className="flex mr-0">
               {props.row.original.download_url && (
-                <a
-                  rel="noopener noreferrer"
-                  target="_blank"
+                <ExternalLink
                   href={props.row.original.download_url}
-                  className="max-w-[90vw] px-2"
+                  className="px-2"
                 >
                   <ArrowDownTrayIcon className="h-5 w-5 text-blue-400 hover:text-blue-500 dark:text-blue-500 dark:hover:text-blue-600" aria-hidden="true" />
-                </a>
+                </ExternalLink>
               )}
               {props.row.original.info_url && (
-                <a
-                  rel="noopener noreferrer"
-                  target="_blank"
-                  href={props.row.original.info_url}
-                  className="max-w-[90vw]"
-                >
+                <ExternalLink href={props.row.original.info_url}>
                   <ArrowTopRightOnSquareIcon className="h-5 w-5 text-blue-400 hover:text-blue-500 dark:text-blue-500 dark:hover:text-blue-600" aria-hidden="true" />
-                </a>
+                </ExternalLink>
               )}
             </div>
           </div>

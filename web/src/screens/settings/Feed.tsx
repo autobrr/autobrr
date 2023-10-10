@@ -24,6 +24,7 @@ import { FeedUpdateForm } from "@forms/settings/FeedForms";
 import { EmptySimple } from "@components/emptystates";
 import { ImplementationBadges } from "./Indexer";
 import { ArrowPathIcon } from "@heroicons/react/24/solid";
+import { ExternalLink } from "@components/ExternalLink";
 
 export const feedKeys = {
   all: ["feeds"] as const,
@@ -354,10 +355,8 @@ const FeedItemDropdown = ({
           <div>
             <Menu.Item>
               {({ active }) => (
-                <a
+                <ExternalLink
                   href={`${baseUrl()}api/feeds/${feed.id}/latest`}
-                  target="_blank"
-                  rel="noopener noreferrer"
                   className={classNames(
                     active ? "bg-blue-600 text-white" : "text-gray-900 dark:text-gray-300",
                     "font-medium group flex rounded-md items-center w-full px-2 py-2 text-sm"
@@ -371,7 +370,7 @@ const FeedItemDropdown = ({
                     aria-hidden="true"
                   />
                   View latest run
-                </a>
+                </ExternalLink>
               )}
             </Menu.Item>
             <Menu.Item>
