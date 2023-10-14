@@ -7,10 +7,11 @@ import { Link, NavLink } from "react-router-dom";
 import { ArrowTopRightOnSquareIcon } from "@heroicons/react/24/solid";
 
 import { classNames } from "@utils";
-import { ReactComponent as Logo } from "@app/logo.svg";
 
 import { NAV_ROUTES } from "./_shared";
 import { ExternalLink } from "@components/ExternalLink";
+
+import Logo from "@app/logo.svg?react";
 
 export const LeftNav = () => (
   <div className="flex items-center">
