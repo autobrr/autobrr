@@ -182,11 +182,36 @@ function FormFieldsPushover() {
   );
 }
 
+function FormFieldsGotify() {
+  return (
+    <div className="border-t border-gray-200 dark:border-gray-700 py-4">
+      <div className="px-4 space-y-1">
+        <Dialog.Title className="text-lg font-medium text-gray-900 dark:text-white">Settings</Dialog.Title>
+      </div>
+
+      <TextFieldWide
+        name="host"
+        label="Gotify URL"
+        help="Gotify URL"
+        placeholder="https://some.gotify.server.com"
+        required={true}
+      />
+      <PasswordFieldWide
+        name="token"
+        label="Application Token"
+        help="Application Token"
+        required={true}
+      />
+    </div>
+  );
+}
+
 const componentMap: componentMapType = {
   DISCORD: <FormFieldsDiscord />,
   NOTIFIARR: <FormFieldsNotifiarr />,
   TELEGRAM: <FormFieldsTelegram />,
-  PUSHOVER: <FormFieldsPushover />
+  PUSHOVER: <FormFieldsPushover />,
+  GOTIFY: <FormFieldsGotify />
 };
 
 interface NotificationAddFormValues {
@@ -464,6 +489,7 @@ interface InitialValues {
   priority?: number;
   channel?: string;
   topic?: string;
+  host?: string;
   events: NotificationEvent[];
 }
 
@@ -513,6 +539,7 @@ export function NotificationUpdateForm({ isOpen, toggle, notification }: UpdateP
     priority: notification.priority,
     channel: notification.channel,
     topic: notification.topic,
+    host: notification.host,
     events: notification.events || []
   };
 
