@@ -97,6 +97,14 @@ func (h releaseHandler) findReleases(w http.ResponseWriter, r *http.Request) {
 	indexer := vals["indexer"]
 
 	pushStatus := r.URL.Query().Get("push_status")
+	if !domain.ValidReleasePushStatus(pushStatus) {
+		h.encoder.StatusResponse(w, http.StatusBadRequest, map[string]interface{}{
+			"code":    "BAD_REQUEST_PARAMS",
+			"message": fmt.Sprintf("push_status parameter is of invalid type: %v", pushStatus),
+		})
+		return
+	}
+
 	search := r.URL.Query().Get("q")
 
 	query := domain.ReleaseQueryParams{
