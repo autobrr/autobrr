@@ -263,7 +263,7 @@ const ListItem = ({ network, expanded }: ListItemProps) => {
         />
         <div className="col-span-2 md:col-span-1 flex pl-5 text-gray-500 dark:text-gray-400">
           <Switch
-            onClick={(e: MouseEvent) => e.stopPropagation()}
+            onClick={(e) => e.stopPropagation()}
             checked={network.enabled}
             onChange={onToggleMutation}
             className={classNames(
@@ -478,7 +478,7 @@ const ListItemDropdown = ({
   const restart = (id: number) => restartMutation.mutate(id);
 
   return (
-    <Menu 
+    <Menu
       as="div"
       onClick={(e: MouseEvent) => {
         e.preventDefault();
@@ -787,4 +787,3 @@ const IRCLogsDropdown = () => {
     </Menu>
   );
 };
-

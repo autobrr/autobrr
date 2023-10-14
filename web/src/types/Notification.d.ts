@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-type NotificationType = "DISCORD" | "NOTIFIARR" | "TELEGRAM" | "PUSHOVER";
+type NotificationType = "DISCORD" | "NOTIFIARR" | "TELEGRAM" | "PUSHOVER" | "GOTIFY";
 type NotificationEvent =
   "PUSH_APPROVED"
   | "PUSH_REJECTED"
@@ -24,4 +24,5 @@ interface ServiceNotification {
   channel?: string;
   priority?: number;
   topic?: string;
+  host?: string;
 }

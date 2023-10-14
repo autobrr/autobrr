@@ -99,12 +99,20 @@ const PushoverIcon = () => (
   </svg>
 );
 
+const GotifyIcon = () => (
+  <svg viewBox="0 0 140 140" xmlns="http://www.w3.org/2000/svg" className="mr-2 h-4">
+    <path d="m 114.5,21.4 c -11.7,0 -47.3,5.9 -54.3,7.1 -47.3,8.0 -48.4,9.9 -50.1,12.8 -1.2,2.1 -2.4,4.0 2.6,29.4 2.3,11.5 5.8,26.9 8.8,35.8 1.8,5.4 3.6,8.8 6.9,10.1 0.8,0.3 1.7,0.5 2.7,0.6 0.2,0.0 0.3,0.0 0.5,0.0 12.8,0 89.1,-19.5 89.9,-19.7 1.4,-0.4 4.0,-1.5 5.3,-5.1 1.8,-4.7 1.9,-16.7 0.5,-35.7 -2.1,-28.0 -4.1,-31.0 -4.8,-32.0 -2.0,-3.1 -5.6,-3.3 -6.7,-3.3 -0.4,-0.0 -0.9,-0.0 -1.4,-0.0 z m -1.9,6.6 c -9.3,12.0 -18.9,24.0 -25.9,32.4 -2.3,2.8 -4.3,5.1 -6.0,7.0 -1.7,1.9 -2.9,3.2 -3.8,4.0 l -0.3,0.3 -0.4,-0.1 c -1.0,-0.3 -2.5,-0.9 -4.4,-1.7 -2.3,-1.0 -5.2,-2.3 -8.8,-3.9 C 51.6,60.7 34.4,52.2 18.0,43.6 30.3,39.7 95.0,28.7 112.6,27.9 Z m 5.7,5.0 c 2.0,11.8 4.5,42.6 3.1,54.0 -1.8,-1.4 -10.1,-8.0 -19.8,-15.2 -3.0,-2.3 -5.9,-4.3 -8.4,-6.1 l -0.7,-0.5 0.5,-0.6 C 99.5,56.9 108.0,46.2 118.3,32.9 Z M 16.1,51.1 c 3.0,1.5 14.3,7.4 27.4,13.8 5.3,2.6 9.9,4.8 13.9,6.7 l 0.9,0.4 -0.7,0.8 C 50.3,81.2 40.6,92.8 28.8,107.2 24.5,96.7 17.9,65.0 16.1,51.1 Z m 71.5,19.7 0.6,0.4 c 7.8,5.5 18.1,13.2 27.9,21.0 C 104.9,95.1 53.2,107.9 36.0,110.3 46.6,97.4 57.3,84.7 65.1,75.8 l 0.4,-0.4 0.5,0.2 c 5.7,2.5 9.3,3.7 11.1,3.8 0.1,0.0 0.2,0.0 0.3,0.0 0.6,0 1.0,-0.1 1.4,-0.3 0.6,-0.2 2.0,-0.7 8.3,-7.7 z"
+       clipRule="evenodd" fill="currentColor" fillRule="evenodd"/>
+  </svg>
+);
+
 
 const iconComponentMap: componentMapType = {
   DISCORD: <span className="flex items-center px-2 py-0.5 rounded bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-400"><DiscordIcon /> Discord</span>,
   NOTIFIARR: <span className="flex items-center px-2 py-0.5 rounded bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-400"><DiscordIcon /> Notifiarr</span>,
   TELEGRAM: <span className="flex items-center px-2 py-0.5 rounded bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-400"><TelegramIcon /> Telegram</span>,
-  PUSHOVER: <span className="flex items-center px-2 py-0.5 rounded bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-400"><PushoverIcon /> Pushover</span>
+  PUSHOVER: <span className="flex items-center px-2 py-0.5 rounded bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-400"><PushoverIcon /> Pushover</span>,
+  GOTIFY: <span className="flex items-center px-2 py-0.5 rounded bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-400"><GotifyIcon /> Gotify</span>
 };
 
 interface ListItemProps {

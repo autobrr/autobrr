@@ -22,6 +22,7 @@ type IndexerRepo interface {
 	Delete(ctx context.Context, id int) error
 	FindByFilterID(ctx context.Context, id int) ([]Indexer, error)
 	FindByID(ctx context.Context, id int) (*Indexer, error)
+	ToggleEnabled(ctx context.Context, indexerID int, enabled bool) error
 }
 
 type Indexer struct {
