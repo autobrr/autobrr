@@ -9,7 +9,8 @@ import { useNavigate } from "react-router-dom";
 
 import { APIClient } from "@api/APIClient";
 import { TextField, PasswordField } from "@components/inputs";
-import { ReactComponent as Logo } from "@app/logo.svg";
+
+import Logo from "@app/logo.svg?react";
 
 interface InputValues {
   username: string;

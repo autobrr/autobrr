@@ -4,8 +4,9 @@
  */
 
 import { Link } from "react-router-dom";
-import { ReactComponent as Logo } from "@app/logo.svg";
 import { ExternalLink } from "@components/ExternalLink";
+
+import Logo from "@app/logo.svg?react";
 
 export const NotFound = () => {
   return (
