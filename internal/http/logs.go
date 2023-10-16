@@ -140,6 +140,10 @@ var (
 			pattern: regexp.MustCompile(`(SceneHD..invite).([a-zA-Z0-9]+)(\s+#announce)`),
 			repl:    "$1 REDACTED$3",
 		},
+				{
+			pattern: regexp.MustCompile(`(https?://)(.*?):(.*?)@(.*?)`),
+			repl:    "${1}REDACTED:REDACTED@",
+		},
 	}
 )
 
