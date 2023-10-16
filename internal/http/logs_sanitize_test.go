@@ -153,6 +153,10 @@ func TestSanitizeLogFile(t *testing.T) {
 			input:    "\"module\":\"filter\" \\\"id\\\": 3855,\\n  \\\"apikey\\\": \\\"ad789a9s8d.asdpoiasdpojads09sad809\\\",\\n  \\\"minratio\\\": 10.0\\n",
 			expected: "\"module\":\"filter\" \\\"id\\\": 3855,\\n  \\\"apikey\\\": \\\"REDACTED\\\",\\n  \\\"minratio\\\": 10.0\\n",
 		},
+		{
+			input:    "\"module\":\"filter\" request: https://username:password@111.server.name.here/qbittorrent/api/v2/torrents/info: error making request",
+			expected: "\"module\":\"filter\" request: https://REDACTED:REDACTED@111.server.name.here/qbittorrent/api/v2/torrents/info: error making request",
+		},
 	}
 
 	for _, testCase := range testCases {
