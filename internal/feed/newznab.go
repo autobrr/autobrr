@@ -144,6 +144,11 @@ func (j *NewznabJob) getFeed(ctx context.Context) ([]newznab.FeedItem, error) {
 		return feed.Channel.Items[i].PubDate.After(feed.Channel.Items[j].PubDate.Time)
 	})
 
+	toCache := make([]domain.FeedCacheItem, 0)
+
+	// set ttl to 1 month
+	ttl := time.Now().AddDate(0, 1, 0)
+
 	for _, i := range feed.Channel.Items {
 		if i.GUID == "" {
 			j.Log.Error().Msgf("missing GUID from feed: %s", j.Feed.Name)
@@ -163,17 +168,23 @@ func (j *NewznabJob) getFeed(ctx context.Context) ([]newznab.FeedItem, error) {
 
 		j.Log.Debug().Msgf("found new release: %s", i.Title)
 
-		// set ttl to 1 month
-		ttl := time.Now().AddDate(0, 1, 0)
-
-		if err := j.CacheRepo.Put(j.Feed.ID, i.GUID, []byte(i.Title), ttl); err != nil {
-			j.Log.Error().Stack().Err(err).Str("guid", i.GUID).Msg("cache.Put: error storing item in cache")
-			continue
-		}
+		toCache = append(toCache, domain.FeedCacheItem{
+			FeedId: strconv.Itoa(j.Feed.ID),
+			Key:    i.GUID,
+			Value:  []byte(i.Title),
+			TTL:    ttl,
+		})
 
 		// only append if we successfully added to cache
 		items = append(items, *i)
 	}
+
+	go func(items []domain.FeedCacheItem) {
+		ctx := context.Background()
+		if err := j.CacheRepo.PutMany(ctx, items); err != nil {
+			j.Log.Error().Err(err).Msg("cache.PutMany: error storing items in cache")
+		}
+	}(toCache)
 
 	// send to filters
 	return items, nil
