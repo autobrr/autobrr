@@ -27,9 +27,9 @@ func (db *DB) openSQLite() error {
 	}
 
 	// Set busy timeout
-	//if _, err = db.handler.Exec(`PRAGMA busy_timeout = 5000;`); err != nil {
-	//	return errors.New("busy timeout pragma: %w", err)
-	//}
+	if _, err = db.handler.Exec(`PRAGMA busy_timeout = 5000;`); err != nil {
+		return errors.New("busy timeout pragma: %w", err)
+	}
 
 	// Enable WAL. SQLite performs better with the WAL  because it allows
 	// multiple readers to operate while data is being written.
