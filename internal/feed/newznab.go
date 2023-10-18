@@ -150,6 +150,8 @@ func (j *NewznabJob) getFeed(ctx context.Context) ([]newznab.FeedItem, error) {
 	ttl := time.Now().AddDate(0, 1, 0)
 
 	for _, i := range feed.Channel.Items {
+		i := i
+
 		if i.GUID == "" {
 			j.Log.Error().Msgf("missing GUID from feed: %s", j.Feed.Name)
 			continue
