@@ -35,6 +35,7 @@ irc:
   announcers:
     - "PB-Announcer"
     - "Llamab1t"
+    - "Llamab3t"
   settings:
     - name: nick
       type: text

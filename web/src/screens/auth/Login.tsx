@@ -9,12 +9,13 @@ import { useNavigate } from "react-router-dom";
 import { useMutation } from "@tanstack/react-query";
 import toast from "react-hot-toast";
 
-import { ReactComponent as Logo } from "@app/logo.svg";
 import { APIClient } from "@api/APIClient";
 import { AuthContext } from "@utils/Context";
 import Toast from "@components/notifications/Toast";
 import { Tooltip } from "@components/tooltips/Tooltip";
 import { PasswordInput, TextInput } from "@components/inputs/text";
+
+import Logo from "@app/logo.svg?react";
 
 type LoginFormFields = {
   username: string;

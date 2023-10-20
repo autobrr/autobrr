@@ -1,0 +1,71 @@
+---
+#id: onlyencodes
+name: OnlyEncodes
+identifier: onlyencodes
+description: OnlyEncodes (OE) is a private torrent tracker for MOVIES / TV
+language: en-us
+urls:
+  - https://onlyencodes.cc
+privacy: private
+protocol: torrent
+supports:
+  - irc
+  - rss
+source: UNIT3D
+settings:
+  - name: rsskey
+    type: secret
+    required: true
+    label: RSS key (RID)
+    help: "Go to your profile > Settings > Security > RSS Key (RID) and paste your RID into this field."
+
+irc:
+  network: OnlyEncodes
+  server: irc.onlyencodes.cc
+  port: 6697
+  tls: true
+  channels:
+    - "#announce"
+  announcers:
+    - OEBot
+  settings:
+    - name: nick
+      type: text
+      required: true
+      label: Nick
+      help: Use your username on the site.
+
+    - name: auth.account
+      type: text
+      required: true
+      label: NickServ Account
+      help: NickServ account
+
+    - name: auth.password
+      type: secret
+      required: true
+      label: NickServ Password
+      help: NickServ password
+
+  parse:
+    type: single
+    lines:
+      - test:
+          - "Category [Movie] Type [Remux] Name [Some Movie 1080p BluRay REMUX AVC TrueHD 7.1-GROUP] Resolution [1080p] Freeleech [0%] Internal [No] Double Upload [No] Size [27.5 GB] Uploader [uploaderName] Url [https://onlyencodes.cc/torrents/download/00000]"
+        pattern: '.*\[(.*)\].*\[(.*)\].*\[(.*)\].*\[(.*)\].*\[(.*)\].*\[(.*)\].*\[(.*)\].*\[(.*)\].*\[(.*)\].*\[(https?\:\/\/.*?\/).*\/(\d+)\]'
+        vars:
+          - category
+          - releaseTags
+          - torrentName
+          - resolution
+          - freeleechPercent
+          - internal
+          - tags
+          - torrentSize
+          - uploader
+          - baseUrl
+          - torrentId
+
+    match:
+      infourl: "/torrents/{{ .torrentId }}"
+      torrenturl: "/torrent/download/{{ .torrentId }}.{{ .rsskey }}"

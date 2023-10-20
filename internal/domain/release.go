@@ -176,6 +176,21 @@ func (r ReleasePushStatus) String() string {
 	}
 }
 
+func ValidReleasePushStatus(s string) bool {
+	switch s {
+	case string(ReleasePushStatusPending):
+		return true
+	case string(ReleasePushStatusApproved):
+		return true
+	case string(ReleasePushStatusRejected):
+		return true
+	case string(ReleasePushStatusErr):
+		return true
+	default:
+		return false
+	}
+}
+
 type ReleaseFilterStatus string
 
 const (
