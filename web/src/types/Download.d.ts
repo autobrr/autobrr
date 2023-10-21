@@ -31,9 +31,12 @@ interface DownloadClientRules {
   enabled: boolean;
   max_active_downloads: number;
   ignore_slow_torrents: boolean;
+  ignore_slow_torrents_condition: IgnoreTorrentsCondition;
   download_speed_threshold: number;
   upload_speed_threshold: number;
 }
+
+type IgnoreTorrentsCondition = "ALWAYS" | "MAX_DOWNLOADS_REACHED";
 
 interface DownloadClientBasicAuth {
   auth: boolean;
