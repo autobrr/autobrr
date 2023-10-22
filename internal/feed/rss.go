@@ -8,6 +8,7 @@ import (
 	"encoding/xml"
 	"net/url"
 	"regexp"
+	"strconv"
 	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
@@ -240,6 +241,8 @@ func (j *RSSJob) getFeed(ctx context.Context) (items []*gofeed.Item, err error) 
 
 	//sort.Sort(feed)
 
+	toCache := make([]domain.FeedCacheItem, 0)
+
 	// set ttl to 1 month
 	ttl := time.Now().AddDate(0, 1, 0)
 
@@ -266,13 +269,24 @@ func (j *RSSJob) getFeed(ctx context.Context) (items []*gofeed.Item, err error) 
 
 		j.Log.Debug().Msgf("found new release: %s", i.Title)
 
-		if err := j.CacheRepo.Put(j.Feed.ID, key, []byte(item.Title), ttl); err != nil {
-			j.Log.Error().Err(err).Str("entry", key).Msg("cache.Put: error storing item in cache")
-			continue
-		}
+		toCache = append(toCache, domain.FeedCacheItem{
+			FeedId: strconv.Itoa(j.Feed.ID),
+			Key:    i.GUID,
+			Value:  []byte(i.Title),
+			TTL:    ttl,
+		})
 
 		// only append if we successfully added to cache
 		items = append(items, item)
+	}
+
+	if len(toCache) > 0 {
+		go func(items []domain.FeedCacheItem) {
+			ctx := context.Background()
+			if err := j.CacheRepo.PutMany(ctx, items); err != nil {
+				j.Log.Error().Err(err).Msg("cache.PutMany: error storing items in cache")
+			}
+		}(toCache)
 	}
 
 	// send to filters

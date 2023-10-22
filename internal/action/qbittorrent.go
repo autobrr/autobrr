@@ -46,37 +46,42 @@ func (s *service) qbittorrent(ctx context.Context, action *domain.Action, releas
 		s.log.Info().Msgf("torrent from magnet successfully added to client: '%s'", c.Dc.Name)
 
 		return nil, nil
-	} else {
-		if release.TorrentTmpFile == "" {
-			if err := release.DownloadTorrentFileCtx(ctx); err != nil {
-				return nil, errors.Wrap(err, "error downloading torrent file for release: %s", release.TorrentName)
-			}
-		}
-
-		options, err := s.prepareQbitOptions(action)
-		if err != nil {
-			return nil, errors.Wrap(err, "could not prepare options")
-		}
-
-		s.log.Trace().Msgf("action qBittorrent options: %+v", options)
-
-		if err = c.Qbt.AddTorrentFromFileCtx(ctx, release.TorrentTmpFile, options); err != nil {
-			return nil, errors.Wrap(err, "could not add torrent %s to client: %s", release.TorrentTmpFile, c.Dc.Name)
-		}
-
-		if !action.Paused && !action.ReAnnounceSkip && release.TorrentHash != "" {
-			opts := qbittorrent.ReannounceOptions{
-				Interval:        int(action.ReAnnounceInterval),
-				MaxAttempts:     int(action.ReAnnounceMaxAttempts),
-				DeleteOnFailure: action.ReAnnounceDelete,
-			}
-			if err := c.Qbt.ReannounceTorrentWithRetry(ctx, opts, release.TorrentHash); err != nil {
-				return nil, errors.Wrap(err, "could not reannounce torrent: %s", release.TorrentHash)
-			}
-		}
-
-		s.log.Info().Msgf("torrent with hash %s successfully added to client: '%s'", release.TorrentHash, c.Dc.Name)
 	}
+
+	if release.TorrentTmpFile == "" {
+		if err := release.DownloadTorrentFileCtx(ctx); err != nil {
+			return nil, errors.Wrap(err, "error downloading torrent file for release: %s", release.TorrentName)
+		}
+	}
+
+	options, err := s.prepareQbitOptions(action)
+	if err != nil {
+		return nil, errors.Wrap(err, "could not prepare options")
+	}
+
+	s.log.Trace().Msgf("action qBittorrent options: %+v", options)
+
+	if err = c.Qbt.AddTorrentFromFileCtx(ctx, release.TorrentTmpFile, options); err != nil {
+		return nil, errors.Wrap(err, "could not add torrent %s to client: %s", release.TorrentTmpFile, c.Dc.Name)
+	}
+
+	if !action.Paused && !action.ReAnnounceSkip && release.TorrentHash != "" {
+		opts := qbittorrent.ReannounceOptions{
+			Interval:        int(action.ReAnnounceInterval),
+			MaxAttempts:     int(action.ReAnnounceMaxAttempts),
+			DeleteOnFailure: action.ReAnnounceDelete,
+		}
+
+		if err := c.Qbt.ReannounceTorrentWithRetry(ctx, release.TorrentHash, &opts); err != nil {
+			if errors.Is(err, qbittorrent.ErrReannounceTookTooLong) {
+				return []string{fmt.Sprintf("re-announce took too long for hash: %s", release.TorrentHash)}, nil
+			}
+
+			return nil, errors.Wrap(err, "could not reannounce torrent: %s", release.TorrentHash)
+		}
+	}
+
+	s.log.Info().Msgf("torrent with hash %s successfully added to client: '%s'", release.TorrentHash, c.Dc.Name)
 
 	return nil, nil
 }
