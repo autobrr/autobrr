@@ -292,6 +292,10 @@ const FilterItemDropdown = ({ filter, onToggle }: FilterItemDropdownProps) => {
         external_webhook_host: any;
         external_webhook_data: any;
         external_webhook_expect_status: any;
+        external_webhook_retry_status: any;
+        external_webhook_retry_attempts: any;
+        external_webhook_retry_delay_seconds: any;
+        external_webhook_retry_max_jitter_seconds: any;
       };
 
       const completeFilter = await APIClient.filters.getByID(filter.id) as Partial<CompleteFilterType>;
@@ -313,6 +317,10 @@ const FilterItemDropdown = ({ filter, onToggle }: FilterItemDropdownProps) => {
       delete completeFilter.external_webhook_host;
       delete completeFilter.external_webhook_data;
       delete completeFilter.external_webhook_expect_status;
+      delete completeFilter.external_webhook_retry_status;
+      delete completeFilter.external_webhook_retry_attempts;
+      delete completeFilter.external_webhook_retry_delay_seconds;
+      delete completeFilter.external_webhook_retry_max_jitter_seconds;
 
       // Remove properties with default values from the exported filter to minimize the size of the JSON string
       ["enabled", "priority", "smart_episode", "resolutions", "sources", "codecs", "containers", "tags_match_logic", "except_tags_match_logic"].forEach((key) => {

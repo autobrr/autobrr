@@ -13,13 +13,16 @@ import (
 	"os"
 	"os/exec"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/internal/indexer"
 	"github.com/autobrr/autobrr/internal/logger"
+	"github.com/autobrr/autobrr/internal/utils"
 	"github.com/autobrr/autobrr/pkg/errors"
+	"github.com/avast/retry-go/v4"
 
 	"github.com/dustin/go-humanize"
 	"github.com/mattn/go-shellwords"
@@ -730,25 +733,53 @@ func (s *service) webhook(ctx context.Context, external domain.FilterExternal, r
 		}
 	}
 
+	var opts []retry.Option
+
+	if external.WebhookRetryAttempts > 0 {
+		option := retry.Attempts(uint(external.WebhookRetryAttempts))
+		opts = append(opts, option)
+	}
+	if external.WebhookRetryDelaySeconds > 0 {
+		option := retry.Delay(time.Duration(external.WebhookRetryDelaySeconds) * time.Second)
+		opts = append(opts, option)
+	}
+	if external.WebhookRetryMaxJitterSeconds > 0 {
+		option := retry.MaxJitter(time.Duration(external.WebhookRetryMaxJitterSeconds) * time.Second)
+		opts = append(opts, option)
+	}
+
 	start := time.Now()
 
-	res, err := client.Do(req)
-	if err != nil {
-		return 0, errors.Wrap(err, "could not make request for webhook")
-	}
+	statusCode, err := retry.DoWithData(
+		func() (int, error) {
+			res, err := client.Do(req)
+			if err != nil {
+				return 0, errors.Wrap(err, "could not make request for webhook")
+			}
 
-	defer res.Body.Close()
+			defer res.Body.Close()
 
-	body, err := io.ReadAll(res.Body)
-	if err != nil {
-		return 0, errors.Wrap(err, "could not read request body")
-	}
+			body, err := io.ReadAll(res.Body)
+			if err != nil {
+				return 0, errors.Wrap(err, "could not read request body")
+			}
 
-	if len(body) > 0 {
-		s.log.Debug().Msgf("filter external webhook response status: %d body: %s", res.StatusCode, body)
-	}
+			if len(body) > 0 {
+				s.log.Debug().Msgf("filter external webhook response status: %d body: %s", res.StatusCode, body)
+			}
+
+			if external.WebhookRetryStatus != "" {
+				retryStatusCodes := strings.Split(strings.ReplaceAll(external.WebhookRetryStatus, " ", ""), ",")
+				if utils.StrSliceContains(retryStatusCodes, strconv.Itoa(res.StatusCode)) {
+					return 0, errors.New("retrying webhook request, got status code: %d", res.StatusCode)
+				}
+			}
+
+			return res.StatusCode, nil
+		},
+		opts...)
 
 	s.log.Debug().Msgf("successfully ran external webhook filter to: (%s) payload: (%s) finished in %s", external.WebhookHost, dataArgs, time.Since(start))
 
-	return res.StatusCode, nil
+	return statusCode, err
 }
