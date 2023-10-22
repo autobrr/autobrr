@@ -35,18 +35,6 @@ irc:
       label: Nick
       help: Bot nick. Eg. user_bot
 
-    - name: auth.account
-      type: text
-      required: false
-      label: NickServ Account
-      help: NickServ account. Make sure to group your user and bot.
-
-    - name: auth.password
-      type: secret
-      required: false
-      label: NickServ Password
-      help: NickServ password
-
     - name: invite_command
       type: secret
       default: "Cerberus identify USERNAME PID"
