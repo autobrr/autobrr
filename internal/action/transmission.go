@@ -83,10 +83,10 @@ func (s *service) transmission(ctx context.Context, action *domain.Action, relea
 			}
 
 			if err := tbt.TorrentSet(ctx, p); err != nil {
-				return nil, errors.Wrap(err, "could not set label for hash %s to client: %s", torrent.HashString, client.Host)
+				return nil, errors.Wrap(err, "could not set label for hash %s to client: %s", *torrent.HashString, client.Host)
 			}
 
-			s.log.Debug().Msgf("set label for torrent hash %s successful to client: '%s'", torrent.HashString, client.Name)
+			s.log.Debug().Msgf("set label for torrent hash %s successful to client: '%s'", *torrent.HashString, client.Name)
 		}
 
 		return nil, nil
@@ -133,10 +133,10 @@ func (s *service) transmission(ctx context.Context, action *domain.Action, relea
 		}
 
 		if err := tbt.TorrentSet(ctx, p); err != nil {
-			return nil, errors.Wrap(err, "could not set label for hash %s to client: %s", torrent.HashString, client.Host)
+			return nil, errors.Wrap(err, "could not set label for hash %s to client: %s", *torrent.HashString, client.Host)
 		}
 
-		s.log.Debug().Msgf("set label for torrent hash %s successful to client: '%s'", torrent.HashString, client.Name)
+		s.log.Debug().Msgf("set label for torrent hash %s successful to client: '%s'", *torrent.HashString, client.Name)
 	}
 
 	return rejections, nil
