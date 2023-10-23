@@ -27,7 +27,7 @@ Installation guide and documentation can be found at https://autobrr.com
   Windows, macOS) on different architectures (e.g. x86, ARM)
 - Great container support (Docker, k8s/Kubernetes)
 - Database engine supporting both PostgreSQL and SQLite
-- Notifications (Discord, Telegram, Notifiarr, Pushover)
+- Notifications (Discord, Telegram, Notifiarr, Pushover, Gotify)
 - One autobrr instance can communicate with multiple clients (torrent, usenet and \*arr) on remote servers
 - Base path / Subfolder (and subdomain) support for convenient reverse-proxy support
 
