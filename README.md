@@ -18,7 +18,7 @@ Installation guide and documentation can be found at https://autobrr.com
 ## Key features
 
 - Torrents and usenet support
-- Support for 70+ torrent trackers with IRC announces
+- Support for 75+ torrent trackers with IRC announces
 - Newznab, Torznab and RSS support to easily get access to hundreds of torrent and usenet indexers
 - Torrent Magnet support
 - Powerful but simple filtering with RegEx support (like in autodl-irssi)
@@ -119,24 +119,21 @@ the [docs](https://quickbox.io/knowledge-base/v3/applications-v3/autobrr-applica
 
 ### Shared seedbox
 
-We have support for a couple of providers out of the box.
-In case your provider is missing then please contact us on Discord, so we add support.
+##### One-click installer & Quick installer
 
-The scripts require some input but does most of the work.
+- HostingByDesign (former Seedbox.io) via box
+- Seedit4.me
+- SeedHost.eu
+- Ultra.cc
 
-#### HostingByDesign (former Seedbox.io)
-
-    wget https://gobrr.sh/install_sbio && bash install_sbio
+##### Install scripts
+We have support for a couple other providers out of the box.  
+In case your provider is missing then please contact us on [Discord](https://discord.gg/WQ2eUycxyT), so we can add support.  
+The scripts require some input but do most of the work.
 
 #### Swizzin.net
 
     wget https://gobrr.sh/install_sbio && bash install_sbio
-
-#### Ultra.cc
-
-Use their official one-click installer or ours:
-
-    wget https://gobrr.sh/install_ultra && bash install_ultra
 
 #### WhatBox
 
@@ -156,11 +153,6 @@ For other providers the Seedbox.io installer should work. If not, open an issue 
 on [Discord](https://discord.gg/WQ2eUycxyT)
 
     wget https://gobrr.sh/install_sbio && bash install_sbio
-
-##### One-click installers
-
-- Ultra.cc
-- Seedit4.me
 
 ### Docker compose
 
