@@ -3,7 +3,7 @@
 name: TheOldSchool
 identifier: theoldschool
 description: TheOldSchool (TOS) is a general french tracker.
-language: en-US
+language: fr-FR
 urls:
   - https://theoldschool.cc/
 privacy: private
@@ -60,7 +60,7 @@ irc:
       - test:
           - "[NEW] [Series] [This.Is.A.New.show.S00E00.720p.WEB.H264-Test] [WEB-DL] [487.27 MiB] [0%] [pre 0h 1m 52s] par oldschool -> https://theoldschool.cc/torrents/00000"
           - "[NEW] [Series] [This.Is.A.New.show.S00E00.720p.WEB.H264-Test] [WEB-DL] [487.27 MiB] [0%] par oldschool -> https://theoldschool.cc/torrents/00000"
-        pattern: '\[NEW\] \[(.+?)\] \[(.*?)\] \[(.+)\] \[(.+?)\] \[(.+?)%\](?:\s\[pre (.*)\])? par (\w+) -> (https?\:\/\/.+\/).+/(\d+)'
+        pattern: '\[NEW\] \[(.*)\] \[(.*)\] \[(.*)\] \[(.*)\] \[(.*)%\](?:\s\[pre (.*)\])? par (.*) -> (https?\:\/\/.+\/).+\/(\d+)'
         vars:
           - category
           - torrentName
