@@ -74,8 +74,6 @@ func (s *service) transmission(ctx context.Context, action *domain.Action, relea
 			return nil, errors.Wrap(err, "could not add torrent from magnet %s to client: %s", release.MagnetURI, client.Host)
 		}
 
-		s.log.Info().Msgf("torrent from magnet with hash %v successfully added to client: '%s'", torrent.HashString, client.Name)
-
 		if action.Label != "" {
 			p := transmissionrpc.TorrentSetPayload{
 				IDs:    []int64{*torrent.ID},
@@ -88,6 +86,8 @@ func (s *service) transmission(ctx context.Context, action *domain.Action, relea
 
 			s.log.Debug().Msgf("set label for torrent hash %s successful to client: '%s'", *torrent.HashString, client.Name)
 		}
+
+		s.log.Info().Msgf("torrent from magnet with hash %v successfully added to client: '%s'", torrent.HashString, client.Name)
 
 		return nil, nil
 	}
@@ -109,7 +109,20 @@ func (s *service) transmission(ctx context.Context, action *domain.Action, relea
 	// Prepare and send payload
 	torrent, err := tbt.TorrentAdd(ctx, payload)
 	if err != nil {
-		return nil, errors.Wrap(err, "could not add torrent %v to client: %v", release.TorrentTmpFile, client.Host)
+		return nil, errors.Wrap(err, "could not add torrent %s to client: %s", release.TorrentTmpFile, client.Host)
+	}
+
+	if action.Label != "" {
+		p := transmissionrpc.TorrentSetPayload{
+			IDs:    []int64{*torrent.ID},
+			Labels: []string{action.Label},
+		}
+
+		if err := tbt.TorrentSet(ctx, p); err != nil {
+			return nil, errors.Wrap(err, "could not set label for hash %s to client: %s", *torrent.HashString, client.Host)
+		}
+
+		s.log.Debug().Msgf("set label for torrent hash %s successful to client: '%s'", *torrent.HashString, client.Name)
 	}
 
 	if !action.Paused && !action.ReAnnounceSkip {
@@ -125,19 +138,6 @@ func (s *service) transmission(ctx context.Context, action *domain.Action, relea
 	}
 
 	s.log.Info().Msgf("torrent with hash %s successfully added to client: '%s'", *torrent.HashString, client.Name)
-
-	if action.Label != "" {
-		p := transmissionrpc.TorrentSetPayload{
-			IDs:    []int64{*torrent.ID},
-			Labels: []string{action.Label},
-		}
-
-		if err := tbt.TorrentSet(ctx, p); err != nil {
-			return nil, errors.Wrap(err, "could not set label for hash %s to client: %s", *torrent.HashString, client.Host)
-		}
-
-		s.log.Debug().Msgf("set label for torrent hash %s successful to client: '%s'", *torrent.HashString, client.Name)
-	}
 
 	return rejections, nil
 }
