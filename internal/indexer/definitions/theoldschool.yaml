@@ -1,0 +1,77 @@
+---
+#id: TheOldSchool
+name: TheOldSchool
+identifier: theoldschool
+description: TheOldSchool (TOS) is a general french tracker.
+language: en-US
+urls:
+  - https://theoldschool.cc/
+privacy: private
+protocol: torrent
+supports:
+  - irc
+  - rss
+source: UNIT3D
+settings:
+  - name: rsskey
+    type: secret
+    required: true
+    label: RSS key
+    help: "Click on your nick / Go to Settings / Security / Copy the RID (RSS Key) and paste it here."
+
+irc:
+  network: theoldschool.cc
+  server: irc.theoldschool.cc
+  port: 1337
+  tls: true
+  channels:
+    - "#Announce"
+  announcers:
+    - _TOS_
+  settings:
+    - name: nick
+      type: text
+      required: true
+      label: Nick
+      help: Bot nick. Eg. user_bot
+
+    - name: auth.account
+      type: text
+      required: false
+      label: NickServ Account
+      help: NickServ account. Make sure to group your user and bot.
+
+    - name: auth.password
+      type: secret
+      required: false
+      label: NickServ Password
+      help: NickServ password
+
+    - name: invite_command
+      type: secret
+      default: "OldSchool invite USERNAME PID"
+      required: true
+      label: Invite command
+      help: Invite auth with OldSchool. Replace USERNAME and PID (passkey).
+
+  parse:
+    type: single
+    lines:
+      - test:
+          - "[NEW] [Series] [This.Is.A.New.show.S00E00.720p.WEB.H264-Test] [WEB-DL] [487.27 MiB] [0%] [pre 0h 1m 52s] par oldschool -> https://theoldschool.cc/torrents/00000"
+          - "[NEW] [Series] [This.Is.A.New.show.S00E00.720p.WEB.H264-Test] [WEB-DL] [487.27 MiB] [0%] par oldschool -> https://theoldschool.cc/torrents/00000"
+        pattern: '\[NEW\] \[(.+?)\] \[(.*?)\] \[(.+)\] \[(.+?)\] \[(.+?)%\](?:\s\[pre (.*)\])? par (\w+) -> (https?\:\/\/.+\/).+/(\d+)'
+        vars:
+          - category
+          - torrentName
+          - source
+          - torrentSize
+          - freeleechPercent
+          - preTime
+          - uploader
+          - baseUrl
+          - torrentId
+
+    match:
+      infourl: "/torrents/{{ .torrentId }}"
+      torrenturl: "/torrent/download/{{ .torrentId }}.{{ .rsskey }}"
