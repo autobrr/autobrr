@@ -346,8 +346,8 @@ const TypeForm = ({ action, idx, clients }: TypeFormProps) => {
           <div className="col-span-6">
             <SwitchGroup
               name={`actions.${idx}.reannounce_skip`}
-              label="Skip reannounce"
-              description="If reannounce is not needed, skip"
+              label="Disable reannounce"
+              description="Reannounce is enabled by default. Disable if not needed."
             />
             <SwitchGroup
               name={`actions.${idx}.reannounce_delete`}
@@ -484,6 +484,13 @@ const TypeForm = ({ action, idx, clients }: TypeFormProps) => {
               label="Add paused"
             />
           </div>
+
+          <TextField
+              name={`actions.${idx}.label`}
+              label="Label"
+              columns={6}
+              placeholder="eg. label1"
+          />
         </div>
 
         <CollapsableSection title="Re-announce" subtitle="Re-announce options">
@@ -504,7 +511,7 @@ const TypeForm = ({ action, idx, clients }: TypeFormProps) => {
             <SwitchGroup
               name={`actions.${idx}.reannounce_skip`}
               label="Disable reannounce"
-              description="Reannounce is enabled by default. Disable if needed."
+              description="Reannounce is enabled by default. Disable if not needed."
             />
             <SwitchGroup
               name={`actions.${idx}.reannounce_delete`}
