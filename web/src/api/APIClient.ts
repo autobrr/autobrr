@@ -249,7 +249,7 @@ export const APIClient = {
     }),
     toggleEnable: (id: number, enabled: boolean) => appClient.Patch(`api/indexer/${id}/enabled`, {
       body: { enabled }
-    }),
+    })
   },
   irc: {
     getNetworks: () => appClient.Get<IrcNetworkWithHealth[]>("api/irc"),

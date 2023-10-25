@@ -126,9 +126,8 @@ const ListItem = ({ indexer }: ListItemProps) => {
     }
   });
 
-  const onToggleMutation = (newState: boolean) => {
-    // backend is rejecting when ending the whole object
-    updateMutation.mutate(newState);
+  const onToggleMutation = (currentState: boolean) => {
+    updateMutation.mutate(!currentState);
   };
 
   return (
@@ -141,7 +140,6 @@ const ListItem = ({ indexer }: ListItemProps) => {
         />
         <div className="col-span-2 sm:col-span-1 flex px-6 items-center sm:px-6">
           <Switch
-            onClick={(e) => e.stopPropagation()}
             checked={indexer.enabled ?? false}
             onChange={onToggleMutation}
             className={classNames(
