@@ -622,26 +622,54 @@ func (f *Filter) RejectionsString(trim bool) string {
 }
 
 func matchRegex(tag string, filterList string) bool {
-	if tag == "" {
+	if tag == "" || filterList == "" {
 		return false
 	}
-	filters := strings.Split(filterList, ",")
 
+	// Split the filter list by commas, but ignore commas inside parentheses
+	filters := splitIgnoringParentheses(filterList, ',')
 	for _, filter := range filters {
 		if filter == "" {
 			continue
 		}
-		re, err := regexp.Compile(`(?i)(?:` + filter + `)`)
+		re, err := regexp.Compile(`(?i)` + filter)
 		if err != nil {
 			return false
 		}
-		match := re.MatchString(tag)
-		if match {
+		if re.MatchString(tag) {
 			return true
 		}
 	}
 
 	return false
+}
+
+// splitIgnoringParentheses splits a string by a delimiter, but ignores the delimiter if it is inside parentheses
+func splitIgnoringParentheses(s string, delimiter rune) []string {
+	var result []string
+	var current strings.Builder
+	parenthesesCount := 0
+
+	for _, r := range s {
+		if r == '(' {
+			parenthesesCount++
+		} else if r == ')' {
+			parenthesesCount--
+		}
+
+		if r == delimiter && parenthesesCount == 0 {
+			result = append(result, current.String())
+			current.Reset()
+		} else {
+			current.WriteRune(r)
+		}
+	}
+
+	if current.Len() > 0 {
+		result = append(result, current.String())
+	}
+
+	return result
 }
 
 // checkFilterIntStrings "1,2,3-20"
