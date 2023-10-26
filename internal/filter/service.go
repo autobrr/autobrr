@@ -22,8 +22,8 @@ import (
 	"github.com/autobrr/autobrr/internal/logger"
 	"github.com/autobrr/autobrr/internal/utils"
 	"github.com/autobrr/autobrr/pkg/errors"
-	"github.com/avast/retry-go/v4"
 
+	"github.com/avast/retry-go/v4"
 	"github.com/dustin/go-humanize"
 	"github.com/mattn/go-shellwords"
 	"github.com/rs/zerolog"

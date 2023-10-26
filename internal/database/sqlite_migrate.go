@@ -919,18 +919,6 @@ CREATE INDEX indexer_identifier_index
 
 	ALTER TABLE filter
 		ADD COLUMN external_webhook_expect_status INTEGER;
-
-	ALTER TABLE filter
-		ADD COLUMN external_webhook_retry_status TEXT;
-
-	ALTER TABLE filter
-		ADD COLUMN external_webhook_retry_attempts INTEGER;
-
-	ALTER TABLE filter
-		ADD COLUMN external_webhook_retry_delay_seconds INTEGER;
-
-	ALTER TABLE filter
-		ADD COLUMN external_webhook_retry_max_jitter_seconds INTEGER;
 	`,
 	`
 	ALTER TABLE action
@@ -1182,32 +1170,28 @@ ALTER TABLE irc_network
 ADD COLUMN bouncer_addr TEXT;`,
 	`CREATE TABLE filter_external
 (
-    id                                  INTEGER PRIMARY KEY,
-    name                                TEXT     NOT NULL,
-    idx                                 INTEGER,
-    type                                TEXT,
-    enabled                             BOOLEAN,
-    exec_cmd                            TEXT,
-    exec_args                           TEXT,
-    exec_expect_status                  INTEGER,
-    webhook_host                        TEXT,
-    webhook_method                      TEXT,
-    webhook_data                        TEXT,
-    webhook_headers                     TEXT,
-    webhook_expect_status               INTEGER,
-    webhook_retry_status                TEXT,
-    webhook_retry_attempts              INTEGER,
-    webhook_retry_delay_seconds         INTEGER,
-    webhook_retry_max_jitter_seconds    INTEGER,
-    filter_id                           INTEGER NOT NULL,
-    FOREIGN KEY (filter_id)             REFERENCES filter(id) ON DELETE CASCADE
+    id                      INTEGER PRIMARY KEY,
+    name                    TEXT     NOT NULL,
+    idx                     INTEGER,
+    type                    TEXT,
+    enabled                 BOOLEAN,
+    exec_cmd                TEXT,
+    exec_args               TEXT,
+    exec_expect_status      INTEGER,
+    webhook_host            TEXT,
+    webhook_method          TEXT,
+    webhook_data            TEXT,
+    webhook_headers         TEXT,
+    webhook_expect_status   INTEGER,
+    filter_id               INTEGER NOT NULL,
+    FOREIGN KEY (filter_id) REFERENCES filter(id) ON DELETE CASCADE
 );
 
 INSERT INTO "filter_external" (name, type, enabled, exec_cmd, exec_args, exec_expect_status, filter_id)
 SELECT 'exec', 'EXEC', external_script_enabled, external_script_cmd, external_script_args, external_script_expect_status, id FROM "filter" WHERE external_script_enabled = true;
 
-INSERT INTO "filter_external" (name, type, enabled, webhook_host, webhook_data, webhook_method, webhook_expect_status, webhook_retry_status, webhook_retry_attempts, webhook_retry_delay_seconds, webhook_retry_max_jitter_seconds, filter_id)
-SELECT 'webhook', 'WEBHOOK', external_webhook_enabled, external_webhook_host, external_webhook_data, 'POST', external_webhook_expect_status, external_webhook_retry_status, external_webhook_retry_attempts, external_webhook_retry_delay_seconds, external_webhook_retry_max_jitter_seconds, id FROM "filter" WHERE external_webhook_enabled = true;
+INSERT INTO "filter_external" (name, type, enabled, webhook_host, webhook_data, webhook_method, webhook_expect_status, filter_id)
+SELECT 'webhook', 'WEBHOOK', external_webhook_enabled, external_webhook_host, external_webhook_data, 'POST', external_webhook_expect_status, id FROM "filter" WHERE external_webhook_enabled = true;
 
 create table filter_dg_tmp
 (
@@ -1368,5 +1352,17 @@ CREATE INDEX feed_cache_feed_id_key_index
 `,
 	`ALTER TABLE action
 ADD COLUMN external_client_id INTEGER;
+`,
+	`ALTER TABLE filter_external
+ADD COLUMN external_webhook_retry_status TEXT;
+
+ALTER TABLE filter_external
+	ADD COLUMN external_webhook_retry_attempts INTEGER;
+
+ALTER TABLE filter_external
+	ADD COLUMN external_webhook_retry_delay_seconds INTEGER;
+
+ALTER TABLE filter_external
+	ADD COLUMN external_webhook_retry_max_jitter_seconds INTEGER;
 `,
 }
