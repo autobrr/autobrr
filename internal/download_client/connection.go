@@ -5,6 +5,7 @@ package download_client
 
 import (
 	"context"
+	"net/url"
 	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
@@ -21,7 +22,7 @@ import (
 	"github.com/autobrr/go-qbittorrent"
 	"github.com/autobrr/go-rtorrent"
 	"github.com/dcarbone/zadapters/zstdlog"
-	"github.com/hekmon/transmissionrpc/v2"
+	"github.com/hekmon/transmissionrpc/v3"
 	"github.com/rs/zerolog"
 )
 
@@ -175,9 +176,17 @@ func (s *service) testRTorrentConnection(ctx context.Context, client domain.Down
 }
 
 func (s *service) testTransmissionConnection(ctx context.Context, client domain.DownloadClient) error {
-	tbt, err := transmissionrpc.New(client.Host, client.Username, client.Password, &transmissionrpc.AdvancedConfig{
-		HTTPS: client.TLS,
-		Port:  uint16(client.Port),
+	u, err := url.Parse(client.Host)
+	if err != nil {
+		return err
+	}
+
+	// TODO fix url here and in actions/transmission.go
+
+	tbt, err := transmissionrpc.New(u, &transmissionrpc.Config{
+		//HTTPS:     client.TLS,
+		//Port:      uint16(client.Port),
+		UserAgent: "autobrr",
 	})
 	if err != nil {
 		return errors.Wrap(err, "error logging into client: %v", client.Host)
