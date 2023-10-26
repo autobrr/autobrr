@@ -6,13 +6,14 @@ package action
 import (
 	"context"
 	"fmt"
+	"net/url"
 	"strings"
 	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/pkg/errors"
 
-	"github.com/hekmon/transmissionrpc/v2"
+	"github.com/hekmon/transmissionrpc/v3"
 )
 
 const (
@@ -39,9 +40,17 @@ func (s *service) transmission(ctx context.Context, action *domain.Action, relea
 		return nil, errors.New("could not find client by id: %d", action.ClientID)
 	}
 
-	tbt, err := transmissionrpc.New(client.Host, client.Username, client.Password, &transmissionrpc.AdvancedConfig{
-		HTTPS:     client.TLS,
-		Port:      uint16(client.Port),
+	u, err := url.Parse(client.Host)
+	if err != nil {
+		return nil, err
+	}
+
+	// TODO fix url here and in download client service test function
+	// need to construct the url like qbit legacy function. schema url port /transmission/rpc
+
+	tbt, err := transmissionrpc.New(u, &transmissionrpc.Config{
+		//HTTPS:     client.TLS,
+		//Port:      uint16(client.Port),
 		UserAgent: "autobrr",
 	})
 	if err != nil {
@@ -99,6 +108,7 @@ func (s *service) transmission(ctx context.Context, action *domain.Action, relea
 			}
 			if action.LimitSeedTime > 0 {
 				t := time.Duration(action.LimitSeedTime) * time.Minute
+				//p.SeedIdleLimit = &action.LimitSeedTime
 				p.SeedIdleLimit = &t
 
 				// seed idle mode 1
@@ -139,7 +149,7 @@ func (s *service) transmission(ctx context.Context, action *domain.Action, relea
 	}
 
 	if action.Label != "" || action.LimitUploadSpeed > 0 || action.LimitDownloadSpeed > 0 || action.LimitRatio > 0 || action.LimitSeedTime > 0 {
-		p := transmissionrpc.TorrentSetPayload{
+		p := &transmissionrpc.TorrentSetPayload{
 			IDs: []int64{*torrent.ID},
 		}
 
@@ -163,6 +173,7 @@ func (s *service) transmission(ctx context.Context, action *domain.Action, relea
 		if action.LimitSeedTime > 0 {
 			t := time.Duration(action.LimitSeedTime) * time.Minute
 			p.SeedIdleLimit = &t
+			//p.SeedIdleLimit = &action.LimitSeedTime
 
 			// seed idle mode 1
 			seedIdleMode := int64(1)
@@ -171,7 +182,7 @@ func (s *service) transmission(ctx context.Context, action *domain.Action, relea
 
 		s.log.Trace().Msgf("transmission torrent set payload: %+v for torrent hash %s client: %s", p, *torrent.HashString, client.Name)
 
-		if err := tbt.TorrentSet(ctx, p); err != nil {
+		if err := tbt.TorrentSet(ctx, *p); err != nil {
 			return nil, errors.Wrap(err, "could not set label for hash %s to client: %s", *torrent.HashString, client.Host)
 		}
 

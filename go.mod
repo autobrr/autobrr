@@ -4,6 +4,8 @@ go 1.20
 
 replace github.com/r3labs/sse/v2 => github.com/autobrr/sse/v2 v2.0.0-20230520125637-530e06346d7d
 
+//replace github.com/hekmon/transmissionrpc/v2 => /home/ze0s/dev/forks/transmissionrpc
+
 require (
 	github.com/Masterminds/sprig/v3 v3.2.3
 	github.com/Masterminds/squirrel v1.5.4
@@ -22,7 +24,7 @@ require (
 	github.com/gorilla/sessions v1.2.1
 	github.com/gosimple/slug v1.13.1
 	github.com/hashicorp/go-version v1.6.0
-	github.com/hekmon/transmissionrpc/v2 v2.0.1
+	github.com/hekmon/transmissionrpc/v3 v3.0.0-beta1
 	github.com/lib/pq v1.10.9
 	github.com/mattn/go-shellwords v1.0.12
 	github.com/mmcdole/gofeed v1.2.1
