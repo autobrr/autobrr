@@ -141,8 +141,8 @@ var (
 			repl:    "$1 REDACTED$3",
 		},
 				{
-			pattern: regexp.MustCompile(`(https?://)(.*?):(.*?)@(.*?)`),
-			repl:    "${1}REDACTED:REDACTED@",
+			pattern: regexp.MustCompile(`(https?://)(.*?):(.*?)@`),
+			repl:    "{1}REDACTED_USER:REDACTED_PW",
 		},
 	}
 )
