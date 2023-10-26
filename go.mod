@@ -13,6 +13,7 @@ require (
 	github.com/autobrr/go-qbittorrent v1.6.0
 	github.com/autobrr/go-rtorrent v1.10.0
 	github.com/avast/retry-go v3.0.0+incompatible
+	github.com/avast/retry-go/v4 v4.5.0
 	github.com/dcarbone/zadapters/zstdlog v1.0.0
 	github.com/dustin/go-humanize v1.0.1
 	github.com/ergochat/irc-go v0.4.0
@@ -55,7 +56,6 @@ require (
 	github.com/anacrolix/missinggo v1.3.0 // indirect
 	github.com/anacrolix/missinggo/v2 v2.7.2 // indirect
 	github.com/andybalholm/cascadia v1.3.2 // indirect
-	github.com/avast/retry-go/v4 v4.5.0 // indirect
 	github.com/bradfitz/iter v0.0.0-20191230175014-e8f45d346db8 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/gdm85/go-rencode v0.1.8 // indirect
@@ -100,7 +100,6 @@ require (
 	golang.org/x/tools v0.13.0 // indirect
 	gopkg.in/cenkalti/backoff.v1 v1.1.0 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
-	gopkg.in/typ.v4 v4.3.0 // indirect
 	lukechampine.com/uint128 v1.3.0 // indirect
 	modernc.org/cc/v3 v3.41.0 // indirect
 	modernc.org/ccgo/v3 v3.16.14 // indirect
