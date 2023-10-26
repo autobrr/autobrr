@@ -155,7 +155,7 @@ func TestSanitizeLogFile(t *testing.T) {
 		},
 		{
 			input:    "\"module\":\"filter\" request: https://username:password@111.server.name.here/qbittorrent/api/v2/torrents/info: error making request",
-			expected: "\"module\":\"filter\" request: https://REDACTED:REDACTED@111.server.name.here/qbittorrent/api/v2/torrents/info: error making request",
+			expected: "\"module\":\"filter\" request: https://REDACTED_USER:REDACTED_PW@111.server.name.here/qbittorrent/api/v2/torrents/info: error making request",
 		},
 	}
 
