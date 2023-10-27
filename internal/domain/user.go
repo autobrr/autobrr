@@ -10,6 +10,7 @@ type UserRepo interface {
 	FindByUsername(ctx context.Context, username string) (*User, error)
 	Store(ctx context.Context, req CreateUserRequest) error
 	Update(ctx context.Context, user User) error
+	Delete(ctx context.Context, username string) error
 }
 
 type User struct {
