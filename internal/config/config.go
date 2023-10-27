@@ -314,15 +314,15 @@ func (c *AppConfig) processLines(lines []string) []string {
 			lines[i] = fmt.Sprintf(`logLevel = "%s"`, c.Config.LogLevel)
 			foundLineLogLevel = true
 		}
-		if !foundLineLogPath && strings.Contains(line, "logPath =") {
+		if !foundLineLogPath && strings.TrimSpace(line) == "logPath =" {
 			if c.Config.LogPath == "" {
 				lines[i] = `#logPath = ""`
 			} else {
 				lines[i] = fmt.Sprintf("logPath = \"%s\"", c.Config.LogPath)
 			}
 			foundLineLogPath = true
-		}
-	}
+		}		
+	}		
 
 	// append missing vars to bottom
 	if !foundLineUpdate {
