@@ -13,7 +13,7 @@ import { toast } from "react-hot-toast";
 import { classNames, sleep } from "@utils";
 import DEBUG from "@components/debug";
 import { APIClient } from "@api/APIClient";
-import { DownloadClientTypeOptions, DownloadRuleConditionOptions } from "@domain/constants";
+import {DownloadClientTypeOptions, DownloadRuleConditionOptions} from "@domain/constants";
 import Toast from "@components/notifications/Toast";
 import { useToggle } from "@hooks/hooks";
 import { DeleteModal } from "@components/modals";
@@ -25,8 +25,8 @@ import {
   TextFieldWide
 } from "@components/inputs";
 import { clientKeys } from "@screens/settings/DownloadClient";
-import { SelectFieldWide } from "@components/inputs/input_wide";
 import { DocsLink, ExternalLink } from "@components/ExternalLink";
+import {SelectFieldBasic} from "@components/inputs/select_wide";
 
 interface InitialValuesSettings {
   basic?: {
@@ -37,6 +37,7 @@ interface InitialValuesSettings {
   rules?: {
     enabled?: boolean;
     ignore_slow_torrents?: boolean;
+    ignore_slow_torrents_condition?: IgnoreTorrentsCondition;
     download_speed_threshold?: number;
     max_active_downloads?: number;
   };
@@ -464,6 +465,7 @@ function FormFieldsRulesQbit() {
               </>
             }
           />
+
           <SwitchGroupWide
             name="settings.rules.ignore_slow_torrents"
             label="Ignore slow torrents"
@@ -471,12 +473,12 @@ function FormFieldsRulesQbit() {
 
           {settings.rules?.ignore_slow_torrents === true && (
             <>
-              <SelectFieldWide
-                name="settings.rules.ignore_slow_torrents_condition"
-                label="Ignore condition"
-                optionDefaultText="Select ignore condition"
-                options={DownloadRuleConditionOptions}
-                tooltip={<p>Choose whether to respect or ignore the <code className="text-blue-400">Max active downloads</code> setting before checking speed thresholds.</p>}
+              <SelectFieldBasic
+                  name="settings.rules.ignore_slow_torrents_condition"
+                  label="Ignore condition"
+                  placeholder="Select ignore condition"
+                  options={DownloadRuleConditionOptions}
+                  tooltip={<p>Choose whether to respect or ignore the <code className="text-blue-400">Max active downloads</code> setting before checking speed thresholds.</p>}
               />
               <NumberFieldWide
                 name="settings.rules.download_speed_threshold"
