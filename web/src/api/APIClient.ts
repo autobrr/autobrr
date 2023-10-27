@@ -50,7 +50,7 @@ export async function HttpClient<T = unknown>(
     for (const [key, value] of Object.entries(config.queryString)) {
       const serializedKey = encodeRFC3986URIComponent(key);
 
-      if (typeof(value) === undefined) {
+      if (typeof(value) === "undefined") {
         // Skip case when the value is undefined.
         // The solution in this case is to use the request body instead with JSON
         continue;
@@ -59,7 +59,7 @@ export async function HttpClient<T = unknown>(
         // e.g. ?a=1&a=2&a=3
         value.forEach((child) => {
           // Skip undefined member values
-          const v = typeof(child) !== undefined ? String(child) : "";
+          const v = typeof(child) !== "undefined" ? String(child) : "";
           if (v.length) {
             params.push(`${serializedKey}=${encodeRFC3986URIComponent(v)}`);
           }
@@ -110,7 +110,7 @@ export async function HttpClient<T = unknown>(
 
   // Resolve on success
   if (response.status >= 200 && response.status < 300) {
-    if (json) {
+    if (isJson) {
       return Promise.resolve<T>(json as T);
     } else {
       return Promise.resolve<T>(response as T);
@@ -240,13 +240,16 @@ export const APIClient = {
     create: (indexer: Indexer) => appClient.Post<Indexer>("api/indexer", {
       body: indexer
     }),
-    update: (indexer: Indexer) => appClient.Put("api/indexer", {
+    update: (indexer: Indexer) => appClient.Put(`api/indexer/${indexer.id}`, {
       body: indexer
     }),
     delete: (id: number) => appClient.Delete(`api/indexer/${id}`),
     testApi: (req: IndexerTestApiReq) => appClient.Post<IndexerTestApiReq>(`api/indexer/${req.id}/api/test`, {
       body: req
-    })
+    }),
+    toggleEnable: (id: number, enabled: boolean) => appClient.Patch(`api/indexer/${id}/enabled`, {
+      body: { enabled }
+    }),
   },
   irc: {
     getNetworks: () => appClient.Get<IrcNetworkWithHealth[]>("api/irc"),

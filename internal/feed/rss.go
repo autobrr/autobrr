@@ -8,6 +8,7 @@ import (
 	"encoding/xml"
 	"net/url"
 	"regexp"
+	"strconv"
 	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
@@ -16,6 +17,11 @@ import (
 
 	"github.com/mmcdole/gofeed"
 	"github.com/rs/zerolog"
+)
+
+var (
+	rxpSize      = regexp.MustCompile(`(?mi)(([0-9.]+)\s*(b|kb|kib|kilobyte|mb|mib|megabyte|gb|gib|gigabyte|tb|tib|terabyte))`)
+	rxpFreeleech = regexp.MustCompile(`(?mi)(\bfreeleech\b)`)
 )
 
 type RSSJob struct {
@@ -194,6 +200,13 @@ func (j *RSSJob) processItem(item *gofeed.Item) *domain.Release {
 
 	if item.Description != "" {
 		rls.Description = item.Description
+
+		if rls.Size == 0 {
+			hrSize := readSizeFromDescription(item.Description)
+			rls.ParseSizeBytesString(hrSize)
+
+			j.Log.Trace().Msgf("Set new size %d from description %s", rls.Size, hrSize)
+		}
 	}
 
 	// add cookie to release for download if needed
@@ -228,6 +241,8 @@ func (j *RSSJob) getFeed(ctx context.Context) (items []*gofeed.Item, err error) 
 
 	//sort.Sort(feed)
 
+	toCache := make([]domain.FeedCacheItem, 0)
+
 	// set ttl to 1 month
 	ttl := time.Now().AddDate(0, 1, 0)
 
@@ -254,13 +269,24 @@ func (j *RSSJob) getFeed(ctx context.Context) (items []*gofeed.Item, err error) 
 
 		j.Log.Debug().Msgf("found new release: %s", i.Title)
 
-		if err := j.CacheRepo.Put(j.Feed.ID, key, []byte(item.Title), ttl); err != nil {
-			j.Log.Error().Err(err).Str("entry", key).Msg("cache.Put: error storing item in cache")
-			continue
-		}
+		toCache = append(toCache, domain.FeedCacheItem{
+			FeedId: strconv.Itoa(j.Feed.ID),
+			Key:    i.GUID,
+			Value:  []byte(i.Title),
+			TTL:    ttl,
+		})
 
 		// only append if we successfully added to cache
 		items = append(items, item)
+	}
+
+	if len(toCache) > 0 {
+		go func(items []domain.FeedCacheItem) {
+			ctx := context.Background()
+			if err := j.CacheRepo.PutMany(ctx, items); err != nil {
+				j.Log.Error().Err(err).Msg("cache.PutMany: error storing items in cache")
+			}
+		}(toCache)
 	}
 
 	// send to filters
@@ -281,9 +307,7 @@ func isNewerThanMaxAge(maxAge int, item, now time.Time) bool {
 // isFreeleech basic freeleech parsing
 func isFreeleech(str []string) bool {
 	for _, s := range str {
-		var re = regexp.MustCompile(`(?mi)(\bfreeleech\b)`)
-
-		match := re.FindAllString(s, -1)
+		match := rxpFreeleech.FindAllString(s, -1)
 
 		if len(match) > 0 {
 			return true
@@ -291,6 +315,16 @@ func isFreeleech(str []string) bool {
 	}
 
 	return false
+}
+
+// readSizeFromDescription get size from description
+func readSizeFromDescription(str string) string {
+	matches := rxpSize.FindStringSubmatch(str)
+	if matches == nil {
+		return ""
+	}
+
+	return matches[1]
 }
 
 // itemCustomElement

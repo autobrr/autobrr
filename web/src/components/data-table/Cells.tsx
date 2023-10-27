@@ -4,18 +4,18 @@
  */
 
 import * as React from "react";
+import { toast } from "react-hot-toast";
 import { formatDistanceToNowStrict } from "date-fns";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { ArrowPathIcon, CheckIcon } from "@heroicons/react/24/solid";
 import { ClockIcon, ExclamationCircleIcon, NoSymbolIcon } from "@heroicons/react/24/outline";
 
-import { classNames, simplifyDate } from "@utils";
-import { Tooltip } from "@components/tooltips/Tooltip";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { APIClient } from "@api/APIClient";
+import { classNames, simplifyDate } from "@utils";
 import { filterKeys } from "@screens/filters/List";
-import { toast } from "react-hot-toast";
 import Toast from "@components/notifications/Toast";
 import { RingResizeSpinner } from "@components/Icons";
+import { Tooltip } from "@components/tooltips/Tooltip";
 
 interface CellProps {
     value: string;
@@ -35,6 +35,7 @@ export const IndexerCell = ({ value }: CellProps) => (
     )}
   >
     <Tooltip
+      requiresClick
       label={value}
       maxWidth="max-w-[90vw]"
     >
@@ -53,6 +54,7 @@ export const TitleCell = ({ value }: CellProps) => (
     )}
   >
     <Tooltip
+      requiresClick
       label={value}
       maxWidth="max-w-[90vw]"
     >
@@ -221,6 +223,7 @@ export const ReleaseStatusCell = ({ value }: ReleaseStatusCellProps) => (
         )}
       >
         <Tooltip
+          requiresClick
           label={StatusCellMap[v.status].icon}
           title={StatusCellMap[v.status].textFormatter(v)}
         >

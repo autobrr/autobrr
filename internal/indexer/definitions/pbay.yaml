@@ -35,6 +35,7 @@ irc:
   announcers:
     - "PB-Announcer"
     - "Llamab1t"
+    - "Llamab3t"
   settings:
     - name: nick
       type: text
@@ -60,7 +61,7 @@ irc:
       - test:
           - "[XXX-Cateogry] [SomeXXXSite] Wow So Much Come [2015-05-30, 3K, 1500p] [4.77 GB - Uploader: Tester] - https://pornbay.org/torrents.php?id=000000"
           - "[XXX-Category-2] SomeXXXSite - Some Name [1.35 GB - Uploader: someUploader] - https://pornbay.org/torrents.php?id=000000"
-        pattern: '\[(.+)\] (.*) \[([0-9]+?.*?) - Uploader: (.+)\] - (https:\/\/.+\/)torrents.php\?id=(\d+)'
+        pattern: '\[(.+?)\] (\[?.*\]?.*) \[([0-9]+?.*?) - Uploader: (.+)\] - (https:\/\/.+\/)torrents.php\?id=(\d+)'
         vars:
           - category
           - torrentName

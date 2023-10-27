@@ -11,6 +11,7 @@ import { Checkbox } from "@components/Checkbox";
 import { SettingsContext } from "@utils/Context";
 import { GithubRelease } from "@app/types/Update";
 import Toast from "@components/notifications/Toast";
+import { ExternalLink } from "@components/ExternalLink";
 
 interface RowItemProps {
   label: string;
@@ -23,9 +24,9 @@ interface RowItemProps {
 const RowItem = ({ label, value, title, emptyText }: RowItemProps) => {
   return (
     <div className="py-4 sm:py-5 sm:grid sm:grid-cols-4 sm:gap-4 sm:px-6">
-      <dt className="font-medium text-gray-500 dark:text-white" title={title}>{label}:</dt>
-      <dd className="mt-1 text-gray-900 dark:text-white sm:mt-0 sm:col-span-2 break-all">
-        {value ? <span className="px-1 py-0.5 bg-gray-200 dark:bg-gray-700 rounded shadow">{value}</span> : emptyText}
+      <dt className="font-medium text-gray-900 dark:text-white text-sm" title={title}>{label}</dt>
+      <dd className="mt-1 text-gray-900 dark:text-gray-300 text-sm sm:mt-0 sm:col-span-3 break-all truncate">
+        {value ? <span className="px-1.5 py-1 bg-gray-200 dark:bg-gray-700 rounded shadow">{value}</span> : emptyText}
       </dd>
     </div>
   );
@@ -59,13 +60,16 @@ const RowItemVersion = ({ label, value, title, newUpdate }: RowItemProps) => {
 
   return (
     <div className="py-4 sm:py-5 sm:grid sm:grid-cols-4 sm:gap-4 sm:px-6">
-      <dt className="font-medium text-gray-500 dark:text-white" title={title}>{label}:</dt>
-      <dd className="mt-1 text-gray-900 dark:text-white sm:mt-0 sm:col-span-2 break-all">
-        <span className="px-1 py-0.5 bg-gray-200 dark:bg-gray-700 rounded shadow">{value}</span>
+      <dt className="font-medium text-gray-900 dark:text-white text-sm" title={title}>{label}</dt>
+      <dd className="mt-1 text-gray-900 dark:text-gray-300 text-sm sm:mt-0 sm:col-span-2 break-all truncate">
+        <span className="px-1.5 py-1 bg-gray-200 dark:bg-gray-700 rounded shadow">{value}</span>
         {newUpdate && newUpdate.html_url && (
-          <span>
-            <a href={newUpdate.html_url} target="_blank" rel="noopener noreferrer"><span className="ml-2 inline-flex items-center rounded-md bg-green-100 px-2.5 py-0.5 text-sm font-medium text-green-800">{newUpdate.name} available!</span></a>
-          </span>
+          <ExternalLink
+            href={newUpdate.html_url}
+            className="ml-2 inline-flex items-center rounded-md bg-green-100 px-2.5 py-0.5 text-sm font-medium text-green-800"
+          >
+            {newUpdate.name} available!
+          </ExternalLink>
         )}
       </dd>
     </div>
@@ -174,6 +178,9 @@ function ApplicationSettings() {
             <RowItemVersion label="Version" value={data?.version} newUpdate={updateData ?? undefined} />
             <RowItem label="Commit" value={data?.commit} />
             <RowItem label="Build date" value={data?.date} />
+            <RowItem label="Application" value={data?.application} />
+            <RowItem label="Config path" value={data?.config_dir} />
+            <RowItem label="Database" value={data?.database} />
           </dl>
         </div>
         <ul className="divide-y divide-gray-200 dark:divide-gray-700">
@@ -181,10 +188,12 @@ function ApplicationSettings() {
             <Checkbox
               label="WebUI Debug mode"
               value={settings.debug}
-              setValue={(newValue: boolean) => setSettings({
-                ...settings,
-                debug: newValue
-              })}
+              setValue={
+                (newValue: boolean) => setSettings((prevState) => ({
+                  ...prevState,
+                  debug: newValue
+                }))
+              }
             />
           </div>
           <div className="px-4 sm:px-6 py-1">
@@ -202,15 +211,16 @@ function ApplicationSettings() {
               label="Dark theme"
               description="Switch between dark and light theme."
               value={settings.darkTheme}
-              setValue={(newValue: boolean) => setSettings({
-                ...settings,
-                darkTheme: newValue
-              })}
+              setValue={
+                (newValue: boolean) => setSettings((prevState) => ({
+                  ...prevState,
+                  darkTheme: newValue
+                }))
+              }
             />
           </div>
         </ul>
       </div>
-
     </div>
   );
 }

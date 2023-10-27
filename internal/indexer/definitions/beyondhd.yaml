@@ -59,10 +59,14 @@ irc:
     type: single
     lines:
       - test:
-          - "New Torrent: That.Show.S01.1080p.Blu-ray.AVC.DTS-HD.MA.5.1-Test Category: TV By: Uploader Size: 137.73 GB Link: https://beyond-hd.me/torrents/autodl?id=00000"
-        pattern: 'New Torrent: (.*) Category: (.*) By: (.*) Size: (.*) Link: (https?\:\/\/[^\/]+\/).*[&\?]id=(\d+)'
+          - "New Torrent: This.Show.S01.1080p.Blu-ray.AVC.DTS-HD.MA.5.1-Test Category: TV By: Uploader Size: 137.73 GB Link: https://beyond-hd.me/torrents/autodl?id=00000"
+          - "New Torrent: That Show S03E04 1080p WEB-DL DDP 5.1 H.264-GROUP [Capped FL] Category: TV By: Anonymous Size: 1.62 GiB Link: https://beyond-hd.me/torrents/autodl?id=00000"
+          - "New Torrent: Another Show S03E04 1080p WEB-DL DDP 5.1 H.264-NoGRP [Capped Free] Category: TV By: Anonymous Size: 1.62 GiB Link: https://beyond-hd.me/torrents/autodl?id=00000"
+          - "New Torrent: Movie BluRay 1080p DD5.1 x264-GudGRP [50% Free] Category: Movies By: Uploader Size: 6.09 GiB Link: https://beyond-hd.me/torrents/autodl?id=00000"
+        pattern: 'New Torrent: (.*?) (?:\[(.*)\] )?Category: (.*) By: (.*) Size: (.*) Link: (https?\:\/\/[^\/]+\/).*[&\?]id=(\d+)'
         vars:
           - torrentName
+          - freeleechPercent
           - category
           - uploader
           - torrentSize

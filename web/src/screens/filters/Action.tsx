@@ -28,6 +28,7 @@ import { DeleteModal } from "@components/modals";
 import { CollapsableSection } from "./Details";
 import { TextArea } from "@components/inputs/input";
 import Toast from "@components/notifications/Toast";
+import { DocsLink } from "@components/ExternalLink";
 
 interface FilterActionsProps {
   filter: Filter;
@@ -224,7 +225,15 @@ const TypeForm = ({ action, idx, clients }: TypeFormProps) => {
               label="Save path"
               columns={6}
               placeholder="eg. /full/path/to/download_folder"
-              tooltip={<div><p>Set a custom save path for this action. Automatic Torrent Management will take care of this if using qBittorrent with categories.</p><br /><p>The field can use macros to transform/add values from metadata:</p><a href='https://autobrr.com/filters/actions#macros' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters/actions#macros</a></div>} />
+              tooltip={
+                <div>
+                  <p>Set a custom save path for this action. Automatic Torrent Management will take care of this if using qBittorrent with categories.</p>
+                  <br />
+                  <p>The field can use macros to transform/add values from metadata:</p>
+                  <DocsLink href="https://autobrr.com/filters/macros" />
+                </div>
+              }
+            />
           </div>
         </div>
 
@@ -234,13 +243,25 @@ const TypeForm = ({ action, idx, clients }: TypeFormProps) => {
             label="Category"
             columns={6}
             placeholder="eg. category"
-            tooltip={<div><p>The field can use macros to transform/add values from metadata:</p><a href='https://autobrr.com/filters/actions#macros' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters/actions#macros</a></div>} />
+            tooltip={
+              <div>
+                <p>The field can use macros to transform/add values from metadata:</p>
+                <DocsLink href="https://autobrr.com/filters/macros" />
+              </div>
+            }
+          />
           <TextField
             name={`actions.${idx}.tags`}
             label="Tags"
             columns={6}
             placeholder="eg. tag1,tag2"
-            tooltip={<div><p>The field can use macros to transform/add values from metadata:</p><a href='https://autobrr.com/filters/actions#macros' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters/actions#macros</a></div>} />
+            tooltip={
+              <div>
+                <p>The field can use macros to transform/add values from metadata:</p>
+                <DocsLink href="https://autobrr.com/filters/macros" />
+              </div>
+            }
+          />
         </div>
 
         <CollapsableSection title="Rules" subtitle="client options">
@@ -282,7 +303,14 @@ const TypeForm = ({ action, idx, clients }: TypeFormProps) => {
             <SwitchGroup
               name={`actions.${idx}.ignore_rules`}
               label="Ignore client rules"
-              tooltip={<div><p>Choose to ignore rules set in <Link className='text-blue-400 visited:text-blue-400' to="/settings/clients">Client Settings</Link>.</p></div>} />
+              tooltip={
+                <div>
+                  <p>
+                    Choose to ignore rules set in <Link className="text-blue-400 visited:text-blue-400" to="/settings/clients">Client Settings</Link>.
+                  </p>
+                </div>
+              }
+            />
           </div>
           <div className="col-span-6">
             <Select
@@ -318,8 +346,8 @@ const TypeForm = ({ action, idx, clients }: TypeFormProps) => {
           <div className="col-span-6">
             <SwitchGroup
               name={`actions.${idx}.reannounce_skip`}
-              label="Skip reannounce"
-              description="If reannounce is not needed, skip"
+              label="Disable reannounce"
+              description="Reannounce is enabled by default. Disable if not needed."
             />
             <SwitchGroup
               name={`actions.${idx}.reannounce_delete`}
@@ -456,6 +484,13 @@ const TypeForm = ({ action, idx, clients }: TypeFormProps) => {
               label="Add paused"
             />
           </div>
+
+          <TextField
+              name={`actions.${idx}.label`}
+              label="Label"
+              columns={6}
+              placeholder="eg. label1"
+          />
         </div>
 
         <CollapsableSection title="Re-announce" subtitle="Re-announce options">
@@ -476,7 +511,7 @@ const TypeForm = ({ action, idx, clients }: TypeFormProps) => {
             <SwitchGroup
               name={`actions.${idx}.reannounce_skip`}
               label="Disable reannounce"
-              description="Reannounce is enabled by default. Disable if needed."
+              description="Reannounce is enabled by default. Disable if not needed."
             />
             <SwitchGroup
               name={`actions.${idx}.reannounce_delete`}
