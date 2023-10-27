@@ -14,6 +14,7 @@ type FeedCacheRepo interface {
 	GetCountByFeed(ctx context.Context, feedId int) (int, error)
 	Exists(feedId int, key string) (bool, error)
 	Put(feedId int, key string, val []byte, ttl time.Time) error
+	PutMany(ctx context.Context, items []FeedCacheItem) error
 	Delete(ctx context.Context, feedId int, key string) error
 	DeleteByFeed(ctx context.Context, feedId int) error
 	DeleteStale(ctx context.Context) error

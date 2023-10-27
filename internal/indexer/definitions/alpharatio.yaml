@@ -28,7 +28,7 @@ settings:
 irc:
   network: AlphaRatio
   server: irc.alpharatio.cc
-  port: 6697
+  port: 7000
   tls: true
   channels:
     - "#Announce"

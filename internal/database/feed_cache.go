@@ -175,6 +175,27 @@ func (r *FeedCacheRepo) Put(feedId int, key string, val []byte, ttl time.Time) e
 	return nil
 }
 
+func (r *FeedCacheRepo) PutMany(ctx context.Context, items []domain.FeedCacheItem) error {
+	queryBuilder := r.db.squirrel.
+		Insert("feed_cache").
+		Columns("feed_id", "key", "value", "ttl")
+
+	for _, item := range items {
+		queryBuilder = queryBuilder.Values(item.FeedId, item.Key, item.Value, item.TTL)
+	}
+
+	query, args, err := queryBuilder.ToSql()
+	if err != nil {
+		return errors.Wrap(err, "error building query")
+	}
+
+	if _, err = r.db.handler.ExecContext(ctx, query, args...); err != nil {
+		return errors.Wrap(err, "error executing query")
+	}
+
+	return nil
+}
+
 func (r *FeedCacheRepo) Delete(ctx context.Context, feedId int, key string) error {
 	queryBuilder := r.db.squirrel.
 		Delete("feed_cache").
