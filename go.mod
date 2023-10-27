@@ -10,9 +10,10 @@ require (
 	github.com/anacrolix/torrent v1.53.1
 	github.com/asaskevich/EventBus v0.0.0-20200907212545-49d423059eef
 	github.com/autobrr/go-deluge v1.1.0
-	github.com/autobrr/go-qbittorrent v1.6.0
+	github.com/autobrr/go-qbittorrent v1.7.1
 	github.com/autobrr/go-rtorrent v1.10.0
 	github.com/avast/retry-go v3.0.0+incompatible
+	github.com/avast/retry-go/v4 v4.5.0
 	github.com/dcarbone/zadapters/zstdlog v1.0.0
 	github.com/dustin/go-humanize v1.0.1
 	github.com/ergochat/irc-go v0.4.0
