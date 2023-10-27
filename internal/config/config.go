@@ -314,11 +314,17 @@ func (c *AppConfig) processLines(lines []string) []string {
 			lines[i] = fmt.Sprintf(`logLevel = "%s"`, c.Config.LogLevel)
 			foundLineLogLevel = true
 		}
-		if !foundLineLogPath && (strings.TrimSpace(line) == "logPath =" || strings.HasPrefix(strings.TrimSpace(line), "#logPath =")) {
+		if !foundLineLogPath && strings.Contains(line, "logPath =") {
 			if c.Config.LogPath == "" {
-				lines[i] = `#logPath = ""`
+				// Check if the line already has a value
+				matches := strings.Split(line, "=")
+				if len(matches) > 1 && strings.TrimSpace(matches[1]) != `""` {
+					lines[i] = line // Preserve the existing line
+				} else {
+					lines[i] = `#logPath = ""`
+				}
 			} else {
-				lines[i] = fmt.Sprintf(`logPath = "%s"`, c.Config.LogPath)
+				lines[i] = fmt.Sprintf("logPath = \"%s\"", c.Config.LogPath)
 			}
 			foundLineLogPath = true
 		}
