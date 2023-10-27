@@ -23,7 +23,7 @@ func getMockIrcChannel() domain.IrcChannel {
 func getMockIrcNetwork() domain.IrcNetwork {
 	connectedSince := time.Now().Add(-time.Hour) // Example time 1 hour ago
 	return domain.IrcNetwork{
-		ID:      1,
+		ID:      0,
 		Name:    "Freenode",
 		Enabled: true,
 		Server:  "irc.freenode.net",
@@ -107,15 +107,12 @@ func TestIrcRepo_StoreChannel(t *testing.T) {
 			// Verify
 			assert.NotEqual(t, int64(0), mockChannel.ID)
 
-			// Cleanup
-			_ = repo.DeleteNetwork(context.Background(), mockNetwork.ID)
+			// No need to clean up, since the test below will delete the network
 		})
 
 		t.Run(fmt.Sprintf("StoreChannel_Update_Succeeds [%s]", dbType), func(t *testing.T) {
 			// Setup
-			err := repo.StoreNetwork(context.Background(), &mockNetwork)
-			assert.NoError(t, err)
-			err = repo.StoreChannel(context.Background(), mockNetwork.ID, &mockChannel)
+			err := repo.StoreChannel(context.Background(), mockNetwork.ID, &mockChannel)
 			assert.NoError(t, err)
 
 			// Update mockChannel fields
@@ -126,14 +123,14 @@ func TestIrcRepo_StoreChannel(t *testing.T) {
 			err = repo.StoreChannel(context.Background(), mockNetwork.ID, &mockChannel)
 			assert.NoError(t, err)
 
-			//// Verify
-			//fetchedChannel, fetchErr := repo.ListChannels(mockNetwork.ID)
-			//assert.NoError(t, fetchErr)
-			//assert.Equal(t, mockChannel.Enabled, fetchedChannel[0].Enabled)
-			//assert.Equal(t, mockChannel.Name, fetchedChannel[0].Name)
-			//
-			//// Cleanup
-			//_ = repo.DeleteNetwork(context.Background(), mockNetwork.ID)
+			// Verify
+			fetchedChannel, fetchErr := repo.ListChannels(mockNetwork.ID)
+			assert.NoError(t, fetchErr)
+			assert.Equal(t, mockChannel.Enabled, fetchedChannel[0].Enabled)
+			assert.Equal(t, mockChannel.Name, fetchedChannel[0].Name)
+
+			// Cleanup
+			_ = repo.DeleteNetwork(context.Background(), mockNetwork.ID)
 		})
 	}
 }
