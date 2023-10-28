@@ -96,12 +96,16 @@ github.com/autobrr/go-deluge v1.1.0 h1:wT+FUxjNrYnUhOcZmZSIApCz4tT2n0FzXVfuvOBtc
 github.com/autobrr/go-deluge v1.1.0/go.mod h1:ndiXT1eHWv/ATNk9TpE8GHIs8OSSUnsImt4Syk+y5LM=
 github.com/autobrr/go-qbittorrent v1.6.0 h1:tLhmYVzZgBjc2qHgou5lXJuYUqcL4ADiIckKiHDizg8=
 github.com/autobrr/go-qbittorrent v1.6.0/go.mod h1:z88B3+O/1/3doQABErvIOOxE4hjpmIpulu6XzDG/q78=
+github.com/autobrr/go-qbittorrent v1.7.1 h1:JtoPBk3aL9uzZmJxnerFYJ6n7ZYm0BQar8xL1qUhc90=
+github.com/autobrr/go-qbittorrent v1.7.1/go.mod h1:z88B3+O/1/3doQABErvIOOxE4hjpmIpulu6XzDG/q78=
 github.com/autobrr/go-rtorrent v1.10.0 h1:SCs7Rdi1BZ3MxNoVIdWK0qTUHQyhSj9rEU8KUTRi4Ug=
 github.com/autobrr/go-rtorrent v1.10.0/go.mod h1:1CyQ2tcLOGP+p9drOqFiVPb/+QvfExMPCHnEGQd0BmM=
 github.com/autobrr/sse/v2 v2.0.0-20230520125637-530e06346d7d h1:9EGCYgeugAVWLBAtjHC7AFnXSwUdYfCB98WaOgdDREE=
 github.com/autobrr/sse/v2 v2.0.0-20230520125637-530e06346d7d/go.mod h1:zCozZ9lp4DE340T2+wfMPL/eoQwLVIGDOCKCDEFwTQU=
 github.com/avast/retry-go v3.0.0+incompatible h1:4SOWQ7Qs+oroOTQOYnAHqelpCO0biHSxpiH9JdtuBj0=
 github.com/avast/retry-go v3.0.0+incompatible/go.mod h1:XtSnn+n/sHqQIpZ10K1qAevBhOOCWBLXXy3hyiqqBrY=
+github.com/avast/retry-go/v4 v4.5.0 h1:QoRAZZ90cj5oni2Lsgl2GW8mNTnUCnmpx/iKpwVisHg=
+github.com/avast/retry-go/v4 v4.5.0/go.mod h1:7hLEXp0oku2Nir2xBAsg0PTphp9z71bN5Aq1fboC3+I=
 github.com/benbjohnson/immutable v0.2.0/go.mod h1:uc6OHo6PN2++n98KHLxW8ef4W42ylHiQSENghE1ezxI=
 github.com/beorn7/perks v0.0.0-20180321164747-3a771d992973/go.mod h1:Dwedo/Wpr24TaqPxmxbtue+5NUziq4I4S80YR8gNf3Q=
 github.com/beorn7/perks v1.0.0/go.mod h1:KWe93zE9D1o94FZ5RNwFwVgaQK1VOXiVxmqh+CedLV8=

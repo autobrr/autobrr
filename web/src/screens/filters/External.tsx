@@ -312,11 +312,30 @@ const TypeForm = ({ external, idx }: TypeFormProps) => {
           rows={5}
           placeholder={"Request data: { \"key\": \"value\" }"}
         />
-
         <NumberField
           name={`external.${idx}.webhook_expect_status`}
-          label="Expected http status"
+          label="Expected http status code"
           placeholder="200"
+        />
+        <TextField
+          name={`external.${idx}.webhook_retry_status`}
+          label="Retry http status code(s)"
+          placeholder="Retry on status eg. 202, 204"
+        />
+        <NumberField
+          name={`external.${idx}.webhook_retry_attempts`}
+          label="Maximum retry attempts"
+          placeholder="10"
+        />
+        <NumberField
+          name={`external.${idx}.webhook_retry_delay_seconds`}
+          label="Retry delay in seconds"
+          placeholder="1"
+        />
+        <NumberField
+          name={`external.${idx}.webhook_retry_max_jitter_seconds`}
+          label="Max jitter in seconds"
+          placeholder="1"
         />
       </div>
     );

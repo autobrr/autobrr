@@ -20,7 +20,7 @@ settings:
     help: "Click on your nick / Go to Settings / Security / Copy the RID (RSS Key) and paste it here."
 
 irc:
-  network: theoldschool.cc
+  network: TheOldSchool
   server: irc.theoldschool.cc
   port: 1337
   tls: true
