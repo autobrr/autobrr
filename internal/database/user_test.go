@@ -18,14 +18,14 @@ func getMockUser() domain.User {
 
 func TestUserRepo_Store(t *testing.T) {
 	for _, dbType := range getDbs() {
-		db := SetupDatabase(t, dbType)
+		db := setupDatabaseForTest(t, dbType)
 		defer func(db *DB) {
 			err := db.Close()
 			if err != nil {
 				t.Fatalf("Could not close db connection: %v", err)
 			}
 		}(db)
-		log := SetupLogger()
+		log := setupLoggerForTest()
 
 		repo := NewUserRepo(log, db)
 
@@ -49,9 +49,9 @@ func TestUserRepo_Store(t *testing.T) {
 
 func TestUserRepo_Update(t *testing.T) {
 	for _, dbType := range getDbs() {
-		db := SetupDatabase(t, dbType)
+		db := setupDatabaseForTest(t, dbType)
 		defer db.Close()
-		log := SetupLogger()
+		log := setupLoggerForTest()
 
 		repo := NewUserRepo(log, db)
 
@@ -82,9 +82,9 @@ func TestUserRepo_Update(t *testing.T) {
 
 func TestUserRepo_GetUserCount(t *testing.T) {
 	for _, dbType := range getDbs() {
-		db := SetupDatabase(t, dbType)
+		db := setupDatabaseForTest(t, dbType)
 		defer db.Close()
-		log := SetupLogger()
+		log := setupLoggerForTest()
 
 		repo := NewUserRepo(log, db)
 
@@ -113,14 +113,14 @@ func TestUserRepo_GetUserCount(t *testing.T) {
 
 func TestUserRepo_FindByUsername(t *testing.T) {
 	for _, dbType := range getDbs() {
-		db := SetupDatabase(t, dbType)
+		db := setupDatabaseForTest(t, dbType)
 		defer func(db *DB) {
 			err := db.Close()
 			if err != nil {
 				t.Fatalf("Could not close db connection: %v", err)
 			}
 		}(db)
-		log := SetupLogger()
+		log := setupLoggerForTest()
 
 		repo := NewUserRepo(log, db)
 
@@ -148,9 +148,9 @@ func TestUserRepo_FindByUsername(t *testing.T) {
 
 func TestUserRepo_Delete(t *testing.T) {
 	for _, dbType := range getDbs() {
-		db := SetupDatabase(t, dbType)
+		db := setupDatabaseForTest(t, dbType)
 		defer db.Close()
-		log := SetupLogger()
+		log := setupLoggerForTest()
 
 		repo := NewUserRepo(log, db)
 

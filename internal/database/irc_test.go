@@ -49,14 +49,14 @@ func getMockIrcNetwork() domain.IrcNetwork {
 
 func TestIrcRepo_StoreNetwork(t *testing.T) {
 	for _, dbType := range getDbs() {
-		db := SetupDatabase(t, dbType)
+		db := setupDatabaseForTest(t, dbType)
 		defer func(db *DB) {
 			err := db.Close()
 			if err != nil {
 				t.Fatalf("Could not close db connection: %v", err)
 			}
 		}(db)
-		log := SetupLogger()
+		log := setupLoggerForTest()
 
 		repo := NewIrcRepo(log, db)
 
@@ -81,14 +81,14 @@ func TestIrcRepo_StoreNetwork(t *testing.T) {
 
 func TestIrcRepo_StoreChannel(t *testing.T) {
 	for _, dbType := range getDbs() {
-		db := SetupDatabase(t, dbType)
+		db := setupDatabaseForTest(t, dbType)
 		defer func(db *DB) {
 			err := db.Close()
 			if err != nil {
 				t.Fatalf("Could not close db connection: %v", err)
 			}
 		}(db)
-		log := SetupLogger()
+		log := setupLoggerForTest()
 
 		repo := NewIrcRepo(log, db)
 
@@ -137,14 +137,14 @@ func TestIrcRepo_StoreChannel(t *testing.T) {
 
 func TestIrcRepo_UpdateNetwork(t *testing.T) {
 	for _, dbType := range getDbs() {
-		db := SetupDatabase(t, dbType)
+		db := setupDatabaseForTest(t, dbType)
 		defer func(db *DB) {
 			err := db.Close()
 			if err != nil {
 				t.Fatalf("Could not close db connection: %v", err)
 			}
 		}(db)
-		log := SetupLogger()
+		log := setupLoggerForTest()
 
 		repo := NewIrcRepo(log, db)
 
@@ -179,14 +179,14 @@ func TestIrcRepo_UpdateNetwork(t *testing.T) {
 
 func TestIrcRepo_GetNetworkByID(t *testing.T) {
 	for _, dbType := range getDbs() {
-		db := SetupDatabase(t, dbType)
+		db := setupDatabaseForTest(t, dbType)
 		defer func(db *DB) {
 			err := db.Close()
 			if err != nil {
 				t.Fatalf("Could not close db connection: %v", err)
 			}
 		}(db)
-		log := SetupLogger()
+		log := setupLoggerForTest()
 
 		repo := NewIrcRepo(log, db)
 
@@ -217,14 +217,14 @@ func TestIrcRepo_GetNetworkByID(t *testing.T) {
 
 func TestIrcRepo_DeleteNetwork(t *testing.T) {
 	for _, dbType := range getDbs() {
-		db := SetupDatabase(t, dbType)
+		db := setupDatabaseForTest(t, dbType)
 		defer func(db *DB) {
 			err := db.Close()
 			if err != nil {
 				t.Fatalf("Could not close db connection: %v", err)
 			}
 		}(db)
-		log := SetupLogger()
+		log := setupLoggerForTest()
 
 		repo := NewIrcRepo(log, db)
 
@@ -251,14 +251,14 @@ func TestIrcRepo_DeleteNetwork(t *testing.T) {
 
 func TestIrcRepo_FindActiveNetworks(t *testing.T) {
 	for _, dbType := range getDbs() {
-		db := SetupDatabase(t, dbType)
+		db := setupDatabaseForTest(t, dbType)
 		defer func(db *DB) {
 			err := db.Close()
 			if err != nil {
 				t.Fatalf("Could not close db connection: %v", err)
 			}
 		}(db)
-		log := SetupLogger()
+		log := setupLoggerForTest()
 
 		repo := NewIrcRepo(log, db)
 
@@ -297,14 +297,14 @@ func TestIrcRepo_FindActiveNetworks(t *testing.T) {
 
 func TestIrcRepo_ListNetworks(t *testing.T) {
 	for _, dbType := range getDbs() {
-		db := SetupDatabase(t, dbType)
+		db := setupDatabaseForTest(t, dbType)
 		defer func(db *DB) {
 			err := db.Close()
 			if err != nil {
 				t.Fatalf("Could not close db connection: %v", err)
 			}
 		}(db)
-		log := SetupLogger()
+		log := setupLoggerForTest()
 
 		repo := NewIrcRepo(log, db)
 
@@ -345,14 +345,14 @@ func TestIrcRepo_ListNetworks(t *testing.T) {
 
 func TestIrcRepo_ListChannels(t *testing.T) {
 	for _, dbType := range getDbs() {
-		db := SetupDatabase(t, dbType)
+		db := setupDatabaseForTest(t, dbType)
 		defer func(db *DB) {
 			err := db.Close()
 			if err != nil {
 				t.Fatalf("Could not close db connection: %v", err)
 			}
 		}(db)
-		log := SetupLogger()
+		log := setupLoggerForTest()
 
 		repo := NewIrcRepo(log, db)
 		mockNetwork := getMockIrcNetwork()
@@ -382,14 +382,14 @@ func TestIrcRepo_ListChannels(t *testing.T) {
 
 func TestIrcRepo_CheckExistingNetwork(t *testing.T) {
 	for _, dbType := range getDbs() {
-		db := SetupDatabase(t, dbType)
+		db := setupDatabaseForTest(t, dbType)
 		defer func(db *DB) {
 			err := db.Close()
 			if err != nil {
 				t.Fatalf("Could not close db connection: %v", err)
 			}
 		}(db)
-		log := SetupLogger()
+		log := setupLoggerForTest()
 
 		repo := NewIrcRepo(log, db)
 		mockNetwork := getMockIrcNetwork()
@@ -426,14 +426,14 @@ func TestIrcRepo_CheckExistingNetwork(t *testing.T) {
 
 func TestIrcRepo_StoreNetworkChannels(t *testing.T) {
 	for _, dbType := range getDbs() {
-		db := SetupDatabase(t, dbType)
+		db := setupDatabaseForTest(t, dbType)
 		defer func(db *DB) {
 			err := db.Close()
 			if err != nil {
 				t.Fatalf("Could not close db connection: %v", err)
 			}
 		}(db)
-		log := SetupLogger()
+		log := setupLoggerForTest()
 
 		repo := NewIrcRepo(log, db)
 		mockNetwork := getMockIrcNetwork()
@@ -482,14 +482,14 @@ func TestIrcRepo_StoreNetworkChannels(t *testing.T) {
 
 func TestIrcRepo_UpdateChannel(t *testing.T) {
 	for _, dbType := range getDbs() {
-		db := SetupDatabase(t, dbType)
+		db := setupDatabaseForTest(t, dbType)
 		defer func(db *DB) {
 			err := db.Close()
 			if err != nil {
 				t.Fatalf("Could not close db connection: %v", err)
 			}
 		}(db)
-		log := SetupLogger()
+		log := setupLoggerForTest()
 
 		repo := NewIrcRepo(log, db)
 		mockNetwork := getMockIrcNetwork()
@@ -530,14 +530,14 @@ func TestIrcRepo_UpdateChannel(t *testing.T) {
 
 func TestIrcRepo_UpdateInviteCommand(t *testing.T) {
 	for _, dbType := range getDbs() {
-		db := SetupDatabase(t, dbType)
+		db := setupDatabaseForTest(t, dbType)
 		defer func(db *DB) {
 			err := db.Close()
 			if err != nil {
 				t.Fatalf("Could not close db connection: %v", err)
 			}
 		}(db)
-		log := SetupLogger()
+		log := setupLoggerForTest()
 
 		repo := NewIrcRepo(log, db)
 		mockNetwork := getMockIrcNetwork()

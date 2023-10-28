@@ -96,14 +96,14 @@ func getMockFilterExternal() domain.FilterExternal {
 
 func TestFilterRepo_Store(t *testing.T) {
 	for _, dbType := range getDbs() {
-		db := SetupDatabase(t, dbType)
+		db := setupDatabaseForTest(t, dbType)
 		defer func(db *DB) {
 			err := db.Close()
 			if err != nil {
 				t.Fatalf("Could not close db connection: %v", err)
 			}
 		}(db)
-		log := SetupLogger()
+		log := setupLoggerForTest()
 		repo := NewFilterRepo(log, db)
 		mockData := getMockFilter()
 
@@ -146,14 +146,14 @@ func TestFilterRepo_Store(t *testing.T) {
 
 func TestFilterRepo_Update(t *testing.T) {
 	for _, dbType := range getDbs() {
-		db := SetupDatabase(t, dbType)
+		db := setupDatabaseForTest(t, dbType)
 		defer func(db *DB) {
 			err := db.Close()
 			if err != nil {
 				t.Fatalf("Could not close db connection: %v", err)
 			}
 		}(db)
-		log := SetupLogger()
+		log := setupLoggerForTest()
 		repo := NewFilterRepo(log, db)
 		mockData := getMockFilter()
 
@@ -191,14 +191,14 @@ func TestFilterRepo_Update(t *testing.T) {
 
 func TestFilterRepo_Delete(t *testing.T) {
 	for _, dbType := range getDbs() {
-		db := SetupDatabase(t, dbType)
+		db := setupDatabaseForTest(t, dbType)
 		defer func(db *DB) {
 			err := db.Close()
 			if err != nil {
 				t.Fatalf("Could not close db connection: %v", err)
 			}
 		}(db)
-		log := SetupLogger()
+		log := setupLoggerForTest()
 		repo := NewFilterRepo(log, db)
 		mockData := getMockFilter()
 
@@ -233,14 +233,14 @@ func TestFilterRepo_Delete(t *testing.T) {
 
 func TestFilterRepo_UpdatePartial(t *testing.T) {
 	for _, dbType := range getDbs() {
-		db := SetupDatabase(t, dbType)
+		db := setupDatabaseForTest(t, dbType)
 		defer func(db *DB) {
 			err := db.Close()
 			if err != nil {
 				t.Fatalf("Could not close db connection: %v", err)
 			}
 		}(db)
-		log := SetupLogger()
+		log := setupLoggerForTest()
 		repo := NewFilterRepo(log, db)
 		mockData := getMockFilter()
 
@@ -281,14 +281,14 @@ func TestFilterRepo_UpdatePartial(t *testing.T) {
 
 func TestFilterRepo_ToggleEnabled(t *testing.T) {
 	for _, dbType := range getDbs() {
-		db := SetupDatabase(t, dbType)
+		db := setupDatabaseForTest(t, dbType)
 		defer func(db *DB) {
 			err := db.Close()
 			if err != nil {
 				t.Fatalf("Could not close db connection: %v", err)
 			}
 		}(db)
-		log := SetupLogger()
+		log := setupLoggerForTest()
 		repo := NewFilterRepo(log, db)
 		mockData := getMockFilter()
 
@@ -326,14 +326,14 @@ func TestFilterRepo_ToggleEnabled(t *testing.T) {
 
 func TestFilterRepo_ListFilters(t *testing.T) {
 	for _, dbType := range getDbs() {
-		db := SetupDatabase(t, dbType)
+		db := setupDatabaseForTest(t, dbType)
 		defer func(db *DB) {
 			err := db.Close()
 			if err != nil {
 				t.Fatalf("Could not close db connection: %v", err)
 			}
 		}(db)
-		log := SetupLogger()
+		log := setupLoggerForTest()
 		repo := NewFilterRepo(log, db)
 		mockData := getMockFilter()
 
@@ -367,14 +367,14 @@ func TestFilterRepo_ListFilters(t *testing.T) {
 
 func TestFilterRepo_Find(t *testing.T) {
 	for _, dbType := range getDbs() {
-		db := SetupDatabase(t, dbType)
+		db := setupDatabaseForTest(t, dbType)
 		defer func(db *DB) {
 			err := db.Close()
 			if err != nil {
 				t.Fatalf("Could not close db connection: %v", err)
 			}
 		}(db)
-		log := SetupLogger()
+		log := setupLoggerForTest()
 		repo := NewFilterRepo(log, db)
 		indexerRepo := NewIndexerRepo(log, db)
 		mockData := getMockFilter()
@@ -467,14 +467,14 @@ func TestFilterRepo_Find(t *testing.T) {
 
 func TestFilterRepo_FindByID(t *testing.T) {
 	for _, dbType := range getDbs() {
-		db := SetupDatabase(t, dbType)
+		db := setupDatabaseForTest(t, dbType)
 		defer func(db *DB) {
 			err := db.Close()
 			if err != nil {
 				t.Fatalf("Could not close db connection: %v", err)
 			}
 		}(db)
-		log := SetupLogger()
+		log := setupLoggerForTest()
 		repo := NewFilterRepo(log, db)
 		mockData := getMockFilter()
 
@@ -510,14 +510,14 @@ func TestFilterRepo_FindByID(t *testing.T) {
 
 func TestFilterRepo_FindByIndexerIdentifier(t *testing.T) {
 	for _, dbType := range getDbs() {
-		db := SetupDatabase(t, dbType)
+		db := setupDatabaseForTest(t, dbType)
 		defer func(db *DB) {
 			err := db.Close()
 			if err != nil {
 				t.Fatalf("Could not close db connection: %v", err)
 			}
 		}(db)
-		log := SetupLogger()
+		log := setupLoggerForTest()
 		repo := NewFilterRepo(log, db)
 		indexerRepo := NewIndexerRepo(log, db)
 		mockData := getMockFilter()
@@ -557,14 +557,14 @@ func TestFilterRepo_FindByIndexerIdentifier(t *testing.T) {
 
 func TestFilterRepo_FindExternalFiltersByID(t *testing.T) {
 	for _, dbType := range getDbs() {
-		db := SetupDatabase(t, dbType)
+		db := setupDatabaseForTest(t, dbType)
 		defer func(db *DB) {
 			err := db.Close()
 			if err != nil {
 				t.Fatalf("Could not close db connection: %v", err)
 			}
 		}(db)
-		log := SetupLogger()
+		log := setupLoggerForTest()
 		repo := NewFilterRepo(log, db)
 		mockData := getMockFilter()
 		mockDataExternal := getMockFilterExternal()
@@ -598,14 +598,14 @@ func TestFilterRepo_FindExternalFiltersByID(t *testing.T) {
 
 func TestFilterRepo_StoreIndexerConnection(t *testing.T) {
 	for _, dbType := range getDbs() {
-		db := SetupDatabase(t, dbType)
+		db := setupDatabaseForTest(t, dbType)
 		defer func(db *DB) {
 			err := db.Close()
 			if err != nil {
 				t.Fatalf("Could not close db connection: %v", err)
 			}
 		}(db)
-		log := SetupLogger()
+		log := setupLoggerForTest()
 		repo := NewFilterRepo(log, db)
 		indexerRepo := NewIndexerRepo(log, db)
 		mockData := getMockFilter()
@@ -640,14 +640,14 @@ func TestFilterRepo_StoreIndexerConnection(t *testing.T) {
 
 func TestFilterRepo_StoreIndexerConnections(t *testing.T) {
 	for _, dbType := range getDbs() {
-		db := SetupDatabase(t, dbType)
+		db := setupDatabaseForTest(t, dbType)
 		defer func(db *DB) {
 			err := db.Close()
 			if err != nil {
 				t.Fatalf("Could not close db connection: %v", err)
 			}
 		}(db)
-		log := SetupLogger()
+		log := setupLoggerForTest()
 		repo := NewFilterRepo(log, db)
 		indexerRepo := NewIndexerRepo(log, db)
 		mockData := getMockFilter()
@@ -693,14 +693,14 @@ func TestFilterRepo_StoreIndexerConnections(t *testing.T) {
 
 func TestFilterRepo_StoreFilterExternal(t *testing.T) {
 	for _, dbType := range getDbs() {
-		db := SetupDatabase(t, dbType)
+		db := setupDatabaseForTest(t, dbType)
 		defer func(db *DB) {
 			err := db.Close()
 			if err != nil {
 				t.Fatalf("Could not close db connection: %v", err)
 			}
 		}(db)
-		log := SetupLogger()
+		log := setupLoggerForTest()
 		repo := NewFilterRepo(log, db)
 		mockData := getMockFilter()
 		mockDataExternal := getMockFilterExternal()
@@ -727,14 +727,14 @@ func TestFilterRepo_StoreFilterExternal(t *testing.T) {
 
 func TestFilterRepo_DeleteIndexerConnections(t *testing.T) {
 	for _, dbType := range getDbs() {
-		db := SetupDatabase(t, dbType)
+		db := setupDatabaseForTest(t, dbType)
 		defer func(db *DB) {
 			err := db.Close()
 			if err != nil {
 				t.Fatalf("Could not close db connection: %v", err)
 			}
 		}(db)
-		log := SetupLogger()
+		log := setupLoggerForTest()
 		repo := NewFilterRepo(log, db)
 		indexerRepo := NewIndexerRepo(log, db)
 		mockData := getMockFilter()
@@ -776,14 +776,14 @@ func TestFilterRepo_DeleteIndexerConnections(t *testing.T) {
 
 func TestFilterRepo_DeleteFilterExternal(t *testing.T) {
 	for _, dbType := range getDbs() {
-		db := SetupDatabase(t, dbType)
+		db := setupDatabaseForTest(t, dbType)
 		defer func(db *DB) {
 			err := db.Close()
 			if err != nil {
 				t.Fatalf("Could not close db connection: %v", err)
 			}
 		}(db)
-		log := SetupLogger()
+		log := setupLoggerForTest()
 		repo := NewFilterRepo(log, db)
 		mockData := getMockFilter()
 		mockDataExternal := getMockFilterExternal()
@@ -819,14 +819,14 @@ func TestFilterRepo_DeleteFilterExternal(t *testing.T) {
 
 func TestFilterRepo_GetDownloadsByFilterId(t *testing.T) {
 	for _, dbType := range getDbs() {
-		db := SetupDatabase(t, dbType)
+		db := setupDatabaseForTest(t, dbType)
 		defer func(db *DB) {
 			err := db.Close()
 			if err != nil {
 				t.Fatalf("Could not close db connection: %v", err)
 			}
 		}(db)
-		log := SetupLogger()
+		log := setupLoggerForTest()
 		repo := NewFilterRepo(log, db)
 		releaseRepo := NewReleaseRepo(log, db)
 		downloadClientRepo := NewDownloadClientRepo(log, db)

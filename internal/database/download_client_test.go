@@ -43,14 +43,14 @@ func getMockDownloadClient() domain.DownloadClient {
 func TestDownloadClientRepo_List(t *testing.T) {
 	for _, dbType := range getDbs() {
 		// Initialize database and logger
-		db := SetupDatabase(t, dbType)
+		db := setupDatabaseForTest(t, dbType)
 		defer func(db *DB) {
 			err := db.Close()
 			if err != nil {
 				t.Fatalf("Could not close db connection: %v", err)
 			}
 		}(db)
-		log := SetupLogger()
+		log := setupLoggerForTest()
 		repo := NewDownloadClientRepo(log, db)
 		mockData := getMockDownloadClient()
 
@@ -131,14 +131,14 @@ func TestDownloadClientRepo_List(t *testing.T) {
 func TestDownloadClientRepo_FindByID(t *testing.T) {
 	for _, dbType := range getDbs() {
 		// Initialize database and logger
-		db := SetupDatabase(t, dbType)
+		db := setupDatabaseForTest(t, dbType)
 		defer func(db *DB) {
 			err := db.Close()
 			if err != nil {
 				t.Fatalf("Could not close db connection: %v", err)
 			}
 		}(db)
-		log := SetupLogger()
+		log := setupLoggerForTest()
 		repo := NewDownloadClientRepo(log, db)
 		mockData := getMockDownloadClient()
 
@@ -207,14 +207,14 @@ func TestDownloadClientRepo_FindByID(t *testing.T) {
 func TestDownloadClientRepo_Store(t *testing.T) {
 	for _, dbType := range getDbs() {
 		// Initialize database and logger
-		db := SetupDatabase(t, dbType)
+		db := setupDatabaseForTest(t, dbType)
 		defer func(db *DB) {
 			err := db.Close()
 			if err != nil {
 				t.Fatalf("Could not close db connection: %v", err)
 			}
 		}(db)
-		log := SetupLogger()
+		log := setupLoggerForTest()
 		repo := NewDownloadClientRepo(log, db)
 
 		t.Run(fmt.Sprintf("Store_Succeeds [%s]", dbType), func(t *testing.T) {
@@ -271,14 +271,14 @@ func TestDownloadClientRepo_Store(t *testing.T) {
 func TestDownloadClientRepo_Update(t *testing.T) {
 	for _, dbType := range getDbs() {
 		// Initialize database and logger
-		db := SetupDatabase(t, dbType)
+		db := setupDatabaseForTest(t, dbType)
 		defer func(db *DB) {
 			err := db.Close()
 			if err != nil {
 				t.Fatalf("Could not close db connection: %v", err)
 			}
 		}(db)
-		log := SetupLogger()
+		log := setupLoggerForTest()
 		repo := NewDownloadClientRepo(log, db)
 
 		t.Run(fmt.Sprintf("Update_Successfully_Updates_Record [%s]", dbType), func(t *testing.T) {
@@ -327,14 +327,14 @@ func TestDownloadClientRepo_Update(t *testing.T) {
 func TestDownloadClientRepo_Delete(t *testing.T) {
 	for _, dbType := range getDbs() {
 		// Initialize database and logger
-		db := SetupDatabase(t, dbType)
+		db := setupDatabaseForTest(t, dbType)
 		defer func(db *DB) {
 			err := db.Close()
 			if err != nil {
 				t.Fatalf("Could not close db connection: %v", err)
 			}
 		}(db)
-		log := SetupLogger()
+		log := setupLoggerForTest()
 		repo := NewDownloadClientRepo(log, db)
 
 		t.Run(fmt.Sprintf("Delete_Successfully_Deletes_Client [%s]", dbType), func(t *testing.T) {

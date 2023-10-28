@@ -11,7 +11,7 @@ import (
 
 func TestFeedCacheRepo_Get(t *testing.T) {
 	for _, dbType := range getDbs() {
-		db := SetupDatabase(t, dbType)
+		db := setupDatabaseForTest(t, dbType)
 		defer func(db *DB) {
 			err := db.Close()
 			if err != nil {
@@ -19,7 +19,7 @@ func TestFeedCacheRepo_Get(t *testing.T) {
 			}
 		}(db)
 
-		log := SetupLogger()
+		log := setupLoggerForTest()
 		repo := NewFeedCacheRepo(log, db)
 		feedRepo := NewFeedRepo(log, db)
 		indexerRepo := NewIndexerRepo(log, db)
@@ -71,7 +71,7 @@ func TestFeedCacheRepo_Get(t *testing.T) {
 
 func TestFeedCacheRepo_GetByFeed(t *testing.T) {
 	for _, dbType := range getDbs() {
-		db := SetupDatabase(t, dbType)
+		db := setupDatabaseForTest(t, dbType)
 		defer func(db *DB) {
 			err := db.Close()
 			if err != nil {
@@ -79,7 +79,7 @@ func TestFeedCacheRepo_GetByFeed(t *testing.T) {
 			}
 		}(db)
 
-		log := SetupLogger()
+		log := setupLoggerForTest()
 		repo := NewFeedCacheRepo(log, db)
 		feedRepo := NewFeedRepo(log, db)
 		indexerRepo := NewIndexerRepo(log, db)
@@ -122,7 +122,7 @@ func TestFeedCacheRepo_GetByFeed(t *testing.T) {
 
 func TestFeedCacheRepo_Exists(t *testing.T) {
 	for _, dbType := range getDbs() {
-		db := SetupDatabase(t, dbType)
+		db := setupDatabaseForTest(t, dbType)
 		defer func(db *DB) {
 			err := db.Close()
 			if err != nil {
@@ -130,7 +130,7 @@ func TestFeedCacheRepo_Exists(t *testing.T) {
 			}
 		}(db)
 
-		log := SetupLogger()
+		log := setupLoggerForTest()
 		repo := NewFeedCacheRepo(log, db)
 		feedRepo := NewFeedRepo(log, db)
 		indexerRepo := NewIndexerRepo(log, db)
@@ -171,14 +171,14 @@ func TestFeedCacheRepo_Exists(t *testing.T) {
 
 func TestFeedCacheRepo_Put(t *testing.T) {
 	for _, dbType := range getDbs() {
-		db := SetupDatabase(t, dbType)
+		db := setupDatabaseForTest(t, dbType)
 		defer func(db *DB) {
 			err := db.Close()
 			if err != nil {
 				t.Fatalf("Could not close db connection: %v", err)
 			}
 		}(db)
-		log := SetupLogger()
+		log := setupLoggerForTest()
 		repo := NewFeedCacheRepo(log, db)
 		feedRepo := NewFeedRepo(log, db)
 		indexerRepo := NewIndexerRepo(log, db)
@@ -221,7 +221,7 @@ func TestFeedCacheRepo_Put(t *testing.T) {
 
 func TestFeedCacheRepo_Delete(t *testing.T) {
 	for _, dbType := range getDbs() {
-		db := SetupDatabase(t, dbType)
+		db := setupDatabaseForTest(t, dbType)
 		defer func(db *DB) {
 			err := db.Close()
 			if err != nil {
@@ -229,7 +229,7 @@ func TestFeedCacheRepo_Delete(t *testing.T) {
 			}
 		}(db)
 
-		log := SetupLogger()
+		log := setupLoggerForTest()
 		repo := NewFeedCacheRepo(log, db)
 		feedRepo := NewFeedRepo(log, db)
 		indexerRepo := NewIndexerRepo(log, db)
@@ -274,7 +274,7 @@ func TestFeedCacheRepo_Delete(t *testing.T) {
 
 func TestFeedCacheRepo_DeleteByFeed(t *testing.T) {
 	for _, dbType := range getDbs() {
-		db := SetupDatabase(t, dbType)
+		db := setupDatabaseForTest(t, dbType)
 		defer func(db *DB) {
 			err := db.Close()
 			if err != nil {
@@ -282,7 +282,7 @@ func TestFeedCacheRepo_DeleteByFeed(t *testing.T) {
 			}
 		}(db)
 
-		log := SetupLogger()
+		log := setupLoggerForTest()
 		repo := NewFeedCacheRepo(log, db)
 		feedRepo := NewFeedRepo(log, db)
 		indexerRepo := NewIndexerRepo(log, db)
@@ -327,7 +327,7 @@ func TestFeedCacheRepo_DeleteByFeed(t *testing.T) {
 
 func TestFeedCacheRepo_DeleteStale(t *testing.T) {
 	for _, dbType := range getDbs() {
-		db := SetupDatabase(t, dbType)
+		db := setupDatabaseForTest(t, dbType)
 		defer func(db *DB) {
 			err := db.Close()
 			if err != nil {
@@ -335,7 +335,7 @@ func TestFeedCacheRepo_DeleteStale(t *testing.T) {
 			}
 		}(db)
 
-		log := SetupLogger()
+		log := setupLoggerForTest()
 		repo := NewFeedCacheRepo(log, db)
 		feedRepo := NewFeedRepo(log, db)
 		indexerRepo := NewIndexerRepo(log, db)

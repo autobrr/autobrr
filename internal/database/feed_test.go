@@ -29,14 +29,14 @@ func getMockFeed() *domain.Feed {
 
 func TestFeedRepo_Store(t *testing.T) {
 	for _, dbType := range getDbs() {
-		db := SetupDatabase(t, dbType)
+		db := setupDatabaseForTest(t, dbType)
 		defer func(db *DB) {
 			err := db.Close()
 			if err != nil {
 				t.Fatalf("Could not close db connection: %v", err)
 			}
 		}(db)
-		log := SetupLogger()
+		log := setupLoggerForTest()
 		repo := NewFeedRepo(log, db)
 		indexerRepo := NewIndexerRepo(log, db)
 		mockData := getMockFeed()
@@ -79,14 +79,14 @@ func TestFeedRepo_Store(t *testing.T) {
 
 func TestFeedRepo_Update(t *testing.T) {
 	for _, dbType := range getDbs() {
-		db := SetupDatabase(t, dbType)
+		db := setupDatabaseForTest(t, dbType)
 		defer func(db *DB) {
 			err := db.Close()
 			if err != nil {
 				t.Fatalf("Could not close db connection: %v", err)
 			}
 		}(db)
-		log := SetupLogger()
+		log := setupLoggerForTest()
 		repo := NewFeedRepo(log, db)
 		indexerRepo := NewIndexerRepo(log, db)
 		mockData := getMockFeed()
@@ -135,14 +135,14 @@ func TestFeedRepo_Update(t *testing.T) {
 
 func TestFeedRepo_Delete(t *testing.T) {
 	for _, dbType := range getDbs() {
-		db := SetupDatabase(t, dbType)
+		db := setupDatabaseForTest(t, dbType)
 		defer func(db *DB) {
 			err := db.Close()
 			if err != nil {
 				t.Fatalf("Could not close db connection: %v", err)
 			}
 		}(db)
-		log := SetupLogger()
+		log := setupLoggerForTest()
 		repo := NewFeedRepo(log, db)
 		indexerRepo := NewIndexerRepo(log, db)
 		mockData := getMockFeed()
@@ -179,14 +179,14 @@ func TestFeedRepo_Delete(t *testing.T) {
 
 func TestFeedRepo_FindByID(t *testing.T) {
 	for _, dbType := range getDbs() {
-		db := SetupDatabase(t, dbType)
+		db := setupDatabaseForTest(t, dbType)
 		defer func(db *DB) {
 			err := db.Close()
 			if err != nil {
 				t.Fatalf("Could not close db connection: %v", err)
 			}
 		}(db)
-		log := SetupLogger()
+		log := setupLoggerForTest()
 		repo := NewFeedRepo(log, db)
 		indexerRepo := NewIndexerRepo(log, db)
 		mockData := getMockFeed()
@@ -228,14 +228,14 @@ func TestFeedRepo_FindByID(t *testing.T) {
 
 func TestFeedRepo_FindByIndexerIdentifier(t *testing.T) {
 	for _, dbType := range getDbs() {
-		db := SetupDatabase(t, dbType)
+		db := setupDatabaseForTest(t, dbType)
 		defer func(db *DB) {
 			err := db.Close()
 			if err != nil {
 				t.Fatalf("Could not close db connection: %v", err)
 			}
 		}(db)
-		log := SetupLogger()
+		log := setupLoggerForTest()
 		repo := NewFeedRepo(log, db)
 		indexerRepo := NewIndexerRepo(log, db)
 		mockData := getMockFeed()
@@ -277,14 +277,14 @@ func TestFeedRepo_FindByIndexerIdentifier(t *testing.T) {
 
 func TestFeedRepo_Find(t *testing.T) {
 	for _, dbType := range getDbs() {
-		db := SetupDatabase(t, dbType)
+		db := setupDatabaseForTest(t, dbType)
 		defer func(db *DB) {
 			err := db.Close()
 			if err != nil {
 				t.Fatalf("Could not close db connection: %v", err)
 			}
 		}(db)
-		log := SetupLogger()
+		log := setupLoggerForTest()
 		repo := NewFeedRepo(log, db)
 		indexerRepo := NewIndexerRepo(log, db)
 
@@ -334,14 +334,14 @@ func TestFeedRepo_Find(t *testing.T) {
 
 func TestFeedRepo_GetLastRunDataByID(t *testing.T) {
 	for _, dbType := range getDbs() {
-		db := SetupDatabase(t, dbType)
+		db := setupDatabaseForTest(t, dbType)
 		defer func(db *DB) {
 			err := db.Close()
 			if err != nil {
 				t.Fatalf("Could not close db connection: %v", err)
 			}
 		}(db)
-		log := SetupLogger()
+		log := setupLoggerForTest()
 		repo := NewFeedRepo(log, db)
 		indexerRepo := NewIndexerRepo(log, db)
 
@@ -403,14 +403,14 @@ func TestFeedRepo_GetLastRunDataByID(t *testing.T) {
 
 func TestFeedRepo_UpdateLastRun(t *testing.T) {
 	for _, dbType := range getDbs() {
-		db := SetupDatabase(t, dbType)
+		db := setupDatabaseForTest(t, dbType)
 		defer func(db *DB) {
 			err := db.Close()
 			if err != nil {
 				t.Fatalf("Could not close db connection: %v", err)
 			}
 		}(db)
-		log := SetupLogger()
+		log := setupLoggerForTest()
 		repo := NewFeedRepo(log, db)
 		indexerRepo := NewIndexerRepo(log, db)
 
@@ -454,14 +454,14 @@ func TestFeedRepo_UpdateLastRun(t *testing.T) {
 
 func TestFeedRepo_UpdateLastRunWithData(t *testing.T) {
 	for _, dbType := range getDbs() {
-		db := SetupDatabase(t, dbType)
+		db := setupDatabaseForTest(t, dbType)
 		defer func(db *DB) {
 			err := db.Close()
 			if err != nil {
 				t.Fatalf("Could not close db connection: %v", err)
 			}
 		}(db)
-		log := SetupLogger()
+		log := setupLoggerForTest()
 		repo := NewFeedRepo(log, db)
 		indexerRepo := NewIndexerRepo(log, db)
 
@@ -504,14 +504,14 @@ func TestFeedRepo_UpdateLastRunWithData(t *testing.T) {
 
 func TestFeedRepo_ToggleEnabled(t *testing.T) {
 	for _, dbType := range getDbs() {
-		db := SetupDatabase(t, dbType)
+		db := setupDatabaseForTest(t, dbType)
 		defer func(db *DB) {
 			err := db.Close()
 			if err != nil {
 				t.Fatalf("Could not close db connection: %v", err)
 			}
 		}(db)
-		log := SetupLogger()
+		log := setupLoggerForTest()
 		repo := NewFeedRepo(log, db)
 		indexerRepo := NewIndexerRepo(log, db)
 

@@ -12,7 +12,7 @@ func getDbs() []string {
 	return []string{"sqlite", "postgres"}
 }
 
-func SetupDatabase(t *testing.T, dbType string) *DB {
+func setupDatabaseForTest(t *testing.T, dbType string) *DB {
 	err := os.Setenv("IS_TEST_ENV", "true")
 	if err != nil {
 		t.Fatalf("Could not set env variable: %v", err)
@@ -46,7 +46,7 @@ func SetupDatabase(t *testing.T, dbType string) *DB {
 	return db
 }
 
-func SetupLogger() logger.Logger {
+func setupLoggerForTest() logger.Logger {
 	cfg := &domain.Config{
 		LogLevel: "INFO",
 	}
@@ -58,7 +58,7 @@ func SetupLogger() logger.Logger {
 func TestPingDatabase(t *testing.T) {
 	// Setup database
 	for _, dbType := range getDbs() {
-		db := SetupDatabase(t, dbType)
+		db := setupDatabaseForTest(t, dbType)
 		defer db.Close()
 
 		// Call the Ping method

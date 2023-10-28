@@ -11,9 +11,9 @@ import (
 func TestAPIRepo_Store(t *testing.T) {
 	// Initialize database and logger
 	for _, dbType := range getDbs() {
-		db := SetupDatabase(t, dbType)
+		db := setupDatabaseForTest(t, dbType)
 		defer db.Close()
-		log := SetupLogger()
+		log := setupLoggerForTest()
 		repo := NewAPIRepo(log, db)
 
 		t.Run(fmt.Sprintf("Store_Succeeds_With_Valid_Key [%s]", dbType), func(t *testing.T) {
@@ -47,8 +47,8 @@ func TestAPIRepo_Store(t *testing.T) {
 
 func TestAPIRepo_Delete(t *testing.T) {
 	for _, dbType := range getDbs() {
-		db := SetupDatabase(t, dbType)
-		log := SetupLogger()
+		db := setupDatabaseForTest(t, dbType)
+		log := setupLoggerForTest()
 		repo := NewAPIRepo(log, db)
 
 		t.Run(fmt.Sprintf("Delete_Succeeds_With_Existing_Key [%s]", dbType), func(t *testing.T) {
@@ -68,8 +68,8 @@ func TestAPIRepo_Delete(t *testing.T) {
 
 func TestAPIRepo_GetKeys(t *testing.T) {
 	for _, dbType := range getDbs() {
-		db := SetupDatabase(t, dbType)
-		log := SetupLogger()
+		db := setupDatabaseForTest(t, dbType)
+		log := setupLoggerForTest()
 		repo := NewAPIRepo(log, db)
 
 		t.Run(fmt.Sprintf("GetKeys_Returns_Keys_If_Exists [%s]", dbType), func(t *testing.T) {
