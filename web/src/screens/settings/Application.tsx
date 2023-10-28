@@ -176,8 +176,8 @@ function ApplicationSettings() {
         <div className="px-4 py-5 sm:p-0">
           <dl className="sm:divide-y divide-gray-200 dark:divide-gray-700">
             <RowItemVersion label="Version" value={data?.version} newUpdate={updateData ?? undefined} />
-            <RowItem label="Commit" value={data?.commit} />
-            <RowItem label="Build date" value={data?.date} />
+            {data?.commit && <RowItem label="Commit" value={data.commit} />}
+            {data?.date && <RowItem label="Build date" value={data.date} />}
             <RowItem label="Application" value={data?.application} />
             <RowItem label="Config path" value={data?.config_dir} />
             <RowItem label="Database" value={data?.database} />
