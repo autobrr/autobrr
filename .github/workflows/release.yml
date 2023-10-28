@@ -24,7 +24,7 @@ jobs:
           fetch-depth: 0
 
       - name: Set up Node
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: '18.17.0'
 
@@ -33,7 +33,7 @@ jobs:
 
       # It can not be done before enable corepack
       - name: Set up cache
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           cache: pnpm
           cache-dependency-path: web/pnpm-lock.yaml
