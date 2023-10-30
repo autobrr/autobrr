@@ -6,13 +6,15 @@ package action
 import (
 	"context"
 	"fmt"
+	"net/url"
 	"strings"
 	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/pkg/errors"
+	"github.com/autobrr/autobrr/pkg/transmission"
 
-	"github.com/hekmon/transmissionrpc/v2"
+	"github.com/hekmon/transmissionrpc/v3"
 )
 
 const (
@@ -21,6 +23,7 @@ const (
 )
 
 var ErrReannounceTookTooLong = errors.New("ErrReannounceTookTooLong")
+var TrTrue = true
 
 func (s *service) transmission(ctx context.Context, action *domain.Action, release domain.Release) ([]string, error) {
 	s.log.Debug().Msgf("action Transmission: %s", action.Name)
@@ -38,10 +41,21 @@ func (s *service) transmission(ctx context.Context, action *domain.Action, relea
 		return nil, errors.New("could not find client by id: %d", action.ClientID)
 	}
 
-	tbt, err := transmissionrpc.New(client.Host, client.Username, client.Password, &transmissionrpc.AdvancedConfig{
-		HTTPS:     client.TLS,
-		Port:      uint16(client.Port),
-		UserAgent: "autobrr",
+	scheme := "http"
+	if client.TLS {
+		scheme = "https"
+	}
+
+	u, err := url.Parse(fmt.Sprintf("%s://%s:%d/transmission/rpc", scheme, client.Host, client.Port))
+	if err != nil {
+		return nil, err
+	}
+
+	tbt, err := transmission.New(u, &transmission.Config{
+		UserAgent:     "autobrr",
+		Username:      client.Username,
+		Password:      client.Password,
+		TLSSkipVerify: client.TLSSkipVerify,
 	})
 	if err != nil {
 		return nil, errors.Wrap(err, "error logging into client: %s", client.Host)
@@ -74,10 +88,36 @@ func (s *service) transmission(ctx context.Context, action *domain.Action, relea
 			return nil, errors.Wrap(err, "could not add torrent from magnet %s to client: %s", release.MagnetURI, client.Host)
 		}
 
-		if action.Label != "" {
+		if action.Label != "" || action.LimitUploadSpeed > 0 || action.LimitDownloadSpeed > 0 || action.LimitRatio > 0 || action.LimitSeedTime > 0 {
 			p := transmissionrpc.TorrentSetPayload{
-				IDs:    []int64{*torrent.ID},
-				Labels: []string{action.Label},
+				IDs: []int64{*torrent.ID},
+			}
+
+			if action.Label != "" {
+				p.Labels = []string{action.Label}
+			}
+
+			if action.LimitUploadSpeed > 0 {
+				p.UploadLimit = &action.LimitUploadSpeed
+				p.UploadLimited = &TrTrue
+			}
+			if action.LimitDownloadSpeed > 0 {
+				p.DownloadLimit = &action.LimitDownloadSpeed
+				p.DownloadLimited = &TrTrue
+			}
+			if action.LimitRatio > 0 {
+				p.SeedRatioLimit = &action.LimitRatio
+				ratioMode := transmissionrpc.SeedRatioModeCustom
+				p.SeedRatioMode = &ratioMode
+			}
+			if action.LimitSeedTime > 0 {
+				t := time.Duration(action.LimitSeedTime) * time.Minute
+				//p.SeedIdleLimit = &action.LimitSeedTime
+				p.SeedIdleLimit = &t
+
+				// seed idle mode 1
+				seedIdleMode := int64(1)
+				p.SeedIdleMode = &seedIdleMode
 			}
 
 			if err := tbt.TorrentSet(ctx, p); err != nil {
@@ -112,11 +152,38 @@ func (s *service) transmission(ctx context.Context, action *domain.Action, relea
 		return nil, errors.Wrap(err, "could not add torrent %s to client: %s", release.TorrentTmpFile, client.Host)
 	}
 
-	if action.Label != "" {
+	if action.Label != "" || action.LimitUploadSpeed > 0 || action.LimitDownloadSpeed > 0 || action.LimitRatio > 0 || action.LimitSeedTime > 0 {
 		p := transmissionrpc.TorrentSetPayload{
-			IDs:    []int64{*torrent.ID},
-			Labels: []string{action.Label},
+			IDs: []int64{*torrent.ID},
 		}
+
+		if action.Label != "" {
+			p.Labels = []string{action.Label}
+		}
+
+		if action.LimitUploadSpeed > 0 {
+			p.UploadLimit = &action.LimitUploadSpeed
+			p.UploadLimited = &TrTrue
+		}
+		if action.LimitDownloadSpeed > 0 {
+			p.DownloadLimit = &action.LimitDownloadSpeed
+			p.DownloadLimited = &TrTrue
+		}
+		if action.LimitRatio > 0 {
+			p.SeedRatioLimit = &action.LimitRatio
+			ratioMode := transmissionrpc.SeedRatioModeCustom
+			p.SeedRatioMode = &ratioMode
+		}
+		if action.LimitSeedTime > 0 {
+			t := time.Duration(action.LimitSeedTime) * time.Minute
+			p.SeedIdleLimit = &t
+
+			// seed idle mode 1
+			seedIdleMode := int64(1)
+			p.SeedIdleMode = &seedIdleMode
+		}
+
+		s.log.Trace().Msgf("transmission torrent set payload: %+v for torrent hash %s client: %s", p, *torrent.HashString, client.Name)
 
 		if err := tbt.TorrentSet(ctx, p); err != nil {
 			return nil, errors.Wrap(err, "could not set label for hash %s to client: %s", *torrent.HashString, client.Host)
