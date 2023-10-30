@@ -4,6 +4,7 @@
 package filter
 
 import (
+	"bufio"
 	"bytes"
 	"context"
 	"crypto/tls"
@@ -761,7 +762,7 @@ func (s *service) webhook(ctx context.Context, external domain.FilterExternal, r
 	statusCode, err := retry.DoWithData(
 		func() (int, error) {
 			clonereq := req.Clone(ctx)
-			clonereq.Body = io.NopCloser(req.Body)
+			clonereq.Body = io.NopCloser(bufio.NewReader(req.Body))
 			res, err := client.Do(clonereq)
 			if err != nil {
 				return 0, errors.Wrap(err, "could not make request for webhook")
@@ -771,7 +772,7 @@ func (s *service) webhook(ctx context.Context, external domain.FilterExternal, r
 
 			body, err := io.ReadAll(res.Body)
 			if err != nil {
-				return 0, errors.Wrap(err, "could not read request body")
+				return res.StatusCode, errors.Wrap(err, "could not read request body")
 			}
 
 			if len(body) > 0 {
