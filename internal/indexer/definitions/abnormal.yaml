@@ -1,0 +1,71 @@
+#id: abnormal
+name: Abnormal
+identifier: abnormal
+description: Anormal (ABN) is a French General tracker
+language: fr-fr
+urls:
+  - https://abn.lol/
+privacy: private
+protocol: torrent
+supports:
+  - irc
+  - rss
+source: gazelle
+settings:
+  - name: uid
+    type: secret
+    label: User Id
+    help: This is the UserId in a RSS link.
+
+  - name: passkey
+    type: secret
+    label: Torrent key
+    help: This is the TorrentKey in a RSS link.
+
+irc:
+  network: Abnormal
+  server: irc.abn.lol
+  port: 33333
+  tls: true
+  channels:
+    - "#announce"
+  announcers:
+    - ABN_BOT
+  settings:
+    - name: nick
+      type: text
+      required: true
+      label: Nick
+      help: Bot nick. Eg. user_bot
+
+    - name: auth.account
+      type: text
+      required: false
+      label: NickServ Account
+      help: NickServ account. Make sure to group your user and bot. Eg. user|autodl
+
+    - name: auth.password
+      type: secret
+      required: false
+      label: NickServ Password
+      help: NickServ password
+
+    - name: pass
+      type: secret
+      required: true
+      label: Network password
+
+  parse:
+    type: single
+    lines:
+      - test:
+          - "|2020/08/22 00:00:00| | https://abn.lol/Torrent/Details?ReleaseId=000000 | : |Action.Test.S01E01.FRENCH.WEB.x264-NOGROUP|"
+        pattern: '^\s*\|.+\|\s*\|\s(https?\:\/\/[^\/]+\/).*[&\?]ReleaseId\=(\d+)\s\|[\s:]+\|([^|]+)\|\s*'
+        vars:
+          - baseUrl
+          - torrentId
+          - torrentName
+
+    match:
+      infourl: "/Torrent/Details?ReleaseId={{ .torrentId }}"
+      torrenturl: "/Feed/Download?UserID={{ .uid }}&TorrentKey={{ .passkey }}&ReleaseId={{ .torrentId }}"
