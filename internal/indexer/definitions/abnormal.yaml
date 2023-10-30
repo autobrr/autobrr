@@ -23,7 +23,7 @@ settings:
     help: This is the TorrentKey in a RSS link.
 
 irc:
-  network: Abnormal
+  network: ABNormal
   server: irc.abn.lol
   port: 33333
   tls: true
