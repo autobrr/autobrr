@@ -1,7 +1,7 @@
 #id: abnormal
-name: Abnormal
+name: ABNormal
 identifier: abnormal
-description: Anormal (ABN) is a French General tracker
+description: ABNormal (ABN) is a French General tracker
 language: fr-fr
 urls:
   - https://abn.lol/
