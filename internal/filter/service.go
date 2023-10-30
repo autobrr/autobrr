@@ -4,6 +4,7 @@
 package filter
 
 import (
+	"bufio"
 	"bytes"
 	"context"
 	"crypto/tls"
@@ -703,13 +704,16 @@ func (s *service) webhook(ctx context.Context, external domain.FilterExternal, r
 		method = external.WebhookMethod
 	}
 
-	req, err := http.NewRequestWithContext(ctx, method, external.WebhookHost, nil)
-	if err != nil {
-		return 0, errors.Wrap(err, "could not build request for webhook")
-	}
-
+	var req *http.Request
 	if external.WebhookData != "" && dataArgs != "" {
 		req, err = http.NewRequestWithContext(ctx, method, external.WebhookHost, bytes.NewBufferString(dataArgs))
+		if err != nil {
+			return 0, errors.Wrap(err, "could not build request for webhook")
+		}
+
+		defer req.Body.Close()
+	} else {
+		req, err = http.NewRequestWithContext(ctx, method, external.WebhookHost, nil)
 		if err != nil {
 			return 0, errors.Wrap(err, "could not build request for webhook")
 		}
@@ -750,9 +754,16 @@ func (s *service) webhook(ctx context.Context, external domain.FilterExternal, r
 
 	start := time.Now()
 
+	var retryStatusCodes []string
+	if external.WebhookRetryStatus != "" {
+		retryStatusCodes = strings.Split(strings.ReplaceAll(external.WebhookRetryStatus, " ", ""), ",")
+	}
+
 	statusCode, err := retry.DoWithData(
 		func() (int, error) {
-			res, err := client.Do(req)
+			clonereq := req.Clone(ctx)
+			clonereq.Body = io.NopCloser(bufio.NewReader(req.Body))
+			res, err := client.Do(clonereq)
 			if err != nil {
 				return 0, errors.Wrap(err, "could not make request for webhook")
 			}
@@ -761,18 +772,15 @@ func (s *service) webhook(ctx context.Context, external domain.FilterExternal, r
 
 			body, err := io.ReadAll(res.Body)
 			if err != nil {
-				return 0, errors.Wrap(err, "could not read request body")
+				return res.StatusCode, errors.Wrap(err, "could not read request body")
 			}
 
 			if len(body) > 0 {
 				s.log.Debug().Msgf("filter external webhook response status: %d body: %s", res.StatusCode, body)
 			}
 
-			if external.WebhookRetryStatus != "" {
-				retryStatusCodes := strings.Split(strings.ReplaceAll(external.WebhookRetryStatus, " ", ""), ",")
-				if utils.StrSliceContains(retryStatusCodes, strconv.Itoa(res.StatusCode)) {
-					return 0, errors.New("retrying webhook request, got status code: %d", res.StatusCode)
-				}
+			if utils.StrSliceContains(retryStatusCodes, strconv.Itoa(res.StatusCode)) {
+				return 0, errors.New("retrying webhook request, got status code: %d", res.StatusCode)
 			}
 
 			return res.StatusCode, nil
