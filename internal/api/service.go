@@ -46,7 +46,12 @@ func (s *service) List(ctx context.Context) ([]domain.APIKey, error) {
 }
 
 func (s *service) Store(ctx context.Context, key *domain.APIKey) error {
-	key.Key = GenerateSecureToken(16)
+
+	if key.KeyLength < 16 {
+		key.KeyLength = 16
+	}
+
+	key.Key = GenerateSecureToken(key.KeyLength)
 
 	if err := s.repo.Store(ctx, key); err != nil {
 		return err

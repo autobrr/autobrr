@@ -17,6 +17,7 @@ type APIRepo interface {
 type APIKey struct {
 	Name      string    `json:"name"`
 	Key       string    `json:"key"`
+	KeyLength int       `json:"keyLength"`
 	Scopes    []string  `json:"scopes"`
 	CreatedAt time.Time `json:"created_at"`
 }

@@ -6,6 +6,7 @@
 interface APIKey {
   name: string;
   key: string;
+  keyLength: number;
   scopes: string[];
   created_at: Date;
 }

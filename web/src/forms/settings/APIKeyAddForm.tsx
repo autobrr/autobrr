@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-import { Fragment } from "react";
+import { Fragment, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "react-hot-toast";
 import { XMarkIcon } from "@heroicons/react/24/solid";
@@ -35,14 +35,23 @@ export function APIKeyAddForm({ isOpen, toggle }: apiKeyAddFormProps) {
     }
   });
 
-  const handleSubmit = (data: unknown) => mutation.mutate(data as APIKey);
-  const validate = (values: FormikValues) => {
-    const errors = {} as FormikErrors<FormikValues>;
-    if (!values.name) {
-      errors.name = "Required";
-    }
-    return errors;
+  const handleSubmit = (data: unknown) => {
+    console.log(data);
+    mutation.mutate(data as APIKey);
   };
+  //const validate = (values: FormikValues) => {
+  //  const errors = {} as FormikErrors<FormikValues>;
+  //  if (!values.name) {
+  //    errors.name = "Required";
+  //  }
+  //  if (!values.keyLength || values.keyLength < 16) {
+  //    errors.keyLength = "Key length should be at least 16";
+  //  }
+  //  return errors;
+  //};
+
+  const [showKeyLength, setShowKeyLength] = useState(false);
+
 
   return (
     <Transition.Root show={isOpen} as={Fragment}>
@@ -64,10 +73,11 @@ export function APIKeyAddForm({ isOpen, toggle }: apiKeyAddFormProps) {
                 <Formik
                   initialValues={{
                     name: "",
-                    scopes: []
+                    scopes: [],
+                    keyLength: 16
                   }}
                   onSubmit={handleSubmit}
-                  validate={validate}
+                  //validate={validate}
                 >
                   {({ values }) => (
                     <Form className="h-full flex flex-col bg-white dark:bg-gray-800 shadow-xl overflow-y-scroll">
@@ -94,18 +104,18 @@ export function APIKeyAddForm({ isOpen, toggle }: apiKeyAddFormProps) {
                           </div>
                         </div>
 
-                        <div
-                          className="py-6 space-y-6 sm:py-0 sm:space-y-0 sm:divide-y sm:divide-gray-200">
-                          <div
-                            className="space-y-1 px-4 sm:space-y-0 sm:grid sm:grid-cols-3 sm:gap-4 sm:py-4">
+                        <div className="py-6 space-y-6 sm:py-0 sm:space-y-0 sm:divide-y sm:divide-gray-200">
+                          <div className="space-y-1 px-4 sm:space-y-0 sm:grid sm:grid-cols-3 sm:gap-4 sm:py-4">
+
                             <div>
                               <label
                                 htmlFor="name"
                                 className="block text-sm font-medium text-gray-900 dark:text-white sm:mt-px sm:pt-2"
                               >
-                                Name
+                              Name
                               </label>
                             </div>
+
                             <Field name="name">
                               {({
                                 field,
@@ -116,14 +126,56 @@ export function APIKeyAddForm({ isOpen, toggle }: apiKeyAddFormProps) {
                                     {...field}
                                     id="name"
                                     type="text"
+                                    required
+                                    data-1p-ignore="true"
                                     className="block w-full shadow-sm dark:bg-gray-800 border-gray-300 dark:border-gray-700 sm:text-sm dark:text-white focus:ring-blue-500 dark:focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-500 rounded-md"
                                   />
                                   {meta.touched && meta.error && <span className="block mt-2 text-red-500">{meta.error}</span>}
                                 </div>
                               )}
                             </Field>
+
+                            <div className="flex items-center">
+                              <label htmlFor="toggleKeyLength" className="text-sm pr-4 font-medium text-gray-900 dark:text-white sm:mt-px">
+                                Custom key length
+                              </label>
+                              <div className="flex-shrink-0 mr-2">
+                                <input 
+                                  type="checkbox"
+                                  id="toggleKeyLength"
+                                  checked={showKeyLength}
+                                  onChange={() => setShowKeyLength(prev => !prev)}
+                                  className="form-checkbox h-4 w-4 text-blue-600 focus:ring-inset-1 hover:bg-zinc-200"
+                                />
+                              </div>
+                            </div>
+
+                            <Field name="keyLength">
+                              {({ field, meta }: FieldProps) => (
+                                <div className="flex-grow col-span-2">
+                                  <input
+                                    {...field}
+                                    id="keyLength"
+                                    placeholder="Key Length"
+                                    type="number"
+                                    className={`block w-full shadow-sm dark:bg-gray-800 border-gray-300 dark:border-gray-700 sm:text-sm dark:text-white focus:ring-blue-500 dark:focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-500 rounded-md ${showKeyLength ? "opacity-100" : "opacity-20"}`}
+                                    min="16"
+                                    disabled={!showKeyLength}
+                                    style={{ appearance: "textfield", MozAppearance: "textfield" }}
+                                  />
+                                  {meta.touched && meta.error && showKeyLength && <span className="block mt-2 text-red-500">{meta.error}</span>}
+                                </div>
+                              )}
+                            </Field>
+
+                            <div className="col-span-3 mt-0 h-5">
+                              {showKeyLength && <p className="text-sm text-gray-500 dark:text-gray-400">The key must be at least 16 bytes (32 hexadecimal characters) for optimal security.</p>}
+                            </div>
+                            
                           </div>
                         </div>
+
+
                       </div>
 
                       <div

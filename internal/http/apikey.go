@@ -51,7 +51,6 @@ func (h apikeyHandler) list(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h apikeyHandler) store(w http.ResponseWriter, r *http.Request) {
-
 	var (
 		ctx  = r.Context()
 		data domain.APIKey
@@ -60,6 +59,10 @@ func (h apikeyHandler) store(w http.ResponseWriter, r *http.Request) {
 	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
 		h.encoder.Error(w, err)
 		return
+	}
+
+	if data.KeyLength < 16 {
+		data.KeyLength = 16
 	}
 
 	if err := h.service.Store(ctx, &data); err != nil {
