@@ -218,6 +218,10 @@ const externalFilterSchema = z.object({
   webhook_method: z.string().optional(),
   webhook_data: z.string().optional(),
   webhook_expect_status: z.number().optional(),
+  webhook_retry_status: z.string().optional(),
+  webhook_retry_attempts: z.number().optional(),
+  webhook_retry_delay_seconds: z.number().optional(),
+  webhook_retry_max_jitter_seconds: z.number().optional(),
 });
 
 const indexerSchema = z.object({
