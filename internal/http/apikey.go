@@ -63,6 +63,8 @@ func (h apikeyHandler) store(w http.ResponseWriter, r *http.Request) {
 
 	if data.KeyLength < 16 {
 		data.KeyLength = 16
+	} else if data.KeyLength > 32 {
+		data.KeyLength = 32
 	}
 
 	if err := h.service.Store(ctx, &data); err != nil {

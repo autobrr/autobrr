@@ -160,6 +160,7 @@ export function APIKeyAddForm({ isOpen, toggle }: apiKeyAddFormProps) {
                                     type="number"
                                     className={`block w-full shadow-sm dark:bg-gray-800 border-gray-300 dark:border-gray-700 sm:text-sm dark:text-white focus:ring-blue-500 dark:focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-500 rounded-md ${showKeyLength ? "opacity-100" : "opacity-20"}`}
                                     min="16"
+                                    max="32"
                                     disabled={!showKeyLength}
                                     style={{ appearance: "textfield", MozAppearance: "textfield" }}
                                   />
@@ -168,8 +169,8 @@ export function APIKeyAddForm({ isOpen, toggle }: apiKeyAddFormProps) {
                               )}
                             </Field>
 
-                            <div className="col-span-3 mt-0 h-5">
-                              {showKeyLength && <p className="text-sm text-gray-500 dark:text-gray-400">The key must be at least 16 bytes (32 hexadecimal characters) for optimal security.</p>}
+                            <div className="col-span-2 mt-0 h-5">
+                              {showKeyLength && <p className="text-sm text-gray-500 dark:text-gray-400">For optimal security, choose a key length with an entropy of 128 bits (16 bytes) or 256 bits (32 bytes)</p>}
                             </div>
                             
                           </div>
