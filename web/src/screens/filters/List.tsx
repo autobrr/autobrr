@@ -642,7 +642,7 @@ function FilterListItem({ filter, values, idx }: FilterListItemProps) {
           <span className="mr-2 break-words whitespace-nowrap text-xs font-medium text-gray-600 dark:text-gray-400">
             Priority: {filter.priority}
           </span>
-          <span className="whitespace-nowrap text-xs font-medium text-gray-600 dark:text-gray-400">
+          <span className="z-10 whitespace-nowrap text-xs font-medium text-gray-600 dark:text-gray-400">
             <Tooltip
               label={
                 <Link
