@@ -5,6 +5,8 @@ package download_client
 
 import (
 	"context"
+	"fmt"
+	"net/url"
 	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
@@ -15,13 +17,13 @@ import (
 	"github.com/autobrr/autobrr/pkg/readarr"
 	"github.com/autobrr/autobrr/pkg/sabnzbd"
 	"github.com/autobrr/autobrr/pkg/sonarr"
+	"github.com/autobrr/autobrr/pkg/transmission"
 	"github.com/autobrr/autobrr/pkg/whisparr"
 
 	"github.com/autobrr/go-deluge"
 	"github.com/autobrr/go-qbittorrent"
 	"github.com/autobrr/go-rtorrent"
 	"github.com/dcarbone/zadapters/zstdlog"
-	"github.com/hekmon/transmissionrpc/v2"
 	"github.com/rs/zerolog"
 )
 
@@ -175,9 +177,21 @@ func (s *service) testRTorrentConnection(ctx context.Context, client domain.Down
 }
 
 func (s *service) testTransmissionConnection(ctx context.Context, client domain.DownloadClient) error {
-	tbt, err := transmissionrpc.New(client.Host, client.Username, client.Password, &transmissionrpc.AdvancedConfig{
-		HTTPS: client.TLS,
-		Port:  uint16(client.Port),
+	scheme := "http"
+	if client.TLS {
+		scheme = "https"
+	}
+
+	u, err := url.Parse(fmt.Sprintf("%s://%s:%d/transmission/rpc", scheme, client.Host, client.Port))
+	if err != nil {
+		return err
+	}
+
+	tbt, err := transmission.New(u, &transmission.Config{
+		UserAgent:     "autobrr",
+		Username:      client.Username,
+		Password:      client.Password,
+		TLSSkipVerify: client.TLSSkipVerify,
 	})
 	if err != nil {
 		return errors.Wrap(err, "error logging into client: %v", client.Host)
