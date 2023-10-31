@@ -21,8 +21,7 @@ export const Releases = () => {
     <main>
       <div className="mt-6 mb-4 mx-auto flex flex-col max-w-screen-xl px-4 sm:px-6 lg:px-8">
         <h1 className="text-3xl font-bold text-black dark:text-white">Releases</h1>
-
-        <p className="flex mt-1 text-sm text-gray-800 dark:text-gray-200">
+        <p className="flex-row items-start mt-1 text-sm text-gray-800 dark:text-gray-200">
           The search engine uses a special pattern-matching engine to filter out results.
           Please
           <button
@@ -30,7 +29,7 @@ export const Releases = () => {
               e.preventDefault();
               setIsHintOpen((state) => !state);
             }}
-            className="flex items-center shadow-md border rounded-md mx-1 px-1 text-black bg-lime-100 hover:bg-lime-200 border-lime-500 dark:text-white dark:bg-lime-950 dark:hover:bg-lime-900 dark:border-lime-800"
+            className="inline-flex whitespace-nowrap items-center shadow-md border rounded-md mx-1 px-1 text-black bg-lime-100 hover:bg-lime-200 border-lime-500 dark:text-white dark:bg-lime-950 dark:hover:bg-lime-900 dark:border-lime-800"
           >
             click here
             {isHintOpen ? (
