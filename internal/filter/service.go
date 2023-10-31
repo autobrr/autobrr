@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/http/httputil"
 	"os"
 	"os/exec"
 	"sort"
@@ -739,17 +740,14 @@ func (s *service) webhook(ctx context.Context, external domain.FilterExternal, r
 
 	var opts []retry.Option
 
+	opts = append(opts, retry.DelayType(retry.FixedDelay))
+	opts = append(opts, retry.LastErrorOnly(true))
+
 	if external.WebhookRetryAttempts > 0 {
-		option := retry.Attempts(uint(external.WebhookRetryAttempts))
-		opts = append(opts, option)
+		opts = append(opts, retry.Attempts(uint(external.WebhookRetryAttempts)))
 	}
 	if external.WebhookRetryDelaySeconds > 0 {
-		option := retry.Delay(time.Duration(external.WebhookRetryDelaySeconds) * time.Second)
-		opts = append(opts, option)
-	}
-	if external.WebhookRetryMaxJitterSeconds > 0 {
-		option := retry.MaxJitter(time.Duration(external.WebhookRetryMaxJitterSeconds) * time.Second)
-		opts = append(opts, option)
+		opts = append(opts, retry.Delay(time.Duration(external.WebhookRetryDelaySeconds)*time.Second))
 	}
 
 	start := time.Now()
@@ -763,12 +761,29 @@ func (s *service) webhook(ctx context.Context, external domain.FilterExternal, r
 		func() (int, error) {
 			clonereq := req.Clone(ctx)
 			clonereq.Body = io.NopCloser(bufio.NewReader(req.Body))
+
+			reqDump, err := httputil.DumpRequest(clonereq, true)
+			if err != nil {
+				return 0, errors.Wrap(err, "could not dump request for webhook")
+			}
+
+			s.log.Trace().Msgf("filter external webhook dump request: %s", string(reqDump))
+
 			res, err := client.Do(clonereq)
 			if err != nil {
 				return 0, errors.Wrap(err, "could not make request for webhook")
 			}
 
+			resDump, err := httputil.DumpResponse(res, true)
+			if err != nil {
+				return 0, errors.Wrap(err, "could not dump request for webhook")
+			}
+
+			s.log.Trace().Msgf("filter external webhook dump response: %s", string(resDump))
+
 			defer res.Body.Close()
+
+			s.log.Debug().Msgf("filter external webhook response status: %d", res.StatusCode)
 
 			body, err := io.ReadAll(res.Body)
 			if err != nil {
@@ -780,7 +795,7 @@ func (s *service) webhook(ctx context.Context, external domain.FilterExternal, r
 			}
 
 			if utils.StrSliceContains(retryStatusCodes, strconv.Itoa(res.StatusCode)) {
-				return 0, errors.New("retrying webhook request, got status code: %d", res.StatusCode)
+				return 0, errors.New("webhook got unwanted status code: %d", res.StatusCode)
 			}
 
 			return res.StatusCode, nil
