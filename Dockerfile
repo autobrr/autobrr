@@ -1,10 +1,14 @@
 # build web
 FROM node:18.17.0-alpine3.18 AS web-builder
-COPY . ./
+RUN corepack enable
+
 WORKDIR /web
-RUN corepack enable && \
-    pnpm install --frozen-lockfile && \
-    pnpm run build
+
+COPY web/package.json web/pnpm-lock.yaml ./
+RUN pnpm install --frozen-lockfile
+
+COPY web ./
+RUN pnpm run build
 
 # build app
 FROM golang:1.20-alpine3.18 AS app-builder
@@ -13,7 +17,7 @@ ARG VERSION=dev
 ARG REVISION=dev
 ARG BUILDTIME
 
-RUN apk add --no-cache git make build-base tzdata
+RUN apk add --no-cache git build-base tzdata
 
 ENV SERVICE=autobrr
 
@@ -23,7 +27,6 @@ COPY go.mod go.sum ./
 RUN go mod download
 
 COPY . ./
-
 COPY --from=web-builder /web/dist ./web/dist
 COPY --from=web-builder /web/build.go ./web
 
@@ -54,4 +57,3 @@ COPY --from=app-builder /src/bin/autobrrctl /usr/local/bin/
 EXPOSE 7474
 
 ENTRYPOINT ["/usr/local/bin/autobrr", "--config", "/config"]
-#CMD ["--config", "/config"]

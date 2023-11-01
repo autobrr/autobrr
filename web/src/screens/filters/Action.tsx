@@ -28,6 +28,7 @@ import { DeleteModal } from "@components/modals";
 import { CollapsableSection } from "./Details";
 import { TextArea } from "@components/inputs/input";
 import Toast from "@components/notifications/Toast";
+import { DocsLink } from "@components/ExternalLink";
 
 interface FilterActionsProps {
   filter: Filter;
@@ -71,6 +72,7 @@ export function FilterActions({ filter, values }: FilterActionsProps) {
     webhook_method: "",
     webhook_data: "",
     webhook_headers: [],
+    external_download_client_id: 0,
     client_id: 0
   };
 
@@ -101,10 +103,10 @@ export function FilterActions({ filter, values }: FilterActionsProps) {
               {values.actions.length > 0 ?
                 <ul className="divide-y divide-gray-200 dark:divide-gray-700">
                   {values.actions.map((action: Action, index: number) => (
-                    <FilterActionsItem action={action} clients={data ?? []} idx={index} initialEdit={values.actions.length === 1} remove={remove} key={index}/>
+                    <FilterActionsItem action={action} clients={data ?? []} idx={index} initialEdit={values.actions.length === 1} remove={remove} key={index} />
                   ))}
                 </ul>
-                : <EmptyListState text="No actions yet!"/>
+                : <EmptyListState text="No actions yet!" />
               }
             </div>
           </Fragment>
@@ -121,7 +123,7 @@ interface TypeFormProps {
 }
 
 const TypeForm = ({ action, idx, clients }: TypeFormProps) => {
-  const { setFieldValue  } = useFormikContext();
+  const { setFieldValue } = useFormikContext();
 
   const resetClientField = (action: Action, idx: number, prevActionType: string): void => {
     const fieldName = `actions.${idx}.client_id`;
@@ -223,7 +225,15 @@ const TypeForm = ({ action, idx, clients }: TypeFormProps) => {
               label="Save path"
               columns={6}
               placeholder="eg. /full/path/to/download_folder"
-              tooltip={<div><p>Set a custom save path for this action. Automatic Torrent Management will take care of this if using qBittorrent with categories.</p><br /><p>The field can use macros to transform/add values from metadata:</p><a href='https://autobrr.com/filters/actions#macros' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters/actions#macros</a></div>} />
+              tooltip={
+                <div>
+                  <p>Set a custom save path for this action. Automatic Torrent Management will take care of this if using qBittorrent with categories.</p>
+                  <br />
+                  <p>The field can use macros to transform/add values from metadata:</p>
+                  <DocsLink href="https://autobrr.com/filters/macros" />
+                </div>
+              }
+            />
           </div>
         </div>
 
@@ -233,13 +243,25 @@ const TypeForm = ({ action, idx, clients }: TypeFormProps) => {
             label="Category"
             columns={6}
             placeholder="eg. category"
-            tooltip={<div><p>The field can use macros to transform/add values from metadata:</p><a href='https://autobrr.com/filters/actions#macros' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters/actions#macros</a></div>} />
+            tooltip={
+              <div>
+                <p>The field can use macros to transform/add values from metadata:</p>
+                <DocsLink href="https://autobrr.com/filters/macros" />
+              </div>
+            }
+          />
           <TextField
             name={`actions.${idx}.tags`}
             label="Tags"
             columns={6}
             placeholder="eg. tag1,tag2"
-            tooltip={<div><p>The field can use macros to transform/add values from metadata:</p><a href='https://autobrr.com/filters/actions#macros' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters/actions#macros</a></div>} />
+            tooltip={
+              <div>
+                <p>The field can use macros to transform/add values from metadata:</p>
+                <DocsLink href="https://autobrr.com/filters/macros" />
+              </div>
+            }
+          />
         </div>
 
         <CollapsableSection title="Rules" subtitle="client options">
@@ -262,7 +284,8 @@ const TypeForm = ({ action, idx, clients }: TypeFormProps) => {
                 name={`actions.${idx}.limit_ratio`}
                 label="Ratio limit"
                 placeholder="Takes any number (0 is no limit)"
-                step={1} // 0.5 does not work
+                step={0.25}
+                isDecimal
               />
               <NumberField
                 name={`actions.${idx}.limit_seed_time`}
@@ -280,7 +303,14 @@ const TypeForm = ({ action, idx, clients }: TypeFormProps) => {
             <SwitchGroup
               name={`actions.${idx}.ignore_rules`}
               label="Ignore client rules"
-              tooltip={<div><p>Choose to ignore rules set in <Link className='text-blue-400 visited:text-blue-400' to="/settings/clients">Client Settings</Link>.</p></div>} />
+              tooltip={
+                <div>
+                  <p>
+                    Choose to ignore rules set in <Link className="text-blue-400 visited:text-blue-400" to="/settings/clients">Client Settings</Link>.
+                  </p>
+                </div>
+              }
+            />
           </div>
           <div className="col-span-6">
             <Select
@@ -316,8 +346,8 @@ const TypeForm = ({ action, idx, clients }: TypeFormProps) => {
           <div className="col-span-6">
             <SwitchGroup
               name={`actions.${idx}.reannounce_skip`}
-              label="Skip reannounce"
-              description="If reannounce is not needed, skip"
+              label="Disable reannounce"
+              description="Reannounce is enabled by default. Disable if not needed."
             />
             <SwitchGroup
               name={`actions.${idx}.reannounce_delete`}
@@ -454,7 +484,46 @@ const TypeForm = ({ action, idx, clients }: TypeFormProps) => {
               label="Add paused"
             />
           </div>
+
+          <TextField
+              name={`actions.${idx}.label`}
+              label="Label"
+              columns={6}
+              placeholder="eg. label1"
+          />
         </div>
+
+        <CollapsableSection title="Rules" subtitle="client options">
+          <div className="col-span-12">
+            <div className="mt-6 grid grid-cols-12 gap-6">
+              <NumberField
+                  name={`actions.${idx}.limit_download_speed`}
+                  label="Limit download speed (KiB/s)"
+                  placeholder="Takes any number (0 is no limit)"
+              />
+              <NumberField
+                  name={`actions.${idx}.limit_upload_speed`}
+                  label="Limit upload speed (KiB/s)"
+                  placeholder="Takes any number (0 is no limit)"
+              />
+            </div>
+
+            <div className="mt-6 grid grid-cols-12 gap-6">
+              <NumberField
+                  name={`actions.${idx}.limit_ratio`}
+                  label="Ratio limit"
+                  placeholder="Takes any number (0 is no limit)"
+                  step={0.25}
+                  isDecimal
+              />
+              <NumberField
+                  name={`actions.${idx}.limit_seed_time`}
+                  label="Seed time limit (minutes)"
+                  placeholder="Takes any number (0 is no limit)"
+              />
+            </div>
+          </div>
+        </CollapsableSection>
 
         <CollapsableSection title="Re-announce" subtitle="Re-announce options">
           <div className="col-span-12">
@@ -474,7 +543,7 @@ const TypeForm = ({ action, idx, clients }: TypeFormProps) => {
             <SwitchGroup
               name={`actions.${idx}.reannounce_skip`}
               label="Disable reannounce"
-              description="Reannounce is enabled by default. Disable if needed."
+              description="Reannounce is enabled by default. Disable if not needed."
             />
             <SwitchGroup
               name={`actions.${idx}.reannounce_delete`}
@@ -541,6 +610,11 @@ const TypeForm = ({ action, idx, clients }: TypeFormProps) => {
           name={`actions.${idx}.client_id`}
           action={action}
           clients={clients}
+        />
+        <NumberField
+          name={`actions.${idx}.external_download_client_id`}
+          label="Override download client id for arr"
+          tooltip={<p>Override Download client Id from the one set in Clients. Useful if you have multiple clients inside the arr.</p>}
         />
       </div>
     );
@@ -642,7 +716,7 @@ function FilterActionsItem({ action, clients, idx, initialEdit, remove }: Filter
           <div className="min-w-0 flex-1 sm:flex sm:items-center sm:justify-between">
             <div className="truncate">
               <div className="flex text-sm">
-                <p className="ml-4 font-medium text-blue-600 dark:text-gray-100 truncate">
+                <p className="ml-4 font-medium text-dark-600 dark:text-gray-100 truncate">
                   {action.name}
                 </p>
               </div>
@@ -677,6 +751,7 @@ function FilterActionsItem({ action, clients, idx, initialEdit, remove }: Filter
             >
               <DeleteModal
                 isOpen={deleteModalIsOpen}
+                isLoading={removeMutation.isLoading}
                 buttonRef={cancelButtonRef}
                 toggle={toggleDeleteModal}
                 deleteAction={() => removeAction(action.id)}
@@ -700,13 +775,13 @@ function FilterActionsItem({ action, clients, idx, initialEdit, remove }: Filter
               <TextField name={`actions.${idx}.name`} label="Name" columns={6} />
             </div>
 
-            <TypeForm action={action} clients={clients} idx={idx}/>
+            <TypeForm action={action} clients={clients} idx={idx} />
 
             <div className="pt-6 divide-y divide-gray-200">
               <div className="mt-4 pt-4 flex justify-between">
                 <button
                   type="button"
-                  className="inline-flex items-center justify-center py-2 border border-transparent font-medium rounded-md text-red-700 dark:text-red-500 hover:text-red-500 dark:hover:text-red-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:text-sm"
+                  className="inline-flex items-center justify-center px-4 py-2 rounded-md sm:text-sm bg-red-700 dark:bg-red-900 hover:dark:bg-red-700 hover:bg-red-800 text-white focus:outline-none"
                   onClick={toggleDeleteModal}
                 >
                   Remove

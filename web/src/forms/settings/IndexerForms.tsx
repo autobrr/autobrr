@@ -19,10 +19,10 @@ import { PasswordFieldWide, SwitchGroupWide, TextFieldWide } from "@components/i
 import { SlideOver } from "@components/panels";
 import Toast from "@components/notifications/Toast";
 import { SelectFieldBasic, SelectFieldCreatable } from "@components/inputs/select_wide";
-import { CustomTooltip } from "@components/tooltips/CustomTooltip";
 import { FeedDownloadTypeOptions } from "@domain/constants";
 import { feedKeys } from "@screens/settings/Feed";
 import { indexerKeys } from "@screens/settings/Indexer";
+import { DocsLink } from "@components/ExternalLink";
 
 const Input = (props: InputProps) => (
   <components.Input
@@ -88,10 +88,26 @@ const IrcSettingFields = (ind: IndexerDefinition, indexer: string) => {
             {ind.irc.settings.map((f: IndexerSetting, idx: number) => {
               switch (f.type) {
               case "text":
-                return <TextFieldWide name={`irc.${f.name}`} label={f.label} required={f.required} key={idx} help={f.help} autoComplete="off" validate={validateField(f)} tooltip={<div><p>Please read our IRC guide if you are unfamiliar with IRC.</p><a href='https://autobrr.com/configuration/irc' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/configuration/irc</a></div>} />;
+                return (
+                  <TextFieldWide
+                    key={idx}
+                    name={`irc.${f.name}`}
+                    label={f.label}
+                    required={f.required}
+                    help={f.help}
+                    autoComplete="off"
+                    validate={validateField(f)}
+                    tooltip={
+                      <div>
+                        <p>Please read our IRC guide if you are unfamiliar with IRC.</p>
+                        <DocsLink href="https://autobrr.com/configuration/irc" />
+                      </div>
+                    }
+                  />
+                );
               case "secret":
                 if (f.name === "invite_command") {
-                  return <PasswordFieldWide name={`irc.${f.name}`} label={f.label} required={f.required} key={idx} help={f.help} defaultVisible={true} defaultValue={f.default} validate={validateField(f)} />;
+                  return <PasswordFieldWide defaultVisible name={`irc.${f.name}`} label={f.label} required={f.required} key={idx} help={f.help} defaultValue={f.default} validate={validateField(f)} />;
                 }
                 return <PasswordFieldWide name={`irc.${f.name}`} label={f.label} required={f.required} key={idx} help={f.help} defaultValue={f.default} validate={validateField(f)} />;
               }
@@ -121,10 +137,10 @@ const TorznabFeedSettingFields = (ind: IndexerDefinition, indexer: string) => {
 
             {ind.torznab.settings.map((f: IndexerSetting, idx: number) => {
               switch (f.type) {
-              case "text":
-                return <TextFieldWide name={`feed.${f.name}`} label={f.label} required={f.required} key={idx} help={f.help} autoComplete="off" validate={validateField(f)} />;
-              case "secret":
-                return <PasswordFieldWide name={`feed.${f.name}`} label={f.label} required={f.required} key={idx} help={f.help} defaultValue={f.default} validate={validateField(f)} />;
+                case "text":
+                  return <TextFieldWide name={`feed.${f.name}`} label={f.label} required={f.required} key={idx} help={f.help} autoComplete="off" validate={validateField(f)} />;
+                case "secret":
+                  return <PasswordFieldWide name={`feed.${f.name}`} label={f.label} required={f.required} key={idx} help={f.help} defaultValue={f.default} validate={validateField(f)} />;
               }
               return null;
             })}
@@ -160,10 +176,10 @@ const NewznabFeedSettingFields = (ind: IndexerDefinition, indexer: string) => {
 
             {ind.newznab.settings.map((f: IndexerSetting, idx: number) => {
               switch (f.type) {
-              case "text":
-                return <TextFieldWide name={`feed.${f.name}`} label={f.label} required={f.required} key={idx} help={f.help} autoComplete="off" validate={validateField(f)} />;
-              case "secret":
-                return <PasswordFieldWide name={`feed.${f.name}`} label={f.label} required={f.required} key={idx} help={f.help} defaultValue={f.default} validate={validateField(f)} />;
+                case "text":
+                  return <TextFieldWide name={`feed.${f.name}`} label={f.label} required={f.required} key={idx} help={f.help} autoComplete="off" validate={validateField(f)} />;
+                case "secret":
+                  return <PasswordFieldWide name={`feed.${f.name}`} label={f.label} required={f.required} key={idx} help={f.help} defaultValue={f.default} validate={validateField(f)} />;
               }
               return null;
             })}
@@ -191,10 +207,10 @@ const RSSFeedSettingFields = (ind: IndexerDefinition, indexer: string) => {
 
             {ind.rss.settings.map((f: IndexerSetting, idx: number) => {
               switch (f.type) {
-              case "text":
-                return <TextFieldWide name={`feed.${f.name}`} label={f.label} required={f.required} key={idx} help={f.help} autoComplete="off" validate={validateField(f)} />;
-              case "secret":
-                return <PasswordFieldWide name={`feed.${f.name}`} label={f.label} required={f.required} key={idx} help={f.help} defaultValue={f.default} validate={validateField(f)} />;
+                case "text":
+                  return <TextFieldWide name={`feed.${f.name}`} label={f.label} required={f.required} key={idx} help={f.help} autoComplete="off" validate={validateField(f)} />;
+                case "secret":
+                  return <PasswordFieldWide name={`feed.${f.name}`} label={f.label} required={f.required} key={idx} help={f.help} defaultValue={f.default} validate={validateField(f)} />;
               }
               return null;
             })}
@@ -219,14 +235,28 @@ const SettingFields = (ind: IndexerDefinition, indexer: string) => {
       <div key="opt">
         {ind && ind.settings && ind.settings.map((f, idx: number) => {
           switch (f.type) {
-          case "text":
-            return (
-              <TextFieldWide name={`settings.${f.name}`} label={f.label} required={f.required} key={idx} help={f.help} autoComplete="off" validate={validateField(f)} />
-            );
-          case "secret":
-            return (
-              <PasswordFieldWide name={`settings.${f.name}`} label={f.label} required={f.required} key={idx} help={f.help} validate={validateField(f)} tooltip={<CustomTooltip anchorId={`settings.${f.name}`} clickable={true}><div><p>This field does not take a full URL. Only use alphanumeric strings like <code>uqcdi67cibkx3an8cmdm</code>.</p><br /><a href='https://autobrr.com/faqs#common-action-rejections' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/faqs#common-action-rejections</a></div></CustomTooltip>} />
-            );
+            case "text":
+              return (
+                <TextFieldWide name={`settings.${f.name}`} label={f.label} required={f.required} key={idx} help={f.help} autoComplete="off" validate={validateField(f)} />
+              );
+            case "secret":
+              return (
+                <PasswordFieldWide
+                  name={`settings.${f.name}`}
+                  label={f.label}
+                  required={f.required}
+                  key={idx}
+                  help={f.help}
+                  validate={validateField(f)}
+                  tooltip={
+                    <div>
+                      <p>This field does not take a full URL. Only use alphanumeric strings like <code>uqcdi67cibkx3an8cmdm</code>.</p>
+                      <br />
+                      <DocsLink href="https://autobrr.com/faqs#common-action-rejections" />
+                    </div>
+                  }
+                />
+              );
           }
           return null;
         })}
@@ -759,7 +789,19 @@ export function IndexerUpdateForm({ isOpen, toggle, indexer }: UpdateProps) {
             );
           case "secret":
             return (
-              <PasswordFieldWide name={`settings.${f.name}`} label={f.label} key={idx} help={f.help} tooltip={<CustomTooltip anchorId={`settings.${f.name}`} clickable={true}><div><p>This field does not take a full URL. Only use alphanumeric strings like <code>uqcdi67cibkx3an8cmdm</code>.</p><br /><a href='https://autobrr.com/faqs#common-action-rejections' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/faqs#common-action-rejections</a></div></CustomTooltip>} />
+              <PasswordFieldWide
+                key={idx}
+                name={`settings.${f.name}`}
+                label={f.label}
+                help={f.help}
+                tooltip={
+                  <div>
+                    <p>This field does not take a full URL. Only use alphanumeric strings like <code>uqcdi67cibkx3an8cmdm</code>.</p>
+                    <br />
+                    <DocsLink href="https://autobrr.com/faqs#common-action-rejections" />
+                  </div>
+                }
+              />
             );
           }
           return null;

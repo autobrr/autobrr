@@ -5,19 +5,25 @@ package action
 
 import (
 	"context"
+	"fmt"
+	"net/url"
 	"strings"
 	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/pkg/errors"
+	"github.com/autobrr/autobrr/pkg/transmission"
 
-	"github.com/hekmon/transmissionrpc/v2"
+	"github.com/hekmon/transmissionrpc/v3"
 )
 
 const (
 	ReannounceMaxAttempts = 50
-	ReannounceInterval    = 7000
+	ReannounceInterval    = 7 // interval in seconds
 )
+
+var ErrReannounceTookTooLong = errors.New("ErrReannounceTookTooLong")
+var TrTrue = true
 
 func (s *service) transmission(ctx context.Context, action *domain.Action, release domain.Release) ([]string, error) {
 	s.log.Debug().Msgf("action Transmission: %s", action.Name)
@@ -35,9 +41,21 @@ func (s *service) transmission(ctx context.Context, action *domain.Action, relea
 		return nil, errors.New("could not find client by id: %d", action.ClientID)
 	}
 
-	tbt, err := transmissionrpc.New(client.Host, client.Username, client.Password, &transmissionrpc.AdvancedConfig{
-		HTTPS: client.TLS,
-		Port:  uint16(client.Port),
+	scheme := "http"
+	if client.TLS {
+		scheme = "https"
+	}
+
+	u, err := url.Parse(fmt.Sprintf("%s://%s:%d/transmission/rpc", scheme, client.Host, client.Port))
+	if err != nil {
+		return nil, err
+	}
+
+	tbt, err := transmission.New(u, &transmission.Config{
+		UserAgent:     "autobrr",
+		Username:      client.Username,
+		Password:      client.Password,
+		TLSSkipVerify: client.TLSSkipVerify,
 	})
 	if err != nil {
 		return nil, errors.Wrap(err, "error logging into client: %s", client.Host)
@@ -70,41 +88,123 @@ func (s *service) transmission(ctx context.Context, action *domain.Action, relea
 			return nil, errors.Wrap(err, "could not add torrent from magnet %s to client: %s", release.MagnetURI, client.Host)
 		}
 
+		if action.Label != "" || action.LimitUploadSpeed > 0 || action.LimitDownloadSpeed > 0 || action.LimitRatio > 0 || action.LimitSeedTime > 0 {
+			p := transmissionrpc.TorrentSetPayload{
+				IDs: []int64{*torrent.ID},
+			}
+
+			if action.Label != "" {
+				p.Labels = []string{action.Label}
+			}
+
+			if action.LimitUploadSpeed > 0 {
+				p.UploadLimit = &action.LimitUploadSpeed
+				p.UploadLimited = &TrTrue
+			}
+			if action.LimitDownloadSpeed > 0 {
+				p.DownloadLimit = &action.LimitDownloadSpeed
+				p.DownloadLimited = &TrTrue
+			}
+			if action.LimitRatio > 0 {
+				p.SeedRatioLimit = &action.LimitRatio
+				ratioMode := transmissionrpc.SeedRatioModeCustom
+				p.SeedRatioMode = &ratioMode
+			}
+			if action.LimitSeedTime > 0 {
+				t := time.Duration(action.LimitSeedTime) * time.Minute
+				//p.SeedIdleLimit = &action.LimitSeedTime
+				p.SeedIdleLimit = &t
+
+				// seed idle mode 1
+				seedIdleMode := int64(1)
+				p.SeedIdleMode = &seedIdleMode
+			}
+
+			if err := tbt.TorrentSet(ctx, p); err != nil {
+				return nil, errors.Wrap(err, "could not set label for hash %s to client: %s", *torrent.HashString, client.Host)
+			}
+
+			s.log.Debug().Msgf("set label for torrent hash %s successful to client: '%s'", *torrent.HashString, client.Name)
+		}
+
 		s.log.Info().Msgf("torrent from magnet with hash %v successfully added to client: '%s'", torrent.HashString, client.Name)
 
 		return nil, nil
-
-	} else {
-		if release.TorrentTmpFile == "" {
-			if err := release.DownloadTorrentFileCtx(ctx); err != nil {
-				s.log.Error().Err(err).Msgf("could not download torrent file for release: %s", release.TorrentName)
-				return nil, err
-			}
-		}
-
-		b64, err := transmissionrpc.File2Base64(release.TorrentTmpFile)
-		if err != nil {
-			return nil, errors.Wrap(err, "cant encode file %s into base64", release.TorrentTmpFile)
-		}
-
-		payload.MetaInfo = &b64
-
-		// Prepare and send payload
-		torrent, err := tbt.TorrentAdd(ctx, payload)
-		if err != nil {
-			return nil, errors.Wrap(err, "could not add torrent %v to client: %v", release.TorrentTmpFile, client.Host)
-		}
-
-		if !action.Paused && !action.ReAnnounceSkip {
-			if err := s.transmissionReannounce(ctx, action, tbt, *torrent.ID); err != nil {
-				return nil, errors.Wrap(err, "could not reannounce torrent: %s", *torrent.HashString)
-			}
-
-			return nil, nil
-		}
-
-		s.log.Info().Msgf("torrent with hash %s successfully added to client: '%s'", *torrent.HashString, client.Name)
 	}
+
+	if release.TorrentTmpFile == "" {
+		if err := release.DownloadTorrentFileCtx(ctx); err != nil {
+			s.log.Error().Err(err).Msgf("could not download torrent file for release: %s", release.TorrentName)
+			return nil, err
+		}
+	}
+
+	b64, err := transmissionrpc.File2Base64(release.TorrentTmpFile)
+	if err != nil {
+		return nil, errors.Wrap(err, "cant encode file %s into base64", release.TorrentTmpFile)
+	}
+
+	payload.MetaInfo = &b64
+
+	// Prepare and send payload
+	torrent, err := tbt.TorrentAdd(ctx, payload)
+	if err != nil {
+		return nil, errors.Wrap(err, "could not add torrent %s to client: %s", release.TorrentTmpFile, client.Host)
+	}
+
+	if action.Label != "" || action.LimitUploadSpeed > 0 || action.LimitDownloadSpeed > 0 || action.LimitRatio > 0 || action.LimitSeedTime > 0 {
+		p := transmissionrpc.TorrentSetPayload{
+			IDs: []int64{*torrent.ID},
+		}
+
+		if action.Label != "" {
+			p.Labels = []string{action.Label}
+		}
+
+		if action.LimitUploadSpeed > 0 {
+			p.UploadLimit = &action.LimitUploadSpeed
+			p.UploadLimited = &TrTrue
+		}
+		if action.LimitDownloadSpeed > 0 {
+			p.DownloadLimit = &action.LimitDownloadSpeed
+			p.DownloadLimited = &TrTrue
+		}
+		if action.LimitRatio > 0 {
+			p.SeedRatioLimit = &action.LimitRatio
+			ratioMode := transmissionrpc.SeedRatioModeCustom
+			p.SeedRatioMode = &ratioMode
+		}
+		if action.LimitSeedTime > 0 {
+			t := time.Duration(action.LimitSeedTime) * time.Minute
+			p.SeedIdleLimit = &t
+
+			// seed idle mode 1
+			seedIdleMode := int64(1)
+			p.SeedIdleMode = &seedIdleMode
+		}
+
+		s.log.Trace().Msgf("transmission torrent set payload: %+v for torrent hash %s client: %s", p, *torrent.HashString, client.Name)
+
+		if err := tbt.TorrentSet(ctx, p); err != nil {
+			return nil, errors.Wrap(err, "could not set label for hash %s to client: %s", *torrent.HashString, client.Host)
+		}
+
+		s.log.Debug().Msgf("set label for torrent hash %s successful to client: '%s'", *torrent.HashString, client.Name)
+	}
+
+	if !action.Paused && !action.ReAnnounceSkip {
+		if err := s.transmissionReannounce(ctx, action, tbt, *torrent.ID); err != nil {
+			if errors.Is(err, ErrReannounceTookTooLong) {
+				return []string{fmt.Sprintf("reannounce took too long for torrent: %s, deleted", *torrent.HashString)}, nil
+			}
+
+			return nil, errors.Wrap(err, "could not reannounce torrent: %s", *torrent.HashString)
+		}
+
+		return nil, nil
+	}
+
+	s.log.Info().Msgf("torrent with hash %s successfully added to client: '%s'", *torrent.HashString, client.Name)
 
 	return rejections, nil
 }
@@ -123,7 +223,7 @@ func (s *service) transmissionReannounce(ctx context.Context, action *domain.Act
 	attempts := 0
 
 	for attempts <= maxAttempts {
-		s.log.Debug().Msgf("re-announce %v attempt: %d/%d", torrentId, attempts, maxAttempts)
+		s.log.Debug().Msgf("re-announce %d attempt: %d/%d", torrentId, attempts, maxAttempts)
 
 		// add delay for next run
 		time.Sleep(time.Duration(interval) * time.Second)
@@ -157,7 +257,7 @@ func (s *service) transmissionReannounce(ctx context.Context, action *domain.Act
 			}
 		}
 
-		s.log.Debug().Msgf("transmission re-announce not working yet, lets re-announce %v again attempt: %d/%d", torrentId, attempts, maxAttempts)
+		s.log.Debug().Msgf("transmission re-announce not working yet, lets re-announce %d again attempt: %d/%d", torrentId, attempts, maxAttempts)
 
 		if err := tbt.TorrentReannounceIDs(ctx, []int64{torrentId}); err != nil {
 			return errors.Wrap(err, "failed to reannounce")
@@ -173,7 +273,7 @@ func (s *service) transmissionReannounce(ctx context.Context, action *domain.Act
 			return errors.Wrap(err, "could not delete torrent: %v from client after max re-announce attempts reached", torrentId)
 		}
 
-		return errors.New("transmission re-announce took too long, deleted torrent %v", torrentId)
+		return errors.Wrap(ErrReannounceTookTooLong, "transmission re-announce took too long, deleted torrent %v", torrentId)
 	}
 
 	return nil

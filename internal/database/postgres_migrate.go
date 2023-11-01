@@ -133,21 +133,25 @@ CREATE TABLE filter
 
 CREATE TABLE filter_external
 (
-	id                      SERIAL PRIMARY KEY,
-	name                    TEXT     NOT NULL,
-	idx                     INTEGER,
-	type                    TEXT,
-	enabled                 BOOLEAN,
-	exec_cmd                TEXT,
-	exec_args               TEXT,
-	exec_expect_status      INTEGER,
-	webhook_host            TEXT,
-	webhook_method          TEXT,
-	webhook_data            TEXT,
-	webhook_headers         TEXT,
-	webhook_expect_status   INTEGER,
-	filter_id               INTEGER NOT NULL,
-	FOREIGN KEY (filter_id) REFERENCES filter(id) ON DELETE CASCADE
+    id                                  SERIAL PRIMARY KEY,
+    name                                TEXT     NOT NULL,
+    idx                                 INTEGER,
+    type                                TEXT,
+    enabled                             BOOLEAN,
+    exec_cmd                            TEXT,
+    exec_args                           TEXT,
+    exec_expect_status                  INTEGER,
+    webhook_host                        TEXT,
+    webhook_method                      TEXT,
+    webhook_data                        TEXT,
+    webhook_headers                     TEXT,
+    webhook_expect_status               INTEGER,
+    webhook_retry_status                TEXT,
+    webhook_retry_attempts              INTEGER,
+    webhook_retry_delay_seconds         INTEGER,
+    webhook_retry_max_jitter_seconds    INTEGER,
+    filter_id                           INTEGER NOT NULL,
+    FOREIGN KEY (filter_id)             REFERENCES filter(id) ON DELETE CASCADE
 );
 
 CREATE TABLE filter_indexer
@@ -204,6 +208,7 @@ CREATE TABLE action
     webhook_type            TEXT,
     webhook_data            TEXT,
     webhook_headers         TEXT[] DEFAULT '{}',
+    external_client_id      INTEGER,
     client_id               INTEGER,
     filter_id               INTEGER,
     FOREIGN KEY (filter_id) REFERENCES filter (id),
@@ -353,11 +358,15 @@ CREATE TABLE feed
 
 CREATE TABLE feed_cache
 (
-	bucket TEXT,
-	key    TEXT,
-	value  TEXT,
-	ttl    TIMESTAMP
+	feed_id INTEGER NOT NULL,
+	key     TEXT,
+	value   TEXT,
+	ttl     TIMESTAMP,
+	FOREIGN KEY (feed_id) REFERENCES feed (id) ON DELETE cascade
 );
+
+CREATE INDEX feed_cache_feed_id_key_index
+    ON feed_cache (feed_id, key);
 
 CREATE TABLE api_key
 (
@@ -776,4 +785,45 @@ ALTER TABLE release_action_status
 	ALTER TABLE filter
 		DROP COLUMN IF EXISTS external_webhook_expect_status;
 	`,
+	`DROP TABLE IF EXISTS feed_cache;
+
+CREATE TABLE feed_cache
+(
+	feed_id INTEGER NOT NULL,
+	key     TEXT,
+	value   TEXT,
+	ttl     TIMESTAMP,
+	FOREIGN KEY (feed_id) REFERENCES feed (id) ON DELETE cascade
+);
+
+CREATE INDEX feed_cache_feed_id_key_index
+    ON feed_cache (feed_id, key);
+`,
+	`ALTER TABLE action
+ADD COLUMN external_client_id INTEGER;
+`,
+	`ALTER TABLE filter_external
+ADD COLUMN external_webhook_retry_status TEXT;
+
+ALTER TABLE filter_external
+	ADD COLUMN external_webhook_retry_attempts INTEGER;
+
+ALTER TABLE filter_external
+	ADD COLUMN external_webhook_retry_delay_seconds INTEGER;
+
+ALTER TABLE filter_external
+	ADD COLUMN external_webhook_retry_max_jitter_seconds INTEGER;
+`,
+	`ALTER TABLE filter_external
+    RENAME COLUMN external_webhook_retry_status TO webhook_retry_status;
+
+ALTER TABLE filter_external
+    RENAME COLUMN external_webhook_retry_attempts TO webhook_retry_attempts;
+
+ALTER TABLE filter_external
+    RENAME COLUMN external_webhook_retry_delay_seconds TO webhook_retry_delay_seconds;
+
+ALTER TABLE filter_external
+    RENAME COLUMN external_webhook_retry_max_jitter_seconds TO webhook_retry_max_jitter_seconds;
+`,
 }

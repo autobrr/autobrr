@@ -28,7 +28,7 @@ settings:
 irc:
   network: AlphaRatio
   server: irc.alpharatio.cc
-  port: 6697
+  port: 7000
   tls: true
   channels:
     - "#Announce"
@@ -40,18 +40,6 @@ irc:
       required: true
       label: Nick
       help: Bot nick. Eg. user_bot
-
-    - name: auth.account
-      type: text
-      required: true
-      label: NickServ Account
-      help: NickServ account. Make sure to group your main user and bot.
-
-    - name: auth.password
-      type: secret
-      required: true
-      label: NickServ Password
-      help: NickServ password
 
     - name: invite_command
       type: secret

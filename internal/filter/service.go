@@ -4,6 +4,7 @@
 package filter
 
 import (
+	"bufio"
 	"bytes"
 	"context"
 	"crypto/tls"
@@ -13,14 +14,17 @@ import (
 	"os"
 	"os/exec"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/internal/indexer"
 	"github.com/autobrr/autobrr/internal/logger"
+	"github.com/autobrr/autobrr/internal/utils"
 	"github.com/autobrr/autobrr/pkg/errors"
 
+	"github.com/avast/retry-go/v4"
 	"github.com/dustin/go-humanize"
 	"github.com/mattn/go-shellwords"
 	"github.com/rs/zerolog"
@@ -603,16 +607,52 @@ func (s *service) execCmd(ctx context.Context, external domain.FilterExternal, r
 	// setup command and args
 	command := exec.Command(cmd, commandArgs...)
 
-	err = command.Run()
-	var exitErr *exec.ExitError
-	if errors.As(err, &exitErr) {
-		s.log.Debug().Msgf("filter script command exited with non zero code: %d", exitErr.ExitCode())
-		return exitErr.ExitCode(), nil
+	s.log.Debug().Msgf("script: %s args: %s", cmd, strings.Join(commandArgs, " "))
+
+	// Create a pipe to capture the standard output of the command
+	cmdOutput, err := command.StdoutPipe()
+	if err != nil {
+		s.log.Error().Err(err).Msg("could not create stdout pipe")
+		return 0, err
 	}
 
 	duration := time.Since(start)
 
-	s.log.Debug().Msgf("executed external script: (%s), args: (%s) for release: (%s) indexer: (%s) total time (%s)", cmd, external.ExecArgs, release.TorrentName, release.Indexer, duration)
+	// Start the command
+	if err := command.Start(); err != nil {
+		s.log.Error().Err(err).Msg("error starting command")
+		return 0, err
+	}
+
+	// Create a buffer to store the output
+	outputBuffer := make([]byte, 4096)
+
+	execLogger := s.log.With().Str("release", release.TorrentName).Str("filter", release.FilterName).Logger()
+
+	for {
+		// Read the output into the buffer
+		n, err := cmdOutput.Read(outputBuffer)
+		if err != nil {
+			break
+		}
+
+		// Write the output to the logger
+		execLogger.Trace().Msg(string(outputBuffer[:n]))
+	}
+
+	// Wait for the command to finish and check for any errors
+	if err := command.Wait(); err != nil {
+		var exitErr *exec.ExitError
+		if errors.As(err, &exitErr) {
+			s.log.Debug().Msgf("filter script command exited with non zero code: %v", exitErr.ExitCode())
+			return exitErr.ExitCode(), nil
+		}
+
+		s.log.Error().Err(err).Msg("error waiting for command")
+		return 0, err
+	}
+
+	s.log.Debug().Msgf("executed external script: (%s), args: (%s) for release: (%s) indexer: (%s) total time (%s)", cmd, parsedArgs, release.TorrentName, release.Indexer, duration)
 
 	return 0, nil
 }
@@ -664,13 +704,16 @@ func (s *service) webhook(ctx context.Context, external domain.FilterExternal, r
 		method = external.WebhookMethod
 	}
 
-	req, err := http.NewRequestWithContext(ctx, method, external.WebhookHost, nil)
-	if err != nil {
-		return 0, errors.Wrap(err, "could not build request for webhook")
-	}
-
+	var req *http.Request
 	if external.WebhookData != "" && dataArgs != "" {
 		req, err = http.NewRequestWithContext(ctx, method, external.WebhookHost, bytes.NewBufferString(dataArgs))
+		if err != nil {
+			return 0, errors.Wrap(err, "could not build request for webhook")
+		}
+
+		defer req.Body.Close()
+	} else {
+		req, err = http.NewRequestWithContext(ctx, method, external.WebhookHost, nil)
 		if err != nil {
 			return 0, errors.Wrap(err, "could not build request for webhook")
 		}
@@ -694,25 +737,57 @@ func (s *service) webhook(ctx context.Context, external domain.FilterExternal, r
 		}
 	}
 
+	var opts []retry.Option
+
+	if external.WebhookRetryAttempts > 0 {
+		option := retry.Attempts(uint(external.WebhookRetryAttempts))
+		opts = append(opts, option)
+	}
+	if external.WebhookRetryDelaySeconds > 0 {
+		option := retry.Delay(time.Duration(external.WebhookRetryDelaySeconds) * time.Second)
+		opts = append(opts, option)
+	}
+	if external.WebhookRetryMaxJitterSeconds > 0 {
+		option := retry.MaxJitter(time.Duration(external.WebhookRetryMaxJitterSeconds) * time.Second)
+		opts = append(opts, option)
+	}
+
 	start := time.Now()
 
-	res, err := client.Do(req)
-	if err != nil {
-		return 0, errors.Wrap(err, "could not make request for webhook")
+	var retryStatusCodes []string
+	if external.WebhookRetryStatus != "" {
+		retryStatusCodes = strings.Split(strings.ReplaceAll(external.WebhookRetryStatus, " ", ""), ",")
 	}
 
-	defer res.Body.Close()
+	statusCode, err := retry.DoWithData(
+		func() (int, error) {
+			clonereq := req.Clone(ctx)
+			clonereq.Body = io.NopCloser(bufio.NewReader(req.Body))
+			res, err := client.Do(clonereq)
+			if err != nil {
+				return 0, errors.Wrap(err, "could not make request for webhook")
+			}
 
-	body, err := io.ReadAll(res.Body)
-	if err != nil {
-		return 0, errors.Wrap(err, "could not read request body")
-	}
+			defer res.Body.Close()
 
-	if len(body) > 0 {
-		s.log.Debug().Msgf("filter external webhook response status: %d body: %s", res.StatusCode, body)
-	}
+			body, err := io.ReadAll(res.Body)
+			if err != nil {
+				return res.StatusCode, errors.Wrap(err, "could not read request body")
+			}
+
+			if len(body) > 0 {
+				s.log.Debug().Msgf("filter external webhook response status: %d body: %s", res.StatusCode, body)
+			}
+
+			if utils.StrSliceContains(retryStatusCodes, strconv.Itoa(res.StatusCode)) {
+				return 0, errors.New("retrying webhook request, got status code: %d", res.StatusCode)
+			}
+
+			return res.StatusCode, nil
+		},
+		opts...)
 
 	s.log.Debug().Msgf("successfully ran external webhook filter to: (%s) payload: (%s) finished in %s", external.WebhookHost, dataArgs, time.Since(start))
 
-	return res.StatusCode, nil
+	return statusCode, err
 }

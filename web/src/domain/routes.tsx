@@ -3,25 +3,38 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { Suspense } from "react";
+import { BrowserRouter, Outlet, Route, Routes } from "react-router-dom";
+
 import { baseUrl } from "@utils";
 
+import { Header } from "@components/header";
+import { SectionLoader } from "@components/SectionLoader";
 import { NotFound } from "@components/alerts/NotFound";
-import { Base } from "@screens/Base";
-import { Dashboard } from "@screens/Dashboard";
+
 import { Logs } from "@screens/Logs";
-import { Filters, FilterDetails } from "@screens/filters";
 import { Releases } from "@screens/Releases";
 import { Settings } from "@screens/Settings";
-import * as SettingsSubPage from "@screens/settings/index";
+import { Dashboard } from "@screens/Dashboard";
 import { Login, Onboarding } from "@screens/auth";
+import { Filters, FilterDetails } from "@screens/filters";
+import * as SettingsSubPage from "@screens/settings/index";
+
+const BaseLayout = () => (
+  <div className="min-h-screen">
+    <Header />
+    <Suspense fallback={<SectionLoader $size="xlarge" />}>
+      <Outlet />
+    </Suspense>
+  </div>
+);
 
 export const LocalRouter = ({ isLoggedIn }: { isLoggedIn: boolean }) => (
   <BrowserRouter basename={baseUrl()}>
     {isLoggedIn ? (
       <Routes>
         <Route path="*" element={<NotFound />} />
-        <Route element={<Base />}>
+        <Route element={<BaseLayout />}>
           <Route index element={<Dashboard />} />
           <Route path="logs" element={<Logs />} />
           <Route path="releases" element={<Releases />} />

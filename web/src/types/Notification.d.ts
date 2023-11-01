@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-type NotificationType = "DISCORD" | "NOTIFIARR" | "TELEGRAM" | "PUSHOVER";
+type NotificationType = "DISCORD" | "NOTIFIARR" | "TELEGRAM" | "PUSHOVER" | "GOTIFY";
 type NotificationEvent =
   "PUSH_APPROVED"
   | "PUSH_REJECTED"
@@ -12,7 +12,7 @@ type NotificationEvent =
   | "IRC_RECONNECTED"
   | "APP_UPDATE_AVAILABLE";
 
-interface Notification {
+interface ServiceNotification {
   id: number;
   name: string;
   enabled: boolean;
@@ -24,4 +24,5 @@ interface Notification {
   channel?: string;
   priority?: number;
   topic?: string;
+  host?: string;
 }

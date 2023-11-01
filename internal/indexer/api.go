@@ -58,6 +58,10 @@ func (s *apiService) GetTorrentByID(ctx context.Context, indexer string, torrent
 		return nil, err
 	}
 
+	if torrent == nil {
+		return nil, errors.New("could not get torrent: %s from: %s", torrentID, indexer)
+	}
+
 	s.log.Trace().Str("method", "GetTorrentByID").Msgf("%s api successfully fetched torrent: %+v", indexer, torrent)
 
 	return torrent, nil

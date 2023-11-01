@@ -1,0 +1,72 @@
+---
+#id: torrenthr
+name: TorrentHR
+identifier: thr
+description: TorrentHR (THR) is private croatian tracker
+language: hr
+urls:
+  - https://www.torrenthr.org/
+privacy: private
+protocol: torrent
+supports:
+  - irc
+  - rss
+source: unknown
+settings:
+  - name: passkey
+    type: secret
+    required: true
+    label: Passkey
+    help: "Copy the torrent passkey for your account"
+
+irc:
+  network: THR
+  server: irc.torrenthr.org
+  port: 6697
+  tls: true
+  channels:
+    - "#announce"
+  announcers:
+    - THR
+  settings:
+    - name: nick
+      type: text
+      required: true
+      label: Nick
+      help: Bot nick. Eg. user_autodl
+
+    - name: auth.account
+      type: text
+      required: false
+      label: NickServ Account
+      help: NickServ account.  Make sure to group your user and bot.
+
+    - name: auth.password
+      type: secret
+      required: false
+      label: NickServ Password
+      help: NickServ password
+
+    - name: invite_command
+      type: secret
+      default: "THR key IRCKEY"
+      required: true
+      label: Invite command
+      help: Invite auth with THR. Replace IRCKEY.
+
+  parse:
+    type: single
+    lines:
+      - test:
+          - "Novi torrent uploadan -> Ime: A.torrent.name.here.WEBRip.x264-tina .:. Kategorija: Serije/SD .:. Velicina: 283.94 MB .:. URL: http://www.torrenthr.org/details.php?id=000000"
+        pattern: 'Novi torrent uploadan \-> Ime: (.*) \.:\. Kategorija: (.*) \.:\. Velicina: (.*) \.:\. URL: https?\:\/\/([^\/]+\/).*[&amp;\?]id=(\d+)'
+        vars:
+          - torrentName
+          - category
+          - torrentSize
+          - baseUrl
+          - torrentId
+
+    match:
+      infourl: "/details.php?id={{ .torrentId }}"
+      torrenturl: "/rssdownload.php?id={{ .torrentId }}&passkey={{ .passkey }}"

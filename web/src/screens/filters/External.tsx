@@ -6,11 +6,11 @@
 import { Field, FieldArray, FieldArrayRenderProps, FieldProps, useFormikContext } from "formik";
 import { NumberField, Select, TextField } from "@components/inputs";
 import { TextArea } from "@components/inputs/input";
-import { Fragment, useEffect, useRef, useState } from "react";
+import { Fragment, useRef } from "react";
 import { EmptyListState } from "@components/emptystates";
 import { useToggle } from "@hooks/hooks";
 import { classNames } from "@utils";
-import { Dialog, Switch as SwitchBasic, Transition } from "@headlessui/react";
+import { Switch as SwitchBasic } from "@headlessui/react";
 import {
   ExternalFilterTypeNameMap,
   ExternalFilterTypeOptions,
@@ -19,22 +19,23 @@ import {
 import { ChevronRightIcon } from "@heroicons/react/24/solid";
 import { DeleteModal } from "@components/modals";
 import { ArrowDownIcon, ArrowUpIcon } from "@heroicons/react/24/outline";
+import { DocsLink } from "@components/ExternalLink";
 
 export function External() {
-  const {values} = useFormikContext<Filter>();
+  const { values } = useFormikContext<Filter>();
 
   const newItem: ExternalFilter = {
     id: values.external.length + 1,
     index: values.external.length,
     name: `External ${values.external.length + 1}`,
     enabled: false,
-    type: "EXEC",
-  }
+    type: "EXEC"
+  };
 
   return (
     <div className="mt-10">
       <FieldArray name="external">
-        {({remove, push, move}: FieldArrayRenderProps) => (
+        {({ remove, push, move }: FieldArrayRenderProps) => (
           <Fragment>
             <div className="-ml-4 -mt-4 mb-6 flex justify-between items-center flex-wrap sm:flex-nowrap">
               <div className="ml-4 mt-4">
@@ -58,10 +59,10 @@ export function External() {
               {values.external.length > 0
                 ? <ul className="divide-y divide-gray-200 dark:divide-gray-700">
                   {values.external.map((f, index: number) => (
-                    <FilterExternalItem external={f} idx={index} key={index} remove={remove} move={move} initialEdit={true}/>
+                    <FilterExternalItem external={f} idx={index} key={index} remove={remove} move={move} initialEdit={true} />
                   ))}
                 </ul>
-                : <EmptyListState text="No external filters yet!"/>
+                : <EmptyListState text="No external filters yet!" />
               }
             </div>
           </Fragment>
@@ -80,7 +81,7 @@ interface FilterExternalItemProps {
 }
 
 function FilterExternalItem({ idx, external, initialEdit, remove, move }: FilterExternalItemProps) {
-  const {values, setFieldValue} = useFormikContext<Filter>();
+  const { values, setFieldValue } = useFormikContext<Filter>();
   const cancelButtonRef = useRef(null);
 
   const [deleteModalIsOpen, toggleDeleteModal] = useToggle(false);
@@ -91,13 +92,13 @@ function FilterExternalItem({ idx, external, initialEdit, remove, move }: Filter
   };
 
   const moveUp = () => {
-    move(idx, idx - 1)
-    setFieldValue(`external.${idx}.index`, idx - 1)
+    move(idx, idx - 1);
+    setFieldValue(`external.${idx}.index`, idx - 1);
   };
 
   const moveDown = () => {
-    move(idx, idx + 1)
-    setFieldValue(`external.${idx}.index`, idx + 1)
+    move(idx, idx + 1);
+    setFieldValue(`external.${idx}.index`, idx + 1);
   };
 
   return (
@@ -130,9 +131,9 @@ function FilterExternalItem({ idx, external, initialEdit, remove, move }: Filter
 
         <Field name={`external.${idx}.enabled`} type="checkbox">
           {({
-              field,
-              form: {setFieldValue}
-            }: FieldProps) => (
+            field,
+            form: { setFieldValue }
+          }: FieldProps) => (
             <SwitchBasic
               {...field}
               type="button"
@@ -162,7 +163,7 @@ function FilterExternalItem({ idx, external, initialEdit, remove, move }: Filter
           <div className="min-w-0 flex-1 sm:flex sm:items-center sm:justify-between">
             <div className="truncate">
               <div className="flex text-sm">
-                <p className="ml-4 font-medium text-blue-600 dark:text-gray-100 truncate">
+                <p className="ml-4 font-medium text-dark-600 dark:text-gray-100 truncate">
                   {external.name}
                 </p>
               </div>
@@ -183,28 +184,17 @@ function FilterExternalItem({ idx, external, initialEdit, remove, move }: Filter
       </div>
       {edit && (
         <div className="px-4 py-4 flex items-center sm:px-6 border dark:border-gray-600">
-          <Transition.Root show={deleteModalIsOpen} as={Fragment}>
-            <Dialog
-              as="div"
-              static
-              className="fixed inset-0 overflow-y-auto"
-              initialFocus={cancelButtonRef}
-              open={deleteModalIsOpen}
-              onClose={toggleDeleteModal}
-            >
-              <DeleteModal
-                isOpen={deleteModalIsOpen}
-                buttonRef={cancelButtonRef}
-                toggle={toggleDeleteModal}
-                deleteAction={removeAction}
-                title="Remove external filter"
-                text="Are you sure you want to remove this external filter? This action cannot be undone."
-              />
-            </Dialog>
-          </Transition.Root>
+          <DeleteModal
+            isOpen={deleteModalIsOpen}
+            isLoading={false}
+            buttonRef={cancelButtonRef}
+            toggle={toggleDeleteModal}
+            deleteAction={removeAction}
+            title="Remove external filter"
+            text="Are you sure you want to remove this external filter? This action cannot be undone."
+          />
 
           <div className="w-full">
-
             <div className="mt-6 grid grid-cols-12 gap-6">
               <Select
                 name={`external.${idx}.type`}
@@ -214,16 +204,16 @@ function FilterExternalItem({ idx, external, initialEdit, remove, move }: Filter
                 tooltip={<div><p>Select the type for this external filter.</p></div>}
               />
 
-              <TextField name={`external.${idx}.name`} label="Name" columns={6}/>
+              <TextField name={`external.${idx}.name`} label="Name" columns={6} />
             </div>
 
-            <TypeForm external={external} idx={idx}/>
+            <TypeForm external={external} idx={idx} />
 
             <div className="pt-6 divide-y divide-gray-200">
               <div className="mt-4 pt-4 flex justify-between">
                 <button
                   type="button"
-                  className="inline-flex items-center justify-center py-2 border border-transparent font-medium rounded-md text-red-700 dark:text-red-500 hover:text-red-500 dark:hover:text-red-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:text-sm"
+                  className="inline-flex items-center justify-center px-4 py-2 rounded-md sm:text-sm bg-red-700 dark:bg-red-900 hover:dark:bg-red-700 hover:bg-red-800 text-white focus:outline-none"
                   onClick={toggleDeleteModal}
                 >
                   Remove
@@ -232,7 +222,9 @@ function FilterExternalItem({ idx, external, initialEdit, remove, move }: Filter
                 <div>
                   <button
                     type="button"
-                    className="light:bg-white light:border light:border-gray-300 rounded-md shadow-sm py-2 px-4 inline-flex justify-center text-sm font-medium text-gray-700 dark:text-gray-500 light:hover:bg-gray-50 dark:hover:text-gray-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                    className={
+                      "bg-white dark:bg-gray-700 py-2 px-4 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none"
+                    }
                     onClick={toggleEdit}
                   >
                     Close
@@ -240,7 +232,6 @@ function FilterExternalItem({ idx, external, initialEdit, remove, move }: Filter
                 </div>
               </div>
             </div>
-
           </div>
         </div>
       )}
@@ -254,79 +245,102 @@ interface TypeFormProps {
   idx: number;
 }
 
-const TypeForm = ({external, idx}: TypeFormProps) => {
+const TypeForm = ({ external, idx }: TypeFormProps) => {
   switch (external.type) {
-    case "EXEC":
-      return (
-        <div>
-          <div className="mt-6 grid grid-cols-12 gap-6">
-            <TextField
-              name={`external.${idx}.exec_cmd`}
-              label="Command"
-              columns={6}
-              placeholder="Absolute path to executable eg. /bin/test"
-              tooltip={<div><p>For custom commands you should specify the full path to the binary/program
-                you want to run. And you can include your own static variables:</p><a
-                href='https://autobrr.com/filters/actions#custom-commands--exec'
-                className='text-blue-400 visited:text-blue-400'
-                target='_blank'>https://autobrr.com/filters/actions#custom-commands--exec</a></div>}
-            />
-            <TextField
-              name={`external.${idx}.exec_args`}
-              label="Arguments"
-              columns={6}
-              placeholder={`Arguments eg. --test "{{ .TorrentName }}"`}
-            />
-          </div>
-          <div className="mt-6 grid grid-cols-12 gap-6">
-            <NumberField
-              name={`external.${idx}.exec_expect_status`}
-              label="Expected exit status"
-              placeholder="0"
-            />
-          </div>
-        </div>
-      );
-    case "WEBHOOK":
-      return (
+  case "EXEC":
+    return (
+      <div>
         <div className="mt-6 grid grid-cols-12 gap-6">
           <TextField
-            name={`external.${idx}.webhook_host`}
-            label="Host"
+            name={`external.${idx}.exec_cmd`}
+            label="Command"
             columns={6}
-            placeholder="Host eg. http://localhost/webhook"
-            tooltip={<p>URL or IP to api. Pass params and set api tokens etc.</p>}
-          />
-          <Select
-            name={`external.${idx}.webhook_method`}
-            label="HTTP method"
-            optionDefaultText="Select http method"
-            options={ExternalFilterWebhookMethodOptions}
-            tooltip={<div><p>Select the HTTP method for this webhook. Defaults to POST</p></div>}
+            placeholder="Absolute path to executable eg. /bin/test"
+            tooltip={
+              <div>
+                <p>
+                  For custom commands you should specify the full path to the binary/program
+                  you want to run. And you can include your own static variables:
+                </p>
+                <DocsLink href="https://autobrr.com/filters/actions#custom-commands--exec" />
+              </div>
+            }
           />
           <TextField
-            name={`external.${idx}.webhook_headers`}
-            label="Headers"
+            name={`external.${idx}.exec_args`}
+            label="Arguments"
             columns={6}
-            placeholder="HEADER=custom1,HEADER2=custom2"
-          />
-          <TextArea
-            name={`external.${idx}.webhook_data`}
-            label="Data (json)"
-            columns={6}
-            rows={5}
-            placeholder={"Request data: { \"key\": \"value\" }"}
-          />
-
-          <NumberField
-            name={`external.${idx}.webhook_expect_status`}
-            label="Expected http status"
-            placeholder="200"
+            placeholder={"Arguments eg. --test \"{{ .TorrentName }}\""}
           />
         </div>
-      );
+        <div className="mt-6 grid grid-cols-12 gap-6">
+          <NumberField
+            name={`external.${idx}.exec_expect_status`}
+            label="Expected exit status"
+            placeholder="0"
+          />
+        </div>
+      </div>
+    );
+  case "WEBHOOK":
+    return (
+      <div className="mt-6 grid grid-cols-12 gap-6">
+        <TextField
+          name={`external.${idx}.webhook_host`}
+          label="Host"
+          columns={6}
+          placeholder="Host eg. http://localhost/webhook"
+          tooltip={<p>URL or IP to api. Pass params and set api tokens etc.</p>}
+        />
+        <Select
+          name={`external.${idx}.webhook_method`}
+          label="HTTP method"
+          optionDefaultText="Select http method"
+          options={ExternalFilterWebhookMethodOptions}
+          tooltip={<div><p>Select the HTTP method for this webhook. Defaults to POST</p></div>}
+        />
+        <TextField
+          name={`external.${idx}.webhook_headers`}
+          label="Headers"
+          columns={6}
+          placeholder="HEADER=custom1,HEADER2=custom2"
+        />
+        <TextArea
+          name={`external.${idx}.webhook_data`}
+          label="Data (json)"
+          columns={6}
+          rows={5}
+          placeholder={"Request data: { \"key\": \"value\" }"}
+        />
+        <NumberField
+          name={`external.${idx}.webhook_expect_status`}
+          label="Expected http status code"
+          placeholder="200"
+        />
+        <TextField
+          name={`external.${idx}.webhook_retry_status`}
+          label="Retry http status code(s)"
+          placeholder="Retry on status eg. 202, 204"
+        />
+        <NumberField
+          name={`external.${idx}.webhook_retry_attempts`}
+          label="Maximum retry attempts"
+          placeholder="10"
+        />
+        <NumberField
+          name={`external.${idx}.webhook_retry_delay_seconds`}
+          label="Retry delay in seconds"
+          placeholder="1"
+        />
+        <NumberField
+          name={`external.${idx}.webhook_retry_max_jitter_seconds`}
+          label="Max jitter in seconds"
+          placeholder="1"
+        />
+      </div>
+    );
 
-    default:
-      return null;
+  default:
+    return null;
   }
 };

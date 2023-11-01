@@ -87,7 +87,8 @@ func (r *IndexerRepo) List(ctx context.Context) ([]domain.Indexer, error) {
 
 	defer rows.Close()
 
-	var indexers []domain.Indexer
+	indexers := make([]domain.Indexer, 0)
+
 	for rows.Next() {
 		var f domain.Indexer
 
@@ -228,6 +229,28 @@ func (r *IndexerRepo) Delete(ctx context.Context, id int) error {
 	}
 
 	r.log.Debug().Str("method", "delete").Msgf("successfully deleted indexer with id %v", id)
+
+	return nil
+}
+
+func (r *IndexerRepo) ToggleEnabled(ctx context.Context, indexerID int, enabled bool) error {
+	var err error
+
+	queryBuilder := r.db.squirrel.
+		Update("indexer").
+		Set("enabled", enabled).
+		Set("updated_at", sq.Expr("CURRENT_TIMESTAMP")).
+		Where(sq.Eq{"id": indexerID})
+
+	query, args, err := queryBuilder.ToSql()
+	if err != nil {
+		return errors.Wrap(err, "error building query")
+	}
+
+	_, err = r.db.handler.ExecContext(ctx, query, args...)
+	if err != nil {
+		return errors.Wrap(err, "error executing query")
+	}
 
 	return nil
 }

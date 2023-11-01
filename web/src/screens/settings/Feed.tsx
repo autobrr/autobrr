@@ -23,6 +23,8 @@ import { DeleteModal } from "@components/modals";
 import { FeedUpdateForm } from "@forms/settings/FeedForms";
 import { EmptySimple } from "@components/emptystates";
 import { ImplementationBadges } from "./Indexer";
+import { ArrowPathIcon } from "@heroicons/react/24/solid";
+import { ExternalLink } from "@components/ExternalLink";
 
 export const feedKeys = {
   all: ["feeds"] as const,
@@ -63,7 +65,8 @@ function useSort(items: ListItemProps["feed"][], config?: SortConfig) {
     return sortableItems;
   }, [items, sortConfig]);
 
-  const requestSort = (key: keyof ListItemProps["feed"] | "enabled") => {    let direction: "ascending" | "descending" = "ascending";
+  const requestSort = (key: keyof ListItemProps["feed"] | "enabled") => {
+    let direction: "ascending" | "descending" = "ascending";
     if (
       sortConfig &&
       sortConfig.key === key &&
@@ -117,7 +120,7 @@ function FeedSettings() {
                   Enabled <span className="sort-indicator">{sortedFeeds.getSortIndicator("enabled")}</span>
                 </div>
                 <div
-                  className="col-span-6 pl-12 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer"
+                  className="col-span-5 pl-12 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer"
                   onClick={() => sortedFeeds.requestSort("name")}>
                   Name <span className="sort-indicator">{sortedFeeds.getSortIndicator("name")}</span>
                 </div>
@@ -127,13 +130,18 @@ function FeedSettings() {
                   Type <span className="sort-indicator">{sortedFeeds.getSortIndicator("type")}</span>
                 </div>
                 <div
-                  className="hidden md:flex col-span-3 px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer"
+                  className="hidden md:flex col-span-2 px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer"
                   onClick={() => sortedFeeds.requestSort("last_run")}>
                   Last run <span className="sort-indicator">{sortedFeeds.getSortIndicator("last_run")}</span>
                 </div>
+                <div
+                  className="hidden md:flex col-span-2 px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer"
+                  onClick={() => sortedFeeds.requestSort("next_run")}>
+                  Next run <span className="sort-indicator">{sortedFeeds.getSortIndicator("next_run")}</span>
+                </div>
               </li>
               {sortedFeeds.items.map((feed) => (
-                <ListItem key={feed.id} feed={feed}/>
+                <ListItem key={feed.id} feed={feed} />
               ))}
             </ol>
           </section>
@@ -144,7 +152,7 @@ function FeedSettings() {
 }
 
 interface ListItemProps {
-    feed: Feed;
+  feed: Feed;
 }
 
 function ListItem({ feed }: ListItemProps) {
@@ -159,7 +167,7 @@ function ListItem({ feed }: ListItemProps) {
       queryClient.invalidateQueries({ queryKey: feedKeys.lists() });
       queryClient.invalidateQueries({ queryKey: feedKeys.detail(feed.id) });
 
-      toast.custom((t) => <Toast type="success" body={`${feed.name} was ${!enabled ? "disabled" : "enabled"} successfully.`} t={t}/>);
+      toast.custom((t) => <Toast type="success" body={`${feed.name} was ${!enabled ? "disabled" : "enabled"} successfully.`} t={t} />);
     }
   });
 
@@ -170,7 +178,7 @@ function ListItem({ feed }: ListItemProps) {
 
   return (
     <li key={feed.id} className="text-gray-500 dark:text-gray-400">
-      <FeedUpdateForm isOpen={updateFormIsOpen} toggle={toggleUpdateForm} feed={feed}/>
+      <FeedUpdateForm isOpen={updateFormIsOpen} toggle={toggleUpdateForm} feed={feed} />
 
       <div className="grid grid-cols-12 items-center">
         <div className="col-span-2 sm:col-span-1 px-6 flex items-center">
@@ -192,7 +200,7 @@ function ListItem({ feed }: ListItemProps) {
             />
           </Switch>
         </div>
-        <div className="col-span-8 sm:col-span-6 pl-12 py-3 flex flex-col text-sm font-medium text-gray-900 dark:text-white">
+        <div className="col-span-8 sm:col-span-5 pl-12 py-3 flex flex-col text-sm font-medium text-gray-900 dark:text-white">
           <span>{feed.name}</span>
           <span className="text-gray-900 dark:text-gray-500 text-xs">
             {feed.indexer}
@@ -201,9 +209,14 @@ function ListItem({ feed }: ListItemProps) {
         <div className="hidden md:flex col-span-1 py-3 items-center">
           {ImplementationBadges[feed.type.toLowerCase()]}
         </div>
-        <div className="hidden md:flex col-span-3 py-3 items-center sm:px-6 text-sm font-medium text-gray-900 dark:text-gray-500">
+        <div className="hidden md:flex col-span-2 py-3 items-center sm:px-4 text-sm font-medium text-gray-900 dark:text-gray-500">
           <span title={simplifyDate(feed.last_run)}>
             {IsEmptyDate(feed.last_run)}
+          </span>
+        </div>
+        <div className="hidden md:flex col-span-2 py-3 items-center sm:px-4 text-sm font-medium text-gray-900 dark:text-gray-500">
+          <span title={simplifyDate(feed.next_run)}>
+            {IsEmptyDate(feed.next_run)}
           </span>
         </div>
         <div className="col-span-1 flex justify-center items-center sm:px-6">
@@ -219,9 +232,9 @@ function ListItem({ feed }: ListItemProps) {
 }
 
 interface FeedItemDropdownProps {
-    feed: Feed;
-    onToggle: (newState: boolean) => void;
-    toggleUpdate: () => void;
+  feed: Feed;
+  onToggle: (newState: boolean) => void;
+  toggleUpdate: () => void;
 }
 
 const FeedItemDropdown = ({
@@ -230,17 +243,27 @@ const FeedItemDropdown = ({
   toggleUpdate
 }: FeedItemDropdownProps) => {
   const cancelModalButtonRef = useRef(null);
+  const cancelCacheModalButtonRef = useRef(null);
 
   const queryClient = useQueryClient();
 
   const [deleteModalIsOpen, toggleDeleteModal] = useToggle(false);
+  const [deleteCacheModalIsOpen, toggleDeleteCacheModal] = useToggle(false);
+
   const deleteMutation = useMutation({
     mutationFn: (id: number) => APIClient.feeds.delete(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: feedKeys.lists() });
       queryClient.invalidateQueries({ queryKey: feedKeys.detail(feed.id) });
 
-      toast.custom((t) => <Toast type="success" body={`Feed ${feed?.name} was deleted`} t={t}/>);
+      toast.custom((t) => <Toast type="success" body={`Feed ${feed?.name} was deleted`} t={t} />);
+    }
+  });
+
+  const deleteCacheMutation = useMutation({
+    mutationFn: (id: number) => APIClient.feeds.deleteCache(id),
+    onSuccess: () => {
+      toast.custom((t) => <Toast type="success" body={`Feed ${feed?.name} cache was cleared!`} t={t} />);
     }
   });
 
@@ -248,6 +271,7 @@ const FeedItemDropdown = ({
     <Menu as="div">
       <DeleteModal
         isOpen={deleteModalIsOpen}
+        isLoading={deleteMutation.isLoading}
         toggle={toggleDeleteModal}
         buttonRef={cancelModalButtonRef}
         deleteAction={() => {
@@ -256,6 +280,17 @@ const FeedItemDropdown = ({
         }}
         title={`Remove feed: ${feed.name}`}
         text="Are you sure you want to remove this feed? This action cannot be undone."
+      />
+      <DeleteModal
+        isOpen={deleteCacheModalIsOpen}
+        isLoading={deleteMutation.isLoading}
+        toggle={toggleDeleteCacheModal}
+        buttonRef={cancelCacheModalButtonRef}
+        deleteAction={() => {
+          deleteCacheMutation.mutate(feed.id);
+        }}
+        title={`Remove feed cache: ${feed.name}`}
+        text="Are you sure you want to remove the feed cache? This action cannot be undone."
       />
       <Menu.Button className="px-4 py-2">
         <EllipsisHorizontalIcon
@@ -317,28 +352,49 @@ const FeedItemDropdown = ({
               )}
             </Menu.Item>
           </div>
-          <Menu.Item>
-            {({ active }) => (
-              <a
-                href={`${baseUrl()}api/feeds/${feed.id}/latest`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className={classNames(
-                  active ? "bg-blue-600 text-white" : "text-gray-900 dark:text-gray-300",
-                  "font-medium group flex rounded-md items-center w-full px-2 py-2 text-sm"
-                )}
-              >
-                <DocumentTextIcon
+          <div>
+            <Menu.Item>
+              {({ active }) => (
+                <ExternalLink
+                  href={`${baseUrl()}api/feeds/${feed.id}/latest`}
                   className={classNames(
-                    active ? "text-white" : "text-blue-500",
-                    "w-5 h-5 mr-2"
+                    active ? "bg-blue-600 text-white" : "text-gray-900 dark:text-gray-300",
+                    "font-medium group flex rounded-md items-center w-full px-2 py-2 text-sm"
                   )}
-                  aria-hidden="true"
-                />
-                View latest run
-              </a>
-            )}
-          </Menu.Item>
+                >
+                  <DocumentTextIcon
+                    className={classNames(
+                      active ? "text-white" : "text-blue-500",
+                      "w-5 h-5 mr-2"
+                    )}
+                    aria-hidden="true"
+                  />
+                  View latest run
+                </ExternalLink>
+              )}
+            </Menu.Item>
+            <Menu.Item>
+              {({ active }) => (
+                <button
+                  className={classNames(
+                    active ? "bg-red-600 text-white" : "text-gray-900 dark:text-gray-300",
+                    "font-medium group flex rounded-md items-center w-full px-2 py-2 text-sm"
+                  )}
+                  onClick={() => toggleDeleteCacheModal()}
+                  title="Manually clear all feed cache"
+                >
+                  <ArrowPathIcon
+                    className={classNames(
+                      active ? "text-white" : "text-red-500",
+                      "w-5 h-5 mr-2"
+                    )}
+                    aria-hidden="true"
+                  />
+                  Clear feed cache
+                </button>
+              )}
+            </Menu.Item>
+          </div>
           <div className="px-1 py-1">
             <Menu.Item>
               {({ active }) => (

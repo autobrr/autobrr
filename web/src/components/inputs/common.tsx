@@ -5,7 +5,7 @@
 
 import { Field, FieldProps } from "formik";
 import { classNames } from "@utils";
-import { CustomTooltip } from "@components/tooltips/CustomTooltip";
+import { DocsTooltip } from "@components/tooltips/DocsTooltip";
 
 interface ErrorFieldProps {
     name: string;
@@ -63,10 +63,9 @@ const CheckboxField = ({
     <div className="ml-3 text-sm">
       <label htmlFor={name} className="flex mb-2 text-xs font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wide">
         <div className="flex">
-          {label}
-          {tooltip && (
-            <CustomTooltip anchorId={name}>{tooltip}</CustomTooltip>
-          )}
+          {tooltip ? (
+            <DocsTooltip label={label}>{tooltip}</DocsTooltip>
+          ) : label}
         </div>
       </label>
       <p className="text-gray-500">{sublabel}</p>

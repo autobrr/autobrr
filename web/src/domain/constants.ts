@@ -395,6 +395,10 @@ export const NotificationTypeOptions: OptionBasicTyped<NotificationType>[] = [
   {
     label: "Pushover",
     value: "PUSHOVER"
+  },
+  {
+    label: "Gotify",
+    value: "GOTIFY"
   }
 ];
 

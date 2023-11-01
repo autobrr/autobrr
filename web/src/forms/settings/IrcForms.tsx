@@ -30,46 +30,55 @@ const ChannelsFieldArray = ({ channels }: ChannelsFieldArrayProps) => (
       {({ remove, push }: FieldArrayRenderProps) => (
         <div className="flex flex-col space-y-2 border-2 border-dashed dark:border-gray-700 p-4">
           {channels && channels.length > 0 ? (
-            channels.map((_channel: IrcChannel, index: number) => (
-              <div key={index} className="flex justify-between">
-                <div className="flex">
-                  <Field name={`channels.${index}.name`}>
-                    {({ field }: FieldProps) => (
-                      <input
-                        {...field}
-                        type="text"
-                        value={field.value ?? ""}
-                        onChange={field.onChange}
-                        placeholder="#Channel"
-                        className="mr-4 dark:bg-gray-700 focus:ring-blue-500 dark:focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-500 border-gray-300 dark:border-gray-600 block w-full shadow-sm sm:text-sm dark:text-white rounded-md"
-                      />
-                    )}
-                  </Field>
+            channels.map((_channel: IrcChannel, index: number) => {
+              const isDisabled = channels[index].name === "#ptp-announce-dev";
+              return (
+                <div key={index} className="flex justify-between">
+                  <div className="flex">
+                    <Field name={`channels.${index}.name`}>
+                      {({ field }: FieldProps) => (
+                        <input
+                          {...field}
+                          type="text"
+                          value={field.value ?? ""}
+                          onChange={field.onChange}
+                          placeholder="#Channel"
+                          className={`mr-4 focus:ring-blue-500 dark:focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-500 border-gray-300 dark:border-gray-600 block w-full shadow-sm sm:text-sm rounded-md 
+                          ${isDisabled ? "disabled dark:bg-gray-800 dark:text-gray-500" : "dark:bg-gray-700 dark:text-white"}`}
+                          disabled={isDisabled}
+                        />
+                      )}
+                    </Field>
 
-                  <Field name={`channels.${index}.password`}>
-                    {({ field }: FieldProps) => (
-                      <input
-                        {...field}
-                        type="text"
-                        value={field.value ?? ""}
-                        onChange={field.onChange}
-                        placeholder="Password"
-                        className="mr-4 dark:bg-gray-700 focus:ring-blue-500 dark:focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-500 border-gray-300 dark:border-gray-600 block w-full shadow-sm sm:text-sm dark:text-white rounded-md"
-                      />
-                    )}
-                  </Field>
+                    <Field name={`channels.${index}.password`}>
+                      {({ field }: FieldProps) => (
+                        <input
+                          {...field}
+                          type="text"
+                          value={field.value ?? ""}
+                          onChange={field.onChange}
+                          placeholder="Password"
+                          className={`mr-4 focus:ring-blue-500 dark:focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-500 border-gray-300 dark:border-gray-600 block w-full shadow-sm sm:text-sm rounded-md 
+                          ${isDisabled ? "disabled dark:bg-gray-800 dark:text-gray-500" : "dark:bg-gray-700 dark:text-white"}`}
+                          disabled={isDisabled}
+                        />
+                      )}
+                    </Field>
+                  </div>
+
+                  <button
+                    type="button"
+                    className={`bg-white dark:bg-gray-700 rounded-md text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-500 
+                    ${isDisabled ? "disabled hidden" : ""}`}
+                    onClick={() => remove(index)}
+                    disabled={isDisabled}
+                  >
+                    <span className="sr-only">Remove</span>
+                    <XMarkIcon className="h-6 w-6" aria-hidden="true" />
+                  </button>
                 </div>
-
-                <button
-                  type="button"
-                  className="bg-white dark:bg-gray-700 rounded-md text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-500"
-                  onClick={() => remove(index)}
-                >
-                  <span className="sr-only">Remove</span>
-                  <XMarkIcon className="h-6 w-6" aria-hidden="true" />
-                </button>
-              </div>
-            ))
+              );
+            })
           ) : (
             <span className="text-center text-sm text-grey-darker dark:text-white">
               No channels!
@@ -87,7 +96,6 @@ const ChannelsFieldArray = ({ channels }: ChannelsFieldArrayProps) => (
     </FieldArray>
   </div>
 );
-
 interface IrcNetworkAddFormValues {
     name: string;
     enabled: boolean;

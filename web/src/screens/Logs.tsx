@@ -31,14 +31,16 @@ type LogEvent = {
   message: string;
 };
 
-type LogLevel = "TRACE" | "DEBUG" | "INFO" | "ERROR" | "WARN";
+type LogLevel = "TRC" | "DBG" | "INF" | "ERR" | "WRN" | "FTL" | "PNC";
 
 const LogColors: Record<LogLevel, string> = {
-  "TRACE": "text-purple-300",
-  "DEBUG": "text-yellow-500",
-  "INFO": "text-green-500",
-  "ERROR": "text-red-500",
-  "WARN": "text-yellow-500"
+  "TRC": "text-purple-300",
+  "DBG": "text-yellow-500",
+  "INF": "text-green-500",
+  "ERR": "text-red-500",
+  "WRN": "text-yellow-500",
+  "FTL": "text-red-500",
+  "PNC": "text-red-600",
 };
 
 export const Logs = () => {
@@ -52,9 +54,20 @@ export const Logs = () => {
   const [filteredLogs, setFilteredLogs] = useState<LogEvent[]>([]);
   const [isInvalidRegex, setIsInvalidRegex] = useState(false);
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end", inline: "end" });
-  };
+  useEffect(() => {
+    const scrollToBottom = () => {
+      if (messagesEndRef.current) {
+        messagesEndRef.current.scrollTop = messagesEndRef.current.scrollHeight;
+      }
+    };
+    if (settings.scrollOnNewLog)
+      scrollToBottom();
+  }, [filteredLogs]);
+
+  // Add a useEffect to clear logs div when settings.scrollOnNewLog changes to prevent duplicate entries.
+  useEffect(() => {
+    setLogs([]);
+  }, [settings.scrollOnNewLog]);
 
   useEffect(() => {
     const es = APIClient.events.logs();
@@ -62,9 +75,6 @@ export const Logs = () => {
     es.onmessage = (event) => {
       const newData = JSON.parse(event.data) as LogEvent;
       setLogs((prevState) => [...prevState, newData]);
-
-      if (settings.scrollOnNewLog)
-        scrollToBottom();
     };
 
     return () => es.close();
@@ -92,11 +102,9 @@ export const Logs = () => {
 
   return (
     <main>
-      <header className="pt-10 pb-5">
-        <div className="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h1 className="text-3xl font-bold text-black dark:text-white">Logs</h1>
-        </div>
-      </header>
+      <div className="my-6 max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8">
+        <h1 className="text-3xl font-bold text-black dark:text-white">Logs</h1>
+      </div>
 
       <div className="max-w-screen-xl mx-auto pb-12 px-2 sm:px-4 lg:px-8">
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg px-2 sm:px-4 pt-3 sm:pt-4 pb-3 sm:pb-4">
@@ -122,7 +130,7 @@ export const Logs = () => {
             <LogsDropdown />
           </div>
 
-          <div className="overflow-y-auto px-2 rounded-lg h-[60vh] min-w-full bg-gray-100 dark:bg-gray-900 overflow-auto">
+          <div className="overflow-y-auto px-2 rounded-lg h-[60vh] min-w-full bg-gray-100 dark:bg-gray-900 overflow-auto" ref={messagesEndRef}>
             {filteredLogs.map((entry, idx) => (
               <div
                 key={idx}
@@ -135,7 +143,7 @@ export const Logs = () => {
                   title={entry.time}
                   className="font-mono text-gray-500 dark:text-gray-600 mr-2 h-full"
                 >
-                  {format(new Date(entry.time), "HH:mm:ss.SSS")}
+                  {format(new Date(entry.time), "HH:mm:ss")}
                 </span>
                 {entry.level in LogColors ? (
                   <span
@@ -145,7 +153,6 @@ export const Logs = () => {
                     )}
                   >
                     {entry.level}
-                    {" "}
                   </span>
                 ) : null}
                 <span className="ml-2 text-black dark:text-gray-300">
@@ -153,7 +160,6 @@ export const Logs = () => {
                 </span>
               </div>
             ))}
-            <div className="mt-6" ref={messagesEndRef} />
           </div>
         </div>
       </div>

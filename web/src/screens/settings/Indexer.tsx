@@ -4,9 +4,11 @@
  */
 
 import { useState, useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
+import toast from "react-hot-toast";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Switch } from "@headlessui/react";
 
+import Toast from "@components/notifications/Toast";
 import { IndexerAddForm, IndexerUpdateForm } from "@forms";
 import { useToggle } from "@hooks/hooks";
 import { classNames } from "@utils";
@@ -114,8 +116,23 @@ interface ListItemProps {
 const ListItem = ({ indexer }: ListItemProps) => {
   const [updateIsOpen, toggleUpdate] = useToggle(false);
 
+  const queryClient = useQueryClient();
+
+  const updateMutation = useMutation({
+    mutationFn: (enabled: boolean) => APIClient.indexers.toggleEnable(indexer.id, enabled),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: indexerKeys.lists() });
+      toast.custom((t) => <Toast type="success" body={`${indexer.name} was updated successfully`} t={t} />);
+    }
+  });
+
+  const onToggleMutation = (newState: boolean) => {
+    // backend is rejecting when ending the whole object
+    updateMutation.mutate(newState);
+  };
+
   return (
-    <li key={indexer.name}>
+    <li>
       <div className="grid grid-cols-12 items-center py-1.5">
         <IndexerUpdateForm
           isOpen={updateIsOpen}
@@ -124,8 +141,9 @@ const ListItem = ({ indexer }: ListItemProps) => {
         />
         <div className="col-span-2 sm:col-span-1 flex px-6 items-center sm:px-6">
           <Switch
+            onClick={(e) => e.stopPropagation()}
             checked={indexer.enabled ?? false}
-            onChange={toggleUpdate}
+            onChange={onToggleMutation}
             className={classNames(
               indexer.enabled ? "bg-blue-500" : "bg-gray-200 dark:bg-gray-600",
               "relative inline-flex flex-shrink-0 h-6 w-11 border-2 border-transparent rounded-full cursor-pointer transition-colors ease-in-out duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
@@ -225,8 +243,8 @@ function IndexerSettings() {
   Implementation <span className="sort-indicator">{sortedIndexers.getSortIndicator("implementation")}</span>
                   </div>
                 </li>
-                {sortedIndexers.items.map((indexer, idx) => (
-                  <ListItem indexer={indexer} key={idx} />
+                {sortedIndexers.items.map((indexer) => (
+                  <ListItem indexer={indexer} key={indexer.id} />
                 ))}
               </ol>
             </section>

@@ -15,7 +15,7 @@ interface CheckboxProps {
 export const Checkbox = ({ label, description, value, setValue }: CheckboxProps) => (
   <Switch.Group as="li" className="py-4 flex items-center justify-between">
     <div className="flex flex-col">
-      <Switch.Label as="p" className="text-sm font-medium text-gray-900 dark:text-white" passive>
+      <Switch.Label as="p" className="text-sm font-medium whitespace-nowrap text-gray-900 dark:text-white" passive>
         {label}
       </Switch.Label>
       {description === undefined ? null : (

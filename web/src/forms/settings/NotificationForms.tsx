@@ -20,6 +20,7 @@ import Toast from "@components/notifications/Toast";
 import { SlideOver } from "@components/panels";
 import { componentMapType } from "./DownloadClientForms";
 import { notificationKeys } from "@screens/settings/Notifications";
+import { ExternalLink } from "@components/ExternalLink";
 
 const Input = (props: InputProps) => {
   return (
@@ -68,7 +69,14 @@ function FormFieldsDiscord() {
       <div className="px-4 space-y-1">
         <Dialog.Title className="text-lg font-medium text-gray-900 dark:text-white">Settings</Dialog.Title>
         <p className="text-sm text-gray-500 dark:text-gray-400">
-          Create a <a href="https://support.discord.com/hc/en-us/articles/228383668-Intro-to-Webhooks" rel="noopener noreferrer" target="_blank" className="font-medium text-blue-500 underline underline-offset-1 hover:text-blue-400">webhook integration</a> in your server.
+          {"Create a "}
+          <ExternalLink
+            href="https://support.discord.com/hc/en-us/articles/228383668-Intro-to-Webhooks"
+            className="font-medium text-blue-500 underline underline-offset-1 hover:text-blue-400"
+          >
+            webhook integration
+          </ExternalLink>
+          {" in your server."}
         </p>
       </div>
 
@@ -107,7 +115,14 @@ function FormFieldsTelegram() {
       <div className="px-4 space-y-1">
         <Dialog.Title className="text-lg font-medium text-gray-900 dark:text-white">Settings</Dialog.Title>
         <p className="text-sm text-gray-500 dark:text-gray-400">
-          Read how to <a href="https://core.telegram.org/bots#3-how-do-i-create-a-bot" rel="noopener noreferrer" target="_blank" className="font-medium text-blue-500 underline underline-offset-1 hover:text-blue-400">create a bot</a>.
+          {"Read how to "}
+          <ExternalLink
+            href="https://core.telegram.org/bots#3-how-do-i-create-a-bot"
+            className="font-medium text-blue-500 underline underline-offset-1 hover:text-blue-400"
+          >
+            create a bot
+          </ExternalLink>
+          {"."}
         </p>
       </div>
 
@@ -136,7 +151,14 @@ function FormFieldsPushover() {
       <div className="px-4 space-y-1">
         <Dialog.Title className="text-lg font-medium text-gray-900 dark:text-white">Settings</Dialog.Title>
         <p className="text-sm text-gray-500 dark:text-gray-400">
-          Register a new <a href="https://support.pushover.net/i175-how-do-i-get-an-api-or-application-token" rel="noopener noreferrer" target="_blank" className="font-medium text-blue-500 underline underline-offset-1 hover:text-blue-400">application</a> and add its API Token here.
+          {"Register a new "}
+          <ExternalLink
+            href="https://support.pushover.net/i175-how-do-i-get-an-api-or-application-token"
+            className="font-medium text-blue-500 underline underline-offset-1 hover:text-blue-400"
+          >
+            application
+          </ExternalLink>
+          {" and add its API Token here."}
         </p>
       </div>
 
@@ -160,11 +182,36 @@ function FormFieldsPushover() {
   );
 }
 
+function FormFieldsGotify() {
+  return (
+    <div className="border-t border-gray-200 dark:border-gray-700 py-4">
+      <div className="px-4 space-y-1">
+        <Dialog.Title className="text-lg font-medium text-gray-900 dark:text-white">Settings</Dialog.Title>
+      </div>
+
+      <TextFieldWide
+        name="host"
+        label="Gotify URL"
+        help="Gotify URL"
+        placeholder="https://some.gotify.server.com"
+        required={true}
+      />
+      <PasswordFieldWide
+        name="token"
+        label="Application Token"
+        help="Application Token"
+        required={true}
+      />
+    </div>
+  );
+}
+
 const componentMap: componentMapType = {
   DISCORD: <FormFieldsDiscord />,
   NOTIFIARR: <FormFieldsNotifiarr />,
   TELEGRAM: <FormFieldsTelegram />,
-  PUSHOVER: <FormFieldsPushover />
+  PUSHOVER: <FormFieldsPushover />,
+  GOTIFY: <FormFieldsGotify />
 };
 
 interface NotificationAddFormValues {
@@ -181,7 +228,7 @@ export function NotificationAddForm({ isOpen, toggle }: AddProps) {
   const queryClient = useQueryClient();
 
   const createMutation = useMutation({
-    mutationFn: (notification: Notification) => APIClient.notifications.create(notification),
+    mutationFn: (notification: ServiceNotification) => APIClient.notifications.create(notification),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: notificationKeys.lists() });
 
@@ -193,16 +240,16 @@ export function NotificationAddForm({ isOpen, toggle }: AddProps) {
     }
   });
 
-  const onSubmit = (formData: unknown) => createMutation.mutate(formData as Notification);
+  const onSubmit = (formData: unknown) => createMutation.mutate(formData as ServiceNotification);
 
   const testMutation = useMutation({
-    mutationFn: (n: Notification) => APIClient.notifications.test(n),
+    mutationFn: (n: ServiceNotification) => APIClient.notifications.test(n),
     onError: (err) => {
       console.error(err);
     }
   });
 
-  const testNotification = (data: unknown) => testMutation.mutate(data as Notification);
+  const testNotification = (data: unknown) => testMutation.mutate(data as ServiceNotification);
 
   const validate = (values: NotificationAddFormValues) => {
     const errors = {} as FormikErrors<FormikValues>;
@@ -428,7 +475,7 @@ const EventCheckBoxes = () => (
 interface UpdateProps {
     isOpen: boolean;
     toggle: () => void;
-    notification: Notification;
+    notification: ServiceNotification;
 }
 
 interface InitialValues {
@@ -442,6 +489,7 @@ interface InitialValues {
   priority?: number;
   channel?: string;
   topic?: string;
+  host?: string;
   events: NotificationEvent[];
 }
 
@@ -449,7 +497,7 @@ export function NotificationUpdateForm({ isOpen, toggle, notification }: UpdateP
   const queryClient = useQueryClient();
 
   const mutation = useMutation({
-    mutationFn: (notification: Notification) => APIClient.notifications.update(notification),
+    mutationFn: (notification: ServiceNotification) => APIClient.notifications.update(notification),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: notificationKeys.lists() });
 
@@ -458,7 +506,7 @@ export function NotificationUpdateForm({ isOpen, toggle, notification }: UpdateP
     }
   });
 
-  const onSubmit = (formData: unknown) => mutation.mutate(formData as Notification);
+  const onSubmit = (formData: unknown) => mutation.mutate(formData as ServiceNotification);
 
   const deleteMutation = useMutation({
     mutationFn: (notificationID: number) => APIClient.notifications.delete(notificationID),
@@ -472,13 +520,13 @@ export function NotificationUpdateForm({ isOpen, toggle, notification }: UpdateP
   const deleteAction = () => deleteMutation.mutate(notification.id);
 
   const testMutation = useMutation({
-    mutationFn: (n: Notification) => APIClient.notifications.test(n),
+    mutationFn: (n: ServiceNotification) => APIClient.notifications.test(n),
     onError: (err) => {
       console.error(err);
     }
   });
 
-  const testNotification = (data: unknown) => testMutation.mutate(data as Notification);
+  const testNotification = (data: unknown) => testMutation.mutate(data as ServiceNotification);
 
   const initialValues: InitialValues = {
     id: notification.id,
@@ -491,6 +539,7 @@ export function NotificationUpdateForm({ isOpen, toggle, notification }: UpdateP
     priority: notification.priority,
     channel: notification.channel,
     topic: notification.topic,
+    host: notification.host,
     events: notification.events || []
   };
 

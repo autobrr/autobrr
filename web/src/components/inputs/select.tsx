@@ -11,7 +11,7 @@ import { MultiSelect as RMSC } from "react-multi-select-component";
 
 import { classNames, COL_WIDTHS } from "@utils";
 import { SettingsContext } from "@utils/Context";
-import { CustomTooltip } from "@components/tooltips/CustomTooltip";
+import { DocsTooltip } from "@components/tooltips/DocsTooltip";
 
 export interface MultiSelectOption {
     value: string | number;
@@ -56,10 +56,9 @@ export const MultiSelect = ({
       <label
         htmlFor={label} className="flex mb-2 text-xs font-bold tracking-wide text-gray-700 uppercase dark:text-gray-200">
         <div className="flex">
-          {label}
-          {tooltip && (
-            <CustomTooltip anchorId={name}>{tooltip}</CustomTooltip>
-          )}
+          {tooltip ? (
+            <DocsTooltip label={label}>{tooltip}</DocsTooltip>
+          ) : label}
         </div>
       </label>
 
@@ -297,10 +296,9 @@ export const Select = ({
               <>
                 <Listbox.Label className="flex float-left mb-2 text-xs font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wide">
                   <div className="flex">
-                    {label}
-                    {tooltip && (
-                      <CustomTooltip anchorId={name}>{tooltip}</CustomTooltip>
-                    )}
+                    {tooltip ? (
+                      <DocsTooltip label={label}>{tooltip}</DocsTooltip>
+                    ) : label}
                   </div>
                 </Listbox.Label>
                 <div className="mt-2 relative">

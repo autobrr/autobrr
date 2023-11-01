@@ -12,7 +12,7 @@ import { Switch } from "@headlessui/react";
 import { ErrorField, RequiredField } from "./common";
 import Select, { components, ControlProps, InputProps, MenuProps, OptionProps } from "react-select";
 import { SelectFieldProps } from "./select";
-import { CustomTooltip } from "@components/tooltips/CustomTooltip";
+import { DocsTooltip } from "@components/tooltips/DocsTooltip";
 
 interface TextFieldWideProps {
   name: string;
@@ -43,7 +43,9 @@ export const TextFieldWide = ({
     <div>
       <label htmlFor={name} className="flex text-sm font-medium text-gray-900 dark:text-white sm:mt-px sm:pt-2">
         <div className="flex">
-          {label} {tooltip && (<CustomTooltip anchorId={name}>{tooltip}</CustomTooltip>)}
+          {tooltip ? (
+            <DocsTooltip label={label}>{tooltip}</DocsTooltip>
+          ) : label}
           <RequiredField required={required} />
         </div>
       </label>
@@ -67,6 +69,7 @@ export const TextFieldWide = ({
             hidden={hidden}
             required={required}
             autoComplete={autoComplete}
+            data-1p-ignore
           />
         )}
       </Field>
@@ -85,6 +88,7 @@ interface PasswordFieldWideProps {
     defaultValue?: string;
     help?: string;
     required?: boolean;
+    autoComplete?: string;
     defaultVisible?: boolean;
     tooltip?: JSX.Element;
     validate?: FieldValidator;
@@ -97,6 +101,7 @@ export const PasswordFieldWide = ({
   defaultValue,
   help,
   required,
+  autoComplete,
   defaultVisible,
   tooltip,
   validate
@@ -108,7 +113,9 @@ export const PasswordFieldWide = ({
       <div>
         <label htmlFor={name} className="flex text-sm font-medium text-gray-900 dark:text-white sm:mt-px sm:pt-2">
           <div className="flex">
-            {label} {tooltip && (<CustomTooltip anchorId={name}>{tooltip}</CustomTooltip>)}
+            {tooltip ? (
+              <DocsTooltip label={label}>{tooltip}</DocsTooltip>
+            ) : label}
             <RequiredField required={required} />
           </div>
         </label>
@@ -130,6 +137,8 @@ export const PasswordFieldWide = ({
                 className={classNames(meta.touched && meta.error ? "focus:ring-red-500 focus:border-red-500 border-red-500" : "focus:ring-blue-500 dark:focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-500 border-gray-300 dark:border-gray-700", "block w-full pr-10 dark:bg-gray-800 shadow-sm dark:text-gray-100 sm:text-sm rounded-md")}
                 placeholder={placeholder}
                 required={required}
+                autoComplete={autoComplete}
+                data-1p-ignore
               />
               <div className="absolute inset-y-0 right-0 px-3 flex items-center" onClick={toggleVisibility}>
                 {!isVisible ? <EyeIcon className="h-5 w-5 text-gray-400 hover:text-gray-500" aria-hidden="true" /> : <EyeSlashIcon className="h-5 w-5 text-gray-400 hover:text-gray-500" aria-hidden="true" />}
@@ -172,7 +181,9 @@ export const NumberFieldWide = ({
         className="block text-sm font-medium text-gray-900 dark:text-white sm:mt-px sm:pt-2"
       >
         <div className="flex">
-          {label} {tooltip && (<CustomTooltip anchorId={name}>{tooltip}</CustomTooltip>)}
+          {tooltip ? (
+            <DocsTooltip label={label}>{tooltip}</DocsTooltip>
+          ) : label}
           <RequiredField required={required} />
         </div>
       </label>
@@ -232,10 +243,11 @@ export const SwitchGroupWide = ({
   <ul className="px-4 divide-y divide-gray-200 dark:divide-gray-700">
     <Switch.Group as="li" className="py-4 flex items-center justify-between">
       <div className="flex flex-col">
-        <Switch.Label as="div" className="text-sm font-medium text-gray-900 dark:text-white"
-          passive>
+        <Switch.Label as="div" passive className="text-sm font-medium text-gray-900 dark:text-white">
           <div className="flex">
-            {label} {tooltip && (<CustomTooltip anchorId={name}>{tooltip}</CustomTooltip>)}
+            {tooltip ? (
+              <DocsTooltip label={label}>{tooltip}</DocsTooltip>
+            ) : label}
           </div>
         </Switch.Label>
         {description && (
@@ -396,8 +408,9 @@ export const SelectFieldWide = ({
         className="flex text-sm font-medium text-gray-900 dark:text-white"
       >
         <div className="flex">
-          {label}
-          {tooltip && (<CustomTooltip anchorId={name}>{tooltip}</CustomTooltip>)}
+          {tooltip ? (
+            <DocsTooltip label={label}>{tooltip}</DocsTooltip>
+          ) : label}
         </div>
       </label>
     </div>
