@@ -18,11 +18,22 @@ interface ModalLowerProps {
   isOpen: boolean;
   isLoading: boolean;
   toggle: () => void;
-  deleteAction: () => void;
+  deleteAction?: () => void;
+  forceRunAction?: () => void;
 }
 
 interface DeleteModalProps extends ModalUpperProps, ModalLowerProps {
   buttonRef: MutableRefObject<HTMLElement | null> | undefined;
+}
+
+interface ForceRunModalProps {
+  isOpen: boolean;
+  isLoading: boolean;
+  toggle: () => void;
+  buttonRef: MutableRefObject<HTMLElement | null> | undefined;
+  forceRunAction: () => void;
+  title: string;
+  text: string;
 }
 
 const ModalUpper = ({ title, text }: ModalUpperProps) => (
@@ -55,7 +66,7 @@ const ModalLower = ({ isOpen, isLoading, toggle, deleteAction }: ModalLowerProps
           onClick={(e) => {
             e.preventDefault();
             if (isOpen) {
-              deleteAction();
+              deleteAction?.();
               toggle();
             }
           }}
@@ -115,6 +126,81 @@ export const DeleteModal: FC<DeleteModalProps> = (props: DeleteModalProps) => (
           <div className="inline-block align-bottom rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
             <ModalUpper {...props} />
             <ModalLower {...props} />
+          </div>
+        </Transition.Child>
+      </div>
+    </Dialog>
+  </Transition.Root>
+);
+
+export const ForceRunModal: FC<ForceRunModalProps> = (props: ForceRunModalProps) => (
+  <Transition.Root show={props.isOpen} as={Fragment}>
+    <Dialog
+      as="div"
+      static
+      className="fixed z-10 inset-0 overflow-y-auto"
+      initialFocus={props.buttonRef}
+      open={props.isOpen}
+      onClose={props.toggle}
+    >
+      <div className="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+        <Transition.Child
+          as={Fragment}
+          enter="ease-out duration-300"
+          enterFrom="opacity-0"
+          enterTo="opacity-100"
+          leave="ease-in duration-200"
+          leaveFrom="opacity-100"
+          leaveTo="opacity-0"
+        >
+          <Dialog.Overlay className="fixed inset-0 bg-gray-700/60 dark:bg-black/60 transition-opacity" />
+        </Transition.Child>
+
+        <span className="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">
+          &#8203;
+        </span>
+        <Transition.Child
+          as={Fragment}
+          enter="ease-out duration-300"
+          enterFrom="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+          enterTo="opacity-100 translate-y-0 sm:scale-100"
+          leave="ease-in duration-200"
+          leaveFrom="opacity-100 translate-y-0 sm:scale-100"
+          leaveTo="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+        >
+          <div className="inline-block align-bottom rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+            <ModalUpper title={props.title} text={props.text} />
+            <div className="bg-gray-50 dark:bg-gray-800 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+              {props.isLoading ? (
+                <SectionLoader $size="small" />
+              ) : (
+                <>
+                  <button
+                    type="button"
+                    className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-blue-600 text-base font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:ml-3 sm:w-auto sm:text-sm"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      if (props.isOpen) {
+                        props.forceRunAction();
+                        props.toggle();
+                      }
+                    }}
+                  >
+                    Force Run
+                  </button>
+                  <button
+                    type="button"
+                    className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 dark:border-gray-600 shadow-sm px-4 py-2 bg-white dark:bg-gray-700 text-base font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      props.toggle();
+                    }}
+                  >
+                    Cancel
+                  </button>
+                </>
+              )}
+            </div>
           </div>
         </Transition.Child>
       </div>

@@ -20,7 +20,7 @@ import { APIClient } from "@api/APIClient";
 import { useToggle } from "@hooks/hooks";
 import { baseUrl, classNames, IsEmptyDate, simplifyDate } from "@utils";
 import Toast from "@components/notifications/Toast";
-import { DeleteModal } from "@components/modals";
+import { DeleteModal, ForceRunModal } from "@components/modals";
 import { FeedUpdateForm } from "@forms/settings/FeedForms";
 import { EmptySimple } from "@components/emptystates";
 import { ImplementationBadges } from "./Indexer";
@@ -250,6 +250,7 @@ const FeedItemDropdown = ({
 
   const [deleteModalIsOpen, toggleDeleteModal] = useToggle(false);
   const [deleteCacheModalIsOpen, toggleDeleteCacheModal] = useToggle(false);
+  const [forceRunModalIsOpen, toggleForceRunModal] = useToggle(false);
 
   const deleteMutation = useMutation({
     mutationFn: (id: number) => APIClient.feeds.delete(id),
@@ -267,6 +268,15 @@ const FeedItemDropdown = ({
       toast.custom((t) => <Toast type="success" body={`Feed ${feed?.name} cache was cleared!`} t={t} />);
     }
   });
+
+  const forceRunMutation = useMutation({
+    mutationFn: (id: number) => APIClient.feeds.forceRun(id),
+    onSuccess: () => {
+      toast.custom((t) => <Toast type="success" body={`Feed ${feed?.name} was force run successfully.`} t={t} />);
+      toggleForceRunModal(); 
+    }
+  });
+
 
   return (
     <Menu as="div">
@@ -292,6 +302,18 @@ const FeedItemDropdown = ({
         }}
         title={`Remove feed cache: ${feed.name}`}
         text="Are you sure you want to remove the feed cache? This action cannot be undone."
+      />
+      <ForceRunModal
+        isOpen={forceRunModalIsOpen}
+        isLoading={forceRunMutation.isLoading}
+        toggle={toggleForceRunModal}
+        buttonRef={cancelModalButtonRef}
+        forceRunAction={() => {
+          forceRunMutation.mutate(feed.id);
+          toggleForceRunModal();
+        }}
+        title={`Force run feed: ${feed.name}`}
+        text={`Are you sure you want to force run the ${feed.name} feed? Respecting RSS interval rules is crucial to avoid potential IP bans.`}
       />
       <Menu.Button className="px-4 py-2">
         <EllipsisHorizontalIcon
@@ -357,27 +379,7 @@ const FeedItemDropdown = ({
             <Menu.Item>
               {({ active }) => (
                 <button
-                  onClick={async () => {
-                    try {
-                      const response = await fetch(`${baseUrl()}api/feeds/${feed.id}/forcerun`, {
-                        method: "POST",
-                        headers: {
-                          "Content-Type": "application/json"
-                        }
-                      });
-
-                      if (!response.ok) {
-                        throw new Error("Failed to run feed");
-                      }
-
-                      toast.custom((t) => <Toast type="success" body={`${feed.name} was ran successfully.`} t={t} />);
-
-                    } catch (error) {
-                      console.error("Error triggering feed run:", error);
-          
-                      toast.custom((t) => <Toast type="error" body={`Failed to run ${feed.name}.`} t={t} />);
-                    }
-                  }}
+                  onClick={() => toggleForceRunModal()}
                   className={classNames(
                     active ? "bg-blue-600 text-white" : "text-gray-900 dark:text-gray-300",
                     "font-medium group flex rounded-md items-center w-full px-2 py-2 text-sm"
@@ -390,7 +392,7 @@ const FeedItemDropdown = ({
                     )}
                     aria-hidden="true"
                   />
-      Force run
+            Force run
                 </button>
               )}
             </Menu.Item>
