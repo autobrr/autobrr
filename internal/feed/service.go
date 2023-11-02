@@ -515,24 +515,35 @@ func (s *service) ForceRun(ctx context.Context, id int) error {
 		return err
 	}
 
+	fi := feedInstance{
+		Feed:              feed,
+		Name:              feed.Name,
+		IndexerIdentifier: feed.Indexer,
+		Implementation:    feed.Type,
+		URL:               feed.URL,
+		ApiKey:            feed.ApiKey,
+		CronSchedule:      time.Duration(feed.Interval) * time.Minute,
+		Timeout:           time.Duration(feed.Timeout) * time.Second,
+	}
+
 	// Check feed type and execute the job immediately based on its type
 	switch feed.Type {
 	case string(domain.FeedTypeTorznab):
-		job, err := s.createTorznabJob(feedInstanceFromDomainFeed(feed))
+		job, err := s.createTorznabJob(fi)
 		if err != nil {
 			return err
 		}
 		job.Run()
 
 	case string(domain.FeedTypeNewznab):
-		job, err := s.createNewznabJob(feedInstanceFromDomainFeed(feed))
+		job, err := s.createNewznabJob(fi)
 		if err != nil {
 			return err
 		}
 		job.Run()
 
 	case string(domain.FeedTypeRSS):
-		job, err := s.createRSSJob(feedInstanceFromDomainFeed(feed))
+		job, err := s.createRSSJob(fi)
 		if err != nil {
 			return err
 		}
@@ -543,18 +554,4 @@ func (s *service) ForceRun(ctx context.Context, id int) error {
 	}
 
 	return nil
-}
-
-// Helper function to convert *domain.Feed to feedInstance
-func feedInstanceFromDomainFeed(f *domain.Feed) feedInstance {
-	return feedInstance{
-		Feed:              f,
-		Name:              f.Name,
-		IndexerIdentifier: f.Indexer,
-		Implementation:    f.Type,
-		URL:               f.URL,
-		ApiKey:            f.ApiKey,
-		CronSchedule:      time.Duration(f.Interval) * time.Minute,
-		Timeout:           time.Duration(f.Timeout) * time.Second,
-	}
 }
