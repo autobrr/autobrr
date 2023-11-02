@@ -274,6 +274,12 @@ const FeedItemDropdown = ({
     onSuccess: () => {
       toast.custom((t) => <Toast type="success" body={`Feed ${feed?.name} was force run successfully.`} t={t} />);
       toggleForceRunModal(); 
+    },
+    onError: (error: any) => {
+      toast.custom((t) => <Toast type="error" body={`Failed to force run ${feed?.name}. Error: ${error.message}`} t={t} />, {
+        duration: 10000
+      });    
+      toggleForceRunModal(); 
     }
   });
 

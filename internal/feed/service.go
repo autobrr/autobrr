@@ -515,6 +515,11 @@ func (s *service) ForceRun(ctx context.Context, id int) error {
 		return err
 	}
 
+	// Test the feed before running
+	if err := s.test(ctx, feed); err != nil {
+		return fmt.Errorf("failed to run feed: %w", err)
+	}
+
 	fi := feedInstance{
 		Feed:              feed,
 		Name:              feed.Name,
