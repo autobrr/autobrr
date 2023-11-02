@@ -224,6 +224,7 @@ export const APIClient = {
     update: (feed: Feed) => appClient.Put(`api/feeds/${feed.id}`, {
       body: feed
     }),
+    forceRun: (id: number) => appClient.Post(`api/feeds/${id}/forcerun`),
     delete: (id: number) => appClient.Delete(`api/feeds/${id}`),
     deleteCache: (id: number) => appClient.Delete(`api/feeds/${id}/cache`),
     test: (feed: Feed) => appClient.Post("api/feeds/test", {
@@ -249,7 +250,7 @@ export const APIClient = {
     }),
     toggleEnable: (id: number, enabled: boolean) => appClient.Patch(`api/indexer/${id}/enabled`, {
       body: { enabled }
-    }),
+    })
   },
   irc: {
     getNetworks: () => appClient.Get<IrcNetworkWithHealth[]>("api/irc"),

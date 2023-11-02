@@ -12,6 +12,7 @@ import {
   DocumentTextIcon,
   EllipsisHorizontalIcon,
   PencilSquareIcon,
+  ForwardIcon,
   TrashIcon
 } from "@heroicons/react/24/outline";
 
@@ -352,7 +353,47 @@ const FeedItemDropdown = ({
               )}
             </Menu.Item>
           </div>
-          <div>
+          <div className="px-1 py-1">
+            <Menu.Item>
+              {({ active }) => (
+                <button
+                  onClick={async () => {
+                    try {
+                      const response = await fetch(`${baseUrl()}api/feeds/${feed.id}/forcerun`, {
+                        method: "POST",
+                        headers: {
+                          "Content-Type": "application/json"
+                        }
+                      });
+
+                      if (!response.ok) {
+                        throw new Error("Failed to run feed");
+                      }
+
+                      toast.custom((t) => <Toast type="success" body={`${feed.name} was ran successfully.`} t={t} />);
+
+                    } catch (error) {
+                      console.error("Error triggering feed run:", error);
+          
+                      toast.custom((t) => <Toast type="error" body={`Failed to run ${feed.name}.`} t={t} />);
+                    }
+                  }}
+                  className={classNames(
+                    active ? "bg-blue-600 text-white" : "text-gray-900 dark:text-gray-300",
+                    "font-medium group flex rounded-md items-center w-full px-2 py-2 text-sm"
+                  )}
+                >
+                  <ForwardIcon
+                    className={classNames(
+                      active ? "text-white" : "text-blue-500",
+                      "w-5 h-5 mr-2"
+                    )}
+                    aria-hidden="true"
+                  />
+      Force run
+                </button>
+              )}
+            </Menu.Item>
             <Menu.Item>
               {({ active }) => (
                 <ExternalLink

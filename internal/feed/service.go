@@ -36,6 +36,7 @@ type Service interface {
 	DeleteFeedCache(ctx context.Context, id int) error
 	GetLastRunData(ctx context.Context, id int) (string, error)
 	DeleteFeedCacheStale(ctx context.Context) error
+	ForceRun(ctx context.Context, id int) error
 
 	Start() error
 }
@@ -506,4 +507,54 @@ func (s *service) GetLastRunData(ctx context.Context, id int) (string, error) {
 	}
 
 	return feed, nil
+}
+
+func (s *service) ForceRun(ctx context.Context, id int) error {
+	feed, err := s.FindByID(ctx, id)
+	if err != nil {
+		return err
+	}
+
+	// Check feed type and execute the job immediately based on its type
+	switch feed.Type {
+	case string(domain.FeedTypeTorznab):
+		job, err := s.createTorznabJob(feedInstanceFromDomainFeed(feed))
+		if err != nil {
+			return err
+		}
+		job.Run()
+
+	case string(domain.FeedTypeNewznab):
+		job, err := s.createNewznabJob(feedInstanceFromDomainFeed(feed))
+		if err != nil {
+			return err
+		}
+		job.Run()
+
+	case string(domain.FeedTypeRSS):
+		job, err := s.createRSSJob(feedInstanceFromDomainFeed(feed))
+		if err != nil {
+			return err
+		}
+		job.Run()
+
+	default:
+		return errors.New("unsupported feed type: %s", feed.Type)
+	}
+
+	return nil
+}
+
+// Helper function to convert *domain.Feed to feedInstance
+func feedInstanceFromDomainFeed(f *domain.Feed) feedInstance {
+	return feedInstance{
+		Feed:              f,
+		Name:              f.Name,
+		IndexerIdentifier: f.Indexer,
+		Implementation:    f.Type,
+		URL:               f.URL,
+		ApiKey:            f.ApiKey,
+		CronSchedule:      time.Duration(f.Interval) * time.Minute,
+		Timeout:           time.Duration(f.Timeout) * time.Second,
+	}
 }
