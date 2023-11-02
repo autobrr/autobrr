@@ -10,15 +10,17 @@ import type { FieldProps } from "formik";
 import type { FieldArrayRenderProps } from "formik";
 import { Field, FieldArray, FormikErrors, FormikValues } from "formik";
 import { ExclamationTriangleIcon } from "@heroicons/react/24/outline";
-import Select, { components, ControlProps, InputProps, MenuProps, OptionProps } from "react-select";
+import Select from "react-select";
 import { Dialog } from "@headlessui/react";
 
 import { IrcAuthMechanismTypeOptions, OptionBasicTyped } from "@domain/constants";
 import { ircKeys } from "@screens/settings/Irc";
 import { APIClient } from "@api/APIClient";
-import { NumberFieldWide, PasswordFieldWide, SwitchGroupWide, SwitchGroupWideRed, TextFieldWide } from "@components/inputs";
+import { NumberFieldWide, PasswordFieldWide, SwitchGroupWide, TextFieldWide } from "@components/inputs";
 import { SlideOver } from "@components/panels";
 import Toast from "@components/notifications/Toast";
+import * as common from "@components/inputs/common";
+import { classNames } from "@utils";
 
 interface ChannelsFieldArrayProps {
   channels: IrcChannel[];
@@ -30,12 +32,12 @@ const ChannelsFieldArray = ({ channels }: ChannelsFieldArrayProps) => (
       {({ remove, push }: FieldArrayRenderProps) => (
         <div className="flex flex-col space-y-2 border-2 border-dashed dark:border-gray-700 p-4">
           {channels && channels.length > 0 ? (
-            channels.map((_channel: IrcChannel, index: number) => {
-              const isDisabled = channels[index].name === "#ptp-announce-dev";
+            channels.map((channel: IrcChannel, index) => {
+              const isDisabled = channel.name === "#ptp-announce-dev";
               return (
                 <div key={index} className="flex justify-between">
                   <div className="flex">
-                    <Field name={`channels.${index}.name`}>
+                    <Field name={`channels.${channel.id}.name`}>
                       {({ field }: FieldProps) => (
                         <input
                           {...field}
@@ -43,8 +45,10 @@ const ChannelsFieldArray = ({ channels }: ChannelsFieldArrayProps) => (
                           value={field.value ?? ""}
                           onChange={field.onChange}
                           placeholder="#Channel"
-                          className={`mr-4 focus:ring-blue-500 dark:focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-500 border-gray-300 dark:border-gray-600 block w-full shadow-sm sm:text-sm rounded-md 
-                          ${isDisabled ? "disabled dark:bg-gray-800 dark:text-gray-500" : "dark:bg-gray-700 dark:text-white"}`}
+                          className={classNames(
+                            "mr-4 focus:ring-blue-500 dark:focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-500 border-gray-300 dark:border-gray-600 block w-full shadow-sm sm:text-sm rounded-md",
+                            isDisabled ? "disabled dark:bg-gray-800 dark:text-gray-500" : "dark:bg-gray-700 dark:text-white"
+                          )}
                           disabled={isDisabled}
                         />
                       )}
@@ -58,8 +62,10 @@ const ChannelsFieldArray = ({ channels }: ChannelsFieldArrayProps) => (
                           value={field.value ?? ""}
                           onChange={field.onChange}
                           placeholder="Password"
-                          className={`mr-4 focus:ring-blue-500 dark:focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-500 border-gray-300 dark:border-gray-600 block w-full shadow-sm sm:text-sm rounded-md 
-                          ${isDisabled ? "disabled dark:bg-gray-800 dark:text-gray-500" : "dark:bg-gray-700 dark:text-white"}`}
+                          className={classNames(
+                            "mr-4 focus:ring-blue-500 dark:focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-500 border-gray-300 dark:border-gray-600 block w-full shadow-sm sm:text-sm rounded-md",
+                            isDisabled ? "dark:bg-gray-800 dark:text-gray-500" : "dark:bg-gray-700 dark:text-white"
+                          )}
                           disabled={isDisabled}
                         />
                       )}
@@ -68,8 +74,10 @@ const ChannelsFieldArray = ({ channels }: ChannelsFieldArrayProps) => (
 
                   <button
                     type="button"
-                    className={`bg-white dark:bg-gray-700 rounded-md text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-500 
-                    ${isDisabled ? "disabled hidden" : ""}`}
+                    className={classNames(
+                      "bg-white dark:bg-gray-700 rounded-md text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-500",
+                      isDisabled ? "hidden" : ""
+                    )}
                     onClick={() => remove(index)}
                     disabled={isDisabled}
                   >
@@ -324,7 +332,7 @@ export function IrcNetworkUpdateForm({
             required={true}
           />
 
-          <SwitchGroupWideRed name="enabled" label="Enabled" />
+          <SwitchGroupWide name="enabled" label="Enabled" />
           <TextFieldWide
             name="server"
             label="Server"
@@ -429,10 +437,12 @@ function SelectField<T>({ name, label, options }: SelectFieldProps<T>) {
               isClearable={true}
               isSearchable={true}
               components={{
-                Input,
-                Control,
-                Menu,
-                Option
+                Input: common.SelectInput,
+                Control: common.SelectControl,
+                Menu: common.SelectMenu,
+                Option: common.SelectOption,
+                IndicatorSeparator: common.IndicatorSeparator,
+                DropdownIndicator: common.DropdownIndicator
               }}
               placeholder="Choose a type"
               styles={{
@@ -468,44 +478,3 @@ function SelectField<T>({ name, label, options }: SelectFieldProps<T>) {
     </div>
   );
 }
-
-const Input = (props: InputProps) => {
-  return (
-    <components.Input
-      {...props}
-      inputClassName="outline-none border-none shadow-none focus:ring-transparent"
-      className="text-gray-400 dark:text-gray-100"
-      children={props.children}
-    />
-  );
-};
-
-const Control = (props: ControlProps) => {
-  return (
-    <components.Control
-      {...props}
-      className="p-1 block w-full dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:text-gray-100 sm:text-sm"
-      children={props.children}
-    />
-  );
-};
-
-const Menu = (props: MenuProps) => {
-  return (
-    <components.Menu
-      {...props}
-      className="dark:bg-gray-800 border border-gray-300 dark:border-gray-700 dark:text-gray-400 rounded-md shadow-sm"
-      children={props.children}
-    />
-  );
-};
-
-const Option = (props: OptionProps) => {
-  return (
-    <components.Option
-      {...props}
-      className="dark:text-gray-400 dark:bg-gray-800 dark:hover:bg-gray-900 dark:focus:bg-gray-900"
-      children={props.children}
-    />
-  );
-};

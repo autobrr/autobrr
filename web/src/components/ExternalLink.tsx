@@ -16,5 +16,5 @@ export const ExternalLink = ({ href, className, children }: ExternalLinkProps) =
 );
 
 export const DocsLink = ({ href }: { href: string; }) => (
-  <ExternalLink href={href} className="text-blue-400 visited:text-blue-400">{href}</ExternalLink>
+  <ExternalLink href={href} className="text-blue-700 dark:text-blue-400 visited:text-blue-700 dark:visited:text-blue-400">{href}</ExternalLink>
 );

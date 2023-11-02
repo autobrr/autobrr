@@ -37,7 +37,7 @@ export const Tooltip = ({
     visible
   } = usePopperTooltip({
     trigger: requiresClick ? ["click"] : ["click", "hover"],
-    interactive: !requiresClick,
+    interactive: true,
     delayHide: 200
   });
 

@@ -13,7 +13,7 @@ import { toast } from "react-hot-toast";
 import { classNames, sleep } from "@utils";
 import DEBUG from "@components/debug";
 import { APIClient } from "@api/APIClient";
-import {DownloadClientTypeOptions, DownloadRuleConditionOptions} from "@domain/constants";
+import { DownloadClientTypeOptions, DownloadRuleConditionOptions } from "@domain/constants";
 import Toast from "@components/notifications/Toast";
 import { useToggle } from "@hooks/hooks";
 import { DeleteModal } from "@components/modals";
@@ -26,7 +26,7 @@ import {
 } from "@components/inputs";
 import { clientKeys } from "@screens/settings/DownloadClient";
 import { DocsLink, ExternalLink } from "@components/ExternalLink";
-import {SelectFieldBasic} from "@components/inputs/select_wide";
+import { SelectFieldBasic } from "@components/inputs/select_wide";
 
 interface InitialValuesSettings {
   basic?: {
@@ -474,11 +474,11 @@ function FormFieldsRulesQbit() {
           {settings.rules?.ignore_slow_torrents === true && (
             <>
               <SelectFieldBasic
-                  name="settings.rules.ignore_slow_torrents_condition"
-                  label="Ignore condition"
-                  placeholder="Select ignore condition"
-                  options={DownloadRuleConditionOptions}
-                  tooltip={<p>Choose whether to respect or ignore the <code className="text-blue-400">Max active downloads</code> setting before checking speed thresholds.</p>}
+                name="settings.rules.ignore_slow_torrents_condition"
+                label="Ignore condition"
+                placeholder="Select ignore condition"
+                options={DownloadRuleConditionOptions}
+                tooltip={<p>Choose whether to respect or ignore the <code className="text-blue-400">Max active downloads</code> setting before checking speed thresholds.</p>}
               />
               <NumberFieldWide
                 name="settings.rules.download_speed_threshold"
@@ -750,7 +750,7 @@ export function DownloadClientAddForm({ isOpen, toggle }: formProps) {
                 >
                   {({ handleSubmit, values }) => (
                     <Form
-                      className="h-full flex flex-col bg-white dark:bg-gray-800 shadow-xl overflow-y-scroll"
+                      className="h-full flex flex-col bg-white dark:bg-gray-800 shadow-xl overflow-y-auto"
                       onSubmit={handleSubmit}
                     >
                       <div className="flex-1">
@@ -945,7 +945,7 @@ export function DownloadClientUpdateForm({ client, isOpen, toggle }: updateFormP
                   {({ handleSubmit, values }) => {
                     return (
                       <Form
-                        className="h-full flex flex-col bg-white dark:bg-gray-800 shadow-xl overflow-y-scroll"
+                        className="h-full flex flex-col bg-white dark:bg-gray-800 shadow-xl overflow-y-auto"
                         onSubmit={handleSubmit}
                       >
                         <div className="flex-1">
