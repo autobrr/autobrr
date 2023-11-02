@@ -220,6 +220,7 @@ func (h *Handler) Run() error {
 				h.log.Debug().Msgf("connect attempt %d", connectAttempts)
 
 				if err := h.client.Connect(); err != nil {
+					h.log.Debug().Msgf("encountered connection error: %+v", err)
 					connectAttempts++
 					return err
 				}
