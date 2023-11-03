@@ -140,24 +140,26 @@ export const ForceRunModal: FC<ForceRunModalProps> = (props: ForceRunModalProps)
 
   // A function to reset the input and handle any necessary cleanup
   const resetAndClose = () => {
-    setInputValue(""); // Reset the input value
-    props.toggle(); // This will trigger the closing transition
+    setInputValue("");
+    props.toggle();
   };
 
   // The handleClose function will be passed to the onClose prop of the Dialog
   const handleClose = () => {
-    // Wait for the leave transition to finish before resetting and closing
     setTimeout(() => {
       resetAndClose();
-    }, 200); // The timeout should match the longest duration of your leave transitions
+    }, 200);
   };
 
-  // When the 'Force Run' button is clicked
-  const handleForceRun = async (e: React.MouseEvent<HTMLButtonElement>) => {
+  const handleForceRun = (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
     if (props.isOpen && isInputCorrect) {
-      await props.forceRunAction();
-      resetAndClose();
+      props.forceRunAction();
+      props.toggle();
+      // Delay the reset of the input until after the transition finishes
+      setTimeout(() => {
+        setInputValue("");
+      }, 400);
     }
   };
   
@@ -177,7 +179,7 @@ export const ForceRunModal: FC<ForceRunModalProps> = (props: ForceRunModalProps)
         open={props.isOpen}
         onClose={handleClose}
       >
-        <div className="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+        <div className="grid place-items-center min-h-screen">
           <Transition.Child
             as={Fragment}
             enter="ease-out duration-300"
@@ -190,12 +192,6 @@ export const ForceRunModal: FC<ForceRunModalProps> = (props: ForceRunModalProps)
             <Dialog.Overlay className="fixed inset-0 bg-gray-700/60 dark:bg-black/60 transition-opacity" />
           </Transition.Child>
 
-          {/* This hidden span element ensures the modal is centered in the viewport */}
-          <span className="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">
-            &#8203;
-          </span>
-
-          {/* Modal content */}
           <Transition.Child
             as={Fragment}
             enter="ease-out duration-300"
@@ -208,7 +204,6 @@ export const ForceRunModal: FC<ForceRunModalProps> = (props: ForceRunModalProps)
             <div className="inline-block align-bottom border border-transparent dark:border-gray-700 rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
               <ModalUpper title={props.title} text={props.text} />
               
-              {/* Input Field for User Confirmation */}
               <div className="bg-gray-50 dark:bg-gray-800 px-4 py-3 sm:px-6 flex justify-center">
                 <input
                   type="text"
@@ -219,8 +214,6 @@ export const ForceRunModal: FC<ForceRunModalProps> = (props: ForceRunModalProps)
                 />
               </div>
 
-              
-              {/* Button Section */}
               <div className="bg-gray-50 dark:bg-gray-800 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
                 {props.isLoading ? (
                   <SectionLoader $size="small" />
