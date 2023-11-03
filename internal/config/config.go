@@ -199,6 +199,7 @@ func (c *AppConfig) defaults() {
 		PostgresDatabase:  "",
 		PostgresUser:      "",
 		PostgresPass:      "",
+		PostgresSSLMode:   "disable",
 	}
 
 }

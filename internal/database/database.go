@@ -49,7 +49,7 @@ func NewDB(cfg *domain.Config, log logger.Logger) (*DB, error) {
 		if cfg.PostgresHost == "" || cfg.PostgresPort == 0 || cfg.PostgresDatabase == "" {
 			return nil, errors.New("postgres: bad variables")
 		}
-		db.DSN = fmt.Sprintf("postgres://%v:%v@%v:%d/%v?sslmode=disable", cfg.PostgresUser, cfg.PostgresPass, cfg.PostgresHost, cfg.PostgresPort, cfg.PostgresDatabase)
+		db.DSN = fmt.Sprintf("postgres://%v:%v@%v:%d/%v?sslmode=%v", cfg.PostgresUser, cfg.PostgresPass, cfg.PostgresHost, cfg.PostgresPort, cfg.PostgresDatabase, cfg.PostgresSSLMode)
 		db.Driver = "postgres"
 		databaseDriver = "postgres"
 	default:
