@@ -555,7 +555,12 @@ func (s *service) ForceRun(ctx context.Context, id int) error {
 		job.Run()
 
 	default:
-		return errors.New("unsupported feed type: %s", feed.Type)
+		return fmt.Errorf("unsupported feed type: %s", feed.Type)
+	}
+
+	// schedule job
+	if err := s.startJob(feed); err != nil {
+		return fmt.Errorf("failed to reschedule job after force run: %w", err)
 	}
 
 	return nil
