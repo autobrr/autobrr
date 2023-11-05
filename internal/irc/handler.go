@@ -81,6 +81,8 @@ type Handler struct {
 	connectionErrors       []string
 	failedNickServAttempts int
 
+	botMode string
+
 	authenticated bool
 	saslauthed    bool
 }
@@ -197,6 +199,7 @@ func (h *Handler) Run() error {
 	h.client.AddDisconnectCallback(h.onDisconnect)
 
 	h.client.AddCallback("MODE", h.handleMode)
+	h.client.AddCallback("501", h.handleModeUnknownFlag)
 	h.client.AddCallback("INVITE", h.handleInvite)
 	h.client.AddCallback("366", h.handleJoined)
 	h.client.AddCallback("PART", h.handlePart)
@@ -369,8 +372,10 @@ func (h *Handler) onConnect(m ircmsg.Message) {
 
 	time.Sleep(1 * time.Second)
 
-	h.authenticate()
-
+	// If we set Bot Mode, the authentication will happen after the mode response
+	if !h.setBotMode() {
+		h.authenticate()
+	}
 }
 
 // onDisconnect is the disconnect callback
@@ -476,6 +481,22 @@ func (h *Handler) handleNickServ(msg ircmsg.Message) {
 			return
 		}
 	}
+}
+
+// setBotMode attempts to set the BOT mode on ourself, if supported by the server
+// See https://ircv3.net/specs/extensions/bot-mode
+func (h *Handler) setBotMode() bool {
+	h.botMode = h.client.ISupport()["BOT"]
+
+	if h.botMode == "" {
+		// No BOT ISUPPORT token
+		return false
+	}
+
+	// BOT ISUPPORT token found, set Bot Mode
+	h.client.Send("MODE", h.CurrentNick(), "+"+h.botMode)
+
+	return true
 }
 
 // authenticate sends NickServIdentify if not authenticated
@@ -855,7 +876,15 @@ func (h *Handler) handleMode(msg ircmsg.Message) {
 		return
 	}
 
-	return
+	if h.botMode != "" && h.isOurCurrentNick(msg.Params[0]) && strings.Contains(msg.Params[1], "+"+h.botMode) {
+		h.authenticate()
+	}
+}
+
+// listens for ERR_UMODEUNKNOWNFLAG events
+func (h *Handler) handleModeUnknownFlag(msg ircmsg.Message) {
+	// if Bot Mode setting failed, still try to authenticate
+	h.authenticate()
 }
 
 func (h *Handler) SendMsg(channel, msg string) error {
