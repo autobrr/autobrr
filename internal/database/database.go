@@ -50,6 +50,9 @@ func NewDB(cfg *domain.Config, log logger.Logger) (*DB, error) {
 			return nil, errors.New("postgres: bad variables")
 		}
 		db.DSN = fmt.Sprintf("postgres://%v:%v@%v:%d/%v?sslmode=%v", cfg.PostgresUser, cfg.PostgresPass, cfg.PostgresHost, cfg.PostgresPort, cfg.PostgresDatabase, cfg.PostgresSSLMode)
+		if cfg.PostgresExtraParams != "" {
+		    db.DSN = fmt.Sprintf("%s&%s", db.DSN, cfg.PostgresExtraParams)
+		}
 		db.Driver = "postgres"
 		databaseDriver = "postgres"
 	default:
