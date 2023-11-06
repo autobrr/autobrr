@@ -512,6 +512,38 @@ func checkSizeFilter(minSize string, maxSize string, releaseSize uint64) (bool, 
 	return true, nil
 }
 
+func (s *service) AdditionalDetailCheck(ctx context.Context, release *domain.Release) error {
+	// Only perform additional fetching for specific indexers
+	switch release.Indexer {
+	case "redacted", "ops":
+		s.log.Trace().Msgf("service.AdditionalDetailCheck: preparing to fetch details for indexer %s, torrent ID %s", release.Indexer, release.TorrentID)
+
+		torrentInfo, err := s.apiService.GetTorrentByID(ctx, release.Indexer, release.TorrentID)
+		if err != nil {
+			s.log.Error().Stack().Err(err).Msgf("service.AdditionalDetailCheck: could not get torrent info from API for torrent ID '%s' from indexer '%s'", release.TorrentID, release.Indexer)
+			return err
+		}
+
+		if torrentInfo == nil {
+			s.log.Error().Msgf("service.AdditionalDetailCheck: received nil torrent info from API for torrent ID '%s' from indexer '%s'", release.TorrentID, release.Indexer)
+			return errors.New("nil torrentInfo received from API")
+		}
+
+		s.log.Debug().Msgf("service.AdditionalDetailCheck: fetched torrent info from API: %+v", torrentInfo)
+
+		// Update release details with the information from the API
+		release.Uploader = torrentInfo.Uploader
+		release.RecordLabel = torrentInfo.RecordLabel
+
+		return nil
+
+	default:
+		s.log.Trace().Msgf("service.AdditionalDetailCheck: no fetching required for indexer %s", release.Indexer)
+		// No action needed for other indexers
+		return nil
+	}
+}
+
 func (s *service) CanDownloadShow(ctx context.Context, release *domain.Release) (bool, error) {
 	return s.releaseRepo.CanDownloadShow(ctx, release.Title, release.Season, release.Episode)
 }
