@@ -45,6 +45,7 @@ type Service interface {
 	AdditionalSizeCheck(ctx context.Context, f domain.Filter, release *domain.Release) (bool, error)
 	CanDownloadShow(ctx context.Context, release *domain.Release) (bool, error)
 	GetDownloadsByFilterId(ctx context.Context, filterID int) (*domain.FilterDownloads, error)
+	AdditionalDetailCheck(ctx context.Context, release *domain.Release) error
 }
 
 type service struct {
