@@ -220,7 +220,10 @@ func (h *Handler) Run() error {
 				h.log.Debug().Msgf("connect attempt %d", connectAttempts)
 
 				if err := h.client.Connect(); err != nil {
-					h.log.Error().Err(err).Msg("client encountered connection error")
+					if err.Error() != "client has called Quit()" {
+						h.log.Error().Err(err).Msg("client encountered connection error")
+					}
+
 					connectAttempts++
 					return err
 				}
