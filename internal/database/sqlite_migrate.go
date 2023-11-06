@@ -88,6 +88,7 @@ CREATE TABLE filter
     match_description              TEXT,
     except_description             TEXT,
     use_regex_description          BOOLEAN DEFAULT FALSE,
+    record_label                   TEXT,
     scene                          BOOLEAN,
     freeleech                      BOOLEAN,
     freeleech_percent              TEXT,
@@ -1106,6 +1107,9 @@ ADD COLUMN topic text;`,
 
 	ALTER TABLE filter
 		ADD COLUMN except_description TEXT;
+
+    ALTER TABLE filter
+        ADD COLUMN record_label TEXT;
 
 	ALTER TABLE filter
 		ADD COLUMN use_regex_description BOOLEAN DEFAULT FALSE;`,

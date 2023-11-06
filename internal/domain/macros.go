@@ -36,6 +36,7 @@ type Macro struct {
 	FilterName          string
 	Size                uint64
 	SizeString          string
+	RecordLabel         string
 	Season              int
 	Episode             int
 	Year                int
@@ -71,6 +72,7 @@ func NewMacro(release Release) Macro {
 		FilterName:          release.FilterName,
 		Size:                release.Size,
 		SizeString:          humanize.Bytes(release.Size),
+		RecordLabel:         release.RecordLabel,
 		Season:              release.Season,
 		Episode:             release.Episode,
 		Year:                release.Year,

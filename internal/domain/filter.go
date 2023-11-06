@@ -130,6 +130,7 @@ type Filter struct {
 	MatchDescription     string                 `json:"match_description,omitempty"`
 	ExceptDescription    string                 `json:"except_description,omitempty"`
 	UseRegexDescription  bool                   `json:"use_regex_description,omitempty"`
+	RecordLabel          string                 `json:"record_label,omitempty"`
 	ActionsCount         int                    `json:"actions_count"`
 	Actions              []*Action              `json:"actions,omitempty"`
 	External             []FilterExternal       `json:"external,omitempty"`
@@ -186,6 +187,7 @@ type FilterUpdate struct {
 	MatchDescription                     *string                 `json:"match_description,omitempty"`
 	ExceptDescription                    *string                 `json:"except_description,omitempty"`
 	UseRegexDescription                  *bool                   `json:"use_regex_description,omitempty"`
+	RecordLabel                          *string                 `json:"record_label,omitempty"`
 	Scene                                *bool                   `json:"scene,omitempty"`
 	Origins                              *[]string               `json:"origins,omitempty"`
 	ExceptOrigins                        *[]string               `json:"except_origins,omitempty"`
@@ -493,6 +495,10 @@ func (f Filter) CheckFilter(r *Release) ([]string, bool) {
 		if f.ExceptDescription != "" && containsFuzzy(r.Description, f.ExceptDescription) {
 			r.addRejectionF("except description: unwanted release. got: %v want: %v", r.Description, f.ExceptDescription)
 		}
+	}
+
+	if len(f.RecordLabel) > 0 && !contains(r.RecordLabel, f.RecordLabel) {
+		r.addRejectionF("record label not matching. got: %v want: %v", r.RecordLabel, f.RecordLabel)
 	}
 
 	if len(r.Rejections) > 0 {

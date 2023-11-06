@@ -201,10 +201,11 @@ func (c *Client) GetTorrentByID(ctx context.Context, torrentID string) (*domain.
 	}
 
 	res := &domain.TorrentBasic{
-		Id:       strconv.Itoa(r.Response.Torrent.Id),
-		InfoHash: r.Response.Torrent.InfoHash,
-		Size:     strconv.Itoa(r.Response.Torrent.Size),
-		Uploader: r.Response.Torrent.Username,
+		Id:          strconv.Itoa(r.Response.Torrent.Id),
+		InfoHash:    r.Response.Torrent.InfoHash,
+		Size:        strconv.Itoa(r.Response.Torrent.Size),
+		Uploader:    r.Response.Torrent.Username,
+		RecordLabel: r.Response.Group.RecordLabel,
 	}
 
 	return res, nil

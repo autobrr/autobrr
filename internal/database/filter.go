@@ -194,6 +194,7 @@ func (r *FilterRepo) FindByID(ctx context.Context, filterID int) (*domain.Filter
 			"f.match_description",
 			"f.except_description",
 			"f.use_regex_description",
+			"f.record_label",
 			"f.scene",
 			"f.freeleech",
 			"f.freeleech_percent",
@@ -275,7 +276,7 @@ func (r *FilterRepo) FindByID(ctx context.Context, filterID int) (*domain.Filter
 
 	for rows.Next() {
 		// filter
-		var minSize, maxSize, maxDownloadsUnit, matchReleases, exceptReleases, matchReleaseGroups, exceptReleaseGroups, matchReleaseTags, exceptReleaseTags, matchDescription, exceptDescription, freeleechPercent, shows, seasons, episodes, years, artists, albums, matchCategories, exceptCategories, matchUploaders, exceptUploaders, tags, exceptTags, tagsMatchLogic, exceptTagsMatchLogic sql.NullString
+		var minSize, maxSize, maxDownloadsUnit, matchReleases, exceptReleases, matchReleaseGroups, exceptReleaseGroups, matchReleaseTags, exceptReleaseTags, matchDescription, exceptDescription, recordLabel, freeleechPercent, shows, seasons, episodes, years, artists, albums, matchCategories, exceptCategories, matchUploaders, exceptUploaders, tags, exceptTags, tagsMatchLogic, exceptTagsMatchLogic sql.NullString
 		var useRegex, scene, freeleech, hasLog, hasCue, perfectFlac sql.NullBool
 		var delay, maxDownloads, logScore sql.NullInt32
 
@@ -305,6 +306,7 @@ func (r *FilterRepo) FindByID(ctx context.Context, filterID int) (*domain.Filter
 			&matchDescription,
 			&exceptDescription,
 			&f.UseRegexDescription,
+			&recordLabel,
 			&scene,
 			&freeleech,
 			&freeleechPercent,
@@ -379,6 +381,7 @@ func (r *FilterRepo) FindByID(ctx context.Context, filterID int) (*domain.Filter
 		f.ExceptReleaseTags = exceptReleaseTags.String
 		f.MatchDescription = matchDescription.String
 		f.ExceptDescription = exceptDescription.String
+		f.RecordLabel = recordLabel.String
 		f.FreeleechPercent = freeleechPercent.String
 		f.Shows = shows.String
 		f.Seasons = seasons.String
@@ -461,6 +464,7 @@ func (r *FilterRepo) findByIndexerIdentifier(ctx context.Context, indexer string
 			"f.match_description",
 			"f.except_description",
 			"f.use_regex_description",
+			"f.record_label",
 			"f.scene",
 			"f.freeleech",
 			"f.freeleech_percent",
@@ -828,6 +832,7 @@ func (r *FilterRepo) Store(ctx context.Context, filter *domain.Filter) error {
 			"match_description",
 			"except_description",
 			"use_regex_description",
+			"record_label",
 			"scene",
 			"freeleech",
 			"freeleech_percent",
@@ -887,6 +892,7 @@ func (r *FilterRepo) Store(ctx context.Context, filter *domain.Filter) error {
 			filter.MatchDescription,
 			filter.ExceptDescription,
 			filter.UseRegexDescription,
+			filter.RecordLabel,
 			filter.Scene,
 			filter.Freeleech,
 			filter.FreeleechPercent,
@@ -964,6 +970,7 @@ func (r *FilterRepo) Update(ctx context.Context, filter *domain.Filter) error {
 		Set("match_description", filter.MatchDescription).
 		Set("except_description", filter.ExceptDescription).
 		Set("use_regex_description", filter.UseRegexDescription).
+		Set("record_label", filter.RecordLabel).
 		Set("scene", filter.Scene).
 		Set("freeleech", filter.Freeleech).
 		Set("freeleech_percent", filter.FreeleechPercent).
@@ -1079,6 +1086,9 @@ func (r *FilterRepo) UpdatePartial(ctx context.Context, filter domain.FilterUpda
 	}
 	if filter.UseRegexDescription != nil {
 		q = q.Set("use_regex_description", filter.UseRegexDescription)
+	}
+	if filter.RecordLabel != nil {
+		q = q.Set("record_label", filter.RecordLabel)
 	}
 	if filter.Scene != nil {
 		q = q.Set("scene", filter.Scene)

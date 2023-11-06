@@ -162,6 +162,12 @@ func (s *service) Store(ctx context.Context, filter *domain.Filter) error {
 	return nil
 }
 
+func normalizeCommas(input string) string {
+	result := strings.ReplaceAll(input, "\n", ",")
+	result = strings.ReplaceAll(result, ",,", ",")
+	return result
+}
+
 func (s *service) Update(ctx context.Context, filter *domain.Filter) error {
 	// validate data
 	if filter.Name == "" {
@@ -169,8 +175,10 @@ func (s *service) Update(ctx context.Context, filter *domain.Filter) error {
 	}
 
 	// replace newline with comma
-	filter.Shows = strings.ReplaceAll(filter.Shows, "\n", ",")
-	filter.Shows = strings.ReplaceAll(filter.Shows, ",,", ",")
+	filter.Shows = normalizeCommas(filter.Shows)
+	filter.Artists = normalizeCommas(filter.Artists)
+	filter.Albums = normalizeCommas(filter.Albums)
+	filter.RecordLabel = normalizeCommas(filter.RecordLabel)
 
 	// update
 	if err := s.repo.Update(ctx, filter); err != nil {

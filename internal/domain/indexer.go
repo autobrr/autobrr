@@ -336,11 +336,12 @@ func (p *IndexerIRCParse) ParseMatch(baseURL string, vars map[string]string) (*I
 }
 
 type TorrentBasic struct {
-	Id        string `json:"Id"`
-	TorrentId string `json:"TorrentId,omitempty"`
-	InfoHash  string `json:"InfoHash"`
-	Size      string `json:"Size"`
-	Uploader  string `json:"Uploader"`
+	Id          string `json:"Id"`
+	TorrentId   string `json:"TorrentId,omitempty"`
+	InfoHash    string `json:"InfoHash"`
+	Size        string `json:"Size"`
+	Uploader    string `json:"Uploader"`
+	RecordLabel string `json:"RecordLabel"`
 }
 
 func (t TorrentBasic) ReleaseSizeBytes() uint64 {

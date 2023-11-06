@@ -221,7 +221,7 @@ const externalFilterSchema = z.object({
   webhook_retry_status: z.string().optional(),
   webhook_retry_attempts: z.number().optional(),
   webhook_retry_delay_seconds: z.number().optional(),
-  webhook_retry_max_jitter_seconds: z.number().optional(),
+  webhook_retry_max_jitter_seconds: z.number().optional()
 });
 
 const indexerSchema = z.object({
@@ -234,7 +234,7 @@ const schema = z.object({
   name: z.string(),
   indexers: z.array(indexerSchema).min(1, { message: "Must select at least one indexer" }),
   actions: z.array(actionSchema),
-  external: z.array(externalFilterSchema),
+  external: z.array(externalFilterSchema)
 });
 
 export function FilterDetails() {
@@ -389,6 +389,7 @@ export function FilterDetails() {
                 media: filter.media || [],
                 match_release_types: filter.match_release_types || [],
                 log_score: filter.log_score,
+                record_label: filter.record_label,
                 log: filter.log,
                 cue: filter.cue,
                 perfect_flac: filter.perfect_flac,
@@ -398,7 +399,7 @@ export function FilterDetails() {
                 except_origins: filter.except_origins || [],
                 indexers: filter.indexers || [],
                 actions: filter.actions || [],
-                external: filter.external || [],
+                external: filter.external || []
               } as Filter}
               onSubmit={handleSubmit}
               enableReinitialize={true}
@@ -743,11 +744,11 @@ export function MoviesTv() {
 export function Music({ values }: AdvancedProps) {
   return (
     <div>
-      <div className="mt-6 grid grid-cols-12 gap-6">
+      <div className="mt-6 grid grid-cols-6 gap-6">
         <TextAreaAutoResize
           name="artists"
           label="Artists"
-          columns={4}
+          columns={3}
           placeholder="eg. Artist One"
           tooltip={
             <div>
@@ -759,7 +760,7 @@ export function Music({ values }: AdvancedProps) {
         <TextAreaAutoResize
           name="albums"
           label="Albums"
-          columns={4}
+          columns={3}
           placeholder="eg. That Album"
           tooltip={
             <div>
@@ -768,10 +769,22 @@ export function Music({ values }: AdvancedProps) {
             </div>
           }
         />
+        <TextAreaAutoResize
+          name="record_label"
+          label="Record Labels"
+          columns={3}
+          placeholder="eg. Interscope"
+          tooltip={
+            <div>
+              <p>Comma separated list of record labels to match against.</p>
+              <p>Only OPS and RED are supported for now.</p>
+            </div>
+          }
+        />
         <TextField
           name="years"
           label="Years"
-          columns={4}
+          columns={3}
           placeholder="eg. 2018,2019-2021"
           tooltip={
             <div>
