@@ -223,7 +223,7 @@ func (h *Handler) Run() error {
 			func() error {
 				h.log.Debug().Msgf("connect attempt %d", connectAttempts)
 
-				// #99: don't retry if the user manually disconnected with Stop()
+				// #1239: don't retry if the user manually disconnected with Stop()
 				h.m.RLock()
 				manuallyDisconnected := h.manuallyDisconnected
 				h.m.RUnlock()
