@@ -8,6 +8,7 @@ import (
 	"os/signal"
 	"syscall"
 	_ "time/tzdata"
+	_ "go.uber.org/automaxprocs"
 
 	"github.com/autobrr/autobrr/internal/action"
 	"github.com/autobrr/autobrr/internal/api"
