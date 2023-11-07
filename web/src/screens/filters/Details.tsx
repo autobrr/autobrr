@@ -398,7 +398,10 @@ export function FilterDetails() {
                 except_origins: filter.except_origins || [],
                 indexers: filter.indexers || [],
                 actions: filter.actions || [],
-                external: filter.external || [],
+                external: filter.external ? filter.external.map(ext => ({
+                  ...ext,
+                  webhook_method: ext.webhook_method || "POST"
+                })) : []
               } as Filter}
               onSubmit={handleSubmit}
               enableReinitialize={true}
