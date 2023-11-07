@@ -25,6 +25,10 @@ import (
 	"github.com/sasha-s/go-deadlock"
 )
 
+var (
+	clientManuallyDisconnected = retry.Unrecoverable(errors.New("IRC client was manually disconnected"))
+)
+
 type channelHealth struct {
 	m deadlock.RWMutex
 
@@ -219,11 +223,17 @@ func (h *Handler) Run() error {
 			func() error {
 				h.log.Debug().Msgf("connect attempt %d", connectAttempts)
 
-				if err := h.client.Connect(); err != nil {
-					if err.Error() != "client has called Quit()" {
-						h.log.Error().Err(err).Msg("client encountered connection error")
-					}
+				// #99: don't retry if the user manually disconnected with Stop()
+				h.m.RLock()
+				manuallyDisconnected := h.manuallyDisconnected
+				h.m.RUnlock()
 
+				if manuallyDisconnected {
+					return clientManuallyDisconnected
+				}
+
+				if err := h.client.Connect(); err != nil {
+					h.log.Error().Err(err).Msg("client encountered connection error")
 					connectAttempts++
 					return err
 				}
