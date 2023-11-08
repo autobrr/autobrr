@@ -225,8 +225,8 @@ func (h *Handler) Run() error {
 
 				// #1239: don't retry if the user manually disconnected with Stop()
 				h.m.RLock()
-				defer h.m.RUnlock()
 				manuallyDisconnected := h.manuallyDisconnected
+				h.m.RUnlock()
 
 				if manuallyDisconnected {
 					return clientManuallyDisconnected
@@ -334,15 +334,16 @@ func (h *Handler) resetChannelHealth() {
 // Stop the network and quit
 func (h *Handler) Stop() {
 	h.m.Lock()
-	defer h.m.Unlock()
 	h.connectedSince = time.Time{}
 	h.manuallyDisconnected = true
 
 	if h.client.Connected() {
 		h.log.Debug().Msg("Disconnecting...")
 	}
+	h.m.Unlock()
 
 	h.resetChannelHealth()
+
 	h.client.Quit()
 }
 
