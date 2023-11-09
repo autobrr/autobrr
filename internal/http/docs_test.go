@@ -11,16 +11,14 @@ import (
 	"time"
 )
 
-// Function to extract all autobrr.com URLs from a string using regex.
+// Extract all URLs from a string using regex.
 func extractAutobrrURLs(fileContent string) []string {
-	// This regex pattern matches URLs with autobrr.com and any path.
 	autobrrURLRegex := regexp.MustCompile(`https?://autobrr\.com/[^ \s"')]+`)
 	matches := autobrrURLRegex.FindAllString(fileContent, -1)
 
-	return matches // Return the matches directly
+	return matches
 }
 
-// Function to read the content of a file and extract autobrr.com URLs.
 func processFile(filePath string) ([]string, error) {
 	content, err := ioutil.ReadFile(filePath)
 	if err != nil {
@@ -30,25 +28,22 @@ func processFile(filePath string) ([]string, error) {
 	return extractAutobrrURLs(string(content)), nil
 }
 
-// Function to recursively scan directories for .go and .tsx files and test their autobrr.com URLs.
+// Recursively scan directories for .go, .tsx .md and .yml files and test their URLs.
 func TestAutobrrURLsInRepository(t *testing.T) {
 	uniqueURLs := make(map[string]bool)
 
 	// Define the base path where the search should start.
-	basePath := "../.." // Adjust this to the appropriate base path.
+	basePath := "../.."
 
-	// Walk the entire directory tree starting from the base path.
 	err := filepath.Walk(basePath, func(path string, info fs.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
 
-		// Skip directories.
 		if info.IsDir() {
 			return nil
 		}
 
-		// Check for .go or .tsx files.
 		if filepath.Ext(path) == ".go" || filepath.Ext(path) == ".tsx" || filepath.Ext(path) == ".md" || filepath.Ext(path) == ".yml" {
 			fileURLs, err := processFile(path)
 			if err != nil {
@@ -60,7 +55,7 @@ func TestAutobrrURLsInRepository(t *testing.T) {
 				urlWithoutFragment := strings.Split(url, "#")[0]
 				// Check if the base URL has already been added to the uniqueURLs map.
 				if !uniqueURLs[urlWithoutFragment] {
-					uniqueURLs[urlWithoutFragment] = true // Add the base URL to the map.
+					uniqueURLs[urlWithoutFragment] = true
 				}
 			}
 		}
@@ -72,7 +67,6 @@ func TestAutobrrURLsInRepository(t *testing.T) {
 		return
 	}
 
-	// Now test each unique autobrr.com URL
 	for url := range uniqueURLs {
 		t.Run(url, func(t *testing.T) {
 			resp, err := http.Get(url)
@@ -81,7 +75,6 @@ func TestAutobrrURLsInRepository(t *testing.T) {
 			}
 			defer resp.Body.Close()
 
-			// Check if the status code is not found, 404
 			if resp.StatusCode == http.StatusNotFound {
 				t.Errorf("URL %s returned 404 Not Found", url)
 			}
