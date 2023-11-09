@@ -493,6 +493,38 @@ const TypeForm = ({ action, idx, clients }: TypeFormProps) => {
           />
         </div>
 
+        <CollapsableSection title="Rules" subtitle="client options">
+          <div className="col-span-12">
+            <div className="mt-6 grid grid-cols-12 gap-6">
+              <NumberField
+                  name={`actions.${idx}.limit_download_speed`}
+                  label="Limit download speed (KiB/s)"
+                  placeholder="Takes any number (0 is no limit)"
+              />
+              <NumberField
+                  name={`actions.${idx}.limit_upload_speed`}
+                  label="Limit upload speed (KiB/s)"
+                  placeholder="Takes any number (0 is no limit)"
+              />
+            </div>
+
+            <div className="mt-6 grid grid-cols-12 gap-6">
+              <NumberField
+                  name={`actions.${idx}.limit_ratio`}
+                  label="Ratio limit"
+                  placeholder="Takes any number (0 is no limit)"
+                  step={0.25}
+                  isDecimal
+              />
+              <NumberField
+                  name={`actions.${idx}.limit_seed_time`}
+                  label="Seed time limit (minutes)"
+                  placeholder="Takes any number (0 is no limit)"
+              />
+            </div>
+          </div>
+        </CollapsableSection>
+
         <CollapsableSection title="Re-announce" subtitle="Re-announce options">
           <div className="col-span-12">
             <div className="mt-6 grid grid-cols-12 gap-6">

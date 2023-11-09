@@ -54,7 +54,10 @@ func NewDB(cfg *domain.Config, log logger.Logger) (*DB, error) {
 		if cfg.PostgresHost == "" || cfg.PostgresPort == 0 || cfg.PostgresDatabase == "" {
 			return nil, errors.New("postgres: bad variables")
 		}
-		db.DSN = fmt.Sprintf("postgres://%v:%v@%v:%d/%v?sslmode=disable", cfg.PostgresUser, cfg.PostgresPass, cfg.PostgresHost, cfg.PostgresPort, cfg.PostgresDatabase)
+		db.DSN = fmt.Sprintf("postgres://%v:%v@%v:%d/%v?sslmode=%v", cfg.PostgresUser, cfg.PostgresPass, cfg.PostgresHost, cfg.PostgresPort, cfg.PostgresDatabase, cfg.PostgresSSLMode)
+		if cfg.PostgresExtraParams != "" {
+		    db.DSN = fmt.Sprintf("%s&%s", db.DSN, cfg.PostgresExtraParams)
+		}
 		db.Driver = "postgres"
 		databaseDriver = "postgres"
 	default:
@@ -88,6 +91,14 @@ func (db *DB) Open() error {
 }
 
 func (db *DB) Close() error {
+	switch db.Driver {
+	case "sqlite":
+		if err := db.closingSQLite(); err != nil {
+			db.log.Fatal().Err(err).Msg("could not run sqlite shutdown tasks")
+		}
+	case "postgres":
+	}
+	
 	// cancel background context
 	db.cancel()
 

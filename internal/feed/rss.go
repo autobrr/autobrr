@@ -251,9 +251,9 @@ func (j *RSSJob) getFeed(ctx context.Context) (items []*gofeed.Item, err error) 
 
 		key := item.GUID
 		if len(key) == 0 {
-			key = item.Title
+			key = item.Link
 			if len(key) == 0 {
-				continue
+				key = item.Title
 			}
 		}
 
@@ -271,7 +271,7 @@ func (j *RSSJob) getFeed(ctx context.Context) (items []*gofeed.Item, err error) 
 
 		toCache = append(toCache, domain.FeedCacheItem{
 			FeedId: strconv.Itoa(j.Feed.ID),
-			Key:    i.GUID,
+			Key:    key,
 			Value:  []byte(i.Title),
 			TTL:    ttl,
 		})

@@ -38,6 +38,15 @@ func (db *DB) openSQLite() error {
 		return errors.Wrap(err, "enable wal")
 	}
 
+	// SQLite has a query planner that uses lifecycle stats to fund optimizations.
+	// This restricts the SQLite query planner optimizer to only run if sufficient 
+	// information has been gathered over the lifecycle of the connection.
+	// The SQLite documentation is inconsistent in this regard,
+	// suggestions of 400 and 1000 are both "recommended", so lets use the lower bound.
+	if _, err = db.handler.Exec(`PRAGMA analysis_limit = 400;`); err != nil {
+		return errors.Wrap(err, "analysis_limit")
+	}
+
 	// When Autobrr does not cleanly shutdown, the WAL will still be present and not committed.
 	// This is a no-op if the WAL is empty, and a commit when the WAL is not to start fresh.
 	// When commits hit 1000, PRAGMA wal_checkpoint(PASSIVE); is invoked which tries its best
@@ -67,6 +76,21 @@ func (db *DB) openSQLite() error {
 	if err = db.migrateSQLite(); err != nil {
 		db.log.Fatal().Err(err).Msg("could not migrate db")
 		return err
+	}
+
+	return nil
+}
+
+func (db *DB) closingSQLite() error {
+	if db.handler == nil {
+		return nil
+	}
+
+	// SQLite has a query planner that uses lifecycle stats to fund optimizations.
+	// Based on the limit defined at connection time, run optimize to
+	// help tweak the performance of the database on the next run.
+	if _, err := db.handler.Exec(`PRAGMA optimize;`); err != nil {
+		return errors.Wrap(err, "query planner optimization")
 	}
 
 	return nil
