@@ -332,11 +332,6 @@ const TypeForm = ({ external, idx }: TypeFormProps) => {
           label="Retry delay in seconds"
           placeholder="1"
         />
-        <NumberField
-          name={`external.${idx}.webhook_retry_max_jitter_seconds`}
-          label="Max jitter in seconds"
-          placeholder="1"
-        />
       </div>
     );
 
