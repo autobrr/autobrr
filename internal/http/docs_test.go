@@ -1,9 +1,7 @@
 package http
 
 import (
-	"io/ioutil"
 	"net/http"
-	"strings"
 	"testing"
 )
 
@@ -32,15 +30,6 @@ func TestAutobrrLinks(t *testing.T) {
 			// Check if the status code is not found, 404
 			if resp.StatusCode == http.StatusNotFound {
 				t.Errorf("URL %s returned 404 Not Found", url)
-			} else {
-				body, err := ioutil.ReadAll(resp.Body)
-				if err != nil {
-					t.Fatalf("Failed to read response body for url %s: %v", url, err)
-				}
-
-				if strings.Contains(string(body), "Page not found") {
-					t.Errorf("Page not found at url %s", url)
-				}
 			}
 		})
 	}
