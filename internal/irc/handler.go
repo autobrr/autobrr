@@ -81,7 +81,7 @@ type Handler struct {
 	connectionErrors       []string
 	failedNickServAttempts int
 
-	botMode string
+	botModeChar string
 
 	authenticated bool
 	saslauthed    bool
@@ -199,7 +199,9 @@ func (h *Handler) Run() error {
 	h.client.AddDisconnectCallback(h.onDisconnect)
 
 	h.client.AddCallback("MODE", h.handleMode)
-	h.client.AddCallback("501", h.handleModeUnknownFlag)
+	if h.network.BotMode {
+		h.client.AddCallback("501", h.handleModeUnknownFlag)
+	}
 	h.client.AddCallback("INVITE", h.handleInvite)
 	h.client.AddCallback("366", h.handleJoined)
 	h.client.AddCallback("PART", h.handlePart)
@@ -372,10 +374,13 @@ func (h *Handler) onConnect(m ircmsg.Message) {
 
 	time.Sleep(1 * time.Second)
 
-	// If we set Bot Mode, the authentication will happen after the mode response
-	if !h.setBotMode() {
-		h.authenticate()
+	if h.network.BotMode && h.botModeSupported() {
+		// if we set Bot Mode, we'll try to authenticate after the MODE response
+		h.setBotMode()
+		return
 	}
+
+	h.authenticate()
 }
 
 // onDisconnect is the disconnect callback
@@ -483,20 +488,18 @@ func (h *Handler) handleNickServ(msg ircmsg.Message) {
 	}
 }
 
-// setBotMode attempts to set the BOT mode on ourself, if supported by the server
+// botModeSupported checks if IRCv3 Bot Mode is supported by the server
 // See https://ircv3.net/specs/extensions/bot-mode
-func (h *Handler) setBotMode() bool {
-	h.botMode = h.client.ISupport()["BOT"]
+func (h *Handler) botModeSupported() bool {
+	h.botModeChar = h.client.ISupport()["BOT"]
 
-	if h.botMode == "" {
-		// No BOT ISUPPORT token
-		return false
-	}
+	return h.botModeChar != ""
+}
 
-	// BOT ISUPPORT token found, set Bot Mode
-	h.client.Send("MODE", h.CurrentNick(), "+"+h.botMode)
-
-	return true
+// setBotMode attempts to set Bot Mode on ourself
+// See https://ircv3.net/specs/extensions/bot-mode
+func (h *Handler) setBotMode() {
+	h.client.Send("MODE", h.CurrentNick(), "+"+h.botModeChar)
 }
 
 // authenticate sends NickServIdentify if not authenticated
@@ -876,7 +879,7 @@ func (h *Handler) handleMode(msg ircmsg.Message) {
 		return
 	}
 
-	if h.botMode != "" && h.isOurCurrentNick(msg.Params[0]) && strings.Contains(msg.Params[1], "+"+h.botMode) {
+	if h.network.BotMode && h.botModeChar != "" && h.isOurCurrentNick(msg.Params[0]) && strings.Contains(msg.Params[1], "+"+h.botModeChar) {
 		h.authenticate()
 	}
 }

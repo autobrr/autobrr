@@ -246,6 +246,7 @@ interface IrcNetworkUpdateFormValues {
     invite_command: string;
     use_bouncer: boolean;
     bouncer_addr: string;
+    bot_mode: boolean;
     channels: Array<IrcChannel>;
 }
 
@@ -301,6 +302,7 @@ export function IrcNetworkUpdateForm({
     invite_command: network.invite_command,
     use_bouncer: network.use_bouncer,
     bouncer_addr: network.bouncer_addr,
+    bot_mode: network.bot_mode,
     channels: network.channels
   };
 
@@ -361,6 +363,8 @@ export function IrcNetworkUpdateForm({
               help="Address: Eg bouncer.server.net:6697"
             />
           )}
+
+          <SwitchGroupWide name="bot_mode" label="IRCv3 Bot Mode" />
 
           <div className="border-t border-gray-200 dark:border-gray-700 py-5">
             <div className="px-4 space-y-1 mb-8">
