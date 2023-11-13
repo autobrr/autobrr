@@ -272,6 +272,7 @@ const FeedItemDropdown = ({
   const forceRunMutation = useMutation({
     mutationFn: (id: number) => APIClient.feeds.forceRun(id),
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: feedKeys.lists() });
       toast.custom((t) => <Toast type="success" body={`Feed ${feed?.name} was force run successfully.`} t={t} />);
       toggleForceRunModal(); 
     },
