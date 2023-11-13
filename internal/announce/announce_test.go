@@ -9,19 +9,37 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func Test_announceProcessor_processTorrentUrl(t *testing.T) {
-	type args struct {
-		match     string
-		vars      map[string]string
-		extraVars map[string]string
-		encode    []string
+type args struct {
+	match     string
+	vars      map[string]string
+	extraVars map[string]string
+	encode    []string
+}
+
+type testInstance struct {
+	name    string
+	args    args
+	want    string
+	wantErr bool
+}
+
+func testInstances(t *testing.T, tests []testInstance) {
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			a := &announceProcessor{}
+			got, err := a.processTorrentUrl(tt.args.match, tt.args.vars, tt.args.extraVars, tt.args.encode)
+			if err != nil != tt.wantErr {
+				t.Errorf("processTorrentUrl() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+
+			assert.Equal(t, tt.want, got)
+		})
 	}
-	tests := []struct {
-		name    string
-		args    args
-		want    string
-		wantErr bool
-	}{
+}
+
+func Test_announceProcessor_processTorrentUrl(t *testing.T) {
+	tests := []testInstance{
 		{
 			name: "passing with vars_1",
 			args: args{
@@ -56,16 +74,7 @@ func Test_announceProcessor_processTorrentUrl(t *testing.T) {
 			wantErr: false,
 		},
 	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			a := &announceProcessor{}
-			got, err := a.processTorrentUrl(tt.args.match, tt.args.vars, tt.args.extraVars, tt.args.encode)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("processTorrentUrl() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
 
-			assert.Equal(t, tt.want, got)
-		})
-	}
+	testInstances(t, tests)
+
 }

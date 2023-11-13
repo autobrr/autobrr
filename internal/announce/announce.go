@@ -148,7 +148,6 @@ func (a *announceProcessor) parseLine(pattern string, vars []string, tmpVars map
 }
 
 func (a *announceProcessor) parseExtract(pattern string, vars []string, tmpVars map[string]string, line string) (bool, error) {
-
 	rxp, err := regExMatch(pattern, line)
 	if err != nil {
 		a.log.Debug().Msgf("did not match expected line: %v", line)
@@ -164,7 +163,6 @@ func (a *announceProcessor) parseExtract(pattern string, vars []string, tmpVars 
 
 		if rxp[i] != "" {
 			value = rxp[i]
-			// tmpVars[v] = rxp[i]
 		}
 
 		tmpVars[v] = value
