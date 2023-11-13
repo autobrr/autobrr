@@ -1,9 +1,10 @@
 package http
 
 import (
+	"fmt"
 	"io/fs"
-	"io/ioutil"
 	"net/http"
+	"os"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -11,53 +12,66 @@ import (
 	"time"
 )
 
-// Extract all URLs from a string using regex.
-func extractAutobrrURLs(fileContent string) []string {
-	autobrrURLRegex := regexp.MustCompile(`https?://autobrr\.com/[^ \s"')]+`)
-	matches := autobrrURLRegex.FindAllString(fileContent, -1)
-
-	return matches
+type AutobrrURLChecker struct {
+	BasePath        string
+	AutobrrURLRegex []*regexp.Regexp
+	ValidExtensions map[string]bool
+	SleepDuration   time.Duration
 }
 
-func processFile(filePath string) ([]string, error) {
-	content, err := ioutil.ReadFile(filePath)
+func NewAutobrrURLChecker() *AutobrrURLChecker {
+	return &AutobrrURLChecker{
+		BasePath: "../..", // Base directory to start scanning from
+		AutobrrURLRegex: []*regexp.Regexp{ // Regular expressions to match URLs for checking
+			regexp.MustCompile(`https?://autobrr\.com/[^ \s"')]+`),
+		},
+		ValidExtensions: map[string]bool{ // File extensions to be checked
+			".go":  true,
+			".tsx": true,
+			".md":  true,
+			".yml": true,
+		},
+		SleepDuration: 500 * time.Millisecond, // Duration to wait between requests to avoid rate limiting
+		// I could not find any information from Netlify about acceptable use here.
+	}
+}
+
+func processFile(filePath string, checker *AutobrrURLChecker) ([]string, error) {
+	content, err := os.ReadFile(filePath)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error reading file %s: %w", filePath, err)
 	}
 
-	return extractAutobrrURLs(string(content)), nil
+	var allURLMatches []string
+	for _, regex := range checker.AutobrrURLRegex {
+		urlmatches := regex.FindAllString(string(content), -1)
+		allURLMatches = append(allURLMatches, urlmatches...)
+	}
+
+	return allURLMatches, nil
 }
 
-// Recursively scan directories for .go, .tsx .md and .yml files and test their URLs.
 func TestAutobrrURLsInRepository(t *testing.T) {
-	uniqueURLs := make(map[string]bool)
+	checker := NewAutobrrURLChecker()
+	uniqueURLSet := make(map[string]bool)
 
-	// Define the base path where the search should start.
-	basePath := "../.."
-
-	err := filepath.Walk(basePath, func(path string, info fs.FileInfo, err error) error {
+	err := filepath.WalkDir(checker.BasePath, func(path string, entry fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
-
-		if info.IsDir() {
+		if entry.IsDir() || !checker.ValidExtensions[filepath.Ext(path)] {
 			return nil
 		}
 
-		if filepath.Ext(path) == ".go" || filepath.Ext(path) == ".tsx" || filepath.Ext(path) == ".md" || filepath.Ext(path) == ".yml" {
-			fileURLs, err := processFile(path)
-			if err != nil {
-				t.Errorf("Error processing file %s: %v", path, err)
-				return nil
-			}
-			for _, url := range fileURLs {
-				// Remove the fragment identifier.
-				urlWithoutFragment := strings.Split(url, "#")[0]
-				// Check if the base URL has already been added to the uniqueURLs map.
-				if !uniqueURLs[urlWithoutFragment] {
-					uniqueURLs[urlWithoutFragment] = true
-				}
-			}
+		fileURLs, err := processFile(path, checker)
+		if err != nil {
+			t.Errorf("Error processing file %s: %v", path, err)
+			return err
+		}
+
+		for _, url := range fileURLs {
+			normalizedURL := strings.TrimRight(strings.Split(url, "#")[0], "/") // Trim the URL by removing any trailing slashes and any URL fragments.
+			uniqueURLSet[normalizedURL] = true
 		}
 		return nil
 	})
@@ -67,19 +81,37 @@ func TestAutobrrURLsInRepository(t *testing.T) {
 		return
 	}
 
-	for url := range uniqueURLs {
+	client := &http.Client{
+		Timeout: time.Second * 10,
+	}
+
+	// Use a slice to store the URLs after they are de-duplicated
+	deduplicatedURLs := make([]string, 0, len(uniqueURLSet))
+	for url := range uniqueURLSet {
+		deduplicatedURLs = append(deduplicatedURLs, url)
+	}
+
+	for _, url := range deduplicatedURLs {
 		t.Run(url, func(t *testing.T) {
-			resp, err := http.Get(url)
+			req, err := http.NewRequest("GET", url, nil)
 			if err != nil {
-				t.Fatalf("Failed to GET url %s: %v", url, err)
+				t.Errorf("Failed to create request for url %s: %v", url, err)
+				return
+			}
+			req.Header.Set("User-Agent", "autobrr")
+
+			resp, err := client.Do(req)
+			if err != nil {
+				t.Errorf("Failed to GET url %s: %v", url, err)
+				return
 			}
 			defer resp.Body.Close()
 
 			if resp.StatusCode == http.StatusNotFound {
 				t.Errorf("URL %s returned 404 Not Found", url)
 			}
-			// Sleep for a second to help against rate limiting
-			time.Sleep(1 * time.Second)
+
+			time.Sleep(checker.SleepDuration)
 		})
 	}
 }
