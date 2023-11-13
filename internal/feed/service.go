@@ -199,7 +199,7 @@ func (s *service) toggleEnabled(ctx context.Context, id int, enabled bool) error
 			// override enabled
 			f.Enabled = true
 
-			if err := s.startJob(f); err != nil {
+			if err := s.startJob(f, false); err != nil {
 				s.log.Error().Err(err).Msg("error starting feed job")
 				return err
 			}
@@ -311,7 +311,7 @@ func (s *service) start() error {
 
 	for _, feed := range feeds {
 		feed := feed
-		if err := s.startJob(&feed); err != nil {
+		if err := s.startJob(&feed, false); err != nil {
 			s.log.Error().Err(err).Msgf("failed to initialize feed job: %s", feed.Name)
 			continue
 		}
@@ -330,7 +330,7 @@ func (s *service) restartJob(f *domain.Feed) error {
 	}
 
 	if f.Enabled {
-		if err := s.startJob(f); err != nil {
+		if err := s.startJob(f, false); err != nil {
 			s.log.Error().Err(err).Msg("error starting feed job")
 			return err
 		}
@@ -341,7 +341,7 @@ func (s *service) restartJob(f *domain.Feed) error {
 	return nil
 }
 
-func (s *service) startJob(f *domain.Feed) error {
+func (s *service) startJob(f *domain.Feed, runImmediately bool) error {
 	// if it's not enabled we should not start it
 	if !f.Enabled {
 		return nil
@@ -384,6 +384,10 @@ func (s *service) startJob(f *domain.Feed) error {
 	if err != nil {
 		s.log.Error().Err(err).Msgf("failed to initialize %s feed", fi.Implementation)
 		return err
+	}
+
+	if runImmediately {
+		job.Run()
 	}
 
 	identifierKey := feedKey{f.ID}.ToString()
@@ -515,52 +519,9 @@ func (s *service) ForceRun(ctx context.Context, id int) error {
 		return err
 	}
 
-	// Test the feed before running
-	if err := s.test(ctx, feed); err != nil {
-		return fmt.Errorf("failed to run feed: %w", err)
-	}
-
-	fi := feedInstance{
-		Feed:              feed,
-		Name:              feed.Name,
-		IndexerIdentifier: feed.Indexer,
-		Implementation:    feed.Type,
-		URL:               feed.URL,
-		ApiKey:            feed.ApiKey,
-		CronSchedule:      time.Duration(feed.Interval) * time.Minute,
-		Timeout:           time.Duration(feed.Timeout) * time.Second,
-	}
-
-	// Check feed type and execute the job immediately based on its type
-	switch feed.Type {
-	case string(domain.FeedTypeTorznab):
-		job, err := s.createTorznabJob(fi)
-		if err != nil {
-			return err
-		}
-		job.Run()
-
-	case string(domain.FeedTypeNewznab):
-		job, err := s.createNewznabJob(fi)
-		if err != nil {
-			return err
-		}
-		job.Run()
-
-	case string(domain.FeedTypeRSS):
-		job, err := s.createRSSJob(fi)
-		if err != nil {
-			return err
-		}
-		job.Run()
-
-	default:
-		return fmt.Errorf("unsupported feed type: %s", feed.Type)
-	}
-
-	// schedule job
-	if err := s.startJob(feed); err != nil {
-		return fmt.Errorf("failed to reschedule job after force run: %w", err)
+	if err := s.startJob(feed, true); err != nil {
+		s.log.Error().Err(err).Msg("failed to reschedule job after force run")
+		return err
 	}
 
 	return nil
