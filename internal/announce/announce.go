@@ -6,11 +6,11 @@ package announce
 import (
 	"bytes"
 	"net/url"
-	"regexp"
 	"strings"
 	"text/template"
 
 	"github.com/autobrr/autobrr/internal/domain"
+	"github.com/autobrr/autobrr/internal/indexer"
 	"github.com/autobrr/autobrr/internal/release"
 	"github.com/autobrr/autobrr/pkg/errors"
 
@@ -82,7 +82,7 @@ func (a *announceProcessor) processQueue(queue chan string) {
 
 			// check should ignore
 
-			match, err := a.parseLine(parseLine.Pattern, parseLine.Vars, tmpVars, line, parseLine.Ignore)
+			match, err := indexer.ParseLine(&a.log, parseLine.Pattern, parseLine.Vars, tmpVars, line, parseLine.Ignore)
 			if err != nil {
 				a.log.Error().Err(err).Msgf("error parsing extract for line: %v", line)
 
@@ -137,59 +137,6 @@ func (a *announceProcessor) AddLineToQueue(channel string, line string) error {
 	a.log.Trace().Msgf("announce: queued line: %v", line)
 
 	return nil
-}
-
-func (a *announceProcessor) parseLine(pattern string, vars []string, tmpVars map[string]string, line string, ignore bool) (bool, error) {
-	if len(vars) > 0 {
-		return a.parseExtract(pattern, vars, tmpVars, line)
-	}
-
-	return a.parseMatchRegexp(pattern, tmpVars, line, ignore)
-}
-
-func (a *announceProcessor) parseExtract(pattern string, vars []string, tmpVars map[string]string, line string) (bool, error) {
-	rxp, err := regExMatch(pattern, line)
-	if err != nil {
-		a.log.Debug().Msgf("did not match expected line: %v", line)
-	}
-
-	if rxp == nil {
-		return false, nil
-	}
-
-	// extract matched
-	for i, v := range vars {
-		value := ""
-
-		if rxp[i] != "" {
-			value = rxp[i]
-		}
-
-		tmpVars[v] = value
-	}
-	return true, nil
-}
-
-func (a *announceProcessor) parseMatchRegexp(pattern string, tmpVars map[string]string, line string, ignore bool) (bool, error) {
-	var re = regexp.MustCompile(`(?mi)` + pattern)
-
-	groupNames := re.SubexpNames()
-	for _, match := range re.FindAllStringSubmatch(line, -1) {
-		for groupIdx, group := range match {
-			// if line should be ignored then lets return
-			if ignore {
-				return true, nil
-			}
-
-			name := groupNames[groupIdx]
-			if name == "" {
-				name = "raw"
-			}
-			tmpVars[name] = group
-		}
-	}
-
-	return true, nil
 }
 
 // onLinesMatched process vars into release
@@ -300,42 +247,4 @@ func mergeVars(data ...map[string]string) map[string]string {
 		}
 	}
 	return tmpVars
-}
-
-func removeElement(s []string, i int) ([]string, error) {
-	// s is [1,2,3,4,5,6], i is 2
-
-	// perform bounds checking first to prevent a panic!
-	if i >= len(s) || i < 0 {
-		return nil, errors.New("Index is out of range. Index is %d with slice length %d", i, len(s))
-	}
-
-	// This creates a new slice by creating 2 slices from the original:
-	// s[:i] -> [1, 2]
-	// s[i+1:] -> [4, 5, 6]
-	// and joining them together using `append`
-	return append(s[:i], s[i+1:]...), nil
-}
-
-func regExMatch(pattern string, value string) ([]string, error) {
-
-	rxp, err := regexp.Compile(pattern)
-	if err != nil {
-		return nil, err
-	}
-
-	matches := rxp.FindStringSubmatch(value)
-	if matches == nil {
-		return nil, nil
-	}
-
-	res := make([]string, 0)
-	if matches != nil {
-		res, err = removeElement(matches, 0)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	return res, nil
 }

@@ -208,10 +208,11 @@ type IndexerIRCParse struct {
 }
 
 type IndexerIRCParseLine struct {
-	Test    []string `json:"test"`
-	Pattern string   `json:"pattern"`
-	Vars    []string `json:"vars"`
-	Ignore  bool     `json:"ignore"`
+	Test         []string             `json:"test"`
+	Expectations *[]map[string]string `json:"expectations"`
+	Pattern      string               `json:"pattern"`
+	Vars         []string             `json:"vars"`
+	Ignore       bool                 `json:"ignore"`
 }
 
 type IndexerIRCParseMatch struct {
