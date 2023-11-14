@@ -207,12 +207,17 @@ type IndexerIRCParse struct {
 	Match         IndexerIRCParseMatch  `json:"match"`
 }
 
+type LineTest struct {
+	Line   string            `json:"line"`
+	Expect map[string]string `json:"expect"`
+}
+
 type IndexerIRCParseLine struct {
-	Test         []string             `json:"test"`
-	Expectations *[]map[string]string `json:"expectations"`
-	Pattern      string               `json:"pattern"`
-	Vars         []string             `json:"vars"`
-	Ignore       bool                 `json:"ignore"`
+	Test    []string   `json:"test"`
+	Tests   []LineTest `json:"tests"`
+	Pattern string     `json:"pattern"`
+	Vars    []string   `json:"vars"`
+	Ignore  bool       `json:"ignore"`
 }
 
 type IndexerIRCParseMatch struct {

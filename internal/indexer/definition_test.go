@@ -25,21 +25,10 @@ func TestYamlExpectations(t *testing.T) {
 		}
 
 		for _, parseLine := range d.IRC.Parse.Lines {
-			if parseLine.Expectations == nil {
-				continue
-			}
-
-			es := *parseLine.Expectations
-			assert.Equal(t, len(es), len(parseLine.Test), "if expectations are present there must be one for each test line")
-
-			for i, testLine := range parseLine.Test {
-
-				expectation := es[i]
-
-				tmpVars := map[string]string{}
-				ParseLine(nil, parseLine.Pattern, parseLine.Vars, tmpVars, testLine, parseLine.Ignore)
-
-				assert.Equal(t, expectation, tmpVars, "error in expectation %d", i)
+			for i, test := range parseLine.Tests {
+				parseOutput := map[string]string{}
+				ParseLine(nil, parseLine.Pattern, parseLine.Vars, parseOutput, test.Line, parseLine.Ignore)
+				assert.Equal(t, test.Expect, parseOutput, "error in expectation %d", i)
 			}
 		}
 	}
