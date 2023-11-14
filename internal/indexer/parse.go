@@ -1,7 +1,6 @@
 package indexer
 
 import (
-	"fmt"
 	"regexp"
 
 	"github.com/rs/zerolog"
@@ -9,21 +8,6 @@ import (
 
 type Logger interface {
 	Debug() *zerolog.Event
-}
-
-func removeElement(s []string, i int) ([]string, error) {
-	// s is [1,2,3,4,5,6], i is 2
-
-	// perform bounds checking first to prevent a panic!
-	if i >= len(s) || i < 0 {
-		return nil, fmt.Errorf("Index is out of range. Index is %d with slice length %d", i, len(s))
-	}
-
-	// This creates a new slice by creating 2 slices from the original:
-	// s[:i] -> [1, 2]
-	// s[i+1:] -> [4, 5, 6]
-	// and joining them together using `append`
-	return append(s[:i], s[i+1:]...), nil
 }
 
 func regExMatch(pattern string, value string) ([]string, error) {
@@ -37,15 +21,7 @@ func regExMatch(pattern string, value string) ([]string, error) {
 		return nil, nil
 	}
 
-	res := make([]string, 0)
-	if matches != nil {
-		res, err = removeElement(matches, 0)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	return res, nil
+	return matches[1:], nil
 }
 
 func ParseLine(logger Logger, pattern string, vars []string, tmpVars map[string]string, line string, ignore bool) (bool, error) {
@@ -66,15 +42,8 @@ func parseExtract(logger Logger, pattern string, vars []string, tmpVars map[stri
 		return false, nil
 	}
 
-	// extract matched
 	for i, v := range vars {
-		value := ""
-
-		if rxp[i] != "" {
-			value = rxp[i]
-		}
-
-		tmpVars[v] = value
+		tmpVars[v] = rxp[i]
 	}
 	return true, nil
 }
