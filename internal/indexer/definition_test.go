@@ -7,7 +7,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestASDFASD(t *testing.T) {
+func TestYamlExpectations(t *testing.T) {
 	s := &service{definitions: map[string]domain.IndexerDefinition{}}
 	err := s.LoadIndexerDefinitions()
 
