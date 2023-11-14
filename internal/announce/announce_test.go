@@ -9,37 +9,19 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-type args struct {
-	match     string
-	vars      map[string]string
-	extraVars map[string]string
-	encode    []string
-}
-
-type testInstance struct {
-	name    string
-	args    args
-	want    string
-	wantErr bool
-}
-
-func testInstances(t *testing.T, tests []testInstance) {
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			a := &announceProcessor{}
-			got, err := a.processTorrentUrl(tt.args.match, tt.args.vars, tt.args.extraVars, tt.args.encode)
-			if err != nil != tt.wantErr {
-				t.Errorf("processTorrentUrl() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-
-			assert.Equal(t, tt.want, got)
-		})
-	}
-}
-
 func Test_announceProcessor_processTorrentUrl(t *testing.T) {
-	tests := []testInstance{
+	type args struct {
+		match     string
+		vars      map[string]string
+		extraVars map[string]string
+		encode    []string
+	}
+	tests := []struct {
+		name    string
+		args    args
+		want    string
+		wantErr bool
+	}{
 		{
 			name: "passing with vars_1",
 			args: args{
@@ -74,7 +56,16 @@ func Test_announceProcessor_processTorrentUrl(t *testing.T) {
 			wantErr: false,
 		},
 	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			a := &announceProcessor{}
+			got, err := a.processTorrentUrl(tt.args.match, tt.args.vars, tt.args.extraVars, tt.args.encode)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("processTorrentUrl() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
 
-	testInstances(t, tests)
-
+			assert.Equal(t, tt.want, got)
+		})
+	}
 }
