@@ -213,9 +213,6 @@ type LineTest struct {
 }
 
 type IndexerIRCParseLine struct {
-	// `Test` is retained for backwards compatibility. Prefer `Tests` for new
-	// definitions.
-	Test    []string   `json:"test"`
 	Tests   []LineTest `json:"tests"`
 	Pattern string     `json:"pattern"`
 	Vars    []string   `json:"vars"`

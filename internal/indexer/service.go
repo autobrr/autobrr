@@ -4,6 +4,7 @@
 package indexer
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"io/fs"
@@ -495,7 +496,10 @@ func (s *service) LoadIndexerDefinitions() error {
 		}
 
 		var d domain.IndexerDefinition
-		if err = yaml.Unmarshal(data, &d); err != nil {
+		dec := yaml.NewDecoder(bytes.NewReader(data))
+		dec.KnownFields(true)
+
+		if err = dec.Decode(&d); err != nil {
 			s.log.Error().Stack().Err(err).Msgf("failed unmarshal file: %s", file)
 			return errors.Wrap(err, "could not unmarshal file: %s", file)
 		}
@@ -552,7 +556,10 @@ func (s *service) LoadCustomIndexerDefinitions() error {
 		}
 
 		var d *domain.IndexerDefinitionCustom
-		if err = yaml.Unmarshal(data, &d); err != nil {
+		dec := yaml.NewDecoder(bytes.NewReader(data))
+		dec.KnownFields(true)
+
+		if err = dec.Decode(&d); err != nil {
 			s.log.Error().Stack().Err(err).Msgf("failed unmarshal file: %s", file)
 			return errors.Wrap(err, "could not unmarshal file: %s", file)
 		}
