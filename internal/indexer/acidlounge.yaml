@@ -1,0 +1,30 @@
+- - line: (Games/PC)  The.Smallest.Game-ze0s  https://www.acid-lounge.org.uk/details.php?id=3443&hit=1
+    expect:
+      category: Games/PC
+      torrentName: The.Smallest.Game-ze0s
+      baseUrl: https://www.acid-lounge.org.uk/
+      torrentId: "3443"
+  - line: (Music/MP3)  TUNES_4_LYFE_WEB_iNT  https://www.acid-lounge.org.uk/details.php?id=30104&hit=1
+    expect:
+      category: Music/MP3
+      torrentName: TUNES_4_LYFE_WEB_iNT
+      baseUrl: https://www.acid-lounge.org.uk/
+      torrentId: "30104"
+  - line: (XXX/0-Day)  Cute.Stuff.69.XXX.VR180.2700p.MP4-s0ez  https://www.acid-lounge.org.uk/details.php?id=30444221135&hit=1
+    expect:
+      category: XXX/0-Day
+      torrentName: Cute.Stuff.69.XXX.VR180.2700p.MP4-s0ez
+      baseUrl: https://www.acid-lounge.org.uk/
+      torrentId: "30444221135"
+  - line: (Movies/HD)  Have.You.Seen.The.Cat.Tonight-WhereThat  https://www.acid-lounge.org.uk/details.php?id=3018979898&hit=1
+    expect:
+      category: Movies/HD
+      torrentName: Have.You.Seen.The.Cat.Tonight-WhereThat
+      baseUrl: https://www.acid-lounge.org.uk/
+      torrentId: "3018979898"
+  - line: (TV-HD/X264)  The.Eggerton.S01E01.720p.WEB.h264-OTA  https://www.acid-lounge.org.uk/details.php?id=302099&hit=1
+    expect:
+      category: TV-HD/X264
+      torrentName: The.Eggerton.S01E01.720p.WEB.h264-OTA
+      baseUrl: https://www.acid-lounge.org.uk/
+      torrentId: "302099"

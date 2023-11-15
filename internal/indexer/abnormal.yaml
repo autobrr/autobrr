@@ -1,0 +1,5 @@
+- - line: '|2020/08/22 00:00:00| | https://abn.lol/Torrent/Details?ReleaseId=000000 | : |Action.Test.S01E01.FRENCH.WEB.x264-NOGROUP|'
+    expect:
+      baseUrl: https://abn.lol/
+      torrentId: "000000"
+      torrentName: Action.Test.S01E01.FRENCH.WEB.x264-NOGROUP

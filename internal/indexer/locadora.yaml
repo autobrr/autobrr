@@ -1,0 +1,10 @@
+- - line: '[Filmes] [WEB-DL] [1080p] [Journey to the Center of the Earth 2008 1080p HMAX WEB-DL DD5.1 x264 pt-BR ENG-LCD] [https://locadora.cc/torrents/16896] [5.82 GiB] [100%]'
+    expect:
+      category: Filmes
+      releaseTags: WEB-DL
+      resolution: 1080p
+      torrentName: Journey to the Center of the Earth 2008 1080p HMAX WEB-DL DD5.1 x264 pt-BR ENG-LCD
+      baseUrl: https://locadora.cc/
+      torrentId: "16896"
+      torrentSize: 5.82 GiB
+      freeleechPercent: 100%

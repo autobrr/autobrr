@@ -1,0 +1,10 @@
+- - line: 'Release 1748839: [Anime] SOMETITLE-007'
+    expect:
+      category: Anime
+      torrentName: SOMETITLE-007
+- - line: 'Torrent: https://example.com/torrents/sha123/torrentname-007.torrent'
+    expect:
+      torrentId: example.com/torrents/sha123/torrentname-007.torrent
+- - line: 'Size: 7.21GB | Comment: A comment on the torrent left by the author'
+    expect:
+      size: 7.21GB

@@ -1,0 +1,18 @@
+- - line: NOW BROADCASTING! [ The Show S06E07 720p WEB-DL DD 5.1 H.264 - LP ]
+    expect:
+      torrentName: The Show S06E07 720p WEB-DL DD 5.1 H.264 - LP
+- - line: '[ Title: S06E07 ] [ Series: The Show ]'
+    expect:
+      title: The Show
+- - line: '[ 2010 ] [ Episode ] [ MKV | x264 | WEB | P2P ] [ Uploader: Uploader1 ]'
+    expect:
+      year: "2010"
+      category: Episode
+      releaseTags: MKV | x264 | WEB | P2P
+      uploader: Uploader1
+      preTime: ""
+- - line: '[ https://XXXXXXXXX/torrents.php?id=7338 / https://XXXXXXXXX/torrents.php?action=download&id=9116 ]'
+    expect:
+      baseUrl: https://XXXXXXXXX/
+      groupId: "7338"
+      torrentId: "9116"

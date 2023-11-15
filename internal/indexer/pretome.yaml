@@ -1,0 +1,24 @@
+- - line: 'tehFire: [Applications|Windows] Chen went to the Mall :: preGAP: 1m and 32s :: https://pretome.info/details.php?id=696969'
+    expect:
+      category: Applications|Windows
+      torrentName: Chen went to the Mall
+      baseUrl: https://pretome.info/
+      torrentId: "696969"
+  - line: '[Movies|x264] Orlando.Bloom.Had.A.Cow-GROUP :: preGAP: P2P source :: https://pretome.info/details.php?id=646321'
+    expect:
+      category: Movies|x264
+      torrentName: Orlando.Bloom.Had.A.Cow-GROUP
+      baseUrl: https://pretome.info/
+      torrentId: "646321"
+  - line: 'tehFIRE: [TV|XviD] Royal.Institution.Christmas.Lectures.2009.Part2.WS.PDTV.XviD-WATERS :: preGAP: 1m and 9s :: https://pretome.info/details.php?id=127107'
+    expect:
+      category: TV|XviD
+      torrentName: Royal.Institution.Christmas.Lectures.2009.Part2.WS.PDTV.XviD-WATERS
+      baseUrl: https://pretome.info/
+      torrentId: "127107"
+  - line: 'tehFIRE: [TV|x264] Newsreaders.S01E05.HDTV.x264-2HD https://pretome.info/details.php?id=333951'
+    expect:
+      category: TV|x264
+      torrentName: 'Newsreaders.S01E05.HDTV.x264-2HD '
+      baseUrl: https://pretome.info/
+      torrentId: "333951"

@@ -1,0 +1,40 @@
+- - line: 'New Torrent: Clockers 1995 1080p Blu-ray AVC DTS-HD MA 5.1-Anonymous - Type: Movie (H.264, Blu-ray/HD DVD) - Uploaded by: Anonymous - Size: 37.61 GiB - https://hdbits.org/details.php?id=12345&hit=1'
+    expect:
+      torrentName: Clockers 1995 1080p Blu-ray AVC DTS-HD MA 5.1-Anonymous
+      category: Movie
+      releaseTags: H.264, Blu-ray/HD DVD
+      origin: ""
+      uploader: Anonymous
+      torrentSize: 37.61 GiB
+      baseUrl: https://hdbits.org/
+      torrentId: "12345"
+  - line: 'New Torrent: PilotsEYE tv: QUITO 2014 1080p Blu-ray AVC DD 2.0 - Type: Documentary (H.264, Blu-ray/HD DVD) - Uploaded by: Anonymous - Size: 23.14 GiB - https://hdbits.org/details.php?id=12345&hit=1'
+    expect:
+      torrentName: 'PilotsEYE tv: QUITO 2014 1080p Blu-ray AVC DD 2.0'
+      category: Documentary
+      releaseTags: H.264, Blu-ray/HD DVD
+      origin: ""
+      uploader: Anonymous
+      torrentSize: 23.14 GiB
+      baseUrl: https://hdbits.org/
+      torrentId: "12345"
+  - line: 'New Torrent: Xiao Q 2019 720p BluRay DD-EX 5.1 x264-Anonymous - Type: Movie (H.264, Encode) Internal! - Uploaded by: Anonymous - Size: 4.54 GiB - https://hdbits.org/details.php?id=12345&hit=1'
+    expect:
+      torrentName: Xiao Q 2019 720p BluRay DD-EX 5.1 x264-Anonymous
+      category: Movie
+      releaseTags: H.264, Encode
+      origin: Internal
+      uploader: Anonymous
+      torrentSize: 4.54 GiB
+      baseUrl: https://hdbits.org/
+      torrentId: "12345"
+  - line: 'New Torrent: The Gentlemen 2019 UHD Blu-ray English TrueHD 7.1 - Type: Audio Track - Uploaded by: Anonymous - Size: 3.19 GiB - https://hdbits.org/details.php?id=519896&hit=1'
+    expect:
+      torrentName: The Gentlemen 2019 UHD Blu-ray English TrueHD 7.1
+      category: Audio Track
+      releaseTags: ""
+      origin: ""
+      uploader: Anonymous
+      torrentSize: 3.19 GiB
+      baseUrl: https://hdbits.org/
+      torrentId: "519896"

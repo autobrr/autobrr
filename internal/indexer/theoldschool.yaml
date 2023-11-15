@@ -1,0 +1,22 @@
+- - line: '[NEW] [Series] [This.Is.A.New.show.S00E00.720p.WEB.H264-Test] [WEB-DL] [487.27 MiB] [0%] [pre 0h 1m 52s] par oldschool -> https://theoldschool.cc/torrents/00000'
+    expect:
+      category: Series
+      torrentName: This.Is.A.New.show.S00E00.720p.WEB.H264-Test
+      source: WEB-DL
+      torrentSize: 487.27 MiB
+      freeleechPercent: "0"
+      preTime: 0h 1m 52s
+      uploader: oldschool
+      baseUrl: https://theoldschool.cc/
+      torrentId: "00000"
+  - line: '[NEW] [Series] [This.Is.A.New.show.S00E00.720p.WEB.H264-Test] [WEB-DL] [487.27 MiB] [0%] par oldschool -> https://theoldschool.cc/torrents/00000'
+    expect:
+      category: Series
+      torrentName: This.Is.A.New.show.S00E00.720p.WEB.H264-Test
+      source: WEB-DL
+      torrentSize: 487.27 MiB
+      freeleechPercent: "0"
+      preTime: ""
+      uploader: oldschool
+      baseUrl: https://theoldschool.cc/
+      torrentId: "00000"

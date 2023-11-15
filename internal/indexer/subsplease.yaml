@@ -1,0 +1,45 @@
+- - line: '[Release] [SubsPlease] Multiple Word Title - 01 (480p) [636F636B].mkv (420.69MB) - https://nyaa.si/view/0000000 - https://nyaa.si/view/0000000/torrent'
+    expect:
+      torrentName: '[SubsPlease] Multiple Word Title - 01 (480p) [636F636B].'
+      releaseGroup: SubsPlease
+      title: Multiple Word Title
+      releaseTags: mkv
+      torrentSize: 420.69MB
+      infoUrl: https://nyaa.si/view/0000000
+      torrentUrl: https://nyaa.si/view/0000000/torrent
+  - line: '[Release] [SubsPlease] Multiple Word Title (01-12) (1080p) [Batch] (420GB) - https://nyaa.si/view/0000000 - https://nyaa.si/view/0000000/torrent'
+    expect:
+      torrentName: '[SubsPlease] Multiple Word Title (01-12) (1080p) [Batch]'
+      releaseGroup: SubsPlease
+      title: Multiple Word Title
+      releaseTags: ""
+      torrentSize: 420GB
+      infoUrl: https://nyaa.si/view/0000000
+      torrentUrl: https://nyaa.si/view/0000000/torrent
+  - line: '[Release] [SubsPlease] Dashes - In-Title - 01 (480p) [636F636B].mkv (420.69MB) - https://nyaa.si/view/0000000 - https://nyaa.si/view/0000000/torrent'
+    expect:
+      torrentName: '[SubsPlease] Dashes - In-Title - 01 (480p) [636F636B].'
+      releaseGroup: SubsPlease
+      title: Dashes - In-Title
+      releaseTags: mkv
+      torrentSize: 420.69MB
+      infoUrl: https://nyaa.si/view/0000000
+      torrentUrl: https://nyaa.si/view/0000000/torrent
+  - line: '[Release] [SubsPlease] Title - 1st Season (01-04) (1080p) [Batch] (420GB) - https://nyaa.si/view/0000000 - https://nyaa.si/view/0000000/torrent'
+    expect:
+      torrentName: '[SubsPlease] Title - 1st Season (01-04) (1080p) [Batch]'
+      releaseGroup: SubsPlease
+      title: Title - 1st Season
+      releaseTags: ""
+      torrentSize: 420GB
+      infoUrl: https://nyaa.si/view/0000000
+      torrentUrl: https://nyaa.si/view/0000000/torrent
+  - line: '[Release] [SubsPlease] Special Title - 08.5 (480p) [5353245D].mkv (420.69MB) - https://nyaa.si/view/0000000 - https://nyaa.si/view/0000000/torrent'
+    expect:
+      torrentName: '[SubsPlease] Special Title - 08.5 (480p) [5353245D].'
+      releaseGroup: SubsPlease
+      title: Special Title
+      releaseTags: mkv
+      torrentSize: 420.69MB
+      infoUrl: https://nyaa.si/view/0000000
+      torrentUrl: https://nyaa.si/view/0000000/torrent

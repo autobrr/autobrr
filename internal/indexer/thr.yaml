@@ -1,0 +1,7 @@
+- - line: 'Novi torrent uploadan -> Ime: A.torrent.name.here.WEBRip.x264-tina .:. Kategorija: Serije/SD .:. Velicina: 283.94 MB .:. URL: http://www.torrenthr.org/details.php?id=000000'
+    expect:
+      torrentName: A.torrent.name.here.WEBRip.x264-tina
+      category: Serije/SD
+      torrentSize: 283.94 MB
+      baseUrl: www.torrenthr.org/
+      torrentId: "000000"

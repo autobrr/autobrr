@@ -1,0 +1,7 @@
+- - line: '[NEW] A Nice Self-Help Book (Books) https://www.docspedia.world/details.php?id=1234'
+    expect:
+      torrentName: A Nice Self-Help Book
+      category: Books
+      baseUrl: https://www.docspedia.world
+      torrentId: "1234"
+      preTime: ""

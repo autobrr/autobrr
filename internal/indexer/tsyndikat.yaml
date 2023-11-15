@@ -1,0 +1,27 @@
+- - line: NEU Welcome.to.the.N.H.K.S01E15.German.DL.AC3.720p.BluRay.x264-ABJ [Serien/720p] [P2P] [678.68 MB] -- https://torrent-syndikat.org/details.php?id=000000 | Animation, Anime, Comedy, Drama, Romance, Thriller, Encode, AVC, DL, PID:00000, tt0857297
+    expect:
+      torrentName: Welcome.to.the.N.H.K.S01E15.German.DL.AC3.720p.BluRay.x264-ABJ
+      category: Serien/720p
+      origin: P2P
+      torrentSize: 678.68 MB
+      baseUrl: https://torrent-syndikat.org/
+      torrentId: "000000"
+      tags: Animation, Anime, Comedy, Drama, Romance, Thriller, Encode, AVC, DL, PID:00000, tt0857297
+  - line: NEU KLIM_Beats-FireFlies-WEB-2016-KNOWN [Audio/Musik/MP3] [O-SCENE] [59.82 MB] -- https://torrent-syndikat.org/details.php?id=000000 | Hip-Hop
+    expect:
+      torrentName: KLIM_Beats-FireFlies-WEB-2016-KNOWN
+      category: Audio/Musik/MP3
+      origin: O-SCENE
+      torrentSize: 59.82 MB
+      baseUrl: https://torrent-syndikat.org/
+      torrentId: "000000"
+      tags: Hip-Hop
+  - line: 'NEU DarkSpar-DARKZER0 [Spiele/Windows] [O-SCENE] [54.46 MB] -- https://torrent-syndikat.org/details.php?id=000000 | '
+    expect:
+      torrentName: DarkSpar-DARKZER0
+      category: Spiele/Windows
+      origin: O-SCENE
+      torrentSize: 54.46 MB
+      baseUrl: https://torrent-syndikat.org/
+      torrentId: "000000"
+      tags: ""

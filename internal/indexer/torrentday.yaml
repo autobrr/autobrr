@@ -1,0 +1,16 @@
+- - line: '[Movie/4K] This is a Movie 2160p UHD BluRay x265-TEST - https://www.torrentday.com/details.php?id=0000000 - 5.83 GB'
+    expect:
+      category: Movie/4K
+      torrentName: This is a Movie 2160p UHD BluRay x265-TEST
+      freeleech: ""
+      baseUrl: https://www.torrentday.com/
+      torrentId: "0000000"
+      torrentSize: 5.83 GB
+  - line: '[Movie/4K] This is a Movie 2160p UHD BluRay x265-TEST FREELEECH - https://www.torrentday.com/details.php?id=0000000 - 5.83 GB'
+    expect:
+      category: Movie/4K
+      torrentName: This is a Movie 2160p UHD BluRay x265-TEST
+      freeleech: FREELEECH
+      baseUrl: https://www.torrentday.com/
+      torrentId: "0000000"
+      torrentSize: 5.83 GB

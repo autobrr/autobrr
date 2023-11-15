@@ -1,0 +1,14 @@
+- - line: New Torrent ~ Some Cool Movie (1950) ~ Movies ~ 10.20 GiB ~ https://www.crt.test/torrents.php?id=1234
+    expect:
+      torrentName: Some Cool Movie (1950)
+      category: Movies
+      torrentSize: 10.20 GiB
+      baseUrl: https://www.crt.test
+      torrentId: "1234"
+  - line: 'New Torrent ~ Some Show: With a Subtitle - Seasons 1-2 (2001-2002) ~ TV ~ 33.44 GiB ~ https://www.crt.test/torrents.php?id=5678'
+    expect:
+      torrentName: 'Some Show: With a Subtitle - Seasons 1-2 (2001-2002)'
+      category: TV
+      torrentSize: 33.44 GiB
+      baseUrl: https://www.crt.test
+      torrentId: "5678"

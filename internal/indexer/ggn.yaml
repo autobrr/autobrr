@@ -1,0 +1,22 @@
+- - line: 'Uploader :-: Nintendo 3DS :-: Cool.Game.KOR.3DS-BigBlueBox in Cool Game [2013] ::Korean, Multi-Region, Scene:: https://gazellegames.net/torrents.php?torrentid=00000 - adventure, role_playing_game, nintendo;'
+    expect:
+      uploader: Uploader
+      category: Nintendo 3DS
+      torrentName: Cool.Game.KOR.3DS-BigBlueBox in Cool Game
+      year: "2013"
+      releaseTags: Korean, Multi-Region, Scene
+      freeleech: ""
+      baseUrl: https://gazellegames.net/
+      torrentId: "00000"
+      tags: adventure, role_playing_game, nintendo
+  - line: 'Uploader :-: Windows :-: Other.Game-HI2U in Other Game [2016] ::English, Scene:: FREELEECH! :: https://gazellegames.net/torrents.php?torrentid=00000 - action, adventure, casual, indie, role.playing.game;'
+    expect:
+      uploader: Uploader
+      category: Windows
+      torrentName: Other.Game-HI2U in Other Game
+      year: "2016"
+      releaseTags: English, Scene
+      freeleech: FREELEECH
+      baseUrl: https://gazellegames.net/
+      torrentId: "00000"
+      tags: action, adventure, casual, indie, role.playing.game

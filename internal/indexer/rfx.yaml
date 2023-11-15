@@ -1,0 +1,13 @@
+- - line: Category [Movie] Type [Remux] Name [HomeMade Movie 1998 1080p BluRay REMUX AVC DD 2.0-Group] Resolution [1080p] Freeleech [0%] Internal [No] Double Upload [No] Size [16.8 GiB] Uploader [uploaderName] Url [https://reelflix.xyz/torrents/download/169]
+    expect:
+      category: Movie
+      releaseTags: Remux
+      torrentName: HomeMade Movie 1998 1080p BluRay REMUX AVC DD 2.0-Group
+      resolution: 1080p
+      freeleechPercent: 0%
+      internal: "No"
+      tags: "No"
+      torrentSize: 16.8 GiB
+      uploader: uploaderName
+      baseUrl: https://reelflix.xyz/torrents/
+      torrentId: "169"

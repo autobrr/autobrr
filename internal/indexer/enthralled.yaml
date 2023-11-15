@@ -1,0 +1,8 @@
+- - line: 'Some release - Size: 559.06 MiB - Uploader: anon - Tags: worship,other - https://www.enthralled.me/torrents.php?torrentid=0000'
+    expect:
+      torrentName: Some release
+      torrentSize: 559.06 MiB
+      uploader: anon
+      tags: worship,other
+      baseUrl: https://www.enthralled.me/
+      torrentId: "0000"

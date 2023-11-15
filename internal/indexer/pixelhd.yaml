@@ -1,0 +1,14 @@
+- - line: New torrent uploaded!
+    expect: {}
+- - line: 'Title: Dragons Forever | Year: 1988 | URL: https://pixelhd.me/torrents.php?torrentid=23001'
+    expect:
+      torrentName: Dragons Forever
+      year: "1988"
+      baseUrl: https://pixelhd.me/
+      torrentId: "23001"
+- - line: 'Uploader: Anon | Release Group: Px4K | Format: MP4 | Genre(s): action,comedy,romance'
+    expect:
+      uploader: Anon
+      releaseGroup: Px4K
+      container: MP4
+      tags: action,comedy,romance

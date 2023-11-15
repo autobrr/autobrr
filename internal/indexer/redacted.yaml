@@ -1,0 +1,20 @@
+- - line: Artist - Albumname [2008] [Single] - FLAC / Lossless / Log / 100% / Cue / CD - https://redacted.ch/torrents.php?id=0000000 / https://redacted.ch/torrents.php?action=download&id=0000000 - hip.hop,rhythm.and.blues,2000s
+    expect:
+      torrentName: Artist - Albumname [2008] [Single] - FLAC / Lossless / Log / 100% / Cue / CD
+      year: "2008"
+      category: Single
+      releaseTags: FLAC / Lossless / Log / 100% / Cue / CD
+      groupId: "0000000"
+      baseUrl: https://redacted.ch/
+      torrentId: "0000000"
+      tags: hip.hop,rhythm.and.blues,2000s
+  - line: A really long name here - Concertos 5 and 6, Suite No 2 [1991] [Album] - FLAC / Lossless / Log / 100% / Cue / CD - https://redacted.ch/torrents.php?id=0000000 / https://redacted.ch/torrents.php?action=download&id=0000000 - classical
+    expect:
+      torrentName: A really long name here - Concertos 5 and 6, Suite No 2 [1991] [Album] - FLAC / Lossless / Log / 100% / Cue / CD
+      year: "1991"
+      category: Album
+      releaseTags: FLAC / Lossless / Log / 100% / Cue / CD
+      groupId: "0000000"
+      baseUrl: https://redacted.ch/
+      torrentId: "0000000"
+      tags: classical
