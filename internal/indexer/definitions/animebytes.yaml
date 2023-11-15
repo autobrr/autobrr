@@ -193,7 +193,7 @@ irc:
               torrentId: "000000"
               tags: ""
               uploader: "Uploader"
-        pattern: '((.*?)+)(?: - )?(Visual Novel|Light Novel|TV S.*|Movie|Manga|OVA|ONA|DVD Special|BD Special|Oneshot|Anthology|Manhwa|Manhua|Artbook|Game|Live Action.*|)[\s\p{Zs}]{2,}\[(\d+)\] :: (.*?(?:Hardsubs|RAW|Softsubs|Translated) \((.*?)\).*?|.*?)(?: \/ Episode (\d+).*?)?(?: \/ )?(Freeleech)?(?:.?\|\|.?)(https.+\/)torrents.*\?id=(\d+)&torrentid=(\d+)(?:.?\|\|.?)?([A-Za-z,. ]+\w)?(?:.?\|\|.?)?(?:Uploaded by: (.*))?'
+        pattern: '((.*?)+)(?: - (Visual Novel|Light Novel|TV S.*|Movie|Manga|OVA|ONA|DVD Special|BD Special|Oneshot|Anthology|Manhwa|Manhua|Artbook|Game|Live Action.*|))?[\s\p{Zs}]{2,}\[(\d+)\] :: (.*?(?:Hardsubs|RAW|Softsubs|Translated) \((.*?)\).*?|.*?)(?: \/ Episode (\d+).*?)?(?: \/ )?(Freeleech)?(?:.?\|\|.?)(https.+\/)torrents.*\?id=(\d+)&torrentid=(\d+)(?:.?\|\|.?)?([A-Za-z,. ]+\w)?(?:.?\|\|.?)?(?:Uploaded by: (.*))?'
         vars:
           - torrentName
           - title
