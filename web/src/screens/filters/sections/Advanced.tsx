@@ -94,7 +94,7 @@ const Releases = ({ values }: ValueConsumer) => (
 
 const Groups = () => (
   <CollapsibleSection
-    defaultOpen
+    defaultOpen={false}
     title="Groups"
     subtitle="Match only certain groups and/or ignore other groups."
   >
@@ -160,7 +160,7 @@ const Categories = () => (
 
 const Tags = () => (
   <CollapsibleSection
-    defaultOpen
+    defaultOpen={false}
     title="Tags"
     subtitle="Match or exclude tags (if announced)"
   >
@@ -223,7 +223,7 @@ const Tags = () => (
 
 const Uploaders = () => (
   <CollapsibleSection
-    defaultOpen
+    defaultOpen={false}
     title="Uploaders"
     subtitle="Match or ignore uploaders (if announced)"
   >
@@ -257,7 +257,7 @@ const Uploaders = () => (
 
 const Language = () => (
   <CollapsibleSection
-    defaultOpen
+    defaultOpen={false}
     title="Language"
     subtitle="Match or ignore languages (if announced)"
   >
@@ -278,7 +278,7 @@ const Language = () => (
 
 const Origins = () => (
   <CollapsibleSection
-    defaultOpen
+    defaultOpen={false}
     title="Origins"
     subtitle="Match Internals, Scene, P2P, etc. (if announced)"
   >
@@ -303,10 +303,32 @@ const Freeleech = ({ values }: ValueConsumer) => (
     title="Freeleech"
     subtitle="Match based off freeleech (if announced)"
   >
-    <div className="flex flex-col gap-2 col-span-12 sm:col-span-6 -mt-2.5">
+    <Input.TextField
+      name="freeleech_percent"
+      label="Freeleech percent"
+      disabled={values.freeleech}
+      tooltip={
+        <div>
+          <p>
+              Freeleech may be announced as a binary true/false value or as a
+              percentage (less likely), depending on the indexer. Use one <span className="font-bold">or</span> the other.
+              The Freeleech toggle overrides this field if it is toggled/true.
+          </p>
+          <br />
+          <p>
+              Refer to our documentation for more details:{" "}
+            <DocsLink href="https://autobrr.com/filters/freeleech" />
+          </p>
+        </div>
+      }
+      columns={6}
+      placeholder="eg. 50,75-100"
+    />
+    <Components.HalfRow>
       <Input.SwitchGroup
         name="freeleech"
         label="Freeleech"
+        description="Cannot be used with Freeleech percent."
         tooltip={
           <div>
             <p>
@@ -322,29 +344,7 @@ const Freeleech = ({ values }: ValueConsumer) => (
           </div>
         }
       />
-
-      <Input.TextField
-        name="freeleech_percent"
-        label="Freeleech percent"
-        disabled={values.freeleech}
-        tooltip={
-          <div>
-            <p>
-              Freeleech may be announced as a binary true/false value or as a
-              percentage (less likely), depending on the indexer. Use one <span className="font-bold">or</span> the other.
-              The Freeleech toggle overrides this field if it is toggled/true.
-            </p>
-            <br />
-            <p>
-              Refer to our documentation for more details:{" "}
-              <DocsLink href="https://autobrr.com/filters/freeleech" />
-            </p>
-          </div>
-        }
-        columns={6}
-        placeholder="eg. 50,75-100"
-      />
-    </div>
+    </Components.HalfRow>
   </CollapsibleSection>
 );
 
@@ -446,11 +446,11 @@ export const Advanced = ({ values }: { values: FormikValues; }) => (
     <Releases values={values} />
     <Groups />
     <Categories />
+    <Freeleech values={values} />
     <Tags />
     <Uploaders />
     <Language />
     <Origins />
-    <Freeleech values={values} />
     <FeedSpecific values={values} />
     <RawReleaseTags values={values} />
   </div>
