@@ -11,7 +11,7 @@ protocol: torrent
 supports:
   - irc
   - rss
-source: UNIT3D
+# source: UNIT3D
 settings:
   - name: rsskey
     type: secret
@@ -44,9 +44,33 @@ irc:
   parse:
     type: single
     lines:
-      - test:
-          - "Category [Movies] Type [Remux] Name [Movie1995 1080p BluRay REMUX AVC DTS-HD MA 5.1-Ripper] Resolution [1080p] Freeleech [0%] Internal [No] Double Upload [No] Size [37.81 GiB] Uploader [GRiMM] Url [http://lst.gg/torrents/00000]"
-          - "Category [Movies] Type [Remux] Name [Some Random Movie 1985 1080p BluRay REMUX VC-1 DTS-HD MA 5.1-Ripper] Freeleech [0%] Internal [No] Double Upload [No] Size [25.35 GiB] Uploader [GRiMM] Url [http://lst.gg/torrents/00000]"
+      - tests:
+        - line: Category [Movies] Type [Remux] Name [Movie1995 1080p BluRay REMUX AVC DTS-HD MA 5.1-Ripper] Resolution [1080p] Freeleech [0%] Internal [No] Double Upload [No] Size [37.81 GiB] Uploader [GRiMM] Url [http://lst.gg/torrents/00000]
+          expect:
+            category: Movies
+            releaseTags: Remux
+            torrentName: Movie1995 1080p BluRay REMUX AVC DTS-HD MA 5.1-Ripper
+            resolution: 1080p
+            freeleechPercent: 0%
+            internal: "No"
+            tags: "No"
+            torrentSize: 37.81 GiB
+            uploader: GRiMM
+            baseUrl: http://lst.gg/
+            torrentId: "00000"
+        - line: Category [Movies] Type [Remux] Name [Some Random Movie 1985 1080p BluRay REMUX VC-1 DTS-HD MA 5.1-Ripper] Freeleech [0%] Internal [No] Double Upload [No] Size [25.35 GiB] Uploader [GRiMM] Url [http://lst.gg/torrents/00000]
+          expect:
+            category: Movies
+            releaseTags: Remux
+            torrentName: Some Random Movie 1985 1080p BluRay REMUX VC-1 DTS-HD MA 5.1-Ripper
+            resolution: ""
+            freeleechPercent: 0%
+            internal: "No"
+            tags: "No"
+            torrentSize: 25.35 GiB
+            uploader: GRiMM
+            baseUrl: http://lst.gg/
+            torrentId: "00000"
         pattern: 'Category \[(.*)\] Type \[(.*)\] Name \[(.*?)\] ?(?:Resolution \[(.*)\])? Freeleech \[(.*)\] Internal \[(.*)\] Double Upload \[(.*)\] Size \[(.*)\] Uploader \[(.*)\] Url \[(https?://.+/).+/(\d+)\]'
         vars:
           - category

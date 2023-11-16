@@ -12,7 +12,7 @@ protocol: torrent
 supports:
   - irc
   - rss
-source: xbtit
+# source: xbtit
 settings:
   - name: key
     type: secret
@@ -56,8 +56,14 @@ irc:
   parse:
     type: single
     lines:
-      - test:
-          - "New Torrent in category [Movies/Remux] That Movie (2008) Blu-ray 1080p REMUX AVC DTS-HD MA 7 1 (14.60 GB) uploaded! Download: https://hd-torrents.org/download.php?id=AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+      - tests:
+        - line: 'New Torrent in category [Movies/Remux] That Movie (2008) Blu-ray 1080p REMUX AVC DTS-HD MA 7 1 (14.60 GB) uploaded! Download: https://hd-torrents.org/download.php?id=AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA'
+          expect:
+            category: Movies/Remux
+            torrentName: That Movie (2008) Blu-ray 1080p REMUX AVC DTS-HD MA 7 1
+            torrentSize: 14.60 GB
+            baseUrl: https://hd-torrents.org/
+            torrentId: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
         pattern: 'New Torrent in category \[([^\]]*)\] (.*) \(([^\)]*)\) uploaded! Download\: (https?\:\/\/[^\/]+\/).+id=(.+)'
         vars:
           - category
