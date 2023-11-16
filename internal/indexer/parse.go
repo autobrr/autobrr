@@ -1,6 +1,7 @@
 package indexer
 
 import (
+	"errors"
 	"regexp"
 
 	"github.com/rs/zerolog"
@@ -43,6 +44,10 @@ func parseExtract(logger Logger, pattern string, vars []string, tmpVars map[stri
 	}
 
 	for i, v := range vars {
+		if i+1 > len(rxp) {
+			return false, errors.New("too few matches returned for rxp")
+		}
+
 		tmpVars[v] = rxp[i]
 	}
 	return true, nil
