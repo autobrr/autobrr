@@ -557,7 +557,10 @@ func (s *service) LoadCustomIndexerDefinitions() error {
 
 		var d *domain.IndexerDefinitionCustom
 		dec := yaml.NewDecoder(bytes.NewReader(data))
-		dec.KnownFields(true)
+		// Do _not_ fail on unknown fields while parsing custom indexer
+		// definitions for better backwards compatibility. See discussion:
+		// https://github.com/autobrr/autobrr/pull/1257#issuecomment-1813821391
+		dec.KnownFields(false)
 
 		if err = dec.Decode(&d); err != nil {
 			s.log.Error().Stack().Err(err).Msgf("failed unmarshal file: %s", file)
