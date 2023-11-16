@@ -1,8 +1,0 @@
-- - line: 'Some long funny title - Size: 2.54 GiB - Uploader: uploader1 - Tags: tag1,tag2 - https://www.empornium.is/torrents.php?torrentid=000000'
-    expect:
-      torrentName: Some long funny title
-      torrentSize: 2.54 GiB
-      uploader: uploader1
-      tags: tag1,tag2
-      baseUrl: https://www.empornium.is/
-      torrentId: "000000"
