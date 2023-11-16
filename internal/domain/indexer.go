@@ -93,25 +93,8 @@ func (i IndexerDefinition) HasApi() bool {
 }
 
 type IndexerDefinitionCustom struct {
-	ID             int               `json:"id,omitempty"`
-	Name           string            `json:"name"`
-	Identifier     string            `json:"identifier"`
-	Implementation string            `json:"implementation"`
-	BaseURL        string            `json:"base_url,omitempty"`
-	Enabled        bool              `json:"enabled,omitempty"`
-	Description    string            `json:"description"`
-	Language       string            `json:"language"`
-	Privacy        string            `json:"privacy"`
-	Protocol       string            `json:"protocol"`
-	URLS           []string          `json:"urls"`
-	Supports       []string          `json:"supports"`
-	Settings       []IndexerSetting  `json:"settings,omitempty"`
-	SettingsMap    map[string]string `json:"-"`
-	IRC            *IndexerIRC       `json:"irc,omitempty"`
-	Torznab        *Torznab          `json:"torznab,omitempty"`
-	Newznab        *Newznab          `json:"newznab,omitempty"`
-	RSS            *FeedSettings     `json:"rss,omitempty"`
-	Parse          *IndexerIRCParse  `json:"parse,omitempty"`
+	IndexerDefinition
+	Parse *IndexerIRCParse `json:"parse,omitempty"`
 }
 
 func (i *IndexerDefinitionCustom) ToIndexerDefinition() *IndexerDefinition {
