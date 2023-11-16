@@ -33,7 +33,7 @@ const SwitchGroup = ({
   <HeadlessSwitch.Group
     as="div"
     className={classNames(
-      className ?? "py-2",
+      className ?? "py-0",
       "flex items-center justify-between"
     )}
   >
@@ -42,7 +42,7 @@ const SwitchGroup = ({
         passive
         as={heading ? "h2" : "span"}
         className={classNames(
-          "flex float-left ml-px cursor-default text-xs font-bold text-gray-800 dark:text-gray-100 uppercase tracking-wide",
+          "flex float-left ml-px justify-content-center cursor-default text-xs font-bold text-gray-800 dark:text-gray-100 uppercase tracking-wide",
           heading ? "text-lg" : "text-sm"
         )}
       >

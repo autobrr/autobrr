@@ -328,7 +328,7 @@ const Freeleech = ({ values }: ValueConsumer) => (
       <Input.SwitchGroup
         name="freeleech"
         label="Freeleech"
-        description="Cannot be used with Freeleech percent."
+        description="Cannot be used with Freeleech percent. Overrides Freeleech percent if toggled/true."
         tooltip={
           <div>
             <p>
