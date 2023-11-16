@@ -39,7 +39,7 @@ export const Tooltip = ({
     trigger: requiresClick ? ["click"] : ["click", "hover"],
     interactive: true,
     delayHide: 200,
-    placement: "top"
+    placement: "right"
   });
 
   if (!children || Array.isArray(children) && !children.length) {
