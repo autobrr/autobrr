@@ -96,7 +96,7 @@ You can use Usenet feeds and send to arrs or send directly to SABnzbd.
 
 ## Installation
 
-For comprehensive installation instructions, visit our [Installation Guide](https://autobrr.com/installation). This guide provides detailed steps for different platforms, including Windows, Linux, Docker, and more.
+For comprehensive installation instructions, visit our [Installation Guide](https://autobrr.com/installation/linux). This guide provides detailed steps for different platforms, including Windows, Linux, Docker, and more.
 
 Remember to head over to our [Configuration Guide](https://autobrr.com/configuration/autobrr) to learn how to set up your indexers, IRC, and download clients after you're done installing.
 
@@ -288,7 +288,7 @@ Whether you're fixing a bug, adding a feature, or improving documentation, your 
 - **Commit Guidelines:** We appreciate the use of [Conventional Commit Guidelines](https://www.conventionalcommits.org/en/v1.0.0/#summary) when writing your commits.
   - There is no need for force pushing or rebasing. We squash commits on merge to keep the history clean and manageable.
 - **Pull Requests:** Submit a pull request with a clear description of your changes. Reference any related issues.
-- **Code Review:** Be open to feedback during the code review process. Make requested changes to ensure code quality and consistency.
+- **Code Review:** Be open to feedback during the code review process.
 
 ### Documentation
 
