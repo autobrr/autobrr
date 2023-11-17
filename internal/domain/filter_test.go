@@ -2114,3 +2114,22 @@ func Test_matchRegex(t *testing.T) {
 		})
 	}
 }
+
+func Test_validation(t *testing.T) {
+	tests := []struct {
+		name   string
+		filter Filter
+		valid  bool
+	}{
+		{name: "empty name", filter: Filter{}, valid: false},
+		{name: "empty filter, with name", filter: Filter{Name: "test"}, valid: true},
+		{name: "valid size limit", filter: Filter{Name: "test", MaxSize: "12MB"}, valid: true},
+		{name: "gibberish max size limit", filter: Filter{Name: "test", MaxSize: "asdf"}, valid: false},
+		{name: "gibberish min size limit", filter: Filter{Name: "test", MinSize: "qwerty"}, valid: false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.valid, tt.filter.Validate() == nil)
+		})
+	}
+}

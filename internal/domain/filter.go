@@ -5,6 +5,7 @@ package domain
 
 import (
 	"context"
+	"errors"
 	"regexp"
 	"strconv"
 	"strings"
@@ -241,6 +242,14 @@ type FilterUpdate struct {
 	Actions                          []*Action               `json:"actions,omitempty"`
 	External                         []FilterExternal        `json:"external,omitempty"`
 	Indexers                         []Indexer               `json:"indexers,omitempty"`
+}
+
+func (f Filter) Validate() error {
+	if f.Name == "" {
+		return errors.New("validation: name can't be empty")
+	}
+
+	return nil
 }
 
 func (f Filter) CheckFilter(r *Release) ([]string, bool) {

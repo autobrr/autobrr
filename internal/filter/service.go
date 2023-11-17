@@ -149,10 +149,13 @@ func (s *service) GetDownloadsByFilterId(ctx context.Context, filterID int) (*do
 }
 
 func (s *service) Store(ctx context.Context, filter *domain.Filter) error {
-	// validate data
+	err := filter.Validate()
+	if err != nil {
+		s.log.Error().Err(err).Msgf("invalid filter: %v", filter)
+		return err
+	}
 
-	// store
-	err := s.repo.Store(ctx, filter)
+	err = s.repo.Store(ctx, filter)
 	if err != nil {
 		s.log.Error().Err(err).Msgf("could not store filter: %v", filter)
 		return err
@@ -162,9 +165,8 @@ func (s *service) Store(ctx context.Context, filter *domain.Filter) error {
 }
 
 func (s *service) Update(ctx context.Context, filter *domain.Filter) error {
-	// validate data
-	if filter.Name == "" {
-		return errors.New("validation: name can't be empty")
+	if err := filter.Validate(); err != nil {
+		return err
 	}
 
 	// replace newline with comma
