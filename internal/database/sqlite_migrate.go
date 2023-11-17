@@ -1362,7 +1362,7 @@ ALTER TABLE filter_external
 	ADD COLUMN external_webhook_retry_delay_seconds INTEGER;
 
 ALTER TABLE filter_external
-	DROP COLUMN IF EXISTS external_webhook_retry_max_jitter_seconds;
+	ADD COLUMN external_webhook_retry_max_jitter_seconds INTEGER;
 `,
 	`
 CREATE TABLE filter_external_dg_tmp
@@ -1383,6 +1383,7 @@ CREATE TABLE filter_external_dg_tmp
     webhook_retry_status             TEXT,
     webhook_retry_attempts           INTEGER,
     webhook_retry_delay_seconds      INTEGER,
+    webhook_retry_max_jitter_seconds INTEGER,
     filter_id                        INTEGER NOT NULL
         REFERENCES filter
             ON DELETE CASCADE
@@ -1390,7 +1391,8 @@ CREATE TABLE filter_external_dg_tmp
 
 INSERT INTO filter_external_dg_tmp(id, name, idx, type, enabled, exec_cmd, exec_args, exec_expect_status, webhook_host,
                                    webhook_method, webhook_data, webhook_headers, webhook_expect_status, filter_id,
-                                   webhook_retry_status, webhook_retry_attempts, webhook_retry_delay_seconds)
+                                   webhook_retry_status, webhook_retry_attempts, webhook_retry_delay_seconds,
+                                   webhook_retry_max_jitter_seconds)
 SELECT id,
        name,
        idx,
@@ -1408,11 +1410,15 @@ SELECT id,
        external_webhook_retry_status,
        external_webhook_retry_attempts,
        external_webhook_retry_delay_seconds,
+       external_webhook_retry_max_jitter_seconds
 FROM filter_external;
 
 DROP TABLE filter_external;
 
 ALTER TABLE filter_external_dg_tmp
     RENAME TO filter_external;
+`,
+	`ALTER TABLE filter_external
+	DROP COLUMN external_webhook_retry_max_jitter_seconds;
 `,
 }

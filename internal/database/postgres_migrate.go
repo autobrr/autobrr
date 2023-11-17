@@ -811,7 +811,7 @@ ALTER TABLE filter_external
 	ADD COLUMN external_webhook_retry_delay_seconds INTEGER;
 
 ALTER TABLE filter_external
-	DROP COLUMN IF EXISTS external_webhook_retry_max_jitter_seconds;
+	ADD COLUMN external_webhook_retry_max_jitter_seconds INTEGER;
 `,
 	`ALTER TABLE filter_external
     RENAME COLUMN external_webhook_retry_status TO webhook_retry_status;
@@ -823,6 +823,9 @@ ALTER TABLE filter_external
     RENAME COLUMN external_webhook_retry_delay_seconds TO webhook_retry_delay_seconds;
 
 ALTER TABLE filter_external
-    DROP COLUMN IF EXISTS webhook_retry_max_jitter_seconds;
+    RENAME COLUMN external_webhook_retry_max_jitter_seconds TO webhook_retry_max_jitter_seconds;
+`,
+	`ALTER TABLE filter_external
+	DROP COLUMN IF EXISTS external_webhook_retry_max_jitter_seconds;
 `,
 }
