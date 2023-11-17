@@ -6,6 +6,7 @@ package domain
 import (
 	"context"
 	"errors"
+	"fmt"
 	"regexp"
 	"strconv"
 	"strings"
@@ -247,6 +248,18 @@ type FilterUpdate struct {
 func (f Filter) Validate() error {
 	if f.Name == "" {
 		return errors.New("validation: name can't be empty")
+	}
+
+	if f.MinSize != "" {
+		if _, err := parseFilterBytesLimit(f.MinSize); err != nil {
+			return fmt.Errorf("error validating filter min size: %w", err)
+		}
+	}
+
+	if f.MaxSize != "" {
+		if _, err := parseFilterBytesLimit(f.MaxSize); err != nil {
+			return fmt.Errorf("error validating filter max size: %w", err)
+		}
 	}
 
 	return nil
@@ -934,7 +947,7 @@ func (f Filter) ReleaseSizeOkay(releaseSize uint64) (bool, error) {
 
 func compare(releaseSize uint64, filterSize string, comparator func(uint64, uint64) bool) (bool, error) {
 	if filterSize != "" {
-		filterSizeBytes, err := humanize.ParseBytes(filterSize)
+		filterSizeBytes, err := parseFilterBytesLimit(filterSize)
 		if err != nil {
 			return false, err
 		}
@@ -944,3 +957,9 @@ func compare(releaseSize uint64, filterSize string, comparator func(uint64, uint
 
 	return true, nil
 }
+
+// parseFilterBytesLimit parses filter bytes limits (expressed as a string) into
+// a uint64 number of bytes. It just wraps humanize.ParseBytes, but we factor it
+// out so that we can be sure to share logic between validation and filtering
+// going forwards.
+func parseFilterBytesLimit(s string) (uint64, error) { return humanize.ParseBytes(s) }

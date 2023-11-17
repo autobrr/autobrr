@@ -2129,7 +2129,7 @@ func Test_validation(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			assert.Equal(t, tt.valid, tt.filter.Validate() == nil)
+			assert.Equalf(t, tt.valid, tt.filter.Validate() == nil, "validation error \"%+v\" in test case %s", tt.filter.Validate(), tt.filter.Name)
 		})
 	}
 }
