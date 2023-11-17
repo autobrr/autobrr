@@ -118,7 +118,7 @@ export const CollapsibleSection = ({
       )}
     >
       <div
-        className="flex select-none items-center py-3.5 px-1 cursor-pointer transition rounded-lg hover:bg-gray-100 dark:hover:bg-gray-725"
+        className="flex select-none items-center py-3.5 px-1 -ml-1 cursor-pointer transition rounded-lg hover:bg-gray-100 dark:hover:bg-gray-725"
         onClick={toggleOpen}
       >
         <div className="flex flex-row gap-2 items-center">
@@ -148,7 +148,7 @@ export const CollapsibleSection = ({
       </div>
       {/*TODO: Animate this too*/}
       {isOpen && (
-        <div className={classNames(childClassName, "grid grid-cols-12 col-span-12 sm:px-2 mt-2")}>
+        <div className={classNames(childClassName, "grid grid-cols-12 col-span-12 sm:px-1 mt-2")}>
           {children}
         </div>
       )}
