@@ -1419,6 +1419,6 @@ ALTER TABLE filter_external_dg_tmp
     RENAME TO filter_external;
 `,
 	`ALTER TABLE filter_external
-	DROP COLUMN external_webhook_retry_max_jitter_seconds;
+	DROP COLUMN webhook_retry_max_jitter_seconds;
 `,
 }
