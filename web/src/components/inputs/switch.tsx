@@ -33,7 +33,7 @@ const SwitchGroup = ({
   <HeadlessSwitch.Group
     as="div"
     className={classNames(
-      className ?? "py-0",
+      className ?? "py-2",
       "flex items-center justify-between"
     )}
   >
