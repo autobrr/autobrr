@@ -24,7 +24,6 @@ import (
 	"github.com/autobrr/autobrr/pkg/errors"
 
 	"github.com/avast/retry-go/v4"
-	"github.com/dustin/go-humanize"
 	"github.com/mattn/go-shellwords"
 	"github.com/rs/zerolog"
 )
@@ -460,7 +459,7 @@ func (s *service) AdditionalSizeCheck(ctx context.Context, f domain.Filter, rele
 	}
 
 	// compare size against filter
-	match, err := s.releaseSizeOkay(f.MinSize, f.MaxSize, release.Size)
+	match, err := f.ReleaseSizeOkay(release.Size)
 	if err != nil {
 		s.log.Error().Stack().Err(err).Msgf("filter.Service.AdditionalSizeCheck: (%s) error checking extra size filter", f.Name)
 		return false, err
@@ -469,29 +468,6 @@ func (s *service) AdditionalSizeCheck(ctx context.Context, f domain.Filter, rele
 	if !match {
 		s.log.Debug().Msgf("filter.Service.AdditionalSizeCheck: (%s) filter did not match after additional size check, trying next", f.Name)
 		return false, nil
-	}
-
-	return true, nil
-}
-
-func (s *service) releaseSizeOkay(minSize string, maxSize string, releaseSize uint64) (bool, error) {
-	ok, err := compare(releaseSize, minSize, func(a, b uint64) bool { return a > b })
-	if !ok || err != nil {
-		return ok, err
-	}
-
-	ok, err = compare(releaseSize, maxSize, func(a, b uint64) bool { return a < b })
-	return ok, err
-}
-
-func compare(releaseSize uint64, filterSize string, comparator func(uint64, uint64) bool) (bool, error) {
-	if filterSize != "" {
-		filterSizeBytes, err := humanize.ParseBytes(filterSize)
-		if err != nil {
-			return false, err
-		}
-
-		return comparator(releaseSize, filterSizeBytes), nil
 	}
 
 	return true, nil

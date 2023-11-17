@@ -575,41 +575,19 @@ func (f Filter) checkSizeFilter(r *Release, minSize string, maxSize string) bool
 
 	if r.Size == 0 {
 		r.AdditionalSizeCheckRequired = true
-
 		return true
 	} else {
 		r.AdditionalSizeCheckRequired = false
 	}
 
-	// if r.Size parse filter to bytes and compare
-	// handle both min and max
-	if minSize != "" {
-		// string to bytes
-		minSizeBytes, err := humanize.ParseBytes(minSize)
-		if err != nil {
-			r.addRejectionF("size: invalid minSize set: %s err: %q", minSize, err)
-			return false
-		}
-
-		if r.Size <= minSizeBytes {
-			r.addRejection("size: smaller than min size")
-			return false
-		}
-
+	ok, err := f.ReleaseSizeOkay(r.Size)
+	if err != nil {
+		r.addRejectionF("size: error checking release size against filter: %+v", err)
+		return false
 	}
-
-	if maxSize != "" {
-		// string to bytes
-		maxSizeBytes, err := humanize.ParseBytes(maxSize)
-		if err != nil {
-			r.addRejectionF("size: invalid maxSize set: %s err: %q", maxSize, err)
-			return false
-		}
-
-		if r.Size >= maxSizeBytes {
-			r.addRejection("size: larger than max size")
-			return false
-		}
+	if !ok {
+		r.addRejection("size: release size out of bounds")
+		return false
 	}
 
 	return true
@@ -942,4 +920,27 @@ func matchHDR(releaseValues []string, filterValues []string) bool {
 	}
 
 	return false
+}
+
+func (f Filter) ReleaseSizeOkay(releaseSize uint64) (bool, error) {
+	ok, err := compare(releaseSize, f.MinSize, func(a, b uint64) bool { return a > b })
+	if !ok || err != nil {
+		return ok, err
+	}
+
+	ok, err = compare(releaseSize, f.MaxSize, func(a, b uint64) bool { return a < b })
+	return ok, err
+}
+
+func compare(releaseSize uint64, filterSize string, comparator func(uint64, uint64) bool) (bool, error) {
+	if filterSize != "" {
+		filterSizeBytes, err := humanize.ParseBytes(filterSize)
+		if err != nil {
+			return false, err
+		}
+
+		return comparator(releaseSize, filterSizeBytes), nil
+	}
+
+	return true, nil
 }
