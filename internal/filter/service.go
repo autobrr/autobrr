@@ -458,7 +458,7 @@ func (s *service) AdditionalSizeCheck(ctx context.Context, f domain.Filter, rele
 	}
 
 	// compare size against filter
-	match, err := checkSizeFilter(f.MinSize, f.MaxSize, release.Size)
+	match, err := s.releaseSizeOkay(f.MinSize, f.MaxSize, release.Size)
 	if err != nil {
 		s.log.Error().Stack().Err(err).Msgf("filter.Service.AdditionalSizeCheck: (%s) error checking extra size filter", f.Name)
 		return false, err
@@ -472,33 +472,24 @@ func (s *service) AdditionalSizeCheck(ctx context.Context, f domain.Filter, rele
 	return true, nil
 }
 
-func checkSizeFilter(minSize string, maxSize string, releaseSize uint64) (bool, error) {
-	// handle both min and max
-	if minSize != "" {
-		// string to bytes
-		minSizeBytes, err := humanize.ParseBytes(minSize)
-		if err != nil {
-			// log could not parse into bytes
-		}
-
-		if releaseSize <= minSizeBytes {
-			//r.addRejection("size: smaller than min size")
-			return false, nil
-		}
-
+func (s *service) releaseSizeOkay(minSize string, maxSize string, releaseSize uint64) (bool, error) {
+	ok, err := compare(releaseSize, minSize, func(a, b uint64) bool { return a > b })
+	if !ok || err != nil {
+		return ok, err
 	}
 
-	if maxSize != "" {
-		// string to bytes
-		maxSizeBytes, err := humanize.ParseBytes(maxSize)
+	ok, err = compare(releaseSize, maxSize, func(a, b uint64) bool { return a < b })
+	return ok, err
+}
+
+func compare(releaseSize uint64, filterSize string, comparator func(uint64, uint64) bool) (bool, error) {
+	if filterSize != "" {
+		filterSizeBytes, err := humanize.ParseBytes(filterSize)
 		if err != nil {
-			// log could not parse into bytes
+			return false, err
 		}
 
-		if releaseSize >= maxSizeBytes {
-			//r.addRejection("size: larger than max size")
-			return false, nil
-		}
+		return comparator(releaseSize, filterSizeBytes), nil
 	}
 
 	return true, nil

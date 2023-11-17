@@ -25,11 +25,14 @@ func Test_checkSizeFilter(t *testing.T) {
 		{name: "test_6", args: args{minSize: "1GB", maxSize: "2GB", releaseSize: 2000000000}, want: false, wantErr: false},
 		{name: "test_7", args: args{minSize: "", maxSize: "2GB", releaseSize: 2500000000}, want: false, wantErr: false},
 		{name: "test_8", args: args{minSize: "", maxSize: "20GB", releaseSize: 2500000000}, want: true, wantErr: false},
+		{name: "test_9", args: args{minSize: "unparseable", maxSize: "20GB", releaseSize: 2500000000}, want: false, wantErr: true},
 	}
 	for _, tt := range tests {
+		s := service{}
+
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := checkSizeFilter(tt.args.minSize, tt.args.maxSize, tt.args.releaseSize)
-			if (err != nil) != tt.wantErr {
+			got, err := s.releaseSizeOkay(tt.args.minSize, tt.args.maxSize, tt.args.releaseSize)
+			if err != nil != tt.wantErr {
 				t.Errorf("checkSizeFilter() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
