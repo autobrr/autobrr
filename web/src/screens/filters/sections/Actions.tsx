@@ -24,7 +24,7 @@ import { Checkbox } from "@components/Checkbox";
 import { TitleSubtitle } from "@components/headings";
 
 import * as FilterSection from "./_components";
-import * as FilterActions from "./actions";
+import * as FilterActions from "./action_components";
 
 interface FilterActionsProps {
   filter: Filter;
