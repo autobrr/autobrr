@@ -250,7 +250,6 @@ func (r *FilterRepo) FindByID(ctx context.Context, filterID int) (*domain.Filter
 			"fe.webhook_retry_status",
 			"fe.webhook_retry_attempts",
 			"fe.webhook_retry_delay_seconds",
-			"fe.webhook_retry_max_jitter_seconds",
 		).
 		From("filter f").
 		LeftJoin("filter_external fe ON f.id = fe.filter_id").
@@ -404,23 +403,22 @@ func (r *FilterRepo) FindByID(ctx context.Context, filterID int) (*domain.Filter
 
 		if extId.Valid {
 			external := domain.FilterExternal{
-				ID:                           int(extId.Int32),
-				Name:                         extName.String,
-				Index:                        int(extIndex.Int32),
-				Type:                         domain.FilterExternalType(extType.String),
-				Enabled:                      extEnabled.Bool,
-				ExecCmd:                      extExecCmd.String,
-				ExecArgs:                     extExecArgs.String,
-				ExecExpectStatus:             int(extExecStatus.Int32),
-				WebhookHost:                  extWebhookHost.String,
-				WebhookMethod:                extWebhookMethod.String,
-				WebhookData:                  extWebhookData.String,
-				WebhookHeaders:               extWebhookHeaders.String,
-				WebhookExpectStatus:          int(extWebhookStatus.Int32),
-				WebhookRetryStatus:           extWebhookRetryStatus.String,
-				WebhookRetryAttempts:         int(extWebhookRetryAttempts.Int32),
-				WebhookRetryDelaySeconds:     int(extWebhookDelaySeconds.Int32),
-				WebhookRetryMaxJitterSeconds: int(extWebhookRetryJitterSeconds.Int32),
+				ID:                       int(extId.Int32),
+				Name:                     extName.String,
+				Index:                    int(extIndex.Int32),
+				Type:                     domain.FilterExternalType(extType.String),
+				Enabled:                  extEnabled.Bool,
+				ExecCmd:                  extExecCmd.String,
+				ExecArgs:                 extExecArgs.String,
+				ExecExpectStatus:         int(extExecStatus.Int32),
+				WebhookHost:              extWebhookHost.String,
+				WebhookMethod:            extWebhookMethod.String,
+				WebhookData:              extWebhookData.String,
+				WebhookHeaders:           extWebhookHeaders.String,
+				WebhookExpectStatus:      int(extWebhookStatus.Int32),
+				WebhookRetryStatus:       extWebhookRetryStatus.String,
+				WebhookRetryAttempts:     int(extWebhookRetryAttempts.Int32),
+				WebhookRetryDelaySeconds: int(extWebhookDelaySeconds.Int32),
 			}
 			externalMap[external.ID] = external
 		}
@@ -517,7 +515,6 @@ func (r *FilterRepo) findByIndexerIdentifier(ctx context.Context, indexer string
 			"fe.webhook_retry_status",
 			"fe.webhook_retry_attempts",
 			"fe.webhook_retry_delay_seconds",
-			"fe.webhook_retry_max_jitter_seconds",
 			"fe.filter_id",
 		).
 		From("filter f").
@@ -678,24 +675,23 @@ func (r *FilterRepo) findByIndexerIdentifier(ctx context.Context, indexer string
 
 		if extId.Valid {
 			external := domain.FilterExternal{
-				ID:                           int(extId.Int32),
-				Name:                         extName.String,
-				Index:                        int(extIndex.Int32),
-				Type:                         domain.FilterExternalType(extType.String),
-				Enabled:                      extEnabled.Bool,
-				ExecCmd:                      extExecCmd.String,
-				ExecArgs:                     extExecArgs.String,
-				ExecExpectStatus:             int(extExecStatus.Int32),
-				WebhookHost:                  extWebhookHost.String,
-				WebhookMethod:                extWebhookMethod.String,
-				WebhookData:                  extWebhookData.String,
-				WebhookHeaders:               extWebhookHeaders.String,
-				WebhookExpectStatus:          int(extWebhookStatus.Int32),
-				WebhookRetryStatus:           extWebhookRetryStatus.String,
-				WebhookRetryAttempts:         int(extWebhookRetryAttempts.Int32),
-				WebhookRetryDelaySeconds:     int(extWebhookDelaySeconds.Int32),
-				WebhookRetryMaxJitterSeconds: int(extWebhookRetryJitterSeconds.Int32),
-				FilterId:                     int(extFilterId.Int32),
+				ID:                       int(extId.Int32),
+				Name:                     extName.String,
+				Index:                    int(extIndex.Int32),
+				Type:                     domain.FilterExternalType(extType.String),
+				Enabled:                  extEnabled.Bool,
+				ExecCmd:                  extExecCmd.String,
+				ExecArgs:                 extExecArgs.String,
+				ExecExpectStatus:         int(extExecStatus.Int32),
+				WebhookHost:              extWebhookHost.String,
+				WebhookMethod:            extWebhookMethod.String,
+				WebhookData:              extWebhookData.String,
+				WebhookHeaders:           extWebhookHeaders.String,
+				WebhookExpectStatus:      int(extWebhookStatus.Int32),
+				WebhookRetryStatus:       extWebhookRetryStatus.String,
+				WebhookRetryAttempts:     int(extWebhookRetryAttempts.Int32),
+				WebhookRetryDelaySeconds: int(extWebhookDelaySeconds.Int32),
+				FilterId:                 int(extFilterId.Int32),
 			}
 			externalMap[external.FilterId] = append(externalMap[external.FilterId], external)
 		}
@@ -736,7 +732,6 @@ func (r *FilterRepo) FindExternalFiltersByID(ctx context.Context, filterId int) 
 			"fe.webhook_retry_status",
 			"fe.webhook_retry_attempts",
 			"fe.webhook_retry_delay_seconds",
-			"fe.webhook_retry_max_jitter_seconds",
 		).
 		From("filter_external fe").
 		Where(sq.Eq{"fe.filter_id": filterId})
@@ -797,7 +792,6 @@ func (r *FilterRepo) FindExternalFiltersByID(ctx context.Context, filterId int) 
 		external.WebhookRetryStatus = extWebhookRetryStatus.String
 		external.WebhookRetryAttempts = int(extWebhookRetryAttempts.Int32)
 		external.WebhookRetryDelaySeconds = int(extWebhookDelaySeconds.Int32)
-		external.WebhookRetryMaxJitterSeconds = int(extWebhookRetryJitterSeconds.Int32)
 
 		externalFilters = append(externalFilters, external)
 	}
@@ -1227,9 +1221,6 @@ func (r *FilterRepo) UpdatePartial(ctx context.Context, filter domain.FilterUpda
 	if filter.ExternalWebhookRetryDelaySeconds != nil {
 		q = q.Set("external_webhook_retry_delay_seconds", filter.ExternalWebhookRetryDelaySeconds)
 	}
-	if filter.ExternalWebhookRetryMaxJitterSeconds != nil {
-		q = q.Set("external_webhook_retry_max_jitter_seconds", filter.ExternalWebhookRetryMaxJitterSeconds)
-	}
 
 	q = q.Where(sq.Eq{"id": filter.ID})
 
@@ -1513,7 +1504,6 @@ func (r *FilterRepo) StoreFilterExternal(ctx context.Context, filterID int, exte
 			"webhook_retry_status",
 			"webhook_retry_attempts",
 			"webhook_retry_delay_seconds",
-			"webhook_retry_max_jitter_seconds",
 			"filter_id",
 		)
 
@@ -1534,7 +1524,6 @@ func (r *FilterRepo) StoreFilterExternal(ctx context.Context, filterID int, exte
 			toNullString(external.WebhookRetryStatus),
 			toNullInt32(int32(external.WebhookRetryAttempts)),
 			toNullInt32(int32(external.WebhookRetryDelaySeconds)),
-			toNullInt32(int32(external.WebhookRetryMaxJitterSeconds)),
 			filterID,
 		)
 	}

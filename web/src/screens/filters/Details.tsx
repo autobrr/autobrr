@@ -221,7 +221,6 @@ const externalFilterSchema = z.object({
   webhook_retry_status: z.string().optional(),
   webhook_retry_attempts: z.number().optional(),
   webhook_retry_delay_seconds: z.number().optional(),
-  webhook_retry_max_jitter_seconds: z.number().optional(),
 });
 
 const indexerSchema = z.object({
@@ -1344,4 +1343,3 @@ export function CollapsableSection({ title, subtitle, children, defaultOpen }: C
     </div>
   );
 }
-
