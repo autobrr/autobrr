@@ -19,7 +19,6 @@ Full documentation can be found at https://autobrr.com
 2. [Key Features](#key-features)
    - [Available Download Clients and Actions](#available-download-clients-and-actions)
    - [RSS and Usenet Support](#rss-and-usenet-support)
-3. [RSS and Usenet Support](#rss-and-usenet-support)
 4. [Installation](#installation)
    - [Swizzin](#swizzin)
    - [Saltbox](#saltbox)
@@ -87,11 +86,7 @@ qBittorrent, Deluge, r(u)Torrent and Transmission. You don't need to use the *ar
 ### RSS and Usenet Support
 
 A lot of indexers do not announce new torrents in an IRC channel. You can still make use of these indexers with autobrr
-since it has built in support for feeds as well. Both Torznab and regular RSS is supported. RSS indexers are treated the same way as regular indexers within autobrr.
-
-This isn't needed if your use case is feeding the *arrs only. Since they have RSS support already.
-
-### Usenet Support
+since it has built in support for feeds as well. Both Torznab, Newznab and regular RSS is supported. RSS indexers are treated the same way as regular indexers within autobrr.
 
 Usenet support via Newznab feeds allows you to easily manage everything in a single application. While there is a lot of
 applications that handles RSS well, we think autobrr offers very easy to use filtering to help you get the content you
