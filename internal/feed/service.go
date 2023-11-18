@@ -199,7 +199,7 @@ func (s *service) toggleEnabled(ctx context.Context, id int, enabled bool) error
 			// override enabled
 			f.Enabled = true
 
-			if err := s.startJob(f, false); err != nil {
+			if err := s.startJob(f); err != nil {
 				s.log.Error().Err(err).Msg("error starting feed job")
 				return err
 			}
@@ -311,7 +311,13 @@ func (s *service) start() error {
 
 	for _, feed := range feeds {
 		feed := feed
-		if err := s.startJob(&feed, false); err != nil {
+
+		if !feed.Enabled {
+			s.log.Trace().Msgf("feed disabled, skipping... %s", feed.Name)
+			continue
+		}
+
+		if err := s.startJob(&feed); err != nil {
 			s.log.Error().Err(err).Msgf("failed to initialize feed job: %s", feed.Name)
 			continue
 		}
@@ -330,7 +336,7 @@ func (s *service) restartJob(f *domain.Feed) error {
 	}
 
 	if f.Enabled {
-		if err := s.startJob(f, false); err != nil {
+		if err := s.startJob(f); err != nil {
 			s.log.Error().Err(err).Msg("error starting feed job")
 			return err
 		}
@@ -340,18 +346,7 @@ func (s *service) restartJob(f *domain.Feed) error {
 
 	return nil
 }
-
-func (s *service) startJob(f *domain.Feed, runImmediately bool) error {
-	// if it's not enabled we should not start it
-	if !f.Enabled {
-		return nil
-	}
-
-	// get torznab_url from settings
-	if f.URL == "" {
-		return errors.New("no URL provided for feed: %s", f.Name)
-	}
-
+func newFeedInstance(f *domain.Feed) feedInstance {
 	// cron schedule to run every X minutes
 	fi := feedInstance{
 		Feed:              f,
@@ -364,8 +359,12 @@ func (s *service) startJob(f *domain.Feed, runImmediately bool) error {
 		Timeout:           time.Duration(f.Timeout) * time.Second,
 	}
 
+	return fi
+}
+
+func (s *service) initializeFeedJob(fi feedInstance) (FeedJob, error) {
 	var err error
-	var job cron.Job
+	var job FeedJob
 
 	switch fi.Implementation {
 	case string(domain.FeedTypeTorznab):
@@ -378,19 +377,46 @@ func (s *service) startJob(f *domain.Feed, runImmediately bool) error {
 		job, err = s.createRSSJob(fi)
 
 	default:
-		return errors.New("unsupported feed type: %s", fi.Implementation)
+		return nil, errors.New("unsupported feed type: %s", fi.Implementation)
 	}
 
 	if err != nil {
 		s.log.Error().Err(err).Msgf("failed to initialize %s feed", fi.Implementation)
-		return err
+		return nil, err
 	}
 
-	if runImmediately {
-		job.Run()
+	return job, nil
+}
+
+func (s *service) startJob(f *domain.Feed) error {
+	// if it's not enabled we should not start it
+	if !f.Enabled {
+		return errors.New("feed %s not enabled", f.Name)
 	}
 
-	identifierKey := feedKey{f.ID}.ToString()
+	// get url from settings
+	if f.URL == "" {
+		return errors.New("no URL provided for feed: %s", f.Name)
+	}
+
+	fi := newFeedInstance(f)
+
+	job, err := s.initializeFeedJob(fi)
+	if err != nil {
+		return errors.Wrap(err, "initialize job %s failed", f.Indexer)
+	}
+
+	if err := s.scheduleJob(fi, job); err != nil {
+		return errors.Wrap(err, "schedule job %s failed", f.Indexer)
+	}
+
+	s.log.Debug().Msgf("successfully started feed: %s", f.Name)
+
+	return nil
+}
+
+func (s *service) scheduleJob(fi feedInstance, job cron.Job) error {
+	identifierKey := feedKey{fi.Feed.ID}.ToString()
 
 	// schedule job
 	id, err := s.scheduler.ScheduleJob(job, fi.CronSchedule, identifierKey)
@@ -401,12 +427,10 @@ func (s *service) startJob(f *domain.Feed, runImmediately bool) error {
 	// add to job map
 	s.jobs[identifierKey] = id
 
-	s.log.Debug().Msgf("successfully started feed: %s", f.Name)
-
 	return nil
 }
 
-func (s *service) createTorznabJob(f feedInstance) (cron.Job, error) {
+func (s *service) createTorznabJob(f feedInstance) (FeedJob, error) {
 	s.log.Debug().Msgf("create torznab job: %s", f.Name)
 
 	if f.URL == "" {
@@ -429,8 +453,8 @@ func (s *service) createTorznabJob(f feedInstance) (cron.Job, error) {
 	return job, nil
 }
 
-func (s *service) createNewznabJob(f feedInstance) (cron.Job, error) {
-	s.log.Debug().Msgf("add newznab job: %s", f.Name)
+func (s *service) createNewznabJob(f feedInstance) (FeedJob, error) {
+	s.log.Debug().Msgf("create newznab job: %s", f.Name)
 
 	if f.URL == "" {
 		return nil, errors.New("newznab feed requires URL")
@@ -448,8 +472,8 @@ func (s *service) createNewznabJob(f feedInstance) (cron.Job, error) {
 	return job, nil
 }
 
-func (s *service) createRSSJob(f feedInstance) (cron.Job, error) {
-	s.log.Debug().Msgf("add rss job: %s", f.Name)
+func (s *service) createRSSJob(f feedInstance) (FeedJob, error) {
+	s.log.Debug().Msgf("create rss job: %s", f.Name)
 
 	if f.URL == "" {
 		return nil, errors.New("rss feed requires URL")
@@ -519,8 +543,16 @@ func (s *service) ForceRun(ctx context.Context, id int) error {
 		return err
 	}
 
-	if err := s.startJob(feed, true); err != nil {
-		s.log.Error().Err(err).Msg("failed to reschedule job after force run")
+	fi := newFeedInstance(feed)
+
+	job, err := s.initializeFeedJob(fi)
+	if err != nil {
+		s.log.Error().Err(err).Msg("failed to initialize feed job")
+		return err
+	}
+
+	if err := job.RunE(ctx); err != nil {
+		s.log.Error().Err(err).Msg("failed to refresh feed")
 		return err
 	}
 

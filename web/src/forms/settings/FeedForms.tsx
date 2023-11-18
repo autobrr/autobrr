@@ -78,6 +78,8 @@ export function FeedUpdateForm({ isOpen, toggle, feed }: UpdateProps) {
       setIsSuccessfulTest(false);
     },
     onSuccess: () => {
+      toast.custom((t) => <Toast type="success" body={`${feed.name} test OK!`} t={t} />);
+
       sleep(1000)
         .then(() => {
           setIsTesting(false);
