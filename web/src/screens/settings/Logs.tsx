@@ -14,6 +14,7 @@ import { LogLevelOptions, SelectOption } from "@domain/constants";
 
 import { Section, RowItem } from "./_components";
 import * as common from "@components/inputs/common";
+import { LogFiles } from "@screens/Logs";
 
 type SelectWrapperProps = {
   id: string;
@@ -90,29 +91,35 @@ function LogSettings() {
         </>
       }
     >
-      <form className="-mx-4 lg:col-span-9" action="#" method="POST">
-        {!isLoading && data && (
-          <div className="divide-y divide-gray-200 dark:divide-gray-750">
-            <RowItem label="Path" value={data?.log_path} title="Set in config.toml" emptyText="Not set!" />
-            <RowItem
-              className="sm:col-span-1"
-              label="Level"
-              title="Log level"
-              value={
-                <SelectWrapper
-                  id="log_level"
-                  value={data?.log_level}
-                  options={LogLevelOptions}
-                  onChange={(value: SelectOption) => setLogLevelUpdateMutation.mutate(value.value)}
-                />
-              }
-            />
-            <RowItem label="Max Size" value={data?.log_max_size} title="Set in config.toml" rightSide="MB" />
-            <RowItem label="Max Backups" value={data?.log_max_backups} title="Set in config.toml" />
+      <div className="-mx-4 lg:col-span-9">
+        <div className="divide-y divide-gray-200 dark:divide-gray-750">
+          {!isLoading && data && (
+            <form className="divide-y divide-gray-200 dark:divide-gray-750" action="#" method="POST">
+              <RowItem label="Path" value={data?.log_path} title="Set in config.toml" emptyText="Not set!"/>
+              <RowItem
+                className="sm:col-span-1"
+                label="Level"
+                title="Log level"
+                value={
+                  <SelectWrapper
+                    id="log_level"
+                    value={data?.log_level}
+                    options={LogLevelOptions}
+                    onChange={(value: SelectOption) => setLogLevelUpdateMutation.mutate(value.value)}
+                  />
+                }
+              />
+              <RowItem label="Max Size" value={data?.log_max_size} title="Set in config.toml" rightSide="MB"/>
+              <RowItem label="Max Backups" value={data?.log_max_backups} title="Set in config.toml"/>
+            </form>
+          )}
+
+          <div className="px-6 pt-4">
+            <LogFiles/>
           </div>
-        )}
-      </form>
-      
+        </div>
+      </div>
+
     </Section>
   );
 }
