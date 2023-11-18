@@ -8,6 +8,7 @@ import (
 	"os/signal"
 	"syscall"
 	_ "time/tzdata"
+	_ "go.uber.org/automaxprocs"
 
 	"github.com/autobrr/autobrr/internal/action"
 	"github.com/autobrr/autobrr/internal/api"
@@ -140,7 +141,7 @@ func main() {
 	}()
 
 	sigCh := make(chan os.Signal, 1)
-	signal.Notify(sigCh, syscall.SIGHUP, syscall.SIGINT, syscall.SIGQUIT, syscall.SIGKILL, syscall.SIGTERM)
+	signal.Notify(sigCh, syscall.SIGHUP, syscall.SIGINT, syscall.SIGQUIT, syscall.SIGTERM)
 
 	srv := server.NewServer(log, cfg.Config, ircService, indexerService, feedService, schedulingService, updateService)
 	if err := srv.Start(); err != nil {
@@ -149,20 +150,14 @@ func main() {
 	}
 
 	for sig := range sigCh {
-		switch sig {
-		case syscall.SIGHUP:
-			log.Log().Msg("shutting down server sighup")
-			srv.Shutdown()
-			db.Close()
-			os.Exit(1)
-		case syscall.SIGINT, syscall.SIGQUIT:
-			srv.Shutdown()
-			db.Close()
-			os.Exit(1)
-		case syscall.SIGKILL, syscall.SIGTERM:
-			srv.Shutdown()
-			db.Close()
+		log.Info().Msgf("received signal: %v, shutting down server.", sig)
+
+		srv.Shutdown()
+
+		if err := db.Close(); err != nil {
+			log.Error().Err(err).Msg("failed to close the database connection properly")
 			os.Exit(1)
 		}
+		os.Exit(0)
 	}
 }

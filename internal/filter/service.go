@@ -4,7 +4,6 @@
 package filter
 
 import (
-	"bufio"
 	"bytes"
 	"context"
 	"crypto/tls"
@@ -704,19 +703,9 @@ func (s *service) webhook(ctx context.Context, external domain.FilterExternal, r
 		method = external.WebhookMethod
 	}
 
-	var req *http.Request
-	if external.WebhookData != "" && dataArgs != "" {
-		req, err = http.NewRequestWithContext(ctx, method, external.WebhookHost, bytes.NewBufferString(dataArgs))
-		if err != nil {
-			return 0, errors.Wrap(err, "could not build request for webhook")
-		}
-
-		defer req.Body.Close()
-	} else {
-		req, err = http.NewRequestWithContext(ctx, method, external.WebhookHost, nil)
-		if err != nil {
-			return 0, errors.Wrap(err, "could not build request for webhook")
-		}
+	req, err := http.NewRequestWithContext(ctx, method, external.WebhookHost, nil)
+	if err != nil {
+		return 0, errors.Wrap(err, "could not build request for webhook")
 	}
 
 	req.Header.Set("Content-Type", "application/json")
@@ -739,36 +728,37 @@ func (s *service) webhook(ctx context.Context, external domain.FilterExternal, r
 
 	var opts []retry.Option
 
+	opts = append(opts, retry.DelayType(retry.FixedDelay))
+	opts = append(opts, retry.LastErrorOnly(true))
+
 	if external.WebhookRetryAttempts > 0 {
-		option := retry.Attempts(uint(external.WebhookRetryAttempts))
-		opts = append(opts, option)
+		opts = append(opts, retry.Attempts(uint(external.WebhookRetryAttempts)))
 	}
 	if external.WebhookRetryDelaySeconds > 0 {
-		option := retry.Delay(time.Duration(external.WebhookRetryDelaySeconds) * time.Second)
-		opts = append(opts, option)
+		opts = append(opts, retry.Delay(time.Duration(external.WebhookRetryDelaySeconds)*time.Second))
 	}
-	if external.WebhookRetryMaxJitterSeconds > 0 {
-		option := retry.MaxJitter(time.Duration(external.WebhookRetryMaxJitterSeconds) * time.Second)
-		opts = append(opts, option)
-	}
-
-	start := time.Now()
 
 	var retryStatusCodes []string
 	if external.WebhookRetryStatus != "" {
 		retryStatusCodes = strings.Split(strings.ReplaceAll(external.WebhookRetryStatus, " ", ""), ",")
 	}
 
+	start := time.Now()
+
 	statusCode, err := retry.DoWithData(
 		func() (int, error) {
 			clonereq := req.Clone(ctx)
-			clonereq.Body = io.NopCloser(bufio.NewReader(req.Body))
+			if external.WebhookData != "" && dataArgs != "" {
+				clonereq.Body = io.NopCloser(bytes.NewBufferString(dataArgs))
+			}
 			res, err := client.Do(clonereq)
 			if err != nil {
 				return 0, errors.Wrap(err, "could not make request for webhook")
 			}
 
 			defer res.Body.Close()
+
+			s.log.Debug().Msgf("filter external webhook response status: %d", res.StatusCode)
 
 			body, err := io.ReadAll(res.Body)
 			if err != nil {
@@ -780,7 +770,7 @@ func (s *service) webhook(ctx context.Context, external domain.FilterExternal, r
 			}
 
 			if utils.StrSliceContains(retryStatusCodes, strconv.Itoa(res.StatusCode)) {
-				return 0, errors.New("retrying webhook request, got status code: %d", res.StatusCode)
+				return 0, errors.New("webhook got unwanted status code: %d", res.StatusCode)
 			}
 
 			return res.StatusCode, nil

@@ -5,7 +5,7 @@ identifier: milkie
 description: Milkie is a private torrent tracker for GENERAL.
 language: en-us
 urls:
-  - https://www.milkie.cc/
+  - https://milkie.cc/
 privacy: private
 protocol: torrent
 supports:

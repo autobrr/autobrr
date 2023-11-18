@@ -149,7 +149,6 @@ CREATE TABLE filter_external
     webhook_retry_status                TEXT,
     webhook_retry_attempts              INTEGER,
     webhook_retry_delay_seconds         INTEGER,
-    webhook_retry_max_jitter_seconds    INTEGER,
     filter_id                           INTEGER NOT NULL,
     FOREIGN KEY (filter_id)             REFERENCES filter(id) ON DELETE CASCADE
 );
@@ -1418,5 +1417,8 @@ DROP TABLE filter_external;
 
 ALTER TABLE filter_external_dg_tmp
     RENAME TO filter_external;
+`,
+	`ALTER TABLE filter_external
+	DROP COLUMN webhook_retry_max_jitter_seconds;
 `,
 }

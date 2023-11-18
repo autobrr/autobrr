@@ -6,7 +6,7 @@
 import { Fragment, useState } from "react";
 import { toast } from "react-hot-toast";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import Select, { components, ControlProps, InputProps, MenuProps, OptionProps } from "react-select";
+import Select from "react-select";
 import type { FieldProps } from "formik";
 import { Field, Form, Formik, FormikValues } from "formik";
 import { XMarkIcon } from "@heroicons/react/24/solid";
@@ -15,47 +15,15 @@ import { Dialog, Transition } from "@headlessui/react";
 import { classNames, sleep } from "@utils";
 import DEBUG from "@components/debug";
 import { APIClient } from "@api/APIClient";
-import { PasswordFieldWide, SwitchGroupWide, TextFieldWide } from "@components/inputs";
 import { SlideOver } from "@components/panels";
 import Toast from "@components/notifications/Toast";
+import { PasswordFieldWide, SwitchGroupWide, TextFieldWide } from "@components/inputs";
 import { SelectFieldBasic, SelectFieldCreatable } from "@components/inputs/select_wide";
 import { FeedDownloadTypeOptions } from "@domain/constants";
 import { feedKeys } from "@screens/settings/Feed";
 import { indexerKeys } from "@screens/settings/Indexer";
 import { DocsLink } from "@components/ExternalLink";
-
-const Input = (props: InputProps) => (
-  <components.Input
-    {...props}
-    inputClassName="outline-none border-none shadow-none focus:ring-transparent"
-    className="text-gray-400 dark:text-gray-100"
-    children={props.children}
-  />
-);
-
-const Control = (props: ControlProps) => (
-  <components.Control
-    {...props}
-    className="p-1 block w-full dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:text-gray-100 sm:text-sm"
-    children={props.children}
-  />
-);
-
-const Menu = (props: MenuProps) => (
-  <components.Menu
-    {...props}
-    className="dark:bg-gray-800 border border-gray-300 dark:border-gray-700 dark:text-gray-400 rounded-md shadow-sm cursor-pointer"
-    children={props.children}
-  />
-);
-
-const Option = (props: OptionProps) => (
-  <components.Option
-    {...props}
-    className="dark:text-gray-400 dark:bg-gray-800 dark:hover:bg-gray-900 dark:focus:bg-gray-900 cursor-pointer"
-    children={props.children}
-  />
-);
+import * as common from "@components/inputs/common";
 
 // const isRequired = (message: string) => (value?: string | undefined) => (!!value ? undefined : message);
 
@@ -73,51 +41,54 @@ function validateField(s: IndexerSetting) {
 }
 
 const IrcSettingFields = (ind: IndexerDefinition, indexer: string) => {
-  if (indexer !== "") {
-    return (
-      <Fragment>
-        {ind && ind.irc && ind.irc.settings && (
-          <div className="border-t border-gray-200 dark:border-gray-700 py-5">
-            <div className="px-4 space-y-1">
-              <Dialog.Title className="text-lg font-medium text-gray-900 dark:text-white">IRC</Dialog.Title>
-              <p className="text-sm text-gray-500 dark:text-gray-200">
-                Networks and channels are configured automatically in the background.
-              </p>
-            </div>
-
-            {ind.irc.settings.map((f: IndexerSetting, idx: number) => {
-              switch (f.type) {
-              case "text":
-                return (
-                  <TextFieldWide
-                    key={idx}
-                    name={`irc.${f.name}`}
-                    label={f.label}
-                    required={f.required}
-                    help={f.help}
-                    autoComplete="off"
-                    validate={validateField(f)}
-                    tooltip={
-                      <div>
-                        <p>Please read our IRC guide if you are unfamiliar with IRC.</p>
-                        <DocsLink href="https://autobrr.com/configuration/irc" />
-                      </div>
-                    }
-                  />
-                );
-              case "secret":
-                if (f.name === "invite_command") {
-                  return <PasswordFieldWide defaultVisible name={`irc.${f.name}`} label={f.label} required={f.required} key={idx} help={f.help} defaultValue={f.default} validate={validateField(f)} />;
-                }
-                return <PasswordFieldWide name={`irc.${f.name}`} label={f.label} required={f.required} key={idx} help={f.help} defaultValue={f.default} validate={validateField(f)} />;
-              }
-              return null;
-            })}
-          </div>
-        )}
-      </Fragment>
-    );
+  if (!indexer.length) {
+    return null;
   }
+
+  return (
+    <>
+      {ind && ind.irc && ind.irc.settings && (
+        <div className="border-t border-gray-200 dark:border-gray-700 py-5">
+          <div className="px-4 space-y-1">
+            <Dialog.Title className="text-lg font-medium text-gray-900 dark:text-white">IRC</Dialog.Title>
+            <p className="text-sm text-gray-500 dark:text-gray-200">
+              Networks and channels are configured automatically in the background.
+            </p>
+          </div>
+
+          {ind.irc.settings.map((f: IndexerSetting, idx: number) => {
+            switch (f.type) {
+            case "text":
+              return (
+                <TextFieldWide
+                  key={idx}
+                  name={`irc.${f.name}`}
+                  label={f.label}
+                  required={f.required}
+                  help={f.help}
+                  autoComplete="off"
+                  validate={validateField(f)}
+                  tooltip={
+                    <div>
+                      <p>Please read our IRC guide if you are unfamiliar with IRC.</p>
+                      <DocsLink href="https://autobrr.com/configuration/irc" />
+                    </div>
+                  }
+                />
+              );
+            case "secret":
+              if (f.name === "invite_command") {
+                return <PasswordFieldWide defaultVisible name={`irc.${f.name}`} label={f.label} required={f.required} key={idx} help={f.help} defaultValue={f.default} validate={validateField(f)} />;
+              }
+              return <PasswordFieldWide name={`irc.${f.name}`} label={f.label} required={f.required} key={idx} help={f.help} defaultValue={f.default} validate={validateField(f)} />;
+            }
+            return null;
+          })}
+        </div>
+      )}
+    </>
+  );
+
 };
 
 const TorznabFeedSettingFields = (ind: IndexerDefinition, indexer: string) => {
@@ -137,10 +108,10 @@ const TorznabFeedSettingFields = (ind: IndexerDefinition, indexer: string) => {
 
             {ind.torznab.settings.map((f: IndexerSetting, idx: number) => {
               switch (f.type) {
-                case "text":
-                  return <TextFieldWide name={`feed.${f.name}`} label={f.label} required={f.required} key={idx} help={f.help} autoComplete="off" validate={validateField(f)} />;
-                case "secret":
-                  return <PasswordFieldWide name={`feed.${f.name}`} label={f.label} required={f.required} key={idx} help={f.help} defaultValue={f.default} validate={validateField(f)} />;
+              case "text":
+                return <TextFieldWide name={`feed.${f.name}`} label={f.label} required={f.required} key={idx} help={f.help} autoComplete="off" validate={validateField(f)} />;
+              case "secret":
+                return <PasswordFieldWide name={`feed.${f.name}`} label={f.label} required={f.required} key={idx} help={f.help} defaultValue={f.default} validate={validateField(f)} />;
               }
               return null;
             })}
@@ -176,10 +147,10 @@ const NewznabFeedSettingFields = (ind: IndexerDefinition, indexer: string) => {
 
             {ind.newznab.settings.map((f: IndexerSetting, idx: number) => {
               switch (f.type) {
-                case "text":
-                  return <TextFieldWide name={`feed.${f.name}`} label={f.label} required={f.required} key={idx} help={f.help} autoComplete="off" validate={validateField(f)} />;
-                case "secret":
-                  return <PasswordFieldWide name={`feed.${f.name}`} label={f.label} required={f.required} key={idx} help={f.help} defaultValue={f.default} validate={validateField(f)} />;
+              case "text":
+                return <TextFieldWide name={`feed.${f.name}`} label={f.label} required={f.required} key={idx} help={f.help} autoComplete="off" validate={validateField(f)} />;
+              case "secret":
+                return <PasswordFieldWide name={`feed.${f.name}`} label={f.label} required={f.required} key={idx} help={f.help} defaultValue={f.default} validate={validateField(f)} />;
               }
               return null;
             })}
@@ -207,10 +178,10 @@ const RSSFeedSettingFields = (ind: IndexerDefinition, indexer: string) => {
 
             {ind.rss.settings.map((f: IndexerSetting, idx: number) => {
               switch (f.type) {
-                case "text":
-                  return <TextFieldWide name={`feed.${f.name}`} label={f.label} required={f.required} key={idx} help={f.help} autoComplete="off" validate={validateField(f)} />;
-                case "secret":
-                  return <PasswordFieldWide name={`feed.${f.name}`} label={f.label} required={f.required} key={idx} help={f.help} defaultValue={f.default} validate={validateField(f)} />;
+              case "text":
+                return <TextFieldWide name={`feed.${f.name}`} label={f.label} required={f.required} key={idx} help={f.help} autoComplete="off" validate={validateField(f)} />;
+              case "secret":
+                return <PasswordFieldWide name={`feed.${f.name}`} label={f.label} required={f.required} key={idx} help={f.help} defaultValue={f.default} validate={validateField(f)} />;
               }
               return null;
             })}
@@ -235,28 +206,28 @@ const SettingFields = (ind: IndexerDefinition, indexer: string) => {
       <div key="opt">
         {ind && ind.settings && ind.settings.map((f, idx: number) => {
           switch (f.type) {
-            case "text":
-              return (
-                <TextFieldWide name={`settings.${f.name}`} label={f.label} required={f.required} key={idx} help={f.help} autoComplete="off" validate={validateField(f)} />
-              );
-            case "secret":
-              return (
-                <PasswordFieldWide
-                  name={`settings.${f.name}`}
-                  label={f.label}
-                  required={f.required}
-                  key={idx}
-                  help={f.help}
-                  validate={validateField(f)}
-                  tooltip={
-                    <div>
-                      <p>This field does not take a full URL. Only use alphanumeric strings like <code>uqcdi67cibkx3an8cmdm</code>.</p>
-                      <br />
-                      <DocsLink href="https://autobrr.com/faqs#common-action-rejections" />
-                    </div>
-                  }
-                />
-              );
+          case "text":
+            return (
+              <TextFieldWide name={`settings.${f.name}`} label={f.label} required={f.required} key={idx} help={f.help} autoComplete="off" validate={validateField(f)} />
+            );
+          case "secret":
+            return (
+              <PasswordFieldWide
+                name={`settings.${f.name}`}
+                label={f.label}
+                required={f.required}
+                key={idx}
+                help={f.help}
+                validate={validateField(f)}
+                tooltip={
+                  <div>
+                    <p>This field does not take a full URL. Only use alphanumeric strings like <code>uqcdi67cibkx3an8cmdm</code>.</p>
+                    <br />
+                    <DocsLink href="https://autobrr.com/faqs#common-action-rejections" />
+                  </div>
+                }
+              />
+            );
           }
           return null;
         })}
@@ -468,7 +439,7 @@ export function IndexerAddForm({ isOpen, toggle }: AddProps) {
                   onSubmit={onSubmit}
                 >
                   {({ values }) => (
-                    <Form className="h-full flex flex-col bg-white dark:bg-gray-800 shadow-xl overflow-y-scroll">
+                    <Form className="h-full flex flex-col bg-white dark:bg-gray-800 shadow-xl overflow-y-auto">
                       <div className="flex-1">
                         <div className="px-4 py-6 bg-gray-50 dark:bg-gray-900 sm:px-6">
                           <div className="flex items-start justify-between space-x-3">
@@ -509,7 +480,14 @@ export function IndexerAddForm({ isOpen, toggle }: AddProps) {
                                   <Select {...field}
                                     isClearable={true}
                                     isSearchable={true}
-                                    components={{ Input, Control, Menu, Option }}
+                                    components={{
+                                      Input: common.SelectInput,
+                                      Control: common.SelectControl,
+                                      Menu: common.SelectMenu,
+                                      Option: common.SelectOption,
+                                      IndicatorSeparator: common.IndicatorSeparator,
+                                      DropdownIndicator: common.DropdownIndicator
+                                    }}
                                     placeholder="Choose an indexer"
                                     styles={{
                                       singleValue: (base) => ({
@@ -566,7 +544,7 @@ export function IndexerAddForm({ isOpen, toggle }: AddProps) {
                               name="base_url"
                               label="Base URL"
                               help="Override baseurl if it's blocked by your ISP."
-                              options={indexer.urls.map(u => ({ value: u, label: u, key: u })) }
+                              options={indexer.urls.map(u => ({ value: u, label: u, key: u }))}
                             />
                           )}
 
@@ -736,9 +714,9 @@ interface IndexerUpdateInitialValues {
 }
 
 interface UpdateProps {
-    isOpen: boolean;
-    toggle: () => void;
-    indexer: IndexerDefinition;
+  isOpen: boolean;
+  toggle: () => void;
+  indexer: IndexerDefinition;
 }
 
 export function IndexerUpdateForm({ isOpen, toggle, indexer }: UpdateProps) {
@@ -852,7 +830,7 @@ export function IndexerUpdateForm({ isOpen, toggle, indexer }: UpdateProps) {
                   <input
                     type="text"
                     {...field}
-                    className="block w-full shadow-sm dark:bg-gray-800 sm:text-sm dark:text-white focus:ring-blue-500 focus:border-blue-500 border-gray-300 dark:border-gray-700 rounded-md"
+                    className="block w-full shadow-sm sm:text-sm focus:ring-blue-500 focus:border-blue-500 border-gray-300 dark:border-gray-700 bg-gray-100 dark:bg-gray-815 dark:text-gray-100 rounded-md"
                   />
                   {meta.touched && meta.error && <span>{meta.error}</span>}
                 </div>
@@ -866,7 +844,7 @@ export function IndexerUpdateForm({ isOpen, toggle, indexer }: UpdateProps) {
               name="base_url"
               label="Base URL"
               help="Override baseurl if it's blocked by your ISP."
-              options={indexer.urls.map(u => ({ value: u, label: u, key: u })) }
+              options={indexer.urls.map(u => ({ value: u, label: u, key: u }))}
             />
           )}
 

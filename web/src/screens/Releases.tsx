@@ -30,6 +30,7 @@ export const Releases = () => {
               setIsHintOpen((state) => !state);
             }}
             className="inline-flex whitespace-nowrap items-center shadow-md border rounded-md mx-1 px-1 text-black bg-lime-100 hover:bg-lime-200 border-lime-500 dark:text-white dark:bg-lime-950 dark:hover:bg-lime-900 dark:border-lime-800"
+
           >
             click here
             {isHintOpen ? (
@@ -45,10 +46,10 @@ export const Releases = () => {
             <div className="flex justify-between items-center text-base font-medium pl-2 py-1 border-b border-gray-300 bg-gray-100 dark:border-gray-700 dark:bg-gray-800 rounded-t-md">
               Search tips
             </div>
-            <div className="rounded-t-md py-1 px-2 rounded-b-md bg-white dark:bg-gray-900">
+            <div className="py-1 px-2 rounded-b-md bg-white dark:bg-gray-900">
               You can use <b>2</b> special <span className="underline decoration-2 underline-offset-2 decoration-amber-500">wildcard characters</span> for the purpose of pattern matching.
               <br />
-              - Percent (<Code>%</Code>) - for matching any <i>sequence</i> of characters (equivalent to <Code>*</Code> in Regex)
+              - Percent (<Code>%</Code>) - for matching any <i>sequence</i> of characters (equivalent to <Code>.*</Code> in Regex)
               <br />
               - Underscore (<Code>_</Code>) - for matching any <i>single</i> character (equivalent to <Code>.</Code> in Regex)
               <br /><br />
@@ -87,9 +88,9 @@ export const Releases = () => {
           </div>
         ) : null}
       </div>
-      <div className="max-w-screen-xl mx-auto pb-6 px-4 sm:px-6 lg:pb-16 lg:px-8">
+      <div className="max-w-screen-xl mx-auto pb-6 px-2 sm:px-6 lg:pb-16 lg:px-8">
         <ReleaseTable />
       </div>
     </main>
   );
-}
+};

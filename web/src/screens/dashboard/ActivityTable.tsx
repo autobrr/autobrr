@@ -85,9 +85,9 @@ function Table({ columns, data }: TableProps) {
   // Render the UI for your table
   return (
     <div className="inline-block min-w-full mt-4 mb-2 align-middle">
-      <div className="bg-white shadow-lg dark:bg-gray-800 rounded-md overflow-auto">
-        <table {...getTableProps()} className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-          <thead className="bg-gray-50 dark:bg-gray-800">
+      <div className="bg-white dark:bg-gray-800 border border-gray-250 dark:border-gray-775 shadow-table rounded-md overflow-auto">
+        <table {...getTableProps()} className="min-w-full rounded-md divide-y divide-gray-200 dark:divide-gray-750">
+          <thead className="bg-gray-100 dark:bg-gray-850">
             {headerGroups.map((headerGroup) => {
               const { key: rowKey, ...rowRest } = headerGroup.getHeaderGroupProps();
               return (
@@ -100,7 +100,7 @@ function Table({ columns, data }: TableProps) {
                       <th
                         key={`${rowKey}-${columnKey}`}
                         scope="col"
-                        className="first:pl-5 first:rounded-tl-md last:rounded-tr-md pl-3 pr-3 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase group"
+                        className="first:pl-5 first:rounded-tl-md last:rounded-tr-md pl-3 pr-3 py-3 text-xs font-medium tracking-wider text-left uppercase group text-gray-600 dark:text-gray-400 transition hover:bg-gray-200 dark:hover:bg-gray-775"
                         {...columnRest}
                       >
                         <div className="flex items-center justify-between">
@@ -127,7 +127,7 @@ function Table({ columns, data }: TableProps) {
           </thead>
           <tbody
             {...getTableBodyProps()}
-            className="divide-y divide-gray-200 dark:divide-gray-700"
+            className="divide-y divide-gray-150 dark:divide-gray-750"
           >
             {page.map((row) => {
               prepareRow(row);
