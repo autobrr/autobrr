@@ -27,6 +27,7 @@ func setupDatabaseForTest(t *testing.T, dbType string) *DB {
 		PostgresDatabase: "autobrr",
 		PostgresUser:     "testdb",
 		PostgresPass:     "testdb",
+		PostgresSSLMode:  "disable",
 	}
 
 	// Init a new logger
