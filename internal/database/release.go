@@ -139,7 +139,7 @@ func (repo *ReleaseRepo) findReleases(ctx context.Context, tx *Tx, params domain
 			if reskey := r.FindAllStringSubmatch(search, -1); len(reskey) != 0 {
 				filter := sq.Or{}
 				for _, found := range reskey {
-					filter = append(filter, ILike(v, strings.ReplaceAll(strings.Trim(strings.Trim(found[1], `"`), `'`), ".", "_")+"%"))
+					filter = append(filter, repo.db.ILike(v, strings.ReplaceAll(strings.Trim(strings.Trim(found[1], `"`), `'`), ".", "_")+"%"))
 				}
 
 				if len(filter) == 0 {
@@ -153,9 +153,9 @@ func (repo *ReleaseRepo) findReleases(ctx context.Context, tx *Tx, params domain
 
 		if len(search) != 0 {
 			if len(whereQueryBuilder) > 1 {
-				whereQueryBuilder = append(whereQueryBuilder, ILike("r.torrent_name", "%"+search+"%"))
+				whereQueryBuilder = append(whereQueryBuilder, repo.db.ILike("r.torrent_name", "%"+search+"%"))
 			} else {
-				whereQueryBuilder = append(whereQueryBuilder, ILike("r.torrent_name", search+"%"))
+				whereQueryBuilder = append(whereQueryBuilder, repo.db.ILike("r.torrent_name", search+"%"))
 			}
 		}
 	}
@@ -649,7 +649,7 @@ func (repo *ReleaseRepo) CanDownloadShow(ctx context.Context, title string, seas
 	queryBuilder := repo.db.squirrel.
 		Select("COUNT(*)").
 		From("release").
-		Where(ILike("title", title+"%"))
+		Where(repo.db.ILike("title", title+"%"))
 
 	if season > 0 && episode > 0 {
 		queryBuilder = queryBuilder.Where(sq.Or{

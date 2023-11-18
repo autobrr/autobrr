@@ -11,7 +11,7 @@ protocol: torrent
 supports:
   - irc
   - rss
-source: custom
+# source: custom
 settings:
   - name: passkey
     type: secret
@@ -58,10 +58,28 @@ irc:
   parse:
     type: single
     lines:
-      - test:
-          - "ImmortalSeed - Category: ( TV - High Definition ) Torrent: ( The.Show.S07E02.Lunch.At.Sea.720p.WEBRip.X264-GROUP1 ) Size: ( 457.07 MB ) Link: ( https://immortalseed.me/details.php?id=0000000 )"
-          - "ImmortalSeed - Category: ( TV - High Definition ) Torrent: ( Other.Show.S01E02.1080p.WEB.H264-GROUP2 ) Size: ( 3.66 GB ) Link: ( https://immortalseed.me/details.php?id=0000000 )"
-          - "ImmortalSeed - Category: ( Anime ) Torrent: ( Some.Anime.Show.S01E04.1080p.WEB.H264-GROUP3 ) Size: ( 1.34 GB ) Link: ( https://immortalseed.me/details.php?id=0000000 )"
+      - tests:
+        - line: 'ImmortalSeed - Category: ( TV - High Definition ) Torrent: ( The.Show.S07E02.Lunch.At.Sea.720p.WEBRip.X264-GROUP1 ) Size: ( 457.07 MB ) Link: ( https://immortalseed.me/details.php?id=0000000 )'
+          expect:
+            category: TV - High Definition
+            torrentName: The.Show.S07E02.Lunch.At.Sea.720p.WEBRip.X264-GROUP1
+            torrentSize: 457.07 MB
+            baseUrl: https://immortalseed.me/
+            torrentId: "0000000"
+        - line: 'ImmortalSeed - Category: ( TV - High Definition ) Torrent: ( Other.Show.S01E02.1080p.WEB.H264-GROUP2 ) Size: ( 3.66 GB ) Link: ( https://immortalseed.me/details.php?id=0000000 )'
+          expect:
+            category: TV - High Definition
+            torrentName: Other.Show.S01E02.1080p.WEB.H264-GROUP2
+            torrentSize: 3.66 GB
+            baseUrl: https://immortalseed.me/
+            torrentId: "0000000"
+        - line: 'ImmortalSeed - Category: ( Anime ) Torrent: ( Some.Anime.Show.S01E04.1080p.WEB.H264-GROUP3 ) Size: ( 1.34 GB ) Link: ( https://immortalseed.me/details.php?id=0000000 )'
+          expect:
+            category: Anime
+            torrentName: Some.Anime.Show.S01E04.1080p.WEB.H264-GROUP3
+            torrentSize: 1.34 GB
+            baseUrl: https://immortalseed.me/
+            torrentId: "0000000"
         pattern: '\s*ImmortalSeed - Category: \( (.*) \) Torrent: \( (.*) \) Size: \( (.*) \)\s+Link: \( (https?:\/\/.*\/).*id=(\d+) \)'
         vars:
           - category

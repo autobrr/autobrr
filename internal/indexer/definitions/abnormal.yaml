@@ -10,7 +10,7 @@ protocol: torrent
 supports:
   - irc
   - rss
-source: gazelle
+# source: gazelle
 settings:
   - name: uid
     type: secret
@@ -58,8 +58,12 @@ irc:
   parse:
     type: single
     lines:
-      - test:
-          - "|2020/08/22 00:00:00| | https://abn.lol/Torrent/Details?ReleaseId=000000 | : |Action.Test.S01E01.FRENCH.WEB.x264-NOGROUP|"
+      - tests:
+        - line: '|2020/08/22 00:00:00| | https://abn.lol/Torrent/Details?ReleaseId=000000 | : |Action.Test.S01E01.FRENCH.WEB.x264-NOGROUP|'
+          expect:
+            baseUrl: https://abn.lol/
+            torrentId: "000000"
+            torrentName: Action.Test.S01E01.FRENCH.WEB.x264-NOGROUP
         pattern: '^\s*\|.+\|\s*\|\s(https?\:\/\/[^\/]+\/).*[&\?]ReleaseId\=(\d+)\s\|[\s:]+\|([^|]+)\|\s*'
         vars:
           - baseUrl

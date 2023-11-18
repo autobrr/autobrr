@@ -63,6 +63,10 @@ jobs:
         cache: pnpm
         cache-dependency-path: web/pnpm-lock.yaml
 
+    - name: Fetch web dependencies
+      working-directory: web
+      run: pnpm install --frozen-lockfile
+
     # Initializes the CodeQL tools for scanning.
     - name: Initialize CodeQL
       uses: github/codeql-action/init@v2

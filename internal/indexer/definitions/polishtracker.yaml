@@ -11,7 +11,7 @@ protocol: torrent
 supports:
   - irc
   - rss
-source: custom
+# source: custom
 settings:
   - name: rsskey
     type: secret
@@ -57,10 +57,28 @@ irc:
   parse:
     type: single
     lines:
-      - test:
-          - "::: PolishTracker :::  Torrent ( Some.Movie.2017.PLSUB.1080p.BDRip.x264-GROUP )  ||  Kategoria: ( movies HD )  ||  Rozmiar: ( 2.14 GB )  ||  Link: ( https://pte.nu/torrents/000000 )  ||  Wiecej: ( http://www.filmweb.pl/film?id=000000 )"
-          - "::: PolishTracker :::  Torrent ( Some.Other.Movie.1985.iNTERNAL.BDRip.x264-GROUP )  ||  Kategoria: ( movies SD )  ||  Rozmiar: ( 1.15 GB )  ||  Link: ( https://pte.nu/torrents/000000 )"
-          - "::: PolishTracker :::  Torrent ( Some.Other.Movie.1985.iNTERNAL.720p.BluRay.x264-GROUP )  ||  Kategoria: ( movies HD )  ||  Rozmiar: ( 5.02 GB )  ||  Link: ( https://pte.nu/torrents/000000 )"
+      - tests:
+        - line: '::: PolishTracker :::  Torrent ( Some.Movie.2017.PLSUB.1080p.BDRip.x264-GROUP )  ||  Kategoria: ( movies HD )  ||  Rozmiar: ( 2.14 GB )  ||  Link: ( https://pte.nu/torrents/000000 )  ||  Wiecej: ( http://www.filmweb.pl/film?id=000000 )'
+          expect:
+            torrentName: Some.Movie.2017.PLSUB.1080p.BDRip.x264-GROUP
+            category: movies HD
+            torrentSize: 2.14 GB
+            baseUrl: https://pte.nu/
+            torrentId: "000000"
+        - line: '::: PolishTracker :::  Torrent ( Some.Other.Movie.1985.iNTERNAL.BDRip.x264-GROUP )  ||  Kategoria: ( movies SD )  ||  Rozmiar: ( 1.15 GB )  ||  Link: ( https://pte.nu/torrents/000000 )'
+          expect:
+            torrentName: Some.Other.Movie.1985.iNTERNAL.BDRip.x264-GROUP
+            category: movies SD
+            torrentSize: 1.15 GB
+            baseUrl: https://pte.nu/
+            torrentId: "000000"
+        - line: '::: PolishTracker :::  Torrent ( Some.Other.Movie.1985.iNTERNAL.720p.BluRay.x264-GROUP )  ||  Kategoria: ( movies HD )  ||  Rozmiar: ( 5.02 GB )  ||  Link: ( https://pte.nu/torrents/000000 )'
+          expect:
+            torrentName: Some.Other.Movie.1985.iNTERNAL.720p.BluRay.x264-GROUP
+            category: movies HD
+            torrentSize: 5.02 GB
+            baseUrl: https://pte.nu/
+            torrentId: "000000"
         pattern: '::: PolishTracker :::  Torrent \( (.+) \)  \|\|  Kategoria: \( (.+) \)  \|\|  Rozmiar: \( (.+) \)  \|\|  Link: \( (https:\/\/.+\/)torrents\/(\d+) \)'
         vars:
           - torrentName

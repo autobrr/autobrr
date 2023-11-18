@@ -7,6 +7,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"os"
 	"sync"
 
 	"github.com/autobrr/autobrr/internal/domain"
@@ -16,8 +17,6 @@ import (
 	sq "github.com/Masterminds/squirrel"
 	"github.com/rs/zerolog"
 )
-
-var databaseDriver = "sqlite"
 
 type DB struct {
 	log     zerolog.Logger
@@ -36,25 +35,27 @@ func NewDB(cfg *domain.Config, log logger.Logger) (*DB, error) {
 	db := &DB{
 		// set default placeholder for squirrel to support both sqlite and postgres
 		squirrel: sq.StatementBuilder.PlaceholderFormat(sq.Dollar),
-		log:      log.With().Str("module", "database").Logger(),
+		log:      log.With().Str("module", "database").Str("type", cfg.DatabaseType).Logger(),
 	}
 	db.ctx, db.cancel = context.WithCancel(context.Background())
 
 	switch cfg.DatabaseType {
 	case "sqlite":
-		databaseDriver = "sqlite"
 		db.Driver = "sqlite"
-		db.DSN = dataSourceName(cfg.ConfigPath, "autobrr.db")
+		if os.Getenv("IS_TEST_ENV") == "true" {
+			db.DSN = ":memory:"
+		} else {
+			db.DSN = dataSourceName(cfg.ConfigPath, "autobrr.db")
+		}
 	case "postgres":
 		if cfg.PostgresHost == "" || cfg.PostgresPort == 0 || cfg.PostgresDatabase == "" {
 			return nil, errors.New("postgres: bad variables")
 		}
 		db.DSN = fmt.Sprintf("postgres://%v:%v@%v:%d/%v?sslmode=%v", cfg.PostgresUser, cfg.PostgresPass, cfg.PostgresHost, cfg.PostgresPort, cfg.PostgresDatabase, cfg.PostgresSSLMode)
 		if cfg.PostgresExtraParams != "" {
-		    db.DSN = fmt.Sprintf("%s&%s", db.DSN, cfg.PostgresExtraParams)
+			db.DSN = fmt.Sprintf("%s&%s", db.DSN, cfg.PostgresExtraParams)
 		}
 		db.Driver = "postgres"
-		databaseDriver = "postgres"
 	default:
 		return nil, errors.New("unsupported database: %v", cfg.DatabaseType)
 	}
@@ -93,7 +94,7 @@ func (db *DB) Close() error {
 		}
 	case "postgres":
 	}
-	
+
 	// cancel background context
 	db.cancel()
 
@@ -131,8 +132,9 @@ type ILikeDynamic interface {
 
 // ILike is a wrapper for sq.Like and sq.ILike
 // SQLite does not support ILike but postgres does so this checks what database is being used
-func ILike(col string, val string) ILikeDynamic {
-	if databaseDriver == "sqlite" {
+func (db *DB) ILike(col string, val string) ILikeDynamic {
+	//if databaseDriver == "sqlite" {
+	if db.Driver == "sqlite" {
 		return sq.Like{col: val}
 	}
 
