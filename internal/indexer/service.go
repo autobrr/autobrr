@@ -568,7 +568,7 @@ func (s *service) LoadCustomIndexerDefinitions() error {
 		}
 
 		if d == nil {
-			s.log.Warn().Stack().Err(err).Msgf("skipping empty file: %s", file)
+			s.log.Warn().Msgf("skipping empty file: %s", file)
 			continue
 		}
 
@@ -577,8 +577,10 @@ func (s *service) LoadCustomIndexerDefinitions() error {
 		}
 
 		// to prevent crashing from non-updated definitions lets skip
-		if d.Implementation == "irc" && d.IRC.Parse == nil {
-			s.log.Warn().Msgf("DEPRECATED: indexer definition version: %s", file)
+		if d.Implementation == "irc" && d.IRC != nil {
+			if d.IRC.Parse == nil {
+				s.log.Warn().Msgf("DEPRECATED: indexer definition version: %s", file)
+			}
 		}
 
 		s.definitions[d.Identifier] = *d.ToIndexerDefinition()
