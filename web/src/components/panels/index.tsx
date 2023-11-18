@@ -96,7 +96,7 @@ function SlideOver<DataType extends FormikValues>({
                 >
                   {({ handleSubmit, values }) => (
                     <Form
-                      className="h-full flex flex-col bg-white dark:bg-gray-800 shadow-xl overflow-y-scroll"
+                      className="h-full flex flex-col bg-white dark:bg-gray-800 shadow-xl overflow-y-auto"
                       onSubmit={(e) => {
                         e.preventDefault();
                         handleSubmit(e);

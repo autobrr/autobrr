@@ -10,7 +10,7 @@ privacy: private
 protocol: torrent
 supports:
   - irc
-source: gazelle
+# source: gazelle
 settings:
   - name: torrent_pass
     type: secret
@@ -44,10 +44,28 @@ irc:
   parse:
     type: single
     lines:
-      - test:
-          - "Torrent Name Here  - https://bemaniso.ws/torrents.php?id=00000 / https://bemaniso.ws/torrents.php?action=download&id=00001 - ps2, ddr"
-          - "Big Vs. 2 Small  - https://bemaniso.ws/torrents.php?id=00000 / https://bemaniso.ws/torrents.php?action=download&id=00001 - arcade, gundam, exvs"
-          - "Cool title [2000] [DJ Mix] - FLAC / Lossless / Log / 100% / Cue / CD - https://bemaniso.ws/torrents.php?id=00000 / https://bemaniso.ws/torrents.php?action=download&id=00001 - eurobeat"
+      - tests:
+        - line: Torrent Name Here  - https://bemaniso.ws/torrents.php?id=00000 / https://bemaniso.ws/torrents.php?action=download&id=00001 - ps2, ddr
+          expect:
+            torrentName: Torrent Name Here
+            releaseTags: '-'
+            torrentInfoId: "00000"
+            torrentId: "00001"
+            tags: ps2, ddr
+        - line: Big Vs. 2 Small  - https://bemaniso.ws/torrents.php?id=00000 / https://bemaniso.ws/torrents.php?action=download&id=00001 - arcade, gundam, exvs
+          expect:
+            torrentName: Big Vs. 2 Small
+            releaseTags: '-'
+            torrentInfoId: "00000"
+            torrentId: "00001"
+            tags: arcade, gundam, exvs
+        - line: Cool title [2000] [DJ Mix] - FLAC / Lossless / Log / 100% / Cue / CD - https://bemaniso.ws/torrents.php?id=00000 / https://bemaniso.ws/torrents.php?action=download&id=00001 - eurobeat
+          expect:
+            torrentName: Cool title [2000] [DJ Mix]
+            releaseTags: FLAC / Lossless / Log / 100% / Cue / CD -
+            torrentInfoId: "00000"
+            torrentId: "00001"
+            tags: eurobeat
         pattern: '(.*) -? (.*) (?:.*id=(\d+)) / (?:.*id=(\d+)) - (.*)'
         vars:
           - torrentName

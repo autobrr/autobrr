@@ -21,7 +21,7 @@ interface ModalLowerProps extends ImporterProps {
 
 const ModalUpper = ({ children }: { children: React.ReactNode; }) => (
   <div className="bg-white dark:bg-gray-800 px-4 pt-5 pb-4 sm:py-6 sm:px-4 sm:pb-4">
-    <div className="mt-3 text-left sm:mt-0 sm:ml-4 sm:pr-8 max-w-full">
+    <div className="mt-3 text-left sm:mt-0 max-w-full">
       <Dialog.Title as="h3" className="mb-3 text-lg leading-6 font-medium text-gray-900 dark:text-white break-words">
         Import filter (in JSON or autodl-irssi format)
       </Dialog.Title>
@@ -31,10 +31,10 @@ const ModalUpper = ({ children }: { children: React.ReactNode; }) => (
 );
 
 const ModalLower = ({ isOpen, setIsOpen, onImportClick }: ModalLowerProps) => (
-  <div className="bg-gray-50 dark:bg-gray-800 border-t border-gray-300 dark:border-gray-700 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+  <div className="bg-gray-50 dark:bg-gray-800 border-t border-gray-300 dark:border-gray-700 px-4 py-3 sm:px-4 sm:flex sm:flex-row-reverse">
     <button
       type="button"
-      className="w-full inline-flex justify-center rounded-md border border-lime-500 shadow-sm px-4 py-2 bg-lime-700 text-base font-medium text-white hover:bg-lime-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-lime-500 sm:ml-3 sm:w-auto sm:text-sm"
+      className="w-full inline-flex justify-center rounded-md border border-blue-500 shadow-sm px-4 py-2 bg-blue-700 text-base font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:ml-3 sm:w-auto sm:text-sm"
       onClick={(e) => {
         e.preventDefault();
         if (isOpen) {
@@ -105,7 +105,7 @@ const ImportJSON = async (inputFilterText: string) => {
       />
     );
   }
-}
+};
 
 const ImportAutodlIrssi = async (inputText: string) => {
   const parser = new AutodlIrssiConfigParser();
@@ -162,7 +162,7 @@ const ImportAutodlIrssi = async (inputText: string) => {
       />
     );
   }
-}
+};
 
 export const Importer = ({
   isOpen,
@@ -253,7 +253,7 @@ export const Importer = ({
             <div className="inline-block align-bottom border border-transparent dark:border-gray-700 rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle w-full sm:max-w-6xl">
               <ModalUpper>
                 <textarea
-                  className="form-input resize-y block w-full shadow-sm sm:text-sm rounded-md border py-2.5 focus:ring-blue-500 dark:focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-500 border-gray-400 dark:border-gray-700 bg-gray-100 dark:bg-gray-900 dark:text-gray-100"
+                  className="form-input resize-y block w-full shadow-sm sm:text-sm rounded-md border py-2.5 focus:ring-blue-500 dark:focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-500 border-gray-300 dark:border-gray-700 bg-gray-100 dark:bg-gray-815 dark:text-gray-100"
                   placeholder="Paste your filter data here (either autobrr JSON format or your entire autodl-irssi config)"
                   value={inputFilterText}
                   onChange={(event) => {
@@ -288,4 +288,4 @@ export const Importer = ({
       </Dialog>
     </Transition.Root>
   );
-}
+};

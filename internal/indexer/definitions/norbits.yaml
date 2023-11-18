@@ -11,7 +11,7 @@ protocol: torrent
 supports:
   - irc
   - rss
-source: custom
+# source: custom
 settings:
   - name: passkey
     type: secret
@@ -50,9 +50,23 @@ irc:
   parse:
     type: single
     lines:
-      - test:
-          - "Ny torrent: Movie.2010.1080p.BluRay.x264.DTS-HD MA 5.1-OMEGA :: Kategori: Filmer/H.264/HD-1080p/i/Encode :: Scene: Nei :: St�rrelse: 9.69 GB :: https://norbits.net/details.php?id=000000"
-          - "Ny torrent: Some.TV.Show.s01e01.NORDIC.720p.DSNP.WEBRiP.DD.5.1.h264 :: Kategori: TV/H.264/HD-720p/Encode :: Scene: Nei :: St�rrelse: 891.04 MB :: https://norbits.net/details.php?id=000000"
+      - tests:
+        - line: 'Ny torrent: Movie.2010.1080p.BluRay.x264.DTS-HD MA 5.1-OMEGA :: Kategori: Filmer/H.264/HD-1080p/i/Encode :: Scene: Nei :: St�rrelse: 9.69 GB :: https://norbits.net/details.php?id=000000'
+          expect:
+            torrentName: Movie.2010.1080p.BluRay.x264.DTS-HD MA 5.1-OMEGA
+            category: Filmer/H.264/HD-1080p/i/Encode
+            scene: Nei
+            torrentSize: 9.69 GB
+            baseUrl: https://norbits.net/
+            torrentId: "000000"
+        - line: 'Ny torrent: Some.TV.Show.s01e01.NORDIC.720p.DSNP.WEBRiP.DD.5.1.h264 :: Kategori: TV/H.264/HD-720p/Encode :: Scene: Nei :: St�rrelse: 891.04 MB :: https://norbits.net/details.php?id=000000'
+          expect:
+            torrentName: Some.TV.Show.s01e01.NORDIC.720p.DSNP.WEBRiP.DD.5.1.h264
+            category: TV/H.264/HD-720p/Encode
+            scene: Nei
+            torrentSize: 891.04 MB
+            baseUrl: https://norbits.net/
+            torrentId: "000000"
         pattern: 'Ny torrent: (.*) :: Kategori: (.*) :: Scene: (.*) :: St.+rrelse: (.*) :: (https?\:\/\/[^\/]+\/).*[\?]id=(\d+)'
         vars:
           - torrentName
