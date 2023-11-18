@@ -250,16 +250,8 @@ func (f Filter) Validate() error {
 		return errors.New("validation: name can't be empty")
 	}
 
-	if f.MinSize != "" {
-		if _, err := parseFilterBytesLimit(f.MinSize); err != nil {
-			return fmt.Errorf("error validating filter min size: %w", err)
-		}
-	}
-
-	if f.MaxSize != "" {
-		if _, err := parseFilterBytesLimit(f.MaxSize); err != nil {
-			return fmt.Errorf("error validating filter max size: %w", err)
-		}
+	if _, err := f.parsedSizeLimits(); err != nil {
+		return fmt.Errorf("error validating filter size limits: %w", err)
 	}
 
 	return nil
@@ -936,30 +928,50 @@ func matchHDR(releaseValues []string, filterValues []string) bool {
 }
 
 func (f Filter) ReleaseSizeOkay(releaseSize uint64) (bool, error) {
-	ok, err := compare(releaseSize, f.MinSize, func(a, b uint64) bool { return a > b })
-	if !ok || err != nil {
-		return ok, err
+	limits, err := f.parsedSizeLimits()
+	if err != nil {
+		return false, err
 	}
 
-	ok, err = compare(releaseSize, f.MaxSize, func(a, b uint64) bool { return a < b })
-	return ok, err
-}
+	min, max := limits[0], limits[1]
 
-func compare(releaseSize uint64, filterSize string, comparator func(uint64, uint64) bool) (bool, error) {
-	if filterSize != "" {
-		filterSizeBytes, err := parseFilterBytesLimit(filterSize)
-		if err != nil {
-			return false, err
-		}
+	if min != nil && releaseSize <= *min {
+		return false, nil
+	}
 
-		return comparator(releaseSize, filterSizeBytes), nil
+	if max != nil && releaseSize >= *max {
+		return false, nil
 	}
 
 	return true, nil
 }
 
-// parseFilterBytesLimit parses filter bytes limits (expressed as a string) into
-// a uint64 number of bytes. It just wraps humanize.ParseBytes, but we factor it
-// out so that we can be sure to share logic between validation and filtering
-// going forwards.
-func parseFilterBytesLimit(s string) (uint64, error) { return humanize.ParseBytes(s) }
+// parsedSizeLimits parses filter bytes limits (expressed as a string) into a
+// uint64 number of bytes. The bounds are returned as *uint64 number of bytes,
+// with "nil" representing "no limit". We break out filter size limit parsing
+// into a discrete step so that we can more easily check parsability at filter
+// creation time.
+func (f Filter) parsedSizeLimits() ([2]*uint64, error) {
+	min, err := parseBytes(f.MinSize)
+	if err != nil {
+		return [2]*uint64{nil, nil}, fmt.Errorf("trouble parsing min size: %w", err)
+	}
+
+	max, err := parseBytes(f.MaxSize)
+	if err != nil {
+		return [2]*uint64{nil, nil}, fmt.Errorf("trouble parsing max size: %w", err)
+	}
+
+	return [2]*uint64{min, max}, nil
+}
+
+// parseBytes parses a string representation of a file size into a number of
+// bytes. It returns a *uint64 where "nil" represents "none" (corresponding to
+// the empty string)
+func parseBytes(s string) (*uint64, error) {
+	if s == "" {
+		return nil, nil
+	}
+	b, err := humanize.ParseBytes(s)
+	return &b, err
+}
