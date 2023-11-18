@@ -25,15 +25,6 @@ export const General = () => {
     <Components.Page>
       <Components.Section>
         <Components.Layout>
-          <Input.SwitchGroup
-            name="enabled"
-            label="Enabled"
-            description="Enable or disable this filter."
-            className="pb-2 col-span-12 sm:col-span-6"
-          />
-        </Components.Layout>
-
-        <Components.Layout>
           <Input.TextField name="name" label="Filter name" columns={6} placeholder="eg. Filter 1" />
 
           {!isLoading && (
@@ -115,6 +106,15 @@ export const General = () => {
                 <DocsLink href="https://autobrr.com/filters#rules" />
               </div>
             }
+          />
+        </Components.Layout>
+
+        <Components.Layout>
+          <Input.SwitchGroup
+            name="enabled"
+            label="Enabled"
+            description="Enable or disable this filter."
+            className="pb-2 col-span-12 sm:col-span-6"
           />
         </Components.Layout>
       </Components.Section>

@@ -275,10 +275,10 @@ function FilterActionsItem({ action, clients, idx, initialEdit, remove }: Filter
                 <FilterSection.HalfRow>
                   <Select
                     name={`actions.${idx}.type`}
-                    label="Download Client"
+                    label="Action type"
                     optionDefaultText="Select type"
                     options={ActionTypeOptions}
-                    tooltip={<div><p>Select the download client type for this action.</p></div>}
+                    tooltip={<div><p>Select the action type for this action.</p></div>}
                   />
                 </FilterSection.HalfRow>
 

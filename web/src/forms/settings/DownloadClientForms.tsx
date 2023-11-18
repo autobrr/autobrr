@@ -962,7 +962,7 @@ export function DownloadClientUpdateForm({ client, isOpen, toggle }: updateFormP
                               <div className="h-7 flex items-center">
                                 <button
                                   type="button"
-                                  className="bg-white rounded-md text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                  className="bg-white dark:bg-gray-800 rounded-md text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-500"
                                   onClick={toggle}
                                 >
                                   <span className="sr-only">Close panel</span>
