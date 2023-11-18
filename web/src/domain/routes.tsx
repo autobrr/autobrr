@@ -52,6 +52,7 @@ export const LocalRouter = ({ isLoggedIn }: { isLoggedIn: boolean }) => (
             <Route path="clients" element={<SettingsSubPage.DownloadClient />} />
             <Route path="notifications" element={<SettingsSubPage.Notification />} />
             <Route path="releases" element={<SettingsSubPage.Release />} />
+            <Route path="omegabrr" element={<SettingsSubPage.Omegabrr />} />
             <Route path="regex-playground" element={<SettingsSubPage.RegexPlayground />} />
           </Route>
         </Route>
