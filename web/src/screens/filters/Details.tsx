@@ -155,7 +155,7 @@ const FormErrorNotification = () => {
 
       const formattedErrors = FormatFormikErrorObject(errors);
       console.log("--> Formatted Errors: ", formattedErrors);
-      
+
       toast.custom((t) => (
         <Toast
           type="error"
@@ -223,7 +223,6 @@ const externalFilterSchema = z.object({
   webhook_retry_status: z.string().optional(),
   webhook_retry_attempts: z.number().optional(),
   webhook_retry_delay_seconds: z.number().optional(),
-  webhook_retry_max_jitter_seconds: z.number().optional()
 });
 
 const indexerSchema = z.object({
