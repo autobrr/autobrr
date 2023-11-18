@@ -280,7 +280,7 @@ func (r *FilterRepo) FindByID(ctx context.Context, filterID int) (*domain.Filter
 
 		// filter external
 		var extName, extType, extExecCmd, extExecArgs, extWebhookHost, extWebhookMethod, extWebhookHeaders, extWebhookData, extWebhookRetryStatus sql.NullString
-		var extId, extIndex, extWebhookStatus, extWebhookRetryAttempts, extWebhookDelaySeconds, extWebhookRetryJitterSeconds, extExecStatus sql.NullInt32
+		var extId, extIndex, extWebhookStatus, extWebhookRetryAttempts, extWebhookDelaySeconds, extExecStatus sql.NullInt32
 		var extEnabled sql.NullBool
 
 		if err := rows.Scan(
@@ -360,7 +360,6 @@ func (r *FilterRepo) FindByID(ctx context.Context, filterID int) (*domain.Filter
 			&extWebhookRetryStatus,
 			&extWebhookRetryAttempts,
 			&extWebhookDelaySeconds,
-			&extWebhookRetryJitterSeconds,
 		); err != nil {
 			return nil, errors.Wrap(err, "error scanning row")
 		}
@@ -551,7 +550,7 @@ func (r *FilterRepo) findByIndexerIdentifier(ctx context.Context, indexer string
 
 		// filter external
 		var extName, extType, extExecCmd, extExecArgs, extWebhookHost, extWebhookMethod, extWebhookHeaders, extWebhookData, extWebhookRetryStatus sql.NullString
-		var extId, extIndex, extWebhookStatus, extWebhookRetryAttempts, extWebhookDelaySeconds, extWebhookRetryJitterSeconds, extExecStatus, extFilterId sql.NullInt32
+		var extId, extIndex, extWebhookStatus, extWebhookRetryAttempts, extWebhookDelaySeconds, extExecStatus, extFilterId sql.NullInt32
 		var extEnabled sql.NullBool
 
 		if err := rows.Scan(
@@ -631,7 +630,6 @@ func (r *FilterRepo) findByIndexerIdentifier(ctx context.Context, indexer string
 			&extWebhookRetryStatus,
 			&extWebhookRetryAttempts,
 			&extWebhookDelaySeconds,
-			&extWebhookRetryJitterSeconds,
 			&extFilterId,
 		); err != nil {
 			return nil, errors.Wrap(err, "error scanning row")
@@ -756,7 +754,7 @@ func (r *FilterRepo) FindExternalFiltersByID(ctx context.Context, filterId int) 
 
 		// filter external
 		var extExecCmd, extExecArgs, extWebhookHost, extWebhookMethod, extWebhookHeaders, extWebhookData, extWebhookRetryStatus sql.NullString
-		var extWebhookStatus, extWebhookRetryAttempts, extWebhookDelaySeconds, extWebhookRetryJitterSeconds, extExecStatus sql.NullInt32
+		var extWebhookStatus, extWebhookRetryAttempts, extWebhookDelaySeconds, extExecStatus sql.NullInt32
 
 		if err := rows.Scan(
 			&external.ID,
@@ -775,7 +773,6 @@ func (r *FilterRepo) FindExternalFiltersByID(ctx context.Context, filterId int) 
 			&extWebhookRetryStatus,
 			&extWebhookRetryAttempts,
 			&extWebhookDelaySeconds,
-			&extWebhookRetryJitterSeconds,
 		); err != nil {
 			return nil, errors.Wrap(err, "error scanning row")
 		}
@@ -1004,9 +1001,15 @@ func (r *FilterRepo) Update(ctx context.Context, filter *domain.Filter) error {
 		return errors.Wrap(err, "error building query")
 	}
 
-	_, err = r.db.handler.ExecContext(ctx, query, args...)
+	result, err := r.db.handler.ExecContext(ctx, query, args...)
 	if err != nil {
 		return errors.Wrap(err, "error executing query")
+	}
+
+	if rowsAffected, err := result.RowsAffected(); err != nil {
+		return errors.Wrap(err, "error getting rows affected")
+	} else if rowsAffected == 0 {
+		return domain.ErrRecordNotFound
 	}
 
 	return nil
@@ -1260,9 +1263,15 @@ func (r *FilterRepo) ToggleEnabled(ctx context.Context, filterID int, enabled bo
 		return errors.Wrap(err, "error building query")
 	}
 
-	_, err = r.db.handler.ExecContext(ctx, query, args...)
+	result, err := r.db.handler.ExecContext(ctx, query, args...)
 	if err != nil {
 		return errors.Wrap(err, "error executing query")
+	}
+
+	if rowsAffected, err := result.RowsAffected(); err != nil {
+		return errors.Wrap(err, "error getting rows affected")
+	} else if rowsAffected == 0 {
+		return domain.ErrRecordNotFound
 	}
 
 	return nil
@@ -1388,12 +1397,18 @@ func (r *FilterRepo) Delete(ctx context.Context, filterID int) error {
 		return errors.Wrap(err, "error building query")
 	}
 
-	_, err = r.db.handler.ExecContext(ctx, query, args...)
+	result, err := r.db.handler.ExecContext(ctx, query, args...)
 	if err != nil {
 		return errors.Wrap(err, "error executing query")
 	}
 
-	r.log.Info().Msgf("filter.delete: successfully deleted: %v", filterID)
+	if rowsAffected, err := result.RowsAffected(); err != nil {
+		return errors.Wrap(err, "error getting rows affected")
+	} else if rowsAffected == 0 {
+		return domain.ErrRecordNotFound
+	}
+
+	r.log.Debug().Msgf("filter.delete: successfully deleted: %v", filterID)
 
 	return nil
 }

@@ -21,7 +21,7 @@ protocol: torrent
 supports:
   - irc
   - rss
-source: unknown
+# source: unknown
 settings:
   - name: passkey
     type: secret
@@ -61,9 +61,23 @@ irc:
   parse:
     type: single
     lines:
-      - test:
-          - "[Movies/XviD] The Movie 2010 DVDRip XviD-GROUP FREELEECH - http://www.iptorrents.com/details.php?id=000000 - 716.219 MB"
-          - "[Movies/XviD] The Movie 2010 DVDRip XviD-GROUP - http://www.iptorrents.com/details.php?id=000000 - 716.219 MB"
+      - tests:
+        - line: '[Movies/XviD] The Movie 2010 DVDRip XviD-GROUP FREELEECH - http://www.iptorrents.com/details.php?id=000000 - 716.219 MB'
+          expect:
+            category: Movies/XviD
+            torrentName: The Movie 2010 DVDRip XviD-GROUP
+            freeleech: FREELEECH
+            baseUrl: http://www.iptorrents.com/
+            torrentId: "000000"
+            torrentSize: 716.219 MB
+        - line: '[Movies/XviD] The Movie 2010 DVDRip XviD-GROUP - http://www.iptorrents.com/details.php?id=000000 - 716.219 MB'
+          expect:
+            category: Movies/XviD
+            torrentName: The Movie 2010 DVDRip XviD-GROUP
+            freeleech: ""
+            baseUrl: http://www.iptorrents.com/
+            torrentId: "000000"
+            torrentSize: 716.219 MB
         pattern: '\[(.+?)] (.*?)\s*(?:(FREELEECH))? - (https?\:\/\/.+\/).+id=(\d+) - (.*)'
         vars:
           - category

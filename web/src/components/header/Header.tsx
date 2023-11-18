@@ -48,12 +48,12 @@ export const Header = () => {
   return (
     <Disclosure
       as="nav"
-      className="bg-gradient-to-b from-gray-100 dark:from-[#141414]"
+      className="bg-gradient-to-b from-gray-100 dark:from-gray-925"
     >
       {({ open }) => (
         <>
           <div className="max-w-screen-xl mx-auto sm:px-6 lg:px-8">
-            <div className="border-b border-gray-300 dark:border-gray-700">
+            <div className="border-b border-gray-300 dark:border-gray-775">
               <div className="flex items-center justify-between h-16 px-4 sm:px-0">
                 <LeftNav />
                 <RightNav logoutMutation={logoutMutation.mutate} />
