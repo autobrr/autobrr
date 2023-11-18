@@ -6,10 +6,12 @@ RUN apk add --no-cache git tzdata
 ENV SERVICE=autobrr
 
 WORKDIR /src
-COPY . ./
 
-RUN --mount=target=. \
-    go mod download
+# Cache Go modules
+COPY go.mod go.sum ./
+RUN go mod download
+
+COPY . ./
 
 ARG VERSION=dev
 ARG REVISION=dev
@@ -17,8 +19,7 @@ ARG BUILDTIME
 ARG TARGETOS TARGETARCH
 
 RUN --mount=target=. \
-    GOOS=$TARGETOS GOARCH=$TARGETARCH go build -ldflags "-s -w -X main.version=${VERSION} -X main.commit=${REVISION} -X main.date=${BUILDTIME}" -o /out/bin/autobrr cmd/autobrr/main.go
-RUN --mount=target=. \
+    GOOS=$TARGETOS GOARCH=$TARGETARCH go build -ldflags "-s -w -X main.version=${VERSION} -X main.commit=${REVISION} -X main.date=${BUILDTIME}" -o /out/bin/autobrr cmd/autobrr/main.go && \
     GOOS=$TARGETOS GOARCH=$TARGETARCH go build -ldflags "-s -w -X main.version=${VERSION} -X main.commit=${REVISION} -X main.date=${BUILDTIME}" -o /out/bin/autobrrctl cmd/autobrrctl/main.go
 
 # build runner
@@ -35,7 +36,8 @@ RUN apk --no-cache add ca-certificates curl tzdata jq
 WORKDIR /app
 VOLUME /config
 EXPOSE 7474
-ENTRYPOINT ["/usr/local/bin/autobrr", "--config", "/config"]
 
 COPY --from=app-builder /out/bin/autobrr /usr/local/bin/
 COPY --from=app-builder /out/bin/autobrrctl /usr/local/bin/
+
+ENTRYPOINT ["/usr/local/bin/autobrr", "--config", "/config"]
