@@ -9,7 +9,7 @@ privacy: private
 protocol: torrent
 supports:
   - irc
-source: gazelle
+#source: gazelle
 settings:
   - name: authkey
     type: secret
@@ -61,15 +61,55 @@ irc:
   parse:
     type: single
     lines:
-      - test:
-          - "[Album] Artist – Album Name [FLAC / 2017 / catnumber] - https://sugoimusic.me/torrents.php?id=000010 / https://sugoimusic.me/torrents.php?action=download&id=000011 - japanese,pop,female.vocalist Uploaded by: Uploader 1"
-          - "[Single] Artist – Album Name [MP3] - https://sugoimusic.me/torrents.php?id=000020 / https://sugoimusic.me/torrents.php?action=download&id=000021 - japanese,pop,dance Uploaded by: Uploader 2"
-          - "[Album] Artist – Album Name [FLAC / 2023 / (+2) / catnumber] - https://sugoimusic.me/torrents.php?id=000030 / https://sugoimusic.me/torrents.php?action=download&id=000031 - japanese Uploaded by: Uploader 3"
-          - "[TV Music] TV Show – Title [TS / MPEG-2 / 1920x1080 / AAC / Japanese / NoSubs] - https://sugoimusic.me/torrents.php?id=000040 / https://sugoimusic.me/torrents.php?action=download&id=000041 - japanese,live Uploaded by: Uploader 4"
-        pattern: '(\[(.*)\] .*? – .+? \[((?:[^/]+)?(?:(?: \/ )(\d{4}))?(?: \/ [^/]+)*)\]) - (https?://.+/).+id=(\d+) \/ https?://.+action=download&id=(\d+) - (.*) Uploaded by: (.*)'
+      - tests:
+        - line: "[Album] Artist – Album Name [FLAC / 2017 / catnumber] - https://sugoimusic.me/torrents.php?id=000010 / https://sugoimusic.me/torrents.php?action=download&id=000011 - japanese,pop,female.vocalist Uploaded by: Uploader 1"
+          expect:
+            category: Album
+            torrentName: Artist – Album Name [FLAC / 2017 / catnumber]
+            releaseTags: FLAC / 2017 / catnumber
+            year: 2017
+            baseUrl: https://sugoimusic.me/
+            groupId: "000010"
+            torrentId: "000011"
+            tags: japanese,pop,female.vocalist
+            uploader: Uploader 1
+        - line: "[Single] Artist – Album Name [MP3] - https://sugoimusic.me/torrents.php?id=000020 / https://sugoimusic.me/torrents.php?action=download&id=000021 - japanese,pop,dance Uploaded by: Uploader 2"
+          expect:
+            category: Single
+            torrentName: Artist – Album Name [MP3]
+            releaseTags: MP3
+            year:
+            baseUrl: https://sugoimusic.me/
+            groupId: "000020"
+            torrentId: "000021"
+            tags: japanese,pop,dance
+            uploader: Uploader 2
+        - line: "[Album] Artist – Album Name [FLAC / 2023 / (+2) / catnumber] - https://sugoimusic.me/torrents.php?id=000030 / https://sugoimusic.me/torrents.php?action=download&id=000031 - japanese Uploaded by: Uploader 3"
+          expect:
+            category: Album
+            torrentName: Artist – Album Name [FLAC / 2023 / (+2) / catnumber]
+            releaseTags: FLAC / 2023 / (+2) / catnumber
+            year: 2023
+            baseUrl: https://sugoimusic.me/
+            groupId: "000030"
+            torrentId: "000031"
+            tags: japanese
+            uploader: Uploader 3
+        - line: "[TV Music] TV Show – Title [TS / MPEG-2 / 1920x1080 / AAC / Japanese / NoSubs] - https://sugoimusic.me/torrents.php?id=000040 / https://sugoimusic.me/torrents.php?action=download&id=000041 - japanese,live Uploaded by: Uploader 4"
+          expect:
+            category: TV Music
+            torrentName: TV Show – Title [TS / MPEG-2 / 1920x1080 / AAC / Japanese / NoSubs]
+            releaseTags: TS / MPEG-2 / 1920x1080 / AAC / Japanese / NoSubs
+            year:
+            baseUrl: https://sugoimusic.me/
+            groupId: "000040"
+            torrentId: "000041"
+            tags: japanese,live
+            uploader: Uploader 4
+        pattern: '\[(.*)\] (.*? – .+? \[((?:[^/]+)?(?:(?: \/ )(\d{4}))?(?: \/ [^/]+)*)\]) - (https?://.+/).+id=(\d+) \/ https?://.+action=download&id=(\d+) - (.*) Uploaded by: (.*)'
         vars:
-          - torrentName
           - category
+          - torrentName
           - releaseTags
           - year
           - baseUrl
