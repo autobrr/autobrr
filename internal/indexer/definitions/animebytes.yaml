@@ -135,9 +135,9 @@ irc:
               uploader: "Anon-Uploader"
           - line: "Awesome Live Action Special - Live Action TV Special  [2021] :: Web / MKV / h264 / 848x480 / AAC 2.0 / Softsubs (Sub Group) || https://animebytes.tv/torrents.php?id=00000&torrentid=00000 || manga || Uploaded by: Some-Uploader"
             expect:
-              torrentName: "Awesome "
-              title: "Awesome "
-              category: "Live Action Special - Live Action TV Special"
+              torrentName: "Awesome Live Action Special"
+              title: "Awesome Live Action Special"
+              category: "Live Action TV Special"
               year: "2021"
               releaseTags: "Web / MKV / h264 / 848x480 / AAC 2.0 / Softsubs (Sub Group)"
               releaseGroup: "Sub Group"
@@ -193,7 +193,7 @@ irc:
               torrentId: "000000"
               tags: ""
               uploader: "Uploader"
-        pattern: '((.*?)+)(?: - )?(Visual Novel|Light Novel|TV S.*|Movie|Manga|OVA|ONA|DVD Special|BD Special|Oneshot|Anthology|Manhwa|Manhua|Artbook|Game|Live Action.*|)[\s\p{Zs}]{2,}\[(\d+)\] :: (.*?(?:Hardsubs|RAW|Softsubs|Translated) \((.*?)\).*?|.*?)(?: \/ Episode (\d+).*?)?(?: \/ )?(Freeleech)?(?:.?\|\|.?)(https.+\/)torrents.*\?id=(\d+)&torrentid=(\d+)(?:.?\|\|.?)?([A-Za-z,. ]+\w)?(?:.?\|\|.?)?(?:Uploaded by: (.*))?'
+        pattern: '((.*?)+)(?: - (Visual Novel|Light Novel|TV S.*|Movie|Manga|OVA|ONA|DVD Special|BD Special|Oneshot|Anthology|Manhwa|Manhua|Artbook|Game|Live Action.*|))?[\s\p{Zs}]{2,}\[(\d+)\] :: (.*?(?:Hardsubs|RAW|Softsubs|Translated) \((.*?)\).*?|.*?)(?: \/ Episode (\d+).*?)?(?: \/ )?(Freeleech)?(?:.?\|\|.?)(https.+\/)torrents.*\?id=(\d+)&torrentid=(\d+)(?:.?\|\|.?)?([A-Za-z,. ]+\w)?(?:.?\|\|.?)?(?:Uploaded by: (.*))?'
         vars:
           - torrentName
           - title
