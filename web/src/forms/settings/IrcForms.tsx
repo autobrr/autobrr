@@ -27,27 +27,29 @@ interface ChannelsFieldArrayProps {
 }
 
 const ChannelsFieldArray = ({ channels }: ChannelsFieldArrayProps) => (
-  <div className="p-6">
+  <div className="px-4">
     <FieldArray name="channels">
       {({ remove, push }: FieldArrayRenderProps) => (
-        <div className="flex flex-col space-y-2 border-2 border-dashed dark:border-gray-700 p-4">
+        <div className="flex flex-col space-y-2">
           {channels && channels.length > 0 ? (
             channels.map((channel: IrcChannel, index) => {
               const isDisabled = channel.name === "#ptp-announce-dev";
               return (
-                <div key={index} className="flex justify-between">
-                  <div className="flex">
-                    <Field name={`channels.${channel.id}.name`}>
-                      {({ field }: FieldProps) => (
+                <div key={index} className="flex justify-between border dark:border-gray-700 dark:bg-gray-815 p-2 rounded-md">
+                  <div className="flex gap-2">
+                    <Field name={`channels.${index}.name`}>
+                      {({ field, meta }: FieldProps) => (
                         <input
                           {...field}
                           type="text"
                           value={field.value ?? ""}
                           onChange={field.onChange}
-                          placeholder="#Channel"
                           className={classNames(
-                            "mr-4 focus:ring-blue-500 dark:focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-500 border-gray-300 dark:border-gray-600 block w-full shadow-sm sm:text-sm rounded-md",
-                            isDisabled ? "disabled dark:bg-gray-800 dark:text-gray-500" : "dark:bg-gray-700 dark:text-white"
+                            meta.touched && meta.error
+                              ? "border-red-500 focus:ring-red-500 focus:border-red-500"
+                              : "border-gray-300 dark:border-gray-700 focus:ring-blue-500 dark:focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-500",
+                            "block w-full shadow-sm sm:text-sm rounded-md border py-2.5",
+                            isDisabled ? "disabled dark:bg-gray-700 dark:text-gray-400 cursor-not-allowed" : "bg-gray-100 dark:bg-gray-850 dark:text-gray-100"
                           )}
                           disabled={isDisabled}
                         />
@@ -55,16 +57,19 @@ const ChannelsFieldArray = ({ channels }: ChannelsFieldArrayProps) => (
                     </Field>
 
                     <Field name={`channels.${index}.password`}>
-                      {({ field }: FieldProps) => (
+                      {({ field, meta }: FieldProps) => (
                         <input
                           {...field}
                           type="text"
                           value={field.value ?? ""}
                           onChange={field.onChange}
-                          placeholder="Password"
+                          placeholder="Channel password"
                           className={classNames(
-                            "mr-4 focus:ring-blue-500 dark:focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-500 border-gray-300 dark:border-gray-600 block w-full shadow-sm sm:text-sm rounded-md",
-                            isDisabled ? "dark:bg-gray-800 dark:text-gray-500" : "dark:bg-gray-700 dark:text-white"
+                            meta.touched && meta.error
+                              ? "border-red-500 focus:ring-red-500 focus:border-red-500"
+                              : "border-gray-300 dark:border-gray-700 focus:ring-blue-500 dark:focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-500",
+                            "block w-full shadow-sm sm:text-sm rounded-md border py-2.5",
+                            isDisabled ? "disabled dark:bg-gray-700 dark:text-white cursor-not-allowed" : "bg-gray-100 dark:bg-gray-850 dark:text-gray-100"
                           )}
                           disabled={isDisabled}
                         />
@@ -212,7 +217,16 @@ export function IrcNetworkAddForm({ isOpen, toggle }: AddFormProps) {
           />
           <PasswordFieldWide name="invite_command" label="Invite command" />
 
-          <ChannelsFieldArray channels={values.channels} />
+          <div className="border-t border-gray-200 dark:border-gray-700 py-5">
+            <div className="px-4 space-y-1 mb-8">
+              <Dialog.Title className="text-lg font-medium text-gray-900 dark:text-white">Channels</Dialog.Title>
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                Channels to join.
+              </p>
+            </div>
+
+            <ChannelsFieldArray channels={values.channels} />
+          </div>
         </div>
       )}
     </SlideOver>
@@ -396,12 +410,20 @@ export function IrcNetworkUpdateForm({
               label="Password"
               help="NickServ / SASL password."
             />
-            
           </div>
 
           <PasswordFieldWide name="invite_command" label="Invite command" />
 
-          <ChannelsFieldArray channels={values.channels} />
+          <div className="border-t border-gray-200 dark:border-gray-700 py-5">
+            <div className="px-4 space-y-1 mb-8">
+              <Dialog.Title className="text-lg font-medium text-gray-900 dark:text-white">Channels</Dialog.Title>
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+               Channels are added when you setup IRC indexers. Do not edit unless you know what you are doing.
+              </p>
+            </div>
+
+            <ChannelsFieldArray channels={values.channels} />
+          </div>
         </div>
       )}
     </SlideOver>

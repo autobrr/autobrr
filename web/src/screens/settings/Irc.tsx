@@ -134,7 +134,7 @@ const IrcSettings = () => {
               <span className="animate-ping inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
               <span className="inline-flex absolute rounded-full h-4 w-4 bg-green-500" />
             </span>
-            <span className="text-gray-800 dark:text-gray-500">Network healthy</span>
+            <span className="text-sm text-gray-800 dark:text-gray-500">Network healthy</span>
           </li>
 
           <li className="flex items-center md:pl-2">
@@ -142,7 +142,7 @@ const IrcSettings = () => {
               className="mr-2 flex h-4 w-4 rounded-full opacity-75 bg-yellow-400 over:text-yellow-600"
               title="Network unhealthy"
             />
-            <span className="text-gray-800 dark:text-gray-500">Network unhealthy</span>
+            <span className="text-sm text-gray-800 dark:text-gray-500">Network unhealthy</span>
           </li>
 
           <li className="flex items-center md:pl-2">
@@ -151,7 +151,7 @@ const IrcSettings = () => {
               title="Network disabled"
             >
             </span>
-            <span className="text-gray-800 dark:text-gray-500">Network disabled</span>
+            <span className="text-sm text-gray-800 dark:text-gray-500">Network disabled</span>
           </li>
         </ul>
         <div className="flex gap-x-2">
@@ -161,8 +161,8 @@ const IrcSettings = () => {
             title={expandNetworks ? "collapse" : "expand"}
           >
             {expandNetworks
-              ? <span className="flex items-center">Collapse <ArrowsPointingInIcon className="ml-1 w-4 h-4" /></span>
-              : <span className="flex items-center">Expand <ArrowsPointingOutIcon className="ml-1 w-4 h-4" /></span>
+              ? <span className="flex items-center text-sm">Collapse <ArrowsPointingInIcon className="ml-1 w-4 h-4" /></span>
+              : <span className="flex items-center text-sm">Expand <ArrowsPointingOutIcon className="ml-1 w-4 h-4" /></span>
             }</button>
           <IRCLogsDropdown />
         </div>
@@ -280,7 +280,7 @@ const ListItem = ({ network, expanded }: ListItemProps) => {
                 <span className="mr-3 flex h-3 w-3 rounded-full opacity-75 bg-gray-500" />
               )}
             </span>
-            <div className="block truncate">
+            <div className="block text-sm truncate">
               {network.name}
             </div>
           </div>
@@ -305,13 +305,13 @@ const ListItem = ({ network, expanded }: ListItemProps) => {
                 )} />
               )}
             </div>
-            <p className="block truncate">
+            <p className="block text-sm truncate">
               {network.server}:{network.port}
             </p>
           </div>
         </div>
         <div className="hidden md:flex col-span-3 items-center md:pl-6 text-gray-500 dark:text-gray-400">
-          <div className="block truncate">
+          <div className="block text-sm truncate">
             {network.nick}
           </div>
         </div>
