@@ -11,10 +11,10 @@ protocol: torrent
 implementation: torznab
 supports:
   - torznab
-source: torznab
+# source: torznab
 
 torznab:
-  minInterval: 15
+  # minInterval: 15
   settings:
     - name: url
       type: text
