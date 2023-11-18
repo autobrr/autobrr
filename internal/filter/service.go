@@ -112,20 +112,18 @@ func (s *service) ListFilters(ctx context.Context) ([]domain.Filter, error) {
 }
 
 func (s *service) FindByID(ctx context.Context, filterID int) (*domain.Filter, error) {
-	// find filter
 	filter, err := s.repo.FindByID(ctx, filterID)
 	if err != nil {
+		s.log.Error().Err(err).Msgf("could not find filter for id: %v", filterID)
 		return nil, err
 	}
 
-	// find actions and attach
 	actions, err := s.actionRepo.FindByFilterID(ctx, filter.ID)
 	if err != nil {
-		s.log.Error().Msgf("could not find filter actions for filter id: %v", filter.ID)
+		s.log.Error().Err(err).Msgf("could not find filter actions for filter id: %v", filter.ID)
 	}
 	filter.Actions = actions
 
-	// find indexers and attach
 	indexers, err := s.indexerSvc.FindByFilterID(ctx, filter.ID)
 	if err != nil {
 		s.log.Error().Err(err).Msgf("could not find indexers for filter: %v", filter.Name)
