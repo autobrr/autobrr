@@ -11,7 +11,7 @@ protocol: torrent
 supports:
   - irc
   - rss
-source: gazelle
+# source: gazelle
 settings:
   - name: authkey
     type: secret
@@ -56,8 +56,16 @@ irc:
   parse:
     type: single
     lines:
-      - test:
-          - "TV.Show.2008.720p.BluRay.DTS.x264-TEST - Size: 6.56 GiB - Uploader: Test - Tags: autoup,h264,hd,dts.audio,bluray,720p,p2p.group.release,Test.release,hd.movie - https://www.morethantv.me/torrents.php?torrentid=000000"
+      - tests:
+        - line: 'TV.Show.2008.720p.BluRay.DTS.x264-TEST - Size: 6.56 GiB - Uploader: Test - Tags: autoup,h264,hd,dts.audio,bluray,720p,p2p.group.release,Test.release,hd.movie - https://www.morethantv.me/torrents.php?torrentid=000000'
+          expect:
+            torrentName: TV.Show.2008.720p.BluRay.DTS.x264-TEST
+            torrentSize: 6.56 GiB
+            uploader: Test
+            tags: autoup,h264,hd,dts.audio,bluray,720p,p2p.group.release,Test.release,hd.movie
+            category: hd.movie
+            baseUrl: https://www.morethantv.me/
+            torrentId: "000000"
         pattern: '(.*) - Size: (.*) - Uploader: (.*) - Tags: (.*(hd.episode|hd.season|sd.episode|sd.season|sd.movie|hd.movie).*) - (https?:\/\/.+\/)torrents.php\?torrentid=(\d+)'
         vars:
           - torrentName

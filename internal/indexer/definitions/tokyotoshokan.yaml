@@ -42,19 +42,26 @@ irc:
   parse:
     type: multi
     lines:
-      - test:
-          - "Release 1748839: [Anime] SOMETITLE-007"
+      - tests:
+        - line: 'Release 1748839: [Anime] SOMETITLE-007'
+          expect:
+            category: Anime
+            torrentName: SOMETITLE-007
         pattern: '^Release [0-9]*: \[(.*?)\] (.*)'
         vars:
           - category
           - torrentName
-      - test:
-          - "Torrent: https://example.com/torrents/sha123/torrentname-007.torrent"
+      - tests:
+        - line: 'Torrent: https://example.com/torrents/sha123/torrentname-007.torrent'
+          expect:
+            torrentId: example.com/torrents/sha123/torrentname-007.torrent
         pattern: '^Torrent: https:\/\/(.*)'
         vars:
           - torrentId
-      - test:
-          - "Size: 7.21GB | Comment: A comment on the torrent left by the author"
+      - tests:
+        - line: 'Size: 7.21GB | Comment: A comment on the torrent left by the author'
+          expect:
+            size: 7.21GB
         pattern: '^Size: (\d+.?\d*[KMGTP]?B)( \| Comment: (.*))?'
         vars:
           - size

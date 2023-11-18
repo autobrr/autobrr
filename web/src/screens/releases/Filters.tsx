@@ -141,7 +141,7 @@ export const PushStatusSelectColumnFilter = ({
       </ListboxFilter>
     </div>
   );
-}
+};
 
 export const SearchColumnFilter = ({
   column: { filterValue, setFilter, id }
@@ -163,4 +163,4 @@ export const SearchColumnFilter = ({
       />
     </div>
   );
-}
+};

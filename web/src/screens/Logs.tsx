@@ -4,25 +4,24 @@
  */
 
 import { Fragment, useEffect, useRef, useState } from "react";
-import format from "date-fns/format";
+import { useQuery } from "@tanstack/react-query";
+import { Menu, Transition } from "@headlessui/react";
 import { DebounceInput } from "react-debounce-input";
 import {
   Cog6ToothIcon,
   DocumentArrowDownIcon
 } from "@heroicons/react/24/outline";
-import { useQuery } from "@tanstack/react-query";
-import { Menu, Transition } from "@headlessui/react";
+import { ExclamationCircleIcon } from "@heroicons/react/24/solid";
+import format from "date-fns/format";
+import { toast } from "react-hot-toast";
 
 import { APIClient } from "@api/APIClient";
 import { Checkbox } from "@components/Checkbox";
-import { classNames, simplifyDate } from "@utils";
+import { baseUrl, classNames, simplifyDate } from "@utils";
 import { SettingsContext } from "@utils/Context";
 import { EmptySimple } from "@components/emptystates";
-import { baseUrl } from "@utils";
 import { RingResizeSpinner } from "@components/Icons";
-import { toast } from "react-hot-toast";
 import Toast from "@components/notifications/Toast";
-import { ExclamationCircleIcon } from "@heroicons/react/24/solid";
 
 
 type LogEvent = {
@@ -40,7 +39,7 @@ const LogColors: Record<LogLevel, string> = {
   "ERR": "text-red-500",
   "WRN": "text-yellow-500",
   "FTL": "text-red-500",
-  "PNC": "text-red-600",
+  "PNC": "text-red-600"
 };
 
 export const Logs = () => {
@@ -107,7 +106,7 @@ export const Logs = () => {
       </div>
 
       <div className="max-w-screen-xl mx-auto pb-12 px-2 sm:px-4 lg:px-8">
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg px-2 sm:px-4 pt-3 sm:pt-4 pb-3 sm:pb-4">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-250 dark:border-gray-775 px-2 sm:px-4 pt-3 sm:pt-4 pb-3 sm:pb-4">
           <div className="flex relative mb-3">
             <DebounceInput
               minLength={2}
@@ -165,7 +164,7 @@ export const Logs = () => {
       </div>
 
       <div className="max-w-screen-xl mx-auto pb-10 px-2 sm:px-4 lg:px-8">
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg px-4 sm:px-6 pt-3 sm:pt-4">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-250 dark:border-gray-775 px-4 sm:px-6 pt-3 sm:pt-4">
           <LogFiles />
         </div>
       </div>
@@ -186,30 +185,28 @@ export const LogFiles = () => {
   return (
     <div>
       <div className="mt-2">
-        <h2 className="text-lg leading-6 font-medium text-gray-900 dark:text-white">Log files</h2>
+        <h2 className="text-lg leading-4 font-bold text-gray-900 dark:text-white">Log files</h2>
         <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
           Download old log files.
         </p>
       </div>
 
       {data && data.files.length > 0 ? (
-        <section className="py-3 light:bg-white dark:bg-gray-800 light:shadow sm:rounded-md">
-          <ol className="min-w-full relative">
-            <li className="grid grid-cols-12 mb-2 border-b border-gray-200 dark:border-gray-700">
-              <div className="hidden sm:block col-span-5 px-2 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                Name
-              </div>
-              <div className="col-span-8 sm:col-span-4 px-1 sm:px-2 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                Last modified
-              </div>
-              <div className="col-span-3 sm:col-span-2 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                Size
-              </div>
-            </li>
+        <ul className="py-3 min-w-full relative">
+          <li className="grid grid-cols-12 mb-2 border-b border-gray-200 dark:border-gray-700">
+            <div className="hidden sm:block col-span-5 px-2 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+              Name
+            </div>
+            <div className="col-span-8 sm:col-span-4 px-1 sm:px-2 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+              Last modified
+            </div>
+            <div className="col-span-3 sm:col-span-2 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+              Size
+            </div>
+          </li>
 
-            {data && data.files.map((f, idx) => <LogFilesItem key={idx} file={f} />)}
-          </ol>
-        </section>
+          {data.files.map((f, idx) => <LogFilesItem key={idx} file={f} />)}
+        </ul>
       ) : (
         <EmptySimple
           title="No old log files"
