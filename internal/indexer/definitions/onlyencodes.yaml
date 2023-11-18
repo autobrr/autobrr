@@ -11,7 +11,7 @@ protocol: torrent
 supports:
   - irc
   - rss
-source: UNIT3D
+# source: UNIT3D
 settings:
   - name: rsskey
     type: secret
@@ -50,8 +50,20 @@ irc:
   parse:
     type: single
     lines:
-      - test:
-          - "Category [Movie] Type [Remux] Name [Some Movie 1080p BluRay REMUX AVC TrueHD 7.1-GROUP] Resolution [1080p] Freeleech [0%] Internal [No] Double Upload [No] Size [27.5 GB] Uploader [uploaderName] Url [https://onlyencodes.cc/torrents/download/00000]"
+      - tests:
+        - line: Category [Movie] Type [Remux] Name [Some Movie 1080p BluRay REMUX AVC TrueHD 7.1-GROUP] Resolution [1080p] Freeleech [0%] Internal [No] Double Upload [No] Size [27.5 GB] Uploader [uploaderName] Url [https://onlyencodes.cc/torrents/download/00000]
+          expect:
+            category: Movie
+            releaseTags: Remux
+            torrentName: Some Movie 1080p BluRay REMUX AVC TrueHD 7.1-GROUP
+            resolution: 1080p
+            freeleechPercent: 0%
+            internal: "No"
+            tags: "No"
+            torrentSize: 27.5 GB
+            uploader: uploaderName
+            baseUrl: https://onlyencodes.cc/
+            torrentId: "00000"
         pattern: '.*\[(.*)\].*\[(.*)\].*\[(.*)\].*\[(.*)\].*\[(.*)\].*\[(.*)\].*\[(.*)\].*\[(.*)\].*\[(.*)\].*\[(https?\:\/\/.*?\/).*\/(\d+)\]'
         vars:
           - category

@@ -61,7 +61,7 @@ export const IRC_SUBSTITUTION_MAP: Record<string, string> = {
   "ssl": "tls",
   "nick": "nickserv_account",
   "ident_password": "nickserv_password",
-  "server-password": "pass",
+  "server-password": "pass"
 } as const;
 
 export const FILTER_SUBSTITUTION_MAP: Record<string, string> = {

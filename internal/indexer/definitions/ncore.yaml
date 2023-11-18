@@ -10,7 +10,7 @@ protocol: torrent
 supports:
   - irc
   - rss
-source: unknown
+# source: unknown
 settings:
   - name: passkey
     type: secret
@@ -56,9 +56,21 @@ irc:
   parse:
     type: single
     lines:
-      - test:
-          - "[NEW TORRENT in mp3] Artist name - Album name > 115.63 MiB in 17F > https://ncore.pro/torrents.php?action=details&id=0000000"
-          - "[NEW TORRENT in xvidser_hun] Some.Show.S02E67.RTLM.WEB-DL.H264.HUN-GROUP > 269.31 MiB in 2F > https://ncore.pro/torrents.php?action=details&id=0000000"
+      - tests:
+        - line: '[NEW TORRENT in mp3] Artist name - Album name > 115.63 MiB in 17F > https://ncore.pro/torrents.php?action=details&id=0000000'
+          expect:
+            category: mp3
+            torrentName: Artist name - Album name
+            torrentSize: 115.63 MiB
+            baseUrl: https://ncore.pro/
+            torrentId: "0000000"
+        - line: '[NEW TORRENT in xvidser_hun] Some.Show.S02E67.RTLM.WEB-DL.H264.HUN-GROUP > 269.31 MiB in 2F > https://ncore.pro/torrents.php?action=details&id=0000000'
+          expect:
+            category: xvidser_hun
+            torrentName: Some.Show.S02E67.RTLM.WEB-DL.H264.HUN-GROUP
+            torrentSize: 269.31 MiB
+            baseUrl: https://ncore.pro/
+            torrentId: "0000000"
         pattern: '\[NEW TORRENT in (.*)\] (.*) > (.*) in .* > (https?://.*/).*action=.*id=(.*)'
         vars:
           - category
