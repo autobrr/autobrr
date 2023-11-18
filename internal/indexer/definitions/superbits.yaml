@@ -11,7 +11,7 @@ protocol: torrent
 supports:
   - irc
   - rss
-source: rartracker
+# source: rartracker
 settings:
   - name: passkey
     type: secret
@@ -50,9 +50,25 @@ irc:
   parse:
     type: single
     lines:
-      - test:
-          - "-[archive Film 1080]2[A.Movie.1985.FRENCH.1080p.BluRay.x264-GROUP]3[000000]4[Size: 4.41 GB]5[FL: no]6[Scene: yes]"
-          - "-[new TV]2[Some.Show.S05E05.720p.WEB.h264-GROUP]3[000000]4[Size: 964.04 MB]5[FL: no]6[Scene: yes]7[Pred 1m 30s ago]"
+      - tests:
+        - line: '-[archive Film 1080]2[A.Movie.1985.FRENCH.1080p.BluRay.x264-GROUP]3[000000]4[Size: 4.41 GB]5[FL: no]6[Scene: yes]'
+          expect:
+            category: archive Film 1080
+            torrentName: A.Movie.1985.FRENCH.1080p.BluRay.x264-GROUP
+            torrentId: "000000"
+            torrentSize: 4.41 GB
+            freeleech: "no"
+            scene: "yes"
+            preTime: ""
+        - line: '-[new TV]2[Some.Show.S05E05.720p.WEB.h264-GROUP]3[000000]4[Size: 964.04 MB]5[FL: no]6[Scene: yes]7[Pred 1m 30s ago]'
+          expect:
+            category: new TV
+            torrentName: Some.Show.S05E05.720p.WEB.h264-GROUP
+            torrentId: "000000"
+            torrentSize: 964.04 MB
+            freeleech: "no"
+            scene: "yes"
+            preTime: 1m 30s
         pattern: '\-\[(.*)\]2\[(.*)\]3\[(\d+)\]4\[Size\:\s(.*)\]5\[FL\:\s(no|yes)\]6\[Scene\:\s(no|yes)\](?:7\[Pred\s(.*)\sago\])?'
         vars:
           - category

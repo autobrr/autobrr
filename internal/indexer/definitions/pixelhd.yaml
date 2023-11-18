@@ -11,7 +11,7 @@ protocol: torrent
 supports:
   - irc
   - rss
-source: subLiME
+# source: subLiME
 settings:
   - name: authkey
     type: secret
@@ -63,13 +63,20 @@ irc:
   parse:
     type: multi
     lines:
-      - test:
-          - "New torrent uploaded!"
+      - tests:
+        - line: "New torrent uploaded!"
+          expect: {}
         pattern: '^New torrent uploaded!$'
         ignore: true
 
-      - test:
-          - "Title: Dragons Forever | Year: 1988 | URL: https://pixelhd.me/torrents.php?torrentid=23001"
+      - tests:
+        - line: 'Title: Dragons Forever | Year: 1988 | URL: https://pixelhd.me/torrents.php?torrentid=23001'
+          expect:
+            torrentName: Dragons Forever
+            year: "1988"
+            baseUrl: https://pixelhd.me/
+            torrentId: "23001"
+
         pattern: 'Title: (.*) \| Year: (.*) \| URL: (https?:\/\/.*\/).+id=(.+)'
         vars:
           - torrentName
@@ -77,8 +84,14 @@ irc:
           - baseUrl
           - torrentId
 
-      - test:
-          - "Uploader: Anon | Release Group: Px4K | Format: MP4 | Genre(s): action,comedy,romance"
+      - tests:
+        - line: 'Uploader: Anon | Release Group: Px4K | Format: MP4 | Genre(s): action,comedy,romance'
+          expect:
+            uploader: Anon
+            releaseGroup: Px4K
+            container: MP4
+            tags: action,comedy,romance
+
         pattern: 'Uploader: (.*) \| Release Group: (.*) \| Format: (.*) \| Genre\(s\): (.*)'
         vars:
           - uploader
