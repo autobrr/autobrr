@@ -12,40 +12,30 @@ import Toast from "@components/notifications/Toast";
 import { releaseKeys } from "@screens/releases/ReleaseTable";
 import { useToggle } from "@hooks/hooks";
 import { DeleteModal } from "@components/modals";
+import { Section } from "./_components";
 
-function ReleaseSettings() {
-  return (
-    <div className="lg:col-span-9">
-      <div className="py-6 px-4 sm:p-6 lg:pb-8">
+const ReleaseSettings = () => (
+  <Section
+    title="Releases"
+    description="Manage release history."
+  >
+    <div className="border border-red-500 rounded">
+      <div className="py-6 px-4 sm:p-6">
         <div>
-          <h2 className="text-lg leading-6 font-medium text-gray-900 dark:text-white">
-            Releases
-          </h2>
+          <h2 className="text-lg leading-4 font-bold text-gray-900 dark:text-white">Danger zone</h2>
           <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-            Manage release history.
+            This will clear release history in your database
           </p>
         </div>
       </div>
 
-      <div className="py-6 px-4">
-        <div className="border border-red-500 rounded">
-          <div className="py-6 px-4 sm:p-6 lg:pb-8">
-            <div>
-              <h2 className="text-lg leading-6 font-medium text-gray-900 dark:text-white">Danger zone</h2>
-              <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                This will clear release history in your database
-              </p>
-            </div>
-          </div>
-
-          <div className="py-6 px-4 sm:p-6 lg:pb-8">
-            <DeleteReleases />
-          </div>
-        </div>
+      <div className="py-6 px-4 sm:p-6">
+        <DeleteReleases />
       </div>
     </div>
-  );
-}
+  </Section>
+);
+
 
 const getDurationLabel = (durationValue: number): string => {
   const durationOptions: Record<number, string> = {
@@ -98,7 +88,7 @@ function DeleteReleases() {
   };
 
   return (
-    <div className="flex justify-between items-center rounded-md">
+    <div className="flex flex-col sm:flex-row gap-2 justify-between items-center rounded-md">
       <DeleteModal
         isOpen={deleteModalIsOpen}
         isLoading={deleteOlderMutation.isLoading}
@@ -113,7 +103,7 @@ function DeleteReleases() {
         <p className="text-sm font-medium text-gray-900 dark:text-white">Delete</p>
         <p className="text-sm text-gray-500 dark:text-gray-400">Delete releases older than select duration</p>
       </label>
-      <div>
+      <div className="flex flex-wrap gap-2">
         <select
           name="duration"
           id="duration"
@@ -139,7 +129,7 @@ function DeleteReleases() {
         <button
           type="button"
           onClick={toggleDeleteModal}
-          className="ml-2 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-red-700 hover:text-red-800 dark:text-white bg-red-200 dark:bg-red-700 hover:bg-red-300 dark:hover:bg-red-800 focus:outline-none focus:ring-1 focus:ring-inset focus:ring-red-600"
+          className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-red-700 hover:text-red-800 dark:text-white bg-red-200 dark:bg-red-700 hover:bg-red-300 dark:hover:bg-red-800 focus:outline-none focus:ring-1 focus:ring-inset focus:ring-red-600"
         >
           Delete
         </button>

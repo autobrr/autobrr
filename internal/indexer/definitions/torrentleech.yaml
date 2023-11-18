@@ -15,7 +15,7 @@ protocol: torrent
 supports:
   - irc
   - rss
-source: custom
+# source: custom
 settings:
   - name: rsskey
     type: secret
@@ -55,9 +55,23 @@ irc:
   parse:
     type: single
     lines:
-      - test:
-          - "New Torrent Announcement: <PC :: Iso>  Name:'debian live 10 6 0 amd64 standard iso' uploaded by 'Anonymous' -  http://www.tracker01.test/torrent/000000"
-          - "New Torrent Announcement: <PC :: Iso>  Name:'debian live 10 6 0 amd64 standard iso' uploaded by 'Anonymous' freeleech -  http://www.tracker01.test/torrent/000000"
+      - tests:
+        - line: 'New Torrent Announcement: <PC :: Iso>  Name:''debian live 10 6 0 amd64 standard iso'' uploaded by ''Anonymous'' -  http://www.tracker01.test/torrent/000000'
+          expect:
+            category: 'PC :: Iso'
+            torrentName: debian live 10 6 0 amd64 standard iso
+            uploader: Anonymous
+            freeleech: ""
+            baseUrl: http://www.tracker01.test/
+            torrentId: "000000"
+        - line: 'New Torrent Announcement: <PC :: Iso>  Name:''debian live 10 6 0 amd64 standard iso'' uploaded by ''Anonymous'' freeleech -  http://www.tracker01.test/torrent/000000'
+          expect:
+            category: 'PC :: Iso'
+            torrentName: debian live 10 6 0 amd64 standard iso
+            uploader: Anonymous
+            freeleech: freeleech
+            baseUrl: http://www.tracker01.test/
+            torrentId: "000000"
         pattern: New Torrent Announcement:\s*<([^>]*)>\s*Name:'(.*)' uploaded by '([^']*)'\s*(freeleech)*\s*-\s*(https?\:\/\/[^\/]+\/)torrent\/(\d+)
         vars:
           - category

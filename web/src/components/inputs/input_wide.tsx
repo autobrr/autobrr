@@ -3,16 +3,20 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-import type { FieldProps, FieldValidator } from "formik";
 import { Field } from "formik";
+import Select from "react-select";
+import { Switch } from "@headlessui/react";
+import type { FieldProps, FieldValidator } from "formik";
+
 import { classNames } from "@utils";
 import { useToggle } from "@hooks/hooks";
 import { EyeIcon, EyeSlashIcon } from "@heroicons/react/24/solid";
-import { Switch } from "@headlessui/react";
-import { ErrorField, RequiredField } from "./common";
-import Select, { components, ControlProps, InputProps, MenuProps, OptionProps } from "react-select";
+
 import { SelectFieldProps } from "./select";
+import * as common from "./common";
+
 import { DocsTooltip } from "@components/tooltips/DocsTooltip";
+import { Checkbox } from "@components/Checkbox";
 
 interface TextFieldWideProps {
   name: string;
@@ -41,12 +45,12 @@ export const TextFieldWide = ({
 }: TextFieldWideProps) => (
   <div hidden={hidden} className="space-y-1 p-4 sm:space-y-0 sm:grid sm:grid-cols-3 sm:gap-4">
     <div>
-      <label htmlFor={name} className="flex text-sm font-medium text-gray-900 dark:text-white sm:mt-px sm:pt-2">
+      <label htmlFor={name} className="flex ml-px text-sm font-medium text-gray-900 dark:text-white sm:mt-px sm:pt-2">
         <div className="flex">
           {tooltip ? (
             <DocsTooltip label={label}>{tooltip}</DocsTooltip>
           ) : label}
-          <RequiredField required={required} />
+          <common.RequiredField required={required} />
         </div>
       </label>
     </div>
@@ -64,7 +68,12 @@ export const TextFieldWide = ({
             type="text"
             value={field.value ? field.value : defaultValue ?? ""}
             onChange={field.onChange}
-            className={classNames(meta.touched && meta.error ? "focus:ring-red-500 focus:border-red-500 border-red-500" : "focus:ring-blue-500 dark:focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-500 border-gray-300 dark:border-gray-700", "block w-full shadow-sm dark:bg-gray-800 sm:text-sm dark:text-white rounded-md")}
+            className={classNames(
+              meta.touched && meta.error
+                ? "border-red-500 focus:ring-red-500 focus:border-red-500"
+                : "border-gray-300 dark:border-gray-700 focus:ring-blue-500 dark:focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-500",
+              "block w-full shadow-sm sm:text-sm rounded-md border py-2.5 bg-gray-100 dark:bg-gray-850 dark:text-gray-100"
+            )}
             placeholder={placeholder}
             hidden={hidden}
             required={required}
@@ -76,22 +85,22 @@ export const TextFieldWide = ({
       {help && (
         <p className="mt-2 text-sm text-gray-500" id={`${name}-description`}>{help}</p>
       )}
-      <ErrorField name={name} classNames="block text-red-500 mt-2" />
+      <common.ErrorField name={name} classNames="block text-red-500 mt-2" />
     </div>
   </div>
 );
 
 interface PasswordFieldWideProps {
-    name: string;
-    label?: string;
-    placeholder?: string;
-    defaultValue?: string;
-    help?: string;
-    required?: boolean;
-    autoComplete?: string;
-    defaultVisible?: boolean;
-    tooltip?: JSX.Element;
-    validate?: FieldValidator;
+  name: string;
+  label?: string;
+  placeholder?: string;
+  defaultValue?: string;
+  help?: string;
+  required?: boolean;
+  autoComplete?: string;
+  defaultVisible?: boolean;
+  tooltip?: JSX.Element;
+  validate?: FieldValidator;
 }
 
 export const PasswordFieldWide = ({
@@ -111,12 +120,12 @@ export const PasswordFieldWide = ({
   return (
     <div className="space-y-1 p-4 sm:space-y-0 sm:grid sm:grid-cols-3 sm:gap-4">
       <div>
-        <label htmlFor={name} className="flex text-sm font-medium text-gray-900 dark:text-white sm:mt-px sm:pt-2">
+        <label htmlFor={name} className="flex ml-px text-sm font-medium text-gray-900 dark:text-white sm:mt-px sm:pt-2">
           <div className="flex">
             {tooltip ? (
               <DocsTooltip label={label}>{tooltip}</DocsTooltip>
             ) : label}
-            <RequiredField required={required} />
+            <common.RequiredField required={required} />
           </div>
         </label>
       </div>
@@ -134,7 +143,12 @@ export const PasswordFieldWide = ({
                 value={field.value ? field.value : defaultValue ?? ""}
                 onChange={field.onChange}
                 type={isVisible ? "text" : "password"}
-                className={classNames(meta.touched && meta.error ? "focus:ring-red-500 focus:border-red-500 border-red-500" : "focus:ring-blue-500 dark:focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-500 border-gray-300 dark:border-gray-700", "block w-full pr-10 dark:bg-gray-800 shadow-sm dark:text-gray-100 sm:text-sm rounded-md")}
+                className={classNames(
+                  meta.touched && meta.error
+                    ? "border-red-500 focus:ring-red-500 focus:border-red-500"
+                    : "border-gray-300 dark:border-gray-700 focus:ring-blue-500 dark:focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-500",
+                  "block w-full shadow-sm sm:text-sm rounded-md border py-2.5 bg-gray-100 dark:bg-gray-850 dark:text-gray-100"
+                )}
                 placeholder={placeholder}
                 required={required}
                 autoComplete={autoComplete}
@@ -149,20 +163,20 @@ export const PasswordFieldWide = ({
         {help && (
           <p className="mt-2 text-sm text-gray-500" id={`${name}-description`}>{help}</p>
         )}
-        <ErrorField name={name} classNames="block text-red-500 mt-2" />
+        <common.ErrorField name={name} classNames="block text-red-500 mt-2" />
       </div>
     </div>
   );
 };
 
 interface NumberFieldWideProps {
-    name: string;
-    label?: string;
-    help?: string;
-    placeholder?: string;
-    defaultValue?: number;
-    required?: boolean;
-    tooltip?: JSX.Element;
+  name: string;
+  label?: string;
+  help?: string;
+  placeholder?: string;
+  defaultValue?: number;
+  required?: boolean;
+  tooltip?: JSX.Element;
 }
 
 export const NumberFieldWide = ({
@@ -178,13 +192,13 @@ export const NumberFieldWide = ({
     <div>
       <label
         htmlFor={name}
-        className="block text-sm font-medium text-gray-900 dark:text-white sm:mt-px sm:pt-2"
+        className="block ml-px text-sm font-medium text-gray-900 dark:text-white sm:mt-px sm:pt-2"
       >
         <div className="flex">
           {tooltip ? (
             <DocsTooltip label={label}>{tooltip}</DocsTooltip>
           ) : label}
-          <RequiredField required={required} />
+          <common.RequiredField required={required} />
         </div>
       </label>
     </div>
@@ -202,9 +216,9 @@ export const NumberFieldWide = ({
             onChange={(e) => { form.setFieldValue(field.name, parseInt(e.target.value)); }}
             className={classNames(
               meta.touched && meta.error
-                ? "focus:ring-red-500 focus:border-red-500 border-red-500"
-                : "focus:ring-blue-500 dark:focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-500 border-gray-300 dark:border-gray-700",
-              "block w-full shadow-sm dark:bg-gray-800 sm:text-sm dark:text-white rounded-md"
+                ? "border-red-500 focus:ring-red-500 focus:border-red-500"
+                : "border-gray-300 dark:border-gray-700 focus:ring-blue-500 dark:focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-500",
+              "block w-full shadow-sm sm:text-sm rounded-md border py-2.5 bg-gray-100 dark:bg-gray-850 dark:text-gray-100"
             )}
             onWheel={(event) => {
               if (event.currentTarget === document.activeElement) {
@@ -219,18 +233,18 @@ export const NumberFieldWide = ({
       {help && (
         <p className="mt-2 text-sm text-gray-500 dark:text-gray-500" id={`${name}-description`}>{help}</p>
       )}
-      <ErrorField name={name} classNames="block text-red-500 mt-2" />
+      <common.ErrorField name={name} classNames="block text-red-500 mt-2" />
     </div>
   </div>
 );
 
 interface SwitchGroupWideProps {
-    name: string;
-    label: string;
-    description?: string;
-    defaultValue?: boolean;
-    className?: string;
-    tooltip?: JSX.Element;
+  name: string;
+  label: string;
+  description?: string;
+  defaultValue?: boolean;
+  className?: string;
+  tooltip?: JSX.Element;
 }
 
 export const SwitchGroupWide = ({
@@ -262,137 +276,22 @@ export const SwitchGroupWide = ({
         defaultValue={defaultValue as boolean}
         type="checkbox"
       >
-        {({ field, form }: FieldProps) => (
-          <Switch
+        {({
+          field,
+          form: { setFieldValue }
+        }: FieldProps) => (
+          <Checkbox
             {...field}
-            type="button"
-            value={field.value}
-            checked={field.checked ?? false}
-            onChange={(value: unknown) => {
-              form.setFieldValue(field?.name ?? "", value);
+            value={!!field.checked}
+            setValue={(value) => {
+              setFieldValue(field?.name ?? "", value);
             }}
-            className={classNames(
-              field.value ? "bg-blue-500 dark:bg-blue-500" : "bg-gray-200 dark:bg-gray-500",
-              "ml-4 relative inline-flex flex-shrink-0 h-6 w-11 border-2 border-transparent rounded-full cursor-pointer transition-colors ease-in-out duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-            )}
-          >
-            <span className="sr-only">Use setting</span>
-            <span
-              aria-hidden="true"
-              className={classNames(
-                field.value ? "translate-x-5" : "translate-x-0",
-                "inline-block h-5 w-5 rounded-full bg-white shadow transform ring-0 transition ease-in-out duration-200"
-              )}
-            />
-          </Switch>
+          />
         )}
       </Field>
     </Switch.Group>
   </ul>
 );
-
-interface SwitchGroupWideRedProps {
-  name: string;
-  label: string;
-  description?: string;
-  defaultValue?: boolean;
-  className?: string;
-}
-
-export const SwitchGroupWideRed = ({
-  name,
-  label,
-  description,
-  defaultValue
-}: SwitchGroupWideRedProps) => (
-  <ul className="mt-2 px-4 divide-y divide-gray-200 dark:divide-gray-700">
-    <Switch.Group as="li" className="py-4 flex items-center justify-between">
-      <div className="flex flex-col">
-        <Switch.Label as="p" className="text-sm font-medium text-gray-900 dark:text-white"
-          passive>
-          {label}
-        </Switch.Label>
-        {description && (
-          <Switch.Description className="text-sm text-gray-500 dark:text-gray-700">
-            {description}
-          </Switch.Description>
-        )}
-      </div>
-
-      <Field
-        name={name}
-        defaultValue={defaultValue as boolean}
-        type="checkbox"
-      >
-        {({ field, form }: FieldProps) => (
-          <Switch
-            {...field}
-            type="button"
-            value={field.value}
-            checked={field.checked ?? false}
-            onChange={(value: unknown) => {
-              form.setFieldValue(field?.name ?? "", value);
-            }}
-            className={classNames(
-              field.value ? "bg-blue-500 dark:bg-blue-500" : "bg-red-500 dark:bg-red-500",
-              "ml-4 relative inline-flex flex-shrink-0 h-6 w-11 border-2 border-transparent rounded-full cursor-pointer transition-colors ease-in-out duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-            )}
-          >
-            <span className="sr-only">Use setting</span>
-            <span
-              aria-hidden="true"
-              className={classNames(
-                field.value ? "translate-x-5" : "translate-x-0",
-                "inline-block h-5 w-5 rounded-full bg-white shadow transform ring-0 transition ease-in-out duration-200"
-              )}
-            />
-          </Switch>
-        )}
-      </Field>
-    </Switch.Group>
-  </ul>
-);
-
-const Input = (props: InputProps) => {
-  return (
-    <components.Input
-      {...props}
-      inputClassName="outline-none border-none shadow-none focus:ring-transparent"
-      className="text-gray-400 dark:text-gray-100"
-      children={props.children}
-    />
-  );
-};
-
-const Control = (props: ControlProps) => {
-  return (
-    <components.Control
-      {...props}
-      className="p-1 block w-full dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:text-gray-100 sm:text-sm"
-      children={props.children}
-    />
-  );
-};
-
-const Menu = (props: MenuProps) => {
-  return (
-    <components.Menu
-      {...props}
-      className="dark:bg-gray-800 border border-gray-300 dark:border-gray-700 dark:text-gray-400 rounded-md shadow-sm"
-      children={props.children}
-    />
-  );
-};
-
-const Option = (props: OptionProps) => {
-  return (
-    <components.Option
-      {...props}
-      className="dark:text-gray-400 dark:bg-gray-800 dark:hover:bg-gray-900 dark:focus:bg-gray-900"
-      children={props.children}
-    />
-  );
-};
 
 export const SelectFieldWide = ({
   name,
@@ -405,7 +304,7 @@ export const SelectFieldWide = ({
     <div>
       <label
         htmlFor={name}
-        className="flex text-sm font-medium text-gray-900 dark:text-white"
+        className="flex ml-px text-sm font-medium text-gray-900 dark:text-white"
       >
         <div className="flex">
           {tooltip ? (
@@ -426,10 +325,12 @@ export const SelectFieldWide = ({
             isClearable={true}
             isSearchable={true}
             components={{
-              Input,
-              Control,
-              Menu,
-              Option
+              Input: common.SelectInput,
+              Control: common.SelectControl,
+              Menu: common.SelectMenu,
+              Option: common.SelectOption,
+              IndicatorSeparator: common.IndicatorSeparator,
+              DropdownIndicator: common.DropdownIndicator
             }}
             placeholder={optionDefaultText}
             styles={{

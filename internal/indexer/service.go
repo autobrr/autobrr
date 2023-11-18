@@ -4,6 +4,7 @@
 package indexer
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"io/fs"
@@ -495,7 +496,10 @@ func (s *service) LoadIndexerDefinitions() error {
 		}
 
 		var d domain.IndexerDefinition
-		if err = yaml.Unmarshal(data, &d); err != nil {
+		dec := yaml.NewDecoder(bytes.NewReader(data))
+		dec.KnownFields(true)
+
+		if err = dec.Decode(&d); err != nil {
 			s.log.Error().Stack().Err(err).Msgf("failed unmarshal file: %s", file)
 			return errors.Wrap(err, "could not unmarshal file: %s", file)
 		}
@@ -552,13 +556,19 @@ func (s *service) LoadCustomIndexerDefinitions() error {
 		}
 
 		var d *domain.IndexerDefinitionCustom
-		if err = yaml.Unmarshal(data, &d); err != nil {
+		dec := yaml.NewDecoder(bytes.NewReader(data))
+		// Do _not_ fail on unknown fields while parsing custom indexer
+		// definitions for better backwards compatibility. See discussion:
+		// https://github.com/autobrr/autobrr/pull/1257#issuecomment-1813821391
+		dec.KnownFields(false)
+
+		if err = dec.Decode(&d); err != nil {
 			s.log.Error().Stack().Err(err).Msgf("failed unmarshal file: %s", file)
 			return errors.Wrap(err, "could not unmarshal file: %s", file)
 		}
 
 		if d == nil {
-			s.log.Warn().Stack().Err(err).Msgf("skipping empty file: %s", file)
+			s.log.Warn().Msgf("skipping empty file: %s", file)
 			continue
 		}
 
@@ -567,8 +577,10 @@ func (s *service) LoadCustomIndexerDefinitions() error {
 		}
 
 		// to prevent crashing from non-updated definitions lets skip
-		if d.Implementation == "irc" && d.IRC.Parse == nil {
-			s.log.Warn().Msgf("DEPRECATED: indexer definition version: %s", file)
+		if d.Implementation == "irc" && d.IRC != nil {
+			if d.IRC.Parse == nil {
+				s.log.Warn().Msgf("DEPRECATED: indexer definition version: %s", file)
+			}
 		}
 
 		s.definitions[d.Identifier] = *d.ToIndexerDefinition()

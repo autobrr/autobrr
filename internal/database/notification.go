@@ -280,7 +280,7 @@ func (r *NotificationRepo) Delete(ctx context.Context, notificationID int) error
 		return errors.Wrap(err, "error executing query")
 	}
 
-	r.log.Info().Msgf("notification.delete: successfully deleted: %v", notificationID)
+	r.log.Debug().Msgf("notification.delete: successfully deleted: %v", notificationID)
 
 	return nil
 }

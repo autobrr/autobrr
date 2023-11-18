@@ -11,7 +11,7 @@ protocol: torrent
 supports:
   - irc
   - rss
-source: UNIT3D
+# source: UNIT3D
 settings:
   - name: rsskey
     type: secret
@@ -50,9 +50,27 @@ irc:
   parse:
     type: single
     lines:
-      - test:
-          - "New in [Movie]: Old Movie (1981) (1080p BluRay x265 SDR DD 2.0 English - group1) [4.5 GiB] [FL: No] [INTERNAL: Yes] [https://hawke.uno/torrents/0000] by: [anon]"
-          - "New in [TV]: Popular show (2022) S01E09 (1080p DSNP WEB-DL x265 SDR DDP Atmos 5.1 English - GROUP)[REPACK] [955.97 MiB] [FL: Yes] [INTERNAL: Yes] [https://hawke.uno/torrents/0000] by: [uploader]"
+      - tests:
+        - line: 'New in [Movie]: Old Movie (1981) (1080p BluRay x265 SDR DD 2.0 English - group1) [4.5 GiB] [FL: No] [INTERNAL: Yes] [https://hawke.uno/torrents/0000] by: [anon]'
+          expect:
+            category: Movie
+            torrentName: Old Movie (1981) (1080p BluRay x265 SDR DD 2.0 English - group1)
+            torrentSize: 4.5 GiB
+            freeleech: "No"
+            internal: "Yes"
+            baseUrl: https://hawke.uno/
+            torrentId: "0000"
+            uploader: anon
+        - line: 'New in [TV]: Popular show (2022) S01E09 (1080p DSNP WEB-DL x265 SDR DDP Atmos 5.1 English - GROUP)[REPACK] [955.97 MiB] [FL: Yes] [INTERNAL: Yes] [https://hawke.uno/torrents/0000] by: [uploader]'
+          expect:
+            category: TV
+            torrentName: Popular show (2022) S01E09 (1080p DSNP WEB-DL x265 SDR DDP Atmos 5.1 English - GROUP)[REPACK]
+            torrentSize: 955.97 MiB
+            freeleech: "Yes"
+            internal: "Yes"
+            baseUrl: https://hawke.uno/
+            torrentId: "0000"
+            uploader: uploader
         pattern: 'New in \[(.+)\]: (.+)(?:\[(?:REPACK\d?|PROPER)\])? \[(.+)\] \[FL: (Yes|No)\] \[INTERNAL: (Yes|No)\] \[(https:\/\/.+\/)torrents\/(\d+)\] by: \[(.+)\]'
         vars:
           - category

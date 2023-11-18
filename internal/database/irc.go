@@ -469,7 +469,7 @@ func (r *IrcRepo) StoreChannel(ctx context.Context, networkID int64, channel *do
 			Set("enabled", channel.Enabled).
 			Set("detached", channel.Detached).
 			Set("name", channel.Name).
-			Set("pass", pass).
+			Set("password", pass).
 			Where(sq.Eq{"id": channel.ID})
 
 		query, args, err := channelQueryBuilder.ToSql()
@@ -537,7 +537,7 @@ func (r *IrcRepo) UpdateChannel(channel *domain.IrcChannel) error {
 		Set("enabled", channel.Enabled).
 		Set("detached", channel.Detached).
 		Set("name", channel.Name).
-		Set("pass", pass).
+		Set("password", pass).
 		Where(sq.Eq{"id": channel.ID})
 
 	query, args, err := channelQueryBuilder.ToSql()
