@@ -3,9 +3,11 @@ package database
 import (
 	"context"
 	"fmt"
-	"github.com/autobrr/autobrr/internal/domain"
-	"github.com/stretchr/testify/assert"
 	"testing"
+
+	"github.com/autobrr/autobrr/internal/domain"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func getMockIndexer() domain.Indexer {
@@ -21,14 +23,7 @@ func getMockIndexer() domain.Indexer {
 }
 
 func TestIndexerRepo_Store(t *testing.T) {
-	for _, dbType := range getDbs() {
-		db := setupDatabaseForTest(t, dbType)
-		defer func(db *DB) {
-			err := db.Close()
-			if err != nil {
-				t.Fatalf("Could not close db connection: %v", err)
-			}
-		}(db)
+	for dbType, db := range testDBs {
 		log := setupLoggerForTest()
 		repo := NewIndexerRepo(log, db)
 		mockData := getMockIndexer()
@@ -53,14 +48,7 @@ func TestIndexerRepo_Store(t *testing.T) {
 }
 
 func TestIndexerRepo_Update(t *testing.T) {
-	for _, dbType := range getDbs() {
-		db := setupDatabaseForTest(t, dbType)
-		defer func(db *DB) {
-			err := db.Close()
-			if err != nil {
-				t.Fatalf("Could not close db connection: %v", err)
-			}
-		}(db)
+	for dbType, db := range testDBs {
 		log := setupLoggerForTest()
 		repo := NewIndexerRepo(log, db)
 
@@ -90,14 +78,7 @@ func TestIndexerRepo_Update(t *testing.T) {
 }
 
 func TestIndexerRepo_List(t *testing.T) {
-	for _, dbType := range getDbs() {
-		db := setupDatabaseForTest(t, dbType)
-		defer func(db *DB) {
-			err := db.Close()
-			if err != nil {
-				t.Fatalf("Could not close db connection: %v", err)
-			}
-		}(db)
+	for dbType, db := range testDBs {
 		log := setupLoggerForTest()
 		repo := NewIndexerRepo(log, db)
 
@@ -134,14 +115,7 @@ func TestIndexerRepo_List(t *testing.T) {
 }
 
 func TestIndexerRepo_FindByID(t *testing.T) {
-	for _, dbType := range getDbs() {
-		db := setupDatabaseForTest(t, dbType)
-		defer func(db *DB) {
-			err := db.Close()
-			if err != nil {
-				t.Fatalf("Could not close db connection: %v", err)
-			}
-		}(db)
+	for dbType, db := range testDBs {
 		log := setupLoggerForTest()
 		repo := NewIndexerRepo(log, db)
 		mockData := getMockIndexer()
@@ -171,14 +145,7 @@ func TestIndexerRepo_FindByID(t *testing.T) {
 }
 
 func TestIndexerRepo_FindByFilterID(t *testing.T) {
-	for _, dbType := range getDbs() {
-		db := setupDatabaseForTest(t, dbType)
-		defer func(db *DB) {
-			err := db.Close()
-			if err != nil {
-				t.Fatalf("Could not close db connection: %v", err)
-			}
-		}(db)
+	for dbType, db := range testDBs {
 		log := setupLoggerForTest()
 
 		repo := NewIndexerRepo(log, db)
@@ -216,14 +183,7 @@ func TestIndexerRepo_FindByFilterID(t *testing.T) {
 }
 
 func TestIndexerRepo_Delete(t *testing.T) {
-	for _, dbType := range getDbs() {
-		db := setupDatabaseForTest(t, dbType)
-		defer func(db *DB) {
-			err := db.Close()
-			if err != nil {
-				t.Fatalf("Could not close db connection: %v", err)
-			}
-		}(db)
+	for dbType, db := range testDBs {
 		log := setupLoggerForTest()
 
 		repo := NewIndexerRepo(log, db)

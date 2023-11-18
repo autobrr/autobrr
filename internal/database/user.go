@@ -141,7 +141,7 @@ func (r *UserRepo) Delete(ctx context.Context, username string) error {
 	}
 
 	// Log the deletion.
-	r.log.Info().Msgf("user.delete: successfully deleted user: %s", username)
+	r.log.Debug().Msgf("user.delete: successfully deleted user: %s", username)
 
 	return nil
 }

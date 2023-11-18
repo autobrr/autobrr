@@ -3,10 +3,12 @@ package database
 import (
 	"context"
 	"fmt"
-	"github.com/autobrr/autobrr/internal/domain"
-	"github.com/stretchr/testify/assert"
 	"testing"
 	"time"
+
+	"github.com/autobrr/autobrr/internal/domain"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func getMockRelease() *domain.Release {
@@ -64,14 +66,7 @@ func getMockReleaseActionStatus() *domain.ReleaseActionStatus {
 }
 
 func TestReleaseRepo_Store(t *testing.T) {
-	for _, dbType := range getDbs() {
-		db := setupDatabaseForTest(t, dbType)
-		defer func(db *DB) {
-			err := db.Close()
-			if err != nil {
-				t.Fatalf("Could not close db connection: %v", err)
-			}
-		}(db)
+	for dbType, db := range testDBs {
 		log := setupLoggerForTest()
 
 		downloadClientRepo := NewDownloadClientRepo(log, db)
@@ -110,8 +105,6 @@ func TestReleaseRepo_Store(t *testing.T) {
 			releaseActionMockData.ActionID = int64(createdAction.ID)
 			releaseActionMockData.FilterID = int64(createdFilters[0].ID)
 
-			fmt.Println(releaseActionMockData.FilterID)
-
 			err = repo.StoreReleaseActionStatus(context.Background(), releaseActionMockData)
 			assert.NoError(t, err)
 
@@ -128,14 +121,7 @@ func TestReleaseRepo_Store(t *testing.T) {
 }
 
 func TestReleaseRepo_StoreReleaseActionStatus(t *testing.T) {
-	for _, dbType := range getDbs() {
-		db := setupDatabaseForTest(t, dbType)
-		defer func(db *DB) {
-			err := db.Close()
-			if err != nil {
-				t.Fatalf("Could not close db connection: %v", err)
-			}
-		}(db)
+	for dbType, db := range testDBs {
 		log := setupLoggerForTest()
 
 		downloadClientRepo := NewDownloadClientRepo(log, db)
@@ -190,14 +176,7 @@ func TestReleaseRepo_StoreReleaseActionStatus(t *testing.T) {
 }
 
 func TestReleaseRepo_Find(t *testing.T) {
-	for _, dbType := range getDbs() {
-		db := setupDatabaseForTest(t, dbType)
-		defer func(db *DB) {
-			err := db.Close()
-			if err != nil {
-				t.Fatalf("Could not close db connection: %v", err)
-			}
-		}(db)
+	for dbType, db := range testDBs {
 		log := setupLoggerForTest()
 
 		downloadClientRepo := NewDownloadClientRepo(log, db)
@@ -256,14 +235,7 @@ func TestReleaseRepo_Find(t *testing.T) {
 }
 
 func TestReleaseRepo_FindRecent(t *testing.T) {
-	for _, dbType := range getDbs() {
-		db := setupDatabaseForTest(t, dbType)
-		defer func(db *DB) {
-			err := db.Close()
-			if err != nil {
-				t.Fatalf("Could not close db connection: %v", err)
-			}
-		}(db)
+	for dbType, db := range testDBs {
 		log := setupLoggerForTest()
 
 		downloadClientRepo := NewDownloadClientRepo(log, db)
@@ -311,14 +283,7 @@ func TestReleaseRepo_FindRecent(t *testing.T) {
 }
 
 func TestReleaseRepo_GetIndexerOptions(t *testing.T) {
-	for _, dbType := range getDbs() {
-		db := setupDatabaseForTest(t, dbType)
-		defer func(db *DB) {
-			err := db.Close()
-			if err != nil {
-				t.Fatalf("Could not close db connection: %v", err)
-			}
-		}(db)
+	for dbType, db := range testDBs {
 		log := setupLoggerForTest()
 
 		downloadClientRepo := NewDownloadClientRepo(log, db)
@@ -376,14 +341,7 @@ func TestReleaseRepo_GetIndexerOptions(t *testing.T) {
 }
 
 func TestReleaseRepo_GetActionStatusByReleaseID(t *testing.T) {
-	for _, dbType := range getDbs() {
-		db := setupDatabaseForTest(t, dbType)
-		defer func(db *DB) {
-			err := db.Close()
-			if err != nil {
-				t.Fatalf("Could not close db connection: %v", err)
-			}
-		}(db)
+	for dbType, db := range testDBs {
 		log := setupLoggerForTest()
 
 		downloadClientRepo := NewDownloadClientRepo(log, db)
@@ -442,14 +400,7 @@ func TestReleaseRepo_GetActionStatusByReleaseID(t *testing.T) {
 }
 
 func TestReleaseRepo_Get(t *testing.T) {
-	for _, dbType := range getDbs() {
-		db := setupDatabaseForTest(t, dbType)
-		defer func(db *DB) {
-			err := db.Close()
-			if err != nil {
-				t.Fatalf("Could not close db connection: %v", err)
-			}
-		}(db)
+	for dbType, db := range testDBs {
 		log := setupLoggerForTest()
 
 		downloadClientRepo := NewDownloadClientRepo(log, db)
@@ -508,14 +459,7 @@ func TestReleaseRepo_Get(t *testing.T) {
 }
 
 func TestReleaseRepo_Stats(t *testing.T) {
-	for _, dbType := range getDbs() {
-		db := setupDatabaseForTest(t, dbType)
-		defer func(db *DB) {
-			err := db.Close()
-			if err != nil {
-				t.Fatalf("Could not close db connection: %v", err)
-			}
-		}(db)
+	for dbType, db := range testDBs {
 		log := setupLoggerForTest()
 
 		downloadClientRepo := NewDownloadClientRepo(log, db)
@@ -574,14 +518,7 @@ func TestReleaseRepo_Stats(t *testing.T) {
 }
 
 func TestReleaseRepo_Delete(t *testing.T) {
-	for _, dbType := range getDbs() {
-		db := setupDatabaseForTest(t, dbType)
-		defer func(db *DB) {
-			err := db.Close()
-			if err != nil {
-				t.Fatalf("Could not close db connection: %v", err)
-			}
-		}(db)
+	for dbType, db := range testDBs {
 		log := setupLoggerForTest()
 
 		downloadClientRepo := NewDownloadClientRepo(log, db)
@@ -637,14 +574,7 @@ func TestReleaseRepo_Delete(t *testing.T) {
 }
 
 func TestReleaseRepo_CanDownloadShow(t *testing.T) {
-	for _, dbType := range getDbs() {
-		db := setupDatabaseForTest(t, dbType)
-		defer func(db *DB) {
-			err := db.Close()
-			if err != nil {
-				t.Fatalf("Could not close db connection: %v", err)
-			}
-		}(db)
+	for dbType, db := range testDBs {
 		log := setupLoggerForTest()
 
 		downloadClientRepo := NewDownloadClientRepo(log, db)

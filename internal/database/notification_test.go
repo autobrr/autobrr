@@ -3,10 +3,12 @@ package database
 import (
 	"context"
 	"fmt"
-	"github.com/autobrr/autobrr/internal/domain"
-	"github.com/stretchr/testify/assert"
 	"testing"
 	"time"
+
+	"github.com/autobrr/autobrr/internal/domain"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func getMockNotification() domain.Notification {
@@ -36,14 +38,7 @@ func getMockNotification() domain.Notification {
 }
 
 func TestNotificationRepo_Store(t *testing.T) {
-	for _, dbType := range getDbs() {
-		db := setupDatabaseForTest(t, dbType)
-		defer func(db *DB) {
-			err := db.Close()
-			if err != nil {
-				t.Fatalf("Could not close db connection: %v", err)
-			}
-		}(db)
+	for dbType, db := range testDBs {
 		log := setupLoggerForTest()
 
 		repo := NewNotificationRepo(log, db)
@@ -69,14 +64,7 @@ func TestNotificationRepo_Store(t *testing.T) {
 }
 
 func TestNotificationRepo_Update(t *testing.T) {
-	for _, dbType := range getDbs() {
-		db := setupDatabaseForTest(t, dbType)
-		defer func(db *DB) {
-			err := db.Close()
-			if err != nil {
-				t.Fatalf("Could not close db connection: %v", err)
-			}
-		}(db)
+	for dbType, db := range testDBs {
 		log := setupLoggerForTest()
 
 		repo := NewNotificationRepo(log, db)
@@ -111,14 +99,7 @@ func TestNotificationRepo_Update(t *testing.T) {
 }
 
 func TestNotificationRepo_Delete(t *testing.T) {
-	for _, dbType := range getDbs() {
-		db := setupDatabaseForTest(t, dbType)
-		defer func(db *DB) {
-			err := db.Close()
-			if err != nil {
-				t.Fatalf("Could not close db connection: %v", err)
-			}
-		}(db)
+	for dbType, db := range testDBs {
 		log := setupLoggerForTest()
 
 		repo := NewNotificationRepo(log, db)
@@ -145,14 +126,7 @@ func TestNotificationRepo_Delete(t *testing.T) {
 }
 
 func TestNotificationRepo_Find(t *testing.T) {
-	for _, dbType := range getDbs() {
-		db := setupDatabaseForTest(t, dbType)
-		defer func(db *DB) {
-			err := db.Close()
-			if err != nil {
-				t.Fatalf("Could not close db connection: %v", err)
-			}
-		}(db)
+	for dbType, db := range testDBs {
 		log := setupLoggerForTest()
 
 		repo := NewNotificationRepo(log, db)
@@ -200,14 +174,7 @@ func TestNotificationRepo_Find(t *testing.T) {
 }
 
 func TestNotificationRepo_FindByID(t *testing.T) {
-	for _, dbType := range getDbs() {
-		db := setupDatabaseForTest(t, dbType)
-		defer func(db *DB) {
-			err := db.Close()
-			if err != nil {
-				t.Fatalf("Could not close db connection: %v", err)
-			}
-		}(db)
+	for dbType, db := range testDBs {
 		log := setupLoggerForTest()
 
 		repo := NewNotificationRepo(log, db)
@@ -235,14 +202,7 @@ func TestNotificationRepo_FindByID(t *testing.T) {
 }
 
 func TestNotificationRepo_List(t *testing.T) {
-	for _, dbType := range getDbs() {
-		db := setupDatabaseForTest(t, dbType)
-		defer func(db *DB) {
-			err := db.Close()
-			if err != nil {
-				t.Fatalf("Could not close db connection: %v", err)
-			}
-		}(db)
+	for dbType, db := range testDBs {
 		log := setupLoggerForTest()
 
 		repo := NewNotificationRepo(log, db)

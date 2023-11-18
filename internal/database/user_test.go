@@ -3,9 +3,11 @@ package database
 import (
 	"context"
 	"fmt"
-	"github.com/autobrr/autobrr/internal/domain"
-	"github.com/stretchr/testify/assert"
 	"testing"
+
+	"github.com/autobrr/autobrr/internal/domain"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func getMockUser() domain.User {
@@ -17,21 +19,14 @@ func getMockUser() domain.User {
 }
 
 func TestUserRepo_Store(t *testing.T) {
-	for _, dbType := range getDbs() {
-		db := setupDatabaseForTest(t, dbType)
-		defer func(db *DB) {
-			err := db.Close()
-			if err != nil {
-				t.Fatalf("Could not close db connection: %v", err)
-			}
-		}(db)
+	for dbType, db := range testDBs {
 		log := setupLoggerForTest()
 
 		repo := NewUserRepo(log, db)
 
 		userMockData := getMockUser()
 
-		t.Run(fmt.Sprintf("StoreNetwork_Succeeds [%s]", dbType), func(t *testing.T) {
+		t.Run(fmt.Sprintf("StoreUser_Succeeds [%s]", dbType), func(t *testing.T) {
 			// Execute
 			err := repo.Store(context.Background(), domain.CreateUserRequest{
 				Username: userMockData.Username,
@@ -48,9 +43,7 @@ func TestUserRepo_Store(t *testing.T) {
 }
 
 func TestUserRepo_Update(t *testing.T) {
-	for _, dbType := range getDbs() {
-		db := setupDatabaseForTest(t, dbType)
-		defer db.Close()
+	for dbType, db := range testDBs {
 		log := setupLoggerForTest()
 
 		repo := NewUserRepo(log, db)
@@ -81,9 +74,7 @@ func TestUserRepo_Update(t *testing.T) {
 }
 
 func TestUserRepo_GetUserCount(t *testing.T) {
-	for _, dbType := range getDbs() {
-		db := setupDatabaseForTest(t, dbType)
-		defer db.Close()
+	for dbType, db := range testDBs {
 		log := setupLoggerForTest()
 
 		repo := NewUserRepo(log, db)
@@ -112,14 +103,7 @@ func TestUserRepo_GetUserCount(t *testing.T) {
 }
 
 func TestUserRepo_FindByUsername(t *testing.T) {
-	for _, dbType := range getDbs() {
-		db := setupDatabaseForTest(t, dbType)
-		defer func(db *DB) {
-			err := db.Close()
-			if err != nil {
-				t.Fatalf("Could not close db connection: %v", err)
-			}
-		}(db)
+	for dbType, db := range testDBs {
 		log := setupLoggerForTest()
 
 		repo := NewUserRepo(log, db)
@@ -147,9 +131,7 @@ func TestUserRepo_FindByUsername(t *testing.T) {
 }
 
 func TestUserRepo_Delete(t *testing.T) {
-	for _, dbType := range getDbs() {
-		db := setupDatabaseForTest(t, dbType)
-		defer db.Close()
+	for dbType, db := range testDBs {
 		log := setupLoggerForTest()
 
 		repo := NewUserRepo(log, db)

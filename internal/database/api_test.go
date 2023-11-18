@@ -3,16 +3,15 @@ package database
 import (
 	"context"
 	"fmt"
-	"github.com/autobrr/autobrr/internal/domain"
-	"github.com/stretchr/testify/assert"
 	"testing"
+
+	"github.com/autobrr/autobrr/internal/domain"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestAPIRepo_Store(t *testing.T) {
-	// Initialize database and logger
-	for _, dbType := range getDbs() {
-		db := setupDatabaseForTest(t, dbType)
-		defer db.Close()
+	for dbType, db := range testDBs {
 		log := setupLoggerForTest()
 		repo := NewAPIRepo(log, db)
 
@@ -46,8 +45,7 @@ func TestAPIRepo_Store(t *testing.T) {
 }
 
 func TestAPIRepo_Delete(t *testing.T) {
-	for _, dbType := range getDbs() {
-		db := setupDatabaseForTest(t, dbType)
+	for dbType, db := range testDBs {
 		log := setupLoggerForTest()
 		repo := NewAPIRepo(log, db)
 
@@ -67,8 +65,7 @@ func TestAPIRepo_Delete(t *testing.T) {
 }
 
 func TestAPIRepo_GetKeys(t *testing.T) {
-	for _, dbType := range getDbs() {
-		db := setupDatabaseForTest(t, dbType)
+	for dbType, db := range testDBs {
 		log := setupLoggerForTest()
 		repo := NewAPIRepo(log, db)
 

@@ -3,21 +3,16 @@ package database
 import (
 	"context"
 	"fmt"
-	"github.com/autobrr/autobrr/internal/domain"
-	"github.com/stretchr/testify/assert"
 	"testing"
 	"time"
+
+	"github.com/autobrr/autobrr/internal/domain"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestFeedCacheRepo_Get(t *testing.T) {
-	for _, dbType := range getDbs() {
-		db := setupDatabaseForTest(t, dbType)
-		defer func(db *DB) {
-			err := db.Close()
-			if err != nil {
-				t.Fatalf("Could not close db connection: %v", err)
-			}
-		}(db)
+	for dbType, db := range testDBs {
 
 		log := setupLoggerForTest()
 		repo := NewFeedCacheRepo(log, db)
@@ -70,14 +65,7 @@ func TestFeedCacheRepo_Get(t *testing.T) {
 }
 
 func TestFeedCacheRepo_GetByFeed(t *testing.T) {
-	for _, dbType := range getDbs() {
-		db := setupDatabaseForTest(t, dbType)
-		defer func(db *DB) {
-			err := db.Close()
-			if err != nil {
-				t.Fatalf("Could not close db connection: %v", err)
-			}
-		}(db)
+	for dbType, db := range testDBs {
 
 		log := setupLoggerForTest()
 		repo := NewFeedCacheRepo(log, db)
@@ -121,14 +109,7 @@ func TestFeedCacheRepo_GetByFeed(t *testing.T) {
 }
 
 func TestFeedCacheRepo_Exists(t *testing.T) {
-	for _, dbType := range getDbs() {
-		db := setupDatabaseForTest(t, dbType)
-		defer func(db *DB) {
-			err := db.Close()
-			if err != nil {
-				t.Fatalf("Could not close db connection: %v", err)
-			}
-		}(db)
+	for dbType, db := range testDBs {
 
 		log := setupLoggerForTest()
 		repo := NewFeedCacheRepo(log, db)
@@ -170,14 +151,7 @@ func TestFeedCacheRepo_Exists(t *testing.T) {
 }
 
 func TestFeedCacheRepo_Put(t *testing.T) {
-	for _, dbType := range getDbs() {
-		db := setupDatabaseForTest(t, dbType)
-		defer func(db *DB) {
-			err := db.Close()
-			if err != nil {
-				t.Fatalf("Could not close db connection: %v", err)
-			}
-		}(db)
+	for dbType, db := range testDBs {
 		log := setupLoggerForTest()
 		repo := NewFeedCacheRepo(log, db)
 		feedRepo := NewFeedRepo(log, db)
@@ -220,14 +194,7 @@ func TestFeedCacheRepo_Put(t *testing.T) {
 }
 
 func TestFeedCacheRepo_Delete(t *testing.T) {
-	for _, dbType := range getDbs() {
-		db := setupDatabaseForTest(t, dbType)
-		defer func(db *DB) {
-			err := db.Close()
-			if err != nil {
-				t.Fatalf("Could not close db connection: %v", err)
-			}
-		}(db)
+	for dbType, db := range testDBs {
 
 		log := setupLoggerForTest()
 		repo := NewFeedCacheRepo(log, db)
@@ -273,15 +240,7 @@ func TestFeedCacheRepo_Delete(t *testing.T) {
 }
 
 func TestFeedCacheRepo_DeleteByFeed(t *testing.T) {
-	for _, dbType := range getDbs() {
-		db := setupDatabaseForTest(t, dbType)
-		defer func(db *DB) {
-			err := db.Close()
-			if err != nil {
-				t.Fatalf("Could not close db connection: %v", err)
-			}
-		}(db)
-
+	for dbType, db := range testDBs {
 		log := setupLoggerForTest()
 		repo := NewFeedCacheRepo(log, db)
 		feedRepo := NewFeedRepo(log, db)
@@ -326,14 +285,7 @@ func TestFeedCacheRepo_DeleteByFeed(t *testing.T) {
 }
 
 func TestFeedCacheRepo_DeleteStale(t *testing.T) {
-	for _, dbType := range getDbs() {
-		db := setupDatabaseForTest(t, dbType)
-		defer func(db *DB) {
-			err := db.Close()
-			if err != nil {
-				t.Fatalf("Could not close db connection: %v", err)
-			}
-		}(db)
+	for dbType, db := range testDBs {
 
 		log := setupLoggerForTest()
 		repo := NewFeedCacheRepo(log, db)
