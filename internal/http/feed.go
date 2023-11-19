@@ -19,9 +19,11 @@ type feedService interface {
 	Store(ctx context.Context, feed *domain.Feed) error
 	Update(ctx context.Context, feed *domain.Feed) error
 	Delete(ctx context.Context, id int) error
+	DeleteFeedCache(ctx context.Context, id int) error
 	ToggleEnabled(ctx context.Context, id int, enabled bool) error
 	Test(ctx context.Context, feed *domain.Feed) error
 	GetLastRunData(ctx context.Context, id int) (string, error)
+	ForceRun(ctx context.Context, id int) error
 }
 
 type feedHandler struct {
@@ -44,8 +46,10 @@ func (h feedHandler) Routes(r chi.Router) {
 	r.Route("/{feedID}", func(r chi.Router) {
 		r.Put("/", h.update)
 		r.Delete("/", h.delete)
+		r.Delete("/cache", h.deleteCache)
 		r.Patch("/enabled", h.toggleEnabled)
 		r.Get("/latest", h.latestRun)
+		r.Post("/forcerun", h.forceRun)
 	})
 }
 
@@ -120,6 +124,24 @@ func (h feedHandler) update(w http.ResponseWriter, r *http.Request) {
 	h.encoder.StatusResponse(w, http.StatusCreated, data)
 }
 
+func (h feedHandler) forceRun(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	feedID := chi.URLParam(r, "feedID")
+
+	id, err := strconv.Atoi(feedID)
+	if err != nil {
+		h.encoder.Error(w, err)
+		return
+	}
+
+	if err := h.service.ForceRun(ctx, id); err != nil {
+		h.encoder.Error(w, err)
+		return
+	}
+
+	h.encoder.StatusResponse(w, http.StatusNoContent, nil)
+}
+
 func (h feedHandler) toggleEnabled(w http.ResponseWriter, r *http.Request) {
 	var (
 		ctx      = r.Context()
@@ -161,6 +183,26 @@ func (h feedHandler) delete(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.service.Delete(ctx, id); err != nil {
+		h.encoder.Error(w, err)
+		return
+	}
+
+	h.encoder.StatusResponse(w, http.StatusNoContent, nil)
+}
+
+func (h feedHandler) deleteCache(w http.ResponseWriter, r *http.Request) {
+	var (
+		ctx      = r.Context()
+		filterID = chi.URLParam(r, "feedID")
+	)
+
+	id, err := strconv.Atoi(filterID)
+	if err != nil {
+		h.encoder.Error(w, err)
+		return
+	}
+
+	if err := h.service.DeleteFeedCache(ctx, id); err != nil {
 		h.encoder.Error(w, err)
 		return
 	}

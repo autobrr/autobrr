@@ -118,7 +118,7 @@ func (c *AppConfig) writeConfig(configPath string, configFile string) error {
 			host = "0.0.0.0"
 		} else if pd, _ := os.Open("/proc/1/cgroup"); pd != nil {
 			defer pd.Close()
-			b := make([]byte, 4096, 4096)
+			b := make([]byte, 4096)
 			pd.Read(b)
 			if strings.Contains(string(b), "/docker") || strings.Contains(string(b), "/lxc") {
 				host = "0.0.0.0"
@@ -167,7 +167,7 @@ type Config interface {
 
 type AppConfig struct {
 	Config *domain.Config
-	m      sync.Mutex
+	m      *sync.Mutex
 }
 
 func New(configPath string, version string) *AppConfig {
@@ -184,23 +184,25 @@ func New(configPath string, version string) *AppConfig {
 
 func (c *AppConfig) defaults() {
 	c.Config = &domain.Config{
-		Version:           "dev",
-		Host:              "localhost",
-		Port:              7474,
-		LogLevel:          "TRACE",
-		LogPath:           "",
-		LogMaxSize:        50,
-		LogMaxBackups:     3,
-		BaseURL:           "/",
-		SessionSecret:     api.GenerateSecureToken(16),
-		CustomDefinitions: "",
-		CheckForUpdates:   true,
-		DatabaseType:      "sqlite",
-		PostgresHost:      "",
-		PostgresPort:      0,
-		PostgresDatabase:  "",
-		PostgresUser:      "",
-		PostgresPass:      "",
+		Version:             "dev",
+		Host:                "localhost",
+		Port:                7474,
+		LogLevel:            "TRACE",
+		LogPath:             "",
+		LogMaxSize:          50,
+		LogMaxBackups:       3,
+		BaseURL:             "/",
+		SessionSecret:       api.GenerateSecureToken(16),
+		CustomDefinitions:   "",
+		CheckForUpdates:     true,
+		DatabaseType:        "sqlite",
+		PostgresHost:        "",
+		PostgresPort:        0,
+		PostgresDatabase:    "",
+		PostgresUser:        "",
+		PostgresPass:        "",
+		PostgresSSLMode:     "disable",
+		PostgresExtraParams: "",
 	}
 
 }
@@ -352,8 +354,6 @@ func (c *AppConfig) DynamicReload(log logger.Logger) {
 		c.m.Unlock()
 	})
 	viper.WatchConfig()
-
-	return
 }
 
 func (c *AppConfig) UpdateConfig() error {
@@ -395,7 +395,13 @@ func (c *AppConfig) processLines(lines []string) []string {
 		}
 		if !foundLineLogPath && strings.Contains(line, "logPath =") {
 			if c.Config.LogPath == "" {
-				lines[i] = `#logPath = ""`
+				// Check if the line already has a value
+				matches := strings.Split(line, "=")
+				if len(matches) > 1 && strings.TrimSpace(matches[1]) != `""` {
+					lines[i] = line // Preserve the existing line
+				} else {
+					lines[i] = `#logPath = ""`
+				}
 			} else {
 				lines[i] = fmt.Sprintf("logPath = \"%s\"", c.Config.LogPath)
 			}

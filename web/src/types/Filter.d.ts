@@ -70,14 +70,7 @@ interface Filter {
   actions_count: number;
   actions: Action[];
   indexers: Indexer[];
-  external_script_enabled: boolean;
-  external_script_cmd: string;
-  external_script_args: string;
-  external_script_expect_status: number;
-  external_webhook_enabled: boolean;
-  external_webhook_host: string;
-  external_webhook_data: string;
-  external_webhook_expect_status: number;
+  external: ExternalFilter[];
 }
 
 interface Action {
@@ -109,10 +102,36 @@ interface Action {
   webhook_method: string;
   webhook_data: string,
   webhook_headers: string[];
-  filter_id?: number;
+  external_download_client_id?: number;
   client_id?: number;
+  filter_id?: number;
 }
 
 type ActionContentLayout = "ORIGINAL" | "SUBFOLDER_CREATE" | "SUBFOLDER_NONE";
 
 type ActionType = "TEST" | "EXEC" | "WATCH_FOLDER" | "WEBHOOK" | DownloadClientType;
+
+type ExternalType = "EXEC" |  "WEBHOOK";
+
+type WebhookMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
+
+interface ExternalFilter {
+  id: number;
+  index: number;
+  name: string;
+  type: ExternalType;
+  enabled: boolean;
+  exec_cmd?: string;
+  exec_args?: string;
+  exec_expect_status?: number;
+  webhook_host?: string,
+  webhook_type?: string;
+  webhook_method?: WebhookMethod;
+  webhook_data?: string,
+  webhook_headers?: string;
+  webhook_expect_status?: number;
+  webhook_retry_status?: string,
+  webhook_retry_attempts?: number;
+  webhook_retry_delay_seconds?: number;
+  filter_id?: number;
+}

@@ -16,6 +16,7 @@ import (
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/pkg/errors"
 
+	"github.com/dustin/go-humanize"
 	"github.com/rs/zerolog"
 )
 
@@ -147,6 +148,9 @@ func (s *pushoverSender) buildMessage(payload domain.NotificationPayload) string
 	}
 	if payload.ReleaseName != "" {
 		msg += fmt.Sprintf("\n<b>New release:</b> %v", html.EscapeString(payload.ReleaseName))
+	}
+	if payload.Size > 0 {
+		msg += fmt.Sprintf("\n<b>Size:</b> %v", humanize.Bytes(payload.Size))
 	}
 	if payload.Status != "" {
 		msg += fmt.Sprintf("\n<b>Status:</b> %v", payload.Status.String())

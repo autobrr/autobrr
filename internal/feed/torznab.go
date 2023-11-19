@@ -37,7 +37,12 @@ type TorznabJob struct {
 	JobID int
 }
 
-func NewTorznabJob(feed *domain.Feed, name string, indexerIdentifier string, log zerolog.Logger, url string, client torznab.Client, repo domain.FeedRepo, cacheRepo domain.FeedCacheRepo, releaseSvc release.Service) *TorznabJob {
+type FeedJob interface {
+	Run()
+	RunE(ctx context.Context) error
+}
+
+func NewTorznabJob(feed *domain.Feed, name string, indexerIdentifier string, log zerolog.Logger, url string, client torznab.Client, repo domain.FeedRepo, cacheRepo domain.FeedCacheRepo, releaseSvc release.Service) FeedJob {
 	return &TorznabJob{
 		Feed:              feed,
 		Name:              name,
@@ -54,7 +59,7 @@ func NewTorznabJob(feed *domain.Feed, name string, indexerIdentifier string, log
 func (j *TorznabJob) Run() {
 	ctx := context.Background()
 
-	if err := j.process(ctx); err != nil {
+	if err := j.RunE(ctx); err != nil {
 		j.Log.Err(err).Int("attempts", j.attempts).Msg("torznab process error")
 
 		j.errors = append(j.errors, err)
@@ -62,6 +67,15 @@ func (j *TorznabJob) Run() {
 
 	j.attempts = 0
 	j.errors = j.errors[:0]
+}
+
+func (j *TorznabJob) RunE(ctx context.Context) error {
+	if err := j.process(ctx); err != nil {
+		j.Log.Err(err).Int("attempts", j.attempts).Msg("torznab process error")
+		return err
+	}
+
+	return nil
 }
 
 func (j *TorznabJob) process(ctx context.Context) error {
@@ -92,7 +106,7 @@ func (j *TorznabJob) process(ctx context.Context) error {
 		rls := domain.NewRelease(j.IndexerIdentifier)
 
 		rls.TorrentName = item.Title
-		rls.TorrentURL = item.Link
+		rls.DownloadURL = item.Link
 		rls.Implementation = domain.ReleaseImplementationTorznab
 
 		// parse size bytes string
@@ -102,7 +116,7 @@ func (j *TorznabJob) process(ctx context.Context) error {
 
 		if j.Feed.Settings != nil && j.Feed.Settings.DownloadType == domain.FeedDownloadTypeMagnet {
 			rls.MagnetURI = item.Link
-			rls.TorrentURL = ""
+			rls.DownloadURL = ""
 		}
 
 		// Get freeleech percentage between 0 - 100. The value is ignored if
@@ -208,13 +222,20 @@ func (j *TorznabJob) getFeed(ctx context.Context) ([]torznab.FeedItem, error) {
 		return feed.Channel.Items[i].PubDate.After(feed.Channel.Items[j].PubDate.Time)
 	})
 
+	toCache := make([]domain.FeedCacheItem, 0)
+
+	// set ttl to 1 month
+	ttl := time.Now().AddDate(0, 1, 0)
+
 	for _, i := range feed.Channel.Items {
+		i := i
+
 		if i.GUID == "" {
-			j.Log.Error().Err(err).Msgf("missing GUID from feed: %s", j.Feed.Name)
+			j.Log.Error().Msgf("missing GUID from feed: %s", j.Feed.Name)
 			continue
 		}
 
-		exists, err := j.CacheRepo.Exists(j.Name, i.GUID)
+		exists, err := j.CacheRepo.Exists(j.Feed.ID, i.GUID)
 		if err != nil {
 			j.Log.Error().Err(err).Msg("could not check if item exists")
 			continue
@@ -226,16 +247,24 @@ func (j *TorznabJob) getFeed(ctx context.Context) ([]torznab.FeedItem, error) {
 
 		j.Log.Debug().Msgf("found new release: %s", i.Title)
 
-		// set ttl to 1 month
-		ttl := time.Now().AddDate(0, 1, 0)
-
-		if err := j.CacheRepo.Put(j.Name, i.GUID, []byte(i.Title), ttl); err != nil {
-			j.Log.Error().Stack().Err(err).Str("guid", i.GUID).Msg("cache.Put: error storing item in cache")
-			continue
-		}
+		toCache = append(toCache, domain.FeedCacheItem{
+			FeedId: strconv.Itoa(j.Feed.ID),
+			Key:    i.GUID,
+			Value:  []byte(i.Title),
+			TTL:    ttl,
+		})
 
 		// only append if we successfully added to cache
 		items = append(items, *i)
+	}
+
+	if len(toCache) > 0 {
+		go func(items []domain.FeedCacheItem) {
+			ctx := context.Background()
+			if err := j.CacheRepo.PutMany(ctx, items); err != nil {
+				j.Log.Error().Err(err).Msg("cache.PutMany: error storing items in cache")
+			}
+		}(toCache)
 	}
 
 	// send to filters

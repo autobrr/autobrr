@@ -7,7 +7,7 @@ import { Fragment, useRef, ReactNode, ReactElement } from "react";
 import { XMarkIcon } from "@heroicons/react/24/solid";
 import { Dialog, Transition } from "@headlessui/react";
 import { Form, Formik } from "formik";
-import type { FormikValues } from "formik";
+import type { FormikValues, FormikProps } from "formik";
 
 import DEBUG from "@components/debug";
 import { useToggle } from "@hooks/hooks";
@@ -16,7 +16,7 @@ import { classNames } from "@utils";
 
 interface SlideOverProps<DataType> {
   title: string;
-  initialValues: FormikValues & DataType;
+  initialValues: DataType;
   validate?: (values: DataType) => void;
   onSubmit: (values?: DataType) => void;
   isOpen: boolean;
@@ -31,7 +31,7 @@ interface SlideOverProps<DataType> {
   extraButtons?: (values: DataType) => ReactNode;
 }
 
-function SlideOver<DataType>({
+function SlideOver<DataType extends FormikValues>({
   title,
   initialValues,
   validate,
@@ -48,13 +48,9 @@ function SlideOver<DataType>({
   extraButtons
 }: SlideOverProps<DataType>): ReactElement {
   const cancelModalButtonRef = useRef<HTMLInputElement | null>(null);
-  const [deleteModalIsOpen, toggleDeleteModal] = useToggle(false);
+  const formRef = useRef<FormikProps<DataType>>(null);
 
-  const test = (values: unknown) => {
-    if (testFn) {
-      testFn(values);
-    }
-  };
+  const [deleteModalIsOpen, toggleDeleteModal] = useToggle(false);
 
   return (
     <Transition.Root show={isOpen} as={Fragment}>
@@ -62,6 +58,7 @@ function SlideOver<DataType>({
         {deleteAction && (
           <DeleteModal
             isOpen={deleteModalIsOpen}
+            isLoading={isTesting || false}
             toggle={toggleDeleteModal}
             buttonRef={cancelModalButtonRef}
             deleteAction={deleteAction}
@@ -73,7 +70,13 @@ function SlideOver<DataType>({
         <div className="absolute inset-0 overflow-hidden">
           <Dialog.Overlay className="absolute inset-0" />
 
-          <div className="fixed inset-y-0 right-0 max-w-full flex">
+          <div
+            className="fixed inset-y-0 right-0 max-w-full flex"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+            }}
+          >
             <Transition.Child
               as={Fragment}
               enter="transform transition ease-in-out duration-500 sm:duration-700"
@@ -89,10 +92,16 @@ function SlideOver<DataType>({
                   initialValues={initialValues}
                   onSubmit={onSubmit}
                   validate={validate}
+                  innerRef={formRef}
                 >
                   {({ handleSubmit, values }) => (
-                    <Form className="h-full flex flex-col bg-white dark:bg-gray-800 shadow-xl overflow-y-scroll"
-                      onSubmit={handleSubmit}>
+                    <Form
+                      className="h-full flex flex-col bg-white dark:bg-gray-800 shadow-xl overflow-y-auto"
+                      onSubmit={(e) => {
+                        e.preventDefault();
+                        handleSubmit(e);
+                      }}
+                    >
 
                       <div className="flex-1">
                         <div className="px-4 py-6 bg-gray-50 dark:bg-gray-900 sm:px-6">
@@ -132,7 +141,7 @@ function SlideOver<DataType>({
                               Remove
                             </button>
                           )}
-                          <div>
+                          <div className="flex">
                             {!!values && extraButtons !== undefined && (
                               extraButtons(values)
                             )}
@@ -145,12 +154,15 @@ function SlideOver<DataType>({
                                     ? "text-green-500 border-green-500 bg-green-50"
                                     : isTestError
                                       ? "text-red-500 border-red-500 bg-red-50"
-                                      : "border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-400 bg-white dark:bg-gray-700 hover:bg-gray-50 focus:border-rose-700 active:bg-rose-700",
+                                      : "border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 focus:border-rose-700 active:bg-rose-700",
                                   isTesting ? "cursor-not-allowed" : "",
                                   "mr-2 inline-flex items-center px-4 py-2 border font-medium rounded-md shadow-sm text-sm transition ease-in-out duration-150 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
                                 )}
                                 disabled={isTesting}
-                                onClick={() => test(values)}
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  testFn(values);
+                                }}
                               >
                                 {isTesting ? (
                                   <svg
@@ -186,13 +198,20 @@ function SlideOver<DataType>({
                             <button
                               type="button"
                               className="bg-white dark:bg-gray-700 py-2 px-4 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
-                              onClick={toggle}
+                              onClick={(e) => {
+                                e.preventDefault();
+                                toggle();
+                              }}
                             >
                               Cancel
                             </button>
                             <button
-                              type="submit"
+                              type="button"
                               className="ml-4 inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                formRef.current?.submitForm();
+                              }}
                             >
                               {type === "CREATE" ? "Create" : "Save"}
                             </button>
@@ -204,7 +223,6 @@ function SlideOver<DataType>({
                     </Form>
                   )}
                 </Formik>
-
               </div>
 
             </Transition.Child>

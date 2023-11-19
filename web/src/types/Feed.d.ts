@@ -17,6 +17,7 @@ interface Feed {
   cookie: string;
   last_run: string;
   last_run_data: string;
+  next_run: string;
   settings: FeedSettings;
   created_at: Date;
   updated_at: Date;

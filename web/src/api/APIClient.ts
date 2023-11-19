@@ -7,131 +7,229 @@ import { baseUrl, sseBaseUrl } from "@utils";
 import { AuthContext } from "@utils/Context";
 import { GithubRelease } from "@app/types/Update";
 
-interface ConfigType {
-  body?: BodyInit | Record<string, unknown> | unknown;
-  headers?: Record<string, string>;
+type RequestBody = BodyInit | object | Record<string, unknown> | null;
+type Primitive = string | number | boolean | symbol | undefined;
+
+interface HttpConfig {
+  method?: string;
+  body?: RequestBody;
+  queryString?: Record<string, Primitive | Primitive[]>;
 }
 
-type PostBody = BodyInit | Record<string, unknown> | unknown;
+// See https://stackoverflow.com/a/62969380
+function encodeRFC3986URIComponent(str: string): string {
+  return encodeURIComponent(str).replace(
+    /[!'()*]/g,
+    (c) => `%${c.charCodeAt(0).toString(16).toUpperCase()}`
+  );
+}
 
-export async function HttpClient<T>(
+export async function HttpClient<T = unknown>(
   endpoint: string,
-  method: string,
-  { body, ...customConfig }: ConfigType = {}
+  config: HttpConfig = {}
 ): Promise<T> {
-  const config = {
-    method: method,
-    body: body ? JSON.stringify(body) : undefined,
-    headers: {
-      "Content-Type": "application/json"
-    },
-    // NOTE: customConfig can override the above defined settings
-    ...customConfig
-  } as RequestInit;
+  const init: RequestInit = {
+    method: config.method,
+    headers: { "Accept": "*/*" }
+  };
 
-  return window.fetch(`${baseUrl()}${endpoint}`, config)
-    .then(async response => {
-      if (!response.ok) {
-        // if 401 consider the session expired and force logout
-        if (response.status === 401) {
-          // Remove auth info from localStorage
-          AuthContext.reset();
+  if (config.body) {
+    init.body = JSON.stringify(config.body);
 
-          // Show an error toast to notify the user what occurred
-          return Promise.reject(new Error("Unauthorized"));
-        } else if (response.status === 404) {
-          return Promise.reject(new Error("Not found"));
+    if (typeof(config.body) === "object") {
+      init.headers = {
+        ...init.headers,
+        "Content-Type": "application/json"
+      };
+    }
+  }
+
+  if (config.queryString) {
+    const params: string[] = [];
+
+    for (const [key, value] of Object.entries(config.queryString)) {
+      const serializedKey = encodeRFC3986URIComponent(key);
+
+      if (typeof(value) === "undefined") {
+        // Skip case when the value is undefined.
+        // The solution in this case is to use the request body instead with JSON
+        continue;
+      } else if (Array.isArray(value)) {
+        // Append (don't set) each array member as a query parameter
+        // e.g. ?a=1&a=2&a=3
+        value.forEach((child) => {
+          // Skip undefined member values
+          const v = typeof(child) !== "undefined" ? String(child) : "";
+          if (v.length) {
+            params.push(`${serializedKey}=${encodeRFC3986URIComponent(v)}`);
+          }
+        });
+      } else {
+        // This is a primitive value, just add as string
+        // e.g. ?a=1
+        const v = String(value);
+        if (v.length) {
+          params.push(`${serializedKey}=${encodeRFC3986URIComponent(v)}`);
         }
-
-        return Promise.reject(new Error(await response.text()));
       }
+    }
 
-      // Resolve immediately since 204 contains no data
-      if (response.status === 204)
-        return Promise.resolve(response);
+    if (params.length) {
+      endpoint += `?${params.join("&")}`;
+    }
+  }
 
-      return await response.json();
-    });
+  const response = await window.fetch(`${baseUrl()}${endpoint}`, init);
+
+  switch (response.status) {
+  case 204:
+    // 204 contains no data, but indicates success
+    return Promise.resolve<T>({} as T);
+  case 401:
+    // Remove auth info from localStorage
+    AuthContext.reset();
+
+    // Show an error toast to notify the user what occurred
+    return Promise.reject(new Error(`[401] Unauthorized: "${endpoint}"`));
+  case 404:
+    return Promise.reject(new Error(`[404] Not found: "${endpoint}"`));
+  case 500:
+    const health = await window.fetch(`${baseUrl()}api/healthz/liveness`);
+    if (!health.ok) {
+      return Promise.reject(
+        new Error(`[500] Offline (Internal server error): "${endpoint}"`, { cause: "OFFLINE" })
+      );
+    }
+    break;
+  default:
+    break;
+  }
+
+  const isJson = response.headers.get("Content-Type")?.includes("application/json");
+  const json = isJson ? await response.json() : null;
+
+  // Resolve on success
+  if (response.status >= 200 && response.status < 300) {
+    if (isJson) {
+      return Promise.resolve<T>(json as T);
+    } else {
+      return Promise.resolve<T>(response as T);
+    }
+  }
+
+  // Otherwise reject, this is most likely an error
+  return Promise.reject<T>(json as T);
 }
 
 const appClient = {
-  Get: <T>(endpoint: string) => HttpClient<T>(endpoint, "GET"),
-  Post: <T = void>(endpoint: string, data: PostBody = undefined) => HttpClient<T>(endpoint, "POST", { body: data }),
-  Put: <T = void>(endpoint: string, data: PostBody) => HttpClient<T>(endpoint, "PUT", { body: data }),
-  Patch: (endpoint: string, data: PostBody = undefined) => HttpClient<void>(endpoint, "PATCH", { body: data }),
-  Delete: (endpoint: string) => HttpClient<void>(endpoint, "DELETE")
+  Get: <T>(endpoint: string, config: HttpConfig = {}) => HttpClient<T>(endpoint, {
+    ...config,
+    method: "GET"
+  }),
+  Post: <T = void>(endpoint: string, config: HttpConfig = {}) => HttpClient<T>(endpoint, {
+    ...config,
+    method: "POST"
+  }),
+  Put: <T = void>(endpoint: string, config: HttpConfig = {}) => HttpClient<T>(endpoint, {
+    ...config,
+    method: "PUT"
+  }),
+  Patch: (endpoint: string, config: HttpConfig = {}) => HttpClient<void>(endpoint, {
+    ...config,
+    method: "PATCH"
+  }),
+  Delete: (endpoint: string, config: HttpConfig = {}) => HttpClient<void>(endpoint, {
+    ...config,
+    method: "DELETE"
+  })
 };
 
 export const APIClient = {
   auth: {
     login: (username: string, password: string) => appClient.Post("api/auth/login", {
-      username: username,
-      password: password
+      body: { username, password }
     }),
     logout: () => appClient.Post("api/auth/logout"),
     validate: () => appClient.Get<void>("api/auth/validate"),
     onboard: (username: string, password: string) => appClient.Post("api/auth/onboard", {
-      username: username,
-      password: password
+      body: { username, password }
     }),
     canOnboard: () => appClient.Get("api/auth/onboard")
   },
   actions: {
-    create: (action: Action) => appClient.Post("api/actions", action),
-    update: (action: Action) => appClient.Put(`api/actions/${action.id}`, action),
+    create: (action: Action) => appClient.Post("api/actions", {
+      body: action
+    }),
+    update: (action: Action) => appClient.Put(`api/actions/${action.id}`, {
+      body: action
+    }),
     delete: (id: number) => appClient.Delete(`api/actions/${id}`),
     toggleEnable: (id: number) => appClient.Patch(`api/actions/${id}/toggleEnabled`)
   },
   apikeys: {
     getAll: () => appClient.Get<APIKey[]>("api/keys"),
-    create: (key: APIKey) => appClient.Post("api/keys", key),
+    create: (key: APIKey) => appClient.Post("api/keys", {
+      body: key
+    }),
     delete: (key: string) => appClient.Delete(`api/keys/${key}`)
   },
   config: {
     get: () => appClient.Get<Config>("api/config"),
-    update: (config: ConfigUpdate) => appClient.Patch("api/config", config)
+    update: (config: ConfigUpdate) => appClient.Patch("api/config", {
+      body: config
+    })
   },
   download_clients: {
     getAll: () => appClient.Get<DownloadClient[]>("api/download_clients"),
-    create: (dc: DownloadClient) => appClient.Post("api/download_clients", dc),
-    update: (dc: DownloadClient) => appClient.Put("api/download_clients", dc),
+    create: (dc: DownloadClient) => appClient.Post("api/download_clients", {
+      body: dc
+    }),
+    update: (dc: DownloadClient) => appClient.Put("api/download_clients", {
+      body: dc
+    }),
     delete: (id: number) => appClient.Delete(`api/download_clients/${id}`),
-    test: (dc: DownloadClient) => appClient.Post("api/download_clients/test", dc)
+    test: (dc: DownloadClient) => appClient.Post("api/download_clients/test", {
+      body: dc
+    })
   },
   filters: {
     getAll: () => appClient.Get<Filter[]>("api/filters"),
-    find: (indexers: string[], sortOrder: string) => {
-      const params = new URLSearchParams();
-
-      if (sortOrder.length > 0) {
-        params.append("sort", sortOrder);
+    find: (indexers: string[], sortOrder: string) => appClient.Get<Filter[]>("api/filters", {
+      queryString: {
+        sort: sortOrder,
+        indexer: indexers
       }
-
-      indexers?.forEach((i) => {
-        if (i !== undefined || i !== "") {
-          params.append("indexer", i);
-        }
-      });
-
-      const p = params.toString();
-      const q = p ? `?${p}` : "";
-
-      return appClient.Get<Filter[]>(`api/filters${q}`);
-    },
+    }),
     getByID: (id: number) => appClient.Get<Filter>(`api/filters/${id}`),
-    create: (filter: Filter) => appClient.Post<Filter>("api/filters", filter),
-    update: (filter: Filter) => appClient.Put<Filter>(`api/filters/${filter.id}`, filter),
+    create: (filter: Filter) => appClient.Post<Filter>("api/filters", {
+      body: filter
+    }),
+    update: (filter: Filter) => appClient.Put<Filter>(`api/filters/${filter.id}`, {
+      body: filter
+    }),
     duplicate: (id: number) => appClient.Get<Filter>(`api/filters/${id}/duplicate`),
-    toggleEnable: (id: number, enabled: boolean) => appClient.Put(`api/filters/${id}/enabled`, { enabled }),
+    toggleEnable: (id: number, enabled: boolean) => appClient.Put(`api/filters/${id}/enabled`, {
+      body: { enabled }
+    }),
     delete: (id: number) => appClient.Delete(`api/filters/${id}`)
   },
   feeds: {
     find: () => appClient.Get<Feed[]>("api/feeds"),
-    create: (feed: FeedCreate) => appClient.Post("api/feeds", feed),
-    toggleEnable: (id: number, enabled: boolean) => appClient.Patch(`api/feeds/${id}/enabled`, { enabled }),
-    update: (feed: Feed) => appClient.Put(`api/feeds/${feed.id}`, feed),
+    create: (feed: FeedCreate) => appClient.Post("api/feeds", {
+      body: feed
+    }),
+    toggleEnable: (id: number, enabled: boolean) => appClient.Patch(`api/feeds/${id}/enabled`, {
+      body: { enabled }
+    }),
+    update: (feed: Feed) => appClient.Put(`api/feeds/${feed.id}`, {
+      body: feed
+    }),
+    forceRun: (id: number) => appClient.Post(`api/feeds/${id}/forcerun`),
     delete: (id: number) => appClient.Delete(`api/feeds/${id}`),
-    test: (feed: Feed) => appClient.Post("api/feeds/test", feed)
+    deleteCache: (id: number) => appClient.Delete(`api/feeds/${id}/cache`),
+    test: (feed: Feed) => appClient.Post("api/feeds/test", {
+      body: feed
+    })
   },
   indexers: {
     // returns indexer options for all currently present/enabled indexers
@@ -140,19 +238,37 @@ export const APIClient = {
     getAll: () => appClient.Get<IndexerDefinition[]>("api/indexer"),
     // returns all possible indexer definitions
     getSchema: () => appClient.Get<IndexerDefinition[]>("api/indexer/schema"),
-    create: (indexer: Indexer) => appClient.Post<Indexer>("api/indexer", indexer),
-    update: (indexer: Indexer) => appClient.Put("api/indexer", indexer),
+    create: (indexer: Indexer) => appClient.Post<Indexer>("api/indexer", {
+      body: indexer
+    }),
+    update: (indexer: Indexer) => appClient.Put(`api/indexer/${indexer.id}`, {
+      body: indexer
+    }),
     delete: (id: number) => appClient.Delete(`api/indexer/${id}`),
-    testApi: (req: IndexerTestApiReq) => appClient.Post<IndexerTestApiReq>(`api/indexer/${req.id}/api/test`, req)
+    testApi: (req: IndexerTestApiReq) => appClient.Post<IndexerTestApiReq>(`api/indexer/${req.id}/api/test`, {
+      body: req
+    }),
+    toggleEnable: (id: number, enabled: boolean) => appClient.Patch(`api/indexer/${id}/enabled`, {
+      body: { enabled }
+    })
   },
   irc: {
     getNetworks: () => appClient.Get<IrcNetworkWithHealth[]>("api/irc"),
-    createNetwork: (network: IrcNetworkCreate) => appClient.Post("api/irc", network),
-    updateNetwork: (network: IrcNetwork) => appClient.Put(`api/irc/network/${network.id}`, network),
+    createNetwork: (network: IrcNetworkCreate) => appClient.Post("api/irc", {
+      body: network
+    }),
+    updateNetwork: (network: IrcNetwork) => appClient.Put(`api/irc/network/${network.id}`, {
+      body: network
+    }),
     deleteNetwork: (id: number) => appClient.Delete(`api/irc/network/${id}`),
     restartNetwork: (id: number) => appClient.Get(`api/irc/network/${id}/restart`),
-    sendCmd: (cmd: SendIrcCmdRequest) => appClient.Post(`api/irc/network/${cmd.network_id}/cmd`, cmd),
-    events: (network: string) => new EventSource(`${sseBaseUrl()}api/irc/events?stream=${network}`, { withCredentials: true })
+    sendCmd: (cmd: SendIrcCmdRequest) => appClient.Post(`api/irc/network/${cmd.network_id}/cmd`, {
+      body: cmd
+    }),
+    events: (network: string) => new EventSource(
+      `${sseBaseUrl()}api/irc/events?stream=${encodeRFC3986URIComponent(network)}`,
+      { withCredentials: true }
+    )
   },
   logs: {
     files: () => appClient.Get<LogFileResponse>("api/logs/files"),
@@ -162,51 +278,61 @@ export const APIClient = {
     logs: () => new EventSource(`${sseBaseUrl()}api/events?stream=logs`, { withCredentials: true })
   },
   notifications: {
-    getAll: () => appClient.Get<Notification[]>("api/notification"),
-    create: (notification: Notification) => appClient.Post("api/notification", notification),
-    update: (notification: Notification) => appClient.Put(`api/notification/${notification.id}`, notification),
+    getAll: () => appClient.Get<ServiceNotification[]>("api/notification"),
+    create: (notification: ServiceNotification) => appClient.Post("api/notification", {
+      body: notification
+    }),
+    update: (notification: ServiceNotification) => appClient.Put(
+      `api/notification/${notification.id}`,
+      { body: notification }
+    ),
     delete: (id: number) => appClient.Delete(`api/notification/${id}`),
-    test: (n: Notification) => appClient.Post("api/notification/test", n)
+    test: (notification: ServiceNotification) => appClient.Post("api/notification/test", {
+      body: notification
+    })
   },
   release: {
     find: (query?: string) => appClient.Get<ReleaseFindResponse>(`api/release${query}`),
     findRecent: () => appClient.Get<ReleaseFindResponse>("api/release/recent"),
-    findQuery: (offset?: number, limit?: number, filters?: Array<ReleaseFilter>) => {
-      const params = new URLSearchParams();
-      if (offset !== undefined && offset > 0)
-        params.append("offset", offset.toString());
-
-      if (limit !== undefined)
-        params.append("limit", limit.toString());
+    findQuery: (offset?: number, limit?: number, filters?: ReleaseFilter[]) => {
+      const params: Record<string, string[]> = {
+        indexer: [],
+        push_status: [],
+        q: []
+      };
 
       filters?.forEach((filter) => {
         if (!filter.value)
           return;
 
-        if (filter.id == "indexer")
-          params.append("indexer", filter.value);
-        else if (filter.id === "action_status")
-          params.append("push_status", filter.value);
-        else if (filter.id == "torrent_name")
-          params.append("q", filter.value);
+        if (filter.id == "indexer") {
+          params["indexer"].push(filter.value);
+        } else if (filter.id === "action_status") {
+          params["push_status"].push(filter.value);
+        } else if (filter.id == "torrent_name") {
+          params["q"].push(filter.value);
+        }
       });
 
-      return appClient.Get<ReleaseFindResponse>(`api/release?${params.toString()}`);
+      return appClient.Get<ReleaseFindResponse>("api/release", {
+        queryString: {
+          offset,
+          limit,
+          ...params
+        }
+      });
     },
     indexerOptions: () => appClient.Get<string[]>("api/release/indexers"),
     stats: () => appClient.Get<ReleaseStats>("api/release/stats"),
-    delete: (olderThan: number) => {
-      const params = new URLSearchParams();
-      if (olderThan !== undefined && olderThan > 0) {
-        params.append("olderThan", olderThan.toString());
-      }
-
-      return appClient.Delete(`api/release?${params.toString()}`)
-    },
-    replayAction: (releaseId: number, actionId: number) => appClient.Post(`api/release/${releaseId}/actions/${actionId}/retry`)
+    delete: (olderThan: number) => appClient.Delete("api/release", {
+      queryString: { olderThan }
+    }),
+    replayAction: (releaseId: number, actionId: number) => appClient.Post(
+      `api/release/${releaseId}/actions/${actionId}/retry`
+    )
   },
   updates: {
     check: () => appClient.Get("api/updates/check"),
-    getLatestRelease: () => appClient.Get<GithubRelease | undefined>("api/updates/latest")
+    getLatestRelease: () => appClient.Get<GithubRelease>("api/updates/latest")
   }
 };

@@ -10,7 +10,7 @@ protocol: torrent
 supports:
   - irc
   - rss
-source: custom
+# source: custom
 settings:
   - name: passkey
     type: secret
@@ -20,13 +20,13 @@ settings:
 
 irc:
   network: HiddenForest
-  server: irc.hiddenforest.ml
+  server: hiddenforest.joe.dj
   port: 7000
   tls: true
   channels:
     - "#rss"
   announcers:
-    - Lana
+    - lana
   settings:
     - name: nick
       type: text
@@ -49,11 +49,43 @@ irc:
   parse:
     type: single
     lines:
-      - test:
-          - "Vidéos | La Brea S02E08 MULTi 1080p WEB x264-FW | 1.27 GiB | 1080p/i <https://sharewood.tv/torrents/la-brea-s02e08-multi-1080p-web-x264-fw.66870>"
-          - "Vidéos | Le Griffon S01 FRENCH 2160p WEBRip AMZ HDR x265 10bits EAC3 5.1-Amen | 11.08 GiB | 2160p <https://sharewood.tv/torrents/le-griffon-s01-french-2160p-webrip-amz-hdr-x265-10bits-eac3-51-amen.66881>"
-          - "Audios | Molly Hatchet - Southern Rock Masters (2008) - Flac 16-44 | 402.07 MiB | <https://sharewood.tv/torrents/molly-hatchet-southern-rock-masters-2008-flac-16-44.66882>"
-          - "Ebooks | Edgar Allan Poe - Nouvelles integrales - 2018-2019 - FRENCH - EPUB | 2.39 MiB | <https://sharewood.tv/torrents/edgar-allan-poe-nouvelles-integrales-2018-2019-french-epub.66884>"
+      - tests:
+        - line: Vidéos | La Brea S02E08 MULTi 1080p WEB x264-FW | 1.27 GiB | 1080p/i <https://sharewood.tv/torrents/la-brea-s02e08-multi-1080p-web-x264-fw.66870>
+          expect:
+            category: Vidéos
+            torrentName: La Brea S02E08 MULTi 1080p WEB x264-FW
+            torrentSize: 1.27 GiB
+            resolution: 1080p/i
+            baseUrl: https://sharewood.tv/torrents/
+            torrentSlug: la-brea-s02e08-multi-1080p-web-x264-fw
+            torrentId: "66870"
+        - line: Vidéos | Le Griffon S01 FRENCH 2160p WEBRip AMZ HDR x265 10bits EAC3 5.1-Amen | 11.08 GiB | 2160p <https://sharewood.tv/torrents/le-griffon-s01-french-2160p-webrip-amz-hdr-x265-10bits-eac3-51-amen.66881>
+          expect:
+            category: Vidéos
+            torrentName: Le Griffon S01 FRENCH 2160p WEBRip AMZ HDR x265 10bits EAC3 5.1-Amen
+            torrentSize: 11.08 GiB
+            resolution: 2160p
+            baseUrl: https://sharewood.tv/torrents/
+            torrentSlug: le-griffon-s01-french-2160p-webrip-amz-hdr-x265-10bits-eac3-51-amen
+            torrentId: "66881"
+        - line: Audios | Molly Hatchet - Southern Rock Masters (2008) - Flac 16-44 | 402.07 MiB | <https://sharewood.tv/torrents/molly-hatchet-southern-rock-masters-2008-flac-16-44.66882>
+          expect:
+            category: Audios
+            torrentName: Molly Hatchet - Southern Rock Masters (2008) - Flac 16-44
+            torrentSize: 402.07 MiB
+            resolution: ""
+            baseUrl: https://sharewood.tv/torrents/
+            torrentSlug: molly-hatchet-southern-rock-masters-2008-flac-16-44
+            torrentId: "66882"
+        - line: Ebooks | Edgar Allan Poe - Nouvelles integrales - 2018-2019 - FRENCH - EPUB | 2.39 MiB | <https://sharewood.tv/torrents/edgar-allan-poe-nouvelles-integrales-2018-2019-french-epub.66884>
+          expect:
+            category: Ebooks
+            torrentName: Edgar Allan Poe - Nouvelles integrales - 2018-2019 - FRENCH - EPUB
+            torrentSize: 2.39 MiB
+            resolution: ""
+            baseUrl: https://sharewood.tv/torrents/
+            torrentSlug: edgar-allan-poe-nouvelles-integrales-2018-2019-french-epub
+            torrentId: "66884"
         pattern: '(.+) \| (.+) \| (.+) \| (.*?) ?<(https?:\/\/.+\/)(.+)\.(\d+)>'
         vars:
           - category

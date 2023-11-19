@@ -17,6 +17,7 @@ import (
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/pkg/errors"
 
+	"github.com/dustin/go-humanize"
 	"github.com/rs/zerolog"
 )
 
@@ -134,6 +135,9 @@ func (s *telegramSender) buildMessage(event domain.NotificationEvent, payload do
 	}
 	if payload.ReleaseName != "" {
 		msg += fmt.Sprintf("\n<b>New release:</b> %v", html.EscapeString(payload.ReleaseName))
+	}
+	if payload.Size > 0 {
+		msg += fmt.Sprintf("\n<b>File Size:</b> %v", html.EscapeString(humanize.Bytes(payload.Size)))
 	}
 	if payload.Status != "" {
 		msg += fmt.Sprintf("\n<b>Status:</b> %v", payload.Status.String())

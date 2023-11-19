@@ -3,22 +3,30 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-import * as React from "react";
 import type { ReactNode } from "react";
+import { Transition } from "@headlessui/react";
 import { usePopperTooltip } from "react-popper-tooltip";
+
 import { classNames } from "@utils";
 
 interface TooltipProps {
   label: ReactNode;
+  onLabelClick?: (e: React.MouseEvent<HTMLDivElement>) => void;
   title?: ReactNode;
   maxWidth?: string;
+  requiresClick?: boolean;
   children: ReactNode;
 }
 
+// NOTE(stacksmash76): onClick is not propagated
+// to the label (always-visible) component, so you will have
+// to use the `onLabelClick` prop in this case.
 export const Tooltip = ({
   label,
+  onLabelClick,
   title,
   children,
+  requiresClick,
   maxWidth = "max-w-sm"
 }: TooltipProps) => {
   const {
@@ -28,22 +36,47 @@ export const Tooltip = ({
     setTriggerRef,
     visible
   } = usePopperTooltip({
-    trigger: ["click"],
-    interactive: false
+    trigger: requiresClick ? ["click"] : ["click", "hover"],
+    interactive: true,
+    delayHide: 200,
+    placement: "right"
   });
+
+  if (!children || Array.isArray(children) && !children.length) {
+    return null;
+  }
 
   return (
     <>
-      <div ref={setTriggerRef} className="truncate">
+      <div
+        ref={setTriggerRef}
+        className="truncate"
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          e.nativeEvent.stopImmediatePropagation();
+
+          onLabelClick?.(e);
+        }}
+      >
         {label}
       </div>
-      {visible && (
+      <Transition
+        show={visible}
+        className="z-10"
+        enter="transition duration-200 ease-out"
+        enterFrom="opacity-0"
+        enterTo="opacity-100"
+        leave="transition duration-200 ease-in"
+        leaveFrom="opacity-100"
+        leaveTo="opacity-0"
+      >
         <div
           ref={setTooltipRef}
           {...getTooltipProps({
             className: classNames(
               maxWidth,
-              "rounded-md border border-gray-300 text-black text-xs shadow-lg dark:text-white dark:border-gray-700 dark:shadow-2xl"
+              "rounded-md border border-gray-300 text-black text-xs normal-case tracking-normal font-normal shadow-lg dark:text-white dark:border-gray-700 dark:shadow-2xl"
             )
           })}
         >
@@ -55,13 +88,13 @@ export const Tooltip = ({
           <div
             className={classNames(
               title ? "" : "rounded-t-md",
-              "py-1 px-2 rounded-b-md bg-white dark:bg-gray-900"
+              "whitespace-normal break-words py-1 px-2 rounded-b-md bg-white dark:bg-gray-900"
             )}
           >
             {children}
           </div>
         </div>
-      )}
+      </Transition>
     </>
   );
 };

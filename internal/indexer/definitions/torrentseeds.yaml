@@ -11,7 +11,7 @@ protocol: torrent
 supports:
   - irc
   - rss
-source: UNIT3D
+# source: UNIT3D
 settings:
   - name: rsskey
     type: secret
@@ -35,18 +35,6 @@ irc:
       label: Nick
       help: Bot nick. Eg. user_bot
 
-    - name: auth.account
-      type: text
-      required: false
-      label: NickServ Account
-      help: NickServ account. Make sure to group your user and bot.
-
-    - name: auth.password
-      type: secret
-      required: false
-      label: NickServ Password
-      help: NickServ password
-
     - name: invite_command
       type: secret
       default: "Cerberus identify USERNAME PID"
@@ -57,8 +45,16 @@ irc:
   parse:
     type: single
     lines:
-      - test:
-          - "New: This.Is.A.New.show.S00E00.720p.WEB.H264-Test .:. Category: TV/HD .:. Size: 706.15 MiB .:. URL:  https://www.torrentseeds.org/torrents/0000000 .:. Uploaded by: George."
+      - tests:
+        - line: 'New: This.Is.A.New.show.S00E00.720p.WEB.H264-Test .:. Category: TV/HD .:. Size: 706.15 MiB .:. URL:  https://www.torrentseeds.org/torrents/0000000 .:. Uploaded by: George.'
+          expect:
+            torrentName: This.Is.A.New.show.S00E00.720p.WEB.H264-Test
+            category: TV/HD
+            torrentSize: 706.15 MiB
+            baseUrl: https://www.torrentseeds.org/
+            torrentId: "0000000"
+            uploader: George
+            freeleech: ""
         pattern: 'New: (.+) \.:\. Category: (.+) \.:\. Size: (.+) \.:\. URL:  (https?\:\/\/.+\/).+/(\d+) \.:\. Uploaded by: (\w+)\s?(FREELEECH)?.*'
         vars:
           - torrentName

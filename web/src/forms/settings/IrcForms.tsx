@@ -7,68 +7,91 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "react-hot-toast";
 import { XMarkIcon } from "@heroicons/react/24/solid";
 import type { FieldProps } from "formik";
+import type { FieldArrayRenderProps } from "formik";
 import { Field, FieldArray, FormikErrors, FormikValues } from "formik";
 import { ExclamationTriangleIcon } from "@heroicons/react/24/outline";
-import Select, { components, ControlProps, InputProps, MenuProps, OptionProps } from "react-select";
+import Select from "react-select";
 import { Dialog } from "@headlessui/react";
 
 import { IrcAuthMechanismTypeOptions, OptionBasicTyped } from "@domain/constants";
 import { ircKeys } from "@screens/settings/Irc";
 import { APIClient } from "@api/APIClient";
-import { NumberFieldWide, PasswordFieldWide, SwitchGroupWide, SwitchGroupWideRed, TextFieldWide } from "@components/inputs";
+import { NumberFieldWide, PasswordFieldWide, SwitchGroupWide, TextFieldWide } from "@components/inputs";
 import { SlideOver } from "@components/panels";
 import Toast from "@components/notifications/Toast";
+import * as common from "@components/inputs/common";
+import { classNames } from "@utils";
 
 interface ChannelsFieldArrayProps {
   channels: IrcChannel[];
 }
 
 const ChannelsFieldArray = ({ channels }: ChannelsFieldArrayProps) => (
-  <div className="p-6">
+  <div className="px-4">
     <FieldArray name="channels">
-      {({ remove, push }) => (
-        <div className="flex flex-col space-y-2 border-2 border-dashed dark:border-gray-700 p-4">
+      {({ remove, push }: FieldArrayRenderProps) => (
+        <div className="flex flex-col space-y-2">
           {channels && channels.length > 0 ? (
-            channels.map((_channel: IrcChannel, index: number) => (
-              <div key={index} className="flex justify-between">
-                <div className="flex">
-                  <Field name={`channels.${index}.name`}>
-                    {({ field }: FieldProps) => (
-                      <input
-                        {...field}
-                        type="text"
-                        value={field.value ?? ""}
-                        onChange={field.onChange}
-                        placeholder="#Channel"
-                        className="mr-4 dark:bg-gray-700 focus:ring-blue-500 dark:focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-500 border-gray-300 dark:border-gray-600 block w-full shadow-sm sm:text-sm dark:text-white rounded-md"
-                      />
-                    )}
-                  </Field>
+            channels.map((channel: IrcChannel, index) => {
+              const isDisabled = channel.name === "#ptp-announce-dev";
+              return (
+                <div key={index} className="flex justify-between border dark:border-gray-700 dark:bg-gray-815 p-2 rounded-md">
+                  <div className="flex gap-2">
+                    <Field name={`channels.${index}.name`}>
+                      {({ field, meta }: FieldProps) => (
+                        <input
+                          {...field}
+                          type="text"
+                          value={field.value ?? ""}
+                          onChange={field.onChange}
+                          className={classNames(
+                            meta.touched && meta.error
+                              ? "border-red-500 focus:ring-red-500 focus:border-red-500"
+                              : "border-gray-300 dark:border-gray-700 focus:ring-blue-500 dark:focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-500",
+                            "block w-full shadow-sm sm:text-sm rounded-md border py-2.5",
+                            isDisabled ? "disabled dark:bg-gray-700 dark:text-gray-400 cursor-not-allowed" : "bg-gray-100 dark:bg-gray-850 dark:text-gray-100"
+                          )}
+                          disabled={isDisabled}
+                        />
+                      )}
+                    </Field>
 
-                  <Field name={`channels.${index}.password`}>
-                    {({ field }: FieldProps) => (
-                      <input
-                        {...field}
-                        type="text"
-                        value={field.value ?? ""}
-                        onChange={field.onChange}
-                        placeholder="Password"
-                        className="mr-4 dark:bg-gray-700 focus:ring-blue-500 dark:focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-500 border-gray-300 dark:border-gray-600 block w-full shadow-sm sm:text-sm dark:text-white rounded-md"
-                      />
+                    <Field name={`channels.${index}.password`}>
+                      {({ field, meta }: FieldProps) => (
+                        <input
+                          {...field}
+                          type="text"
+                          value={field.value ?? ""}
+                          onChange={field.onChange}
+                          placeholder="Channel password"
+                          className={classNames(
+                            meta.touched && meta.error
+                              ? "border-red-500 focus:ring-red-500 focus:border-red-500"
+                              : "border-gray-300 dark:border-gray-700 focus:ring-blue-500 dark:focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-500",
+                            "block w-full shadow-sm sm:text-sm rounded-md border py-2.5",
+                            isDisabled ? "disabled dark:bg-gray-700 dark:text-white cursor-not-allowed" : "bg-gray-100 dark:bg-gray-850 dark:text-gray-100"
+                          )}
+                          disabled={isDisabled}
+                        />
+                      )}
+                    </Field>
+                  </div>
+
+                  <button
+                    type="button"
+                    className={classNames(
+                      "bg-white dark:bg-gray-700 rounded-md text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-500",
+                      isDisabled ? "hidden" : ""
                     )}
-                  </Field>
+                    onClick={() => remove(index)}
+                    disabled={isDisabled}
+                  >
+                    <span className="sr-only">Remove</span>
+                    <XMarkIcon className="h-6 w-6" aria-hidden="true" />
+                  </button>
                 </div>
-
-                <button
-                  type="button"
-                  className="bg-white dark:bg-gray-700 rounded-md text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-500"
-                  onClick={() => remove(index)}
-                >
-                  <span className="sr-only">Remove</span>
-                  <XMarkIcon className="h-6 w-6" aria-hidden="true" />
-                </button>
-              </div>
-            ))
+              );
+            })
           ) : (
             <span className="text-center text-sm text-grey-darker dark:text-white">
               No channels!
@@ -86,7 +109,6 @@ const ChannelsFieldArray = ({ channels }: ChannelsFieldArrayProps) => (
     </FieldArray>
   </div>
 );
-
 interface IrcNetworkAddFormValues {
     name: string;
     enabled: boolean;
@@ -195,7 +217,16 @@ export function IrcNetworkAddForm({ isOpen, toggle }: AddFormProps) {
           />
           <PasswordFieldWide name="invite_command" label="Invite command" />
 
-          <ChannelsFieldArray channels={values.channels} />
+          <div className="border-t border-gray-200 dark:border-gray-700 py-5">
+            <div className="px-4 space-y-1 mb-8">
+              <Dialog.Title className="text-lg font-medium text-gray-900 dark:text-white">Channels</Dialog.Title>
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                Channels to join.
+              </p>
+            </div>
+
+            <ChannelsFieldArray channels={values.channels} />
+          </div>
         </div>
       )}
     </SlideOver>
@@ -315,7 +346,7 @@ export function IrcNetworkUpdateForm({
             required={true}
           />
 
-          <SwitchGroupWideRed name="enabled" label="Enabled" />
+          <SwitchGroupWide name="enabled" label="Enabled" />
           <TextFieldWide
             name="server"
             label="Server"
@@ -379,12 +410,20 @@ export function IrcNetworkUpdateForm({
               label="Password"
               help="NickServ / SASL password."
             />
-            
           </div>
 
           <PasswordFieldWide name="invite_command" label="Invite command" />
 
-          <ChannelsFieldArray channels={values.channels} />
+          <div className="border-t border-gray-200 dark:border-gray-700 py-5">
+            <div className="px-4 space-y-1 mb-8">
+              <Dialog.Title className="text-lg font-medium text-gray-900 dark:text-white">Channels</Dialog.Title>
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+               Channels are added when you setup IRC indexers. Do not edit unless you know what you are doing.
+              </p>
+            </div>
+
+            <ChannelsFieldArray channels={values.channels} />
+          </div>
         </div>
       )}
     </SlideOver>
@@ -420,10 +459,12 @@ function SelectField<T>({ name, label, options }: SelectFieldProps<T>) {
               isClearable={true}
               isSearchable={true}
               components={{
-                Input,
-                Control,
-                Menu,
-                Option
+                Input: common.SelectInput,
+                Control: common.SelectControl,
+                Menu: common.SelectMenu,
+                Option: common.SelectOption,
+                IndicatorSeparator: common.IndicatorSeparator,
+                DropdownIndicator: common.DropdownIndicator
               }}
               placeholder="Choose a type"
               styles={{
@@ -459,44 +500,3 @@ function SelectField<T>({ name, label, options }: SelectFieldProps<T>) {
     </div>
   );
 }
-
-const Input = (props: InputProps) => {
-  return (
-    <components.Input
-      {...props}
-      inputClassName="outline-none border-none shadow-none focus:ring-transparent"
-      className="text-gray-400 dark:text-gray-100"
-      children={props.children}
-    />
-  );
-};
-
-const Control = (props: ControlProps) => {
-  return (
-    <components.Control
-      {...props}
-      className="p-1 block w-full dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:text-gray-100 sm:text-sm"
-      children={props.children}
-    />
-  );
-};
-
-const Menu = (props: MenuProps) => {
-  return (
-    <components.Menu
-      {...props}
-      className="dark:bg-gray-800 border border-gray-300 dark:border-gray-700 dark:text-gray-400 rounded-md shadow-sm"
-      children={props.children}
-    />
-  );
-};
-
-const Option = (props: OptionProps) => {
-  return (
-    <components.Option
-      {...props}
-      className="dark:text-gray-400 dark:bg-gray-800 dark:hover:bg-gray-900 dark:focus:bg-gray-900"
-      children={props.children}
-    />
-  );
-};

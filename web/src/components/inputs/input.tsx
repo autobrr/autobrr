@@ -9,7 +9,7 @@ import { EyeIcon, EyeSlashIcon, CheckCircleIcon, XCircleIcon } from "@heroicons/
 import TextareaAutosize from "react-textarea-autosize";
 
 import { useToggle } from "@hooks/hooks";
-import { CustomTooltip } from "@components/tooltips/CustomTooltip";
+import { DocsTooltip } from "@components/tooltips/DocsTooltip";
 import { classNames } from "@utils";
 
 type COL_WIDTHS = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12;
@@ -18,6 +18,7 @@ interface TextFieldProps {
   name: string;
   defaultValue?: string;
   label?: string;
+  required?: boolean;
   placeholder?: string;
   columns?: COL_WIDTHS;
   autoComplete?: string;
@@ -30,6 +31,7 @@ export const TextField = ({
   name,
   defaultValue,
   label,
+  required,
   placeholder,
   columns,
   autoComplete,
@@ -39,26 +41,27 @@ export const TextField = ({
 }: TextFieldProps) => (
   <div
     className={classNames(
+      "col-span-12",
       hidden ? "hidden" : "",
-      columns ? `col-span-${columns}` : "col-span-12"
+      columns ? `sm:col-span-${columns}` : ""
     )}
   >
     {label && (
-      <label htmlFor={name} className="flex float-left mb-2 text-xs font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wide">
-        <div className="flex">
-          {label}
-          {tooltip && (
-            <CustomTooltip anchorId={name}>{tooltip}</CustomTooltip>
-          )}
-        </div>
+      <label htmlFor={name} className="flex ml-px text-xs font-bold text-gray-800 dark:text-gray-100 uppercase tracking-wide">
+        {tooltip ? (
+          <DocsTooltip label={label}>{tooltip}</DocsTooltip>
+        ) : label}
+        {required ? (
+          <span className="ml-1 text-red-500">*</span>
+        ) : null}
       </label>
     )}
-    <Field name={name}>
+    <Field name={name} defaultValue={defaultValue}>
       {({
         field,
         meta
       }: FieldProps) => (
-        <div>
+        <>
           <input
             {...field}
             name={name}
@@ -66,9 +69,13 @@ export const TextField = ({
             defaultValue={defaultValue}
             autoComplete={autoComplete}
             className={classNames(
-              meta.touched && meta.error ? "focus:ring-red-500 focus:border-red-500 border-red-500" : "focus:ring-blue-500 dark:focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-500 border-gray-300 dark:border-gray-700",
-              disabled ? "bg-gray-100 dark:bg-gray-700 cursor-not-allowed" : "dark:bg-gray-800",
-              "mt-2 block w-full dark:text-gray-100 rounded-md"
+              meta.touched && meta.error
+                ? "border-red-500 focus:ring-red-500 focus:border-red-500"
+                : "border-gray-300 dark:border-gray-700 focus:ring-blue-500 dark:focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-500",
+              disabled
+                ? "bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-not-allowed"
+                : "bg-gray-100 dark:bg-gray-815 dark:text-gray-100",
+              "mt-1 block border w-full dark:text-gray-100 rounded-md"
             )}
             disabled={disabled}
             placeholder={placeholder}
@@ -77,7 +84,7 @@ export const TextField = ({
           {meta.touched && meta.error && (
             <p className="error text-sm text-red-600 mt-1">* {meta.error}</p>
           )}
-        </div>
+        </>
       )}
     </Field>
   </div>
@@ -175,19 +182,19 @@ export const RegexField = ({
   return (
     <div
       className={classNames(
+        "col-span-12",
         hidden ? "hidden" : "",
-        columns ? `col-span-${columns}` : "col-span-12"
+        columns ? `sm:col-span-${columns}` : ""
       )}
     >
       {label && (
         <label
           htmlFor={name}
-          className="flex float-left mb-2 text-xs font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wide"
+          className="flex ml-px text-xs font-bold text-gray-800 dark:text-gray-100 uppercase tracking-wide"
         >
-          <div className="flex">
-            {label}
-            <span className="z-10">{tooltip && <CustomTooltip anchorId={name}>{tooltip}</CustomTooltip>}</span>
-          </div>
+          {tooltip ? (
+            <DocsTooltip label={label}>{tooltip}</DocsTooltip>
+          ) : label}
         </label>
       )}
       <Field
@@ -204,15 +211,15 @@ export const RegexField = ({
               autoComplete={autoComplete}
               className={classNames(
                 useRegex && meta.error
-                  ? "focus:ring-red-500 focus:border-red-500 border-red-500"
-                  : "focus:ring-blue-500 dark:focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-500 border-gray-300 dark:border-gray-700",
+                  ? "border-red-500 focus:ring-red-500 focus:border-red-500"
+                  : "border-gray-300 dark:border-gray-700 focus:ring-blue-500 dark:focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-500",
                 disabled
-                  ? "bg-gray-100 dark:bg-gray-700 cursor-not-allowed"
-                  : "dark:bg-gray-800",
+                  ? "bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-not-allowed"
+                  : "bg-gray-100 dark:bg-gray-815 dark:text-gray-100",
                 useRegex
                   ? "pr-10"
                   : "",
-                "mt-2 block w-full dark:text-gray-100 rounded-md"
+                "mt-1 block w-full dark:text-gray-100 rounded-md"
               )}
               disabled={disabled}
               placeholder={placeholder}
@@ -221,9 +228,9 @@ export const RegexField = ({
               <div className="relative">
                 <div className="flex float-right items-center">
                   {!meta.error ? (
-                    <CheckCircleIcon className="dark:bg-gray-800 bg-white h-8 w-8 mb-2.5 pl-1 text-green-500 right-2 absolute transform -translate-y-1/2" aria-hidden="true" style={{ overflow: "hidden" }} />
+                    <CheckCircleIcon className="h-8 w-8 mb-2.5 pl-1 text-green-500 right-2 absolute transform -translate-y-1/2" aria-hidden="true" style={{ overflow: "hidden" }} />
                   ) : (
-                    <XCircleIcon className="dark:bg-gray-800 bg-white h-8 w-8 mb-2.5 pl-1 text-red-500 right-2 absolute transform -translate-y-1/2" aria-hidden="true" style={{ overflow: "hidden" }} />
+                    <XCircleIcon className="h-8 w-8 mb-2.5 pl-1 text-red-500 right-2 absolute transform -translate-y-1/2" aria-hidden="true" style={{ overflow: "hidden" }} />
                   )}
                 </div>
               </div>
@@ -315,19 +322,22 @@ export const RegexTextAreaField = ({
   return (
     <div
       className={classNames(
+        "col-span-12",
         hidden ? "hidden" : "",
-        columns ? `col-span-${columns}` : "col-span-12"
+        columns ? `sm:col-span-${columns}` : ""
       )}
     >
       {label && (
         <label
           htmlFor={name}
-          className="flex float-left mb-2 text-xs font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wide"
+          className={classNames(
+            tooltip ? "z-10" : "",
+            "flex ml-px text-xs font-bold text-gray-800 dark:text-gray-100 uppercase tracking-wide"
+          )}
         >
-          <div className="flex">
-            {label}
-            <span className="z-10">{tooltip && <CustomTooltip anchorId={name}>{tooltip}</CustomTooltip>}</span>
-          </div>
+          {tooltip ? (
+            <DocsTooltip label={label}>{tooltip}</DocsTooltip>
+          ) : label}
         </label>
       )}
       <Field
@@ -345,15 +355,15 @@ export const RegexTextAreaField = ({
               autoComplete={autoComplete}
               className={classNames(
                 useRegex && meta.error
-                  ? "focus:ring-red-500 focus:border-red-500 border-red-500"
-                  : "focus:ring-blue-500 dark:focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-500 border-gray-300 dark:border-gray-700",
+                  ? "border-red-500 focus:ring-red-500 focus:border-red-500"
+                  : "border-gray-300 dark:border-gray-700 focus:ring-blue-500 dark:focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-500",
                 disabled
-                  ? "bg-gray-100 dark:bg-gray-700 cursor-not-allowed"
-                  : "dark:bg-gray-800",
+                  ? "bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-not-allowed"
+                  : "bg-gray-100 dark:bg-gray-815 dark:text-gray-100",
                 useRegex
                   ? "pr-10"
                   : "",
-                "mt-2 block w-full dark:text-gray-100 rounded-md"
+                "mt-1 block w-full dark:text-gray-100 rounded-md"
               )}
               placeholder={placeholder}
               disabled={disabled}
@@ -363,9 +373,9 @@ export const RegexTextAreaField = ({
               <div className="relative">
                 <div className="flex float-right items-center">
                   {!meta.error ? (
-                    <CheckCircleIcon className="dark:bg-gray-800 bg-white h-8 w-8 mb-2.5 pl-1 text-green-500 right-2 absolute transform -translate-y-1/2" aria-hidden="true" style={{ overflow: "hidden" }} />
+                    <CheckCircleIcon className="h-8 w-8 mb-2.5 pl-1 text-green-500 right-2 absolute transform -translate-y-1/2" aria-hidden="true" style={{ overflow: "hidden" }} />
                   ) : (
-                    <XCircleIcon className="dark:bg-gray-800 bg-white h-8 w-8 mb-2.5 pl-1 text-red-500 right-2 absolute transform -translate-y-1/2" aria-hidden="true" style={{ overflow: "hidden" }} />
+                    <XCircleIcon className="h-8 w-8 mb-2.5 pl-1 text-red-500 right-2 absolute transform -translate-y-1/2" aria-hidden="true" style={{ overflow: "hidden" }} />
                   )}
                 </div>
               </div>
@@ -405,18 +415,16 @@ export const TextArea = ({
 }: TextAreaProps) => (
   <div
     className={classNames(
+      "col-span-12",
       hidden ? "hidden" : "",
-      columns ? `col-span-${columns}` : "col-span-12"
+      columns ? `sm:col-span-${columns}` : ""
     )}
   >
     {label && (
-      <label htmlFor={name} className="flex float-left mb-2 text-xs font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wide">
-        <div className="flex">
-          {label}
-          {tooltip && (
-            <CustomTooltip anchorId={name}>{tooltip}</CustomTooltip>
-          )}
-        </div>
+      <label htmlFor={name} className="flex ml-px text-xs font-bold text-gray-800 dark:text-gray-100 uppercase tracking-wide">
+        {tooltip ? (
+          <DocsTooltip label={label}>{tooltip}</DocsTooltip>
+        ) : label}
       </label>
     )}
     <Field name={name}>
@@ -432,9 +440,13 @@ export const TextArea = ({
             defaultValue={defaultValue}
             autoComplete={autoComplete}
             className={classNames(
-              meta.touched && meta.error ? "focus:ring-red-500 focus:border-red-500 border-red-500" : "focus:ring-blue-500 dark:focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-500 border-gray-300 dark:border-gray-700",
-              disabled ? "bg-gray-100 dark:bg-gray-700 cursor-not-allowed" : "dark:bg-gray-800",
-              "mt-2 block w-full dark:text-gray-100 rounded-md"
+              meta.touched && meta.error
+                ? "border-red-500 focus:ring-red-500 focus:border-red-500"
+                : "border-gray-300 dark:border-gray-700 focus:ring-blue-500 dark:focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-500",
+              disabled
+                ? "bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-not-allowed"
+                : "bg-gray-100 dark:bg-gray-815 dark:text-gray-100",
+              "mt-1 block border w-full dark:text-gray-100 rounded-md"
             )}
             placeholder={placeholder}
             disabled={disabled}
@@ -460,7 +472,7 @@ interface TextAreaAutoResizeProps {
   hidden?: boolean;
   disabled?: boolean;
   tooltip?: JSX.Element;
-
+  className?: string;
 }
 
 export const TextAreaAutoResize = ({
@@ -473,22 +485,22 @@ export const TextAreaAutoResize = ({
   autoComplete,
   hidden,
   tooltip,
-  disabled
+  disabled,
+  className = ""
 }: TextAreaAutoResizeProps) => (
   <div
     className={classNames(
+      className,
+      "col-span-12",
       hidden ? "hidden" : "",
-      columns ? `col-span-${columns}` : "col-span-12"
+      columns ? `sm:col-span-${columns}` : ""
     )}
   >
     {label && (
-      <label htmlFor={name} className="flex float-left mb-2 text-xs font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wide">
-        <div className="flex">
-          {label}
-          {tooltip && (
-            <CustomTooltip anchorId={name}>{tooltip}</CustomTooltip>
-          )}
-        </div>
+      <label htmlFor={name} className="flex ml-px text-xs font-bold text-gray-800 dark:text-gray-100 uppercase tracking-wide">
+        {tooltip ? (
+          <DocsTooltip label={label}>{tooltip}</DocsTooltip>
+        ) : label}
       </label>
     )}
     <Field name={name}>
@@ -505,9 +517,13 @@ export const TextAreaAutoResize = ({
             defaultValue={defaultValue}
             autoComplete={autoComplete}
             className={classNames(
-              meta.touched && meta.error ? "focus:ring-red-500 focus:border-red-500 border-red-500" : "focus:ring-blue-500 dark:focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-500 border-gray-300 dark:border-gray-700",
-              disabled ? "bg-gray-100 dark:bg-gray-700 cursor-not-allowed" : "dark:bg-gray-800",
-              "mt-2 block w-full dark:text-gray-100 rounded-md"
+              meta.touched && meta.error
+                ? "border-red-500 focus:ring-red-500 focus:border-red-500"
+                : "border-gray-300 dark:border-gray-700 focus:ring-blue-500 dark:focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-500",
+              disabled
+                ? "bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-not-allowed"
+                : "bg-gray-100 dark:bg-gray-815 dark:text-gray-100",
+              "mt-1 block w-full dark:text-gray-100 rounded-md"
             )}
             placeholder={placeholder}
             disabled={disabled}
@@ -549,11 +565,12 @@ export const PasswordField = ({
   return (
     <div
       className={classNames(
-        columns ? `col-span-${columns}` : "col-span-12"
+        "col-span-12",
+        columns ? `sm:col-span-${columns}` : ""
       )}
     >
       {label && (
-        <label htmlFor={name} className="block text-xs font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wide">
+        <label htmlFor={name} className="block ml-px text-xs font-bold text-gray-800 dark:text-gray-100 uppercase tracking-wide">
           {label} {required && <span className="text-gray-500">*</span>}
         </label>
       )}
@@ -572,9 +589,9 @@ export const PasswordField = ({
                   autoComplete={autoComplete}
                   className={classNames(
                     meta.touched && meta.error
-                      ? "focus:ring-red-500 focus:border-red-500 border-red-500"
-                      : "focus:ring-blue-500 dark:focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-500 border-gray-300 dark:border-gray-700",
-                    "mt-2 block w-full dark:bg-gray-800 dark:text-gray-100 rounded-md"
+                      ? "border-red-500 focus:ring-red-500 focus:border-red-500"
+                      : "border-gray-300 dark:border-gray-700 focus:ring-blue-500 dark:focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-500",
+                    "mt-1 block w-full rounded-md bg-gray-100 dark:bg-gray-850 dark:text-gray-100"
                   )}
                   placeholder={placeholder}
                 />
@@ -609,6 +626,8 @@ interface NumberFieldProps {
   min?: number;
   max?: number;
   tooltip?: JSX.Element;
+  className?: string;
+  isDecimal?: boolean;
 }
 
 export const NumberField = ({
@@ -620,17 +639,18 @@ export const NumberField = ({
   max,
   tooltip,
   disabled,
-  required
+  required,
+  isDecimal,
+  className = ""
 }: NumberFieldProps) => (
-  <div className="col-span-12 sm:col-span-6">
+  <div className={classNames(className, "col-span-12 sm:col-span-6")}>
     <label
       htmlFor={name}
-      className="flex float-left mb-2 text-xs font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wide"
+      className="flex ml-px text-xs font-bold text-gray-800 dark:text-gray-100 uppercase tracking-wide"
     >
-      <div className="flex">
-        {label}
-        {tooltip && <CustomTooltip anchorId={name}>{tooltip}</CustomTooltip>}
-      </div>
+      {tooltip ? (
+        <DocsTooltip label={label}>{tooltip}</DocsTooltip>
+      ) : label}
     </label>
 
     <Field name={name} type="number">
@@ -642,14 +662,16 @@ export const NumberField = ({
             step={step}
             min={min}
             max={max}
-            inputMode="numeric"
+            inputMode={isDecimal ? "decimal" : "numeric"}
             required={required}
             className={classNames(
               meta.touched && meta.error
-                ? "focus:ring-red-500 focus:border-red-500 border-red-500"
-                : "focus:ring-blue-500 dark:focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-500 border-gray-300",
-              "mt-2 block w-full border border-gray-300 dark:border-gray-700 dark:text-gray-100 rounded-md",
-              disabled ? "bg-gray-100 dark:bg-gray-700 cursor-not-allowed" : "dark:bg-gray-800"
+                ? "border-red-500 focus:ring-red-500 focus:border-red-500"
+                : "border-gray-300 dark:border-gray-700 focus:ring-blue-500 dark:focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-500",
+              "mt-1 block w-full border rounded-md",
+              disabled
+                ? "bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-not-allowed"
+                : "bg-gray-100 dark:bg-gray-815 dark:text-gray-100"
             )}
             placeholder={placeholder}
             disabled={disabled}
@@ -660,7 +682,11 @@ export const NumberField = ({
                 form.setFieldValue(field.name, 0);
                 return;
               }
-              form.setFieldValue(field.name, parseInt(event.target.value)); // Convert the input value to an integer using parseInt() to ensure that the backend can properly parse the numberfield as an integer.
+              if (isDecimal) {
+                form.setFieldValue(field.name, parseFloat(event.target.value));
+              } else {
+                form.setFieldValue(field.name, parseInt(event.target.value));
+              }
             }}
             onWheel={(event) => {
               if (event.currentTarget === document.activeElement) {

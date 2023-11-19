@@ -5,12 +5,13 @@
 
 import { Fragment, useRef, useState, useMemo, useEffect, MouseEvent } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { LockClosedIcon, LockOpenIcon } from "@heroicons/react/24/solid";
-import { Menu, Switch, Transition } from "@headlessui/react";
+import { LockClosedIcon, LockOpenIcon, PlusIcon } from "@heroicons/react/24/solid";
+import { Menu, Transition } from "@headlessui/react";
 import { toast } from "react-hot-toast";
 import {
   ArrowsPointingInIcon,
   ArrowsPointingOutIcon,
+  Cog6ToothIcon,
   EllipsisHorizontalIcon,
   ExclamationCircleIcon,
   PencilSquareIcon,
@@ -25,7 +26,10 @@ import { EmptySimple } from "@components/emptystates";
 import { DeleteModal } from "@components/modals";
 import Toast from "@components/notifications/Toast";
 import { SettingsContext } from "@utils/Context";
+import { Checkbox } from "@components/Checkbox";
 // import { useForm } from "react-hook-form";
+
+import { Section } from "./_components";
 
 export const ircKeys = {
   all: ["irc_networks"] as const,
@@ -104,111 +108,99 @@ const IrcSettings = () => {
   const sortedNetworks = useSort(data || []);
 
   return (
-    <div className="text-sm lg:col-span-9">
+    <Section
+      title="IRC"
+      description="IRC networks and channels. Click on a network to view channel status."
+      rightSide={
+        <button
+          type="button"
+          onClick={toggleAddNetwork}
+          className="relative inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
+        >
+          <PlusIcon className="h-5 w-5 mr-1" />
+          Add new
+        </button>
+      }
+    >
       <IrcNetworkAddForm isOpen={addNetworkIsOpen} toggle={toggleAddNetwork} />
 
-      <div className="py-6 px-4 md:p-6 lg:pb-8">
-        <div className="-ml-4 -mt-4 flex justify-between items-center flex-wrap md:flex-nowrap">
-          <div className="ml-4 mt-4">
-            <h3 className="text-lg leading-6 font-medium text-gray-900 dark:text-white">
-              IRC
-            </h3>
-            <p className="mt-1 text-gray-500 dark:text-gray-400">
-              IRC networks and channels. Click on a network to view channel
-              status.
-            </p>
-          </div>
-          <div className="ml-4 mt-4 flex-shrink-0">
-            <button
-              type="button"
-              onClick={toggleAddNetwork}
-              className="relative inline-flex items-center px-4 py-2 border border-transparent shadow-sm font-medium rounded-md text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+      <div className="flex justify-between flex-col md:flex-row px-1">
+        <ul className="flex flex-col md:flex-row md:gap-2 pb-4 md:pb-0 md:divide-x md:divide-gray-200 md:dark:divide-gray-700">
+          <li className="flex items-center">
+            <span
+              className="mr-2 flex h-4 w-4 relative"
+              title="Network healthy"
             >
-              Add new
-            </button>
-          </div>
-        </div>
+              <span className="animate-ping inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
+              <span className="inline-flex absolute rounded-full h-4 w-4 bg-green-500" />
+            </span>
+            <span className="text-sm text-gray-800 dark:text-gray-500">Network healthy</span>
+          </li>
 
-        <div className="flex justify-between flex-col md:flex-row mt-10 px-1">
-          <ol className="flex flex-col md:flex-row md:gap-2 pb-4 md:pb-0 md:divide-x md:divide-gray-200 md:dark:divide-gray-700">
-            <li className="flex items-center">
-              <span
-                className="mr-2 flex h-4 w-4 relative"
-                title="Network healthy"
-              >
-                <span className="animate-ping inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
-                <span className="inline-flex absolute rounded-full h-4 w-4 bg-green-500" />
-              </span>
-              <span className="text-gray-800 dark:text-gray-500">Network healthy</span>
-            </li>
+          <li className="flex items-center md:pl-2">
+            <span
+              className="mr-2 flex h-4 w-4 rounded-full opacity-75 bg-yellow-400 over:text-yellow-600"
+              title="Network unhealthy"
+            />
+            <span className="text-sm text-gray-800 dark:text-gray-500">Network unhealthy</span>
+          </li>
 
-            <li className="flex items-center md:pl-2">
-              <span
-                className="mr-2 flex h-4 w-4 rounded-full opacity-75 bg-yellow-400 over:text-yellow-600"
-                title="Network unhealthy"
-              />
-              <span className="text-gray-800 dark:text-gray-500">Network unhealthy</span>
-            </li>
-
-            <li className="flex items-center md:pl-2">
-              <span
-                className="mr-2 flex h-4 w-4 rounded-full opacity-75 bg-gray-500"
-                title="Network disabled"
-              >
-              </span>
-              <span className="text-gray-800 dark:text-gray-500">Network disabled</span>
-            </li>
-          </ol>
-          <div className="flex gap-x-2">
-            <button
-              className="flex items-center text-gray-800 dark:text-gray-400 p-1 px-2 rounded shadow bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600"
-              onClick={toggleExpand}
-              title={expandNetworks ? "collapse" : "expand"}
+          <li className="flex items-center md:pl-2">
+            <span
+              className="mr-2 flex h-4 w-4 rounded-full opacity-75 bg-gray-500"
+              title="Network disabled"
             >
-              {expandNetworks
-                ? <span className="flex items-center">Collapse <ArrowsPointingInIcon className="ml-1 w-4 h-4"/></span>
-                : <span className="flex items-center">Expand <ArrowsPointingOutIcon className="ml-1 w-4 h-4"/></span>
-              }</button>
-          </div>
+            </span>
+            <span className="text-sm text-gray-800 dark:text-gray-500">Network disabled</span>
+          </li>
+        </ul>
+        <div className="flex gap-x-2">
+          <button
+            className="flex items-center text-gray-800 dark:text-gray-400 p-1 px-2 rounded shadow bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600"
+            onClick={toggleExpand}
+            title={expandNetworks ? "collapse" : "expand"}
+          >
+            {expandNetworks
+              ? <span className="flex items-center text-sm">Collapse <ArrowsPointingInIcon className="ml-1 w-4 h-4" /></span>
+              : <span className="flex items-center text-sm">Expand <ArrowsPointingOutIcon className="ml-1 w-4 h-4" /></span>
+            }</button>
+          <IRCLogsDropdown />
         </div>
-
-        {data && data.length > 0 ? (
-          <section className="mt-6 light:bg-white dark:bg-gray-800 light:shadow md:rounded-md">
-            <ol className="min-w-full relative">
-              <li className="grid grid-cols-12 gap-4 border-b border-gray-200 dark:border-gray-700">
-                <div className="flex col-span-2 md:col-span-1 px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer"
-                  onClick={() => sortedNetworks.requestSort("enabled")}>
-                    Enabled <span className="sort-indicator">{sortedNetworks.getSortIndicator("enabled")}</span>
-                </div>
-                <div className="col-span-10 md:col-span-3 px-8 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer"
-                  onClick={() => sortedNetworks.requestSort("name")}>
-                  Network <span className="sort-indicator">{sortedNetworks.getSortIndicator("name")}</span>
-                </div>
-                <div className="hidden md:flex col-span-4 px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer"
-                  onClick={() => sortedNetworks.requestSort("server")}>
-                  Server <span className="sort-indicator">{sortedNetworks.getSortIndicator("server")}</span>
-                </div>
-                <div className="hidden md:flex col-span-3 px-5 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer"
-                  onClick={() => sortedNetworks.requestSort("nick")}>
-                Nick <span className="sort-indicator">{sortedNetworks.getSortIndicator("nick")}</span>
-                </div>
-              </li>
-              {data &&
-                sortedNetworks.items.map((network) => (
-                  <ListItem key={network.id} expanded={expandNetworks} network={network} />
-                ))}
-            </ol>
-          </section>
-        ) : (
-          <EmptySimple
-            title="No networks"
-            subtitle="Normally set up via Indexers"
-            buttonText="Add new network"
-            buttonAction={toggleAddNetwork}
-          />
-        )}
       </div>
-    </div>
+
+      {data && data.length > 0 ? (
+        <ul className="mt-6 min-w-full relative">
+          <li className="grid grid-cols-12 gap-4 border-b border-gray-200 dark:border-gray-700">
+            <div className="flex col-span-2 md:col-span-1 pl-0 sm:px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer"
+              onClick={() => sortedNetworks.requestSort("enabled")}>
+              Enabled <span className="sort-indicator">{sortedNetworks.getSortIndicator("enabled")}</span>
+            </div>
+            <div className="col-span-10 md:col-span-3 px-8 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer"
+              onClick={() => sortedNetworks.requestSort("name")}>
+              Network <span className="sort-indicator">{sortedNetworks.getSortIndicator("name")}</span>
+            </div>
+            <div className="hidden md:flex col-span-4 px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer"
+              onClick={() => sortedNetworks.requestSort("server")}>
+              Server <span className="sort-indicator">{sortedNetworks.getSortIndicator("server")}</span>
+            </div>
+            <div className="hidden md:flex col-span-3 px-5 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer"
+              onClick={() => sortedNetworks.requestSort("nick")}>
+              Nick <span className="sort-indicator">{sortedNetworks.getSortIndicator("nick")}</span>
+            </div>
+          </li>
+          {sortedNetworks.items.map((network) => (
+            <ListItem key={network.id} expanded={expandNetworks} network={network} />
+          ))}
+        </ul>
+      ) : (
+        <EmptySimple
+          title="No networks"
+          subtitle="Normally set up via Indexers"
+          buttonText="Add new network"
+          buttonAction={toggleAddNetwork}
+        />
+      )}
+    </Section>
   );
 };
 
@@ -242,35 +234,27 @@ const ListItem = ({ network, expanded }: ListItemProps) => {
     <li>
       <div
         className={classNames(
-          "grid grid-cols-12 gap-2 lg:gap-4 items-center py-2 cursor-pointer",
+          "grid grid-cols-12 gap-2 lg:gap-4 items-center mt-0.5 py-2.5 cursor-pointer first:rounded-t-md last:rounded-b-md transition",
           network.enabled && !network.healthy ? "bg-red-50 dark:bg-red-900 hover:bg-red-100 dark:hover:bg-red-800" : "hover:bg-gray-50 dark:hover:bg-gray-700"
         )}
-        onClick={toggleEdit}
+        onClick={(e) => {
+          if (e.defaultPrevented)
+            return;
+
+          e.preventDefault();
+          toggleEdit();
+        }}
       >
         <IrcNetworkUpdateForm
           isOpen={updateIsOpen}
           toggle={toggleUpdate}
           network={network}
         />
-        <div className="col-span-2 md:col-span-1 flex pl-5 text-gray-500 dark:text-gray-400">
-          <Switch
-            onClick={(e: MouseEvent) => e.stopPropagation()}
-            checked={network.enabled}
-            onChange={onToggleMutation}
-            className={classNames(
-              network.enabled ? "bg-blue-500" : "bg-gray-200 dark:bg-gray-600",
-              "items-center relative inline-flex flex-shrink-0 h-6 w-11 border-2 border-transparent rounded-full transition-colors ease-in-out duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-            )}
-          >
-            <span className="sr-only">Enable</span>
-            <span
-              aria-hidden="true"
-              className={classNames(
-                network.enabled ? "translate-x-5" : "translate-x-0",
-                "inline-block h-5 w-5 rounded-full bg-white shadow transform ring-0 transition ease-in-out duration-200"
-              )}
-            />
-          </Switch>
+        <div className="col-span-2 md:col-span-1 flex pl-1 sm:pl-5 text-gray-500 dark:text-gray-400">
+          <Checkbox
+            value={network.enabled}
+            setValue={onToggleMutation}
+          />
         </div>
         <div className="col-span-8 xs:col-span-3 md:col-span-3 items-center pl-8 font-medium text-gray-900 dark:text-white cursor-pointer">
           <div className="flex">
@@ -296,7 +280,7 @@ const ListItem = ({ network, expanded }: ListItemProps) => {
                 <span className="mr-3 flex h-3 w-3 rounded-full opacity-75 bg-gray-500" />
               )}
             </span>
-            <div className="block truncate">
+            <div className="block text-sm truncate">
               {network.name}
             </div>
           </div>
@@ -321,13 +305,13 @@ const ListItem = ({ network, expanded }: ListItemProps) => {
                 )} />
               )}
             </div>
-            <p className="block truncate">
+            <p className="block text-sm truncate">
               {network.server}:{network.port}
             </p>
           </div>
         </div>
         <div className="hidden md:flex col-span-3 items-center md:pl-6 text-gray-500 dark:text-gray-400">
-          <div className="block truncate">
+          <div className="block text-sm truncate">
             {network.nick}
           </div>
         </div>
@@ -336,25 +320,25 @@ const ListItem = ({ network, expanded }: ListItemProps) => {
         </div>
       </div>
       {(edit || expanded) && (
-        <div className="px-4 py-4 flex border-b border-x-0 dark:border-gray-600 dark:bg-gray-700">
+        <div className="px-4 py-4 flex border-b border-x-0 dark:border-gray-600 dark:bg-gray-775">
           <div className="min-w-full">
             {network.channels.length > 0 ? (
-              <ol>
+              <ul>
                 <li className="grid grid-cols-12 gap-4 border-b border-gray-200 dark:border-gray-700">
-                  <div className="col-span-4 px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  <div className="col-span-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                     Channel
                   </div>
-                  <div className="col-span-4 px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  <div className="col-span-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                     Monitoring since
                   </div>
-                  <div className="col-span-3 px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  <div className="col-span-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                     Last announce
                   </div>
                 </li>
                 {network.channels.map((c) => (
                   <ChannelItem key={`${network.id}.${c.id}`} network={network} channel={c} />
                 ))}
-              </ol>
+              </ul>
             ) : (
               <div className="flex text-center justify-center py-4 dark:text-gray-500">
                 <p>No channels!</p>
@@ -378,12 +362,12 @@ const ChannelItem = ({ network, channel }: ChannelItemProps) => {
   return (
     <li
       className={classNames(
-        "mb-2 text-gray-500 dark:text-gray-400",
-        viewChannel ? "bg-gray-200 dark:bg-gray-800 rounded-md" : ""
+        "mb-2 text-gray-500 dark:text-gray-400 hover:cursor-pointer rounded-md",
+        viewChannel ? "bg-gray-200 dark:bg-gray-800 rounded-md" : "hover:bg-gray-300 dark:hover:bg-gray-800"
       )}
     >
       <div
-        className="grid grid-cols-12 gap-4 items-center py-4 hover:bg-gray-300 dark:hover:bg-gray-800 hover:cursor-pointer rounded-md"
+        className="grid grid-cols-12 gap-4 items-center py-4 "
         onClick={toggleView}
       >
         <div className="col-span-4 flex items-center md:px-6">
@@ -394,14 +378,14 @@ const ChannelItem = ({ network, channel }: ChannelItemProps) => {
                   className="mr-3 flex h-3 w-3 relative"
                   title="monitoring"
                 >
-                  <span className="animate-ping inline-flex h-full w-full rounded-full bg-green-400 opacity-75"/>
-                  <span className="inline-flex absolute rounded-full h-3 w-3 bg-green-500"/>
+                  <span className="animate-ping inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
+                  <span className="inline-flex absolute rounded-full h-3 w-3 bg-green-500" />
                 </span>
               ) : (
-                <span className="mr-3 flex h-3 w-3 rounded-full opacity-75 bg-red-400"/>
+                <span className="mr-3 flex h-3 w-3 rounded-full opacity-75 bg-red-400" />
               )
             ) : (
-              <span className="mr-3 flex h-3 w-3 rounded-full opacity-75 bg-gray-500"/>
+              <span className="mr-3 flex h-3 w-3 rounded-full opacity-75 bg-gray-500" />
             )}
             {channel.name}
           </span>
@@ -417,13 +401,13 @@ const ChannelItem = ({ network, channel }: ChannelItemProps) => {
           </span>
         </div>
         <div className="col-span-1 flex items-center justify-end">
-          <button className="hover:text-gray-500 px-2 py-1 dark:bg-gray-800 rounded dark:border-gray-900">
+          <button className="hover:text-gray-500 px-2 mx-2 py-1 dark:bg-gray-800 rounded dark:border-gray-900">
             {viewChannel ? "Hide" : "View"}
           </button>
         </div>
       </div>
       {viewChannel && (
-        <Events network={network} channel={channel.name}/>
+        <Events network={network} channel={channel.name} />
       )}
     </li>
   );
@@ -450,7 +434,7 @@ const ListItemDropdown = ({
       queryClient.invalidateQueries({ queryKey: ircKeys.lists() });
       queryClient.invalidateQueries({ queryKey: ircKeys.detail(network.id) });
 
-      toast.custom((t) => <Toast type="success" body={`Network ${network.name} was deleted`} t={t}/>);
+      toast.custom((t) => <Toast type="success" body={`Network ${network.name} was deleted`} t={t} />);
 
       toggleDeleteModal();
     }
@@ -462,19 +446,24 @@ const ListItemDropdown = ({
       queryClient.invalidateQueries({ queryKey: ircKeys.lists() });
       queryClient.invalidateQueries({ queryKey: ircKeys.detail(network.id) });
 
-      toast.custom((t) => <Toast type="success" body={`${network.name} was successfully restarted`} t={t}/>);
+      toast.custom((t) => <Toast type="success" body={`${network.name} was successfully restarted`} t={t} />);
     }
   });
 
   const restart = (id: number) => restartMutation.mutate(id);
 
   return (
-    <Menu 
+    <Menu
       as="div"
-      onClick={(e: MouseEvent) => e.stopPropagation()}
+      onClick={(e: MouseEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        e.nativeEvent.stopImmediatePropagation();
+      }}
     >
       <DeleteModal
         isOpen={deleteModalIsOpen}
+        isLoading={deleteMutation.isLoading}
         toggle={toggleDeleteModal}
         buttonRef={cancelModalButtonRef}
         deleteAction={() => {
@@ -500,7 +489,7 @@ const ListItemDropdown = ({
         leaveTo="transform opacity-0 scale-95"
       >
         <Menu.Items
-          className="absolute right-0 w-32 md:w-56 mt-2 origin-top-right bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700 rounded-md shadow-lg ring-1 ring-black ring-opacity-10 focus:outline-none"
+          className="absolute right-0 w-56 mt-2 origin-top-right bg-white dark:bg-gray-825 divide-y divide-gray-200 dark:divide-gray-750 rounded-md shadow-lg border border-gray-250 dark:border-gray-750 focus:outline-none z-10"
         >
           <div className="px-1 py-1">
             <Menu.Item>
@@ -609,9 +598,25 @@ interface EventsProps {
 }
 
 export const Events = ({ network, channel }: EventsProps) => {
+  const [logs, setLogs] = useState<IrcEvent[]>([]);
   const [settings] = SettingsContext.use();
 
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    // Following RFC4648
+    const key = window.btoa(`${network.id}${channel.toLowerCase()}`)
+      .replaceAll("+", "-")
+      .replaceAll("/", "_")
+      .replaceAll("=", "");
+    const es = APIClient.irc.events(key);
+
+    es.onmessage = (event) => {
+      const newData = JSON.parse(event.data) as IrcEvent;
+      setLogs((prevState) => [...prevState, newData]);
+    };
+
+    return () => es.close();
+  }, [settings]);
+
   const [isFullscreen, toggleFullscreen] = useToggle(false);
 
   useEffect(() => {
@@ -628,58 +633,37 @@ export const Events = ({ network, channel }: EventsProps) => {
     };
   }, [isFullscreen, toggleFullscreen]);
 
-  const [logs, setLogs] = useState<IrcEvent[]>([]);
-
-  // const scrollToBottom = () => {
-  //   messagesEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end", inline: "end" });
-  // };
-
-  // const { handleSubmit, register , resetField } = useForm<IrcMsg>({
-  //   defaultValues: { msg: ""  },
-  //   mode: "onBlur"
-  // });
-
-  // const cmdMutation = useMutation({
-  //   mutationFn: (data: SendIrcCmdRequest) => APIClient.irc.sendCmd(data),
-  //   onSuccess: (_, _variables) => {
-  //     resetField("msg");
-  //   },
-  //   onError: () => {
-  //     toast.custom((t) => (
-  //       <Toast type="error" body="Error sending IRC cmd" t={t} />
-  //     ));
-  //   }
-  // });
-
-  // const onSubmit = (msg: IrcMsg) => {
-  //   const payload = { network_id: network.id, nick: network.nick, server: network.server, channel: channel, msg: msg.msg };
-  //   cmdMutation.mutate(payload);
-  // };
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    // Following RFC4648
-    const key = window.btoa(`${network.id}${channel.toLowerCase()}`)
-      .replaceAll("+", "-")
-      .replaceAll("/", "_")
-      .replaceAll("=", "");
-    const es = APIClient.irc.events(key);
-
-    es.onmessage = (event) => {
-      const newData = JSON.parse(event.data) as IrcEvent;
-      setLogs((prevState) => [...prevState, newData]);
-
-      // if (settings.scrollOnNewLog)
-      //   scrollToBottom();
+    const scrollToBottom = () => {
+      if (messagesEndRef.current) {
+        messagesEndRef.current.scrollTop = messagesEndRef.current.scrollHeight;
+      }
     };
+    if (settings.scrollOnNewLog)
+      scrollToBottom();
+  }, [logs]);
 
-    return () => es.close();
-  }, [settings]);
+  // Add a useEffect to clear logs div when settings.scrollOnNewLog changes to prevent duplicate entries.
+  useEffect(() => {
+    setLogs([]);
+  }, [settings.scrollOnNewLog]);
+
+  useEffect(() => {
+    document.body.classList.toggle("overflow-hidden", isFullscreen);
+
+    return () => {
+      // Clean up by removing the class when the component unmounts
+      document.body.classList.remove("overflow-hidden");
+    };
+  }, [isFullscreen]);
 
   return (
     <div
       className={classNames(
         "dark:bg-gray-800 rounded-lg shadow-lg p-2",
-        isFullscreen ? "fixed top-0 left-0 w-screen h-screen z-50" : ""
+        isFullscreen ? "fixed top-0 left-0 right-0 bottom-0 w-screen h-screen z-50" : ""
       )}
     >
       <div className="flex relative">
@@ -690,8 +674,8 @@ export const Events = ({ network, channel }: EventsProps) => {
           onClick={toggleFullscreen}
         >
           {isFullscreen
-            ? <span className="flex items-center"><ArrowsPointingInIcon className="w-5 h-5"/></span>
-            : <span className="flex items-center"><ArrowsPointingOutIcon className="w-5 h-5"/></span>}
+            ? <span className="flex items-center"><ArrowsPointingInIcon className="w-5 h-5" /></span>
+            : <span className="flex items-center"><ArrowsPointingOutIcon className="w-5 h-5" /></span>}
         </button>
       </div>
       <div
@@ -699,6 +683,7 @@ export const Events = ({ network, channel }: EventsProps) => {
           "overflow-y-auto rounded-lg min-w-full bg-gray-100 dark:bg-gray-900 overflow-auto",
           isFullscreen ? "max-w-full h-full p-2 border-gray-300 dark:border-gray-700" : "px-2 py-1 aspect-[2/1]"
         )}
+        ref={messagesEndRef}
       >
         {logs.map((entry, idx) => (
           <div
@@ -708,28 +693,71 @@ export const Events = ({ network, channel }: EventsProps) => {
               settings.hideWrappedText ? "truncate hover:text-ellipsis hover:whitespace-normal" : ""
             )}
           >
-            <span className="font-mono text-gray-500 dark:text-gray-500 mr-1"><span className="dark:text-gray-600" title={simplifyDate(entry.time)}>{entry.nick}:</span> {entry.msg}</span>
+            <span className="font-mono text-gray-500 dark:text-gray-500 mr-1"><span className="dark:text-gray-600"><span className="dark:text-gray-700">[{simplifyDate(entry.time)}]</span> {entry.nick}:</span> {entry.msg}</span>
           </div>
         ))}
-        <div className="mt-6" ref={messagesEndRef} />
       </div>
-
-      {/*<div>*/}
-      {/*  <form onSubmit={handleSubmit(onSubmit)}>*/}
-      {/*    <input*/}
-      {/*      id="msg"*/}
-      {/*      {...(register && register("msg"))}*/}
-      {/*      type="text"*/}
-      {/*      minLength={2}*/}
-      {/*      className={classNames(*/}
-      {/*        "focus:ring-blue-500 dark:focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-500 border-gray-300 dark:border-gray-700",*/}
-      {/*        "block w-full dark:bg-gray-900 shadow-sm dark:text-gray-100 sm:text-sm rounded-md"*/}
-      {/*      )}*/}
-      {/*    />*/}
-      {/*  </form>*/}
-      {/*</div>*/}
     </div>
   );
 };
 
 export default IrcSettings;
+
+const IRCLogsDropdown = () => {
+  const [settings, setSettings] = SettingsContext.use();
+
+  const onSetValue = (
+    key: "scrollOnNewLog",
+    newValue: boolean
+  ) => setSettings((prevState) => ({
+    ...prevState,
+    [key]: newValue
+  }));
+
+  //
+  // FIXME: Warning: Function components cannot be given refs. Attempts to access this ref will fail.
+  //        Did you mean to use React.forwardRef()?
+  //
+  // Check the render method of `Pe2`.
+  //  at Checkbox (http://localhost:3000/src/components/Checkbox.tsx:14:28)
+  //  at Pe2 (http://localhost:3000/node_modules/.vite/deps/@headlessui_react.js?v=e8629745:2164:12)
+  //  at div
+  //  at Ee (http://localhost:3000/node_modules/.vite/deps/@headlessui_react.js?v=e8629745:2106:12)
+  //  at c5 (http://localhost:3000/node_modules/.vite/deps/@headlessui_react.js?v=e8629745:592:22)
+  //  at De4 (http://localhost:3000/node_modules/.vite/deps/@headlessui_react.js?v=e8629745:3016:22)
+  //  at He5 (http://localhost:3000/node_modules/.vite/deps/@headlessui_react.js?v=e8629745:3053:15)
+  //  at div
+  //  at c5 (http://localhost:3000/node_modules/.vite/deps/@headlessui_react.js?v=e8629745:592:22)
+  //  at Me2 (http://localhost:3000/node_modules/.vite/deps/@headlessui_react.js?v=e8629745:2062:21)
+  //  at IRCLogsDropdown (http://localhost:3000/src/screens/settings/Irc.tsx?t=1694269937935:1354:53)
+  return (
+    <Menu as="div" className="relative">
+      <Menu.Button className="flex items-center text-gray-800 dark:text-gray-400 p-1 px-2 rounded shadow bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600">
+        <span className="flex items-center">Options <Cog6ToothIcon className="ml-1 w-4 h-4" /></span>
+      </Menu.Button>
+      <Transition
+        as={Fragment}
+        enter="transition ease-out duration-100"
+        enterFrom="transform opacity-0 scale-95"
+        enterTo="transform opacity-100 scale-100"
+        leave="transition ease-in duration-75"
+        leaveFrom="transform opacity-100 scale-100"
+        leaveTo="transform opacity-0 scale-95"
+      >
+        <Menu.Items
+          className="absolute z-10 right-0 mt-2 px-3 py-2 bg-white dark:bg-gray-825 divide-y divide-gray-200 dark:divide-gray-750 rounded-md shadow-lg border border-gray-750 focus:outline-none"
+        >
+          <Menu.Item>
+            {() => (
+              <Checkbox
+                label="Scroll to bottom on new message"
+                value={settings.scrollOnNewLog}
+                setValue={(newValue) => onSetValue("scrollOnNewLog", newValue)}
+              />
+            )}
+          </Menu.Item>
+        </Menu.Items>
+      </Transition>
+    </Menu>
+  );
+};

@@ -38,7 +38,7 @@ func (r *IrcRepo) GetNetworkByID(ctx context.Context, id int64) (*domain.IrcNetw
 	if err != nil {
 		return nil, errors.Wrap(err, "error building query")
 	}
-	r.log.Trace().Str("database", "irc.check_existing_network").Msgf("query: '%v', args: '%v'", query, args)
+	r.log.Trace().Str("database", "irc.check_existing_network").Msgf("query: '%s', args: '%v'", query, args)
 
 	var n domain.IrcNetwork
 
@@ -243,13 +243,14 @@ func (r *IrcRepo) CheckExistingNetwork(ctx context.Context, network *domain.IrcN
 		Select("id", "enabled", "name", "server", "port", "tls", "pass", "nick", "auth_mechanism", "auth_account", "auth_password", "invite_command", "bouncer_addr", "use_bouncer").
 		From("irc_network").
 		Where(sq.Eq{"server": network.Server}).
-		Where(sq.Eq{"auth_account": network.Auth.Account})
+		Where(sq.Eq{"port": network.Port}).
+		Where(sq.Eq{"nick": network.Nick})
 
 	query, args, err := queryBuilder.ToSql()
 	if err != nil {
 		return nil, errors.Wrap(err, "error building query")
 	}
-	r.log.Trace().Str("database", "irc.checkExistingNetwork").Msgf("query: '%v', args: '%v'", query, args)
+	r.log.Trace().Str("database", "irc.checkExistingNetwork").Msgf("query: '%s', args: '%v'", query, args)
 
 	row := r.db.handler.QueryRowContext(ctx, query, args...)
 
@@ -260,12 +261,12 @@ func (r *IrcRepo) CheckExistingNetwork(ctx context.Context, network *domain.IrcN
 	var tls sql.NullBool
 
 	if err = row.Scan(&net.ID, &net.Enabled, &net.Name, &net.Server, &net.Port, &tls, &pass, &nick, &net.Auth.Mechanism, &account, &password, &inviteCmd, &bouncerAddr, &net.UseBouncer); err != nil {
-		if err == sql.ErrNoRows {
+		if errors.Is(err, sql.ErrNoRows) {
 			// no result is not an error in our case
 			return nil, nil
-		} else {
-			return nil, errors.Wrap(err, "error scanning row")
 		}
+
+		return nil, errors.Wrap(err, "error scanning row")
 	}
 
 	net.TLS = tls.Bool
@@ -465,7 +466,7 @@ func (r *IrcRepo) StoreChannel(ctx context.Context, networkID int64, channel *do
 			Set("enabled", channel.Enabled).
 			Set("detached", channel.Detached).
 			Set("name", channel.Name).
-			Set("pass", pass).
+			Set("password", pass).
 			Where(sq.Eq{"id": channel.ID})
 
 		query, args, err := channelQueryBuilder.ToSql()
@@ -533,7 +534,7 @@ func (r *IrcRepo) UpdateChannel(channel *domain.IrcChannel) error {
 		Set("enabled", channel.Enabled).
 		Set("detached", channel.Detached).
 		Set("name", channel.Name).
-		Set("pass", pass).
+		Set("password", pass).
 		Where(sq.Eq{"id": channel.ID})
 
 	query, args, err := channelQueryBuilder.ToSql()

@@ -92,8 +92,7 @@ func (s *service) RunAction(ctx context.Context, action *domain.Action, release 
 		rejections, err = s.sabnzbd(ctx, action, *release)
 
 	default:
-		s.log.Warn().Msgf("unsupported action type: %v", action.Type)
-		return rejections, err
+		return nil, errors.New("unsupported action type: %s", action.Type)
 	}
 
 	payload := &domain.NotificationPayload{

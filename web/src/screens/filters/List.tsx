@@ -6,11 +6,10 @@
 import { Dispatch, FC, Fragment, MouseEventHandler, useReducer, useRef, useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { toast } from "react-hot-toast";
-import { Listbox, Menu, Switch, Transition } from "@headlessui/react";
+import { Listbox, Menu, Transition } from "@headlessui/react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { FormikValues } from "formik";
 import { useCallback } from "react";
-import { Tooltip } from "react-tooltip";
 import {
   ArrowsRightLeftIcon,
   CheckIcon,
@@ -20,7 +19,8 @@ import {
   EllipsisHorizontalIcon,
   PencilSquareIcon,
   ChatBubbleBottomCenterTextIcon,
-  TrashIcon
+  TrashIcon,
+  ArrowUpOnSquareIcon
 } from "@heroicons/react/24/outline";
 import { ArrowDownTrayIcon } from "@heroicons/react/24/solid";
 
@@ -32,6 +32,10 @@ import { APIClient } from "@api/APIClient";
 import Toast from "@components/notifications/Toast";
 import { EmptyListState } from "@components/emptystates";
 import { DeleteModal } from "@components/modals";
+
+import { Importer } from "./Importer";
+import { Tooltip } from "@components/tooltips/Tooltip";
+import { Checkbox } from "@components/Checkbox";
 
 export const filterKeys = {
   all: ["filters"] as const,
@@ -78,153 +82,74 @@ const FilterListReducer = (state: FilterListState, action: Actions): FilterListS
 };
 
 export function Filters() {
-  const queryClient = useQueryClient();
-
   const [createFilterIsOpen, setCreateFilterIsOpen] = useState(false);
   const toggleCreateFilter = () => {
     setCreateFilterIsOpen(!createFilterIsOpen);
   };
 
   const [showImportModal, setShowImportModal] = useState(false);
-  const [importJson, setImportJson] = useState("");
-
-  // This function handles the import of a filter from a JSON string
-  const handleImportJson = async () => {
-    try {
-      const importedData = JSON.parse(importJson);
-
-      // Extract the filter data and name from the imported object
-      const importedFilter = importedData.data;
-      const filterName = importedData.name;
-
-      // Check if the required properties are present and add them with default values if they are missing
-      const requiredProperties = ["resolutions", "sources", "codecs", "containers"];
-      requiredProperties.forEach((property) => {
-        if (!importedFilter.hasOwnProperty(property)) {
-          importedFilter[property] = [];
-        }
-      });
-
-      // Fetch existing filters from the API
-      const existingFilters = await APIClient.filters.getAll();
-
-      // Create a unique filter title by appending an incremental number if title is taken by another filter
-      let nameCounter = 0;
-      let uniqueFilterName = filterName;
-      while (existingFilters.some((filter) => filter.name === uniqueFilterName)) {
-        nameCounter++;
-        uniqueFilterName = `${filterName}-${nameCounter}`;
-      }
-
-      // Create a new filter using the API
-      const newFilter: Filter = {
-        ...importedFilter,
-        name: uniqueFilterName
-      };
-
-      await APIClient.filters.create(newFilter);
-
-      // Update the filter list
-      queryClient.invalidateQueries({ queryKey: filterKeys.lists() });
-
-      toast.custom((t) => <Toast type="success" body="Filter imported successfully." t={t} />);
-      setShowImportModal(false);
-    } catch (error) {
-      // Log the error and show an error toast message
-      console.error("Error:", error);
-      toast.custom((t) => <Toast type="error" body="Failed to import JSON data. Please check your input." t={t} />);
-    }
-  };
 
   return (
     <main>
       <FilterAddForm isOpen={createFilterIsOpen} toggle={toggleCreateFilter} />
-      <header className="py-10">
-        <div className="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8 flex justify-between">
-          <h1 className="text-3xl font-bold text-black dark:text-white">Filters</h1>
-          <div className="relative">
-            <Menu>
-              {({ open }) => (
-                <>
-                  <button
-                    className="relative inline-flex items-center px-4 py-2 shadow-sm text-sm font-medium rounded-l-md text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
-                    onClick={(e: { stopPropagation: () => void; }) => {
-                      if (!open) {
-                        e.stopPropagation();
-                        toggleCreateFilter();
-                      }
-                    }}
-                  >
-                    <PlusIcon className="h-5 w-5 mr-1" />
-                    Add Filter
-                  </button>
-                  <Menu.Button className="relative inline-flex items-center px-2 py-2 border-l border-spacing-1 dark:border-black shadow-sm text-sm font-medium rounded-r-md text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500">
-                    <ChevronDownIcon className="h-5 w-5" />
-                  </Menu.Button>
-                  <Transition
-                    show={open}
-                    enter="transition ease-out duration-100 transform"
-                    enterFrom="opacity-0 scale-95"
-                    enterTo="opacity-100 scale-100"
-                    leave="transition ease-in duration-75 transform"
-                    leaveFrom="opacity-100 scale-100"
-                    leaveTo="opacity-0 scale-95"
-                  >
-                    <Menu.Items className="absolute right-0 mt-0.5 w-46 bg-white dark:bg-gray-700 rounded-md shadow-lg">
-                      <Menu.Item>
-                        {({ active }) => (
-                          <button
-                            type="button"
-                            className={`${
-                              active
-                                ? "bg-gray-50 dark:bg-gray-600"
-                                : ""
-                            } w-full text-left py-2 px-4 text-sm font-medium text-gray-700 dark:text-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500`}
-                            onClick={() => setShowImportModal(true)}
-                          >
-                            Import Filter
-                          </button>
-                        )}
-                      </Menu.Item>
-                    </Menu.Items>
-                  </Transition>
-                </>
-              )}
-            </Menu>
-          </div>
-        </div>
-      </header>
+      <Importer
+        isOpen={showImportModal}
+        setIsOpen={setShowImportModal}
+      />
 
-      {showImportModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="w-1/2 md:w-1/2 bg-white dark:bg-gray-800 p-6 rounded-md shadow-lg">
-            <h2 className="text-lg font-medium mb-4 text-black dark:text-white">Import Filter JSON</h2>
-            <textarea
-              className="form-input block w-full resize-y rounded-md border-gray-300 dark:bg-gray-800 dark:border-gray-600 shadow-sm text-sm font-medium text-gray-700 dark:text-white focus:outline-none focus:ring-2  focus:ring-blue-500 dark:focus:ring-blue-500 mb-4"
-              placeholder="Paste JSON data here"
-              value={importJson}
-              onChange={(event) => setImportJson(event.target.value)}
-              style={{ minHeight: "30vh", maxHeight: "50vh" }}
-            />
-            <div className="flex justify-end">
+      <div className="flex justify-between items-center flex-row flex-wrap my-6 max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8">
+        <h1 className="text-3xl font-bold text-black dark:text-white">Filters</h1>
+        <Menu as="div" className="relative">
+          {({ open }) => (
+            <>
               <button
-                type="button"
-                className="bg-white dark:bg-gray-700 py-2 px-4 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
-                onClick={() => setShowImportModal(false)}
+                className="relative inline-flex items-center px-4 py-2 shadow-sm text-sm font-medium rounded-l-md transition text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
+                onClick={(e: { stopPropagation: () => void; }) => {
+                  if (!open) {
+                    e.stopPropagation();
+                    toggleCreateFilter();
+                  }
+                }}
               >
-              Cancel
+                <PlusIcon className="h-5 w-5 mr-1" />
+                Create Filter
               </button>
-              <button
-                type="button"
-                className="ml-4 relative inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                onClick={handleImportJson}
+              <Menu.Button className="relative inline-flex items-center px-2 py-2 border-l border-spacing-1 dark:border-black shadow-sm text-sm font-medium rounded-r-md transition text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500">
+                <ChevronDownIcon className="h-5 w-5" />
+              </Menu.Button>
+              <Transition
+                show={open}
+                as={Fragment}
+                enter="transition ease-out duration-100 transform"
+                enterFrom="opacity-0 scale-95"
+                enterTo="opacity-100 scale-100"
+                leave="transition ease-in duration-75 transform"
+                leaveFrom="opacity-100 scale-100"
+                leaveTo="opacity-0 scale-95"
               >
-              Import
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+                <Menu.Items className="absolute z-10 right-0 mt-0.5 bg-white dark:bg-gray-700 rounded-md shadow-lg">
+                  <Menu.Item>
+                    {({ active }) => (
+                      <button
+                        type="button"
+                        className={classNames(
+                          active ? "bg-gray-50 dark:bg-gray-600" : "",
+                          "flex items-center w-full text-left py-2 px-3 text-sm font-medium text-gray-700 dark:text-gray-200 rounded-md focus:outline-none"
+                        )}
+                        onClick={() => setShowImportModal(true)}
+                      >
+                        <ArrowUpOnSquareIcon className="mr-1 w-4 h-4" />
+                        <span>Import filter</span>
+                      </button>
+                    )}
+                  </Menu.Item>
+                </Menu.Items>
+              </Transition>
+            </>
+          )}
+        </Menu>
+      </div>
+
       <FilterList toggleCreateFilter={toggleCreateFilter} />
     </main>
   );
@@ -277,9 +202,9 @@ function FilterList({ toggleCreateFilter }: any) {
   const filtered = filteredData(data ?? [], status);
 
   return (
-    <div className="max-w-screen-xl mx-auto pb-12 px-4 sm:px-6 lg:px-8 relative">
-      <div className="align-middle min-w-full rounded-t-lg rounded-b-lg shadow-lg bg-gray-50 dark:bg-gray-800">
-        <div className="rounded-t-lg flex justify-between px-4 bg-gray-50 dark:bg-gray-800  border-b border-gray-200 dark:border-gray-700">
+    <div className="max-w-screen-xl mx-auto pb-12 px-2 sm:px-6 lg:px-8 relative">
+      <div className="align-middle min-w-full rounded-t-lg rounded-b-lg shadow-table bg-gray-50 dark:bg-gray-800 border border-gray-250 dark:border-gray-775">
+        <div className="rounded-t-lg flex justify-between px-4 bg-gray-125 dark:bg-gray-850 border-b border-gray-200 dark:border-gray-750">
           <div className="flex gap-4">
             <StatusButton data={filtered.all} label="All" value="" currentValue={status} dispatch={dispatchFilter} />
             <StatusButton data={filtered.enabled} label="Enabled" value="enabled" currentValue={status} dispatch={dispatchFilter} />
@@ -293,15 +218,15 @@ function FilterList({ toggleCreateFilter }: any) {
         </div>
 
         {data && data.length > 0 ? (
-          <ol className="min-w-full">
-            {filtered.filtered.length > 0
-              ? filtered.filtered.map((filter: Filter, idx) => (
+          <ul className="min-w-full divide-y divide-gray-150 dark:divide-gray-775">
+            {filtered.filtered.length > 0 ? (
+              filtered.filtered.map((filter: Filter, idx) => (
                 <FilterListItem filter={filter} values={filter} key={filter.id} idx={idx} />
               ))
-
-              : <EmptyListState text={`No ${status} filters`} />
-            }
-          </ol>
+            ) : (
+              <EmptyListState text={`No ${status} filters`} />
+            )}
+          </ul>
         ) : (
           <EmptyListState text="No filters here.." buttonText="Add new" buttonOnClick={toggleCreateFilter} />
         )}
@@ -331,8 +256,10 @@ const StatusButton = ({ data, label, value, currentValue, dispatch }: StatusButt
   return (
     <button
       className={classNames(
-        currentValue == value ? "font-bold border-b-2 border-blue-500 dark:text-gray-100 text-gray-900" : "font-medium text-gray-600 dark:text-gray-400",
-        "py-4 pb-4 text-left text-xs tracking-wider"
+        "py-4 pb-4 text-left text-xs tracking-wider transition border-b-2",
+        currentValue === value
+          ? "font-bold  border-blue-500 dark:text-gray-100 text-gray-950"
+          : "font-medium border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200"
       )}
       onClick={setFilter}
       value={value}
@@ -351,7 +278,8 @@ interface FilterItemDropdownProps {
 const FilterItemDropdown = ({ filter, onToggle }: FilterItemDropdownProps) => {
 
   // This function handles the export of a filter to a JSON string
-  const handleExportJson = useCallback(async (discordFormat = false) => {    try {
+  const handleExportJson = useCallback(async (discordFormat = false) => {
+    try {
       type CompleteFilterType = {
         id: number;
         name: string;
@@ -368,6 +296,9 @@ const FilterItemDropdown = ({ filter, onToggle }: FilterItemDropdownProps) => {
         external_webhook_host: any;
         external_webhook_data: any;
         external_webhook_expect_status: any;
+        external_webhook_retry_status: any;
+        external_webhook_retry_attempts: any;
+        external_webhook_retry_delay_seconds: any;
       };
 
       const completeFilter = await APIClient.filters.getByID(filter.id) as Partial<CompleteFilterType>;
@@ -389,6 +320,9 @@ const FilterItemDropdown = ({ filter, onToggle }: FilterItemDropdownProps) => {
       delete completeFilter.external_webhook_host;
       delete completeFilter.external_webhook_data;
       delete completeFilter.external_webhook_expect_status;
+      delete completeFilter.external_webhook_retry_status;
+      delete completeFilter.external_webhook_retry_attempts;
+      delete completeFilter.external_webhook_retry_delay_seconds;
 
       // Remove properties with default values from the exported filter to minimize the size of the JSON string
       ["enabled", "priority", "smart_episode", "resolutions", "sources", "codecs", "containers", "tags_match_logic", "except_tags_match_logic"].forEach((key) => {
@@ -449,10 +383,10 @@ const FilterItemDropdown = ({ filter, onToggle }: FilterItemDropdownProps) => {
         copyTextToClipboard(finalJson);
       }
 
-  } catch (error) {
-    console.error(error);
-    toast.custom((t) => <Toast type="error" body="Failed to get filter data." t={t} />);
-  }
+    } catch (error) {
+      console.error(error);
+      toast.custom((t) => <Toast type="error" body="Failed to get filter data." t={t} />);
+    }
   }, [filter]);
 
   const cancelModalButtonRef = useRef(null);
@@ -484,6 +418,7 @@ const FilterItemDropdown = ({ filter, onToggle }: FilterItemDropdownProps) => {
     <Menu as="div">
       <DeleteModal
         isOpen={deleteModalIsOpen}
+        isLoading={deleteMutation.isLoading}
         toggle={toggleDeleteModal}
         buttonRef={cancelModalButtonRef}
         deleteAction={() => {
@@ -509,7 +444,7 @@ const FilterItemDropdown = ({ filter, onToggle }: FilterItemDropdownProps) => {
         leaveTo="transform opacity-0 scale-95"
       >
         <Menu.Items
-          className="absolute right-0 w-56 mt-2 origin-top-right bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700 rounded-md shadow-lg ring-1 ring-black ring-opacity-10 focus:outline-none z-10"
+          className="absolute right-0 w-56 mt-2 origin-top-right bg-white dark:bg-gray-825 divide-y divide-gray-200 dark:divide-gray-750 rounded-md shadow-lg border border-gray-250 dark:border-gray-750 focus:outline-none z-10"
         >
           <div className="px-1 py-1">
             <Menu.Item>
@@ -669,88 +604,62 @@ function FilterListItem({ filter, values, idx }: FilterListItemProps) {
     <li
       key={filter.id}
       className={classNames(
-        "flex items-center hover:bg-gray-100 dark:hover:bg-[#222225] rounded-b-lg",
-        idx % 2 === 0 ?
-          "bg-white dark:bg-[#2e2e31]" :
-          "bg-gray-50 dark:bg-gray-800"
+        "flex items-center transition last:rounded-b-md py-0.5",
+        idx % 2 === 0
+          ? "bg-white dark:bg-gray-800"
+          : "bg-gray-75 dark:bg-gray-825"
       )}
     >
       <span
-        className="px-4 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-100"
+        className="pl-2 pr-4 sm:px-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-100"
       >
-        <Switch
-          checked={filter.enabled}
-          onChange={toggleActive}
-          className={classNames(
-            filter.enabled ? "bg-blue-500 dark:bg-blue-500" : "bg-gray-200 dark:bg-gray-700",
-            "relative inline-flex flex-shrink-0 h-6 w-11 border-2 border-transparent rounded-full cursor-pointer transition-colors ease-in-out duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-          )}
-        >
-          <span className="sr-only">Use setting</span>
-          <span
-            aria-hidden="true"
-            className={classNames(
-              filter.enabled ? "translate-x-5" : "translate-x-0",
-              "inline-block h-5 w-5 rounded-full bg-white dark:bg-gray-200 shadow transform ring-0 transition ease-in-out duration-200"
-            )}
-          />
-        </Switch>
+        <Checkbox
+          value={filter.enabled}
+          setValue={toggleActive}
+        />
       </span>
       <div className="py-2 flex flex-col overflow-hidden w-full justify-center">
-        <span className="w-full break-words whitespace-wrap text-sm font-bold text-gray-900 dark:text-gray-100">
-          <Link
-            to={filter.id.toString()}
-            className="hover:text-black dark:hover:text-gray-300"
-          >
-            {filter.name}
-          </Link>
-        </span>
-        <div className="flex items-center">
+        <Link
+          to={filter.id.toString()}
+          className="transition w-full break-words whitespace-wrap text-sm font-bold text-gray-800 dark:text-gray-100 hover:text-black dark:hover:text-gray-350"
+        >
+          {filter.name}
+        </Link>
+        <div className="flex items-center flex-wrap">
           <span className="mr-2 break-words whitespace-nowrap text-xs font-medium text-gray-600 dark:text-gray-400">
-            Priority: {filter.priority}
+            Priority: {filter.priority !== 0 ? (
+              <span className="text-gray-850 dark:text-gray-200">{filter.priority}</span>
+            ) : filter.priority}
           </span>
-          <span className="whitespace-nowrap text-xs font-medium text-gray-600 dark:text-gray-400">
-            <Link
-              to={`${filter.id.toString()}/actions`}
-              className="hover:text-black dark:hover:text-gray-300"
-            >
-              <span
-                id={`tooltip-actions-${filter.id}`}
-                className="flex items-center hover:cursor-pointer"
-              >
-                <span className={classNames(filter.actions_count == 0 ? "text-red-500" : "")}>
-                  <span
-                    className={
-                      classNames(
-                        filter.actions_count == 0 ? "hover:text-red-400 dark:hover:text-red-400" : ""
-                      )
-                    }
-                  >
+          <span className="z-10 whitespace-nowrap text-xs font-medium text-gray-600 dark:text-gray-400">
+            <Tooltip
+              label={
+                <Link
+                  to={`${filter.id.toString()}/actions`}
+                  className="flex items-center cursor-pointer hover:text-black dark:hover:text-gray-300"
+                >
+                  <span className={classNames(!filter.actions_count ? "text-red-500 hover:text-red-400 dark:hover:text-red-400" : "")}>
                     Actions: {filter.actions_count}
                   </span>
-                </span>
-                {filter.actions_count === 0 && (
-                  <>
+                  {!filter.actions_count && (
                     <span className="mr-2 ml-2 flex h-3 w-3 relative">
-                      <span className="animate-ping inline-flex h-full w-full rounded-full dark:bg-red-500 bg-red-400 opacity-75" />
-                      <span
-                        className="inline-flex absolute rounded-full h-3 w-3 dark:bg-red-500 bg-red-400"
-                      />
+                      
                     </span>
-                    <span className="text-sm text-gray-800 dark:text-gray-500">
-                      <Tooltip style={{ width: "350px", fontSize: "12px", textTransform: "none", fontWeight: "normal", borderRadius: "0.375rem", backgroundColor: "#34343A", color: "#fff", opacity: "1", whiteSpace: "pre-wrap", overflow: "hidden", textOverflow: "ellipsis" }} delayShow={100} delayHide={150} data-html={true} place="right" data-tooltip-id={`tooltip-actions-${filter.id}`} html="<p>You need to setup an action in the filter otherwise you will not get any snatches.</p>" />
-                    </span>
-                  </>
-                )}
-              </span>
-            </Link>
+                  )}
+                </Link>
+              }
+            >
+              {!filter.actions_count ? (
+                <>{"You need to setup an action in the filter otherwise you will not get any snatches."}</>
+              ) : null}
+            </Tooltip>
           </span>
         </div>
       </div>
-      <span className="hidden md:flex px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+      <span className="hidden md:flex px-4 whitespace-nowrap text-sm font-medium text-gray-900">
         <FilterIndexers indexers={filter.indexers} />
       </span>
-      <span className="min-w-fit px-4 py-4 whitespace-nowrap text-right text-sm font-medium">
+      <span className="min-w-fit px-4 py-2 whitespace-nowrap text-right text-sm font-medium">
         <FilterItemDropdown
           values={values}
           filter={filter}
@@ -767,8 +676,7 @@ interface IndexerTagProps {
 
 const IndexerTag: FC<IndexerTagProps> = ({ indexer }) => (
   <span
-    key={indexer.id}
-    className="hidden sm:inline-flex mr-2 items-center px-2.5 py-0.5 rounded-md text-sm font-medium bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-400"
+    className="hidden sm:inline-flex items-center px-2 py-0.5 rounded-md text-sm font-medium bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-400"
   >
     {indexer.name}
   </span>
@@ -779,32 +687,31 @@ interface FilterIndexersProps {
 }
 
 function FilterIndexers({ indexers }: FilterIndexersProps) {
-  if (indexers.length <= 2) {
+  if (!indexers.length) {
     return (
-      <>
-        {indexers.length > 0
-          ? indexers.map((indexer, idx) => (
-            <IndexerTag key={idx} indexer={indexer} />
-          ))
-          : <span className="hidden sm:flex text-red-400 dark:text-red-800 p-1 text-xs tracking-wide rounded border border-red-400 dark:border-red-700 bg-red-100 dark:bg-red-400">NO INDEXERS SELECTED</span>
-        }
-      </>
+      <span className="hidden sm:inline-flex items-center px-2 py-1 rounded-md text-xs font-medium uppercase text-white bg-red-750">
+        NO INDEXER
+      </span>
     );
   }
 
   const res = indexers.slice(2);
 
   return (
-    <>
+    <div className="flex flex-row gap-1">
       <IndexerTag indexer={indexers[0]} />
-      <IndexerTag indexer={indexers[1]} />
-      <span
-        className="mr-2 inline-flex items-center px-2.5 py-0.5 rounded-md text-sm font-medium bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-400"
-        title={res.map(v => v.name).toString()}
-      >
-        +{indexers.length - 2}
-      </span>
-    </>
+      {indexers.length > 1 ? (
+        <IndexerTag indexer={indexers[1]} />
+      ) : null}
+      {indexers.length > 2 ? (
+        <span
+          className="mr-2 inline-flex items-center px-2 py-0.5 rounded-md text-sm font-medium bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-400"
+          title={res.map(v => v.name).toString()}
+        >
+          +{indexers.length - 2}
+        </span>
+      ) : null}
+    </div>
   );
 }
 
@@ -829,11 +736,11 @@ const ListboxFilter = ({
     onChange={onChange}
   >
     <div className="relative">
-      <Listbox.Button className="relative w-full py-2 pr-5 text-left dark:text-gray-400 text-sm">
+      <Listbox.Button className="relative w-full py-2 pr-4 text-left dark:text-gray-400 text-sm">
         <span className="block truncate">{label}</span>
         <span className="absolute inset-y-0 right-0 flex items-center pointer-events-none">
           <ChevronDownIcon
-            className="w-3 h-3 text-gray-600 hover:text-gray-600"
+            className="w-3 h-3"
             aria-hidden="true"
           />
         </span>
@@ -857,7 +764,7 @@ const ListboxFilter = ({
 // a unique option from a list
 const IndexerSelectFilter = ({ dispatch }: any) => {
   const { data, isSuccess } = useQuery({
-    queryKey: ["filters","indexers_options"],
+    queryKey: ["filters", "indexers_options"],
     queryFn: () => APIClient.indexers.getOptions(),
     keepPreviousData: true,
     staleTime: Infinity

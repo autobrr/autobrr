@@ -163,6 +163,7 @@ func (r *FilterRepo) ListFilters(ctx context.Context) ([]domain.Filter, error) {
 
 		filters = append(filters, f)
 	}
+
 	if err := rows.Err(); err != nil {
 		return nil, errors.Wrap(err, "row error")
 	}
@@ -173,142 +174,258 @@ func (r *FilterRepo) ListFilters(ctx context.Context) ([]domain.Filter, error) {
 func (r *FilterRepo) FindByID(ctx context.Context, filterID int) (*domain.Filter, error) {
 	queryBuilder := r.db.squirrel.
 		Select(
-			"id",
-			"enabled",
-			"name",
-			"min_size",
-			"max_size",
-			"delay",
-			"priority",
-			"max_downloads",
-			"max_downloads_unit",
-			"match_releases",
-			"except_releases",
-			"use_regex",
-			"match_release_groups",
-			"except_release_groups",
-			"match_release_tags",
-			"except_release_tags",
-			"use_regex_release_tags",
-			"match_description",
-			"except_description",
-			"use_regex_description",
-			"scene",
-			"freeleech",
-			"freeleech_percent",
-			"smart_episode",
-			"shows",
-			"seasons",
-			"episodes",
-			"resolutions",
-			"codecs",
-			"sources",
-			"containers",
-			"match_hdr",
-			"except_hdr",
-			"match_other",
-			"except_other",
-			"years",
-			"artists",
-			"albums",
-			"release_types_match",
-			"formats",
-			"quality",
-			"media",
-			"log_score",
-			"has_log",
-			"has_cue",
-			"perfect_flac",
-			"match_categories",
-			"except_categories",
-			"match_uploaders",
-			"except_uploaders",
-			"match_language",
-			"except_language",
-			"tags",
-			"except_tags",
-			"tags_match_logic",
-			"except_tags_match_logic",
-			"origins",
-			"except_origins",
-			"external_script_enabled",
-			"external_script_cmd",
-			"external_script_args",
-			"external_script_expect_status",
-			"external_webhook_enabled",
-			"external_webhook_host",
-			"external_webhook_data",
-			"external_webhook_expect_status",
-			"created_at",
-			"updated_at",
+			"f.id",
+			"f.enabled",
+			"f.name",
+			"f.min_size",
+			"f.max_size",
+			"f.delay",
+			"f.priority",
+			"f.max_downloads",
+			"f.max_downloads_unit",
+			"f.match_releases",
+			"f.except_releases",
+			"f.use_regex",
+			"f.match_release_groups",
+			"f.except_release_groups",
+			"f.match_release_tags",
+			"f.except_release_tags",
+			"f.use_regex_release_tags",
+			"f.match_description",
+			"f.except_description",
+			"f.use_regex_description",
+			"f.scene",
+			"f.freeleech",
+			"f.freeleech_percent",
+			"f.smart_episode",
+			"f.shows",
+			"f.seasons",
+			"f.episodes",
+			"f.resolutions",
+			"f.codecs",
+			"f.sources",
+			"f.containers",
+			"f.match_hdr",
+			"f.except_hdr",
+			"f.match_other",
+			"f.except_other",
+			"f.years",
+			"f.artists",
+			"f.albums",
+			"f.release_types_match",
+			"f.formats",
+			"f.quality",
+			"f.media",
+			"f.log_score",
+			"f.has_log",
+			"f.has_cue",
+			"f.perfect_flac",
+			"f.match_categories",
+			"f.except_categories",
+			"f.match_uploaders",
+			"f.except_uploaders",
+			"f.match_language",
+			"f.except_language",
+			"f.tags",
+			"f.except_tags",
+			"f.tags_match_logic",
+			"f.except_tags_match_logic",
+			"f.origins",
+			"f.except_origins",
+			"f.created_at",
+			"f.updated_at",
+			"fe.id as external_id",
+			"fe.name",
+			"fe.idx",
+			"fe.type",
+			"fe.enabled",
+			"fe.exec_cmd",
+			"fe.exec_args",
+			"fe.exec_expect_status",
+			"fe.webhook_host",
+			"fe.webhook_method",
+			"fe.webhook_data",
+			"fe.webhook_headers",
+			"fe.webhook_expect_status",
+			"fe.webhook_retry_status",
+			"fe.webhook_retry_attempts",
+			"fe.webhook_retry_delay_seconds",
 		).
-		From("filter").
-		Where(sq.Eq{"id": filterID})
+		From("filter f").
+		LeftJoin("filter_external fe ON f.id = fe.filter_id").
+		Where(sq.Eq{"f.id": filterID})
 
 	query, args, err := queryBuilder.ToSql()
 	if err != nil {
 		return nil, errors.Wrap(err, "error building query")
 	}
 
-	row := r.db.handler.QueryRowContext(ctx, query, args...)
-	if err := row.Err(); err != nil {
+	rows, err := r.db.handler.QueryContext(ctx, query, args...)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, domain.ErrRecordNotFound
+		}
 		return nil, errors.Wrap(err, "error executing query")
 	}
 
 	var f domain.Filter
-	var minSize, maxSize, maxDownloadsUnit, matchReleases, exceptReleases, matchReleaseGroups, exceptReleaseGroups, matchReleaseTags, exceptReleaseTags, matchDescription, exceptDescription, freeleechPercent, shows, seasons, episodes, years, artists, albums, matchCategories, exceptCategories, matchUploaders, exceptUploaders, tags, exceptTags, tagsMatchLogic, exceptTagsMatchLogic, extScriptCmd, extScriptArgs, extWebhookHost, extWebhookData sql.NullString
-	var useRegex, scene, freeleech, hasLog, hasCue, perfectFlac, extScriptEnabled, extWebhookEnabled sql.NullBool
-	var delay, maxDownloads, logScore, extWebhookStatus, extScriptStatus sql.NullInt32
 
-	if err := row.Scan(&f.ID, &f.Enabled, &f.Name, &minSize, &maxSize, &delay, &f.Priority, &maxDownloads, &maxDownloadsUnit, &matchReleases, &exceptReleases, &useRegex, &matchReleaseGroups, &exceptReleaseGroups, &matchReleaseTags, &exceptReleaseTags, &f.UseRegexReleaseTags, &matchDescription, &exceptDescription, &f.UseRegexDescription, &scene, &freeleech, &freeleechPercent, &f.SmartEpisode, &shows, &seasons, &episodes, pq.Array(&f.Resolutions), pq.Array(&f.Codecs), pq.Array(&f.Sources), pq.Array(&f.Containers), pq.Array(&f.MatchHDR), pq.Array(&f.ExceptHDR), pq.Array(&f.MatchOther), pq.Array(&f.ExceptOther), &years, &artists, &albums, pq.Array(&f.MatchReleaseTypes), pq.Array(&f.Formats), pq.Array(&f.Quality), pq.Array(&f.Media), &logScore, &hasLog, &hasCue, &perfectFlac, &matchCategories, &exceptCategories, &matchUploaders, &exceptUploaders, pq.Array(&f.MatchLanguage), pq.Array(&f.ExceptLanguage), &tags, &exceptTags, &tagsMatchLogic, &exceptTagsMatchLogic, pq.Array(&f.Origins), pq.Array(&f.ExceptOrigins), &extScriptEnabled, &extScriptCmd, &extScriptArgs, &extScriptStatus, &extWebhookEnabled, &extWebhookHost, &extWebhookData, &extWebhookStatus, &f.CreatedAt, &f.UpdatedAt); err != nil {
-		return nil, errors.Wrap(err, "error scanning row")
+	externalMap := make(map[int]domain.FilterExternal)
+
+	for rows.Next() {
+		// filter
+		var minSize, maxSize, maxDownloadsUnit, matchReleases, exceptReleases, matchReleaseGroups, exceptReleaseGroups, matchReleaseTags, exceptReleaseTags, matchDescription, exceptDescription, freeleechPercent, shows, seasons, episodes, years, artists, albums, matchCategories, exceptCategories, matchUploaders, exceptUploaders, tags, exceptTags, tagsMatchLogic, exceptTagsMatchLogic sql.NullString
+		var useRegex, scene, freeleech, hasLog, hasCue, perfectFlac sql.NullBool
+		var delay, maxDownloads, logScore sql.NullInt32
+
+		// filter external
+		var extName, extType, extExecCmd, extExecArgs, extWebhookHost, extWebhookMethod, extWebhookHeaders, extWebhookData, extWebhookRetryStatus sql.NullString
+		var extId, extIndex, extWebhookStatus, extWebhookRetryAttempts, extWebhookDelaySeconds, extExecStatus sql.NullInt32
+		var extEnabled sql.NullBool
+
+		if err := rows.Scan(
+			&f.ID,
+			&f.Enabled,
+			&f.Name,
+			&minSize,
+			&maxSize,
+			&delay,
+			&f.Priority,
+			&maxDownloads,
+			&maxDownloadsUnit,
+			&matchReleases,
+			&exceptReleases,
+			&useRegex,
+			&matchReleaseGroups,
+			&exceptReleaseGroups,
+			&matchReleaseTags,
+			&exceptReleaseTags,
+			&f.UseRegexReleaseTags,
+			&matchDescription,
+			&exceptDescription,
+			&f.UseRegexDescription,
+			&scene,
+			&freeleech,
+			&freeleechPercent,
+			&f.SmartEpisode,
+			&shows,
+			&seasons,
+			&episodes,
+			pq.Array(&f.Resolutions),
+			pq.Array(&f.Codecs),
+			pq.Array(&f.Sources),
+			pq.Array(&f.Containers),
+			pq.Array(&f.MatchHDR),
+			pq.Array(&f.ExceptHDR),
+			pq.Array(&f.MatchOther),
+			pq.Array(&f.ExceptOther),
+			&years,
+			&artists,
+			&albums,
+			pq.Array(&f.MatchReleaseTypes),
+			pq.Array(&f.Formats),
+			pq.Array(&f.Quality),
+			pq.Array(&f.Media),
+			&logScore,
+			&hasLog,
+			&hasCue,
+			&perfectFlac,
+			&matchCategories,
+			&exceptCategories,
+			&matchUploaders,
+			&exceptUploaders,
+			pq.Array(&f.MatchLanguage),
+			pq.Array(&f.ExceptLanguage),
+			&tags,
+			&exceptTags,
+			&tagsMatchLogic,
+			&exceptTagsMatchLogic,
+			pq.Array(&f.Origins),
+			pq.Array(&f.ExceptOrigins),
+			&f.CreatedAt,
+			&f.UpdatedAt,
+			&extId,
+			&extName,
+			&extIndex,
+			&extType,
+			&extEnabled,
+			&extExecCmd,
+			&extExecArgs,
+			&extExecStatus,
+			&extWebhookHost,
+			&extWebhookMethod,
+			&extWebhookData,
+			&extWebhookHeaders,
+			&extWebhookStatus,
+			&extWebhookRetryStatus,
+			&extWebhookRetryAttempts,
+			&extWebhookDelaySeconds,
+		); err != nil {
+			return nil, errors.Wrap(err, "error scanning row")
+		}
+
+		f.MinSize = minSize.String
+		f.MaxSize = maxSize.String
+		f.Delay = int(delay.Int32)
+		f.MaxDownloads = int(maxDownloads.Int32)
+		f.MaxDownloadsUnit = domain.FilterMaxDownloadsUnit(maxDownloadsUnit.String)
+		f.MatchReleases = matchReleases.String
+		f.ExceptReleases = exceptReleases.String
+		f.MatchReleaseGroups = matchReleaseGroups.String
+		f.ExceptReleaseGroups = exceptReleaseGroups.String
+		f.MatchReleaseTags = matchReleaseTags.String
+		f.ExceptReleaseTags = exceptReleaseTags.String
+		f.MatchDescription = matchDescription.String
+		f.ExceptDescription = exceptDescription.String
+		f.FreeleechPercent = freeleechPercent.String
+		f.Shows = shows.String
+		f.Seasons = seasons.String
+		f.Episodes = episodes.String
+		f.Years = years.String
+		f.Artists = artists.String
+		f.Albums = albums.String
+		f.LogScore = int(logScore.Int32)
+		f.Log = hasLog.Bool
+		f.Cue = hasCue.Bool
+		f.PerfectFlac = perfectFlac.Bool
+		f.MatchCategories = matchCategories.String
+		f.ExceptCategories = exceptCategories.String
+		f.MatchUploaders = matchUploaders.String
+		f.ExceptUploaders = exceptUploaders.String
+		f.Tags = tags.String
+		f.ExceptTags = exceptTags.String
+		f.TagsMatchLogic = tagsMatchLogic.String
+		f.ExceptTagsMatchLogic = exceptTagsMatchLogic.String
+		f.UseRegex = useRegex.Bool
+		f.Scene = scene.Bool
+		f.Freeleech = freeleech.Bool
+
+		if extId.Valid {
+			external := domain.FilterExternal{
+				ID:                       int(extId.Int32),
+				Name:                     extName.String,
+				Index:                    int(extIndex.Int32),
+				Type:                     domain.FilterExternalType(extType.String),
+				Enabled:                  extEnabled.Bool,
+				ExecCmd:                  extExecCmd.String,
+				ExecArgs:                 extExecArgs.String,
+				ExecExpectStatus:         int(extExecStatus.Int32),
+				WebhookHost:              extWebhookHost.String,
+				WebhookMethod:            extWebhookMethod.String,
+				WebhookData:              extWebhookData.String,
+				WebhookHeaders:           extWebhookHeaders.String,
+				WebhookExpectStatus:      int(extWebhookStatus.Int32),
+				WebhookRetryStatus:       extWebhookRetryStatus.String,
+				WebhookRetryAttempts:     int(extWebhookRetryAttempts.Int32),
+				WebhookRetryDelaySeconds: int(extWebhookDelaySeconds.Int32),
+			}
+			externalMap[external.ID] = external
+		}
 	}
 
-	f.MinSize = minSize.String
-	f.MaxSize = maxSize.String
-	f.Delay = int(delay.Int32)
-	f.MaxDownloads = int(maxDownloads.Int32)
-	f.MaxDownloadsUnit = domain.FilterMaxDownloadsUnit(maxDownloadsUnit.String)
-	f.MatchReleases = matchReleases.String
-	f.ExceptReleases = exceptReleases.String
-	f.MatchReleaseGroups = matchReleaseGroups.String
-	f.ExceptReleaseGroups = exceptReleaseGroups.String
-	f.MatchReleaseTags = matchReleaseTags.String
-	f.ExceptReleaseTags = exceptReleaseTags.String
-	f.MatchDescription = matchDescription.String
-	f.ExceptDescription = exceptDescription.String
-	f.FreeleechPercent = freeleechPercent.String
-	f.Shows = shows.String
-	f.Seasons = seasons.String
-	f.Episodes = episodes.String
-	f.Years = years.String
-	f.Artists = artists.String
-	f.Albums = albums.String
-	f.LogScore = int(logScore.Int32)
-	f.Log = hasLog.Bool
-	f.Cue = hasCue.Bool
-	f.PerfectFlac = perfectFlac.Bool
-	f.MatchCategories = matchCategories.String
-	f.ExceptCategories = exceptCategories.String
-	f.MatchUploaders = matchUploaders.String
-	f.ExceptUploaders = exceptUploaders.String
-	f.Tags = tags.String
-	f.ExceptTags = exceptTags.String
-	f.TagsMatchLogic = tagsMatchLogic.String
-	f.ExceptTagsMatchLogic = exceptTagsMatchLogic.String
-	f.UseRegex = useRegex.Bool
-	f.Scene = scene.Bool
-	f.Freeleech = freeleech.Bool
-
-	f.ExternalScriptEnabled = extScriptEnabled.Bool
-	f.ExternalScriptCmd = extScriptCmd.String
-	f.ExternalScriptArgs = extScriptArgs.String
-	f.ExternalScriptExpectStatus = int(extScriptStatus.Int32)
-
-	f.ExternalWebhookEnabled = extWebhookEnabled.Bool
-	f.ExternalWebhookHost = extWebhookHost.String
-	f.ExternalWebhookData = extWebhookData.String
-	f.ExternalWebhookExpectStatus = int(extWebhookStatus.Int32)
+	for _, external := range externalMap {
+		f.External = append(f.External, external)
+	}
 
 	return &f, nil
 }
@@ -379,20 +496,30 @@ func (r *FilterRepo) findByIndexerIdentifier(ctx context.Context, indexer string
 			"f.except_tags_match_logic",
 			"f.origins",
 			"f.except_origins",
-			"f.external_script_enabled",
-			"f.external_script_cmd",
-			"f.external_script_args",
-			"f.external_script_expect_status",
-			"f.external_webhook_enabled",
-			"f.external_webhook_host",
-			"f.external_webhook_data",
-			"f.external_webhook_expect_status",
 			"f.created_at",
 			"f.updated_at",
+			"fe.id as external_id",
+			"fe.name",
+			"fe.idx",
+			"fe.type",
+			"fe.enabled",
+			"fe.exec_cmd",
+			"fe.exec_args",
+			"fe.exec_expect_status",
+			"fe.webhook_host",
+			"fe.webhook_method",
+			"fe.webhook_data",
+			"fe.webhook_headers",
+			"fe.webhook_expect_status",
+			"fe.webhook_retry_status",
+			"fe.webhook_retry_attempts",
+			"fe.webhook_retry_delay_seconds",
+			"fe.filter_id",
 		).
 		From("filter f").
 		Join("filter_indexer fi ON f.id = fi.filter_id").
 		Join("indexer i ON i.id = fi.indexer_id").
+		LeftJoin("filter_external fe ON f.id = fe.filter_id").
 		Where(sq.Eq{"i.identifier": indexer}).
 		Where(sq.Eq{"i.enabled": true}).
 		Where(sq.Eq{"f.enabled": true}).
@@ -411,14 +538,100 @@ func (r *FilterRepo) findByIndexerIdentifier(ctx context.Context, indexer string
 	defer rows.Close()
 
 	var filters []domain.Filter
+
+	externalMap := make(map[int][]domain.FilterExternal)
+
 	for rows.Next() {
 		var f domain.Filter
 
-		var minSize, maxSize, maxDownloadsUnit, matchReleases, exceptReleases, matchReleaseGroups, exceptReleaseGroups, matchReleaseTags, exceptReleaseTags, matchDescription, exceptDescription, freeleechPercent, shows, seasons, episodes, years, artists, albums, matchCategories, exceptCategories, matchUploaders, exceptUploaders, tags, exceptTags, tagsMatchLogic, exceptTagsMatchLogic, extScriptCmd, extScriptArgs, extWebhookHost, extWebhookData sql.NullString
-		var useRegex, scene, freeleech, hasLog, hasCue, perfectFlac, extScriptEnabled, extWebhookEnabled sql.NullBool
-		var delay, maxDownloads, logScore, extWebhookStatus, extScriptStatus sql.NullInt32
+		var minSize, maxSize, maxDownloadsUnit, matchReleases, exceptReleases, matchReleaseGroups, exceptReleaseGroups, matchReleaseTags, exceptReleaseTags, matchDescription, exceptDescription, freeleechPercent, shows, seasons, episodes, years, artists, albums, matchCategories, exceptCategories, matchUploaders, exceptUploaders, tags, exceptTags, tagsMatchLogic, exceptTagsMatchLogic sql.NullString
+		var useRegex, scene, freeleech, hasLog, hasCue, perfectFlac sql.NullBool
+		var delay, maxDownloads, logScore sql.NullInt32
 
-		if err := rows.Scan(&f.ID, &f.Enabled, &f.Name, &minSize, &maxSize, &delay, &f.Priority, &maxDownloads, &maxDownloadsUnit, &matchReleases, &exceptReleases, &useRegex, &matchReleaseGroups, &exceptReleaseGroups, &matchReleaseTags, &exceptReleaseTags, &f.UseRegexReleaseTags, &matchDescription, &exceptDescription, &f.UseRegexDescription, &scene, &freeleech, &freeleechPercent, &f.SmartEpisode, &shows, &seasons, &episodes, pq.Array(&f.Resolutions), pq.Array(&f.Codecs), pq.Array(&f.Sources), pq.Array(&f.Containers), pq.Array(&f.MatchHDR), pq.Array(&f.ExceptHDR), pq.Array(&f.MatchOther), pq.Array(&f.ExceptOther), &years, &artists, &albums, pq.Array(&f.MatchReleaseTypes), pq.Array(&f.Formats), pq.Array(&f.Quality), pq.Array(&f.Media), &logScore, &hasLog, &hasCue, &perfectFlac, &matchCategories, &exceptCategories, &matchUploaders, &exceptUploaders, pq.Array(&f.MatchLanguage), pq.Array(&f.ExceptLanguage), &tags, &exceptTags, &tagsMatchLogic, &exceptTagsMatchLogic, pq.Array(&f.Origins), pq.Array(&f.ExceptOrigins), &extScriptEnabled, &extScriptCmd, &extScriptArgs, &extScriptStatus, &extWebhookEnabled, &extWebhookHost, &extWebhookData, &extWebhookStatus, &f.CreatedAt, &f.UpdatedAt); err != nil {
+		// filter external
+		var extName, extType, extExecCmd, extExecArgs, extWebhookHost, extWebhookMethod, extWebhookHeaders, extWebhookData, extWebhookRetryStatus sql.NullString
+		var extId, extIndex, extWebhookStatus, extWebhookRetryAttempts, extWebhookDelaySeconds, extExecStatus, extFilterId sql.NullInt32
+		var extEnabled sql.NullBool
+
+		if err := rows.Scan(
+			&f.ID,
+			&f.Enabled,
+			&f.Name,
+			&minSize,
+			&maxSize,
+			&delay,
+			&f.Priority,
+			&maxDownloads,
+			&maxDownloadsUnit,
+			&matchReleases,
+			&exceptReleases,
+			&useRegex,
+			&matchReleaseGroups,
+			&exceptReleaseGroups,
+			&matchReleaseTags,
+			&exceptReleaseTags,
+			&f.UseRegexReleaseTags,
+			&matchDescription,
+			&exceptDescription,
+			&f.UseRegexDescription,
+			&scene,
+			&freeleech,
+			&freeleechPercent,
+			&f.SmartEpisode,
+			&shows,
+			&seasons,
+			&episodes,
+			pq.Array(&f.Resolutions),
+			pq.Array(&f.Codecs),
+			pq.Array(&f.Sources),
+			pq.Array(&f.Containers),
+			pq.Array(&f.MatchHDR),
+			pq.Array(&f.ExceptHDR),
+			pq.Array(&f.MatchOther),
+			pq.Array(&f.ExceptOther),
+			&years,
+			&artists,
+			&albums,
+			pq.Array(&f.MatchReleaseTypes),
+			pq.Array(&f.Formats),
+			pq.Array(&f.Quality),
+			pq.Array(&f.Media),
+			&logScore,
+			&hasLog,
+			&hasCue,
+			&perfectFlac,
+			&matchCategories,
+			&exceptCategories,
+			&matchUploaders,
+			&exceptUploaders,
+			pq.Array(&f.MatchLanguage),
+			pq.Array(&f.ExceptLanguage),
+			&tags,
+			&exceptTags,
+			&tagsMatchLogic,
+			&exceptTagsMatchLogic,
+			pq.Array(&f.Origins),
+			pq.Array(&f.ExceptOrigins),
+			&f.CreatedAt,
+			&f.UpdatedAt,
+			&extId,
+			&extName,
+			&extIndex,
+			&extType,
+			&extEnabled,
+			&extExecCmd,
+			&extExecArgs,
+			&extExecStatus,
+			&extWebhookHost,
+			&extWebhookMethod,
+			&extWebhookData,
+			&extWebhookHeaders,
+			&extWebhookStatus,
+			&extWebhookRetryStatus,
+			&extWebhookRetryAttempts,
+			&extWebhookDelaySeconds,
+			&extFilterId,
+		); err != nil {
 			return nil, errors.Wrap(err, "error scanning row")
 		}
 
@@ -458,23 +671,132 @@ func (r *FilterRepo) findByIndexerIdentifier(ctx context.Context, indexer string
 		f.Scene = scene.Bool
 		f.Freeleech = freeleech.Bool
 
-		f.ExternalScriptEnabled = extScriptEnabled.Bool
-		f.ExternalScriptCmd = extScriptCmd.String
-		f.ExternalScriptArgs = extScriptArgs.String
-		f.ExternalScriptExpectStatus = int(extScriptStatus.Int32)
-
-		f.ExternalWebhookEnabled = extWebhookEnabled.Bool
-		f.ExternalWebhookHost = extWebhookHost.String
-		f.ExternalWebhookData = extWebhookData.String
-		f.ExternalWebhookExpectStatus = int(extWebhookStatus.Int32)
+		if extId.Valid {
+			external := domain.FilterExternal{
+				ID:                       int(extId.Int32),
+				Name:                     extName.String,
+				Index:                    int(extIndex.Int32),
+				Type:                     domain.FilterExternalType(extType.String),
+				Enabled:                  extEnabled.Bool,
+				ExecCmd:                  extExecCmd.String,
+				ExecArgs:                 extExecArgs.String,
+				ExecExpectStatus:         int(extExecStatus.Int32),
+				WebhookHost:              extWebhookHost.String,
+				WebhookMethod:            extWebhookMethod.String,
+				WebhookData:              extWebhookData.String,
+				WebhookHeaders:           extWebhookHeaders.String,
+				WebhookExpectStatus:      int(extWebhookStatus.Int32),
+				WebhookRetryStatus:       extWebhookRetryStatus.String,
+				WebhookRetryAttempts:     int(extWebhookRetryAttempts.Int32),
+				WebhookRetryDelaySeconds: int(extWebhookDelaySeconds.Int32),
+				FilterId:                 int(extFilterId.Int32),
+			}
+			externalMap[external.FilterId] = append(externalMap[external.FilterId], external)
+		}
 
 		filters = append(filters, f)
+	}
+
+	for i, filter := range filters {
+		v, ok := externalMap[filter.ID]
+		if !ok {
+			continue
+		}
+
+		filter.External = v
+
+		filters[i] = filter
 	}
 
 	return filters, nil
 }
 
-func (r *FilterRepo) Store(ctx context.Context, filter domain.Filter) (*domain.Filter, error) {
+func (r *FilterRepo) FindExternalFiltersByID(ctx context.Context, filterId int) ([]domain.FilterExternal, error) {
+	queryBuilder := r.db.squirrel.
+		Select(
+			"fe.id",
+			"fe.name",
+			"fe.idx",
+			"fe.type",
+			"fe.enabled",
+			"fe.exec_cmd",
+			"fe.exec_args",
+			"fe.exec_expect_status",
+			"fe.webhook_host",
+			"fe.webhook_method",
+			"fe.webhook_data",
+			"fe.webhook_headers",
+			"fe.webhook_expect_status",
+			"fe.webhook_retry_status",
+			"fe.webhook_retry_attempts",
+			"fe.webhook_retry_delay_seconds",
+		).
+		From("filter_external fe").
+		Where(sq.Eq{"fe.filter_id": filterId})
+
+	query, args, err := queryBuilder.ToSql()
+	if err != nil {
+		return nil, errors.Wrap(err, "error building query")
+	}
+
+	rows, err := r.db.handler.QueryContext(ctx, query, args...)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, domain.ErrRecordNotFound
+		}
+		return nil, errors.Wrap(err, "error executing query")
+	}
+
+	var externalFilters []domain.FilterExternal
+
+	for rows.Next() {
+		var external domain.FilterExternal
+
+		// filter external
+		var extExecCmd, extExecArgs, extWebhookHost, extWebhookMethod, extWebhookHeaders, extWebhookData, extWebhookRetryStatus sql.NullString
+		var extWebhookStatus, extWebhookRetryAttempts, extWebhookDelaySeconds, extExecStatus sql.NullInt32
+
+		if err := rows.Scan(
+			&external.ID,
+			&external.Name,
+			&external.Index,
+			&external.Type,
+			&external.Enabled,
+			&extExecCmd,
+			&extExecArgs,
+			&extExecStatus,
+			&extWebhookHost,
+			&extWebhookMethod,
+			&extWebhookData,
+			&extWebhookHeaders,
+			&extWebhookStatus,
+			&extWebhookRetryStatus,
+			&extWebhookRetryAttempts,
+			&extWebhookDelaySeconds,
+		); err != nil {
+			return nil, errors.Wrap(err, "error scanning row")
+		}
+
+		external.ExecCmd = extExecCmd.String
+		external.ExecArgs = extExecArgs.String
+		external.ExecExpectStatus = int(extExecStatus.Int32)
+
+		external.WebhookHost = extWebhookHost.String
+		external.WebhookMethod = extWebhookMethod.String
+		external.WebhookData = extWebhookData.String
+		external.WebhookHeaders = extWebhookHeaders.String
+		external.WebhookExpectStatus = int(extWebhookStatus.Int32)
+		external.WebhookRetryStatus = extWebhookRetryStatus.String
+		external.WebhookRetryAttempts = int(extWebhookRetryAttempts.Int32)
+		external.WebhookRetryDelaySeconds = int(extWebhookDelaySeconds.Int32)
+
+		externalFilters = append(externalFilters, external)
+	}
+
+	return externalFilters, nil
+}
+
+func (r *FilterRepo) Store(ctx context.Context, filter *domain.Filter) error {
 	queryBuilder := r.db.squirrel.
 		Insert("filter").
 		Columns(
@@ -535,14 +857,6 @@ func (r *FilterRepo) Store(ctx context.Context, filter domain.Filter) (*domain.F
 			"perfect_flac",
 			"origins",
 			"except_origins",
-			"external_script_enabled",
-			"external_script_cmd",
-			"external_script_args",
-			"external_script_expect_status",
-			"external_webhook_enabled",
-			"external_webhook_host",
-			"external_webhook_data",
-			"external_webhook_expect_status",
 		).
 		Values(
 			filter.Name,
@@ -602,31 +916,22 @@ func (r *FilterRepo) Store(ctx context.Context, filter domain.Filter) (*domain.F
 			filter.PerfectFlac,
 			pq.Array(filter.Origins),
 			pq.Array(filter.ExceptOrigins),
-			filter.ExternalScriptEnabled,
-			filter.ExternalScriptCmd,
-			filter.ExternalScriptArgs,
-			filter.ExternalScriptExpectStatus,
-			filter.ExternalWebhookEnabled,
-			filter.ExternalWebhookHost,
-			filter.ExternalWebhookData,
-			filter.ExternalWebhookExpectStatus,
 		).
 		Suffix("RETURNING id").RunWith(r.db.handler)
 
 	// return values
 	var retID int
 
-	err := queryBuilder.QueryRowContext(ctx).Scan(&retID)
-	if err != nil {
-		return nil, errors.Wrap(err, "error executing query")
+	if err := queryBuilder.QueryRowContext(ctx).Scan(&retID); err != nil {
+		return errors.Wrap(err, "error executing query")
 	}
 
 	filter.ID = retID
 
-	return &filter, nil
+	return nil
 }
 
-func (r *FilterRepo) Update(ctx context.Context, filter domain.Filter) (*domain.Filter, error) {
+func (r *FilterRepo) Update(ctx context.Context, filter *domain.Filter) error {
 	var err error
 
 	queryBuilder := r.db.squirrel.
@@ -688,28 +993,26 @@ func (r *FilterRepo) Update(ctx context.Context, filter domain.Filter) (*domain.
 		Set("perfect_flac", filter.PerfectFlac).
 		Set("origins", pq.Array(filter.Origins)).
 		Set("except_origins", pq.Array(filter.ExceptOrigins)).
-		Set("external_script_enabled", filter.ExternalScriptEnabled).
-		Set("external_script_cmd", filter.ExternalScriptCmd).
-		Set("external_script_args", filter.ExternalScriptArgs).
-		Set("external_script_expect_status", filter.ExternalScriptExpectStatus).
-		Set("external_webhook_enabled", filter.ExternalWebhookEnabled).
-		Set("external_webhook_host", filter.ExternalWebhookHost).
-		Set("external_webhook_data", filter.ExternalWebhookData).
-		Set("external_webhook_expect_status", filter.ExternalWebhookExpectStatus).
 		Set("updated_at", time.Now().Format(time.RFC3339)).
 		Where(sq.Eq{"id": filter.ID})
 
 	query, args, err := queryBuilder.ToSql()
 	if err != nil {
-		return nil, errors.Wrap(err, "error building query")
+		return errors.Wrap(err, "error building query")
 	}
 
-	_, err = r.db.handler.ExecContext(ctx, query, args...)
+	result, err := r.db.handler.ExecContext(ctx, query, args...)
 	if err != nil {
-		return nil, errors.Wrap(err, "error executing query")
+		return errors.Wrap(err, "error executing query")
 	}
 
-	return &filter, nil
+	if rowsAffected, err := result.RowsAffected(); err != nil {
+		return errors.Wrap(err, "error getting rows affected")
+	} else if rowsAffected == 0 {
+		return domain.ErrRecordNotFound
+	}
+
+	return nil
 }
 
 func (r *FilterRepo) UpdatePartial(ctx context.Context, filter domain.FilterUpdate) error {
@@ -912,6 +1215,15 @@ func (r *FilterRepo) UpdatePartial(ctx context.Context, filter domain.FilterUpda
 	if filter.ExternalWebhookExpectStatus != nil {
 		q = q.Set("external_webhook_expect_status", filter.ExternalWebhookExpectStatus)
 	}
+	if filter.ExternalWebhookRetryStatus != nil {
+		q = q.Set("external_webhook_retry_status", filter.ExternalWebhookRetryStatus)
+	}
+	if filter.ExternalWebhookRetryAttempts != nil {
+		q = q.Set("external_webhook_retry_attempts", filter.ExternalWebhookRetryAttempts)
+	}
+	if filter.ExternalWebhookRetryDelaySeconds != nil {
+		q = q.Set("external_webhook_retry_delay_seconds", filter.ExternalWebhookRetryDelaySeconds)
+	}
 
 	q = q.Where(sq.Eq{"id": filter.ID})
 
@@ -950,9 +1262,16 @@ func (r *FilterRepo) ToggleEnabled(ctx context.Context, filterID int, enabled bo
 	if err != nil {
 		return errors.Wrap(err, "error building query")
 	}
-	_, err = r.db.handler.ExecContext(ctx, query, args...)
+
+	result, err := r.db.handler.ExecContext(ctx, query, args...)
 	if err != nil {
 		return errors.Wrap(err, "error executing query")
+	}
+
+	if rowsAffected, err := result.RowsAffected(); err != nil {
+		return errors.Wrap(err, "error getting rows affected")
+	} else if rowsAffected == 0 {
+		return domain.ErrRecordNotFound
 	}
 
 	return nil
@@ -974,31 +1293,42 @@ func (r *FilterRepo) StoreIndexerConnections(ctx context.Context, filterID int, 
 	if err != nil {
 		return errors.Wrap(err, "error building query")
 	}
+
 	_, err = tx.ExecContext(ctx, deleteQuery, deleteArgs...)
 	if err != nil {
 		return errors.Wrap(err, "error executing query")
 	}
 
+	if len(indexers) == 0 {
+		if err := tx.Commit(); err != nil {
+			return errors.Wrap(err, "error store indexers for filter: %d", filterID)
+		}
+
+		return nil
+	}
+
+	queryBuilder := r.db.squirrel.
+		Insert("filter_indexer").
+		Columns("filter_id", "indexer_id")
+
 	for _, indexer := range indexers {
-		queryBuilder := r.db.squirrel.
-			Insert("filter_indexer").Columns("filter_id", "indexer_id").
-			Values(filterID, indexer.ID)
+		queryBuilder = queryBuilder.Values(filterID, indexer.ID)
+	}
 
-		query, args, err := queryBuilder.ToSql()
-		if err != nil {
-			return errors.Wrap(err, "error building query")
-		}
-		_, err = tx.ExecContext(ctx, query, args...)
-		if err != nil {
-			return errors.Wrap(err, "error executing query")
-		}
+	query, args, err := queryBuilder.ToSql()
+	if err != nil {
+		return errors.Wrap(err, "error building query")
+	}
 
-		r.log.Debug().Msgf("filter.StoreIndexerConnections: store '%v' on filter: %v", indexer.Name, filterID)
+	if _, err = tx.ExecContext(ctx, query, args...); err != nil {
+		return errors.Wrap(err, "error executing query")
 	}
 
 	if err := tx.Commit(); err != nil {
-		return errors.Wrap(err, "error store indexers for filter: %v", filterID)
+		return errors.Wrap(err, "error store indexers for filter: %d", filterID)
 	}
+
+	r.log.Debug().Msgf("filter.StoreIndexerConnections: indexers on filter: %d", filterID)
 
 	return nil
 }
@@ -1039,10 +1369,10 @@ func (r *FilterRepo) DeleteIndexerConnections(ctx context.Context, filterID int)
 	return nil
 }
 
-func (r *FilterRepo) Delete(ctx context.Context, filterID int) error {
+func (r *FilterRepo) DeleteFilterExternal(ctx context.Context, filterID int) error {
 	queryBuilder := r.db.squirrel.
-		Delete("filter").
-		Where(sq.Eq{"id": filterID})
+		Delete("filter_external").
+		Where(sq.Eq{"filter_id": filterID})
 
 	query, args, err := queryBuilder.ToSql()
 	if err != nil {
@@ -1054,7 +1384,31 @@ func (r *FilterRepo) Delete(ctx context.Context, filterID int) error {
 		return errors.Wrap(err, "error executing query")
 	}
 
-	r.log.Info().Msgf("filter.delete: successfully deleted: %v", filterID)
+	return nil
+}
+
+func (r *FilterRepo) Delete(ctx context.Context, filterID int) error {
+	queryBuilder := r.db.squirrel.
+		Delete("filter").
+		Where(sq.Eq{"id": filterID})
+
+	query, args, err := queryBuilder.ToSql()
+	if err != nil {
+		return errors.Wrap(err, "error building query")
+	}
+
+	result, err := r.db.handler.ExecContext(ctx, query, args...)
+	if err != nil {
+		return errors.Wrap(err, "error executing query")
+	}
+
+	if rowsAffected, err := result.RowsAffected(); err != nil {
+		return errors.Wrap(err, "error getting rows affected")
+	} else if rowsAffected == 0 {
+		return domain.ErrRecordNotFound
+	}
+
+	r.log.Debug().Msgf("filter.delete: successfully deleted: %v", filterID)
 
 	return nil
 }
@@ -1115,4 +1469,95 @@ WHERE (release_action_status.status = 'PUSH_APPROVED' OR release_action_status.s
 	}
 
 	return &f, nil
+}
+
+func (r *FilterRepo) StoreFilterExternal(ctx context.Context, filterID int, externalFilters []domain.FilterExternal) error {
+	tx, err := r.db.handler.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+
+	defer tx.Rollback()
+
+	deleteQueryBuilder := r.db.squirrel.
+		Delete("filter_external").
+		Where(sq.Eq{"filter_id": filterID})
+
+	deleteQuery, deleteArgs, err := deleteQueryBuilder.ToSql()
+	if err != nil {
+		return errors.Wrap(err, "error building query")
+	}
+
+	_, err = tx.ExecContext(ctx, deleteQuery, deleteArgs...)
+	if err != nil {
+		return errors.Wrap(err, "error executing query")
+	}
+
+	if len(externalFilters) == 0 {
+		if err := tx.Commit(); err != nil {
+			return errors.Wrap(err, "error delete external filters for filter: %d", filterID)
+		}
+
+		return nil
+	}
+
+	qb := r.db.squirrel.
+		Insert("filter_external").
+		Columns(
+			"name",
+			"idx",
+			"type",
+			"enabled",
+			"exec_cmd",
+			"exec_args",
+			"exec_expect_status",
+			"webhook_host",
+			"webhook_method",
+			"webhook_data",
+			"webhook_headers",
+			"webhook_expect_status",
+			"webhook_retry_status",
+			"webhook_retry_attempts",
+			"webhook_retry_delay_seconds",
+			"filter_id",
+		)
+
+	for _, external := range externalFilters {
+		qb = qb.Values(
+			external.Name,
+			external.Index,
+			external.Type,
+			external.Enabled,
+			toNullString(external.ExecCmd),
+			toNullString(external.ExecArgs),
+			toNullInt32(int32(external.ExecExpectStatus)),
+			toNullString(external.WebhookHost),
+			toNullString(external.WebhookMethod),
+			toNullString(external.WebhookData),
+			toNullString(external.WebhookHeaders),
+			toNullInt32(int32(external.WebhookExpectStatus)),
+			toNullString(external.WebhookRetryStatus),
+			toNullInt32(int32(external.WebhookRetryAttempts)),
+			toNullInt32(int32(external.WebhookRetryDelaySeconds)),
+			filterID,
+		)
+	}
+
+	query, args, err := qb.ToSql()
+	if err != nil {
+		return errors.Wrap(err, "error building query")
+	}
+
+	_, err = tx.ExecContext(ctx, query, args...)
+	if err != nil {
+		return errors.Wrap(err, "error executing query")
+	}
+
+	if err := tx.Commit(); err != nil {
+		return errors.Wrap(err, "error store external filters for filter: %d", filterID)
+	}
+
+	r.log.Debug().Msgf("filter.StoreFilterExternal: store external filters on filter: %d", filterID)
+
+	return nil
 }

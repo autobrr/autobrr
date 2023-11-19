@@ -11,7 +11,7 @@ protocol: torrent
 supports:
   - irc
   - rss
-source: custom
+# source: custom
 
 irc:
   network: Rizon
@@ -21,6 +21,7 @@ irc:
   channels:
     - "#subsplease"
   announcers:
+    - "NekoNeko"
     - "Katou"
   settings:
     - name: nick
@@ -31,26 +32,75 @@ irc:
 
     - name: auth.account
       type: text
-      required: true
+      required: false
       label: NickServ Account
       help: NickServ account. Make sure to group your main user and bot.
 
     - name: auth.password
       type: secret
-      required: true
+      required: false
       label: NickServ Password
       help: NickServ password
 
   parse:
     type: single
     lines:
-      - pattern: '\[Release\] (.*(SubsPlease).*?)\.?(mkv)? \((\d+.?\d*[KMGTP]?B)\) - .* - (.*)'
+      - tests:
+        - line: '[Release] [SubsPlease] Multiple Word Title - 01 (480p) [636F636B].mkv (420.69MB) - https://nyaa.si/view/0000000 - https://nyaa.si/view/0000000/torrent'
+          expect:
+            torrentName: '[SubsPlease] Multiple Word Title - 01 (480p) [636F636B].'
+            releaseGroup: SubsPlease
+            title: Multiple Word Title
+            releaseTags: mkv
+            torrentSize: 420.69MB
+            infoUrl: https://nyaa.si/view/0000000
+            torrentUrl: https://nyaa.si/view/0000000/torrent
+        - line: '[Release] [SubsPlease] Multiple Word Title (01-12) (1080p) [Batch] (420GB) - https://nyaa.si/view/0000000 - https://nyaa.si/view/0000000/torrent'
+          expect:
+            torrentName: '[SubsPlease] Multiple Word Title (01-12) (1080p) [Batch]'
+            releaseGroup: SubsPlease
+            title: Multiple Word Title
+            releaseTags: ""
+            torrentSize: 420GB
+            infoUrl: https://nyaa.si/view/0000000
+            torrentUrl: https://nyaa.si/view/0000000/torrent
+        - line: '[Release] [SubsPlease] Dashes - In-Title - 01 (480p) [636F636B].mkv (420.69MB) - https://nyaa.si/view/0000000 - https://nyaa.si/view/0000000/torrent'
+          expect:
+            torrentName: '[SubsPlease] Dashes - In-Title - 01 (480p) [636F636B].'
+            releaseGroup: SubsPlease
+            title: Dashes - In-Title
+            releaseTags: mkv
+            torrentSize: 420.69MB
+            infoUrl: https://nyaa.si/view/0000000
+            torrentUrl: https://nyaa.si/view/0000000/torrent
+        - line: '[Release] [SubsPlease] Title - 1st Season (01-04) (1080p) [Batch] (420GB) - https://nyaa.si/view/0000000 - https://nyaa.si/view/0000000/torrent'
+          expect:
+            torrentName: '[SubsPlease] Title - 1st Season (01-04) (1080p) [Batch]'
+            releaseGroup: SubsPlease
+            title: Title - 1st Season
+            releaseTags: ""
+            torrentSize: 420GB
+            infoUrl: https://nyaa.si/view/0000000
+            torrentUrl: https://nyaa.si/view/0000000/torrent
+        - line: '[Release] [SubsPlease] Special Title - 08.5 (480p) [5353245D].mkv (420.69MB) - https://nyaa.si/view/0000000 - https://nyaa.si/view/0000000/torrent'
+          expect:
+            torrentName: '[SubsPlease] Special Title - 08.5 (480p) [5353245D].'
+            releaseGroup: SubsPlease
+            title: Special Title
+            releaseTags: mkv
+            torrentSize: 420.69MB
+            infoUrl: https://nyaa.si/view/0000000
+            torrentUrl: https://nyaa.si/view/0000000/torrent
+        pattern: '\[Release\] (.*(SubsPlease)] (.+?) (?:-\s\d{2,}|\(\d{2,}).*?\.?)(mkv)? \((\d+.?\d*[KMGTP]?B)\) - (.*) - (.*)'
         vars:
           - torrentName
           - releaseGroup
+          - title
           - releaseTags
           - torrentSize
+          - infoUrl
           - torrentUrl
 
     match:
+      infourl: "{{ .infoUrl }}"
       torrenturl: "{{ .torrentUrl }}"

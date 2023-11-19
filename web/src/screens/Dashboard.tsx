@@ -7,10 +7,8 @@ import { Stats } from "./dashboard/Stats";
 import { ActivityTable } from "./dashboard/ActivityTable";
 
 export const Dashboard = () => (
-  <main className="py-10">
-    <div className="max-w-screen-xl mx-auto pb-6 px-4 sm:px-6 lg:pb-16 lg:px-8">
-      <Stats />
-      <ActivityTable />
-    </div>
-  </main>
+  <div className="my-6 max-w-screen-xl mx-auto pb-6 px-2 sm:px-6 lg:pb-16 lg:px-8">
+    <Stats />
+    <ActivityTable />
+  </div>
 );
