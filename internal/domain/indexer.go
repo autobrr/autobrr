@@ -41,7 +41,7 @@ type IndexerDefinition struct {
 	Identifier     string            `json:"identifier"`
 	Implementation string            `json:"implementation"`
 	BaseURL        string            `json:"base_url,omitempty"`
-	Enabled        bool              `json:"enabled,omitempty"`
+	Enabled        bool              `json:"enabled"`
 	Description    string            `json:"description"`
 	Language       string            `json:"language"`
 	Privacy        string            `json:"privacy"`
