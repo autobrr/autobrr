@@ -223,6 +223,48 @@ const externalFilterSchema = z.object({
   webhook_retry_status: z.string().optional(),
   webhook_retry_attempts: z.number().optional(),
   webhook_retry_delay_seconds: z.number().optional(),
+}).superRefine((value, ctx) => {
+  if (!value.name) {
+    ctx.addIssue({
+      message: "Must have a name",
+      code: z.ZodIssueCode.custom,
+      path: ["name"]
+    });
+  }
+
+  if (value.type == "WEBHOOK") {
+    if (!value.webhook_method) {
+      ctx.addIssue({
+        message: "Must select method",
+        code: z.ZodIssueCode.custom,
+        path: ["webhook_method"]
+      });
+    }
+    if (!value.webhook_host) {
+      ctx.addIssue({
+        message: "Must have webhook host",
+        code: z.ZodIssueCode.custom,
+        path: ["webhook_host"]
+      });
+    }
+    if (!value.webhook_expect_status) {
+      ctx.addIssue({
+        message: "Must have webhook expect status",
+        code: z.ZodIssueCode.custom,
+        path: ["webhook_expect_status"]
+      });
+    }
+  }
+
+  if (value.type == "EXEC") {
+    if (!value.exec_cmd) {
+      ctx.addIssue({
+        message: "Must have exec cmd",
+        code: z.ZodIssueCode.custom,
+        path: ["exec_cmd"]
+      });
+    }
+  }
 });
 
 const indexerSchema = z.object({
