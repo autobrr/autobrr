@@ -128,8 +128,8 @@ const ListItem = ({ indexer }: ListItemProps) => {
     }
   });
 
-  const onToggleMutation = (currentState: boolean) => {
-    updateMutation.mutate(!currentState);
+  const onToggleMutation = (newState: boolean) => {
+    updateMutation.mutate(newState);
   };
 
   if (!indexer) {
