@@ -37,7 +37,12 @@ type TorznabJob struct {
 	JobID int
 }
 
-func NewTorznabJob(feed *domain.Feed, name string, indexerIdentifier string, log zerolog.Logger, url string, client torznab.Client, repo domain.FeedRepo, cacheRepo domain.FeedCacheRepo, releaseSvc release.Service) *TorznabJob {
+type FeedJob interface {
+	Run()
+	RunE(ctx context.Context) error
+}
+
+func NewTorznabJob(feed *domain.Feed, name string, indexerIdentifier string, log zerolog.Logger, url string, client torznab.Client, repo domain.FeedRepo, cacheRepo domain.FeedCacheRepo, releaseSvc release.Service) FeedJob {
 	return &TorznabJob{
 		Feed:              feed,
 		Name:              name,
@@ -54,7 +59,7 @@ func NewTorznabJob(feed *domain.Feed, name string, indexerIdentifier string, log
 func (j *TorznabJob) Run() {
 	ctx := context.Background()
 
-	if err := j.process(ctx); err != nil {
+	if err := j.RunE(ctx); err != nil {
 		j.Log.Err(err).Int("attempts", j.attempts).Msg("torznab process error")
 
 		j.errors = append(j.errors, err)
@@ -62,6 +67,15 @@ func (j *TorznabJob) Run() {
 
 	j.attempts = 0
 	j.errors = j.errors[:0]
+}
+
+func (j *TorznabJob) RunE(ctx context.Context) error {
+	if err := j.process(ctx); err != nil {
+		j.Log.Err(err).Int("attempts", j.attempts).Msg("torznab process error")
+		return err
+	}
+
+	return nil
 }
 
 func (j *TorznabJob) process(ctx context.Context) error {
