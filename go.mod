@@ -1,6 +1,6 @@
 module github.com/autobrr/autobrr
 
-go 1.20
+go 1.21
 
 replace github.com/r3labs/sse/v2 => github.com/autobrr/sse/v2 v2.0.0-20230520125637-530e06346d7d
 

@@ -6,6 +6,7 @@ package irc
 import (
 	"crypto/tls"
 	"fmt"
+	"slices"
 	"strings"
 	"time"
 
@@ -26,6 +27,10 @@ import (
 )
 
 var (
+	connectionInProgress = errors.New("A connection attempt is already in progress")
+
+	clientDisconnected = errors.New("Message cannot be sent because client is disconnected")
+
 	clientManuallyDisconnected = retry.Unrecoverable(errors.New("IRC client was manually disconnected"))
 )
 
@@ -62,6 +67,14 @@ func (ch *channelHealth) resetMonitoring() {
 	ch.m.Unlock()
 }
 
+type ircState uint
+
+const (
+	ircStopped    ircState = iota // (Handler).client is nil
+	ircConnecting                 // still nil
+	ircLive                       // (Handler.client) is non-nil and valid
+)
+
 type Handler struct {
 	log                 zerolog.Logger
 	sse                 *sse.Server
@@ -71,12 +84,12 @@ type Handler struct {
 	announceProcessors  map[string]announce.Processor
 	definitions         map[string]*domain.IndexerDefinition
 
-	client *ircevent.Connection
-	m      deadlock.RWMutex
+	client      *ircevent.Connection
+	clientState ircState
+	m           deadlock.RWMutex
 
-	connectedSince       time.Time
-	haveDisconnected     bool
-	manuallyDisconnected bool
+	connectedSince   time.Time
+	haveDisconnected bool
 
 	validAnnouncers map[string]struct{}
 	validChannels   map[string]struct{}
@@ -153,7 +166,7 @@ func (h *Handler) removeIndexer() {
 	// TODO remove announceProcessor
 }
 
-func (h *Handler) Run() error {
+func (h *Handler) Run() (err error) {
 	// TODO validate
 	// check if network requires nickserv
 	// check if network or channels requires invite command
@@ -168,7 +181,29 @@ func (h *Handler) Run() error {
 	// we change back to TraceLevel in the handleJoined method.
 	subLogger := zstdlog.NewStdLoggerWithLevel(h.log.With().Logger(), zerolog.DebugLevel)
 
-	h.client = &ircevent.Connection{
+	shouldConnect := false
+	h.m.Lock()
+	if h.clientState == ircStopped {
+		shouldConnect = true
+		h.clientState = ircConnecting
+	}
+	h.m.Unlock()
+
+	if !shouldConnect {
+		return connectionInProgress
+	}
+
+	// either we will successfully transition to `ircLive`, or else
+	// we need to reset the state to `ircStopped`
+	defer func() {
+		h.m.Lock()
+		if h.clientState == ircConnecting {
+			h.clientState = ircStopped
+		}
+		h.m.Unlock()
+	}()
+
+	client := &ircevent.Connection{
 		Nick:          h.network.Nick,
 		User:          h.network.Auth.Account,
 		RealName:      h.network.Auth.Account,
@@ -185,29 +220,29 @@ func (h *Handler) Run() error {
 
 	if h.network.Auth.Mechanism == domain.IRCAuthMechanismSASLPlain {
 		if h.network.Auth.Account != "" && h.network.Auth.Password != "" {
-			h.client.SASLLogin = h.network.Auth.Account
-			h.client.SASLPassword = h.network.Auth.Password
-			h.client.SASLOptional = true
-			h.client.UseSASL = true
+			client.SASLLogin = h.network.Auth.Account
+			client.SASLPassword = h.network.Auth.Password
+			client.SASLOptional = true
+			client.UseSASL = true
 		}
 	}
 
 	if h.network.TLS {
-		h.client.UseTLS = true
-		h.client.TLSConfig = &tls.Config{InsecureSkipVerify: true}
+		client.UseTLS = true
+		client.TLSConfig = &tls.Config{InsecureSkipVerify: true}
 	}
 
-	h.client.AddConnectCallback(h.onConnect)
-	h.client.AddDisconnectCallback(h.onDisconnect)
+	client.AddConnectCallback(h.onConnect)
+	client.AddDisconnectCallback(h.onDisconnect)
 
-	h.client.AddCallback("MODE", h.handleMode)
-	h.client.AddCallback("INVITE", h.handleInvite)
-	h.client.AddCallback("366", h.handleJoined)
-	h.client.AddCallback("PART", h.handlePart)
-	h.client.AddCallback("PRIVMSG", h.onMessage)
-	h.client.AddCallback("NOTICE", h.onNotice)
-	h.client.AddCallback("NICK", h.onNick)
-	h.client.AddCallback("903", h.handleSASLSuccess)
+	client.AddCallback("MODE", h.handleMode)
+	client.AddCallback("INVITE", h.handleInvite)
+	client.AddCallback("366", h.handleJoined)
+	client.AddCallback("PART", h.handlePart)
+	client.AddCallback("PRIVMSG", h.onMessage)
+	client.AddCallback("NOTICE", h.onNotice)
+	client.AddCallback("NICK", h.onNick)
+	client.AddCallback("903", h.handleSASLSuccess)
 
 	//h.setConnectionStatus()
 	h.saslauthed = false
@@ -225,14 +260,14 @@ func (h *Handler) Run() error {
 
 				// #1239: don't retry if the user manually disconnected with Stop()
 				h.m.RLock()
-				manuallyDisconnected := h.manuallyDisconnected
+				manuallyDisconnected := h.clientState == ircStopped
 				h.m.RUnlock()
 
 				if manuallyDisconnected {
 					return clientManuallyDisconnected
 				}
 
-				if err := h.client.Connect(); err != nil {
+				if err := client.Connect(); err != nil {
 					h.log.Error().Err(err).Msg("client encountered connection error")
 					connectAttempts++
 					return err
@@ -260,7 +295,29 @@ func (h *Handler) Run() error {
 		return err
 	}
 
-	h.client.Loop()
+	shouldDisconnect := false
+	h.m.Lock()
+	switch h.clientState {
+	case ircStopped:
+		// concurrent Stop(), bail
+		shouldDisconnect = true
+	case ircConnecting:
+		// success!
+		h.client = client
+		h.clientState = ircLive
+	case ircLive:
+		// impossible
+		h.log.Error().Stack().Msgf("two concurrent connection attempts detected")
+		shouldDisconnect = true
+	}
+	h.m.Unlock()
+
+	if shouldDisconnect {
+		client.Quit()
+		return clientManuallyDisconnected
+	}
+
+	go client.Loop()
 
 	return nil
 }
@@ -272,14 +329,12 @@ func (h *Handler) isOurNick(nick string) bool {
 }
 
 func (h *Handler) isOurCurrentNick(nick string) bool {
-	h.m.RLock()
-	defer h.m.RUnlock()
-	return h.client.CurrentNick() == nick
+	return h.CurrentNick() == nick
 }
 
 func (h *Handler) setConnectionStatus() {
 	h.m.Lock()
-	if h.client.Connected() {
+	if h.client != nil && h.client.Connected() {
 		h.connectedSince = time.Now()
 	}
 	h.m.Unlock()
@@ -288,13 +343,6 @@ func (h *Handler) setConnectionStatus() {
 	//	//h.channelHealth = map[string]*channelHealth{}
 	//	h.resetChannelHealth()
 	//}
-}
-
-func (h *Handler) resetConnectionStatus() {
-	h.m.Lock()
-	h.connectedSince = time.Time{}
-	h.resetChannelHealth()
-	h.m.Unlock()
 }
 
 func (h *Handler) GetNetwork() *domain.IrcNetwork {
@@ -335,23 +383,27 @@ func (h *Handler) resetChannelHealth() {
 func (h *Handler) Stop() {
 	h.m.Lock()
 	h.connectedSince = time.Time{}
-	h.manuallyDisconnected = true
-
-	if h.client.Connected() {
-		h.log.Debug().Msg("Disconnecting...")
-	}
+	client := h.client
+	h.clientState = ircStopped
+	h.client = nil
 	h.m.Unlock()
 
-	h.resetChannelHealth()
+	if client != nil {
+		h.log.Debug().Msg("Disconnecting...")
+		h.resetChannelHealth()
+		client.Quit()
+	}
+}
 
-	h.client.Quit()
+func (h *Handler) Stopped() bool {
+	h.m.RLock()
+	defer h.m.RUnlock()
+	return h.clientState == ircStopped
 }
 
 // Restart stops the network and then runs it
 func (h *Handler) Restart() error {
-	h.log.Debug().Msg("Restarting network...")
 	h.Stop()
-
 	return h.Run()
 }
 
@@ -406,17 +458,17 @@ func (h *Handler) onDisconnect(m ircmsg.Message) {
 
 	h.haveDisconnected = true
 
+	manuallyDisconnected := h.clientState == ircStopped
+
 	// check if we are responsible for disconnect
-	if !h.manuallyDisconnected {
+	if !manuallyDisconnected {
 		// only send notification if we did not initiate disconnect/restart/stop
 		h.notificationService.Send(domain.NotificationEventIRCDisconnected, domain.NotificationPayload{
 			Subject: "IRC Disconnected unexpectedly",
 			Message: fmt.Sprintf("Network: %s", h.network.Name),
 		})
-	} else {
-		// reset
-		h.manuallyDisconnected = false
 	}
+
 	h.m.Unlock()
 }
 
@@ -486,9 +538,22 @@ func (h *Handler) handleNickServ(msg ircmsg.Message) {
 	if contains(msg.Params[1], "invalid parameters", "help identify") {
 		h.log.Debug().Msgf("NOTICE nickserv invalid: %v", msg.Params)
 
-		if err := h.client.Send("PRIVMSG", "NickServ", fmt.Sprintf("IDENTIFY %s %s", h.network.Auth.Account, h.network.Auth.Password)); err != nil {
-			return
-		}
+		h.Send("PRIVMSG", "NickServ", fmt.Sprintf("IDENTIFY %s %s", h.network.Auth.Account, h.network.Auth.Password))
+	}
+}
+
+func (h *Handler) getClient() *ircevent.Connection {
+	h.m.RLock()
+	client := h.client
+	h.m.RUnlock()
+	return client
+}
+
+func (h *Handler) Send(command string, params ...string) error {
+	if client := h.getClient(); client != nil {
+		return client.Send(command, params...)
+	} else {
+		return clientDisconnected
 	}
 }
 
@@ -655,24 +720,15 @@ func (h *Handler) JoinChannels() {
 
 // JoinChannel sends join command
 func (h *Handler) JoinChannel(channel string, password string) error {
-	m := ircmsg.Message{
-		Command: "JOIN",
-		Params:  []string{channel},
-	}
-
+	params := []string{channel}
 	// support channel password
 	if password != "" {
-		m.Params = []string{channel, password}
+		params = append(params, password)
 	}
 
-	h.log.Debug().Msgf("sending JOIN command %s", strings.Join(m.Params, " "))
+	h.log.Debug().Msgf("sending JOIN command %s", strings.Join(params, " "))
 
-	if err := h.client.SendIRCMessage(m); err != nil {
-		h.log.Error().Stack().Err(err).Msgf("error handling join: %s", channel)
-		return err
-	}
-
-	return nil
+	return h.Send("JOIN", params...)
 }
 
 // handlePart listens for PART events
@@ -699,14 +755,9 @@ func (h *Handler) handlePart(msg ircmsg.Message) {
 func (h *Handler) PartChannel(channel string) error {
 	h.log.Debug().Msgf("Leaving channel %s", channel)
 
-	if err := h.client.Part(channel); err != nil {
-		h.log.Error().Err(err).Msgf("error handling part: %s", channel)
-		return err
-	}
+	return h.Send("PART", channel)
 
 	// TODO remove announceProcessor
-
-	return nil
 }
 
 // handleJoined listens for 366 JOIN events
@@ -760,7 +811,10 @@ func (h *Handler) handleJoined(msg ircmsg.Message) {
 	h.log.Info().Msgf("Monitoring channel %s", channel)
 
 	// reset log level to Trace now that we are monitoring a channel
-	h.client.Log = zstdlog.NewStdLoggerWithLevel(h.log.With().Logger(), zerolog.TraceLevel)
+	if client := h.getClient(); client != nil {
+		// TODO: this is a data race
+		client.Log = zstdlog.NewStdLoggerWithLevel(h.log.With().Logger(), zerolog.TraceLevel)
+	}
 }
 
 // sendConnectCommands sends invite commands
@@ -776,15 +830,12 @@ func (h *Handler) sendConnectCommands(msg string) error {
 			continue
 		}
 
-		m := ircmsg.Message{
-			Command: "PRIVMSG",
-			Params:  strings.Split(cmd, " "),
-		}
-
 		h.log.Debug().Msgf("sending connect command: %s", cmd)
 
-		if err := h.client.SendIRCMessage(m); err != nil {
-			h.log.Error().Err(err).Msgf("error handling connect command: %v", m)
+		params := strings.SplitN(cmd, " ", 2)
+
+		if err := h.Send("PRIVMSG", params...); err != nil {
+			h.log.Error().Err(err).Msgf("error handling connect command: %s", cmd)
 			return err
 		}
 
@@ -812,7 +863,7 @@ func (h *Handler) handleInvite(msg ircmsg.Message) {
 
 	h.log.Debug().Msgf("INVITE from %s, joining %s", msg.Nick(), channel)
 
-	if err := h.client.Join(msg.Params[1]); err != nil {
+	if err := h.Send("JOIN", msg.Params[1]); err != nil {
 		h.log.Error().Stack().Err(err).Msgf("error handling join: %s", msg.Params[1])
 		return
 	}
@@ -822,15 +873,8 @@ func (h *Handler) handleInvite(msg ircmsg.Message) {
 
 // NickServIdentify sends NickServ Identify commands
 func (h *Handler) NickServIdentify(password string) error {
-	m := ircmsg.Message{
-		Command: "PRIVMSG",
-		Params:  []string{"NickServ", "IDENTIFY", password},
-	}
-
-	h.log.Debug().Msgf("NickServ: %v", m)
-
-	if err := h.client.SendIRCMessage(m); err != nil {
-		h.log.Error().Stack().Err(err).Msgf("error identifying with nickserv: %v", m)
+	if err := h.Send("PRIVMSG", "NickServ", fmt.Sprintf("IDENTIFY %s", password)); err != nil {
+		h.log.Error().Stack().Err(err).Msgf("error identifying with nickserv")
 		return err
 	}
 
@@ -841,19 +885,29 @@ func (h *Handler) NickServIdentify(password string) error {
 func (h *Handler) NickChange(nick string) error {
 	h.log.Debug().Msgf("NICK change: %s", nick)
 
-	h.client.SetNick(nick)
+	if client := h.getClient(); client != nil {
+		client.SetNick(nick)
+	}
 
 	return nil
 }
 
 // CurrentNick returns our current nick set by the server
 func (h *Handler) CurrentNick() string {
-	return h.client.CurrentNick()
+	if client := h.getClient(); client != nil {
+		return client.CurrentNick()
+	} else {
+		return ""
+	}
 }
 
 // PreferredNick returns our preferred nick from settings
 func (h *Handler) PreferredNick() string {
-	return h.client.PreferredNick()
+	if client := h.getClient(); client != nil {
+		return client.PreferredNick()
+	} else {
+		return ""
+	}
 }
 
 // listens for MODE events
@@ -875,7 +929,7 @@ func (h *Handler) handleMode(msg ircmsg.Message) {
 func (h *Handler) SendMsg(channel, msg string) error {
 	h.log.Debug().Msgf("sending msg command: %s", msg)
 
-	if err := h.client.Privmsg(channel, msg); err != nil {
+	if err := h.Send("PRIVMSG", channel, msg); err != nil {
 		h.log.Error().Stack().Err(err).Msgf("error sending msg: %s", msg)
 		return err
 	}
@@ -933,46 +987,42 @@ func (h *Handler) addConnectError(message string) {
 	h.connectionErrors = append(h.connectionErrors, message)
 }
 
-// Healthy if enabled but not monitoring return false,
-//
-// if any channel is enabled but not monitoring return false,
-// else return true
-func (h *Handler) Healthy() bool {
-	isHealthy := h.networkHealth()
-	if !isHealthy {
-		h.log.Warn().Msg("network unhealthy")
-		return isHealthy
+func (h *Handler) ReportStatus(netw *domain.IrcNetworkWithHealth) {
+	h.m.RLock()
+	defer h.m.RUnlock()
+
+	// only set connected and connected since if we have an active handler and connection
+	if !h.network.Enabled {
+		return
+	}
+	if h.client == nil {
+		return
+	}
+	netw.Connected = h.connectedSince != time.Time{}
+	netw.ConnectedSince = h.connectedSince
+	netw.CurrentNick = h.client.CurrentNick()
+	netw.PreferredNick = h.client.PreferredNick()
+
+	if !netw.Connected {
+		return
 	}
 
-	h.log.Trace().Msg("network healthy")
+	channelsHealthy := true
+	for _, channel := range h.network.Channels {
+		name := strings.ToLower(channel.Name)
 
-	return true
-}
-
-func (h *Handler) networkHealth() bool {
-	if h.network.Enabled {
-		if !h.client.Connected() {
-			return false
-		}
-		if (h.connectedSince == time.Time{}) {
-			return false
+		if chanHealth, ok := h.channelHealth[name]; ok {
+			chanHealth.m.RLock()
+			channelsHealthy = channelsHealthy && chanHealth.monitoring
+			chanHealth.m.RUnlock()
 		}
 
-		for _, channel := range h.network.Channels {
-			name := strings.ToLower(channel.Name)
-
-			if chanHealth, ok := h.channelHealth[name]; ok {
-				chanHealth.m.RLock()
-
-				if !chanHealth.monitoring {
-					chanHealth.m.RUnlock()
-					return false
-				}
-
-				chanHealth.m.RUnlock()
-			}
+		if !channelsHealthy {
+			break
 		}
 	}
 
-	return true
+	netw.Healthy = channelsHealthy
+
+	netw.ConnectionErrors = slices.Clone(h.connectionErrors)
 }
