@@ -287,6 +287,14 @@ func (c *AppConfig) loadFromEnv() {
 	if v := os.Getenv(prefix + "POSTGRES_PASS"); v != "" {
 		c.Config.PostgresPass = v
 	}
+
+	if v := os.Getenv(prefix + "POSTGRES_SSLMODE"); v != "" {
+		c.Config.PostgresSSLMode = v
+	}
+
+	if v := os.Getenv(prefix + "POSTGRES_EXTRA_PARAMS"); v != "" {
+		c.Config.PostgresExtraParams = v
+	}
 }
 
 func validDatabaseType(v string) bool {
