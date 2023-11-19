@@ -6,7 +6,6 @@ package irc
 import (
 	"crypto/tls"
 	"fmt"
-	"slices"
 	"strings"
 	"time"
 
@@ -1024,5 +1023,12 @@ func (h *Handler) ReportStatus(netw *domain.IrcNetworkWithHealth) {
 
 	netw.Healthy = channelsHealthy
 
-	netw.ConnectionErrors = slices.Clone(h.connectionErrors)
+	// TODO with Go 1.21 this can just be:
+	// netw.ConnectionErrors = slices.Clone(h.connectionErrors)
+	if len(h.connectionErrors) != 0 {
+		netw.ConnectionErrors = make([]string, len(h.connectionErrors))
+		for i, connectionErr := range h.connectionErrors {
+			netw.ConnectionErrors[i] = connectionErr
+		}
+	}
 }
