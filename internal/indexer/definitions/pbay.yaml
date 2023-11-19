@@ -11,7 +11,7 @@ protocol: torrent
 supports:
   - irc
   - rss
-source: gazelle
+# source: gazelle
 settings:
   - name: authkey
     type: secret
@@ -58,9 +58,23 @@ irc:
   parse:
     type: single
     lines:
-      - test:
-          - "[XXX-Cateogry] [SomeXXXSite] Wow So Much Come [2015-05-30, 3K, 1500p] [4.77 GB - Uploader: Tester] - https://pornbay.org/torrents.php?id=000000"
-          - "[XXX-Category-2] SomeXXXSite - Some Name [1.35 GB - Uploader: someUploader] - https://pornbay.org/torrents.php?id=000000"
+      - tests:
+        - line: '[XXX-Cateogry] [SomeXXXSite] Wow So Much Come [2015-05-30, 3K, 1500p] [4.77 GB - Uploader: Tester] - https://pornbay.org/torrents.php?id=000000'
+          expect:
+            category: XXX-Cateogry
+            torrentName: '[SomeXXXSite] Wow So Much Come [2015-05-30, 3K, 1500p]'
+            torrentSize: 4.77 GB
+            uploader: Tester
+            baseUrl: https://pornbay.org/
+            torrentId: "000000"
+        - line: '[XXX-Category-2] SomeXXXSite - Some Name [1.35 GB - Uploader: someUploader] - https://pornbay.org/torrents.php?id=000000'
+          expect:
+            category: XXX-Category-2
+            torrentName: SomeXXXSite - Some Name
+            torrentSize: 1.35 GB
+            uploader: someUploader
+            baseUrl: https://pornbay.org/
+            torrentId: "000000"
         pattern: '\[(.+?)\] (\[?.*\]?.*) \[([0-9]+?.*?) - Uploader: (.+)\] - (https:\/\/.+\/)torrents.php\?id=(\d+)'
         vars:
           - category

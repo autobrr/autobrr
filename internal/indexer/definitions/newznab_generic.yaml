@@ -11,10 +11,10 @@ protocol: nzb
 implementation: newznab
 supports:
   - newznab
-source: newznab
+# source: newznab
 
 newznab:
-  minInterval: 15
+  # minInterval: 15
   settings:
     - name: url
       type: text

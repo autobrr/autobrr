@@ -117,7 +117,7 @@ func (c *AppConfig) writeConfig(configPath string, configFile string) error {
 			host = "0.0.0.0"
 		} else if pd, _ := os.Open("/proc/1/cgroup"); pd != nil {
 			defer pd.Close()
-			b := make([]byte, 4096, 4096)
+			b := make([]byte, 4096)
 			pd.Read(b)
 			if strings.Contains(string(b), "/docker") || strings.Contains(string(b), "/lxc") {
 				host = "0.0.0.0"
@@ -166,7 +166,7 @@ type Config interface {
 
 type AppConfig struct {
 	Config *domain.Config
-	m      sync.Mutex
+	m      *sync.Mutex
 }
 
 func New(configPath string, version string) *AppConfig {
@@ -275,8 +275,6 @@ func (c *AppConfig) DynamicReload(log logger.Logger) {
 		c.m.Unlock()
 	})
 	viper.WatchConfig()
-
-	return
 }
 
 func (c *AppConfig) UpdateConfig() error {

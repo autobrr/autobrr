@@ -5,13 +5,14 @@
 
 import { Fragment, useRef, useState, useMemo } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Menu, Switch, Transition } from "@headlessui/react";
+import { Menu, Transition } from "@headlessui/react";
 import { toast } from "react-hot-toast";
 import {
   ArrowsRightLeftIcon,
   DocumentTextIcon,
   EllipsisHorizontalIcon,
   PencilSquareIcon,
+  ForwardIcon,
   TrashIcon
 } from "@heroicons/react/24/outline";
 
@@ -19,12 +20,14 @@ import { APIClient } from "@api/APIClient";
 import { useToggle } from "@hooks/hooks";
 import { baseUrl, classNames, IsEmptyDate, simplifyDate } from "@utils";
 import Toast from "@components/notifications/Toast";
-import { DeleteModal } from "@components/modals";
+import { DeleteModal, ForceRunModal } from "@components/modals";
 import { FeedUpdateForm } from "@forms/settings/FeedForms";
 import { EmptySimple } from "@components/emptystates";
 import { ImplementationBadges } from "./Indexer";
 import { ArrowPathIcon } from "@heroicons/react/24/solid";
 import { ExternalLink } from "@components/ExternalLink";
+import { Section } from "./_components";
+import { Checkbox } from "@components/Checkbox";
 
 export const feedKeys = {
   all: ["feeds"] as const,
@@ -99,55 +102,47 @@ function FeedSettings() {
   const sortedFeeds = useSort(data || []);
 
   return (
-    <div className="lg:col-span-9">
-      <div className="py-6 px-4 sm:p-6 lg:pb-8">
-        <div className="-ml-4 -mt-4 flex justify-between items-center flex-wrap sm:flex-nowrap">
-          <div className="ml-4 mt-4">
-            <h3 className="text-lg leading-6 font-medium text-gray-900 dark:text-white">Feeds</h3>
-            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-              Manage RSS, Newznab, and Torznab feeds.
-            </p>
-          </div>
-        </div>
-
-        {data && data.length > 0 ?
-          <section className="mt-6 light:bg-white dark:bg-gray-800 light:shadow sm:rounded-md">
-            <ol className="min-w-full relative">
-              <li className="grid grid-cols-12 border-b border-gray-200 dark:border-gray-700">
-                <div
-                  className="flex col-span-2 sm:col-span-1 px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer"
-                  onClick={() => sortedFeeds.requestSort("enabled")}>
-                  Enabled <span className="sort-indicator">{sortedFeeds.getSortIndicator("enabled")}</span>
-                </div>
-                <div
-                  className="col-span-5 pl-12 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer"
-                  onClick={() => sortedFeeds.requestSort("name")}>
-                  Name <span className="sort-indicator">{sortedFeeds.getSortIndicator("name")}</span>
-                </div>
-                <div
-                  className="hidden md:flex col-span-1 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer"
-                  onClick={() => sortedFeeds.requestSort("type")}>
-                  Type <span className="sort-indicator">{sortedFeeds.getSortIndicator("type")}</span>
-                </div>
-                <div
-                  className="hidden md:flex col-span-2 px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer"
-                  onClick={() => sortedFeeds.requestSort("last_run")}>
-                  Last run <span className="sort-indicator">{sortedFeeds.getSortIndicator("last_run")}</span>
-                </div>
-                <div
-                  className="hidden md:flex col-span-2 px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer"
-                  onClick={() => sortedFeeds.requestSort("next_run")}>
-                  Next run <span className="sort-indicator">{sortedFeeds.getSortIndicator("next_run")}</span>
-                </div>
-              </li>
-              {sortedFeeds.items.map((feed) => (
-                <ListItem key={feed.id} feed={feed} />
-              ))}
-            </ol>
-          </section>
-          : <EmptySimple title="No feeds" subtitle="Setup via indexers" />}
-      </div>
-    </div>
+    <Section
+      title="Feeds"
+      description="Manage RSS, Newznab, and Torznab feeds."
+    >
+      {data && data.length > 0 ? (
+        <ul className="min-w-full relative">
+          <li className="grid grid-cols-12 border-b border-gray-200 dark:border-gray-700">
+            <div
+              className="flex col-span-2 sm:col-span-1 pl-0 sm:pl-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer"
+              onClick={() => sortedFeeds.requestSort("enabled")}>
+              Enabled <span className="sort-indicator">{sortedFeeds.getSortIndicator("enabled")}</span>
+            </div>
+            <div
+              className="col-span-5 pl-10 sm:pl-12 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer"
+              onClick={() => sortedFeeds.requestSort("name")}>
+              Name <span className="sort-indicator">{sortedFeeds.getSortIndicator("name")}</span>
+            </div>
+            <div
+              className="hidden md:flex col-span-1 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer"
+              onClick={() => sortedFeeds.requestSort("type")}>
+              Type <span className="sort-indicator">{sortedFeeds.getSortIndicator("type")}</span>
+            </div>
+            <div
+              className="hidden md:flex col-span-2 px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer"
+              onClick={() => sortedFeeds.requestSort("last_run")}>
+              Last run <span className="sort-indicator">{sortedFeeds.getSortIndicator("last_run")}</span>
+            </div>
+            <div
+              className="hidden md:flex col-span-2 px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer"
+              onClick={() => sortedFeeds.requestSort("next_run")}>
+              Next run <span className="sort-indicator">{sortedFeeds.getSortIndicator("next_run")}</span>
+            </div>
+          </li>
+          {sortedFeeds.items.map((feed) => (
+            <ListItem key={feed.id} feed={feed} />
+          ))}
+        </ul>
+      ) : (
+        <EmptySimple title="No feeds" subtitle="Setup via indexers" />
+      )}
+    </Section>
   );
 }
 
@@ -181,26 +176,13 @@ function ListItem({ feed }: ListItemProps) {
       <FeedUpdateForm isOpen={updateFormIsOpen} toggle={toggleUpdateForm} feed={feed} />
 
       <div className="grid grid-cols-12 items-center">
-        <div className="col-span-2 sm:col-span-1 px-6 flex items-center">
-          <Switch
-            checked={feed.enabled}
-            onChange={toggleActive}
-            className={classNames(
-              feed.enabled ? "bg-blue-500 dark:bg-blue-500" : "bg-gray-200 dark:bg-gray-600",
-              "relative inline-flex flex-shrink-0 h-6 w-11 border-2 border-transparent rounded-full cursor-pointer transition-colors ease-in-out duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-            )}
-          >
-            <span className="sr-only">Use setting</span>
-            <span
-              aria-hidden="true"
-              className={classNames(
-                feed.enabled ? "translate-x-5" : "translate-x-0",
-                "inline-block h-5 w-5 rounded-full bg-white shadow transform ring-0 transition ease-in-out duration-200"
-              )}
-            />
-          </Switch>
+        <div className="col-span-2 sm:col-span-1 pl-1 sm:pl-5 flex items-center">
+          <Checkbox
+            value={feed.enabled}
+            setValue={toggleActive}
+          />
         </div>
-        <div className="col-span-8 sm:col-span-5 pl-12 py-3 flex flex-col text-sm font-medium text-gray-900 dark:text-white">
+        <div className="col-span-8 sm:col-span-5 pl-10 sm:pl-12 py-3 flex flex-col text-sm font-medium text-gray-900 dark:text-white">
           <span>{feed.name}</span>
           <span className="text-gray-900 dark:text-gray-500 text-xs">
             {feed.indexer}
@@ -249,6 +231,7 @@ const FeedItemDropdown = ({
 
   const [deleteModalIsOpen, toggleDeleteModal] = useToggle(false);
   const [deleteCacheModalIsOpen, toggleDeleteCacheModal] = useToggle(false);
+  const [forceRunModalIsOpen, toggleForceRunModal] = useToggle(false);
 
   const deleteMutation = useMutation({
     mutationFn: (id: number) => APIClient.feeds.delete(id),
@@ -266,6 +249,22 @@ const FeedItemDropdown = ({
       toast.custom((t) => <Toast type="success" body={`Feed ${feed?.name} cache was cleared!`} t={t} />);
     }
   });
+
+  const forceRunMutation = useMutation({
+    mutationFn: (id: number) => APIClient.feeds.forceRun(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: feedKeys.lists() });
+      toast.custom((t) => <Toast type="success" body={`Feed ${feed?.name} was force run successfully.`} t={t} />);
+      toggleForceRunModal(); 
+    },
+    onError: (error: any) => {
+      toast.custom((t) => <Toast type="error" body={`Failed to force run ${feed?.name}. Error: ${error.message}`} t={t} />, {
+        duration: 10000
+      });    
+      toggleForceRunModal(); 
+    }
+  });
+
 
   return (
     <Menu as="div">
@@ -292,6 +291,18 @@ const FeedItemDropdown = ({
         title={`Remove feed cache: ${feed.name}`}
         text="Are you sure you want to remove the feed cache? This action cannot be undone."
       />
+      <ForceRunModal
+        isOpen={forceRunModalIsOpen}
+        isLoading={forceRunMutation.isLoading}
+        toggle={toggleForceRunModal}
+        buttonRef={cancelModalButtonRef}
+        forceRunAction={() => {
+          forceRunMutation.mutate(feed.id);
+          toggleForceRunModal();
+        }}
+        title={`Force run feed: ${feed.name}`}
+        text={`Are you sure you want to force run the ${feed.name} feed? Respecting RSS interval rules is crucial to avoid potential IP bans.`}
+      />
       <Menu.Button className="px-4 py-2">
         <EllipsisHorizontalIcon
           className="w-5 h-5 text-gray-700 hover:text-gray-900 dark:text-gray-100 dark:hover:text-gray-400"
@@ -308,7 +319,7 @@ const FeedItemDropdown = ({
         leaveTo="transform opacity-0 scale-95"
       >
         <Menu.Items
-          className="absolute right-0 w-56 mt-2 origin-top-right bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700 rounded-md shadow-lg ring-1 ring-black ring-opacity-10 focus:outline-none"
+          className="absolute right-0 w-56 mt-2 origin-top-right bg-white dark:bg-gray-825 divide-y divide-gray-200 dark:divide-gray-750 rounded-md shadow-lg border border-gray-250 dark:border-gray-750 focus:outline-none z-10"
         >
           <div className="px-1 py-1">
             <Menu.Item>
@@ -352,26 +363,38 @@ const FeedItemDropdown = ({
               )}
             </Menu.Item>
           </div>
-          <div>
+          <div className="px-1 py-1">
             <Menu.Item>
               {({ active }) => (
-                <ExternalLink
-                  href={`${baseUrl()}api/feeds/${feed.id}/latest`}
+                <button
+                  onClick={() => toggleForceRunModal()}
                   className={classNames(
                     active ? "bg-blue-600 text-white" : "text-gray-900 dark:text-gray-300",
                     "font-medium group flex rounded-md items-center w-full px-2 py-2 text-sm"
                   )}
                 >
-                  <DocumentTextIcon
+                  <ForwardIcon
                     className={classNames(
                       active ? "text-white" : "text-blue-500",
                       "w-5 h-5 mr-2"
                     )}
                     aria-hidden="true"
                   />
-                  View latest run
-                </ExternalLink>
+            Force run
+                </button>
               )}
+            </Menu.Item>
+            <Menu.Item>
+              <ExternalLink
+                href={`${baseUrl()}api/feeds/${feed.id}/latest`}
+                className="font-medium group flex rounded-md items-center w-full px-2 py-2 text-sm text-gray-900 dark:text-gray-300 hover:bg-blue-600 hover:text-white"
+              >
+                <DocumentTextIcon
+                  className="w-5 h-5 mr-2 text-blue-500 group-hover:text-white"
+                  aria-hidden="true"
+                />
+                View latest run
+              </ExternalLink>
             </Menu.Item>
             <Menu.Item>
               {({ active }) => (

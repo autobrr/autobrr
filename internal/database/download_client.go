@@ -93,7 +93,12 @@ func (r *DownloadClientRepo) List(ctx context.Context) ([]domain.DownloadClient,
 		return nil, errors.Wrap(err, "error executing query")
 	}
 
-	defer rows.Close()
+	defer func(rows *sql.Rows) {
+		err := rows.Close()
+		if err != nil {
+			r.log.Error().Err(err).Msg("error closing rows")
+		}
+	}(rows)
 
 	for rows.Next() {
 		var f domain.DownloadClient
@@ -245,9 +250,18 @@ func (r *DownloadClientRepo) Update(ctx context.Context, client domain.DownloadC
 		return nil, errors.Wrap(err, "error building query")
 	}
 
-	_, err = r.db.handler.ExecContext(ctx, query, args...)
+	result, err := r.db.handler.ExecContext(ctx, query, args...)
 	if err != nil {
 		return nil, errors.Wrap(err, "error executing query")
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return nil, errors.Wrap(err, "error getting rows affected")
+	}
+
+	if rowsAffected == 0 {
+		return nil, errors.New("no rows updated")
 	}
 
 	r.log.Debug().Msgf("download_client.update: %d", client.ID)
@@ -264,22 +278,37 @@ func (r *DownloadClientRepo) Delete(ctx context.Context, clientID int) error {
 		return err
 	}
 
-	defer tx.Rollback()
+	defer func() {
+		var txErr error
+		if p := recover(); p != nil {
+			txErr = tx.Rollback()
+			if txErr != nil {
+				r.log.Error().Err(txErr).Msg("error rolling back transaction")
+			}
+			r.log.Error().Msgf("something went terribly wrong panic: %v", p)
+		} else if err != nil {
+			txErr = tx.Rollback()
+			if txErr != nil {
+				r.log.Error().Err(txErr).Msg("error rolling back transaction")
+			}
+		} else {
+			// All good, commit
+			txErr = tx.Commit()
+			if txErr != nil {
+				r.log.Error().Err(txErr).Msg("error committing transaction")
+			}
+		}
+	}()
 
-	if err := r.delete(ctx, tx, clientID); err != nil {
+	if err = r.delete(ctx, tx, clientID); err != nil {
 		return errors.Wrap(err, "error deleting download client: %d", clientID)
 	}
 
-	if err := r.deleteClientFromAction(ctx, tx, clientID); err != nil {
+	if err = r.deleteClientFromAction(ctx, tx, clientID); err != nil {
 		return errors.Wrap(err, "error deleting download client: %d", clientID)
 	}
 
-	if err := tx.Commit(); err != nil {
-		return errors.Wrap(err, "error deleting download client: %d", clientID)
-	}
-
-	r.log.Info().Msgf("delete download client: %d", clientID)
-
+	r.log.Debug().Msgf("delete download client: %d", clientID)
 	return nil
 }
 

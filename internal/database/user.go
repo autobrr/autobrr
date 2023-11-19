@@ -122,3 +122,26 @@ func (r *UserRepo) Update(ctx context.Context, user domain.User) error {
 
 	return err
 }
+
+func (r *UserRepo) Delete(ctx context.Context, username string) error {
+
+	queryBuilder := r.db.squirrel.
+		Delete("users").
+		Where(sq.Eq{"username": username})
+
+	query, args, err := queryBuilder.ToSql()
+	if err != nil {
+		return errors.Wrap(err, "error building query")
+	}
+
+	// Execute the query.
+	_, err = r.db.handler.ExecContext(ctx, query, args...)
+	if err != nil {
+		return errors.Wrap(err, "error executing query")
+	}
+
+	// Log the deletion.
+	r.log.Debug().Msgf("user.delete: successfully deleted user: %s", username)
+
+	return nil
+}

@@ -29,4 +29,4 @@ export const SectionLoader = ({ $size }: SectionLoaderProps) => {
       <RingResizeSpinner className={classNames(SIZE[$size], "text-blue-500")} />
     );
   }
-}
+};
