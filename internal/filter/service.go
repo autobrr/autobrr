@@ -13,14 +13,17 @@ import (
 	"os"
 	"os/exec"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/internal/indexer"
 	"github.com/autobrr/autobrr/internal/logger"
+	"github.com/autobrr/autobrr/internal/utils"
 	"github.com/autobrr/autobrr/pkg/errors"
 
+	"github.com/avast/retry-go/v4"
 	"github.com/dustin/go-humanize"
 	"github.com/mattn/go-shellwords"
 	"github.com/rs/zerolog"
@@ -705,13 +708,6 @@ func (s *service) webhook(ctx context.Context, external domain.FilterExternal, r
 		return 0, errors.Wrap(err, "could not build request for webhook")
 	}
 
-	if external.WebhookData != "" && dataArgs != "" {
-		req, err = http.NewRequestWithContext(ctx, method, external.WebhookHost, bytes.NewBufferString(dataArgs))
-		if err != nil {
-			return 0, errors.Wrap(err, "could not build request for webhook")
-		}
-	}
-
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("User-Agent", "autobrr")
 
@@ -730,25 +726,58 @@ func (s *service) webhook(ctx context.Context, external domain.FilterExternal, r
 		}
 	}
 
+	var opts []retry.Option
+
+	opts = append(opts, retry.DelayType(retry.FixedDelay))
+	opts = append(opts, retry.LastErrorOnly(true))
+
+	if external.WebhookRetryAttempts > 0 {
+		opts = append(opts, retry.Attempts(uint(external.WebhookRetryAttempts)))
+	}
+	if external.WebhookRetryDelaySeconds > 0 {
+		opts = append(opts, retry.Delay(time.Duration(external.WebhookRetryDelaySeconds)*time.Second))
+	}
+
+	var retryStatusCodes []string
+	if external.WebhookRetryStatus != "" {
+		retryStatusCodes = strings.Split(strings.ReplaceAll(external.WebhookRetryStatus, " ", ""), ",")
+	}
+
 	start := time.Now()
 
-	res, err := client.Do(req)
-	if err != nil {
-		return 0, errors.Wrap(err, "could not make request for webhook")
-	}
+	statusCode, err := retry.DoWithData(
+		func() (int, error) {
+			clonereq := req.Clone(ctx)
+			if external.WebhookData != "" && dataArgs != "" {
+				clonereq.Body = io.NopCloser(bytes.NewBufferString(dataArgs))
+			}
+			res, err := client.Do(clonereq)
+			if err != nil {
+				return 0, errors.Wrap(err, "could not make request for webhook")
+			}
 
-	defer res.Body.Close()
+			defer res.Body.Close()
 
-	body, err := io.ReadAll(res.Body)
-	if err != nil {
-		return 0, errors.Wrap(err, "could not read request body")
-	}
+			s.log.Debug().Msgf("filter external webhook response status: %d", res.StatusCode)
 
-	if len(body) > 0 {
-		s.log.Debug().Msgf("filter external webhook response status: %d body: %s", res.StatusCode, body)
-	}
+			body, err := io.ReadAll(res.Body)
+			if err != nil {
+				return res.StatusCode, errors.Wrap(err, "could not read request body")
+			}
+
+			if len(body) > 0 {
+				s.log.Debug().Msgf("filter external webhook response status: %d body: %s", res.StatusCode, body)
+			}
+
+			if utils.StrSliceContains(retryStatusCodes, strconv.Itoa(res.StatusCode)) {
+				return 0, errors.New("webhook got unwanted status code: %d", res.StatusCode)
+			}
+
+			return res.StatusCode, nil
+		},
+		opts...)
 
 	s.log.Debug().Msgf("successfully ran external webhook filter to: (%s) payload: (%s) finished in %s", external.WebhookHost, dataArgs, time.Since(start))
 
-	return res.StatusCode, nil
+	return statusCode, err
 }

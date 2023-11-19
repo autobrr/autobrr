@@ -11,7 +11,7 @@ protocol: torrent
 supports:
   - irc
   - rss
-source: UNIT3D
+# source: UNIT3D
 settings:
   - name: rsskey
     type: secret
@@ -45,8 +45,16 @@ irc:
   parse:
     type: single
     lines:
-      - test:
-          - "New: This.Is.A.New.show.S00E00.720p.WEB.H264-Test .:. Category: TV/HD .:. Size: 706.15 MiB .:. URL:  https://www.torrentseeds.org/torrents/0000000 .:. Uploaded by: George."
+      - tests:
+        - line: 'New: This.Is.A.New.show.S00E00.720p.WEB.H264-Test .:. Category: TV/HD .:. Size: 706.15 MiB .:. URL:  https://www.torrentseeds.org/torrents/0000000 .:. Uploaded by: George.'
+          expect:
+            torrentName: This.Is.A.New.show.S00E00.720p.WEB.H264-Test
+            category: TV/HD
+            torrentSize: 706.15 MiB
+            baseUrl: https://www.torrentseeds.org/
+            torrentId: "0000000"
+            uploader: George
+            freeleech: ""
         pattern: 'New: (.+) \.:\. Category: (.+) \.:\. Size: (.+) \.:\. URL:  (https?\:\/\/.+\/).+/(\d+) \.:\. Uploaded by: (\w+)\s?(FREELEECH)?.*'
         vars:
           - torrentName

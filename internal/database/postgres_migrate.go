@@ -133,21 +133,24 @@ CREATE TABLE filter
 
 CREATE TABLE filter_external
 (
-	id                      SERIAL PRIMARY KEY,
-	name                    TEXT     NOT NULL,
-	idx                     INTEGER,
-	type                    TEXT,
-	enabled                 BOOLEAN,
-	exec_cmd                TEXT,
-	exec_args               TEXT,
-	exec_expect_status      INTEGER,
-	webhook_host            TEXT,
-	webhook_method          TEXT,
-	webhook_data            TEXT,
-	webhook_headers         TEXT,
-	webhook_expect_status   INTEGER,
-	filter_id               INTEGER NOT NULL,
-	FOREIGN KEY (filter_id) REFERENCES filter(id) ON DELETE CASCADE
+    id                                  SERIAL PRIMARY KEY,
+    name                                TEXT     NOT NULL,
+    idx                                 INTEGER,
+    type                                TEXT,
+    enabled                             BOOLEAN,
+    exec_cmd                            TEXT,
+    exec_args                           TEXT,
+    exec_expect_status                  INTEGER,
+    webhook_host                        TEXT,
+    webhook_method                      TEXT,
+    webhook_data                        TEXT,
+    webhook_headers                     TEXT,
+    webhook_expect_status               INTEGER,
+    webhook_retry_status                TEXT,
+    webhook_retry_attempts              INTEGER,
+    webhook_retry_delay_seconds         INTEGER,
+    filter_id                           INTEGER NOT NULL,
+    FOREIGN KEY (filter_id)             REFERENCES filter(id) ON DELETE CASCADE
 );
 
 CREATE TABLE filter_indexer
@@ -797,5 +800,32 @@ CREATE INDEX feed_cache_feed_id_key_index
 `,
 	`ALTER TABLE action
 ADD COLUMN external_client_id INTEGER;
+`,
+	`ALTER TABLE filter_external
+ADD COLUMN external_webhook_retry_status TEXT;
+
+ALTER TABLE filter_external
+	ADD COLUMN external_webhook_retry_attempts INTEGER;
+
+ALTER TABLE filter_external
+	ADD COLUMN external_webhook_retry_delay_seconds INTEGER;
+
+ALTER TABLE filter_external
+	ADD COLUMN external_webhook_retry_max_jitter_seconds INTEGER;
+`,
+	`ALTER TABLE filter_external
+    RENAME COLUMN external_webhook_retry_status TO webhook_retry_status;
+
+ALTER TABLE filter_external
+    RENAME COLUMN external_webhook_retry_attempts TO webhook_retry_attempts;
+
+ALTER TABLE filter_external
+    RENAME COLUMN external_webhook_retry_delay_seconds TO webhook_retry_delay_seconds;
+
+ALTER TABLE filter_external
+    RENAME COLUMN external_webhook_retry_max_jitter_seconds TO webhook_retry_max_jitter_seconds;
+`,
+	`ALTER TABLE filter_external
+	DROP COLUMN IF EXISTS webhook_retry_max_jitter_seconds;
 `,
 }

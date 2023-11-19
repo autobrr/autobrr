@@ -11,7 +11,7 @@ protocol: torrent
 supports:
   - irc
   - rss
-source: gazelle
+# source: gazelle
 settings:
   - name: torrent_pass
     type: text
@@ -57,9 +57,23 @@ irc:
   parse:
     type: single
     lines:
-      - test:
-          - "TORRENT: TheBestMacApp.X.4.10.6.macOS (Applications)  - utility - https://ianon.app/torrents.php?id=1323 / https://ianon.app/torrents.php?action=download&id=1323"
-          - "TORRENT: MasterClass - Issa Rae Teaches Creating Outside the Lines (Tutorials)  - freeleech,learning,tutorials,video - https://ianon.app/torrents.php?id=2414 / https://ianon.app/torrents.php?action=download&id=2423"
+      - tests:
+        - line: 'TORRENT: TheBestMacApp.X.4.10.6.macOS (Applications)  - utility - https://ianon.app/torrents.php?id=1323 / https://ianon.app/torrents.php?action=download&id=1323'
+          expect:
+            torrentName: TheBestMacApp.X.4.10.6.macOS
+            category: Applications
+            freeleech: ""
+            tags: utility
+            baseUrl: https://ianon.app/
+            torrentId: "1323"
+        - line: 'TORRENT: MasterClass - Issa Rae Teaches Creating Outside the Lines (Tutorials)  - freeleech,learning,tutorials,video - https://ianon.app/torrents.php?id=2414 / https://ianon.app/torrents.php?action=download&id=2423'
+          expect:
+            torrentName: MasterClass - Issa Rae Teaches Creating Outside the Lines
+            category: Tutorials
+            freeleech: freeleech
+            tags: learning,tutorials,video
+            baseUrl: https://ianon.app/
+            torrentId: "2423"
         pattern: 'TORRENT: (.*) \((.*)\)\s+?. (freeleech)?,?(.*) . https:\/\/.*\/.*id=\d+ \/ (https:\/\/.*\/).*action=download&id=(.+)'
         vars:
           - torrentName

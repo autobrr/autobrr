@@ -11,7 +11,7 @@ protocol: torrent
 supports:
   - irc
   - rss
-source: UNIT3D
+# source: UNIT3D
 settings:
   - name: rsskey
     type: secret
@@ -50,8 +50,18 @@ irc:
   parse:
     type: single
     lines:
-      - test:
-          - "Category [Movies] Type [Encode] Name [The best movie 2015 1080p BluRay FLAC 5.1 x264-GROUP] Freeleech [100%] Double Upload [Yes] Size [7.22 GB] Uploader [anon] Url [https://skipthetrailers.xyz/torrent/download/00000]"
+      - tests:
+        - line: Category [Movies] Type [Encode] Name [The best movie 2015 1080p BluRay FLAC 5.1 x264-GROUP] Freeleech [100%] Double Upload [Yes] Size [7.22 GB] Uploader [anon] Url [https://skipthetrailers.xyz/torrent/download/00000]
+          expect:
+            category: Movies
+            releaseTags: Encode
+            torrentName: The best movie 2015 1080p BluRay FLAC 5.1 x264-GROUP
+            freeleechPercent: 100%
+            tags: "Yes"
+            torrentSize: 7.22 GB
+            uploader: anon
+            baseUrl: https://skipthetrailers.xyz/
+            torrentId: "00000"
         pattern: 'Category \[(.+)\] Type \[(.+)\] Name \[(.+?)\] Freeleech \[(.+)\] Double Upload \[(.+)\] Size \[(.+)\] Uploader \[(.+)\] Url \[(https?\:\/\/.+\/).+\/.+\/(\d+)\]'
         vars:
           - category

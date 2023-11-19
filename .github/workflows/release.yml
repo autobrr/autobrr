@@ -24,7 +24,7 @@ jobs:
           fetch-depth: 0
 
       - name: Set up Node
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: '18.17.0'
 
@@ -33,7 +33,7 @@ jobs:
 
       # It can not be done before enable corepack
       - name: Set up cache
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           cache: pnpm
           cache-dependency-path: web/pnpm-lock.yaml
@@ -55,6 +55,16 @@ jobs:
   test:
     name: Test
     runs-on: ubuntu-latest
+    services:
+      test_postgres:
+        image: postgres:12.10
+        ports:
+          - "5437:5432"
+        env:
+          POSTGRES_USER: testdb
+          POSTGRES_PASSWORD: testdb
+          POSTGRES_DB: autobrr
+        options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -111,6 +121,9 @@ jobs:
           path: |
             dist/*.tar.gz
             dist/*.zip
+            dist/*.apk
+            dist/*.deb
+            dist/*.rpm
 
   goreleaser:
     name: Build and publish binaries
@@ -152,6 +165,9 @@ jobs:
           path: |
             dist/*.tar.gz
             dist/*.zip
+            dist/*.apk
+            dist/*.deb
+            dist/*.rpm
 
   docker:
     name: Build and publish Docker images

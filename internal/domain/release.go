@@ -656,7 +656,7 @@ func (r *Release) MapVars(def *IndexerDefinition, varMap map[string]string) erro
 	}
 
 	if freeleech, err := getStringMapValue(varMap, "freeleech"); err == nil {
-		fl := StringEqualFoldMulti(freeleech, "freeleech", "yes", "1", "VIP")
+		fl := StringEqualFoldMulti(freeleech, "freeleech", "freeleech!", "yes", "1", "VIP")
 		if fl {
 			r.Freeleech = true
 			// default to 100 and override if freeleechPercent is present in next function
@@ -666,6 +666,15 @@ func (r *Release) MapVars(def *IndexerDefinition, varMap map[string]string) erro
 	}
 
 	if freeleechPercent, err := getStringMapValue(varMap, "freeleechPercent"); err == nil {
+		// special handling for BHD to map their freeleech into percent
+		if def.Identifier == "beyondhd" {
+			if freeleechPercent == "Capped FL" {
+				freeleechPercent = "100%"
+			} else if strings.Contains(freeleechPercent, "% FL") {
+				freeleechPercent = strings.Replace(freeleechPercent, " FL", "", -1)
+			}
+		}
+
 		// remove % and trim spaces
 		freeleechPercent = strings.Replace(freeleechPercent, "%", "", -1)
 		freeleechPercent = strings.Trim(freeleechPercent, " ")

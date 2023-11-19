@@ -41,7 +41,7 @@ type RSSJob struct {
 	JobID int
 }
 
-func NewRSSJob(feed *domain.Feed, name string, indexerIdentifier string, log zerolog.Logger, url string, repo domain.FeedRepo, cacheRepo domain.FeedCacheRepo, releaseSvc release.Service, timeout time.Duration) *RSSJob {
+func NewRSSJob(feed *domain.Feed, name string, indexerIdentifier string, log zerolog.Logger, url string, repo domain.FeedRepo, cacheRepo domain.FeedCacheRepo, releaseSvc release.Service, timeout time.Duration) FeedJob {
 	return &RSSJob{
 		Feed:              feed,
 		Name:              name,
@@ -58,15 +58,23 @@ func NewRSSJob(feed *domain.Feed, name string, indexerIdentifier string, log zer
 func (j *RSSJob) Run() {
 	ctx := context.Background()
 
-	if err := j.process(ctx); err != nil {
-		j.Log.Error().Err(err).Int("attempts", j.attempts).Msg("rss feed process error")
+	if err := j.RunE(ctx); err != nil {
+		j.Log.Err(err).Int("attempts", j.attempts).Msg("rss feed process error")
 
 		j.errors = append(j.errors, err)
-		return
 	}
 
 	j.attempts = 0
-	j.errors = []error{}
+	j.errors = j.errors[:0]
+}
+
+func (j *RSSJob) RunE(ctx context.Context) error {
+	if err := j.process(ctx); err != nil {
+		j.Log.Err(err).Msg("rss feed process error")
+		return err
+	}
+
+	return nil
 }
 
 func (j *RSSJob) process(ctx context.Context) error {
@@ -251,9 +259,9 @@ func (j *RSSJob) getFeed(ctx context.Context) (items []*gofeed.Item, err error) 
 
 		key := item.GUID
 		if len(key) == 0 {
-			key = item.Title
+			key = item.Link
 			if len(key) == 0 {
-				continue
+				key = item.Title
 			}
 		}
 
@@ -271,7 +279,7 @@ func (j *RSSJob) getFeed(ctx context.Context) (items []*gofeed.Item, err error) 
 
 		toCache = append(toCache, domain.FeedCacheItem{
 			FeedId: strconv.Itoa(j.Feed.ID),
-			Key:    i.GUID,
+			Key:    key,
 			Value:  []byte(i.Title),
 			TTL:    ttl,
 		})

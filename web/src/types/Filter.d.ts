@@ -130,5 +130,8 @@ interface ExternalFilter {
   webhook_data?: string,
   webhook_headers?: string;
   webhook_expect_status?: number;
+  webhook_retry_status?: string,
+  webhook_retry_attempts?: number;
+  webhook_retry_delay_seconds?: number;
   filter_id?: number;
 }
