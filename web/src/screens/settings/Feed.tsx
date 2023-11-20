@@ -182,7 +182,7 @@ function ListItem({ feed }: ListItemProps) {
             setValue={toggleActive}
           />
         </div>
-        <div className="col-span-9 md:col-span-4 pl-10 sm:pl-12 py-3 flex flex-col text-sm font-medium text-gray-900 dark:text-white">
+        <div className="col-span-9 md:col-span-4 truncate mr-2 pl-10 sm:pl-12 py-3 flex flex-col text-sm font-medium text-gray-900 dark:text-white">
           <span>{feed.name}</span>
           <span className="pr-4 text-gray-900 dark:text-gray-500 text-xs truncate">
             {feed.indexer}
