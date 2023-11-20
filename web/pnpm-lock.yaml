@@ -118,6 +118,9 @@ devDependencies:
   '@types/react-portal':
     specifier: ^4.0.6
     version: 4.0.6
+  '@types/react-table':
+    specifier: ^7.7.18
+    version: 7.7.18
   '@typescript-eslint/eslint-plugin':
     specifier: ^6.11.0
     version: 6.11.0(@typescript-eslint/parser@6.11.0)(eslint@8.54.0)(typescript@5.2.2)
@@ -2358,6 +2361,12 @@ packages:
 
   /@types/react-portal@4.0.6:
     resolution: {integrity: sha512-XUO/XRxovs50Hkfoant04x4AzDOE1ivJNKN/6QzNhH/37NpbWGFFGKFI1ZHOBU+wACPyj3V1A/XgEJkzoTQ7KQ==}
+    dependencies:
+      '@types/react': 18.2.37
+    dev: true
+
+  /@types/react-table@7.7.18:
+    resolution: {integrity: sha512-OncztdDERQ35pjcQCpNoQe8KPOE8Rg2Ox4PlZHMGNgHTEaM1JyT2lWfNNbj2sCnOtQOHrOH7SzUnGUAXzqdksg==}
     dependencies:
       '@types/react': 18.2.37
     dev: true
