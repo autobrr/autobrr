@@ -49,7 +49,7 @@ export const Logs = () => {
 
   const [logs, setLogs] = useState<LogEvent[]>([]);
   const [searchFilter, setSearchFilter] = useState("");
-  const [_regexPattern, setRegexPattern] = useState<RegExp | null>(null);
+  const [, setRegexPattern] = useState<RegExp | null>(null);
   const [filteredLogs, setFilteredLogs] = useState<LogEvent[]>([]);
   const [isInvalidRegex, setIsInvalidRegex] = useState(false);
 
