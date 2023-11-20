@@ -601,10 +601,6 @@ function TestApiButton({ values, show }: TestApiButtonProps) {
   const [isSuccessfulTest, setIsSuccessfulTest] = useState(false);
   const [isErrorTest, setIsErrorTest] = useState(false);
 
-  if (!show) {
-    return null;
-  }
-
   const testApiMutation = useMutation({
     mutationFn: (req: IndexerTestApiReq) => APIClient.indexers.testApi(req),
     onMutate: () => {
@@ -638,6 +634,10 @@ function TestApiButton({ values, show }: TestApiButtonProps) {
   });
 
   const testApi = () => {
+    if (!show) {
+      return;
+    }
+
     const req: IndexerTestApiReq = {
       id: values.id,
       api_key: values.settings.api_key
@@ -650,6 +650,9 @@ function TestApiButton({ values, show }: TestApiButtonProps) {
     testApiMutation.mutate(req);
   };
 
+  if (!show) {
+    return null;
+  }
 
   return (
     <button
