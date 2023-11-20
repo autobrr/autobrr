@@ -93,14 +93,15 @@ export async function HttpClient<T = unknown>(
     return Promise.reject(new Error(`[401] Unauthorized: "${endpoint}"`));
   case 404:
     return Promise.reject(new Error(`[404] Not found: "${endpoint}"`));
-  case 500:
+  case 500: {
     const health = await window.fetch(`${baseUrl()}api/healthz/liveness`);
     if (!health.ok) {
       return Promise.reject(
-        new Error(`[500] Offline (Internal server error): "${endpoint}"`, { cause: "OFFLINE" })
+        new Error(`[500] Offline (Internal server error): "${endpoint}"`)
       );
     }
     break;
+  }
   default:
     break;
   }
