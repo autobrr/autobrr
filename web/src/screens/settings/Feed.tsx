@@ -42,6 +42,10 @@ interface SortConfig {
   direction: "ascending" | "descending";
 }
 
+const isErrorWithMessage = (error: unknown): error is { message: string } => {
+  return typeof error === 'object' && error !== null && 'message' in error;
+};
+
 function useSort(items: ListItemProps["feed"][], config?: SortConfig) {
   const [sortConfig, setSortConfig] = useState(config);
 
@@ -257,8 +261,13 @@ const FeedItemDropdown = ({
       toast.custom((t) => <Toast type="success" body={`Feed ${feed?.name} was force run successfully.`} t={t} />);
       toggleForceRunModal(); 
     },
-    onError: (error: any) => {
-      toast.custom((t) => <Toast type="error" body={`Failed to force run ${feed?.name}. Error: ${error.message}`} t={t} />, {
+    onError: (error: unknown) => {
+      let errorMessage = 'An unknown error occurred';
+      if (isErrorWithMessage(error)) {
+        errorMessage = error.message;
+      }
+
+      toast.custom((t) => <Toast type="error" body={`Failed to force run ${feed?.name}. Error: ${errorMessage}`} t={t} />, {
         duration: 10000
       });    
       toggleForceRunModal(); 
