@@ -24,7 +24,7 @@ window.Buffer = Buffer;
 // Initializes auth and theme contexts
 InitializeGlobalContext();
 
-// eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+ 
 const root = createRoot(document.getElementById("root")!);
 root.render(
   <StrictMode>

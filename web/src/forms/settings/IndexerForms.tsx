@@ -13,7 +13,7 @@ import { XMarkIcon } from "@heroicons/react/24/solid";
 import { Dialog, Transition } from "@headlessui/react";
 
 import { classNames, sleep } from "@utils";
-import DEBUG from "@components/debug";
+import { DEBUG } from "@components/debug";
 import { APIClient } from "@api/APIClient";
 import { SlideOver } from "@components/panels";
 import Toast from "@components/notifications/Toast";
@@ -35,7 +35,7 @@ function validateField(s: IndexerSetting) {
           return "Default value, please edit";
         }
       }
-      return !!value ? undefined : "Required";
+      return value ? undefined : "Required";
     }
   };
 }
