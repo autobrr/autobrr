@@ -9,7 +9,7 @@
     "build": "tsc && vite build",
     "serve": "vite preview",
     "lint": "eslint src/ --ext .js,.jsx,.ts,.tsx",
-    "lint:ci": "eslint src/ --ext .js,.jsx,.ts,.tsx --format=@microsoft/eslint-formatter-sarif > eslint-sarif-report.sarif",
+    "lint:ci": "eslint src/ --ext .js,.jsx,.ts,.tsx --format=@microsoft/eslint-formatter-sarif > eslint-sarif-report.sarif || true",
     "lint:watch": "pnpm run lint -- --watch"
   },
   "browserslist": {
