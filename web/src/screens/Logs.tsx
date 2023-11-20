@@ -61,7 +61,7 @@ export const Logs = () => {
     };
     if (settings.scrollOnNewLog)
       scrollToBottom();
-  }, [filteredLogs]);
+  }, [filteredLogs, settings.scrollOnNewLog]);
 
   // Add a useEffect to clear logs div when settings.scrollOnNewLog changes to prevent duplicate entries.
   useEffect(() => {
