@@ -7,7 +7,6 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
-
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/internal/logger"
 	"github.com/autobrr/autobrr/pkg/errors"
@@ -402,15 +401,9 @@ func (r *ActionRepo) Delete(ctx context.Context, req *domain.DeleteActionRequest
 		return errors.Wrap(err, "error building query")
 	}
 
-	result, err := r.db.handler.ExecContext(ctx, query, args...)
+	_, err = r.db.handler.ExecContext(ctx, query, args...)
 	if err != nil {
 		return errors.Wrap(err, "error executing query")
-	}
-
-	if rowsAffected, err := result.RowsAffected(); err != nil {
-		return errors.Wrap(err, "error getting rows affected")
-	} else if rowsAffected == 0 {
-		return domain.ErrRecordNotFound
 	}
 
 	r.log.Debug().Msgf("action.delete: %v", req.ActionId)
@@ -428,15 +421,9 @@ func (r *ActionRepo) DeleteByFilterID(ctx context.Context, filterID int) error {
 		return errors.Wrap(err, "error building query")
 	}
 
-	result, err := r.db.handler.ExecContext(ctx, query, args...)
+	_, err = r.db.handler.ExecContext(ctx, query, args...)
 	if err != nil {
 		return errors.Wrap(err, "error executing query")
-	}
-
-	if rowsAffected, err := result.RowsAffected(); err != nil {
-		return errors.Wrap(err, "error getting rows affected")
-	} else if rowsAffected == 0 {
-		return domain.ErrRecordNotFound
 	}
 
 	r.log.Debug().Msgf("action.deleteByFilterID: %v", filterID)
