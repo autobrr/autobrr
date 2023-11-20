@@ -571,13 +571,9 @@ func (f Filter) isPerfectFLAC(r *Release) bool {
 	return true
 }
 
-// checkSizeFilter additional size check
-// for indexers that doesn't announce size, like some gazelle based
-// set flag r.AdditionalSizeCheckRequired if there's a size in the filter, otherwise go a head
-// implement API for ptp,btn,ggn to check for size if needed
-// for others pull down torrent and do check
+// checkSizeFilter compares the filter size limits to a release's size if it is
+// known from the announce line.
 func (f Filter) checkSizeFilter(r *Release, minSize string, maxSize string) bool {
-
 	if r.Size == 0 {
 		r.AdditionalSizeCheckRequired = true
 		return true
