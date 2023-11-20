@@ -112,6 +112,9 @@ devDependencies:
   '@types/react':
     specifier: ^18.2.37
     version: 18.2.37
+  '@types/react-dom':
+    specifier: ^18.2.15
+    version: 18.2.15
   '@types/react-portal':
     specifier: ^4.0.6
     version: 4.0.6
@@ -2346,6 +2349,12 @@ packages:
 
   /@types/prop-types@15.7.10:
     resolution: {integrity: sha512-mxSnDQxPqsZxmeShFH+uwQ4kO4gcJcGahjjMFeLbKE95IAZiiZyiEepGZjtXJ7hN/yfu0bu9xN2ajcU0JcxX6A==}
+
+  /@types/react-dom@18.2.15:
+    resolution: {integrity: sha512-HWMdW+7r7MR5+PZqJF6YFNSCtjz1T0dsvo/f1BV6HkV+6erD/nA7wd9NM00KVG83zf2nJ7uATPO9ttdIPvi3gg==}
+    dependencies:
+      '@types/react': 18.2.37
+    dev: true
 
   /@types/react-portal@4.0.6:
     resolution: {integrity: sha512-XUO/XRxovs50Hkfoant04x4AzDOE1ivJNKN/6QzNhH/37NpbWGFFGKFI1ZHOBU+wACPyj3V1A/XgEJkzoTQ7KQ==}
