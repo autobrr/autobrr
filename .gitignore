@@ -38,6 +38,7 @@ bin/
 dist/
 .run/
 tmp/
+web/eslint-sarif-report.sarif
 
 # Preserve files
 !.gitkeep

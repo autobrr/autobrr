@@ -72,6 +72,7 @@ jobs:
         run: pnpm run lint
 
       - name: Upload ESLint SARIF report
+        if: always()
         uses: github/codeql-action/upload-sarif@v2
         with:
           sarif_file: web/eslint-sarif-report.sarif
