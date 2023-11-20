@@ -146,14 +146,12 @@ func (s *service) GetDownloadsByFilterId(ctx context.Context, filterID int) (*do
 }
 
 func (s *service) Store(ctx context.Context, filter *domain.Filter) error {
-	err := filter.Validate()
-	if err != nil {
+	if err := filter.Validate(); err != nil {
 		s.log.Error().Err(err).Msgf("invalid filter: %v", filter)
 		return err
 	}
 
-	err = s.repo.Store(ctx, filter)
-	if err != nil {
+	if err := s.repo.Store(ctx, filter); err != nil {
 		s.log.Error().Err(err).Msgf("could not store filter: %v", filter)
 		return err
 	}
@@ -163,6 +161,7 @@ func (s *service) Store(ctx context.Context, filter *domain.Filter) error {
 
 func (s *service) Update(ctx context.Context, filter *domain.Filter) error {
 	if err := filter.Validate(); err != nil {
+		s.log.Error().Err(err).Msgf("invalid filter: %v", filter)
 		return err
 	}
 
