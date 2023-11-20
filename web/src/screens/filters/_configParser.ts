@@ -25,7 +25,7 @@ class ParserFilter {
     }
 
     switch (key) {
-    case "log_score":
+    case "log_score": {
       // In this case we need to set 2 properties in autobrr instead of only 1
       this.values["log"] = true;
 
@@ -35,6 +35,7 @@ class ParserFilter {
         value = value.slice(0, delim);
       }
       break;
+    }
     case "max_downloads_unit":
       value = value.toUpperCase();
       break;
@@ -44,7 +45,7 @@ class ParserFilter {
 
     if (key in CONST.FILTER_FIELDS) {
       switch (CONST.FILTER_FIELDS[key]) {
-      case "number":
+      case "number": {
         const parsedNum = parseFloat(value);
         this.values[key] = parsedNum;
 
@@ -53,8 +54,8 @@ class ParserFilter {
             `[Filter=${this.name}] Failed to convert field '${key}' to a number. Got value: '${value}'`
           );
         }
-
         break;
+      }
       case "boolean":
         this.values[key] = value.toLowerCase() === "true";
         break;
