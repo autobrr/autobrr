@@ -15,7 +15,7 @@ import { toast } from "react-hot-toast";
 import { APIClient } from "@api/APIClient";
 import { notificationKeys } from "@screens/settings/Notifications";
 import { EventOptions, NotificationTypeOptions, SelectOption } from "@domain/constants";
-import DEBUG from "@components/debug";
+import { DEBUG } from "@components/debug";
 import { SlideOver } from "@components/panels";
 import { ExternalLink } from "@components/ExternalLink";
 import Toast from "@components/notifications/Toast";
