@@ -66,7 +66,7 @@ module.exports = {
         "@typescript-eslint/semi": ["warn", "always"],
         indent: ["warn", 2, { "SwitchCase": 0 }],
         "@typescript-eslint/indent": "off",
-        "@typescript-eslint/comma-dangle": "warn",
+        "@typescript-eslint/comma-dangle": "error",
         "keyword-spacing": "off",
         "@typescript-eslint/keyword-spacing": ["error"],
         "object-curly-spacing": "off",
