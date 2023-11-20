@@ -456,13 +456,13 @@ func (s *service) AdditionalSizeCheck(ctx context.Context, f domain.Filter, rele
 	}
 
 	// compare size against filter
-	match, err := f.ReleaseSizeOkay(release.Size)
+	sizeErr, err := f.CheckReleaseSize(release.Size)
 	if err != nil {
 		s.log.Error().Stack().Err(err).Msgf("filter.Service.AdditionalSizeCheck: (%s) error checking extra size filter", f.Name)
 		return false, err
 	}
 	//no match, lets continue to next filter
-	if !match {
+	if sizeErr != nil {
 		s.log.Debug().Msgf("filter.Service.AdditionalSizeCheck: (%s) filter did not match after additional size check, trying next", f.Name)
 		return false, nil
 	}

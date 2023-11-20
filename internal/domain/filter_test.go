@@ -2160,13 +2160,13 @@ func Test_checkSizeFilter(t *testing.T) {
 	for _, tt := range tests {
 
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := tt.filter.ReleaseSizeOkay(tt.releaseSize)
+			checkErr, err := tt.filter.CheckReleaseSize(tt.releaseSize)
 			if err != nil != tt.wantErr {
 				t.Errorf("checkSizeFilter() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if got != tt.want {
-				t.Errorf("checkSizeFilter() got = %v, want %v", got, tt.want)
+			if checkErr == nil != tt.want {
+				t.Errorf("checkSizeFilter() got = %v, want %v", checkErr, tt.want)
 			}
 		})
 	}
