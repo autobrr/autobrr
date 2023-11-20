@@ -125,7 +125,7 @@ function FeedSettings() {
               Type <span className="sort-indicator">{sortedFeeds.getSortIndicator("type")}</span>
             </div>
             <div
-              className="hidden md:flex col-span-2 px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer"
+              className="hidden md:flex col-span-2 ml-4 px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer"
               onClick={() => sortedFeeds.requestSort("last_run")}>
               Last run <span className="sort-indicator">{sortedFeeds.getSortIndicator("last_run")}</span>
             </div>
@@ -182,7 +182,7 @@ function ListItem({ feed }: ListItemProps) {
             setValue={toggleActive}
           />
         </div>
-        <div className="col-span-8 sm:col-span-5 pl-10 sm:pl-12 py-3 flex flex-col text-sm font-medium text-gray-900 dark:text-white">
+        <div className="col-span-8 sm:col-span-5 mr-2 overflow-hidden truncate pl-10 sm:pl-12 py-3 flex flex-col text-sm font-medium text-gray-900 dark:text-white">
           <span>{feed.name}</span>
           <span className="text-gray-900 dark:text-gray-500 text-xs">
             {feed.indexer}
@@ -191,7 +191,7 @@ function ListItem({ feed }: ListItemProps) {
         <div className="hidden md:flex col-span-1 py-3 items-center">
           {ImplementationBadges[feed.type.toLowerCase()]}
         </div>
-        <div className="hidden md:flex col-span-2 py-3 items-center sm:px-4 text-sm font-medium text-gray-900 dark:text-gray-500">
+        <div className="hidden md:flex col-span-2 ml-4 py-3 items-center sm:px-4 text-sm font-medium text-gray-900 dark:text-gray-500">
           <span title={simplifyDate(feed.last_run)}>
             {IsEmptyDate(feed.last_run)}
           </span>
