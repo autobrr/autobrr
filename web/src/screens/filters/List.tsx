@@ -62,12 +62,6 @@ type Actions =
   | { type: ActionType.INDEXER_FILTER_CHANGE; payload: string[] }
   | { type: ActionType.INDEXER_FILTER_RESET; payload: [] };
 
-type DispatchFunction = (action: Actions) => void;
-
-interface IndexerSelectFilterProps {
-  dispatch: DispatchFunction;
-}
-
 const FilterListReducer = (state: FilterListState, action: Actions): FilterListState => {
   switch (action.type) {
   case ActionType.INDEXER_FILTER_CHANGE:
@@ -86,10 +80,6 @@ const FilterListReducer = (state: FilterListState, action: Actions): FilterListS
     throw new Error(`Unhandled action type: ${action}`);
   }
 };
-
-interface FilterListProps {
-  toggleCreateFilter: () => void;
-}
 
 export function Filters() {
   const [createFilterIsOpen, setCreateFilterIsOpen] = useState(false);
@@ -187,7 +177,7 @@ function filteredData(data: Filter[], status: string) {
   };
 }
 
-function FilterList({ toggleCreateFilter }: FilterListProps) {
+function FilterList({ toggleCreateFilter }: any) {
   const filterListState = FilterListContext.useValue();
 
   const [{ indexerFilter, sortOrder, status }, dispatchFilter] = useReducer(
@@ -295,20 +285,20 @@ const FilterItemDropdown = ({ filter, onToggle }: FilterItemDropdownProps) => {
         name: string;
         created_at: Date;
         updated_at: Date;
-        indexers: Indexer[];
-        actions: Action[];
-        actions_count: number;
-        external_script_enabled: boolean;
-        external_script_cmd: string;
-        external_script_args: string;
-        external_script_expect_status: number;
-        external_webhook_enabled: boolean;
-        external_webhook_host: string;
-        external_webhook_data: string;
-        external_webhook_expect_status: number;
-        external_webhook_retry_status: string;
-        external_webhook_retry_attempts: number;
-        external_webhook_retry_delay_seconds: number;
+        indexers: any;
+        actions: any;
+        actions_count: any;
+        external_script_enabled: any;
+        external_script_cmd: any;
+        external_script_args: any;
+        external_script_expect_status: any;
+        external_webhook_enabled: any;
+        external_webhook_host: any;
+        external_webhook_data: any;
+        external_webhook_expect_status: any;
+        external_webhook_retry_status: any;
+        external_webhook_retry_attempts: any;
+        external_webhook_retry_delay_seconds: any;
       };
 
       const completeFilter = await APIClient.filters.getByID(filter.id) as Partial<CompleteFilterType>;
@@ -772,7 +762,7 @@ const ListboxFilter = ({
 );
 
 // a unique option from a list
-const IndexerSelectFilter = ({ dispatch }: IndexerSelectFilterProps) => {
+const IndexerSelectFilter = ({ dispatch }: any) => {
   const { data, isSuccess } = useQuery({
     queryKey: ["filters", "indexers_options"],
     queryFn: () => APIClient.indexers.getOptions(),
@@ -838,7 +828,7 @@ const FilterOption = ({ label, value }: FilterOptionProps) => (
   </Listbox.Option>
 );
 
-export const SortSelectFilter = ({ dispatch }: IndexerSelectFilterProps) => {
+export const SortSelectFilter = ({ dispatch }: any) => {
   const setFilter = (value: string) => {
     if (value == undefined || value == "") {
       dispatch({ type: ActionType.SORT_ORDER_RESET, payload: "" });
