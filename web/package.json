@@ -4,7 +4,7 @@
   "type": "module",
   "private": true,
   "homepage": ".",
-  "packageManager": "pnpm@8.7.0",
+  "packageManager": "pnpm@8.10.5",
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
@@ -52,7 +52,7 @@
     "react-popper-tooltip": "^4.4.2",
     "react-portal": "^4.2.2",
     "react-ridge-state": "4.2.9",
-    "react-router-dom": "^6.19.0",
+    "react-router-dom": "6.18.0",
     "react-select": "^5.8.0",
     "react-table": "^7.8.0",
     "react-textarea-autosize": "^8.5.3",

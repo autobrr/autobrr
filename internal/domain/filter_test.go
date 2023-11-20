@@ -2114,3 +2114,60 @@ func Test_matchRegex(t *testing.T) {
 		})
 	}
 }
+
+func Test_validation(t *testing.T) {
+	tests := []struct {
+		name   string
+		filter Filter
+		valid  bool
+	}{
+		{name: "empty name", filter: Filter{}, valid: false},
+		{name: "empty filter, with name", filter: Filter{Name: "test"}, valid: true},
+		{name: "valid size limit", filter: Filter{Name: "test", MaxSize: "12MB"}, valid: true},
+		{name: "gibberish max size limit", filter: Filter{Name: "test", MaxSize: "asdf"}, valid: false},
+		{name: "gibberish min size limit", filter: Filter{Name: "test", MinSize: "qwerty"}, valid: false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equalf(t, tt.valid, tt.filter.Validate() == nil, "validation error \"%+v\" in test case %s", tt.filter.Validate(), tt.filter.Name)
+		})
+	}
+}
+
+func Test_checkSizeFilter(t *testing.T) {
+	type args struct {
+		minSize     string
+		maxSize     string
+		releaseSize uint64
+	}
+	tests := []struct {
+		name        string
+		filter      Filter
+		releaseSize uint64
+		want        bool
+		wantErr     bool
+	}{
+		{name: "test_1", filter: Filter{MinSize: "1GB", MaxSize: ""}, releaseSize: 100, want: false, wantErr: false},
+		{name: "test_2", filter: Filter{MinSize: "1GB", MaxSize: ""}, releaseSize: 2000000000, want: true, wantErr: false},
+		{name: "test_3", filter: Filter{MinSize: "1GB", MaxSize: "2.2GB"}, releaseSize: 2000000000, want: true, wantErr: false},
+		{name: "test_4", filter: Filter{MinSize: "1GB", MaxSize: "2GIB"}, releaseSize: 2000000000, want: true, wantErr: false},
+		{name: "test_5", filter: Filter{MinSize: "1GB", MaxSize: "2GB"}, releaseSize: 2000000010, want: false, wantErr: false},
+		{name: "test_6", filter: Filter{MinSize: "1GB", MaxSize: "2GB"}, releaseSize: 2000000000, want: false, wantErr: false},
+		{name: "test_7", filter: Filter{MaxSize: "2GB"}, releaseSize: 2500000000, want: false, wantErr: false},
+		{name: "test_8", filter: Filter{MaxSize: "20GB"}, releaseSize: 2500000000, want: true, wantErr: false},
+		{name: "test_9", filter: Filter{MinSize: "unparseable", MaxSize: "20GB"}, releaseSize: 2500000000, want: false, wantErr: true},
+	}
+	for _, tt := range tests {
+
+		t.Run(tt.name, func(t *testing.T) {
+			checkErr, err := tt.filter.CheckReleaseSize(tt.releaseSize)
+			if err != nil != tt.wantErr {
+				t.Errorf("checkSizeFilter() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if checkErr == nil != tt.want {
+				t.Errorf("checkSizeFilter() got = %v, want %v", checkErr, tt.want)
+			}
+		})
+	}
+}
