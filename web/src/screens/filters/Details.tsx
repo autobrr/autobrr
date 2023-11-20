@@ -164,7 +164,7 @@ const FormErrorNotification = () => {
         />
       ));
     }
-  }, [isSubmitting, isValid, isValidating]);
+  }, [errors, isSubmitting, isValid, isValidating]);
 
   return null;
 };
