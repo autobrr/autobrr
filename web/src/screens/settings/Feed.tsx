@@ -110,22 +110,22 @@ function FeedSettings() {
         <ul className="min-w-full relative">
           <li className="grid grid-cols-12 border-b border-gray-200 dark:border-gray-700">
             <div
-              className="flex col-span-2 sm:col-span-1 pl-0 sm:pl-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer"
+              className="flex col-span-2 sm:col-span-1 pl-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer"
               onClick={() => sortedFeeds.requestSort("enabled")}>
               Enabled <span className="sort-indicator">{sortedFeeds.getSortIndicator("enabled")}</span>
             </div>
             <div
-              className="col-span-5 pl-10 sm:pl-12 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer"
+              className="col-span-4 pl-10 sm:pl-12 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer"
               onClick={() => sortedFeeds.requestSort("name")}>
               Name <span className="sort-indicator">{sortedFeeds.getSortIndicator("name")}</span>
             </div>
             <div
-              className="hidden md:flex col-span-1 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer"
+              className="hidden md:flex col-span-2 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer"
               onClick={() => sortedFeeds.requestSort("type")}>
               Type <span className="sort-indicator">{sortedFeeds.getSortIndicator("type")}</span>
             </div>
             <div
-              className="hidden md:flex col-span-2 ml-4 px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer"
+              className="hidden md:flex col-span-2 px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer"
               onClick={() => sortedFeeds.requestSort("last_run")}>
               Last run <span className="sort-indicator">{sortedFeeds.getSortIndicator("last_run")}</span>
             </div>
@@ -176,22 +176,22 @@ function ListItem({ feed }: ListItemProps) {
       <FeedUpdateForm isOpen={updateFormIsOpen} toggle={toggleUpdateForm} feed={feed} />
 
       <div className="grid grid-cols-12 items-center">
-        <div className="col-span-2 sm:col-span-1 pl-1 sm:pl-5 flex items-center">
+        <div className="col-span-2 sm:col-span-1 pl-6 flex items-center">
           <Checkbox
             value={feed.enabled}
             setValue={toggleActive}
           />
         </div>
-        <div className="col-span-8 sm:col-span-5 mr-2 overflow-hidden truncate pl-10 sm:pl-12 py-3 flex flex-col text-sm font-medium text-gray-900 dark:text-white">
+        <div className="col-span-9 md:col-span-4 pl-10 sm:pl-12 py-3 flex flex-col text-sm font-medium text-gray-900 dark:text-white">
           <span>{feed.name}</span>
-          <span className="text-gray-900 dark:text-gray-500 text-xs">
+          <span className="pr-4 text-gray-900 dark:text-gray-500 text-xs truncate">
             {feed.indexer}
           </span>
         </div>
-        <div className="hidden md:flex col-span-1 py-3 items-center">
+        <div className="hidden md:flex col-span-2 py-3 items-center">
           {ImplementationBadges[feed.type.toLowerCase()]}
         </div>
-        <div className="hidden md:flex col-span-2 ml-4 py-3 items-center sm:px-4 text-sm font-medium text-gray-900 dark:text-gray-500">
+        <div className="hidden md:flex col-span-2 py-3 items-center sm:px-4 text-sm font-medium text-gray-900 dark:text-gray-500">
           <span title={simplifyDate(feed.last_run)}>
             {IsEmptyDate(feed.last_run)}
           </span>
@@ -201,7 +201,7 @@ function ListItem({ feed }: ListItemProps) {
             {IsEmptyDate(feed.next_run)}
           </span>
         </div>
-        <div className="col-span-1 flex justify-center items-center sm:px-6">
+        <div className="col-span-1 md:col-span-1 sm:col-span-2 flex justify-center items-center md:px-6">
           <FeedItemDropdown
             feed={feed}
             onToggle={toggleActive}
