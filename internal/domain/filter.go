@@ -581,13 +581,9 @@ func (f Filter) checkSizeFilter(r *Release, minSize string, maxSize string) bool
 		r.AdditionalSizeCheckRequired = false
 	}
 
-	sizeErr, err := f.CheckReleaseSize(r.Size)
+	err := f.CheckReleaseSize(r.Size)
 	if err != nil {
 		r.addRejectionF("size: error checking release size against filter: %+v", err)
-		return false
-	}
-	if sizeErr != nil {
-		r.addRejectionF("%+v", sizeErr)
 		return false
 	}
 
@@ -923,21 +919,21 @@ func matchHDR(releaseValues []string, filterValues []string) bool {
 	return false
 }
 
-func (f Filter) CheckReleaseSize(releaseSize uint64) (sizeErr, err error) {
+func (f Filter) CheckReleaseSize(releaseSize uint64) error {
 	min, max, err := f.parsedSizeLimits()
 	if err != nil {
-		return err, err
+		return err
 	}
 
 	if min != nil && releaseSize <= *min {
-		return fmt.Errorf("release size %d bytes <= min size %d bytes", releaseSize, *min), nil
+		return fmt.Errorf("release size %d bytes <= min size %d bytes", releaseSize, *min)
 	}
 
 	if max != nil && releaseSize >= *max {
-		return fmt.Errorf("release size %d bytes <= max size %d bytes", releaseSize, *max), nil
+		return fmt.Errorf("release size %d bytes <= max size %d bytes", releaseSize, *max)
 	}
 
-	return nil, nil
+	return nil
 }
 
 // parsedSizeLimits parses filter bytes limits (expressed as a string) into a
