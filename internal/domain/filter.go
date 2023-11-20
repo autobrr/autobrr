@@ -5,6 +5,8 @@ package domain
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"regexp"
 	"strconv"
 	"strings"
@@ -241,6 +243,18 @@ type FilterUpdate struct {
 	Actions                          []*Action               `json:"actions,omitempty"`
 	External                         []FilterExternal        `json:"external,omitempty"`
 	Indexers                         []Indexer               `json:"indexers,omitempty"`
+}
+
+func (f Filter) Validate() error {
+	if f.Name == "" {
+		return errors.New("validation: name can't be empty")
+	}
+
+	if _, _, err := f.parsedSizeLimits(); err != nil {
+		return fmt.Errorf("error validating filter size limits: %w", err)
+	}
+
+	return nil
 }
 
 func (f Filter) CheckFilter(r *Release) ([]string, bool) {
@@ -557,50 +571,24 @@ func (f Filter) isPerfectFLAC(r *Release) bool {
 	return true
 }
 
-// checkSizeFilter additional size check
-// for indexers that doesn't announce size, like some gazelle based
-// set flag r.AdditionalSizeCheckRequired if there's a size in the filter, otherwise go a head
-// implement API for ptp,btn,ggn to check for size if needed
-// for others pull down torrent and do check
+// checkSizeFilter compares the filter size limits to a release's size if it is
+// known from the announce line.
 func (f Filter) checkSizeFilter(r *Release, minSize string, maxSize string) bool {
-
 	if r.Size == 0 {
 		r.AdditionalSizeCheckRequired = true
-
 		return true
 	} else {
 		r.AdditionalSizeCheckRequired = false
 	}
 
-	// if r.Size parse filter to bytes and compare
-	// handle both min and max
-	if minSize != "" {
-		// string to bytes
-		minSizeBytes, err := humanize.ParseBytes(minSize)
-		if err != nil {
-			r.addRejectionF("size: invalid minSize set: %s err: %q", minSize, err)
-			return false
-		}
-
-		if r.Size <= minSizeBytes {
-			r.addRejection("size: smaller than min size")
-			return false
-		}
-
+	sizeErr, err := f.CheckReleaseSize(r.Size)
+	if err != nil {
+		r.addRejectionF("size: error checking release size against filter: %+v", err)
+		return false
 	}
-
-	if maxSize != "" {
-		// string to bytes
-		maxSizeBytes, err := humanize.ParseBytes(maxSize)
-		if err != nil {
-			r.addRejectionF("size: invalid maxSize set: %s err: %q", maxSize, err)
-			return false
-		}
-
-		if r.Size >= maxSizeBytes {
-			r.addRejection("size: larger than max size")
-			return false
-		}
+	if sizeErr != nil {
+		r.addRejectionF("%+v", sizeErr)
+		return false
 	}
 
 	return true
@@ -933,4 +921,51 @@ func matchHDR(releaseValues []string, filterValues []string) bool {
 	}
 
 	return false
+}
+
+func (f Filter) CheckReleaseSize(releaseSize uint64) (sizeErr, err error) {
+	min, max, err := f.parsedSizeLimits()
+	if err != nil {
+		return err, err
+	}
+
+	if min != nil && releaseSize <= *min {
+		return fmt.Errorf("release size %d bytes <= min size %d bytes", releaseSize, *min), nil
+	}
+
+	if max != nil && releaseSize >= *max {
+		return fmt.Errorf("release size %d bytes <= max size %d bytes", releaseSize, *max), nil
+	}
+
+	return nil, nil
+}
+
+// parsedSizeLimits parses filter bytes limits (expressed as a string) into a
+// uint64 number of bytes. The bounds are returned as *uint64 number of bytes,
+// with "nil" representing "no limit". We break out filter size limit parsing
+// into a discrete step so that we can more easily check parsability at filter
+// creation time.
+func (f Filter) parsedSizeLimits() (*uint64, *uint64, error) {
+	min, err := parseBytes(f.MinSize)
+	if err != nil {
+		return nil, nil, fmt.Errorf("trouble parsing min size: %w", err)
+	}
+
+	max, err := parseBytes(f.MaxSize)
+	if err != nil {
+		return nil, nil, fmt.Errorf("trouble parsing max size: %w", err)
+	}
+
+	return min, max, nil
+}
+
+// parseBytes parses a string representation of a file size into a number of
+// bytes. It returns a *uint64 where "nil" represents "none" (corresponding to
+// the empty string)
+func parseBytes(s string) (*uint64, error) {
+	if s == "" {
+		return nil, nil
+	}
+	b, err := humanize.ParseBytes(s)
+	return &b, err
 }

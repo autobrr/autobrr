@@ -24,7 +24,6 @@ import (
 	"github.com/autobrr/autobrr/pkg/errors"
 
 	"github.com/avast/retry-go/v4"
-	"github.com/dustin/go-humanize"
 	"github.com/mattn/go-shellwords"
 	"github.com/rs/zerolog"
 )
@@ -113,20 +112,18 @@ func (s *service) ListFilters(ctx context.Context) ([]domain.Filter, error) {
 }
 
 func (s *service) FindByID(ctx context.Context, filterID int) (*domain.Filter, error) {
-	// find filter
 	filter, err := s.repo.FindByID(ctx, filterID)
 	if err != nil {
+		s.log.Error().Err(err).Msgf("could not find filter for id: %v", filterID)
 		return nil, err
 	}
 
-	// find actions and attach
 	actions, err := s.actionRepo.FindByFilterID(ctx, filter.ID)
 	if err != nil {
-		s.log.Error().Msgf("could not find filter actions for filter id: %v", filter.ID)
+		s.log.Error().Err(err).Msgf("could not find filter actions for filter id: %v", filter.ID)
 	}
 	filter.Actions = actions
 
-	// find indexers and attach
 	indexers, err := s.indexerSvc.FindByFilterID(ctx, filter.ID)
 	if err != nil {
 		s.log.Error().Err(err).Msgf("could not find indexers for filter: %v", filter.Name)
@@ -149,11 +146,12 @@ func (s *service) GetDownloadsByFilterId(ctx context.Context, filterID int) (*do
 }
 
 func (s *service) Store(ctx context.Context, filter *domain.Filter) error {
-	// validate data
+	if err := filter.Validate(); err != nil {
+		s.log.Error().Err(err).Msgf("invalid filter: %v", filter)
+		return err
+	}
 
-	// store
-	err := s.repo.Store(ctx, filter)
-	if err != nil {
+	if err := s.repo.Store(ctx, filter); err != nil {
 		s.log.Error().Err(err).Msgf("could not store filter: %v", filter)
 		return err
 	}
@@ -162,9 +160,9 @@ func (s *service) Store(ctx context.Context, filter *domain.Filter) error {
 }
 
 func (s *service) Update(ctx context.Context, filter *domain.Filter) error {
-	// validate data
-	if filter.Name == "" {
-		return errors.New("validation: name can't be empty")
+	if err := filter.Validate(); err != nil {
+		s.log.Error().Err(err).Msgf("invalid filter: %v", filter)
+		return err
 	}
 
 	// replace newline with comma
@@ -375,11 +373,9 @@ func (s *service) CheckFilter(ctx context.Context, f domain.Filter, release *dom
 
 		s.log.Debug().Msgf("filter.Service.CheckFilter: found and matched filter: %s", f.Name)
 
-		// Some indexers do not announce the size and if size (min,max) is set in a filter then it will need
-		// additional size check. Some indexers have api implemented to fetch this data and for the others
-		// it will download the torrent file to parse and make the size check. This is all to minimize the amount of downloads.
-
-		// do additional size check against indexer api or download torrent for size check
+		// If size constraints are set in a filter and the indexer did not
+		// announce the size, we need to do an additional out of band size
+		// check.
 		if release.AdditionalSizeCheckRequired {
 			s.log.Debug().Msgf("filter.Service.CheckFilter: (%s) additional size check required", f.Name)
 
@@ -416,10 +412,13 @@ func (s *service) CheckFilter(ctx context.Context, f domain.Filter, release *dom
 	return false, nil
 }
 
-// AdditionalSizeCheck
-// Some indexers do not announce the size and if size (min,max) is set in a filter then it will need
-// additional size check. Some indexers have api implemented to fetch this data and for the others
-// it will download the torrent file to parse and make the size check. This is all to minimize the amount of downloads.
+// AdditionalSizeCheck performs additional out of band checks to determine the
+// size of a torrent. Some indexers do not announce torrent size, so it is
+// necessary to determine the size of the torrent in some other way. Some
+// indexers have an API implemented to fetch this data. For those which don't,
+// it is necessary to download the torrent file and parse it to make the size
+// check. We use the API where available to minimize the number of torrents we
+// need to download.
 func (s *service) AdditionalSizeCheck(ctx context.Context, f domain.Filter, release *domain.Release) (bool, error) {
 	var err error
 	defer func() {
@@ -457,47 +456,15 @@ func (s *service) AdditionalSizeCheck(ctx context.Context, f domain.Filter, rele
 	}
 
 	// compare size against filter
-	match, err := checkSizeFilter(f.MinSize, f.MaxSize, release.Size)
+	sizeErr, err := f.CheckReleaseSize(release.Size)
 	if err != nil {
 		s.log.Error().Stack().Err(err).Msgf("filter.Service.AdditionalSizeCheck: (%s) error checking extra size filter", f.Name)
 		return false, err
 	}
 	//no match, lets continue to next filter
-	if !match {
+	if sizeErr != nil {
 		s.log.Debug().Msgf("filter.Service.AdditionalSizeCheck: (%s) filter did not match after additional size check, trying next", f.Name)
 		return false, nil
-	}
-
-	return true, nil
-}
-
-func checkSizeFilter(minSize string, maxSize string, releaseSize uint64) (bool, error) {
-	// handle both min and max
-	if minSize != "" {
-		// string to bytes
-		minSizeBytes, err := humanize.ParseBytes(minSize)
-		if err != nil {
-			// log could not parse into bytes
-		}
-
-		if releaseSize <= minSizeBytes {
-			//r.addRejection("size: smaller than min size")
-			return false, nil
-		}
-
-	}
-
-	if maxSize != "" {
-		// string to bytes
-		maxSizeBytes, err := humanize.ParseBytes(maxSize)
-		if err != nil {
-			// log could not parse into bytes
-		}
-
-		if releaseSize >= maxSizeBytes {
-			//r.addRejection("size: larger than max size")
-			return false, nil
-		}
 	}
 
 	return true, nil
