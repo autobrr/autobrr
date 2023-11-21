@@ -222,7 +222,7 @@ const externalFilterSchema = z.object({
   webhook_expect_status: z.number().optional(),
   webhook_retry_status: z.string().optional(),
   webhook_retry_attempts: z.number().optional(),
-  webhook_retry_delay_seconds: z.number().optional(),
+  webhook_retry_delay_seconds: z.number().optional()
 }).superRefine((value, ctx) => {
   if (!value.name) {
     ctx.addIssue({
@@ -292,14 +292,15 @@ export const FilterDetails = () => {
   // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
   const id = parseInt(filterId!);
 
-  const { isLoading, data: filter } = useQuery({
+  const { isLoading, isError, data: filter } = useQuery({
     queryKey: filterKeys.detail(id),
     queryFn: ({ queryKey }) => APIClient.filters.getByID(queryKey[2]),
-    refetchOnWindowFocus: false,
-    onError: () => {
-      navigate("/filters");
-    }
+    refetchOnWindowFocus: false
   });
+
+  if (isError) {
+    navigate("/filters");
+  }
 
   const updateMutation = useMutation({
     mutationFn: (filter: Filter) => APIClient.filters.update(filter),

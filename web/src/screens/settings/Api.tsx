@@ -30,13 +30,16 @@ export const apiKeys = {
 function APISettings() {
   const [addFormIsOpen, toggleAddForm] = useToggle(false);
 
-  const { data } = useQuery({
+  const { isError, error, data } = useQuery({
     queryKey: apiKeys.lists(),
     queryFn: APIClient.apikeys.getAll,
     retry: false,
-    refetchOnWindowFocus: false,
-    onError: (err) => console.log(err)
+    refetchOnWindowFocus: false
   });
+
+  if (isError) {
+    console.log(error);
+  }
 
   return (
     <Section
@@ -110,7 +113,7 @@ function APIListItem({ apikey }: ApiKeyItemProps) {
     <li className="text-gray-500 dark:text-gray-400">
       <DeleteModal
         isOpen={deleteModalIsOpen}
-        isLoading={deleteMutation.isLoading}
+        isLoading={deleteMutation.isPending}
         toggle={toggleDeleteModal}
         buttonRef={cancelModalButtonRef}
         deleteAction={() => {

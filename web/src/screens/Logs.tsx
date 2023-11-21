@@ -174,13 +174,16 @@ export const Logs = () => {
 };
 
 export const LogFiles = () => {
-  const { data } = useQuery({
+  const { isError, error, data } = useQuery({
     queryKey: ["log-files"],
     queryFn: () => APIClient.logs.files(),
     retry: false,
-    refetchOnWindowFocus: false,
-    onError: err => console.log(err)
+    refetchOnWindowFocus: false
   });
+
+  if (isError) {
+    console.log(error);
+  }
 
   return (
     <div>

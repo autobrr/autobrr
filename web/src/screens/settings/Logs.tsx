@@ -56,13 +56,16 @@ const SelectWrapper = ({ id, value, onChange, options }: SelectWrapperProps) => 
 );
 
 function LogSettings() {
-  const { isLoading, data } = useQuery({
+  const { isError, error, isLoading, data } = useQuery({
     queryKey: ["config"],
     queryFn: APIClient.config.get,
     retry: false,
-    refetchOnWindowFocus: false,
-    onError: err => console.log(err)
+    refetchOnWindowFocus: false
   });
+
+  if (isError) {
+    console.log(error);
+  }
 
   const queryClient = useQueryClient();
 
