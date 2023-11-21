@@ -46,8 +46,9 @@ const FilterListContextDefaults: FilterListState = {
   sortOrder: "",
   status: ""
 };
-// test
-function ContextMerger<T extends {}>( // test4
+
+// eslint-disable-next-line
+function ContextMerger<T extends {}>(
   key: string,
   defaults: T,
   ctxState: StateWithValue<T>
