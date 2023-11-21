@@ -4,7 +4,7 @@
  */
 
 import * as React from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, keepPreviousData } from "@tanstack/react-query";
 import { CellProps, Column, useFilters, usePagination, useSortBy, useTable } from "react-table";
 import {
   ChevronDoubleLeftIcon,
@@ -144,7 +144,7 @@ export const ReleaseTable = () => {
   const { isLoading, error, data, isSuccess } = useQuery({
     queryKey: releaseKeys.list(queryPageIndex, queryPageSize, queryFilters),
     queryFn: () => APIClient.release.findQuery(queryPageIndex * queryPageSize, queryPageSize, queryFilters),
-    keepPreviousData: true,
+    placeholderData: keepPreviousData,
     staleTime: 5000
   });
 
