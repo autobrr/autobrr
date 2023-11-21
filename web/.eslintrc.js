@@ -78,6 +78,7 @@ module.exports = {
           "caughtErrorsIgnorePattern": "^_",
           "ignoreRestSiblings": true
         }],
+        "@typescript-eslint/ban-types": "error",
         // We have quite some "Unexpected any. Specify a different type" warnings.
         // This disables these warnings since they are false positives afaict.
         "@typescript-eslint/no-explicit-any": "off"
