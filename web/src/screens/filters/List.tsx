@@ -7,7 +7,7 @@ import { Dispatch, FC, Fragment, MouseEventHandler, useReducer, useRef, useState
 import { Link } from "react-router-dom";
 import { toast } from "react-hot-toast";
 import { Listbox, Menu, Transition } from "@headlessui/react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient, keepPreviousData } from "@tanstack/react-query";
 import { FormikValues } from "formik";
 import { useCallback } from "react";
 import {
@@ -418,7 +418,7 @@ const FilterItemDropdown = ({ filter, onToggle }: FilterItemDropdownProps) => {
     <Menu as="div">
       <DeleteModal
         isOpen={deleteModalIsOpen}
-        isLoading={deleteMutation.isLoading}
+        isLoading={deleteMutation.isPending}
         toggle={toggleDeleteModal}
         buttonRef={cancelModalButtonRef}
         deleteAction={() => {
@@ -766,7 +766,7 @@ const IndexerSelectFilter = ({ dispatch }: any) => {
   const { data, isSuccess } = useQuery({
     queryKey: ["filters", "indexers_options"],
     queryFn: () => APIClient.indexers.getOptions(),
-    keepPreviousData: true,
+    placeholderData: keepPreviousData,
     staleTime: Infinity
   });
 

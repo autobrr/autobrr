@@ -270,7 +270,7 @@ const FeedItemDropdown = ({
     <Menu as="div">
       <DeleteModal
         isOpen={deleteModalIsOpen}
-        isLoading={deleteMutation.isLoading}
+        isLoading={deleteMutation.isPending}
         toggle={toggleDeleteModal}
         buttonRef={cancelModalButtonRef}
         deleteAction={() => {
@@ -282,7 +282,7 @@ const FeedItemDropdown = ({
       />
       <DeleteModal
         isOpen={deleteCacheModalIsOpen}
-        isLoading={deleteMutation.isLoading}
+        isLoading={deleteMutation.isPending}
         toggle={toggleDeleteCacheModal}
         buttonRef={cancelCacheModalButtonRef}
         deleteAction={() => {
@@ -293,7 +293,7 @@ const FeedItemDropdown = ({
       />
       <ForceRunModal
         isOpen={forceRunModalIsOpen}
-        isLoading={forceRunMutation.isLoading}
+        isLoading={forceRunMutation.isPending}
         toggle={toggleForceRunModal}
         buttonRef={cancelModalButtonRef}
         forceRunAction={() => {

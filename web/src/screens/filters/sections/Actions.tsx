@@ -32,11 +32,11 @@ interface FilterActionsProps {
 }
 
 export function Actions({ filter, values }: FilterActionsProps) {
-  const { data } = useQuery(
-    ["filters", "download_clients"],
-    () => APIClient.download_clients.getAll(),
-    { refetchOnWindowFocus: false }
-  );
+  const { data } = useQuery({
+    queryKey: ["filters", "download_clients"],
+    queryFn: () => APIClient.download_clients.getAll(),
+    refetchOnWindowFocus: false
+  });
 
   const newAction: Action = {
     id: 0,
@@ -258,7 +258,7 @@ function FilterActionsItem({ action, clients, idx, initialEdit, remove }: Filter
         <div className="flex items-center mt-1 px-3 sm:px-5 rounded-md border border-gray-150 dark:border-gray-750">
           <DeleteModal
             isOpen={deleteModalIsOpen}
-            isLoading={removeMutation.isLoading}
+            isLoading={removeMutation.isPending}
             buttonRef={cancelButtonRef}
             toggle={toggleDeleteModal}
             deleteAction={() => removeAction(action.id)}
