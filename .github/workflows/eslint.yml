@@ -66,4 +66,4 @@ jobs:
           fail-check: false
           github-token: ${{ secrets.GITHUB_TOKEN }}
           directory: 'web'
-          targets: 'src/' #optional
+          targets: 'web/src'
