@@ -30,7 +30,6 @@ export type FilterListState = {
 const AuthContextDefaults: AuthInfo = {
   username: "",
   isLoggedIn: false,
-  
 };
 
 const SettingsContextDefaults: SettingsType = {
@@ -45,7 +44,7 @@ const SettingsContextDefaults: SettingsType = {
 const FilterListContextDefaults: FilterListState = {
   indexerFilter: [],
   sortOrder: "",
-  status: ""
+  status: "",
 };
 
 // eslint-disable-next-line
@@ -119,5 +118,3 @@ export const FilterListContext = newRidgeState<FilterListState>(
     onSet: (newState, prevState) => DefaultSetter("filterList", newState, prevState)
   }
 );
-
-// really.
