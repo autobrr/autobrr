@@ -10,7 +10,7 @@ on:
     - cron: '20 13 * * 6'
 
 jobs:
-  build:
+  codeql:
     runs-on: ubuntu-latest
     permissions:
       # required for all workflows
@@ -59,3 +59,11 @@ jobs:
           # Path to SARIF file relative to the root of the repository
           sarif_file: results.sarif
           category: ESLint
+
+      - uses: CatChen/eslint-suggestion-action@v2
+        with:
+          request-changes: true
+          fail-check: false
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          directory: 'web'
+          targets: 'src/' #optional
