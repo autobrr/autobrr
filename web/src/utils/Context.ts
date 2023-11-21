@@ -47,7 +47,6 @@ const FilterListContextDefaults: FilterListState = {
   status: ""
 };
 
-// eslint-disable-next-line
 function ContextMerger<T extends {}>(
   key: string,
   defaults: T,
