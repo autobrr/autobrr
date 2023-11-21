@@ -49,6 +49,10 @@ jobs:
         run: pnpm run lint:ci
         working-directory: web
 
+      - name: Anyone home?
+        # eslint exits 1 if it finds anything to report
+        run: cat results.sarif
+
       # Uploads results.sarif to GitHub repository using the upload-sarif action
       - uses: github/codeql-action/upload-sarif@v2
         with:
