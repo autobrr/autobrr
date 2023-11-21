@@ -46,7 +46,7 @@ jobs:
       # Runs the ESlint code analysis
       - name: Run ESLint
         # eslint exits 1 if it finds anything to report
-        run: eslint build docs lib script spec-main -f node_modules/@microsoft/eslint-formatter-sarif/sarif.js -o ../results.sarif || true
+        run: pnpm run lint:ci
         working-directory: web
 
       # Uploads results.sarif to GitHub repository using the upload-sarif action
