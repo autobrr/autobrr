@@ -29,7 +29,8 @@ export type FilterListState = {
 // Default values
 const AuthContextDefaults: AuthInfo = {
   username: "",
-  isLoggedIn: false
+  isLoggedIn: false,
+  
 };
 
 const SettingsContextDefaults: SettingsType = {
