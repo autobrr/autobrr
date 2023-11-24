@@ -4,6 +4,7 @@
  */
 
 import * as React from "react";
+import { useLocation } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { CellProps, Column, useFilters, usePagination, useSortBy, useTable } from "react-table";
 import {
@@ -77,6 +78,9 @@ const TableReducer = (state: TableState, action: Actions): TableState => {
 };
 
 export const ReleaseTable = () => {
+  const location = useLocation();
+  const queryParams = new URLSearchParams(location.search);
+  const filterTypeFromUrl = queryParams.get("filter");
   const columns = React.useMemo(() => [
     {
       Header: "Age",
@@ -174,7 +178,7 @@ export const ReleaseTable = () => {
       initialState: {
         pageIndex: queryPageIndex,
         pageSize: queryPageSize,
-        filters: []
+        filters: filterTypeFromUrl ? [{ id: "action_status", value: filterTypeFromUrl }] : []
       },
       manualPagination: true,
       manualFilters: true,

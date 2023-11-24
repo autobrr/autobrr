@@ -6,17 +6,20 @@
 import { useQuery } from "@tanstack/react-query";
 import { APIClient } from "@api/APIClient";
 import { classNames } from "@utils";
+import { useNavigate } from "react-router-dom";
 
 interface StatsItemProps {
     name: string;
     value?: number;
     placeholder?: string;
+    onClick?: () => void;
 }
 
-const StatsItem = ({ name, placeholder, value }: StatsItemProps) => (
+const StatsItem = ({ name, placeholder, value, onClick }: StatsItemProps) => (
   <div
-    className="relative px-4 py-3 overflow-hidden rounded-lg shadow-lg bg-white dark:bg-gray-800 border border-gray-150 dark:border-gray-775"
+    className="relative px-4 py-3 cursor-pointer overflow-hidden rounded-lg shadow-lg bg-white dark:bg-gray-800 border border-gray-150 dark:border-gray-775 hover:border-gray-300 dark:hover:border-gray-725"
     title="All time"
+    onClick={onClick}
   >
     <dt>
       <p className="pb-0.5 text-sm font-medium text-gray-500 truncate">{name}</p>
@@ -33,6 +36,15 @@ const StatsItem = ({ name, placeholder, value }: StatsItemProps) => (
 );
 
 export const Stats = () => {
+  const navigate = useNavigate();
+  const handleStatClick = (filterType: string) => {
+    if (filterType) {
+      navigate(`/releases?filter=${filterType}`);
+    } else {
+      navigate("/releases");
+    }
+  };
+  
   const { isLoading, data } = useQuery({
     queryKey: ["dash_release_stats"],
     queryFn: APIClient.release.stats,
@@ -45,11 +57,12 @@ export const Stats = () => {
         Stats
       </h1>
 
-      <dl className={classNames("grid grid-cols-1 gap-5 mt-5 sm:grid-cols-2 lg:grid-cols-3", isLoading ? "animate-pulse" : "")}>
-        <StatsItem name="Filtered Releases" value={data?.filtered_count ?? 0} />
+      <dl className={classNames("grid grid-cols-1 gap-5 mt-5 sm:grid-cols-2 lg:grid-cols-4", isLoading ? "animate-pulse" : "")}>
+        <StatsItem name="Filtered Releases" onClick={() => handleStatClick("")} value={data?.filtered_count ?? 0} />
         {/* <StatsItem name="Filter Rejected Releases" stat={data?.filter_rejected_count} /> */}
-        <StatsItem name="Rejected Pushes" value={data?.push_rejected_count ?? 0 } />
-        <StatsItem name="Approved Pushes" value={data?.push_approved_count ?? 0} />
+        <StatsItem name="Approved Pushes" onClick={() => handleStatClick("PUSH_APPROVED")}  value={data?.push_approved_count ?? 0} />
+        <StatsItem name="Rejected Pushes" onClick={() => handleStatClick("PUSH_REJECTED")}  value={data?.push_rejected_count ?? 0 } />
+        <StatsItem name="Errored Pushes" onClick={() => handleStatClick("PUSH_ERROR")}  value={data?.push_error_count ?? 0} />
       </dl>
     </div>
   );
