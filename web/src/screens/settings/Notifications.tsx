@@ -137,7 +137,7 @@ function ListItem({ notification }: ListItemProps) {
       <NotificationUpdateForm isOpen={updateFormIsOpen} toggle={toggleUpdateForm} notification={notification} />
 
       <div className="grid grid-cols-12 items-center py-2">
-        <div className="col-span-2 sm:col-span-1 pl-1 py-0.5 sm:pl-5 flex items-center">
+        <div className="col-span-2 sm:col-span-1 pl-1 py-0.5 sm:pl-6 flex items-center">
           <Checkbox
             value={notification.enabled}
             setValue={onToggleMutation}
