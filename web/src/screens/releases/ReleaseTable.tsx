@@ -22,9 +22,7 @@ import * as DataTable from "@components/data-table";
 
 import { IndexerSelectColumnFilter, PushStatusSelectColumnFilter, SearchColumnFilter } from "./Filters";
 import { classNames } from "@utils";
-import { ArrowTopRightOnSquareIcon, ArrowDownTrayIcon } from "@heroicons/react/24/outline";
 import { Tooltip } from "@components/tooltips/Tooltip";
-import { ExternalLink } from "@components/ExternalLink";
 
 export const releaseKeys = {
   all: ["releases"] as const,
@@ -107,26 +105,17 @@ export const ReleaseTable = () => {
                 {String(props.cell.value)}
               </span>
             </Tooltip>
-            <div className="flex mr-0">
-              {props.row.original.download_url && (
-                <ExternalLink
-                  href={props.row.original.download_url}
-                  className="px-2"
-                >
-                  <ArrowDownTrayIcon className="h-5 w-5 text-blue-400 hover:text-blue-500 dark:text-blue-500 dark:hover:text-blue-600" aria-hidden="true" />
-                </ExternalLink>
-              )}
-              {props.row.original.info_url && (
-                <ExternalLink href={props.row.original.info_url}>
-                  <ArrowTopRightOnSquareIcon className="h-5 w-5 text-blue-400 hover:text-blue-500 dark:text-blue-500 dark:hover:text-blue-600" aria-hidden="true" />
-                </ExternalLink>
-              )}
-            </div>
           </div>
         );
       },
       Filter: SearchColumnFilter
     },
+    {
+      Header: "Links",
+      accessor: (row) => ({ download_url: row.download_url, info_url: row.info_url }),
+      id: "links",
+      Cell: DataTable.LinksCell
+    },    
     {
       Header: "Actions",
       accessor: "action_status",
@@ -533,3 +522,4 @@ export const ReleaseTable = () => {
     </div>
   );
 };
+
