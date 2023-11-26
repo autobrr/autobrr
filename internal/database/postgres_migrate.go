@@ -47,6 +47,7 @@ CREATE TABLE irc_network
     invite_command      TEXT,
     use_bouncer         BOOLEAN,
     bouncer_addr        TEXT,
+    bot_mode            BOOLEAN DEFAULT FALSE,
     connected           BOOLEAN,
     connected_since     TIMESTAMP,
     created_at          TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -827,5 +828,8 @@ ALTER TABLE filter_external
 `,
 	`ALTER TABLE filter_external
 	DROP COLUMN IF EXISTS webhook_retry_max_jitter_seconds;
+`,
+	`ALTER TABLE irc_network
+		ADD COLUMN bot_mode BOOLEAN DEFAULT FALSE;
 `,
 }

@@ -112,29 +112,29 @@ function FeedSettings() {
     >
       {data && data.length > 0 ? (
         <ul className="min-w-full relative">
-          <li className="grid grid-cols-12 border-b border-gray-200 dark:border-gray-700">
+          <li className="grid grid-cols-12 border-b border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400 font-medium uppercase tracking-wider">
             <div
-              className="flex col-span-2 sm:col-span-1 pl-0 sm:pl-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer"
+              className="flex col-span-2 sm:col-span-1 pl-4 py-3 cursor-pointer"
               onClick={() => sortedFeeds.requestSort("enabled")}>
               Enabled <span className="sort-indicator">{sortedFeeds.getSortIndicator("enabled")}</span>
             </div>
             <div
-              className="col-span-5 pl-10 sm:pl-12 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer"
+              className="col-span-4 pl-10 sm:pl-12 py-3 cursor-pointer"
               onClick={() => sortedFeeds.requestSort("name")}>
               Name <span className="sort-indicator">{sortedFeeds.getSortIndicator("name")}</span>
             </div>
             <div
-              className="hidden md:flex col-span-1 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer"
+              className="hidden md:flex col-span-2 py-3 cursor-pointer"
               onClick={() => sortedFeeds.requestSort("type")}>
               Type <span className="sort-indicator">{sortedFeeds.getSortIndicator("type")}</span>
             </div>
             <div
-              className="hidden md:flex col-span-2 px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer"
+              className="hidden md:flex col-span-2 px-4 py-3 cursor-pointer"
               onClick={() => sortedFeeds.requestSort("last_run")}>
               Last run <span className="sort-indicator">{sortedFeeds.getSortIndicator("last_run")}</span>
             </div>
             <div
-              className="hidden md:flex col-span-2 px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer"
+              className="hidden md:flex col-span-2 px-4 py-3 cursor-pointer"
               onClick={() => sortedFeeds.requestSort("next_run")}>
               Next run <span className="sort-indicator">{sortedFeeds.getSortIndicator("next_run")}</span>
             </div>
@@ -176,36 +176,36 @@ function ListItem({ feed }: ListItemProps) {
   };
 
   return (
-    <li key={feed.id} className="text-gray-500 dark:text-gray-400">
+    <li key={feed.id}>
       <FeedUpdateForm isOpen={updateFormIsOpen} toggle={toggleUpdateForm} feed={feed} />
 
-      <div className="grid grid-cols-12 items-center">
-        <div className="col-span-2 sm:col-span-1 pl-1 sm:pl-5 flex items-center">
+      <div className="grid grid-cols-12 items-center text-sm font-medium text-gray-900 dark:text-gray-500">
+        <div className="col-span-2 sm:col-span-1 pl-6 flex items-center">
           <Checkbox
             value={feed.enabled}
             setValue={toggleActive}
           />
         </div>
-        <div className="col-span-8 sm:col-span-5 pl-10 sm:pl-12 py-3 flex flex-col text-sm font-medium text-gray-900 dark:text-white">
-          <span>{feed.name}</span>
-          <span className="text-gray-900 dark:text-gray-500 text-xs">
+        <div className="col-span-9 md:col-span-4 pl-10 sm:pl-12 py-3 flex flex-col">
+          <span className="pr-2 dark:text-white truncate">{feed.name}</span>
+          <span className="pr-3 text-xs truncate">
             {feed.indexer}
           </span>
         </div>
-        <div className="hidden md:flex col-span-1 py-3 items-center">
+        <div className="hidden md:flex col-span-2 py-3 items-center">
           {ImplementationBadges[feed.type.toLowerCase()]}
         </div>
-        <div className="hidden md:flex col-span-2 py-3 items-center sm:px-4 text-sm font-medium text-gray-900 dark:text-gray-500">
+        <div className="hidden md:flex col-span-2 py-3 items-center sm:px-4">
           <span title={simplifyDate(feed.last_run)}>
             {IsEmptyDate(feed.last_run)}
           </span>
         </div>
-        <div className="hidden md:flex col-span-2 py-3 items-center sm:px-4 text-sm font-medium text-gray-900 dark:text-gray-500">
+        <div className="hidden md:flex col-span-2 py-3 items-center sm:px-4">
           <span title={simplifyDate(feed.next_run)}>
             {IsEmptyDate(feed.next_run)}
           </span>
         </div>
-        <div className="col-span-1 flex justify-center items-center sm:px-6">
+        <div className="col-span-1 md:col-span-1 sm:col-span-2 flex justify-center items-center md:px-6">
           <FeedItemDropdown
             feed={feed}
             onToggle={toggleActive}
@@ -259,7 +259,7 @@ const FeedItemDropdown = ({
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: feedKeys.lists() });
       toast.custom((t) => <Toast type="success" body={`Feed ${feed?.name} was force run successfully.`} t={t} />);
-      toggleForceRunModal(); 
+      toggleForceRunModal();
     },
     onError: (error: unknown) => {
       let errorMessage = 'An unknown error occurred';
@@ -269,8 +269,8 @@ const FeedItemDropdown = ({
 
       toast.custom((t) => <Toast type="error" body={`Failed to force run ${feed?.name}. Error: ${errorMessage}`} t={t} />, {
         duration: 10000
-      });    
-      toggleForceRunModal(); 
+      });
+      toggleForceRunModal();
     }
   });
 
