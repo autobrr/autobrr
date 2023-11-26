@@ -16,6 +16,7 @@ interface IrcNetwork {
   invite_command: string;
   use_bouncer: boolean;
   bouncer_addr: string;
+  bot_mode: boolean;
   channels: IrcChannel[];
   connected: boolean;
   connected_since: string;
@@ -33,6 +34,7 @@ interface IrcNetworkCreate {
   invite_command: string;
   use_bouncer?: boolean;
   bouncer_addr?: string;
+  bot_mode?: boolean;
   channels: IrcChannel[];
   connected: boolean;
 }
@@ -64,6 +66,7 @@ interface IrcNetworkWithHealth {
   invite_command: string;
   use_bouncer: boolean;
   bouncer_addr: string;
+  bot_mode: boolean;
   channels: IrcChannelWithHealth[];
   connected: boolean;
   connected_since: string;
