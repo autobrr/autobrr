@@ -130,17 +130,19 @@ func (s *service) Process(release *domain.Release) {
 	return
 }
 
-func (s *service) processFilters(ctx context.Context, filters []domain.Filter, release *domain.Release) error {
+func (s *service) processFilters(ctx context.Context, filters []*domain.Filter, release *domain.Release) error {
 	// keep track of action clients to avoid sending the same thing all over again
 	// save both client type and client id to potentially try another client of same type
 	triedActionClients := map[actionClientTypeKey]struct{}{}
 
 	// loop over and check filters
 	for _, f := range filters {
+		f := f
+
 		l := s.log.With().Str("indexer", release.Indexer).Str("filter", f.Name).Str("release", release.TorrentName).Logger()
 
 		// save filter on release
-		release.Filter = &f
+		release.Filter = f
 		release.FilterName = f.Name
 		release.FilterID = f.ID
 
@@ -152,9 +154,9 @@ func (s *service) processFilters(ctx context.Context, filters []domain.Filter, r
 		}
 
 		if !match {
-			l.Trace().Msgf("release.Process: indexer: %s, filter: %s release: %s, no match. rejections: %s", release.Indexer, release.FilterName, release.TorrentName, release.RejectionsString(false))
+			l.Trace().Msgf("release.Process: indexer: %s, filter: %s release: %s, no match. rejections: %s", release.Indexer, release.FilterName, release.TorrentName, f.RejectionsString(false))
 
-			l.Debug().Msgf("release rejected: %s", release.RejectionsString(true))
+			l.Debug().Msgf("filter %s rejected release: %s", f.Name, f.RejectionsString(true))
 			continue
 		}
 
