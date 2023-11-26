@@ -45,6 +45,7 @@ type IrcNetwork struct {
 	InviteCommand  string       `json:"invite_command"`
 	UseBouncer     bool         `json:"use_bouncer"`
 	BouncerAddr    string       `json:"bouncer_addr"`
+	BotMode        bool         `json:"bot_mode"`
 	Channels       []IrcChannel `json:"channels"`
 	Connected      bool         `json:"connected"`
 	ConnectedSince *time.Time   `json:"connected_since"`
@@ -63,6 +64,7 @@ type IrcNetworkWithHealth struct {
 	InviteCommand    string              `json:"invite_command"`
 	UseBouncer       bool                `json:"use_bouncer"`
 	BouncerAddr      string              `json:"bouncer_addr"`
+	BotMode          bool                `json:"bot_mode"`
 	CurrentNick      string              `json:"current_nick"`
 	PreferredNick    string              `json:"preferred_nick"`
 	Channels         []ChannelWithHealth `json:"channels"`
