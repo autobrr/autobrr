@@ -99,13 +99,23 @@ const GotifyIcon = () => (
   </svg>
 );
 
+const LunaSeaIcon = () => (
+  <svg viewBox="0 0 750 750" xmlns="http://www.w3.org/2000/svg" className="mr-2 h-4">
+    <path d="m554.69 180.46c-333.63 0-452.75 389.23-556.05 389.23 185.37 0 237.85-247.18 419.12-247.18l47.24-102.05z"
+      clipRule="evenodd" fill="currentColor" fillRule="evenodd" />
+    <path d="m749.31 375.08c0 107.48-87.14 194.61-194.62 194.61s-194.62-87.13-194.62-194.61 87.13-194.62 194.62-194.62c7.391-2e-3 14.776 0.412 22.12 1.24-78.731 10.172-136.59 78.893-133.2 158.2 3.393 79.313 66.907 142.84 146.22 146.25 79.311 3.411 148.05-54.43 158.24-133.16 0.826 7.331 1.24 14.703 1.24 22.08z"
+      clipRule="evenodd" fill="currentColor" fillRule="evenodd" />
+  </svg>
+);
+
 
 const iconComponentMap: componentMapType = {
   DISCORD: <span className="flex items-center px-2 py-0.5 rounded bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-400"><DiscordIcon /> Discord</span>,
   NOTIFIARR: <span className="flex items-center px-2 py-0.5 rounded bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-400"><DiscordIcon /> Notifiarr</span>,
   TELEGRAM: <span className="flex items-center px-2 py-0.5 rounded bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-400"><TelegramIcon /> Telegram</span>,
   PUSHOVER: <span className="flex items-center px-2 py-0.5 rounded bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-400"><PushoverIcon /> Pushover</span>,
-  GOTIFY: <span className="flex items-center px-2 py-0.5 rounded bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-400"><GotifyIcon /> Gotify</span>
+  GOTIFY: <span className="flex items-center px-2 py-0.5 rounded bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-400"><GotifyIcon /> Gotify</span>,
+  LUNASEA: <span className="flex items-center px-2 py-0.5 rounded bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-400"><LunaSeaIcon /> LunaSea</span>
 };
 
 interface ListItemProps {

@@ -70,6 +70,36 @@ function FormFieldsNotifiarr() {
   );
 }
 
+function FormFieldsLunaSea() {
+  return (
+    <div className="border-t border-gray-200 dark:border-gray-700 py-4">
+      <div className="px-4 space-y-1">
+        <Dialog.Title className="text-lg font-medium text-gray-900 dark:text-white">Settings</Dialog.Title>
+        <p className="text-sm text-gray-500 dark:text-gray-400">
+        LunaSea offers notifications across all devices linked to your account (User-Based) or to a single device without an account, using a unique webhook per device (Device-Based).
+        </p>
+        <p className="text-sm text-gray-500 dark:text-gray-400">
+          {"Read the "}
+          <ExternalLink
+            href="https://docs.lunasea.app/lunasea/notifications"
+            className="font-medium text-blue-500 underline underline-offset-1 hover:text-blue-400"
+          >
+            LunaSea docs
+          </ExternalLink>
+          {"."}
+        </p>
+      </div>
+
+      <PasswordFieldWide
+        name="webhook"
+        label="Webhook URL"
+        help="LunaSea Webhook URL"
+        placeholder="https://notify.lunasea.app/v1/custom/user/TOKEN"
+      />
+    </div>
+  );
+}
+
 function FormFieldsTelegram() {
   return (
     <div className="border-t border-gray-200 dark:border-gray-700 py-4">
@@ -172,7 +202,8 @@ const componentMap: componentMapType = {
   NOTIFIARR: <FormFieldsNotifiarr />,
   TELEGRAM: <FormFieldsTelegram />,
   PUSHOVER: <FormFieldsPushover />,
-  GOTIFY: <FormFieldsGotify />
+  GOTIFY: <FormFieldsGotify />,
+  LUNASEA: <FormFieldsLunaSea />
 };
 
 interface NotificationAddFormValues {
