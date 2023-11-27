@@ -261,8 +261,8 @@ func (f Filter) CheckFilter(r *Release) ([]string, bool) {
 	// reset rejections first to clean previous checks
 	r.resetRejections()
 
-	// max downloads check. If reached return early
-	if f.MaxDownloads > 0 && !f.checkMaxDownloads(f.MaxDownloads, f.MaxDownloadsUnit) {
+	// max downloads check. If reached return early because???
+	if f.MaxDownloads > 0 && !f.checkMaxDownloads() {
 		r.addRejectionF("max downloads (%d) this (%v) reached", f.MaxDownloads, f.MaxDownloadsUnit)
 		return r.Rejections, false
 	}
@@ -514,37 +514,26 @@ func (f Filter) CheckFilter(r *Release) ([]string, bool) {
 	return nil, true
 }
 
-func (f Filter) checkMaxDownloads(max int, perTimeUnit FilterMaxDownloadsUnit) bool {
+func (f Filter) checkMaxDownloads() bool {
 	if f.Downloads == nil {
 		return false
 	}
 
-	switch perTimeUnit {
+	var count int
+	switch f.MaxDownloadsUnit {
 	case FilterMaxDownloadsHour:
-		if f.Downloads.HourCount > 0 && f.Downloads.HourCount >= max {
-			return false
-		}
+		count = f.Downloads.HourCount
 	case FilterMaxDownloadsDay:
-		if f.Downloads.DayCount > 0 && f.Downloads.DayCount >= max {
-			return false
-		}
+		count = f.Downloads.DayCount
 	case FilterMaxDownloadsWeek:
-		if f.Downloads.WeekCount > 0 && f.Downloads.WeekCount >= max {
-			return false
-		}
+		count = f.Downloads.WeekCount
 	case FilterMaxDownloadsMonth:
-		if f.Downloads.MonthCount > 0 && f.Downloads.MonthCount >= max {
-			return false
-		}
+		count = f.Downloads.MonthCount
 	case FilterMaxDownloadsEver:
-		if f.Downloads.TotalCount > 0 && f.Downloads.TotalCount >= max {
-			return false
-		}
-	default:
-		return true
+		count = f.Downloads.TotalCount
 	}
 
-	return true
+	return count < f.MaxDownloads
 }
 
 // isPerfectFLAC Perfect is "CD FLAC Cue Log 100% Lossless or 24bit Lossless"
