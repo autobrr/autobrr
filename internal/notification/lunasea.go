@@ -3,15 +3,12 @@ package notification
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"regexp"
-	"strings"
 	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/pkg/errors"
-	"github.com/dustin/go-humanize"
 
 	"github.com/rs/zerolog"
 )
@@ -28,6 +25,7 @@ type LunaSeaMessage struct {
 type lunaSeaSender struct {
 	log      zerolog.Logger
 	Settings domain.Notification
+	builder  NotificationBuilder
 }
 
 func (s *lunaSeaSender) rewriteWebhookURL(url string) string {
@@ -39,11 +37,16 @@ func NewLunaSeaSender(log zerolog.Logger, settings domain.Notification) domain.N
 	return &lunaSeaSender{
 		log:      log.With().Str("sender", "lunasea").Logger(),
 		Settings: settings,
+		builder:  NotificationBuilder{},
 	}
 }
 
 func (s *lunaSeaSender) Send(event domain.NotificationEvent, payload domain.NotificationPayload) error {
-	m := s.buildMessage(event, payload)
+	m := LunaSeaMessage{
+		Title: s.builder.BuildTitle(event),
+		Body:  s.builder.BuildBody(payload),
+		Image: defaultImageURL,
+	}
 
 	jsonData, err := json.Marshal(m)
 	if err != nil {
@@ -94,71 +97,4 @@ func (s *lunaSeaSender) isEnabledEvent(event domain.NotificationEvent) bool {
 		}
 	}
 	return false
-}
-
-func (s *lunaSeaSender) buildMessage(event domain.NotificationEvent, payload domain.NotificationPayload) LunaSeaMessage {
-	title := s.buildTitle(event)
-	body := s.buildBody(payload)
-
-	return LunaSeaMessage{
-		Title: title,
-		Body:  body,
-		Image: defaultImageURL, // Unsure if this is the right approach.
-	}
-}
-
-func (s *lunaSeaSender) buildBody(payload domain.NotificationPayload) string {
-	var parts []string
-
-	if payload.Subject != "" && payload.Message != "" {
-		parts = append(parts, fmt.Sprintf("%v\n%v", payload.Subject, payload.Message))
-	}
-	if payload.ReleaseName != "" {
-		parts = append(parts, fmt.Sprintf("New release: %v", payload.ReleaseName))
-	}
-	if payload.Size > 0 {
-		parts = append(parts, fmt.Sprintf("Size: %v", humanize.Bytes(payload.Size)))
-	}
-	if payload.Status != "" {
-		parts = append(parts, fmt.Sprintf("Status: %v", payload.Status.String()))
-	}
-	if payload.Indexer != "" {
-		parts = append(parts, fmt.Sprintf("Indexer: %v", payload.Indexer))
-	}
-	if payload.Filter != "" {
-		parts = append(parts, fmt.Sprintf("Filter: %v", payload.Filter))
-	}
-	if payload.Action != "" {
-		action := fmt.Sprintf("Action: %v Type: %v", payload.Action, payload.ActionType)
-		if payload.ActionClient != "" {
-			action += fmt.Sprintf(" Client: %v", payload.ActionClient)
-		}
-		parts = append(parts, action)
-	}
-	if len(payload.Rejections) > 0 {
-		parts = append(parts, fmt.Sprintf("Rejections: %v", strings.Join(payload.Rejections, ", ")))
-	}
-
-	return strings.Join(parts, "\n")
-}
-
-func (s *lunaSeaSender) buildTitle(event domain.NotificationEvent) string {
-	switch event {
-	case domain.NotificationEventAppUpdateAvailable:
-		return "Autobrr update available"
-	case domain.NotificationEventPushApproved:
-		return "Push Approved"
-	case domain.NotificationEventPushRejected:
-		return "Push Rejected"
-	case domain.NotificationEventPushError:
-		return "Error"
-	case domain.NotificationEventIRCDisconnected:
-		return "IRC Disconnected"
-	case domain.NotificationEventIRCReconnected:
-		return "IRC Reconnected"
-	case domain.NotificationEventTest:
-		return "Test"
-	default:
-		return "New Event"
-	}
 }
