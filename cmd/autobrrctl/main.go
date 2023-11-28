@@ -6,14 +6,12 @@ package main
 import (
 	"bufio"
 	"context"
-	"database/sql"
 	"encoding/json"
 	"flag"
 	"fmt"
 	"log"
 	"net/http"
 	"os"
-	"strings"
 	"time"
 
 	"github.com/autobrr/autobrr/internal/config"
@@ -28,23 +26,23 @@ import (
 	"golang.org/x/term"
 )
 
-const usage = `usage: autobrrctl <action> [arguments]
+const usage = `usage: autobrrctl <action> [options]
 
 Actions:
-  create-user         <username>                      Create a new user
-  change-password     <username>                      Change the password
-  db:seed             <path-to-database> <seed-path>  Seed the sqlite database
-  db:reset            <path-to-database> <seed-path>  Reset the sqlite database
-  db:migrate          <sqliteDBPath> <postgresDBURL>  Migrate sqlite to postgres
-  version                                             Display the version of autobrrctl
-  help                                                Show this help message
+  create-user          <username>                                                        Create a new user
+  change-password      <username>                                                        Change the password
+  db:seed              --db-path <path-to-database> --seed-db <path-to-sql-seed>         Seed the sqlite database
+  db:reset             --db-path <path-to-database> --seed-db <path-to-sql-seed>         Reset the sqlite database
+  db:migrate           --sqlite-db <path-to-sqlite-db> --postgres-url <postgres-db-url>  Migrate sqlite to postgres
+  version                                                                                Display the version of autobrrctl
+  help                                                                                   Show this help message
 
 Examples:
   autobrrctl --config /path/to/config/dir create-user john
   autobrrctl --config /path/to/config/dir change-password john
-  autobrrctl db:reset /path/to/sqlite.db /path/to/seed
-  autobrrctl db:seed /path/to/sqlite.db /path/to/seed
-  autobrrctl db:migrate /path/to/sqlite.db postgresql://localhost/mydb
+  autobrrctl db:reset --db-path /path/to/autobrr.db --seed-db /path/to/seed
+  autobrrctl db:seed --db-path /path/to/autobrr.db --seed-db /path/to/seed
+  autobrrctl db:migrate --sqlite-db /path/to/autobrr.db --postgres-url postgres://username:password@127.0.0.1:5432/autobrr
   autobrrctl version
   autobrrctl help
 `
@@ -64,189 +62,7 @@ func init() {
 	}
 }
 
-func migrate(sqliteDBPath, postgresDBURL string) {
-	startTime := time.Now() // Start the timer
-
-	sqliteDB, err := sql.Open("sqlite3", sqliteDBPath)
-	if err != nil {
-		log.Fatalf("Failed to connect to SQLite database: %v", err)
-	}
-	defer sqliteDB.Close()
-
-	postgresDB, err := sql.Open("postgres", postgresDBURL)
-	if err != nil {
-		log.Fatalf("Failed to connect to PostgreSQL database: %v", err)
-	}
-	defer postgresDB.Close()
-
-	// List of tables to migrate
-	tables := []string{
-		"users", "indexer", "irc_network", "irc_channel", "client", "filter", "action", "notification", "filter_indexer", "release", "release_action_status", "feed", "api_key",
-	}
-
-	// Iterate over each table
-	for _, table := range tables {
-		rows, err := sqliteDB.Query(fmt.Sprintf("SELECT * FROM %s", table))
-		if err != nil {
-			log.Fatalf("Failed to query SQLite table '%s': %v", table, err)
-		}
-
-		// Get the column types of the SQLite table
-		columns, err := rows.ColumnTypes()
-		if err != nil {
-			log.Fatalf("Failed to get column types for table '%s': %v", table, err)
-		}
-
-		// Prepare the column names and placeholders for the INSERT statement
-		colNames := ""
-		colPlaceholders := ""
-		for i, col := range columns {
-			colNames += col.Name()
-			colPlaceholders += fmt.Sprintf("$%d", i+1)
-			if i < len(columns)-1 {
-				colNames += ", "
-				colPlaceholders += ", "
-			}
-		}
-
-		// Prepare the INSERT statement for the PostgreSQL table
-		insertStmt, err := postgresDB.Prepare(fmt.Sprintf("INSERT INTO %s (%s) VALUES (%s)", table, colNames, colPlaceholders))
-		if err != nil {
-			log.Fatalf("Failed to prepare INSERT statement for table '%s': %v", table, err)
-		}
-
-		// Iterate over each row from the SQLite table
-		for rows.Next() {
-			// Prepare the values for the INSERT statement
-			values := make([]interface{}, len(columns))
-			valuePtrs := make([]interface{}, len(columns))
-			for i := range values {
-				valuePtrs[i] = &values[i]
-			}
-
-			// Scan the values from the SQLite row
-			err = rows.Scan(valuePtrs...)
-			if err != nil {
-				log.Fatalf("Failed to scan row from SQLite table '%s': %v", table, err)
-			}
-
-			// Execute the INSERT statement on the PostgreSQL table
-			_, err = insertStmt.Exec(values...)
-			if err != nil {
-				if strings.Contains(err.Error(), "violates foreign key constraint") {
-					if table == "release" || table == "release_action_status" {
-						fieldIndex := -1
-						field := "filter_id"
-						if table == "release_action_status" {
-							field = "filter_id"
-						}
-
-						// Find the index of the field in columns
-						for i, col := range columns {
-							if col.Name() == field {
-								fieldIndex = i
-								break
-							}
-						}
-
-						// If the field was found in columns, set the corresponding value to NULL and retry the INSERT
-						if fieldIndex != -1 {
-							//log.Printf("Setting %s to NULL for the %s with id: %v due to foreign key violation", field, table, values[0])
-							values[fieldIndex] = nil
-							_, err = insertStmt.Exec(values...)
-							if err != nil {
-								log.Printf("Failed to insert row into PostgreSQL table '%s' after setting %s to NULL: %v", table, field, err)
-							}
-						}
-					}
-				} else {
-					log.Printf("Failed to insert row into PostgreSQL table '%s': %v", table, err)
-				}
-			}
-		}
-		fmt.Printf("Migrated table '%s' from SQLite to PostgreSQL\n", table)
-	}
-
-	elapsedTime := time.Since(startTime) // Calculate the elapsed time
-	fmt.Println("Migration completed successfully!")
-	fmt.Printf("Elapsed time: %s\n", elapsedTime)
-}
-
-func resetDB(dbPath string) error {
-	// Open the existing SQLite database
-	db, err := sql.Open("sqlite", dbPath)
-	if err != nil {
-		return fmt.Errorf("failed to open database: %v", err)
-	}
-	defer db.Close()
-
-	// Update the tables list with the provided table names
-	tables := []string{
-		"action",
-		"api_key",
-		"client",
-		"feed",
-		"feed_cache",
-		"filter",
-		"filter_indexer",
-		"indexer",
-		"irc_channel",
-		"irc_network",
-		"notification",
-		"release",
-		"release_action_status",
-		"users",
-	}
-
-	// Execute SQL commands to remove all rows and reset primary key sequences
-	for _, table := range tables {
-		_, err = db.Exec(fmt.Sprintf("DELETE FROM %s", table))
-		if err != nil {
-			return fmt.Errorf("failed to delete rows from table %s: %v", table, err)
-		}
-
-		// Attempt to update sqlite_sequence, ignore errors caused by missing sqlite_sequence entry
-		_, err = db.Exec(fmt.Sprintf("UPDATE sqlite_sequence SET seq = 0 WHERE name = '%s'", table))
-		if err != nil && !strings.Contains(err.Error(), "no such table") {
-			return fmt.Errorf("failed to reset primary key sequence for table %s: %v", table, err)
-		}
-	}
-
-	// If no error occurred, return nil
-	return nil
-}
-
-func seedDB(dbPath string, seedDBPath string) error {
-	// Read SQL file
-	sqlFile, err := os.ReadFile(seedDBPath)
-	if err != nil {
-		return fmt.Errorf("failed to read SQL file: %v", err)
-	}
-
-	// Open the SQLite database
-	db, err := sql.Open("sqlite", dbPath)
-	if err != nil {
-		return fmt.Errorf("failed to open database: %v", err)
-	}
-	defer db.Close()
-
-	// Execute SQL commands from the file
-	sqlCommands := strings.Split(string(sqlFile), ";")
-	for _, cmd := range sqlCommands {
-		_, err = db.Exec(cmd)
-		if err != nil {
-			return fmt.Errorf("failed to execute SQL command: %v", err)
-		}
-	}
-
-	// If no error occurred, return nil
-	return nil
-}
-
 func main() {
-	var seedDBPath string
-	flag.StringVar(&seedDBPath, "seed-db", "", "path to SQL seed file")
-
 	var configPath string
 	flag.StringVar(&configPath, "config", "", "path to configuration file")
 	flag.Parse()
@@ -254,50 +70,65 @@ func main() {
 	switch cmd := flag.Arg(0); cmd {
 
 	case "db:migrate":
-		sqliteDBPath := flag.Arg(1)
-		postgresDBURL := flag.Arg(2)
+		var sqliteDBPath, postgresDBURL string
+		migrateFlagSet := flag.NewFlagSet("db:migrate", flag.ExitOnError)
+		migrateFlagSet.StringVar(&sqliteDBPath, "sqlite-db", "", "path to SQLite database file")
+		migrateFlagSet.StringVar(&postgresDBURL, "postgres-url", "", "URL for PostgreSQL database")
+
+		if err := migrateFlagSet.Parse(flag.Args()[1:]); err != nil {
+			fmt.Printf("Error parsing flags for db:migrate: %v\n", err)
+			migrateFlagSet.Usage()
+			os.Exit(1)
+		}
 
 		if sqliteDBPath == "" || postgresDBURL == "" {
+			fmt.Println("Error: missing required flags for db:migrate")
 			flag.Usage()
 			os.Exit(1)
 		}
 
-		migrate(sqliteDBPath, postgresDBURL)
+		if err := database.Migrate(sqliteDBPath, postgresDBURL); err != nil {
+			log.Fatalf("Migration failed: %v", err)
+		}
 
-	case "db:seed":
-		dbPath := flag.Arg(1)
-		seedDBPath := flag.Arg(2)
+	case "db:seed", "db:reset":
+		var dbPath, seedDBPath string
+		seedResetFlagSet := flag.NewFlagSet("db:seed/db:reset", flag.ExitOnError)
+		seedResetFlagSet.StringVar(&dbPath, "db-path", "", "path to the database file")
+		seedResetFlagSet.StringVar(&seedDBPath, "seed-db", "", "path to SQL seed file")
+
+		if err := seedResetFlagSet.Parse(flag.Args()[1:]); err != nil {
+			fmt.Printf("Error parsing flags for db:seed or db:reset: %v\n", err)
+			seedResetFlagSet.Usage()
+			os.Exit(1)
+		}
+
 		if dbPath == "" || seedDBPath == "" {
-			fmt.Println("Error: missing path to database file or SQL seed file")
+			fmt.Println("Error: missing required flags for db:seed or db:reset")
 			flag.Usage()
 			os.Exit(1)
 		}
-		err := seedDB(dbPath, seedDBPath)
-		if err != nil {
-			fmt.Println("Error seeding the database:", err)
-			os.Exit(1)
-		}
-		fmt.Println("Database seeding completed successfully!")
 
-	case "db:reset":
-		dbPath := flag.Arg(1)
-		seedDBPath := flag.Arg(2)
-		if dbPath == "" || seedDBPath == "" {
-			fmt.Println("Error: missing path to database file or SQL seed file")
-			flag.Usage()
-			os.Exit(1)
+		if cmd == "db:seed" {
+			err := database.SeedDB(dbPath, seedDBPath)
+			if err != nil {
+				fmt.Println("Error seeding the database:", err)
+				os.Exit(1)
+			}
+			fmt.Println("Database seeding completed successfully!")
+		} else {
+			err := database.ResetDB(dbPath)
+			if err != nil {
+				fmt.Println("Error resetting the database:", err)
+				os.Exit(1)
+			}
+			err = database.SeedDB(dbPath, seedDBPath)
+			if err != nil {
+				fmt.Println("Error seeding the database:", err)
+				os.Exit(1)
+			}
+			fmt.Println("Database reset and reseed completed successfully!")
 		}
-		err := resetDB(dbPath)
-		if err != nil {
-			fmt.Println("Error resetting the database:", err)
-			os.Exit(1)
-		}
-		err = seedDB(dbPath, seedDBPath)
-		if err != nil {
-			fmt.Println("Error seeding the database:", err)
-			os.Exit(1)
-		}
-		fmt.Println("Database reset and reseed completed successfully!")
 
 	case "version":
 		fmt.Printf("Version: %v\nCommit: %v\nBuild: %v\n", version, commit, date)
@@ -375,6 +206,7 @@ func main() {
 		if err := userRepo.Store(context.Background(), user); err != nil {
 			log.Fatalf("failed to create user: %v", err)
 		}
+
 	case "change-password":
 
 		if configPath == "" {
@@ -423,6 +255,7 @@ func main() {
 		if err := userRepo.Update(context.Background(), *user); err != nil {
 			log.Fatalf("failed to create user: %v", err)
 		}
+
 	default:
 		flag.Usage()
 		if cmd != "help" {
