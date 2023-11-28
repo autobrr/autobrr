@@ -10,6 +10,7 @@ Dockerfile
 ci.Dockerfile
 docker-compose.yml
 README.md
+CODE_OF_CONDUCT.md
 bin
 config
 test

@@ -1,30 +1,33 @@
 import { fileURLToPath, URL } from "node:url";
-
-import react from "@vitejs/plugin-react-swc";
+import { defineConfig, loadEnv, ConfigEnv } from "vite";
 import { VitePWA } from "vite-plugin-pwa";
-import { defineConfig, loadEnv } from "vite";
+import react from "@vitejs/plugin-react-swc";
+import svgr from "vite-plugin-svgr";
+
+interface PreRenderedAsset {
+  name: string | undefined;
+  source: string | Uint8Array;
+  type: 'asset';
+}
+
 // https://vitejs.dev/config/
-export default ({ mode }: { mode: any }) => {
+export default ({ mode }: ConfigEnv) => {
   // early load .env file
-  process.env = { ...process.env, ...loadEnv(mode, process.cwd()) };
   // import.meta.env.VITE_NAME available here with: process.env.VITE_NAME
+  process.env = { ...process.env, ...loadEnv(mode, process.cwd()) };
 
   return defineConfig({
     base: "",
-    plugins: [react(), VitePWA({
-      registerType: "autoUpdate",
-      injectRegister: "inline",
+    plugins: [react(), svgr(), VitePWA({
+      injectRegister: null,
+      selfDestroying: true,
       scope: "{{.BaseUrl}}",
       // strategies: "injectManifest",
       useCredentials: true,
       includeAssets: [
-        "favicon.svg",
-        "favicon.ico",
-        "robots.txt",
-        "logo.png",
-        "apple-touch-icon-*.png",
-        "manifest.webmanifest",
-        "assets/**/*"
+        // looks inside "public" folder 
+        // manifest's icons are automatic added
+        "favicon.ico"
       ],
       manifest: {
         name: "autobrr",
@@ -34,29 +37,28 @@ export default ({ mode }: { mode: any }) => {
         background_color: "#141415",
         icons: [
           {
-            src: "logo.png",
-            sizes: "192x192",
-            type: "image/png"
-          },
-          {
             src: "logo192.png",
             sizes: "192x192",
             type: "image/png"
           },
           {
-            src: "logo512.png",
-            sizes: "512x512",
+            src: "apple-touch-icon-iphone-60x60.png",
+            sizes: "60x60",
             type: "image/png"
           },
           {
-            src: "logo512.png",
-            sizes: "512x512",
-            type: "image/png",
-            purpose: "any maskable"
+            src: "apple-touch-icon-ipad-76x76.png",
+            sizes: "76x76",
+            type: "image/png"
           },
           {
             src: "apple-touch-icon-iphone-retina-120x120.png",
             sizes: "120x120",
+            type: "image/png"
+          },
+          {
+            src: "apple-touch-icon-ipad-retina-152x152.png",
+            sizes: "152x152",
             type: "image/png"
           }
         ],
@@ -65,7 +67,8 @@ export default ({ mode }: { mode: any }) => {
         display: "standalone"
       },
       workbox: {
-        globPatterns: ["**/*.{js,css,html,svg}"],
+        // looks inside "dist" folder
+        globPatterns: ["**/*.{js,css,html,svg,woff2}"],
         sourcemap: true,
         navigateFallbackDenylist: [/^\/api/]
       }
@@ -99,7 +102,17 @@ export default ({ mode }: { mode: any }) => {
     },
     build: {
       manifest: true,
-      sourcemap: true
+      sourcemap: true,
+      rollupOptions: {
+        output: {
+          assetFileNames: (chunkInfo: PreRenderedAsset) => {
+            if (chunkInfo.name === "Inter-Variable.woff2") {
+              return "assets/[name][extname]";
+            }
+            return "assets/[name]-[hash][extname]";
+          }
+        }
+      }
     }
   });
 };

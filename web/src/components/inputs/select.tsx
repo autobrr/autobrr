@@ -3,31 +3,30 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-import React, { Fragment } from "react";
+import { Fragment } from "react";
 import { Field, FieldProps } from "formik";
 import { Listbox, Transition } from "@headlessui/react";
 import { CheckIcon, ChevronUpDownIcon } from "@heroicons/react/24/solid";
 import { MultiSelect as RMSC } from "react-multi-select-component";
 
 import { classNames, COL_WIDTHS } from "@utils";
-import { SettingsContext } from "@utils/Context";
-import { CustomTooltip } from "@components/tooltips/CustomTooltip";
+import { DocsTooltip } from "@components/tooltips/DocsTooltip";
 
 export interface MultiSelectOption {
-    value: string | number;
-    label: string;
-    key?: string;
-    disabled?: boolean;
+  value: string | number;
+  label: string;
+  key?: string;
+  disabled?: boolean;
 }
 
 interface MultiSelectProps {
-    name: string;
-    label?: string;
-    options: MultiSelectOption[];
-    columns?: COL_WIDTHS;
-    creatable?: boolean;
-    disabled?: boolean;
-    tooltip?: JSX.Element;
+  name: string;
+  label?: string;
+  options: MultiSelectOption[];
+  columns?: COL_WIDTHS;
+  creatable?: boolean;
+  disabled?: boolean;
+  tooltip?: JSX.Element;
 }
 
 export const MultiSelect = ({
@@ -39,8 +38,6 @@ export const MultiSelect = ({
   tooltip,
   disabled
 }: MultiSelectProps) => {
-  const settingsContext = SettingsContext.useValue();
-
   const handleNewField = (value: string) => ({
     value: value.toUpperCase(),
     label: value.toUpperCase(),
@@ -50,16 +47,16 @@ export const MultiSelect = ({
   return (
     <div
       className={classNames(
-        columns ? `col-span-${columns}` : "col-span-12"
+        "col-span-12",
+        columns ? `sm:col-span-${columns}` : ""
       )}
     >
       <label
-        htmlFor={label} className="flex mb-2 text-xs font-bold tracking-wide text-gray-700 uppercase dark:text-gray-200">
+        htmlFor={label} className="flex ml-px mb-1 text-xs font-bold tracking-wide text-gray-700 uppercase dark:text-gray-100">
         <div className="flex">
-          {label}
-          {tooltip && (
-            <CustomTooltip anchorId={name}>{tooltip}</CustomTooltip>
-          )}
+          {tooltip ? (
+            <DocsTooltip label={label}>{tooltip}</DocsTooltip>
+          ) : label}
         </div>
       </label>
 
@@ -84,7 +81,6 @@ export const MultiSelect = ({
 
               setFieldValue(field.name, am);
             }}
-            className={settingsContext.darkTheme ? "dark" : ""}
           />
         )}
       </Field>
@@ -94,8 +90,8 @@ export const MultiSelect = ({
 
 
 interface IndexerMultiSelectOption {
-    id: number;
-    name: string;
+  id: number;
+  name: string;
 }
 
 export const IndexerMultiSelect = ({
@@ -103,55 +99,52 @@ export const IndexerMultiSelect = ({
   label,
   options,
   columns
-}: MultiSelectProps) => {
-  const settingsContext = SettingsContext.useValue();
-  return (
-    <div
-      className={classNames(
-        columns ? `col-span-${columns}` : "col-span-12"
-      )}
+}: MultiSelectProps) => (
+  <div
+    className={classNames(
+      "col-span-12",
+      columns ? `sm:col-span-${columns}` : ""
+    )}
+  >
+    <label
+      className="block ml-px mb-1 text-xs font-bold tracking-wide text-gray-700 uppercase dark:text-gray-200"
+      htmlFor={label}
     >
-      <label
-        className="block mb-2 text-xs font-bold tracking-wide text-gray-700 uppercase dark:text-gray-200"
-        htmlFor={label}
-      >
-        {label}
-      </label>
+      {label}
+    </label>
 
-      <Field name={name} type="select" multiple={true}>
-        {({
-          field,
-          meta,
-          form: { setFieldValue }
-        }: FieldProps) => (
-          <>
-            <RMSC
-              {...field}
-              options={options}
-              labelledBy={name}
-              value={field.value && field.value.map((item: IndexerMultiSelectOption) => ({
-                value: item.id, label: item.name
-              }))}
-              onChange={(values: MultiSelectOption[]) => {
-                const item = values && values.map((i) => ({ id: i.value, name: i.label }));
-                setFieldValue(field.name, item);
-              }}
-              className={settingsContext.darkTheme ? "dark" : ""}
-            />
-            {meta.touched && meta.error && (
-              <p className="error text-sm text-red-600 mt-1">* {meta.error}</p>
-            )}
-          </>
-        )}
-      </Field>
-    </div>
-  );
-};
+    <Field name={name} type="select" multiple={true}>
+      {({
+        field,
+        meta,
+        form: { setFieldValue }
+      }: FieldProps) => (
+        <>
+          <RMSC
+            {...field}
+            options={options}
+            labelledBy={name}
+            value={field.value && field.value.map((item: IndexerMultiSelectOption) => ({
+              value: item.id, label: item.name
+            }))}
+            onChange={(values: MultiSelectOption[]) => {
+              const item = values && values.map((i) => ({ id: i.value, name: i.label }));
+              setFieldValue(field.name, item);
+            }}
+          />
+          {meta.touched && meta.error && (
+            <p className="error text-sm text-red-600 mt-1">* {meta.error}</p>
+          )}
+        </>
+      )}
+    </Field>
+  </div>
+);
 
 interface DownloadClientSelectProps {
-    name: string;
-    action: Action;
-    clients: DownloadClient[];
+  name: string;
+  action: Action;
+  clients: DownloadClient[];
 }
 
 export function DownloadClientSelect({
@@ -160,7 +153,7 @@ export function DownloadClientSelect({
   clients
 }: DownloadClientSelectProps) {
   return (
-    <div className="col-span-6 sm:col-span-6">
+    <div className="col-span-12 sm:col-span-6">
       <Field name={name} type="select">
         {({
           field,
@@ -173,11 +166,11 @@ export function DownloadClientSelect({
           >
             {({ open }) => (
               <>
-                <Listbox.Label className="block text-xs font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wide">
+                <Listbox.Label className="block text-xs font-bold text-gray-800 dark:text-gray-100 uppercase tracking-wide">
                   Client
                 </Listbox.Label>
-                <div className="mt-2 relative">
-                  <Listbox.Button className="bg-white dark:bg-gray-800 relative w-full border border-gray-300 dark:border-gray-700 rounded-md shadow-sm pl-3 pr-10 py-2 text-left cursor-default focus:outline-none focus:ring-1 focus:ring-blue-500 dark:focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-500 dark:text-gray-200 sm:text-sm">
+                <div className="mt-1 relative">
+                  <Listbox.Button className="block w-full shadow-sm sm:text-sm rounded-md border py-2 pl-3 pr-10 text-left focus:ring-blue-500 dark:focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-500 border-gray-300 dark:border-gray-700 bg-gray-100 dark:bg-gray-815 dark:text-gray-100">
                     <span className="block truncate">
                       {field.value
                         ? clients.find((c) => c.id === field.value)?.name
@@ -199,7 +192,7 @@ export function DownloadClientSelect({
                   >
                     <Listbox.Options
                       static
-                      className="absolute z-10 mt-1 w-full bg-white dark:bg-gray-800 shadow-lg max-h-60 rounded-md py-1 text-base ring-1 ring-black ring-opacity-5 overflow-auto focus:outline-none sm:text-sm"
+                      className="absolute z-10 mt-1 w-full border border-gray-400 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-lg max-h-60 rounded-md py-1 text-base overflow-auto focus:outline-none sm:text-sm"
                     >
                       {clients
                         .filter((c) => c.type === action.type)
@@ -208,7 +201,7 @@ export function DownloadClientSelect({
                             key={client.id}
                             className={({ active }) => classNames(
                               active
-                                ? "text-white dark:text-gray-100 bg-blue-600 dark:bg-gray-800"
+                                ? "text-white dark:text-gray-100 bg-blue-600 dark:bg-gray-950"
                                 : "text-gray-900 dark:text-gray-300",
                               "cursor-default select-none relative py-2 pl-3 pr-9"
                             )}
@@ -228,7 +221,7 @@ export function DownloadClientSelect({
                                 {selected ? (
                                   <span
                                     className={classNames(
-                                      active ? "text-white dark:text-gray-100" : "text-blue-600 dark:text-gray-700",
+                                      active ? "text-white dark:text-gray-100" : "text-blue-600 dark:text-blue-500",
                                       "absolute inset-y-0 right-0 flex items-center pr-4"
                                     )}
                                   >
@@ -257,17 +250,17 @@ export function DownloadClientSelect({
 }
 
 export interface SelectFieldOption {
-    label: string;
-    value: string;
+  label: string;
+  value: string;
 }
 
 export interface SelectFieldProps {
-    name: string;
-    label: string;
-    optionDefaultText: string;
-    options: SelectFieldOption[];
-    columns?: COL_WIDTHS;
-    tooltip?: JSX.Element;
+  name: string;
+  label: string;
+  optionDefaultText: string;
+  options: SelectFieldOption[];
+  columns?: COL_WIDTHS;
+  tooltip?: JSX.Element;
 }
 
 export const Select = ({
@@ -276,12 +269,13 @@ export const Select = ({
   tooltip,
   optionDefaultText,
   options,
-  columns
+  columns = 6
 }: SelectFieldProps) => {
   return (
     <div
       className={classNames(
-        columns ? `col-span-${columns}` : "col-span-6"
+        "col-span-12",
+        columns ? `sm:col-span-${columns}` : ""
       )}
     >
       <Field name={name} type="select">
@@ -290,21 +284,21 @@ export const Select = ({
           form: { setFieldValue }
         }: FieldProps) => (
           <Listbox
-            value={field.value}
-            onChange={(value) => setFieldValue(field?.name, value)}
+            // ?? null is required here otherwise React throws:
+            // "console.js:213 A component is changing from uncontrolled to controlled.
+            // This may be caused by the value changing from undefined to a defined value, which should not happen."
+            value={field.value ?? null}
+            onChange={(value) => setFieldValue(field.name, value)}
           >
             {({ open }) => (
               <>
-                <Listbox.Label className="flex float-left mb-2 text-xs font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wide">
-                  <div className="flex">
-                    {label}
-                    {tooltip && (
-                      <CustomTooltip anchorId={name}>{tooltip}</CustomTooltip>
-                    )}
-                  </div>
+                <Listbox.Label className="flex text-xs font-bold text-gray-800 dark:text-gray-100 uppercase tracking-wide">
+                  {tooltip ? (
+                    <DocsTooltip label={label}>{tooltip}</DocsTooltip>
+                  ) : label}
                 </Listbox.Label>
-                <div className="mt-2 relative">
-                  <Listbox.Button className="bg-white dark:bg-gray-800 relative w-full border border-gray-300 dark:border-gray-700 rounded-md shadow-sm pl-3 pr-10 py-2.5 text-left cursor-default focus:outline-none focus:ring-1 focus:ring-blue-500 dark:focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-500 dark:text-gray-200 sm:text-sm">
+                <div className="mt-1 relative">
+                  <Listbox.Button className="block w-full relative shadow-sm sm:text-sm text-left rounded-md border pl-3 pr-10 py-2.5 focus:ring-blue-500 dark:focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-500 border-gray-300 dark:border-gray-700 bg-gray-100 dark:bg-gray-815 dark:text-gray-100">
                     <span className="block truncate">
                       {field.value
                         ? options.find((c) => c.value === field.value)?.label
@@ -328,45 +322,39 @@ export const Select = ({
                   >
                     <Listbox.Options
                       static
-                      className="absolute z-10 mt-1 w-full bg-white dark:bg-gray-800 shadow-lg max-h-60 rounded-md py-1 text-base ring-1 ring-black ring-opacity-5 overflow-auto focus:outline-none sm:text-sm"
+                      className="absolute z-10 mt-1 w-full shadow-lg max-h-60 rounded-md py-1 text-base overflow-auto border border-gray-300 dark:border-gray-700 bg-gray-100 dark:bg-gray-815 dark:text-gray-100 focus:outline-none sm:text-sm"
                     >
                       {options.map((opt) => (
                         <Listbox.Option
                           key={opt.value}
-                          className={({ active }) =>
+                          className={({ active: hovered, selected }) =>
                             classNames(
-                              active
-                                ? "text-white dark:text-gray-100 bg-blue-600 dark:bg-gray-800"
-                                : "text-gray-900 dark:text-gray-300",
-                              "cursor-default select-none relative py-2 pl-3 pr-9"
+                              selected
+                                ? "font-bold text-black dark:text-white bg-gray-300 dark:bg-gray-950"
+                                : (
+                                  hovered
+                                    ? "text-black dark:text-gray-100 font-normal"
+                                    : "text-gray-700 dark:text-gray-300 font-normal"
+                                ),
+                              hovered ? "bg-gray-200 dark:bg-gray-800" : "",
+                              "transition-colors cursor-default select-none relative py-2 pl-3 pr-9"
                             )
                           }
                           value={opt.value}
                         >
-                          {({ selected, active }) => (
+                          {({ selected }) => (
                             <>
-                              <span
-                                className={classNames(
-                                  selected ? "font-semibold" : "font-normal",
-                                  "block truncate"
-                                )}
-                              >
+                              <span className="block truncate">
                                 {opt.label}
                               </span>
-
-                              {selected ? (
-                                <span
-                                  className={classNames(
-                                    active ? "text-white dark:text-gray-100" : "text-blue-600 dark:text-gray-700",
-                                    "absolute inset-y-0 right-0 flex items-center pr-4"
-                                  )}
-                                >
-                                  <CheckIcon
-                                    className="h-5 w-5"
-                                    aria-hidden="true"
-                                  />
-                                </span>
-                              ) : null}
+                              <span
+                                className={classNames(
+                                  selected ? "visible" : "invisible",
+                                  "absolute inset-y-0 right-0 flex items-center pr-4"
+                                )}
+                              >
+                                <CheckIcon className="h-5 w-5 text-blue-600 dark:text-blue-500" aria-hidden="true" />
+                              </span>
                             </>
                           )}
                         </Listbox.Option>

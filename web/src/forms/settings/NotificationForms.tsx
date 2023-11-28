@@ -8,59 +8,21 @@ import { Fragment } from "react";
 import type { FieldProps } from "formik";
 import { Field, Form, Formik, FormikErrors, FormikValues } from "formik";
 import { XMarkIcon } from "@heroicons/react/24/solid";
-import Select, { components, ControlProps, InputProps, MenuProps, OptionProps } from "react-select";
+import Select from "react-select";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "react-hot-toast";
 
-import { NumberFieldWide, PasswordFieldWide, SwitchGroupWide, TextFieldWide } from "@components/inputs";
-import DEBUG from "@components/debug";
-import { EventOptions, NotificationTypeOptions, SelectOption } from "@domain/constants";
 import { APIClient } from "@api/APIClient";
-import Toast from "@components/notifications/Toast";
-import { SlideOver } from "@components/panels";
-import { componentMapType } from "./DownloadClientForms";
 import { notificationKeys } from "@screens/settings/Notifications";
+import { EventOptions, NotificationTypeOptions, SelectOption } from "@domain/constants";
+import DEBUG from "@components/debug";
+import { SlideOver } from "@components/panels";
+import { ExternalLink } from "@components/ExternalLink";
+import Toast from "@components/notifications/Toast";
+import * as common from "@components/inputs/common";
+import { NumberFieldWide, PasswordFieldWide, SwitchGroupWide, TextFieldWide } from "@components/inputs";
 
-const Input = (props: InputProps) => {
-  return (
-    <components.Input
-      {...props}
-      inputClassName="outline-none border-none shadow-none focus:ring-transparent"
-      className="text-gray-400 dark:text-gray-100"
-      children={props.children}
-    />
-  );
-};
-
-const Control = (props: ControlProps) => {
-  return (
-    <components.Control
-      {...props}
-      className="p-1 block w-full dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:text-gray-100 sm:text-sm"
-      children={props.children}
-    />
-  );
-};
-
-const Menu = (props: MenuProps) => {
-  return (
-    <components.Menu
-      {...props}
-      className="dark:bg-gray-800 border border-gray-300 dark:border-gray-700 dark:text-gray-400 rounded-md shadow-sm"
-      children={props.children}
-    />
-  );
-};
-
-const Option = (props: OptionProps) => {
-  return (
-    <components.Option
-      {...props}
-      className="dark:text-gray-400 dark:bg-gray-800 dark:hover:bg-gray-900 dark:focus:bg-gray-900"
-      children={props.children}
-    />
-  );
-};
+import { componentMapType } from "./DownloadClientForms";
 
 function FormFieldsDiscord() {
   return (
@@ -68,7 +30,14 @@ function FormFieldsDiscord() {
       <div className="px-4 space-y-1">
         <Dialog.Title className="text-lg font-medium text-gray-900 dark:text-white">Settings</Dialog.Title>
         <p className="text-sm text-gray-500 dark:text-gray-400">
-          Create a <a href="https://support.discord.com/hc/en-us/articles/228383668-Intro-to-Webhooks" rel="noopener noreferrer" target="_blank" className="font-medium text-blue-500 underline underline-offset-1 hover:text-blue-400">webhook integration</a> in your server.
+          {"Create a "}
+          <ExternalLink
+            href="https://support.discord.com/hc/en-us/articles/228383668-Intro-to-Webhooks"
+            className="font-medium text-blue-500 underline underline-offset-1 hover:text-blue-400"
+          >
+            webhook integration
+          </ExternalLink>
+          {" in your server."}
         </p>
       </div>
 
@@ -107,7 +76,14 @@ function FormFieldsTelegram() {
       <div className="px-4 space-y-1">
         <Dialog.Title className="text-lg font-medium text-gray-900 dark:text-white">Settings</Dialog.Title>
         <p className="text-sm text-gray-500 dark:text-gray-400">
-          Read how to <a href="https://core.telegram.org/bots#3-how-do-i-create-a-bot" rel="noopener noreferrer" target="_blank" className="font-medium text-blue-500 underline underline-offset-1 hover:text-blue-400">create a bot</a>.
+          {"Read how to "}
+          <ExternalLink
+            href="https://core.telegram.org/bots#3-how-do-i-create-a-bot"
+            className="font-medium text-blue-500 underline underline-offset-1 hover:text-blue-400"
+          >
+            create a bot
+          </ExternalLink>
+          {"."}
         </p>
       </div>
 
@@ -136,7 +112,14 @@ function FormFieldsPushover() {
       <div className="px-4 space-y-1">
         <Dialog.Title className="text-lg font-medium text-gray-900 dark:text-white">Settings</Dialog.Title>
         <p className="text-sm text-gray-500 dark:text-gray-400">
-          Register a new <a href="https://support.pushover.net/i175-how-do-i-get-an-api-or-application-token" rel="noopener noreferrer" target="_blank" className="font-medium text-blue-500 underline underline-offset-1 hover:text-blue-400">application</a> and add its API Token here.
+          {"Register a new "}
+          <ExternalLink
+            href="https://support.pushover.net/i175-how-do-i-get-an-api-or-application-token"
+            className="font-medium text-blue-500 underline underline-offset-1 hover:text-blue-400"
+          >
+            application
+          </ExternalLink>
+          {" and add its API Token here."}
         </p>
       </div>
 
@@ -160,11 +143,36 @@ function FormFieldsPushover() {
   );
 }
 
+function FormFieldsGotify() {
+  return (
+    <div className="border-t border-gray-200 dark:border-gray-700 py-4">
+      <div className="px-4 space-y-1">
+        <Dialog.Title className="text-lg font-medium text-gray-900 dark:text-white">Settings</Dialog.Title>
+      </div>
+
+      <TextFieldWide
+        name="host"
+        label="Gotify URL"
+        help="Gotify URL"
+        placeholder="https://some.gotify.server.com"
+        required={true}
+      />
+      <PasswordFieldWide
+        name="token"
+        label="Application Token"
+        help="Application Token"
+        required={true}
+      />
+    </div>
+  );
+}
+
 const componentMap: componentMapType = {
   DISCORD: <FormFieldsDiscord />,
   NOTIFIARR: <FormFieldsNotifiarr />,
   TELEGRAM: <FormFieldsTelegram />,
-  PUSHOVER: <FormFieldsPushover />
+  PUSHOVER: <FormFieldsPushover />,
+  GOTIFY: <FormFieldsGotify />
 };
 
 interface NotificationAddFormValues {
@@ -181,7 +189,7 @@ export function NotificationAddForm({ isOpen, toggle }: AddProps) {
   const queryClient = useQueryClient();
 
   const createMutation = useMutation({
-    mutationFn: (notification: Notification) => APIClient.notifications.create(notification),
+    mutationFn: (notification: ServiceNotification) => APIClient.notifications.create(notification),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: notificationKeys.lists() });
 
@@ -193,16 +201,16 @@ export function NotificationAddForm({ isOpen, toggle }: AddProps) {
     }
   });
 
-  const onSubmit = (formData: unknown) => createMutation.mutate(formData as Notification);
+  const onSubmit = (formData: unknown) => createMutation.mutate(formData as ServiceNotification);
 
   const testMutation = useMutation({
-    mutationFn: (n: Notification) => APIClient.notifications.test(n),
+    mutationFn: (n: ServiceNotification) => APIClient.notifications.test(n),
     onError: (err) => {
       console.error(err);
     }
   });
 
-  const testNotification = (data: unknown) => testMutation.mutate(data as Notification);
+  const testNotification = (data: unknown) => testMutation.mutate(data as ServiceNotification);
 
   const validate = (values: NotificationAddFormValues) => {
     const errors = {} as FormikErrors<FormikValues>;
@@ -248,7 +256,7 @@ export function NotificationAddForm({ isOpen, toggle }: AddProps) {
                   validate={validate}
                 >
                   {({ values }) => (
-                    <Form className="h-full flex flex-col bg-white dark:bg-gray-800 shadow-xl overflow-y-scroll">
+                    <Form className="h-full flex flex-col bg-white dark:bg-gray-800 shadow-xl overflow-y-auto">
                       <div className="flex-1">
                         <div className="px-4 py-6 bg-gray-50 dark:bg-gray-900 sm:px-6">
                           <div className="flex items-start justify-between space-x-3">
@@ -300,10 +308,12 @@ export function NotificationAddForm({ isOpen, toggle }: AddProps) {
                                     isClearable={true}
                                     isSearchable={true}
                                     components={{
-                                      Input,
-                                      Control,
-                                      Menu,
-                                      Option
+                                      Input: common.SelectInput,
+                                      Control: common.SelectControl,
+                                      Menu: common.SelectMenu,
+                                      Option: common.SelectOption,
+                                      IndicatorSeparator: common.IndicatorSeparator,
+                                      DropdownIndicator: common.DropdownIndicator
                                     }}
                                     placeholder="Choose a type"
                                     styles={{
@@ -428,7 +438,7 @@ const EventCheckBoxes = () => (
 interface UpdateProps {
     isOpen: boolean;
     toggle: () => void;
-    notification: Notification;
+    notification: ServiceNotification;
 }
 
 interface InitialValues {
@@ -442,6 +452,7 @@ interface InitialValues {
   priority?: number;
   channel?: string;
   topic?: string;
+  host?: string;
   events: NotificationEvent[];
 }
 
@@ -449,7 +460,7 @@ export function NotificationUpdateForm({ isOpen, toggle, notification }: UpdateP
   const queryClient = useQueryClient();
 
   const mutation = useMutation({
-    mutationFn: (notification: Notification) => APIClient.notifications.update(notification),
+    mutationFn: (notification: ServiceNotification) => APIClient.notifications.update(notification),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: notificationKeys.lists() });
 
@@ -458,7 +469,7 @@ export function NotificationUpdateForm({ isOpen, toggle, notification }: UpdateP
     }
   });
 
-  const onSubmit = (formData: unknown) => mutation.mutate(formData as Notification);
+  const onSubmit = (formData: unknown) => mutation.mutate(formData as ServiceNotification);
 
   const deleteMutation = useMutation({
     mutationFn: (notificationID: number) => APIClient.notifications.delete(notificationID),
@@ -472,13 +483,13 @@ export function NotificationUpdateForm({ isOpen, toggle, notification }: UpdateP
   const deleteAction = () => deleteMutation.mutate(notification.id);
 
   const testMutation = useMutation({
-    mutationFn: (n: Notification) => APIClient.notifications.test(n),
+    mutationFn: (n: ServiceNotification) => APIClient.notifications.test(n),
     onError: (err) => {
       console.error(err);
     }
   });
 
-  const testNotification = (data: unknown) => testMutation.mutate(data as Notification);
+  const testNotification = (data: unknown) => testMutation.mutate(data as ServiceNotification);
 
   const initialValues: InitialValues = {
     id: notification.id,
@@ -491,6 +502,7 @@ export function NotificationUpdateForm({ isOpen, toggle, notification }: UpdateP
     priority: notification.priority,
     channel: notification.channel,
     topic: notification.topic,
+    host: notification.host,
     events: notification.events || []
   };
 
@@ -525,8 +537,14 @@ export function NotificationUpdateForm({ isOpen, toggle, notification }: UpdateP
                     <Select {...field}
                       isClearable={true}
                       isSearchable={true}
-                      components={{ Input, Control, Menu, Option }}
-
+                      components={{
+                        Input: common.SelectInput,
+                        Control: common.SelectControl,
+                        Menu: common.SelectMenu,
+                        Option: common.SelectOption,
+                        IndicatorSeparator: common.IndicatorSeparator,
+                        DropdownIndicator: common.DropdownIndicator
+                      }}
                       placeholder="Choose a type"
                       styles={{
                         singleValue: (base) => ({

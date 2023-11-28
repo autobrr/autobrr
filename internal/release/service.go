@@ -25,8 +25,7 @@ type Service interface {
 	Stats(ctx context.Context) (*domain.ReleaseStats, error)
 	Store(ctx context.Context, release *domain.Release) error
 	StoreReleaseActionStatus(ctx context.Context, actionStatus *domain.ReleaseActionStatus) error
-	Delete(ctx context.Context) error
-	DeleteOlder(ctx context.Context, duration int) error
+	Delete(ctx context.Context, req *domain.DeleteReleaseRequest) error
 	Process(release *domain.Release)
 	ProcessMultiple(releases []*domain.Release)
 	Retry(ctx context.Context, req *domain.ReleaseActionRetryReq) error
@@ -79,24 +78,15 @@ func (s *service) Stats(ctx context.Context) (*domain.ReleaseStats, error) {
 }
 
 func (s *service) Store(ctx context.Context, release *domain.Release) error {
-	_, err := s.repo.Store(ctx, release)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return s.repo.Store(ctx, release)
 }
 
 func (s *service) StoreReleaseActionStatus(ctx context.Context, status *domain.ReleaseActionStatus) error {
 	return s.repo.StoreReleaseActionStatus(ctx, status)
 }
 
-func (s *service) Delete(ctx context.Context) error {
-	return s.repo.Delete(ctx)
-}
-
-func (s *service) DeleteOlder(ctx context.Context, duration int) error {
-	return s.repo.DeleteOlder(ctx, duration)
+func (s *service) Delete(ctx context.Context, req *domain.DeleteReleaseRequest) error {
+	return s.repo.Delete(ctx, req)
 }
 
 func (s *service) Process(release *domain.Release) {
@@ -132,6 +122,15 @@ func (s *service) Process(release *domain.Release) {
 		return
 	}
 
+	if err := s.processFilters(ctx, filters, release); err != nil {
+		s.log.Error().Err(err).Msgf("release.Process: error processing filters for indexer: %s", release.Indexer)
+		return
+	}
+
+	return
+}
+
+func (s *service) processFilters(ctx context.Context, filters []domain.Filter, release *domain.Release) error {
 	// keep track of action clients to avoid sending the same thing all over again
 	// save both client type and client id to potentially try another client of same type
 	triedActionClients := map[actionClientTypeKey]struct{}{}
@@ -149,13 +148,13 @@ func (s *service) Process(release *domain.Release) {
 		match, err := s.filterSvc.CheckFilter(ctx, f, release)
 		if err != nil {
 			l.Error().Err(err).Msg("release.Process: error checking filter")
-			return
+			return err
 		}
 
 		if !match {
-			l.Trace().Msgf("release.Process: indexer: %s, filter: %s release: %s, no match. rejections: %s", release.Indexer, release.FilterName, release.TorrentName, release.RejectionsString())
+			l.Trace().Msgf("release.Process: indexer: %s, filter: %s release: %s, no match. rejections: %s", release.Indexer, release.FilterName, release.TorrentName, release.RejectionsString(false))
 
-			l.Debug().Msgf("release rejected: %s", release.RejectionsString())
+			l.Debug().Msgf("release rejected: %s", release.RejectionsString(true))
 			continue
 		}
 
@@ -164,23 +163,37 @@ func (s *service) Process(release *domain.Release) {
 		// save release here to only save those with rejections from actions instead of all releases
 		if release.ID == 0 {
 			release.FilterStatus = domain.ReleaseStatusFilterApproved
+
 			if err = s.Store(ctx, release); err != nil {
 				l.Error().Err(err).Msgf("release.Process: error writing release to database: %+v", release)
-				return
+				return err
 			}
+		}
+
+		// found matching filter, lets find the filter actions and attach
+		actions, err := s.actionSvc.FindByFilterID(ctx, f.ID)
+		if err != nil {
+			s.log.Error().Err(err).Msgf("release.Process: error finding actions for filter: %s", f.Name)
+			return err
+		}
+
+		// if no actions, continue to next filter
+		if len(actions) == 0 {
+			s.log.Warn().Msgf("release.Process: no actions found for filter '%s', trying next one..", f.Name)
+			return nil
 		}
 
 		// sleep for the delay period specified in the filter before running actions
 		delay := release.Filter.Delay
 		if delay > 0 {
-			l.Debug().Msgf("Delaying processing of '%s' (%s) for %s by %d seconds as specified in the filter", release.TorrentName, release.FilterName, release.Indexer, delay)
+			l.Debug().Msgf("release.Process: delaying processing of '%s' (%s) for %s by %d seconds as specified in the filter", release.TorrentName, release.FilterName, release.Indexer, delay)
 			time.Sleep(time.Duration(delay) * time.Second)
 		}
 
 		var rejections []string
 
 		// run actions (watchFolder, test, exec, qBittorrent, Deluge, arr etc.)
-		for _, a := range release.Filter.Actions {
+		for _, a := range actions {
 			act := a
 
 			// only run enabled actions
@@ -191,7 +204,7 @@ func (s *service) Process(release *domain.Release) {
 
 			l.Trace().Msgf("release.Process: indexer: %s, filter: %s release: %s , run action: %s", release.Indexer, release.FilterName, release.TorrentName, act.Name)
 
-			// keep track of actiom clients to avoid sending the same thing all over again
+			// keep track of action clients to avoid sending the same thing all over again
 			_, tried := triedActionClients[actionClientTypeKey{Type: act.Type, ClientID: act.ClientID}]
 			if tried {
 				l.Trace().Msgf("release.Process: indexer: %s, filter: %s release: %s action client already tried, skip", release.Indexer, release.FilterName, release.TorrentName)
@@ -201,7 +214,7 @@ func (s *service) Process(release *domain.Release) {
 			// run action
 			status, err := s.runAction(ctx, act, release)
 			if err != nil {
-				l.Error().Stack().Err(err).Msgf("release.Process: error running actions for filter: %s", release.FilterName)
+				l.Error().Err(err).Msgf("release.Process: error running actions for filter: %s", release.FilterName)
 				//continue
 			}
 
@@ -232,11 +245,11 @@ func (s *service) Process(release *domain.Release) {
 		break
 	}
 
-	return
+	return nil
 }
 
 func (s *service) ProcessMultiple(releases []*domain.Release) {
-	s.log.Debug().Msgf("process (%v) new releases from feed", len(releases))
+	s.log.Debug().Msgf("process (%d) new releases from feed", len(releases))
 
 	for _, rls := range releases {
 		rls := rls
@@ -257,7 +270,7 @@ func (s *service) runAction(ctx context.Context, action *domain.Action, release 
 
 	rejections, err := s.actionSvc.RunAction(ctx, action, release)
 	if err != nil {
-		s.log.Error().Stack().Err(err).Msgf("release.runAction: error running actions for filter: %s", release.FilterName)
+		s.log.Error().Err(err).Msgf("release.runAction: error running actions for filter: %s", release.FilterName)
 
 		status.Status = domain.ReleasePushStatusErr
 		status.Rejections = []string{err.Error()}

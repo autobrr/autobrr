@@ -22,6 +22,7 @@ type indexerService interface {
 	GetTemplates() ([]domain.IndexerDefinition, error)
 	Delete(ctx context.Context, id int) error
 	TestApi(ctx context.Context, req domain.IndexerTestApiRequest) error
+	ToggleEnabled(ctx context.Context, indexerID int, enabled bool) error
 }
 
 type indexerHandler struct {
@@ -41,11 +42,16 @@ func newIndexerHandler(encoder encoder, service indexerService, ircSvc ircServic
 func (h indexerHandler) Routes(r chi.Router) {
 	r.Get("/schema", h.getSchema)
 	r.Post("/", h.store)
-	r.Put("/", h.update)
 	r.Get("/", h.getAll)
 	r.Get("/options", h.list)
-	r.Delete("/{indexerID}", h.delete)
-	r.Post("/{id}/api/test", h.testApi)
+
+	r.Route("/{indexerID}", func(r chi.Router) {
+		r.Put("/", h.update)
+		r.Delete("/", h.delete)
+		r.Post("/api/test", h.testApi)
+
+		r.Patch("/enabled", h.toggleEnabled)
+	})
 }
 
 func (h indexerHandler) getSchema(w http.ResponseWriter, r *http.Request) {
@@ -104,7 +110,11 @@ func (h indexerHandler) delete(w http.ResponseWriter, r *http.Request) {
 		idParam = chi.URLParam(r, "indexerID")
 	)
 
-	id, _ := strconv.Atoi(idParam)
+	id, err := strconv.Atoi(idParam)
+	if err != nil {
+		h.encoder.Error(w, err)
+		return
+	}
 
 	if err := h.service.Delete(ctx, id); err != nil {
 		h.encoder.Error(w, err)
@@ -139,7 +149,7 @@ func (h indexerHandler) list(w http.ResponseWriter, r *http.Request) {
 func (h indexerHandler) testApi(w http.ResponseWriter, r *http.Request) {
 	var (
 		ctx     = r.Context()
-		idParam = chi.URLParam(r, "id")
+		idParam = chi.URLParam(r, "indexerID")
 		req     domain.IndexerTestApiRequest
 	)
 
@@ -170,4 +180,32 @@ func (h indexerHandler) testApi(w http.ResponseWriter, r *http.Request) {
 	}
 
 	h.encoder.StatusResponse(w, http.StatusOK, res)
+}
+
+func (h indexerHandler) toggleEnabled(w http.ResponseWriter, r *http.Request) {
+	var (
+		ctx       = r.Context()
+		indexerID = chi.URLParam(r, "indexerID")
+		data      struct {
+			Enabled bool `json:"enabled"`
+		}
+	)
+
+	id, err := strconv.Atoi(indexerID)
+	if err != nil {
+		h.encoder.Error(w, err)
+		return
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
+		h.encoder.Error(w, err)
+		return
+	}
+
+	if err := h.service.ToggleEnabled(ctx, id, data.Enabled); err != nil {
+		h.encoder.Error(w, err)
+		return
+	}
+
+	h.encoder.NoContent(w)
 }

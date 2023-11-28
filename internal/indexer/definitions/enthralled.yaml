@@ -11,7 +11,7 @@ protocol: torrent
 supports:
   - irc
   - rss
-source: gazelle
+# source: gazelle
 settings:
   - name: authkey
     type: secret
@@ -27,7 +27,7 @@ settings:
 
 irc:
   network: DigitalIRC
-  server: irc.enthralled.me
+  server: irc.digitalirc.org
   port: 6697
   tls: true
   channels:
@@ -56,8 +56,15 @@ irc:
   parse:
     type: single
     lines:
-      - test:
-          - "Some release - Size: 559.06 MiB - Uploader: anon - Tags: worship,other - https://www.enthralled.me/torrents.php?torrentid=0000"
+      - tests:
+        - line: 'Some release - Size: 559.06 MiB - Uploader: anon - Tags: worship,other - https://www.enthralled.me/torrents.php?torrentid=0000'
+          expect:
+            torrentName: Some release
+            torrentSize: 559.06 MiB
+            uploader: anon
+            tags: worship,other
+            baseUrl: https://www.enthralled.me/
+            torrentId: "0000"
         pattern: '(.*) - Size: (.+) - Uploader: (.+) - Tags: (.*?) - (https://.+\/)torrents.php\?torrentid=(\d+)'
         vars:
           - torrentName

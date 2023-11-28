@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-import React, { FC, forwardRef, ReactNode } from "react";
+import { FC, forwardRef, ReactNode } from "react";
 import { DeepMap, FieldError, Path, RegisterOptions, UseFormRegister } from "react-hook-form";
 import { classNames, get } from "@utils";
 import { useToggle } from "@hooks/hooks";
@@ -112,7 +112,7 @@ export const TextInput = <TFormValues extends Record<string, unknown>>({
       )}
     >
       {props.label && (
-        <label htmlFor={name} className="block text-xs font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wide">
+        <label htmlFor={name} className="block ml-px text-xs font-bold text-gray-800 dark:text-gray-100 uppercase tracking-wide">
           {props.label}
         </label>
       )}
@@ -121,8 +121,10 @@ export const TextInput = <TFormValues extends Record<string, unknown>>({
           name={name}
           aria-invalid={hasError}
           className={classNames(
-            "mt-2 block w-full dark:bg-gray-800 dark:text-gray-100 rounded-md",
-            hasError ? "focus:ring-red-500 focus:border-red-500 border-red-500" : "focus:ring-blue-500 dark:focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-500 border-gray-300 dark:border-gray-700"
+            "block mt-1 w-full shadow-sm sm:text-sm rounded-md py-2.5 bg-gray-100 dark:bg-gray-850 dark:text-gray-100",
+            hasError
+              ? "border-red-500 focus:ring-red-500 focus:border-red-500"
+              : "border-gray-300 dark:border-gray-700 focus:ring-blue-500 dark:focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-500"
           )}
           {...props}
           {...(register && register(name, rules))}
@@ -162,7 +164,7 @@ export const PasswordInput = <TFormValues extends Record<string, unknown>>({
       )}
     >
       {props.label && (
-        <label htmlFor={name} className="block text-xs font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wide">
+        <label htmlFor={name} className="block ml-px text-xs font-bold text-gray-800 dark:text-gray-100 uppercase tracking-wide">
           {props.label}
         </label>
       )}
@@ -173,8 +175,10 @@ export const PasswordInput = <TFormValues extends Record<string, unknown>>({
             aria-invalid={hasError}
             type={isVisible ? "text" : "password"}
             className={classNames(
-              "mt-2 block w-full dark:bg-gray-800 dark:text-gray-100 rounded-md",
-              hasError ? "focus:ring-red-500 focus:border-red-500 border-red-500" : "focus:ring-blue-500 dark:focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-500 border-gray-300 dark:border-gray-700"
+              "block mt-1 w-full shadow-sm sm:text-sm rounded-md border py-2.5 bg-gray-100 dark:bg-gray-850 dark:text-gray-100",
+              hasError
+                ? "border-red-500 focus:ring-red-500 focus:border-red-500"
+                : "border-gray-300 dark:border-gray-700 focus:ring-blue-500 dark:focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-500"
             )}
             {...props}
             {...(register && register(name, rules))}
@@ -194,4 +198,3 @@ export const PasswordInput = <TFormValues extends Record<string, unknown>>({
     </div>
   );
 };
-

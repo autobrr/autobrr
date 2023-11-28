@@ -5,6 +5,8 @@ package domain
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"regexp"
 	"strconv"
 	"strings"
@@ -21,18 +23,21 @@ https://autodl-community.github.io/autodl-irssi/configuration/filter/
 */
 
 type FilterRepo interface {
+	ListFilters(ctx context.Context) ([]Filter, error)
+	Find(ctx context.Context, params FilterQueryParams) ([]Filter, error)
 	FindByID(ctx context.Context, filterID int) (*Filter, error)
 	FindByIndexerIdentifier(ctx context.Context, indexer string) ([]Filter, error)
-	Find(ctx context.Context, params FilterQueryParams) ([]Filter, error)
-	ListFilters(ctx context.Context) ([]Filter, error)
-	Store(ctx context.Context, filter Filter) (*Filter, error)
-	Update(ctx context.Context, filter Filter) (*Filter, error)
+	FindExternalFiltersByID(ctx context.Context, filterId int) ([]FilterExternal, error)
+	Store(ctx context.Context, filter *Filter) error
+	Update(ctx context.Context, filter *Filter) error
 	UpdatePartial(ctx context.Context, filter FilterUpdate) error
 	ToggleEnabled(ctx context.Context, filterID int, enabled bool) error
 	Delete(ctx context.Context, filterID int) error
 	StoreIndexerConnection(ctx context.Context, filterID int, indexerID int) error
 	StoreIndexerConnections(ctx context.Context, filterID int, indexers []Indexer) error
+	StoreFilterExternal(ctx context.Context, filterID int, externalFilters []FilterExternal) error
 	DeleteIndexerConnections(ctx context.Context, filterID int) error
+	DeleteFilterExternal(ctx context.Context, filterID int) error
 	GetDownloadsByFilterId(ctx context.Context, filterID int) (*FilterDownloads, error)
 }
 
@@ -63,157 +68,193 @@ type FilterQueryParams struct {
 }
 
 type Filter struct {
-	ID                          int                    `json:"id"`
-	Name                        string                 `json:"name"`
-	Enabled                     bool                   `json:"enabled"`
-	CreatedAt                   time.Time              `json:"created_at"`
-	UpdatedAt                   time.Time              `json:"updated_at"`
-	MinSize                     string                 `json:"min_size,omitempty"`
-	MaxSize                     string                 `json:"max_size,omitempty"`
-	Delay                       int                    `json:"delay,omitempty"`
-	Priority                    int32                  `json:"priority"`
-	MaxDownloads                int                    `json:"max_downloads,omitempty"`
-	MaxDownloadsUnit            FilterMaxDownloadsUnit `json:"max_downloads_unit,omitempty"`
-	MatchReleases               string                 `json:"match_releases,omitempty"`
-	ExceptReleases              string                 `json:"except_releases,omitempty"`
-	UseRegex                    bool                   `json:"use_regex,omitempty"`
-	MatchReleaseGroups          string                 `json:"match_release_groups,omitempty"`
-	ExceptReleaseGroups         string                 `json:"except_release_groups,omitempty"`
-	Scene                       bool                   `json:"scene,omitempty"`
-	Origins                     []string               `json:"origins,omitempty"`
-	ExceptOrigins               []string               `json:"except_origins,omitempty"`
-	Bonus                       []string               `json:"bonus,omitempty"`
-	Freeleech                   bool                   `json:"freeleech,omitempty"`
-	FreeleechPercent            string                 `json:"freeleech_percent,omitempty"`
-	SmartEpisode                bool                   `json:"smart_episode"`
-	Shows                       string                 `json:"shows,omitempty"`
-	Seasons                     string                 `json:"seasons,omitempty"`
-	Episodes                    string                 `json:"episodes,omitempty"`
-	Resolutions                 []string               `json:"resolutions,omitempty"` // SD, 480i, 480p, 576p, 720p, 810p, 1080i, 1080p.
-	Codecs                      []string               `json:"codecs,omitempty"`      // XviD, DivX, x264, h.264 (or h264), mpeg2 (or mpeg-2), VC-1 (or VC1), WMV, Remux, h.264 Remux (or h264 Remux), VC-1 Remux (or VC1 Remux).
-	Sources                     []string               `json:"sources,omitempty"`     // DSR, PDTV, HDTV, HR.PDTV, HR.HDTV, DVDRip, DVDScr, BDr, BD5, BD9, BDRip, BRRip, DVDR, MDVDR, HDDVD, HDDVDRip, BluRay, WEB-DL, TVRip, CAM, R5, TELESYNC, TS, TELECINE, TC. TELESYNC and TS are synonyms (you don't need both). Same for TELECINE and TC
-	Containers                  []string               `json:"containers,omitempty"`
-	MatchHDR                    []string               `json:"match_hdr,omitempty"`
-	ExceptHDR                   []string               `json:"except_hdr,omitempty"`
-	MatchOther                  []string               `json:"match_other,omitempty"`
-	ExceptOther                 []string               `json:"except_other,omitempty"`
-	Years                       string                 `json:"years,omitempty"`
-	Artists                     string                 `json:"artists,omitempty"`
-	Albums                      string                 `json:"albums,omitempty"`
-	MatchReleaseTypes           []string               `json:"match_release_types,omitempty"` // Album,Single,EP
-	ExceptReleaseTypes          string                 `json:"except_release_types,omitempty"`
-	Formats                     []string               `json:"formats,omitempty"` // MP3, FLAC, Ogg, AAC, AC3, DTS
-	Quality                     []string               `json:"quality,omitempty"` // 192, 320, APS (VBR), V2 (VBR), V1 (VBR), APX (VBR), V0 (VBR), q8.x (VBR), Lossless, 24bit Lossless, Other
-	Media                       []string               `json:"media,omitempty"`   // CD, DVD, Vinyl, Soundboard, SACD, DAT, Cassette, WEB, Other
-	PerfectFlac                 bool                   `json:"perfect_flac,omitempty"`
-	Cue                         bool                   `json:"cue,omitempty"`
-	Log                         bool                   `json:"log,omitempty"`
-	LogScore                    int                    `json:"log_score,omitempty"`
-	MatchCategories             string                 `json:"match_categories,omitempty"`
-	ExceptCategories            string                 `json:"except_categories,omitempty"`
-	MatchUploaders              string                 `json:"match_uploaders,omitempty"`
-	ExceptUploaders             string                 `json:"except_uploaders,omitempty"`
-	MatchLanguage               []string               `json:"match_language,omitempty"`
-	ExceptLanguage              []string               `json:"except_language,omitempty"`
-	Tags                        string                 `json:"tags,omitempty"`
-	ExceptTags                  string                 `json:"except_tags,omitempty"`
-	TagsAny                     string                 `json:"tags_any,omitempty"`
-	ExceptTagsAny               string                 `json:"except_tags_any,omitempty"`
-	TagsMatchLogic              string                 `json:"tags_match_logic,omitempty"`
-	ExceptTagsMatchLogic        string                 `json:"except_tags_match_logic,omitempty"`
-	MatchReleaseTags            string                 `json:"match_release_tags,omitempty"`
-	ExceptReleaseTags           string                 `json:"except_release_tags,omitempty"`
-	UseRegexReleaseTags         bool                   `json:"use_regex_release_tags,omitempty"`
-	MatchDescription            string                 `json:"match_description,omitempty"`
-	ExceptDescription           string                 `json:"except_description,omitempty"`
-	UseRegexDescription         bool                   `json:"use_regex_description,omitempty"`
-	ExternalScriptEnabled       bool                   `json:"external_script_enabled,omitempty"`
-	ExternalScriptCmd           string                 `json:"external_script_cmd,omitempty"`
-	ExternalScriptArgs          string                 `json:"external_script_args,omitempty"`
-	ExternalScriptExpectStatus  int                    `json:"external_script_expect_status,omitempty"`
-	ExternalWebhookEnabled      bool                   `json:"external_webhook_enabled,omitempty"`
-	ExternalWebhookHost         string                 `json:"external_webhook_host,omitempty"`
-	ExternalWebhookData         string                 `json:"external_webhook_data,omitempty"`
-	ExternalWebhookExpectStatus int                    `json:"external_webhook_expect_status,omitempty"`
-	ActionsCount                int                    `json:"actions_count"`
-	Actions                     []*Action              `json:"actions,omitempty"`
-	Indexers                    []Indexer              `json:"indexers"`
-	Downloads                   *FilterDownloads       `json:"-"`
+	ID                   int                    `json:"id"`
+	Name                 string                 `json:"name"`
+	Enabled              bool                   `json:"enabled"`
+	CreatedAt            time.Time              `json:"created_at"`
+	UpdatedAt            time.Time              `json:"updated_at"`
+	MinSize              string                 `json:"min_size,omitempty"`
+	MaxSize              string                 `json:"max_size,omitempty"`
+	Delay                int                    `json:"delay,omitempty"`
+	Priority             int32                  `json:"priority"`
+	MaxDownloads         int                    `json:"max_downloads,omitempty"`
+	MaxDownloadsUnit     FilterMaxDownloadsUnit `json:"max_downloads_unit,omitempty"`
+	MatchReleases        string                 `json:"match_releases,omitempty"`
+	ExceptReleases       string                 `json:"except_releases,omitempty"`
+	UseRegex             bool                   `json:"use_regex,omitempty"`
+	MatchReleaseGroups   string                 `json:"match_release_groups,omitempty"`
+	ExceptReleaseGroups  string                 `json:"except_release_groups,omitempty"`
+	Scene                bool                   `json:"scene,omitempty"`
+	Origins              []string               `json:"origins,omitempty"`
+	ExceptOrigins        []string               `json:"except_origins,omitempty"`
+	Bonus                []string               `json:"bonus,omitempty"`
+	Freeleech            bool                   `json:"freeleech,omitempty"`
+	FreeleechPercent     string                 `json:"freeleech_percent,omitempty"`
+	SmartEpisode         bool                   `json:"smart_episode"`
+	Shows                string                 `json:"shows,omitempty"`
+	Seasons              string                 `json:"seasons,omitempty"`
+	Episodes             string                 `json:"episodes,omitempty"`
+	Resolutions          []string               `json:"resolutions,omitempty"` // SD, 480i, 480p, 576p, 720p, 810p, 1080i, 1080p.
+	Codecs               []string               `json:"codecs,omitempty"`      // XviD, DivX, x264, h.264 (or h264), mpeg2 (or mpeg-2), VC-1 (or VC1), WMV, Remux, h.264 Remux (or h264 Remux), VC-1 Remux (or VC1 Remux).
+	Sources              []string               `json:"sources,omitempty"`     // DSR, PDTV, HDTV, HR.PDTV, HR.HDTV, DVDRip, DVDScr, BDr, BD5, BD9, BDRip, BRRip, DVDR, MDVDR, HDDVD, HDDVDRip, BluRay, WEB-DL, TVRip, CAM, R5, TELESYNC, TS, TELECINE, TC. TELESYNC and TS are synonyms (you don't need both). Same for TELECINE and TC
+	Containers           []string               `json:"containers,omitempty"`
+	MatchHDR             []string               `json:"match_hdr,omitempty"`
+	ExceptHDR            []string               `json:"except_hdr,omitempty"`
+	MatchOther           []string               `json:"match_other,omitempty"`
+	ExceptOther          []string               `json:"except_other,omitempty"`
+	Years                string                 `json:"years,omitempty"`
+	Artists              string                 `json:"artists,omitempty"`
+	Albums               string                 `json:"albums,omitempty"`
+	MatchReleaseTypes    []string               `json:"match_release_types,omitempty"` // Album,Single,EP
+	ExceptReleaseTypes   string                 `json:"except_release_types,omitempty"`
+	Formats              []string               `json:"formats,omitempty"` // MP3, FLAC, Ogg, AAC, AC3, DTS
+	Quality              []string               `json:"quality,omitempty"` // 192, 320, APS (VBR), V2 (VBR), V1 (VBR), APX (VBR), V0 (VBR), q8.x (VBR), Lossless, 24bit Lossless, Other
+	Media                []string               `json:"media,omitempty"`   // CD, DVD, Vinyl, Soundboard, SACD, DAT, Cassette, WEB, Other
+	PerfectFlac          bool                   `json:"perfect_flac,omitempty"`
+	Cue                  bool                   `json:"cue,omitempty"`
+	Log                  bool                   `json:"log,omitempty"`
+	LogScore             int                    `json:"log_score,omitempty"`
+	MatchCategories      string                 `json:"match_categories,omitempty"`
+	ExceptCategories     string                 `json:"except_categories,omitempty"`
+	MatchUploaders       string                 `json:"match_uploaders,omitempty"`
+	ExceptUploaders      string                 `json:"except_uploaders,omitempty"`
+	MatchLanguage        []string               `json:"match_language,omitempty"`
+	ExceptLanguage       []string               `json:"except_language,omitempty"`
+	Tags                 string                 `json:"tags,omitempty"`
+	ExceptTags           string                 `json:"except_tags,omitempty"`
+	TagsAny              string                 `json:"tags_any,omitempty"`
+	ExceptTagsAny        string                 `json:"except_tags_any,omitempty"`
+	TagsMatchLogic       string                 `json:"tags_match_logic,omitempty"`
+	ExceptTagsMatchLogic string                 `json:"except_tags_match_logic,omitempty"`
+	MatchReleaseTags     string                 `json:"match_release_tags,omitempty"`
+	ExceptReleaseTags    string                 `json:"except_release_tags,omitempty"`
+	UseRegexReleaseTags  bool                   `json:"use_regex_release_tags,omitempty"`
+	MatchDescription     string                 `json:"match_description,omitempty"`
+	ExceptDescription    string                 `json:"except_description,omitempty"`
+	UseRegexDescription  bool                   `json:"use_regex_description,omitempty"`
+	ActionsCount         int                    `json:"actions_count"`
+	Actions              []*Action              `json:"actions,omitempty"`
+	External             []FilterExternal       `json:"external,omitempty"`
+	Indexers             []Indexer              `json:"indexers"`
+	Downloads            *FilterDownloads       `json:"-"`
 }
 
+type FilterExternal struct {
+	ID                       int                `json:"id"`
+	Name                     string             `json:"name"`
+	Index                    int                `json:"index"`
+	Type                     FilterExternalType `json:"type"`
+	Enabled                  bool               `json:"enabled"`
+	ExecCmd                  string             `json:"exec_cmd,omitempty"`
+	ExecArgs                 string             `json:"exec_args,omitempty"`
+	ExecExpectStatus         int                `json:"exec_expect_status,omitempty"`
+	WebhookHost              string             `json:"webhook_host,omitempty"`
+	WebhookMethod            string             `json:"webhook_method,omitempty"`
+	WebhookData              string             `json:"webhook_data,omitempty"`
+	WebhookHeaders           string             `json:"webhook_headers,omitempty"`
+	WebhookExpectStatus      int                `json:"webhook_expect_status,omitempty"`
+	WebhookRetryStatus       string             `json:"webhook_retry_status,omitempty"`
+	WebhookRetryAttempts     int                `json:"webhook_retry_attempts,omitempty"`
+	WebhookRetryDelaySeconds int                `json:"webhook_retry_delay_seconds,omitempty"`
+	FilterId                 int                `json:"-"`
+}
+
+type FilterExternalType string
+
+const (
+	ExternalFilterTypeExec    FilterExternalType = "EXEC"
+	ExternalFilterTypeWebhook FilterExternalType = "WEBHOOK"
+)
+
 type FilterUpdate struct {
-	ID                          int                     `json:"id"`
-	Name                        *string                 `json:"name,omitempty"`
-	Enabled                     *bool                   `json:"enabled,omitempty"`
-	MinSize                     *string                 `json:"min_size,omitempty"`
-	MaxSize                     *string                 `json:"max_size,omitempty"`
-	Delay                       *int                    `json:"delay,omitempty"`
-	Priority                    *int32                  `json:"priority,omitempty"`
-	MaxDownloads                *int                    `json:"max_downloads,omitempty"`
-	MaxDownloadsUnit            *FilterMaxDownloadsUnit `json:"max_downloads_unit,omitempty"`
-	MatchReleases               *string                 `json:"match_releases,omitempty"`
-	ExceptReleases              *string                 `json:"except_releases,omitempty"`
-	UseRegex                    *bool                   `json:"use_regex,omitempty"`
-	MatchReleaseGroups          *string                 `json:"match_release_groups,omitempty"`
-	ExceptReleaseGroups         *string                 `json:"except_release_groups,omitempty"`
-	MatchReleaseTags            *string                 `json:"match_release_tags,omitempty"`
-	ExceptReleaseTags           *string                 `json:"except_release_tags,omitempty"`
-	UseRegexReleaseTags         *bool                   `json:"use_regex_release_tags,omitempty"`
-	MatchDescription            *string                 `json:"match_description,omitempty"`
-	ExceptDescription           *string                 `json:"except_description,omitempty"`
-	UseRegexDescription         *bool                   `json:"use_regex_description,omitempty"`
-	Scene                       *bool                   `json:"scene,omitempty"`
-	Origins                     *[]string               `json:"origins,omitempty"`
-	ExceptOrigins               *[]string               `json:"except_origins,omitempty"`
-	Bonus                       *[]string               `json:"bonus,omitempty"`
-	Freeleech                   *bool                   `json:"freeleech,omitempty"`
-	FreeleechPercent            *string                 `json:"freeleech_percent,omitempty"`
-	SmartEpisode                *bool                   `json:"smart_episode,omitempty"`
-	Shows                       *string                 `json:"shows,omitempty"`
-	Seasons                     *string                 `json:"seasons,omitempty"`
-	Episodes                    *string                 `json:"episodes,omitempty"`
-	Resolutions                 *[]string               `json:"resolutions,omitempty"` // SD, 480i, 480p, 576p, 720p, 810p, 1080i, 1080p.
-	Codecs                      *[]string               `json:"codecs,omitempty"`      // XviD, DivX, x264, h.264 (or h264), mpeg2 (or mpeg-2), VC-1 (or VC1), WMV, Remux, h.264 Remux (or h264 Remux), VC-1 Remux (or VC1 Remux).
-	Sources                     *[]string               `json:"sources,omitempty"`     // DSR, PDTV, HDTV, HR.PDTV, HR.HDTV, DVDRip, DVDScr, BDr, BD5, BD9, BDRip, BRRip, DVDR, MDVDR, HDDVD, HDDVDRip, BluRay, WEB-DL, TVRip, CAM, R5, TELESYNC, TS, TELECINE, TC. TELESYNC and TS are synonyms (you don't need both). Same for TELECINE and TC
-	Containers                  *[]string               `json:"containers,omitempty"`
-	MatchHDR                    *[]string               `json:"match_hdr,omitempty"`
-	ExceptHDR                   *[]string               `json:"except_hdr,omitempty"`
-	MatchOther                  *[]string               `json:"match_other,omitempty"`
-	ExceptOther                 *[]string               `json:"except_other,omitempty"`
-	Years                       *string                 `json:"years,omitempty"`
-	Artists                     *string                 `json:"artists,omitempty"`
-	Albums                      *string                 `json:"albums,omitempty"`
-	MatchReleaseTypes           *[]string               `json:"match_release_types,omitempty"` // Album,Single,EP
-	ExceptReleaseTypes          *string                 `json:"except_release_types,omitempty"`
-	Formats                     *[]string               `json:"formats,omitempty"` // MP3, FLAC, Ogg, AAC, AC3, DTS
-	Quality                     *[]string               `json:"quality,omitempty"` // 192, 320, APS (VBR), V2 (VBR), V1 (VBR), APX (VBR), V0 (VBR), q8.x (VBR), Lossless, 24bit Lossless, Other
-	Media                       *[]string               `json:"media,omitempty"`   // CD, DVD, Vinyl, Soundboard, SACD, DAT, Cassette, WEB, Other
-	PerfectFlac                 *bool                   `json:"perfect_flac,omitempty"`
-	Cue                         *bool                   `json:"cue,omitempty"`
-	Log                         *bool                   `json:"log,omitempty"`
-	LogScore                    *int                    `json:"log_score,omitempty"`
-	MatchCategories             *string                 `json:"match_categories,omitempty"`
-	ExceptCategories            *string                 `json:"except_categories,omitempty"`
-	MatchUploaders              *string                 `json:"match_uploaders,omitempty"`
-	ExceptUploaders             *string                 `json:"except_uploaders,omitempty"`
-	MatchLanguage               *[]string               `json:"match_language,omitempty"`
-	ExceptLanguage              *[]string               `json:"except_language,omitempty"`
-	Tags                        *string                 `json:"tags,omitempty"`
-	ExceptTags                  *string                 `json:"except_tags,omitempty"`
-	TagsAny                     *string                 `json:"tags_any,omitempty"`
-	ExceptTagsAny               *string                 `json:"except_tags_any,omitempty"`
-	TagsMatchLogic              *string                 `json:"tags_match_logic,omitempty"`
-	ExceptTagsMatchLogic        *string                 `json:"except_tags_match_logic,omitempty"`
-	ExternalScriptEnabled       *bool                   `json:"external_script_enabled,omitempty"`
-	ExternalScriptCmd           *string                 `json:"external_script_cmd,omitempty"`
-	ExternalScriptArgs          *string                 `json:"external_script_args,omitempty"`
-	ExternalScriptExpectStatus  *int                    `json:"external_script_expect_status,omitempty"`
-	ExternalWebhookEnabled      *bool                   `json:"external_webhook_enabled,omitempty"`
-	ExternalWebhookHost         *string                 `json:"external_webhook_host,omitempty"`
-	ExternalWebhookData         *string                 `json:"external_webhook_data,omitempty"`
-	ExternalWebhookExpectStatus *int                    `json:"external_webhook_expect_status,omitempty"`
-	Actions                     []*Action               `json:"actions,omitempty"`
-	Indexers                    []Indexer               `json:"indexers,omitempty"`
+	ID                               int                     `json:"id"`
+	Name                             *string                 `json:"name,omitempty"`
+	Enabled                          *bool                   `json:"enabled,omitempty"`
+	MinSize                          *string                 `json:"min_size,omitempty"`
+	MaxSize                          *string                 `json:"max_size,omitempty"`
+	Delay                            *int                    `json:"delay,omitempty"`
+	Priority                         *int32                  `json:"priority,omitempty"`
+	MaxDownloads                     *int                    `json:"max_downloads,omitempty"`
+	MaxDownloadsUnit                 *FilterMaxDownloadsUnit `json:"max_downloads_unit,omitempty"`
+	MatchReleases                    *string                 `json:"match_releases,omitempty"`
+	ExceptReleases                   *string                 `json:"except_releases,omitempty"`
+	UseRegex                         *bool                   `json:"use_regex,omitempty"`
+	MatchReleaseGroups               *string                 `json:"match_release_groups,omitempty"`
+	ExceptReleaseGroups              *string                 `json:"except_release_groups,omitempty"`
+	MatchReleaseTags                 *string                 `json:"match_release_tags,omitempty"`
+	ExceptReleaseTags                *string                 `json:"except_release_tags,omitempty"`
+	UseRegexReleaseTags              *bool                   `json:"use_regex_release_tags,omitempty"`
+	MatchDescription                 *string                 `json:"match_description,omitempty"`
+	ExceptDescription                *string                 `json:"except_description,omitempty"`
+	UseRegexDescription              *bool                   `json:"use_regex_description,omitempty"`
+	Scene                            *bool                   `json:"scene,omitempty"`
+	Origins                          *[]string               `json:"origins,omitempty"`
+	ExceptOrigins                    *[]string               `json:"except_origins,omitempty"`
+	Bonus                            *[]string               `json:"bonus,omitempty"`
+	Freeleech                        *bool                   `json:"freeleech,omitempty"`
+	FreeleechPercent                 *string                 `json:"freeleech_percent,omitempty"`
+	SmartEpisode                     *bool                   `json:"smart_episode,omitempty"`
+	Shows                            *string                 `json:"shows,omitempty"`
+	Seasons                          *string                 `json:"seasons,omitempty"`
+	Episodes                         *string                 `json:"episodes,omitempty"`
+	Resolutions                      *[]string               `json:"resolutions,omitempty"` // SD, 480i, 480p, 576p, 720p, 810p, 1080i, 1080p.
+	Codecs                           *[]string               `json:"codecs,omitempty"`      // XviD, DivX, x264, h.264 (or h264), mpeg2 (or mpeg-2), VC-1 (or VC1), WMV, Remux, h.264 Remux (or h264 Remux), VC-1 Remux (or VC1 Remux).
+	Sources                          *[]string               `json:"sources,omitempty"`     // DSR, PDTV, HDTV, HR.PDTV, HR.HDTV, DVDRip, DVDScr, BDr, BD5, BD9, BDRip, BRRip, DVDR, MDVDR, HDDVD, HDDVDRip, BluRay, WEB-DL, TVRip, CAM, R5, TELESYNC, TS, TELECINE, TC. TELESYNC and TS are synonyms (you don't need both). Same for TELECINE and TC
+	Containers                       *[]string               `json:"containers,omitempty"`
+	MatchHDR                         *[]string               `json:"match_hdr,omitempty"`
+	ExceptHDR                        *[]string               `json:"except_hdr,omitempty"`
+	MatchOther                       *[]string               `json:"match_other,omitempty"`
+	ExceptOther                      *[]string               `json:"except_other,omitempty"`
+	Years                            *string                 `json:"years,omitempty"`
+	Artists                          *string                 `json:"artists,omitempty"`
+	Albums                           *string                 `json:"albums,omitempty"`
+	MatchReleaseTypes                *[]string               `json:"match_release_types,omitempty"` // Album,Single,EP
+	ExceptReleaseTypes               *string                 `json:"except_release_types,omitempty"`
+	Formats                          *[]string               `json:"formats,omitempty"` // MP3, FLAC, Ogg, AAC, AC3, DTS
+	Quality                          *[]string               `json:"quality,omitempty"` // 192, 320, APS (VBR), V2 (VBR), V1 (VBR), APX (VBR), V0 (VBR), q8.x (VBR), Lossless, 24bit Lossless, Other
+	Media                            *[]string               `json:"media,omitempty"`   // CD, DVD, Vinyl, Soundboard, SACD, DAT, Cassette, WEB, Other
+	PerfectFlac                      *bool                   `json:"perfect_flac,omitempty"`
+	Cue                              *bool                   `json:"cue,omitempty"`
+	Log                              *bool                   `json:"log,omitempty"`
+	LogScore                         *int                    `json:"log_score,omitempty"`
+	MatchCategories                  *string                 `json:"match_categories,omitempty"`
+	ExceptCategories                 *string                 `json:"except_categories,omitempty"`
+	MatchUploaders                   *string                 `json:"match_uploaders,omitempty"`
+	ExceptUploaders                  *string                 `json:"except_uploaders,omitempty"`
+	MatchLanguage                    *[]string               `json:"match_language,omitempty"`
+	ExceptLanguage                   *[]string               `json:"except_language,omitempty"`
+	Tags                             *string                 `json:"tags,omitempty"`
+	ExceptTags                       *string                 `json:"except_tags,omitempty"`
+	TagsAny                          *string                 `json:"tags_any,omitempty"`
+	ExceptTagsAny                    *string                 `json:"except_tags_any,omitempty"`
+	TagsMatchLogic                   *string                 `json:"tags_match_logic,omitempty"`
+	ExceptTagsMatchLogic             *string                 `json:"except_tags_match_logic,omitempty"`
+	ExternalScriptEnabled            *bool                   `json:"external_script_enabled,omitempty"`
+	ExternalScriptCmd                *string                 `json:"external_script_cmd,omitempty"`
+	ExternalScriptArgs               *string                 `json:"external_script_args,omitempty"`
+	ExternalScriptExpectStatus       *int                    `json:"external_script_expect_status,omitempty"`
+	ExternalWebhookEnabled           *bool                   `json:"external_webhook_enabled,omitempty"`
+	ExternalWebhookHost              *string                 `json:"external_webhook_host,omitempty"`
+	ExternalWebhookData              *string                 `json:"external_webhook_data,omitempty"`
+	ExternalWebhookExpectStatus      *int                    `json:"external_webhook_expect_status,omitempty"`
+	ExternalWebhookRetryStatus       *string                 `json:"external_webhook_retry_status,omitempty"`
+	ExternalWebhookRetryAttempts     *int                    `json:"external_webhook_retry_attempts,omitempty"`
+	ExternalWebhookRetryDelaySeconds *int                    `json:"external_webhook_retry_delay_seconds,omitempty"`
+	Actions                          []*Action               `json:"actions,omitempty"`
+	External                         []FilterExternal        `json:"external,omitempty"`
+	Indexers                         []Indexer               `json:"indexers,omitempty"`
+}
+
+func (f Filter) Validate() error {
+	if f.Name == "" {
+		return errors.New("validation: name can't be empty")
+	}
+
+	if _, _, err := f.parsedSizeLimits(); err != nil {
+		return fmt.Errorf("error validating filter size limits: %w", err)
+	}
+
+	return nil
 }
 
 func (f Filter) CheckFilter(r *Release) ([]string, bool) {
@@ -530,48 +571,24 @@ func (f Filter) isPerfectFLAC(r *Release) bool {
 	return true
 }
 
-// checkSizeFilter additional size check
-// for indexers that doesn't announce size, like some gazelle based
-// set flag r.AdditionalSizeCheckRequired if there's a size in the filter, otherwise go a head
-// implement API for ptp,btn,ggn to check for size if needed
-// for others pull down torrent and do check
+// checkSizeFilter compares the filter size limits to a release's size if it is
+// known from the announce line.
 func (f Filter) checkSizeFilter(r *Release, minSize string, maxSize string) bool {
-
 	if r.Size == 0 {
 		r.AdditionalSizeCheckRequired = true
-
 		return true
 	} else {
 		r.AdditionalSizeCheckRequired = false
 	}
 
-	// if r.Size parse filter to bytes and compare
-	// handle both min and max
-	if minSize != "" {
-		// string to bytes
-		minSizeBytes, err := humanize.ParseBytes(minSize)
-		if err != nil {
-			// log could not parse into bytes
-		}
-
-		if r.Size <= minSizeBytes {
-			r.addRejection("size: smaller than min size")
-			return false
-		}
-
+	sizeErr, err := f.CheckReleaseSize(r.Size)
+	if err != nil {
+		r.addRejectionF("size: error checking release size against filter: %+v", err)
+		return false
 	}
-
-	if maxSize != "" {
-		// string to bytes
-		maxSizeBytes, err := humanize.ParseBytes(maxSize)
-		if err != nil {
-			// log could not parse into bytes
-		}
-
-		if r.Size >= maxSizeBytes {
-			r.addRejection("size: larger than max size")
-			return false
-		}
+	if sizeErr != nil {
+		r.addRejectionF("%+v", sizeErr)
+		return false
 	}
 
 	return true
@@ -904,4 +921,51 @@ func matchHDR(releaseValues []string, filterValues []string) bool {
 	}
 
 	return false
+}
+
+func (f Filter) CheckReleaseSize(releaseSize uint64) (sizeErr, err error) {
+	min, max, err := f.parsedSizeLimits()
+	if err != nil {
+		return err, err
+	}
+
+	if min != nil && releaseSize <= *min {
+		return fmt.Errorf("release size %d bytes <= min size %d bytes", releaseSize, *min), nil
+	}
+
+	if max != nil && releaseSize >= *max {
+		return fmt.Errorf("release size %d bytes <= max size %d bytes", releaseSize, *max), nil
+	}
+
+	return nil, nil
+}
+
+// parsedSizeLimits parses filter bytes limits (expressed as a string) into a
+// uint64 number of bytes. The bounds are returned as *uint64 number of bytes,
+// with "nil" representing "no limit". We break out filter size limit parsing
+// into a discrete step so that we can more easily check parsability at filter
+// creation time.
+func (f Filter) parsedSizeLimits() (*uint64, *uint64, error) {
+	min, err := parseBytes(f.MinSize)
+	if err != nil {
+		return nil, nil, fmt.Errorf("trouble parsing min size: %w", err)
+	}
+
+	max, err := parseBytes(f.MaxSize)
+	if err != nil {
+		return nil, nil, fmt.Errorf("trouble parsing max size: %w", err)
+	}
+
+	return min, max, nil
+}
+
+// parseBytes parses a string representation of a file size into a number of
+// bytes. It returns a *uint64 where "nil" represents "none" (corresponding to
+// the empty string)
+func parseBytes(s string) (*uint64, error) {
+	if s == "" {
+		return nil, nil
+	}
+	b, err := humanize.ParseBytes(s)
+	return &b, err
 }

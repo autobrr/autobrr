@@ -11,7 +11,7 @@ protocol: torrent
 supports:
   - irc
   - rss
-source: custom
+# source: custom
 settings:
   - name: passkey
     type: secret
@@ -50,9 +50,21 @@ irc:
   parse:
     type: single
     lines:
-      - test:
-          - '[NEW] Best actress - Funny title 15 [720p]-SEX (Hardcore) https://bitsexy.org/details.php?id=00000 [PRED 90 seconds ago]'
-          - '[NEW] Best actress - Funny title 15 [720p]-SEX (Hardcore) https://bitsexy.org/details.php?id=00000'
+      - tests:
+        - line: '[NEW] Best actress - Funny title 15 [720p]-SEX (Hardcore) https://bitsexy.org/details.php?id=00000 [PRED 90 seconds ago]'
+          expect:
+            torrentName: Best actress - Funny title 15 [720p]-SEX
+            category: Hardcore
+            baseUrl: https://bitsexy.org/
+            torrentId: "00000"
+            preTime: 90 seconds
+        - line: '[NEW] Best actress - Funny title 15 [720p]-SEX (Hardcore) https://bitsexy.org/details.php?id=00000'
+          expect:
+            torrentName: Best actress - Funny title 15 [720p]-SEX
+            category: Hardcore
+            baseUrl: https://bitsexy.org/
+            torrentId: "00000"
+            preTime: ""
         pattern: '\[NEW\] (.*) \((.*)\) (https?\:\/\/.*\/).*id=(\d+).?(?:\[PRED (.*) ago\])?'
         vars:
           - torrentName

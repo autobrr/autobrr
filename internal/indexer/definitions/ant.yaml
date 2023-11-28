@@ -11,7 +11,7 @@ protocol: torrent
 supports:
   - irc
   - rss
-source: gazelle
+# source: gazelle
 settings:
   - name: torrent_pass
     type: secret
@@ -57,16 +57,47 @@ irc:
   parse:
     type: single
     lines:
-      - test:
-        - "[Feature Film] Tremar (1897) [H264 / MKV / Blu-ray / 1080p / DTS / Subs / Freeleech!] [12.84 GiB - Uploader: user] https://anthelion.me/torrents.php?action=download&id=110 - action,horror,subtitles"
-        - "[Feature Film] Circus Du (1928) [H264 / MKV / Blu-ray / 1080p / AC3 / Scene / Freeleech!] [8.24 GiB - Uploader: anon] https://anthelion.me/torrents.php?action=download&id=85 - comedy,romance"
-        - "[Feature Film] Judo (1918) [H264 / MKV / Blu-ray / 1080p / DTS / Subs / Freeleech!] [7.40 GiB - Uploader: user1] https://anthelion.me/torrents.php?action=download&id=117 - crime,drama,thriller,action,subtitles"
-        pattern: '\[(.*?)\] (.*) \((.*)\) \[(.*)\] \[(.*) - Uploader: (.*)\] (https?\:\/\/.*\/).*id=(\d+).* - (.*)'
+      - tests:
+        - line: '[Feature Film] Tremar (1897) [H264 / MKV / Blu-ray / 1080p / DTS / Subs / Freeleech! / Filename: Tremar.1897.1080p.BluRay.DTS.x264-GROUP] [12.84 GiB - Uploader: user] https://anthelion.me/torrents.php?action=download&id=110 - action,horror,subtitles'
+          expect:
+            category: Feature Film
+            year: "1897"
+            releaseTags: H264 / MKV / Blu-ray / 1080p / DTS / Subs / Freeleech!
+            torrentName: Tremar.1897.1080p.BluRay.DTS.x264-GROUP
+            torrentSize: 12.84 GiB
+            uploader: user
+            baseUrl: https://anthelion.me/
+            torrentId: "110"
+            tags: action,horror,subtitles
+        - line: '[Feature Film] Circus Du (1928) [H264 / MKV / Blu-ray / 1080p / AC3 / Scene / Freeleech! / Filename: Circus.Du.1928.1080p.BluRay.ACC.x264-GROUP] [8.24 GiB - Uploader: anon] https://anthelion.me/torrents.php?action=download&id=85 - comedy,romance'
+          expect:
+            category: Feature Film
+            year: "1928"
+            releaseTags: H264 / MKV / Blu-ray / 1080p / AC3 / Scene / Freeleech!
+            torrentName: Circus.Du.1928.1080p.BluRay.ACC.x264-GROUP
+            torrentSize: 8.24 GiB
+            uploader: anon
+            baseUrl: https://anthelion.me/
+            torrentId: "85"
+            tags: comedy,romance
+        - line: '[Feature Film] Judo (1918) [H264 / MKV / Blu-ray / 1080p / DTS / Subs / Freeleech! / Filename: Judo.1918.1080p.BluRay.DTS.x264-GROUP] [7.40 GiB - Uploader: user1] https://anthelion.me/torrents.php?action=download&id=117 - crime,drama,thriller,action,subtitles'
+          expect:
+            category: Feature Film
+            year: "1918"
+            releaseTags: H264 / MKV / Blu-ray / 1080p / DTS / Subs / Freeleech!
+            torrentName: Judo.1918.1080p.BluRay.DTS.x264-GROUP
+            torrentSize: 7.40 GiB
+            uploader: user1
+            baseUrl: https://anthelion.me/
+            torrentId: "117"
+            tags: crime,drama,thriller,action,subtitles
+
+        pattern: '\[(.*?)\] .* \((.*)\) \[(.*) \/ Filename: (.*)\] \[(.*) - Uploader: (.*)\] (https?\:\/\/.*\/).*id=(\d+).* - (.*)'
         vars:
           - category
-          - torrentName
           - year
           - releaseTags
+          - torrentName
           - torrentSize
           - uploader
           - baseUrl

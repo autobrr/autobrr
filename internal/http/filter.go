@@ -14,15 +14,16 @@ import (
 	"github.com/go-chi/chi/v5"
 
 	"github.com/autobrr/autobrr/internal/domain"
+	"github.com/autobrr/autobrr/pkg/errors"
 )
 
 type filterService interface {
 	ListFilters(ctx context.Context) ([]domain.Filter, error)
 	FindByID(ctx context.Context, filterID int) (*domain.Filter, error)
 	Find(ctx context.Context, params domain.FilterQueryParams) ([]domain.Filter, error)
-	Store(ctx context.Context, filter domain.Filter) (*domain.Filter, error)
+	Store(ctx context.Context, filter *domain.Filter) error
 	Delete(ctx context.Context, filterID int) error
-	Update(ctx context.Context, filter domain.Filter) (*domain.Filter, error)
+	Update(ctx context.Context, filter *domain.Filter) error
 	UpdatePartial(ctx context.Context, filter domain.FilterUpdate) error
 	Duplicate(ctx context.Context, filterID int) (*domain.Filter, error)
 	ToggleEnabled(ctx context.Context, filterID int, enabled bool) error
@@ -42,13 +43,17 @@ func newFilterHandler(encoder encoder, service filterService) *filterHandler {
 
 func (h filterHandler) Routes(r chi.Router) {
 	r.Get("/", h.getFilters)
-	r.Get("/{filterID}", h.getByID)
-	r.Get("/{filterID}/duplicate", h.duplicate)
 	r.Post("/", h.store)
-	r.Put("/{filterID}", h.update)
-	r.Patch("/{filterID}", h.updatePartial)
-	r.Put("/{filterID}/enabled", h.toggleEnabled)
-	r.Delete("/{filterID}", h.delete)
+
+	r.Route("/{filterID}", func(r chi.Router) {
+		r.Get("/", h.getByID)
+		r.Put("/", h.update)
+		r.Patch("/", h.updatePartial)
+		r.Delete("/", h.delete)
+
+		r.Get("/duplicate", h.duplicate)
+		r.Put("/enabled", h.toggleEnabled)
+	})
 }
 
 func (h filterHandler) getFilters(w http.ResponseWriter, r *http.Request) {
@@ -92,7 +97,6 @@ func (h filterHandler) getFilters(w http.ResponseWriter, r *http.Request) {
 
 	trackers, err := h.service.Find(ctx, params)
 	if err != nil {
-		//
 		h.encoder.Error(w, err)
 		return
 	}
@@ -114,7 +118,12 @@ func (h filterHandler) getByID(w http.ResponseWriter, r *http.Request) {
 
 	filter, err := h.service.FindByID(ctx, id)
 	if err != nil {
-		h.encoder.StatusNotFound(w)
+		if errors.Is(err, domain.ErrRecordNotFound) {
+			h.encoder.StatusNotFound(w)
+			return
+		}
+
+		h.encoder.Error(w, err)
 		return
 	}
 
@@ -135,7 +144,7 @@ func (h filterHandler) duplicate(w http.ResponseWriter, r *http.Request) {
 
 	filter, err := h.service.Duplicate(ctx, id)
 	if err != nil {
-		h.encoder.StatusNotFound(w)
+		h.encoder.StatusInternalError(w)
 		return
 	}
 
@@ -145,45 +154,39 @@ func (h filterHandler) duplicate(w http.ResponseWriter, r *http.Request) {
 func (h filterHandler) store(w http.ResponseWriter, r *http.Request) {
 	var (
 		ctx  = r.Context()
-		data domain.Filter
+		data *domain.Filter
 	)
 
 	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
-		// encode error
 		h.encoder.Error(w, err)
 		return
 	}
 
-	filter, err := h.service.Store(ctx, data)
-	if err != nil {
-		// encode error
+	if err := h.service.Store(ctx, data); err != nil {
 		h.encoder.Error(w, err)
 		return
 	}
 
-	h.encoder.StatusCreatedData(w, filter)
+	h.encoder.StatusCreatedData(w, data)
 }
 
 func (h filterHandler) update(w http.ResponseWriter, r *http.Request) {
 	var (
 		ctx  = r.Context()
-		data domain.Filter
+		data *domain.Filter
 	)
 
 	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
-		// encode error
 		h.encoder.Error(w, err)
 		return
 	}
 
-	filter, err := h.service.Update(ctx, data)
-	if err != nil {
-		// encode error
+	if err := h.service.Update(ctx, data); err != nil {
 		h.encoder.Error(w, err)
 		return
 	}
 
-	h.encoder.StatusResponse(w, http.StatusOK, filter)
+	h.encoder.StatusResponse(w, http.StatusOK, data)
 }
 
 func (h filterHandler) updatePartial(w http.ResponseWriter, r *http.Request) {
@@ -202,13 +205,11 @@ func (h filterHandler) updatePartial(w http.ResponseWriter, r *http.Request) {
 	data.ID = id
 
 	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
-		// encode error
 		h.encoder.Error(w, err)
 		return
 	}
 
 	if err := h.service.UpdatePartial(ctx, data); err != nil {
-		// encode error
 		h.encoder.Error(w, err)
 		return
 	}
@@ -232,13 +233,11 @@ func (h filterHandler) toggleEnabled(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
-		// encode error
 		h.encoder.Error(w, err)
 		return
 	}
 
 	if err := h.service.ToggleEnabled(ctx, id, data.Enabled); err != nil {
-		// encode error
 		h.encoder.Error(w, err)
 		return
 	}
@@ -259,7 +258,6 @@ func (h filterHandler) delete(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.service.Delete(ctx, id); err != nil {
-		// return err
 		h.encoder.Error(w, err)
 	}
 

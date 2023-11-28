@@ -22,6 +22,7 @@ type IndexerRepo interface {
 	Delete(ctx context.Context, id int) error
 	FindByFilterID(ctx context.Context, id int) ([]Indexer, error)
 	FindByID(ctx context.Context, id int) (*Indexer, error)
+	ToggleEnabled(ctx context.Context, indexerID int, enabled bool) error
 }
 
 type Indexer struct {
@@ -40,7 +41,7 @@ type IndexerDefinition struct {
 	Identifier     string            `json:"identifier"`
 	Implementation string            `json:"implementation"`
 	BaseURL        string            `json:"base_url,omitempty"`
-	Enabled        bool              `json:"enabled,omitempty"`
+	Enabled        bool              `json:"enabled"`
 	Description    string            `json:"description"`
 	Language       string            `json:"language"`
 	Privacy        string            `json:"privacy"`
@@ -206,11 +207,16 @@ type IndexerIRCParse struct {
 	Match         IndexerIRCParseMatch  `json:"match"`
 }
 
+type LineTest struct {
+	Line   string            `json:"line"`
+	Expect map[string]string `json:"expect"`
+}
+
 type IndexerIRCParseLine struct {
-	Test    []string `json:"test"`
-	Pattern string   `json:"pattern"`
-	Vars    []string `json:"vars"`
-	Ignore  bool     `json:"ignore"`
+	Tests   []LineTest `json:"tests"`
+	Pattern string     `json:"pattern"`
+	Vars    []string   `json:"vars"`
+	Ignore  bool       `json:"ignore"`
 }
 
 type IndexerIRCParseMatch struct {

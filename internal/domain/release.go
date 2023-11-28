@@ -4,6 +4,7 @@
 package domain
 
 import (
+	"bytes"
 	"context"
 	"crypto/tls"
 	"fmt"
@@ -19,6 +20,7 @@ import (
 
 	"github.com/autobrr/autobrr/pkg/errors"
 
+	"github.com/anacrolix/torrent/bencode"
 	"github.com/anacrolix/torrent/metainfo"
 	"github.com/avast/retry-go"
 	"github.com/dustin/go-humanize"
@@ -27,14 +29,13 @@ import (
 )
 
 type ReleaseRepo interface {
-	Store(ctx context.Context, release *Release) (*Release, error)
+	Store(ctx context.Context, release *Release) error
 	Find(ctx context.Context, params ReleaseQueryParams) (res []*Release, nextCursor int64, count int64, err error)
 	FindRecent(ctx context.Context) ([]*Release, error)
 	Get(ctx context.Context, req *GetReleaseRequest) (*Release, error)
 	GetIndexerOptions(ctx context.Context) ([]string, error)
 	Stats(ctx context.Context) (*ReleaseStats, error)
-	Delete(ctx context.Context) error
-	DeleteOlder(ctx context.Context, duration int) error
+	Delete(ctx context.Context, req *DeleteReleaseRequest) error
 	CanDownloadShow(ctx context.Context, title string, season int, episode int) (bool, error)
 
 	GetActionStatus(ctx context.Context, req *GetReleaseActionStatusRequest) (*ReleaseActionStatus, error)
@@ -51,7 +52,7 @@ type Release struct {
 	Implementation              ReleaseImplementation `json:"implementation"` // irc, rss, api
 	Timestamp                   time.Time             `json:"timestamp"`
 	InfoURL                     string                `json:"info_url"`
-	TorrentURL                  string                `json:"download_url"`
+	DownloadURL                 string                `json:"download_url"`
 	MagnetURI                   string                `json:"-"`
 	GroupID                     string                `json:"group_id"`
 	TorrentID                   string                `json:"torrent_id"`
@@ -113,6 +114,10 @@ type ReleaseActionStatus struct {
 	Timestamp  time.Time         `json:"timestamp"`
 }
 
+type DeleteReleaseRequest struct {
+	OlderThan int
+}
+
 func NewReleaseActionStatus(action *Action, release *Release) *ReleaseActionStatus {
 	s := &ReleaseActionStatus{
 		ID:         0,
@@ -168,6 +173,21 @@ func (r ReleasePushStatus) String() string {
 		return "Error"
 	default:
 		return "Unknown"
+	}
+}
+
+func ValidReleasePushStatus(s string) bool {
+	switch s {
+	case string(ReleasePushStatusPending):
+		return true
+	case string(ReleasePushStatusApproved):
+		return true
+	case string(ReleasePushStatusRejected):
+		return true
+	case string(ReleasePushStatusErr):
+		return true
+	default:
+		return false
 	}
 }
 
@@ -363,13 +383,13 @@ func (r *Release) DownloadTorrentFile() error {
 }
 
 func (r *Release) downloadTorrentFile(ctx context.Context) error {
-	if r.Protocol != ReleaseProtocolTorrent {
-		return errors.New("download_file: protocol is not %s: %s", ReleaseProtocolTorrent, r.Protocol)
-	} else if r.HasMagnetUri() {
-		return fmt.Errorf("error trying to download magnet link: %s", r.MagnetURI)
+	if r.HasMagnetUri() {
+		return errors.New("downloading magnet links is not supported: %s", r.MagnetURI)
+	} else if r.Protocol != ReleaseProtocolTorrent {
+		return errors.New("could not download file: protocol %s is not supported", r.Protocol)
 	}
 
-	if r.TorrentURL == "" {
+	if r.DownloadURL == "" {
 		return errors.New("download_file: url can't be empty")
 	} else if r.TorrentTmpFile != "" {
 		// already downloaded
@@ -383,7 +403,7 @@ func (r *Release) downloadTorrentFile(ctx context.Context) error {
 		Timeout:   time.Second * 45,
 	}
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, r.TorrentURL, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, r.DownloadURL, nil)
 	if err != nil {
 		return errors.Wrap(err, "error downloading file")
 	}
@@ -421,31 +441,27 @@ func (r *Release) downloadTorrentFile(ctx context.Context) error {
 		switch resp.StatusCode {
 		case http.StatusOK:
 			// Continue processing the response
-		case http.StatusMovedPermanently, http.StatusFound, http.StatusSeeOther, http.StatusTemporaryRedirect, http.StatusPermanentRedirect:
-			// Handle redirect
-			return retry.Unrecoverable(errors.New("redirect encountered for torrent (%v) file (%v) from '%v' - status code: %d. Check indexer keys.", r.TorrentName, r.TorrentURL, r.Indexer, resp.StatusCode))
+		//case http.StatusMovedPermanently, http.StatusFound, http.StatusSeeOther, http.StatusTemporaryRedirect, http.StatusPermanentRedirect:
+		//	// Handle redirect
+		//	return retry.Unrecoverable(errors.New("redirect encountered for torrent (%s) file (%s) - status code: %d - check indexer keys for %s", r.TorrentName, r.DownloadURL, resp.StatusCode, r.Indexer))
 
 		case http.StatusUnauthorized, http.StatusForbidden:
-			return retry.Unrecoverable(errors.New("unrecoverable error downloading torrent (%v) file (%v) from '%v' - status code: %d. Check indexer keys", r.TorrentName, r.TorrentURL, r.Indexer, resp.StatusCode))
+			return retry.Unrecoverable(errors.New("unrecoverable error downloading torrent (%s) file (%s) - status code: %d - check indexer keys for %s", r.TorrentName, r.DownloadURL, resp.StatusCode, r.Indexer))
 
 		case http.StatusMethodNotAllowed:
-			return retry.Unrecoverable(errors.New("unrecoverable error downloading torrent (%v) file (%v) from '%v' - status code: %d. Check if the request method is correct", r.TorrentName, r.TorrentURL, r.Indexer, resp.StatusCode))
+			return retry.Unrecoverable(errors.New("unrecoverable error downloading torrent (%s) file (%s) from '%s' - status code: %d. Check if the request method is correct", r.TorrentName, r.DownloadURL, r.Indexer, resp.StatusCode))
 
 		case http.StatusNotFound:
 			return errors.New("torrent %s not found on %s (%d) - retrying", r.TorrentName, r.Indexer, resp.StatusCode)
 
-		case http.StatusInternalServerError, http.StatusBadGateway, http.StatusServiceUnavailable, http.StatusGatewayTimeout:
-			return errors.New("server error (%d) encountered while downloading torrent (%v) file (%v) from '%v' - retrying", resp.StatusCode, r.TorrentName, r.TorrentURL, r.Indexer)
+		case http.StatusBadGateway, http.StatusServiceUnavailable, http.StatusGatewayTimeout:
+			return errors.New("server error (%d) encountered while downloading torrent (%s) file (%s) from '%s' - retrying", resp.StatusCode, r.TorrentName, r.DownloadURL, r.Indexer)
+
+		case http.StatusInternalServerError:
+			return errors.New("server error (%d) encountered while downloading torrent (%s) file (%s) - check indexer keys for %s", resp.StatusCode, r.TorrentName, r.DownloadURL, r.Indexer)
 
 		default:
 			return retry.Unrecoverable(errors.New("unexpected status code %d: check indexer keys for %s", resp.StatusCode, r.Indexer))
-		}
-
-		// Check if the Content-Type header is correct
-		contentType := resp.Header.Get("Content-Type")
-
-		if strings.Contains(contentType, "text/html") {
-			return retry.Unrecoverable(errors.New("unexpected content type '%s': check indexer keys for %s", contentType, r.Indexer))
 		}
 
 		resetTmpFile := func() {
@@ -453,28 +469,46 @@ func (r *Release) downloadTorrentFile(ctx context.Context) error {
 			tmpFile.Truncate(0)
 		}
 
-		// Write the body to file
-		if _, err := io.Copy(tmpFile, resp.Body); err != nil {
-			resetTmpFile()
-			return errors.Wrap(err, "error writing downloaded file: %v", tmpFile.Name())
+		// Read the body into bytes
+		bodyBytes, err := io.ReadAll(resp.Body)
+		if err != nil {
+			return errors.Wrap(err, "error reading response body")
 		}
 
-		meta, err := metainfo.LoadFromFile(tmpFile.Name())
+		// Create a new reader for bodyBytes
+		bodyReader := bytes.NewReader(bodyBytes)
+
+		// Try to decode as torrent file
+		meta, err := metainfo.Load(bodyReader)
 		if err != nil {
 			resetTmpFile()
-			return errors.Wrap(err, "metainfo could not load file contents: %v", tmpFile.Name())
+
+			// explicitly check for unexpected content type that match html
+			var bse *bencode.SyntaxError
+			if errors.As(err, &bse) {
+				// regular error so we can retry if we receive html first run
+				return errors.Wrap(err, "metainfo unexpected content type, got HTML expected a bencoded torrent. check indexer keys for %s - %s", r.Indexer, r.TorrentName)
+			}
+
+			return retry.Unrecoverable(errors.Wrap(err, "metainfo unexpected content type. check indexer keys for %s - %s", r.Indexer, r.TorrentName))
+		}
+
+		// Write the body to file
+		if _, err := tmpFile.Write(bodyBytes); err != nil {
+			resetTmpFile()
+			return errors.Wrap(err, "error writing downloaded file: %s", tmpFile.Name())
 		}
 
 		torrentMetaInfo, err := meta.UnmarshalInfo()
 		if err != nil {
 			resetTmpFile()
-			return errors.Wrap(err, "metainfo could not unmarshal info from torrent: %v", tmpFile.Name())
+			return retry.Unrecoverable(errors.Wrap(err, "metainfo could not unmarshal info from torrent: %s", tmpFile.Name()))
 		}
 
 		hashInfoBytes := meta.HashInfoBytes().Bytes()
 		if len(hashInfoBytes) < 1 {
 			resetTmpFile()
-			return errors.New("could not read infohash")
+			return retry.Unrecoverable(errors.New("could not read infohash"))
 		}
 
 		r.TorrentTmpFile = tmpFile.Name()
@@ -592,9 +626,14 @@ func (r *Release) resetRejections() {
 	r.Rejections = []string{}
 }
 
-func (r *Release) RejectionsString() string {
+func (r *Release) RejectionsString(trim bool) string {
 	if len(r.Rejections) > 0 {
-		return strings.Join(r.Rejections, ", ")
+		out := strings.Join(r.Rejections, ", ")
+		if trim && len(out) > 1024 {
+			out = out[:1024]
+		}
+
+		return out
 	}
 	return ""
 }
@@ -617,7 +656,7 @@ func (r *Release) MapVars(def *IndexerDefinition, varMap map[string]string) erro
 	}
 
 	if freeleech, err := getStringMapValue(varMap, "freeleech"); err == nil {
-		fl := StringEqualFoldMulti(freeleech, "freeleech", "yes", "1", "VIP")
+		fl := StringEqualFoldMulti(freeleech, "freeleech", "freeleech!", "yes", "1", "VIP")
 		if fl {
 			r.Freeleech = true
 			// default to 100 and override if freeleechPercent is present in next function
@@ -627,6 +666,15 @@ func (r *Release) MapVars(def *IndexerDefinition, varMap map[string]string) erro
 	}
 
 	if freeleechPercent, err := getStringMapValue(varMap, "freeleechPercent"); err == nil {
+		// special handling for BHD to map their freeleech into percent
+		if def.Identifier == "beyondhd" {
+			if freeleechPercent == "Capped FL" {
+				freeleechPercent = "100%"
+			} else if strings.Contains(freeleechPercent, "% FL") {
+				freeleechPercent = strings.Replace(freeleechPercent, " FL", "", -1)
+			}
+		}
+
 		// remove % and trim spaces
 		freeleechPercent = strings.Replace(freeleechPercent, "%", "", -1)
 		freeleechPercent = strings.Trim(freeleechPercent, " ")
@@ -662,7 +710,7 @@ func (r *Release) MapVars(def *IndexerDefinition, varMap map[string]string) erro
 	if torrentSize, err := getStringMapValue(varMap, "torrentSize"); err == nil {
 		// handling for indexer who doesn't explicitly set which size unit is used like (AR)
 		if def.IRC != nil && def.IRC.Parse != nil && def.IRC.Parse.ForceSizeUnit != "" {
-			torrentSize = fmt.Sprintf("%v %v", torrentSize, def.IRC.Parse.ForceSizeUnit)
+			torrentSize = fmt.Sprintf("%s %s", torrentSize, def.IRC.Parse.ForceSizeUnit)
 		}
 
 		size, err := humanize.ParseBytes(torrentSize)

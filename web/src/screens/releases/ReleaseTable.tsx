@@ -23,6 +23,7 @@ import { IndexerSelectColumnFilter, PushStatusSelectColumnFilter, SearchColumnFi
 import { classNames } from "@utils";
 import { ArrowTopRightOnSquareIcon, ArrowDownTrayIcon } from "@heroicons/react/24/outline";
 import { Tooltip } from "@components/tooltips/Tooltip";
+import { ExternalLink } from "@components/ExternalLink";
 
 export const releaseKeys = {
   all: ["releases"] as const,
@@ -94,6 +95,7 @@ export const ReleaseTable = () => {
             )}
           >
             <Tooltip
+              requiresClick
               label={props.cell.value}
               maxWidth="max-w-[90vw]"
             >
@@ -103,24 +105,17 @@ export const ReleaseTable = () => {
             </Tooltip>
             <div className="flex mr-0">
               {props.row.original.download_url && (
-                <a
-                  rel="noopener noreferrer"
-                  target="_blank"
+                <ExternalLink
                   href={props.row.original.download_url}
-                  className="max-w-[90vw] px-2"
+                  className="px-2"
                 >
                   <ArrowDownTrayIcon className="h-5 w-5 text-blue-400 hover:text-blue-500 dark:text-blue-500 dark:hover:text-blue-600" aria-hidden="true" />
-                </a>
+                </ExternalLink>
               )}
               {props.row.original.info_url && (
-                <a
-                  rel="noopener noreferrer"
-                  target="_blank"
-                  href={props.row.original.info_url}
-                  className="max-w-[90vw]"
-                >
+                <ExternalLink href={props.row.original.info_url}>
                   <ArrowTopRightOnSquareIcon className="h-5 w-5 text-blue-400 hover:text-blue-500 dark:text-blue-500 dark:hover:text-blue-600" aria-hidden="true" />
-                </a>
+                </ExternalLink>
               )}
             </div>
           </div>
@@ -232,9 +227,9 @@ export const ReleaseTable = () => {
             ))
           )}
         </div>
-        <div className="bg-white shadow-lg dark:bg-gray-800 rounded-md overflow-auto">
-          <table {...getTableProps()} className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-            <thead className="bg-gray-50 dark:bg-gray-800">
+        <div className="bg-white dark:bg-gray-800 border border-gray-250 dark:border-gray-775 shadow-lg rounded-md overflow-auto">
+          <table {...getTableProps()} className="min-w-full rounded-md divide-y divide-gray-200 dark:divide-gray-750">
+            <thead className="bg-gray-100 dark:bg-gray-800">
               <tr>
                 <th
                   scope="col"
@@ -250,7 +245,7 @@ export const ReleaseTable = () => {
               </tr>
 
             </thead>
-            <tbody className=" divide-gray-200 dark:divide-gray-700">
+            <tbody className="divide-y divide-gray-150 dark:divide-gray-700">
               <tr
                 className="flex justify-between py-4 text-sm font-medium box-content text-gray-900 dark:text-gray-300 max-w-[96px] sm:max-w-[216px] md:max-w-[360px] lg:max-w-[640px] xl:max-w-[840px]">
                 <td className="first:pl-5 pl-3 pr-3 whitespace-nowrap ">&nbsp;</td>
@@ -322,13 +317,12 @@ export const ReleaseTable = () => {
             <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
               <div className="flex items-baseline gap-x-2">
                 <span className="text-sm text-gray-700 dark:text-gray-500">
-                Page <span className="font-medium">{pageIndex + 1}</span> of <span
-                    className="font-medium">{pageOptions.length}</span>
+                  Page <span className="font-medium">{pageIndex + 1}</span> of <span className="font-medium">{pageOptions.length}</span>
                 </span>
                 <label>
                   <span className="sr-only bg-gray-700">Items Per Page</span>
                   <select
-                    className="py-1 pl-2 pr-8 text-sm block w-full border-gray-300 rounded-md shadow-sm cursor-pointer dark:bg-gray-800 dark:border-gray-600 dark:text-gray-400 dark:hover:text-gray-500 focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
+                    className="py-1 pl-2 pr-8 text-sm block w-full border-gray-300 rounded-md shadow-sm cursor-pointer dark:bg-gray-800 dark:border-gray-600 dark:text-gray-100 dark:hover:text-gray-500 focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
                     value={pageSize}
                     onChange={e => {
                       setPageSize(Number(e.target.value));
@@ -398,9 +392,9 @@ export const ReleaseTable = () => {
           ))
         )}
       </div>
-      <div className="bg-white shadow-lg dark:bg-gray-800 rounded-md overflow-auto">
-        <table {...getTableProps()} className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-          <thead className="bg-gray-50 dark:bg-gray-800">
+      <div className="bg-white dark:bg-gray-800 border border-gray-250 dark:border-gray-775 shadow-table rounded-md overflow-auto">
+        <table {...getTableProps()} className="min-w-full rounded-md divide-y divide-gray-200 dark:divide-gray-750">
+          <thead className="bg-gray-100 dark:bg-gray-850">
             {headerGroups.map((headerGroup) => {
               const { key: rowKey, ...rowRest } = headerGroup.getHeaderGroupProps();
               return (
@@ -408,12 +402,12 @@ export const ReleaseTable = () => {
                   {headerGroup.headers.map((column) => {
                     const { key: columnKey, ...columnRest } = column.getHeaderProps(column.getSortByToggleProps());
                     return (
-                    // Add the sorting props to control sorting. For this example
-                    // we can add them into the header props
+                      // Add the sorting props to control sorting. For this example
+                      // we can add them into the header props
                       <th
                         key={`${rowKey}-${columnKey}`}
                         scope="col"
-                        className="first:pl-5 pl-3 pr-3 py-3 first:rounded-tl-md last:rounded-tr-md text-xs font-medium tracking-wider text-left text-gray-500 uppercase group"
+                        className="first:pl-5 first:rounded-tl-md last:rounded-tr-md pl-3 pr-3 py-3 text-xs font-medium tracking-wider text-left uppercase group text-gray-600 dark:text-gray-400 transition hover:bg-gray-200 dark:hover:bg-gray-775"
                         {...columnRest}
                       >
                         <div className="flex items-center justify-between">
@@ -440,7 +434,7 @@ export const ReleaseTable = () => {
           </thead>
           <tbody
             {...getTableBodyProps()}
-            className="divide-y divide-gray-200 dark:divide-gray-700"
+            className="divide-y divide-gray-150 dark:divide-gray-750"
           >
             {page.map((row) => {
               prepareRow(row);
@@ -480,7 +474,7 @@ export const ReleaseTable = () => {
               <label>
                 <span className="sr-only bg-gray-700">Items Per Page</span>
                 <select
-                  className="py-1 pl-2 pr-8 text-sm block w-full border-gray-300 rounded-md shadow-sm cursor-pointer dark:bg-gray-800 dark:border-gray-600 dark:text-gray-400 dark:hover:text-gray-500 focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
+                  className="py-1 pl-2 pr-8 text-sm block w-full border-gray-300 rounded-md shadow-sm cursor-pointer transition-colors dark:bg-gray-800 dark:border-gray-600 dark:text-gray-400 dark:hover:text-gray-200 focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
                   value={pageSize}
                   onChange={e => {
                     setPageSize(Number(e.target.value));
@@ -488,7 +482,7 @@ export const ReleaseTable = () => {
                 >
                   {[5, 10, 20, 50].map(pageSize => (
                     <option key={pageSize} value={pageSize}>
-                      Show {pageSize}
+                      {pageSize} entries
                     </option>
                   ))}
                 </select>
@@ -501,29 +495,31 @@ export const ReleaseTable = () => {
                   onClick={() => gotoPage(0)}
                   disabled={!canPreviousPage}
                 >
-                  <span className="sr-only text-gray-400 dark:text-gray-500 dark:bg-gray-700">First</span>
-                  <ChevronDoubleLeftIcon className="w-4 h-4 text-gray-400 dark:text-gray-500" aria-hidden="true" />
+                  <span className="sr-only">First</span>
+                  <ChevronDoubleLeftIcon className="w-4 h-4" aria-hidden="true" />
                 </DataTable.PageButton>
                 <DataTable.PageButton
+                  className="pl-1 pr-2"
                   onClick={() => previousPage()}
                   disabled={!canPreviousPage}
                 >
-                  <span className="sr-only text-gray-400 dark:text-gray-500 dark:bg-gray-700">Previous</span>
-                  <ChevronLeftIcon className="w-4 h-4 text-gray-400 dark:text-gray-500" aria-hidden="true" />
+                  <ChevronLeftIcon className="w-4 h-4 mr-1" aria-hidden="true" />
+                  <span>Prev</span>
                 </DataTable.PageButton>
                 <DataTable.PageButton
+                  className="pl-2 pr-1"
                   onClick={() => nextPage()}
                   disabled={!canNextPage}>
-                  <span className="sr-only text-gray-400 dark:text-gray-500 dark:bg-gray-700">Next</span>
-                  <ChevronRightIcon className="w-4 h-4 text-gray-400 dark:text-gray-500" aria-hidden="true" />
+                  <span>Next</span>
+                  <ChevronRightIcon className="w-4 h-4 ml-1" aria-hidden="true" />
                 </DataTable.PageButton>
                 <DataTable.PageButton
                   className="rounded-r-md"
                   onClick={() => gotoPage(pageCount - 1)}
                   disabled={!canNextPage}
                 >
-                  <span className="sr-only text-gray-400 dark:text-gray-500 dark:bg-gray-700">Last</span>
-                  <ChevronDoubleRightIcon className="w-4 h-4 text-gray-400 dark:text-gray-500" aria-hidden="true" />
+                  <ChevronDoubleRightIcon className="w-4 h-4" aria-hidden="true" />
+                  <span className="sr-only">Last</span>
                 </DataTable.PageButton>
               </nav>
             </div>

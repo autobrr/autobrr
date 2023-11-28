@@ -13,11 +13,12 @@ type SysVersionsPorla struct {
 }
 
 type TorrentsAddReq struct {
-	DownloadLimit int64  `json:"download_limit,omitempty"`
-	SavePath      string `json:"save_path,omitempty"`
-	Ti            string `json:"ti,omitempty"`
-	MagnetUri     string `json:"magnet_uri,omitempty"`
-	UploadLimit   int64  `json:"upload_limit,omitempty"`
+	DownloadLimit *int64  `json:"download_limit,omitempty"`
+	SavePath      string  `json:"save_path,omitempty"`
+	Ti            string  `json:"ti,omitempty"`
+	MagnetUri     string  `json:"magnet_uri,omitempty"`
+	UploadLimit   *int64  `json:"upload_limit,omitempty"`
+	Preset        *string `json:"preset,omitempty"`
 }
 
 type TorrentsAddRes struct {
@@ -41,7 +42,6 @@ type TorrentsListRes struct {
 type Torrent struct {
 	DownloadRate  int      `json:"download_rate"`
 	UploadRate    int      `json:"upload_rate"`
-	Flags         int      `json:"flags"`
 	InfoHash      []string `json:"info_hash"`
 	ListPeers     int      `json:"list_peers"`
 	ListSeeds     int      `json:"list_seeds"`

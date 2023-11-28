@@ -110,6 +110,10 @@ var (
 			repl:    "${1}REDACTED",
 		},
 		{
+			pattern: regexp.MustCompile(`(https?://)(.*?):(.*?)@`),
+			repl:    "${1}REDACTED_USER:REDACTED_PW@",
+		},
+		{
 			pattern: regexp.MustCompile(`(NickServ IDENTIFY )([\p{L}0-9!#%&*+/:;<=>?@^_` + "`" + `{|}~]+)`),
 			repl:    "${1}REDACTED",
 		},
@@ -175,7 +179,7 @@ func SanitizeLogFile(filePath string, output io.Writer) error {
 		for i := 0; i < len(regexReplacements); i++ {
 			// Apply the first three patterns only if the line contains "module":"feed",
 			// "module":"filter", "repo":"release", or "module":"action"
-			if i < 3 {
+			if i < 4 {
 				if bFilter {
 					line = regexReplacements[i].pattern.ReplaceAllString(line, regexReplacements[i].repl)
 				}

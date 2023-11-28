@@ -45,6 +45,9 @@ CREATE TABLE irc_network
     auth_account        TEXT,
     auth_password       TEXT,
     invite_command      TEXT,
+    use_bouncer         BOOLEAN,
+    bouncer_addr        TEXT,
+    bot_mode            BOOLEAN DEFAULT FALSE,
     connected           BOOLEAN,
     connected_since     TIMESTAMP,
     created_at          TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -125,16 +128,30 @@ CREATE TABLE filter
     except_tags_match_logic        TEXT,
     origins                        TEXT []   DEFAULT '{}',
     except_origins                 TEXT []   DEFAULT '{}',
-    external_script_enabled        BOOLEAN   DEFAULT FALSE,
-    external_script_cmd            TEXT,
-    external_script_args           TEXT,
-    external_script_expect_status  INTEGER,
-    external_webhook_enabled       BOOLEAN   DEFAULT FALSE,
-    external_webhook_host          TEXT,
-    external_webhook_data          TEXT,
-    external_webhook_expect_status INTEGER,
     created_at                     TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at                     TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE filter_external
+(
+    id                                  SERIAL PRIMARY KEY,
+    name                                TEXT     NOT NULL,
+    idx                                 INTEGER,
+    type                                TEXT,
+    enabled                             BOOLEAN,
+    exec_cmd                            TEXT,
+    exec_args                           TEXT,
+    exec_expect_status                  INTEGER,
+    webhook_host                        TEXT,
+    webhook_method                      TEXT,
+    webhook_data                        TEXT,
+    webhook_headers                     TEXT,
+    webhook_expect_status               INTEGER,
+    webhook_retry_status                TEXT,
+    webhook_retry_attempts              INTEGER,
+    webhook_retry_delay_seconds         INTEGER,
+    filter_id                           INTEGER NOT NULL,
+    FOREIGN KEY (filter_id)             REFERENCES filter(id) ON DELETE CASCADE
 );
 
 CREATE TABLE filter_indexer
@@ -191,6 +208,7 @@ CREATE TABLE action
     webhook_type            TEXT,
     webhook_data            TEXT,
     webhook_headers         TEXT[] DEFAULT '{}',
+    external_client_id      INTEGER,
     client_id               INTEGER,
     filter_id               INTEGER,
     FOREIGN KEY (filter_id) REFERENCES filter (id),
@@ -281,7 +299,7 @@ CREATE TABLE release_action_status
 	raw           TEXT,
 	log           TEXT,
 	release_id    INTEGER NOT NULL,
-	FOREIGN KEY (action_id) REFERENCES "action"(id),
+	FOREIGN KEY (action_id) REFERENCES "action"(id) ON DELETE SET NULL,
 	FOREIGN KEY (release_id) REFERENCES "release"(id) ON DELETE CASCADE,
 	FOREIGN KEY (filter_id) REFERENCES "filter"(id) ON DELETE SET NULL
 );
@@ -340,11 +358,15 @@ CREATE TABLE feed
 
 CREATE TABLE feed_cache
 (
-	bucket TEXT,
-	key    TEXT,
-	value  TEXT,
-	ttl    TIMESTAMP
+	feed_id INTEGER NOT NULL,
+	key     TEXT,
+	value   TEXT,
+	ttl     TIMESTAMP,
+	FOREIGN KEY (feed_id) REFERENCES feed (id) ON DELETE cascade
 );
+
+CREATE INDEX feed_cache_feed_id_key_index
+    ON feed_cache (feed_id, key);
 
 CREATE TABLE api_key
 (
@@ -699,4 +721,115 @@ ADD COLUMN topic text;`,
 ALTER TABLE release_action_status
     ADD CONSTRAINT release_action_status_action_id_fk
         FOREIGN KEY (action_id) REFERENCES action;`,
+	`ALTER TABLE irc_network
+ADD COLUMN use_bouncer BOOLEAN DEFAULT FALSE;
+
+ALTER TABLE irc_network
+ADD COLUMN bouncer_addr TEXT;`,
+	`ALTER TABLE release_action_status
+    DROP CONSTRAINT IF EXISTS release_action_status_action_id_fkey;
+         
+ALTER TABLE release_action_status
+    DROP CONSTRAINT IF EXISTS release_action_status_action_id_fk;
+
+ALTER TABLE release_action_status
+    ADD FOREIGN KEY (action_id) REFERENCES action
+        ON DELETE SET NULL;
+	`,
+	`CREATE TABLE filter_external
+	(
+	id                      SERIAL PRIMARY KEY,
+	name                    TEXT     NOT NULL,
+	idx                     INTEGER,
+	type                    TEXT,
+	enabled                 BOOLEAN,
+	exec_cmd                TEXT,
+	exec_args               TEXT,
+	exec_expect_status      INTEGER,
+	webhook_host            TEXT,
+	webhook_method          TEXT,
+	webhook_data            TEXT,
+	webhook_headers         TEXT,
+	webhook_expect_status   INTEGER,
+	filter_id               INTEGER NOT NULL,
+	FOREIGN KEY (filter_id) REFERENCES filter(id) ON DELETE CASCADE
+	);
+
+	INSERT INTO "filter_external" (name, type, enabled, exec_cmd, exec_args, exec_expect_status, filter_id)
+	SELECT 'exec', 'EXEC', external_script_enabled, external_script_cmd, external_script_args, external_script_expect_status, id FROM "filter" WHERE external_script_enabled = true;
+
+	INSERT INTO "filter_external" (name, type, enabled, webhook_host, webhook_data, webhook_method, webhook_expect_status, filter_id)
+	SELECT 'webhook', 'WEBHOOK', external_webhook_enabled, external_webhook_host, external_webhook_data, 'POST', external_webhook_expect_status, id FROM "filter" WHERE external_webhook_enabled = true;
+
+	ALTER TABLE filter
+		DROP COLUMN IF EXISTS external_script_enabled;
+
+	ALTER TABLE filter
+		DROP COLUMN IF EXISTS external_script_cmd;
+
+	ALTER TABLE filter
+		DROP COLUMN IF EXISTS external_script_args;
+
+	ALTER TABLE filter
+		DROP COLUMN IF EXISTS external_script_expect_status;
+
+	ALTER TABLE filter
+		DROP COLUMN IF EXISTS external_webhook_enabled;
+
+	ALTER TABLE filter
+		DROP COLUMN IF EXISTS external_webhook_host;
+
+	ALTER TABLE filter
+		DROP COLUMN IF EXISTS external_webhook_data;
+
+	ALTER TABLE filter
+		DROP COLUMN IF EXISTS external_webhook_expect_status;
+	`,
+	`DROP TABLE IF EXISTS feed_cache;
+
+CREATE TABLE feed_cache
+(
+	feed_id INTEGER NOT NULL,
+	key     TEXT,
+	value   TEXT,
+	ttl     TIMESTAMP,
+	FOREIGN KEY (feed_id) REFERENCES feed (id) ON DELETE cascade
+);
+
+CREATE INDEX feed_cache_feed_id_key_index
+    ON feed_cache (feed_id, key);
+`,
+	`ALTER TABLE action
+ADD COLUMN external_client_id INTEGER;
+`,
+	`ALTER TABLE filter_external
+ADD COLUMN external_webhook_retry_status TEXT;
+
+ALTER TABLE filter_external
+	ADD COLUMN external_webhook_retry_attempts INTEGER;
+
+ALTER TABLE filter_external
+	ADD COLUMN external_webhook_retry_delay_seconds INTEGER;
+
+ALTER TABLE filter_external
+	ADD COLUMN external_webhook_retry_max_jitter_seconds INTEGER;
+`,
+	`ALTER TABLE filter_external
+    RENAME COLUMN external_webhook_retry_status TO webhook_retry_status;
+
+ALTER TABLE filter_external
+    RENAME COLUMN external_webhook_retry_attempts TO webhook_retry_attempts;
+
+ALTER TABLE filter_external
+    RENAME COLUMN external_webhook_retry_delay_seconds TO webhook_retry_delay_seconds;
+
+ALTER TABLE filter_external
+    RENAME COLUMN external_webhook_retry_max_jitter_seconds TO webhook_retry_max_jitter_seconds;
+`,
+	`ALTER TABLE filter_external
+	DROP COLUMN IF EXISTS webhook_retry_max_jitter_seconds;
+`,
+	`ALTER TABLE irc_network
+		ADD COLUMN bot_mode BOOLEAN DEFAULT FALSE;
+`,
 }

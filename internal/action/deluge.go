@@ -129,7 +129,7 @@ func (s *service) delugeV1(ctx context.Context, client *domain.DownloadClient, a
 
 		torrentHash, err := del.AddTorrentMagnet(ctx, release.MagnetURI, &options)
 		if err != nil {
-			return nil, errors.Wrap(err, "could not add torrent magnet %s to client: %s", release.TorrentURL, client.Name)
+			return nil, errors.Wrap(err, "could not add torrent magnet %s to client: %s", release.MagnetURI, client.Name)
 		}
 
 		if action.Label != "" {
@@ -242,7 +242,7 @@ func (s *service) delugeV2(ctx context.Context, client *domain.DownloadClient, a
 
 		torrentHash, err := del.AddTorrentMagnet(ctx, release.MagnetURI, &options)
 		if err != nil {
-			return nil, errors.Wrap(err, "could not add torrent magnet %s to client: %s", release.TorrentURL, client.Name)
+			return nil, errors.Wrap(err, "could not add torrent magnet %s to client: %s", release.MagnetURI, client.Name)
 		}
 
 		if action.Label != "" {
