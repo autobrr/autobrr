@@ -9,7 +9,7 @@ import { formatDistanceToNowStrict } from "date-fns";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { ArrowPathIcon, CheckIcon } from "@heroicons/react/24/solid";
 import { ArrowDownTrayIcon, ArrowTopRightOnSquareIcon } from "@heroicons/react/24/outline";
-import { ExternalLink } from "../ExternalLink"; 
+import { ExternalLink } from "../ExternalLink";
 import { ClockIcon, XMarkIcon, NoSymbolIcon } from "@heroicons/react/24/outline";
 
 import { APIClient } from "@api/APIClient";

@@ -115,7 +115,7 @@ export const ReleaseTable = () => {
       accessor: (row) => ({ download_url: row.download_url, info_url: row.info_url }),
       id: "links",
       Cell: DataTable.LinksCell
-    },    
+    },
     {
       Header: "Actions",
       accessor: "action_status",
@@ -522,4 +522,3 @@ export const ReleaseTable = () => {
     </div>
   );
 };
-

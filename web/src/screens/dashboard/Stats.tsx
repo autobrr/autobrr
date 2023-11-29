@@ -48,7 +48,7 @@ export const Stats = () => {
       navigate("/releases");
     }
   };
-  
+
   const { isLoading, data } = useQuery({
     queryKey: ["dash_release_stats"],
     queryFn: APIClient.release.stats,

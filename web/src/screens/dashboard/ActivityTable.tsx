@@ -201,7 +201,7 @@ export const ActivityTable = () => {
       </div>
     );
   }
-  
+
   return (
     <div className="flex flex-col mt-12">
       <h3 className="text-2xl font-medium leading-6 text-black dark:text-white">
