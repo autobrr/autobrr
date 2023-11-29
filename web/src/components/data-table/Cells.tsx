@@ -252,15 +252,15 @@ export const ReleaseStatusCell = ({ value }: ReleaseStatusCellProps) => (
 
 export const LinksCell = ({ value }: LinksCellProps) => {
   return (
-    <div className="flex space-x-2">
+    <div className="flex space-x-2 text-blue-400 dark:text-blue-500">
       {value.download_url && (
         <ExternalLink href={value.download_url}>
-          <ArrowDownTrayIcon title="Download torrent file" className="h-5 w-5 text-blue-400 hover:text-blue-500 dark:text-blue-500 dark:hover:text-blue-600" aria-hidden="true" />
+          <ArrowDownTrayIcon title="Download torrent file" className="h-5 w-5 hover:text-blue-500 dark:hover:text-blue-600" aria-hidden="true" />
         </ExternalLink>
       )}
       {value.info_url && (
         <ExternalLink href={value.info_url}>
-          <ArrowTopRightOnSquareIcon title="Visit torrentinfo url" className="h-5 w-5 text-blue-400 hover:text-blue-500 dark:text-blue-500 dark:hover:text-blue-600" aria-hidden="true" />
+          <ArrowTopRightOnSquareIcon title="Visit torrentinfo url" className="h-5 w-5 hover:text-blue-500 dark:hover:text-blue-600" aria-hidden="true" />
         </ExternalLink>
       )}
     </div>
