@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/autobrr/autobrr/pkg/errors"
+	"github.com/autobrr/autobrr/pkg/sharedhttp"
 
 	goversion "github.com/hashicorp/go-version"
 )
@@ -93,8 +94,7 @@ func (c *Checker) get(ctx context.Context) (*Release, error) {
 	req.Header.Set("Accept", "application/vnd.github.v3+json")
 	req.Header.Set("User-Agent", c.buildUserAgent())
 
-	client := http.DefaultClient
-
+	client := sharedhttp.GetClient(url, false)
 	resp, err := client.Do(req)
 	if err != nil {
 		return nil, err

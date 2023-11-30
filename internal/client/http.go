@@ -4,12 +4,14 @@
 package client
 
 import (
+	"context"
 	"io"
 	"net/http"
 	"os"
 	"time"
 
 	"github.com/autobrr/autobrr/pkg/errors"
+	"github.com/autobrr/autobrr/pkg/sharedhttp"
 
 	"github.com/anacrolix/torrent/metainfo"
 	"github.com/avast/retry-go"
@@ -52,10 +54,15 @@ func (c *HttpClient) DownloadTorrentFile(url string, opts map[string]string) (*D
 	}
 	defer tmpFile.Close()
 
+	client := sharedhttp.GetClient(url, false)
+	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, url, nil)
+	if err != nil {
+		return errors.Wrap(err, "error downloading file")
+	}
 	res := &DownloadTorrentFileResponse{}
 	// try request and if fail run 3 retries
 	err = retry.Do(func() error {
-		resp, err := http.Get(url)
+		resp, err := client.Do(req)
 		if err != nil {
 			return errors.New("error downloading file: %q", err)
 		}

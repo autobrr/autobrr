@@ -5,7 +5,6 @@ package notification
 
 import (
 	"bytes"
-	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -15,6 +14,7 @@ import (
 
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/pkg/errors"
+	"github.com/autobrr/autobrr/pkg/sharedhttp"
 
 	"github.com/dustin/go-humanize"
 	"github.com/rs/zerolog"
@@ -80,13 +80,7 @@ func (a *discordSender) Send(event domain.NotificationEvent, payload domain.Noti
 	req.Header.Set("Content-Type", "application/json")
 	//req.Header.Set("User-Agent", "autobrr")
 
-	t := &http.Transport{
-		TLSClientConfig: &tls.Config{
-			InsecureSkipVerify: true,
-		},
-	}
-
-	client := http.Client{Transport: t, Timeout: 30 * time.Second}
+	client := sharedhttp.GetClient(a.Settings.Webhook, true)
 	res, err := client.Do(req)
 	if err != nil {
 		a.log.Error().Err(err).Msgf("discord client request error: %v", event)

@@ -12,10 +12,10 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/pkg/errors"
+	"github.com/autobrr/autobrr/pkg/sharedhttp"
 
 	"github.com/dustin/go-humanize"
 	"github.com/rs/zerolog"
@@ -77,7 +77,7 @@ func (s *telegramSender) Send(event domain.NotificationEvent, payload domain.Not
 	req.Header.Set("Content-Type", "application/json")
 	//req.Header.Set("User-Agent", "autobrr")
 
-	client := http.Client{Timeout: 30 * time.Second}
+	client := sharedhttp.GetClient(url, false)
 	res, err := client.Do(req)
 	if err != nil {
 		s.log.Error().Err(err).Msgf("telegram client request error: %v", event)

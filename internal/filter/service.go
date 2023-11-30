@@ -6,7 +6,6 @@ package filter
 import (
 	"bytes"
 	"context"
-	"crypto/tls"
 	"fmt"
 	"io"
 	"net/http"
@@ -22,6 +21,7 @@ import (
 	"github.com/autobrr/autobrr/internal/logger"
 	"github.com/autobrr/autobrr/internal/utils"
 	"github.com/autobrr/autobrr/pkg/errors"
+	"github.com/autobrr/autobrr/pkg/sharedhttp"
 
 	"github.com/avast/retry-go/v4"
 	"github.com/mattn/go-shellwords"
@@ -657,14 +657,6 @@ func (s *service) webhook(ctx context.Context, external domain.FilterExternal, r
 
 	s.log.Trace().Msgf("sending %s to external webhook filter: (%s) payload: (%s)", external.WebhookMethod, external.WebhookHost, external.WebhookData)
 
-	t := &http.Transport{
-		TLSClientConfig: &tls.Config{
-			InsecureSkipVerify: true,
-		},
-	}
-
-	client := http.Client{Transport: t, Timeout: 120 * time.Second}
-
 	method := http.MethodPost
 	if external.WebhookMethod != "" {
 		method = external.WebhookMethod
@@ -710,6 +702,7 @@ func (s *service) webhook(ctx context.Context, external domain.FilterExternal, r
 		retryStatusCodes = strings.Split(strings.ReplaceAll(external.WebhookRetryStatus, " ", ""), ",")
 	}
 
+	client := sharedhttp.GetClient(external.WebhookHost, true)
 	start := time.Now()
 
 	statusCode, err := retry.DoWithData(

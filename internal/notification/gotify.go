@@ -9,10 +9,10 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
-	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/pkg/errors"
+	"github.com/autobrr/autobrr/pkg/sharedhttp"
 
 	"github.com/dustin/go-humanize"
 	"github.com/rs/zerolog"
@@ -45,7 +45,7 @@ func (s *gotifySender) Send(event domain.NotificationEvent, payload domain.Notif
 	data.Set("message", m.Message)
 	data.Set("title", m.Title)
 
-	url := fmt.Sprintf("%v/message?token=%v", s.Settings.Host, s.Settings.Token);
+	url := fmt.Sprintf("%v/message?token=%v", s.Settings.Host, s.Settings.Token)
 	req, err := http.NewRequest(http.MethodPost, url, strings.NewReader(data.Encode()))
 	if err != nil {
 		s.log.Error().Err(err).Msgf("gotify client request error: %v", event)
@@ -55,7 +55,7 @@ func (s *gotifySender) Send(event domain.NotificationEvent, payload domain.Notif
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	req.Header.Set("User-Agent", "autobrr")
 
-	client := http.Client{Timeout: 30 * time.Second}
+	client := sharedhttp.GetClient(url, false)
 	res, err := client.Do(req)
 	if err != nil {
 		s.log.Error().Err(err).Msgf("gotify client request error: %v", event)

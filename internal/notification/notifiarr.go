@@ -5,7 +5,6 @@ package notification
 
 import (
 	"bytes"
-	"crypto/tls"
 	"encoding/json"
 	"io"
 	"net/http"
@@ -13,6 +12,7 @@ import (
 
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/pkg/errors"
+	"github.com/autobrr/autobrr/pkg/sharedhttp"
 
 	"github.com/rs/zerolog"
 )
@@ -77,13 +77,7 @@ func (s *notifiarrSender) Send(event domain.NotificationEvent, payload domain.No
 	req.Header.Set("User-Agent", "autobrr")
 	req.Header.Set("X-API-Key", s.Settings.APIKey)
 
-	t := &http.Transport{
-		TLSClientConfig: &tls.Config{
-			InsecureSkipVerify: true,
-		},
-	}
-
-	client := http.Client{Transport: t, Timeout: 30 * time.Second}
+	client := sharedhttp.GetClient(s.baseUrl, true)
 	res, err := client.Do(req)
 	if err != nil {
 		s.log.Error().Err(err).Msgf("notifiarr client request error: %v", event)
