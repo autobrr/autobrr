@@ -567,7 +567,7 @@ func (r *Release) ResolveMagnetUri(ctx context.Context) error {
 		return nil
 	}
 
-	client := sharedhttp.GetClient("magnet", false)
+	client := sharedhttp.GetClient("http://magnet.", false)
 	if client.Transport != &magnetrt {
 		client.Transport = &magnetrt
 	}
