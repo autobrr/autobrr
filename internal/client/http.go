@@ -57,8 +57,9 @@ func (c *HttpClient) DownloadTorrentFile(url string, opts map[string]string) (*D
 	client := sharedhttp.GetClient(url, false)
 	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, url, nil)
 	if err != nil {
-		return errors.Wrap(err, "error downloading file")
+		return nil, errors.Wrap(err, "error creating request to download file")
 	}
+
 	res := &DownloadTorrentFileResponse{}
 	// try request and if fail run 3 retries
 	err = retry.Do(func() error {
