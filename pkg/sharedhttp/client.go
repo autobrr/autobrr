@@ -15,7 +15,7 @@ import (
 	"time"
 )
 
-var clients map[string]*http.Client
+var clients = map[string]*http.Client{}
 var httpTransport = &http.Transport{
 	Proxy: http.ProxyFromEnvironment,
 	DialContext: (&net.Dialer{
