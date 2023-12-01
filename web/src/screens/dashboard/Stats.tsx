@@ -18,24 +18,25 @@ interface StatsItemProps {
 
 const StatsItem = ({ name, placeholder, value, onClick }: StatsItemProps) => (
   <div
-    className="group relative px-4 py-3 cursor-pointer overflow-hidden rounded-lg shadow-lg bg-white dark:bg-gray-800 border border-gray-150 dark:border-gray-775 hover:border-gray-300 dark:hover:border-gray-725"
+    className="group relative px-4 py-3 cursor-pointer overflow-hidden rounded-lg shadow-lg bg-white dark:bg-gray-800 border border-gray-150 dark:border-gray-775 hover:border-gray-300 dark:hover:border-gray-725 hover:scale-110 hover:shadow-xl transition-all duration-200 ease-in-out"
     title="All time"
     onClick={onClick}
   >
     <dt>
-      <div className="flex items-center">
-        <p className="pb-0.5 text-sm font-medium text-gray-500 group-hover:dark:text-gray-475 group-hover:text-gray-600 truncate">{name}</p>
-        <LinkIcon className="h-3 w-3 ml-2 text-gray-500 group-hover:dark:text-gray-475 group-hover:text-gray-600" aria-hidden="true" />
+      <div className="flex items-center text-sm font-medium text-gray-500 group-hover:dark:text-gray-475 group-hover:text-gray-600 transition-colors duration-200 ease-in-out">
+        <p className="pb-0.5 truncate">{name}</p>
+        <LinkIcon className="h-3 w-3 ml-2" aria-hidden="true" />
       </div>
     </dt>
 
-    <dd className="flex items-baseline">
-      <p className="text-3xl font-extrabold text-gray-900 dark:text-gray-200">{placeholder}</p>
-    </dd>
-
-    <dd className="flex items-baseline">
-      <p className="text-3xl font-extrabold text-gray-900 dark:text-gray-200">{value}</p>
-    </dd>
+    <div className="flex items-baseline text-3xl font-extrabold text-gray-900 dark:text-gray-200">
+      <dd>
+        <p>{placeholder}</p>
+      </dd>
+      <dd>
+        <p>{value}</p>
+      </dd>
+    </div>
   </div>
 );
 
