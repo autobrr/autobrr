@@ -289,7 +289,6 @@ export const FilterDetails = () => {
     navigate("/filters");
   }
 
-   
   const id = parseInt(filterId!);
 
   const { isLoading, data: filter } = useQuery({
