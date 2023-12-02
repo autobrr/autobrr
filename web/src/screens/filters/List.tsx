@@ -7,7 +7,7 @@ import { Dispatch, FC, Fragment, MouseEventHandler, useReducer, useRef, useState
 import { Link } from "react-router-dom";
 import { toast } from "react-hot-toast";
 import { Listbox, Menu, Transition } from "@headlessui/react";
-import { useMutation, useQuery, useQueryClient, keepPreviousData } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient, keepPreviousData, useSuspenseQuery } from "@tanstack/react-query";
 import { FormikValues } from "formik";
 import { useCallback } from "react";
 import {
@@ -185,7 +185,7 @@ function FilterList({ toggleCreateFilter }: any) {
     filterListState
   );
 
-  const { data, error } = useQuery({
+  const { data, error } = useSuspenseQuery({
     queryKey: filterKeys.list(indexerFilter, sortOrder),
     queryFn: ({ queryKey }) => APIClient.filters.find(queryKey[2].indexers, queryKey[2].sortOrder),
     refetchOnWindowFocus: false
