@@ -91,8 +91,9 @@ export async function HttpClient<T = unknown>(
 
     // Show an error toast to notify the user what occurred
     return Promise.reject(new Error(`[401] Unauthorized: "${endpoint}"`));
-  case 404:
+  case 404: {
     return Promise.reject(new Error(`[404] Not found: "${endpoint}"`));
+  }
   case 500: {
     const health = await window.fetch(`${baseUrl()}api/healthz/liveness`);
     if (!health.ok) {
