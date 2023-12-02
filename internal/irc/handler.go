@@ -583,9 +583,6 @@ func (h *Handler) setBotMode() {
 
 // authenticate sends NickServIdentify if not authenticated
 func (h *Handler) authenticate() bool {
-	h.m.RLock()
-	defer h.m.RUnlock()
-
 	if h.authenticated {
 		return true
 	}
