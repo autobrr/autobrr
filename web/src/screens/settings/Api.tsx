@@ -4,7 +4,7 @@
  */
 
 import { useRef } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { toast } from "react-hot-toast";
 import { TrashIcon } from "@heroicons/react/24/outline";
 
@@ -30,7 +30,7 @@ export const apiKeys = {
 function APISettings() {
   const [addFormIsOpen, toggleAddForm] = useToggle(false);
 
-  const { isError, error, data } = useQuery({
+  const { isError, error, data } = useSuspenseQuery({
     queryKey: apiKeys.lists(),
     queryFn: APIClient.apikeys.getAll,
     retry: false,

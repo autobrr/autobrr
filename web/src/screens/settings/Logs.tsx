@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { toast } from "react-hot-toast";
 import { Link } from "react-router-dom";
 import Select from "react-select";
@@ -56,7 +56,7 @@ const SelectWrapper = ({ id, value, onChange, options }: SelectWrapperProps) => 
 );
 
 function LogSettings() {
-  const { isError, error, isLoading, data } = useQuery({
+  const { isError, error, isLoading, data } = useSuspenseQuery({
     queryKey: ["config"],
     queryFn: APIClient.config.get,
     retry: false,

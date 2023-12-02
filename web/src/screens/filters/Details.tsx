@@ -4,7 +4,7 @@
  */
 
 import { Suspense, useEffect, useRef } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { Form, Formik, useFormikContext } from "formik";
 import type { FormikErrors, FormikValues } from "formik";
 import { z } from "zod";
@@ -292,7 +292,7 @@ export const FilterDetails = () => {
   // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
   const id = parseInt(filterId!);
 
-  const { isLoading, isError, data: filter } = useQuery({
+  const { isLoading, isError, data: filter } = useSuspenseQuery({
     queryKey: filterKeys.detail(id),
     queryFn: ({ queryKey }) => APIClient.filters.getByID(queryKey[2]),
     refetchOnWindowFocus: false
