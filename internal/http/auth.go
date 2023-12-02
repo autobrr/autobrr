@@ -20,6 +20,7 @@ type authService interface {
 	GetUserCount(ctx context.Context) (int, error)
 	Login(ctx context.Context, username, password string) (*domain.User, error)
 	CreateUser(ctx context.Context, req domain.CreateUserRequest) error
+	ChangePasswordByUsername(ctx context.Context, req domain.ChangePasswordRequest) error
 }
 
 type authHandler struct {
@@ -47,6 +48,7 @@ func (h authHandler) Routes(r chi.Router) {
 	r.Post("/onboard", h.onboard)
 	r.Get("/onboard", h.canOnboard)
 	r.Get("/validate", h.validate)
+	r.Post("/change-password", h.changePassword)
 }
 
 func (h authHandler) login(w http.ResponseWriter, r *http.Request) {
@@ -175,6 +177,27 @@ func (h authHandler) validate(w http.ResponseWriter, r *http.Request) {
 
 	// send empty response as ok
 	h.encoder.NoContent(w)
+}
+
+func (h authHandler) changePassword(w http.ResponseWriter, r *http.Request) {
+	var (
+		ctx  = r.Context()
+		data domain.ChangePasswordRequest
+	)
+
+	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
+		h.encoder.StatusError(w, http.StatusBadRequest, errors.Wrap(err, "could not decode json"))
+		return
+	}
+
+	if err := h.service.ChangePasswordByUsername(ctx, data); err != nil {
+		h.encoder.StatusError(w, http.StatusForbidden, err)
+		return
+	}
+
+	// send response as ok
+	h.encoder.StatusResponseMessage(w, http.StatusOK, "password successfully changed")
+
 }
 
 func ReadUserIP(r *http.Request) string {

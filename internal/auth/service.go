@@ -19,6 +19,7 @@ type Service interface {
 	GetUserCount(ctx context.Context) (int, error)
 	Login(ctx context.Context, username, password string) (*domain.User, error)
 	CreateUser(ctx context.Context, req domain.CreateUserRequest) error
+	ChangePasswordByUsername(ctx context.Context, req domain.ChangePasswordRequest) error
 }
 
 type service struct {
@@ -93,6 +94,52 @@ func (s *service) CreateUser(ctx context.Context, req domain.CreateUserRequest) 
 	if err := s.userSvc.CreateUser(ctx, req); err != nil {
 		s.log.Error().Err(err).Msgf("could not create user: %s", req.Username)
 		return errors.New("failed to create new user")
+	}
+
+	return nil
+}
+
+func (s *service) ChangePasswordByUsername(ctx context.Context, req domain.ChangePasswordRequest) error {
+	if req.Username == "" {
+		return errors.New("validation error: empty username supplied")
+	} else if req.OldPassword == "" {
+		return errors.New("validation error: empty current password supplied")
+	} else if req.NewPassword == "" {
+		return errors.New("validation error: empty new password supplied")
+	}
+
+	// find user
+	u, err := s.userSvc.FindByUsername(ctx, req.Username)
+	if err != nil {
+		s.log.Error().Err(err).Msgf("could not find user by username: %v", req.Username)
+		return errors.Wrapf(err, "invalid login: %s", req.Username)
+	}
+
+	if u == nil {
+		return errors.Errorf("invalid login: %s", req.Username)
+	}
+
+	// compare password from request and the saved password
+	match, err := argon2id.ComparePasswordAndHash(req.OldPassword, u.Password)
+	if err != nil {
+		return errors.New("error checking credentials")
+	}
+
+	if !match {
+		s.log.Error().Msg("bad credentials")
+		return errors.Errorf("invalid current password: %s", req.Username)
+	}
+
+	hashed, err := argon2id.CreateHash(req.NewPassword, argon2id.DefaultParams)
+	if err != nil {
+		return errors.New("failed to hash password")
+	}
+
+	req.NewPassword = hashed
+
+	if err := s.userSvc.ChangePasswordByUsername(ctx, req); err != nil {
+		s.log.Error().Err(err).Msgf("could not change password for user: %s", req.Username)
+		return errors.New("failed to change password")
 	}
 
 	return nil
