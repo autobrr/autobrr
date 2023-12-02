@@ -24,7 +24,6 @@ window.Buffer = Buffer;
 // Initializes auth and theme contexts
 InitializeGlobalContext();
 
- 
 const root = createRoot(document.getElementById("root")!);
 root.render(
   <StrictMode>
