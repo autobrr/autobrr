@@ -36,9 +36,10 @@ class ParserFilter {
       }
       break;
     }
-    case "max_downloads_unit":
+    case "max_downloads_unit": {
       value = value.toUpperCase();
       break;
+    }
     default:
       break;
     }
@@ -56,9 +57,10 @@ class ParserFilter {
         }
         break;
       }
-      case "boolean":
+      case "boolean": {
         this.values[key] = value.toLowerCase() === "true";
         break;
+      }
       default:
         this.values[key] = value;
         break;
