@@ -86,7 +86,7 @@ export const RowItem = ({
 
 const commonSVGProps: SVGProps<SVGSVGElement> = {
   clipRule: "evenodd", fill: "currentColor", fillRule: "evenodd", xmlns: "http://www.w3.org/2000/svg",
-  className: "mr-2 h-4"
+  className: "mr-2 h-5"
 };
 
 export const DiscordIcon = () => (
