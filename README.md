@@ -12,14 +12,15 @@
 
 ## Documentation
 
-Full documentation can be found at https://autobrr.com
+Full documentation can be found at [https://autobrr.com](https://autobrr.com)
 
 ## Table of Contents
+
 1. [What Is Autobrr?](#what-is-autobrr)
 2. [Key Features](#key-features)
    - [Available Download Clients and Actions](#available-download-clients-and-actions)
    - [RSS and Usenet Support](#rss-and-usenet-support)
-4. [Installation](#installation)
+3. [Installation](#installation)
    - [Swizzin](#swizzin)
    - [Saltbox](#saltbox)
    - [QuickBox](#quickbox)
@@ -27,9 +28,10 @@ Full documentation can be found at https://autobrr.com
    - [Docker Compose](#docker-compose)
    - [Windows](#windows)
    - [Linux Generic](#linux-generic)
-5. [Community](#community)
-6. [Contributing](#contributing)
-6. [License](#license)
+4. [Community](#community)
+5. [Contributing](#contributing)
+6. [Code of Conduct](#code-of-conduct)
+7. [License](#license)
 
 ## What Is Autobrr?
 
@@ -100,12 +102,11 @@ For comprehensive installation instructions, visit our [Installation Guide](http
 
 Remember to head over to our [Configuration Guide](https://autobrr.com/configuration/autobrr) to learn how to set up your indexers, IRC, and download clients after you're done installing.
 
-
 ### Swizzin
 
 [Swizzin](https://swizzin.ltd/) users can simply run:
 
-```
+```bash
 sudo box install autobrr
 ```
 
@@ -113,17 +114,17 @@ sudo box install autobrr
 
 [Saltbox](https://docs.saltbox.dev/) users can simply run:
 
-```
+```bash
 sb install sandbox-autobrr
 ```
 
 For more info check the [docs](https://docs.saltbox.dev/sandbox/apps/autobrr/)
 
-### QuickBox (v3)
+### QuickBox
 
 [QuickBox](https://quickbox.io/) users can simply run:
 
-```
+```bash
 qb install autobrr -u ${username}
 ```
 
@@ -147,35 +148,45 @@ The scripts require some input, but do most of the work.
 
 #### Swizzin.net
 
-    wget https://gobrr.sh/install_sbio && bash install_sbio
+```bash
+wget https://gobrr.sh/install_sbio && bash install_sbio
+```
 
 #### WhatBox
 
-    wget https://gobrr.sh/install_whatbox && bash install_whatbox
+```bash
+wget https://gobrr.sh/install_whatbox && bash install_whatbox
+```
 
 #### Feralhosting
 
-    wget https://gobrr.sh/install_feral && bash install_feral
+```bash
+wget https://gobrr.sh/install_feral && bash install_feral
+```
 
 #### Bytesized Hosting
 
-    wget https://gobrr.sh/install_bytesized && bash install_bytesized
+```bash
+wget https://gobrr.sh/install_bytesized && bash install_bytesized
+```
 
 #### Other providers
 
 For other providers the Seedbox.io installer should work. If not, open an issue or contact us
 on [Discord](https://discord.gg/WQ2eUycxyT)
 
-    wget https://gobrr.sh/install_sbio && bash install_sbio
+```bash
+wget https://gobrr.sh/install_sbio && bash install_sbio
+```
 
 ### Docker Compose
 
 Modify accordingly if running with unRAID or setting up with Portainer.
 
-* Logging is optional
-* Host port mapping might need to be changed to not collide with other apps
-* Change `BASE_DOCKER_DATA_PATH` to match your setup. Can be simply `./data`
-* Set custom network if needed
+- Logging is optional
+- Host port mapping might need to be changed to not collide with other apps
+- Change `BASE_DOCKER_DATA_PATH` to match your setup. Can be simply `./data`
+- Set custom network if needed
 
 Create `docker-compose.yml` and add the following. If you have an existing setup change to fit that.
 
@@ -224,7 +235,7 @@ tar -C /usr/local/bin -xzf autobrr*.tar.gz
 ```
 
 This will extract both `autobrr` and `autobrrctl` to `/usr/local/bin`.
-Note: If the command fails, prefix it with `sudo ` and re-run again.
+Note: If the command fails, prefix it with `sudo` and re-run again.
 
 #### Systemd (Recommended)
 
@@ -294,13 +305,11 @@ Whether you're fixing a bug, adding a feature, or improving documentation, your 
 
 See an area that needs clarity or additional information? Feel free to update our documentation [here](https://github.com/autobrr/autobrr.com).
 
-<!--
-### Code of Conduct
+## Code of Conduct
 
-- **Respectful Interaction:** We follow a code of conduct that promotes respectful and harassment-free experiences. Please read [our Code of Conduct](CODE_OF_CONDUCT.md) before participating.
--->
+We follow a code of conduct that promotes respectful and harassment-free experiences. Please read [our Code of Conduct](CODE_OF_CONDUCT.md) before participating.
 
-## License 
+## License
 
 autobrr is proudly open-source and is released under the [GNU General Public License v2 or later (GPLv2+)](https://www.gnu.org/licenses/old-licenses/gpl-2.0-standalone.html). This license allows you the freedom to run, study, share, and modify the software:
 

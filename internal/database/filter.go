@@ -431,11 +431,11 @@ func (r *FilterRepo) FindByID(ctx context.Context, filterID int) (*domain.Filter
 }
 
 // FindByIndexerIdentifier find active filters with active indexer only
-func (r *FilterRepo) FindByIndexerIdentifier(ctx context.Context, indexer string) ([]domain.Filter, error) {
+func (r *FilterRepo) FindByIndexerIdentifier(ctx context.Context, indexer string) ([]*domain.Filter, error) {
 	return r.findByIndexerIdentifier(ctx, indexer)
 }
 
-func (r *FilterRepo) findByIndexerIdentifier(ctx context.Context, indexer string) ([]domain.Filter, error) {
+func (r *FilterRepo) findByIndexerIdentifier(ctx context.Context, indexer string) ([]*domain.Filter, error) {
 	queryBuilder := r.db.squirrel.
 		Select(
 			"f.id",
@@ -537,9 +537,7 @@ func (r *FilterRepo) findByIndexerIdentifier(ctx context.Context, indexer string
 
 	defer rows.Close()
 
-	var filters []domain.Filter
-
-	externalMap := make(map[int][]domain.FilterExternal)
+	filtersMap := make(map[int]*domain.Filter)
 
 	for rows.Next() {
 		var f domain.Filter
@@ -671,6 +669,14 @@ func (r *FilterRepo) findByIndexerIdentifier(ctx context.Context, indexer string
 		f.Scene = scene.Bool
 		f.Freeleech = freeleech.Bool
 
+		f.Rejections = []string{}
+
+		filter, ok := filtersMap[f.ID]
+		if !ok {
+			filter = &f
+			filtersMap[f.ID] = filter
+		}
+
 		if extId.Valid {
 			external := domain.FilterExternal{
 				ID:                       int(extId.Int32),
@@ -691,21 +697,15 @@ func (r *FilterRepo) findByIndexerIdentifier(ctx context.Context, indexer string
 				WebhookRetryDelaySeconds: int(extWebhookDelaySeconds.Int32),
 				FilterId:                 int(extFilterId.Int32),
 			}
-			externalMap[external.FilterId] = append(externalMap[external.FilterId], external)
+			filter.External = append(filter.External, external)
 		}
-
-		filters = append(filters, f)
 	}
 
-	for i, filter := range filters {
-		v, ok := externalMap[filter.ID]
-		if !ok {
-			continue
-		}
+	var filters []*domain.Filter
 
-		filter.External = v
-
-		filters[i] = filter
+	for _, filter := range filtersMap {
+		filter := filter
+		filters = append(filters, filter)
 	}
 
 	return filters, nil

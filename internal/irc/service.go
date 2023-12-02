@@ -210,6 +210,10 @@ func (s *service) checkIfNetworkRestartNeeded(network *domain.IrcNetwork) error 
 				restartNeeded = true
 				fieldsChanged = append(fieldsChanged, "bouncer addr")
 			}
+			if handler.BotMode != network.BotMode {
+				restartNeeded = true
+				fieldsChanged = append(fieldsChanged, "bot mode")
+			}
 			if handler.Auth.Mechanism != network.Auth.Mechanism {
 				restartNeeded = true
 				fieldsChanged = append(fieldsChanged, "auth mechanism")
@@ -446,6 +450,7 @@ func (s *service) GetNetworksWithHealth(ctx context.Context) ([]domain.IrcNetwor
 			InviteCommand:    n.InviteCommand,
 			BouncerAddr:      n.BouncerAddr,
 			UseBouncer:       n.UseBouncer,
+			BotMode:          n.BotMode,
 			Connected:        false,
 			Channels:         []domain.ChannelWithHealth{},
 			ConnectionErrors: []string{},
