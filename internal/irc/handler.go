@@ -23,6 +23,7 @@ import (
 	"github.com/r3labs/sse/v2"
 	"github.com/rs/zerolog"
 	"github.com/sasha-s/go-deadlock"
+	"golang.org/x/exp/slices"
 )
 
 var (
@@ -236,17 +237,17 @@ func (h *Handler) Run() (err error) {
 	client.AddConnectCallback(h.onConnect)
 	client.AddDisconnectCallback(h.onDisconnect)
 
-	h.client.AddCallback("MODE", h.handleMode)
+	client.AddCallback("MODE", h.handleMode)
 	if h.network.BotMode {
-		h.client.AddCallback("501", h.handleModeUnknownFlag)
+		client.AddCallback("501", h.handleModeUnknownFlag)
 	}
-	h.client.AddCallback("INVITE", h.handleInvite)
-	h.client.AddCallback("366", h.handleJoined)
-	h.client.AddCallback("PART", h.handlePart)
-	h.client.AddCallback("PRIVMSG", h.onMessage)
-	h.client.AddCallback("NOTICE", h.onNotice)
-	h.client.AddCallback("NICK", h.onNick)
-	h.client.AddCallback("903", h.handleSASLSuccess)
+	client.AddCallback("INVITE", h.handleInvite)
+	client.AddCallback("366", h.handleJoined)
+	client.AddCallback("PART", h.handlePart)
+	client.AddCallback("PRIVMSG", h.onMessage)
+	client.AddCallback("NOTICE", h.onNotice)
+	client.AddCallback("NICK", h.onNick)
+	client.AddCallback("903", h.handleSASLSuccess)
 
 	//h.setConnectionStatus()
 	h.saslauthed = false
@@ -1055,12 +1056,6 @@ func (h *Handler) ReportStatus(netw *domain.IrcNetworkWithHealth) {
 
 	netw.Healthy = channelsHealthy
 
-	// TODO with Go 1.21 this can just be:
-	// netw.ConnectionErrors = slices.Clone(h.connectionErrors)
-	if len(h.connectionErrors) != 0 {
-		netw.ConnectionErrors = make([]string, len(h.connectionErrors))
-		for i, connectionErr := range h.connectionErrors {
-			netw.ConnectionErrors[i] = connectionErr
-		}
-	}
+	// TODO with Go 1.21 this can moved from golang.org/x/exp/slices to built in slices:
+	netw.ConnectionErrors = slices.Clone(h.connectionErrors)
 }
