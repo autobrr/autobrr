@@ -582,25 +582,17 @@ func (h *Handler) setBotMode() {
 }
 
 // authenticate sends NickServIdentify if not authenticated
-func (h *Handler) authenticate() bool {
-	if h.authenticated {
-		return true
-	}
+func (h *Handler) authenticate() {
+	h.m.RLock()
+	shouldSendNickserv := !h.authenticated && !h.saslauthed && h.network.Auth.Password != ""
+	h.m.RUnlock()
 
-	if !h.saslauthed && h.network.Auth.Password != "" {
+	if shouldSendNickserv {
 		h.log.Trace().Msg("on connect not authenticated and password not empty: send nickserv identify")
-		if err := h.NickServIdentify(h.network.Auth.Password); err != nil {
-			h.log.Error().Stack().Err(err).Msg("error nickserv")
-			return false
-		}
-
-		return false
+		h.NickServIdentify(h.network.Auth.Password)
 	} else {
 		h.setAuthenticated()
 	}
-
-	// return and wait for NOTICE of nickserv auth
-	return true
 }
 
 // handleSASLSuccess we get here early so set saslauthed before we hit onConnect
@@ -613,9 +605,18 @@ func (h *Handler) handleSASLSuccess(msg ircmsg.Message) {
 // setAuthenticated sets the states for authenticated, connectionErrors, failedNickServAttempts
 // and then sends inviteCommand and after that JoinChannels
 func (h *Handler) setAuthenticated() {
-	h.authenticated = true
-	h.connectionErrors = []string{}
-	h.failedNickServAttempts = 0
+	h.m.Lock()
+	alreadyAuthenticated := h.authenticated
+	if !alreadyAuthenticated {
+		h.authenticated = true
+		h.connectionErrors = []string{}
+		h.failedNickServAttempts = 0
+	}
+	h.m.Unlock()
+
+	if alreadyAuthenticated {
+		return
+	}
 
 	h.inviteCommand()
 	h.JoinChannels()
@@ -656,9 +657,7 @@ func (h *Handler) onNick(msg ircmsg.Message) {
 		return
 	}
 
-	if !h.authenticated {
-		h.authenticate()
-	}
+	h.authenticate()
 }
 
 func (h *Handler) publishSSEMsg(msg domain.IrcMessage) {
@@ -937,9 +936,7 @@ func (h *Handler) handleMode(msg ircmsg.Message) {
 
 	// if our nick and user mode +r (Identifies the nick as being Registered (settable by services only)) then return
 	if h.isOurCurrentNick(msg.Params[0]) && strings.Contains(msg.Params[1], "+r") {
-		if !h.authenticated {
-			h.setAuthenticated()
-		}
+		h.setAuthenticated()
 
 		return
 	}
