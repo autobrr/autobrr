@@ -111,7 +111,7 @@ func (s *service) ChangePasswordByUsername(ctx context.Context, req domain.Chang
 	// find user
 	u, err := s.userSvc.FindByUsername(ctx, req.Username)
 	if err != nil {
-		s.log.Error().Err(err).Msgf("could not find user by username: %v", req.Username)
+		s.log.Trace().Err(err).Msgf("invalid login %v", req.Username)
 		return errors.Wrapf(err, "invalid login: %s", req.Username)
 	}
 
@@ -126,7 +126,7 @@ func (s *service) ChangePasswordByUsername(ctx context.Context, req domain.Chang
 	}
 
 	if !match {
-		s.log.Error().Msg("bad credentials")
+		s.log.Debug().Msg("bad credentials")
 		return errors.Errorf("invalid current password: %s", req.Username)
 	}
 
