@@ -111,10 +111,11 @@ func (s Server) Handler() http.Handler {
 
 	encoder := encoder{}
 
-	r.Route("/api", func(r chi.Router) {
-		r.Route("/auth", newAuthHandler(encoder, s.log, s.config.Config, s.cookieStore, s.authService).Routes)
-		r.Route("/healthz", newHealthHandler(encoder, s.db).Routes)
-
+	// Create a separate router for API
+	apiRouter := chi.NewRouter()
+	apiRouter.Route("/auth", newAuthHandler(encoder, s.log, s.config.Config, s.cookieStore, s.authService).Routes)
+	apiRouter.Route("/healthz", newHealthHandler(encoder, s.db).Routes)
+	apiRouter.Group(func(r chi.Router) {
 		r.Group(func(r chi.Router) {
 			r.Use(s.IsAuthenticated)
 
@@ -146,17 +147,11 @@ func (s Server) Handler() http.Handler {
 		})
 	})
 
+	// Mount the API router under '/api'
+	r.Mount("/api", apiRouter)
+
 	// serve the web
 	web.RegisterHandler(r, s.version, s.config.Config.BaseURL)
 
 	return r
-}
-
-func (s Server) index(w http.ResponseWriter, r *http.Request) {
-	p := web.IndexParams{
-		Title:   "Dashboard",
-		Version: s.version,
-		BaseUrl: s.config.Config.BaseURL,
-	}
-	web.Index(w, p)
 }
