@@ -62,7 +62,7 @@ func (h authHandler) login(w http.ResponseWriter, r *http.Request) {
 
 	h.cookieStore.Options.HttpOnly = true
 	h.cookieStore.Options.SameSite = http.SameSiteLaxMode
-	h.cookieStore.Options.Path = h.config.BaseURL
+	h.cookieStore.Options.Path = "/"
 
 	// autobrr does not support serving on TLS / https, so this is only available behind reverse proxy
 	// if forwarded protocol is https then set cookie secure
