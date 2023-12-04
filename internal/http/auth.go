@@ -28,17 +28,19 @@ type authHandler struct {
 	encoder encoder
 	config  *domain.Config
 	service authService
+	server  Server
 
 	cookieStore *sessions.CookieStore
 }
 
-func newAuthHandler(encoder encoder, log zerolog.Logger, config *domain.Config, cookieStore *sessions.CookieStore, service authService) *authHandler {
+func newAuthHandler(encoder encoder, log zerolog.Logger, config *domain.Config, cookieStore *sessions.CookieStore, service authService, server Server) *authHandler {
 	return &authHandler{
 		log:         log,
 		encoder:     encoder,
 		config:      config,
 		service:     service,
 		cookieStore: cookieStore,
+		server:      server,
 	}
 }
 
@@ -48,6 +50,16 @@ func (h authHandler) Routes(r chi.Router) {
 	r.Post("/onboard", h.onboard)
 	r.Get("/onboard", h.canOnboard)
 	r.Get("/validate", h.validate)
+	// Group for authenticated routes
+	r.Group(func(r chi.Router) {
+		r.Use(h.server.IsAuthenticated)
+
+		// Authenticated routes
+		r.Post("/change-password", h.changePassword)
+	})
+}
+
+func (h authHandler) ProtectedRoutes(r chi.Router) {
 	r.Post("/change-password", h.changePassword)
 }
 
