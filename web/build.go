@@ -148,6 +148,11 @@ func RegisterHandler(c *chi.Mux, version, baseUrl string) {
 		Index(w, p)
 	})
 
+	// Specifically handle the baseUrl route
+	c.Get(baseUrl, func(w http.ResponseWriter, r *http.Request) {
+		Index(w, p)
+	})
+
 	// handle all other routes
 	c.Get("/*", func(w http.ResponseWriter, r *http.Request) {
 		file := strings.TrimPrefix(r.RequestURI, "/")
