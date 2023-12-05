@@ -181,7 +181,7 @@ func (h *Handler) Run() (err error) {
 
 	// this used to be TraceLevel but was changed to DebugLevel during connect to see the info without needing to change loglevel
 	// we change back to TraceLevel in the handleJoined method.
-	subLogger := zstdlog.NewStdLoggerWithLevel(h.log.With().Logger(), zerolog.DebugLevel)
+	subLogger := zstdlog.NewStdLoggerWithLevel(h.log.With().Logger(), zerolog.TraceLevel)
 
 	shouldConnect := false
 	h.m.Lock()
@@ -252,6 +252,8 @@ func (h *Handler) Run() (err error) {
 	//h.setConnectionStatus()
 	h.saslauthed = false
 
+	h.client = client
+
 	if err := func() error {
 		// count connect attempts
 		connectAttempts := 0
@@ -308,7 +310,7 @@ func (h *Handler) Run() (err error) {
 		shouldDisconnect = true
 	case ircConnecting:
 		// success!
-		h.client = client
+		//h.client = client
 		h.clientState = ircLive
 	case ircLive:
 		// impossible
@@ -343,11 +345,6 @@ func (h *Handler) setConnectionStatus() {
 		h.connectedSince = time.Now()
 	}
 	h.m.Unlock()
-	//else {
-	//	h.connectedSince = time.Time{}
-	//	//h.channelHealth = map[string]*channelHealth{}
-	//	h.resetChannelHealth()
-	//}
 }
 
 func (h *Handler) GetNetwork() *domain.IrcNetwork {
@@ -379,9 +376,11 @@ func (h *Handler) AddChannelHealth(channel string) {
 }
 
 func (h *Handler) resetChannelHealth() {
+	h.m.RLock()
 	for _, ch := range h.channelHealth {
 		ch.resetMonitoring()
 	}
+	h.m.RUnlock()
 }
 
 // Stop the network and quit
@@ -424,7 +423,9 @@ func (h *Handler) onConnect(m ircmsg.Message) {
 
 	func() {
 		h.m.Lock()
-		if h.haveDisconnected {
+		if h.haveDisconnected && h.clientState == ircLive {
+			h.log.Info().Msgf("network re-connected after unexpected disconnect: %s", h.network.Name)
+
 			h.notificationService.Send(domain.NotificationEventIRCReconnected, domain.NotificationPayload{
 				Subject: "IRC Reconnected",
 				Message: fmt.Sprintf("Network: %s", h.network.Name),
@@ -435,7 +436,7 @@ func (h *Handler) onConnect(m ircmsg.Message) {
 		}
 		h.m.Unlock()
 
-		h.log.Debug().Msgf("connected to: %s", h.network.Name)
+		h.log.Info().Msgf("network connected to: %s", h.network.Name)
 	}()
 
 	time.Sleep(1 * time.Second)
@@ -829,12 +830,6 @@ func (h *Handler) handleJoined(msg ircmsg.Message) {
 	}
 
 	h.log.Info().Msgf("Monitoring channel %s", channel)
-
-	// reset log level to Trace now that we are monitoring a channel
-	if client := h.getClient(); client != nil {
-		// TODO: this is a data race
-		client.Log = zstdlog.NewStdLoggerWithLevel(h.log.With().Logger(), zerolog.TraceLevel)
-	}
 }
 
 // sendConnectCommands sends invite commands
