@@ -126,8 +126,8 @@ func (s *service) ChangePasswordByUsername(ctx context.Context, req domain.Chang
 	}
 
 	if !match {
-		s.log.Debug().Msg("bad credentials")
-		return errors.Errorf("invalid current password: %s", req.Username)
+		s.log.Debug().Msgf("bad credentials: %q | %q", req.Username, req.OldPassword)
+		return errors.Errorf("invalid login: %s", req.Username)
 	}
 
 	hashed, err := argon2id.CreateHash(req.NewPassword, argon2id.DefaultParams)
