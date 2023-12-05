@@ -340,6 +340,10 @@ func (s *service) RestartNetwork(ctx context.Context, id int64) error {
 		return err
 	}
 
+	if !network.Enabled {
+		return errors.New("network disabled, could not restart")
+	}
+
 	return s.restartNetwork(*network)
 }
 
