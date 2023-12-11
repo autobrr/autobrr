@@ -81,8 +81,8 @@ func GetClient(name string, insecure bool) *http.Client {
 	}
 
 	c.Timeout = time.Second * 120
-	r.Lock()
+	lock.Lock()
 	clients[name] = c
-	r.Unlock()
+	lock.Unlock()
 	return c
 }
