@@ -12,6 +12,7 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"sync"
 	"time"
 )
 
@@ -54,14 +55,19 @@ var insecureHTTPTransport = &http.Transport{
 	},
 }
 
+var lock sync.RWMutex
+
 func GetClient(name string, insecure bool) *http.Client {
 	if u, err := url.ParseRequestURI(name); err == nil && len(u.Host) != 0 {
 		name = u.Host
 	}
 
+	lock.RLock()
 	if c, ok := clients[name]; ok {
+		lock.RUnlock()
 		return c
 	}
+	lock.RUnlock()
 
 	var c *http.Client
 	if insecure {
@@ -75,6 +81,8 @@ func GetClient(name string, insecure bool) *http.Client {
 	}
 
 	c.Timeout = time.Second * 120
+	r.Lock()
 	clients[name] = c
+	r.Unlock()
 	return c
 }
