@@ -222,7 +222,7 @@ const externalFilterSchema = z.object({
   webhook_expect_status: z.number().optional(),
   webhook_retry_status: z.string().optional(),
   webhook_retry_attempts: z.number().optional(),
-  webhook_retry_delay_seconds: z.number().optional(),
+  webhook_retry_delay_seconds: z.number().optional()
 }).superRefine((value, ctx) => {
   if (!value.name) {
     ctx.addIssue({
