@@ -14,7 +14,7 @@ import {
 } from "@heroicons/react/24/solid";
 import { EyeIcon, EyeSlashIcon } from "@heroicons/react/24/solid";
 
-import { RandomLinuxIsos } from "@utils/Helpers";
+import { RandomLinuxIsos } from "@utils/index";
 import { APIClient } from "@api/APIClient";
 import { EmptyListState } from "@components/emptystates";
 
@@ -152,7 +152,7 @@ export const ReleaseTable = () => {
 
   const [modifiedData, setModifiedData] = useState<Release[]>([]);
   const [showLinuxIsos, setShowLinuxIsos] = useState(false);
-  
+
   const toggleReleaseNames = () => {
     setShowLinuxIsos(!showLinuxIsos);
     if (!showLinuxIsos && data && data.data) {
@@ -165,7 +165,7 @@ export const ReleaseTable = () => {
       setModifiedData(newData);
     }
   };
-  
+
   const displayData = showLinuxIsos ? modifiedData : (data?.data ?? []);
 
 

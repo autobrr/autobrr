@@ -18,7 +18,7 @@ import { EmptyListState } from "@components/emptystates";
 import * as Icons from "@components/Icons";
 import { EyeIcon, EyeSlashIcon } from "@heroicons/react/24/solid";
 import * as DataTable from "@components/data-table";
-import { RandomLinuxIsos } from "@utils/Helpers";
+import { RandomLinuxIsos } from "@utils/index";
 
 // This is a custom filter UI for selecting
 // a unique option from a list
@@ -222,7 +222,7 @@ export const ActivityTable = () => {
   };
 
   const displayData = showLinuxIsos ? modifiedData : (data?.data ?? []);
-  
+
   return (
     <div className="flex flex-col mt-12 relative">
       <h3 className="text-2xl font-medium leading-6 text-black dark:text-white">
