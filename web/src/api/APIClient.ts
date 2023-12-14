@@ -82,12 +82,14 @@ export async function HttpClient<T = unknown>(
   const response = await window.fetch(`${baseUrl()}${endpoint}`, init);
 
   switch (response.status) {
-  case 204:
+  case 204: {
     // 204 contains no data, but indicates success
     return Promise.resolve<T>({} as T);
-  case 401:
+  }
+  case 401: {
     // Remove auth info from localStorage
     AuthContext.reset();
+  }
 
     // Show an error toast to notify the user what occurred
     return Promise.reject(new Error(`[401] Unauthorized: "${endpoint}"`));

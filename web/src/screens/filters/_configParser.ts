@@ -148,7 +148,7 @@ class ParserIrcNetwork {
 
     if (key in CONST.IRC_FIELDS) {
       switch (CONST.IRC_FIELDS[key]) {
-      case "number":
+      case "number": {
         const parsedNum = parseFloat(value);
         this.values[key] = parsedNum;
 
@@ -157,13 +157,15 @@ class ParserIrcNetwork {
             `[IrcNetwork=${this.serverName}] Failed to convert field '${key}' to a number. Got value: '${value}'`
           );
         }
-
         break;
-      case "boolean":
+      }
+      case "boolean": {
         this.values[key] = value.toLowerCase() === "true";
         break;
-      default:
+      }
+      default: {
         break;
+      }
       }
     } else {
       this.values[key] = value;
@@ -262,17 +264,21 @@ export class AutodlIrssiConfigParser {
     }
 
     switch (match[1]) {
-    case FILTER:
+    case FILTER: {
       this.releaseFilter = new ParserFilter(rightLeftover);
       break;
-    case SERVER:
+    }
+    case SERVER: {
       this.ircNetwork = new ParserIrcNetwork(rightLeftover);
       break;
-    case CHANNEL:
+    }
+    case CHANNEL: {
       this.ircChannel = new ParserIrcChannel(rightLeftover);
       break;
-    default:
+      }
+    default: {
       break;
+    }
     }
 
     return true;

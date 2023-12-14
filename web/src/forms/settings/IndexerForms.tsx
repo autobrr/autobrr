@@ -58,7 +58,7 @@ const IrcSettingFields = (ind: IndexerDefinition, indexer: string) => {
 
           {ind.irc.settings.map((f: IndexerSetting, idx: number) => {
             switch (f.type) {
-            case "text":
+            case "text": {
               return (
                 <TextFieldWide
                   key={idx}
@@ -76,12 +76,14 @@ const IrcSettingFields = (ind: IndexerDefinition, indexer: string) => {
                   }
                 />
               );
-            case "secret":
+            }
+            case "secret": {
               if (f.name === "invite_command") {
                 return <PasswordFieldWide defaultVisible name={`irc.${f.name}`} label={f.label} required={f.required} key={idx} help={f.help} defaultValue={f.default} validate={validateField(f)} />;
               }
               return <PasswordFieldWide name={`irc.${f.name}`} label={f.label} required={f.required} key={idx} help={f.help} defaultValue={f.default} validate={validateField(f)} />;
             }
+          }
             return null;
           })}
         </div>
@@ -108,10 +110,12 @@ const TorznabFeedSettingFields = (ind: IndexerDefinition, indexer: string) => {
 
             {ind.torznab.settings.map((f: IndexerSetting, idx: number) => {
               switch (f.type) {
-              case "text":
+              case "text": {
                 return <TextFieldWide name={`feed.${f.name}`} label={f.label} required={f.required} key={idx} help={f.help} autoComplete="off" validate={validateField(f)} />;
-              case "secret":
+              }
+              case "secret": {
                 return <PasswordFieldWide name={`feed.${f.name}`} label={f.label} required={f.required} key={idx} help={f.help} defaultValue={f.default} validate={validateField(f)} />;
+              }
               }
               return null;
             })}
@@ -147,10 +151,12 @@ const NewznabFeedSettingFields = (ind: IndexerDefinition, indexer: string) => {
 
             {ind.newznab.settings.map((f: IndexerSetting, idx: number) => {
               switch (f.type) {
-              case "text":
+              case "text": {
                 return <TextFieldWide name={`feed.${f.name}`} label={f.label} required={f.required} key={idx} help={f.help} autoComplete="off" validate={validateField(f)} />;
-              case "secret":
+              }
+              case "secret": {
                 return <PasswordFieldWide name={`feed.${f.name}`} label={f.label} required={f.required} key={idx} help={f.help} defaultValue={f.default} validate={validateField(f)} />;
+              }
               }
               return null;
             })}
@@ -178,10 +184,12 @@ const RSSFeedSettingFields = (ind: IndexerDefinition, indexer: string) => {
 
             {ind.rss.settings.map((f: IndexerSetting, idx: number) => {
               switch (f.type) {
-              case "text":
+              case "text": {
                 return <TextFieldWide name={`feed.${f.name}`} label={f.label} required={f.required} key={idx} help={f.help} autoComplete="off" validate={validateField(f)} />;
-              case "secret":
+              }
+              case "secret": {
                 return <PasswordFieldWide name={`feed.${f.name}`} label={f.label} required={f.required} key={idx} help={f.help} defaultValue={f.default} validate={validateField(f)} />;
+              }
               }
               return null;
             })}
@@ -206,11 +214,12 @@ const SettingFields = (ind: IndexerDefinition, indexer: string) => {
       <div key="opt">
         {ind && ind.settings && ind.settings.map((f, idx: number) => {
           switch (f.type) {
-          case "text":
+          case "text": {
             return (
               <TextFieldWide name={`settings.${f.name}`} label={f.label} required={f.required} key={idx} help={f.help} autoComplete="off" validate={validateField(f)} />
             );
-          case "secret":
+          }
+          case "secret": {
             return (
               <PasswordFieldWide
                 name={`settings.${f.name}`}
@@ -228,6 +237,7 @@ const SettingFields = (ind: IndexerDefinition, indexer: string) => {
                 }
               />
             );
+          }
           }
           return null;
         })}
@@ -764,11 +774,12 @@ export function IndexerUpdateForm({ isOpen, toggle, indexer }: UpdateProps) {
       <div key="opt">
         {settings.map((f: IndexerSetting, idx: number) => {
           switch (f.type) {
-          case "text":
+          case "text": {
             return (
               <TextFieldWide name={`settings.${f.name}`} label={f.label} key={idx} help={f.help} />
             );
-          case "secret":
+          }
+          case "secret": {
             return (
               <PasswordFieldWide
                 key={idx}
@@ -784,6 +795,7 @@ export function IndexerUpdateForm({ isOpen, toggle, indexer }: UpdateProps) {
                 }
               />
             );
+          }
           }
           return null;
         })}

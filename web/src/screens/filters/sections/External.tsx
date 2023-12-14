@@ -253,7 +253,7 @@ interface TypeFormProps {
 
 const TypeForm = ({ external, idx }: TypeFormProps) => {
   switch (external.type) {
-  case "EXEC":
+  case "EXEC": {
     return (
       <FilterSection.Section
         title="Execute"
@@ -291,7 +291,8 @@ const TypeForm = ({ external, idx }: TypeFormProps) => {
         </FilterSection.Layout>
       </FilterSection.Section>
     );
-  case "WEBHOOK":
+  }
+  case "WEBHOOK": {
     return (
       <>
         <FilterSection.Section
@@ -363,8 +364,10 @@ const TypeForm = ({ external, idx }: TypeFormProps) => {
         </FilterSection.Section>
       </>
     );
+  }
 
-  default:
+  default: {
     return null;
+  }
   }
 };

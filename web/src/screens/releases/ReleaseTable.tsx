@@ -63,16 +63,21 @@ type Actions =
 
 const TableReducer = (state: TableState, action: Actions): TableState => {
   switch (action.type) {
-  case ActionType.PAGE_CHANGED:
+  case ActionType.PAGE_CHANGED: {
     return { ...state, queryPageIndex: action.payload };
-  case ActionType.PAGE_SIZE_CHANGED:
+  }
+  case ActionType.PAGE_SIZE_CHANGED: {
     return { ...state, queryPageSize: action.payload };
-  case ActionType.FILTER_CHANGED:
+  }
+  case ActionType.FILTER_CHANGED: {
     return { ...state, queryFilters: action.payload };
-  case ActionType.TOTAL_COUNT_CHANGED:
+  }
+  case ActionType.TOTAL_COUNT_CHANGED: {
     return { ...state, totalCount: action.payload };
-  default:
+  }
+  default: {
     throw new Error(`Unhandled action type: ${action}`);
+  }
   }
 };
 
