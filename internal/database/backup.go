@@ -48,7 +48,7 @@ func (db *DB) BackupDatabase() error {
 			return err
 		}
 
-		return cleanupDatabase(base)
+		return cleanupDatabase(base, db)
 	}
 
 	return errors.New("backup: not implemented for database type: %s", db.Driver)
@@ -83,7 +83,7 @@ func backupDatabase(base string, tx *sql.Tx) error {
 	return nil
 }
 
-func cleanupDatabase(base string) error {
+func cleanupDatabase(base string, db *DB) error {
 	files, err := os.ReadDir(base)
 	if err != nil {
 		return errors.Wrap(err, "backup unable to open base for cleaning %q", base)
