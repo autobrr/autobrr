@@ -138,62 +138,39 @@ const TypeForm = (props: ClientActionProps) => {
 
   switch (action.type) {
   // torrent clients
-  case "QBITTORRENT": {
+  case "QBITTORRENT":
     return <FilterActions.QBittorrent {...props} />;
-  }
-  case "DELUGE_V1": {
+  case "DELUGE_V1":
+  case "DELUGE_V2":
     return <FilterActions.Deluge {...props} />;
-  }
-  case "DELUGE_V2": {
-    return <FilterActions.Deluge {...props} />;
-  }
-  case "RTORRENT": {
+  case "RTORRENT":
     return <FilterActions.RTorrent {...props} />;
-  }
-  case "TRANSMISSION": {
+  case "TRANSMISSION":
     return <FilterActions.Transmission {...props} />;
-  }
-  case "PORLA": {
+  case "PORLA":
     return <FilterActions.Porla {...props} />;
-  }
   // arrs
-  case "RADARR": {
+  case "RADARR":
+  case "SONARR":
+  case "LIDARR":
+  case "WHISPARR":
+  case "READARR":
     return <FilterActions.Arr {...props} />;
-  }
-  case "SONARR": {
-    return <FilterActions.Arr {...props} />;
-  }
-  case "LIDARR": {
-    return <FilterActions.Arr {...props} />;
-  }
-  case "WHISPARR": {
-    return <FilterActions.Arr {...props} />;
-  }
-    // eslint-disable-next-line no-fallthrough
-  case "READARR": {
-    return <FilterActions.Arr {...props} />;
-  }
   // nzb
-  case "SABNZBD": {
+  case "SABNZBD":
     return <FilterActions.SABnzbd {...props} />;
-  }
   // autobrr actions
-  case "TEST": {
+  case "TEST":
     return <FilterActions.Test />;
-  }
-  case "EXEC": {
+  case "EXEC":
     return <FilterActions.Exec {...props} />;
-  }
-  case "WATCH_FOLDER": {
+  case "WATCH_FOLDER":
     return <FilterActions.WatchFolder {...props} />;
-  }
-  case "WEBHOOK": {
+  case "WEBHOOK":
     return <FilterActions.WebHook {...props} />;
-  }
-  default: {
+  default:
     // TODO(stacksmash76): Indicate error
     return null;
-  }
   }
 };
 
