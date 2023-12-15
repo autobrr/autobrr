@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-import { baseUrl, sseBaseUrl } from "@utils";
 import { AuthContext } from "@utils/Context";
 import { GithubRelease } from "@app/types/Update";
 
@@ -79,7 +78,7 @@ export async function HttpClient<T = unknown>(
     }
   }
 
-  const response = await window.fetch(`${baseUrl()}${endpoint}`, init);
+  const response = await window.fetch(endpoint, init);
 
   switch (response.status) {
   case 204:
@@ -94,7 +93,7 @@ export async function HttpClient<T = unknown>(
   case 404:
     return Promise.reject(new Error(`[404] Not found: "${endpoint}"`));
   case 500:
-    const health = await window.fetch(`${baseUrl()}api/healthz/liveness`);
+    const health = await window.fetch("api/healthz/liveness");
     if (!health.ok) {
       return Promise.reject(
         new Error(`[500] Offline (Internal server error): "${endpoint}"`, { cause: "OFFLINE" })
@@ -266,7 +265,7 @@ export const APIClient = {
       body: cmd
     }),
     events: (network: string) => new EventSource(
-      `${sseBaseUrl()}api/irc/events?stream=${encodeRFC3986URIComponent(network)}`,
+      `api/irc/events?stream=${encodeRFC3986URIComponent(network)}`,
       { withCredentials: true }
     )
   },
@@ -275,7 +274,7 @@ export const APIClient = {
     getFile: (file: string) => appClient.Get(`api/logs/files/${file}`)
   },
   events: {
-    logs: () => new EventSource(`${sseBaseUrl()}api/events?stream=logs`, { withCredentials: true })
+    logs: () => new EventSource("api/events?stream=logs", { withCredentials: true })
   },
   notifications: {
     getAll: () => appClient.Get<ServiceNotification[]>("api/notification"),

@@ -18,7 +18,7 @@ import {
 
 import { APIClient } from "@api/APIClient";
 import { useToggle } from "@hooks/hooks";
-import { baseUrl, classNames, IsEmptyDate, simplifyDate } from "@utils";
+import { classNames, IsEmptyDate, simplifyDate } from "@utils";
 import Toast from "@components/notifications/Toast";
 import { DeleteModal, ForceRunModal } from "@components/modals";
 import { FeedUpdateForm } from "@forms/settings/FeedForms";
@@ -386,7 +386,7 @@ const FeedItemDropdown = ({
             </Menu.Item>
             <Menu.Item>
               <ExternalLink
-                href={`${baseUrl()}api/feeds/${feed.id}/latest`}
+                href={`api/feeds/${feed.id}/latest`}
                 className="font-medium group flex rounded-md items-center w-full px-2 py-2 text-sm text-gray-900 dark:text-gray-300 hover:bg-blue-600 hover:text-white"
               >
                 <DocumentTextIcon
