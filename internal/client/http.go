@@ -54,7 +54,7 @@ func (c *HttpClient) DownloadTorrentFile(url string, opts map[string]string) (*D
 	}
 	defer tmpFile.Close()
 
-	client := sharedhttp.GetClient(url, false)
+	client := sharedhttp.GetClient(sharedhttp.HTTPOptions{Name: url})
 	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, url, nil)
 	if err != nil {
 		return nil, errors.Wrap(err, "error creating request to download file")

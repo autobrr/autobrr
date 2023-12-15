@@ -55,7 +55,7 @@ func (s *gotifySender) Send(event domain.NotificationEvent, payload domain.Notif
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	req.Header.Set("User-Agent", "autobrr")
 
-	client := sharedhttp.GetClient(url, false)
+	client := sharedhttp.GetClient(sharedhttp.HTTPOptions{Name: url})
 	res, err := client.Do(req)
 	if err != nil {
 		s.log.Error().Err(err).Msgf("gotify client request error: %v", event)

@@ -206,7 +206,7 @@ func (s *service) webhook(ctx context.Context, action *domain.Action, release do
 	req.Header.Set("User-Agent", "autobrr")
 
 	start := time.Now()
-	client := sharedhttp.GetClient(action.WebhookHost, true)
+	client := sharedhttp.GetClient(sharedhttp.HTTPOptions{Name: action.WebhookHost, Insecure: true})
 	res, err := client.Do(req)
 	if err != nil {
 		return errors.Wrap(err, "could not make request for webhook")

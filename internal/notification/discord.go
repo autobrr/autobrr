@@ -80,7 +80,7 @@ func (a *discordSender) Send(event domain.NotificationEvent, payload domain.Noti
 	req.Header.Set("Content-Type", "application/json")
 	//req.Header.Set("User-Agent", "autobrr")
 
-	client := sharedhttp.GetClient(a.Settings.Webhook, true)
+	client := sharedhttp.GetClient(sharedhttp.HTTPOptions{Name: a.Settings.Webhook})
 	res, err := client.Do(req)
 	if err != nil {
 		a.log.Error().Err(err).Msgf("discord client request error: %v", event)

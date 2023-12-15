@@ -77,7 +77,7 @@ func (s *notifiarrSender) Send(event domain.NotificationEvent, payload domain.No
 	req.Header.Set("User-Agent", "autobrr")
 	req.Header.Set("X-API-Key", s.Settings.APIKey)
 
-	client := sharedhttp.GetClient(s.baseUrl, true)
+	client := sharedhttp.GetClient(sharedhttp.HTTPOptions{Name: s.baseUrl})
 	res, err := client.Do(req)
 	if err != nil {
 		s.log.Error().Err(err).Msgf("notifiarr client request error: %v", event)

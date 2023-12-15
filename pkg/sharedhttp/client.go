@@ -55,9 +55,15 @@ var insecureHTTPTransport = &http.Transport{
 	},
 }
 
+type HTTPOptions struct {
+	Name     string
+	Insecure bool
+}
+
 var lock sync.RWMutex
 
-func GetClient(name string, insecure bool) *http.Client {
+func GetClient(opts HTTPOptions) *http.Client {
+	name := opts.Name
 	if u, err := url.ParseRequestURI(name); err == nil && len(u.Host) != 0 {
 		name = u.Host
 	}
@@ -70,17 +76,18 @@ func GetClient(name string, insecure bool) *http.Client {
 	lock.RUnlock()
 
 	var c *http.Client
-	if insecure {
+	if opts.Insecure {
 		c = &http.Client{
 			Transport: insecureHTTPTransport,
+			Timeout:   time.Second * 120,
 		}
 	} else {
 		c = &http.Client{
 			Transport: httpTransport,
+			Timeout:   time.Second * 120,
 		}
 	}
 
-	c.Timeout = time.Second * 120
 	lock.Lock()
 	clients[name] = c
 	lock.Unlock()

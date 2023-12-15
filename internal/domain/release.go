@@ -402,7 +402,7 @@ func (r *Release) downloadTorrentFile(ctx context.Context) error {
 	}
 
 	req.Header.Set("User-Agent", "autobrr")
-	client := sharedhttp.GetClient(r.DownloadURL, true)
+	client := sharedhttp.GetClient(sharedhttp.HTTPOptions{Name: r.DownloadURL, Insecure: true})
 	if r.RawCookie != "" {
 		jar, err := cookiejar.New(&cookiejar.Options{PublicSuffixList: publicsuffix.List})
 		if err != nil {
@@ -567,7 +567,7 @@ func (r *Release) ResolveMagnetUri(ctx context.Context) error {
 		return nil
 	}
 
-	client := sharedhttp.GetClient("http://magnet.", false)
+	client := sharedhttp.GetClient(sharedhttp.HTTPOptions{Name: "http://magnet."})
 	if client.Transport != &magnetrt {
 		client.Transport = &magnetrt
 	}

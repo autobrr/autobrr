@@ -704,7 +704,7 @@ func (s *service) webhook(ctx context.Context, external domain.FilterExternal, r
 		retryStatusCodes = strings.Split(strings.ReplaceAll(external.WebhookRetryStatus, " ", ""), ",")
 	}
 
-	client := sharedhttp.GetClient(external.WebhookHost, true)
+	client := sharedhttp.GetClient(sharedhttp.HTTPOptions{Name: external.WebhookHost, Insecure: true})
 	start := time.Now()
 
 	statusCode, err := retry.DoWithData(

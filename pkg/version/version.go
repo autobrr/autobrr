@@ -94,7 +94,7 @@ func (c *Checker) get(ctx context.Context) (*Release, error) {
 	req.Header.Set("Accept", "application/vnd.github.v3+json")
 	req.Header.Set("User-Agent", c.buildUserAgent())
 
-	client := sharedhttp.GetClient(url, false)
+	client := sharedhttp.GetClient(sharedhttp.HTTPOptions{Name: url})
 	resp, err := client.Do(req)
 	if err != nil {
 		return nil, err

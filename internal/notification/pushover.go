@@ -79,7 +79,7 @@ func (s *pushoverSender) Send(event domain.NotificationEvent, payload domain.Not
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	req.Header.Set("User-Agent", "autobrr")
 
-	client := sharedhttp.GetClient(s.baseUrl, true)
+	client := sharedhttp.GetClient(sharedhttp.HTTPOptions{Name: s.baseUrl})
 	res, err := client.Do(req)
 	if err != nil {
 		s.log.Error().Err(err).Msgf("pushover client request error: %v", event)

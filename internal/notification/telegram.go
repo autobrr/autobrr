@@ -77,7 +77,7 @@ func (s *telegramSender) Send(event domain.NotificationEvent, payload domain.Not
 	req.Header.Set("Content-Type", "application/json")
 	//req.Header.Set("User-Agent", "autobrr")
 
-	client := sharedhttp.GetClient(url, false)
+	client := sharedhttp.GetClient(sharedhttp.HTTPOptions{Name: url})
 	res, err := client.Do(req)
 	if err != nil {
 		s.log.Error().Err(err).Msgf("telegram client request error: %v", event)
