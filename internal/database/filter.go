@@ -633,46 +633,46 @@ func (r *FilterRepo) findByIndexerIdentifier(ctx context.Context, indexer string
 			return nil, errors.Wrap(err, "error scanning row")
 		}
 
-		f.MinSize = minSize.String
-		f.MaxSize = maxSize.String
-		f.Delay = int(delay.Int32)
-		f.MaxDownloads = int(maxDownloads.Int32)
-		f.MaxDownloadsUnit = domain.FilterMaxDownloadsUnit(maxDownloadsUnit.String)
-		f.MatchReleases = matchReleases.String
-		f.ExceptReleases = exceptReleases.String
-		f.MatchReleaseGroups = matchReleaseGroups.String
-		f.ExceptReleaseGroups = exceptReleaseGroups.String
-		f.MatchReleaseTags = matchReleaseTags.String
-		f.ExceptReleaseTags = exceptReleaseTags.String
-		f.MatchDescription = matchDescription.String
-		f.ExceptDescription = exceptDescription.String
-		f.FreeleechPercent = freeleechPercent.String
-		f.Shows = shows.String
-		f.Seasons = seasons.String
-		f.Episodes = episodes.String
-		f.Years = years.String
-		f.Artists = artists.String
-		f.Albums = albums.String
-		f.LogScore = int(logScore.Int32)
-		f.Log = hasLog.Bool
-		f.Cue = hasCue.Bool
-		f.PerfectFlac = perfectFlac.Bool
-		f.MatchCategories = matchCategories.String
-		f.ExceptCategories = exceptCategories.String
-		f.MatchUploaders = matchUploaders.String
-		f.ExceptUploaders = exceptUploaders.String
-		f.Tags = tags.String
-		f.ExceptTags = exceptTags.String
-		f.TagsMatchLogic = tagsMatchLogic.String
-		f.ExceptTagsMatchLogic = exceptTagsMatchLogic.String
-		f.UseRegex = useRegex.Bool
-		f.Scene = scene.Bool
-		f.Freeleech = freeleech.Bool
-
-		f.Rejections = []string{}
-
 		filter, ok := filtersMap[f.ID]
 		if !ok {
+			f.MinSize = minSize.String
+			f.MaxSize = maxSize.String
+			f.Delay = int(delay.Int32)
+			f.MaxDownloads = int(maxDownloads.Int32)
+			f.MaxDownloadsUnit = domain.FilterMaxDownloadsUnit(maxDownloadsUnit.String)
+			f.MatchReleases = matchReleases.String
+			f.ExceptReleases = exceptReleases.String
+			f.MatchReleaseGroups = matchReleaseGroups.String
+			f.ExceptReleaseGroups = exceptReleaseGroups.String
+			f.MatchReleaseTags = matchReleaseTags.String
+			f.ExceptReleaseTags = exceptReleaseTags.String
+			f.MatchDescription = matchDescription.String
+			f.ExceptDescription = exceptDescription.String
+			f.FreeleechPercent = freeleechPercent.String
+			f.Shows = shows.String
+			f.Seasons = seasons.String
+			f.Episodes = episodes.String
+			f.Years = years.String
+			f.Artists = artists.String
+			f.Albums = albums.String
+			f.LogScore = int(logScore.Int32)
+			f.Log = hasLog.Bool
+			f.Cue = hasCue.Bool
+			f.PerfectFlac = perfectFlac.Bool
+			f.MatchCategories = matchCategories.String
+			f.ExceptCategories = exceptCategories.String
+			f.MatchUploaders = matchUploaders.String
+			f.ExceptUploaders = exceptUploaders.String
+			f.Tags = tags.String
+			f.ExceptTags = exceptTags.String
+			f.TagsMatchLogic = tagsMatchLogic.String
+			f.ExceptTagsMatchLogic = exceptTagsMatchLogic.String
+			f.UseRegex = useRegex.Bool
+			f.Scene = scene.Bool
+			f.Freeleech = freeleech.Bool
+
+			f.Rejections = []string{}
+
 			filter = &f
 			filtersMap[f.ID] = filter
 		}
