@@ -41,10 +41,10 @@ func (db *DB) BackupDatabase(shuttingDown bool) error {
 			return errors.Wrap(err, "backup: Transaction creation failed")
 		}
 
+		defer tx.Commit()
 		if err := databaseConsistent(tx); err != nil {
 			return err
 		}
-		defer tx.Commit()
 
 		if exists, err := backupDatabase(base, db.handler); err != nil {
 			if !exists {
