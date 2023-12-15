@@ -1,16 +1,8 @@
-# Cache Go modules
-FROM golang:1.20-alpine3.18 AS app-cache
-WORKDIR /src
-COPY go.mod .
-RUN --mount=target=. \
-go mod download -x
-
 # build app
 FROM --platform=$BUILDPLATFORM golang:1.20-alpine3.18 AS app-builder
 WORKDIR /src
 RUN apk add --no-cache git tzdata
-COPY --from=app-cache /go/src /go/pkg /go
-RUN --mount=target=. \
+RUN --mount=target=. --mount=,source=$GOMODPATH,target/go/pkg/mod \
 go mod download -x
 
 ENV SERVICE=autobrr
