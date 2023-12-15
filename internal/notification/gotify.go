@@ -14,7 +14,6 @@ import (
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/pkg/errors"
 
-	"github.com/dustin/go-humanize"
 	"github.com/rs/zerolog"
 )
 
@@ -26,26 +25,28 @@ type gotifyMessage struct {
 type gotifySender struct {
 	log      zerolog.Logger
 	Settings domain.Notification
+	builder  NotificationBuilderPlainText
 }
 
 func NewGotifySender(log zerolog.Logger, settings domain.Notification) domain.NotificationSender {
 	return &gotifySender{
 		log:      log.With().Str("sender", "gotify").Logger(),
 		Settings: settings,
+		builder:  NotificationBuilderPlainText{},
 	}
 }
 
 func (s *gotifySender) Send(event domain.NotificationEvent, payload domain.NotificationPayload) error {
 	m := gotifyMessage{
-		Message: s.buildMessage(payload),
-		Title:   s.buildTitle(event),
+		Message: s.builder.BuildBody(payload),
+		Title:   s.builder.BuildTitle(event),
 	}
 
 	data := url.Values{}
 	data.Set("message", m.Message)
 	data.Set("title", m.Title)
 
-	url := fmt.Sprintf("%v/message?token=%v", s.Settings.Host, s.Settings.Token);
+	url := fmt.Sprintf("%v/message?token=%v", s.Settings.Host, s.Settings.Token)
 	req, err := http.NewRequest(http.MethodPost, url, strings.NewReader(data.Encode()))
 	if err != nil {
 		s.log.Error().Err(err).Msgf("gotify client request error: %v", event)
@@ -115,62 +116,4 @@ func (s *gotifySender) isEnabledEvent(event domain.NotificationEvent) bool {
 	}
 
 	return false
-}
-
-func (s *gotifySender) buildMessage(payload domain.NotificationPayload) string {
-	msg := ""
-
-	if payload.Subject != "" && payload.Message != "" {
-		msg += fmt.Sprintf("%v\n%v", payload.Subject, payload.Message)
-	}
-	if payload.ReleaseName != "" {
-		msg += fmt.Sprintf("\nNew release: %v", payload.ReleaseName)
-	}
-	if payload.Size > 0 {
-		msg += fmt.Sprintf("\nSize: %v", humanize.Bytes(payload.Size))
-	}
-	if payload.Status != "" {
-		msg += fmt.Sprintf("\nStatus: %v", payload.Status.String())
-	}
-	if payload.Indexer != "" {
-		msg += fmt.Sprintf("\nIndexer: %v", payload.Indexer)
-	}
-	if payload.Filter != "" {
-		msg += fmt.Sprintf("\nFilter: %v", payload.Filter)
-	}
-	if payload.Action != "" {
-		action := fmt.Sprintf("\nAction: %v Type: %v", payload.Action, payload.ActionType)
-		if payload.ActionClient != "" {
-			action += fmt.Sprintf(" Client: %v", payload.ActionClient)
-		}
-		msg += action
-	}
-	if len(payload.Rejections) > 0 {
-		msg += fmt.Sprintf("\nRejections: %v", strings.Join(payload.Rejections, ", "))
-	}
-
-	return msg
-}
-
-func (s *gotifySender) buildTitle(event domain.NotificationEvent) string {
-	title := ""
-
-	switch event {
-	case domain.NotificationEventAppUpdateAvailable:
-		title = "Autobrr update available"
-	case domain.NotificationEventPushApproved:
-		title = "Push Approved"
-	case domain.NotificationEventPushRejected:
-		title = "Push Rejected"
-	case domain.NotificationEventPushError:
-		title = "Error"
-	case domain.NotificationEventIRCDisconnected:
-		title = "IRC Disconnected"
-	case domain.NotificationEventIRCReconnected:
-		title = "IRC Reconnected"
-	case domain.NotificationEventTest:
-		title = "Test"
-	}
-
-	return title
 }
