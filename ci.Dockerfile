@@ -40,3 +40,4 @@ COPY --from=app-builder /out/bin/autobrr /usr/local/bin/
 COPY --from=app-builder /out/bin/autobrrctl /usr/local/bin/
 
 ENTRYPOINT ["/usr/local/bin/autobrr", "--config", "/config"]
+
