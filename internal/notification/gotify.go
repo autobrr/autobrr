@@ -25,14 +25,14 @@ type gotifyMessage struct {
 type gotifySender struct {
 	log      zerolog.Logger
 	Settings domain.Notification
-	builder  NotificationBuilder
+	builder  NotificationBuilderPlainText
 }
 
 func NewGotifySender(log zerolog.Logger, settings domain.Notification) domain.NotificationSender {
 	return &gotifySender{
 		log:      log.With().Str("sender", "gotify").Logger(),
 		Settings: settings,
-		builder:  NotificationBuilder{},
+		builder:  NotificationBuilderPlainText{},
 	}
 }
 

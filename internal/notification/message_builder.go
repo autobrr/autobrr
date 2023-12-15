@@ -8,10 +8,10 @@ import (
 	"github.com/dustin/go-humanize"
 )
 
-type NotificationBuilder struct{}
+type NotificationBuilderPlainText struct{}
 
 // BuildBody constructs the body of the notification message.
-func (b *NotificationBuilder) BuildBody(payload domain.NotificationPayload) string {
+func (b *NotificationBuilderPlainText) BuildBody(payload domain.NotificationPayload) string {
 	var parts []string
 
 	buildPart := func(condition bool, format string, a ...interface{}) {
@@ -37,7 +37,7 @@ func (b *NotificationBuilder) BuildBody(payload domain.NotificationPayload) stri
 }
 
 // BuildTitle constructs the title of the notification message.
-func (b *NotificationBuilder) BuildTitle(event domain.NotificationEvent) string {
+func (b *NotificationBuilderPlainText) BuildTitle(event domain.NotificationEvent) string {
 	titles := map[domain.NotificationEvent]string{
 		domain.NotificationEventAppUpdateAvailable: "Autobrr update available",
 		domain.NotificationEventPushApproved:       "Push Approved",

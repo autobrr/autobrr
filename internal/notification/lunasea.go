@@ -25,7 +25,7 @@ type LunaSeaMessage struct {
 type lunaSeaSender struct {
 	log      zerolog.Logger
 	Settings domain.Notification
-	builder  NotificationBuilder
+	builder  NotificationBuilderPlainText
 }
 
 func (s *lunaSeaSender) rewriteWebhookURL(url string) string {
@@ -37,7 +37,7 @@ func NewLunaSeaSender(log zerolog.Logger, settings domain.Notification) domain.N
 	return &lunaSeaSender{
 		log:      log.With().Str("sender", "lunasea").Logger(),
 		Settings: settings,
-		builder:  NotificationBuilder{},
+		builder:  NotificationBuilderPlainText{},
 	}
 }
 

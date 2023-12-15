@@ -30,7 +30,7 @@ type telegramSender struct {
 	log      zerolog.Logger
 	Settings domain.Notification
 	ThreadID int
-	builder  NotificationBuilder
+	builder  NotificationBuilderPlainText
 }
 
 func NewTelegramSender(log zerolog.Logger, settings domain.Notification) domain.NotificationSender {

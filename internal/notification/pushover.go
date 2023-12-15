@@ -32,7 +32,7 @@ type pushoverSender struct {
 	log      zerolog.Logger
 	Settings domain.Notification
 	baseUrl  string
-	builder  NotificationBuilder
+	builder  NotificationBuilderPlainText
 }
 
 func NewPushoverSender(log zerolog.Logger, settings domain.Notification) domain.NotificationSender {
