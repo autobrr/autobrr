@@ -39,7 +39,7 @@ func (db *DB) openSQLite() error {
 	}
 
 	// SQLite has a query planner that uses lifecycle stats to fund optimizations.
-	// This restricts the SQLite query planner optimizer to only run if sufficient 
+	// This restricts the SQLite query planner optimizer to only run if sufficient
 	// information has been gathered over the lifecycle of the connection.
 	// The SQLite documentation is inconsistent in this regard,
 	// suggestions of 400 and 1000 are both "recommended", so lets use the lower bound.
@@ -78,6 +78,7 @@ func (db *DB) openSQLite() error {
 		return err
 	}
 
+	db.BackupDatabase(false)
 	return nil
 }
 
@@ -91,6 +92,10 @@ func (db *DB) closingSQLite() error {
 	// help tweak the performance of the database on the next run.
 	if _, err := db.handler.Exec(`PRAGMA optimize;`); err != nil {
 		return errors.Wrap(err, "query planner optimization")
+	}
+
+	if err := db.BackupDatabase(true); err != nil {
+		return errors.Wrap(err, "backup")
 	}
 
 	return nil

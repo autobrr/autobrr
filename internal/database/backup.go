@@ -17,7 +17,7 @@ import (
 	"github.com/autobrr/autobrr/pkg/errors"
 )
 
-func (db *DB) BackupDatabase() error {
+func (db *DB) BackupDatabase(shuttingDown bool) error {
 	if db.handler == nil {
 		return errors.New("backup: invalid database handle")
 	}
@@ -39,23 +39,28 @@ func (db *DB) BackupDatabase() error {
 			return errors.Wrap(err, "backup: Transaction creation failed")
 		}
 
-		defer tx.Commit()
 		if err := databaseConsistent(tx); err != nil {
 			return err
 		}
+		defer tx.Commit()
 
-		if err := backupDatabase(base, tx); err != nil {
+		if err := backupDatabase(base, db.handler); err != nil {
 			return err
 		}
 
-		return cleanupDatabase(base, db)
+		retain := 1
+		if !shuttingDown {
+			retain++
+		}
+
+		return cleanupDatabase(base, db, retain)
 	}
 
 	return errors.New("backup: not implemented for database type: %s", db.Driver)
 }
 
 func databaseConsistent(tx *sql.Tx) error {
-	row := tx.QueryRow("PRAGMA schema.integrity_check;")
+	row := tx.QueryRow("PRAGMA integrity_check;")
 
 	var status string
 	if err := row.Scan(&status); err != nil {
@@ -69,13 +74,13 @@ func databaseConsistent(tx *sql.Tx) error {
 	return nil
 }
 
-func backupDatabase(base string, tx *sql.Tx) error {
+func backupDatabase(base string, db *sql.DB) error {
 	path := filepath.Join(base, fmt.Sprintf("autobrr.db.backup.%d", time.Now().Unix()))
 	if _, err := os.Stat(path); err == nil {
 		return errors.New("backup creation failed, already exists %q", path)
 	}
 
-	row := tx.QueryRow("VACUUM INTO " + path)
+	row := db.QueryRow("VACUUM INTO $1", path)
 	if err := row.Scan(); err != nil && err != sql.ErrNoRows {
 		return errors.Wrap(err, "backup vacuum failed")
 	}
@@ -83,7 +88,7 @@ func backupDatabase(base string, tx *sql.Tx) error {
 	return nil
 }
 
-func cleanupDatabase(base string, db *DB) error {
+func cleanupDatabase(base string, db *DB, retain int) error {
 	files, err := os.ReadDir(base)
 	if err != nil {
 		return errors.Wrap(err, "backup unable to open base for cleaning %q", base)
@@ -106,7 +111,7 @@ func cleanupDatabase(base string, db *DB) error {
 	}
 
 	sort.SliceStable(de, func(i, j int) bool { return de[i] < de[j] })
-	for i := 0; i < len(de)-1; i++ {
+	for i := 0; i < len(de)-retain; i++ {
 		os.Remove(filepath.Join(base, "autobrr.db.backup."+fmt.Sprintf("%d", de[i])))
 	}
 
