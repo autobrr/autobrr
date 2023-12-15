@@ -115,6 +115,12 @@ func cleanupDatabase(base string, db *DB, retain int) error {
 	}
 
 	sort.SliceStable(de, func(i, j int) bool { return de[i] < de[j] })
+	tu := time.Now().Unix()
+	for i := len(de) - 1; i > 0 && de[i] > tu; i-- {
+		os.Remove(filepath.Join(base, "autobrr.db.backup."+fmt.Sprintf("%d", de[i])))
+		de = de[:i]
+	}
+
 	for i := 0; i < len(de)-retain; i++ {
 		os.Remove(filepath.Join(base, "autobrr.db.backup."+fmt.Sprintf("%d", de[i])))
 	}
