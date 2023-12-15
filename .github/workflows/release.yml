@@ -209,7 +209,7 @@ jobs:
           cache: true
 
       - name: Download Go dependencies
-        run: go mod download -x && echo Cache $(go env GOCACHE) && echo ModCache $(go env GOMODCACHE)
+        run: go mod download -x && echo Cache $(go env GOCACHE) && echo ModCache $(go env GOMODCACHE) && ls -R $(go env GOMODCACHE)
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
