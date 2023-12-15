@@ -45,7 +45,7 @@ func (db *DB) BackupDatabase(shuttingDown bool) error {
 		defer tx.Commit()
 
 		if exists, err := backupDatabase(base, db.handler); err != nil {
-			if exists {
+			if !exists {
 				return err
 			}
 
