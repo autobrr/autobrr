@@ -8,6 +8,10 @@ go mod download -x
 FROM --platform=$BUILDPLATFORM golang:1.20-alpine3.18 AS app-builder
 RUN apk add --no-cache git tzdata
 
+COPY --from=app-cache /go /go
+RUN --mount=target=. \
+go mod download -x
+
 ENV SERVICE=autobrr
 
 WORKDIR /src
