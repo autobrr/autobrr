@@ -44,8 +44,12 @@ func (db *DB) BackupDatabase(shuttingDown bool) error {
 		}
 		defer tx.Commit()
 
-		if err := backupDatabase(base, db.handler); err != nil {
-			return err
+		if exists, err := backupDatabase(base, db.handler); err != nil {
+			if exists {
+				return err
+			}
+
+			return nil
 		}
 
 		retain := 1
@@ -74,18 +78,18 @@ func databaseConsistent(tx *sql.Tx) error {
 	return nil
 }
 
-func backupDatabase(base string, db *sql.DB) error {
+func backupDatabase(base string, db *sql.DB) (bool, error) {
 	path := filepath.Join(base, fmt.Sprintf("autobrr.db.backup.%d", time.Now().Unix()))
 	if _, err := os.Stat(path); err == nil {
-		return errors.New("backup creation failed, already exists %q", path)
+		return true, errors.New("backup creation failed, already exists %q", path)
 	}
 
 	row := db.QueryRow("VACUUM INTO $1", path)
 	if err := row.Scan(); err != nil && err != sql.ErrNoRows {
-		return errors.Wrap(err, "backup vacuum failed")
+		return false, errors.Wrap(err, "backup vacuum failed")
 	}
 
-	return nil
+	return false, nil
 }
 
 func cleanupDatabase(base string, db *DB, retain int) error {
