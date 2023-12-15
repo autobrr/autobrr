@@ -17,6 +17,8 @@ import (
 	"github.com/autobrr/autobrr/pkg/errors"
 )
 
+var backupPrefix = "autobrr.db.backup."
+
 func (db *DB) BackupDatabase(shuttingDown bool) error {
 	if db.handler == nil {
 		return errors.New("backup: invalid database handle")
@@ -79,7 +81,7 @@ func databaseConsistent(tx *sql.Tx) error {
 }
 
 func backupDatabase(base string, db *sql.DB) (bool, error) {
-	path := filepath.Join(base, fmt.Sprintf("autobrr.db.backup.%d", time.Now().Unix()))
+	path := filepath.Join(base, fmt.Sprintf("%s%d", backupPrefix, time.Now().Unix()))
 	if _, err := os.Stat(path); err == nil {
 		return true, errors.New("backup creation failed, already exists %q", path)
 	}
@@ -100,11 +102,11 @@ func cleanupDatabase(base string, db *DB, retain int) error {
 
 	de := make([]int64, 0)
 	for _, f := range files {
-		if !strings.HasPrefix(f.Name(), "autobrr.db.backup.") {
+		if !strings.HasPrefix(f.Name(), backupPrefix) {
 			continue
 		}
 
-		strNum := strings.TrimPrefix(f.Name(), "autobrr.db.backup.")
+		strNum := strings.TrimPrefix(f.Name(), backupPrefix)
 		i, err := strconv.ParseInt(strNum, 10, 64)
 		if err != nil {
 			db.log.Err(err).Msgf("backup fatal number parsing on %q", f.Name())
@@ -117,12 +119,12 @@ func cleanupDatabase(base string, db *DB, retain int) error {
 	sort.SliceStable(de, func(i, j int) bool { return de[i] < de[j] })
 	tu := time.Now().Unix()
 	for i := len(de) - 1; i > 0 && de[i] > tu; i-- {
-		os.Remove(filepath.Join(base, "autobrr.db.backup."+fmt.Sprintf("%d", de[i])))
+		os.Remove(filepath.Join(base, fmt.Sprintf("%s%d", backupPrefix, de[i])))
 		de = de[:i]
 	}
 
 	for i := 0; i < len(de)-retain; i++ {
-		os.Remove(filepath.Join(base, "autobrr.db.backup."+fmt.Sprintf("%d", de[i])))
+		os.Remove(filepath.Join(base, fmt.Sprintf("%s%d", backupPrefix, de[i])))
 	}
 
 	return nil
