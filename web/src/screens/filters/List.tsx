@@ -64,20 +64,27 @@ type Actions =
 
 const FilterListReducer = (state: FilterListState, action: Actions): FilterListState => {
   switch (action.type) {
-  case ActionType.INDEXER_FILTER_CHANGE:
+  case ActionType.INDEXER_FILTER_CHANGE: {
     return { ...state, indexerFilter: action.payload };
-  case ActionType.INDEXER_FILTER_RESET:
+  }
+  case ActionType.INDEXER_FILTER_RESET: {
     return { ...state, indexerFilter: [] };
-  case ActionType.SORT_ORDER_CHANGE:
+  }
+  case ActionType.SORT_ORDER_CHANGE: {
     return { ...state, sortOrder: action.payload };
-  case ActionType.SORT_ORDER_RESET:
+  }
+  case ActionType.SORT_ORDER_RESET: {
     return { ...state, sortOrder: "" };
-  case ActionType.STATUS_CHANGE:
+  }
+  case ActionType.STATUS_CHANGE: {
     return { ...state, status: action.payload };
-  case ActionType.STATUS_RESET:
+  }
+  case ActionType.STATUS_RESET: {
     return { ...state, status: "" };
-  default:
+  }
+  default: {
     throw new Error(`Unhandled action type: ${action}`);
+  }
   }
 };
 

@@ -134,7 +134,7 @@ const TypeForm = (props: ClientActionProps) => {
     }
 
     setPrevActionType(action.type);
-  }, [action.type, idx, setFieldValue]);
+  }, [action.type, idx, prevActionType, setFieldValue]);
 
   switch (action.type) {
   // torrent clients
