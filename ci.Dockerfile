@@ -8,10 +8,8 @@ ENV SERVICE=autobrr
 WORKDIR /src
 
 # Cache Go modules
-COPY go.mod go.sum ./
-RUN go mod download
-
-COPY . ./
+RUN --mount=target=. \
+go mod download -x
 
 ARG VERSION=dev
 ARG REVISION=dev
