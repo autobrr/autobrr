@@ -129,7 +129,6 @@ const ListItem = ({ indexer }: ListItemProps) => {
   });
 
   const onToggleMutation = (newState: boolean) => {
-    // backend is rejecting when ending the whole object
     updateMutation.mutate(newState);
   };
 

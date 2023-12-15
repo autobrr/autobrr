@@ -15,7 +15,7 @@ import (
 func TestAppConfig_processLines(t *testing.T) {
 	type fields struct {
 		Config *domain.Config
-		m      sync.Mutex
+		m      *sync.Mutex
 	}
 	type args struct {
 		lines []string
@@ -30,7 +30,7 @@ func TestAppConfig_processLines(t *testing.T) {
 			name: "append missing",
 			fields: fields{
 				Config: &domain.Config{CheckForUpdates: true, LogLevel: "TRACE"},
-				m:      sync.Mutex{},
+				m:      new(sync.Mutex),
 			},
 			args: args{[]string{}},
 			want: []string{"# Check for updates", "#", "checkForUpdates = true", "# Log level", "#", "# Default: \"DEBUG\"", "#", "# Options: \"ERROR\", \"DEBUG\", \"INFO\", \"WARN\", \"TRACE\"", "#", `logLevel = "TRACE"`, "# Log Path", "#", "# Optional", "#", "#logPath = \"\""},
@@ -39,7 +39,7 @@ func TestAppConfig_processLines(t *testing.T) {
 			name: "update existing",
 			fields: fields{
 				Config: &domain.Config{CheckForUpdates: true, LogLevel: "TRACE"},
-				m:      sync.Mutex{},
+				m:      new(sync.Mutex),
 			},
 			args: args{[]string{"# Check for updates", "#", "checkForUpdates = false", "# Log level", "#", "# Default: \"DEBUG\"", "#", "# Options: \"ERROR\", \"DEBUG\", \"INFO\", \"WARN\", \"TRACE\"", "#", `logLevel = "TRACE"`, "# Log Path", "#", "# Optional", "#", "#logPath = \"\""}},
 			want: []string{"# Check for updates", "#", "checkForUpdates = true", "# Log level", "#", "# Default: \"DEBUG\"", "#", "# Options: \"ERROR\", \"DEBUG\", \"INFO\", \"WARN\", \"TRACE\"", "#", `logLevel = "TRACE"`, "# Log Path", "#", "# Optional", "#", "#logPath = \"\""},

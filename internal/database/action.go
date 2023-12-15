@@ -402,7 +402,8 @@ func (r *ActionRepo) Delete(ctx context.Context, req *domain.DeleteActionRequest
 		return errors.Wrap(err, "error building query")
 	}
 
-	if _, err = r.db.handler.ExecContext(ctx, query, args...); err != nil {
+	_, err = r.db.handler.ExecContext(ctx, query, args...)
+	if err != nil {
 		return errors.Wrap(err, "error executing query")
 	}
 
@@ -421,7 +422,8 @@ func (r *ActionRepo) DeleteByFilterID(ctx context.Context, filterID int) error {
 		return errors.Wrap(err, "error building query")
 	}
 
-	if _, err := r.db.handler.ExecContext(ctx, query, args...); err != nil {
+	_, err = r.db.handler.ExecContext(ctx, query, args...)
+	if err != nil {
 		return errors.Wrap(err, "error executing query")
 	}
 
@@ -715,8 +717,15 @@ func (r *ActionRepo) ToggleEnabled(actionID int) error {
 		return errors.Wrap(err, "error building query")
 	}
 
-	if _, err := r.db.handler.Exec(query, args...); err != nil {
+	result, err := r.db.handler.Exec(query, args...)
+	if err != nil {
 		return errors.Wrap(err, "error executing query")
+	}
+
+	if rowsAffected, err := result.RowsAffected(); err != nil {
+		return errors.Wrap(err, "error getting rows affected")
+	} else if rowsAffected == 0 {
+		return domain.ErrRecordNotFound
 	}
 
 	r.log.Debug().Msgf("action.toggleEnabled: %v", actionID)

@@ -141,7 +141,7 @@ function SlideOver<DataType extends FormikValues>({
                               Remove
                             </button>
                           )}
-                          <div>
+                          <div className="flex">
                             {!!values && extraButtons !== undefined && (
                               extraButtons(values)
                             )}
@@ -154,7 +154,7 @@ function SlideOver<DataType extends FormikValues>({
                                     ? "text-green-500 border-green-500 bg-green-50"
                                     : isTestError
                                       ? "text-red-500 border-red-500 bg-red-50"
-                                      : "border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-400 bg-white dark:bg-gray-700 hover:bg-gray-50 focus:border-rose-700 active:bg-rose-700",
+                                      : "border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 focus:border-rose-700 active:bg-rose-700",
                                   isTesting ? "cursor-not-allowed" : "",
                                   "mr-2 inline-flex items-center px-4 py-2 border font-medium rounded-md shadow-sm text-sm transition ease-in-out duration-150 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
                                 )}

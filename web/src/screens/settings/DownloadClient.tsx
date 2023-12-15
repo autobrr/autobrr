@@ -116,7 +116,7 @@ function ListItem({ client }: DLSettingsItemProps) {
           isOpen={updateClientIsOpen}
           toggle={toggleUpdateClient}
         />
-        <div className="col-span-2 sm:col-span-1 pl-1 sm:pl-5 flex items-center">
+        <div className="col-span-2 sm:col-span-1 pl-1 sm:pl-6 flex items-center">
           <Checkbox
             value={client.enabled}
             setValue={onToggleMutation}

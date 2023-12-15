@@ -702,6 +702,8 @@ func (s *service) ToggleEnabled(ctx context.Context, indexerID int, enabled bool
 		return err
 	}
 
+	indexer.Enabled = enabled
+
 	// update indexerInstances
 	if err := s.updateIndexer(*indexer); err != nil {
 		s.log.Error().Err(err).Msgf("failed to add indexer: %s", indexer.Name)
