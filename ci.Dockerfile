@@ -2,8 +2,8 @@ FROM golang:1.20-alpine3.18 AS app-pull
 RUN --mount=target=. \
 go mod download -x
 
-FROM scratch as app-cache
-COPY --link --from app-pull /go/pkg /go/pkg
+FROM scratch AS app-cache
+COPY --link --from=app-pull /go/pkg /go/pkg
 
 # build app
 FROM --platform=$BUILDPLATFORM golang:1.20-alpine3.18 AS app-builder
