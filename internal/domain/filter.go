@@ -15,6 +15,7 @@ import (
 	"github.com/autobrr/autobrr/pkg/wildcard"
 
 	"github.com/dustin/go-humanize"
+	"github.com/go-andiamo/splitter"
 )
 
 /*
@@ -622,54 +623,41 @@ func (f *Filter) RejectionsString(trim bool) string {
 }
 
 func matchRegex(tag string, filterList string) bool {
-	if tag == "" || filterList == "" {
+	if tag == "" {
 		return false
 	}
 
-	// Split the filter list by commas, but ignore commas inside parentheses
-	filters := splitIgnoringParentheses(filterList, ',')
+	sp, err := splitter.NewSplitter(',',
+		splitter.DoubleQuotes,
+		splitter.Parenthesis,
+		splitter.CurlyBrackets,
+		splitter.SquareBrackets,
+	)
+
+	if err != nil {
+		return false
+	}
+
+	filters, err := sp.Split(filterList)
+	if err != nil {
+		return false
+	}
+
 	for _, filter := range filters {
 		if filter == "" {
 			continue
 		}
-		re, err := regexp.Compile(`(?i)` + filter)
+		re, err := regexp.Compile(`(?i)(?:` + filter + `)`)
 		if err != nil {
 			return false
 		}
-		if re.MatchString(tag) {
+		match := re.MatchString(tag)
+		if match {
 			return true
 		}
 	}
 
 	return false
-}
-
-// splitIgnoringParentheses splits a string by a delimiter, but ignores the delimiter if it is inside parentheses
-func splitIgnoringParentheses(s string, delimiter rune) []string {
-	var result []string
-	var current strings.Builder
-	parenthesesCount := 0
-
-	for _, r := range s {
-		if r == '(' {
-			parenthesesCount++
-		} else if r == ')' {
-			parenthesesCount--
-		}
-
-		if r == delimiter && parenthesesCount == 0 {
-			result = append(result, current.String())
-			current.Reset()
-		} else {
-			current.WriteRune(r)
-		}
-	}
-
-	if current.Len() > 0 {
-		result = append(result, current.String())
-	}
-
-	return result
 }
 
 // checkFilterIntStrings "1,2,3-20"
