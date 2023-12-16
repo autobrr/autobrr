@@ -5,7 +5,6 @@ package notification
 
 import (
 	"fmt"
-	"html"
 	"io"
 	"net/http"
 	"net/url"
@@ -16,7 +15,6 @@ import (
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/pkg/errors"
 
-	"github.com/dustin/go-humanize"
 	"github.com/rs/zerolog"
 )
 
@@ -34,6 +32,7 @@ type pushoverSender struct {
 	log      zerolog.Logger
 	Settings domain.Notification
 	baseUrl  string
+	builder  NotificationBuilderPlainText
 }
 
 func NewPushoverSender(log zerolog.Logger, settings domain.Notification) domain.NotificationSender {
@@ -45,12 +44,16 @@ func NewPushoverSender(log zerolog.Logger, settings domain.Notification) domain.
 }
 
 func (s *pushoverSender) Send(event domain.NotificationEvent, payload domain.NotificationPayload) error {
+
+	title := s.builder.BuildTitle(event)
+	message := s.builder.BuildBody(payload)
+
 	m := pushoverMessage{
 		Token:     s.Settings.APIKey,
 		User:      s.Settings.Token,
 		Priority:  s.Settings.Priority,
-		Message:   s.buildMessage(payload),
-		Title:     s.buildTitle(event),
+		Message:   message,
+		Title:     title,
 		Timestamp: time.Now(),
 		Html:      1,
 	}
@@ -138,62 +141,4 @@ func (s *pushoverSender) isEnabledEvent(event domain.NotificationEvent) bool {
 	}
 
 	return false
-}
-
-func (s *pushoverSender) buildMessage(payload domain.NotificationPayload) string {
-	msg := ""
-
-	if payload.Subject != "" && payload.Message != "" {
-		msg += fmt.Sprintf("%v\n<b>%v</b>", payload.Subject, html.EscapeString(payload.Message))
-	}
-	if payload.ReleaseName != "" {
-		msg += fmt.Sprintf("\n<b>New release:</b> %v", html.EscapeString(payload.ReleaseName))
-	}
-	if payload.Size > 0 {
-		msg += fmt.Sprintf("\n<b>Size:</b> %v", humanize.Bytes(payload.Size))
-	}
-	if payload.Status != "" {
-		msg += fmt.Sprintf("\n<b>Status:</b> %v", payload.Status.String())
-	}
-	if payload.Indexer != "" {
-		msg += fmt.Sprintf("\n<b>Indexer:</b> %v", payload.Indexer)
-	}
-	if payload.Filter != "" {
-		msg += fmt.Sprintf("\n<b>Filter:</b> %v", html.EscapeString(payload.Filter))
-	}
-	if payload.Action != "" {
-		action := fmt.Sprintf("\n<b>Action:</b> %v <b>Type:</b> %v", html.EscapeString(payload.Action), payload.ActionType)
-		if payload.ActionClient != "" {
-			action += fmt.Sprintf(" <b>Client:</b> %v", html.EscapeString(payload.ActionClient))
-		}
-		msg += action
-	}
-	if len(payload.Rejections) > 0 {
-		msg += fmt.Sprintf("\nRejections: %v", strings.Join(payload.Rejections, ", "))
-	}
-
-	return msg
-}
-
-func (s *pushoverSender) buildTitle(event domain.NotificationEvent) string {
-	title := ""
-
-	switch event {
-	case domain.NotificationEventAppUpdateAvailable:
-		title = "Autobrr update available"
-	case domain.NotificationEventPushApproved:
-		title = "Push Approved"
-	case domain.NotificationEventPushRejected:
-		title = "Push Rejected"
-	case domain.NotificationEventPushError:
-		title = "Error"
-	case domain.NotificationEventIRCDisconnected:
-		title = "IRC Disconnected"
-	case domain.NotificationEventIRCReconnected:
-		title = "IRC Reconnected"
-	case domain.NotificationEventTest:
-		title = "Test"
-	}
-
-	return title
 }

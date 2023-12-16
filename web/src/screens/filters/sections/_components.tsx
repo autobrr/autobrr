@@ -97,8 +97,6 @@ interface CollapsibleSectionProps {
   childClassName?: string;
 }
 
-// NOTE(stacksmash76): added text-shadow only for the dark theme - light theme is fine contrast-wise when it comes to headings
-// ideally, this would need a redesign
 export const CollapsibleSection = ({
   title,
   subtitle,
@@ -137,7 +135,7 @@ export const CollapsibleSection = ({
               "flex"
             )}
           >
-            <h3 className="text-xl leading-6 font-bold break-all dark:text-shadow dark:shadow-gray-900 text-gray-900 dark:text-gray-200">
+            <h3 className="text-xl leading-6 font-bold break-all dark:shadow-gray-900 text-gray-900 dark:text-gray-200">
               {title}
             </h3>
             <p className="text-sm text-gray-500 dark:text-gray-400 truncate whitespace-normal break-words">
