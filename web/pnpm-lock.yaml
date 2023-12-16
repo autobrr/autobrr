@@ -104,6 +104,17 @@ dependencies:
   zod-formik-adapter:
     specifier: ^1.2.0
     version: 1.2.0(formik@2.4.5)(zod@3.22.4)
+  microsoft/eslint-formatter-sarif@3.0.0:
+    resolution: {integrity: sha512-KIKkT44hEqCzqxODYwFMUvYEK0CrdHx/Ll9xiOWgFbBSRuzbxmVy4d/tzfgoucGz72HJZNOMjuyzFTBKntRK5Q==}
+    engines: {node: '>= 14'}
+    dependencies:
+      eslint: 8.54.0
+      jschardet: 3.0.0
+      lodash: 4.17.21
+      utf8: 3.0.0
+    transitivePeerDependencies:
+      - supports-color
+    dev: true
 
 devDependencies:
   "@types/node":
@@ -163,6 +174,9 @@ devDependencies:
   vite-plugin-svgr:
     specifier: ^4.2.0
     version: 4.2.0(rollup@2.79.1)(typescript@5.2.2)(vite@5.0.4)
+  "@microsoft/eslint-formatter-sarif":
+    specifier: ^3.0.0
+    version: 3.0.0
 
 packages:
   /@aashutoshrathi/word-wrap@1.2.6:
