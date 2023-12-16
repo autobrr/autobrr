@@ -228,7 +228,7 @@ jobs:
           file: ./ci.Dockerfile
           platforms: ${{ matrix.platform }}
           push: ${{ github.event.pull_request.head.repo.full_name == 'autobrr/autobrr' || github.event_name != 'pull_request' }}
-          tags: ${{ steps.meta.outputs.tags }}-${{ matrix.platform }}
+          tags: ${{ steps.meta.outputs.tags }}-build
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
             BUILDTIME=${{ fromJSON(steps.meta.outputs.json).labels['org.opencontainers.image.created'] }}
@@ -260,9 +260,6 @@ jobs:
         with:
           name: digests
           path: /tmp/digests
-
-      - name: View Manifests
-        run: cat /tmp/digests/*
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
