@@ -189,6 +189,9 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
+      - name: Supported Architectures
+        run: docker buildx ls
+
       - name: Build and publish image
         id: docker_build
         uses: docker/build-push-action@v5
