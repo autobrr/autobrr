@@ -1,4 +1,5 @@
 FROM golang:1.20-alpine3.18 AS app-pull
+WORKDIR /src
 RUN --mount=target=. \
 go mod download -x
 
