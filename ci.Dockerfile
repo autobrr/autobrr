@@ -18,8 +18,13 @@ ARG BUILDTIME
 ARG TARGETOS TARGETARCH TARGETVARIANT
 
 RUN --mount=target=. \
-    GOOS=$TARGETOS GOARCH=$TARGETARCH GOAMD64=$TARGETVARIANT go build -ldflags "-s -w -X main.version=${VERSION} -X main.commit=${REVISION} -X main.date=${BUILDTIME}" -o /out/bin/autobrr cmd/autobrr/main.go && \
-    GOOS=$TARGETOS GOARCH=$TARGETARCH GOAMD64=$TARGETVARIANT go build -ldflags "-s -w -X main.version=${VERSION} -X main.commit=${REVISION} -X main.date=${BUILDTIME}" -o /out/bin/autobrrctl cmd/autobrrctl/main.go
+export GOOS=$TARGETOS; \
+export GOARCH=$TARGETARCH; \
+[[ $GOARCH -eq "amd64"]] && export GOAMD64=$TARGETVARIANT; \
+[[ $GOARCH -eq "arm"]] && [[ $TARGETVARIANT -eq "v6" ]] && export GOARM=6; \
+[[ $GOARCH -eq "arm"]] && [[ $TARGETVARIANT -eq "v7" ]] && export GOARM=7; \
+go build -ldflags "-s -w -X main.version=${VERSION} -X main.commit=${REVISION} -X main.date=${BUILDTIME}" -o /out/bin/autobrr cmd/autobrr/main.go && \
+go build -ldflags "-s -w -X main.version=${VERSION} -X main.commit=${REVISION} -X main.date=${BUILDTIME}" -o /out/bin/autobrrctl cmd/autobrrctl/main.go
 
 # build runner
 FROM alpine:latest
