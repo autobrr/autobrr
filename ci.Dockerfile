@@ -28,7 +28,7 @@ go build -ldflags "-s -w -X main.version=${VERSION} -X main.commit=${REVISION} -
 go build -ldflags "-s -w -X main.version=${VERSION} -X main.commit=${REVISION} -X main.date=${BUILDTIME}" -o /out/bin/autobrrctl cmd/autobrrctl/main.go
 
 # build runner
-FROM alpine:latest
+FROM alpine:latest AS runner
 
 LABEL org.opencontainers.image.source = "https://github.com/autobrr/autobrr"
 
