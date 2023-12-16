@@ -15,11 +15,11 @@ COPY . ./
 ARG VERSION=dev
 ARG REVISION=dev
 ARG BUILDTIME
-ARG TARGETOS TARGETARCH
+ARG TARGETOS TARGETARCH TARGETVARIANT
 
 RUN --mount=target=. \
-    GOOS=$TARGETOS GOARCH=$TARGETARCH go build -ldflags "-s -w -X main.version=${VERSION} -X main.commit=${REVISION} -X main.date=${BUILDTIME}" -o /out/bin/autobrr cmd/autobrr/main.go && \
-    GOOS=$TARGETOS GOARCH=$TARGETARCH go build -ldflags "-s -w -X main.version=${VERSION} -X main.commit=${REVISION} -X main.date=${BUILDTIME}" -o /out/bin/autobrrctl cmd/autobrrctl/main.go
+    GOOS=$TARGETOS GOARCH=$TARGETARCH GOAMD64=$TARGETVARIANT go build -ldflags "-s -w -X main.version=${VERSION} -X main.commit=${REVISION} -X main.date=${BUILDTIME}" -o /out/bin/autobrr cmd/autobrr/main.go && \
+    GOOS=$TARGETOS GOARCH=$TARGETARCH GOAMD64=$TARGETVARIANT go build -ldflags "-s -w -X main.version=${VERSION} -X main.commit=${REVISION} -X main.date=${BUILDTIME}" -o /out/bin/autobrrctl cmd/autobrrctl/main.go
 
 # build runner
 FROM alpine:latest
