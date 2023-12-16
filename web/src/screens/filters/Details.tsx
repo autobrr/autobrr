@@ -18,7 +18,7 @@ import { useToggle } from "@hooks/hooks";
 import { classNames } from "@utils";
 import { DOWNLOAD_CLIENTS } from "@domain/constants";
 
-import DEBUG from "@components/debug";
+import { DEBUG } from "@components/debug";
 import Toast from "@components/notifications/Toast";
 import { DeleteModal } from "@components/modals";
 import { SectionLoader } from "@components/SectionLoader";
@@ -164,7 +164,7 @@ const FormErrorNotification = () => {
         />
       ));
     }
-  }, [isSubmitting, isValid, isValidating]);
+  }, [errors, isSubmitting, isValid, isValidating]);
 
   return null;
 };
@@ -222,7 +222,7 @@ const externalFilterSchema = z.object({
   webhook_expect_status: z.number().optional(),
   webhook_retry_status: z.string().optional(),
   webhook_retry_attempts: z.number().optional(),
-  webhook_retry_delay_seconds: z.number().optional(),
+  webhook_retry_delay_seconds: z.number().optional()
 }).superRefine((value, ctx) => {
   if (!value.name) {
     ctx.addIssue({
@@ -289,7 +289,6 @@ export const FilterDetails = () => {
     navigate("/filters");
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
   const id = parseInt(filterId!);
 
   const { isLoading, data: filter } = useQuery({
