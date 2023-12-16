@@ -47,7 +47,7 @@ jobs:
         run: CI= pnpm run build
 
       - name: Upload web production build
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: web-dist
           path: web/dist
@@ -93,7 +93,7 @@ jobs:
           fetch-depth: 0
 
       - name: Download web production build
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: web-dist
           path: web/dist
@@ -115,7 +115,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Upload assets
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: autobrr
           path: |
@@ -137,7 +137,7 @@ jobs:
           fetch-depth: 0
 
       - name: Download web production build
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: web-dist
           path: web/dist
@@ -159,7 +159,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Upload assets
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: autobrr
           path: |
@@ -180,7 +180,7 @@ jobs:
           fetch-depth: 0
 
       - name: Download web production build
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: web-dist
           path: web/dist
