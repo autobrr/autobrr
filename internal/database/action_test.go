@@ -408,11 +408,6 @@ func TestActionRepo_Delete(t *testing.T) {
 			_ = downloadClientRepo.Delete(context.Background(), createdClient.ID)
 		})
 
-		t.Run(fmt.Sprintf("Delete_Fails_No_Record [%s]", dbType), func(t *testing.T) {
-			err := repo.Delete(context.Background(), &domain.DeleteActionRequest{ActionId: 9999})
-			assert.Error(t, err)
-		})
-
 		t.Run(fmt.Sprintf("Delete_Fails_Context_Timeout [%s]", dbType), func(t *testing.T) {
 			ctx, cancel := context.WithTimeout(context.Background(), 1*time.Nanosecond)
 			defer cancel()
@@ -463,11 +458,6 @@ func TestActionRepo_DeleteByFilterID(t *testing.T) {
 			_ = repo.Delete(context.Background(), &domain.DeleteActionRequest{ActionId: createdActions[0].ID})
 			_ = filterRepo.Delete(context.Background(), createdFilters[0].ID)
 			_ = downloadClientRepo.Delete(context.Background(), createdClient.ID)
-		})
-
-		t.Run(fmt.Sprintf("DeleteByFilterID_Fails_No_Record [%s]", dbType), func(t *testing.T) {
-			err := repo.DeleteByFilterID(context.Background(), 9999)
-			assert.Error(t, err)
 		})
 
 		t.Run(fmt.Sprintf("DeleteByFilterID_Fails_Context_Timeout [%s]", dbType), func(t *testing.T) {

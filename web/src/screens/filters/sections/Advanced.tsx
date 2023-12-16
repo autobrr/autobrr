@@ -16,7 +16,7 @@ type ValueConsumer = {
 
 const Releases = ({ values }: ValueConsumer) => (
   <CollapsibleSection
-    defaultOpen
+    defaultOpen={values.use_regex || values.match_releases || values.except_releases}
     title="Release Names"
     subtitle="Match only certain release names and/or ignore other release names."
   >
@@ -92,9 +92,9 @@ const Releases = ({ values }: ValueConsumer) => (
   </CollapsibleSection>
 );
 
-const Groups = () => (
+const Groups = ({ values }: ValueConsumer) => (
   <CollapsibleSection
-    defaultOpen={false}
+    defaultOpen={values.match_release_groups || values.except_release_groups}
     title="Groups"
     subtitle="Match only certain groups and/or ignore other groups."
   >
@@ -125,9 +125,9 @@ const Groups = () => (
   </CollapsibleSection>
 );
 
-const Categories = () => (
+const Categories = ({ values }: ValueConsumer) => (
   <CollapsibleSection
-    defaultOpen
+    defaultOpen={values.match_categories || values.except_categories}
     title="Categories"
     subtitle="Match or exclude categories (if announced)"
   >
@@ -158,9 +158,9 @@ const Categories = () => (
   </CollapsibleSection>
 );
 
-const Tags = () => (
+const Tags = ({ values }: ValueConsumer) => (
   <CollapsibleSection
-    defaultOpen={false}
+    defaultOpen={values.tags || values.except_tags}
     title="Tags"
     subtitle="Match or exclude tags (if announced)"
   >
@@ -221,9 +221,9 @@ const Tags = () => (
   </CollapsibleSection>
 );
 
-const Uploaders = () => (
+const Uploaders = ({ values }: ValueConsumer) => (
   <CollapsibleSection
-    defaultOpen={false}
+    defaultOpen={values.uploaders || values.except_uploaders}
     title="Uploaders"
     subtitle="Match or ignore uploaders (if announced)"
   >
@@ -255,9 +255,9 @@ const Uploaders = () => (
   </CollapsibleSection>
 );
 
-const Language = () => (
+const Language = ({ values }: ValueConsumer) => (
   <CollapsibleSection
-    defaultOpen={false}
+    defaultOpen={(values.match_language && values.match_language.length > 0) || (values.except_language && values.except_language.length > 0)}
     title="Language"
     subtitle="Match or ignore languages (if announced)"
   >
@@ -276,9 +276,9 @@ const Language = () => (
   </CollapsibleSection>
 );
 
-const Origins = () => (
+const Origins = ({ values }: ValueConsumer) => (
   <CollapsibleSection
-    defaultOpen={false}
+    defaultOpen={(values.origins && values.origins.length > 0 || values.except_origins && values.except_origins.length > 0)}
     title="Origins"
     subtitle="Match Internals, Scene, P2P, etc. (if announced)"
   >
@@ -299,7 +299,7 @@ const Origins = () => (
 
 const Freeleech = ({ values }: ValueConsumer) => (
   <CollapsibleSection
-    defaultOpen
+    defaultOpen={values.freeleech || values.freeleech_percent}
     title="Freeleech"
     subtitle="Match based off freeleech (if announced)"
   >
@@ -351,7 +351,7 @@ const Freeleech = ({ values }: ValueConsumer) => (
 
 const FeedSpecific = ({ values }: ValueConsumer) => (
   <CollapsibleSection
-    defaultOpen={false}
+    defaultOpen={values.use_regex_description || values.match_description || values.except_description}
     title="RSS/Torznab/Newznab-specific"
     subtitle={
       <>These options are <span className="font-bold">only</span> for Feeds such as RSS, Torznab and Newznab</>
@@ -402,7 +402,7 @@ const FeedSpecific = ({ values }: ValueConsumer) => (
 
 const RawReleaseTags = ({ values }: ValueConsumer) => (
   <CollapsibleSection
-    defaultOpen={false}
+    defaultOpen={values.use_regex_release_tags || values.match_release_tags || values.except_release_tags}
     title="Raw Release Tags"
     subtitle={
       <>
@@ -445,13 +445,13 @@ const RawReleaseTags = ({ values }: ValueConsumer) => (
 export const Advanced = ({ values }: { values: FormikValues; }) => (
   <div className="flex flex-col w-full gap-y-4 py-2 sm:-mx-1">
     <Releases values={values} />
-    <Groups />
-    <Categories />
+    <Groups values={values} />
+    <Categories values={values} />
     <Freeleech values={values} />
-    <Tags />
-    <Uploaders />
-    <Language />
-    <Origins />
+    <Tags values={values}/>
+    <Uploaders values={values}/>
+    <Language values={values}/>
+    <Origins values={values} />
     <FeedSpecific values={values} />
     <RawReleaseTags values={values} />
   </div>

@@ -3,5 +3,5 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-export * from "./Buttons";
-export * from "./Cells";
+export { Button, PageButton } from "./Buttons";
+export { AgeCell, IndexerCell, TitleCell, ReleaseStatusCell, LinksCell } from "./Cells";
