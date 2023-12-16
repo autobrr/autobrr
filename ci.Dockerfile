@@ -17,7 +17,7 @@ ARG REVISION=dev
 ARG BUILDTIME
 ARG TARGETOS TARGETARCH TARGETVARIANT
 
-RUN --mount=target=. \
+RUN --network=none --mount=target=. \
 export GOOS=$TARGETOS; \
 export GOARCH=$TARGETARCH; \
 [[ "$GOARCH" == "amd64" ]] && export GOAMD64=$TARGETVARIANT; \
