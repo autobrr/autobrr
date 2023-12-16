@@ -1,10 +1,14 @@
+FROM golang:1.20-alpine3.18 AS app-pull
+RUN --mount=target=. \
+go mod download -x
+
+FROM scratch as app-cache
+COPY --link --from app-pull /go/pkg /go/pkg
+
 # build app
 FROM --platform=$BUILDPLATFORM golang:1.20-alpine3.18 AS app-builder
 WORKDIR /src
 RUN apk add --no-cache git tzdata
-ARG GOMODPATH
-RUN --mount=target=. --mount=source=/home/runner/go/pkg/mod,target=/go/pkg/mod \
-ls -R /go/pkg && go mod download -x
 
 ENV SERVICE=autobrr
 
@@ -13,7 +17,7 @@ ARG REVISION=dev
 ARG BUILDTIME
 ARG TARGETOS TARGETARCH
 
-RUN --mount=target=. \
+RUN --mount=target=. --mount=from=app-cache,target=/go/pkg/mod,source=/go/pkg/mod \
     GOOS=$TARGETOS GOARCH=$TARGETARCH go build -ldflags "-s -w -X main.version=${VERSION} -X main.commit=${REVISION} -X main.date=${BUILDTIME}" -o /out/bin/autobrr cmd/autobrr/main.go && \
     GOOS=$TARGETOS GOARCH=$TARGETARCH go build -ldflags "-s -w -X main.version=${VERSION} -X main.commit=${REVISION} -X main.date=${BUILDTIME}" -o /out/bin/autobrrctl cmd/autobrrctl/main.go
 
