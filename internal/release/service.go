@@ -163,19 +163,16 @@ func (s *service) processFilters(ctx context.Context, filters []*domain.Filter, 
 		l.Info().Msgf("Matched '%s' (%s) for %s", release.TorrentName, release.FilterName, release.Indexer)
 
 		// found matching filter, lets find the filter actions and attach
-		actions, err := s.actionSvc.FindByFilterID(ctx, f.ID)
+		active := true
+		actions, err := s.actionSvc.FindByFilterID(ctx, f.ID, &active)
 		if err != nil {
 			s.log.Error().Err(err).Msgf("release.Process: error finding actions for filter: %s", f.Name)
 			return err
 		}
 
-		// if no actions, or all actions are disabled, continue to next filter
-		if len(actions) == 0 || !s.hasEnabledAction(actions) {
-			msg := "no actions found"
-			if len(actions) > 0 {
-				msg = "all actions are disabled"
-			}
-			s.log.Warn().Msgf("release.Process: %s for filter '%s', trying next one..", msg, f.Name)
+		// if no actions, continue to next filter
+		if len(actions) == 0 {
+			s.log.Warn().Msgf("release.Process: no active actions found for filter '%s', trying next one..", f.Name)
 			continue
 		}
 
@@ -264,15 +261,6 @@ func (s *service) ProcessMultiple(releases []*domain.Release) {
 		}
 		s.Process(rls)
 	}
-}
-
-func (s *service) hasEnabledAction(actions []*domain.Action) bool {
-	for _, act := range actions {
-		if act.Enabled {
-			return true
-		}
-	}
-	return false
 }
 
 func (s *service) runAction(ctx context.Context, action *domain.Action, release *domain.Release) (*domain.ReleaseActionStatus, error) {
