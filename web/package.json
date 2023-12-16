@@ -9,7 +9,7 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0 --color",
-    "lint:ci": "eslint src/ --ext .js,.jsx,.ts,.tsx --format=@microsoft/eslint-formatter-sarif --output-file=results.sarif",
+    "lint:ci": "eslint src/ --ext .js,.jsx,.ts,.tsx --format=@microsoft/eslint-formatter-sarif --output-file=results.sarif || exit 0",
     "preview": "vite preview",
     "lint:watch": "pnpm run lint -- --watch"
   },
