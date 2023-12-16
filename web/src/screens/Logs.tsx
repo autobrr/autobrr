@@ -49,7 +49,7 @@ export const Logs = () => {
 
   const [logs, setLogs] = useState<LogEvent[]>([]);
   const [searchFilter, setSearchFilter] = useState("");
-  const [_regexPattern, setRegexPattern] = useState<RegExp | null>(null);
+  const [, setRegexPattern] = useState<RegExp | null>(null);
   const [filteredLogs, setFilteredLogs] = useState<LogEvent[]>([]);
   const [isInvalidRegex, setIsInvalidRegex] = useState(false);
 
@@ -61,7 +61,7 @@ export const Logs = () => {
     };
     if (settings.scrollOnNewLog)
       scrollToBottom();
-  }, [filteredLogs]);
+  }, [filteredLogs, settings.scrollOnNewLog]);
 
   // Add a useEffect to clear logs div when settings.scrollOnNewLog changes to prevent duplicate entries.
   useEffect(() => {
