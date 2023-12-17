@@ -49,6 +49,9 @@ jobs:
         run: SARIF_ESLINT_EMBED=true pnpm run lint:ci
         working-directory: web
 
+      - name: Replace React trash
+        run: sed -i 's$Please see details in message$https://reactjs.org.com/is-broken-sarif-trash/$g' results.sarif
+
       - name: Anyone home?
         # eslint exits 1 if it finds anything to report
         run: cat results.sarif
