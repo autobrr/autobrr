@@ -81,7 +81,12 @@ func (h authHandler) login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// create new session
-	session, _ := h.cookieStore.Get(r, "user_session")
+	session, err := h.cookieStore.Get(r, "user_session")
+	if err != nil {
+		h.log.Error().Err(err).Msgf("Auth: Failed to parse cookies with attempt username: [%s] ip: %s", data.Username, ReadUserIP(r))
+		h.encoder.StatusError(w, http.StatusUnauthorized, errors.New("could not parse cookies"))
+		return
+	}
 
 	// Set user as authenticated
 	session.Values["authenticated"] = true
@@ -94,7 +99,12 @@ func (h authHandler) login(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h authHandler) logout(w http.ResponseWriter, r *http.Request) {
-	session, _ := h.cookieStore.Get(r, "user_session")
+	session, err := h.cookieStore.Get(r, "user_session")
+	if err != nil {
+		h.log.Error().Err(err).Msgf("Logout: Failed to parse cookies with ip: %s", ReadUserIP(r))
+		h.encoder.StatusError(w, http.StatusUnauthorized, errors.New("could not parse cookies"))
+		return
+	}
 
 	// cookieStore.Get will create a new session if it does not exist
 	// so if it created a new then lets just return without saving it
@@ -117,7 +127,12 @@ func (h authHandler) logout(w http.ResponseWriter, r *http.Request) {
 func (h authHandler) onboard(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
-	session, _ := h.cookieStore.Get(r, "user_session")
+	session, err := h.cookieStore.Get(r, "user_session")
+	if err != nil {
+		h.log.Error().Err(err).Msgf("Onboard: Failed to parse cookies with ip: %s", ReadUserIP(r))
+		h.encoder.StatusError(w, http.StatusUnauthorized, errors.New("could not parse cookies"))
+		return
+	}
 
 	// Don't proceed if user is authenticated
 	if authenticated, ok := session.Values["authenticated"].(bool); ok {
@@ -162,8 +177,12 @@ func (h authHandler) canOnboard(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h authHandler) validate(w http.ResponseWriter, r *http.Request) {
-	session, _ := h.cookieStore.Get(r, "user_session")
-
+	session, err := h.cookieStore.Get(r, "user_session")
+	if err != nil {
+		h.log.Error().Err(err).Msgf("Validate: Failed to parse cookies with ip: %s", ReadUserIP(r))
+		h.encoder.StatusError(w, http.StatusUnauthorized, errors.New("could not parse cookies"))
+		return
+	}
 	// Check if user is authenticated
 	if auth, ok := session.Values["authenticated"].(bool); !ok || !auth {
 		session.Values["authenticated"] = false
