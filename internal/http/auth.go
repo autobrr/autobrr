@@ -81,7 +81,7 @@ func (h authHandler) login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// create new session
-	session, err := h.cookieStore.Get(r, "user_session")
+	session, err := h.cookieStore.New(r, "user_session")
 	if err != nil {
 		h.log.Error().Err(err).Msgf("Auth: Failed to parse cookies with attempt username: [%s] ip: %s", data.Username, ReadUserIP(r))
 		h.encoder.StatusError(w, http.StatusUnauthorized, errors.New("could not parse cookies"))
@@ -90,6 +90,7 @@ func (h authHandler) login(w http.ResponseWriter, r *http.Request) {
 
 	// Set user as authenticated
 	session.Values["authenticated"] = true
+	h.cookieStore.Save(r, w, session)
 	if err := session.Save(r, w); err != nil {
 		h.encoder.StatusError(w, http.StatusInternalServerError, errors.Wrap(err, "could not save session"))
 		return
@@ -99,47 +100,17 @@ func (h authHandler) login(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h authHandler) logout(w http.ResponseWriter, r *http.Request) {
-	session, err := h.cookieStore.Get(r, "user_session")
-	if err != nil {
-		h.log.Error().Err(err).Msgf("Logout: Failed to parse cookies with ip: %s", ReadUserIP(r))
-		h.encoder.StatusError(w, http.StatusUnauthorized, errors.New("could not parse cookies"))
+	if session := h.getLoginOrInvalidate(w, r); session == nil {
 		return
 	}
 
-	// cookieStore.Get will create a new session if it does not exist
-	// so if it created a new then lets just return without saving it
-	if session.IsNew {
-		h.encoder.StatusResponse(w, http.StatusNoContent, nil)
-		return
-	}
-
-	// Revoke users authentication
-	session.Values["authenticated"] = false
-	session.Options.MaxAge = -1
-	if err := session.Save(r, w); err != nil {
-		h.encoder.StatusError(w, http.StatusInternalServerError, errors.Wrap(err, "could not save session"))
-		return
-	}
-
+	h.logoutUser(w, r)
 	h.encoder.StatusResponse(w, http.StatusNoContent, nil)
 }
 
 func (h authHandler) onboard(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-
-	session, err := h.cookieStore.Get(r, "user_session")
-	if err != nil {
-		h.log.Error().Err(err).Msgf("Onboard: Failed to parse cookies with ip: %s", ReadUserIP(r))
-		h.encoder.StatusError(w, http.StatusUnauthorized, errors.New("could not parse cookies"))
+	if !h.onboardEligible(w, r) {
 		return
-	}
-
-	// Don't proceed if user is authenticated
-	if authenticated, ok := session.Values["authenticated"].(bool); ok {
-		if ok && authenticated {
-			h.encoder.StatusError(w, http.StatusForbidden, errors.New("active session found"))
-			return
-		}
 	}
 
 	var req domain.CreateUserRequest
@@ -148,6 +119,7 @@ func (h authHandler) onboard(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	ctx := r.Context()
 	if err := h.service.CreateUser(ctx, req); err != nil {
 		h.encoder.StatusError(w, http.StatusForbidden, err)
 		return
@@ -158,16 +130,7 @@ func (h authHandler) onboard(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h authHandler) canOnboard(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-
-	userCount, err := h.service.GetUserCount(ctx)
-	if err != nil {
-		h.encoder.StatusError(w, http.StatusInternalServerError, errors.New("could not get user count"))
-		return
-	}
-
-	if userCount > 0 {
-		h.encoder.StatusError(w, http.StatusForbidden, errors.New("onboarding unavailable"))
+	if !h.onboardEligible(w, r) {
 		return
 	}
 
@@ -176,19 +139,25 @@ func (h authHandler) canOnboard(w http.ResponseWriter, r *http.Request) {
 	h.encoder.NoContent(w)
 }
 
-func (h authHandler) validate(w http.ResponseWriter, r *http.Request) {
-	session, err := h.cookieStore.Get(r, "user_session")
+func (h authHandler) onboardEligible(w http.ResponseWriter, r *http.Request) bool {
+	ctx := r.Context()
+
+	userCount, err := h.service.GetUserCount(ctx)
 	if err != nil {
-		h.log.Error().Err(err).Msgf("Validate: Failed to parse cookies with ip: %s", ReadUserIP(r))
-		h.encoder.StatusError(w, http.StatusUnauthorized, errors.New("could not parse cookies"))
-		return
+		h.encoder.StatusError(w, http.StatusInternalServerError, errors.New("could not get user count"))
+		return false
 	}
-	// Check if user is authenticated
-	if auth, ok := session.Values["authenticated"].(bool); !ok || !auth {
-		session.Values["authenticated"] = false
-		session.Options.MaxAge = -1
-		session.Save(r, w)
-		h.encoder.StatusError(w, http.StatusUnauthorized, errors.New("forbidden: invalid session"))
+
+	if userCount > 0 {
+		h.encoder.StatusError(w, http.StatusForbidden, errors.New("onboarding unavailable"))
+		return false
+	}
+
+	return true
+}
+
+func (h authHandler) validate(w http.ResponseWriter, r *http.Request) {
+	if session := h.getLoginOrInvalidate(w, r); session == nil {
 		return
 	}
 
@@ -205,4 +174,31 @@ func ReadUserIP(r *http.Request) string {
 		IPAddress = r.RemoteAddr
 	}
 	return IPAddress
+}
+
+func (h authHandler) getLoginOrInvalidate(w http.ResponseWriter, r *http.Request) *sessions.Session {
+	session, err := h.cookieStore.Get(r, "user_session")
+	if err == nil {
+		if auth, ok := session.Values["authenticated"].(bool); ok && auth {
+			return session
+		} else {
+			h.log.Error().Err(err).Msgf("Invalid session from ip: %s", ReadUserIP(r))
+		}
+	} else {
+		h.log.Error().Err(err).Msgf("Failed to parse cookies from ip: %s", ReadUserIP(r))
+	}
+
+	h.logoutUser(w, r)
+	h.encoder.StatusError(w, http.StatusUnauthorized, errors.New("forbidden: invalid session"))
+	return nil
+}
+
+func (h authHandler) logoutUser(w http.ResponseWriter, r *http.Request) {
+	session, err := h.cookieStore.New(r, "user_session")
+	if session != nil {
+		h.cookieStore.Save(r, w, session)
+		session.Save(r, w)
+	} else if err != nil {
+		h.log.Error().Err(err).Msgf("Failed to reset cookie store from ip: %s", ReadUserIP(r))
+	}
 }
