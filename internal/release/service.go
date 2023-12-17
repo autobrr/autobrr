@@ -162,6 +162,27 @@ func (s *service) processFilters(ctx context.Context, filters []*domain.Filter, 
 
 		l.Info().Msgf("Matched '%s' (%s) for %s", release.TorrentName, release.FilterName, release.Indexer)
 
+		// found matching filter, lets find the filter actions and attach
+		active := true
+		actions, err := s.actionSvc.FindByFilterID(ctx, f.ID, &active)
+		if err != nil {
+			s.log.Error().Err(err).Msgf("release.Process: error finding actions for filter: %s", f.Name)
+			return err
+		}
+
+		// if no actions, continue to next filter
+		if len(actions) == 0 {
+			s.log.Warn().Msgf("release.Process: no active actions found for filter '%s', trying next one..", f.Name)
+			continue
+		}
+
+		// sleep for the delay period specified in the filter before running actions
+		delay := release.Filter.Delay
+		if delay > 0 {
+			l.Debug().Msgf("release.Process: delaying processing of '%s' (%s) for %s by %d seconds as specified in the filter", release.TorrentName, release.FilterName, release.Indexer, delay)
+			time.Sleep(time.Duration(delay) * time.Second)
+		}
+
 		// save release here to only save those with rejections from actions instead of all releases
 		if release.ID == 0 {
 			release.FilterStatus = domain.ReleaseStatusFilterApproved
@@ -170,26 +191,6 @@ func (s *service) processFilters(ctx context.Context, filters []*domain.Filter, 
 				l.Error().Err(err).Msgf("release.Process: error writing release to database: %+v", release)
 				return err
 			}
-		}
-
-		// found matching filter, lets find the filter actions and attach
-		actions, err := s.actionSvc.FindByFilterID(ctx, f.ID)
-		if err != nil {
-			s.log.Error().Err(err).Msgf("release.Process: error finding actions for filter: %s", f.Name)
-			return err
-		}
-
-		// if no actions, continue to next filter
-		if len(actions) == 0 {
-			s.log.Warn().Msgf("release.Process: no actions found for filter '%s', trying next one..", f.Name)
-			return nil
-		}
-
-		// sleep for the delay period specified in the filter before running actions
-		delay := release.Filter.Delay
-		if delay > 0 {
-			l.Debug().Msgf("release.Process: delaying processing of '%s' (%s) for %s by %d seconds as specified in the filter", release.TorrentName, release.FilterName, release.Indexer, delay)
-			time.Sleep(time.Duration(delay) * time.Second)
 		}
 
 		var rejections []string
