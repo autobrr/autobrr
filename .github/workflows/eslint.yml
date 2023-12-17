@@ -50,7 +50,7 @@ jobs:
         working-directory: web
 
       - name: Replace React trash
-        run: sed -i 's$Please see details in message$https://reactjs.org.com/is-broken-sarif-trash/$g' results.sarif
+        run: sed -i 's$Please see details in message$https://reactjs.org/is-broken-sarif-trash/$g' results.sarif
 
       - name: Anyone home?
         # eslint exits 1 if it finds anything to report
