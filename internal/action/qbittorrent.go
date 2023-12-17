@@ -167,14 +167,14 @@ func (s *service) qbittorrentCheckRulesCanDownload(ctx context.Context, action *
 				return []string{rejection}, nil
 			}
 
-			if rules.IgnoreSlowTorrentsCondition == domain.IgnoreSlowTorrentsModeMaxReached {
+			if rules.IgnoreSlowTorrents && rules.IgnoreSlowTorrentsCondition == domain.IgnoreSlowTorrentsModeMaxReached {
 				// get transfer info
 				info, err := qbt.GetTransferInfoCtx(ctx)
 				if err != nil {
 					return nil, errors.Wrap(err, "could not get transfer info")
 				}
 
-				rejections := s.qbittorrentCheckIgnoreSlow(rules.IgnoreSlowTorrents, rules.DownloadSpeedThreshold, rules.UploadSpeedThreshold, info)
+				rejections := s.qbittorrentCheckIgnoreSlow(rules.DownloadSpeedThreshold, rules.UploadSpeedThreshold, info)
 				if len(rejections) > 0 {
 					return rejections, nil
 				}
@@ -189,14 +189,14 @@ func (s *service) qbittorrentCheckRulesCanDownload(ctx context.Context, action *
 	}
 
 	// if max active downloads is unlimited or not reached, lets check if ignore slow always should be checked
-	if rules.IgnoreSlowTorrentsCondition == domain.IgnoreSlowTorrentsModeAlways {
+	if rules.IgnoreSlowTorrents && rules.IgnoreSlowTorrentsCondition == domain.IgnoreSlowTorrentsModeAlways {
 		// get transfer info
 		info, err := qbt.GetTransferInfoCtx(ctx)
 		if err != nil {
 			return nil, errors.Wrap(err, "could not get transfer info")
 		}
 
-		rejections := s.qbittorrentCheckIgnoreSlow(rules.IgnoreSlowTorrents, rules.DownloadSpeedThreshold, rules.UploadSpeedThreshold, info)
+		rejections := s.qbittorrentCheckIgnoreSlow(rules.DownloadSpeedThreshold, rules.UploadSpeedThreshold, info)
 		if len(rejections) > 0 {
 			return rejections, nil
 		}
@@ -207,34 +207,32 @@ func (s *service) qbittorrentCheckRulesCanDownload(ctx context.Context, action *
 	return nil, nil
 }
 
-func (s *service) qbittorrentCheckIgnoreSlow(ignoreSlowTorrents bool, downloadSpeedThreshold int64, uploadSpeedThreshold int64, info *qbittorrent.TransferInfo) []string {
+func (s *service) qbittorrentCheckIgnoreSlow(downloadSpeedThreshold int64, uploadSpeedThreshold int64, info *qbittorrent.TransferInfo) []string {
 	s.log.Debug().Msgf("checking client ignore slow torrent rules: %+v", info)
 
 	rejections := make([]string, 0)
 
-	if ignoreSlowTorrents {
-		if downloadSpeedThreshold > 0 {
-			// if current transfer speed is more than threshold return out and skip
-			// DlInfoSpeed is in bytes so lets convert to KB to match DownloadSpeedThreshold
-			if info.DlInfoSpeed/1024 >= downloadSpeedThreshold {
-				rejection := fmt.Sprintf("total download speed (%d) above threshold: (%d), skipping", info.DlInfoSpeed/1024, downloadSpeedThreshold)
+	if downloadSpeedThreshold > 0 {
+		// if current transfer speed is more than threshold return out and skip
+		// DlInfoSpeed is in bytes so lets convert to KB to match DownloadSpeedThreshold
+		if info.DlInfoSpeed/1024 >= downloadSpeedThreshold {
+			rejection := fmt.Sprintf("total download speed (%d) above threshold: (%d), skipping", info.DlInfoSpeed/1024, downloadSpeedThreshold)
 
-				s.log.Debug().Msg(rejection)
+			s.log.Debug().Msg(rejection)
 
-				rejections = append(rejections, rejection)
-			}
+			rejections = append(rejections, rejection)
 		}
+	}
 
-		if uploadSpeedThreshold > 0 {
-			// if current transfer speed is more than threshold return out and skip
-			// UpInfoSpeed is in bytes so lets convert to KB to match UploadSpeedThreshold
-			if info.UpInfoSpeed/1024 >= uploadSpeedThreshold {
-				rejection := fmt.Sprintf("total upload speed (%d) above threshold: (%d), skipping", info.UpInfoSpeed/1024, uploadSpeedThreshold)
+	if uploadSpeedThreshold > 0 {
+		// if current transfer speed is more than threshold return out and skip
+		// UpInfoSpeed is in bytes so lets convert to KB to match UploadSpeedThreshold
+		if info.UpInfoSpeed/1024 >= uploadSpeedThreshold {
+			rejection := fmt.Sprintf("total upload speed (%d) above threshold: (%d), skipping", info.UpInfoSpeed/1024, uploadSpeedThreshold)
 
-				s.log.Debug().Msg(rejection)
+			s.log.Debug().Msg(rejection)
 
-				rejections = append(rejections, rejection)
-			}
+			rejections = append(rejections, rejection)
 		}
 	}
 
