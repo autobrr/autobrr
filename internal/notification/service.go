@@ -132,6 +132,8 @@ func (s *service) registerSenders() {
 				s.senders = append(s.senders, NewPushoverSender(s.log, n))
 			case domain.NotificationTypeGotify:
 				s.senders = append(s.senders, NewGotifySender(s.log, n))
+			case domain.NotificationTypeLunaSea:
+				s.senders = append(s.senders, NewLunaSeaSender(s.log, n))
 			}
 		}
 	}
@@ -247,6 +249,8 @@ func (s *service) Test(ctx context.Context, notification domain.Notification) er
 		agent = NewPushoverSender(s.log, notification)
 	case domain.NotificationTypeGotify:
 		agent = NewGotifySender(s.log, notification)
+	case domain.NotificationTypeLunaSea:
+		agent = NewLunaSeaSender(s.log, notification)
 	default:
 		s.log.Error().Msgf("unsupported notification type: %v", notification.Type)
 		return errors.New("unsupported notification type")

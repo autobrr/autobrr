@@ -111,7 +111,15 @@ export default ({ mode }: ConfigEnv) => {
             }
             return "assets/[name]-[hash][extname]";
           }
-        }
+        },
+        // This ignores the sourcemap warnings after vite 5.x.x introduced by rollup - an upstream dep of vite
+        // ref https://github.com/vitejs/vite/issues/15012#issuecomment-1815854072
+        onLog(level, log, handler) {
+          if (log.cause && (log.cause as { message?: string }).message === `Can't resolve original location of error.`) {
+            return;
+          }
+          handler(level, log);
+        },
       }
     }
   });

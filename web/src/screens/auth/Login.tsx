@@ -44,7 +44,7 @@ export const Login = () => {
     APIClient.auth.canOnboard()
       .then(() => navigate("/onboard"))
       .catch(() => { /*don't log to console PAHLLEEEASSSE*/ });
-  }, []);
+  }, [navigate]);
 
   const loginMutation = useMutation({
     mutationFn: (data: LoginFormFields) => APIClient.auth.login(data.username, data.password),
