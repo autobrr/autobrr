@@ -29,8 +29,3 @@ type ChangePasswordRequest struct {
 	OldPassword string `json:"oldPassword"`
 	NewPassword string `json:"newPassword"`
 }
-
-type ChangeUsernameRequest struct {
-	Username    string `json:"username"`
-	NewUsername string `json:"newUsername"`
-}

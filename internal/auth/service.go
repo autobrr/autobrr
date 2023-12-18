@@ -20,7 +20,6 @@ type Service interface {
 	Login(ctx context.Context, username, password string) (*domain.User, error)
 	CreateUser(ctx context.Context, req domain.CreateUserRequest) error
 	ChangePasswordByUsername(ctx context.Context, req domain.ChangePasswordRequest) error
-	ChangeUsername(ctx context.Context, req domain.ChangeUsernameRequest) error
 }
 
 type service struct {
@@ -141,32 +140,6 @@ func (s *service) ChangePasswordByUsername(ctx context.Context, req domain.Chang
 	if err := s.userSvc.ChangePasswordByUsername(ctx, req); err != nil {
 		s.log.Error().Err(err).Msgf("could not change password for user: %s", req.Username)
 		return errors.New("failed to change password")
-	}
-
-	return nil
-}
-
-func (s *service) ChangeUsername(ctx context.Context, req domain.ChangeUsernameRequest) error {
-	if req.Username == "" {
-		return errors.New("validation error: empty current username supplied")
-	} else if req.NewUsername == "" {
-		return errors.New("validation error: empty new username supplied")
-	}
-
-	// find user
-	u, err := s.userSvc.FindByUsername(ctx, req.Username)
-	if err != nil {
-		s.log.Trace().Err(err).Msgf("user not found: %v", req.Username)
-		return errors.Wrapf(err, "user not found: %s", req.Username)
-	}
-
-	if u == nil {
-		return errors.Errorf("user not found: %s", req.Username)
-	}
-
-	if err := s.userSvc.ChangeUsername(ctx, req); err != nil {
-		s.log.Error().Err(err).Msgf("could not change username for user: %s", req.Username)
-		return errors.New("failed to change username")
 	}
 
 	return nil
