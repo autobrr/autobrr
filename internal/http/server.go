@@ -79,7 +79,7 @@ func (s Server) Open() error {
 	var err error
 	for _, proto := range []string{"tcp", "tcp4", "tcp6"} {
 		if err = s.tryToServe(addr, proto); err == nil {
-			return err
+			break
 		}
 
 		s.log.Err(err).Msgf("Failed to start %s server. Attempted to listen on %s", proto, addr)
