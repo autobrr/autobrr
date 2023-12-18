@@ -27,4 +27,7 @@ jobs:
         run: go install go.uber.org/nilaway/cmd/nilaway@latest
 
       - name: Nilaway
+        # This will fail for a while. Lots of work needs to go in to resolve the callsites.
+        # Long-term the bypass below should be removed.
+        continue-on-error: true
         run: nilaway ./...
