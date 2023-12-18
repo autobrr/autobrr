@@ -66,13 +66,16 @@ function Credentials() {
   });
 
   const containerClass = "px-2 pb-6 bg-white dark:bg-gray-800";
-  const buttonClass = "mt-6 w-auto flex items-center py-2 px-4 transition rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500";
+  const buttonClass = "mt-4 w-auto flex items-center py-2 px-4 transition rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500";
   const iconClass = "w-4 h-4 mr-1";
+  const separatorClass = "mb-6";
+  const horizontalLineClass = "col-span-2 mb-6 border-t border-gray-300 dark:border-gray-750";
 
   return (
     <Section
       title="Change credentials"
       description="The username and password can be changed either separately or simultaneously. Note that you will be logged out after changing credentials."
+      noLeftPadding
     >
       <div className={containerClass}>
         <Formik
@@ -90,26 +93,41 @@ function Credentials() {
         >
           {({ values }) => (
             <Form>
-              <div className="grid grid-cols-1 gap-5">
-                <TextField name="username" label="Current Username" columns={6} autoComplete="username" disabled />
-                <PasswordField name="oldPassword" placeholder="Required" label="Current Password" columns={6} autoComplete="current-password" required tooltip={
-                  <div>
-                    <p>Required if updating credentials</p>
+              <div className="grid grid-cols-2 gap-x-10">
+                <div className={separatorClass}>
+                  <TextField name="username" label="Current Username" autoComplete="username" disabled />
+                </div>
+                <div className={separatorClass}>
+                  <TextField name="newUsername" label="New Username" tooltip={
+                    <div>
+                      <p>Optional</p>
+                    </div>
+                  } />
+                </div>
+
+                <hr className={horizontalLineClass} />
+
+                <div className={separatorClass}>
+                  <PasswordField name="oldPassword" placeholder="Required" label="Current Password" autoComplete="current-password" required tooltip={
+                    <div>
+                      <p>Required if updating credentials</p>
+                    </div>
+                  } />
+                </div>
+                <div>
+                  <div className={separatorClass}>
+                    <PasswordField name="newPassword" label="New Password" autoComplete="new-password" tooltip={
+                      <div>
+                        <p>Optional</p>
+                      </div>
+                    } />
                   </div>
-                } />
-                <TextField name="newUsername" label="New Username" columns={6} tooltip={
-                  <div>
-                    <p>Optional</p>
-                  </div>
-                } />
-                <PasswordField name="newPassword" label="New Password" columns={6} autoComplete="new-password" tooltip={
-                  <div>
-                    <p>Optional</p>
-                  </div>
-                } />
-                {values.newPassword && (
-                  <PasswordField name="confirmPassword" label="Confirm New Password" columns={6} autoComplete="new-password" />
-                )}
+                  {values.newPassword && (
+                    <div className={separatorClass}>
+                      <PasswordField name="confirmPassword" label="Confirm New Password" autoComplete="new-password" />
+                    </div>
+                  )}
+                </div>
               </div>
               <div className="flex justify-end">
                 <button
@@ -117,7 +135,7 @@ function Credentials() {
                   className={buttonClass}
                 >
                   <UserIcon className={iconClass} />
-                  Update Credentials
+                  Save
                 </button>
               </div>
             </Form>
