@@ -5,6 +5,7 @@ package auth
 
 import (
 	"context"
+
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/internal/logger"
 	"github.com/autobrr/autobrr/internal/user"
@@ -18,7 +19,7 @@ type Service interface {
 	GetUserCount(ctx context.Context) (int, error)
 	Login(ctx context.Context, username, password string) (*domain.User, error)
 	CreateUser(ctx context.Context, req domain.CreateUserRequest) error
-	UpdateUserByUsername(ctx context.Context, req domain.UpdateUserRequest) error
+	ChangeUserCredentials(ctx context.Context, req domain.ChangeUserCredentialsRequest) error
 }
 
 type service struct {
@@ -98,7 +99,7 @@ func (s *service) CreateUser(ctx context.Context, req domain.CreateUserRequest) 
 	return nil
 }
 
-func (s *service) UpdateUserByUsername(ctx context.Context, req domain.UpdateUserRequest) error {
+func (s *service) ChangeUserCredentials(ctx context.Context, req domain.ChangeUserCredentialsRequest) error {
 	if req.Username == "" {
 		return errors.New("validation error: empty username supplied")
 	} else if req.OldPassword == "" {
@@ -142,7 +143,7 @@ func (s *service) UpdateUserByUsername(ctx context.Context, req domain.UpdateUse
 
 	req.NewPassword = hashed
 
-	if err := s.userSvc.UpdateUserByUsername(ctx, req); err != nil {
+	if err := s.userSvc.ChangeUserCredentials(ctx, req); err != nil {
 		s.log.Error().Err(err).Msgf("could not change password for user: %s", req.Username)
 		return errors.New("failed to change password")
 	}

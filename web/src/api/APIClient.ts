@@ -159,7 +159,7 @@ export const APIClient = {
       body: { username, password }
     }),
     canOnboard: () => appClient.Get("api/auth/onboard"),
-    updateUser: (username: string, newUsername: string, oldPassword: string, newPassword: string) => appClient.Post("api/auth/update-user",
+    changeUserCredentials: (username: string, newUsername: string, oldPassword: string, newPassword: string) => appClient.Post("api/auth/update-user",
       { body: { username, newUsername, oldPassword, newPassword } })
   },
   actions: {

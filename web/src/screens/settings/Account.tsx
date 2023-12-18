@@ -59,7 +59,7 @@ function Credentials() {
   });
 
   const changeCredentialMutation = useMutation({
-    mutationFn: (data: InputValues) => APIClient.auth.updateUser(data.username, data.newUsername, data.oldPassword, data.newPassword),
+    mutationFn: (data: InputValues) => APIClient.auth.changeUserCredentials(data.username, data.newUsername, data.oldPassword, data.newPassword),
     onSuccess: () => {
       logoutMutation.mutate();
     }

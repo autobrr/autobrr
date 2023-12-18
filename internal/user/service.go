@@ -14,7 +14,7 @@ type Service interface {
 	GetUserCount(ctx context.Context) (int, error)
 	FindByUsername(ctx context.Context, username string) (*domain.User, error)
 	CreateUser(ctx context.Context, req domain.CreateUserRequest) error
-	UpdateUserByUsername(ctx context.Context, req domain.UpdateUserRequest) error
+	ChangeUserCredentials(ctx context.Context, req domain.ChangeUserCredentialsRequest) error
 }
 
 type service struct {
@@ -53,7 +53,7 @@ func (s *service) CreateUser(ctx context.Context, req domain.CreateUserRequest) 
 	return s.repo.Store(ctx, req)
 }
 
-func (s *service) UpdateUserByUsername(ctx context.Context, req domain.UpdateUserRequest) error {
+func (s *service) ChangeUserCredentials(ctx context.Context, req domain.ChangeUserCredentialsRequest) error {
 	return s.repo.Update(ctx, domain.User{
 		Username: req.Username,
 		Password: req.NewPassword,
