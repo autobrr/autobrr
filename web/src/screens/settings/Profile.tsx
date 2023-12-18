@@ -10,7 +10,7 @@ import Toast from "@components/notifications/Toast";
 import { Section } from "./_components";
 import { Form, Formik } from "formik";
 import { PasswordField, TextField } from "@components/inputs";
-import { KeyIcon, UserIcon } from "@heroicons/react/24/outline";
+import { KeyIcon } from "@heroicons/react/24/outline";
 import { AuthContext } from "@utils/Context";
 import toast from "react-hot-toast";
 
@@ -25,72 +25,51 @@ const ProfileSettings = () => (
   </Section>
 );
 
-interface ChangePasswordValues {
+interface ChangeCredentialsValues {
   username: string;
-  oldPassword: string;
-  newPassword: string;
-  confirmPassword: string;
+  oldPassword?: string;
+  newPassword?: string;
+  confirmPassword?: string;
+  newUsername?: string;
 }
-
-interface ChangeUsernameValues {
-  username: string;
-  newUsername: string;
-}
-
 
 function UserProfile() {
   const [getAuthContext] = AuthContext.use();
 
-
-  const validateChangePassword = (values: ChangePasswordValues) => {
+  const validateCredentials = (values: ChangeCredentialsValues) => {
     const errors: Record<string, string> = {};
 
-    if (!values.username)
-      errors.username = "Required";
+    if (values.newUsername !== getAuthContext.username || values.newPassword) {
+      if (!values.oldPassword) {
+        errors.oldPassword = "Current password is required to update your credentials.";
+      }
+    }
 
-    if (!values.oldPassword)
-      errors.oldPassword = "Required";
-
-    if (!values.newPassword)
-      errors.newPassword = "Required";
-
-    if (values.newPassword !== values.confirmPassword)
-      errors.confirmPassword = "Passwords don't match!";
+    if (values.newPassword) {
+      if (!values.confirmPassword) {
+        errors.confirmPassword = "Please confirm your new password.";
+      } else if (values.newPassword !== values.confirmPassword) {
+        errors.confirmPassword = "Passwords don't match!";
+      }
+    }
 
     return errors;
   };
 
-  const validateChangeUsername = (values: ChangeUsernameValues) => {
-    const errors: Record<string, string> = {};
 
-    if (!values.username)
-      errors.username = "Required";
-
-    if (!values.newUsername)
-      errors.newUsername = "Required";
-
-    return errors;
-  };
 
   const logoutMutation = useMutation({
     mutationFn: APIClient.auth.logout,
     onSuccess: () => {
       AuthContext.reset();
       toast.custom((t) => (
-        <Toast type="success" body="Your username or password has been updated successfully. Please sign in again!" t={t} />
+        <Toast type="success" body="Your credentials have been updated successfully. Please sign in again!" t={t} />
       ));
     }
   });
 
-  const changePasswordMutation = useMutation({
-    mutationFn: (data: ChangePasswordValues) => APIClient.auth.changePassword(data.username, data.oldPassword, data.newPassword),
-    onSuccess: () => {
-      logoutMutation.mutate();
-    }
-  });
-
-  const changeUsernameMutation = useMutation({
-    mutationFn: (data: ChangeUsernameValues) => APIClient.auth.changeUsername(data.username, data.newUsername),
+  const changeCredentialsMutation = useMutation({
+    mutationFn: APIClient.auth.changeCredentials,
     onSuccess: () => {
       logoutMutation.mutate();
     }
@@ -103,65 +82,45 @@ function UserProfile() {
 
   return (
     <div className="mx-auto w-full">
-      <div className="flex gap-6">
-        {/* Password Change Form */}
-        <div className={containerClass}>
-          <Formik
-            initialValues={{
+      <div className={containerClass}>
+        <Formik
+          initialValues={{
+            username: getAuthContext.username,
+            oldPassword: '',
+            newPassword: '',
+            confirmPassword: '',
+            newUsername: ''
+          }}
+          onSubmit={(values: ChangeCredentialsValues) => {
+            changeCredentialsMutation.mutate({
               username: getAuthContext.username,
-              oldPassword: '',
-              newPassword: '',
-              confirmPassword: ''
-            }}
-            onSubmit={(data) => {
-              changePasswordMutation.mutate(data);
-            }}
-            validate={validateChangePassword}
-          >
-            <Form>
-              <div className="grid grid-cols-1 gap-5">
-                <h3 className={headerClass}>Change Password</h3>
-                <TextField name="username" label="Username" columns={6} autoComplete="username" disabled />
-                <PasswordField name="oldPassword" label="Current Password" columns={6} autoComplete="current-password" required />
-                <PasswordField name="newPassword" label="New Password" columns={6} autoComplete="new-password" required />
-                <PasswordField name="confirmPassword" label="Confirm Password" columns={6} autoComplete="new-password" required />
-              </div>
-              <button type="submit" className={buttonClass}>
-                <KeyIcon className={iconClass} />
-                Change Password
-              </button>
-            </Form>
-          </Formik>
-        </div>
-        {/* Username Change Form */}
-        <div className={containerClass}>
-          <Formik
-            initialValues={{
-              username: getAuthContext.username,
-              newUsername: '',
-            }}
-            onSubmit={(data) => {
-              changeUsernameMutation.mutate(data);
-            }}
-            validate={validateChangeUsername}
-          >
-            <Form>
-              <div className="grid grid-cols-1 gap-5">
-                <h3 className={headerClass}>Change Username</h3>
-                <TextField name="username" label="Username" columns={6} autoComplete="username" disabled />
-                <TextField name="newUsername" label="New Username" columns={6} autoComplete="username" required />
-              </div>
-              <button type="submit" className={buttonClass}>
-                <UserIcon className={iconClass} />
-                Change Username
-              </button>
-            </Form>
-          </Formik>
-        </div>
+              newUsername: values.newUsername || undefined,
+              oldPassword: values.oldPassword || undefined,
+              newPassword: values.newPassword || undefined
+            });
+          }}
+          validate={validateCredentials}
+        >
+          <Form>
+            <div className="grid grid-cols-1 gap-5">
+              <h3 className={headerClass}>Change Credentials</h3>
+              <TextField name="username" label="Username" columns={6} autoComplete="username" disabled />
+
+              <TextField name="newUsername" label="New Username" columns={6} autoComplete="username" />
+
+              <PasswordField name="oldPassword" label="Current Password" columns={6} autoComplete="current-password" required />
+              <PasswordField name="newPassword" label="New Password" columns={6} autoComplete="new-password" />
+              <PasswordField name="confirmPassword" label="Confirm Password" columns={6} autoComplete="new-password" />
+            </div>
+            <button type="submit" className={buttonClass}>
+              <KeyIcon className={iconClass} />
+              Change Credentials
+            </button>
+          </Form>
+        </Formik>
       </div>
     </div>
   );
 }
-
 
 export default ProfileSettings;

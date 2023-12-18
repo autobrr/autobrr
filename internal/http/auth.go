@@ -20,8 +20,7 @@ type authService interface {
 	GetUserCount(ctx context.Context) (int, error)
 	Login(ctx context.Context, username, password string) (*domain.User, error)
 	CreateUser(ctx context.Context, req domain.CreateUserRequest) error
-	ChangePasswordByUsername(ctx context.Context, req domain.ChangePasswordRequest) error
-	ChangeUsername(ctx context.Context, req domain.ChangeUsernameRequest) error
+	ChangeCredentials(ctx context.Context, req domain.ChangeCredentialsRequest) error
 }
 
 type authHandler struct {
@@ -56,14 +55,12 @@ func (h authHandler) Routes(r chi.Router) {
 		r.Use(h.server.IsAuthenticated)
 
 		// Authenticated routes
-		r.Post("/change-password", h.changePassword)
-		r.Post("/change-username", h.changeUsername)
+		r.Post("/change-credentials", h.changeCredentials)
 	})
 }
 
 func (h authHandler) ProtectedRoutes(r chi.Router) {
-	r.Post("/change-password", h.changePassword)
-	r.Post("/change-username", h.changeUsername)
+	r.Post("/change-credentials", h.changeCredentials)
 }
 
 func (h authHandler) login(w http.ResponseWriter, r *http.Request) {
@@ -211,32 +208,18 @@ func (h authHandler) updateCredentials(w http.ResponseWriter, r *http.Request, d
 	h.encoder.StatusResponseMessage(w, http.StatusOK, successMessage)
 }
 
-func (h authHandler) changePassword(w http.ResponseWriter, r *http.Request) {
-	data := new(domain.ChangePasswordRequest)
+func (h authHandler) changeCredentials(w http.ResponseWriter, r *http.Request) {
+	data := new(domain.ChangeCredentialsRequest)
 
 	h.updateCredentials(w, r, data, func(ctx context.Context, data interface{}) error {
-		typedData, ok := data.(*domain.ChangePasswordRequest)
+		typedData, ok := data.(*domain.ChangeCredentialsRequest)
 
 		if !ok {
-			return errors.New("invalid data type for changePassword")
+			return errors.New("invalid data type for changeCredentials")
 		}
 
-		return h.service.ChangePasswordByUsername(ctx, *typedData)
-	}, "password successfully changed")
-}
-
-func (h authHandler) changeUsername(w http.ResponseWriter, r *http.Request) {
-	data := new(domain.ChangeUsernameRequest)
-
-	h.updateCredentials(w, r, data, func(ctx context.Context, data interface{}) error {
-		typedData, ok := data.(*domain.ChangeUsernameRequest)
-
-		if !ok {
-			return errors.New("invalid data type for changeUsername")
-		}
-
-		return h.service.ChangeUsername(ctx, *typedData)
-	}, "username successfully changed")
+		return h.service.ChangeCredentials(ctx, *typedData)
+	}, "credentials successfully changed")
 }
 
 func ReadUserIP(r *http.Request) string {

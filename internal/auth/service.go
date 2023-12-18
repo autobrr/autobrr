@@ -19,8 +19,7 @@ type Service interface {
 	GetUserCount(ctx context.Context) (int, error)
 	Login(ctx context.Context, username, password string) (*domain.User, error)
 	CreateUser(ctx context.Context, req domain.CreateUserRequest) error
-	ChangePasswordByUsername(ctx context.Context, req domain.ChangePasswordRequest) error
-	ChangeUsername(ctx context.Context, req domain.ChangeUsernameRequest) error
+	ChangeCredentials(ctx context.Context, req domain.ChangeCredentialsRequest) error
 }
 
 type service struct {
@@ -100,57 +99,12 @@ func (s *service) CreateUser(ctx context.Context, req domain.CreateUserRequest) 
 	return nil
 }
 
-func (s *service) ChangePasswordByUsername(ctx context.Context, req domain.ChangePasswordRequest) error {
+func (s *service) ChangeCredentials(ctx context.Context, req domain.ChangeCredentialsRequest) error {
 	if req.Username == "" {
 		return errors.New("validation error: empty username supplied")
-	} else if req.OldPassword == "" {
-		return errors.New("validation error: empty current password supplied")
-	} else if req.NewPassword == "" {
-		return errors.New("validation error: empty new password supplied")
 	}
-
-	// find user
-	u, err := s.userSvc.FindByUsername(ctx, req.Username)
-	if err != nil {
-		s.log.Trace().Err(err).Msgf("invalid login %v", req.Username)
-		return errors.Wrapf(err, "invalid login: %s", req.Username)
-	}
-
-	if u == nil {
-		return errors.Errorf("invalid login: %s", req.Username)
-	}
-
-	// compare password from request and the saved password
-	match, err := argon2id.ComparePasswordAndHash(req.OldPassword, u.Password)
-	if err != nil {
-		return errors.New("error checking credentials")
-	}
-
-	if !match {
-		s.log.Debug().Msgf("bad credentials: %q | %q", req.Username, req.OldPassword)
-		return errors.Errorf("invalid login: %s", req.Username)
-	}
-
-	hashed, err := argon2id.CreateHash(req.NewPassword, argon2id.DefaultParams)
-	if err != nil {
-		return errors.New("failed to hash password")
-	}
-
-	req.NewPassword = hashed
-
-	if err := s.userSvc.ChangePasswordByUsername(ctx, req); err != nil {
-		s.log.Error().Err(err).Msgf("could not change password for user: %s", req.Username)
-		return errors.New("failed to change password")
-	}
-
-	return nil
-}
-
-func (s *service) ChangeUsername(ctx context.Context, req domain.ChangeUsernameRequest) error {
-	if req.Username == "" {
-		return errors.New("validation error: empty current username supplied")
-	} else if req.NewUsername == "" {
-		return errors.New("validation error: empty new username supplied")
+	if req.OldPassword == "" && (req.NewPassword != "" || req.NewUsername != "") {
+		return errors.New("validation error: old password required when changing credentials")
 	}
 
 	// find user
@@ -164,9 +118,38 @@ func (s *service) ChangeUsername(ctx context.Context, req domain.ChangeUsernameR
 		return errors.Errorf("user not found: %s", req.Username)
 	}
 
-	if err := s.userSvc.ChangeUsername(ctx, req); err != nil {
-		s.log.Error().Err(err).Msgf("could not change username for user: %s", req.Username)
-		return errors.New("failed to change username")
+	// ff a new password is provided, verify the old password and hash the new one
+	if req.NewPassword != "" {
+		// compare password from request and the saved password
+		match, err := argon2id.ComparePasswordAndHash(req.OldPassword, u.Password)
+		if err != nil {
+			return errors.New("error checking credentials")
+		}
+
+		if !match {
+			s.log.Debug().Msgf("bad credentials: %q | %q", req.Username, req.OldPassword)
+			return errors.Errorf("invalid login: %s", req.Username)
+		}
+
+		hashed, err := argon2id.CreateHash(req.NewPassword, argon2id.DefaultParams)
+		if err != nil {
+			return errors.New("failed to hash password")
+		}
+
+		req.NewPassword = hashed
+	}
+
+	// prepare a new ChangeCredentialsRequest for the userSvc
+	credentialsReq := domain.ChangeCredentialsRequest{
+		Username:    req.Username,
+		NewUsername: req.NewUsername,
+		OldPassword: req.OldPassword,
+		NewPassword: req.NewPassword,
+	}
+
+	if err := s.userSvc.ChangeCredentials(ctx, credentialsReq); err != nil {
+		s.log.Error().Err(err).Msgf("could not change credentials for user: %s", req.Username)
+		return errors.Wrap(err, "failed to change credentials")
 	}
 
 	return nil

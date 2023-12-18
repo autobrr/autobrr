@@ -24,13 +24,9 @@ type CreateUserRequest struct {
 	Password string `json:"password"`
 }
 
-type ChangePasswordRequest struct {
-	Username    string `json:"username"`
-	OldPassword string `json:"oldPassword"`
-	NewPassword string `json:"newPassword"`
-}
-
-type ChangeUsernameRequest struct {
+type ChangeCredentialsRequest struct {
 	Username    string `json:"username"`
 	NewUsername string `json:"newUsername"`
+	OldPassword string `json:"oldPassword"`
+	NewPassword string `json:"newPassword"`
 }
