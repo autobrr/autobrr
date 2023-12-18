@@ -5,7 +5,6 @@ package auth
 
 import (
 	"context"
-
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/internal/logger"
 	"github.com/autobrr/autobrr/internal/user"
@@ -19,7 +18,7 @@ type Service interface {
 	GetUserCount(ctx context.Context) (int, error)
 	Login(ctx context.Context, username, password string) (*domain.User, error)
 	CreateUser(ctx context.Context, req domain.CreateUserRequest) error
-	ChangePasswordByUsername(ctx context.Context, req domain.ChangePasswordRequest) error
+	UpdateUserByUsername(ctx context.Context, req domain.UpdateUserRequest) error
 }
 
 type service struct {
@@ -99,13 +98,19 @@ func (s *service) CreateUser(ctx context.Context, req domain.CreateUserRequest) 
 	return nil
 }
 
-func (s *service) ChangePasswordByUsername(ctx context.Context, req domain.ChangePasswordRequest) error {
+func (s *service) UpdateUserByUsername(ctx context.Context, req domain.UpdateUserRequest) error {
 	if req.Username == "" {
 		return errors.New("validation error: empty username supplied")
 	} else if req.OldPassword == "" {
 		return errors.New("validation error: empty current password supplied")
-	} else if req.NewPassword == "" {
-		return errors.New("validation error: empty new password supplied")
+	}
+
+	if req.NewPassword == "" {
+		// if new password is empty, set it to the old password
+		req.NewPassword = req.OldPassword
+	} else if req.NewUsername == "" {
+		// if new username is empty, set it to the old username
+		req.NewUsername = req.Username
 	}
 
 	// find user
@@ -137,7 +142,7 @@ func (s *service) ChangePasswordByUsername(ctx context.Context, req domain.Chang
 
 	req.NewPassword = hashed
 
-	if err := s.userSvc.ChangePasswordByUsername(ctx, req); err != nil {
+	if err := s.userSvc.UpdateUserByUsername(ctx, req); err != nil {
 		s.log.Error().Err(err).Msgf("could not change password for user: %s", req.Username)
 		return errors.New("failed to change password")
 	}

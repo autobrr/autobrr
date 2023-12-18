@@ -63,7 +63,7 @@ func TestUserRepo_Update(t *testing.T) {
 			// Update the user
 			newPassword := "newPassword123"
 			user.Password = newPassword
-			err := repo.Update(context.Background(), user)
+			err := repo.Update(context.Background(), user, "")
 			assert.NoError(t, err)
 
 			// Verify

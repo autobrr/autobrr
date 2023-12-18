@@ -10,9 +10,9 @@ import Toast from "@components/notifications/Toast";
 import { Section } from "./_components";
 import { Form, Formik } from "formik";
 import { PasswordField, TextField } from "@components/inputs";
-import { KeyIcon } from "@heroicons/react/24/outline";
 import { AuthContext } from "@utils/Context";
 import toast from "react-hot-toast";
+import { UserIcon } from "@heroicons/react/24/solid";
 
 const ProfileSettings = () => (
   <Section
@@ -27,6 +27,7 @@ const ProfileSettings = () => (
 
 interface InputValues {
   username: string;
+  newUsername: string;
   oldPassword: string;
   newPassword: string;
   confirmPassword: string;
@@ -42,12 +43,6 @@ function UserProfile() {
     if (!values.username)
       errors.username = "Required";
 
-    if (!values.oldPassword)
-      errors.oldPassword = "Required";
-
-    if (!values.newPassword)
-      errors.newPassword = "Required";
-
     if (values.newPassword !== values.confirmPassword)
       errors.confirmPassword = "Passwords don't match!";
 
@@ -59,13 +54,13 @@ function UserProfile() {
     onSuccess: () => {
       AuthContext.reset();
       toast.custom((t) => (
-        <Toast type="success" body="Your password has been updated successfully. Please sign in again with your new password!" t={t} />
+        <Toast type="success" body="User updated successfully. Please sign in again!" t={t} />
       ));
     }
   });
 
   const changePasswordMutation = useMutation({
-    mutationFn: (data: InputValues) => APIClient.auth.changePassword(data.username, data.oldPassword, data.newPassword),
+    mutationFn: (data: InputValues) => APIClient.auth.updateUser(data.username, data.newUsername, data.oldPassword, data.newPassword),
     onSuccess: () => {
       logoutMutation.mutate();
     }
@@ -78,6 +73,7 @@ function UserProfile() {
         <Formik
           initialValues={{
             username: getAuthContext.username,
+            newUsername: "",
             oldPassword: "",
             newPassword: "",
             confirmPassword: ""
@@ -90,16 +86,17 @@ function UserProfile() {
           <Form>
             <div className="grid grid-cols-1 gap-5">
               <TextField name="username" label="Username" columns={6} autoComplete="username" disabled  />
+              <TextField name="newUsername" label="New Username" columns={6} autoComplete="username" />
               <PasswordField name="oldPassword" label="Current Password" columns={6} autoComplete="current-password" required />
-              <PasswordField name="newPassword" label="New Password" columns={6} autoComplete="current-password" required />
-              <PasswordField name="confirmPassword" label="Confirm password" columns={6} autoComplete="current-password" required  />
+              <PasswordField name="newPassword" label="New Password" columns={6} autoComplete="current-password" />
+              <PasswordField name="confirmPassword" label="Confirm password" columns={6} autoComplete="current-password" />
             </div>
             <button
               type="submit"
               className="mt-6 w-full flex items-center justify-center py-2 px-4 border border-transparent transition rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
             >
-              <KeyIcon className="w-4 h-4 mr-1.5" />
-                Change Password
+              <UserIcon className="w-4 h-4 mr-1.5" />
+                Update User
             </button>
           </Form>
         </Formik>

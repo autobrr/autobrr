@@ -100,13 +100,17 @@ func (r *UserRepo) Store(ctx context.Context, req domain.CreateUserRequest) erro
 	return err
 }
 
-func (r *UserRepo) Update(ctx context.Context, user domain.User) error {
+func (r *UserRepo) Update(ctx context.Context, user domain.User, newUsername string) error {
 
 	var err error
 
+	if newUsername == "" {
+		newUsername = user.Username
+	}
+
 	queryBuilder := r.db.squirrel.
 		Update("users").
-		Set("username", user.Username).
+		Set("username", newUsername).
 		Set("password", user.Password).
 		Where(sq.Eq{"username": user.Username})
 

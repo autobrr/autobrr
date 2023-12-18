@@ -20,7 +20,7 @@ type authService interface {
 	GetUserCount(ctx context.Context) (int, error)
 	Login(ctx context.Context, username, password string) (*domain.User, error)
 	CreateUser(ctx context.Context, req domain.CreateUserRequest) error
-	ChangePasswordByUsername(ctx context.Context, req domain.ChangePasswordRequest) error
+	UpdateUserByUsername(ctx context.Context, req domain.UpdateUserRequest) error
 }
 
 type authHandler struct {
@@ -55,12 +55,8 @@ func (h authHandler) Routes(r chi.Router) {
 		r.Use(h.server.IsAuthenticated)
 
 		// Authenticated routes
-		r.Post("/change-password", h.changePassword)
+		r.Post("/update-user", h.updateUser)
 	})
-}
-
-func (h authHandler) ProtectedRoutes(r chi.Router) {
-	r.Post("/change-password", h.changePassword)
 }
 
 func (h authHandler) login(w http.ResponseWriter, r *http.Request) {
@@ -191,10 +187,10 @@ func (h authHandler) validate(w http.ResponseWriter, r *http.Request) {
 	h.encoder.NoContent(w)
 }
 
-func (h authHandler) changePassword(w http.ResponseWriter, r *http.Request) {
+func (h authHandler) updateUser(w http.ResponseWriter, r *http.Request) {
 	var (
 		ctx  = r.Context()
-		data domain.ChangePasswordRequest
+		data domain.UpdateUserRequest
 	)
 
 	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
@@ -202,7 +198,7 @@ func (h authHandler) changePassword(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.service.ChangePasswordByUsername(ctx, data); err != nil {
+	if err := h.service.UpdateUserByUsername(ctx, data); err != nil {
 		h.encoder.StatusError(w, http.StatusForbidden, err)
 		return
 	}
