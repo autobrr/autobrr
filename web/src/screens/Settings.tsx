@@ -36,7 +36,7 @@ const subNavigation: NavTabType[] = [
   { name: "Notifications", href: "notifications", icon: BellIcon },
   { name: "API keys", href: "api-keys", icon: KeyIcon },
   { name: "Releases", href: "releases", icon: RectangleStackIcon },
-  { name: "Profile", href: "profile", icon: UserCircleIcon }
+  { name: "Account", href: "account", icon: UserCircleIcon }
   // {name: 'Regex Playground', href: 'regex-playground', icon: CogIcon, current: false}
   // {name: 'Rules', href: 'rules', icon: ClipboardCheckIcon, current: false},
 ];
