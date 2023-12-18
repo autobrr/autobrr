@@ -55,6 +55,10 @@ func TestUserRepo_Update(t *testing.T) {
 		})
 		assert.NoError(t, err)
 
+		storedUser, err := repo.FindByUsername(context.Background(), user.Username)
+		assert.NoError(t, err)
+		user.ID = storedUser.ID
+
 		t.Run(fmt.Sprintf("UpdateUser_Succeeds [%s]", dbType), func(t *testing.T) {
 			// Update the user
 			newPassword := "newPassword123"
@@ -68,7 +72,7 @@ func TestUserRepo_Update(t *testing.T) {
 			assert.Equal(t, newPassword, updatedUser.Password)
 
 			// Cleanup
-			_ = repo.Delete(context.Background(), user.Username)
+			_ = repo.Delete(context.Background(), updatedUser.Username)
 		})
 	}
 }
