@@ -104,11 +104,18 @@ func (r *UserRepo) Update(ctx context.Context, user domain.User) error {
 
 	var err error
 
+	if user.Username == "" {
+		return errors.New("username cannot be empty")
+	}
+
 	queryBuilder := r.db.squirrel.
 		Update("users").
 		Set("username", user.Username).
-		Set("password", user.Password).
-		Where(sq.Eq{"username": user.Username})
+		Where(sq.Eq{"id": user.ID})
+
+	if user.Password != "" {
+		queryBuilder = queryBuilder.Set("password", user.Password)
+	}
 
 	query, args, err := queryBuilder.ToSql()
 	if err != nil {

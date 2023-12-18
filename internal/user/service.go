@@ -15,6 +15,7 @@ type Service interface {
 	FindByUsername(ctx context.Context, username string) (*domain.User, error)
 	CreateUser(ctx context.Context, req domain.CreateUserRequest) error
 	ChangePasswordByUsername(ctx context.Context, req domain.ChangePasswordRequest) error
+	ChangeUsername(ctx context.Context, req domain.ChangeUsernameRequest) error
 }
 
 type service struct {
@@ -53,9 +54,25 @@ func (s *service) CreateUser(ctx context.Context, req domain.CreateUserRequest) 
 	return s.repo.Store(ctx, req)
 }
 
+func (s *service) updateCredentials(ctx context.Context, username string, updateFunc func(*domain.User)) error {
+	user, err := s.repo.FindByUsername(ctx, username)
+	if err != nil {
+		return err
+	}
+
+	updateFunc(user)
+
+	return s.repo.Update(ctx, *user)
+}
+
 func (s *service) ChangePasswordByUsername(ctx context.Context, req domain.ChangePasswordRequest) error {
-	return s.repo.Update(ctx, domain.User{
-		Username: req.Username,
-		Password: req.NewPassword,
+	return s.updateCredentials(ctx, req.Username, func(user *domain.User) {
+		user.Password = req.NewPassword
+	})
+}
+
+func (s *service) ChangeUsername(ctx context.Context, req domain.ChangeUsernameRequest) error {
+	return s.updateCredentials(ctx, req.Username, func(user *domain.User) {
+		user.Username = req.NewUsername
 	})
 }

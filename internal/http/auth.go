@@ -21,6 +21,7 @@ type authService interface {
 	Login(ctx context.Context, username, password string) (*domain.User, error)
 	CreateUser(ctx context.Context, req domain.CreateUserRequest) error
 	ChangePasswordByUsername(ctx context.Context, req domain.ChangePasswordRequest) error
+	ChangeUsername(ctx context.Context, req domain.ChangeUsernameRequest) error
 }
 
 type authHandler struct {
@@ -56,11 +57,13 @@ func (h authHandler) Routes(r chi.Router) {
 
 		// Authenticated routes
 		r.Post("/change-password", h.changePassword)
+		r.Post("/change-username", h.changeUsername)
 	})
 }
 
 func (h authHandler) ProtectedRoutes(r chi.Router) {
 	r.Post("/change-password", h.changePassword)
+	r.Post("/change-username", h.changeUsername)
 }
 
 func (h authHandler) login(w http.ResponseWriter, r *http.Request) {
@@ -191,25 +194,49 @@ func (h authHandler) validate(w http.ResponseWriter, r *http.Request) {
 	h.encoder.NoContent(w)
 }
 
-func (h authHandler) changePassword(w http.ResponseWriter, r *http.Request) {
-	var (
-		ctx  = r.Context()
-		data domain.ChangePasswordRequest
-	)
+func (h authHandler) updateCredentials(w http.ResponseWriter, r *http.Request, data interface{}, changeFunc func(context.Context, interface{}) error, successMessage string) {
+	ctx := r.Context()
 
-	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
+	if err := json.NewDecoder(r.Body).Decode(data); err != nil {
 		h.encoder.StatusError(w, http.StatusBadRequest, errors.Wrap(err, "could not decode json"))
 		return
 	}
 
-	if err := h.service.ChangePasswordByUsername(ctx, data); err != nil {
+	if err := changeFunc(ctx, data); err != nil {
 		h.encoder.StatusError(w, http.StatusForbidden, err)
 		return
 	}
 
 	// send response as ok
-	h.encoder.StatusResponseMessage(w, http.StatusOK, "password successfully changed")
+	h.encoder.StatusResponseMessage(w, http.StatusOK, successMessage)
+}
 
+func (h authHandler) changePassword(w http.ResponseWriter, r *http.Request) {
+	data := new(domain.ChangePasswordRequest)
+
+	h.updateCredentials(w, r, data, func(ctx context.Context, data interface{}) error {
+		typedData, ok := data.(*domain.ChangePasswordRequest)
+
+		if !ok {
+			return errors.New("invalid data type for changePassword")
+		}
+
+		return h.service.ChangePasswordByUsername(ctx, *typedData)
+	}, "password successfully changed")
+}
+
+func (h authHandler) changeUsername(w http.ResponseWriter, r *http.Request) {
+	data := new(domain.ChangeUsernameRequest)
+
+	h.updateCredentials(w, r, data, func(ctx context.Context, data interface{}) error {
+		typedData, ok := data.(*domain.ChangeUsernameRequest)
+
+		if !ok {
+			return errors.New("invalid data type for changeUsername")
+		}
+
+		return h.service.ChangeUsername(ctx, *typedData)
+	}, "username successfully changed")
 }
 
 func ReadUserIP(r *http.Request) string {
