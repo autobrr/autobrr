@@ -18,8 +18,7 @@ interface StatsItemProps {
 
 const StatsItem = ({ name, placeholder, value, onClick }: StatsItemProps) => (
   <div
-    className="group relative px-4 py-3 cursor-pointer overflow-hidden rounded-lg shadow-lg bg-white dark:bg-gray-800 border border-gray-150 dark:border-gray-775 hover:border-gray-300 dark:hover:border-gray-725 hover:scale-110 hover:shadow-xl transition-all duration-200 ease-in-out"
-    title="All time"
+    className="group relative px-4 py-3 cursor-pointer overflow-hidden rounded-lg shadow-lg bg-white dark:bg-gray-800 hover:scale-110 hover:shadow-xl transition-all duration-200 ease-in-out"
     onClick={onClick}
   >
     <dt>
@@ -62,7 +61,7 @@ export const Stats = () => {
         Stats
       </h1>
 
-      <dl className={classNames("grid grid-cols-2 gap-5 mt-5 sm:grid-cols-2 lg:grid-cols-4", isLoading ? "animate-pulse" : "")}>
+      <dl className={classNames("grid grid-cols-2 gap-2 sm:gap-5 mt-5 sm:grid-cols-2 lg:grid-cols-4", isLoading ? "animate-pulse" : "")}>
         <StatsItem name="Filtered Releases" onClick={() => handleStatClick("")} value={data?.filtered_count ?? 0} />
         {/* <StatsItem name="Filter Rejected Releases" stat={data?.filter_rejected_count} /> */}
         <StatsItem name="Approved Pushes" onClick={() => handleStatClick("PUSH_APPROVED")}  value={data?.push_approved_count ?? 0} />
