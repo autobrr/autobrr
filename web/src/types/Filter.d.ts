@@ -70,6 +70,7 @@ interface Filter {
   tags_match_logic: string;
   except_tags_match_logic: string;
   actions_count: number;
+  actions_enabled_count: number;
   actions: Action[];
   indexers: Indexer[];
   external: ExternalFilter[];
@@ -135,6 +136,5 @@ interface ExternalFilter {
   webhook_retry_status?: string,
   webhook_retry_attempts?: number;
   webhook_retry_delay_seconds?: number;
-  webhook_retry_max_jitter_seconds?: number;
   filter_id?: number;
 }

@@ -50,7 +50,7 @@ func (r *FeedCacheRepo) Get(feedId int, key string) ([]byte, error) {
 	}
 
 	var value []byte
-	var ttl time.Duration
+	var ttl time.Time
 
 	if err := row.Scan(&value, &ttl); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -207,9 +207,15 @@ func (r *FeedCacheRepo) Delete(ctx context.Context, feedId int, key string) erro
 		return errors.Wrap(err, "error building query")
 	}
 
-	_, err = r.db.handler.ExecContext(ctx, query, args...)
+	result, err := r.db.handler.ExecContext(ctx, query, args...)
 	if err != nil {
 		return errors.Wrap(err, "error executing query")
+	}
+
+	if rowsAffected, err := result.RowsAffected(); err != nil {
+		return errors.Wrap(err, "error getting rows affected")
+	} else if rowsAffected == 0 {
+		return domain.ErrRecordNotFound
 	}
 
 	return nil

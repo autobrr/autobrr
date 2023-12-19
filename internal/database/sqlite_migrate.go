@@ -47,6 +47,7 @@ CREATE TABLE irc_network
     invite_command      TEXT,
     use_bouncer         BOOLEAN,
     bouncer_addr        TEXT,
+    bot_mode            BOOLEAN DEFAULT FALSE,
     connected           BOOLEAN,
     connected_since     TIMESTAMP,
     created_at          TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -150,7 +151,6 @@ CREATE TABLE filter_external
     webhook_retry_status                TEXT,
     webhook_retry_attempts              INTEGER,
     webhook_retry_delay_seconds         INTEGER,
-    webhook_retry_max_jitter_seconds    INTEGER,
     filter_id                           INTEGER NOT NULL,
     FOREIGN KEY (filter_id)             REFERENCES filter(id) ON DELETE CASCADE
 );
@@ -1423,4 +1423,10 @@ DROP TABLE filter_external;
 ALTER TABLE filter_external_dg_tmp
     RENAME TO filter_external;
 `,
+	`ALTER TABLE filter_external
+	DROP COLUMN webhook_retry_max_jitter_seconds;
+`,
+  `ALTER TABLE irc_network
+	ADD COLUMN bot_mode BOOLEAN DEFAULT FALSE;
+	`,
 }

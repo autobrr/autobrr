@@ -123,7 +123,7 @@ func (h filterHandler) getByID(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		h.encoder.StatusInternalError(w)
+		h.encoder.Error(w, err)
 		return
 	}
 

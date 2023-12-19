@@ -82,27 +82,31 @@ export async function HttpClient<T = unknown>(
   const response = await window.fetch(`${baseUrl()}${endpoint}`, init);
 
   switch (response.status) {
-    case 204:
+  case 204: {
     // 204 contains no data, but indicates success
-      return Promise.resolve<T>({} as T);
-    case 401:
+    return Promise.resolve<T>({} as T);
+  }
+  case 401: {
     // Remove auth info from localStorage
-      AuthContext.reset();
+    AuthContext.reset();
+  }
 
-      // Show an error toast to notify the user what occurred
-      return Promise.reject(new Error(`[401] Unauthorized: "${endpoint}"`));
-    case 404:
-      return Promise.reject(new Error(`[404] Not found: "${endpoint}"`));
-    case 500:
-      const health = await window.fetch(`${baseUrl()}api/healthz/liveness`);
-      if (!health.ok) {
-        return Promise.reject(
-          new Error(`[500] Offline (Internal server error): "${endpoint}"`, { cause: "OFFLINE" })
-        );
-      }
-      break;
-    default:
-      break;
+    // Show an error toast to notify the user what occurred
+    return Promise.reject(new Error(`[401] Unauthorized: "${endpoint}"`));
+  case 404: {
+    return Promise.reject(new Error(`[404] Not found: "${endpoint}"`));
+  }
+  case 500: {
+    const health = await window.fetch(`${baseUrl()}api/healthz/liveness`);
+    if (!health.ok) {
+      return Promise.reject(
+        new Error(`[500] Offline (Internal server error): "${endpoint}"`)
+      );
+    }
+    break;
+  }
+  default:
+    break;
   }
 
   const isJson = response.headers.get("Content-Type")?.includes("application/json");
@@ -224,6 +228,7 @@ export const APIClient = {
     update: (feed: Feed) => appClient.Put(`api/feeds/${feed.id}`, {
       body: feed
     }),
+    forceRun: (id: number) => appClient.Post(`api/feeds/${id}/forcerun`),
     delete: (id: number) => appClient.Delete(`api/feeds/${id}`),
     deleteCache: (id: number) => appClient.Delete(`api/feeds/${id}/cache`),
     test: (feed: Feed) => appClient.Post("api/feeds/test", {
@@ -249,7 +254,7 @@ export const APIClient = {
     }),
     toggleEnable: (id: number, enabled: boolean) => appClient.Patch(`api/indexer/${id}/enabled`, {
       body: { enabled }
-    }),
+    })
   },
   irc: {
     getNetworks: () => appClient.Get<IrcNetworkWithHealth[]>("api/irc"),

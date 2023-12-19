@@ -12,7 +12,7 @@ import type { FieldProps } from "formik";
 import { Field, Form, Formik, FormikErrors, FormikValues } from "formik";
 
 import { APIClient } from "@api/APIClient";
-import DEBUG from "@components/debug";
+import { DEBUG } from "@components/debug";
 import Toast from "@components/notifications/Toast";
 import { apiKeys } from "@screens/settings/Api";
 
@@ -70,7 +70,7 @@ export function APIKeyAddForm({ isOpen, toggle }: apiKeyAddFormProps) {
                   validate={validate}
                 >
                   {({ values }) => (
-                    <Form className="h-full flex flex-col bg-white dark:bg-gray-800 shadow-xl overflow-y-scroll">
+                    <Form className="h-full flex flex-col bg-white dark:bg-gray-800 shadow-xl overflow-y-auto">
                       <div className="flex-1">
                         <div className="px-4 py-6 bg-gray-50 dark:bg-gray-900 sm:px-6">
                           <div className="flex items-start justify-between space-x-3">
@@ -116,7 +116,7 @@ export function APIKeyAddForm({ isOpen, toggle }: apiKeyAddFormProps) {
                                     {...field}
                                     id="name"
                                     type="text"
-                                    className="block w-full shadow-sm dark:bg-gray-800 border-gray-300 dark:border-gray-700 sm:text-sm dark:text-white focus:ring-blue-500 dark:focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-500 rounded-md"
+                                    className="block w-full shadow-sm sm:text-sm focus:ring-blue-500 dark:focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-500 rounded-md border-gray-300 dark:border-gray-700 bg-gray-100 dark:bg-gray-815 dark:text-gray-100"
                                   />
                                   {meta.touched && meta.error && <span className="block mt-2 text-red-500">{meta.error}</span>}
                                 </div>

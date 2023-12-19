@@ -11,7 +11,7 @@ protocol: torrent
 supports:
   - irc
   - rss
-source: UNIT3D
+# source: UNIT3D
 settings:
   - name: rsskey
     type: secret
@@ -50,9 +50,27 @@ irc:
   parse:
     type: single
     lines:
-      - test:
-          - "Category [TV] Type [WEB-DL] Name [The Cars That Made the World S01 1080p WEB-DL AAC 2.0 H.264-EDITH] Freeleech [0%] Double Upload [No] Size [6.57 GB] Uploader [User] Url [https://thedarkcommunity.cc/torrents/download/8483]"
-          - "Category [TV] Type [WEB-DL] Name [Ax Men S09 1080p WEB-DL AAC 2.0 H.264-TURBO] Freeleech [0%] Double Upload [No] Size [26.87 GB] Uploader [User] Url [https://thedarkcommunity.cc/torrents/download/8484]"
+      - tests:
+        - line: Category [TV] Type [WEB-DL] Name [The Cars That Made the World S01 1080p WEB-DL AAC 2.0 H.264-EDITH] Freeleech [0%] Double Upload [No] Size [6.57 GB] Uploader [User] Url [https://thedarkcommunity.cc/torrents/download/8483]
+          expect:
+            category: TV
+            releaseTags: WEB-DL
+            torrentName: The Cars That Made the World S01 1080p WEB-DL AAC 2.0 H.264-EDITH
+            freeleechPercent: 0%
+            torrentSize: 6.57 GB
+            uploader: User
+            baseUrl: https://thedarkcommunity.cc/
+            torrentId: "8483"
+        - line: Category [TV] Type [WEB-DL] Name [Ax Men S09 1080p WEB-DL AAC 2.0 H.264-TURBO] Freeleech [0%] Double Upload [No] Size [26.87 GB] Uploader [User] Url [https://thedarkcommunity.cc/torrents/download/8484]
+          expect:
+            category: TV
+            releaseTags: WEB-DL
+            torrentName: Ax Men S09 1080p WEB-DL AAC 2.0 H.264-TURBO
+            freeleechPercent: 0%
+            torrentSize: 26.87 GB
+            uploader: User
+            baseUrl: https://thedarkcommunity.cc/
+            torrentId: "8484"
         pattern: '.*\[(.*)\].*\[(.*)\].*\[(.*)\].*\[(.*)\].*\[(?:.*)\].*\[(.*)\].*\[(.*)\].*(https?\:\/\/.*?\/).*\/(\d+).*'
         vars:
           - category

@@ -36,7 +36,7 @@ type NewznabJob struct {
 	JobID int
 }
 
-func NewNewznabJob(feed *domain.Feed, name string, indexerIdentifier string, log zerolog.Logger, url string, client newznab.Client, repo domain.FeedRepo, cacheRepo domain.FeedCacheRepo, releaseSvc release.Service) *NewznabJob {
+func NewNewznabJob(feed *domain.Feed, name string, indexerIdentifier string, log zerolog.Logger, url string, client newznab.Client, repo domain.FeedRepo, cacheRepo domain.FeedCacheRepo, releaseSvc release.Service) FeedJob {
 	return &NewznabJob{
 		Feed:              feed,
 		Name:              name,
@@ -53,7 +53,7 @@ func NewNewznabJob(feed *domain.Feed, name string, indexerIdentifier string, log
 func (j *NewznabJob) Run() {
 	ctx := context.Background()
 
-	if err := j.process(ctx); err != nil {
+	if err := j.RunE(ctx); err != nil {
 		j.Log.Err(err).Int("attempts", j.attempts).Msg("newznab process error")
 
 		j.errors = append(j.errors, err)
@@ -61,6 +61,15 @@ func (j *NewznabJob) Run() {
 
 	j.attempts = 0
 	j.errors = j.errors[:0]
+}
+
+func (j *NewznabJob) RunE(ctx context.Context) error {
+	if err := j.process(ctx); err != nil {
+		j.Log.Err(err).Msg("newznab process error")
+		return err
+	}
+
+	return nil
 }
 
 func (j *NewznabJob) process(ctx context.Context) error {

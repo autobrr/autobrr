@@ -30,7 +30,7 @@ func NewActionRepo(log logger.Logger, db *DB, clientRepo domain.DownloadClientRe
 	}
 }
 
-func (r *ActionRepo) FindByFilterID(ctx context.Context, filterID int) ([]*domain.Action, error) {
+func (r *ActionRepo) FindByFilterID(ctx context.Context, filterID int, active *bool) ([]*domain.Action, error) {
 	tx, err := r.db.BeginTx(ctx, &sql.TxOptions{Isolation: sql.LevelReadCommitted})
 	if err != nil {
 		return nil, err
@@ -38,7 +38,7 @@ func (r *ActionRepo) FindByFilterID(ctx context.Context, filterID int) ([]*domai
 
 	defer tx.Rollback()
 
-	actions, err := r.findByFilterID(ctx, tx, filterID)
+	actions, err := r.findByFilterID(ctx, tx, filterID, active)
 	if err != nil {
 		return nil, err
 	}
@@ -59,7 +59,7 @@ func (r *ActionRepo) FindByFilterID(ctx context.Context, filterID int) ([]*domai
 	return actions, nil
 }
 
-func (r *ActionRepo) findByFilterID(ctx context.Context, tx *Tx, filterID int) ([]*domain.Action, error) {
+func (r *ActionRepo) findByFilterID(ctx context.Context, tx *Tx, filterID int, active *bool) ([]*domain.Action, error) {
 	queryBuilder := r.db.squirrel.
 		Select(
 			"id",
@@ -94,6 +94,10 @@ func (r *ActionRepo) findByFilterID(ctx context.Context, tx *Tx, filterID int) (
 		).
 		From("action").
 		Where(sq.Eq{"filter_id": filterID})
+
+	if active != nil {
+		queryBuilder = queryBuilder.Where(sq.Eq{"enabled": *active})
+	}
 
 	query, args, err := queryBuilder.ToSql()
 	if err != nil {
@@ -402,7 +406,8 @@ func (r *ActionRepo) Delete(ctx context.Context, req *domain.DeleteActionRequest
 		return errors.Wrap(err, "error building query")
 	}
 
-	if _, err = r.db.handler.ExecContext(ctx, query, args...); err != nil {
+	_, err = r.db.handler.ExecContext(ctx, query, args...)
+	if err != nil {
 		return errors.Wrap(err, "error executing query")
 	}
 
@@ -421,7 +426,8 @@ func (r *ActionRepo) DeleteByFilterID(ctx context.Context, filterID int) error {
 		return errors.Wrap(err, "error building query")
 	}
 
-	if _, err := r.db.handler.ExecContext(ctx, query, args...); err != nil {
+	_, err = r.db.handler.ExecContext(ctx, query, args...)
+	if err != nil {
 		return errors.Wrap(err, "error executing query")
 	}
 
@@ -715,8 +721,15 @@ func (r *ActionRepo) ToggleEnabled(actionID int) error {
 		return errors.Wrap(err, "error building query")
 	}
 
-	if _, err := r.db.handler.Exec(query, args...); err != nil {
+	result, err := r.db.handler.Exec(query, args...)
+	if err != nil {
 		return errors.Wrap(err, "error executing query")
+	}
+
+	if rowsAffected, err := result.RowsAffected(); err != nil {
+		return errors.Wrap(err, "error getting rows affected")
+	} else if rowsAffected == 0 {
+		return domain.ErrRecordNotFound
 	}
 
 	r.log.Debug().Msgf("action.toggleEnabled: %v", actionID)

@@ -11,7 +11,7 @@ protocol: torrent
 supports:
   - irc
   - rss
-source: custom
+# source: custom
 settings:
   - name: rsskey
     type: secret
@@ -50,10 +50,31 @@ irc:
   parse:
     type: single
     lines:
-      - test:
-          - "[XXX » HD] Some.Porno.22.08.16.Famous.Actress.XXX.1080p.MP4-GROUP  [ 3,00 GB | Pred 2022-08-16 08:47:31 (GMT) | URL: https://bittorrentfiles.me/details.php?id=0000000 ]"
-          - "[Music » Single] [Dance Hall] Artist-Album-WEB-2021-GROUP  [ 63,09 MB | Pred 2022-08-16 08:58:06 (GMT) | URL: https://bittorrentfiles.me/details.php?id=0000000 ]"
-          - "[Sports » HD] Sports.League.2022.08.15.Team1.vs.Team2.720p.WEB.h264-GROUP  [ 6,26 GB | Pred 2022-08-16 08:46:25 (GMT) | URL: https://bittorrentfiles.me/details.php?id=0000000 ]"
+      - tests:
+        - line: '[XXX » HD] Some.Porno.22.08.16.Famous.Actress.XXX.1080p.MP4-GROUP  [ 3,00 GB | Pred 2022-08-16 08:47:31 (GMT) | URL: https://bittorrentfiles.me/details.php?id=0000000 ]'
+          expect:
+            category: XXX » HD
+            tags: ""
+            torrentName: Some.Porno.22.08.16.Famous.Actress.XXX.1080p.MP4-GROUP
+            torrentSize: 3,00 GB
+            baseUrl: https://bittorrentfiles.me/
+            torrentId: "0000000"
+        - line: '[Music » Single] [Dance Hall] Artist-Album-WEB-2021-GROUP  [ 63,09 MB | Pred 2022-08-16 08:58:06 (GMT) | URL: https://bittorrentfiles.me/details.php?id=0000000 ]'
+          expect:
+            category: Music » Single
+            tags: Dance Hall
+            torrentName: Artist-Album-WEB-2021-GROUP
+            torrentSize: 63,09 MB
+            baseUrl: https://bittorrentfiles.me/
+            torrentId: "0000000"
+        - line: '[Sports » HD] Sports.League.2022.08.15.Team1.vs.Team2.720p.WEB.h264-GROUP  [ 6,26 GB | Pred 2022-08-16 08:46:25 (GMT) | URL: https://bittorrentfiles.me/details.php?id=0000000 ]'
+          expect:
+            category: Sports » HD
+            tags: ""
+            torrentName: Sports.League.2022.08.15.Team1.vs.Team2.720p.WEB.h264-GROUP
+            torrentSize: 6,26 GB
+            baseUrl: https://bittorrentfiles.me/
+            torrentId: "0000000"
         pattern: '\[(.*?)\] (?:\[(.*)\] )?(.*)  \[ ([\d\.,]+ \w+) \| Pred .+ \| URL\: (https?\:\/\/[^\/]+\/).*[&\?]id=(\d+) \]'
         vars:
           - category
