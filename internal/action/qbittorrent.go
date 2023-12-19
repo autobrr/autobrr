@@ -167,7 +167,7 @@ func (s *service) qbittorrentCheckRulesCanDownload(ctx context.Context, action *
 				return []string{rejection}, nil
 			}
 
-			if rules.IgnoreSlowTorrentsCondition == domain.IgnoreSlowTorrentsModeMaxReached {
+			if rules.IgnoreSlowTorrents && rules.IgnoreSlowTorrentsCondition == domain.IgnoreSlowTorrentsModeMaxReached {
 				// get transfer info
 				info, err := qbt.GetTransferInfoCtx(ctx)
 				if err != nil {
@@ -189,7 +189,7 @@ func (s *service) qbittorrentCheckRulesCanDownload(ctx context.Context, action *
 	}
 
 	// if max active downloads is unlimited or not reached, lets check if ignore slow always should be checked
-	if rules.IgnoreSlowTorrentsCondition == domain.IgnoreSlowTorrentsModeAlways {
+	if rules.IgnoreSlowTorrents && rules.IgnoreSlowTorrentsCondition == domain.IgnoreSlowTorrentsModeAlways {
 		// get transfer info
 		info, err := qbt.GetTransferInfoCtx(ctx)
 		if err != nil {
