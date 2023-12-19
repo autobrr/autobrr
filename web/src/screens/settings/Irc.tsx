@@ -170,20 +170,20 @@ const IrcSettings = () => {
 
       {data && data.length > 0 ? (
         <ul className="mt-6 min-w-full relative text-sm">
-          <li className="grid grid-cols-12 gap-4 border-b border-gray-200 dark:border-gray-700">
-            <div className="flex col-span-2 md:col-span-1 pl-2 sm:px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer"
+          <li className="grid grid-cols-12 gap-4 border-b border-gray-200 dark:border-gray-700 text-xs font-medium text-gray-500 dark:text-gray-400">
+            <div className="flex col-span-2 md:col-span-1 pl-2 sm:px-3 py-3 text-left uppercase tracking-wider cursor-pointer"
               onClick={() => sortedNetworks.requestSort("enabled")}>
               Enabled <span className="sort-indicator pl-1">{sortedNetworks.getSortIndicator("enabled")}</span>
             </div>
-            <div className="col-span-10 md:col-span-3 px-11 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer"
+            <div className="col-span-10 md:col-span-3 px-11 py-3 text-left uppercase tracking-wider cursor-pointer"
               onClick={() => sortedNetworks.requestSort("name")}>
               Network <span className="sort-indicator pl-1">{sortedNetworks.getSortIndicator("name")}</span>
             </div>
-            <div className="hidden md:flex col-span-4 px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer"
+            <div className="hidden md:flex col-span-4 px-6 py-3 text-left uppercase tracking-wider cursor-pointer"
               onClick={() => sortedNetworks.requestSort("server")}>
               Server <span className="sort-indicator pl-1">{sortedNetworks.getSortIndicator("server")}</span>
             </div>
-            <div className="hidden md:flex col-span-3 px-5 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer"
+            <div className="hidden md:flex col-span-3 px-5 py-3 text-left uppercase tracking-wider cursor-pointer"
               onClick={() => sortedNetworks.requestSort("nick")}>
               Nick <span className="sort-indicator pl-1">{sortedNetworks.getSortIndicator("nick")}</span>
             </div>
@@ -324,14 +324,14 @@ const ListItem = ({ network, expanded }: ListItemProps) => {
           <div className="min-w-full">
             {network.channels.length > 0 ? (
               <ul>
-                <li className="grid grid-cols-12 gap-4 border-b border-gray-200 dark:border-gray-700">
-                  <div className="col-span-5 sm:col-span-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider truncate">
+                <li className="grid grid-cols-12 gap-4 text-xs font-medium text-gray-500 dark:text-gray-400 border-b border-gray-200 dark:border-gray-700">
+                  <div className="col-span-5 sm:col-span-4 sm:px-6 py-3 text-left uppercase tracking-wider truncate">
                     Channel
                   </div>
-                  <div className="hidden sm:flex col-span-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider truncate">
+                  <div className="hidden sm:flex col-span-4 sm:px-6 py-3 text-left uppercase tracking-wider truncate">
                     Monitoring since
                   </div>
-                  <div className="col-span-6 sm:col-span-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider truncate">
+                  <div className="col-span-6 sm:col-span-4 sm:px-6 py-3 text-left uppercase tracking-wider truncate">
                     Last announce
                   </div>
                 </li>
