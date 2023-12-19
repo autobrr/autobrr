@@ -118,7 +118,7 @@ func (s *service) FindByID(ctx context.Context, filterID int) (*domain.Filter, e
 		return nil, err
 	}
 
-	actions, err := s.actionRepo.FindByFilterID(ctx, filter.ID)
+	actions, err := s.actionRepo.FindByFilterID(ctx, filter.ID, nil)
 	if err != nil {
 		s.log.Error().Err(err).Msgf("could not find filter actions for filter id: %v", filter.ID)
 	}
@@ -683,7 +683,7 @@ func (s *service) webhook(ctx context.Context, external domain.FilterExternal, r
 			}
 
 			// add header to req
-			req.Header.Add(http.CanonicalHeaderKey(h[0]), h[1])
+			req.Header.Add(h[0], h[1]) // go already canonicalizes the provided header key.
 		}
 	}
 

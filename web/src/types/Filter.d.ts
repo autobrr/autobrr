@@ -68,6 +68,7 @@ interface Filter {
   tags_match_logic: string;
   except_tags_match_logic: string;
   actions_count: number;
+  actions_enabled_count: number;
   actions: Action[];
   indexers: Indexer[];
   external: ExternalFilter[];
