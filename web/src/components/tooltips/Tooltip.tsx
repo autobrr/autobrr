@@ -8,6 +8,7 @@ import type { ReactNode } from 'react';
 
 import { Transition } from "@headlessui/react";
 import { usePopperTooltip } from "react-popper-tooltip";
+import { Placement } from '@popperjs/core';
 
 import { classNames } from "@utils";
 
@@ -39,6 +40,29 @@ export const Tooltip = ({
     return 'ontouchstart' in window || navigator.maxTouchPoints > 0;
   };
 
+  // default tooltip placement to right
+  const [placement, setPlacement] = useState<Placement>('right');
+
+  // check screen size and update placement if needed
+  useEffect(() => {
+    const updatePlacementForScreenSize = () => {
+      const screenWidth = window.innerWidth;
+      if (screenWidth < 640) { // tailwind's sm breakpoint
+        setPlacement('top');
+      } else {
+        setPlacement('right');
+      }
+    };
+
+    updatePlacementForScreenSize();
+    window.addEventListener('resize', updatePlacementForScreenSize);
+
+    return () => {
+      window.removeEventListener('resize', updatePlacementForScreenSize);
+    };
+  }, []);
+
+
   const {
     getTooltipProps,
     setTooltipRef: popperSetTooltipRef,
@@ -48,7 +72,7 @@ export const Tooltip = ({
     trigger: isTouchDevice() ? [] : (requiresClick ? 'click' : ['click', 'hover']),
     interactive: true,
     delayHide: 200,
-    placement: "right",
+    placement,
   });
 
   const handleTouch = (e: React.TouchEvent<HTMLDivElement>) => {
