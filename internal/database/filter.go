@@ -57,6 +57,12 @@ func (r *FilterRepo) find(ctx context.Context, tx *Tx, params domain.FilterQuery
 		From("action a").
 		Where("a.filter_id = f.id")
 
+	actionEnabledCountQuery := r.db.squirrel.
+		Select("COUNT(*)").
+		From("action a").
+		Where("a.filter_id = f.id").
+		Where("a.enabled = '1'")
+
 	queryBuilder := r.db.squirrel.
 		Select(
 			"f.id",
@@ -68,6 +74,7 @@ func (r *FilterRepo) find(ctx context.Context, tx *Tx, params domain.FilterQuery
 		).
 		Distinct().
 		Column(sq.Alias(actionCountQuery, "action_count")).
+		Column(sq.Alias(actionEnabledCountQuery, "actions_enabled_count")).
 		LeftJoin("filter_indexer fi ON f.id = fi.filter_id").
 		LeftJoin("indexer i ON i.id = fi.indexer_id").
 		From("filter f")
@@ -89,7 +96,6 @@ func (r *FilterRepo) find(ctx context.Context, tx *Tx, params domain.FilterQuery
 		for _, v := range params.Filters.Indexers {
 			filter = append(filter, sq.Eq{"i.identifier": v})
 		}
-
 		queryBuilder = queryBuilder.Where(filter)
 	}
 
@@ -102,14 +108,13 @@ func (r *FilterRepo) find(ctx context.Context, tx *Tx, params domain.FilterQuery
 	if err != nil {
 		return nil, errors.Wrap(err, "error executing query")
 	}
-
 	defer rows.Close()
 
 	var filters []domain.Filter
 	for rows.Next() {
 		var f domain.Filter
 
-		if err := rows.Scan(&f.ID, &f.Enabled, &f.Name, &f.Priority, &f.CreatedAt, &f.UpdatedAt, &f.ActionsCount); err != nil {
+		if err := rows.Scan(&f.ID, &f.Enabled, &f.Name, &f.Priority, &f.CreatedAt, &f.UpdatedAt, &f.ActionsCount, &f.ActionsEnabledCount); err != nil {
 			return nil, errors.Wrap(err, "error scanning row")
 		}
 

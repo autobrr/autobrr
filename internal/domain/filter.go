@@ -133,6 +133,7 @@ type Filter struct {
 	ExceptDescription    string                 `json:"except_description,omitempty"`
 	UseRegexDescription  bool                   `json:"use_regex_description,omitempty"`
 	ActionsCount         int                    `json:"actions_count"`
+	ActionsEnabledCount  int                    `json:"actions_enabled_count"`
 	Actions              []*Action              `json:"actions,omitempty"`
 	External             []FilterExternal       `json:"external,omitempty"`
 	Indexers             []Indexer              `json:"indexers"`

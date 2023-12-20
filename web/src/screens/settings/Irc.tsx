@@ -621,7 +621,7 @@ export const Events = ({ network, channel }: EventsProps) => {
     };
 
     return () => es.close();
-  }, [settings]);
+  }, [channel, network.id, settings]);
 
   const [isFullscreen, toggleFullscreen] = useToggle(false);
 
@@ -649,7 +649,7 @@ export const Events = ({ network, channel }: EventsProps) => {
     };
     if (settings.scrollOnNewLog)
       scrollToBottom();
-  }, [logs]);
+  }, [logs, settings.scrollOnNewLog]);
 
   // Add a useEffect to clear logs div when settings.scrollOnNewLog changes to prevent duplicate entries.
   useEffect(() => {

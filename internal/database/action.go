@@ -30,7 +30,7 @@ func NewActionRepo(log logger.Logger, db *DB, clientRepo domain.DownloadClientRe
 	}
 }
 
-func (r *ActionRepo) FindByFilterID(ctx context.Context, filterID int) ([]*domain.Action, error) {
+func (r *ActionRepo) FindByFilterID(ctx context.Context, filterID int, active *bool) ([]*domain.Action, error) {
 	tx, err := r.db.BeginTx(ctx, &sql.TxOptions{Isolation: sql.LevelReadCommitted})
 	if err != nil {
 		return nil, err
@@ -38,7 +38,7 @@ func (r *ActionRepo) FindByFilterID(ctx context.Context, filterID int) ([]*domai
 
 	defer tx.Rollback()
 
-	actions, err := r.findByFilterID(ctx, tx, filterID)
+	actions, err := r.findByFilterID(ctx, tx, filterID, active)
 	if err != nil {
 		return nil, err
 	}
@@ -59,7 +59,7 @@ func (r *ActionRepo) FindByFilterID(ctx context.Context, filterID int) ([]*domai
 	return actions, nil
 }
 
-func (r *ActionRepo) findByFilterID(ctx context.Context, tx *Tx, filterID int) ([]*domain.Action, error) {
+func (r *ActionRepo) findByFilterID(ctx context.Context, tx *Tx, filterID int, active *bool) ([]*domain.Action, error) {
 	queryBuilder := r.db.squirrel.
 		Select(
 			"id",
@@ -94,6 +94,10 @@ func (r *ActionRepo) findByFilterID(ctx context.Context, tx *Tx, filterID int) (
 		).
 		From("action").
 		Where(sq.Eq{"filter_id": filterID})
+
+	if active != nil {
+		queryBuilder = queryBuilder.Where(sq.Eq{"enabled": *active})
+	}
 
 	query, args, err := queryBuilder.ToSql()
 	if err != nil {

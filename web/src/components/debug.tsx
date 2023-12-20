@@ -10,7 +10,7 @@ interface DebugProps {
     values: unknown;
 }
 
-const DEBUG: FC<DebugProps> = ({ values }) => {
+export const DEBUG: FC<DebugProps> = ({ values }) => {
   const settings = SettingsContext.useValue();
 
   if (process.env.NODE_ENV !== "development" || !settings.debug) {
@@ -23,5 +23,3 @@ const DEBUG: FC<DebugProps> = ({ values }) => {
     </div>
   );
 };
-
-export default DEBUG;

@@ -3,5 +3,5 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-export * from "./ErrorPage";
-export * from "./Warning";
+export { ErrorPage } from './ErrorPage';
+export { WarningAlert } from "./Warning";

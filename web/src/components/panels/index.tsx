@@ -9,7 +9,7 @@ import { Dialog, Transition } from "@headlessui/react";
 import { Form, Formik } from "formik";
 import type { FormikValues, FormikProps } from "formik";
 
-import DEBUG from "@components/debug";
+import { DEBUG } from "@components/debug";
 import { useToggle } from "@hooks/hooks";
 import { DeleteModal } from "@components/modals";
 import { classNames } from "@utils";

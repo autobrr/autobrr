@@ -38,6 +38,7 @@ bin/
 dist/
 .run/
 tmp/
+.golangci.yml
 
 # Preserve files
 !.gitkeep

@@ -22,9 +22,9 @@ test
 #!web/yarn.lock
 #!web/.yarnrc.yml
 #!web/.yarn/releases
-#!web/.eslintrc.js
-#!web/postcss.config.js
-#!web/tailwind.config.js
+#!web/.eslintrc.cjs
+#!web/postcss.config.cts
+#!web/tailwind.config.ts
 #!web/tsconfig.json
 #!web/index.html
 #!web/vite.config.ts
