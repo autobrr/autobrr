@@ -65,6 +65,24 @@ func (s *service) qbittorrent(ctx context.Context, action *domain.Action, releas
 		return nil, errors.Wrap(err, "could not add torrent %s to client: %s", release.TorrentTmpFile, c.Dc.Name)
 	}
 
+	// handle priority setting
+	if release.TorrentHash != "" {
+		switch action.PriorityLayout {
+		case domain.PriorityLayoutMax:
+			if err := c.Qbt.SetMaxPriorityCtx(ctx, []string{release.TorrentHash}); err != nil {
+				return nil, errors.Wrap(err, "could not set torrent %s to max priority: %s", release.TorrentHash, c.Dc.Name)
+			}
+			s.log.Info().Msgf("torrent with hash %s set to max priority in client: '%s'", release.TorrentHash, c.Dc.Name)
+		case domain.PriorityLayoutMin:
+			if err := c.Qbt.SetMinPriorityCtx(ctx, []string{release.TorrentHash}); err != nil {
+				return nil, errors.Wrap(err, "could not set torrent %s to min priority: %s", release.TorrentHash, c.Dc.Name)
+			}
+			s.log.Info().Msgf("torrent with hash %s set to min priority in client: '%s'", release.TorrentHash, c.Dc.Name)
+		case domain.PriorityLayoutDefault:
+			s.log.Info().Msgf("default priority will be used for torrent with hash %s in client: '%s'", release.TorrentHash, c.Dc.Name)
+		}
+	}
+
 	if !action.Paused && !action.ReAnnounceSkip && release.TorrentHash != "" {
 		opts := qbittorrent.ReannounceOptions{
 			Interval:        int(action.ReAnnounceInterval),

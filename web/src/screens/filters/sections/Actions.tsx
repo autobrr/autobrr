@@ -54,6 +54,7 @@ export function Actions({ filter, values }: FilterActionsProps) {
     ignore_rules: false,
     skip_hash_check: false,
     content_layout: "" || undefined,
+    action_priority: "" || undefined,
     limit_upload_speed: 0,
     limit_download_speed: 0,
     limit_ratio: 0,

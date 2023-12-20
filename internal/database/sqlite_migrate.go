@@ -199,6 +199,7 @@ CREATE TABLE action
     limit_download_speed    INT,
     limit_ratio             REAL,
     limit_seed_time         INT,
+    action_priority         TEXT,
     reannounce_skip         BOOLEAN DEFAULT false,
     reannounce_delete       BOOLEAN DEFAULT false,
     reannounce_interval     INTEGER DEFAULT 7,
@@ -763,20 +764,20 @@ ALTER TABLE release_action_status_dg_tmp
 	`
 	ALTER TABLE "action"
 		ADD COLUMN reannounce_skip BOOLEAN DEFAULT false;
-	
+
 	ALTER TABLE "action"
 		ADD COLUMN reannounce_delete BOOLEAN DEFAULT false;
-	
+
 	ALTER TABLE "action"
 		ADD COLUMN reannounce_interval INTEGER DEFAULT 7;
-	
+
 	ALTER TABLE "action"
 		ADD COLUMN reannounce_max_attempts INTEGER DEFAULT 50;
 	`,
 	`
 	ALTER TABLE "action"
 		ADD COLUMN limit_ratio REAL DEFAULT 0;
-	
+
 	ALTER TABLE "action"
 		ADD COLUMN limit_seed_time INTEGER DEFAULT 0;
 	`,
@@ -986,7 +987,7 @@ CREATE TABLE irc_network_dg_tmp
     unique (server, port, nick)
 );
 
-INSERT INTO irc_network_dg_tmp(id, enabled, name, server, port, tls, pass, nick, auth_mechanism, auth_account, auth_password, invite_command, 
+INSERT INTO irc_network_dg_tmp(id, enabled, name, server, port, tls, pass, nick, auth_mechanism, auth_account, auth_password, invite_command,
                                connected, connected_since, created_at, updated_at)
 SELECT id,
        enabled,
@@ -1079,7 +1080,7 @@ FROM filter f WHERE f.name = release_action_status.filter);
 	`,
 	`ALTER TABLE "release"
 ADD COLUMN info_url TEXT;
-    
+
 ALTER TABLE "release"
 ADD COLUMN download_url TEXT;
 	`,
@@ -1088,7 +1089,7 @@ ADD COLUMN download_url TEXT;
 
 	ALTER TABLE filter
 		ADD COLUMN except_tags_match_logic TEXT;
-    
+
     UPDATE filter
     SET tags_match_logic = 'ANY'
     WHERE tags IS NOT NULL;
@@ -1422,7 +1423,10 @@ ALTER TABLE filter_external_dg_tmp
 	`ALTER TABLE filter_external
 	DROP COLUMN webhook_retry_max_jitter_seconds;
 `,
-  `ALTER TABLE irc_network
+	`ALTER TABLE irc_network
 	ADD COLUMN bot_mode BOOLEAN DEFAULT FALSE;
 	`,
+	`ALTER TABLE action
+    ADD COLUMN action_priority TEXT;
+    `,
 }

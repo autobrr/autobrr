@@ -77,6 +77,7 @@ func (r *ActionRepo) findByFilterID(ctx context.Context, tx *Tx, filterID int, a
 			"ignore_rules",
 			"skip_hash_check",
 			"content_layout",
+			"action_priority",
 			"limit_download_speed",
 			"limit_upload_speed",
 			"limit_ratio",
@@ -115,14 +116,14 @@ func (r *ActionRepo) findByFilterID(ctx context.Context, tx *Tx, filterID int, a
 	for rows.Next() {
 		var a domain.Action
 
-		var execCmd, execArgs, watchFolder, category, tags, label, savePath, contentLayout, webhookHost, webhookType, webhookMethod, webhookData sql.NullString
+		var execCmd, execArgs, watchFolder, category, tags, label, savePath, contentLayout, priorityLayout, webhookHost, webhookType, webhookMethod, webhookData sql.NullString
 		var limitUl, limitDl, limitSeedTime sql.NullInt64
 		var limitRatio sql.NullFloat64
 
 		var externalClientID, clientID sql.NullInt32
 		var paused, ignoreRules sql.NullBool
 
-		if err := rows.Scan(&a.ID, &a.Name, &a.Type, &a.Enabled, &execCmd, &execArgs, &watchFolder, &category, &tags, &label, &savePath, &paused, &ignoreRules, &a.SkipHashCheck, &contentLayout, &limitDl, &limitUl, &limitRatio, &limitSeedTime, &a.ReAnnounceSkip, &a.ReAnnounceDelete, &a.ReAnnounceInterval, &a.ReAnnounceMaxAttempts, &webhookHost, &webhookType, &webhookMethod, &webhookData, &externalClientID, &clientID); err != nil {
+		if err := rows.Scan(&a.ID, &a.Name, &a.Type, &a.Enabled, &execCmd, &execArgs, &watchFolder, &category, &tags, &label, &savePath, &paused, &ignoreRules, &a.SkipHashCheck, &contentLayout, &priorityLayout, &limitDl, &limitUl, &limitRatio, &limitSeedTime, &a.ReAnnounceSkip, &a.ReAnnounceDelete, &a.ReAnnounceInterval, &a.ReAnnounceMaxAttempts, &webhookHost, &webhookType, &webhookMethod, &webhookData, &externalClientID, &clientID); err != nil {
 			return nil, errors.Wrap(err, "error scanning row")
 		}
 
@@ -136,6 +137,7 @@ func (r *ActionRepo) findByFilterID(ctx context.Context, tx *Tx, filterID int, a
 		a.Paused = paused.Bool
 		a.IgnoreRules = ignoreRules.Bool
 		a.ContentLayout = domain.ActionContentLayout(contentLayout.String)
+		a.PriorityLayout = domain.PriorityLayout(priorityLayout.String)
 
 		a.LimitDownloadSpeed = limitDl.Int64
 		a.LimitUploadSpeed = limitUl.Int64
@@ -227,6 +229,7 @@ func (r *ActionRepo) List(ctx context.Context) ([]domain.Action, error) {
 			"ignore_rules",
 			"skip_hash_check",
 			"content_layout",
+			"action_priority",
 			"limit_download_speed",
 			"limit_upload_speed",
 			"limit_ratio",
@@ -260,13 +263,13 @@ func (r *ActionRepo) List(ctx context.Context) ([]domain.Action, error) {
 	for rows.Next() {
 		var a domain.Action
 
-		var execCmd, execArgs, watchFolder, category, tags, label, savePath, contentLayout, webhookHost, webhookType, webhookMethod, webhookData sql.NullString
+		var execCmd, execArgs, watchFolder, category, tags, label, savePath, contentLayout, priorityLayout, webhookHost, webhookType, webhookMethod, webhookData sql.NullString
 		var limitUl, limitDl, limitSeedTime sql.NullInt64
 		var limitRatio sql.NullFloat64
 		var externalClientID, clientID sql.NullInt32
 		var paused, ignoreRules sql.NullBool
 
-		if err := rows.Scan(&a.ID, &a.Name, &a.Type, &a.Enabled, &execCmd, &execArgs, &watchFolder, &category, &tags, &label, &savePath, &paused, &ignoreRules, &a.SkipHashCheck, &contentLayout, &limitDl, &limitUl, &limitRatio, &limitSeedTime, &a.ReAnnounceSkip, &a.ReAnnounceDelete, &a.ReAnnounceInterval, &a.ReAnnounceMaxAttempts, &webhookHost, &webhookType, &webhookMethod, &webhookData, &externalClientID, &clientID); err != nil {
+		if err := rows.Scan(&a.ID, &a.Name, &a.Type, &a.Enabled, &execCmd, &execArgs, &watchFolder, &category, &tags, &label, &savePath, &paused, &ignoreRules, &a.SkipHashCheck, &contentLayout, &priorityLayout, &limitDl, &limitUl, &limitRatio, &limitSeedTime, &a.ReAnnounceSkip, &a.ReAnnounceDelete, &a.ReAnnounceInterval, &a.ReAnnounceMaxAttempts, &webhookHost, &webhookType, &webhookMethod, &webhookData, &externalClientID, &clientID); err != nil {
 			return nil, errors.Wrap(err, "error scanning row")
 		}
 
@@ -277,6 +280,7 @@ func (r *ActionRepo) List(ctx context.Context) ([]domain.Action, error) {
 		a.Paused = paused.Bool
 		a.IgnoreRules = ignoreRules.Bool
 		a.ContentLayout = domain.ActionContentLayout(contentLayout.String)
+		a.PriorityLayout = domain.PriorityLayout(priorityLayout.String)
 
 		a.LimitDownloadSpeed = limitDl.Int64
 		a.LimitUploadSpeed = limitUl.Int64
@@ -319,6 +323,7 @@ func (r *ActionRepo) Get(ctx context.Context, req *domain.GetActionRequest) (*do
 			"ignore_rules",
 			"skip_hash_check",
 			"content_layout",
+			"action_priority",
 			"limit_download_speed",
 			"limit_upload_speed",
 			"limit_ratio",
@@ -354,13 +359,13 @@ func (r *ActionRepo) Get(ctx context.Context, req *domain.GetActionRequest) (*do
 
 	var a domain.Action
 
-	var execCmd, execArgs, watchFolder, category, tags, label, savePath, contentLayout, webhookHost, webhookType, webhookMethod, webhookData sql.NullString
+	var execCmd, execArgs, watchFolder, category, tags, label, savePath, contentLayout, priorityLayout, webhookHost, webhookType, webhookMethod, webhookData sql.NullString
 	var limitUl, limitDl, limitSeedTime sql.NullInt64
 	var limitRatio sql.NullFloat64
 	var externalClientID, clientID, filterID sql.NullInt32
 	var paused, ignoreRules sql.NullBool
 
-	if err := row.Scan(&a.ID, &a.Name, &a.Type, &a.Enabled, &execCmd, &execArgs, &watchFolder, &category, &tags, &label, &savePath, &paused, &ignoreRules, &a.SkipHashCheck, &contentLayout, &limitDl, &limitUl, &limitRatio, &limitSeedTime, &a.ReAnnounceSkip, &a.ReAnnounceDelete, &a.ReAnnounceInterval, &a.ReAnnounceMaxAttempts, &webhookHost, &webhookType, &webhookMethod, &webhookData, &externalClientID, &clientID, &filterID); err != nil {
+	if err := row.Scan(&a.ID, &a.Name, &a.Type, &a.Enabled, &execCmd, &execArgs, &watchFolder, &category, &tags, &label, &savePath, &paused, &ignoreRules, &a.SkipHashCheck, &contentLayout, &priorityLayout, &limitDl, &limitUl, &limitRatio, &limitSeedTime, &a.ReAnnounceSkip, &a.ReAnnounceDelete, &a.ReAnnounceInterval, &a.ReAnnounceMaxAttempts, &webhookHost, &webhookType, &webhookMethod, &webhookData, &externalClientID, &clientID, &filterID); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, domain.ErrRecordNotFound
 		}
@@ -378,6 +383,7 @@ func (r *ActionRepo) Get(ctx context.Context, req *domain.GetActionRequest) (*do
 	a.Paused = paused.Bool
 	a.IgnoreRules = ignoreRules.Bool
 	a.ContentLayout = domain.ActionContentLayout(contentLayout.String)
+	a.PriorityLayout = domain.PriorityLayout(priorityLayout.String)
 
 	a.LimitDownloadSpeed = limitDl.Int64
 	a.LimitUploadSpeed = limitUl.Int64
@@ -454,6 +460,7 @@ func (r *ActionRepo) Store(ctx context.Context, action domain.Action) (*domain.A
 			"ignore_rules",
 			"skip_hash_check",
 			"content_layout",
+			"action_priority",
 			"limit_upload_speed",
 			"limit_download_speed",
 			"limit_ratio",
@@ -485,6 +492,7 @@ func (r *ActionRepo) Store(ctx context.Context, action domain.Action) (*domain.A
 			action.IgnoreRules,
 			action.SkipHashCheck,
 			toNullString(string(action.ContentLayout)),
+			toNullString(string(action.PriorityLayout)),
 			toNullInt64(action.LimitUploadSpeed),
 			toNullInt64(action.LimitDownloadSpeed),
 			toNullFloat64(action.LimitRatio),
@@ -534,6 +542,7 @@ func (r *ActionRepo) Update(ctx context.Context, action domain.Action) (*domain.
 		Set("ignore_rules", action.IgnoreRules).
 		Set("skip_hash_check", action.SkipHashCheck).
 		Set("content_layout", toNullString(string(action.ContentLayout))).
+		Set("action_priority", toNullString(string(action.PriorityLayout))).
 		Set("limit_upload_speed", toNullInt64(action.LimitUploadSpeed)).
 		Set("limit_download_speed", toNullInt64(action.LimitDownloadSpeed)).
 		Set("limit_ratio", toNullFloat64(action.LimitRatio)).
@@ -593,6 +602,7 @@ func (r *ActionRepo) StoreFilterActions(ctx context.Context, filterID int64, act
 				Set("ignore_rules", action.IgnoreRules).
 				Set("skip_hash_check", action.SkipHashCheck).
 				Set("content_layout", toNullString(string(action.ContentLayout))).
+				Set("action_priority", toNullString(string(action.PriorityLayout))).
 				Set("limit_upload_speed", toNullInt64(action.LimitUploadSpeed)).
 				Set("limit_download_speed", toNullInt64(action.LimitDownloadSpeed)).
 				Set("limit_ratio", toNullFloat64(action.LimitRatio)).
@@ -639,6 +649,7 @@ func (r *ActionRepo) StoreFilterActions(ctx context.Context, filterID int64, act
 					"ignore_rules",
 					"skip_hash_check",
 					"content_layout",
+					"action_priority",
 					"limit_upload_speed",
 					"limit_download_speed",
 					"limit_ratio",
@@ -670,6 +681,7 @@ func (r *ActionRepo) StoreFilterActions(ctx context.Context, filterID int64, act
 					action.IgnoreRules,
 					action.SkipHashCheck,
 					toNullString(string(action.ContentLayout)),
+					toNullString(string(action.PriorityLayout)),
 					toNullInt64(action.LimitUploadSpeed),
 					toNullInt64(action.LimitDownloadSpeed),
 					toNullFloat64(action.LimitRatio),

@@ -42,6 +42,7 @@ type Action struct {
 	LimitDownloadSpeed       int64               `json:"limit_download_speed,omitempty"`
 	LimitRatio               float64             `json:"limit_ratio,omitempty"`
 	LimitSeedTime            int64               `json:"limit_seed_time,omitempty"`
+	PriorityLayout           PriorityLayout      `json:"action_priority,omitempty"`
 	ReAnnounceSkip           bool                `json:"reannounce_skip,omitempty"`
 	ReAnnounceDelete         bool                `json:"reannounce_delete,omitempty"`
 	ReAnnounceInterval       int64               `json:"reannounce_interval,omitempty"`
@@ -126,6 +127,14 @@ const (
 	ActionContentLayoutOriginal        ActionContentLayout = "ORIGINAL"
 	ActionContentLayoutSubfolderNone   ActionContentLayout = "SUBFOLDER_NONE"
 	ActionContentLayoutSubfolderCreate ActionContentLayout = "SUBFOLDER_CREATE"
+)
+
+type PriorityLayout string
+
+const (
+	PriorityLayoutMax     PriorityLayout = "MAX"
+	PriorityLayoutMin     PriorityLayout = "MIN"
+	PriorityLayoutDefault PriorityLayout = ""
 )
 
 type GetActionRequest struct {
