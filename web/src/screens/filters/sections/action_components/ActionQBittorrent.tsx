@@ -113,7 +113,7 @@ export const QBittorrent = ({ idx, action, clients }: ClientActionProps) => (
             options={ActionPriorityOptions}
             tooltip={
               <div>
-                <p>Torrent Queueing needs to be enabled, otherwise nothing will be accepted by the client.</p>
+                <p>Torrent Queueing needs to be enabled in your client, otherwise this setting will have no effect.</p>
               </div>
             }
           />
