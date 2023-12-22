@@ -66,37 +66,41 @@ func (s *service) qbittorrent(ctx context.Context, action *domain.Action, releas
 	}
 
 	if release.TorrentHash != "" {
-		// only check if torrent queueing is enabled if priority is set
+		// check if torrent queueing is enabled if priority is set
 		switch action.PriorityLayout {
 		case domain.PriorityLayoutMax, domain.PriorityLayoutMin:
 			prefs, err := c.Qbt.GetAppPreferencesCtx(ctx)
 			if err != nil {
 				return nil, errors.Wrap(err, "could not get application preferences from client: '%s'", c.Dc.Name)
 			}
-
-			if prefs.QueueingEnabled { // set priority if enabled
-				if action.PriorityLayout == domain.PriorityLayoutMax {
-					if err := c.Qbt.SetMaxPriorityCtx(ctx, []string{release.TorrentHash}); err != nil {
-						return nil, errors.Wrap(err, "could not set torrent %s to max priority", release.TorrentHash)
-					}
-					s.log.Info().Msgf("torrent with hash %s set to max priority in client: '%s'", release.TorrentHash, c.Dc.Name)
-
-				} else { // domain.PriorityLayoutMin
-					if err := c.Qbt.SetMinPriorityCtx(ctx, []string{release.TorrentHash}); err != nil {
-						return nil, errors.Wrap(err, "could not set torrent %s to min priority", release.TorrentHash)
-					}
-					s.log.Info().Msgf("torrent with hash %s set to min priority in client: '%s'", release.TorrentHash, c.Dc.Name)
+			// enable queueing if it's disabled
+			if !prefs.QueueingEnabled {
+				if err := c.Qbt.SetQueueingEnabled(true); err != nil {
+					return nil, errors.Wrap(err, "could not enable torrent queueing")
 				}
-
-			} else {
-				s.log.Debug().Msgf("torrent queueing is disabled in client: '%s', priority settings are ignored", c.Dc.Name)
+				s.log.Trace().Msgf("torrent queueing was disabled, now enabled in client: '%s'", c.Dc.Name)
 			}
+			// set priority if queueing is enabled
+			if action.PriorityLayout == domain.PriorityLayoutMax {
+				if err := c.Qbt.SetMaxPriorityCtx(ctx, []string{release.TorrentHash}); err != nil {
+					return nil, errors.Wrap(err, "could not set torrent %s to max priority", release.TorrentHash)
+				}
+				s.log.Debug().Msgf("torrent with hash %s set to max priority in client: '%s'", release.TorrentHash, c.Dc.Name)
+
+			} else { // domain.PriorityLayoutMin
+				if err := c.Qbt.SetMinPriorityCtx(ctx, []string{release.TorrentHash}); err != nil {
+					return nil, errors.Wrap(err, "could not set torrent %s to min priority", release.TorrentHash)
+				}
+				s.log.Debug().Msgf("torrent with hash %s set to min priority in client: '%s'", release.TorrentHash, c.Dc.Name)
+			}
+
 		case domain.PriorityLayoutDefault:
-			// do nothing as its disabled or unset
+			// do nothing as it's disabled or unset
 		default:
 			s.log.Warn().Msgf("unknown priority setting: '%v', no priority changes made", action.PriorityLayout)
 		}
-	} else { // add anyway if no hash
+	} else {
+		// add anyway if no hash
 		s.log.Trace().Msg("no torrent hash provided, skipping priority setting")
 	}
 
