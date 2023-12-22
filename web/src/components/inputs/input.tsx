@@ -177,7 +177,7 @@ export const RegexField = ({
     if (useRegex) {
       validateForm();
     }
-  }, [useRegex]);  
+  }, [useRegex, validateForm]);
 
   return (
     <div
@@ -317,7 +317,7 @@ export const RegexTextAreaField = ({
     if (useRegex) {
       validateForm();
     }
-  }, [useRegex]);
+  }, [useRegex, validateForm]);
 
   return (
     <div

@@ -57,6 +57,12 @@ func (r *FilterRepo) find(ctx context.Context, tx *Tx, params domain.FilterQuery
 		From("action a").
 		Where("a.filter_id = f.id")
 
+	actionEnabledCountQuery := r.db.squirrel.
+		Select("COUNT(*)").
+		From("action a").
+		Where("a.filter_id = f.id").
+		Where("a.enabled = '1'")
+
 	queryBuilder := r.db.squirrel.
 		Select(
 			"f.id",
@@ -68,6 +74,7 @@ func (r *FilterRepo) find(ctx context.Context, tx *Tx, params domain.FilterQuery
 		).
 		Distinct().
 		Column(sq.Alias(actionCountQuery, "action_count")).
+		Column(sq.Alias(actionEnabledCountQuery, "actions_enabled_count")).
 		LeftJoin("filter_indexer fi ON f.id = fi.filter_id").
 		LeftJoin("indexer i ON i.id = fi.indexer_id").
 		From("filter f")
@@ -89,7 +96,6 @@ func (r *FilterRepo) find(ctx context.Context, tx *Tx, params domain.FilterQuery
 		for _, v := range params.Filters.Indexers {
 			filter = append(filter, sq.Eq{"i.identifier": v})
 		}
-
 		queryBuilder = queryBuilder.Where(filter)
 	}
 
@@ -102,14 +108,13 @@ func (r *FilterRepo) find(ctx context.Context, tx *Tx, params domain.FilterQuery
 	if err != nil {
 		return nil, errors.Wrap(err, "error executing query")
 	}
-
 	defer rows.Close()
 
 	var filters []domain.Filter
 	for rows.Next() {
 		var f domain.Filter
 
-		if err := rows.Scan(&f.ID, &f.Enabled, &f.Name, &f.Priority, &f.CreatedAt, &f.UpdatedAt, &f.ActionsCount); err != nil {
+		if err := rows.Scan(&f.ID, &f.Enabled, &f.Name, &f.Priority, &f.CreatedAt, &f.UpdatedAt, &f.ActionsCount, &f.ActionsEnabledCount); err != nil {
 			return nil, errors.Wrap(err, "error scanning row")
 		}
 
@@ -633,46 +638,46 @@ func (r *FilterRepo) findByIndexerIdentifier(ctx context.Context, indexer string
 			return nil, errors.Wrap(err, "error scanning row")
 		}
 
-		f.MinSize = minSize.String
-		f.MaxSize = maxSize.String
-		f.Delay = int(delay.Int32)
-		f.MaxDownloads = int(maxDownloads.Int32)
-		f.MaxDownloadsUnit = domain.FilterMaxDownloadsUnit(maxDownloadsUnit.String)
-		f.MatchReleases = matchReleases.String
-		f.ExceptReleases = exceptReleases.String
-		f.MatchReleaseGroups = matchReleaseGroups.String
-		f.ExceptReleaseGroups = exceptReleaseGroups.String
-		f.MatchReleaseTags = matchReleaseTags.String
-		f.ExceptReleaseTags = exceptReleaseTags.String
-		f.MatchDescription = matchDescription.String
-		f.ExceptDescription = exceptDescription.String
-		f.FreeleechPercent = freeleechPercent.String
-		f.Shows = shows.String
-		f.Seasons = seasons.String
-		f.Episodes = episodes.String
-		f.Years = years.String
-		f.Artists = artists.String
-		f.Albums = albums.String
-		f.LogScore = int(logScore.Int32)
-		f.Log = hasLog.Bool
-		f.Cue = hasCue.Bool
-		f.PerfectFlac = perfectFlac.Bool
-		f.MatchCategories = matchCategories.String
-		f.ExceptCategories = exceptCategories.String
-		f.MatchUploaders = matchUploaders.String
-		f.ExceptUploaders = exceptUploaders.String
-		f.Tags = tags.String
-		f.ExceptTags = exceptTags.String
-		f.TagsMatchLogic = tagsMatchLogic.String
-		f.ExceptTagsMatchLogic = exceptTagsMatchLogic.String
-		f.UseRegex = useRegex.Bool
-		f.Scene = scene.Bool
-		f.Freeleech = freeleech.Bool
-
-		f.Rejections = []string{}
-
 		filter, ok := filtersMap[f.ID]
 		if !ok {
+			f.MinSize = minSize.String
+			f.MaxSize = maxSize.String
+			f.Delay = int(delay.Int32)
+			f.MaxDownloads = int(maxDownloads.Int32)
+			f.MaxDownloadsUnit = domain.FilterMaxDownloadsUnit(maxDownloadsUnit.String)
+			f.MatchReleases = matchReleases.String
+			f.ExceptReleases = exceptReleases.String
+			f.MatchReleaseGroups = matchReleaseGroups.String
+			f.ExceptReleaseGroups = exceptReleaseGroups.String
+			f.MatchReleaseTags = matchReleaseTags.String
+			f.ExceptReleaseTags = exceptReleaseTags.String
+			f.MatchDescription = matchDescription.String
+			f.ExceptDescription = exceptDescription.String
+			f.FreeleechPercent = freeleechPercent.String
+			f.Shows = shows.String
+			f.Seasons = seasons.String
+			f.Episodes = episodes.String
+			f.Years = years.String
+			f.Artists = artists.String
+			f.Albums = albums.String
+			f.LogScore = int(logScore.Int32)
+			f.Log = hasLog.Bool
+			f.Cue = hasCue.Bool
+			f.PerfectFlac = perfectFlac.Bool
+			f.MatchCategories = matchCategories.String
+			f.ExceptCategories = exceptCategories.String
+			f.MatchUploaders = matchUploaders.String
+			f.ExceptUploaders = exceptUploaders.String
+			f.Tags = tags.String
+			f.ExceptTags = exceptTags.String
+			f.TagsMatchLogic = tagsMatchLogic.String
+			f.ExceptTagsMatchLogic = exceptTagsMatchLogic.String
+			f.UseRegex = useRegex.Bool
+			f.Scene = scene.Bool
+			f.Freeleech = freeleech.Bool
+
+			f.Rejections = []string{}
+
 			filter = &f
 			filtersMap[f.ID] = filter
 		}

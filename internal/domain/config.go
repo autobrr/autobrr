@@ -23,7 +23,7 @@ type Config struct {
 	PostgresUser        string `toml:"postgresUser"`
 	PostgresPass        string `toml:"postgresPass"`
 	PostgresSSLMode     string `toml:"postgresSSLMode"`
-	PostgresExtraParams string `toml:"PostgresExtraParams"`
+	PostgresExtraParams string `toml:"postgresExtraParams"`
 }
 
 type ConfigUpdate struct {
