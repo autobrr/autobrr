@@ -15,6 +15,7 @@ import (
 	"github.com/autobrr/autobrr/pkg/wildcard"
 
 	"github.com/dustin/go-humanize"
+	"github.com/go-andiamo/splitter"
 )
 
 /*
@@ -626,7 +627,22 @@ func matchRegex(tag string, filterList string) bool {
 	if tag == "" {
 		return false
 	}
-	filters := strings.Split(filterList, ",")
+
+	sp, err := splitter.NewSplitter(',',
+		splitter.DoubleQuotes,
+		splitter.Parenthesis,
+		splitter.CurlyBrackets,
+		splitter.SquareBrackets,
+	)
+
+	if err != nil {
+		return false
+	}
+
+	filters, err := sp.Split(filterList)
+	if err != nil {
+		return false
+	}
 
 	for _, filter := range filters {
 		if filter == "" {
