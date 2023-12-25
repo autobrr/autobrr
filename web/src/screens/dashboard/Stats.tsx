@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-import { useQuery } from "@tanstack/react-query";
+import { useSuspenseQuery } from "@tanstack/react-query";
 import { APIClient } from "@api/APIClient";
 import { classNames } from "@utils";
 import { useNavigate } from "react-router-dom";
@@ -49,7 +49,7 @@ export const Stats = () => {
     }
   };
 
-  const { isLoading, data } = useQuery({
+  const { isLoading, data } = useSuspenseQuery({
     queryKey: ["dash_release_stats"],
     queryFn: APIClient.release.stats,
     refetchOnWindowFocus: false

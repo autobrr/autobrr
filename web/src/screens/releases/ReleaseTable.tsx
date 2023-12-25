@@ -5,7 +5,7 @@
 
 import React, { useState } from "react";
 import { useLocation } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
+import { useSuspenseQuery } from "@tanstack/react-query";
 import { CellProps, Column, useFilters, usePagination, useSortBy, useTable } from "react-table";
 import {
   ChevronDoubleLeftIcon,
@@ -15,7 +15,7 @@ import {
 } from "@heroicons/react/24/solid";
 import { EyeIcon, EyeSlashIcon } from "@heroicons/react/24/solid";
 
-import { RandomLinuxIsos } from "@utils/index";
+import { RandomLinuxIsos } from "@utils";
 import { APIClient } from "@api/APIClient";
 import { EmptyListState } from "@components/emptystates";
 
@@ -141,10 +141,9 @@ export const ReleaseTable = () => {
   const [{ queryPageIndex, queryPageSize, totalCount, queryFilters }, dispatch] =
         React.useReducer(TableReducer, initialState);
 
-  const { isLoading, error, data, isSuccess } = useQuery({
+  const { isLoading, error, data, isSuccess } = useSuspenseQuery({
     queryKey: releaseKeys.list(queryPageIndex, queryPageSize, queryFilters),
     queryFn: () => APIClient.release.findQuery(queryPageIndex * queryPageSize, queryPageSize, queryFilters),
-    keepPreviousData: true,
     staleTime: 5000
   });
 

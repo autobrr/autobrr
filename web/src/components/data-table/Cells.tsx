@@ -103,7 +103,7 @@ const RetryActionButton = ({ status }: RetryActionButtonProps) => {
   return (
     <button className="flex items-center px-1.5 py-1 ml-2 rounded transition border-gray-500 bg-gray-250 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600" onClick={replayAction}>
       <span className="mr-1.5">Retry</span>
-      {mutation.isLoading
+      {mutation.isPending
         ? <RingResizeSpinner className="text-blue-500 w-4 h-4 iconHeight" aria-hidden="true" />
         : <ArrowPathIcon className="h-4 w-4" />
       }
