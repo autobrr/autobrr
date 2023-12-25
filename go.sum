@@ -98,6 +98,8 @@ github.com/autobrr/go-qbittorrent v1.7.2-0.20231029234932-67580aa0e42a h1:oMPFpu
 github.com/autobrr/go-qbittorrent v1.7.2-0.20231029234932-67580aa0e42a/go.mod h1:z88B3+O/1/3doQABErvIOOxE4hjpmIpulu6XzDG/q78=
 github.com/autobrr/go-qbittorrent v1.8.0 h1:Q5TWA9NccjjPQXAGEBXd5pZXjWrUl3BYqrjioYAv0V0=
 github.com/autobrr/go-qbittorrent v1.8.0/go.mod h1:z88B3+O/1/3doQABErvIOOxE4hjpmIpulu6XzDG/q78=
+github.com/autobrr/go-qbittorrent v1.8.1 h1:QQxuEaCKThTmV0LhU6tHZQvYv+eCrKmiCRY0G1RiJG4=
+github.com/autobrr/go-qbittorrent v1.8.1/go.mod h1:z88B3+O/1/3doQABErvIOOxE4hjpmIpulu6XzDG/q78=
 github.com/autobrr/go-rtorrent v1.10.0 h1:SCs7Rdi1BZ3MxNoVIdWK0qTUHQyhSj9rEU8KUTRi4Ug=
 github.com/autobrr/go-rtorrent v1.10.0/go.mod h1:1CyQ2tcLOGP+p9drOqFiVPb/+QvfExMPCHnEGQd0BmM=
 github.com/autobrr/sse/v2 v2.0.0-20230520125637-530e06346d7d h1:9EGCYgeugAVWLBAtjHC7AFnXSwUdYfCB98WaOgdDREE=
