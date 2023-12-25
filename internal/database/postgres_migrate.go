@@ -199,7 +199,7 @@ CREATE TABLE action
     limit_download_speed    INT,
     limit_ratio             REAL,
     limit_seed_time         INT,
-	action_priority			TEXT,
+    priority			    TEXT,
     reannounce_skip         BOOLEAN DEFAULT false,
     reannounce_delete       BOOLEAN DEFAULT false,
     reannounce_interval     INTEGER DEFAULT 7,
@@ -837,6 +837,6 @@ ALTER TABLE filter_external
 	ALTER COLUMN max_age SET DEFAULT 0;
 `,
 	`ALTER TABLE action
-	ADD COLUMN action_priority TEXT;
+	ADD COLUMN priority TEXT;
 `,
 }

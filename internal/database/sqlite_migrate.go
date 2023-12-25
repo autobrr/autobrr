@@ -199,7 +199,7 @@ CREATE TABLE action
     limit_download_speed    INT,
     limit_ratio             REAL,
     limit_seed_time         INT,
-    action_priority         TEXT,
+    priority                TEXT,
     reannounce_skip         BOOLEAN DEFAULT false,
     reannounce_delete       BOOLEAN DEFAULT false,
     reannounce_interval     INTEGER DEFAULT 7,
@@ -1426,9 +1426,6 @@ ALTER TABLE filter_external_dg_tmp
 	`ALTER TABLE irc_network
 	ADD COLUMN bot_mode BOOLEAN DEFAULT FALSE;
 `,
-	`ALTER TABLE action
-    ADD COLUMN action_priority TEXT;
-`,
 	`CREATE TABLE feed_dg_tmp
 (
     id            INTEGER PRIMARY KEY,
@@ -1480,7 +1477,7 @@ DROP TABLE feed;
 ALTER TABLE feed_dg_tmp
     RENAME TO feed;
 `,
-  `ALTER TABLE action
-	ADD COLUMN action_priority TEXT;
+	`ALTER TABLE action
+	ADD COLUMN priority TEXT;
 `,
 }

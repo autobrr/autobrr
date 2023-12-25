@@ -77,7 +77,7 @@ func (r *ActionRepo) findByFilterID(ctx context.Context, tx *Tx, filterID int, a
 			"ignore_rules",
 			"skip_hash_check",
 			"content_layout",
-			"action_priority",
+			"priority",
 			"limit_download_speed",
 			"limit_upload_speed",
 			"limit_ratio",
@@ -229,7 +229,7 @@ func (r *ActionRepo) List(ctx context.Context) ([]domain.Action, error) {
 			"ignore_rules",
 			"skip_hash_check",
 			"content_layout",
-			"action_priority",
+			"priority",
 			"limit_download_speed",
 			"limit_upload_speed",
 			"limit_ratio",
@@ -323,7 +323,7 @@ func (r *ActionRepo) Get(ctx context.Context, req *domain.GetActionRequest) (*do
 			"ignore_rules",
 			"skip_hash_check",
 			"content_layout",
-			"action_priority",
+			"priority",
 			"limit_download_speed",
 			"limit_upload_speed",
 			"limit_ratio",
@@ -460,7 +460,7 @@ func (r *ActionRepo) Store(ctx context.Context, action domain.Action) (*domain.A
 			"ignore_rules",
 			"skip_hash_check",
 			"content_layout",
-			"action_priority",
+			"priority",
 			"limit_upload_speed",
 			"limit_download_speed",
 			"limit_ratio",
@@ -542,7 +542,7 @@ func (r *ActionRepo) Update(ctx context.Context, action domain.Action) (*domain.
 		Set("ignore_rules", action.IgnoreRules).
 		Set("skip_hash_check", action.SkipHashCheck).
 		Set("content_layout", toNullString(string(action.ContentLayout))).
-		Set("action_priority", toNullString(string(action.PriorityLayout))).
+		Set("priority", toNullString(string(action.PriorityLayout))).
 		Set("limit_upload_speed", toNullInt64(action.LimitUploadSpeed)).
 		Set("limit_download_speed", toNullInt64(action.LimitDownloadSpeed)).
 		Set("limit_ratio", toNullFloat64(action.LimitRatio)).
@@ -602,7 +602,7 @@ func (r *ActionRepo) StoreFilterActions(ctx context.Context, filterID int64, act
 				Set("ignore_rules", action.IgnoreRules).
 				Set("skip_hash_check", action.SkipHashCheck).
 				Set("content_layout", toNullString(string(action.ContentLayout))).
-				Set("action_priority", toNullString(string(action.PriorityLayout))).
+				Set("priority", toNullString(string(action.PriorityLayout))).
 				Set("limit_upload_speed", toNullInt64(action.LimitUploadSpeed)).
 				Set("limit_download_speed", toNullInt64(action.LimitDownloadSpeed)).
 				Set("limit_ratio", toNullFloat64(action.LimitRatio)).
@@ -649,7 +649,7 @@ func (r *ActionRepo) StoreFilterActions(ctx context.Context, filterID int64, act
 					"ignore_rules",
 					"skip_hash_check",
 					"content_layout",
-					"action_priority",
+					"priority",
 					"limit_upload_speed",
 					"limit_download_speed",
 					"limit_ratio",

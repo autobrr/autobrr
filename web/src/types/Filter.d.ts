@@ -90,7 +90,7 @@ interface Action {
   ignore_rules?: boolean;
   skip_hash_check: boolean;
   content_layout?: ActionContentLayout;
-  action_priority?: ActionPriorityLayout;
+  priority?: ActionPriorityLayout;
   limit_upload_speed?: number;
   limit_download_speed?: number;
   limit_ratio?: number;

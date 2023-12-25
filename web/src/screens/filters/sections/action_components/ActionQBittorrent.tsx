@@ -107,7 +107,7 @@ export const QBittorrent = ({ idx, action, clients }: ClientActionProps) => (
         </FilterSection.HalfRow>
         <FilterSection.HalfRow>
         <Input.Select
-            name={`actions.${idx}.action_priority`}
+            name={`actions.${idx}.priority`}
             label="Priority"
             optionDefaultText="Disabled"
             options={ActionPriorityOptions}
