@@ -63,7 +63,11 @@ func TestUserRepo_Update(t *testing.T) {
 			// Update the user
 			newPassword := "newPassword123"
 			user.Password = newPassword
-			err := repo.Update(context.Background(), user, "")
+			req := domain.UpdateUserRequest{
+				UsernameCurrent: user.Username,
+				PasswordNewHash: newPassword,
+			}
+			err := repo.Update(context.Background(), req)
 			assert.NoError(t, err)
 
 			// Verify
