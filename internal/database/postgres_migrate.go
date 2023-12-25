@@ -342,7 +342,7 @@ CREATE TABLE feed
 	url           TEXT,
 	interval      INTEGER,
 	timeout       INTEGER DEFAULT 60,
-	max_age       INTEGER DEFAULT 3600,
+	max_age       INTEGER DEFAULT 0,
 	categories    TEXT []   DEFAULT '{}' NOT NULL,
 	capabilities  TEXT []   DEFAULT '{}' NOT NULL,
 	api_key       TEXT,
@@ -831,5 +831,8 @@ ALTER TABLE filter_external
 `,
 	`ALTER TABLE irc_network
 		ADD COLUMN bot_mode BOOLEAN DEFAULT FALSE;
+`,
+	`ALTER TABLE feed
+	ALTER COLUMN max_age SET DEFAULT 0;
 `,
 }
