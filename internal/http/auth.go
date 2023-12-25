@@ -20,7 +20,7 @@ type authService interface {
 	GetUserCount(ctx context.Context) (int, error)
 	Login(ctx context.Context, username, password string) (*domain.User, error)
 	CreateUser(ctx context.Context, req domain.CreateUserRequest) error
-	ChangeUserCredentials(ctx context.Context, req domain.ChangeUserCredentialsRequest) error
+	UpdateUser(ctx context.Context, req domain.UpdateUserRequest) error
 }
 
 type authHandler struct {
@@ -50,12 +50,13 @@ func (h authHandler) Routes(r chi.Router) {
 	r.Post("/onboard", h.onboard)
 	r.Get("/onboard", h.canOnboard)
 	r.Get("/validate", h.validate)
+
 	// Group for authenticated routes
 	r.Group(func(r chi.Router) {
 		r.Use(h.server.IsAuthenticated)
 
 		// Authenticated routes
-		r.Post("/update-user", h.changeUserCredentials)
+		r.Patch("/user/{username}", h.updateUser)
 	})
 }
 
@@ -187,10 +188,10 @@ func (h authHandler) validate(w http.ResponseWriter, r *http.Request) {
 	h.encoder.NoContent(w)
 }
 
-func (h authHandler) changeUserCredentials(w http.ResponseWriter, r *http.Request) {
+func (h authHandler) updateUser(w http.ResponseWriter, r *http.Request) {
 	var (
 		ctx  = r.Context()
-		data domain.ChangeUserCredentialsRequest
+		data domain.UpdateUserRequest
 	)
 
 	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
@@ -198,14 +199,15 @@ func (h authHandler) changeUserCredentials(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	if err := h.service.ChangeUserCredentials(ctx, data); err != nil {
+	data.UsernameCurrent = chi.URLParam(r, "username")
+
+	if err := h.service.UpdateUser(ctx, data); err != nil {
 		h.encoder.StatusError(w, http.StatusForbidden, err)
 		return
 	}
 
 	// send response as ok
-	h.encoder.StatusResponseMessage(w, http.StatusOK, "password successfully changed")
-
+	h.encoder.StatusResponseMessage(w, http.StatusOK, "user successfully updated")
 }
 
 func ReadUserIP(r *http.Request) string {

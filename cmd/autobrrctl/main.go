@@ -14,11 +14,12 @@ import (
 	"os"
 	"time"
 
+	"github.com/autobrr/autobrr/internal/auth"
 	"github.com/autobrr/autobrr/internal/config"
 	"github.com/autobrr/autobrr/internal/database"
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/internal/logger"
-	"github.com/autobrr/autobrr/pkg/argon2id"
+	"github.com/autobrr/autobrr/internal/user"
 	"github.com/autobrr/autobrr/pkg/errors"
 
 	"golang.org/x/term"
@@ -95,6 +96,12 @@ func main() {
 			log.Fatal("--config required")
 		}
 
+		username := flag.Arg(1)
+		if username == "" {
+			flag.Usage()
+			os.Exit(1)
+		}
+
 		// read config
 		cfg := config.New(configPath, version)
 
@@ -109,34 +116,42 @@ func main() {
 
 		userRepo := database.NewUserRepo(l, db)
 
-		username := flag.Arg(1)
-		if username == "" {
-			flag.Usage()
-			os.Exit(1)
-		}
+		userSvc := user.NewService(userRepo)
+		authSvc := auth.NewService(l, userSvc)
+
+		ctx := context.Background()
 
 		password, err := readPassword()
 		if err != nil {
 			log.Fatalf("failed to read password: %v", err)
 		}
-		hashed, err := argon2id.CreateHash(string(password), argon2id.DefaultParams)
+
+		hashed, err := authSvc.CreateHash(string(password))
 		if err != nil {
 			log.Fatalf("failed to hash password: %v", err)
 		}
 
-		user := domain.CreateUserRequest{
+		req := domain.CreateUserRequest{
 			Username: username,
 			Password: hashed,
 		}
-		if err := userRepo.Store(context.Background(), user); err != nil {
+
+		if err := userRepo.Store(ctx, req); err != nil {
 			log.Fatalf("failed to create user: %v", err)
 		}
+
 	case "change-password":
 
 		if configPath == "" {
 			log.Fatal("--config required")
 		}
 
+		username := flag.Arg(1)
+		if username == "" {
+			flag.Usage()
+			os.Exit(1)
+		}
+
 		// read config
 		cfg := config.New(configPath, version)
 
@@ -151,18 +166,17 @@ func main() {
 
 		userRepo := database.NewUserRepo(l, db)
 
-		username := flag.Arg(1)
-		if username == "" {
-			flag.Usage()
-			os.Exit(1)
-		}
+		userSvc := user.NewService(userRepo)
+		authSvc := auth.NewService(l, userSvc)
 
-		user, err := userRepo.FindByUsername(context.Background(), username)
+		ctx := context.Background()
+
+		usr, err := userSvc.FindByUsername(ctx, username)
 		if err != nil {
 			log.Fatalf("failed to get user: %v", err)
 		}
 
-		if user == nil {
+		if usr == nil {
 			log.Fatalf("failed to get user: %v", err)
 		}
 
@@ -170,15 +184,26 @@ func main() {
 		if err != nil {
 			log.Fatalf("failed to read password: %v", err)
 		}
-		hashed, err := argon2id.CreateHash(string(password), argon2id.DefaultParams)
+
+		hashed, err := authSvc.CreateHash(string(password))
 		if err != nil {
 			log.Fatalf("failed to hash password: %v", err)
 		}
 
-		user.Password = hashed
-		if err := userRepo.Update(context.Background(), *user, ""); err != nil {
+		usr.Password = hashed
+
+		req := domain.UpdateUserRequest{
+			UsernameCurrent: username,
+			PasswordNew:     string(password),
+			PasswordNewHash: hashed,
+		}
+
+		if err := userSvc.Update(ctx, req); err != nil {
 			log.Fatalf("failed to create user: %v", err)
 		}
+
+		log.Printf("successfully updated password for user %q", username)
+
 	default:
 		flag.Usage()
 		if cmd != "help" {

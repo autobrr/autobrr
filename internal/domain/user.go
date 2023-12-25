@@ -9,7 +9,7 @@ type UserRepo interface {
 	GetUserCount(ctx context.Context) (int, error)
 	FindByUsername(ctx context.Context, username string) (*User, error)
 	Store(ctx context.Context, req CreateUserRequest) error
-	Update(ctx context.Context, user User, newUsername string) error
+	Update(ctx context.Context, req UpdateUserRequest) error
 	Delete(ctx context.Context, username string) error
 }
 
@@ -19,14 +19,15 @@ type User struct {
 	Password string `json:"password"`
 }
 
+type UpdateUserRequest struct {
+	UsernameCurrent string `json:"username_username"`
+	UsernameNew     string `json:"username_new"`
+	PasswordCurrent string `json:"password_current"`
+	PasswordNew     string `json:"password_new"`
+	PasswordNewHash string `json:"-"`
+}
+
 type CreateUserRequest struct {
 	Username string `json:"username"`
 	Password string `json:"password"`
-}
-
-type ChangeUserCredentialsRequest struct {
-	Username    string `json:"username"`
-	NewUsername string `json:"newUsername"`
-	OldPassword string `json:"oldPassword"`
-	NewPassword string `json:"newPassword"`
 }

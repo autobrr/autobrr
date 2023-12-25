@@ -58,18 +58,14 @@ function Credentials() {
     }
   });
 
-  const changeCredentialMutation = useMutation({
-    mutationFn: (data: InputValues) => APIClient.auth.changeUserCredentials(data.username, data.newUsername, data.oldPassword, data.newPassword),
+  const updateUserMutation = useMutation({
+    mutationFn: (data: UserUpdate) => APIClient.auth.updateUser(data),
     onSuccess: () => {
       logoutMutation.mutate();
     }
   });
 
-  const containerClass = "px-2 pb-6 bg-white dark:bg-gray-800";
-  const buttonClass = "mt-4 w-auto flex items-center py-2 px-4 transition rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500";
-  const iconClass = "w-4 h-4 mr-1";
   const separatorClass = "mb-6";
-  const horizontalLineClass = "col-span-2 mb-6 border-t border-gray-300 dark:border-gray-750";
 
   return (
     <Section
@@ -77,7 +73,7 @@ function Credentials() {
       description="The username and password can be changed either separately or simultaneously. Note that you will be logged out after changing credentials."
       noLeftPadding
     >
-      <div className={containerClass}>
+      <div className="px-2 pb-6 bg-white dark:bg-gray-800">
         <Formik
           initialValues={{
             username: getAuthContext.username,
@@ -87,7 +83,12 @@ function Credentials() {
             confirmPassword: ""
           }}
           onSubmit={(data) => {
-            changeCredentialMutation.mutate(data);
+            updateUserMutation.mutate({
+              username_current: data.username,
+              username_new: data.newUsername,
+              password_current: data.oldPassword,
+              password_new: data.newPassword,
+            });
           }}
           validate={validate}
         >
@@ -105,7 +106,7 @@ function Credentials() {
                   } />
                 </div>
 
-                <hr className={horizontalLineClass} />
+                <hr className="col-span-2 mb-6 border-t border-gray-300 dark:border-gray-750" />
 
                 <div className={separatorClass}>
                   <PasswordField name="oldPassword" placeholder="Required" label="Current Password" autoComplete="current-password" required tooltip={
@@ -132,9 +133,9 @@ function Credentials() {
               <div className="flex justify-end">
                 <button
                   type="submit"
-                  className={buttonClass}
+                  className="mt-4 w-auto flex items-center py-2 px-4 transition rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
                 >
-                  <UserIcon className={iconClass} />
+                  <UserIcon className="w-4 h-4 mr-1" />
                   Save
                 </button>
               </div>
