@@ -261,7 +261,7 @@ func (f Filter) CheckFilter(r *Release) ([]string, bool) {
 	// reset rejections first to clean previous checks
 	r.resetRejections()
 
-	// max downloads check. If reached return early because???
+	// max downloads check. If reached return early so other filters can be checked as quick as possible.
 	if f.MaxDownloads > 0 && !f.checkMaxDownloads() {
 		r.addRejectionF("max downloads (%d) this (%v) reached", f.MaxDownloads, f.MaxDownloadsUnit)
 		return r.Rejections, false
