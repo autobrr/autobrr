@@ -82,7 +82,7 @@ func (s Server) Open() error {
 			break
 		}
 
-		s.log.Err(err).Msgf("Failed to start %s server. Attempted to listen on %s", proto, addr)
+		s.log.Error().Err(err).Msgf("Failed to start %s server. Attempted to listen on %s", proto, addr)
 	}
 
 	return err
