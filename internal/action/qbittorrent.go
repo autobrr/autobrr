@@ -75,7 +75,7 @@ func (s *service) qbittorrent(ctx context.Context, action *domain.Action, releas
 			}
 			// enable queueing if it's disabled
 			if !prefs.QueueingEnabled {
-				if err := c.Qbt.SetQueueingEnabled(true); err != nil {
+				if err := c.Qbt.SetPreferencesQueueingEnabled(true); err != nil {
 					return nil, errors.Wrap(err, "could not enable torrent queueing")
 				}
 				s.log.Trace().Msgf("torrent queueing was disabled, now enabled in client: '%s'", c.Dc.Name)
