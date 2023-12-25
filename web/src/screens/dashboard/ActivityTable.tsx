@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-import * as React from "react";
-import { useQuery } from "@tanstack/react-query";
+import React, { useState } from "react";
+import { useSuspenseQuery } from "@tanstack/react-query";
 import {
   useTable,
   useFilters,
@@ -16,7 +16,9 @@ import {
 import { APIClient } from "@api/APIClient";
 import { EmptyListState } from "@components/emptystates";
 import * as Icons from "@components/Icons";
+import { EyeIcon, EyeSlashIcon } from "@heroicons/react/24/solid";
 import * as DataTable from "@components/data-table";
+import { RandomLinuxIsos } from "@utils";
 
 // This is a custom filter UI for selecting
 // a unique option from a list
@@ -183,11 +185,14 @@ export const ActivityTable = () => {
     }
   ], []);
 
-  const { isLoading, data } = useQuery({
+  const { isLoading, data } = useSuspenseQuery({
     queryKey: ["dash_recent_releases"],
     queryFn: APIClient.release.findRecent,
     refetchOnWindowFocus: false
   });
+
+  const [modifiedData, setModifiedData] = useState<Release[]>([]);
+  const [showLinuxIsos, setShowLinuxIsos] = useState(false);
 
   if (isLoading) {
     return (
@@ -201,14 +206,42 @@ export const ActivityTable = () => {
       </div>
     );
   }
-  
+
+  const toggleReleaseNames = () => {
+    setShowLinuxIsos(!showLinuxIsos);
+    if (!showLinuxIsos && data && data.data) {
+      const randomNames = RandomLinuxIsos(data.data.length);
+      const newData: Release[] = data.data.map((item, index) => ({
+        ...item,
+        torrent_name: `${randomNames[index]}.iso`,
+        indexer: index % 2 === 0 ? "distrowatch" : "linuxtracker"
+      }));
+      setModifiedData(newData);
+    }
+  };
+
+  const displayData = showLinuxIsos ? modifiedData : (data?.data ?? []);
+
   return (
-    <div className="flex flex-col mt-12">
-      <h3 className="text-2xl font-medium leading-6 text-gray-900 dark:text-gray-200">
+    <div className="flex flex-col mt-12 relative">
+      <h3 className="text-2xl font-medium leading-6 text-black dark:text-white">
         Recent activity
       </h3>
 
-      <Table columns={columns} data={data?.data ?? []} />
+      <Table columns={columns} data={displayData} />
+
+      <button
+        onClick={toggleReleaseNames}
+        className="p-2 absolute -bottom-8 right-0 bg-gray-750 text-white rounded-full opacity-10 hover:opacity-100 transition-opacity duration-300"
+        aria-label="Toggle view"
+        title="Go incognito"
+      >
+        {showLinuxIsos ? (
+          <EyeIcon className="h-4 w-4" />
+        ) : (
+          <EyeSlashIcon className="h-4 w-4" />
+        )}
+      </button>
     </div>
   );
 };

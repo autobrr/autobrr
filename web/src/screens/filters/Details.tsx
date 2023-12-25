@@ -4,7 +4,7 @@
  */
 
 import { Suspense, useEffect, useRef } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { Form, Formik, useFormikContext } from "formik";
 import type { FormikErrors, FormikValues } from "formik";
 import { z } from "zod";
@@ -18,7 +18,7 @@ import { useToggle } from "@hooks/hooks";
 import { classNames } from "@utils";
 import { DOWNLOAD_CLIENTS } from "@domain/constants";
 
-import DEBUG from "@components/debug";
+import { DEBUG } from "@components/debug";
 import Toast from "@components/notifications/Toast";
 import { DeleteModal } from "@components/modals";
 import { SectionLoader } from "@components/SectionLoader";
@@ -164,7 +164,7 @@ const FormErrorNotification = () => {
         />
       ));
     }
-  }, [isSubmitting, isValid, isValidating]);
+  }, [errors, isSubmitting, isValid, isValidating]);
 
   return null;
 };
@@ -289,17 +289,17 @@ export const FilterDetails = () => {
     navigate("/filters");
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
   const id = parseInt(filterId!);
 
-  const { isLoading, data: filter } = useQuery({
+  const { isLoading, isError, data: filter } = useSuspenseQuery({
     queryKey: filterKeys.detail(id),
     queryFn: ({ queryKey }) => APIClient.filters.getByID(queryKey[2]),
-    refetchOnWindowFocus: false,
-    onError: () => {
-      navigate("/filters");
-    }
+    refetchOnWindowFocus: false
   });
+
+  if (isError) {
+    navigate("/filters");
+  }
 
   const updateMutation = useMutation({
     mutationFn: (filter: Filter) => APIClient.filters.update(filter),

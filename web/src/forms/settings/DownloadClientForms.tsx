@@ -11,7 +11,7 @@ import { Form, Formik, useFormikContext } from "formik";
 import { toast } from "react-hot-toast";
 
 import { classNames, sleep } from "@utils";
-import DEBUG from "@components/debug";
+import { DEBUG } from "@components/debug";
 import { APIClient } from "@api/APIClient";
 import { DownloadClientTypeOptions, DownloadRuleConditionOptions } from "@domain/constants";
 import Toast from "@components/notifications/Toast";
@@ -917,7 +917,7 @@ export function DownloadClientUpdateForm({ client, isOpen, toggle }: updateFormP
       >
         <DeleteModal
           isOpen={deleteModalIsOpen}
-          isLoading={deleteMutation.isLoading}
+          isLoading={deleteMutation.isPending}
           toggle={toggleDeleteModal}
           buttonRef={cancelModalButtonRef}
           deleteAction={deleteAction}

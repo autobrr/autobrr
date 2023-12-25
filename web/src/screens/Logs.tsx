@@ -4,7 +4,7 @@
  */
 
 import { Fragment, useEffect, useRef, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useSuspenseQuery } from "@tanstack/react-query";
 import { Menu, Transition } from "@headlessui/react";
 import { DebounceInput } from "react-debounce-input";
 import {
@@ -49,7 +49,7 @@ export const Logs = () => {
 
   const [logs, setLogs] = useState<LogEvent[]>([]);
   const [searchFilter, setSearchFilter] = useState("");
-  const [_regexPattern, setRegexPattern] = useState<RegExp | null>(null);
+  const [, setRegexPattern] = useState<RegExp | null>(null);
   const [filteredLogs, setFilteredLogs] = useState<LogEvent[]>([]);
   const [isInvalidRegex, setIsInvalidRegex] = useState(false);
 
@@ -61,7 +61,7 @@ export const Logs = () => {
     };
     if (settings.scrollOnNewLog)
       scrollToBottom();
-  }, [filteredLogs]);
+  }, [filteredLogs, settings.scrollOnNewLog]);
 
   // Add a useEffect to clear logs div when settings.scrollOnNewLog changes to prevent duplicate entries.
   useEffect(() => {
@@ -174,13 +174,16 @@ export const Logs = () => {
 };
 
 export const LogFiles = () => {
-  const { data } = useQuery({
+  const { isError, error, data } = useSuspenseQuery({
     queryKey: ["log-files"],
     queryFn: () => APIClient.logs.files(),
     retry: false,
-    refetchOnWindowFocus: false,
-    onError: err => console.log(err)
+    refetchOnWindowFocus: false
   });
+
+  if (isError) {
+    console.log(error);
+  }
 
   return (
     <div>

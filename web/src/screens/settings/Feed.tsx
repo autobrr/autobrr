@@ -4,7 +4,7 @@
  */
 
 import { Fragment, useRef, useState, useMemo } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { Menu, Transition } from "@headlessui/react";
 import { toast } from "react-hot-toast";
 import {
@@ -41,6 +41,10 @@ interface SortConfig {
   key: keyof ListItemProps["feed"] | "enabled";
   direction: "ascending" | "descending";
 }
+
+const isErrorWithMessage = (error: unknown): error is { message: string } => {
+  return typeof error === 'object' && error !== null && 'message' in error;
+};
 
 function useSort(items: ListItemProps["feed"][], config?: SortConfig) {
   const [sortConfig, setSortConfig] = useState(config);
@@ -93,7 +97,7 @@ function useSort(items: ListItemProps["feed"][], config?: SortConfig) {
 }
 
 function FeedSettings() {
-  const { data } = useQuery({
+  const { data } = useSuspenseQuery({
     queryKey: feedKeys.lists(),
     queryFn: APIClient.feeds.find,
     refetchOnWindowFocus: false
@@ -257,8 +261,13 @@ const FeedItemDropdown = ({
       toast.custom((t) => <Toast type="success" body={`Feed ${feed?.name} was force run successfully.`} t={t} />);
       toggleForceRunModal();
     },
-    onError: (error: any) => {
-      toast.custom((t) => <Toast type="error" body={`Failed to force run ${feed?.name}. Error: ${error.message}`} t={t} />, {
+    onError: (error: unknown) => {
+      let errorMessage = 'An unknown error occurred';
+      if (isErrorWithMessage(error)) {
+        errorMessage = error.message;
+      }
+
+      toast.custom((t) => <Toast type="error" body={`Failed to force run ${feed?.name}. Error: ${errorMessage}`} t={t} />, {
         duration: 10000
       });
       toggleForceRunModal();
@@ -270,7 +279,7 @@ const FeedItemDropdown = ({
     <Menu as="div">
       <DeleteModal
         isOpen={deleteModalIsOpen}
-        isLoading={deleteMutation.isLoading}
+        isLoading={deleteMutation.isPending}
         toggle={toggleDeleteModal}
         buttonRef={cancelModalButtonRef}
         deleteAction={() => {
@@ -282,7 +291,7 @@ const FeedItemDropdown = ({
       />
       <DeleteModal
         isOpen={deleteCacheModalIsOpen}
-        isLoading={deleteMutation.isLoading}
+        isLoading={deleteMutation.isPending}
         toggle={toggleDeleteCacheModal}
         buttonRef={cancelCacheModalButtonRef}
         deleteAction={() => {
@@ -293,7 +302,7 @@ const FeedItemDropdown = ({
       />
       <ForceRunModal
         isOpen={forceRunModalIsOpen}
-        isLoading={forceRunMutation.isLoading}
+        isLoading={forceRunMutation.isPending}
         toggle={toggleForceRunModal}
         buttonRef={cancelModalButtonRef}
         forceRunAction={() => {
