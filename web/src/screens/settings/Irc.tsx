@@ -169,23 +169,23 @@ const IrcSettings = () => {
       </div>
 
       {data && data.length > 0 ? (
-        <ul className="mt-6 min-w-full relative">
-          <li className="grid grid-cols-12 gap-4 border-b border-gray-200 dark:border-gray-700">
-            <div className="flex col-span-2 md:col-span-1 pl-0 sm:px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer"
+        <ul className="mt-6 min-w-full relative text-sm">
+          <li className="grid grid-cols-12 gap-4 border-b border-gray-200 dark:border-gray-700 text-xs font-medium text-gray-500 dark:text-gray-400">
+            <div className="flex col-span-2 md:col-span-1 pl-2 sm:px-3 py-3 text-left uppercase tracking-wider cursor-pointer"
               onClick={() => sortedNetworks.requestSort("enabled")}>
-              Enabled <span className="sort-indicator">{sortedNetworks.getSortIndicator("enabled")}</span>
+              Enabled <span className="sort-indicator pl-1">{sortedNetworks.getSortIndicator("enabled")}</span>
             </div>
-            <div className="col-span-10 md:col-span-3 px-8 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer"
+            <div className="col-span-10 md:col-span-3 px-11 py-3 text-left uppercase tracking-wider cursor-pointer"
               onClick={() => sortedNetworks.requestSort("name")}>
-              Network <span className="sort-indicator">{sortedNetworks.getSortIndicator("name")}</span>
+              Network <span className="sort-indicator pl-1">{sortedNetworks.getSortIndicator("name")}</span>
             </div>
-            <div className="hidden md:flex col-span-4 px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer"
+            <div className="hidden md:flex col-span-4 px-6 py-3 text-left uppercase tracking-wider cursor-pointer"
               onClick={() => sortedNetworks.requestSort("server")}>
-              Server <span className="sort-indicator">{sortedNetworks.getSortIndicator("server")}</span>
+              Server <span className="sort-indicator pl-1">{sortedNetworks.getSortIndicator("server")}</span>
             </div>
-            <div className="hidden md:flex col-span-3 px-5 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer"
+            <div className="hidden md:flex col-span-3 px-5 py-3 text-left uppercase tracking-wider cursor-pointer"
               onClick={() => sortedNetworks.requestSort("nick")}>
-              Nick <span className="sort-indicator">{sortedNetworks.getSortIndicator("nick")}</span>
+              Nick <span className="sort-indicator pl-1">{sortedNetworks.getSortIndicator("nick")}</span>
             </div>
           </li>
           {sortedNetworks.items.map((network) => (
@@ -234,7 +234,7 @@ const ListItem = ({ network, expanded }: ListItemProps) => {
     <li>
       <div
         className={classNames(
-          "grid grid-cols-12 gap-2 lg:gap-4 items-center mt-0.5 py-2.5 cursor-pointer first:rounded-t-md last:rounded-b-md transition",
+          "grid grid-cols-12 gap-2 lg:gap-4 items-center mt-1 p-2.5 cursor-pointer first:bg-gray-775 last:bg-gray-800 first:rounded-t-md last:rounded-b-md transition",
           network.enabled && !network.healthy ? "bg-red-50 dark:bg-red-900 hover:bg-red-100 dark:hover:bg-red-800" : "hover:bg-gray-50 dark:hover:bg-gray-700"
         )}
         onClick={(e) => {
@@ -250,7 +250,7 @@ const ListItem = ({ network, expanded }: ListItemProps) => {
           toggle={toggleUpdate}
           network={network}
         />
-        <div className="col-span-2 md:col-span-1 flex pl-1 sm:pl-5 text-gray-500 dark:text-gray-400">
+        <div className="col-span-2 md:col-span-1 flex pl-1 sm:pl-2.5 text-gray-500 dark:text-gray-400">
           <Checkbox
             value={network.enabled}
             setValue={onToggleMutation}
@@ -320,18 +320,18 @@ const ListItem = ({ network, expanded }: ListItemProps) => {
         </div>
       </div>
       {(edit || expanded) && (
-        <div className="px-4 py-4 flex border-b border-x-0 dark:border-gray-600 dark:bg-gray-775">
+        <div className="px-4 py-4 flex dark:bg-gray-775 rounded-b-md">
           <div className="min-w-full">
             {network.channels.length > 0 ? (
               <ul>
-                <li className="grid grid-cols-12 gap-4 border-b border-gray-200 dark:border-gray-700">
-                  <div className="col-span-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                <li className="grid grid-cols-12 gap-4 text-xs font-medium text-gray-500 dark:text-gray-400 border-b border-gray-200 dark:border-gray-700">
+                  <div className="col-span-5 sm:col-span-4 sm:px-6 py-3 text-left uppercase tracking-wider truncate">
                     Channel
                   </div>
-                  <div className="col-span-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  <div className="hidden sm:flex col-span-4 sm:px-6 py-3 text-left uppercase tracking-wider truncate">
                     Monitoring since
                   </div>
-                  <div className="col-span-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  <div className="col-span-6 sm:col-span-4 sm:px-6 py-3 text-left uppercase tracking-wider truncate">
                     Last announce
                   </div>
                 </li>
@@ -362,7 +362,7 @@ const ChannelItem = ({ network, channel }: ChannelItemProps) => {
   return (
     <li
       className={classNames(
-        "mb-2 text-gray-500 dark:text-gray-400 hover:cursor-pointer rounded-md",
+        "mt-1 mb-2 text-gray-500 dark:text-gray-400 hover:cursor-pointer rounded-md",
         viewChannel ? "bg-gray-200 dark:bg-gray-800 rounded-md" : "hover:bg-gray-300 dark:hover:bg-gray-800"
       )}
     >
@@ -370,7 +370,7 @@ const ChannelItem = ({ network, channel }: ChannelItemProps) => {
         className="grid grid-cols-12 gap-4 items-center py-4 "
         onClick={toggleView}
       >
-        <div className="col-span-4 flex items-center md:px-6">
+        <div className="col-span-5 sm:col-span-4 flex items-center md:px-6 pl-2 sm:pl-0">
           <span className="relative inline-flex items-center">
             {network.enabled ? (
               channel.monitoring ? (
@@ -390,12 +390,12 @@ const ChannelItem = ({ network, channel }: ChannelItemProps) => {
             {channel.name}
           </span>
         </div>
-        <div className="col-span-4 flex items-center md:px-6">
+        <div className="col-span-4 hidden sm:flex items-center md:px-6">
           <span title={simplifyDate(channel.monitoring_since)}>
             {IsEmptyDate(channel.monitoring_since)}
           </span>
         </div>
-        <div className="col-span-3 flex items-center md:px-6">
+        <div className="col-span-6 sm:col-span-3 flex items-center md:px-6">
           <span title={simplifyDate(channel.last_announce)}>
             {IsEmptyDate(channel.last_announce)}
           </span>
