@@ -9,6 +9,7 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0 --color",
+    "lint:ci": "eslint src/ --ext .js,.jsx,.ts,.tsx --format=@microsoft/eslint-formatter-sarif --fix > ../results.sarif || true",
     "preview": "vite preview",
     "lint:watch": "pnpm run lint -- --watch"
   },
@@ -82,6 +83,7 @@
     "typescript": "^5.2.2",
     "vite": "^5.0.4",
     "vite-plugin-pwa": "^0.16.7",
-    "vite-plugin-svgr": "^4.2.0"
+    "vite-plugin-svgr": "^4.2.0",
+    "@microsoft/eslint-formatter-sarif": "^3.0.0"
   }
 }
