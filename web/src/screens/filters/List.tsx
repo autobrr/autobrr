@@ -639,28 +639,39 @@ function FilterListItem({ filter, values, idx }: FilterListItemProps) {
             ) : filter.priority}
           </span>
           <span className="z-10 whitespace-nowrap text-xs font-medium text-gray-600 dark:text-gray-400">
-            <Tooltip
-              label={
-                <Link
-                  to={`${filter.id.toString()}/actions`}
-                  className="flex items-center cursor-pointer hover:text-black dark:hover:text-gray-300"
-                >
-                  <span className={filter.actions_count === 0 || filter.actions_enabled_count === 0 ? "text-red-500 hover:text-red-400 dark:hover:text-red-400" : ""}>
-        Actions: {filter.actions_enabled_count}/{filter.actions_count}
-                  </span>
-                </Link>
-              }
-            >
-              {filter.actions_count === 0 ? (
-                <>
-                  {"No actions defined. Set up actions to enable snatching."}
-                </>
-              ) : filter.actions_enabled_count === 0 ? (
-                <>
-                  {"You need to enable at least one action in the filter otherwise you will not get any snatches."}
-                </>
-              ) : null}
-            </Tooltip>
+            {filter.actions_count === 0 || filter.actions_enabled_count === 0 ? (
+              <Tooltip
+                label={
+                  <Link
+                    to={`${filter.id.toString()}/actions`}
+                    className="flex items-center cursor-pointer hover:text-black dark:hover:text-gray-300"
+                  >
+                    <span className={filter.actions_count === 0 || filter.actions_enabled_count === 0 ? "text-red-500 hover:text-red-400 dark:hover:text-red-400" : ""}>
+          Actions: {filter.actions_enabled_count}/{filter.actions_count}
+                    </span>
+                  </Link>
+                }
+              >
+                {filter.actions_count === 0 ? (
+                  <>
+                    {"No actions defined. Set up actions to enable snatching."}
+                  </>
+                ) : filter.actions_enabled_count === 0 ? (
+                  <>
+                    {"You need to enable at least one action in the filter otherwise you will not get any snatches."}
+                  </>
+                ) : null}
+              </Tooltip>
+            ) : (
+              <Link
+                to={`${filter.id.toString()}/actions`}
+                className="flex items-center cursor-pointer hover:text-black dark:hover:text-gray-300"
+              >
+                <span>
+          Actions: {filter.actions_enabled_count}/{filter.actions_count}
+                </span>
+              </Link>
+            )}
           </span>
         </div>
       </div>
