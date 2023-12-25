@@ -17,6 +17,9 @@ dependencies:
   '@hookform/error-message':
     specifier: ^2.0.1
     version: 2.0.1(react-dom@18.2.0)(react-hook-form@7.48.2)(react@18.2.0)
+  '@popperjs/core':
+    specifier: ^2.11.8
+    version: 2.11.8
   '@tailwindcss/forms':
     specifier: ^0.5.7
     version: 0.5.7(tailwindcss@3.3.5)
