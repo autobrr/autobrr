@@ -31,6 +31,8 @@ go build -ldflags "-s -w -X main.version=${VERSION} -X main.commit=${REVISION} -
 FROM alpine:latest AS runner
 
 LABEL org.opencontainers.image.source = "https://github.com/autobrr/autobrr"
+LABEL org.opencontainers.image.licenses = "GPL-2.0-or-later"
+LABEL org.opencontainers.image.base.name = "alpine:latest"
 
 ENV HOME="/config" \
     XDG_CONFIG_HOME="/config" \
