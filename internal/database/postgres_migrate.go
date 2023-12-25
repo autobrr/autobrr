@@ -199,6 +199,7 @@ CREATE TABLE action
     limit_download_speed    INT,
     limit_ratio             REAL,
     limit_seed_time         INT,
+    priority			    TEXT,
     reannounce_skip         BOOLEAN DEFAULT false,
     reannounce_delete       BOOLEAN DEFAULT false,
     reannounce_interval     INTEGER DEFAULT 7,
@@ -507,20 +508,20 @@ var postgresMigrations = []string{
 	`
 	ALTER TABLE "action"
 		ADD COLUMN reannounce_skip BOOLEAN DEFAULT false;
-	
+
 	ALTER TABLE "action"
 		ADD COLUMN reannounce_delete BOOLEAN DEFAULT false;
-	
+
 	ALTER TABLE "action"
 		ADD COLUMN reannounce_interval INTEGER DEFAULT 7;
-	
+
 	ALTER TABLE "action"
 		ADD COLUMN reannounce_max_attempts INTEGER DEFAULT 50;
 	`,
 	`
 	ALTER TABLE "action"
 		ADD COLUMN limit_ratio REAL DEFAULT 0;
-	
+
 	ALTER TABLE "action"
 		ADD COLUMN limit_seed_time INTEGER DEFAULT 0;
 	`,
@@ -685,7 +686,7 @@ FROM filter f WHERE f.name = release_action_status.filter);
 	`,
 	`ALTER TABLE "release"
 ADD COLUMN info_url TEXT;
-    
+
 ALTER TABLE "release"
 ADD COLUMN download_url TEXT;
 	`,
@@ -728,7 +729,7 @@ ALTER TABLE irc_network
 ADD COLUMN bouncer_addr TEXT;`,
 	`ALTER TABLE release_action_status
     DROP CONSTRAINT IF EXISTS release_action_status_action_id_fkey;
-         
+
 ALTER TABLE release_action_status
     DROP CONSTRAINT IF EXISTS release_action_status_action_id_fk;
 
@@ -834,5 +835,8 @@ ALTER TABLE filter_external
 `,
 	`ALTER TABLE feed
 	ALTER COLUMN max_age SET DEFAULT 0;
+`,
+	`ALTER TABLE action
+	ADD COLUMN priority TEXT;
 `,
 }

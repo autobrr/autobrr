@@ -10,7 +10,7 @@ require (
 	github.com/anacrolix/torrent v1.53.1
 	github.com/asaskevich/EventBus v0.0.0-20200907212545-49d423059eef
 	github.com/autobrr/go-deluge v1.1.0
-	github.com/autobrr/go-qbittorrent v1.7.2-0.20231029234932-67580aa0e42a
+	github.com/autobrr/go-qbittorrent v1.8.1
 	github.com/autobrr/go-rtorrent v1.10.0
 	github.com/avast/retry-go v3.0.0+incompatible
 	github.com/avast/retry-go/v4 v4.5.1
@@ -18,6 +18,7 @@ require (
 	github.com/dustin/go-humanize v1.0.1
 	github.com/ergochat/irc-go v0.4.0
 	github.com/fsnotify/fsnotify v1.7.0
+	github.com/go-andiamo/splitter v1.2.5
 	github.com/go-chi/chi/v5 v5.0.10
 	github.com/go-chi/render v1.0.3
 	github.com/gorilla/sessions v1.2.2
@@ -61,7 +62,6 @@ require (
 	github.com/bradfitz/iter v0.0.0-20191230175014-e8f45d346db8 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/gdm85/go-rencode v0.1.8 // indirect
-	github.com/go-andiamo/splitter v1.2.5 // indirect
 	github.com/google/uuid v1.3.0 // indirect
 	github.com/gorilla/securecookie v1.1.2 // indirect
 	github.com/gosimple/unidecode v1.0.1 // indirect
