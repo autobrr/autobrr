@@ -124,8 +124,14 @@ const FilterOption = ({ label, value }: FilterOptionProps) => (
 );
 
 export const PushStatusSelectColumnFilter = ({
-  column: { filterValue, setFilter, id }
+  column: { filterValue, setFilter, id },
+  initialFilterValue
 }: FilterProps<object>) => {
+  React.useEffect(() => {
+    if (initialFilterValue) {
+      setFilter(initialFilterValue);
+    }
+  }, [initialFilterValue, setFilter]);
   const label = filterValue ? PushStatusOptions.find((o) => o.value === filterValue && o.value)?.label : "Push status";
   return (
     <div className="mr-3" key={id}>
