@@ -58,6 +58,25 @@ export const RightNav = (props: RightNavProps) => {
                   <Menu.Item>
                     {({ active }) => (
                       <Link
+                        to="/settings/account"
+                        className={classNames(
+                          active
+                            ? "bg-gray-100 dark:bg-gray-600"
+                            : "",
+                          "flex items-center transition rounded-t-md px-2 py-2 text-sm text-gray-900 dark:text-gray-200"
+                        )}
+                      >
+                        <UserIcon
+                          className="w-5 h-5 mr-1 text-gray-700 dark:text-gray-400"
+                          aria-hidden="true"
+                        />
+                        Account
+                      </Link>
+                    )}
+                  </Menu.Item>
+                  <Menu.Item>
+                    {({ active }) => (
+                      <Link
                         to="/settings"
                         className={classNames(
                           active

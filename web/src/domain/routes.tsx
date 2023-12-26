@@ -53,6 +53,7 @@ export const LocalRouter = ({ isLoggedIn }: { isLoggedIn: boolean }) => (
             <Route path="notifications" element={<SettingsSubPage.Notification />} />
             <Route path="releases" element={<SettingsSubPage.Release />} />
             <Route path="regex-playground" element={<SettingsSubPage.RegexPlayground />} />
+            <Route path="account" element={<SettingsSubPage.Account />} />
           </Route>
         </Route>
       </Routes>

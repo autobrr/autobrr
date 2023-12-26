@@ -11,15 +11,22 @@ type SectionProps = {
   description: string | React.ReactNode;
   rightSide?: React.ReactNode;
   children?: React.ReactNode;
+  noLeftPadding?: boolean;
 };
 
 export const Section = ({
   title,
   description,
   rightSide,
-  children
+  children,
+  noLeftPadding = false,
 }: SectionProps) => (
-  <div className="pb-6 px-4 lg:col-span-9">
+  <div
+    className={classNames(
+      "pb-6 px-4 lg:col-span-9",
+      noLeftPadding ? 'pl-0' : '',
+    )}
+  >
     <div
       className={classNames(
         "mt-6 mb-4",
