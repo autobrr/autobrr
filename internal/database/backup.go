@@ -42,11 +42,11 @@ func (db *DB) BackupDatabase(shuttingDown bool) error {
 		}
 
 		defer tx.Commit()
-		if err := databaseConsistent(tx); err != nil {
+		if err := databaseConsistentSQLite(tx); err != nil {
 			return err
 		}
 
-		if exists, err := backupDatabase(base, db.handler); err != nil {
+		if exists, err := backupDatabaseSQLite(base, db.handler); err != nil {
 			if !exists {
 				return err
 			}
@@ -59,13 +59,13 @@ func (db *DB) BackupDatabase(shuttingDown bool) error {
 			retain++
 		}
 
-		return cleanupDatabase(base, db, retain)
+		return cleanupDatabaseSQLite(base, db, retain)
 	}
 
 	return errors.New("backup: not implemented for database type: %s", db.Driver)
 }
 
-func databaseConsistent(tx *sql.Tx) error {
+func databaseConsistentSQLite(tx *sql.Tx) error {
 	row := tx.QueryRow("PRAGMA integrity_check;")
 
 	var status string
@@ -80,7 +80,7 @@ func databaseConsistent(tx *sql.Tx) error {
 	return nil
 }
 
-func backupDatabase(base string, db *sql.DB) (bool, error) {
+func backupDatabaseSQLite(base string, db *sql.DB) (bool, error) {
 	path := filepath.Join(base, fmt.Sprintf("%s%d", backupPrefix, time.Now().Unix()))
 	if _, err := os.Stat(path); err == nil {
 		return true, errors.New("backup creation failed, already exists %q", path)
@@ -94,12 +94,13 @@ func backupDatabase(base string, db *sql.DB) (bool, error) {
 	return false, nil
 }
 
-func cleanupDatabase(base string, db *DB, retain int) error {
+func cleanupDatabaseSQLite(base string, db *DB, retain int) error {
 	files, err := os.ReadDir(base)
 	if err != nil {
 		return errors.Wrap(err, "backup unable to open base for cleaning %q", base)
 	}
 
+	// Scan configuration directory for prefixes matching our backup schema.
 	de := make([]int64, 0)
 	for _, f := range files {
 		if !strings.HasPrefix(f.Name(), backupPrefix) {
@@ -116,6 +117,7 @@ func cleanupDatabase(base string, db *DB, retain int) error {
 		de = append(de, i)
 	}
 
+	// Sort the slices by their respective timestamps.
 	sort.SliceStable(de, func(i, j int) bool { return de[i] < de[j] })
 	tu := time.Now().Unix()
 	for i := len(de) - 1; i > 0 && de[i] > tu; i-- {
@@ -123,6 +125,7 @@ func cleanupDatabase(base string, db *DB, retain int) error {
 		de = de[:i]
 	}
 
+	// Remove older backups until they hit the specified retain threshold.
 	for i := 0; i < len(de)-retain; i++ {
 		os.Remove(filepath.Join(base, fmt.Sprintf("%s%d", backupPrefix, de[i])))
 	}
