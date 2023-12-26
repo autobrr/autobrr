@@ -34,6 +34,18 @@ export const Music = ({ values }: { values: FormikValues; }) => (
             </div>
           }
         />
+        <Input.TextAreaAutoResize
+          name="record_label"
+          label="Record Labels"
+          columns={6}
+          placeholder="eg. Interscope"
+          tooltip={
+            <div>
+              <p>You can use basic filtering like wildcards <code>*</code> or replace single characters with <code>?</code></p>
+              <DocsLink href="https://autobrr.com/filters#music" />
+            </div>
+          }
+        />
       </Components.Layout>
     </Components.Section>
 

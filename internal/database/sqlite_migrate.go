@@ -1109,9 +1109,6 @@ ADD COLUMN topic text;`,
 	ALTER TABLE filter
 		ADD COLUMN except_description TEXT;
 
-    ALTER TABLE filter
-        ADD COLUMN record_label TEXT;
-
 	ALTER TABLE filter
 		ADD COLUMN use_regex_description BOOLEAN DEFAULT FALSE;`,
 	`create table release_action_status_dg_tmp
@@ -1484,4 +1481,6 @@ ALTER TABLE feed_dg_tmp
 	`ALTER TABLE action
 	ADD COLUMN priority TEXT;
 `,
+	`ALTER TABLE filter
+    ADD COLUMN record_label TEXT;`,
 }

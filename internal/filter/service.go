@@ -40,10 +40,9 @@ type Service interface {
 	Duplicate(ctx context.Context, filterID int) (*domain.Filter, error)
 	ToggleEnabled(ctx context.Context, filterID int, enabled bool) error
 	Delete(ctx context.Context, filterID int) error
-	AdditionalSizeCheck(ctx context.Context, f *domain.Filter, release *domain.Release) (bool, error)
+	AdditionalDetailsCheck(ctx context.Context, f *domain.Filter, release *domain.Release) (bool, error)
 	CanDownloadShow(ctx context.Context, release *domain.Release) (bool, error)
 	GetDownloadsByFilterId(ctx context.Context, filterID int) (*domain.FilterDownloads, error)
-	AdditionalDetailCheck(ctx context.Context, release *domain.Release) error
 }
 
 type service struct {
@@ -386,17 +385,17 @@ func (s *service) CheckFilter(ctx context.Context, f *domain.Filter, release *do
 		// If size constraints are set in a filter and the indexer did not
 		// announce the size, we need to do an additional out of band size
 		// check.
-		if release.AdditionalSizeCheckRequired {
-			l.Debug().Msgf("(%s) additional size check required", f.Name)
+		if release.AdditionalDetailsCheckRequired {
+			l.Debug().Msgf("(%s) additional detail check required", f.Name)
 
-			ok, err := s.AdditionalSizeCheck(ctx, f, release)
+			ok, err := s.AdditionalDetailsCheck(ctx, f, release)
 			if err != nil {
-				l.Error().Err(err).Msgf("(%s) additional size check error", f.Name)
+				l.Error().Err(err).Msgf("(%s) additional detail check error", f.Name)
 				return false, err
 			}
 
 			if !ok {
-				l.Trace().Msgf("(%s) additional size check not matching what filter wanted", f.Name)
+				l.Trace().Msgf("(%s) additional detail check not matching what filter wanted", f.Name)
 				return false, nil
 			}
 		}
@@ -422,45 +421,46 @@ func (s *service) CheckFilter(ctx context.Context, f *domain.Filter, release *do
 	return false, nil
 }
 
-// AdditionalSizeCheck performs additional out of band checks to determine the
-// size of a torrent. Some indexers do not announce torrent size, so it is
+// AdditionalDetailsCheck performs additional out of band checks to determine the
+// size, uploader or recordlabel of a torrent. Some indexers do not announce torrent size, so it is
 // necessary to determine the size of the torrent in some other way. Some
 // indexers have an API implemented to fetch this data. For those which don't,
 // it is necessary to download the torrent file and parse it to make the size
 // check. We use the API where available to minimize the number of torrents we
 // need to download.
-func (s *service) AdditionalSizeCheck(ctx context.Context, f *domain.Filter, release *domain.Release) (bool, error) {
+func (s *service) AdditionalDetailsCheck(ctx context.Context, f *domain.Filter, release *domain.Release) (bool, error) {
 	var err error
 	defer func() {
 		// try recover panic if anything went wrong with API or size checks
 		errors.RecoverPanic(recover(), &err)
 	}()
 
-	// do additional size check against indexer api or torrent for size
 	l := s.log.With().Str("method", "AdditionalSizeCheck").Logger()
-
-	l.Debug().Msgf("(%s) additional size check required", f.Name)
+	l.Debug().Msgf("(%s) additional check required", f.Name)
 
 	switch release.Indexer {
 	case "ptp", "btn", "ggn", "redacted", "ops", "mock":
-		if release.Size == 0 {
-			l.Trace().Msgf("(%s) preparing to check via api", f.Name)
+		l.Trace().Msgf("(%s) preparing to check via api", f.Name)
 
-			torrentInfo, err := s.apiService.GetTorrentByID(ctx, release.Indexer, release.TorrentID)
-			if err != nil || torrentInfo == nil {
-				l.Error().Err(err).Msgf("(%s) could not get torrent info from api: '%s' from: %s", f.Name, release.TorrentID, release.Indexer)
-				return false, err
-			}
+		torrentInfo, err := s.apiService.GetTorrentByID(ctx, release.Indexer, release.TorrentID)
+		if err != nil || torrentInfo == nil {
+			l.Error().Err(err).Msgf("(%s) could not get torrent info from api: '%s' from: %s", f.Name, release.TorrentID, release.Indexer)
+			return false, err
+		}
 
-			l.Debug().Msgf("(%s) got torrent info from api: %+v", f.Name, torrentInfo)
+		l.Debug().Msgf("(%s) got torrent info from api: %+v", f.Name, torrentInfo)
 
-			release.Size = torrentInfo.ReleaseSizeBytes()
+		release.Size = torrentInfo.ReleaseSizeBytes()
+		release.Uploader = torrentInfo.Uploader
+
+		// check for record label
+		if release.Indexer == "ops" || release.Indexer == "redacted" {
+			release.RecordLabel = torrentInfo.RecordLabel
 		}
 
 	default:
 		l.Trace().Msgf("(%s) preparing to download torrent metafile", f.Name)
 
-		// if indexer doesn't have api, download torrent and add to tmpPath
 		if err := release.DownloadTorrentFileCtx(ctx); err != nil {
 			l.Error().Err(err).Msgf("(%s) could not download torrent file with id: '%s' from: %s", f.Name, release.TorrentID, release.Indexer)
 			return false, err
@@ -474,43 +474,11 @@ func (s *service) AdditionalSizeCheck(ctx context.Context, f *domain.Filter, rel
 	}
 
 	if !sizeOk {
-		l.Debug().Msgf("(%s) filter did not match after additional size check, trying next", f.Name)
-		return false, err
+		l.Debug().Msgf("(%s) filter did not match after additional check, trying next", f.Name)
+		return false, nil
 	}
 
 	return true, nil
-}
-
-func (s *service) AdditionalDetailCheck(ctx context.Context, release *domain.Release) error {
-	// Only perform additional fetching for specific indexers
-	switch release.Indexer {
-	case "redacted", "ops":
-		s.log.Trace().Msgf("service.AdditionalDetailCheck: preparing to fetch details for indexer %s, torrent ID %s", release.Indexer, release.TorrentID)
-
-		torrentInfo, err := s.apiService.GetTorrentByID(ctx, release.Indexer, release.TorrentID)
-		if err != nil {
-			s.log.Error().Stack().Err(err).Msgf("service.AdditionalDetailCheck: could not get torrent info from API for torrent ID '%s' from indexer '%s'", release.TorrentID, release.Indexer)
-			return err
-		}
-
-		if torrentInfo == nil {
-			s.log.Error().Msgf("service.AdditionalDetailCheck: received nil torrent info from API for torrent ID '%s' from indexer '%s'", release.TorrentID, release.Indexer)
-			return errors.New("nil torrentInfo received from API")
-		}
-
-		s.log.Debug().Msgf("service.AdditionalDetailCheck: fetched torrent info from API: %+v", torrentInfo)
-
-		// Update release details with the information from the API
-		release.Uploader = torrentInfo.Uploader
-		release.RecordLabel = torrentInfo.RecordLabel
-
-		return nil
-
-	default:
-		s.log.Trace().Msgf("service.AdditionalDetailCheck: no fetching required for indexer %s", release.Indexer)
-		// No action needed for other indexers
-		return nil
-	}
 }
 
 func (s *service) CanDownloadShow(ctx context.Context, release *domain.Release) (bool, error) {

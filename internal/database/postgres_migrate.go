@@ -714,7 +714,6 @@ ADD COLUMN topic text;`,
 
 	ALTER TABLE filter
 		ADD COLUMN except_description TEXT;
-        ADD COLUMN record_label TEXT;
 
 	ALTER TABLE filter
 		ADD COLUMN use_regex_description BOOLEAN DEFAULT FALSE;`,
@@ -840,5 +839,8 @@ ALTER TABLE filter_external
 `,
 	`ALTER TABLE action
 	ADD COLUMN priority TEXT;
+`,
+	`ALTER TABLE filter
+	ADD COLUMN record_label TEXT;
 `,
 }

@@ -32,7 +32,6 @@ interface Filter {
   freeleech: boolean;
   freeleech_percent: string;
   shows: string;
-  record_label: string;
   seasons: string;
   episodes: string;
   smart_episode: boolean;
@@ -47,6 +46,7 @@ interface Filter {
   years: string;
   artists: string;
   albums: string;
+  record_label: string;
   match_release_types: string[];
   except_release_types: string[];
   formats: string[];
@@ -59,7 +59,6 @@ interface Filter {
   match_categories: string;
   except_categories: string;
   match_uploaders: string;
-  record_label: string;
   except_uploaders: string;
   match_language: string[];
   except_language: string[];

@@ -509,8 +509,10 @@ func (f *Filter) CheckFilter(r *Release) ([]string, bool) {
 		}
 	}
 
-	if len(f.RecordLabel) > 0 && !contains(r.RecordLabel, f.RecordLabel) {
-		r.addRejectionF("record label not matching. got: %v want: %v", r.RecordLabel, f.RecordLabel)
+	if f.RecordLabel != "" && !f.checkRecordLabel(r) {
+		if !r.AdditionalDetailsCheckRequired {
+			f.addRejectionF("record label not matching. got: %v want: %v", r.RecordLabel, f.RecordLabel)
+		}
 	}
 
 	if len(f.Rejections) > 0 {
@@ -570,10 +572,10 @@ func (f *Filter) isPerfectFLAC(r *Release) bool {
 // known from the announce line.
 func (f *Filter) checkSizeFilter(r *Release) bool {
 	if r.Size == 0 {
-		r.AdditionalSizeCheckRequired = true
+		r.AdditionalDetailsCheckRequired = true
 		return true
 	} else {
-		r.AdditionalSizeCheckRequired = false
+		r.AdditionalDetailsCheckRequired = false
 	}
 
 	sizeOK, err := f.CheckReleaseSize(r.Size)
@@ -587,6 +589,17 @@ func (f *Filter) checkSizeFilter(r *Release) bool {
 	}
 
 	return true
+}
+
+// checkRecordLabel verifies if the record label meets the filter criteria.
+func (f *Filter) checkRecordLabel(r *Release) bool {
+	if len(f.RecordLabel) > 0 && r.RecordLabel == "" {
+
+		r.AdditionalDetailsCheckRequired = true
+		return false
+	}
+
+	return len(f.RecordLabel) == 0 || contains(r.RecordLabel, f.RecordLabel)
 }
 
 func (f *Filter) addRejection(reason string) {
