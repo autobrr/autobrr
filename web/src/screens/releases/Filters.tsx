@@ -4,7 +4,7 @@
  */
 
 import * as React from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, keepPreviousData } from "@tanstack/react-query";
 import { Listbox, Transition } from "@headlessui/react";
 import { CheckIcon, ChevronDownIcon } from "@heroicons/react/24/solid";
 
@@ -70,7 +70,7 @@ export const IndexerSelectColumnFilter = ({
   const { data, isSuccess } = useQuery({
     queryKey: ["indexer_options"],
     queryFn: () => APIClient.release.indexerOptions(),
-    keepPreviousData: true,
+    placeholderData: keepPreviousData,
     staleTime: Infinity
   });
 
@@ -124,8 +124,14 @@ const FilterOption = ({ label, value }: FilterOptionProps) => (
 );
 
 export const PushStatusSelectColumnFilter = ({
-  column: { filterValue, setFilter, id }
+  column: { filterValue, setFilter, id },
+  initialFilterValue
 }: FilterProps<object>) => {
+  React.useEffect(() => {
+    if (initialFilterValue) {
+      setFilter(initialFilterValue);
+    }
+  }, [initialFilterValue, setFilter]);
   const label = filterValue ? PushStatusOptions.find((o) => o.value === filterValue && o.value)?.label : "Push status";
   return (
     <div className="mr-3" key={id}>
@@ -141,7 +147,7 @@ export const PushStatusSelectColumnFilter = ({
       </ListboxFilter>
     </div>
   );
-}
+};
 
 export const SearchColumnFilter = ({
   column: { filterValue, setFilter, id }
@@ -163,4 +169,4 @@ export const SearchColumnFilter = ({
       />
     </div>
   );
-}
+};

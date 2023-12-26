@@ -11,7 +11,7 @@ protocol: torrent
 supports:
   - irc
   - rss
-source: gazelle
+# source: gazelle
 settings:
   - name: authkey
     type: secret
@@ -65,8 +65,16 @@ irc:
   parse:
     type: single
     lines:
-      - test:
-          - "Category [Movie] A movie [1988] A.Movie.1988.Extended.720p.BluRay.x264-GROUP.mkv [720p, Encode, Freeleech, Scene, mkv] Size [4.99 GB] Url [https://uhdbits.org/torrents.php?action=download&id=00000]"
+      - tests:
+        - line: Category [Movie] A movie [1988] A.Movie.1988.Extended.720p.BluRay.x264-GROUP.mkv [720p, Encode, Freeleech, Scene, mkv] Size [4.99 GB] Url [https://uhdbits.org/torrents.php?action=download&id=00000]
+          expect:
+            category: Movie
+            year: "1988"
+            torrentName: A.Movie.1988.Extended.720p.BluRay.x264-GROUP.mkv
+            releaseTags: 720p, Encode, Freeleech, Scene, mkv
+            torrentSize: 4.99 GB
+            baseUrl: https://uhdbits.org/
+            torrentId: "00000"
         pattern: 'Category \[(.+)\] .+ \[(\d+)\] (.+) \[(.+)\] Size \[(.+)\] Url \[(https?\:\/\/.+\/).+id=(\d+)\]'
         vars:
           - category

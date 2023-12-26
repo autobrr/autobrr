@@ -1295,6 +1295,27 @@ func TestFilter_CheckFilter(t *testing.T) {
 			},
 			want: false,
 		},
+		{
+			name: "match_light_novel_1",
+			fields: &Release{
+				TorrentName: "[Group] -Name of a Novel Something Good-  [2012][Translated (Group)][EPUB]",
+				Title:       "-Name of a Novel Something Good-",
+				Category:    "Light Novel",
+				Year:        2012,
+				ReleaseTags: "Translated (Group) / EPUB",
+				Group:       "Group",
+			},
+			args: args{
+				filter: Filter{
+					MatchReleases:      "(?:.*Something Good.*|.*Something Bad.*)",
+					UseRegex:           true,
+					MatchReleaseGroups: "Group",
+					MatchCategories:    "Light Novel",
+					MatchReleaseTags:   "*EPUB*",
+				},
+			},
+			want: true,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -2107,10 +2128,63 @@ func Test_matchRegex(t *testing.T) {
 		{name: "test_3", args: args{tag: "Some.show.S01.DV.2160p.ATVP.WEB-DL.DDPA5.1.x265-GROUP2", filter: ".*1080p.+(group1|group3),.*2160p.+"}, want: true},
 		{name: "test_4", args: args{tag: "Some.show.S01.DV.2160p.ATVP.WEB-DL.DDPA5.1.x265-GROUP2", filter: ".*1080p.+(group1|group3),.*720p.+"}, want: false},
 		{name: "test_5", args: args{tag: "Some.show.S01.DV.2160p.ATVP.WEB-DL.DDPA5.1.x265-GROUP2", filter: ".*1080p.+(group1|group3),.*720p.+,"}, want: false},
+		{name: "test_6", args: args{tag: "[Group] -Name of a Novel Something Good-  [2012][Translated (Group)][EPUB]", filter: "(?:.*Something Good.*|.*Something Bad.*)"}, want: true},
+		{name: "test_7", args: args{tag: "[Group] -Name of a Novel Something Good-  [2012][Translated (Group)][EPUB]", filter: "(?:.*Something Funny.*|.*Something Bad.*)"}, want: false},
+		{name: "test_8", args: args{tag: ".s10E123.", filter:`\.[Ss]\d{1,2}[Ee]\d{1,3}\.`}, want: true},
+		{name: "test_9", args: args{tag: "S1E1", filter:`\.[Ss]\d{1,2}[Ee]\d{1,3}\.`}, want: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			assert.Equalf(t, tt.want, matchRegex(tt.args.tag, tt.args.filter), "matchRegex(%v, %v)", tt.args.tag, tt.args.filter)
+		})
+	}
+}
+
+func Test_validation(t *testing.T) {
+	tests := []struct {
+		name   string
+		filter Filter
+		valid  bool
+	}{
+		{name: "empty name", filter: Filter{}, valid: false},
+		{name: "empty filter, with name", filter: Filter{Name: "test"}, valid: true},
+		{name: "valid size limit", filter: Filter{Name: "test", MaxSize: "12MB"}, valid: true},
+		{name: "gibberish max size limit", filter: Filter{Name: "test", MaxSize: "asdf"}, valid: false},
+		{name: "gibberish min size limit", filter: Filter{Name: "test", MinSize: "qwerty"}, valid: false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equalf(t, tt.valid, tt.filter.Validate() == nil, "validation error \"%+v\" in test case %s", tt.filter.Validate(), tt.filter.Name)
+		})
+	}
+}
+
+func Test_checkSizeFilter(t *testing.T) {
+	tests := []struct {
+		name        string
+		filter      Filter
+		releaseSize uint64
+		want        bool
+		wantErr     string
+	}{
+		{name: "test_1", filter: Filter{MinSize: "1GB", MaxSize: ""}, releaseSize: 100, want: false},
+		{name: "test_2", filter: Filter{MinSize: "1GB", MaxSize: ""}, releaseSize: 2000000000, want: true},
+		{name: "test_3", filter: Filter{MinSize: "1GB", MaxSize: "2.2GB"}, releaseSize: 2000000000, want: true},
+		{name: "test_4", filter: Filter{MinSize: "1GB", MaxSize: "2GIB"}, releaseSize: 2000000000, want: true},
+		{name: "test_5", filter: Filter{MinSize: "1GB", MaxSize: "2GB"}, releaseSize: 2000000010, want: false},
+		{name: "test_6", filter: Filter{MinSize: "1GB", MaxSize: "2GB"}, releaseSize: 2000000000, want: false},
+		{name: "test_7", filter: Filter{MaxSize: "2GB"}, releaseSize: 2500000000, want: false},
+		{name: "test_8", filter: Filter{MaxSize: "20GB"}, releaseSize: 2500000000, want: true},
+		{name: "test_9", filter: Filter{MinSize: "unparseable", MaxSize: "20GB"}, releaseSize: 2500000000, want: false, wantErr: "could not parse filter min size: strconv.ParseFloat: parsing \"\": invalid syntax"},
+	}
+	for _, tt := range tests {
+
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := tt.filter.CheckReleaseSize(tt.releaseSize)
+			if tt.wantErr != "" && assert.Error(t, err) {
+				assert.EqualErrorf(t, err, tt.wantErr, "Error should be: %v, got: %v", tt.wantErr, err)
+			}
+			assert.Equal(t, tt.want, got)
 		})
 	}
 }

@@ -11,7 +11,7 @@ protocol: torrent
 supports:
   - irc
   - rss
-source: custom
+# source: custom
 settings:
   - name: apikey
     type: secret
@@ -53,8 +53,14 @@ irc:
   parse:
     type: single
     lines:
-      - test:
-          - "{tv} :: The.Great.Xmas.Show.S00E00.1080p.WEB.H264-TEST :: [1080p, web] :: https://milkie.cc/browse/xxxxxxxxxxxx"
+      - tests:
+        - line: '{tv} :: The.Great.Xmas.Show.S00E00.1080p.WEB.H264-TEST :: [1080p, web] :: https://milkie.cc/browse/xxxxxxxxxxxx'
+          expect:
+            category: tv
+            torrentName: The.Great.Xmas.Show.S00E00.1080p.WEB.H264-TEST
+            releaseTags: 1080p, web
+            baseUrl: https://milkie.cc/
+            torrentId: xxxxxxxxxxxx
         pattern: '{(.*)}\s::\s(.*)\s::\s\[(.*)\]\s::\s(https?\:\/\/[^\/]+\/)browse\/(.*)'
         vars:
           - category

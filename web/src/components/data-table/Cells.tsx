@@ -8,7 +8,9 @@ import { toast } from "react-hot-toast";
 import { formatDistanceToNowStrict } from "date-fns";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { ArrowPathIcon, CheckIcon } from "@heroicons/react/24/solid";
-import { ClockIcon, ExclamationCircleIcon, NoSymbolIcon } from "@heroicons/react/24/outline";
+import { ArrowDownTrayIcon, ArrowTopRightOnSquareIcon } from "@heroicons/react/24/outline";
+import { ExternalLink } from "../ExternalLink";
+import { ClockIcon, XMarkIcon, NoSymbolIcon } from "@heroicons/react/24/outline";
 
 import { APIClient } from "@api/APIClient";
 import { classNames, simplifyDate } from "@utils";
@@ -19,6 +21,10 @@ import { Tooltip } from "@components/tooltips/Tooltip";
 
 interface CellProps {
     value: string;
+}
+
+interface LinksCellProps {
+  value: Release;
 }
 
 export const AgeCell = ({ value }: CellProps) => (
@@ -95,9 +101,9 @@ const RetryActionButton = ({ status }: RetryActionButtonProps) => {
   };
 
   return (
-    <button className="flex items-center px-1.5 py-1 ml-2 border-gray-500 bg-gray-700 rounded hover:bg-gray-600" onClick={replayAction}>
+    <button className="flex items-center px-1.5 py-1 ml-2 rounded transition border-gray-500 bg-gray-250 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600" onClick={replayAction}>
       <span className="mr-1.5">Retry</span>
-      {mutation.isLoading
+      {mutation.isPending
         ? <RingResizeSpinner className="text-blue-500 w-4 h-4 iconHeight" aria-hidden="true" />
         : <ArrowPathIcon className="h-4 w-4" />
       }
@@ -117,8 +123,8 @@ interface StatusCellMapEntry {
 
 const StatusCellMap: Record<string, StatusCellMapEntry> = {
   "PUSH_ERROR": {
-    colors: "bg-pink-100 text-pink-800 hover:bg-pink-300",
-    icon: <ExclamationCircleIcon className="h-5 w-5" aria-hidden="true" />,
+    colors: "bg-red-100 text-red-800 hover:bg-red-275",
+    icon: <XMarkIcon className="h-5 w-5" aria-hidden="true" />,
     textFormatter: (status: ReleaseActionStatus) => (
       <>
         <span>
@@ -159,7 +165,7 @@ const StatusCellMap: Record<string, StatusCellMapEntry> = {
     )
   },
   "PUSH_APPROVED": {
-    colors: "bg-green-100 text-green-800 hover:bg-green-300",
+    colors: "bg-green-175 text-green-900 hover:bg-green-300",
     icon: <CheckIcon className="h-5 w-5" aria-hidden="true" />,
     textFormatter: (status: ReleaseActionStatus) => (
       <>
@@ -243,3 +249,20 @@ export const ReleaseStatusCell = ({ value }: ReleaseStatusCellProps) => (
     ))}
   </div>
 );
+
+export const LinksCell = ({ value }: LinksCellProps) => {
+  return (
+    <div className="flex space-x-2 text-blue-400 dark:text-blue-500">
+      {value.download_url && (
+        <ExternalLink href={value.download_url}>
+          <ArrowDownTrayIcon title="Download torrent file" className="h-5 w-5 hover:text-blue-500 dark:hover:text-blue-600" aria-hidden="true" />
+        </ExternalLink>
+      )}
+      {value.info_url && (
+        <ExternalLink href={value.info_url}>
+          <ArrowTopRightOnSquareIcon title="Visit torrentinfo url" className="h-5 w-5 hover:text-blue-500 dark:hover:text-blue-600" aria-hidden="true" />
+        </ExternalLink>
+      )}
+    </div>
+  );
+};

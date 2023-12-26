@@ -78,6 +78,8 @@ export function FeedUpdateForm({ isOpen, toggle, feed }: UpdateProps) {
       setIsSuccessfulTest(false);
     },
     onSuccess: () => {
+      toast.custom((t) => <Toast type="success" body={`${feed.name} test OK!`} t={t} />);
+
       sleep(1000)
         .then(() => {
           setIsTesting(false);
@@ -196,7 +198,7 @@ function FormFieldsTorznab() {
       <NumberFieldWide name="interval" label="Refresh interval" help="Minutes. Recommended 15-30. Too low and risk ban."/>
 
       <NumberFieldWide name="timeout" label="Refresh timeout" help="Seconds to wait before cancelling refresh."/>
-      <NumberFieldWide name="max_age" label="Max age" help="Seconds. Will not grab older than this value."/>
+      <NumberFieldWide name="max_age" label="Max age" help="Enter the maximum age of feed content in seconds. It is recommended to set this to '0' to disable the age filter, ensuring all items in the feed are processed."/>
     </div>
   );
 }
@@ -220,7 +222,7 @@ function FormFieldsNewznab() {
       <NumberFieldWide name="interval" label="Refresh interval" help="Minutes. Recommended 15-30. Too low and risk ban."/>
 
       <NumberFieldWide name="timeout" label="Refresh timeout" help="Seconds to wait before cancelling refresh."/>
-      <NumberFieldWide name="max_age" label="Max age" help="Seconds. Will not grab older than this value."/>
+      <NumberFieldWide name="max_age" label="Max age" help="Enter the maximum age of feed content in seconds. It is recommended to set this to '0' to disable the age filter, ensuring all items in the feed are processed."/>
     </div>
   );
 }
@@ -243,7 +245,7 @@ function FormFieldsRSS() {
       {interval < 15 && <WarningLabel />}
       <NumberFieldWide name="interval" label="Refresh interval" help="Minutes. Recommended 15-30. Too low and risk ban."/>
       <NumberFieldWide name="timeout" label="Refresh timeout" help="Seconds to wait before cancelling refresh."/>
-      <NumberFieldWide name="max_age" label="Max age" help="Seconds. Will not grab older than this value."/>
+      <NumberFieldWide name="max_age" label="Max age" help="Enter the maximum age of feed content in seconds. It is recommended to set this to '0' to disable the age filter, ensuring all items in the feed are processed."/>
 
       <PasswordFieldWide name="cookie" label="Cookie" help="Not commonly used" />
     </div>

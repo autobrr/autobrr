@@ -34,7 +34,6 @@ func TestIndexerIRCParse_ParseMatch(t *testing.T) {
 				ForceSizeUnit: "",
 				Lines: []IndexerIRCParseLine{
 					{
-						Test:    nil,
 						Pattern: "New Torrent Announcement:\\s*<([^>]*)>\\s*Name:'(.*)' uploaded by '([^']*)'\\s*(freeleech)*\\s*-\\s*(https?\\:\\/\\/[^\\/]+\\/)torrent\\/(\\d+)",
 						Vars: []string{
 							"category",
@@ -75,7 +74,6 @@ func TestIndexerIRCParse_ParseMatch(t *testing.T) {
 				ForceSizeUnit: "",
 				Lines: []IndexerIRCParseLine{
 					{
-						Test:    nil,
 						Pattern: `(.*?)(?: - )?(Visual Novel|Light Novel|TV.*|Movie|Manga|OVA|ONA|DVD Special|BD Special|Oneshot|Anthology|Manhwa|Manhua|Artbook|Game|Live Action.*|)[\s\p{Zs}]{2,}\[(\d+)\] :: (.*?)(?: \/ (?:RAW|Softsubs|Hardsubs|Translated)\s\((.+)\)(?:.*Episode\s(\d+))?(?:.*(Freeleech))?.*)? \|\| (https.*)\/torrents.*\?id=\d+&torrentid=(\d+) \|\| (.+?(?:(?:\|\| Uploaded by|$))?) (?:\|\| Uploaded by: (.*))?$`,
 						Vars: []string{
 							"torrentName",
@@ -128,7 +126,6 @@ func TestIndexerIRCParse_ParseMatch(t *testing.T) {
 				ForceSizeUnit: "",
 				Lines: []IndexerIRCParseLine{
 					{
-						Test:    nil,
 						Pattern: "New Torrent Announcement:\\s*<([^>]*)>\\s*Name:'(.*)' uploaded by '([^']*)'\\s*(freeleech)*\\s*-\\s*(https?\\:\\/\\/[^\\/]+\\/)torrent\\/(\\d+)",
 						Vars: []string{
 							"category",
@@ -169,7 +166,6 @@ func TestIndexerIRCParse_ParseMatch(t *testing.T) {
 				ForceSizeUnit: "",
 				Lines: []IndexerIRCParseLine{
 					{
-						Test:    nil,
 						Pattern: "New Torrent Announcement:\\s*<([^>]*)>\\s*Name:'(.*)' uploaded by '([^']*)'\\s*(freeleech)*\\s*-\\s*(https?\\:\\/\\/[^\\/]+\\/)torrent\\/(\\d+)",
 						Vars: []string{
 							"category",
@@ -210,7 +206,6 @@ func TestIndexerIRCParse_ParseMatch(t *testing.T) {
 				ForceSizeUnit: "",
 				Lines: []IndexerIRCParseLine{
 					{
-						Test:    nil,
 						Pattern: "New Torrent in category \\[([^\\]]*)\\] (.*) \\(([^\\)]*)\\) uploaded! Download\\: (https?\\:\\/\\/[^\\/]+\\/).+id=(.+)",
 						Vars: []string{
 							"category",

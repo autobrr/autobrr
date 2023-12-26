@@ -57,6 +57,12 @@ func (r *FilterRepo) find(ctx context.Context, tx *Tx, params domain.FilterQuery
 		From("action a").
 		Where("a.filter_id = f.id")
 
+	actionEnabledCountQuery := r.db.squirrel.
+		Select("COUNT(*)").
+		From("action a").
+		Where("a.filter_id = f.id").
+		Where("a.enabled = '1'")
+
 	queryBuilder := r.db.squirrel.
 		Select(
 			"f.id",
@@ -68,6 +74,7 @@ func (r *FilterRepo) find(ctx context.Context, tx *Tx, params domain.FilterQuery
 		).
 		Distinct().
 		Column(sq.Alias(actionCountQuery, "action_count")).
+		Column(sq.Alias(actionEnabledCountQuery, "actions_enabled_count")).
 		LeftJoin("filter_indexer fi ON f.id = fi.filter_id").
 		LeftJoin("indexer i ON i.id = fi.indexer_id").
 		From("filter f")
@@ -89,7 +96,6 @@ func (r *FilterRepo) find(ctx context.Context, tx *Tx, params domain.FilterQuery
 		for _, v := range params.Filters.Indexers {
 			filter = append(filter, sq.Eq{"i.identifier": v})
 		}
-
 		queryBuilder = queryBuilder.Where(filter)
 	}
 
@@ -102,14 +108,13 @@ func (r *FilterRepo) find(ctx context.Context, tx *Tx, params domain.FilterQuery
 	if err != nil {
 		return nil, errors.Wrap(err, "error executing query")
 	}
-
 	defer rows.Close()
 
 	var filters []domain.Filter
 	for rows.Next() {
 		var f domain.Filter
 
-		if err := rows.Scan(&f.ID, &f.Enabled, &f.Name, &f.Priority, &f.CreatedAt, &f.UpdatedAt, &f.ActionsCount); err != nil {
+		if err := rows.Scan(&f.ID, &f.Enabled, &f.Name, &f.Priority, &f.CreatedAt, &f.UpdatedAt, &f.ActionsCount, &f.ActionsEnabledCount); err != nil {
 			return nil, errors.Wrap(err, "error scanning row")
 		}
 
@@ -280,7 +285,7 @@ func (r *FilterRepo) FindByID(ctx context.Context, filterID int) (*domain.Filter
 
 		// filter external
 		var extName, extType, extExecCmd, extExecArgs, extWebhookHost, extWebhookMethod, extWebhookHeaders, extWebhookData, extWebhookRetryStatus sql.NullString
-		var extId, extIndex, extWebhookStatus, extWebhookRetryAttempts, extWebhookDelaySeconds, extWebhookRetryJitterSeconds, extExecStatus sql.NullInt32
+		var extId, extIndex, extWebhookStatus, extWebhookRetryAttempts, extWebhookDelaySeconds, extExecStatus sql.NullInt32
 		var extEnabled sql.NullBool
 
 		if err := rows.Scan(
@@ -360,7 +365,6 @@ func (r *FilterRepo) FindByID(ctx context.Context, filterID int) (*domain.Filter
 			&extWebhookRetryStatus,
 			&extWebhookRetryAttempts,
 			&extWebhookDelaySeconds,
-			&extWebhookRetryJitterSeconds,
 		); err != nil {
 			return nil, errors.Wrap(err, "error scanning row")
 		}
@@ -432,11 +436,11 @@ func (r *FilterRepo) FindByID(ctx context.Context, filterID int) (*domain.Filter
 }
 
 // FindByIndexerIdentifier find active filters with active indexer only
-func (r *FilterRepo) FindByIndexerIdentifier(ctx context.Context, indexer string) ([]domain.Filter, error) {
+func (r *FilterRepo) FindByIndexerIdentifier(ctx context.Context, indexer string) ([]*domain.Filter, error) {
 	return r.findByIndexerIdentifier(ctx, indexer)
 }
 
-func (r *FilterRepo) findByIndexerIdentifier(ctx context.Context, indexer string) ([]domain.Filter, error) {
+func (r *FilterRepo) findByIndexerIdentifier(ctx context.Context, indexer string) ([]*domain.Filter, error) {
 	queryBuilder := r.db.squirrel.
 		Select(
 			"f.id",
@@ -538,9 +542,7 @@ func (r *FilterRepo) findByIndexerIdentifier(ctx context.Context, indexer string
 
 	defer rows.Close()
 
-	var filters []domain.Filter
-
-	externalMap := make(map[int][]domain.FilterExternal)
+	filtersMap := make(map[int]*domain.Filter)
 
 	for rows.Next() {
 		var f domain.Filter
@@ -551,7 +553,7 @@ func (r *FilterRepo) findByIndexerIdentifier(ctx context.Context, indexer string
 
 		// filter external
 		var extName, extType, extExecCmd, extExecArgs, extWebhookHost, extWebhookMethod, extWebhookHeaders, extWebhookData, extWebhookRetryStatus sql.NullString
-		var extId, extIndex, extWebhookStatus, extWebhookRetryAttempts, extWebhookDelaySeconds, extWebhookRetryJitterSeconds, extExecStatus, extFilterId sql.NullInt32
+		var extId, extIndex, extWebhookStatus, extWebhookRetryAttempts, extWebhookDelaySeconds, extExecStatus, extFilterId sql.NullInt32
 		var extEnabled sql.NullBool
 
 		if err := rows.Scan(
@@ -631,47 +633,54 @@ func (r *FilterRepo) findByIndexerIdentifier(ctx context.Context, indexer string
 			&extWebhookRetryStatus,
 			&extWebhookRetryAttempts,
 			&extWebhookDelaySeconds,
-			&extWebhookRetryJitterSeconds,
 			&extFilterId,
 		); err != nil {
 			return nil, errors.Wrap(err, "error scanning row")
 		}
 
-		f.MinSize = minSize.String
-		f.MaxSize = maxSize.String
-		f.Delay = int(delay.Int32)
-		f.MaxDownloads = int(maxDownloads.Int32)
-		f.MaxDownloadsUnit = domain.FilterMaxDownloadsUnit(maxDownloadsUnit.String)
-		f.MatchReleases = matchReleases.String
-		f.ExceptReleases = exceptReleases.String
-		f.MatchReleaseGroups = matchReleaseGroups.String
-		f.ExceptReleaseGroups = exceptReleaseGroups.String
-		f.MatchReleaseTags = matchReleaseTags.String
-		f.ExceptReleaseTags = exceptReleaseTags.String
-		f.MatchDescription = matchDescription.String
-		f.ExceptDescription = exceptDescription.String
-		f.FreeleechPercent = freeleechPercent.String
-		f.Shows = shows.String
-		f.Seasons = seasons.String
-		f.Episodes = episodes.String
-		f.Years = years.String
-		f.Artists = artists.String
-		f.Albums = albums.String
-		f.LogScore = int(logScore.Int32)
-		f.Log = hasLog.Bool
-		f.Cue = hasCue.Bool
-		f.PerfectFlac = perfectFlac.Bool
-		f.MatchCategories = matchCategories.String
-		f.ExceptCategories = exceptCategories.String
-		f.MatchUploaders = matchUploaders.String
-		f.ExceptUploaders = exceptUploaders.String
-		f.Tags = tags.String
-		f.ExceptTags = exceptTags.String
-		f.TagsMatchLogic = tagsMatchLogic.String
-		f.ExceptTagsMatchLogic = exceptTagsMatchLogic.String
-		f.UseRegex = useRegex.Bool
-		f.Scene = scene.Bool
-		f.Freeleech = freeleech.Bool
+		filter, ok := filtersMap[f.ID]
+		if !ok {
+			f.MinSize = minSize.String
+			f.MaxSize = maxSize.String
+			f.Delay = int(delay.Int32)
+			f.MaxDownloads = int(maxDownloads.Int32)
+			f.MaxDownloadsUnit = domain.FilterMaxDownloadsUnit(maxDownloadsUnit.String)
+			f.MatchReleases = matchReleases.String
+			f.ExceptReleases = exceptReleases.String
+			f.MatchReleaseGroups = matchReleaseGroups.String
+			f.ExceptReleaseGroups = exceptReleaseGroups.String
+			f.MatchReleaseTags = matchReleaseTags.String
+			f.ExceptReleaseTags = exceptReleaseTags.String
+			f.MatchDescription = matchDescription.String
+			f.ExceptDescription = exceptDescription.String
+			f.FreeleechPercent = freeleechPercent.String
+			f.Shows = shows.String
+			f.Seasons = seasons.String
+			f.Episodes = episodes.String
+			f.Years = years.String
+			f.Artists = artists.String
+			f.Albums = albums.String
+			f.LogScore = int(logScore.Int32)
+			f.Log = hasLog.Bool
+			f.Cue = hasCue.Bool
+			f.PerfectFlac = perfectFlac.Bool
+			f.MatchCategories = matchCategories.String
+			f.ExceptCategories = exceptCategories.String
+			f.MatchUploaders = matchUploaders.String
+			f.ExceptUploaders = exceptUploaders.String
+			f.Tags = tags.String
+			f.ExceptTags = exceptTags.String
+			f.TagsMatchLogic = tagsMatchLogic.String
+			f.ExceptTagsMatchLogic = exceptTagsMatchLogic.String
+			f.UseRegex = useRegex.Bool
+			f.Scene = scene.Bool
+			f.Freeleech = freeleech.Bool
+
+			f.Rejections = []string{}
+
+			filter = &f
+			filtersMap[f.ID] = filter
+		}
 
 		if extId.Valid {
 			external := domain.FilterExternal{
@@ -693,21 +702,15 @@ func (r *FilterRepo) findByIndexerIdentifier(ctx context.Context, indexer string
 				WebhookRetryDelaySeconds: int(extWebhookDelaySeconds.Int32),
 				FilterId:                 int(extFilterId.Int32),
 			}
-			externalMap[external.FilterId] = append(externalMap[external.FilterId], external)
+			filter.External = append(filter.External, external)
 		}
-
-		filters = append(filters, f)
 	}
 
-	for i, filter := range filters {
-		v, ok := externalMap[filter.ID]
-		if !ok {
-			continue
-		}
+	var filters []*domain.Filter
 
-		filter.External = v
-
-		filters[i] = filter
+	for _, filter := range filtersMap {
+		filter := filter
+		filters = append(filters, filter)
 	}
 
 	return filters, nil
@@ -756,7 +759,7 @@ func (r *FilterRepo) FindExternalFiltersByID(ctx context.Context, filterId int) 
 
 		// filter external
 		var extExecCmd, extExecArgs, extWebhookHost, extWebhookMethod, extWebhookHeaders, extWebhookData, extWebhookRetryStatus sql.NullString
-		var extWebhookStatus, extWebhookRetryAttempts, extWebhookDelaySeconds, extWebhookRetryJitterSeconds, extExecStatus sql.NullInt32
+		var extWebhookStatus, extWebhookRetryAttempts, extWebhookDelaySeconds, extExecStatus sql.NullInt32
 
 		if err := rows.Scan(
 			&external.ID,
@@ -775,7 +778,6 @@ func (r *FilterRepo) FindExternalFiltersByID(ctx context.Context, filterId int) 
 			&extWebhookRetryStatus,
 			&extWebhookRetryAttempts,
 			&extWebhookDelaySeconds,
-			&extWebhookRetryJitterSeconds,
 		); err != nil {
 			return nil, errors.Wrap(err, "error scanning row")
 		}
@@ -1004,9 +1006,15 @@ func (r *FilterRepo) Update(ctx context.Context, filter *domain.Filter) error {
 		return errors.Wrap(err, "error building query")
 	}
 
-	_, err = r.db.handler.ExecContext(ctx, query, args...)
+	result, err := r.db.handler.ExecContext(ctx, query, args...)
 	if err != nil {
 		return errors.Wrap(err, "error executing query")
+	}
+
+	if rowsAffected, err := result.RowsAffected(); err != nil {
+		return errors.Wrap(err, "error getting rows affected")
+	} else if rowsAffected == 0 {
+		return domain.ErrRecordNotFound
 	}
 
 	return nil
@@ -1260,9 +1268,15 @@ func (r *FilterRepo) ToggleEnabled(ctx context.Context, filterID int, enabled bo
 		return errors.Wrap(err, "error building query")
 	}
 
-	_, err = r.db.handler.ExecContext(ctx, query, args...)
+	result, err := r.db.handler.ExecContext(ctx, query, args...)
 	if err != nil {
 		return errors.Wrap(err, "error executing query")
+	}
+
+	if rowsAffected, err := result.RowsAffected(); err != nil {
+		return errors.Wrap(err, "error getting rows affected")
+	} else if rowsAffected == 0 {
+		return domain.ErrRecordNotFound
 	}
 
 	return nil
@@ -1388,12 +1402,18 @@ func (r *FilterRepo) Delete(ctx context.Context, filterID int) error {
 		return errors.Wrap(err, "error building query")
 	}
 
-	_, err = r.db.handler.ExecContext(ctx, query, args...)
+	result, err := r.db.handler.ExecContext(ctx, query, args...)
 	if err != nil {
 		return errors.Wrap(err, "error executing query")
 	}
 
-	r.log.Info().Msgf("filter.delete: successfully deleted: %v", filterID)
+	if rowsAffected, err := result.RowsAffected(); err != nil {
+		return errors.Wrap(err, "error getting rows affected")
+	} else if rowsAffected == 0 {
+		return domain.ErrRecordNotFound
+	}
+
+	r.log.Debug().Msgf("filter.delete: successfully deleted: %v", filterID)
 
 	return nil
 }

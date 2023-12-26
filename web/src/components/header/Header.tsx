@@ -18,22 +18,28 @@ import { MobileNav } from "./MobileNav";
 import { ExternalLink } from "@components/ExternalLink";
 
 export const Header = () => {
-  const { data: config } = useQuery({
+  const { isError:isConfigError, error: configError, data: config } = useQuery({
     queryKey: ["config"],
     queryFn: () => APIClient.config.get(),
     retry: false,
-    refetchOnWindowFocus: false,
-    onError: err => console.log(err)
+    refetchOnWindowFocus: false
   });
 
-  const { data } = useQuery({
+  if (isConfigError) {
+    console.log(configError);
+  }
+
+  const { isError, error, data } = useQuery({
     queryKey: ["updates"],
     queryFn: () => APIClient.updates.getLatestRelease(),
     retry: false,
     refetchOnWindowFocus: false,
-    enabled: config?.check_for_updates === true,
-    onError: err => console.log(err)
+    enabled: config?.check_for_updates === true
   });
+
+  if (isError) {
+    console.log(error);
+  }
 
   const logoutMutation = useMutation({
     mutationFn: APIClient.auth.logout,
@@ -48,12 +54,12 @@ export const Header = () => {
   return (
     <Disclosure
       as="nav"
-      className="bg-gradient-to-b from-gray-100 dark:from-[#141414]"
+      className="bg-gradient-to-b from-gray-100 dark:from-gray-925"
     >
       {({ open }) => (
         <>
           <div className="max-w-screen-xl mx-auto sm:px-6 lg:px-8">
-            <div className="border-b border-gray-300 dark:border-gray-700">
+            <div className="border-b border-gray-300 dark:border-gray-775">
               <div className="flex items-center justify-between h-16 px-4 sm:px-0">
                 <LeftNav />
                 <RightNav logoutMutation={logoutMutation.mutate} />
