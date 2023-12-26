@@ -7,7 +7,7 @@ import { Dispatch, FC, Fragment, MouseEventHandler, useReducer, useRef, useState
 import { Link } from "react-router-dom";
 import { toast } from "react-hot-toast";
 import { Listbox, Menu, Transition } from "@headlessui/react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient, keepPreviousData, useSuspenseQuery } from "@tanstack/react-query";
 import { FormikValues } from "formik";
 import { useCallback } from "react";
 import {
@@ -192,7 +192,7 @@ function FilterList({ toggleCreateFilter }: any) {
     filterListState
   );
 
-  const { data, error } = useQuery({
+  const { data, error } = useSuspenseQuery({
     queryKey: filterKeys.list(indexerFilter, sortOrder),
     queryFn: ({ queryKey }) => APIClient.filters.find(queryKey[2].indexers, queryKey[2].sortOrder),
     refetchOnWindowFocus: false
@@ -425,7 +425,7 @@ const FilterItemDropdown = ({ filter, onToggle }: FilterItemDropdownProps) => {
     <Menu as="div">
       <DeleteModal
         isOpen={deleteModalIsOpen}
-        isLoading={deleteMutation.isLoading}
+        isLoading={deleteMutation.isPending}
         toggle={toggleDeleteModal}
         buttonRef={cancelModalButtonRef}
         deleteAction={() => {
@@ -639,27 +639,39 @@ function FilterListItem({ filter, values, idx }: FilterListItemProps) {
             ) : filter.priority}
           </span>
           <span className="z-10 whitespace-nowrap text-xs font-medium text-gray-600 dark:text-gray-400">
-            <Tooltip
-              label={
-                <Link
-                  to={`${filter.id.toString()}/actions`}
-                  className="flex items-center cursor-pointer hover:text-black dark:hover:text-gray-300"
-                >
-                  <span className={classNames(!filter.actions_count ? "text-red-500 hover:text-red-400 dark:hover:text-red-400" : "")}>
-                    Actions: {filter.actions_count}
-                  </span>
-                  {!filter.actions_count && (
-                    <span className="mr-2 ml-2 flex h-3 w-3 relative">
-                      
+            {filter.actions_count === 0 || filter.actions_enabled_count === 0 ? (
+              <Tooltip
+                label={
+                  <Link
+                    to={`${filter.id.toString()}/actions`}
+                    className="flex items-center cursor-pointer hover:text-black dark:hover:text-gray-300"
+                  >
+                    <span className={filter.actions_count === 0 || filter.actions_enabled_count === 0 ? "text-red-500 hover:text-red-400 dark:hover:text-red-400" : ""}>
+          Actions: {filter.actions_enabled_count}/{filter.actions_count}
                     </span>
-                  )}
-                </Link>
-              }
-            >
-              {!filter.actions_count ? (
-                <>{"You need to setup an action in the filter otherwise you will not get any snatches."}</>
-              ) : null}
-            </Tooltip>
+                  </Link>
+                }
+              >
+                {filter.actions_count === 0 ? (
+                  <>
+                    {"No actions defined. Set up actions to enable snatching."}
+                  </>
+                ) : filter.actions_enabled_count === 0 ? (
+                  <>
+                    {"You need to enable at least one action in the filter otherwise you will not get any snatches."}
+                  </>
+                ) : null}
+              </Tooltip>
+            ) : (
+              <Link
+                to={`${filter.id.toString()}/actions`}
+                className="flex items-center cursor-pointer hover:text-black dark:hover:text-gray-300"
+              >
+                <span>
+          Actions: {filter.actions_enabled_count}/{filter.actions_count}
+                </span>
+              </Link>
+            )}
           </span>
         </div>
       </div>
@@ -773,7 +785,7 @@ const IndexerSelectFilter = ({ dispatch }: any) => {
   const { data, isSuccess } = useQuery({
     queryKey: ["filters", "indexers_options"],
     queryFn: () => APIClient.indexers.getOptions(),
-    keepPreviousData: true,
+    placeholderData: keepPreviousData,
     staleTime: Infinity
   });
 

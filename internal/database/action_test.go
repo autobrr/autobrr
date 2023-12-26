@@ -214,7 +214,7 @@ func TestActionRepo_FindByFilterID(t *testing.T) {
 			assert.NoError(t, err)
 
 			// Actual test for FindByFilterID
-			actions, err := repo.FindByFilterID(context.Background(), createdFilters[0].ID)
+			actions, err := repo.FindByFilterID(context.Background(), createdFilters[0].ID, nil)
 			assert.NoError(t, err)
 			assert.NotNil(t, actions)
 			assert.Equal(t, 1, len(actions))
@@ -235,7 +235,7 @@ func TestActionRepo_FindByFilterID(t *testing.T) {
 			assert.NotNil(t, createdFilters)
 
 			// Actual test for FindByFilterID
-			actions, err := repo.FindByFilterID(context.Background(), createdFilters[0].ID)
+			actions, err := repo.FindByFilterID(context.Background(), createdFilters[0].ID, nil)
 			assert.NoError(t, err)
 			assert.Equal(t, 0, len(actions))
 
@@ -244,7 +244,7 @@ func TestActionRepo_FindByFilterID(t *testing.T) {
 		})
 
 		t.Run(fmt.Sprintf("FindByFilterID_Succeeds_With_Invalid_FilterID [%s]", dbType), func(t *testing.T) {
-			actions, err := repo.FindByFilterID(context.Background(), 9999) // 9999 is an invalid filter ID
+			actions, err := repo.FindByFilterID(context.Background(), 9999, nil) // 9999 is an invalid filter ID
 			assert.NoError(t, err)
 			assert.NotNil(t, actions)
 			assert.Equal(t, 0, len(actions))
@@ -254,7 +254,7 @@ func TestActionRepo_FindByFilterID(t *testing.T) {
 			ctx, cancel := context.WithTimeout(context.Background(), 1*time.Nanosecond)
 			defer cancel()
 
-			actions, err := repo.FindByFilterID(ctx, 1)
+			actions, err := repo.FindByFilterID(ctx, 1, nil)
 			assert.Error(t, err)
 			assert.Nil(t, actions)
 		})

@@ -551,7 +551,8 @@ FROM (
 CROSS JOIN (
 	SELECT
 	COUNT(CASE WHEN status = 'PUSH_APPROVED' THEN 0 END) AS push_approved_count,
-	COUNT(CASE WHEN status = 'PUSH_REJECTED' THEN 0 END) AS push_rejected_count
+	COUNT(CASE WHEN status = 'PUSH_REJECTED' THEN 0 END) AS push_rejected_count,
+	COUNT(CASE WHEN status = 'PUSH_ERROR' THEN 0 END) AS push_error_count
 	FROM release_action_status
 ) AS foo`
 
@@ -562,7 +563,7 @@ CROSS JOIN (
 
 	var rls domain.ReleaseStats
 
-	if err := row.Scan(&rls.TotalCount, &rls.FilteredCount, &rls.FilterRejectedCount, &rls.PushApprovedCount, &rls.PushRejectedCount); err != nil {
+	if err := row.Scan(&rls.TotalCount, &rls.FilteredCount, &rls.FilterRejectedCount, &rls.PushApprovedCount, &rls.PushRejectedCount, &rls.PushErrorCount); err != nil {
 		return nil, errors.Wrap(err, "error scanning row")
 	}
 

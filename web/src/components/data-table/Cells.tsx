@@ -8,6 +8,8 @@ import { toast } from "react-hot-toast";
 import { formatDistanceToNowStrict } from "date-fns";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { ArrowPathIcon, CheckIcon } from "@heroicons/react/24/solid";
+import { ArrowDownTrayIcon, ArrowTopRightOnSquareIcon } from "@heroicons/react/24/outline";
+import { ExternalLink } from "../ExternalLink";
 import { ClockIcon, XMarkIcon, NoSymbolIcon } from "@heroicons/react/24/outline";
 
 import { APIClient } from "@api/APIClient";
@@ -19,6 +21,10 @@ import { Tooltip } from "@components/tooltips/Tooltip";
 
 interface CellProps {
     value: string;
+}
+
+interface LinksCellProps {
+  value: Release;
 }
 
 export const AgeCell = ({ value }: CellProps) => (
@@ -97,7 +103,7 @@ const RetryActionButton = ({ status }: RetryActionButtonProps) => {
   return (
     <button className="flex items-center px-1.5 py-1 ml-2 rounded transition border-gray-500 bg-gray-250 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600" onClick={replayAction}>
       <span className="mr-1.5">Retry</span>
-      {mutation.isLoading
+      {mutation.isPending
         ? <RingResizeSpinner className="text-blue-500 w-4 h-4 iconHeight" aria-hidden="true" />
         : <ArrowPathIcon className="h-4 w-4" />
       }
@@ -243,3 +249,20 @@ export const ReleaseStatusCell = ({ value }: ReleaseStatusCellProps) => (
     ))}
   </div>
 );
+
+export const LinksCell = ({ value }: LinksCellProps) => {
+  return (
+    <div className="flex space-x-2 text-blue-400 dark:text-blue-500">
+      {value.download_url && (
+        <ExternalLink href={value.download_url}>
+          <ArrowDownTrayIcon title="Download torrent file" className="h-5 w-5 hover:text-blue-500 dark:hover:text-blue-600" aria-hidden="true" />
+        </ExternalLink>
+      )}
+      {value.info_url && (
+        <ExternalLink href={value.info_url}>
+          <ArrowTopRightOnSquareIcon title="Visit torrentinfo url" className="h-5 w-5 hover:text-blue-500 dark:hover:text-blue-600" aria-hidden="true" />
+        </ExternalLink>
+      )}
+    </div>
+  );
+};

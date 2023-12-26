@@ -4,7 +4,7 @@
  */
 
 import { Fragment, useEffect, useRef, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useSuspenseQuery } from "@tanstack/react-query";
 import { Menu, Transition } from "@headlessui/react";
 import { DebounceInput } from "react-debounce-input";
 import {
@@ -174,13 +174,16 @@ export const Logs = () => {
 };
 
 export const LogFiles = () => {
-  const { data } = useQuery({
+  const { isError, error, data } = useSuspenseQuery({
     queryKey: ["log-files"],
     queryFn: () => APIClient.logs.files(),
     retry: false,
-    refetchOnWindowFocus: false,
-    onError: err => console.log(err)
+    refetchOnWindowFocus: false
   });
+
+  if (isError) {
+    console.log(error);
+  }
 
   return (
     <div>

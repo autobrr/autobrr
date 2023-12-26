@@ -15,6 +15,7 @@ import (
 	"github.com/autobrr/autobrr/pkg/wildcard"
 
 	"github.com/dustin/go-humanize"
+	"github.com/go-andiamo/splitter"
 )
 
 /*
@@ -133,6 +134,7 @@ type Filter struct {
 	ExceptDescription    string                 `json:"except_description,omitempty"`
 	UseRegexDescription  bool                   `json:"use_regex_description,omitempty"`
 	ActionsCount         int                    `json:"actions_count"`
+	ActionsEnabledCount  int                    `json:"actions_enabled_count"`
 	Actions              []*Action              `json:"actions,omitempty"`
 	External             []FilterExternal       `json:"external,omitempty"`
 	Indexers             []Indexer              `json:"indexers"`
@@ -259,8 +261,8 @@ func (f *Filter) Validate() error {
 }
 
 func (f *Filter) CheckFilter(r *Release) ([]string, bool) {
-	// max downloads check. If reached return early
-	if f.MaxDownloads > 0 && !f.checkMaxDownloads(f.MaxDownloads, f.MaxDownloadsUnit) {
+	// max downloads check. If reached return early so other filters can be checked as quick as possible.
+	if f.MaxDownloads > 0 && !f.checkMaxDownloads() {
 		f.addRejectionF("max downloads (%d) this (%v) reached", f.MaxDownloads, f.MaxDownloadsUnit)
 		return f.Rejections, false
 	}
@@ -512,37 +514,26 @@ func (f *Filter) CheckFilter(r *Release) ([]string, bool) {
 	return nil, true
 }
 
-func (f *Filter) checkMaxDownloads(max int, perTimeUnit FilterMaxDownloadsUnit) bool {
+func (f Filter) checkMaxDownloads() bool {
 	if f.Downloads == nil {
 		return false
 	}
 
-	switch perTimeUnit {
+	var count int
+	switch f.MaxDownloadsUnit {
 	case FilterMaxDownloadsHour:
-		if f.Downloads.HourCount > 0 && f.Downloads.HourCount >= max {
-			return false
-		}
+		count = f.Downloads.HourCount
 	case FilterMaxDownloadsDay:
-		if f.Downloads.DayCount > 0 && f.Downloads.DayCount >= max {
-			return false
-		}
+		count = f.Downloads.DayCount
 	case FilterMaxDownloadsWeek:
-		if f.Downloads.WeekCount > 0 && f.Downloads.WeekCount >= max {
-			return false
-		}
+		count = f.Downloads.WeekCount
 	case FilterMaxDownloadsMonth:
-		if f.Downloads.MonthCount > 0 && f.Downloads.MonthCount >= max {
-			return false
-		}
+		count = f.Downloads.MonthCount
 	case FilterMaxDownloadsEver:
-		if f.Downloads.TotalCount > 0 && f.Downloads.TotalCount >= max {
-			return false
-		}
-	default:
-		return true
+		count = f.Downloads.TotalCount
 	}
 
-	return true
+	return count < f.MaxDownloads
 }
 
 // isPerfectFLAC Perfect is "CD FLAC Cue Log 100% Lossless or 24bit Lossless"
@@ -625,7 +616,22 @@ func matchRegex(tag string, filterList string) bool {
 	if tag == "" {
 		return false
 	}
-	filters := strings.Split(filterList, ",")
+
+	sp, err := splitter.NewSplitter(',',
+		splitter.DoubleQuotes,
+		splitter.Parenthesis,
+		splitter.CurlyBrackets,
+		splitter.SquareBrackets,
+	)
+
+	if err != nil {
+		return false
+	}
+
+	filters, err := sp.Split(filterList)
+	if err != nil {
+		return false
+	}
 
 	for _, filter := range filters {
 		if filter == "" {
