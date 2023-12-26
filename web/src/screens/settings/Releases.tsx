@@ -91,7 +91,7 @@ function DeleteReleases() {
     <div className="flex flex-col sm:flex-row gap-2 justify-between items-center rounded-md">
       <DeleteModal
         isOpen={deleteModalIsOpen}
-        isLoading={deleteOlderMutation.isLoading}
+        isLoading={deleteOlderMutation.isPending}
         toggle={toggleDeleteModal}
         buttonRef={cancelModalButtonRef}
         deleteAction={deleteOlderReleases}

@@ -18,22 +18,28 @@ import { MobileNav } from "./MobileNav";
 import { ExternalLink } from "@components/ExternalLink";
 
 export const Header = () => {
-  const { data: config } = useQuery({
+  const { isError:isConfigError, error: configError, data: config } = useQuery({
     queryKey: ["config"],
     queryFn: () => APIClient.config.get(),
     retry: false,
-    refetchOnWindowFocus: false,
-    onError: err => console.log(err)
+    refetchOnWindowFocus: false
   });
 
-  const { data } = useQuery({
+  if (isConfigError) {
+    console.log(configError);
+  }
+
+  const { isError, error, data } = useQuery({
     queryKey: ["updates"],
     queryFn: () => APIClient.updates.getLatestRelease(),
     retry: false,
     refetchOnWindowFocus: false,
-    enabled: config?.check_for_updates === true,
-    onError: err => console.log(err)
+    enabled: config?.check_for_updates === true
   });
+
+  if (isError) {
+    console.log(error);
+  }
 
   const logoutMutation = useMutation({
     mutationFn: APIClient.auth.logout,

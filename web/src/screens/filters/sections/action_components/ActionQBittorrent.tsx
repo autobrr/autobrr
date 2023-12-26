@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 
 import { DocsLink } from "@components/ExternalLink";
-import { ActionContentLayoutOptions } from "@domain/constants";
+import { ActionContentLayoutOptions, ActionPriorityOptions } from "@domain/constants";
 import * as Input from "@components/inputs";
 
 import { CollapsibleSection } from "../_components";
@@ -103,6 +103,19 @@ export const QBittorrent = ({ idx, action, clients }: ClientActionProps) => (
             name={`actions.${idx}.skip_hash_check`}
             label="Skip hash check"
             description="Add torrent and skip hash check"
+          />
+        </FilterSection.HalfRow>
+        <FilterSection.HalfRow>
+        <Input.Select
+            name={`actions.${idx}.priority`}
+            label="Priority"
+            optionDefaultText="Disabled"
+            options={ActionPriorityOptions}
+            tooltip={
+              <div>
+                <p>Torrent Queueing will be enabled for you if it is disabled. Ensure you set your preferred limits for it in your client.</p>
+              </div>
+            }
           />
         </FilterSection.HalfRow>
       </CollapsibleSection>
