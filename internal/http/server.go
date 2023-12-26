@@ -126,7 +126,7 @@ func (s Server) Handler() http.Handler {
 	encoder := encoder{}
 
 	r.Route("/api", func(r chi.Router) {
-		r.Route("/auth", newAuthHandler(encoder, s.log, s.config.Config, s.cookieStore, s.authService).Routes)
+		r.Route("/auth", newAuthHandler(encoder, s.log, s.config.Config, s.cookieStore, s.authService, s).Routes)
 		r.Route("/healthz", newHealthHandler(encoder, s.db).Routes)
 
 		r.Group(func(r chi.Router) {
