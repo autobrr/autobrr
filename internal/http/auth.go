@@ -20,6 +20,7 @@ type authService interface {
 	GetUserCount(ctx context.Context) (int, error)
 	Login(ctx context.Context, username, password string) (*domain.User, error)
 	CreateUser(ctx context.Context, req domain.CreateUserRequest) error
+	UpdateUser(ctx context.Context, req domain.UpdateUserRequest) error
 }
 
 type authHandler struct {
@@ -27,17 +28,19 @@ type authHandler struct {
 	encoder encoder
 	config  *domain.Config
 	service authService
+	server  Server
 
 	cookieStore *sessions.CookieStore
 }
 
-func newAuthHandler(encoder encoder, log zerolog.Logger, config *domain.Config, cookieStore *sessions.CookieStore, service authService) *authHandler {
+func newAuthHandler(encoder encoder, log zerolog.Logger, config *domain.Config, cookieStore *sessions.CookieStore, service authService, server Server) *authHandler {
 	return &authHandler{
 		log:         log,
 		encoder:     encoder,
 		config:      config,
 		service:     service,
 		cookieStore: cookieStore,
+		server:      server,
 	}
 }
 
@@ -47,6 +50,14 @@ func (h authHandler) Routes(r chi.Router) {
 	r.Post("/onboard", h.onboard)
 	r.Get("/onboard", h.canOnboard)
 	r.Get("/validate", h.validate)
+
+	// Group for authenticated routes
+	r.Group(func(r chi.Router) {
+		r.Use(h.server.IsAuthenticated)
+
+		// Authenticated routes
+		r.Patch("/user/{username}", h.updateUser)
+	})
 }
 
 func (h authHandler) login(w http.ResponseWriter, r *http.Request) {
@@ -163,6 +174,28 @@ func (h authHandler) validate(w http.ResponseWriter, r *http.Request) {
 
 	// send empty response as ok
 	h.encoder.NoContent(w)
+}
+
+func (h authHandler) updateUser(w http.ResponseWriter, r *http.Request) {
+	var (
+		ctx  = r.Context()
+		data domain.UpdateUserRequest
+	)
+
+	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
+		h.encoder.StatusError(w, http.StatusBadRequest, errors.Wrap(err, "could not decode json"))
+		return
+	}
+
+	data.UsernameCurrent = chi.URLParam(r, "username")
+
+	if err := h.service.UpdateUser(ctx, data); err != nil {
+		h.encoder.StatusError(w, http.StatusForbidden, err)
+		return
+	}
+
+	// send response as ok
+	h.encoder.StatusResponseMessage(w, http.StatusOK, "user successfully updated")
 }
 
 func ReadUserIP(r *http.Request) string {
