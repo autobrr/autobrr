@@ -4,7 +4,7 @@
  */
 
 import { Fragment, useRef, useState, useMemo } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { Menu, Transition } from "@headlessui/react";
 import { toast } from "react-hot-toast";
 import {
@@ -97,7 +97,7 @@ function useSort(items: ListItemProps["feed"][], config?: SortConfig) {
 }
 
 function FeedSettings() {
-  const { data } = useQuery({
+  const { data } = useSuspenseQuery({
     queryKey: feedKeys.lists(),
     queryFn: APIClient.feeds.find,
     refetchOnWindowFocus: false
@@ -279,7 +279,7 @@ const FeedItemDropdown = ({
     <Menu as="div">
       <DeleteModal
         isOpen={deleteModalIsOpen}
-        isLoading={deleteMutation.isLoading}
+        isLoading={deleteMutation.isPending}
         toggle={toggleDeleteModal}
         buttonRef={cancelModalButtonRef}
         deleteAction={() => {
@@ -291,7 +291,7 @@ const FeedItemDropdown = ({
       />
       <DeleteModal
         isOpen={deleteCacheModalIsOpen}
-        isLoading={deleteMutation.isLoading}
+        isLoading={deleteMutation.isPending}
         toggle={toggleDeleteCacheModal}
         buttonRef={cancelCacheModalButtonRef}
         deleteAction={() => {
@@ -302,7 +302,7 @@ const FeedItemDropdown = ({
       />
       <ForceRunModal
         isOpen={forceRunModalIsOpen}
-        isLoading={forceRunMutation.isLoading}
+        isLoading={forceRunMutation.isPending}
         toggle={toggleForceRunModal}
         buttonRef={cancelModalButtonRef}
         forceRunAction={() => {
