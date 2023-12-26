@@ -92,6 +92,7 @@ interface Action {
   ignore_rules?: boolean;
   skip_hash_check: boolean;
   content_layout?: ActionContentLayout;
+  priority?: ActionPriorityLayout;
   limit_upload_speed?: number;
   limit_download_speed?: number;
   limit_ratio?: number;
@@ -111,6 +112,8 @@ interface Action {
 }
 
 type ActionContentLayout = "ORIGINAL" | "SUBFOLDER_CREATE" | "SUBFOLDER_NONE";
+
+type ActionPriorityLayout = "MAX" | "MIN" | "";
 
 type ActionType = "TEST" | "EXEC" | "WATCH_FOLDER" | "WEBHOOK" | DownloadClientType;
 

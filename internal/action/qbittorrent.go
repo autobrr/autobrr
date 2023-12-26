@@ -65,6 +65,45 @@ func (s *service) qbittorrent(ctx context.Context, action *domain.Action, releas
 		return nil, errors.Wrap(err, "could not add torrent %s to client: %s", release.TorrentTmpFile, c.Dc.Name)
 	}
 
+	if release.TorrentHash != "" {
+		// check if torrent queueing is enabled if priority is set
+		switch action.PriorityLayout {
+		case domain.PriorityLayoutMax, domain.PriorityLayoutMin:
+			prefs, err := c.Qbt.GetAppPreferencesCtx(ctx)
+			if err != nil {
+				return nil, errors.Wrap(err, "could not get application preferences from client: '%s'", c.Dc.Name)
+			}
+			// enable queueing if it's disabled
+			if !prefs.QueueingEnabled {
+				if err := c.Qbt.SetPreferencesQueueingEnabled(true); err != nil {
+					return nil, errors.Wrap(err, "could not enable torrent queueing")
+				}
+				s.log.Trace().Msgf("torrent queueing was disabled, now enabled in client: '%s'", c.Dc.Name)
+			}
+			// set priority if queueing is enabled
+			if action.PriorityLayout == domain.PriorityLayoutMax {
+				if err := c.Qbt.SetMaxPriorityCtx(ctx, []string{release.TorrentHash}); err != nil {
+					return nil, errors.Wrap(err, "could not set torrent %s to max priority", release.TorrentHash)
+				}
+				s.log.Debug().Msgf("torrent with hash %s set to max priority in client: '%s'", release.TorrentHash, c.Dc.Name)
+
+			} else { // domain.PriorityLayoutMin
+				if err := c.Qbt.SetMinPriorityCtx(ctx, []string{release.TorrentHash}); err != nil {
+					return nil, errors.Wrap(err, "could not set torrent %s to min priority", release.TorrentHash)
+				}
+				s.log.Debug().Msgf("torrent with hash %s set to min priority in client: '%s'", release.TorrentHash, c.Dc.Name)
+			}
+
+		case domain.PriorityLayoutDefault:
+			// do nothing as it's disabled or unset
+		default:
+			s.log.Warn().Msgf("unknown priority setting: '%v', no priority changes made", action.PriorityLayout)
+		}
+	} else {
+		// add anyway if no hash
+		s.log.Trace().Msg("no torrent hash provided, skipping priority setting")
+	}
+
 	if !action.Paused && !action.ReAnnounceSkip && release.TorrentHash != "" {
 		opts := qbittorrent.ReannounceOptions{
 			Interval:        int(action.ReAnnounceInterval),
