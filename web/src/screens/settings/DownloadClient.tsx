@@ -4,7 +4,7 @@
  */
 
 import { useState, useMemo } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { PlusIcon } from "@heroicons/react/24/solid";
 import toast from "react-hot-toast";
 
@@ -140,7 +140,7 @@ function ListItem({ client }: DLSettingsItemProps) {
 function DownloadClientSettings() {
   const [addClientIsOpen, toggleAddClient] = useToggle(false);
 
-  const { error, data } = useQuery({
+  const { error, data } = useSuspenseQuery({
     queryKey: clientKeys.lists(),
     queryFn: APIClient.download_clients.getAll,
     refetchOnWindowFocus: false

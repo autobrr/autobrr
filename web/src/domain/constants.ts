@@ -349,6 +349,12 @@ export const ActionContentLayoutOptions: SelectGenericOption<ActionContentLayout
   { label: "Don't create subfolder", description: "Don't create subfolder", value: "SUBFOLDER_NONE" }
 ];
 
+export const ActionPriorityOptions: SelectGenericOption<ActionPriorityLayout>[] = [
+  { label: "Top of queue", description: "Top of queue", value: "MAX" },
+  { label: "Bottom of queue", description: "Bottom of queue", value: "MIN" },
+  { label: "Disabled", description: "Disabled", value: "" }
+];
+
 export const ActionRtorrentRenameOptions: SelectGenericOption<ActionContentLayout>[] = [
   { label: "No", description: "No", value: "ORIGINAL" },
   { label: "Yes", description: "Yes", value: "SUBFOLDER_NONE" }

@@ -4,7 +4,8 @@
  */
 
 import React, { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useLocation } from "react-router-dom";
+import { useSuspenseQuery } from "@tanstack/react-query";
 import { CellProps, Column, useFilters, usePagination, useSortBy, useTable } from "react-table";
 import {
   ChevronDoubleLeftIcon,
@@ -14,7 +15,7 @@ import {
 } from "@heroicons/react/24/solid";
 import { EyeIcon, EyeSlashIcon } from "@heroicons/react/24/solid";
 
-import { RandomLinuxIsos } from "@utils/index";
+import { RandomLinuxIsos } from "@utils";
 import { APIClient } from "@api/APIClient";
 import { EmptyListState } from "@components/emptystates";
 
@@ -23,9 +24,7 @@ import * as DataTable from "@components/data-table";
 
 import { IndexerSelectColumnFilter, PushStatusSelectColumnFilter, SearchColumnFilter } from "./Filters";
 import { classNames } from "@utils";
-import { ArrowTopRightOnSquareIcon, ArrowDownTrayIcon } from "@heroicons/react/24/outline";
 import { Tooltip } from "@components/tooltips/Tooltip";
-import { ExternalLink } from "@components/ExternalLink";
 
 export const releaseKeys = {
   all: ["releases"] as const,
@@ -84,6 +83,9 @@ const TableReducer = (state: TableState, action: Actions): TableState => {
 };
 
 export const ReleaseTable = () => {
+  const location = useLocation();
+  const queryParams = new URLSearchParams(location.search);
+  const filterTypeFromUrl = queryParams.get("filter");
   const columns = React.useMemo(() => [
     {
       Header: "Age",
@@ -110,25 +112,16 @@ export const ReleaseTable = () => {
                 {String(props.cell.value)}
               </span>
             </Tooltip>
-            <div className="flex mr-0">
-              {props.row.original.download_url && (
-                <ExternalLink
-                  href={props.row.original.download_url}
-                  className="px-2"
-                >
-                  <ArrowDownTrayIcon className="h-5 w-5 text-blue-400 hover:text-blue-500 dark:text-blue-500 dark:hover:text-blue-600" aria-hidden="true" />
-                </ExternalLink>
-              )}
-              {props.row.original.info_url && (
-                <ExternalLink href={props.row.original.info_url}>
-                  <ArrowTopRightOnSquareIcon className="h-5 w-5 text-blue-400 hover:text-blue-500 dark:text-blue-500 dark:hover:text-blue-600" aria-hidden="true" />
-                </ExternalLink>
-              )}
-            </div>
           </div>
         );
       },
       Filter: SearchColumnFilter
+    },
+    {
+      Header: "Links",
+      accessor: (row) => ({ download_url: row.download_url, info_url: row.info_url }),
+      id: "links",
+      Cell: DataTable.LinksCell
     },
     {
       Header: "Actions",
@@ -148,10 +141,9 @@ export const ReleaseTable = () => {
   const [{ queryPageIndex, queryPageSize, totalCount, queryFilters }, dispatch] =
         React.useReducer(TableReducer, initialState);
 
-  const { isLoading, error, data, isSuccess } = useQuery({
+  const { isLoading, error, data, isSuccess } = useSuspenseQuery({
     queryKey: releaseKeys.list(queryPageIndex, queryPageSize, queryFilters),
     queryFn: () => APIClient.release.findQuery(queryPageIndex * queryPageSize, queryPageSize, queryFilters),
-    keepPreviousData: true,
     staleTime: 5000
   });
 
@@ -199,7 +191,7 @@ export const ReleaseTable = () => {
       initialState: {
         pageIndex: queryPageIndex,
         pageSize: queryPageSize,
-        filters: []
+        filters: filterTypeFromUrl ? [{ id: "action_status", value: filterTypeFromUrl }] : []
       },
       manualPagination: true,
       manualFilters: true,

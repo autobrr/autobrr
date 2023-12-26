@@ -1295,6 +1295,27 @@ func TestFilter_CheckFilter(t *testing.T) {
 			},
 			want: false,
 		},
+		{
+			name: "match_light_novel_1",
+			fields: &Release{
+				TorrentName: "[Group] -Name of a Novel Something Good-  [2012][Translated (Group)][EPUB]",
+				Title:       "-Name of a Novel Something Good-",
+				Category:    "Light Novel",
+				Year:        2012,
+				ReleaseTags: "Translated (Group) / EPUB",
+				Group:       "Group",
+			},
+			args: args{
+				filter: Filter{
+					MatchReleases:      "(?:.*Something Good.*|.*Something Bad.*)",
+					UseRegex:           true,
+					MatchReleaseGroups: "Group",
+					MatchCategories:    "Light Novel",
+					MatchReleaseTags:   "*EPUB*",
+				},
+			},
+			want: true,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -2107,6 +2128,10 @@ func Test_matchRegex(t *testing.T) {
 		{name: "test_3", args: args{tag: "Some.show.S01.DV.2160p.ATVP.WEB-DL.DDPA5.1.x265-GROUP2", filter: ".*1080p.+(group1|group3),.*2160p.+"}, want: true},
 		{name: "test_4", args: args{tag: "Some.show.S01.DV.2160p.ATVP.WEB-DL.DDPA5.1.x265-GROUP2", filter: ".*1080p.+(group1|group3),.*720p.+"}, want: false},
 		{name: "test_5", args: args{tag: "Some.show.S01.DV.2160p.ATVP.WEB-DL.DDPA5.1.x265-GROUP2", filter: ".*1080p.+(group1|group3),.*720p.+,"}, want: false},
+		{name: "test_6", args: args{tag: "[Group] -Name of a Novel Something Good-  [2012][Translated (Group)][EPUB]", filter: "(?:.*Something Good.*|.*Something Bad.*)"}, want: true},
+		{name: "test_7", args: args{tag: "[Group] -Name of a Novel Something Good-  [2012][Translated (Group)][EPUB]", filter: "(?:.*Something Funny.*|.*Something Bad.*)"}, want: false},
+		{name: "test_8", args: args{tag: ".s10E123.", filter:`\.[Ss]\d{1,2}[Ee]\d{1,3}\.`}, want: true},
+		{name: "test_9", args: args{tag: "S1E1", filter:`\.[Ss]\d{1,2}[Ee]\d{1,3}\.`}, want: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

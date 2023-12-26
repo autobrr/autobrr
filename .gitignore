@@ -39,6 +39,7 @@ dist/
 .run/
 tmp/
 .golangci.yml
+web/eslint-sarif-report.sarif
 
 # Preserve files
 !.gitkeep

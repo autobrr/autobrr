@@ -150,6 +150,7 @@ type ReleaseStats struct {
 	FilterRejectedCount int64 `json:"filter_rejected_count"`
 	PushApprovedCount   int64 `json:"push_approved_count"`
 	PushRejectedCount   int64 `json:"push_rejected_count"`
+	PushErrorCount      int64 `json:"push_error_count"`
 }
 
 type ReleasePushStatus string

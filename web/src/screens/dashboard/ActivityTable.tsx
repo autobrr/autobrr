@@ -4,7 +4,7 @@
  */
 
 import React, { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useSuspenseQuery } from "@tanstack/react-query";
 import {
   useTable,
   useFilters,
@@ -18,7 +18,7 @@ import { EmptyListState } from "@components/emptystates";
 import * as Icons from "@components/Icons";
 import { EyeIcon, EyeSlashIcon } from "@heroicons/react/24/solid";
 import * as DataTable from "@components/data-table";
-import { RandomLinuxIsos } from "@utils/index";
+import { RandomLinuxIsos } from "@utils";
 
 // This is a custom filter UI for selecting
 // a unique option from a list
@@ -185,11 +185,14 @@ export const ActivityTable = () => {
     }
   ], []);
 
-  const { isLoading, data } = useQuery({
+  const { isLoading, data } = useSuspenseQuery({
     queryKey: ["dash_recent_releases"],
     queryFn: APIClient.release.findRecent,
     refetchOnWindowFocus: false
   });
+
+  const [modifiedData, setModifiedData] = useState<Release[]>([]);
+  const [showLinuxIsos, setShowLinuxIsos] = useState(false);
 
   if (isLoading) {
     return (
@@ -203,10 +206,6 @@ export const ActivityTable = () => {
       </div>
     );
   }
-
-
-  const [modifiedData, setModifiedData] = useState<Release[]>([]);
-  const [showLinuxIsos, setShowLinuxIsos] = useState(false);
 
   const toggleReleaseNames = () => {
     setShowLinuxIsos(!showLinuxIsos);

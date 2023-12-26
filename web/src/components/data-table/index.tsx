@@ -4,4 +4,4 @@
  */
 
 export { Button, PageButton } from "./Buttons";
-export { AgeCell, IndexerCell, TitleCell, ReleaseStatusCell } from "./Cells";
+export { AgeCell, IndexerCell, TitleCell, ReleaseStatusCell, LinksCell } from "./Cells";

@@ -17,22 +17,27 @@ import { Section, RowItem } from "./_components";
 function ApplicationSettings() {
   const [settings, setSettings] = SettingsContext.use();
 
-  const { data } = useQuery({
+  const { isError:isConfigError, error: configError, data } = useQuery({
     queryKey: ["config"],
     queryFn: APIClient.config.get,
     retry: false,
-    refetchOnWindowFocus: false,
-    onError: err => console.log(err)
+    refetchOnWindowFocus: false
   });
+  if (isConfigError) {
+    console.log(configError);
+  }
 
-  const { data: updateData } = useQuery({
+  const { isError, error, data: updateData } = useQuery({
     queryKey: ["updates"],
     queryFn: APIClient.updates.getLatestRelease,
     retry: false,
     refetchOnWindowFocus: false,
-    enabled: data?.check_for_updates === true,
-    onError: err => console.log(err)
+    enabled: data?.check_for_updates === true
   });
+
+  if (isError) {
+    console.log(error);
+  }
 
   const queryClient = useQueryClient();
 
