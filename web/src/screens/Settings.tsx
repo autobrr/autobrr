@@ -14,6 +14,7 @@ import {
   RectangleStackIcon,
   RssIcon,
   Square3Stack3DIcon,
+  UserCircleIcon,
   ArrowPathIcon
 } from "@heroicons/react/24/outline";
 
