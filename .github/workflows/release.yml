@@ -83,7 +83,7 @@ jobs:
           cache: true
 
       - name: Test
-        run: go test -v ./...
+        run: go test -v ./... -tags=integration
 
   goreleaserbuild:
     name: Build distribution binaries
