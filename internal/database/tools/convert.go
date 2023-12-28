@@ -65,18 +65,25 @@ func (c *SqliteToPostgresConverter) Convert() error {
 		fkViolations := c.migrateTable(sqliteDB, postgresDB, table)
 		allFKViolations = append(allFKViolations, fkViolations...)
 	}
-	fmt.Println("Convert completed successfully!")
-	fmt.Printf("Elapsed time: %s\n", time.Since(startTime))
-	if len(allFKViolations) > 0 {
-		fmt.Println("\nSummary of Foreign Key Violations:")
-		fmt.Println()
-		for _, msg := range allFKViolations {
-			fmt.Println(msg)
-		}
-		fmt.Println()
-		fmt.Println("These are due to missing references, likely because the related item in another table no longer exists.")
-	}
+
+	c.printConversionResult(startTime, allFKViolations)
+
 	return err
+}
+
+func (c *SqliteToPostgresConverter) printConversionResult(startTime time.Time, allFKViolations []string) {
+	var sb strings.Builder
+
+	sb.WriteString("Convert completed successfully!\n")
+	sb.WriteString(fmt.Sprintf("Elapsed time: %s\n", time.Since(startTime)))
+	if len(allFKViolations) > 0 {
+		sb.WriteString("\nSummary of Foreign Key Violations:\n\n")
+		for _, msg := range allFKViolations {
+			sb.WriteString(" - " + msg + "\n")
+		}
+		sb.WriteString("\nThese are due to missing references, likely because the related item in another table no longer exists.\n")
+	}
+	fmt.Print(sb.String())
 }
 
 func GetTables() []string {
