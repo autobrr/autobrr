@@ -11,9 +11,20 @@ import (
 )
 
 var tables = []string{
-	"users", "indexer", "irc_network", "irc_channel", "client", "filter",
-	"filter_external", "action", "notification", "filter_indexer", "release",
-	"release_action_status", "feed", "api_key",
+	"action",
+	"api_key",
+	"client",
+	"feed",
+	"filter",
+	"filter_external",
+	"filter_indexer",
+	"indexer",
+	"irc_channel",
+	"irc_network",
+	"notification",
+	"release",
+	"release_action_status",
+	"users",
 }
 
 type Converter interface {
