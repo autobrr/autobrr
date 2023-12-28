@@ -5,7 +5,6 @@ package http
 
 import (
 	"bytes"
-	"io/ioutil"
 	"os"
 	"strings"
 	"testing"
@@ -162,7 +161,7 @@ func TestSanitizeLogFile(t *testing.T) {
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
 			// Create a temporary file with sample log data
-			tmpFile, err := ioutil.TempFile("", "test-log-*.log")
+			tmpFile, err := os.CreateTemp("", "test-log-*.log")
 			if err != nil {
 				t.Fatal(err)
 			}
