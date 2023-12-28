@@ -43,6 +43,14 @@ export const Deluge = ({ idx, action, clients }: ClientActionProps) => (
             description="Add torrent as paused"
           />
         </FilterSection.HalfRow>
+        <FilterSection.HalfRow>
+        <Input.SwitchGroup
+            name={`actions.${idx}.skip_hash_check`}
+            label="Skip hash check"
+            description="Add torrent and skip hash check"
+            tooltip={<div>This will only work on Deluge v2.</div>}
+          />
+        </FilterSection.HalfRow>
       </FilterSection.Layout>
 
       <CollapsibleSection
