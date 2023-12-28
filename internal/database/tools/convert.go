@@ -1,4 +1,4 @@
-package database
+package tools
 
 import (
 	"database/sql"
@@ -6,6 +6,8 @@ import (
 	"log"
 	"strings"
 	"time"
+
+	_ "modernc.org/sqlite"
 )
 
 var tables = []string{
@@ -14,16 +16,31 @@ var tables = []string{
 	"release_action_status", "feed", "api_key",
 }
 
-func Migrate(sqliteDBPath, postgresDBURL string) error {
+type Converter interface {
+	Convert() error
+}
+
+type SqliteToPostgresConverter struct {
+	sqliteDBPath, postgresDBURL string
+}
+
+func NewConverter(sqliteDBPath, postgresDBURL string) Converter {
+	return &SqliteToPostgresConverter{
+		sqliteDBPath:  sqliteDBPath,
+		postgresDBURL: postgresDBURL,
+	}
+}
+
+func (c *SqliteToPostgresConverter) Convert() error {
 	startTime := time.Now()
 
-	sqliteDB, err := sql.Open("sqlite3", sqliteDBPath)
+	sqliteDB, err := sql.Open("sqlite", c.sqliteDBPath)
 	if err != nil {
 		log.Fatalf("Failed to connect to SQLite database: %v", err)
 	}
 	defer sqliteDB.Close()
 
-	postgresDB, err := sql.Open("postgres", postgresDBURL)
+	postgresDB, err := sql.Open("postgres", c.postgresDBURL)
 	if err != nil {
 		log.Fatalf("Failed to connect to PostgreSQL database: %v", err)
 	}
@@ -34,10 +51,10 @@ func Migrate(sqliteDBPath, postgresDBURL string) error {
 	// Store all foreign key violation messages.
 	var allFKViolations []string
 	for _, table := range tables {
-		fkViolations := MigrateTable(sqliteDB, postgresDB, table)
+		fkViolations := c.migrateTable(sqliteDB, postgresDB, table)
 		allFKViolations = append(allFKViolations, fkViolations...)
 	}
-	fmt.Println("Migration completed successfully!")
+	fmt.Println("Convert completed successfully!")
 	fmt.Printf("Elapsed time: %s\n", time.Since(startTime))
 	if len(allFKViolations) > 0 {
 		fmt.Println("\nSummary of Foreign Key Violations:")
@@ -55,10 +72,10 @@ func GetTables() []string {
 	return append([]string(nil), tables...)
 }
 
-func MigrateTable(sqliteDB, postgresDB *sql.DB, table string) []string {
+func (c *SqliteToPostgresConverter) migrateTable(sqliteDB, postgresDB *sql.DB, table string) []string {
 	var fkViolationMessages []string
 
-	rows, err := sqliteDB.Query(fmt.Sprintf("SELECT * FROM %s", table))
+	rows, err := sqliteDB.Query("SELECT * FROM ?", table)
 	if err != nil {
 		log.Fatalf("Failed to query SQLite table '%s': %v", table, err)
 	}
@@ -98,7 +115,7 @@ func MigrateTable(sqliteDB, postgresDB *sql.DB, table string) []string {
 			rowsAffected++
 		}
 	}
-	log.Printf("Migrated %d rows to table '%s' from SQLite to PostgreSQL\n", rowsAffected, table)
+	log.Printf("Converted %d rows to table '%s' from SQLite to PostgreSQL\n", rowsAffected, table)
 	return fkViolationMessages
 }
 

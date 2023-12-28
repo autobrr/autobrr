@@ -17,13 +17,13 @@ import (
 	"github.com/autobrr/autobrr/internal/auth"
 	"github.com/autobrr/autobrr/internal/config"
 	"github.com/autobrr/autobrr/internal/database"
+	"github.com/autobrr/autobrr/internal/database/tools"
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/internal/logger"
 	"github.com/autobrr/autobrr/internal/user"
 	"github.com/autobrr/autobrr/pkg/errors"
 
 	_ "github.com/lib/pq"
-	_ "github.com/mattn/go-sqlite3"
 	"golang.org/x/term"
 )
 
@@ -34,7 +34,7 @@ Actions:
   change-password      <username>                                                        Change the password
   db:seed              --db-path <path-to-database> --seed-db <path-to-sql-seed>         Seed the sqlite database
   db:reset             --db-path <path-to-database> --seed-db <path-to-sql-seed>         Reset the sqlite database
-  db:migrate           --sqlite-db <path-to-sqlite-db> --postgres-url <postgres-db-url>  Migrate sqlite to postgres
+  db:convert           --sqlite-db <path-to-sqlite-db> --postgres-url <postgres-db-url>  Convert SQLite to Postgres
   version                                                                                Display the version of autobrrctl
   help                                                                                   Show this help message
 
@@ -43,7 +43,7 @@ Examples:
   autobrrctl --config /path/to/config/dir change-password john
   autobrrctl db:reset --db-path /path/to/autobrr.db --seed-db /path/to/seed
   autobrrctl db:seed --db-path /path/to/autobrr.db --seed-db /path/to/seed
-  autobrrctl db:migrate --sqlite-db /path/to/autobrr.db --postgres-url postgres://username:password@127.0.0.1:5432/autobrr
+  autobrrctl db:convert --sqlite-db /path/to/autobrr.db --postgres-url postgres://username:password@127.0.0.1:5432/autobrr
   autobrrctl version
   autobrrctl help
 `
@@ -69,67 +69,6 @@ func main() {
 	flag.Parse()
 
 	switch cmd := flag.Arg(0); cmd {
-
-	case "db:migrate":
-		var sqliteDBPath, postgresDBURL string
-		migrateFlagSet := flag.NewFlagSet("db:migrate", flag.ExitOnError)
-		migrateFlagSet.StringVar(&sqliteDBPath, "sqlite-db", "", "path to SQLite database file")
-		migrateFlagSet.StringVar(&postgresDBURL, "postgres-url", "", "URL for PostgreSQL database")
-
-		if err := migrateFlagSet.Parse(flag.Args()[1:]); err != nil {
-			fmt.Printf("Error parsing flags for db:migrate: %v\n", err)
-			migrateFlagSet.Usage()
-			os.Exit(1)
-		}
-
-		if sqliteDBPath == "" || postgresDBURL == "" {
-			fmt.Println("Error: missing required flags for db:migrate")
-			flag.Usage()
-			os.Exit(1)
-		}
-
-		if err := database.Migrate(sqliteDBPath, postgresDBURL); err != nil {
-			log.Fatalf("Migration failed: %v", err)
-		}
-
-	case "db:seed", "db:reset":
-		var dbPath, seedDBPath string
-		seedResetFlagSet := flag.NewFlagSet("db:seed/db:reset", flag.ExitOnError)
-		seedResetFlagSet.StringVar(&dbPath, "db-path", "", "path to the database file")
-		seedResetFlagSet.StringVar(&seedDBPath, "seed-db", "", "path to SQL seed file")
-
-		if err := seedResetFlagSet.Parse(flag.Args()[1:]); err != nil {
-			fmt.Printf("Error parsing flags for db:seed or db:reset: %v\n", err)
-			seedResetFlagSet.Usage()
-			os.Exit(1)
-		}
-
-		if dbPath == "" || seedDBPath == "" {
-			fmt.Println("Error: missing required flags for db:seed or db:reset")
-			flag.Usage()
-			os.Exit(1)
-		}
-
-		if cmd == "db:seed" {
-			err := database.SeedDB(dbPath, seedDBPath)
-			if err != nil {
-				fmt.Println("Error seeding the database:", err)
-				os.Exit(1)
-			}
-			fmt.Println("Database seeding completed successfully!")
-		} else {
-			err := database.ResetDB(dbPath)
-			if err != nil {
-				fmt.Println("Error resetting the database:", err)
-				os.Exit(1)
-			}
-			err = database.SeedDB(dbPath, seedDBPath)
-			if err != nil {
-				fmt.Println("Error seeding the database:", err)
-				os.Exit(1)
-			}
-			fmt.Println("Database reset and reseed completed successfully!")
-		}
 
 	case "version":
 		fmt.Printf("Version: %v\nCommit: %v\nBuild: %v\n", version, commit, date)
@@ -166,7 +105,6 @@ func main() {
 		fmt.Printf("Latest release: %v\n", rel.TagName)
 
 	case "create-user":
-
 		if configPath == "" {
 			log.Fatal("--config required")
 		}
@@ -216,7 +154,6 @@ func main() {
 		}
 
 	case "change-password":
-
 		if configPath == "" {
 			log.Fatal("--config required")
 		}
@@ -278,6 +215,68 @@ func main() {
 		}
 
 		log.Printf("successfully updated password for user %q", username)
+
+	case "db:convert":
+		var sqliteDBPath, postgresDBURL string
+		migrateFlagSet := flag.NewFlagSet("db:convert", flag.ExitOnError)
+		migrateFlagSet.StringVar(&sqliteDBPath, "sqlite-db", "", "path to SQLite database file")
+		migrateFlagSet.StringVar(&postgresDBURL, "postgres-url", "", "URL for PostgreSQL database")
+
+		if err := migrateFlagSet.Parse(flag.Args()[1:]); err != nil {
+			fmt.Printf("Error parsing flags for db:convert: %v\n", err)
+			migrateFlagSet.Usage()
+			os.Exit(1)
+		}
+
+		if sqliteDBPath == "" || postgresDBURL == "" {
+			fmt.Println("Error: missing required flags for db:convert")
+			flag.Usage()
+			os.Exit(1)
+		}
+
+		c := tools.NewConverter(sqliteDBPath, postgresDBURL)
+		if err := c.Convert(); err != nil {
+			log.Fatalf("database conversion failed: %v", err)
+		}
+
+	case "db:seed", "db:reset":
+		var dbPath, seedDBPath string
+		seedResetFlagSet := flag.NewFlagSet("db:seed/db:reset", flag.ExitOnError)
+		seedResetFlagSet.StringVar(&dbPath, "db-path", "", "path to the database file")
+		seedResetFlagSet.StringVar(&seedDBPath, "seed-db", "", "path to SQL seed file")
+
+		if err := seedResetFlagSet.Parse(flag.Args()[1:]); err != nil {
+			fmt.Printf("Error parsing flags for db:seed or db:reset: %v\n", err)
+			seedResetFlagSet.Usage()
+			os.Exit(1)
+		}
+
+		if dbPath == "" || seedDBPath == "" {
+			fmt.Println("Error: missing required flags for db:seed or db:reset")
+			flag.Usage()
+			os.Exit(1)
+		}
+
+		s := tools.NewSQLiteSeeder(dbPath, seedDBPath)
+
+		if cmd == "db:seed" {
+			if err := s.Seed(); err != nil {
+				fmt.Println("Error seeding the database:", err)
+				os.Exit(1)
+			}
+			fmt.Println("Database seeding completed successfully!")
+		} else {
+			if err := s.Reset(); err != nil {
+				fmt.Println("Error resetting the database:", err)
+				os.Exit(1)
+			}
+
+			if err := s.Seed(); err != nil {
+				fmt.Println("Error seeding the database:", err)
+				os.Exit(1)
+			}
+			fmt.Println("Database reset and reseed completed successfully!")
+		}
 
 	default:
 		flag.Usage()
