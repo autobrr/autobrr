@@ -15,6 +15,7 @@ import (
 
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/pkg/errors"
+	"github.com/autobrr/autobrr/pkg/sharedhttp"
 
 	"golang.org/x/time/rate"
 )
@@ -36,7 +37,8 @@ func NewClient(apiKey string) ApiClient {
 	c := &Client{
 		Url: "https://gazellegames.net/api.php",
 		client: &http.Client{
-			Timeout: time.Second * 30,
+			Timeout:   time.Second * 30,
+			Transport: sharedhttp.Transport,
 		},
 		Ratelimiter: rate.NewLimiter(rate.Every(5*time.Second), 1), // 5 request every 10 seconds
 		APIKey:      apiKey,

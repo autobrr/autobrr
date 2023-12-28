@@ -73,6 +73,8 @@ type Checker struct {
 	Owner          string
 	Repo           string
 	CurrentVersion string
+
+	httpClient *http.Client
 }
 
 func NewChecker(owner, repo, currentVersion string) *Checker {
@@ -80,6 +82,10 @@ func NewChecker(owner, repo, currentVersion string) *Checker {
 		Owner:          owner,
 		Repo:           repo,
 		CurrentVersion: currentVersion,
+		httpClient: &http.Client{
+			Timeout:   time.Second * 30,
+			Transport: sharedhttp.Transport,
+		},
 	}
 }
 
@@ -94,8 +100,7 @@ func (c *Checker) get(ctx context.Context) (*Release, error) {
 	req.Header.Set("Accept", "application/vnd.github.v3+json")
 	req.Header.Set("User-Agent", c.buildUserAgent())
 
-	client := sharedhttp.GetClient(sharedhttp.HTTPOptions{Name: url})
-	resp, err := client.Do(req)
+	resp, err := c.httpClient.Do(req)
 	if err != nil {
 		return nil, err
 	}

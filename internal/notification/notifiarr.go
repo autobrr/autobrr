@@ -45,6 +45,8 @@ type notifiarrSender struct {
 	log      zerolog.Logger
 	Settings domain.Notification
 	baseUrl  string
+
+	httpClient *http.Client
 }
 
 func NewNotifiarrSender(log zerolog.Logger, settings domain.Notification) domain.NotificationSender {
@@ -52,6 +54,10 @@ func NewNotifiarrSender(log zerolog.Logger, settings domain.Notification) domain
 		log:      log.With().Str("sender", "notifiarr").Logger(),
 		Settings: settings,
 		baseUrl:  "https://notifiarr.com/api/v1/notification/autobrr",
+		httpClient: &http.Client{
+			Timeout:   time.Second * 30,
+			Transport: sharedhttp.Transport,
+		},
 	}
 }
 
@@ -77,8 +83,7 @@ func (s *notifiarrSender) Send(event domain.NotificationEvent, payload domain.No
 	req.Header.Set("User-Agent", "autobrr")
 	req.Header.Set("X-API-Key", s.Settings.APIKey)
 
-	client := sharedhttp.GetClient(sharedhttp.HTTPOptions{Name: s.baseUrl})
-	res, err := client.Do(req)
+	res, err := s.httpClient.Do(req)
 	if err != nil {
 		s.log.Error().Err(err).Msgf("notifiarr client request error: %v", event)
 		return errors.Wrap(err, "could not make request: %+v", req)

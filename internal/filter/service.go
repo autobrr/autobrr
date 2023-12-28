@@ -52,6 +52,8 @@ type service struct {
 	releaseRepo domain.ReleaseRepo
 	indexerSvc  indexer.Service
 	apiService  indexer.APIService
+
+	httpClient *http.Client
 }
 
 func NewService(log logger.Logger, repo domain.FilterRepo, actionRepo domain.ActionRepo, releaseRepo domain.ReleaseRepo, apiService indexer.APIService, indexerSvc indexer.Service) Service {
@@ -62,6 +64,10 @@ func NewService(log logger.Logger, repo domain.FilterRepo, actionRepo domain.Act
 		releaseRepo: releaseRepo,
 		apiService:  apiService,
 		indexerSvc:  indexerSvc,
+		httpClient: &http.Client{
+			Timeout:   time.Second * 120,
+			Transport: sharedhttp.TransportTLSInsecure,
+		},
 	}
 }
 
@@ -704,7 +710,6 @@ func (s *service) webhook(ctx context.Context, external domain.FilterExternal, r
 		retryStatusCodes = strings.Split(strings.ReplaceAll(external.WebhookRetryStatus, " ", ""), ",")
 	}
 
-	client := sharedhttp.GetClient(sharedhttp.HTTPOptions{Name: external.WebhookHost, Insecure: true})
 	start := time.Now()
 
 	statusCode, err := retry.DoWithData(
@@ -713,7 +718,7 @@ func (s *service) webhook(ctx context.Context, external domain.FilterExternal, r
 			if external.WebhookData != "" && dataArgs != "" {
 				clonereq.Body = io.NopCloser(bytes.NewBufferString(dataArgs))
 			}
-			res, err := client.Do(clonereq)
+			res, err := s.httpClient.Do(clonereq)
 			if err != nil {
 				return 0, errors.Wrap(err, "could not make request for webhook")
 			}

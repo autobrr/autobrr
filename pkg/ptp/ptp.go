@@ -14,6 +14,7 @@ import (
 
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/pkg/errors"
+	"github.com/autobrr/autobrr/pkg/sharedhttp"
 
 	"golang.org/x/time/rate"
 )
@@ -36,7 +37,8 @@ func NewClient(apiUser, apiKey string) ApiClient {
 	c := &Client{
 		Url: "https://passthepopcorn.me/torrents.php",
 		client: &http.Client{
-			Timeout: time.Second * 30,
+			Timeout:   time.Second * 30,
+			Transport: sharedhttp.Transport,
 		},
 		Ratelimiter: rate.NewLimiter(rate.Every(1*time.Second), 1), // 10 request every 10 seconds
 		APIUser:     apiUser,

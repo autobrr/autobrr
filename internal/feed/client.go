@@ -5,10 +5,11 @@ package feed
 
 import (
 	"context"
-	"crypto/tls"
 	"net/http"
 	"net/http/cookiejar"
 	"time"
+
+	"github.com/autobrr/autobrr/pkg/sharedhttp"
 
 	"github.com/mmcdole/gofeed"
 	"golang.org/x/net/publicsuffix"
@@ -22,16 +23,16 @@ type RSSParser struct {
 
 // NewFeedParser wraps the gofeed.Parser using our own http client for full control
 func NewFeedParser(timeout time.Duration, cookie string) *RSSParser {
-	//store cookies in jar
-	jarOptions := &cookiejar.Options{PublicSuffixList: publicsuffix.List}
-	jar, _ := cookiejar.New(jarOptions)
-
-	customTransport := http.DefaultTransport.(*http.Transport).Clone()
-	customTransport.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
 	httpClient := &http.Client{
 		Timeout:   time.Second * 60,
-		Transport: customTransport,
-		Jar:       jar,
+		Transport: sharedhttp.TransportTLSInsecure,
+	}
+
+	if cookie != "" {
+		//store cookies in jar
+		jarOptions := &cookiejar.Options{PublicSuffixList: publicsuffix.List}
+		jar, _ := cookiejar.New(jarOptions)
+		httpClient.Jar = jar
 	}
 
 	c := &RSSParser{

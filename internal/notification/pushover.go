@@ -34,6 +34,8 @@ type pushoverSender struct {
 	Settings domain.Notification
 	baseUrl  string
 	builder  NotificationBuilderPlainText
+
+	httpClient *http.Client
 }
 
 func NewPushoverSender(log zerolog.Logger, settings domain.Notification) domain.NotificationSender {
@@ -41,6 +43,11 @@ func NewPushoverSender(log zerolog.Logger, settings domain.Notification) domain.
 		log:      log.With().Str("sender", "pushover").Logger(),
 		Settings: settings,
 		baseUrl:  "https://api.pushover.net/1/messages.json",
+		builder:  NotificationBuilderPlainText{},
+		httpClient: &http.Client{
+			Timeout:   time.Second * 30,
+			Transport: sharedhttp.Transport,
+		},
 	}
 }
 
@@ -82,8 +89,7 @@ func (s *pushoverSender) Send(event domain.NotificationEvent, payload domain.Not
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	req.Header.Set("User-Agent", "autobrr")
 
-	client := sharedhttp.GetClient(sharedhttp.HTTPOptions{Name: s.baseUrl})
-	res, err := client.Do(req)
+	res, err := s.httpClient.Do(req)
 	if err != nil {
 		s.log.Error().Err(err).Msgf("pushover client request error: %v", event)
 		return errors.Wrap(err, "could not make request: %+v", req)

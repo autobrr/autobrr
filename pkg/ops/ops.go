@@ -12,6 +12,7 @@ import (
 
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/pkg/errors"
+	"github.com/autobrr/autobrr/pkg/sharedhttp"
 
 	"golang.org/x/time/rate"
 )
@@ -33,7 +34,8 @@ func NewClient(apiKey string) ApiClient {
 	c := &Client{
 		Url: "https://orpheus.network/ajax.php",
 		client: &http.Client{
-			Timeout: time.Second * 30,
+			Timeout:   time.Second * 30,
+			Transport: sharedhttp.Transport,
 		},
 		RateLimiter: rate.NewLimiter(rate.Every(10*time.Second), 5),
 		APIKey:      apiKey,

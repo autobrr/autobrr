@@ -7,10 +7,12 @@ import (
 	"context"
 	"io"
 	"log"
+	"net/http"
 	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/pkg/jsonrpc"
+	"github.com/autobrr/autobrr/pkg/sharedhttp"
 
 	"golang.org/x/time/rate"
 )
@@ -37,6 +39,10 @@ func NewClient(url string, apiKey string) ApiClient {
 		rpcClient: jsonrpc.NewClientWithOpts(url, &jsonrpc.ClientOpts{
 			Headers: map[string]string{
 				"User-Agent": "autobrr",
+			},
+			HTTPClient: &http.Client{
+				Timeout:   time.Second * 60,
+				Transport: sharedhttp.Transport,
 			},
 		}),
 		Ratelimiter: rate.NewLimiter(rate.Every(150*time.Hour), 1), // 150 rpcRequest every 1 hour

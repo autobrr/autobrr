@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"github.com/autobrr/autobrr/pkg/errors"
+	"github.com/autobrr/autobrr/pkg/sharedhttp"
 )
 
 const DefaultTimeout = 60
@@ -63,7 +64,8 @@ type Capabilities struct {
 
 func NewClient(config Config) Client {
 	httpClient := &http.Client{
-		Timeout: time.Second * DefaultTimeout,
+		Timeout:   time.Second * DefaultTimeout,
+		Transport: sharedhttp.Transport,
 	}
 
 	if config.Timeout > 0 {

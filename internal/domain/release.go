@@ -403,7 +403,12 @@ func (r *Release) downloadTorrentFile(ctx context.Context) error {
 	}
 
 	req.Header.Set("User-Agent", "autobrr")
-	client := sharedhttp.GetClient(sharedhttp.HTTPOptions{Name: r.DownloadURL, Insecure: true})
+
+	client := http.Client{
+		Timeout:   time.Second * 60,
+		Transport: sharedhttp.TransportTLSInsecure,
+	}
+
 	if r.RawCookie != "" {
 		jar, err := cookiejar.New(&cookiejar.Options{PublicSuffixList: publicsuffix.List})
 		if err != nil {
@@ -559,18 +564,11 @@ func (rt *magnetRoundTripper) RoundTrip(r *http.Request) (*http.Response, error)
 	return http.DefaultTransport.RoundTrip(r)
 }
 
-var magnetrt magnetRoundTripper
-
 func (r *Release) ResolveMagnetUri(ctx context.Context) error {
 	if r.MagnetURI == "" {
 		return nil
 	} else if strings.HasPrefix(r.MagnetURI, "magnet:?") {
 		return nil
-	}
-
-	client := sharedhttp.GetClient(sharedhttp.HTTPOptions{Name: "http://magnet."})
-	if client.Transport != &magnetrt {
-		client.Transport = &magnetrt
 	}
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, r.MagnetURI, nil)
@@ -580,6 +578,11 @@ func (r *Release) ResolveMagnetUri(ctx context.Context) error {
 
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("User-Agent", "autobrr")
+
+	client := &http.Client{
+		Timeout:   time.Second * 45,
+		Transport: sharedhttp.MagnetTransport,
+	}
 
 	res, err := client.Do(req)
 	if err != nil {

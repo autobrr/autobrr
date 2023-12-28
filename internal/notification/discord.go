@@ -50,12 +50,18 @@ const (
 type discordSender struct {
 	log      zerolog.Logger
 	Settings domain.Notification
+
+	httpClient *http.Client
 }
 
 func NewDiscordSender(log zerolog.Logger, settings domain.Notification) domain.NotificationSender {
 	return &discordSender{
 		log:      log.With().Str("sender", "discord").Logger(),
 		Settings: settings,
+		httpClient: &http.Client{
+			Timeout:   time.Second * 30,
+			Transport: sharedhttp.Transport,
+		},
 	}
 }
 
@@ -80,8 +86,7 @@ func (a *discordSender) Send(event domain.NotificationEvent, payload domain.Noti
 	req.Header.Set("Content-Type", "application/json")
 	//req.Header.Set("User-Agent", "autobrr")
 
-	client := sharedhttp.GetClient(sharedhttp.HTTPOptions{Name: a.Settings.Webhook})
-	res, err := client.Do(req)
+	res, err := a.httpClient.Do(req)
 	if err != nil {
 		a.log.Error().Err(err).Msgf("discord client request error: %v", event)
 		return errors.Wrap(err, "could not make request: %+v", req)

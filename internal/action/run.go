@@ -16,7 +16,6 @@ import (
 
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/pkg/errors"
-	"github.com/autobrr/autobrr/pkg/sharedhttp"
 )
 
 func (s *service) RunAction(ctx context.Context, action *domain.Action, release *domain.Release) ([]string, error) {
@@ -206,13 +205,14 @@ func (s *service) webhook(ctx context.Context, action *domain.Action, release do
 	req.Header.Set("User-Agent", "autobrr")
 
 	start := time.Now()
-	client := sharedhttp.GetClient(sharedhttp.HTTPOptions{Name: action.WebhookHost, Insecure: true})
-	res, err := client.Do(req)
+	res, err := s.httpClient.Do(req)
 	if err != nil {
 		return errors.Wrap(err, "could not make request for webhook")
 	}
 
-	defer res.Body.Close()
+	if res.Body != nil {
+		defer res.Body.Close()
+	}
 
 	if len(action.WebhookData) > 256 {
 		s.log.Info().Msgf("successfully ran webhook action: '%s' to: %s payload: %s finished in %s", action.Name, action.WebhookHost, action.WebhookData[:256], time.Since(start))
