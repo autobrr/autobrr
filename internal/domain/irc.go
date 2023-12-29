@@ -66,6 +66,7 @@ type IrcNetworkWithHealth struct {
 	UseBouncer       bool                `json:"use_bouncer"`
 	BouncerAddr      string              `json:"bouncer_addr"`
 	BotMode          bool                `json:"bot_mode"`
+	LazyAnnouncer    bool                `json:"lazy_announcer"`
 	CurrentNick      string              `json:"current_nick"`
 	PreferredNick    string              `json:"preferred_nick"`
 	Channels         []ChannelWithHealth `json:"channels"`

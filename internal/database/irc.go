@@ -308,8 +308,8 @@ func (r *IrcRepo) StoreNetwork(ctx context.Context, network *domain.IrcNetwork) 
 			"invite_command",
 			"bouncer_addr",
 			"use_bouncer",
-			"lazy_announcer",
 			"bot_mode",
+			"lazy_announcer",
 		).
 		Values(
 			network.Enabled,
@@ -366,8 +366,8 @@ func (r *IrcRepo) UpdateNetwork(ctx context.Context, network *domain.IrcNetwork)
 		Set("invite_command", inviteCmd).
 		Set("bouncer_addr", bouncerAddr).
 		Set("use_bouncer", network.UseBouncer).
-		Set("lazy_announcer", network.LazyAnnouncer).
 		Set("bot_mode", network.BotMode).
+		Set("lazy_announcer", network.LazyAnnouncer).
 		Set("updated_at", time.Now().Format(time.RFC3339)).
 		Where(sq.Eq{"id": network.ID})
 

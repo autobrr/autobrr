@@ -115,7 +115,6 @@ interface IrcNetworkAddFormValues {
     server : string;
     port: number;
     tls: boolean;
-    lazy_announcer: boolean;
     pass: string;
     nick: string;
     auth: IrcAuth;
@@ -151,7 +150,6 @@ export function IrcNetworkAddForm({ isOpen, toggle }: AddFormProps) {
     server: "",
     port: 6667,
     tls: false,
-    lazy_announcer: false,
     pass: "",
     nick: "",
     auth: {
