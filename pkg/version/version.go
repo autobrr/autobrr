@@ -104,6 +104,7 @@ func (c *Checker) get(ctx context.Context) (*Release, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {

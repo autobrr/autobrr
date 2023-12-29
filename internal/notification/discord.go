@@ -92,13 +92,13 @@ func (a *discordSender) Send(event domain.NotificationEvent, payload domain.Noti
 		return errors.Wrap(err, "could not make request: %+v", req)
 	}
 
+	defer res.Body.Close()
+
 	body, err := io.ReadAll(res.Body)
 	if err != nil {
 		a.log.Error().Err(err).Msgf("discord client request error: %v", event)
 		return errors.Wrap(err, "could not read data")
 	}
-
-	defer res.Body.Close()
 
 	a.log.Trace().Msgf("discord status: %v response: %v", res.StatusCode, string(body))
 

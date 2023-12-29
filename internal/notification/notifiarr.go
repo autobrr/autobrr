@@ -89,13 +89,13 @@ func (s *notifiarrSender) Send(event domain.NotificationEvent, payload domain.No
 		return errors.Wrap(err, "could not make request: %+v", req)
 	}
 
+	defer res.Body.Close()
+
 	body, err := io.ReadAll(res.Body)
 	if err != nil {
 		s.log.Error().Err(err).Msgf("notifiarr client request error: %v", event)
 		return errors.Wrap(err, "could not read data")
 	}
-
-	defer res.Body.Close()
 
 	s.log.Trace().Msgf("notifiarr status: %v response: %v", res.StatusCode, string(body))
 

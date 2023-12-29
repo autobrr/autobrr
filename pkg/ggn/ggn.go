@@ -20,35 +20,48 @@ import (
 	"golang.org/x/time/rate"
 )
 
+const DefaultURL = "https://gazellegames.net/api.php"
+
+var ErrUnauthorized = errors.New("unauthorized: bad credentials")
+var ErrForbidden = errors.New("forbidden")
+var ErrTooManyRequests = errors.New("too many requests: rate-limit reached")
+
 type ApiClient interface {
 	GetTorrentByID(ctx context.Context, torrentID string) (*domain.TorrentBasic, error)
 	TestAPI(ctx context.Context) (bool, error)
-	UseURL(url string)
 }
 
 type Client struct {
-	Url         string
+	url         string
 	client      *http.Client
-	Ratelimiter *rate.Limiter
+	rateLimiter *rate.Limiter
 	APIKey      string
 }
 
-func NewClient(apiKey string) ApiClient {
+type OptFunc func(*Client)
+
+func WithUrl(url string) OptFunc {
+	return func(c *Client) {
+		c.url = url
+	}
+}
+
+func NewClient(apiKey string, opts ...OptFunc) ApiClient {
 	c := &Client{
-		Url: "https://gazellegames.net/api.php",
+		url: DefaultURL,
 		client: &http.Client{
 			Timeout:   time.Second * 30,
 			Transport: sharedhttp.Transport,
 		},
-		Ratelimiter: rate.NewLimiter(rate.Every(5*time.Second), 1), // 5 request every 10 seconds
+		rateLimiter: rate.NewLimiter(rate.Every(5*time.Second), 1), // 5 request every 10 seconds
 		APIKey:      apiKey,
 	}
 
-	return c
-}
+	for _, opt := range opts {
+		opt(c)
+	}
 
-func (c *Client) UseURL(url string) {
-	c.Url = url
+	return c
 }
 
 type Group struct {
@@ -152,13 +165,13 @@ type Response struct {
 
 func (c *Client) Do(req *http.Request) (*http.Response, error) {
 	ctx := context.Background()
-	err := c.Ratelimiter.Wait(ctx) // This is a blocking call. Honors the rate limit
+	err := c.rateLimiter.Wait(ctx) // This is a blocking call. Honors the rate limit
 	if err != nil {
 		return nil, errors.Wrap(err, "error waiting for ratelimiter")
 	}
 	resp, err := c.client.Do(req)
 	if err != nil {
-		return nil, errors.Wrap(err, "error making request")
+		return resp, errors.Wrap(err, "error making request")
 	}
 	return resp, nil
 }
@@ -174,15 +187,15 @@ func (c *Client) get(ctx context.Context, url string) (*http.Response, error) {
 
 	res, err := c.Do(req)
 	if err != nil {
-		return nil, errors.Wrap(err, "ggn client request error : %s", url)
+		return res, errors.Wrap(err, "ggn client request error : %s", url)
 	}
 
 	if res.StatusCode == http.StatusUnauthorized {
-		return nil, errors.New("unauthorized: bad credentials")
+		return res, ErrUnauthorized
 	} else if res.StatusCode == http.StatusForbidden {
-		return nil, nil
+		return res, ErrForbidden
 	} else if res.StatusCode == http.StatusTooManyRequests {
-		return nil, nil
+		return res, ErrTooManyRequests
 	}
 
 	return res, nil
@@ -199,7 +212,7 @@ func (c *Client) GetTorrentByID(ctx context.Context, torrentID string) (*domain.
 	v.Add("id", torrentID)
 	params := v.Encode()
 
-	reqUrl := fmt.Sprintf("%s?%s&%s", c.Url, "request=torrent", params)
+	reqUrl := fmt.Sprintf("%s?%s&%s", c.url, "request=torrent", params)
 
 	resp, err := c.get(ctx, reqUrl)
 	if err != nil {
@@ -233,7 +246,7 @@ func (c *Client) GetTorrentByID(ctx context.Context, torrentID string) (*domain.
 
 // TestAPI try api access against torrents page
 func (c *Client) TestAPI(ctx context.Context) (bool, error) {
-	resp, err := c.get(ctx, c.Url)
+	resp, err := c.get(ctx, c.url)
 	if err != nil {
 		return false, errors.Wrap(err, "error getting data")
 	}

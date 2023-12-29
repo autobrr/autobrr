@@ -90,13 +90,13 @@ func (s *telegramSender) Send(event domain.NotificationEvent, payload domain.Not
 		return errors.Wrap(err, "could not make request: %+v", req)
 	}
 
+	defer res.Body.Close()
+
 	body, err := io.ReadAll(res.Body)
 	if err != nil {
 		s.log.Error().Err(err).Msgf("telegram client request error: %v", event)
 		return errors.Wrap(err, "could not read data")
 	}
-
-	defer res.Body.Close()
 
 	s.log.Trace().Msgf("telegram status: %v response: %v", res.StatusCode, string(body))
 

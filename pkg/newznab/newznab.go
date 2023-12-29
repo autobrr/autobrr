@@ -178,7 +178,7 @@ func (c *client) getData(ctx context.Context, endpoint string, queryParams map[s
 
 	resp, err := c.http.Do(req)
 	if err != nil {
-		return nil, errors.Wrap(err, "could not make request. %+v", req)
+		return resp, errors.Wrap(err, "could not make request. %+v", req)
 	}
 
 	return resp, nil

@@ -91,6 +91,8 @@ func setupAuthHandler() {
 }
 
 func TestAuthHandlerLogin(t *testing.T) {
+	t.Parallel()
+
 	logger := zerolog.Nop()
 	encoder := encoder{}
 	cookieStore := sessions.NewCookieStore([]byte("test"))
@@ -140,6 +142,8 @@ func TestAuthHandlerLogin(t *testing.T) {
 	if err != nil {
 		log.Fatalf("Error occurred: %v", err)
 	}
+
+	defer resp.Body.Close()
 
 	// check for response, here we'll just check for 204 NoContent
 	if status := resp.StatusCode; status != http.StatusNoContent {
@@ -152,6 +156,8 @@ func TestAuthHandlerLogin(t *testing.T) {
 }
 
 func TestAuthHandlerValidateOK(t *testing.T) {
+	t.Parallel()
+
 	logger := zerolog.Nop()
 	encoder := encoder{}
 	cookieStore := sessions.NewCookieStore([]byte("test"))
@@ -201,6 +207,8 @@ func TestAuthHandlerValidateOK(t *testing.T) {
 	if err != nil {
 		log.Fatalf("Error occurred: %v", err)
 	}
+
+	defer resp.Body.Close()
 
 	// check for response, here we'll just check for 204 NoContent
 	if status := resp.StatusCode; status != http.StatusNoContent {
@@ -217,12 +225,16 @@ func TestAuthHandlerValidateOK(t *testing.T) {
 		log.Fatalf("Error occurred: %v", err)
 	}
 
+	defer resp.Body.Close()
+
 	if status := resp.StatusCode; status != http.StatusNoContent {
 		t.Errorf("validate: handler returned wrong status code: got %v want %v", status, http.StatusNoContent)
 	}
 }
 
 func TestAuthHandlerValidateBad(t *testing.T) {
+	t.Parallel()
+
 	logger := zerolog.Nop()
 	encoder := encoder{}
 	cookieStore := sessions.NewCookieStore([]byte("test"))
@@ -264,12 +276,16 @@ func TestAuthHandlerValidateBad(t *testing.T) {
 		log.Fatalf("Error occurred: %v", err)
 	}
 
+	defer resp.Body.Close()
+
 	if status := resp.StatusCode; status != http.StatusUnauthorized {
 		t.Errorf("validate: handler returned wrong status code: got %v want %v", status, http.StatusUnauthorized)
 	}
 }
 
 func TestAuthHandlerLoginBad(t *testing.T) {
+	t.Parallel()
+
 	logger := zerolog.Nop()
 	encoder := encoder{}
 	cookieStore := sessions.NewCookieStore([]byte("test"))
@@ -310,6 +326,8 @@ func TestAuthHandlerLoginBad(t *testing.T) {
 		log.Fatalf("Error occurred: %v", err)
 	}
 
+	defer resp.Body.Close()
+
 	// check for response, here we'll just check for 204 NoContent
 	if status := resp.StatusCode; status != http.StatusUnauthorized {
 		t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusUnauthorized)
@@ -317,6 +335,8 @@ func TestAuthHandlerLoginBad(t *testing.T) {
 }
 
 func TestAuthHandlerLogout(t *testing.T) {
+	t.Parallel()
+
 	logger := zerolog.Nop()
 	encoder := encoder{}
 	cookieStore := sessions.NewCookieStore([]byte("test"))
@@ -367,6 +387,8 @@ func TestAuthHandlerLogout(t *testing.T) {
 		log.Fatalf("Error occurred: %v", err)
 	}
 
+	defer resp.Body.Close()
+
 	// check for response, here we'll just check for 204 NoContent
 	if status := resp.StatusCode; status != http.StatusNoContent {
 		t.Errorf("login: handler returned wrong status code: got %v want %v", status, http.StatusNoContent)
@@ -382,6 +404,8 @@ func TestAuthHandlerLogout(t *testing.T) {
 		log.Fatalf("Error occurred: %v", err)
 	}
 
+	defer resp.Body.Close()
+
 	if status := resp.StatusCode; status != http.StatusNoContent {
 		t.Errorf("validate: handler returned wrong status code: got %v want %v", status, http.StatusNoContent)
 	}
@@ -391,6 +415,8 @@ func TestAuthHandlerLogout(t *testing.T) {
 	if err != nil {
 		log.Fatalf("Error occurred: %v", err)
 	}
+
+	defer resp.Body.Close()
 
 	if status := resp.StatusCode; status != http.StatusNoContent {
 		t.Errorf("validate: handler returned wrong status code: got %v want %v", status, http.StatusNoContent)
