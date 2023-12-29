@@ -76,9 +76,9 @@ func (c *client) post(ctx context.Context, endpoint string, data interface{}) (*
 
 	// validate response
 	if res.StatusCode == http.StatusUnauthorized {
-		return nil, errors.New("unauthorized: bad credentials")
+		return res, errors.New("unauthorized: bad credentials")
 	} else if res.StatusCode != http.StatusOK {
-		return nil, errors.New("readarr: bad request")
+		return res, errors.New("readarr: bad request")
 	}
 
 	// return raw response and let the caller handle json unmarshal of body

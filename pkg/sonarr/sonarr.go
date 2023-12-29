@@ -15,6 +15,7 @@ import (
 	"log"
 
 	"github.com/autobrr/autobrr/pkg/errors"
+	"github.com/autobrr/autobrr/pkg/sharedhttp"
 )
 
 type Config struct {
@@ -43,20 +44,19 @@ type client struct {
 
 // New create new sonarr client
 func New(config Config) Client {
-
 	httpClient := &http.Client{
-		Timeout: time.Second * 120,
+		Timeout:   time.Second * 120,
+		Transport: sharedhttp.Transport,
 	}
 
 	c := &client{
 		config: config,
 		http:   httpClient,
-		Log:    config.Log,
+		Log:    log.New(io.Discard, "", log.LstdFlags),
 	}
 
-	if config.Log == nil {
-		// if no provided logger then use io.Discard
-		c.Log = log.New(io.Discard, "", log.LstdFlags)
+	if config.Log != nil {
+		c.Log = config.Log
 	}
 
 	return c

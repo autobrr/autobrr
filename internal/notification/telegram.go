@@ -14,11 +14,12 @@ import (
 
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/pkg/errors"
+	"github.com/autobrr/autobrr/pkg/sharedhttp"
 
 	"github.com/rs/zerolog"
 )
 
-// Reference: https://core.telegram.org/bots/api#sendmessage
+// TelegramMessage Reference: https://core.telegram.org/bots/api#sendmessage
 type TelegramMessage struct {
 	ChatID          string `json:"chat_id"`
 	Text            string `json:"text"`
@@ -31,6 +32,8 @@ type telegramSender struct {
 	Settings domain.Notification
 	ThreadID int
 	builder  NotificationBuilderPlainText
+
+	httpClient *http.Client
 }
 
 func NewTelegramSender(log zerolog.Logger, settings domain.Notification) domain.NotificationSender {
@@ -46,6 +49,11 @@ func NewTelegramSender(log zerolog.Logger, settings domain.Notification) domain.
 		log:      log.With().Str("sender", "telegram").Logger(),
 		Settings: settings,
 		ThreadID: threadID,
+		builder:  NotificationBuilderPlainText{},
+		httpClient: &http.Client{
+			Timeout:   time.Second * 30,
+			Transport: sharedhttp.Transport,
+		},
 	}
 }
 
@@ -76,20 +84,19 @@ func (s *telegramSender) Send(event domain.NotificationEvent, payload domain.Not
 	req.Header.Set("Content-Type", "application/json")
 	//req.Header.Set("User-Agent", "autobrr")
 
-	client := http.Client{Timeout: 30 * time.Second}
-	res, err := client.Do(req)
+	res, err := s.httpClient.Do(req)
 	if err != nil {
 		s.log.Error().Err(err).Msgf("telegram client request error: %v", event)
 		return errors.Wrap(err, "could not make request: %+v", req)
 	}
+
+	defer res.Body.Close()
 
 	body, err := io.ReadAll(res.Body)
 	if err != nil {
 		s.log.Error().Err(err).Msgf("telegram client request error: %v", event)
 		return errors.Wrap(err, "could not read data")
 	}
-
-	defer res.Body.Close()
 
 	s.log.Trace().Msgf("telegram status: %v response: %v", res.StatusCode, string(body))
 

@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"github.com/autobrr/autobrr/pkg/errors"
+	"github.com/autobrr/autobrr/pkg/sharedhttp"
 )
 
 type Client interface {
@@ -61,7 +62,8 @@ type Capabilities struct {
 
 func NewClient(config Config) Client {
 	httpClient := &http.Client{
-		Timeout: config.Timeout,
+		Timeout:   config.Timeout,
+		Transport: sharedhttp.Transport,
 	}
 
 	c := &client{

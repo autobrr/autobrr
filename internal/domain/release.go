@@ -6,7 +6,6 @@ package domain
 import (
 	"bytes"
 	"context"
-	"crypto/tls"
 	"fmt"
 	"html"
 	"io"
@@ -19,6 +18,7 @@ import (
 	"time"
 
 	"github.com/autobrr/autobrr/pkg/errors"
+	"github.com/autobrr/autobrr/pkg/sharedhttp"
 
 	"github.com/anacrolix/torrent/bencode"
 	"github.com/anacrolix/torrent/metainfo"
@@ -397,19 +397,17 @@ func (r *Release) downloadTorrentFile(ctx context.Context) error {
 		return nil
 	}
 
-	customTransport := http.DefaultTransport.(*http.Transport).Clone()
-	customTransport.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
-	client := &http.Client{
-		Transport: customTransport,
-		Timeout:   time.Second * 45,
-	}
-
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, r.DownloadURL, nil)
 	if err != nil {
 		return errors.Wrap(err, "error downloading file")
 	}
 
 	req.Header.Set("User-Agent", "autobrr")
+
+	client := http.Client{
+		Timeout:   time.Second * 60,
+		Transport: sharedhttp.TransportTLSInsecure,
+	}
 
 	if r.RawCookie != "" {
 		jar, err := cookiejar.New(&cookiejar.Options{PublicSuffixList: publicsuffix.List})
@@ -573,11 +571,6 @@ func (r *Release) ResolveMagnetUri(ctx context.Context) error {
 		return nil
 	}
 
-	client := http.Client{
-		Transport: &magnetRoundTripper{},
-		Timeout:   time.Second * 60,
-	}
-
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, r.MagnetURI, nil)
 	if err != nil {
 		return errors.Wrap(err, "could not build request to resolve magnet uri")
@@ -585,6 +578,11 @@ func (r *Release) ResolveMagnetUri(ctx context.Context) error {
 
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("User-Agent", "autobrr")
+
+	client := &http.Client{
+		Timeout:   time.Second * 45,
+		Transport: sharedhttp.MagnetTransport,
+	}
 
 	res, err := client.Do(req)
 	if err != nil {

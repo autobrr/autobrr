@@ -12,6 +12,8 @@ import (
 	"net/http"
 	"net/url"
 	"time"
+
+	"github.com/autobrr/autobrr/pkg/sharedhttp"
 )
 
 type Client struct {
@@ -23,7 +25,7 @@ type Client struct {
 
 	log *log.Logger
 
-	Http *http.Client
+	http *http.Client
 }
 
 type Options struct {
@@ -43,8 +45,9 @@ func New(opts Options) *Client {
 		basicUser: opts.BasicUser,
 		basicPass: opts.BasicPass,
 		log:       log.New(io.Discard, "", log.LstdFlags),
-		Http: &http.Client{
-			Timeout: time.Second * 60,
+		http: &http.Client{
+			Timeout:   time.Second * 60,
+			Transport: sharedhttp.Transport,
 		},
 	}
 
@@ -88,7 +91,7 @@ func (c *Client) AddFromUrl(ctx context.Context, r AddNzbRequest) (*AddFileRespo
 		req.SetBasicAuth(c.basicUser, c.basicPass)
 	}
 
-	res, err := c.Http.Do(req)
+	res, err := c.http.Do(req)
 	if err != nil {
 		return nil, err
 	}
@@ -137,7 +140,7 @@ func (c *Client) Version(ctx context.Context) (*VersionResponse, error) {
 		req.SetBasicAuth(c.basicUser, c.basicPass)
 	}
 
-	res, err := c.Http.Do(req)
+	res, err := c.http.Do(req)
 	if err != nil {
 		return nil, err
 	}

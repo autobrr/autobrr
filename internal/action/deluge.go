@@ -335,6 +335,9 @@ func (s *service) prepareDelugeOptions(action *domain.Action) (deluge.Options, e
 		maxUL := int(action.LimitUploadSpeed)
 		options.MaxUploadSpeed = &maxUL
 	}
+	if action.SkipHashCheck {
+		options.V2.SeedMode = &action.SkipHashCheck
+	}
 
 	return options, nil
 }

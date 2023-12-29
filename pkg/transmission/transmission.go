@@ -6,6 +6,8 @@ import (
 	"net/url"
 	"time"
 
+	"github.com/autobrr/autobrr/pkg/sharedhttp"
+
 	"github.com/hekmon/transmissionrpc/v3"
 )
 
@@ -43,7 +45,7 @@ type customTransport struct {
 }
 
 func (t *customTransport) RoundTrip(req *http.Request) (*http.Response, error) {
-	dt := http.DefaultTransport.(*http.Transport).Clone()
+	dt := sharedhttp.Transport
 	if t.TLSSkipVerify {
 		dt.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
 	}

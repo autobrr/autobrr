@@ -1,6 +1,8 @@
 // Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
 // SPDX-License-Identifier: GPL-2.0-or-later
 
+//go:build integration
+
 package ggn
 
 import (
@@ -8,13 +10,12 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
-	"strings"
 	"testing"
+
+	"github.com/autobrr/autobrr/internal/domain"
 
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
-
-	"github.com/autobrr/autobrr/internal/domain"
 )
 
 func Test_client_GetTorrentByID(t *testing.T) {
@@ -32,18 +33,26 @@ func Test_client_GetTorrentByID(t *testing.T) {
 			return
 		}
 
-		if !strings.Contains(r.RequestURI, "422368") {
-			jsonPayload, _ := os.ReadFile("testdata/ggn_get_torrent_by_id_not_found.json")
+		id := r.URL.Query().Get("id")
+		var jsonPayload []byte
+		switch id {
+		case "422368":
+			jsonPayload, _ = os.ReadFile("testdata/ggn_get_torrent_by_id.json")
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusOK)
-			w.Write(jsonPayload)
-			return
+			break
+
+		case "100002":
+			jsonPayload, _ = os.ReadFile("testdata/ggn_get_torrent_by_id_not_found.json")
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusOK)
+			break
 		}
 
 		// read json response
-		jsonPayload, _ := os.ReadFile("testdata/ggn_get_torrent_by_id.json")
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
+		//jsonPayload, _ := os.ReadFile("testdata/ggn_get_torrent_by_id.json")
+		//w.Header().Set("Content-Type", "application/json")
+		//w.WriteHeader(http.StatusOK)
 		w.Write(jsonPayload)
 	}))
 	defer ts.Close()
@@ -77,7 +86,7 @@ func Test_client_GetTorrentByID(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "get_by_id_2",
+			name: "get_by_invalid_id",
 			fields: fields{
 				Url:    ts.URL,
 				APIKey: key,
@@ -89,9 +98,7 @@ func Test_client_GetTorrentByID(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-
-			c := NewClient(tt.fields.APIKey)
-			c.UseURL(tt.fields.Url)
+			c := NewClient(tt.fields.APIKey, WithUrl(ts.URL))
 
 			got, err := c.GetTorrentByID(context.Background(), tt.args.torrentID)
 			if tt.wantErr && assert.Error(t, err) {
