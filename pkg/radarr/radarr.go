@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/autobrr/autobrr/pkg/errors"
+	"github.com/autobrr/autobrr/pkg/sharedhttp"
 )
 
 type Config struct {
@@ -41,19 +42,19 @@ type client struct {
 }
 
 func New(config Config) Client {
-
 	httpClient := &http.Client{
-		Timeout: time.Second * 120,
+		Timeout:   time.Second * 120,
+		Transport: sharedhttp.Transport,
 	}
 
 	c := &client{
 		config: config,
 		http:   httpClient,
-		Log:    config.Log,
+		Log:    log.New(io.Discard, "", log.LstdFlags),
 	}
 
-	if config.Log == nil {
-		c.Log = log.New(io.Discard, "", log.LstdFlags)
+	if config.Log != nil {
+		c.Log = config.Log
 	}
 
 	return c

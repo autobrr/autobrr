@@ -6,7 +6,6 @@ package action
 import (
 	"bytes"
 	"context"
-	"crypto/tls"
 	"fmt"
 	"io"
 	"net/http"
@@ -197,14 +196,6 @@ func (s *service) webhook(ctx context.Context, action *domain.Action, release do
 		s.log.Trace().Msgf("webhook action '%s' - host: %s data: %s", action.Name, action.WebhookHost, action.WebhookData)
 	}
 
-	t := &http.Transport{
-		TLSClientConfig: &tls.Config{
-			InsecureSkipVerify: true,
-		},
-	}
-
-	client := http.Client{Transport: t, Timeout: 120 * time.Second}
-
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, action.WebhookHost, bytes.NewBufferString(action.WebhookData))
 	if err != nil {
 		return errors.Wrap(err, "could not build request for webhook")
@@ -214,8 +205,7 @@ func (s *service) webhook(ctx context.Context, action *domain.Action, release do
 	req.Header.Set("User-Agent", "autobrr")
 
 	start := time.Now()
-
-	res, err := client.Do(req)
+	res, err := s.httpClient.Do(req)
 	if err != nil {
 		return errors.Wrap(err, "could not make request for webhook")
 	}

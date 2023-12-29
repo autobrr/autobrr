@@ -14,6 +14,7 @@ import (
 
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/pkg/errors"
+	"github.com/autobrr/autobrr/pkg/sharedhttp"
 
 	"github.com/rs/zerolog"
 )
@@ -33,6 +34,8 @@ type pushoverSender struct {
 	Settings domain.Notification
 	baseUrl  string
 	builder  NotificationBuilderPlainText
+
+	httpClient *http.Client
 }
 
 func NewPushoverSender(log zerolog.Logger, settings domain.Notification) domain.NotificationSender {
@@ -40,6 +43,11 @@ func NewPushoverSender(log zerolog.Logger, settings domain.Notification) domain.
 		log:      log.With().Str("sender", "pushover").Logger(),
 		Settings: settings,
 		baseUrl:  "https://api.pushover.net/1/messages.json",
+		builder:  NotificationBuilderPlainText{},
+		httpClient: &http.Client{
+			Timeout:   time.Second * 30,
+			Transport: sharedhttp.Transport,
+		},
 	}
 }
 
@@ -81,20 +89,19 @@ func (s *pushoverSender) Send(event domain.NotificationEvent, payload domain.Not
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	req.Header.Set("User-Agent", "autobrr")
 
-	client := http.Client{Timeout: 30 * time.Second}
-	res, err := client.Do(req)
+	res, err := s.httpClient.Do(req)
 	if err != nil {
 		s.log.Error().Err(err).Msgf("pushover client request error: %v", event)
 		return errors.Wrap(err, "could not make request: %+v", req)
 	}
+
+	defer res.Body.Close()
 
 	body, err := io.ReadAll(res.Body)
 	if err != nil {
 		s.log.Error().Err(err).Msgf("pushover client request error: %v", event)
 		return errors.Wrap(err, "could not read data")
 	}
-
-	defer res.Body.Close()
 
 	s.log.Trace().Msgf("pushover status: %v response: %v", res.StatusCode, string(body))
 

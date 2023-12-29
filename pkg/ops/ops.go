@@ -1,3 +1,6 @@
+// Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+// SPDX-License-Identifier: GPL-2.0-or-later
+
 package ops
 
 import (
@@ -12,38 +15,49 @@ import (
 
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/pkg/errors"
+	"github.com/autobrr/autobrr/pkg/sharedhttp"
 
 	"golang.org/x/time/rate"
 )
 
+const DefaultURL = "https://orpheus.network/ajax.php"
+
 type ApiClient interface {
 	GetTorrentByID(ctx context.Context, torrentID string) (*domain.TorrentBasic, error)
 	TestAPI(ctx context.Context) (bool, error)
-	UseURL(url string)
 }
 
 type Client struct {
-	Url         string
+	url         string
 	client      *http.Client
 	RateLimiter *rate.Limiter
 	APIKey      string
 }
 
-func NewClient(apiKey string) ApiClient {
+type OptFunc func(*Client)
+
+func WithUrl(url string) OptFunc {
+	return func(c *Client) {
+		c.url = url
+	}
+}
+
+func NewClient(apiKey string, opts ...OptFunc) ApiClient {
 	c := &Client{
-		Url: "https://orpheus.network/ajax.php",
+		url: DefaultURL,
 		client: &http.Client{
-			Timeout: time.Second * 30,
+			Timeout:   time.Second * 30,
+			Transport: sharedhttp.Transport,
 		},
 		RateLimiter: rate.NewLimiter(rate.Every(10*time.Second), 5),
 		APIKey:      apiKey,
 	}
 
-	return c
-}
+	for _, opt := range opts {
+		opt(c)
+	}
 
-func (c *Client) UseURL(url string) {
-	c.Url = url
+	return c
 }
 
 type ErrorResponse struct {
@@ -127,7 +141,7 @@ func (c *Client) Do(req *http.Request) (*http.Response, error) {
 	}
 	resp, err := c.client.Do(req)
 	if err != nil {
-		return nil, err
+		return resp, err
 	}
 	return resp, nil
 }
@@ -147,12 +161,14 @@ func (c *Client) get(ctx context.Context, url string) (*http.Response, error) {
 
 	res, err := c.Do(req)
 	if err != nil {
-		return nil, errors.Wrap(err, "could not make request: %+v", req)
+		return res, errors.Wrap(err, "could not make request: %+v", req)
 	}
 
 	// return early if not OK
 	if res.StatusCode != http.StatusOK {
 		var r ErrorResponse
+
+		defer res.Body.Close()
 
 		body, readErr := io.ReadAll(res.Body)
 		if readErr != nil {
@@ -162,8 +178,6 @@ func (c *Client) get(ctx context.Context, url string) (*http.Response, error) {
 		if err = json.Unmarshal(body, &r); err != nil {
 			return nil, errors.Wrap(err, "could not unmarshal body")
 		}
-
-		res.Body.Close()
 
 		return nil, errors.New("status code: %d status: %s error: %s", res.StatusCode, r.Status, r.Error)
 	}
@@ -182,7 +196,7 @@ func (c *Client) GetTorrentByID(ctx context.Context, torrentID string) (*domain.
 	v.Add("id", torrentID)
 	params := v.Encode()
 
-	reqUrl := fmt.Sprintf("%s?action=torrent&%s", c.Url, params)
+	reqUrl := fmt.Sprintf("%s?action=torrent&%s", c.url, params)
 
 	resp, err := c.get(ctx, reqUrl)
 	if err != nil {
@@ -212,7 +226,7 @@ func (c *Client) GetTorrentByID(ctx context.Context, torrentID string) (*domain.
 
 // TestAPI try api access against torrents page
 func (c *Client) TestAPI(ctx context.Context) (bool, error) {
-	resp, err := c.get(ctx, c.Url+"?action=index")
+	resp, err := c.get(ctx, c.url+"?action=index")
 	if err != nil {
 		return false, errors.Wrap(err, "test api error")
 	}

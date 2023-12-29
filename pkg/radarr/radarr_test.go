@@ -1,6 +1,8 @@
 // Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
 // SPDX-License-Identifier: GPL-2.0-or-later
 
+//go:build integration
+
 package radarr
 
 import (
@@ -12,9 +14,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
-
 	"github.com/rs/zerolog"
+	"github.com/stretchr/testify/assert"
 )
 
 func Test_client_Push(t *testing.T) {
