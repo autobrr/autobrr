@@ -54,6 +54,7 @@ interface IndexerIRC {
   nickserv: boolean;
   channels: string[];
   announcers: string[];
+  lazy_announcer: boolean;
   settings: IndexerSetting[];
 }
 

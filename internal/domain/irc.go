@@ -46,6 +46,7 @@ type IrcNetwork struct {
 	UseBouncer     bool         `json:"use_bouncer"`
 	BouncerAddr    string       `json:"bouncer_addr"`
 	BotMode        bool         `json:"bot_mode"`
+	LazyAnnouncer  bool         `json:"lazy_announcer"`
 	Channels       []IrcChannel `json:"channels"`
 	Connected      bool         `json:"connected"`
 	ConnectedSince *time.Time   `json:"connected_since"`

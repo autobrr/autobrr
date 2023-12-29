@@ -115,6 +115,7 @@ interface IrcNetworkAddFormValues {
     server : string;
     port: number;
     tls: boolean;
+    lazy_announcer: boolean;
     pass: string;
     nick: string;
     auth: IrcAuth;
@@ -150,6 +151,7 @@ export function IrcNetworkAddForm({ isOpen, toggle }: AddFormProps) {
     server: "",
     port: 6667,
     tls: false,
+    lazy_announcer: false,
     pass: "",
     nick: "",
     auth: {
@@ -269,6 +271,7 @@ interface IrcNetworkUpdateFormValues {
     use_bouncer: boolean;
     bouncer_addr: string;
     bot_mode: boolean;
+    lazy_announcer: boolean;
     channels: Array<IrcChannel>;
 }
 
@@ -325,6 +328,7 @@ export function IrcNetworkUpdateForm({
     use_bouncer: network.use_bouncer,
     bouncer_addr: network.bouncer_addr,
     bot_mode: network.bot_mode,
+    lazy_announcer: network.lazy_announcer,
     channels: network.channels
   };
 
@@ -387,6 +391,7 @@ export function IrcNetworkUpdateForm({
           )}
 
           <SwitchGroupWide name="bot_mode" label="IRCv3 Bot Mode" />
+          <SwitchGroupWide name="lazy_announcer" label="Allow lazy announcer nicks" tooltip={<div>Allow changes in the announcers nickname. Like announcer1 or announcer2. This can have security implications.</div>} />
 
           <div className="border-t border-gray-200 dark:border-gray-700 py-5">
             <div className="px-4 space-y-1 mb-8">

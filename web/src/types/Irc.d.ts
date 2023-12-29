@@ -10,6 +10,7 @@ interface IrcNetwork {
   server: string;
   port: number;
   tls: boolean;
+  lazy_announcer: boolean;
   nick: string;
   pass: string;
   auth: IrcAuth; // optional
@@ -28,6 +29,7 @@ interface IrcNetworkCreate {
   server: string;
   port: number;
   tls: boolean;
+  lazy_announcer?: boolean;
   pass: string;
   nick: string;
   auth: IrcAuth; // optional
