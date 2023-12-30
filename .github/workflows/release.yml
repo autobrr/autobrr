@@ -213,14 +213,17 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
       - name: Export digest
+        id: digest-prep
         run: |
           mkdir -p /tmp/digests
           digest="${{ steps.docker_build.outputs.digest }}"
-          touch "/tmp/digests/${digest#sha256:}"          
+          echo "manifest-hash=${digest#sha256:}" >> "$GITHUB_OUTPUT"
+          touch "/tmp/digests/${digest#sha256:}"
+
       - name: Upload digest
         uses: actions/upload-artifact@v4
         with:
-          name: docker-digests-${{ github.job }}
+          name: docker-digests-${{ steps.digest-prep.outputs.manifest-hash }}
           path: /tmp/digests/*
           if-no-files-found: error
           retention-days: 1
