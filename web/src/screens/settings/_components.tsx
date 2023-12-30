@@ -127,6 +127,14 @@ export const GotifyIcon = () => (
   </svg>
 );
 
+export const NtfyIcon = () => (
+  <svg  {...commonSVGProps}  viewBox="0 0 50.8 50.8" xmlns="http://www.w3.org/2000/svg">
+    <path d="M44.98 39.952V10.848H7.407v27.814l-1.587 4.2 8.393-2.91Z" />
+    <path d="M27.781 31.485h8.202" />
+    <path d="m65.979 100.011 9.511 5.492-9.511 5.491"  transform="translate(-51.81 -80.758)"/>
+  </svg>
+);
+
 export const LunaSeaIcon = () => (
   <svg {...commonSVGProps} viewBox="0 0 750 750">
     <path d="m554.69 180.46c-333.63 0-452.75 389.23-556.05 389.23 185.37 0 237.85-247.18 419.12-247.18l47.24-102.05z"/>
