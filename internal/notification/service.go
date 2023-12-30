@@ -249,6 +249,8 @@ func (s *service) Test(ctx context.Context, notification domain.Notification) er
 		agent = NewPushoverSender(s.log, notification)
 	case domain.NotificationTypeGotify:
 		agent = NewGotifySender(s.log, notification)
+	case domain.NotificationTypeNtfy:
+		agent = NewNtfySender(s.log, notification)
 	case domain.NotificationTypeLunaSea:
 		agent = NewLunaSeaSender(s.log, notification)
 	default:

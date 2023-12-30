@@ -197,12 +197,55 @@ function FormFieldsGotify() {
   );
 }
 
+function FormFieldsNtfy() {
+  return (
+    <div className="border-t border-gray-200 dark:border-gray-700 py-4">
+      <div className="px-4 space-y-1">
+        <Dialog.Title className="text-lg font-medium text-gray-900 dark:text-white">Settings</Dialog.Title>
+      </div>
+
+      <TextFieldWide
+        name="host"
+        label="NTFY URL"
+        help="NTFY URL"
+        placeholder="https://ntfy.sh/mytopic"
+        required={true}
+      />
+
+      <TextFieldWide
+        name="username"
+        label="Username"
+        help="Username"
+      />
+
+      <PasswordFieldWide
+        name="password"
+        label="Password"
+        help="Password"
+      />
+
+      <PasswordFieldWide
+        name="token"
+        label="Access token"
+        help="Access token. Use this or Usernmae+password"
+      />
+
+      <NumberFieldWide
+        name="priority"
+        label="Priority"
+        help="Max 5, 4, 3 (default), 2, 1 Min"
+      />
+    </div>
+  );
+}
+
 const componentMap: componentMapType = {
   DISCORD: <FormFieldsDiscord />,
   NOTIFIARR: <FormFieldsNotifiarr />,
   TELEGRAM: <FormFieldsTelegram />,
   PUSHOVER: <FormFieldsPushover />,
   GOTIFY: <FormFieldsGotify />,
+  NTFY: <FormFieldsNtfy />,
   LUNASEA: <FormFieldsLunaSea />
 };
 

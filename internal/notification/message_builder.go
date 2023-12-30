@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/autobrr/autobrr/internal/domain"
+
 	"github.com/dustin/go-humanize"
 )
 
@@ -26,12 +27,11 @@ func (b *NotificationBuilderPlainText) BuildBody(payload domain.NotificationPayl
 	buildPart(payload.Status != "", "\nStatus: %v", payload.Status.String())
 	buildPart(payload.Indexer != "", "\nIndexer: %v", payload.Indexer)
 	buildPart(payload.Filter != "", "\nFilter: %v", payload.Filter)
-	buildPart(payload.Action != "", "\nAction: %v Type: %v", payload.Action, payload.ActionType)
-	buildPart(len(payload.Rejections) > 0, "\nRejections: %v", strings.Join(payload.Rejections, ", "))
-
+	buildPart(payload.Action != "", "\nAction: %v: %v", payload.ActionType, payload.Action)
 	if payload.Action != "" && payload.ActionClient != "" {
 		parts = append(parts, fmt.Sprintf(" Client: %v", payload.ActionClient))
 	}
+	buildPart(len(payload.Rejections) > 0, "\nRejections: %v", strings.Join(payload.Rejections, ", "))
 
 	return strings.Join(parts, "\n")
 }
@@ -42,7 +42,7 @@ func (b *NotificationBuilderPlainText) BuildTitle(event domain.NotificationEvent
 		domain.NotificationEventAppUpdateAvailable: "Autobrr update available",
 		domain.NotificationEventPushApproved:       "Push Approved",
 		domain.NotificationEventPushRejected:       "Push Rejected",
-		domain.NotificationEventPushError:          "Error",
+		domain.NotificationEventPushError:          "Push Error",
 		domain.NotificationEventIRCDisconnected:    "IRC Disconnected",
 		domain.NotificationEventIRCReconnected:     "IRC Reconnected",
 		domain.NotificationEventTest:               "Test",
