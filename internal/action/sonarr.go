@@ -42,11 +42,14 @@ func (s *service) sonarr(ctx context.Context, action *domain.Action, release dom
 		cfg.Password = client.Settings.Basic.Password
 	}
 
-	externalId := 0
-	if client.Settings.ExternalDownloadClientId > 0 {
-		externalId = client.Settings.ExternalDownloadClientId
-	} else if action.ExternalDownloadClientID > 0 {
-		externalId = int(action.ExternalDownloadClientID)
+	externalClientId := client.Settings.ExternalDownloadClientId
+	if action.ExternalDownloadClientID > 0 {
+		externalClientId = int(action.ExternalDownloadClientID)
+	}
+
+	externalClient := client.Settings.ExternalDownloadClient
+	if action.ExternalDownloadClient != "" {
+		externalClient = action.ExternalDownloadClient
 	}
 
 	r := sonarr.Release{
@@ -56,7 +59,8 @@ func (s *service) sonarr(ctx context.Context, action *domain.Action, release dom
 		MagnetUrl:        release.MagnetURI,
 		Size:             int64(release.Size),
 		Indexer:          release.Indexer,
-		DownloadClientId: externalId,
+		DownloadClientId: externalClientId,
+		DownloadClient:   externalClient,
 		DownloadProtocol: string(release.Protocol),
 		Protocol:         string(release.Protocol),
 		PublishDate:      time.Now().Format(time.RFC3339),

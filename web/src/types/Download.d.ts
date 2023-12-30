@@ -49,6 +49,7 @@ interface DownloadClientSettings {
   basic?: DownloadClientBasicAuth;
   rules?: DownloadClientRules;
   external_download_client_id?: number;
+  external_download_client?: string;
 }
 
 interface DownloadClient {

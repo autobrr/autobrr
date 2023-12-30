@@ -185,6 +185,7 @@ func (r *DownloadClientRepo) Store(ctx context.Context, client domain.DownloadCl
 		Basic:                    client.Settings.Basic,
 		Rules:                    client.Settings.Rules,
 		ExternalDownloadClientId: client.Settings.ExternalDownloadClientId,
+		ExternalDownloadClient:   client.Settings.ExternalDownloadClient,
 	}
 
 	settingsJson, err := json.Marshal(&settings)
@@ -224,6 +225,7 @@ func (r *DownloadClientRepo) Update(ctx context.Context, client domain.DownloadC
 		Basic:                    client.Settings.Basic,
 		Rules:                    client.Settings.Rules,
 		ExternalDownloadClientId: client.Settings.ExternalDownloadClientId,
+		ExternalDownloadClient:   client.Settings.ExternalDownloadClient,
 	}
 
 	settingsJson, err := json.Marshal(&settings)

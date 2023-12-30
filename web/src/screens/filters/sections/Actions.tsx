@@ -70,6 +70,7 @@ export function Actions({ filter, values }: FilterActionsProps) {
     webhook_data: "",
     webhook_headers: [],
     external_download_client_id: 0,
+    external_download_client: "",
     client_id: 0
   };
 
