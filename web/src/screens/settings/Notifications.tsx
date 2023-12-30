@@ -77,6 +77,7 @@ const iconComponentMap: componentMapType = {
   PUSHOVER: <span className={iconStyle}><PushoverIcon /> Pushover</span>,
   GOTIFY: <span className={iconStyle}><GotifyIcon /> Gotify</span>,
   NTFY: <span className={iconStyle}><NtfyIcon /> ntfy</span>,
+  SHOUTRRR: <span className={iconStyle}><NtfyIcon /> Shoutrrr</span>,
   LUNASEA: <span className={iconStyle}><LunaSeaIcon /> LunaSea</span>
 };
 

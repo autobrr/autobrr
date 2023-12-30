@@ -60,7 +60,9 @@ require (
 	github.com/anacrolix/missinggo/v2 v2.7.2 // indirect
 	github.com/andybalholm/cascadia v1.3.2 // indirect
 	github.com/bradfitz/iter v0.0.0-20191230175014-e8f45d346db8 // indirect
+	github.com/containrrr/shoutrrr v0.8.0 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
+	github.com/fatih/color v1.16.0 // indirect
 	github.com/gdm85/go-rencode v0.1.8 // indirect
 	github.com/google/uuid v1.3.0 // indirect
 	github.com/gorilla/securecookie v1.1.2 // indirect
@@ -76,7 +78,7 @@ require (
 	github.com/lann/ps v0.0.0-20150810152359-62de8c46ede0 // indirect
 	github.com/magiconair/properties v1.8.7 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
-	github.com/mattn/go-isatty v0.0.19 // indirect
+	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/mitchellh/copystructure v1.2.0 // indirect
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
 	github.com/mitchellh/reflectwalk v1.0.2 // indirect
