@@ -4,10 +4,10 @@
 package database
 
 import (
+	"cmp"
 	"context"
 	"database/sql"
 	"fmt"
-	"sort"
 	"strings"
 	"time"
 
@@ -18,6 +18,7 @@ import (
 	sq "github.com/Masterminds/squirrel"
 	"github.com/lib/pq"
 	"github.com/rs/zerolog"
+	"golang.org/x/exp/slices"
 )
 
 type FilterRepo struct {
@@ -715,8 +716,8 @@ func (r *FilterRepo) findByIndexerIdentifier(ctx context.Context, indexer string
 	}
 
 	// the filterMap messes up the order, so we need to sort the filters slice
-	sort.Slice(filters, func(i, j int) bool {
-		return filters[i].Priority > filters[j].Priority
+	slices.SortStableFunc(filters, func(a, b *domain.Filter) int {
+		return cmp.Compare(b.Priority, a.Priority)
 	})
 
 	return filters, nil

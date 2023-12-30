@@ -467,20 +467,63 @@ func TestFilterRepo_FindByIndexerIdentifier(t *testing.T) {
 		log := setupLoggerForTest()
 		repo := NewFilterRepo(log, db)
 		indexerRepo := NewIndexerRepo(log, db)
-		mockData := getMockFilter()
+		//mockData := getMockFilter()
 		indexerMockData := getMockIndexer()
+
+		filtersData := []*domain.Filter{
+			{
+				Enabled:     true,
+				Name:        "filter 1",
+				Priority:    20,
+				Resolutions: []string{},
+				Codecs:      []string{},
+				Sources:     []string{},
+				Containers:  []string{},
+				CreatedAt:   time.Now(),
+				UpdatedAt:   time.Now(),
+			},
+			{
+				Enabled:     true,
+				Name:        "filter 2",
+				Priority:    30,
+				Resolutions: []string{},
+				Codecs:      []string{},
+				Sources:     []string{},
+				Containers:  []string{},
+				CreatedAt:   time.Now(),
+				UpdatedAt:   time.Now(),
+			},
+			{
+				Enabled:     true,
+				Name:        "filter 20",
+				Priority:    100,
+				Resolutions: []string{},
+				Codecs:      []string{},
+				Sources:     []string{},
+				Containers:  []string{},
+				CreatedAt:   time.Now(),
+				UpdatedAt:   time.Now(),
+			},
+		}
 
 		t.Run(fmt.Sprintf("FindByIndexerIdentifier_Succeeds [%s]", dbType), func(t *testing.T) {
 			// Setup
-			err := repo.Store(context.Background(), mockData)
-			assert.NoError(t, err)
-
 			indexer, err := indexerRepo.Store(context.Background(), indexerMockData)
 			assert.NoError(t, err)
 			assert.NotNil(t, indexer)
 
-			err = repo.StoreIndexerConnection(context.Background(), mockData.ID, int(indexer.ID))
+			for _, filter := range filtersData {
+				filter := filter
+				err := repo.Store(context.Background(), filter)
+				assert.NoError(t, err)
+
+				err = repo.StoreIndexerConnection(context.Background(), filter.ID, int(indexer.ID))
+				assert.NoError(t, err)
+			}
+
+			filtersList, err := repo.ListFilters(context.Background())
 			assert.NoError(t, err)
+			assert.NotEmpty(t, filtersList)
 
 			// Execute
 			filters, err := repo.FindByIndexerIdentifier(context.Background(), indexerMockData.Identifier)
@@ -488,9 +531,18 @@ func TestFilterRepo_FindByIndexerIdentifier(t *testing.T) {
 			assert.NotNil(t, filters)
 			assert.NotEmpty(t, filters)
 
+			assert.Equal(t, filters[0].Priority, int32(100))
+			assert.Equal(t, filters[1].Priority, int32(30))
+			assert.Equal(t, filters[2].Priority, int32(20))
+
 			// Cleanup
 			_ = indexerRepo.Delete(context.Background(), int(indexer.ID))
-			_ = repo.Delete(context.Background(), mockData.ID)
+
+			for _, filter := range filtersData {
+				filter := filter
+
+				_ = repo.Delete(context.Background(), filter.ID)
+			}
 		})
 
 		t.Run(fmt.Sprintf("FindByIndexerIdentifier_Fails_Invalid_Identifier [%s]", dbType), func(t *testing.T) {
