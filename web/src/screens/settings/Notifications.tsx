@@ -15,7 +15,7 @@ import toast from "react-hot-toast";
 import { Section } from "./_components";
 import { PlusIcon } from "@heroicons/react/24/solid";
 import { Checkbox } from "@components/Checkbox";
-import { DiscordIcon, GotifyIcon, LunaSeaIcon, NotifiarrIcon, PushoverIcon, TelegramIcon } from "./_components";
+import { DiscordIcon, GotifyIcon, LunaSeaIcon, NotifiarrIcon, NtfyIcon, PushoverIcon, TelegramIcon } from "./_components";
 
 export const notificationKeys = {
   all: ["notifications"] as const,
@@ -76,6 +76,7 @@ const iconComponentMap: componentMapType = {
   TELEGRAM: <span className={iconStyle}><TelegramIcon /> Telegram</span>,
   PUSHOVER: <span className={iconStyle}><PushoverIcon /> Pushover</span>,
   GOTIFY: <span className={iconStyle}><GotifyIcon /> Gotify</span>,
+  NTFY: <span className={iconStyle}><NtfyIcon /> ntfy</span>,
   LUNASEA: <span className={iconStyle}><LunaSeaIcon /> LunaSea</span>
 };
 
