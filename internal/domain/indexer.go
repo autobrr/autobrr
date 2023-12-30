@@ -171,28 +171,21 @@ type FeedSettings struct {
 }
 
 type IndexerIRC struct {
-	Network            string            `json:"network"`
-	Server             string            `json:"server"`
-	Port               int               `json:"port"`
-	TLS                bool              `json:"tls"`
-	Channels           []string          `json:"channels"`
-	Announcers         []string          `json:"announcers"`
-	AllowLazyAnnouncer bool              `json:"lazy_announcer"`
-	SettingsMap        map[string]string `json:"-"`
-	Settings           []IndexerSetting  `json:"settings"`
-	Parse              *IndexerIRCParse  `json:"parse,omitempty"`
+	Network     string            `json:"network"`
+	Server      string            `json:"server"`
+	Port        int               `json:"port"`
+	TLS         bool              `json:"tls"`
+	Channels    []string          `json:"channels"`
+	Announcers  []string          `json:"announcers"`
+	SettingsMap map[string]string `json:"-"`
+	Settings    []IndexerSetting  `json:"settings"`
+	Parse       *IndexerIRCParse  `json:"parse,omitempty"`
 }
 
-func (i IndexerIRC) ValidAnnouncer(announcer string, AllowLazyAnnouncer bool) bool {
+func (i IndexerIRC) ValidAnnouncer(announcer string) bool {
 	for _, a := range i.Announcers {
 		if a == announcer {
 			return true
-		}
-		if AllowLazyAnnouncer {
-			// check if the announcer ends with a digit from 0 to 9 and matches the announcer name
-			if len(announcer) > len(a) && announcer[:len(a)] == a && '0' <= announcer[len(a)] && announcer[len(a)] <= '9' && len(announcer) == len(a)+1 {
-				return true
-			}
 		}
 	}
 	return false

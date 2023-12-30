@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"strings"
 	"time"
+	"unicode"
 
 	"github.com/autobrr/autobrr/internal/announce"
 	"github.com/autobrr/autobrr/internal/domain"
@@ -963,8 +964,17 @@ func (h *Handler) isValidAnnouncer(nick string) bool {
 	h.m.RLock()
 	defer h.m.RUnlock()
 
-	_, ok := h.validAnnouncers[strings.ToLower(nick)]
-	return ok
+	nick = strings.ToLower(nick)
+	for announcer := range h.validAnnouncers {
+		if nick == announcer {
+			return true
+		}
+		// Check if the nick starts with the announcer and has one extra character which is a digit
+		if strings.HasPrefix(nick, announcer) && len(nick) == len(announcer)+1 && unicode.IsDigit(rune(nick[len(announcer)])) {
+			return true
+		}
+	}
+	return false
 }
 
 // check if channel is one from the list in the definition

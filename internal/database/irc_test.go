@@ -46,7 +46,6 @@ func getMockIrcNetwork() domain.IrcNetwork {
 		InviteCommand: "INVITE",
 		UseBouncer:    true,
 		BouncerAddr:   "bouncer.freenode.net",
-		LazyAnnouncer: false,
 		Channels: []domain.IrcChannel{
 			getMockIrcChannel(),
 		},

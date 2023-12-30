@@ -48,7 +48,6 @@ CREATE TABLE irc_network
     use_bouncer         BOOLEAN,
     bouncer_addr        TEXT,
     bot_mode            BOOLEAN DEFAULT FALSE,
-    lazy_announcer      BOOLEAN,
     connected           BOOLEAN,
     connected_since     TIMESTAMP,
     created_at          TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -839,8 +838,5 @@ ALTER TABLE filter_external
 `,
 	`ALTER TABLE action
 	ADD COLUMN priority TEXT;
-`,
-	`ALTER TABLE irc_network
-	ADD COLUMN lazy_announcer BOOLEAN DEFAULT FALSE;
 `,
 }
