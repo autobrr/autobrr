@@ -87,7 +87,7 @@ jobs:
 
   goreleaserbuild:
     name: Build distribution binaries
-    runs-on: windows-2019
+    runs-on: ubuntu-latest
     needs: [web, test]
     steps:
       - name: Disable Windows Defender
