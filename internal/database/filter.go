@@ -4,7 +4,6 @@
 package database
 
 import (
-	"cmp"
 	"context"
 	"database/sql"
 	"fmt"
@@ -13,6 +12,7 @@ import (
 
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/internal/logger"
+	"github.com/autobrr/autobrr/pkg/cmp"
 	"github.com/autobrr/autobrr/pkg/errors"
 
 	sq "github.com/Masterminds/squirrel"
@@ -717,6 +717,7 @@ func (r *FilterRepo) findByIndexerIdentifier(ctx context.Context, indexer string
 
 	// the filterMap messes up the order, so we need to sort the filters slice
 	slices.SortStableFunc(filters, func(a, b *domain.Filter) int {
+		// TODO remove with Go 1.21 and use std lib cmp
 		return cmp.Compare(b.Priority, a.Priority)
 	})
 
