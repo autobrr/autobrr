@@ -133,7 +133,7 @@ export const NtfyIcon = () => (
     <path d="M27.781 31.485h8.202" />
     <path d="m65.979 100.011 9.511 5.492-9.511 5.491"  transform="translate(-51.81 -80.758)"/>
   </svg>
-)
+);
 
 export const LunaSeaIcon = () => (
   <svg {...commonSVGProps} viewBox="0 0 750 750">
