@@ -90,6 +90,11 @@ jobs:
     runs-on: windows-2019
     needs: [web, test]
     steps:
+      - name: Disable Windows Defender
+        if: runner.os == 'Windows'
+        run: Set-MpPreference -DisableRealtimeMonitoring $true
+        shell: powershell
+
       - name: Checkout
         uses: actions/checkout@v4
         with:
