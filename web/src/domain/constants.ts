@@ -407,6 +407,10 @@ export const NotificationTypeOptions: OptionBasicTyped<NotificationType>[] = [
     value: "GOTIFY"
   },
   {
+    label: "Ntfy",
+    value: "NTFY"
+  },
+  {
     label: "LunaSea",
     value: "LUNASEA"
   }

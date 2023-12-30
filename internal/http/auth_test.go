@@ -141,6 +141,8 @@ func TestAuthHandlerLogin(t *testing.T) {
 		log.Fatalf("Error occurred: %v", err)
 	}
 
+	defer resp.Body.Close()
+
 	// check for response, here we'll just check for 204 NoContent
 	if status := resp.StatusCode; status != http.StatusNoContent {
 		t.Errorf("login: handler returned wrong status code: got %v want %v", status, http.StatusNoContent)
@@ -202,6 +204,8 @@ func TestAuthHandlerValidateOK(t *testing.T) {
 		log.Fatalf("Error occurred: %v", err)
 	}
 
+	defer resp.Body.Close()
+
 	// check for response, here we'll just check for 204 NoContent
 	if status := resp.StatusCode; status != http.StatusNoContent {
 		t.Errorf("login: handler returned wrong status code: got %v want %v", status, http.StatusNoContent)
@@ -216,6 +220,8 @@ func TestAuthHandlerValidateOK(t *testing.T) {
 	if err != nil {
 		log.Fatalf("Error occurred: %v", err)
 	}
+
+	defer resp.Body.Close()
 
 	if status := resp.StatusCode; status != http.StatusNoContent {
 		t.Errorf("validate: handler returned wrong status code: got %v want %v", status, http.StatusNoContent)
@@ -264,6 +270,8 @@ func TestAuthHandlerValidateBad(t *testing.T) {
 		log.Fatalf("Error occurred: %v", err)
 	}
 
+	defer resp.Body.Close()
+
 	if status := resp.StatusCode; status != http.StatusUnauthorized {
 		t.Errorf("validate: handler returned wrong status code: got %v want %v", status, http.StatusUnauthorized)
 	}
@@ -309,6 +317,8 @@ func TestAuthHandlerLoginBad(t *testing.T) {
 	if err != nil {
 		log.Fatalf("Error occurred: %v", err)
 	}
+
+	defer resp.Body.Close()
 
 	// check for response, here we'll just check for 204 NoContent
 	if status := resp.StatusCode; status != http.StatusUnauthorized {
@@ -367,6 +377,8 @@ func TestAuthHandlerLogout(t *testing.T) {
 		log.Fatalf("Error occurred: %v", err)
 	}
 
+	defer resp.Body.Close()
+
 	// check for response, here we'll just check for 204 NoContent
 	if status := resp.StatusCode; status != http.StatusNoContent {
 		t.Errorf("login: handler returned wrong status code: got %v want %v", status, http.StatusNoContent)
@@ -382,6 +394,8 @@ func TestAuthHandlerLogout(t *testing.T) {
 		log.Fatalf("Error occurred: %v", err)
 	}
 
+	defer resp.Body.Close()
+
 	if status := resp.StatusCode; status != http.StatusNoContent {
 		t.Errorf("validate: handler returned wrong status code: got %v want %v", status, http.StatusNoContent)
 	}
@@ -392,8 +406,10 @@ func TestAuthHandlerLogout(t *testing.T) {
 		log.Fatalf("Error occurred: %v", err)
 	}
 
+	defer resp.Body.Close()
+
 	if status := resp.StatusCode; status != http.StatusNoContent {
-		t.Errorf("validate: handler returned wrong status code: got %v want %v", status, http.StatusNoContent)
+		t.Errorf("logout: handler returned wrong status code: got %v want %v", status, http.StatusNoContent)
 	}
 
 	//if v := resp.Header.Get("Set-Cookie"); v != "" {
