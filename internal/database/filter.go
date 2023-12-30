@@ -7,6 +7,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"sort"
 	"strings"
 	"time"
 
@@ -712,6 +713,11 @@ func (r *FilterRepo) findByIndexerIdentifier(ctx context.Context, indexer string
 		filter := filter
 		filters = append(filters, filter)
 	}
+
+	// the filterMap messes up the order, so we need to sort the filters slice
+	sort.Slice(filters, func(i, j int) bool {
+		return filters[i].Priority > filters[j].Priority
+	})
 
 	return filters, nil
 }
