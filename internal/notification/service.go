@@ -124,16 +124,20 @@ func (s *service) registerSenders() {
 			switch n.Type {
 			case domain.NotificationTypeDiscord:
 				s.senders = append(s.senders, NewDiscordSender(s.log, n))
-			case domain.NotificationTypeNotifiarr:
-				s.senders = append(s.senders, NewNotifiarrSender(s.log, n))
-			case domain.NotificationTypeTelegram:
-				s.senders = append(s.senders, NewTelegramSender(s.log, n))
-			case domain.NotificationTypePushover:
-				s.senders = append(s.senders, NewPushoverSender(s.log, n))
 			case domain.NotificationTypeGotify:
 				s.senders = append(s.senders, NewGotifySender(s.log, n))
 			case domain.NotificationTypeLunaSea:
 				s.senders = append(s.senders, NewLunaSeaSender(s.log, n))
+			case domain.NotificationTypeNotifiarr:
+				s.senders = append(s.senders, NewNotifiarrSender(s.log, n))
+			case domain.NotificationTypeNtfy:
+				s.senders = append(s.senders, NewNtfySender(s.log, n))
+			case domain.NotificationTypePushover:
+				s.senders = append(s.senders, NewPushoverSender(s.log, n))
+			case domain.NotificationTypeShoutrrr:
+				s.senders = append(s.senders, NewShoutrrrSender(s.log, n))
+			case domain.NotificationTypeTelegram:
+				s.senders = append(s.senders, NewTelegramSender(s.log, n))
 			}
 		}
 	}
@@ -241,18 +245,20 @@ func (s *service) Test(ctx context.Context, notification domain.Notification) er
 	switch notification.Type {
 	case domain.NotificationTypeDiscord:
 		agent = NewDiscordSender(s.log, notification)
-	case domain.NotificationTypeNotifiarr:
-		agent = NewNotifiarrSender(s.log, notification)
-	case domain.NotificationTypeTelegram:
-		agent = NewTelegramSender(s.log, notification)
-	case domain.NotificationTypePushover:
-		agent = NewPushoverSender(s.log, notification)
 	case domain.NotificationTypeGotify:
 		agent = NewGotifySender(s.log, notification)
-	case domain.NotificationTypeNtfy:
-		agent = NewNtfySender(s.log, notification)
 	case domain.NotificationTypeLunaSea:
 		agent = NewLunaSeaSender(s.log, notification)
+	case domain.NotificationTypeNotifiarr:
+		agent = NewNotifiarrSender(s.log, notification)
+	case domain.NotificationTypeNtfy:
+		agent = NewNtfySender(s.log, notification)
+	case domain.NotificationTypePushover:
+		agent = NewPushoverSender(s.log, notification)
+	case domain.NotificationTypeShoutrrr:
+		agent = NewShoutrrrSender(s.log, notification)
+	case domain.NotificationTypeTelegram:
+		agent = NewTelegramSender(s.log, notification)
 	default:
 		s.log.Error().Msgf("unsupported notification type: %v", notification.Type)
 		return errors.New("unsupported notification type")
