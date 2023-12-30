@@ -9,8 +9,8 @@ require (
 	github.com/Masterminds/squirrel v1.5.4
 	github.com/anacrolix/torrent v1.53.1
 	github.com/asaskevich/EventBus v0.0.0-20200907212545-49d423059eef
-	github.com/autobrr/go-deluge v1.1.0
-	github.com/autobrr/go-qbittorrent v1.7.2-0.20231029234932-67580aa0e42a
+	github.com/autobrr/go-deluge v1.2.0
+	github.com/autobrr/go-qbittorrent v1.8.1
 	github.com/autobrr/go-rtorrent v1.10.0
 	github.com/avast/retry-go v3.0.0+incompatible
 	github.com/avast/retry-go/v4 v4.5.1
@@ -18,6 +18,7 @@ require (
 	github.com/dustin/go-humanize v1.0.1
 	github.com/ergochat/irc-go v0.4.0
 	github.com/fsnotify/fsnotify v1.7.0
+	github.com/go-andiamo/splitter v1.2.5
 	github.com/go-chi/chi/v5 v5.0.10
 	github.com/go-chi/render v1.0.3
 	github.com/gorilla/sessions v1.2.2
@@ -59,9 +60,10 @@ require (
 	github.com/anacrolix/missinggo/v2 v2.7.2 // indirect
 	github.com/andybalholm/cascadia v1.3.2 // indirect
 	github.com/bradfitz/iter v0.0.0-20191230175014-e8f45d346db8 // indirect
+	github.com/containrrr/shoutrrr v0.8.0 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
+	github.com/fatih/color v1.16.0 // indirect
 	github.com/gdm85/go-rencode v0.1.8 // indirect
-	github.com/go-andiamo/splitter v1.2.5 // indirect
 	github.com/google/uuid v1.3.0 // indirect
 	github.com/gorilla/securecookie v1.1.2 // indirect
 	github.com/gosimple/unidecode v1.0.1 // indirect
@@ -76,7 +78,7 @@ require (
 	github.com/lann/ps v0.0.0-20150810152359-62de8c46ede0 // indirect
 	github.com/magiconair/properties v1.8.7 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
-	github.com/mattn/go-isatty v0.0.19 // indirect
+	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/mitchellh/copystructure v1.2.0 // indirect
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
 	github.com/mitchellh/reflectwalk v1.0.2 // indirect

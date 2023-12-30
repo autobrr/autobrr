@@ -4,10 +4,9 @@
 package notification
 
 import (
-	"fmt"
 	"io"
 	"net/http"
-	"net/url"
+	"strconv"
 	"strings"
 	"time"
 
@@ -18,12 +17,12 @@ import (
 	"github.com/rs/zerolog"
 )
 
-type gotifyMessage struct {
+type ntfyMessage struct {
 	Message string `json:"message"`
 	Title   string `json:"title"`
 }
 
-type gotifySender struct {
+type ntfySender struct {
 	log      zerolog.Logger
 	Settings domain.Notification
 	builder  NotificationBuilderPlainText
@@ -31,9 +30,9 @@ type gotifySender struct {
 	httpClient *http.Client
 }
 
-func NewGotifySender(log zerolog.Logger, settings domain.Notification) domain.NotificationSender {
-	return &gotifySender{
-		log:      log.With().Str("sender", "gotify").Logger(),
+func NewNtfySender(log zerolog.Logger, settings domain.Notification) domain.NotificationSender {
+	return &ntfySender{
+		log:      log.With().Str("sender", "ntfy").Logger(),
 		Settings: settings,
 		builder:  NotificationBuilderPlainText{},
 		httpClient: &http.Client{
@@ -43,29 +42,36 @@ func NewGotifySender(log zerolog.Logger, settings domain.Notification) domain.No
 	}
 }
 
-func (s *gotifySender) Send(event domain.NotificationEvent, payload domain.NotificationPayload) error {
-	m := gotifyMessage{
+func (s *ntfySender) Send(event domain.NotificationEvent, payload domain.NotificationPayload) error {
+	m := ntfyMessage{
 		Message: s.builder.BuildBody(payload),
 		Title:   s.builder.BuildTitle(event),
 	}
 
-	data := url.Values{}
-	data.Set("message", m.Message)
-	data.Set("title", m.Title)
-
-	url := fmt.Sprintf("%v/message?token=%v", s.Settings.Host, s.Settings.Token)
-	req, err := http.NewRequest(http.MethodPost, url, strings.NewReader(data.Encode()))
+	req, err := http.NewRequest(http.MethodPost, s.Settings.Host, strings.NewReader(m.Message))
 	if err != nil {
-		s.log.Error().Err(err).Msgf("gotify client request error: %v", event)
+		s.log.Error().Err(err).Msgf("ntfy client request error: %v", event)
 		return errors.Wrap(err, "could not create request")
 	}
 
-	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	req.Header.Set("Content-Type", "text/pain")
 	req.Header.Set("User-Agent", "autobrr")
+
+	req.Header.Set("Title", m.Title)
+	if s.Settings.Priority > 0 {
+		req.Header.Set("Priority", strconv.Itoa(int(s.Settings.Priority)))
+	}
+
+	// set basic auth or access token
+	if s.Settings.Username != "" && s.Settings.Password != "" {
+		req.SetBasicAuth(s.Settings.Username, s.Settings.Password)
+	} else if s.Settings.Token != "" {
+		req.Header.Set("Authorization", "Bearer "+s.Settings.Token)
+	}
 
 	res, err := s.httpClient.Do(req)
 	if err != nil {
-		s.log.Error().Err(err).Msgf("gotify client request error: %v", event)
+		s.log.Error().Err(err).Msgf("ntfy client request error: %v", event)
 		return errors.Wrap(err, "could not make request: %+v", req)
 	}
 
@@ -73,38 +79,38 @@ func (s *gotifySender) Send(event domain.NotificationEvent, payload domain.Notif
 
 	body, err := io.ReadAll(res.Body)
 	if err != nil {
-		s.log.Error().Err(err).Msgf("gotify client request error: %v", event)
+		s.log.Error().Err(err).Msgf("ntfy client request error: %v", event)
 		return errors.Wrap(err, "could not read data")
 	}
 
-	s.log.Trace().Msgf("gotify status: %v response: %v", res.StatusCode, string(body))
+	s.log.Trace().Msgf("ntfy status: %v response: %v", res.StatusCode, string(body))
 
 	if res.StatusCode != http.StatusOK {
-		s.log.Error().Err(err).Msgf("gotify client request error: %v", string(body))
+		s.log.Error().Err(err).Msgf("ntfy client request error: %v", string(body))
 		return errors.New("bad status: %v body: %v", res.StatusCode, string(body))
 	}
 
-	s.log.Debug().Msg("notification successfully sent to gotify")
+	s.log.Debug().Msg("notification successfully sent to ntfy")
 
 	return nil
 }
 
-func (s *gotifySender) CanSend(event domain.NotificationEvent) bool {
+func (s *ntfySender) CanSend(event domain.NotificationEvent) bool {
 	if s.isEnabled() && s.isEnabledEvent(event) {
 		return true
 	}
 	return false
 }
 
-func (s *gotifySender) isEnabled() bool {
+func (s *ntfySender) isEnabled() bool {
 	if s.Settings.Enabled {
 		if s.Settings.Host == "" {
-			s.log.Warn().Msg("gotify missing host")
+			s.log.Warn().Msg("ntfy missing host")
 			return false
 		}
 
 		if s.Settings.Token == "" {
-			s.log.Warn().Msg("gotify missing application token")
+			s.log.Warn().Msg("ntfy missing application token")
 			return false
 		}
 
@@ -114,7 +120,7 @@ func (s *gotifySender) isEnabled() bool {
 	return false
 }
 
-func (s *gotifySender) isEnabledEvent(event domain.NotificationEvent) bool {
+func (s *ntfySender) isEnabledEvent(event domain.NotificationEvent) bool {
 	for _, e := range s.Settings.Events {
 		if e == string(event) {
 			return true

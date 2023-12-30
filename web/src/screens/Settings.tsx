@@ -13,7 +13,8 @@ import {
   KeyIcon,
   RectangleStackIcon,
   RssIcon,
-  Square3Stack3DIcon
+  Square3Stack3DIcon,
+  UserCircleIcon
 } from "@heroicons/react/24/outline";
 
 import { classNames } from "@utils";
@@ -34,7 +35,8 @@ const subNavigation: NavTabType[] = [
   { name: "Clients", href: "clients", icon: FolderArrowDownIcon },
   { name: "Notifications", href: "notifications", icon: BellIcon },
   { name: "API keys", href: "api-keys", icon: KeyIcon },
-  { name: "Releases", href: "releases", icon: RectangleStackIcon }
+  { name: "Releases", href: "releases", icon: RectangleStackIcon },
+  { name: "Account", href: "account", icon: UserCircleIcon }
   // {name: 'Regex Playground', href: 'regex-playground', icon: CogIcon, current: false}
   // {name: 'Rules', href: 'rules', icon: ClipboardCheckIcon, current: false},
 ];

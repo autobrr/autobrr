@@ -80,7 +80,9 @@ const (
 	NotificationTypeSlack      NotificationType = "SLACK"
 	NotificationTypeTelegram   NotificationType = "TELEGRAM"
 	NotificationTypeGotify     NotificationType = "GOTIFY"
+	NotificationTypeNtfy       NotificationType = "NTFY"
 	NotificationTypeLunaSea    NotificationType = "LUNASEA"
+	NotificationTypeShoutrrr   NotificationType = "SHOUTRRR"
 )
 
 type NotificationEvent string
