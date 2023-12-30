@@ -45,6 +45,7 @@ type DownloadClientSettings struct {
 	Basic                    BasicAuth           `json:"basic,omitempty"`
 	Rules                    DownloadClientRules `json:"rules,omitempty"`
 	ExternalDownloadClientId int                 `json:"external_download_client_id,omitempty"`
+	ExternalDownloadClient   string              `json:"external_download_client,omitempty"`
 }
 
 type DownloadClientRules struct {
