@@ -1482,6 +1482,6 @@ ALTER TABLE feed_dg_tmp
 	ADD COLUMN priority TEXT;
 `,
 	`ALTER TABLE irc_network
-    ADD COLUMN lazy_announcer BOOLEAN DEFAULT FALSE;
+	ADD COLUMN lazy_announcer BOOLEAN DEFAULT FALSE;
 `,
 }
