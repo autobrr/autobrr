@@ -455,6 +455,7 @@ func (s *service) GetNetworksWithHealth(ctx context.Context) ([]domain.IrcNetwor
 			BouncerAddr:      n.BouncerAddr,
 			UseBouncer:       n.UseBouncer,
 			BotMode:          n.BotMode,
+			LazyAnnouncer:    n.LazyAnnouncer,
 			Connected:        false,
 			Channels:         []domain.ChannelWithHealth{},
 			ConnectionErrors: []string{},

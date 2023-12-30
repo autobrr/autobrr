@@ -47,7 +47,7 @@ func (r *IrcRepo) GetNetworkByID(ctx context.Context, id int64) (*domain.IrcNetw
 	var tls sql.NullBool
 
 	row := r.db.handler.QueryRowContext(ctx, query, args...)
-	if err := row.Scan(&n.ID, &n.Enabled, &n.Name, &n.Server, &n.Port, &tls, &pass, &nick, &n.Auth.Mechanism, &account, &password, &inviteCmd, &bouncerAddr, &n.UseBouncer, &n.BotMode); err != nil {
+	if err := row.Scan(&n.ID, &n.Enabled, &n.Name, &n.Server, &n.Port, &tls, &pass, &nick, &n.Auth.Mechanism, &account, &password, &inviteCmd, &bouncerAddr, &n.UseBouncer, &n.BotMode, &n.LazyAnnouncer); err != nil {
 		return nil, errors.Wrap(err, "error scanning row")
 	}
 
@@ -131,7 +131,7 @@ func (r *IrcRepo) FindActiveNetworks(ctx context.Context) ([]domain.IrcNetwork, 
 		var account, password sql.NullString
 		var tls sql.NullBool
 
-		if err := rows.Scan(&net.ID, &net.Enabled, &net.Name, &net.Server, &net.Port, &tls, &pass, &nick, &net.Auth.Mechanism, &account, &password, &inviteCmd, &bouncerAddr, &net.UseBouncer, &net.BotMode); err != nil {
+		if err := rows.Scan(&net.ID, &net.Enabled, &net.Name, &net.Server, &net.Port, &tls, &pass, &nick, &net.Auth.Mechanism, &account, &password, &inviteCmd, &bouncerAddr, &net.UseBouncer, &net.BotMode, &net.LazyAnnouncer); err != nil {
 			return nil, errors.Wrap(err, "error scanning row")
 		}
 
@@ -179,7 +179,7 @@ func (r *IrcRepo) ListNetworks(ctx context.Context) ([]domain.IrcNetwork, error)
 		var account, password sql.NullString
 		var tls sql.NullBool
 
-		if err := rows.Scan(&net.ID, &net.Enabled, &net.Name, &net.Server, &net.Port, &tls, &pass, &nick, &net.Auth.Mechanism, &account, &password, &inviteCmd, &bouncerAddr, &net.UseBouncer, &net.BotMode); err != nil {
+		if err := rows.Scan(&net.ID, &net.Enabled, &net.Name, &net.Server, &net.Port, &tls, &pass, &nick, &net.Auth.Mechanism, &account, &password, &inviteCmd, &bouncerAddr, &net.UseBouncer, &net.BotMode, &net.LazyAnnouncer); err != nil {
 			return nil, errors.Wrap(err, "error scanning row")
 		}
 
@@ -260,7 +260,7 @@ func (r *IrcRepo) CheckExistingNetwork(ctx context.Context, network *domain.IrcN
 	var account, password sql.NullString
 	var tls sql.NullBool
 
-	if err = row.Scan(&net.ID, &net.Enabled, &net.Name, &net.Server, &net.Port, &tls, &pass, &nick, &net.Auth.Mechanism, &account, &password, &inviteCmd, &bouncerAddr, &net.UseBouncer, &net.BotMode); err != nil {
+	if err = row.Scan(&net.ID, &net.Enabled, &net.Name, &net.Server, &net.Port, &tls, &pass, &nick, &net.Auth.Mechanism, &account, &password, &inviteCmd, &bouncerAddr, &net.UseBouncer, &net.BotMode, &net.LazyAnnouncer); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			// no result is not an error in our case
 			return nil, nil
@@ -326,6 +326,7 @@ func (r *IrcRepo) StoreNetwork(ctx context.Context, network *domain.IrcNetwork) 
 			bouncerAddr,
 			network.UseBouncer,
 			network.BotMode,
+			network.LazyAnnouncer,
 		).
 		Suffix("RETURNING id").
 		RunWith(r.db.handler)
