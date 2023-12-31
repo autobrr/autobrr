@@ -12,11 +12,13 @@ import (
 
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/internal/logger"
+	"github.com/autobrr/autobrr/pkg/cmp"
 	"github.com/autobrr/autobrr/pkg/errors"
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/lib/pq"
 	"github.com/rs/zerolog"
+	"golang.org/x/exp/slices"
 )
 
 type FilterRepo struct {
@@ -712,6 +714,12 @@ func (r *FilterRepo) findByIndexerIdentifier(ctx context.Context, indexer string
 		filter := filter
 		filters = append(filters, filter)
 	}
+
+	// the filterMap messes up the order, so we need to sort the filters slice
+	slices.SortStableFunc(filters, func(a, b *domain.Filter) int {
+		// TODO remove with Go 1.21 and use std lib cmp
+		return cmp.Compare(b.Priority, a.Priority)
+	})
 
 	return filters, nil
 }
