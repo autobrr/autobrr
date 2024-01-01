@@ -168,7 +168,7 @@ export const ActivityTable = () => {
     },
     {
       Header: "Release",
-      accessor: "torrent_name",
+      accessor: "name",
       Cell: DataTable.TitleCell
     },
     {
@@ -213,7 +213,7 @@ export const ActivityTable = () => {
       const randomNames = RandomLinuxIsos(data.data.length);
       const newData: Release[] = data.data.map((item, index) => ({
         ...item,
-        torrent_name: `${randomNames[index]}.iso`,
+        name: `${randomNames[index]}.iso`,
         indexer: index % 2 === 0 ? "distrowatch" : "linuxtracker"
       }));
       setModifiedData(newData);
