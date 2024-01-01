@@ -53,6 +53,7 @@ type Action struct {
 	WebhookData              string              `json:"webhook_data,omitempty"`
 	WebhookHeaders           []string            `json:"webhook_headers,omitempty"`
 	ExternalDownloadClientID int32               `json:"external_download_client_id,omitempty"`
+	ExternalDownloadClient   string              `json:"external_download_client,omitempty"`
 	FilterID                 int                 `json:"filter_id,omitempty"`
 	ClientID                 int32               `json:"client_id,omitempty"`
 	Client                   *DownloadClient     `json:"client,omitempty"`

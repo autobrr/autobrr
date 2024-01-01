@@ -105,6 +105,7 @@ interface Action {
   webhook_data: string,
   webhook_headers: string[];
   external_download_client_id?: number;
+  external_download_client?: string;
   client_id?: number;
   filter_id?: number;
 }

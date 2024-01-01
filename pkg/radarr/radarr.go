@@ -71,6 +71,7 @@ type Release struct {
 	Protocol         string `json:"protocol"`
 	PublishDate      string `json:"publishDate"`
 	DownloadClientId int    `json:"downloadClientId,omitempty"`
+	DownloadClient   string `json:"downloadClient,omitempty"`
 }
 
 type PushResponse struct {

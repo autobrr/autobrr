@@ -91,6 +91,7 @@ func (r *ActionRepo) findByFilterID(ctx context.Context, tx *Tx, filterID int, a
 			"webhook_method",
 			"webhook_data",
 			"external_client_id",
+			"external_client",
 			"client_id",
 		).
 		From("action").
@@ -116,14 +117,14 @@ func (r *ActionRepo) findByFilterID(ctx context.Context, tx *Tx, filterID int, a
 	for rows.Next() {
 		var a domain.Action
 
-		var execCmd, execArgs, watchFolder, category, tags, label, savePath, contentLayout, priorityLayout, webhookHost, webhookType, webhookMethod, webhookData sql.NullString
+		var execCmd, execArgs, watchFolder, category, tags, label, savePath, contentLayout, priorityLayout, webhookHost, webhookType, webhookMethod, webhookData, externalClient sql.NullString
 		var limitUl, limitDl, limitSeedTime sql.NullInt64
 		var limitRatio sql.NullFloat64
 
 		var externalClientID, clientID sql.NullInt32
 		var paused, ignoreRules sql.NullBool
 
-		if err := rows.Scan(&a.ID, &a.Name, &a.Type, &a.Enabled, &execCmd, &execArgs, &watchFolder, &category, &tags, &label, &savePath, &paused, &ignoreRules, &a.SkipHashCheck, &contentLayout, &priorityLayout, &limitDl, &limitUl, &limitRatio, &limitSeedTime, &a.ReAnnounceSkip, &a.ReAnnounceDelete, &a.ReAnnounceInterval, &a.ReAnnounceMaxAttempts, &webhookHost, &webhookType, &webhookMethod, &webhookData, &externalClientID, &clientID); err != nil {
+		if err := rows.Scan(&a.ID, &a.Name, &a.Type, &a.Enabled, &execCmd, &execArgs, &watchFolder, &category, &tags, &label, &savePath, &paused, &ignoreRules, &a.SkipHashCheck, &contentLayout, &priorityLayout, &limitDl, &limitUl, &limitRatio, &limitSeedTime, &a.ReAnnounceSkip, &a.ReAnnounceDelete, &a.ReAnnounceInterval, &a.ReAnnounceMaxAttempts, &webhookHost, &webhookType, &webhookMethod, &webhookData, &externalClientID, &externalClient, &clientID); err != nil {
 			return nil, errors.Wrap(err, "error scanning row")
 		}
 
@@ -150,6 +151,7 @@ func (r *ActionRepo) findByFilterID(ctx context.Context, tx *Tx, filterID int, a
 		a.WebhookData = webhookData.String
 
 		a.ExternalDownloadClientID = externalClientID.Int32
+		a.ExternalDownloadClient = externalClient.String
 		a.ClientID = clientID.Int32
 
 		actions = append(actions, &a)
@@ -243,6 +245,7 @@ func (r *ActionRepo) List(ctx context.Context) ([]domain.Action, error) {
 			"webhook_method",
 			"webhook_data",
 			"external_client_id",
+			"external_client",
 			"client_id",
 		).
 		From("action")
@@ -263,13 +266,13 @@ func (r *ActionRepo) List(ctx context.Context) ([]domain.Action, error) {
 	for rows.Next() {
 		var a domain.Action
 
-		var execCmd, execArgs, watchFolder, category, tags, label, savePath, contentLayout, priorityLayout, webhookHost, webhookType, webhookMethod, webhookData sql.NullString
+		var execCmd, execArgs, watchFolder, category, tags, label, savePath, contentLayout, priorityLayout, webhookHost, webhookType, webhookMethod, webhookData, externalClient sql.NullString
 		var limitUl, limitDl, limitSeedTime sql.NullInt64
 		var limitRatio sql.NullFloat64
 		var externalClientID, clientID sql.NullInt32
 		var paused, ignoreRules sql.NullBool
 
-		if err := rows.Scan(&a.ID, &a.Name, &a.Type, &a.Enabled, &execCmd, &execArgs, &watchFolder, &category, &tags, &label, &savePath, &paused, &ignoreRules, &a.SkipHashCheck, &contentLayout, &priorityLayout, &limitDl, &limitUl, &limitRatio, &limitSeedTime, &a.ReAnnounceSkip, &a.ReAnnounceDelete, &a.ReAnnounceInterval, &a.ReAnnounceMaxAttempts, &webhookHost, &webhookType, &webhookMethod, &webhookData, &externalClientID, &clientID); err != nil {
+		if err := rows.Scan(&a.ID, &a.Name, &a.Type, &a.Enabled, &execCmd, &execArgs, &watchFolder, &category, &tags, &label, &savePath, &paused, &ignoreRules, &a.SkipHashCheck, &contentLayout, &priorityLayout, &limitDl, &limitUl, &limitRatio, &limitSeedTime, &a.ReAnnounceSkip, &a.ReAnnounceDelete, &a.ReAnnounceInterval, &a.ReAnnounceMaxAttempts, &webhookHost, &webhookType, &webhookMethod, &webhookData, &externalClientID, &externalClient, &clientID); err != nil {
 			return nil, errors.Wrap(err, "error scanning row")
 		}
 
@@ -293,6 +296,7 @@ func (r *ActionRepo) List(ctx context.Context) ([]domain.Action, error) {
 		a.WebhookData = webhookData.String
 
 		a.ExternalDownloadClientID = externalClientID.Int32
+		a.ExternalDownloadClient = externalClient.String
 		a.ClientID = clientID.Int32
 
 		actions = append(actions, a)
@@ -337,6 +341,7 @@ func (r *ActionRepo) Get(ctx context.Context, req *domain.GetActionRequest) (*do
 			"webhook_method",
 			"webhook_data",
 			"external_client_id",
+			"external_client",
 			"client_id",
 			"filter_id",
 		).
@@ -359,13 +364,13 @@ func (r *ActionRepo) Get(ctx context.Context, req *domain.GetActionRequest) (*do
 
 	var a domain.Action
 
-	var execCmd, execArgs, watchFolder, category, tags, label, savePath, contentLayout, priorityLayout, webhookHost, webhookType, webhookMethod, webhookData sql.NullString
+	var execCmd, execArgs, watchFolder, category, tags, label, savePath, contentLayout, priorityLayout, webhookHost, webhookType, webhookMethod, webhookData, externalClient sql.NullString
 	var limitUl, limitDl, limitSeedTime sql.NullInt64
 	var limitRatio sql.NullFloat64
 	var externalClientID, clientID, filterID sql.NullInt32
 	var paused, ignoreRules sql.NullBool
 
-	if err := row.Scan(&a.ID, &a.Name, &a.Type, &a.Enabled, &execCmd, &execArgs, &watchFolder, &category, &tags, &label, &savePath, &paused, &ignoreRules, &a.SkipHashCheck, &contentLayout, &priorityLayout, &limitDl, &limitUl, &limitRatio, &limitSeedTime, &a.ReAnnounceSkip, &a.ReAnnounceDelete, &a.ReAnnounceInterval, &a.ReAnnounceMaxAttempts, &webhookHost, &webhookType, &webhookMethod, &webhookData, &externalClientID, &clientID, &filterID); err != nil {
+	if err := row.Scan(&a.ID, &a.Name, &a.Type, &a.Enabled, &execCmd, &execArgs, &watchFolder, &category, &tags, &label, &savePath, &paused, &ignoreRules, &a.SkipHashCheck, &contentLayout, &priorityLayout, &limitDl, &limitUl, &limitRatio, &limitSeedTime, &a.ReAnnounceSkip, &a.ReAnnounceDelete, &a.ReAnnounceInterval, &a.ReAnnounceMaxAttempts, &webhookHost, &webhookType, &webhookMethod, &webhookData, &externalClientID, &externalClient, &clientID, &filterID); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, domain.ErrRecordNotFound
 		}
@@ -396,6 +401,7 @@ func (r *ActionRepo) Get(ctx context.Context, req *domain.GetActionRequest) (*do
 	a.WebhookData = webhookData.String
 
 	a.ExternalDownloadClientID = externalClientID.Int32
+	a.ExternalDownloadClient = externalClient.String
 	a.ClientID = clientID.Int32
 	a.FilterID = int(filterID.Int32)
 
@@ -474,6 +480,7 @@ func (r *ActionRepo) Store(ctx context.Context, action domain.Action) (*domain.A
 			"webhook_method",
 			"webhook_data",
 			"external_client_id",
+			"external_client",
 			"client_id",
 			"filter_id",
 		).
@@ -506,6 +513,7 @@ func (r *ActionRepo) Store(ctx context.Context, action domain.Action) (*domain.A
 			toNullString(action.WebhookMethod),
 			toNullString(action.WebhookData),
 			toNullInt32(action.ExternalDownloadClientID),
+			toNullString(action.ExternalDownloadClient),
 			toNullInt32(action.ClientID),
 			toNullInt32(int32(action.FilterID)),
 		).
@@ -556,6 +564,7 @@ func (r *ActionRepo) Update(ctx context.Context, action domain.Action) (*domain.
 		Set("webhook_method", toNullString(action.WebhookMethod)).
 		Set("webhook_data", toNullString(action.WebhookData)).
 		Set("external_client_id", toNullInt32(action.ExternalDownloadClientID)).
+		Set("external_client", toNullString(action.ExternalDownloadClient)).
 		Set("client_id", toNullInt32(action.ClientID)).
 		Set("filter_id", toNullInt32(int32(action.FilterID))).
 		Where(sq.Eq{"id": action.ID})
@@ -616,6 +625,7 @@ func (r *ActionRepo) StoreFilterActions(ctx context.Context, filterID int64, act
 				Set("webhook_method", toNullString(action.WebhookMethod)).
 				Set("webhook_data", toNullString(action.WebhookData)).
 				Set("external_client_id", toNullInt32(action.ExternalDownloadClientID)).
+				Set("external_client", toNullString(action.ExternalDownloadClient)).
 				Set("client_id", toNullInt32(action.ClientID)).
 				Set("filter_id", toNullInt64(filterID)).
 				Where(sq.Eq{"id": action.ID})
@@ -663,6 +673,7 @@ func (r *ActionRepo) StoreFilterActions(ctx context.Context, filterID int64, act
 					"webhook_method",
 					"webhook_data",
 					"external_client_id",
+					"external_client",
 					"client_id",
 					"filter_id",
 				).
@@ -695,6 +706,7 @@ func (r *ActionRepo) StoreFilterActions(ctx context.Context, filterID int64, act
 					toNullString(action.WebhookMethod),
 					toNullString(action.WebhookData),
 					toNullInt32(action.ExternalDownloadClientID),
+					toNullString(action.ExternalDownloadClient),
 					toNullInt32(action.ClientID),
 					toNullInt64(filterID),
 				).

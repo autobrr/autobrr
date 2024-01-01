@@ -41,6 +41,7 @@ func getMockDownloadClient() domain.DownloadClient {
 				UploadSpeedThreshold:        0,
 			},
 			ExternalDownloadClientId: 0,
+			ExternalDownloadClient:   "",
 		},
 	}
 }
