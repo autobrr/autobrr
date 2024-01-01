@@ -7,33 +7,104 @@ import * as React from "react";
 import { toast } from "react-hot-toast";
 import { formatDistanceToNowStrict } from "date-fns";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { CellProps } from "react-table";
 import { ArrowPathIcon, CheckIcon } from "@heroicons/react/24/solid";
-import { ArrowDownTrayIcon, ArrowTopRightOnSquareIcon } from "@heroicons/react/24/outline";
 import { ExternalLink } from "../ExternalLink";
-import { ClockIcon, XMarkIcon, NoSymbolIcon } from "@heroicons/react/24/outline";
+import {
+  ClockIcon,
+  XMarkIcon,
+  NoSymbolIcon,
+  ArrowDownTrayIcon,
+  ArrowTopRightOnSquareIcon, DocumentTextIcon
+} from "@heroicons/react/24/outline";
 
 import { APIClient } from "@api/APIClient";
-import { classNames, simplifyDate } from "@utils";
+import {classNames, humanFileSize, simplifyDate} from "@utils";
 import { filterKeys } from "@screens/filters/List";
 import Toast from "@components/notifications/Toast";
 import { RingResizeSpinner } from "@components/Icons";
 import { Tooltip } from "@components/tooltips/Tooltip";
 
-interface CellProps {
-    value: string;
-}
-
 interface LinksCellProps {
   value: Release;
 }
 
-export const AgeCell = ({ value }: CellProps) => (
-  <div className="text-sm text-gray-500" title={simplifyDate(value)}>
-    {formatDistanceToNowStrict(new Date(value), { addSuffix: false })}
+export const NameCell = (props: CellProps<Release>) => (
+  <div
+    className={classNames(
+      "flex justify-between items-center py-2 text-sm font-medium box-content text-gray-900 dark:text-gray-300",
+      "max-w-[96px] sm:max-w-[216px] md:max-w-[360px] lg:max-w-[640px] xl:max-w-[840px]"
+    )}
+  >
+    <div className="flex flex-col">
+      <span className="whitespace-pre-wrap break-words">
+        {String(props.cell.value)}
+      </span>
+      <div className="text-xs">
+        <span className="text-xs text-gray-500 dark:text-gray-400">Category:</span> {props.row.original.category}
+        <span
+          className="text-xs text-gray-500 dark:text-gray-400"> Size:</span> {humanFileSize(props.row.original.size)}
+        <span
+          className="text-xs text-gray-500 dark:text-gray-400"> Misc:</span> {`${props.row.original.resolution} ${props.row.original.source} ${props.row.original.codec ?? ""} ${props.row.original.container}`}
+      </div>
+    </div>
+    <div className="flex mr-0">
+      <div>
+        <Tooltip
+          requiresClick
+          label={<DocumentTextIcon className="h-5 w-5 cursor-pointer text-blue-400 hover:text-blue-500 dark:text-blue-500 dark:hover:text-blue-600" aria-hidden={true} />}
+          title="Details"
+        >
+          <div className="mb-1">
+            <CellLine title="Release">{props.row.original.name}</CellLine>
+            <CellLine title="Indexer">{props.row.original.indexer}</CellLine>
+            <CellLine title="Protocol">{props.row.original.protocol}</CellLine>
+            <CellLine title="Implementation">{props.row.original.implementation}</CellLine>
+            <CellLine title="Category">{props.row.original.category}</CellLine>
+            <CellLine title="Uploader">{props.row.original.uploader}</CellLine>
+            <CellLine title="Size">{humanFileSize(props.row.original.size)}</CellLine>
+            <CellLine title="Title">{props.row.original.title}</CellLine>
+            {props.row.original.year > 0 && <CellLine title="Year">{props.row.original.year.toString()}</CellLine>}
+            {props.row.original.season > 0 && <CellLine title="Season">{props.row.original.season.toString()}</CellLine>}
+            {props.row.original.episode > 0 && <CellLine title="Episode">{props.row.original.episode.toString()}</CellLine>}
+            <CellLine title="Resolution">{props.row.original.resolution}</CellLine>
+            <CellLine title="Source">{props.row.original.source}</CellLine>
+            <CellLine title="Codec">{props.row.original.codec}</CellLine>
+            <CellLine title="HDR">{props.row.original.hdr}</CellLine>
+            <CellLine title="Group">{props.row.original.group}</CellLine>
+            <CellLine title="Container">{props.row.original.container}</CellLine>
+            <CellLine title="Origin">{props.row.original.origin}</CellLine>
+          </div>
+        </Tooltip>
+      </div>
+      {/*{props.row.original.download_url && (*/}
+      {/*  <ExternalLink*/}
+      {/*    href={props.row.original.download_url}*/}
+      {/*    className="px-2"*/}
+      {/*  >*/}
+      {/*    <ArrowDownTrayIcon*/}
+      {/*      className="h-5 w-5 text-blue-400 hover:text-blue-500 dark:text-blue-500 dark:hover:text-blue-600"*/}
+      {/*      aria-hidden="true"/>*/}
+      {/*  </ExternalLink>*/}
+      {/*)}*/}
+      {/*{props.row.original.info_url && (*/}
+      {/*  <ExternalLink href={props.row.original.info_url}>*/}
+      {/*    <ArrowTopRightOnSquareIcon*/}
+      {/*      className="h-5 w-5 text-blue-400 hover:text-blue-500 dark:text-blue-500 dark:hover:text-blue-600"*/}
+      {/*      aria-hidden="true"/>*/}
+      {/*  </ExternalLink>*/}
+      {/*)}*/}
+    </div>
   </div>
 );
 
-export const IndexerCell = ({ value }: CellProps) => (
+export const AgeCell = ({value}: CellProps<Release>) => (
+  <div className="text-sm text-gray-500" title={simplifyDate(value)}>
+    {formatDistanceToNowStrict(new Date(value), {addSuffix: false})}
+  </div>
+);
+
+export const IndexerCell = ({value}: CellProps<Release>) => (
   <div
     className={classNames(
       "py-3 text-sm font-medium box-content text-gray-900 dark:text-gray-300",
@@ -52,7 +123,7 @@ export const IndexerCell = ({ value }: CellProps) => (
   </div>
 );
 
-export const TitleCell = ({ value }: CellProps) => (
+export const TitleCell = ({value}: CellProps<Release>) => (
   <div
     className={classNames(
       "py-3 text-sm font-medium box-content text-gray-900 dark:text-gray-300",

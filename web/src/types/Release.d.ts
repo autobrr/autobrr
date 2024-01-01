@@ -10,11 +10,27 @@ interface Release {
   indexer: string;
   filter: string;
   protocol: string;
+  implementation: string;
+  name: string;
   title: string;
   size: number;
   raw: string;
   info_url: string;
   download_url: string;
+  category: string;
+  group: string;
+  season: number;
+  episode: number;
+  year: number;
+  resolution: string;
+  codec: string;
+  source: string;
+  container: string;
+  hdr: string;
+  uploader: string;
+  origin: string;
+  // freeleech: boolean;
+  // freeleech_percent:number;
   timestamp: Date
   action_status: ReleaseActionStatus[]
 }
