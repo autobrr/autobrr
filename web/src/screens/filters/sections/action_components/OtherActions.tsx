@@ -119,27 +119,27 @@ export const Arr = ({ idx, action, clients }: ClientActionProps) => (
 
       <FilterSection.HalfRow>
         <div className="">
-        <Input.NumberField
-          name={`actions.${idx}.external_download_client_id`}
-          label="Override download client id for arr DEPRECATED"
-          className="mb-4"
-          tooltip={
-            <p>
-              Override Download client Id from the one set in Clients. Useful if you
-              have multiple clients inside the arr.
-            </p>
-          }
-        />
-        <Input.TextField
-          name={`actions.${idx}.external_download_client`}
-          label="Override download client name for arr"
-          tooltip={
-            <p>
-              Override Download client name from the one set in Clients. Useful if you
-              have multiple clients inside the arr.
-            </p>
-          }
-        />
+          <Input.TextField
+            name={`actions.${idx}.external_download_client`}
+            label="Override download client name for arr"
+            tooltip={
+              <p>
+                Override Download client name from the one set in Clients. Useful if you
+                have multiple clients inside the arr.
+              </p>
+            }
+          />
+          <Input.NumberField
+            name={`actions.${idx}.external_download_client_id`}
+            label="Override download client id for arr DEPRECATED"
+            className="mt-4"
+            tooltip={
+              <p>
+                Override Download client Id from the one set in Clients. Useful if you
+                have multiple clients inside the arr.
+              </p>
+            }
+          />
         </div>
       </FilterSection.HalfRow>
     </FilterSection.Layout>
