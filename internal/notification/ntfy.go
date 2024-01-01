@@ -109,11 +109,6 @@ func (s *ntfySender) isEnabled() bool {
 			return false
 		}
 
-		if s.Settings.Token == "" {
-			s.log.Warn().Msg("ntfy missing application token")
-			return false
-		}
-
 		return true
 	}
 
