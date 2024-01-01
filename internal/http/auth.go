@@ -81,16 +81,18 @@ func (h authHandler) login(w http.ResponseWriter, r *http.Request) {
 
 	if _, err := h.service.Login(r.Context(), data.Username, data.Password); err != nil {
 		h.log.Error().Err(err).Msgf("Auth: Failed login attempt username: [%s] ip: %s", data.Username, r.RemoteAddr)
-		h.encoder.StatusError(w, http.StatusUnauthorized, errors.New("could not login: bad credentials"))
+		h.encoder.StatusError(w, http.StatusForbidden, errors.New("could not login: bad credentials"))
 		return
 	}
 
 	// create new session
-	session, err := h.cookieStore.New(r, "user_session")
+	session, err := h.cookieStore.Get(r, "user_session")
 	if err != nil {
-		h.log.Error().Err(err).Msgf("Auth: Failed to parse cookies with attempt username: [%s] ip: %s", data.Username, r.RemoteAddr)
-		h.encoder.StatusError(w, http.StatusUnauthorized, errors.New("could not parse cookies"))
-		return
+		err := sessions.Save(r, w)
+		if err != nil {
+			h.encoder.StatusError(w, http.StatusInternalServerError, errors.Wrap(err, "could not get user session or replace with valid session"))
+			return
+		}
 	}
 
 	// Set user as authenticated
