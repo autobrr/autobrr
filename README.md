@@ -318,4 +318,4 @@ autobrr is proudly open-source and is released under the [GNU General Public Lic
 - **Freedom to Share:** You can redistribute copies of autobrr to help others.
 - **Freedom to Enhance:** Contributions to improve autobrr are always welcome.
 
-Copyright 2021-2023
+Copyright 2021-2024
