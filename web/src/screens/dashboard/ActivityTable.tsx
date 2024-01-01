@@ -183,7 +183,7 @@ export const ActivityTable = () => {
       Filter: SelectColumnFilter,
       filter: "includes"
     }
-  ], []);
+  ] as Column[], []);
 
   const { isLoading, data } = useSuspenseQuery({
     queryKey: ["dash_recent_releases"],
