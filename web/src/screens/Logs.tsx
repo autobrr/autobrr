@@ -12,7 +12,7 @@ import {
   DocumentArrowDownIcon
 } from "@heroicons/react/24/outline";
 import { ExclamationCircleIcon } from "@heroicons/react/24/solid";
-import format from "date-fns/format";
+import { format } from "date-fns/format";
 import { toast } from "react-hot-toast";
 
 import { APIClient } from "@api/APIClient";
