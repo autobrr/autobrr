@@ -29,7 +29,7 @@ export const NameCell = (props: CellProps<Release>) => (
   <div
     className={classNames(
       "flex justify-between items-center py-2 text-sm font-medium box-content text-gray-900 dark:text-gray-300",
-      "max-w-[82px] sm:max-w-[160px] md:max-w-[290px] lg:max-w-[535px] xl:max-w-[780px]"
+      "max-w-[82px] sm:max-w-[160px] md:max-w-[290px] lg:max-w-[535px] xl:max-w-[775px]"
     )}
   >
     <div className="flex flex-col truncate">
