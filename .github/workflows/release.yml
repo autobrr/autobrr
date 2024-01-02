@@ -83,7 +83,13 @@ jobs:
           cache: true
 
       - name: Test
-        run: go test -v ./... -tags=integration
+        run: go run gotest.tools/gotestsum@latest --junitfile unit-tests.xml --format pkgname -- ./... -tags=integration
+
+      - name: Test Summary
+        uses: test-summary/action@v2
+        with:
+          paths: "unit-tests.xml"
+        if: always()
 
   goreleaserbuild:
     name: Build distribution binaries
