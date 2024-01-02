@@ -29,14 +29,14 @@ export const NameCell = (props: CellProps<Release>) => (
   <div
     className={classNames(
       "flex justify-between items-center py-2 text-sm font-medium box-content text-gray-900 dark:text-gray-300",
-      "max-w-[96px] sm:max-w-[216px] md:max-w-[360px] lg:max-w-[640px] xl:max-w-[840px]"
+      "max-w-[82px] sm:max-w-[160px] md:max-w-[290px] lg:max-w-[535px] xl:max-w-[780px]"
     )}
   >
-    <div className="flex flex-col">
-      <span className="whitespace-pre-wrap break-words">
+    <div className="flex flex-col truncate">
+      <span className="truncate">
         {String(props.cell.value)}
       </span>
-      <div className="text-xs">
+      <div className="text-xs truncate">
         <span className="text-xs text-gray-500 dark:text-gray-400">Category:</span> {props.row.original.category}
         <span
           className="text-xs text-gray-500 dark:text-gray-400"> Size:</span> {humanFileSize(props.row.original.size)}
