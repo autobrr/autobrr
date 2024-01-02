@@ -25,10 +25,6 @@ import Toast from "@components/notifications/Toast";
 import { RingResizeSpinner } from "@components/Icons";
 import { Tooltip } from "@components/tooltips/Tooltip";
 
-interface LinksCellProps {
-  value: Release;
-}
-
 export const NameCell = (props: CellProps<Release>) => (
   <div
     className={classNames(
@@ -48,11 +44,18 @@ export const NameCell = (props: CellProps<Release>) => (
           className="text-xs text-gray-500 dark:text-gray-400"> Misc:</span> {`${props.row.original.resolution} ${props.row.original.source} ${props.row.original.codec ?? ""} ${props.row.original.container}`}
       </div>
     </div>
-    <div className="flex mr-0">
+  </div>
+);
+
+export const LinksCell = (props: CellProps<Release>) => {
+  return (
+    <div className="flex space-x-2 text-blue-400 dark:text-blue-500">
       <div>
         <Tooltip
           requiresClick
-          label={<DocumentTextIcon className="h-5 w-5 cursor-pointer text-blue-400 hover:text-blue-500 dark:text-blue-500 dark:hover:text-blue-600" aria-hidden={true} />}
+          label={<DocumentTextIcon
+            className="h-5 w-5 cursor-pointer text-blue-400 hover:text-blue-500 dark:text-blue-500 dark:hover:text-blue-600"
+            aria-hidden={true}/>}
           title="Details"
         >
           <div className="mb-1">
@@ -65,8 +68,10 @@ export const NameCell = (props: CellProps<Release>) => (
             <CellLine title="Size">{humanFileSize(props.row.original.size)}</CellLine>
             <CellLine title="Title">{props.row.original.title}</CellLine>
             {props.row.original.year > 0 && <CellLine title="Year">{props.row.original.year.toString()}</CellLine>}
-            {props.row.original.season > 0 && <CellLine title="Season">{props.row.original.season.toString()}</CellLine>}
-            {props.row.original.episode > 0 && <CellLine title="Episode">{props.row.original.episode.toString()}</CellLine>}
+            {props.row.original.season > 0 &&
+                <CellLine title="Season">{props.row.original.season.toString()}</CellLine>}
+            {props.row.original.episode > 0 &&
+                <CellLine title="Episode">{props.row.original.episode.toString()}</CellLine>}
             <CellLine title="Resolution">{props.row.original.resolution}</CellLine>
             <CellLine title="Source">{props.row.original.source}</CellLine>
             <CellLine title="Codec">{props.row.original.codec}</CellLine>
@@ -77,26 +82,27 @@ export const NameCell = (props: CellProps<Release>) => (
           </div>
         </Tooltip>
       </div>
-      {/*{props.row.original.download_url && (*/}
-      {/*  <ExternalLink*/}
-      {/*    href={props.row.original.download_url}*/}
-      {/*    className="px-2"*/}
-      {/*  >*/}
-      {/*    <ArrowDownTrayIcon*/}
-      {/*      className="h-5 w-5 text-blue-400 hover:text-blue-500 dark:text-blue-500 dark:hover:text-blue-600"*/}
-      {/*      aria-hidden="true"/>*/}
-      {/*  </ExternalLink>*/}
-      {/*)}*/}
-      {/*{props.row.original.info_url && (*/}
-      {/*  <ExternalLink href={props.row.original.info_url}>*/}
-      {/*    <ArrowTopRightOnSquareIcon*/}
-      {/*      className="h-5 w-5 text-blue-400 hover:text-blue-500 dark:text-blue-500 dark:hover:text-blue-600"*/}
-      {/*      aria-hidden="true"/>*/}
-      {/*  </ExternalLink>*/}
-      {/*)}*/}
+      {props.row.original.download_url && (
+        <ExternalLink href={props.row.original.download_url}>
+          <ArrowDownTrayIcon
+            title="Download torrent file"
+            className="h-5 w-5 hover:text-blue-500 dark:hover:text-blue-600"
+            aria-hidden="true"
+          />
+        </ExternalLink>
+      )}
+      {props.row.original.info_url && (
+        <ExternalLink href={props.row.original.info_url}>
+          <ArrowTopRightOnSquareIcon
+            title="Visit torrentinfo url"
+            className="h-5 w-5 hover:text-blue-500 dark:hover:text-blue-600"
+            aria-hidden="true"
+          />
+        </ExternalLink>
+      )}
     </div>
-  </div>
-);
+  );
+};
 
 export const AgeCell = ({value}: CellProps<Release>) => (
   <div className="text-sm text-gray-500" title={simplifyDate(value)}>
@@ -321,19 +327,3 @@ export const ReleaseStatusCell = ({ value }: ReleaseStatusCellProps) => (
   </div>
 );
 
-export const LinksCell = ({ value }: LinksCellProps) => {
-  return (
-    <div className="flex space-x-2 text-blue-400 dark:text-blue-500">
-      {value.download_url && (
-        <ExternalLink href={value.download_url}>
-          <ArrowDownTrayIcon title="Download torrent file" className="h-5 w-5 hover:text-blue-500 dark:hover:text-blue-600" aria-hidden="true" />
-        </ExternalLink>
-      )}
-      {value.info_url && (
-        <ExternalLink href={value.info_url}>
-          <ArrowTopRightOnSquareIcon title="Visit torrentinfo url" className="h-5 w-5 hover:text-blue-500 dark:hover:text-blue-600" aria-hidden="true" />
-        </ExternalLink>
-      )}
-    </div>
-  );
-};
