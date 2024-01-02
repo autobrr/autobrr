@@ -66,19 +66,6 @@ func (h authHandler) login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.cookieStore.Options.HttpOnly = true
-	h.cookieStore.Options.SameSite = http.SameSiteLaxMode
-	h.cookieStore.Options.Path = h.config.BaseURL
-
-	// autobrr does not support serving on TLS / https, so this is only available behind reverse proxy
-	// if forwarded protocol is https then set cookie secure
-	// SameSite Strict can only be set with a secure cookie. So we overwrite it here if possible.
-	// https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Set-Cookie/SameSite
-	if r.Header.Get("X-Forwarded-Proto") == "https" {
-		h.cookieStore.Options.Secure = true
-		h.cookieStore.Options.SameSite = http.SameSiteStrictMode
-	}
-
 	if _, err := h.service.Login(r.Context(), data.Username, data.Password); err != nil {
 		h.log.Error().Err(err).Msgf("Auth: Failed login attempt username: [%s] ip: %s", data.Username, r.RemoteAddr)
 		h.encoder.StatusError(w, http.StatusForbidden, errors.New("could not login: bad credentials"))
@@ -88,15 +75,27 @@ func (h authHandler) login(w http.ResponseWriter, r *http.Request) {
 	// create new session
 	session, err := h.cookieStore.Get(r, "user_session")
 	if err != nil {
-		err := sessions.Save(r, w)
-		if err != nil {
-			h.encoder.StatusError(w, http.StatusInternalServerError, errors.Wrap(err, "could not get user session or replace with valid session"))
-			return
-		}
+		h.log.Error().Err(err).Msgf("could not get session from cookieStore: %s", r.RemoteAddr)
+		h.encoder.StatusError(w, http.StatusInternalServerError, err)
+		return
 	}
 
 	// Set user as authenticated
 	session.Values["authenticated"] = true
+
+	// Set cookie options
+	session.Options.HttpOnly = true
+	session.Options.SameSite = http.SameSiteLaxMode
+	session.Options.Path = h.config.BaseURL
+
+	// autobrr does not support serving on TLS / https, so this is only available behind reverse proxy
+	// if forwarded protocol is https then set cookie secure
+	// SameSite Strict can only be set with a secure cookie. So we overwrite it here if possible.
+	// https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Set-Cookie/SameSite
+	if r.Header.Get("X-Forwarded-Proto") == "https" {
+		session.Options.Secure = true
+		session.Options.SameSite = http.SameSiteStrictMode
+	}
 
 	if err := session.Save(r, w); err != nil {
 		h.encoder.StatusError(w, http.StatusInternalServerError, errors.Wrap(err, "could not save session"))
