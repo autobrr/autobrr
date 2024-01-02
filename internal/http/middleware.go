@@ -24,7 +24,7 @@ func (s Server) IsAuthenticated(next http.Handler) http.Handler {
 			}
 
 		} else if key := r.URL.Query().Get("apikey"); key != "" {
-			// check query param lke ?apikey=TOKEN
+			// check query param like ?apikey=TOKEN
 			if !s.apiService.ValidateAPIKey(r.Context(), key) {
 				http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
 				return
@@ -33,18 +33,18 @@ func (s Server) IsAuthenticated(next http.Handler) http.Handler {
 			// check session
 			session, err := s.cookieStore.Get(r, "user_session")
 			if err != nil {
-				http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
+				http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 				return
 			}
 
 			if session.IsNew {
-				http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
+				http.Error(w, http.StatusText(http.StatusForbidden), http.StatusForbidden)
 				return
 			}
 
 			// Check if user is authenticated
 			if auth, ok := session.Values["authenticated"].(bool); !ok || !auth {
-				http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
+				http.Error(w, http.StatusText(http.StatusForbidden), http.StatusForbidden)
 				return
 			}
 
