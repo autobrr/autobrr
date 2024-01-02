@@ -6,7 +6,7 @@
 import React, { useState } from "react";
 import { useLocation } from "react-router-dom";
 import { useSuspenseQuery } from "@tanstack/react-query";
-import { CellProps, Column, useFilters, usePagination, useSortBy, useTable } from "react-table";
+import { Column, useFilters, usePagination, useSortBy, useTable } from "react-table";
 import {
   ChevronDoubleLeftIcon,
   ChevronDoubleRightIcon,
@@ -23,8 +23,6 @@ import * as Icons from "@components/Icons";
 import * as DataTable from "@components/data-table";
 
 import { IndexerSelectColumnFilter, PushStatusSelectColumnFilter, SearchColumnFilter } from "./Filters";
-import { classNames } from "@utils";
-import { Tooltip } from "@components/tooltips/Tooltip";
 
 export const releaseKeys = {
   all: ["releases"] as const,
@@ -94,27 +92,8 @@ export const ReleaseTable = () => {
     },
     {
       Header: "Release",
-      accessor: "torrent_name",
-      Cell: (props: CellProps<Release>) => {
-        return (
-          <div
-            className={classNames(
-              "flex justify-between py-3 text-sm font-medium box-content text-gray-900 dark:text-gray-300",
-              "max-w-[96px] sm:max-w-[216px] md:max-w-[360px] lg:max-w-[640px] xl:max-w-[840px]"
-            )}
-          >
-            <Tooltip
-              requiresClick
-              label={props.cell.value}
-              maxWidth="max-w-[90vw]"
-            >
-              <span className="whitespace-pre-wrap break-words">
-                {String(props.cell.value)}
-              </span>
-            </Tooltip>
-          </div>
-        );
-      },
+      accessor: "name",
+      Cell: DataTable.NameCell,
       Filter: SearchColumnFilter
     },
     {
@@ -156,7 +135,7 @@ export const ReleaseTable = () => {
       const randomNames = RandomLinuxIsos(data.data.length);
       const newData: Release[] = data.data.map((item, index) => ({
         ...item,
-        torrent_name: `${randomNames[index]}.iso`,
+        name: `${randomNames[index]}.iso`,
         indexer: index % 2 === 0 ? "distrowatch" : "linuxtracker"
       }));
       setModifiedData(newData);
