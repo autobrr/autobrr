@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+ * Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
@@ -77,6 +77,7 @@ const iconComponentMap: componentMapType = {
   PUSHOVER: <span className={iconStyle}><PushoverIcon /> Pushover</span>,
   GOTIFY: <span className={iconStyle}><GotifyIcon /> Gotify</span>,
   NTFY: <span className={iconStyle}><NtfyIcon /> ntfy</span>,
+  SHOUTRRR: <span className={iconStyle}><NtfyIcon /> Shoutrrr</span>,
   LUNASEA: <span className={iconStyle}><LunaSeaIcon /> LunaSea</span>
 };
 

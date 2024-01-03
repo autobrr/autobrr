@@ -1,4 +1,4 @@
-// Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+// Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 package database
@@ -185,6 +185,7 @@ func (r *DownloadClientRepo) Store(ctx context.Context, client domain.DownloadCl
 		Basic:                    client.Settings.Basic,
 		Rules:                    client.Settings.Rules,
 		ExternalDownloadClientId: client.Settings.ExternalDownloadClientId,
+		ExternalDownloadClient:   client.Settings.ExternalDownloadClient,
 	}
 
 	settingsJson, err := json.Marshal(&settings)
@@ -224,6 +225,7 @@ func (r *DownloadClientRepo) Update(ctx context.Context, client domain.DownloadC
 		Basic:                    client.Settings.Basic,
 		Rules:                    client.Settings.Rules,
 		ExternalDownloadClientId: client.Settings.ExternalDownloadClientId,
+		ExternalDownloadClient:   client.Settings.ExternalDownloadClient,
 	}
 
 	settingsJson, err := json.Marshal(&settings)

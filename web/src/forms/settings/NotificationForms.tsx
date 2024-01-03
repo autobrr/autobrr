@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+ * Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
@@ -239,6 +239,34 @@ function FormFieldsNtfy() {
   );
 }
 
+function FormFieldsShoutrrr() {
+  return (
+    <div className="border-t border-gray-200 dark:border-gray-700 py-4">
+      <div className="px-4 space-y-1">
+        <Dialog.Title className="text-lg font-medium text-gray-900 dark:text-white">Settings</Dialog.Title>
+      </div>
+
+      <TextFieldWide
+        name="host"
+        label="URL"
+        help="URL"
+        tooltip={
+          <div><p>See full documentation </p>
+            <ExternalLink
+              href="https://containrrr.dev/shoutrrr/services/overview/"
+              className="font-medium text-blue-500 underline underline-offset-1 hover:text-blue-400"
+            >
+              Services
+            </ExternalLink>
+          </div>
+        }
+        placeholder="smtp://username:password@host:port/?from=fromAddress&to=recipient1"
+        required={true}
+      />
+    </div>
+  );
+}
+
 const componentMap: componentMapType = {
   DISCORD: <FormFieldsDiscord />,
   NOTIFIARR: <FormFieldsNotifiarr />,
@@ -246,6 +274,7 @@ const componentMap: componentMapType = {
   PUSHOVER: <FormFieldsPushover />,
   GOTIFY: <FormFieldsGotify />,
   NTFY: <FormFieldsNtfy />,
+  SHOUTRRR: <FormFieldsShoutrrr />,
   LUNASEA: <FormFieldsLunaSea />
 };
 

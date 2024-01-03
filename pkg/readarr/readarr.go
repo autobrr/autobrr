@@ -1,4 +1,4 @@
-// Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+// Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 package readarr
@@ -73,6 +73,7 @@ type Release struct {
 	Protocol         string `json:"protocol"`
 	PublishDate      string `json:"publishDate"`
 	DownloadClientId int    `json:"downloadClientId,omitempty"`
+	DownloadClient   string `json:"downloadClient,omitempty"`
 }
 
 type PushResponse struct {

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+ * Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
@@ -391,29 +391,33 @@ export const NotificationTypeOptions: OptionBasicTyped<NotificationType>[] = [
     value: "DISCORD"
   },
   {
-    label: "Notifiarr",
-    value: "NOTIFIARR"
-  },
-  {
-    label: "Telegram",
-    value: "TELEGRAM"
-  },
-  {
-    label: "Pushover",
-    value: "PUSHOVER"
-  },
-  {
     label: "Gotify",
     value: "GOTIFY"
+  },
+  {
+    label: "LunaSea",
+    value: "LUNASEA"
+  },
+  {
+    label: "Notifiarr",
+    value: "NOTIFIARR"
   },
   {
     label: "Ntfy",
     value: "NTFY"
   },
   {
-    label: "LunaSea",
-    value: "LUNASEA"
-  }
+    label: "Pushover",
+    value: "PUSHOVER"
+  },
+  {
+    label: "Shoutrrr",
+    value: "SHOUTRRR"
+  },
+  {
+    label: "Telegram",
+    value: "TELEGRAM"
+  },
 ];
 
 export const IrcAuthMechanismTypeOptions: OptionBasicTyped<IrcAuthMechanism>[] = [
