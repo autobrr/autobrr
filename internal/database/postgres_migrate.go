@@ -226,7 +226,7 @@ CREATE TABLE "release"
     filter            TEXT,
     protocol          TEXT,
     implementation    TEXT,
-    timestamp         TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    timestamp         TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
     info_url          TEXT,
     download_url      TEXT,
     group_id          TEXT,
@@ -842,5 +842,8 @@ ALTER TABLE filter_external
 `,
 	`ALTER TABLE action
 	ADD COLUMN external_client TEXT;
+`,
+	`ALTER TABLE "release"
+	ALTER COLUMN timestamp TYPE timestamptz USING timestamp AT TIME ZONE 'UTC';
 `,
 }
