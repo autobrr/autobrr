@@ -30,7 +30,8 @@ export async function HttpClient<T = unknown>(
 ): Promise<T> {
   const init: RequestInit = {
     method: config.method,
-    headers: { "Accept": "*/*" }
+    headers: { "Accept": "*/*", 'x-requested-with': 'XMLHttpRequest' },
+    credentials: "include",
   };
 
   if (config.body) {
