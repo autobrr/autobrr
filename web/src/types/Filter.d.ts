@@ -72,6 +72,10 @@ interface Filter {
   actions: Action[];
   indexers: Indexer[];
   external: ExternalFilter[];
+  min_seeders: number;
+  max_seeders: number;
+  min_leechers: number;
+  max_leechers: number;
 }
 
 interface Action {

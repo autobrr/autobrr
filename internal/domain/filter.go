@@ -140,6 +140,10 @@ type Filter struct {
 	Indexers             []Indexer              `json:"indexers"`
 	Downloads            *FilterDownloads       `json:"-"`
 	Rejections           []string               `json:"-"`
+	MinSeeders           int                    `json:"min_seeders,omitempty"`
+	MaxSeeders           int                    `json:"max_seeders,omitempty"`
+	MinLeechers          int                    `json:"min_leechers,omitempty"`
+	MaxLeechers          int                    `json:"max_leechers,omitempty"`
 }
 
 type FilterExternal struct {
@@ -246,6 +250,10 @@ type FilterUpdate struct {
 	Actions                          []*Action               `json:"actions,omitempty"`
 	External                         []FilterExternal        `json:"external,omitempty"`
 	Indexers                         []Indexer               `json:"indexers,omitempty"`
+	MinSeeders                       *int                    `json:"min_seeders,omitempty"`
+	MaxSeeders                       *int                    `json:"max_seeders,omitempty"`
+	MinLeechers                      *int                    `json:"min_leechers,omitempty"`
+	MaxLeechers                      *int                    `json:"max_leechers,omitempty"`
 }
 
 func (f *Filter) Validate() error {
@@ -504,6 +512,30 @@ func (f *Filter) CheckFilter(r *Release) ([]string, bool) {
 
 		if f.ExceptDescription != "" && containsFuzzy(r.Description, f.ExceptDescription) {
 			f.addRejectionF("except description: unwanted release. got: %v want: %v", r.Description, f.ExceptDescription)
+		}
+	}
+
+	if f.MinSeeders > 0 {
+		if f.MinSeeders > r.Seeders {
+			f.addRejectionF("min seeders not matcing. got: %d want %d", r.Seeders, f.MinSeeders)
+		}
+	}
+
+	if f.MaxSeeders > 0  {
+		if f.MaxSeeders < r.Seeders {
+			f.addRejectionF("max seeders not matcing. got: %d want %d", r.Seeders, f.MaxSeeders)
+		}
+	}
+
+	if f.MinLeechers > 0 {
+		if f.MinLeechers > r.Leechers {
+			f.addRejectionF("min leechers not matcing. got: %d want %d", r.Leechers, f.MinLeechers)
+		}
+	}
+
+	if f.MaxLeechers > 0  {
+		if f.MaxLeechers < r.Leechers {
+			f.addRejectionF("max leechers not matcing. got: %d want %d", r.Leechers, f.MaxLeechers)
 		}
 	}
 

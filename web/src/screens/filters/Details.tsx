@@ -439,7 +439,11 @@ export const FilterDetails = () => {
               except_origins: filter.except_origins || [],
               indexers: filter.indexers || [],
               actions: filter.actions || [],
-              external: filter.external || []
+              external: filter.external || [],
+              min_seeders: filter.min_seeders,
+              max_seeders: filter.max_seeders,
+              min_leechers: filter.min_leechers,
+              max_leechers: filter.max_leechers
             } as Filter}
             onSubmit={handleSubmit}
             enableReinitialize={true}

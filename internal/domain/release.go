@@ -98,6 +98,8 @@ type Release struct {
 	FilterID                    int                   `json:"-"`
 	Filter                      *Filter               `json:"-"`
 	ActionStatus                []ReleaseActionStatus `json:"action_status"`
+	Seeders                     int                   `json:"seeders"`
+	Leechers                    int                   `json:"leechers"`
 }
 
 type ReleaseActionStatus struct {
