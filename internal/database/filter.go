@@ -239,6 +239,8 @@ func (r *FilterRepo) FindByID(ctx context.Context, filterID int) (*domain.Filter
 			"f.except_origins",
 			"f.created_at",
 			"f.updated_at",
+			"f.min_uploader_count",
+			"f.max_uploader_count",
 			"fe.id as external_id",
 			"fe.name",
 			"fe.idx",
@@ -349,6 +351,8 @@ func (r *FilterRepo) FindByID(ctx context.Context, filterID int) (*domain.Filter
 			pq.Array(&f.ExceptOrigins),
 			&f.CreatedAt,
 			&f.UpdatedAt,
+			&f.MinUploaderCount,
+			&f.MaxUploaderCount,
 			&extId,
 			&extName,
 			&extIndex,
@@ -503,6 +507,8 @@ func (r *FilterRepo) findByIndexerIdentifier(ctx context.Context, indexer string
 			"f.except_origins",
 			"f.created_at",
 			"f.updated_at",
+			"f.min_uploader_count",
+			"f.max_uploader_count",
 			"fe.id as external_id",
 			"fe.name",
 			"fe.idx",
@@ -617,6 +623,8 @@ func (r *FilterRepo) findByIndexerIdentifier(ctx context.Context, indexer string
 			pq.Array(&f.ExceptOrigins),
 			&f.CreatedAt,
 			&f.UpdatedAt,
+			&f.MinUploaderCount,
+			&f.MaxUploaderCount,
 			&extId,
 			&extName,
 			&extIndex,
@@ -862,6 +870,8 @@ func (r *FilterRepo) Store(ctx context.Context, filter *domain.Filter) error {
 			"perfect_flac",
 			"origins",
 			"except_origins",
+			"min_uploader_count",
+			"max_uploader_count",
 		).
 		Values(
 			filter.Name,
@@ -921,6 +931,8 @@ func (r *FilterRepo) Store(ctx context.Context, filter *domain.Filter) error {
 			filter.PerfectFlac,
 			pq.Array(filter.Origins),
 			pq.Array(filter.ExceptOrigins),
+			filter.MinUploaderCount,
+			filter.MaxUploaderCount,
 		).
 		Suffix("RETURNING id").RunWith(r.db.handler)
 
@@ -999,6 +1011,8 @@ func (r *FilterRepo) Update(ctx context.Context, filter *domain.Filter) error {
 		Set("origins", pq.Array(filter.Origins)).
 		Set("except_origins", pq.Array(filter.ExceptOrigins)).
 		Set("updated_at", time.Now().Format(time.RFC3339)).
+		Set("min_uploader_count", filter.MinUploaderCount).
+		Set("max_uploader_count", filter.MaxUploaderCount).
 		Where(sq.Eq{"id": filter.ID})
 
 	query, args, err := queryBuilder.ToSql()
@@ -1228,6 +1242,12 @@ func (r *FilterRepo) UpdatePartial(ctx context.Context, filter domain.FilterUpda
 	}
 	if filter.ExternalWebhookRetryDelaySeconds != nil {
 		q = q.Set("external_webhook_retry_delay_seconds", filter.ExternalWebhookRetryDelaySeconds)
+	}
+	if filter.MinUploaderCount != nil {
+		q = q.Set("min_uploader_count", filter.MinUploaderCount)
+	}
+	if filter.MaxUploaderCount != nil {
+		q = q.Set("max_uploader_count", filter.MaxUploaderCount)
 	}
 
 	q = q.Where(sq.Eq{"id": filter.ID})

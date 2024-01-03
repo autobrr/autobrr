@@ -72,6 +72,8 @@ interface Filter {
   actions: Action[];
   indexers: Indexer[];
   external: ExternalFilter[];
+  min_uploader_count: number;
+  max_uploader_count: number;
 }
 
 interface Action {

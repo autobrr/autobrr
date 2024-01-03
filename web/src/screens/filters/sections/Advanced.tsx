@@ -252,6 +252,28 @@ const Uploaders = ({ values }: ValueConsumer) => (
         </div>
       }
     />
+    <Input.NumberField
+      name="min_uploader_count"
+      label="Min Uploaders Count"
+      placeholder="Takes any number (0 is infinite)"
+      tooltip={
+        <div>
+          <p>Number of max seeders as specified by the respective unit.</p>
+          <DocsLink href="https://autobrr.com/filters#rules" />
+        </div>
+      }
+    />
+    <Input.NumberField
+      name="max_uploader_count"
+      label="Max Uploaders Count"
+      placeholder="Takes any number (0 is infinite)"
+      tooltip={
+        <div>
+          <p>Number of max seeders as specified by the respective unit.</p>
+          <DocsLink href="https://autobrr.com/filters#rules" />
+        </div>
+      }
+    />
   </CollapsibleSection>
 );
 

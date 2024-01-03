@@ -105,6 +105,7 @@ func (db *DB) migrateSQLite() error {
 		return errors.Wrap(err, "failed to query schema version")
 	}
 
+
 	if version == len(sqliteMigrations) {
 		return nil
 	} else if version > len(sqliteMigrations) {

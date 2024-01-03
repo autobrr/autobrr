@@ -139,6 +139,8 @@ type Filter struct {
 	Indexers             []Indexer              `json:"indexers"`
 	Downloads            *FilterDownloads       `json:"-"`
 	Rejections           []string               `json:"-"`
+	MinUploaderCount     int                    `json:"min_uploader_count,omitempty"`
+	MaxUploaderCount     int                    `json:"max_uploader_count,omitempty"`
 }
 
 type FilterExternal struct {
@@ -245,6 +247,8 @@ type FilterUpdate struct {
 	Actions                          []*Action               `json:"actions,omitempty"`
 	External                         []FilterExternal        `json:"external,omitempty"`
 	Indexers                         []Indexer               `json:"indexers,omitempty"`
+	MinUploaderCount                 *int                    `json:"min_uploader_count,omitempty"`
+	MaxUploaderCount                 *int                    `json:"max_uploader_count,omitempty"`
 }
 
 func (f *Filter) Validate() error {
@@ -503,6 +507,18 @@ func (f *Filter) CheckFilter(r *Release) ([]string, bool) {
 
 		if f.ExceptDescription != "" && containsFuzzy(r.Description, f.ExceptDescription) {
 			f.addRejectionF("except description: unwanted release. got: %v want: %v", r.Description, f.ExceptDescription)
+		}
+	}
+
+	if f.MinUploaderCount > 0 {
+		if f.MinUploaderCount > r.UploaderCount {
+			f.addRejectionF("min uploader count not matcing. got: %d want %d", r.UploaderCount, f.MinUploaderCount)
+		}
+	}
+
+	if f.MaxUploaderCount > 0  {
+		if f.MaxUploaderCount < r.UploaderCount {
+			f.addRejectionF("max uploader count not matcing. got: %d want %d", r.UploaderCount, f.MaxUploaderCount)
 		}
 	}
 

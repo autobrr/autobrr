@@ -129,7 +129,9 @@ CREATE TABLE filter
     origins                        TEXT []   DEFAULT '{}',
     except_origins                 TEXT []   DEFAULT '{}',
     created_at                     TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at                     TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    updated_at                     TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    min_uploader_count             INTEGER DEFAULT 0,
+    max_uploader_count             INTEGER DEFAULT 0
 );
 
 CREATE TABLE filter_external
@@ -1424,5 +1426,11 @@ ALTER TABLE filter_external_dg_tmp
 `,
   `ALTER TABLE irc_network
 	ADD COLUMN bot_mode BOOLEAN DEFAULT FALSE;
-	`,
+`,`
+ALTER TABLE filter
+    ADD COLUMN min_uploader_count INTEGER DEFAULT 0;
+
+ALTER TABLE filter
+    ADD COLUMN max_uploader_count INTEGER DEFAULT 0;
+`,
 }

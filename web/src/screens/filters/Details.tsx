@@ -438,7 +438,9 @@ export const FilterDetails = () => {
               except_origins: filter.except_origins || [],
               indexers: filter.indexers || [],
               actions: filter.actions || [],
-              external: filter.external || []
+              external: filter.external || [],
+              min_uploader_count: filter.min_uploader_count,
+              max_uploader_count: filter.max_uploader_count,
             } as Filter}
             onSubmit={handleSubmit}
             enableReinitialize={true}

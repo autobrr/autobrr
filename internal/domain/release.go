@@ -98,6 +98,7 @@ type Release struct {
 	FilterID                    int                   `json:"-"`
 	Filter                      *Filter               `json:"-"`
 	ActionStatus                []ReleaseActionStatus `json:"action_status"`
+	UploaderCount               int                   `json:"uploader_count"`
 }
 
 type ReleaseActionStatus struct {

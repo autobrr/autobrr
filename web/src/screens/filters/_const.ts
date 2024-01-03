@@ -48,7 +48,9 @@ export const FILTER_FIELDS: Record<string, string> = {
   "except_tags_any": "boolean",
   "formats": "[]string",
   "quality": "[]string",
-  "media": "[]string"
+  "media": "[]string",
+  "min_uploader_count": "number",
+  "max_uploader_count": "number"
 } as const;
 
 export const IRC_FIELDS: Record<string, string> = {
