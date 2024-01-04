@@ -5,7 +5,7 @@
 
 import { useState, useMemo } from "react";
 import toast from "react-hot-toast";
-import { useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
+import {useMutation, useQuery, useQueryClient, useSuspenseQuery} from "@tanstack/react-query";
 import { PlusIcon } from "@heroicons/react/24/solid";
 
 import { useToggle } from "@hooks/hooks";
@@ -169,7 +169,7 @@ const ListItem = ({ indexer }: ListItemProps) => {
 function IndexerSettings() {
   const [addIndexerIsOpen, toggleAddIndexer] = useToggle(false);
 
-  const { error, data } = useSuspenseQuery({
+  const { error, data } = useQuery({
     queryKey: indexerKeys.lists(),
     queryFn: APIClient.indexers.getAll,
     refetchOnWindowFocus: false

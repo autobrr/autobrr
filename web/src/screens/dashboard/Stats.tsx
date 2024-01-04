@@ -3,10 +3,10 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-import { useSuspenseQuery } from "@tanstack/react-query";
+import {useQuery, useSuspenseQuery} from "@tanstack/react-query";
+import {useNavigate} from "@tanstack/react-router";
 import { APIClient } from "@api/APIClient";
 import { classNames } from "@utils";
-import { useNavigate } from "react-router-dom";
 import { LinkIcon } from "@heroicons/react/24/solid";
 
 interface StatsItemProps {
@@ -40,16 +40,16 @@ const StatsItem = ({ name, placeholder, value, onClick }: StatsItemProps) => (
 );
 
 export const Stats = () => {
-  const navigate = useNavigate();
+  const navigate = useNavigate({ from: '/' })
   const handleStatClick = (filterType: string) => {
     if (filterType) {
-      navigate(`/releases?filter=${filterType}`);
+      navigate({ to: '/releases', search: { filter: filterType}})
     } else {
-      navigate("/releases");
+      navigate({ to: '/releases'})
     }
   };
 
-  const { isLoading, data } = useSuspenseQuery({
+  const { isLoading, data } = useQuery({
     queryKey: ["dash_release_stats"],
     queryFn: APIClient.release.stats,
     refetchOnWindowFocus: false

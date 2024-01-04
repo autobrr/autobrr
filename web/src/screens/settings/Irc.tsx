@@ -4,7 +4,7 @@
  */
 
 import { Fragment, useRef, useState, useMemo, useEffect, MouseEvent } from "react";
-import { useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
+import {useMutation, useQuery, useQueryClient, useSuspenseQuery} from "@tanstack/react-query";
 import { LockClosedIcon, LockOpenIcon, PlusIcon } from "@heroicons/react/24/solid";
 import { Menu, Transition } from "@headlessui/react";
 import { toast } from "react-hot-toast";
@@ -98,7 +98,7 @@ const IrcSettings = () => {
   const [expandNetworks, toggleExpand] = useToggle(false);
   const [addNetworkIsOpen, toggleAddNetwork] = useToggle(false);
 
-  const { data } = useSuspenseQuery({
+  const { data } = useQuery({
     queryKey: ircKeys.lists(),
     queryFn: APIClient.irc.getNetworks,
     refetchOnWindowFocus: false,

@@ -31,7 +31,9 @@ interface FilterActionsProps {
   values: FormikValues;
 }
 
-export function Actions({ filter, values }: FilterActionsProps) {
+export function Actions() {
+  const { values } = useFormikContext<Filter>();
+
   const { data } = useQuery({
     queryKey: ["filters", "download_clients"],
     queryFn: () => APIClient.download_clients.getAll(),
@@ -63,7 +65,7 @@ export function Actions({ filter, values }: FilterActionsProps) {
     reannounce_delete: false,
     reannounce_interval: 7,
     reannounce_max_attempts: 25,
-    filter_id: filter.id,
+    filter_id: values.id,
     webhook_host: "",
     webhook_type: "",
     webhook_method: "",

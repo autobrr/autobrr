@@ -3,9 +3,9 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-import { useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
+import {useMutation, useQuery, useQueryClient, useSuspenseQuery} from "@tanstack/react-query";
+import {Link} from "@tanstack/react-router";
 import { toast } from "react-hot-toast";
-import { Link } from "react-router-dom";
 import Select from "react-select";
 
 import { APIClient } from "@api/APIClient";
@@ -56,7 +56,7 @@ const SelectWrapper = ({ id, value, onChange, options }: SelectWrapperProps) => 
 );
 
 function LogSettings() {
-  const { isError, error, isLoading, data } = useSuspenseQuery({
+  const { isError, error, isLoading, data } = useQuery({
     queryKey: ["config"],
     queryFn: APIClient.config.get,
     retry: false,
@@ -86,7 +86,7 @@ function LogSettings() {
           Configure log level, log size rotation, etc. You can download your old log files
           {" "}
           <Link
-            to="/logs"
+            to="/settings/logs"
             className="text-gray-700 dark:text-gray-200 underline font-semibold underline-offset-2 decoration-blue-500 decoration hover:text-black hover:dark:text-gray-100"
           >
             on the Logs page

@@ -4,7 +4,7 @@
  */
 
 import { Dispatch, FC, Fragment, MouseEventHandler, useReducer, useRef, useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link } from '@tanstack/react-router'
 import { toast } from "react-hot-toast";
 import { Listbox, Menu, Transition } from "@headlessui/react";
 import { useMutation, useQuery, useQueryClient, keepPreviousData, useSuspenseQuery } from "@tanstack/react-query";
@@ -98,7 +98,7 @@ export function Filters() {
 
   return (
     <main>
-      <FilterAddForm isOpen={createFilterIsOpen} toggle={toggleCreateFilter} />
+      {/*<FilterAddForm isOpen={createFilterIsOpen} toggle={toggleCreateFilter} />*/}
       <Importer
         isOpen={showImportModal}
         setIsOpen={setShowImportModal}
@@ -192,7 +192,7 @@ function FilterList({ toggleCreateFilter }: any) {
     filterListState
   );
 
-  const { data, error } = useSuspenseQuery({
+  const { data, error } = useQuery({
     queryKey: filterKeys.list(indexerFilter, sortOrder),
     queryFn: ({ queryKey }) => APIClient.filters.find(queryKey[2].indexers, queryKey[2].sortOrder),
     refetchOnWindowFocus: false
@@ -457,7 +457,11 @@ const FilterItemDropdown = ({ filter, onToggle }: FilterItemDropdownProps) => {
             <Menu.Item>
               {({ active }) => (
                 <Link
-                  to={filter.id.toString()}
+                  // to={filter.id.toString()}
+                  to="/filters/$filterId"
+                  params={{
+                    filterId: filter.id.toString()
+                  }}
                   className={classNames(
                     active ? "bg-blue-600 text-white" : "text-gray-900 dark:text-gray-300",
                     "font-medium group flex rounded-md items-center w-full px-2 py-2 text-sm"
@@ -627,7 +631,11 @@ function FilterListItem({ filter, values, idx }: FilterListItemProps) {
       </span>
       <div className="py-2 flex flex-col overflow-hidden w-full justify-center">
         <Link
-          to={filter.id.toString()}
+          // to={filter.id.toString()}
+          to="/filters/$filterId"
+          params={{
+            filterId: filter.id.toString()
+          }}
           className="transition w-full break-words whitespace-wrap text-sm font-bold text-gray-800 dark:text-gray-100 hover:text-black dark:hover:text-gray-350"
         >
           {filter.name}
@@ -643,7 +651,12 @@ function FilterListItem({ filter, values, idx }: FilterListItemProps) {
               <Tooltip
                 label={
                   <Link
-                    to={`${filter.id.toString()}/actions`}
+                    // to={`${filter.id.toString()}/actions`}
+
+                    to="/filters/$filterId"
+                    params={{
+                      filterId: filter.id.toString()
+                    }}
                     className="flex items-center cursor-pointer hover:text-black dark:hover:text-gray-300"
                   >
                     <span className={filter.actions_count === 0 || filter.actions_enabled_count === 0 ? "text-red-500 hover:text-red-400 dark:hover:text-red-400" : ""}>
@@ -664,7 +677,11 @@ function FilterListItem({ filter, values, idx }: FilterListItemProps) {
               </Tooltip>
             ) : (
               <Link
-                to={`${filter.id.toString()}/actions`}
+                // to={`${filter.id.toString()}/actions`}
+                to="/filters/$filterId"
+                params={{
+                  filterId: filter.id.toString()
+                }}
                 className="flex items-center cursor-pointer hover:text-black dark:hover:text-gray-300"
               >
                 <span>
@@ -679,11 +696,11 @@ function FilterListItem({ filter, values, idx }: FilterListItemProps) {
         <FilterIndexers indexers={filter.indexers} />
       </span>
       <span className="min-w-fit px-4 py-2 whitespace-nowrap text-right text-sm font-medium">
-        <FilterItemDropdown
-          values={values}
-          filter={filter}
-          onToggle={toggleActive}
-        />
+        {/*<FilterItemDropdown*/}
+        {/*  values={values}*/}
+        {/*  filter={filter}*/}
+        {/*  onToggle={toggleActive}*/}
+        {/*/>*/}
       </span>
     </li>
   );

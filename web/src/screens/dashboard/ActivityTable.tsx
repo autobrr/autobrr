@@ -4,7 +4,7 @@
  */
 
 import React, { useState } from "react";
-import { useSuspenseQuery } from "@tanstack/react-query";
+import {useQuery, useSuspenseQuery} from "@tanstack/react-query";
 import {
   useTable,
   useFilters,
@@ -185,7 +185,7 @@ export const ActivityTable = () => {
     }
   ] as Column[], []);
 
-  const { isLoading, data } = useSuspenseQuery({
+  const { isLoading, data } = useQuery({
     queryKey: ["dash_recent_releases"],
     queryFn: APIClient.release.findRecent,
     refetchOnWindowFocus: false

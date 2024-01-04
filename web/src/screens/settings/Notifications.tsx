@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-import { useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
+import {useMutation, useQuery, useQueryClient, useSuspenseQuery} from "@tanstack/react-query";
 
 import { APIClient } from "@api/APIClient";
 import { EmptySimple } from "@components/emptystates";
@@ -27,7 +27,7 @@ export const notificationKeys = {
 function NotificationSettings() {
   const [addNotificationsIsOpen, toggleAddNotifications] = useToggle(false);
 
-  const { data } = useSuspenseQuery({
+  const { data } = useQuery({
     queryKey: notificationKeys.lists(),
     queryFn: APIClient.notifications.getAll,
     refetchOnWindowFocus: false

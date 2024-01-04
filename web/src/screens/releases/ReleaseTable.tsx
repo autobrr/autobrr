@@ -4,8 +4,7 @@
  */
 
 import React, { useState } from "react";
-import { useLocation } from "react-router-dom";
-import { useSuspenseQuery } from "@tanstack/react-query";
+import {useQuery} from "@tanstack/react-query";
 import { Column, useFilters, usePagination, useSortBy, useTable } from "react-table";
 import {
   ChevronDoubleLeftIcon,
@@ -23,6 +22,7 @@ import * as Icons from "@components/Icons";
 import * as DataTable from "@components/data-table";
 
 import { IndexerSelectColumnFilter, PushStatusSelectColumnFilter, SearchColumnFilter } from "./Filters";
+import {releasesIndexRoute} from "@app/App.tsx";
 
 export const releaseKeys = {
   all: ["releases"] as const,
@@ -81,9 +81,10 @@ const TableReducer = (state: TableState, action: Actions): TableState => {
 };
 
 export const ReleaseTable = () => {
-  const location = useLocation();
-  const queryParams = new URLSearchParams(location.search);
-  const filterTypeFromUrl = queryParams.get("filter");
+  const { filter} = releasesIndexRoute.useSearch()
+  // const location = useLocation();
+  // const queryParams = new URLSearchParams(location.search);
+  // const filterTypeFromUrl = queryParams.get("filter");
   const columns = React.useMemo(() => [
     {
       Header: "Age",
@@ -120,7 +121,7 @@ export const ReleaseTable = () => {
   const [{ queryPageIndex, queryPageSize, totalCount, queryFilters }, dispatch] =
         React.useReducer(TableReducer, initialState);
 
-  const { isLoading, error, data, isSuccess } = useSuspenseQuery({
+  const { isLoading, error, data, isSuccess } = useQuery({
     queryKey: releaseKeys.list(queryPageIndex, queryPageSize, queryFilters),
     queryFn: () => APIClient.release.findQuery(queryPageIndex * queryPageSize, queryPageSize, queryFilters),
     staleTime: 5000
@@ -170,7 +171,7 @@ export const ReleaseTable = () => {
       initialState: {
         pageIndex: queryPageIndex,
         pageSize: queryPageSize,
-        filters: filterTypeFromUrl ? [{ id: "action_status", value: filterTypeFromUrl }] : []
+        filters: filter ? [{ id: "action_status", value: filter }] : []
       },
       manualPagination: true,
       manualFilters: true,

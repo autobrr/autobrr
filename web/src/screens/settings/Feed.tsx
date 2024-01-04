@@ -4,7 +4,7 @@
  */
 
 import { Fragment, useRef, useState, useMemo } from "react";
-import { useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
+import {useMutation, useQuery, useQueryClient, useSuspenseQuery} from "@tanstack/react-query";
 import { Menu, Transition } from "@headlessui/react";
 import { toast } from "react-hot-toast";
 import {
@@ -97,7 +97,7 @@ function useSort(items: ListItemProps["feed"][], config?: SortConfig) {
 }
 
 function FeedSettings() {
-  const { data } = useSuspenseQuery({
+  const { data } = useQuery({
     queryKey: feedKeys.lists(),
     queryFn: APIClient.feeds.find,
     refetchOnWindowFocus: false

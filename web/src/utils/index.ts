@@ -15,11 +15,12 @@ export function baseUrl() {
   let baseUrl = "";
   if (window.APP.baseUrl) {
     if (window.APP.baseUrl === "{{.BaseUrl}}") {
-      baseUrl = "/";
+      baseUrl = "";
     } else {
       baseUrl = window.APP.baseUrl;
     }
   }
+  console.log("baseurl", baseUrl)
   return baseUrl;
 }
 

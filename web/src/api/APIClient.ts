@@ -89,15 +89,19 @@ export async function HttpClient<T = unknown>(
   }
   case 401: {
     // Remove auth info from localStorage
-    AuthContext.reset();
+    // auth.logout()
+    // AuthContext.reset();
     // Show an error toast to notify the user what occurred
-    return Promise.reject(new Error(`[401] Unauthorized: "${endpoint}"`));
+    return Promise.reject(response);
+    // return Promise.reject(new Error(`[401] Unauthorized: "${endpoint}"`));
   }
   case 403: {
     // Remove auth info from localStorage
-    AuthContext.reset();
+    // auth.logout()
+    // AuthContext.reset();
     // Show an error toast to notify the user what occurred
-    return Promise.reject(new Error(`[403] Forbidden: "${endpoint}"`));
+    // return Promise.reject(new Error(`[403] Forbidden: "${endpoint}"`));
+    return Promise.reject(response);
   }
   case 404: {
     return Promise.reject(new Error(`[404] Not found: "${endpoint}"`));
