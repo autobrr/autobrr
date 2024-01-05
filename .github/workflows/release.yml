@@ -83,11 +83,17 @@ jobs:
           cache: true
 
       - name: Test
-        run: go test -v ./... -tags=integration
+        run: go run gotest.tools/gotestsum@latest --junitfile unit-tests.xml --format pkgname -- ./... -tags=integration
+
+      - name: Test Summary
+        uses: test-summary/action@v2
+        with:
+          paths: "unit-tests.xml"
+        if: always()
 
   goreleaserbuild:
     name: Build distribution binaries
-    runs-on: windows-latest
+    runs-on: ubuntu-latest
     needs: [web, test]
     steps:
       - name: Checkout
@@ -204,7 +210,7 @@ jobs:
           context: .
           file: ./ci.Dockerfile
           platforms: ${{ matrix.platform }}
-          outputs: type=image,name=${{ env.REGISTRY_IMAGE }},push-by-digest=true,name-canonical=true,push=true
+          outputs: type=image,name=${{ env.REGISTRY_IMAGE }},push-by-digest=true,name-canonical=true,push=${{ (github.event.pull_request.head.repo.full_name == 'autobrr/autobrr' || github.event_name != 'pull_request') && 'true' || 'false' }}
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
             BUILDTIME=${{ fromJSON(steps.meta.outputs.json).labels['org.opencontainers.image.created'] }}
@@ -213,14 +219,17 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
       - name: Export digest
+        id: digest-prep
         run: |
           mkdir -p /tmp/digests
           digest="${{ steps.docker_build.outputs.digest }}"
-          touch "/tmp/digests/${digest#sha256:}"          
+          echo "manifest-hash=${digest#sha256:}" >> "$GITHUB_OUTPUT"
+          touch "/tmp/digests/${digest#sha256:}"
+
       - name: Upload digest
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
-          name: digests
+          name: docker-digests-${{ steps.digest-prep.outputs.manifest-hash }}
           path: /tmp/digests/*
           if-no-files-found: error
           retention-days: 1
@@ -232,10 +241,11 @@ jobs:
     needs: [docker, test]
     steps:
       - name: Download digests
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
-          name: digests
           path: /tmp/digests
+          pattern: docker-digests-*
+          merge-multiple: true
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3

@@ -1,4 +1,4 @@
-// Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+// Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 package database
@@ -210,6 +210,7 @@ CREATE TABLE action
     webhook_data            TEXT,
     webhook_headers         TEXT[] DEFAULT '{}',
     external_client_id      INTEGER,
+    external_client         TEXT,
     client_id               INTEGER,
     filter_id               INTEGER,
     FOREIGN KEY (filter_id) REFERENCES filter (id),
@@ -838,5 +839,8 @@ ALTER TABLE filter_external
 `,
 	`ALTER TABLE action
 	ADD COLUMN priority TEXT;
+`,
+	`ALTER TABLE action
+	ADD COLUMN external_client TEXT;
 `,
 }
