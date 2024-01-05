@@ -30,6 +30,7 @@ import { Checkbox } from "@components/Checkbox";
 // import { useForm } from "react-hook-form";
 
 import { Section } from "./_components";
+import { ircQueryOptions } from "@app/App.tsx";
 
 export const ircKeys = {
   all: ["irc_networks"] as const,
@@ -98,14 +99,21 @@ const IrcSettings = () => {
   const [expandNetworks, toggleExpand] = useToggle(false);
   const [addNetworkIsOpen, toggleAddNetwork] = useToggle(false);
 
-  const { data } = useQuery({
-    queryKey: ircKeys.lists(),
-    queryFn: APIClient.irc.getNetworks,
-    refetchOnWindowFocus: false,
-    refetchInterval: 3000 // Refetch every 3 seconds
-  });
+  // const ctx = settingsIrcRoute.useRouteContext()
+  // const queryClient = ctx.queryClient
 
-  const sortedNetworks = useSort(data || []);
+  const ircQuery = useSuspenseQuery(ircQueryOptions())
+
+  // const networks = ircQuery.data
+
+  // const { data } = useQuery({
+  //   queryKey: ircKeys.lists(),
+  //   queryFn: APIClient.irc.getNetworks,
+  //   refetchOnWindowFocus: false,
+  //   refetchInterval: 3000 // Refetch every 3 seconds
+  // });
+
+  const sortedNetworks = useSort(ircQuery.data || []);
 
   return (
     <Section
@@ -168,7 +176,7 @@ const IrcSettings = () => {
         </div>
       </div>
 
-      {data && data.length > 0 ? (
+      {ircQuery.data && ircQuery.data.length > 0 ? (
         <ul className="mt-6 min-w-full relative text-sm">
           <li className="grid grid-cols-12 gap-4 border-b border-gray-200 dark:border-gray-700 text-xs font-medium text-gray-500 dark:text-gray-400">
             <div className="flex col-span-2 md:col-span-1 pl-2 sm:px-3 py-3 text-left uppercase tracking-wider cursor-pointer"

@@ -32,7 +32,6 @@ export const releaseKeys = {
   detail: (id: number) => [...releaseKeys.details(), id] as const
 };
 
-
 type TableState = {
     queryPageIndex: number;
     queryPageSize: number;

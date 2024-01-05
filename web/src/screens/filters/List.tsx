@@ -219,7 +219,7 @@ function FilterList({ toggleCreateFilter }: any) {
           </div>
 
           <div className="flex items-center gap-5">
-            <div className="hidden md:flex"><IndexerSelectFilter dispatch={dispatchFilter} /></div>
+            {/*<div className="hidden md:flex"><IndexerSelectFilter dispatch={dispatchFilter} /></div>*/}
             <SortSelectFilter dispatch={dispatchFilter} />
           </div>
         </div>
@@ -460,7 +460,7 @@ const FilterItemDropdown = ({ filter, onToggle }: FilterItemDropdownProps) => {
                   // to={filter.id.toString()}
                   to="/filters/$filterId"
                   params={{
-                    filterId: filter.id.toString()
+                    filterId: filter.id
                   }}
                   className={classNames(
                     active ? "bg-blue-600 text-white" : "text-gray-900 dark:text-gray-300",
@@ -634,7 +634,7 @@ function FilterListItem({ filter, values, idx }: FilterListItemProps) {
           // to={filter.id.toString()}
           to="/filters/$filterId"
           params={{
-            filterId: filter.id.toString()
+            filterId: filter.id
           }}
           className="transition w-full break-words whitespace-wrap text-sm font-bold text-gray-800 dark:text-gray-100 hover:text-black dark:hover:text-gray-350"
         >
@@ -653,9 +653,9 @@ function FilterListItem({ filter, values, idx }: FilterListItemProps) {
                   <Link
                     // to={`${filter.id.toString()}/actions`}
 
-                    to="/filters/$filterId"
+                    to="/filters/$filterId/actions"
                     params={{
-                      filterId: filter.id.toString()
+                      filterId: filter.id
                     }}
                     className="flex items-center cursor-pointer hover:text-black dark:hover:text-gray-300"
                   >
@@ -678,9 +678,9 @@ function FilterListItem({ filter, values, idx }: FilterListItemProps) {
             ) : (
               <Link
                 // to={`${filter.id.toString()}/actions`}
-                to="/filters/$filterId"
+                to="/filters/$filterId/actions"
                 params={{
-                  filterId: filter.id.toString()
+                  filterId: filter.id
                 }}
                 className="flex items-center cursor-pointer hover:text-black dark:hover:text-gray-300"
               >

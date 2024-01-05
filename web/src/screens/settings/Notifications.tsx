@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-import {useMutation, useQuery, useQueryClient, useSuspenseQuery} from "@tanstack/react-query";
+import {useMutation, useQueryClient, useSuspenseQuery} from "@tanstack/react-query";
 
 import { APIClient } from "@api/APIClient";
 import { EmptySimple } from "@components/emptystates";
@@ -16,6 +16,7 @@ import { Section } from "./_components";
 import { PlusIcon } from "@heroicons/react/24/solid";
 import { Checkbox } from "@components/Checkbox";
 import { DiscordIcon, GotifyIcon, LunaSeaIcon, NotifiarrIcon, NtfyIcon, PushoverIcon, TelegramIcon } from "./_components";
+import { notificationsQueryOptions } from "@app/App.tsx";
 
 export const notificationKeys = {
   all: ["notifications"] as const,
@@ -27,12 +28,7 @@ export const notificationKeys = {
 function NotificationSettings() {
   const [addNotificationsIsOpen, toggleAddNotifications] = useToggle(false);
 
-  const { data } = useQuery({
-    queryKey: notificationKeys.lists(),
-    queryFn: APIClient.notifications.getAll,
-    refetchOnWindowFocus: false
-  }
-  );
+  const notificationsQuery = useSuspenseQuery(notificationsQueryOptions())
 
   return (
     <Section
@@ -51,7 +47,7 @@ function NotificationSettings() {
     >
       <NotificationAddForm isOpen={addNotificationsIsOpen} toggle={toggleAddNotifications} />
 
-      {data && data.length > 0 ? (
+      {notificationsQuery.data && notificationsQuery.data.length > 0 ? (
         <ul className="min-w-full">
           <li className="grid grid-cols-12 border-b border-gray-200 dark:border-gray-700">
             <div className="col-span-2 sm:col-span-1 pl-1 sm:pl-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Enabled</div>
@@ -60,7 +56,7 @@ function NotificationSettings() {
             <div className="hidden md:flex col-span-3 px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Events</div>
           </li>
 
-          {data.map((n) => <ListItem key={n.id} notification={n} />)}
+          {notificationsQuery.data.map((n) => <ListItem key={n.id} notification={n} />)}
         </ul>
       ) : (
         <EmptySimple title="No notifications" subtitle="" buttonText="Create new notification" buttonAction={toggleAddNotifications} />

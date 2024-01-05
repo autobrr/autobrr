@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-import {useMutation, useQuery, useQueryClient, useSuspenseQuery} from "@tanstack/react-query";
+import {useMutation, useSuspenseQuery} from "@tanstack/react-query";
 import {Link} from "@tanstack/react-router";
 import { toast } from "react-hot-toast";
 import Select from "react-select";
@@ -15,6 +15,7 @@ import { LogLevelOptions, SelectOption } from "@domain/constants";
 import { Section, RowItem } from "./_components";
 import * as common from "@components/inputs/common";
 import { LogFiles } from "@screens/Logs";
+import {configQueryOptions, settingsLogRoute} from "@app/App.tsx";
 
 type SelectWrapperProps = {
   id: string;
@@ -56,18 +57,12 @@ const SelectWrapper = ({ id, value, onChange, options }: SelectWrapperProps) => 
 );
 
 function LogSettings() {
-  const { isError, error, isLoading, data } = useQuery({
-    queryKey: ["config"],
-    queryFn: APIClient.config.get,
-    retry: false,
-    refetchOnWindowFocus: false
-  });
+  const ctx = settingsLogRoute.useRouteContext()
+  const queryClient = ctx.queryClient
 
-  if (isError) {
-    console.log(error);
-  }
+  const configQuery = useSuspenseQuery(configQueryOptions())
 
-  const queryClient = useQueryClient();
+  const config = configQuery.data
 
   const setLogLevelUpdateMutation = useMutation({
     mutationFn: (value: string) => APIClient.config.update({ log_level: value }),
@@ -96,9 +91,9 @@ function LogSettings() {
     >
       <div className="-mx-4 lg:col-span-9">
         <div className="divide-y divide-gray-200 dark:divide-gray-750">
-          {!isLoading && data && (
+          {!configQuery.isLoading && config && (
             <form className="divide-y divide-gray-200 dark:divide-gray-750" action="#" method="POST">
-              <RowItem label="Path" value={data?.log_path} title="Set in config.toml" emptyText="Not set!"/>
+              <RowItem label="Path" value={config?.log_path} title="Set in config.toml" emptyText="Not set!"/>
               <RowItem
                 className="sm:col-span-1"
                 label="Level"
@@ -106,19 +101,19 @@ function LogSettings() {
                 value={
                   <SelectWrapper
                     id="log_level"
-                    value={data?.log_level}
+                    value={config?.log_level}
                     options={LogLevelOptions}
                     onChange={(value: SelectOption) => setLogLevelUpdateMutation.mutate(value.value)}
                   />
                 }
               />
-              <RowItem label="Max Size" value={data?.log_max_size} title="Set in config.toml" rightSide="MB"/>
-              <RowItem label="Max Backups" value={data?.log_max_backups} title="Set in config.toml"/>
+              <RowItem label="Max Size" value={config?.log_max_size} title="Set in config.toml" rightSide="MB"/>
+              <RowItem label="Max Backups" value={config?.log_max_backups} title="Set in config.toml"/>
             </form>
           )}
 
           <div className="px-6 pt-4">
-            <LogFiles/>
+            {/*<LogFiles/>*/}
           </div>
         </div>
       </div>

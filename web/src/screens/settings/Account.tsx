@@ -12,6 +12,7 @@ import { PasswordField, TextField } from "@components/inputs";
 import { AuthContext } from "@utils/Context";
 import toast from "react-hot-toast";
 import { UserIcon } from "@heroicons/react/24/solid";
+import { settingsAccountRoute } from "@app/App.tsx";
 
 const AccountSettings = () => (
   <Section
@@ -33,8 +34,7 @@ interface InputValues {
 }
 
 function Credentials() {
-  const [ getAuthContext ] = AuthContext.use();
-
+  const ctx = settingsAccountRoute.useRouteContext()
 
   const validate = (values: InputValues) => {
     const errors: Record<string, string> = {};
@@ -76,7 +76,7 @@ function Credentials() {
       <div className="px-2 pb-6 bg-white dark:bg-gray-800">
         <Formik
           initialValues={{
-            username: getAuthContext.username,
+            username: ctx.auth.username!,
             newUsername: "",
             oldPassword: "",
             newPassword: "",

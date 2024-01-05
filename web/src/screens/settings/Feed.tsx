@@ -4,7 +4,7 @@
  */
 
 import { Fragment, useRef, useState, useMemo } from "react";
-import {useMutation, useQuery, useQueryClient, useSuspenseQuery} from "@tanstack/react-query";
+import {useMutation, useQueryClient, useSuspenseQuery} from "@tanstack/react-query";
 import { Menu, Transition } from "@headlessui/react";
 import { toast } from "react-hot-toast";
 import {
@@ -28,6 +28,7 @@ import { ArrowPathIcon } from "@heroicons/react/24/solid";
 import { ExternalLink } from "@components/ExternalLink";
 import { Section } from "./_components";
 import { Checkbox } from "@components/Checkbox";
+import { feedsQueryOptions } from "@app/App.tsx";
 
 export const feedKeys = {
   all: ["feeds"] as const,
@@ -97,20 +98,21 @@ function useSort(items: ListItemProps["feed"][], config?: SortConfig) {
 }
 
 function FeedSettings() {
-  const { data } = useQuery({
-    queryKey: feedKeys.lists(),
-    queryFn: APIClient.feeds.find,
-    refetchOnWindowFocus: false
-  });
+  const feedsQuery = useSuspenseQuery(feedsQueryOptions())
+  // const { data } = useQuery({
+  //   queryKey: feedKeys.lists(),
+  //   queryFn: APIClient.feeds.find,
+  //   refetchOnWindowFocus: false
+  // });
 
-  const sortedFeeds = useSort(data || []);
+  const sortedFeeds = useSort(feedsQuery.data || []);
 
   return (
     <Section
       title="Feeds"
       description="Manage RSS, Newznab, and Torznab feeds."
     >
-      {data && data.length > 0 ? (
+      {feedsQuery.data && feedsQuery.data.length > 0 ? (
         <ul className="min-w-full relative">
           <li className="grid grid-cols-12 border-b border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400 font-medium uppercase tracking-wider">
             <div

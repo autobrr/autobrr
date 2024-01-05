@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { toast } from "react-hot-toast";
 
 import { APIClient } from "@api/APIClient";
@@ -13,9 +13,13 @@ import Toast from "@components/notifications/Toast";
 import { ExternalLink } from "@components/ExternalLink";
 
 import { Section, RowItem } from "./_components";
+import { settingsIndexRoute } from "@app/App.tsx";
 
 function ApplicationSettings() {
   const [settings, setSettings] = SettingsContext.use();
+
+  const ctx = settingsIndexRoute.useRouteContext()
+  const queryClient = ctx.queryClient
 
   const { isError:isConfigError, error: configError, data } = useQuery({
     queryKey: ["config"],
@@ -38,8 +42,6 @@ function ApplicationSettings() {
   if (isError) {
     console.log(error);
   }
-
-  const queryClient = useQueryClient();
 
   const checkUpdateMutation = useMutation({
     mutationFn: APIClient.updates.check,

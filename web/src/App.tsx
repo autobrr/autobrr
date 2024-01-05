@@ -3,7 +3,13 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-import {QueryCache, QueryClient, QueryClientProvider, useQueryErrorResetBoundary} from "@tanstack/react-query";
+import {
+  QueryCache,
+  QueryClient,
+  QueryClientProvider,
+  queryOptions,
+  useQueryErrorResetBoundary
+} from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { ErrorBoundary } from "react-error-boundary";
 import { toast, Toaster } from "react-hot-toast";
@@ -18,12 +24,12 @@ import {
   Link,
   Router,
   Route,
-  RootRoute, rootRouteWithContext, redirect,
+  RootRoute, rootRouteWithContext, redirect, ErrorComponent, useRouterState,
 } from '@tanstack/react-router'
 import { TanStackRouterDevtools } from '@tanstack/router-devtools'
 import {Header} from "@components/header";
 import {Suspense} from "react";
-import {SectionLoader} from "@components/SectionLoader.tsx";
+import {SectionLoader, Spinner} from "@components/SectionLoader.tsx";
 import {Dashboard} from "@screens/Dashboard.tsx";
 import {FilterDetails, Filters} from "@screens/filters";
 import {Section} from "@screens/filters/sections/_components.tsx";
@@ -32,12 +38,12 @@ import {Releases} from "@screens/Releases.tsx";
 import {z} from "zod";
 import {Settings} from "@screens/Settings.tsx";
 import LogSettings from "@screens/settings/Logs.tsx";
-import IndexerSettings from "@screens/settings/Indexer.tsx";
-import IrcSettings from "@screens/settings/Irc.tsx";
-import FeedSettings from "@screens/settings/Feed.tsx";
-import DownloadClientSettings from "@screens/settings/DownloadClient.tsx";
-import NotificationSettings from "@screens/settings/Notifications.tsx";
-import APISettings from "@screens/settings/Api.tsx";
+import IndexerSettings, {indexerKeys} from "@screens/settings/Indexer.tsx";
+import IrcSettings, {ircKeys} from "@screens/settings/Irc.tsx";
+import FeedSettings, {feedKeys} from "@screens/settings/Feed.tsx";
+import DownloadClientSettings, {clientKeys} from "@screens/settings/DownloadClient.tsx";
+import NotificationSettings, {notificationKeys} from "@screens/settings/Notifications.tsx";
+import APISettings, {apiKeys} from "@screens/settings/Api.tsx";
 import ReleaseSettings from "@screens/settings/Releases.tsx";
 import AccountSettings from "@screens/settings/Account.tsx";
 import ApplicationSettings from "@screens/settings/Application.tsx";
@@ -45,6 +51,8 @@ import {Logs} from "@screens/Logs.tsx";
 import {Login} from "@screens/auth";
 import {APIClient} from "@api/APIClient.ts";
 import {baseUrl} from "@utils";
+import * as querystring from "querystring";
+import {filterKeys} from "@screens/filters/List.tsx";
 
 export const queryClient = new QueryClient({
   queryCache: new QueryCache({
@@ -86,6 +94,62 @@ export const queryClient = new QueryClient({
   }
 });
 
+const filtersQueryOptions = () =>
+  queryOptions({
+    queryKey: ['filters'],
+    queryFn: () => APIClient.filters.find([], "")
+  })
+
+export const filterQueryOptions = (filterId: number) =>
+  queryOptions({
+    queryKey: filterKeys.detail(filterId),
+    queryFn: ({queryKey}) => APIClient.filters.getByID(queryKey[2])
+  })
+
+export const configQueryOptions = () =>
+  queryOptions({
+    queryKey: ["config"],
+    queryFn: () => APIClient.config.get()
+  })
+
+export const indexersQueryOptions = () =>
+  queryOptions({
+    queryKey: indexerKeys.lists(),
+    queryFn: () => APIClient.indexers.getAll()
+  })
+
+export const ircQueryOptions = () =>
+  queryOptions({
+    queryKey: ircKeys.lists(),
+    queryFn: () => APIClient.irc.getNetworks(),
+    refetchOnWindowFocus: false,
+    refetchInterval: 3000 // Refetch every 3 seconds
+  })
+
+export const feedsQueryOptions = () =>
+  queryOptions({
+    queryKey: feedKeys.lists(),
+    queryFn: () => APIClient.feeds.find(),
+  })
+
+export const downloadClientsQueryOptions = () =>
+  queryOptions({
+    queryKey: clientKeys.lists(),
+    queryFn: () => APIClient.download_clients.getAll(),
+  })
+
+export const notificationsQueryOptions = () =>
+  queryOptions({
+    queryKey: notificationKeys.lists(),
+    queryFn: () => APIClient.notifications.getAll()
+  })
+
+export const apikeysQueryOptions = () =>
+  queryOptions({
+    queryKey: apiKeys.lists(),
+    queryFn: () => APIClient.apikeys.getAll()
+  })
+
 const dashboardRoute = new Route({
   getParentRoute: () => authIndexRoute,
   path: '/',
@@ -103,9 +167,33 @@ const filterIndexRoute = new Route({
   component: Filters
 })
 
+// export const filterRoute = new Route({
+//   getParentRoute: () => filtersRoute,
+//   path: '$filterId',
+//   validateSearch: z.object({
+//     filterId: z.number(),
+//   }),
+//   loaderDeps: ({ search }) => ({
+//     filterId: search.filterId
+//   }),
+//   loader: (opts) => opts.context.queryClient.ensureQueryData(filterQueryOptions(opts.deps.filterId)),
+//   component: FilterDetails
+// })
+
 export const filterRoute = new Route({
   getParentRoute: () => filtersRoute,
   path: '$filterId',
+  parseParams: (params) => ({
+    filterId: z.number().int().parse(Number(params.filterId)),
+  }),
+  stringifyParams: ({ filterId }) => ({ filterId: `${filterId}` }),
+  // validateSearch: (search) => z.object({
+  //   filterId: z.number(),
+  // }),
+  // loaderDeps: ({ search }) => ({
+  //   filterId: search.filterId
+  // }),
+  loader: (opts) => opts.context.queryClient.ensureQueryData(filterQueryOptions(opts.params.filterId)),
   component: FilterDetails
 })
 
@@ -165,7 +253,7 @@ export const releasesIndexRoute = new Route({
   validateSearch: (search) => releasesSearchSchema.parse(search),
 })
 
-const settingsRoute = new Route({
+export const settingsRoute = new Route({
   getParentRoute: () => authIndexRoute,
   path: 'settings',
   component: Settings
@@ -180,42 +268,49 @@ export const settingsIndexRoute = new Route({
 export const settingsLogRoute = new Route({
   getParentRoute: () => settingsRoute,
   path: 'logs',
+  loader: (opts) => opts.context.queryClient.ensureQueryData(configQueryOptions()),
   component: LogSettings
 })
 
 export const settingsIndexersRoute = new Route({
   getParentRoute: () => settingsRoute,
   path: 'indexers',
+  loader: (opts) => opts.context.queryClient.ensureQueryData(indexersQueryOptions()),
   component: IndexerSettings
 })
 
 export const settingsIrcRoute = new Route({
   getParentRoute: () => settingsRoute,
   path: 'irc',
+  loader: (opts) => opts.context.queryClient.ensureQueryData(ircQueryOptions()),
   component: IrcSettings
 })
 
 export const settingsFeedsRoute = new Route({
   getParentRoute: () => settingsRoute,
   path: 'feeds',
+  loader: (opts) => opts.context.queryClient.ensureQueryData(feedsQueryOptions()),
   component: FeedSettings
 })
 
 export const settingsClientsRoute = new Route({
   getParentRoute: () => settingsRoute,
   path: 'clients',
+  loader: (opts) => opts.context.queryClient.ensureQueryData(downloadClientsQueryOptions()),
   component: DownloadClientSettings
 })
 
 export const settingsNotificationsRoute = new Route({
   getParentRoute: () => settingsRoute,
   path: 'notifications',
+  loader: (opts) => opts.context.queryClient.ensureQueryData(notificationsQueryOptions()),
   component: NotificationSettings
 })
 
 export const settingsApiRoute = new Route({
   getParentRoute: () => settingsRoute,
   path: 'api',
+  loader: (opts) => opts.context.queryClient.ensureQueryData(apikeysQueryOptions()),
   component: APISettings
 })
 
@@ -245,11 +340,22 @@ export const loginRoute = new Route({
   }),
 }).update({component: Login})
 
+export function RouterSpinner() {
+  const isLoading = useRouterState({ select: (s) => s.status === 'pending' })
+  return <Spinner show={isLoading} />
+}
+
 const RootComponent = () => {
+  const settings = SettingsContext.useValue();
   return (
     <div className="min-h-screen">
       <Outlet />
-      <TanStackRouterDevtools />
+      {settings.debug ? (
+        <>
+          <TanStackRouterDevtools />
+          <ReactQueryDevtools initialIsOpen={false} />
+        </>
+      ) : null}
     </div>
   )
 }
@@ -327,7 +433,8 @@ export const authIndexRoute = new Route({
 })
 
 export const rootRoute = rootRouteWithContext<{
-  auth: Auth
+  auth: Auth,
+  queryClient: QueryClient
 }>()({
   component: RootComponent,
 })
@@ -344,8 +451,15 @@ const routeTree = rootRoute.addChildren([
 
 const router = new Router({
   routeTree,
+  defaultPendingComponent: () => (
+    <div className={`p-2 text-2xl`}>
+      <Spinner />
+    </div>
+  ),
+  defaultErrorComponent: ({ error }) => <ErrorComponent error={error} />,
   context: {
     auth: undefined!, // We'll inject this when we render
+    queryClient
   },
 })
 
@@ -395,11 +509,11 @@ export function App() {
           context={{
             auth,
           }}        />
-        {settings.debug ? (
-          <>
-          <ReactQueryDevtools initialIsOpen={false} />
-          </>
-        ) : null}
+        {/*{settings.debug ? (*/}
+        {/*  <>*/}
+        {/*  <ReactQueryDevtools initialIsOpen={false} />*/}
+        {/*  </>*/}
+        {/*) : null}*/}
       </QueryClientProvider>
     // </ErrorBoundary>
   );

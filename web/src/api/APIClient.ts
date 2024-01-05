@@ -4,7 +4,6 @@
  */
 
 import { baseUrl, sseBaseUrl } from "@utils";
-import { AuthContext } from "@utils/Context";
 import { GithubRelease } from "@app/types/Update";
 
 type RequestBody = BodyInit | object | Record<string, unknown> | null;

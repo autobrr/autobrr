@@ -19,6 +19,7 @@ import {
 import { classNames } from "@utils";
 import { SectionLoader } from "@components/SectionLoader";
 import {Link, Outlet} from "@tanstack/react-router";
+import {RouterSpinner} from "@app/App.tsx";
 
 interface NavTabType {
   name: string;

@@ -4,7 +4,7 @@
  */
 
 import { useState, useMemo } from "react";
-import {useMutation, useQuery, useQueryClient, useSuspenseQuery} from "@tanstack/react-query";
+import {useMutation, useQueryClient, useSuspenseQuery} from "@tanstack/react-query";
 import { PlusIcon } from "@heroicons/react/24/solid";
 import toast from "react-hot-toast";
 
@@ -17,6 +17,7 @@ import Toast from "@components/notifications/Toast";
 import { Checkbox } from "@components/Checkbox";
 
 import { Section } from "./_components";
+import { downloadClientsQueryOptions } from "@app/App.tsx";
 
 export const clientKeys = {
   all: ["download_clients"] as const,
@@ -140,17 +141,9 @@ function ListItem({ client }: DLSettingsItemProps) {
 function DownloadClientSettings() {
   const [addClientIsOpen, toggleAddClient] = useToggle(false);
 
-  const { error, data } = useQuery({
-    queryKey: clientKeys.lists(),
-    queryFn: APIClient.download_clients.getAll,
-    refetchOnWindowFocus: false
-  });
+  const downloadClientsQuery = useSuspenseQuery(downloadClientsQueryOptions())
 
-  const sortedClients = useSort(data || []);
-
-  if (error) {
-    return <p>Failed to fetch download clients</p>;
-  }
+  const sortedClients = useSort(downloadClientsQuery.data || []);
 
   return (
     <Section

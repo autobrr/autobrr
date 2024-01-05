@@ -4,7 +4,7 @@
  */
 
 import { Suspense, useEffect, useRef } from "react";
-import {useMutation, useQuery, useQueryClient, useSuspenseQuery} from "@tanstack/react-query";
+import {useMutation, useSuspenseQuery} from "@tanstack/react-query";
 import { Form, Formik, useFormikContext } from "formik";
 import type { FormikErrors, FormikValues } from "formik";
 import { z } from "zod";
@@ -25,7 +25,7 @@ import { SectionLoader } from "@components/SectionLoader";
 
 import { filterKeys } from "./List";
 import * as Section from "./sections";
-import {filterRoute} from "../../App.tsx";
+import {filterQueryOptions, filterRoute} from "@app/App.tsx";
 import {Link, Outlet, useNavigate} from "@tanstack/react-router";
 
 interface tabType {
@@ -301,27 +301,13 @@ const schema = z.object({
 });
 
 export const FilterDetails = () => {
-  const queryClient = useQueryClient();
+  const ctx = filterRoute.useRouteContext()
+  const queryClient = ctx.queryClient
   // const navigate = useNavigate();
-  // const { filterId } = useParams<{ filterId: string }>();
-  //
-  // if (filterId === "0" || filterId === undefined) {
-  //   navigate("/filters");
-  // }
 
-  const { filterId } = filterRoute.useParams()
-
-  const id = parseInt(filterId!);
-
-  const { isLoading, isError, data: filter } = useQuery({
-    queryKey: filterKeys.detail(id),
-    queryFn: ({ queryKey }) => APIClient.filters.getByID(queryKey[2]),
-    refetchOnWindowFocus: false
-  });
-
-  if (isError) {
-    // navigate("/filters");
-  }
+  const params = filterRoute.useParams()
+  const filterQuery = useSuspenseQuery(filterQueryOptions(params.filterId))
+  const filter = filterQuery.data
 
   const updateMutation = useMutation({
     mutationFn: (filter: Filter) => APIClient.filters.update(filter),
@@ -345,7 +331,7 @@ export const FilterDetails = () => {
     onSuccess: () => {
       // Invalidate filters just in case, most likely not necessary but can't hurt.
       queryClient.invalidateQueries({ queryKey: filterKeys.lists() });
-      queryClient.invalidateQueries({ queryKey: filterKeys.detail(id) });
+      queryClient.invalidateQueries({ queryKey: filterKeys.detail(params.filterId) });
 
       toast.custom((t) => (
         <Toast type="success" body={`${filter?.name} was deleted`} t={t} />
@@ -486,7 +472,7 @@ export const FilterDetails = () => {
                   deleteAction={deleteAction}
                   dirty={dirty}
                   reset={resetForm}
-                  isLoading={isLoading}
+                  isLoading={false}
                 />
                 <DEBUG values={values} />
               </Form>

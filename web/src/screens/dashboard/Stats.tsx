@@ -3,23 +3,27 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-import {useQuery, useSuspenseQuery} from "@tanstack/react-query";
-import {useNavigate} from "@tanstack/react-router";
+import { useQuery, useSuspenseQuery } from "@tanstack/react-query";
+import { Link } from "@tanstack/react-router";
 import { APIClient } from "@api/APIClient";
 import { classNames } from "@utils";
 import { LinkIcon } from "@heroicons/react/24/solid";
 
 interface StatsItemProps {
-    name: string;
-    value?: number;
-    placeholder?: string;
-    onClick?: () => void;
+  name: string;
+  value?: number;
+  placeholder?: string;
+  to?: string;
+  eventType?: string;
 }
 
-const StatsItem = ({ name, placeholder, value, onClick }: StatsItemProps) => (
-  <div
+const StatsItem = ({ name, placeholder, value, to, eventType }: StatsItemProps) => (
+  <Link
     className="group relative px-4 py-3 cursor-pointer overflow-hidden rounded-lg shadow-lg bg-white dark:bg-gray-800 hover:scale-110 hover:shadow-xl transition-all duration-200 ease-in-out"
-    onClick={onClick}
+    to={to}
+    search={{
+      filter: eventType
+    }}
   >
     <dt>
       <div className="flex items-center text-sm font-medium text-gray-500 group-hover:dark:text-gray-475 group-hover:text-gray-600 transition-colors duration-200 ease-in-out">
@@ -36,19 +40,10 @@ const StatsItem = ({ name, placeholder, value, onClick }: StatsItemProps) => (
         <p>{value}</p>
       </dd>
     </div>
-  </div>
+  </Link>
 );
 
 export const Stats = () => {
-  const navigate = useNavigate({ from: '/' })
-  const handleStatClick = (filterType: string) => {
-    if (filterType) {
-      navigate({ to: '/releases', search: { filter: filterType}})
-    } else {
-      navigate({ to: '/releases'})
-    }
-  };
-
   const { isLoading, data } = useQuery({
     queryKey: ["dash_release_stats"],
     queryFn: APIClient.release.stats,
@@ -62,11 +57,11 @@ export const Stats = () => {
       </h1>
 
       <dl className={classNames("grid grid-cols-2 gap-2 sm:gap-5 mt-5 sm:grid-cols-2 lg:grid-cols-4", isLoading ? "animate-pulse" : "")}>
-        <StatsItem name="Filtered Releases" onClick={() => handleStatClick("")} value={data?.filtered_count ?? 0} />
+        <StatsItem name="Filtered Releases" to="/releases" value={data?.filtered_count ?? 0} />
         {/* <StatsItem name="Filter Rejected Releases" stat={data?.filter_rejected_count} /> */}
-        <StatsItem name="Approved Pushes" onClick={() => handleStatClick("PUSH_APPROVED")}  value={data?.push_approved_count ?? 0} />
-        <StatsItem name="Rejected Pushes" onClick={() => handleStatClick("PUSH_REJECTED")}  value={data?.push_rejected_count ?? 0 } />
-        <StatsItem name="Errored Pushes" onClick={() => handleStatClick("PUSH_ERROR")}  value={data?.push_error_count ?? 0} />
+        <StatsItem name="Approved Pushes" to="/releases" eventType="PUSH_APPROVED" value={data?.push_approved_count ?? 0} />
+        <StatsItem name="Rejected Pushes" to="/releases" eventType="PUSH_REJECTED" value={data?.push_rejected_count ?? 0 } />
+        <StatsItem name="Errored Pushes" to="/releases" eventType="PUSH_ERROR"  value={data?.push_error_count ?? 0} />
       </dl>
     </div>
   );

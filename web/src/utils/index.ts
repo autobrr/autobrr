@@ -20,7 +20,6 @@ export function baseUrl() {
       baseUrl = window.APP.baseUrl;
     }
   }
-  console.log("baseurl", baseUrl)
   return baseUrl;
 }
 

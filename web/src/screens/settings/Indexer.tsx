@@ -5,7 +5,7 @@
 
 import { useState, useMemo } from "react";
 import toast from "react-hot-toast";
-import {useMutation, useQuery, useQueryClient, useSuspenseQuery} from "@tanstack/react-query";
+import {useMutation, useQueryClient, useSuspenseQuery} from "@tanstack/react-query";
 import { PlusIcon } from "@heroicons/react/24/solid";
 
 import { useToggle } from "@hooks/hooks";
@@ -17,6 +17,7 @@ import { IndexerAddForm, IndexerUpdateForm } from "@forms";
 import { componentMapType } from "@forms/settings/DownloadClientForms";
 
 import { Section } from "./_components";
+import { indexersQueryOptions } from "@app/App.tsx";
 
 export const indexerKeys = {
   all: ["indexers"] as const,
@@ -168,18 +169,24 @@ const ListItem = ({ indexer }: ListItemProps) => {
 
 function IndexerSettings() {
   const [addIndexerIsOpen, toggleAddIndexer] = useToggle(false);
+  // const ctx = settingsIndexersRoute.useRouteContext()
+  // const queryClient = ctx.queryClient
 
-  const { error, data } = useQuery({
-    queryKey: indexerKeys.lists(),
-    queryFn: APIClient.indexers.getAll,
-    refetchOnWindowFocus: false
-  });
+  const indexersQuery = useSuspenseQuery(indexersQueryOptions())
 
-  const sortedIndexers = useSort(data || []);
+  const indexers = indexersQuery.data
 
-  if (error) {
-    return (<p>An error has occurred</p>);
-  }
+  // const { error, data } = useQuery({
+  //   queryKey: indexerKeys.lists(),
+  //   queryFn: APIClient.indexers.getAll,
+  //   refetchOnWindowFocus: false
+  // });
+
+  const sortedIndexers = useSort(indexers || []);
+
+  // if (error) {
+  //   return (<p>An error has occurred</p>);
+  // }
 
   return (
     <Section
@@ -201,7 +208,7 @@ function IndexerSettings() {
         </button>
       }
     >
-      <IndexerAddForm isOpen={addIndexerIsOpen} toggle={toggleAddIndexer} />
+      {/*<IndexerAddForm isOpen={addIndexerIsOpen} toggle={toggleAddIndexer} />*/}
 
       <div className="flex flex-col">
         {sortedIndexers.items.length ? (

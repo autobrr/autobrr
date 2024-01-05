@@ -4,7 +4,7 @@
  */
 
 import React, { useState } from "react";
-import {useQuery, useSuspenseQuery} from "@tanstack/react-query";
+import { useQuery, useSuspenseQuery } from "@tanstack/react-query";
 import {
   useTable,
   useFilters,
