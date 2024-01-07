@@ -179,7 +179,7 @@ func (c *Client) get(ctx context.Context, url string) (*http.Response, error) {
 			return res, errors.Wrap(readErr, "could not unmarshal body")
 		}
 
-		res.Body.Close()
+		_ = res.Body.Close()
 
 		return res, errors.New("status code: %d status: %s error: %s", res.StatusCode, r.Status, r.Error)
 	}
@@ -220,6 +220,7 @@ func (c *Client) GetTorrentByID(ctx context.Context, torrentID string) (*domain.
 		Id:       strconv.Itoa(r.Response.Torrent.Id),
 		InfoHash: r.Response.Torrent.InfoHash,
 		Size:     strconv.Itoa(r.Response.Torrent.Size),
+		Uploader: r.Response.Torrent.Username,
 	}, nil
 
 }

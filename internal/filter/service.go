@@ -452,6 +452,9 @@ func (s *service) AdditionalSizeCheck(ctx context.Context, f *domain.Filter, rel
 			l.Debug().Msgf("(%s) got torrent info from api: %+v", f.Name, torrentInfo)
 
 			release.Size = torrentInfo.ReleaseSizeBytes()
+			if release.Uploader == "" {
+				release.Uploader = torrentInfo.Uploader
+			}
 		}
 
 	default:
