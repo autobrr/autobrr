@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+ * Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
@@ -41,6 +41,8 @@ interface InitialValuesSettings {
     download_speed_threshold?: number;
     max_active_downloads?: number;
   };
+  external_download_client_id?: number;
+  external_download_client?: string;
 }
 
 interface InitialValues {
@@ -135,8 +137,6 @@ function FormFieldsArr() {
           <PasswordFieldWide name="settings.basic.password" label="Password" />
         </>
       )}
-
-      <NumberFieldWide name="settings.external_download_client_id" label="Download Client ID" tooltip={<div><p>Specify what client the arr should use by default. Can be overridden per filter action. You can find the id in the arr by looking at the network responses for download clients.</p></div>} />
     </div>
   );
 }
@@ -432,6 +432,29 @@ function FormFieldsRulesBasic() {
   );
 }
 
+function FormFieldsRulesArr() {
+  // const {
+  //   values: { settings }
+  // } = useFormikContext<InitialValues>();
+
+  return (
+    <div className="border-t border-gray-200 dark:border-gray-700 py-5 px-2">
+      <div className="px-4 space-y-1">
+        <Dialog.Title className="text-lg font-medium text-gray-900 dark:text-white">
+          Download Client
+        </Dialog.Title>
+        <p className="text-sm text-gray-500 dark:text-gray-400">
+          Override download client to use. Can also be overridden per Filter Action.
+        </p>
+      </div>
+
+      <TextFieldWide name="settings.external_download_client" label="Client Name" tooltip={<div><p>Specify what client the arr should use by default. Can be overridden per filter action.</p></div>} />
+
+      <NumberFieldWide name="settings.external_download_client_id" label="Client ID DEPRECATED" tooltip={<div><p>DEPRECATED: Use Client name field instead.</p></div>} />
+    </div>
+  );
+}
+
 function FormFieldsRulesQbit() {
   const {
     values: { settings }
@@ -544,7 +567,12 @@ export const rulesComponentMap: componentMapType = {
   DELUGE_V2: <FormFieldsRulesBasic />,
   QBITTORRENT: <FormFieldsRulesQbit />,
   PORLA: <FormFieldsRulesBasic />,
-  TRANSMISSION: <FormFieldsRulesTransmission />
+  TRANSMISSION: <FormFieldsRulesTransmission />,
+  RADARR: <FormFieldsRulesArr />,
+  SONARR: <FormFieldsRulesArr />,
+  LIDARR: <FormFieldsRulesArr />,
+  WHISPARR: <FormFieldsRulesArr />,
+  READARR: <FormFieldsRulesArr />,
 };
 
 interface formButtonsProps {

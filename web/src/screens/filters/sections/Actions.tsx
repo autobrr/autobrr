@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+ * Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
@@ -70,6 +70,7 @@ export function Actions({ filter, values }: FilterActionsProps) {
     webhook_data: "",
     webhook_headers: [],
     external_download_client_id: 0,
+    external_download_client: "",
     client_id: 0
   };
 

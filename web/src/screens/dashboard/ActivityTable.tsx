@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+ * Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
@@ -168,7 +168,7 @@ export const ActivityTable = () => {
     },
     {
       Header: "Release",
-      accessor: "torrent_name",
+      accessor: "name",
       Cell: DataTable.TitleCell
     },
     {
@@ -183,7 +183,7 @@ export const ActivityTable = () => {
       Filter: SelectColumnFilter,
       filter: "includes"
     }
-  ], []);
+  ] as Column[], []);
 
   const { isLoading, data } = useSuspenseQuery({
     queryKey: ["dash_recent_releases"],
@@ -213,7 +213,7 @@ export const ActivityTable = () => {
       const randomNames = RandomLinuxIsos(data.data.length);
       const newData: Release[] = data.data.map((item, index) => ({
         ...item,
-        torrent_name: `${randomNames[index]}.iso`,
+        name: `${randomNames[index]}.iso`,
         indexer: index % 2 === 0 ? "distrowatch" : "linuxtracker"
       }));
       setModifiedData(newData);

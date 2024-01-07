@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+ * Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
@@ -83,6 +83,34 @@ export const get = <T> (obj: T, path: string|Array<any>, defValue?: string) => {
   // If found value is undefined return default value; otherwise return the value
   return result === undefined ? defValue : result;
 };
+
+const UNITS = ['byte', 'kilobyte', 'megabyte', 'gigabyte', 'terabyte', 'petabyte']
+const BYTES_PER_KB = 1000
+
+
+/**
+ * Format bytes as human-readable text.
+ *
+ * @param sizeBytes Number of bytes.
+ *
+ * @return Formatted string.
+ */
+export function humanFileSize(sizeBytes: number | bigint): string {
+  let size = Math.abs(Number(sizeBytes))
+
+  let u = 0
+  while (size >= BYTES_PER_KB && u < UNITS.length - 1) {
+    size /= BYTES_PER_KB
+    ++u
+  }
+
+  return new Intl.NumberFormat([], {
+    style: 'unit',
+    unit: UNITS[u],
+    unitDisplay: 'short',
+    maximumFractionDigits: 1,
+  }).format(size)
+}
 
 export const RandomLinuxIsos = (count: number) => {
   const linuxIsos = [

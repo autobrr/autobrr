@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+ * Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
@@ -12,7 +12,7 @@ import {
   DocumentArrowDownIcon
 } from "@heroicons/react/24/outline";
 import { ExclamationCircleIcon } from "@heroicons/react/24/solid";
-import format from "date-fns/format";
+import { format } from "date-fns/format";
 import { toast } from "react-hot-toast";
 
 import { APIClient } from "@api/APIClient";

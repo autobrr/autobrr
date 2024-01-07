@@ -1,4 +1,4 @@
-// Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+// Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 package domain
@@ -59,7 +59,7 @@ type Release struct {
 	TorrentTmpFile              string                `json:"-"`
 	TorrentDataRawBytes         []byte                `json:"-"`
 	TorrentHash                 string                `json:"-"`
-	TorrentName                 string                `json:"torrent_name"` // full release name
+	TorrentName                 string                `json:"name"` // full release name
 	Size                        uint64                `json:"size"`
 	Title                       string                `json:"title"` // Parsed title
 	Description                 string                `json:"-"`
@@ -536,32 +536,6 @@ func (r *Release) CleanupTemporaryFiles() {
 // HasMagnetUri check uf MagnetURI is set or empty
 func (r *Release) HasMagnetUri() bool {
 	return r.MagnetURI != ""
-}
-
-type magnetRoundTripper struct{}
-
-func (rt *magnetRoundTripper) RoundTrip(r *http.Request) (*http.Response, error) {
-	if r.URL.Scheme == "magnet" {
-		responseBody := r.URL.String()
-		respReader := io.NopCloser(strings.NewReader(responseBody))
-
-		resp := &http.Response{
-			Status:        http.StatusText(http.StatusOK),
-			StatusCode:    http.StatusOK,
-			Body:          respReader,
-			ContentLength: int64(len(responseBody)),
-			Header: map[string][]string{
-				"Content-Type": {"text/plain"},
-				"Location":     {responseBody},
-			},
-			Proto:      "HTTP/2.0",
-			ProtoMajor: 2,
-		}
-
-		return resp, nil
-	}
-
-	return http.DefaultTransport.RoundTrip(r)
 }
 
 func (r *Release) ResolveMagnetUri(ctx context.Context) error {

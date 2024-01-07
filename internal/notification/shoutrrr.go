@@ -47,11 +47,6 @@ func (s *shoutrrrSender) isEnabled() bool {
 			return false
 		}
 
-		if s.Settings.Token == "" {
-			s.log.Warn().Msg("shoutrrr missing application token")
-			return false
-		}
-
 		return true
 	}
 

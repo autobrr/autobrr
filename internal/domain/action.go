@@ -1,4 +1,4 @@
-// Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+// Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 package domain
@@ -53,6 +53,7 @@ type Action struct {
 	WebhookData              string              `json:"webhook_data,omitempty"`
 	WebhookHeaders           []string            `json:"webhook_headers,omitempty"`
 	ExternalDownloadClientID int32               `json:"external_download_client_id,omitempty"`
+	ExternalDownloadClient   string              `json:"external_download_client,omitempty"`
 	FilterID                 int                 `json:"filter_id,omitempty"`
 	ClientID                 int32               `json:"client_id,omitempty"`
 	Client                   *DownloadClient     `json:"client,omitempty"`

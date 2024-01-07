@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+ * Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
@@ -10,11 +10,27 @@ interface Release {
   indexer: string;
   filter: string;
   protocol: string;
+  implementation: string;
+  name: string;
   title: string;
   size: number;
   raw: string;
   info_url: string;
   download_url: string;
+  category: string;
+  group: string;
+  season: number;
+  episode: number;
+  year: number;
+  resolution: string;
+  codec: string;
+  source: string;
+  container: string;
+  hdr: string;
+  uploader: string;
+  origin: string;
+  // freeleech: boolean;
+  // freeleech_percent:number;
   timestamp: Date
   action_status: ReleaseActionStatus[]
 }

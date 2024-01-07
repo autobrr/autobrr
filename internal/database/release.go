@@ -1,4 +1,4 @@
-// Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+// Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 package database
@@ -211,7 +211,7 @@ func (repo *ReleaseRepo) findReleases(ctx context.Context, tx *Tx, params domain
 	}
 
 	queryBuilder := repo.db.squirrel.
-		Select("r.id", "r.filter_status", "r.rejections", "r.indexer", "r.filter", "r.protocol", "r.info_url", "r.download_url", "r.title", "r.torrent_name", "r.size", "r.timestamp",
+		Select("r.id", "r.filter_status", "r.rejections", "r.indexer", "r.filter", "r.protocol", "r.info_url", "r.download_url", "r.title", "r.torrent_name", "r.size", "r.category", "r.season", "r.episode", "r.year", "r.resolution", "r.source", "r.codec", "r.container", "r.release_group", "r.timestamp",
 			"ras.id", "ras.status", "ras.action", "ras.action_id", "ras.type", "ras.client", "ras.filter", "ras.filter_id", "ras.release_id", "ras.rejections", "ras.timestamp").
 		Column(sq.Alias(countQuery, "page_total")).
 		From("release r").
@@ -245,16 +245,21 @@ func (repo *ReleaseRepo) findReleases(ctx context.Context, tx *Tx, params domain
 		var rls domain.Release
 		var ras domain.ReleaseActionStatus
 
-		var rlsindexer, rlsfilter, infoUrl, downloadUrl sql.NullString
+		var rlsindexer, rlsfilter, infoUrl, downloadUrl, codec sql.NullString
 
 		var rasId, rasFilterId, rasReleaseId, rasActionId sql.NullInt64
 		var rasStatus, rasAction, rasType, rasClient, rasFilter sql.NullString
 		var rasRejections []sql.NullString
 		var rasTimestamp sql.NullTime
 
-		if err := rows.Scan(&rls.ID, &rls.FilterStatus, pq.Array(&rls.Rejections), &rlsindexer, &rlsfilter, &rls.Protocol, &infoUrl, &downloadUrl, &rls.Title, &rls.TorrentName, &rls.Size, &rls.Timestamp, &rasId, &rasStatus, &rasAction, &rasActionId, &rasType, &rasClient, &rasFilter, &rasFilterId, &rasReleaseId, pq.Array(&rasRejections), &rasTimestamp, &countItems); err != nil {
+		if err := rows.Scan(&rls.ID, &rls.FilterStatus, pq.Array(&rls.Rejections), &rlsindexer, &rlsfilter, &rls.Protocol, &infoUrl, &downloadUrl, &rls.Title, &rls.TorrentName, &rls.Size, &rls.Category, &rls.Season, &rls.Episode, &rls.Year, &rls.Resolution, &rls.Source, &codec, &rls.Container, &rls.Group, &rls.Timestamp, &rasId, &rasStatus, &rasAction, &rasActionId, &rasType, &rasClient, &rasFilter, &rasFilterId, &rasReleaseId, pq.Array(&rasRejections), &rasTimestamp, &countItems); err != nil {
 			return res, 0, 0, errors.Wrap(err, "error scanning row")
 		}
+
+		//for _, codec := range codecs {
+		//	rls.Codec = append(rls.Codec, codec.String)
+		//
+		//}
 
 		ras.ID = rasId.Int64
 		ras.Status = domain.ReleasePushStatus(rasStatus.String)
@@ -291,6 +296,7 @@ func (repo *ReleaseRepo) findReleases(ctx context.Context, tx *Tx, params domain
 		rls.ActionStatus = make([]domain.ReleaseActionStatus, 0)
 		rls.InfoURL = infoUrl.String
 		rls.DownloadURL = downloadUrl.String
+		rls.Codec = strings.Split(codec.String, ",")
 
 		// only add ActionStatus if it's not empty
 		if ras.ID > 0 {

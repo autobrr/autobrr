@@ -1,4 +1,4 @@
-// Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+// Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 package notification
@@ -106,11 +106,6 @@ func (s *ntfySender) isEnabled() bool {
 	if s.Settings.Enabled {
 		if s.Settings.Host == "" {
 			s.log.Warn().Msg("ntfy missing host")
-			return false
-		}
-
-		if s.Settings.Token == "" {
-			s.log.Warn().Msg("ntfy missing application token")
 			return false
 		}
 
