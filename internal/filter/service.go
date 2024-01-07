@@ -40,7 +40,7 @@ type Service interface {
 	Duplicate(ctx context.Context, filterID int) (*domain.Filter, error)
 	ToggleEnabled(ctx context.Context, filterID int, enabled bool) error
 	Delete(ctx context.Context, filterID int) error
-	AdditionalSizeCheck(ctx context.Context, f *domain.Filter, release *domain.Release) (bool, error)
+	AdditionalDetailsCheck(ctx context.Context, f *domain.Filter, release *domain.Release) (bool, error)
 	CanDownloadShow(ctx context.Context, release *domain.Release) (bool, error)
 	GetDownloadsByFilterId(ctx context.Context, filterID int) (*domain.FilterDownloads, error)
 }
@@ -380,20 +380,19 @@ func (s *service) CheckFilter(ctx context.Context, f *domain.Filter, release *do
 
 		l.Debug().Msgf("found and matched filter: %s", f.Name)
 
-		// If size constraints are set in a filter and the indexer did not
-		// announce the size, we need to do an additional out of band size
-		// check.
-		if release.AdditionalSizeCheckRequired {
-			l.Debug().Msgf("(%s) additional size check required", f.Name)
+		// If during filter checks there were some fields which we could not check due to the lack of the information,
+		// now is our chance to do it right
+		if release.AdditionalDetailsCheckRequired {
+			l.Trace().Msgf("(%s) additional details check required", f.Name)
 
-			ok, err := s.AdditionalSizeCheck(ctx, f, release)
+			ok, err := s.AdditionalDetailsCheck(ctx, f, release)
 			if err != nil {
-				l.Error().Err(err).Msgf("(%s) additional size check error", f.Name)
+				l.Error().Err(err).Msgf("(%s) additional details check error", f.Name)
 				return false, err
 			}
 
 			if !ok {
-				l.Trace().Msgf("(%s) additional size check not matching what filter wanted", f.Name)
+				l.Trace().Msgf("(%s) additional details check not matching what filter wanted", f.Name)
 				return false, nil
 			}
 		}
@@ -419,63 +418,67 @@ func (s *service) CheckFilter(ctx context.Context, f *domain.Filter, release *do
 	return false, nil
 }
 
-// AdditionalSizeCheck performs additional out of band checks to determine the
-// size of a torrent. Some indexers do not announce torrent size, so it is
-// necessary to determine the size of the torrent in some other way. Some
+// AdditionalDetailsCheck performs additional out of band checks
+// Some indexers do not announce required info such as torrent size, uploader, etc. so it is
+// necessary to determine such information in some other way. Some
 // indexers have an API implemented to fetch this data. For those which don't,
 // it is necessary to download the torrent file and parse it to make the size
 // check. We use the API where available to minimize the number of torrents we
 // need to download.
-func (s *service) AdditionalSizeCheck(ctx context.Context, f *domain.Filter, release *domain.Release) (bool, error) {
+func (s *service) AdditionalDetailsCheck(ctx context.Context, f *domain.Filter, release *domain.Release) (bool, error) {
 	var err error
 	defer func() {
+		// reset additional check flag to avoid hitting api with the next filter
+		release.AdditionalDetailsCheckRequired = false
+
 		// try recover panic if anything went wrong with API or size checks
 		errors.RecoverPanic(recover(), &err)
 	}()
 
 	// do additional size check against indexer api or torrent for size
-	l := s.log.With().Str("method", "AdditionalSizeCheck").Logger()
-
-	l.Debug().Msgf("(%s) additional size check required", f.Name)
+	l := s.log.With().Str("method", "AdditionalDetailsCheck").Logger()
 
 	switch release.Indexer {
 	case "ptp", "btn", "ggn", "redacted", "ops", "mock":
+		l.Trace().Msgf("(%s) preparing to check via api", f.Name)
+
+		torrentInfo, err := s.apiService.GetTorrentByID(ctx, release.Indexer, release.TorrentID)
+		if err != nil || torrentInfo == nil {
+			l.Error().Err(err).Msgf("(%s) could not get torrent info from api: '%s' from: %s", f.Name, release.TorrentID, release.Indexer)
+			return false, err
+		}
+		l.Debug().Msgf("(%s) got torrent info from api: %+v", f.Name, torrentInfo)
+
 		if release.Size == 0 {
-			l.Trace().Msgf("(%s) preparing to check via api", f.Name)
-
-			torrentInfo, err := s.apiService.GetTorrentByID(ctx, release.Indexer, release.TorrentID)
-			if err != nil || torrentInfo == nil {
-				l.Error().Err(err).Msgf("(%s) could not get torrent info from api: '%s' from: %s", f.Name, release.TorrentID, release.Indexer)
-				return false, err
-			}
-
-			l.Debug().Msgf("(%s) got torrent info from api: %+v", f.Name, torrentInfo)
-
+			l.Trace().Msgf("(%s) setting new release size value for '%s':%d", f.Name, release.TorrentID, torrentInfo.ReleaseSizeBytes())
 			release.Size = torrentInfo.ReleaseSizeBytes()
 		}
 
-	default:
-		l.Trace().Msgf("(%s) preparing to download torrent metafile", f.Name)
+		if release.Uploader == "" {
+			l.Trace().Msgf("(%s) setting new uploader value for '%s':%s", f.Name, release.TorrentID, torrentInfo.Uploader)
+			release.Uploader = torrentInfo.Uploader
+		}
 
-		// if indexer doesn't have api, download torrent and add to tmpPath
-		if err := release.DownloadTorrentFileCtx(ctx); err != nil {
-			l.Error().Err(err).Msgf("(%s) could not download torrent file with id: '%s' from: %s", f.Name, release.TorrentID, release.Indexer)
-			return false, err
+	default:
+		if release.Size == 0 && (f.MinSize != "" || f.MaxSize != "") {
+			l.Trace().Msgf("(%s) preparing to download torrent metafile", f.Name)
+
+			// if indexer doesn't have api, download torrent and add to tmpPath
+			if err := release.DownloadTorrentFileCtx(ctx); err != nil {
+				l.Error().Err(err).Msgf("(%s) could not download torrent file with id: '%s' from: %s", f.Name, release.TorrentID, release.Indexer)
+				return false, err
+			}
 		}
 	}
 
-	sizeOk, err := f.CheckReleaseSize(release.Size)
-	if err != nil {
-		l.Error().Err(err).Msgf("(%s) error comparing release and filter size", f.Name)
-		return false, err
+	// now that we have extra data, run filters again
+	rejections, matchedFilter := f.CheckFilter(release)
+	if len(rejections) > 0 {
+		l.Debug().Msgf("(%s) for release: %v rejections: (%s)", f.Name, release.TorrentName, f.RejectionsString(true))
+		return false, nil
 	}
 
-	if !sizeOk {
-		l.Debug().Msgf("(%s) filter did not match after additional size check, trying next", f.Name)
-		return false, err
-	}
-
-	return true, nil
+	return matchedFilter, nil
 }
 
 func (s *service) CanDownloadShow(ctx context.Context, release *domain.Release) (bool, error) {

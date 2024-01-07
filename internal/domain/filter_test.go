@@ -4,9 +4,8 @@
 package domain
 
 import (
-	"testing"
-
 	"github.com/stretchr/testify/assert"
+	"testing"
 )
 
 func TestFilter_CheckFilter(t *testing.T) {
@@ -2130,8 +2129,8 @@ func Test_matchRegex(t *testing.T) {
 		{name: "test_5", args: args{tag: "Some.show.S01.DV.2160p.ATVP.WEB-DL.DDPA5.1.x265-GROUP2", filter: ".*1080p.+(group1|group3),.*720p.+,"}, want: false},
 		{name: "test_6", args: args{tag: "[Group] -Name of a Novel Something Good-  [2012][Translated (Group)][EPUB]", filter: "(?:.*Something Good.*|.*Something Bad.*)"}, want: true},
 		{name: "test_7", args: args{tag: "[Group] -Name of a Novel Something Good-  [2012][Translated (Group)][EPUB]", filter: "(?:.*Something Funny.*|.*Something Bad.*)"}, want: false},
-		{name: "test_8", args: args{tag: ".s10E123.", filter:`\.[Ss]\d{1,2}[Ee]\d{1,3}\.`}, want: true},
-		{name: "test_9", args: args{tag: "S1E1", filter:`\.[Ss]\d{1,2}[Ee]\d{1,3}\.`}, want: false},
+		{name: "test_8", args: args{tag: ".s10E123.", filter: `\.[Ss]\d{1,2}[Ee]\d{1,3}\.`}, want: true},
+		{name: "test_9", args: args{tag: "S1E1", filter: `\.[Ss]\d{1,2}[Ee]\d{1,3}\.`}, want: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -2185,6 +2184,101 @@ func Test_checkSizeFilter(t *testing.T) {
 				assert.EqualErrorf(t, err, tt.wantErr, "Error should be: %v, got: %v", tt.wantErr, err)
 			}
 			assert.Equal(t, tt.want, got)
+		})
+	}
+}
+
+func TestFilter_checkUploader(t *testing.T) {
+	defaultFilter := Filter{
+		MatchUploaders: "foo,bar",
+	}
+	type Args = struct {
+		release *Release
+		want    bool
+	}
+	tests := []struct {
+		name               string
+		filter             Filter
+		args               Args
+		expect             bool
+		additional_details bool
+	}{
+		// release uploader is set, check normal flow
+		{
+			name:   "release_uploader_set_1",
+			filter: defaultFilter,
+			args: Args{
+				release: &Release{
+					Uploader: "foo",
+				},
+				want: true,
+			},
+			expect:             true,
+			additional_details: false,
+		},
+		{
+			name:   "release_uploader_set_2",
+			filter: defaultFilter,
+			args: Args{
+				release: &Release{
+					Uploader: "foo",
+				},
+				want: false,
+			},
+			expect:             false,
+			additional_details: false,
+		},
+		{
+			name:   "release_uploader_set_3",
+			filter: defaultFilter,
+			args: Args{
+				release: &Release{
+					Uploader: "fooz",
+				},
+				want: true,
+			},
+			expect:             false,
+			additional_details: false,
+		},
+		{
+			name:   "release_uploader_set_4",
+			filter: defaultFilter,
+			args: Args{
+				release: &Release{
+					Uploader: "fooz",
+				},
+				want: false,
+			},
+			expect:             true,
+			additional_details: false,
+		},
+		// release uploader is not set
+		{
+			name:   "release_uploader_not_set_1",
+			filter: defaultFilter,
+			args: Args{
+				release: &Release{},
+				want:    true,
+			},
+			expect:             false,
+			additional_details: true,
+		},
+		{
+			name:   "release_uploader_not_set_2",
+			filter: defaultFilter,
+			args: Args{
+				release: &Release{},
+				want:    false,
+			},
+			expect:             false,
+			additional_details: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := tt.filter.checkUploader(tt.args.release, tt.filter.MatchUploaders, tt.args.want)
+			assert.Equalf(t, tt.expect, got, "expect field check failed")
+			assert.Equalf(t, tt.additional_details, tt.args.release.AdditionalDetailsCheckRequired, "additional field check failed")
 		})
 	}
 }
