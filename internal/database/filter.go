@@ -1426,6 +1426,13 @@ func (r *FilterRepo) Delete(ctx context.Context, filterID int) error {
 	return nil
 }
 
+// GetDownloadsByFilterId looks up how many `PENDING` or `PUSH_APPROVED`
+// releases there have been for the given filter in the current time window
+// starting at the start of the unit (since the beginning of the most recent
+// hour/day/week).
+//
+// See also
+// https://github.com/autobrr/autobrr/pull/1285#pullrequestreview-1795913581
 func (r *FilterRepo) GetDownloadsByFilterId(ctx context.Context, filterID int) (*domain.FilterDownloads, error) {
 	if r.db.Driver == "sqlite" {
 		return r.downloadsByFilterSqlite(ctx, filterID)
