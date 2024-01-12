@@ -57,14 +57,8 @@ function SubNavLink({ item }: NavLinkProps) {
       key={item.href}
       to={item.href}
       activeOptions={{ exact: item.exact }}
-      // className="transition group border-l-4 px-3 py-2 flex items-center text-sm font-medium"
-      // end
-      // className={({ isActive }) => classNames(
-      //   "transition group border-l-4 px-3 py-2 flex items-center text-sm font-medium",
-      //   isActive
-      //     ? "font-bold bg-blue-100 dark:bg-gray-700 border-sky-500 dark:border-blue-500 text-sky-700 dark:text-gray-200 hover:bg-blue-200 dark:hover:bg-gray-600 hover:text-sky-900 dark:hover:text-white"
-      //     : "border-transparent text-gray-900 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 hover:text-gray-900 dark:hover:text-gray-300"
-      // )}
+      search={{}}
+      params={{}}
       // aria-current={splitLocation[2] === item.href ? "page" : undefined}
     >
       {({ isActive }) => {
@@ -98,7 +92,7 @@ function SidebarNav({ subNavigation }: SidebarNavProps) {
     <aside className="py-2 lg:col-span-3">
       <nav className="space-y-1">
         {subNavigation.map((item) => (
-          <SubNavLink item={item} key={item.href} />
+          <SubNavLink key={item.href} item={item} />
         ))}
       </nav>
     </aside>

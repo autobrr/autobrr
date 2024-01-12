@@ -83,7 +83,7 @@ export const IndexerSelectColumnFilter = ({
       currentValue={filterValue}
       onChange={setFilter}
     >
-      {isSuccess && data?.map((indexer, idx) => (
+      {isSuccess && data && data?.map((indexer, idx) => (
         <FilterOption key={idx} label={indexer} value={indexer} />
       ))}
     </ListboxFilter>

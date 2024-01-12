@@ -14,17 +14,19 @@ import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { ErrorBoundary } from "react-error-boundary";
 import { toast, Toaster } from "react-hot-toast";
 
-import { AuthContext, SettingsContext } from "./utils/Context";
+import { SettingsContext } from "./utils/Context";
 import { ErrorPage } from "./components/alerts";
 import Toast from "./components/notifications/Toast";
 import { Portal } from "react-portal";
 import {
   Outlet,
   RouterProvider,
-  Link,
   Router,
   Route,
-  RootRoute, rootRouteWithContext, redirect, ErrorComponent, useRouterState,
+  rootRouteWithContext,
+  redirect,
+  ErrorComponent,
+  useRouterState,
 } from '@tanstack/react-router'
 import { TanStackRouterDevtools } from '@tanstack/router-devtools'
 import {Header} from "@components/header";
@@ -51,7 +53,6 @@ import {Logs} from "@screens/Logs.tsx";
 import {Login} from "@screens/auth";
 import {APIClient} from "@api/APIClient.ts";
 import {baseUrl} from "@utils";
-import * as querystring from "querystring";
 import {filterKeys} from "@screens/filters/List.tsx";
 
 export const queryClient = new QueryClient({
@@ -153,6 +154,14 @@ export const apikeysQueryOptions = () =>
 const dashboardRoute = new Route({
   getParentRoute: () => authIndexRoute,
   path: '/',
+  loader: () => {
+    // https://tanstack.com/router/v1/docs/guide/deferred-data-loading#deferred-data-loading-with-defer-and-await
+    // TODO load stats
+
+    // TODO load recent releases
+
+    return {}
+  },
   component: Dashboard,
 })
 
@@ -256,6 +265,13 @@ export const releasesIndexRoute = new Route({
 export const settingsRoute = new Route({
   getParentRoute: () => authIndexRoute,
   path: 'settings',
+  pendingMs: 3000,
+  pendingComponent: () => (
+    <div className={`p-2 text-2xl`}>
+      {/*<Spinner />*/}
+      <SectionLoader $size="xlarge" />
+    </div>
+  ),
   component: Settings
 })
 
@@ -452,9 +468,7 @@ const routeTree = rootRoute.addChildren([
 const router = new Router({
   routeTree,
   defaultPendingComponent: () => (
-    <div className={`p-2 text-2xl`}>
-      <Spinner />
-    </div>
+      <SectionLoader $size="large" />
   ),
   defaultErrorComponent: ({ error }) => <ErrorComponent error={error} />,
   context: {
@@ -490,9 +504,6 @@ const auth: Auth = {
 export function App() {
   // const { reset } = useQueryErrorResetBoundary();
 
-  // const authContext = AuthContext.useValue();
-  const settings = SettingsContext.useValue();
-
   return (
     // <ErrorBoundary
     //   onReset={reset}
@@ -509,11 +520,6 @@ export function App() {
           context={{
             auth,
           }}        />
-        {/*{settings.debug ? (*/}
-        {/*  <>*/}
-        {/*  <ReactQueryDevtools initialIsOpen={false} />*/}
-        {/*  </>*/}
-        {/*) : null}*/}
       </QueryClientProvider>
     // </ErrorBoundary>
   );

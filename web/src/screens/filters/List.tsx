@@ -219,7 +219,7 @@ function FilterList({ toggleCreateFilter }: any) {
           </div>
 
           <div className="flex items-center gap-5">
-            {/*<div className="hidden md:flex"><IndexerSelectFilter dispatch={dispatchFilter} /></div>*/}
+            <div className="hidden md:flex"><IndexerSelectFilter dispatch={dispatchFilter} /></div>
             <SortSelectFilter dispatch={dispatchFilter} />
           </div>
         </div>

@@ -54,20 +54,13 @@ function TabNavLink({ item }: NavLinkProps) {
   // we need to clean the / if it's a base root path
   return (
     <Link
-      key={item.href}
       to={item.href}
       activeOptions={{ exact: item.exact }}
-      // end
-      // className={({ isActive }) => classNames(
-      //   "transition border-b-2 whitespace-nowrap py-4 duration-3000 px-1 font-medium text-sm first:rounded-tl-lg last:rounded-tr-lg",
-      //   isActive
-      //     ? "text-blue-600 dark:text-white border-blue-600 dark:border-blue-500"
-      //     : "text-gray-550 hover:text-blue-500 dark:hover:text-white border-transparent"
-      // )}
+      search={{}}
+      params={{}}
       // aria-current={splitLocation[2] === item.href ? "page" : undefined}
       // className="transition border-b-2 whitespace-nowrap py-4 duration-3000 px-1 font-medium text-sm first:rounded-tl-lg last:rounded-tr-lg"
     >
-      {/*{item.name}*/}
       {({ isActive }) => {
         return (
           <span
@@ -382,7 +375,7 @@ export const FilterDetails = () => {
           <div className="rounded-t-lg bg-gray-125 dark:bg-gray-850 border-b border-gray-200 dark:border-gray-750">
             <nav className="px-4 py-4 -mb-px flex space-x-6 sm:space-x-8 overflow-x-auto">
               {tabs.map((tab) => (
-                <TabNavLink item={tab} key={tab.href} />
+                <TabNavLink key={tab.href} item={tab}  />
               ))}
             </nav>
           </div>
