@@ -403,7 +403,7 @@ const FeedSpecific = ({ values }: ValueConsumer) => (
       placeholder="Takes any number (0 is infinite)"
       tooltip={
         <div>
-          <p>Number of min seeders as specified by the respective unit.</p>
+          <p>Number of min seeders as specified by the respective unit. Only for Torznab</p>
           <DocsLink href="https://autobrr.com/filters#rules" />
         </div>
       }
@@ -414,7 +414,7 @@ const FeedSpecific = ({ values }: ValueConsumer) => (
       placeholder="Takes any number (0 is infinite)"
       tooltip={
         <div>
-          <p>Number of max seeders as specified by the respective unit.</p>
+          <p>Number of max seeders as specified by the respective unit. Only for Torznab</p>
           <DocsLink href="https://autobrr.com/filters#rules" />
         </div>
       }
@@ -425,7 +425,7 @@ const FeedSpecific = ({ values }: ValueConsumer) => (
       placeholder="Takes any number (0 is infinite)"
       tooltip={
         <div>
-          <p>Number of min leechers as specified by the respective unit.</p>
+          <p>Number of min leechers as specified by the respective unit. Only for Torznab</p>
           <DocsLink href="https://autobrr.com/filters#rules" />
         </div>
       }
@@ -436,7 +436,7 @@ const FeedSpecific = ({ values }: ValueConsumer) => (
       placeholder="Takes any number (0 is infinite)"
       tooltip={
         <div>
-          <p>Number of max leechers as specified by the respective unit.</p>
+          <p>Number of max leechers as specified by the respective unit. Only for Torznab</p>
           <DocsLink href="https://autobrr.com/filters#rules" />
         </div>
       }

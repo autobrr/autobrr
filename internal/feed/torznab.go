@@ -116,15 +116,14 @@ func (j *TorznabJob) process(ctx context.Context) error {
 
 		rls.Seeders, err = parseIntAttribute(item, "seeders")
 		if err != nil {
-			rls.Seeders = 0;
+			rls.Seeders = 0
 		}
 
 		var peers, err = parseIntAttribute(item, "peers")
 
 		rls.Leechers = peers - rls.Seeders
-
 		if err != nil {
-			rls.Leechers = 0;
+			rls.Leechers = 0
 		}
 
 		if j.Feed.Settings != nil && j.Feed.Settings.DownloadType == domain.FeedDownloadTypeMagnet {

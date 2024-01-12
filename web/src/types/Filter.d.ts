@@ -67,15 +67,15 @@ interface Filter {
   except_tags_any: string;
   tags_match_logic: string;
   except_tags_match_logic: string;
+  min_seeders: number;
+  max_seeders: number;
+  min_leechers: number;
+  max_leechers: number;
   actions_count: number;
   actions_enabled_count: number;
   actions: Action[];
   indexers: Indexer[];
   external: ExternalFilter[];
-  min_seeders: number;
-  max_seeders: number;
-  min_leechers: number;
-  max_leechers: number;
 }
 
 interface Action {

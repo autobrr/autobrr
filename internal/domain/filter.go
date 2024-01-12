@@ -133,6 +133,10 @@ type Filter struct {
 	MatchDescription     string                 `json:"match_description,omitempty"`
 	ExceptDescription    string                 `json:"except_description,omitempty"`
 	UseRegexDescription  bool                   `json:"use_regex_description,omitempty"`
+	MinSeeders           int                    `json:"min_seeders,omitempty"`
+	MaxSeeders           int                    `json:"max_seeders,omitempty"`
+	MinLeechers          int                    `json:"min_leechers,omitempty"`
+	MaxLeechers          int                    `json:"max_leechers,omitempty"`
 	ActionsCount         int                    `json:"actions_count"`
 	ActionsEnabledCount  int                    `json:"actions_enabled_count"`
 	Actions              []*Action              `json:"actions,omitempty"`
@@ -140,10 +144,6 @@ type Filter struct {
 	Indexers             []Indexer              `json:"indexers"`
 	Downloads            *FilterDownloads       `json:"-"`
 	Rejections           []string               `json:"-"`
-	MinSeeders           int                    `json:"min_seeders,omitempty"`
-	MaxSeeders           int                    `json:"max_seeders,omitempty"`
-	MinLeechers          int                    `json:"min_leechers,omitempty"`
-	MaxLeechers          int                    `json:"max_leechers,omitempty"`
 }
 
 type FilterExternal struct {
@@ -236,6 +236,10 @@ type FilterUpdate struct {
 	ExceptTagsAny                    *string                 `json:"except_tags_any,omitempty"`
 	TagsMatchLogic                   *string                 `json:"tags_match_logic,omitempty"`
 	ExceptTagsMatchLogic             *string                 `json:"except_tags_match_logic,omitempty"`
+	MinSeeders                       *int                    `json:"min_seeders,omitempty"`
+	MaxSeeders                       *int                    `json:"max_seeders,omitempty"`
+	MinLeechers                      *int                    `json:"min_leechers,omitempty"`
+	MaxLeechers                      *int                    `json:"max_leechers,omitempty"`
 	ExternalScriptEnabled            *bool                   `json:"external_script_enabled,omitempty"`
 	ExternalScriptCmd                *string                 `json:"external_script_cmd,omitempty"`
 	ExternalScriptArgs               *string                 `json:"external_script_args,omitempty"`
@@ -250,10 +254,6 @@ type FilterUpdate struct {
 	Actions                          []*Action               `json:"actions,omitempty"`
 	External                         []FilterExternal        `json:"external,omitempty"`
 	Indexers                         []Indexer               `json:"indexers,omitempty"`
-	MinSeeders                       *int                    `json:"min_seeders,omitempty"`
-	MaxSeeders                       *int                    `json:"max_seeders,omitempty"`
-	MinLeechers                      *int                    `json:"min_leechers,omitempty"`
-	MaxLeechers                      *int                    `json:"max_leechers,omitempty"`
 }
 
 func (f *Filter) Validate() error {
@@ -515,13 +515,14 @@ func (f *Filter) CheckFilter(r *Release) ([]string, bool) {
 		}
 	}
 
+	// Min and Max Seeders/Leechers is only for Torznab feeds
 	if f.MinSeeders > 0 {
 		if f.MinSeeders > r.Seeders {
 			f.addRejectionF("min seeders not matcing. got: %d want %d", r.Seeders, f.MinSeeders)
 		}
 	}
 
-	if f.MaxSeeders > 0  {
+	if f.MaxSeeders > 0 {
 		if f.MaxSeeders < r.Seeders {
 			f.addRejectionF("max seeders not matcing. got: %d want %d", r.Seeders, f.MaxSeeders)
 		}
@@ -533,7 +534,7 @@ func (f *Filter) CheckFilter(r *Release) ([]string, bool) {
 		}
 	}
 
-	if f.MaxLeechers > 0  {
+	if f.MaxLeechers > 0 {
 		if f.MaxLeechers < r.Leechers {
 			f.addRejectionF("max leechers not matcing. got: %d want %d", r.Leechers, f.MaxLeechers)
 		}

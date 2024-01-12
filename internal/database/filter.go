@@ -239,12 +239,12 @@ func (r *FilterRepo) FindByID(ctx context.Context, filterID int) (*domain.Filter
 			"f.except_tags_match_logic",
 			"f.origins",
 			"f.except_origins",
-			"f.created_at",
-			"f.updated_at",
 			"f.min_seeders",
 			"f.max_seeders",
 			"f.min_leechers",
 			"f.max_leechers",
+			"f.created_at",
+			"f.updated_at",
 			"fe.id as external_id",
 			"fe.name",
 			"fe.idx",
@@ -353,12 +353,12 @@ func (r *FilterRepo) FindByID(ctx context.Context, filterID int) (*domain.Filter
 			&exceptTagsMatchLogic,
 			pq.Array(&f.Origins),
 			pq.Array(&f.ExceptOrigins),
-			&f.CreatedAt,
-			&f.UpdatedAt,
 			&f.MinSeeders,
 			&f.MaxSeeders,
 			&f.MinLeechers,
 			&f.MaxLeechers,
+			&f.CreatedAt,
+			&f.UpdatedAt,
 			&extId,
 			&extName,
 			&extIndex,
@@ -511,12 +511,12 @@ func (r *FilterRepo) findByIndexerIdentifier(ctx context.Context, indexer string
 			"f.except_tags_match_logic",
 			"f.origins",
 			"f.except_origins",
-			"f.created_at",
-			"f.updated_at",
 			"f.min_seeders",
 			"f.max_seeders",
 			"f.min_leechers",
 			"f.max_leechers",
+			"f.created_at",
+			"f.updated_at",
 			"fe.id as external_id",
 			"fe.name",
 			"fe.idx",
@@ -629,12 +629,12 @@ func (r *FilterRepo) findByIndexerIdentifier(ctx context.Context, indexer string
 			&exceptTagsMatchLogic,
 			pq.Array(&f.Origins),
 			pq.Array(&f.ExceptOrigins),
-			&f.CreatedAt,
-			&f.UpdatedAt,
 			&f.MinSeeders,
 			&f.MaxSeeders,
 			&f.MinLeechers,
 			&f.MaxLeechers,
+			&f.CreatedAt,
+			&f.UpdatedAt,
 			&extId,
 			&extName,
 			&extIndex,
@@ -1030,11 +1030,11 @@ func (r *FilterRepo) Update(ctx context.Context, filter *domain.Filter) error {
 		Set("perfect_flac", filter.PerfectFlac).
 		Set("origins", pq.Array(filter.Origins)).
 		Set("except_origins", pq.Array(filter.ExceptOrigins)).
-		Set("updated_at", time.Now().Format(time.RFC3339)).
 		Set("min_seeders", filter.MinSeeders).
 		Set("max_seeders", filter.MaxSeeders).
 		Set("min_leechers", filter.MinLeechers).
 		Set("max_leechers", filter.MaxLeechers).
+		Set("updated_at", time.Now().Format(time.RFC3339)).
 		Where(sq.Eq{"id": filter.ID})
 
 	query, args, err := queryBuilder.ToSql()

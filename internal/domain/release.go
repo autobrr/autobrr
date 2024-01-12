@@ -94,12 +94,12 @@ type Release struct {
 	PreTime                     string                `json:"pre_time"`
 	Other                       []string              `json:"-"`
 	RawCookie                   string                `json:"-"`
+	Seeders                     int                   `json:"-"`
+	Leechers                    int                   `json:"-"`
 	AdditionalSizeCheckRequired bool                  `json:"-"`
 	FilterID                    int                   `json:"-"`
 	Filter                      *Filter               `json:"-"`
 	ActionStatus                []ReleaseActionStatus `json:"action_status"`
-	Seeders                     int                   `json:"seeders"`
-	Leechers                    int                   `json:"leechers"`
 }
 
 type ReleaseActionStatus struct {
