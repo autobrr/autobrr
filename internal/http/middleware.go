@@ -34,7 +34,17 @@ func (s Server) IsAuthenticated(next http.Handler) http.Handler {
 			session, err := s.cookieStore.Get(r, "user_session")
 			if err != nil {
 				s.log.Error().Err(err).Msgf("could not get session from cookieStore")
-				http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+				session.Values["authenticated"] = false
+
+				// MaxAge<0 means delete cookie immediately
+				session.Options.MaxAge = -1
+
+				if err := session.Save(r, w); err != nil {
+					s.log.Error().Err(err).Msgf("could not store session: %s", r.RemoteAddr)
+					http.Error(w, err.Error(), http.StatusInternalServerError)
+					return
+				}
+				http.Error(w, err.Error(), http.StatusForbidden)
 				return
 			}
 
