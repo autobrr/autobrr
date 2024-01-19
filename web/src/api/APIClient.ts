@@ -315,7 +315,7 @@ export const APIClient = {
           params["indexer"].push(filter.value);
         } else if (filter.id === "action_status") {
           params["push_status"].push(filter.value);
-        } else if (filter.id == "torrent_name") {
+        } else if (filter.id == "name") {
           params["q"].push(filter.value);
         }
       });
