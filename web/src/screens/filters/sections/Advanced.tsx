@@ -397,6 +397,50 @@ const FeedSpecific = ({ values }: ValueConsumer) => (
         </div>
       }
     />
+    <Input.NumberField
+      name="min_seeders"
+      label="Min Seeders"
+      placeholder="Takes any number (0 is infinite)"
+      tooltip={
+        <div>
+          <p>Number of min seeders as specified by the respective unit. Only for Torznab</p>
+          <DocsLink href="https://autobrr.com/filters#rules" />
+        </div>
+      }
+    />
+    <Input.NumberField
+      name="max_seeders"
+      label="Max Seeders"
+      placeholder="Takes any number (0 is infinite)"
+      tooltip={
+        <div>
+          <p>Number of max seeders as specified by the respective unit. Only for Torznab</p>
+          <DocsLink href="https://autobrr.com/filters#rules" />
+        </div>
+      }
+    />
+    <Input.NumberField
+      name="min_leechers"
+      label="Min Leechers"
+      placeholder="Takes any number (0 is infinite)"
+      tooltip={
+        <div>
+          <p>Number of min leechers as specified by the respective unit. Only for Torznab</p>
+          <DocsLink href="https://autobrr.com/filters#rules" />
+        </div>
+      }
+    />
+    <Input.NumberField
+      name="max_leechers"
+      label="Max Leechers"
+      placeholder="Takes any number (0 is infinite)"
+      tooltip={
+        <div>
+          <p>Number of max leechers as specified by the respective unit. Only for Torznab</p>
+          <DocsLink href="https://autobrr.com/filters#rules" />
+        </div>
+      }
+    />
   </CollapsibleSection>
 );
 
