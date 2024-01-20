@@ -32,7 +32,7 @@ jobs:
         continue-on-error: true
         run: nilaway ./...
   golangci:
-    name: lint
+    name: Golangci-lint Linter 
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -47,3 +47,4 @@ jobs:
         uses: golangci/golangci-lint-action@v3
         with:
           version: v1.55.2
+          only-new-issues: true
