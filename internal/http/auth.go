@@ -119,6 +119,8 @@ func (h authHandler) logout(w http.ResponseWriter, r *http.Request) {
 		// MaxAge<0 means delete cookie immediately
 		session.Options.MaxAge = -1
 
+		session.Options.Path = h.config.BaseURL
+
 		if err := session.Save(r, w); err != nil {
 			h.log.Error().Err(err).Msgf("could not store session: %s", r.RemoteAddr)
 			h.encoder.StatusError(w, http.StatusInternalServerError, err)
