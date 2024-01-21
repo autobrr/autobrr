@@ -32,12 +32,11 @@ export const releaseKeys = {
   detail: (id: number) => [...releaseKeys.details(), id] as const
 };
 
-
 type TableState = {
-    queryPageIndex: number;
-    queryPageSize: number;
-    totalCount: number;
-    queryFilters: ReleaseFilter[];
+  queryPageIndex: number;
+  queryPageSize: number;
+  totalCount: number;
+  queryFilters: ReleaseFilter[];
 };
 
 const initialState: TableState = {
@@ -48,17 +47,17 @@ const initialState: TableState = {
 };
 
 enum ActionType {
-    PAGE_CHANGED = "PAGE_CHANGED",
-    PAGE_SIZE_CHANGED = "PAGE_SIZE_CHANGED",
-    TOTAL_COUNT_CHANGED = "TOTAL_COUNT_CHANGED",
-    FILTER_CHANGED = "FILTER_CHANGED"
+  PAGE_CHANGED = "PAGE_CHANGED",
+  PAGE_SIZE_CHANGED = "PAGE_SIZE_CHANGED",
+  TOTAL_COUNT_CHANGED = "TOTAL_COUNT_CHANGED",
+  FILTER_CHANGED = "FILTER_CHANGED"
 }
 
 type Actions =
-    | { type: ActionType.FILTER_CHANGED; payload: ReleaseFilter[]; }
-    | { type: ActionType.PAGE_CHANGED; payload: number; }
-    | { type: ActionType.PAGE_SIZE_CHANGED; payload: number; }
-    | { type: ActionType.TOTAL_COUNT_CHANGED; payload: number; };
+  | { type: ActionType.FILTER_CHANGED; payload: ReleaseFilter[]; }
+  | { type: ActionType.PAGE_CHANGED; payload: number; }
+  | { type: ActionType.PAGE_SIZE_CHANGED; payload: number; }
+  | { type: ActionType.TOTAL_COUNT_CHANGED; payload: number; };
 
 const TableReducer = (state: TableState, action: Actions): TableState => {
   switch (action.type) {
@@ -144,7 +143,6 @@ export const ReleaseTable = () => {
 
   const displayData = showLinuxIsos ? modifiedData : (data?.data ?? []);
 
-
   const {
     getTableProps,
     getTableBodyProps,
@@ -170,7 +168,7 @@ export const ReleaseTable = () => {
       initialState: {
         pageIndex: queryPageIndex,
         pageSize: queryPageSize,
-        filters: filterTypeFromUrl ? [{ id: "action_status", value: filterTypeFromUrl }] : []
+        filters: queryFilters,
       },
       manualPagination: true,
       manualFilters: true,
@@ -206,6 +204,10 @@ export const ReleaseTable = () => {
   React.useEffect(() => {
     dispatch({ type: ActionType.FILTER_CHANGED, payload: filters });
   }, [filters]);
+
+  React.useEffect(() => {
+    dispatch({ type: ActionType.FILTER_CHANGED, payload: [{ id: "action_status", value: filterTypeFromUrl! }] });
+  }, [filterTypeFromUrl]);
 
   if (error) {
     return <p>Error</p>;
