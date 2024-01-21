@@ -203,10 +203,13 @@ export const ReleaseTable = () => {
 
   React.useEffect(() => {
     dispatch({ type: ActionType.FILTER_CHANGED, payload: filters });
+    gotoPage(0);
   }, [filters]);
 
   React.useEffect(() => {
-    dispatch({ type: ActionType.FILTER_CHANGED, payload: [{ id: "action_status", value: filterTypeFromUrl! }] });
+    if (filterTypeFromUrl != null) {
+      dispatch({ type: ActionType.FILTER_CHANGED, payload: [{ id: "action_status", value: filterTypeFromUrl! }] });
+    }
   }, [filterTypeFromUrl]);
 
   if (error) {
