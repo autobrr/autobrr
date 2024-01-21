@@ -2,6 +2,7 @@ package notification
 
 import (
 	"fmt"
+	"html"
 	"strings"
 
 	"github.com/autobrr/autobrr/internal/domain"
@@ -9,35 +10,67 @@ import (
 	"github.com/dustin/go-humanize"
 )
 
-type NotificationBuilderPlainText struct{}
+type MessageBuilder interface {
+	BuildBody(payload domain.NotificationPayload) string
+}
+
+type ConditionMessagePart struct {
+	Condition bool
+	Format    string
+	Bits      []interface{}
+}
+
+// MessageBuilderPlainText constructs the body of the notification message in plain text format.
+type MessageBuilderPlainText struct{}
 
 // BuildBody constructs the body of the notification message.
-func (b *NotificationBuilderPlainText) BuildBody(payload domain.NotificationPayload) string {
-	var parts []string
+func (b *MessageBuilderPlainText) BuildBody(payload domain.NotificationPayload) string {
+	messageParts := []ConditionMessagePart{
+		{payload.Subject != "" && payload.Message != "", "%v\n%v", []interface{}{payload.Subject, payload.Message}},
+		{payload.ReleaseName != "", "New release: %v\n", []interface{}{payload.ReleaseName}},
+		{payload.Size > 0, "Size: %v\n", []interface{}{humanize.Bytes(payload.Size)}},
+		{payload.Status != "", "Status: %v\n", []interface{}{payload.Status.String()}},
+		{payload.Indexer != "", "Indexer: %v\n", []interface{}{payload.Indexer}},
+		{payload.Filter != "", "Filter: %v\n", []interface{}{payload.Filter}},
+		{payload.Action != "", "Action: %v: %v\n", []interface{}{payload.ActionType, payload.Action}},
+		{payload.Action != "" && payload.ActionClient != "", "Client: %v\n", []interface{}{payload.ActionClient}},
+		{len(payload.Rejections) > 0, "Rejections: %v\n", []interface{}{strings.Join(payload.Rejections, ", ")}},
+	}
 
-	buildPart := func(condition bool, format string, a ...interface{}) {
-		if condition {
-			parts = append(parts, fmt.Sprintf(format, a...))
+	return formatMessageContent(messageParts)
+}
+
+// MessageBuilderHTML constructs the body of the notification message in HTML format.
+type MessageBuilderHTML struct{}
+
+func (b *MessageBuilderHTML) BuildBody(payload domain.NotificationPayload) string {
+	messageParts := []ConditionMessagePart{
+		{payload.Subject != "" && payload.Message != "", "<b>%v</b><br>%v<br>", []interface{}{html.EscapeString(payload.Subject), html.EscapeString(payload.Message)}},
+		{payload.ReleaseName != "", "<b>New release:</b> %v", []interface{}{html.EscapeString(payload.ReleaseName)}},
+		{payload.Size > 0, "<b>Size:</b> %v", []interface{}{humanize.Bytes(payload.Size)}},
+		{payload.Status != "", "<b>Status:</b> %v\n", []interface{}{payload.Status.String()}},
+		{payload.Indexer != "", "<b>Indexer:</b> %v\n", []interface{}{payload.Indexer}},
+		{payload.Filter != "", "<b>Filter:</b> %v\n", []interface{}{payload.Filter}},
+		{payload.Action != "", "<b>Action:</b> %v: %v\n", []interface{}{payload.ActionType, payload.Action}},
+		{payload.Action != "" && payload.ActionClient != "", "<b>Client:</b> %v\n", []interface{}{payload.ActionClient}},
+		{len(payload.Rejections) > 0, "<b>Rejections:</b> %v\n", []interface{}{strings.Join(payload.Rejections, ", ")}},
+	}
+
+	return formatMessageContent(messageParts)
+}
+
+func formatMessageContent(messageParts []ConditionMessagePart) string {
+	var builder strings.Builder
+	for _, part := range messageParts {
+		if part.Condition {
+			builder.WriteString(fmt.Sprintf(part.Format, part.Bits...))
 		}
 	}
-
-	buildPart(payload.Subject != "" && payload.Message != "", "%v\n%v", payload.Subject, payload.Message)
-	buildPart(payload.ReleaseName != "", "\nNew release: %v", payload.ReleaseName)
-	buildPart(payload.Size > 0, "\nSize: %v", humanize.Bytes(payload.Size))
-	buildPart(payload.Status != "", "\nStatus: %v", payload.Status.String())
-	buildPart(payload.Indexer != "", "\nIndexer: %v", payload.Indexer)
-	buildPart(payload.Filter != "", "\nFilter: %v", payload.Filter)
-	buildPart(payload.Action != "", "\nAction: %v: %v", payload.ActionType, payload.Action)
-	if payload.Action != "" && payload.ActionClient != "" {
-		parts = append(parts, fmt.Sprintf(" Client: %v", payload.ActionClient))
-	}
-	buildPart(len(payload.Rejections) > 0, "\nRejections: %v", strings.Join(payload.Rejections, ", "))
-
-	return strings.Join(parts, "\n")
+	return builder.String()
 }
 
 // BuildTitle constructs the title of the notification message.
-func (b *NotificationBuilderPlainText) BuildTitle(event domain.NotificationEvent) string {
+func BuildTitle(event domain.NotificationEvent) string {
 	titles := map[domain.NotificationEvent]string{
 		domain.NotificationEventAppUpdateAvailable: "Autobrr update available",
 		domain.NotificationEventPushApproved:       "Push Approved",
