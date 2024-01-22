@@ -51,7 +51,7 @@ func (b *MessageBuilderHTML) BuildBody(payload domain.NotificationPayload) strin
 		{payload.Status != "", "<b>Status:</b> %v\n", []interface{}{html.EscapeString(payload.Status.String())}},
 		{payload.Indexer != "", "<b>Indexer:</b> %v\n", []interface{}{html.EscapeString(payload.Indexer)}},
 		{payload.Filter != "", "<b>Filter:</b> %v\n", []interface{}{html.EscapeString(payload.Filter)}},
-		{payload.Action != "", "<b>Action:</b> %v: %v\n", []interface{}{html.EscapeString(payload.ActionType), html.EscapeString(payload.Action)}},
+		{payload.Action != "", "<b>Action:</b> %v: %v\n", []interface{}{payload.ActionType, html.EscapeString(payload.Action)}},
 		{payload.Action != "" && payload.ActionClient != "", "<b>Client:</b> %v\n", []interface{}{html.EscapeString(payload.ActionClient)}},
 		{len(payload.Rejections) > 0, "<b>Rejections:</b> %v\n", []interface{}{html.EscapeString(strings.Join(payload.Rejections, ", "))}},
 	}
