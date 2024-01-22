@@ -45,9 +45,9 @@ type MessageBuilderHTML struct{}
 
 func (b *MessageBuilderHTML) BuildBody(payload domain.NotificationPayload) string {
 	messageParts := []ConditionMessagePart{
-		{payload.Subject != "" && payload.Message != "", "<b>%v</b><br>%v<br>", []interface{}{html.EscapeString(payload.Subject), html.EscapeString(payload.Message)}},
-		{payload.ReleaseName != "", "<b>New release:</b> %v", []interface{}{html.EscapeString(payload.ReleaseName)}},
-		{payload.Size > 0, "<b>Size:</b> %v", []interface{}{humanize.Bytes(payload.Size)}},
+		{payload.Subject != "" && payload.Message != "", "<b>%v</b> %v\n", []interface{}{html.EscapeString(payload.Subject), html.EscapeString(payload.Message)}},
+		{payload.ReleaseName != "", "<b>New release:</b> %v\n", []interface{}{html.EscapeString(payload.ReleaseName)}},
+		{payload.Size > 0, "<b>Size:</b> %v\n", []interface{}{humanize.Bytes(payload.Size)}},
 		{payload.Status != "", "<b>Status:</b> %v\n", []interface{}{payload.Status.String()}},
 		{payload.Indexer != "", "<b>Indexer:</b> %v\n", []interface{}{payload.Indexer}},
 		{payload.Filter != "", "<b>Filter:</b> %v\n", []interface{}{payload.Filter}},
