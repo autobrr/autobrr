@@ -11,21 +11,13 @@ on:
 
 env:
   REGISTRY: ghcr.io
+  REGISTRY_IMAGE: ghcr.io/${{ github.repository }}
 
 permissions:
   contents: write
   packages: write
 
 jobs:
-  preamble:
-    name: Setup Environment
-    runs-on: ubuntu-latest
-    steps:
-      - name: Set Registry Image
-        run: echo "REGISTRY_IMAGE=${TMP_IMG,,}" >>${GITHUB_ENV}
-        env:
-          TMP_IMG: ${{ env.REGISTRY }}/${{ github.event.pull_request.head.repo.full_name }}
-        
   web:
     name: Build web
     runs-on: ubuntu-latest
@@ -102,7 +94,7 @@ jobs:
   goreleaserbuild:
     name: Build distribution binaries
     runs-on: ubuntu-latest
-    needs: [preamble, web, test]
+    needs: [web, test]
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -172,7 +164,7 @@ jobs:
         - linux/ppc64le
 #       - linux/riscv64
         - linux/s390x
-    needs: [preamble, web, test]
+    needs: [web, test]
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -221,7 +213,7 @@ jobs:
           context: .
           file: ./ci.Dockerfile
           platforms: ${{ matrix.platform }}
-          outputs: type=image,name=${{ env.REGISTRY_IMAGE }},push-by-digest=true,name-canonical=true,push=true
+          outputs: type=image,name=${{ env.REGISTRY_IMAGE }},push-by-digest=true,name-canonical=true,push=${{ (github.event.pull_request.head.repo.full_name == github.repository || github.event_name != 'pull_request') && 'true' || 'false' }}
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
             BUILDTIME=${{ fromJSON(steps.meta.outputs.json).labels['org.opencontainers.image.created'] }}
