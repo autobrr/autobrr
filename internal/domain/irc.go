@@ -6,6 +6,7 @@ package domain
 import (
 	"context"
 	"encoding/json"
+	"strings"
 	"time"
 )
 
@@ -136,4 +137,83 @@ type IrcRepo interface {
 	ListChannels(networkID int64) ([]IrcChannel, error)
 	GetNetworkByID(ctx context.Context, id int64) (*IrcNetwork, error)
 	DeleteNetwork(ctx context.Context, id int64) error
+}
+
+type IRCParser interface {
+	Parse(rls *Release, vars map[string]string) error
+}
+
+type IRCParserDefault struct{}
+
+func (p IRCParserDefault) Parse(rls *Release, _ map[string]string) error {
+	// parse fields
+	// run before ParseMatch to not potentially use a reconstructed TorrentName
+	rls.ParseString(rls.TorrentName)
+
+	return nil
+}
+
+type IRCParserGazelleGames struct{}
+
+func (p IRCParserGazelleGames) Parse(rls *Release, vars map[string]string) error {
+	torrentName := vars["torrentName"]
+	category := vars["category"]
+
+	releaseName := ""
+	title := ""
+
+	switch category {
+	case "OST":
+		// OST does not have the Title in Group naming convention
+		releaseName = torrentName
+	default:
+		releaseName, title = splitInMiddle(torrentName, " in ")
+
+		if releaseName == "" && title != "" {
+			releaseName = torrentName
+		}
+	}
+
+	rls.ParseString(releaseName)
+
+	if title != "" {
+		rls.Title = title
+	}
+
+	return nil
+}
+
+type IRCParserOrpheus struct{}
+
+func (p IRCParserOrpheus) Parse(rls *Release, vars map[string]string) error {
+	// OPS uses en-dashes as separators, which causes moistari/rls to not parse the torrentName properly,
+	// we replace the en-dashes with hyphens here
+	torrentName := vars["torrentName"]
+	rls.TorrentName = strings.ReplaceAll(torrentName, "–", "-")
+
+	rls.ParseString(rls.TorrentName)
+
+	return nil
+}
+
+// mergeVars merge maps
+func mergeVars(data ...map[string]string) map[string]string {
+	tmpVars := map[string]string{}
+
+	for _, vars := range data {
+		// copy vars to new tmp map
+		for k, v := range vars {
+			tmpVars[k] = v
+		}
+	}
+	return tmpVars
+}
+
+// splitInMiddle utility for GGn that tries to split the announced release name
+// torrent name consists of "This.Game-GRP in This Game Group" but titles can include "in"
+// this function tries to split in the correct place
+func splitInMiddle(s, sep string) (string, string) {
+	parts := strings.Split(s, sep)
+	l := len(parts)
+	return strings.Join(parts[:l/2], sep), strings.Join(parts[l/2:], sep)
 }
