@@ -11,7 +11,7 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  REGISTRY_IMAGE: ghcr.io/${{ github.repository }}
+  REGISTRY_IMAGE: ghcr.io/${{ github.event.pull_request.head.repo.full_name }}
 
 permissions:
   contents: write
