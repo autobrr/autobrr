@@ -2,8 +2,9 @@
 
 Thanks for taking interest in contribution! We welcome anyone who wants to contribute.
 
-If you have an idea for a bigger feature or a change then we are happy to discuss it before you start working on it.
-It is usually a good idea to make sure it aligns with the project and is a good fit. Open an Issue or post in #dev-general on [Discord](https://discord.gg/WQ2eUycxyT).
+If you have an idea for a bigger feature or a change then we are happy to discuss it before you start working on it.  
+It is usually a good idea to make sure it aligns with the project and is a good fit.  
+Open an issue or post in #dev-general on [Discord](https://discord.gg/WQ2eUycxyT).
 
 This document is a guide to help you through the process of contributing to autobrr.
 
@@ -23,7 +24,7 @@ Make sure you have the following dependencies installed before setting up your d
 
 - [Git](https://git-scm.com/)
 - [Go](https://golang.org/dl/) (see [go.mod](go.mod#L3) for minimum required version)
-- [Node.js](https://nodejs.org)
+- [Node.js](https://nodejs.org) (we usually use the latest Node LTS version - for further information see `@types/node` major version in [package.json](web/package.json))
 - [pnpm](https://pnpm.io/installation)
 
 ## How to contribute
@@ -62,10 +63,10 @@ cd web && pnpm install
 Run the project:
 
 ```shell
-pnpm start
+pnpm dev
 ```
 
-This should make the frontend available at [http://localhost:3000](http://localhost:3000). It's setup to communicate with the api at [http://localhost:7474](http://localhost:7474).
+This should make the frontend available at [http://localhost:3000](http://localhost:3000). It's setup to communicate with the API at [http://localhost:7474](http://localhost:7474).
 
 ### Build
 
@@ -91,7 +92,7 @@ Run the project:
 go run cmd/autobrr/main.go
 ```
 
-This uses the default `config.toml` and runs the api on [http://localhost:7474](http://localhost:7474).
+This uses the default `config.toml` and runs the API on [http://localhost:7474](http://localhost:7474).
 
 ### Build
 
@@ -102,6 +103,12 @@ make build/app
 ```
 
 This will output a binary in `./bin/autobrr`
+
+You can also build the frontend and the backend at once with:
+
+```shell
+make build
+```
 
 ### Build cross-platform binaries
 
@@ -174,7 +181,7 @@ See the documentation [here](./test/mockindexer/README.md). Add the `customDefin
 go run test/mockindexer/main.go
 ```
 
-* Restart the backend api for it to load the new mock.yaml definition
+* Restart the backend API for it to load the new mock.yaml definition
 * Then add it via Settings -> Indexers -> Add, and select Mock Indexer in the list
 * Go to Settings -> IRC and toggle the IRC network `Mock Indexer`
 * Add a new Filter or add the indexer to an existing filter
