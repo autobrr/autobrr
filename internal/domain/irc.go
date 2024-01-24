@@ -6,6 +6,8 @@ package domain
 import (
 	"context"
 	"encoding/json"
+	"fmt"
+	"regexp"
 	"strings"
 	"time"
 )
@@ -192,6 +194,43 @@ func (p IRCParserOrpheus) Parse(rls *Release, vars map[string]string) error {
 	rls.TorrentName = strings.ReplaceAll(torrentName, "–", "-")
 
 	rls.ParseString(rls.TorrentName)
+
+	return nil
+}
+
+// IRCParserRedacted parser for Redacted announces
+type IRCParserRedacted struct{}
+
+func (p IRCParserRedacted) Parse(rls *Release, vars map[string]string) error {
+	// create new torrentName
+	title := vars["title"]
+	year := vars["year"]
+	category := vars["category"]
+	releaseTags := vars["releaseTags"]
+
+	re := regexp.MustCompile(`\| |/ |, `)
+	cleanTags := re.ReplaceAllString(releaseTags, "")
+
+	t := ParseReleaseTagString(cleanTags)
+
+	audio := []string{}
+	if t.AudioFormat != "" {
+		audio = append(audio, t.AudioFormat)
+	}
+	if t.AudioBitrate != "" {
+		audio = append(audio, t.AudioBitrate)
+	}
+	if t.Source != "" {
+		audio = append(audio, t.Source)
+	}
+
+	// Name YEAR CD FLAC Lossless
+	n := fmt.Sprintf("%s [%s] [%s] (%s)", title, year, category, strings.Join(audio, " "))
+
+	//rls.TorrentName = n
+
+	rls.ParseString(n)
+	//rls.Title = title
 
 	return nil
 }

@@ -4,7 +4,6 @@
 package domain
 
 import (
-	"fmt"
 	"regexp"
 
 	"github.com/autobrr/autobrr/pkg/errors"
@@ -56,6 +55,54 @@ func init() {
 		{tag: "VBR", title: "Variable Bit Rate", regexp: "", re: nil},
 	}
 	types["audio"] = audio
+
+	audioBitrate := []*TagInfo{
+		{tag: "24BIT", title: "", regexp: "(?-i:24BIT)", re: nil},
+		{tag: "24BIT Lossless", title: "", regexp: "(?:24BIT lossless)", re: nil},
+		{tag: "16BIT", title: "", regexp: "(?-i:16BIT)", re: nil},
+		{tag: "320", title: "320 Kbps", regexp: "320[\\\\-\\\\._ kbps]?", re: nil},
+		{tag: "256", title: "256 Kbps", regexp: "256[\\\\-\\\\._ kbps]?", re: nil},
+		{tag: "192", title: "192 Kbps", regexp: "192[\\\\-\\\\._ kbps]?", re: nil},
+		{tag: "128", title: "128 Kbps", regexp: "128[\\\\-\\\\._ kbps]?", re: nil},
+		{tag: "CBR", title: "Constant Bit Rate", regexp: "", re: nil},
+		{tag: "Lossless", title: "", regexp: "(?i:(?:^|[^t] )Lossless)", re: nil},
+		{tag: "VBR", title: "Variable Bit Rate", regexp: "", re: nil},
+	}
+	types["audioBitrate"] = audioBitrate
+
+	audioFormat := []*TagInfo{
+		{tag: "AAC-LC", title: "Advanced Audio Coding (LC)", regexp: "aac[\\-\\._ ]?lc", re: nil},
+		{tag: "AAC", title: "Advanced Audio Coding (LC)", regexp: "", re: nil},
+		{tag: "AC3D", title: "", regexp: "ac[\\-\\._ ]?3d", re: nil},
+		{tag: "Atmos", title: "Dolby Atmos", regexp: "", re: nil},
+		{tag: "DDPA", title: "Dolby Digital+ Atmos (E-AC-3+Atmos)", regexp: "dd[p\\+]a", re: nil},
+		{tag: "DDP", title: "Dolby Digital+ (E-AC-3)", regexp: "dd[p\\+]|e[\\-\\._ ]?ac3", re: nil},
+		{tag: "DD", title: "Dolby Digital (AC-3)", regexp: "dd|ac3|dolby[\\-\\._ ]?digital", re: nil},
+		{tag: "DTS-HD.HRA", title: "DTS (HD HRA)", regexp: "dts[\\-\\._ ]?hd[\\-\\._ ]?hra", re: nil},
+		{tag: "DTS-HD.HR", title: "DTS (HD HR)", regexp: "dts[\\-\\._ ]?hd[\\-\\._ ]?hr", re: nil},
+		{tag: "DTS-HD.MA", title: "DTS (HD MA)", regexp: "dts[\\-\\._ ]?hd[\\-\\._ ]?ma", re: nil},
+		{tag: "DTS-HD", title: "DTS (HD)", regexp: "dts[\\-\\._ ]?hd[\\-\\._ ]?", re: nil},
+		{tag: "DTS-MA", title: "DTS (MA)", regexp: "dts[\\-\\._ ]?ma[\\-\\._ ]?", re: nil},
+		{tag: "DTS-X", title: "DTS (X)", regexp: "dts[\\-\\._ ]?x", re: nil},
+		{tag: "DTS", title: "", regexp: "", re: nil},
+		{tag: "EAC3D", title: "", regexp: "", re: nil},
+		{tag: "ES", title: "Dolby Digital (ES)", regexp: "(?-i:ES)", re: nil},
+		{tag: "EX", title: "Dolby Digital (EX)", regexp: "(?-i:EX)", re: nil},
+		{tag: "FLAC", title: "Free Lossless Audio Codec", regexp: "", re: nil},
+		{tag: "LPCM", title: "Linear Pulse-Code Modulation", regexp: "", re: nil},
+		{tag: "MP3", title: "", regexp: "", re: nil},
+		{tag: "OGG", title: "", regexp: "", re: nil},
+		{tag: "OPUS", title: "", regexp: "", re: nil},
+		{tag: "TrueHD", title: "Dolby TrueHD", regexp: "(?:dolby[\\-\\._ ]?)?true[\\-\\._ ]?hd", re: nil},
+	}
+	types["audioFormat"] = audioFormat
+
+	audioExtra := []*TagInfo{
+		{tag: "Cue", title: "Cue File", regexp: "", re: nil},
+		{tag: "Log100", title: "", regexp: "(log 100%|log \\(100%\\))", re: nil},
+		{tag: "Log", title: "", regexp: "(?:log)", re: nil},
+	}
+	types["audioExtra"] = audioExtra
 
 	bonus := []*TagInfo{
 		{tag: "Freeleech", title: "Freeleech", regexp: "freeleech", re: nil},
@@ -279,16 +326,18 @@ func Find(infos ...*TagInfo) FindFunc {
 }
 
 type ReleaseTags struct {
-	Audio      []string
-	Bonus      []string
-	Channels   string
-	Codec      string
-	Container  string
-	HDR        []string
-	Origin     string
-	Other      []string
-	Resolution string
-	Source     string
+	Audio        []string
+	AudioBitrate string
+	AudioFormat  string
+	Bonus        []string
+	Channels     string
+	Codec        string
+	Container    string
+	HDR          []string
+	Origin       string
+	Other        []string
+	Resolution   string
+	Source       string
 }
 
 func ParseReleaseTags(tags []string) ReleaseTags {
@@ -302,10 +351,16 @@ func ParseReleaseTags(tags []string) ReleaseTags {
 				// check tag
 				match := info.Match(tag)
 				if match {
-					fmt.Printf("match: %v, info: %v\n", tag, info.Tag())
+					//fmt.Printf("match: %v, info: %v\n", tag, info.Tag())
 					switch tagType {
 					case "audio":
 						releaseTags.Audio = append(releaseTags.Audio, info.Tag())
+						continue
+					case "audioBitrate":
+						releaseTags.AudioBitrate = info.Tag()
+						continue
+					case "audioFormat":
+						releaseTags.AudioFormat = info.Tag()
 						continue
 					case "bonus":
 						releaseTags.Bonus = append(releaseTags.Bonus, info.Tag())
@@ -360,6 +415,12 @@ func ParseReleaseTagString(tags string) ReleaseTags {
 			switch tagType {
 			case "audio":
 				releaseTags.Audio = append(releaseTags.Audio, info.Tag())
+				continue
+			case "audioBitrate":
+				releaseTags.AudioBitrate = info.Tag()
+				continue
+			case "audioFormat":
+				releaseTags.AudioFormat = info.Tag()
 				continue
 			case "bonus":
 				releaseTags.Bonus = append(releaseTags.Bonus, info.Tag())

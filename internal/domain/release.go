@@ -334,7 +334,8 @@ func (r *Release) ParseReleaseTagsString(tags string) {
 	t := ParseReleaseTagString(cleanTags)
 
 	if len(t.Audio) > 0 {
-		r.Audio = getUniqueTags(r.Audio, t.Audio)
+		//r.Audio = getUniqueTags(r.Audio, t.Audio)
+		r.Audio = t.Audio
 	}
 
 	if len(t.Bonus) > 0 {
