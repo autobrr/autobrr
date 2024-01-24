@@ -26,7 +26,7 @@ type LunaSeaMessage struct {
 type lunaSeaSender struct {
 	log      zerolog.Logger
 	Settings domain.Notification
-	builder  NotificationBuilderPlainText
+	builder  MessageBuilderPlainText
 
 	httpClient *http.Client
 }
@@ -40,7 +40,7 @@ func NewLunaSeaSender(log zerolog.Logger, settings domain.Notification) domain.N
 	return &lunaSeaSender{
 		log:      log.With().Str("sender", "lunasea").Logger(),
 		Settings: settings,
-		builder:  NotificationBuilderPlainText{},
+		builder:  MessageBuilderPlainText{},
 		httpClient: &http.Client{
 			Timeout:   time.Second * 30,
 			Transport: sharedhttp.Transport,
@@ -50,7 +50,7 @@ func NewLunaSeaSender(log zerolog.Logger, settings domain.Notification) domain.N
 
 func (s *lunaSeaSender) Send(event domain.NotificationEvent, payload domain.NotificationPayload) error {
 	m := LunaSeaMessage{
-		Title: s.builder.BuildTitle(event),
+		Title: BuildTitle(event),
 		Body:  s.builder.BuildBody(payload),
 		Image: defaultImageURL,
 	}

@@ -293,6 +293,8 @@ Whether you're fixing a bug, adding a feature, or improving documentation, your 
 
 ### Code Contributions
 
+Check out the full guide for contributing [here](CONTRIBUTING.md).
+
 - **Fork and Clone:** Fork the `autobrr` repository and clone it to start working on your changes.
 - **Branching:** Create a new branch for your changes. Use a descriptive name for easy understanding.
 - **Coding:** Ensure your code is well-commented for clarity.

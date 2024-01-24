@@ -25,7 +25,7 @@ type ntfyMessage struct {
 type ntfySender struct {
 	log      zerolog.Logger
 	Settings domain.Notification
-	builder  NotificationBuilderPlainText
+	builder  MessageBuilderPlainText
 
 	httpClient *http.Client
 }
@@ -34,7 +34,7 @@ func NewNtfySender(log zerolog.Logger, settings domain.Notification) domain.Noti
 	return &ntfySender{
 		log:      log.With().Str("sender", "ntfy").Logger(),
 		Settings: settings,
-		builder:  NotificationBuilderPlainText{},
+		builder:  MessageBuilderPlainText{},
 		httpClient: &http.Client{
 			Timeout:   time.Second * 30,
 			Transport: sharedhttp.Transport,
@@ -45,7 +45,7 @@ func NewNtfySender(log zerolog.Logger, settings domain.Notification) domain.Noti
 func (s *ntfySender) Send(event domain.NotificationEvent, payload domain.NotificationPayload) error {
 	m := ntfyMessage{
 		Message: s.builder.BuildBody(payload),
-		Title:   s.builder.BuildTitle(event),
+		Title:   BuildTitle(event),
 	}
 
 	req, err := http.NewRequest(http.MethodPost, s.Settings.Host, strings.NewReader(m.Message))
