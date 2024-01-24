@@ -4,11 +4,12 @@
 package announce
 
 import (
+	"strings"
+
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/internal/indexer"
 	"github.com/autobrr/autobrr/internal/release"
 	"github.com/autobrr/autobrr/pkg/errors"
-	"strings"
 
 	"github.com/rs/zerolog"
 )
