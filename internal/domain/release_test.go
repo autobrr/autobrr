@@ -33,6 +33,7 @@ func TestRelease_Parse(t *testing.T) {
 				HDR:           []string{"DV"},
 				Group:         "FLUX",
 				//Website: "ATVP",
+				Type: "series",
 			},
 		},
 		{
@@ -52,6 +53,7 @@ func TestRelease_Parse(t *testing.T) {
 				AudioChannels: "5.1",
 				HDR:           []string{"DV"},
 				Group:         "FLUX",
+				Type:          "series",
 			},
 		},
 		{
@@ -74,6 +76,7 @@ func TestRelease_Parse(t *testing.T) {
 				AudioChannels: "5.1",
 				HDR:           []string{"DV"},
 				Group:         "FLUX",
+				Type:          "series",
 			},
 		},
 		{
@@ -96,6 +99,7 @@ func TestRelease_Parse(t *testing.T) {
 				AudioChannels: "5.1",
 				HDR:           []string{"DV"},
 				Group:         "FLUX",
+				Type:          "series",
 			},
 		},
 		{
@@ -118,6 +122,7 @@ func TestRelease_Parse(t *testing.T) {
 				AudioChannels: "5.1",
 				HDR:           []string{"DV"},
 				Group:         "FLUX",
+				Type:          "series",
 			},
 		},
 		{
@@ -142,6 +147,7 @@ func TestRelease_Parse(t *testing.T) {
 				Group:         "FLUX",
 				Freeleech:     true,
 				Bonus:         []string{"Freeleech"},
+				Type:          "series",
 			},
 		},
 		{
@@ -252,6 +258,7 @@ func TestRelease_Parse(t *testing.T) {
 				Year:          2007,
 				Group:         "GROUP1",
 				Other:         []string{"HYBRiD", "REMUX"},
+				Type:          "movie",
 			},
 		},
 		{
@@ -272,6 +279,7 @@ func TestRelease_Parse(t *testing.T) {
 				Group:         "GROUP1",
 				Season:        1,
 				Language:      []string{"ENGLiSH"},
+				Type:          "series",
 			},
 		},
 	}
