@@ -220,26 +220,69 @@ func Test_isMaxAge(t *testing.T) {
 	}
 }
 
-func Test_readSizeFromDescription(t *testing.T) {
-	type args struct {
-		str string
+func Test_pullSizeFromDescription(t *testing.T) {
+	t.Parallel()
+
+	// Helper function to convert a floating-point GiB value to bytes
+	const gibibyte = 1024 * 1024 * 1024
+	toBytes := func(gib float64) uint64 {
+		whole := uint64(gib)
+		fraction := gib - float64(whole)
+		return whole*gibibyte + uint64(fraction*float64(gibibyte))
 	}
+
 	tests := []struct {
 		name string
-		args args
-		want string
+		str  string
+		want uint64
 	}{
-		{name: "size", args: args{"Size: 12GB"}, want: "12GB"},
-		{name: "size_1", args: args{"Size: 12 GB"}, want: "12 GB"},
-		{name: "size_2", args: args{"Size: 12 GiB"}, want: "12 GiB"},
-		{name: "size_3", args: args{"Size: 537 MiB"}, want: "537 MiB"},
-		{name: "size_4", args: args{"<strong>Size</strong>: 20.48 GiB<br>"}, want: "20.48 GiB"},
-		{name: "size_5", args: args{"file.name-GROUP / 20.48 GiB / x265"}, want: "20.48 GiB"},
-		{name: "size_6", args: args{"<strong>Uploaded</strong>: 38 minutes ago<br>"}, want: ""},
+		{
+			name: "with size in GB",
+			str:  "Size: 12GB",
+			want: 12 * 1000 * 1000 * 1000,
+		},
+		{
+			name: "with size in GB with space",
+			str:  "Size: 12 GB",
+			want: 12 * 1000 * 1000 * 1000,
+		},
+		{
+			name: "with size in GiB",
+			str:  "Size: 12 GiB",
+			want: 12 * 1024 * 1024 * 1024,
+		},
+		{
+			name: "with size in MiB",
+			str:  "Size: 537 MiB",
+			want: 537 * 1024 * 1024,
+		},
+		{
+			name: "with HTML tags",
+			str:  "<strong>Size</strong>: 20.48 GiB<br>",
+			want: toBytes(20.48),
+		},
+		{
+			name: "with additional text",
+			str:  "file.name-GROUP / 20.48 GiB / x265",
+			want: toBytes(20.48),
+		},
+		{
+			name: "without size info",
+			str:  "<strong>Uploaded</strong>: 38 minutes ago<br>",
+			want: 0,
+		},
 	}
+
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
-			assert.Equalf(t, tt.want, readSizeFromDescription(tt.args.str), "readSizeFromDescription(%v)", tt.args.str)
+			t.Parallel()
+
+			r := &domain.Release{}
+			pullSizeFromDescription(tt.str, r)
+			if r.Size != tt.want {
+				t.Errorf("PullSizeFromDescription(%v) got %v bytes, want %v bytes", tt.str, r.Size, tt.want)
+			}
 		})
 	}
 }
