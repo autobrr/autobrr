@@ -84,6 +84,7 @@ type Release struct {
 	Artists                     string                `json:"-"`
 	Type                        string                `json:"type"` // Album,Single,EP
 	LogScore                    int                   `json:"-"`
+	Cue                         bool                  `json:"-"`
 	Origin                      string                `json:"origin"` // P2P, Internal
 	Tags                        []string              `json:"-"`
 	ReleaseTags                 string                `json:"-"`
@@ -288,6 +289,8 @@ func NewRelease(indexer string) *Release {
 
 func (r *Release) ParseString(title string) {
 	rel := rls.ParseString(title)
+
+	r.Type = rel.Type.String()
 
 	r.TorrentName = title
 	r.Source = rel.Source

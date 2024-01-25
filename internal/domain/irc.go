@@ -202,35 +202,36 @@ func (p IRCParserOrpheus) Parse(rls *Release, vars map[string]string) error {
 type IRCParserRedacted struct{}
 
 func (p IRCParserRedacted) Parse(rls *Release, vars map[string]string) error {
-	// create new torrentName
+	//category := vars["category"]
 	title := vars["title"]
 	year := vars["year"]
-	category := vars["category"]
-	releaseTags := vars["releaseTags"]
+	releaseTagsString := vars["releaseTags"]
 
 	re := regexp.MustCompile(`\| |/ |, `)
-	cleanTags := re.ReplaceAllString(releaseTags, "")
+	cleanTags := re.ReplaceAllString(releaseTagsString, "")
 
-	t := ParseReleaseTagString(cleanTags)
+	tags := ParseReleaseTagString(cleanTags)
 
 	audio := []string{}
-	if t.AudioFormat != "" {
-		audio = append(audio, t.AudioFormat)
+	if tags.AudioFormat != "" {
+		audio = append(audio, tags.AudioFormat)
 	}
-	if t.AudioBitrate != "" {
-		audio = append(audio, t.AudioBitrate)
+	if tags.AudioBitrate != "" {
+		audio = append(audio, tags.AudioBitrate)
 	}
-	if t.Source != "" {
-		audio = append(audio, t.Source)
+	if tags.Source != "" {
+		audio = append(audio, tags.Source)
 	}
 
-	// Name YEAR CD FLAC Lossless
-	n := fmt.Sprintf("%s [%s] [%s] (%s)", title, year, category, strings.Join(audio, " "))
+	// set log score
+	rls.LogScore = tags.LogScore
+	rls.Cue = tags.Cue
 
-	//rls.TorrentName = n
+	// Construct new release name so we have full control. We remove category such as EP/Single/Album because EP is being mis-parsed.
+	name := fmt.Sprintf("%s [%s] (%s)", title, year, strings.Join(audio, " "))
 
-	rls.ParseString(n)
-	//rls.Title = title
+	rls.ParseString(name)
+	rls.Title = title
 
 	return nil
 }

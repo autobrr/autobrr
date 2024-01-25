@@ -221,6 +221,21 @@ func TestRelease_Parse(t *testing.T) {
 			},
 		},
 		{
+			name: "parse_music_6",
+			fields: Release{
+				TorrentName: "Artist - Albumname",
+				ReleaseTags: "FLAC / 24bit Lossless / Log / 78% / Cue / CD",
+			},
+			want: Release{
+				TorrentName: "Artist - Albumname",
+				ReleaseTags: "FLAC / 24bit Lossless / Log / 78% / Cue / CD",
+				Title:       "Artist",
+				Group:       "Albumname",
+				Audio:       []string{"24BIT Lossless", "Cue", "FLAC", "Log"},
+				Source:      "CD",
+			},
+		},
+		{
 			name: "parse_movies_case_1",
 			fields: Release{
 				TorrentName: "I Am Movie 2007 Theatrical UHD BluRay 2160p DTS-HD MA 5.1 DV HEVC HYBRID REMUX-GROUP1",

@@ -5,6 +5,7 @@ package domain
 
 import (
 	"regexp"
+	"strconv"
 
 	"github.com/autobrr/autobrr/pkg/errors"
 )
@@ -46,6 +47,7 @@ func init() {
 		{tag: "LiNE", title: "Line", regexp: "(?-i:L[iI]NE)", re: nil},
 		{tag: "Lossless", title: "", regexp: "(?i:(?:^|[^t] )Lossless)", re: nil},
 		{tag: "Log100", title: "", regexp: "(log 100%|log \\(100%\\))", re: nil},
+		{tag: "LogScore", title: "LogScore", regexp: "(log (\\d+)%)", re: nil},
 		{tag: "Log", title: "", regexp: "(?:log)", re: nil},
 		{tag: "LPCM", title: "Linear Pulse-Code Modulation", regexp: "", re: nil},
 		{tag: "MP3", title: "", regexp: "", re: nil},
@@ -100,6 +102,7 @@ func init() {
 	audioExtra := []*TagInfo{
 		{tag: "Cue", title: "Cue File", regexp: "", re: nil},
 		{tag: "Log100", title: "", regexp: "(log 100%|log \\(100%\\))", re: nil},
+		{tag: "LogScore", title: "LogScore", regexp: "(log \\(\\d+%\\))", re: nil},
 		{tag: "Log", title: "", regexp: "(?:log)", re: nil},
 	}
 	types["audioExtra"] = audioExtra
@@ -281,6 +284,11 @@ func (info *TagInfo) Regexp() string {
 	return info.regexp
 }
 
+// FindMatch returns the regexp matches.
+func (info *TagInfo) FindMatch(t string) []string {
+	return info.re.FindStringSubmatch(t)
+}
+
 //// Other returns the tag info other.
 //func (info *TagInfo) Other() string {
 //	return info.other
@@ -329,6 +337,9 @@ type ReleaseTags struct {
 	Audio        []string
 	AudioBitrate string
 	AudioFormat  string
+	LogScore     int
+	Log          bool
+	Cue          bool
 	Bonus        []string
 	Channels     string
 	Codec        string
@@ -348,10 +359,22 @@ func ParseReleaseTags(tags []string) ReleaseTags {
 		for tagType, tagInfos := range types {
 
 			for _, info := range tagInfos {
+
+				if info.Tag() == "LogScore" {
+					m := info.FindMatch(tag)
+					if len(m) == 3 {
+						score, err := strconv.Atoi(m[2])
+						if err != nil {
+							// handle error
+						}
+						releaseTags.LogScore = score
+					}
+					continue
+				}
+
 				// check tag
 				match := info.Match(tag)
 				if match {
-					//fmt.Printf("match: %v, info: %v\n", tag, info.Tag())
 					switch tagType {
 					case "audio":
 						releaseTags.Audio = append(releaseTags.Audio, info.Tag())
@@ -402,7 +425,6 @@ func ParseReleaseTagString(tags string) ReleaseTags {
 	releaseTags := ReleaseTags{}
 
 	for tagType, tagInfos := range types {
-		//fmt.Printf("tagType: %v\n", tagType)
 
 		for _, info := range tagInfos {
 			// check tag
@@ -411,10 +433,25 @@ func ParseReleaseTagString(tags string) ReleaseTags {
 				continue
 			}
 
-			//fmt.Printf("match: info: %v\n", info.Tag())
+			if info.Tag() == "LogScore" {
+				m := info.FindMatch(tags)
+				if len(m) == 3 {
+					score, err := strconv.Atoi(m[2])
+					if err != nil {
+						// handle error
+					}
+					releaseTags.Log = true
+					releaseTags.LogScore = score
+				}
+				continue
+			}
+
 			switch tagType {
 			case "audio":
 				releaseTags.Audio = append(releaseTags.Audio, info.Tag())
+				if info.Tag() == "Cue" {
+					releaseTags.Cue = true
+				}
 				continue
 			case "audioBitrate":
 				releaseTags.AudioBitrate = info.Tag()
