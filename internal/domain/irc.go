@@ -191,12 +191,43 @@ func (p IRCParserOrpheus) Parse(rls *Release, vars map[string]string) error {
 	// OPS uses en-dashes as separators, which causes moistari/rls to not parse the torrentName properly,
 	// we replace the en-dashes with hyphens here
 	torrentName := vars["torrentName"]
-	rls.TorrentName = strings.ReplaceAll(torrentName, "–", "-")
+	name := strings.ReplaceAll(torrentName, "–", "-")
 
-	rls.ParseString(rls.TorrentName)
+	title := vars["title"]
+	year := vars["year"]
+	releaseTagsString := vars["releaseTags"]
+
+	cleanTags := strings.ReplaceAll(releaseTagsString, "/", " ")
+
+	tags := ParseReleaseTagString(cleanTags)
+	rls.ReleaseTags = cleanTags
+
+	audio := []string{}
+	if tags.AudioFormat != "" {
+		audio = append(audio, tags.AudioFormat)
+	}
+	if tags.AudioBitrate != "" {
+		audio = append(audio, tags.AudioBitrate)
+	}
+	if tags.Source != "" {
+		audio = append(audio, tags.Source)
+	}
+	rls.Bitrate = tags.AudioBitrate
+
+	// set log score
+	rls.HasLog = tags.HasLog
+	rls.LogScore = tags.LogScore
+	rls.HasCue = tags.HasCue
+
+	// Construct new release name so we have full control. We remove category such as EP/Single/Album because EP is being mis-parsed.
+	name = fmt.Sprintf("%s [%s] (%s)", title, year, strings.Join(audio, " "))
+
+	rls.ParseString(name)
 
 	return nil
 }
+
+var releaseTagsSplit = regexp.MustCompile(`\| |/ |, `)
 
 // IRCParserRedacted parser for Redacted announces
 type IRCParserRedacted struct{}
@@ -207,8 +238,7 @@ func (p IRCParserRedacted) Parse(rls *Release, vars map[string]string) error {
 	year := vars["year"]
 	releaseTagsString := vars["releaseTags"]
 
-	re := regexp.MustCompile(`\| |/ |, `)
-	cleanTags := re.ReplaceAllString(releaseTagsString, "")
+	cleanTags := releaseTagsSplit.ReplaceAllString(releaseTagsString, "")
 
 	tags := ParseReleaseTagString(cleanTags)
 
@@ -222,10 +252,12 @@ func (p IRCParserRedacted) Parse(rls *Release, vars map[string]string) error {
 	if tags.Source != "" {
 		audio = append(audio, tags.Source)
 	}
+	rls.Bitrate = tags.AudioBitrate
 
 	// set log score
+	rls.HasLog = tags.HasLog
 	rls.LogScore = tags.LogScore
-	rls.Cue = tags.Cue
+	rls.HasCue = tags.HasCue
 
 	// Construct new release name so we have full control. We remove category such as EP/Single/Album because EP is being mis-parsed.
 	name := fmt.Sprintf("%s [%s] (%s)", title, year, strings.Join(audio, " "))

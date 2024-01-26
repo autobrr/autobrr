@@ -4,6 +4,7 @@
 package domain
 
 import (
+	"fmt"
 	"regexp"
 	"strconv"
 
@@ -338,8 +339,8 @@ type ReleaseTags struct {
 	AudioBitrate string
 	AudioFormat  string
 	LogScore     int
-	Log          bool
-	Cue          bool
+	HasLog       bool
+	HasCue       bool
 	Bonus        []string
 	Channels     string
 	Codec        string
@@ -440,8 +441,10 @@ func ParseReleaseTagString(tags string) ReleaseTags {
 					if err != nil {
 						// handle error
 					}
-					releaseTags.Log = true
+					releaseTags.HasLog = true
 					releaseTags.LogScore = score
+
+					releaseTags.Audio = append(releaseTags.Audio, fmt.Sprintf("Log%d", score))
 				}
 				continue
 			}
@@ -450,7 +453,7 @@ func ParseReleaseTagString(tags string) ReleaseTags {
 			case "audio":
 				releaseTags.Audio = append(releaseTags.Audio, info.Tag())
 				if info.Tag() == "Cue" {
-					releaseTags.Cue = true
+					releaseTags.HasCue = true
 				}
 				continue
 			case "audioBitrate":

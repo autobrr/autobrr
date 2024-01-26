@@ -75,6 +75,7 @@ type Release struct {
 	HDR                         []string              `json:"hdr"`
 	Audio                       []string              `json:"-"`
 	AudioChannels               string                `json:"-"`
+	Bitrate                     string                `json:"-"`
 	Group                       string                `json:"group"`
 	Region                      string                `json:"-"`
 	Language                    []string              `json:"-"`
@@ -84,7 +85,8 @@ type Release struct {
 	Artists                     string                `json:"-"`
 	Type                        string                `json:"type"` // Album,Single,EP
 	LogScore                    int                   `json:"-"`
-	Cue                         bool                  `json:"-"`
+	HasCue                      bool                  `json:"-"`
+	HasLog                      bool                  `json:"-"`
 	Origin                      string                `json:"origin"` // P2P, Internal
 	Tags                        []string              `json:"-"`
 	ReleaseTags                 string                `json:"-"`

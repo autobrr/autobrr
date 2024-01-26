@@ -580,7 +580,7 @@ func (f *Filter) isPerfectFLAC(r *Release) bool {
 	if !containsAny(r.Audio, "Log") {
 		return false
 	}
-	if !containsAny(r.Audio, "Log100") {
+	if !containsAny(r.Audio, "Log100") || r.LogScore != 100 {
 		return false
 	}
 	if !containsAny(r.Audio, "FLAC") {
