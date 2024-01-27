@@ -10,6 +10,7 @@ import (
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/internal/release"
 
+	"github.com/dustin/go-humanize"
 	"github.com/mmcdole/gofeed"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
@@ -221,25 +222,70 @@ func Test_isMaxAge(t *testing.T) {
 }
 
 func Test_readSizeFromDescription(t *testing.T) {
-	type args struct {
-		str string
-	}
+	t.Parallel()
+
 	tests := []struct {
 		name string
-		args args
+		str  string
 		want string
 	}{
-		{name: "size", args: args{"Size: 12GB"}, want: "12GB"},
-		{name: "size_1", args: args{"Size: 12 GB"}, want: "12 GB"},
-		{name: "size_2", args: args{"Size: 12 GiB"}, want: "12 GiB"},
-		{name: "size_3", args: args{"Size: 537 MiB"}, want: "537 MiB"},
-		{name: "size_4", args: args{"<strong>Size</strong>: 20.48 GiB<br>"}, want: "20.48 GiB"},
-		{name: "size_5", args: args{"file.name-GROUP / 20.48 GiB / x265"}, want: "20.48 GiB"},
-		{name: "size_6", args: args{"<strong>Uploaded</strong>: 38 minutes ago<br>"}, want: ""},
+		{
+			name: "with size in GB",
+			str:  "Size: 12GB",
+			want: "12GB",
+		},
+		{
+			name: "with size in GB with space",
+			str:  "Size: 12 GB",
+			want: "12GB",
+		},
+		{
+			name: "with size in GiB",
+			str:  "Size: 12 GiB",
+			want: "12GiB",
+		},
+		{
+			name: "with size in MiB",
+			str:  "Size: 537 MiB",
+			want: "537MiB",
+		},
+		{
+			name: "with HTML tags",
+			str:  "<strong>Size</strong>: 20.48 GiB<br>",
+			want: "20.48GiB",
+		},
+		{
+			name: "with additional text",
+			str:  "file.name-GROUP / 20.48 GiB / x265",
+			want: "20.48GiB",
+		},
+		{
+			name: "without size info",
+			str:  "<strong>Uploaded</strong>: 38 minutes ago<br>",
+			want: "0B",
+		},
+		{
+			name: "multiple sizes",
+			str:  "<strong>Uploaded</strong>: 38B minutes ago<br>Size: 32GB",
+			want: "32GB",
+		},
 	}
+
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
-			assert.Equalf(t, tt.want, readSizeFromDescription(tt.args.str), "readSizeFromDescription(%v)", tt.args.str)
+			t.Parallel()
+
+			wantBytes, err := humanize.ParseBytes(tt.want)
+			if err != nil {
+				t.Fatalf("Failed to parse size string %q: %v", tt.want, err)
+			}
+
+			r := &domain.Release{}
+			readSizeFromDescription(tt.str, r)
+			if r.Size != wantBytes {
+				t.Errorf("readSizeFromDescription(%q) got %v bytes, want %v bytes", tt.str, r.Size, wantBytes)
+			}
 		})
 	}
 }
