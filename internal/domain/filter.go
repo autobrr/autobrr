@@ -356,11 +356,11 @@ func (f *Filter) CheckFilter(r *Release) ([]string, bool) {
 		}
 	}
 
-	if f.MatchUploaders != "" && f.checkUploader(r, f.MatchUploaders, false) {
+	if f.MatchUploaders != "" && !contains(r.Uploader, f.MatchUploaders) {
 		f.addRejectionF("uploaders not matching. got: %v want: %v", r.Uploader, f.MatchUploaders)
 	}
 
-	if f.ExceptUploaders != "" && f.checkUploader(r, f.ExceptUploaders, true) {
+	if f.ExceptUploaders != "" && contains(r.Uploader, f.ExceptUploaders) {
 		f.addRejectionF("unwanted uploaders. got: %v unwanted: %v", r.Uploader, f.ExceptUploaders)
 	}
 
@@ -593,25 +593,14 @@ func (f *Filter) isPerfectFLAC(r *Release) bool {
 	return true
 }
 
-// checkUploader checks if the uploader is within the given list.
-// if the haystack is not empty but the uploader is, then a further
-// investigation is needed
-func (f *Filter) checkUploader(r *Release, uploaders string, wantedResult bool) bool {
-	if uploaders != "" && r.Uploader == "" {
-		r.AdditionalDetailsCheckRequired = true
-		return false
-	}
-	return contains(r.Uploader, uploaders) == wantedResult
-}
-
 // checkSizeFilter compares the filter size limits to a release's size if it is
 // known from the announce line.
 func (f *Filter) checkSizeFilter(r *Release) bool {
 	if r.Size == 0 {
-		r.AdditionalDetailsCheckRequired = true
+		r.AdditionalSizeCheckRequired = true
 		return true
 	} else {
-		r.AdditionalDetailsCheckRequired = false
+		r.AdditionalSizeCheckRequired = false
 	}
 
 	sizeOK, err := f.CheckReleaseSize(r.Size)
