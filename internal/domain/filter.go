@@ -1023,7 +1023,7 @@ func (f *Filter) CheckUploader(uploader string) (bool, error) {
 		return false, nil
 	}
 
-	if f.MatchUploaders != "" && contains(uploader, f.MatchUploaders) {
+	if f.ExceptUploaders != "" && contains(uploader, f.ExceptUploaders) {
 		f.addRejectionF("release required ExceptUploaders have: %v want: %v", uploader, f.ExceptUploaders)
 		return false, nil
 	}
