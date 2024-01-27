@@ -223,7 +223,7 @@ func Test_isMaxAge(t *testing.T) {
 	}
 }
 
-func Test_pullSizeFromDescription(t *testing.T) {
+func Test_readSizeFromDescription(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
@@ -284,9 +284,9 @@ func Test_pullSizeFromDescription(t *testing.T) {
 			}
 
 			r := &domain.Release{}
-			pullSizeFromDescription(tt.str, r)
+			readSizeFromDescription(tt.str, r)
 			if r.Size != wantBytes {
-				t.Errorf("PullSizeFromDescription(%q) got %v bytes, want %v bytes", tt.str, r.Size, wantBytes)
+				t.Errorf("readSizeFromDescription(%q) got %v bytes, want %v bytes", tt.str, r.Size, wantBytes)
 			}
 		})
 	}
