@@ -4,15 +4,13 @@
 package feed
 
 import (
-	"fmt"
-	"strconv"
-	"strings"
 	"testing"
 	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/internal/release"
 
+	"github.com/dustin/go-humanize"
 	"github.com/mmcdole/gofeed"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
