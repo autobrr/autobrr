@@ -278,7 +278,7 @@ func Test_readSizeFromDescription(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			wantBytes, err := parseSize(tt.want)
+			wantBytes, err := humanize.ParseBytes(tt.want)
 			if err != nil {
 				t.Fatalf("Failed to parse size string %q: %v", tt.want, err)
 			}
@@ -290,44 +290,4 @@ func Test_readSizeFromDescription(t *testing.T) {
 			}
 		})
 	}
-}
-
-// parseSize converts a human-readable size string to bytes.
-func parseSize(sizeStr string) (uint64, error) {
-	var multiplier uint64 = 1
-	sizeStr = strings.TrimSpace(sizeStr)
-
-	switch {
-	case strings.HasSuffix(sizeStr, "PiB"):
-		multiplier = 1024 * 1024 * 1024 * 1024 * 1024
-		sizeStr = strings.TrimSuffix(sizeStr, "PiB")
-	case strings.HasSuffix(sizeStr, "TiB"):
-		multiplier = 1024 * 1024 * 1024 * 1024
-		sizeStr = strings.TrimSuffix(sizeStr, "TiB")
-	case strings.HasSuffix(sizeStr, "GiB"):
-		multiplier = 1024 * 1024 * 1024
-		sizeStr = strings.TrimSuffix(sizeStr, "GiB")
-	case strings.HasSuffix(sizeStr, "MiB"):
-		multiplier = 1024 * 1024
-		sizeStr = strings.TrimSuffix(sizeStr, "MiB")
-	case strings.HasSuffix(sizeStr, "PB"):
-		multiplier = 1000 * 1000 * 1000 * 1000 * 1000
-		sizeStr = strings.TrimSuffix(sizeStr, "PB")
-	case strings.HasSuffix(sizeStr, "TB"):
-		multiplier = 1000 * 1000 * 1000 * 1000
-		sizeStr = strings.TrimSuffix(sizeStr, "TB")
-	case strings.HasSuffix(sizeStr, "GB"):
-		multiplier = 1000 * 1000 * 1000
-		sizeStr = strings.TrimSuffix(sizeStr, "GB")
-	case strings.HasSuffix(sizeStr, "B"):
-		sizeStr = strings.TrimSuffix(sizeStr, "B")
-	}
-
-	sizeStr = strings.Replace(sizeStr, " ", "", -1) // Remove any spaces
-	size, err := strconv.ParseFloat(sizeStr, 64)
-	if err != nil {
-		return 0, fmt.Errorf("failed to parse size: %v", err)
-	}
-
-	return uint64(size * float64(multiplier)), nil
 }
