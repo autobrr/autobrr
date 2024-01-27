@@ -211,7 +211,7 @@ func (j *RSSJob) processItem(item *gofeed.Item) *domain.Release {
 		rls.Description = item.Description
 
 		if rls.Size == 0 {
-			pullSizeFromDescription(item.Description, rls)
+			readSizeFromDescription(item.Description, rls)
 			j.Log.Trace().Msgf("Set new size %d from description", rls.Size)
 		}
 	}
@@ -324,8 +324,8 @@ func isFreeleech(str []string) bool {
 	return false
 }
 
-// pullSizeFromDescription get size from description
-func pullSizeFromDescription(str string, r *domain.Release) {
+// readSizeFromDescription get size from description
+func readSizeFromDescription(str string, r *domain.Release) {
 	clean := rxpHTML.ReplaceAllString(str, " ")
 	for _, sz := range rxpSize.FindAllString(clean, -1) {
 		r.ParseSizeBytesString(sz)
