@@ -28,6 +28,8 @@ func init() {
 		{tag: "AAC", title: "Advanced Audio Coding (LC)", regexp: "", re: nil},
 		{tag: "AC3D", title: "", regexp: "ac[\\-\\._ ]?3d", re: nil},
 		{tag: "Atmos", title: "Dolby Atmos", regexp: "", re: nil},
+		{tag: "APS (VBR)", title: "APS Variable Bit Rate", regexp: "", re: nil},
+		{tag: "APX (VBR)", title: "APX Variable Bit Rate", regexp: "", re: nil},
 		{tag: "CBR", title: "Constant Bit Rate", regexp: "", re: nil},
 		{tag: "Cue", title: "Cue File", regexp: "", re: nil},
 		{tag: "DDPA", title: "Dolby Digital+ Atmos (E-AC-3+Atmos)", regexp: "dd[p\\+]a", re: nil},
@@ -47,8 +49,7 @@ func init() {
 		{tag: "FLAC", title: "Free Lossless Audio Codec", regexp: "", re: nil},
 		{tag: "LiNE", title: "Line", regexp: "(?-i:L[iI]NE)", re: nil},
 		{tag: "Lossless", title: "", regexp: "(?i:(?:^|[^t] )Lossless)", re: nil},
-		{tag: "Log100", title: "", regexp: "(log 100%|log \\(100%\\))", re: nil},
-		{tag: "LogScore", title: "LogScore", regexp: "(log (\\d+)%)", re: nil},
+		{tag: "LogScore", title: "LogScore", regexp: "log\\s?(?:\\(|\\s)(\\d+)%\\)?", re: nil},
 		{tag: "Log", title: "", regexp: "(?:log)", re: nil},
 		{tag: "LPCM", title: "Linear Pulse-Code Modulation", regexp: "", re: nil},
 		{tag: "MP3", title: "", regexp: "", re: nil},
@@ -56,6 +57,9 @@ func init() {
 		{tag: "OPUS", title: "", regexp: "", re: nil},
 		{tag: "TrueHD", title: "Dolby TrueHD", regexp: "(?:dolby[\\-\\._ ]?)?true[\\-\\._ ]?hd", re: nil},
 		{tag: "VBR", title: "Variable Bit Rate", regexp: "", re: nil},
+		{tag: "V0 (VBR)", title: "V0 Variable Bit Rate", regexp: "", re: nil},
+		{tag: "V1 (VBR)", title: "V1 Variable Bit Rate", regexp: "", re: nil},
+		{tag: "V2 (VBR)", title: "V2 Variable Bit Rate", regexp: "", re: nil},
 	}
 	types["audio"] = audio
 
@@ -67,9 +71,14 @@ func init() {
 		{tag: "256", title: "256 Kbps", regexp: "256[\\\\-\\\\._ kbps]?", re: nil},
 		{tag: "192", title: "192 Kbps", regexp: "192[\\\\-\\\\._ kbps]?", re: nil},
 		{tag: "128", title: "128 Kbps", regexp: "128[\\\\-\\\\._ kbps]?", re: nil},
+		{tag: "APS (VBR)", title: "APS Variable Bit Rate", regexp: "", re: nil},
+		{tag: "APX (VBR)", title: "APX Variable Bit Rate", regexp: "", re: nil},
 		{tag: "CBR", title: "Constant Bit Rate", regexp: "", re: nil},
 		{tag: "Lossless", title: "", regexp: "(?i:(?:^|[^t] )Lossless)", re: nil},
 		{tag: "VBR", title: "Variable Bit Rate", regexp: "", re: nil},
+		{tag: "V0 (VBR)", title: "V0 Variable Bit Rate", regexp: "", re: nil},
+		{tag: "V1 (VBR)", title: "V1 Variable Bit Rate", regexp: "", re: nil},
+		{tag: "V2 (VBR)", title: "V2 Variable Bit Rate", regexp: "", re: nil},
 	}
 	types["audioBitrate"] = audioBitrate
 
@@ -103,7 +112,7 @@ func init() {
 	audioExtra := []*TagInfo{
 		{tag: "Cue", title: "Cue File", regexp: "", re: nil},
 		{tag: "Log100", title: "", regexp: "(log 100%|log \\(100%\\))", re: nil},
-		{tag: "LogScore", title: "LogScore", regexp: "(log \\(\\d+%\\))", re: nil},
+		{tag: "LogScore", title: "LogScore", regexp: "log\\s?(?:\\(|\\s)(\\d+)%\\)?", re: nil},
 		{tag: "Log", title: "", regexp: "(?:log)", re: nil},
 	}
 	types["audioExtra"] = audioExtra
@@ -436,8 +445,8 @@ func ParseReleaseTagString(tags string) ReleaseTags {
 
 			if info.Tag() == "LogScore" {
 				m := info.FindMatch(tags)
-				if len(m) == 3 {
-					score, err := strconv.Atoi(m[2])
+				if len(m) == 2 {
+					score, err := strconv.Atoi(m[1])
 					if err != nil {
 						// handle error
 					}
@@ -496,4 +505,11 @@ func ParseReleaseTagString(tags string) ReleaseTags {
 	}
 
 	return releaseTags
+}
+
+var tagsDelimiterRegexp = regexp.MustCompile(`\s*[|/,]\s*`)
+
+// CleanReleaseTags trim delimiters and closest space
+func CleanReleaseTags(tagString string) string {
+	return tagsDelimiterRegexp.ReplaceAllString(tagString, " ")
 }

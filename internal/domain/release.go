@@ -12,7 +12,6 @@ import (
 	"net/http"
 	"net/http/cookiejar"
 	"os"
-	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -332,15 +331,28 @@ func (r *Release) ParseString(title string) {
 var ErrUnrecoverableError = errors.New("unrecoverable error")
 
 func (r *Release) ParseReleaseTagsString(tags string) {
-	// trim delimiters and closest space
-	re := regexp.MustCompile(`\| |/ |, `)
-	cleanTags := re.ReplaceAllString(tags, "")
-
+	cleanTags := CleanReleaseTags(tags)
 	t := ParseReleaseTagString(cleanTags)
 
 	if len(t.Audio) > 0 {
 		//r.Audio = getUniqueTags(r.Audio, t.Audio)
 		r.Audio = t.Audio
+	}
+
+	if t.AudioBitrate != "" {
+		r.Bitrate = t.AudioBitrate
+	}
+
+	if t.HasLog {
+		r.HasLog = true
+
+		if t.LogScore > 0 {
+			r.LogScore = t.LogScore
+		}
+	}
+
+	if t.HasCue {
+		r.HasCue = true
 	}
 
 	if len(t.Bonus) > 0 {

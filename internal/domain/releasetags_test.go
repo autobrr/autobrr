@@ -38,11 +38,11 @@ func TestParseReleaseTagString(t *testing.T) {
 		want ReleaseTags
 	}{
 		{name: "music_1", args: args{tags: "FLAC / Lossless / Log / 80% / Cue / CD"}, want: ReleaseTags{Audio: []string{"Cue", "FLAC", "Lossless", "Log"}, AudioBitrate: "Lossless", AudioFormat: "FLAC", Source: "CD", HasCue: true}},
-		{name: "music_2", args: args{tags: "FLAC Lossless Log 80% Cue CD"}, want: ReleaseTags{Audio: []string{"Cue", "FLAC", "Lossless", "Log"}, AudioBitrate: "Lossless", AudioFormat: "FLAC", Source: "CD", HasLog: true, LogScore: 80, HasCue: true}},
+		{name: "music_2", args: args{tags: "FLAC Lossless Log 80% Cue CD"}, want: ReleaseTags{Audio: []string{"Cue", "FLAC", "Lossless", "Log80", "Log"}, AudioBitrate: "Lossless", AudioFormat: "FLAC", Source: "CD", HasLog: true, LogScore: 80, HasCue: true}},
 		{name: "music_3", args: args{tags: "FLAC Lossless Log 100% Cue CD"}, want: ReleaseTags{Audio: []string{"Cue", "FLAC", "Lossless", "Log100", "Log"}, AudioBitrate: "Lossless", AudioFormat: "FLAC", Source: "CD", HasLog: true, LogScore: 100, HasCue: true}},
 		{name: "music_4", args: args{tags: "FLAC 24bit Lossless Log 100% Cue CD"}, want: ReleaseTags{Audio: []string{"24BIT Lossless", "Cue", "FLAC", "Log100", "Log"}, AudioBitrate: "24BIT Lossless", AudioFormat: "FLAC", Source: "CD", HasLog: true, LogScore: 100, HasCue: true}},
 		{name: "music_5", args: args{tags: "MP3 320 WEB"}, want: ReleaseTags{Audio: []string{"320", "MP3"}, AudioBitrate: "320", AudioFormat: "MP3", Source: "WEB"}},
-		{name: "music_6", args: args{tags: "FLAC Lossless Log (100%) Cue CD"}, want: ReleaseTags{Audio: []string{"Cue", "FLAC", "Lossless", "Log100", "Log"}, AudioBitrate: "Lossless", AudioFormat: "FLAC", Source: "CD", HasCue: true}},
+		{name: "music_6", args: args{tags: "FLAC Lossless Log (100%) Cue CD"}, want: ReleaseTags{Audio: []string{"Cue", "FLAC", "Lossless", "Log100", "Log"}, AudioBitrate: "Lossless", AudioFormat: "FLAC", Source: "CD", HasCue: true, HasLog: true, LogScore: 100}},
 		{name: "movies_1", args: args{tags: "x264 Blu-ray MKV 1080p"}, want: ReleaseTags{Codec: "x264", Source: "BluRay", Resolution: "1080p", Container: "mkv"}},
 		{name: "movies_2", args: args{tags: "HEVC HDR Blu-ray mp4 2160p"}, want: ReleaseTags{Codec: "HEVC", Source: "BluRay", Resolution: "2160p", Container: "mp4", HDR: []string{"HDR"}}},
 		{name: "movies_3", args: args{tags: "HEVC HDR DV Blu-ray mp4 2160p"}, want: ReleaseTags{Codec: "HEVC", Source: "BluRay", Resolution: "2160p", Container: "mp4", HDR: []string{"HDR", "DV"}}},
@@ -59,6 +59,26 @@ func TestParseReleaseTagString(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			assert.Equalf(t, tt.want, ParseReleaseTagString(tt.args.tags), "ParseReleaseTagString(%v)", tt.args.tags)
+		})
+	}
+}
+
+func Test_cleanReleaseTags(t *testing.T) {
+	type args struct {
+		tagString string
+	}
+	tests := []struct {
+		name string
+		args args
+		want string
+	}{
+		{name: "1", args: args{tagString: "FLAC / Lossless / Log / 100% / Cue / CD"}, want: "FLAC Lossless Log 100% Cue CD"},
+		{name: "2", args: args{tagString: "FLAC/Lossless/Log 100%/Cue/CD"}, want: "FLAC Lossless Log 100% Cue CD"},
+		{name: "3", args: args{tagString: "FLAC | Lossless | Log | 100% | Cue | CD"}, want: "FLAC Lossless Log 100% Cue CD"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equalf(t, tt.want, CleanReleaseTags(tt.args.tagString), "cleanReleaseTags(%v)", tt.args.tagString)
 		})
 	}
 }
