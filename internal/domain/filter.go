@@ -356,12 +356,8 @@ func (f *Filter) CheckFilter(r *Release) ([]string, bool) {
 		}
 	}
 
-	if f.MatchUploaders != "" && !contains(r.Uploader, f.MatchUploaders) {
-		f.addRejectionF("uploaders not matching. got: %v want: %v", r.Uploader, f.MatchUploaders)
-	}
-
-	if f.ExceptUploaders != "" && contains(r.Uploader, f.ExceptUploaders) {
-		f.addRejectionF("unwanted uploaders. got: %v unwanted: %v", r.Uploader, f.ExceptUploaders)
+	if (f.MatchUploaders != "" || f.ExceptUploaders != "") && !f.checkUploader(r) {
+		f.addRejectionF("uploaders not matching. got: %v want: %v except: %v", r.Uploader, f.MatchUploaders, f.ExceptUploaders)
 	}
 
 	if len(f.MatchLanguage) > 0 && !sliceContainsSlice(r.Language, f.MatchLanguage) {
@@ -614,6 +610,19 @@ func (f *Filter) checkSizeFilter(r *Release) bool {
 	}
 
 	return true
+}
+
+// checkUploader checks if the uploader is within the given list.
+// if the haystack is not empty but the uploader is, then a further
+// investigation is needed
+func (f *Filter) checkUploader(r *Release) bool {
+	if r.Uploader == "" {
+		r.AdditionalUploadCheckRequired = true
+		return true
+	}
+
+	return (len(f.MatchUploaders) == 0 || contains(r.Uploader, f.MatchUploaders) == true) &&
+		(len(f.ExceptUploaders) == 0 || contains(r.Uploader, f.ExceptUploaders) == false)
 }
 
 func (f *Filter) addRejection(reason string) {
@@ -1002,6 +1011,20 @@ func (f *Filter) CheckReleaseSize(releaseSize uint64) (bool, error) {
 
 	if maxBytes != nil && releaseSize >= *maxBytes {
 		f.addRejectionF("release size %d bytes is larger than filter max size %d bytes", releaseSize, *maxBytes)
+		return false, nil
+	}
+
+	return true, nil
+}
+
+func (f *Filter) CheckUploader(uploader string) (bool, error) {
+	if f.MatchUploaders != "" && !contains(uploader, f.MatchUploaders) {
+		f.addRejectionF("release required MatchUploaders missing have: %v want: %v", uploader, f.MatchUploaders)
+		return false, nil
+	}
+
+	if f.MatchUploaders != "" && contains(uploader, f.MatchUploaders) {
+		f.addRejectionF("release required ExceptUploaders have: %v want: %v", uploader, f.ExceptUploaders)
 		return false, nil
 	}
 
