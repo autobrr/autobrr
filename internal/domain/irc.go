@@ -216,6 +216,7 @@ func (p IRCParserOrpheus) Parse(rls *Release, vars map[string]string) error {
 		audio = append(audio, tags.AudioBitrate)
 	}
 	rls.Bitrate = tags.AudioBitrate
+	rls.AudioFormat = tags.AudioFormat
 
 	// set log score
 	rls.HasLog = tags.HasLog
@@ -255,6 +256,7 @@ func (p IRCParserRedacted) Parse(rls *Release, vars map[string]string) error {
 		audio = append(audio, tags.AudioBitrate)
 	}
 	rls.Bitrate = tags.AudioBitrate
+	rls.AudioFormat = tags.AudioFormat
 
 	// set log score
 	rls.HasLog = tags.HasLog

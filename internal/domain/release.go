@@ -74,6 +74,7 @@ type Release struct {
 	HDR                         []string              `json:"hdr"`
 	Audio                       []string              `json:"-"`
 	AudioChannels               string                `json:"-"`
+	AudioFormat                 string                `json:"-"`
 	Bitrate                     string                `json:"-"`
 	Group                       string                `json:"group"`
 	Region                      string                `json:"-"`
@@ -343,6 +344,14 @@ func (r *Release) ParseReleaseTagsString(tags string) {
 		r.Bitrate = t.AudioBitrate
 	}
 
+	if t.AudioFormat != "" {
+		r.AudioFormat = t.AudioFormat
+	}
+
+	if r.AudioChannels == "" && t.Channels != "" {
+		r.AudioChannels = t.Channels
+	}
+
 	if t.HasLog {
 		r.HasLog = true
 
@@ -356,7 +365,7 @@ func (r *Release) ParseReleaseTagsString(tags string) {
 	}
 
 	if len(t.Bonus) > 0 {
-		if sliceContainsSlice([]string{"Freeleech"}, t.Bonus) {
+		if sliceContainsSlice([]string{"Freeleech", "Freeleech!"}, t.Bonus) {
 			r.Freeleech = true
 		}
 		// TODO handle percent and other types
@@ -380,9 +389,6 @@ func (r *Release) ParseReleaseTagsString(tags string) {
 	}
 	if r.Source == "" && t.Source != "" {
 		r.Source = t.Source
-	}
-	if r.AudioChannels == "" && t.Channels != "" {
-		r.AudioChannels = t.Channels
 	}
 }
 

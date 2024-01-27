@@ -547,7 +547,7 @@ func (f *Filter) CheckFilter(r *Release) ([]string, bool) {
 	return nil, true
 }
 
-func (f Filter) checkMaxDownloads() bool {
+func (f *Filter) checkMaxDownloads() bool {
 	if f.Downloads == nil {
 		return false
 	}
@@ -614,6 +614,32 @@ func (f *Filter) checkSizeFilter(r *Release) bool {
 	}
 
 	return true
+}
+
+// IsPerfectFLAC Perfect is "CD FLAC Cue Log 100% Lossless or 24bit Lossless"
+func (f *Filter) IsPerfectFLAC(r *Release) ([]string, bool) {
+	rejections := []string{}
+
+	if r.Source != "CD" {
+		rejections = append(rejections, fmt.Sprintf("wanted Source CD, got %s", r.Source))
+	}
+	if r.AudioFormat != "FLAC" {
+		rejections = append(rejections, fmt.Sprintf("wanted Format FLAC, got %s", r.AudioFormat))
+	}
+	if !r.HasCue {
+		rejections = append(rejections, fmt.Sprintf("wanted Cue, got %t", r.HasCue))
+	}
+	if !r.HasLog {
+		rejections = append(rejections, fmt.Sprintf("wanted Log, got %t", r.HasLog))
+	}
+	if r.LogScore != 100 {
+		rejections = append(rejections, fmt.Sprintf("wanted Log Score 100, got %d", r.LogScore))
+	}
+	if !containsSlice(r.Bitrate, []string{"Lossless", "24bit Lossless"}) {
+		rejections = append(rejections, fmt.Sprintf("wanted Bitrate Lossless / 24bit Lossless, got %s", r.Bitrate))
+	}
+
+	return rejections, len(rejections) == 0
 }
 
 func (f *Filter) addRejection(reason string) {
