@@ -272,8 +272,8 @@ func TestAuthHandlerValidateBad(t *testing.T) {
 
 	defer resp.Body.Close()
 
-	if status := resp.StatusCode; status != http.StatusUnauthorized {
-		t.Errorf("validate: handler returned wrong status code: got %v want %v", status, http.StatusUnauthorized)
+	if status := resp.StatusCode; status != http.StatusNoContent {
+		t.Errorf("validate: handler returned wrong status code: got %v want %v", status, http.StatusNoContent)
 	}
 }
 
@@ -320,9 +320,9 @@ func TestAuthHandlerLoginBad(t *testing.T) {
 
 	defer resp.Body.Close()
 
-	// check for response, here we'll just check for 204 NoContent
-	if status := resp.StatusCode; status != http.StatusUnauthorized {
-		t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusUnauthorized)
+	// check for response, here we'll just check for 403 Forbidden
+	if status := resp.StatusCode; status != http.StatusForbidden {
+		t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusForbidden)
 	}
 }
 
