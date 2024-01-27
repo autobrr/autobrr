@@ -266,6 +266,11 @@ func Test_pullSizeFromDescription(t *testing.T) {
 			str:  "<strong>Uploaded</strong>: 38 minutes ago<br>",
 			want: "0B",
 		},
+		{
+			name: "multiple sizes",
+			str:  "<strong>Uploaded</strong>: 38B minutes ago<br>Size: 32GB",
+			want: "32GB",
+		},
 	}
 
 	for _, tt := range tests {
