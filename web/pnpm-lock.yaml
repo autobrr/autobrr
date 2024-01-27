@@ -6,7 +6,6 @@ settings:
 
 overrides:
   rollup: npm:@rollup/wasm-node
-  csstype: 3.1.2
   react: ^18.2.0
 
 dependencies:
@@ -3873,7 +3872,7 @@ packages:
   /goober@2.1.13(csstype@3.1.2):
     resolution: {integrity: sha512-jFj3BQeleOoy7t93E9rZ2de+ScC4lQICLwiAQmKMg9F6roKGaLSHoCDYKkWlSafg138jejvq/mTdvmnwDQgqoQ==}
     peerDependencies:
-      csstype: 3.1.2
+      csstype: ^3.0.10
     dependencies:
       csstype: 3.1.2
     dev: false
