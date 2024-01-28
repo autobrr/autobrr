@@ -75,8 +75,11 @@ func (a *announceProcessor) processQueue(queue chan string) {
 				a.log.Error().Err(err).Msg("could not get line from queue")
 				return
 			}
-			a.log.Trace().Msgf("announce: process line: %v", line)
-
+			if a.indexer.Enabled {
+				a.log.Trace().Msgf("announce: process line: %v", line)
+			} else {
+				a.log.Trace().Msgf("[%v is not enabled] announce: process line: %v", a.indexer, line)
+			}
 			// check should ignore
 
 			match, err := indexer.ParseLine(&a.log, parseLine.Pattern, parseLine.Vars, tmpVars, line, parseLine.Ignore)
@@ -131,7 +134,10 @@ func (a *announceProcessor) AddLineToQueue(channel string, line string) error {
 	}
 
 	queue <- line
-	a.log.Trace().Msgf("announce: queued line: %v", line)
-
+	if a.indexer.Enabled {
+		a.log.Trace().Msgf("announce: queued line: %v", line)
+	} else {
+		a.log.Trace().Msgf("[%v is not enabled] announce: queued line: %v", a.indexer, line)
+	}
 	return nil
 }
