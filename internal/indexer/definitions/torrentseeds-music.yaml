@@ -1,0 +1,72 @@
+---
+#id: TorrentSeeds-music
+name: TorrentSeeds Music
+identifier: torrentseeds-music
+description: TorrentSeeds (TS) is a GENERAL/0-DAY tracker with great pretimes.
+language: en-us
+urls:
+  - https://torrentseeds.org/
+privacy: private
+protocol: torrent
+supports:
+  - irc
+  - rss
+# source: UNIT3D
+settings:
+  - name: rsskey
+    type: secret
+    required: true
+    label: RSS key
+    help: "Click on your nick / Go to Settings / Security / Copy the RID (RSS Key) and paste it here."
+
+irc:
+  network: Torrentseeds.org
+  server: irc.torrentseeds.org
+  port: 6697
+  tls: true
+  channels:
+    - "#announce-music"
+  announcers:
+    - torrentseeds
+  settings:
+    - name: nick
+      type: text
+      required: true
+      label: Nick
+      help: Bot nick. Eg. user_bot
+
+    - name: invite_command
+      type: secret
+      default: "Cerberus identify USERNAME PID"
+      required: true
+      label: Invite command
+      help: Invite auth with Cerberus. Replace USERNAME and PID (passkey).
+
+  parse:
+    type: single
+    lines:
+      - tests:
+        - line: 'New: The_Artist-The_Album-(ID)-WEB-2024-GROUP .:. Category: Music .:. Genre: Banger .:. Size: 13.37 MiB .:. URL:  https://www.torrentseeds.org/torrents/0000000 .:. Uploaded by: Uploader.'
+          expect:
+            torrentName: The_Artist-The_Album-(ID)-WEB-2024-GROUP
+            category: Music
+            tags: Banger
+            torrentSize: 13.37 MiB
+            baseUrl: https://www.torrentseeds.org/
+            torrentId: "0000000"
+            uploader: Uploader
+            freeleech: ""
+        pattern: 'New:\s+(.*)\s+\.:\.\s+Category:\s+(.*)\s+\.:\.\s+Genre:\s+(.*)\s+\.:\.\s+Size:\s+(.*)\s+\.:\.\s+URL:\s+(https?\:\/\/.+\/).+/(\d+)\s+\.:\.\s+Uploaded\s+by:\s+(\w+)\s?(FREELEECH)?.*'
+        vars:
+          - torrentName
+          - category
+          - tags
+          - torrentSize
+          - baseUrl
+          - torrentId
+          - uploader
+          - freeleech
+
+    match:
+      infourl: "/torrents/{{ .torrentId }}"
+      torrenturl: "/torrent/download/{{ .torrentId }}.{{ .rsskey }}"

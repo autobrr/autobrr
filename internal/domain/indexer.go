@@ -352,6 +352,8 @@ func (p *IndexerIRCParse) Parse(def *IndexerDefinition, vars map[string]string, 
 		parser = IRCParserGazelleGames{}
 	case "ops":
 		parser = IRCParserOrpheus{}
+	case "redacted":
+		parser = IRCParserRedacted{}
 	default:
 		parser = IRCParserDefault{}
 	}
