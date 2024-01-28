@@ -75,6 +75,7 @@ func TestREDClient_GetTorrentByID(t *testing.T) {
 				Id:       "29991962",
 				InfoHash: "B2BABD3A361EAFC6C4E9142C422DF7DDF5D7E163",
 				Size:     "527749302",
+				Uploader: "Uploader",
 			},
 			wantErr: "",
 		},
