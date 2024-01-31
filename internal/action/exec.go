@@ -32,14 +32,20 @@ func (s *service) execCmd(ctx context.Context, action *domain.Action, release do
 
 	// we need to split on space into a string slice, so we can spread the args into exec
 
-	start := time.Now()
+	// handle timeouts
+	timeoutCtx, cancel := context.WithTimeout(ctx, 120*time.Second)
+	defer cancel()
 
 	// setup command and args
-	command := exec.CommandContext(ctx, cmd, args...)
+	command := exec.CommandContext(timeoutCtx, cmd, args...)
 
 	// execute command
+	start := time.Now()
 	output, err := command.CombinedOutput()
 	if err != nil {
+		if timeoutCtx.Err() == context.DeadlineExceeded {
+			return errors.Wrap(err, "executing command timed out after 30 seconds: %s args: %s", cmd, args)
+		}
 		// everything other than exit 0 is considered an error
 		return errors.Wrap(err, "error executing command: %s args: %s", cmd, args)
 	}
