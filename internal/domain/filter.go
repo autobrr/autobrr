@@ -133,6 +133,10 @@ type Filter struct {
 	MatchDescription     string                 `json:"match_description,omitempty"`
 	ExceptDescription    string                 `json:"except_description,omitempty"`
 	UseRegexDescription  bool                   `json:"use_regex_description,omitempty"`
+	MinSeeders           int                    `json:"min_seeders,omitempty"`
+	MaxSeeders           int                    `json:"max_seeders,omitempty"`
+	MinLeechers          int                    `json:"min_leechers,omitempty"`
+	MaxLeechers          int                    `json:"max_leechers,omitempty"`
 	ActionsCount         int                    `json:"actions_count"`
 	ActionsEnabledCount  int                    `json:"actions_enabled_count"`
 	Actions              []*Action              `json:"actions,omitempty"`
@@ -232,6 +236,10 @@ type FilterUpdate struct {
 	ExceptTagsAny                    *string                 `json:"except_tags_any,omitempty"`
 	TagsMatchLogic                   *string                 `json:"tags_match_logic,omitempty"`
 	ExceptTagsMatchLogic             *string                 `json:"except_tags_match_logic,omitempty"`
+	MinSeeders                       *int                    `json:"min_seeders,omitempty"`
+	MaxSeeders                       *int                    `json:"max_seeders,omitempty"`
+	MinLeechers                      *int                    `json:"min_leechers,omitempty"`
+	MaxLeechers                      *int                    `json:"max_leechers,omitempty"`
 	ExternalScriptEnabled            *bool                   `json:"external_script_enabled,omitempty"`
 	ExternalScriptCmd                *string                 `json:"external_script_cmd,omitempty"`
 	ExternalScriptArgs               *string                 `json:"external_script_args,omitempty"`
@@ -467,7 +475,7 @@ func (f *Filter) CheckFilter(r *Release) ([]string, bool) {
 		f.addRejectionF("formats not matching. got: %v want: %v", r.Audio, f.Formats)
 	}
 
-	if len(f.Quality) > 0 && !sliceContainsSlice(r.Audio, f.Quality) {
+	if len(f.Quality) > 0 && !containsMatchBasic(r.Audio, f.Quality) {
 		f.addRejectionF("quality not matching. got: %v want: %v", r.Audio, f.Quality)
 	}
 
@@ -507,6 +515,31 @@ func (f *Filter) CheckFilter(r *Release) ([]string, bool) {
 		}
 	}
 
+	// Min and Max Seeders/Leechers is only for Torznab feeds
+	if f.MinSeeders > 0 {
+		if f.MinSeeders > r.Seeders {
+			f.addRejectionF("min seeders not matcing. got: %d want %d", r.Seeders, f.MinSeeders)
+		}
+	}
+
+	if f.MaxSeeders > 0 {
+		if f.MaxSeeders < r.Seeders {
+			f.addRejectionF("max seeders not matcing. got: %d want %d", r.Seeders, f.MaxSeeders)
+		}
+	}
+
+	if f.MinLeechers > 0 {
+		if f.MinLeechers > r.Leechers {
+			f.addRejectionF("min leechers not matcing. got: %d want %d", r.Leechers, f.MinLeechers)
+		}
+	}
+
+	if f.MaxLeechers > 0 {
+		if f.MaxLeechers < r.Leechers {
+			f.addRejectionF("max leechers not matcing. got: %d want %d", r.Leechers, f.MaxLeechers)
+		}
+	}
+
 	if len(f.Rejections) > 0 {
 		return f.Rejections, false
 	}
@@ -514,7 +547,7 @@ func (f *Filter) CheckFilter(r *Release) ([]string, bool) {
 	return nil, true
 }
 
-func (f Filter) checkMaxDownloads() bool {
+func (f *Filter) checkMaxDownloads() bool {
 	if f.Downloads == nil {
 		return false
 	}
@@ -547,7 +580,7 @@ func (f *Filter) isPerfectFLAC(r *Release) bool {
 	if !containsAny(r.Audio, "Log") {
 		return false
 	}
-	if !containsAny(r.Audio, "Log100") {
+	if !containsAny(r.Audio, "Log100") || r.LogScore != 100 {
 		return false
 	}
 	if !containsAny(r.Audio, "FLAC") {
@@ -581,6 +614,32 @@ func (f *Filter) checkSizeFilter(r *Release) bool {
 	}
 
 	return true
+}
+
+// IsPerfectFLAC Perfect is "CD FLAC Cue Log 100% Lossless or 24bit Lossless"
+func (f *Filter) IsPerfectFLAC(r *Release) ([]string, bool) {
+	rejections := []string{}
+
+	if r.Source != "CD" {
+		rejections = append(rejections, fmt.Sprintf("wanted Source CD, got %s", r.Source))
+	}
+	if r.AudioFormat != "FLAC" {
+		rejections = append(rejections, fmt.Sprintf("wanted Format FLAC, got %s", r.AudioFormat))
+	}
+	if !r.HasCue {
+		rejections = append(rejections, fmt.Sprintf("wanted Cue, got %t", r.HasCue))
+	}
+	if !r.HasLog {
+		rejections = append(rejections, fmt.Sprintf("wanted Log, got %t", r.HasLog))
+	}
+	if r.LogScore != 100 {
+		rejections = append(rejections, fmt.Sprintf("wanted Log Score 100, got %d", r.LogScore))
+	}
+	if !containsSlice(r.Bitrate, []string{"Lossless", "24bit Lossless"}) {
+		rejections = append(rejections, fmt.Sprintf("wanted Bitrate Lossless / 24bit Lossless, got %s", r.Bitrate))
+	}
+
+	return rejections, len(rejections) == 0
 }
 
 func (f *Filter) addRejection(reason string) {
