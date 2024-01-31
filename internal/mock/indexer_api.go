@@ -1,4 +1,4 @@
-// Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+// Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 package mock
@@ -16,14 +16,26 @@ type IndexerApiClient interface {
 }
 
 type IndexerClient struct {
-	URL    string
+	url    string
 	APIKey string
 }
 
-func NewMockClient(url string, apiKey string) IndexerApiClient {
+type OptFunc func(client *IndexerClient)
+
+func WithUrl(url string) OptFunc {
+	return func(c *IndexerClient) {
+		c.url = url
+	}
+}
+
+func NewMockClient(apiKey string, opts ...OptFunc) IndexerApiClient {
 	c := &IndexerClient{
-		URL:    url,
+		url:    "",
 		APIKey: apiKey,
+	}
+
+	for _, opt := range opts {
+		opt(c)
 	}
 
 	return c

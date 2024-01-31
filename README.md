@@ -293,6 +293,8 @@ Whether you're fixing a bug, adding a feature, or improving documentation, your 
 
 ### Code Contributions
 
+Check out the full guide for contributing [here](CONTRIBUTING.md).
+
 - **Fork and Clone:** Fork the `autobrr` repository and clone it to start working on your changes.
 - **Branching:** Create a new branch for your changes. Use a descriptive name for easy understanding.
 - **Coding:** Ensure your code is well-commented for clarity.
@@ -318,4 +320,4 @@ autobrr is proudly open-source and is released under the [GNU General Public Lic
 - **Freedom to Share:** You can redistribute copies of autobrr to help others.
 - **Freedom to Enhance:** Contributions to improve autobrr are always welcome.
 
-Copyright 2021-2023
+Copyright 2021-2024

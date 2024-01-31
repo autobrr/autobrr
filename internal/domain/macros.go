@@ -1,4 +1,4 @@
-// Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+// Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 package domain
@@ -23,6 +23,7 @@ type Macro struct {
 	TorrentUrl          string
 	TorrentDataRawBytes []byte
 	MagnetURI           string
+	Group               string
 	GroupID             string
 	DownloadUrl         string
 	InfoUrl             string
@@ -58,6 +59,7 @@ func NewMacro(release Release) Macro {
 		TorrentHash:         release.TorrentHash,
 		TorrentID:           release.TorrentID,
 		MagnetURI:           release.MagnetURI,
+		Group:               release.Group,
 		GroupID:             release.GroupID,
 		InfoUrl:             release.InfoURL,
 		DownloadUrl:         release.DownloadURL,

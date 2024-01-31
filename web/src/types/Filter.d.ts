@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+ * Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
@@ -67,6 +67,10 @@ interface Filter {
   except_tags_any: string;
   tags_match_logic: string;
   except_tags_match_logic: string;
+  min_seeders: number;
+  max_seeders: number;
+  min_leechers: number;
+  max_leechers: number;
   actions_count: number;
   actions_enabled_count: number;
   actions: Action[];
@@ -105,6 +109,7 @@ interface Action {
   webhook_data: string,
   webhook_headers: string[];
   external_download_client_id?: number;
+  external_download_client?: string;
   client_id?: number;
   filter_id?: number;
 }

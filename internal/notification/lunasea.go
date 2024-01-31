@@ -9,6 +9,7 @@ import (
 
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/pkg/errors"
+	"github.com/autobrr/autobrr/pkg/sharedhttp"
 
 	"github.com/rs/zerolog"
 )
@@ -25,7 +26,9 @@ type LunaSeaMessage struct {
 type lunaSeaSender struct {
 	log      zerolog.Logger
 	Settings domain.Notification
-	builder  NotificationBuilderPlainText
+	builder  MessageBuilderPlainText
+
+	httpClient *http.Client
 }
 
 func (s *lunaSeaSender) rewriteWebhookURL(url string) string {
@@ -37,13 +40,17 @@ func NewLunaSeaSender(log zerolog.Logger, settings domain.Notification) domain.N
 	return &lunaSeaSender{
 		log:      log.With().Str("sender", "lunasea").Logger(),
 		Settings: settings,
-		builder:  NotificationBuilderPlainText{},
+		builder:  MessageBuilderPlainText{},
+		httpClient: &http.Client{
+			Timeout:   time.Second * 30,
+			Transport: sharedhttp.Transport,
+		},
 	}
 }
 
 func (s *lunaSeaSender) Send(event domain.NotificationEvent, payload domain.NotificationPayload) error {
 	m := LunaSeaMessage{
-		Title: s.builder.BuildTitle(event),
+		Title: BuildTitle(event),
 		Body:  s.builder.BuildBody(payload),
 		Image: defaultImageURL,
 	}
@@ -64,8 +71,7 @@ func (s *lunaSeaSender) Send(event domain.NotificationEvent, payload domain.Noti
 
 	req.Header.Set("Content-Type", "application/json")
 
-	client := &http.Client{Timeout: 30 * time.Second}
-	res, err := client.Do(req)
+	res, err := s.httpClient.Do(req)
 	if err != nil {
 		s.log.Error().Err(err).Msg("lunasea client request error")
 		return errors.Wrap(err, "could not make request")

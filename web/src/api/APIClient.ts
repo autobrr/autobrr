@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+ * Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
@@ -89,10 +89,18 @@ export async function HttpClient<T = unknown>(
   case 401: {
     // Remove auth info from localStorage
     AuthContext.reset();
-  }
 
     // Show an error toast to notify the user what occurred
-    return Promise.reject(new Error(`[401] Unauthorized: "${endpoint}"`));
+    // return Promise.reject(new Error(`[401] Unauthorized: "${endpoint}"`));
+    return Promise.reject(response);
+  }
+  case 403: {
+    // Remove auth info from localStorage
+    AuthContext.reset();
+
+    // Show an error toast to notify the user what occurred
+    return Promise.reject(response);
+  }
   case 404: {
     return Promise.reject(new Error(`[404] Not found: "${endpoint}"`));
   }
@@ -104,6 +112,10 @@ export async function HttpClient<T = unknown>(
       );
     }
     break;
+  }
+  case 503: {
+    // Show an error toast to notify the user what occurred
+    return Promise.reject(new Error(`[503] Service unavailable: "${endpoint}"`));
   }
   default:
     break;
@@ -315,7 +327,7 @@ export const APIClient = {
           params["indexer"].push(filter.value);
         } else if (filter.id === "action_status") {
           params["push_status"].push(filter.value);
-        } else if (filter.id == "torrent_name") {
+        } else if (filter.id == "name") {
           params["q"].push(filter.value);
         }
       });

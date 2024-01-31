@@ -1,4 +1,4 @@
-// Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+// Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 package database
@@ -12,11 +12,13 @@ import (
 
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/internal/logger"
+	"github.com/autobrr/autobrr/pkg/cmp"
 	"github.com/autobrr/autobrr/pkg/errors"
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/lib/pq"
 	"github.com/rs/zerolog"
+	"golang.org/x/exp/slices"
 )
 
 type FilterRepo struct {
@@ -237,6 +239,10 @@ func (r *FilterRepo) FindByID(ctx context.Context, filterID int) (*domain.Filter
 			"f.except_tags_match_logic",
 			"f.origins",
 			"f.except_origins",
+			"f.min_seeders",
+			"f.max_seeders",
+			"f.min_leechers",
+			"f.max_leechers",
 			"f.created_at",
 			"f.updated_at",
 			"fe.id as external_id",
@@ -347,6 +353,10 @@ func (r *FilterRepo) FindByID(ctx context.Context, filterID int) (*domain.Filter
 			&exceptTagsMatchLogic,
 			pq.Array(&f.Origins),
 			pq.Array(&f.ExceptOrigins),
+			&f.MinSeeders,
+			&f.MaxSeeders,
+			&f.MinLeechers,
+			&f.MaxLeechers,
 			&f.CreatedAt,
 			&f.UpdatedAt,
 			&extId,
@@ -501,6 +511,10 @@ func (r *FilterRepo) findByIndexerIdentifier(ctx context.Context, indexer string
 			"f.except_tags_match_logic",
 			"f.origins",
 			"f.except_origins",
+			"f.min_seeders",
+			"f.max_seeders",
+			"f.min_leechers",
+			"f.max_leechers",
 			"f.created_at",
 			"f.updated_at",
 			"fe.id as external_id",
@@ -615,6 +629,10 @@ func (r *FilterRepo) findByIndexerIdentifier(ctx context.Context, indexer string
 			&exceptTagsMatchLogic,
 			pq.Array(&f.Origins),
 			pq.Array(&f.ExceptOrigins),
+			&f.MinSeeders,
+			&f.MaxSeeders,
+			&f.MinLeechers,
+			&f.MaxLeechers,
 			&f.CreatedAt,
 			&f.UpdatedAt,
 			&extId,
@@ -712,6 +730,12 @@ func (r *FilterRepo) findByIndexerIdentifier(ctx context.Context, indexer string
 		filter := filter
 		filters = append(filters, filter)
 	}
+
+	// the filterMap messes up the order, so we need to sort the filters slice
+	slices.SortStableFunc(filters, func(a, b *domain.Filter) int {
+		// TODO remove with Go 1.21 and use std lib cmp
+		return cmp.Compare(b.Priority, a.Priority)
+	})
 
 	return filters, nil
 }
@@ -862,6 +886,10 @@ func (r *FilterRepo) Store(ctx context.Context, filter *domain.Filter) error {
 			"perfect_flac",
 			"origins",
 			"except_origins",
+			"min_seeders",
+			"max_seeders",
+			"min_leechers",
+			"max_leechers",
 		).
 		Values(
 			filter.Name,
@@ -921,6 +949,10 @@ func (r *FilterRepo) Store(ctx context.Context, filter *domain.Filter) error {
 			filter.PerfectFlac,
 			pq.Array(filter.Origins),
 			pq.Array(filter.ExceptOrigins),
+			filter.MinSeeders,
+			filter.MaxSeeders,
+			filter.MinLeechers,
+			filter.MaxLeechers,
 		).
 		Suffix("RETURNING id").RunWith(r.db.handler)
 
@@ -998,6 +1030,10 @@ func (r *FilterRepo) Update(ctx context.Context, filter *domain.Filter) error {
 		Set("perfect_flac", filter.PerfectFlac).
 		Set("origins", pq.Array(filter.Origins)).
 		Set("except_origins", pq.Array(filter.ExceptOrigins)).
+		Set("min_seeders", filter.MinSeeders).
+		Set("max_seeders", filter.MaxSeeders).
+		Set("min_leechers", filter.MinLeechers).
+		Set("max_leechers", filter.MaxLeechers).
 		Set("updated_at", time.Now().Format(time.RFC3339)).
 		Where(sq.Eq{"id": filter.ID})
 
@@ -1229,6 +1265,18 @@ func (r *FilterRepo) UpdatePartial(ctx context.Context, filter domain.FilterUpda
 	if filter.ExternalWebhookRetryDelaySeconds != nil {
 		q = q.Set("external_webhook_retry_delay_seconds", filter.ExternalWebhookRetryDelaySeconds)
 	}
+	if filter.MinSeeders != nil {
+		q = q.Set("min_seeders", filter.MinSeeders)
+	}
+	if filter.MaxSeeders != nil {
+		q = q.Set("max_seeders", filter.MaxSeeders)
+	}
+	if filter.MinLeechers != nil {
+		q = q.Set("min_leechers", filter.MinLeechers)
+	}
+	if filter.MaxLeechers != nil {
+		q = q.Set("max_leechers", filter.MaxLeechers)
+	}
 
 	q = q.Where(sq.Eq{"id": filter.ID})
 
@@ -1418,6 +1466,13 @@ func (r *FilterRepo) Delete(ctx context.Context, filterID int) error {
 	return nil
 }
 
+// GetDownloadsByFilterId looks up how many `PENDING` or `PUSH_APPROVED`
+// releases there have been for the given filter in the current time window
+// starting at the start of the unit (since the beginning of the most recent
+// hour/day/week).
+//
+// See also
+// https://github.com/autobrr/autobrr/pull/1285#pullrequestreview-1795913581
 func (r *FilterRepo) GetDownloadsByFilterId(ctx context.Context, filterID int) (*domain.FilterDownloads, error) {
 	if r.db.Driver == "sqlite" {
 		return r.downloadsByFilterSqlite(ctx, filterID)

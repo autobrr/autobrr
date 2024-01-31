@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+ * Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
@@ -151,7 +151,7 @@ export const ForceRunModal: FC<ForceRunModalProps> = (props: ForceRunModalProps)
     }, 200);
   };
 
-  const handleForceRun = (e: React.MouseEvent<HTMLButtonElement>) => {
+  const handleForceRun = (e: React.SyntheticEvent) => {
     e.preventDefault();
     if (props.isOpen && isInputCorrect) {
       props.forceRunAction();
@@ -211,6 +211,11 @@ export const ForceRunModal: FC<ForceRunModalProps> = (props: ForceRunModalProps)
                   placeholder="Type 'I understand' to enable the button"
                   value={inputValue}
                   onChange={(e) => setInputValue(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      handleForceRun(e);
+                    }
+                  }}
                 />
               </div>
 

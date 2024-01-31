@@ -1,4 +1,4 @@
-// Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+// Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 package feed
@@ -22,6 +22,7 @@ import (
 var (
 	rxpSize      = regexp.MustCompile(`(?mi)(([0-9.]+)\s*(b|kb|kib|kilobyte|mb|mib|megabyte|gb|gib|gigabyte|tb|tib|terabyte))`)
 	rxpFreeleech = regexp.MustCompile(`(?mi)(\bfreeleech\b)`)
+	rxpHTML      = regexp.MustCompile(`(?mi)<.*?>`)
 )
 
 type RSSJob struct {
@@ -190,7 +191,7 @@ func (j *RSSJob) processItem(item *gofeed.Item) *domain.Release {
 		}
 
 		if element.ContentLength > 0 {
-			if uint64(element.ContentLength) != rls.Size {
+			if uint64(element.ContentLength) > rls.Size {
 				rls.Size = uint64(element.ContentLength)
 			}
 		}
@@ -210,10 +211,8 @@ func (j *RSSJob) processItem(item *gofeed.Item) *domain.Release {
 		rls.Description = item.Description
 
 		if rls.Size == 0 {
-			hrSize := readSizeFromDescription(item.Description)
-			rls.ParseSizeBytesString(hrSize)
-
-			j.Log.Trace().Msgf("Set new size %d from description %s", rls.Size, hrSize)
+			readSizeFromDescription(item.Description, rls)
+			j.Log.Trace().Msgf("Set new size %d from description", rls.Size)
 		}
 	}
 
@@ -326,13 +325,11 @@ func isFreeleech(str []string) bool {
 }
 
 // readSizeFromDescription get size from description
-func readSizeFromDescription(str string) string {
-	matches := rxpSize.FindStringSubmatch(str)
-	if matches == nil {
-		return ""
+func readSizeFromDescription(str string, r *domain.Release) {
+	clean := rxpHTML.ReplaceAllString(str, " ")
+	for _, sz := range rxpSize.FindAllString(clean, -1) {
+		r.ParseSizeBytesString(sz)
 	}
-
-	return matches[1]
 }
 
 // itemCustomElement

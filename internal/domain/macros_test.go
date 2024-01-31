@@ -1,4 +1,4 @@
-// Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+// Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 package domain
@@ -212,6 +212,19 @@ func TestMacros_Parse(t *testing.T) {
 			},
 			args:    args{text: "DownloadUrl: {{ .DownloadUrl }}"},
 			want:    "DownloadUrl: https://test.local/this/page/1001",
+			wantErr: false,
+		},
+		{
+			name: "test_group",
+			release: Release{
+				TorrentName: "This movie 2021",
+				DownloadURL: "https://some.site/download/fakeid",
+				Group:       "thisgrp",
+				Indexer:     "mock1",
+				Year:        2021,
+			},
+			args:    args{text: "movies-{{.Group}}"},
+			want:    "movies-thisgrp",
 			wantErr: false,
 		},
 	}

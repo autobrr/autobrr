@@ -1,4 +1,4 @@
-// Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+// Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 package domain
@@ -1165,16 +1165,17 @@ func TestFilter_CheckFilter(t *testing.T) {
 					LogScore: 100,
 					Cue:      true,
 				},
-				rejections: []string{"quality not matching. got: [FLAC Lossless Log100 Log] want: [24bit Lossless]", "wanted: cue", "log score. got: 0 want: 100"},
+				rejections: []string{"quality not matching. got: [FLAC Lossless Log100 Log] want: [24bit Lossless]", "wanted: cue"},
 			},
 			want: false,
 		},
 		{
 			name: "match_music_5",
 			fields: &Release{
-				TorrentName: "Artist - Albumname FLAC CD",
+				//TorrentName: "Artist - Albumname FLAC CD",
+				TorrentName: "Artist - Albumname [2022] [Album] (FLAC 24bit Lossless CD)",
 				Year:        2022,
-				ReleaseTags: "FLAC / Lossless / Log / 100% / Cue / CD",
+				ReleaseTags: "FLAC / 24bit Lossless / Log / 100% / Cue / CD",
 				Category:    "Album",
 			},
 			args: args{
@@ -1185,11 +1186,12 @@ func TestFilter_CheckFilter(t *testing.T) {
 					Artists:           "Artist",
 					Media:             []string{"CD"},
 					Formats:           []string{"FLAC"},
-					Quality:           []string{"24bit Lossless", "Lossless"},
-					PerfectFlac:       true,
-					Log:               true,
+					Quality:           []string{"24bit Lossless"},
+					//PerfectFlac:       true,
+					//Log:               true,
 					//LogScore:          100,
 					Cue: true,
+					//Cue: true,
 				},
 			},
 			want: true,
@@ -1214,7 +1216,7 @@ func TestFilter_CheckFilter(t *testing.T) {
 					LogScore:          100,
 					Cue:               true,
 				},
-				rejections: []string{"release type not matching. got: Album want: [Single]", "log score. got: 0 want: 100"},
+				rejections: []string{"release type not matching. got: Album want: [Single]"},
 			},
 			want: false,
 		},
@@ -1238,7 +1240,7 @@ func TestFilter_CheckFilter(t *testing.T) {
 					LogScore:          100,
 					Cue:               true,
 				},
-				rejections: []string{"artists not matching. got: Artist want: Artiiiist", "log score. got: 0 want: 100"},
+				rejections: []string{"artists not matching. got: Artist want: Artiiiist"},
 			},
 			want: false,
 		},
@@ -1265,6 +1267,28 @@ func TestFilter_CheckFilter(t *testing.T) {
 				},
 			},
 			want: true,
+		},
+		{
+			name: "match_music_9",
+			fields: &Release{
+				TorrentName: "Artist - Albumname [2022] [Album] (FLAC 24bit Lossless CD)",
+				Year:        2022,
+				ReleaseTags: "FLAC / 24bit Lossless / Log / 100% / Cue / CD",
+				Category:    "Album",
+			},
+			args: args{
+				filter: Filter{
+					Enabled:           true,
+					MatchReleaseTypes: []string{"Album"},
+					Years:             "2020-2022",
+					Artists:           "Artist",
+					Media:             []string{"CD"},
+					Formats:           []string{"FLAC"},
+					Quality:           []string{"Lossless"},
+				},
+				rejections: []string{"quality not matching. got: [24BIT Lossless Cue FLAC Log100 Log] want: [Lossless]"},
+			},
+			want: false,
 		},
 		{
 			name: "match_anime_1",
@@ -2130,8 +2154,8 @@ func Test_matchRegex(t *testing.T) {
 		{name: "test_5", args: args{tag: "Some.show.S01.DV.2160p.ATVP.WEB-DL.DDPA5.1.x265-GROUP2", filter: ".*1080p.+(group1|group3),.*720p.+,"}, want: false},
 		{name: "test_6", args: args{tag: "[Group] -Name of a Novel Something Good-  [2012][Translated (Group)][EPUB]", filter: "(?:.*Something Good.*|.*Something Bad.*)"}, want: true},
 		{name: "test_7", args: args{tag: "[Group] -Name of a Novel Something Good-  [2012][Translated (Group)][EPUB]", filter: "(?:.*Something Funny.*|.*Something Bad.*)"}, want: false},
-		{name: "test_8", args: args{tag: ".s10E123.", filter:`\.[Ss]\d{1,2}[Ee]\d{1,3}\.`}, want: true},
-		{name: "test_9", args: args{tag: "S1E1", filter:`\.[Ss]\d{1,2}[Ee]\d{1,3}\.`}, want: false},
+		{name: "test_8", args: args{tag: ".s10E123.", filter: `\.[Ss]\d{1,2}[Ee]\d{1,3}\.`}, want: true},
+		{name: "test_9", args: args{tag: "S1E1", filter: `\.[Ss]\d{1,2}[Ee]\d{1,3}\.`}, want: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

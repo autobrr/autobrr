@@ -1,11 +1,10 @@
-// Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+// Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 package notification
 
 import (
 	"bytes"
-	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -15,6 +14,7 @@ import (
 
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/pkg/errors"
+	"github.com/autobrr/autobrr/pkg/sharedhttp"
 
 	"github.com/dustin/go-humanize"
 	"github.com/rs/zerolog"
@@ -50,12 +50,18 @@ const (
 type discordSender struct {
 	log      zerolog.Logger
 	Settings domain.Notification
+
+	httpClient *http.Client
 }
 
 func NewDiscordSender(log zerolog.Logger, settings domain.Notification) domain.NotificationSender {
 	return &discordSender{
 		log:      log.With().Str("sender", "discord").Logger(),
 		Settings: settings,
+		httpClient: &http.Client{
+			Timeout:   time.Second * 30,
+			Transport: sharedhttp.Transport,
+		},
 	}
 }
 
@@ -80,26 +86,19 @@ func (a *discordSender) Send(event domain.NotificationEvent, payload domain.Noti
 	req.Header.Set("Content-Type", "application/json")
 	//req.Header.Set("User-Agent", "autobrr")
 
-	t := &http.Transport{
-		TLSClientConfig: &tls.Config{
-			InsecureSkipVerify: true,
-		},
-	}
-
-	client := http.Client{Transport: t, Timeout: 30 * time.Second}
-	res, err := client.Do(req)
+	res, err := a.httpClient.Do(req)
 	if err != nil {
 		a.log.Error().Err(err).Msgf("discord client request error: %v", event)
 		return errors.Wrap(err, "could not make request: %+v", req)
 	}
+
+	defer res.Body.Close()
 
 	body, err := io.ReadAll(res.Body)
 	if err != nil {
 		a.log.Error().Err(err).Msgf("discord client request error: %v", event)
 		return errors.Wrap(err, "could not read data")
 	}
-
-	defer res.Body.Close()
 
 	a.log.Trace().Msgf("discord status: %v response: %v", res.StatusCode, string(body))
 

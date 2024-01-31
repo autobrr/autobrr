@@ -1,12 +1,12 @@
 /*
- * Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+ * Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
 import React, { useState } from "react";
 import { useLocation } from "react-router-dom";
-import { useSuspenseQuery } from "@tanstack/react-query";
-import { CellProps, Column, useFilters, usePagination, useSortBy, useTable } from "react-table";
+import { useQuery } from "@tanstack/react-query";
+import { Column, useFilters, usePagination, useSortBy, useTable } from "react-table";
 import {
   ChevronDoubleLeftIcon,
   ChevronDoubleRightIcon,
@@ -23,8 +23,6 @@ import * as Icons from "@components/Icons";
 import * as DataTable from "@components/data-table";
 
 import { IndexerSelectColumnFilter, PushStatusSelectColumnFilter, SearchColumnFilter } from "./Filters";
-import { classNames } from "@utils";
-import { Tooltip } from "@components/tooltips/Tooltip";
 
 export const releaseKeys = {
   all: ["releases"] as const,
@@ -34,12 +32,11 @@ export const releaseKeys = {
   detail: (id: number) => [...releaseKeys.details(), id] as const
 };
 
-
 type TableState = {
-    queryPageIndex: number;
-    queryPageSize: number;
-    totalCount: number;
-    queryFilters: ReleaseFilter[];
+  queryPageIndex: number;
+  queryPageSize: number;
+  totalCount: number;
+  queryFilters: ReleaseFilter[];
 };
 
 const initialState: TableState = {
@@ -50,17 +47,17 @@ const initialState: TableState = {
 };
 
 enum ActionType {
-    PAGE_CHANGED = "PAGE_CHANGED",
-    PAGE_SIZE_CHANGED = "PAGE_SIZE_CHANGED",
-    TOTAL_COUNT_CHANGED = "TOTAL_COUNT_CHANGED",
-    FILTER_CHANGED = "FILTER_CHANGED"
+  PAGE_CHANGED = "PAGE_CHANGED",
+  PAGE_SIZE_CHANGED = "PAGE_SIZE_CHANGED",
+  TOTAL_COUNT_CHANGED = "TOTAL_COUNT_CHANGED",
+  FILTER_CHANGED = "FILTER_CHANGED"
 }
 
 type Actions =
-    | { type: ActionType.FILTER_CHANGED; payload: ReleaseFilter[]; }
-    | { type: ActionType.PAGE_CHANGED; payload: number; }
-    | { type: ActionType.PAGE_SIZE_CHANGED; payload: number; }
-    | { type: ActionType.TOTAL_COUNT_CHANGED; payload: number; };
+  | { type: ActionType.FILTER_CHANGED; payload: ReleaseFilter[]; }
+  | { type: ActionType.PAGE_CHANGED; payload: number; }
+  | { type: ActionType.PAGE_SIZE_CHANGED; payload: number; }
+  | { type: ActionType.TOTAL_COUNT_CHANGED; payload: number; };
 
 const TableReducer = (state: TableState, action: Actions): TableState => {
   switch (action.type) {
@@ -94,27 +91,8 @@ export const ReleaseTable = () => {
     },
     {
       Header: "Release",
-      accessor: "torrent_name",
-      Cell: (props: CellProps<Release>) => {
-        return (
-          <div
-            className={classNames(
-              "flex justify-between py-3 text-sm font-medium box-content text-gray-900 dark:text-gray-300",
-              "max-w-[96px] sm:max-w-[216px] md:max-w-[360px] lg:max-w-[640px] xl:max-w-[840px]"
-            )}
-          >
-            <Tooltip
-              requiresClick
-              label={props.cell.value}
-              maxWidth="max-w-[90vw]"
-            >
-              <span className="whitespace-pre-wrap break-words">
-                {String(props.cell.value)}
-              </span>
-            </Tooltip>
-          </div>
-        );
-      },
+      accessor: "name",
+      Cell: DataTable.NameCell,
       Filter: SearchColumnFilter
     },
     {
@@ -141,7 +119,7 @@ export const ReleaseTable = () => {
   const [{ queryPageIndex, queryPageSize, totalCount, queryFilters }, dispatch] =
         React.useReducer(TableReducer, initialState);
 
-  const { isLoading, error, data, isSuccess } = useSuspenseQuery({
+  const { isLoading, error, data, isSuccess } = useQuery({
     queryKey: releaseKeys.list(queryPageIndex, queryPageSize, queryFilters),
     queryFn: () => APIClient.release.findQuery(queryPageIndex * queryPageSize, queryPageSize, queryFilters),
     staleTime: 5000
@@ -156,7 +134,7 @@ export const ReleaseTable = () => {
       const randomNames = RandomLinuxIsos(data.data.length);
       const newData: Release[] = data.data.map((item, index) => ({
         ...item,
-        torrent_name: `${randomNames[index]}.iso`,
+        name: `${randomNames[index]}.iso`,
         indexer: index % 2 === 0 ? "distrowatch" : "linuxtracker"
       }));
       setModifiedData(newData);
@@ -164,7 +142,6 @@ export const ReleaseTable = () => {
   };
 
   const displayData = showLinuxIsos ? modifiedData : (data?.data ?? []);
-
 
   const {
     getTableProps,
@@ -191,7 +168,7 @@ export const ReleaseTable = () => {
       initialState: {
         pageIndex: queryPageIndex,
         pageSize: queryPageSize,
-        filters: filterTypeFromUrl ? [{ id: "action_status", value: filterTypeFromUrl }] : []
+        filters: queryFilters,
       },
       manualPagination: true,
       manualFilters: true,
@@ -226,7 +203,14 @@ export const ReleaseTable = () => {
 
   React.useEffect(() => {
     dispatch({ type: ActionType.FILTER_CHANGED, payload: filters });
+    gotoPage(0);
   }, [filters]);
+
+  React.useEffect(() => {
+    if (filterTypeFromUrl != null) {
+      dispatch({ type: ActionType.FILTER_CHANGED, payload: [{ id: "action_status", value: filterTypeFromUrl! }] });
+    }
+  }, [filterTypeFromUrl]);
 
   if (error) {
     return <p>Error</p>;

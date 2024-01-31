@@ -1,4 +1,4 @@
-// Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+// Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 package filter
@@ -6,7 +6,6 @@ package filter
 import (
 	"bytes"
 	"context"
-	"crypto/tls"
 	"fmt"
 	"io"
 	"net/http"
@@ -22,6 +21,7 @@ import (
 	"github.com/autobrr/autobrr/internal/logger"
 	"github.com/autobrr/autobrr/internal/utils"
 	"github.com/autobrr/autobrr/pkg/errors"
+	"github.com/autobrr/autobrr/pkg/sharedhttp"
 
 	"github.com/avast/retry-go/v4"
 	"github.com/mattn/go-shellwords"
@@ -52,6 +52,8 @@ type service struct {
 	releaseRepo domain.ReleaseRepo
 	indexerSvc  indexer.Service
 	apiService  indexer.APIService
+
+	httpClient *http.Client
 }
 
 func NewService(log logger.Logger, repo domain.FilterRepo, actionRepo domain.ActionRepo, releaseRepo domain.ReleaseRepo, apiService indexer.APIService, indexerSvc indexer.Service) Service {
@@ -62,6 +64,10 @@ func NewService(log logger.Logger, repo domain.FilterRepo, actionRepo domain.Act
 		releaseRepo: releaseRepo,
 		apiService:  apiService,
 		indexerSvc:  indexerSvc,
+		httpClient: &http.Client{
+			Timeout:   time.Second * 120,
+			Transport: sharedhttp.TransportTLSInsecure,
+		},
 	}
 }
 
@@ -659,14 +665,6 @@ func (s *service) webhook(ctx context.Context, external domain.FilterExternal, r
 
 	s.log.Trace().Msgf("sending %s to external webhook filter: (%s) payload: (%s)", external.WebhookMethod, external.WebhookHost, external.WebhookData)
 
-	t := &http.Transport{
-		TLSClientConfig: &tls.Config{
-			InsecureSkipVerify: true,
-		},
-	}
-
-	client := http.Client{Transport: t, Timeout: 120 * time.Second}
-
 	method := http.MethodPost
 	if external.WebhookMethod != "" {
 		method = external.WebhookMethod
@@ -720,7 +718,7 @@ func (s *service) webhook(ctx context.Context, external domain.FilterExternal, r
 			if external.WebhookData != "" && dataArgs != "" {
 				clonereq.Body = io.NopCloser(bytes.NewBufferString(dataArgs))
 			}
-			res, err := client.Do(clonereq)
+			res, err := s.httpClient.Do(clonereq)
 			if err != nil {
 				return 0, errors.Wrap(err, "could not make request for webhook")
 			}
