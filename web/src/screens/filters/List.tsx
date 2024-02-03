@@ -295,6 +295,7 @@ const FilterItemDropdown = ({ filter, onToggle }: FilterItemDropdownProps) => {
         indexers: any;
         actions: any;
         actions_count: any;
+        actions_enabled_count: number;
         external_script_enabled: any;
         external_script_cmd: any;
         external_script_args: any;
@@ -317,6 +318,7 @@ const FilterItemDropdown = ({ filter, onToggle }: FilterItemDropdownProps) => {
       delete completeFilter.created_at;
       delete completeFilter.updated_at;
       delete completeFilter.actions_count;
+      delete completeFilter.actions_enabled_count;
       delete completeFilter.indexers;
       delete completeFilter.actions;
       delete completeFilter.external_script_enabled;
