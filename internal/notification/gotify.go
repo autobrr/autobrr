@@ -26,7 +26,7 @@ type gotifyMessage struct {
 type gotifySender struct {
 	log      zerolog.Logger
 	Settings domain.Notification
-	builder  NotificationBuilderPlainText
+	builder  MessageBuilderPlainText
 
 	httpClient *http.Client
 }
@@ -35,7 +35,7 @@ func NewGotifySender(log zerolog.Logger, settings domain.Notification) domain.No
 	return &gotifySender{
 		log:      log.With().Str("sender", "gotify").Logger(),
 		Settings: settings,
-		builder:  NotificationBuilderPlainText{},
+		builder:  MessageBuilderPlainText{},
 		httpClient: &http.Client{
 			Timeout:   time.Second * 30,
 			Transport: sharedhttp.Transport,
@@ -46,7 +46,7 @@ func NewGotifySender(log zerolog.Logger, settings domain.Notification) domain.No
 func (s *gotifySender) Send(event domain.NotificationEvent, payload domain.NotificationPayload) error {
 	m := gotifyMessage{
 		Message: s.builder.BuildBody(payload),
-		Title:   s.builder.BuildTitle(event),
+		Title:   BuildTitle(event),
 	}
 
 	data := url.Values{}

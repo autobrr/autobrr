@@ -438,6 +438,10 @@ export const FilterDetails = () => {
               albums: filter.albums,
               origins: filter.origins || [],
               except_origins: filter.except_origins || [],
+              min_seeders: filter.min_seeders,
+              max_seeders: filter.max_seeders,
+              min_leechers: filter.min_leechers,
+              max_leechers: filter.max_leechers,
               indexers: filter.indexers || [],
               actions: filter.actions || [],
               external: filter.external || []

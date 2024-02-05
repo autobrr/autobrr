@@ -12,7 +12,6 @@ import (
 	"net/http"
 	"net/http/cookiejar"
 	"os"
-	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -75,6 +74,8 @@ type Release struct {
 	HDR                         []string              `json:"hdr"`
 	Audio                       []string              `json:"-"`
 	AudioChannels               string                `json:"-"`
+	AudioFormat                 string                `json:"-"`
+	Bitrate                     string                `json:"-"`
 	Group                       string                `json:"group"`
 	Region                      string                `json:"-"`
 	Language                    []string              `json:"-"`
@@ -84,6 +85,8 @@ type Release struct {
 	Artists                     string                `json:"-"`
 	Type                        string                `json:"type"` // Album,Single,EP
 	LogScore                    int                   `json:"-"`
+	HasCue                      bool                  `json:"-"`
+	HasLog                      bool                  `json:"-"`
 	Origin                      string                `json:"origin"` // P2P, Internal
 	Tags                        []string              `json:"-"`
 	ReleaseTags                 string                `json:"-"`
@@ -94,6 +97,8 @@ type Release struct {
 	PreTime                     string                `json:"pre_time"`
 	Other                       []string              `json:"-"`
 	RawCookie                   string                `json:"-"`
+	Seeders                     int                   `json:"-"`
+	Leechers                    int                   `json:"-"`
 	AdditionalSizeCheckRequired bool                  `json:"-"`
 	FilterID                    int                   `json:"-"`
 	Filter                      *Filter               `json:"-"`
@@ -287,6 +292,8 @@ func NewRelease(indexer string) *Release {
 func (r *Release) ParseString(title string) {
 	rel := rls.ParseString(title)
 
+	r.Type = rel.Type.String()
+
 	r.TorrentName = title
 	r.Source = rel.Source
 	r.Resolution = rel.Resolution
@@ -325,18 +332,40 @@ func (r *Release) ParseString(title string) {
 var ErrUnrecoverableError = errors.New("unrecoverable error")
 
 func (r *Release) ParseReleaseTagsString(tags string) {
-	// trim delimiters and closest space
-	re := regexp.MustCompile(`\| |/ |, `)
-	cleanTags := re.ReplaceAllString(tags, "")
-
+	cleanTags := CleanReleaseTags(tags)
 	t := ParseReleaseTagString(cleanTags)
 
 	if len(t.Audio) > 0 {
-		r.Audio = getUniqueTags(r.Audio, t.Audio)
+		//r.Audio = getUniqueTags(r.Audio, t.Audio)
+		r.Audio = t.Audio
+	}
+
+	if t.AudioBitrate != "" {
+		r.Bitrate = t.AudioBitrate
+	}
+
+	if t.AudioFormat != "" {
+		r.AudioFormat = t.AudioFormat
+	}
+
+	if r.AudioChannels == "" && t.Channels != "" {
+		r.AudioChannels = t.Channels
+	}
+
+	if t.HasLog {
+		r.HasLog = true
+
+		if t.LogScore > 0 {
+			r.LogScore = t.LogScore
+		}
+	}
+
+	if t.HasCue {
+		r.HasCue = true
 	}
 
 	if len(t.Bonus) > 0 {
-		if sliceContainsSlice([]string{"Freeleech"}, t.Bonus) {
+		if sliceContainsSlice([]string{"Freeleech", "Freeleech!"}, t.Bonus) {
 			r.Freeleech = true
 		}
 		// TODO handle percent and other types
@@ -360,9 +389,6 @@ func (r *Release) ParseReleaseTagsString(tags string) {
 	}
 	if r.Source == "" && t.Source != "" {
 		r.Source = t.Source
-	}
-	if r.AudioChannels == "" && t.Channels != "" {
-		r.AudioChannels = t.Channels
 	}
 }
 

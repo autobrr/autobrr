@@ -38,6 +38,7 @@ func (s Server) IsAuthenticated(next http.Handler) http.Handler {
 
 				// MaxAge<0 means delete cookie immediately
 				session.Options.MaxAge = -1
+				session.Options.Path = s.config.Config.BaseURL
 
 				if err := session.Save(r, w); err != nil {
 					s.log.Error().Err(err).Msgf("could not store session: %s", r.RemoteAddr)
@@ -50,14 +51,15 @@ func (s Server) IsAuthenticated(next http.Handler) http.Handler {
 
 			if session.IsNew {
 				s.log.Warn().Msgf("session isNew: %+v", session)
-				http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
+				http.Error(w, http.StatusText(http.StatusNoContent), http.StatusNoContent)
 				return
 			}
 
 			// Check if user is authenticated
 			if auth, ok := session.Values["authenticated"].(bool); !ok || !auth {
 				s.log.Warn().Msg("session not authenticated")
-				http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
+
+				http.Error(w, http.StatusText(http.StatusForbidden), http.StatusForbidden)
 				return
 			}
 

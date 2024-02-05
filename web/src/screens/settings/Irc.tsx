@@ -242,8 +242,8 @@ const ListItem = ({ network, expanded }: ListItemProps) => {
     <li>
       <div
         className={classNames(
-          "grid grid-cols-12 gap-2 lg:gap-4 items-center mt-1 p-2.5 cursor-pointer first:bg-gray-775 last:bg-gray-800 first:rounded-t-md last:rounded-b-md transition",
-          network.enabled && !network.healthy ? "bg-red-50 dark:bg-red-900 hover:bg-red-100 dark:hover:bg-red-800" : "hover:bg-gray-50 dark:hover:bg-gray-700"
+          "grid grid-cols-12 gap-2 lg:gap-4 items-center mt-1 p-2.5 cursor-pointer first:bg-gray-100 last:bg-transparent dark:first:bg-gray-775 dark:last:bg-gray-800 first:rounded-t-md last:rounded-b-md transition",
+          network.enabled && !network.healthy ? "first:bg-red-200 last:bg-red-200 first:hover:bg-red-275 last:hover:bg-red-275 dark:first:bg-red-900 dark:last:bg-red-900 dark:first:hover:bg-red-800 dark:last:hover:bg-red-800" : "hover:bg-gray-200 dark:hover:bg-gray-700"
         )}
         onClick={(e) => {
           if (e.defaultPrevented)
@@ -328,7 +328,7 @@ const ListItem = ({ network, expanded }: ListItemProps) => {
         </div>
       </div>
       {(edit || expanded) && (
-        <div className="px-4 py-4 flex dark:bg-gray-775 rounded-b-md">
+        <div className="px-4 py-4 flex bg-gray-100 dark:bg-gray-775 rounded-b-md">
           <div className="min-w-full">
             {network.channels.length > 0 ? (
               <ul>

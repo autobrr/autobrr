@@ -96,10 +96,9 @@ export async function HttpClient<T = unknown>(
   }
   case 403: {
     // Remove auth info from localStorage
-    // auth.logout()
-    // AuthContext.reset();
+    AuthContext.reset();
+
     // Show an error toast to notify the user what occurred
-    // return Promise.reject(new Error(`[403] Forbidden: "${endpoint}"`));
     return Promise.reject(response);
   }
   case 404: {
@@ -113,6 +112,10 @@ export async function HttpClient<T = unknown>(
       );
     }
     break;
+  }
+  case 503: {
+    // Show an error toast to notify the user what occurred
+    return Promise.reject(new Error(`[503] Service unavailable: "${endpoint}"`));
   }
   default:
     break;
@@ -324,7 +327,7 @@ export const APIClient = {
           params["indexer"].push(filter.value);
         } else if (filter.id === "action_status") {
           params["push_status"].push(filter.value);
-        } else if (filter.id == "torrent_name") {
+        } else if (filter.id == "name") {
           params["q"].push(filter.value);
         }
       });

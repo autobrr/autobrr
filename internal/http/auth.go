@@ -75,8 +75,8 @@ func (h authHandler) login(w http.ResponseWriter, r *http.Request) {
 	// create new session
 	session, err := h.cookieStore.Get(r, "user_session")
 	if err != nil {
-		h.log.Error().Err(err).Msgf("could not get session from cookieStore: %s", r.RemoteAddr)
-		h.encoder.StatusError(w, http.StatusInternalServerError, err)
+		h.log.Error().Err(err).Msgf("Auth: Failed to create cookies with attempt username: [%s] ip: %s", data.Username, r.RemoteAddr)
+		h.encoder.StatusError(w, http.StatusInternalServerError, errors.New("could not create cookies"))
 		return
 	}
 
@@ -118,6 +118,8 @@ func (h authHandler) logout(w http.ResponseWriter, r *http.Request) {
 
 		// MaxAge<0 means delete cookie immediately
 		session.Options.MaxAge = -1
+
+		session.Options.Path = h.config.BaseURL
 
 		if err := session.Save(r, w); err != nil {
 			h.log.Error().Err(err).Msgf("could not store session: %s", r.RemoteAddr)
@@ -169,7 +171,7 @@ func (h authHandler) onboardEligible(ctx context.Context) (int, error) {
 	}
 
 	if userCount > 0 {
-		return http.StatusForbidden, errors.New("onboarding unavailable")
+		return http.StatusServiceUnavailable, errors.New("onboarding unavailable")
 	}
 
 	return http.StatusOK, nil
