@@ -1,4 +1,4 @@
-import {FormikValues, useFormikContext} from "formik";
+import { useFormikContext } from "formik";
 
 import { DocsLink } from "@components/ExternalLink";
 import { WarningAlert } from "@components/alerts";
@@ -10,9 +10,9 @@ import { CollapsibleSection } from "./_components";
 import * as Components from "./_components";
 import { classNames } from "@utils";
 
-type ValueConsumer = {
-  values: FormikValues;
-};
+// type ValueConsumer = {
+//   values: FormikValues;
+// };
 
 const Releases = () => {
   const { values } = useFormikContext<Filter>();
@@ -97,7 +97,7 @@ const Releases = () => {
 }
 
 const Groups = () => {
-  const { values } = useFormikContext<Filter>();
+  // const { values } = useFormikContext<Filter>();
 
   return (
     <CollapsibleSection
@@ -134,7 +134,7 @@ const Groups = () => {
 }
 
 const Categories = () => {
-  const { values } = useFormikContext<Filter>();
+  // const { values } = useFormikContext<Filter>();
 
   return (
     <CollapsibleSection
@@ -171,7 +171,7 @@ const Categories = () => {
 }
 
 const Tags = () => {
-  const { values } = useFormikContext<Filter>();
+  // const { values } = useFormikContext<Filter>();
 
   return (
     <CollapsibleSection
@@ -238,7 +238,7 @@ const Tags = () => {
 }
 
 const Uploaders = () => {
-  const { values } = useFormikContext<Filter>();
+  // const { values } = useFormikContext<Filter>();
 
   return (
     <CollapsibleSection
@@ -276,7 +276,7 @@ const Uploaders = () => {
 }
 
 const Language = () => {
-  const { values } = useFormikContext<Filter>();
+  // const { values } = useFormikContext<Filter>();
 
   return (
     <CollapsibleSection
@@ -301,7 +301,7 @@ const Language = () => {
 }
 
 const Origins = () => {
-  const { values } = useFormikContext<Filter>();
+  // const { values } = useFormikContext<Filter>();
 
   return (
     <CollapsibleSection
@@ -381,141 +381,148 @@ const Freeleech = () => {
   );
 }
 
-const FeedSpecific = ({ values }: ValueConsumer) => (
-  <CollapsibleSection
-    //defaultOpen={values.use_regex_description || values.match_description || values.except_description}
-    title="RSS/Torznab/Newznab-specific"
-    subtitle={
-      <>These options are <span className="font-bold">only</span> for Feeds such as RSS, Torznab and Newznab</>
-    }
-  >
-    <Components.Layout>
-      <Input.SwitchGroup
-        name="use_regex_description"
-        label="Use Regex"
-        className="col-span-12 sm:col-span-6"
+const FeedSpecific = () => {
+  const { values } = useFormikContext<Filter>();
+  return (
+    <CollapsibleSection
+      //defaultOpen={values.use_regex_description || values.match_description || values.except_description}
+      title="RSS/Torznab/Newznab-specific"
+      subtitle={
+        <>These options are <span className="font-bold">only</span> for Feeds such as RSS, Torznab and Newznab</>
+      }
+    >
+      <Components.Layout>
+        <Input.SwitchGroup
+          name="use_regex_description"
+          label="Use Regex"
+          className="col-span-12 sm:col-span-6"
+        />
+      </Components.Layout>
+
+      <Input.RegexTextAreaField
+        name="match_description"
+        label="Match description"
+        useRegex={values.use_regex_description}
+        columns={6}
+        placeholder="eg. *some?movie*,*some?show*s01*"
+        tooltip={
+          <div>
+            <p>This field has full regex support (Golang flavour).</p>
+            <DocsLink href="https://autobrr.com/filters#advanced" />
+            <br />
+            <br />
+            <p>Remember to tick <b>Use Regex</b> below if using more than <code>*</code> and <code>?</code>.</p>
+          </div>
+        }
       />
-    </Components.Layout>
-
-    <Input.RegexTextAreaField
-      name="match_description"
-      label="Match description"
-      useRegex={values.use_regex_description}
-      columns={6}
-      placeholder="eg. *some?movie*,*some?show*s01*"
-      tooltip={
-        <div>
-          <p>This field has full regex support (Golang flavour).</p>
-          <DocsLink href="https://autobrr.com/filters#advanced" />
-          <br />
-          <br />
-          <p>Remember to tick <b>Use Regex</b> below if using more than <code>*</code> and <code>?</code>.</p>
-        </div>
-      }
-    />
-    <Input.RegexTextAreaField
-      name="except_description"
-      label="Except description"
-      useRegex={values.use_regex_description}
-      columns={6}
-      placeholder="eg. *bad?movie*,*bad?show*s03*"
-      tooltip={
-        <div>
-          <p>This field has full regex support (Golang flavour).</p>
-          <DocsLink href="https://autobrr.com/filters#advanced" />
-          <br />
-          <br />
-          <p>Remember to tick <b>Use Regex</b> below if using more than <code>*</code> and <code>?</code>.</p>
-        </div>
-      }
-    />
-    <Input.NumberField
-      name="min_seeders"
-      label="Min Seeders"
-      placeholder="Takes any number (0 is infinite)"
-      tooltip={
-        <div>
-          <p>Number of min seeders as specified by the respective unit. Only for Torznab</p>
-          <DocsLink href="https://autobrr.com/filters#rules" />
-        </div>
-      }
-    />
-    <Input.NumberField
-      name="max_seeders"
-      label="Max Seeders"
-      placeholder="Takes any number (0 is infinite)"
-      tooltip={
-        <div>
-          <p>Number of max seeders as specified by the respective unit. Only for Torznab</p>
-          <DocsLink href="https://autobrr.com/filters#rules" />
-        </div>
-      }
-    />
-    <Input.NumberField
-      name="min_leechers"
-      label="Min Leechers"
-      placeholder="Takes any number (0 is infinite)"
-      tooltip={
-        <div>
-          <p>Number of min leechers as specified by the respective unit. Only for Torznab</p>
-          <DocsLink href="https://autobrr.com/filters#rules" />
-        </div>
-      }
-    />
-    <Input.NumberField
-      name="max_leechers"
-      label="Max Leechers"
-      placeholder="Takes any number (0 is infinite)"
-      tooltip={
-        <div>
-          <p>Number of max leechers as specified by the respective unit. Only for Torznab</p>
-          <DocsLink href="https://autobrr.com/filters#rules" />
-        </div>
-      }
-    />
-  </CollapsibleSection>
-);
-const RawReleaseTags = ({ values }: ValueConsumer) => (
-  <CollapsibleSection
-    //defaultOpen={values.use_regex_release_tags || values.match_release_tags || values.except_release_tags}
-    title="Raw Release Tags"
-    subtitle={
-      <>
-        <span className="underline underline-offset-2">Advanced users only</span>
-        {": "}This is the <span className="font-bold">raw</span> releaseTags string from the announce.
-      </>
-    }
-  >
-    <WarningAlert
-      text={
-        <>These might not be what you think they are. For <span className="underline font-bold">very advanced</span> users who know how things are parsed.</>
-      }
-    />
-
-    <Components.Layout>
-      <Input.SwitchGroup
-        name="use_regex_release_tags"
-        label="Use Regex"
-        className="col-span-12 sm:col-span-6"
+      <Input.RegexTextAreaField
+        name="except_description"
+        label="Except description"
+        useRegex={values.use_regex_description}
+        columns={6}
+        placeholder="eg. *bad?movie*,*bad?show*s03*"
+        tooltip={
+          <div>
+            <p>This field has full regex support (Golang flavour).</p>
+            <DocsLink href="https://autobrr.com/filters#advanced" />
+            <br />
+            <br />
+            <p>Remember to tick <b>Use Regex</b> below if using more than <code>*</code> and <code>?</code>.</p>
+          </div>
+        }
       />
-    </Components.Layout>
+      <Input.NumberField
+        name="min_seeders"
+        label="Min Seeders"
+        placeholder="Takes any number (0 is infinite)"
+        tooltip={
+          <div>
+            <p>Number of min seeders as specified by the respective unit. Only for Torznab</p>
+            <DocsLink href="https://autobrr.com/filters#rules" />
+          </div>
+        }
+      />
+      <Input.NumberField
+        name="max_seeders"
+        label="Max Seeders"
+        placeholder="Takes any number (0 is infinite)"
+        tooltip={
+          <div>
+            <p>Number of max seeders as specified by the respective unit. Only for Torznab</p>
+            <DocsLink href="https://autobrr.com/filters#rules" />
+          </div>
+        }
+      />
+      <Input.NumberField
+        name="min_leechers"
+        label="Min Leechers"
+        placeholder="Takes any number (0 is infinite)"
+        tooltip={
+          <div>
+            <p>Number of min leechers as specified by the respective unit. Only for Torznab</p>
+            <DocsLink href="https://autobrr.com/filters#rules" />
+          </div>
+        }
+      />
+      <Input.NumberField
+        name="max_leechers"
+        label="Max Leechers"
+        placeholder="Takes any number (0 is infinite)"
+        tooltip={
+          <div>
+            <p>Number of max leechers as specified by the respective unit. Only for Torznab</p>
+            <DocsLink href="https://autobrr.com/filters#rules" />
+          </div>
+        }
+      />
+    </CollapsibleSection>
+  );
+}
+const RawReleaseTags = () => {
+  const { values } = useFormikContext<Filter>();
 
-    <Input.RegexField
-      name="match_release_tags"
-      label="Match release tags"
-      useRegex={values.use_regex_release_tags}
-      columns={6}
-      placeholder="eg. *mkv*,*foreign*"
-    />
-    <Input.RegexField
-      name="except_release_tags"
-      label="Except release tags"
-      useRegex={values.use_regex_release_tags}
-      columns={6}
-      placeholder="eg. *mkv*,*foreign*"
-    />
-  </CollapsibleSection>
-);
+  return (
+    <CollapsibleSection
+      //defaultOpen={values.use_regex_release_tags || values.match_release_tags || values.except_release_tags}
+      title="Raw Release Tags"
+      subtitle={
+        <>
+          <span className="underline underline-offset-2">Advanced users only</span>
+          {": "}This is the <span className="font-bold">raw</span> releaseTags string from the announce.
+        </>
+      }
+    >
+      <WarningAlert
+        text={
+          <>These might not be what you think they are. For <span className="underline font-bold">very advanced</span> users who know how things are parsed.</>
+        }
+      />
+
+      <Components.Layout>
+        <Input.SwitchGroup
+          name="use_regex_release_tags"
+          label="Use Regex"
+          className="col-span-12 sm:col-span-6"
+        />
+      </Components.Layout>
+
+      <Input.RegexField
+        name="match_release_tags"
+        label="Match release tags"
+        useRegex={values.use_regex_release_tags}
+        columns={6}
+        placeholder="eg. *mkv*,*foreign*"
+      />
+      <Input.RegexField
+        name="except_release_tags"
+        label="Except release tags"
+        useRegex={values.use_regex_release_tags}
+        columns={6}
+        placeholder="eg. *mkv*,*foreign*"
+      />
+    </CollapsibleSection>
+  );
+}
 
 export const Advanced = () => {
   return (
