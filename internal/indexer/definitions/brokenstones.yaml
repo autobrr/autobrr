@@ -58,19 +58,21 @@ irc:
     type: single
     lines:
       - tests:
-        - line: 'TORRENT: Broken Stones  - private, tracker - https://brokenstones.is/torrents.php?id=666 / https://brokenstones.is/torrents.php?action=download&id=666'
+        - line: 'TORRENT: Broken Stones - private, tracker - https://brokenstones.is/torrents.php?id=777 / https://brokenstones.is/torrents.php?action=download&id=666'
           expect:
             torrentName: Broken Stones
             tags: private, tracker
             baseUrl: https://brokenstones.is/
+            groupId: "777"
             torrentId: "666"
-        pattern: 'TORRENT:\s*(.*?)\s*-\s*(.*?)\s*-\s*(https:\/\/brokenstones\.is\/torrents\.php\?id=\d+)\s*\/\s*(https:\/\/brokenstones\.is\/torrents\.php\?action=download&id=\d+)'
+        pattern: 'TORRENT: (.*?) - (.*?) - (https:\/\/brokenstones\.is\/)torrents.php\?id=(\d+) \/ https:\/\/brokenstones.is\/torrents.php\?action=download&id=(\d+)'
         vars:
           - torrentName
           - tags
           - baseUrl
+          - groupId
           - torrentId
 
     match:
-      infourl: "/torrents.php?id={{ .torrentId }}"
+      infourl: "/torrents.php?id={{ .groupId }}"
       torrenturl: "/torrents.php?action=download&id={{ .torrentId }}&torrent_pass={{ .torrent_pass }}"
