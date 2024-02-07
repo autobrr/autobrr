@@ -1,19 +1,19 @@
-# build app
+# build base
 FROM --platform=$BUILDPLATFORM golang:1.20-alpine3.19 AS app-base
 RUN apk add --no-cache git tzdata
+
 ENV SERVICE=autobrr
 WORKDIR /src
-
 ARG VERSION=dev \
     REVISION=dev \
     BUILDTIME \
     TARGETOS TARGETARCH TARGETVARIANT
 
-# Cache Go modules
 COPY go.mod go.sum ./
 RUN go mod download
 COPY . ./
 
+# build autobrr
 FROM --platform=$BUILDPLATFORM app-base AS autobrr
 RUN --network=none --mount=target=. \
 export GOOS=$TARGETOS; \
@@ -27,6 +27,7 @@ go build -ldflags "-s -w -X main.version=${VERSION} -X main.commit=${REVISION} -
 
 # build runner
 FROM alpine:latest AS runner
+RUN apk --no-cache add ca-certificates curl tzdata jq
 
 LABEL   org.opencontainers.image.source = "https://github.com/autobrr/autobrr" \
         org.opencontainers.image.licenses = "GPL-2.0-or-later" \
@@ -40,8 +41,6 @@ WORKDIR /app
 VOLUME /config
 EXPOSE 7474
 ENTRYPOINT ["/usr/local/bin/autobrr", "--config", "/config"]
-
-RUN apk --no-cache add ca-certificates curl tzdata jq
 
 COPY --link --from=autobrr /out/bin/autobrr /usr/local/bin/
 COPY --link --from=autobrr /out/bin/autobrrctl /usr/local/bin/
