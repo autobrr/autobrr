@@ -22,16 +22,7 @@ export GOARCH=$TARGETARCH; \
 [[ "$GOARCH" == "arm" ]] && [[ "$TARGETVARIANT" == "v6" ]] && export GOARM=6; \
 [[ "$GOARCH" == "arm" ]] && [[ "$TARGETVARIANT" == "v7" ]] && export GOARM=7; \
 echo $GOARCH $GOOS $GOARM$GOAMD64; \
-go build -ldflags "-s -w -X main.version=${VERSION} -X main.commit=${REVISION} -X main.date=${BUILDTIME}" -o /out/bin/autobrr cmd/autobrr/main.go
-
-FROM --platform=$BUILDPLATFORM app-base AS autobrrctl
-RUN --network=none --mount=target=. \
-export GOOS=$TARGETOS; \
-export GOARCH=$TARGETARCH; \
-[[ "$GOARCH" == "amd64" ]] && export GOAMD64=$TARGETVARIANT; \
-[[ "$GOARCH" == "arm" ]] && [[ "$TARGETVARIANT" == "v6" ]] && export GOARM=6; \
-[[ "$GOARCH" == "arm" ]] && [[ "$TARGETVARIANT" == "v7" ]] && export GOARM=7; \
-echo $GOARCH $GOOS $GOARM$GOAMD64; \
+go build -ldflags "-s -w -X main.version=${VERSION} -X main.commit=${REVISION} -X main.date=${BUILDTIME}" -o /out/bin/autobrr cmd/autobrr/main.go && \
 go build -ldflags "-s -w -X main.version=${VERSION} -X main.commit=${REVISION} -X main.date=${BUILDTIME}" -o /out/bin/autobrrctl cmd/autobrrctl/main.go
 
 # build runner
@@ -53,4 +44,4 @@ ENTRYPOINT ["/usr/local/bin/autobrr", "--config", "/config"]
 RUN apk --no-cache add ca-certificates curl tzdata jq
 
 COPY --link --from=autobrr /out/bin/autobrr /usr/local/bin/
-COPY --link --from=autobrrctl /out/bin/autobrrctl /usr/local/bin/
+COPY --link --from=autobrr /out/bin/autobrrctl /usr/local/bin/
