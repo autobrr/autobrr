@@ -1,23 +1,20 @@
 # build app
 FROM --platform=$BUILDPLATFORM golang:1.20-alpine3.19 AS app-base
 RUN apk add --no-cache git tzdata
-
 ENV SERVICE=autobrr
-
 WORKDIR /src
-
-# Cache Go modules
-COPY go.mod go.sum ./
-RUN go mod download
-
-FROM --platform=$BUILDPLATFORM app-base AS autobrr
-COPY . ./
 
 ARG VERSION=dev
 ARG REVISION=dev
 ARG BUILDTIME
 ARG TARGETOS TARGETARCH TARGETVARIANT
 
+# Cache Go modules
+COPY go.mod go.sum ./
+RUN go mod download
+COPY . ./
+
+FROM --platform=$BUILDPLATFORM app-base AS autobrr
 RUN --network=none --mount=target=. \
 export GOOS=$TARGETOS; \
 export GOARCH=$TARGETARCH; \
@@ -28,13 +25,6 @@ echo $GOARCH $GOOS $GOARM$GOAMD64; \
 go build -ldflags "-s -w -X main.version=${VERSION} -X main.commit=${REVISION} -X main.date=${BUILDTIME}" -o /out/bin/autobrr cmd/autobrr/main.go
 
 FROM --platform=$BUILDPLATFORM app-base AS autobrrctl
-COPY . ./
-
-ARG VERSION=dev
-ARG REVISION=dev
-ARG BUILDTIME
-ARG TARGETOS TARGETARCH TARGETVARIANT
-
 RUN --network=none --mount=target=. \
 export GOOS=$TARGETOS; \
 export GOARCH=$TARGETARCH; \
@@ -47,21 +37,20 @@ go build -ldflags "-s -w -X main.version=${VERSION} -X main.commit=${REVISION} -
 # build runner
 FROM alpine:latest AS runner
 
-LABEL org.opencontainers.image.source = "https://github.com/autobrr/autobrr"
-LABEL org.opencontainers.image.licenses = "GPL-2.0-or-later"
-LABEL org.opencontainers.image.base.name = "alpine:latest"
+LABEL   org.opencontainers.image.source = "https://github.com/autobrr/autobrr" \
+        org.opencontainers.image.licenses = "GPL-2.0-or-later" \
+        org.opencontainers.image.base.name = "alpine:latest"
 
 ENV HOME="/config" \
     XDG_CONFIG_HOME="/config" \
     XDG_DATA_HOME="/config"
 
-RUN apk --no-cache add ca-certificates curl tzdata jq
-
 WORKDIR /app
 VOLUME /config
 EXPOSE 7474
+ENTRYPOINT ["/usr/local/bin/autobrr", "--config", "/config"]
+
+RUN apk --no-cache add ca-certificates curl tzdata jq
 
 COPY --link --from=autobrr /out/bin/autobrr /usr/local/bin/
 COPY --link --from=autobrrctl /out/bin/autobrrctl /usr/local/bin/
-
-ENTRYPOINT ["/usr/local/bin/autobrr", "--config", "/config"]
