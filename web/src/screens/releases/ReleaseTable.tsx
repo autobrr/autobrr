@@ -4,7 +4,6 @@
  */
 
 import React, { useState } from "react";
-import { useLocation } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 
 import { Column, useFilters, usePagination, useSortBy, useTable } from "react-table";
@@ -82,7 +81,8 @@ const TableReducer = (state: TableState, action: Actions): TableState => {
 };
 
 export const ReleaseTable = () => {
-  const { filter} = releasesIndexRoute.useSearch()
+  const search = releasesIndexRoute.useSearch()
+  console.log("releases search", search)
   // const location = useLocation();
   // const queryParams = new URLSearchParams(location.search);
   // const filterTypeFromUrl = queryParams.get("filter");
@@ -209,11 +209,11 @@ export const ReleaseTable = () => {
     gotoPage(0);
   }, [filters]);
 
-  React.useEffect(() => {
-    if (filterTypeFromUrl != null) {
-      dispatch({ type: ActionType.FILTER_CHANGED, payload: [{ id: "action_status", value: filterTypeFromUrl! }] });
-    }
-  }, [filterTypeFromUrl]);
+  // React.useEffect(() => {
+  //   if (filterTypeFromUrl != null) {
+  //     dispatch({ type: ActionType.FILTER_CHANGED, payload: [{ id: "action_status", value: filterTypeFromUrl! }] });
+  //   }
+  // }, [filterTypeFromUrl]);
 
   if (error) {
     return <p>Error</p>;

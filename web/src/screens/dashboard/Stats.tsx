@@ -22,7 +22,7 @@ const StatsItem = ({ name, placeholder, value, to, eventType }: StatsItemProps) 
     className="group relative px-4 py-3 cursor-pointer overflow-hidden rounded-lg shadow-lg bg-white dark:bg-gray-800 hover:scale-110 hover:shadow-xl transition-all duration-200 ease-in-out"
     to={to}
     search={{
-      filter: eventType
+      push_status: eventType
     }}
   >
     <dt>

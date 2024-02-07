@@ -1,25 +1,22 @@
-import { useQuery } from "@tanstack/react-query";
+import { useSuspenseQuery } from "@tanstack/react-query";
 
-import { APIClient } from "@api/APIClient";
 import { downloadsPerUnitOptions } from "@domain/constants";
 
 import { DocsLink } from "@components/ExternalLink";
 
 import * as Input from "@components/inputs";
 import * as Components from "./_components";
+import { indexersOptionsQueryOptions } from "@app/App.tsx";
 
 const MapIndexer = (indexer: Indexer) => (
   { label: indexer.name, value: indexer.id } as Input.MultiSelectOption
 );
 
 export const General = () => {
-  const { isLoading, data } = useQuery({
-    queryKey: ["filters", "indexer_list"],
-    queryFn: APIClient.indexers.getOptions,
-    refetchOnWindowFocus: false
-  });
+  const indexersQuery = useSuspenseQuery(indexersOptionsQueryOptions())
+  const indexerOptions = indexersQuery.data && indexersQuery.data.map(MapIndexer)
 
-  const indexerOptions = data?.map(MapIndexer) ?? [];
+  // const indexerOptions = data?.map(MapIndexer) ?? [];
 
   return (
     <Components.Page>
@@ -27,9 +24,9 @@ export const General = () => {
         <Components.Layout>
           <Input.TextField name="name" label="Filter name" columns={6} placeholder="eg. Filter 1" />
 
-          {!isLoading && (
+          {/*{!isLoading && (*/}
             <Input.IndexerMultiSelect name="indexers" options={indexerOptions} label="Indexers" columns={6} />
-          )}
+          {/*)}*/}
         </Components.Layout>
       </Components.Section>
 

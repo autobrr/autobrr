@@ -96,7 +96,7 @@ export async function HttpClient<T = unknown>(
   }
   case 403: {
     // Remove auth info from localStorage
-    AuthContext.reset();
+    // AuthContext.reset();
 
     // Show an error toast to notify the user what occurred
     return Promise.reject(response);

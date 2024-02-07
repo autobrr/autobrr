@@ -29,31 +29,29 @@ import {
   useRouterState,
 } from '@tanstack/react-router'
 import { TanStackRouterDevtools } from '@tanstack/router-devtools'
-import {Header} from "@components/header";
-import {Suspense} from "react";
-import {SectionLoader, Spinner} from "@components/SectionLoader.tsx";
-import {Dashboard} from "@screens/Dashboard.tsx";
-import {FilterDetails, Filters} from "@screens/filters";
-import {Section} from "@screens/filters/sections/_components.tsx";
-import {Actions, Advanced, External, General, MoviesTv, Music} from "@screens/filters/sections";
-import {Releases} from "@screens/Releases.tsx";
-import {z} from "zod";
-import {Settings} from "@screens/Settings.tsx";
+import { Header } from "@components/header";
+import { SectionLoader, Spinner } from "@components/SectionLoader.tsx";
+import { Dashboard } from "@screens/Dashboard.tsx";
+import { FilterDetails, Filters } from "@screens/filters";
+import { Actions, Advanced, External, General, MoviesTv, Music } from "@screens/filters/sections";
+import { Releases } from "@screens/Releases.tsx";
+import { z } from "zod";
+import { Settings } from "@screens/Settings.tsx";
 import LogSettings from "@screens/settings/Logs.tsx";
-import IndexerSettings, {indexerKeys} from "@screens/settings/Indexer.tsx";
-import IrcSettings, {ircKeys} from "@screens/settings/Irc.tsx";
-import FeedSettings, {feedKeys} from "@screens/settings/Feed.tsx";
-import DownloadClientSettings, {clientKeys} from "@screens/settings/DownloadClient.tsx";
-import NotificationSettings, {notificationKeys} from "@screens/settings/Notifications.tsx";
-import APISettings, {apiKeys} from "@screens/settings/Api.tsx";
+import IndexerSettings, { indexerKeys } from "@screens/settings/Indexer.tsx";
+import IrcSettings, { ircKeys } from "@screens/settings/Irc.tsx";
+import FeedSettings, { feedKeys } from "@screens/settings/Feed.tsx";
+import DownloadClientSettings, { clientKeys } from "@screens/settings/DownloadClient.tsx";
+import NotificationSettings, { notificationKeys } from "@screens/settings/Notifications.tsx";
+import APISettings, { apiKeys } from "@screens/settings/Api.tsx";
 import ReleaseSettings from "@screens/settings/Releases.tsx";
 import AccountSettings from "@screens/settings/Account.tsx";
 import ApplicationSettings from "@screens/settings/Application.tsx";
-import {Logs} from "@screens/Logs.tsx";
-import {Login} from "@screens/auth";
-import {APIClient} from "@api/APIClient.ts";
-import {baseUrl} from "@utils";
-import {filterKeys} from "@screens/filters/List.tsx";
+import { Logs } from "@screens/Logs.tsx";
+import { Login } from "@screens/auth";
+import { APIClient } from "@api/APIClient.ts";
+import { routerBasePath } from "@utils";
+import { filterKeys } from "@screens/filters/List.tsx";
 
 export const queryClient = new QueryClient({
   queryCache: new QueryCache({
@@ -117,6 +115,13 @@ export const indexersQueryOptions = () =>
   queryOptions({
     queryKey: indexerKeys.lists(),
     queryFn: () => APIClient.indexers.getAll()
+  })
+
+export const indexersOptionsQueryOptions = () =>
+  queryOptions({
+    queryKey: ["filters", "indexer_list"],
+    queryFn: () => APIClient.indexers.getOptions(),
+    refetchOnWindowFocus: false,
   })
 
 export const ircQueryOptions = () =>
@@ -202,13 +207,42 @@ export const filterRoute = new Route({
   // loaderDeps: ({ search }) => ({
   //   filterId: search.filterId
   // }),
-  loader: (opts) => opts.context.queryClient.ensureQueryData(filterQueryOptions(opts.params.filterId)),
+  // loaderDeps: (opts) => ({
+  //   filterId: opts.search
+  // }),
+  loader: (opts) => {
+    console.log("filter route loader")
+    return opts.context.queryClient.ensureQueryData(filterQueryOptions(opts.params.filterId))
+    // const filterData = opts.context.queryClient.ensureQueryData(filterQueryOptions(opts.params.filterId))
+    // const indexersData = opts.context.queryClient.ensureQueryData(indexersOptionsQueryOptions())
+    //
+    // return {
+    //   filterData,
+    //   indexersData
+    // }
+  },
   component: FilterDetails
 })
 
 export const filterGeneralRoute = new Route({
   getParentRoute: () => filterRoute,
   path: '/',
+  // path: '/$filterId',
+  // parseParams: (params) => ({
+  //   filterId: z.number().int().parse(Number(params.filterId)),
+  // }),
+  // stringifyParams: ({ filterId }) => ({ filterId: `${filterId}` }),
+  // loader: (opts) => {
+  //   console.log("filter general route loader")
+  //   return opts.context.queryClient.ensureQueryData(filterQueryOptions(opts.params.filterId))
+  //   // const filterData = opts.context.queryClient.ensureQueryData(filterQueryOptions(opts.params.filterId))
+  //   // const indexersData = opts.context.queryClient.ensureQueryData(indexersOptionsQueryOptions())
+  //   //
+  //   // return {
+  //   //   filterData,
+  //   //   indexersData
+  //   // }
+  // },
   component: General
 })
 
@@ -248,8 +282,13 @@ const releasesRoute = new Route({
 })
 
 export const releasesSearchSchema = z.object({
-  // page: z.number().catch(1),
-  filter: z.string().catch(''),
+  offset: z.number().optional(),
+  limit: z.number().optional(),
+  filter: z.string().optional(),
+  q: z.string().optional(),
+  // action_status: z.string().optional(),
+  action_status: z.enum(['PUSH_APPROVED', 'PUSH_REJECTED', 'PUSH_ERROR', '']).optional(),
+  // filters: z.array().catch(''),
   // sort: z.enum(['newest', 'oldest', 'price']).catch('newest'),
 })
 
@@ -389,11 +428,11 @@ export const authRoute = new Route({
   // Before loading, authenticate the user via our auth context
   // This will also happen during prefetching (e.g. hovering over links, etc)
   beforeLoad: ({ context, location }) => {
-    console.log("before load")
+    console.log("auth before load")
 
     // If the user is not logged in, check for item in localStorage
     if (!context.auth.isLoggedIn) {
-      console.log("before load: not logged in")
+      console.log("auth before load: not logged in")
       const key = "user_auth"
       const storage = localStorage.getItem(key);
       if (storage) {
@@ -402,15 +441,15 @@ export const authRoute = new Route({
           if (json === null) {
             console.warn(`JSON localStorage value for '${key}' context state is null`);
           } else {
-            console.log("local storage found", json)
-            console.log("ctx", context.auth)
+            console.log("auth local storage found", json)
+            console.log("auth ctx", context.auth)
             context.auth.isLoggedIn = json.isLoggedIn
             context.auth.username = json.username
             // context.auth = { ...json };
-            console.log("ctx", context.auth)
+            console.log("auth ctx", context.auth)
           }
         } catch (e) {
-          console.error(`Failed to merge ${key} context state: ${e}`);
+          console.error(`auth Failed to merge ${key} context state: ${e}`);
         }
       } else {
         // If the user is logged out, redirect them to the login page
@@ -515,7 +554,7 @@ export function App() {
         </Portal>
         {/*<LocalRouter isLoggedIn={authContext.isLoggedIn} />*/}
         <RouterProvider
-          basepath={baseUrl()}
+          basepath={routerBasePath()}
           router={router}
           context={{
             auth,

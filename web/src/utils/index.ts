@@ -12,6 +12,20 @@ export function sleep(ms: number) {
 
 // get baseUrl sent from server rendered index template
 export function baseUrl() {
+  let baseUrl = "/";
+  if (window.APP.baseUrl) {
+    if (window.APP.baseUrl === "{{.BaseUrl}}") {
+      baseUrl = "/";
+    } else {
+      baseUrl = window.APP.baseUrl;
+    }
+  }
+  return baseUrl;
+}
+
+// get routerBasePath sent from server rendered index template
+// routerBasePath is used for RouterProvider and does not need work with trailing slash
+export function routerBasePath() {
   let baseUrl = "";
   if (window.APP.baseUrl) {
     if (window.APP.baseUrl === "{{.BaseUrl}}") {
