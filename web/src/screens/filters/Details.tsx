@@ -23,7 +23,7 @@ import { DeleteModal } from "@components/modals";
 
 import { filterKeys } from "./List";
 import { filterQueryOptions, filterRoute } from "@app/App.tsx";
-import { Link, Outlet } from "@tanstack/react-router";
+import {Link, Outlet, useNavigate} from "@tanstack/react-router";
 
 interface tabType {
   name: string;
@@ -291,12 +291,18 @@ const schema = z.object({
 });
 
 export const FilterDetails = () => {
+  const navigate = useNavigate();
   const ctx = filterRoute.useRouteContext()
   const queryClient = ctx.queryClient
 
   const params = filterRoute.useParams()
   const filterQuery = useSuspenseQuery(filterQueryOptions(params.filterId))
   const filter = filterQuery.data
+
+  if (!filter) {
+    console.log("no filter, redirect to list")
+    navigate({ to: "/filters" })
+  }
 
   const updateMutation = useMutation({
     mutationFn: (filter: Filter) => APIClient.filters.update(filter),

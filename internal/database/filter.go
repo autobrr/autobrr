@@ -279,6 +279,10 @@ func (r *FilterRepo) FindByID(ctx context.Context, filterID int) (*domain.Filter
 		return nil, errors.Wrap(err, "error executing query")
 	}
 
+	if !rows.Next() {
+		return nil, domain.ErrRecordNotFound
+	}
+
 	var f domain.Filter
 
 	externalMap := make(map[int]domain.FilterExternal)

@@ -31,8 +31,8 @@ dependencies:
     specifier: ^5.8.4
     version: 5.8.4(@tanstack/react-query@5.17.19)(react-dom@18.2.0)(react@18.2.0)
   '@tanstack/react-router':
-    specifier: ^1.1.4
-    version: 1.1.4(react-dom@18.2.0)(react@18.2.0)
+    specifier: ^1.15.19
+    version: 1.15.19(react-dom@18.2.0)(react@18.2.0)
   '@types/node':
     specifier: ^20.11.6
     version: 20.11.6
@@ -2329,6 +2329,12 @@ packages:
   /@tanstack/history@1.1.4:
     resolution: {integrity: sha512-H80reryZP3Ib5HzAo9zp1B8nbGzd+zOxe0Xt6bLYY2qtgCb+iIrVadDDt5ZnaFsrMBGbFTkEsS2ITVrAUao54A==}
     engines: {node: '>=12'}
+    dev: true
+
+  /@tanstack/history@1.15.13:
+    resolution: {integrity: sha512-ToaeMtK5S4YaxCywAlYexc7KPFN0esjyTZ4vXzJhXEWAkro9iHgh7m/4ozPJb7oTo65WkHWX0W9GjcZbInSD8w==}
+    engines: {node: '>=12'}
+    dev: false
 
   /@tanstack/query-core@5.17.19:
     resolution: {integrity: sha512-Lzw8FUtnLCc9Jwz0sw9xOjZB+/mCCmJev38v2wHMUl/ioXNIhnNWeMxu0NKUjIhAd62IRB3eAtvxAGDJ55UkyA==}
@@ -2375,6 +2381,22 @@ packages:
       react-dom: 18.2.0(react@18.2.0)
       tiny-invariant: 1.3.1
       tiny-warning: 1.0.3
+    dev: true
+
+  /@tanstack/react-router@1.15.19(react-dom@18.2.0)(react@18.2.0):
+    resolution: {integrity: sha512-oZq+7WYz8cQq0Mdpb7Y/4SAXI4djpQiA8D2ZIl3XjDmYfi7twFZdjjnAL8V1P/DURss3QjZ8PK//AAnr+fcT4w==}
+    engines: {node: '>=12'}
+    peerDependencies:
+      react: ^18.2.0
+      react-dom: '>=16'
+    dependencies:
+      '@tanstack/history': 1.15.13
+      '@tanstack/react-store': 0.2.1(react-dom@18.2.0)(react@18.2.0)
+      react: 18.2.0
+      react-dom: 18.2.0(react@18.2.0)
+      tiny-invariant: 1.3.1
+      tiny-warning: 1.0.3
+    dev: false
 
   /@tanstack/react-store@0.2.1(react-dom@18.2.0)(react@18.2.0):
     resolution: {integrity: sha512-tEbMCQjbeVw9KOP/202LfqZMSNAVi6zYkkp1kBom8nFuMx/965Hzes3+6G6b/comCwVxoJU8Gg9IrcF8yRPthw==}
