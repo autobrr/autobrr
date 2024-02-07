@@ -4,10 +4,10 @@ RUN apk add --no-cache git tzdata
 ENV SERVICE=autobrr
 WORKDIR /src
 
-ARG VERSION=dev
-ARG REVISION=dev
-ARG BUILDTIME
-ARG TARGETOS TARGETARCH TARGETVARIANT
+ARG VERSION=dev \
+    REVISION=dev \
+    BUILDTIME \
+    TARGETOS TARGETARCH TARGETVARIANT
 
 # Cache Go modules
 COPY go.mod go.sum ./
