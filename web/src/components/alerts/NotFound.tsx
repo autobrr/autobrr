@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-import { Link } from "react-router-dom";
+import { Link } from "@tanstack/react-router";
 import { ExternalLink } from "@components/ExternalLink";
 
 import Logo from "@app/logo.svg?react";

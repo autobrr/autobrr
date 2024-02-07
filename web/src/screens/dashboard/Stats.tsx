@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-import { useQuery, useSuspenseQuery } from "@tanstack/react-query";
+import { useQuery} from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { APIClient } from "@api/APIClient";
 import { classNames } from "@utils";
@@ -22,8 +22,9 @@ const StatsItem = ({ name, placeholder, value, to, eventType }: StatsItemProps) 
     className="group relative px-4 py-3 cursor-pointer overflow-hidden rounded-lg shadow-lg bg-white dark:bg-gray-800 hover:scale-110 hover:shadow-xl transition-all duration-200 ease-in-out"
     to={to}
     search={{
-      push_status: eventType
+      action_status: eventType
     }}
+    params={{}}
   >
     <dt>
       <div className="flex items-center text-sm font-medium text-gray-500 group-hover:dark:text-gray-475 group-hover:text-gray-600 transition-colors duration-200 ease-in-out">

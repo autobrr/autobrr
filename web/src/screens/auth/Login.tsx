@@ -6,6 +6,7 @@
 import React, { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { useMutation } from "@tanstack/react-query";
+import { useRouter, useSearch } from "@tanstack/react-router";
 import toast from "react-hot-toast";
 
 import { RocketLaunchIcon } from "@heroicons/react/24/outline";
@@ -16,8 +17,7 @@ import { Tooltip } from "@components/tooltips/Tooltip";
 import { PasswordInput, TextInput } from "@components/inputs/text";
 
 import Logo from "@app/logo.svg?react";
-import {useNavigate, useRouter, useSearch} from "@tanstack/react-router";
-import {loginRoute} from "@app/App.tsx";
+import { loginRoute } from "@app/App.tsx";
 
 type LoginFormFields = {
   username: string;
@@ -33,11 +33,11 @@ export const Login = () => {
     defaultValues: { username: "", password: "" },
     mode: "onBlur"
   });
-  const navigate = useNavigate();
+  // const navigate = useNavigate();
   // const [, setAuthContext] = AuthContext.use();
 
   useEffect(() => {
-  //   // remove user session when visiting login page'
+    // remove user session when visiting login page
     auth.logout()
   //   // APIClient.auth.logout()
   //   //   .then(() => {
@@ -54,11 +54,7 @@ export const Login = () => {
   const loginMutation = useMutation({
     mutationFn: (data: LoginFormFields) => APIClient.auth.login(data.username, data.password),
     onSuccess: (_, variables: LoginFormFields) => {
-      // setAuthContext({
-      //   username: variables.username,
-      //   isLoggedIn: true
-      // });
-      console.log("on success")
+      console.log("login on success")
       auth.login(variables.username)
       router.invalidate()
     },

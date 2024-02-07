@@ -79,7 +79,10 @@ export async function HttpClient<T = unknown>(
     }
   }
 
-  const response = await window.fetch(`${baseUrl()}${endpoint}`, init);
+  const url = `${baseUrl()}${endpoint}`
+  console.debug("fetch url: ", url)
+
+  const response = await window.fetch(url, init);
 
   switch (response.status) {
   case 204: {
@@ -326,6 +329,8 @@ export const APIClient = {
         if (filter.id == "indexer") {
           params["indexer"].push(filter.value);
         } else if (filter.id === "action_status") {
+          params["push_status"].push(filter.value);
+        } else if (filter.id === "push_status") {
           params["push_status"].push(filter.value);
         } else if (filter.id == "name") {
           params["q"].push(filter.value);

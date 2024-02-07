@@ -7,7 +7,7 @@ import { Dispatch, FC, Fragment, MouseEventHandler, useReducer, useRef, useState
 import { Link } from '@tanstack/react-router'
 import { toast } from "react-hot-toast";
 import { Listbox, Menu, Transition } from "@headlessui/react";
-import { useMutation, useQuery, useQueryClient, keepPreviousData, useSuspenseQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient, keepPreviousData } from "@tanstack/react-query";
 import { FormikValues } from "formik";
 import { useCallback } from "react";
 import {
@@ -98,7 +98,7 @@ export function Filters() {
 
   return (
     <main>
-      {/*<FilterAddForm isOpen={createFilterIsOpen} toggle={toggleCreateFilter} />*/}
+      <FilterAddForm isOpen={createFilterIsOpen} toggle={toggleCreateFilter} />
       <Importer
         isOpen={showImportModal}
         setIsOpen={setShowImportModal}
@@ -633,7 +633,6 @@ function FilterListItem({ filter, values, idx }: FilterListItemProps) {
       </span>
       <div className="py-2 flex flex-col overflow-hidden w-full justify-center">
         <Link
-          // to={filter.id.toString()}
           to="/filters/$filterId"
           params={{
             filterId: filter.id
@@ -653,8 +652,6 @@ function FilterListItem({ filter, values, idx }: FilterListItemProps) {
               <Tooltip
                 label={
                   <Link
-                    // to={`${filter.id.toString()}/actions`}
-
                     to="/filters/$filterId/actions"
                     params={{
                       filterId: filter.id
@@ -679,7 +676,6 @@ function FilterListItem({ filter, values, idx }: FilterListItemProps) {
               </Tooltip>
             ) : (
               <Link
-                // to={`${filter.id.toString()}/actions`}
                 to="/filters/$filterId/actions"
                 params={{
                   filterId: filter.id
@@ -698,11 +694,11 @@ function FilterListItem({ filter, values, idx }: FilterListItemProps) {
         <FilterIndexers indexers={filter.indexers} />
       </span>
       <span className="min-w-fit px-4 py-2 whitespace-nowrap text-right text-sm font-medium">
-        {/*<FilterItemDropdown*/}
-        {/*  values={values}*/}
-        {/*  filter={filter}*/}
-        {/*  onToggle={toggleActive}*/}
-        {/*/>*/}
+        <FilterItemDropdown
+          values={values}
+          filter={filter}
+          onToggle={toggleActive}
+        />
       </span>
     </li>
   );

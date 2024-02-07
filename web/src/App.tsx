@@ -8,14 +8,11 @@ import {
   QueryClient,
   QueryClientProvider,
   queryOptions,
-  useQueryErrorResetBoundary
 } from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
-import { ErrorBoundary } from "react-error-boundary";
 import { toast, Toaster } from "react-hot-toast";
 
 import { SettingsContext } from "./utils/Context";
-import { ErrorPage } from "./components/alerts";
 import Toast from "./components/notifications/Toast";
 import { Portal } from "react-portal";
 import {
@@ -48,7 +45,7 @@ import ReleaseSettings from "@screens/settings/Releases.tsx";
 import AccountSettings from "@screens/settings/Account.tsx";
 import ApplicationSettings from "@screens/settings/Application.tsx";
 import { Logs } from "@screens/Logs.tsx";
-import { Login } from "@screens/auth";
+import { Login, Onboarding } from "@screens/auth";
 import { APIClient } from "@api/APIClient.ts";
 import { routerBasePath } from "@utils";
 import { filterKeys } from "@screens/filters/List.tsx";
@@ -61,6 +58,7 @@ export const queryClient = new QueryClient({
       console.error("query cache query:", query)
       // @ts-ignore
       if (error?.status === 401 || error?.status === 403) {
+        // @ts-ignore
         console.error("bad status, redirect to login", error?.status)
         // Redirect to login page
         window.location.href = "/login";
@@ -93,11 +91,11 @@ export const queryClient = new QueryClient({
   }
 });
 
-const filtersQueryOptions = () =>
-  queryOptions({
-    queryKey: ['filters'],
-    queryFn: () => APIClient.filters.find([], "")
-  })
+// const filtersQueryOptions = () =>
+//   queryOptions({
+//     queryKey: ['filters'],
+//     queryFn: () => APIClient.filters.find([], "")
+//   })
 
 export const filterQueryOptions = (filterId: number) =>
   queryOptions({
@@ -227,22 +225,6 @@ export const filterRoute = new Route({
 export const filterGeneralRoute = new Route({
   getParentRoute: () => filterRoute,
   path: '/',
-  // path: '/$filterId',
-  // parseParams: (params) => ({
-  //   filterId: z.number().int().parse(Number(params.filterId)),
-  // }),
-  // stringifyParams: ({ filterId }) => ({ filterId: `${filterId}` }),
-  // loader: (opts) => {
-  //   console.log("filter general route loader")
-  //   return opts.context.queryClient.ensureQueryData(filterQueryOptions(opts.params.filterId))
-  //   // const filterData = opts.context.queryClient.ensureQueryData(filterQueryOptions(opts.params.filterId))
-  //   // const indexersData = opts.context.queryClient.ensureQueryData(indexersOptionsQueryOptions())
-  //   //
-  //   // return {
-  //   //   filterData,
-  //   //   indexersData
-  //   // }
-  // },
   component: General
 })
 
@@ -286,13 +268,12 @@ export const releasesSearchSchema = z.object({
   limit: z.number().optional(),
   filter: z.string().optional(),
   q: z.string().optional(),
-  // action_status: z.string().optional(),
   action_status: z.enum(['PUSH_APPROVED', 'PUSH_REJECTED', 'PUSH_ERROR', '']).optional(),
   // filters: z.array().catch(''),
   // sort: z.enum(['newest', 'oldest', 'price']).catch('newest'),
 })
 
-type ReleasesSearch = z.infer<typeof releasesSearchSchema>
+// type ReleasesSearch = z.infer<typeof releasesSearchSchema>
 
 export const releasesIndexRoute = new Route({
   getParentRoute: () => releasesRoute,
@@ -387,12 +368,45 @@ export const logsRoute = new Route({
   component: Logs
 })
 
+export const onboardRoute = new Route({
+  getParentRoute: () => rootRoute,
+  path: 'onboard',
+  beforeLoad: async () => {
+    // Check if onboarding is available for this instance
+    // and redirect if needed
+    try {
+      await APIClient.auth.canOnboard()
+    } catch (e) {
+      console.error("onboarding not available, redirect to login")
+
+      throw redirect({
+        to: loginRoute.to,
+      })
+    }
+  },
+  component: Onboarding
+})
+
 export const loginRoute = new Route({
   getParentRoute: () => rootRoute,
   path: 'login',
   validateSearch: z.object({
     redirect: z.string().optional(),
   }),
+  beforeLoad: async () => {
+    console.log("login beforeLoad")
+
+    // handle canOnboard
+    try {
+      await APIClient.auth.canOnboard()
+
+      redirect({
+        to: onboardRoute.to,
+      })
+    } catch (e) {
+      console.log("onboarding not available")
+    }
+  },
 }).update({component: Login})
 
 export function RouterSpinner() {
@@ -415,7 +429,7 @@ const RootComponent = () => {
   )
 }
 
-export type Auth = {
+export type AuthCtx = {
   isLoggedIn: boolean
   username?: string
   login: (username: string) => void
@@ -428,11 +442,8 @@ export const authRoute = new Route({
   // Before loading, authenticate the user via our auth context
   // This will also happen during prefetching (e.g. hovering over links, etc)
   beforeLoad: ({ context, location }) => {
-    console.log("auth before load")
-
     // If the user is not logged in, check for item in localStorage
     if (!context.auth.isLoggedIn) {
-      console.log("auth before load: not logged in")
       const key = "user_auth"
       const storage = localStorage.getItem(key);
       if (storage) {
@@ -467,7 +478,7 @@ export const authRoute = new Route({
 
     // Otherwise, return the user in context
     return {
-      username: auth.username,
+      username: authCtx.username,
     }
   },
 })
@@ -488,7 +499,7 @@ export const authIndexRoute = new Route({
 })
 
 export const rootRoute = rootRouteWithContext<{
-  auth: Auth,
+  auth: AuthCtx,
   queryClient: QueryClient
 }>()({
   component: RootComponent,
@@ -501,7 +512,8 @@ const authenticatedTree = authRoute.addChildren([authIndexRoute.addChildren([das
 
 const routeTree = rootRoute.addChildren([
   authenticatedTree,
-  loginRoute
+  loginRoute,
+  onboardRoute
 ])
 
 const router = new Router({
@@ -522,44 +534,36 @@ declare module '@tanstack/react-router' {
   }
 }
 
-const auth: Auth = {
+export const authCtx: AuthCtx = {
   isLoggedIn: false,
   // status: 'loggedOut',
   username: undefined,
   login: (username: string) => {
-    auth.isLoggedIn = true
-    auth.username = username
+    authCtx.isLoggedIn = true
+    authCtx.username = username
 
-    localStorage.setItem("user_auth", JSON.stringify(auth));
+    localStorage.setItem("user_auth", JSON.stringify(authCtx));
   },
   logout: () => {
-    auth.isLoggedIn = false
-    auth.username = undefined
+    authCtx.isLoggedIn = false
+    authCtx.username = undefined
 
     localStorage.removeItem("user_auth");
   },
 }
 
 export function App() {
-  // const { reset } = useQueryErrorResetBoundary();
-
   return (
-    // <ErrorBoundary
-    //   onReset={reset}
-    //   FallbackComponent={ErrorPage}
-    // >
       <QueryClientProvider client={queryClient}>
         <Portal>
           <Toaster position="top-right" />
         </Portal>
-        {/*<LocalRouter isLoggedIn={authContext.isLoggedIn} />*/}
         <RouterProvider
           basepath={routerBasePath()}
           router={router}
           context={{
-            auth,
+            auth: authCtx,
           }}        />
       </QueryClientProvider>
-    // </ErrorBoundary>
   );
 }

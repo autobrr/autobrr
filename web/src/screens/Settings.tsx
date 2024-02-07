@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-import { Suspense } from "react";
+// import { Suspense } from "react";
 import {
   BellIcon,
   ChatBubbleLeftRightIcon,
@@ -15,11 +15,11 @@ import {
   Square3Stack3DIcon,
   UserCircleIcon
 } from "@heroicons/react/24/outline";
+import {Link, Outlet} from "@tanstack/react-router";
 
 import { classNames } from "@utils";
-import { SectionLoader } from "@components/SectionLoader";
-import {Link, Outlet} from "@tanstack/react-router";
-import {RouterSpinner} from "@app/App.tsx";
+// import { SectionLoader } from "@components/SectionLoader";
+// import {RouterSpinner} from "@app/App.tsx";
 
 interface NavTabType {
   name: string;

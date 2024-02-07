@@ -29,7 +29,7 @@ export const LeftNav = () => (
           <Link
             key={item.name + itemIdx}
             to={item.path}
-            // end={item.path === "/"}
+            params={{}}
           >
             {({ isActive }) => {
               return (

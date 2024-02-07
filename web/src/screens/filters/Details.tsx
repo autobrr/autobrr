@@ -3,15 +3,14 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-import { Suspense, useEffect, useRef } from "react";
-import {useMutation, useSuspenseQuery} from "@tanstack/react-query";
+import { useEffect, useRef } from "react";
+import { useMutation, useSuspenseQuery } from "@tanstack/react-query";
 import { Form, Formik, useFormikContext } from "formik";
 import type { FormikErrors, FormikValues } from "formik";
 import { z } from "zod";
 import { toast } from "react-hot-toast";
 import { toFormikValidationSchema } from "zod-formik-adapter";
 import { ChevronRightIcon } from "@heroicons/react/24/solid";
-// import { NavLink, Route, Routes, useLocation, useNavigate, useParams } from "react-router-dom";
 
 import { APIClient } from "@api/APIClient";
 import { useToggle } from "@hooks/hooks";
@@ -21,12 +20,10 @@ import { DOWNLOAD_CLIENTS } from "@domain/constants";
 import { DEBUG } from "@components/debug";
 import Toast from "@components/notifications/Toast";
 import { DeleteModal } from "@components/modals";
-import { SectionLoader } from "@components/SectionLoader";
 
 import { filterKeys } from "./List";
-import * as Section from "./sections";
-import {filterQueryOptions, filterRoute} from "@app/App.tsx";
-import {Link, Outlet, useNavigate} from "@tanstack/react-router";
+import { filterQueryOptions, filterRoute } from "@app/App.tsx";
+import { Link, Outlet } from "@tanstack/react-router";
 
 interface tabType {
   name: string;
@@ -296,7 +293,6 @@ const schema = z.object({
 export const FilterDetails = () => {
   const ctx = filterRoute.useRouteContext()
   const queryClient = ctx.queryClient
-  // const navigate = useNavigate();
 
   const params = filterRoute.useParams()
   const filterQuery = useSuspenseQuery(filterQueryOptions(params.filterId))
@@ -453,16 +449,6 @@ export const FilterDetails = () => {
             {({ values, dirty, resetForm }) => (
               <Form className="pt-1 pb-4 px-5">
                 <FormErrorNotification />
-                {/*<Suspense fallback={<SectionLoader $size="large" />}>*/}
-                {/*  <Routes>*/}
-                {/*    <Route index element={<Section.General />} />*/}
-                {/*    <Route path="movies-tv" element={<Section.MoviesTv />} />*/}
-                {/*    <Route path="music" element={<Section.Music values={values} />} />*/}
-                {/*    <Route path="advanced" element={<Section.Advanced values={values} />} />*/}
-                {/*    <Route path="external" element={<Section.External />} />*/}
-                {/*    <Route path="actions" element={<Section.Actions filter={filter} values={values} />} />*/}
-                {/*  </Routes>*/}
-                {/*</Suspense>*/}
                 <Outlet />
                 <FormButtonsGroup
                   values={values}

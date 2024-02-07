@@ -3,20 +3,21 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-import {Auth} from "@app/App.tsx";
+import {AuthCtx} from "@app/App.tsx";
 
 interface NavItem {
   name: string;
   path: string;
+  exact?: boolean;
 }
 
 export interface RightNavProps {
   logoutMutation: () => void;
-  auth: Auth
+  auth: AuthCtx
 }
 
 export const NAV_ROUTES: Array<NavItem> = [
-  { name: "Dashboard", path: "/" },
+  { name: "Dashboard", path: "/", exact: true },
   { name: "Filters", path: "/filters" },
   { name: "Releases", path: "/releases" },
   { name: "Settings", path: "/settings" },

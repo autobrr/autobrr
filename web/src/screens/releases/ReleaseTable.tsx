@@ -82,10 +82,7 @@ const TableReducer = (state: TableState, action: Actions): TableState => {
 
 export const ReleaseTable = () => {
   const search = releasesIndexRoute.useSearch()
-  console.log("releases search", search)
-  // const location = useLocation();
-  // const queryParams = new URLSearchParams(location.search);
-  // const filterTypeFromUrl = queryParams.get("filter");
+
   const columns = React.useMemo(() => [
     {
       Header: "Age",
@@ -118,6 +115,10 @@ export const ReleaseTable = () => {
       filter: "equal"
     }
   ] as Column<Release>[], []);
+
+  if (search.action_status != "") {
+    initialState.queryFilters = [{id: "action_status", value: search.action_status! }]
+  }
 
   const [{ queryPageIndex, queryPageSize, totalCount, queryFilters }, dispatch] =
         React.useReducer(TableReducer, initialState);
@@ -209,11 +210,12 @@ export const ReleaseTable = () => {
     gotoPage(0);
   }, [filters]);
 
-  // React.useEffect(() => {
-  //   if (filterTypeFromUrl != null) {
-  //     dispatch({ type: ActionType.FILTER_CHANGED, payload: [{ id: "action_status", value: filterTypeFromUrl! }] });
-  //   }
-  // }, [filterTypeFromUrl]);
+  React.useEffect(() => {
+    console.log("search params change: ", search)
+    if (search.action_status != null) {
+      dispatch({ type: ActionType.FILTER_CHANGED, payload: [{ id: "action_status", value: search.action_status! }] });
+    }
+  }, [search.action_status]);
 
   if (error) {
     return <p>Error</p>;
