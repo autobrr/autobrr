@@ -205,11 +205,10 @@ func TestFilterRepo_Delete(t *testing.T) {
 			err = repo.Delete(context.Background(), createdFilters[0].ID)
 			assert.NoError(t, err)
 
-			// Verify that the filter is deleted
+			// Verify that the filter is deleted and return error ErrRecordNotFound
 			filter, err := repo.FindByID(context.Background(), createdFilters[0].ID)
-			assert.NoError(t, err)
-			assert.NotNil(t, filter)
-			assert.Equal(t, 0, filter.ID)
+			assert.ErrorIs(t, err, domain.ErrRecordNotFound)
+			assert.Nil(t, filter)
 		})
 
 		t.Run(fmt.Sprintf("Delete_Fails_No_Record [%s]", dbType), func(t *testing.T) {
