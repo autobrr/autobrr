@@ -56,9 +56,9 @@ export const queryClient = new QueryClient({
       // check for 401 and redirect here
       console.error("query cache error:", error)
       console.error("query cache query:", query)
-      // @ts-ignore
+      // @ts-expect-error
       if (error?.status === 401 || error?.status === 403) {
-        // @ts-ignore
+        // @ts-expect-error
         console.error("bad status, redirect to login", error?.status)
         // Redirect to login page
         window.location.href = "/login";
