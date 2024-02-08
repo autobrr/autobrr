@@ -79,10 +79,7 @@ export async function HttpClient<T = unknown>(
     }
   }
 
-  const url = `${baseUrl()}${endpoint}`
-  console.debug("fetch url: ", url)
-
-  const response = await window.fetch(url, init);
+  const response = await window.fetch(`${baseUrl()}${endpoint}`, init);
 
   switch (response.status) {
   case 204: {
@@ -105,7 +102,7 @@ export async function HttpClient<T = unknown>(
     return Promise.reject(response);
   }
   case 404: {
-    return Promise.reject(new Error(`[404] Not found: "${endpoint}"`));
+    return Promise.reject(response);
   }
   case 500: {
     const health = await window.fetch(`${baseUrl()}api/healthz/liveness`);

@@ -5,7 +5,7 @@
 
 import { useState, useMemo } from "react";
 import toast from "react-hot-toast";
-import {useMutation, useQueryClient, useSuspenseQuery} from "@tanstack/react-query";
+import { useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { PlusIcon } from "@heroicons/react/24/solid";
 
 import { useToggle } from "@hooks/hooks";
@@ -208,7 +208,7 @@ function IndexerSettings() {
         </button>
       }
     >
-      {/*<IndexerAddForm isOpen={addIndexerIsOpen} toggle={toggleAddIndexer} />*/}
+      <IndexerAddForm isOpen={addIndexerIsOpen} toggle={toggleAddIndexer} />
 
       <div className="flex flex-col">
         {sortedIndexers.items.length ? (

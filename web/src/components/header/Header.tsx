@@ -5,6 +5,7 @@
 
 import toast from "react-hot-toast";
 import { useMutation, useQuery } from "@tanstack/react-query";
+import { useRouter } from "@tanstack/react-router";
 import { Disclosure } from "@headlessui/react";
 import { Bars3Icon, XMarkIcon, MegaphoneIcon } from "@heroicons/react/24/outline";
 
@@ -15,8 +16,7 @@ import { LeftNav } from "./LeftNav";
 import { RightNav } from "./RightNav";
 import { MobileNav } from "./MobileNav";
 import { ExternalLink } from "@components/ExternalLink";
-import {authIndexRoute, authRoute} from "@app/App.tsx";
-import {redirect, useRouter} from "@tanstack/react-router";
+import { authIndexRoute } from "@app/App.tsx";
 
 export const Header = () => {
   const router = useRouter()
@@ -48,17 +48,12 @@ export const Header = () => {
   const logoutMutation = useMutation({
     mutationFn: APIClient.auth.logout,
     onSuccess: () => {
-      // AuthContext.reset();
       toast.custom((t) => (
         <Toast type="success" body="You have been logged out. Goodbye!" t={t} />
       ));
-      auth.isLoggedIn = false
-      auth.username = undefined
+      auth.logout()
 
-      localStorage.removeItem("user_auth");
-      // redirect({ to: "/"})
       router.history.push("/")
-      // auth.logout()
     },
     onError: (err) => {
       console.error("logout error", err)

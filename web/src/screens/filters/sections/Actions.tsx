@@ -7,7 +7,7 @@ import { useEffect, useRef, useState } from "react";
 import { toast } from "react-hot-toast";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Field, FieldArray, useFormikContext } from "formik";
-import type { FieldProps, FieldArrayRenderProps, FormikValues } from "formik";
+import type { FieldProps, FieldArrayRenderProps } from "formik";
 import { ChevronRightIcon, BoltIcon } from "@heroicons/react/24/solid";
 
 import { classNames } from "@utils";
@@ -26,10 +26,10 @@ import { TitleSubtitle } from "@components/headings";
 import * as FilterSection from "./_components";
 import * as FilterActions from "./action_components";
 
-interface FilterActionsProps {
-  filter: Filter;
-  values: FormikValues;
-}
+// interface FilterActionsProps {
+//   filter: Filter;
+//   values: FormikValues;
+// }
 
 export function Actions() {
   const { values } = useFormikContext<Filter>();

@@ -4,7 +4,7 @@
  */
 
 import { Fragment, useRef, useState, useMemo, useEffect, MouseEvent } from "react";
-import {useMutation, useQuery, useQueryClient, useSuspenseQuery} from "@tanstack/react-query";
+import { useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { LockClosedIcon, LockOpenIcon, PlusIcon } from "@heroicons/react/24/solid";
 import { Menu, Transition } from "@headlessui/react";
 import { toast } from "react-hot-toast";
@@ -27,7 +27,6 @@ import { DeleteModal } from "@components/modals";
 import Toast from "@components/notifications/Toast";
 import { SettingsContext } from "@utils/Context";
 import { Checkbox } from "@components/Checkbox";
-// import { useForm } from "react-hook-form";
 
 import { Section } from "./_components";
 import { ircQueryOptions } from "@app/App.tsx";
@@ -103,15 +102,6 @@ const IrcSettings = () => {
   // const queryClient = ctx.queryClient
 
   const ircQuery = useSuspenseQuery(ircQueryOptions())
-
-  // const networks = ircQuery.data
-
-  // const { data } = useQuery({
-  //   queryKey: ircKeys.lists(),
-  //   queryFn: APIClient.irc.getNetworks,
-  //   refetchOnWindowFocus: false,
-  //   refetchInterval: 3000 // Refetch every 3 seconds
-  // });
 
   const sortedNetworks = useSort(ircQuery.data || []);
 
