@@ -326,7 +326,7 @@ export const APIClient = {
         if (filter.id == "indexer") {
           params["indexer"].push(filter.value);
         } else if (filter.id === "action_status") {
-          params["action_status"].push(filter.value);
+          params["push_status"].push(filter.value); // push_status is the correct value here otherwise the releases table won't load when filtered by push status
         } else if (filter.id === "push_status") {
           params["push_status"].push(filter.value);
         } else if (filter.id == "name") {
