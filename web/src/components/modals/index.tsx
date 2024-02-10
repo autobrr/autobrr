@@ -221,7 +221,7 @@ export const ForceRunModal: FC<ForceRunModalProps> = (props: ForceRunModalProps)
 
               <div className="bg-gray-50 dark:bg-gray-800 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
                 {props.isLoading ? (
-                  <SectionLoader $size="small" />
+                  <RingResizeSpinner className="text-blue-500 size-6" />
                 ) : (
                   <>
                     <button
