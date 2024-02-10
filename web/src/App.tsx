@@ -23,11 +23,9 @@ import {
   rootRouteWithContext,
   redirect,
   ErrorComponent,
-  useRouterState,
 } from '@tanstack/react-router'
 import { TanStackRouterDevtools } from '@tanstack/router-devtools'
 import { Header } from "@components/header";
-import { SectionLoader, Spinner } from "@components/SectionLoader.tsx";
 import { Dashboard } from "@screens/Dashboard.tsx";
 import { FilterDetails, Filters } from "@screens/filters";
 import { Actions, Advanced, External, General, MoviesTv, Music } from "@screens/filters/sections";
@@ -49,6 +47,7 @@ import { Login, Onboarding } from "@screens/auth";
 import { APIClient } from "@api/APIClient.ts";
 import { routerBasePath } from "@utils";
 import { filterKeys } from "@screens/filters/List.tsx";
+import { RingResizeSpinner } from "@components/Icons.tsx";
 
 export const queryClient = new QueryClient({
   queryCache: new QueryCache({
@@ -56,9 +55,9 @@ export const queryClient = new QueryClient({
       // check for 401 and redirect here
       console.error("query cache error:", error)
       console.error("query cache query:", query)
-      // @ts-expect-error
+      // @ts-expect-error TS2339: Property status does not exist on type Error
       if (error?.status === 401 || error?.status === 403) {
-        // @ts-expect-error
+        // @ts-expect-error TS2339: Property status does not exist on type Error
         console.error("bad status, redirect to login", error?.status)
         // Redirect to login page
         window.location.href = "/login";
@@ -286,12 +285,6 @@ export const settingsRoute = new Route({
   getParentRoute: () => authIndexRoute,
   path: 'settings',
   pendingMs: 3000,
-  pendingComponent: () => (
-    <div className={`p-2 text-2xl`}>
-      {/*<Spinner />*/}
-      <SectionLoader $size="xlarge" />
-    </div>
-  ),
   component: Settings
 })
 
@@ -409,10 +402,13 @@ export const loginRoute = new Route({
   },
 }).update({component: Login})
 
-export function RouterSpinner() {
+/* COMMENT(martylukyy): This can probably be removed since the spinner works with pendingComponent?
+
+  export function RouterSpinner() {
   const isLoading = useRouterState({ select: (s) => s.status === 'pending' })
   return <Spinner show={isLoading} />
-}
+
+}*/
 
 const RootComponent = () => {
   const settings = SettingsContext.useValue();
@@ -519,7 +515,9 @@ const routeTree = rootRoute.addChildren([
 const router = new Router({
   routeTree,
   defaultPendingComponent: () => (
-      <SectionLoader $size="large" />
+    <div className="absolute top-1/4 left-1/2 !border-0">
+      <RingResizeSpinner className="text-blue-500 size-24" />
+    </div>
   ),
   defaultErrorComponent: ({ error }) => <ErrorComponent error={error} />,
   context: {

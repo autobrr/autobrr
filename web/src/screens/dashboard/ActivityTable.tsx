@@ -19,7 +19,7 @@ import * as Icons from "@components/Icons";
 import { EyeIcon, EyeSlashIcon } from "@heroicons/react/24/solid";
 import * as DataTable from "@components/data-table";
 import { RandomLinuxIsos } from "@utils";
-import {SectionLoader} from "@components/SectionLoader.tsx";
+import { RingResizeSpinner } from "@components/Icons";
 
 // This is a custom filter UI for selecting
 // a unique option from a list
@@ -170,7 +170,7 @@ export const RecentActivityTable = () => {
         <Suspense
           fallback={
             <div className="flex items-center justify-center lg:col-span-9">
-              <SectionLoader $size="large" />
+              <RingResizeSpinner className="text-blue-500 size-12" />
             </div>
           }
         >
