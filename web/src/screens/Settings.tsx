@@ -14,7 +14,8 @@ import {
   RectangleStackIcon,
   RssIcon,
   Square3Stack3DIcon,
-  UserCircleIcon
+  UserCircleIcon,
+  ArrowPathIcon
 } from "@heroicons/react/24/outline";
 
 import { classNames } from "@utils";
@@ -33,12 +34,13 @@ const subNavigation: NavTabType[] = [
   { name: "IRC", href: "irc", icon: ChatBubbleLeftRightIcon },
   { name: "Feeds", href: "feeds", icon: RssIcon },
   { name: "Clients", href: "clients", icon: FolderArrowDownIcon },
+  { name: "Omegabrr", href: "omegabrr", icon: ArrowPathIcon },
   { name: "Notifications", href: "notifications", icon: BellIcon },
   { name: "API keys", href: "api-keys", icon: KeyIcon },
   { name: "Releases", href: "releases", icon: RectangleStackIcon },
   { name: "Account", href: "account", icon: UserCircleIcon }
-  // {name: 'Regex Playground', href: 'regex-playground', icon: CogIcon, current: false}
-  // {name: 'Rules', href: 'rules', icon: ClipboardCheckIcon, current: false},
+  //{ name: "Regex Playground", href: "regex-playground", icon: CogIcon, current: false }
+  //{ name: "Rules", href: "rules", icon: ClipboardCheckIcon, current: false }
 ];
 
 interface NavLinkProps {
