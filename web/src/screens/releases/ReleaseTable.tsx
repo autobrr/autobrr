@@ -211,7 +211,7 @@ export const ReleaseTable = () => {
 
   if (isLoading) {
     return (
-      <>
+      <div>
         <div className="flex mb-6 flex-col sm:flex-row">
           { headerGroups.map((headerGroup) => headerGroup.headers.map((column) => (
               column.Filter ? (
@@ -236,7 +236,7 @@ export const ReleaseTable = () => {
             <RingResizeSpinner className="text-blue-500 size-24"/>
           </div>
         </div>
-      </>
+      </div>
     )
   }
 
