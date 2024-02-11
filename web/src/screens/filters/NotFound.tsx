@@ -4,15 +4,14 @@
  */
 
 import { Link } from "@tanstack/react-router";
+import { FilterGetByIdRoute } from "@app/routes";
 import { ExternalLink } from "@components/ExternalLink";
 
 import Logo from "@app/logo.svg?react";
 
-interface FilterNotFoundProps {
-  filterId: number;
-}
+export const FilterNotFound = () => {
+  const { filterId } = FilterGetByIdRoute.useParams()
 
-export const FilterNotFound = ({ filterId }: FilterNotFoundProps) => {
   return (
     <div className="mt-20 flex flex-col justify-center">
       <div className="flex justify-center">

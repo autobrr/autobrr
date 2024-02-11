@@ -94,8 +94,7 @@ export const FilterGetByIdRoute = createRoute({
   },
   component: FilterDetails,
   notFoundComponent: () => {
-    const { filterId} = FilterGetByIdRoute.useParams()
-    return <FilterNotFound filterId={filterId} />
+    return <FilterNotFound />
   },
 });
 
