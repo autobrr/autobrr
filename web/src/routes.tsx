@@ -139,23 +139,21 @@ const ReleasesRoute = createRoute({
   path: 'releases'
 });
 
-export const releasesSearchSchema = z.object({
-  offset: z.number().optional(),
-  limit: z.number().optional(),
-  filter: z.string().optional(),
-  q: z.string().optional(),
-  action_status: z.enum(['PUSH_APPROVED', 'PUSH_REJECTED', 'PUSH_ERROR', '']).optional(),
-  // filters: z.array().catch(''),
-  // sort: z.enum(['newest', 'oldest', 'price']).catch('newest'),
-});
-
 // type ReleasesSearch = z.infer<typeof releasesSearchSchema>
 
 export const ReleasesIndexRoute = createRoute({
   getParentRoute: () => ReleasesRoute,
   path: '/',
   component: Releases,
-  validateSearch: (search) => releasesSearchSchema.parse(search),
+  validateSearch: (search) => z.object({
+    offset: z.number().optional(),
+    limit: z.number().optional(),
+    filter: z.string().optional(),
+    q: z.string().optional(),
+    action_status: z.enum(['PUSH_APPROVED', 'PUSH_REJECTED', 'PUSH_ERROR', '']).optional(),
+    // filters: z.array().catch(''),
+    // sort: z.enum(['newest', 'oldest', 'price']).catch('newest'),
+  }).parse(search),
 });
 
 export const SettingsRoute = createRoute({
