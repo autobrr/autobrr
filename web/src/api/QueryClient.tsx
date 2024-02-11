@@ -38,12 +38,12 @@ export const queryClient = new QueryClient({
       retry: (failureCount, error) => {
         console.error(`retry count ${failureCount} error: ${error}`)
 
-        // @ts-ignore
+        // @ts-expect-error TS2339: Ignore err
         if (Object.hasOwnProperty.call(error, "status") &&
-          //@ts-ignore
+          // @ts-expect-error TS2339: ignore
           HTTP_STATUS_TO_NOT_RETRY.includes(error.status)
         ) {
-          // @ts-ignore
+          // @ts-expect-error TS2339: ignore
           console.log(`retry: Aborting retry due to ${error.status} status`);
           return false;
         }
