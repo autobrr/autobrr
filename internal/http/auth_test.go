@@ -267,7 +267,7 @@ func TestAuthHandlerValidateBad(t *testing.T) {
 
 	defer resp.Body.Close()
 
-	assert.Equalf(t, http.StatusNoContent, resp.StatusCode, "validate handler: unexpected http status")
+	assert.Equalf(t, http.StatusForbidden, resp.StatusCode, "validate handler: unexpected http status")
 }
 
 func TestAuthHandlerLoginBad(t *testing.T) {
