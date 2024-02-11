@@ -29,7 +29,7 @@ type announceProcessor struct {
 
 func NewAnnounceProcessor(log zerolog.Logger, releaseSvc release.Service, indexer *domain.IndexerDefinition) Processor {
 	ap := &announceProcessor{
-		log:        log.With().Str("module", "announce_processor").Logger(),
+		log:        log.With().Str("module", "announce_processor").Str("indexer", indexer.Name).Str("network", indexer.IRC.Network).Logger(),
 		releaseSvc: releaseSvc,
 		indexer:    indexer,
 	}
@@ -75,11 +75,13 @@ func (a *announceProcessor) processQueue(queue chan string) {
 				a.log.Error().Err(err).Msg("could not get line from queue")
 				return
 			}
-			if a.indexer.Enabled {
-				a.log.Trace().Msgf("announce: process line: %v", line)
-			} else {
-				a.log.Trace().Msgf("[%v is not enabled] announce: process line: %v", a.indexer, line)
+
+			a.log.Trace().Msgf("announce: process line: %v", line)
+
+			if !a.indexer.Enabled {
+				a.log.Warn().Msgf("indexer %v disabled", a.indexer.Name)
 			}
+
 			// check should ignore
 
 			match, err := indexer.ParseLine(&a.log, parseLine.Pattern, parseLine.Vars, tmpVars, line, parseLine.Ignore)
@@ -134,10 +136,8 @@ func (a *announceProcessor) AddLineToQueue(channel string, line string) error {
 	}
 
 	queue <- line
-	if a.indexer.Enabled {
-		a.log.Trace().Msgf("announce: queued line: %v", line)
-	} else {
-		a.log.Trace().Msgf("[%v is not enabled] announce: queued line: %v", a.indexer, line)
-	}
+
+	a.log.Trace().Msgf("announce: queued line: %v", line)
+
 	return nil
 }
