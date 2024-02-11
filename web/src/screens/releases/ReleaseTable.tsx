@@ -25,6 +25,7 @@ import { RingResizeSpinner } from "@components/Icons";
 import * as DataTable from "@components/data-table";
 
 import { IndexerSelectColumnFilter, PushStatusSelectColumnFilter, SearchColumnFilter } from "./ReleaseFilters";
+import { EmptyListState } from "@components/emptystates";
 
 type TableState = {
   queryPageIndex: number;
@@ -238,6 +239,10 @@ export const ReleaseTable = () => {
         </div>
       </div>
     )
+  }
+
+  if (!page.length && filters.every(filter => !filter.value)) {
+    return <EmptyListState text="No recent activity" />;
   }
 
   // Render the UI for your table
