@@ -7,7 +7,8 @@ import {
   createRootRouteWithContext,
   createRoute,
   createRouter,
-  ErrorComponent, notFound,
+  ErrorComponent,
+  notFound,
   Outlet,
   redirect,
 } from "@tanstack/react-router";
@@ -19,7 +20,7 @@ import { APIClient } from "@api/APIClient";
 import { Login, Onboarding } from "@screens/auth";
 import ReleaseSettings from "@screens/settings/Releases";
 import { NotFound } from "@components/alerts/NotFound";
-import { FilterDetails, Filters } from "@screens/filters";
+import { FilterDetails, FilterNotFound, Filters } from "@screens/filters";
 import { Settings } from "@screens/Settings";
 import {
   ApikeysQueryOptions,
@@ -45,12 +46,11 @@ import DownloadClientSettings from "@screens/settings/DownloadClient";
 import FeedSettings from "@screens/settings/Feed";
 import { Dashboard } from "@screens/Dashboard";
 import AccountSettings from "@screens/settings/Account";
-import { SettingsContext } from "@utils/Context";
+import { AuthContext, AuthCtx, localStorageUserKey, SettingsContext } from "@utils/Context";
 import { TanStackRouterDevtools } from "@tanstack/router-devtools";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { queryClient } from "@api/QueryClient";
 import { LogDebug } from "@components/debug";
-import { FilterNotFound } from "@screens/filters";
 
 const DashboardRoute = createRoute({
   getParentRoute: () => AuthIndexRoute,
@@ -277,20 +277,11 @@ export const LoginRoute = createRoute({
   },
 }).update({component: Login});
 
-export type AuthCtx = {
-  isLoggedIn: boolean
-  username?: string
-  login: (username: string) => void
-  logout: () => void
-}
-
-const localStorageUserKey = "autobrr_user_auth"
-
 export const AuthRoute = createRoute({
   getParentRoute: () => RootRoute,
   id: 'auth',
   // Before loading, authenticate the user via our auth context
-  // This will also happen during prefetching (e.g. hovering over links, etc)
+  // This will also happen during prefetching (e.g. hovering over links, etc.)
   beforeLoad: ({context, location}) => {
     // If the user is not logged in, check for item in localStorage
     if (!context.auth.isLoggedIn) {
@@ -393,19 +384,3 @@ export const Router = createRouter({
   },
 });
 
-export const AuthContext: AuthCtx = {
-  isLoggedIn: false,
-  username: undefined,
-  login: (username: string) => {
-    AuthContext.isLoggedIn = true
-    AuthContext.username = username
-
-    localStorage.setItem(localStorageUserKey, JSON.stringify(AuthContext));
-  },
-  logout: () => {
-    AuthContext.isLoggedIn = false
-    AuthContext.username = undefined
-
-    localStorage.removeItem(localStorageUserKey);
-  },
-}

@@ -17,7 +17,7 @@ import {
 } from "@heroicons/react/24/solid";
 
 import { ReleasesIndexRoute } from "@app/routes";
-import {ReleasesListQueryOptions} from "@api/queries";
+import { ReleasesListQueryOptions } from "@api/queries";
 import { RandomLinuxIsos } from "@utils";
 
 import * as Icons from "@components/Icons";
@@ -25,17 +25,6 @@ import { RingResizeSpinner } from "@components/Icons";
 import * as DataTable from "@components/data-table";
 
 import { IndexerSelectColumnFilter, PushStatusSelectColumnFilter, SearchColumnFilter } from "./ReleaseFilters";
-
-export const releaseKeys = {
-  all: ["releases"] as const,
-  lists: () => [...releaseKeys.all, "list"] as const,
-  list: (pageIndex: number, pageSize: number, filters: ReleaseFilter[]) => [...releaseKeys.lists(), { pageIndex, pageSize, filters }] as const,
-  details: () => [...releaseKeys.all, "detail"] as const,
-  detail: (id: number) => [...releaseKeys.details(), id] as const,
-  indexers: () => [...releaseKeys.all, "indexers"] as const,
-  stats: () => [...releaseKeys.all, "stats"] as const,
-  latestActivity: () => [...releaseKeys.all, "latest-activity"] as const,
-};
 
 type TableState = {
   queryPageIndex: number;

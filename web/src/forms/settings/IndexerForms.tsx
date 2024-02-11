@@ -15,14 +15,13 @@ import { Dialog, Transition } from "@headlessui/react";
 import { classNames, sleep } from "@utils";
 import { DEBUG } from "@components/debug";
 import { APIClient } from "@api/APIClient";
+import { FeedKeys, IndexerKeys } from "@api/query_keys";
 import { IndexersSchemaQueryOptions } from "@api/queries";
 import { SlideOver } from "@components/panels";
 import Toast from "@components/notifications/Toast";
 import { PasswordFieldWide, SwitchGroupWide, TextFieldWide } from "@components/inputs";
 import { SelectFieldBasic, SelectFieldCreatable } from "@components/inputs/select_wide";
 import { FeedDownloadTypeOptions } from "@domain/constants";
-import { feedKeys } from "@screens/settings/Feed";
-import { indexerKeys } from "@screens/settings/Indexer";
 import { DocsLink } from "@components/ExternalLink";
 import * as common from "@components/inputs/common";
 
@@ -269,7 +268,7 @@ export function IndexerAddForm({ isOpen, toggle }: AddProps) {
   const mutation = useMutation({
     mutationFn: (indexer: Indexer) => APIClient.indexers.create(indexer),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: indexerKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: IndexerKeys.lists() });
 
       toast.custom((t) => <Toast type="success" body="Indexer was added" t={t} />);
       sleep(1500);
@@ -287,7 +286,7 @@ export function IndexerAddForm({ isOpen, toggle }: AddProps) {
   const feedMutation = useMutation({
     mutationFn: (feed: FeedCreate) => APIClient.feeds.create(feed),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: feedKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: FeedKeys.lists() });
     }
   });
 
@@ -734,7 +733,7 @@ export function IndexerUpdateForm({ isOpen, toggle, indexer }: UpdateProps) {
   const mutation = useMutation({
     mutationFn: (indexer: Indexer) => APIClient.indexers.update(indexer),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: indexerKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: IndexerKeys.lists() });
 
       toast.custom((t) => <Toast type="success" body={`${indexer.name} was updated successfully`} t={t} />);
       sleep(1500);
@@ -751,7 +750,7 @@ export function IndexerUpdateForm({ isOpen, toggle, indexer }: UpdateProps) {
   const deleteMutation = useMutation({
     mutationFn: (id: number) => APIClient.indexers.delete(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: indexerKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: IndexerKeys.lists() });
 
       toast.custom((t) => <Toast type="success" body={`${indexer.name} was deleted.`} t={t} />);
 

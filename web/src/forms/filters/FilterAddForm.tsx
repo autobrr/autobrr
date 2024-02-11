@@ -13,9 +13,10 @@ import type { FieldProps } from "formik";
 import { Field, Form, Formik, FormikErrors, FormikValues } from "formik";
 
 import { APIClient } from "@api/APIClient";
+import { FilterKeys } from "@api/query_keys";
 import { DEBUG } from "@components/debug";
 import Toast from "@components/notifications/Toast";
-import { filterKeys } from "@screens/filters/List";
+
 
 interface filterAddFormProps {
     isOpen: boolean;
@@ -28,7 +29,7 @@ export function FilterAddForm({ isOpen, toggle }: filterAddFormProps) {
   const mutation = useMutation({
     mutationFn: (filter: Filter) => APIClient.filters.create(filter),
     onSuccess: (filter) => {
-      queryClient.invalidateQueries({ queryKey: filterKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: FilterKeys.lists() });
 
       toast.custom((t) => <Toast type="success" body={`Filter ${filter.name} was added`} t={t} />);
 

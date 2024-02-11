@@ -3,13 +3,8 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-import { newRidgeState } from "react-ridge-state";
 import type { StateWithValue } from "react-ridge-state";
-
-interface AuthInfo {
-  username: string;
-  isLoggedIn: boolean;
-}
+import { newRidgeState } from "react-ridge-state";
 
 interface SettingsType {
   debug: boolean;
@@ -26,11 +21,16 @@ export type FilterListState = {
   status: string;
 };
 
+// interface AuthInfo {
+//   username: string;
+//   isLoggedIn: boolean;
+// }
+
 // Default values
-const AuthContextDefaults: AuthInfo = {
-  username: "",
-  isLoggedIn: false
-};
+// const AuthContextDefaults: AuthInfo = {
+//   username: "",
+//   isLoggedIn: false
+// };
 
 const SettingsContextDefaults: SettingsType = {
   debug: false,
@@ -101,9 +101,9 @@ function DefaultSetter<T>(name: string, newState: T, prevState: T) {
   }
 }
 
-export const AuthContext = newRidgeState<AuthInfo>(AuthContextDefaults, {
-  onSet: (newState, prevState) => DefaultSetter("auth", newState, prevState)
-});
+// export const AuthContext = newRidgeState<AuthInfo>(AuthContextDefaults, {
+//   onSet: (newState, prevState) => DefaultSetter("auth", newState, prevState)
+// });
 
 export const SettingsContext = newRidgeState<SettingsType>(
   SettingsContextDefaults,
@@ -121,3 +121,29 @@ export const FilterListContext = newRidgeState<FilterListState>(
     onSet: (newState, prevState) => DefaultSetter(FilterListKey, newState, prevState)
   }
 );
+
+export type AuthCtx = {
+  isLoggedIn: boolean
+  username?: string
+  login: (username: string) => void
+  logout: () => void
+}
+
+export const localStorageUserKey = "autobrr_user_auth"
+
+export const AuthContext: AuthCtx = {
+  isLoggedIn: false,
+  username: undefined,
+  login: (username: string) => {
+    AuthContext.isLoggedIn = true
+    AuthContext.username = username
+
+    localStorage.setItem(localStorageUserKey, JSON.stringify(AuthContext));
+  },
+  logout: () => {
+    AuthContext.isLoggedIn = false
+    AuthContext.username = undefined
+
+    localStorage.removeItem(localStorageUserKey);
+  },
+}

@@ -13,6 +13,8 @@ import { toFormikValidationSchema } from "zod-formik-adapter";
 import { ChevronRightIcon } from "@heroicons/react/24/solid";
 
 import { APIClient } from "@api/APIClient";
+import { FilterByIdQueryOptions } from "@api/queries";
+import { FilterKeys } from "@api/query_keys";
 import { useToggle } from "@hooks/hooks";
 import { classNames } from "@utils";
 import { DOWNLOAD_CLIENTS } from "@domain/constants";
@@ -21,9 +23,7 @@ import { DEBUG } from "@components/debug";
 import Toast from "@components/notifications/Toast";
 import { DeleteModal } from "@components/modals";
 
-import { filterKeys } from "./List";
 import { Link, Outlet, useNavigate } from "@tanstack/react-router";
-import { FilterByIdQueryOptions } from "@api/queries";
 import { FilterGetByIdRoute } from "@app/routes";
 
 interface tabType {
@@ -303,9 +303,9 @@ export const FilterDetails = () => {
   const updateMutation = useMutation({
     mutationFn: (filter: Filter) => APIClient.filters.update(filter),
     onSuccess: (newFilter, variables) => {
-      queryClient.setQueryData(filterKeys.detail(variables.id), newFilter);
+      queryClient.setQueryData(FilterKeys.detail(variables.id), newFilter);
 
-      queryClient.setQueryData<Filter[]>(filterKeys.lists(), (previous) => {
+      queryClient.setQueryData<Filter[]>(FilterKeys.lists(), (previous) => {
         if (previous) {
           return previous.map((filter: Filter) => (filter.id === variables.id ? newFilter : filter));
         }
@@ -321,8 +321,8 @@ export const FilterDetails = () => {
     mutationFn: (id: number) => APIClient.filters.delete(id),
     onSuccess: () => {
       // Invalidate filters just in case, most likely not necessary but can't hurt.
-      queryClient.invalidateQueries({ queryKey: filterKeys.lists() });
-      queryClient.removeQueries({ queryKey: filterKeys.detail(params.filterId) });
+      queryClient.invalidateQueries({ queryKey: FilterKeys.lists() });
+      queryClient.removeQueries({ queryKey: FilterKeys.detail(params.filterId) });
 
       toast.custom((t) => (
         <Toast type="success" body={`${filter?.name} was deleted`} t={t} />

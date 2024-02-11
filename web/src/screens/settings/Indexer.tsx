@@ -3,13 +3,14 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-import { useState, useMemo } from "react";
+import { useMemo, useState } from "react";
 import toast from "react-hot-toast";
 import { useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { PlusIcon } from "@heroicons/react/24/solid";
 
 import { useToggle } from "@hooks/hooks";
 import { APIClient } from "@api/APIClient";
+import { IndexerKeys } from "@api/query_keys";
 import { IndexersQueryOptions } from "@api/queries";
 import { Checkbox } from "@components/Checkbox";
 import Toast from "@components/notifications/Toast";
@@ -18,16 +19,6 @@ import { IndexerAddForm, IndexerUpdateForm } from "@forms";
 import { componentMapType } from "@forms/settings/DownloadClientForms";
 
 import { Section } from "./_components";
-
-export const indexerKeys = {
-  all: ["indexers"] as const,
-  schema: () => [...indexerKeys.all, "indexer-definitions"] as const,
-  options: () => [...indexerKeys.all, "options"] as const,
-  lists: () => [...indexerKeys.all, "list"] as const,
-  // list: (indexers: string[], sortOrder: string) => [...indexerKeys.lists(), { indexers, sortOrder }] as const,
-  details: () => [...indexerKeys.all, "detail"] as const,
-  detail: (id: number) => [...indexerKeys.details(), id] as const
-};
 
 interface SortConfig {
   key: keyof ListItemProps["indexer"] | "enabled";
@@ -126,7 +117,7 @@ const ListItem = ({ indexer }: ListItemProps) => {
   const updateMutation = useMutation({
     mutationFn: (enabled: boolean) => APIClient.indexers.toggleEnable(indexer.id, enabled),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: indexerKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: IndexerKeys.lists() });
       toast.custom((t) => <Toast type="success" body={`${indexer.name} was updated successfully`} t={t} />);
     }
   });

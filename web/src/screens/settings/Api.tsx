@@ -13,20 +13,14 @@ import { DeleteModal } from "@components/modals";
 import { APIKeyAddForm } from "@forms/settings/APIKeyAddForm";
 import Toast from "@components/notifications/Toast";
 import { APIClient } from "@api/APIClient";
+import { ApikeysQueryOptions } from "@api/queries";
+import { ApiKeys } from "@api/query_keys";
 import { useToggle } from "@hooks/hooks";
 import { classNames } from "@utils";
 import { EmptySimple } from "@components/emptystates";
 import { Section } from "./_components";
 import { PlusIcon } from "@heroicons/react/24/solid";
 
-import { ApikeysQueryOptions } from "@api/queries";
-
-export const apiKeys = {
-  all: ["api_keys"] as const,
-  lists: () => [...apiKeys.all, "list"] as const,
-  details: () => [...apiKeys.all, "detail"] as const,
-  detail: (id: string) => [...apiKeys.details(), id] as const
-};
 
 function APISettings() {
   const [addFormIsOpen, toggleAddForm] = useToggle(false);
@@ -88,8 +82,8 @@ function APIListItem({ apikey }: ApiKeyItemProps) {
   const deleteMutation = useMutation({
     mutationFn: (key: string) => APIClient.apikeys.delete(key),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: apiKeys.lists() });
-      queryClient.invalidateQueries({ queryKey: apiKeys.detail(apikey.key) });
+      queryClient.invalidateQueries({ queryKey: ApiKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: ApiKeys.detail(apikey.key) });
 
       toast.custom((t) => (
         <Toast

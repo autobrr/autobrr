@@ -8,12 +8,12 @@ import { Form, Formik } from "formik";
 import toast from "react-hot-toast";
 import { UserIcon } from "@heroicons/react/24/solid";
 
+import { SettingsAccountRoute } from "@app/routes";
+import { AuthContext } from "@utils/Context";
 import { APIClient } from "@api/APIClient";
 import { Section } from "./_components";
 import { PasswordField, TextField } from "@components/inputs";
 import Toast from "@components/notifications/Toast";
-
-import { AuthContext, SettingsAccountRoute } from "@app/routes";
 
 const AccountSettings = () => (
   <Section

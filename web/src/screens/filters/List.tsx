@@ -3,24 +3,23 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-import { Dispatch, FC, Fragment, MouseEventHandler, useReducer, useRef, useState, useEffect } from "react";
+import { Dispatch, FC, Fragment, MouseEventHandler, useCallback, useEffect, useReducer, useRef, useState } from "react";
 import { Link } from '@tanstack/react-router'
 import { toast } from "react-hot-toast";
 import { Listbox, Menu, Transition } from "@headlessui/react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { FormikValues } from "formik";
-import { useCallback } from "react";
 import {
   ArrowsRightLeftIcon,
+  ArrowUpOnSquareIcon,
+  ChatBubbleBottomCenterTextIcon,
   CheckIcon,
   ChevronDownIcon,
-  PlusIcon,
   DocumentDuplicateIcon,
   EllipsisHorizontalIcon,
   PencilSquareIcon,
-  ChatBubbleBottomCenterTextIcon,
-  TrashIcon,
-  ArrowUpOnSquareIcon
+  PlusIcon,
+  TrashIcon
 } from "@heroicons/react/24/outline";
 import { ArrowDownTrayIcon } from "@heroicons/react/24/solid";
 
@@ -29,6 +28,7 @@ import { classNames } from "@utils";
 import { FilterAddForm } from "@forms";
 import { useToggle } from "@hooks/hooks";
 import { APIClient } from "@api/APIClient";
+import { FilterKeys } from "@api/query_keys";
 import { FiltersQueryOptions, IndexersOptionsQueryOptions } from "@api/queries";
 import Toast from "@components/notifications/Toast";
 import { EmptyListState } from "@components/emptystates";
@@ -37,14 +37,6 @@ import { DeleteModal } from "@components/modals";
 import { Importer } from "./Importer";
 import { Tooltip } from "@components/tooltips/Tooltip";
 import { Checkbox } from "@components/Checkbox";
-
-export const filterKeys = {
-  all: ["filters"] as const,
-  lists: () => [...filterKeys.all, "list"] as const,
-  list: (indexers: string[], sortOrder: string) => [...filterKeys.lists(), { indexers, sortOrder }] as const,
-  details: () => [...filterKeys.all, "detail"] as const,
-  detail: (id: number) => [...filterKeys.details(), id] as const
-};
 
 enum ActionType {
   INDEXER_FILTER_CHANGE = "INDEXER_FILTER_CHANGE",
@@ -404,8 +396,8 @@ const FilterItemDropdown = ({ filter, onToggle }: FilterItemDropdownProps) => {
   const deleteMutation = useMutation({
     mutationFn: (id: number) => APIClient.filters.delete(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: filterKeys.lists() });
-      queryClient.invalidateQueries({ queryKey: filterKeys.detail(filter.id) });
+      queryClient.invalidateQueries({ queryKey: FilterKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: FilterKeys.detail(filter.id) });
 
       toast.custom((t) => <Toast type="success" body={`Filter ${filter?.name} was deleted`} t={t} />);
     }
@@ -414,7 +406,7 @@ const FilterItemDropdown = ({ filter, onToggle }: FilterItemDropdownProps) => {
   const duplicateMutation = useMutation({
     mutationFn: (id: number) => APIClient.filters.duplicate(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: filterKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: FilterKeys.lists() });
 
       toast.custom((t) => <Toast type="success" body={`Filter ${filter?.name} duplicated`} t={t} />);
     }
@@ -601,8 +593,8 @@ function FilterListItem({ filter, values, idx }: FilterListItemProps) {
       // We need to invalidate both keys here.
       // The filters key is used on the /filters page,
       // while the ["filter", filter.id] key is used on the details page.
-      queryClient.invalidateQueries({ queryKey: filterKeys.lists() });
-      queryClient.invalidateQueries({ queryKey: filterKeys.detail(filter.id) });
+      queryClient.invalidateQueries({ queryKey: FilterKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: FilterKeys.detail(filter.id) });
     }
   });
 

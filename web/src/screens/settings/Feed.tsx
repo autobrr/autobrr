@@ -3,21 +3,22 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-import { Fragment, useRef, useState, useMemo } from "react";
-import {useMutation, useQueryClient, useSuspenseQuery} from "@tanstack/react-query";
+import { Fragment, useMemo, useRef, useState } from "react";
+import { useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { Menu, Transition } from "@headlessui/react";
 import { toast } from "react-hot-toast";
 import {
   ArrowsRightLeftIcon,
   DocumentTextIcon,
   EllipsisHorizontalIcon,
-  PencilSquareIcon,
   ForwardIcon,
+  PencilSquareIcon,
   TrashIcon
 } from "@heroicons/react/24/outline";
 
 import { APIClient } from "@api/APIClient";
 import { FeedsQueryOptions } from "@api/queries";
+import { FeedKeys } from "@api/query_keys";
 import { useToggle } from "@hooks/hooks";
 import { baseUrl, classNames, IsEmptyDate, simplifyDate } from "@utils";
 import Toast from "@components/notifications/Toast";
@@ -29,14 +30,6 @@ import { ArrowPathIcon } from "@heroicons/react/24/solid";
 import { ExternalLink } from "@components/ExternalLink";
 import { Section } from "./_components";
 import { Checkbox } from "@components/Checkbox";
-
-export const feedKeys = {
-  all: ["feeds"] as const,
-  lists: () => [...feedKeys.all, "list"] as const,
-  // list: (indexers: string[], sortOrder: string) => [...feedKeys.lists(), { indexers, sortOrder }] as const,
-  details: () => [...feedKeys.all, "detail"] as const,
-  detail: (id: number) => [...feedKeys.details(), id] as const
-};
 
 interface SortConfig {
   key: keyof ListItemProps["feed"] | "enabled";
@@ -160,8 +153,8 @@ function ListItem({ feed }: ListItemProps) {
   const updateMutation = useMutation({
     mutationFn: (status: boolean) => APIClient.feeds.toggleEnable(feed.id, status),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: feedKeys.lists() });
-      queryClient.invalidateQueries({ queryKey: feedKeys.detail(feed.id) });
+      queryClient.invalidateQueries({ queryKey: FeedKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: FeedKeys.detail(feed.id) });
 
       toast.custom((t) => <Toast type="success" body={`${feed.name} was ${!enabled ? "disabled" : "enabled"} successfully.`} t={t} />);
     }
@@ -237,8 +230,8 @@ const FeedItemDropdown = ({
   const deleteMutation = useMutation({
     mutationFn: (id: number) => APIClient.feeds.delete(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: feedKeys.lists() });
-      queryClient.invalidateQueries({ queryKey: feedKeys.detail(feed.id) });
+      queryClient.invalidateQueries({ queryKey: FeedKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: FeedKeys.detail(feed.id) });
 
       toast.custom((t) => <Toast type="success" body={`Feed ${feed?.name} was deleted`} t={t} />);
     }
@@ -254,7 +247,7 @@ const FeedItemDropdown = ({
   const forceRunMutation = useMutation({
     mutationFn: (id: number) => APIClient.feeds.forceRun(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: feedKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: FeedKeys.lists() });
       toast.custom((t) => <Toast type="success" body={`Feed ${feed?.name} was force run successfully.`} t={t} />);
       toggleForceRunModal();
     },

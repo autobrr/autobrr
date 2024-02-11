@@ -18,13 +18,6 @@ import { Link, Outlet } from "@tanstack/react-router";
 
 import { classNames } from "@utils";
 
-export const settingsKeys = {
-  all: ["settings"] as const,
-  updates: () => [...settingsKeys.all, "updates"] as const,
-  config: () => [...settingsKeys.all, "config"] as const,
-  lists: () => [...settingsKeys.all, "list"] as const,
-};
-
 interface NavTabType {
   name: string;
   href: string;
