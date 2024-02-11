@@ -10,7 +10,7 @@ import Select from "react-select";
 
 import { APIClient } from "@api/APIClient";
 import { ConfigQueryOptions } from "@api/queries";
-import { SettingsKeys } from "@api/query_keys;
+import { SettingsKeys } from "@api/query_keys";
 import { SettingsLogRoute } from "@app/routes";
 import Toast from "@components/notifications/Toast";
 import { LogLevelOptions, SelectOption } from "@domain/constants";
