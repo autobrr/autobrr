@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-import React, {Suspense, useState} from "react";
+import React, { Suspense, useState } from "react";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import {
   useTable,
@@ -13,13 +13,13 @@ import {
   usePagination, FilterProps, Column
 } from "react-table";
 
-import { APIClient } from "@api/APIClient";
 import { EmptyListState } from "@components/emptystates";
 import * as Icons from "@components/Icons";
 import { EyeIcon, EyeSlashIcon } from "@heroicons/react/24/solid";
 import * as DataTable from "@components/data-table";
 import { RandomLinuxIsos } from "@utils";
 import { RingResizeSpinner } from "@components/Icons";
+import { ReleasesLatestQueryOptions } from "@api/queries";
 
 // This is a custom filter UI for selecting
 // a unique option from a list
@@ -208,11 +208,7 @@ export const ActivityTable = () => {
     }
   ] as Column[], []);
 
-  const { isLoading, data } = useSuspenseQuery({
-    queryKey: ["dash_recent_releases"],
-    queryFn: APIClient.release.findRecent,
-    refetchOnWindowFocus: false
-  });
+  const { isLoading, data } = useSuspenseQuery(ReleasesLatestQueryOptions());
 
   const [modifiedData, setModifiedData] = useState<Release[]>([]);
   const [showLinuxIsos, setShowLinuxIsos] = useState(false);
@@ -295,11 +291,7 @@ export const ActivityTableContent = () => {
     }
   ] as Column[], []);
 
-  const { isLoading, data } = useSuspenseQuery({
-    queryKey: ["dash_recent_releases"],
-    queryFn: APIClient.release.findRecent,
-    refetchOnWindowFocus: false
-  });
+  const { isLoading, data } = useSuspenseQuery(ReleasesLatestQueryOptions());
 
   const [modifiedData, setModifiedData] = useState<Release[]>([]);
   const [showLinuxIsos, setShowLinuxIsos] = useState(false);

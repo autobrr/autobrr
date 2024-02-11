@@ -25,6 +25,7 @@ import { TitleSubtitle } from "@components/headings";
 
 import * as FilterSection from "./_components";
 import * as FilterActions from "./action_components";
+import { DownloadClientsQueryOptions } from "@api/queries";
 
 // interface FilterActionsProps {
 //   filter: Filter;
@@ -34,11 +35,7 @@ import * as FilterActions from "./action_components";
 export function Actions() {
   const { values } = useFormikContext<Filter>();
 
-  const { data } = useQuery({
-    queryKey: ["filters", "download_clients"],
-    queryFn: () => APIClient.download_clients.getAll(),
-    refetchOnWindowFocus: false
-  });
+  const { data } = useQuery(DownloadClientsQueryOptions());
 
   const newAction: Action = {
     id: 0,

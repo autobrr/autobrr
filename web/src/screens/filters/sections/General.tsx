@@ -1,19 +1,20 @@
 import { useSuspenseQuery } from "@tanstack/react-query";
 
 import { downloadsPerUnitOptions } from "@domain/constants";
+import { IndexersOptionsQueryOptions } from "@api/queries";
 
 import { DocsLink } from "@components/ExternalLink";
 
 import * as Input from "@components/inputs";
 import * as Components from "./_components";
-import { indexersOptionsQueryOptions } from "@app/App.tsx";
+
 
 const MapIndexer = (indexer: Indexer) => (
   { label: indexer.name, value: indexer.id } as Input.MultiSelectOption
 );
 
 export const General = () => {
-  const indexersQuery = useSuspenseQuery(indexersOptionsQueryOptions())
+  const indexersQuery = useSuspenseQuery(IndexersOptionsQueryOptions())
   const indexerOptions = indexersQuery.data && indexersQuery.data.map(MapIndexer)
 
   // const indexerOptions = data?.map(MapIndexer) ?? [];

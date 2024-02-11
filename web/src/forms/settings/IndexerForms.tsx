@@ -15,6 +15,7 @@ import { Dialog, Transition } from "@headlessui/react";
 import { classNames, sleep } from "@utils";
 import { DEBUG } from "@components/debug";
 import { APIClient } from "@api/APIClient";
+import { IndexersSchemaQueryOptions } from "@api/queries";
 import { SlideOver } from "@components/panels";
 import Toast from "@components/notifications/Toast";
 import { PasswordFieldWide, SwitchGroupWide, TextFieldWide } from "@components/inputs";
@@ -263,12 +264,7 @@ export function IndexerAddForm({ isOpen, toggle }: AddProps) {
   const [indexer, setIndexer] = useState<IndexerDefinition>({} as IndexerDefinition);
 
   const queryClient = useQueryClient();
-  const { data } = useQuery({
-    queryKey: ["indexerDefinition"],
-    queryFn: APIClient.indexers.getSchema,
-    enabled: isOpen,
-    refetchOnWindowFocus: false
-  });
+  const { data } = useQuery(IndexersSchemaQueryOptions(isOpen));
 
   const mutation = useMutation({
     mutationFn: (indexer: Indexer) => APIClient.indexers.create(indexer),

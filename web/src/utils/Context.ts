@@ -72,15 +72,18 @@ function ContextMerger<T extends {}>(
   ctxState.set(values);
 }
 
+const SettingsKey = "autobrr_settings";
+const FilterListKey = "autobrr_filter_list";
+
 export const InitializeGlobalContext = () => {
-  ContextMerger<AuthInfo>("auth", AuthContextDefaults, AuthContext);
+  // ContextMerger<AuthInfo>("auth", AuthContextDefaults, AuthContext);
   ContextMerger<SettingsType>(
-    "settings",
+    SettingsKey,
     SettingsContextDefaults,
     SettingsContext
   );
   ContextMerger<FilterListState>(
-    "filterList",
+    FilterListKey,
     FilterListContextDefaults,
     FilterListContext
   );
@@ -107,7 +110,7 @@ export const SettingsContext = newRidgeState<SettingsType>(
   {
     onSet: (newState, prevState) => {
       document.documentElement.classList.toggle("dark", newState.darkTheme);
-      DefaultSetter("settings", newState, prevState);
+      DefaultSetter(SettingsKey, newState, prevState);
     }
   }
 );
@@ -115,6 +118,6 @@ export const SettingsContext = newRidgeState<SettingsType>(
 export const FilterListContext = newRidgeState<FilterListState>(
   FilterListContextDefaults,
   {
-    onSet: (newState, prevState) => DefaultSetter("filterList", newState, prevState)
+    onSet: (newState, prevState) => DefaultSetter(FilterListKey, newState, prevState)
   }
 );

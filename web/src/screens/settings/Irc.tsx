@@ -22,6 +22,7 @@ import { classNames, IsEmptyDate, simplifyDate } from "@utils";
 import { IrcNetworkAddForm, IrcNetworkUpdateForm } from "@forms";
 import { useToggle } from "@hooks/hooks";
 import { APIClient } from "@api/APIClient";
+import { IrcQueryOptions } from "@api/queries";
 import { EmptySimple } from "@components/emptystates";
 import { DeleteModal } from "@components/modals";
 import Toast from "@components/notifications/Toast";
@@ -29,7 +30,6 @@ import { SettingsContext } from "@utils/Context";
 import { Checkbox } from "@components/Checkbox";
 
 import { Section } from "./_components";
-import { ircQueryOptions } from "@app/App.tsx";
 
 export const ircKeys = {
   all: ["irc_networks"] as const,
@@ -98,10 +98,7 @@ const IrcSettings = () => {
   const [expandNetworks, toggleExpand] = useToggle(false);
   const [addNetworkIsOpen, toggleAddNetwork] = useToggle(false);
 
-  // const ctx = settingsIrcRoute.useRouteContext()
-  // const queryClient = ctx.queryClient
-
-  const ircQuery = useSuspenseQuery(ircQueryOptions())
+  const ircQuery = useSuspenseQuery(IrcQueryOptions())
 
   const sortedNetworks = useSort(ircQuery.data || []);
 

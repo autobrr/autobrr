@@ -4,7 +4,7 @@
  */
 
 import { useRef } from "react";
-import {useMutation, useQueryClient, useSuspenseQuery} from "@tanstack/react-query";
+import { useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { toast } from "react-hot-toast";
 import { TrashIcon } from "@heroicons/react/24/outline";
 
@@ -18,31 +18,20 @@ import { classNames } from "@utils";
 import { EmptySimple } from "@components/emptystates";
 import { Section } from "./_components";
 import { PlusIcon } from "@heroicons/react/24/solid";
-import { apikeysQueryOptions } from "@app/App.tsx";
+
+import { ApikeysQueryOptions } from "@api/queries";
 
 export const apiKeys = {
   all: ["api_keys"] as const,
   lists: () => [...apiKeys.all, "list"] as const,
   details: () => [...apiKeys.all, "detail"] as const,
-  // detail: (id: number) => [...apiKeys.details(), id] as const
   detail: (id: string) => [...apiKeys.details(), id] as const
 };
 
 function APISettings() {
   const [addFormIsOpen, toggleAddForm] = useToggle(false);
 
-  const apikeysQuery = useSuspenseQuery(apikeysQueryOptions())
-
-  // const { isError, error, data } = useQuery({
-  //   queryKey: apiKeys.lists(),
-  //   queryFn: APIClient.apikeys.getAll,
-  //   retry: false,
-  //   refetchOnWindowFocus: false
-  // });
-  //
-  // if (isError) {
-  //   console.log(error);
-  // }
+  const apikeysQuery = useSuspenseQuery(ApikeysQueryOptions())
 
   return (
     <Section

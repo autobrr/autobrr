@@ -7,7 +7,7 @@ import { Dispatch, FC, Fragment, MouseEventHandler, useReducer, useRef, useState
 import { Link } from '@tanstack/react-router'
 import { toast } from "react-hot-toast";
 import { Listbox, Menu, Transition } from "@headlessui/react";
-import { useMutation, useQuery, useQueryClient, keepPreviousData } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { FormikValues } from "formik";
 import { useCallback } from "react";
 import {
@@ -29,6 +29,7 @@ import { classNames } from "@utils";
 import { FilterAddForm } from "@forms";
 import { useToggle } from "@hooks/hooks";
 import { APIClient } from "@api/APIClient";
+import { FiltersQueryOptions, IndexersOptionsQueryOptions } from "@api/queries";
 import Toast from "@components/notifications/Toast";
 import { EmptyListState } from "@components/emptystates";
 import { DeleteModal } from "@components/modals";
@@ -192,11 +193,7 @@ function FilterList({ toggleCreateFilter }: any) {
     filterListState
   );
 
-  const { data, error } = useQuery({
-    queryKey: filterKeys.list(indexerFilter, sortOrder),
-    queryFn: ({ queryKey }) => APIClient.filters.find(queryKey[2].indexers, queryKey[2].sortOrder),
-    refetchOnWindowFocus: false
-  });
+  const { data, error } = useQuery(FiltersQueryOptions(indexerFilter, sortOrder));
 
   useEffect(() => {
     FilterListContext.set({ indexerFilter, sortOrder, status });
@@ -797,12 +794,9 @@ const ListboxFilter = ({
 
 // a unique option from a list
 const IndexerSelectFilter = ({ dispatch }: any) => {
-  const { data, isSuccess } = useQuery({
-    queryKey: ["filters", "indexers_options"],
-    queryFn: () => APIClient.indexers.getOptions(),
-    placeholderData: keepPreviousData,
-    staleTime: Infinity
-  });
+  const filterListState = FilterListContext.useValue();
+
+  const { data, isSuccess } = useQuery(IndexersOptionsQueryOptions());
 
   const setFilter = (value: string) => {
     if (value == undefined || value == "") {
@@ -817,11 +811,11 @@ const IndexerSelectFilter = ({ dispatch }: any) => {
     <ListboxFilter
       id="1"
       key="indexer-select"
-      label="Indexer"
-      currentValue={""}
+      label={data && filterListState.indexerFilter[0] ? `Indexer: ${data.find(i => i.identifier == filterListState.indexerFilter[0])?.name}` : "Indexer"}
+      currentValue={filterListState.indexerFilter[0] ?? ""}
       onChange={setFilter}
     >
-      <FilterOption label="All" />
+      <FilterOption label="All" value="" />
       {isSuccess && data?.map((indexer, idx) => (
         <FilterOption key={idx} label={indexer.name} value={indexer.identifier} />
       ))}
@@ -843,7 +837,7 @@ const FilterOption = ({ label, value }: FilterOptionProps) => (
     value={value}
   >
     {({ selected }) => (
-      <>
+      <div className="flex justify-between">
         <span
           className={classNames(
             "block truncate",
@@ -853,16 +847,18 @@ const FilterOption = ({ label, value }: FilterOptionProps) => (
           {label}
         </span>
         {selected ? (
-          <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-500 dark:text-gray-400">
+          <span className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-500 dark:text-gray-400">
             <CheckIcon className="w-5 h-5" aria-hidden="true" />
           </span>
         ) : null}
-      </>
+      </div>
     )}
   </Listbox.Option>
 );
 
 export const SortSelectFilter = ({ dispatch }: any) => {
+  const filterListState = FilterListContext.useValue();
+
   const setFilter = (value: string) => {
     if (value == undefined || value == "") {
       dispatch({ type: ActionType.SORT_ORDER_RESET, payload: "" });
@@ -883,8 +879,8 @@ export const SortSelectFilter = ({ dispatch }: any) => {
     <ListboxFilter
       id="sort"
       key="sort-select"
-      label="Sort"
-      currentValue={""}
+      label={filterListState.sortOrder ? `Sort: ${options.find(o => o.value == filterListState.sortOrder)?.label}` : "Sort"}
+      currentValue={filterListState.sortOrder ?? ""}
       onChange={setFilter}
     >
       <>

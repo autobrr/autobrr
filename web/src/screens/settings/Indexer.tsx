@@ -10,6 +10,7 @@ import { PlusIcon } from "@heroicons/react/24/solid";
 
 import { useToggle } from "@hooks/hooks";
 import { APIClient } from "@api/APIClient";
+import { IndexersQueryOptions } from "@api/queries";
 import { Checkbox } from "@components/Checkbox";
 import Toast from "@components/notifications/Toast";
 import { EmptySimple } from "@components/emptystates";
@@ -17,10 +18,11 @@ import { IndexerAddForm, IndexerUpdateForm } from "@forms";
 import { componentMapType } from "@forms/settings/DownloadClientForms";
 
 import { Section } from "./_components";
-import { indexersQueryOptions } from "@app/App.tsx";
 
 export const indexerKeys = {
   all: ["indexers"] as const,
+  schema: () => [...indexerKeys.all, "indexer-definitions"] as const,
+  options: () => [...indexerKeys.all, "options"] as const,
   lists: () => [...indexerKeys.all, "list"] as const,
   // list: (indexers: string[], sortOrder: string) => [...indexerKeys.lists(), { indexers, sortOrder }] as const,
   details: () => [...indexerKeys.all, "detail"] as const,
@@ -169,19 +171,9 @@ const ListItem = ({ indexer }: ListItemProps) => {
 
 function IndexerSettings() {
   const [addIndexerIsOpen, toggleAddIndexer] = useToggle(false);
-  // const ctx = settingsIndexersRoute.useRouteContext()
-  // const queryClient = ctx.queryClient
 
-  const indexersQuery = useSuspenseQuery(indexersQueryOptions())
-
+  const indexersQuery = useSuspenseQuery(IndexersQueryOptions())
   const indexers = indexersQuery.data
-
-  // const { error, data } = useQuery({
-  //   queryKey: indexerKeys.lists(),
-  //   queryFn: APIClient.indexers.getAll,
-  //   refetchOnWindowFocus: false
-  // });
-
   const sortedIndexers = useSort(indexers || []);
 
   // if (error) {

@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-// import { Suspense } from "react";
 import {
   BellIcon,
   ChatBubbleLeftRightIcon,
@@ -15,11 +14,16 @@ import {
   Square3Stack3DIcon,
   UserCircleIcon
 } from "@heroicons/react/24/outline";
-import {Link, Outlet} from "@tanstack/react-router";
+import { Link, Outlet } from "@tanstack/react-router";
 
 import { classNames } from "@utils";
-// import { SectionLoader } from "@components/SectionLoader";
-// import {RouterSpinner} from "@app/App.tsx";
+
+export const settingsKeys = {
+  all: ["settings"] as const,
+  updates: () => [...settingsKeys.all, "updates"] as const,
+  config: () => [...settingsKeys.all, "config"] as const,
+  lists: () => [...settingsKeys.all, "list"] as const,
+};
 
 interface NavTabType {
   name: string;
@@ -110,15 +114,7 @@ export function Settings() {
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-table border border-gray-250 dark:border-gray-775">
           <div className="lg:grid lg:grid-cols-12">
             <SidebarNav subNavigation={subNavigation}/>
-            {/*<Suspense*/}
-            {/*  fallback={*/}
-            {/*    <div className="flex items-center justify-center lg:col-span-9">*/}
-            {/*      <SectionLoader $size="large" />*/}
-            {/*    </div>*/}
-            {/*  }*/}
-            {/*>*/}
               <Outlet />
-            {/*</Suspense>*/}
           </div>
         </div>
       </div>

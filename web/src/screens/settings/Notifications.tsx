@@ -6,6 +6,7 @@
 import {useMutation, useQueryClient, useSuspenseQuery} from "@tanstack/react-query";
 
 import { APIClient } from "@api/APIClient";
+import { NotificationsQueryOptions } from "@api/queries";
 import { EmptySimple } from "@components/emptystates";
 import { useToggle } from "@hooks/hooks";
 import { NotificationAddForm, NotificationUpdateForm } from "@forms/settings/NotificationForms";
@@ -16,7 +17,6 @@ import { Section } from "./_components";
 import { PlusIcon } from "@heroicons/react/24/solid";
 import { Checkbox } from "@components/Checkbox";
 import { DiscordIcon, GotifyIcon, LunaSeaIcon, NotifiarrIcon, NtfyIcon, PushoverIcon, TelegramIcon } from "./_components";
-import { notificationsQueryOptions } from "@app/App.tsx";
 
 export const notificationKeys = {
   all: ["notifications"] as const,
@@ -28,7 +28,7 @@ export const notificationKeys = {
 function NotificationSettings() {
   const [addNotificationsIsOpen, toggleAddNotifications] = useToggle(false);
 
-  const notificationsQuery = useSuspenseQuery(notificationsQueryOptions())
+  const notificationsQuery = useSuspenseQuery(NotificationsQueryOptions())
 
   return (
     <Section

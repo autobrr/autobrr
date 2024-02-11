@@ -16,31 +16,20 @@ import { LeftNav } from "./LeftNav";
 import { RightNav } from "./RightNav";
 import { MobileNav } from "./MobileNav";
 import { ExternalLink } from "@components/ExternalLink";
-import { authIndexRoute } from "@app/App.tsx";
+
+import { AuthIndexRoute } from "@app/routes";
+import { ConfigQueryOptions, UpdatesQueryOptions } from "@api/queries";
 
 export const Header = () => {
   const router = useRouter()
-  const { auth } = authIndexRoute.useRouteContext()
+  const { auth } = AuthIndexRoute.useRouteContext()
 
-  const { isError:isConfigError, error: configError, data: config } = useQuery({
-    queryKey: ["config"],
-    queryFn: () => APIClient.config.get(),
-    retry: false,
-    refetchOnWindowFocus: false
-  });
-
+  const { isError:isConfigError, error: configError, data: config } = useQuery(ConfigQueryOptions(true));
   if (isConfigError) {
     console.log(configError);
   }
 
-  const { isError: isUpdateError, error, data } = useQuery({
-    queryKey: ["updates"],
-    queryFn: () => APIClient.updates.getLatestRelease(),
-    retry: false,
-    refetchOnWindowFocus: false,
-    enabled: config?.check_for_updates === true
-  });
-
+  const { isError: isUpdateError, error, data } = useQuery(UpdatesQueryOptions(config?.check_for_updates === true));
   if (isUpdateError) {
     console.log("update error", error);
   }

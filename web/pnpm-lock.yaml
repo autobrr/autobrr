@@ -31,8 +31,8 @@ dependencies:
     specifier: ^5.8.4
     version: 5.8.4(@tanstack/react-query@5.17.19)(react-dom@18.2.0)(react@18.2.0)
   '@tanstack/react-router':
-    specifier: ^1.15.19
-    version: 1.15.19(react-dom@18.2.0)(react@18.2.0)
+    specifier: ^1.16.0
+    version: 1.16.0(react-dom@18.2.0)(react@18.2.0)
   '@types/node':
     specifier: ^20.11.6
     version: 20.11.6
@@ -175,7 +175,7 @@ devDependencies:
     version: 0.17.5(vite@5.0.12)(workbox-build@7.0.0)(workbox-window@7.0.0)
   vite-plugin-svgr:
     specifier: ^4.2.0
-    version: 4.2.0(@rollup/wasm-node@4.9.6)(typescript@5.3.3)(vite@5.0.12)
+    version: 4.2.0(@rollup/wasm-node@4.10.0)(typescript@5.3.3)(vite@5.0.12)
 
 packages:
 
@@ -1981,7 +1981,7 @@ packages:
     resolution: {integrity: sha512-P1st0aksCrn9sGZhp8GMYwBnQsbvAWsZAX44oXNNvLHGqAOcoVxmjZiohstwQ7SqKnbR47akdNi+uleWD8+g6A==}
     dev: false
 
-  /@rollup/plugin-babel@5.3.1(@babel/core@7.23.9)(@rollup/wasm-node@4.9.6):
+  /@rollup/plugin-babel@5.3.1(@babel/core@7.23.9)(@rollup/wasm-node@4.10.0):
     resolution: {integrity: sha512-WFfdLWU/xVWKeRQnKmIAQULUI7Il0gZnBIH/ZFO069wYIfPu+8zrfp/KMW0atmELoRDq8FbiP3VCss9MhCut7Q==}
     engines: {node: '>= 10.0.0'}
     peerDependencies:
@@ -1994,36 +1994,36 @@ packages:
     dependencies:
       '@babel/core': 7.23.9
       '@babel/helper-module-imports': 7.22.15
-      '@rollup/pluginutils': 3.1.0(@rollup/wasm-node@4.9.6)
-      rollup: /@rollup/wasm-node@4.9.6
+      '@rollup/pluginutils': 3.1.0(@rollup/wasm-node@4.10.0)
+      rollup: /@rollup/wasm-node@4.10.0
     dev: true
 
-  /@rollup/plugin-node-resolve@11.2.1(@rollup/wasm-node@4.9.6):
+  /@rollup/plugin-node-resolve@11.2.1(@rollup/wasm-node@4.10.0):
     resolution: {integrity: sha512-yc2n43jcqVyGE2sqV5/YCmocy9ArjVAP/BeXyTtADTBBX6V0e5UMqwO8CdQ0kzjb6zu5P1qMzsScCMRvE9OlVg==}
     engines: {node: '>= 10.0.0'}
     peerDependencies:
       rollup: npm:@rollup/wasm-node
     dependencies:
-      '@rollup/pluginutils': 3.1.0(@rollup/wasm-node@4.9.6)
+      '@rollup/pluginutils': 3.1.0(@rollup/wasm-node@4.10.0)
       '@types/resolve': 1.17.1
       builtin-modules: 3.3.0
       deepmerge: 4.3.1
       is-module: 1.0.0
       resolve: 1.22.8
-      rollup: /@rollup/wasm-node@4.9.6
+      rollup: /@rollup/wasm-node@4.10.0
     dev: true
 
-  /@rollup/plugin-replace@2.4.2(@rollup/wasm-node@4.9.6):
+  /@rollup/plugin-replace@2.4.2(@rollup/wasm-node@4.10.0):
     resolution: {integrity: sha512-IGcu+cydlUMZ5En85jxHH4qj2hta/11BHq95iHEyb2sbgiN0eCdzvUcHw5gt9pBL5lTi4JDYJ1acCoMGpTvEZg==}
     peerDependencies:
       rollup: npm:@rollup/wasm-node
     dependencies:
-      '@rollup/pluginutils': 3.1.0(@rollup/wasm-node@4.9.6)
+      '@rollup/pluginutils': 3.1.0(@rollup/wasm-node@4.10.0)
       magic-string: 0.25.9
-      rollup: /@rollup/wasm-node@4.9.6
+      rollup: /@rollup/wasm-node@4.10.0
     dev: true
 
-  /@rollup/pluginutils@3.1.0(@rollup/wasm-node@4.9.6):
+  /@rollup/pluginutils@3.1.0(@rollup/wasm-node@4.10.0):
     resolution: {integrity: sha512-GksZ6pr6TpIjHm8h9lSQ8pi8BE9VeubNT0OMJ3B5uZJ8pz73NPiqOtCog/x2/QzM1ENChPKxMDhiQuRHsqc+lg==}
     engines: {node: '>= 8.0.0'}
     peerDependencies:
@@ -2032,10 +2032,10 @@ packages:
       '@types/estree': 0.0.39
       estree-walker: 1.0.1
       picomatch: 2.3.1
-      rollup: /@rollup/wasm-node@4.9.6
+      rollup: /@rollup/wasm-node@4.10.0
     dev: true
 
-  /@rollup/pluginutils@5.0.5(@rollup/wasm-node@4.9.6):
+  /@rollup/pluginutils@5.0.5(@rollup/wasm-node@4.10.0):
     resolution: {integrity: sha512-6aEYR910NyP73oHiJglti74iRyOwgFU4x3meH/H8OJx6Ry0j6cOVZ5X/wTvub7G7Ao6qaHBEaNsV3GLJkSsF+Q==}
     engines: {node: '>=14.0.0'}
     peerDependencies:
@@ -2047,8 +2047,17 @@ packages:
       '@types/estree': 1.0.5
       estree-walker: 2.0.2
       picomatch: 2.3.1
-      rollup: /@rollup/wasm-node@4.9.6
+      rollup: /@rollup/wasm-node@4.10.0
     dev: true
+
+  /@rollup/wasm-node@4.10.0:
+    resolution: {integrity: sha512-wH/ih4T/iP2PUyTrkyioZqDoFY/gmu63LPLTOM5Q21gSB/D3Ejw3UBpUOMLt86fIbN3mV+wL45MyA71XAj1ytg==}
+    engines: {node: '>=18.0.0', npm: '>=8.0.0'}
+    hasBin: true
+    dependencies:
+      '@types/estree': 1.0.5
+    optionalDependencies:
+      fsevents: 2.3.3
 
   /@rollup/wasm-node@4.9.6:
     resolution: {integrity: sha512-B3FpAkroTE6q+MRHzv8XLBgPbxdjJiy5UnduZNQ/4lxeF1JT2O/OAr0JPpXeRG/7zpKm/kdqU/4m6AULhmnSqw==}
@@ -2058,6 +2067,7 @@ packages:
       '@types/estree': 1.0.5
     optionalDependencies:
       fsevents: 2.3.3
+    dev: true
 
   /@surma/rollup-plugin-off-main-thread@2.2.3:
     resolution: {integrity: sha512-lR8q/9W7hZpMWweNiAKU7NQerBnzQQLvi8qnTDU/fxItPhtZVMbPV3lbCwjhIlNBe9Bbr5V+KHshvWmVSG9cxQ==}
@@ -2383,8 +2393,8 @@ packages:
       tiny-warning: 1.0.3
     dev: true
 
-  /@tanstack/react-router@1.15.19(react-dom@18.2.0)(react@18.2.0):
-    resolution: {integrity: sha512-oZq+7WYz8cQq0Mdpb7Y/4SAXI4djpQiA8D2ZIl3XjDmYfi7twFZdjjnAL8V1P/DURss3QjZ8PK//AAnr+fcT4w==}
+  /@tanstack/react-router@1.16.0(react-dom@18.2.0)(react@18.2.0):
+    resolution: {integrity: sha512-jY/mbRsdtIcaj56Jys+pr1Z17rFKIGcOwDTI5V6615e/ZzNUaPRxEvz3dAk3mWDqKNTxBUiCU5UOz5dJKx2UOg==}
     engines: {node: '>=12'}
     peerDependencies:
       react: ^18.2.0
@@ -5165,7 +5175,7 @@ packages:
     dependencies:
       glob: 7.2.3
 
-  /rollup-plugin-terser@7.0.2(@rollup/wasm-node@4.9.6):
+  /rollup-plugin-terser@7.0.2(@rollup/wasm-node@4.10.0):
     resolution: {integrity: sha512-w3iIaU4OxcF52UUXiZNsNeuXIMDvFrr+ZXK6bFZ0Q60qyVfq4uLptoS4bbq3paG3x216eQllFZX7zt6TIImguQ==}
     deprecated: This package has been deprecated and is no longer maintained. Please use @rollup/plugin-terser
     peerDependencies:
@@ -5173,7 +5183,7 @@ packages:
     dependencies:
       '@babel/code-frame': 7.23.5
       jest-worker: 26.6.2
-      rollup: /@rollup/wasm-node@4.9.6
+      rollup: /@rollup/wasm-node@4.10.0
       serialize-javascript: 4.0.0
       terser: 5.27.0
     dev: true
@@ -5814,12 +5824,12 @@ packages:
       - supports-color
     dev: true
 
-  /vite-plugin-svgr@4.2.0(@rollup/wasm-node@4.9.6)(typescript@5.3.3)(vite@5.0.12):
+  /vite-plugin-svgr@4.2.0(@rollup/wasm-node@4.10.0)(typescript@5.3.3)(vite@5.0.12):
     resolution: {integrity: sha512-SC7+FfVtNQk7So0XMjrrtLAbEC8qjFPifyD7+fs/E6aaNdVde6umlVVh0QuwDLdOMu7vp5RiGFsB70nj5yo0XA==}
     peerDependencies:
       vite: ^2.6.0 || 3 || 4 || 5
     dependencies:
-      '@rollup/pluginutils': 5.0.5(@rollup/wasm-node@4.9.6)
+      '@rollup/pluginutils': 5.0.5(@rollup/wasm-node@4.10.0)
       '@svgr/core': 8.1.0(typescript@5.3.3)
       '@svgr/plugin-jsx': 8.1.0(@svgr/core@8.1.0)
       vite: 5.0.12(@types/node@20.11.6)
@@ -5860,7 +5870,7 @@ packages:
       '@types/node': 20.11.6
       esbuild: 0.19.12
       postcss: 8.4.33
-      rollup: /@rollup/wasm-node@4.9.6
+      rollup: /@rollup/wasm-node@4.10.0
     optionalDependencies:
       fsevents: 2.3.3
 
@@ -5958,9 +5968,9 @@ packages:
       '@babel/core': 7.23.9
       '@babel/preset-env': 7.23.9(@babel/core@7.23.9)
       '@babel/runtime': 7.23.9
-      '@rollup/plugin-babel': 5.3.1(@babel/core@7.23.9)(@rollup/wasm-node@4.9.6)
-      '@rollup/plugin-node-resolve': 11.2.1(@rollup/wasm-node@4.9.6)
-      '@rollup/plugin-replace': 2.4.2(@rollup/wasm-node@4.9.6)
+      '@rollup/plugin-babel': 5.3.1(@babel/core@7.23.9)(@rollup/wasm-node@4.10.0)
+      '@rollup/plugin-node-resolve': 11.2.1(@rollup/wasm-node@4.10.0)
+      '@rollup/plugin-replace': 2.4.2(@rollup/wasm-node@4.10.0)
       '@surma/rollup-plugin-off-main-thread': 2.2.3
       ajv: 8.12.0
       common-tags: 1.8.2
@@ -5969,8 +5979,8 @@ packages:
       glob: 7.2.3
       lodash: 4.17.21
       pretty-bytes: 5.6.0
-      rollup: /@rollup/wasm-node@4.9.6
-      rollup-plugin-terser: 7.0.2(@rollup/wasm-node@4.9.6)
+      rollup: /@rollup/wasm-node@4.10.0
+      rollup-plugin-terser: 7.0.2(@rollup/wasm-node@4.10.0)
       source-map: 0.8.0-beta.0
       stringify-object: 3.3.0
       strip-comments: 2.0.1

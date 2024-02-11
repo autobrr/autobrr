@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-import {AuthCtx} from "@app/App.tsx";
+import { AuthCtx } from "@routes";
 
 interface NavItem {
   name: string;

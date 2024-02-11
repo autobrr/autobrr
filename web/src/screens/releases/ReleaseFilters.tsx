@@ -4,15 +4,15 @@
  */
 
 import * as React from "react";
-import { useQuery, keepPreviousData } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { Listbox, Transition } from "@headlessui/react";
 import { CheckIcon, ChevronDownIcon } from "@heroicons/react/24/solid";
 
-import { APIClient } from "@api/APIClient";
 import { classNames } from "@utils";
 import { PushStatusOptions } from "@domain/constants";
 import { FilterProps } from "react-table";
 import { DebounceInput } from "react-debounce-input";
+import { ReleasesIndexersQueryOptions } from "@api/queries";
 
 interface ListboxFilterProps {
     id: string;
@@ -67,12 +67,7 @@ const ListboxFilter = ({
 export const IndexerSelectColumnFilter = ({
   column: { filterValue, setFilter, id }
 }: FilterProps<object>) => {
-  const { data, isSuccess } = useQuery({
-    queryKey: ["indexer_options"],
-    queryFn: () => APIClient.release.indexerOptions(),
-    placeholderData: keepPreviousData,
-    staleTime: Infinity
-  });
+  const { data, isSuccess } = useQuery(ReleasesIndexersQueryOptions());
 
   // Render a multi-select box
   return (

@@ -12,12 +12,12 @@ import { useToggle } from "@hooks/hooks";
 import { DownloadClientAddForm, DownloadClientUpdateForm } from "@forms";
 import { EmptySimple } from "@components/emptystates";
 import { APIClient } from "@api/APIClient";
+import { DownloadClientsQueryOptions } from "@api/queries";
 import { ActionTypeNameMap } from "@domain/constants";
 import Toast from "@components/notifications/Toast";
 import { Checkbox } from "@components/Checkbox";
 
 import { Section } from "./_components";
-import { downloadClientsQueryOptions } from "@app/App.tsx";
 
 export const clientKeys = {
   all: ["download_clients"] as const,
@@ -141,7 +141,7 @@ function ListItem({ client }: DLSettingsItemProps) {
 function DownloadClientSettings() {
   const [addClientIsOpen, toggleAddClient] = useToggle(false);
 
-  const downloadClientsQuery = useSuspenseQuery(downloadClientsQueryOptions())
+  const downloadClientsQuery = useSuspenseQuery(DownloadClientsQueryOptions())
 
   const sortedClients = useSort(downloadClientsQuery.data || []);
 

@@ -13,32 +13,23 @@ import Toast from "@components/notifications/Toast";
 import { ExternalLink } from "@components/ExternalLink";
 
 import { Section, RowItem } from "./_components";
-import { settingsIndexRoute } from "@app/App.tsx";
+
+import { SettingsIndexRoute } from "@app/routes";
+import { ConfigQueryOptions, UpdatesQueryOptions } from "@api/queries";
+import { settingsKeys } from "@screens/Settings";
 
 function ApplicationSettings() {
   const [settings, setSettings] = SettingsContext.use();
 
-  const ctx = settingsIndexRoute.useRouteContext()
+  const ctx = SettingsIndexRoute.useRouteContext()
   const queryClient = ctx.queryClient
 
-  const { isError:isConfigError, error: configError, data } = useQuery({
-    queryKey: ["config"],
-    queryFn: APIClient.config.get,
-    retry: false,
-    refetchOnWindowFocus: false
-  });
+  const { isError:isConfigError, error: configError, data } = useQuery(ConfigQueryOptions());
   if (isConfigError) {
     console.log(configError);
   }
 
-  const { isError, error, data: updateData } = useQuery({
-    queryKey: ["updates"],
-    queryFn: APIClient.updates.getLatestRelease,
-    retry: false,
-    refetchOnWindowFocus: false,
-    enabled: data?.check_for_updates === true
-  });
-
+  const { isError, error, data: updateData } = useQuery(UpdatesQueryOptions(data?.check_for_updates === true));
   if (isError) {
     console.log(error);
   }
@@ -46,7 +37,7 @@ function ApplicationSettings() {
   const checkUpdateMutation = useMutation({
     mutationFn: APIClient.updates.check,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["updates"] });
+      queryClient.invalidateQueries({ queryKey: settingsKeys.updates() });
     }
   });
 
@@ -54,7 +45,7 @@ function ApplicationSettings() {
     mutationFn: (value: boolean) => APIClient.config.update({ check_for_updates: value }).then(() => value),
     onSuccess: (_, value: boolean) => {
       toast.custom(t => <Toast type="success" body={`${value ? "You will now be notified of new updates." : "You will no longer be notified of new updates."}`} t={t} />);
-      queryClient.invalidateQueries({ queryKey: ["config"] });
+      queryClient.invalidateQueries({ queryKey: settingsKeys.config() });
       checkUpdateMutation.mutate();
     }
   });

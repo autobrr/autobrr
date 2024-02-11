@@ -17,6 +17,7 @@ import {
 } from "@heroicons/react/24/outline";
 
 import { APIClient } from "@api/APIClient";
+import { FeedsQueryOptions } from "@api/queries";
 import { useToggle } from "@hooks/hooks";
 import { baseUrl, classNames, IsEmptyDate, simplifyDate } from "@utils";
 import Toast from "@components/notifications/Toast";
@@ -28,7 +29,6 @@ import { ArrowPathIcon } from "@heroicons/react/24/solid";
 import { ExternalLink } from "@components/ExternalLink";
 import { Section } from "./_components";
 import { Checkbox } from "@components/Checkbox";
-import { feedsQueryOptions } from "@app/App.tsx";
 
 export const feedKeys = {
   all: ["feeds"] as const,
@@ -98,12 +98,7 @@ function useSort(items: ListItemProps["feed"][], config?: SortConfig) {
 }
 
 function FeedSettings() {
-  const feedsQuery = useSuspenseQuery(feedsQueryOptions())
-  // const { data } = useQuery({
-  //   queryKey: feedKeys.lists(),
-  //   queryFn: APIClient.feeds.find,
-  //   refetchOnWindowFocus: false
-  // });
+  const feedsQuery = useSuspenseQuery(FeedsQueryOptions())
 
   const sortedFeeds = useSort(feedsQuery.data || []);
 

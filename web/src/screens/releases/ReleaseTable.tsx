@@ -16,22 +16,25 @@ import {
   EyeSlashIcon
 } from "@heroicons/react/24/solid";
 
+import { ReleasesIndexRoute } from "@app/routes";
+import {ReleasesListQueryOptions} from "@api/queries";
 import { RandomLinuxIsos } from "@utils";
-import { APIClient } from "@api/APIClient";
 
 import * as Icons from "@components/Icons";
 import { RingResizeSpinner } from "@components/Icons";
 import * as DataTable from "@components/data-table";
 
-import { IndexerSelectColumnFilter, PushStatusSelectColumnFilter, SearchColumnFilter } from "./Filters";
-import { releasesIndexRoute } from "@app/App.tsx";
+import { IndexerSelectColumnFilter, PushStatusSelectColumnFilter, SearchColumnFilter } from "./ReleaseFilters";
 
 export const releaseKeys = {
   all: ["releases"] as const,
   lists: () => [...releaseKeys.all, "list"] as const,
   list: (pageIndex: number, pageSize: number, filters: ReleaseFilter[]) => [...releaseKeys.lists(), { pageIndex, pageSize, filters }] as const,
   details: () => [...releaseKeys.all, "detail"] as const,
-  detail: (id: number) => [...releaseKeys.details(), id] as const
+  detail: (id: number) => [...releaseKeys.details(), id] as const,
+  indexers: () => [...releaseKeys.all, "indexers"] as const,
+  stats: () => [...releaseKeys.all, "stats"] as const,
+  latestActivity: () => [...releaseKeys.all, "latest-activity"] as const,
 };
 
 type TableState = {
@@ -82,7 +85,7 @@ const TableReducer = (state: TableState, action: Actions): TableState => {
 };
 
 export const ReleaseTable = () => {
-  const search = releasesIndexRoute.useSearch()
+  const search = ReleasesIndexRoute.useSearch()
 
   const columns = React.useMemo(() => [
     {
@@ -124,11 +127,7 @@ export const ReleaseTable = () => {
   const [{ queryPageIndex, queryPageSize, totalCount, queryFilters }, dispatch] =
         React.useReducer(TableReducer, initialState);
 
-  const { isLoading, error, data, isSuccess } = useQuery({
-    queryKey: releaseKeys.list(queryPageIndex, queryPageSize, queryFilters),
-    queryFn: () => APIClient.release.findQuery(queryPageIndex * queryPageSize, queryPageSize, queryFilters),
-    staleTime: 5000
-  });
+  const { isLoading, error, data, isSuccess } = useQuery(ReleasesListQueryOptions(queryPageIndex * queryPageSize, queryPageSize, queryFilters));
 
   const [modifiedData, setModifiedData] = useState<Release[]>([]);
   const [showLinuxIsos, setShowLinuxIsos] = useState(false);
@@ -212,7 +211,6 @@ export const ReleaseTable = () => {
   }, [filters]);
 
   React.useEffect(() => {
-    console.log("search params change: ", search)
     if (search.action_status != null) {
       dispatch({ type: ActionType.FILTER_CHANGED, payload: [{ id: "action_status", value: search.action_status! }] });
     }

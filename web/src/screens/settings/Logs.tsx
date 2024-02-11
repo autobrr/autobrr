@@ -3,19 +3,20 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-import {useMutation, useSuspenseQuery} from "@tanstack/react-query";
-import {Link} from "@tanstack/react-router";
+import { useMutation, useSuspenseQuery } from "@tanstack/react-query";
+import { Link } from "@tanstack/react-router";
 import { toast } from "react-hot-toast";
 import Select from "react-select";
 
 import { APIClient } from "@api/APIClient";
+import { ConfigQueryOptions } from "@api/queries";
+import { SettingsLogRoute } from "@app/routes";
 import Toast from "@components/notifications/Toast";
 import { LogLevelOptions, SelectOption } from "@domain/constants";
 
 import { Section, RowItem } from "./_components";
 import * as common from "@components/inputs/common";
 import { LogFiles } from "@screens/Logs";
-import {configQueryOptions, settingsLogRoute} from "@app/App.tsx";
 
 type SelectWrapperProps = {
   id: string;
@@ -57,10 +58,10 @@ const SelectWrapper = ({ id, value, onChange, options }: SelectWrapperProps) => 
 );
 
 function LogSettings() {
-  const ctx = settingsLogRoute.useRouteContext()
+  const ctx = SettingsLogRoute.useRouteContext()
   const queryClient = ctx.queryClient
 
-  const configQuery = useSuspenseQuery(configQueryOptions())
+  const configQuery = useSuspenseQuery(ConfigQueryOptions())
 
   const config = configQuery.data
 

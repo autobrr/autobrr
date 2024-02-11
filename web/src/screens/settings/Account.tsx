@@ -4,15 +4,16 @@
  */
 
 import { useMutation } from "@tanstack/react-query";
-import { APIClient } from "@api/APIClient";
-import Toast from "@components/notifications/Toast";
-import { Section } from "./_components";
 import { Form, Formik } from "formik";
-import { PasswordField, TextField } from "@components/inputs";
-import { AuthContext } from "@utils/Context";
 import toast from "react-hot-toast";
 import { UserIcon } from "@heroicons/react/24/solid";
-import { settingsAccountRoute } from "@app/App.tsx";
+
+import { APIClient } from "@api/APIClient";
+import { Section } from "./_components";
+import { PasswordField, TextField } from "@components/inputs";
+import Toast from "@components/notifications/Toast";
+
+import { AuthContext, SettingsAccountRoute } from "@app/routes";
 
 const AccountSettings = () => (
   <Section
@@ -34,7 +35,7 @@ interface InputValues {
 }
 
 function Credentials() {
-  const ctx = settingsAccountRoute.useRouteContext()
+  const ctx = SettingsAccountRoute.useRouteContext()
 
   const validate = (values: InputValues) => {
     const errors: Record<string, string> = {};
@@ -51,7 +52,8 @@ function Credentials() {
   const logoutMutation = useMutation({
     mutationFn: APIClient.auth.logout,
     onSuccess: () => {
-      AuthContext.reset();
+      AuthContext.logout();
+
       toast.custom((t) => (
         <Toast type="success" body="User updated successfully. Please sign in again!" t={t} />
       ));

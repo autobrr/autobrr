@@ -8,7 +8,7 @@ import { FC, Fragment, MutableRefObject, useState } from "react";
 import { Dialog, Transition } from "@headlessui/react";
 import { ExclamationTriangleIcon } from "@heroicons/react/24/solid";
 
-import { RingResizeSpinner } from "@components/Icons.tsx";
+import { RingResizeSpinner } from "@components/Icons";
 
 interface ModalUpperProps {
   title: string;

@@ -90,7 +90,6 @@ export async function HttpClient<T = unknown>(
     // Remove auth info from localStorage
     // auth.logout()
     // AuthContext.reset();
-    // Show an error toast to notify the user what occurred
     return Promise.reject(response);
     // return Promise.reject(new Error(`[401] Unauthorized: "${endpoint}"`));
   }
@@ -98,11 +97,14 @@ export async function HttpClient<T = unknown>(
     // Remove auth info from localStorage
     // AuthContext.reset();
 
-    // Show an error toast to notify the user what occurred
     return Promise.reject(response);
   }
   case 404: {
-    return Promise.reject(response);
+    const isJson = response.headers.get("Content-Type")?.includes("application/json");
+    const json = isJson ? await response.json() : null;
+    return Promise.reject<T>(json as T);
+    // return Promise.reject(new Error(`[404] Not Found: "${endpoint}"`));
+    // return Promise.reject(response);
   }
   case 500: {
     const health = await window.fetch(`${baseUrl()}api/healthz/liveness`);

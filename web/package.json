@@ -39,7 +39,7 @@
     "@tailwindcss/forms": "^0.5.7",
     "@tanstack/react-query": "^5.17.19",
     "@tanstack/react-query-devtools": "^5.8.4",
-    "@tanstack/react-router": "^1.15.19",
+    "@tanstack/react-router": "^1.16.0",
     "@types/node": "^20.11.6",
     "@types/react": "^18.2.48",
     "@types/react-dom": "^18.2.18",

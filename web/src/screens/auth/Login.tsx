@@ -15,9 +15,9 @@ import { APIClient } from "@api/APIClient";
 import Toast from "@components/notifications/Toast";
 import { Tooltip } from "@components/tooltips/Tooltip";
 import { PasswordInput, TextInput } from "@components/inputs/text";
+import { LoginRoute } from "@app/routes";
 
 import Logo from "@app/logo.svg?react";
-import { loginRoute } from "@app/App.tsx";
 
 type LoginFormFields = {
   username: string;
@@ -26,29 +26,17 @@ type LoginFormFields = {
 
 export const Login = () => {
   const router = useRouter()
-  const { auth } = loginRoute.useRouteContext()
-  const search = useSearch({ from: loginRoute.id })
+  const { auth } = LoginRoute.useRouteContext()
+  const search = useSearch({ from: LoginRoute.id })
 
   const { handleSubmit, register, formState } = useForm<LoginFormFields>({
     defaultValues: { username: "", password: "" },
     mode: "onBlur"
   });
-  // const navigate = useNavigate();
-  // const [, setAuthContext] = AuthContext.use();
 
   useEffect(() => {
     // remove user session when visiting login page
     auth.logout()
-  //   // APIClient.auth.logout()
-  //   //   .then(() => {
-  //   //     AuthContext.reset();
-  //   //   });
-  //
-  //   // Check if onboarding is available for this instance
-  //   // and redirect if needed
-  //   // APIClient.auth.canOnboard()
-  //   //   .then(() => navigate("/onboard"))
-  //   //   .catch(() => { /*don't log to console PAHLLEEEASSSE*/ });
   }, []);
 
   const loginMutation = useMutation({
@@ -67,19 +55,13 @@ export const Login = () => {
 
   const onSubmit = (data: LoginFormFields) => loginMutation.mutate(data);
 
-  // Ah, the subtle nuances of client side auth. 🙄
   React.useLayoutEffect(() => {
-    console.log("trigger layout effect")
     if (auth.isLoggedIn && search.redirect) {
-      console.log("trigger layout effect login change")
       router.history.push(search.redirect)
-      // router.history.push("/")
     } else if (auth.isLoggedIn) {
-      console.log("trigger layout effect else login push")
       router.history.push("/")
     }
   }, [auth.isLoggedIn, search.redirect])
-// }, [auth.isLoggedIn, search.redirect])
 
   return (
     <div className="min-h-screen flex flex-col justify-center px-3">

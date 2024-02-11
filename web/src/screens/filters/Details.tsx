@@ -22,8 +22,9 @@ import Toast from "@components/notifications/Toast";
 import { DeleteModal } from "@components/modals";
 
 import { filterKeys } from "./List";
-import { filterQueryOptions, filterRoute } from "@app/App.tsx";
-import {Link, Outlet, useNavigate} from "@tanstack/react-router";
+import { Link, Outlet, useNavigate } from "@tanstack/react-router";
+import { FilterByIdQueryOptions } from "@api/queries";
+import { FilterGetByIdRoute } from "@app/routes";
 
 interface tabType {
   name: string;
@@ -292,17 +293,12 @@ const schema = z.object({
 
 export const FilterDetails = () => {
   const navigate = useNavigate();
-  const ctx = filterRoute.useRouteContext()
+  const ctx = FilterGetByIdRoute.useRouteContext()
   const queryClient = ctx.queryClient
 
-  const params = filterRoute.useParams()
-  const filterQuery = useSuspenseQuery(filterQueryOptions(params.filterId))
+  const params = FilterGetByIdRoute.useParams()
+  const filterQuery = useSuspenseQuery(FilterByIdQueryOptions(params.filterId))
   const filter = filterQuery.data
-
-  if (!filter) {
-    console.log("no filter, redirect to list")
-    navigate({ to: "/filters" })
-  }
 
   const updateMutation = useMutation({
     mutationFn: (filter: Filter) => APIClient.filters.update(filter),
@@ -326,20 +322,16 @@ export const FilterDetails = () => {
     onSuccess: () => {
       // Invalidate filters just in case, most likely not necessary but can't hurt.
       queryClient.invalidateQueries({ queryKey: filterKeys.lists() });
-      queryClient.invalidateQueries({ queryKey: filterKeys.detail(params.filterId) });
+      queryClient.removeQueries({ queryKey: filterKeys.detail(params.filterId) });
 
       toast.custom((t) => (
         <Toast type="success" body={`${filter?.name} was deleted`} t={t} />
       ));
 
       // redirect
-      // navigate("/filters");
+      navigate({ to: "/filters" });
     }
   });
-
-  if (!filter) {
-    return null;
-  }
 
   const handleSubmit = (data: Filter) => {
     // force set method and type on webhook actions

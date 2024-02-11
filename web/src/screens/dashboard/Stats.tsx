@@ -5,9 +5,9 @@
 
 import { useQuery} from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
-import { APIClient } from "@api/APIClient";
 import { classNames } from "@utils";
 import { LinkIcon } from "@heroicons/react/24/solid";
+import { ReleasesStatsQueryOptions } from "@api/queries";
 
 interface StatsItemProps {
   name: string;
@@ -45,11 +45,7 @@ const StatsItem = ({ name, placeholder, value, to, eventType }: StatsItemProps) 
 );
 
 export const Stats = () => {
-  const { isLoading, data } = useQuery({
-    queryKey: ["dash_release_stats"],
-    queryFn: APIClient.release.stats,
-    refetchOnWindowFocus: false
-  });
+  const { isLoading, data } = useQuery(ReleasesStatsQueryOptions());
 
   return (
     <div>
