@@ -20,7 +20,7 @@ export const FiltersQueryOptions = (indexers: string[], sortOrder: string) =>
     queryKey: filterKeys.list(indexers, sortOrder),
     queryFn: () => APIClient.filters.find(indexers, sortOrder),
     refetchOnWindowFocus: false
-  })
+  });
 
 export const FilterByIdQueryOptions = (filterId: number) =>
   queryOptions({
