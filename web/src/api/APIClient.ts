@@ -87,16 +87,10 @@ export async function HttpClient<T = unknown>(
     return Promise.resolve<T>({} as T);
   }
   case 401: {
-    // Remove auth info from localStorage
-    // auth.logout()
-    // AuthContext.reset();
     return Promise.reject(response);
     // return Promise.reject(new Error(`[401] Unauthorized: "${endpoint}"`));
   }
   case 403: {
-    // Remove auth info from localStorage
-    // AuthContext.reset();
-
     return Promise.reject(response);
   }
   case 404: {
@@ -104,7 +98,6 @@ export async function HttpClient<T = unknown>(
     const json = isJson ? await response.json() : null;
     return Promise.reject<T>(json as T);
     // return Promise.reject(new Error(`[404] Not Found: "${endpoint}"`));
-    // return Promise.reject(response);
   }
   case 500: {
     const health = await window.fetch(`${baseUrl()}api/healthz/liveness`);

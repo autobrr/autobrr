@@ -49,12 +49,6 @@ func (s Server) IsAuthenticated(next http.Handler) http.Handler {
 				return
 			}
 
-			if session.IsNew {
-				s.log.Warn().Msgf("session isNew: %+v", session)
-				http.Error(w, http.StatusText(http.StatusNoContent), http.StatusNoContent)
-				return
-			}
-
 			// Check if user is authenticated
 			if auth, ok := session.Values["authenticated"].(bool); !ok || !auth {
 				s.log.Warn().Msg("session not authenticated")
@@ -62,8 +56,6 @@ func (s Server) IsAuthenticated(next http.Handler) http.Handler {
 				http.Error(w, http.StatusText(http.StatusForbidden), http.StatusForbidden)
 				return
 			}
-
-			s.log.Debug().Msgf("session ok: %+v", session)
 
 			ctx := context.WithValue(r.Context(), "session", session)
 			r = r.WithContext(ctx)

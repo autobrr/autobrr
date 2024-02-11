@@ -19,7 +19,7 @@ export const queryClient = new QueryClient({
 
       // @ts-expect-error TS2339: Property status does not exist on type Error
       if (error?.status === 401 || error?.status === 403) {
-      // @ts-expect-error TS2339: Property status does not exist on type Error
+        // @ts-expect-error TS2339: Property status does not exist on type Error
         console.error("bad status, redirect to login", error?.status)
         // Redirect to login page
         window.location.href = "/login";
@@ -33,25 +33,20 @@ export const queryClient = new QueryClient({
       // The retries will have exponential delay.
       // See https://tanstack.com/query/v4/docs/guides/query-retries#retry-delay
       // delay = Math.min(1000 * 2 ** attemptIndex, 30000)
-      // retry: true,
-      // throwOnError: true,
+      // retry: false,
+      throwOnError: true,
       retry: (failureCount, error) => {
-        console.error(`retry count ${failureCount} error: ${error}`)
+        console.debug("retry count:", failureCount)
+        console.error("retry err: ", error)
 
-        if (Object.hasOwnProperty.call(error, "status") &&
-          // @ts-expect-error TS2339: ignore
-          HTTP_STATUS_TO_NOT_RETRY.includes(error.status)
-        ) {
+        // @ts-expect-error TS2339: ignore
+        if (HTTP_STATUS_TO_NOT_RETRY.includes(error.status)) {
           // @ts-expect-error TS2339: ignore
           console.log(`retry: Aborting retry due to ${error.status} status`);
           return false;
         }
 
-        if (failureCount > MAX_RETRIES) {
-          return false;
-        }
-
-        return true;
+        return failureCount <= MAX_RETRIES;
       },
     },
     mutations: {
