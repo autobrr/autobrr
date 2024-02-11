@@ -17,6 +17,7 @@ import { LogLevelOptions, SelectOption } from "@domain/constants";
 import { Section, RowItem } from "./_components";
 import * as common from "@components/inputs/common";
 import { LogFiles } from "@screens/Logs";
+import { SettingsKeys } from "@api/query_keys.ts";
 
 type SelectWrapperProps = {
   id: string;
@@ -70,7 +71,7 @@ function LogSettings() {
     onSuccess: () => {
       toast.custom((t) => <Toast type="success" body={"Config successfully updated!"} t={t} />);
 
-      queryClient.invalidateQueries({ queryKey: ["config"] });
+      queryClient.invalidateQueries({ queryKey: SettingsKeys.config() });
     }
   });
 
