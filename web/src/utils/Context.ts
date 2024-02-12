@@ -53,7 +53,7 @@ function ContextMerger<T extends {}>(
   defaults: T,
   ctxState: StateWithValue<T>
 ) {
-  let values = defaults;
+  let values = structuredClone(defaults);
 
   const storage = localStorage.getItem(key);
   if (storage) {
@@ -62,13 +62,13 @@ function ContextMerger<T extends {}>(
       if (json === null) {
         console.warn(`JSON localStorage value for '${key}' context state is null`);
       } else {
-        values = { ...defaults, ...json };
+        values = { ...values, ...json };
       }
     } catch (e) {
       console.error(`Failed to merge ${key} context state: ${e}`);
     }
   }
-  
+
   ctxState.set(values);
 }
 
@@ -76,7 +76,7 @@ const SettingsKey = "autobrr_settings";
 const FilterListKey = "autobrr_filter_list";
 
 export const InitializeGlobalContext = () => {
-  // ContextMerger<AuthInfo>("auth", AuthContextDefaults, AuthContext);
+  // ContextMerger<AuthInfo>(localStorageUserKey, AuthContextDefaults, AuthContextt);
   ContextMerger<SettingsType>(
     SettingsKey,
     SettingsContextDefaults,
@@ -101,8 +101,8 @@ function DefaultSetter<T>(name: string, newState: T, prevState: T) {
   }
 }
 
-// export const AuthContext = newRidgeState<AuthInfo>(AuthContextDefaults, {
-//   onSet: (newState, prevState) => DefaultSetter("auth", newState, prevState)
+// export const AuthContextt = newRidgeState<AuthInfo>(AuthContextDefaults, {
+//   onSet: (newState, prevState) => DefaultSetter(localStorageUserKey, newState, prevState)
 // });
 
 export const SettingsContext = newRidgeState<SettingsType>(
