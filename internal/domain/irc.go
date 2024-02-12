@@ -229,8 +229,9 @@ func (p IRCParserOrpheus) Parse(rls *Release, vars map[string]string) error {
 	rls.ParseString(torrentName)
 
 	// use parsed values from raw rls.Release struct
-	rls.Artists = rls.Raw().Artist
-	rls.Title = rls.Raw().Title
+	raw := rls.Raw(torrentName)
+	rls.Artists = raw.Artist
+	rls.Title = raw.Title
 
 	return nil
 }
@@ -271,8 +272,9 @@ func (p IRCParserRedacted) Parse(rls *Release, vars map[string]string) error {
 	rls.ParseString(name)
 
 	// use parsed values from raw rls.Release struct
-	rls.Artists = rls.Raw().Artist
-	rls.Title = rls.Raw().Title
+	raw := rls.Raw(name)
+	rls.Artists = raw.Artist
+	rls.Title = raw.Title
 
 	return nil
 }

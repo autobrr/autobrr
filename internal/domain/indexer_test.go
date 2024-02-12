@@ -341,7 +341,7 @@ func TestIRCParserOrpheus_Parse(t *testing.T) {
 				},
 			},
 			want: want{
-				title:   "Busta Rhymes - BEACH BALL (feat. BIA)",
+				title:   "BEACH BALL",
 				release: "Busta Rhymes - BEACH BALL (feat. BIA) [2023] (WEB FLAC 24BIT Lossless)",
 			},
 		},
@@ -357,7 +357,7 @@ func TestIRCParserOrpheus_Parse(t *testing.T) {
 				},
 			},
 			want: want{
-				title:   "Busta Rhymes - BEACH BALL (feat. BIA)",
+				title:   "BEACH BALL",
 				release: "Busta Rhymes - BEACH BALL (feat. BIA) [2023] (CD FLAC Lossless)",
 			},
 		},
