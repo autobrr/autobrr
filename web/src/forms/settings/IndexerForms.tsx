@@ -15,7 +15,7 @@ import { Dialog, Transition } from "@headlessui/react";
 import { classNames, sleep } from "@utils";
 import { DEBUG } from "@components/debug";
 import { APIClient } from "@api/APIClient";
-import { FeedKeys, IndexerKeys } from "@api/query_keys";
+import { FeedKeys, IndexerKeys, ReleaseKeys } from "@api/query_keys";
 import { IndexersSchemaQueryOptions } from "@api/queries";
 import { SlideOver } from "@components/panels";
 import Toast from "@components/notifications/Toast";
@@ -269,6 +269,8 @@ export function IndexerAddForm({ isOpen, toggle }: AddProps) {
     mutationFn: (indexer: Indexer) => APIClient.indexers.create(indexer),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: IndexerKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: IndexerKeys.options() });
+      queryClient.invalidateQueries({ queryKey: ReleaseKeys.indexers() });
 
       toast.custom((t) => <Toast type="success" body="Indexer was added" t={t} />);
       sleep(1500);
@@ -751,6 +753,8 @@ export function IndexerUpdateForm({ isOpen, toggle, indexer }: UpdateProps) {
     mutationFn: (id: number) => APIClient.indexers.delete(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: IndexerKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: IndexerKeys.options() });
+      queryClient.invalidateQueries({ queryKey: ReleaseKeys.indexers() });
 
       toast.custom((t) => <Toast type="success" body={`${indexer.name} was deleted.`} t={t} />);
 
