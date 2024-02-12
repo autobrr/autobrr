@@ -12,10 +12,10 @@ import {
   useSortBy,
   usePagination, FilterProps, Column
 } from "react-table";
+import { EyeIcon, EyeSlashIcon } from "@heroicons/react/24/solid";
 
 import { EmptyListState } from "@components/emptystates";
 import * as Icons from "@components/Icons";
-import { EyeIcon, EyeSlashIcon } from "@heroicons/react/24/solid";
 import * as DataTable from "@components/data-table";
 import { RandomLinuxIsos } from "@utils";
 import { RingResizeSpinner } from "@components/Icons";
@@ -81,8 +81,14 @@ function Table({ columns, data }: TableProps) {
     usePagination
   );
 
-  if (!page.length) {
-    return <EmptyListState text="No recent activity" />;
+  if (data.length === 0) {
+    return (
+      <div className="mt-4 mb-2 bg-white dark:bg-gray-800 border border-gray-250 dark:border-gray-775 shadow-table rounded-md overflow-auto">
+        <div className="flex items-center justify-center py-16">
+          <EmptyListState text="No recent activity"/>
+        </div>
+      </div>
+    )
   }
 
   // Render the UI for your table
