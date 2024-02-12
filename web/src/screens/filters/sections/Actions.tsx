@@ -7,7 +7,7 @@ import { useEffect, useRef, useState } from "react";
 import { toast } from "react-hot-toast";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Field, FieldArray, useFormikContext } from "formik";
-import type { FieldProps, FieldArrayRenderProps, FormikValues } from "formik";
+import type { FieldProps, FieldArrayRenderProps } from "formik";
 import { ChevronRightIcon, BoltIcon } from "@heroicons/react/24/solid";
 
 import { classNames } from "@utils";
@@ -25,18 +25,17 @@ import { TitleSubtitle } from "@components/headings";
 
 import * as FilterSection from "./_components";
 import * as FilterActions from "./action_components";
+import { DownloadClientsQueryOptions } from "@api/queries";
 
-interface FilterActionsProps {
-  filter: Filter;
-  values: FormikValues;
-}
+// interface FilterActionsProps {
+//   filter: Filter;
+//   values: FormikValues;
+// }
 
-export function Actions({ filter, values }: FilterActionsProps) {
-  const { data } = useQuery({
-    queryKey: ["filters", "download_clients"],
-    queryFn: () => APIClient.download_clients.getAll(),
-    refetchOnWindowFocus: false
-  });
+export function Actions() {
+  const { values } = useFormikContext<Filter>();
+
+  const { data } = useQuery(DownloadClientsQueryOptions());
 
   const newAction: Action = {
     id: 0,
@@ -63,7 +62,7 @@ export function Actions({ filter, values }: FilterActionsProps) {
     reannounce_delete: false,
     reannounce_interval: 7,
     reannounce_max_attempts: 25,
-    filter_id: filter.id,
+    filter_id: values.id,
     webhook_host: "",
     webhook_type: "",
     webhook_method: "",

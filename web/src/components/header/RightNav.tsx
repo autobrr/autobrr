@@ -4,18 +4,16 @@
  */
 
 import { Fragment } from "react";
-import { Link } from "react-router-dom";
 import { UserIcon } from "@heroicons/react/24/solid";
 import { Menu, Transition } from "@headlessui/react";
 
 import { classNames } from "@utils";
-import { AuthContext } from "@utils/Context";
 
 import { RightNavProps } from "./_shared";
 import { Cog6ToothIcon, ArrowLeftOnRectangleIcon } from "@heroicons/react/24/outline";
+import {Link} from "@tanstack/react-router";
 
 export const RightNav = (props: RightNavProps) => {
-  const authContext = AuthContext.useValue();
   return (
     <div className="hidden sm:block">
       <div className="ml-4 flex items-center sm:ml-6">
@@ -34,7 +32,7 @@ export const RightNav = (props: RightNavProps) => {
                   <span className="sr-only">
                     Open user menu for{" "}
                   </span>
-                  {authContext.username}
+                  {props.auth.username}
                 </span>
                 <UserIcon
                   className="inline ml-1 h-5 w-5"

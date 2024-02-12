@@ -3,24 +3,23 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-import { Dispatch, FC, Fragment, MouseEventHandler, useReducer, useRef, useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Dispatch, FC, Fragment, MouseEventHandler, useCallback, useEffect, useReducer, useRef, useState } from "react";
+import { Link } from '@tanstack/react-router'
 import { toast } from "react-hot-toast";
 import { Listbox, Menu, Transition } from "@headlessui/react";
-import { useMutation, useQuery, useQueryClient, keepPreviousData, useSuspenseQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { FormikValues } from "formik";
-import { useCallback } from "react";
 import {
   ArrowsRightLeftIcon,
+  ArrowUpOnSquareIcon,
+  ChatBubbleBottomCenterTextIcon,
   CheckIcon,
   ChevronDownIcon,
-  PlusIcon,
   DocumentDuplicateIcon,
   EllipsisHorizontalIcon,
   PencilSquareIcon,
-  ChatBubbleBottomCenterTextIcon,
-  TrashIcon,
-  ArrowUpOnSquareIcon
+  PlusIcon,
+  TrashIcon
 } from "@heroicons/react/24/outline";
 import { ArrowDownTrayIcon } from "@heroicons/react/24/solid";
 
@@ -29,6 +28,8 @@ import { classNames } from "@utils";
 import { FilterAddForm } from "@forms";
 import { useToggle } from "@hooks/hooks";
 import { APIClient } from "@api/APIClient";
+import { FilterKeys } from "@api/query_keys";
+import { FiltersQueryOptions, IndexersOptionsQueryOptions } from "@api/queries";
 import Toast from "@components/notifications/Toast";
 import { EmptyListState } from "@components/emptystates";
 import { DeleteModal } from "@components/modals";
@@ -36,14 +37,6 @@ import { DeleteModal } from "@components/modals";
 import { Importer } from "./Importer";
 import { Tooltip } from "@components/tooltips/Tooltip";
 import { Checkbox } from "@components/Checkbox";
-
-export const filterKeys = {
-  all: ["filters"] as const,
-  lists: () => [...filterKeys.all, "list"] as const,
-  list: (indexers: string[], sortOrder: string) => [...filterKeys.lists(), { indexers, sortOrder }] as const,
-  details: () => [...filterKeys.all, "detail"] as const,
-  detail: (id: number) => [...filterKeys.details(), id] as const
-};
 
 enum ActionType {
   INDEXER_FILTER_CHANGE = "INDEXER_FILTER_CHANGE",
@@ -192,11 +185,7 @@ function FilterList({ toggleCreateFilter }: any) {
     filterListState
   );
 
-  const { data, error } = useSuspenseQuery({
-    queryKey: filterKeys.list(indexerFilter, sortOrder),
-    queryFn: ({ queryKey }) => APIClient.filters.find(queryKey[2].indexers, queryKey[2].sortOrder),
-    refetchOnWindowFocus: false
-  });
+  const { data, error } = useQuery(FiltersQueryOptions(indexerFilter, sortOrder));
 
   useEffect(() => {
     FilterListContext.set({ indexerFilter, sortOrder, status });
@@ -407,8 +396,8 @@ const FilterItemDropdown = ({ filter, onToggle }: FilterItemDropdownProps) => {
   const deleteMutation = useMutation({
     mutationFn: (id: number) => APIClient.filters.delete(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: filterKeys.lists() });
-      queryClient.invalidateQueries({ queryKey: filterKeys.detail(filter.id) });
+      queryClient.invalidateQueries({ queryKey: FilterKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: FilterKeys.detail(filter.id) });
 
       toast.custom((t) => <Toast type="success" body={`Filter ${filter?.name} was deleted`} t={t} />);
     }
@@ -417,7 +406,7 @@ const FilterItemDropdown = ({ filter, onToggle }: FilterItemDropdownProps) => {
   const duplicateMutation = useMutation({
     mutationFn: (id: number) => APIClient.filters.duplicate(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: filterKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: FilterKeys.lists() });
 
       toast.custom((t) => <Toast type="success" body={`Filter ${filter?.name} duplicated`} t={t} />);
     }
@@ -459,7 +448,11 @@ const FilterItemDropdown = ({ filter, onToggle }: FilterItemDropdownProps) => {
             <Menu.Item>
               {({ active }) => (
                 <Link
-                  to={filter.id.toString()}
+                  // to={filter.id.toString()}
+                  to="/filters/$filterId"
+                  params={{
+                    filterId: filter.id
+                  }}
                   className={classNames(
                     active ? "bg-blue-600 text-white" : "text-gray-900 dark:text-gray-300",
                     "font-medium group flex rounded-md items-center w-full px-2 py-2 text-sm"
@@ -600,8 +593,8 @@ function FilterListItem({ filter, values, idx }: FilterListItemProps) {
       // We need to invalidate both keys here.
       // The filters key is used on the /filters page,
       // while the ["filter", filter.id] key is used on the details page.
-      queryClient.invalidateQueries({ queryKey: filterKeys.lists() });
-      queryClient.invalidateQueries({ queryKey: filterKeys.detail(filter.id) });
+      queryClient.invalidateQueries({ queryKey: FilterKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: FilterKeys.detail(filter.id) });
     }
   });
 
@@ -629,7 +622,10 @@ function FilterListItem({ filter, values, idx }: FilterListItemProps) {
       </span>
       <div className="py-2 flex flex-col overflow-hidden w-full justify-center">
         <Link
-          to={filter.id.toString()}
+          to="/filters/$filterId"
+          params={{
+            filterId: filter.id
+          }}
           className="transition w-full break-words whitespace-wrap text-sm font-bold text-gray-800 dark:text-gray-100 hover:text-black dark:hover:text-gray-350"
         >
           {filter.name}
@@ -645,7 +641,10 @@ function FilterListItem({ filter, values, idx }: FilterListItemProps) {
               <Tooltip
                 label={
                   <Link
-                    to={`${filter.id.toString()}/actions`}
+                    to="/filters/$filterId/actions"
+                    params={{
+                      filterId: filter.id
+                    }}
                     className="flex items-center cursor-pointer hover:text-black dark:hover:text-gray-300"
                   >
                     <span className={filter.actions_count === 0 || filter.actions_enabled_count === 0 ? "text-red-500 hover:text-red-400 dark:hover:text-red-400" : ""}>
@@ -666,7 +665,10 @@ function FilterListItem({ filter, values, idx }: FilterListItemProps) {
               </Tooltip>
             ) : (
               <Link
-                to={`${filter.id.toString()}/actions`}
+                to="/filters/$filterId/actions"
+                params={{
+                  filterId: filter.id
+                }}
                 className="flex items-center cursor-pointer hover:text-black dark:hover:text-gray-300"
               >
                 <span>
@@ -784,12 +786,9 @@ const ListboxFilter = ({
 
 // a unique option from a list
 const IndexerSelectFilter = ({ dispatch }: any) => {
-  const { data, isSuccess } = useQuery({
-    queryKey: ["filters", "indexers_options"],
-    queryFn: () => APIClient.indexers.getOptions(),
-    placeholderData: keepPreviousData,
-    staleTime: Infinity
-  });
+  const filterListState = FilterListContext.useValue();
+
+  const { data, isSuccess } = useQuery(IndexersOptionsQueryOptions());
 
   const setFilter = (value: string) => {
     if (value == undefined || value == "") {
@@ -804,11 +803,11 @@ const IndexerSelectFilter = ({ dispatch }: any) => {
     <ListboxFilter
       id="1"
       key="indexer-select"
-      label="Indexer"
-      currentValue={""}
+      label={data && filterListState.indexerFilter[0] ? `Indexer: ${data.find(i => i.identifier == filterListState.indexerFilter[0])?.name}` : "Indexer"}
+      currentValue={filterListState.indexerFilter[0] ?? ""}
       onChange={setFilter}
     >
-      <FilterOption label="All" />
+      <FilterOption label="All" value="" />
       {isSuccess && data?.map((indexer, idx) => (
         <FilterOption key={idx} label={indexer.name} value={indexer.identifier} />
       ))}
@@ -830,7 +829,7 @@ const FilterOption = ({ label, value }: FilterOptionProps) => (
     value={value}
   >
     {({ selected }) => (
-      <>
+      <div className="flex justify-between">
         <span
           className={classNames(
             "block truncate",
@@ -840,16 +839,18 @@ const FilterOption = ({ label, value }: FilterOptionProps) => (
           {label}
         </span>
         {selected ? (
-          <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-500 dark:text-gray-400">
+          <span className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-500 dark:text-gray-400">
             <CheckIcon className="w-5 h-5" aria-hidden="true" />
           </span>
         ) : null}
-      </>
+      </div>
     )}
   </Listbox.Option>
 );
 
 export const SortSelectFilter = ({ dispatch }: any) => {
+  const filterListState = FilterListContext.useValue();
+
   const setFilter = (value: string) => {
     if (value == undefined || value == "") {
       dispatch({ type: ActionType.SORT_ORDER_RESET, payload: "" });
@@ -870,8 +871,8 @@ export const SortSelectFilter = ({ dispatch }: any) => {
     <ListboxFilter
       id="sort"
       key="sort-select"
-      label="Sort"
-      currentValue={""}
+      label={filterListState.sortOrder ? `Sort: ${options.find(o => o.value == filterListState.sortOrder)?.label}` : "Sort"}
+      currentValue={filterListState.sortOrder ?? ""}
       onChange={setFilter}
     >
       <>
