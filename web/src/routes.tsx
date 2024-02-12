@@ -50,7 +50,6 @@ import { AuthContext, AuthCtx, localStorageUserKey, SettingsContext } from "@uti
 import { TanStackRouterDevtools } from "@tanstack/router-devtools";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { queryClient } from "@api/QueryClient";
-import { LogDebug } from "@components/debug";
 
 const DashboardRoute = createRoute({
   getParentRoute: () => AuthIndexRoute,
@@ -261,17 +260,15 @@ export const LoginRoute = createRoute({
   validateSearch: z.object({
     redirect: z.string().optional(),
   }),
-  beforeLoad: async () => {
+  beforeLoad: ({ navigate}) => {
     // handle canOnboard
-    try {
-      await APIClient.auth.canOnboard()
+    APIClient.auth.canOnboard().then(() => {
+      console.info("onboarding available, redirecting")
 
-      redirect({
-        to: OnboardRoute.to,
-      })
-    } catch (e) {
-      console.log("onboarding not available")
-    }
+      navigate({ to: OnboardRoute.to })
+    }).catch(() => {
+      console.info("onboarding not available, please login")
+    })
   },
 }).update({component: Login});
 
@@ -290,12 +287,8 @@ export const AuthRoute = createRoute({
           if (json === null) {
             console.warn(`JSON localStorage value for '${localStorageUserKey}' context state is null`);
           } else {
-            LogDebug("auth local storage found", json)
-
             context.auth.isLoggedIn = json.isLoggedIn
             context.auth.username = json.username
-
-            LogDebug("auth ctx", context.auth)
           }
         } catch (e) {
           console.error(`auth Failed to merge ${localStorageUserKey} context state: ${e}`);

@@ -42,7 +42,6 @@ export const Login = () => {
   const loginMutation = useMutation({
     mutationFn: (data: LoginFormFields) => APIClient.auth.login(data.username, data.password),
     onSuccess: (_, variables: LoginFormFields) => {
-      console.log("login on success")
       auth.login(variables.username)
       router.invalidate()
     },
