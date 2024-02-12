@@ -30,7 +30,7 @@ jobs:
       - name: Set up Node
         uses: actions/setup-node@v4
         with:
-          node-version: '20.10.0'
+          node-version: '20.11.0'
 
       - name: Set up corepack
         run: corepack enable
@@ -86,7 +86,7 @@ jobs:
         run: go run gotest.tools/gotestsum@latest --junitfile unit-tests.xml --format pkgname -- ./... -tags=integration
 
       - name: Test Summary
-        uses: test-summary/action@v2
+        uses: test-summary/action@dist
         with:
           paths: "unit-tests.xml"
         if: always()
