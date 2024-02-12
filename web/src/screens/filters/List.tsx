@@ -37,6 +37,7 @@ import { DeleteModal } from "@components/modals";
 import { Importer } from "./Importer";
 import { Tooltip } from "@components/tooltips/Tooltip";
 import { Checkbox } from "@components/Checkbox";
+import {RingResizeSpinner} from "@components/Icons.tsx";
 
 enum ActionType {
   INDEXER_FILTER_CHANGE = "INDEXER_FILTER_CHANGE",
@@ -185,11 +186,26 @@ function FilterList({ toggleCreateFilter }: any) {
     filterListState
   );
 
-  const { data, error } = useQuery(FiltersQueryOptions(indexerFilter, sortOrder));
+  const { isLoading, data, error } = useQuery(FiltersQueryOptions(indexerFilter, sortOrder));
 
   useEffect(() => {
     FilterListContext.set({ indexerFilter, sortOrder, status });
   }, [indexerFilter, sortOrder, status]);
+
+  if (isLoading) {
+    return (
+      <div className="max-w-screen-xl mx-auto pb-6 px-2 sm:px-6 lg:pb-16 lg:px-8">
+        <div className="bg-white dark:bg-gray-800 border border-gray-250 dark:border-gray-775 shadow-lg rounded-md mt-4">
+          <div className="bg-gray-100 dark:bg-gray-850 border-b border-gray-200 dark:border-gray-750">
+            <div className="flex h-12"/>
+          </div>
+          <div className="flex items-center justify-center py-64">
+            <RingResizeSpinner className="text-blue-500 size-24"/>
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   if (error) {
     return <p>An error has occurred:</p>;
