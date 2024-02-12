@@ -103,6 +103,11 @@ type Release struct {
 	FilterID                    int                   `json:"-"`
 	Filter                      *Filter               `json:"-"`
 	ActionStatus                []ReleaseActionStatus `json:"action_status"`
+	raw                         rls.Release
+}
+
+func (r *Release) Raw() rls.Release {
+	return r.raw
 }
 
 type ReleaseActionStatus struct {
@@ -291,6 +296,7 @@ func NewRelease(indexer string) *Release {
 
 func (r *Release) ParseString(title string) {
 	rel := rls.ParseString(title)
+	r.raw = rel
 
 	r.Type = rel.Type.String()
 
