@@ -241,17 +241,9 @@ export const ReleaseTable = () => {
           ) }
         </div>
         <div className="bg-white dark:bg-gray-800 border border-gray-250 dark:border-gray-775 shadow-lg rounded-md mt-4">
-          <table className="min-w-full rounded-md divide-y divide-gray-200 dark:divide-gray-750">
-            <thead className="bg-gray-100 dark:bg-gray-850 border-b border-gray-200 dark:border-gray-750">
-            <tr>
-              <th>
-                <div className="flex items-center justify-between">
-                  <span className="h-10"/>
-                </div>
-              </th>
-            </tr>
-            </thead>
-          </table>
+            <div className="bg-gray-100 dark:bg-gray-850 border-b border-gray-200 dark:border-gray-750">
+                <div className="flex h-10"/>
+            </div>
           <div className="flex items-center justify-center py-64">
             <RingResizeSpinner className="text-blue-500 size-24"/>
           </div>
