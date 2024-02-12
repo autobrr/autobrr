@@ -794,12 +794,14 @@ func (h *Handler) handleJoined(msg ircmsg.Message) {
 	h.log.Debug().Msgf("JOINED: %s", channel)
 
 	// check if channel is valid and if not lets part
-	if valid := h.isValidHandlerChannel(channel); !valid {
-		if err := h.PartChannel(msg.Params[1]); err != nil {
-			h.log.Error().Err(err).Msgf("error handling part for unwanted channel: %s", msg.Params[1])
+	if !h.network.UseBouncer {
+		if valid := h.isValidHandlerChannel(channel); !valid {
+			if err := h.PartChannel(msg.Params[1]); err != nil {
+				h.log.Error().Err(err).Msgf("error handling part for unwanted channel: %s", msg.Params[1])
+				return
+			}
 			return
 		}
-		return
 	}
 
 	h.m.Lock()
