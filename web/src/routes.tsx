@@ -316,7 +316,7 @@ export const AuthRoute = createRoute({
 
 function AuthenticatedLayout() {
   return (
-    <div className="min-h-screen">
+    <div className="flex flex-col min-h-screen">
       <Header/>
       <Outlet/>
     </div>
@@ -364,7 +364,7 @@ const routeTree = RootRoute.addChildren([
 export const Router = createRouter({
   routeTree,
   defaultPendingComponent: () => (
-    <div className="absolute top-1/4 left-1/2 !border-0">
+    <div className="flex flex-grow items-center justify-center col-span-9">
       <RingResizeSpinner className="text-blue-500 size-24"/>
     </div>
   ),
