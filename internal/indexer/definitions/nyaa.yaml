@@ -10,7 +10,7 @@ privacy: public
 protocol: torrent
 supports:
   - irc
-source: custom
+#source: custom
 
 irc:
   network: Rizon
