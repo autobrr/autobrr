@@ -774,6 +774,12 @@ func (h *Handler) handlePart(msg ircmsg.Message) {
 
 // PartChannel parts/leaves channel
 func (h *Handler) PartChannel(channel string) error {
+	// if using bouncer we do not want to part any channels
+	if h.network.UseBouncer {
+		h.log.Debug().Msgf("using bouncer, skip part channel %s", channel)
+		return nil
+	}
+
 	h.log.Debug().Msgf("Leaving channel %s", channel)
 
 	return h.Send("PART", channel)
@@ -794,14 +800,12 @@ func (h *Handler) handleJoined(msg ircmsg.Message) {
 	h.log.Debug().Msgf("JOINED: %s", channel)
 
 	// check if channel is valid and if not lets part
-	if !h.network.UseBouncer {
-		if valid := h.isValidHandlerChannel(channel); !valid {
-			if err := h.PartChannel(msg.Params[1]); err != nil {
-				h.log.Error().Err(err).Msgf("error handling part for unwanted channel: %s", msg.Params[1])
-				return
-			}
+	if valid := h.isValidHandlerChannel(channel); !valid {
+		if err := h.PartChannel(msg.Params[1]); err != nil {
+			h.log.Error().Err(err).Msgf("error handling part for unwanted channel: %s", msg.Params[1])
 			return
 		}
+		return
 	}
 
 	h.m.Lock()
