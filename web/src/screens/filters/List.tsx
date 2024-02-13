@@ -8,7 +8,6 @@ import { Link } from '@tanstack/react-router'
 import { toast } from "react-hot-toast";
 import { Listbox, Menu, Transition } from "@headlessui/react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { FormikValues } from "formik";
 import {
   ArrowsRightLeftIcon,
   ArrowUpOnSquareIcon,
@@ -37,6 +36,7 @@ import { DeleteModal } from "@components/modals";
 import { Importer } from "./Importer";
 import { Tooltip } from "@components/tooltips/Tooltip";
 import { Checkbox } from "@components/Checkbox";
+import { RingResizeSpinner } from "@components/Icons";
 
 enum ActionType {
   INDEXER_FILTER_CHANGE = "INDEXER_FILTER_CHANGE",
@@ -185,7 +185,7 @@ function FilterList({ toggleCreateFilter }: any) {
     filterListState
   );
 
-  const { data, error } = useQuery(FiltersQueryOptions(indexerFilter, sortOrder));
+  const { isLoading, data, error } = useQuery(FiltersQueryOptions(indexerFilter, sortOrder));
 
   useEffect(() => {
     FilterListContext.set({ indexerFilter, sortOrder, status });
@@ -213,19 +213,19 @@ function FilterList({ toggleCreateFilter }: any) {
           </div>
         </div>
 
-        {data && data.length > 0 ? (
-          <ul className="min-w-full divide-y divide-gray-150 dark:divide-gray-775">
-            {filtered.filtered.length > 0 ? (
-              filtered.filtered.map((filter: Filter, idx) => (
-                <FilterListItem filter={filter} values={filter} key={filter.id} idx={idx} />
-              ))
+        {isLoading
+          ? <div className="flex items-center justify-center py-64"><RingResizeSpinner className="text-blue-500 size-24"/></div>
+          : data && data.length > 0 ? (
+              <ul className="min-w-full divide-y divide-gray-150 dark:divide-gray-775">
+                {filtered.filtered.length > 0
+                  ? filtered.filtered.map((filter: Filter, idx) => <FilterListItem filter={filter} key={filter.id} idx={idx}/>)
+                  : <EmptyListState text={`No ${status} filters`}/>
+                }
+              </ul>
             ) : (
-              <EmptyListState text={`No ${status} filters`} />
-            )}
-          </ul>
-        ) : (
-          <EmptyListState text="No filters here.." buttonText="Add new" buttonOnClick={toggleCreateFilter} />
-        )}
+              <EmptyListState text="No filters here.." buttonText="Add new" buttonOnClick={toggleCreateFilter}/>
+            )
+        }
       </div>
     </div>
   );
@@ -266,7 +266,6 @@ const StatusButton = ({ data, label, value, currentValue, dispatch }: StatusButt
 };
 
 interface FilterItemDropdownProps {
-  values: FormikValues;
   filter: Filter;
   onToggle: (newState: boolean) => void;
 }
@@ -579,11 +578,10 @@ const FilterItemDropdown = ({ filter, onToggle }: FilterItemDropdownProps) => {
 
 interface FilterListItemProps {
   filter: Filter;
-  values: FormikValues;
   idx: number;
 }
 
-function FilterListItem({ filter, values, idx }: FilterListItemProps) {
+function FilterListItem({ filter, idx }: FilterListItemProps) {
   const queryClient = useQueryClient();
 
   const updateMutation = useMutation({
@@ -684,7 +682,6 @@ function FilterListItem({ filter, values, idx }: FilterListItemProps) {
       </span>
       <span className="min-w-fit px-4 py-2 whitespace-nowrap text-right text-sm font-medium">
         <FilterItemDropdown
-          values={values}
           filter={filter}
           onToggle={toggleActive}
         />
