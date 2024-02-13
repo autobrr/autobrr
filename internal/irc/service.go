@@ -276,10 +276,8 @@ func (s *service) checkIfNetworkRestartNeeded(network *domain.IrcNetwork) error 
 					continue
 				}
 
-				if !handler.UseBouncer {
-					// if not expected, leave
-					channelsToLeave = append(channelsToLeave, handlerChan.Name)
-				}
+				// if not expected, leave
+				channelsToLeave = append(channelsToLeave, handlerChan.Name)
 			}
 
 			// check new channels against handler to see which to join
