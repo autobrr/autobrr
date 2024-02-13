@@ -13,8 +13,14 @@ supports:
   - rss
 # source: gazelle
 settings:
+  - name: authkey
+    type: secret
+    required: true
+    label: Auth key
+    help: Right click DL on a torrent and get the authkey.
+
   - name: torrent_pass
-    type: text
+    type: secret
     required: true
     label: Torrent pass
     help: Right click DL on a torrent and get the torrent_pass.
@@ -79,4 +85,4 @@ irc:
 
     match:
       infourl: "/torrents.php?id={{ .groupId }}"
-      torrenturl: "/torrents.php?action=download&id={{ .torrentId }}&torrent_pass={{ .torrent_pass }}"
+      torrenturl: "/torrents.php?action=download&id={{ .torrentId }}&authkey={{ .authkey }}&torrent_pass={{ .torrent_pass }}"
