@@ -5,3 +5,4 @@
 
 export { Filters } from "./List";
 export { FilterDetails } from "./Details";
+export { FilterNotFound } from "./NotFound";

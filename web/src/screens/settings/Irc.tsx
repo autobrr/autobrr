@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-import { Fragment, useRef, useState, useMemo, useEffect, MouseEvent } from "react";
+import { Fragment, MouseEvent, useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { LockClosedIcon, LockOpenIcon, PlusIcon } from "@heroicons/react/24/solid";
 import { Menu, Transition } from "@headlessui/react";
@@ -22,22 +22,15 @@ import { classNames, IsEmptyDate, simplifyDate } from "@utils";
 import { IrcNetworkAddForm, IrcNetworkUpdateForm } from "@forms";
 import { useToggle } from "@hooks/hooks";
 import { APIClient } from "@api/APIClient";
+import { IrcKeys } from "@api/query_keys";
+import { IrcQueryOptions } from "@api/queries";
 import { EmptySimple } from "@components/emptystates";
 import { DeleteModal } from "@components/modals";
 import Toast from "@components/notifications/Toast";
 import { SettingsContext } from "@utils/Context";
 import { Checkbox } from "@components/Checkbox";
-// import { useForm } from "react-hook-form";
 
 import { Section } from "./_components";
-
-export const ircKeys = {
-  all: ["irc_networks"] as const,
-  lists: () => [...ircKeys.all, "list"] as const,
-  // list: (indexers: string[], sortOrder: string) => [...ircKeys.lists(), { indexers, sortOrder }] as const,
-  details: () => [...ircKeys.all, "detail"] as const,
-  detail: (id: number) => [...ircKeys.details(), id] as const
-};
 
 interface SortConfig {
   key: keyof ListItemProps["network"] | "enabled";
@@ -98,14 +91,9 @@ const IrcSettings = () => {
   const [expandNetworks, toggleExpand] = useToggle(false);
   const [addNetworkIsOpen, toggleAddNetwork] = useToggle(false);
 
-  const { data } = useSuspenseQuery({
-    queryKey: ircKeys.lists(),
-    queryFn: APIClient.irc.getNetworks,
-    refetchOnWindowFocus: false,
-    refetchInterval: 3000 // Refetch every 3 seconds
-  });
+  const ircQuery = useSuspenseQuery(IrcQueryOptions())
 
-  const sortedNetworks = useSort(data || []);
+  const sortedNetworks = useSort(ircQuery.data || []);
 
   return (
     <Section
@@ -168,7 +156,7 @@ const IrcSettings = () => {
         </div>
       </div>
 
-      {data && data.length > 0 ? (
+      {ircQuery.data && ircQuery.data.length > 0 ? (
         <ul className="mt-6 min-w-full relative text-sm">
           <li className="grid grid-cols-12 gap-4 border-b border-gray-200 dark:border-gray-700 text-xs font-medium text-gray-500 dark:text-gray-400">
             <div className="flex col-span-2 md:col-span-1 pl-2 sm:px-3 py-3 text-left uppercase tracking-wider cursor-pointer"
@@ -218,7 +206,7 @@ const ListItem = ({ network, expanded }: ListItemProps) => {
   const updateMutation = useMutation({
     mutationFn: (network: IrcNetwork) => APIClient.irc.updateNetwork(network).then(() => network),
     onSuccess: (network: IrcNetwork) => {
-      queryClient.invalidateQueries({ queryKey: ircKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: IrcKeys.lists() });
       toast.custom(t => <Toast type="success" body={`${network.name} was ${network.enabled ? "enabled" : "disabled"} successfully.`} t={t} />);
     }
   });
@@ -431,8 +419,8 @@ const ListItemDropdown = ({
   const deleteMutation = useMutation({
     mutationFn: (id: number) => APIClient.irc.deleteNetwork(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ircKeys.lists() });
-      queryClient.invalidateQueries({ queryKey: ircKeys.detail(network.id) });
+      queryClient.invalidateQueries({ queryKey: IrcKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: IrcKeys.detail(network.id) });
 
       toast.custom((t) => <Toast type="success" body={`Network ${network.name} was deleted`} t={t} />);
 
@@ -443,8 +431,8 @@ const ListItemDropdown = ({
   const restartMutation = useMutation({
     mutationFn: (id: number) => APIClient.irc.restartNetwork(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ircKeys.lists() });
-      queryClient.invalidateQueries({ queryKey: ircKeys.detail(network.id) });
+      queryClient.invalidateQueries({ queryKey: IrcKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: IrcKeys.detail(network.id) });
 
       toast.custom((t) => <Toast type="success" body={`${network.name} was successfully restarted`} t={t} />);
     }

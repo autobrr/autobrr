@@ -13,6 +13,7 @@ import { toast } from "react-hot-toast";
 import { classNames, sleep } from "@utils";
 import { DEBUG } from "@components/debug";
 import { APIClient } from "@api/APIClient";
+import { DownloadClientKeys } from "@api/query_keys";
 import { DownloadClientTypeOptions, DownloadRuleConditionOptions } from "@domain/constants";
 import Toast from "@components/notifications/Toast";
 import { useToggle } from "@hooks/hooks";
@@ -24,7 +25,6 @@ import {
   SwitchGroupWide,
   TextFieldWide
 } from "@components/inputs";
-import { clientKeys } from "@screens/settings/DownloadClient";
 import { DocsLink, ExternalLink } from "@components/ExternalLink";
 import { SelectFieldBasic } from "@components/inputs/select_wide";
 
@@ -693,7 +693,7 @@ export function DownloadClientAddForm({ isOpen, toggle }: formProps) {
   const addMutation = useMutation({
     mutationFn: (client: DownloadClient) => APIClient.download_clients.create(client),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: clientKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: DownloadClientKeys.lists() });
       toast.custom((t) => <Toast type="success" body="Client was added" t={t} />);
 
       toggle();
@@ -865,8 +865,8 @@ export function DownloadClientUpdateForm({ client, isOpen, toggle }: updateFormP
   const mutation = useMutation({
     mutationFn: (client: DownloadClient) => APIClient.download_clients.update(client),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: clientKeys.lists() });
-      queryClient.invalidateQueries({ queryKey: clientKeys.detail(client.id) });
+      queryClient.invalidateQueries({ queryKey: DownloadClientKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: DownloadClientKeys.detail(client.id) });
 
       toast.custom((t) => <Toast type="success" body={`${client.name} was updated successfully`} t={t} />);
       toggle();
@@ -878,8 +878,8 @@ export function DownloadClientUpdateForm({ client, isOpen, toggle }: updateFormP
   const deleteMutation = useMutation({
     mutationFn: (clientID: number) => APIClient.download_clients.delete(clientID),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: clientKeys.lists() });
-      queryClient.invalidateQueries({ queryKey: clientKeys.detail(client.id) });
+      queryClient.invalidateQueries({ queryKey: DownloadClientKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: DownloadClientKeys.detail(client.id) });
 
       toast.custom((t) => <Toast type="success" body={`${client.name} was deleted.`} t={t} />);
       toggleDeleteModal();

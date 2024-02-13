@@ -218,17 +218,20 @@ func (p IRCParserOrpheus) Parse(rls *Release, vars map[string]string) error {
 	rls.Bitrate = tags.AudioBitrate
 	rls.AudioFormat = tags.AudioFormat
 
-	// set log score
+	// set log score even if it's not announced today
 	rls.HasLog = tags.HasLog
 	rls.LogScore = tags.LogScore
 	rls.HasCue = tags.HasCue
 
 	// Construct new release name so we have full control. We remove category such as EP/Single/Album because EP is being mis-parsed.
-	//torrentName = fmt.Sprintf("%s [%s] (%s)", title, year, strings.Join(audio, " "))
 	torrentName = fmt.Sprintf("%s [%s] (%s)", title, year, strings.Join(audio, " "))
 
 	rls.ParseString(torrentName)
-	rls.Title = title
+
+	// use parsed values from raw rls.Release struct
+	raw := rls.Raw(torrentName)
+	rls.Artists = raw.Artist
+	rls.Title = raw.Title
 
 	return nil
 }
@@ -267,7 +270,11 @@ func (p IRCParserRedacted) Parse(rls *Release, vars map[string]string) error {
 	name := fmt.Sprintf("%s [%s] (%s)", title, year, strings.Join(audio, " "))
 
 	rls.ParseString(name)
-	rls.Title = title
+
+	// use parsed values from raw rls.Release struct
+	raw := rls.Raw(name)
+	rls.Artists = raw.Artist
+	rls.Title = raw.Title
 
 	return nil
 }
