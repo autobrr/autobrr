@@ -64,7 +64,7 @@ irc:
     type: single
     lines:
       - tests:
-        - line: 'TORRENT: Broken Stones [4.2.0/U2B] - 4.20 MB - Mac Category - private, tracker - https://brokenstones.is/torrents.php?id=777 / https://brokenstones.is/torrents.php?action=download&id=666'
+        - line: 'TORRENT: Broken - Stones [4.2.0/U2B] - 4.20 MB - Mac Category - private, tracker - https://brokenstones.is/torrents.php?id=777 / https://brokenstones.is/torrents.php?action=download&id=666'
           expect:
             torrentName: Broken Stones [4.2.0/U2B]
             torrentSize: 4.20 MB
@@ -73,7 +73,7 @@ irc:
             baseUrl: https://brokenstones.is/
             groupId: "777"
             torrentId: "666"
-        pattern: 'TORRENT: (.*?) - (.*?) - (.*?) - (.*?) - (https:\/\/brokenstones\.is\/)torrents.php\?id=(\d+) \/ https:\/\/brokenstones.is\/torrents.php\?action=download&id=(\d+)'
+        pattern: 'TORRENT: (.*?\]) - (.*?) - (.*?) - (.*?) - (https:\/\/brokenstones\.is\/)torrents.php\?id=(\d+) \/ https:\/\/brokenstones.is\/torrents.php\?action=download&id=(\d+)'
         vars:
           - torrentName
           - torrentSize
