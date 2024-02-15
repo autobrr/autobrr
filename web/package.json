@@ -27,8 +27,9 @@
   },
   "pnpm": {
     "overrides": {
-      "rollup": "npm:@rollup/wasm-node",
-      "react": "$react"
+      "csstype": "3.1.2",
+      "react": "$react",
+      "rollup": "npm:@rollup/wasm-node"
     }
   },
   "dependencies": {
