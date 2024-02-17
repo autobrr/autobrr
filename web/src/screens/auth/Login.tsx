@@ -6,7 +6,7 @@
 import React, { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { useMutation } from "@tanstack/react-query";
-import { useRouter, useSearch } from "@tanstack/react-router";
+import { useRouter, useSearch, useRouteContext } from "@tanstack/react-router";
 import toast from "react-hot-toast";
 
 import { RocketLaunchIcon } from "@heroicons/react/24/outline";
@@ -15,7 +15,6 @@ import { APIClient } from "@api/APIClient";
 import Toast from "@components/notifications/Toast";
 import { Tooltip } from "@components/tooltips/Tooltip";
 import { PasswordInput, TextInput } from "@components/inputs/text";
-import { LoginRoute } from "@app/routes";
 
 import Logo from "@app/logo.svg?react";
 
@@ -26,8 +25,8 @@ type LoginFormFields = {
 
 export const Login = () => {
   const router = useRouter()
-  const { auth } = LoginRoute.useRouteContext()
-  const search = useSearch({ from: LoginRoute.id })
+  const { auth } = useRouteContext( { from: "/login"});
+  const search = useSearch({ from: "/login" })
 
   const { handleSubmit, register, formState } = useForm<LoginFormFields>({
     defaultValues: { username: "", password: "" },

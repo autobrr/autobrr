@@ -8,12 +8,12 @@ import { Form, Formik } from "formik";
 import toast from "react-hot-toast";
 import { UserIcon } from "@heroicons/react/24/solid";
 
-import { SettingsAccountRoute } from "@app/routes";
 import { AuthContext } from "@utils/Context";
 import { APIClient } from "@api/APIClient";
 import { Section } from "./_components";
 import { PasswordField, TextField } from "@components/inputs";
 import Toast from "@components/notifications/Toast";
+import { useRouteContext } from "@tanstack/react-router";
 
 const AccountSettings = () => (
   <Section
@@ -35,7 +35,7 @@ interface InputValues {
 }
 
 function Credentials() {
-  const ctx = SettingsAccountRoute.useRouteContext()
+  const ctx =  useRouteContext( { from: "/auth/authenticated-routes/settings/account"});
 
   const validate = (values: InputValues) => {
     const errors: Record<string, string> = {};

@@ -23,8 +23,7 @@ import { DEBUG } from "@components/debug";
 import Toast from "@components/notifications/Toast";
 import { DeleteModal } from "@components/modals";
 
-import { Link, Outlet, useNavigate } from "@tanstack/react-router";
-import { FilterGetByIdRoute } from "@app/routes";
+import { Link, Outlet, useNavigate, useRouteContext, useParams } from "@tanstack/react-router";
 
 interface tabType {
   name: string;
@@ -293,11 +292,10 @@ const schema = z.object({
 
 export const FilterDetails = () => {
   const navigate = useNavigate();
-  const ctx = FilterGetByIdRoute.useRouteContext()
-  const queryClient = ctx.queryClient
+  const { queryClient} =  useRouteContext( { from: "/auth/authenticated-routes/filters/$filterId"});
 
-  const params = FilterGetByIdRoute.useParams()
-  const filterQuery = useSuspenseQuery(FilterByIdQueryOptions(params.filterId))
+  const { filterId} = useParams({from: "/auth/authenticated-routes/filters/$filterId"});
+  const filterQuery = useSuspenseQuery(FilterByIdQueryOptions(filterId))
   const filter = filterQuery.data
 
   const updateMutation = useMutation({
@@ -322,7 +320,7 @@ export const FilterDetails = () => {
     onSuccess: () => {
       // Invalidate filters just in case, most likely not necessary but can't hurt.
       queryClient.invalidateQueries({ queryKey: FilterKeys.lists() });
-      queryClient.removeQueries({ queryKey: FilterKeys.detail(params.filterId) });
+      queryClient.removeQueries({ queryKey: FilterKeys.detail(filterId) });
 
       toast.custom((t) => (
         <Toast type="success" body={`${filter?.name} was deleted`} t={t} />

@@ -3,14 +3,13 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-import { Link } from "@tanstack/react-router";
-import { FilterGetByIdRoute } from "@app/routes";
+import { Link, useParams } from "@tanstack/react-router";
 import { ExternalLink } from "@components/ExternalLink";
 
 import Logo from "@app/logo.svg?react";
 
 export const FilterNotFound = () => {
-  const { filterId } = FilterGetByIdRoute.useParams()
+  const { filterId} = useParams({from: "/auth/authenticated-routes/filters/$filterId"});
 
   return (
     <div className="mt-20 flex flex-col justify-center">

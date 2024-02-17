@@ -5,7 +5,7 @@
 
 import toast from "react-hot-toast";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { useRouter } from "@tanstack/react-router";
+import { useRouteContext, useRouter } from "@tanstack/react-router";
 import { Disclosure } from "@headlessui/react";
 import { Bars3Icon, XMarkIcon, MegaphoneIcon } from "@heroicons/react/24/outline";
 
@@ -17,12 +17,11 @@ import { RightNav } from "./RightNav";
 import { MobileNav } from "./MobileNav";
 import { ExternalLink } from "@components/ExternalLink";
 
-import { AuthIndexRoute } from "@app/routes";
 import { ConfigQueryOptions, UpdatesQueryOptions } from "@api/queries";
 
 export const Header = () => {
   const router = useRouter()
-  const { auth } = AuthIndexRoute.useRouteContext()
+  const { auth} =  useRouteContext( { from: "/auth/authenticated-routes"});
 
   const { isError:isConfigError, error: configError, data: config } = useQuery(ConfigQueryOptions(true));
   if (isConfigError) {
