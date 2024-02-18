@@ -78,6 +78,7 @@ export default ({ mode }: ConfigEnv) => {
         { find: "@", replacement: fileURLToPath(new URL("./src/", import.meta.url)) },
         { find: "@app", replacement: fileURLToPath(new URL("./src/", import.meta.url)) },
         { find: "@components", replacement: fileURLToPath(new URL("./src/components", import.meta.url)) },
+        { find: "@ctx", replacement: fileURLToPath(new URL("./src/ctx", import.meta.url)) },
         { find: "@forms", replacement: fileURLToPath(new URL("./src/forms", import.meta.url)) },
         { find: "@hooks", replacement: fileURLToPath(new URL("./src/hooks", import.meta.url)) },
         { find: "@api", replacement: fileURLToPath(new URL("./src/api", import.meta.url)) },
