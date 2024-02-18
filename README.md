@@ -115,10 +115,10 @@ sudo box install autobrr
 [Saltbox](https://docs.saltbox.dev/) users can simply run:
 
 ```bash
-sb install sandbox-autobrr
+sb install autobrr
 ```
 
-For more info check the [docs](https://docs.saltbox.dev/sandbox/apps/autobrr/)
+For more info check the [docs](https://docs.saltbox.dev/apps/autobrr/)
 
 ### QuickBox
 
@@ -292,6 +292,8 @@ Whether you're fixing a bug, adding a feature, or improving documentation, your 
 - **Feature Requests:** Submit it using our [feature request template](/.github/ISSUE_TEMPLATE/feature_request.md). Describe your idea and how it will improve `autobrr`.
 
 ### Code Contributions
+
+Check out the full guide for contributing [here](CONTRIBUTING.md).
 
 - **Fork and Clone:** Fork the `autobrr` repository and clone it to start working on your changes.
 - **Branching:** Create a new branch for your changes. Use a descriptive name for easy understanding.

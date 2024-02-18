@@ -774,6 +774,12 @@ func (h *Handler) handlePart(msg ircmsg.Message) {
 
 // PartChannel parts/leaves channel
 func (h *Handler) PartChannel(channel string) error {
+	// if using bouncer we do not want to part any channels
+	if h.network.UseBouncer {
+		h.log.Debug().Msgf("using bouncer, skip part channel %s", channel)
+		return nil
+	}
+
 	h.log.Debug().Msgf("Leaving channel %s", channel)
 
 	return h.Send("PART", channel)

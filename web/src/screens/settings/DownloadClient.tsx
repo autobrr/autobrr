@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-import { useState, useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { PlusIcon } from "@heroicons/react/24/solid";
 import toast from "react-hot-toast";
@@ -12,19 +12,13 @@ import { useToggle } from "@hooks/hooks";
 import { DownloadClientAddForm, DownloadClientUpdateForm } from "@forms";
 import { EmptySimple } from "@components/emptystates";
 import { APIClient } from "@api/APIClient";
+import { DownloadClientKeys } from "@api/query_keys";
+import { DownloadClientsQueryOptions } from "@api/queries";
 import { ActionTypeNameMap } from "@domain/constants";
 import Toast from "@components/notifications/Toast";
 import { Checkbox } from "@components/Checkbox";
 
 import { Section } from "./_components";
-
-export const clientKeys = {
-  all: ["download_clients"] as const,
-  lists: () => [...clientKeys.all, "list"] as const,
-  // list: (indexers: string[], sortOrder: string) => [...clientKeys.lists(), { indexers, sortOrder }] as const,
-  details: () => [...clientKeys.all, "detail"] as const,
-  detail: (id: number) => [...clientKeys.details(), id] as const
-};
 
 interface DLSettingsItemProps {
   client: DownloadClient;
@@ -97,7 +91,7 @@ function ListItem({ client }: DLSettingsItemProps) {
     mutationFn: (client: DownloadClient) => APIClient.download_clients.update(client).then(() => client),
     onSuccess: (client: DownloadClient) => {
       toast.custom(t => <Toast type="success" body={`${client.name} was ${client.enabled ? "enabled" : "disabled"} successfully.`} t={t} />);
-      queryClient.invalidateQueries({ queryKey: clientKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: DownloadClientKeys.lists() });
     }
   });
 
@@ -140,17 +134,9 @@ function ListItem({ client }: DLSettingsItemProps) {
 function DownloadClientSettings() {
   const [addClientIsOpen, toggleAddClient] = useToggle(false);
 
-  const { error, data } = useSuspenseQuery({
-    queryKey: clientKeys.lists(),
-    queryFn: APIClient.download_clients.getAll,
-    refetchOnWindowFocus: false
-  });
+  const downloadClientsQuery = useSuspenseQuery(DownloadClientsQueryOptions())
 
-  const sortedClients = useSort(data || []);
-
-  if (error) {
-    return <p>Failed to fetch download clients</p>;
-  }
+  const sortedClients = useSort(downloadClientsQuery.data || []);
 
   return (
     <Section

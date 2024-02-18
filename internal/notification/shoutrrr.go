@@ -10,14 +10,14 @@ import (
 type shoutrrrSender struct {
 	log      zerolog.Logger
 	Settings domain.Notification
-	builder  NotificationBuilderPlainText
+	builder  MessageBuilderPlainText
 }
 
 func NewShoutrrrSender(log zerolog.Logger, settings domain.Notification) domain.NotificationSender {
 	return &shoutrrrSender{
 		log:      log.With().Str("sender", "shoutrrr").Logger(),
 		Settings: settings,
-		builder:  NotificationBuilderPlainText{},
+		builder:  MessageBuilderPlainText{},
 	}
 }
 

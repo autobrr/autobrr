@@ -214,6 +214,28 @@ func TestMacros_Parse(t *testing.T) {
 			want:    "DownloadUrl: https://test.local/this/page/1001",
 			wantErr: false,
 		},
+		{
+			name: "test_group",
+			release: Release{
+				TorrentName: "This movie 2021",
+				DownloadURL: "https://some.site/download/fakeid",
+				Group:       "thisgrp",
+				Indexer:     "mock1",
+				Year:        2021,
+			},
+			args:    args{text: "movies-{{.Group}}"},
+			want:    "movies-thisgrp",
+			wantErr: false,
+		},
+		{
+			name: "test_type",
+			release: Release{
+				Type: "episode",
+			},
+			args:    args{text: "Type: {{ .Type }}"},
+			want:    "Type: episode",
+			wantErr: false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

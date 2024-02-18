@@ -129,7 +129,11 @@ CREATE TABLE filter
     origins                        TEXT []   DEFAULT '{}',
     except_origins                 TEXT []   DEFAULT '{}',
     created_at                     TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at                     TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    updated_at                     TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    min_seeders                    INTEGER DEFAULT 0,
+    max_seeders                    INTEGER DEFAULT 0,
+    min_leechers                   INTEGER DEFAULT 0,
+    max_leechers                   INTEGER DEFAULT 0
 );
 
 CREATE TABLE filter_external
@@ -1483,5 +1487,21 @@ ALTER TABLE feed_dg_tmp
 `,
 	`ALTER TABLE action
 	ADD COLUMN external_client TEXT;
+`, `
+ALTER TABLE filter
+    ADD COLUMN min_seeders INTEGER DEFAULT 0;
+
+ALTER TABLE filter
+    ADD COLUMN max_seeders INTEGER DEFAULT 0;
+
+ALTER TABLE filter
+    ADD COLUMN min_leechers INTEGER DEFAULT 0;
+
+ALTER TABLE filter
+    ADD COLUMN max_leechers INTEGER DEFAULT 0;
+`,
+	`UPDATE irc_network
+    SET server = 'irc.nebulance.io'
+    WHERE server = 'irc.nebulance.cc';
 `,
 }

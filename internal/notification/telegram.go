@@ -31,7 +31,7 @@ type telegramSender struct {
 	log      zerolog.Logger
 	Settings domain.Notification
 	ThreadID int
-	builder  NotificationBuilderPlainText
+	builder  MessageBuilderHTML
 
 	httpClient *http.Client
 }
@@ -49,7 +49,7 @@ func NewTelegramSender(log zerolog.Logger, settings domain.Notification) domain.
 		log:      log.With().Str("sender", "telegram").Logger(),
 		Settings: settings,
 		ThreadID: threadID,
-		builder:  NotificationBuilderPlainText{},
+		builder:  MessageBuilderHTML{},
 		httpClient: &http.Client{
 			Timeout:   time.Second * 30,
 			Transport: sharedhttp.Transport,

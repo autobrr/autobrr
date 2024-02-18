@@ -114,6 +114,18 @@ func (j *TorznabJob) process(ctx context.Context) error {
 
 		rls.ParseString(item.Title)
 
+		rls.Seeders, err = parseIntAttribute(item, "seeders")
+		if err != nil {
+			rls.Seeders = 0
+		}
+
+		var peers, err = parseIntAttribute(item, "peers")
+
+		rls.Leechers = peers - rls.Seeders
+		if err != nil {
+			rls.Leechers = 0
+		}
+
 		if j.Feed.Settings != nil && j.Feed.Settings.DownloadType == domain.FeedDownloadTypeMagnet {
 			rls.MagnetURI = item.Link
 			rls.DownloadURL = ""
@@ -150,6 +162,20 @@ func (j *TorznabJob) process(ctx context.Context) error {
 	go j.ReleaseSvc.ProcessMultiple(releases)
 
 	return nil
+}
+
+func parseIntAttribute(item torznab.FeedItem, attrName string) (int, error) {
+	for _, attr := range item.Attributes {
+		if attr.Name == attrName {
+			// Parse the value as decimal number
+			intValue, err := strconv.Atoi(attr.Value)
+			if err != nil {
+				return 0, err
+			}
+			return intValue, err
+		}
+	}
+	return 0, nil
 }
 
 // Parse the downloadvolumefactor attribute. The returned value is the percentage

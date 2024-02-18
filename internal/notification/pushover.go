@@ -33,7 +33,7 @@ type pushoverSender struct {
 	log      zerolog.Logger
 	Settings domain.Notification
 	baseUrl  string
-	builder  NotificationBuilderPlainText
+	builder  MessageBuilderHTML
 
 	httpClient *http.Client
 }
@@ -43,7 +43,7 @@ func NewPushoverSender(log zerolog.Logger, settings domain.Notification) domain.
 		log:      log.With().Str("sender", "pushover").Logger(),
 		Settings: settings,
 		baseUrl:  "https://api.pushover.net/1/messages.json",
-		builder:  NotificationBuilderPlainText{},
+		builder:  MessageBuilderHTML{},
 		httpClient: &http.Client{
 			Timeout:   time.Second * 30,
 			Transport: sharedhttp.Transport,
@@ -52,8 +52,7 @@ func NewPushoverSender(log zerolog.Logger, settings domain.Notification) domain.
 }
 
 func (s *pushoverSender) Send(event domain.NotificationEvent, payload domain.NotificationPayload) error {
-
-	title := s.builder.BuildTitle(event)
+	title := BuildTitle(event)
 	message := s.builder.BuildBody(payload)
 
 	m := pushoverMessage{

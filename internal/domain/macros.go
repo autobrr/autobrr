@@ -23,11 +23,13 @@ type Macro struct {
 	TorrentUrl          string
 	TorrentDataRawBytes []byte
 	MagnetURI           string
+	Group               string
 	GroupID             string
 	DownloadUrl         string
 	InfoUrl             string
 	Indexer             string
 	Title               string
+	Type                string
 	Category            string
 	Categories          []string
 	Resolution          string
@@ -58,11 +60,13 @@ func NewMacro(release Release) Macro {
 		TorrentHash:         release.TorrentHash,
 		TorrentID:           release.TorrentID,
 		MagnetURI:           release.MagnetURI,
+		Group:               release.Group,
 		GroupID:             release.GroupID,
 		InfoUrl:             release.InfoURL,
 		DownloadUrl:         release.DownloadURL,
 		Indexer:             release.Indexer,
 		Title:               release.Title,
+		Type:                release.Type,
 		Category:            release.Category,
 		Categories:          release.Categories,
 		Resolution:          release.Resolution,
