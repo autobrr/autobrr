@@ -15,12 +15,13 @@ import Toast from "@components/notifications/Toast";
 import { ExternalLink } from "@components/ExternalLink";
 
 import { Section, RowItem } from "./_components";
-import { useRouteContext } from "@tanstack/react-router";
+import { getRouteApi } from "@tanstack/react-router";
 
 function ApplicationSettings() {
   const [settings, setSettings] = SettingsContext.use();
+  const settingsIndexRoute = getRouteApi("/auth/authenticated-routes/settings/");
 
-  const { queryClient} =  useRouteContext( { from: "/auth/authenticated-routes/settings/"});
+  const { queryClient} =  settingsIndexRoute.useRouteContext();
 
   const { isError:isConfigError, error: configError, data } = useQuery(ConfigQueryOptions());
   if (isConfigError) {

@@ -25,7 +25,7 @@ import * as DataTable from "@components/data-table";
 
 import { IndexerSelectColumnFilter, PushStatusSelectColumnFilter, SearchColumnFilter } from "./ReleaseFilters";
 import { EmptyListState } from "@components/emptystates";
-import { useSearch } from "@tanstack/react-router";
+import { getRouteApi } from "@tanstack/react-router";
 
 type TableState = {
   queryPageIndex: number;
@@ -94,7 +94,8 @@ const EmptyReleaseList = () => (
 );
 
 export const ReleaseTable = () => {
-  const search = useSearch({ from: "/auth/authenticated-routes/releases/" });
+  const releasesIndexRoute = getRouteApi("/auth/authenticated-routes/releases/");
+  const search = releasesIndexRoute.useSearch();
 
   const columns = React.useMemo(() => [
     {

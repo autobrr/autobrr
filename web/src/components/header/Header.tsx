@@ -5,7 +5,7 @@
 
 import toast from "react-hot-toast";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { useRouteContext, useRouter } from "@tanstack/react-router";
+import { useRouter } from "@tanstack/react-router";
 import { Disclosure } from "@headlessui/react";
 import { Bars3Icon, XMarkIcon, MegaphoneIcon } from "@heroicons/react/24/outline";
 
@@ -18,10 +18,18 @@ import { MobileNav } from "./MobileNav";
 import { ExternalLink } from "@components/ExternalLink";
 
 import { ConfigQueryOptions, UpdatesQueryOptions } from "@api/queries";
+import { useAuth } from "@ctx/auth";
+import { useEffect } from "react";
 
 export const Header = () => {
   const router = useRouter()
-  const { auth} =  useRouteContext( { from: "/auth/authenticated-routes"});
+  const auth = useAuth()
+
+  useEffect(() => {
+    if (!auth.isLoggedIn) {
+      router.history.push('/login')
+    }
+  }, [auth.isLoggedIn, router.history])
 
   const { isError:isConfigError, error: configError, data: config } = useQuery(ConfigQueryOptions(true));
   if (isConfigError) {
@@ -40,8 +48,6 @@ export const Header = () => {
         <Toast type="success" body="You have been logged out. Goodbye!" t={t} />
       ));
       auth.logout()
-
-      router.history.push("/")
     },
     onError: (err) => {
       console.error("logout error", err)

@@ -46,10 +46,11 @@ import DownloadClientSettings from "@screens/settings/DownloadClient";
 import FeedSettings from "@screens/settings/Feed";
 import { Dashboard } from "@screens/Dashboard";
 import AccountSettings from "@screens/settings/Account";
-import { AuthContext, AuthCtx, localStorageUserKey, SettingsContext } from "@utils/Context";
+import { SettingsContext } from "@utils/Context";
 import { TanStackRouterDevtools } from "@tanstack/router-devtools";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { queryClient } from "@api/QueryClient";
+import { AuthContext, localStorageUserKey } from "@ctx/auth";
 
 const DashboardRoute = createRoute({
   getParentRoute: () => AuthIndexRoute,
@@ -309,7 +310,7 @@ export const AuthRoute = createRoute({
 
     // Otherwise, return the user in context
     return {
-      username: AuthContext.username,
+      username: context.auth.username,
     }
   },
 })
@@ -345,7 +346,7 @@ export const RootComponent = () => {
 }
 
 export const RootRoute = createRootRouteWithContext<{
-  auth: AuthCtx,
+  auth: AuthContext,
   queryClient: QueryClient
 }>()({
   component: RootComponent,

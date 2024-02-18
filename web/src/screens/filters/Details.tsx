@@ -23,7 +23,7 @@ import { DEBUG } from "@components/debug";
 import Toast from "@components/notifications/Toast";
 import { DeleteModal } from "@components/modals";
 
-import { Link, Outlet, useNavigate, useRouteContext, useParams } from "@tanstack/react-router";
+import { Link, Outlet, useNavigate, getRouteApi } from "@tanstack/react-router";
 
 interface tabType {
   name: string;
@@ -292,9 +292,10 @@ const schema = z.object({
 
 export const FilterDetails = () => {
   const navigate = useNavigate();
-  const { queryClient} =  useRouteContext( { from: "/auth/authenticated-routes/filters/$filterId"});
+  const filterGetByIdRoute = getRouteApi("/auth/authenticated-routes/filters/$filterId");
+  const { queryClient } =  filterGetByIdRoute.useRouteContext();
 
-  const { filterId} = useParams({from: "/auth/authenticated-routes/filters/$filterId"});
+  const { filterId} = filterGetByIdRoute.useParams();
   const filterQuery = useSuspenseQuery(FilterByIdQueryOptions(filterId))
   const filter = filterQuery.data
 

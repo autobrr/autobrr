@@ -10,7 +10,7 @@ import { Portal } from "react-portal";
 import { Router } from "@app/routes";
 import { routerBasePath } from "@utils";
 import { queryClient } from "@api/QueryClient";
-import { AuthContext } from "@utils/Context";
+import { AuthProvider, useAuth } from "@ctx/auth";
 
 declare module '@tanstack/react-router' {
   interface Register {
@@ -18,19 +18,20 @@ declare module '@tanstack/react-router' {
   }
 }
 
+function InnerApp() {
+  const auth = useAuth()
+  return <RouterProvider basepath={routerBasePath()} router={Router} context={{auth}} />
+}
+
 export function App() {
   return (
+    <AuthProvider>
       <QueryClientProvider client={queryClient}>
         <Portal>
           <Toaster position="top-right" />
         </Portal>
-        <RouterProvider
-          basepath={routerBasePath()}
-          router={Router}
-          context={{
-            auth: AuthContext,
-          }}
-        />
+          <InnerApp />
       </QueryClientProvider>
+    </AuthProvider>
   );
 }

@@ -8,12 +8,11 @@ import { Form, Formik } from "formik";
 import toast from "react-hot-toast";
 import { UserIcon } from "@heroicons/react/24/solid";
 
-import { AuthContext } from "@utils/Context";
 import { APIClient } from "@api/APIClient";
 import { Section } from "./_components";
 import { PasswordField, TextField } from "@components/inputs";
 import Toast from "@components/notifications/Toast";
-import { useRouteContext } from "@tanstack/react-router";
+import { useAuth } from "@ctx/auth";
 
 const AccountSettings = () => (
   <Section
@@ -35,7 +34,7 @@ interface InputValues {
 }
 
 function Credentials() {
-  const ctx =  useRouteContext( { from: "/auth/authenticated-routes/settings/account"});
+  const auth = useAuth();
 
   const validate = (values: InputValues) => {
     const errors: Record<string, string> = {};
@@ -52,7 +51,7 @@ function Credentials() {
   const logoutMutation = useMutation({
     mutationFn: APIClient.auth.logout,
     onSuccess: () => {
-      AuthContext.logout();
+      auth.logout();
 
       toast.custom((t) => (
         <Toast type="success" body="User updated successfully. Please sign in again!" t={t} />
@@ -78,7 +77,7 @@ function Credentials() {
       <div className="px-2 pb-6 bg-white dark:bg-gray-800">
         <Formik
           initialValues={{
-            username: ctx.auth.username!,
+            username: auth.username!,
             newUsername: "",
             oldPassword: "",
             newPassword: "",

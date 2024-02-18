@@ -4,7 +4,7 @@
  */
 
 import { useMutation, useSuspenseQuery } from "@tanstack/react-query";
-import { Link, useRouteContext } from "@tanstack/react-router";
+import { Link, getRouteApi } from "@tanstack/react-router";
 import { toast } from "react-hot-toast";
 import Select from "react-select";
 
@@ -58,7 +58,8 @@ const SelectWrapper = ({ id, value, onChange, options }: SelectWrapperProps) => 
 );
 
 function LogSettings() {
-  const { queryClient} =  useRouteContext( { from: "/auth/authenticated-routes/settings/logs"});
+  const settingsLogRoute = getRouteApi("/auth/authenticated-routes/settings/logs");
+  const { queryClient} =  settingsLogRoute.useRouteContext();
 
   const configQuery = useSuspenseQuery(ConfigQueryOptions())
 
