@@ -3,7 +3,10 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-import { Link, NavLink } from "react-router-dom";
+// import { Link, NavLink } from "react-router-dom";
+
+import { Link } from '@tanstack/react-router'
+
 import { ArrowTopRightOnSquareIcon } from "@heroicons/react/24/solid";
 
 import { classNames } from "@utils";
@@ -23,22 +26,27 @@ export const LeftNav = () => (
     <div className="sm:ml-3 hidden sm:block">
       <div className="flex items-baseline space-x-4">
         {NAV_ROUTES.map((item, itemIdx) => (
-          <NavLink
+          <Link
             key={item.name + itemIdx}
             to={item.path}
-            className={({ isActive }) =>
-              classNames(
-                "hover:bg-gray-200 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white px-3 py-2 rounded-2xl text-sm font-medium",
-                "transition-colors duration-200",
-                isActive
-                  ? "text-black dark:text-gray-50 font-bold"
-                  : "text-gray-600 dark:text-gray-500"
-              )
-            }
-            end={item.path === "/"}
+            params={{}}
           >
-            {item.name}
-          </NavLink>
+            {({ isActive }) => {
+              return (
+                <>
+                  <span className={
+                    classNames(
+                      "hover:bg-gray-200 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white px-3 py-2 rounded-2xl text-sm font-medium",
+                      "transition-colors duration-200",
+                      isActive
+                        ? "text-black dark:text-gray-50 font-bold"
+                        : "text-gray-600 dark:text-gray-500"
+                    )
+                  }>{item.name}</span>
+                </>
+              )
+            }}
+          </Link>
         ))}
         <ExternalLink
           href="https://autobrr.com"

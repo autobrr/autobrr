@@ -12,9 +12,9 @@ import type { FieldProps } from "formik";
 import { Field, Form, Formik, FormikErrors, FormikValues } from "formik";
 
 import { APIClient } from "@api/APIClient";
+import { ApiKeys } from "@api/query_keys";
 import { DEBUG } from "@components/debug";
 import Toast from "@components/notifications/Toast";
-import { apiKeys } from "@screens/settings/Api";
 
 interface apiKeyAddFormProps {
   isOpen: boolean;
@@ -27,7 +27,7 @@ export function APIKeyAddForm({ isOpen, toggle }: apiKeyAddFormProps) {
   const mutation = useMutation({
     mutationFn: (apikey: APIKey) => APIClient.apikeys.create(apikey),
     onSuccess: (_, key) => {
-      queryClient.invalidateQueries({ queryKey: apiKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: ApiKeys.lists() });
 
       toast.custom((t) => <Toast type="success" body={`API key ${key.name} was added`} t={t}/>);
 

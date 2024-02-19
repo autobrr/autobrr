@@ -4,33 +4,28 @@
  */
 
 import React, { useState } from "react";
-import { useLocation } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
+
 import { Column, useFilters, usePagination, useSortBy, useTable } from "react-table";
 import {
   ChevronDoubleLeftIcon,
   ChevronDoubleRightIcon,
   ChevronLeftIcon,
-  ChevronRightIcon
+  ChevronRightIcon,
+  EyeIcon,
+  EyeSlashIcon
 } from "@heroicons/react/24/solid";
-import { EyeIcon, EyeSlashIcon } from "@heroicons/react/24/solid";
 
+import { ReleasesIndexRoute } from "@app/routes";
+import { ReleasesListQueryOptions } from "@api/queries";
 import { RandomLinuxIsos } from "@utils";
-import { APIClient } from "@api/APIClient";
-import { EmptyListState } from "@components/emptystates";
 
 import * as Icons from "@components/Icons";
+import { RingResizeSpinner } from "@components/Icons";
 import * as DataTable from "@components/data-table";
 
-import { IndexerSelectColumnFilter, PushStatusSelectColumnFilter, SearchColumnFilter } from "./Filters";
-
-export const releaseKeys = {
-  all: ["releases"] as const,
-  lists: () => [...releaseKeys.all, "list"] as const,
-  list: (pageIndex: number, pageSize: number, filters: ReleaseFilter[]) => [...releaseKeys.lists(), { pageIndex, pageSize, filters }] as const,
-  details: () => [...releaseKeys.all, "detail"] as const,
-  detail: (id: number) => [...releaseKeys.details(), id] as const
-};
+import { IndexerSelectColumnFilter, PushStatusSelectColumnFilter, SearchColumnFilter } from "./ReleaseFilters";
+import { EmptyListState } from "@components/emptystates";
 
 type TableState = {
   queryPageIndex: number;
@@ -79,10 +74,28 @@ const TableReducer = (state: TableState, action: Actions): TableState => {
   }
 };
 
+const EmptyReleaseList = () => (
+  <div className="bg-white dark:bg-gray-800 border border-gray-250 dark:border-gray-775 shadow-table rounded-md overflow-auto">
+    <table className="min-w-full rounded-md divide-y divide-gray-200 dark:divide-gray-750">
+      <thead className="bg-gray-100 dark:bg-gray-850 border-b border-gray-200 dark:border-gray-750">
+      <tr>
+        <th>
+          <div className="flex items-center justify-between">
+            <span className="h-10"/>
+          </div>
+        </th>
+      </tr>
+      </thead>
+    </table>
+    <div className="flex items-center justify-center py-52">
+      <EmptyListState text="No results"/>
+    </div>
+  </div>
+);
+
 export const ReleaseTable = () => {
-  const location = useLocation();
-  const queryParams = new URLSearchParams(location.search);
-  const filterTypeFromUrl = queryParams.get("filter");
+  const search = ReleasesIndexRoute.useSearch()
+
   const columns = React.useMemo(() => [
     {
       Header: "Age",
@@ -116,14 +129,14 @@ export const ReleaseTable = () => {
     }
   ] as Column<Release>[], []);
 
+  if (search.action_status != "") {
+    initialState.queryFilters = [{id: "action_status", value: search.action_status! }]
+  }
+
   const [{ queryPageIndex, queryPageSize, totalCount, queryFilters }, dispatch] =
         React.useReducer(TableReducer, initialState);
 
-  const { isLoading, error, data, isSuccess } = useQuery({
-    queryKey: releaseKeys.list(queryPageIndex, queryPageSize, queryFilters),
-    queryFn: () => APIClient.release.findQuery(queryPageIndex * queryPageSize, queryPageSize, queryFilters),
-    staleTime: 5000
-  });
+  const { isLoading, error, data, isSuccess } = useQuery(ReleasesListQueryOptions(queryPageIndex * queryPageSize, queryPageSize, queryFilters));
 
   const [modifiedData, setModifiedData] = useState<Release[]>([]);
   const [showLinuxIsos, setShowLinuxIsos] = useState(false);
@@ -207,10 +220,10 @@ export const ReleaseTable = () => {
   }, [filters]);
 
   React.useEffect(() => {
-    if (filterTypeFromUrl != null) {
-      dispatch({ type: ActionType.FILTER_CHANGED, payload: [{ id: "action_status", value: filterTypeFromUrl! }] });
+    if (search.action_status != null) {
+      dispatch({ type: ActionType.FILTER_CHANGED, payload: [{ id: "action_status", value: search.action_status! }] });
     }
-  }, [filterTypeFromUrl]);
+  }, [search.action_status]);
 
   if (error) {
     return <p>Error</p>;
@@ -218,167 +231,25 @@ export const ReleaseTable = () => {
 
   if (isLoading) {
     return (
-      <div className="flex flex-col animate-pulse">
+      <div>
         <div className="flex mb-6 flex-col sm:flex-row">
-          {headerGroups.map((headerGroup) =>
-            headerGroup.headers.map((column) => (
+          { headerGroups.map((headerGroup) => headerGroup.headers.map((column) => (
               column.Filter ? (
-                <React.Fragment key={column.id}>{column.render("Filter")}</React.Fragment>
+                <React.Fragment key={ column.id }>{ column.render("Filter") }</React.Fragment>
               ) : null
             ))
-          )}
+          ) }
         </div>
-        <div className="bg-white dark:bg-gray-800 border border-gray-250 dark:border-gray-775 shadow-lg rounded-md overflow-auto">
-          <table {...getTableProps()} className="min-w-full rounded-md divide-y divide-gray-200 dark:divide-gray-750">
-            <thead className="bg-gray-100 dark:bg-gray-800">
-              <tr>
-                <th
-                  scope="col"
-                  className="first:pl-5 pl-3 pr-3 py-3 first:rounded-tl-md last:rounded-tr-md text-xs font-medium tracking-wider text-left text-gray-500 uppercase group"
-
-                >
-                  <div className="flex items-center justify-between">
-                    {/* Add a sort direction indicator */}
-                    <span className="h-4">
-                    </span>
-                  </div>
-                </th>
-              </tr>
-
-            </thead>
-            <tbody className="divide-y divide-gray-150 dark:divide-gray-700">
-              <tr
-                className="flex justify-between py-4 text-sm font-medium box-content text-gray-900 dark:text-gray-300 max-w-[96px] sm:max-w-[216px] md:max-w-[360px] lg:max-w-[640px] xl:max-w-[840px]">
-                <td className="first:pl-5 pl-3 pr-3 whitespace-nowrap ">&nbsp;</td>
-                <td className="first:pl-5 pl-3 pr-3 whitespace-nowrap ">&nbsp;</td>
-                <td className="first:pl-5 pl-3 pr-3 whitespace-nowrap ">&nbsp;</td>
-              </tr>
-              <tr
-                className="flex justify-between py-4 text-sm font-medium box-content text-gray-900 dark:text-gray-300 max-w-[96px] sm:max-w-[216px] md:max-w-[360px] lg:max-w-[640px] xl:max-w-[840px]">
-                <td className="first:pl-5 pl-3 pr-3 whitespace-nowrap ">&nbsp;</td>
-                <td className="first:pl-5 pl-3 pr-3 whitespace-nowrap ">&nbsp;</td>
-                <td className="first:pl-5 pl-3 pr-3 whitespace-nowrap ">&nbsp;</td>
-              </tr>
-              <tr
-                className="flex justify-between py-4 text-sm font-medium box-content text-gray-900 dark:text-gray-300 max-w-[96px] sm:max-w-[216px] md:max-w-[360px] lg:max-w-[640px] xl:max-w-[840px]">
-                <td className="first:pl-5 pl-3 pr-3 whitespace-nowrap ">&nbsp;</td>
-                <td className="first:pl-5 pl-3 pr-3 whitespace-nowrap ">&nbsp;</td>
-                <td className="first:pl-5 pl-3 pr-3 whitespace-nowrap">&nbsp;</td>
-              </tr>
-              <tr
-                className="flex justify-between py-4 text-sm font-medium box-content text-gray-900 dark:text-gray-300 max-w-[96px] sm:max-w-[216px] md:max-w-[360px] lg:max-w-[640px] xl:max-w-[840px]">
-                <td className="first:pl-5 pl-3 pr-3 whitespace-nowrap ">&nbsp;</td>
-                <td className="first:pl-5 pl-3 pr-3 whitespace-nowrap ">&nbsp;</td>
-                <td className="first:pl-5 pl-3 pr-3 whitespace-nowrap ">&nbsp;</td>
-              </tr>
-              <tr className="justify-between py-3 text-sm font-medium box-content text-gray-900 dark:text-gray-300">
-                <td className="first:pl-5 pl-3 pr-3 whitespace-nowrap text-center">
-                  <p className="text-black dark:text-white">Loading release table...</p>
-                </td>
-              </tr>
-              <tr
-                className="flex justify-between py-3 text-sm font-medium box-content text-gray-900 dark:text-gray-300 max-w-[96px] sm:max-w-[216px] md:max-w-[360px] lg:max-w-[640px] xl:max-w-[840px]">
-                <td className="first:pl-5 pl-3 pr-3 whitespace-nowrap">&nbsp;</td>
-                <td className="first:pl-5 pl-3 pr-3 whitespace-nowrap ">&nbsp;</td>
-                <td className="first:pl-5 pl-3 pr-3 whitespace-nowrap ">&nbsp;</td>
-              </tr>
-              <tr
-                className="flex justify-between py-3 text-sm font-medium box-content text-gray-900 dark:text-gray-300 max-w-[96px] sm:max-w-[216px] md:max-w-[360px] lg:max-w-[640px] xl:max-w-[840px]">
-                <td className="first:pl-5 pl-3 pr-3 whitespace-nowrap ">&nbsp;</td>
-                <td className="first:pl-5 pl-3 pr-3 whitespace-nowrap ">&nbsp;</td>
-                <td className="first:pl-5 pl-3 pr-3 whitespace-nowrap ">&nbsp;</td>
-              </tr>
-              <tr
-                className="flex justify-between py-3 text-sm font-medium box-content text-gray-900 dark:text-gray-300 max-w-[96px] sm:max-w-[216px] md:max-w-[360px] lg:max-w-[640px] xl:max-w-[840px]">
-                <td className="first:pl-5 pl-3 pr-3 whitespace-nowrap ">&nbsp;</td>
-                <td className="first:pl-5 pl-3 pr-3 whitespace-nowrap ">&nbsp;</td>
-                <td className="first:pl-5 pl-3 pr-3 whitespace-nowrap ">&nbsp;</td>
-              </tr>
-              <tr
-                className="flex justify-between py-3 text-sm font-medium box-content text-gray-900 dark:text-gray-300 max-w-[96px] sm:max-w-[216px] md:max-w-[360px] lg:max-w-[640px] xl:max-w-[840px]">
-                <td className="first:pl-5 pl-3 pr-3 whitespace-nowrap ">&nbsp;</td>
-                <td className="first:pl-5 pl-3 pr-3 whitespace-nowrap ">&nbsp;</td>
-                <td className="first:pl-5 pl-3 pr-3 whitespace-nowrap ">&nbsp;</td>
-              </tr>
-              <tr
-                className="flex justify-between py-3 text-sm font-medium box-content text-gray-900 dark:text-gray-300 max-w-[96px] sm:max-w-[216px] md:max-w-[360px] lg:max-w-[640px] xl:max-w-[840px]">
-                <td className="first:pl-5 pl-3 pr-3 whitespace-nowrap ">&nbsp;</td>
-                <td className="first:pl-5 pl-3 pr-3 whitespace-nowrap ">&nbsp;</td>
-                <td className="first:pl-5 pl-3 pr-3 whitespace-nowrap ">&nbsp;</td>
-              </tr>
-            </tbody>
-          </table>
-
-          {/* Pagination */}
-          <div className="flex items-center justify-between px-6 py-3 border-t border-gray-200 dark:border-gray-700">
-            <div className="flex justify-between flex-1 sm:hidden">
-              <DataTable.Button onClick={() => previousPage()} disabled={!canPreviousPage}>Previous</DataTable.Button>
-              <DataTable.Button onClick={() => nextPage()} disabled={!canNextPage}>Next</DataTable.Button>
+        <div className="bg-white dark:bg-gray-800 border border-gray-250 dark:border-gray-775 shadow-lg rounded-md mt-4">
+            <div className="bg-gray-100 dark:bg-gray-850 border-b border-gray-200 dark:border-gray-750">
+                <div className="flex h-10"/>
             </div>
-            <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
-              <div className="flex items-baseline gap-x-2">
-                <span className="text-sm text-gray-700 dark:text-gray-500">
-                  Page <span className="font-medium">{pageIndex + 1}</span> of <span className="font-medium">{pageOptions.length}</span>
-                </span>
-                <label>
-                  <span className="sr-only bg-gray-700">Items Per Page</span>
-                  <select
-                    className="py-1 pl-2 pr-8 text-sm block w-full border-gray-300 rounded-md shadow-sm cursor-pointer dark:bg-gray-800 dark:border-gray-600 dark:text-gray-100 dark:hover:text-gray-500 focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
-                    value={pageSize}
-                    onChange={e => {
-                      setPageSize(Number(e.target.value));
-                    }}
-                  >
-                    {[5, 10, 20, 50].map(pageSize => (
-                      <option key={pageSize} value={pageSize}>
-                        Show {pageSize}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-              </div>
-              <div>
-                <nav className="inline-flex -space-x-px rounded-md shadow-sm" aria-label="Pagination">
-                  <DataTable.PageButton
-                    className="rounded-l-md"
-                    onClick={() => gotoPage(0)}
-                    disabled={!canPreviousPage}
-                  >
-                    <span className="sr-only text-gray-400 dark:text-gray-500 dark:bg-gray-700">First</span>
-                    <ChevronDoubleLeftIcon className="w-4 h-4 text-gray-400 dark:text-gray-500" aria-hidden="true"/>
-                  </DataTable.PageButton>
-                  <DataTable.PageButton
-                    onClick={() => previousPage()}
-                    disabled={!canPreviousPage}
-                  >
-                    <span className="sr-only text-gray-400 dark:text-gray-500 dark:bg-gray-700">Previous</span>
-                    <ChevronLeftIcon className="w-4 h-4 text-gray-400 dark:text-gray-500" aria-hidden="true"/>
-                  </DataTable.PageButton>
-                  <DataTable.PageButton
-                    onClick={() => nextPage()}
-                    disabled={!canNextPage}>
-                    <span className="sr-only text-gray-400 dark:text-gray-500 dark:bg-gray-700">Next</span>
-                    <ChevronRightIcon className="w-4 h-4 text-gray-400 dark:text-gray-500" aria-hidden="true"/>
-                  </DataTable.PageButton>
-                  <DataTable.PageButton
-                    className="rounded-r-md"
-                    onClick={() => gotoPage(pageCount - 1)}
-                    disabled={!canNextPage}
-                  >
-                    <span className="sr-only text-gray-400 dark:text-gray-500 dark:bg-gray-700">Last</span>
-                    <ChevronDoubleRightIcon className="w-4 h-4 text-gray-400 dark:text-gray-500" aria-hidden="true"/>
-                  </DataTable.PageButton>
-                </nav>
-              </div>
-            </div>
+          <div className="flex items-center justify-center py-64">
+            <RingResizeSpinner className="text-blue-500 size-24"/>
           </div>
         </div>
       </div>
-    );
-  }
-
-  if (!data) {
-    return <EmptyListState text="No recent activity" />;
+    )
   }
 
   // Render the UI for your table
@@ -394,18 +265,21 @@ export const ReleaseTable = () => {
         )}
       </div>
       <div className="relative">
-        <div className="bg-white dark:bg-gray-800 border border-gray-250 dark:border-gray-775 shadow-table rounded-md overflow-auto">
-          <table {...getTableProps()} className="min-w-full rounded-md divide-y divide-gray-200 dark:divide-gray-750">
-            <thead className="bg-gray-100 dark:bg-gray-850">
+        {displayData.length === 0
+          ? <EmptyReleaseList/>
+          : (
+          <div className="bg-white dark:bg-gray-800 border border-gray-250 dark:border-gray-775 shadow-table rounded-md overflow-auto">
+            <table {...getTableProps()} className="min-w-full rounded-md divide-y divide-gray-200 dark:divide-gray-750">
+              <thead className="bg-gray-100 dark:bg-gray-850">
               {headerGroups.map((headerGroup) => {
-                const { key: rowKey, ...rowRest } = headerGroup.getHeaderGroupProps();
+                const {key: rowKey, ...rowRest} = headerGroup.getHeaderGroupProps();
                 return (
                   <tr key={rowKey} {...rowRest}>
                     {headerGroup.headers.map((column) => {
-                      const { key: columnKey, ...columnRest } = column.getHeaderProps(column.getSortByToggleProps());
+                      const {key: columnKey, ...columnRest} = column.getHeaderProps(column.getSortByToggleProps());
                       return (
-                      // Add the sorting props to control sorting. For this example
-                      // we can add them into the header props
+                        // Add the sorting props to control sorting. For this example
+                        // we can add them into the header props
                         <th
                           key={`${rowKey}-${columnKey}`}
                           scope="col"
@@ -418,12 +292,12 @@ export const ReleaseTable = () => {
                             <span>
                               {column.isSorted ? (
                                 column.isSortedDesc ? (
-                                  <Icons.SortDownIcon className="w-4 h-4 text-gray-400" />
+                                  <Icons.SortDownIcon className="w-4 h-4 text-gray-400"/>
                                 ) : (
-                                  <Icons.SortUpIcon className="w-4 h-4 text-gray-400" />
+                                  <Icons.SortUpIcon className="w-4 h-4 text-gray-400"/>
                                 )
                               ) : (
-                                <Icons.SortIcon className="w-4 h-4 text-gray-400 opacity-0 group-hover:opacity-100" />
+                                <Icons.SortIcon className="w-4 h-4 text-gray-400 opacity-0 group-hover:opacity-100"/>
                               )}
                             </span>
                           </div>
@@ -433,19 +307,19 @@ export const ReleaseTable = () => {
                   </tr>
                 );
               })}
-            </thead>
-            <tbody
-              {...getTableBodyProps()}
-              className="divide-y divide-gray-150 dark:divide-gray-750"
-            >
+              </thead>
+              <tbody
+                {...getTableBodyProps()}
+                className="divide-y divide-gray-150 dark:divide-gray-750"
+              >
               {page.map((row) => {
                 prepareRow(row);
 
-                const { key: bodyRowKey, ...bodyRowRest } = row.getRowProps();
+                const {key: bodyRowKey, ...bodyRowRest} = row.getRowProps();
                 return (
                   <tr key={bodyRowKey} {...bodyRowRest}>
                     {row.cells.map((cell) => {
-                      const { key: cellRowKey, ...cellRowRest } = cell.getCellProps();
+                      const {key: cellRowKey, ...cellRowRest} = cell.getCellProps();
                       return (
                         <td
                           key={cellRowKey}
@@ -460,88 +334,90 @@ export const ReleaseTable = () => {
                   </tr>
                 );
               })}
-            </tbody>
-          </table>
-          {/* Pagination */}
-          <div className="flex items-center justify-between px-6 py-3 border-t border-gray-200 dark:border-gray-700">
-            <div className="flex justify-between flex-1 sm:hidden">
-              <DataTable.Button onClick={() => previousPage()} disabled={!canPreviousPage}>Previous</DataTable.Button>
-              <DataTable.Button onClick={() => nextPage()} disabled={!canNextPage}>Next</DataTable.Button>
-            </div>
-            <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
-              <div className="flex items-baseline gap-x-2">
+              </tbody>
+            </table>
+            {/* Pagination */}
+            <div className="flex items-center justify-between px-6 py-3 border-t border-gray-200 dark:border-gray-700">
+              <div className="flex justify-between flex-1 sm:hidden">
+                <DataTable.Button onClick={() => previousPage()} disabled={!canPreviousPage}>Previous</DataTable.Button>
+                <DataTable.Button onClick={() => nextPage()} disabled={!canNextPage}>Next</DataTable.Button>
+              </div>
+              <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+                <div className="flex items-baseline gap-x-2">
                 <span className="text-sm text-gray-700 dark:text-gray-500">
-                Page <span className="font-medium">{pageIndex + 1}</span> of <span className="font-medium">{pageOptions.length}</span>
+                Page <span className="font-medium">{pageIndex + 1}</span> of <span
+                  className="font-medium">{pageOptions.length}</span>
                 </span>
-                <label>
-                  <span className="sr-only bg-gray-700">Items Per Page</span>
-                  <select
-                    className="py-1 pl-2 pr-8 text-sm block w-full border-gray-300 rounded-md shadow-sm cursor-pointer transition-colors dark:bg-gray-800 dark:border-gray-600 dark:text-gray-400 dark:hover:text-gray-200 focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
-                    value={pageSize}
-                    onChange={e => {
-                      setPageSize(Number(e.target.value));
-                    }}
-                  >
-                    {[5, 10, 20, 50].map(pageSize => (
-                      <option key={pageSize} value={pageSize}>
-                        {pageSize} entries
-                      </option>
-                    ))}
-                  </select>
-                </label>
-              </div>
-              <div>
-                <nav className="inline-flex -space-x-px rounded-md shadow-sm" aria-label="Pagination">
-                  <DataTable.PageButton
-                    className="rounded-l-md"
-                    onClick={() => gotoPage(0)}
-                    disabled={!canPreviousPage}
-                  >
-                    <span className="sr-only">First</span>
-                    <ChevronDoubleLeftIcon className="w-4 h-4" aria-hidden="true" />
-                  </DataTable.PageButton>
-                  <DataTable.PageButton
-                    className="pl-1 pr-2"
-                    onClick={() => previousPage()}
-                    disabled={!canPreviousPage}
-                  >
-                    <ChevronLeftIcon className="w-4 h-4 mr-1" aria-hidden="true" />
-                    <span>Prev</span>
-                  </DataTable.PageButton>
-                  <DataTable.PageButton
-                    className="pl-2 pr-1"
-                    onClick={() => nextPage()}
-                    disabled={!canNextPage}>
-                    <span>Next</span>
-                    <ChevronRightIcon className="w-4 h-4 ml-1" aria-hidden="true" />
-                  </DataTable.PageButton>
-                  <DataTable.PageButton
-                    className="rounded-r-md"
-                    onClick={() => gotoPage(pageCount - 1)}
-                    disabled={!canNextPage}
-                  >
-                    <ChevronDoubleRightIcon className="w-4 h-4" aria-hidden="true" />
-                    <span className="sr-only">Last</span>
-                  </DataTable.PageButton>
-                </nav>
+                  <label>
+                    <span className="sr-only bg-gray-700">Items Per Page</span>
+                    <select
+                      className="py-1 pl-2 pr-8 text-sm block w-full border-gray-300 rounded-md shadow-sm cursor-pointer transition-colors dark:bg-gray-800 dark:border-gray-600 dark:text-gray-400 dark:hover:text-gray-200 focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
+                      value={pageSize}
+                      onChange={e => {
+                        setPageSize(Number(e.target.value));
+                      }}
+                    >
+                      {[5, 10, 20, 50].map(pageSize => (
+                        <option key={pageSize} value={pageSize}>
+                          {pageSize} entries
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                </div>
+                <div>
+                  <nav className="inline-flex -space-x-px rounded-md shadow-sm" aria-label="Pagination">
+                    <DataTable.PageButton
+                      className="rounded-l-md"
+                      onClick={() => gotoPage(0)}
+                      disabled={!canPreviousPage}
+                    >
+                      <span className="sr-only">First</span>
+                      <ChevronDoubleLeftIcon className="w-4 h-4" aria-hidden="true"/>
+                    </DataTable.PageButton>
+                    <DataTable.PageButton
+                      className="pl-1 pr-2"
+                      onClick={() => previousPage()}
+                      disabled={!canPreviousPage}
+                    >
+                      <ChevronLeftIcon className="w-4 h-4 mr-1" aria-hidden="true"/>
+                      <span>Prev</span>
+                    </DataTable.PageButton>
+                    <DataTable.PageButton
+                      className="pl-2 pr-1"
+                      onClick={() => nextPage()}
+                      disabled={!canNextPage}>
+                      <span>Next</span>
+                      <ChevronRightIcon className="w-4 h-4 ml-1" aria-hidden="true"/>
+                    </DataTable.PageButton>
+                    <DataTable.PageButton
+                      className="rounded-r-md"
+                      onClick={() => gotoPage(pageCount - 1)}
+                      disabled={!canNextPage}
+                    >
+                      <ChevronDoubleRightIcon className="w-4 h-4" aria-hidden="true"/>
+                      <span className="sr-only">Last</span>
+                    </DataTable.PageButton>
+                  </nav>
+                </div>
               </div>
             </div>
+            <div className="absolute -bottom-11 right-0 p-2">
+              <button
+                onClick={toggleReleaseNames}
+                className="p-2 absolute bottom-0 right-0 bg-gray-750 text-white rounded-full opacity-10 hover:opacity-100 transition-opacity duration-300"
+                aria-label="Toggle view"
+                title="Go incognito"
+              >
+                {showLinuxIsos ? (
+                  <EyeIcon className="h-4 w-4"/>
+                ) : (
+                  <EyeSlashIcon className="h-4 w-4"/>
+                )}
+              </button>
+            </div>
           </div>
-          <div className="absolute -bottom-11 right-0 p-2">
-            <button
-              onClick={toggleReleaseNames}
-              className="p-2 absolute bottom-0 right-0 bg-gray-750 text-white rounded-full opacity-10 hover:opacity-100 transition-opacity duration-300"
-              aria-label="Toggle view"
-              title="Go incognito"
-            >
-              {showLinuxIsos ? (
-                <EyeIcon className="h-4 w-4" />
-              ) : (
-                <EyeSlashIcon className="h-4 w-4" />
-              )}
-            </button>
-          </div>
-        </div>
+        )}
       </div>
     </div>
   );

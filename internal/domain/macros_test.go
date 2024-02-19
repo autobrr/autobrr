@@ -227,6 +227,15 @@ func TestMacros_Parse(t *testing.T) {
 			want:    "movies-thisgrp",
 			wantErr: false,
 		},
+		{
+			name: "test_type",
+			release: Release{
+				Type: "episode",
+			},
+			args:    args{text: "Type: {{ .Type }}"},
+			want:    "Type: episode",
+			wantErr: false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

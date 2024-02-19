@@ -105,6 +105,10 @@ type Release struct {
 	ActionStatus                []ReleaseActionStatus `json:"action_status"`
 }
 
+func (r *Release) Raw(s string) rls.Release {
+	return rls.ParseString(s)
+}
+
 type ReleaseActionStatus struct {
 	ID         int64             `json:"id"`
 	Status     ReleasePushStatus `json:"status"`

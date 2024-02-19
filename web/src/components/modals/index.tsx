@@ -8,7 +8,7 @@ import { FC, Fragment, MutableRefObject, useState } from "react";
 import { Dialog, Transition } from "@headlessui/react";
 import { ExclamationTriangleIcon } from "@heroicons/react/24/solid";
 
-import { SectionLoader } from "@components/SectionLoader";
+import { RingResizeSpinner } from "@components/Icons";
 
 interface ModalUpperProps {
   title: string;
@@ -58,7 +58,7 @@ const ModalUpper = ({ title, text }: ModalUpperProps) => (
 const ModalLower = ({ isOpen, isLoading, toggle, deleteAction }: ModalLowerProps) => (
   <div className="bg-gray-50 dark:bg-gray-800 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
     {isLoading ? (
-      <SectionLoader $size="small" />
+      <RingResizeSpinner className="text-blue-500 size-6" />
     ) : (
       <>
         <button
@@ -221,7 +221,7 @@ export const ForceRunModal: FC<ForceRunModalProps> = (props: ForceRunModalProps)
 
               <div className="bg-gray-50 dark:bg-gray-800 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
                 {props.isLoading ? (
-                  <SectionLoader $size="small" />
+                  <RingResizeSpinner className="text-blue-500 size-6" />
                 ) : (
                   <>
                     <button

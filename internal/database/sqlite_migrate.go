@@ -1487,7 +1487,7 @@ ALTER TABLE feed_dg_tmp
 `,
 	`ALTER TABLE action
 	ADD COLUMN external_client TEXT;
-`,`
+`, `
 ALTER TABLE filter
     ADD COLUMN min_seeders INTEGER DEFAULT 0;
 
@@ -1499,5 +1499,9 @@ ALTER TABLE filter
 
 ALTER TABLE filter
     ADD COLUMN max_leechers INTEGER DEFAULT 0;
+`,
+	`UPDATE irc_network
+    SET server = 'irc.nebulance.io'
+    WHERE server = 'irc.nebulance.cc';
 `,
 }

@@ -4,15 +4,15 @@
  */
 
 import * as React from "react";
-import { useQuery, keepPreviousData } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { Listbox, Transition } from "@headlessui/react";
 import { CheckIcon, ChevronDownIcon } from "@heroicons/react/24/solid";
 
-import { APIClient } from "@api/APIClient";
 import { classNames } from "@utils";
 import { PushStatusOptions } from "@domain/constants";
 import { FilterProps } from "react-table";
 import { DebounceInput } from "react-debounce-input";
+import { ReleasesIndexersQueryOptions } from "@api/queries";
 
 interface ListboxFilterProps {
     id: string;
@@ -54,7 +54,7 @@ const ListboxFilter = ({
           <Listbox.Options
             className="absolute z-10 w-full mt-1 overflow-auto text-base bg-white dark:bg-gray-800 rounded-md shadow-lg max-h-60 border border-opacity-5 border-black dark:border-gray-700 dark:border-opacity-40 focus:outline-none sm:text-sm"
           >
-            <FilterOption label="All" />
+            <FilterOption label="All" value="" />
             {children}
           </Listbox.Options>
         </Transition>
@@ -67,12 +67,7 @@ const ListboxFilter = ({
 export const IndexerSelectColumnFilter = ({
   column: { filterValue, setFilter, id }
 }: FilterProps<object>) => {
-  const { data, isSuccess } = useQuery({
-    queryKey: ["indexer_options"],
-    queryFn: () => APIClient.release.indexerOptions(),
-    placeholderData: keepPreviousData,
-    staleTime: Infinity
-  });
+  const { data, isSuccess } = useQuery(ReleasesIndexersQueryOptions());
 
   // Render a multi-select box
   return (
@@ -80,10 +75,10 @@ export const IndexerSelectColumnFilter = ({
       id={id}
       key={id}
       label={filterValue ?? "Indexer"}
-      currentValue={filterValue}
+      currentValue={filterValue ?? ""}
       onChange={setFilter}
     >
-      {isSuccess && data?.map((indexer, idx) => (
+      {isSuccess && data && data?.map((indexer, idx) => (
         <FilterOption key={idx} label={indexer} value={indexer} />
       ))}
     </ListboxFilter>
@@ -138,7 +133,7 @@ export const PushStatusSelectColumnFilter = ({
       <ListboxFilter
         id={id}
         label={label ?? "Push status"}
-        currentValue={filterValue}
+        currentValue={filterValue ?? ""}
         onChange={setFilter}
       >
         {PushStatusOptions.map((status, idx) => (

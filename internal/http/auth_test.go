@@ -21,6 +21,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/gorilla/sessions"
 	"github.com/rs/zerolog"
+	"github.com/stretchr/testify/assert"
 )
 
 type authServiceMock struct {
@@ -144,9 +145,7 @@ func TestAuthHandlerLogin(t *testing.T) {
 	defer resp.Body.Close()
 
 	// check for response, here we'll just check for 204 NoContent
-	if status := resp.StatusCode; status != http.StatusNoContent {
-		t.Errorf("login: handler returned wrong status code: got %v want %v", status, http.StatusNoContent)
-	}
+	assert.Equalf(t, http.StatusNoContent, resp.StatusCode, "login handler: unexpected http status")
 
 	if v := resp.Header.Get("Set-Cookie"); v == "" {
 		t.Errorf("handler returned no cookie")
@@ -207,12 +206,10 @@ func TestAuthHandlerValidateOK(t *testing.T) {
 	defer resp.Body.Close()
 
 	// check for response, here we'll just check for 204 NoContent
-	if status := resp.StatusCode; status != http.StatusNoContent {
-		t.Errorf("login: handler returned wrong status code: got %v want %v", status, http.StatusNoContent)
-	}
+	assert.Equalf(t, http.StatusNoContent, resp.StatusCode, "login handler: bad response")
 
 	if v := resp.Header.Get("Set-Cookie"); v == "" {
-		t.Errorf("handler returned no cookie")
+		assert.Equalf(t, "", v, "login handler: expected Set-Cookie header")
 	}
 
 	// validate token
@@ -223,9 +220,7 @@ func TestAuthHandlerValidateOK(t *testing.T) {
 
 	defer resp.Body.Close()
 
-	if status := resp.StatusCode; status != http.StatusNoContent {
-		t.Errorf("validate: handler returned wrong status code: got %v want %v", status, http.StatusNoContent)
-	}
+	assert.Equalf(t, http.StatusNoContent, resp.StatusCode, "validate handler: unexpected http status")
 }
 
 func TestAuthHandlerValidateBad(t *testing.T) {
@@ -272,9 +267,7 @@ func TestAuthHandlerValidateBad(t *testing.T) {
 
 	defer resp.Body.Close()
 
-	if status := resp.StatusCode; status != http.StatusNoContent {
-		t.Errorf("validate: handler returned wrong status code: got %v want %v", status, http.StatusNoContent)
-	}
+	assert.Equalf(t, http.StatusForbidden, resp.StatusCode, "validate handler: unexpected http status")
 }
 
 func TestAuthHandlerLoginBad(t *testing.T) {
@@ -321,9 +314,7 @@ func TestAuthHandlerLoginBad(t *testing.T) {
 	defer resp.Body.Close()
 
 	// check for response, here we'll just check for 403 Forbidden
-	if status := resp.StatusCode; status != http.StatusForbidden {
-		t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusForbidden)
-	}
+	assert.Equalf(t, http.StatusForbidden, resp.StatusCode, "login handler: unexpected http status")
 }
 
 func TestAuthHandlerLogout(t *testing.T) {
@@ -384,6 +375,8 @@ func TestAuthHandlerLogout(t *testing.T) {
 		t.Errorf("login: handler returned wrong status code: got %v want %v", status, http.StatusNoContent)
 	}
 
+	assert.Equalf(t, http.StatusNoContent, resp.StatusCode, "login handler: unexpected http status")
+
 	if v := resp.Header.Get("Set-Cookie"); v == "" {
 		t.Errorf("handler returned no cookie")
 	}
@@ -396,9 +389,7 @@ func TestAuthHandlerLogout(t *testing.T) {
 
 	defer resp.Body.Close()
 
-	if status := resp.StatusCode; status != http.StatusNoContent {
-		t.Errorf("validate: handler returned wrong status code: got %v want %v", status, http.StatusNoContent)
-	}
+	assert.Equalf(t, http.StatusNoContent, resp.StatusCode, "validate handler: unexpected http status")
 
 	// logout
 	resp, err = client.Post(testServer.URL+"/auth/logout", "application/json", nil)
@@ -408,9 +399,7 @@ func TestAuthHandlerLogout(t *testing.T) {
 
 	defer resp.Body.Close()
 
-	if status := resp.StatusCode; status != http.StatusNoContent {
-		t.Errorf("logout: handler returned wrong status code: got %v want %v", status, http.StatusNoContent)
-	}
+	assert.Equalf(t, http.StatusNoContent, resp.StatusCode, "logout handler: unexpected http status")
 
 	//if v := resp.Header.Get("Set-Cookie"); v != "" {
 	//	t.Errorf("logout handler returned cookie")

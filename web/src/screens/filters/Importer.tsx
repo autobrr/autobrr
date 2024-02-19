@@ -4,9 +4,9 @@ import { useQueryClient } from "@tanstack/react-query";
 import toast from "react-hot-toast";
 
 import { APIClient } from "@api/APIClient";
+import { FilterKeys } from "@api/query_keys";
 import Toast from "@components/notifications/Toast";
 
-import { filterKeys } from "./List";
 import { AutodlIrssiConfigParser } from "./_configParser";
 import { ExclamationTriangleIcon } from "@heroicons/react/24/outline";
 
@@ -211,7 +211,7 @@ export const Importer = ({
     } finally {
       setIsOpen(false);
       // Invalidate filter cache, and trigger refresh request
-      await queryClient.invalidateQueries({ queryKey: filterKeys.lists() });
+      await queryClient.invalidateQueries({ queryKey: FilterKeys.lists() });
     }
   };
 

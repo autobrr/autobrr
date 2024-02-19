@@ -14,8 +14,8 @@ import Select from "react-select";
 import { Dialog } from "@headlessui/react";
 
 import { IrcAuthMechanismTypeOptions, OptionBasicTyped } from "@domain/constants";
-import { ircKeys } from "@screens/settings/Irc";
 import { APIClient } from "@api/APIClient";
+import { IrcKeys } from "@api/query_keys";
 import { NumberFieldWide, PasswordFieldWide, SwitchGroupWide, TextFieldWide } from "@components/inputs";
 import { SlideOver } from "@components/panels";
 import Toast from "@components/notifications/Toast";
@@ -132,7 +132,7 @@ export function IrcNetworkAddForm({ isOpen, toggle }: AddFormProps) {
   const mutation = useMutation({
     mutationFn: (network: IrcNetwork) => APIClient.irc.createNetwork(network),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ircKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: IrcKeys.lists() });
 
       toast.custom((t) => <Toast type="success" body="IRC Network added. Please allow up to 30 seconds for the network to come online." t={t} />);
       toggle();
@@ -288,7 +288,7 @@ export function IrcNetworkUpdateForm({
   const updateMutation = useMutation({
     mutationFn: (network: IrcNetwork) => APIClient.irc.updateNetwork(network),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ircKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: IrcKeys.lists() });
 
       toast.custom((t) => <Toast type="success" body={`${network.name} was updated successfully`} t={t} />);
 
@@ -301,7 +301,7 @@ export function IrcNetworkUpdateForm({
   const deleteMutation = useMutation({
     mutationFn: (id: number) => APIClient.irc.deleteNetwork(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ircKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: IrcKeys.lists() });
 
       toast.custom((t) => <Toast type="success" body={`${network.name} was deleted.`} t={t} />);
 

@@ -67,6 +67,16 @@ func (e encoder) StatusNotFound(w http.ResponseWriter) {
 	w.WriteHeader(http.StatusNotFound)
 }
 
+func (e encoder) NotFoundErr(w http.ResponseWriter, err error) {
+	res := errorResponse{
+		Message: err.Error(),
+	}
+
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.WriteHeader(http.StatusNotFound)
+	json.NewEncoder(w).Encode(res)
+}
+
 func (e encoder) StatusInternalError(w http.ResponseWriter) {
 	w.WriteHeader(http.StatusInternalServerError)
 }

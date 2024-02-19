@@ -115,10 +115,10 @@ sudo box install autobrr
 [Saltbox](https://docs.saltbox.dev/) users can simply run:
 
 ```bash
-sb install sandbox-autobrr
+sb install autobrr
 ```
 
-For more info check the [docs](https://docs.saltbox.dev/sandbox/apps/autobrr/)
+For more info check the [docs](https://docs.saltbox.dev/apps/autobrr/)
 
 ### QuickBox
 

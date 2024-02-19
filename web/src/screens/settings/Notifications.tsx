@@ -4,35 +4,33 @@
  */
 
 import { useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
+import { PlusIcon } from "@heroicons/react/24/solid";
+import toast from "react-hot-toast";
 
 import { APIClient } from "@api/APIClient";
+import { NotificationKeys } from "@api/query_keys";
+import { NotificationsQueryOptions } from "@api/queries";
 import { EmptySimple } from "@components/emptystates";
 import { useToggle } from "@hooks/hooks";
 import { NotificationAddForm, NotificationUpdateForm } from "@forms/settings/NotificationForms";
 import { componentMapType } from "@forms/settings/DownloadClientForms";
 import Toast from "@components/notifications/Toast";
-import toast from "react-hot-toast";
-import { Section } from "./_components";
-import { PlusIcon } from "@heroicons/react/24/solid";
+import {
+  DiscordIcon,
+  GotifyIcon,
+  LunaSeaIcon,
+  NotifiarrIcon,
+  NtfyIcon,
+  PushoverIcon,
+  Section,
+  TelegramIcon
+} from "./_components";
 import { Checkbox } from "@components/Checkbox";
-import { DiscordIcon, GotifyIcon, LunaSeaIcon, NotifiarrIcon, NtfyIcon, PushoverIcon, TelegramIcon } from "./_components";
-
-export const notificationKeys = {
-  all: ["notifications"] as const,
-  lists: () => [...notificationKeys.all, "list"] as const,
-  details: () => [...notificationKeys.all, "detail"] as const,
-  detail: (id: number) => [...notificationKeys.details(), id] as const
-};
 
 function NotificationSettings() {
   const [addNotificationsIsOpen, toggleAddNotifications] = useToggle(false);
 
-  const { data } = useSuspenseQuery({
-    queryKey: notificationKeys.lists(),
-    queryFn: APIClient.notifications.getAll,
-    refetchOnWindowFocus: false
-  }
-  );
+  const notificationsQuery = useSuspenseQuery(NotificationsQueryOptions())
 
   return (
     <Section
@@ -51,7 +49,7 @@ function NotificationSettings() {
     >
       <NotificationAddForm isOpen={addNotificationsIsOpen} toggle={toggleAddNotifications} />
 
-      {data && data.length > 0 ? (
+      {notificationsQuery.data && notificationsQuery.data.length > 0 ? (
         <ul className="min-w-full">
           <li className="grid grid-cols-12 border-b border-gray-200 dark:border-gray-700">
             <div className="col-span-2 sm:col-span-1 pl-1 sm:pl-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Enabled</div>
@@ -60,7 +58,7 @@ function NotificationSettings() {
             <div className="hidden md:flex col-span-3 px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Events</div>
           </li>
 
-          {data.map((n) => <ListItem key={n.id} notification={n} />)}
+          {notificationsQuery.data.map((n) => <ListItem key={n.id} notification={n} />)}
         </ul>
       ) : (
         <EmptySimple title="No notifications" subtitle="" buttonText="Create new notification" buttonAction={toggleAddNotifications} />
@@ -94,7 +92,7 @@ function ListItem({ notification }: ListItemProps) {
     mutationFn: (notification: ServiceNotification) => APIClient.notifications.update(notification).then(() => notification),
     onSuccess: (notification: ServiceNotification) => {
       toast.custom(t => <Toast type="success" body={`${notification.name} was ${notification.enabled ? "enabled" : "disabled"} successfully.`} t={t} />);
-      queryClient.invalidateQueries({ queryKey: notificationKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: NotificationKeys.lists() });
     }
   });
 

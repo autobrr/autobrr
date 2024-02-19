@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+import { Link } from "@tanstack/react-router";
 
 import { DocsLink } from "@components/ExternalLink";
 import { ActionContentLayoutOptions, ActionPriorityOptions } from "@domain/constants";

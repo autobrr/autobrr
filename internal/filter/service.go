@@ -124,6 +124,12 @@ func (s *service) FindByID(ctx context.Context, filterID int) (*domain.Filter, e
 		return nil, err
 	}
 
+	externalFilters, err := s.repo.FindExternalFiltersByID(ctx, filter.ID)
+	if err != nil {
+		s.log.Error().Err(err).Msgf("could not find external filters for filter id: %v", filter.ID)
+	}
+	filter.External = externalFilters
+
 	actions, err := s.actionRepo.FindByFilterID(ctx, filter.ID, nil)
 	if err != nil {
 		s.log.Error().Err(err).Msgf("could not find filter actions for filter id: %v", filter.ID)
@@ -142,9 +148,25 @@ func (s *service) FindByID(ctx context.Context, filterID int) (*domain.Filter, e
 
 func (s *service) FindByIndexerIdentifier(ctx context.Context, indexer string) ([]*domain.Filter, error) {
 	// get filters for indexer
+	filters, err := s.repo.FindByIndexerIdentifier(ctx, indexer)
+	if err != nil {
+		return nil, err
+	}
+
 	// we do not load actions here since we do not need it at this stage
 	// only load those after filter has matched
-	return s.repo.FindByIndexerIdentifier(ctx, indexer)
+	for _, filter := range filters {
+		filter := filter
+
+		externalFilters, err := s.repo.FindExternalFiltersByID(ctx, filter.ID)
+		if err != nil {
+			s.log.Error().Err(err).Msgf("could not find external filters for filter id: %v", filter.ID)
+		}
+		filter.External = externalFilters
+
+	}
+
+	return filters, nil
 }
 
 func (s *service) GetDownloadsByFilterId(ctx context.Context, filterID int) (*domain.FilterDownloads, error) {
