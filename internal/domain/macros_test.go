@@ -236,6 +236,15 @@ func TestMacros_Parse(t *testing.T) {
 			want:    "Type: episode",
 			wantErr: false,
 		},
+		{
+			name: "test_filter_id",
+			release: Release{
+				FilterID: 1,
+			},
+			args:    args{text: "FilterID: {{ .FilterID }}"},
+			want:    "FilterID: 1",
+			wantErr: false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
