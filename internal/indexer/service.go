@@ -35,6 +35,7 @@ type Service interface {
 	LoadIndexerDefinitions() error
 	GetIndexersByIRCNetwork(server string) []*domain.IndexerDefinition
 	GetTorznabIndexers() []domain.IndexerDefinition
+	GetMappedDefinitionByName(name string) (*domain.IndexerDefinition, error)
 	Start() error
 	TestApi(ctx context.Context, req domain.IndexerTestApiRequest) error
 	ToggleEnabled(ctx context.Context, indexerID int, enabled bool) error
@@ -650,6 +651,15 @@ func (s *service) getDefinitionByName(name string) *domain.IndexerDefinition {
 	}
 
 	return nil
+}
+
+func (s *service) GetMappedDefinitionByName(name string) (*domain.IndexerDefinition, error) {
+	v, ok := s.mappedDefinitions[name]
+	if !ok {
+		return nil, errors.New("unknown indexer identifier: %s", name)
+	}
+
+	return v, nil
 }
 
 func (s *service) getMappedDefinitionByName(name string) *domain.IndexerDefinition {
