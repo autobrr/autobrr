@@ -35,6 +35,7 @@ type Macro struct {
 	Resolution          string
 	Source              string
 	HDR                 string
+	FilterID            int
 	FilterName          string
 	Size                uint64
 	SizeString          string
@@ -72,6 +73,7 @@ func NewMacro(release Release) Macro {
 		Resolution:          release.Resolution,
 		Source:              release.Source,
 		HDR:                 strings.Join(release.HDR, ", "),
+		FilterID:            release.FilterID,
 		FilterName:          release.FilterName,
 		Size:                release.Size,
 		SizeString:          humanize.Bytes(release.Size),
