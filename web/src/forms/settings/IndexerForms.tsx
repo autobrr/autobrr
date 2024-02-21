@@ -254,7 +254,7 @@ type SelectValue = {
   value: string;
 };
 
-interface AddProps {
+export interface AddProps {
   isOpen: boolean;
   toggle: () => void;
 }

@@ -14,6 +14,7 @@ import (
 	"github.com/autobrr/autobrr/internal/indexer"
 	"github.com/autobrr/autobrr/internal/logger"
 	"github.com/autobrr/autobrr/internal/notification"
+	"github.com/autobrr/autobrr/internal/proxy"
 	"github.com/autobrr/autobrr/internal/release"
 	"github.com/autobrr/autobrr/pkg/errors"
 
@@ -46,8 +47,10 @@ type service struct {
 	releaseService      release.Service
 	indexerService      indexer.Service
 	notificationService notification.Service
-	indexerMap          map[string]string
-	handlers            map[int64]*Handler
+	proxyService        proxy.Service
+
+	indexerMap map[string]string
+	handlers   map[int64]*Handler
 
 	stopWG sync.WaitGroup
 	lock   sync.RWMutex
@@ -55,7 +58,7 @@ type service struct {
 
 const sseMaxEntries = 1000
 
-func NewService(log logger.Logger, sse *sse.Server, repo domain.IrcRepo, releaseSvc release.Service, indexerSvc indexer.Service, notificationSvc notification.Service) Service {
+func NewService(log logger.Logger, sse *sse.Server, repo domain.IrcRepo, releaseSvc release.Service, indexerSvc indexer.Service, notificationSvc notification.Service, proxySvc proxy.Service) Service {
 	return &service{
 		log:                 log.With().Str("module", "irc").Logger(),
 		sse:                 sse,
@@ -63,6 +66,7 @@ func NewService(log logger.Logger, sse *sse.Server, repo domain.IrcRepo, release
 		releaseService:      releaseSvc,
 		indexerService:      indexerSvc,
 		notificationService: notificationSvc,
+		proxyService:        proxySvc,
 		handlers:            make(map[int64]*Handler),
 	}
 }

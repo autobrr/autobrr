@@ -6,6 +6,9 @@ package irc
 import (
 	"crypto/tls"
 	"fmt"
+	"golang.org/x/exp/slices"
+	"golang.org/x/net/proxy"
+	"net/url"
 	"strings"
 	"time"
 
@@ -23,7 +26,6 @@ import (
 	"github.com/r3labs/sse/v2"
 	"github.com/rs/zerolog"
 	"github.com/sasha-s/go-deadlock"
-	"golang.org/x/exp/slices"
 )
 
 var (
@@ -218,6 +220,28 @@ func (h *Handler) Run() (err error) {
 		QuitMessage:   "bye from autobrr",
 		Debug:         true,
 		Log:           subLogger,
+	}
+
+	if h.network.UseProxy && h.network.Proxy != nil {
+		if h.network.Proxy.Addr == "" {
+			return errors.New("proxy addr missing")
+		}
+
+		proxyUrl, err := url.Parse(h.network.Proxy.Addr)
+		if err != nil {
+			return errors.Wrap(err, "could not parse proxy url: %s", h.network.Proxy.Addr)
+		}
+
+		proxyDialer, err := proxy.FromURL(proxyUrl, proxy.Direct)
+		if err != nil {
+			return errors.Wrap(err, "could not create proxy dialer from url: %s", h.network.Proxy.Addr)
+		}
+		proxyContextDialer, ok := proxyDialer.(proxy.ContextDialer)
+		if !ok {
+			return errors.Wrap(err, "proxy dialer does not expose DialContext(): %v", proxyDialer)
+		}
+
+		client.DialContext = proxyContextDialer.DialContext
 	}
 
 	if h.network.Auth.Mechanism == domain.IRCAuthMechanismSASLPlain {

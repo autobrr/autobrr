@@ -23,8 +23,11 @@ CREATE TABLE indexer
     enabled        BOOLEAN,
     name           TEXT NOT NULL,
     settings       TEXT,
+    use_proxy      BOOLEAN DEFAULT FALSE,
+    proxy_id       INTEGER NOT NULL,
     created_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (proxy_id) REFERENCES proxy(id) ON DELETE SET NULL,
     UNIQUE (identifier)
 );
 
@@ -50,8 +53,11 @@ CREATE TABLE irc_network
     bot_mode            BOOLEAN DEFAULT FALSE,
     connected           BOOLEAN,
     connected_since     TIMESTAMP,
+    use_proxy           BOOLEAN DEFAULT FALSE,
+    proxy_id            INTEGER NOT NULL,
     created_at          TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at          TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (proxy_id) REFERENCES proxy(id) ON DELETE SET NULL,
     UNIQUE (server, port, nick)
 );
 
@@ -380,6 +386,19 @@ CREATE TABLE api_key
 	key        TEXT PRIMARY KEY,
 	scopes     TEXT []   DEFAULT '{}' NOT NULL,
 	created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE proxy
+(
+    id             SERIAL PRIMARY KEY,
+    enabled        BOOLEAN,
+    name           TEXT NOT NULL,
+    addr           TEXT,
+	auth_user      TEXT,
+	auth_pass      TEXT,
+    timeout        INTEGER,
+    created_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 `
 
@@ -862,5 +881,39 @@ ALTER TABLE filter
 	`UPDATE irc_network
     SET server = 'irc.nebulance.io'
     WHERE server = 'irc.nebulance.cc';
+`,
+	`CREATE TABLE proxy
+(
+    id             SERIAL PRIMARY KEY,
+    enabled        BOOLEAN,
+    name           TEXT NOT NULL,
+	type           TEXT,
+    addr           TEXT,
+	auth_user      TEXT,
+	auth_pass      TEXT,
+    timeout        INTEGER,
+    created_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+ALTER TABLE indexer
+    ADD COLUMN proxy_id INTEGER;
+
+ALTER TABLE indexer
+    ADD COLUMN use_proxy BOOLEAN DEFAULT FALSE;
+
+ALTER TABLE indexer
+    ADD FOREIGN KEY (proxy_id) REFERENCES proxy
+        ON DELETE SET NULL;
+
+ALTER TABLE irc_network
+    ADD COLUMN proxy_id INTEGER;
+
+ALTER TABLE irc_network
+    ADD COLUMN use_proxy BOOLEAN DEFAULT FALSE;
+
+ALTER TABLE irc_network
+    ADD FOREIGN KEY (proxy_id) REFERENCES proxy
+        ON DELETE SET NULL;
 `,
 }

@@ -23,8 +23,11 @@ CREATE TABLE indexer
     enabled        BOOLEAN,
     name           TEXT NOT NULL,
     settings       TEXT,
+    use_proxy      BOOLEAN DEFAULT FALSE,
+    proxy_id       INTEGER,
     created_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (proxy_id) REFERENCES proxy(id) ON DELETE SET NULL,
     UNIQUE (identifier)
 );
 
@@ -50,8 +53,11 @@ CREATE TABLE irc_network
     bot_mode            BOOLEAN DEFAULT FALSE,
     connected           BOOLEAN,
     connected_since     TIMESTAMP,
+    use_proxy           BOOLEAN DEFAULT FALSE,
+    proxy_id            INTEGER,
     created_at          TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at          TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (proxy_id) REFERENCES proxy(id) ON DELETE SET NULL,
     UNIQUE (server, port, nick)
 );
 
@@ -373,6 +379,20 @@ CREATE TABLE api_key
     key        TEXT PRIMARY KEY,
     scopes     TEXT []   DEFAULT '{}' NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE proxy
+(
+    id             INTEGER PRIMARY KEY,
+    enabled        BOOLEAN,
+    name           TEXT NOT NULL,
+	type           TEXT,
+    addr           TEXT,
+	auth_user      TEXT,
+	auth_pass      TEXT,
+    timeout        INTEGER,
+    created_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 `
 
@@ -1503,5 +1523,115 @@ ALTER TABLE filter
 	`UPDATE irc_network
     SET server = 'irc.nebulance.io'
     WHERE server = 'irc.nebulance.cc';
+`,
+	`CREATE TABLE proxy
+(
+    id             INTEGER PRIMARY KEY,
+    enabled        BOOLEAN,
+    name           TEXT NOT NULL,
+	type           TEXT,
+    addr           TEXT,
+	auth_user      TEXT,
+	auth_pass      TEXT,
+    timeout        INTEGER,
+    created_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE indexer_dg_tmp
+(
+    id             INTEGER PRIMARY KEY,
+    identifier     TEXT UNIQUE,
+    implementation TEXT,
+    base_url       TEXT,
+    enabled        BOOLEAN,
+    name           TEXT NOT NULL,
+    settings       TEXT,
+    use_proxy      BOOLEAN DEFAULT FALSE,
+    created_at     TIMESTAMP default CURRENT_TIMESTAMP,
+    updated_at     TIMESTAMP default CURRENT_TIMESTAMP,
+    proxy_id       INTEGER
+        CONSTRAINT indexer_proxy_id_fk
+            REFERENCES proxy (id)
+            ON DELETE SET NULL
+);
+
+INSERT INTO indexer_dg_tmp(id, identifier, implementation, base_url, enabled, name, settings, created_at, updated_at)
+SELECT id,
+       identifier,
+       implementation,
+       base_url,
+       enabled,
+       name,
+       settings,
+       created_at,
+       updated_at
+FROM indexer;
+
+DROP TABLE indexer;
+
+ALTER TABLE indexer_dg_tmp
+    RENAME TO indexer;
+
+CREATE INDEX indexer_identifier_index
+    ON indexer (identifier);
+
+CREATE TABLE irc_network_dg_tmp
+(
+    id              INTEGER PRIMARY KEY,
+    enabled         BOOLEAN,
+    name            TEXT    NOT NULL,
+    server          TEXT    NOT NULL,
+    port            INTEGER NOT NULL,
+    tls             BOOLEAN,
+    pass            TEXT,
+    nick            TEXT,
+    auth_mechanism  TEXT,
+    auth_account    TEXT,
+    auth_password   TEXT,
+    invite_command  TEXT,
+    use_bouncer     BOOLEAN,
+    bouncer_addr    TEXT,
+    bot_mode        BOOLEAN   default FALSE,
+    connected       BOOLEAN,
+    connected_since TIMESTAMP,
+    use_proxy       BOOLEAN DEFAULT FALSE,
+    created_at      TIMESTAMP default CURRENT_TIMESTAMP,
+    updated_at      TIMESTAMP default CURRENT_TIMESTAMP,
+    proxy_id        INTEGER
+        CONSTRAINT irc_network_proxy_id_fk
+            REFERENCES proxy (id)
+            ON DELETE SET NULL,
+    UNIQUE (server, port, nick)
+);
+
+INSERT INTO irc_network_dg_tmp(id, enabled, name, server, port, tls, pass, nick, auth_mechanism, auth_account,
+                               auth_password, invite_command, use_bouncer, bouncer_addr, bot_mode, connected,
+                               connected_since, created_at, updated_at)
+SELECT id,
+       enabled,
+       name,
+       server,
+       port,
+       tls,
+       pass,
+       nick,
+       auth_mechanism,
+       auth_account,
+       auth_password,
+       invite_command,
+       use_bouncer,
+       bouncer_addr,
+       bot_mode,
+       connected,
+       connected_since,
+       created_at,
+       updated_at
+FROM irc_network;
+
+DROP TABLE irc_network;
+
+ALTER TABLE irc_network_dg_tmp
+    RENAME TO irc_network;
 `,
 }

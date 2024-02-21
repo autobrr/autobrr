@@ -47,6 +47,8 @@ type IrcNetwork struct {
 	InviteCommand  string       `json:"invite_command"`
 	UseBouncer     bool         `json:"use_bouncer"`
 	BouncerAddr    string       `json:"bouncer_addr"`
+	UseProxy       bool         `json:"use_proxy"`
+	Proxy          *Proxy       `json:"proxy"`
 	BotMode        bool         `json:"bot_mode"`
 	Channels       []IrcChannel `json:"channels"`
 	Connected      bool         `json:"connected"`

@@ -4,11 +4,11 @@
 package main
 
 import (
+	_ "go.uber.org/automaxprocs"
 	"os"
 	"os/signal"
 	"syscall"
 	_ "time/tzdata"
-	_ "go.uber.org/automaxprocs"
 
 	"github.com/autobrr/autobrr/internal/action"
 	"github.com/autobrr/autobrr/internal/api"
@@ -24,6 +24,7 @@ import (
 	"github.com/autobrr/autobrr/internal/irc"
 	"github.com/autobrr/autobrr/internal/logger"
 	"github.com/autobrr/autobrr/internal/notification"
+	"github.com/autobrr/autobrr/internal/proxy"
 	"github.com/autobrr/autobrr/internal/release"
 	"github.com/autobrr/autobrr/internal/scheduler"
 	"github.com/autobrr/autobrr/internal/server"
@@ -91,6 +92,7 @@ func main() {
 		notificationRepo   = database.NewNotificationRepo(log, db)
 		releaseRepo        = database.NewReleaseRepo(log, db)
 		userRepo           = database.NewUserRepo(log, db)
+		proxyRepo          = database.NewProxyRepo(log, db)
 	)
 
 	// setup services
@@ -99,6 +101,7 @@ func main() {
 		notificationService   = notification.NewService(log, notificationRepo)
 		updateService         = update.NewUpdate(log, cfg.Config)
 		schedulingService     = scheduler.NewService(log, cfg.Config, notificationService, updateService)
+		proxyService          = proxy.NewService(log, proxyRepo)
 		indexerAPIService     = indexer.NewAPIService(log)
 		userService           = user.NewService(userRepo)
 		authService           = auth.NewService(log, userService)
@@ -107,7 +110,7 @@ func main() {
 		indexerService        = indexer.NewService(log, cfg.Config, indexerRepo, indexerAPIService, schedulingService)
 		filterService         = filter.NewService(log, filterRepo, actionRepo, releaseRepo, indexerAPIService, indexerService)
 		releaseService        = release.NewService(log, releaseRepo, actionService, filterService)
-		ircService            = irc.NewService(log, serverEvents, ircRepo, releaseService, indexerService, notificationService)
+		ircService            = irc.NewService(log, serverEvents, ircRepo, releaseService, indexerService, notificationService, proxyService)
 		feedService           = feed.NewService(log, feedRepo, feedCacheRepo, releaseService, schedulingService)
 	)
 
@@ -134,6 +137,7 @@ func main() {
 			indexerService,
 			ircService,
 			notificationService,
+			proxyService,
 			releaseService,
 			updateService,
 		)

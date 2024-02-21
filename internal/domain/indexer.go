@@ -32,6 +32,8 @@ type Indexer struct {
 	Enabled        bool              `json:"enabled"`
 	Implementation string            `json:"implementation"`
 	BaseURL        string            `json:"base_url,omitempty"`
+	UseProxy       bool              `json:"use_proxy"`
+	Proxy          *Proxy            `json:"proxy"`
 	Settings       map[string]string `json:"settings,omitempty"`
 }
 
