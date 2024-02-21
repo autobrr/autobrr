@@ -14,6 +14,19 @@ CREATE TABLE users
     UNIQUE (username)
 );
 
+CREATE TABLE proxy
+(
+    id             SERIAL PRIMARY KEY,
+    enabled        BOOLEAN,
+    name           TEXT NOT NULL,
+    addr           TEXT,
+	auth_user      TEXT,
+	auth_pass      TEXT,
+    timeout        INTEGER,
+    created_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 CREATE TABLE indexer
 (
     id             SERIAL PRIMARY KEY,
@@ -386,19 +399,6 @@ CREATE TABLE api_key
 	key        TEXT PRIMARY KEY,
 	scopes     TEXT []   DEFAULT '{}' NOT NULL,
 	created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE TABLE proxy
-(
-    id             SERIAL PRIMARY KEY,
-    enabled        BOOLEAN,
-    name           TEXT NOT NULL,
-    addr           TEXT,
-	auth_user      TEXT,
-	auth_pass      TEXT,
-    timeout        INTEGER,
-    created_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 `
 

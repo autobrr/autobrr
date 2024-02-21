@@ -14,6 +14,20 @@ CREATE TABLE users
     UNIQUE (username)
 );
 
+CREATE TABLE proxy
+(
+    id             INTEGER PRIMARY KEY,
+    enabled        BOOLEAN,
+    name           TEXT NOT NULL,
+	type           TEXT,
+    addr           TEXT,
+	auth_user      TEXT,
+	auth_pass      TEXT,
+    timeout        INTEGER,
+    created_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 CREATE TABLE indexer
 (
     id             INTEGER PRIMARY KEY,
@@ -379,20 +393,6 @@ CREATE TABLE api_key
     key        TEXT PRIMARY KEY,
     scopes     TEXT []   DEFAULT '{}' NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE TABLE proxy
-(
-    id             INTEGER PRIMARY KEY,
-    enabled        BOOLEAN,
-    name           TEXT NOT NULL,
-	type           TEXT,
-    addr           TEXT,
-	auth_user      TEXT,
-	auth_pass      TEXT,
-    timeout        INTEGER,
-    created_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 `
 
