@@ -145,7 +145,7 @@ func (s Server) Handler() http.Handler {
 			r.Route("/logs", newLogsHandler(s.config).Routes)
 			r.Route("/notification", newNotificationHandler(encoder, s.notificationService).Routes)
 			r.Route("/proxy", newProxyHandler(encoder, s.proxyService).Routes)
-			r.Route("/release", newReleaseHandler(encoder, s.log, s.releaseService).Routes)
+			r.Route("/release", newReleaseHandler(encoder, s.releaseService).Routes)
 			r.Route("/updates", newUpdateHandler(encoder, s.updateService).Routes)
 
 			r.HandleFunc("/events", func(w http.ResponseWriter, r *http.Request) {
