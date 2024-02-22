@@ -232,6 +232,11 @@ func (h *Handler) Run() (err error) {
 			return errors.Wrap(err, "could not parse proxy url: %s", h.network.Proxy.Addr)
 		}
 
+		// set user and pass if not empty
+		if h.network.Proxy.User != "" && h.network.Proxy.Pass != "" {
+			proxyUrl.User = url.UserPassword(h.network.Proxy.User, h.network.Proxy.Pass)
+		}
+
 		proxyDialer, err := proxy.FromURL(proxyUrl, proxy.Direct)
 		if err != nil {
 			return errors.Wrap(err, "could not create proxy dialer from url: %s", h.network.Proxy.Addr)

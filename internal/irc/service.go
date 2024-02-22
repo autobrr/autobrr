@@ -82,6 +82,15 @@ func (s *service) StartHandlers() {
 			continue
 		}
 
+		if network.ProxyId != 0 {
+			networkProxy, err := s.proxyService.FindByID(context.Background(), network.ProxyId)
+			if err != nil {
+				s.log.Error().Err(err).Msgf("failed to get proxy for network: %s", network.Server)
+				return
+			}
+			network.Proxy = networkProxy
+		}
+
 		channels, err := s.repo.ListChannels(network.ID)
 		if err != nil {
 			s.log.Error().Err(err).Msgf("failed to list channels for network: %s", network.Server)
@@ -217,6 +226,14 @@ func (s *service) checkIfNetworkRestartNeeded(network *domain.IrcNetwork) error 
 			if handler.BotMode != network.BotMode {
 				restartNeeded = true
 				fieldsChanged = append(fieldsChanged, "bot mode")
+			}
+			if handler.UseProxy != network.UseProxy {
+				restartNeeded = true
+				fieldsChanged = append(fieldsChanged, "use proxy")
+			}
+			if handler.ProxyId != network.ProxyId {
+				restartNeeded = true
+				fieldsChanged = append(fieldsChanged, "proxy id")
 			}
 			if handler.Auth.Mechanism != network.Auth.Mechanism {
 				restartNeeded = true
@@ -459,12 +476,16 @@ func (s *service) GetNetworksWithHealth(ctx context.Context) ([]domain.IrcNetwor
 			BouncerAddr:      n.BouncerAddr,
 			UseBouncer:       n.UseBouncer,
 			BotMode:          n.BotMode,
+			UseProxy:         n.UseProxy,
+			ProxyId:          n.ProxyId,
 			Connected:        false,
 			Channels:         []domain.ChannelWithHealth{},
 			ConnectionErrors: []string{},
 		}
 
+		s.lock.RLock()
 		handler, ok := s.handlers[n.ID]
+		s.lock.RUnlock()
 		if ok {
 			handler.ReportStatus(&netw)
 		}
@@ -548,6 +569,18 @@ func (s *service) UpdateNetwork(ctx context.Context, network *domain.IrcNetwork)
 		return err
 	}
 	s.log.Debug().Msgf("irc.service: update network: %s", network.Name)
+
+	network.Proxy = nil
+
+	// attach proxy
+	if network.UseProxy && network.ProxyId != 0 {
+		networkProxy, err := s.proxyService.FindByID(context.Background(), network.ProxyId)
+		if err != nil {
+			s.log.Error().Err(err).Msgf("failed to get proxy for network: %s", network.Server)
+			return errors.Wrap(err, "could not get proxy for network: %s", network.Server)
+		}
+		network.Proxy = networkProxy
+	}
 
 	// stop or start network
 	// TODO get current state to see if enabled or not?

@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "react-hot-toast";
 import { XMarkIcon } from "@heroicons/react/24/solid";
 import type { FieldProps } from "formik";
@@ -21,6 +21,7 @@ import { SlideOver } from "@components/panels";
 import Toast from "@components/notifications/Toast";
 import * as common from "@components/inputs/common";
 import { classNames } from "@utils";
+import { ProxiesQueryOptions } from "@api/queries";
 
 interface ChannelsFieldArrayProps {
   channels: IrcChannel[];
@@ -270,6 +271,8 @@ interface IrcNetworkUpdateFormValues {
     bouncer_addr: string;
     bot_mode: boolean;
     channels: Array<IrcChannel>;
+    use_proxy: boolean;
+    proxy_id: number;
 }
 
 interface IrcNetworkUpdateFormProps {
@@ -284,6 +287,8 @@ export function IrcNetworkUpdateForm({
   network
 }: IrcNetworkUpdateFormProps) {
   const queryClient = useQueryClient();
+
+  const proxies = useQuery(ProxiesQueryOptions());
 
   const updateMutation = useMutation({
     mutationFn: (network: IrcNetwork) => APIClient.irc.updateNetwork(network),
@@ -325,7 +330,9 @@ export function IrcNetworkUpdateForm({
     use_bouncer: network.use_bouncer,
     bouncer_addr: network.bouncer_addr,
     bot_mode: network.bot_mode,
-    channels: network.channels
+    channels: network.channels,
+    use_proxy: network.use_proxy,
+    proxy_id: network.proxy_id,
   };
 
   return (
@@ -387,6 +394,20 @@ export function IrcNetworkUpdateForm({
           )}
 
           <SwitchGroupWide name="bot_mode" label="IRCv3 Bot Mode" />
+
+          <div className="border-t border-gray-200 dark:border-gray-700">
+            <SwitchGroupWide name="use_proxy" label="Proxy"/>
+
+            {values.use_proxy && (
+              <div className="py-4">
+                <SelectField<number>
+                  name="proxy_id"
+                  label="Select proxy"
+                  options={proxies.data ? proxies.data.map((p) => ({ label: p.name, value: p.id })) : []}
+                />
+              </div>
+            )}
+          </div>
 
           <div className="border-t border-gray-200 dark:border-gray-700 py-5">
             <div className="px-4 space-y-1 mb-8">

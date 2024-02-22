@@ -38,6 +38,7 @@ func (s *service) Store(ctx context.Context, proxy *domain.Proxy) error {
 }
 
 func (s *service) Update(ctx context.Context, proxy *domain.Proxy) error {
+	// TODO update IRC handlers
 	return s.repo.Update(ctx, proxy)
 }
 
@@ -50,9 +51,11 @@ func (s *service) List(ctx context.Context) ([]domain.Proxy, error) {
 }
 
 func (s *service) ToggleEnabled(ctx context.Context, id int64, enabled bool) error {
+	// TODO update IRC handlers
 	return s.repo.ToggleEnabled(ctx, id, enabled)
 }
 
 func (s *service) Delete(ctx context.Context, id int64) error {
+	// TODO update IRC handlers
 	return s.repo.Delete(ctx, id)
 }
