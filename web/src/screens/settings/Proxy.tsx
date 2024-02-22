@@ -1,18 +1,16 @@
 import { useToggle } from "@hooks/hooks.ts";
 import { useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
-import { ProxiesQueryOptions } from "@api/queries.ts";
 import { PlusIcon } from "@heroicons/react/24/solid";
+import { toast } from "react-hot-toast";
+
+import { APIClient } from "@api/APIClient";
+import { ProxyKeys } from "@api/query_keys";
+import { ProxiesQueryOptions } from "@api/queries";
 import { Section } from "./_components";
 import { EmptySimple } from "@components/emptystates";
-// import { APIClient } from "@api/APIClient.ts";
-// import toast from "react-hot-toast";
-// import Toast from "@components/notifications/Toast.tsx";
-import { Checkbox } from "@components/Checkbox.tsx";
-import { ProxyAddForm, ProxyUpdateForm } from "@forms/settings/ProxyForms.tsx";
-import { APIClient } from "@api/APIClient.ts";
-import { ProxyKeys } from "@api/query_keys.ts";
-import { toast } from "react-hot-toast";
-import Toast from "@components/notifications/Toast.tsx";
+import { Checkbox } from "@components/Checkbox";
+import { ProxyAddForm, ProxyUpdateForm } from "@forms/settings/ProxyForms";
+import Toast from "@components/notifications/Toast";
 
 interface ListItemProps {
   proxy: Proxy;
@@ -40,7 +38,6 @@ function ListItem({ proxy }: ListItemProps) {
       ...proxy,
       enabled: newState
     });
-    console.log("new state: ", newState)
   };
 
   return (
