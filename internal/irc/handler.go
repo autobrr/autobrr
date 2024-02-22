@@ -6,9 +6,9 @@ package irc
 import (
 	"crypto/tls"
 	"fmt"
-	"golang.org/x/exp/slices"
 	"golang.org/x/net/proxy"
 	"net/url"
+	"slices"
 	"strings"
 	"time"
 
@@ -1075,6 +1075,5 @@ func (h *Handler) ReportStatus(netw *domain.IrcNetworkWithHealth) {
 
 	netw.Healthy = channelsHealthy
 
-	// TODO with Go 1.21 this can moved from golang.org/x/exp/slices to built in slices:
 	netw.ConnectionErrors = slices.Clone(h.connectionErrors)
 }
