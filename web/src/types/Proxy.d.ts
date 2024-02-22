@@ -9,10 +9,9 @@ interface Proxy {
   enabled: boolean;
   type: ProxyType;
   addr: string;
-  // auth: Auth; // optional
   user?: string;
   pass?: string;
-  timeout: number;
+  timeout?: number;
 }
 
 interface ProxyCreate {
@@ -20,10 +19,9 @@ interface ProxyCreate {
   enabled: boolean;
   type: ProxyType;
   addr: string;
-  // auth: Auth; // optional
   user?: string;
   pass?: string;
-  timeout: number;
+  timeout?: number;
 }
 
 type ProxyType = "SOCKS5" | "SOCKS4" | "HTTP";

@@ -1,5 +1,5 @@
 import { useToggle } from "@hooks/hooks.ts";
-import { useSuspenseQuery } from "@tanstack/react-query";
+import { useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { ProxiesQueryOptions } from "@api/queries.ts";
 import { PlusIcon } from "@heroicons/react/24/solid";
 import { Section } from "./_components";
@@ -8,33 +8,45 @@ import { EmptySimple } from "@components/emptystates";
 // import toast from "react-hot-toast";
 // import Toast from "@components/notifications/Toast.tsx";
 import { Checkbox } from "@components/Checkbox.tsx";
-import { ProxyAddForm } from "@forms/settings/ProxyForms.tsx";
+import { ProxyAddForm, ProxyUpdateForm } from "@forms/settings/ProxyForms.tsx";
+import { APIClient } from "@api/APIClient.ts";
+import { ProxyKeys } from "@api/query_keys.ts";
+import { toast } from "react-hot-toast";
+import Toast from "@components/notifications/Toast.tsx";
 
 interface ListItemProps {
   proxy: Proxy;
 }
 
 function ListItem({ proxy }: ListItemProps) {
-  // const [updateIsOpen, toggleUpdate] = useToggle(false);
-  const [_, toggleUpdate] = useToggle(false);
+  const [isOpen, toggleUpdate] = useToggle(false);
 
-  // const queryClient = useQueryClient();
+  const queryClient = useQueryClient();
 
-  // const updateMutation = useMutation({
-  //   mutationFn: (enabled: boolean) => APIClient.proxy.toggleEnable(indexer.id, enabled),
-  //   onSuccess: () => {
-  //     queryClient.invalidateQueries({ queryKey: IndexerKeys.lists() });
-  //     toast.custom((t) => <Toast type="success" body={`${indexer.name} was updated successfully`} t={t} />);
-  //   }
-  // });
-  //
+  const updateMutation = useMutation({
+    mutationFn: (req: Proxy) => APIClient.proxy.update(req),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ProxyKeys.lists() });
+
+      toast.custom(t => <Toast type="success" body={`Proxy ${proxy.name} was ${proxy.enabled ? "enabled" : "disabled"} successfully.`} t={t} />);
+    },
+    onError: () => {
+      toast.custom((t) => <Toast type="error" body="Proxy state could not be updated" t={t} />);
+    }
+  });
+
   const onToggleMutation = (newState: boolean) => {
-    // updateMutation.mutate(newState);
+    updateMutation.mutate({
+      ...proxy,
+      enabled: newState
+    });
     console.log("new state: ", newState)
   };
-  return (
 
+  return (
     <li>
+      <ProxyUpdateForm isOpen={isOpen} toggle={toggleUpdate} data={proxy} />
+
       <div className="grid grid-cols-12 items-center py-1.5">
         <div className="col-span-2 sm:col-span-1 flex pl-1 sm:pl-5 items-center">
           <Checkbox value={proxy.enabled ?? false} setValue={onToggleMutation} />
@@ -43,7 +55,7 @@ function ListItem({ proxy }: ListItemProps) {
           {proxy.name}
         </div>
         <div className="hidden md:block col-span-2 pr-6 py-3 text-left items-center whitespace-nowrap text-sm text-gray-500 dark:text-gray-400 truncate">
-          {/*{ImplementationBadges[indexer.implementation]}*/}
+          {proxy.type}
         </div>
         <div className="col-span-1 flex first-letter:px-6 py-3 whitespace-nowrap text-right text-sm font-medium">
           <span

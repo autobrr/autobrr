@@ -2,17 +2,37 @@ import { Fragment } from "react";
 import { Form, Formik, FormikValues } from "formik";
 import { Dialog, Transition } from "@headlessui/react";
 import { XMarkIcon } from "@heroicons/react/24/solid";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { toast } from "react-hot-toast";
 
-import { AddProps } from "@forms/settings/IndexerForms.tsx";
+import { AddProps } from "@forms/settings/IndexerForms";
 import { DEBUG } from "@components/debug.tsx";
-import { SwitchGroupWide, TextFieldWide } from "@components/inputs";
-import { SelectFieldBasic } from "@components/inputs/select_wide.tsx";
-import { ProxyTypeOptions } from "@domain/constants.ts";
+import { PasswordFieldWide, SwitchGroupWide, TextFieldWide } from "@components/inputs";
+import { SelectFieldBasic } from "@components/inputs/select_wide";
+import { ProxyTypeOptions } from "@domain/constants";
+import { APIClient } from "@api/APIClient";
+import { ProxyKeys } from "@api/query_keys";
+import Toast from "@components/notifications/Toast";
+import { SlideOver } from "@components/panels";
 
 export function ProxyAddForm({ isOpen, toggle }: AddProps) {
+  const queryClient = useQueryClient();
+
+  const createMutation = useMutation({
+    mutationFn: (req: ProxyCreate) => APIClient.proxy.store(req),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ProxyKeys.lists() });
+
+      toast.custom((t) => <Toast type="success" body="Proxy added!" t={t} />);
+      toggle();
+    },
+    onError: () => {
+      toast.custom((t) => <Toast type="error" body="Proxy could not be added" t={t} />);
+    }
+  });
 
   const onSubmit = (formData: FormikValues) => {
-    console.log("form: ", formData)
+    createMutation.mutate(formData as ProxyCreate);
   }
 
   return (
@@ -83,13 +103,13 @@ export function ProxyAddForm({ isOpen, toggle }: AddProps) {
                               tooltip={<span>Proxy type. Commonly SOCKS5.</span>}
                               help="Usually SOCKS5"
                             />
-                          <TextFieldWide name="addr" label="Addr" required={true} help="Addr: ip:port or domain" autoComplete="off" />;
+                          <TextFieldWide name="addr" label="Addr" required={true} help="Addr: ip:port or domain" autoComplete="off" />
 
                         </div>
 
                         <div>
-                          <TextFieldWide name="user" label="User" help="auth: username" autoComplete="off" />;
-                          <TextFieldWide name="pass" label="Pass" help="auth: password" autoComplete="off" />;
+                          <TextFieldWide name="user" label="User" help="auth: username" autoComplete="off" />
+                          <PasswordFieldWide name="pass" label="Pass" help="auth: password" autoComplete="off"/>
                         </div>
                       </div>
 
@@ -123,5 +143,92 @@ export function ProxyAddForm({ isOpen, toggle }: AddProps) {
         </div>
       </Dialog>
     </Transition.Root>
+  );
+}
+
+
+interface UpdateFormProps<T> {
+  isOpen: boolean;
+  toggle: () => void;
+  data: T;
+}
+
+export function ProxyUpdateForm({ isOpen, toggle, data }: UpdateFormProps<Proxy>) {
+  const queryClient = useQueryClient();
+
+  const updateMutation = useMutation({
+    mutationFn: (req: Proxy) => APIClient.proxy.update(req),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ProxyKeys.lists() });
+
+      toast.custom((t) => <Toast type="success" body={`Proxy ${data.name} updated!`} t={t} />);
+      toggle();
+    },
+    onError: () => {
+      toast.custom((t) => <Toast type="error" body="Proxy could not be updated" t={t} />);
+    }
+  });
+
+  const onSubmit = (formData: unknown) => {
+    updateMutation.mutate(formData as Proxy);
+  }
+
+  const deleteMutation = useMutation({
+    mutationFn: (proxyId: number) => APIClient.proxy.delete(proxyId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ProxyKeys.lists() });
+
+      toast.custom((t) => <Toast type="success" body={`Proxy ${data.name} was deleted.`} t={t}/>);
+    }
+  });
+
+  const deleteFn = () => deleteMutation.mutate(data.id);
+
+  const initialValues: Proxy = {
+    id: data.id,
+    enabled: data.enabled,
+    name: data.name,
+    type: data.type,
+    addr: data.addr,
+    user: data.user,
+    pass: data.pass,
+  }
+
+  return (
+    <SlideOver<Proxy>
+      title="Proxy"
+      initialValues={initialValues}
+      onSubmit={onSubmit}
+      deleteAction={deleteFn}
+      isOpen={isOpen}
+      toggle={toggle}
+      type="UPDATE"
+    >
+      {() => (
+        <div>
+          <div className="py-6 space-y-4 divide-y divide-gray-200 dark:divide-gray-700">
+
+            <SwitchGroupWide name="enabled" label="Enabled"/>
+
+            <TextFieldWide name="name" label="Name" defaultValue="" required={true}/>
+
+            <SelectFieldBasic
+              name="type"
+              label="Proxy type"
+              options={ProxyTypeOptions}
+              tooltip={<span>Proxy type. Commonly SOCKS5.</span>}
+              help="Usually SOCKS5"
+            />
+
+            <TextFieldWide name="addr" label="Addr" required={true} help="Addr: ip:port or domain" autoComplete="off"/>
+          </div>
+
+          <div>
+            <TextFieldWide name="user" label="User" help="auth: username" autoComplete="off"/>
+            <PasswordFieldWide name="pass" label="Pass" help="auth: password" autoComplete="off"/>
+          </div>
+        </div>
+      )}
+    </SlideOver>
   );
 }

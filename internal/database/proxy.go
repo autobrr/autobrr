@@ -127,7 +127,7 @@ func (r *ProxyRepo) List(ctx context.Context) ([]domain.Proxy, error) {
 
 	defer rows.Close()
 
-	var proxies []domain.Proxy
+	proxies := make([]domain.Proxy, 0)
 	for rows.Next() {
 		var proxy domain.Proxy
 
