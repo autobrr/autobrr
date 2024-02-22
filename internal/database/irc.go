@@ -30,7 +30,7 @@ func NewIrcRepo(log logger.Logger, db *DB) domain.IrcRepo {
 
 func (r *IrcRepo) GetNetworkByID(ctx context.Context, id int64) (*domain.IrcNetwork, error) {
 	queryBuilder := r.db.squirrel.
-		Select("id", "enabled", "name", "server", "port", "tls", "pass", "nick", "auth_mechanism", "auth_account", "auth_password", "invite_command", "bouncer_addr", "use_bouncer", "bot_mode").
+		Select("id", "enabled", "name", "server", "port", "tls", "pass", "nick", "auth_mechanism", "auth_account", "auth_password", "invite_command", "bouncer_addr", "use_bouncer", "bot_mode", "use_proxy", "proxy_id").
 		From("irc_network").
 		Where(sq.Eq{"id": id})
 
