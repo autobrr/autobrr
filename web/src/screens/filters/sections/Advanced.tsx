@@ -15,11 +15,12 @@ import { classNames } from "@utils";
 // };
 
 const Releases = () => {
+
   const { values } = useFormikContext<Filter>();
 
   return (
     <CollapsibleSection
-      //defaultOpen={values.use_regex || values.match_releases !== "" || values.except_releases !== ""}
+      defaultOpen={values.use_regex || values.match_releases !== undefined || values.except_releases !== undefined}
       title="Release Names"
       subtitle="Match only certain release names and/or ignore other release names."
     >
@@ -97,11 +98,12 @@ const Releases = () => {
 }
 
 const Groups = () => {
-  // const { values } = useFormikContext<Filter>();
+
+  const { values } = useFormikContext<Filter>();
 
   return (
     <CollapsibleSection
-      //defaultOpen={values.match_release_groups !== "" || values.except_release_groups !== ""}
+      defaultOpen={values.match_release_groups !== undefined || values.except_release_groups !== undefined}
       title="Groups"
       subtitle="Match only certain groups and/or ignore other groups."
     >
@@ -134,11 +136,12 @@ const Groups = () => {
 }
 
 const Categories = () => {
-  // const { values } = useFormikContext<Filter>();
+
+  const { values } = useFormikContext<Filter>();
 
   return (
     <CollapsibleSection
-      //defaultOpen={values.match_categories.length >0 || values.except_categories !== ""}
+      defaultOpen={values.match_categories !== undefined || values.except_categories !== undefined}
       title="Categories"
       subtitle="Match or exclude categories (if announced)"
     >
@@ -171,11 +174,12 @@ const Categories = () => {
 }
 
 const Tags = () => {
-  // const { values } = useFormikContext<Filter>();
+
+  const { values } = useFormikContext<Filter>();
 
   return (
     <CollapsibleSection
-      //defaultOpen={values.tags !== "" || values.except_tags !== ""}
+      defaultOpen={values.tags !== undefined || values.except_tags !== undefined}
       title="Tags"
       subtitle="Match or exclude tags (if announced)"
     >
@@ -238,11 +242,12 @@ const Tags = () => {
 }
 
 const Uploaders = () => {
-  // const { values } = useFormikContext<Filter>();
+
+  const { values } = useFormikContext<Filter>();
 
   return (
     <CollapsibleSection
-      //defaultOpen={values.match_uploaders !== "" || values.except_uploaders !== ""}
+      defaultOpen={values.match_uploaders !== undefined || values.except_uploaders !== undefined}
       title="Uploaders"
       subtitle="Match or ignore uploaders (if announced)"
     >
@@ -276,11 +281,12 @@ const Uploaders = () => {
 }
 
 const Language = () => {
-  // const { values } = useFormikContext<Filter>();
+
+  const { values } = useFormikContext<Filter>();
 
   return (
     <CollapsibleSection
-      //defaultOpen={(values.match_language && values.match_language.length > 0) || (values.except_language && values.except_language.length > 0)}
+      defaultOpen={values.match_language?.length > 0 || values.except_language?.length > 0}
       title="Language"
       subtitle="Match or ignore languages (if announced)"
     >
@@ -301,11 +307,12 @@ const Language = () => {
 }
 
 const Origins = () => {
-  // const { values } = useFormikContext<Filter>();
+
+  const { values } = useFormikContext<Filter>();
 
   return (
     <CollapsibleSection
-      //defaultOpen={(values.origins && values.origins.length > 0 || values.except_origins && values.except_origins.length > 0)}
+      defaultOpen={values.origins?.length > 0 || values.except_origins?.length > 0}
       title="Origins"
       subtitle="Match Internals, Scene, P2P, etc. (if announced)"
     >
@@ -326,11 +333,12 @@ const Origins = () => {
 }
 
 const Freeleech = () => {
+
   const { values } = useFormikContext<Filter>();
 
   return (
     <CollapsibleSection
-      //defaultOpen={values.freeleech || values.freeleech_percent !== ""}
+      defaultOpen={values.freeleech || values.freeleech_percent !== undefined}
       title="Freeleech"
       subtitle="Match based off freeleech (if announced)"
     >
@@ -382,10 +390,20 @@ const Freeleech = () => {
 }
 
 const FeedSpecific = () => {
+
   const { values } = useFormikContext<Filter>();
+
   return (
     <CollapsibleSection
-      //defaultOpen={values.use_regex_description || values.match_description || values.except_description}
+      defaultOpen={
+        values.use_regex_description ||
+        values.match_description !== undefined ||
+        values.except_description !== undefined ||
+        values.min_seeders !== undefined ||
+        values.max_seeders !== undefined ||
+        values.min_leechers !== undefined ||
+        values.max_leechers !== undefined
+      }
       title="RSS/Torznab/Newznab-specific"
       subtitle={
         <>These options are <span className="font-bold">only</span> for Feeds such as RSS, Torznab and Newznab</>
@@ -479,11 +497,12 @@ const FeedSpecific = () => {
   );
 }
 const RawReleaseTags = () => {
+
   const { values } = useFormikContext<Filter>();
 
   return (
     <CollapsibleSection
-      //defaultOpen={values.use_regex_release_tags || values.match_release_tags || values.except_release_tags}
+      defaultOpen={values.use_regex_release_tags || values.match_release_tags !== undefined || values.except_release_tags !== undefined}
       title="Raw Release Tags"
       subtitle={
         <>
