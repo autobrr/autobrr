@@ -607,13 +607,14 @@ const ReprocessAnnounceButton = ({ networkId, channel, msg }: ReprocessAnnounceP
   };
 
   return (
-    <button className="flex items-center m-auto px-1.5 py-1 ml-2 rounded transition border-gray-500 bg-gray-250 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600" onClick={reprocessAnnounce} title="Re-process announce">
-      {/*<span className="mr-1.5">Retry</span>*/}
+    <div className="block">
+    <button className="flex items-center justify-center size-5 mr-1 p-1 rounded transition border-gray-500 bg-gray-250 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600" onClick={reprocessAnnounce} title="Re-process announce">
       {mutation.isPending
-        ? <RingResizeSpinner className="text-blue-500 w-4 h-4 iconHeight" aria-hidden="true" />
-        : <ArrowPathIcon className="h-4 w-4" />
+        ? <RingResizeSpinner className="text-blue-500 iconHeight" aria-hidden="true" />
+        : <ArrowPathIcon />
       }
     </button>
+    </div>
   );
 
 }
@@ -728,13 +729,15 @@ export const Events = ({ network, channel }: EventsProps) => {
             className={classNames(
               settings.indentLogLines ? "grid justify-start grid-flow-col" : "",
               settings.hideWrappedText ? "truncate hover:text-ellipsis hover:whitespace-normal" : "",
-              "flex hover:bg-gray-200 hover:dark:bg-gray-800"
+              "flex items-center hover:bg-gray-200 hover:dark:bg-gray-800"
             )}
           >
-            <span className="font-mono text-gray-500 dark:text-gray-500 mr-1">
-              <span className="dark:text-gray-600"><span className="dark:text-gray-700">[{simplifyDate(entry.time)}]</span> {entry.nick}:</span> {entry.msg}
-            </span>
             <ReprocessAnnounceButton networkId={network.id} channel={channel} msg={entry.msg} />
+            <div className="flex-1">
+              <span className="font-mono text-gray-500 dark:text-gray-500 mr-1">
+                <span className="dark:text-gray-600"><span className="dark:text-gray-700">[{simplifyDate(entry.time)}]</span> {entry.nick}:</span> {entry.msg}
+              </span>
+            </div>
           </div>
         ))}
       </div>
