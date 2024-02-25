@@ -14,7 +14,7 @@ import { classNames } from "@utils";
 
 interface TooltipProps {
   label: ReactNode;
-  onLabelClick?: (e: React.MouseEvent<HTMLDivElement>) => void;
+  onLabelClick?: (e: React.MouseEvent<HTMLDivElement> | React.TouchEvent<HTMLDivElement>) => void;
   title?: ReactNode;
   maxWidth?: string;
   requiresClick?: boolean;
@@ -36,9 +36,6 @@ export const Tooltip = ({
   const [isTooltipVisible, setIsTooltipVisible] = useState(false);
   const [tooltipNode, setTooltipNode] = useState<HTMLDivElement | null>(null);
   const [triggerNode, setTriggerNode] = useState<HTMLDivElement | null>(null);
-  const isTouchDevice = () => {
-    return 'ontouchstart' in window || navigator.maxTouchPoints > 0;
-  };
 
   // default tooltip placement to right
   const [placement, setPlacement] = useState<Placement>('right');
@@ -62,23 +59,17 @@ export const Tooltip = ({
     };
   }, []);
 
-
   const {
     getTooltipProps,
     setTooltipRef: popperSetTooltipRef,
     setTriggerRef: popperSetTriggerRef,
     visible
   } = usePopperTooltip({
-    trigger: isTouchDevice() ? [] : (requiresClick ? 'click' : ['click', 'hover']),
+    trigger: requiresClick ? 'click' : ['click', 'hover'],
     interactive: true,
     delayHide: 200,
     placement,
   });
-
-  const handleTouch = (e: React.TouchEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    setIsTooltipVisible(!isTooltipVisible);
-  };
 
   const setTooltipRef = (node: HTMLDivElement | null) => {
     popperSetTooltipRef(node);
@@ -90,16 +81,18 @@ export const Tooltip = ({
     setTriggerNode(node);
   };
 
-  const handleClickOutside = useCallback((event: TouchEvent) => {
+  const handleClickOutside = useCallback((event: MouseEvent | TouchEvent) => {
     if (tooltipNode && !tooltipNode.contains(event.target as Node) && triggerNode && !triggerNode.contains(event.target as Node)) {
       setIsTooltipVisible(false);
     }
   }, [tooltipNode, triggerNode]);
 
   useEffect(() => {
-    document.addEventListener('touchstart', handleClickOutside, true);
+    document.addEventListener('touchstart', handleClickOutside as EventListener, true);
+    document.addEventListener('mousedown', handleClickOutside as EventListener, true);
     return () => {
-      document.removeEventListener('touchstart', handleClickOutside, true);
+      document.removeEventListener('touchstart', handleClickOutside as EventListener, true);
+      document.removeEventListener('mousedown', handleClickOutside as EventListener, true);
     };
   }, [handleClickOutside, tooltipNode, triggerNode]);
 
@@ -109,16 +102,15 @@ export const Tooltip = ({
         ref={setTriggerRef}
         className="truncate"
         onClick={(e) => {
-          if (!isTouchDevice() && !visible) {
+          if (!visible) {
             onLabelClick?.(e);
           }
         }}
-        onTouchStart={isTouchDevice() ? handleTouch : undefined}
       >
         {label}
       </div>
       <Transition
-        show={isTouchDevice() ? isTooltipVisible : visible}
+        show={isTooltipVisible || visible}
         className="z-10"
         enter="transition duration-200 ease-out"
         enterFrom="opacity-0"
@@ -134,7 +126,7 @@ export const Tooltip = ({
               maxWidth,
               "rounded-md border border-gray-300 text-black text-xs normal-case tracking-normal font-normal shadow-lg dark:text-white dark:border-gray-700 dark:shadow-2xl"
             ),
-            onClick: (e: React.MouseEvent) => e.stopPropagation()
+            onClick: (e: React.MouseEvent | React.TouchEvent) => e.stopPropagation()
           })}
         >
           {title ? (
