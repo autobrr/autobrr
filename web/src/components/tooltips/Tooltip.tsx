@@ -1,8 +1,3 @@
-/*
- * Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
- * SPDX-License-Identifier: GPL-2.0-or-later
- */
-
 import React, { useState, useCallback, useEffect } from 'react';
 import type { ReactNode } from 'react';
 
@@ -14,7 +9,6 @@ import { classNames } from "@utils";
 
 interface TooltipProps {
   label: ReactNode;
-  onLabelClick?: (e: React.MouseEvent<HTMLDivElement> | React.TouchEvent<HTMLDivElement>) => void;
   title?: ReactNode;
   maxWidth?: string;
   requiresClick?: boolean;
@@ -27,7 +21,6 @@ interface TooltipProps {
 
 export const Tooltip = ({
   label,
-  onLabelClick,
   title,
   children,
   requiresClick,
@@ -71,6 +64,16 @@ export const Tooltip = ({
     placement,
   });
 
+  const handleClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setIsTooltipVisible(!isTooltipVisible);
+  };
+
+  const handleTouch = (e: React.TouchEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setIsTooltipVisible(!isTooltipVisible);
+  };
+
   const setTooltipRef = (node: HTMLDivElement | null) => {
     popperSetTooltipRef(node);
     setTooltipNode(node);
@@ -94,18 +97,15 @@ export const Tooltip = ({
       document.removeEventListener('touchstart', handleClickOutside as EventListener, true);
       document.removeEventListener('mousedown', handleClickOutside as EventListener, true);
     };
-  }, [handleClickOutside, tooltipNode, triggerNode]);
+  }, [handleClickOutside]);
 
   return (
     <>
       <div
         ref={setTriggerRef}
         className="truncate"
-        onClick={(e) => {
-          if (!visible) {
-            onLabelClick?.(e);
-          }
-        }}
+        onClick={handleClick}
+        onTouchStart={handleTouch}
       >
         {label}
       </div>
@@ -126,7 +126,7 @@ export const Tooltip = ({
               maxWidth,
               "rounded-md border border-gray-300 text-black text-xs normal-case tracking-normal font-normal shadow-lg dark:text-white dark:border-gray-700 dark:shadow-2xl"
             ),
-            onClick: (e: React.MouseEvent | React.TouchEvent) => e.stopPropagation()
+            onClick: (e: React.MouseEvent) => e.stopPropagation()
           })}
         >
           {title ? (
