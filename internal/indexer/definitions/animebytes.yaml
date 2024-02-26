@@ -21,7 +21,7 @@ settings:
 
 irc:
   network: AnimeBytes-IRC
-  server: irc.animebytes.tv
+  server: irc.animefriends.moe
   port: 7000
   tls: true
   channels:
