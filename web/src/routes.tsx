@@ -30,7 +30,7 @@ import {
   FilterByIdQueryOptions,
   IndexersQueryOptions,
   IrcQueryOptions,
-  NotificationsQueryOptions
+  NotificationsQueryOptions, ProxiesQueryOptions
 } from "@api/queries";
 import LogSettings from "@screens/settings/Logs";
 import NotificationSettings from "@screens/settings/Notifications";
@@ -50,6 +50,7 @@ import { AuthContext, AuthCtx, localStorageUserKey, SettingsContext } from "@uti
 import { TanStackRouterDevtools } from "@tanstack/router-devtools";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { queryClient } from "@api/QueryClient";
+import ProxySettings from "@screens/settings/Proxy.tsx";
 
 const DashboardRoute = createRoute({
   getParentRoute: () => AuthIndexRoute,
@@ -217,6 +218,13 @@ export const SettingsApiRoute = createRoute({
   component: APISettings
 });
 
+export const SettingsProxiesRoute = createRoute({
+  getParentRoute: () => SettingsRoute,
+  path: 'proxies',
+  loader: (opts) => opts.context.queryClient.ensureQueryData(ProxiesQueryOptions()),
+  component: ProxySettings
+});
+
 export const SettingsReleasesRoute = createRoute({
   getParentRoute: () => SettingsRoute,
   path: 'releases',
@@ -353,7 +361,7 @@ export const RootRoute = createRootRouteWithContext<{
 });
 
 const filterRouteTree = FiltersRoute.addChildren([FilterIndexRoute, FilterGetByIdRoute.addChildren([FilterGeneralRoute, FilterMoviesTvRoute, FilterMusicRoute, FilterAdvancedRoute, FilterExternalRoute, FilterActionsRoute])])
-const settingsRouteTree = SettingsRoute.addChildren([SettingsIndexRoute, SettingsLogRoute, SettingsIndexersRoute, SettingsIrcRoute, SettingsFeedsRoute, SettingsClientsRoute, SettingsNotificationsRoute, SettingsApiRoute, SettingsReleasesRoute, SettingsAccountRoute])
+const settingsRouteTree = SettingsRoute.addChildren([SettingsIndexRoute, SettingsLogRoute, SettingsIndexersRoute, SettingsIrcRoute, SettingsFeedsRoute, SettingsClientsRoute, SettingsNotificationsRoute, SettingsApiRoute, SettingsProxiesRoute, SettingsReleasesRoute, SettingsAccountRoute])
 const authenticatedTree = AuthRoute.addChildren([AuthIndexRoute.addChildren([DashboardRoute, filterRouteTree, ReleasesRoute.addChildren([ReleasesIndexRoute]), settingsRouteTree, LogsRoute])])
 const routeTree = RootRoute.addChildren([
   authenticatedTree,

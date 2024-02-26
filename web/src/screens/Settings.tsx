@@ -8,6 +8,7 @@ import {
   ChatBubbleLeftRightIcon,
   CogIcon,
   FolderArrowDownIcon,
+  GlobeAltIcon,
   KeyIcon,
   RectangleStackIcon,
   RssIcon,
@@ -34,6 +35,7 @@ const subNavigation: NavTabType[] = [
   { name: "Clients", href: "clients", icon: FolderArrowDownIcon },
   { name: "Notifications", href: "notifications", icon: BellIcon },
   { name: "API keys", href: "api", icon: KeyIcon },
+  { name: "Proxies", href: "proxies", icon: GlobeAltIcon },
   { name: "Releases", href: "releases", icon: RectangleStackIcon },
   { name: "Account", href: "account", icon: UserCircleIcon }
   // {name: 'Regex Playground', href: 'regex-playground', icon: CogIcon, current: false}
