@@ -451,10 +451,25 @@ func (r *Release) downloadTorrentFile(ctx context.Context) error {
 		req.Header.Set("Cookie", r.RawCookie)
 	}
 
+	tmpFilePattern := "autobrr-"
+	tmpDir := os.TempDir()
+
 	// Create tmp file
-	tmpFile, err := os.CreateTemp("", "autobrr-")
+	tmpFile, err := os.CreateTemp(tmpDir, tmpFilePattern)
 	if err != nil {
-		return errors.Wrap(err, "error creating tmp file")
+		// inverse the err check to make it a bit cleaner
+		if !errors.Is(err, os.ErrNotExist) {
+			return errors.Wrap(err, "error creating tmp file")
+		}
+
+		if mkdirErr := os.MkdirAll(tmpDir, os.ModePerm); mkdirErr != nil {
+			return errors.Wrap(mkdirErr, "could not create TMP dir: %s", tmpDir)
+		}
+
+		tmpFile, err = os.CreateTemp(tmpDir, tmpFilePattern)
+		if err != nil {
+			return errors.Wrap(err, "error creating tmp file in: %s", tmpDir)
+		}
 	}
 	defer tmpFile.Close()
 
