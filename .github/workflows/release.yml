@@ -11,7 +11,7 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  REGISTRY_IMAGE: ghcr.io/autobrr/autobrr
+  REGISTRY_IMAGE: ghcr.io/${{ github.repository }}
 
 permissions:
   contents: write
@@ -79,7 +79,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.20.12'
+          go-version: '1.22.0'
           cache: true
 
       - name: Test
@@ -111,7 +111,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.20.12'
+          go-version: '1.22.0'
           cache: true
 
       - name: Run GoReleaser build
@@ -213,7 +213,7 @@ jobs:
           context: .
           file: ./ci.Dockerfile
           platforms: ${{ matrix.platform }}
-          outputs: type=image,name=${{ env.REGISTRY_IMAGE }},push-by-digest=true,name-canonical=true,push=${{ (github.event.pull_request.head.repo.full_name == 'autobrr/autobrr' || github.event_name != 'pull_request') && 'true' || 'false' }}
+          outputs: type=image,name=${{ env.REGISTRY_IMAGE }},push-by-digest=true,name-canonical=true,push=${{ (github.event.pull_request.head.repo.full_name == github.repository || github.event_name != 'pull_request') && 'true' || 'false' }}
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
             BUILDTIME=${{ fromJSON(steps.meta.outputs.json).labels['org.opencontainers.image.created'] }}
@@ -241,7 +241,7 @@ jobs:
 
   docker-merge:
     name: Publish Docker multi-arch manifest
-    if: ${{ github.event.pull_request.head.repo.full_name == 'autobrr/autobrr' || github.event_name != 'pull_request' }}
+    if: ${{ github.event.pull_request.head.repo.full_name == github.repository || github.event_name != 'pull_request' }}
     runs-on: ubuntu-latest
     needs: [docker, test]
     steps:

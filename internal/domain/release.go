@@ -12,7 +12,6 @@ import (
 	"net/http"
 	"net/http/cookiejar"
 	"os"
-	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -75,6 +74,8 @@ type Release struct {
 	HDR                         []string              `json:"hdr"`
 	Audio                       []string              `json:"-"`
 	AudioChannels               string                `json:"-"`
+	AudioFormat                 string                `json:"-"`
+	Bitrate                     string                `json:"-"`
 	Group                       string                `json:"group"`
 	Region                      string                `json:"-"`
 	Language                    []string              `json:"-"`
@@ -84,6 +85,8 @@ type Release struct {
 	Artists                     string                `json:"-"`
 	Type                        string                `json:"type"` // Album,Single,EP
 	LogScore                    int                   `json:"-"`
+	HasCue                      bool                  `json:"-"`
+	HasLog                      bool                  `json:"-"`
 	Origin                      string                `json:"origin"` // P2P, Internal
 	Tags                        []string              `json:"-"`
 	ReleaseTags                 string                `json:"-"`
@@ -100,6 +103,10 @@ type Release struct {
 	FilterID                    int                   `json:"-"`
 	Filter                      *Filter               `json:"-"`
 	ActionStatus                []ReleaseActionStatus `json:"action_status"`
+}
+
+func (r *Release) Raw(s string) rls.Release {
+	return rls.ParseString(s)
 }
 
 type ReleaseActionStatus struct {
@@ -289,6 +296,8 @@ func NewRelease(indexer string) *Release {
 func (r *Release) ParseString(title string) {
 	rel := rls.ParseString(title)
 
+	r.Type = rel.Type.String()
+
 	r.TorrentName = title
 	r.Source = rel.Source
 	r.Resolution = rel.Resolution
@@ -327,18 +336,40 @@ func (r *Release) ParseString(title string) {
 var ErrUnrecoverableError = errors.New("unrecoverable error")
 
 func (r *Release) ParseReleaseTagsString(tags string) {
-	// trim delimiters and closest space
-	re := regexp.MustCompile(`\| |/ |, `)
-	cleanTags := re.ReplaceAllString(tags, "")
-
+	cleanTags := CleanReleaseTags(tags)
 	t := ParseReleaseTagString(cleanTags)
 
 	if len(t.Audio) > 0 {
-		r.Audio = getUniqueTags(r.Audio, t.Audio)
+		//r.Audio = getUniqueTags(r.Audio, t.Audio)
+		r.Audio = t.Audio
+	}
+
+	if t.AudioBitrate != "" {
+		r.Bitrate = t.AudioBitrate
+	}
+
+	if t.AudioFormat != "" {
+		r.AudioFormat = t.AudioFormat
+	}
+
+	if r.AudioChannels == "" && t.Channels != "" {
+		r.AudioChannels = t.Channels
+	}
+
+	if t.HasLog {
+		r.HasLog = true
+
+		if t.LogScore > 0 {
+			r.LogScore = t.LogScore
+		}
+	}
+
+	if t.HasCue {
+		r.HasCue = true
 	}
 
 	if len(t.Bonus) > 0 {
-		if sliceContainsSlice([]string{"Freeleech"}, t.Bonus) {
+		if sliceContainsSlice([]string{"Freeleech", "Freeleech!"}, t.Bonus) {
 			r.Freeleech = true
 		}
 		// TODO handle percent and other types
@@ -362,9 +393,6 @@ func (r *Release) ParseReleaseTagsString(tags string) {
 	}
 	if r.Source == "" && t.Source != "" {
 		r.Source = t.Source
-	}
-	if r.AudioChannels == "" && t.Channels != "" {
-		r.AudioChannels = t.Channels
 	}
 }
 
@@ -423,10 +451,25 @@ func (r *Release) downloadTorrentFile(ctx context.Context) error {
 		req.Header.Set("Cookie", r.RawCookie)
 	}
 
+	tmpFilePattern := "autobrr-"
+	tmpDir := os.TempDir()
+
 	// Create tmp file
-	tmpFile, err := os.CreateTemp("", "autobrr-")
+	tmpFile, err := os.CreateTemp(tmpDir, tmpFilePattern)
 	if err != nil {
-		return errors.Wrap(err, "error creating tmp file")
+		// inverse the err check to make it a bit cleaner
+		if !errors.Is(err, os.ErrNotExist) {
+			return errors.Wrap(err, "error creating tmp file")
+		}
+
+		if mkdirErr := os.MkdirAll(tmpDir, os.ModePerm); mkdirErr != nil {
+			return errors.Wrap(mkdirErr, "could not create TMP dir: %s", tmpDir)
+		}
+
+		tmpFile, err = os.CreateTemp(tmpDir, tmpFilePattern)
+		if err != nil {
+			return errors.Wrap(err, "error creating tmp file in: %s", tmpDir)
+		}
 	}
 	defer tmpFile.Close()
 
@@ -631,7 +674,7 @@ func (r *Release) MapVars(def *IndexerDefinition, varMap map[string]string) erro
 	}
 
 	if freeleech, err := getStringMapValue(varMap, "freeleech"); err == nil {
-		fl := StringEqualFoldMulti(freeleech, "freeleech", "freeleech!", "yes", "1", "VIP")
+		fl := StringEqualFoldMulti(freeleech, "1", "free", "freeleech", "freeleech!", "yes", "VIP")
 		if fl {
 			r.Freeleech = true
 			// default to 100 and override if freeleechPercent is present in next function

@@ -335,11 +335,14 @@ func TestIRCParserOrpheus_Parse(t *testing.T) {
 				rls: NewRelease("ops"),
 				vars: map[string]string{
 					"torrentName": "Busta Rhymes – BEACH BALL (feat. BIA) – [2023] [Single] WEB/FLAC/24bit Lossless",
+					"title":       "Busta Rhymes – BEACH BALL (feat. BIA)",
+					"year":        "2023",
+					"releaseTags": "WEB/FLAC/24bit Lossless",
 				},
 			},
 			want: want{
 				title:   "BEACH BALL",
-				release: "Busta Rhymes - BEACH BALL (feat. BIA) - [2023] [Single] WEB/FLAC/24bit Lossless",
+				release: "Busta Rhymes - BEACH BALL (feat. BIA) [2023] (WEB FLAC 24BIT Lossless)",
 			},
 		},
 		{
@@ -348,11 +351,14 @@ func TestIRCParserOrpheus_Parse(t *testing.T) {
 				rls: NewRelease("ops"),
 				vars: map[string]string{
 					"torrentName": "Busta Rhymes – BEACH BALL (feat. BIA) – [2023] [Single] CD/FLAC/Lossless",
+					"title":       "Busta Rhymes – BEACH BALL (feat. BIA)",
+					"year":        "2023",
+					"releaseTags": "CD/FLAC/Lossless",
 				},
 			},
 			want: want{
 				title:   "BEACH BALL",
-				release: "Busta Rhymes - BEACH BALL (feat. BIA) - [2023] [Single] CD/FLAC/Lossless",
+				release: "Busta Rhymes - BEACH BALL (feat. BIA) [2023] (CD FLAC Lossless)",
 			},
 		},
 	}

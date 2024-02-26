@@ -17,6 +17,7 @@ import (
 	"github.com/autobrr/autobrr/internal/logger"
 	"github.com/autobrr/autobrr/internal/scheduler"
 	"github.com/autobrr/autobrr/pkg/errors"
+	"github.com/autobrr/autobrr/pkg/sanitize"
 
 	"github.com/gosimple/slug"
 	"github.com/rs/zerolog"
@@ -78,6 +79,13 @@ func NewService(log logger.Logger, config *domain.Config, repo domain.IndexerRep
 }
 
 func (s *service) Store(ctx context.Context, indexer domain.Indexer) (*domain.Indexer, error) {
+	// sanitize user input
+	indexer.Name = sanitize.String(indexer.Name)
+
+	for key, val := range indexer.Settings {
+		indexer.Settings[key] = sanitize.String(val)
+	}
+
 	// if indexer is rss or torznab do additional cleanup for identifier
 	if isImplFeed(indexer.Implementation) {
 		// make lowercase
@@ -103,6 +111,13 @@ func (s *service) Store(ctx context.Context, indexer domain.Indexer) (*domain.In
 }
 
 func (s *service) Update(ctx context.Context, indexer domain.Indexer) (*domain.Indexer, error) {
+	// sanitize user input
+	indexer.Name = sanitize.String(indexer.Name)
+
+	for key, val := range indexer.Settings {
+		indexer.Settings[key] = sanitize.String(val)
+	}
+
 	i, err := s.repo.Update(ctx, indexer)
 	if err != nil {
 		s.log.Error().Err(err).Msgf("could not update indexer: %+v", indexer)
@@ -516,6 +531,46 @@ func (s *service) LoadIndexerDefinitions() error {
 	return nil
 }
 
+var ErrIndexerDefinitionDeprecated = errors.New("DEPRECATED: indexer definition version")
+
+func isValidExtension(ext string) bool {
+	return ext == ".yaml" || ext == ".yml"
+}
+
+func OpenAndProcessDefinition(file string) (*domain.IndexerDefinition, error) {
+	f, err := os.Open(file)
+	if err != nil {
+		return nil, errors.Wrap(err, "could not open file: %s", file)
+	}
+	defer f.Close()
+
+	var d *domain.IndexerDefinitionCustom
+
+	dec := yaml.NewDecoder(f)
+	dec.KnownFields(false)
+
+	if err = dec.Decode(&d); err != nil {
+		return nil, errors.Wrap(err, "could not decode definition file: %s", file)
+	}
+
+	if d == nil {
+		//s.log.Warn().Msgf("skipping empty file: %s", file)
+		return nil, errors.New("empty definition file")
+	}
+
+	if d.Implementation == "" {
+		d.Implementation = "irc"
+	}
+
+	//if d.Implementation == "irc" && d.IRC != nil {
+	//	if d.IRC.Parse == nil {
+	//		s.log.Warn().Msgf("DEPRECATED: indexer definition version: %s", file)
+	//	}
+	//}
+
+	return d.ToIndexerDefinition(), nil
+}
+
 // LoadCustomIndexerDefinitions load definitions from custom path
 func (s *service) LoadCustomIndexerDefinitions() error {
 	if s.config.CustomDefinitions == "" {
@@ -539,51 +594,23 @@ func (s *service) LoadCustomIndexerDefinitions() error {
 	customCount := 0
 
 	for _, f := range entries {
-		fileExtension := filepath.Ext(f.Name())
-		if fileExtension != ".yaml" && fileExtension != ".yml" {
-			s.log.Warn().Stack().Msgf("skipping unknown extension definition file: %s", f.Name())
+		ext := filepath.Ext(f.Name())
+		if !isValidExtension(ext) {
+			s.log.Warn().Msgf("unsupported extension %s, definition file: %s", ext, f.Name())
 			continue
 		}
 
 		file := filepath.Join(s.config.CustomDefinitions, f.Name())
 
-		s.log.Trace().Msgf("parsing custom: %s", file)
+		s.log.Trace().Msgf("parsing custom definition: %s", file)
 
-		data, err := os.ReadFile(file)
+		definition, err := OpenAndProcessDefinition(file)
 		if err != nil {
-			s.log.Error().Stack().Err(err).Msgf("failed reading file: %s", file)
-			return errors.Wrap(err, "could not read file: %s", file)
-		}
-
-		var d *domain.IndexerDefinitionCustom
-		dec := yaml.NewDecoder(bytes.NewReader(data))
-		// Do _not_ fail on unknown fields while parsing custom indexer
-		// definitions for better backwards compatibility. See discussion:
-		// https://github.com/autobrr/autobrr/pull/1257#issuecomment-1813821391
-		dec.KnownFields(false)
-
-		if err = dec.Decode(&d); err != nil {
-			s.log.Error().Stack().Err(err).Msgf("failed unmarshal file: %s", file)
-			return errors.Wrap(err, "could not unmarshal file: %s", file)
-		}
-
-		if d == nil {
-			s.log.Warn().Msgf("skipping empty file: %s", file)
+			s.log.Error().Err(err).Msgf("could not open definition file: %s", file)
 			continue
 		}
 
-		if d.Implementation == "" {
-			d.Implementation = "irc"
-		}
-
-		// to prevent crashing from non-updated definitions lets skip
-		if d.Implementation == "irc" && d.IRC != nil {
-			if d.IRC.Parse == nil {
-				s.log.Warn().Msgf("DEPRECATED: indexer definition version: %s", file)
-			}
-		}
-
-		s.definitions[d.Identifier] = *d.ToIndexerDefinition()
+		s.definitions[definition.Identifier] = *definition
 
 		customCount++
 	}

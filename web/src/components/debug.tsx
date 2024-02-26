@@ -23,3 +23,11 @@ export const DEBUG: FC<DebugProps> = ({ values }) => {
     </div>
   );
 };
+
+export function LogDebug(...data: any[]): void {
+  if (process.env.NODE_ENV !== "development") {
+    return;
+  }
+
+  console.log(...data)
+}

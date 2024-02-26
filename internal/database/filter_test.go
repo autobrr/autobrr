@@ -205,11 +205,10 @@ func TestFilterRepo_Delete(t *testing.T) {
 			err = repo.Delete(context.Background(), createdFilters[0].ID)
 			assert.NoError(t, err)
 
-			// Verify that the filter is deleted
+			// Verify that the filter is deleted and return error ErrRecordNotFound
 			filter, err := repo.FindByID(context.Background(), createdFilters[0].ID)
-			assert.NoError(t, err)
-			assert.NotNil(t, filter)
-			assert.Equal(t, 0, filter.ID)
+			assert.ErrorIs(t, err, domain.ErrRecordNotFound)
+			assert.Nil(t, filter)
 		})
 
 		t.Run(fmt.Sprintf("Delete_Fails_No_Record [%s]", dbType), func(t *testing.T) {
@@ -451,12 +450,11 @@ func TestFilterRepo_FindByID(t *testing.T) {
 			_ = repo.Delete(context.Background(), createdFilters[0].ID)
 		})
 
-		// TODO: This should succeed, but it fails because we are not handling the error correctly. Fix this.
 		t.Run(fmt.Sprintf("FindByID_Fails_Invalid_ID [%s]", dbType), func(t *testing.T) {
 			// Test using an invalid ID
 			filter, err := repo.FindByID(context.Background(), -1)
-			assert.NoError(t, err)   // should return an error
-			assert.NotNil(t, filter) // should be nil
+			assert.ErrorIs(t, err, domain.ErrRecordNotFound) // should return an error
+			assert.Nil(t, filter)                            // should be nil
 		})
 
 	}

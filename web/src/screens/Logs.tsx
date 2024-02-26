@@ -23,7 +23,6 @@ import { EmptySimple } from "@components/emptystates";
 import { RingResizeSpinner } from "@components/Icons";
 import Toast from "@components/notifications/Toast";
 
-
 type LogEvent = {
   time: string;
   level: string;
@@ -182,7 +181,7 @@ export const LogFiles = () => {
   });
 
   if (isError) {
-    console.log(error);
+    console.log("could not load log files", error);
   }
 
   return (
@@ -194,7 +193,7 @@ export const LogFiles = () => {
         </p>
       </div>
 
-      {data && data.files.length > 0 ? (
+      {data && data.files && data.files.length > 0 ? (
         <ul className="py-3 min-w-full relative">
           <li className="grid grid-cols-12 mb-2 border-b border-gray-200 dark:border-gray-700">
             <div className="hidden sm:block col-span-5 px-2 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">

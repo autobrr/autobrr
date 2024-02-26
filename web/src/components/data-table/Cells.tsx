@@ -9,7 +9,6 @@ import { formatDistanceToNowStrict } from "date-fns";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { CellProps } from "react-table";
 import { ArrowPathIcon, CheckIcon } from "@heroicons/react/24/solid";
-import { ExternalLink } from "../ExternalLink";
 import {
   ClockIcon,
   XMarkIcon,
@@ -19,8 +18,9 @@ import {
 } from "@heroicons/react/24/outline";
 
 import { APIClient } from "@api/APIClient";
-import {classNames, humanFileSize, simplifyDate} from "@utils";
-import { filterKeys } from "@screens/filters/List";
+import { FilterKeys } from "@api/query_keys";
+import { classNames, humanFileSize, simplifyDate } from "@utils";
+import { ExternalLink } from "../ExternalLink";
 import Toast from "@components/notifications/Toast";
 import { RingResizeSpinner } from "@components/Icons";
 import { Tooltip } from "@components/tooltips/Tooltip";
@@ -164,7 +164,7 @@ const RetryActionButton = ({ status }: RetryActionButtonProps) => {
     mutationFn: (vars: RetryAction) => APIClient.release.replayAction(vars.releaseId, vars.actionId),
     onSuccess: () => {
       // Invalidate filters just in case, most likely not necessary but can't hurt.
-      queryClient.invalidateQueries({ queryKey: filterKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: FilterKeys.lists() });
 
       toast.custom((t) => (
         <Toast type="success" body={`${status?.action} replayed`} t={t} />

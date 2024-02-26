@@ -8,8 +8,8 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "react-hot-toast";
 
 import { APIClient } from "@api/APIClient";
+import { ReleaseKeys } from "@api/query_keys";
 import Toast from "@components/notifications/Toast";
-import { releaseKeys } from "@screens/releases/ReleaseTable";
 import { useToggle } from "@hooks/hooks";
 import { DeleteModal } from "@components/modals";
 import { Section } from "./_components";
@@ -74,7 +74,7 @@ function DeleteReleases() {
       }
 
       // Invalidate filters just in case, most likely not necessary but can't hurt.
-      queryClient.invalidateQueries({ queryKey: releaseKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: ReleaseKeys.lists() });
     }
   });
 
