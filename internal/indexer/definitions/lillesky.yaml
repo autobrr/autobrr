@@ -1,0 +1,92 @@
+---
+#id: lillesky
+name: LilleSky
+identifier: lillesky
+description: LilleSky is a private torrent tracker for HD MOVIES / TV / 0DAY / GENERAL
+language: en-us
+urls:
+  - https://lillesky.org/
+privacy: private
+protocol: torrent
+supports:
+  - irc
+  - rss
+# source: UNIT3D
+settings:
+  - name: rsskey
+    type: secret
+    required: true
+    label: RSS key
+    help: "Go to Settings -> RSS Key, copy RSS Key (RID)"
+
+irc:
+  network: LilleSky
+  server: irc.lillesky.org
+  port: 6697
+  tls: true
+  channels:
+    - "#announce"
+  announcers:
+    - Lillesky
+  settings:
+    - name: nick
+      type: text
+      required: true
+      label: Nick
+      help: Bot nick. Eg. user_bot
+
+    - name: auth.account
+      type: text
+      required: false
+      label: NickServ Account
+      help: NickServ account. Make sure to group your user and bot.
+
+    - name: auth.password
+      type: secret
+      required: false
+      label: NickServ Password
+      help: NickServ password
+
+  parse:
+    type: multi
+    lines:
+      - tests:
+          - line: "[NEW UPLOAD]  Best.game.ever.3-GROUP - [Uploader: Lillesky ]"
+            expect:
+              torrentName: Best.game.ever.3-GROUP
+              uploader: Lillesky
+        pattern: '^\[NEW UPLOAD\]  (.*) - \[Uploader: (.*) \]'
+        vars:
+          - torrentName
+          - uploader
+      - tests:
+          - line: '[ - iN GAMES] ]  [Type: WINDOWS] ] - [Size:10.73 GiB]'
+            expect:
+              category: GAMES
+              tags: WINDOWS
+              torrentSize: 10.83 GiB
+        pattern: '^\[ - iN (.*) \] \] \[Type: ()\] \] - \[Size:(.*)\]'
+        vars:
+          - category
+          - tags
+          - torrentSize
+      - tests:
+          - line: 'Get it Here: https://lillesky.org/torrents/252]'
+            expect:
+              baseUrl: https://lillesky.org/
+              torrentId: "252"
+        pattern: '^Get it Here: (https:\/\/.+\/)torrents\/(\d+))\]'
+        vars:
+          - baseUrl
+          - torrentId
+      - tests:
+          - line: 'PRE » NFO » Best.game.ever.3-GROUP @ 2024-02-27T17:43:29 with 77F & 10966MB » pred 9m 40s ago » in 11 sites'
+            expect:
+              preTime: "9m 40s"
+        pattern: '.* (?:pred\s(.*)\sago )?'
+        vars:
+          - preTime
+
+    match:
+      infourl: "/torrents/{{ .torrentId }}"
+      torrenturl: "/torrent/download/{{ .torrentId }}.{{ .rsskey }}"
