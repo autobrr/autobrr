@@ -65,7 +65,7 @@ irc:
               category: GAMES
               tags: WINDOWS
               torrentSize: 10.83 GiB
-        pattern: '^\[ - iN (.*) \] \] \[Type: ()\] \] - \[Size:(.*)\]'
+        pattern: '^\[ - iN (.*)\] \]  \[Type: (.*)\] \] - \[Size:(.*)\]'
         vars:
           - category
           - tags
