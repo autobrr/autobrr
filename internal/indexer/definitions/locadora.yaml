@@ -63,7 +63,7 @@ irc:
             freeleechPercent: 100%
             internal: "1"
             tags: "39513"
-        pattern: '\[(.+)\] \[(.+)\] \[(.+)\] \[(.+?)\] \[(https?\:\/\/.+\/).+\/(\d+)\] \[(.+?)\] \[(.+?)\] \[Internal:(\d+)\] \[[a-z].*-(\d+)\]'
+        pattern: '\[(.+)\] \[(.+)\] \[(.+)\] \[(.+?)\] \[(https?\:\/\/.+\/).+\/(\d+)\] \[(.+?)\] \[(.+?)\] \[Internal:(\d)\] \[[a-z]+-(\d+)\]'
         vars:
           - category
           - releaseTags
