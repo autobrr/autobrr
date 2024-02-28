@@ -64,18 +64,18 @@ irc:
             expect:
               category: GAMES
               tags: WINDOWS
-              torrentSize: 10.83 GiB
-        pattern: '^\[ - iN (.*)\] \]  \[Type: (.*)\] \] - \[Size:(.*)\]'
+              torrentSize: "10.83 GiB"
+        pattern: '^\[ - iN (.*)\]  \[Type: (.*)\] - \[Size:(.*)\]'
         vars:
           - category
           - tags
           - torrentSize
       - tests:
-          - line: 'Get it Here: https://lillesky.org/torrents/252]'
+          - line: 'Get it Here: https://lillesky.org/torrents/252'
             expect:
               baseUrl: https://lillesky.org/
               torrentId: "252"
-        pattern: '^Get it Here: (https:\/\/.+\/)torrents\/(\d+))\]'
+        pattern: '^Get it Here: (https:\/\/.+\/)torrents\/(\d+)'
         vars:
           - baseUrl
           - torrentId
