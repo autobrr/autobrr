@@ -60,7 +60,7 @@ irc:
           - torrentName
           - uploader
       - tests:
-          - line: '[ - iN GAMES] ]  [Type: WINDOWS] ] - [Size:10.73 GiB]'
+          - line: '[ - iN GAMES]  [Type: WINDOWS] - [Size:10.73 GiB]'
             expect:
               category: GAMES
               tags: WINDOWS
