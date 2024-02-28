@@ -71,7 +71,7 @@ func (db *DB) migratePostgres() error {
 		}
 	} else {
 		for i := version; i < len(postgresMigrations); i++ {
-			db.log.Info().Msgf("Upgrading Database schema to version: %v", i)
+			db.log.Info().Msgf("Upgrading Database schema to version: %v", len(postgresMigrations))
 			if _, err := tx.Exec(postgresMigrations[i]); err != nil {
 				return errors.Wrap(err, "failed to execute migration #%v", i)
 			}
