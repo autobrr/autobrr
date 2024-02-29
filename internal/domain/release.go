@@ -451,10 +451,25 @@ func (r *Release) downloadTorrentFile(ctx context.Context) error {
 		req.Header.Set("Cookie", r.RawCookie)
 	}
 
+	tmpFilePattern := "autobrr-"
+	tmpDir := os.TempDir()
+
 	// Create tmp file
-	tmpFile, err := os.CreateTemp("", "autobrr-")
+	tmpFile, err := os.CreateTemp(tmpDir, tmpFilePattern)
 	if err != nil {
-		return errors.Wrap(err, "error creating tmp file")
+		// inverse the err check to make it a bit cleaner
+		if !errors.Is(err, os.ErrNotExist) {
+			return errors.Wrap(err, "error creating tmp file")
+		}
+
+		if mkdirErr := os.MkdirAll(tmpDir, os.ModePerm); mkdirErr != nil {
+			return errors.Wrap(mkdirErr, "could not create TMP dir: %s", tmpDir)
+		}
+
+		tmpFile, err = os.CreateTemp(tmpDir, tmpFilePattern)
+		if err != nil {
+			return errors.Wrap(err, "error creating tmp file in: %s", tmpDir)
+		}
 	}
 	defer tmpFile.Close()
 
@@ -659,7 +674,7 @@ func (r *Release) MapVars(def *IndexerDefinition, varMap map[string]string) erro
 	}
 
 	if freeleech, err := getStringMapValue(varMap, "freeleech"); err == nil {
-		fl := StringEqualFoldMulti(freeleech, "freeleech", "freeleech!", "yes", "1", "VIP")
+		fl := StringEqualFoldMulti(freeleech, "1", "free", "freeleech", "freeleech!", "yes", "VIP")
 		if fl {
 			r.Freeleech = true
 			// default to 100 and override if freeleechPercent is present in next function

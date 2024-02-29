@@ -80,7 +80,7 @@ export const RightNav = (props: RightNavProps) => {
                           active
                             ? "bg-gray-100 dark:bg-gray-600"
                             : "",
-                          "flex items-center transition rounded-t-md px-2 py-2 text-sm text-gray-900 dark:text-gray-200"
+                          "flex items-center transition px-2 py-2 text-sm text-gray-900 dark:text-gray-200"
                         )}
                       >
                         <Cog6ToothIcon

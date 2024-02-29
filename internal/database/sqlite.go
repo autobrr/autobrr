@@ -130,7 +130,7 @@ func (db *DB) migrateSQLite() error {
 		}
 	} else {
 		for i := version; i < len(sqliteMigrations); i++ {
-			db.log.Info().Msgf("Upgrading Database schema to version: %v", i)
+			db.log.Info().Msgf("Upgrading Database schema to version: %v", i+1)
 			if _, err := tx.Exec(sqliteMigrations[i]); err != nil {
 				return errors.Wrap(err, "failed to execute migration #%v", i)
 			}

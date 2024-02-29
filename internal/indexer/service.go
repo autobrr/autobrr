@@ -17,6 +17,7 @@ import (
 	"github.com/autobrr/autobrr/internal/logger"
 	"github.com/autobrr/autobrr/internal/scheduler"
 	"github.com/autobrr/autobrr/pkg/errors"
+	"github.com/autobrr/autobrr/pkg/sanitize"
 
 	"github.com/gosimple/slug"
 	"github.com/rs/zerolog"
@@ -78,6 +79,13 @@ func NewService(log logger.Logger, config *domain.Config, repo domain.IndexerRep
 }
 
 func (s *service) Store(ctx context.Context, indexer domain.Indexer) (*domain.Indexer, error) {
+	// sanitize user input
+	indexer.Name = sanitize.String(indexer.Name)
+
+	for key, val := range indexer.Settings {
+		indexer.Settings[key] = sanitize.String(val)
+	}
+
 	// if indexer is rss or torznab do additional cleanup for identifier
 	if isImplFeed(indexer.Implementation) {
 		// make lowercase
@@ -103,6 +111,13 @@ func (s *service) Store(ctx context.Context, indexer domain.Indexer) (*domain.In
 }
 
 func (s *service) Update(ctx context.Context, indexer domain.Indexer) (*domain.Indexer, error) {
+	// sanitize user input
+	indexer.Name = sanitize.String(indexer.Name)
+
+	for key, val := range indexer.Settings {
+		indexer.Settings[key] = sanitize.String(val)
+	}
+
 	i, err := s.repo.Update(ctx, indexer)
 	if err != nil {
 		s.log.Error().Err(err).Msgf("could not update indexer: %+v", indexer)

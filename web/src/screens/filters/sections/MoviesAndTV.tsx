@@ -31,7 +31,7 @@ const SeasonsAndEpisodes = () => (
         tooltip={
           <div>
             <p>See docs for information about how to <b>only</b> grab episodes:</p>
-            <DocsLink href="https://autobrr.com/filters/examples/#skip-season-packs" />
+            <DocsLink href="https://autobrr.com/filters/examples#only-episodes-skip-season-packs" />
           </div>
         }
       />
