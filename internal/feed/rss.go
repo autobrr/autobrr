@@ -210,10 +210,8 @@ func (j *RSSJob) processItem(item *gofeed.Item) *domain.Release {
 	if item.Description != "" {
 		rls.Description = item.Description
 
-		if rls.Size == 0 {
-			readSizeFromDescription(item.Description, rls)
-			j.Log.Trace().Msgf("Set new size %d from description", rls.Size)
-		}
+		readSizeFromDescription(item.Description, rls)
+		j.Log.Trace().Msgf("Set new size %d from description", rls.Size)
 	}
 
 	// add cookie to release for download if needed
