@@ -8,7 +8,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
@@ -55,7 +54,7 @@ func (s *service) RunAction(ctx context.Context, action *domain.Action, release 
 		err = s.watchFolder(ctx, action, *release)
 
 	case domain.ActionTypeWebhook:
-		err = s.webhook(ctx, action, *release)
+		rejections, err = s.webhook(ctx, action, *release)
 
 	case domain.ActionTypeDelugeV1, domain.ActionTypeDelugeV2:
 		rejections, err = s.deluge(ctx, action, *release)
@@ -184,39 +183,6 @@ func (s *service) watchFolder(ctx context.Context, action *domain.Action, releas
 	}
 
 	s.log.Info().Msgf("saved file to watch folder: %v", newFileName)
-
-	return nil
-}
-
-func (s *service) webhook(ctx context.Context, action *domain.Action, release domain.Release) error {
-	s.log.Trace().Msgf("action WEBHOOK: '%s' file: %s", action.Name, release.TorrentName)
-	if len(action.WebhookData) > 1024 {
-		s.log.Trace().Msgf("webhook action '%s' - host: %s data: %s", action.Name, action.WebhookHost, action.WebhookData[:1024])
-	} else {
-		s.log.Trace().Msgf("webhook action '%s' - host: %s data: %s", action.Name, action.WebhookHost, action.WebhookData)
-	}
-
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, action.WebhookHost, bytes.NewBufferString(action.WebhookData))
-	if err != nil {
-		return errors.Wrap(err, "could not build request for webhook")
-	}
-
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("User-Agent", "autobrr")
-
-	start := time.Now()
-	res, err := s.httpClient.Do(req)
-	if err != nil {
-		return errors.Wrap(err, "could not make request for webhook")
-	}
-
-	defer res.Body.Close()
-
-	if len(action.WebhookData) > 256 {
-		s.log.Info().Msgf("successfully ran webhook action: '%s' to: %s payload: %s finished in %s", action.Name, action.WebhookHost, action.WebhookData[:256], time.Since(start))
-	} else {
-		s.log.Info().Msgf("successfully ran webhook action: '%s' to: %s payload: %s finished in %s", action.Name, action.WebhookHost, action.WebhookData, time.Since(start))
-	}
 
 	return nil
 }
