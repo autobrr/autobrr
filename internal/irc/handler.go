@@ -230,8 +230,21 @@ func (h *Handler) Run() (err error) {
 	}
 
 	if h.network.TLS {
+		// In Go 1.22 old insecure ciphers was removed. A lot of old IRC networks still uses those, so we need to allow those.
+		unsafeCipherSuites := make([]uint16, 0, len(tls.InsecureCipherSuites())+len(tls.CipherSuites()))
+		for _, suite := range tls.InsecureCipherSuites() {
+			unsafeCipherSuites = append(unsafeCipherSuites, suite.ID)
+		}
+		for _, suite := range tls.CipherSuites() {
+			unsafeCipherSuites = append(unsafeCipherSuites, suite.ID)
+		}
+
 		client.UseTLS = true
-		client.TLSConfig = &tls.Config{InsecureSkipVerify: true}
+		client.TLSConfig = &tls.Config{
+			InsecureSkipVerify: true,
+			MinVersion:         tls.VersionTLS10,
+			CipherSuites:       unsafeCipherSuites,
+		}
 	}
 
 	client.AddConnectCallback(h.onConnect)
