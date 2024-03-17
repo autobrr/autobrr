@@ -49,6 +49,8 @@ type Macro struct {
 	CurrentMinute       int
 	CurrentSecond       int
 	Tags                string
+	Freeleech           bool
+	FreeleechPercent    int
 }
 
 func NewMacro(release Release) Macro {
@@ -88,6 +90,8 @@ func NewMacro(release Release) Macro {
 		CurrentMinute:       currentTime.Minute(),
 		CurrentSecond:       currentTime.Second(),
 		Tags:                strings.Join(release.Tags, ", "),
+		Freeleech:	     release.Freeleech,
+		FreeleechPercent:    release.FreeleechPercent,
 	}
 
 	return ma
