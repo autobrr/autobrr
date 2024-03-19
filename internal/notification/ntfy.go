@@ -54,7 +54,7 @@ func (s *ntfySender) Send(event domain.NotificationEvent, payload domain.Notific
 		return errors.Wrap(err, "could not create request")
 	}
 
-	req.Header.Set("Content-Type", "text/pain")
+	req.Header.Set("Content-Type", "text/plain")
 	req.Header.Set("User-Agent", "autobrr")
 
 	req.Header.Set("Title", m.Title)
