@@ -32,8 +32,8 @@ dependencies:
     specifier: ^5.8.4
     version: 5.8.4(@tanstack/react-query@5.24.1)(react-dom@18.2.0)(react@18.2.0)
   '@tanstack/react-router':
-    specifier: ^1.20.1
-    version: 1.20.1(react-dom@18.2.0)(react@18.2.0)
+    specifier: ^1.20.4
+    version: 1.20.4(react-dom@18.2.0)(react@18.2.0)
   '@types/node':
     specifier: ^20.11.24
     version: 20.11.24
@@ -1973,7 +1973,7 @@ packages:
     engines: {node: '>= 14'}
     dependencies:
       eslint: 8.57.0
-      jschardet: 3.0.0
+      jschardet: 3.1.0
       lodash: 4.17.21
       utf8: 3.0.0
     transitivePeerDependencies:
@@ -2413,8 +2413,8 @@ packages:
       tiny-warning: 1.0.3
     dev: true
 
-  /@tanstack/react-router@1.20.1(react-dom@18.2.0)(react@18.2.0):
-    resolution: {integrity: sha512-WpWZ4rYC+L3DHCB4+lo9HPVoNkUy4yN9QL+1Z8QSYeUKG0ZAydrqUnL48YBKdSh3bp8FRh09R+74DTP0/lvxAw==}
+  /@tanstack/react-router@1.20.4(react-dom@18.2.0)(react@18.2.0):
+    resolution: {integrity: sha512-sZ50qlSheTTa69jZMSzqrf1hvpbXi37jeCHLuj1+5WwJYmZaJynk9U7bB7vXTm4bkpQKC/L4eTx/DdIQ9yfIgQ==}
     engines: {node: '>=12'}
     peerDependencies:
       react: ^18.2.0
@@ -4375,8 +4375,8 @@ packages:
     dependencies:
       argparse: 2.0.1
 
-  /jschardet@3.0.0:
-    resolution: {integrity: sha512-lJH6tJ77V8Nzd5QWRkFYCLc13a3vADkh3r/Fi8HupZGWk2OVVDfnZP8V/VgQgZ+lzW0kG2UGb5hFgt3V3ndotQ==}
+  /jschardet@3.1.0:
+    resolution: {integrity: sha512-MND0yjRsoQ/3iFXce7lqV/iBmqH9oWGUTlty36obRBZjhFDWCLKjXgfxY75wYfwlW7EFqw52tyziy/q4WsQmrA==}
     engines: {node: '>=0.1.90'}
     dev: true
 
