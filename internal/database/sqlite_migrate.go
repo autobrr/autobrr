@@ -242,6 +242,8 @@ CREATE TABLE "release"
     season            INTEGER,
     episode           INTEGER,
     year              INTEGER,
+    month             INTEGER,
+    day               INTEGER,
     resolution        TEXT,
     source            TEXT,
     codec             TEXT,
@@ -1511,5 +1513,12 @@ ALTER TABLE filter
         	ELSE name
         END
 	WHERE server = 'irc.animebytes.tv';
+`,
+    `
+    ALTER TABLE "release"
+    ADD COLUMN month INTEGER;
+
+    ALTER TABLE "release"
+    ADD COLUMN day INTEGER;
 `,
 }
