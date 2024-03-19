@@ -79,13 +79,6 @@ irc:
         vars:
           - baseUrl
           - torrentId
-      - tests:
-          - line: 'PRE » NFO » Best.game.ever.3-GROUP @ 2024-02-27T17:43:29 with 77F & 10966MB » pred 9m 40s ago » in 11 sites'
-            expect:
-              preTime: "9m 40s"
-        pattern: '\b(?:pred (\d+[dhms] ?\d+[hms]) ago)\b'
-        vars:
-          - preTime
 
     match:
       infourl: "/torrents/{{ .torrentId }}"
