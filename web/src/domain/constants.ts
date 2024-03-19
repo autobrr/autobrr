@@ -6,12 +6,12 @@
 import { MultiSelectOption } from "@components/inputs/select";
 
 export const resolutions = [
-  "2160i/p",
-  "1080i/p",
-  "810i/p",
-  "720i/p",
-  "576i/p",
-  "480i/p",
+  "2160p",
+  "1080p",
+  "810p",
+  "720p",
+  "576p",
+  "480p",
 ];
 
 export const RESOLUTION_OPTIONS: MultiSelectOption[] = resolutions.map(r => ({ value: r, label: r, key: r }));
