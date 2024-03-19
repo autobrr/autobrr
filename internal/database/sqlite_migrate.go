@@ -1514,11 +1514,10 @@ ALTER TABLE filter
         END
 	WHERE server = 'irc.animebytes.tv';
 `,
-    `
-    ALTER TABLE "release"
-    ADD COLUMN month INTEGER;
+    `ALTER TABLE "release"
+ADD COLUMN month INTEGER;
 
-    ALTER TABLE "release"
-    ADD COLUMN day INTEGER;
+ALTER TABLE "release"
+ADD COLUMN day INTEGER;
 `,
 }
