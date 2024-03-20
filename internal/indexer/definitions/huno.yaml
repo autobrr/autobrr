@@ -38,14 +38,13 @@ irc:
     - name: auth.account
       type: text
       required: true
-      label: NickServ Account
-      help: NickServ account. Make sure to group your user and bot.
+      label: Must be your site username.
 
     - name: auth.password
       type: secret
       required: true
-      label: NickServ Password
-      help: NickServ password
+      label: IRC Key
+      help: "Go to your profile, My Security / IRC Key (IID) and copy your Current IRC Key"
 
   parse:
     type: single
