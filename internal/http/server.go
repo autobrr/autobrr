@@ -94,7 +94,7 @@ func (s Server) tryToServe(addr, protocol string) error {
 		return err
 	}
 
-	s.log.Info().Msgf("Starting server %s. Listening on %s", protocol, listener.Addr().String())
+	s.log.Info().Msgf("Starting API %s server. Listening on %s", protocol, listener.Addr().String())
 
 	server := http.Server{
 		Handler:           s.Handler(),

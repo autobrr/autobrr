@@ -89,3 +89,10 @@ interface SendIrcCmdRequest {
   nick: string;
   msg: string;
 }
+
+interface IrcProcessManualRequest {
+  network_id: number;
+  channel: string;
+  nick?: string;
+  msg: string;
+}

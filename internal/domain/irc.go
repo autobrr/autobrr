@@ -94,6 +94,14 @@ type ChannelHealth struct {
 	LastAnnounce    time.Time `json:"last_announce"`
 }
 
+type IRCManualProcessRequest struct {
+	NetworkId int64  `json:"-"`
+	Server    string `json:"server"`
+	Channel   string `json:"channel"`
+	Nick      string `json:"nick"`
+	Message   string `json:"msg"`
+}
+
 type SendIrcCmdRequest struct {
 	NetworkId int64  `json:"network_id"`
 	Server    string `json:"server"`
