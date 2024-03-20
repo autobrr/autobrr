@@ -139,6 +139,10 @@ func main() {
 			log.Fatalf("failed to read password: %v", err)
 		}
 
+		if len(string(password)) == 0 {
+			log.Fatal("Password cannot be empty.")
+		}
+
 		hashed, err := authSvc.CreateHash(string(password))
 		if err != nil {
 			log.Fatalf("failed to hash password: %v", err)
@@ -197,7 +201,7 @@ func main() {
 			log.Fatalf("failed to read password: %v", err)
 		}
 
-		if len(password) == 0 {
+		if len(string(password)) == 0 {
 			log.Fatal("Password cannot be empty.")
 		}
 
