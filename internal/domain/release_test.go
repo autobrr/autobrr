@@ -151,6 +151,21 @@ func TestRelease_Parse(t *testing.T) {
 			},
 		},
 		{
+			name: "parse_7",
+			fields: Release{
+				TorrentName: "Analogue.1080i.AHDTV.H264-ABCDEF",
+			},
+			want: Release{
+				TorrentName: "Analogue.1080i.AHDTV.H264-ABCDEF",
+				Title:       "Analogue",
+				Resolution:  "1080p", // rls does not differenciate between 1080i and 1080p which results in all 1080 releases being parsed as 1080p
+				Source:      "AHDTV",
+				Codec:       []string{"H.264"},
+				Group:       "ABCDEF",
+				Type:        "movie",
+			},
+		},
+		{
 			name: "parse_music_1",
 			fields: Release{
 				TorrentName: "Artist - Albumname",
