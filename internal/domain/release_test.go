@@ -151,6 +151,23 @@ func TestRelease_Parse(t *testing.T) {
 			},
 		},
 		{
+			name: "parse_8",
+			fields: Release{
+				TorrentName: "Rippers.Revenge.2023.German.DL.1080p.BluRay.MPEG2-GROUP",
+			},
+			want: Release{
+				TorrentName: "Rippers.Revenge.2023.German.DL.1080p.BluRay.MPEG2-GROUP",
+				Title:       "Rippers Revenge",
+				Year:        2023,
+				Language:    []string{"GERMAN", "DL"},
+				Resolution:  "1080p",
+				Source:      "BluRay",
+				Codec:       []string{"MPEG-2"},
+				Group:       "GROUP",
+				Type:        "movie",
+			},
+		},
+		{
 			name: "parse_7",
 			fields: Release{
 				TorrentName: "Analogue.1080i.AHDTV.H264-ABCDEF",
