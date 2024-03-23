@@ -11,7 +11,7 @@ protocol: torrent
 supports:
   - irc
   - rss
-# source: unknown
+# source: UNIT3D
 settings:
   - name: rss_key
     type: secret
