@@ -59,6 +59,7 @@ irc:
             resolution: 1080p
             torrentSize: 1.35 GB
             freeleechPercent: 100
+            tags: ""
             baseUrl: https://animeworld.cx/
             torrentId: "00000"
             uploader: NotAnonymous
@@ -70,7 +71,7 @@ irc:
             resolution: 1080p
             torrentSize: 17.28 GiB
             freeleechPercent: 100
-            tags: "[Vorgestellt]"
+            tags: "Vorgestellt"
             baseUrl: https://animeworld.cx/
             torrentId: "00000"
             uploader: Anonym
@@ -98,7 +99,7 @@ irc:
             baseUrl: https://animeworld.cx/
             torrentId: "00000"
             uploader: Anonym
-        pattern: 'Neuer Upload: (.+) \[Kategorie: (.+)\]\[Typ: (.+)\]\[Auflösung: (.+)\]\[Größe: (.+)\]\[FL: (.+)%\](\[Vorgestellt\])? \| (https?\:\/\/.*\/)torrents\/(\d+) \| Uploader: (.+)'
+        pattern: 'Neuer Upload: (.+) \[Kategorie: (.+)\]\[Typ: (.+)\]\[Auflösung: (.+)\]\[Größe: (.+)\]\[FL: (.+)%\](?:\[(Vorgestellt)\])? \| (https?\:\/\/.*\/)torrents\/(\d+) \| Uploader: (.+)'
         vars:
           - torrentName
           - category
