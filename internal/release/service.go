@@ -11,7 +11,9 @@ import (
 	"github.com/autobrr/autobrr/internal/action"
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/internal/filter"
+	"github.com/autobrr/autobrr/internal/indexer"
 	"github.com/autobrr/autobrr/internal/logger"
+	"github.com/autobrr/autobrr/pkg/errors"
 
 	"github.com/rs/zerolog"
 )
@@ -28,6 +30,7 @@ type Service interface {
 	Delete(ctx context.Context, req *domain.DeleteReleaseRequest) error
 	Process(release *domain.Release)
 	ProcessMultiple(releases []*domain.Release)
+	ProcessManual(ctx context.Context, req *domain.ReleaseProcessReq) error
 	Retry(ctx context.Context, req *domain.ReleaseActionRetryReq) error
 }
 
@@ -40,16 +43,18 @@ type service struct {
 	log  zerolog.Logger
 	repo domain.ReleaseRepo
 
-	actionSvc action.Service
-	filterSvc filter.Service
+	actionSvc  action.Service
+	filterSvc  filter.Service
+	indexerSvc indexer.Service
 }
 
-func NewService(log logger.Logger, repo domain.ReleaseRepo, actionSvc action.Service, filterSvc filter.Service) Service {
+func NewService(log logger.Logger, repo domain.ReleaseRepo, actionSvc action.Service, filterSvc filter.Service, indexerSvc indexer.Service) Service {
 	return &service{
-		log:       log.With().Str("module", "release").Logger(),
-		repo:      repo,
-		actionSvc: actionSvc,
-		filterSvc: filterSvc,
+		log:        log.With().Str("module", "release").Logger(),
+		repo:       repo,
+		actionSvc:  actionSvc,
+		filterSvc:  filterSvc,
+		indexerSvc: indexerSvc,
 	}
 }
 
@@ -87,6 +92,58 @@ func (s *service) StoreReleaseActionStatus(ctx context.Context, status *domain.R
 
 func (s *service) Delete(ctx context.Context, req *domain.DeleteReleaseRequest) error {
 	return s.repo.Delete(ctx, req)
+}
+
+func (s *service) ProcessManual(ctx context.Context, req *domain.ReleaseProcessReq) error {
+	// get indexer definition with data
+	def, err := s.indexerSvc.GetMappedDefinitionByName(req.IndexerIdentifier)
+	if err != nil {
+		return err
+	}
+
+	rls := domain.NewRelease(def.Identifier)
+
+	switch req.IndexerImplementation {
+	case string(domain.IndexerImplementationIRC):
+
+		// from announce/announce.go
+		tmpVars := map[string]string{}
+		parseFailed := false
+
+		for idx, parseLine := range def.IRC.Parse.Lines {
+			match, err := indexer.ParseLine(&s.log, parseLine.Pattern, parseLine.Vars, tmpVars, req.AnnounceLines[idx], parseLine.Ignore)
+			if err != nil {
+				parseFailed = true
+				break
+			}
+
+			if !match {
+				parseFailed = true
+				break
+			}
+		}
+
+		if parseFailed {
+			return errors.New("parse failed")
+		}
+
+		rls.Protocol = domain.ReleaseProtocol(def.Protocol)
+
+		// on lines matched
+		err = def.IRC.Parse.Parse(def, tmpVars, rls)
+		if err != nil {
+			return err
+		}
+
+	default:
+		return errors.New("implementation %q is not supported", req.IndexerImplementation)
+
+	}
+
+	// process
+	go s.Process(rls)
+
+	return nil
 }
 
 func (s *service) Process(release *domain.Release) {

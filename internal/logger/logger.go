@@ -29,6 +29,8 @@ type Logger interface {
 	With() zerolog.Context
 	RegisterSSEWriter(sse *sse.Server)
 	SetLogLevel(level string)
+	Printf(format string, v ...interface{})
+	Print(v ...interface{})
 }
 
 // DefaultLogger default logging controller
@@ -142,6 +144,18 @@ func (l *DefaultLogger) Debug() *zerolog.Event {
 // Trace log something at fatal level. This will panic!
 func (l *DefaultLogger) Trace() *zerolog.Event {
 	return l.log.Trace().Timestamp()
+}
+
+// Print sends a log event using debug level and no extra field.
+// Arguments are handled in the manner of fmt.Print.
+func (l *DefaultLogger) Print(v ...interface{}) {
+	l.log.Print(v...)
+}
+
+// Printf sends a log event using debug level and no extra field.
+// Arguments are handled in the manner of fmt.Printf.
+func (l *DefaultLogger) Printf(format string, v ...interface{}) {
+	l.log.Printf(format, v...)
 }
 
 // With log with context
