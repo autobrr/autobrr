@@ -47,6 +47,12 @@ irc:
       label: NickServ Password
       help: NickServ password
 
+    - name: channels.password
+      type: secret
+      required: true
+      label: Channel Password
+      help: Channel password
+
   parse:
     type: single
     lines:
