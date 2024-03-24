@@ -25,7 +25,7 @@ irc:
   port: 6697
   tls: true
   channels:
-    - "#announce"
+    - "#autodl"
   announcers:
     - Lillesky
   settings:
@@ -48,37 +48,25 @@ irc:
       help: NickServ password
 
   parse:
-    type: multi
+    type: single
     lines:
       - tests:
-          - line: "[NEW UPLOAD]  Best.game.ever.3-GROUP - [Uploader: Lillesky ]"
+          - line: "- [Category: TV] [Type: WEBDL] That.Show.S07E02.1080p.WEB.H264-GROUP [ID: 4993 ] [Size:1.53 GiB] [Uploader: anon ]"
             expect:
-              torrentName: Best.game.ever.3-GROUP
-              uploader: Lillesky
-        pattern: '^\[NEW UPLOAD\]  (.*) - \[Uploader: (.*) \]'
-        vars:
-          - torrentName
-          - uploader
-      - tests:
-          - line: '[ - iN GAMES]  [Type: WINDOWS] - [Size:10.73 GiB]'
-            expect:
-              category: GAMES
-              tags: WINDOWS
-              torrentSize: "10.73 GiB"
-        pattern: '^\[ - iN (.*)\]  \[Type: (.*)\] - \[Size:(.*)\]'
+              category: TV
+              releaseTags: WEBDL
+              torrentName: That.Show.S07E02.1080p.WEB.H264-GROUP
+              id: "4993"
+              size: "1.53 GiB"
+              uploader: anon
+        pattern: '^- \[Category: (.*)\] \[Type: (.*)\] (.*) \[ID: (\d+) \] \[Size:(.*)\] \[Uploader: (.*) \]'
         vars:
           - category
-          - tags
-          - torrentSize
-      - tests:
-          - line: 'Get it Here: https://lillesky.org/torrents/252'
-            expect:
-              baseUrl: https://lillesky.org/
-              torrentId: "252"
-        pattern: '^Get it Here: (https:\/\/.+\/)torrents\/(\d+)'
-        vars:
-          - baseUrl
+          - releaseTags
+          - torrentName
           - torrentId
+          - torrentSize
+          - uploader
 
     match:
       infourl: "/torrents/{{ .torrentId }}"
