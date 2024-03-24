@@ -32,13 +32,14 @@ irc:
     - name: nick
       type: text
       required: true
-      label: Nick
-      help: Bot nick. Eg. user_bot
+      label: Bot Nick
+      help: Bot nick. Eg. username_bot
 
     - name: auth.account
       type: text
       required: true
-      label: Must be your site username.
+      label: Username
+      help: Must be your site username.
 
     - name: auth.password
       type: secret
