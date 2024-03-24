@@ -139,10 +139,6 @@ func main() {
 			log.Fatalf("failed to read password: %v", err)
 		}
 
-		if len(string(password)) == 0 {
-			log.Fatal("Password cannot be empty.")
-		}
-
 		hashed, err := authSvc.CreateHash(string(password))
 		if err != nil {
 			log.Fatalf("failed to hash password: %v", err)
@@ -199,10 +195,6 @@ func main() {
 		password, err := readPassword()
 		if err != nil {
 			log.Fatalf("failed to read password: %v", err)
-		}
-
-		if len(string(password)) == 0 {
-			log.Fatal("Password cannot be empty.")
 		}
 
 		hashed, err := authSvc.CreateHash(string(password))
@@ -294,32 +286,32 @@ func main() {
 	}
 }
 
-func readPassword() ([]byte, error) {
-	var password []byte
-	var err error
+func readPassword() (password []byte, err error) {
 	fd := int(os.Stdin.Fd())
 
 	if term.IsTerminal(fd) {
 		fmt.Printf("Password: ")
 		password, err = term.ReadPassword(int(os.Stdin.Fd()))
-		if err != nil {
-			return nil, err
-		}
 		fmt.Printf("\n")
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to read password from terminal")
+		}
 	} else {
-		//fmt.Fprintf(os.Stderr, "warning: Reading password from stdin.\n")
 		scanner := bufio.NewScanner(os.Stdin)
 		if !scanner.Scan() {
 			if err := scanner.Err(); err != nil {
-				log.Fatalf("failed to read password from stdin: %v", err)
+				return nil, errors.Wrap(err, "failed to read password from stdin")
 			}
-			log.Fatalf("failed to read password from stdin: stdin is empty %v", err)
-		}
-		password = scanner.Bytes()
 
-		if len(password) == 0 {
-			return nil, errors.New("zero length password")
+			return nil, errors.New("password input is empty")
 		}
+
+		password = scanner.Bytes()
+	}
+
+	// make sure the password is not empty
+	if len(password) == 0 {
+		return nil, errors.New("zero length password")
 	}
 
 	return password, nil
