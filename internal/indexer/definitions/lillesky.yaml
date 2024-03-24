@@ -56,8 +56,8 @@ irc:
               category: TV
               releaseTags: WEBDL
               torrentName: That.Show.S07E02.1080p.WEB.H264-GROUP
-              id: "4993"
-              size: "1.53 GiB"
+              torrentId: "4993"
+              torrentSize: "1.53 GiB"
               uploader: anon
         pattern: '^- \[Category: (.*)\] \[Type: (.*)\] (.*) \[ID: (\d+) \] \[Size:(.*)\] \[Uploader: (.*) \]'
         vars:
