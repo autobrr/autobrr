@@ -8,41 +8,37 @@ import { MultiSelectOption } from "@components/inputs/select";
 export const resolutions = [
   "2160p",
   "1080p",
-  "1080i",
   "810p",
   "720p",
   "576p",
   "480p",
-  "480i"
 ];
 
 export const RESOLUTION_OPTIONS: MultiSelectOption[] = resolutions.map(r => ({ value: r, label: r, key: r }));
 
 export const codecs = [
-  "HEVC",
+  "AV1",
+  "AVC",
   "H.264",
   "H.265",
-  "x264",
-  "x265",
-  "AVC",
+  "HEVC",
+  "MPEG-2",
   "VC-1",
-  "AV1",
-  "XviD"
+  "XviD",
+  "x264",
+  "x265"
 ];
 
 export const CODECS_OPTIONS: MultiSelectOption[] = codecs.map(v => ({ value: v, label: v, key: v }));
 
 export const sources = [
-  "BluRay",
-  "UHD.BluRay",
-  "WEB-DL",
-  "WEB",
-  "WEBRip",
+  "AHDTV",
   "BD5",
   "BD9",
-  "BDr",
   "BDRip",
+  "BDr",
   "BRRip",
+  "BluRay",
   "CAM",
   "DVDR",
   "DVDRip",
@@ -53,7 +49,11 @@ export const sources = [
   "HDTS",
   "HDTV",
   "Mixed",
-  "SiteRip"
+  "SiteRip",
+  "UHD.BluRay",
+  "WEB",
+  "WEB-DL",
+  "WEBRip"
 ];
 
 export const SOURCES_OPTIONS: MultiSelectOption[] = sources.map(v => ({ value: v, label: v, key: v }));

@@ -58,7 +58,7 @@ func main() {
 	undo, err := maxprocs.Set(maxprocs.Logger(zstdlog.NewStdLoggerWithLevel(log.With().Logger(), zerolog.InfoLevel).Printf))
 	defer undo()
 	if err != nil {
-		log.Fatal().Err(err).Msg("failed to set GOMAXPROCS")
+		log.Error().Err(err).Msg("failed to set GOMAXPROCS")
 	}
 
 	// init dynamic config

@@ -32,20 +32,20 @@ irc:
     - name: nick
       type: text
       required: true
-      label: Nick
-      help: Bot nick. Eg. user_bot
+      label: Bot Nick
+      help: Bot nick. Eg. username_bot
 
     - name: auth.account
       type: text
       required: true
-      label: NickServ Account
-      help: NickServ account. Make sure to group your user and bot.
+      label: Username
+      help: Must be your site username.
 
     - name: auth.password
       type: secret
       required: true
-      label: NickServ Password
-      help: NickServ password
+      label: IRC Key
+      help: "Go to your profile, My Security / IRC Key (IID) and copy your Current IRC Key"
 
   parse:
     type: single

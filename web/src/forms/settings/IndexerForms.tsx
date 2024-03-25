@@ -370,12 +370,17 @@ export function IndexerAddForm({ isOpen, toggle }: AddProps) {
     } else if (formData.implementation === "irc") {
       const channels: IrcChannel[] = [];
       if (ind.irc?.channels.length) {
+        let channelPass = "";
+        if (formData.irc && formData.irc.channels && formData.irc?.channels?.password !== "") {
+          channelPass = formData.irc.channels.password;
+        }
+
         ind.irc.channels.forEach(element => {
           channels.push({
             id: 0,
             enabled: true,
             name: element,
-            password: "",
+            password: channelPass,
             detached: false,
             monitoring: false
           });

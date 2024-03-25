@@ -151,6 +151,38 @@ func TestRelease_Parse(t *testing.T) {
 			},
 		},
 		{
+			name: "parse_8",
+			fields: Release{
+				TorrentName: "Rippers.Revenge.2023.German.DL.1080p.BluRay.MPEG2-GROUP",
+			},
+			want: Release{
+				TorrentName: "Rippers.Revenge.2023.German.DL.1080p.BluRay.MPEG2-GROUP",
+				Title:       "Rippers Revenge",
+				Year:        2023,
+				Language:    []string{"GERMAN", "DL"},
+				Resolution:  "1080p",
+				Source:      "BluRay",
+				Codec:       []string{"MPEG-2"},
+				Group:       "GROUP",
+				Type:        "movie",
+			},
+		},
+		{
+			name: "parse_7",
+			fields: Release{
+				TorrentName: "Analogue.1080i.AHDTV.H264-ABCDEF",
+			},
+			want: Release{
+				TorrentName: "Analogue.1080i.AHDTV.H264-ABCDEF",
+				Title:       "Analogue",
+				Resolution:  "1080p", // rls does not differenciate between 1080i and 1080p which results in all 1080 releases being parsed as 1080p
+				Source:      "AHDTV",
+				Codec:       []string{"H.264"},
+				Group:       "ABCDEF",
+				Type:        "movie",
+			},
+		},
+		{
 			name: "parse_music_1",
 			fields: Release{
 				TorrentName: "Artist - Albumname",
