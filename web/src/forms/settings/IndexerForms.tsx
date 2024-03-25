@@ -413,8 +413,6 @@ export function IndexerAddForm({ isOpen, toggle }: AddProps) {
         }
       }
 
-      console.log("network: ", network)
-
       mutation.mutate(formData as Indexer, {
         onSuccess: () => {
           ircMutation.mutate(network);
