@@ -371,7 +371,7 @@ export function IndexerAddForm({ isOpen, toggle }: AddProps) {
       const channels: IrcChannel[] = [];
       if (ind.irc?.channels.length) {
         let channelPass = "";
-        if (formData.irc.channels?.password !== "") {
+        if (formData.irc && formData.irc.channels && formData.irc?.channels?.password !== "") {
           channelPass = formData.irc.channels.password;
         }
 
@@ -412,6 +412,8 @@ export function IndexerAddForm({ isOpen, toggle }: AddProps) {
           network.auth.password = formData.irc.auth.password;
         }
       }
+
+      console.log("network: ", network)
 
       mutation.mutate(formData as Indexer, {
         onSuccess: () => {
