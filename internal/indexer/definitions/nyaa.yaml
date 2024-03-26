@@ -51,6 +51,7 @@ irc:
               torrentSize: 220.30MiB
               baseUrl: https://nyaa.si/
               torrentId: "000000"
+              tags: ""
           - line: "[Anime - English-translated] - [GROUP] Woah [1080p BD AV1] - (3.60GiB) - https://nyaa.si/view/000001/torrent"
             expect:
               category: Anime - English-translated
@@ -58,6 +59,7 @@ irc:
               torrentSize: 3.60GiB
               baseUrl: https://nyaa.si/
               torrentId: "000001"
+              tags: ""
           - line: "[Anime - English-translated] - [GROUP] Woah [1080p x265] - (123.23GiB) - https://nyaa.si/view/000002/torrent trusted"
             expect:
               category: Anime - English-translated
