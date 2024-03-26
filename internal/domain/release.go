@@ -67,6 +67,8 @@ type Release struct {
 	Season                      int                   `json:"season"`
 	Episode                     int                   `json:"episode"`
 	Year                        int                   `json:"year"`
+	Month                       int                   `json:"month"`
+	Day                         int                   `json:"day"`
 	Resolution                  string                `json:"resolution"`
 	Source                      string                `json:"source"`
 	Codec                       []string              `json:"codec"`
