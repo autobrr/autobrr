@@ -93,7 +93,7 @@ func GetTables() []string {
 func (c *SqliteToPostgresConverter) migrateTable(sqliteDB, postgresDB *sql.DB, table string) []string {
 	var fkViolationMessages []string
 
-	rows, err := sqliteDB.Query("SELECT * FROM ?", table)
+	rows, err := sqliteDB.Query("SELECT * FROM " + table)
 	if err != nil {
 		log.Fatalf("Failed to query SQLite table '%s': %v", table, err)
 	}
