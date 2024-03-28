@@ -58,14 +58,21 @@ irc:
     type: single
     lines:
       - tests:
-          - line: Blu-ray / x265 10bit / 1080p - Trick The Movie 2002 1080p BluRay x265 10bit FLAC MNHD-FRDS - 8.4 GiB - https://pt.keepfrds.com/details.php?id=1976447
-            expect:
-              releaseTags: Blu-ray / x265 10bit / 1080p
-              torrentName: Trick The Movie 2002 1080p BluRay x265 10bit FLAC MNHD-FRDS
-              torrentSize: "8.4 GiB"
-              baseUrl: https://pt.keepfrds.com/
-              torrentId: "1976447"
-        pattern: '^(.*) - (.*?) - (.*) - (https?:\/\/.*\/).*?id=(\d+)$'
+        - line: Blu-ray / x265 10bit / 1080p - Trick The Movie 2002 1080p BluRay x265 10bit FLAC MNHD-FRDS - 8.4 GiB - https://pt.keepfrds.com/details.php?id=0000000
+          expect:
+            releaseTags: Blu-ray / x265 10bit / 1080p
+            torrentName: Trick The Movie 2002 1080p BluRay x265 10bit FLAC MNHD-FRDS
+            torrentSize: "8.4 GiB"
+            baseUrl: https://pt.keepfrds.com/
+            torrentId: "0000000"
+        - line: Blu-ray / x265 10bit / 1080p - Trick - With Hyphen 2002 1080p BluRay x265 10bit FLAC MNHD-FRDS - 8.4 GiB - https://pt.keepfrds.com/details.php?id=0000000
+          expect:
+            releaseTags: Blu-ray / x265 10bit / 1080p
+            torrentName: Trick - With Hyphen 2002 1080p BluRay x265 10bit FLAC MNHD-FRDS
+            torrentSize: "8.4 GiB"
+            baseUrl: https://pt.keepfrds.com/
+            torrentId: "0000000"
+        pattern: '(.*?) - (.*) - (.*) - (https?:\/\/.*\/).*?id=(\d+)'
         vars:
           - releaseTags
           - torrentName
