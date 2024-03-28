@@ -17,12 +17,19 @@ import { RightNav } from "./RightNav";
 import { MobileNav } from "./MobileNav";
 import { ExternalLink } from "@components/ExternalLink";
 
-import { AuthIndexRoute } from "@app/routes";
 import { ConfigQueryOptions, UpdatesQueryOptions } from "@api/queries";
+import { useAuth } from "@ctx/auth";
+import { useEffect } from "react";
 
 export const Header = () => {
   const router = useRouter()
-  const { auth } = AuthIndexRoute.useRouteContext()
+  const auth = useAuth()
+
+  useEffect(() => {
+    if (!auth.isLoggedIn) {
+      router.history.push('/login')
+    }
+  }, [auth.isLoggedIn, router.history])
 
   const { isError:isConfigError, error: configError, data: config } = useQuery(ConfigQueryOptions(true));
   if (isConfigError) {
@@ -41,8 +48,6 @@ export const Header = () => {
         <Toast type="success" body="You have been logged out. Goodbye!" t={t} />
       ));
       auth.logout()
-
-      router.history.push("/")
     },
     onError: (err) => {
       console.error("logout error", err)

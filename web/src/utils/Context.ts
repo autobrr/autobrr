@@ -21,37 +21,26 @@ export type FilterListState = {
   status: string;
 };
 
-// interface AuthInfo {
-//   username: string;
-//   isLoggedIn: boolean;
-// }
-
-// Default values
-// const AuthContextDefaults: AuthInfo = {
-//   username: "",
-//   isLoggedIn: false
-// };
-
 const SettingsContextDefaults: SettingsType = {
   debug: false,
   checkForUpdates: true,
   darkTheme: true,
   scrollOnNewLog: false,
   indentLogLines: false,
-  hideWrappedText: false
+  hideWrappedText: false,
 };
 
 const FilterListContextDefaults: FilterListState = {
   indexerFilter: [],
   sortOrder: "",
-  status: ""
+  status: "",
 };
 
 // eslint-disable-next-line
 function ContextMerger<T extends {}>(
   key: string,
   defaults: T,
-  ctxState: StateWithValue<T>
+  ctxState: StateWithValue<T>,
 ) {
   let values = structuredClone(defaults);
 
@@ -60,7 +49,9 @@ function ContextMerger<T extends {}>(
     try {
       const json = JSON.parse(storage);
       if (json === null) {
-        console.warn(`JSON localStorage value for '${key}' context state is null`);
+        console.warn(
+          `JSON localStorage value for '${key}' context state is null`,
+        );
       } else {
         values = { ...values, ...json };
       }
@@ -76,16 +67,15 @@ const SettingsKey = "autobrr_settings";
 const FilterListKey = "autobrr_filter_list";
 
 export const InitializeGlobalContext = () => {
-  // ContextMerger<AuthInfo>(localStorageUserKey, AuthContextDefaults, AuthContextt);
   ContextMerger<SettingsType>(
     SettingsKey,
     SettingsContextDefaults,
-    SettingsContext
+    SettingsContext,
   );
   ContextMerger<FilterListState>(
     FilterListKey,
     FilterListContextDefaults,
-    FilterListContext
+    FilterListContext,
   );
 };
 
@@ -94,16 +84,12 @@ function DefaultSetter<T>(name: string, newState: T, prevState: T) {
     localStorage.setItem(name, JSON.stringify(newState));
   } catch (e) {
     console.error(
-      `An error occurred while trying to modify '${name}' context state: ${e}`
+      `An error occurred while trying to modify '${name}' context state: ${e}`,
     );
     console.warn(`  --> prevState: ${prevState}`);
     console.warn(`  --> newState: ${newState}`);
   }
 }
-
-// export const AuthContextt = newRidgeState<AuthInfo>(AuthContextDefaults, {
-//   onSet: (newState, prevState) => DefaultSetter(localStorageUserKey, newState, prevState)
-// });
 
 export const SettingsContext = newRidgeState<SettingsType>(
   SettingsContextDefaults,
@@ -111,39 +97,15 @@ export const SettingsContext = newRidgeState<SettingsType>(
     onSet: (newState, prevState) => {
       document.documentElement.classList.toggle("dark", newState.darkTheme);
       DefaultSetter(SettingsKey, newState, prevState);
-    }
-  }
+    },
+  },
 );
 
 export const FilterListContext = newRidgeState<FilterListState>(
   FilterListContextDefaults,
   {
-    onSet: (newState, prevState) => DefaultSetter(FilterListKey, newState, prevState)
-  }
+    onSet: (newState, prevState) =>
+      DefaultSetter(FilterListKey, newState, prevState),
+  },
 );
 
-export type AuthCtx = {
-  isLoggedIn: boolean
-  username?: string
-  login: (username: string) => void
-  logout: () => void
-}
-
-export const localStorageUserKey = "autobrr_user_auth"
-
-export const AuthContext: AuthCtx = {
-  isLoggedIn: false,
-  username: undefined,
-  login: (username: string) => {
-    AuthContext.isLoggedIn = true
-    AuthContext.username = username
-
-    localStorage.setItem(localStorageUserKey, JSON.stringify(AuthContext));
-  },
-  logout: () => {
-    AuthContext.isLoggedIn = false
-    AuthContext.username = undefined
-
-    localStorage.removeItem(localStorageUserKey);
-  },
-}
