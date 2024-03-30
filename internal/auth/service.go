@@ -154,5 +154,9 @@ func (s *service) ComparePasswordAndHash(password string, hash string) (match bo
 }
 
 func (s *service) CreateHash(password string) (hash string, err error) {
+	if password == "" {
+		return "", errors.New("must supply non empty password to CreateHash")
+	}
+
 	return argon2id.CreateHash(password, argon2id.DefaultParams)
 }
