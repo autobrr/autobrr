@@ -8,7 +8,6 @@ import (
 	"os/signal"
 	"syscall"
 	_ "time/tzdata"
-	_ "go.uber.org/automaxprocs"
 
 	"github.com/autobrr/autobrr/internal/action"
 	"github.com/autobrr/autobrr/internal/api"
@@ -31,8 +30,11 @@ import (
 	"github.com/autobrr/autobrr/internal/user"
 
 	"github.com/asaskevich/EventBus"
+	"github.com/dcarbone/zadapters/zstdlog"
 	"github.com/r3labs/sse/v2"
+	"github.com/rs/zerolog"
 	"github.com/spf13/pflag"
+	"go.uber.org/automaxprocs/maxprocs"
 )
 
 var (
@@ -51,6 +53,13 @@ func main() {
 
 	// init new logger
 	log := logger.New(cfg.Config)
+
+	// Set GOMAXPROCS to match the Linux container CPU quota (if any)
+	undo, err := maxprocs.Set(maxprocs.Logger(zstdlog.NewStdLoggerWithLevel(log.With().Logger(), zerolog.InfoLevel).Printf))
+	defer undo()
+	if err != nil {
+		log.Error().Err(err).Msg("failed to set GOMAXPROCS")
+	}
 
 	// init dynamic config
 	cfg.DynamicReload(log)
@@ -106,7 +115,7 @@ func main() {
 		actionService         = action.NewService(log, actionRepo, downloadClientService, bus)
 		indexerService        = indexer.NewService(log, cfg.Config, indexerRepo, indexerAPIService, schedulingService)
 		filterService         = filter.NewService(log, filterRepo, actionRepo, releaseRepo, indexerAPIService, indexerService)
-		releaseService        = release.NewService(log, releaseRepo, actionService, filterService)
+		releaseService        = release.NewService(log, releaseRepo, actionService, filterService, indexerService)
 		ircService            = irc.NewService(log, serverEvents, ircRepo, releaseService, indexerService, notificationService)
 		feedService           = feed.NewService(log, feedRepo, feedCacheRepo, releaseService, schedulingService)
 	)

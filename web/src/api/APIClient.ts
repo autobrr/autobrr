@@ -4,7 +4,6 @@
  */
 
 import { baseUrl, sseBaseUrl } from "@utils";
-import { AuthContext } from "@utils/Context";
 import { GithubRelease } from "@app/types/Update";
 
 type RequestBody = BodyInit | object | Record<string, unknown> | null;
@@ -30,7 +29,8 @@ export async function HttpClient<T = unknown>(
 ): Promise<T> {
   const init: RequestInit = {
     method: config.method,
-    headers: { "Accept": "*/*" }
+    headers: { "Accept": "*/*", 'x-requested-with': 'XMLHttpRequest' },
+    credentials: "include",
   };
 
   if (config.body) {
@@ -87,22 +87,17 @@ export async function HttpClient<T = unknown>(
     return Promise.resolve<T>({} as T);
   }
   case 401: {
-    // Remove auth info from localStorage
-    AuthContext.reset();
-
-    // Show an error toast to notify the user what occurred
-    // return Promise.reject(new Error(`[401] Unauthorized: "${endpoint}"`));
     return Promise.reject(response);
+    // return Promise.reject(new Error(`[401] Unauthorized: "${endpoint}"`));
   }
   case 403: {
-    // Remove auth info from localStorage
-    AuthContext.reset();
-
-    // Show an error toast to notify the user what occurred
     return Promise.reject(response);
   }
   case 404: {
-    return Promise.reject(new Error(`[404] Not found: "${endpoint}"`));
+    const isJson = response.headers.get("Content-Type")?.includes("application/json");
+    const json = isJson ? await response.json() : null;
+    return Promise.reject<T>(json as T);
+    // return Promise.reject(new Error(`[404] Not Found: "${endpoint}"`));
   }
   case 500: {
     const health = await window.fetch(`${baseUrl()}api/healthz/liveness`);
@@ -283,6 +278,9 @@ export const APIClient = {
     sendCmd: (cmd: SendIrcCmdRequest) => appClient.Post(`api/irc/network/${cmd.network_id}/cmd`, {
       body: cmd
     }),
+    reprocessAnnounce: (networkId: number, channel: string, msg: string) => appClient.Post(`api/irc/network/${networkId}/channel/${channel}/announce/process`, {
+      body: { msg: msg }
+    }),
     events: (network: string) => new EventSource(
       `${sseBaseUrl()}api/irc/events?stream=${encodeRFC3986URIComponent(network)}`,
       { withCredentials: true }
@@ -326,6 +324,8 @@ export const APIClient = {
         if (filter.id == "indexer") {
           params["indexer"].push(filter.value);
         } else if (filter.id === "action_status") {
+          params["push_status"].push(filter.value); // push_status is the correct value here otherwise the releases table won't load when filtered by push status
+        } else if (filter.id === "push_status") {
           params["push_status"].push(filter.value);
         } else if (filter.id == "name") {
           params["q"].push(filter.value);

@@ -79,7 +79,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.20.12'
+          go-version: '1.22.0'
           cache: true
 
       - name: Test
@@ -111,7 +111,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.20.12'
+          go-version: '1.22.0'
           cache: true
 
       - name: Run GoReleaser build
@@ -218,7 +218,7 @@ jobs:
           build-args: |
             BUILDTIME=${{ fromJSON(steps.meta.outputs.json).labels['org.opencontainers.image.created'] }}
             VERSION=${{ fromJSON(steps.meta.outputs.json).labels['org.opencontainers.image.version'] }}
-            REVISION=${{ github.event.pull_request.head.sha }}
+            REVISION=${{ fromJSON(steps.meta.outputs.json).labels['org.opencontainers.image.revision'] }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
           provenance: false

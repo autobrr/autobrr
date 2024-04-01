@@ -269,6 +269,11 @@ func Test_readSizeFromDescription(t *testing.T) {
 			str:  "<strong>Uploaded</strong>: 38B minutes ago<br>Size: 32GB",
 			want: "32GB",
 		},
+		{
+			name: "upgrade size",
+			str:  `<p> <strong>Name</strong>: One.S01E01.German.DL.DTS.1080p.BluRay.x265.10bit-Cats<br> <strong>Category</strong>: Anime Serien<br> <strong>Type</strong>: Encode<br> <strong>Resolution</strong>: 1080p<br> <strong>Size</strong>: 2.49 GiB<br> <strong>Uploaded</strong>: vor 3 Minuten<br> <strong>Seeders</strong>: 1 | <strong>Leechers</strong>: 7 | <strong>Completed</strong>: 0<br> <strong>Uploader</strong>: Hochgeladen von xxx <br> IMDB Link:<a href="https://anon.to?http://www.imdb.com/title/tt1" target="_blank">tt1</a><br> TMDB Link: <a href="https://anon.to?https://www.themoviedb.org/tv/1" target="_blank">1</a><br> </p>`,
+			want: "2.49GiB",
+		},
 	}
 
 	for _, tt := range tests {

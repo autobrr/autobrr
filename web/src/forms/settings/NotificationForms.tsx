@@ -13,7 +13,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "react-hot-toast";
 
 import { APIClient } from "@api/APIClient";
-import { notificationKeys } from "@screens/settings/Notifications";
+import { NotificationKeys } from "@api/query_keys";
 import { EventOptions, NotificationTypeOptions, SelectOption } from "@domain/constants";
 import { DEBUG } from "@components/debug";
 import { SlideOver } from "@components/panels";
@@ -294,7 +294,7 @@ export function NotificationAddForm({ isOpen, toggle }: AddProps) {
   const createMutation = useMutation({
     mutationFn: (notification: ServiceNotification) => APIClient.notifications.create(notification),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: notificationKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: NotificationKeys.lists() });
 
       toast.custom((t) => <Toast type="success" body="Notification added!" t={t} />);
       toggle();
@@ -565,7 +565,7 @@ export function NotificationUpdateForm({ isOpen, toggle, notification }: UpdateP
   const mutation = useMutation({
     mutationFn: (notification: ServiceNotification) => APIClient.notifications.update(notification),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: notificationKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: NotificationKeys.lists() });
 
       toast.custom((t) => <Toast type="success" body={`${notification.name} was updated successfully`} t={t}/>);
       toggle();
@@ -577,7 +577,7 @@ export function NotificationUpdateForm({ isOpen, toggle, notification }: UpdateP
   const deleteMutation = useMutation({
     mutationFn: (notificationID: number) => APIClient.notifications.delete(notificationID),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: notificationKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: NotificationKeys.lists() });
 
       toast.custom((t) => <Toast type="success" body={`${notification.name} was deleted.`} t={t}/>);
     }

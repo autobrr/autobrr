@@ -15,13 +15,13 @@ import { Dialog, Transition } from "@headlessui/react";
 import { classNames, sleep } from "@utils";
 import { DEBUG } from "@components/debug";
 import { APIClient } from "@api/APIClient";
+import { FeedKeys, IndexerKeys, ReleaseKeys } from "@api/query_keys";
+import { IndexersSchemaQueryOptions } from "@api/queries";
 import { SlideOver } from "@components/panels";
 import Toast from "@components/notifications/Toast";
 import { PasswordFieldWide, SwitchGroupWide, TextFieldWide } from "@components/inputs";
 import { SelectFieldBasic, SelectFieldCreatable } from "@components/inputs/select_wide";
 import { FeedDownloadTypeOptions } from "@domain/constants";
-import { feedKeys } from "@screens/settings/Feed";
-import { indexerKeys } from "@screens/settings/Indexer";
 import { DocsLink } from "@components/ExternalLink";
 import * as common from "@components/inputs/common";
 
@@ -263,17 +263,14 @@ export function IndexerAddForm({ isOpen, toggle }: AddProps) {
   const [indexer, setIndexer] = useState<IndexerDefinition>({} as IndexerDefinition);
 
   const queryClient = useQueryClient();
-  const { data } = useQuery({
-    queryKey: ["indexerDefinition"],
-    queryFn: APIClient.indexers.getSchema,
-    enabled: isOpen,
-    refetchOnWindowFocus: false
-  });
+  const { data } = useQuery(IndexersSchemaQueryOptions(isOpen));
 
   const mutation = useMutation({
     mutationFn: (indexer: Indexer) => APIClient.indexers.create(indexer),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: indexerKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: IndexerKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: IndexerKeys.options() });
+      queryClient.invalidateQueries({ queryKey: ReleaseKeys.indexers() });
 
       toast.custom((t) => <Toast type="success" body="Indexer was added" t={t} />);
       sleep(1500);
@@ -291,7 +288,7 @@ export function IndexerAddForm({ isOpen, toggle }: AddProps) {
   const feedMutation = useMutation({
     mutationFn: (feed: FeedCreate) => APIClient.feeds.create(feed),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: feedKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: FeedKeys.lists() });
     }
   });
 
@@ -373,12 +370,17 @@ export function IndexerAddForm({ isOpen, toggle }: AddProps) {
     } else if (formData.implementation === "irc") {
       const channels: IrcChannel[] = [];
       if (ind.irc?.channels.length) {
+        let channelPass = "";
+        if (formData.irc && formData.irc.channels && formData.irc?.channels?.password !== "") {
+          channelPass = formData.irc.channels.password;
+        }
+
         ind.irc.channels.forEach(element => {
           channels.push({
             id: 0,
             enabled: true,
             name: element,
-            password: "",
+            password: channelPass,
             detached: false,
             monitoring: false
           });
@@ -738,7 +740,7 @@ export function IndexerUpdateForm({ isOpen, toggle, indexer }: UpdateProps) {
   const mutation = useMutation({
     mutationFn: (indexer: Indexer) => APIClient.indexers.update(indexer),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: indexerKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: IndexerKeys.lists() });
 
       toast.custom((t) => <Toast type="success" body={`${indexer.name} was updated successfully`} t={t} />);
       sleep(1500);
@@ -755,7 +757,9 @@ export function IndexerUpdateForm({ isOpen, toggle, indexer }: UpdateProps) {
   const deleteMutation = useMutation({
     mutationFn: (id: number) => APIClient.indexers.delete(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: indexerKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: IndexerKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: IndexerKeys.options() });
+      queryClient.invalidateQueries({ queryKey: ReleaseKeys.indexers() });
 
       toast.custom((t) => <Toast type="success" body={`${indexer.name} was deleted.`} t={t} />);
 

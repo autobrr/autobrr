@@ -6,6 +6,7 @@ package irc
 import (
 	"crypto/tls"
 	"fmt"
+	"slices"
 	"strings"
 	"time"
 	"unicode"
@@ -24,7 +25,6 @@ import (
 	"github.com/r3labs/sse/v2"
 	"github.com/rs/zerolog"
 	"github.com/sasha-s/go-deadlock"
-	"golang.org/x/exp/slices"
 )
 
 var (
@@ -231,8 +231,21 @@ func (h *Handler) Run() (err error) {
 	}
 
 	if h.network.TLS {
+		// In Go 1.22 old insecure ciphers was removed. A lot of old IRC networks still uses those, so we need to allow those.
+		unsafeCipherSuites := make([]uint16, 0, len(tls.InsecureCipherSuites())+len(tls.CipherSuites()))
+		for _, suite := range tls.InsecureCipherSuites() {
+			unsafeCipherSuites = append(unsafeCipherSuites, suite.ID)
+		}
+		for _, suite := range tls.CipherSuites() {
+			unsafeCipherSuites = append(unsafeCipherSuites, suite.ID)
+		}
+
 		client.UseTLS = true
-		client.TLSConfig = &tls.Config{InsecureSkipVerify: true}
+		client.TLSConfig = &tls.Config{
+			InsecureSkipVerify: true,
+			MinVersion:         tls.VersionTLS10,
+			CipherSuites:       unsafeCipherSuites,
+		}
 	}
 
 	client.AddConnectCallback(h.onConnect)
@@ -707,6 +720,10 @@ func (h *Handler) onMessage(msg ircmsg.Message) {
 	return
 }
 
+func (h *Handler) SendToAnnounceProcessor(channel string, msg string) error {
+	return h.sendToAnnounceProcessor(channel, msg)
+}
+
 // send the msg to announce processor
 func (h *Handler) sendToAnnounceProcessor(channel string, msg string) error {
 	channel = strings.ToLower(channel)
@@ -775,6 +792,12 @@ func (h *Handler) handlePart(msg ircmsg.Message) {
 
 // PartChannel parts/leaves channel
 func (h *Handler) PartChannel(channel string) error {
+	// if using bouncer we do not want to part any channels
+	if h.network.UseBouncer {
+		h.log.Debug().Msgf("using bouncer, skip part channel %s", channel)
+		return nil
+	}
+
 	h.log.Debug().Msgf("Leaving channel %s", channel)
 
 	return h.Send("PART", channel)
@@ -1055,6 +1078,5 @@ func (h *Handler) ReportStatus(netw *domain.IrcNetworkWithHealth) {
 
 	netw.Healthy = channelsHealthy
 
-	// TODO with Go 1.21 this can moved from golang.org/x/exp/slices to built in slices:
 	netw.ConnectionErrors = slices.Clone(h.connectionErrors)
 }

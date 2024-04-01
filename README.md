@@ -102,7 +102,7 @@ For comprehensive installation instructions, visit our [Installation Guide](http
 
 Remember to head over to our [Configuration Guide](https://autobrr.com/configuration/autobrr) to learn how to set up your indexers, IRC, and download clients after you're done installing.
 
-### Swizzin
+### Swizzin (dedi)
 
 [Swizzin](https://swizzin.ltd/) users can simply run:
 
@@ -115,10 +115,10 @@ sudo box install autobrr
 [Saltbox](https://docs.saltbox.dev/) users can simply run:
 
 ```bash
-sb install sandbox-autobrr
+sb install autobrr
 ```
 
-For more info check the [docs](https://docs.saltbox.dev/sandbox/apps/autobrr/)
+For more info check the [docs](https://docs.saltbox.dev/apps/autobrr/)
 
 ### QuickBox
 
@@ -135,7 +135,8 @@ the [docs](https://quickbox.io/knowledge-base/v3/applications-v3/autobrr-applica
 
 #### One-Click Installer & Quick Installer
 
-- HostingByDesign (former Seedbox.io) via box
+- HostingByDesign (former Seedbox.io) via box - `box install autobrr`
+- Swizzin.net via box - `box install autobrr`
 - Seedit4.me
 - SeedHost.eu
 - Ultra.cc
@@ -145,12 +146,6 @@ the [docs](https://quickbox.io/knowledge-base/v3/applications-v3/autobrr-applica
 We have support for a couple of other providers out of the box.  
 Please contact us on [Discord](https://discord.gg/WQ2eUycxyT) if your provider is missing.
 The scripts require some input, but do most of the work.
-
-#### Swizzin.net
-
-```bash
-wget https://gobrr.sh/install_sbio && bash install_sbio
-```
 
 #### WhatBox
 

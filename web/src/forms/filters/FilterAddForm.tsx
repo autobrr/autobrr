@@ -5,17 +5,18 @@
 
 import { Fragment } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useNavigate } from "@tanstack/react-router";
 import { toast } from "react-hot-toast";
 import { XMarkIcon } from "@heroicons/react/24/solid";
 import { Dialog, Transition } from "@headlessui/react";
 import type { FieldProps } from "formik";
 import { Field, Form, Formik, FormikErrors, FormikValues } from "formik";
-import { useNavigate } from "react-router-dom";
 
 import { APIClient } from "@api/APIClient";
+import { FilterKeys } from "@api/query_keys";
 import { DEBUG } from "@components/debug";
 import Toast from "@components/notifications/Toast";
-import { filterKeys } from "@screens/filters/List";
+
 
 interface filterAddFormProps {
     isOpen: boolean;
@@ -28,13 +29,12 @@ export function FilterAddForm({ isOpen, toggle }: filterAddFormProps) {
   const mutation = useMutation({
     mutationFn: (filter: Filter) => APIClient.filters.create(filter),
     onSuccess: (filter) => {
-      queryClient.invalidateQueries({ queryKey: filterKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: FilterKeys.lists() });
 
       toast.custom((t) => <Toast type="success" body={`Filter ${filter.name} was added`} t={t} />);
 
-      toggle();
       if (filter.id) {
-        navigate(filter.id.toString());
+        navigate({ to: "/filters/$filterId", params: { filterId: filter.id }})
       }
     }
   });

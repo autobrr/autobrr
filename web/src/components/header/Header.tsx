@@ -5,11 +5,11 @@
 
 import toast from "react-hot-toast";
 import { useMutation, useQuery } from "@tanstack/react-query";
+import { useRouter } from "@tanstack/react-router";
 import { Disclosure } from "@headlessui/react";
 import { Bars3Icon, XMarkIcon, MegaphoneIcon } from "@heroicons/react/24/outline";
 
 import { APIClient } from "@api/APIClient";
-import { AuthContext } from "@utils/Context";
 import Toast from "@components/notifications/Toast";
 
 import { LeftNav } from "./LeftNav";
@@ -17,37 +17,35 @@ import { RightNav } from "./RightNav";
 import { MobileNav } from "./MobileNav";
 import { ExternalLink } from "@components/ExternalLink";
 
-export const Header = () => {
-  const { isError:isConfigError, error: configError, data: config } = useQuery({
-    queryKey: ["config"],
-    queryFn: () => APIClient.config.get(),
-    retry: false,
-    refetchOnWindowFocus: false
-  });
+import { AuthIndexRoute } from "@app/routes";
+import { ConfigQueryOptions, UpdatesQueryOptions } from "@api/queries";
 
+export const Header = () => {
+  const router = useRouter()
+  const { auth } = AuthIndexRoute.useRouteContext()
+
+  const { isError:isConfigError, error: configError, data: config } = useQuery(ConfigQueryOptions(true));
   if (isConfigError) {
     console.log(configError);
   }
 
-  const { isError, error, data } = useQuery({
-    queryKey: ["updates"],
-    queryFn: () => APIClient.updates.getLatestRelease(),
-    retry: false,
-    refetchOnWindowFocus: false,
-    enabled: config?.check_for_updates === true
-  });
-
-  if (isError) {
-    console.log(error);
+  const { isError: isUpdateError, error, data } = useQuery(UpdatesQueryOptions(config?.check_for_updates === true));
+  if (isUpdateError) {
+    console.log("update error", error);
   }
 
   const logoutMutation = useMutation({
     mutationFn: APIClient.auth.logout,
     onSuccess: () => {
-      AuthContext.reset();
       toast.custom((t) => (
         <Toast type="success" body="You have been logged out. Goodbye!" t={t} />
       ));
+      auth.logout()
+
+      router.history.push("/")
+    },
+    onError: (err) => {
+      console.error("logout error", err)
     }
   });
 
@@ -62,7 +60,7 @@ export const Header = () => {
             <div className="border-b border-gray-300 dark:border-gray-775">
               <div className="flex items-center justify-between h-16 px-4 sm:px-0">
                 <LeftNav />
-                <RightNav logoutMutation={logoutMutation.mutate} />
+                <RightNav logoutMutation={logoutMutation.mutate} auth={auth} />
                 <div className="-mr-2 flex sm:hidden">
                   {/* Mobile menu button */}
                   <Disclosure.Button className="bg-gray-200 dark:bg-gray-800 inline-flex items-center justify-center p-2 rounded-md text-gray-600 dark:text-gray-400 hover:text-white hover:bg-gray-700">
@@ -94,7 +92,7 @@ export const Header = () => {
             )}
           </div>
 
-          <MobileNav logoutMutation={logoutMutation.mutate} />
+          <MobileNav logoutMutation={logoutMutation.mutate} auth={auth} />
         </>
       )}
     </Disclosure>

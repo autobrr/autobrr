@@ -3,9 +3,9 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-import { Fragment, useRef, useState, useMemo, useEffect, MouseEvent } from "react";
+import { Fragment, MouseEvent, useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
-import { LockClosedIcon, LockOpenIcon, PlusIcon } from "@heroicons/react/24/solid";
+import { ArrowPathIcon, LockClosedIcon, LockOpenIcon, PlusIcon } from "@heroicons/react/24/solid";
 import { Menu, Transition } from "@headlessui/react";
 import { toast } from "react-hot-toast";
 import {
@@ -22,22 +22,16 @@ import { classNames, IsEmptyDate, simplifyDate } from "@utils";
 import { IrcNetworkAddForm, IrcNetworkUpdateForm } from "@forms";
 import { useToggle } from "@hooks/hooks";
 import { APIClient } from "@api/APIClient";
+import { IrcKeys } from "@api/query_keys";
+import { IrcQueryOptions } from "@api/queries";
 import { EmptySimple } from "@components/emptystates";
 import { DeleteModal } from "@components/modals";
 import Toast from "@components/notifications/Toast";
 import { SettingsContext } from "@utils/Context";
 import { Checkbox } from "@components/Checkbox";
-// import { useForm } from "react-hook-form";
 
 import { Section } from "./_components";
-
-export const ircKeys = {
-  all: ["irc_networks"] as const,
-  lists: () => [...ircKeys.all, "list"] as const,
-  // list: (indexers: string[], sortOrder: string) => [...ircKeys.lists(), { indexers, sortOrder }] as const,
-  details: () => [...ircKeys.all, "detail"] as const,
-  detail: (id: number) => [...ircKeys.details(), id] as const
-};
+import { RingResizeSpinner } from "@components/Icons.tsx";
 
 interface SortConfig {
   key: keyof ListItemProps["network"] | "enabled";
@@ -98,14 +92,9 @@ const IrcSettings = () => {
   const [expandNetworks, toggleExpand] = useToggle(false);
   const [addNetworkIsOpen, toggleAddNetwork] = useToggle(false);
 
-  const { data } = useSuspenseQuery({
-    queryKey: ircKeys.lists(),
-    queryFn: APIClient.irc.getNetworks,
-    refetchOnWindowFocus: false,
-    refetchInterval: 3000 // Refetch every 3 seconds
-  });
+  const ircQuery = useSuspenseQuery(IrcQueryOptions())
 
-  const sortedNetworks = useSort(data || []);
+  const sortedNetworks = useSort(ircQuery.data || []);
 
   return (
     <Section
@@ -168,7 +157,7 @@ const IrcSettings = () => {
         </div>
       </div>
 
-      {data && data.length > 0 ? (
+      {ircQuery.data && ircQuery.data.length > 0 ? (
         <ul className="mt-6 min-w-full relative text-sm">
           <li className="grid grid-cols-12 gap-4 border-b border-gray-200 dark:border-gray-700 text-xs font-medium text-gray-500 dark:text-gray-400">
             <div className="flex col-span-2 md:col-span-1 pl-2 sm:px-3 py-3 text-left uppercase tracking-wider cursor-pointer"
@@ -218,7 +207,7 @@ const ListItem = ({ network, expanded }: ListItemProps) => {
   const updateMutation = useMutation({
     mutationFn: (network: IrcNetwork) => APIClient.irc.updateNetwork(network).then(() => network),
     onSuccess: (network: IrcNetwork) => {
-      queryClient.invalidateQueries({ queryKey: ircKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: IrcKeys.lists() });
       toast.custom(t => <Toast type="success" body={`${network.name} was ${network.enabled ? "enabled" : "disabled"} successfully.`} t={t} />);
     }
   });
@@ -431,8 +420,8 @@ const ListItemDropdown = ({
   const deleteMutation = useMutation({
     mutationFn: (id: number) => APIClient.irc.deleteNetwork(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ircKeys.lists() });
-      queryClient.invalidateQueries({ queryKey: ircKeys.detail(network.id) });
+      queryClient.invalidateQueries({ queryKey: IrcKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: IrcKeys.detail(network.id) });
 
       toast.custom((t) => <Toast type="success" body={`Network ${network.name} was deleted`} t={t} />);
 
@@ -443,8 +432,8 @@ const ListItemDropdown = ({
   const restartMutation = useMutation({
     mutationFn: (id: number) => APIClient.irc.restartNetwork(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ircKeys.lists() });
-      queryClient.invalidateQueries({ queryKey: ircKeys.detail(network.id) });
+      queryClient.invalidateQueries({ queryKey: IrcKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: IrcKeys.detail(network.id) });
 
       toast.custom((t) => <Toast type="success" body={`${network.name} was successfully restarted`} t={t} />);
     }
@@ -587,6 +576,49 @@ const ListItemDropdown = ({
   );
 };
 
+interface ReprocessAnnounceProps {
+  networkId: number;
+  channel: string;
+  msg: string;
+}
+
+const ReprocessAnnounceButton = ({ networkId, channel, msg }: ReprocessAnnounceProps) => {
+  const mutation = useMutation({
+    mutationFn: (req: IrcProcessManualRequest) => APIClient.irc.reprocessAnnounce(req.network_id, req.channel, req.msg),
+    onSuccess: () => {
+      toast.custom((t) => (
+        <Toast type="success" body={`Announce sent to re-process!`} t={t} />
+      ));
+    }
+  });
+
+  const reprocessAnnounce = () => {
+    const req: IrcProcessManualRequest = {
+      network_id: networkId,
+      msg: msg,
+      channel: channel,
+    }
+
+    if (channel.startsWith("#")) {
+      req.channel = channel.replace("#", "")
+    }
+
+    mutation.mutate(req);
+  };
+
+  return (
+    <div className="block">
+    <button className="flex items-center justify-center size-5 mr-1 p-1 rounded transition border-gray-500 bg-gray-250 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600" onClick={reprocessAnnounce} title="Re-process announce">
+      {mutation.isPending
+        ? <RingResizeSpinner className="text-blue-500 iconHeight" aria-hidden="true" />
+        : <ArrowPathIcon />
+      }
+    </button>
+    </div>
+  );
+
+}
+
 type IrcEvent = {
   channel: string;
   nick: string;
@@ -696,10 +728,16 @@ export const Events = ({ network, channel }: EventsProps) => {
             key={idx}
             className={classNames(
               settings.indentLogLines ? "grid justify-start grid-flow-col" : "",
-              settings.hideWrappedText ? "truncate hover:text-ellipsis hover:whitespace-normal" : ""
+              settings.hideWrappedText ? "truncate hover:text-ellipsis hover:whitespace-normal" : "",
+              "flex items-center hover:bg-gray-200 hover:dark:bg-gray-800"
             )}
           >
-            <span className="font-mono text-gray-500 dark:text-gray-500 mr-1"><span className="dark:text-gray-600"><span className="dark:text-gray-700">[{simplifyDate(entry.time)}]</span> {entry.nick}:</span> {entry.msg}</span>
+            <ReprocessAnnounceButton networkId={network.id} channel={channel} msg={entry.msg} />
+            <div className="flex-1">
+              <span className="font-mono text-gray-500 dark:text-gray-500 mr-1">
+                <span className="dark:text-gray-600"><span className="dark:text-gray-700">[{simplifyDate(entry.time)}]</span> {entry.nick}:</span> {entry.msg}
+              </span>
+            </div>
           </div>
         ))}
       </div>

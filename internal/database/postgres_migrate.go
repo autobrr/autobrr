@@ -230,7 +230,7 @@ CREATE TABLE "release"
     filter            TEXT,
     protocol          TEXT,
     implementation    TEXT,
-    timestamp         TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    timestamp         TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
     info_url          TEXT,
     download_url      TEXT,
     group_id          TEXT,
@@ -846,7 +846,7 @@ ALTER TABLE filter_external
 `,
 	`ALTER TABLE action
 	ADD COLUMN external_client TEXT;
-`,`
+`, `
 ALTER TABLE filter
     ADD COLUMN min_seeders INTEGER DEFAULT 0;
 
@@ -858,5 +858,20 @@ ALTER TABLE filter
 
 ALTER TABLE filter
     ADD COLUMN max_leechers INTEGER DEFAULT 0;
+`,
+	`UPDATE irc_network
+    SET server = 'irc.nebulance.io'
+    WHERE server = 'irc.nebulance.cc';
+`,
+	`ALTER TABLE "release"
+	ALTER COLUMN timestamp TYPE timestamptz USING timestamp AT TIME ZONE 'UTC';
+`,
+	`UPDATE  irc_network
+    SET server = 'irc.animefriends.moe',
+        name = CASE  
+			WHEN name = 'AnimeBytes-IRC' THEN 'AnimeBytes'
+        	ELSE name
+        END
+	WHERE server = 'irc.animebytes.tv';
 `,
 }

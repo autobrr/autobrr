@@ -17,6 +17,7 @@ import (
 	"github.com/autobrr/autobrr/internal/logger"
 	"github.com/autobrr/autobrr/internal/scheduler"
 	"github.com/autobrr/autobrr/pkg/errors"
+	"github.com/autobrr/autobrr/pkg/sanitize"
 
 	"github.com/gosimple/slug"
 	"github.com/rs/zerolog"
@@ -35,6 +36,7 @@ type Service interface {
 	LoadIndexerDefinitions() error
 	GetIndexersByIRCNetwork(server string) []*domain.IndexerDefinition
 	GetTorznabIndexers() []domain.IndexerDefinition
+	GetMappedDefinitionByName(name string) (*domain.IndexerDefinition, error)
 	Start() error
 	TestApi(ctx context.Context, req domain.IndexerTestApiRequest) error
 	ToggleEnabled(ctx context.Context, indexerID int, enabled bool) error
@@ -78,6 +80,13 @@ func NewService(log logger.Logger, config *domain.Config, repo domain.IndexerRep
 }
 
 func (s *service) Store(ctx context.Context, indexer domain.Indexer) (*domain.Indexer, error) {
+	// sanitize user input
+	indexer.Name = sanitize.String(indexer.Name)
+
+	for key, val := range indexer.Settings {
+		indexer.Settings[key] = sanitize.String(val)
+	}
+
 	// if indexer is rss or torznab do additional cleanup for identifier
 	if isImplFeed(indexer.Implementation) {
 		// make lowercase
@@ -103,6 +112,13 @@ func (s *service) Store(ctx context.Context, indexer domain.Indexer) (*domain.In
 }
 
 func (s *service) Update(ctx context.Context, indexer domain.Indexer) (*domain.Indexer, error) {
+	// sanitize user input
+	indexer.Name = sanitize.String(indexer.Name)
+
+	for key, val := range indexer.Settings {
+		indexer.Settings[key] = sanitize.String(val)
+	}
+
 	i, err := s.repo.Update(ctx, indexer)
 	if err != nil {
 		s.log.Error().Err(err).Msgf("could not update indexer: %+v", indexer)
@@ -650,6 +666,15 @@ func (s *service) getDefinitionByName(name string) *domain.IndexerDefinition {
 	}
 
 	return nil
+}
+
+func (s *service) GetMappedDefinitionByName(name string) (*domain.IndexerDefinition, error) {
+	v, ok := s.mappedDefinitions[name]
+	if !ok {
+		return nil, errors.New("unknown indexer identifier: %s", name)
+	}
+
+	return v, nil
 }
 
 func (s *service) getMappedDefinitionByName(name string) *domain.IndexerDefinition {
