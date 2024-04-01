@@ -272,6 +272,12 @@ type ReleaseActionRetryReq struct {
 	ActionId       int
 }
 
+type ReleaseProcessReq struct {
+	IndexerIdentifier     string   `json:"indexer_identifier"`
+	IndexerImplementation string   `json:"indexer_implementation"`
+	AnnounceLines         []string `json:"announce_lines"`
+}
+
 type GetReleaseRequest struct {
 	Id int
 }
