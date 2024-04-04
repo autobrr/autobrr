@@ -63,7 +63,7 @@ irc:
             uploader: Seeder
             baseUrl: https://skipthecommericals.xyz/
             torrentId: "00000"
-        pattern: 'Category \[(.+)\] Type \[(.+)\] Name \[(.+?)\] Freeleech \[(.+)\] Double Upload \[(.+)\] Size \[(.+)\] Uploader \[(.+)\] Url \[(https?\:\/\/.+\/).+\/.+\/(\d+)\]'
+        pattern: 'Category \[(.+)\] Type \[(.+)\] Name \[(.+?)\] Resolution \[(.+)\] Freeleech \[(.+)\] Double Upload \[(.+)\] Size \[(.+)\] Uploader \[(.+)\] Url \[(https?\:\/\/.+\/).+\/.+\/(\d+)]'
         vars:
           - category
           - releaseTags
