@@ -109,6 +109,7 @@ export const ReleasesListQueryOptions = (offset: number, limit: number, filters:
     queryKey: ReleaseKeys.list(offset, limit, filters),
     queryFn: () => APIClient.release.findQuery(offset, limit, filters),
     staleTime: 5000,
+    refetchOnWindowFocus: true,
     refetchInterval: 15000 // refetch releases table on releases page every 15s
   });
 
@@ -116,7 +117,7 @@ export const ReleasesLatestQueryOptions = () =>
   queryOptions({
     queryKey: ReleaseKeys.latestActivity(),
     queryFn: () => APIClient.release.findRecent(),
-    refetchOnWindowFocus: false,
+    refetchOnWindowFocus: true,
     refetchInterval: 15000  // refetch recent activity table on dashboard page every 15s
   });
 
@@ -124,7 +125,7 @@ export const ReleasesStatsQueryOptions = () =>
   queryOptions({
     queryKey: ReleaseKeys.stats(),
     queryFn: () => APIClient.release.stats(),
-    refetchOnWindowFocus: false,
+    refetchOnWindowFocus: true,
     refetchInterval: 15000  // refetch stats on dashboard page every 15s
   });
 
