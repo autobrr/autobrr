@@ -49,6 +49,7 @@ type Macro struct {
 	CurrentMinute       int
 	CurrentSecond       int
 	Tags                string
+	Artists             string
 }
 
 func NewMacro(release Release) Macro {
@@ -88,6 +89,7 @@ func NewMacro(release Release) Macro {
 		CurrentMinute:       currentTime.Minute(),
 		CurrentSecond:       currentTime.Second(),
 		Tags:                strings.Join(release.Tags, ", "),
+		Artists:             release.Artists,
 	}
 
 	return ma
