@@ -108,21 +108,24 @@ export const ReleasesListQueryOptions = (offset: number, limit: number, filters:
   queryOptions({
     queryKey: ReleaseKeys.list(offset, limit, filters),
     queryFn: () => APIClient.release.findQuery(offset, limit, filters),
-    staleTime: 5000
+    staleTime: 5000,
+    refetchInterval: 15000 // refetch releases table on releases page every 15s
   });
 
 export const ReleasesLatestQueryOptions = () =>
   queryOptions({
     queryKey: ReleaseKeys.latestActivity(),
     queryFn: () => APIClient.release.findRecent(),
-    refetchOnWindowFocus: false
+    refetchOnWindowFocus: false,
+    refetchInterval: 15000  // refetch recent activity table on dashboard page every 15s
   });
 
 export const ReleasesStatsQueryOptions = () =>
   queryOptions({
     queryKey: ReleaseKeys.stats(),
     queryFn: () => APIClient.release.stats(),
-    refetchOnWindowFocus: false
+    refetchOnWindowFocus: false,
+    refetchInterval: 15000  // refetch stats on dashboard page every 15s
   });
 
 // ReleasesIndexersQueryOptions get basic list of used indexers by identifier
