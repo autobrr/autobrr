@@ -254,6 +254,15 @@ func TestMacros_Parse(t *testing.T) {
 			want:    "Tags: country, rock",
 			wantErr: false,
 		},
+		{
+			name: "test_artists",
+			release: Release{
+				Artists: "Jon Boy",
+			},
+			args:    args{text: "Artists: {{ .Artists }}"},
+			want:    "Artists: Jon Boy",
+			wantErr: false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
