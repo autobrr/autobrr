@@ -26,6 +26,7 @@ Full documentation can be found at [https://autobrr.com](https://autobrr.com)
    - [QuickBox](#quickbox)
    - [Shared Seedbox](#shared-seedbox)
    - [Docker Compose](#docker-compose)
+      - [Distroless docker images](#distroless-docker-images)
    - [Windows](#windows)
    - [Linux Generic](#linux-generic)
 4. [Community](#community)
@@ -207,6 +208,18 @@ Then start with:
 ```bash
 docker compose up -d
 ```
+
+### Distroless Docker Images
+
+> [!NOTE]
+> This image comes without a shell, and external filtering and actions will therefore not work.
+> Use the standard image if you rely on this functionality.
+
+For users who prioritize container security, one of the maintainers offer alternative Docker images built on [Distroless](https://github.com/GoogleContainerTools/distroless). Specifically the `distroless/static-debian12:nonroot` base image.
+
+Distroless images do not contain a package manager or shell, thereby reducing the potential attack surface and making them a more secure option. These stripped-back images contain only the application and its runtime dependencies.
+
+The repository for these builds can be found here: [https://github.com/s0up4200/autobrr-distroless](https://github.com/s0up4200/autobrr-distroless)
 
 ### Windows
 
