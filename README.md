@@ -218,7 +218,7 @@ docker compose up -d
 >
 > Use the standard image if you rely on this functionality.
 
-For users who prioritize container security, one of the maintainers offer alternative Docker images built on [Distroless](https://github.com/GoogleContainerTools/distroless). Specifically the `distroless/static-debian12:nonroot` base image.
+For users who prioritize container security, one of the longterm maintainers offer alternative Docker images built on [Distroless](https://github.com/GoogleContainerTools/distroless). Specifically the `distroless/static-debian12:nonroot` base image.
 
 Distroless images do not contain a package manager or shell, thereby reducing the potential attack surface and making them a more secure option. These stripped-back images contain only the application and its runtime dependencies.
 
