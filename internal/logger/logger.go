@@ -87,21 +87,11 @@ func (l *DefaultLogger) RegisterSSEWriter(sse *sse.Server) {
 }
 
 func (l *DefaultLogger) SetLogLevel(level string) {
-	switch level {
-	case "INFO":
-		l.level = zerolog.InfoLevel
-	case "DEBUG":
-		l.level = zerolog.DebugLevel
-	case "ERROR":
-		l.level = zerolog.ErrorLevel
-	case "WARN":
-		l.level = zerolog.WarnLevel
-	case "TRACE":
-		l.level = zerolog.TraceLevel
-	default:
-		l.level = zerolog.Disabled
+	lvl, err := zerolog.ParseLevel(level)
+	if err != nil {
+		lvl = zerolog.DebugLevel
 	}
-	zerolog.SetGlobalLevel(l.level)
+	zerolog.SetGlobalLevel(lvl)
 }
 
 // Log log something at fatal level.
