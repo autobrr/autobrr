@@ -258,7 +258,7 @@ func (f *Filter) Validate() error {
 
 	for _, external := range f.External {
 		if external.Type == ExternalFilterTypeExec {
-			if external.ExecCmd != "" {
+			if external.ExecCmd != "" && external.Enabled {
 				// check if program exists
 				_, err := exec.LookPath(external.ExecCmd)
 				if err != nil {
