@@ -6,7 +6,6 @@ package domain
 import (
 	"context"
 	"fmt"
-	"github.com/autobrr/autobrr/pkg/sanitize"
 	"os/exec"
 	"regexp"
 	"strconv"
@@ -14,6 +13,7 @@ import (
 	"time"
 
 	"github.com/autobrr/autobrr/pkg/errors"
+	"github.com/autobrr/autobrr/pkg/sanitize"
 	"github.com/autobrr/autobrr/pkg/wildcard"
 
 	"github.com/dustin/go-humanize"
