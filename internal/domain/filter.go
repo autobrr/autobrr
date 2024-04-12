@@ -270,7 +270,7 @@ func (f *Filter) Validate() error {
 
 	for _, action := range f.Actions {
 		if action.Type == ActionTypeExec {
-			if action.ExecCmd != "" {
+			if action.ExecCmd != "" && action.Enabled {
 				// check if program exists
 				_, err := exec.LookPath(action.ExecCmd)
 				if err != nil {
