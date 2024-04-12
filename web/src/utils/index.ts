@@ -152,3 +152,11 @@ export const RandomLinuxIsos = (count: number) => {
 
   return Array.from({ length: count }, () => linuxIsos[Math.floor(Math.random() * linuxIsos.length)]);
 };
+
+export async function CopyTextToClipboard(text: string) {
+  if ("clipboard" in navigator) {
+    return await navigator.clipboard.writeText(text);
+  } else {
+    return document.execCommand("copy", true, text);
+  }
+}
