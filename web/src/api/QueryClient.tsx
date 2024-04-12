@@ -52,6 +52,12 @@ export const queryClient = new QueryClient({
     },
     mutations: {
       onError: (error) => {
+        console.log("mutation error: ", error)
+
+        if (error instanceof Response) {
+          return
+        }
+
         // Use a format string to convert the error object to a proper string without much hassle.
         const message = (
           typeof (error) === "object" && typeof ((error as Error).message) ?
