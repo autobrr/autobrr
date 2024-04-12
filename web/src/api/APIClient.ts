@@ -90,19 +90,13 @@ export async function HttpClient<T = unknown>(
     return Promise.resolve<T>({} as T);
   }
   case 401: {
-    // return Promise.reject(response);
     return Promise.reject<T>(json as T);
-    // return Promise.reject(new Error(`[401] Unauthorized: "${endpoint}"`));
   }
   case 403: {
     return Promise.reject<T>(json as T);
-    // return Promise.reject(response);
   }
   case 404: {
-    const isJson = response.headers.get("Content-Type")?.includes("application/json");
-    const json = isJson ? await response.json() : null;
     return Promise.reject<T>(json as T);
-    // return Promise.reject(new Error(`[404] Not Found: "${endpoint}"`));
   }
   case 500: {
     const health = await window.fetch(`${baseUrl()}api/healthz/liveness`);
