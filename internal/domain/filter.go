@@ -6,6 +6,8 @@ package domain
 import (
 	"context"
 	"fmt"
+	"github.com/autobrr/autobrr/pkg/sanitize"
+	"os/exec"
 	"regexp"
 	"strconv"
 	"strings"
@@ -253,6 +255,63 @@ func (f *Filter) Validate() error {
 	if _, _, err := f.parsedSizeLimits(); err != nil {
 		return fmt.Errorf("error validating filter size limits: %w", err)
 	}
+
+	for _, external := range f.External {
+		if external.Type == ExternalFilterTypeExec {
+			if external.ExecCmd != "" {
+				// check if program exists
+				_, err := exec.LookPath(external.ExecCmd)
+				if err != nil {
+					return errors.Wrap(err, "could not find external exec command: %s", external.ExecCmd)
+				}
+			}
+		}
+	}
+
+	for _, action := range f.Actions {
+		if action.Type == ActionTypeExec {
+			if action.ExecCmd != "" {
+				// check if program exists
+				_, err := exec.LookPath(action.ExecCmd)
+				if err != nil {
+					return errors.Wrap(err, "could not find action exec command: %s", action.ExecCmd)
+				}
+			}
+		}
+	}
+
+	return nil
+}
+
+func (f *Filter) Sanitize() error {
+	f.Shows = sanitize.FilterString(f.Shows)
+
+	if !f.UseRegex {
+		f.MatchReleases = sanitize.FilterString(f.MatchReleases)
+		f.ExceptReleases = sanitize.FilterString(f.ExceptReleases)
+	}
+
+	f.MatchReleaseGroups = sanitize.FilterString(f.MatchReleaseGroups)
+	f.ExceptReleaseGroups = sanitize.FilterString(f.ExceptReleaseGroups)
+
+	f.MatchCategories = sanitize.FilterString(f.MatchCategories)
+	f.ExceptCategories = sanitize.FilterString(f.ExceptCategories)
+
+	f.MatchUploaders = sanitize.FilterString(f.MatchUploaders)
+	f.ExceptUploaders = sanitize.FilterString(f.ExceptUploaders)
+
+	f.TagsAny = sanitize.FilterString(f.TagsAny)
+	f.ExceptTags = sanitize.FilterString(f.ExceptTags)
+
+	if !f.UseRegexReleaseTags {
+		f.MatchReleaseTags = sanitize.FilterString(f.MatchReleaseTags)
+		f.ExceptReleaseTags = sanitize.FilterString(f.ExceptReleaseTags)
+	}
+
+	f.Years = sanitize.FilterString(f.Years)
+
+	f.Artists = sanitize.FilterString(f.Artists)
+	f.Albums = sanitize.FilterString(f.Albums)
 
 	return nil
 }
