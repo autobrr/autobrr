@@ -188,29 +188,35 @@ func (s *service) Store(ctx context.Context, filter *domain.Filter) error {
 }
 
 func (s *service) Update(ctx context.Context, filter *domain.Filter) error {
-	if err := filter.Validate(); err != nil {
-		s.log.Error().Err(err).Msgf("invalid filter: %v", filter)
+	err := filter.Validate()
+	if err != nil {
+		s.log.Error().Err(err).Msgf("validation error filter: %+v", filter)
 		return err
 	}
 
-	// replace newline with comma
-	filter.Shows = strings.ReplaceAll(filter.Shows, "\n", ",")
-	filter.Shows = strings.ReplaceAll(filter.Shows, ",,", ",")
+	err = filter.Sanitize()
+	if err != nil {
+		s.log.Error().Err(err).Msgf("could not sanitize filter: %v", filter)
+		return err
+	}
 
 	// update
-	if err := s.repo.Update(ctx, filter); err != nil {
+	err = s.repo.Update(ctx, filter)
+	if err != nil {
 		s.log.Error().Err(err).Msgf("could not update filter: %s", filter.Name)
 		return err
 	}
 
 	// take care of connected indexers
-	if err := s.repo.StoreIndexerConnections(ctx, filter.ID, filter.Indexers); err != nil {
+	err = s.repo.StoreIndexerConnections(ctx, filter.ID, filter.Indexers)
+	if err != nil {
 		s.log.Error().Err(err).Msgf("could not store filter indexer connections: %s", filter.Name)
 		return err
 	}
 
 	// take care of connected external filters
-	if err := s.repo.StoreFilterExternal(ctx, filter.ID, filter.External); err != nil {
+	err = s.repo.StoreFilterExternal(ctx, filter.ID, filter.External)
+	if err != nil {
 		s.log.Error().Err(err).Msgf("could not store external filters: %s", filter.Name)
 		return err
 	}
