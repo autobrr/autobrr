@@ -153,7 +153,6 @@ func (r *IndexerRepo) FindByID(ctx context.Context, id int) (*domain.Indexer, er
 	i.Settings = settingsMap
 
 	return &i, nil
-
 }
 
 func (r *IndexerRepo) FindByFilterID(ctx context.Context, id int) ([]domain.Indexer, error) {

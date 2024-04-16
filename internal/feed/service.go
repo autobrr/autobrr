@@ -42,14 +42,14 @@ type Service interface {
 }
 
 type feedInstance struct {
-	Feed              *domain.Feed
-	Name              string
-	IndexerIdentifier string
-	URL               string
-	ApiKey            string
-	Implementation    string
-	CronSchedule      time.Duration
-	Timeout           time.Duration
+	Feed           *domain.Feed
+	Name           string
+	Indexer        domain.IndexerMinimal
+	URL            string
+	ApiKey         string
+	Implementation string
+	CronSchedule   time.Duration
+	Timeout        time.Duration
 }
 
 // feedKey creates a unique identifier to be used for controlling jobs in the scheduler
@@ -349,14 +349,14 @@ func (s *service) restartJob(f *domain.Feed) error {
 func newFeedInstance(f *domain.Feed) feedInstance {
 	// cron schedule to run every X minutes
 	fi := feedInstance{
-		Feed:              f,
-		Name:              f.Name,
-		IndexerIdentifier: f.Indexer,
-		Implementation:    f.Type,
-		URL:               f.URL,
-		ApiKey:            f.ApiKey,
-		CronSchedule:      time.Duration(f.Interval) * time.Minute,
-		Timeout:           time.Duration(f.Timeout) * time.Second,
+		Feed:           f,
+		Name:           f.Name,
+		Indexer:        f.Indexer,
+		Implementation: f.Type,
+		URL:            f.URL,
+		ApiKey:         f.ApiKey,
+		CronSchedule:   time.Duration(f.Interval) * time.Minute,
+		Timeout:        time.Duration(f.Timeout) * time.Second,
 	}
 
 	return fi
@@ -448,7 +448,7 @@ func (s *service) createTorznabJob(f feedInstance) (FeedJob, error) {
 	client := torznab.NewClient(torznab.Config{Host: f.URL, ApiKey: f.ApiKey, Timeout: f.Timeout})
 
 	// create job
-	job := NewTorznabJob(f.Feed, f.Name, f.IndexerIdentifier, l, f.URL, client, s.repo, s.cacheRepo, s.releaseSvc)
+	job := NewTorznabJob(f.Feed, f.Name, l, f.URL, client, s.repo, s.cacheRepo, s.releaseSvc)
 
 	return job, nil
 }
@@ -467,7 +467,7 @@ func (s *service) createNewznabJob(f feedInstance) (FeedJob, error) {
 	client := newznab.NewClient(newznab.Config{Host: f.URL, ApiKey: f.ApiKey, Timeout: f.Timeout})
 
 	// create job
-	job := NewNewznabJob(f.Feed, f.Name, f.IndexerIdentifier, l, f.URL, client, s.repo, s.cacheRepo, s.releaseSvc)
+	job := NewNewznabJob(f.Feed, f.Name, l, f.URL, client, s.repo, s.cacheRepo, s.releaseSvc)
 
 	return job, nil
 }
@@ -487,7 +487,7 @@ func (s *service) createRSSJob(f feedInstance) (FeedJob, error) {
 	l := s.log.With().Str("feed", f.Name).Logger()
 
 	// create job
-	job := NewRSSJob(f.Feed, f.Name, f.IndexerIdentifier, l, f.URL, s.repo, s.cacheRepo, s.releaseSvc, f.Timeout)
+	job := NewRSSJob(f.Feed, f.Name, l, f.URL, s.repo, s.cacheRepo, s.releaseSvc, f.Timeout)
 
 	return job, nil
 }

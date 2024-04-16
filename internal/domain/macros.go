@@ -28,6 +28,8 @@ type Macro struct {
 	DownloadUrl         string
 	InfoUrl             string
 	Indexer             string
+	IndexerName         string
+	IndexerIdentifier   string
 	Title               string
 	Type                string
 	Category            string
@@ -67,7 +69,9 @@ func NewMacro(release Release) Macro {
 		GroupID:             release.GroupID,
 		InfoUrl:             release.InfoURL,
 		DownloadUrl:         release.DownloadURL,
-		Indexer:             release.Indexer,
+		Indexer:             release.Indexer.Identifier,
+		IndexerName:         release.Indexer.Name,
+		IndexerIdentifier:   release.Indexer.Identifier,
 		Title:               release.Title,
 		Type:                release.Type,
 		Category:            release.Category,

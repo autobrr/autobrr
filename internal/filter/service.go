@@ -466,14 +466,14 @@ func (s *service) AdditionalSizeCheck(ctx context.Context, f *domain.Filter, rel
 
 	l.Debug().Msgf("(%s) additional size check required", f.Name)
 
-	switch release.Indexer {
+	switch release.Indexer.Identifier {
 	case "ptp", "btn", "ggn", "redacted", "ops", "mock":
 		if release.Size == 0 {
 			l.Trace().Msgf("(%s) preparing to check via api", f.Name)
 
-			torrentInfo, err := s.apiService.GetTorrentByID(ctx, release.Indexer, release.TorrentID)
+			torrentInfo, err := s.apiService.GetTorrentByID(ctx, release.Indexer.Identifier, release.TorrentID)
 			if err != nil || torrentInfo == nil {
-				l.Error().Err(err).Msgf("(%s) could not get torrent info from api: '%s' from: %s", f.Name, release.TorrentID, release.Indexer)
+				l.Error().Err(err).Msgf("(%s) could not get torrent info from api: '%s' from: %s", f.Name, release.TorrentID, release.Indexer.Identifier)
 				return false, err
 			}
 
@@ -487,7 +487,7 @@ func (s *service) AdditionalSizeCheck(ctx context.Context, f *domain.Filter, rel
 
 		// if indexer doesn't have api, download torrent and add to tmpPath
 		if err := release.DownloadTorrentFileCtx(ctx); err != nil {
-			l.Error().Err(err).Msgf("(%s) could not download torrent file with id: '%s' from: %s", f.Name, release.TorrentID, release.Indexer)
+			l.Error().Err(err).Msgf("(%s) could not download torrent file with id: '%s' from: %s", f.Name, release.TorrentID, release.Indexer.Identifier)
 			return false, err
 		}
 	}
@@ -654,7 +654,7 @@ func (s *service) execCmd(ctx context.Context, external domain.FilterExternal, r
 		return 0, err
 	}
 
-	s.log.Debug().Msgf("executed external script: (%s), args: (%s) for release: (%s) indexer: (%s) total time (%s)", cmd, parsedArgs, release.TorrentName, release.Indexer, duration)
+	s.log.Debug().Msgf("executed external script: (%s), args: (%s) for release: (%s) indexer: (%s) total time (%s)", cmd, parsedArgs, release.TorrentName, release.Indexer.Name, duration)
 
 	return 0, nil
 }
