@@ -403,11 +403,11 @@ func (s *service) startJob(f *domain.Feed) error {
 
 	job, err := s.initializeFeedJob(fi)
 	if err != nil {
-		return errors.Wrap(err, "initialize job %s failed", f.Indexer)
+		return errors.Wrap(err, "initialize job %s failed", f.Name)
 	}
 
 	if err := s.scheduleJob(fi, job); err != nil {
-		return errors.Wrap(err, "schedule job %s failed", f.Indexer)
+		return errors.Wrap(err, "schedule job %s failed", f.Name)
 	}
 
 	s.log.Debug().Msgf("successfully started feed: %s", f.Name)
