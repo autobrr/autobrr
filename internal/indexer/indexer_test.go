@@ -327,7 +327,7 @@ func TestIndexersParseAndFilter(t *testing.T) {
 						return
 					}
 
-					rls := domain.NewRelease(i.Identifier)
+					rls := domain.NewRelease(domain.IndexerMinimal{ID: i.ID, Name: i.Name, Identifier: i.Identifier})
 					rls.Protocol = domain.ReleaseProtocol(i.Protocol)
 
 					// on lines matched
