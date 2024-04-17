@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+ * Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
@@ -13,3 +13,4 @@ export { default as Logs } from "./Logs";
 export { default as Notification } from "./Notifications";
 export { default as Release } from "./Releases";
 export { default as RegexPlayground } from "./RegexPlayground";
+export { default as Account } from "./Account";

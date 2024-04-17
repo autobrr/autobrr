@@ -1,4 +1,4 @@
-// Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+// Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 package newznab
@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"github.com/autobrr/autobrr/pkg/errors"
+	"github.com/autobrr/autobrr/pkg/sharedhttp"
 )
 
 const DefaultTimeout = 60
@@ -63,7 +64,8 @@ type Capabilities struct {
 
 func NewClient(config Config) Client {
 	httpClient := &http.Client{
-		Timeout: time.Second * DefaultTimeout,
+		Timeout:   time.Second * DefaultTimeout,
+		Transport: sharedhttp.Transport,
 	}
 
 	if config.Timeout > 0 {
@@ -176,7 +178,7 @@ func (c *client) getData(ctx context.Context, endpoint string, queryParams map[s
 
 	resp, err := c.http.Do(req)
 	if err != nil {
-		return nil, errors.Wrap(err, "could not make request. %+v", req)
+		return resp, errors.Wrap(err, "could not make request. %+v", req)
 	}
 
 	return resp, nil

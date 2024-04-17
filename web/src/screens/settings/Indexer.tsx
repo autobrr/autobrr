@@ -1,26 +1,24 @@
 /*
- * Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+ * Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-import { useState, useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { Switch } from "@headlessui/react";
+import { useMemo, useState } from "react";
+import toast from "react-hot-toast";
+import { useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
+import { PlusIcon } from "@heroicons/react/24/solid";
 
-import { IndexerAddForm, IndexerUpdateForm } from "@forms";
 import { useToggle } from "@hooks/hooks";
-import { classNames } from "@utils";
-import { EmptySimple } from "@components/emptystates";
 import { APIClient } from "@api/APIClient";
+import { IndexerKeys } from "@api/query_keys";
+import { IndexersQueryOptions } from "@api/queries";
+import { Checkbox } from "@components/Checkbox";
+import Toast from "@components/notifications/Toast";
+import { EmptySimple } from "@components/emptystates";
+import { IndexerAddForm, IndexerUpdateForm } from "@forms";
 import { componentMapType } from "@forms/settings/DownloadClientForms";
 
-export const indexerKeys = {
-  all: ["indexers"] as const,
-  lists: () => [...indexerKeys.all, "list"] as const,
-  // list: (indexers: string[], sortOrder: string) => [...indexerKeys.lists(), { indexers, sortOrder }] as const,
-  details: () => [...indexerKeys.all, "detail"] as const,
-  detail: (id: number) => [...indexerKeys.details(), id] as const
-};
+import { Section } from "./_components";
 
 interface SortConfig {
   key: keyof ListItemProps["indexer"] | "enabled";
@@ -83,7 +81,7 @@ const ImplementationBadgeIRC = () => (
 );
 
 const ImplementationBadgeTorznab = () => (
-  <span className="inline-flex items-center px-2.5 py-0.5 rounded-md text-sm font-medium bg-orange-200 dark:bg-orange-400 text-orange-800 dark:text-orange-800">
+  <span className="inline-flex items-center px-2.5 py-0.5 rounded-md text-sm font-medium bg-orange-200 dark:bg-orange-400 text-orange-800 dark:text-amber-900">
     Torznab
   </span>
 );
@@ -114,32 +112,34 @@ interface ListItemProps {
 const ListItem = ({ indexer }: ListItemProps) => {
   const [updateIsOpen, toggleUpdate] = useToggle(false);
 
+  const queryClient = useQueryClient();
+
+  const updateMutation = useMutation({
+    mutationFn: (enabled: boolean) => APIClient.indexers.toggleEnable(indexer.id, enabled),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: IndexerKeys.lists() });
+      toast.custom((t) => <Toast type="success" body={`${indexer.name} was updated successfully`} t={t} />);
+    }
+  });
+
+  const onToggleMutation = (newState: boolean) => {
+    updateMutation.mutate(newState);
+  };
+
+  if (!indexer) {
+    return null;
+  }
+
   return (
-    <li key={indexer.name}>
+    <li>
       <div className="grid grid-cols-12 items-center py-1.5">
         <IndexerUpdateForm
           isOpen={updateIsOpen}
           toggle={toggleUpdate}
           indexer={indexer}
         />
-        <div className="col-span-2 sm:col-span-1 flex px-6 items-center sm:px-6">
-          <Switch
-            checked={indexer.enabled ?? false}
-            onChange={toggleUpdate}
-            className={classNames(
-              indexer.enabled ? "bg-blue-500" : "bg-gray-200 dark:bg-gray-600",
-              "relative inline-flex flex-shrink-0 h-6 w-11 border-2 border-transparent rounded-full cursor-pointer transition-colors ease-in-out duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-            )}
-          >
-            <span className="sr-only">Enable</span>
-            <span
-              aria-hidden="true"
-              className={classNames(
-                indexer.enabled ? "translate-x-5" : "translate-x-0",
-                "inline-block h-5 w-5 rounded-full bg-white shadow transform ring-0 transition ease-in-out duration-200"
-              )}
-            />
-          </Switch>
+        <div className="col-span-2 sm:col-span-1 flex pl-1 sm:pl-5 items-center">
+          <Checkbox value={indexer.enabled ?? false} setValue={onToggleMutation} />
         </div>
         <div className="col-span-7 sm:col-span-8 pl-12 sm:pr-6 py-3 block flex-col text-sm font-medium text-gray-900 dark:text-white truncate">
           {indexer.name}
@@ -163,84 +163,73 @@ const ListItem = ({ indexer }: ListItemProps) => {
 function IndexerSettings() {
   const [addIndexerIsOpen, toggleAddIndexer] = useToggle(false);
 
-  const { error, data } = useQuery({
-    queryKey: indexerKeys.lists(),
-    queryFn: APIClient.indexers.getAll,
-    refetchOnWindowFocus: false
-  });
+  const indexersQuery = useSuspenseQuery(IndexersQueryOptions())
+  const indexers = indexersQuery.data
+  const sortedIndexers = useSort(indexers || []);
 
-  const sortedIndexers = useSort(data || []);
-
-  if (error) {
-    return (<p>An error has occurred</p>);
-  }
+  // if (error) {
+  //   return (<p>An error has occurred</p>);
+  // }
 
   return (
-    <div className="lg:col-span-9">
+    <Section
+      title="Indexers"
+      description={
+        <>
+          Indexer settings for IRC, RSS, Newznab, and Torznab based indexers.<br />
+          Generic RSS/Newznab/Torznab feeds can be added here by selecting one of the <span className="font-bold">Generic</span> indexers.
+        </>
+      }
+      rightSide={
+        <button
+          type="button"
+          onClick={toggleAddIndexer}
+          className="relative inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
+        >
+          <PlusIcon className="h-5 w-5 mr-1" />
+          Add new
+        </button>
+      }
+    >
       <IndexerAddForm isOpen={addIndexerIsOpen} toggle={toggleAddIndexer} />
 
-      <div className="py-6 px-4 sm:p-6 lg:pb-8">
-        <div className="-ml-4 -mt-4 flex justify-between items-center flex-wrap sm:flex-nowrap">
-          <div className="ml-4 mt-4">
-            <h3 className="text-lg leading-6 font-medium text-gray-900 dark:text-white">
-              Indexers
-            </h3>
-            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-              Indexer settings for IRC, RSS, Newznab, and Torznab based indexers.<br />
-              Generic feeds can be added here by selecting the Generic indexer.
-            </p>
-          </div>
-          <div className="ml-4 mt-4 flex-shrink-0">
-            <button
-              type="button"
-              onClick={toggleAddIndexer}
-              className="relative inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
-            >
-              Add new
-            </button>
-          </div>
-        </div>
-
-        <div className="flex flex-col mt-6">
-          {data && data.length > 0 ? (
-            <section className="light:bg-white dark:bg-gray-800 light:shadow sm:rounded-md">
-              <ol className="min-w-full relative">
-                <li className="grid grid-cols-12 border-b border-gray-200 dark:border-gray-700">
-                  <div
-                    className="flex col-span-2 sm:col-span-1 px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer"
-                    onClick={() => sortedIndexers.requestSort("enabled")}
-                  >
-  Enabled <span className="sort-indicator">{sortedIndexers.getSortIndicator("enabled")}</span>
-                  </div>
-                  <div
-                    className="col-span-7 sm:col-span-8 pl-12 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer"
-                    onClick={() => sortedIndexers.requestSort("name")}
-                  >
-  Name <span className="sort-indicator">{sortedIndexers.getSortIndicator("name")}</span>
-                  </div>
-                  <div
-                    className="hidden md:flex col-span-1 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer"
-                    onClick={() => sortedIndexers.requestSort("implementation")}
-                  >
-  Implementation <span className="sort-indicator">{sortedIndexers.getSortIndicator("implementation")}</span>
-                  </div>
-                </li>
-                {sortedIndexers.items.map((indexer, idx) => (
-                  <ListItem indexer={indexer} key={idx} />
-                ))}
-              </ol>
-            </section>
-          ) : (
-            <EmptySimple
-              title="No indexers"
-              subtitle=""
-              buttonText="Add new indexer"
-              buttonAction={toggleAddIndexer}
-            />
-          )}
-        </div>
+      <div className="flex flex-col">
+        {sortedIndexers.items.length ? (
+          <ul className="min-w-full relative">
+            <li className="grid grid-cols-12 border-b border-gray-200 dark:border-gray-700">
+              <div
+                className="flex col-span-2 sm:col-span-1 pl-0 sm:pl-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 hover:text-gray-800 hover:dark:text-gray-250 transition-colors uppercase tracking-wider cursor-pointer"
+                onClick={() => sortedIndexers.requestSort("enabled")}
+              >
+                Enabled <span className="sort-indicator">{sortedIndexers.getSortIndicator("enabled")}</span>
+              </div>
+              <div
+                className="col-span-7 sm:col-span-8 pl-12 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 hover:text-gray-800 hover:dark:text-gray-250 transition-colors uppercase tracking-wider cursor-pointer"
+                onClick={() => sortedIndexers.requestSort("name")}
+              >
+                Name <span className="sort-indicator">{sortedIndexers.getSortIndicator("name")}</span>
+              </div>
+              <div
+                className="hidden md:flex col-span-1 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 hover:text-gray-800 hover:dark:text-gray-250 transition-colors uppercase tracking-wider cursor-pointer"
+                onClick={() => sortedIndexers.requestSort("implementation")}
+              >
+                Implementation <span className="sort-indicator">{sortedIndexers.getSortIndicator("implementation")}</span>
+              </div>
+            </li>
+            {sortedIndexers.items.map((indexer) => (
+              <ListItem indexer={indexer} key={indexer.id} />
+            ))}
+          </ul>
+        ) : (
+          <EmptySimple
+            title="No indexers"
+            subtitle=""
+            buttonText="Add new indexer"
+            buttonAction={toggleAddIndexer}
+          />
+        )}
       </div>
-    </div>
+    </Section>
   );
 }
 

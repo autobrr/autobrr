@@ -1,10 +1,10 @@
 /*
- * Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+ * Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-import * as React from "react";
-import { useQuery } from "@tanstack/react-query";
+import React, { Suspense, useState } from "react";
+import { useSuspenseQuery } from "@tanstack/react-query";
 import {
   useTable,
   useFilters,
@@ -12,11 +12,14 @@ import {
   useSortBy,
   usePagination, FilterProps, Column
 } from "react-table";
+import { EyeIcon, EyeSlashIcon } from "@heroicons/react/24/solid";
 
-import { APIClient } from "@api/APIClient";
 import { EmptyListState } from "@components/emptystates";
 import * as Icons from "@components/Icons";
 import * as DataTable from "@components/data-table";
+import { RandomLinuxIsos } from "@utils";
+import { RingResizeSpinner } from "@components/Icons";
+import { ReleasesLatestQueryOptions } from "@api/queries";
 
 // This is a custom filter UI for selecting
 // a unique option from a list
@@ -78,16 +81,22 @@ function Table({ columns, data }: TableProps) {
     usePagination
   );
 
-  if (!page.length) {
-    return <EmptyListState text="No recent activity" />;
+  if (data.length === 0) {
+    return (
+      <div className="mt-4 mb-2 bg-white dark:bg-gray-800 border border-gray-250 dark:border-gray-775 shadow-table rounded-md overflow-auto">
+        <div className="flex items-center justify-center py-16">
+          <EmptyListState text="No recent activity"/>
+        </div>
+      </div>
+    )
   }
 
   // Render the UI for your table
   return (
     <div className="inline-block min-w-full mt-4 mb-2 align-middle">
-      <div className="bg-white shadow-lg dark:bg-gray-800 rounded-md overflow-auto">
-        <table {...getTableProps()} className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-          <thead className="bg-gray-50 dark:bg-gray-800">
+      <div className="bg-white dark:bg-gray-800 border border-gray-250 dark:border-gray-775 shadow-table rounded-md overflow-auto">
+        <table {...getTableProps()} className="min-w-full rounded-md divide-y divide-gray-200 dark:divide-gray-750">
+          <thead className="bg-gray-100 dark:bg-gray-850">
             {headerGroups.map((headerGroup) => {
               const { key: rowKey, ...rowRest } = headerGroup.getHeaderGroupProps();
               return (
@@ -100,7 +109,7 @@ function Table({ columns, data }: TableProps) {
                       <th
                         key={`${rowKey}-${columnKey}`}
                         scope="col"
-                        className="first:pl-5 first:rounded-tl-md last:rounded-tr-md pl-3 pr-3 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase group"
+                        className="first:pl-5 first:rounded-tl-md last:rounded-tr-md pl-3 pr-3 py-3 text-xs font-medium tracking-wider text-left uppercase group text-gray-600 dark:text-gray-400 transition hover:bg-gray-200 dark:hover:bg-gray-775"
                         {...columnRest}
                       >
                         <div className="flex items-center justify-between">
@@ -127,7 +136,7 @@ function Table({ columns, data }: TableProps) {
           </thead>
           <tbody
             {...getTableBodyProps()}
-            className="divide-y divide-gray-200 dark:divide-gray-700"
+            className="divide-y divide-gray-150 dark:divide-gray-750"
           >
             {page.map((row) => {
               prepareRow(row);
@@ -157,6 +166,28 @@ function Table({ columns, data }: TableProps) {
   );
 }
 
+export const RecentActivityTable = () => {
+  return (
+    <div className="flex flex-col mt-12">
+      <h3 className="text-2xl font-medium leading-6 text-gray-900 dark:text-gray-200">
+        Recent activity
+      </h3>
+      <div className="animate-pulse text-black dark:text-white">
+        <Suspense
+          fallback={
+            <div className="flex items-center justify-center lg:col-span-9">
+              <RingResizeSpinner className="text-blue-500 size-12" />
+            </div>
+          }
+        >
+        {/*<EmptyListState text="Loading..."/>*/}
+          <ActivityTableContent />
+        </Suspense>
+      </div>
+    </div>
+  )
+}
+
 export const ActivityTable = () => {
   const columns = React.useMemo(() => [
     {
@@ -166,7 +197,7 @@ export const ActivityTable = () => {
     },
     {
       Header: "Release",
-      accessor: "torrent_name",
+      accessor: "name",
       Cell: DataTable.TitleCell
     },
     {
@@ -176,24 +207,23 @@ export const ActivityTable = () => {
     },
     {
       Header: "Indexer",
-      accessor: "indexer",
+      accessor: "indexer.identifier",
       Cell: DataTable.TitleCell,
       Filter: SelectColumnFilter,
       filter: "includes"
     }
-  ], []);
+  ] as Column[], []);
 
-  const { isLoading, data } = useQuery({
-    queryKey: ["dash_recent_releases"],
-    queryFn: APIClient.release.findRecent,
-    refetchOnWindowFocus: false
-  });
+  const { isLoading, data } = useSuspenseQuery(ReleasesLatestQueryOptions());
+
+  const [modifiedData, setModifiedData] = useState<Release[]>([]);
+  const [showLinuxIsos, setShowLinuxIsos] = useState(false);
 
   if (isLoading) {
     return (
       <div className="flex flex-col mt-12">
         <h3 className="text-2xl font-medium leading-6 text-gray-900 dark:text-gray-200">
-          &nbsp;
+          Recent activity
         </h3>
         <div className="animate-pulse text-black dark:text-white">
           <EmptyListState text="Loading..."/>
@@ -201,14 +231,122 @@ export const ActivityTable = () => {
       </div>
     );
   }
-  
+
+  const toggleReleaseNames = () => {
+    setShowLinuxIsos(!showLinuxIsos);
+    if (!showLinuxIsos && data && data.data) {
+      const randomNames = RandomLinuxIsos(data.data.length);
+      const newData: Release[] = data.data.map((item, index) => ({
+        ...item,
+        name: `${randomNames[index]}.iso`,
+        indexer: {
+          id: 0,
+          name: index % 2 === 0 ? "distrowatch" : "linuxtracker",
+          identifier: index % 2 === 0 ? "distrowatch" : "linuxtracker",
+        },
+      }));
+      setModifiedData(newData);
+    }
+  };
+
+  const displayData = showLinuxIsos ? modifiedData : (data?.data ?? []);
+
   return (
-    <div className="flex flex-col mt-12">
-      <h3 className="text-2xl font-medium leading-6 text-gray-900 dark:text-gray-200">
+    <div className="flex flex-col mt-12 relative">
+      <h3 className="text-2xl font-medium leading-6 text-black dark:text-white">
         Recent activity
       </h3>
 
-      <Table columns={columns} data={data?.data ?? []} />
+      <Table columns={columns} data={displayData} />
+
+      <button
+        onClick={toggleReleaseNames}
+        className="p-2 absolute -bottom-8 right-0 bg-gray-750 text-white rounded-full opacity-10 hover:opacity-100 transition-opacity duration-300"
+        aria-label="Toggle view"
+        title="Go incognito"
+      >
+        {showLinuxIsos ? (
+          <EyeIcon className="h-4 w-4" />
+        ) : (
+          <EyeSlashIcon className="h-4 w-4" />
+        )}
+      </button>
     </div>
+  );
+};
+
+export const ActivityTableContent = () => {
+  const columns = React.useMemo(() => [
+    {
+      Header: "Age",
+      accessor: "timestamp",
+      Cell: DataTable.AgeCell
+    },
+    {
+      Header: "Release",
+      accessor: "name",
+      Cell: DataTable.TitleCell
+    },
+    {
+      Header: "Actions",
+      accessor: "action_status",
+      Cell: DataTable.ReleaseStatusCell
+    },
+    {
+      Header: "Indexer",
+      accessor: "indexer.identifier",
+      Cell: DataTable.TitleCell,
+      Filter: SelectColumnFilter,
+      filter: "includes"
+    }
+  ] as Column[], []);
+
+  const { isLoading, data } = useSuspenseQuery(ReleasesLatestQueryOptions());
+
+  const [modifiedData, setModifiedData] = useState<Release[]>([]);
+  const [showLinuxIsos, setShowLinuxIsos] = useState(false);
+
+  if (isLoading) {
+    return (
+      <EmptyListState text="Loading..."/>
+    );
+  }
+
+  const toggleReleaseNames = () => {
+    setShowLinuxIsos(!showLinuxIsos);
+    if (!showLinuxIsos && data && data.data) {
+      const randomNames = RandomLinuxIsos(data.data.length);
+      const newData: Release[] = data.data.map((item, index) => ({
+        ...item,
+        name: `${randomNames[index]}.iso`,
+        indexer: {
+          id: 0,
+          name: index % 2 === 0 ? "distrowatch" : "linuxtracker",
+          identifier: index % 2 === 0 ? "distrowatch" : "linuxtracker",
+        },
+      }));
+      setModifiedData(newData);
+    }
+  };
+
+  const displayData = showLinuxIsos ? modifiedData : (data?.data ?? []);
+
+  return (
+    <>
+      <Table columns={columns} data={displayData} />
+
+      <button
+        onClick={toggleReleaseNames}
+        className="p-2 absolute -bottom-8 right-0 bg-gray-750 text-white rounded-full opacity-10 hover:opacity-100 transition-opacity duration-300"
+        aria-label="Toggle view"
+        title="Go incognito"
+      >
+        {showLinuxIsos ? (
+          <EyeIcon className="h-4 w-4" />
+        ) : (
+          <EyeSlashIcon className="h-4 w-4" />
+        )}
+      </button>
+    </>
   );
 };

@@ -11,13 +11,13 @@ protocol: torrent
 supports:
   - irc
   - rss
-source: custom
+# source: custom
 settings:
   - name: cookie
     type: secret
     required: true
     label: Cookie (mam_id)
-    help: "Check how to get cookies in your browser and find the mam_id cookie. Changes monthly"
+    help: "Check how to get cookies in your browser and find the mam_id cookie. Changes monthly. Format mam_id=$ID;"
 
 irc:
   network: MyAnonamouse
@@ -50,9 +50,29 @@ irc:
   parse:
     type: single
     lines:
-      - test:
-          - "New Torrent: Some famous book By: Author name Category: ( Ebooks - Science Fiction ) Size: ( 1.00 MiB ) Filetype: ( epub, mobi ) Language: ( English ) Link: ( https://www.myanonamouse.net/t/000000 )"
-          - "New Torrent: Some famous book By: Author name Category: ( Ebooks - Science Fiction ) Size: ( 2.11 MiB ) Filetype: ( epub, mobi ) Language: ( English ) Link: ( https://www.myanonamouse.net/t/000000 ) VIP"
+      - tests:
+        - line: 'New Torrent: Some famous book By: Author name Category: ( Ebooks - Science Fiction ) Size: ( 1.00 MiB ) Filetype: ( epub, mobi ) Language: ( English ) Link: ( https://www.myanonamouse.net/t/000000 )'
+          expect:
+            torrentName: Some famous book
+            author: Author name
+            category: Ebooks - Science Fiction
+            torrentSize: 1.00 MiB
+            tags: epub, mobi
+            language: English
+            baseUrl: https://www.myanonamouse.net/
+            torrentId: "000000"
+            freeleech: ""
+        - line: 'New Torrent: Some famous book By: Author name Category: ( Ebooks - Science Fiction ) Size: ( 2.11 MiB ) Filetype: ( epub, mobi ) Language: ( English ) Link: ( https://www.myanonamouse.net/t/000000 ) VIP'
+          expect:
+            torrentName: Some famous book
+            author: Author name
+            category: Ebooks - Science Fiction
+            torrentSize: 2.11 MiB
+            tags: epub, mobi
+            language: English
+            baseUrl: https://www.myanonamouse.net/
+            torrentId: "000000"
+            freeleech: VIP
         pattern: 'New Torrent: (.*) By: (.*) Category: \( (.*) \) Size: \( (.*) \) Filetype: \( (.*) \) Language: \( (.*) \) Link: \( (https?\:\/\/[^\/]+\/).*?(\d+)\s*\)\s*(VIP)?'
         vars:
           - torrentName

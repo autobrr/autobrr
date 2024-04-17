@@ -1,4 +1,4 @@
-// Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+// Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 package btn
@@ -16,9 +16,12 @@ func (c *Client) TestAPI(ctx context.Context) (bool, error) {
 		return false, errors.Wrap(err, "test api userInfo failed")
 	}
 
+	if res.Error != nil {
+		return false, errors.New("btn: API test error: %s", res.Error.Message)
+	}
+
 	var u *UserInfo
-	err = res.GetObject(&u)
-	if err != nil {
+	if err := res.GetObject(&u); err != nil {
 		return false, errors.Wrap(err, "test api get userInfo")
 	}
 
@@ -39,9 +42,12 @@ func (c *Client) GetTorrentByID(ctx context.Context, torrentID string) (*domain.
 		return nil, errors.Wrap(err, "call getTorrentById failed")
 	}
 
+	if res.Error != nil {
+		return nil, errors.New("btn: getTorrentById error: %s", res.Error.Message)
+	}
+
 	var r *domain.TorrentBasic
-	err = res.GetObject(&r)
-	if err != nil {
+	if err := res.GetObject(&r); err != nil {
 		return nil, err
 	}
 

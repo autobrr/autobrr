@@ -1,4 +1,4 @@
-// Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+// Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 package action
@@ -129,7 +129,7 @@ func (s *service) delugeV1(ctx context.Context, client *domain.DownloadClient, a
 
 		torrentHash, err := del.AddTorrentMagnet(ctx, release.MagnetURI, &options)
 		if err != nil {
-			return nil, errors.Wrap(err, "could not add torrent magnet %s to client: %s", release.TorrentURL, client.Name)
+			return nil, errors.Wrap(err, "could not add torrent magnet %s to client: %s", release.MagnetURI, client.Name)
 		}
 
 		if action.Label != "" {
@@ -242,7 +242,7 @@ func (s *service) delugeV2(ctx context.Context, client *domain.DownloadClient, a
 
 		torrentHash, err := del.AddTorrentMagnet(ctx, release.MagnetURI, &options)
 		if err != nil {
-			return nil, errors.Wrap(err, "could not add torrent magnet %s to client: %s", release.TorrentURL, client.Name)
+			return nil, errors.Wrap(err, "could not add torrent magnet %s to client: %s", release.MagnetURI, client.Name)
 		}
 
 		if action.Label != "" {
@@ -334,6 +334,9 @@ func (s *service) prepareDelugeOptions(action *domain.Action) (deluge.Options, e
 	if action.LimitUploadSpeed > 0 {
 		maxUL := int(action.LimitUploadSpeed)
 		options.MaxUploadSpeed = &maxUL
+	}
+	if action.SkipHashCheck {
+		options.V2.SeedMode = &action.SkipHashCheck
 	}
 
 	return options, nil

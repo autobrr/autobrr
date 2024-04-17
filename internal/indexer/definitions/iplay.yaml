@@ -11,7 +11,7 @@ protocol: torrent
 supports:
   - irc
   - rss
-source: custom
+# source: custom
 settings:
   - name: passkey
     type: secret
@@ -22,7 +22,7 @@ settings:
 irc:
   network: iPLAY
   server: irc.iplay.ro
-  port: 6667
+  port: 6668
   tls: false
   channels:
     - "#metal"
@@ -50,9 +50,23 @@ irc:
   parse:
     type: single
     lines:
-      - test:
-          - "New torrent: Artist-Album-2022-GROUP -- [Black Metal] -- https://metal.iplay.ro/details.php?id=000000 -- by Anonymous"
-          - "New torrent: Artist-Album -[WEB | FLAC]- RMT -- [FreeLeech!] -- [-Discography/Album Pack] -- https://metal.iplay.ro/details.php?id=000000 -- by Anonymous"
+      - tests:
+        - line: 'New torrent: Artist-Album-2022-GROUP -- [Black Metal] -- https://metal.iplay.ro/details.php?id=000000 -- by Anonymous'
+          expect:
+            torrentName: Artist-Album-2022-GROUP
+            freeleech: ""
+            category: Black Metal
+            baseUrl: https://metal.iplay.ro/
+            torrentId: "000000"
+            uploader: Anonymous
+        - line: 'New torrent: Artist-Album -[WEB | FLAC]- RMT -- [FreeLeech!] -- [-Discography/Album Pack] -- https://metal.iplay.ro/details.php?id=000000 -- by Anonymous'
+          expect:
+            torrentName: Artist-Album -[WEB | FLAC]- RMT
+            freeleech: FreeLeech
+            category: -Discography/Album Pack
+            baseUrl: https://metal.iplay.ro/
+            torrentId: "000000"
+            uploader: Anonymous
         pattern: 'New torrent: (.*?) (?:-- \[(.*)!\] )?-- \[(.*)] -- (https?://.+/).*id=(.*) -- by (.*)'
         vars:
           - torrentName

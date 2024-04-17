@@ -1,4 +1,4 @@
-// Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+// Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 package feed
@@ -20,16 +20,15 @@ import (
 )
 
 type TorznabJob struct {
-	Feed              *domain.Feed
-	Name              string
-	IndexerIdentifier string
-	Log               zerolog.Logger
-	URL               string
-	Client            torznab.Client
-	Repo              domain.FeedRepo
-	CacheRepo         domain.FeedCacheRepo
-	ReleaseSvc        release.Service
-	SchedulerSvc      scheduler.Service
+	Feed         *domain.Feed
+	Name         string
+	Log          zerolog.Logger
+	URL          string
+	Client       torznab.Client
+	Repo         domain.FeedRepo
+	CacheRepo    domain.FeedCacheRepo
+	ReleaseSvc   release.Service
+	SchedulerSvc scheduler.Service
 
 	attempts int
 	errors   []error
@@ -37,24 +36,28 @@ type TorznabJob struct {
 	JobID int
 }
 
-func NewTorznabJob(feed *domain.Feed, name string, indexerIdentifier string, log zerolog.Logger, url string, client torznab.Client, repo domain.FeedRepo, cacheRepo domain.FeedCacheRepo, releaseSvc release.Service) *TorznabJob {
+type FeedJob interface {
+	Run()
+	RunE(ctx context.Context) error
+}
+
+func NewTorznabJob(feed *domain.Feed, name string, log zerolog.Logger, url string, client torznab.Client, repo domain.FeedRepo, cacheRepo domain.FeedCacheRepo, releaseSvc release.Service) FeedJob {
 	return &TorznabJob{
-		Feed:              feed,
-		Name:              name,
-		IndexerIdentifier: indexerIdentifier,
-		Log:               log,
-		URL:               url,
-		Client:            client,
-		Repo:              repo,
-		CacheRepo:         cacheRepo,
-		ReleaseSvc:        releaseSvc,
+		Feed:       feed,
+		Name:       name,
+		Log:        log,
+		URL:        url,
+		Client:     client,
+		Repo:       repo,
+		CacheRepo:  cacheRepo,
+		ReleaseSvc: releaseSvc,
 	}
 }
 
 func (j *TorznabJob) Run() {
 	ctx := context.Background()
 
-	if err := j.process(ctx); err != nil {
+	if err := j.RunE(ctx); err != nil {
 		j.Log.Err(err).Int("attempts", j.attempts).Msg("torznab process error")
 
 		j.errors = append(j.errors, err)
@@ -62,6 +65,15 @@ func (j *TorznabJob) Run() {
 
 	j.attempts = 0
 	j.errors = j.errors[:0]
+}
+
+func (j *TorznabJob) RunE(ctx context.Context) error {
+	if err := j.process(ctx); err != nil {
+		j.Log.Err(err).Int("attempts", j.attempts).Msg("torznab process error")
+		return err
+	}
+
+	return nil
 }
 
 func (j *TorznabJob) process(ctx context.Context) error {
@@ -89,20 +101,32 @@ func (j *TorznabJob) process(ctx context.Context) error {
 			}
 		}
 
-		rls := domain.NewRelease(j.IndexerIdentifier)
+		rls := domain.NewRelease(domain.IndexerMinimal{ID: j.Feed.Indexer.ID, Name: j.Feed.Indexer.Name, Identifier: j.Feed.Indexer.Identifier})
+		rls.Implementation = domain.ReleaseImplementationTorznab
 
 		rls.TorrentName = item.Title
-		rls.TorrentURL = item.Link
-		rls.Implementation = domain.ReleaseImplementationTorznab
+		rls.DownloadURL = item.Link
 
 		// parse size bytes string
 		rls.ParseSizeBytesString(item.Size)
 
 		rls.ParseString(item.Title)
 
+		rls.Seeders, err = parseIntAttribute(item, "seeders")
+		if err != nil {
+			rls.Seeders = 0
+		}
+
+		var peers, err = parseIntAttribute(item, "peers")
+
+		rls.Leechers = peers - rls.Seeders
+		if err != nil {
+			rls.Leechers = 0
+		}
+
 		if j.Feed.Settings != nil && j.Feed.Settings.DownloadType == domain.FeedDownloadTypeMagnet {
 			rls.MagnetURI = item.Link
-			rls.TorrentURL = ""
+			rls.DownloadURL = ""
 		}
 
 		// Get freeleech percentage between 0 - 100. The value is ignored if
@@ -136,6 +160,20 @@ func (j *TorznabJob) process(ctx context.Context) error {
 	go j.ReleaseSvc.ProcessMultiple(releases)
 
 	return nil
+}
+
+func parseIntAttribute(item torznab.FeedItem, attrName string) (int, error) {
+	for _, attr := range item.Attributes {
+		if attr.Name == attrName {
+			// Parse the value as decimal number
+			intValue, err := strconv.Atoi(attr.Value)
+			if err != nil {
+				return 0, err
+			}
+			return intValue, err
+		}
+	}
+	return 0, nil
 }
 
 // Parse the downloadvolumefactor attribute. The returned value is the percentage
@@ -208,13 +246,20 @@ func (j *TorznabJob) getFeed(ctx context.Context) ([]torznab.FeedItem, error) {
 		return feed.Channel.Items[i].PubDate.After(feed.Channel.Items[j].PubDate.Time)
 	})
 
+	toCache := make([]domain.FeedCacheItem, 0)
+
+	// set ttl to 1 month
+	ttl := time.Now().AddDate(0, 1, 0)
+
 	for _, i := range feed.Channel.Items {
+		i := i
+
 		if i.GUID == "" {
-			j.Log.Error().Err(err).Msgf("missing GUID from feed: %s", j.Feed.Name)
+			j.Log.Error().Msgf("missing GUID from feed: %s", j.Feed.Name)
 			continue
 		}
 
-		exists, err := j.CacheRepo.Exists(j.Name, i.GUID)
+		exists, err := j.CacheRepo.Exists(j.Feed.ID, i.GUID)
 		if err != nil {
 			j.Log.Error().Err(err).Msg("could not check if item exists")
 			continue
@@ -226,16 +271,24 @@ func (j *TorznabJob) getFeed(ctx context.Context) ([]torznab.FeedItem, error) {
 
 		j.Log.Debug().Msgf("found new release: %s", i.Title)
 
-		// set ttl to 1 month
-		ttl := time.Now().AddDate(0, 1, 0)
-
-		if err := j.CacheRepo.Put(j.Name, i.GUID, []byte(i.Title), ttl); err != nil {
-			j.Log.Error().Stack().Err(err).Str("guid", i.GUID).Msg("cache.Put: error storing item in cache")
-			continue
-		}
+		toCache = append(toCache, domain.FeedCacheItem{
+			FeedId: strconv.Itoa(j.Feed.ID),
+			Key:    i.GUID,
+			Value:  []byte(i.Title),
+			TTL:    ttl,
+		})
 
 		// only append if we successfully added to cache
 		items = append(items, *i)
+	}
+
+	if len(toCache) > 0 {
+		go func(items []domain.FeedCacheItem) {
+			ctx := context.Background()
+			if err := j.CacheRepo.PutMany(ctx, items); err != nil {
+				j.Log.Error().Err(err).Msg("cache.PutMany: error storing items in cache")
+			}
+		}(toCache)
 	}
 
 	// send to filters

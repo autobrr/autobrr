@@ -1,4 +1,4 @@
-// Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+// Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 package http
@@ -75,17 +75,31 @@ func NewServer(log logger.Logger, config *config.AppConfig, sse *sse.Server, db 
 
 func (s Server) Open() error {
 	addr := fmt.Sprintf("%v:%v", s.config.Config.Host, s.config.Config.Port)
-	listener, err := net.Listen("tcp", addr)
+
+	var err error
+	for _, proto := range []string{"tcp", "tcp4", "tcp6"} {
+		if err = s.tryToServe(addr, proto); err == nil {
+			break
+		}
+
+		s.log.Error().Err(err).Msgf("Failed to start %s server. Attempted to listen on %s", proto, addr)
+	}
+
+	return err
+}
+
+func (s Server) tryToServe(addr, protocol string) error {
+	listener, err := net.Listen(protocol, addr)
 	if err != nil {
 		return err
 	}
 
+	s.log.Info().Msgf("Starting API %s server. Listening on %s", protocol, listener.Addr().String())
+
 	server := http.Server{
-		Handler: s.Handler(),
+		Handler:           s.Handler(),
 		ReadHeaderTimeout: time.Second * 15,
 	}
-
-	s.log.Info().Msgf("Starting server. Listening on %s", listener.Addr().String())
 
 	return server.Serve(listener)
 }
@@ -112,7 +126,7 @@ func (s Server) Handler() http.Handler {
 	encoder := encoder{}
 
 	r.Route("/api", func(r chi.Router) {
-		r.Route("/auth", newAuthHandler(encoder, s.log, s.config.Config, s.cookieStore, s.authService).Routes)
+		r.Route("/auth", newAuthHandler(encoder, s.log, s, s.config.Config, s.cookieStore, s.authService).Routes)
 		r.Route("/healthz", newHealthHandler(encoder, s.db).Routes)
 
 		r.Group(func(r chi.Router) {

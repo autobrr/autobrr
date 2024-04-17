@@ -11,7 +11,7 @@ protocol: torrent
 supports:
   - irc
   - rss
-source: custom
+# source: custom
 settings:
   - name: rsskey
     type: secret
@@ -51,9 +51,21 @@ irc:
   parse:
     type: single
     lines:
-      - test:
-          - "New Torrent Announcement: Name:'BsBigHouse 12 12 21 Kyle Comes To Play XXX 480i MP2 YUSUF' uploaded by 'Anonymous' -  https://www.pussytorrents.org/torrent/69"
-          - "New Torrent Announcement: Name:'BadBus 8 9 98 carter and the lemon XXX 576p MP4 CatStevens' uploaded by 'Anonymous' -  https://www.pussytorrents.org/torrent/96"
+      - tests:
+        - line: 'New Torrent Announcement: Name:''BsBigHouse 12 12 21 Kyle Comes To Play XXX 480i MP2 YUSUF'' uploaded by ''Anonymous'' -  https://www.pussytorrents.org/torrent/69'
+          expect:
+            torrentName: BsBigHouse 12 12 21 Kyle Comes To Play XXX 480i MP2 YUSUF
+            uploader: Anonymous
+            freeleech: ""
+            baseUrl: https://www.pussytorrents.org/
+            torrentId: "69"
+        - line: 'New Torrent Announcement: Name:''BadBus 8 9 98 carter and the lemon XXX 576p MP4 CatStevens'' uploaded by ''Anonymous'' -  https://www.pussytorrents.org/torrent/96'
+          expect:
+            torrentName: BadBus 8 9 98 carter and the lemon XXX 576p MP4 CatStevens
+            uploader: Anonymous
+            freeleech: ""
+            baseUrl: https://www.pussytorrents.org/
+            torrentId: "96"
         pattern: New Torrent Announcement:\s*Name:'(.*)' uploaded by '([^']*)'\s*(freeleech)*\s*-\s*(https?\:\/\/[^\/]+\/)torrent\/(\d+)
         vars:
           - torrentName

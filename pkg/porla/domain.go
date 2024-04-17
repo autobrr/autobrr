@@ -1,4 +1,4 @@
-// Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+// Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 package porla
@@ -42,7 +42,6 @@ type TorrentsListRes struct {
 type Torrent struct {
 	DownloadRate  int      `json:"download_rate"`
 	UploadRate    int      `json:"upload_rate"`
-	Flags         int      `json:"flags"`
 	InfoHash      []string `json:"info_hash"`
 	ListPeers     int      `json:"list_peers"`
 	ListSeeds     int      `json:"list_seeds"`

@@ -1,11 +1,11 @@
 /*
- * Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+ * Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
 interface Feed {
   id: number;
-  indexer: string;
+  indexer: IndexerMinimal;
   name: string;
   type: FeedType;
   enabled: boolean;
@@ -17,6 +17,7 @@ interface Feed {
   cookie: string;
   last_run: string;
   last_run_data: string;
+  next_run: string;
   settings: FeedSettings;
   created_at: Date;
   updated_at: Date;

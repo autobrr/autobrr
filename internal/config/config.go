@@ -1,4 +1,4 @@
-// Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+// Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 package config
@@ -10,6 +10,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"sync"
 	"text/template"
@@ -117,7 +118,7 @@ func (c *AppConfig) writeConfig(configPath string, configFile string) error {
 			host = "0.0.0.0"
 		} else if pd, _ := os.Open("/proc/1/cgroup"); pd != nil {
 			defer pd.Close()
-			b := make([]byte, 4096, 4096)
+			b := make([]byte, 4096)
 			pd.Read(b)
 			if strings.Contains(string(b), "/docker") || strings.Contains(string(b), "/lxc") {
 				host = "0.0.0.0"
@@ -166,50 +167,150 @@ type Config interface {
 
 type AppConfig struct {
 	Config *domain.Config
-	m      sync.Mutex
+	m      *sync.Mutex
 }
 
 func New(configPath string, version string) *AppConfig {
-	c := &AppConfig{}
+	c := &AppConfig{
+		m: new(sync.Mutex),
+	}
 	c.defaults()
 	c.Config.Version = version
 	c.Config.ConfigPath = configPath
 
 	c.load(configPath)
+	c.loadFromEnv()
 
 	return c
 }
 
 func (c *AppConfig) defaults() {
 	c.Config = &domain.Config{
-		Version:           "dev",
-		Host:              "localhost",
-		Port:              7474,
-		LogLevel:          "TRACE",
-		LogPath:           "",
-		LogMaxSize:        50,
-		LogMaxBackups:     3,
-		BaseURL:           "/",
-		SessionSecret:     api.GenerateSecureToken(16),
-		CustomDefinitions: "",
-		CheckForUpdates:   true,
-		DatabaseType:      "sqlite",
-		PostgresHost:      "",
-		PostgresPort:      0,
-		PostgresDatabase:  "",
-		PostgresUser:      "",
-		PostgresPass:      "",
+		Version:             "dev",
+		Host:                "localhost",
+		Port:                7474,
+		LogLevel:            "TRACE",
+		LogPath:             "",
+		LogMaxSize:          50,
+		LogMaxBackups:       3,
+		BaseURL:             "/",
+		SessionSecret:       api.GenerateSecureToken(16),
+		CustomDefinitions:   "",
+		CheckForUpdates:     true,
+		DatabaseType:        "sqlite",
+		PostgresHost:        "",
+		PostgresPort:        0,
+		PostgresDatabase:    "",
+		PostgresUser:        "",
+		PostgresPass:        "",
+		PostgresSSLMode:     "disable",
+		PostgresExtraParams: "",
 	}
 
 }
 
-func (c *AppConfig) load(configPath string) {
-	// or use viper.SetDefault(val, def)
-	//viper.SetDefault("host", config.Host)
-	//viper.SetDefault("port", config.Port)
-	//viper.SetDefault("logLevel", config.LogLevel)
-	//viper.SetDefault("logPath", config.LogPath)
+func (c *AppConfig) loadFromEnv() {
+	prefix := "AUTOBRR__"
 
+	if v := os.Getenv(prefix + "HOST"); v != "" {
+		c.Config.Host = v
+	}
+
+	if v := os.Getenv(prefix + "PORT"); v != "" {
+		i, _ := strconv.ParseInt(v, 10, 32)
+		if i > 0 {
+			c.Config.Port = int(i)
+		}
+	}
+
+	if v := os.Getenv(prefix + "BASE_URL"); v != "" {
+		c.Config.BaseURL = v
+	}
+
+	if v := os.Getenv(prefix + "LOG_LEVEL"); v != "" {
+		c.Config.LogLevel = v
+	}
+
+	if v := os.Getenv(prefix + "LOG_PATH"); v != "" {
+		c.Config.LogPath = v
+	}
+
+	if v := os.Getenv(prefix + "LOG_MAX_SIZE"); v != "" {
+		i, _ := strconv.ParseInt(v, 10, 32)
+		if i > 0 {
+			c.Config.LogMaxSize = int(i)
+		}
+	}
+
+	if v := os.Getenv(prefix + "LOG_MAX_BACKUPS"); v != "" {
+		i, _ := strconv.ParseInt(v, 10, 32)
+		if i > 0 {
+			c.Config.LogMaxBackups = int(i)
+		}
+	}
+
+	if v := os.Getenv(prefix + "SESSION_SECRET"); v != "" {
+		c.Config.SessionSecret = v
+	}
+
+	if v := os.Getenv(prefix + "CUSTOM_DEFINITIONS"); v != "" {
+		c.Config.CustomDefinitions = v
+	}
+
+	if v := os.Getenv(prefix + "CHECK_FOR_UPDATES"); v != "" {
+		c.Config.CheckForUpdates = strings.EqualFold(strings.ToLower(v), "true")
+	}
+
+	if v := os.Getenv(prefix + "DATABASE_TYPE"); v != "" {
+		if validDatabaseType(v) {
+			c.Config.DatabaseType = v
+		}
+	}
+
+	if v := os.Getenv(prefix + "POSTGRES_HOST"); v != "" {
+		c.Config.PostgresHost = v
+	}
+
+	if v := os.Getenv(prefix + "POSTGRES_PORT"); v != "" {
+		i, _ := strconv.ParseInt(v, 10, 32)
+		if i > 0 {
+			c.Config.PostgresPort = int(i)
+		}
+	}
+
+	if v := os.Getenv(prefix + "POSTGRES_DATABASE"); v != "" {
+		c.Config.PostgresDatabase = v
+	}
+
+	if v := os.Getenv(prefix + "POSTGRES_USER"); v != "" {
+		c.Config.PostgresUser = v
+	}
+
+	if v := os.Getenv(prefix + "POSTGRES_PASS"); v != "" {
+		c.Config.PostgresPass = v
+	}
+
+	if v := os.Getenv(prefix + "POSTGRES_SSLMODE"); v != "" {
+		c.Config.PostgresSSLMode = v
+	}
+
+	if v := os.Getenv(prefix + "POSTGRES_EXTRA_PARAMS"); v != "" {
+		c.Config.PostgresExtraParams = v
+	}
+}
+
+func validDatabaseType(v string) bool {
+	valid := []string{"sqlite", "postgres"}
+	for _, s := range valid {
+		if s == v {
+			return true
+		}
+	}
+
+	return false
+}
+
+func (c *AppConfig) load(configPath string) {
 	viper.SetConfigType("toml")
 
 	// clean trailing slash from configPath
@@ -234,19 +335,9 @@ func (c *AppConfig) load(configPath string) {
 		viper.AddConfigPath("$HOME/.autobrr")
 	}
 
-	viper.SetEnvPrefix("AUTOBRR")
-
 	// read config
 	if err := viper.ReadInConfig(); err != nil {
 		log.Printf("config read error: %q", err)
-	}
-
-	for _, key := range viper.AllKeys() {
-		envKey := strings.ToUpper(strings.ReplaceAll(key, ".", "_"))
-		err := viper.BindEnv(key, "AUTOBRR__"+envKey)
-		if err != nil {
-			log.Fatal("config: unable to bind env: " + err.Error())
-		}
 	}
 
 	if err := viper.Unmarshal(c.Config); err != nil {
@@ -273,24 +364,22 @@ func (c *AppConfig) DynamicReload(log logger.Logger) {
 		c.m.Unlock()
 	})
 	viper.WatchConfig()
-
-	return
 }
 
 func (c *AppConfig) UpdateConfig() error {
-	file := path.Join(c.Config.ConfigPath, "config.toml")
+	filePath := path.Join(c.Config.ConfigPath, "config.toml")
 
-	f, err := os.ReadFile(file)
+	f, err := os.ReadFile(filePath)
 	if err != nil {
-		return errors.Wrap(err, "could not read config file: %s", file)
+		return errors.Wrap(err, "could not read config file: %s", filePath)
 	}
 
 	lines := strings.Split(string(f), "\n")
 	lines = c.processLines(lines)
 
 	output := strings.Join(lines, "\n")
-	if err := os.WriteFile(file, []byte(output), 0644); err != nil {
-		return errors.Wrap(err, "could not write config file: %s", file)
+	if err := os.WriteFile(filePath, []byte(output), 0644); err != nil {
+		return errors.Wrap(err, "could not write config file: %s", filePath)
 	}
 
 	return nil
@@ -316,7 +405,13 @@ func (c *AppConfig) processLines(lines []string) []string {
 		}
 		if !foundLineLogPath && strings.Contains(line, "logPath =") {
 			if c.Config.LogPath == "" {
-				lines[i] = `#logPath = ""`
+				// Check if the line already has a value
+				matches := strings.Split(line, "=")
+				if len(matches) > 1 && strings.TrimSpace(matches[1]) != `""` {
+					lines[i] = line // Preserve the existing line
+				} else {
+					lines[i] = `#logPath = ""`
+				}
 			} else {
 				lines[i] = fmt.Sprintf("logPath = \"%s\"", c.Config.LogPath)
 			}

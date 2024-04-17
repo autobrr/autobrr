@@ -1,4 +1,4 @@
-// Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+// Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 package feed
@@ -19,16 +19,15 @@ import (
 )
 
 type NewznabJob struct {
-	Feed              *domain.Feed
-	Name              string
-	IndexerIdentifier string
-	Log               zerolog.Logger
-	URL               string
-	Client            newznab.Client
-	Repo              domain.FeedRepo
-	CacheRepo         domain.FeedCacheRepo
-	ReleaseSvc        release.Service
-	SchedulerSvc      scheduler.Service
+	Feed         *domain.Feed
+	Name         string
+	Log          zerolog.Logger
+	URL          string
+	Client       newznab.Client
+	Repo         domain.FeedRepo
+	CacheRepo    domain.FeedCacheRepo
+	ReleaseSvc   release.Service
+	SchedulerSvc scheduler.Service
 
 	attempts int
 	errors   []error
@@ -36,24 +35,23 @@ type NewznabJob struct {
 	JobID int
 }
 
-func NewNewznabJob(feed *domain.Feed, name string, indexerIdentifier string, log zerolog.Logger, url string, client newznab.Client, repo domain.FeedRepo, cacheRepo domain.FeedCacheRepo, releaseSvc release.Service) *NewznabJob {
+func NewNewznabJob(feed *domain.Feed, name string, log zerolog.Logger, url string, client newznab.Client, repo domain.FeedRepo, cacheRepo domain.FeedCacheRepo, releaseSvc release.Service) FeedJob {
 	return &NewznabJob{
-		Feed:              feed,
-		Name:              name,
-		IndexerIdentifier: indexerIdentifier,
-		Log:               log,
-		URL:               url,
-		Client:            client,
-		Repo:              repo,
-		CacheRepo:         cacheRepo,
-		ReleaseSvc:        releaseSvc,
+		Feed:       feed,
+		Name:       name,
+		Log:        log,
+		URL:        url,
+		Client:     client,
+		Repo:       repo,
+		CacheRepo:  cacheRepo,
+		ReleaseSvc: releaseSvc,
 	}
 }
 
 func (j *NewznabJob) Run() {
 	ctx := context.Background()
 
-	if err := j.process(ctx); err != nil {
+	if err := j.RunE(ctx); err != nil {
 		j.Log.Err(err).Int("attempts", j.attempts).Msg("newznab process error")
 
 		j.errors = append(j.errors, err)
@@ -61,6 +59,15 @@ func (j *NewznabJob) Run() {
 
 	j.attempts = 0
 	j.errors = j.errors[:0]
+}
+
+func (j *NewznabJob) RunE(ctx context.Context) error {
+	if err := j.process(ctx); err != nil {
+		j.Log.Err(err).Msg("newznab process error")
+		return err
+	}
+
+	return nil
 }
 
 func (j *NewznabJob) process(ctx context.Context) error {
@@ -88,12 +95,12 @@ func (j *NewznabJob) process(ctx context.Context) error {
 			}
 		}
 
-		rls := domain.NewRelease(j.IndexerIdentifier)
+		rls := domain.NewRelease(domain.IndexerMinimal{ID: j.Feed.Indexer.ID, Name: j.Feed.Indexer.Name, Identifier: j.Feed.Indexer.Identifier})
+		rls.Implementation = domain.ReleaseImplementationNewznab
+		rls.Protocol = domain.ReleaseProtocolNzb
 
 		rls.TorrentName = item.Title
 		rls.InfoURL = item.GUID
-		rls.Implementation = domain.ReleaseImplementationNewznab
-		rls.Protocol = domain.ReleaseProtocolNzb
 
 		// parse size bytes string
 		rls.ParseSizeBytesString(item.Size)
@@ -102,7 +109,7 @@ func (j *NewznabJob) process(ctx context.Context) error {
 
 		if item.Enclosure != nil {
 			if item.Enclosure.Type == "application/x-nzb" {
-				rls.TorrentURL = item.Enclosure.Url
+				rls.DownloadURL = item.Enclosure.Url
 			}
 		}
 
@@ -133,7 +140,7 @@ func (j *NewznabJob) getFeed(ctx context.Context) ([]newznab.FeedItem, error) {
 		j.Log.Error().Err(err).Msgf("error updating last run for feed id: %v", j.Feed.ID)
 	}
 
-	j.Log.Debug().Msgf("refreshing feed: %v, found (%d) items", j.Name, len(feed.Channel.Items))
+	j.Log.Debug().Msgf("refreshing feed: %s, found (%d) items", j.Name, len(feed.Channel.Items))
 
 	items := make([]newznab.FeedItem, 0)
 	if len(feed.Channel.Items) == 0 {
@@ -144,17 +151,25 @@ func (j *NewznabJob) getFeed(ctx context.Context) ([]newznab.FeedItem, error) {
 		return feed.Channel.Items[i].PubDate.After(feed.Channel.Items[j].PubDate.Time)
 	})
 
+	toCache := make([]domain.FeedCacheItem, 0)
+
+	// set ttl to 1 month
+	ttl := time.Now().AddDate(0, 1, 0)
+
 	for _, i := range feed.Channel.Items {
+		i := i
+
 		if i.GUID == "" {
-			j.Log.Error().Err(err).Msgf("missing GUID from feed: %s", j.Feed.Name)
+			j.Log.Error().Msgf("missing GUID from feed: %s", j.Feed.Name)
 			continue
 		}
 
-		exists, err := j.CacheRepo.Exists(j.Name, i.GUID)
+		exists, err := j.CacheRepo.Exists(j.Feed.ID, i.GUID)
 		if err != nil {
 			j.Log.Error().Err(err).Msg("could not check if item exists")
 			continue
 		}
+
 		if exists {
 			j.Log.Trace().Msgf("cache item exists, skipping release: %s", i.Title)
 			continue
@@ -162,16 +177,24 @@ func (j *NewznabJob) getFeed(ctx context.Context) ([]newznab.FeedItem, error) {
 
 		j.Log.Debug().Msgf("found new release: %s", i.Title)
 
-		// set ttl to 1 month
-		ttl := time.Now().AddDate(0, 1, 0)
-
-		if err := j.CacheRepo.Put(j.Name, i.GUID, []byte(i.Title), ttl); err != nil {
-			j.Log.Error().Stack().Err(err).Str("guid", i.GUID).Msg("cache.Put: error storing item in cache")
-			continue
-		}
+		toCache = append(toCache, domain.FeedCacheItem{
+			FeedId: strconv.Itoa(j.Feed.ID),
+			Key:    i.GUID,
+			Value:  []byte(i.Title),
+			TTL:    ttl,
+		})
 
 		// only append if we successfully added to cache
 		items = append(items, *i)
+	}
+
+	if len(toCache) > 0 {
+		go func(items []domain.FeedCacheItem) {
+			ctx := context.Background()
+			if err := j.CacheRepo.PutMany(ctx, items); err != nil {
+				j.Log.Error().Err(err).Msg("cache.PutMany: error storing items in cache")
+			}
+		}(toCache)
 	}
 
 	// send to filters

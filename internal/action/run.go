@@ -1,4 +1,4 @@
-// Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+// Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 package action
@@ -6,7 +6,6 @@ package action
 import (
 	"bytes"
 	"context"
-	"crypto/tls"
 	"fmt"
 	"io"
 	"net/http"
@@ -92,15 +91,14 @@ func (s *service) RunAction(ctx context.Context, action *domain.Action, release 
 		rejections, err = s.sabnzbd(ctx, action, *release)
 
 	default:
-		s.log.Warn().Msgf("unsupported action type: %v", action.Type)
-		return rejections, err
+		return nil, errors.New("unsupported action type: %s", action.Type)
 	}
 
 	payload := &domain.NotificationPayload{
 		Event:          domain.NotificationEventPushApproved,
 		ReleaseName:    release.TorrentName,
 		Filter:         release.FilterName,
-		Indexer:        release.Indexer,
+		Indexer:        release.Indexer.Name,
 		InfoHash:       release.TorrentHash,
 		Size:           release.Size,
 		Status:         domain.ReleasePushStatusApproved,
@@ -198,14 +196,6 @@ func (s *service) webhook(ctx context.Context, action *domain.Action, release do
 		s.log.Trace().Msgf("webhook action '%s' - host: %s data: %s", action.Name, action.WebhookHost, action.WebhookData)
 	}
 
-	t := &http.Transport{
-		TLSClientConfig: &tls.Config{
-			InsecureSkipVerify: true,
-		},
-	}
-
-	client := http.Client{Transport: t, Timeout: 120 * time.Second}
-
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, action.WebhookHost, bytes.NewBufferString(action.WebhookData))
 	if err != nil {
 		return errors.Wrap(err, "could not build request for webhook")
@@ -215,8 +205,7 @@ func (s *service) webhook(ctx context.Context, action *domain.Action, release do
 	req.Header.Set("User-Agent", "autobrr")
 
 	start := time.Now()
-
-	res, err := client.Do(req)
+	res, err := s.httpClient.Do(req)
 	if err != nil {
 		return errors.Wrap(err, "could not make request for webhook")
 	}

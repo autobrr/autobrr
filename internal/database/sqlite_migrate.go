@@ -1,4 +1,4 @@
-// Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+// Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 package database
@@ -47,6 +47,7 @@ CREATE TABLE irc_network
     invite_command      TEXT,
     use_bouncer         BOOLEAN,
     bouncer_addr        TEXT,
+    bot_mode            BOOLEAN DEFAULT FALSE,
     connected           BOOLEAN,
     connected_since     TIMESTAMP,
     created_at          TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -128,26 +129,33 @@ CREATE TABLE filter
     origins                        TEXT []   DEFAULT '{}',
     except_origins                 TEXT []   DEFAULT '{}',
     created_at                     TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at                     TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    updated_at                     TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    min_seeders                    INTEGER DEFAULT 0,
+    max_seeders                    INTEGER DEFAULT 0,
+    min_leechers                   INTEGER DEFAULT 0,
+    max_leechers                   INTEGER DEFAULT 0
 );
 
 CREATE TABLE filter_external
 (
-    id                      INTEGER PRIMARY KEY,
-    name                    TEXT     NOT NULL,
-    idx                     INTEGER,
-    type                    TEXT,
-    enabled                 BOOLEAN,
-    exec_cmd                TEXT,
-    exec_args               TEXT,
-    exec_expect_status      INTEGER,
-    webhook_host            TEXT,
-    webhook_method          TEXT,
-    webhook_data            TEXT,
-    webhook_headers         TEXT,
-    webhook_expect_status   INTEGER,
-    filter_id               INTEGER NOT NULL,
-    FOREIGN KEY (filter_id) REFERENCES filter(id) ON DELETE CASCADE
+    id                                  INTEGER PRIMARY KEY,
+    name                                TEXT     NOT NULL,
+    idx                                 INTEGER,
+    type                                TEXT,
+    enabled                             BOOLEAN,
+    exec_cmd                            TEXT,
+    exec_args                           TEXT,
+    exec_expect_status                  INTEGER,
+    webhook_host                        TEXT,
+    webhook_method                      TEXT,
+    webhook_data                        TEXT,
+    webhook_headers                     TEXT,
+    webhook_expect_status               INTEGER,
+    webhook_retry_status                TEXT,
+    webhook_retry_attempts              INTEGER,
+    webhook_retry_delay_seconds         INTEGER,
+    filter_id                           INTEGER NOT NULL,
+    FOREIGN KEY (filter_id)             REFERENCES filter(id) ON DELETE CASCADE
 );
 
 CREATE TABLE filter_indexer
@@ -195,6 +203,7 @@ CREATE TABLE action
     limit_download_speed    INT,
     limit_ratio             REAL,
     limit_seed_time         INT,
+    priority                TEXT,
     reannounce_skip         BOOLEAN DEFAULT false,
     reannounce_delete       BOOLEAN DEFAULT false,
     reannounce_interval     INTEGER DEFAULT 7,
@@ -204,6 +213,8 @@ CREATE TABLE action
     webhook_type            TEXT,
     webhook_data            TEXT,
     webhook_headers         TEXT[] DEFAULT '{}',
+    external_client_id      INTEGER,
+    external_client         TEXT,
     client_id               INTEGER,
     filter_id               INTEGER,
     FOREIGN KEY (filter_id) REFERENCES filter (id),
@@ -330,7 +341,7 @@ CREATE TABLE feed
 	url           TEXT,
 	interval      INTEGER,
 	timeout       INTEGER DEFAULT 60,
-	max_age       INTEGER DEFAULT 3600,
+	max_age       INTEGER DEFAULT 0,
 	categories    TEXT []   DEFAULT '{}' NOT NULL,
 	capabilities  TEXT []   DEFAULT '{}' NOT NULL,
 	api_key       TEXT,
@@ -346,11 +357,15 @@ CREATE TABLE feed
 
 CREATE TABLE feed_cache
 (
-	bucket TEXT,
-	key    TEXT,
-	value  TEXT,
-	ttl    TIMESTAMP
+	feed_id INTEGER NOT NULL,
+	key     TEXT,
+	value   TEXT,
+	ttl     TIMESTAMP,
+	FOREIGN KEY (feed_id) REFERENCES feed (id) ON DELETE cascade
 );
+
+CREATE INDEX feed_cache_feed_id_key_index
+    ON feed_cache (feed_id, key);
 
 CREATE TABLE api_key
 (
@@ -754,20 +769,20 @@ ALTER TABLE release_action_status_dg_tmp
 	`
 	ALTER TABLE "action"
 		ADD COLUMN reannounce_skip BOOLEAN DEFAULT false;
-	
+
 	ALTER TABLE "action"
 		ADD COLUMN reannounce_delete BOOLEAN DEFAULT false;
-	
+
 	ALTER TABLE "action"
 		ADD COLUMN reannounce_interval INTEGER DEFAULT 7;
-	
+
 	ALTER TABLE "action"
 		ADD COLUMN reannounce_max_attempts INTEGER DEFAULT 50;
 	`,
 	`
 	ALTER TABLE "action"
 		ADD COLUMN limit_ratio REAL DEFAULT 0;
-	
+
 	ALTER TABLE "action"
 		ADD COLUMN limit_seed_time INTEGER DEFAULT 0;
 	`,
@@ -977,7 +992,7 @@ CREATE TABLE irc_network_dg_tmp
     unique (server, port, nick)
 );
 
-INSERT INTO irc_network_dg_tmp(id, enabled, name, server, port, tls, pass, nick, auth_mechanism, auth_account, auth_password, invite_command, 
+INSERT INTO irc_network_dg_tmp(id, enabled, name, server, port, tls, pass, nick, auth_mechanism, auth_account, auth_password, invite_command,
                                connected, connected_since, created_at, updated_at)
 SELECT id,
        enabled,
@@ -1070,7 +1085,7 @@ FROM filter f WHERE f.name = release_action_status.filter);
 	`,
 	`ALTER TABLE "release"
 ADD COLUMN info_url TEXT;
-    
+
 ALTER TABLE "release"
 ADD COLUMN download_url TEXT;
 	`,
@@ -1079,7 +1094,7 @@ ADD COLUMN download_url TEXT;
 
 	ALTER TABLE filter
 		ADD COLUMN except_tags_match_logic TEXT;
-    
+
     UPDATE filter
     SET tags_match_logic = 'ANY'
     WHERE tags IS NOT NULL;
@@ -1326,5 +1341,175 @@ drop table filter;
 
 alter table filter_dg_tmp
     rename to filter;
+`,
+	`DROP TABLE IF EXISTS feed_cache;
+
+CREATE TABLE feed_cache
+(
+	feed_id INTEGER NOT NULL,
+	key     TEXT,
+	value   TEXT,
+	ttl     TIMESTAMP,
+	FOREIGN KEY (feed_id) REFERENCES feed (id) ON DELETE cascade
+);
+
+CREATE INDEX feed_cache_feed_id_key_index
+    ON feed_cache (feed_id, key);
+`,
+	`ALTER TABLE action
+ADD COLUMN external_client_id INTEGER;
+`,
+	`ALTER TABLE filter_external
+ADD COLUMN external_webhook_retry_status TEXT;
+
+ALTER TABLE filter_external
+	ADD COLUMN external_webhook_retry_attempts INTEGER;
+
+ALTER TABLE filter_external
+	ADD COLUMN external_webhook_retry_delay_seconds INTEGER;
+
+ALTER TABLE filter_external
+	ADD COLUMN external_webhook_retry_max_jitter_seconds INTEGER;
+`,
+	`
+CREATE TABLE filter_external_dg_tmp
+(
+    id                               INTEGER PRIMARY KEY,
+    name                             TEXT    NOT NULL,
+    idx                              INTEGER,
+    type                             TEXT,
+    enabled                          BOOLEAN,
+    exec_cmd                         TEXT,
+    exec_args                        TEXT,
+    exec_expect_status               INTEGER,
+    webhook_host                     TEXT,
+    webhook_method                   TEXT,
+    webhook_data                     TEXT,
+    webhook_headers                  TEXT,
+    webhook_expect_status            INTEGER,
+    webhook_retry_status             TEXT,
+    webhook_retry_attempts           INTEGER,
+    webhook_retry_delay_seconds      INTEGER,
+    webhook_retry_max_jitter_seconds INTEGER,
+    filter_id                        INTEGER NOT NULL
+        REFERENCES filter
+            ON DELETE CASCADE
+);
+
+INSERT INTO filter_external_dg_tmp(id, name, idx, type, enabled, exec_cmd, exec_args, exec_expect_status, webhook_host,
+                                   webhook_method, webhook_data, webhook_headers, webhook_expect_status, filter_id,
+                                   webhook_retry_status, webhook_retry_attempts, webhook_retry_delay_seconds,
+                                   webhook_retry_max_jitter_seconds)
+SELECT id,
+       name,
+       idx,
+       type,
+       enabled,
+       exec_cmd,
+       exec_args,
+       exec_expect_status,
+       webhook_host,
+       webhook_method,
+       webhook_data,
+       webhook_headers,
+       webhook_expect_status,
+       filter_id,
+       external_webhook_retry_status,
+       external_webhook_retry_attempts,
+       external_webhook_retry_delay_seconds,
+       external_webhook_retry_max_jitter_seconds
+FROM filter_external;
+
+DROP TABLE filter_external;
+
+ALTER TABLE filter_external_dg_tmp
+    RENAME TO filter_external;
+`,
+	`ALTER TABLE filter_external
+	DROP COLUMN webhook_retry_max_jitter_seconds;
+`,
+	`ALTER TABLE irc_network
+	ADD COLUMN bot_mode BOOLEAN DEFAULT FALSE;
+`,
+	`CREATE TABLE feed_dg_tmp
+(
+    id            INTEGER PRIMARY KEY,
+    indexer       TEXT,
+    name          TEXT,
+    type          TEXT,
+    enabled       BOOLEAN,
+    url           TEXT,
+    interval      INTEGER,
+    capabilities  TEXT      DEFAULT '{}' NOT NULL,
+    api_key       TEXT,
+    settings      TEXT,
+    indexer_id    INTEGER
+        REFERENCES indexer
+            ON DELETE CASCADE,
+    created_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    timeout       INTEGER   DEFAULT 60,
+    max_age       INTEGER   DEFAULT 0,
+    last_run      TIMESTAMP,
+    last_run_data TEXT,
+    cookie        TEXT
+);
+
+INSERT INTO feed_dg_tmp(id, indexer, name, type, enabled, url, interval, capabilities, api_key, settings, indexer_id,
+                        created_at, updated_at, timeout, max_age, last_run, last_run_data, cookie)
+SELECT id,
+       indexer,
+       name,
+       type,
+       enabled,
+       url,
+       interval,
+       capabilities,
+       api_key,
+       settings,
+       indexer_id,
+       created_at,
+       updated_at,
+       timeout,
+       max_age,
+       last_run,
+       last_run_data,
+       cookie
+FROM feed;
+
+DROP TABLE feed;
+
+ALTER TABLE feed_dg_tmp
+    RENAME TO feed;
+`,
+	`ALTER TABLE action
+	ADD COLUMN priority TEXT;
+`,
+	`ALTER TABLE action
+	ADD COLUMN external_client TEXT;
+`, `
+ALTER TABLE filter
+    ADD COLUMN min_seeders INTEGER DEFAULT 0;
+
+ALTER TABLE filter
+    ADD COLUMN max_seeders INTEGER DEFAULT 0;
+
+ALTER TABLE filter
+    ADD COLUMN min_leechers INTEGER DEFAULT 0;
+
+ALTER TABLE filter
+    ADD COLUMN max_leechers INTEGER DEFAULT 0;
+`,
+	`UPDATE irc_network
+    SET server = 'irc.nebulance.io'
+    WHERE server = 'irc.nebulance.cc';
+`,
+	`UPDATE  irc_network
+    SET server = 'irc.animefriends.moe',
+        name = CASE  
+			WHEN name = 'AnimeBytes-IRC' THEN 'AnimeBytes'
+        	ELSE name
+        END
+	WHERE server = 'irc.animebytes.tv';
 `,
 }

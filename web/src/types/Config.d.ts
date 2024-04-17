@@ -1,11 +1,14 @@
 /*
- * Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+ * Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
 type LogLevel = "DEBUG" | "INFO" | "WARN" | "ERROR" | "TRACE";
 
 interface Config {
+  config_dir: string;
+  application: string;
+  database: string;
   host: string;
   port: number;
   log_level: LogLevel;

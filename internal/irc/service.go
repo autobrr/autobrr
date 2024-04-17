@@ -1,4 +1,4 @@
-// Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+// Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 package irc
@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"strings"
 	"sync"
-	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/internal/indexer"
@@ -37,6 +36,7 @@ type Service interface {
 	UpdateNetwork(ctx context.Context, network *domain.IrcNetwork) error
 	StoreChannel(ctx context.Context, networkID int64, channel *domain.IrcChannel) error
 	SendCmd(ctx context.Context, req *domain.SendIrcCmdRequest) error
+	ManualProcessAnnounce(ctx context.Context, req *domain.IRCManualProcessRequest) error
 }
 
 type service struct {
@@ -81,7 +81,7 @@ func (s *service) StartHandlers() {
 
 		channels, err := s.repo.ListChannels(network.ID)
 		if err != nil {
-			s.log.Error().Err(err).Msgf("failed to list channels for network %q", network.Server)
+			s.log.Error().Err(err).Msgf("failed to list channels for network: %s", network.Server)
 		}
 
 		for _, channel := range channels {
@@ -103,11 +103,11 @@ func (s *service) StartHandlers() {
 		s.handlers[network.ID] = handler
 		s.lock.Unlock()
 
-		s.log.Debug().Msgf("starting network: %+v", network.Name)
+		s.log.Debug().Msgf("starting network: %s", network.Name)
 
 		go func(network domain.IrcNetwork) {
 			if err := handler.Run(); err != nil {
-				s.log.Error().Err(err).Msgf("failed to start handler for network %q", network.Name)
+				s.log.Error().Err(err).Msgf("failed to start handler for network: %s", network.Name)
 			}
 		}(network)
 	}
@@ -115,7 +115,7 @@ func (s *service) StartHandlers() {
 
 func (s *service) StopHandlers() {
 	for _, handler := range s.handlers {
-		s.log.Info().Msgf("stopping network: %+v", handler.network.Name)
+		s.log.Info().Msgf("stopping network: %s", handler.network.Name)
 		handler.Stop()
 	}
 
@@ -125,12 +125,12 @@ func (s *service) StopHandlers() {
 func (s *service) startNetwork(network domain.IrcNetwork) error {
 	// look if we have the network in handlers already, if so start it
 	if existingHandler, found := s.handlers[network.ID]; found {
-		s.log.Debug().Msgf("starting network: %+v", network.Name)
+		s.log.Debug().Msgf("starting network: %s", network.Name)
 
-		if !existingHandler.client.Connected() {
+		if existingHandler.Stopped() {
 			go func(handler *Handler) {
 				if err := handler.Run(); err != nil {
-					s.log.Error().Err(err).Msgf("failed to start existingHandler for network %q", handler.network.Name)
+					s.log.Error().Err(err).Msgf("failed to start existing handler for network: %s", handler.network.Name)
 				}
 			}(existingHandler)
 		}
@@ -138,7 +138,7 @@ func (s *service) startNetwork(network domain.IrcNetwork) error {
 		// if not found in handlers, lets add it and run it
 		channels, err := s.repo.ListChannels(network.ID)
 		if err != nil {
-			s.log.Error().Err(err).Msgf("failed to list channels for network %q", network.Server)
+			s.log.Error().Err(err).Msgf("failed to list channels for network: %s", network.Server)
 		}
 
 		for _, channel := range channels {
@@ -158,11 +158,11 @@ func (s *service) startNetwork(network domain.IrcNetwork) error {
 		s.handlers[network.ID] = handler
 		s.lock.Unlock()
 
-		s.log.Debug().Msgf("starting network: %+v", network.Name)
+		s.log.Debug().Msgf("starting network: %s", network.Name)
 
 		go func(network domain.IrcNetwork) {
 			if err := handler.Run(); err != nil {
-				s.log.Error().Err(err).Msgf("failed to start handler for network %q", network.Name)
+				s.log.Error().Err(err).Msgf("failed to start handler for network: %s", network.Name)
 			}
 		}(network)
 	}
@@ -173,26 +173,64 @@ func (s *service) startNetwork(network domain.IrcNetwork) error {
 func (s *service) checkIfNetworkRestartNeeded(network *domain.IrcNetwork) error {
 	// look if we have the network in handlers, if so restart it
 	if existingHandler, found := s.handlers[network.ID]; found {
-		s.log.Debug().Msgf("irc: decide if irc network handler needs restart or updating: %+v", network.Server)
+		s.log.Debug().Msgf("irc: decide if irc network handler needs restart or updating: %s", network.Server)
 
 		// if server, tls, invite command, port : changed - restart
 		// if nickserv account, nickserv password : changed - stay connected, and change those
 		// if channels len : changes - join or leave
-		if existingHandler.client.Connected() {
+		if !existingHandler.Stopped() {
 			handler := existingHandler.GetNetwork()
 			restartNeeded := false
+			var fieldsChanged []string
 
 			if handler.Server != network.Server {
 				restartNeeded = true
-			} else if handler.Port != network.Port {
-				restartNeeded = true
-			} else if handler.TLS != network.TLS {
-				restartNeeded = true
-			} else if handler.InviteCommand != network.InviteCommand {
-				restartNeeded = true
+				fieldsChanged = append(fieldsChanged, "server")
 			}
+			if handler.Port != network.Port {
+				restartNeeded = true
+				fieldsChanged = append(fieldsChanged, "port")
+			}
+			if handler.TLS != network.TLS {
+				restartNeeded = true
+				fieldsChanged = append(fieldsChanged, "tls")
+			}
+			if handler.Pass != network.Pass {
+				restartNeeded = true
+				fieldsChanged = append(fieldsChanged, "pass")
+			}
+			if handler.InviteCommand != network.InviteCommand {
+				restartNeeded = true
+				fieldsChanged = append(fieldsChanged, "invite command")
+			}
+			if handler.UseBouncer != network.UseBouncer {
+				restartNeeded = true
+				fieldsChanged = append(fieldsChanged, "use bouncer")
+			}
+			if handler.BouncerAddr != network.BouncerAddr {
+				restartNeeded = true
+				fieldsChanged = append(fieldsChanged, "bouncer addr")
+			}
+			if handler.BotMode != network.BotMode {
+				restartNeeded = true
+				fieldsChanged = append(fieldsChanged, "bot mode")
+			}
+			if handler.Auth.Mechanism != network.Auth.Mechanism {
+				restartNeeded = true
+				fieldsChanged = append(fieldsChanged, "auth mechanism")
+			}
+			if handler.Auth.Account != network.Auth.Account {
+				restartNeeded = true
+				fieldsChanged = append(fieldsChanged, "auth account")
+			}
+			if handler.Auth.Password != network.Auth.Password {
+				restartNeeded = true
+				fieldsChanged = append(fieldsChanged, "auth password")
+			}
+
 			if restartNeeded {
-				s.log.Info().Msgf("irc: restarting network: %+v", network.Server)
+				s.log.Debug().Msgf("irc: fields %+v changed, restarting network: %s", fieldsChanged, network.Server)
+				s.log.Info().Msgf("irc: restarting network: %s", network.Server)
 
 				// we need to reinitialize with new network config
 				existingHandler.UpdateNetwork(network)
@@ -201,7 +239,7 @@ func (s *service) checkIfNetworkRestartNeeded(network *domain.IrcNetwork) error 
 
 				go func() {
 					if err := existingHandler.Restart(); err != nil {
-						s.log.Error().Stack().Err(err).Msgf("failed to restart network %q", existingHandler.network.Name)
+						s.log.Error().Stack().Err(err).Msgf("failed to restart network: %s", existingHandler.network.Name)
 					}
 				}()
 
@@ -213,13 +251,7 @@ func (s *service) checkIfNetworkRestartNeeded(network *domain.IrcNetwork) error 
 				s.log.Debug().Msg("changing nick")
 
 				if err := existingHandler.NickChange(network.Nick); err != nil {
-					s.log.Error().Stack().Err(err).Msgf("failed to change nick %q", network.Nick)
-				}
-			} else if handler.Auth.Password != network.Auth.Password {
-				s.log.Debug().Msg("nickserv: changing password")
-
-				if err := existingHandler.NickServIdentify(network.Auth.Password); err != nil {
-					s.log.Error().Stack().Err(err).Msgf("failed to identify with nickserv %q", network.Nick)
+					s.log.Error().Err(err).Msgf("failed to change nick: %s", network.Nick)
 				}
 			}
 
@@ -263,10 +295,10 @@ func (s *service) checkIfNetworkRestartNeeded(network *domain.IrcNetwork) error 
 
 			// leave channels
 			for _, leaveChannel := range channelsToLeave {
-				s.log.Debug().Msgf("%v: part channel %v", network.Server, leaveChannel)
+				s.log.Debug().Msgf("%s: part channel %s", network.Server, leaveChannel)
 
 				if err := existingHandler.PartChannel(leaveChannel); err != nil {
-					s.log.Error().Stack().Err(err).Msgf("failed to leave channel: %q", leaveChannel)
+					s.log.Error().Err(err).Msgf("failed to leave channel: %s", leaveChannel)
 				}
 
 				// create SSE stream for new channel
@@ -275,10 +307,10 @@ func (s *service) checkIfNetworkRestartNeeded(network *domain.IrcNetwork) error 
 
 			// join channels
 			for _, joinChannel := range channelsToJoin {
-				s.log.Debug().Msgf("%v: join new channel %v", network.Server, joinChannel)
+				s.log.Debug().Msgf("%s: join new channel %s", network.Server, joinChannel.Name)
 
 				if err := existingHandler.JoinChannel(joinChannel.Name, joinChannel.Password); err != nil {
-					s.log.Error().Stack().Err(err).Msgf("failed to join channel: %q", joinChannel.Name)
+					s.log.Error().Err(err).Msgf("failed to join channel: %s", joinChannel.Name)
 				}
 
 				// create SSE stream for new channel
@@ -296,7 +328,7 @@ func (s *service) checkIfNetworkRestartNeeded(network *domain.IrcNetwork) error 
 		}
 	} else {
 		if err := s.startNetwork(*network); err != nil {
-			s.log.Error().Stack().Err(err).Msgf("failed to start network: %q", network.Name)
+			s.log.Error().Err(err).Msgf("failed to start network: %s", network.Name)
 		}
 	}
 
@@ -307,6 +339,10 @@ func (s *service) RestartNetwork(ctx context.Context, id int64) error {
 	network, err := s.repo.GetNetworkByID(ctx, id)
 	if err != nil {
 		return err
+	}
+
+	if !network.Enabled {
+		return errors.New("network disabled, could not restart")
 	}
 
 	return s.restartNetwork(*network)
@@ -324,7 +360,7 @@ func (s *service) restartNetwork(network domain.IrcNetwork) error {
 func (s *service) StopNetwork(id int64) error {
 	if handler, found := s.handlers[id]; found {
 		handler.Stop()
-		s.log.Debug().Msgf("stopped network: %+v", handler.network.Server)
+		s.log.Debug().Msgf("stopped network: %s", handler.network.Server)
 	}
 
 	return nil
@@ -341,7 +377,7 @@ func (s *service) StopAndRemoveNetwork(id int64) error {
 
 		// remove from handlers
 		delete(s.handlers, id)
-		s.log.Debug().Msgf("stopped network: %+v", id)
+		s.log.Debug().Msgf("stopped network: %d", id)
 	}
 
 	return nil
@@ -350,7 +386,7 @@ func (s *service) StopAndRemoveNetwork(id int64) error {
 func (s *service) StopNetworkIfRunning(id int64) error {
 	if handler, found := s.handlers[id]; found {
 		handler.Stop()
-		s.log.Debug().Msgf("stopped network: %+v", handler.network.Server)
+		s.log.Debug().Msgf("stopped network: %s", handler.network.Server)
 	}
 
 	return nil
@@ -359,18 +395,38 @@ func (s *service) StopNetworkIfRunning(id int64) error {
 func (s *service) GetNetworkByID(ctx context.Context, id int64) (*domain.IrcNetwork, error) {
 	network, err := s.repo.GetNetworkByID(ctx, id)
 	if err != nil {
-		s.log.Error().Err(err).Msgf("failed to get network: %v", id)
+		s.log.Error().Err(err).Msgf("failed to get network: %d", id)
 		return nil, err
 	}
 
 	channels, err := s.repo.ListChannels(network.ID)
 	if err != nil {
-		s.log.Error().Err(err).Msgf("failed to list channels for network %q", network.Server)
+		s.log.Error().Err(err).Msgf("failed to list channels for network: %s", network.Server)
 		return nil, err
 	}
 	network.Channels = append(network.Channels, channels...)
 
 	return network, nil
+}
+
+func (s *service) ManualProcessAnnounce(ctx context.Context, req *domain.IRCManualProcessRequest) error {
+	network, err := s.repo.GetNetworkByID(ctx, req.NetworkId)
+	if err != nil {
+		s.log.Error().Err(err).Msgf("failed to get network: %d", req.NetworkId)
+		return err
+	}
+
+	handler, ok := s.handlers[network.ID]
+	if !ok {
+		return errors.New("could not find irc handler with id: %d", network.ID)
+	}
+
+	err = handler.sendToAnnounceProcessor(req.Channel, req.Message)
+	if err != nil {
+		return errors.Wrap(err, "could not send manual announce to processor")
+	}
+
+	return nil
 }
 
 func (s *service) ListNetworks(ctx context.Context) ([]domain.IrcNetwork, error) {
@@ -380,12 +436,12 @@ func (s *service) ListNetworks(ctx context.Context) ([]domain.IrcNetwork, error)
 		return nil, err
 	}
 
-	var ret []domain.IrcNetwork
+	ret := make([]domain.IrcNetwork, 0)
 
 	for _, n := range networks {
 		channels, err := s.repo.ListChannels(n.ID)
 		if err != nil {
-			s.log.Error().Msgf("failed to list channels for network %q: %v", n.Server, err)
+			s.log.Error().Err(err).Msgf("failed to list channels for network: %s", n.Server)
 			return nil, err
 		}
 		n.Channels = append(n.Channels, channels...)
@@ -403,7 +459,7 @@ func (s *service) GetNetworksWithHealth(ctx context.Context) ([]domain.IrcNetwor
 		return nil, err
 	}
 
-	var ret []domain.IrcNetworkWithHealth
+	ret := make([]domain.IrcNetworkWithHealth, 0)
 
 	for _, n := range networks {
 		netw := domain.IrcNetworkWithHealth{
@@ -419,6 +475,7 @@ func (s *service) GetNetworksWithHealth(ctx context.Context) ([]domain.IrcNetwor
 			InviteCommand:    n.InviteCommand,
 			BouncerAddr:      n.BouncerAddr,
 			UseBouncer:       n.UseBouncer,
+			BotMode:          n.BotMode,
 			Connected:        false,
 			Channels:         []domain.ChannelWithHealth{},
 			ConnectionErrors: []string{},
@@ -426,31 +483,12 @@ func (s *service) GetNetworksWithHealth(ctx context.Context) ([]domain.IrcNetwor
 
 		handler, ok := s.handlers[n.ID]
 		if ok {
-			handler.m.RLock()
-
-			// only set connected and connected since if we have an active handler and connection
-			if handler.client.Connected() {
-
-				netw.Connected = handler.connectedSince != time.Time{}
-				netw.ConnectedSince = handler.connectedSince
-
-				// current and preferred nick is only available if the network is connected
-				netw.CurrentNick = handler.CurrentNick()
-				netw.PreferredNick = handler.PreferredNick()
-			}
-			netw.Healthy = handler.Healthy()
-
-			// if we have any connection errors like bad nickserv auth add them here
-			if len(handler.connectionErrors) > 0 {
-				netw.ConnectionErrors = handler.connectionErrors
-			}
-
-			handler.m.RUnlock()
+			handler.ReportStatus(&netw)
 		}
 
 		channels, err := s.repo.ListChannels(n.ID)
 		if err != nil {
-			s.log.Error().Msgf("failed to list channels for network %q: %v", n.Server, err)
+			s.log.Error().Err(err).Msgf("failed to list channels for network: %s", n.Server)
 			return nil, err
 		}
 
@@ -496,21 +534,20 @@ func (s *service) GetNetworksWithHealth(ctx context.Context) ([]domain.IrcNetwor
 func (s *service) DeleteNetwork(ctx context.Context, id int64) error {
 	network, err := s.GetNetworkByID(ctx, id)
 	if err != nil {
-		s.log.Error().Stack().Err(err).Msgf("could not find network before delete: %v", network.Name)
+		s.log.Error().Err(err).Msgf("could not find network before delete: %d", id)
 		return err
 	}
 
-	s.log.Debug().Msgf("delete network: %v", id)
+	s.log.Debug().Msgf("delete network: %d %s", id, network.Name)
 
 	// Remove network and handler
-	//if err = s.StopNetwork(network.Server); err != nil {
 	if err = s.StopAndRemoveNetwork(network.ID); err != nil {
-		s.log.Error().Stack().Err(err).Msgf("could not stop and delete network: %v", network.Name)
+		s.log.Error().Err(err).Msgf("could not stop and delete network: %s", network.Name)
 		return err
 	}
 
 	if err = s.repo.DeleteNetwork(ctx, id); err != nil {
-		s.log.Error().Stack().Err(err).Msgf("could not delete network: %v", network.Name)
+		s.log.Error().Err(err).Msgf("could not delete network: %s", network.Name)
 		return err
 	}
 
@@ -518,7 +555,6 @@ func (s *service) DeleteNetwork(ctx context.Context, id int64) error {
 }
 
 func (s *service) UpdateNetwork(ctx context.Context, network *domain.IrcNetwork) error {
-
 	if network.Channels != nil {
 		if err := s.repo.StoreNetworkChannels(ctx, network.ID, network.Channels); err != nil {
 			return err
@@ -528,7 +564,7 @@ func (s *service) UpdateNetwork(ctx context.Context, network *domain.IrcNetwork)
 	if err := s.repo.UpdateNetwork(ctx, network); err != nil {
 		return err
 	}
-	s.log.Debug().Msgf("irc.service: update network: %+v", network)
+	s.log.Debug().Msgf("irc.service: update network: %s", network.Name)
 
 	// stop or start network
 	// TODO get current state to see if enabled or not?
@@ -538,16 +574,16 @@ func (s *service) UpdateNetwork(ctx context.Context, network *domain.IrcNetwork)
 		// if channels len : changes - join or leave
 		err := s.checkIfNetworkRestartNeeded(network)
 		if err != nil {
-			s.log.Error().Stack().Err(err).Msgf("could not restart network: %+v", network.Name)
-			return errors.New("could not restart network: %v", network.Name)
+			s.log.Error().Err(err).Msgf("could not restart network: %s", network.Name)
+			return errors.New("could not restart network: %s", network.Name)
 		}
 
 	} else {
 		// take into account multiple channels per network
 		err := s.StopAndRemoveNetwork(network.ID)
 		if err != nil {
-			s.log.Error().Stack().Err(err).Msgf("could not stop network: %+v", network.Name)
-			return errors.New("could not stop network: %v", network.Name)
+			s.log.Error().Err(err).Msgf("could not stop network: %s", network.Name)
+			return errors.New("could not stop network: %s", network.Name)
 		}
 	}
 
@@ -570,7 +606,7 @@ func (s *service) StoreNetwork(ctx context.Context, network *domain.IrcNetwork) 
 		if network.Channels != nil {
 			for _, channel := range network.Channels {
 				if err := s.repo.StoreChannel(ctx, network.ID, &channel); err != nil {
-					s.log.Error().Stack().Err(err).Msg("irc.storeChannel: error executing query")
+					s.log.Error().Err(err).Msg("irc.storeChannel: error executing query")
 					return errors.Wrap(err, "error storing channel on network")
 				}
 			}
@@ -582,7 +618,7 @@ func (s *service) StoreNetwork(ctx context.Context, network *domain.IrcNetwork) 
 	// get channels for existing network
 	existingChannels, err := s.repo.ListChannels(existingNetwork.ID)
 	if err != nil {
-		s.log.Error().Err(err).Msgf("failed to list channels for network %s", existingNetwork.Server)
+		s.log.Error().Err(err).Msgf("failed to list channels for network: %s", existingNetwork.Server)
 	}
 	existingNetwork.Channels = existingChannels
 

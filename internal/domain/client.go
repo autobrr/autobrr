@@ -1,4 +1,4 @@
-// Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+// Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 package domain
@@ -41,9 +41,11 @@ type DownloadClientCached struct {
 }
 
 type DownloadClientSettings struct {
-	APIKey string              `json:"apikey,omitempty"`
-	Basic  BasicAuth           `json:"basic,omitempty"`
-	Rules  DownloadClientRules `json:"rules,omitempty"`
+	APIKey                   string              `json:"apikey,omitempty"`
+	Basic                    BasicAuth           `json:"basic,omitempty"`
+	Rules                    DownloadClientRules `json:"rules,omitempty"`
+	ExternalDownloadClientId int                 `json:"external_download_client_id,omitempty"`
+	ExternalDownloadClient   string              `json:"external_download_client,omitempty"`
 }
 
 type DownloadClientRules struct {

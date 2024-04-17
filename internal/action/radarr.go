@@ -1,4 +1,4 @@
-// Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+// Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 package action
@@ -42,18 +42,31 @@ func (s *service) radarr(ctx context.Context, action *domain.Action, release dom
 		cfg.Password = client.Settings.Basic.Password
 	}
 
-	arr := radarr.New(cfg)
+	externalClientId := client.Settings.ExternalDownloadClientId
+	if action.ExternalDownloadClientID > 0 {
+		externalClientId = int(action.ExternalDownloadClientID)
+	}
+
+	externalClient := client.Settings.ExternalDownloadClient
+	if action.ExternalDownloadClient != "" {
+		externalClient = action.ExternalDownloadClient
+	}
 
 	r := radarr.Release{
 		Title:            release.TorrentName,
-		DownloadUrl:      release.TorrentURL,
+		InfoUrl:          release.InfoURL,
+		DownloadUrl:      release.DownloadURL,
 		MagnetUrl:        release.MagnetURI,
 		Size:             int64(release.Size),
-		Indexer:          release.Indexer,
+		Indexer:          release.Indexer.Identifier,
+		DownloadClientId: externalClientId,
+		DownloadClient:   externalClient,
 		DownloadProtocol: string(release.Protocol),
 		Protocol:         string(release.Protocol),
 		PublishDate:      time.Now().Format(time.RFC3339),
 	}
+
+	arr := radarr.New(cfg)
 
 	rejections, err := arr.Push(ctx, r)
 	if err != nil {

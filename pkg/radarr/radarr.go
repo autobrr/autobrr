@@ -1,4 +1,4 @@
-// Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+// Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 package radarr
@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/autobrr/autobrr/pkg/errors"
+	"github.com/autobrr/autobrr/pkg/sharedhttp"
 )
 
 type Config struct {
@@ -41,19 +42,19 @@ type client struct {
 }
 
 func New(config Config) Client {
-
 	httpClient := &http.Client{
-		Timeout: time.Second * 30,
+		Timeout:   time.Second * 120,
+		Transport: sharedhttp.Transport,
 	}
 
 	c := &client{
 		config: config,
 		http:   httpClient,
-		Log:    config.Log,
+		Log:    log.New(io.Discard, "", log.LstdFlags),
 	}
 
-	if config.Log == nil {
-		c.Log = log.New(io.Discard, "", log.LstdFlags)
+	if config.Log != nil {
+		c.Log = config.Log
 	}
 
 	return c
@@ -61,6 +62,7 @@ func New(config Config) Client {
 
 type Release struct {
 	Title            string `json:"title"`
+	InfoUrl          string `json:"infoUrl,omitempty"`
 	DownloadUrl      string `json:"downloadUrl,omitempty"`
 	MagnetUrl        string `json:"magnetUrl,omitempty"`
 	Size             int64  `json:"size"`
@@ -68,6 +70,8 @@ type Release struct {
 	DownloadProtocol string `json:"downloadProtocol"`
 	Protocol         string `json:"protocol"`
 	PublishDate      string `json:"publishDate"`
+	DownloadClientId int    `json:"downloadClientId,omitempty"`
+	DownloadClient   string `json:"downloadClient,omitempty"`
 }
 
 type PushResponse struct {
@@ -90,7 +94,7 @@ type BadRequestResponse struct {
 }
 
 func (r *BadRequestResponse) String() string {
-	return fmt.Sprintf("[%v: %v] %v: %v - got value: %v", r.Severity, r.ErrorCode, r.PropertyName, r.ErrorMessage, r.AttemptedValue)
+	return fmt.Sprintf("[%s: %s] %s: %s - got value: %s", r.Severity, r.ErrorCode, r.PropertyName, r.ErrorMessage, r.AttemptedValue)
 }
 
 func (c *client) Test(ctx context.Context) (*SystemStatusResponse, error) {

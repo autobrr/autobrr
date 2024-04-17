@@ -1,4 +1,4 @@
-// Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+// Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 package domain
@@ -12,6 +12,7 @@ import (
 	"github.com/autobrr/autobrr/pkg/errors"
 
 	"github.com/Masterminds/sprig/v3"
+	"github.com/dustin/go-humanize"
 )
 
 type Macro struct {
@@ -22,16 +23,24 @@ type Macro struct {
 	TorrentUrl          string
 	TorrentDataRawBytes []byte
 	MagnetURI           string
+	Group               string
 	GroupID             string
+	DownloadUrl         string
+	InfoUrl             string
 	Indexer             string
+	IndexerName         string
+	IndexerIdentifier   string
 	Title               string
+	Type                string
 	Category            string
 	Categories          []string
 	Resolution          string
 	Source              string
 	HDR                 string
+	FilterID            int
 	FilterName          string
 	Size                uint64
+	SizeString          string
 	Season              int
 	Episode             int
 	Year                int
@@ -41,6 +50,8 @@ type Macro struct {
 	CurrentHour         int
 	CurrentMinute       int
 	CurrentSecond       int
+	Tags                string
+	Artists             string
 }
 
 func NewMacro(release Release) Macro {
@@ -48,22 +59,30 @@ func NewMacro(release Release) Macro {
 
 	ma := Macro{
 		TorrentName:         release.TorrentName,
-		TorrentUrl:          release.TorrentURL,
+		TorrentUrl:          release.DownloadURL,
 		TorrentPathName:     release.TorrentTmpFile,
 		TorrentDataRawBytes: release.TorrentDataRawBytes,
 		TorrentHash:         release.TorrentHash,
 		TorrentID:           release.TorrentID,
 		MagnetURI:           release.MagnetURI,
+		Group:               release.Group,
 		GroupID:             release.GroupID,
-		Indexer:             release.Indexer,
+		InfoUrl:             release.InfoURL,
+		DownloadUrl:         release.DownloadURL,
+		Indexer:             release.Indexer.Identifier,
+		IndexerName:         release.Indexer.Name,
+		IndexerIdentifier:   release.Indexer.Identifier,
 		Title:               release.Title,
+		Type:                release.Type,
 		Category:            release.Category,
 		Categories:          release.Categories,
 		Resolution:          release.Resolution,
 		Source:              release.Source,
 		HDR:                 strings.Join(release.HDR, ", "),
+		FilterID:            release.FilterID,
 		FilterName:          release.FilterName,
 		Size:                release.Size,
+		SizeString:          humanize.Bytes(release.Size),
 		Season:              release.Season,
 		Episode:             release.Episode,
 		Year:                release.Year,
@@ -73,6 +92,8 @@ func NewMacro(release Release) Macro {
 		CurrentHour:         currentTime.Hour(),
 		CurrentMinute:       currentTime.Minute(),
 		CurrentSecond:       currentTime.Second(),
+		Tags:                strings.Join(release.Tags, ", "),
+		Artists:             release.Artists,
 	}
 
 	return ma

@@ -1,4 +1,4 @@
-// Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+// Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 package http
@@ -6,8 +6,10 @@ package http
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/autobrr/autobrr/internal/domain"
 
@@ -25,6 +27,7 @@ type ircService interface {
 	StoreChannel(ctx context.Context, networkID int64, channel *domain.IrcChannel) error
 	RestartNetwork(ctx context.Context, id int64) error
 	SendCmd(ctx context.Context, req *domain.SendIrcCmdRequest) error
+	ManualProcessAnnounce(ctx context.Context, req *domain.IRCManualProcessRequest) error
 }
 
 type ircHandler struct {
@@ -54,6 +57,8 @@ func (h ircHandler) Routes(r chi.Router) {
 		r.Post("/cmd", h.sendCmd)
 		r.Post("/channel", h.storeChannel)
 		r.Get("/restart", h.restartNetwork)
+
+		r.Post("/channel/{channel}/announce/process", h.announceProcess)
 	})
 
 	r.HandleFunc("/events", func(w http.ResponseWriter, r *http.Request) {
@@ -178,6 +183,58 @@ func (h ircHandler) sendCmd(w http.ResponseWriter, r *http.Request) {
 	data.NetworkId = int64(id)
 
 	if err := h.service.SendCmd(ctx, &data); err != nil {
+		h.encoder.Error(w, err)
+		return
+	}
+
+	h.encoder.NoContent(w)
+}
+
+// announceProcess manually trigger announce process
+func (h ircHandler) announceProcess(w http.ResponseWriter, r *http.Request) {
+	var (
+		ctx  = r.Context()
+		data domain.IRCManualProcessRequest
+	)
+
+	paramNetworkID := chi.URLParam(r, "networkID")
+	if paramNetworkID == "" {
+		h.encoder.StatusResponse(w, http.StatusBadRequest, map[string]interface{}{
+			"code":    "BAD_REQUEST_PARAMS",
+			"message": "parameter networkID missing",
+		})
+		return
+	}
+
+	networkID, err := strconv.Atoi(paramNetworkID)
+	if err != nil {
+		h.encoder.Error(w, err)
+		return
+	}
+
+	paramChannel := chi.URLParam(r, "channel")
+	if paramChannel == "" {
+		h.encoder.StatusResponse(w, http.StatusBadRequest, map[string]interface{}{
+			"code":    "BAD_REQUEST_PARAMS",
+			"message": "parameter channel missing",
+		})
+		return
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
+		h.encoder.Error(w, err)
+		return
+	}
+
+	data.NetworkId = int64(networkID)
+	data.Channel = paramChannel
+
+	// we cant pass # as an url parameter so the frontend has to strip it
+	if !strings.HasPrefix("#", data.Channel) {
+		data.Channel = fmt.Sprintf("#%s", data.Channel)
+	}
+
+	if err := h.service.ManualProcessAnnounce(ctx, &data); err != nil {
 		h.encoder.Error(w, err)
 		return
 	}

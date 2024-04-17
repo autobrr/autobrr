@@ -1,15 +1,18 @@
 /*
- * Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+ * Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
 import { Form, Formik } from "formik";
 import { useMutation } from "@tanstack/react-query";
-import { useNavigate } from "react-router-dom";
+import {useNavigate} from "@tanstack/react-router";
 
 import { APIClient } from "@api/APIClient";
 import { TextField, PasswordField } from "@components/inputs";
-import { ReactComponent as Logo } from "@app/logo.svg";
+
+import { UserPlusIcon } from "@heroicons/react/24/outline";
+
+import Logo from "@app/logo.svg?react";
 
 interface InputValues {
   username: string;
@@ -40,7 +43,7 @@ export const Onboarding = () => {
 
   const mutation = useMutation({
     mutationFn: (data: InputValues) => APIClient.auth.onboard(data.username, data.password1),
-    onSuccess: () => navigate("/")
+    onSuccess: () => navigate({ to: "/" })
   });
 
   return (
@@ -51,8 +54,8 @@ export const Onboarding = () => {
           autobrr
         </h1>
       </div>
-      <div className="sm:mx-auto sm:w-full sm:max-w-md shadow-lg">
-        <div className="bg-white dark:bg-gray-800 py-8 px-4 sm:rounded-lg sm:px-10">
+      <div className="mx-auto w-full max-w-md rounded-2xl shadow-lg">
+        <div className="px-8 pt-8 pb-6 rounded-2xl bg-white dark:bg-gray-800 border border-gray-150 dark:border-gray-775">
           <Formik
             initialValues={{
               username: "",
@@ -68,14 +71,13 @@ export const Onboarding = () => {
                 <PasswordField name="password1" label="Password" columns={6} autoComplete="current-password" />
                 <PasswordField name="password2" label="Confirm password" columns={6} autoComplete="current-password" />
               </div>
-              <div className="mt-6">
-                <button
-                  type="submit"
-                  className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
-                >
-                  Create account
-                </button>
-              </div>
+              <button
+                type="submit"
+                className="mt-6 w-full flex items-center justify-center py-2 px-4 border border-transparent transition rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
+              >
+                <UserPlusIcon className="w-4 h-4 mr-1.5" />
+                Create account
+              </button>
             </Form>
           </Formik>
         </div>

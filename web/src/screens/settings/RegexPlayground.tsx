@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+ * Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
@@ -60,11 +60,11 @@ const RegexPlayground = () => {
 
   return (
     <div className="divide-y divide-gray-200 dark:divide-gray-700 lg:col-span-9">
-      <div className="py-6 px-4 sm:p-6 lg:pb-8">
+      <div className="py-6 px-4 sm:p-6">
         <div>
-          <h2 className="text-lg leading-6 font-medium text-gray-900 dark:text-white">Application</h2>
+          <h2 className="text-lg leading-4 font-bold text-gray-900 dark:text-white">Application</h2>
           <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                        Regex playground. Experiment with your filters here. WIP.
+            Regex playground. Experiment with your filters here. WIP.
           </p>
         </div>
       </div>
@@ -73,20 +73,20 @@ const RegexPlayground = () => {
           htmlFor="input-regex"
           className="block text-sm font-medium text-gray-600 dark:text-gray-300"
         >
-                    RegExp filter
+          RegExp filter
         </label>
         <input
           ref={regexRef}
           id="input-regex"
           type="text"
           autoComplete="true"
-          className="mt-1 mb-4 block w-full dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:text-gray-100 sm:text-sm"
+          className="mt-1 mb-4 block w-full border rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 border-gray-300 dark:border-gray-700 bg-gray-100 dark:bg-gray-815 dark:text-gray-100 sm:text-sm"
         />
         <label
           htmlFor="input-lines"
           className="block text-sm font-medium text-gray-600 dark:text-gray-300"
         >
-                    Lines to match
+          Lines to match
         </label>
         <div
           id="input-lines"
@@ -95,10 +95,10 @@ const RegexPlayground = () => {
           contentEditable
         ></div>
       </div>
-      <div className="py-4 px-4 sm:p-6 lg:pb-8">
+      <div className="py-6 px-4 sm:p-6">
         <div>
           <h3 className="text-md leading-6 font-medium text-gray-900 dark:text-white">
-                        Matches
+            Matches
           </h3>
           <p className="mt-1 text-lg text-gray-500 dark:text-gray-400">
             {output}

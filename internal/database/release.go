@@ -1,4 +1,4 @@
-// Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+// Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 package database
@@ -39,7 +39,7 @@ func (repo *ReleaseRepo) Store(ctx context.Context, r *domain.Release) error {
 	queryBuilder := repo.db.squirrel.
 		Insert("release").
 		Columns("filter_status", "rejections", "indexer", "filter", "protocol", "implementation", "timestamp", "group_id", "torrent_id", "info_url", "download_url", "torrent_name", "size", "title", "category", "season", "episode", "year", "resolution", "source", "codec", "container", "hdr", "release_group", "proper", "repack", "website", "type", "origin", "tags", "uploader", "pre_time", "filter_id").
-		Values(r.FilterStatus, pq.Array(r.Rejections), r.Indexer, r.FilterName, r.Protocol, r.Implementation, r.Timestamp.Format(time.RFC3339), r.GroupID, r.TorrentID, r.InfoURL, r.TorrentURL, r.TorrentName, r.Size, r.Title, r.Category, r.Season, r.Episode, r.Year, r.Resolution, r.Source, codecStr, r.Container, hdrStr, r.Group, r.Proper, r.Repack, r.Website, r.Type, r.Origin, pq.Array(r.Tags), r.Uploader, r.PreTime, r.FilterID).
+		Values(r.FilterStatus, pq.Array(r.Rejections), r.Indexer.Identifier, r.FilterName, r.Protocol, r.Implementation, r.Timestamp.Format(time.RFC3339), r.GroupID, r.TorrentID, r.InfoURL, r.DownloadURL, r.TorrentName, r.Size, r.Title, r.Category, r.Season, r.Episode, r.Year, r.Resolution, r.Source, codecStr, r.Container, hdrStr, r.Group, r.Proper, r.Repack, r.Website, r.Type, r.Origin, pq.Array(r.Tags), r.Uploader, r.PreTime, r.FilterID).
 		Suffix("RETURNING id").RunWith(repo.db.handler)
 
 	// return values
@@ -135,11 +135,11 @@ func (repo *ReleaseRepo) findReleases(ctx context.Context, tx *Tx, params domain
 
 		search := strings.TrimSpace(params.Search)
 		for k, v := range reserved {
-			r := regexp.MustCompile(fmt.Sprintf(`(?:%s:)(?P<value>'.*?'|".*?"|\S+)`, k))
+			r := regexp.MustCompile(fmt.Sprintf(`(?i)(?:%s:)(?P<value>'.*?'|".*?"|\S+)`, k))
 			if reskey := r.FindAllStringSubmatch(search, -1); len(reskey) != 0 {
 				filter := sq.Or{}
 				for _, found := range reskey {
-					filter = append(filter, ILike(v, strings.ReplaceAll(strings.Trim(strings.Trim(found[1], `"`), `'`), ".", "_")+"%"))
+					filter = append(filter, repo.db.ILike(v, strings.ReplaceAll(strings.Trim(strings.Trim(found[1], `"`), `'`), ".", "_")+"%"))
 				}
 
 				if len(filter) == 0 {
@@ -152,7 +152,11 @@ func (repo *ReleaseRepo) findReleases(ctx context.Context, tx *Tx, params domain
 		}
 
 		if len(search) != 0 {
-			whereQueryBuilder = append(whereQueryBuilder, sq.Like{"r.torrent_name": search + "%"})
+			if len(whereQueryBuilder) > 1 {
+				whereQueryBuilder = append(whereQueryBuilder, repo.db.ILike("r.torrent_name", "%"+search+"%"))
+			} else {
+				whereQueryBuilder = append(whereQueryBuilder, repo.db.ILike("r.torrent_name", search+"%"))
+			}
 		}
 	}
 
@@ -196,6 +200,8 @@ func (repo *ReleaseRepo) findReleases(ctx context.Context, tx *Tx, params domain
 
 	if params.Filters.PushStatus != "" {
 		subQueryBuilder = subQueryBuilder.InnerJoin("release_action_status ras ON r.id = ras.release_id").Where(sq.Eq{"ras.status": params.Filters.PushStatus})
+
+		// using sq.Eq for countQuery breaks search with Postgres.
 		countQuery = countQuery.InnerJoin("release_action_status ras ON r.id = ras.release_id").Where("ras.status = '" + params.Filters.PushStatus + `'`)
 	}
 
@@ -205,7 +211,7 @@ func (repo *ReleaseRepo) findReleases(ctx context.Context, tx *Tx, params domain
 	}
 
 	queryBuilder := repo.db.squirrel.
-		Select("r.id", "r.filter_status", "r.rejections", "r.indexer", "r.filter", "r.protocol", "r.info_url", "r.download_url", "r.title", "r.torrent_name", "r.size", "r.timestamp",
+		Select("r.id", "r.filter_status", "r.rejections", "r.indexer", "r.filter", "r.protocol", "r.info_url", "r.download_url", "r.title", "r.torrent_name", "r.size", "r.category", "r.season", "r.episode", "r.year", "r.resolution", "r.source", "r.codec", "r.container", "r.release_group", "r.timestamp",
 			"ras.id", "ras.status", "ras.action", "ras.action_id", "ras.type", "ras.client", "ras.filter", "ras.filter_id", "ras.release_id", "ras.rejections", "ras.timestamp").
 		Column(sq.Alias(countQuery, "page_total")).
 		From("release r").
@@ -239,16 +245,21 @@ func (repo *ReleaseRepo) findReleases(ctx context.Context, tx *Tx, params domain
 		var rls domain.Release
 		var ras domain.ReleaseActionStatus
 
-		var rlsindexer, rlsfilter, infoUrl, downloadUrl sql.NullString
+		var rlsindexer, rlsfilter, infoUrl, downloadUrl, codec sql.NullString
 
 		var rasId, rasFilterId, rasReleaseId, rasActionId sql.NullInt64
 		var rasStatus, rasAction, rasType, rasClient, rasFilter sql.NullString
 		var rasRejections []sql.NullString
 		var rasTimestamp sql.NullTime
 
-		if err := rows.Scan(&rls.ID, &rls.FilterStatus, pq.Array(&rls.Rejections), &rlsindexer, &rlsfilter, &rls.Protocol, &infoUrl, &downloadUrl, &rls.Title, &rls.TorrentName, &rls.Size, &rls.Timestamp, &rasId, &rasStatus, &rasAction, &rasActionId, &rasType, &rasClient, &rasFilter, &rasFilterId, &rasReleaseId, pq.Array(&rasRejections), &rasTimestamp, &countItems); err != nil {
+		if err := rows.Scan(&rls.ID, &rls.FilterStatus, pq.Array(&rls.Rejections), &rlsindexer, &rlsfilter, &rls.Protocol, &infoUrl, &downloadUrl, &rls.Title, &rls.TorrentName, &rls.Size, &rls.Category, &rls.Season, &rls.Episode, &rls.Year, &rls.Resolution, &rls.Source, &codec, &rls.Container, &rls.Group, &rls.Timestamp, &rasId, &rasStatus, &rasAction, &rasActionId, &rasType, &rasClient, &rasFilter, &rasFilterId, &rasReleaseId, pq.Array(&rasRejections), &rasTimestamp, &countItems); err != nil {
 			return res, 0, 0, errors.Wrap(err, "error scanning row")
 		}
+
+		//for _, codec := range codecs {
+		//	rls.Codec = append(rls.Codec, codec.String)
+		//
+		//}
 
 		ras.ID = rasId.Int64
 		ras.Status = domain.ReleasePushStatus(rasStatus.String)
@@ -280,11 +291,12 @@ func (repo *ReleaseRepo) findReleases(ctx context.Context, tx *Tx, params domain
 			continue
 		}
 
-		rls.Indexer = rlsindexer.String
+		rls.Indexer.Identifier = rlsindexer.String
 		rls.FilterName = rlsfilter.String
 		rls.ActionStatus = make([]domain.ReleaseActionStatus, 0)
 		rls.InfoURL = infoUrl.String
-		rls.TorrentURL = downloadUrl.String
+		rls.DownloadURL = downloadUrl.String
+		rls.Codec = strings.Split(codec.String, ",")
 
 		// only add ActionStatus if it's not empty
 		if ras.ID > 0 {
@@ -431,12 +443,12 @@ func (repo *ReleaseRepo) Get(ctx context.Context, req *domain.GetReleaseRequest)
 		return nil, errors.Wrap(err, "error scanning row")
 	}
 
-	rls.Indexer = indexerName.String
+	rls.Indexer.Identifier = indexerName.String
 	rls.FilterName = filterName.String
 	rls.FilterID = int(filterId.Int64)
 	rls.ActionStatus = make([]domain.ReleaseActionStatus, 0)
 	rls.InfoURL = infoUrl.String
-	rls.TorrentURL = downloadUrl.String
+	rls.DownloadURL = downloadUrl.String
 	rls.Category = category.String
 	rls.GroupID = groupId.String
 	rls.TorrentID = torrentId.String
@@ -545,7 +557,8 @@ FROM (
 CROSS JOIN (
 	SELECT
 	COUNT(CASE WHEN status = 'PUSH_APPROVED' THEN 0 END) AS push_approved_count,
-	COUNT(CASE WHEN status = 'PUSH_REJECTED' THEN 0 END) AS push_rejected_count
+	COUNT(CASE WHEN status = 'PUSH_REJECTED' THEN 0 END) AS push_rejected_count,
+	COUNT(CASE WHEN status = 'PUSH_ERROR' THEN 0 END) AS push_error_count
 	FROM release_action_status
 ) AS foo`
 
@@ -556,7 +569,7 @@ CROSS JOIN (
 
 	var rls domain.ReleaseStats
 
-	if err := row.Scan(&rls.TotalCount, &rls.FilteredCount, &rls.FilterRejectedCount, &rls.PushApprovedCount, &rls.PushRejectedCount); err != nil {
+	if err := row.Scan(&rls.TotalCount, &rls.FilteredCount, &rls.FilterRejectedCount, &rls.PushApprovedCount, &rls.PushRejectedCount, &rls.PushErrorCount); err != nil {
 		return nil, errors.Wrap(err, "error scanning row")
 	}
 
@@ -643,7 +656,7 @@ func (repo *ReleaseRepo) CanDownloadShow(ctx context.Context, title string, seas
 	queryBuilder := repo.db.squirrel.
 		Select("COUNT(*)").
 		From("release").
-		Where(ILike("title", title+"%"))
+		Where(repo.db.ILike("title", title+"%"))
 
 	if season > 0 && episode > 0 {
 		queryBuilder = queryBuilder.Where(sq.Or{

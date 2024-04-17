@@ -1,4 +1,4 @@
-// Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+// Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 package auth
@@ -19,6 +19,9 @@ type Service interface {
 	GetUserCount(ctx context.Context) (int, error)
 	Login(ctx context.Context, username, password string) (*domain.User, error)
 	CreateUser(ctx context.Context, req domain.CreateUserRequest) error
+	UpdateUser(ctx context.Context, req domain.UpdateUserRequest) error
+	CreateHash(password string) (hash string, err error)
+	ComparePasswordAndHash(password string, hash string) (match bool, err error)
 }
 
 type service struct {
@@ -54,7 +57,7 @@ func (s *service) Login(ctx context.Context, username, password string) (*domain
 	}
 
 	// compare password from request and the saved password
-	match, err := argon2id.ComparePasswordAndHash(password, u.Password)
+	match, err := s.ComparePasswordAndHash(password, u.Password)
 	if err != nil {
 		return nil, errors.New("error checking credentials")
 	}
@@ -83,7 +86,7 @@ func (s *service) CreateUser(ctx context.Context, req domain.CreateUserRequest) 
 		return errors.New("only 1 user account is supported at the moment")
 	}
 
-	hashed, err := argon2id.CreateHash(req.Password, argon2id.DefaultParams)
+	hashed, err := s.CreateHash(req.Password)
 	if err != nil {
 		return errors.New("failed to hash password")
 	}
@@ -96,4 +99,66 @@ func (s *service) CreateUser(ctx context.Context, req domain.CreateUserRequest) 
 	}
 
 	return nil
+}
+
+func (s *service) UpdateUser(ctx context.Context, req domain.UpdateUserRequest) error {
+	if req.PasswordCurrent == "" {
+		return errors.New("validation error: empty current password supplied")
+	}
+
+	if req.PasswordNew != "" && req.PasswordCurrent != "" {
+		if req.PasswordNew == req.PasswordCurrent {
+			return errors.New("validation error: new password must be different")
+		}
+	}
+
+	// find user
+	u, err := s.userSvc.FindByUsername(ctx, req.UsernameCurrent)
+	if err != nil {
+		s.log.Trace().Err(err).Msgf("invalid login %v", req.UsernameCurrent)
+		return errors.Wrapf(err, "invalid login: %s", req.UsernameCurrent)
+	}
+
+	if u == nil {
+		return errors.Errorf("invalid login: %s", req.UsernameCurrent)
+	}
+
+	// compare password from request and the saved password
+	match, err := s.ComparePasswordAndHash(req.PasswordCurrent, u.Password)
+	if err != nil {
+		return errors.New("error checking credentials")
+	}
+
+	if !match {
+		s.log.Debug().Msgf("bad credentials: %q | %q", req.UsernameCurrent, req.PasswordCurrent)
+		return errors.Errorf("invalid login: %s", req.UsernameCurrent)
+	}
+
+	if req.PasswordNew != "" {
+		hashed, err := s.CreateHash(req.PasswordNew)
+		if err != nil {
+			return errors.New("failed to hash password")
+		}
+
+		req.PasswordNewHash = hashed
+	}
+
+	if err := s.userSvc.Update(ctx, req); err != nil {
+		s.log.Error().Err(err).Msgf("could not change password for user: %s", req.UsernameCurrent)
+		return errors.New("failed to change password")
+	}
+
+	return nil
+}
+
+func (s *service) ComparePasswordAndHash(password string, hash string) (match bool, err error) {
+	return argon2id.ComparePasswordAndHash(password, hash)
+}
+
+func (s *service) CreateHash(password string) (hash string, err error) {
+	if password == "" {
+		return "", errors.New("must supply non empty password to CreateHash")
+	}
+
+	return argon2id.CreateHash(password, argon2id.DefaultParams)
 }

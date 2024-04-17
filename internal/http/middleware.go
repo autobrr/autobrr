@@ -1,9 +1,10 @@
-// Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+// Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 package http
 
 import (
+	"context"
 	"net/http"
 	"runtime/debug"
 	"strings"
@@ -23,20 +24,41 @@ func (s Server) IsAuthenticated(next http.Handler) http.Handler {
 			}
 
 		} else if key := r.URL.Query().Get("apikey"); key != "" {
-			// check query param lke ?apikey=TOKEN
+			// check query param like ?apikey=TOKEN
 			if !s.apiService.ValidateAPIKey(r.Context(), key) {
 				http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
 				return
 			}
 		} else {
 			// check session
-			session, _ := s.cookieStore.Get(r, "user_session")
+			session, err := s.cookieStore.Get(r, "user_session")
+			if err != nil {
+				s.log.Error().Err(err).Msgf("could not get session from cookieStore")
+				session.Values["authenticated"] = false
+
+				// MaxAge<0 means delete cookie immediately
+				session.Options.MaxAge = -1
+				session.Options.Path = s.config.Config.BaseURL
+
+				if err := session.Save(r, w); err != nil {
+					s.log.Error().Err(err).Msgf("could not store session: %s", r.RemoteAddr)
+					http.Error(w, err.Error(), http.StatusInternalServerError)
+					return
+				}
+				http.Error(w, err.Error(), http.StatusForbidden)
+				return
+			}
 
 			// Check if user is authenticated
 			if auth, ok := session.Values["authenticated"].(bool); !ok || !auth {
-				http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
+				s.log.Warn().Msg("session not authenticated")
+
+				http.Error(w, http.StatusText(http.StatusForbidden), http.StatusForbidden)
 				return
 			}
+
+			ctx := context.WithValue(r.Context(), "session", session)
+			r = r.WithContext(ctx)
 		}
 
 		next.ServeHTTP(w, r)

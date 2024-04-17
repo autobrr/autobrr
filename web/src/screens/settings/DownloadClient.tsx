@@ -1,32 +1,27 @@
 /*
- * Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+ * Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-import { useState, useMemo } from "react";
-import { Switch } from "@headlessui/react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMemo, useState } from "react";
+import { useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
+import { PlusIcon } from "@heroicons/react/24/solid";
 import toast from "react-hot-toast";
 
 import { useToggle } from "@hooks/hooks";
-import { classNames } from "@utils";
 import { DownloadClientAddForm, DownloadClientUpdateForm } from "@forms";
 import { EmptySimple } from "@components/emptystates";
 import { APIClient } from "@api/APIClient";
-import { DownloadClientTypeNameMap } from "@domain/constants";
+import { DownloadClientKeys } from "@api/query_keys";
+import { DownloadClientsQueryOptions } from "@api/queries";
+import { ActionTypeNameMap } from "@domain/constants";
 import Toast from "@components/notifications/Toast";
+import { Checkbox } from "@components/Checkbox";
 
-export const clientKeys = {
-  all: ["download_clients"] as const,
-  lists: () => [...clientKeys.all, "list"] as const,
-  // list: (indexers: string[], sortOrder: string) => [...clientKeys.lists(), { indexers, sortOrder }] as const,
-  details: () => [...clientKeys.all, "detail"] as const,
-  detail: (id: number) => [...clientKeys.details(), id] as const
-};
+import { Section } from "./_components";
 
 interface DLSettingsItemProps {
-    client: DownloadClient;
-    idx: number;
+  client: DownloadClient;
 }
 
 interface ListItemProps {
@@ -87,7 +82,7 @@ function useSort(items: ListItemProps["clients"][], config?: SortConfig) {
   return { items: sortedItems, requestSort, sortConfig, getSortIndicator };
 }
 
-function DownloadClientSettingsListItem({ client }: DLSettingsItemProps) {
+function ListItem({ client }: DLSettingsItemProps) {
   const [updateClientIsOpen, toggleUpdateClient] = useToggle(false);
 
   const queryClient = useQueryClient();
@@ -96,7 +91,7 @@ function DownloadClientSettingsListItem({ client }: DLSettingsItemProps) {
     mutationFn: (client: DownloadClient) => APIClient.download_clients.update(client).then(() => client),
     onSuccess: (client: DownloadClient) => {
       toast.custom(t => <Toast type="success" body={`${client.name} was ${client.enabled ? "enabled" : "disabled"} successfully.`} t={t} />);
-      queryClient.invalidateQueries({ queryKey: clientKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: DownloadClientKeys.lists() });
     }
   });
 
@@ -108,35 +103,24 @@ function DownloadClientSettingsListItem({ client }: DLSettingsItemProps) {
   };
 
   return (
-    <li key={client.name}>
+    <li>
       <div className="grid grid-cols-12 items-center py-2">
         <DownloadClientUpdateForm
           client={client}
           isOpen={updateClientIsOpen}
           toggle={toggleUpdateClient}
         />
-        <div className="col-span-2 sm:col-span-1 px-6 flex items-center sm:px-6">
-          <Switch
-            checked={client.enabled}
-            onChange={onToggleMutation}
-            className={classNames(
-              client.enabled ? "bg-blue-500" : "bg-gray-200 dark:bg-gray-600",
-              "relative inline-flex flex-shrink-0 h-6 w-11 border-2 border-transparent rounded-full cursor-pointer transition-colors ease-in-out duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-            )}
-          >
-            <span className="sr-only">Use setting</span>
-            <span
-              aria-hidden="true"
-              className={classNames(
-                client.enabled ? "translate-x-5" : "translate-x-0",
-                "inline-block h-5 w-5 rounded-full bg-white shadow transform ring-0 transition ease-in-out duration-200"
-              )}
-            />
-          </Switch>
+        <div className="col-span-2 sm:col-span-1 pl-1 sm:pl-6 flex items-center">
+          <Checkbox
+            value={client.enabled}
+            setValue={onToggleMutation}
+          />
         </div>
-        <div className="col-span-8 sm:col-span-4 lg:col-span-4 pl-12 pr-6 py-3 block flex-col text-sm font-medium text-gray-900 dark:text-white truncate" title={client.name}>{client.name}</div>
-        <div className="hidden sm:block col-span-4 pr-6 py-3 text-left items-center whitespace-nowrap text-sm text-gray-500 dark:text-gray-400 truncate" title={client.host}>{client.host}</div>
-        <div className="hidden sm:block col-span-2 py-3 text-left items-center text-sm text-gray-500 dark:text-gray-400">{DownloadClientTypeNameMap[client.type]}</div>
+        <div className="col-span-8 sm:col-span-4 lg:col-span-4 pl-10 sm:pl-12 pr-6 py-3 block flex-col text-sm font-medium text-gray-900 dark:text-white truncate" title={client.name}>{client.name}</div>
+        <div className="hidden sm:block col-span-4 pr-6 py-3 text-left items-center whitespace-nowrap text-sm text-gray-600 dark:text-gray-400 truncate" title={client.host}>{client.host}</div>
+        <div className="hidden sm:block col-span-2 py-3 text-left items-center text-sm text-gray-600 dark:text-gray-400">
+          {ActionTypeNameMap[client.type]}
+        </div>
         <div className="col-span-1 pl-0.5 whitespace-nowrap text-center text-sm font-medium">
           <span className="text-blue-600 dark:text-gray-300 hover:text-blue-900 cursor-pointer" onClick={toggleUpdateClient}>
             Edit
@@ -150,78 +134,62 @@ function DownloadClientSettingsListItem({ client }: DLSettingsItemProps) {
 function DownloadClientSettings() {
   const [addClientIsOpen, toggleAddClient] = useToggle(false);
 
-  const { error, data } = useQuery({
-    queryKey: clientKeys.lists(),
-    queryFn: APIClient.download_clients.getAll,
-    refetchOnWindowFocus: false
-  });
+  const downloadClientsQuery = useSuspenseQuery(DownloadClientsQueryOptions())
 
-  const sortedClients = useSort(data || []);
-
-  if (error) {
-    return <p>Failed to fetch download clients</p>;
-  }
+  const sortedClients = useSort(downloadClientsQuery.data || []);
 
   return (
-    <div className="lg:col-span-9">
+    <Section
+      title="Download Clients"
+      description="Manage download clients."
+      rightSide={
+        <button
+          type="button"
+          className="relative inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
+          onClick={toggleAddClient}
+        >
+          <PlusIcon className="h-5 w-5 mr-1" />
+          Add new
+        </button>
+      }
+    >
       <DownloadClientAddForm isOpen={addClientIsOpen} toggle={toggleAddClient} />
 
-      <div className="py-6 px-2 lg:pb-8">
-        <div className="px-4 -ml-4 -mt-4 flex justify-between items-center flex-wrap sm:flex-nowrap">
-          <div className="ml-4 mt-4">
-            <h3 className="text-lg leading-6 font-medium text-gray-900 dark:text-white">Clients</h3>
-            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-              Manage download clients.
-            </p>
-          </div>
-          <div className="ml-4 mt-4 flex-shrink-0">
-            <button
-              type="button"
-              className="relative inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
-              onClick={toggleAddClient}
-            >
-              Add new
-            </button>
-          </div>
-        </div>
-
-        <div className="flex flex-col mt-6 px-4">
-          {sortedClients.items.length > 0
-            ? <section className="light:bg-white dark:bg-gray-800 light:shadow sm:rounded-sm">
-              <ol className="min-w-full relative">
-                <li className="grid grid-cols-12 border-b border-gray-200 dark:border-gray-700">
-                  <div className="flex col-span-2 sm:col-span-1 px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer"
-                    onClick={() => sortedClients.requestSort("enabled")}>
-                    Enabled <span className="sort-indicator">{sortedClients.getSortIndicator("enabled")}</span>
-                  </div>
-                  <div
-                    className="col-span-6 sm:col-span-4 lg:col-span-4 pl-12 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer"
-                    onClick={() => sortedClients.requestSort("name")}
-                  >
-                    Name <span className="sort-indicator">{sortedClients.getSortIndicator("name")}</span>
-                  </div>
-                  <div
-                    className="hidden sm:flex col-span-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer"
-                    onClick={() => sortedClients.requestSort("host")}
-                  >
-                    Host <span className="sort-indicator">{sortedClients.getSortIndicator("host")}</span>
-                  </div>
-                  <div className="hidden sm:flex col-span-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer"
-                    onClick={() => sortedClients.requestSort("type")}
-                  >
-                    Type <span className="sort-indicator">{sortedClients.getSortIndicator("type")}</span>
-                  </div>
-                </li>
-                {sortedClients.items.map((client, idx) => (
-                  <DownloadClientSettingsListItem client={client} idx={idx} key={idx} />
-                ))}
-              </ol>
-            </section>
-            : <EmptySimple title="No download clients" subtitle="" buttonText="Add new client" buttonAction={toggleAddClient} />
-          }
-        </div>
+      <div className="flex flex-col">
+        {sortedClients.items.length > 0 ? (
+          <ul className="min-w-full relative">
+            <li className="grid grid-cols-12 border-b border-gray-200 dark:border-gray-700">
+              <div className="flex col-span-2 sm:col-span-1 pl-0 sm:pl-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer"
+                onClick={() => sortedClients.requestSort("enabled")}>
+                Enabled <span className="sort-indicator">{sortedClients.getSortIndicator("enabled")}</span>
+              </div>
+              <div
+                className="col-span-6 sm:col-span-4 lg:col-span-4 pl-10 sm:pl-12 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer"
+                onClick={() => sortedClients.requestSort("name")}
+              >
+                Name <span className="sort-indicator">{sortedClients.getSortIndicator("name")}</span>
+              </div>
+              <div
+                className="hidden sm:flex col-span-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer"
+                onClick={() => sortedClients.requestSort("host")}
+              >
+                Host <span className="sort-indicator">{sortedClients.getSortIndicator("host")}</span>
+              </div>
+              <div className="hidden sm:flex col-span-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer"
+                onClick={() => sortedClients.requestSort("type")}
+              >
+                Type <span className="sort-indicator">{sortedClients.getSortIndicator("type")}</span>
+              </div>
+            </li>
+            {sortedClients.items.map((client) => (
+              <ListItem key={client.id} client={client} />
+            ))}
+          </ul>
+        ) : (
+          <EmptySimple title="No download clients" subtitle="" buttonText="Add new client" buttonAction={toggleAddClient} />
+        )}
       </div>
-    </div>
+    </Section>
   );
 }
 

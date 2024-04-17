@@ -1,4 +1,4 @@
-// Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+// Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 package action
@@ -42,7 +42,7 @@ func (s *service) sabnzbd(ctx context.Context, action *domain.Action, release do
 
 	sab := sabnzbd.New(opts)
 
-	ids, err := sab.AddFromUrl(ctx, sabnzbd.AddNzbRequest{Url: release.TorrentURL, Category: action.Category})
+	ids, err := sab.AddFromUrl(ctx, sabnzbd.AddNzbRequest{Url: release.DownloadURL, Category: action.Category})
 	if err != nil {
 		return nil, errors.Wrap(err, "could not add nzb to sabnzbd")
 	}

@@ -1,4 +1,4 @@
-// Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+// Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 package database
@@ -28,14 +28,14 @@ func NewFeedCacheRepo(log logger.Logger, db *DB) domain.FeedCacheRepo {
 	}
 }
 
-func (r *FeedCacheRepo) Get(bucket string, key string) ([]byte, error) {
+func (r *FeedCacheRepo) Get(feedId int, key string) ([]byte, error) {
 	queryBuilder := r.db.squirrel.
 		Select(
 			"value",
 			"ttl",
 		).
 		From("feed_cache").
-		Where(sq.Eq{"bucket": bucket}).
+		Where(sq.Eq{"feed_id": feedId}).
 		Where(sq.Eq{"key": key}).
 		Where(sq.Gt{"ttl": time.Now()})
 
@@ -50,7 +50,7 @@ func (r *FeedCacheRepo) Get(bucket string, key string) ([]byte, error) {
 	}
 
 	var value []byte
-	var ttl time.Duration
+	var ttl time.Time
 
 	if err := row.Scan(&value, &ttl); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -63,16 +63,16 @@ func (r *FeedCacheRepo) Get(bucket string, key string) ([]byte, error) {
 	return value, nil
 }
 
-func (r *FeedCacheRepo) GetByBucket(ctx context.Context, bucket string) ([]domain.FeedCacheItem, error) {
+func (r *FeedCacheRepo) GetByFeed(ctx context.Context, feedId int) ([]domain.FeedCacheItem, error) {
 	queryBuilder := r.db.squirrel.
 		Select(
-			"bucket",
+			"feed_id",
 			"key",
 			"value",
 			"ttl",
 		).
 		From("feed_cache").
-		Where(sq.Eq{"bucket": bucket})
+		Where(sq.Eq{"feed_id": feedId})
 
 	query, args, err := queryBuilder.ToSql()
 	if err != nil {
@@ -91,7 +91,7 @@ func (r *FeedCacheRepo) GetByBucket(ctx context.Context, bucket string) ([]domai
 	for rows.Next() {
 		var d domain.FeedCacheItem
 
-		if err := rows.Scan(&d.Bucket, &d.Key, &d.Value, &d.TTL); err != nil {
+		if err := rows.Scan(&d.FeedId, &d.Key, &d.Value, &d.TTL); err != nil {
 			return nil, errors.Wrap(err, "error scanning row")
 		}
 
@@ -105,12 +105,11 @@ func (r *FeedCacheRepo) GetByBucket(ctx context.Context, bucket string) ([]domai
 	return data, nil
 }
 
-func (r *FeedCacheRepo) GetCountByBucket(ctx context.Context, bucket string) (int, error) {
-
+func (r *FeedCacheRepo) GetCountByFeed(ctx context.Context, feedId int) (int, error) {
 	queryBuilder := r.db.squirrel.
 		Select("COUNT(*)").
 		From("feed_cache").
-		Where(sq.Eq{"bucket": bucket})
+		Where(sq.Eq{"feed_id": feedId})
 
 	query, args, err := queryBuilder.ToSql()
 	if err != nil {
@@ -131,12 +130,12 @@ func (r *FeedCacheRepo) GetCountByBucket(ctx context.Context, bucket string) (in
 	return count, nil
 }
 
-func (r *FeedCacheRepo) Exists(bucket string, key string) (bool, error) {
+func (r *FeedCacheRepo) Exists(feedId int, key string) (bool, error) {
 	queryBuilder := r.db.squirrel.
 		Select("1").
 		Prefix("SELECT EXISTS (").
 		From("feed_cache").
-		Where(sq.Eq{"bucket": bucket}).
+		Where(sq.Eq{"feed_id": feedId}).
 		Where(sq.Eq{"key": key}).
 		Suffix(")")
 
@@ -149,7 +148,7 @@ func (r *FeedCacheRepo) Exists(bucket string, key string) (bool, error) {
 	err = r.db.handler.QueryRow(query, args...).Scan(&exists)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return false, domain.ErrRecordNotFound
+			return false, nil
 		}
 
 		return false, errors.Wrap(err, "error query")
@@ -158,11 +157,11 @@ func (r *FeedCacheRepo) Exists(bucket string, key string) (bool, error) {
 	return exists, nil
 }
 
-func (r *FeedCacheRepo) Put(bucket string, key string, val []byte, ttl time.Time) error {
+func (r *FeedCacheRepo) Put(feedId int, key string, val []byte, ttl time.Time) error {
 	queryBuilder := r.db.squirrel.
 		Insert("feed_cache").
-		Columns("bucket", "key", "value", "ttl").
-		Values(bucket, key, val, ttl)
+		Columns("feed_id", "key", "value", "ttl").
+		Values(feedId, key, val, ttl)
 
 	query, args, err := queryBuilder.ToSql()
 	if err != nil {
@@ -176,10 +175,31 @@ func (r *FeedCacheRepo) Put(bucket string, key string, val []byte, ttl time.Time
 	return nil
 }
 
-func (r *FeedCacheRepo) Delete(ctx context.Context, bucket string, key string) error {
+func (r *FeedCacheRepo) PutMany(ctx context.Context, items []domain.FeedCacheItem) error {
+	queryBuilder := r.db.squirrel.
+		Insert("feed_cache").
+		Columns("feed_id", "key", "value", "ttl")
+
+	for _, item := range items {
+		queryBuilder = queryBuilder.Values(item.FeedId, item.Key, item.Value, item.TTL)
+	}
+
+	query, args, err := queryBuilder.ToSql()
+	if err != nil {
+		return errors.Wrap(err, "error building query")
+	}
+
+	if _, err = r.db.handler.ExecContext(ctx, query, args...); err != nil {
+		return errors.Wrap(err, "error executing query")
+	}
+
+	return nil
+}
+
+func (r *FeedCacheRepo) Delete(ctx context.Context, feedId int, key string) error {
 	queryBuilder := r.db.squirrel.
 		Delete("feed_cache").
-		Where(sq.Eq{"bucket": bucket}).
+		Where(sq.Eq{"feed_id": feedId}).
 		Where(sq.Eq{"key": key})
 
 	query, args, err := queryBuilder.ToSql()
@@ -187,18 +207,22 @@ func (r *FeedCacheRepo) Delete(ctx context.Context, bucket string, key string) e
 		return errors.Wrap(err, "error building query")
 	}
 
-	_, err = r.db.handler.ExecContext(ctx, query, args...)
+	result, err := r.db.handler.ExecContext(ctx, query, args...)
 	if err != nil {
 		return errors.Wrap(err, "error executing query")
+	}
+
+	if rowsAffected, err := result.RowsAffected(); err != nil {
+		return errors.Wrap(err, "error getting rows affected")
+	} else if rowsAffected == 0 {
+		return domain.ErrRecordNotFound
 	}
 
 	return nil
 }
 
-func (r *FeedCacheRepo) DeleteBucket(ctx context.Context, bucket string) error {
-	queryBuilder := r.db.squirrel.
-		Delete("feed_cache").
-		Where(sq.Eq{"bucket": bucket})
+func (r *FeedCacheRepo) DeleteByFeed(ctx context.Context, feedId int) error {
+	queryBuilder := r.db.squirrel.Delete("feed_cache").Where(sq.Eq{"feed_id": feedId})
 
 	query, args, err := queryBuilder.ToSql()
 	if err != nil {
@@ -215,9 +239,36 @@ func (r *FeedCacheRepo) DeleteBucket(ctx context.Context, bucket string) error {
 		return errors.Wrap(err, "error exec result")
 	}
 
-	if rows == 0 {
-		return errors.Wrap(err, "error no rows affected")
+	r.log.Debug().Msgf("deleted %d rows from feed cache: %d", rows, feedId)
+
+	return nil
+}
+
+func (r *FeedCacheRepo) DeleteStale(ctx context.Context) error {
+	queryBuilder := r.db.squirrel.Delete("feed_cache")
+
+	if r.db.Driver == "sqlite" {
+		queryBuilder = queryBuilder.Where(sq.Expr("ttl < datetime('now', 'localtime', '-30 days')"))
+	} else {
+		queryBuilder = queryBuilder.Where(sq.Lt{"ttl": time.Now().AddDate(0, 0, -30)})
 	}
+
+	query, args, err := queryBuilder.ToSql()
+	if err != nil {
+		return errors.Wrap(err, "error building query")
+	}
+
+	result, err := r.db.handler.ExecContext(ctx, query, args...)
+	if err != nil {
+		return errors.Wrap(err, "error executing query")
+	}
+
+	rows, err := result.RowsAffected()
+	if err != nil {
+		return errors.Wrap(err, "error exec result")
+	}
+
+	r.log.Debug().Msgf("deleted %d rows from stale feed cache", rows)
 
 	return nil
 }

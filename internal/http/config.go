@@ -1,4 +1,4 @@
-// Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+// Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 package http
@@ -6,6 +6,8 @@ package http
 import (
 	"encoding/json"
 	"net/http"
+	"os"
+	"path/filepath"
 
 	"github.com/autobrr/autobrr/internal/config"
 	"github.com/autobrr/autobrr/internal/domain"
@@ -15,6 +17,9 @@ import (
 )
 
 type configJson struct {
+	Application     string `json:"application"`
+	ConfigDir       string `json:"config_dir"`
+	Database        string `json:"database"`
 	Host            string `json:"host"`
 	Port            int    `json:"port"`
 	LogLevel        string `json:"log_level"`
@@ -50,6 +55,7 @@ func (h configHandler) Routes(r chi.Router) {
 
 func (h configHandler) getConfig(w http.ResponseWriter, r *http.Request) {
 	conf := configJson{
+		ConfigDir:       h.cfg.Config.ConfigPath,
 		Host:            h.cfg.Config.Host,
 		Port:            h.cfg.Config.Port,
 		LogLevel:        h.cfg.Config.LogLevel,
@@ -57,11 +63,28 @@ func (h configHandler) getConfig(w http.ResponseWriter, r *http.Request) {
 		LogMaxSize:      h.cfg.Config.LogMaxSize,
 		LogMaxBackups:   h.cfg.Config.LogMaxBackups,
 		BaseURL:         h.cfg.Config.BaseURL,
+		Database:        h.cfg.Config.DatabaseType,
 		CheckForUpdates: h.cfg.Config.CheckForUpdates,
 		Version:         h.server.version,
 		Commit:          h.server.commit,
 		Date:            h.server.date,
 	}
+
+	ex, err := os.Executable()
+	if err != nil {
+		h.encoder.Error(w, err)
+		return
+	}
+
+	conf.Application = ex
+
+	absPath, err := filepath.Abs(h.cfg.Config.ConfigPath)
+	if err != nil {
+		h.encoder.Error(w, err)
+		return
+	}
+
+	conf.ConfigDir = absPath
 
 	render.JSON(w, r, conf)
 }

@@ -1,43 +1,44 @@
 /*
- * Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+ * Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-import { Link } from "react-router-dom";
-import { ReactComponent as Logo } from "@app/logo.svg";
+import { Link } from "@tanstack/react-router";
+import { ExternalLink } from "@components/ExternalLink";
+
+import Logo from "@app/logo.svg?react";
 
 export const NotFound = () => {
   return (
     <div className="min-h-screen flex flex-col justify-center ">
       <div className="flex justify-center">
-        <Logo className="h-24 sm:h-48" />
+        <Logo className="h-24 sm:h-48"/>
       </div>
+      <h2 className="text-2xl text-center font-bold text-gray-900 dark:text-gray-200 my-8 px-2">
+        404 Page not found
+      </h2>
       <h1 className="text-3xl text-center font-bold text-gray-900 dark:text-gray-200 my-8 px-2">
         Oops, looks like there was a little too much brr!
       </h1>
       <h3 className="text-xl text-center text-gray-700 dark:text-gray-400 mb-1 px-2">
-        In case you think this a bug rather than too much brr,
+        In case you think this is a bug rather than too much brr,
       </h3>
       <h3 className="text-xl text-center text-gray-700 dark:text-gray-400 mb-1 px-2">
         feel free to report this to our
         {" "}
-        <a
-          rel="noopener noreferrer"
-          target="_blank"
+        <ExternalLink
           href="https://github.com/autobrr/autobrr"
           className="text-gray-700 dark:text-gray-200 underline font-semibold underline-offset-2 decoration-sky-500 hover:decoration-2 hover:text-black hover:dark:text-gray-100"
         >
           GitHub page
-        </a>
+        </ExternalLink>
         {" or to "}
-        <a
-          rel="noopener noreferrer"
-          target="_blank"
+        <ExternalLink
           href="https://discord.gg/WQ2eUycxyT"
           className="text-gray-700 dark:text-gray-200 underline font-semibold underline-offset-2 decoration-purple-500 hover:decoration-2 hover:text-black hover:dark:text-gray-100"
         >
           our official Discord channel
-        </a>
+        </ExternalLink>
         .
       </h3>
       <h3 className="text-xl text-center leading-6 text-gray-700 dark:text-gray-400 mb-8 px-2">

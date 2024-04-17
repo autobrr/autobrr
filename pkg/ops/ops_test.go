@@ -1,3 +1,8 @@
+// Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
+// SPDX-License-Identifier: GPL-2.0-or-later
+
+//go:build integration
+
 package ops
 
 import (
@@ -9,6 +14,7 @@ import (
 	"testing"
 
 	"github.com/autobrr/autobrr/internal/domain"
+
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 )
@@ -28,18 +34,18 @@ func TestOrpheusClient_GetTorrentByID(t *testing.T) {
 			return
 		}
 
-		if !strings.Contains(r.RequestURI, "2156788") {
-			jsonPayload, _ := os.ReadFile("testdata/get_torrent_by_id_not_found.json")
+		if strings.Contains(r.RequestURI, "2156788") {
+			jsonPayload, _ := os.ReadFile("testdata/get_torrent_by_id.json")
 			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(http.StatusBadRequest)
+			w.WriteHeader(http.StatusOK)
 			w.Write(jsonPayload)
 			return
 		}
 
 		// read json response
-		jsonPayload, _ := os.ReadFile("testdata/get_torrent_by_id.json")
+		jsonPayload, _ := os.ReadFile("testdata/get_torrent_by_id_not_found.json")
 		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
+		w.WriteHeader(http.StatusBadRequest)
 		w.Write(jsonPayload)
 	}))
 	defer ts.Close()
@@ -74,7 +80,7 @@ func TestOrpheusClient_GetTorrentByID(t *testing.T) {
 			wantErr: "",
 		},
 		{
-			name: "get_by_id_2",
+			name: "invalid_torrent_id",
 			fields: fields{
 				Url:    ts.URL,
 				APIKey: key,
@@ -84,7 +90,7 @@ func TestOrpheusClient_GetTorrentByID(t *testing.T) {
 			wantErr: "could not get torrent by id: 100002: status code: 400 status: failure error: bad id parameter",
 		},
 		{
-			name: "get_by_id_3",
+			name: "missing_api_key",
 			fields: fields{
 				Url:    ts.URL,
 				APIKey: "",
@@ -96,8 +102,7 @@ func TestOrpheusClient_GetTorrentByID(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			c := NewClient(tt.fields.APIKey)
-			c.UseURL(tt.fields.Url)
+			c := NewClient(tt.fields.APIKey, WithUrl(ts.URL))
 
 			got, err := c.GetTorrentByID(context.Background(), tt.args.torrentID)
 			if tt.wantErr != "" && assert.Error(t, err) {
