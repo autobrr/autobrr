@@ -43,6 +43,7 @@ type Action struct {
 	LimitRatio               float64             `json:"limit_ratio,omitempty"`
 	LimitSeedTime            int64               `json:"limit_seed_time,omitempty"`
 	PriorityLayout           PriorityLayout      `json:"priority,omitempty"`
+	ToggleFirstLastPiece     bool                `json:"toggle_first_last_piece,omitempty"`
 	ReAnnounceSkip           bool                `json:"reannounce_skip,omitempty"`
 	ReAnnounceDelete         bool                `json:"reannounce_delete,omitempty"`
 	ReAnnounceInterval       int64               `json:"reannounce_interval,omitempty"`

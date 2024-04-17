@@ -74,6 +74,7 @@ type Filter struct {
 	ID                   int                    `json:"id"`
 	Name                 string                 `json:"name"`
 	Enabled              bool                   `json:"enabled"`
+	NotifyEnabled        bool                   `json:"notify_enabled"`
 	CreatedAt            time.Time              `json:"created_at"`
 	UpdatedAt            time.Time              `json:"updated_at"`
 	MinSize              string                 `json:"min_size,omitempty"`

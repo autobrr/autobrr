@@ -58,6 +58,7 @@ export function Actions() {
     limit_download_speed: 0,
     limit_ratio: 0,
     limit_seed_time: 0,
+    toggle_first_last_piece: false,
     reannounce_skip: false,
     reannounce_delete: false,
     reannounce_interval: 7,

@@ -135,6 +135,9 @@ func (s *service) prepareQbitOptions(action *domain.Action) (map[string]string, 
 	if action.SkipHashCheck {
 		opts.SkipHashCheck = true
 	}
+	if action.ToggleFirstLastPiece {
+		opts.ToggleFirstLastPiecePrio = true
+	}
 	if action.ContentLayout != "" {
 		if action.ContentLayout == domain.ActionContentLayoutSubfolderCreate {
 			opts.ContentLayout = qbittorrent.ContentLayoutSubfolderCreate

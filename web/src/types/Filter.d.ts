@@ -99,6 +99,7 @@ interface Action {
   limit_download_speed?: number;
   limit_ratio?: number;
   limit_seed_time?: number;
+  toggle_first_last_piece: boolean;
   reannounce_skip: boolean;
   reannounce_delete: boolean;
   reannounce_interval: number;
