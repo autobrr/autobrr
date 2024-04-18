@@ -31,6 +31,7 @@ func getMockAction() domain.Action {
 		Paused:                   false,
 		IgnoreRules:              false,
 		SkipHashCheck:            false,
+		FirstLastPiecePrio        false,
 		ContentLayout:            domain.ActionContentLayoutOriginal,
 		LimitUploadSpeed:         0,
 		LimitDownloadSpeed:       0,

@@ -197,6 +197,7 @@ CREATE TABLE action
     save_path               TEXT,
     paused                  BOOLEAN,
     ignore_rules            BOOLEAN,
+    first_last_piece_prio   BOOLEAN DEFAULT false,
     skip_hash_check         BOOLEAN DEFAULT false,
     content_layout          TEXT,
     limit_upload_speed      INT,
@@ -929,6 +930,9 @@ CREATE INDEX indexer_identifier_index
 	`
 	ALTER TABLE action
 		ADD COLUMN skip_hash_check BOOLEAN DEFAULT FALSE;
+    
+    ALTER TABLE action
+        ADD COLUMN first_last_piece_prio BOOLEAN DEFAULT false;
 
 	ALTER TABLE action
 		ADD COLUMN content_layout TEXT;
@@ -1511,5 +1515,8 @@ ALTER TABLE filter
         	ELSE name
         END
 	WHERE server = 'irc.animebytes.tv';
+`,
+	`ALTER TABLE action
+    ADD COLUMN first_last_piece_prio BOOLEAN DEFAULT false;
 `,
 }

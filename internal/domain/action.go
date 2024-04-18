@@ -36,6 +36,7 @@ type Action struct {
 	SavePath                 string              `json:"save_path,omitempty"`
 	Paused                   bool                `json:"paused,omitempty"`
 	IgnoreRules              bool                `json:"ignore_rules,omitempty"`
+	FirstLastPiecePrio       bool                `json:"first_last_piece_prio,omitempty"`
 	SkipHashCheck            bool                `json:"skip_hash_check,omitempty"`
 	ContentLayout            ActionContentLayout `json:"content_layout,omitempty"`
 	LimitUploadSpeed         int64               `json:"limit_upload_speed,omitempty"`
@@ -43,7 +44,6 @@ type Action struct {
 	LimitRatio               float64             `json:"limit_ratio,omitempty"`
 	LimitSeedTime            int64               `json:"limit_seed_time,omitempty"`
 	PriorityLayout           PriorityLayout      `json:"priority,omitempty"`
-	ToggleFirstLastPiece     bool                `json:"toggle_first_last_piece,omitempty"`
 	ReAnnounceSkip           bool                `json:"reannounce_skip,omitempty"`
 	ReAnnounceDelete         bool                `json:"reannounce_delete,omitempty"`
 	ReAnnounceInterval       int64               `json:"reannounce_interval,omitempty"`

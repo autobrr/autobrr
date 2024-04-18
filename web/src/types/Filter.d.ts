@@ -92,14 +92,14 @@ interface Action {
   save_path?: string;
   paused?: boolean;
   ignore_rules?: boolean;
-  skip_hash_check: boolean;
+  first_last_piece_prio?: boolean;
+  skip_hash_check?: boolean;
   content_layout?: ActionContentLayout;
   priority?: ActionPriorityLayout;
   limit_upload_speed?: number;
   limit_download_speed?: number;
   limit_ratio?: number;
   limit_seed_time?: number;
-  toggle_first_last_piece: boolean;
   reannounce_skip: boolean;
   reannounce_delete: boolean;
   reannounce_interval: number;

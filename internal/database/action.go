@@ -75,10 +75,10 @@ func (r *ActionRepo) findByFilterID(ctx context.Context, tx *Tx, filterID int, a
 			"save_path",
 			"paused",
 			"ignore_rules",
+			"first_last_piece_prio",
 			"skip_hash_check",
 			"content_layout",
 			"priority",
-			"toggle_first_last_piece",
 			"limit_download_speed",
 			"limit_upload_speed",
 			"limit_ratio",
@@ -125,7 +125,7 @@ func (r *ActionRepo) findByFilterID(ctx context.Context, tx *Tx, filterID int, a
 		var externalClientID, clientID sql.NullInt32
 		var paused, ignoreRules sql.NullBool
 
-		if err := rows.Scan(&a.ID, &a.Name, &a.Type, &a.Enabled, &execCmd, &execArgs, &watchFolder, &category, &tags, &label, &savePath, &paused, &ignoreRules, &a.SkipHashCheck, &contentLayout, &priorityLayout, &limitDl, &limitUl, &limitRatio, &limitSeedTime, &a.ToggleFirstLastPiece, &a.ReAnnounceSkip, &a.ReAnnounceDelete, &a.ReAnnounceInterval, &a.ReAnnounceMaxAttempts, &webhookHost, &webhookType, &webhookMethod, &webhookData, &externalClientID, &externalClient, &clientID); err != nil {
+		if err := rows.Scan(&a.ID, &a.Name, &a.Type, &a.Enabled, &execCmd, &execArgs, &watchFolder, &category, &tags, &label, &savePath, &paused, &ignoreRules, &a.FirstLastPiecePrio, &a.SkipHashCheck, &contentLayout, &priorityLayout, &limitDl, &limitUl, &limitRatio, &limitSeedTime, &a.ReAnnounceSkip, &a.ReAnnounceDelete, &a.ReAnnounceInterval, &a.ReAnnounceMaxAttempts, &webhookHost, &webhookType, &webhookMethod, &webhookData, &externalClientID, &externalClient, &clientID); err != nil {
 			return nil, errors.Wrap(err, "error scanning row")
 		}
 
@@ -230,10 +230,10 @@ func (r *ActionRepo) List(ctx context.Context) ([]domain.Action, error) {
 			"save_path",
 			"paused",
 			"ignore_rules",
+			"first_last_piece_prio",
 			"skip_hash_check",
 			"content_layout",
 			"priority",
-			"toggle_first_last_piece",
 			"limit_download_speed",
 			"limit_upload_speed",
 			"limit_ratio",
@@ -274,7 +274,7 @@ func (r *ActionRepo) List(ctx context.Context) ([]domain.Action, error) {
 		var externalClientID, clientID sql.NullInt32
 		var paused, ignoreRules sql.NullBool
 
-		if err := rows.Scan(&a.ID, &a.Name, &a.Type, &a.Enabled, &execCmd, &execArgs, &watchFolder, &category, &tags, &label, &savePath, &paused, &ignoreRules, &a.SkipHashCheck, &contentLayout, &priorityLayout, &limitDl, &limitUl, &limitRatio, &limitSeedTime, &a.ToggleFirstLastPiece, &a.ReAnnounceSkip, &a.ReAnnounceDelete, &a.ReAnnounceInterval, &a.ReAnnounceMaxAttempts, &webhookHost, &webhookType, &webhookMethod, &webhookData, &externalClientID, &externalClient, &clientID); err != nil {
+		if err := rows.Scan(&a.ID, &a.Name, &a.Type, &a.Enabled, &execCmd, &execArgs, &watchFolder, &category, &tags, &label, &savePath, &paused, &ignoreRules, &a.FirstLastPiecePrio, &a.SkipHashCheck, &contentLayout, &priorityLayout, &limitDl, &limitUl, &limitRatio, &limitSeedTime, &a.ReAnnounceSkip, &a.ReAnnounceDelete, &a.ReAnnounceInterval, &a.ReAnnounceMaxAttempts, &webhookHost, &webhookType, &webhookMethod, &webhookData, &externalClientID, &externalClient, &clientID); err != nil {
 			return nil, errors.Wrap(err, "error scanning row")
 		}
 
@@ -327,10 +327,10 @@ func (r *ActionRepo) Get(ctx context.Context, req *domain.GetActionRequest) (*do
 			"save_path",
 			"paused",
 			"ignore_rules",
+			"first_last_piece_prio",
 			"skip_hash_check",
 			"content_layout",
 			"priority",
-			"toggle_first_last_piece",
 			"limit_download_speed",
 			"limit_upload_speed",
 			"limit_ratio",
@@ -373,7 +373,7 @@ func (r *ActionRepo) Get(ctx context.Context, req *domain.GetActionRequest) (*do
 	var externalClientID, clientID, filterID sql.NullInt32
 	var paused, ignoreRules sql.NullBool
 
-	if err := row.Scan(&a.ID, &a.Name, &a.Type, &a.Enabled, &execCmd, &execArgs, &watchFolder, &category, &tags, &label, &savePath, &paused, &ignoreRules, &a.SkipHashCheck, &contentLayout, &priorityLayout, &limitDl, &limitUl, &limitRatio, &limitSeedTime, &a.ToggleFirstLastPiece, &a.ReAnnounceSkip, &a.ReAnnounceDelete, &a.ReAnnounceInterval, &a.ReAnnounceMaxAttempts, &webhookHost, &webhookType, &webhookMethod, &webhookData, &externalClientID, &externalClient, &clientID, &filterID); err != nil {
+	if err := row.Scan(&a.ID, &a.Name, &a.Type, &a.Enabled, &execCmd, &execArgs, &watchFolder, &category, &tags, &label, &savePath, &paused, &ignoreRules, &a.FirstLastPiecePrio, &a.SkipHashCheck, &contentLayout, &priorityLayout, &limitDl, &limitUl, &limitRatio, &limitSeedTime, &a.ReAnnounceSkip, &a.ReAnnounceDelete, &a.ReAnnounceInterval, &a.ReAnnounceMaxAttempts, &webhookHost, &webhookType, &webhookMethod, &webhookData, &externalClientID, &externalClient, &clientID, &filterID); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, domain.ErrRecordNotFound
 		}
@@ -467,10 +467,10 @@ func (r *ActionRepo) Store(ctx context.Context, action domain.Action) (*domain.A
 			"save_path",
 			"paused",
 			"ignore_rules",
+			"first_last_piece_prio",
 			"skip_hash_check",
 			"content_layout",
 			"priority",
-			"toggle_first_last_piece",
 			"limit_upload_speed",
 			"limit_download_speed",
 			"limit_ratio",
@@ -501,6 +501,7 @@ func (r *ActionRepo) Store(ctx context.Context, action domain.Action) (*domain.A
 			toNullString(action.SavePath),
 			action.Paused,
 			action.IgnoreRules,
+			action.FirstLastPiecePrio,
 			action.SkipHashCheck,
 			toNullString(string(action.ContentLayout)),
 			toNullString(string(action.PriorityLayout)),
@@ -508,7 +509,6 @@ func (r *ActionRepo) Store(ctx context.Context, action domain.Action) (*domain.A
 			toNullInt64(action.LimitDownloadSpeed),
 			toNullFloat64(action.LimitRatio),
 			toNullInt64(action.LimitSeedTime),
-			action.ToggleFirstLastPiece,
 			action.ReAnnounceSkip,
 			action.ReAnnounceDelete,
 			action.ReAnnounceInterval,
@@ -553,6 +553,7 @@ func (r *ActionRepo) Update(ctx context.Context, action domain.Action) (*domain.
 		Set("save_path", toNullString(action.SavePath)).
 		Set("paused", action.Paused).
 		Set("ignore_rules", action.IgnoreRules).
+		Set("first_last_piece_prio", action.FirstLastPiecePrio).
 		Set("skip_hash_check", action.SkipHashCheck).
 		Set("content_layout", toNullString(string(action.ContentLayout))).
 		Set("priority", toNullString(string(action.PriorityLayout))).
@@ -560,7 +561,6 @@ func (r *ActionRepo) Update(ctx context.Context, action domain.Action) (*domain.
 		Set("limit_download_speed", toNullInt64(action.LimitDownloadSpeed)).
 		Set("limit_ratio", toNullFloat64(action.LimitRatio)).
 		Set("limit_seed_time", toNullInt64(action.LimitSeedTime)).
-		Set("toggle_first_last_piece", action.ToggleFirstLastPiece).
 		Set("reannounce_skip", action.ReAnnounceSkip).
 		Set("reannounce_delete", action.ReAnnounceDelete).
 		Set("reannounce_interval", action.ReAnnounceInterval).
@@ -615,6 +615,7 @@ func (r *ActionRepo) StoreFilterActions(ctx context.Context, filterID int64, act
 				Set("save_path", toNullString(action.SavePath)).
 				Set("paused", action.Paused).
 				Set("ignore_rules", action.IgnoreRules).
+				Set("first_last_piece_prio", action.FirstLastPiecePrio).
 				Set("skip_hash_check", action.SkipHashCheck).
 				Set("content_layout", toNullString(string(action.ContentLayout))).
 				Set("priority", toNullString(string(action.PriorityLayout))).
@@ -622,7 +623,6 @@ func (r *ActionRepo) StoreFilterActions(ctx context.Context, filterID int64, act
 				Set("limit_download_speed", toNullInt64(action.LimitDownloadSpeed)).
 				Set("limit_ratio", toNullFloat64(action.LimitRatio)).
 				Set("limit_seed_time", toNullInt64(action.LimitSeedTime)).
-				Set("toggle_first_last_piece", action.ToggleFirstLastPiece).
 				Set("reannounce_skip", action.ReAnnounceSkip).
 				Set("reannounce_delete", action.ReAnnounceDelete).
 				Set("reannounce_interval", action.ReAnnounceInterval).
@@ -664,6 +664,7 @@ func (r *ActionRepo) StoreFilterActions(ctx context.Context, filterID int64, act
 					"save_path",
 					"paused",
 					"ignore_rules",
+					"first_last_piece_prio",
 					"skip_hash_check",
 					"content_layout",
 					"priority",
@@ -671,7 +672,6 @@ func (r *ActionRepo) StoreFilterActions(ctx context.Context, filterID int64, act
 					"limit_download_speed",
 					"limit_ratio",
 					"limit_seed_time",
-					"toggle_first_last_piece",
 					"reannounce_skip",
 					"reannounce_delete",
 					"reannounce_interval",
@@ -698,6 +698,7 @@ func (r *ActionRepo) StoreFilterActions(ctx context.Context, filterID int64, act
 					toNullString(action.SavePath),
 					action.Paused,
 					action.IgnoreRules,
+					action.FirstLastPiecePrio,
 					action.SkipHashCheck,
 					toNullString(string(action.ContentLayout)),
 					toNullString(string(action.PriorityLayout)),
@@ -705,7 +706,6 @@ func (r *ActionRepo) StoreFilterActions(ctx context.Context, filterID int64, act
 					toNullInt64(action.LimitDownloadSpeed),
 					toNullFloat64(action.LimitRatio),
 					toNullInt64(action.LimitSeedTime),
-					action.ToggleFirstLastPiece,
 					action.ReAnnounceSkip,
 					action.ReAnnounceDelete,
 					action.ReAnnounceInterval,
