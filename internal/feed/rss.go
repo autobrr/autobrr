@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"regexp"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
@@ -133,8 +134,15 @@ func (j *RSSJob) processItem(item *gofeed.Item) *domain.Release {
 		if e.Type == "application/x-bittorrent" && e.URL != "" {
 			rls.DownloadURL = e.URL
 		}
-		if e.Length != "" && e.Length != "39399" {
+		if e.Length != "" && e.Length != "1" && e.Length != "39399" {
 			rls.ParseSizeBytesString(e.Length)
+		}
+
+		if j.Feed.Settings != nil && j.Feed.Settings.DownloadType == domain.FeedDownloadTypeMagnet {
+			if !strings.HasPrefix(rls.MagnetURI, "magnet:?") && strings.HasPrefix(e.URL, "magnet:?") {
+				rls.MagnetURI = e.URL
+				rls.DownloadURL = ""
+			}
 		}
 	}
 

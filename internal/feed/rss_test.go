@@ -169,6 +169,42 @@ func TestRSSJob_processItem(t *testing.T) {
 			}},
 			want: nil,
 		},
+		{
+			name: "magnet",
+			fields: fields{
+				Feed: &domain.Feed{
+					MaxAge: 3600,
+					Indexer: domain.IndexerMinimal{
+						ID:         0,
+						Name:       "Mock Feed",
+						Identifier: "mock-feed",
+					},
+					Settings: &domain.FeedSettingsJSON{DownloadType: domain.FeedDownloadTypeMagnet},
+				},
+				Name:       "Magnet feed",
+				Log:        zerolog.Logger{},
+				URL:        "https://fake-feed.com/rss",
+				Repo:       nil,
+				ReleaseSvc: nil,
+				attempts:   0,
+				errors:     nil,
+				JobID:      0,
+			},
+			args: args{item: &gofeed.Item{
+				Title:       "Some.Release.Title.2022.09.22.720p.WEB.h264-GROUP",
+				Description: "Category: Example",
+				Link:        "https://fake-feed.com/details.php?id=00000&hit=1",
+				GUID:        "https://fake-feed.com/details.php?id=00000&hit=1",
+				Enclosures: []*gofeed.Enclosure{
+					{
+						URL:    "magnet:?xt=this-not-a-valid-magnet",
+						Length: "1",
+						Type:   "application/x-bittorrent",
+					},
+				},
+			}},
+			want: &domain.Release{ID: 0, FilterStatus: "PENDING", Rejections: []string{}, Indexer: domain.IndexerMinimal{0, "Mock Feed", "mock-feed"}, FilterName: "", Protocol: "torrent", Implementation: "RSS", Timestamp: now, MagnetURI: "magnet:?xt=this-not-a-valid-magnet", GroupID: "", TorrentID: "", DownloadURL: "https://fake-feed.com/details.php?id=00000&hit=1", TorrentTmpFile: "", TorrentDataRawBytes: []uint8(nil), TorrentHash: "", TorrentName: "Some.Release.Title.2022.09.22.720p.WEB.h264-GROUP", Size: 0, Title: "Some Release Title", Description: "Category: Example", Category: "", Season: 0, Episode: 0, Year: 2022, Resolution: "720p", Source: "WEB", Codec: []string{"H.264"}, Container: "", HDR: []string(nil), Audio: []string(nil), AudioChannels: "", Group: "GROUP", Region: "", Language: nil, Proper: false, Repack: false, Website: "", Artists: "", Type: "episode", LogScore: 0, Origin: "", Tags: []string{}, ReleaseTags: "", Freeleech: false, FreeleechPercent: 0, Bonus: []string(nil), Uploader: "", PreTime: "", Other: []string(nil), RawCookie: "", AdditionalSizeCheckRequired: false, FilterID: 0, Filter: (*domain.Filter)(nil), ActionStatus: []domain.ReleaseActionStatus(nil)},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
