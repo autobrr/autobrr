@@ -218,7 +218,7 @@ Check the Windows Setup Guide [here](https://autobrr.com/installation/windows).
 #### Install Homebrew
 
 ```bash
-/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"`
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 ```
 
 #### Install autobrr
