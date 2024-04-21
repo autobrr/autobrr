@@ -74,6 +74,7 @@ type Release struct {
 	PublishDate      string `json:"publishDate"`
 	DownloadClientId int    `json:"downloadClientId,omitempty"`
 	DownloadClient   string `json:"downloadClient,omitempty"`
+	Freeleech        bool   `json:"freeleech,omitempty"`
 }
 
 type PushResponse struct {

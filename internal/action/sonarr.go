@@ -64,6 +64,7 @@ func (s *service) sonarr(ctx context.Context, action *domain.Action, release dom
 		DownloadProtocol: string(release.Protocol),
 		Protocol:         string(release.Protocol),
 		PublishDate:      time.Now().Format(time.RFC3339),
+		Freeleech:        release.Freeleech,
 	}
 
 	arr := sonarr.New(cfg)
