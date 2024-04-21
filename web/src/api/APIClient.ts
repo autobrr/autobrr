@@ -81,23 +81,22 @@ export async function HttpClient<T = unknown>(
 
   const response = await window.fetch(`${baseUrl()}${endpoint}`, init);
 
+  const isJson = response.headers.get("Content-Type")?.includes("application/json");
+  const json = isJson ? await response.json() : null;
+
   switch (response.status) {
   case 204: {
     // 204 contains no data, but indicates success
     return Promise.resolve<T>({} as T);
   }
   case 401: {
-    return Promise.reject(response);
-    // return Promise.reject(new Error(`[401] Unauthorized: "${endpoint}"`));
+    return Promise.reject<T>(json as T);
   }
   case 403: {
-    return Promise.reject(response);
+    return Promise.reject<T>(json as T);
   }
   case 404: {
-    const isJson = response.headers.get("Content-Type")?.includes("application/json");
-    const json = isJson ? await response.json() : null;
     return Promise.reject<T>(json as T);
-    // return Promise.reject(new Error(`[404] Not Found: "${endpoint}"`));
   }
   case 500: {
     const health = await window.fetch(`${baseUrl()}api/healthz/liveness`);
@@ -115,9 +114,6 @@ export async function HttpClient<T = unknown>(
   default:
     break;
   }
-
-  const isJson = response.headers.get("Content-Type")?.includes("application/json");
-  const json = isJson ? await response.json() : null;
 
   // Resolve on success
   if (response.status >= 200 && response.status < 300) {
@@ -321,7 +317,7 @@ export const APIClient = {
         if (!filter.value)
           return;
 
-        if (filter.id == "indexer") {
+        if (filter.id == "indexer.identifier") {
           params["indexer"].push(filter.value);
         } else if (filter.id === "action_status") {
           params["push_status"].push(filter.value); // push_status is the correct value here otherwise the releases table won't load when filtered by push status

@@ -35,6 +35,12 @@ type Indexer struct {
 	Settings       map[string]string `json:"settings,omitempty"`
 }
 
+type IndexerMinimal struct {
+	ID         int    `json:"id"`
+	Name       string `json:"name"`
+	Identifier string `json:"identifier"`
+}
+
 type IndexerDefinition struct {
 	ID             int               `json:"id,omitempty"`
 	Name           string            `json:"name"`

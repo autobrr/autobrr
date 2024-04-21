@@ -179,7 +179,7 @@ function ListItem({ feed }: ListItemProps) {
         <div className="col-span-9 md:col-span-4 pl-10 sm:pl-12 py-3 flex flex-col">
           <span className="pr-2 dark:text-white truncate">{feed.name}</span>
           <span className="pr-3 text-xs truncate">
-            {feed.indexer}
+            {feed.indexer.identifier}
           </span>
         </div>
         <div className="hidden md:flex col-span-2 py-3 items-center">
