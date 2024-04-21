@@ -6,10 +6,8 @@ package action
 import (
 	"bytes"
 	"context"
-	"io"
 	"net/http"
 	"time"
-	"encoding/json"
 
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/pkg/errors"
@@ -40,37 +38,18 @@ func (s *service) webhook(ctx context.Context, action *domain.Action, release do
 
 	defer res.Body.Close()
 
-	body, err := io.ReadAll(res.Body)
-	if err != nil {
-		return nil, errors.Wrap(err, "could not read the response body of the webhook")
-	}
-	s.log.Info().Msgf("webhook action received %s", body)
-
-	type PushResponse struct {
-		Approved     bool     `json:"approved"`
-		Rejected     bool     `json:"rejected"`
-		TempRejected bool     `json:"temporarilyRejected"`
-		Rejections   []string `json:"rejections"`
-	}
-
-	var pushResponse []PushResponse                                                                                                                                          
-	if err = json.Unmarshal(body, &pushResponse); err != nil {                                                                                                                        
-		return nil, errors.Wrap(err, "could not unmarshal data")                                                                                                                 
-	}    	
-	s.log.Info().Msgf("webhook received approved: %s, rejected %s, rejections %s",pushResponse[0].Approved, pushResponse[0].Rejected, pushResponse[0].Rejections)
-
-
 	if len(action.WebhookData) > 256 {
-		s.log.Info().Msgf("successfully ran webhook action: '%s' to: %s payload: %s finished in %s with: %s", action.Name, action.WebhookHost, action.WebhookData[:256], time.Since(start), pushResponse)
+		s.log.Info().Msgf("successfully ran webhook action: '%s' to: %s payload: %s finished in %s with: %d", action.Name, action.WebhookHost, action.WebhookData[:256], time.Since(start), res.StatusCode)
 	} else {
-		s.log.Info().Msgf("successfully ran webhook action: '%s' to: %s payload: %s finished in %s with: %s", action.Name, action.WebhookHost, action.WebhookData, time.Since(start), pushResponse)
+		s.log.Info().Msgf("successfully ran webhook action: '%s' to: %s payload: %s finished in %s with: %d", action.Name, action.WebhookHost, action.WebhookData, time.Since(start), res.StatusCode)
 	}
 
-	if pushResponse[0].Rejected {
-		s.log.Info().Msgf("Rejected release because of %s",pushResponse[0].Rejections)
-
-
-		return pushResponse[0].Rejections, nil
+	s.log.Info().Msgf("webhook ran and gave %i", res.StatusCode)
+	if res.StatusCode == 200 {
+		return nil, nil
+	} else if res.StatusCode == 201{
+		return []string{"Rejected release"}, nil
 	}
+
 	return nil, nil
 }
