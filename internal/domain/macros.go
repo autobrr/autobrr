@@ -51,6 +51,8 @@ type Macro struct {
 	Tags                string
 	Freeleech           bool
 	FreeleechPercent    int
+	Artists             string
+	AudioFormat         string
 }
 
 func NewMacro(release Release) Macro {
@@ -92,6 +94,8 @@ func NewMacro(release Release) Macro {
 		Tags:                strings.Join(release.Tags, ", "),
 		Freeleech:	     release.Freeleech,
 		FreeleechPercent:    release.FreeleechPercent,
+		Artists:             release.Artists,
+		AudioFormat:         release.AudioFormat,
 	}
 
 	return ma
