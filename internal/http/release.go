@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
+	"strings"
 
 	"github.com/autobrr/autobrr/internal/domain"
 
@@ -209,6 +210,30 @@ func (h releaseHandler) deleteReleases(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		req.OlderThan = duration
+	}
+
+	filterStatuses := r.URL.Query()["filterStatus"]
+	if len(filterStatuses) > 0 {
+		validStatuses := map[string]bool{
+			"FILTER_APPROVED": true,
+			"FILTER_REJECTED": true,
+			"FILTER_ERROR":    true,
+		}
+		var validFilterStatuses []string
+		for _, status := range filterStatuses {
+			if _, valid := validStatuses[status]; valid {
+				validFilterStatuses = append(validFilterStatuses, status)
+			} else {
+				h.encoder.StatusResponse(w, http.StatusBadRequest, map[string]interface{}{
+					"code":    "BAD_REQUEST_PARAMS",
+					"message": "One or more filterStatus parameters are invalid",
+				})
+				return
+			}
+		}
+		req.FilterStatus = strings.Join(validFilterStatuses, ",")
+	} else {
+		req.FilterStatus = ""
 	}
 
 	if err := h.service.Delete(r.Context(), &req); err != nil {

@@ -57,34 +57,44 @@ function DeleteReleases() {
   const queryClient = useQueryClient();
   const [duration, setDuration] = useState<string>("");
   const [parsedDuration, setParsedDuration] = useState<number>(0);
+  const [filterStatus, setFilterStatus] = useState<string[]>([]);
   const cancelModalButtonRef = useRef<HTMLInputElement | null>(null);
   const [deleteModalIsOpen, toggleDeleteModal] = useToggle(false);
 
   const deleteOlderMutation = useMutation({
-    mutationFn: (olderThan: number) => APIClient.release.delete(olderThan),
-    onSuccess: () => {
-      if (parsedDuration === 0) {
-        toast.custom((t) => (
-          <Toast type="success" body={"All releases were deleted."} t={t} />
-        ));
-      } else {
-        toast.custom((t) => (
-          <Toast type="success" body={`Releases older than ${getDurationLabel(parsedDuration)} were deleted.`} t={t} />
-        ));
-      }
+    mutationFn: (params: { olderThan: number, filterStatus?: string[] }) =>
+      APIClient.release.delete(params.olderThan, params.filterStatus),
+    onSuccess: (_data, variables) => {
+      const message = variables.filterStatus
+        ? `Releases older than ${getDurationLabel(variables.olderThan)} with status ${getFilterStatusDescription(filterStatus.join(', '))} were deleted.`
+        : `Releases older than ${getDurationLabel(variables.olderThan)} were deleted.`;
 
-      // Invalidate filters just in case, most likely not necessary but can't hurt.
+      toast.custom((t) => (
+        <Toast type="success" body={message} t={t} />
+      ));
+
       queryClient.invalidateQueries({ queryKey: ReleaseKeys.lists() });
     }
   });
 
   const deleteOlderReleases = () => {
-    if (isNaN(parsedDuration) || parsedDuration < 0) {
-      toast.custom((t) => <Toast type="error" body={"Please select a valid duration."} t={t} />);
+    const minimumDuration = 0;
+    if (isNaN(parsedDuration) || parsedDuration < minimumDuration) {
+      toast.custom((t) => <Toast type="error" body={`Please select a duration of at least ${getDurationLabel(minimumDuration)}.`} t={t} />);
       return;
     }
 
-    deleteOlderMutation.mutate(parsedDuration);
+    deleteOlderMutation.mutate({ olderThan: parsedDuration, filterStatus });
+  };
+
+  const getFilterStatusDescription = (status: string) => {
+    const statusDescriptions: { [key: string]: string } = {
+      "FILTER_APPROVED": "approved",
+      "FILTER_REJECTED": "rejected",
+      "FILTER_ERROR": "errored",
+    };
+
+    return statusDescriptions[status] || 'all';
   };
 
   return (
@@ -96,14 +106,26 @@ function DeleteReleases() {
         buttonRef={cancelModalButtonRef}
         deleteAction={deleteOlderReleases}
         title="Remove releases"
-        text={`Are you sure you want to remove releases older than ${getDurationLabel(parsedDuration)}? This action cannot be undone.`}
+        text={`Are you sure you want to remove ${getFilterStatusDescription(filterStatus.join(', '))} releases older than ${getDurationLabel(parsedDuration)}? This action cannot be undone.`}
       />
-
       <label htmlFor="duration" className="flex flex-col">
         <p className="text-sm font-medium text-gray-900 dark:text-white">Delete</p>
-        <p className="text-sm text-gray-500 dark:text-gray-400">Delete releases older than select duration</p>
+        <p className="text-sm text-gray-500 dark:text-gray-400">Delete releases based on age and status</p>
       </label>
+
       <div className="flex flex-wrap gap-2">
+        <select
+          name="filterStatus"
+          id="filterStatus"
+          className="focus:outline-none focus:ring-1 focus:ring-offset-0 focus:ring-blue-500 dark:focus:ring-blue-500 rounded-md sm:text-sm border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
+          value={filterStatus}
+          onChange={(e) => setFilterStatus([e.target.value])}
+        >
+          <option value="">All</option>
+          <option value="FILTER_APPROVED">Approved</option>
+          <option value="FILTER_REJECTED">Rejected</option>
+          <option value="FILTER_ERROR">Error</option>
+        </select>
         <select
           name="duration"
           id="duration"

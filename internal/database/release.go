@@ -599,6 +599,10 @@ func (repo *ReleaseRepo) Delete(ctx context.Context, req *domain.DeleteReleaseRe
 		}
 	}
 
+	if len(req.FilterStatus) > 0 {
+		qb = qb.Where(sq.Eq{"filter_status": req.FilterStatus})
+	}
+
 	query, args, err := qb.ToSql()
 	if err != nil {
 		return errors.Wrap(err, "error executing query")

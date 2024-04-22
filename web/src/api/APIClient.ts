@@ -338,9 +338,9 @@ export const APIClient = {
     },
     indexerOptions: () => appClient.Get<string[]>("api/release/indexers"),
     stats: () => appClient.Get<ReleaseStats>("api/release/stats"),
-    delete: (olderThan: number) => appClient.Delete("api/release", {
-      queryString: { olderThan }
-    }),
+    delete: (olderThan: number, filterStatus?: string[]) => appClient.Delete("api/release", {
+      queryString: { olderThan, filterStatus }
+    }),    
     replayAction: (releaseId: number, actionId: number) => appClient.Post(
       `api/release/${releaseId}/actions/${actionId}/retry`
     )
