@@ -211,6 +211,16 @@ func (h releaseHandler) deleteReleases(w http.ResponseWriter, r *http.Request) {
 		req.OlderThan = duration
 	}
 
+	indexers := r.URL.Query()["indexer"]
+	if len(indexers) > 0 {
+		req.Indexers = indexers
+	}
+
+	releaseStatuses := r.URL.Query()["releaseStatus"]
+	if len(releaseStatuses) > 0 {
+		req.ReleaseStatuses = releaseStatuses
+	}
+
 	if err := h.service.Delete(r.Context(), &req); err != nil {
 		h.encoder.Error(w, err)
 		return

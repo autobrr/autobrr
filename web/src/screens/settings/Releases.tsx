@@ -4,7 +4,7 @@
  */
 
 import { useRef, useState } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { toast } from "react-hot-toast";
 
 import { APIClient } from "@api/APIClient";
@@ -56,20 +56,33 @@ const getDurationLabel = (durationValue: number): string => {
 function DeleteReleases() {
   const queryClient = useQueryClient();
   const [duration, setDuration] = useState<string>("");
-  const [parsedDuration, setParsedDuration] = useState<number>(0);
+  const [parsedDuration, setParsedDuration] = useState<number>();
+  const [indexers, setIndexers] = useState<string[]>([]);
+  const [releaseStatuses, setReleaseStatuses] = useState<string[]>([]);
   const cancelModalButtonRef = useRef<HTMLInputElement | null>(null);
   const [deleteModalIsOpen, toggleDeleteModal] = useToggle(false);
 
+  const { data: indexerOptions } = useQuery<IndexerDefinition[], Error, { identifier: string; name: string; }[]>({
+    queryKey: ['indexers'],
+    queryFn: () => APIClient.indexers.getAll(),
+    select: data => data.map(indexer => ({
+      identifier: indexer.identifier,
+      name: indexer.name
+    })),
+  });
+
+
   const deleteOlderMutation = useMutation({
-    mutationFn: (olderThan: number) => APIClient.release.delete(olderThan),
+    mutationFn: (params: { olderThan: number, indexers: string[], releaseStatuses: string[] }) =>
+      APIClient.release.delete(params),
     onSuccess: () => {
       if (parsedDuration === 0) {
         toast.custom((t) => (
-          <Toast type="success" body={"All releases were deleted."} t={t} />
+          <Toast type="success" body={"All releases based on criteria were deleted."} t={t} />
         ));
       } else {
         toast.custom((t) => (
-          <Toast type="success" body={`Releases older than ${getDurationLabel(parsedDuration)} were deleted.`} t={t} />
+          <Toast type="success" body={`Releases older than ${getDurationLabel(parsedDuration ?? 0)} were deleted.`} t={t} />
         ));
       }
 
@@ -79,12 +92,12 @@ function DeleteReleases() {
   });
 
   const deleteOlderReleases = () => {
-    if (isNaN(parsedDuration) || parsedDuration < 0) {
+    if (parsedDuration === undefined || isNaN(parsedDuration) || parsedDuration < 0) {
       toast.custom((t) => <Toast type="error" body={"Please select a valid duration."} t={t} />);
       return;
     }
 
-    deleteOlderMutation.mutate(parsedDuration);
+    deleteOlderMutation.mutate({ olderThan: parsedDuration, indexers, releaseStatuses });
   };
 
   return (
@@ -96,7 +109,7 @@ function DeleteReleases() {
         buttonRef={cancelModalButtonRef}
         deleteAction={deleteOlderReleases}
         title="Remove releases"
-        text={`Are you sure you want to remove releases older than ${getDurationLabel(parsedDuration)}? This action cannot be undone.`}
+        text={`Are you sure you want to remove releases matching the selected criteria? This action cannot be undone.`}
       />
 
       <label htmlFor="duration" className="flex flex-col">
@@ -126,6 +139,29 @@ function DeleteReleases() {
           <option value="8760">1 year</option>
           <option value="0">Delete everything</option>
         </select>
+
+        <select
+          multiple
+          value={indexers}
+          onChange={(e) => setIndexers(Array.from(e.target.selectedOptions, option => option.value))}
+          className="focus:outline-none focus:ring-1 focus:ring-offset-0 focus:ring-blue-500 dark:focus:ring-blue-500 rounded-md sm:text-sm border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
+        >
+          {indexerOptions?.map(indexer => (
+            <option key={indexer.identifier} value={indexer.identifier}>{indexer.name}</option>
+          ))}
+        </select>
+
+        <select
+          multiple
+          value={releaseStatuses}
+          onChange={(e) => setReleaseStatuses(Array.from(e.target.selectedOptions, option => option.value))}
+          className="focus:outline-none focus:ring-1 focus:ring-offset-0 focus:ring-blue-500 dark:focus:ring-blue-500 rounded-md sm:text-sm border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
+        >
+          <option value="PUSH_APPROVED">PUSH_APPROVED</option>
+          <option value="PUSH_REJECTED">PUSH_REJECTED</option>
+          <option value="PUSH_ERROR">PUSH_ERROR</option>
+        </select>
+
         <button
           type="button"
           onClick={toggleDeleteModal}

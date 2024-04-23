@@ -124,7 +124,9 @@ type ReleaseActionStatus struct {
 }
 
 type DeleteReleaseRequest struct {
-	OlderThan int
+	OlderThan       int
+	Indexers        []string
+	ReleaseStatuses []string
 }
 
 func NewReleaseActionStatus(action *Action, release *Release) *ReleaseActionStatus {

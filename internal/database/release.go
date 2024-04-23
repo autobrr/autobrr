@@ -581,8 +581,16 @@ func (repo *ReleaseRepo) Delete(ctx context.Context, req *domain.DeleteReleaseRe
 	if err != nil {
 		return errors.Wrap(err, "could not start transaction")
 	}
-
-	defer tx.Rollback()
+	defer func() {
+		if p := recover(); p != nil {
+			tx.Rollback()
+			panic(p)
+		} else if err != nil {
+			tx.Rollback()
+		} else {
+			err = tx.Commit()
+		}
+	}()
 
 	qb := repo.db.squirrel.Delete("release")
 
@@ -599,16 +607,37 @@ func (repo *ReleaseRepo) Delete(ctx context.Context, req *domain.DeleteReleaseRe
 		}
 	}
 
-	query, args, err := qb.ToSql()
-	if err != nil {
-		return errors.Wrap(err, "error executing query")
+	//if req.OlderThan > 0 {
+	//	thresholdTime := time.Now().Add(-time.Duration(req.OlderThan) * time.Hour)
+	//	qb = qb.Where("timestamp < ?", thresholdTime)
+	//}
+
+	if len(req.Indexers) > 0 {
+		placeholders := strings.Repeat("?,", len(req.Indexers)-1) + "?"
+		qb = qb.Where(fmt.Sprintf("indexer IN (%s)", placeholders), toInterfaceSlice(req.Indexers)...)
 	}
 
-	repo.log.Debug().Str("repo", "release").Str("query", query).Msgf("release.delete: args: %v", args)
+	if len(req.ReleaseStatuses) > 0 {
+		statusPlaceholders := strings.Repeat("?,", len(req.ReleaseStatuses)-1) + "?"
+		subQuery := sq.Select("release_id").From("release_action_status").Where(fmt.Sprintf("status IN (%s)", statusPlaceholders), toInterfaceSlice(req.ReleaseStatuses)...)
+		subQueryText, subQueryArgs, err := subQuery.PlaceholderFormat(sq.Question).ToSql()
+		if err != nil {
+			return errors.Wrap(err, "error building subquery")
+		}
+		qb = qb.Where("id IN ("+subQueryText+")", subQueryArgs...)
+	}
+
+	query, args, err := qb.ToSql()
+	if err != nil {
+		return errors.Wrap(err, "error building SQL query")
+	}
+
+	repo.log.Debug().Str("query", query).Interface("args", args).Msg("Executing combined delete query")
 
 	result, err := tx.ExecContext(ctx, query, args...)
 	if err != nil {
-		return errors.Wrap(err, "error executing query")
+		repo.log.Error().Err(err).Str("query", query).Interface("args", args).Msg("Error executing combined delete query")
+		return errors.Wrap(err, "error executing delete query")
 	}
 
 	deletedRows, err := result.RowsAffected()
@@ -616,18 +645,28 @@ func (repo *ReleaseRepo) Delete(ctx context.Context, req *domain.DeleteReleaseRe
 		return errors.Wrap(err, "error fetching rows affected")
 	}
 
+	// clean up orphaned rows
 	_, err = tx.ExecContext(ctx, `DELETE FROM release_action_status WHERE release_id NOT IN (SELECT id FROM "release")`)
 	if err != nil {
 		return errors.Wrap(err, "error executing query")
 	}
 
-	if err := tx.Commit(); err != nil {
-		return errors.Wrap(err, "error commit transaction delete")
-	}
+	//if err := tx.Commit(); err != nil {
+	//	return errors.Wrap(err, "error commit transaction delete")
+	//}
 
 	repo.log.Debug().Msgf("deleted %d rows from release table", deletedRows)
 
 	return nil
+}
+
+// Helper function to convert []string to []interface{}
+func toInterfaceSlice(slice []string) []interface{} {
+	interfaceSlice := make([]interface{}, len(slice))
+	for i, d := range slice {
+		interfaceSlice[i] = d
+	}
+	return interfaceSlice
 }
 
 func (repo *ReleaseRepo) CanDownloadShow(ctx context.Context, title string, season int, episode int) (bool, error) {
