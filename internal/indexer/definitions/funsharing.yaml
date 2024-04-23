@@ -1,0 +1,91 @@
+---
+#id: funsharing
+name: FunSharing
+identifier: fsc
+description: Private 0day general tracker
+language: en-US
+urls:
+  - https://funsharing.net/
+privacy: private
+protocol: torrent
+supports:
+  - irc
+  - api
+# source: custom
+settings:
+  - name: cookie
+    type: secret
+    label: Cookie
+    help: "Check how to get cookies from your browser. Example: fsess=abcdefghijklmnopq; sesskey=1234567890"
+  - name: sickGearUrl
+    type: secret
+    label: SickGear URL
+    help: "Your SickGear URL from your profile page https://funsharing.net/userdetails.php. It looks like https://funsharing.net/sga_XXXXX.fsc?key=XXXXX&uid=123456."
+
+irc:
+  network: Xevion
+  server: irc.xevion.net
+  port: 6670
+  tls: true
+  channels:
+    - "#funsharing"
+  announcers:
+    - "AnnBot"
+  settings:
+    - name: nick
+      type: text
+      required: true
+      label: Nick
+      help: Bot nick. Eg. user|bot
+
+    - name: nickserv.account
+      type: text
+      required: true
+      label: NickServ Account
+      help: NickServ account. Make sure to group your user and bot. Eg. user-bot
+
+    - name: nickserv.password
+      type: secret
+      required: true
+      label: NickServ Password
+      help: NickServ password
+
+    - name: invite_command
+      type: secret
+      default: "AnnBot invite irckey"
+      required: true
+      label: Invite command
+      help: Invite auth with Annbot.
+
+  parse:
+    type: multi
+    lines:
+      - test:
+          - line: 'Upload: Movie.2024.720p.BluRay.x264-GROUP Cat: Movies/x264 Size: 1.00 GB'
+            expect:
+              torrentName: "Movie.2024.720p.BluRay.x264-GROUP"
+              category: "Movies/x264"
+              size: "1.00 GB"
+          - line: 'Upload: TV.Show.S01E01.720p.HDTV.x264-GROUP Cat: TV/HD-x264 Size: 100.00 MB'
+            expect:
+              torrentName: "TV.Show.S01E01.720p.HDTV.x264-GROUP"
+              category: "TV/HD-x264"
+              size: "100.00 MB"
+        pattern: '^Upload: (.*) Cat: (.*) Size: (.*)'
+        vars:
+          - torrentName
+          - category
+          - size
+      - test:
+          - 'Details: https://funsharing.net/details.php?id=000000&hit=1'
+        pattern: "^Details: https:\/\/funsharing\.net\/details\.php\?id=\d+&hit=1$"
+      - test:
+          - 'Download: https://funsharing.net/download.php/000000/abcdefgh.torrent'
+        pattern: "^Download: https:\/\/funsharing\.net\/download\.php\/([0-9]*)\/.*$"
+        vars:
+          - torrentId
+
+    match:
+      infourl: "/details.php?id={{ .torrentId }}"
+      torrenturl: "{{ .sickGearUrl }}&dl=1&tid={{ .torrentId }}"
+      # It will download torrent with garbled name - e.g.: `abncuxyqwy.torrent`
