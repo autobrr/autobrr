@@ -217,9 +217,24 @@ func (h releaseHandler) deleteReleases(w http.ResponseWriter, r *http.Request) {
 	}
 
 	releaseStatuses := r.URL.Query()["releaseStatus"]
-	if len(releaseStatuses) > 0 {
-		req.ReleaseStatuses = releaseStatuses
+	validStatuses := map[string]bool{
+		"PUSH_APPROVED": true,
+		"PUSH_REJECTED": true,
+		"PUSH_ERROR":    true,
 	}
+	var filteredStatuses []string
+	for _, status := range releaseStatuses {
+		if _, valid := validStatuses[status]; valid {
+			filteredStatuses = append(filteredStatuses, status)
+		} else {
+			h.encoder.StatusResponse(w, http.StatusBadRequest, map[string]interface{}{
+				"code":    "INVALID_RELEASE_STATUS",
+				"message": "releaseStatus contains invalid value",
+			})
+			return
+		}
+	}
+	req.ReleaseStatuses = filteredStatuses
 
 	if err := h.service.Delete(r.Context(), &req); err != nil {
 		h.encoder.Error(w, err)
