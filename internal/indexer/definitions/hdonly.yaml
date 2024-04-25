@@ -58,22 +58,50 @@ irc:
     type: single
     lines:
       - tests:
-        - line: "Movie Title [2001] [Film] - Blu-ray 4K / HEVC / 2160p / Muet / Multilingue / VOF / VO / stFR / VFF / VFI / VFQ / VF? / Scene / Bonus / Custom / HDR / HDR10+ / DV / RM / DC / VL / UC / UR / FL / NIMA4K - https://hd-only.org/torrents.php?id=123 / https://hd-only.org/torrents.php?action=download&id=456 - Aventure, Fantastique"
+        - line: "Movie Title [2001] [Film] - Blu-ray 4K / HEVC / 2160p / Muet / Multilingue / VOF / VO / stFR / VFF / VFI / VFQ / VF? / Scene / Bonus / Custom / HDR / HDR10+ / DV / RM / DC / VL / UC / UR - https://hd-only.org/torrents.php?id=123 / https://hd-only.org/torrents.php?action=download&id=456 - Aventure, Fantastique"
           expect:
             torrentName: "Movie Title"
             year: 2001
             category: Film
-            releaseTags: "Blu-ray 4K / HEVC / 2160p / Muet / Multilingue / VOF / VO / stFR / VFF / VFI / VFQ / VF? / Scene / Bonus / Custom / HDR / HDR10+ / DV / RM / DC / VL / UC / UR / FL / NIMA4K"
+            releaseTags: "Blu-ray 4K / HEVC / 2160p / Muet / Multilingue / VOF / VO / stFR / VFF / VFI / VFQ / VF? / Scene / Bonus / Custom / HDR / HDR10+ / DV / RM / DC / VL / UC / UR"
+            freeleech: ""
+            releaseGroup: ""
             baseUrl: https://hd-only.org/
             groupId: "123"
             torrentId: "456"
             tags: Aventure, Fantastique
-        pattern: '^(.*?) \[(\d{4})\] \[(.*?)\] - (.*?) - (https:\/\/hd-only\.org\/)torrents\.php\?id=(\d+) \/ https:\/\/hd-only\.org\/torrents\.php\?action=download&id=(\d+) - (.*)'
+        - line: "Movie Title [2001] [Film] - Blu-ray 4K / HEVC / 2160p / Muet / Multilingue / VOF / VO / stFR / VFF / VFI / VFQ / VF? / Scene / Bonus / Custom / HDR / HDR10+ / DV / RM / DC / VL / UC / UR - FL - NIMA4K - https://hd-only.org/torrents.php?id=123 / https://hd-only.org/torrents.php?action=download&id=456 - Aventure, Fantastique"
+          expect:
+            torrentName: "Movie Title"
+            year: 2001
+            category: Film
+            releaseTags: "Blu-ray 4K / HEVC / 2160p / Muet / Multilingue / VOF / VO / stFR / VFF / VFI / VFQ / VF? / Scene / Bonus / Custom / HDR / HDR10+ / DV / RM / DC / VL / UC / UR"
+            freeleech: FL
+            releaseGroup: NIMA4K
+            baseUrl: https://hd-only.org/
+            groupId: "123"
+            torrentId: "456"
+            tags: Aventure, Fantastique
+        - line: "Movie Title [2001] [Film] - Blu-ray 4K / HEVC / 2160p / Muet / Multilingue / VOF / VO / stFR / VFF / VFI / VFQ / VF? / Scene / Bonus / Custom / HDR / HDR10+ / DV / RM / DC / VL / UC / UR - FL -  https://hd-only.org/torrents.php?id=123 / https://hd-only.org/torrents.php?action=download&id=456 - Aventure, Fantastique"
+          expect:
+            torrentName: "Movie Title"
+            year: 2001
+            category: Film
+            releaseTags: "Blu-ray 4K / HEVC / 2160p / Muet / Multilingue / VOF / VO / stFR / VFF / VFI / VFQ / VF? / Scene / Bonus / Custom / HDR / HDR10+ / DV / RM / DC / VL / UC / UR"
+            freeleech: "FL"
+            releaseGroup: ""
+            baseUrl: https://hd-only.org/
+            groupId: "123"
+            torrentId: "456"
+            tags: Aventure, Fantastique
+        pattern: '(.*?) \[(\d{4})\] \[(.*?)\] - (.*?) - (?:(FL)? ?-? ?(.*?)) ?-? ?(https:\/\/hd-only\.org\/)torrents\.php\?id=(\d+) \/ https:\/\/hd-only\.org\/torrents\.php\?action=download&id=(\d+) - (.*)'
         vars:
           - torrentName
           - year
           - category
           - releaseTags
+          - freeleech
+          - releaseGroup
           - baseUrl
           - groupId
           - torrentId
