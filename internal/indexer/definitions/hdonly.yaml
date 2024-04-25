@@ -82,7 +82,7 @@ irc:
             groupId: "123"
             torrentId: "456"
             tags: Aventure, Fantastique
-        - line: "Movie Title [2001] [Film] - Blu-ray 4K / HEVC / 2160p / Muet / Multilingue / VOF / VO / stFR / VFF / VFI / VFQ / VF? / Scene / Bonus / Custom / HDR / HDR10+ / DV / RM / DC / VL / UC / UR - FL -  https://hd-only.org/torrents.php?id=123 / https://hd-only.org/torrents.php?action=download&id=456 - Aventure, Fantastique"
+        - line: "Movie Title [2001] [Film] - Blu-ray 4K / HEVC / 2160p / Muet / Multilingue / VOF / VO / stFR / VFF / VFI / VFQ / VF? / Scene / Bonus / Custom / HDR / HDR10+ / DV / RM / DC / VL / UC / UR - FL - https://hd-only.org/torrents.php?id=123 / https://hd-only.org/torrents.php?action=download&id=456 - Aventure, Fantastique"
           expect:
             torrentName: "Movie Title"
             year: 2001
