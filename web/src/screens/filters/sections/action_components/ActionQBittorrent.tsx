@@ -109,6 +109,11 @@ export const QBittorrent = ({ idx, action, clients }: ClientActionProps) => (
             label="Skip hash check"
             description="Add torrent and skip hash check"
           />
+          <Input.SwitchGroup
+            name={`actions.${idx}.first_last_piece_prio`}
+            label="Download first and last pieces first"
+            description="Add torrent and download first and last pieces first"
+          />
         </FilterSection.HalfRow>
         <FilterSection.HalfRow>
         <Input.Select

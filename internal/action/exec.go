@@ -48,7 +48,7 @@ func (s *service) execCmd(ctx context.Context, action *domain.Action, release do
 
 	duration := time.Since(start)
 
-	s.log.Info().Msgf("executed command: '%s', args: '%s' %s,%s, total time %v", cmd, args, release.TorrentName, release.Indexer, duration)
+	s.log.Info().Msgf("executed command: '%s', args: '%s' %s,%s, total time %v", cmd, args, release.TorrentName, release.Indexer.Name, duration)
 
 	return nil
 }

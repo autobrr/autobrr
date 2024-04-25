@@ -13,6 +13,12 @@ interface Indexer {
   settings: Array<IndexerSetting>;
 }
 
+interface IndexerMinimal {
+  id: number;
+  name: string;
+  identifier: string;
+}
+
 interface IndexerDefinition {
   id: number;
   name: string;

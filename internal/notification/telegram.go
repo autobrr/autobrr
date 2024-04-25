@@ -73,7 +73,15 @@ func (s *telegramSender) Send(event domain.NotificationEvent, payload domain.Not
 		return errors.Wrap(err, "could not marshal data: %+v", m)
 	}
 
-	url := fmt.Sprintf("https://api.telegram.org/bot%v/sendMessage", s.Settings.Token)
+	var host string
+
+	if s.Settings.Host == "" {
+		host = "https://api.telegram.org"
+	} else {
+		host = s.Settings.Host
+	}
+
+	url := fmt.Sprintf("%v/bot%v/sendMessage", host, s.Settings.Token)
 
 	req, err := http.NewRequest(http.MethodPost, url, bytes.NewBuffer(jsonData))
 	if err != nil {
