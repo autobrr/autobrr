@@ -155,8 +155,36 @@ export const RandomLinuxIsos = (count: number) => {
 
 export async function CopyTextToClipboard(text: string) {
   if ("clipboard" in navigator) {
-    return await navigator.clipboard.writeText(text);
+     // Safari requires clipboard operations to be directly triggered by a user interaction.
+     // Using setTimeout with a delay of 0 ensures the clipboard operation is deferred until
+     // after the current call stack has cleared, effectively placing it outside of the
+     // immediate execution context of the user interaction event. This workaround allows
+     // the clipboard operation to bypass Safari's security restrictions.
+     setTimeout(async () => {
+       try {
+         await navigator.clipboard.writeText(text);
+         console.log("Text copied to clipboard successfully.");
+       } catch (err) {
+         console.error("Copy to clipboard unsuccessful: ", err);
+       }
+     }, 0);
   } else {
-    return document.execCommand("copy", true, text);
+     // fallback for browsers that do not support the Clipboard API
+     copyTextToClipboardFallback(text);
   }
-}
+ }
+ 
+ function copyTextToClipboardFallback(text: string) {
+  const textarea = document.createElement("textarea");
+  textarea.value = text;
+  document.body.appendChild(textarea);
+  textarea.select();
+  try {
+     document.execCommand('copy');
+     console.log("Text copied to clipboard successfully.");
+  } catch (err) {
+     console.error('Failed to copy text using fallback method: ', err);
+  }
+  document.body.removeChild(textarea);
+ }
+ 
