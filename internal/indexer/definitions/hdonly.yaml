@@ -1,0 +1,84 @@
+---
+#id: hdonly
+name: HD-Only
+identifier: hdonly
+description: HD-Only (HD-O) is a FRENCH Private Torrent Tracker for HD MOVIES / TV
+language: fr
+urls:
+  - https://hd-only.org/
+privacy: private
+protocol: torrent
+supports:
+  - irc
+  - rss
+# source: gazelle
+settings:
+  - name: torrent_pass
+    type: secret
+    required: true
+    label: Torrent pass
+    help: Right click DL on a torrent and get the torrent_pass.
+
+irc:
+  network: HD-Only
+  server: irc.hd-only.org
+  port: 6697
+  tls: true
+  channels:
+    - "#announce"
+  announcers:
+    - HD-Bot
+  settings:
+    - name: nick
+      type: text
+      required: true
+      label: Nick
+      help: Bot nick. Must be like username|bot
+
+    - name: auth.account
+      type: text
+      required: false
+      label: NickServ Account
+      help: NickServ account. Make sure to group your user and bot.
+
+    - name: auth.password
+      type: secret
+      required: false
+      label: NickServ Password
+      help: NickServ password
+
+    - name: invite_command
+      type: secret
+      default: "HD-Bot enter #announce USERNAME IRCKEY"
+      required: true
+      label: Invite command
+      help: Invite auth with HD-Bot. Replace USERNAME and IRCKEY.
+
+  parse:
+    type: single
+    lines:
+      - tests:
+        - line: "Movie Title [2001] [Film] - Blu-ray 4K / HEVC / 2160p / Muet / Multilingue / VOF / VO / stFR / VFF / VFI / VFQ / VF? / Scene / Bonus / Custom / HDR / HDR10+ / DV / RM / DC / VL / UC / UR / FL / NIMA4K - https://hd-only.org/torrents.php?id=123 / https://hd-only.org/torrents.php?action=download&id=456 - Aventure, Fantastique"
+          expect:
+            torrentName: "Movie Title"
+            year: 2001
+            category: Film
+            releaseTags: "Blu-ray 4K / HEVC / 2160p / Muet / Multilingue / VOF / VO / stFR / VFF / VFI / VFQ / VF? / Scene / Bonus / Custom / HDR / HDR10+ / DV / RM / DC / VL / UC / UR / FL / NIMA4K"
+            baseUrl: https://hd-only.org/
+            groupId: "123"
+            torrentId: "456"
+            tags: Aventure, Fantastique
+        pattern: '^(.*?) \[(\d{4})\] \[(.*?)\] - (.*?) - (https:\/\/hd-only\.org\/)torrents\.php\?id=(\d+) \/ https:\/\/hd-only\.org\/torrents\.php\?action=download&id=(\d+) - (.*)'
+        vars:
+          - torrentName
+          - year
+          - category
+          - releaseTags
+          - baseUrl
+          - groupId
+          - torrentId
+          - tags
+
+    match:
+      infourl: "/torrents.php?torrentid={{ .torrentId }}"
+      torrenturl: "/torrents.php?action=download&id={{ .torrentId }}&torrent_pass={{ .torrent_pass }}"
