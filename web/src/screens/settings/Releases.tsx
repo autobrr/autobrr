@@ -24,9 +24,12 @@ const ReleaseSettings = () => (
     <div className="border border-red-500 rounded">
       <div className="py-6 px-4 sm:p-6">
         <div>
-          <h2 className="text-lg leading-4 font-bold text-gray-900 dark:text-white">Danger zone</h2>
+          <h2 className="text-lg font-medium text-gray-900 dark:text-white">Danger zone</h2>
           <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-            This will clear release history in your database
+            This action will permanently delete release history from your database.
+          </p>
+          <p className="text-sm text-gray-500 dark:text-gray-400">
+            This change cannot be undone.
           </p>
         </div>
       </div>
@@ -129,12 +132,13 @@ function DeleteReleases() {
       />
       <div className="flex flex-col gap-2 w-full">
         <div>
-          <p className="text-sm font-medium text-gray-900 dark:text-white">Delete release history</p>
-          <p className="text-sm text-gray-500 dark:text-gray-400">Delete by indexers, statuses, and age.</p>
+          <h2 className="text-sm font-medium text-gray-900 dark:text-white">Manage release history</h2>
+          <p className="text-sm mt-1 text-gray-500 dark:text-gray-400">Provide options to delete release history by indexers, statuses, and age.</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400">Choosing age is mandatory.</p>
         </div>
         <div className="flex flex-row gap-2 py-4 items-center">
           <div className="flex w-full flex-col">
-            <p className="text-sm text-gray-900 dark:text-gray-400 p-1">Select age:</p>
+            <p className="text-sm text-gray-900 dark:text-gray-400 p-1">Age:</p>
             <AgeSelect
               duration={duration}
               setDuration={setDuration}
