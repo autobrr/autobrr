@@ -24,12 +24,9 @@ const ReleaseSettings = () => (
     <div className="border border-red-500 rounded">
       <div className="py-6 px-4 sm:p-6">
         <div>
-          <h2 className="text-lg font-medium text-gray-900 dark:text-white">Danger zone</h2>
+          <h2 className="text-md font-medium text-gray-900 dark:text-white">Danger zone</h2>
           <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
             This action will permanently delete release history from your database.
-          </p>
-          <p className="text-sm text-gray-500 dark:text-gray-400">
-            This change cannot be undone.
           </p>
         </div>
       </div>
@@ -132,15 +129,15 @@ function DeleteReleases() {
       />
       <div className="flex flex-col gap-2 w-full">
         <div>
-          <h2 className="text-sm font-medium text-gray-900 dark:text-white">Manage release history</h2>
+          <h2 className="text-md font-medium text-gray-900 dark:text-white">Delete release history</h2>
           <p className="text-sm mt-1 text-gray-500 dark:text-gray-400">Provide options to delete release history by indexers, statuses, and age.</p>
           <p className="text-sm text-gray-500 dark:text-gray-400">Choosing age is mandatory.</p>
         </div>
         <div className="flex flex-col sm:flex-row gap-2 pt-4 items-center">
           {[
             { label: 'Age:', content: <AgeSelect duration={duration} setDuration={setDuration} setParsedDuration={setParsedDuration} /> },
-            { label: 'Indexers:', content: <RMSC options={indexerOptions?.map(option => ({ value: option.identifier, label: option.name })) || []} value={indexers} onChange={setIndexers} labelledBy="Select indexers" /> },
-            { label: 'Release status:', content: <RMSC options={releaseStatusOptions} value={releaseStatuses} onChange={setReleaseStatuses} labelledBy="Select release statuses" /> }
+            { label: 'Indexers:', content: <RMSC className="text-sm" options={indexerOptions?.map(option => ({ value: option.identifier, label: option.name })) || []} value={indexers} onChange={setIndexers} labelledBy="Select indexers" /> },
+            { label: 'Release status:', content: <RMSC className="text-sm" options={releaseStatusOptions} value={releaseStatuses} onChange={setReleaseStatuses} labelledBy="Select release statuses" /> }
           ].map((item, index) => (
             <div key={index} className="flex flex-col w-full">
               <p className="text-sm text-gray-900 dark:text-gray-400 p-1">{item.label}</p>

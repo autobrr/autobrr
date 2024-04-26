@@ -510,7 +510,7 @@ export const AgeSelect = ({
         {({ open }) => (
           <>
             <div className="mt-0 relative">
-              <Listbox.Button className="block w-full relative shadow-sm sm:text-sm text-left rounded-md border pl-3 pr-10 py-2.5 focus:ring-blue-500 dark:focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-500 border-gray-300 dark:border-gray-700 bg-gray-100 dark:bg-gray-815 dark:text-gray-400">
+              <Listbox.Button className="block w-full relative shadow-sm text-sm text-left rounded-md border pl-3 pr-10 py-2.5 focus:ring-blue-500 dark:focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-500 border-gray-300 dark:border-gray-700 bg-gray-100 dark:bg-gray-815 dark:text-gray-400">
                 <span className="block truncate text-gray-500 dark:text-white">
                   {duration ? options.find(opt => opt.value === duration)?.label : 'Select...'}
                 </span>
@@ -525,7 +525,7 @@ export const AgeSelect = ({
                 leaveFrom="opacity-100"
                 leaveTo="opacity-0"
               >
-                <Listbox.Options className="absolute z-10 mt-1 w-full shadow-lg max-h-60 rounded-md py-1 text-base overflow-auto border border-gray-300 dark:border-gray-700 bg-gray-100 dark:bg-gray-815 dark:text-gray-100 focus:outline-none sm:text-sm">
+                <Listbox.Options className="absolute z-10 mt-1 w-full shadow-lg max-h-60 rounded-md py-1 overflow-auto border border-gray-300 dark:border-gray-700 bg-gray-100 dark:bg-gray-815 dark:text-white focus:outline-none text-sm">
                   {options.map((option) => (
                     <Listbox.Option
                       key={option.value}
