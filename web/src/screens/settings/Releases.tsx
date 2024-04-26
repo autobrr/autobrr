@@ -130,8 +130,7 @@ function DeleteReleases() {
       <div className="flex flex-col gap-2 w-full">
         <div>
           <h2 className="text-md font-medium text-gray-900 dark:text-white">Delete release history</h2>
-          <p className="text-sm mt-1 text-gray-500 dark:text-gray-400">Provide options to delete release history by indexers, statuses, and age.</p>
-          <p className="text-sm text-gray-500 dark:text-gray-400">Choosing age is mandatory.</p>
+          <p className="text-sm mt-1 text-gray-500 dark:text-gray-400">Provide options to delete release history by indexers, statuses, and age. Choosing age is mandatory.</p>
         </div>
         <div className="flex flex-col sm:flex-row gap-2 pt-4 items-center">
           {[
