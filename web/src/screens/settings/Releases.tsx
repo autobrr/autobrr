@@ -136,49 +136,28 @@ function DeleteReleases() {
           <p className="text-sm mt-1 text-gray-500 dark:text-gray-400">Provide options to delete release history by indexers, statuses, and age.</p>
           <p className="text-sm text-gray-500 dark:text-gray-400">Choosing age is mandatory.</p>
         </div>
-        <div className="flex flex-row gap-2 py-4 items-center">
-          <div className="flex w-full flex-col">
-            <p className="text-sm text-gray-900 dark:text-gray-400 p-1">Age:</p>
-            <AgeSelect
-              duration={duration}
-              setDuration={setDuration}
-              setParsedDuration={setParsedDuration}
-            />
-          </div>
-
-          <div className="flex w-full flex-col">
-            <p className="text-sm text-gray-900 dark:text-gray-400 p-1">Indexers:</p>
-            <RMSC
-              options={indexerOptions?.map(option => ({ value: option.identifier, label: option.name })) || []}
-              value={indexers}
-              onChange={setIndexers}
-              labelledBy="Select indexers"
-              className="w-full focus:outline-none focus:ring-1 focus:ring-offset-0 focus:ring-blue-500 dark:focus:ring-blue-500 rounded-md sm:text-sm border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
-            />
-          </div>
-
-          <div className="flex w-full flex-col">
-            <p className="text-sm text-gray-900 dark:text-gray-400 p-1">Release status:</p>
-            <RMSC
-              options={releaseStatusOptions}
-              value={releaseStatuses}
-              onChange={setReleaseStatuses}
-              labelledBy="Select release statuses"
-              className="w-full focus:outline-none focus:ring-1 focus:ring-offset-0 focus:ring-blue-500 dark:focus:ring-blue-500 rounded-md sm:text-sm border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
-            />
-          </div>
-
+        <div className="flex flex-col sm:flex-row gap-2 pt-4 items-center">
+          {[
+            { label: 'Age:', content: <AgeSelect duration={duration} setDuration={setDuration} setParsedDuration={setParsedDuration} /> },
+            { label: 'Indexers:', content: <RMSC options={indexerOptions?.map(option => ({ value: option.identifier, label: option.name })) || []} value={indexers} onChange={setIndexers} labelledBy="Select indexers" /> },
+            { label: 'Release status:', content: <RMSC options={releaseStatusOptions} value={releaseStatuses} onChange={setReleaseStatuses} labelledBy="Select release statuses" /> }
+          ].map((item, index) => (
+            <div key={index} className="flex flex-col w-full">
+              <p className="text-sm text-gray-900 dark:text-gray-400 p-1">{item.label}</p>
+              {item.content}
+            </div>
+          ))}
           <button
             type="button"
             onClick={toggleDeleteModal}
-            className="inline-flex items-center px-4 py-2 mt-7 border border-transparent text-sm font-medium rounded-md text-red-700 hover:text-red-800 dark:text-white bg-red-200 dark:bg-red-700 hover:bg-red-300 dark:hover:bg-red-800 focus:outline-none focus:ring-1 focus:ring-inset focus:ring-red-600"
+            className="inline-flex justify-center sm:w-1/5 md:w-1/5 w-full px-4 py-2 mt-2 sm:mt-7 border border-transparent text-sm font-medium rounded-md text-red-700 hover:text-red-800 dark:text-white bg-red-200 dark:bg-red-700 hover:bg-red-300 dark:hover:bg-red-800 focus:outline-none focus:ring-1 focus:ring-inset focus:ring-red-600"
           >
             Delete
           </button>
-
         </div>
       </div>
     </div>
+
   );
 
 }
