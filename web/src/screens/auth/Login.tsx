@@ -81,18 +81,6 @@ export const Login = () => {
         </h1>
       </div>
       <div className="mx-auto w-full max-w-md rounded-2xl shadow-lg">
-{/*        {search.redirect ? (
-          <WarningAlert
-            alert="Info:"
-            text={
-              <>
-                After logging in, you will be redirected to: {search.redirect}
-              </>
-            }
-            colors="text-green-700 bg-green-100 dark:bg-green-200 dark:text-green-800"
-            className="mb-4"
-          />
-        ) : null}*/}
         <div className="px-8 pt-8 pb-4 rounded-2xl bg-white dark:bg-gray-800 border border-gray-150 dark:border-gray-775">
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
             <TextInput<LoginFormFields>
