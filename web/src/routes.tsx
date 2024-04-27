@@ -362,7 +362,7 @@ export const Router = createRouter({
     </div>
   ),
   defaultErrorComponent: (ctx) => (
-    <ErrorPage error={ctx.error} resetErrorBoundary={ctx.reset} />
+    <ErrorPage error={ctx.error} reset={ctx.reset} />
   ),
   context: {
     queryClient
