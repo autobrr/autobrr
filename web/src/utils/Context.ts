@@ -21,16 +21,16 @@ export type FilterListState = {
   status: string;
 };
 
-// interface AuthInfo {
-//   username: string;
-//   isLoggedIn: boolean;
-// }
+interface AuthInfo {
+  username: string;
+  isLoggedIn: boolean;
+}
 
 // Default values
-// const AuthContextDefaults: AuthInfo = {
-//   username: "",
-//   isLoggedIn: false
-// };
+const AuthContextDefaults: AuthInfo = {
+  username: "",
+  isLoggedIn: false
+};
 
 const SettingsContextDefaults: SettingsType = {
   debug: false,
@@ -72,11 +72,12 @@ function ContextMerger<T extends {}>(
   ctxState.set(values);
 }
 
+const AuthKey = "autobrr_user_auth";
 const SettingsKey = "autobrr_settings";
 const FilterListKey = "autobrr_filter_list";
 
 export const InitializeGlobalContext = () => {
-  // ContextMerger<AuthInfo>(localStorageUserKey, AuthContextDefaults, AuthContextt);
+  ContextMerger<AuthInfo>(AuthKey, AuthContextDefaults, AuthContext);
   ContextMerger<SettingsType>(
     SettingsKey,
     SettingsContextDefaults,
@@ -101,9 +102,12 @@ function DefaultSetter<T>(name: string, newState: T, prevState: T) {
   }
 }
 
-// export const AuthContextt = newRidgeState<AuthInfo>(AuthContextDefaults, {
-//   onSet: (newState, prevState) => DefaultSetter(localStorageUserKey, newState, prevState)
-// });
+export const AuthContext = newRidgeState<AuthInfo>(
+  AuthContextDefaults,
+  {
+    onSet: (newState, prevState) => DefaultSetter(AuthKey, newState, prevState)
+  }
+);
 
 export const SettingsContext = newRidgeState<SettingsType>(
   SettingsContextDefaults,
@@ -121,29 +125,3 @@ export const FilterListContext = newRidgeState<FilterListState>(
     onSet: (newState, prevState) => DefaultSetter(FilterListKey, newState, prevState)
   }
 );
-
-export type AuthCtx = {
-  isLoggedIn: boolean
-  username?: string
-  login: (username: string) => void
-  logout: () => void
-}
-
-export const localStorageUserKey = "autobrr_user_auth"
-
-export const AuthContext: AuthCtx = {
-  isLoggedIn: false,
-  username: undefined,
-  login: (username: string) => {
-    AuthContext.isLoggedIn = true
-    AuthContext.username = username
-
-    localStorage.setItem(localStorageUserKey, JSON.stringify(AuthContext));
-  },
-  logout: () => {
-    AuthContext.isLoggedIn = false
-    AuthContext.username = undefined
-
-    localStorage.removeItem(localStorageUserKey);
-  },
-}

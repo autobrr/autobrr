@@ -5,6 +5,7 @@
 
 import { baseUrl, sseBaseUrl } from "@utils";
 import { GithubRelease } from "@app/types/Update";
+import { AuthContext } from "@utils/Context";
 
 type RequestBody = BodyInit | object | Record<string, unknown> | null;
 type Primitive = string | number | boolean | symbol | undefined;
@@ -81,51 +82,55 @@ export async function HttpClient<T = unknown>(
 
   const response = await window.fetch(`${baseUrl()}${endpoint}`, init);
 
-  const isJson = response.headers.get("Content-Type")?.includes("application/json");
-  const json = isJson ? await response.json() : null;
-
-  switch (response.status) {
-  case 204: {
-    // 204 contains no data, but indicates success
-    return Promise.resolve<T>({} as T);
-  }
-  case 401: {
-    return Promise.reject<T>(json as T);
-  }
-  case 403: {
-    return Promise.reject<T>(json as T);
-  }
-  case 404: {
-    return Promise.reject<T>(json as T);
-  }
-  case 500: {
-    const health = await window.fetch(`${baseUrl()}api/healthz/liveness`);
-    if (!health.ok) {
-      return Promise.reject(
-        new Error(`[500] Offline (Internal server error): "${endpoint}"`)
-      );
-    }
-    break;
-  }
-  case 503: {
-    // Show an error toast to notify the user what occurred
-    return Promise.reject(new Error(`[503] Service unavailable: "${endpoint}"`));
-  }
-  default:
-    break;
-  }
-
-  // Resolve on success
   if (response.status >= 200 && response.status < 300) {
+    // We received a successful response
+    if (response.status === 204) {
+      // 204 contains no data, but indicates success
+      return Promise.resolve<T>({} as T);
+    }
+
+    // If Content-Type is application/json, then parse response as JSON
+    // otherwise, just resolve the Response object returned by window.fetch
+    // and the consumer can call await response.text() if needed.
+    const isJson = response.headers.get("Content-Type")?.includes("application/json");
     if (isJson) {
-      return Promise.resolve<T>(json as T);
+      return Promise.resolve<T>(await response.json() as T);
     } else {
       return Promise.resolve<T>(response as T);
     }
-  }
+  } else {
+    // This is not a successful response.
+    // It is most likely an error.
+    switch (response.status) {
+    case 403: {
+      if (AuthContext.get().isLoggedIn) {
+        return Promise.reject(new Error("Cookie expired"));
+      }
+      break;
+    }
+    case 500: {
+      const health = await window.fetch(`${baseUrl()}api/healthz/liveness`);
+      if (!health.ok) {
+        return Promise.reject(
+          new Error(`[500] Offline (Internal server error): "${endpoint}"`)
+        );
+      }
+      break;
+    }
+    case 503: {
+      // Show an error toast to notify the user what occurred
+      return Promise.reject(new Error(`[503] Service unavailable: "${endpoint}"`));
+    }
+    default:
+      break;
+    }
 
-  // Otherwise reject, this is most likely an error
-  return Promise.reject<T>(json as T);
+    const defaultError = new Error(
+      `HTTP request to '${endpoint}' failed with code ${response.status}.`,
+      { cause: await response.text() }
+    );
+    return Promise.reject(defaultError);
+  }    
 }
 
 const appClient = {

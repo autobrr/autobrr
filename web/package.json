@@ -40,7 +40,7 @@
     "@tailwindcss/forms": "^0.5.7",
     "@tanstack/react-query": "^5.29.2",
     "@tanstack/react-query-devtools": "^5.29.2",
-    "@tanstack/react-router": "^1.28.5",
+    "@tanstack/react-router": "^1.31.1",
     "@types/node": "^20.12.7",
     "@types/react": "^18.2.79",
     "@types/react-dom": "^18.2.25",
@@ -78,7 +78,7 @@
   "devDependencies": {
     "@microsoft/eslint-formatter-sarif": "^3.1.0",
     "@rollup/wasm-node": "^4.14.3",
-    "@tanstack/router-devtools": "^1.28.5",
+    "@tanstack/router-devtools": "^1.31.1",
     "@types/node": "^20.12.2",
     "@types/react": "^18.2.73",
     "@types/react-dom": "^18.2.23",
