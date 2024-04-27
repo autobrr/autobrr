@@ -5,7 +5,7 @@
 
 import React, { useEffect } from "react";
 import { useForm } from "react-hook-form";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryErrorResetBoundary } from "@tanstack/react-query";
 import { useRouter, useSearch } from "@tanstack/react-router";
 import toast from "react-hot-toast";
 
@@ -29,6 +29,8 @@ type LoginFormFields = {
 export const Login = () => {  
   const [auth, setAuth] = AuthContext.use();
 
+  const queryErrorResetBoundary = useQueryErrorResetBoundary()
+
   const router = useRouter()
   const search = useSearch({ from: LoginRoute.id })
 
@@ -38,13 +40,15 @@ export const Login = () => {
   });
 
   useEffect(() => {
+    queryErrorResetBoundary.reset()
     // remove user session when visiting login page
     AuthContext.reset();
-  }, []);
+  }, [queryErrorResetBoundary]);
 
   const loginMutation = useMutation({
     mutationFn: (data: LoginFormFields) => APIClient.auth.login(data.username, data.password),
     onSuccess: (_, variables: LoginFormFields) => {
+      queryErrorResetBoundary.reset()
       setAuth({
         isLoggedIn: true,
         username: variables.username
@@ -66,7 +70,7 @@ export const Login = () => {
     } else if (auth.isLoggedIn) {
       router.history.push("/")
     }
-  }, [auth.isLoggedIn, search.redirect])
+  }, [auth.isLoggedIn, search.redirect]) // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <div className="min-h-screen flex flex-col justify-center px-3">
