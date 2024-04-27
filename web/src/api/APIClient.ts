@@ -104,7 +104,7 @@ export async function HttpClient<T = unknown>(
     switch (response.status) {
     case 403: {
       if (AuthContext.get().isLoggedIn) {
-        return Promise.reject(new Error("Cookie expired"));
+        return Promise.reject(new Error("Cookie expired or invalid."));
       }
       break;
     }

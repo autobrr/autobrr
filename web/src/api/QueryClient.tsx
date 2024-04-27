@@ -17,7 +17,7 @@ export const queryClient = new QueryClient({
     onError: (error, query) => {
       console.error(`Caught error for query '${query.queryKey}': `, error);
 
-      if (error.message === "Cookie expired") {
+      if (error.message === "Cookie expired or invalid.") {
         AuthContext.reset();
         redirect({
           to: LoginRoute.to,
@@ -41,7 +41,7 @@ export const queryClient = new QueryClient({
       // delay = Math.min(1000 * 2 ** attemptIndex, 30000)
       // retry: false,
       throwOnError: (error) => {
-        return error.message !== "Cookie expired";
+        return error.message !== "Cookie expired or invalid.";
 
       },
       retry: (failureCount, error) => {
@@ -56,7 +56,7 @@ export const queryClient = new QueryClient({
           return false;
         }
         */
-        if (error.message === "Cookie expired") {
+        if (error.message === "Cookie expired or invalid.") {
           return false;
         }
 
