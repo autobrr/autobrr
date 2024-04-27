@@ -21,20 +21,10 @@ const ReleaseSettings = () => (
     title="Releases"
     description="Manage release history."
   >
-    <div className="border border-red-500 rounded">
-      <div className="py-6 px-4 sm:p-6">
-        <div>
-          <h2 className="text-md font-medium text-gray-900 dark:text-white">Danger zone</h2>
-          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-            This action will permanently delete release history from your database.
-          </p>
-        </div>
-      </div>
-
-      <div className="py-6 px-4 sm:p-6">
-        <DeleteReleases />
-      </div>
+    <div className="py-6 px-2">
+      <DeleteReleases />
     </div>
+
   </Section>
 );
 
@@ -109,7 +99,7 @@ function DeleteReleases() {
 
   const deleteOlderReleases = () => {
     if (parsedDuration === undefined || isNaN(parsedDuration) || parsedDuration < 0) {
-      toast.custom((t) => <Toast type="error" body={"Please select a valid duration."} t={t} />);
+      toast.custom((t) => <Toast type="error" body={"Please select a valid age."} t={t} />);
       return;
     }
 
@@ -125,18 +115,31 @@ function DeleteReleases() {
         buttonRef={cancelModalButtonRef}
         deleteAction={deleteOlderReleases}
         title="Remove releases"
-        text={`Are you sure you want to remove releases matching the selected criteria? This action cannot be undone.`}
+        text={`You are about to ${parsedDuration ? `permanently delete all release history records older than ${getDurationLabel(parsedDuration)} for ` : 'delete all release history records for '}${indexers.length ? 'the chosen indexers' : 'all indexers'}${releaseStatuses.length ? ` and with the following release statuses: ${releaseStatuses.map(status => status.label).join(', ')}` : ''}.`}
       />
       <div className="flex flex-col gap-2 w-full">
         <div>
-          <h2 className="text-md font-medium text-gray-900 dark:text-white">Delete release history</h2>
-          <p className="text-sm mt-1 text-gray-500 dark:text-gray-400">Provide options to delete release history by indexers, statuses, and age. Choosing age is mandatory.</p>
+          <h2 className="text-lg leading-4 font-bold text-gray-900 dark:text-white">Delete release history</h2>
+          <p className="text-sm mt-1 text-gray-500 dark:text-gray-400">
+            Select the criteria below to permanently delete release history records that are older than the chosen age and optionally match the selected indexers and release statuses:
+            <ul className="list-disc pl-5 mt-2">
+              <li>
+                Older than (e.g., 6 months - all records older than 6 months will be deleted) - <strong>Required</strong>
+              </li>
+              <li>Indexers - Optional (if none selected, applies to all indexers)</li>
+              <li>Release statuses - Optional (if none selected, applies to all release statuses)</li>
+            </ul>
+            <p className="mt-2 text-red-600 dark:text-red-400">
+              <strong>Warning:</strong> If no indexers or release statuses are selected, all release history records older than the specified duration will be permanently deleted, regardless of indexer or status.
+            </p>
+          </p>
         </div>
+
         <div className="flex flex-col sm:flex-row gap-2 pt-4 items-center">
           {[
-            { label: 'Age:', content: <AgeSelect duration={duration} setDuration={setDuration} setParsedDuration={setParsedDuration} /> },
+            { label: 'Older than:', content: <AgeSelect duration={duration} setDuration={setDuration} setParsedDuration={setParsedDuration} /> },
             { label: 'Indexers:', content: <RMSC className="text-sm" options={indexerOptions?.map(option => ({ value: option.identifier, label: option.name })) || []} value={indexers} onChange={setIndexers} labelledBy="Select indexers" /> },
-            { label: 'Release status:', content: <RMSC className="text-sm" options={releaseStatusOptions} value={releaseStatuses} onChange={setReleaseStatuses} labelledBy="Select release statuses" /> }
+            { label: 'Release statuses:', content: <RMSC className="text-sm" options={releaseStatusOptions} value={releaseStatuses} onChange={setReleaseStatuses} labelledBy="Select release statuses" /> }
           ].map((item, index) => (
             <div key={index} className="flex flex-col w-full">
               <p className="text-sm text-gray-900 dark:text-gray-400 p-1">{item.label}</p>
@@ -145,11 +148,26 @@ function DeleteReleases() {
           ))}
           <button
             type="button"
-            onClick={toggleDeleteModal}
+            onClick={() => {
+              if (parsedDuration === undefined || isNaN(parsedDuration)) {
+                toast.custom((t) => (
+                  <Toast
+                    type="error"
+                    body={
+                      "Please enter a valid age. For example, 6 months or 1 year."
+                    }
+                    t={t}
+                  />
+                ));
+              } else {
+                toggleDeleteModal();
+              }
+            }}
             className="inline-flex justify-center sm:w-1/5 md:w-1/5 w-full px-4 py-2 mt-2 sm:mt-7 border border-transparent text-sm font-medium rounded-md text-red-700 hover:text-red-800 dark:text-white bg-red-200 dark:bg-red-700 hover:bg-red-300 dark:hover:bg-red-800 focus:outline-none focus:ring-1 focus:ring-inset focus:ring-red-600"
           >
             Delete
           </button>
+
         </div>
       </div>
     </div>
