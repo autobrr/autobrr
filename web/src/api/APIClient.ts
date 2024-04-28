@@ -126,8 +126,7 @@ export async function HttpClient<T = unknown>(
     }
 
     const defaultError = new Error(
-      `HTTP request to '${endpoint}' failed with code ${response.status}.`,
-      { cause: await response.text() }
+      `HTTP request to '${endpoint}' failed with code ${response.status} (${response.statusText})`
     );
     return Promise.reject(defaultError);
   }    
