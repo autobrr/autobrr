@@ -21,8 +21,10 @@ const ReleaseSettings = () => (
     title="Releases"
     description="Manage release history."
   >
-    <div className="py-6 px-2">
-      <DeleteReleases />
+    <div className="border border-red-500 rounded">
+      <div className="py-6 px-4 sm:p-6">
+        <DeleteReleases />
+      </div>
     </div>
 
   </Section>
@@ -129,7 +131,7 @@ function DeleteReleases() {
               <li>Indexers - Optional (if none selected, applies to all indexers)</li>
               <li>Release statuses - Optional (if none selected, applies to all release statuses)</li>
             </ul>
-            <p className="mt-2 text-red-600 dark:text-red-400">
+            <p className="mt-2 text-red-600 dark:text-red-500">
               <strong>Warning:</strong> If no indexers or release statuses are selected, all release history records older than the specified duration will be permanently deleted, regardless of indexer or status.
             </p>
           </p>
