@@ -126,7 +126,7 @@ function DeleteReleases() {
             Select the criteria below to permanently delete release history records that are older than the chosen age and optionally match the selected indexers and release statuses:
             <ul className="list-disc pl-5 mt-2">
               <li>
-                Older than (e.g., 6 months - all records older than 6 months will be deleted) - <strong>Required</strong>
+                Older than (e.g., 6 months - all records older than 6 months will be deleted) - <strong className="text-gray-600 dark:text-gray-300">Required</strong>
               </li>
               <li>Indexers - Optional (if none selected, applies to all indexers)</li>
               <li>Release statuses - Optional (if none selected, applies to all release statuses)</li>
@@ -137,14 +137,28 @@ function DeleteReleases() {
           </p>
         </div>
 
-        <div className="flex flex-col sm:flex-row gap-2 pt-4 items-center">
+        <div className="flex flex-col sm:flex-row gap-2 pt-4 items-center text-sm">
           {[
-            { label: 'Older than:', content: <AgeSelect duration={duration} setDuration={setDuration} setParsedDuration={setParsedDuration} /> },
-            { label: 'Indexers:', content: <RMSC className="text-sm" options={indexerOptions?.map(option => ({ value: option.identifier, label: option.name })) || []} value={indexers} onChange={setIndexers} labelledBy="Select indexers" /> },
-            { label: 'Release statuses:', content: <RMSC className="text-sm" options={releaseStatusOptions} value={releaseStatuses} onChange={setReleaseStatuses} labelledBy="Select release statuses" /> }
+            {
+              label: (
+                <>
+                  Older than:
+                  <span className="text-red-600 dark:text-red-500"> *</span>
+                </>
+              ),
+              content: <AgeSelect duration={duration} setDuration={setDuration} setParsedDuration={setParsedDuration} />
+            },
+            {
+              label: 'Indexers:',
+              content: <RMSC options={indexerOptions?.map(option => ({ value: option.identifier, label: option.name })) || []} value={indexers} onChange={setIndexers} labelledBy="Select indexers" />
+            },
+            {
+              label: 'Release statuses:',
+              content: <RMSC options={releaseStatusOptions} value={releaseStatuses} onChange={setReleaseStatuses} labelledBy="Select release statuses" />
+            }
           ].map((item, index) => (
             <div key={index} className="flex flex-col w-full">
-              <p className="text-sm text-gray-900 dark:text-gray-400 p-1">{item.label}</p>
+              <p className="text-xs font-bold text-gray-800 dark:text-gray-100 uppercase p-1 cursor-default">{item.label}</p>
               {item.content}
             </div>
           ))}
