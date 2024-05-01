@@ -28,6 +28,8 @@ type Macro struct {
 	DownloadUrl         string
 	InfoUrl             string
 	Indexer             string
+	IndexerName         string
+	IndexerIdentifier   string
 	Title               string
 	Type                string
 	Category            string
@@ -35,6 +37,7 @@ type Macro struct {
 	Resolution          string
 	Source              string
 	HDR                 string
+	FilterID            int
 	FilterName          string
 	Size                uint64
 	SizeString          string
@@ -47,6 +50,8 @@ type Macro struct {
 	CurrentHour         int
 	CurrentMinute       int
 	CurrentSecond       int
+	Tags                string
+	Artists             string
 }
 
 func NewMacro(release Release) Macro {
@@ -64,7 +69,9 @@ func NewMacro(release Release) Macro {
 		GroupID:             release.GroupID,
 		InfoUrl:             release.InfoURL,
 		DownloadUrl:         release.DownloadURL,
-		Indexer:             release.Indexer,
+		Indexer:             release.Indexer.Identifier,
+		IndexerName:         release.Indexer.Name,
+		IndexerIdentifier:   release.Indexer.Identifier,
 		Title:               release.Title,
 		Type:                release.Type,
 		Category:            release.Category,
@@ -72,6 +79,7 @@ func NewMacro(release Release) Macro {
 		Resolution:          release.Resolution,
 		Source:              release.Source,
 		HDR:                 strings.Join(release.HDR, ", "),
+		FilterID:            release.FilterID,
 		FilterName:          release.FilterName,
 		Size:                release.Size,
 		SizeString:          humanize.Bytes(release.Size),
@@ -84,6 +92,8 @@ func NewMacro(release Release) Macro {
 		CurrentHour:         currentTime.Hour(),
 		CurrentMinute:       currentTime.Minute(),
 		CurrentSecond:       currentTime.Second(),
+		Tags:                strings.Join(release.Tags, ", "),
+		Artists:             release.Artists,
 	}
 
 	return ma

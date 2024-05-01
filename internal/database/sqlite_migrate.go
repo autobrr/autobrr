@@ -197,6 +197,7 @@ CREATE TABLE action
     save_path               TEXT,
     paused                  BOOLEAN,
     ignore_rules            BOOLEAN,
+    first_last_piece_prio   BOOLEAN DEFAULT false,
     skip_hash_check         BOOLEAN DEFAULT false,
     content_layout          TEXT,
     limit_upload_speed      INT,
@@ -1503,5 +1504,16 @@ ALTER TABLE filter
 	`UPDATE irc_network
     SET server = 'irc.nebulance.io'
     WHERE server = 'irc.nebulance.cc';
+`,
+	`UPDATE  irc_network
+    SET server = 'irc.animefriends.moe',
+        name = CASE  
+			WHEN name = 'AnimeBytes-IRC' THEN 'AnimeBytes'
+        	ELSE name
+        END
+	WHERE server = 'irc.animebytes.tv';
+`,
+	`ALTER TABLE action
+    ADD COLUMN first_last_piece_prio BOOLEAN DEFAULT false;
 `,
 }

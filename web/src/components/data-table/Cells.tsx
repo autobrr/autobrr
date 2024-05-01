@@ -60,7 +60,7 @@ export const LinksCell = (props: CellProps<Release>) => {
         >
           <div className="mb-1">
             <CellLine title="Release">{props.row.original.name}</CellLine>
-            <CellLine title="Indexer">{props.row.original.indexer}</CellLine>
+            <CellLine title="Indexer">{props.row.original.indexer.identifier}</CellLine>
             <CellLine title="Protocol">{props.row.original.protocol}</CellLine>
             <CellLine title="Implementation">{props.row.original.implementation}</CellLine>
             <CellLine title="Category">{props.row.original.category}</CellLine>

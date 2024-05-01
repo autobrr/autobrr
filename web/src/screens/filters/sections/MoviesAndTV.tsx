@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ */
+
 import { DocsLink } from "@components/ExternalLink";
 import { TextAreaAutoResize } from "@components/inputs/input";
 import { MultiSelect, SwitchGroup, TextField } from "@components/inputs";
@@ -31,7 +36,7 @@ const SeasonsAndEpisodes = () => (
         tooltip={
           <div>
             <p>See docs for information about how to <b>only</b> grab episodes:</p>
-            <DocsLink href="https://autobrr.com/filters/examples/#skip-season-packs" />
+            <DocsLink href="https://autobrr.com/filters/examples#only-episodes-skip-season-packs" />
           </div>
         }
       />

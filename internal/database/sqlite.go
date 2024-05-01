@@ -39,7 +39,7 @@ func (db *DB) openSQLite() error {
 	}
 
 	// SQLite has a query planner that uses lifecycle stats to fund optimizations.
-	// This restricts the SQLite query planner optimizer to only run if sufficient 
+	// This restricts the SQLite query planner optimizer to only run if sufficient
 	// information has been gathered over the lifecycle of the connection.
 	// The SQLite documentation is inconsistent in this regard,
 	// suggestions of 400 and 1000 are both "recommended", so lets use the lower bound.
@@ -125,7 +125,7 @@ func (db *DB) migrateSQLite() error {
 		}
 	} else {
 		for i := version; i < len(sqliteMigrations); i++ {
-			db.log.Info().Msgf("Upgrading Database schema to version: %v", i)
+			db.log.Info().Msgf("Upgrading Database schema to version: %v", i+1)
 			if _, err := tx.Exec(sqliteMigrations[i]); err != nil {
 				return errors.Wrap(err, "failed to execute migration #%v", i)
 			}

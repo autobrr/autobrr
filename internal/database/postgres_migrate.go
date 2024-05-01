@@ -197,6 +197,7 @@ CREATE TABLE action
     save_path               TEXT,
     paused                  BOOLEAN,
     ignore_rules            BOOLEAN,
+    first_last_piece_prio   BOOLEAN DEFAULT false,
     skip_hash_check         BOOLEAN DEFAULT false,
     content_layout          TEXT,
     limit_upload_speed      INT,
@@ -230,7 +231,7 @@ CREATE TABLE "release"
     filter            TEXT,
     protocol          TEXT,
     implementation    TEXT,
-    timestamp         TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    timestamp         TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
     info_url          TEXT,
     download_url      TEXT,
     group_id          TEXT,
@@ -862,5 +863,19 @@ ALTER TABLE filter
 	`UPDATE irc_network
     SET server = 'irc.nebulance.io'
     WHERE server = 'irc.nebulance.cc';
+`,
+	`ALTER TABLE "release"
+	ALTER COLUMN timestamp TYPE timestamptz USING timestamp AT TIME ZONE 'UTC';
+`,
+	`UPDATE  irc_network
+    SET server = 'irc.animefriends.moe',
+        name = CASE  
+			WHEN name = 'AnimeBytes-IRC' THEN 'AnimeBytes'
+        	ELSE name
+        END
+	WHERE server = 'irc.animebytes.tv';
+`,
+	`ALTER TABLE action
+ADD COLUMN first_last_piece_prio BOOLEAN DEFAULT false;
 `,
 }

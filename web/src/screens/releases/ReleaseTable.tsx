@@ -123,7 +123,7 @@ export const ReleaseTable = () => {
     },
     {
       Header: "Indexer",
-      accessor: "indexer",
+      accessor: "indexer.identifier",
       Cell: DataTable.IndexerCell,
       Filter: IndexerSelectColumnFilter,
       filter: "equal"
@@ -149,7 +149,17 @@ export const ReleaseTable = () => {
       const newData: Release[] = data.data.map((item, index) => ({
         ...item,
         name: `${randomNames[index]}.iso`,
-        indexer: index % 2 === 0 ? "distrowatch" : "linuxtracker"
+        indexer: {
+          id: 0,
+          name: index % 2 === 0 ? "distrowatch" : "linuxtracker",
+          identifier: index % 2 === 0 ? "distrowatch" : "linuxtracker",
+        },
+        category: "Linux ISOs",
+        size: index % 2 === 0 ? 4566784529 : (index % 3 === 0 ? 7427019812 : 2312122455),
+        source: "",
+        container: "",
+        codec: "",
+        resolution: "",
       }));
       setModifiedData(newData);
     }

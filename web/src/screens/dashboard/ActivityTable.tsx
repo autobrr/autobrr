@@ -207,7 +207,7 @@ export const ActivityTable = () => {
     },
     {
       Header: "Indexer",
-      accessor: "indexer",
+      accessor: "indexer.identifier",
       Cell: DataTable.TitleCell,
       Filter: SelectColumnFilter,
       filter: "includes"
@@ -239,7 +239,11 @@ export const ActivityTable = () => {
       const newData: Release[] = data.data.map((item, index) => ({
         ...item,
         name: `${randomNames[index]}.iso`,
-        indexer: index % 2 === 0 ? "distrowatch" : "linuxtracker"
+        indexer: {
+          id: 0,
+          name: index % 2 === 0 ? "distrowatch" : "linuxtracker",
+          identifier: index % 2 === 0 ? "distrowatch" : "linuxtracker",
+        },
       }));
       setModifiedData(newData);
     }
@@ -290,7 +294,7 @@ export const ActivityTableContent = () => {
     },
     {
       Header: "Indexer",
-      accessor: "indexer",
+      accessor: "indexer.identifier",
       Cell: DataTable.TitleCell,
       Filter: SelectColumnFilter,
       filter: "includes"
@@ -315,7 +319,11 @@ export const ActivityTableContent = () => {
       const newData: Release[] = data.data.map((item, index) => ({
         ...item,
         name: `${randomNames[index]}.iso`,
-        indexer: index % 2 === 0 ? "distrowatch" : "linuxtracker"
+        indexer: {
+          id: 0,
+          name: index % 2 === 0 ? "distrowatch" : "linuxtracker",
+          identifier: index % 2 === 0 ? "distrowatch" : "linuxtracker",
+        },
       }));
       setModifiedData(newData);
     }

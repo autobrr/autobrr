@@ -27,6 +27,7 @@ Full documentation can be found at [https://autobrr.com](https://autobrr.com)
    - [Shared Seedbox](#shared-seedbox)
    - [Docker Compose](#docker-compose)
    - [Windows](#windows)
+   - [MacOS](#macos)
    - [Linux Generic](#linux-generic)
 4. [Community](#community)
 5. [Contributing](#contributing)
@@ -102,7 +103,7 @@ For comprehensive installation instructions, visit our [Installation Guide](http
 
 Remember to head over to our [Configuration Guide](https://autobrr.com/configuration/autobrr) to learn how to set up your indexers, IRC, and download clients after you're done installing.
 
-### Swizzin
+### Swizzin (dedi)
 
 [Swizzin](https://swizzin.ltd/) users can simply run:
 
@@ -135,7 +136,8 @@ the [docs](https://quickbox.io/knowledge-base/v3/applications-v3/autobrr-applica
 
 #### One-Click Installer & Quick Installer
 
-- HostingByDesign (former Seedbox.io) via box
+- HostingByDesign (former Seedbox.io) via box - `box install autobrr`
+- Swizzin.net via box - `box install autobrr`
 - Seedit4.me
 - SeedHost.eu
 - Ultra.cc
@@ -145,12 +147,6 @@ the [docs](https://quickbox.io/knowledge-base/v3/applications-v3/autobrr-applica
 We have support for a couple of other providers out of the box.  
 Please contact us on [Discord](https://discord.gg/WQ2eUycxyT) if your provider is missing.
 The scripts require some input, but do most of the work.
-
-#### Swizzin.net
-
-```bash
-wget https://gobrr.sh/install_sbio && bash install_sbio
-```
 
 #### WhatBox
 
@@ -216,6 +212,26 @@ docker compose up -d
 ### Windows
 
 Check the Windows Setup Guide [here](https://autobrr.com/installation/windows).
+
+### MacOS
+
+#### Install Homebrew
+
+```bash
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+```
+
+#### Install autobrr
+
+```bash
+brew install autobrr
+```
+
+#### Run
+
+```bash
+brew services start autobrr
+```
 
 ### Linux Generic
 

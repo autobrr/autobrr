@@ -7,7 +7,7 @@ interface Release {
   id: number;
   filter_status: string;
   rejections: string[];
-  indexer: string;
+  indexer: IndexerMinimal;
   filter: string;
   protocol: string;
   implementation: string;

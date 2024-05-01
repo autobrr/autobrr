@@ -11,7 +11,9 @@ import (
 	"github.com/autobrr/autobrr/internal/action"
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/internal/filter"
+	"github.com/autobrr/autobrr/internal/indexer"
 	"github.com/autobrr/autobrr/internal/logger"
+	"github.com/autobrr/autobrr/pkg/errors"
 
 	"github.com/rs/zerolog"
 )
@@ -28,6 +30,7 @@ type Service interface {
 	Delete(ctx context.Context, req *domain.DeleteReleaseRequest) error
 	Process(release *domain.Release)
 	ProcessMultiple(releases []*domain.Release)
+	ProcessManual(ctx context.Context, req *domain.ReleaseProcessReq) error
 	Retry(ctx context.Context, req *domain.ReleaseActionRetryReq) error
 }
 
@@ -40,16 +43,18 @@ type service struct {
 	log  zerolog.Logger
 	repo domain.ReleaseRepo
 
-	actionSvc action.Service
-	filterSvc filter.Service
+	actionSvc  action.Service
+	filterSvc  filter.Service
+	indexerSvc indexer.Service
 }
 
-func NewService(log logger.Logger, repo domain.ReleaseRepo, actionSvc action.Service, filterSvc filter.Service) Service {
+func NewService(log logger.Logger, repo domain.ReleaseRepo, actionSvc action.Service, filterSvc filter.Service, indexerSvc indexer.Service) Service {
 	return &service{
-		log:       log.With().Str("module", "release").Logger(),
-		repo:      repo,
-		actionSvc: actionSvc,
-		filterSvc: filterSvc,
+		log:        log.With().Str("module", "release").Logger(),
+		repo:       repo,
+		actionSvc:  actionSvc,
+		filterSvc:  filterSvc,
+		indexerSvc: indexerSvc,
 	}
 }
 
@@ -89,6 +94,58 @@ func (s *service) Delete(ctx context.Context, req *domain.DeleteReleaseRequest) 
 	return s.repo.Delete(ctx, req)
 }
 
+func (s *service) ProcessManual(ctx context.Context, req *domain.ReleaseProcessReq) error {
+	// get indexer definition with data
+	def, err := s.indexerSvc.GetMappedDefinitionByName(req.IndexerIdentifier)
+	if err != nil {
+		return err
+	}
+
+	rls := domain.NewRelease(domain.IndexerMinimal{ID: def.ID, Name: def.Name, Identifier: def.Identifier})
+
+	switch req.IndexerImplementation {
+	case string(domain.IndexerImplementationIRC):
+
+		// from announce/announce.go
+		tmpVars := map[string]string{}
+		parseFailed := false
+
+		for idx, parseLine := range def.IRC.Parse.Lines {
+			match, err := indexer.ParseLine(&s.log, parseLine.Pattern, parseLine.Vars, tmpVars, req.AnnounceLines[idx], parseLine.Ignore)
+			if err != nil {
+				parseFailed = true
+				break
+			}
+
+			if !match {
+				parseFailed = true
+				break
+			}
+		}
+
+		if parseFailed {
+			return errors.New("parse failed")
+		}
+
+		rls.Protocol = domain.ReleaseProtocol(def.Protocol)
+
+		// on lines matched
+		err = def.IRC.Parse.Parse(def, tmpVars, rls)
+		if err != nil {
+			return err
+		}
+
+	default:
+		return errors.New("implementation %q is not supported", req.IndexerImplementation)
+
+	}
+
+	// process
+	go s.Process(rls)
+
+	return nil
+}
+
 func (s *service) Process(release *domain.Release) {
 	if release == nil {
 		return
@@ -111,19 +168,19 @@ func (s *service) Process(release *domain.Release) {
 	// TODO dupe checks
 
 	// get filters by priority
-	filters, err := s.filterSvc.FindByIndexerIdentifier(ctx, release.Indexer)
+	filters, err := s.filterSvc.FindByIndexerIdentifier(ctx, release.Indexer.Identifier)
 	if err != nil {
-		s.log.Error().Err(err).Msgf("release.Process: error finding filters for indexer: %s", release.Indexer)
+		s.log.Error().Err(err).Msgf("release.Process: error finding filters for indexer: %s", release.Indexer.Name)
 		return
 	}
 
 	if len(filters) == 0 {
-		s.log.Warn().Msgf("no active filters found for indexer: %s", release.Indexer)
+		s.log.Warn().Msgf("no active filters found for indexer: %s", release.Indexer.Name)
 		return
 	}
 
 	if err := s.processFilters(ctx, filters, release); err != nil {
-		s.log.Error().Err(err).Msgf("release.Process: error processing filters for indexer: %s", release.Indexer)
+		s.log.Error().Err(err).Msgf("release.Process: error processing filters for indexer: %s", release.Indexer.Name)
 		return
 	}
 
@@ -139,7 +196,7 @@ func (s *service) processFilters(ctx context.Context, filters []*domain.Filter, 
 	for _, f := range filters {
 		f := f
 
-		l := s.log.With().Str("indexer", release.Indexer).Str("filter", f.Name).Str("release", release.TorrentName).Logger()
+		l := s.log.With().Str("indexer", release.Indexer.Identifier).Str("filter", f.Name).Str("release", release.TorrentName).Logger()
 
 		// save filter on release
 		release.Filter = f
@@ -154,13 +211,13 @@ func (s *service) processFilters(ctx context.Context, filters []*domain.Filter, 
 		}
 
 		if !match {
-			l.Trace().Msgf("release.Process: indexer: %s, filter: %s release: %s, no match. rejections: %s", release.Indexer, release.FilterName, release.TorrentName, f.RejectionsString(false))
+			l.Trace().Msgf("release.Process: indexer: %s, filter: %s release: %s, no match. rejections: %s", release.Indexer.Name, release.FilterName, release.TorrentName, f.RejectionsString(false))
 
 			l.Debug().Msgf("filter %s rejected release: %s", f.Name, f.RejectionsString(true))
 			continue
 		}
 
-		l.Info().Msgf("Matched '%s' (%s) for %s", release.TorrentName, release.FilterName, release.Indexer)
+		l.Info().Msgf("Matched '%s' (%s) for %s", release.TorrentName, release.FilterName, release.Indexer.Name)
 
 		// found matching filter, lets find the filter actions and attach
 		active := true
@@ -179,7 +236,7 @@ func (s *service) processFilters(ctx context.Context, filters []*domain.Filter, 
 		// sleep for the delay period specified in the filter before running actions
 		delay := release.Filter.Delay
 		if delay > 0 {
-			l.Debug().Msgf("release.Process: delaying processing of '%s' (%s) for %s by %d seconds as specified in the filter", release.TorrentName, release.FilterName, release.Indexer, delay)
+			l.Debug().Msgf("release.Process: delaying processing of '%s' (%s) for %s by %d seconds as specified in the filter", release.TorrentName, release.FilterName, release.Indexer.Name, delay)
 			time.Sleep(time.Duration(delay) * time.Second)
 		}
 
@@ -201,16 +258,16 @@ func (s *service) processFilters(ctx context.Context, filters []*domain.Filter, 
 
 			// only run enabled actions
 			if !act.Enabled {
-				l.Trace().Msgf("release.Process: indexer: %s, filter: %s release: %s action '%s' not enabled, skip", release.Indexer, release.FilterName, release.TorrentName, act.Name)
+				l.Trace().Msgf("release.Process: indexer: %s, filter: %s release: %s action '%s' not enabled, skip", release.Indexer.Name, release.FilterName, release.TorrentName, act.Name)
 				continue
 			}
 
-			l.Trace().Msgf("release.Process: indexer: %s, filter: %s release: %s , run action: %s", release.Indexer, release.FilterName, release.TorrentName, act.Name)
+			l.Trace().Msgf("release.Process: indexer: %s, filter: %s release: %s , run action: %s", release.Indexer.Name, release.FilterName, release.TorrentName, act.Name)
 
 			// keep track of action clients to avoid sending the same thing all over again
 			_, tried := triedActionClients[actionClientTypeKey{Type: act.Type, ClientID: act.ClientID}]
 			if tried {
-				l.Trace().Msgf("release.Process: indexer: %s, filter: %s release: %s action client already tried, skip", release.Indexer, release.FilterName, release.TorrentName)
+				l.Trace().Msgf("release.Process: indexer: %s, filter: %s release: %s action client already tried, skip", release.Indexer.Name, release.FilterName, release.TorrentName)
 				continue
 			}
 

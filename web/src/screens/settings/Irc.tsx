@@ -5,7 +5,7 @@
 
 import { Fragment, MouseEvent, useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
-import { LockClosedIcon, LockOpenIcon, PlusIcon } from "@heroicons/react/24/solid";
+import { ArrowPathIcon, LockClosedIcon, LockOpenIcon, PlusIcon } from "@heroicons/react/24/solid";
 import { Menu, Transition } from "@headlessui/react";
 import { toast } from "react-hot-toast";
 import {
@@ -31,6 +31,7 @@ import { SettingsContext } from "@utils/Context";
 import { Checkbox } from "@components/Checkbox";
 
 import { Section } from "./_components";
+import { RingResizeSpinner } from "@components/Icons.tsx";
 
 interface SortConfig {
   key: keyof ListItemProps["network"] | "enabled";
@@ -575,6 +576,49 @@ const ListItemDropdown = ({
   );
 };
 
+interface ReprocessAnnounceProps {
+  networkId: number;
+  channel: string;
+  msg: string;
+}
+
+const ReprocessAnnounceButton = ({ networkId, channel, msg }: ReprocessAnnounceProps) => {
+  const mutation = useMutation({
+    mutationFn: (req: IrcProcessManualRequest) => APIClient.irc.reprocessAnnounce(req.network_id, req.channel, req.msg),
+    onSuccess: () => {
+      toast.custom((t) => (
+        <Toast type="success" body={`Announce sent to re-process!`} t={t} />
+      ));
+    }
+  });
+
+  const reprocessAnnounce = () => {
+    const req: IrcProcessManualRequest = {
+      network_id: networkId,
+      msg: msg,
+      channel: channel,
+    }
+
+    if (channel.startsWith("#")) {
+      req.channel = channel.replace("#", "")
+    }
+
+    mutation.mutate(req);
+  };
+
+  return (
+    <div className="block">
+    <button className="flex items-center justify-center size-5 mr-1 p-1 rounded transition border-gray-500 bg-gray-250 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600" onClick={reprocessAnnounce} title="Re-process announce">
+      {mutation.isPending
+        ? <RingResizeSpinner className="text-blue-500 iconHeight" aria-hidden="true" />
+        : <ArrowPathIcon />
+      }
+    </button>
+    </div>
+  );
+
+}
+
 type IrcEvent = {
   channel: string;
   nick: string;
@@ -684,10 +728,16 @@ export const Events = ({ network, channel }: EventsProps) => {
             key={idx}
             className={classNames(
               settings.indentLogLines ? "grid justify-start grid-flow-col" : "",
-              settings.hideWrappedText ? "truncate hover:text-ellipsis hover:whitespace-normal" : ""
+              settings.hideWrappedText ? "truncate hover:text-ellipsis hover:whitespace-normal" : "",
+              "flex items-center hover:bg-gray-200 hover:dark:bg-gray-800"
             )}
           >
-            <span className="font-mono text-gray-500 dark:text-gray-500 mr-1"><span className="dark:text-gray-600"><span className="dark:text-gray-700">[{simplifyDate(entry.time)}]</span> {entry.nick}:</span> {entry.msg}</span>
+            <ReprocessAnnounceButton networkId={network.id} channel={channel} msg={entry.msg} />
+            <div className="flex-1">
+              <span className="font-mono text-gray-500 dark:text-gray-500 mr-1">
+                <span className="dark:text-gray-600"><span className="dark:text-gray-700">[{simplifyDate(entry.time)}]</span> {entry.nick}:</span> {entry.msg}
+              </span>
+            </div>
           </div>
         ))}
       </div>
