@@ -135,16 +135,9 @@ export const FilterActionsRoute = createRoute({
   component: Actions
 });
 
-const ReleasesRoute = createRoute({
+export const ReleasesRoute = createRoute({
   getParentRoute: () => AuthIndexRoute,
-  path: 'releases'
-});
-
-// type ReleasesSearch = z.infer<typeof releasesSearchSchema>
-
-export const ReleasesIndexRoute = createRoute({
-  getParentRoute: () => ReleasesRoute,
-  path: '/',
+  path: 'releases',
   component: Releases,
   validateSearch: (search) => z.object({
     offset: z.number().optional(),
@@ -347,7 +340,7 @@ export const RootRoute = createRootRouteWithContext<{
 
 const filterRouteTree = FiltersRoute.addChildren([FilterIndexRoute, FilterGetByIdRoute.addChildren([FilterGeneralRoute, FilterMoviesTvRoute, FilterMusicRoute, FilterAdvancedRoute, FilterExternalRoute, FilterActionsRoute])])
 const settingsRouteTree = SettingsRoute.addChildren([SettingsIndexRoute, SettingsLogRoute, SettingsIndexersRoute, SettingsIrcRoute, SettingsFeedsRoute, SettingsClientsRoute, SettingsNotificationsRoute, SettingsApiRoute, SettingsReleasesRoute, SettingsAccountRoute])
-const authenticatedTree = AuthRoute.addChildren([AuthIndexRoute.addChildren([DashboardRoute, filterRouteTree, ReleasesRoute.addChildren([ReleasesIndexRoute]), settingsRouteTree, LogsRoute])])
+const authenticatedTree = AuthRoute.addChildren([AuthIndexRoute.addChildren([DashboardRoute, filterRouteTree, ReleasesRoute, settingsRouteTree, LogsRoute])])
 const routeTree = RootRoute.addChildren([
   authenticatedTree,
   LoginRoute,

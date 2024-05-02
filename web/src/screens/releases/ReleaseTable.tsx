@@ -16,7 +16,7 @@ import {
   EyeSlashIcon
 } from "@heroicons/react/24/solid";
 
-import { ReleasesIndexRoute } from "@app/routes";
+import { ReleasesRoute } from "@app/routes";
 import { ReleasesListQueryOptions } from "@api/queries";
 import { RandomLinuxIsos } from "@utils";
 
@@ -94,7 +94,7 @@ const EmptyReleaseList = () => (
 );
 
 export const ReleaseTable = () => {
-  const search = ReleasesIndexRoute.useSearch()
+  const search = ReleasesRoute.useSearch()
 
   const columns = React.useMemo(() => [
     {
