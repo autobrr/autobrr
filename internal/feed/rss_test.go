@@ -46,9 +46,10 @@ func TestRSSJob_processItem(t *testing.T) {
 				Feed: &domain.Feed{
 					MaxAge: 3600,
 					Indexer: domain.IndexerMinimal{
-						ID:         0,
-						Name:       "Mock Feed",
-						Identifier: "mock-feed",
+						ID:                 0,
+						Name:               "Mock Feed",
+						Identifier:         "mock-feed",
+						IdentifierExternal: "Mock Indexer",
 					},
 				},
 				Name:       "test feed",
@@ -71,7 +72,7 @@ func TestRSSJob_processItem(t *testing.T) {
 				Link: "/details.php?id=00000&hit=1",
 				GUID: "Some.Release.Title.2022.09.22.720p.WEB.h264-GROUP",
 			}},
-			want: &domain.Release{ID: 0, FilterStatus: "PENDING", Rejections: []string{}, Indexer: domain.IndexerMinimal{0, "Mock Feed", "mock-feed"}, FilterName: "", Protocol: "torrent", Implementation: "RSS", Timestamp: now, GroupID: "", TorrentID: "", DownloadURL: "https://fake-feed.com/details.php?id=00000&hit=1", TorrentTmpFile: "", TorrentDataRawBytes: []uint8(nil), TorrentHash: "", TorrentName: "Some.Release.Title.2022.09.22.720p.WEB.h264-GROUP", Size: 1490000000, Title: "Some Release Title", Description: "Category: Example\n Size: 1.49 GB\n Status: 27 seeders and 1 leechers\n Speed: 772.16 kB/s\n Added: 2022-09-29 16:06:08\n", Category: "", Season: 0, Episode: 0, Year: 2022, Resolution: "720p", Source: "WEB", Codec: []string{"H.264"}, Container: "", HDR: []string(nil), Audio: []string(nil), AudioChannels: "", Group: "GROUP", Region: "", Language: nil, Proper: false, Repack: false, Website: "", Artists: "", Type: "episode", LogScore: 0, Origin: "", Tags: []string{}, ReleaseTags: "", Freeleech: false, FreeleechPercent: 0, Bonus: []string(nil), Uploader: "", PreTime: "", Other: []string(nil), RawCookie: "", AdditionalSizeCheckRequired: false, FilterID: 0, Filter: (*domain.Filter)(nil), ActionStatus: []domain.ReleaseActionStatus(nil)},
+			want: &domain.Release{ID: 0, FilterStatus: "PENDING", Rejections: []string{}, Indexer: domain.IndexerMinimal{0, "Mock Feed", "mock-feed", "Mock Indexer"}, FilterName: "", Protocol: "torrent", Implementation: "RSS", Timestamp: now, GroupID: "", TorrentID: "", DownloadURL: "https://fake-feed.com/details.php?id=00000&hit=1", TorrentTmpFile: "", TorrentDataRawBytes: []uint8(nil), TorrentHash: "", TorrentName: "Some.Release.Title.2022.09.22.720p.WEB.h264-GROUP", Size: 1490000000, Title: "Some Release Title", Description: "Category: Example\n Size: 1.49 GB\n Status: 27 seeders and 1 leechers\n Speed: 772.16 kB/s\n Added: 2022-09-29 16:06:08\n", Category: "", Season: 0, Episode: 0, Year: 2022, Resolution: "720p", Source: "WEB", Codec: []string{"H.264"}, Container: "", HDR: []string(nil), Audio: []string(nil), AudioChannels: "", Group: "GROUP", Region: "", Language: nil, Proper: false, Repack: false, Website: "", Artists: "", Type: "episode", LogScore: 0, Origin: "", Tags: []string{}, ReleaseTags: "", Freeleech: false, FreeleechPercent: 0, Bonus: []string(nil), Uploader: "", PreTime: "", Other: []string(nil), RawCookie: "", AdditionalSizeCheckRequired: false, FilterID: 0, Filter: (*domain.Filter)(nil), ActionStatus: []domain.ReleaseActionStatus(nil)},
 		},
 		{
 			name: "with_baseurl",
@@ -79,9 +80,10 @@ func TestRSSJob_processItem(t *testing.T) {
 				Feed: &domain.Feed{
 					MaxAge: 3600,
 					Indexer: domain.IndexerMinimal{
-						ID:         0,
-						Name:       "Mock Feed",
-						Identifier: "mock-feed",
+						ID:                 0,
+						Name:               "Mock Feed",
+						Identifier:         "mock-feed",
+						IdentifierExternal: "Mock Indexer",
 					},
 				},
 				Name:       "test feed",
@@ -104,7 +106,7 @@ func TestRSSJob_processItem(t *testing.T) {
 				Link: "https://fake-feed.com/details.php?id=00000&hit=1",
 				GUID: "Some.Release.Title.2022.09.22.720p.WEB.h264-GROUP",
 			}},
-			want: &domain.Release{ID: 0, FilterStatus: "PENDING", Rejections: []string{}, Indexer: domain.IndexerMinimal{0, "Mock Feed", "mock-feed"}, FilterName: "", Protocol: "torrent", Implementation: "RSS", Timestamp: now, GroupID: "", TorrentID: "", DownloadURL: "https://fake-feed.com/details.php?id=00000&hit=1", TorrentTmpFile: "", TorrentDataRawBytes: []uint8(nil), TorrentHash: "", TorrentName: "Some.Release.Title.2022.09.22.720p.WEB.h264-GROUP", Size: 1490000000, Title: "Some Release Title", Description: "Category: Example\n Size: 1.49 GB\n Status: 27 seeders and 1 leechers\n Speed: 772.16 kB/s\n Added: 2022-09-29 16:06:08\n", Category: "", Season: 0, Episode: 0, Year: 2022, Resolution: "720p", Source: "WEB", Codec: []string{"H.264"}, Container: "", HDR: []string(nil), Audio: []string(nil), AudioChannels: "", Group: "GROUP", Region: "", Language: nil, Proper: false, Repack: false, Website: "", Artists: "", Type: "episode", LogScore: 0, Origin: "", Tags: []string{}, ReleaseTags: "", Freeleech: false, FreeleechPercent: 0, Bonus: []string(nil), Uploader: "", PreTime: "", Other: []string(nil), RawCookie: "", AdditionalSizeCheckRequired: false, FilterID: 0, Filter: (*domain.Filter)(nil), ActionStatus: []domain.ReleaseActionStatus(nil)},
+			want: &domain.Release{ID: 0, FilterStatus: "PENDING", Rejections: []string{}, Indexer: domain.IndexerMinimal{0, "Mock Feed", "mock-feed", "Mock Indexer"}, FilterName: "", Protocol: "torrent", Implementation: "RSS", Timestamp: now, GroupID: "", TorrentID: "", DownloadURL: "https://fake-feed.com/details.php?id=00000&hit=1", TorrentTmpFile: "", TorrentDataRawBytes: []uint8(nil), TorrentHash: "", TorrentName: "Some.Release.Title.2022.09.22.720p.WEB.h264-GROUP", Size: 1490000000, Title: "Some Release Title", Description: "Category: Example\n Size: 1.49 GB\n Status: 27 seeders and 1 leechers\n Speed: 772.16 kB/s\n Added: 2022-09-29 16:06:08\n", Category: "", Season: 0, Episode: 0, Year: 2022, Resolution: "720p", Source: "WEB", Codec: []string{"H.264"}, Container: "", HDR: []string(nil), Audio: []string(nil), AudioChannels: "", Group: "GROUP", Region: "", Language: nil, Proper: false, Repack: false, Website: "", Artists: "", Type: "episode", LogScore: 0, Origin: "", Tags: []string{}, ReleaseTags: "", Freeleech: false, FreeleechPercent: 0, Bonus: []string(nil), Uploader: "", PreTime: "", Other: []string(nil), RawCookie: "", AdditionalSizeCheckRequired: false, FilterID: 0, Filter: (*domain.Filter)(nil), ActionStatus: []domain.ReleaseActionStatus(nil)},
 		},
 		{
 			name: "time_parse",
@@ -112,9 +114,10 @@ func TestRSSJob_processItem(t *testing.T) {
 				Feed: &domain.Feed{
 					MaxAge: 360,
 					Indexer: domain.IndexerMinimal{
-						ID:         0,
-						Name:       "Mock Feed",
-						Identifier: "mock-feed",
+						ID:                 0,
+						Name:               "Mock Feed",
+						Identifier:         "mock-feed",
+						IdentifierExternal: "Mock Indexer",
 					},
 				},
 				Name:       "test feed",
@@ -138,7 +141,7 @@ func TestRSSJob_processItem(t *testing.T) {
 				GUID: "Some.Release.Title.2022.09.22.720p.WEB.h264-GROUP",
 				//PublishedParsed: &nowMinusTime,
 			}},
-			want: &domain.Release{ID: 0, FilterStatus: "PENDING", Rejections: []string{}, Indexer: domain.IndexerMinimal{0, "Mock Feed", "mock-feed"}, FilterName: "", Protocol: "torrent", Implementation: "RSS", Timestamp: now, GroupID: "", TorrentID: "", DownloadURL: "https://fake-feed.com/details.php?id=00000&hit=1", TorrentTmpFile: "", TorrentDataRawBytes: []uint8(nil), TorrentHash: "", TorrentName: "Some.Release.Title.2022.09.22.720p.WEB.h264-GROUP", Size: 1490000000, Title: "Some Release Title", Description: "Category: Example\n Size: 1.49 GB\n Status: 27 seeders and 1 leechers\n Speed: 772.16 kB/s\n Added: 2022-09-29 16:06:08\n", Category: "", Season: 0, Episode: 0, Year: 2022, Resolution: "720p", Source: "WEB", Codec: []string{"H.264"}, Container: "", HDR: []string(nil), Audio: []string(nil), AudioChannels: "", Group: "GROUP", Region: "", Language: nil, Proper: false, Repack: false, Website: "", Artists: "", Type: "episode", LogScore: 0, Origin: "", Tags: []string{}, ReleaseTags: "", Freeleech: false, FreeleechPercent: 0, Bonus: []string(nil), Uploader: "", PreTime: "", Other: []string(nil), RawCookie: "", AdditionalSizeCheckRequired: false, FilterID: 0, Filter: (*domain.Filter)(nil), ActionStatus: []domain.ReleaseActionStatus(nil)},
+			want: &domain.Release{ID: 0, FilterStatus: "PENDING", Rejections: []string{}, Indexer: domain.IndexerMinimal{0, "Mock Feed", "mock-feed", "Mock Indexer"}, FilterName: "", Protocol: "torrent", Implementation: "RSS", Timestamp: now, GroupID: "", TorrentID: "", DownloadURL: "https://fake-feed.com/details.php?id=00000&hit=1", TorrentTmpFile: "", TorrentDataRawBytes: []uint8(nil), TorrentHash: "", TorrentName: "Some.Release.Title.2022.09.22.720p.WEB.h264-GROUP", Size: 1490000000, Title: "Some Release Title", Description: "Category: Example\n Size: 1.49 GB\n Status: 27 seeders and 1 leechers\n Speed: 772.16 kB/s\n Added: 2022-09-29 16:06:08\n", Category: "", Season: 0, Episode: 0, Year: 2022, Resolution: "720p", Source: "WEB", Codec: []string{"H.264"}, Container: "", HDR: []string(nil), Audio: []string(nil), AudioChannels: "", Group: "GROUP", Region: "", Language: nil, Proper: false, Repack: false, Website: "", Artists: "", Type: "episode", LogScore: 0, Origin: "", Tags: []string{}, ReleaseTags: "", Freeleech: false, FreeleechPercent: 0, Bonus: []string(nil), Uploader: "", PreTime: "", Other: []string(nil), RawCookie: "", AdditionalSizeCheckRequired: false, FilterID: 0, Filter: (*domain.Filter)(nil), ActionStatus: []domain.ReleaseActionStatus(nil)},
 		},
 		{
 			name: "time_parse",
@@ -175,9 +178,10 @@ func TestRSSJob_processItem(t *testing.T) {
 				Feed: &domain.Feed{
 					MaxAge: 3600,
 					Indexer: domain.IndexerMinimal{
-						ID:         0,
-						Name:       "Mock Feed",
-						Identifier: "mock-feed",
+						ID:                 0,
+						Name:               "Mock Feed",
+						Identifier:         "mock-feed",
+						IdentifierExternal: "Mock Indexer",
 					},
 					Settings: &domain.FeedSettingsJSON{DownloadType: domain.FeedDownloadTypeMagnet},
 				},
@@ -203,7 +207,7 @@ func TestRSSJob_processItem(t *testing.T) {
 					},
 				},
 			}},
-			want: &domain.Release{ID: 0, FilterStatus: "PENDING", Rejections: []string{}, Indexer: domain.IndexerMinimal{0, "Mock Feed", "mock-feed"}, FilterName: "", Protocol: "torrent", Implementation: "RSS", Timestamp: now, MagnetURI: "magnet:?xt=this-not-a-valid-magnet", GroupID: "", TorrentID: "", DownloadURL: "https://fake-feed.com/details.php?id=00000&hit=1", TorrentTmpFile: "", TorrentDataRawBytes: []uint8(nil), TorrentHash: "", TorrentName: "Some.Release.Title.2022.09.22.720p.WEB.h264-GROUP", Size: 0, Title: "Some Release Title", Description: "Category: Example", Category: "", Season: 0, Episode: 0, Year: 2022, Resolution: "720p", Source: "WEB", Codec: []string{"H.264"}, Container: "", HDR: []string(nil), Audio: []string(nil), AudioChannels: "", Group: "GROUP", Region: "", Language: nil, Proper: false, Repack: false, Website: "", Artists: "", Type: "episode", LogScore: 0, Origin: "", Tags: []string{}, ReleaseTags: "", Freeleech: false, FreeleechPercent: 0, Bonus: []string(nil), Uploader: "", PreTime: "", Other: []string(nil), RawCookie: "", AdditionalSizeCheckRequired: false, FilterID: 0, Filter: (*domain.Filter)(nil), ActionStatus: []domain.ReleaseActionStatus(nil)},
+			want: &domain.Release{ID: 0, FilterStatus: "PENDING", Rejections: []string{}, Indexer: domain.IndexerMinimal{0, "Mock Feed", "mock-feed", "Mock Indexer"}, FilterName: "", Protocol: "torrent", Implementation: "RSS", Timestamp: now, MagnetURI: "magnet:?xt=this-not-a-valid-magnet", GroupID: "", TorrentID: "", DownloadURL: "https://fake-feed.com/details.php?id=00000&hit=1", TorrentTmpFile: "", TorrentDataRawBytes: []uint8(nil), TorrentHash: "", TorrentName: "Some.Release.Title.2022.09.22.720p.WEB.h264-GROUP", Size: 0, Title: "Some Release Title", Description: "Category: Example", Category: "", Season: 0, Episode: 0, Year: 2022, Resolution: "720p", Source: "WEB", Codec: []string{"H.264"}, Container: "", HDR: []string(nil), Audio: []string(nil), AudioChannels: "", Group: "GROUP", Region: "", Language: nil, Proper: false, Repack: false, Website: "", Artists: "", Type: "episode", LogScore: 0, Origin: "", Tags: []string{}, ReleaseTags: "", Freeleech: false, FreeleechPercent: 0, Bonus: []string(nil), Uploader: "", PreTime: "", Other: []string(nil), RawCookie: "", AdditionalSizeCheckRequired: false, FilterID: 0, Filter: (*domain.Filter)(nil), ActionStatus: []domain.ReleaseActionStatus(nil)},
 		},
 	}
 	for _, tt := range tests {
