@@ -696,3 +696,53 @@ func (repo *ReleaseRepo) CanDownloadShow(ctx context.Context, title string, seas
 
 	return true, nil
 }
+
+func (repo *ReleaseRepo) UpdateBaseURL(ctx context.Context, indexer string, oldBaseURL, newBaseURL string) error {
+	tx, err := repo.db.BeginTx(ctx, &sql.TxOptions{})
+	if err != nil {
+		return err
+	}
+
+	defer func() {
+		var txErr error
+		if p := recover(); p != nil {
+			txErr = tx.Rollback()
+			if txErr != nil {
+				repo.log.Error().Err(txErr).Msg("error rolling back transaction")
+			}
+			repo.log.Error().Msgf("something went terribly wrong panic: %v", p)
+		} else if err != nil {
+			txErr = tx.Rollback()
+			if txErr != nil {
+				repo.log.Error().Err(txErr).Msg("error rolling back transaction")
+			}
+		} else {
+			// All good, commit
+			txErr = tx.Commit()
+			if txErr != nil {
+				repo.log.Error().Err(txErr).Msg("error committing transaction")
+			}
+		}
+	}()
+
+	queryBuilder := repo.db.squirrel.
+		RunWith(tx).
+		Update("release").
+		Set("download_url", sq.Expr("REPLACE(download_url, ?, ?)", oldBaseURL, newBaseURL)).
+		Set("info_url", sq.Expr("REPLACE(info_url, ?, ?)", oldBaseURL, newBaseURL)).
+		Where(sq.Eq{"indexer": indexer})
+
+	result, err := queryBuilder.ExecContext(ctx)
+	if err != nil {
+		return errors.Wrap(err, "error executing query")
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return errors.Wrap(err, "error getting rows affected")
+	}
+
+	repo.log.Trace().Msgf("release updated (%d) base urls from %q to %q", rowsAffected, oldBaseURL, newBaseURL)
+
+	return nil
+}
